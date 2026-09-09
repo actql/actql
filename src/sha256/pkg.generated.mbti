@@ -1,0 +1,24 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/sha256"
+
+import {
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn digest(Bytes) -> Bytes
+
+pub fn hex(Bytes) -> String
+
+pub fn text_hex(String) -> Result[String, TextEncodingError]
+
+// Errors
+
+// Types and methods
+pub(all) enum TextEncodingError {
+  UnpairedSurrogate(Int)
+} derive(Eq, @debug.Debug)
+
+// Type aliases
+
+// Traits
