@@ -1,0 +1,25 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/source_span"
+
+import {
+  "moonbitlang/core/debug",
+}
+
+// Values
+
+// Errors
+
+// Types and methods
+pub(all) struct Span {
+  start_byte : Int
+  end_byte : Int
+  start_line : Int
+  start_column : Int
+  end_line : Int
+  end_column : Int
+  source_path : String
+} derive(Eq, @debug.Debug)
+
+// Type aliases
+
+// Traits

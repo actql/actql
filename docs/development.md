@@ -143,6 +143,10 @@ pins. These tests hash supplied envelopes; they do not validate their domain mea
 exact-key checks, primitive readers and their local failure ordering. They do
 not replace a text parser, tree admission or caller-owned resource limits.
 
+[JSON source parsing](design/json-source.md) adds strict UTF-8 and String inputs,
+normalized values with original source spans, and explicit byte/node/depth limits.
+Its tests do not establish YAML, Program or canonical-artifact conformance.
+
 Unicode 16.0.0 inputs for NFC, normalization cases and the Unicode license are pinned in
 [vendor/unicode/16.0.0/manifest.json](../vendor/unicode/16.0.0/manifest.json).
 `npm run check:unicode` verifies the input pins, both committed generated files,
