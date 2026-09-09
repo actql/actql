@@ -1,0 +1,13 @@
+supported_targets = "+js+wasm+native"
+
+import {
+  "actql/actql/encode_core" @encode,
+  "actql/actql/canonical_value" @value,
+  "actql/actql/sha256",
+}
+
+import {
+  "moonbitlang/core/json",
+} for "test"
+
+formatter(ignore: [ "identity_vectors.generated_test.mbt" ])

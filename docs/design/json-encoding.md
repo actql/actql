@@ -14,9 +14,9 @@ order, no whitespace, no excluded fields. This manifest is ASCII-only.
 
 The manifest lists law names; it does not contain the complete definitions of
 all kernel laws. The scalar rules below resolve the encoding subset. Canonical
-object ordering, normalization and CID composition remain outside this package;
-the complete canonical-JSON contract and its pinned identity tests are required
-before implementing that layer.
+object ordering, normalization and CID composition remain outside this package.
+The [canonical JSON layer](canonical-json.md) defines their serialization contract,
+bounded admission and pinned identity tests; this does not resolve all AoA laws.
 
 ## Scalar spelling
 

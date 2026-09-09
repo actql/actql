@@ -1,0 +1,44 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/canonical_json"
+
+import {
+  "actql/actql/encode_core",
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn[T] array_values(FrozenArray[T]) -> Array[T]
+
+pub fn cid_value(CanonicalValue, Int, Int, Int) -> String raise @encode_core.EncodeFailure
+
+pub fn emit_value(CanonicalValue, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
+
+pub fn from_json(Json, Int, Int, Int) -> CanonicalValue raise CanonicalFailure
+
+pub fn measure_value(CanonicalValue, Int, Int, Int) -> Int raise @encode_core.EncodeFailure
+
+pub fn stringify_value(CanonicalValue, Int, Int, Int) -> String raise @encode_core.EncodeFailure
+
+// Errors
+pub(all) suberror CanonicalFailure {
+  InvalidNumber
+  InvalidUnicode(Int)
+  DuplicateKey(String)
+  InputLimit
+} derive(@debug.Debug)
+
+// Types and methods
+pub enum CanonicalValue {
+  Null
+  Bool(Bool)
+  Number(Double)
+  String(String)
+  Array(FrozenArray[CanonicalValue])
+  Object(FrozenArray[(String, CanonicalValue)])
+}
+
+type FrozenArray[T]
+
+// Type aliases
+
+// Traits

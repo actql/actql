@@ -1,0 +1,126 @@
+{
+  "version": "actql-canonical-json-vectors/0.1",
+  "cases": [
+    {
+      "id": "null",
+      "input": null,
+      "expected_json": "null",
+      "expected_cid": "sha256:74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b"
+    },
+    {
+      "id": "primitives",
+      "input": [
+        true,
+        false,
+        0,
+        1.5,
+        1e-7,
+        1e+21
+      ],
+      "expected_json": "[true,false,0,1.5,1e-7,1e+21]",
+      "expected_cid": "sha256:0e012b13b2dd28542f3a771f3196050b306a243c4ba8002732aed3c8d62b9cfa"
+    },
+    {
+      "id": "key-order",
+      "input": {
+        "z": 1,
+        "a": {
+          "b": 2,
+          "a": 1
+        }
+      },
+      "expected_json": "{\"a\":{\"a\":1,\"b\":2},\"z\":1}",
+      "expected_cid": "sha256:958055856bfd0cb5a18d286fca17d9a25d679082bf993b5b32d4900a86520ce4"
+    },
+    {
+      "id": "normalized-text",
+      "input": {
+        "é": "é\r\nline\rtail"
+      },
+      "expected_json": "{\"é\":\"é\\nline\\ntail\"}",
+      "expected_cid": "sha256:f6fdf947a61120213157d6a957e767e9289e9ae3071df0cfe8ebc45c8e83caa8"
+    },
+    {
+      "id": "normalized-equivalent",
+      "input": {
+        "é": "é\nline\ntail"
+      },
+      "expected_json": "{\"é\":\"é\\nline\\ntail\"}",
+      "expected_cid": "sha256:f6fdf947a61120213157d6a957e767e9289e9ae3071df0cfe8ebc45c8e83caa8"
+    },
+    {
+      "id": "utf16-order",
+      "input": {
+        "": 1,
+        "😀": 2,
+        "a": 3,
+        "퟿": 4
+      },
+      "expected_json": "{\"a\":3,\"퟿\":4,\"😀\":2,\"\":1}",
+      "expected_cid": "sha256:be084b6a13ceb218231a0704622633989b92267e1f0f4e4e2dad7a22c5e03ac2"
+    },
+    {
+      "id": "empty-containers",
+      "input": [
+        {},
+        []
+      ],
+      "expected_json": "[{},[]]",
+      "expected_cid": "sha256:7a38905296006c575d7d45d1d881690a3ee87361ed67ce64642e2504482da818"
+    },
+    {
+      "id": "field-preservation",
+      "input": {
+        "cid": "unchanged",
+        "identity_cid": "kept",
+        "version": "example"
+      },
+      "expected_json": "{\"cid\":\"unchanged\",\"identity_cid\":\"kept\",\"version\":\"example\"}",
+      "expected_cid": "sha256:b4c7972343376233ed1c5729a3a896745f692d9ec175bb92641c00bad5676111"
+    },
+    {
+      "id": "arrays-preserve-order",
+      "input": [
+        3,
+        1,
+        2
+      ],
+      "expected_json": "[3,1,2]",
+      "expected_cid": "sha256:51bda7ab4e44726cde71fcb6e4b515357059bb6b6dd5146d1fc50f73f11678c6"
+    },
+    {
+      "id": "hangul",
+      "input": {
+        "가": "각"
+      },
+      "expected_json": "{\"가\":\"각\"}",
+      "expected_cid": "sha256:63c8f867b9975d47abcf32a977f32a32d703c8ebed305f40ada63f9a0ec4be57"
+    },
+    {
+      "id": "escapes",
+      "input": {
+        "q\"\\\u0000\u001f/": "\u2028\u0085"
+      },
+      "expected_json": "{\"q\\\"\\\\\\u0000\\u001f/\":\"\u2028\u0085\"}",
+      "expected_cid": "sha256:2e4590de1d211d6cfcdf3b77677ad16826de6718c7c7a045212ea4f5659e393f"
+    },
+    {
+      "id": "nfkc-lookalikes",
+      "input": {
+        "ﬁ": 1,
+        "fi": 2
+      },
+      "expected_json": "{\"fi\":2,\"ﬁ\":1}",
+      "expected_cid": "sha256:0314869a5a3750ff3ce065d3caf91f6cfe7880b5c542d81cf67a78eb92055c4e"
+    },
+    {
+      "id": "large-integers",
+      "input": [
+        9007199254740992,
+        18446744073709552000
+      ],
+      "expected_json": "[9007199254740992,18446744073709552000]",
+      "expected_cid": "sha256:67177f74834ffed718e4575abe53f38345535392ab074f8e5ba0e1ae84de1f5d"
+    }
+  ]
+}

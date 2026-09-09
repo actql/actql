@@ -74,6 +74,7 @@ The checks are read-only:
 - `test:docs`: validator regression tests.
 - `check:nest`: independent Python lowering and JavaScript identity-preimage checks for the authored nest fixture subset.
 - `check:encoding`: kernel manifest pin, fixed scalar spelling expectations and generated encoding-test freshness.
+- `check:canonical`: canonical JSON corpus, existing contract CIDs and generated identity-test freshness.
 
 Dependencies are pinned in `package-lock.json`. External URL availability is
 not part of the deterministic local checks.
@@ -132,6 +133,11 @@ See [JSON encoding](design/json-encoding.md) for its exact preimage, resolved sc
 spelling rules and Writer boundaries. `npm run generate:encoding` regenerates
 MoonBit tests from fixed vectors; it does not replace expected text with product
 output. Run the generated tests on all three targets to verify execution.
+
+[Canonical JSON and CID](design/canonical-json.md) documents the normalization,
+ordering, ownership and explicit budget contracts. `npm run generate:canonical`
+regenerates identity tests from fixed corpus expectations and existing contract
+pins. These tests hash supplied envelopes; they do not validate their domain meaning.
 
 Unicode 16.0.0 inputs for NFC, normalization cases and the Unicode license are pinned in
 [vendor/unicode/16.0.0/manifest.json](../vendor/unicode/16.0.0/manifest.json).

@@ -7,7 +7,9 @@
     "node": ">=22"
   },
   "scripts": {
-    "check:docs": "npm run check:contracts && npm run check:links && npm run check:examples && npm run test:docs && npm run check:nest && npm run check:unicode && npm run check:encoding",
+    "check:docs": "npm run check:contracts && npm run check:links && npm run check:examples && npm run test:docs && npm run check:nest && npm run check:unicode && npm run check:encoding && npm run check:canonical",
+    "check:canonical": "node scripts/check-canonical-json.mjs && node --test scripts/canonical-json.test.mjs",
+    "generate:canonical": "node scripts/check-canonical-json.mjs --write",
     "check:encoding": "node scripts/check-json-encoding.mjs && node --test scripts/json-encoding.test.mjs",
     "generate:encoding": "node scripts/check-json-encoding.mjs --write",
     "check:unicode": "python3 scripts/generate-unicode-tables.py --check && python3 -m unittest discover -s scripts -p test_unicode_generation.py",
