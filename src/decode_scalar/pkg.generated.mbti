@@ -1,0 +1,46 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/decode_scalar"
+
+import {
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn admit_utf8_length(String, Int) -> Result[Int, Utf8AdmissionIssue]
+
+pub fn admit_utf8_length64(String, Int64) -> Result[Int64, Utf8AdmissionIssue]
+
+pub fn read_decimal_int64(String) -> Result[Int64, DecimalIssue]
+
+pub fn read_finite_number(Double) -> Double?
+
+pub fn read_hex_uint64(String) -> UInt64?
+
+pub fn read_int32(Double) -> Int?
+
+pub fn read_integer_number(Double) -> Double?
+
+pub fn read_safe_integer(Double) -> Int64?
+
+pub fn unicode_scalar_count(String) -> Int?
+
+pub fn utf8_length_within(String, Int) -> Int?
+
+// Errors
+
+// Types and methods
+pub(all) enum DecimalIssue {
+  InvalidSyntax
+  NonCanonical
+  RangeExceeded
+} derive(Eq, @debug.Debug)
+
+pub(all) enum Utf8AdmissionIssue {
+  InvalidLimit
+  LimitExceeded
+  MalformedUtf16(Int)
+} derive(Eq, @debug.Debug)
+
+// Type aliases
+
+// Traits

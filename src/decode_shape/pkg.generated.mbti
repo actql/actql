@@ -1,0 +1,30 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/decode_shape"
+
+import {
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn admit_key(KeyAdmission, String) -> Bool
+
+pub fn check_object_keys(Array[String], Array[String], Array[String]) -> Result[Unit, ObjectKeyIssue]
+
+pub fn key_admission() -> KeyAdmission
+
+pub fn unknown_key_indices(Array[String], Array[String]) -> Array[Int]
+
+// Errors
+
+// Types and methods
+type KeyAdmission
+
+pub(all) enum ObjectKeyIssue {
+  MissingKey(String)
+  UnknownKey(String)
+  DuplicateKey(String)
+} derive(Eq, @debug.Debug)
+
+// Type aliases
+
+// Traits

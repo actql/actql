@@ -139,6 +139,10 @@ ordering, ownership and explicit budget contracts. `npm run generate:canonical`
 regenerates identity tests from fixed corpus expectations and existing contract
 pins. These tests hash supplied envelopes; they do not validate their domain meaning.
 
+[Structural and scalar decoding helpers](design/decode-foundation.md) define
+exact-key checks, primitive readers and their local failure ordering. They do
+not replace a text parser, tree admission or caller-owned resource limits.
+
 Unicode 16.0.0 inputs for NFC, normalization cases and the Unicode license are pinned in
 [vendor/unicode/16.0.0/manifest.json](../vendor/unicode/16.0.0/manifest.json).
 `npm run check:unicode` verifies the input pins, both committed generated files,
