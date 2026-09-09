@@ -1,6 +1,7 @@
 """Regression tests for pinned Unicode inputs and reproducible generation."""
 
 import json
+import importlib.util
 import pathlib
 import shutil
 import subprocess
@@ -10,6 +11,69 @@ import unittest
 
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
+SPEC = importlib.util.spec_from_file_location(
+    "unicode_generator", ROOT / "scripts" / "generate-unicode-tables.py",
+)
+GENERATOR = importlib.util.module_from_spec(SPEC)
+SPEC.loader.exec_module(GENERATOR)
+
+
+class UnicodeCoverageTests(unittest.TestCase):
+    def test_assigned_scalars_expand_ranges_and_exclude_surrogates(self):
+        scalars = GENERATOR.assigned_scalars([
+            "000D;<control>;Cc",
+            "0041;LATIN CAPITAL LETTER A;Lu",
+            "3400;<CJK Ideograph Extension A, First>;Lo",
+            "3402;<CJK Ideograph Extension A, Last>;Lo",
+            "D800;<Surrogate, First>;Cs",
+            "DFFF;<Surrogate, Last>;Cs",
+            "E000;<Private Use, First>;Co",
+            "E002;<Private Use, Last>;Co",
+            "10000;LINEAR B SYLLABLE B008 A;Lo",
+        ])
+        self.assertEqual(
+            scalars, {0xD, 0x41, 0x3400, 0x3401, 0x3402, 0xE000, 0xE001, 0xE002, 0x10000},
+        )
+
+    def test_ucd_range_errors_are_rejected(self):
+        for lines in [
+            ["3400;<CJK, First>;Lo"],
+            ["3402;<CJK, Last>;Lo"],
+            ["3400;<CJK, First>;Lo", "3402;<Other, Last>;Lo"],
+            ["3400;<CJK, First>;Lo", "3402;<CJK, Last>;Co"],
+            ["3400;<CJK, First>;Lo", "3300;<CJK, Last>;Lo"],
+            ["3400;<CJK, First>;Lo", "3401;<Other, First>;Lo"],
+            ["3400;<CJK, First>;Lo", "0041;LATIN CAPITAL LETTER A;Lu"],
+            ["110000;OUT OF RANGE;Lo"],
+        ]:
+            with self.subTest(lines=lines), self.assertRaises(ValueError):
+                GENERATOR.assigned_scalars(lines)
+
+    def test_only_part1_sources_are_excluded_and_ranges_are_inclusive(self):
+        cases, part1 = GENERATOR.normalization_cases([
+            "@Part0 # Not excluded",
+            "0041;0041;0041;0041;0041;",
+            "@Part1",
+            "00C0;00C0;0041 0300;00C0;0041 0300;",
+            "@Part2",
+            "0041 0300;00C0;0041 0300;00C0;0041 0300;",
+        ])
+        self.assertEqual(len(cases), 3)
+        self.assertEqual(part1, {0xC0})
+        remaining = {0xD, 0x41, 0x42, 0xC0, 0xE000, 0xE001} - part1
+        ranges = GENERATOR.contiguous_ranges(remaining)
+        self.assertEqual(ranges, [(0xD, 0xD), (0x41, 0x42), (0xE000, 0xE001)])
+        self.assertEqual(
+            {cp for start, end in ranges for cp in range(start, end + 1)}, remaining,
+        )
+
+    def test_missing_part1_and_multi_scalar_part1_sources_are_rejected(self):
+        for lines in [
+            ["@Part0", "0041;0041;0041;0041;0041;"],
+            ["@Part1", "0041 0300;00C0;0041 0300;00C0;0041 0300;"],
+        ]:
+            with self.subTest(lines=lines), self.assertRaises(ValueError):
+                GENERATOR.normalization_cases(lines)
 
 
 class UnicodeGenerationTests(unittest.TestCase):
@@ -41,11 +105,30 @@ class UnicodeGenerationTests(unittest.TestCase):
     def test_reproducible_generation_and_changed_output(self):
         self.assert_success()
         self.assert_success("--check")
-        output = self.outputs / "unicode_tables.generated.mbt"
-        output.write_bytes(output.read_bytes() + b"// changed\n")
-        result = self.generate("--check")
-        self.assertNotEqual(result.returncode, 0)
-        self.assertIn("generated Unicode files differ", result.stderr)
+        for name in [
+            "unicode_tables.generated.mbt", "normalization_conformance.generated_test.mbt",
+        ]:
+            output = self.outputs / name
+            original = output.read_bytes()
+            for mutation in ["change", "delete"]:
+                with self.subTest(file=name, mutation=mutation):
+                    if mutation == "change":
+                        output.write_bytes(original + b"// changed\n")
+                    else:
+                        output.unlink()
+                    result = self.generate("--check")
+                    self.assertNotEqual(result.returncode, 0)
+                    self.assertIn(name, result.stderr)
+                    output.write_bytes(original)
+
+    def test_generated_corpus_uses_pure_nfc_and_includes_complement(self):
+        self.assert_success()
+        corpus = (self.outputs / "normalization_conformance.generated_test.mbt").read_text()
+        self.assertNotIn("normalize_nfc_lf(", corpus)
+        self.assertIn("normalize_nfc(case.4), Ok(case.3)", corpus)
+        self.assertIn("normalization_unchanged_ranges", corpus)
+        self.assertIn("scalar <= end", corpus)
+        self.assertIn("assert_eq(normalize_nfc(value), Ok(value))", corpus)
 
     def test_changed_input_is_rejected_before_generation(self):
         source = self.inputs / "UnicodeData.txt"

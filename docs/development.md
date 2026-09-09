@@ -128,18 +128,19 @@ The current document checks do not establish this transitive dependency closure.
 
 Unicode 16.0.0 inputs for NFC, normalization cases and the Unicode license are pinned in
 [vendor/unicode/16.0.0/manifest.json](../vendor/unicode/16.0.0/manifest.json).
-`npm run check:unicode` verifies their hashes without generating implementation files.
-When adding the canonical-value package, run
-`python3 scripts/generate-unicode-tables.py` to generate its tables and NFC tests;
-use `--check` to verify reproducibility. `--output-dir <directory>` allows isolated generation.
+`npm run check:unicode` verifies the input pins, both committed generated files,
+and the generator regression tests without updating implementation files.
+Run `python3 scripts/generate-unicode-tables.py` to regenerate the tables and NFC
+tests; review the changes before committing. `--verify-inputs` checks only the
+inputs, and `--output-dir <directory>` allows isolated generation.
 
-The canonical-value addition must connect `--check` to CI for both committed
-generated files. Test pure NFC separately from ActQL's NFC-plus-LF normalization:
-include the listed normalization cases and the assigned scalar values outside
+The canonical-value tests separate pure NFC from ActQL's NFC-plus-LF normalization.
+Pure NFC covers the listed normalization cases and assigned scalar values outside
 Part1, using the pinned UCD ranges rather than the host's Unicode database.
-Run these tests on all three targets; input verification and generation alone
-are not NFC execution conformance. Add the tables with their consumers and
-the generated-file formatter exclusions, and preserve the Unicode license in distributions.
+CI runs these tests on JS, Wasm and native. Input verification and generation alone
+are not NFC execution conformance. Generated files are excluded from formatting;
+their exact contents are checked by the generator. Preserve the Unicode license
+in distributions that include the derived tables.
 
 Add foundational packages in dependency order: SHA-256, canonical values,
 encoding, canonical JSON, then structural and scalar decoding. Each addition

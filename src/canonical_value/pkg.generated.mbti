@@ -1,0 +1,24 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/canonical_value"
+
+import {
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn compare_utf16(String, String) -> Int
+
+pub fn normalize_nfc(String) -> Result[String, TextNormalizationError]
+
+pub fn normalize_nfc_lf(String) -> Result[String, TextNormalizationError]
+
+// Errors
+
+// Types and methods
+pub(all) enum TextNormalizationError {
+  UnpairedSurrogate(Int)
+} derive(Eq, @debug.Debug)
+
+// Type aliases
+
+// Traits

@@ -8,7 +8,7 @@
   },
   "scripts": {
     "check:docs": "npm run check:contracts && npm run check:links && npm run check:examples && npm run test:docs && npm run check:nest && npm run check:unicode",
-    "check:unicode": "python3 scripts/generate-unicode-tables.py --verify-inputs && python3 -m unittest discover -s scripts -p test_unicode_generation.py",
+    "check:unicode": "python3 scripts/generate-unicode-tables.py --check && python3 -m unittest discover -s scripts -p test_unicode_generation.py",
     "check:nest": "node scripts/check-nest-reference.mjs",
     "generate:nest": "node scripts/check-nest-reference.mjs --write",
     "check:contracts": "node scripts/check-actql-spec-family.mjs",
