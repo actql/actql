@@ -126,6 +126,31 @@ retrieval location, hash preimage rule and required profiles. Verify the retriev
 body against its pin before using it; do not infer a replacement from an implementation.
 The current document checks do not establish this transitive dependency closure.
 
-The Unicode data tables and remaining independent corpora are also implementation
-inputs to supply. README operation excerpts need typed fixture contexts before
+Unicode 16.0.0 inputs for NFC, normalization cases and the Unicode license are pinned in
+[vendor/unicode/16.0.0/manifest.json](../vendor/unicode/16.0.0/manifest.json).
+`npm run check:unicode` verifies their hashes without generating implementation files.
+When adding the canonical-value package, run
+`python3 scripts/generate-unicode-tables.py` to generate its tables and NFC tests;
+use `--check` to verify reproducibility. `--output-dir <directory>` allows isolated generation.
+
+The canonical-value addition must connect `--check` to CI for both committed
+generated files. Test pure NFC separately from ActQL's NFC-plus-LF normalization:
+include the listed normalization cases and the assigned scalar values outside
+Part1, using the pinned UCD ranges rather than the host's Unicode database.
+Run these tests on all three targets; input verification and generation alone
+are not NFC execution conformance. Add the tables with their consumers and
+the generated-file formatter exclusions, and preserve the Unicode license in distributions.
+
+Add foundational packages in dependency order: SHA-256, canonical values,
+encoding, canonical JSON, then structural and scalar decoding. Each addition
+includes its tests and public interfaces, with JS, Wasm and native checks.
+Code dependency isolation does not remove normative dependencies. Before canonical
+JSON, resolve the kernel laws for canonical bytes and CID computation, and test
+against pinned identities and independent number-spelling vectors. Before
+canonical values, derive identity and normalization vectors from the current
+specification. Resolve other contracts before their consuming packages; do not
+update specification pins merely to match implementation output.
+
+Remaining independent corpora are still implementation inputs to supply.
+README operation excerpts need typed fixture contexts before
 compiler conformance checks; parsing complete Programs does not validate excerpts.
