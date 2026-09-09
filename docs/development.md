@@ -9,8 +9,62 @@ npm ci
 npm run check:docs
 ```
 
-Node.js is used for documentation tooling. Product implementation is developed
-in MoonBit; see the [implementation guide](design/implementation-port.md).
+Node.js is used for documentation and toolchain setup. Product implementation
+is developed in MoonBit; see the [implementation guide](design/implementation-port.md).
+
+### MoonBit
+
+Development supports Apple Silicon macOS and x86-64 Linux, with Linux CI on
+Ubuntu 24.04. Git, curl and tar are required. Install the exact stable toolchain
+and matching core from [toolchain.json](../toolchain.json):
+
+```sh
+node scripts/setup-moonbit.mjs
+export MOON_HOME="$PWD/.toolchains/moonbit-$(node -p "require('./toolchain.json').version")"
+export PATH="$MOON_HOME/bin:$PATH"
+moon version --all
+moon fmt --check
+moon check --deny-warn
+moon test --deny-warn
+```
+
+Setup verifies archive SHA-256 pins before extraction and installs only inside
+the ignored `.toolchains/` directory. It does not modify a global installation
+or shell startup files. Downloads remain in `install-*` directories for inspection.
+Reuse checks the installation marker, tool versions, executable files, core
+manifest and three prelude bundles. This is a health check, not a full integrity
+scan of installed core sources. If it fails, move only the named toolchain
+directory aside and rerun setup; an existing installation is never overwritten.
+Use the same environment variables in the editor's launch environment.
+Do not run `moon upgrade` inside this installation: update the reviewed version
+and archive pins together, then reinstall and run all checks.
+
+The root `moon.mod` defines the single `actql/actql` module. JS is the default;
+common-core packages support JS, Wasm (not Wasm GC), and native. JS is the
+daily development default for the shared core, not a restriction on CLI or Host
+deployment. Wasm GC is outside the initial validation scope; adding it requires
+toolchain setup and target tests, not just a metadata change. Run the same
+checks as CI with explicit targets:
+
+```sh
+for target in js wasm native; do
+  moon check --target "$target" --deny-warn
+  moon test --target "$target" --deny-warn
+done
+node scripts/check-moonbit-api.mjs
+node --test scripts/moonbit-environment.test.mjs
+```
+
+Use `moon info` to regenerate `.mbti` files and review and commit them when the
+public API intentionally changes. The API guard rejects cross-target differences,
+modified files and newly untracked interfaces. Its report parser is tested
+against the pinned build tool with a real backend-specific signature mismatch;
+rerun that test on toolchain upgrades. Keep
+host-specific packages separate from the common core rather than weakening its
+target checks or narrowing a common-core package's supported targets. The initial
+test is only an environment smoke test, not language
+conformance. Implementation migration, AoA linkage and distribution packaging
+are separate work.
 
 The checks are read-only:
 
