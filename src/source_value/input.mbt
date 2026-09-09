@@ -1,5 +1,5 @@
 ///|
-fn valid_limits(limits : JsonLimits) -> Bool {
+fn valid_limits(limits : ParseLimits) -> Bool {
   // One-based end coordinates must fit Int even for an all-ASCII input line.
   limits.max_input_bytes >= 0 &&
   limits.max_input_bytes < 2147483647 &&
@@ -20,21 +20,22 @@ fn input_error(
 fn parse_admitted(
   source : String,
   source_path : String,
-  limits : JsonLimits,
+  limits : ParseLimits,
+  yaml : Bool,
 ) -> Result[Node, ParseError] {
-  Ok(Parser::make(source, source_path, limits).document()) catch {
+  let parser = Parser::make(source, source_path, limits)
+  Ok(if yaml { parser.yaml_document() } else { parser.document() }) catch {
     ParseAbort(error) => Err(error)
   }
 }
 
 ///|
-/// Read one JSON value, normalizing strings and keys with NFC then LF. Input
-/// limits apply before normalization, including whitespace and a leading BOM.
-/// Returned arrays are editable syntax data, not an admission proof.
-pub fn parse_json(
+/// Both syntaxes share raw Unicode and byte admission before parsing.
+fn parse_text_input(
   source : String,
-  limits : JsonLimits,
-  source_path? : String = "<memory>",
+  limits : ParseLimits,
+  source_path : String,
+  yaml : Bool,
 ) -> Result[Node, ParseError] {
   if !valid_limits(limits) {
     return Err(input_error(InvalidLimits, source_path, Unavailable))
@@ -45,16 +46,17 @@ pub fn parse_json(
     Err(_) => return Err(input_error(InputLimit, source_path, Unavailable))
     Ok(_) => ()
   }
-  parse_admitted(source, source_path, limits)
+  parse_admitted(source, source_path, limits, yaml)
 }
 
 ///|
 /// Strict UTF-8 decoding: no replacement characters are synthesized. Malformed
 /// input reports the start of its first malformed sequence as a byte offset.
-pub fn parse_json_bytes(
+fn parse_bytes_input(
   source : Bytes,
-  limits : JsonLimits,
-  source_path? : String = "<memory>",
+  limits : ParseLimits,
+  source_path : String,
+  yaml : Bool,
 ) -> Result[Node, ParseError] {
   if !valid_limits(limits) {
     return Err(input_error(InvalidLimits, source_path, Unavailable))
@@ -72,5 +74,45 @@ pub fn parse_json_bytes(
         ),
       )
   }
-  parse_admitted(text, source_path, limits)
+  parse_admitted(text, source_path, limits, yaml)
+}
+
+///|
+/// Read one JSON value with NFC then LF normalization and explicit input limits.
+pub fn parse_json(
+  source : String,
+  limits : ParseLimits,
+  source_path? : String = "<memory>",
+) -> Result[Node, ParseError] {
+  parse_text_input(source, limits, source_path, false)
+}
+
+///|
+/// Decode strict UTF-8 before JSON parsing, without replacement characters.
+pub fn parse_json_bytes(
+  source : Bytes,
+  limits : ParseLimits,
+  source_path? : String = "<memory>",
+) -> Result[Node, ParseError] {
+  parse_bytes_input(source, limits, source_path, false)
+}
+
+///|
+/// Read one restricted YAML Core document. Root shape and Program validation
+/// belong to consumers. Tags, aliases and non-string keys are not admitted.
+pub fn parse_yaml(
+  source : String,
+  limits : ParseLimits,
+  source_path? : String = "<memory>",
+) -> Result[Node, ParseError] {
+  parse_text_input(source, limits, source_path, true)
+}
+
+///|
+pub fn parse_yaml_bytes(
+  source : Bytes,
+  limits : ParseLimits,
+  source_path? : String = "<memory>",
+) -> Result[Node, ParseError] {
+  parse_bytes_input(source, limits, source_path, true)
 }

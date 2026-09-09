@@ -147,6 +147,10 @@ not replace a text parser, tree admission or caller-owned resource limits.
 normalized values with original source spans, and explicit byte/node/depth limits.
 Its tests do not establish YAML, Program or canonical-artifact conformance.
 
+[YAML source parsing](design/yaml-source.md) adds explicit YAML text and byte
+entry points with shared `ParseLimits`, normalized values and original spans.
+Its structural parsing tests do not establish Program or execution conformance.
+
 [Owned tree decoding](design/decode-core.md) admits editable Nodes into bounded
 opaque cursors, with exact-key checks, source spans and primitive readers.
 It preserves raw values; canonical and domain validation remain separate.

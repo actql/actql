@@ -9,7 +9,7 @@ priv struct Point {
 priv struct Parser {
   source : String
   source_path : String
-  limits : JsonLimits
+  limits : ParseLimits
   path : Array[PathSegment]
   mut offset : Int
   mut byte_offset : Int
@@ -22,7 +22,7 @@ priv struct Parser {
 fn Parser::make(
   source : String,
   source_path : String,
-  limits : JsonLimits,
+  limits : ParseLimits,
 ) -> Parser {
   let bom = source.length() > 0 && source[0].to_int() == 0xfeff
   {

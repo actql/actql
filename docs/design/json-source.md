@@ -3,7 +3,7 @@
 `source_value` implements the JSON part of the
 [source representation contract](../spec/language.md#source-representation).
 `parse_json_bytes` accepts strict UTF-8 bytes; `parse_json` accepts an existing
-String and rejects malformed UTF-16. Both require explicit `JsonLimits` and
+String and rejects malformed UTF-16. Both require explicit `ParseLimits` and
 return `Result[Node, ParseError]`. Neither reads files or performs I/O.
 
 ## Accepted values
@@ -12,7 +12,8 @@ The parser reads exactly one JSON value and rejects trailing non-whitespace.
 One leading BOM is permitted; a second BOM or a BOM after whitespace is not.
 The generic parser permits scalar and array roots. The ActQL source profile's
 non-empty object requirement and Program structure belong to higher-level
-validation. YAML is not implemented by this package.
+validation. [YAML source parsing](yaml-source.md) uses the same limits and result
+types through separate entry points.
 
 Numbers must have JSON spelling before conversion to binary64 with
 round-to-nearest, ties-to-even. Overflow and negative zero are rejected, including

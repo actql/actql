@@ -3,7 +3,7 @@ fn limits(
   bytes? : Int = 1000000,
   nodes? : Int = 100000,
   depth? : Int = 20000,
-) -> JsonLimits {
+) -> ParseLimits {
   { max_input_bytes: bytes, max_nodes: nodes, max_depth: depth, }
 }
 

@@ -26,7 +26,7 @@ pub(all) struct Field {
 } derive(Debug)
 
 ///|
-pub(all) struct JsonLimits {
+pub(all) struct ParseLimits {
   max_input_bytes : Int
   max_nodes : Int
   max_depth : Int
@@ -59,6 +59,12 @@ pub(all) enum ParseIssue {
   ExpectedObjectSeparator
   DuplicateKey(String)
   TrailingContent
+  InvalidYamlIndentation
+  InvalidYamlScalar
+  InvalidYamlDirective
+  MultipleDocuments
+  ForbiddenYamlFeature
+  NonStringKey
 } derive(Eq, Debug)
 
 ///|

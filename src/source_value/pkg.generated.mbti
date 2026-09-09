@@ -7,9 +7,13 @@ import {
 }
 
 // Values
-pub fn parse_json(String, JsonLimits, source_path? : String) -> Result[Node, ParseError]
+pub fn parse_json(String, ParseLimits, source_path? : String) -> Result[Node, ParseError]
 
-pub fn parse_json_bytes(Bytes, JsonLimits, source_path? : String) -> Result[Node, ParseError]
+pub fn parse_json_bytes(Bytes, ParseLimits, source_path? : String) -> Result[Node, ParseError]
+
+pub fn parse_yaml(String, ParseLimits, source_path? : String) -> Result[Node, ParseError]
+
+pub fn parse_yaml_bytes(Bytes, ParseLimits, source_path? : String) -> Result[Node, ParseError]
 
 // Errors
 
@@ -19,12 +23,6 @@ pub(all) struct Field {
   key_span : @source_span.Span
   value : Node
 } derive(@debug.Debug)
-
-pub(all) struct JsonLimits {
-  max_input_bytes : Int
-  max_nodes : Int
-  max_depth : Int
-} derive(Eq, @debug.Debug)
 
 pub(all) struct Node {
   value : Value
@@ -58,6 +56,18 @@ pub(all) enum ParseIssue {
   ExpectedObjectSeparator
   DuplicateKey(String)
   TrailingContent
+  InvalidYamlIndentation
+  InvalidYamlScalar
+  InvalidYamlDirective
+  MultipleDocuments
+  ForbiddenYamlFeature
+  NonStringKey
+} derive(Eq, @debug.Debug)
+
+pub(all) struct ParseLimits {
+  max_input_bytes : Int
+  max_nodes : Int
+  max_depth : Int
 } derive(Eq, @debug.Debug)
 
 pub(all) enum ParseLocation {
