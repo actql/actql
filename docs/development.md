@@ -151,6 +151,11 @@ Its tests do not establish YAML, Program or canonical-artifact conformance.
 entry points with shared `ParseLimits`, normalized values and original spans.
 Its structural parsing tests do not establish Program or execution conformance.
 
+[Program and stage structure](design/stage-syntax.md) validates closed envelopes,
+ordered predecessors and named cross-stage ports over owned source cursors.
+Automatic JSON/YAML selection does not retry semantic or resource failures.
+Local operation and type checking remain separate.
+
 [Owned tree decoding](design/decode-core.md) admits editable Nodes into bounded
 opaque cursors, with exact-key checks, source spans and primitive readers.
 It preserves raw values; canonical and domain validation remain separate.

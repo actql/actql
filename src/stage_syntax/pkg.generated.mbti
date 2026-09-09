@@ -1,0 +1,93 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/stage_syntax"
+
+import {
+  "actql/actql/decode_core",
+  "actql/actql/source_span",
+  "actql/actql/source_value",
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn effect_names(Stage) -> Array[String]
+
+pub fn exports(Program) -> Array[(String, String, String)]
+
+pub fn imports(Stage) -> Array[(String, ImportPort)]
+
+pub fn parse(String, Limits, format? : Format, source_path? : String) -> Result[Program, SyntaxError]
+
+pub fn parse_bytes(Bytes, Limits, format? : Format, source_path? : String) -> Result[Program, SyntaxError]
+
+pub fn program_body(Program) -> @decode_core.Cursor
+
+pub fn result_names(Stage) -> Array[String]
+
+pub fn stage_body(Stage) -> @decode_core.Cursor
+
+pub fn stages(Program) -> Array[Stage]
+
+// Errors
+
+// Types and methods
+pub(all) enum Format {
+  Auto
+  Json
+  Yaml
+} derive(Eq, @debug.Debug)
+
+pub(all) enum ImportPort {
+  Result(producer~ : String, result~ : String)
+  Receipt(producer~ : String, effect~ : String)
+} derive(Eq, @debug.Debug)
+
+pub(all) struct Limits {
+  source : @source_value.ParseLimits
+  tree : @decode_core.Limits
+  max_stages : Int
+} derive(Eq, @debug.Debug)
+
+pub(all) enum Predecessor {
+  Initial
+  Accepted(String)
+  Completed(String)
+} derive(Eq, @debug.Debug)
+
+pub struct Program {
+  id : String
+  // private fields
+}
+
+pub struct Stage {
+  id : String
+  predecessor : Predecessor
+  // private fields
+}
+
+pub(all) enum StructuralIssue {
+  WrongVersion
+  EmptyName
+  EmptyDeclarations
+  ReservedMetadataKey(String)
+  EmptyStages
+  StageLimit
+  DuplicateStage(String)
+  InitialAfter
+  InvalidAfter
+  UnknownProducer(String)
+  UnknownResult(String)
+  UnknownEffect(String)
+  UnknownInput(String)
+} derive(Eq, @debug.Debug)
+
+pub(all) enum SyntaxError {
+  InvalidLimits
+  Parse(@source_value.ParseError)
+  Alternatives(json~ : @source_value.ParseError, yaml~ : @source_value.ParseError)
+  Decode(@decode_core.Issue)
+  Structure(StructuralIssue, path~ : Array[@source_value.PathSegment], span~ : @source_span.Span)
+} derive(Eq, @debug.Debug)
+
+// Type aliases
+
+// Traits
