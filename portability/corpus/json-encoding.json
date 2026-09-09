@@ -1,0 +1,355 @@
+{
+  "version": "actql-json-encoding-vectors/0.1",
+  "notes": "Binary64 bits are big-endian hexadecimal. UTF-16 units preserve malformed inputs. Expected JSON spellings are fixed independently of the MoonBit encoder; error expectations are ActQL restrictions.",
+  "numbers": [
+    {
+      "bits": "0000000000000000",
+      "json": "0"
+    },
+    {
+      "bits": "8000000000000000",
+      "error": "InvalidNumber"
+    },
+    {
+      "bits": "0000000000000001",
+      "json": "5e-324"
+    },
+    {
+      "bits": "8000000000000001",
+      "json": "-5e-324"
+    },
+    {
+      "bits": "000fffffffffffff",
+      "json": "2.225073858507201e-308"
+    },
+    {
+      "bits": "0010000000000000",
+      "json": "2.2250738585072014e-308"
+    },
+    {
+      "bits": "0010000000000001",
+      "json": "2.225073858507202e-308"
+    },
+    {
+      "bits": "7fefffffffffffff",
+      "json": "1.7976931348623157e+308"
+    },
+    {
+      "bits": "ffefffffffffffff",
+      "json": "-1.7976931348623157e+308"
+    },
+    {
+      "bits": "7ff0000000000000",
+      "error": "InvalidNumber"
+    },
+    {
+      "bits": "fff0000000000000",
+      "error": "InvalidNumber"
+    },
+    {
+      "bits": "7ff8000000000000",
+      "error": "InvalidNumber"
+    },
+    {
+      "bits": "7ff0000000000001",
+      "error": "InvalidNumber"
+    },
+    {
+      "bits": "fff8000000000000",
+      "error": "InvalidNumber"
+    },
+    {
+      "bits": "3fefffffffffffff",
+      "json": "0.9999999999999999"
+    },
+    {
+      "bits": "3ff0000000000000",
+      "json": "1"
+    },
+    {
+      "bits": "3ff0000000000001",
+      "json": "1.0000000000000002"
+    },
+    {
+      "bits": "bff0000000000000",
+      "json": "-1"
+    },
+    {
+      "bits": "3fd5555555555555",
+      "json": "0.3333333333333333"
+    },
+    {
+      "bits": "3fb999999999999a",
+      "json": "0.1"
+    },
+    {
+      "bits": "3ff8000000000000",
+      "json": "1.5"
+    },
+    {
+      "bits": "4340000000000000",
+      "json": "9007199254740992"
+    },
+    {
+      "bits": "433fffffffffffff",
+      "json": "9007199254740991"
+    },
+    {
+      "bits": "4340000000000001",
+      "json": "9007199254740994"
+    },
+    {
+      "bits": "4430000000000000",
+      "json": "295147905179352830000"
+    },
+    {
+      "bits": "44b52d02c7e14af5",
+      "json": "9.999999999999997e+22"
+    },
+    {
+      "bits": "44b52d02c7e14af6",
+      "json": "1e+23"
+    },
+    {
+      "bits": "44b52d02c7e14af7",
+      "json": "1.0000000000000001e+23"
+    },
+    {
+      "bits": "3eb0c6f7a0b5ed8c",
+      "json": "9.999999999999997e-7"
+    },
+    {
+      "bits": "3eb0c6f7a0b5ed8d",
+      "json": "0.000001"
+    },
+    {
+      "bits": "3eb0c6f7a0b5ed8e",
+      "json": "0.0000010000000000000002"
+    },
+    {
+      "bits": "3e7ad7f29abcaf48",
+      "json": "1e-7"
+    },
+    {
+      "bits": "4415af1d78b58c40",
+      "json": "100000000000000000000"
+    },
+    {
+      "bits": "c415af1d78b58c40",
+      "json": "-100000000000000000000"
+    },
+    {
+      "bits": "44b52d02c7e14af4",
+      "json": "9.999999999999996e+22"
+    },
+    {
+      "bits": "43143ff3c1cb0959",
+      "json": "1424953923781206.2"
+    },
+    {
+      "bits": "444b1ae4d6e2ef4f",
+      "json": "999999999999999900000"
+    },
+    {
+      "bits": "444b1ae4d6e2ef50",
+      "json": "1e+21"
+    },
+    {
+      "bits": "444b1ae4d6e2ef51",
+      "json": "1.0000000000000001e+21"
+    },
+    {
+      "bits": "c44b1ae4d6e2ef4f",
+      "json": "-999999999999999900000"
+    },
+    {
+      "bits": "c44b1ae4d6e2ef50",
+      "json": "-1e+21"
+    },
+    {
+      "bits": "c44b1ae4d6e2ef51",
+      "json": "-1.0000000000000001e+21"
+    },
+    {
+      "bits": "beb0c6f7a0b5ed8c",
+      "json": "-9.999999999999997e-7"
+    },
+    {
+      "bits": "beb0c6f7a0b5ed8d",
+      "json": "-0.000001"
+    },
+    {
+      "bits": "beb0c6f7a0b5ed8e",
+      "json": "-0.0000010000000000000002"
+    },
+    {
+      "bits": "4341c37937e07fff",
+      "json": "9999999999999998"
+    },
+    {
+      "bits": "4341c37937e08000",
+      "json": "10000000000000000"
+    },
+    {
+      "bits": "4341c37937e08001",
+      "json": "10000000000000002"
+    }
+  ],
+  "strings": [
+    {
+      "id": "empty",
+      "units": [],
+      "json": "\"\""
+    },
+    {
+      "id": "controls",
+      "units": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31
+      ],
+      "json": "\"\\u0000\\u0001\\u0002\\u0003\\u0004\\u0005\\u0006\\u0007\\b\\t\\n\\u000b\\f\\r\\u000e\\u000f\\u0010\\u0011\\u0012\\u0013\\u0014\\u0015\\u0016\\u0017\\u0018\\u0019\\u001a\\u001b\\u001c\\u001d\\u001e\\u001f\""
+    },
+    {
+      "id": "quotes-slash",
+      "units": [
+        34,
+        92,
+        47
+      ],
+      "json": "\"\\\"\\\\/\""
+    },
+    {
+      "id": "utf8-boundaries",
+      "units": [
+        127,
+        128,
+        2047,
+        2048,
+        55295,
+        57344,
+        65535,
+        55296,
+        56320,
+        56319,
+        57343
+      ],
+      "json": "\"߿ࠀ퟿￿𐀀􏿿\""
+    },
+    {
+      "id": "line-separators",
+      "units": [
+        133,
+        8232,
+        8233,
+        65279
+      ],
+      "json": "\"  ﻿\""
+    },
+    {
+      "id": "decomposed-and-crlf",
+      "units": [
+        101,
+        769,
+        13,
+        10,
+        13,
+        10
+      ],
+      "json": "\"é\\r\\n\\r\\n\""
+    },
+    {
+      "id": "composed",
+      "units": [
+        233
+      ],
+      "json": "\"é\""
+    },
+    {
+      "id": "cjk-and-emoji",
+      "units": [
+        26085,
+        26412,
+        55357,
+        56832
+      ],
+      "json": "\"日本😀\""
+    },
+    {
+      "id": "lone-high",
+      "units": [
+        55296
+      ],
+      "error": "InvalidUnicode"
+    },
+    {
+      "id": "lone-low",
+      "units": [
+        57343
+      ],
+      "error": "InvalidUnicode"
+    },
+    {
+      "id": "high-before-ascii",
+      "units": [
+        55296,
+        65
+      ],
+      "error": "InvalidUnicode"
+    },
+    {
+      "id": "two-highs",
+      "units": [
+        55296,
+        55296
+      ],
+      "error": "InvalidUnicode"
+    },
+    {
+      "id": "low-before-high",
+      "units": [
+        56320,
+        55296
+      ],
+      "error": "InvalidUnicode"
+    },
+    {
+      "id": "pair-before-lone",
+      "units": [
+        55357,
+        56832,
+        55296
+      ],
+      "error": "InvalidUnicode"
+    }
+  ]
+}

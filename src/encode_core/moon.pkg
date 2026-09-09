@@ -1,0 +1,7 @@
+supported_targets = "+js+wasm+native"
+
+import {
+  "moonbitlang/core/encoding/utf8",
+} for "wbtest"
+
+formatter(ignore: [ "scalar_vectors.generated_wbtest.mbt" ])

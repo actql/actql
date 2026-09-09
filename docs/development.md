@@ -73,6 +73,7 @@ The checks are read-only:
 - `check:examples`: YAML Program fixtures, valid-example root layout, example registration and acceptance-case references.
 - `test:docs`: validator regression tests.
 - `check:nest`: independent Python lowering and JavaScript identity-preimage checks for the authored nest fixture subset.
+- `check:encoding`: kernel manifest pin, fixed scalar spelling expectations and generated encoding-test freshness.
 
 Dependencies are pinned in `package-lock.json`. External URL availability is
 not part of the deterministic local checks.
@@ -125,6 +126,12 @@ For each dependency, record its role, exact version and CID, local path or pinne
 retrieval location, hash preimage rule and required profiles. Verify the retrieved
 body against its pin before using it; do not infer a replacement from an implementation.
 The current document checks do not establish this transitive dependency closure.
+
+The kernel law-name manifest is available locally with its existing CID verified.
+See [JSON encoding](design/json-encoding.md) for its exact preimage, resolved scalar
+spelling rules and Writer boundaries. `npm run generate:encoding` regenerates
+MoonBit tests from fixed vectors; it does not replace expected text with product
+output. Run the generated tests on all three targets to verify execution.
 
 Unicode 16.0.0 inputs for NFC, normalization cases and the Unicode license are pinned in
 [vendor/unicode/16.0.0/manifest.json](../vendor/unicode/16.0.0/manifest.json).

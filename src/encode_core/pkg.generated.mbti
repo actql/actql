@@ -1,0 +1,61 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/encode_core"
+
+import {
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn begin_array(Writer) -> Unit raise EncodeFailure
+
+pub fn begin_object(Writer) -> Unit raise EncodeFailure
+
+pub fn bool_value(Writer, Bool) -> Unit raise EncodeFailure
+
+pub fn document_bytes(EncodedDocument) -> Int
+
+pub fn document_text(EncodedDocument) -> String
+
+pub fn emit_document(Writer, EncodedDocument) -> Unit raise EncodeFailure
+
+pub fn emit_json(Json, Writer) -> Unit raise EncodeFailure
+
+pub fn end_array(Writer) -> Unit raise EncodeFailure
+
+pub fn end_object(Writer) -> Unit raise EncodeFailure
+
+pub fn finish(Writer) -> String raise EncodeFailure
+
+pub fn finish_document(Writer) -> EncodedDocument raise EncodeFailure
+
+pub fn finish_measurement(Writer) -> Int raise EncodeFailure
+
+pub fn key(Writer, String) -> Unit raise EncodeFailure
+
+pub fn measuring_writer(Int, Int, Int) -> Writer raise EncodeFailure
+
+pub fn null_value(Writer) -> Unit raise EncodeFailure
+
+pub fn number_value(Writer, Double) -> Unit raise EncodeFailure
+
+pub fn string_value(Writer, String) -> Unit raise EncodeFailure
+
+pub fn writer(Int, Int, Int) -> Writer raise EncodeFailure
+
+// Errors
+pub(all) suberror EncodeFailure {
+  InvalidStructure
+  InvalidUnicode
+  InvalidNumber
+  OutputLimit
+  ClosedWriter
+} derive(@debug.Debug)
+
+// Types and methods
+type EncodedDocument
+
+type Writer
+
+// Type aliases
+
+// Traits
