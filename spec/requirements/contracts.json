@@ -4,7 +4,7 @@
   "requirements": [
     {
       "requirement_id": "actql.protocol.contracts/authoring-context-wire.actql-authoring-context",
-      "statement_sha256": "ff1a641cbae51735de960e63a679007853819aa629a4cb677426508a3c2516a7",
+      "statement_sha256": "90c72971361e7781eb508b3253ed49ced1e24e5c2c959103f713ff8e333e2cc8",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
@@ -752,7 +752,7 @@
     },
     {
       "requirement_id": "actql.protocol.contracts/machine-contracts.exact-artifacts",
-      "statement_sha256": "d4d20d6d85a2e85c8e779cfffbee2efbe37c2ba75846c50f0acd1426b1869af8",
+      "statement_sha256": "31ddf475513bc5b4e63fa0e1067ace5fc55f243b510f4090ca3559e5ad5998e9",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",

@@ -2,7 +2,34 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { updateRequirements } from './update-document-metadata.mjs';
+import { machineCid } from './actql-spec-family.mjs';
 import { decodeYaml, programs, markdown, nodes, anchors, validateCases, validateProgramLayout, validateExamples, validateLocalLinks } from './document-validation.mjs';
+
+test('annotation schemas preserve open metadata and all authored target kinds', () => {
+  const registry = JSON.parse(readFileSync(new URL('../spec/contracts/actql-protocol-schemas.json', import.meta.url)));
+  const artifacts = registry.artifact_schemas;
+  const canonical = artifacts.authoring_context;
+  const annotation = canonical.properties.annotations.items.properties;
+  assert.deepEqual(annotation.target.properties.kind.enum,
+    ['program', 'stage', 'input', 'parameter', 'binding', 'step', 'result', 'effect']);
+  assert.deepEqual(annotation.meta, {
+    type: 'object', minProperties: 1,
+    propertyNames: { not: { pattern: '^actql_' } }, additionalProperties: true,
+  });
+  for (const embedded of [
+    artifacts.effect_preview.properties.authoring_context,
+    artifacts.plan_document.properties.authoring_context,
+    artifacts.captured_run.properties.effect_context.properties.authoring_context,
+  ]) assert.deepEqual(embedded, canonical);
+  for (const program of [
+    artifacts.executable_plan.properties.execution_material.properties.program,
+    artifacts.plan_document.properties.plan.properties.execution_material.properties.program,
+  ]) assert.deepEqual(program.$defs.meta, annotation.meta);
+  for (const [name, schema] of Object.entries(artifacts)) {
+    assert.equal(registry.artifact_schema_cids[name], machineCid(schema), name);
+  }
+  assert.equal(registry.artifact_registry_cid, machineCid(artifacts));
+});
 
 test('metadata updates report changes, clear evidence and preserve explicit IDs', () => {
   const d = { spec_id: 'actql.test', path: 'test.md' };

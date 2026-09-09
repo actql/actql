@@ -64,7 +64,7 @@ actql-authoring-context/0.1 := {
   program_definition_cid: Cid,
   annotations: [{
     target: {
-      kind: program | input | parameter | binding | step | result | effect,
+      kind: program | stage | input | parameter | binding | step | result | effect,
       source_path: JsonPath,
       name?: NonEmptyString
     },
@@ -764,12 +764,12 @@ These exact schema/law references are owned here. Their identities do not includ
 ../../../spec/contracts/actql-protocol-schemas.json#/schemas/command_contract sha256:2b2d1e89ec410beab7523538b8efe59aaf18a3daa1e3dea4c573ea139df89156
 ../../../spec/contracts/actql-protocol-schemas.json#/schemas/connector_catalog sha256:d0af2edb5f9087f337f0f76ff20cd9e22a79fbeb3cca309bba67023eee06ed47
 ../../../spec/contracts/actql-protocol-schemas.json#/schemas/lock sha256:02e3693c855d6137ac1fee89705a2a11824cf6607ea593b3ee7786263f49bdd4
-../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/authoring_context sha256:f34358c8f1f6eeb11bcbcb860b6daafb579498434e73794532ef17fd95695fc5
+../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/authoring_context sha256:930efa0eff6819f19378cc397c0f268de71d9fcbb5f1543aa0ac4be30f676398
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/parameter_values sha256:5799ca8d309e1dc57ddc3d611e24d46c42362b96b755652bc77695b97bca5cf7
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/bound_invocation_template sha256:d7ba95795c14fc1145fb430f3311d38139a834f15a3dc636bb881ecde9f1cbb7
-../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/executable_plan sha256:bc6a147478fbcfa5ef23dc9d2fd1f48d1cc880e965058f0bde6005e86b1cc037
+../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/executable_plan sha256:25f43a36e53f9fa08d2150bfcf17c7e8b67d1260e58c2d6de3489bef4f8c16c6
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/normalization_journal sha256:485ccc0d3215dfc0d9f13101dbc7bc0d4a72b8eb28a346ab8122cafd635ae6f0
-../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/plan_document sha256:cac37083cc8d44d563fbff7a3c1882f914fcfc9822aaa1072702dd3abeda069b
+../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/plan_document sha256:1fb7099c5b2a6ee4e2cd6578e99900021ba288232c7ab63da1e0038a2d27ead0
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/plan_result sha256:dd6343496e0673405ab47bcafe0cf38b2812601f6d84e95fd0232cc1f0320ec7
 ../../../spec/contracts/actql-production-profile-schemas.json#/schemas/lookup_source sha256:6730fdb00f7b0f21ae796bd55f686fb984cddac5b8da5325cec2114b82a37e1c
 ../../../spec/contracts/actql-production-profile-schemas.json#/schemas/lookup_barrier sha256:587bfea69fbab0d23d200ac65ffc20c373142c4843820d37db6e0c617f10206a

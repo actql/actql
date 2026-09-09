@@ -10673,18 +10673,18 @@
       }
     }
   },
-  "artifact_registry_cid": "sha256:bf7dbf7dd08f6d6cd3d0a09d9f2d059f8a5405e5aeb09a3b5246fc4ca35c80d5",
+  "artifact_registry_cid": "sha256:5ae961aec93f58bea911fa14a8b2b9e148ab58e0cb7467cd52337f025334c333",
   "artifact_schema_cids": {
-    "authoring_context": "sha256:f34358c8f1f6eeb11bcbcb860b6daafb579498434e73794532ef17fd95695fc5",
+    "authoring_context": "sha256:930efa0eff6819f19378cc397c0f268de71d9fcbb5f1543aa0ac4be30f676398",
     "parameter_values": "sha256:5799ca8d309e1dc57ddc3d611e24d46c42362b96b755652bc77695b97bca5cf7",
     "bound_invocation_template": "sha256:d7ba95795c14fc1145fb430f3311d38139a834f15a3dc636bb881ecde9f1cbb7",
     "source_evidence": "sha256:434d2f1c97a9721e01d5eb614577d8620bc3662e2b5b3b05bdecb3029d2eafa6",
     "observation_set": "sha256:960b462c42c793913e981f64473c374538283d1dc7379cc694239d729e8f8537",
     "model_invocation_evidence": "sha256:9b883bf32553da51b01bd88ff912f460eb2308034b33a591a18f7f6e91c38b27",
     "model_capture_bundle": "sha256:9e4c76623e09216b81f70ca5573b90dc6f17f4a8754638345da2f8ec617507ba",
-    "executable_plan": "sha256:bc6a147478fbcfa5ef23dc9d2fd1f48d1cc880e965058f0bde6005e86b1cc037",
+    "executable_plan": "sha256:25f43a36e53f9fa08d2150bfcf17c7e8b67d1260e58c2d6de3489bef4f8c16c6",
     "normalization_journal": "sha256:485ccc0d3215dfc0d9f13101dbc7bc0d4a72b8eb28a346ab8122cafd635ae6f0",
-    "effect_preview": "sha256:5d340971f3d89f4947246f8134a25d5f5b54912432c7f186350e3f0a63fc92e3",
+    "effect_preview": "sha256:bb3c388b79286bc702077c6bc66ac64d9f6789470f67864f67c789f3069e97f2",
     "review_projection": "sha256:7585ae7f6737a8a0a196df98e64f496fbca271c910840f1116f6d7990caf39fb",
     "approval_attestation": "sha256:482ee09bcbed57fd19edd49e01d81882a3bbeb398ea9176c09e1717883a21ba9",
     "effect_apply_receipt": "sha256:30139b17ce3db707b669b038a89c0ca89d4b5fa4b77d5062e9abc44cc5a93d26",
@@ -10704,10 +10704,10 @@
     "verified_checkpoint_resolution": "sha256:a0576742d08e69b46c928ac8b13e8479f26d47ccf8bc474c1fa1d0807254a820",
     "result_manifest": "sha256:5548089a638828dc22b7c9d47fad41c50280da24dec9aae4131cafc9303893d6",
     "result_delivery_receipt": "sha256:d68ae5fbe6b23410b08b4419e5ebfa10eb61c38d61273360399e71ae2681de21",
-    "plan_document": "sha256:cac37083cc8d44d563fbff7a3c1882f914fcfc9822aaa1072702dd3abeda069b",
+    "plan_document": "sha256:1fb7099c5b2a6ee4e2cd6578e99900021ba288232c7ab63da1e0038a2d27ead0",
     "plan_result": "sha256:dd6343496e0673405ab47bcafe0cf38b2812601f6d84e95fd0232cc1f0320ec7",
     "run_state": "sha256:da91655cb28d2722123c91ee5ea4f6887f991ff0e6c1252106e9b3c022036c40",
-    "captured_run": "sha256:05b214c1921eb7715dd9c82df7fb10648939506c9d6c0bec550287935c016134"
+    "captured_run": "sha256:25f2008b1aa1bd071474dfe8908a970e640e128c4f2eff8b0d2a23d988777330"
   },
   "artifact_schemas": {
     "authoring_context": {
@@ -10751,6 +10751,10 @@
                   "kind": {
                     "enum": [
                       "program",
+                      "stage",
+                      "input",
+                      "parameter",
+                      "binding",
                       "step",
                       "result",
                       "effect"
@@ -10768,43 +10772,13 @@
               },
               "meta": {
                 "type": "object",
-                "additionalProperties": false,
-                "properties": {
-                  "name": {
-                    "type": "string",
-                    "minLength": 1
-                  },
-                  "description": {
-                    "type": "string",
-                    "minLength": 1
-                  },
-                  "rationale": {
-                    "type": "string",
-                    "minLength": 1
-                  },
-                  "references": {
-                    "type": "array",
-                    "minItems": 1,
-                    "uniqueItems": true,
-                    "items": {
-                      "type": "string",
-                      "minLength": 1
-                    }
-                  },
-                  "tags": {
-                    "type": "array",
-                    "minItems": 1,
-                    "uniqueItems": true,
-                    "items": {
-                      "type": "string",
-                      "minLength": 1
-                    }
-                  },
-                  "notes": {
-                    "type": "string",
-                    "minLength": 1
+                "minProperties": 1,
+                "propertyNames": {
+                  "not": {
+                    "pattern": "^actql_"
                   }
-                }
+                },
+                "additionalProperties": true
               }
             }
           }
@@ -24147,43 +24121,13 @@
                 },
                 "meta": {
                   "type": "object",
-                  "additionalProperties": false,
-                  "properties": {
-                    "name": {
-                      "type": "string",
-                      "minLength": 1
-                    },
-                    "description": {
-                      "type": "string",
-                      "minLength": 1
-                    },
-                    "rationale": {
-                      "type": "string",
-                      "minLength": 1
-                    },
-                    "references": {
-                      "type": "array",
-                      "minItems": 1,
-                      "uniqueItems": true,
-                      "items": {
-                        "type": "string",
-                        "minLength": 1
-                      }
-                    },
-                    "tags": {
-                      "type": "array",
-                      "minItems": 1,
-                      "uniqueItems": true,
-                      "items": {
-                        "type": "string",
-                        "minLength": 1
-                      }
-                    },
-                    "notes": {
-                      "type": "string",
-                      "minLength": 1
+                  "minProperties": 1,
+                  "propertyNames": {
+                    "not": {
+                      "pattern": "^actql_"
                     }
-                  }
+                  },
+                  "additionalProperties": true
                 }
               },
               "type": "object",
@@ -27179,6 +27123,10 @@
                       "kind": {
                         "enum": [
                           "program",
+                          "stage",
+                          "input",
+                          "parameter",
+                          "binding",
                           "step",
                           "result",
                           "effect"
@@ -27196,43 +27144,13 @@
                   },
                   "meta": {
                     "type": "object",
-                    "additionalProperties": false,
-                    "properties": {
-                      "name": {
-                        "type": "string",
-                        "minLength": 1
-                      },
-                      "description": {
-                        "type": "string",
-                        "minLength": 1
-                      },
-                      "rationale": {
-                        "type": "string",
-                        "minLength": 1
-                      },
-                      "references": {
-                        "type": "array",
-                        "minItems": 1,
-                        "uniqueItems": true,
-                        "items": {
-                          "type": "string",
-                          "minLength": 1
-                        }
-                      },
-                      "tags": {
-                        "type": "array",
-                        "minItems": 1,
-                        "uniqueItems": true,
-                        "items": {
-                          "type": "string",
-                          "minLength": 1
-                        }
-                      },
-                      "notes": {
-                        "type": "string",
-                        "minLength": 1
+                    "minProperties": 1,
+                    "propertyNames": {
+                      "not": {
+                        "pattern": "^actql_"
                       }
-                    }
+                    },
+                    "additionalProperties": true
                   }
                 }
               }
@@ -44175,43 +44093,13 @@
                     },
                     "meta": {
                       "type": "object",
-                      "additionalProperties": false,
-                      "properties": {
-                        "name": {
-                          "type": "string",
-                          "minLength": 1
-                        },
-                        "description": {
-                          "type": "string",
-                          "minLength": 1
-                        },
-                        "rationale": {
-                          "type": "string",
-                          "minLength": 1
-                        },
-                        "references": {
-                          "type": "array",
-                          "minItems": 1,
-                          "uniqueItems": true,
-                          "items": {
-                            "type": "string",
-                            "minLength": 1
-                          }
-                        },
-                        "tags": {
-                          "type": "array",
-                          "minItems": 1,
-                          "uniqueItems": true,
-                          "items": {
-                            "type": "string",
-                            "minLength": 1
-                          }
-                        },
-                        "notes": {
-                          "type": "string",
-                          "minLength": 1
+                      "minProperties": 1,
+                      "propertyNames": {
+                        "not": {
+                          "pattern": "^actql_"
                         }
-                      }
+                      },
+                      "additionalProperties": true
                     }
                   },
                   "type": "object",
@@ -47084,6 +46972,10 @@
                       "kind": {
                         "enum": [
                           "program",
+                          "stage",
+                          "input",
+                          "parameter",
+                          "binding",
                           "step",
                           "result",
                           "effect"
@@ -47101,43 +46993,13 @@
                   },
                   "meta": {
                     "type": "object",
-                    "additionalProperties": false,
-                    "properties": {
-                      "name": {
-                        "type": "string",
-                        "minLength": 1
-                      },
-                      "description": {
-                        "type": "string",
-                        "minLength": 1
-                      },
-                      "rationale": {
-                        "type": "string",
-                        "minLength": 1
-                      },
-                      "references": {
-                        "type": "array",
-                        "minItems": 1,
-                        "uniqueItems": true,
-                        "items": {
-                          "type": "string",
-                          "minLength": 1
-                        }
-                      },
-                      "tags": {
-                        "type": "array",
-                        "minItems": 1,
-                        "uniqueItems": true,
-                        "items": {
-                          "type": "string",
-                          "minLength": 1
-                        }
-                      },
-                      "notes": {
-                        "type": "string",
-                        "minLength": 1
+                    "minProperties": 1,
+                    "propertyNames": {
+                      "not": {
+                        "pattern": "^actql_"
                       }
-                    }
+                    },
+                    "additionalProperties": true
                   }
                 }
               }
@@ -54273,6 +54135,10 @@
                           "kind": {
                             "enum": [
                               "program",
+                              "stage",
+                              "input",
+                              "parameter",
+                              "binding",
                               "step",
                               "result",
                               "effect"
@@ -54290,43 +54156,13 @@
                       },
                       "meta": {
                         "type": "object",
-                        "additionalProperties": false,
-                        "properties": {
-                          "name": {
-                            "type": "string",
-                            "minLength": 1
-                          },
-                          "description": {
-                            "type": "string",
-                            "minLength": 1
-                          },
-                          "rationale": {
-                            "type": "string",
-                            "minLength": 1
-                          },
-                          "references": {
-                            "type": "array",
-                            "minItems": 1,
-                            "uniqueItems": true,
-                            "items": {
-                              "type": "string",
-                              "minLength": 1
-                            }
-                          },
-                          "tags": {
-                            "type": "array",
-                            "minItems": 1,
-                            "uniqueItems": true,
-                            "items": {
-                              "type": "string",
-                              "minLength": 1
-                            }
-                          },
-                          "notes": {
-                            "type": "string",
-                            "minLength": 1
+                        "minProperties": 1,
+                        "propertyNames": {
+                          "not": {
+                            "pattern": "^actql_"
                           }
-                        }
+                        },
+                        "additionalProperties": true
                       }
                     }
                   }

@@ -584,7 +584,8 @@ a closed nested value.
 
 <!-- requirement-block: authoring-context.it-must-not-appear-inside-expressions-predicates-value-contracts-or -->
 `meta` provides author-supplied annotations for presentation and review. It
-MAY appear on the Program, an Input, Parameter, or Binding declaration, a Step,
+MAY appear on the Program, a Stage, an Input (including a Result/receipt import),
+a Parameter or Binding declaration, a Step,
 a Result, or an Effect. It MUST NOT appear inside expressions, predicates,
 value contracts, or operation bodies. Short-form inputs use their object form
 to carry annotations.
@@ -6543,8 +6544,8 @@ Stage := {
 }
 StageId := NonEmptyString unique within this Program
 StageResultRef := {stage: StageId, result: ResultName}
-StageInput := Input | {result: StageResultRef}
-  | {receipt: {stage: StageId, effect: EffectName}}
+StageInput := Input | {result: StageResultRef, meta?: Meta}
+  | {receipt: {stage: StageId, effect: EffectName}, meta?: Meta}
 StageConstraints := prior-stage imports only; first stage rejects after;
   noninitial omitted after normalizes to completed; no implicit cross-stage current;
   Stage.from references only materialized inputs, never a search template.

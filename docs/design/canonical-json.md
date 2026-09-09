@@ -31,6 +31,12 @@ The supplied value is the entire preimage. No field, including a field named
 Envelope construction and any contract-specific self-field exclusions belong
 to the caller.
 
+Identity-specific boundaries construct their own preimages: semantic envelopes
+exclude annotations only at the language's permitted authoring positions, while
+Authoring Context, Plan Document and review identities bind their prescribed
+annotation content. There is no generic include/exclude-metadata switch. A business
+field named `meta` inside literal or observed data remains ordinary hashed data.
+
 ## Admission and ownership
 
 `from_json` normalizes an in-memory JSON value into a read-only
