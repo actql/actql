@@ -147,6 +147,10 @@ not replace a text parser, tree admission or caller-owned resource limits.
 normalized values with original source spans, and explicit byte/node/depth limits.
 Its tests do not establish YAML, Program or canonical-artifact conformance.
 
+[Owned tree decoding](design/decode-core.md) admits editable Nodes into bounded
+opaque cursors, with exact-key checks, source spans and primitive readers.
+It preserves raw values; canonical and domain validation remain separate.
+
 Unicode 16.0.0 inputs for NFC, normalization cases and the Unicode license are pinned in
 [vendor/unicode/16.0.0/manifest.json](../vendor/unicode/16.0.0/manifest.json).
 `npm run check:unicode` verifies the input pins, both committed generated files,

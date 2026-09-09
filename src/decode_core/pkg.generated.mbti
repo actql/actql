@@ -1,0 +1,98 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/decode_core"
+
+import {
+  "actql/actql/source_span",
+  "actql/actql/source_value",
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn admit(@source_value.Node, Limits) -> Result[Cursor, Issue]
+
+pub fn boolean(Cursor) -> Result[Bool, Issue]
+
+pub fn closed_object(Cursor, Array[String]) -> Result[ObjectView, Issue]
+
+pub fn cursor_path(Cursor) -> Array[@source_value.PathSegment]
+
+pub fn cursor_span(Cursor) -> @source_span.Span
+
+pub fn decimal_int64(Cursor) -> Result[Int64, Issue]
+
+pub fn elements(Cursor) -> Result[Array[Cursor], Issue]
+
+pub fn field(ObjectView, String) -> Presence[Cursor]
+
+pub fn finite_number(Cursor) -> Result[Double, Issue]
+
+pub fn int32(Cursor) -> Result[Int, Issue]
+
+pub fn is_null(Cursor) -> Bool
+
+pub fn lookup(ObjectView, String) -> Cursor?
+
+pub fn object_field_names(Cursor) -> Result[Array[String], Issue]
+
+pub fn open_object(Cursor) -> Result[ObjectView, Issue]
+
+pub fn required(ObjectView, String) -> Result[Cursor, Issue]
+
+pub fn safe_integer(Cursor) -> Result[Int64, Issue]
+
+pub fn text(Cursor) -> Result[String, Issue]
+
+pub fn view(Cursor) -> ValueView
+
+// Errors
+
+// Types and methods
+type Cursor
+
+pub(all) struct Issue {
+  kind : IssueKind
+  path : Array[@source_value.PathSegment]
+  span : @source_span.Span
+} derive(Eq, @debug.Debug)
+
+pub(all) enum IssueKind {
+  InvalidLimits
+  MissingField
+  WrongType
+  UnexpectedNull
+  UnknownField
+  DuplicateField
+  OutOfRange
+  InvalidDecimal
+  InvalidUnicode
+  BudgetExceeded
+} derive(Eq, @debug.Debug)
+
+pub(all) struct Limits {
+  max_nodes : Int
+  max_depth : Int
+  max_string_bytes : Int
+  max_total_string_bytes : Int
+} derive(Eq, @debug.Debug)
+
+type ObjectView
+
+pub(all) enum Presence[T] {
+  Missing
+  ExplicitNull
+  Present(T)
+}
+
+pub(all) enum ValueView {
+  NullValue
+  BoolValue(Bool)
+  NumberValue(Double)
+  TextValue(String)
+  ArrayValue(Array[Cursor])
+  ObjectValue(ObjectView)
+}
+
+// Type aliases
+pub using @source_value {type PathSegment}
+
+// Traits
