@@ -1,0 +1,91 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://smooth.dev/schemas/actql-timestamp-pattern-ast-0.1.json",
+  "title": "ActQL UTC timestamp-pattern canonical AST",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "version",
+    "mode",
+    "components",
+    "full_input_match",
+    "timezone",
+    "ast_cid"
+  ],
+  "properties": {
+    "version": {
+      "const": "actql-timestamp-pattern-ast/0.1"
+    },
+    "mode": {
+      "enum": [
+        "parse",
+        "format"
+      ]
+    },
+    "components": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "kind",
+              "value"
+            ],
+            "properties": {
+              "kind": {
+                "const": "token"
+              },
+              "value": {
+                "enum": [
+                  "yyyy",
+                  "MM",
+                  "dd",
+                  "HH",
+                  "mm",
+                  "ss",
+                  "SSS"
+                ]
+              }
+            }
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "kind",
+              "value"
+            ],
+            "properties": {
+              "kind": {
+                "const": "literal"
+              },
+              "value": {
+                "enum": [
+                  "-",
+                  "/",
+                  ":",
+                  " ",
+                  ".",
+                  "T"
+                ]
+              }
+            }
+          }
+        ]
+      }
+    },
+    "full_input_match": {
+      "const": true
+    },
+    "timezone": {
+      "const": "UTC"
+    },
+    "ast_cid": {
+      "type": "string",
+      "pattern": "^sha256:[a-f0-9]{64}$"
+    }
+  }
+}

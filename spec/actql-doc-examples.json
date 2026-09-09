@@ -1,0 +1,164 @@
+{
+  "version": "actql-doc-example-manifest/0.1",
+  "notes": ["expected_status and expected_diagnostic are expectations for implementation conformance runs, not document-check results. Document checks parse YAML and check root layout for valid examples. Invalid examples require an expected_diagnostic and are not required to pass root layout checks."],
+  "documents": [
+    {
+      "path": "README.md",
+      "programs": [
+        {"id": "customer.open_orders", "expected_status": "valid"},
+        {"id": "quickstart.approved_update", "expected_status": "valid"},
+        {"id": "revenue.renewal_risk", "expected_status": "valid"}
+      ]
+    },
+    {
+      "path": "docs/spec/language.md",
+      "programs": [
+        {
+          "id": "orders.shipped_recent",
+          "expected_status": "valid",
+          "required_profiles": []
+        },
+        {
+          "id": "renewal_risk.rank_evidence",
+          "expected_status": "valid",
+          "required_profiles": []
+        }
+      ]
+    },
+    {
+      "path": "docs/authoring.md",
+      "programs": [
+        {
+          "id": "customer.open_orders",
+          "expected_status": "valid",
+          "required_profiles": []
+        },
+        {
+          "id": "row_local.invoice",
+          "expected_status": "valid",
+          "required_profiles": []
+        }
+      ]
+    },
+    {
+      "path": "spec/product-decisions/examples/local-mcp.aql",
+      "format": "aql",
+      "programs": [
+        {
+          "id": "fixture.local_mcp",
+          "expected_status": "valid"
+        }
+      ]
+    },
+    {
+      "path": "spec/product-decisions/d11/dependency-before-selection.aql",
+      "format": "aql",
+      "programs": [
+        {
+          "id": "fixture.derive_dependencies",
+          "expected_status": "valid"
+        }
+      ]
+    },
+    {
+      "path": "spec/product-decisions/d11/ordered-derive.aql",
+      "format": "aql",
+      "programs": [
+        {
+          "id": "fixture.derive_ordered",
+          "expected_status": "valid"
+        }
+      ]
+    },
+    {
+      "path": "spec/product-decisions/examples/approval-drift.aql",
+      "format": "aql",
+      "programs": [
+        {
+          "id": "fixture.approval_drift",
+          "expected_status": "valid"
+        }
+      ]
+    },
+    {
+      "path": "spec/product-decisions/examples/infer-timeout.aql",
+      "format": "aql",
+      "programs": [
+        {
+          "id": "fixture.infer_timeout",
+          "expected_status": "valid"
+        }
+      ]
+    },
+    {
+      "path": "spec/product-decisions/examples/parent-child-notify.aql",
+      "format": "aql",
+      "programs": [
+        {
+          "id": "fixture.parent_child",
+          "expected_status": "valid"
+        }
+      ]
+    },
+    {
+      "path": "spec/product-decisions/examples/pdf-summary.aql",
+      "format": "aql",
+      "programs": [
+        {
+          "id": "fixture.pdf_summary",
+          "expected_status": "valid"
+        }
+      ]
+    },
+    {
+      "path": "spec/product-decisions/examples/placement.aql",
+      "format": "aql",
+      "programs": [
+        {
+          "id": "fixture.placement",
+          "expected_status": "valid"
+        }
+      ]
+    },
+    {
+      "path": "spec/product-decisions/examples/two-messages.aql",
+      "format": "aql",
+      "programs": [
+        {
+          "id": "fixture.two_messages",
+          "expected_status": "valid"
+        }
+      ]
+    },
+    {
+      "path": "spec/product-decisions/examples/unattended-two-saas.aql",
+      "format": "aql",
+      "programs": [
+        {
+          "id": "fixture.two_saas",
+          "expected_status": "valid"
+        }
+      ]
+    },
+    {
+      "path": "spec/product-decisions/examples/upload-attach.aql",
+      "format": "aql",
+      "programs": [
+        {
+          "id": "fixture.upload_attach",
+          "expected_status": "valid"
+        }
+      ]
+    },
+    {
+      "path": "spec/product-decisions/examples/webhook-dedupe.aql",
+      "format": "aql",
+      "programs": [
+        {
+          "id": "fixture.webhook_dedupe",
+          "expected_status": "valid"
+        }
+      ]
+    }
+  ]
+}

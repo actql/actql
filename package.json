@@ -1,0 +1,27 @@
+{
+  "name": "actql-specification",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "check:docs": "npm run check:contracts && npm run check:links && npm run check:examples && npm run test:docs && npm run check:nest",
+    "check:nest": "node scripts/check-nest-reference.mjs",
+    "generate:nest": "node scripts/check-nest-reference.mjs --write",
+    "check:contracts": "node scripts/check-actql-spec-family.mjs",
+    "check:links": "node scripts/check-document-links.mjs",
+    "check:examples": "node scripts/check-document-examples.mjs",
+    "test:docs": "node --test scripts/document-validation.test.mjs",
+    "generate:requirements": "node scripts/check-actql-spec-family.mjs --write",
+    "check:metadata": "node scripts/update-document-metadata.mjs",
+    "update:metadata": "node scripts/update-document-metadata.mjs --write && npm run generate:requirements"
+  },
+  "devDependencies": {
+    "github-slugger": "2.0.0",
+    "remark-parse": "11.0.0",
+    "unified": "11.0.5",
+    "yaml": "2.9.0"
+  }
+}

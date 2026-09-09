@@ -1,0 +1,117 @@
+{
+  "version": "aoa-rela-scalar-laws/0.1",
+  "law_id": "aoa.rela.scalar.portability.v0.1",
+  "proof_status": "conformance-backed",
+  "decimal": {
+    "version": "aoa-rela-exact-decimal/0.1",
+    "proof_status": "conformance-backed",
+    "conformance_cases": [
+      "packages/rela/test/exact-decimal.spec.ts"
+    ],
+    "max_precision": 38,
+    "coefficient": "signed-base10-integer-no-leading-zero-no-negative-zero",
+    "input_grammar": "^-?(?:0|[1-9][0-9]*)(?:\\.[0-9]+)?$",
+    "binary64_interop": "explicit-safe-integer-conversion-only",
+    "arithmetic": "exact-coefficient-arithmetic-overflow-fails",
+    "add_subtract_type": "scale=max(s1,s2);precision=min(38,max(p1-s1,p2-s2)+scale+1)",
+    "multiply_type": "scale=s1+s2;precision=min(38,p1+p2);scale-over-38-fails",
+    "sum_type": "precision=38;scale=input-scale",
+    "average": "unsupported-use-sum-count-and-explicit-decimal-divide",
+    "rounding": [
+      "half_even",
+      "half_up",
+      "toward_zero",
+      "floor",
+      "ceiling"
+    ],
+    "generic_json": "fixed-scale-string",
+    "value_identity": "domain-separated-version-precision-scale-coefficient"
+  },
+  "construction": {
+    "version": "aoa-rela-closed-construction/0.1",
+    "object": "non-empty-static-fields-all-present-canonical-key-order",
+    "array": "non-empty-finite-elements-one-unifiable-value-contract",
+    "missing": "failure",
+    "null": "present-value-never-an-optional-field",
+    "value_identity": "canonical-recursive-value-with-typed-decimal-domain",
+    "atomicity": "failure-publishes-no-relation",
+    "proof_status": "conformance-backed",
+    "conformance_cases": [
+      "packages/rela/test/closed-values-assertions.spec.ts"
+    ]
+  },
+  "number": {
+    "representation": "finite-ieee754-binary64",
+    "rounding": "round-after-each-operation",
+    "negative_zero_result": "canonical-positive-zero",
+    "non_finite_result": "failure",
+    "divide_by_zero": "failure",
+    "safe_divide_by_zero": "null",
+    "aggregate_fold": "canonical-value-cid-order-left-fold",
+    "modulo": "truncating-remainder-sign-of-dividend-zero-divisor-failure",
+    "sqrt_negative": "failure"
+  },
+  "time": {
+    "timestamp": "utc-iso8601-millisecond-Z",
+    "date": "iso8601-calendar-date-day-arithmetic-only",
+    "arithmetic": "fixed-utc-milliseconds",
+    "units": [
+      "ms",
+      "s",
+      "m",
+      "h",
+      "d"
+    ],
+    "timezone_offsets": "invalid",
+    "leap_seconds": "invalid",
+    "timestamp_date_diff": "fixed-unit-quotient-truncate-toward-zero",
+    "date_only_diff": "whole-days-only"
+  },
+  "unicode": {
+    "data_version": "16.0",
+    "normalization": "NFC",
+    "ordering": "utf16-code-unit",
+    "length": "unicode-scalar-count",
+    "trim": "ascii-whitespace",
+    "contains": "case-sensitive",
+    "like": "case-sensitive-percent-underscore-backslash-escape",
+    "replace": "non-overlapping-left-to-right-empty-pattern-no-op"
+  },
+  "conversion_truth_table": {
+    "to_number": {
+      "input": "canonical-decimal-string-only",
+      "grammar": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?(?:[eE][+-]?\\d+)?$",
+      "trims_whitespace": false,
+      "boolean_coercion": false,
+      "invalid": "failure",
+      "null": "null"
+    },
+    "to_boolean": {
+      "input": "boolean-or-exact-lowercase-true-false-string",
+      "trims_whitespace": false,
+      "case_folding": false,
+      "numeric_coercion": false,
+      "invalid": "failure",
+      "null": "null"
+    },
+    "to_timestamp": {
+      "input": "YYYY-MM-DDTHH:mm:ss.sssZ-only",
+      "trims_whitespace": false,
+      "date_only_coercion": false,
+      "timezone_offsets": false,
+      "invalid": "failure",
+      "null": "null"
+    }
+  },
+  "predicate_scalar_boundary": {
+    "predicate_result": "true-false-or-three-valued-unknown-sentinel",
+    "scalar_result": "true-false-or-null",
+    "unknown_scalar_mapping": "null",
+    "rationale": "the predicate sentinel is an evaluator control value and never appears in relation data or expression-valued function arguments"
+  },
+  "pivot_aggregate": {
+    "count": "non-null-values",
+    "numeric_fold": "canonical-value-cid-order-left-fold",
+    "first": "stable-input-order-first-non-null"
+  }
+}

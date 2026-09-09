@@ -1,0 +1,24 @@
+version: actql/0.1
+id: fixture.local_mcp
+stages:
+- id: answer
+  inputs: {}
+  steps:
+  - values:
+      schema:
+        answer:
+          type: string
+          nullable: false
+      rows:
+      - answer: ok
+    as: one
+  results:
+    response:
+      from: one
+      fields:
+      - answer
+results:
+  response:
+    from:
+      stage: answer
+      result: response

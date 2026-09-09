@@ -1,0 +1,2856 @@
+{
+  "version": "acceptance-plan/0.1",
+  "notes": [
+    "Cases define acceptance requirements, not executed tests or conformance evidence."
+  ],
+  "cases": [
+    {
+      "case_id": "D1.linear-order",
+      "decision_refs": [
+        "D1"
+      ],
+      "given": "Static stages A/B/C",
+      "when": "C is a fixed notification using no A/B fields",
+      "then": "Execute A then B then C; lack of data dependencies does not permit parallelization.",
+      "admission_context": "Apply the normative scope, identity and claim-admission rules.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "D1.partial-stage",
+      "decision_refs": [
+        "D1"
+      ],
+      "given": "One of A's 100 items failed",
+      "when": "Attempt normal progression",
+      "then": "B/C remain unattempted; neither roll back nor resend A's 99 successful items.",
+      "admission_context": "Apply the normative scope, identity and claim-admission rules.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "D1.item-recovery",
+      "decision_refs": [
+        "D1"
+      ],
+      "given": "A completed; B has 60 applied, 1 failed and 39 unattempted items",
+      "when": "Recover the same logical request",
+      "then": "Dispatch counts for A and B's 60 applied items do not increase.",
+      "admission_context": "Apply the normative scope, identity and claim-admission rules.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "D1.unknown-holds",
+      "decision_refs": [
+        "D1"
+      ],
+      "given": "An item in A is unknown",
+      "when": "Activate B",
+      "then": "Wait for reconciliation; do not turn unknown into failed and resend.",
+      "admission_context": "Apply the normative scope, identity and claim-admission rules.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "D1.completed-default",
+      "decision_refs": [
+        "D1"
+      ],
+      "given": "A is an asynchronous upload returning valid accepted",
+      "when": "B requests attachment with after omitted",
+      "then": "Wait for provider completion and the correctly typed file Ref.",
+      "admission_context": "Apply the normative scope, identity and claim-admission rules.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "D1.accepted-explicit",
+      "decision_refs": [
+        "D1"
+      ],
+      "given": "A is accepted and B only notifies acceptance",
+      "when": "Progress with after: accepted",
+      "then": "Proceed if required data is available at acceptance; do not describe this as completion.",
+      "admission_context": "Apply the normative scope, identity and claim-admission rules.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "D1.receipt-data-gate",
+      "decision_refs": [
+        "D1"
+      ],
+      "given": "after: accepted imports a completion-only value",
+      "when": "Attempt to start B",
+      "then": "Wait until the import's completion availability gate also holds.",
+      "admission_context": "Apply the normative scope, identity and claim-admission rules.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "D1.fresh-not-hoisted",
+      "decision_refs": [
+        "D1"
+      ],
+      "given": "A writes and B performs a fresh SourceView read",
+      "when": "Optimize or parallelize",
+      "then": "B's business read does not execute before A succeeds at the required level.",
+      "admission_context": "Apply the normative scope, identity and claim-admission rules.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "D1.receipt-correlation",
+      "decision_refs": [
+        "D1"
+      ],
+      "given": "Provider batch responses are reversed",
+      "when": "Join parent receipts to children",
+      "then": "Parent/child correspondence by input_key is unchanged.",
+      "admission_context": "Apply the normative scope, identity and claim-admission rules.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "D1.scope-rejections",
+      "decision_refs": [
+        "D1"
+      ],
+      "given": "B references itself, future C receipts, or A's internal as binding",
+      "when": "Check",
+      "then": "Reject; only published earlier Stage Results and receipts may be imported.",
+      "admission_context": "Apply the normative scope, identity and claim-admission rules.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "D1.future-ports",
+      "decision_refs": [
+        "D1"
+      ],
+      "given": "All stage schemas are known; future receipt values are unavailable",
+      "when": "Check the Program and admit execution",
+      "then": "Accept the Program template without issuing a fabricated Stage Invocation.",
+      "admission_context": "Apply the normative scope, identity and claim-admission rules.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "D1.template-id-only",
+      "decision_refs": [
+        "D1"
+      ],
+      "given": "An approved template and ID issued by its bound producer",
+      "when": "Create a concrete Preview",
+      "then": "Continue with ID-substitution evidence and current authorization.",
+      "admission_context": "Apply the normative scope, identity and claim-admission rules.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "D1.template-escape",
+      "decision_refs": [
+        "D1"
+      ],
+      "given": "A receipt amount changes a refund, or an ID comes from another producer",
+      "when": "Use ID-substitution approval",
+      "then": "Outside the template scope; require normal fresh authorization or review.",
+      "admission_context": "Apply the normative scope, identity and claim-admission rules.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "D1.fresh-allow",
+      "decision_refs": [
+        "D1"
+      ],
+      "given": "B uses a fresh business read and resolved policy is allow",
+      "when": "Execute B",
+      "then": "Authorize the concrete scope without template reuse; freshness alone does not require human review.",
+      "admission_context": "Apply the normative scope, identity and claim-admission rules.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "D1.engine-pin",
+      "decision_refs": [
+        "D1"
+      ],
+      "given": "Default Core changes from A to B while approval is pending",
+      "when": "Resume the Program Run",
+      "then": "Use pinned A; do not switch to B without explicit migration.",
+      "admission_context": "Apply the normative scope, identity and claim-admission rules.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "D1.no-auto-compensation",
+      "decision_refs": [
+        "D1"
+      ],
+      "given": "Attachment fails after upload",
+      "when": "End normal flow",
+      "then": "Retain the upload; cleanup requires an explicit recovery Program.",
+      "admission_context": "Apply the normative scope, identity and claim-admission rules.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "D1.all-results",
+      "decision_refs": [
+        "D1"
+      ],
+      "given": "One stage's Result A succeeds and B fails",
+      "when": "Request delivery only of A",
+      "then": "Do not claim the stage's required computation succeeded.",
+      "admission_context": "Apply the normative scope, identity and claim-admission rules.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "D1.zero-row",
+      "decision_refs": [
+        "D1"
+      ],
+      "given": "Zero parent rows and zero Effect items",
+      "when": "Progress the stage",
+      "then": "Retain typed empty receipts, perform zero mutations and apply the normative success rule.",
+      "admission_context": "Apply the normative scope, identity and claim-admission rules.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "D2.multi-allow",
+      "decision_refs": [
+        "D2"
+      ],
+      "given": "Two independent Effects with resolved allow",
+      "when": "Run",
+      "then": "No extra human Checkpoint; record policy risk acceptance.",
+      "admission_context": "Apply the normative scope, identity and claim-admission rules.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "D2.multi-review",
+      "decision_refs": [
+        "D2"
+      ],
+      "given": "Two independent Effects with require_review",
+      "when": "Run",
+      "then": "Create one commit Checkpoint for the complete same-stage Preview.",
+      "admission_context": "Apply the normative scope, identity and claim-admission rules.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "D2.contract-floor",
+      "decision_refs": [
+        "D2"
+      ],
+      "given": "Host raw allow but Contract minimum review",
+      "when": "Resolve authorization",
+      "then": "Retain require_review; Host allow does not override the minimum.",
+      "admission_context": "Apply the normative scope, identity and claim-admission rules.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "D2.wrong-claim",
+      "decision_refs": [
+        "D2"
+      ],
+      "given": "Claim Preview, scope or issuer does not match",
+      "when": "Admit",
+      "then": "Reject; a matching self-CID is insufficient.",
+      "admission_context": "Apply the normative scope, identity and claim-admission rules.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "D2.future-outside-envelope",
+      "decision_refs": [
+        "D2"
+      ],
+      "given": "The next stage exceeds the initial allow scope",
+      "when": "Continue automatically",
+      "then": "Require a fresh current-policy decision; do not silently admit.",
+      "admission_context": "Apply the normative scope, identity and claim-admission rules.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "D3.notify-two",
+      "decision_refs": [
+        "D3"
+      ],
+      "given": "Same channel, different payloads, append contract",
+      "when": "Execute within one stage",
+      "then": "Two items count as two; shared target alone does not cause rejection.",
+      "admission_context": "Apply the normative scope, identity and claim-admission rules.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "D3.notify-duplicate",
+      "decision_refs": [
+        "D3"
+      ],
+      "given": "Two declarations share Command, target and payload",
+      "when": "Preflight",
+      "then": "Reject duplicates; changing member names cannot evade this.",
+      "admission_context": "Apply the normative scope, identity and claim-admission rules.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "D3.row-conflict",
+      "decision_refs": [
+        "D3"
+      ],
+      "given": "Status and score updates target the same row",
+      "when": "Preflight the stage",
+      "then": "Conservatively reject the conflict.",
+      "admission_context": "Apply the normative scope, identity and claim-admission rules.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "D3.disjoint-create-update",
+      "decision_refs": [
+        "D3"
+      ],
+      "given": "Evidence proves fresh create keys and update keys disjoint",
+      "when": "Preflight",
+      "then": "Accept even within the same collection.",
+      "admission_context": "Apply the normative scope, identity and claim-admission rules.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "D3.opaque-not-independent",
+      "decision_refs": [
+        "D3"
+      ],
+      "given": "Enable and disable target the same entity with different payloads",
+      "when": "Preflight",
+      "then": "Payload difference alone does not prove independence.",
+      "admission_context": "Apply the normative scope, identity and claim-admission rules.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "D4.deterministic-generation",
+      "decision_refs": [
+        "D4"
+      ],
+      "given": "The same schema and rules arrive in different enumeration orders",
+      "when": "Generate Catalog",
+      "then": "Produce identical canonical contracts and CIDs.",
+      "admission_context": "Apply the normative scope, identity and claim-admission rules.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "D4.semantic-rule-change",
+      "decision_refs": [
+        "D4"
+      ],
+      "given": "Type mapping, writability or operation law changes",
+      "when": "Regenerate Catalog",
+      "then": "Affected Contract and Catalog CIDs change.",
+      "admission_context": "Apply the normative scope, identity and claim-admission rules.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "D4.optional-missing",
+      "decision_refs": [
+        "D4"
+      ],
+      "given": "Only an optional response property is absent",
+      "when": "Normalize the response",
+      "then": "Emit explicit null under a nullable checked schema.",
+      "admission_context": "Apply the normative scope, identity and claim-admission rules.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "D4.required-missing",
+      "decision_refs": [
+        "D4"
+      ],
+      "given": "Required property absent or wrong type",
+      "when": "Admit response",
+      "then": "Fail; optional normalization does not hide violations.",
+      "admission_context": "Apply the normative scope, identity and claim-admission rules.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "D4.write-omission",
+      "decision_refs": [
+        "D4"
+      ],
+      "given": "An update does not select a field",
+      "when": "Map the request",
+      "then": "Do not send the field or convert omission into null clearing.",
+      "admission_context": "Apply the normative scope, identity and claim-admission rules.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "D4.write-null",
+      "decision_refs": [
+        "D4"
+      ],
+      "given": "A nullable field is explicitly selected as null",
+      "when": "Map the request",
+      "then": "Apply the contract's clear semantics, distinct from omission.",
+      "admission_context": "Apply the normative scope, identity and claim-admission rules.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "D4.read-only",
+      "decision_refs": [
+        "D4"
+      ],
+      "given": "Schema includes formula/system fields",
+      "when": "Generate mappings and select write fields",
+      "then": "Retain read fields, exclude them from write candidates, reject invalid selection.",
+      "admission_context": "Apply the normative scope, identity and claim-admission rules.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "D4.no-synthesis-of-guarantee",
+      "decision_refs": [
+        "D4"
+      ],
+      "given": "OpenAPI alone does not prove natural-key uniqueness",
+      "when": "Generate capabilities",
+      "then": "Do not infer idempotency; report missing required declarations.",
+      "admission_context": "Apply the normative scope, identity and claim-admission rules.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "D5.renew-unrelated",
+      "decision_refs": [
+        "D5"
+      ],
+      "given": "Only unrelated target state changed; renewal policy permits it",
+      "when": "Apply",
+      "then": "The original Preview is stale; reauthorize a new Preview with renewal evidence.",
+      "admission_context": "Apply the normative scope, identity and claim-admission rules.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "D5.written-value-drift",
+      "decision_refs": [
+        "D5"
+      ],
+      "given": "Target, write dependencies or payload changed",
+      "when": "Renew",
+      "then": "No simple inheritance; require fresh review or scope decision.",
+      "admission_context": "Apply the normative scope, identity and claim-admission rules.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "D5.metadata-drift",
+      "decision_refs": [
+        "D5"
+      ],
+      "given": "Only explanatory text changed",
+      "when": "Display review",
+      "then": "Use a new projection and attestation; do not replace displayed text under the original signature.",
+      "admission_context": "Apply the normative scope, identity and claim-admission rules.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "D5.schema-drift",
+      "decision_refs": [
+        "D5"
+      ],
+      "given": "Connector schema or lock changes",
+      "when": "Renew through Host",
+      "then": "Value-drift policy does not admit the previous Plan.",
+      "admission_context": "Apply the normative scope, identity and claim-admission rules.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "D5.bounded-refresh",
+      "decision_refs": [
+        "D5"
+      ],
+      "given": "Target keeps changing",
+      "when": "Repeat renewal",
+      "then": "Stop at Host deadline, attempt or budget limits; no infinite loop.",
+      "admission_context": "Apply the normative scope, identity and claim-admission rules.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "D6.duplicate-request",
+      "decision_refs": [
+        "D6"
+      ],
+      "given": "Scope, caller ID and fingerprint match",
+      "when": "Submit twice",
+      "then": "Use the same logical request; do not redispatch successful work.",
+      "admission_context": "Apply the normative scope, identity and claim-admission rules.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "D6.request-conflict",
+      "decision_refs": [
+        "D6"
+      ],
+      "given": "Same request ID with different parameters/input intent",
+      "when": "Resubmit",
+      "then": "Report conflict.",
+      "admission_context": "Apply the normative scope, identity and claim-admission rules.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "D6.tenant-isolation",
+      "decision_refs": [
+        "D6"
+      ],
+      "given": "Same caller ID string in different tenants",
+      "when": "Submit",
+      "then": "Use separate scopes; share neither results nor authority.",
+      "admission_context": "Apply the normative scope, identity and claim-admission rules.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "D6.intentional-repeat",
+      "decision_refs": [
+        "D6"
+      ],
+      "given": "Different caller IDs with the same payload",
+      "when": "Submit two business requests",
+      "then": "Permit separate intended Effects.",
+      "admission_context": "Apply the normative scope, identity and claim-admission rules.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "D6.recovery-new-worker",
+      "decision_refs": [
+        "D6"
+      ],
+      "given": "Same logical request recovers in another physical Run/worker",
+      "when": "Look up ledger",
+      "then": "Reuse original Preview, key and result; physical IDs do not change keys.",
+      "admission_context": "Apply the normative scope, identity and claim-admission rules.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "D6.crash-before-dispatch",
+      "decision_refs": [
+        "D6"
+      ],
+      "given": "Crash after prepared persistence and before network dispatch",
+      "when": "Recover",
+      "then": "Use no-dispatch evidence and fencing to progress once.",
+      "admission_context": "Apply the normative scope, identity and claim-admission rules.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "D6.crash-after-apply",
+      "decision_refs": [
+        "D6"
+      ],
+      "given": "Crash after provider apply and before receipt persistence",
+      "when": "Recover",
+      "then": "Reconcile unknown under the contract; no unconditional resend.",
+      "admission_context": "Apply the normative scope, identity and claim-admission rules.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "D6.stamp-gap",
+      "decision_refs": [
+        "D6"
+      ],
+      "given": "Implementation writes the stamp separately",
+      "when": "Crash between business write and stamp",
+      "then": "Do not admit this as safe stamped capability.",
+      "admission_context": "Apply the normative scope, identity and claim-admission rules.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "D6.natural-key-collision",
+      "decision_refs": [
+        "D6"
+      ],
+      "given": "Different existing content shares the natural key",
+      "when": "Read back",
+      "then": "Do not classify this request as applied; preserve conflict or uncertainty.",
+      "admission_context": "Apply the normative scope, identity and claim-admission rules.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "D6.delayed-readback",
+      "decision_refs": [
+        "D6"
+      ],
+      "given": "Read shows nothing while original request remains pending",
+      "when": "Decide retry",
+      "then": "This does not prove not_applied; remain unknown.",
+      "admission_context": "Apply the normative scope, identity and claim-admission rules.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "D6.key-request-conflict",
+      "decision_refs": [
+        "D6"
+      ],
+      "given": "Different canonical request under the same DispatchKey",
+      "when": "Dispatch",
+      "then": "Reject.",
+      "admission_context": "Apply the normative scope, identity and claim-admission rules.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "D6.expired-ledger",
+      "decision_refs": [
+        "D6"
+      ],
+      "given": "Idempotency horizon expired and prior record is unavailable",
+      "when": "Resubmit the logical request",
+      "then": "Do not assume first execution; use contracted recovery or reject.",
+      "admission_context": "Apply the normative scope, identity and claim-admission rules.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "D6.fenced-worker",
+      "decision_refs": [
+        "D6"
+      ],
+      "given": "A worker responds after losing its lease",
+      "when": "Finalize state",
+      "then": "Do not overwrite the new owner's progress.",
+      "admission_context": "Apply the normative scope, identity and claim-admission rules.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "D7.one-transient",
+      "decision_refs": [
+        "D7"
+      ],
+      "given": "One of 10000 items times out",
+      "when": "Publish outcomes after finite retry",
+      "then": "9999 ok plus 1 failed:timeout, retaining keys.",
+      "admission_context": "Apply the normative scope, identity and claim-admission rules.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "D7.strict-opt-in",
+      "decision_refs": [
+        "D7"
+      ],
+      "given": "The same case with on_non_success: fail",
+      "when": "Execute",
+      "then": "Publish no semantic Relation; private successful raw evidence and costs may remain.",
+      "admission_context": "Apply the normative scope, identity and claim-admission rules.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "D7.refusal-no-retry",
+      "decision_refs": [
+        "D7"
+      ],
+      "given": "One refusal, schema_invalid or safety_rejected outcome",
+      "when": "Decide automatic retry",
+      "then": "Make no additional provider attempt.",
+      "admission_context": "Apply the normative scope, identity and claim-admission rules.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "D7.all-failed",
+      "decision_refs": [
+        "D7"
+      ],
+      "given": "Every slot has a known row non-success",
+      "when": "Complete default mode",
+      "then": "Emit N failure outcomes; do not fabricate successful values.",
+      "admission_context": "Apply the normative scope, identity and claim-admission rules.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "D7.empty",
+      "decision_refs": [
+        "D7"
+      ],
+      "given": "Zero keys",
+      "when": "Execute",
+      "then": "Typed empty output and zero provider calls.",
+      "admission_context": "Apply the normative scope, identity and claim-admission rules.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "D7.auth-fatal",
+      "decision_refs": [
+        "D7"
+      ],
+      "given": "Unknown classification or denied egress",
+      "when": "Execute",
+      "then": "Fail the boundary before provider access; do not hide as provider-failure rows.",
+      "admission_context": "Apply the normative scope, identity and claim-admission rules.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "D7.budget-fatal",
+      "decision_refs": [
+        "D7"
+      ],
+      "given": "Global attempt/token/byte ceiling exceeded",
+      "when": "Retry or dispatch",
+      "then": "Stop within limits; do not reset consumption to zero.",
+      "admission_context": "Apply the normative scope, identity and claim-admission rules.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "D7.late-attempt",
+      "decision_refs": [
+        "D7"
+      ],
+      "given": "An earlier attempt succeeds after adoption of a newer attempt",
+      "when": "Capture",
+      "then": "Do not replace the adopted observation; retain earlier-attempt cost evidence.",
+      "admission_context": "Apply the normative scope, identity and claim-admission rules.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "D7.replay",
+      "decision_refs": [
+        "D7"
+      ],
+      "given": "Responses and evidence are captured",
+      "when": "Replay the same observation",
+      "then": "Zero model calls; identical outcome and value.",
+      "admission_context": "Apply the normative scope, identity and claim-admission rules.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "D7.artifact-egress",
+      "decision_refs": [
+        "D7"
+      ],
+      "given": "Valid PDF Ref and typed ModelTask media contract",
+      "when": "Infer",
+      "then": "Use exact bytes and bind full reference, policy and content.",
+      "admission_context": "Apply the normative scope, identity and claim-admission rules.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "D7.artifact-tamper",
+      "decision_refs": [
+        "D7"
+      ],
+      "given": "Different content/scope or wrong MIME",
+      "when": "Infer",
+      "then": "Reject; the extraction registry is not an exemption.",
+      "admission_context": "Apply the normative scope, identity and claim-admission rules.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "D7.model-null",
+      "decision_refs": [
+        "D7"
+      ],
+      "given": "ok value={summary:null} and failed value=null",
+      "when": "Check and consume",
+      "then": "Distinguish them; filtering ok recovers the success contract.",
+      "admission_context": "Apply the normative scope, identity and claim-admission rules.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "D8.different-placement",
+      "decision_refs": [
+        "D8"
+      ],
+      "given": "Admitted kernels A/B produce different floating results",
+      "when": "Capture separate fresh executions",
+      "then": "Program/Plan may match while observations and Result CIDs differ.",
+      "admission_context": "Apply the normative scope, identity and claim-admission rules.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "D8.captured-replay",
+      "decision_refs": [
+        "D8"
+      ],
+      "given": "A's numerical observation is retained and default changes to B",
+      "when": "Replay",
+      "then": "Use A's adopted value with zero provider aggregation calls.",
+      "admission_context": "Apply the normative scope, identity and claim-admission rules.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "D8.cancellation-numerics",
+      "decision_refs": [
+        "D8"
+      ],
+      "given": "Different reductions of [1e16,1,-1e16]",
+      "when": "Compare results",
+      "then": "Do not claim differences are always one trailing bit; apply the contracted numerical law.",
+      "admission_context": "Apply the normative scope, identity and claim-admission rules.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "D8.exact-lanes",
+      "decision_refs": [
+        "D8"
+      ],
+      "given": "Decimal, count or proven integer aggregate",
+      "when": "Execute on multiple targets",
+      "then": "Exact laws and publication-range checks agree.",
+      "admission_context": "Apply the normative scope, identity and claim-admission rules.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "D8.structural-mismatch",
+      "decision_refs": [
+        "D8"
+      ],
+      "given": "Remote result has wrong group/count/filter/null behavior",
+      "when": "Admit",
+      "then": "Floating tolerance does not excuse structural violations.",
+      "admission_context": "Apply the normative scope, identity and claim-admission rules.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "D8.no-arbitrary-compute",
+      "decision_refs": [
+        "D8"
+      ],
+      "given": "Opaque code output carries only a CID",
+      "when": "Register numeric capture",
+      "then": "Reject without a closed aggregate contract.",
+      "admission_context": "Apply the normative scope, identity and claim-admission rules.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "D8.acyclic-identity",
+      "decision_refs": [
+        "D8"
+      ],
+      "given": "Stage Invocation includes numerical response",
+      "when": "Generate capture key",
+      "then": "Do not require future Invocation/Result CID in the preimage.",
+      "admission_context": "Apply the normative scope, identity and claim-admission rules.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "D9.default-reject",
+      "decision_refs": [
+        "D9"
+      ],
+      "given": "Duplicate primary key and duplicates omitted",
+      "when": "Admit input",
+      "then": "Reject.",
+      "admission_context": "Apply the normative scope, identity and claim-admission rules.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "D9.first-by-order",
+      "decision_refs": [
+        "D9"
+      ],
+      "given": "Duplicate rows have independently admitted total order",
+      "when": "Apply first_by_order",
+      "then": "Select the first complete row per key; record order evidence and excluded count.",
+      "admission_context": "Apply the normative scope, identity and claim-admission rules.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "D9.missing-order",
+      "decision_refs": [
+        "D9"
+      ],
+      "given": "No ordering evidence independent of the duplicate key",
+      "when": "Apply first_by_order",
+      "then": "Reject and offer an explicit dedupe_rows repair.",
+      "admission_context": "Apply the normative scope, identity and claim-admission rules.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "D9.invalid-dropped-row",
+      "decision_refs": [
+        "D9"
+      ],
+      "given": "A row to be discarded violates its type",
+      "when": "Normalize",
+      "then": "Fail without hiding the type violation.",
+      "admission_context": "Apply the normative scope, identity and claim-admission rules.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "D9.post-key-proof",
+      "decision_refs": [
+        "D9"
+      ],
+      "given": "Select representatives from valid raw rows",
+      "when": "Generate key proof",
+      "then": "Prove non-null uniqueness after selection.",
+      "admission_context": "Apply the normative scope, identity and claim-admission rules.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "D9.cursor-raw",
+      "decision_refs": [
+        "D9"
+      ],
+      "given": "Dedupe/filter a changes page",
+      "when": "Compute cursor",
+      "then": "Retain the raw response checkpoint.",
+      "admission_context": "Apply the normative scope, identity and claim-admission rules.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "D10.missing-default",
+      "decision_refs": [
+        "D10"
+      ],
+      "given": "Value absent and default declared",
+      "when": "Bind",
+      "then": "Use the literal default and check its exact type.",
+      "admission_context": "Apply the normative scope, identity and claim-admission rules.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "D10.nullable-no-default",
+      "decision_refs": [
+        "D10"
+      ],
+      "given": "Nullable value absent without a default",
+      "when": "Bind",
+      "then": "Return needs_bindings.",
+      "admission_context": "Apply the normative scope, identity and claim-admission rules.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "D10.explicit-null",
+      "decision_refs": [
+        "D10"
+      ],
+      "given": "Nullable parameter with non-null default receives null",
+      "when": "Bind",
+      "then": "Retain null; do not substitute the default.",
+      "admission_context": "Apply the normative scope, identity and claim-admission rules.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "D10.object-exact",
+      "decision_refs": [
+        "D10"
+      ],
+      "given": "Typed object contains extra or missing fields",
+      "when": "Bind",
+      "then": "Reject according to the closed contract; no deep merge.",
+      "admission_context": "Apply the normative scope, identity and claim-admission rules.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "D10.equal-default-identity",
+      "decision_refs": [
+        "D10"
+      ],
+      "given": "Default and explicit supplied value are equal",
+      "when": "Compute parameter CID",
+      "then": "Use the same effective typed-value identity.",
+      "admission_context": "Apply the normative scope, identity and claim-admission rules.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "D10.freeze-once",
+      "decision_refs": [
+        "D10"
+      ],
+      "given": "Caller object/default configuration changes after Run start",
+      "when": "Resume or activate next stage",
+      "then": "Use persisted effective values.",
+      "admission_context": "Apply the normative scope, identity and claim-admission rules.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "D10.structural-forbidden",
+      "decision_refs": [
+        "D10"
+      ],
+      "given": "Parameters select Connector, operation or field names",
+      "when": "Check",
+      "then": "Reject structural parameterization.",
+      "admission_context": "Apply the normative scope, identity and claim-admission rules.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "D10.unused-or-extra",
+      "decision_refs": [
+        "D10"
+      ],
+      "given": "Unused declaration or undeclared supplied value",
+      "when": "Bind",
+      "then": "Reject.",
+      "admission_context": "Apply the normative scope, identity and claim-admission rules.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "D11.shadow",
+      "decision_refs": [
+        "D11"
+      ],
+      "given": "Compute amount from the same-named input",
+      "when": "Evaluate ordered derive",
+      "then": "Its RHS reads the input value; later slots read the new value. Unspecified input fields remain.",
+      "admission_context": "Apply the normative scope, identity and claim-admission rules.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "D11.prior-output",
+      "decision_refs": [
+        "D11"
+      ],
+      "given": "Tax in ordered derive refers to preceding amount",
+      "when": "Check and evaluate",
+      "then": "Resolve the prior slot's value version and evaluate once in row-local order.",
+      "admission_context": "Apply the normative scope, identity and claim-admission rules.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "D11.forward-missing",
+      "decision_refs": [
+        "D11"
+      ],
+      "given": "Output name is not yet defined and absent from input",
+      "when": "Check",
+      "then": "Reject.",
+      "admission_context": "Apply the normative scope, identity and claim-admission rules.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "D11.duplicate-output",
+      "decision_refs": [
+        "D11"
+      ],
+      "given": "Multiple slots define the same NFC-normalized name",
+      "when": "Check",
+      "then": "Reject; one shadow of a same-named input field is allowed.",
+      "admission_context": "Apply the normative scope, identity and claim-admission rules.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "D11.key-drop",
+      "decision_refs": [
+        "D11"
+      ],
+      "given": "Computation changes a primary-key field value",
+      "when": "Propagate proof",
+      "then": "Same name does not preserve a key; copying the original key to another alias may preserve it.",
+      "admission_context": "Apply the normative scope, identity and claim-admission rules.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "D11.row-priority-failure",
+      "decision_refs": [
+        "D11"
+      ],
+      "given": "Row 1 fails in a later slot; row 2 fails in an earlier slot",
+      "when": "Evaluate ordered derive",
+      "then": "Report row 1's failure; a simple whole-Relation slot-major expansion is forbidden.",
+      "admission_context": "Apply the normative scope, identity and claim-admission rules.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "D11.map-derive",
+      "decision_refs": [
+        "D11"
+      ],
+      "given": "Map-form derive",
+      "when": "Evaluate its source",
+      "then": "Map enumeration order does not grant prior-output references.",
+      "admission_context": "Apply the normative scope, identity and claim-admission rules.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "D11.literal-opaque",
+      "decision_refs": [
+        "D11"
+      ],
+      "given": "RHS literal contains parameter/operation-like keys",
+      "when": "Normalize ordered derive",
+      "then": "Do not descend into literal data; decode only RHS expression positions.",
+      "admission_context": "Apply the normative scope, identity and claim-admission rules.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "keep.member-failure.acceptance",
+      "decision_refs": [
+        "keep.member-failure"
+      ],
+      "given": "Member-local halt default and inter-member attempt_all",
+      "when": "Apply both scopes within one stage; continue does not authorize unknown-item resend",
+      "then": "Independent members still run after one fails; distinguish unattempted member rows from unattempted successor stages.",
+      "admission_context": "Apply the normative scope, identity and claim-admission rules.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "keep.risk-acceptance.acceptance",
+      "decision_refs": [
+        "keep.risk-acceptance"
+      ],
+      "given": "Authenticated partial-application risk acceptance",
+      "when": "Use the same proposition type for human and policy issuers",
+      "then": "Reject signature, issuer, scope or claim mismatch; policy allow adds no human Checkpoint.",
+      "admission_context": "Apply the normative scope, identity and claim-admission rules.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "keep.conversion-failure.acceptance",
+      "decision_refs": [
+        "keep.conversion-failure"
+      ],
+      "given": "Row conversion failure",
+      "when": "Fail the operation and offer a registered try_* repair as a semantic change",
+      "then": "to_number failure publishes no output; offer try_number without automatic application; do not evaluate unselected branches.",
+      "admission_context": "Apply the normative scope, identity and claim-admission rules.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "keep.guard-failure.acceptance",
+      "decision_refs": [
+        "keep.guard-failure"
+      ],
+      "given": "Guard or ceiling exceeded",
+      "when": "Fail the protected operation; present top_k as a distinct selection choice",
+      "then": "Do not return a successful prefix or insert top_k with unresolved order.",
+      "admission_context": "Apply the normative scope, identity and claim-admission rules.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "keep.failed-acquisition.acceptance",
+      "decision_refs": [
+        "keep.failed-acquisition"
+      ],
+      "given": "External acquisition fails",
+      "when": "Preserve failure; infer outcomes use their separate explicit failure contract",
+      "then": "Distinguish timeout from verified zero-row success and failure outcomes from successful values.",
+      "admission_context": "Apply the normative scope, identity and claim-admission rules.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "keep.take-order.acceptance",
+      "decision_refs": [
+        "keep.take-order"
+      ],
+      "given": "take requires proven stable order",
+      "when": "Journal completion from an eligible sole candidate key",
+      "then": "Input enumeration changes preserve the specified prefix; reject without a key or order.",
+      "admission_context": "Apply the normative scope, identity and claim-admission rules.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "keep.search-absence.acceptance",
+      "decision_refs": [
+        "keep.search-absence"
+      ],
+      "given": "Search no-hit does not prove external absence",
+      "when": "Use complete scoped fetch before create",
+      "then": "Do not admit absence-dependent Effects on partial no-hit evidence; separately check complete acquisition and write conflict guards.",
+      "admission_context": "Apply the normative scope, identity and claim-admission rules.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "keep.bounded-sourceview-acquisition.acceptance",
+      "decision_refs": [
+        "keep.bounded-sourceview-acquisition"
+      ],
+      "given": "Data-dependent SourceView reads use keyed joins or search_candidates",
+      "when": "Keep infer and numeric observations as separate admitted boundaries, not arbitrary fetch DAGs",
+      "then": "Reject row-selected Connector/Resource/view/operation; receipt imports perform no provider reads.",
+      "admission_context": "Apply the normative scope, identity and claim-admission rules.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "keep.cursor-commit.acceptance",
+      "decision_refs": [
+        "keep.cursor-commit"
+      ],
+      "given": "Unresolved Effects and no exceptional source-state claim",
+      "when": "Separate stage capture from Program commit eligibility",
+      "then": "A captured, B partially applied and C unattempted leaves cursor unchanged; recovery does not resend successes or derive checkpoints from filtered rows.",
+      "admission_context": "Apply the normative scope, identity and claim-admission rules.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "keep.utc-calendar.acceptance",
+      "decision_refs": [
+        "keep.utc-calendar"
+      ],
+      "given": "Fixed UTC functions and explicit calendar profile",
+      "when": "Do not propagate calendar timezone implicitly into ordinary expressions",
+      "then": "Distinguish fixed durations from calendar days across DST; reject unprofiled timezone arguments.",
+      "admission_context": "Apply the normative scope, identity and claim-admission rules.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "keep.utf16-order.acceptance",
+      "decision_refs": [
+        "keep.utf16-order"
+      ],
+      "given": "NFC UTF-16 code-unit canonical order",
+      "when": "Keep locale display order separate from semantic Results",
+      "then": "Independent BMP/supplementary expectations agree across targets; display sorting cannot retain the original Result CID.",
+      "admission_context": "Apply the normative scope, identity and claim-admission rules.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "keep.case-sensitive.acceptance",
+      "decision_refs": [
+        "keep.case-sensitive"
+      ],
+      "given": "Case-sensitive names and exact lowercase function/operation spellings",
+      "when": "Keep value case_fold separate from name resolution",
+      "then": "Reject misspellings without fuzzy execution; distinguish admitted SQL keyword casing.",
+      "admission_context": "Apply the normative scope, identity and claim-admission rules.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "keep.decimal-number.acceptance",
+      "decision_refs": [
+        "keep.decimal-number"
+      ],
+      "given": "No implicit decimal/binary64 mixing",
+      "when": "Use only closed explicit casts without inventing monetary rounding",
+      "then": "Distinguish decimal string 0.1 from binary64 0.1; numeric observations do not permit floating decimal aggregation.",
+      "admission_context": "Apply the normative scope, identity and claim-admission rules.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "keep.closed-keys.acceptance",
+      "decision_refs": [
+        "keep.closed-keys"
+      ],
+      "given": "Closed keys and exact spellings",
+      "when": "Use registered vocabulary in diagnostic repairs",
+      "then": "Do not ignore unknown operations/fields or confuse prototype names and literal keys with syntax.",
+      "admission_context": "Apply the normative scope, identity and claim-admission rules.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "keep.definition-id.acceptance",
+      "decision_refs": [
+        "keep.definition-id"
+      ],
+      "given": "Program id belongs to Definition identity and stage id to its namespace",
+      "when": "Keep display names in meta",
+      "then": "ID changes alter definition/intent; display-name changes preserve computation CID but update reviewed snapshots.",
+      "admission_context": "Apply the normative scope, identity and claim-admission rules.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "keep.one-result-delivery.acceptance",
+      "decision_refs": [
+        "keep.one-result-delivery"
+      ],
+      "given": "One delivery request selects one Result and format",
+      "when": "Batch transport may group distinct requests and receipts",
+      "then": "Do not merge Results into one unnamed receipt or change Program roots through delivery selection.",
+      "admission_context": "Apply the normative scope, identity and claim-admission rules.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "keep.checkpoint-expiry.acceptance",
+      "decision_refs": [
+        "keep.checkpoint-expiry"
+      ],
+      "given": "Checkpoint expires under Host deadline",
+      "when": "Cancel without rolling back Effects or erasing unknown outcomes",
+      "then": "Do not resume an expired Checkpoint; reconciliation may update evidence but cannot revive it.",
+      "admission_context": "Apply the normative scope, identity and claim-admission rules.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "keep.whole-preflight.acceptance",
+      "decision_refs": [
+        "keep.whole-preflight"
+      ],
+      "given": "One invalid item in stage preflight",
+      "when": "Require zero mutations in that stage; changed scope needs a new Preview and authorization",
+      "then": "continue does not hide invalid rows; UI exclusion proposals are not partial release of the original Preview.",
+      "admission_context": "Apply the normative scope, identity and claim-admission rules.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "keep.accepted-not-complete.acceptance",
+      "decision_refs": [
+        "keep.accepted-not-complete"
+      ],
+      "given": "Run success is distinct from provider and business completion",
+      "when": "Expose completed/accepted waiting through SDK and UI",
+      "then": "No completion notification for a subsequently failed accepted job; explicit acceptance notification remains possible.",
+      "admission_context": "Apply the normative scope, identity and claim-admission rules.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "keep.narrow-collection.acceptance",
+      "decision_refs": [
+        "keep.narrow-collection"
+      ],
+      "given": "Optional collection is a narrow homogeneous read-only union",
+      "when": "Compose heterogeneous inputs and all-failure reports in the SDK",
+      "then": "Do not put Effects inside collection; distinguish all infer failure outcomes from all source Runs failing.",
+      "admission_context": "Apply the normative scope, identity and claim-admission rules.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "keep.materialized-results.acceptance",
+      "decision_refs": [
+        "keep.materialized-results"
+      ],
+      "given": "Results are materialized Relations",
+      "when": "Provide SDK single-row/value access and Host progress",
+      "then": "singleRow errors unless exactly one row; do not truncate; progress is not a semantic Result.",
+      "admission_context": "Apply the normative scope, identity and claim-admission rules.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "keep.durable-local-defaults.acceptance",
+      "decision_refs": [
+        "keep.durable-local-defaults"
+      ],
+      "given": "Local execution requires durability",
+      "when": "Bundle durable storage, private-evidence encryption, scope and secure key defaults without an ephemeral bypass",
+      "then": "No manual secret pasting for ordinary setup; recover after process restart; never expose secrets in source, diagnostics or Results.",
+      "admission_context": "Apply the normative scope, identity and claim-admission rules.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "keep.single-mapping-key.acceptance",
+      "decision_refs": [
+        "keep.single-mapping-key"
+      ],
+      "given": "Mapping target primary key is single-field",
+      "when": "Distinguish Command item composites, receipt correlation and Relation keys",
+      "then": "Reject undeclared composite Mapping target keys without banning valid composite Relation keys.",
+      "admission_context": "Apply the normative scope, identity and claim-admission rules.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "keep.host-ceilings.acceptance",
+      "decision_refs": [
+        "keep.host-ceilings"
+      ],
+      "given": "Finite execution ceilings",
+      "when": "Resolve limits from Host, contracts and proofs; unknown statistics alone do not reject enforceably bounded work",
+      "then": "Bounded work with unknown estimates runs; reject unbounded work; do not require redundant author limits.",
+      "admission_context": "Apply the normative scope, identity and claim-admission rules.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "keep.no-author-approval-policy.acceptance",
+      "decision_refs": [
+        "keep.no-author-approval-policy"
+      ],
+      "given": "Approval and permissions are outside source",
+      "when": "Do not route by meta; after declares success dependency, not approval policy",
+      "then": "Reject author keys that strengthen or weaken review; Host routes by operation semantics.",
+      "admission_context": "Apply the normative scope, identity and claim-admission rules.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "keep.review-metadata.acceptance",
+      "decision_refs": [
+        "keep.review-metadata"
+      ],
+      "given": "Changed meta is within the node's signed review scope",
+      "when": "Create a new projection and attestation while preserving the reviewed snapshot",
+      "then": "Computation CID stays fixed while review CID changes; do not reuse a signature for a new explanation.",
+      "admission_context": "Apply the normative scope, identity and claim-admission rules.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "keep.closed-core-extension.acceptance",
+      "decision_refs": [
+        "keep.closed-core-extension"
+      ],
+      "given": "No UDF or lambda escape",
+      "when": "Use registered profiles or explicit external Host tasks",
+      "then": "A CID does not make arbitrary code pure ActQL; do not disguise opaque tasks as checked stage operations.",
+      "admission_context": "Apply the normative scope, identity and claim-admission rules.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "keep.outer-watch.acceptance",
+      "decision_refs": [
+        "keep.outer-watch"
+      ],
+      "given": "Watch and resident loops are external",
+      "when": "Use finite changes and external scheduling; bounded polling/retry is not source recursion",
+      "then": "Reject dynamic stage growth, self-calls and one-stage-per-row generation.",
+      "admission_context": "Apply the normative scope, identity and claim-admission rules.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "keep.scoped-references.acceptance",
+      "decision_refs": [
+        "keep.scoped-references"
+      ],
+      "given": "Opaque reference equality includes its scope",
+      "when": "Use explicit fields for business keys or content comparison while retaining full reference evidence",
+      "then": "Same bytes in a different scope do not permit identity-equal ArtifactRef substitution; explicit content comparison remains possible.",
+      "admission_context": "Apply the normative scope, identity and claim-admission rules.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "keep.private-inspection.acceptance",
+      "decision_refs": [
+        "keep.private-inspection"
+      ],
+      "given": "Public explain redacts private data",
+      "when": "Authorize private inspection independently from review authority",
+      "then": "Without read authority, expose no bound values or rows; approval alone grants no payload access; never return keys.",
+      "admission_context": "Apply the normative scope, identity and claim-admission rules.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "keep.canonical-export.acceptance",
+      "decision_refs": [
+        "keep.canonical-export"
+      ],
+      "given": "Canonical strings and fixed CSV semantics",
+      "when": "Keep raw bytes as Artifacts and human-oriented transformations explicit",
+      "then": "Do not silently rewrite CSV for spreadsheets; formula escaping produces a distinct explicit artifact and receipt.",
+      "admission_context": "Apply the normative scope, identity and claim-admission rules.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "keep.release-claim-separation.acceptance",
+      "decision_refs": [
+        "keep.release-claim-separation"
+      ],
+      "given": "Distribution and full conformance are separate gates",
+      "when": "Disclose partial support and known gaps for alpha/beta distribution",
+      "then": "No fabricated success for unsupported operations; full claims require all normative and independent evidence.",
+      "admission_context": "Apply the normative scope, identity and claim-admission rules.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "RG.lowering.same-graph",
+      "decision_refs": [
+        "D1"
+      ],
+      "given": "Direct stages and a canonically extracted bundle in the same frozen context",
+      "when": "Loading canonical stage extraction produces the same graph as direct lowering.",
+      "then": "Both entry points produce the specified canonical graph or permitted trace.",
+      "execute_both_forms": true
+    },
+    {
+      "case_id": "RG.validation.whole-bundle",
+      "decision_refs": [
+        "D1"
+      ],
+      "given": "Direct stages and a canonically extracted bundle in the same frozen context",
+      "when": "Reject invalid successor B before any A provider call through either entry point.",
+      "then": "Both entry points produce the specified canonical graph or permitted trace.",
+      "execute_both_forms": true
+    },
+    {
+      "case_id": "RG.binding.inferred-contract",
+      "decision_refs": [
+        "D1"
+      ],
+      "given": "Direct stages and a canonically extracted bundle in the same frozen context",
+      "when": "Generate checked bindings without repeated author schemas; reject tampering before execution.",
+      "then": "Both entry points produce the specified canonical graph or permitted trace.",
+      "execute_both_forms": true
+    },
+    {
+      "case_id": "RG.binding.pending-not-null",
+      "decision_refs": [
+        "D1"
+      ],
+      "given": "Direct stages and a canonically extracted bundle in the same frozen context",
+      "when": "Distinguish unavailable data, available zero rows and contract violations.",
+      "then": "Both entry points produce the specified canonical graph or permitted trace.",
+      "execute_both_forms": true
+    },
+    {
+      "case_id": "RG.control.no-data-dependency",
+      "decision_refs": [
+        "D1"
+      ],
+      "given": "Direct stages and a canonically extracted bundle in the same frozen context",
+      "when": "Fixed-text notifications still wait for predecessor success.",
+      "then": "Both entry points produce the specified canonical graph or permitted trace.",
+      "execute_both_forms": true
+    },
+    {
+      "case_id": "RG.control.accepted-and-ready",
+      "decision_refs": [
+        "D1"
+      ],
+      "given": "Direct stages and a canonically extracted bundle in the same frozen context",
+      "when": "Acceptance alone cannot release a missing completion-only Ref.",
+      "then": "Both entry points produce the specified canonical graph or permitted trace.",
+      "execute_both_forms": true
+    },
+    {
+      "case_id": "RG.control.applied-satisfies-accepted",
+      "decision_refs": [
+        "D1"
+      ],
+      "given": "Direct stages and a canonically extracted bundle in the same frozen context",
+      "when": "Synchronous applied satisfies an explicit accepted wait without permanent suspension.",
+      "then": "Both entry points produce the specified canonical graph or permitted trace.",
+      "execute_both_forms": true
+    },
+    {
+      "case_id": "RG.failure.whole-unit",
+      "decision_refs": [
+        "D1"
+      ],
+      "given": "Direct stages and a canonically extracted bundle in the same frozen context",
+      "when": "With 99 applied and 1 failed, successors remain unattempted.",
+      "then": "Both entry points produce the specified canonical graph or permitted trace.",
+      "execute_both_forms": true
+    },
+    {
+      "case_id": "RG.failure.unknown",
+      "decision_refs": [
+        "D1"
+      ],
+      "given": "Direct stages and a canonically extracted bundle in the same frozen context",
+      "when": "Unknown waits for reconciliation; recovery does not resend successful items.",
+      "then": "Both entry points produce the specified canonical graph or permitted trace.",
+      "execute_both_forms": true
+    },
+    {
+      "case_id": "RG.approval.fresh-allow",
+      "decision_refs": [
+        "D1"
+      ],
+      "given": "Direct stages and a canonically extracted bundle in the same frozen context",
+      "when": "Resolved allow adds no human pause solely because of fresh reads.",
+      "then": "Both entry points produce the specified canonical graph or permitted trace.",
+      "execute_both_forms": true
+    },
+    {
+      "case_id": "RG.approval.template-equivalence",
+      "decision_refs": [
+        "D1"
+      ],
+      "given": "Direct stages and a canonically extracted bundle in the same frozen context",
+      "when": "Identical producers/substitution laws yield equivalent concrete authorization; reject changed producer or amount in both paths.",
+      "then": "Both entry points produce the specified canonical graph or permitted trace.",
+      "execute_both_forms": true
+    },
+    {
+      "case_id": "RG.observation.no-hoist",
+      "decision_refs": [
+        "D1"
+      ],
+      "given": "Direct stages and a canonically extracted bundle in the same frozen context",
+      "when": "Do not hoist successor fresh reads before predecessor apply.",
+      "then": "Both entry points produce the specified canonical graph or permitted trace.",
+      "execute_both_forms": true
+    },
+    {
+      "case_id": "RG.cursor.defer-scope",
+      "decision_refs": [
+        "D1"
+      ],
+      "given": "Direct stages and a canonically extracted bundle in the same frozen context",
+      "when": "A capture success followed by B failure leaves the cursor at its original generation in both paths.",
+      "then": "Both entry points produce the specified canonical graph or permitted trace.",
+      "execute_both_forms": true
+    },
+    {
+      "case_id": "RG.cursor.recovery",
+      "decision_refs": [
+        "D1"
+      ],
+      "given": "Direct stages and a canonically extracted bundle in the same frozen context",
+      "when": "After recovery, commit only the same pending checkpoint; reject stale workers or caller substitution.",
+      "then": "Both entry points produce the specified canonical graph or permitted trace.",
+      "execute_both_forms": true
+    },
+    {
+      "case_id": "RG.cursor.commit-failure",
+      "decision_refs": [
+        "D1"
+      ],
+      "given": "Direct stages and a canonically extracted bundle in the same frozen context",
+      "when": "Cursor-commit failure alone does not reexecute successful Effects.",
+      "then": "Both entry points produce the specified canonical graph or permitted trace.",
+      "execute_both_forms": true
+    },
+    {
+      "case_id": "RG.identity.shared-request",
+      "decision_refs": [
+        "D1"
+      ],
+      "given": "Direct stages and a canonically extracted bundle in the same frozen context",
+      "when": "Canonical extraction preserves the same logical-item ledger entry; another request is separate work.",
+      "then": "Both entry points produce the specified canonical graph or permitted trace.",
+      "execute_both_forms": true
+    },
+    {
+      "case_id": "RG.identity.rename-not-equivalence",
+      "decision_refs": [
+        "D1"
+      ],
+      "given": "Direct stages and a canonically extracted bundle in the same frozen context",
+      "when": "Renaming authored Program IDs does not authorize signature or key reuse.",
+      "then": "Both entry points produce the specified canonical graph or permitted trace.",
+      "execute_both_forms": true
+    },
+    {
+      "case_id": "RG.context.parameters",
+      "decision_refs": [
+        "D1"
+      ],
+      "given": "Direct stages and a canonically extracted bundle in the same frozen context",
+      "when": "Do not re-resolve defaults, clock or mutable caller objects in later nodes.",
+      "then": "Both entry points produce the specified canonical graph or permitted trace.",
+      "execute_both_forms": true
+    },
+    {
+      "case_id": "RG.context.lock-and-policy",
+      "decision_refs": [
+        "D1"
+      ],
+      "given": "Direct stages and a canonically extracted bundle in the same frozen context",
+      "when": "A shared lock does not bypass current deny or expiry in either path.",
+      "then": "Both entry points produce the specified canonical graph or permitted trace.",
+      "execute_both_forms": true
+    },
+    {
+      "case_id": "RG.context.engine-and-budget",
+      "decision_refs": [
+        "D1"
+      ],
+      "given": "Direct stages and a canonically extracted bundle in the same frozen context",
+      "when": "Recover under the same engine pin and cumulative budget; extraction never resets budgets.",
+      "then": "Both entry points produce the specified canonical graph or permitted trace.",
+      "execute_both_forms": true
+    },
+    {
+      "case_id": "RG.publication.same-exports",
+      "decision_refs": [
+        "D1"
+      ],
+      "given": "Direct stages and a canonically extracted bundle in the same frozen context",
+      "when": "Preserve Stage/node Results, export names, policy, read authority and post-failure inspection.",
+      "then": "Both entry points produce the specified canonical graph or permitted trace.",
+      "execute_both_forms": true
+    },
+    {
+      "case_id": "RG.publication.delivery-independent",
+      "decision_refs": [
+        "D1"
+      ],
+      "given": "Direct stages and a canonically extracted bundle in the same frozen context",
+      "when": "Delivery failure does not trigger graph reexecution or cursor rollback.",
+      "then": "Both entry points produce the specified canonical graph or permitted trace.",
+      "execute_both_forms": true
+    },
+    {
+      "case_id": "A1.suffix-payload",
+      "decision_refs": [
+        "D1",
+        "A1"
+      ],
+      "given": "Three nodes with definitions and exact inputs of 1/2 fixed",
+      "when": "Change only node 3 notification body",
+      "then": "Program/node 3 identities change; 1/2 local templates/Previews remain fixed; graph launch requires separate admission.",
+      "execute_both_forms": true
+    },
+    {
+      "case_id": "A1.suffix-meta",
+      "decision_refs": [
+        "D1",
+        "A1"
+      ],
+      "given": "Shared root meta is unchanged",
+      "when": "Change only node 3 explanation",
+      "then": "Reviews of 1/2 remain fixed; node 3 review changes, computation does not.",
+      "execute_both_forms": true
+    },
+    {
+      "case_id": "A1.unused-param",
+      "decision_refs": [
+        "D1",
+        "A1"
+      ],
+      "given": "Parameters are frozen graph-wide; one is used only by node 3",
+      "when": "Change only that parameter",
+      "then": "Local parameter projections and Previews of 1/2 are unchanged.",
+      "execute_both_forms": true
+    },
+    {
+      "case_id": "A1.used-param",
+      "decision_refs": [
+        "D1",
+        "A1"
+      ],
+      "given": "Node 1 uses amount",
+      "when": "Change amount",
+      "then": "Node 1 exact Preview changes; copying the original signature cannot admit it.",
+      "execute_both_forms": true
+    },
+    {
+      "case_id": "A1.transitive-parent",
+      "decision_refs": [
+        "D1",
+        "A1"
+      ],
+      "given": "Result/Invocation/receipt/metadata dependency graph",
+      "when": "Change only parent Program revision",
+      "then": "No hidden path from local semantic identity to whole-parent CID; membership updates.",
+      "execute_both_forms": true
+    },
+    {
+      "case_id": "A1.wrong-producer",
+      "decision_refs": [
+        "D1",
+        "A1"
+      ],
+      "given": "Two producers issue same-typed receipts",
+      "when": "Substitute an unauthorized producer",
+      "then": "Reject on producer/issuer/binding despite identical type.",
+      "execute_both_forms": true
+    },
+    {
+      "case_id": "A1.same-bytes-scope",
+      "decision_refs": [
+        "D1",
+        "A1"
+      ],
+      "given": "Same Artifact bytes with different scope/policy",
+      "when": "Substitute the Ref",
+      "then": "Verify approval eligibility instead of assuming it; reject unauthorized scope.",
+      "execute_both_forms": true
+    },
+    {
+      "case_id": "A1.namespace-rename",
+      "decision_refs": [
+        "D1",
+        "A1"
+      ],
+      "given": "Authored Program and node IDs",
+      "when": "Rename either",
+      "then": "Unit namespace, definition and approval change.",
+      "execute_both_forms": true
+    },
+    {
+      "case_id": "A1.active-pin",
+      "decision_refs": [
+        "D1",
+        "A1"
+      ],
+      "given": "A graph waits at a Checkpoint",
+      "when": "Edit source",
+      "then": "The active Run stays pinned; do not apply the new revision in place.",
+      "execute_both_forms": true
+    },
+    {
+      "case_id": "A1.one-shot",
+      "decision_refs": [
+        "D1",
+        "A1"
+      ],
+      "given": "An exact one-shot Resolution",
+      "when": "Resubmit its signature for a new request",
+      "then": "Reject Checkpoint signature replay; template reuse is separate.",
+      "execute_both_forms": true
+    },
+    {
+      "case_id": "A1.shared-review",
+      "decision_refs": [
+        "D1",
+        "A1"
+      ],
+      "given": "Shared root explanation was reviewed by multiple nodes",
+      "when": "Change that explanation",
+      "then": "Update every affected review; locality does not hide it.",
+      "execute_both_forms": true
+    },
+    {
+      "case_id": "A1.lock-drift",
+      "decision_refs": [
+        "D1",
+        "A1"
+      ],
+      "given": "Same local stage with an updated Catalog",
+      "when": "Execute with the original lock",
+      "then": "Reject lock drift independently of local Preview optimization.",
+      "execute_both_forms": true
+    },
+    {
+      "case_id": "A1.extract-membership",
+      "decision_refs": [
+        "D1",
+        "A1"
+      ],
+      "given": "Generated stage bundle",
+      "when": "Admit through standalone graph",
+      "then": "Use identical local keys, membership checks, policy and cursor rules.",
+      "execute_both_forms": true
+    },
+    {
+      "case_id": "A2.normal-block",
+      "decision_refs": [
+        "D1",
+        "D6",
+        "keep.cursor-commit",
+        "A2"
+      ],
+      "given": "A captures, B updates, C notification permanently fails",
+      "when": "Commit cursor without an exceptional claim",
+      "then": "Cursor unchanged; graph failed.",
+      "execute_both_forms": true
+    },
+    {
+      "case_id": "A2.abandon-notification",
+      "decision_refs": [
+        "D1",
+        "D6",
+        "keep.cursor-commit",
+        "A2"
+      ],
+      "given": "Same failure with management authority",
+      "when": "Abandon only C's known unmet duty by exact claim",
+      "then": "Exceptional cursor commit; retain C failure and do not resend B.",
+      "execute_both_forms": true
+    },
+    {
+      "case_id": "A2.wrong-right",
+      "decision_refs": [
+        "D1",
+        "D6",
+        "keep.cursor-commit",
+        "A2"
+      ],
+      "given": "Actor only has Effect approval authority",
+      "when": "Issue cursor-advance claim",
+      "then": "Reject for missing management authority.",
+      "execute_both_forms": true
+    },
+    {
+      "case_id": "A2.unknown-handoff",
+      "decision_refs": [
+        "D1",
+        "D6",
+        "keep.cursor-commit",
+        "A2"
+      ],
+      "given": "C is unknown",
+      "when": "Claim with durable reconciliation handoff",
+      "then": "Retain unknown; explicitly commit source exceptionally; resend is not authorized.",
+      "execute_both_forms": true
+    },
+    {
+      "case_id": "A2.unknown-abandon",
+      "decision_refs": [
+        "D1",
+        "D6",
+        "keep.cursor-commit",
+        "A2"
+      ],
+      "given": "Unknown outcome",
+      "when": "Claim abandonment without handoff",
+      "then": "Reject.",
+      "execute_both_forms": true
+    },
+    {
+      "case_id": "A2.future-watermark",
+      "decision_refs": [
+        "D1",
+        "D6",
+        "keep.cursor-commit",
+        "A2"
+      ],
+      "given": "Only q0 to q1 is captured",
+      "when": "Caller claims q9",
+      "then": "Reject uncaptured checkpoint.",
+      "execute_both_forms": true
+    },
+    {
+      "case_id": "A2.stale-state",
+      "decision_refs": [
+        "D1",
+        "D6",
+        "keep.cursor-commit",
+        "A2"
+      ],
+      "given": "Claim signed for state r1",
+      "when": "Apply after state becomes r2",
+      "then": "Reject stale claim and reevaluate.",
+      "execute_both_forms": true
+    },
+    {
+      "case_id": "A2.claim-replay",
+      "decision_refs": [
+        "D1",
+        "D6",
+        "keep.cursor-commit",
+        "A2"
+      ],
+      "given": "Claim already committed",
+      "when": "Resubmit identical claim",
+      "then": "Idempotent; no further cursor advance.",
+      "execute_both_forms": true
+    },
+    {
+      "case_id": "A2.handoff-crash",
+      "decision_refs": [
+        "D1",
+        "D6",
+        "keep.cursor-commit",
+        "A2"
+      ],
+      "given": "Handoff and claim are being persisted",
+      "when": "Crash before durable completion",
+      "then": "Do not commit; retain original obligations.",
+      "execute_both_forms": true
+    },
+    {
+      "case_id": "A2.ack-crash",
+      "decision_refs": [
+        "D1",
+        "D6",
+        "keep.cursor-commit",
+        "A2"
+      ],
+      "given": "Handoff/eligibility is durable; provider acknowledgement incomplete",
+      "when": "Crash and recover",
+      "then": "Recover acknowledgement only; do not resend business Effects.",
+      "execute_both_forms": true
+    },
+    {
+      "case_id": "A2.batch-owner",
+      "decision_refs": [
+        "D1",
+        "D6",
+        "keep.cursor-commit",
+        "A2"
+      ],
+      "given": "Original batch is pending",
+      "when": "Next scheduler tick",
+      "then": "Find and recover original work rather than recapturing the page under a new request.",
+      "execute_both_forms": true
+    },
+    {
+      "case_id": "A2.new-request",
+      "decision_refs": [
+        "D1",
+        "D6",
+        "keep.cursor-commit",
+        "A2"
+      ],
+      "given": "Same rows under an explicitly distinct request",
+      "when": "Intentionally execute again",
+      "then": "Separate work; correctly report possible duplicates without upsert or equivalent semantics.",
+      "execute_both_forms": true
+    },
+    {
+      "case_id": "A2.no-success-fabrication",
+      "decision_refs": [
+        "D1",
+        "D6",
+        "keep.cursor-commit",
+        "A2"
+      ],
+      "given": "Exceptional commit succeeds",
+      "when": "Render graph and evaluate successor edges",
+      "then": "Keep original failure; do not activate ordinary success edges.",
+      "execute_both_forms": true
+    },
+    {
+      "case_id": "A2.late-response",
+      "decision_refs": [
+        "D1",
+        "D6",
+        "keep.cursor-commit",
+        "A2"
+      ],
+      "given": "Unknown was handed off and original worker fenced",
+      "when": "Late provider response arrives",
+      "then": "Append evidence to the original item; fenced worker cannot update the new scope.",
+      "execute_both_forms": true
+    },
+    {
+      "case_id": "A2.multi-source",
+      "decision_refs": [
+        "D1",
+        "D6",
+        "keep.cursor-commit",
+        "A2"
+      ],
+      "given": "Exceptional eligibility for two sources",
+      "when": "Only one acknowledgement succeeds",
+      "then": "Retain per-source outcomes and recovery; do not claim distributed atomic success.",
+      "execute_both_forms": true
+    },
+    {
+      "case_id": "A3.unlabelled-default",
+      "decision_refs": [
+        "D4",
+        "D7",
+        "A3"
+      ],
+      "given": "Published confidential preset and absent provider label",
+      "when": "Capture attachment then infer",
+      "then": "Issue Ref with evidenced confidential classification; proceed only with an admitted ModelTask.",
+      "execute_both_forms": false
+    },
+    {
+      "case_id": "A3.missing-default",
+      "decision_refs": [
+        "D4",
+        "D7",
+        "A3"
+      ],
+      "given": "Neither classification label nor applicable default",
+      "when": "Attempt model egress",
+      "then": "Reject with zero model calls.",
+      "execute_both_forms": false
+    },
+    {
+      "case_id": "A3.unknown-label",
+      "decision_refs": [
+        "D4",
+        "D7",
+        "A3"
+      ],
+      "given": "Unregistered provider label",
+      "when": "Attempt defaulting",
+      "then": "Do not treat it as absent; reject or report unresolved classification.",
+      "execute_both_forms": false
+    },
+    {
+      "case_id": "A3.parent-stronger",
+      "decision_refs": [
+        "D4",
+        "D7",
+        "A3"
+      ],
+      "given": "Parent restricted, view default confidential",
+      "when": "Capture attachment",
+      "then": "Retain restricted.",
+      "execute_both_forms": false
+    },
+    {
+      "case_id": "A3.destination-deny",
+      "decision_refs": [
+        "D4",
+        "D7",
+        "A3"
+      ],
+      "given": "Confidential input and incompatible ModelTask",
+      "when": "Infer",
+      "then": "Reject; known classification alone is not authorization.",
+      "execute_both_forms": false
+    },
+    {
+      "case_id": "A3.region-training",
+      "decision_refs": [
+        "D4",
+        "D7",
+        "A3"
+      ],
+      "given": "Classification admitted but region/training rules conflict",
+      "when": "Infer",
+      "then": "Reject with zero dispatch.",
+      "execute_both_forms": false
+    },
+    {
+      "case_id": "A3.forged-ref",
+      "decision_refs": [
+        "D4",
+        "D7",
+        "A3"
+      ],
+      "given": "Ref policy missing or tampered",
+      "when": "Attempt to repair via egress default",
+      "then": "Reject without repair.",
+      "execute_both_forms": false
+    },
+    {
+      "case_id": "A3.same-content",
+      "decision_refs": [
+        "D4",
+        "D7",
+        "A3"
+      ],
+      "given": "Same content CID but Ref belongs to another workspace",
+      "when": "Import into a new scope",
+      "then": "Verify issuer, current authority and all policies; do not automatically equate.",
+      "execute_both_forms": false
+    },
+    {
+      "case_id": "A3.fixture-live",
+      "decision_refs": [
+        "D4",
+        "D7",
+        "A3"
+      ],
+      "given": "Synthetic model fixture succeeds",
+      "when": "Report live provider conformance",
+      "then": "Identify fixture-only evidence; do not hide absent live verification.",
+      "execute_both_forms": false
+    },
+    {
+      "case_id": "A4.declared",
+      "decision_refs": [
+        "D3",
+        "D4",
+        "D6",
+        "A4"
+      ],
+      "given": "Valid stamped contract",
+      "when": "Check and Preview",
+      "then": "Expose management field, type, recipe, footprint and permission.",
+      "execute_both_forms": false
+    },
+    {
+      "case_id": "A4.known-deny",
+      "decision_refs": [
+        "D3",
+        "D4",
+        "D6",
+        "A4"
+      ],
+      "given": "Check evidence denies stamp-field writes",
+      "when": "Check",
+      "then": "Reject compilation/admission with zero business and stamp writes.",
+      "execute_both_forms": false
+    },
+    {
+      "case_id": "A4.late-deny",
+      "decision_refs": [
+        "D3",
+        "D4",
+        "D6",
+        "A4"
+      ],
+      "given": "Current permission unresolved at check",
+      "when": "Execution preflight denies",
+      "then": "Stop before provider writes.",
+      "execute_both_forms": false
+    },
+    {
+      "case_id": "A4.atomicity",
+      "decision_refs": [
+        "D3",
+        "D4",
+        "D6",
+        "A4"
+      ],
+      "given": "Stamp is a separate write after business mutation",
+      "when": "Validate capability",
+      "then": "Reject the stamped guarantee.",
+      "execute_both_forms": false
+    },
+    {
+      "case_id": "A4.hash-cycle",
+      "decision_refs": [
+        "D3",
+        "D4",
+        "D6",
+        "A4"
+      ],
+      "given": "Stamp value derives from DispatchKey",
+      "when": "Generate Preview, key and transport",
+      "then": "Preview contains only the recipe; no cycle through the key.",
+      "execute_both_forms": false
+    },
+    {
+      "case_id": "A4.readonly",
+      "decision_refs": [
+        "D3",
+        "D4",
+        "D6",
+        "A4"
+      ],
+      "given": "Formula or read-only stamp field",
+      "when": "Generate/check Catalog",
+      "then": "Reject or declare that capability unsupported.",
+      "execute_both_forms": false
+    },
+    {
+      "case_id": "A4.overwrite-history",
+      "decision_refs": [
+        "D3",
+        "D4",
+        "D6",
+        "A4"
+      ],
+      "given": "A later stamp overwrote an earlier value",
+      "when": "Read back an earlier unknown",
+      "then": "Do not infer not_applied; missing required history leaves unknown.",
+      "execute_both_forms": false
+    },
+    {
+      "case_id": "A4.no-escalation",
+      "decision_refs": [
+        "D3",
+        "D4",
+        "D6",
+        "A4"
+      ],
+      "given": "Caller lacks stamp permission; another service has it",
+      "when": "Execute adapter",
+      "then": "No undeclared credential switching or schema addition.",
+      "execute_both_forms": false
+    },
+    {
+      "case_id": "A4.fallback",
+      "decision_refs": [
+        "D3",
+        "D4",
+        "D6",
+        "A4"
+      ],
+      "given": "Stamped evidence insufficient; native is a distinct contract",
+      "when": "Execute",
+      "then": "Require a new contract, Preview and admission; no silent fallback.",
+      "execute_both_forms": false
+    },
+    {
+      "case_id": "A5.retain-vs-close",
+      "decision_refs": [
+        "D11",
+        "A5"
+      ],
+      "given": "Input has id, name and amount",
+      "when": "Run map/array derive followed by select",
+      "then": "Both derive forms retain unspecified inputs; only select closes the explicit field set.",
+      "execute_both_forms": false,
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "A5.snapshot",
+      "decision_refs": [
+        "D11",
+        "A5"
+      ],
+      "given": "Input b=10; map defines a=b+1 and b_copy=b+2",
+      "when": "Change map enumeration and evaluate",
+      "then": "Both read the input snapshot, not sibling outputs.",
+      "execute_both_forms": false,
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "A5.prior",
+      "decision_refs": [
+        "D11",
+        "A5"
+      ],
+      "given": "Array shadows amount before deriving tax",
+      "when": "Evaluate",
+      "then": "Tax reads the new amount; amount's own RHS reads the input amount.",
+      "execute_both_forms": false,
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "A5.unknown-fields",
+      "decision_refs": [
+        "D11",
+        "A5"
+      ],
+      "given": "Admitted partial schema has additional input fields",
+      "when": "Run map and array derive",
+      "then": "Retain extra fields; require RHS evidence without demanding complete field enumeration.",
+      "execute_both_forms": false,
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "A5.failure-order",
+      "decision_refs": [
+        "D11",
+        "A5"
+      ],
+      "given": "Row 1 later slot and row 2 earlier slot fail",
+      "when": "Execute shared kernel and multiple fields",
+      "then": "Select row 1's failure; do not switch to field-major phases.",
+      "execute_both_forms": false
+    },
+    {
+      "case_id": "A5.safe-migration",
+      "decision_refs": [
+        "D11",
+        "A5"
+      ],
+      "given": "Proposed map-to-array or derive/select transformation",
+      "when": "Decide whether repair may be automatic",
+      "then": "No simple rename; require preserved scope, types, output, order, failure, bounds and policy. Treat revised identity and approval separately.",
+      "execute_both_forms": false,
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "A5.keys",
+      "decision_refs": [
+        "D11",
+        "A5"
+      ],
+      "given": "New value shadows a key field",
+      "when": "Run ordered derive and select",
+      "then": "Same name preserves no key proof; evaluate unchanged keys and exact-copy aliases independently.",
+      "execute_both_forms": false,
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "A6.two-notifications",
+      "decision_refs": [
+        "D1",
+        "D3",
+        "D6",
+        "A6"
+      ],
+      "given": "Different messages to the same channel",
+      "when": "Create items",
+      "then": "Same target, distinct items and dispatches.",
+      "execute_both_forms": true
+    },
+    {
+      "case_id": "A6.duplicate",
+      "decision_refs": [
+        "D1",
+        "D3",
+        "D6",
+        "A6"
+      ],
+      "given": "Same target/Command/payload with two Effect IDs",
+      "when": "Preflight",
+      "then": "Reject duplicates despite distinct Effect IDs.",
+      "execute_both_forms": true
+    },
+    {
+      "case_id": "A6.create-no-target",
+      "decision_refs": [
+        "D1",
+        "D3",
+        "D6",
+        "A6"
+      ],
+      "given": "Provider ID unavailable before create",
+      "when": "Generate locator",
+      "then": "Use input correlation/occurrence, not a future target ID.",
+      "execute_both_forms": true
+    },
+    {
+      "case_id": "A6.stable-locator",
+      "decision_refs": [
+        "D1",
+        "D3",
+        "D6",
+        "A6"
+      ],
+      "given": "Exact Preview reserved under original guard",
+      "when": "Attempt a fresh Preview with a new guard",
+      "then": "First query the original locator for applied/unknown state.",
+      "execute_both_forms": true
+    },
+    {
+      "case_id": "A6.changed-payload",
+      "decision_refs": [
+        "D1",
+        "D3",
+        "D6",
+        "A6"
+      ],
+      "given": "Same locator and request",
+      "when": "Submit changed intent",
+      "then": "Ledger fingerprint conflict.",
+      "execute_both_forms": true
+    },
+    {
+      "case_id": "A6.intentional-repeat",
+      "decision_refs": [
+        "D1",
+        "D3",
+        "D6",
+        "A6"
+      ],
+      "given": "Different caller request with identical payload",
+      "when": "Execute",
+      "then": "Distinct locator/key permits intentional repetition.",
+      "execute_both_forms": true
+    },
+    {
+      "case_id": "A6.physical-retry",
+      "decision_refs": [
+        "D1",
+        "D3",
+        "D6",
+        "A6"
+      ],
+      "given": "Worker, Run or attempt changes",
+      "when": "Recover the same request",
+      "then": "Keys remain unchanged.",
+      "execute_both_forms": true
+    },
+    {
+      "case_id": "A6.recovery-link",
+      "decision_refs": [
+        "D1",
+        "D3",
+        "D6",
+        "A6"
+      ],
+      "given": "New graph changes only a suffix",
+      "when": "Use an authorized RecoveryLink",
+      "then": "Do not resend successful units/items; bind changed-node intent explicitly.",
+      "execute_both_forms": true
+    },
+    {
+      "case_id": "A6.reuse-domain-ids",
+      "decision_refs": [
+        "D1",
+        "D3",
+        "D6",
+        "A6"
+      ],
+      "given": "Simple CRUD",
+      "when": "Design types and storage",
+      "then": "Share target/item/correlation values without unnecessary identity artifacts.",
+      "execute_both_forms": true
+    },
+    {
+      "case_id": "A7.packaging",
+      "decision_refs": [
+        "D2",
+        "A7"
+      ],
+      "given": "Same independent items, targets, payloads and guarantees",
+      "when": "Split one Effect into two syntactically",
+      "then": "Review requirement is unchanged.",
+      "execute_both_forms": true
+    },
+    {
+      "case_id": "A7.stage-proxy",
+      "decision_refs": [
+        "D2",
+        "A7"
+      ],
+      "given": "Same semantic risk",
+      "when": "Supply stage_count/has_later_stage to routing",
+      "then": "Reject unadmitted fields or proxies.",
+      "execute_both_forms": true
+    },
+    {
+      "case_id": "A7.real-count",
+      "decision_refs": [
+        "D2",
+        "A7"
+      ],
+      "given": "Actual write items increase from 2 to 1000",
+      "when": "Use one Effect",
+      "then": "Risk thresholds may require review.",
+      "execute_both_forms": true
+    },
+    {
+      "case_id": "A7.budget-split",
+      "decision_refs": [
+        "D2",
+        "A7"
+      ],
+      "given": "Total amount exceeds a threshold",
+      "when": "Split across stages",
+      "then": "Cumulative scope prevents evasion.",
+      "execute_both_forms": true
+    },
+    {
+      "case_id": "A7.contract-proxy",
+      "decision_refs": [
+        "D2",
+        "A7"
+      ],
+      "given": "Contract routes to review because of multiple Effects",
+      "when": "Resolve minimum",
+      "then": "Do not admit count-proxy routing as conforming.",
+      "execute_both_forms": true
+    },
+    {
+      "case_id": "A7.metadata",
+      "decision_refs": [
+        "D2",
+        "A7"
+      ],
+      "given": "Source meta requests or exempts review",
+      "when": "Route policy",
+      "then": "Do not use meta as authority.",
+      "execute_both_forms": true
+    },
+    {
+      "case_id": "A7.capacity",
+      "decision_refs": [
+        "D2",
+        "A7"
+      ],
+      "given": "Node count exceeds Host capacity",
+      "when": "Admit",
+      "then": "Distinguish resource rejection from review.",
+      "execute_both_forms": true
+    },
+    {
+      "case_id": "A7.semantic-change",
+      "decision_refs": [
+        "D2",
+        "A7"
+      ],
+      "given": "Provider atomicity or target risk actually changes",
+      "when": "Compare routing",
+      "then": "Outside packaging-only invariance; expose the relevant semantic facts.",
+      "execute_both_forms": true
+    },
+    {
+      "case_id": "A8.no-claim",
+      "decision_refs": [
+        "D1",
+        "D11",
+        "A8"
+      ],
+      "given": "Authoring evaluation results are empty",
+      "when": "Evaluate evidence sufficiency",
+      "then": "Record not_run; do not invent results or claim evaluation success.",
+      "execute_both_forms": false
+    },
+    {
+      "case_id": "A8.pilot-not-holdout",
+      "decision_refs": [
+        "D1",
+        "D11",
+        "A8"
+      ],
+      "given": "Ten scenarios are publicly documented",
+      "when": "Classify evaluation data",
+      "then": "Use as pilot/regression material, not holdout scores.",
+      "execute_both_forms": false
+    },
+    {
+      "case_id": "A8.isolated-oracle",
+      "decision_refs": [
+        "D1",
+        "D11",
+        "A8"
+      ],
+      "given": "Forty evaluation tasks and their oracle",
+      "when": "Create authoring sessions",
+      "then": "Supply tasks, contracts and guide; hide oracle answers.",
+      "execute_both_forms": false
+    },
+    {
+      "case_id": "A8.semantic-pair",
+      "decision_refs": [
+        "D1",
+        "D11",
+        "A8"
+      ],
+      "given": "Same task through direct and extracted stages",
+      "when": "Compare checked outputs",
+      "then": "Same typed graph, authority, commit and exports.",
+      "execute_both_forms": false
+    },
+    {
+      "case_id": "A8.one-repair",
+      "decision_refs": [
+        "D1",
+        "D11",
+        "A8"
+      ],
+      "given": "Initial check or intent is invalid",
+      "when": "Allow one diagnostic-guided repair",
+      "then": "Removing required functionality does not count as a valid result.",
+      "execute_both_forms": false
+    },
+    {
+      "case_id": "A8.honest-report",
+      "decision_refs": [
+        "D1",
+        "D11",
+        "A8"
+      ],
+      "given": "Only part of 160 planned attempts executed",
+      "when": "Report evaluation",
+      "then": "Record actual count, failures and missing data; plans are not results.",
+      "execute_both_forms": false
+    },
+    {
+      "case_id": "D11.array-singleton",
+      "decision_refs": [
+        "D11",
+        "A5"
+      ],
+      "given": "Array slot is a multi-member object, empty object or string",
+      "when": "Check",
+      "then": "Reject; each slot has exactly one static name and Expression.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "D11.shape-preserved",
+      "decision_refs": [
+        "D11",
+        "A5"
+      ],
+      "given": "Map and array forms use the same names",
+      "when": "Normalize, print and read",
+      "then": "Preserve shape; sorting into a map must not erase array semantics.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "D11.map-order-identity",
+      "decision_refs": [
+        "D11",
+        "A5"
+      ],
+      "given": "Only legal map key enumeration changes",
+      "when": "Canonicalize under the pinned law",
+      "then": "Tree, identity and meaning match; arrays retain their order.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "D11.array-order-semantic",
+      "decision_refs": [
+        "D11",
+        "A5"
+      ],
+      "given": "Reorder array slots containing the same expressions",
+      "when": "Normalize and check",
+      "then": "Retain semantic order; reject broken dependencies and do not reorder by guessed equivalence.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "D11.save-old-value",
+      "decision_refs": [
+        "D11",
+        "A5"
+      ],
+      "given": "Slots raw_amount=amount, amount=amount*2, total=amount+raw_amount",
+      "when": "Evaluate input amount=10",
+      "then": "raw_amount=10, amount=20, total=30.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "D11.future-name-is-input",
+      "decision_refs": [
+        "D11",
+        "A5"
+      ],
+      "given": "Input b=10; array [{a:b+1},{b:20}]",
+      "when": "Check and evaluate",
+      "then": "a reads input b and becomes 11; b becomes 20. This is not a forward reference.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "D11.no-self-definition",
+      "decision_refs": [
+        "D11",
+        "A5"
+      ],
+      "given": "Input lacks x; array [{x:x+1}]",
+      "when": "Check",
+      "then": "Reject unknown field; do not resolve as self-reference.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "D11.shadow-type",
+      "decision_refs": [
+        "D11",
+        "A5"
+      ],
+      "given": "Input raw is string; array raw=to_number(raw), twice=raw*2",
+      "when": "Check and evaluate",
+      "then": "Update raw's type to number; twice reads it without coercing back to input type.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "D11.input-validation-before-shadow",
+      "decision_refs": [
+        "D11",
+        "A5"
+      ],
+      "given": "Declared string raw receives number, then is replaced by a constant",
+      "when": "Admit input",
+      "then": "Shadowing does not excuse the input contract violation.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "D11.select-after",
+      "decision_refs": [
+        "D11",
+        "A5"
+      ],
+      "given": "Compute amount from raw_amount; final fields are id and amount",
+      "when": "Run ordered derive then select",
+      "then": "Drop dependency fields after calculation; values, field count and order match expectations.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "D11.early-select-negative",
+      "decision_refs": [
+        "D11",
+        "A5"
+      ],
+      "given": "An earlier select removes raw_amount",
+      "when": "Check subsequent ordered derive",
+      "then": "Reject raw_amount reference; do not restore the removed field from hidden lineage.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "D11.original-column-position",
+      "decision_refs": [
+        "D11",
+        "A5"
+      ],
+      "given": "Input fields id, amount, name; array replaces amount and adds tax",
+      "when": "Produce derive schema/order",
+      "then": "id, amount, name, tax; final select may reorder explicitly.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "D11.exact-copy-key",
+      "decision_refs": [
+        "D11",
+        "A5"
+      ],
+      "given": "Copy key id to original_id, then set id=0",
+      "when": "Propagate proof",
+      "then": "Exact tuple correspondence to original_id may survive; id uniqueness is lost.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "D11.shadowed-sort-key",
+      "decision_refs": [
+        "D11",
+        "A5"
+      ],
+      "given": "Relation ordered by id; derive changes id values",
+      "when": "Use a subsequent order-sensitive operation",
+      "then": "Distinguish retained row positions from ascending order of new id values; do not fabricate the latter.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "D11.discarded-slot-failure",
+      "decision_refs": [
+        "D11",
+        "A5"
+      ],
+      "given": "Array computes bad=1/0; later select retains only id",
+      "when": "Evaluate",
+      "then": "Do not erase the failure because bad is unused.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "D11.no-budget-reset",
+      "decision_refs": [
+        "D11",
+        "A5"
+      ],
+      "given": "Multiple slots have profiled expressions within one bounded scope",
+      "when": "Evaluate",
+      "then": "Do not reset cumulative budgets at slot boundaries.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "D11.lazy-child",
+      "decision_refs": [
+        "D11",
+        "A5"
+      ],
+      "given": "Array contains if(FALSE,1/0,1)",
+      "when": "Evaluate",
+      "then": "Return 1 without evaluating the unselected child; statically check every slot.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "D11.literal-slot-separation",
+      "decision_refs": [
+        "D11",
+        "A5"
+      ],
+      "given": "Slot names or literal payload resemble fields, parameters or operations",
+      "when": "Decode and normalize",
+      "then": "LHS remains a field name and literal remains data; generic traversal must not change meaning.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "D11.special-field-names",
+      "decision_refs": [
+        "D11",
+        "A5"
+      ],
+      "given": "Legal slots named __proto__, constructor, 10 and 2",
+      "when": "Check, evaluate and serialize",
+      "then": "Retain own data fields; evaluate arrays in explicit order and maps in canonical order.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "D11.nfc-duplicate-slots",
+      "decision_refs": [
+        "D11",
+        "A5"
+      ],
+      "given": "Two slot names normalize to the same NFC name",
+      "when": "Check",
+      "then": "Reject duplicate outputs.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "D11.no-extra-io",
+      "decision_refs": [
+        "D11",
+        "A5"
+      ],
+      "given": "Ordered derive contains three pure expressions",
+      "when": "Execute",
+      "then": "Do not create per-slot acquisitions, Checkpoints or external Effects.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "D11.no-project-registration",
+      "decision_refs": [
+        "D11",
+        "A5"
+      ],
+      "given": "Closed grammar and operation inventory",
+      "when": "Receive project source",
+      "then": "Reject as an unknown operation; use registered derive/select forms.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "D11.old-sealed-plan",
+      "decision_refs": [
+        "D11",
+        "A5"
+      ],
+      "given": "A Plan and approval bind map semantics",
+      "when": "Restore",
+      "then": "Validate the exact pinned contract; do not substitute a different grammar or law under the same CID.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "D11.overwritten-target",
+      "decision_refs": [
+        "D11",
+        "A5"
+      ],
+      "given": "A new value shadows a target Ref and the Result publishes only the new value",
+      "when": "Plan Effects",
+      "then": "Do not recover hidden original targets; verify actual values, issuer and permissions.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "D11.x-y-budget-distinction",
+      "decision_refs": [
+        "D11",
+        "A5"
+      ],
+      "given": "Equal final values with different retained intermediate fields",
+      "when": "Compare implementations or rewrites",
+      "then": "Do not assume identical source/Plan/CID or intermediate limits; distinguish authoring correctness from resource differences.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "A8.orthogonal-d11-trial",
+      "decision_refs": [
+        "D11",
+        "A8"
+      ],
+      "given": "Fixed stage syntax and paired derive tasks",
+      "when": "Evaluate",
+      "then": "Separate derive behavior from stage complexity; report first-check, intent, one-repair and leaked output fields.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "A8.prefer-x",
+      "decision_refs": [
+        "D11",
+        "A8"
+      ],
+      "given": "No demonstrated intent-preserving improvement or insufficient data",
+      "when": "Evaluate proposed syntax changes",
+      "then": "Retain adopted syntax and make no unsupported superiority claim.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "A8.y-reconsideration",
+      "decision_refs": [
+        "D11",
+        "A8"
+      ],
+      "given": "A proposal meets preregistered improvement criteria",
+      "when": "Review adoption",
+      "then": "Require an explicit decision after safety and semantic checks; do not automatically expand the vocabulary.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    }
+  ]
+}

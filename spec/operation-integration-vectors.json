@@ -1,0 +1,24 @@
+{
+  "version": "actql-operation-integration-vectors/0.1",
+  "status": "specification-only",
+  "wiring": [
+    {"name":"binary cross join","current":"left","operation":"cross_join","body":{"with":"right","right_rows":"one"},"expected":[{"op":"REL.cross_join","in":["left","right"],"params":{"right_rows":"one"}}]},
+    {"name":"repeated mean samples","operation":"mean_graphs","body":{"with":["a","b","a"],"weights":[1,2,3],"support":{"nodes":1,"edges":1},"properties":{"nodes":{},"edges":{}}},"expected":[{"op":"SGA.mean_structural","in":["a","b","a"],"params":{"weights":[1,2,3],"support":{"nodes":1,"edges":1},"properties":{"nodes":{},"edges":{}}}}]},
+    {"name":"relation subgraph selector","current":"g","operation":"subgraph","body":{"nodes":{"from":"selected","id":"key"}},"expected":[{"op":"SGA.subgraph","in":["g","selected"],"params":{"nodes":{"input_port":1,"id":"key"},"edges":{"op":"literal","body":true}}}]},
+    {"name":"same relation in both path selectors","current":"g","operation":"shortest_path","body":{"source":{"from":"selected","id":"key"},"target":{"from":"selected","id":"key"},"selection":"each_pair","direction":"out","max_hops":2},"expected":[{"op":"SGA.shortest_path","in":["g","selected","selected"],"params":{"source":{"input_port":1,"id":"key"},"target":{"input_port":2,"id":"key"},"selection":"each_pair","direction":"out","max_hops":2,"weight":null}}]},
+    {"name":"ordered repeated RRF inputs","current":"a","operation":"merge_rankings","body":{"with":["b","a"],"by":["q"],"candidate":"id","rank":"rank","k":2,"score_policy":{"rrf":{"rank_constant":60,"weights":[1,2,3],"rank_window":10}}},"expected":[{"op":"VEC.merge_rankings","in":["a","b","a"],"params":{"by":["q"],"candidate":"id","rank":"rank","k":2,"score_policy":{"rrf":{"rank_constant":60,"weights":[1,2,3],"rank_window":10}}}}]},
+    {"name":"first union list","operation_base":"step_a","current":"a","operation":"union_graphs","body":{"with":["b","a"]},"expected":[{"id":"step_a_union_0","op":"SGA.union_structural","in":["a","b"],"params":{}},{"id":"step_a_union_1","op":"SGA.union_structural","in":["step_a_union_0","a"],"params":{}}]},
+    {"name":"second union list in same program","operation_base":"step_b","current":"a","operation":"union_graphs","body":{"with":["b","a"]},"expected":[{"id":"step_b_union_0","op":"SGA.union_structural","in":["a","b"],"params":{}},{"id":"step_b_union_1","op":"SGA.union_structural","in":["step_b_union_0","a"],"params":{}}]}
+  ],
+  "semantics": [
+    {"name":"search bindings","incoming_current":"a","query_from":"b","outputs":{"candidates":"hits","coverage":"coverage"},"expected_current":"a","accepted_result_from":["hits","coverage"],"accepted_later_step_from":["hits","coverage"],"rejected_bindings":[{"candidates":"hits","coverage":"hits"},{"candidates":"a","coverage":"coverage"}]},
+    {"name":"unset search current","incoming_current":null,"query_from":"b","expected_current":null,"implicit_consumer":"reject"},
+    {"name":"outer unnest","body":{"column":"items","as":"item","with_index":"index","outer":true},"parent_candidate_keys":[["id"]],"parents":[{"id":"p","items":[]},{"id":"q","items":["a","b"]}],"expected":[{"id":"p","items":[],"item":null,"index":null},{"id":"q","items":["a","b"],"item":"a","index":0},{"id":"q","items":["a","b"],"item":"b","index":1}],"candidate_keys":[]},
+    {"name":"literal parameter shape","cell":{"literal":{"$param":"business_value"}},"expected_value":{"$param":"business_value"}},
+    {"name":"literal literal shape","cell":{"literal":{"literal":1}},"expected_value":{"literal":1}},
+    {"name":"finite winner with overrange alternative","edges":[["a","b",1],["a","c",1e308],["c","b",1e308]],"source":"a","target":"b","max_hops":2,"expected_cost":1},
+    {"name":"only overrange route","edges":[["a","c",1e308],["c","b",1e308]],"source":"a","target":"b","max_hops":2,"expected":"operation failure, not empty output"},
+    {"name":"one failing pair","edges":[["a","b",1],["c","d",1e308],["d","e",1e308]],"sources":["a","c"],"targets":["b","e"],"selection":"each_pair","max_hops":2,"expected":"atomic operation failure"},
+    {"name":"zero cycle and hop tie","edges":[["a","c",0],["c","a",0],["c","b",1],["a","b",1]],"source":"a","target":"b","max_hops":3,"expected_nodes":["a","b"],"expected_cost":1}
+  ]
+}

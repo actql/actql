@@ -1,0 +1,244 @@
+{
+  "status": "acceptance-fixtures",
+  "scenarios": [
+    {
+      "id": "scenario.parent-child-notify",
+      "title": "Create a customer, create child records using returned IDs, then notify",
+      "decision_refs": [
+        "D1",
+        "D2",
+        "D6"
+      ],
+      "path": "examples/parent-child-notify.aql",
+      "lines": 133,
+      "author_non_comment_lines": 133,
+      "expected": "One file with three stages. Fixed notifications still wait for predecessor success; partial A failure prevents B/C.",
+      "host_fixture": {
+        "policy": "allow",
+        "inputs": "parents.requested / children.requested / notify.channels",
+        "receipt_contracts": {
+          "parents.create_parent": "input_key:string, external_id:string, version:string|null",
+          "children.create_child": "input_key:string, external_id:string, version:string|null"
+        },
+        "faults": [
+          "parent batch 1 item fails",
+          "child apply response lost",
+          "notify provider accepted but pending"
+        ]
+      },
+      "validation": "Acceptance definition; execution evidence is recorded separately."
+    },
+    {
+      "id": "scenario.unattended-two-saas",
+      "title": "Unattended daily updates to two independent services",
+      "decision_refs": [
+        "D2",
+        "D3",
+        "D6"
+      ],
+      "path": "examples/unattended-two-saas.aql",
+      "lines": 52,
+      "author_non_comment_lines": 52,
+      "expected": "Two members in one stage. Resolved allow needs no human pause; one known failure does not stop the independent member.",
+      "host_fixture": {
+        "policy": "allow",
+        "scheduler": "External scheduling of finite executions; each occurrence has a new logical request ID, redelivery retains it.",
+        "boundaries": [
+          "fixture/main",
+          "fixture/peer"
+        ]
+      },
+      "validation": "Acceptance definition; execution evidence is recorded separately."
+    },
+    {
+      "id": "scenario.two-messages",
+      "title": "Two different notifications to one channel",
+      "decision_refs": [
+        "D3"
+      ],
+      "path": "examples/two-messages.aql",
+      "lines": 47,
+      "author_non_comment_lines": 47,
+      "expected": "Same target with distinct payloads creates two items. Ordered notifications require separate stages.",
+      "host_fixture": {
+        "policy": "allow",
+        "messages": [
+          "one",
+          "two"
+        ],
+        "target": "same Host-issued channel Ref",
+        "capability": "independent append-message",
+        "negative": "same payload twice -> duplicate item rejection"
+      },
+      "validation": "Acceptance definition; execution evidence is recorded separately."
+    },
+    {
+      "id": "scenario.infer-timeout",
+      "title": "Classify ten thousand items with one timeout",
+      "decision_refs": [
+        "D7"
+      ],
+      "path": "examples/infer-timeout.aql",
+      "lines": 38,
+      "author_non_comment_lines": 38,
+      "expected": "After finite retries publish one failed:timeout and 9999 ok outcomes; also test explicit strict mode.",
+      "host_fixture": {
+        "input_rows": 10000,
+        "transient_item": "ticket-123",
+        "max_attempts": 3,
+        "policy": "model egress allowed",
+        "expected_attempts_for_transient_item": 3,
+        "no_model_retry_for": [
+          "refusal",
+          "schema_invalid",
+          "safety_rejected"
+        ]
+      },
+      "validation": "Acceptance definition; execution evidence is recorded separately."
+    },
+    {
+      "id": "scenario.pdf-summary",
+      "title": "Email PDF attachment to summary to CRM update",
+      "decision_refs": [
+        "D7",
+        "D4"
+      ],
+      "path": "examples/pdf-summary.aql",
+      "lines": 82,
+      "author_non_comment_lines": 82,
+      "expected": "Pass ArtifactRef directly to ModelTask; explicitly select ok rows for writes and retain all outcomes in a separate Result.",
+      "host_fixture": {
+        "policy": "model egress allowed with MIME application/pdf",
+        "artifact": "Host-issued immutable reference; no inline bytes",
+        "model_output": {
+          "summary": {
+            "type": "string",
+            "nullable": false
+          }
+        },
+        "record_id": "Unique per document in this fixture.",
+        "extraction_registry_required": false
+      },
+      "validation": "Acceptance definition; execution evidence is recorded separately."
+    },
+    {
+      "id": "scenario.webhook-dedupe",
+      "title": "Webhook redelivers the same request",
+      "decision_refs": [
+        "D6"
+      ],
+      "path": "examples/webhook-dedupe.aql",
+      "lines": 42,
+      "author_non_comment_lines": 42,
+      "expected": "Same authenticated scope and request ID resolves to the existing logical request; changed body is a conflict.",
+      "host_fixture": {
+        "requests": [
+          {
+            "scope": "tenant-a",
+            "request_id": "event-001",
+            "input_version": "v1"
+          },
+          {
+            "scope": "tenant-a",
+            "request_id": "event-001",
+            "input_version": "v1"
+          }
+        ],
+        "negative": {
+          "same_request_id": "event-001",
+          "input_version": "v2"
+        },
+        "intentional_repeat": {
+          "request_id": "event-002",
+          "input_version": "v1"
+        }
+      },
+      "validation": "Acceptance definition; execution evidence is recorded separately."
+    },
+    {
+      "id": "scenario.local-mcp",
+      "title": "Local MCP tool returning one JSON row",
+      "decision_refs": [
+        "keep.materialized-results",
+        "keep.durable-local-defaults"
+      ],
+      "path": "examples/local-mcp.aql",
+      "lines": 24,
+      "author_non_comment_lines": 24,
+      "expected": "Persist the Result with the durable Local Host and use SDK singleRow to extract {\"answer\":\"ok\"}.",
+      "host_fixture": {
+        "local_secure_defaults": true,
+        "sdk_adapter": "singleRow",
+        "cardinality_required": 1,
+        "canonical_delivery": "[{\"answer\":\"ok\"}]",
+        "note": "The SDK frame is not canonical delivery bytes; specify its shape-conversion wire contract separately."
+      },
+      "validation": "Acceptance definition; execution evidence is recorded separately."
+    },
+    {
+      "id": "scenario.approval-drift",
+      "title": "Unrelated target-field or explanation changes during approval",
+      "decision_refs": [
+        "D5",
+        "keep.review-metadata"
+      ],
+      "path": "examples/approval-drift.aql",
+      "lines": 42,
+      "author_non_comment_lines": 42,
+      "expected": "Unrelated state drift can continue through new Preview and policy renewal; metadata changes require a new projection and attestation.",
+      "host_fixture": {
+        "initial_policy": "require_review",
+        "renewal_rule": "authorized unchanged-write-intent renewal",
+        "variations": [
+          "target unrelated value changes",
+          "target written value changes",
+          "meta description changes",
+          "Connector schema changes"
+        ],
+        "schema_change": "auto inheritance deferred; ordinary drift check applies"
+      },
+      "validation": "Acceptance definition; execution evidence is recorded separately."
+    },
+    {
+      "id": "scenario.placement",
+      "title": "Place large joins and groups on an admitted engine",
+      "decision_refs": [
+        "D8",
+        "keep.host-ceilings"
+      ],
+      "path": "examples/placement.aql",
+      "lines": 71,
+      "author_non_comment_lines": 71,
+      "expected": "Choose a strategy with a typed numerical law; capture adopted float aggregate values and do not recompute through the provider during replay.",
+      "host_fixture": {
+        "engine_names": "Illustrative names, not live provider conformance evidence.",
+        "legal_strategies": [
+          "local kernel",
+          "typed remote warehouse kernel"
+        ],
+        "compare": "shape/count exact; float by numerical law; same-capture replay bit-exact",
+        "strict_money": "separate decimal fixture"
+      },
+      "validation": "Acceptance definition; execution evidence is recorded separately."
+    },
+    {
+      "id": "scenario.upload-attach",
+      "title": "Upload then attach",
+      "decision_refs": [
+        "D1",
+        "D6",
+        "D7"
+      ],
+      "path": "examples/upload-attach.aql",
+      "lines": 94,
+      "author_non_comment_lines": 94,
+      "expected": "Wait beyond acceptance until the proper attachable Ref is available; no automatic deletion on attachment failure.",
+      "host_fixture": {
+        "receipt": "input_key:string, file_ref:resource_ref<fixture.uploaded_file> after completion",
+        "async": true,
+        "failure": "Retained uploads after attachment failure require explicit recovery."
+      },
+      "validation": "Acceptance definition; execution evidence is recorded separately."
+    }
+  ]
+}

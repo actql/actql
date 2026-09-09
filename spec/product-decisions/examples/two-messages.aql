@@ -1,0 +1,47 @@
+version: actql/0.1
+id: fixture.two_messages
+stages:
+- id: notify
+  inputs:
+    messages:
+      carrier: relation
+      schema:
+        message_id:
+          type: string
+          nullable: false
+        channel:
+          type: resource_ref
+          nullable: false
+          resource_kind: fixture.channel
+        text:
+          type: string
+          nullable: false
+      primary_key:
+      - message_id
+  from: messages
+  steps: []
+  results:
+    messages:
+      from: messages
+      fields:
+      - message_id
+      - channel
+      - text
+      order_by:
+      - message_id: asc
+  effects:
+    send:
+      command:
+        contract: command:fixture.notify.v1
+        from:
+          result: messages
+        target:
+          field: channel
+        input:
+          text:
+            field: text
+results:
+  response:
+    from:
+      stage: notify
+      result: messages

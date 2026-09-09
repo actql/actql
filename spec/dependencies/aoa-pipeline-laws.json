@@ -1,0 +1,40 @@
+{
+  "manifest_version": "aoa-pipeline-laws/0.1",
+  "laws": [
+    {
+      "law_id": "aoa.pipeline.admit-implies-execute.v0.1",
+      "proof_status": "conformance-backed",
+      "conformance_cases": [
+        "packages/pipeline/test/pipeline.spec.ts"
+      ]
+    },
+    {
+      "law_id": "aoa.pipeline.determinism.v0.1",
+      "proof_status": "conformance-backed",
+      "conformance_cases": [
+        "packages/pipeline/test/pipeline.spec.ts"
+      ]
+    },
+    {
+      "law_id": "aoa.pipeline.hub-composition.v0.1",
+      "proof_status": "conformance-backed",
+      "conformance_cases": [
+        "packages/pipeline/test/pipeline.spec.ts"
+      ]
+    },
+    {
+      "law_id": "aoa.pipeline.effect-plan.terminal-boundary.v0.1",
+      "proof_status": "conformance-backed",
+      "conformance_cases": [
+        "packages/pipeline/test/effect-plan-boundary.spec.ts"
+      ]
+    },
+    {
+      "law_id": "aoa.pipeline.vec-pool-carrier-preservation.v0.1",
+      "proof_status": "conformance-backed",
+      "conformance_cases": [
+        "packages/pipeline/test/pipeline.spec.ts"
+      ]
+    }
+  ]
+}

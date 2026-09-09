@@ -1,0 +1,42 @@
+version: actql/0.1
+id: fixture.approval_drift
+stages:
+- id: update
+  inputs:
+    requested:
+      carrier: relation
+      schema:
+        id:
+          type: string
+          nullable: false
+        value:
+          type: string
+          nullable: false
+      primary_key:
+      - id
+  from: requested
+  steps: []
+  results:
+    requested:
+      from: requested
+      fields:
+      - id
+      - value
+      order_by:
+      - id: asc
+  effects:
+    update_record:
+      update:
+        target: connector://fixture/main/Records
+        mapping: mapping:fixture.records.v1
+        from:
+          result: requested
+        id: id
+        set:
+          value:
+            field: value
+results:
+  response:
+    from:
+      stage: update
+      result: requested

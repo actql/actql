@@ -1,0 +1,49 @@
+version: actql/0.1
+id: fixture.derive_ordered
+params:
+  multiplier:
+    type: number
+stages:
+  - id: main
+    inputs:
+      rows:
+        carrier: relation
+        schema:
+          id:
+            type: string
+            nullable: false
+          amount:
+            type: number
+            nullable: false
+          note:
+            type: string
+            nullable: true
+        primary_key:
+          - id
+    from: rows
+    steps:
+      - derive:
+          - original_amount: amount
+          - amount: amount * $multiplier
+          - doubled: amount * 2
+      - select:
+          - id
+          - original_amount
+          - amount
+          - doubled
+        as: calculated
+    results:
+      response:
+        from: calculated
+        fields:
+          - id
+          - original_amount
+          - amount
+          - doubled
+        order_by:
+          - id: asc
+results:
+  response:
+    from:
+      stage: main
+      result: response

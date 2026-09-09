@@ -1,0 +1,78 @@
+(* ActQL expression text 0.1. The normative signature, decoding, type and
+   evaluation rules are docs/spec/language.md#expression-text and
+   docs/spec/language.md#common-expression-contract. This is not SQL grammar.
+   Whole-word keyword terminals are ASCII case-insensitive; functions are exact.
+   SPACE/TAB/CR/LF separate tokens. Longest-match lexing; no comments or unlisted
+   tokens. A parameter has no whitespace after $. Consume the entire string.
+   Comparison families are non-associative except explicit grouping;
+   repeated AND/OR/|| flatten only their own unparenthesized chains. *)
+
+expression = or_expression ;
+or_expression = and_expression, { "OR", and_expression } ;
+and_expression = not_expression, { "AND", not_expression } ;
+not_expression = "NOT", not_expression | truth_test ;
+truth_test = comparison, [ "IS", [ "NOT" ],
+             ( "NULL" | "TRUE" | "FALSE" | "UNKNOWN" | "DISTINCT", "FROM", comparison ) ] ;
+comparison = membership, [ comparison_operator, membership ] ;
+comparison_operator = "=" | "<>" | "<" | "<=" | ">" | ">=" ;
+membership = concatenation, [ membership_suffix ] ;
+membership_suffix = [ "NOT" ], "IN", membership_rhs
+                  | [ "NOT" ], "BETWEEN", concatenation, "AND", concatenation
+                  | [ "NOT" ], "LIKE", like_pattern ;
+like_pattern = string | parameter | "(", like_pattern, ")" ;
+membership_rhs = "(", in_item, { ",", in_item }, ")" | parameter ;
+in_item = literal | "-", grouped_number | parameter | "(", in_item, ")" ;
+grouped_number = number | "(", grouped_number, ")" ;
+concatenation = addition, { "||", addition } ;
+addition = multiplication, { ( "+" | "-" ), multiplication } ;
+multiplication = unary, { ( "*" | "/" | "%" ), unary } ;
+unary = "-", unary | postfix ;
+postfix = primary, { ".", identifier | "[", expression, "]" } ;
+primary = literal | parameter | call | identifier | join_field
+        | "(", expression, ")" | searched_case | cast | array ;
+join_field = ( "left" | "right" ), ".", identifier ;
+(* Initial unquoted exact lowercase left./right. always chooses join_field.
+   Quoted "left" is an ordinary field; neither production consults a schema. *)
+array = "[", [ expression, { ",", expression } ], "]" ;
+cast = "CAST", "(", expression, "AS", cast_type, ")" ;
+cast_type = "NUMBER" | "STRING" | "BOOLEAN" | "TIMESTAMP"
+          | "DECIMAL", "(", integer, ",", integer, ")" ;
+searched_case = "CASE", case_arm, { case_arm }, [ "ELSE", expression ], "END" ;
+case_arm = "WHEN", expression, "THEN", expression ;
+call = function_name, "(", expression, { ",", expression }, ")" ;
+(* Vector profile calls: vector_score has exactly three arguments; the third
+   is a string literal 'cosine', 'dot' or 'l2', lowered as a structural metric.
+   vector_concat has at least two expression arguments. These spellings require
+   the separately admitted VecA expression profile; grammar is not execution support. *)
+function_name = "len" | "contains" | "concat" | "concat_strict" | "safe_div" | "sqrt" | "floor"
+              | "lower" | "upper" | "trim" | "replace" | "nullif" | "negate"
+              | "vector_score" | "vector_concat"
+              | "date_trunc" | "date_add" | "date_diff"
+              | "to_number" | "to_string" | "to_boolean" | "to_timestamp"
+              | "if" | "coalesce" | "to_decimal" | "try_decimal"
+              | "quantize" | "decimal_divide"
+              | "split_part" | "substring" | "utf8_truncate" | "try_number"
+              | "parse_timestamp" | "format_timestamp" | "try_timestamp"
+              | "regex_match" | "regex_extract" | "regex_replace" | "nfkc" | "case_fold" ;
+literal = number | string | "TRUE" | "FALSE" | "NULL" ;
+parameter = "$", bare_identifier ;
+identifier = bare_identifier | quoted_identifier ;
+bare_identifier = identifier_start, { identifier_continue } ;
+identifier_start = letter | "_" ;
+identifier_continue = identifier_start | digit ;
+letter = ? ASCII A-Z or a-z ? ;
+number = integer, [ ".", digit, { digit } ], [ ( "e" | "E" ), [ "+" | "-" ], digit, { digit } ] ;
+integer = "0" | nonzero_digit, { digit } ;
+digit = "0" | nonzero_digit ;
+nonzero_digit = "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" ;
+string = "'", { string_character | "''" }, "'" ;
+quoted_identifier = '"', quoted_identifier_character, { quoted_identifier_character }, '"' ;
+string_character = ? any Unicode scalar except U+0027 APOSTROPHE ? ;
+quoted_identifier_character = '""' | ? any Unicode scalar except U+0022 QUOTATION MARK ? ;
+(* Reserved bare field words: AND OR NOT IS NULL TRUE FALSE UNKNOWN DISTINCT FROM
+   IN BETWEEN LIKE CASE WHEN THEN ELSE END CAST AS. Cast target names are
+   contextual. Backslash is ordinary. Values/names obey ActQL normalization.
+   Minus applied to a number token through grouping yields a signed literal;
+   negative zero and non-finite numbers are rejected. Other minus is negate.
+   Type checking, static signature constraints and Effect selector restrictions
+   apply after decoding; syntax acceptance alone does not authorize execution. *)

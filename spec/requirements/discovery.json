@@ -1,0 +1,39 @@
+{
+  "version": "actql-requirement-evidence/0.1",
+  "document_id": "actql.protocol.discovery",
+  "requirements": [
+    {
+      "requirement_id": "actql.protocol.discovery/exact-artifact-surface",
+      "statement_sha256": "2808e9bed429a9e716df89549b1cd1c9add615cfb9f56c0451c0fdf851111ad0",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "discovery",
+        "kind": "table"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.discovery/generated-catalog-publication.product-e89a3fdd839b",
+      "statement_sha256": "e89a3fdd839b482fafe90ba044b60ddfd427f8f3b25942ef9e331c536c8dcaab",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "generated-catalog-publication",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.discovery/machine-contracts.exact-artifacts",
+      "statement_sha256": "931f383d6c6217979fd03ec5aa02b9a2ef9f38a09e76b187e84ad9765e9c7c27",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "machine-contracts",
+        "kind": "law"
+      }
+    }
+  ]
+}

@@ -1,0 +1,1011 @@
+{
+  "version": "actql-host-companions/0.1",
+  "schemas": {
+    "host_capabilities": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "version": {
+          "const": "actql-host-capabilities/0.1"
+        },
+        "supported_profiles": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "profile_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "contract_cid": {
+                "type": "string",
+                "pattern": "^sha256:[a-f0-9]{64}$"
+              },
+              "status": {
+                "enum": [
+                  "conformant",
+                  "partial"
+                ]
+              }
+            },
+            "required": [
+              "profile_id",
+              "contract_cid",
+              "status"
+            ]
+          }
+        },
+        "interfaces": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "enum": [
+              "discovery",
+              "read_collection"
+            ]
+          },
+          "uniqueItems": true,
+          "contains": {
+            "const": "discovery"
+          }
+        }
+      },
+      "required": [
+        "version",
+        "supported_profiles",
+        "interfaces"
+      ]
+    },
+    "discovery_reference": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "enum": [
+            "catalog",
+            "model_task",
+            "grammar",
+            "program_schema",
+            "host_capabilities"
+          ]
+        },
+        "selector": {
+          "type": "string",
+          "minLength": 1
+        },
+        "content_cid": {
+          "type": "string",
+          "pattern": "^sha256:[a-f0-9]{64}$"
+        }
+      },
+      "required": [
+        "kind",
+        "selector",
+        "content_cid"
+      ]
+    },
+    "discovery_descriptor": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "version": {
+          "const": "actql-discovery/0.1"
+        },
+        "publication_snapshot_cid": {
+          "type": "string",
+          "pattern": "^sha256:[a-f0-9]{64}$"
+        },
+        "scope_cid": {
+          "type": "string",
+          "pattern": "^sha256:[a-f0-9]{64}$"
+        },
+        "max_page_size": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "max_response_bytes": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "references": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "kind": {
+                "enum": [
+                  "catalog",
+                  "model_task",
+                  "grammar",
+                  "program_schema",
+                  "host_capabilities"
+                ]
+              },
+              "selector": {
+                "type": "string",
+                "minLength": 1
+              },
+              "content_cid": {
+                "type": "string",
+                "pattern": "^sha256:[a-f0-9]{64}$"
+              }
+            },
+            "required": [
+              "kind",
+              "selector",
+              "content_cid"
+            ]
+          }
+        }
+      },
+      "required": [
+        "version",
+        "publication_snapshot_cid",
+        "scope_cid",
+        "max_page_size",
+        "max_response_bytes",
+        "references"
+      ]
+    },
+    "discovery_list_request": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "publication_snapshot_cid": {
+          "type": "string",
+          "pattern": "^sha256:[a-f0-9]{64}$"
+        },
+        "query": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "enum": [
+                "catalog",
+                "model_task",
+                "grammar",
+                "program_schema",
+                "host_capabilities"
+              ]
+            },
+            "selector": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": []
+        },
+        "page_size": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "cursor": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "publication_snapshot_cid",
+        "query",
+        "page_size"
+      ]
+    },
+    "discovery_page": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "version": {
+          "const": "actql-discovery/0.1"
+        },
+        "publication_snapshot_cid": {
+          "type": "string",
+          "pattern": "^sha256:[a-f0-9]{64}$"
+        },
+        "scope_cid": {
+          "type": "string",
+          "pattern": "^sha256:[a-f0-9]{64}$"
+        },
+        "query": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "enum": [
+                "catalog",
+                "model_task",
+                "grammar",
+                "program_schema",
+                "host_capabilities"
+              ]
+            },
+            "selector": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": []
+        },
+        "entries": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "kind": {
+                "enum": [
+                  "catalog",
+                  "model_task",
+                  "grammar",
+                  "program_schema",
+                  "host_capabilities"
+                ]
+              },
+              "selector": {
+                "type": "string",
+                "minLength": 1
+              },
+              "content_cid": {
+                "type": "string",
+                "pattern": "^sha256:[a-f0-9]{64}$"
+              }
+            },
+            "required": [
+              "kind",
+              "selector",
+              "content_cid"
+            ]
+          }
+        },
+        "complete": {
+          "type": "boolean"
+        },
+        "next_cursor": {
+          "type": "string",
+          "minLength": 1
+        },
+        "page_cid": {
+          "type": "string",
+          "pattern": "^sha256:[a-f0-9]{64}$"
+        }
+      },
+      "required": [
+        "version",
+        "publication_snapshot_cid",
+        "scope_cid",
+        "query",
+        "entries",
+        "complete",
+        "page_cid"
+      ]
+    },
+    "discovery_read": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "version": {
+          "const": "actql-discovery/0.1"
+        },
+        "publication_snapshot_cid": {
+          "type": "string",
+          "pattern": "^sha256:[a-f0-9]{64}$"
+        },
+        "reference": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "enum": [
+                "catalog",
+                "model_task",
+                "grammar",
+                "program_schema",
+                "host_capabilities"
+              ]
+            },
+            "selector": {
+              "type": "string",
+              "minLength": 1
+            },
+            "content_cid": {
+              "type": "string",
+              "pattern": "^sha256:[a-f0-9]{64}$"
+            }
+          },
+          "required": [
+            "kind",
+            "selector",
+            "content_cid"
+          ]
+        },
+        "artifact": {
+          "type": "object"
+        }
+      },
+      "required": [
+        "version",
+        "publication_snapshot_cid",
+        "reference",
+        "artifact"
+      ]
+    },
+    "read_collection_definition": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "version": {
+          "const": "actql-read-collection/0.1"
+        },
+        "slots": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "slot": {
+                "type": "string",
+                "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+              },
+              "program_definition_cid": {
+                "type": "string",
+                "pattern": "^sha256:[a-f0-9]{64}$"
+              },
+              "result": {
+                "type": "string",
+                "minLength": 1
+              },
+              "result_schema_cid": {
+                "type": "string",
+                "pattern": "^sha256:[a-f0-9]{64}$"
+              },
+              "required": {
+                "type": "boolean"
+              },
+              "allowed_failures": {
+                "type": "array",
+                "minItems": 0,
+                "items": {
+                  "enum": [
+                    "provider_unavailable",
+                    "transport_timeout",
+                    "provider_rate_limit"
+                  ]
+                },
+                "uniqueItems": true
+              },
+              "max_attempts": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 9007199254740991
+              }
+            },
+            "required": [
+              "slot",
+              "program_definition_cid",
+              "result",
+              "result_schema_cid",
+              "required",
+              "allowed_failures",
+              "max_attempts"
+            ]
+          }
+        },
+        "budget": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "requests": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "bytes": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "tokens": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "cost_units": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "duration_ms": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            }
+          },
+          "required": [
+            "requests",
+            "bytes",
+            "tokens",
+            "cost_units",
+            "duration_ms"
+          ]
+        },
+        "collection_definition_cid": {
+          "type": "string",
+          "pattern": "^sha256:[a-f0-9]{64}$"
+        }
+      },
+      "required": [
+        "version",
+        "slots",
+        "budget",
+        "collection_definition_cid"
+      ]
+    },
+    "read_collection_outcome": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "slot": {
+              "type": "string",
+              "minLength": 1
+            },
+            "program_definition_cid": {
+              "type": "string",
+              "pattern": "^sha256:[a-f0-9]{64}$"
+            },
+            "attempts": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "attempt_evidence_cid": {
+                    "type": "string",
+                    "pattern": "^sha256:[a-f0-9]{64}$"
+                  },
+                  "usage": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                      "requests": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      },
+                      "bytes": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      },
+                      "tokens": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      },
+                      "cost_units": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      },
+                      "duration_ms": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      }
+                    },
+                    "required": [
+                      "requests",
+                      "bytes",
+                      "tokens",
+                      "cost_units",
+                      "duration_ms"
+                    ]
+                  }
+                },
+                "required": [
+                  "attempt_evidence_cid",
+                  "usage"
+                ]
+              }
+            },
+            "status": {
+              "const": "available"
+            },
+            "run_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "result": {
+              "type": "string",
+              "minLength": 1
+            },
+            "result_schema_cid": {
+              "type": "string",
+              "pattern": "^sha256:[a-f0-9]{64}$"
+            },
+            "result_artifact_cid": {
+              "type": "string",
+              "pattern": "^sha256:[a-f0-9]{64}$"
+            },
+            "completeness": {
+              "enum": [
+                "complete",
+                "partial"
+              ]
+            }
+          },
+          "required": [
+            "slot",
+            "program_definition_cid",
+            "attempts",
+            "status",
+            "run_id",
+            "result",
+            "result_schema_cid",
+            "result_artifact_cid",
+            "completeness"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "slot": {
+              "type": "string",
+              "minLength": 1
+            },
+            "program_definition_cid": {
+              "type": "string",
+              "pattern": "^sha256:[a-f0-9]{64}$"
+            },
+            "attempts": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "attempt_evidence_cid": {
+                    "type": "string",
+                    "pattern": "^sha256:[a-f0-9]{64}$"
+                  },
+                  "usage": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                      "requests": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      },
+                      "bytes": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      },
+                      "tokens": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      },
+                      "cost_units": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      },
+                      "duration_ms": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      }
+                    },
+                    "required": [
+                      "requests",
+                      "bytes",
+                      "tokens",
+                      "cost_units",
+                      "duration_ms"
+                    ]
+                  }
+                },
+                "required": [
+                  "attempt_evidence_cid",
+                  "usage"
+                ]
+              }
+            },
+            "status": {
+              "const": "unavailable"
+            },
+            "failure": {
+              "enum": [
+                "provider_unavailable",
+                "transport_timeout",
+                "provider_rate_limit"
+              ]
+            }
+          },
+          "required": [
+            "slot",
+            "program_definition_cid",
+            "attempts",
+            "status",
+            "failure"
+          ]
+        }
+      ]
+    },
+    "collection_evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "version": {
+          "const": "actql-collection-evidence/0.1"
+        },
+        "collection_definition_cid": {
+          "type": "string",
+          "pattern": "^sha256:[a-f0-9]{64}$"
+        },
+        "outcomes": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "oneOf": [
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "slot": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "program_definition_cid": {
+                    "type": "string",
+                    "pattern": "^sha256:[a-f0-9]{64}$"
+                  },
+                  "attempts": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "attempt_evidence_cid": {
+                          "type": "string",
+                          "pattern": "^sha256:[a-f0-9]{64}$"
+                        },
+                        "usage": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "properties": {
+                            "requests": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 9007199254740991
+                            },
+                            "bytes": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 9007199254740991
+                            },
+                            "tokens": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 9007199254740991
+                            },
+                            "cost_units": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 9007199254740991
+                            },
+                            "duration_ms": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 9007199254740991
+                            }
+                          },
+                          "required": [
+                            "requests",
+                            "bytes",
+                            "tokens",
+                            "cost_units",
+                            "duration_ms"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "attempt_evidence_cid",
+                        "usage"
+                      ]
+                    }
+                  },
+                  "status": {
+                    "const": "available"
+                  },
+                  "run_id": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "result": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "result_schema_cid": {
+                    "type": "string",
+                    "pattern": "^sha256:[a-f0-9]{64}$"
+                  },
+                  "result_artifact_cid": {
+                    "type": "string",
+                    "pattern": "^sha256:[a-f0-9]{64}$"
+                  },
+                  "completeness": {
+                    "enum": [
+                      "complete",
+                      "partial"
+                    ]
+                  }
+                },
+                "required": [
+                  "slot",
+                  "program_definition_cid",
+                  "attempts",
+                  "status",
+                  "run_id",
+                  "result",
+                  "result_schema_cid",
+                  "result_artifact_cid",
+                  "completeness"
+                ]
+              },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "slot": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "program_definition_cid": {
+                    "type": "string",
+                    "pattern": "^sha256:[a-f0-9]{64}$"
+                  },
+                  "attempts": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "attempt_evidence_cid": {
+                          "type": "string",
+                          "pattern": "^sha256:[a-f0-9]{64}$"
+                        },
+                        "usage": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "properties": {
+                            "requests": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 9007199254740991
+                            },
+                            "bytes": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 9007199254740991
+                            },
+                            "tokens": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 9007199254740991
+                            },
+                            "cost_units": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 9007199254740991
+                            },
+                            "duration_ms": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 9007199254740991
+                            }
+                          },
+                          "required": [
+                            "requests",
+                            "bytes",
+                            "tokens",
+                            "cost_units",
+                            "duration_ms"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "attempt_evidence_cid",
+                        "usage"
+                      ]
+                    }
+                  },
+                  "status": {
+                    "const": "unavailable"
+                  },
+                  "failure": {
+                    "enum": [
+                      "provider_unavailable",
+                      "transport_timeout",
+                      "provider_rate_limit"
+                    ]
+                  }
+                },
+                "required": [
+                  "slot",
+                  "program_definition_cid",
+                  "attempts",
+                  "status",
+                  "failure"
+                ]
+              }
+            ]
+          }
+        },
+        "usage": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "requests": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "bytes": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "tokens": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "cost_units": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "duration_ms": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            }
+          },
+          "required": [
+            "requests",
+            "bytes",
+            "tokens",
+            "cost_units",
+            "duration_ms"
+          ]
+        },
+        "coverage_complete": {
+          "type": "boolean"
+        },
+        "collection_evidence_cid": {
+          "type": "string",
+          "pattern": "^sha256:[a-f0-9]{64}$"
+        }
+      },
+      "required": [
+        "version",
+        "collection_definition_cid",
+        "outcomes",
+        "usage",
+        "coverage_complete",
+        "collection_evidence_cid"
+      ]
+    },
+    "collection_inputs": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "collection_evidence_cid": {
+          "type": "string",
+          "pattern": "^sha256:[a-f0-9]{64}$"
+        },
+        "results": {
+          "type": "object",
+          "minProperties": 1,
+          "additionalProperties": {
+            "type": "string",
+            "pattern": "^sha256:[a-f0-9]{64}$"
+          }
+        },
+        "coverage": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "source": {
+                "type": "string",
+                "minLength": 1
+              },
+              "status": {
+                "enum": [
+                  "available",
+                  "unavailable"
+                ]
+              },
+              "reason": {
+                "anyOf": [
+                  {
+                    "enum": [
+                      "provider_unavailable",
+                      "transport_timeout",
+                      "provider_rate_limit"
+                    ]
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "source",
+              "status",
+              "reason"
+            ]
+          }
+        }
+      },
+      "required": [
+        "collection_evidence_cid",
+        "results",
+        "coverage"
+      ]
+    }
+  },
+  "schema_cids": {
+    "host_capabilities": "sha256:cb8bec73fdbbd866778284090af411502298bbef1d2f472cdaf1caa6cd110423",
+    "discovery_reference": "sha256:0ab236e1f68df896212836a9c4f6d46792595aff2c066e611cfd51b5892a6c16",
+    "discovery_descriptor": "sha256:7eca298d771158cb26d6b2a2e02297755507ca75f4f3c33a68e1c4bab2607674",
+    "discovery_list_request": "sha256:4064c2e50b9baca0978c704c213f544260aa567d46993330a69481a2df763295",
+    "discovery_page": "sha256:6c52fabd737a5ce26f6ac54c23d49c1c1c4b613d9620e4cbe2ada752b474b048",
+    "discovery_read": "sha256:60073d1039f5e7c21eda2b0d35b1afb638f156cf360b42e9c970d39325a23b78",
+    "read_collection_definition": "sha256:87e910f098f6155fcb02291641a125955edf4f8171bd8a08171851b61f428ade",
+    "read_collection_outcome": "sha256:5bdf3059c36051367cc695a003e0b314614fcdad188a61e0606e3ed985321a61",
+    "collection_evidence": "sha256:ff73f8399cad730f9283d8cbe5b934038d712b9602417354aa1b944bb54c7328",
+    "collection_inputs": "sha256:0bf3a823e71391f3edb250dafb712a410863626bf95fa5cd8d497e8e55289ecb"
+  },
+  "laws": {
+    "discovery": [
+      "exact-publication-snapshot",
+      "query-and-authority-bound-cursor",
+      "current-disclosure-admission",
+      "projection-not-resolution-evidence",
+      "content-cid-not-issuer-trust",
+      "no-provider-observation"
+    ],
+    "collection": [
+      "finite-effect-free-sources",
+      "exactly-once-slot-evidence",
+      "closed-failure-allowlist",
+      "required-and-all-unavailable-fail",
+      "failed-attempt-budget-retained",
+      "coverage-not-business-completeness",
+      "no-nullification",
+      "replay-without-dispatch"
+    ]
+  },
+  "contract_cid": "sha256:cdfc1bce0e5231e8bb7bd200791cd88a9ffa0f6874f1924f8069d17942b4ce54"
+}

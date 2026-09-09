@@ -1,0 +1,254 @@
+{
+  "manifest_version": "aoa-rela-laws/0.1",
+  "package_name": "@smoothhq/aoa-rela",
+  "operators": {
+    "REL.assert_all": {
+      "law_id": "aoa.rela.REL.assert_all.v0.1",
+      "deterministic": true,
+      "proof_status": "conformance-backed",
+      "null_law": "false, null, unknown, and non-boolean predicate values fail",
+      "carrier_law": "success preserves rows, values, identities, and order; failure is atomic",
+      "conformance_cases": [
+        "packages/rela/test/closed-values-assertions.spec.ts"
+      ]
+    },
+    "REL.assert_unique": {
+      "law_id": "aoa.rela.REL.assert_unique.v0.1",
+      "deterministic": true,
+      "proof_status": "conformance-backed",
+      "null_law": "null or missing key components fail",
+      "carrier_law": "canonical key tuples must be unique; success preserves the exact relation; failure is atomic",
+      "conformance_cases": [
+        "packages/rela/test/closed-values-assertions.spec.ts"
+      ]
+    },
+    "REL.select": {
+      "law_id": "aoa.rela.REL.select.v0.1",
+      "deterministic": true,
+      "missing_field_law": "missing projection fields are omitted",
+      "reserved_field_law": "reserved __* fields are not public column references",
+      "proof_status": "theorem-root-linked",
+      "theorem_root": "AoaMechanized.RelA.Select",
+      "required_theorems": [
+        "missing_field_law",
+        "selected_field_law"
+      ],
+      "conformance_cases": [
+        "packages/rela/test/rela-ops.spec.ts"
+      ]
+    },
+    "REL.where": {
+      "law_id": "aoa.rela.REL.where.v0.1",
+      "deterministic": true,
+      "null_law": "three-valued unknown predicates are filtered out",
+      "missing_field_law": "missing predicate fields evaluate to unknown",
+      "proof_status": "theorem-root-linked",
+      "theorem_root": "AoaMechanized.RelA.Where",
+      "required_theorems": [
+        "filtered_rows_subset_input",
+        "filtered_rows_satisfy_predicate"
+      ],
+      "conformance_cases": [
+        "packages/rela/test/filter.spec.ts",
+        "packages/rela/test/filter-advanced.spec.ts"
+      ]
+    },
+    "REL.orderByStable": {
+      "law_id": "aoa.rela.REL.orderByStable.v0.1",
+      "deterministic": true,
+      "ordering_law": "declared keys are compared first; valueCID breaks remaining ties",
+      "null_law": "null placement is explicit per key and defaults to last",
+      "proof_status": "theorem-root-linked",
+      "theorem_root": "AoaMechanized.RelA.OrderByStable",
+      "required_theorems": [
+        "length_preservation_law"
+      ],
+      "conformance_cases": [
+        "packages/rela/test/order-runtime-contract.spec.ts"
+      ]
+    },
+    "REL.unnest": {
+      "law_id": "aoa.rela.REL.unnest.v0.1",
+      "deterministic": true,
+      "ordering_law": "input order and array element order are preserved; null emits no rows and non-array values fail atomically",
+      "proof_status": "conformance-backed",
+      "conformance_cases": [
+        "packages/rela/test/rela-ops.spec.ts"
+      ]
+    },
+    "REL.dedupeRows": {
+      "law_id": "aoa.rela.REL.dedupeRows.v0.1",
+      "deterministic": true,
+      "ordering_law": "groups are ordered by canonical key identity; representative order is explicit and unresolved first-place ties fail",
+      "proof_status": "conformance-backed",
+      "conformance_cases": [
+        "packages/rela/test/exec-dedupe-rows.spec.ts"
+      ]
+    },
+    "REL.limit": {
+      "law_id": "aoa.rela.REL.limit.v0.1",
+      "deterministic": true,
+      "proof_status": "theorem-root-linked",
+      "theorem_root": "AoaMechanized.RelA.Limit",
+      "required_theorems": [
+        "prefix_law",
+        "zero_law"
+      ],
+      "conformance_cases": [
+        "packages/rela/test/rela-ops.spec.ts"
+      ]
+    },
+    "REL.topk": {
+      "law_id": "aoa.rela.REL.topk.v0.1",
+      "deterministic": true,
+      "normalization_law": "topk normalizes to orderByStable plus limit",
+      "proof_status": "theorem-root-linked",
+      "theorem_root": "AoaMechanized.RelA.TopK",
+      "required_theorems": [
+        "normalization_law"
+      ],
+      "conformance_cases": [
+        "packages/rela/test/rela-ops.spec.ts"
+      ]
+    },
+    "REL.join": {
+      "law_id": "aoa.rela.REL.join.v0.1",
+      "deterministic": true,
+      "null_law": "null or missing join keys never match",
+      "ordering_law": "left input order is primary and right matches preserve right input order; full join appends unmatched right rows in right input order",
+      "proof_status": "theorem-root-linked",
+      "theorem_root": "AoaMechanized.RelA.Join",
+      "required_theorems": [
+        "null_left_key_law",
+        "null_right_key_law",
+        "singleton_match_emits_pair"
+      ],
+      "conformance_cases": [
+        "packages/rela/test/exec-join.spec.ts"
+      ]
+    },
+    "REL.groupBy": {
+      "law_id": "aoa.rela.REL.groupBy.v0.1",
+      "deterministic": true,
+      "null_law": "null group keys are first-class group key values",
+      "proof_status": "theorem-root-linked",
+      "theorem_root": "AoaMechanized.RelA.GroupBy",
+      "required_theorems": [
+        "count_law",
+        "empty_count_law"
+      ],
+      "conformance_cases": [
+        "packages/rela/test/exec-group.spec.ts"
+      ]
+    },
+    "REL.derive": {
+      "law_id": "aoa.rela.REL.derive.v0.1",
+      "deterministic": true,
+      "null_law": "isnull is total over null and missing fields; cmp and bool null semantics follow the RelA evaluator",
+      "missing_field_law": "missing derived-expression fields evaluate through the RelA evaluator",
+      "normalization_law": "derived expressions evaluate against the input row only; aliases are mutually invisible; colliding aliases fail closed; output columns append aliases in declared exprs order",
+      "carrier_law": "a predicate evaluated in scalar position maps three-valued unknown to null; the unknown sentinel never enters derived relation rows",
+      "proof_status": "conformance-backed",
+      "conformance_cases": [
+        "packages/rela/test/rela-ops.spec.ts",
+        "packages/rela/test/expression-evaluator.spec.ts",
+        "packages/rela/test/scalar-portability-laws.spec.ts"
+      ]
+    },
+    "REL.distinct": {
+      "law_id": "aoa.rela.REL.distinct.v0.1",
+      "deterministic": true,
+      "proof_status": "theorem-root-linked",
+      "theorem_root": "AoaMechanized.RelA.Distinct",
+      "required_theorems": [
+        "empty_law",
+        "membership_law"
+      ],
+      "conformance_cases": [
+        "packages/rela/test/exec-distinct.spec.ts"
+      ]
+    },
+    "REL.expression.normalize": {
+      "law_id": "aoa.rela.expression.normalize.v0.1",
+      "deterministic": true,
+      "expression_normalization_law": "canonical expression normalization is idempotent and preserves evaluated truth/value for public LKv1 fixtures",
+      "proof_status": "conformance-backed",
+      "conformance_cases": [
+        "packages/rela/test/expression-normalize.spec.ts"
+      ]
+    },
+    "REL.unionAll": {
+      "law_id": "aoa.rela.REL.unionAll.v0.1",
+      "deterministic": true,
+      "ordering_law": "inputs are concatenated in declared order and each input preserves its own row order",
+      "proof_status": "conformance-backed",
+      "conformance_cases": [
+        "packages/rela/test/exec-union-all.spec.ts"
+      ]
+    },
+    "REL.window.sliding": {
+      "law_id": "aoa.rela.REL.window.sliding.v0.1",
+      "deterministic": true,
+      "ordering_law": "each input row expands to containing windows in ascending window_start order",
+      "proof_status": "conformance-backed",
+      "conformance_cases": [
+        "packages/rela/test/exec-window.spec.ts"
+      ]
+    },
+    "REL.window.project": {
+      "law_id": "aoa.rela.REL.window.project.v0.1",
+      "deterministic": true,
+      "ordering_law": "window groups are ordered by window_start, window_end, then declared keys",
+      "proof_status": "conformance-backed",
+      "conformance_cases": [
+        "packages/rela/test/exec-window.spec.ts"
+      ]
+    },
+    "REL.window.lag": {
+      "law_id": "aoa.rela.REL.window.lag.v0.1",
+      "deterministic": true,
+      "ordering_law": "lag reads a fixed offset inside deterministic partition order",
+      "proof_status": "conformance-backed",
+      "conformance_cases": [
+        "packages/rela/test/exec-window.spec.ts"
+      ]
+    },
+    "REL.watermark": {
+      "law_id": "aoa.rela.REL.watermark.v0.1",
+      "deterministic": true,
+      "ordering_law": "watermark labels preserve input row order and drop only rows marked late by the configured policy",
+      "proof_status": "conformance-backed",
+      "conformance_cases": [
+        "packages/rela/test/exec-window.spec.ts"
+      ]
+    },
+    "REL.pivot": {
+      "law_id": "aoa.rela.REL.pivot.v0.1",
+      "deterministic": true,
+      "ordering_law": "pivot columns are emitted in canonical string order",
+      "proof_status": "conformance-backed",
+      "conformance_cases": [
+        "packages/rela/test/exec-pivot.spec.ts"
+      ]
+    },
+    "REL.unpivot": {
+      "law_id": "aoa.rela.REL.unpivot.v0.1",
+      "deterministic": true,
+      "ordering_law": "unpivot preserves row order and declared column order",
+      "proof_status": "conformance-backed",
+      "conformance_cases": [
+        "packages/rela/test/exec-pivot.spec.ts"
+      ]
+    },
+    "REL.json.pick": {
+      "law_id": "aoa.rela.REL.json.pick.v0.1",
+      "deterministic": true,
+      "null_law": "null and missing object-key path segments produce null",
+      "carrier_law": "the path carrier is an already-parsed object; stringified JSON, arrays, and scalar carriers fail atomically and are never parsed or coerced",
+      "proof_status": "conformance-backed",
+      "conformance_cases": [
+        "packages/rela/test/exec-pivot.spec.ts"
+      ]
+    }
+  }
+}

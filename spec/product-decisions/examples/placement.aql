@@ -1,0 +1,71 @@
+version: actql/0.1
+id: fixture.placement
+stages:
+- id: aggregate
+  inputs:
+    usage:
+      carrier: relation
+      schema:
+        usage_id:
+          type: string
+          nullable: false
+        customer_id:
+          type: string
+          nullable: false
+        quantity:
+          type: number
+          nullable: false
+      primary_key:
+      - usage_id
+    customers:
+      carrier: relation
+      schema:
+        customer_id:
+          type: string
+          nullable: false
+        segment:
+          type: string
+          nullable: false
+      primary_key:
+      - customer_id
+  from: usage
+  steps:
+  - join:
+      with: customers
+      kind: inner
+      'on':
+      - customer_id
+      cardinality: many_to_one
+      select:
+        usage_id: left.usage_id
+        segment: right.segment
+        quantity: left.quantity
+    as: joined
+  - group:
+      by:
+      - segment
+      aggregates:
+        total:
+          fn: sum
+          field: quantity
+        average:
+          fn: avg
+          field: quantity
+        count:
+          fn: count
+    as: stats
+  results:
+    response:
+      from: stats
+      fields:
+      - segment
+      - total
+      - average
+      - count
+      order_by:
+      - segment: asc
+results:
+  response:
+    from:
+      stage: aggregate
+      result: response

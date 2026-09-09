@@ -1,0 +1,3 @@
+pattern = component, { component } ;
+component = "yyyy" | "MM" | "dd" | "HH" | "mm" | "ss" | "SSS" | literal ;
+literal = "-" | "/" | ":" | " " | "." | "T" ;

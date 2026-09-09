@@ -1,0 +1,218 @@
+{
+  "version": "actql-expression-text-corpus/0.1",
+  "positive": [
+    {"source":"x IN ((1), (($p)), -(2))","tree":{"in":[{"field":"x"},{"literal":[1,{"$param":"p"},-2]}]}},
+    {"source":"x LIKE ('a%')","tree":{"like":[{"field":"x"},{"literal":"a%"}]}},
+    {
+      "source": "amount * quantity + 1",
+      "tree": {
+        "add": [
+          {
+            "multiply": [
+              {
+                "field": "amount"
+              },
+              {
+                "field": "quantity"
+              }
+            ]
+          },
+          {
+            "literal": 1
+          }
+        ]
+      }
+    },
+    {
+      "source": "x IN (1, 2)",
+      "tree": {
+        "in": [
+          {
+            "field": "x"
+          },
+          {
+            "literal": [1, 2]
+          }
+        ]
+      }
+    },
+    {
+      "source": "x NOT IN $items",
+      "tree": {
+        "not_in": [
+          {
+            "field": "x"
+          },
+          {
+            "$param": "items"
+          }
+        ]
+      }
+    },
+    {
+      "source": "\"会社名\"",
+      "tree": {
+        "field": "会社名"
+      }
+    },
+    {
+      "source": "name IS NOT NULL",
+      "tree": {
+        "not_null": {
+          "field": "name"
+        }
+      }
+    },
+    {
+      "source": "coalesce(name, 'Unknown')",
+      "tree": {
+        "coalesce": [
+          {
+            "field": "name"
+          },
+          {
+            "literal": "Unknown"
+          }
+        ]
+      }
+    },
+    {
+      "source": "to_decimal('19.99', 18, 2)",
+      "tree": {
+        "cast": {
+          "value": {
+            "literal": "19.99"
+          },
+          "target": { "type": "decimal", "precision": 18, "scale": 2 }
+        }
+      }
+    },
+    {
+      "source": "quantize(amount, 18, 2, 'half_up')",
+      "tree": {
+        "quantize": {
+          "value": {
+            "field": "amount"
+          },
+          "precision": 18,
+          "scale": 2,
+          "rounding": "half_up"
+        }
+      }
+    },
+    {
+      "source": "CASE WHEN x = 1 THEN 'yes' ELSE 'no' END",
+      "tree": {
+        "case": {
+          "when": [
+            {
+              "when": {
+                "eq": [
+                  {
+                    "field": "x"
+                  },
+                  {
+                    "literal": 1
+                  }
+                ]
+              },
+              "then": {
+                "literal": "yes"
+              }
+            }
+          ],
+          "else": {
+            "literal": "no"
+          }
+        }
+      }
+    },
+    {
+      "source": "try_timestamp(stamp, 'yyyy-MM-dd HH:mm:ss')",
+      "tree": {
+        "try_timestamp": {
+          "value": {
+            "field": "stamp"
+          },
+          "pattern": {
+            "literal": "yyyy-MM-dd HH:mm:ss"
+          }
+        }
+      }
+    },
+    {
+      "source": "'a' || 'b'",
+      "tree": {
+        "concat_strict": [
+          {
+            "literal": "a"
+          },
+          {
+            "literal": "b"
+          }
+        ]
+      }
+    },
+    {
+      "source": "NOT x = 1 AND y > 2",
+      "tree": {
+        "and": [
+          {
+            "not": {
+              "eq": [
+                {
+                  "field": "x"
+                },
+                {
+                  "literal": 1
+                }
+              ]
+            }
+          },
+          {
+            "gt": [
+              {
+                "field": "y"
+              },
+              {
+                "literal": 2
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "negative": [
+    "x IN items",
+    "x IN (other)",
+    "x IN (1 + 2)",
+    "x LIKE pattern",
+    "$\"quoted name\"",
+    "x = NULL",
+    "x <> NULL",
+    "x::number",
+    "CAST(x AS unknown_type)",
+    "7 // 2",
+    "x IN ()",
+    "x < y < z",
+    "-0",
+    "01",
+    "1e999",
+    "x.",
+    "x[0:1]",
+    "$1",
+    "$ value",
+    "IF(x = 1, 2, 3)",
+    "CASE x WHEN 1 THEN 2 END",
+    "E'abc'",
+    "$$abc$$",
+    "x -- comment",
+    "x /* comment */",
+    "eval('x')",
+    "len()",
+    "len(x, y)",
+    "to_decimal(x, $p, 2)",
+    "quantize(x, 18, 2, rounding)"
+  ]
+}

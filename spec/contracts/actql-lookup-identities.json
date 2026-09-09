@@ -1,0 +1,3785 @@
+{
+  "version": "actql-lookup-identity-contracts/0.1",
+  "schemas": {
+    "activation": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "const": "actql-lookup-attempt-activation/0.1"
+        },
+        "barrier_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "batch_plan_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "call_slot_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "network_attempt": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "previous_activation_cid": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "previous_attempt_event_cid": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "recorded_at": {
+          "type": "string",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.[0-9]{3}Z$"
+        },
+        "deadline": {
+          "type": "string",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.[0-9]{3}Z$"
+        },
+        "issuer_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "authority_scope_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "self_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      },
+      "required": [
+        "version",
+        "barrier_cid",
+        "batch_plan_cid",
+        "call_slot_cid",
+        "network_attempt",
+        "previous_activation_cid",
+        "previous_attempt_event_cid",
+        "recorded_at",
+        "deadline",
+        "issuer_id",
+        "authority_scope_cid",
+        "self_cid"
+      ],
+      "additionalProperties": false
+    },
+    "adoption": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "const": "actql-lookup-page-adoption/0.1"
+        },
+        "barrier_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "batch_plan_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "call_slot_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "activation_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "network_attempt": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "capture_event_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "raw_response_artifact_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "response_schema_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "page_value_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "previous_adoption_cid": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "terminal": {
+          "type": "boolean"
+        },
+        "next_token": {},
+        "recorded_at": {
+          "type": "string",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.[0-9]{3}Z$"
+        },
+        "issuer_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "authority_scope_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "self_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      },
+      "required": [
+        "version",
+        "barrier_cid",
+        "batch_plan_cid",
+        "call_slot_cid",
+        "activation_cid",
+        "network_attempt",
+        "capture_event_cid",
+        "raw_response_artifact_cid",
+        "response_schema_cid",
+        "page_value_cid",
+        "previous_adoption_cid",
+        "terminal",
+        "next_token",
+        "recorded_at",
+        "issuer_id",
+        "authority_scope_cid",
+        "self_cid"
+      ],
+      "additionalProperties": false
+    },
+    "raw_response": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "const": "actql-lookup-raw-response/0.1"
+        },
+        "call_slot_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "network_attempt": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "content_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "size_bytes": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "media_type": {
+          "type": "string",
+          "minLength": 1
+        },
+        "captured_at": {
+          "type": "string",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.[0-9]{3}Z$"
+        },
+        "effective_data_policy_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "effective_retention_policy_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "issuer_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "authority_scope_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "self_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      },
+      "required": [
+        "version",
+        "call_slot_cid",
+        "network_attempt",
+        "content_cid",
+        "size_bytes",
+        "media_type",
+        "captured_at",
+        "effective_data_policy_cid",
+        "effective_retention_policy_cid",
+        "issuer_id",
+        "authority_scope_cid",
+        "self_cid"
+      ],
+      "additionalProperties": false
+    },
+    "egress": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "const": "actql-source-request-egress-admission/0.1"
+        },
+        "barrier_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "input_relation_artifact_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "artifact_ref_cids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          },
+          "minItems": 0,
+          "uniqueItems": true
+        },
+        "artifact_availability_evidence_cids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          },
+          "minItems": 0,
+          "uniqueItems": true
+        },
+        "admitted_at": {
+          "type": "string",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.[0-9]{3}Z$"
+        },
+        "effective_data_policy_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "effective_classification": {
+          "enum": [
+            "public",
+            "internal",
+            "confidential",
+            "restricted",
+            "unknown"
+          ]
+        },
+        "actual_total_artifact_bytes": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "all_artifacts_complete": {
+          "type": "boolean"
+        },
+        "provider_account_boundary_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "resolved_region": {
+          "type": "string",
+          "minLength": 1
+        },
+        "host_policy_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "admitted": {
+          "const": true
+        },
+        "admission_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      },
+      "required": [
+        "version",
+        "barrier_cid",
+        "input_relation_artifact_cid",
+        "artifact_ref_cids",
+        "artifact_availability_evidence_cids",
+        "admitted_at",
+        "effective_data_policy_cid",
+        "effective_classification",
+        "actual_total_artifact_bytes",
+        "all_artifacts_complete",
+        "provider_account_boundary_cid",
+        "resolved_region",
+        "host_policy_cid",
+        "admitted",
+        "admission_cid"
+      ],
+      "additionalProperties": false
+    },
+    "transport_plan": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "const": "actql-lookup-transport-plan/0.1"
+        },
+        "source_view_contract_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "adapter_contract_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "request_schema_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "response_schema_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "static_request_values": {
+          "type": "object"
+        },
+        "batching": {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "enum": [
+                "single",
+                "native"
+              ]
+            },
+            "max_keys_per_batch": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9007199254740991
+            }
+          },
+          "required": [
+            "kind",
+            "max_keys_per_batch"
+          ],
+          "additionalProperties": false
+        },
+        "pagination": {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "enum": [
+                "none",
+                "cursor"
+              ]
+            },
+            "token_contract": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/$defs/value_contract"
+                }
+              ]
+            },
+            "max_pages_per_batch": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9007199254740991
+            }
+          },
+          "required": [
+            "kind",
+            "token_contract",
+            "max_pages_per_batch"
+          ],
+          "additionalProperties": false
+        },
+        "retry": {
+          "type": "object",
+          "properties": {
+            "max_network_attempts_per_request": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9007199254740991
+            },
+            "retryable_error_codes": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              },
+              "minItems": 0,
+              "uniqueItems": true
+            }
+          },
+          "required": [
+            "max_network_attempts_per_request",
+            "retryable_error_codes"
+          ],
+          "additionalProperties": false
+        },
+        "self_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      },
+      "required": [
+        "version",
+        "source_view_contract_cid",
+        "adapter_contract_cid",
+        "request_schema_cid",
+        "response_schema_cid",
+        "static_request_values",
+        "batching",
+        "pagination",
+        "retry",
+        "self_cid"
+      ],
+      "additionalProperties": false,
+      "$defs": {
+        "value_contract": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "type",
+                "nullable",
+                "precision",
+                "scale"
+              ],
+              "properties": {
+                "type": {
+                  "const": "decimal"
+                },
+                "nullable": {
+                  "type": "boolean"
+                },
+                "precision": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 38
+                },
+                "scale": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 38
+                }
+              },
+              "allOf": [
+                {
+                  "if": {
+                    "properties": {
+                      "precision": {
+                        "const": 1
+                      }
+                    },
+                    "required": [
+                      "precision"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "scale": {
+                        "maximum": 1
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "precision": {
+                        "const": 2
+                      }
+                    },
+                    "required": [
+                      "precision"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "scale": {
+                        "maximum": 2
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "precision": {
+                        "const": 3
+                      }
+                    },
+                    "required": [
+                      "precision"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "scale": {
+                        "maximum": 3
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "precision": {
+                        "const": 4
+                      }
+                    },
+                    "required": [
+                      "precision"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "scale": {
+                        "maximum": 4
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "precision": {
+                        "const": 5
+                      }
+                    },
+                    "required": [
+                      "precision"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "scale": {
+                        "maximum": 5
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "precision": {
+                        "const": 6
+                      }
+                    },
+                    "required": [
+                      "precision"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "scale": {
+                        "maximum": 6
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "precision": {
+                        "const": 7
+                      }
+                    },
+                    "required": [
+                      "precision"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "scale": {
+                        "maximum": 7
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "precision": {
+                        "const": 8
+                      }
+                    },
+                    "required": [
+                      "precision"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "scale": {
+                        "maximum": 8
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "precision": {
+                        "const": 9
+                      }
+                    },
+                    "required": [
+                      "precision"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "scale": {
+                        "maximum": 9
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "precision": {
+                        "const": 10
+                      }
+                    },
+                    "required": [
+                      "precision"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "scale": {
+                        "maximum": 10
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "precision": {
+                        "const": 11
+                      }
+                    },
+                    "required": [
+                      "precision"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "scale": {
+                        "maximum": 11
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "precision": {
+                        "const": 12
+                      }
+                    },
+                    "required": [
+                      "precision"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "scale": {
+                        "maximum": 12
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "precision": {
+                        "const": 13
+                      }
+                    },
+                    "required": [
+                      "precision"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "scale": {
+                        "maximum": 13
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "precision": {
+                        "const": 14
+                      }
+                    },
+                    "required": [
+                      "precision"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "scale": {
+                        "maximum": 14
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "precision": {
+                        "const": 15
+                      }
+                    },
+                    "required": [
+                      "precision"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "scale": {
+                        "maximum": 15
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "precision": {
+                        "const": 16
+                      }
+                    },
+                    "required": [
+                      "precision"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "scale": {
+                        "maximum": 16
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "precision": {
+                        "const": 17
+                      }
+                    },
+                    "required": [
+                      "precision"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "scale": {
+                        "maximum": 17
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "precision": {
+                        "const": 18
+                      }
+                    },
+                    "required": [
+                      "precision"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "scale": {
+                        "maximum": 18
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "precision": {
+                        "const": 19
+                      }
+                    },
+                    "required": [
+                      "precision"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "scale": {
+                        "maximum": 19
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "precision": {
+                        "const": 20
+                      }
+                    },
+                    "required": [
+                      "precision"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "scale": {
+                        "maximum": 20
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "precision": {
+                        "const": 21
+                      }
+                    },
+                    "required": [
+                      "precision"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "scale": {
+                        "maximum": 21
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "precision": {
+                        "const": 22
+                      }
+                    },
+                    "required": [
+                      "precision"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "scale": {
+                        "maximum": 22
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "precision": {
+                        "const": 23
+                      }
+                    },
+                    "required": [
+                      "precision"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "scale": {
+                        "maximum": 23
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "precision": {
+                        "const": 24
+                      }
+                    },
+                    "required": [
+                      "precision"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "scale": {
+                        "maximum": 24
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "precision": {
+                        "const": 25
+                      }
+                    },
+                    "required": [
+                      "precision"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "scale": {
+                        "maximum": 25
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "precision": {
+                        "const": 26
+                      }
+                    },
+                    "required": [
+                      "precision"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "scale": {
+                        "maximum": 26
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "precision": {
+                        "const": 27
+                      }
+                    },
+                    "required": [
+                      "precision"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "scale": {
+                        "maximum": 27
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "precision": {
+                        "const": 28
+                      }
+                    },
+                    "required": [
+                      "precision"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "scale": {
+                        "maximum": 28
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "precision": {
+                        "const": 29
+                      }
+                    },
+                    "required": [
+                      "precision"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "scale": {
+                        "maximum": 29
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "precision": {
+                        "const": 30
+                      }
+                    },
+                    "required": [
+                      "precision"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "scale": {
+                        "maximum": 30
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "precision": {
+                        "const": 31
+                      }
+                    },
+                    "required": [
+                      "precision"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "scale": {
+                        "maximum": 31
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "precision": {
+                        "const": 32
+                      }
+                    },
+                    "required": [
+                      "precision"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "scale": {
+                        "maximum": 32
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "precision": {
+                        "const": 33
+                      }
+                    },
+                    "required": [
+                      "precision"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "scale": {
+                        "maximum": 33
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "precision": {
+                        "const": 34
+                      }
+                    },
+                    "required": [
+                      "precision"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "scale": {
+                        "maximum": 34
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "precision": {
+                        "const": 35
+                      }
+                    },
+                    "required": [
+                      "precision"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "scale": {
+                        "maximum": 35
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "precision": {
+                        "const": 36
+                      }
+                    },
+                    "required": [
+                      "precision"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "scale": {
+                        "maximum": 36
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "precision": {
+                        "const": 37
+                      }
+                    },
+                    "required": [
+                      "precision"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "scale": {
+                        "maximum": 37
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "precision": {
+                        "const": 38
+                      }
+                    },
+                    "required": [
+                      "precision"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "scale": {
+                        "maximum": 38
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "type",
+                "nullable"
+              ],
+              "properties": {
+                "type": {
+                  "const": "string"
+                },
+                "nullable": {
+                  "type": "boolean"
+                },
+                "min_length": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "max_codepoints": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "max_utf8_bytes": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "type",
+                "nullable"
+              ],
+              "properties": {
+                "type": {
+                  "enum": [
+                    "number",
+                    "boolean",
+                    "timestamp",
+                    "date",
+                    "json"
+                  ]
+                },
+                "nullable": {
+                  "type": "boolean"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "type",
+                "nullable",
+                "items"
+              ],
+              "properties": {
+                "type": {
+                  "const": "array"
+                },
+                "nullable": {
+                  "type": "boolean"
+                },
+                "items": {
+                  "$ref": "#/$defs/value_contract"
+                },
+                "max_items": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "type",
+                "nullable",
+                "additional_properties",
+                "fields"
+              ],
+              "properties": {
+                "type": {
+                  "const": "object"
+                },
+                "nullable": {
+                  "type": "boolean"
+                },
+                "additional_properties": {
+                  "const": false
+                },
+                "fields": {
+                  "type": "object",
+                  "propertyNames": {
+                    "pattern": "^(?!__cid$)(?!__actql_)(?!.*\\.)(?=.*\\S).+$"
+                  },
+                  "additionalProperties": {
+                    "$ref": "#/$defs/value_contract"
+                  }
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "type",
+                "nullable",
+                "dimensions",
+                "element_type"
+              ],
+              "properties": {
+                "type": {
+                  "const": "vector"
+                },
+                "nullable": {
+                  "type": "boolean"
+                },
+                "dimensions": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "element_type": {
+                  "const": "f32"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "type",
+                "nullable",
+                "resource_kind"
+              ],
+              "properties": {
+                "type": {
+                  "const": "resource_ref"
+                },
+                "nullable": {
+                  "type": "boolean"
+                },
+                "resource_kind": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "type",
+                "nullable"
+              ],
+              "properties": {
+                "type": {
+                  "const": "artifact_ref"
+                },
+                "nullable": {
+                  "type": "boolean"
+                },
+                "media_type": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "derivation": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "const": "actql-acquisition-derivation-evidence/0.1"
+        },
+        "producer_contract_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "computation_contract_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "input_relation_cids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          },
+          "minItems": 0,
+          "uniqueItems": true
+        },
+        "logical_value_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "relation_schema_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "scope_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "effective_data_policy_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "ordering": {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "enum": [
+                "occurrence",
+                "keys"
+              ]
+            },
+            "terms": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "field": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "dir": {
+                    "enum": [
+                      "asc",
+                      "desc"
+                    ]
+                  },
+                  "nulls": {
+                    "enum": [
+                      "first",
+                      "last"
+                    ]
+                  }
+                },
+                "required": [
+                  "field",
+                  "dir",
+                  "nulls"
+                ],
+                "additionalProperties": false
+              },
+              "minItems": 0
+            }
+          },
+          "required": [
+            "kind",
+            "terms"
+          ],
+          "additionalProperties": false
+        },
+        "issuer_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "authority_scope_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "self_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      },
+      "required": [
+        "version",
+        "producer_contract_cid",
+        "computation_contract_cid",
+        "input_relation_cids",
+        "logical_value_cid",
+        "relation_schema_cid",
+        "scope_cid",
+        "effective_data_policy_cid",
+        "ordering",
+        "issuer_id",
+        "authority_scope_cid",
+        "self_cid"
+      ],
+      "additionalProperties": false
+    },
+    "accounting": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "const": "actql-lookup-accounting-evidence/0.1"
+        },
+        "barrier_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "batch_plan_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "input_relation_artifact_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "previous_accounting_cid": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "recorded_at": {
+          "type": "string",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.[0-9]{3}Z$"
+        },
+        "elapsed_ms": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "attempts": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "call_slot_cid": {
+                "type": "string",
+                "pattern": "^sha256:[0-9a-f]{64}$"
+              },
+              "network_attempt": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 9007199254740991
+              },
+              "dispatched": {
+                "type": "boolean"
+              },
+              "request_bytes": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "response_wire_bytes": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "response_decoded_bytes": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "redirect_count": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "duration_ms": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "usage_final": {
+                "type": "boolean"
+              },
+              "usage_resolution_event_cid": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^sha256:[0-9a-f]{64}$"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "reserved_wire_bytes": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "reserved_decoded_bytes": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "reserved_duration_ms": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              }
+            },
+            "required": [
+              "call_slot_cid",
+              "network_attempt",
+              "dispatched",
+              "request_bytes",
+              "response_wire_bytes",
+              "response_decoded_bytes",
+              "redirect_count",
+              "duration_ms",
+              "usage_final",
+              "usage_resolution_event_cid",
+              "reserved_wire_bytes",
+              "reserved_decoded_bytes",
+              "reserved_duration_ms"
+            ],
+            "additionalProperties": false
+          },
+          "minItems": 0,
+          "uniqueItems": true
+        },
+        "totals": {
+          "type": "object",
+          "properties": {
+            "network_attempts": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "request_bytes": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "response_wire_bytes": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "response_decoded_bytes": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            }
+          },
+          "required": [
+            "network_attempts",
+            "request_bytes",
+            "response_wire_bytes",
+            "response_decoded_bytes"
+          ],
+          "additionalProperties": false
+        },
+        "issuer_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "authority_scope_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "self_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      },
+      "required": [
+        "version",
+        "barrier_cid",
+        "batch_plan_cid",
+        "input_relation_artifact_cid",
+        "previous_accounting_cid",
+        "recorded_at",
+        "elapsed_ms",
+        "attempts",
+        "totals",
+        "issuer_id",
+        "authority_scope_cid",
+        "self_cid"
+      ],
+      "additionalProperties": false
+    },
+    "attempt_event": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "const": "actql-lookup-attempt-event/0.1"
+        },
+        "barrier_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "batch_plan_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "call_slot_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "network_attempt": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "previous_event_cid": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "recorded_at": {
+          "type": "string",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.[0-9]{3}Z$"
+        },
+        "outcome": {
+          "enum": [
+            "dispatched",
+            "captured",
+            "failed",
+            "unknown",
+            "unattempted"
+          ]
+        },
+        "raw_response_artifact_cid": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "runtime_error_cid": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "failure_code": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "issuer_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "authority_scope_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "self_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      },
+      "required": [
+        "version",
+        "barrier_cid",
+        "batch_plan_cid",
+        "call_slot_cid",
+        "network_attempt",
+        "previous_event_cid",
+        "recorded_at",
+        "outcome",
+        "raw_response_artifact_cid",
+        "runtime_error_cid",
+        "failure_code",
+        "issuer_id",
+        "authority_scope_cid",
+        "self_cid"
+      ],
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "outcome": {
+                "const": "captured"
+              }
+            },
+            "required": [
+              "outcome"
+            ]
+          },
+          "then": {
+            "properties": {
+              "raw_response_artifact_cid": {
+                "type": "string",
+                "pattern": "^sha256:[0-9a-f]{64}$"
+              },
+              "runtime_error_cid": {
+                "type": "null"
+              },
+              "failure_code": {
+                "type": "null"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "outcome": {
+                "enum": [
+                  "dispatched",
+                  "unknown",
+                  "unattempted"
+                ]
+              }
+            },
+            "required": [
+              "outcome"
+            ]
+          },
+          "then": {
+            "properties": {
+              "raw_response_artifact_cid": {
+                "type": "null"
+              },
+              "runtime_error_cid": {
+                "type": "null"
+              },
+              "failure_code": {
+                "type": "null"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "outcome": {
+                "const": "failed"
+              }
+            },
+            "required": [
+              "outcome"
+            ]
+          },
+          "then": {
+            "properties": {
+              "failure_code": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        }
+      ]
+    },
+    "ordering": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "const": "actql-acquisition-ordering/0.1"
+        },
+        "producer_contract_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "kind": {
+          "enum": [
+            "occurrence",
+            "keys"
+          ]
+        },
+        "terms": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "field": {
+                "type": "string",
+                "minLength": 1
+              },
+              "dir": {
+                "enum": [
+                  "asc",
+                  "desc"
+                ]
+              },
+              "nulls": {
+                "enum": [
+                  "first",
+                  "last"
+                ]
+              }
+            },
+            "required": [
+              "field",
+              "dir",
+              "nulls"
+            ],
+            "additionalProperties": false
+          },
+          "minItems": 0
+        },
+        "witness_evidence": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "kind": {
+                "enum": [
+                  "source",
+                  "derivation"
+                ]
+              },
+              "cid": {
+                "type": "string",
+                "pattern": "^sha256:[0-9a-f]{64}$"
+              }
+            },
+            "required": [
+              "kind",
+              "cid"
+            ],
+            "additionalProperties": false
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "self_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      },
+      "required": [
+        "version",
+        "producer_contract_cid",
+        "kind",
+        "terms",
+        "witness_evidence",
+        "self_cid"
+      ],
+      "additionalProperties": false
+    },
+    "scope": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "const": "actql-acquisition-scope/0.1"
+        },
+        "sources": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "source_contract_cid": {
+                "type": "string",
+                "pattern": "^sha256:[0-9a-f]{64}$"
+              },
+              "request_values_cid": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^sha256:[0-9a-f]{64}$"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "request_key_set_cid": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^sha256:[0-9a-f]{64}$"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "source_contract_cid",
+              "request_values_cid",
+              "request_key_set_cid"
+            ],
+            "additionalProperties": false
+          },
+          "minItems": 0,
+          "uniqueItems": true
+        },
+        "self_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      },
+      "required": [
+        "version",
+        "sources",
+        "self_cid"
+      ],
+      "additionalProperties": false
+    },
+    "request": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "const": "actql-lookup-semantic-request/0.1"
+        },
+        "source_view_contract_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "request_schema_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "transport_plan_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "request_values": {
+          "type": "object"
+        },
+        "continuation": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "previous_response_artifact_cid": {
+                  "type": "string",
+                  "pattern": "^sha256:[0-9a-f]{64}$"
+                },
+                "token": {}
+              },
+              "required": [
+                "previous_response_artifact_cid",
+                "token"
+              ],
+              "additionalProperties": false
+            }
+          ]
+        },
+        "self_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      },
+      "required": [
+        "version",
+        "source_view_contract_cid",
+        "request_schema_cid",
+        "transport_plan_cid",
+        "request_values",
+        "continuation",
+        "self_cid"
+      ],
+      "additionalProperties": false
+    },
+    "call_slot": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "const": "actql-lookup-call-slot/0.1"
+        },
+        "batch_plan_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "batch_index": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "page_index": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "semantic_request_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "self_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      },
+      "required": [
+        "version",
+        "batch_plan_cid",
+        "batch_index",
+        "page_index",
+        "semantic_request_cid",
+        "self_cid"
+      ],
+      "additionalProperties": false
+    },
+    "relation": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "const": "actql-acquisition-relation/0.1"
+        },
+        "producer_contract_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "relation_schema_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "logical_value_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "ordering_evidence_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "actual_row_count": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "observation_scope_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "actual_completeness": {
+          "enum": [
+            "complete",
+            "partial",
+            "unknown"
+          ]
+        },
+        "effective_data_policy_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "effective_retention_policy_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "provenance_evidence": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "kind": {
+                "enum": [
+                  "source",
+                  "derivation",
+                  "relation",
+                  "attempt_receipt"
+                ]
+              },
+              "cid": {
+                "type": "string",
+                "pattern": "^sha256:[0-9a-f]{64}$"
+              }
+            },
+            "required": [
+              "kind",
+              "cid"
+            ],
+            "additionalProperties": false
+          },
+          "minItems": 0,
+          "uniqueItems": true
+        },
+        "self_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      },
+      "required": [
+        "version",
+        "producer_contract_cid",
+        "relation_schema_cid",
+        "logical_value_cid",
+        "ordering_evidence_cid",
+        "actual_row_count",
+        "observation_scope_cid",
+        "actual_completeness",
+        "effective_data_policy_cid",
+        "effective_retention_policy_cid",
+        "provenance_evidence",
+        "self_cid"
+      ],
+      "additionalProperties": false
+    },
+    "key_set": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "const": "actql-lookup-key-set/0.1"
+        },
+        "source_view_contract_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "request_schema_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "key_roles": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "request_role": {
+                "type": "string",
+                "minLength": 1
+              },
+              "value_contract": {
+                "$ref": "#/$defs/value_contract"
+              }
+            },
+            "required": [
+              "request_role",
+              "value_contract"
+            ],
+            "additionalProperties": false
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "tuples": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "items": {},
+            "minItems": 0
+          },
+          "minItems": 0,
+          "uniqueItems": true
+        },
+        "self_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      },
+      "required": [
+        "version",
+        "source_view_contract_cid",
+        "request_schema_cid",
+        "key_roles",
+        "tuples",
+        "self_cid"
+      ],
+      "additionalProperties": false,
+      "$defs": {
+        "value_contract": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "type",
+                "nullable",
+                "precision",
+                "scale"
+              ],
+              "properties": {
+                "type": {
+                  "const": "decimal"
+                },
+                "nullable": {
+                  "type": "boolean"
+                },
+                "precision": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 38
+                },
+                "scale": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 38
+                }
+              },
+              "allOf": [
+                {
+                  "if": {
+                    "properties": {
+                      "precision": {
+                        "const": 1
+                      }
+                    },
+                    "required": [
+                      "precision"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "scale": {
+                        "maximum": 1
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "precision": {
+                        "const": 2
+                      }
+                    },
+                    "required": [
+                      "precision"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "scale": {
+                        "maximum": 2
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "precision": {
+                        "const": 3
+                      }
+                    },
+                    "required": [
+                      "precision"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "scale": {
+                        "maximum": 3
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "precision": {
+                        "const": 4
+                      }
+                    },
+                    "required": [
+                      "precision"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "scale": {
+                        "maximum": 4
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "precision": {
+                        "const": 5
+                      }
+                    },
+                    "required": [
+                      "precision"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "scale": {
+                        "maximum": 5
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "precision": {
+                        "const": 6
+                      }
+                    },
+                    "required": [
+                      "precision"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "scale": {
+                        "maximum": 6
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "precision": {
+                        "const": 7
+                      }
+                    },
+                    "required": [
+                      "precision"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "scale": {
+                        "maximum": 7
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "precision": {
+                        "const": 8
+                      }
+                    },
+                    "required": [
+                      "precision"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "scale": {
+                        "maximum": 8
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "precision": {
+                        "const": 9
+                      }
+                    },
+                    "required": [
+                      "precision"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "scale": {
+                        "maximum": 9
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "precision": {
+                        "const": 10
+                      }
+                    },
+                    "required": [
+                      "precision"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "scale": {
+                        "maximum": 10
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "precision": {
+                        "const": 11
+                      }
+                    },
+                    "required": [
+                      "precision"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "scale": {
+                        "maximum": 11
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "precision": {
+                        "const": 12
+                      }
+                    },
+                    "required": [
+                      "precision"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "scale": {
+                        "maximum": 12
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "precision": {
+                        "const": 13
+                      }
+                    },
+                    "required": [
+                      "precision"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "scale": {
+                        "maximum": 13
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "precision": {
+                        "const": 14
+                      }
+                    },
+                    "required": [
+                      "precision"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "scale": {
+                        "maximum": 14
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "precision": {
+                        "const": 15
+                      }
+                    },
+                    "required": [
+                      "precision"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "scale": {
+                        "maximum": 15
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "precision": {
+                        "const": 16
+                      }
+                    },
+                    "required": [
+                      "precision"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "scale": {
+                        "maximum": 16
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "precision": {
+                        "const": 17
+                      }
+                    },
+                    "required": [
+                      "precision"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "scale": {
+                        "maximum": 17
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "precision": {
+                        "const": 18
+                      }
+                    },
+                    "required": [
+                      "precision"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "scale": {
+                        "maximum": 18
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "precision": {
+                        "const": 19
+                      }
+                    },
+                    "required": [
+                      "precision"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "scale": {
+                        "maximum": 19
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "precision": {
+                        "const": 20
+                      }
+                    },
+                    "required": [
+                      "precision"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "scale": {
+                        "maximum": 20
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "precision": {
+                        "const": 21
+                      }
+                    },
+                    "required": [
+                      "precision"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "scale": {
+                        "maximum": 21
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "precision": {
+                        "const": 22
+                      }
+                    },
+                    "required": [
+                      "precision"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "scale": {
+                        "maximum": 22
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "precision": {
+                        "const": 23
+                      }
+                    },
+                    "required": [
+                      "precision"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "scale": {
+                        "maximum": 23
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "precision": {
+                        "const": 24
+                      }
+                    },
+                    "required": [
+                      "precision"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "scale": {
+                        "maximum": 24
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "precision": {
+                        "const": 25
+                      }
+                    },
+                    "required": [
+                      "precision"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "scale": {
+                        "maximum": 25
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "precision": {
+                        "const": 26
+                      }
+                    },
+                    "required": [
+                      "precision"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "scale": {
+                        "maximum": 26
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "precision": {
+                        "const": 27
+                      }
+                    },
+                    "required": [
+                      "precision"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "scale": {
+                        "maximum": 27
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "precision": {
+                        "const": 28
+                      }
+                    },
+                    "required": [
+                      "precision"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "scale": {
+                        "maximum": 28
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "precision": {
+                        "const": 29
+                      }
+                    },
+                    "required": [
+                      "precision"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "scale": {
+                        "maximum": 29
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "precision": {
+                        "const": 30
+                      }
+                    },
+                    "required": [
+                      "precision"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "scale": {
+                        "maximum": 30
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "precision": {
+                        "const": 31
+                      }
+                    },
+                    "required": [
+                      "precision"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "scale": {
+                        "maximum": 31
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "precision": {
+                        "const": 32
+                      }
+                    },
+                    "required": [
+                      "precision"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "scale": {
+                        "maximum": 32
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "precision": {
+                        "const": 33
+                      }
+                    },
+                    "required": [
+                      "precision"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "scale": {
+                        "maximum": 33
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "precision": {
+                        "const": 34
+                      }
+                    },
+                    "required": [
+                      "precision"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "scale": {
+                        "maximum": 34
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "precision": {
+                        "const": 35
+                      }
+                    },
+                    "required": [
+                      "precision"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "scale": {
+                        "maximum": 35
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "precision": {
+                        "const": 36
+                      }
+                    },
+                    "required": [
+                      "precision"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "scale": {
+                        "maximum": 36
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "precision": {
+                        "const": 37
+                      }
+                    },
+                    "required": [
+                      "precision"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "scale": {
+                        "maximum": 37
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "precision": {
+                        "const": 38
+                      }
+                    },
+                    "required": [
+                      "precision"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "scale": {
+                        "maximum": 38
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "type",
+                "nullable"
+              ],
+              "properties": {
+                "type": {
+                  "const": "string"
+                },
+                "nullable": {
+                  "type": "boolean"
+                },
+                "min_length": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "max_codepoints": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "max_utf8_bytes": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "type",
+                "nullable"
+              ],
+              "properties": {
+                "type": {
+                  "enum": [
+                    "number",
+                    "boolean",
+                    "timestamp",
+                    "date",
+                    "json"
+                  ]
+                },
+                "nullable": {
+                  "type": "boolean"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "type",
+                "nullable",
+                "items"
+              ],
+              "properties": {
+                "type": {
+                  "const": "array"
+                },
+                "nullable": {
+                  "type": "boolean"
+                },
+                "items": {
+                  "$ref": "#/$defs/value_contract"
+                },
+                "max_items": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "type",
+                "nullable",
+                "additional_properties",
+                "fields"
+              ],
+              "properties": {
+                "type": {
+                  "const": "object"
+                },
+                "nullable": {
+                  "type": "boolean"
+                },
+                "additional_properties": {
+                  "const": false
+                },
+                "fields": {
+                  "type": "object",
+                  "propertyNames": {
+                    "pattern": "^(?!__cid$)(?!__actql_)(?!.*\\.)(?=.*\\S).+$"
+                  },
+                  "additionalProperties": {
+                    "$ref": "#/$defs/value_contract"
+                  }
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "type",
+                "nullable",
+                "dimensions",
+                "element_type"
+              ],
+              "properties": {
+                "type": {
+                  "const": "vector"
+                },
+                "nullable": {
+                  "type": "boolean"
+                },
+                "dimensions": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "element_type": {
+                  "const": "f32"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "type",
+                "nullable",
+                "resource_kind"
+              ],
+              "properties": {
+                "type": {
+                  "const": "resource_ref"
+                },
+                "nullable": {
+                  "type": "boolean"
+                },
+                "resource_kind": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "type",
+                "nullable"
+              ],
+              "properties": {
+                "type": {
+                  "const": "artifact_ref"
+                },
+                "nullable": {
+                  "type": "boolean"
+                },
+                "media_type": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "batch_plan": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "const": "actql-lookup-batch-plan/0.1"
+        },
+        "barrier_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "request_key_set_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "transport_plan_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "batches": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "batch_index": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "key_indices": {
+                "type": "array",
+                "items": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "minItems": 1,
+                "uniqueItems": true
+              }
+            },
+            "required": [
+              "batch_index",
+              "key_indices"
+            ],
+            "additionalProperties": false
+          },
+          "minItems": 0
+        },
+        "self_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      },
+      "required": [
+        "version",
+        "barrier_cid",
+        "request_key_set_cid",
+        "transport_plan_cid",
+        "batches",
+        "self_cid"
+      ],
+      "additionalProperties": false
+    },
+    "attempt_receipt": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "const": "actql-lookup-attempt-receipt/0.1"
+        },
+        "barrier_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "input_relation_artifact_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "request_key_set_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "batch_plan_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "source_request_egress_admission_cid": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "started_at": {
+          "type": "string",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.[0-9]{3}Z$"
+        },
+        "recorded_at": {
+          "type": "string",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.[0-9]{3}Z$"
+        },
+        "previous_receipt_cid": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "state": {
+          "enum": [
+            "in_progress",
+            "succeeded",
+            "failed",
+            "unknown"
+          ]
+        },
+        "attempts": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "call_slot_cid",
+              "semantic_request_cid",
+              "batch_index",
+              "page_index",
+              "network_attempt",
+              "outcome"
+            ],
+            "properties": {
+              "call_slot_cid": {
+                "type": "string",
+                "pattern": "^sha256:[a-f0-9]{64}$"
+              },
+              "semantic_request_cid": {
+                "type": "string",
+                "pattern": "^sha256:[a-f0-9]{64}$"
+              },
+              "batch_index": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "page_index": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "network_attempt": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 9007199254740991
+              },
+              "provider_request_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "outcome": {
+                "enum": [
+                  "planned",
+                  "dispatched",
+                  "captured",
+                  "failed",
+                  "unknown",
+                  "unattempted"
+                ]
+              },
+              "raw_response_artifact_cid": {
+                "type": "string",
+                "pattern": "^sha256:[a-f0-9]{64}$"
+              },
+              "runtime_error_cid": {
+                "type": "string",
+                "pattern": "^sha256:[a-f0-9]{64}$"
+              }
+            },
+            "allOf": [
+              {
+                "if": {
+                  "properties": {
+                    "outcome": {
+                      "const": "captured"
+                    }
+                  },
+                  "required": [
+                    "outcome"
+                  ]
+                },
+                "then": {
+                  "required": [
+                    "raw_response_artifact_cid"
+                  ],
+                  "not": {
+                    "required": [
+                      "runtime_error_cid"
+                    ]
+                  }
+                }
+              },
+              {
+                "if": {
+                  "properties": {
+                    "outcome": {
+                      "enum": [
+                        "planned",
+                        "dispatched",
+                        "unknown",
+                        "unattempted"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "outcome"
+                  ]
+                },
+                "then": {
+                  "not": {
+                    "anyOf": [
+                      {
+                        "required": [
+                          "raw_response_artifact_cid"
+                        ]
+                      },
+                      {
+                        "required": [
+                          "runtime_error_cid"
+                        ]
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          },
+          "uniqueItems": true
+        },
+        "lifecycle_evidence": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "kind": {
+                "enum": [
+                  "accounting",
+                  "attempt_event",
+                  "activation",
+                  "adoption"
+                ]
+              },
+              "cid": {
+                "type": "string",
+                "pattern": "^sha256:[0-9a-f]{64}$"
+              }
+            },
+            "required": [
+              "kind",
+              "cid"
+            ],
+            "additionalProperties": false
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "self_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      },
+      "required": [
+        "version",
+        "barrier_cid",
+        "input_relation_artifact_cid",
+        "request_key_set_cid",
+        "batch_plan_cid",
+        "source_request_egress_admission_cid",
+        "started_at",
+        "recorded_at",
+        "previous_receipt_cid",
+        "state",
+        "attempts",
+        "lifecycle_evidence",
+        "self_cid"
+      ],
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "properties": {
+            "lifecycle_evidence": {
+              "contains": {
+                "properties": {
+                  "kind": {
+                    "const": "accounting"
+                  }
+                },
+                "required": [
+                  "kind"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "attempts": {
+                "contains": {
+                  "properties": {
+                    "outcome": {
+                      "const": "failed"
+                    }
+                  },
+                  "required": [
+                    "outcome"
+                  ],
+                  "not": {
+                    "required": [
+                      "runtime_error_cid"
+                    ]
+                  }
+                }
+              }
+            },
+            "required": [
+              "attempts"
+            ]
+          },
+          "then": {
+            "properties": {
+              "lifecycle_evidence": {
+                "contains": {
+                  "properties": {
+                    "kind": {
+                      "const": "attempt_event"
+                    }
+                  },
+                  "required": [
+                    "kind"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  },
+  "evidence_slots": {
+    "input_relation_artifact_cid": "relation",
+    "validated_lookup_relation_cid": "relation",
+    "request_key_set_cid": "key_set",
+    "batch_plan_cid": "batch_plan",
+    "attempt_receipt_cid": "attempt_receipt"
+  },
+  "reference_roles": {
+    "relation": {
+      "ordering_evidence_cid": "ordering",
+      "observation_scope_cid": "scope",
+      "provenance_evidence/*": "kind-dispatched"
+    },
+    "ordering": {
+      "witness_evidence/*": "kind-dispatched"
+    },
+    "batch_plan": {
+      "request_key_set_cid": "key_set",
+      "transport_plan_cid": "transport_plan"
+    },
+    "request": {
+      "transport_plan_cid": "transport_plan",
+      "request_schema_cid": "catalog-request"
+    },
+    "transport_plan": {
+      "adapter_contract_cid": "checked-read-profile",
+      "request_schema_cid": "catalog-request",
+      "response_schema_cid": "catalog-response"
+    },
+    "key_set": {
+      "request_schema_cid": "catalog-single-request"
+    },
+    "attempt_receipt": {
+      "input_relation_artifact_cid": "relation",
+      "request_key_set_cid": "key_set",
+      "batch_plan_cid": "batch_plan",
+      "previous_receipt_cid": "attempt_receipt?",
+      "attempts/*/call_slot_cid": "call_slot",
+      "attempts/*/semantic_request_cid": "request",
+      "source_request_egress_admission_cid": "egress?",
+      "attempts/*/raw_response_artifact_cid": "raw_response?",
+      "attempts/*/runtime_error_cid": "runtime_error?",
+      "lifecycle_evidence/*": "kind-dispatched"
+    },
+    "activation": {
+      "batch_plan_cid": "batch_plan",
+      "call_slot_cid": "call_slot",
+      "previous_activation_cid": "activation?",
+      "previous_attempt_event_cid": "attempt_event?"
+    },
+    "adoption": {
+      "batch_plan_cid": "batch_plan",
+      "call_slot_cid": "call_slot",
+      "activation_cid": "activation",
+      "capture_event_cid": "attempt_event",
+      "raw_response_artifact_cid": "raw_response",
+      "previous_adoption_cid": "adoption?",
+      "response_schema_cid": "catalog-response"
+    },
+    "raw_response": {
+      "call_slot_cid": "call_slot"
+    },
+    "egress": {
+      "input_relation_artifact_cid": "relation"
+    },
+    "derivation": {
+      "input_relation_cids/*": "relation",
+      "scope_cid": "scope"
+    },
+    "accounting": {
+      "batch_plan_cid": "batch_plan",
+      "input_relation_artifact_cid": "relation",
+      "previous_accounting_cid": "accounting?",
+      "attempts/*/call_slot_cid": "call_slot",
+      "attempts/*/usage_resolution_event_cid": "attempt_event?"
+    },
+    "attempt_event": {
+      "batch_plan_cid": "batch_plan",
+      "call_slot_cid": "call_slot",
+      "previous_event_cid": "attempt_event?",
+      "raw_response_artifact_cid": "raw_response?",
+      "runtime_error_cid": "runtime_error?"
+    },
+    "call_slot": {
+      "batch_plan_cid": "batch_plan",
+      "semantic_request_cid": "request"
+    },
+    "scope": {
+      "sources/*/request_key_set_cid": "key_set?"
+    }
+  },
+  "evidence_kinds": {
+    "source": {
+      "path": "spec/contracts/actql-protocol-schemas.json",
+      "pointer": "/artifact_schemas/source_evidence",
+      "self_field": "source_evidence_cid",
+      "schema_cid": "sha256:434d2f1c97a9721e01d5eb614577d8620bc3662e2b5b3b05bdecb3029d2eafa6"
+    },
+    "derivation": {
+      "schema": "derivation",
+      "self_field": "self_cid"
+    },
+    "relation": {
+      "schema": "relation",
+      "self_field": "self_cid"
+    },
+    "attempt_receipt": {
+      "schema": "attempt_receipt",
+      "self_field": "self_cid"
+    },
+    "accounting": {
+      "schema": "accounting",
+      "self_field": "self_cid"
+    },
+    "attempt_event": {
+      "schema": "attempt_event",
+      "self_field": "self_cid"
+    },
+    "activation": {
+      "schema": "activation",
+      "self_field": "self_cid"
+    },
+    "adoption": {
+      "schema": "adoption",
+      "self_field": "self_cid"
+    }
+  },
+  "external_contracts": {
+    "checked-read-profile": {
+      "selection": "checked SourceView execution contract; HTTP binding resolves http_read_transport, not SourceReadPlan",
+      "path": "spec/contracts/actql-production-profile-schemas.json",
+      "pointer": "/schemas/http_read_transport",
+      "self_field": "transport_cid",
+      "schema_cid": "sha256:9d1b94d787b76a5e9ef6714bf9d44bc9c5edd42e3f9f60ffa106c9bc4ecb525c"
+    },
+    "runtime_error": {
+      "path": "spec/contracts/actql-protocol-schemas.json",
+      "pointer": "/artifact_schemas/runtime_error",
+      "self_field": "error_cid",
+      "schema_cid": "sha256:065e22b471b7e63c67061a75854e5ca3d1821841fcc07016742d6b715632608d"
+    },
+    "catalog-single-request": {
+      "path": "spec/contracts/actql-protocol-schemas.json",
+      "pointer": "/schemas/contract_envelope",
+      "self_field": "cid",
+      "schema_cid": "sha256:12b59aa2fd993c1d540f8cc80f658760f17ee9f179d8d12cb5f037127b8ae6fe",
+      "selection": "checked Catalog member at SourceView.acquisition.request_schema; kind=request_schema"
+    },
+    "catalog-request": {
+      "path": "spec/contracts/actql-protocol-schemas.json",
+      "pointer": "/schemas/contract_envelope",
+      "self_field": "cid",
+      "schema_cid": "sha256:12b59aa2fd993c1d540f8cc80f658760f17ee9f179d8d12cb5f037127b8ae6fe",
+      "selection": "single: acquisition.request_schema kind=request_schema; native: acquisition.batching.batch_request_schema kind=lookup_batch_request"
+    },
+    "catalog-response": {
+      "path": "spec/contracts/actql-protocol-schemas.json",
+      "pointer": "/schemas/contract_envelope",
+      "self_field": "cid",
+      "schema_cid": "sha256:12b59aa2fd993c1d540f8cc80f658760f17ee9f179d8d12cb5f037127b8ae6fe",
+      "selection": "SourceView.output.schema kind=carrier_schema; extracted Relation row type, not raw HTTP wrapper"
+    },
+    "egress": {
+      "schema": "egress",
+      "self_field": "admission_cid",
+      "owner": "SourceRequestEgressAdmission"
+    },
+    "raw_response": {
+      "schema": "raw_response",
+      "self_field": "self_cid",
+      "bytes": "content_cid hashes exact decoded bytes, not JSON reserialization"
+    }
+  },
+  "laws": {
+    "cid": "AoA computeCid of the complete closed body excluding only self_cid; validate incoming shape, ordering and references without normalization",
+    "logical_value": "computeCid({sort:\"relation\",value:canonical_rows}); ordered rows and multiplicity are semantic; exact captured bytes are a separate artifact",
+    "key_set": "ResourceRef cell is its identity_cid string; ArtifactRef cell is its artifact_ref_cid string; no object expansion or capability bytes; canonical role and typed tuple order after null exclusion and dedupe",
+    "request": "request_values must validate against the resolved closed request_schema_cid with unknown keys rejected; continuation.token must validate against transport_plan.pagination.token_contract; validate before hashing without coercion or repair",
+    "catalog": "schema slots hash the complete Catalog ContractEnvelope excluding only cid, including schema/id/version/kind/body; validate exact SourceView role, Catalog membership and ownership; body uses ActQL value contracts, not raw JSON Schema; transport mapping/extraction binds semantic input/output and no generated wire schema is mandatory",
+    "lists": "typed evidence references sort by kind then cid; CID sets lexically; scope sources by canonical JSON UTF-8 bytes; tuples by typed key order; reject duplicates and unsorted sealed bodies, never normalize incoming artifacts",
+    "completeness": "unknown acquisition completeness cannot become complete; publish Result partial or reject a consumer requiring complete coverage; keep original unknown evidence",
+    "batch_plan": "ordered partition of canonical key indices; every index exactly once; no runtime page tokens; repartition changes identity",
+    "attempt_receipt": "complete cumulative attempt table ordered by batch_index,page_index,network_attempt; immutable linked snapshots; real lifecycle evidence and no downstream relation/evidence/Invocation references",
+    "attempt_transition": "preserve slot/request/batch/page/network_attempt and known evidence; immutable prior snapshots do not prohibit authenticated dispatched/unknown settlement; exact matching event ancestry is required; captured payload and adoption cannot change",
+    "accounting": "receipt and accounting have exactly the same slot/attempt key set; measured decoded usage includes captured response bytes, wire usage is separately measured; usage_final requires completed measurement evidence, not an outcome name; reservation settlement validates event/capture/measurement correspondence",
+    "relation": "same envelope for input and validated output, checked by role; schema, logical order, scope, policy, retention and upstream provenance bind identity; no final Invocation or synthetic ResultDefinition",
+    "closure": "typed resolution, hash validation, semantic cross-binding, authority and availability are required; valid self hashes alone are not admission",
+    "adoption": "durably activate before dispatch; adopt once from the active captured attempt after logical page validation; continuation uses only the preceding adopted response and exact token; succeeded requires terminal adopted chains for every batch, except zero keys requires no calls",
+    "success_seal": "Lookup Evidence pins the immutable succeeded receipt and adopted pages; subsequent late capture or accounting snapshots cannot replace that receipt, validated Relation or Invocation",
+    "reservations": "obsolete unknown reads may coexist with success only under admitted finite retry and durable worst-case outstanding reservations; measured plus reserved usage fits every ceiling; release only against authenticated final accounting or charge the full reservation at its fixed deadline",
+    "raw_response": "self_cid hashes the closed metadata envelope; content_cid is sha256 of exact decoded response bytes, size_bytes their length; authenticated capture binds call slot, attempt, policy and retention before page admission; not a Result Artifact",
+    "external_references": "egress reuses SourceRequestEgressAdmission, hashing all fields except admission_cid; bind barrier,input,request egress requirements,Ref availability,authority and current Host policy before dispatch; transport adapter resolves the checked SourceView read execution contract (HTTP http_read_transport transport_cid), never SourceReadPlan; source witnesses resolve evidence_kinds.source; runtime errors resolve the pinned protocol runtime_error schema; traverse registered reference roles only, never CID-shaped business strings"
+  },
+  "implementation": {
+    "status": "specified-not-executed",
+    "lookup_runtime_claim": false
+  },
+  "schema_cids": {
+    "activation": "sha256:17e7fb651f28731805a2aa7d19da23cdadd679e775b7565765c9b8351654cf41",
+    "adoption": "sha256:565792923a43d7caf62dacf25d0aaa4f2718da2642295f34a300bc4963f4e73c",
+    "raw_response": "sha256:9cfcd5971b2ba28901bc41a75a00dac78f2b85e69b32a8dde6a7b34a8cc86b4e",
+    "egress": "sha256:de8ac3646c90f9451c7ddc47dcc05effad43209ca208b5dfd307671c84b1bfa3",
+    "transport_plan": "sha256:635b15625d124ad246ad7884433ce1bf3a7bb3bb014e839578a06aa0a8e27e1f",
+    "derivation": "sha256:2b26eb9af1fee57313bc5d339d3be9dd407608a458b249f41aa4d5d5fa340015",
+    "accounting": "sha256:b39a1bffd1e47679b7092f5eefdb5830ae7d93ebc20afa2f3daddc1febaaea70",
+    "attempt_event": "sha256:c9b5a6332e1bf918718bd4d5b58a34bcd7f420d4e55693f8f48ba28cb9067310",
+    "ordering": "sha256:ff0b367507ede56d319fc041aacec38fa98f6683ec383b6c0475a2cbede64925",
+    "scope": "sha256:cfd16a0890d0cc3fc1548d45be283f5b067791507f08a79c567acd186dba4bd4",
+    "request": "sha256:89d3817588c84e52e7ab57911a9e4c667bb63a49b6051a90ec9ce3741c112a72",
+    "call_slot": "sha256:dd49a504455f782e2d17059880512f1b133cd5b035107a7f96c0cef25f79d5bd",
+    "relation": "sha256:b00bc1456e19c3809adaf69774b2af1a1ee1ca6a98fd02fcb2f8cc9cb7344cc0",
+    "key_set": "sha256:3fc718c3047e6f326014f1cf71cf020fb242ade7a9690e95adcd8212949ed519",
+    "batch_plan": "sha256:df125a7737abbb76c72f9f4cd73a0ba8981506c1cdb7ae6465309a7d44517261",
+    "attempt_receipt": "sha256:a48afadbe4bb2378a6bd3203f35c451081d84d316514f47e544a6c2c4f102620"
+  }
+}

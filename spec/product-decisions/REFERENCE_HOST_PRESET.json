@@ -1,0 +1,32 @@
+{
+  "status": "synthetic-host-fixture",
+  "mail_attachment_capture": {
+    "classification_default": "confidential",
+    "classification_origin": "published-source-policy",
+    "applies_when": "provider-label-absent-and-default-applicable",
+    "unmapped_or_invalid_label": "reject",
+    "inherit_stricter_parent": true,
+    "issuer_binds": [
+      "content_cid",
+      "full_artifact_ref",
+      "effective_data_policy_cid",
+      "classification_derivation"
+    ]
+  },
+  "model_fixture": {
+    "network": "disabled",
+    "implementation": "scripted fake ModelTask",
+    "accepts_classification": [
+      "confidential"
+    ],
+    "training_use": "forbidden",
+    "region": "fixture-region",
+    "usage": "scoped-test-only"
+  },
+  "live_setup_requirements": [
+    "authenticated authorized source connection",
+    "published instance data policy",
+    "admitted ModelTask destination/account/region/training terms",
+    "current source read and model egress permissions"
+  ]
+}

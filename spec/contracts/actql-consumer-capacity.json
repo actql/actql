@@ -1,0 +1,11 @@
+{
+  "version": "actql-consumer-capacity/0.1",
+  "laws": {
+    "row_scope": "max_rows independently caps raw graph node declarations, raw edge declarations, each input Relation occurrence list, each event record list, and the published output row list. Input checks precede normalization and computation; output checks precede publication or consumption.",
+    "value_scope": "max_value_bytes caps each top-level value of each admitted record and published row, each value in a demanded predicate context, and each evaluated root result, measured as UTF-8 AoA canonical JSON bytes. A graph props object is one top-level value. A demanded root is evaluated once, checked against its result contract and byte ceiling, then consumed as strict true. Undemanded roots are not evaluated. No truncation is permitted.",
+    "context_admission": "Every supplied context field contract is validated during compilation, even without predicate roots. Before any predicate evaluation, all graph node/edge contexts and event records are checked for the supplied fields, types and nullability. Contexts remain open to additional fields. Unvisited expressions are not evaluated; unvisited values still obey supplied input contracts.",
+    "demand": "Admission inspects data, not expressions. No predicate is demanded to check a collection or output ceiling. Traversal work and sequence match limits remain separate operation limits; max_rows is not a callback count.",
+    "identity": "The consumer seals capacity_law and capacity_contract_cid. Admission requires this exact contract CID and regenerates the complete consumer from its request. A self-CID alone cannot replace the capacity law. Composition, serialization and replay retain identical scope.",
+    "failure": "A breached collection, record or context ceiling fails with ACTQL_E_EXECUTABLE_PLAN. An evaluated root byte breach uses the shared fragment diagnostic ACTQL_E_BOUND_EXCEEDED. Either fails the whole consumer before output publication. No partial Relation is returned."
+  }
+}

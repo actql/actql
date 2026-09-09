@@ -1,0 +1,889 @@
+{
+  "version": "instruction-trace/0.1",
+  "decisions": [
+    {
+      "id": "D1",
+      "title": "Ordered stages and dependencies",
+      "owner_targets": [
+        "language.md#stages",
+        "protocols/run-graph.md#run-graph",
+        "execution.md#source-state",
+        "protocols/run.md#approval-attestation",
+        "protocols/artifacts.md#result-artifacts"
+      ],
+      "status": "adopted",
+      "acceptance_cases": [
+        "D1.linear-order",
+        "D1.partial-stage",
+        "D1.item-recovery",
+        "D1.unknown-holds",
+        "D1.completed-default",
+        "D1.accepted-explicit",
+        "D1.receipt-data-gate",
+        "D1.fresh-not-hoisted",
+        "D1.receipt-correlation",
+        "D1.scope-rejections",
+        "D1.future-ports",
+        "D1.template-id-only",
+        "D1.template-escape",
+        "D1.fresh-allow",
+        "D1.engine-pin",
+        "D1.no-auto-compensation",
+        "D1.all-results",
+        "D1.zero-row"
+      ]
+    },
+    {
+      "id": "D2",
+      "title": "Authorization of multiple Effects",
+      "owner_targets": [
+        "execution.md#effect-application",
+        "protocols/run.md#policy-risk-acceptance"
+      ],
+      "status": "adopted",
+      "acceptance_cases": [
+        "D2.multi-allow",
+        "D2.multi-review",
+        "D2.contract-floor",
+        "D2.wrong-claim",
+        "D2.future-outside-envelope"
+      ]
+    },
+    {
+      "id": "D3",
+      "title": "Row footprints and item identity",
+      "owner_targets": [
+        "language.md#effects",
+        "execution.md#preview-strength",
+        "protocols/contracts.md#command-contracts"
+      ],
+      "status": "adopted",
+      "acceptance_cases": [
+        "D3.notify-two",
+        "D3.notify-duplicate",
+        "D3.row-conflict",
+        "D3.disjoint-create-update",
+        "D3.opaque-not-independent"
+      ]
+    },
+    {
+      "id": "D4",
+      "title": "Deterministic Catalog generation",
+      "owner_targets": [
+        "protocols/contracts.md#mapping-generation",
+        "protocols/discovery.md#discovery"
+      ],
+      "status": "adopted",
+      "acceptance_cases": [
+        "D4.deterministic-generation",
+        "D4.semantic-rule-change",
+        "D4.optional-missing",
+        "D4.required-missing",
+        "D4.write-omission",
+        "D4.write-null",
+        "D4.read-only",
+        "D4.no-synthesis-of-guarantee"
+      ]
+    },
+    {
+      "id": "D5",
+      "title": "Host-controlled Preview renewal",
+      "owner_targets": [
+        "execution.md#preview-strength",
+        "protocols/run.md#approval-renewal",
+        "design/reference-host.md"
+      ],
+      "status": "adopted",
+      "acceptance_cases": [
+        "D5.renew-unrelated",
+        "D5.written-value-drift",
+        "D5.metadata-drift",
+        "D5.schema-drift",
+        "D5.bounded-refresh"
+      ]
+    },
+    {
+      "id": "D6",
+      "title": "Logical-request idempotency and recovery",
+      "owner_targets": [
+        "execution.md#reconciliation",
+        "protocols/run.md#logical-request",
+        "protocols/contracts.md#command-contracts",
+        "design/reference-host.md"
+      ],
+      "status": "adopted",
+      "acceptance_cases": [
+        "D6.duplicate-request",
+        "D6.request-conflict",
+        "D6.tenant-isolation",
+        "D6.intentional-repeat",
+        "D6.recovery-new-worker",
+        "D6.crash-before-dispatch",
+        "D6.crash-after-apply",
+        "D6.stamp-gap",
+        "D6.natural-key-collision",
+        "D6.delayed-readback",
+        "D6.key-request-conflict",
+        "D6.expired-ledger",
+        "D6.fenced-worker"
+      ]
+    },
+    {
+      "id": "D7",
+      "title": "Typed infer outcomes and Artifact inputs",
+      "owner_targets": [
+        "language.md#infer",
+        "protocols/contracts.md#model-task",
+        "protocols/artifacts.md#reference-admission"
+      ],
+      "status": "adopted",
+      "acceptance_cases": [
+        "D7.one-transient",
+        "D7.strict-opt-in",
+        "D7.refusal-no-retry",
+        "D7.all-failed",
+        "D7.empty",
+        "D7.auth-fatal",
+        "D7.budget-fatal",
+        "D7.late-attempt",
+        "D7.replay",
+        "D7.artifact-egress",
+        "D7.artifact-tamper",
+        "D7.model-null"
+      ]
+    },
+    {
+      "id": "D8",
+      "title": "Captured binary64 aggregates and placement",
+      "owner_targets": [
+        "language.md#group",
+        "execution.md#numeric-observation",
+        "language.md#canonical-identities"
+      ],
+      "status": "adopted",
+      "acceptance_cases": [
+        "D8.different-placement",
+        "D8.captured-replay",
+        "D8.cancellation-numerics",
+        "D8.exact-lanes",
+        "D8.structural-mismatch",
+        "D8.no-arbitrary-compute",
+        "D8.acyclic-identity"
+      ]
+    },
+    {
+      "id": "D9",
+      "title": "Input primary-key duplicates",
+      "owner_targets": [
+        "language.md#local-inputs",
+        "language.md#evidence-propagation"
+      ],
+      "status": "adopted",
+      "acceptance_cases": [
+        "D9.default-reject",
+        "D9.first-by-order",
+        "D9.missing-order",
+        "D9.invalid-dropped-row",
+        "D9.post-key-proof",
+        "D9.cursor-raw"
+      ]
+    },
+    {
+      "id": "D10",
+      "title": "Typed parameters and defaults",
+      "owner_targets": [
+        "language.md#parameters",
+        "protocols/contracts.md#bound-template-wire"
+      ],
+      "status": "adopted",
+      "acceptance_cases": [
+        "D10.missing-default",
+        "D10.nullable-no-default",
+        "D10.explicit-null",
+        "D10.object-exact",
+        "D10.equal-default-identity",
+        "D10.freeze-once",
+        "D10.structural-forbidden",
+        "D10.unused-or-extra"
+      ]
+    },
+    {
+      "id": "D11",
+      "title": "Map and ordered-array derive",
+      "owner_targets": [
+        "language.md#derive",
+        "language.md#select",
+        "language.md#expression-decoding",
+        "language.md#operation-binding",
+        "language.md#evidence-propagation"
+      ],
+      "status": "adopted",
+      "acceptance_cases": [
+        "D11.shadow",
+        "D11.prior-output",
+        "D11.forward-missing",
+        "D11.duplicate-output",
+        "D11.key-drop",
+        "D11.row-priority-failure",
+        "D11.map-derive",
+        "D11.literal-opaque",
+        "D11.array-singleton",
+        "D11.shape-preserved",
+        "D11.map-order-identity",
+        "D11.array-order-semantic",
+        "D11.save-old-value",
+        "D11.future-name-is-input",
+        "D11.no-self-definition",
+        "D11.shadow-type",
+        "D11.input-validation-before-shadow",
+        "D11.select-after",
+        "D11.early-select-negative",
+        "D11.original-column-position",
+        "D11.exact-copy-key",
+        "D11.shadowed-sort-key",
+        "D11.discarded-slot-failure",
+        "D11.no-budget-reset",
+        "D11.lazy-child",
+        "D11.literal-slot-separation",
+        "D11.special-field-names",
+        "D11.nfc-duplicate-slots",
+        "D11.no-extra-io",
+        "D11.no-project-registration",
+        "D11.old-sealed-plan",
+        "D11.overwritten-target",
+        "D11.x-y-budget-distinction"
+      ]
+    }
+  ],
+  "maintained": [
+    {
+      "id": "keep.member-failure",
+      "source_label": "Member-local halt default and inter-member attempt_all",
+      "owner_target": "docs/spec/execution.md#preview-strength",
+      "instruction": "Apply both scopes within one stage; continue does not authorize unknown-item resend",
+      "acceptance": "Independent members still run after one fails; distinguish unattempted member rows from unattempted successor stages.",
+      "status": "preserve-and-document",
+      "acceptance_cases": [
+        "keep.member-failure.acceptance"
+      ]
+    },
+    {
+      "id": "keep.risk-acceptance",
+      "source_label": "Authenticated partial-application risk acceptance",
+      "owner_target": "docs/spec/protocols/run.md#approval-attestation",
+      "instruction": "Use the same proposition type for human and policy issuers",
+      "acceptance": "Reject signature, issuer, scope or claim mismatch; policy allow adds no human Checkpoint.",
+      "status": "preserve-and-document",
+      "acceptance_cases": [
+        "keep.risk-acceptance.acceptance"
+      ]
+    },
+    {
+      "id": "keep.conversion-failure",
+      "source_label": "Row conversion failure",
+      "owner_target": "docs/spec/language.md#scalar-expressions",
+      "instruction": "Fail the operation and offer a registered try_* repair as a semantic change",
+      "acceptance": "to_number failure publishes no output; offer try_number without automatic application; do not evaluate unselected branches.",
+      "status": "preserve-and-document",
+      "acceptance_cases": [
+        "keep.conversion-failure.acceptance"
+      ]
+    },
+    {
+      "id": "keep.guard-failure",
+      "source_label": "Guard or ceiling exceeded",
+      "owner_target": "docs/spec/language.md#resolved-limits",
+      "instruction": "Fail the protected operation; present top_k as a distinct selection choice",
+      "acceptance": "Do not return a successful prefix or insert top_k with unresolved order.",
+      "status": "preserve-and-document",
+      "acceptance_cases": [
+        "keep.guard-failure.acceptance"
+      ]
+    },
+    {
+      "id": "keep.failed-acquisition",
+      "source_label": "External acquisition fails",
+      "owner_target": "docs/spec/execution.md#capture-and-replay",
+      "instruction": "Preserve failure; infer outcomes use their separate explicit failure contract",
+      "acceptance": "Distinguish timeout from verified zero-row success and failure outcomes from successful values.",
+      "status": "preserve-and-document",
+      "acceptance_cases": [
+        "keep.failed-acquisition.acceptance"
+      ]
+    },
+    {
+      "id": "keep.take-order",
+      "source_label": "take requires proven stable order",
+      "owner_target": "docs/spec/language.md#take",
+      "instruction": "Journal completion from an eligible sole candidate key",
+      "acceptance": "Input enumeration changes preserve the specified prefix; reject without a key or order.",
+      "status": "preserve-and-document",
+      "acceptance_cases": [
+        "keep.take-order.acceptance"
+      ]
+    },
+    {
+      "id": "keep.search-absence",
+      "source_label": "Search no-hit does not prove external absence",
+      "owner_target": "docs/spec/language.md#candidate-search",
+      "instruction": "Use complete scoped fetch before create",
+      "acceptance": "Do not admit absence-dependent Effects on partial no-hit evidence; separately check complete acquisition and write conflict guards.",
+      "status": "preserve-and-document",
+      "acceptance_cases": [
+        "keep.search-absence.acceptance"
+      ]
+    },
+    {
+      "id": "keep.bounded-sourceview-acquisition",
+      "source_label": "Data-dependent SourceView reads use keyed joins or search_candidates",
+      "owner_target": "docs/spec/language.md#external-joins",
+      "instruction": "Keep infer and numeric observations as separate admitted boundaries, not arbitrary fetch DAGs",
+      "acceptance": "Reject row-selected Connector/Resource/view/operation; receipt imports perform no provider reads.",
+      "status": "preserve-and-document",
+      "acceptance_cases": [
+        "keep.bounded-sourceview-acquisition.acceptance"
+      ]
+    },
+    {
+      "id": "keep.cursor-commit",
+      "source_label": "Unresolved Effects and no exceptional source-state claim",
+      "owner_target": "docs/spec/execution.md#source-state",
+      "instruction": "Separate stage capture from Program commit eligibility",
+      "acceptance": "A captured, B partially applied and C unattempted leaves cursor unchanged; recovery does not resend successes or derive checkpoints from filtered rows.",
+      "status": "preserve-and-document",
+      "acceptance_cases": [
+        "keep.cursor-commit.acceptance"
+      ]
+    },
+    {
+      "id": "keep.utc-calendar",
+      "source_label": "Fixed UTC functions and explicit calendar profile",
+      "owner_target": "docs/spec/language.md#text-time",
+      "instruction": "Do not propagate calendar timezone implicitly into ordinary expressions",
+      "acceptance": "Distinguish fixed durations from calendar days across DST; reject unprofiled timezone arguments.",
+      "status": "preserve-and-document",
+      "acceptance_cases": [
+        "keep.utc-calendar.acceptance"
+      ]
+    },
+    {
+      "id": "keep.utf16-order",
+      "source_label": "NFC UTF-16 code-unit canonical order",
+      "owner_target": "docs/spec/language.md#ordering",
+      "instruction": "Keep locale display order separate from semantic Results",
+      "acceptance": "Independent BMP/supplementary expectations agree across targets; display sorting cannot retain the original Result CID.",
+      "status": "preserve-and-document",
+      "acceptance_cases": [
+        "keep.utf16-order.acceptance"
+      ]
+    },
+    {
+      "id": "keep.case-sensitive",
+      "source_label": "Case-sensitive names and exact lowercase function/operation spellings",
+      "owner_target": "docs/spec/language.md#expression-text",
+      "instruction": "Keep value case_fold separate from name resolution",
+      "acceptance": "Reject misspellings without fuzzy execution; distinguish admitted SQL keyword casing.",
+      "status": "preserve-and-document",
+      "acceptance_cases": [
+        "keep.case-sensitive.acceptance"
+      ]
+    },
+    {
+      "id": "keep.decimal-number",
+      "source_label": "No implicit decimal/binary64 mixing",
+      "owner_target": "docs/spec/language.md#decimal-expressions",
+      "instruction": "Use only closed explicit casts without inventing monetary rounding",
+      "acceptance": "Distinguish decimal string 0.1 from binary64 0.1; numeric observations do not permit floating decimal aggregation.",
+      "status": "preserve-and-document",
+      "acceptance_cases": [
+        "keep.decimal-number.acceptance"
+      ]
+    },
+    {
+      "id": "keep.closed-keys",
+      "source_label": "Closed keys and exact spellings",
+      "owner_target": "docs/spec/language.md#structural-grammar",
+      "instruction": "Use registered vocabulary in diagnostic repairs",
+      "acceptance": "Do not ignore unknown operations/fields or confuse prototype names and literal keys with syntax.",
+      "status": "preserve-and-document",
+      "acceptance_cases": [
+        "keep.closed-keys.acceptance"
+      ]
+    },
+    {
+      "id": "keep.definition-id",
+      "source_label": "Program id belongs to Definition identity and stage id to its namespace",
+      "owner_target": "docs/spec/language.md#canonical-identities",
+      "instruction": "Keep display names in meta",
+      "acceptance": "ID changes alter definition/intent; display-name changes preserve computation CID but update reviewed snapshots.",
+      "status": "preserve-and-document",
+      "acceptance_cases": [
+        "keep.definition-id.acceptance"
+      ]
+    },
+    {
+      "id": "keep.one-result-delivery",
+      "source_label": "One delivery request selects one Result and format",
+      "owner_target": "docs/spec/protocols/artifacts.md#result-delivery",
+      "instruction": "Batch transport may group distinct requests and receipts",
+      "acceptance": "Do not merge Results into one unnamed receipt or change Program roots through delivery selection.",
+      "status": "preserve-and-document",
+      "acceptance_cases": [
+        "keep.one-result-delivery.acceptance"
+      ]
+    },
+    {
+      "id": "keep.checkpoint-expiry",
+      "source_label": "Checkpoint expires under Host deadline",
+      "owner_target": "docs/spec/execution.md#checkpoints",
+      "instruction": "Cancel without rolling back Effects or erasing unknown outcomes",
+      "acceptance": "Do not resume an expired Checkpoint; reconciliation may update evidence but cannot revive it.",
+      "status": "preserve-and-document",
+      "acceptance_cases": [
+        "keep.checkpoint-expiry.acceptance"
+      ]
+    },
+    {
+      "id": "keep.whole-preflight",
+      "source_label": "One invalid item in stage preflight",
+      "owner_target": "docs/spec/execution.md#effect-application",
+      "instruction": "Require zero mutations in that stage; changed scope needs a new Preview and authorization",
+      "acceptance": "continue does not hide invalid rows; UI exclusion proposals are not partial release of the original Preview.",
+      "status": "preserve-and-document",
+      "acceptance_cases": [
+        "keep.whole-preflight.acceptance"
+      ]
+    },
+    {
+      "id": "keep.accepted-not-complete",
+      "source_label": "Run success is distinct from provider and business completion",
+      "owner_target": "docs/spec/execution.md#reconciliation",
+      "instruction": "Expose completed/accepted waiting through SDK and UI",
+      "acceptance": "No completion notification for a subsequently failed accepted job; explicit acceptance notification remains possible.",
+      "status": "preserve-and-document",
+      "acceptance_cases": [
+        "keep.accepted-not-complete.acceptance"
+      ]
+    },
+    {
+      "id": "keep.narrow-collection",
+      "source_label": "Optional collection is a narrow homogeneous read-only union",
+      "owner_target": "docs/spec/protocols/collection.md#collection",
+      "instruction": "Compose heterogeneous inputs and all-failure reports in the SDK",
+      "acceptance": "Do not put Effects inside collection; distinguish all infer failure outcomes from all source Runs failing.",
+      "status": "preserve-and-document",
+      "acceptance_cases": [
+        "keep.narrow-collection.acceptance"
+      ]
+    },
+    {
+      "id": "keep.materialized-results",
+      "source_label": "Results are materialized Relations",
+      "owner_target": "docs/spec/protocols/artifacts.md#result-artifacts",
+      "instruction": "Provide SDK single-row/value access and Host progress",
+      "acceptance": "singleRow errors unless exactly one row; do not truncate; progress is not a semantic Result.",
+      "status": "preserve-and-document",
+      "acceptance_cases": [
+        "keep.materialized-results.acceptance"
+      ]
+    },
+    {
+      "id": "keep.durable-local-defaults",
+      "source_label": "Local execution requires durability",
+      "owner_target": "docs/design/reference-host.md",
+      "instruction": "Bundle durable storage, private-evidence encryption, scope and secure key defaults without an ephemeral bypass",
+      "acceptance": "No manual secret pasting for ordinary setup; recover after process restart; never expose secrets in source, diagnostics or Results.",
+      "status": "preserve-and-document",
+      "acceptance_cases": [
+        "keep.durable-local-defaults.acceptance"
+      ]
+    },
+    {
+      "id": "keep.single-mapping-key",
+      "source_label": "Mapping target primary key is single-field",
+      "owner_target": "docs/spec/protocols/contracts.md#mapping-contracts",
+      "instruction": "Distinguish Command item composites, receipt correlation and Relation keys",
+      "acceptance": "Reject undeclared composite Mapping target keys without banning valid composite Relation keys.",
+      "status": "preserve-and-document",
+      "acceptance_cases": [
+        "keep.single-mapping-key.acceptance"
+      ]
+    },
+    {
+      "id": "keep.host-ceilings",
+      "source_label": "Finite execution ceilings",
+      "owner_target": "docs/spec/language.md#resolved-limits",
+      "instruction": "Resolve limits from Host, contracts and proofs; unknown statistics alone do not reject enforceably bounded work",
+      "acceptance": "Bounded work with unknown estimates runs; reject unbounded work; do not require redundant author limits.",
+      "status": "preserve-and-document",
+      "acceptance_cases": [
+        "keep.host-ceilings.acceptance"
+      ]
+    },
+    {
+      "id": "keep.no-author-approval-policy",
+      "source_label": "Approval and permissions are outside source",
+      "owner_target": "docs/spec/language.md#effects",
+      "instruction": "Do not route by meta; after declares success dependency, not approval policy",
+      "acceptance": "Reject author keys that strengthen or weaken review; Host routes by operation semantics.",
+      "status": "preserve-and-document",
+      "acceptance_cases": [
+        "keep.no-author-approval-policy.acceptance"
+      ]
+    },
+    {
+      "id": "keep.review-metadata",
+      "source_label": "Changed meta is within the node's signed review scope",
+      "owner_target": "docs/spec/language.md#authoring-context",
+      "instruction": "Create a new projection and attestation while preserving the reviewed snapshot",
+      "acceptance": "Computation CID stays fixed while review CID changes; do not reuse a signature for a new explanation.",
+      "status": "preserve-and-document",
+      "acceptance_cases": [
+        "keep.review-metadata.acceptance"
+      ]
+    },
+    {
+      "id": "keep.closed-core-extension",
+      "source_label": "No UDF or lambda escape",
+      "owner_target": "docs/spec/language.md#language-boundaries",
+      "instruction": "Use registered profiles or explicit external Host tasks",
+      "acceptance": "A CID does not make arbitrary code pure ActQL; do not disguise opaque tasks as checked stage operations.",
+      "status": "preserve-and-document",
+      "acceptance_cases": [
+        "keep.closed-core-extension.acceptance"
+      ]
+    },
+    {
+      "id": "keep.outer-watch",
+      "source_label": "Watch and resident loops are external",
+      "owner_target": "docs/spec/protocols/run-graph.md#run-graph",
+      "instruction": "Use finite changes and external scheduling; bounded polling/retry is not source recursion",
+      "acceptance": "Reject dynamic stage growth, self-calls and one-stage-per-row generation.",
+      "status": "preserve-and-document",
+      "acceptance_cases": [
+        "keep.outer-watch.acceptance"
+      ]
+    },
+    {
+      "id": "keep.scoped-references",
+      "source_label": "Opaque reference equality includes its scope",
+      "owner_target": "docs/spec/language.md#opaque-references",
+      "instruction": "Use explicit fields for business keys or content comparison while retaining full reference evidence",
+      "acceptance": "Same bytes in a different scope do not permit identity-equal ArtifactRef substitution; explicit content comparison remains possible.",
+      "status": "preserve-and-document",
+      "acceptance_cases": [
+        "keep.scoped-references.acceptance"
+      ]
+    },
+    {
+      "id": "keep.private-inspection",
+      "source_label": "Public explain redacts private data",
+      "owner_target": "docs/spec/protocols/run.md#private-inspection",
+      "instruction": "Authorize private inspection independently from review authority",
+      "acceptance": "Without read authority, expose no bound values or rows; approval alone grants no payload access; never return keys.",
+      "status": "preserve-and-document",
+      "acceptance_cases": [
+        "keep.private-inspection.acceptance"
+      ]
+    },
+    {
+      "id": "keep.canonical-export",
+      "source_label": "Canonical strings and fixed CSV semantics",
+      "owner_target": "docs/spec/protocols/artifacts.md#result-delivery",
+      "instruction": "Keep raw bytes as Artifacts and human-oriented transformations explicit",
+      "acceptance": "Do not silently rewrite CSV for spreadsheets; formula escaping produces a distinct explicit artifact and receipt.",
+      "status": "preserve-and-document",
+      "acceptance_cases": [
+        "keep.canonical-export.acceptance"
+      ]
+    },
+    {
+      "id": "keep.release-claim-separation",
+      "source_label": "Distribution and full conformance are separate gates",
+      "owner_target": "docs/spec/conformance.md#conformance-claims",
+      "instruction": "Disclose partial support and known gaps for alpha/beta distribution",
+      "acceptance": "No fabricated success for unsupported operations; full claims require all normative and independent evidence.",
+      "status": "preserve-and-document",
+      "acceptance_cases": [
+        "keep.release-claim-separation.acceptance"
+      ]
+    }
+  ],
+  "deferred": [
+    {
+      "id": "defer.compatible-lock-renewal",
+      "status": "deferred"
+    },
+    {
+      "id": "defer.cross-run-model-cache",
+      "status": "deferred"
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "scenario.parent-child-notify",
+      "source_file": "examples/parent-child-notify.aql",
+      "decision_refs": [
+        "D1",
+        "D2",
+        "D6"
+      ]
+    },
+    {
+      "id": "scenario.unattended-two-saas",
+      "source_file": "examples/unattended-two-saas.aql",
+      "decision_refs": [
+        "D2",
+        "D3",
+        "D6"
+      ]
+    },
+    {
+      "id": "scenario.two-messages",
+      "source_file": "examples/two-messages.aql",
+      "decision_refs": [
+        "D3"
+      ]
+    },
+    {
+      "id": "scenario.infer-timeout",
+      "source_file": "examples/infer-timeout.aql",
+      "decision_refs": [
+        "D7"
+      ]
+    },
+    {
+      "id": "scenario.pdf-summary",
+      "source_file": "examples/pdf-summary.aql",
+      "decision_refs": [
+        "D7",
+        "D4"
+      ]
+    },
+    {
+      "id": "scenario.webhook-dedupe",
+      "source_file": "examples/webhook-dedupe.aql",
+      "decision_refs": [
+        "D6"
+      ]
+    },
+    {
+      "id": "scenario.local-mcp",
+      "source_file": "examples/local-mcp.aql",
+      "decision_refs": [
+        "keep.materialized-results",
+        "keep.durable-local-defaults"
+      ]
+    },
+    {
+      "id": "scenario.approval-drift",
+      "source_file": "examples/approval-drift.aql",
+      "decision_refs": [
+        "D5",
+        "keep.review-metadata"
+      ]
+    },
+    {
+      "id": "scenario.placement",
+      "source_file": "examples/placement.aql",
+      "decision_refs": [
+        "D8",
+        "keep.host-ceilings"
+      ]
+    },
+    {
+      "id": "scenario.upload-attach",
+      "source_file": "examples/upload-attach.aql",
+      "decision_refs": [
+        "D1",
+        "D6",
+        "D7"
+      ]
+    }
+  ],
+  "additional_questions": [
+    {
+      "id": "A1",
+      "refs": [
+        "D1",
+        "D6",
+        "D10",
+        "keep.definition-id",
+        "keep.review-metadata"
+      ],
+      "case_ids": [
+        "A1.suffix-payload",
+        "A1.suffix-meta",
+        "A1.unused-param",
+        "A1.used-param",
+        "A1.transitive-parent",
+        "A1.wrong-producer",
+        "A1.same-bytes-scope",
+        "A1.namespace-rename",
+        "A1.active-pin",
+        "A1.one-shot",
+        "A1.shared-review",
+        "A1.lock-drift",
+        "A1.extract-membership"
+      ]
+    },
+    {
+      "id": "A2",
+      "refs": [
+        "D1",
+        "D6",
+        "keep.cursor-commit"
+      ],
+      "case_ids": [
+        "A2.normal-block",
+        "A2.abandon-notification",
+        "A2.wrong-right",
+        "A2.unknown-handoff",
+        "A2.unknown-abandon",
+        "A2.future-watermark",
+        "A2.stale-state",
+        "A2.claim-replay",
+        "A2.handoff-crash",
+        "A2.ack-crash",
+        "A2.batch-owner",
+        "A2.new-request",
+        "A2.no-success-fabrication",
+        "A2.late-response",
+        "A2.multi-source"
+      ]
+    },
+    {
+      "id": "A3",
+      "refs": [
+        "D4",
+        "D7",
+        "keep.durable-local-defaults",
+        "keep.scoped-references"
+      ],
+      "case_ids": [
+        "A3.unlabelled-default",
+        "A3.missing-default",
+        "A3.unknown-label",
+        "A3.parent-stronger",
+        "A3.destination-deny",
+        "A3.region-training",
+        "A3.forged-ref",
+        "A3.same-content",
+        "A3.fixture-live"
+      ]
+    },
+    {
+      "id": "A4",
+      "refs": [
+        "D3",
+        "D4",
+        "D6"
+      ],
+      "case_ids": [
+        "A4.declared",
+        "A4.known-deny",
+        "A4.late-deny",
+        "A4.atomicity",
+        "A4.hash-cycle",
+        "A4.readonly",
+        "A4.overwrite-history",
+        "A4.no-escalation",
+        "A4.fallback"
+      ]
+    },
+    {
+      "id": "A5",
+      "refs": [
+        "D11"
+      ],
+      "case_ids": [
+        "A5.retain-vs-close",
+        "A5.snapshot",
+        "A5.prior",
+        "A5.unknown-fields",
+        "A5.failure-order",
+        "A5.safe-migration",
+        "A5.keys",
+        "D11.array-singleton",
+        "D11.shape-preserved",
+        "D11.map-order-identity",
+        "D11.array-order-semantic",
+        "D11.save-old-value",
+        "D11.future-name-is-input",
+        "D11.no-self-definition",
+        "D11.shadow-type",
+        "D11.input-validation-before-shadow",
+        "D11.select-after",
+        "D11.early-select-negative",
+        "D11.original-column-position",
+        "D11.exact-copy-key",
+        "D11.shadowed-sort-key",
+        "D11.discarded-slot-failure",
+        "D11.no-budget-reset",
+        "D11.lazy-child",
+        "D11.literal-slot-separation",
+        "D11.special-field-names",
+        "D11.nfc-duplicate-slots",
+        "D11.no-extra-io",
+        "D11.no-project-registration",
+        "D11.old-sealed-plan",
+        "D11.overwritten-target",
+        "D11.x-y-budget-distinction"
+      ]
+    },
+    {
+      "id": "A6",
+      "refs": [
+        "D3",
+        "D6"
+      ],
+      "case_ids": [
+        "A6.two-notifications",
+        "A6.duplicate",
+        "A6.create-no-target",
+        "A6.stable-locator",
+        "A6.changed-payload",
+        "A6.intentional-repeat",
+        "A6.physical-retry",
+        "A6.recovery-link",
+        "A6.reuse-domain-ids"
+      ]
+    },
+    {
+      "id": "A7",
+      "refs": [
+        "D2",
+        "keep.no-author-approval-policy",
+        "keep.host-ceilings"
+      ],
+      "case_ids": [
+        "A7.packaging",
+        "A7.stage-proxy",
+        "A7.real-count",
+        "A7.budget-split",
+        "A7.contract-proxy",
+        "A7.metadata",
+        "A7.capacity",
+        "A7.semantic-change"
+      ]
+    },
+    {
+      "id": "A8",
+      "refs": [
+        "D1",
+        "D11"
+      ],
+      "case_ids": [
+        "A8.no-claim",
+        "A8.pilot-not-holdout",
+        "A8.isolated-oracle",
+        "A8.semantic-pair",
+        "A8.one-repair",
+        "A8.honest-report",
+        "A8.orthogonal-d11-trial",
+        "A8.prefer-x",
+        "A8.y-reconsideration"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,94 @@
+version: actql/0.1
+id: fixture.upload_attach
+stages:
+- id: upload
+  inputs:
+    requested:
+      carrier: relation
+      schema:
+        attachment_key:
+          type: string
+          nullable: false
+        record_id:
+          type: string
+          nullable: false
+        file:
+          type: artifact_ref
+          nullable: false
+          media_type: application/pdf
+        storage_root:
+          type: resource_ref
+          nullable: false
+          resource_kind: fixture.storage_root
+      primary_key:
+      - attachment_key
+  from: requested
+  steps: []
+  results:
+    requested:
+      from: requested
+      fields:
+      - attachment_key
+      - record_id
+      - file
+      - storage_root
+      order_by:
+      - attachment_key: asc
+  effects:
+    upload_file:
+      command:
+        contract: command:fixture.upload.v1
+        from:
+          result: requested
+        target:
+          field: storage_root
+        input:
+          file:
+            field: file
+- id: attach
+  inputs:
+    uploaded:
+      receipt:
+        stage: upload
+        effect: upload_file
+    requested:
+      result:
+        stage: upload
+        result: requested
+  from: requested
+  steps:
+  - join:
+      with: uploaded
+      kind: inner
+      'on':
+      - left: attachment_key
+        right: input_key
+      cardinality: one_to_one
+      select:
+        record_id: left.record_id
+        file_ref: right.file_ref
+    as: attachments
+  results:
+    response:
+      from: attachments
+      fields:
+      - record_id
+      - file_ref
+      order_by:
+      - record_id: asc
+  effects:
+    attach_file:
+      update:
+        target: connector://fixture/main/Records
+        mapping: mapping:fixture.record_attachment.v1
+        from:
+          result: response
+        id: record_id
+        set:
+          file_ref:
+            field: file_ref
+results:
+  response:
+    from:
+      stage: attach
+      result: response

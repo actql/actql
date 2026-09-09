@@ -1,0 +1,115 @@
+{
+  "status": "specified-not-executed",
+  "cases": [
+    {
+      "case_id": "lowering.same-graph",
+      "requirement": "Loading canonical stage extraction produces the same graph as direct lowering.",
+      "execute_both_forms": true
+    },
+    {
+      "case_id": "validation.whole-bundle",
+      "requirement": "Reject invalid successor B before any A provider call through either entry point.",
+      "execute_both_forms": true
+    },
+    {
+      "case_id": "binding.inferred-contract",
+      "requirement": "Generate checked bindings without repeated author schemas; reject tampering before execution.",
+      "execute_both_forms": true
+    },
+    {
+      "case_id": "binding.pending-not-null",
+      "requirement": "Distinguish unavailable data, available zero rows and contract violations.",
+      "execute_both_forms": true
+    },
+    {
+      "case_id": "control.no-data-dependency",
+      "requirement": "Fixed-text notifications still wait for predecessor success.",
+      "execute_both_forms": true
+    },
+    {
+      "case_id": "control.accepted-and-ready",
+      "requirement": "Acceptance alone cannot release a missing completion-only Ref.",
+      "execute_both_forms": true
+    },
+    {
+      "case_id": "control.applied-satisfies-accepted",
+      "requirement": "Synchronous applied satisfies an explicit accepted wait without permanent suspension.",
+      "execute_both_forms": true
+    },
+    {
+      "case_id": "failure.whole-unit",
+      "requirement": "With 99 applied and 1 failed, successors remain unattempted.",
+      "execute_both_forms": true
+    },
+    {
+      "case_id": "failure.unknown",
+      "requirement": "Unknown waits for reconciliation; recovery does not resend successful items.",
+      "execute_both_forms": true
+    },
+    {
+      "case_id": "approval.fresh-allow",
+      "requirement": "Resolved allow adds no human pause solely because of fresh reads.",
+      "execute_both_forms": true
+    },
+    {
+      "case_id": "approval.template-equivalence",
+      "requirement": "Identical producers/substitution laws yield equivalent concrete authorization; reject changed producer or amount in both paths.",
+      "execute_both_forms": true
+    },
+    {
+      "case_id": "observation.no-hoist",
+      "requirement": "Do not hoist successor fresh reads before predecessor apply.",
+      "execute_both_forms": true
+    },
+    {
+      "case_id": "cursor.defer-scope",
+      "requirement": "A capture success followed by B failure leaves the cursor at its original generation in both paths.",
+      "execute_both_forms": true
+    },
+    {
+      "case_id": "cursor.recovery",
+      "requirement": "After recovery, commit only the same pending checkpoint; reject stale workers or caller substitution.",
+      "execute_both_forms": true
+    },
+    {
+      "case_id": "cursor.commit-failure",
+      "requirement": "Cursor-commit failure alone does not reexecute successful Effects.",
+      "execute_both_forms": true
+    },
+    {
+      "case_id": "identity.shared-request",
+      "requirement": "Canonical extraction preserves the same logical-item ledger entry; another request is separate work.",
+      "execute_both_forms": true
+    },
+    {
+      "case_id": "identity.rename-not-equivalence",
+      "requirement": "Renaming authored Program IDs does not authorize signature or key reuse.",
+      "execute_both_forms": true
+    },
+    {
+      "case_id": "context.parameters",
+      "requirement": "Do not re-resolve defaults, clock or mutable caller objects in later nodes.",
+      "execute_both_forms": true
+    },
+    {
+      "case_id": "context.lock-and-policy",
+      "requirement": "A shared lock does not bypass current deny or expiry in either path.",
+      "execute_both_forms": true
+    },
+    {
+      "case_id": "context.engine-and-budget",
+      "requirement": "Recover under the same engine pin and cumulative budget; extraction never resets budgets.",
+      "execute_both_forms": true
+    },
+    {
+      "case_id": "publication.same-exports",
+      "requirement": "Preserve Stage/node Results, export names, policy, read authority and post-failure inspection.",
+      "execute_both_forms": true
+    },
+    {
+      "case_id": "publication.delivery-independent",
+      "requirement": "Delivery failure does not trigger graph reexecution or cursor rollback.",
+      "execute_both_forms": true
+    }
+  ]
+}

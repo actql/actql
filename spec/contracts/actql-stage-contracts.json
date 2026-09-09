@@ -1,0 +1,4254 @@
+{
+  "version": "actql-stage-contract-registry/0.1",
+  "source": {
+    "surface_status": "adopted",
+    "required_root_keys": [
+      "version",
+      "id",
+      "stages",
+      "results"
+    ],
+    "optional_root_keys": [
+      "meta",
+      "params",
+      "bindings"
+    ],
+    "required_stage_keys": [
+      "id",
+      "inputs",
+      "steps",
+      "results"
+    ],
+    "optional_stage_keys": [
+      "meta",
+      "from",
+      "effects",
+      "after"
+    ],
+    "import_forms": [
+      "{result:{stage,result}}",
+      "{receipt:{stage,effect}}"
+    ],
+    "export_form": "{from:{stage,result}}",
+    "after": {
+      "initial": "absent",
+      "later_default": "completed",
+      "later_values": [
+        "completed",
+        "accepted"
+      ]
+    },
+    "parameters": {
+      "recursive_objects_arrays": true,
+      "nullable_default": false,
+      "literal_default_on_missing_only": true,
+      "deep_merge": false,
+      "bind_once_program_wide": true
+    },
+    "inputs": {
+      "duplicates_default": "reject",
+      "duplicates_forms": [
+        "reject",
+        "{first_by_order:{order_by:[OrderKey,...]}}"
+      ]
+    },
+    "root_constraints": {
+      "rejected_keys": [
+        "inputs",
+        "from",
+        "steps",
+        "effects"
+      ],
+      "diagnostic": "ACTQL_E_STAGE_LOCAL_ROOT_FIELD",
+      "automatic_repair": false
+    },
+    "infer": {
+      "on_non_success_default": "outcomes",
+      "on_non_success_values": [
+        "outcomes",
+        "fail"
+      ]
+    },
+    "derive": {
+      "map": {
+        "scope": "input_snapshot",
+        "shadow_input": false,
+        "order": "canonical_utf16"
+      },
+      "array": {
+        "shape": "nonempty singleton expression maps",
+        "scope": "prior_slot_then_input",
+        "shadow_input": true,
+        "duplicate_outputs": false,
+        "order": "authored"
+      },
+      "input_passthrough": true,
+      "shape_preserved": true,
+      "closed_output": "select",
+      "failure_order": [
+        "row",
+        "binding",
+        "expression-child"
+      ]
+    },
+    "unregistered_evaluation_operation": "project"
+  },
+  "schemas": {
+    "local_computation": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "const": "actql-local-computation-semantics/0.1"
+        },
+        "unit_definition_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "used_values_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "local_contracts_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "observation_cids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          },
+          "minItems": 0
+        },
+        "policy_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "self_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      },
+      "required": [
+        "version",
+        "unit_definition_cid",
+        "used_values_cid",
+        "local_contracts_cid",
+        "observation_cids",
+        "policy_cid",
+        "self_cid"
+      ],
+      "additionalProperties": false
+    },
+    "local_manifest": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "const": "actql-local-result-manifest/0.1"
+        },
+        "unit_definition_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "local_invocation_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "results": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          }
+        },
+        "self_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      },
+      "required": [
+        "version",
+        "unit_definition_cid",
+        "local_invocation_cid",
+        "results",
+        "self_cid"
+      ],
+      "additionalProperties": false
+    },
+    "local_result_artifact": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "const": "actql-result-artifact/0.1"
+        },
+        "result_definition_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "invocation_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "logical_result_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "result_schema_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "ordering_evidence_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "actual_row_count": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "actual_completeness": {
+          "enum": [
+            "complete",
+            "partial"
+          ]
+        },
+        "effective_data_policy_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "effective_retention_policy_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "provenance_evidence_cids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          },
+          "minItems": 0
+        },
+        "result_artifact_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      },
+      "required": [
+        "version",
+        "result_definition_cid",
+        "invocation_cid",
+        "logical_result_cid",
+        "result_schema_cid",
+        "ordering_evidence_cid",
+        "actual_row_count",
+        "actual_completeness",
+        "effective_data_policy_cid",
+        "effective_retention_policy_cid",
+        "provenance_evidence_cids",
+        "result_artifact_cid"
+      ],
+      "additionalProperties": false
+    },
+    "local_effect_outcome": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "const": "actql-local-effect-outcome/0.1"
+        },
+        "unit_definition_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "effect_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "operation_contract_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "correlation_contract_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "guard_contract_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "issuer_evidence_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "scope_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "policy_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "item_key_cid": {
+                "type": "string",
+                "pattern": "^sha256:[0-9a-f]{64}$"
+              },
+              "input_key_cid": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^sha256:[0-9a-f]{64}$"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "request_cid": {
+                "type": "string",
+                "pattern": "^sha256:[0-9a-f]{64}$"
+              },
+              "state": {
+                "enum": [
+                  "applied",
+                  "accepted",
+                  "failed",
+                  "unknown",
+                  "unattempted"
+                ]
+              },
+              "result_artifact_cid": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^sha256:[0-9a-f]{64}$"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "operation_ref_cid": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^sha256:[0-9a-f]{64}$"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "provider_evidence_cids": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "pattern": "^sha256:[0-9a-f]{64}$"
+                },
+                "minItems": 0
+              }
+            },
+            "required": [
+              "item_key_cid",
+              "input_key_cid",
+              "request_cid",
+              "state",
+              "result_artifact_cid",
+              "operation_ref_cid",
+              "provider_evidence_cids"
+            ],
+            "additionalProperties": false
+          },
+          "minItems": 0
+        },
+        "self_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      },
+      "required": [
+        "version",
+        "unit_definition_cid",
+        "effect_id",
+        "operation_contract_cid",
+        "correlation_contract_cid",
+        "guard_contract_cid",
+        "issuer_evidence_cid",
+        "scope_cid",
+        "policy_cid",
+        "items",
+        "self_cid"
+      ],
+      "additionalProperties": false
+    },
+    "projection_attestation": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "const": "actql-semantic-projection-attestation/0.1"
+        },
+        "semantic_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "source_audit_cids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          },
+          "minItems": 1
+        },
+        "membership_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "projection_law_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "issuer_evidence_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "scope_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "policy_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "authentication_evidence_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "self_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      },
+      "required": [
+        "version",
+        "semantic_cid",
+        "source_audit_cids",
+        "membership_cid",
+        "projection_law_cid",
+        "issuer_evidence_cid",
+        "scope_cid",
+        "policy_cid",
+        "authentication_evidence_cid",
+        "self_cid"
+      ],
+      "additionalProperties": false
+    },
+    "gate_requirement": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "const": "actql-graph-success-requirement/0.1"
+        },
+        "producer_node_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "milestone": {
+          "enum": [
+            "accepted",
+            "completed"
+          ]
+        },
+        "effect_contracts": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          }
+        },
+        "effect_nodes": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "completion_contracts": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          }
+        },
+        "completion_nodes": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "empty_items": {
+          "const": "require-successful-computation-and-preflight"
+        },
+        "self_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      },
+      "required": [
+        "version",
+        "producer_node_id",
+        "milestone",
+        "effect_contracts",
+        "effect_nodes",
+        "completion_contracts",
+        "completion_nodes",
+        "empty_items",
+        "self_cid"
+      ],
+      "additionalProperties": false
+    },
+    "data_requirement": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "const": "actql-graph-data-requirement/0.1"
+        },
+        "producer_node_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "producer_port": {
+          "type": "string",
+          "minLength": 1
+        },
+        "consumer_node_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "input_name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "artifact_kind": {
+          "enum": [
+            "local_result",
+            "receipt_view",
+            "completion_source"
+          ]
+        },
+        "value_contract_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "availability": {
+          "enum": [
+            "stage_success",
+            "accepted",
+            "completed"
+          ]
+        },
+        "self_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      },
+      "required": [
+        "version",
+        "producer_node_id",
+        "producer_port",
+        "consumer_node_id",
+        "input_name",
+        "artifact_kind",
+        "value_contract_cid",
+        "availability",
+        "self_cid"
+      ],
+      "additionalProperties": false
+    },
+    "commit_scope": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "const": "actql-graph-commit-scope-definition/0.1"
+        },
+        "producer_node_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_input": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_contract_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "checkpoint_contract_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "ownership_contract_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "state_partition_contract_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "policy_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "required_gate_cids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          },
+          "minItems": 1
+        },
+        "enrollment": {
+          "const": "before_capture"
+        },
+        "self_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      },
+      "required": [
+        "version",
+        "producer_node_id",
+        "source_input",
+        "source_contract_cid",
+        "checkpoint_contract_cid",
+        "ownership_contract_cid",
+        "state_partition_contract_cid",
+        "policy_cid",
+        "required_gate_cids",
+        "enrollment",
+        "self_cid"
+      ],
+      "additionalProperties": false
+    },
+    "graph_execution_definition": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "const": "actql-run-graph-execution-definition/0.1"
+        },
+        "base_graph_definition_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "shared_context_contract_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "gate_requirements": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          }
+        },
+        "data_requirements": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          }
+        },
+        "commit_scopes": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          }
+        },
+        "node_requirements": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "control": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "pattern": "^sha256:[0-9a-f]{64}$"
+                },
+                "minItems": 0
+              },
+              "data": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "pattern": "^sha256:[0-9a-f]{64}$"
+                },
+                "minItems": 0
+              }
+            },
+            "required": [
+              "control",
+              "data"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "exports": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "node_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "result_name": {
+                "type": "string",
+                "minLength": 1
+              },
+              "value_contract_cid": {
+                "type": "string",
+                "pattern": "^sha256:[0-9a-f]{64}$"
+              }
+            },
+            "required": [
+              "node_id",
+              "result_name",
+              "value_contract_cid"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "self_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      },
+      "required": [
+        "version",
+        "base_graph_definition_cid",
+        "shared_context_contract_cid",
+        "gate_requirements",
+        "data_requirements",
+        "commit_scopes",
+        "node_requirements",
+        "exports",
+        "self_cid"
+      ],
+      "additionalProperties": false
+    },
+    "graph_shared_context": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "const": "actql-run-graph-shared-context/0.1"
+        },
+        "engine_contract_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "effective_parameters_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "whole_lock_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "resource_budget_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "logical_request_contract_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "source_ownership_contract_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "self_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      },
+      "required": [
+        "version",
+        "engine_contract_cid",
+        "effective_parameters_cid",
+        "whole_lock_cid",
+        "resource_budget_cid",
+        "logical_request_contract_cid",
+        "source_ownership_contract_cid",
+        "self_cid"
+      ],
+      "additionalProperties": false
+    },
+    "graph_execution_lock": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "const": "actql-run-graph-execution-lock/0.1"
+        },
+        "execution_definition_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "base_graph_lock_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "extension_contract_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "extracted_unit_contracts": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          }
+        },
+        "self_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      },
+      "required": [
+        "version",
+        "execution_definition_cid",
+        "base_graph_lock_cid",
+        "extension_contract_cid",
+        "extracted_unit_contracts",
+        "self_cid"
+      ],
+      "additionalProperties": false
+    },
+    "stage_semantics": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "const": "actql-stage-semantics/0.1"
+        },
+        "expression_contract_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "parameters": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object"
+          }
+        },
+        "parameter_references": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "minLength": 1
+              },
+              "path": {
+                "type": "string",
+                "minLength": 1
+              },
+              "type": {
+                "type": "object"
+              }
+            },
+            "required": [
+              "name",
+              "path",
+              "type"
+            ],
+            "additionalProperties": false
+          },
+          "minItems": 0
+        },
+        "bindings": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object"
+          }
+        },
+        "binding_references": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "minLength": 1
+              },
+              "path": {
+                "type": "string",
+                "minLength": 1
+              },
+              "type": {
+                "type": "object"
+              }
+            },
+            "required": [
+              "name",
+              "path",
+              "type"
+            ],
+            "additionalProperties": false
+          },
+          "minItems": 0
+        },
+        "local_body": {
+          "type": "object"
+        }
+      },
+      "required": [
+        "version",
+        "expression_contract_cid",
+        "parameters",
+        "parameter_references",
+        "bindings",
+        "binding_references",
+        "local_body"
+      ],
+      "additionalProperties": false
+    },
+    "program_semantics": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "const": "actql-program-semantics/0.1"
+        },
+        "actql_version": {
+          "const": "actql/0.1"
+        },
+        "expression_contract_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "parameters": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object"
+          }
+        },
+        "parameter_references": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "minLength": 1
+              },
+              "path": {
+                "type": "string",
+                "minLength": 1
+              },
+              "type": {
+                "type": "object"
+              }
+            },
+            "required": [
+              "name",
+              "path",
+              "type"
+            ],
+            "additionalProperties": false
+          },
+          "minItems": 0
+        },
+        "bindings": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object"
+          }
+        },
+        "binding_references": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "minLength": 1
+              },
+              "path": {
+                "type": "string",
+                "minLength": 1
+              },
+              "type": {
+                "type": "object"
+              }
+            },
+            "required": [
+              "name",
+              "path",
+              "type"
+            ],
+            "additionalProperties": false
+          },
+          "minItems": 0
+        },
+        "program_template": {
+          "type": "object",
+          "properties": {
+            "stages": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "stage_semantics_cid": {
+                    "type": "string",
+                    "pattern": "^sha256:[0-9a-f]{64}$"
+                  },
+                  "after": {
+                    "enum": [
+                      "initial",
+                      "completed",
+                      "accepted"
+                    ]
+                  },
+                  "imports": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "type": "object"
+                    }
+                  }
+                },
+                "required": [
+                  "id",
+                  "stage_semantics_cid",
+                  "after",
+                  "imports"
+                ],
+                "additionalProperties": false
+              },
+              "minItems": 1
+            },
+            "exports": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "object",
+                "properties": {
+                  "from": {
+                    "type": "object",
+                    "properties": {
+                      "stage": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "result": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    },
+                    "required": [
+                      "stage",
+                      "result"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "required": [
+                  "from"
+                ],
+                "additionalProperties": false
+              }
+            }
+          },
+          "required": [
+            "stages",
+            "exports"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "version",
+        "actql_version",
+        "expression_contract_cid",
+        "parameters",
+        "parameter_references",
+        "bindings",
+        "binding_references",
+        "program_template"
+      ],
+      "additionalProperties": false
+    },
+    "pending_predecessor": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "const": "actql-plan-result/0.1"
+        },
+        "status": {
+          "const": "pending_predecessor"
+        },
+        "semantic_status": {
+          "const": "valid"
+        },
+        "runtime_support": {
+          "enum": [
+            "supported",
+            "unsupported"
+          ]
+        },
+        "execution_admission": {
+          "const": "pending_predecessor"
+        },
+        "checked_template_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "node_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "pending_control": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "producer_node_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "milestone": {
+                "enum": [
+                  "accepted",
+                  "completed"
+                ]
+              }
+            },
+            "required": [
+              "producer_node_id",
+              "milestone"
+            ],
+            "additionalProperties": false
+          },
+          "minItems": 0
+        },
+        "pending_imports": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "input_name": {
+                "type": "string",
+                "minLength": 1
+              },
+              "producer_node_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "port_name": {
+                "type": "string",
+                "minLength": 1
+              },
+              "availability": {
+                "enum": [
+                  "accepted",
+                  "completed",
+                  "stage_success"
+                ]
+              }
+            },
+            "required": [
+              "input_name",
+              "producer_node_id",
+              "port_name",
+              "availability"
+            ],
+            "additionalProperties": false
+          },
+          "minItems": 0
+        }
+      },
+      "required": [
+        "version",
+        "status",
+        "semantic_status",
+        "runtime_support",
+        "execution_admission",
+        "checked_template_cid",
+        "node_id",
+        "pending_control",
+        "pending_imports"
+      ],
+      "additionalProperties": false
+    },
+    "model_execution_contract": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "const": "actql-model-execution-contract/0.1"
+        },
+        "model_task_contract_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "retry_classification_contract_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "max_attempts_per_slot": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "max_total_attempts": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "max_total_cost_units": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "max_total_duration_ms": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "max_total_wire_bytes": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "max_total_token_reservation": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "backoff_contract_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "media_input_contracts": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          }
+        },
+        "default_publication": {
+          "const": "outcomes"
+        },
+        "self_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      },
+      "required": [
+        "version",
+        "model_task_contract_cid",
+        "retry_classification_contract_cid",
+        "max_attempts_per_slot",
+        "max_total_attempts",
+        "max_total_cost_units",
+        "max_total_duration_ms",
+        "max_total_wire_bytes",
+        "max_total_token_reservation",
+        "backoff_contract_cid",
+        "media_input_contracts",
+        "default_publication",
+        "self_cid"
+      ],
+      "additionalProperties": false
+    },
+    "inference_plan": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "const": "actql-model-outcome-plan/0.1"
+        },
+        "model_execution_contract_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "model_task_contract_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "request_fragment_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "input_contract_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "output_contract_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "key_fields": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "minItems": 1
+        },
+        "input_roles": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "on_non_success": {
+          "enum": [
+            "outcomes",
+            "fail"
+          ]
+        },
+        "limits_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "egress_requirements_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "self_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      },
+      "required": [
+        "version",
+        "model_execution_contract_cid",
+        "model_task_contract_cid",
+        "request_fragment_cid",
+        "input_contract_cid",
+        "output_contract_cid",
+        "key_fields",
+        "input_roles",
+        "on_non_success",
+        "limits_cid",
+        "egress_requirements_cid",
+        "self_cid"
+      ],
+      "additionalProperties": false
+    },
+    "effective_parameters": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "const": "actql-effective-parameter-binding/0.1"
+        },
+        "program_definition_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "parameter_contract_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "parameter_values_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "value_artifact_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "origin_evidence_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "self_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      },
+      "required": [
+        "version",
+        "program_definition_cid",
+        "parameter_contract_cid",
+        "parameter_values_cid",
+        "value_artifact_cid",
+        "origin_evidence_cid",
+        "self_cid"
+      ],
+      "additionalProperties": false
+    },
+    "derive_binding": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "const": "actql-derive-binding/0.1"
+        },
+        "aoa_node_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "input_contract_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "output_contract_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "mode": {
+          "enum": [
+            "snapshot_map",
+            "ordered_array"
+          ]
+        },
+        "input_passthrough": {
+          "const": true
+        },
+        "failure_scope": {
+          "const": "row-binding-expression"
+        },
+        "limits_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "bindings": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "minLength": 1
+              },
+              "checked_expression_cid": {
+                "type": "string",
+                "pattern": "^sha256:[0-9a-f]{64}$"
+              },
+              "context_contract_cid": {
+                "type": "string",
+                "pattern": "^sha256:[0-9a-f]{64}$"
+              }
+            },
+            "required": [
+              "name",
+              "checked_expression_cid",
+              "context_contract_cid"
+            ],
+            "additionalProperties": false
+          },
+          "minItems": 1
+        },
+        "self_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      },
+      "required": [
+        "version",
+        "aoa_node_cid",
+        "input_contract_cid",
+        "output_contract_cid",
+        "mode",
+        "input_passthrough",
+        "failure_scope",
+        "limits_cid",
+        "bindings",
+        "self_cid"
+      ],
+      "additionalProperties": false
+    },
+    "checked_program": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "const": "actql-checked-stage-template/0.1"
+        },
+        "program_definition_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "program_semantics_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "check_environment_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "parameter_contract_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "stages": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "stage_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "stage_definition_cid": {
+                "type": "string",
+                "pattern": "^sha256:[0-9a-f]{64}$"
+              },
+              "position": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "predecessor": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "after": {
+                "enum": [
+                  "initial",
+                  "completed",
+                  "accepted"
+                ]
+              },
+              "imports": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "kind": {
+                      "enum": [
+                        "result",
+                        "receipt"
+                      ]
+                    },
+                    "producer_stage": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "producer_name": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "value_contract_cid": {
+                      "type": "string",
+                      "pattern": "^sha256:[0-9a-f]{64}$"
+                    },
+                    "availability": {
+                      "enum": [
+                        "stage_success",
+                        "accepted",
+                        "completed"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "name",
+                    "kind",
+                    "producer_stage",
+                    "producer_name",
+                    "value_contract_cid",
+                    "availability"
+                  ],
+                  "additionalProperties": false
+                },
+                "minItems": 0
+              },
+              "input_contracts": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "string",
+                  "pattern": "^sha256:[0-9a-f]{64}$"
+                }
+              },
+              "result_contracts": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "string",
+                  "pattern": "^sha256:[0-9a-f]{64}$"
+                }
+              },
+              "effect_contracts": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "string",
+                  "pattern": "^sha256:[0-9a-f]{64}$"
+                }
+              }
+            },
+            "required": [
+              "stage_id",
+              "stage_definition_cid",
+              "position",
+              "predecessor",
+              "after",
+              "imports",
+              "input_contracts",
+              "result_contracts",
+              "effect_contracts"
+            ],
+            "additionalProperties": false
+          },
+          "minItems": 1
+        },
+        "exports": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "stage_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "result_name": {
+                "type": "string",
+                "minLength": 1
+              },
+              "value_contract_cid": {
+                "type": "string",
+                "pattern": "^sha256:[0-9a-f]{64}$"
+              }
+            },
+            "required": [
+              "stage_id",
+              "result_name",
+              "value_contract_cid"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "semantic_lock_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "self_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      },
+      "required": [
+        "version",
+        "program_definition_cid",
+        "program_semantics_cid",
+        "check_environment_cid",
+        "parameter_contract_cid",
+        "stages",
+        "exports",
+        "semantic_lock_cid",
+        "self_cid"
+      ],
+      "additionalProperties": false
+    },
+    "node_plan": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "const": "actql-local-unit-plan-binding/0.1"
+        },
+        "unit_namespace": {
+          "type": "object",
+          "properties": {
+            "program_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "node_id": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": [
+            "program_id",
+            "node_id"
+          ],
+          "additionalProperties": false
+        },
+        "unit_definition_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "local_parameter_values_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "local_contract_closure_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "import_artifacts": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          }
+        },
+        "executable_plan_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "self_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      },
+      "required": [
+        "version",
+        "unit_namespace",
+        "unit_definition_cid",
+        "local_parameter_values_cid",
+        "local_contract_closure_cid",
+        "import_artifacts",
+        "executable_plan_cid",
+        "self_cid"
+      ],
+      "additionalProperties": false
+    },
+    "membership": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "const": "actql-graph-unit-membership/0.1"
+        },
+        "graph_definition_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "graph_run_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "whole_lock_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "node_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "unit_namespace": {
+          "type": "object",
+          "properties": {
+            "program_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "node_id": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": [
+            "program_id",
+            "node_id"
+          ],
+          "additionalProperties": false
+        },
+        "unit_definition_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "local_artifact_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "artifact_kind": {
+          "enum": [
+            "plan",
+            "invocation",
+            "result",
+            "receipt",
+            "review"
+          ]
+        },
+        "binding_admission_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "issuer_evidence_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "authentication_evidence_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "self_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      },
+      "required": [
+        "version",
+        "graph_definition_cid",
+        "graph_run_cid",
+        "whole_lock_cid",
+        "node_id",
+        "unit_namespace",
+        "unit_definition_cid",
+        "local_artifact_cid",
+        "artifact_kind",
+        "binding_admission_cid",
+        "issuer_evidence_cid",
+        "authentication_evidence_cid",
+        "self_cid"
+      ],
+      "additionalProperties": false
+    },
+    "activation": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "const": "actql-graph-node-activation/0.1"
+        },
+        "graph_definition_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "execution_definition_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "node_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "control_milestone_evidence_cids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          },
+          "minItems": 0
+        },
+        "binding_availability_evidence": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          }
+        },
+        "membership_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "current_node_admission_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "self_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      },
+      "required": [
+        "version",
+        "graph_definition_cid",
+        "execution_definition_cid",
+        "node_id",
+        "control_milestone_evidence_cids",
+        "binding_availability_evidence",
+        "membership_cid",
+        "current_node_admission_cid",
+        "self_cid"
+      ],
+      "additionalProperties": false
+    },
+    "local_receipt": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "const": "actql-local-receipt-semantics/0.1"
+        },
+        "unit_namespace": {
+          "type": "object",
+          "properties": {
+            "program_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "node_id": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": [
+            "program_id",
+            "node_id"
+          ],
+          "additionalProperties": false
+        },
+        "unit_definition_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "local_invocation_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "local_manifest_cid": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "effect_outcome_cids": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          }
+        },
+        "outcome_contract_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "outcome_evidence_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "self_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      },
+      "required": [
+        "version",
+        "unit_namespace",
+        "unit_definition_cid",
+        "local_invocation_cid",
+        "local_manifest_cid",
+        "effect_outcome_cids",
+        "outcome_contract_cid",
+        "outcome_evidence_cid",
+        "self_cid"
+      ],
+      "additionalProperties": false
+    },
+    "completion_evidence": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "const": "actql-stage-completion-evidence/0.1"
+        },
+        "producer_local_receipt_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "operation_ref_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "completion_contract_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "provider_outcome_receipt_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "state": {
+          "enum": [
+            "succeeded",
+            "failed",
+            "cancelled",
+            "expired"
+          ]
+        },
+        "typed_result_artifact_cid": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "policy_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "accounting_evidence_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "self_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      },
+      "required": [
+        "version",
+        "producer_local_receipt_cid",
+        "operation_ref_cid",
+        "completion_contract_cid",
+        "provider_outcome_receipt_cid",
+        "state",
+        "typed_result_artifact_cid",
+        "policy_cid",
+        "accounting_evidence_cid",
+        "self_cid"
+      ],
+      "additionalProperties": false
+    },
+    "graph_success": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "const": "actql-graph-success-evidence/0.1"
+        },
+        "graph_definition_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "logical_request_scope_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "required_milestone_evidence_cids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          },
+          "minItems": 0
+        },
+        "activation_evidence_cids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          },
+          "minItems": 1
+        },
+        "self_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      },
+      "required": [
+        "version",
+        "graph_definition_cid",
+        "logical_request_scope_cid",
+        "required_milestone_evidence_cids",
+        "activation_evidence_cids",
+        "self_cid"
+      ],
+      "additionalProperties": false
+    },
+    "receipt_view": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "const": "actql-stage-receipt-view/0.1"
+        },
+        "producer_stage": {
+          "type": "string",
+          "minLength": 1
+        },
+        "effect_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "semantic_outcome_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "correlation_contract_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "value_contract_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "policy_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "availability": {
+          "enum": [
+            "accepted",
+            "completed"
+          ]
+        },
+        "availability_evidence_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "relation_artifact_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "self_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      },
+      "required": [
+        "version",
+        "producer_stage",
+        "effect_id",
+        "semantic_outcome_cid",
+        "correlation_contract_cid",
+        "value_contract_cid",
+        "policy_cid",
+        "availability",
+        "availability_evidence_cid",
+        "relation_artifact_cid",
+        "self_cid"
+      ],
+      "additionalProperties": false
+    },
+    "graph_outputs": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "const": "actql-graph-output-index/0.1"
+        },
+        "graph_definition_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "logical_request_scope_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "node_membership_cids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          },
+          "minItems": 1
+        },
+        "exports": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "node_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "result_name": {
+                "type": "string",
+                "minLength": 1
+              },
+              "local_manifest_cid": {
+                "type": "string",
+                "pattern": "^sha256:[0-9a-f]{64}$"
+              },
+              "result_artifact_cid": {
+                "type": "string",
+                "pattern": "^sha256:[0-9a-f]{64}$"
+              }
+            },
+            "required": [
+              "node_id",
+              "result_name",
+              "local_manifest_cid",
+              "result_artifact_cid"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "flow_state": {
+          "enum": [
+            "succeeded",
+            "failed",
+            "needs_reconciliation",
+            "cancelled"
+          ]
+        },
+        "flow_evidence_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "self_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      },
+      "required": [
+        "version",
+        "graph_definition_cid",
+        "logical_request_scope_cid",
+        "node_membership_cids",
+        "exports",
+        "flow_state",
+        "flow_evidence_cid",
+        "self_cid"
+      ],
+      "additionalProperties": false
+    },
+    "logical_request": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "const": "actql-logical-request-record/0.1"
+        },
+        "authority_scope_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "caller_request_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "logical_request_scope_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "intent_fingerprint_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "program_definition_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "parameter_values_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "caller_input_intent_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "self_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      },
+      "required": [
+        "version",
+        "authority_scope_cid",
+        "caller_request_id",
+        "logical_request_scope_cid",
+        "intent_fingerprint_cid",
+        "program_definition_cid",
+        "parameter_values_cid",
+        "caller_input_intent_cid",
+        "self_cid"
+      ],
+      "additionalProperties": false
+    },
+    "ledger_entry": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "const": "actql-logical-item-ledger-entry/0.1"
+        },
+        "logical_request_scope_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "logical_item_locator_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "unit_definition_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "original_membership_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "intent_fingerprint_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "effect_preview_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "dispatch_key": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "canonical_request_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "recovery_contract_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "capability": {
+          "enum": [
+            "native",
+            "stamped",
+            "natural_key",
+            "unavailable"
+          ]
+        },
+        "state": {
+          "enum": [
+            "prepared",
+            "dispatching",
+            "applied",
+            "accepted",
+            "failed",
+            "unknown"
+          ]
+        },
+        "fence": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "attempt_sequence": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "prior_entry_cid": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "outcome_receipt_cid": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "reservation_evidence_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "retention_contract_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "self_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      },
+      "required": [
+        "version",
+        "logical_request_scope_cid",
+        "logical_item_locator_cid",
+        "unit_definition_cid",
+        "original_membership_cid",
+        "intent_fingerprint_cid",
+        "effect_preview_cid",
+        "dispatch_key",
+        "canonical_request_cid",
+        "recovery_contract_cid",
+        "capability",
+        "state",
+        "fence",
+        "attempt_sequence",
+        "prior_entry_cid",
+        "outcome_receipt_cid",
+        "reservation_evidence_cid",
+        "retention_contract_cid",
+        "self_cid"
+      ],
+      "additionalProperties": false
+    },
+    "risk_acceptance": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "const": "actql-effect-risk-acceptance/0.1"
+        },
+        "issuer_kind": {
+          "enum": [
+            "human",
+            "policy"
+          ]
+        },
+        "issuer_evidence_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "policy_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "decision": {
+          "enum": [
+            "allow",
+            "approved"
+          ]
+        },
+        "effect_preview_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "review_projection_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "authority_scope_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "validity_evidence_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "claims": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "effect_scope_approved",
+              "partial_application_accepted"
+            ]
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "authentication_evidence_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "self_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      },
+      "required": [
+        "version",
+        "issuer_kind",
+        "issuer_evidence_cid",
+        "policy_cid",
+        "decision",
+        "effect_preview_cid",
+        "review_projection_cid",
+        "authority_scope_cid",
+        "validity_evidence_cid",
+        "claims",
+        "authentication_evidence_cid",
+        "self_cid"
+      ],
+      "additionalProperties": false
+    },
+    "template_approval": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "const": "actql-effect-template-approval/0.1"
+        },
+        "unit_namespace": {
+          "type": "object",
+          "properties": {
+            "program_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "node_id": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": [
+            "program_id",
+            "node_id"
+          ],
+          "additionalProperties": false
+        },
+        "unit_definition_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "local_parameter_values_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "local_contract_closure_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "known_input_artifact_cids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          },
+          "minItems": 0
+        },
+        "fixed_intent_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "substitutions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "slot": {
+                "type": "string",
+                "minLength": 1
+              },
+              "producer_stage": {
+                "type": "string",
+                "minLength": 1
+              },
+              "producer_effect": {
+                "type": "string",
+                "minLength": 1
+              },
+              "receipt_contract_cid": {
+                "type": "string",
+                "pattern": "^sha256:[0-9a-f]{64}$"
+              },
+              "correlation_contract_cid": {
+                "type": "string",
+                "pattern": "^sha256:[0-9a-f]{64}$"
+              },
+              "value_contract_cid": {
+                "type": "string",
+                "pattern": "^sha256:[0-9a-f]{64}$"
+              },
+              "kind": {
+                "enum": [
+                  "id",
+                  "resource_ref",
+                  "artifact_ref"
+                ]
+              },
+              "use_pointer": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "required": [
+              "slot",
+              "producer_stage",
+              "producer_effect",
+              "receipt_contract_cid",
+              "correlation_contract_cid",
+              "value_contract_cid",
+              "kind",
+              "use_pointer"
+            ],
+            "additionalProperties": false
+          },
+          "minItems": 0
+        },
+        "scope_contract_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "dependency_proof_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "review_projection_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "risk_claims": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "effect_scope_approved",
+              "partial_application_accepted"
+            ]
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "issuer_evidence_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "policy_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "validity_evidence_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "authentication_evidence_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "self_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      },
+      "required": [
+        "version",
+        "unit_namespace",
+        "unit_definition_cid",
+        "local_parameter_values_cid",
+        "local_contract_closure_cid",
+        "known_input_artifact_cids",
+        "fixed_intent_cid",
+        "substitutions",
+        "scope_contract_cid",
+        "dependency_proof_cid",
+        "review_projection_cid",
+        "risk_claims",
+        "issuer_evidence_cid",
+        "policy_cid",
+        "validity_evidence_cid",
+        "authentication_evidence_cid",
+        "self_cid"
+      ],
+      "additionalProperties": false
+    },
+    "template_instantiation": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "const": "actql-effect-template-instantiation/0.1"
+        },
+        "template_approval_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "producer_receipt_cids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          },
+          "minItems": 0
+        },
+        "substitution_value_artifacts": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          }
+        },
+        "effect_preview_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "dependency_proof_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "substitution_proof_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "current_guard_authority_evidence_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "self_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      },
+      "required": [
+        "version",
+        "template_approval_cid",
+        "producer_receipt_cids",
+        "substitution_value_artifacts",
+        "effect_preview_cid",
+        "dependency_proof_cid",
+        "substitution_proof_cid",
+        "current_guard_authority_evidence_cid",
+        "self_cid"
+      ],
+      "additionalProperties": false
+    },
+    "approval_renewal": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "const": "actql-effect-approval-renewal/0.1"
+        },
+        "old_preview_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "new_preview_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "old_authorization_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "exact_diff_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "current_guard_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "scope_payload_permission_proof_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "policy_rule_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "issuer_evidence_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "validity_evidence_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "authentication_evidence_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "self_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      },
+      "required": [
+        "version",
+        "old_preview_cid",
+        "new_preview_cid",
+        "old_authorization_cid",
+        "exact_diff_cid",
+        "current_guard_cid",
+        "scope_payload_permission_proof_cid",
+        "policy_rule_cid",
+        "issuer_evidence_cid",
+        "validity_evidence_cid",
+        "authentication_evidence_cid",
+        "self_cid"
+      ],
+      "additionalProperties": false
+    },
+    "catalog_generation": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "const": "actql-catalog-generation/0.1"
+        },
+        "schema_snapshot_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "connector_resource_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "type_mapping_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "field_identity_rules_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "capabilities_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "generator_law_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "catalog_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "self_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      },
+      "required": [
+        "version",
+        "schema_snapshot_cid",
+        "connector_resource_cid",
+        "type_mapping_cid",
+        "field_identity_rules_cid",
+        "capabilities_cid",
+        "generator_law_cid",
+        "catalog_cid",
+        "self_cid"
+      ],
+      "additionalProperties": false
+    },
+    "input_normalization": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "const": "actql-input-normalization/0.1"
+        },
+        "raw_artifact_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "normalized_artifact_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "input_contract_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "duplicates": {
+          "enum": [
+            "reject",
+            "first_by_order"
+          ]
+        },
+        "order_evidence_cid": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "raw_count": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "normalized_count": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "excluded_count": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "policy_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "raw_checkpoint_evidence_cid": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "self_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      },
+      "required": [
+        "version",
+        "raw_artifact_cid",
+        "normalized_artifact_cid",
+        "input_contract_cid",
+        "duplicates",
+        "order_evidence_cid",
+        "raw_count",
+        "normalized_count",
+        "excluded_count",
+        "policy_cid",
+        "raw_checkpoint_evidence_cid",
+        "self_cid"
+      ],
+      "additionalProperties": false
+    },
+    "numeric_observation": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "const": "actql-numeric-observation/0.1"
+        },
+        "aggregate_slot_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "input_artifact_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "contributor_evidence_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "group_window_key_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "numeric_contract_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "count": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "operation": {
+          "enum": [
+            "sum",
+            "avg"
+          ]
+        },
+        "value": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "policy_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "accounting_evidence_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "placement_evidence_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "self_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      },
+      "required": [
+        "version",
+        "aggregate_slot_cid",
+        "input_artifact_cid",
+        "contributor_evidence_cid",
+        "group_window_key_cid",
+        "numeric_contract_cid",
+        "count",
+        "operation",
+        "value",
+        "policy_cid",
+        "accounting_evidence_cid",
+        "placement_evidence_cid",
+        "self_cid"
+      ],
+      "additionalProperties": false
+    },
+    "model_slot_capture": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "const": "actql-model-slot-capture/0.1"
+        },
+        "slot_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "model_task_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "fixed_request_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "input_artifact_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "input_key_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "ordered_attempt_cids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          },
+          "minItems": 0
+        },
+        "adopted_attempt_cid": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "outcome": {
+          "enum": [
+            "ok",
+            "failed:rate_limit",
+            "failed:timeout",
+            "failed:provider_error",
+            "failed:refusal",
+            "failed:schema_invalid",
+            "failed:safety_rejected",
+            "failed:truncated"
+          ]
+        },
+        "typed_value_artifact_cid": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "accounting_evidence_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "authority_evidence_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "policy_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "outcome_evidence_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "response_artifact_cid": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "response_issuer_evidence_cid": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "attachment_admission_cids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          },
+          "minItems": 0
+        },
+        "self_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      },
+      "required": [
+        "version",
+        "slot_cid",
+        "model_task_cid",
+        "fixed_request_cid",
+        "input_artifact_cid",
+        "input_key_cid",
+        "ordered_attempt_cids",
+        "adopted_attempt_cid",
+        "outcome",
+        "typed_value_artifact_cid",
+        "accounting_evidence_cid",
+        "authority_evidence_cid",
+        "policy_cid",
+        "outcome_evidence_cid",
+        "response_artifact_cid",
+        "response_issuer_evidence_cid",
+        "attachment_admission_cids",
+        "self_cid"
+      ],
+      "additionalProperties": false
+    },
+    "behavioral_repair": {
+      "type": "object",
+      "properties": {
+        "replacement_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "changes_semantics": {
+          "const": true
+        },
+        "requires_author_choice": {
+          "const": true
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "replacement_cid",
+        "changes_semantics",
+        "requires_author_choice",
+        "reason"
+      ],
+      "additionalProperties": false
+    },
+    "local_dependencies": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "const": "actql-local-unit-dependencies/0.1"
+        },
+        "unit_namespace": {
+          "type": "object",
+          "properties": {
+            "program_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "node_id": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": [
+            "program_id",
+            "node_id"
+          ],
+          "additionalProperties": false
+        },
+        "local_body_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "used_parameter_declarations_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "local_contract_closure_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "import_interface_cids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          },
+          "minItems": 0
+        },
+        "incoming_gate_contract_cids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          },
+          "minItems": 0
+        },
+        "self_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      },
+      "required": [
+        "version",
+        "unit_namespace",
+        "local_body_cid",
+        "used_parameter_declarations_cid",
+        "local_contract_closure_cid",
+        "import_interface_cids",
+        "incoming_gate_contract_cids",
+        "self_cid"
+      ],
+      "additionalProperties": false
+    },
+    "recovery_link": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "const": "actql-graph-recovery-link/0.1"
+        },
+        "original_graph_run_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "new_graph_definition_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "retained_local_item_evidence_cids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          },
+          "minItems": 0
+        },
+        "changed_unit_definition_cids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          },
+          "minItems": 0
+        },
+        "reused_observation_preview_cids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          },
+          "minItems": 0
+        },
+        "authority_evidence_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "authentication_evidence_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "self_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      },
+      "required": [
+        "version",
+        "original_graph_run_cid",
+        "new_graph_definition_cid",
+        "retained_local_item_evidence_cids",
+        "changed_unit_definition_cids",
+        "reused_observation_preview_cids",
+        "authority_evidence_cid",
+        "authentication_evidence_cid",
+        "self_cid"
+      ],
+      "additionalProperties": false
+    },
+    "source_advance_claim": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "const": "actql-source-state-advance-claim/0.1"
+        },
+        "claim": {
+          "const": "source_state_advance_authorized"
+        },
+        "issuer_evidence_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "operator_authority_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "tenant_scope_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "policy_revision_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "validity_evidence_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "nonce": {
+          "type": "string",
+          "minLength": 1
+        },
+        "graph_run_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "commit_scope_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "fenced_state_revision_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "captured_batch_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "pending_checkpoint_list_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "partition_generation_evidence_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "unmet": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "obligation_cid": {
+                "type": "string",
+                "pattern": "^sha256:[0-9a-f]{64}$"
+              },
+              "outcome_evidence_cid": {
+                "type": "string",
+                "pattern": "^sha256:[0-9a-f]{64}$"
+              },
+              "kind": {
+                "enum": [
+                  "node_milestone",
+                  "effect_item"
+                ]
+              },
+              "state": {
+                "enum": [
+                  "failed",
+                  "unattempted",
+                  "unknown",
+                  "accepted_pending",
+                  "cancelled",
+                  "timed_out",
+                  "budget_exhausted",
+                  "rejected"
+                ]
+              },
+              "item_outcome_evidence_cids": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "pattern": "^sha256:[0-9a-f]{64}$"
+                },
+                "minItems": 0
+              },
+              "disposition": {
+                "enum": [
+                  "abandon_known_failure",
+                  "handoff"
+                ]
+              },
+              "handoff_record_cid": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^sha256:[0-9a-f]{64}$"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "obligation_cid",
+              "outcome_evidence_cid",
+              "kind",
+              "state",
+              "item_outcome_evidence_cids",
+              "disposition",
+              "handoff_record_cid"
+            ],
+            "additionalProperties": false
+          },
+          "minItems": 1
+        },
+        "operator_review_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "authentication_evidence_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "self_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      },
+      "required": [
+        "version",
+        "claim",
+        "issuer_evidence_cid",
+        "operator_authority_cid",
+        "tenant_scope_cid",
+        "policy_revision_cid",
+        "validity_evidence_cid",
+        "nonce",
+        "graph_run_cid",
+        "commit_scope_cid",
+        "fenced_state_revision_cid",
+        "captured_batch_cid",
+        "pending_checkpoint_list_cid",
+        "partition_generation_evidence_cid",
+        "unmet",
+        "operator_review_cid",
+        "authentication_evidence_cid",
+        "self_cid"
+      ],
+      "additionalProperties": false
+    },
+    "commit_eligibility": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "const": "actql-source-commit-eligibility/0.1"
+        },
+        "mode": {
+          "enum": [
+            "normal",
+            "exceptional"
+          ]
+        },
+        "commit_scope_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "source_requirement_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "captured_batch_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "pending_checkpoint_list_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "previous_generation": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "state_revision_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "milestone_evidence_cids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          },
+          "minItems": 0
+        },
+        "exceptional_claim_cid": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "disposition_ownership_evidence_cid": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "issuer_evidence_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "authentication_evidence_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "self_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      },
+      "required": [
+        "version",
+        "mode",
+        "commit_scope_cid",
+        "source_requirement_cid",
+        "captured_batch_cid",
+        "pending_checkpoint_list_cid",
+        "previous_generation",
+        "state_revision_cid",
+        "milestone_evidence_cids",
+        "exceptional_claim_cid",
+        "disposition_ownership_evidence_cid",
+        "issuer_evidence_cid",
+        "authentication_evidence_cid",
+        "self_cid"
+      ],
+      "additionalProperties": false
+    },
+    "classification_derivation": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "const": "actql-capture-policy-derivation/0.1"
+        },
+        "capture_contract_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "published_policy_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "origin": {
+          "enum": [
+            "trusted_label",
+            "policy_default",
+            "inherited"
+          ]
+        },
+        "inherited_policy_cids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          },
+          "minItems": 0
+        },
+        "effective_policy_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "content_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "label_mapping_evidence_cid": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "self_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      },
+      "required": [
+        "version",
+        "capture_contract_cid",
+        "published_policy_cid",
+        "origin",
+        "inherited_policy_cids",
+        "effective_policy_cid",
+        "content_cid",
+        "label_mapping_evidence_cid",
+        "self_cid"
+      ],
+      "additionalProperties": false
+    },
+    "stamp_capability": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "const": "actql-stamp-capability/0.1"
+        },
+        "field_mapping_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "target_scope_contract_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "recipe_law_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "atomicity": {
+          "const": "same_provider_commit"
+        },
+        "permissions_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "footprint_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "readback_contract_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "horizon_contract_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "provisioning_evidence_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "self_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      },
+      "required": [
+        "version",
+        "field_mapping_cid",
+        "target_scope_contract_cid",
+        "recipe_law_cid",
+        "atomicity",
+        "permissions_cid",
+        "footprint_cid",
+        "readback_contract_cid",
+        "horizon_contract_cid",
+        "provisioning_evidence_cid",
+        "self_cid"
+      ],
+      "additionalProperties": false
+    },
+    "risk_facts": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "const": "actql-semantic-risk-facts/0.1"
+        },
+        "logical_request_scope_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "operation_contracts": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          },
+          "minItems": 0
+        },
+        "target_scope_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "permission_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "data_policy_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "item_count": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "record_count": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "amount_evidence_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "cost_evidence_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "write_bytes": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "failure_guarantees_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "actor_authority_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "cumulative_allowance_evidence_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "self_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      },
+      "required": [
+        "version",
+        "logical_request_scope_cid",
+        "operation_contracts",
+        "target_scope_cid",
+        "permission_cid",
+        "data_policy_cid",
+        "item_count",
+        "record_count",
+        "amount_evidence_cid",
+        "cost_evidence_cid",
+        "write_bytes",
+        "failure_guarantees_cid",
+        "actor_authority_cid",
+        "cumulative_allowance_evidence_cid",
+        "self_cid"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "reference_roles": {
+    "local_computation": {
+      "unit_definition_cid": "local_dependencies",
+      "used_values_cid": "external:typed-values",
+      "local_contracts_cid": "external:local-contracts",
+      "observation_cids/*": "external:observation",
+      "policy_cid": "external:policy"
+    },
+    "local_manifest": {
+      "unit_definition_cid": "local_dependencies",
+      "local_invocation_cid": "local_computation",
+      "results/*": "external:result-artifact"
+    },
+    "local_receipt": {
+      "unit_definition_cid": "local_dependencies",
+      "local_invocation_cid": "local_computation",
+      "local_manifest_cid": "local_manifest",
+      "effect_outcome_cids/*": "local_effect_outcome",
+      "outcome_contract_cid": "external:outcome-contract",
+      "outcome_evidence_cid": "external:outcome"
+    },
+    "local_effect_outcome": {
+      "unit_definition_cid": "local_dependencies",
+      "operation_contract_cid": "external:operation-contract",
+      "correlation_contract_cid": "external:correlation-contract",
+      "guard_contract_cid": "external:guard",
+      "issuer_evidence_cid": "external:issuer",
+      "scope_cid": "external:scope",
+      "policy_cid": "external:policy",
+      "items/*/item_key_cid": "external:typed-values",
+      "items/*/input_key_cid": "external:typed-values",
+      "items/*/request_cid": "external:request",
+      "items/*/result_artifact_cid": "external:result-artifact",
+      "items/*/operation_ref_cid": "external:operation-ref",
+      "items/*/provider_evidence_cids/*": "external:provider-evidence"
+    },
+    "receipt_view": {
+      "semantic_outcome_cid": "local_effect_outcome",
+      "correlation_contract_cid": "external:correlation-contract",
+      "value_contract_cid": "external:value-contract",
+      "policy_cid": "external:policy",
+      "availability_evidence_cid": "external:availability",
+      "relation_artifact_cid": "external:result-artifact"
+    },
+    "local_dependencies": {
+      "local_body_cid": "external:local-body",
+      "used_parameter_declarations_cid": "external:parameter-contract",
+      "local_contract_closure_cid": "external:local-contracts",
+      "import_interface_cids/*": "external:import-interface",
+      "incoming_gate_contract_cids/*": "gate_requirement"
+    },
+    "gate_requirement": {
+      "effect_contracts/*": "external:operation-contract",
+      "completion_contracts/*": "external:completion-contract"
+    },
+    "external:result-artifact": {
+      "result_definition_cid": "external:result-definition",
+      "invocation_cid": "local_computation",
+      "logical_result_cid": "external:relation-value",
+      "result_schema_cid": "external:value-contract",
+      "ordering_evidence_cid": "external:order",
+      "effective_data_policy_cid": "external:policy",
+      "effective_retention_policy_cid": "external:retention",
+      "provenance_evidence_cids/*": "external:observation"
+    },
+    "projection_attestation": {
+      "semantic_cid": "semantic-root",
+      "source_audit_cids/*": "audit:captured-or-apply-receipt",
+      "membership_cid": "audit:membership",
+      "projection_law_cid": "external:projection-law",
+      "issuer_evidence_cid": "external:issuer",
+      "scope_cid": "external:scope",
+      "policy_cid": "external:policy",
+      "authentication_evidence_cid": "audit:authentication"
+    }
+  },
+  "reference_graph": [
+    {
+      "source": "local_computation",
+      "slot": "unit_definition_cid",
+      "target": "local_dependencies",
+      "role": "semantic"
+    },
+    {
+      "source": "local_computation",
+      "slot": "used_values_cid",
+      "target": "external:typed-values",
+      "role": "semantic"
+    },
+    {
+      "source": "local_computation",
+      "slot": "local_contracts_cid",
+      "target": "external:local-contracts",
+      "role": "semantic"
+    },
+    {
+      "source": "local_computation",
+      "slot": "observation_cids/*",
+      "target": "external:observation",
+      "role": "semantic"
+    },
+    {
+      "source": "local_computation",
+      "slot": "policy_cid",
+      "target": "external:policy",
+      "role": "semantic"
+    },
+    {
+      "source": "local_manifest",
+      "slot": "unit_definition_cid",
+      "target": "local_dependencies",
+      "role": "semantic"
+    },
+    {
+      "source": "local_manifest",
+      "slot": "local_invocation_cid",
+      "target": "local_computation",
+      "role": "semantic"
+    },
+    {
+      "source": "local_manifest",
+      "slot": "results/*",
+      "target": "external:result-artifact",
+      "role": "semantic"
+    },
+    {
+      "source": "local_receipt",
+      "slot": "unit_definition_cid",
+      "target": "local_dependencies",
+      "role": "semantic"
+    },
+    {
+      "source": "local_receipt",
+      "slot": "local_invocation_cid",
+      "target": "local_computation",
+      "role": "semantic"
+    },
+    {
+      "source": "local_receipt",
+      "slot": "local_manifest_cid",
+      "target": "local_manifest",
+      "role": "semantic"
+    },
+    {
+      "source": "local_receipt",
+      "slot": "effect_outcome_cids/*",
+      "target": "local_effect_outcome",
+      "role": "semantic"
+    },
+    {
+      "source": "local_receipt",
+      "slot": "outcome_contract_cid",
+      "target": "external:outcome-contract",
+      "role": "semantic"
+    },
+    {
+      "source": "local_receipt",
+      "slot": "outcome_evidence_cid",
+      "target": "external:outcome",
+      "role": "semantic"
+    },
+    {
+      "source": "local_effect_outcome",
+      "slot": "unit_definition_cid",
+      "target": "local_dependencies",
+      "role": "semantic"
+    },
+    {
+      "source": "local_effect_outcome",
+      "slot": "operation_contract_cid",
+      "target": "external:operation-contract",
+      "role": "semantic"
+    },
+    {
+      "source": "local_effect_outcome",
+      "slot": "correlation_contract_cid",
+      "target": "external:correlation-contract",
+      "role": "semantic"
+    },
+    {
+      "source": "local_effect_outcome",
+      "slot": "guard_contract_cid",
+      "target": "external:guard",
+      "role": "semantic"
+    },
+    {
+      "source": "local_effect_outcome",
+      "slot": "issuer_evidence_cid",
+      "target": "external:issuer",
+      "role": "semantic"
+    },
+    {
+      "source": "local_effect_outcome",
+      "slot": "scope_cid",
+      "target": "external:scope",
+      "role": "semantic"
+    },
+    {
+      "source": "local_effect_outcome",
+      "slot": "policy_cid",
+      "target": "external:policy",
+      "role": "semantic"
+    },
+    {
+      "source": "local_effect_outcome",
+      "slot": "items/*/item_key_cid",
+      "target": "external:typed-values",
+      "role": "semantic"
+    },
+    {
+      "source": "local_effect_outcome",
+      "slot": "items/*/input_key_cid",
+      "target": "external:typed-values",
+      "role": "semantic"
+    },
+    {
+      "source": "local_effect_outcome",
+      "slot": "items/*/request_cid",
+      "target": "external:request",
+      "role": "semantic"
+    },
+    {
+      "source": "local_effect_outcome",
+      "slot": "items/*/result_artifact_cid",
+      "target": "external:result-artifact",
+      "role": "semantic"
+    },
+    {
+      "source": "local_effect_outcome",
+      "slot": "items/*/operation_ref_cid",
+      "target": "external:operation-ref",
+      "role": "semantic"
+    },
+    {
+      "source": "local_effect_outcome",
+      "slot": "items/*/provider_evidence_cids/*",
+      "target": "external:provider-evidence",
+      "role": "semantic"
+    },
+    {
+      "source": "receipt_view",
+      "slot": "semantic_outcome_cid",
+      "target": "local_effect_outcome",
+      "role": "semantic"
+    },
+    {
+      "source": "receipt_view",
+      "slot": "correlation_contract_cid",
+      "target": "external:correlation-contract",
+      "role": "semantic"
+    },
+    {
+      "source": "receipt_view",
+      "slot": "value_contract_cid",
+      "target": "external:value-contract",
+      "role": "semantic"
+    },
+    {
+      "source": "receipt_view",
+      "slot": "policy_cid",
+      "target": "external:policy",
+      "role": "semantic"
+    },
+    {
+      "source": "receipt_view",
+      "slot": "availability_evidence_cid",
+      "target": "external:availability",
+      "role": "semantic"
+    },
+    {
+      "source": "receipt_view",
+      "slot": "relation_artifact_cid",
+      "target": "external:result-artifact",
+      "role": "semantic"
+    },
+    {
+      "source": "local_dependencies",
+      "slot": "local_body_cid",
+      "target": "external:local-body",
+      "role": "semantic"
+    },
+    {
+      "source": "local_dependencies",
+      "slot": "used_parameter_declarations_cid",
+      "target": "external:parameter-contract",
+      "role": "semantic"
+    },
+    {
+      "source": "local_dependencies",
+      "slot": "local_contract_closure_cid",
+      "target": "external:local-contracts",
+      "role": "semantic"
+    },
+    {
+      "source": "local_dependencies",
+      "slot": "import_interface_cids/*",
+      "target": "external:import-interface",
+      "role": "semantic"
+    },
+    {
+      "source": "local_dependencies",
+      "slot": "incoming_gate_contract_cids/*",
+      "target": "gate_requirement",
+      "role": "semantic"
+    },
+    {
+      "source": "gate_requirement",
+      "slot": "effect_contracts/*",
+      "target": "external:operation-contract",
+      "role": "semantic"
+    },
+    {
+      "source": "gate_requirement",
+      "slot": "completion_contracts/*",
+      "target": "external:completion-contract",
+      "role": "semantic"
+    },
+    {
+      "source": "external:result-artifact",
+      "slot": "result_definition_cid",
+      "target": "external:result-definition",
+      "role": "semantic"
+    },
+    {
+      "source": "external:result-artifact",
+      "slot": "invocation_cid",
+      "target": "local_computation",
+      "role": "semantic"
+    },
+    {
+      "source": "external:result-artifact",
+      "slot": "logical_result_cid",
+      "target": "external:relation-value",
+      "role": "semantic"
+    },
+    {
+      "source": "external:result-artifact",
+      "slot": "result_schema_cid",
+      "target": "external:value-contract",
+      "role": "semantic"
+    },
+    {
+      "source": "external:result-artifact",
+      "slot": "ordering_evidence_cid",
+      "target": "external:order",
+      "role": "semantic"
+    },
+    {
+      "source": "external:result-artifact",
+      "slot": "effective_data_policy_cid",
+      "target": "external:policy",
+      "role": "semantic"
+    },
+    {
+      "source": "external:result-artifact",
+      "slot": "effective_retention_policy_cid",
+      "target": "external:retention",
+      "role": "semantic"
+    },
+    {
+      "source": "external:result-artifact",
+      "slot": "provenance_evidence_cids/*",
+      "target": "external:observation",
+      "role": "semantic"
+    },
+    {
+      "source": "projection_attestation",
+      "slot": "semantic_cid",
+      "target": "semantic-root",
+      "role": "authentication"
+    },
+    {
+      "source": "projection_attestation",
+      "slot": "source_audit_cids/*",
+      "target": "audit:captured-or-apply-receipt",
+      "role": "authentication"
+    },
+    {
+      "source": "projection_attestation",
+      "slot": "membership_cid",
+      "target": "audit:membership",
+      "role": "authentication"
+    },
+    {
+      "source": "projection_attestation",
+      "slot": "projection_law_cid",
+      "target": "external:projection-law",
+      "role": "authentication"
+    },
+    {
+      "source": "projection_attestation",
+      "slot": "issuer_evidence_cid",
+      "target": "external:issuer",
+      "role": "authentication"
+    },
+    {
+      "source": "projection_attestation",
+      "slot": "scope_cid",
+      "target": "external:scope",
+      "role": "authentication"
+    },
+    {
+      "source": "projection_attestation",
+      "slot": "policy_cid",
+      "target": "external:policy",
+      "role": "authentication"
+    },
+    {
+      "source": "projection_attestation",
+      "slot": "authentication_evidence_cid",
+      "target": "audit:authentication",
+      "role": "authentication"
+    }
+  ],
+  "laws": {
+    "lifecycle": {
+      "order": "stages lower to ordinary finite Run Graph nodes and explicit control edges; no stage runtime branch",
+      "activation": "all control milestones AND verified bindings AND current node admission; applied satisfies accepted; no hoisting",
+      "failure": "unit-wide success barrier; unknown reconciles; explicit general failure/token routing remains legal",
+      "publication": "all local Results; graph output index references existing artifacts; no second Invocation",
+      "extraction": "lower_stages and load(extract_stage_programs) have identical canonical typed graph and common execution laws",
+      "commit": "common commit scope before capture; final valid accepted requires no undeclared provider completion"
+    },
+    "identity": {
+      "definition": "typed stable Program/node namespace and complete local body, used declarations, import interfaces, incoming gates; no parent revision or position",
+      "observation": "local Invocation binds local definition, effective values, contract closure and exact required observations/issuer/policy/provenance",
+      "recovery": "logical request/item locator before exact Preview dispatch key; physical Run identity excluded transitively",
+      "self_cid": "canonical AoA JSON without self_cid; referenced evidence must resolve with kind, scope and semantic validation",
+      "authentication": "detached authentication signs payload CID excluding self_cid and authentication_evidence_cid; verify pinned issuer and algorithm",
+      "success": "graph_success precedes output index and final graph receipt; it cannot reference either future artifact",
+      "membership": "global Program/lock/revision/Run links are separately authenticated; no transitive ancestry into local Preview/review/locator/dispatch",
+      "keys": "target and item reuse existing typed values; new runtime keys are stable locator and exact dispatch; fingerprint detects changed intent"
+    },
+    "admission": {
+      "schema": "JSON Schema is necessary, not sufficient; no incoming artifact normalization or default insertion",
+      "stage": "unique stage IDs, prior-only imports, exact exports and contracts, immutable parameters and engine pins",
+      "ledger": "fencing; same key/different request rejects; absent history does not prove initial dispatch",
+      "authorization": "authenticated human/policy proposition; template eligibility and concrete substitution separate",
+      "numeric": "finite number or typed empty NULL; exact contributors/count/group/filter; replay never recomputes",
+      "model": "ok requires typed value, real response and response issuer; failure has no typed value, optional actual error response and mandatory outcome evidence; no response is null, not empty bytes; strict publishes no Relation",
+      "normalization": "raw_count = normalized_count + excluded_count; first_by_order requires independent total order",
+      "completion": "failed/cancelled/expired is not completed success; non-null results require availability and original OperationRef contract proof",
+      "exceptional_commit": "separate operator claim, exact fenced state/batch/unmet list and generation CAS; cancelled/timed_out/budget_exhausted/rejected preserve original outcome and all item evidence; unknown/accepted_pending descendants require durable handoff, never abandonment or success relabeling",
+      "classification": "published default only for absent label; invalid/unmapped/conflicting policy rejects; issuer/Ref/capture policy agrees without relabeling",
+      "stamp": "declared recipe/management writes plus business permissions and footprint; current denial means zero writes; overwritten last_stamp is not not_applied proof",
+      "routing": "closed semantic facts, no AST/meta/count proxies; cumulative actual risk not reset per node; packaging alone cannot add review",
+      "derive": "map snapshot/add-only, array prior-slot/input-preserving shadow, unique NFC outputs; common row frame and budgets; select closes fields"
+    },
+    "implementation": {
+      "status": "specified-not-executed",
+      "staged_runtime_claim": false
+    }
+  },
+  "schema_cids": {
+    "local_computation": "sha256:22055f9d843378b5a5d98a9b882a69bcc4229a448f97e1022685613e4340cbd3",
+    "local_manifest": "sha256:6cbac35670ed81677b720381efee43a8f1aeccff4fa331e0dde27e0f018d5098",
+    "local_result_artifact": "sha256:16f69bbc38782a3ea42fafcfbbd992f9d1356a68c70dd1182cb102e269db04f1",
+    "local_effect_outcome": "sha256:8a56e3e7d5139fef571da480831e0df45c95beb96c228e737efdb12a1ef0b98d",
+    "projection_attestation": "sha256:27c8c8a1215b705b6553f4db128f73c905b1c6a5f0c7d72c398e02541e7dc805",
+    "gate_requirement": "sha256:7556fa58d35f66d498511ef31800cddda05bacdb1f4eba7d654010ee9994351d",
+    "data_requirement": "sha256:271f95c2ebe994717bd97fd1ea527c53663f77dbf6d3f01779c41bb480b5bd35",
+    "commit_scope": "sha256:087ce38cb682aedfce9ef5658bf22133df549608668d2c6361f913c9a2cea22d",
+    "graph_execution_definition": "sha256:1631353b8af6dfe7363b3e09afdc96ce5a55ef1edc0eb188f73ac5fa6e542952",
+    "graph_shared_context": "sha256:8df501dc3d23a6342066379d942f696174ae83464e24a082f1a35b6f4945e2c0",
+    "graph_execution_lock": "sha256:4a32e2ee2507e68dbb2f9319d6cf978741bfbb7c1ba77ae6f79cc9b08185006d",
+    "stage_semantics": "sha256:c9fdde04da54089003a628cae27f01c118f59e359dff7cacdd09f6eb86c9f2e3",
+    "program_semantics": "sha256:89152a5f20ffdf17f321f40cf21d57c691ba5c30772d0aac2545888786a98ba0",
+    "pending_predecessor": "sha256:106477c9d966e26f10aa733e1a4bc91c0c112a1d43b262060a85bd4534b85147",
+    "model_execution_contract": "sha256:c940f10b2c6c9dac5aa4b9451361445bb25dfd6620f5e5be0f08ad67d54750a5",
+    "inference_plan": "sha256:aad4fcf3d6c9a4117c00e141e1abc6b640bb0ef1a6dbae5c54a475eaac8093d1",
+    "effective_parameters": "sha256:04939dfe6b67c50916bd2dad281a2ecc4e89d21c27607a86157f2d918f063fdd",
+    "derive_binding": "sha256:b6a35f38e753f19ffd9f4c3265ff4865f85415a3b194bdbf280115227a03ac34",
+    "checked_program": "sha256:9cd57d2b8868b343f5e03afc14e9c890401093052628b5b6aab0d8e12aec29d4",
+    "node_plan": "sha256:b7e43d91097f0424671e001123a1e71752065a7cdfb63fda8298e85d7e302001",
+    "membership": "sha256:be3ea349d346317939af46d20a883c4c6d8087cb5b42ed2d57117ec8270f61c5",
+    "activation": "sha256:5f9c1d24c764ce33a350969e4fe07d56ead5c1e8df184c8872adce40a5792fba",
+    "local_receipt": "sha256:00965a81fd89d80964295525f9f4f151cf7bc250f8f10539bfb4e83dc319d01a",
+    "completion_evidence": "sha256:fb3a8c295b5069f4e7490ee97be9897d20e2ab97ca82874c9bb98146cf02fae7",
+    "graph_success": "sha256:3ca71240e13c2ae429eb48a3069d2c378c7ef6abefc53a7cb4754269aedbec4b",
+    "receipt_view": "sha256:411418a07c7422158e47cd3ca5cd9befe12d50b0de056206eae0596a12e9df1e",
+    "graph_outputs": "sha256:d0bbdb49780ca608792eca708ae6bc7dfbf79b2b63dcf768ad9d7e3d47b4c5ce",
+    "logical_request": "sha256:182296e19f04bbe04b1088213a20397486374ac42d9fd54379c9f942b33f649c",
+    "ledger_entry": "sha256:742fc9a5260f71181d27758aa842b1d674660c88b51c1bf8073370c7a9c5e57a",
+    "risk_acceptance": "sha256:fc73a9f0e8db05f04bc47f74f5101a61496cc3341a8df73bc4d9e43ac522d570",
+    "template_approval": "sha256:a55fff821004ba45c57bbc0e7910d2a1d23134f056ff9d2f2f8e7f6f43e96d2e",
+    "template_instantiation": "sha256:525028fdd701aab546c52f87aad69e008262f3107093d62361b8eadf2a2b0ac3",
+    "approval_renewal": "sha256:f3e64e5cab0b7b74b00224fcd8011c129438bc4ea7e4258a1010442065ecf1b5",
+    "catalog_generation": "sha256:9b53ba0d40b1795ed953f33e2cbc7b5e2c649bea8992712e3a6df0de73e47c52",
+    "input_normalization": "sha256:288bdc94b5c45567c71b8b7129303d5358ba5418e6219bdbb9a2e96ca1d2690b",
+    "numeric_observation": "sha256:a6339065c171308f9c4fa637ce2110b75b5cbaa0a4d6d0e708ca52cef0d69688",
+    "model_slot_capture": "sha256:a9d707b52b274a066a3b30d196c2b2da4144db960b5eae9695ac86e1fd3f503a",
+    "behavioral_repair": "sha256:9571db73c3ba7869603bc3e9ba15054172e05a79f056348d5f74b1638e9fdc45",
+    "local_dependencies": "sha256:22a2636742d270464988e350adc168af898987e83f620cba893efb091d9f49e8",
+    "recovery_link": "sha256:76a96bfbd35b3614ea8ae4cea96ec13953d164c8a8a36868d791d2fae41f7d85",
+    "source_advance_claim": "sha256:cbd592cd24ee74462fadf765ccf7354ba1dc64c376c476720a82508f6d01df51",
+    "commit_eligibility": "sha256:9d90efc4c81d15691e3c26d4a10a7252ff04c781a88afc387a69cdd22869d967",
+    "classification_derivation": "sha256:6820601d432bcc0fb61250cd021e140446ea33e9b4a1b4c0c90c839ae0a687a6",
+    "stamp_capability": "sha256:53a6aa36eb0bfd9fa6df153fff563893435d56a7d5aad7d7adbd7cf8a90dbd03",
+    "risk_facts": "sha256:df89b3058a2410355a01ecf90cf90756424fc3d7028f64ee825a60cf966961ec"
+  }
+}

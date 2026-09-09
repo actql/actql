@@ -1,0 +1,791 @@
+{
+  "version": "actql-common-graph-fixtures/0.1",
+  "notation": "@ names are explicit synthetic contract leaves; # names reference complete fixture artifact bodies; node:stage:role:slot expands to canonical JSON [Program.id,stage,role,slot]. The loader only resolves handles and hashes, never lowers source.",
+  "cases": [
+    {
+      "name": "parent-child-notification",
+      "program": "parent-child-notify.aql",
+      "context": {
+        "namespace": "fixture.parent_child_notify",
+        "completion_effects": [],
+        "capture": {
+          "producer_stage": "parents",
+          "input": "requested",
+          "admission": "Synthetic Connector SourceView over the original typed input contract; enrolled before capture."
+        },
+        "source_overrides": {
+          "parents": {
+            "requested": {
+              "connector": "fixture/changes",
+              "resource": "Records",
+              "view": "changes",
+              "scan": {
+                "mode": "changes"
+              }
+            }
+          }
+        }
+      },
+      "expected": {
+        "base": {
+          "version": "actql-run-graph-definition/0.1",
+          "nodes": [
+            {
+              "node_id": "node:parents:compute:",
+              "kind": "program_invocation",
+              "program_definition_cid": "@unit:parents",
+              "actql_lock_cid": "@lock:parents",
+              "retry_mode": "replay-computation-same-observation-set"
+            },
+            {
+              "node_id": "node:parents:apply:create_parent",
+              "kind": "effect_apply",
+              "effect_name": "create_parent",
+              "retry_mode": "retry-idempotent-effect",
+              "activation": {
+                "all": [
+                  {
+                    "node_id": "node:parents:compute:",
+                    "outcome": "completed"
+                  }
+                ]
+              }
+            },
+            {
+              "node_id": "node:children:compute:",
+              "kind": "program_invocation",
+              "program_definition_cid": "@unit:children",
+              "actql_lock_cid": "@lock:children",
+              "retry_mode": "replay-computation-same-observation-set"
+            },
+            {
+              "node_id": "node:children:apply:create_child",
+              "kind": "effect_apply",
+              "effect_name": "create_child",
+              "retry_mode": "retry-idempotent-effect",
+              "activation": {
+                "all": [
+                  {
+                    "node_id": "node:children:compute:",
+                    "outcome": "completed"
+                  }
+                ]
+              }
+            },
+            {
+              "node_id": "node:notify:compute:",
+              "kind": "program_invocation",
+              "program_definition_cid": "@unit:notify",
+              "actql_lock_cid": "@lock:notify",
+              "retry_mode": "replay-computation-same-observation-set"
+            },
+            {
+              "node_id": "node:notify:apply:notify_success",
+              "kind": "effect_apply",
+              "effect_name": "notify_success",
+              "retry_mode": "retry-idempotent-effect",
+              "activation": {
+                "all": [
+                  {
+                    "node_id": "node:notify:compute:",
+                    "outcome": "completed"
+                  }
+                ]
+              }
+            }
+          ],
+          "control_token_contracts": [],
+          "bindings": [
+            {
+              "from": {
+                "node_id": "node:parents:compute:",
+                "port": "effects.create_parent.preview"
+              },
+              "to": {
+                "node_id": "node:parents:apply:create_parent",
+                "port": "preview"
+              },
+              "artifact_kind": "effect_preview",
+              "artifact_contract_cid": "@preview-contract"
+            },
+            {
+              "from": {
+                "node_id": "node:children:compute:",
+                "port": "effects.create_child.preview"
+              },
+              "to": {
+                "node_id": "node:children:apply:create_child",
+                "port": "preview"
+              },
+              "artifact_kind": "effect_preview",
+              "artifact_contract_cid": "@preview-contract"
+            },
+            {
+              "from": {
+                "node_id": "node:notify:compute:",
+                "port": "effects.notify_success.preview"
+              },
+              "to": {
+                "node_id": "node:notify:apply:notify_success",
+                "port": "preview"
+              },
+              "artifact_kind": "effect_preview",
+              "artifact_contract_cid": "@preview-contract"
+            }
+          ],
+          "resource_budget": {
+            "max_node_attempts": 32,
+            "max_elapsed_ms": 60000,
+            "max_timer_ms": 30000,
+            "max_task_cost_units": 100,
+            "max_artifact_bytes": 100000
+          }
+        },
+        "gates": {
+          "gate:parents:accepted": {
+            "version": "actql-graph-success-requirement/0.1",
+            "producer_node_id": "node:parents:compute:",
+            "milestone": "accepted",
+            "effect_contracts": {
+              "create_parent": "@command:create_parent"
+            },
+            "effect_nodes": {
+              "create_parent": "node:parents:apply:create_parent"
+            },
+            "completion_contracts": {},
+            "completion_nodes": {},
+            "empty_items": "require-successful-computation-and-preflight"
+          },
+          "gate:parents:completed": {
+            "version": "actql-graph-success-requirement/0.1",
+            "producer_node_id": "node:parents:compute:",
+            "milestone": "completed",
+            "effect_contracts": {
+              "create_parent": "@command:create_parent"
+            },
+            "effect_nodes": {
+              "create_parent": "node:parents:apply:create_parent"
+            },
+            "completion_contracts": {},
+            "completion_nodes": {},
+            "empty_items": "require-successful-computation-and-preflight"
+          },
+          "gate:children:accepted": {
+            "version": "actql-graph-success-requirement/0.1",
+            "producer_node_id": "node:children:compute:",
+            "milestone": "accepted",
+            "effect_contracts": {
+              "create_child": "@command:create_child"
+            },
+            "effect_nodes": {
+              "create_child": "node:children:apply:create_child"
+            },
+            "completion_contracts": {},
+            "completion_nodes": {},
+            "empty_items": "require-successful-computation-and-preflight"
+          },
+          "gate:children:completed": {
+            "version": "actql-graph-success-requirement/0.1",
+            "producer_node_id": "node:children:compute:",
+            "milestone": "completed",
+            "effect_contracts": {
+              "create_child": "@command:create_child"
+            },
+            "effect_nodes": {
+              "create_child": "node:children:apply:create_child"
+            },
+            "completion_contracts": {},
+            "completion_nodes": {},
+            "empty_items": "require-successful-computation-and-preflight"
+          },
+          "gate:notify:accepted": {
+            "version": "actql-graph-success-requirement/0.1",
+            "producer_node_id": "node:notify:compute:",
+            "milestone": "accepted",
+            "effect_contracts": {
+              "notify_success": "@command:notify_success"
+            },
+            "effect_nodes": {
+              "notify_success": "node:notify:apply:notify_success"
+            },
+            "completion_contracts": {},
+            "completion_nodes": {},
+            "empty_items": "require-successful-computation-and-preflight"
+          },
+          "gate:notify:completed": {
+            "version": "actql-graph-success-requirement/0.1",
+            "producer_node_id": "node:notify:compute:",
+            "milestone": "completed",
+            "effect_contracts": {
+              "notify_success": "@command:notify_success"
+            },
+            "effect_nodes": {
+              "notify_success": "node:notify:apply:notify_success"
+            },
+            "completion_contracts": {},
+            "completion_nodes": {},
+            "empty_items": "require-successful-computation-and-preflight"
+          }
+        },
+        "data": {
+          "data:children:created": {
+            "version": "actql-graph-data-requirement/0.1",
+            "producer_node_id": "node:parents:apply:create_parent",
+            "producer_port": "receipt",
+            "consumer_node_id": "node:children:compute:",
+            "input_name": "created",
+            "artifact_kind": "receipt_view",
+            "value_contract_cid": "@port:parents:create_parent",
+            "availability": "completed"
+          }
+        },
+        "scopes": {
+          "scope:parents:requested": {
+            "version": "actql-graph-commit-scope-definition/0.1",
+            "producer_node_id": "node:parents:compute:",
+            "source_input": "requested",
+            "source_contract_cid": "@source:parents",
+            "checkpoint_contract_cid": "@checkpoint",
+            "ownership_contract_cid": "@ownership",
+            "state_partition_contract_cid": "@partition",
+            "policy_cid": "@policy",
+            "required_gate_cids": [
+              "#gate:parents:completed",
+              "#gate:children:completed",
+              "#gate:notify:completed"
+            ],
+            "enrollment": "before_capture"
+          }
+        },
+        "extension": {
+          "version": "actql-run-graph-execution-definition/0.1",
+          "base_graph_definition_cid": "#base",
+          "shared_context_contract_cid": "#shared",
+          "gate_requirements": {
+            "gate:parents:accepted": "#gate:parents:accepted",
+            "gate:parents:completed": "#gate:parents:completed",
+            "gate:children:accepted": "#gate:children:accepted",
+            "gate:children:completed": "#gate:children:completed",
+            "gate:notify:accepted": "#gate:notify:accepted",
+            "gate:notify:completed": "#gate:notify:completed"
+          },
+          "data_requirements": {
+            "data:children:created": "#data:children:created"
+          },
+          "commit_scopes": {
+            "scope:parents:requested": "#scope:parents:requested"
+          },
+          "node_requirements": {
+            "node:parents:compute:": {
+              "control": [],
+              "data": []
+            },
+            "node:parents:apply:create_parent": {
+              "control": [],
+              "data": []
+            },
+            "node:children:compute:": {
+              "control": [
+                "#gate:parents:completed"
+              ],
+              "data": [
+                "#data:children:created"
+              ]
+            },
+            "node:children:apply:create_child": {
+              "control": [],
+              "data": []
+            },
+            "node:notify:compute:": {
+              "control": [
+                "#gate:children:completed"
+              ],
+              "data": []
+            },
+            "node:notify:apply:notify_success": {
+              "control": [],
+              "data": []
+            }
+          },
+          "exports": {
+            "response": {
+              "node_id": "node:notify:compute:",
+              "result_name": "response",
+              "value_contract_cid": "@port:notify:response"
+            }
+          }
+        },
+        "lock": {
+          "version": "actql-run-graph-execution-lock/0.1",
+          "execution_definition_cid": "#extension",
+          "base_graph_lock_cid": "@base-lock",
+          "extension_contract_cid": "@extension-contract",
+          "extracted_unit_contracts": {
+            "node:parents:compute:": "@unit:parents",
+            "node:children:compute:": "@unit:children",
+            "node:notify:compute:": "@unit:notify"
+          }
+        },
+        "shared": {
+          "version": "actql-run-graph-shared-context/0.1",
+          "engine_contract_cid": "@engine-contract",
+          "effective_parameters_cid": "@effective-parameters",
+          "whole_lock_cid": "@base-lock",
+          "resource_budget_cid": "#budget",
+          "logical_request_contract_cid": "@logical-request-contract",
+          "source_ownership_contract_cid": "@ownership"
+        }
+      }
+    },
+    {
+      "name": "upload-attach",
+      "program": "upload-attach.aql",
+      "context": {
+        "namespace": "fixture.upload_attach",
+        "completion_effects": [
+          [
+            "upload",
+            "upload_file"
+          ]
+        ],
+        "capture": null,
+        "stage_overrides": {
+          "attach": {
+            "after": "accepted"
+          }
+        }
+      },
+      "expected": {
+        "base": {
+          "version": "actql-run-graph-definition/0.1",
+          "nodes": [
+            {
+              "node_id": "node:upload:compute:",
+              "kind": "program_invocation",
+              "program_definition_cid": "@unit:upload",
+              "actql_lock_cid": "@lock:upload",
+              "retry_mode": "replay-computation-same-observation-set"
+            },
+            {
+              "node_id": "node:upload:apply:upload_file",
+              "kind": "effect_apply",
+              "effect_name": "upload_file",
+              "retry_mode": "retry-idempotent-effect",
+              "activation": {
+                "all": [
+                  {
+                    "node_id": "node:upload:compute:",
+                    "outcome": "completed"
+                  }
+                ]
+              }
+            },
+            {
+              "node_id": "node:upload:completion:upload_file",
+              "kind": "observation_capture",
+              "capture_contract_cid": "@completion:upload_file"
+            },
+            {
+              "node_id": "node:attach:compute:",
+              "kind": "program_invocation",
+              "program_definition_cid": "@unit:attach",
+              "actql_lock_cid": "@lock:attach",
+              "retry_mode": "replay-computation-same-observation-set"
+            },
+            {
+              "node_id": "node:attach:apply:attach_file",
+              "kind": "effect_apply",
+              "effect_name": "attach_file",
+              "retry_mode": "retry-idempotent-effect",
+              "activation": {
+                "all": [
+                  {
+                    "node_id": "node:attach:compute:",
+                    "outcome": "completed"
+                  }
+                ]
+              }
+            }
+          ],
+          "control_token_contracts": [],
+          "bindings": [
+            {
+              "from": {
+                "node_id": "node:upload:compute:",
+                "port": "effects.upload_file.preview"
+              },
+              "to": {
+                "node_id": "node:upload:apply:upload_file",
+                "port": "preview"
+              },
+              "artifact_kind": "effect_preview",
+              "artifact_contract_cid": "@preview-contract"
+            },
+            {
+              "from": {
+                "node_id": "node:attach:compute:",
+                "port": "effects.attach_file.preview"
+              },
+              "to": {
+                "node_id": "node:attach:apply:attach_file",
+                "port": "preview"
+              },
+              "artifact_kind": "effect_preview",
+              "artifact_contract_cid": "@preview-contract"
+            }
+          ],
+          "resource_budget": {
+            "max_node_attempts": 32,
+            "max_elapsed_ms": 60000,
+            "max_timer_ms": 30000,
+            "max_task_cost_units": 100,
+            "max_artifact_bytes": 100000
+          }
+        },
+        "gates": {
+          "gate:upload:accepted": {
+            "version": "actql-graph-success-requirement/0.1",
+            "producer_node_id": "node:upload:compute:",
+            "milestone": "accepted",
+            "effect_contracts": {
+              "upload_file": "@command:upload_file"
+            },
+            "effect_nodes": {
+              "upload_file": "node:upload:apply:upload_file"
+            },
+            "completion_contracts": {
+              "upload_file": "@completion:upload_file"
+            },
+            "completion_nodes": {
+              "upload_file": "node:upload:completion:upload_file"
+            },
+            "empty_items": "require-successful-computation-and-preflight"
+          },
+          "gate:upload:completed": {
+            "version": "actql-graph-success-requirement/0.1",
+            "producer_node_id": "node:upload:compute:",
+            "milestone": "completed",
+            "effect_contracts": {
+              "upload_file": "@command:upload_file"
+            },
+            "effect_nodes": {
+              "upload_file": "node:upload:apply:upload_file"
+            },
+            "completion_contracts": {
+              "upload_file": "@completion:upload_file"
+            },
+            "completion_nodes": {
+              "upload_file": "node:upload:completion:upload_file"
+            },
+            "empty_items": "require-successful-computation-and-preflight"
+          },
+          "gate:attach:accepted": {
+            "version": "actql-graph-success-requirement/0.1",
+            "producer_node_id": "node:attach:compute:",
+            "milestone": "accepted",
+            "effect_contracts": {
+              "attach_file": "@command:attach_file"
+            },
+            "effect_nodes": {
+              "attach_file": "node:attach:apply:attach_file"
+            },
+            "completion_contracts": {},
+            "completion_nodes": {},
+            "empty_items": "require-successful-computation-and-preflight"
+          },
+          "gate:attach:completed": {
+            "version": "actql-graph-success-requirement/0.1",
+            "producer_node_id": "node:attach:compute:",
+            "milestone": "completed",
+            "effect_contracts": {
+              "attach_file": "@command:attach_file"
+            },
+            "effect_nodes": {
+              "attach_file": "node:attach:apply:attach_file"
+            },
+            "completion_contracts": {},
+            "completion_nodes": {},
+            "empty_items": "require-successful-computation-and-preflight"
+          }
+        },
+        "data": {
+          "data:attach:uploaded": {
+            "version": "actql-graph-data-requirement/0.1",
+            "producer_node_id": "node:upload:apply:upload_file",
+            "producer_port": "receipt",
+            "consumer_node_id": "node:attach:compute:",
+            "input_name": "uploaded",
+            "artifact_kind": "receipt_view",
+            "value_contract_cid": "@port:upload:upload_file",
+            "availability": "completed"
+          },
+          "data:attach:requested": {
+            "version": "actql-graph-data-requirement/0.1",
+            "producer_node_id": "node:upload:compute:",
+            "producer_port": "results.requested",
+            "consumer_node_id": "node:attach:compute:",
+            "input_name": "requested",
+            "artifact_kind": "local_result",
+            "value_contract_cid": "@port:upload:requested",
+            "availability": "stage_success"
+          },
+          "data:upload:completion:upload_file": {
+            "version": "actql-graph-data-requirement/0.1",
+            "producer_node_id": "node:upload:apply:upload_file",
+            "producer_port": "receipt",
+            "consumer_node_id": "node:upload:completion:upload_file",
+            "input_name": "artifact",
+            "artifact_kind": "completion_source",
+            "value_contract_cid": "@completion:upload_file",
+            "availability": "accepted"
+          }
+        },
+        "scopes": {},
+        "extension": {
+          "version": "actql-run-graph-execution-definition/0.1",
+          "base_graph_definition_cid": "#base",
+          "shared_context_contract_cid": "#shared",
+          "gate_requirements": {
+            "gate:upload:accepted": "#gate:upload:accepted",
+            "gate:upload:completed": "#gate:upload:completed",
+            "gate:attach:accepted": "#gate:attach:accepted",
+            "gate:attach:completed": "#gate:attach:completed"
+          },
+          "data_requirements": {
+            "data:attach:uploaded": "#data:attach:uploaded",
+            "data:attach:requested": "#data:attach:requested",
+            "data:upload:completion:upload_file": "#data:upload:completion:upload_file"
+          },
+          "commit_scopes": {},
+          "node_requirements": {
+            "node:upload:compute:": {
+              "control": [],
+              "data": []
+            },
+            "node:upload:apply:upload_file": {
+              "control": [],
+              "data": []
+            },
+            "node:attach:compute:": {
+              "control": [
+                "#gate:upload:accepted"
+              ],
+              "data": [
+                "#data:attach:uploaded",
+                "#data:attach:requested"
+              ]
+            },
+            "node:attach:apply:attach_file": {
+              "control": [],
+              "data": []
+            },
+            "node:upload:completion:upload_file": {
+              "control": [
+                "#gate:upload:accepted"
+              ],
+              "data": [
+                "#data:upload:completion:upload_file"
+              ]
+            }
+          },
+          "exports": {
+            "response": {
+              "node_id": "node:attach:compute:",
+              "result_name": "response",
+              "value_contract_cid": "@port:attach:response"
+            }
+          }
+        },
+        "lock": {
+          "version": "actql-run-graph-execution-lock/0.1",
+          "execution_definition_cid": "#extension",
+          "base_graph_lock_cid": "@base-lock",
+          "extension_contract_cid": "@extension-contract",
+          "extracted_unit_contracts": {
+            "node:upload:compute:": "@unit:upload",
+            "node:attach:compute:": "@unit:attach"
+          }
+        },
+        "shared": {
+          "version": "actql-run-graph-shared-context/0.1",
+          "engine_contract_cid": "@engine-contract",
+          "effective_parameters_cid": "@effective-parameters",
+          "whole_lock_cid": "@base-lock",
+          "resource_budget_cid": "#budget",
+          "logical_request_contract_cid": "@logical-request-contract",
+          "source_ownership_contract_cid": "@ownership"
+        }
+      }
+    },
+    {
+      "name": "webhook-update",
+      "program": "webhook-dedupe.aql",
+      "context": {
+        "namespace": "fixture.webhook_dedupe",
+        "completion_effects": [],
+        "capture": {
+          "producer_stage": "update",
+          "input": "requested",
+          "admission": "Synthetic Connector SourceView over the original typed input contract; enrolled before capture."
+        },
+        "source_overrides": {
+          "update": {
+            "requested": {
+              "connector": "fixture/changes",
+              "resource": "Records",
+              "view": "changes",
+              "scan": {
+                "mode": "changes"
+              }
+            }
+          }
+        }
+      },
+      "expected": {
+        "base": {
+          "version": "actql-run-graph-definition/0.1",
+          "nodes": [
+            {
+              "node_id": "node:update:compute:",
+              "kind": "program_invocation",
+              "program_definition_cid": "@unit:update",
+              "actql_lock_cid": "@lock:update",
+              "retry_mode": "replay-computation-same-observation-set"
+            },
+            {
+              "node_id": "node:update:apply:update_record",
+              "kind": "effect_apply",
+              "effect_name": "update_record",
+              "retry_mode": "retry-idempotent-effect",
+              "activation": {
+                "all": [
+                  {
+                    "node_id": "node:update:compute:",
+                    "outcome": "completed"
+                  }
+                ]
+              }
+            }
+          ],
+          "control_token_contracts": [],
+          "bindings": [
+            {
+              "from": {
+                "node_id": "node:update:compute:",
+                "port": "effects.update_record.preview"
+              },
+              "to": {
+                "node_id": "node:update:apply:update_record",
+                "port": "preview"
+              },
+              "artifact_kind": "effect_preview",
+              "artifact_contract_cid": "@preview-contract"
+            }
+          ],
+          "resource_budget": {
+            "max_node_attempts": 32,
+            "max_elapsed_ms": 60000,
+            "max_timer_ms": 30000,
+            "max_task_cost_units": 100,
+            "max_artifact_bytes": 100000
+          }
+        },
+        "gates": {
+          "gate:update:accepted": {
+            "version": "actql-graph-success-requirement/0.1",
+            "producer_node_id": "node:update:compute:",
+            "milestone": "accepted",
+            "effect_contracts": {
+              "update_record": "@command:update_record"
+            },
+            "effect_nodes": {
+              "update_record": "node:update:apply:update_record"
+            },
+            "completion_contracts": {},
+            "completion_nodes": {},
+            "empty_items": "require-successful-computation-and-preflight"
+          },
+          "gate:update:completed": {
+            "version": "actql-graph-success-requirement/0.1",
+            "producer_node_id": "node:update:compute:",
+            "milestone": "completed",
+            "effect_contracts": {
+              "update_record": "@command:update_record"
+            },
+            "effect_nodes": {
+              "update_record": "node:update:apply:update_record"
+            },
+            "completion_contracts": {},
+            "completion_nodes": {},
+            "empty_items": "require-successful-computation-and-preflight"
+          }
+        },
+        "data": {},
+        "scopes": {
+          "scope:update:requested": {
+            "version": "actql-graph-commit-scope-definition/0.1",
+            "producer_node_id": "node:update:compute:",
+            "source_input": "requested",
+            "source_contract_cid": "@source:update",
+            "checkpoint_contract_cid": "@checkpoint",
+            "ownership_contract_cid": "@ownership",
+            "state_partition_contract_cid": "@partition",
+            "policy_cid": "@policy",
+            "required_gate_cids": [
+              "#gate:update:completed"
+            ],
+            "enrollment": "before_capture"
+          }
+        },
+        "extension": {
+          "version": "actql-run-graph-execution-definition/0.1",
+          "base_graph_definition_cid": "#base",
+          "shared_context_contract_cid": "#shared",
+          "gate_requirements": {
+            "gate:update:accepted": "#gate:update:accepted",
+            "gate:update:completed": "#gate:update:completed"
+          },
+          "data_requirements": {},
+          "commit_scopes": {
+            "scope:update:requested": "#scope:update:requested"
+          },
+          "node_requirements": {
+            "node:update:compute:": {
+              "control": [],
+              "data": []
+            },
+            "node:update:apply:update_record": {
+              "control": [],
+              "data": []
+            }
+          },
+          "exports": {
+            "response": {
+              "node_id": "node:update:compute:",
+              "result_name": "requested",
+              "value_contract_cid": "@port:update:requested"
+            }
+          }
+        },
+        "lock": {
+          "version": "actql-run-graph-execution-lock/0.1",
+          "execution_definition_cid": "#extension",
+          "base_graph_lock_cid": "@base-lock",
+          "extension_contract_cid": "@extension-contract",
+          "extracted_unit_contracts": {
+            "node:update:compute:": "@unit:update"
+          }
+        },
+        "shared": {
+          "version": "actql-run-graph-shared-context/0.1",
+          "engine_contract_cid": "@engine-contract",
+          "effective_parameters_cid": "@effective-parameters",
+          "whole_lock_cid": "@base-lock",
+          "resource_budget_cid": "#budget",
+          "logical_request_contract_cid": "@logical-request-contract",
+          "source_ownership_contract_cid": "@ownership"
+        }
+      }
+    }
+  ]
+}

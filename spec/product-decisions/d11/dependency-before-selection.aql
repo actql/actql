@@ -1,0 +1,43 @@
+version: actql/0.1
+id: fixture.derive_dependencies
+stages:
+  - id: main
+    inputs:
+      rows:
+        carrier: relation
+        schema:
+          id:
+            type: string
+            nullable: false
+          raw_amount:
+            type: string
+            nullable: false
+          private_note:
+            type: string
+            nullable: true
+        primary_key:
+          - id
+    from: rows
+    steps:
+      - derive:
+          - amount: to_number(raw_amount)
+          - doubled: amount * 2
+      - select:
+          - id
+          - amount
+          - doubled
+        as: calculated
+    results:
+      response:
+        from: calculated
+        fields:
+          - id
+          - amount
+          - doubled
+        order_by:
+          - id: asc
+results:
+  response:
+    from:
+      stage: main
+      result: response

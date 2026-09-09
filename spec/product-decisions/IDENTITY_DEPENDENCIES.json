@@ -1,0 +1,129 @@
+{
+  "notation": "Symbolic identity dependencies for independent acceptance fixtures.",
+  "preimage_dependencies": {
+    "unit_namespace": [],
+    "local_body": [],
+    "local_parameter_declarations": [],
+    "import_interfaces": [],
+    "incoming_gate_contracts": [],
+    "local_effective_values": [],
+    "local_contract_closure": [],
+    "local_observations": [],
+    "target_scope_and_guards": [],
+    "business_intents": [],
+    "stamp_recipe": [],
+    "resolved_limits": [],
+    "local_review_metadata": [],
+    "shared_review_metadata": [],
+    "logical_request_scope": [],
+    "item_correlation": [],
+    "all_unit_descriptors": [
+      "unit_definition"
+    ],
+    "all_wiring": [],
+    "all_exports": [],
+    "all_parameters": [],
+    "whole_lock": [],
+    "unit_definition": [
+      "unit_namespace",
+      "local_body",
+      "local_parameter_declarations",
+      "import_interfaces",
+      "incoming_gate_contracts"
+    ],
+    "program_definition": [
+      "all_unit_descriptors",
+      "all_wiring",
+      "all_exports",
+      "all_parameters"
+    ],
+    "node_invocation": [
+      "unit_definition",
+      "local_effective_values",
+      "local_contract_closure",
+      "local_observations"
+    ],
+    "node_result": [
+      "node_invocation"
+    ],
+    "exact_preview": [
+      "unit_definition",
+      "local_effective_values",
+      "local_contract_closure",
+      "local_observations",
+      "node_result",
+      "target_scope_and_guards",
+      "business_intents",
+      "stamp_recipe",
+      "resolved_limits"
+    ],
+    "review_context": [
+      "unit_definition",
+      "local_review_metadata",
+      "shared_review_metadata"
+    ],
+    "review_projection": [
+      "exact_preview",
+      "review_context"
+    ],
+    "template_approval_subject": [
+      "unit_definition",
+      "local_effective_values",
+      "local_contract_closure",
+      "review_context",
+      "resolved_limits",
+      "stamp_recipe"
+    ],
+    "logical_item_locator": [
+      "unit_namespace",
+      "logical_request_scope",
+      "item_correlation"
+    ],
+    "dispatch_key": [
+      "logical_request_scope",
+      "exact_preview",
+      "item_correlation"
+    ],
+    "graph_membership_evidence": [
+      "program_definition",
+      "whole_lock",
+      "unit_definition",
+      "node_invocation"
+    ],
+    "execution_admission": [
+      "graph_membership_evidence",
+      "review_projection",
+      "logical_request_scope"
+    ],
+    "transport_request": [
+      "dispatch_key",
+      "business_intents",
+      "stamp_recipe"
+    ],
+    "graph_receipt": [
+      "program_definition",
+      "graph_membership_evidence",
+      "execution_admission",
+      "transport_request"
+    ]
+  },
+  "invariant_roots": [
+    "unit_definition",
+    "exact_preview",
+    "review_context",
+    "logical_item_locator",
+    "dispatch_key"
+  ],
+  "forbidden_ancestors": [
+    "program_definition",
+    "whole_lock",
+    "graph_receipt"
+  ],
+  "caveats": [
+    "Observations bind exact required issuer/policy/provenance, not values-only.",
+    "Template approval subject also binds allowed producer/ID substitution scope and validity; diagram omits non-CID fields.",
+    "Current authorization is rechecked; graph membership is not deleted.",
+    "Concrete prior receipt evidence is node-local; graph linkage stays separately authenticated.",
+    "Physical result/issuer fields that carry necessary authority remain, irrespective of privacy/display."
+  ]
+}

@@ -1,0 +1,38 @@
+version: actql/0.1
+id: fixture.infer_timeout
+stages:
+- id: classify
+  inputs:
+    tickets:
+      carrier: relation
+      schema:
+        ticket_id:
+          type: string
+          nullable: false
+        body:
+          type: string
+          nullable: false
+      primary_key:
+      - ticket_id
+  from: tickets
+  steps:
+  - infer:
+      contract: model-task:fixture.triage.v1
+      input:
+        body:
+          field: body
+    as: classified
+  results:
+    response:
+      from: classified
+      fields:
+      - ticket_id
+      - outcome
+      - value
+      order_by:
+      - ticket_id: asc
+results:
+  response:
+    from:
+      stage: classify
+      result: response

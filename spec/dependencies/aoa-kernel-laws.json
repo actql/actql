@@ -1,0 +1,10 @@
+{
+  "manifest_version": "aoa-kernel-laws/0.1",
+  "laws": [
+    "canonical-json-stable-key-order",
+    "cid-sha256-over-canonical-json-utf8",
+    "cid-zero-identity",
+    "cid-sort-determinism",
+    "cid-number-normalization-stability"
+  ]
+}

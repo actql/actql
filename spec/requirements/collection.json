@@ -1,0 +1,72 @@
+{
+  "version": "actql-requirement-evidence/0.1",
+  "document_id": "actql.protocol.collection",
+  "requirements": [
+    {
+      "requirement_id": "actql.protocol.collection/sealed-admission",
+      "statement_sha256": "adb13e72bf3c204015c4c1f0ac0bd44b03924b8d9bc4f8b8618df0089d387bc0",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "collection",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.collection/collection.product-10e756419aa6",
+      "statement_sha256": "10e756419aa69a3683cdb8a3043ad2ad9ef30d270ffb394bced4b47bdb32f769",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "collection",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.collection/execution-reservation-admission",
+      "statement_sha256": "065188c05b041b03ebcdcb7ffeb9ef06af389d5628e5e99d967cafa46fa14096",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "collection",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.collection/homogeneous-union-materialization",
+      "statement_sha256": "ed76dc088961607e8ad987b14ca24ee709c6079a023cf287de8689735ba7567d",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "collection",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.collection/integration-completeness-provenance",
+      "statement_sha256": "ef0b5d030166c870ad8f657ad32c2ae7209ed3b2b42eb656b55154b8679ac3af",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "collection",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.collection/machine-contracts.exact-artifacts",
+      "statement_sha256": "3690d4530bab6dbbc887d83577521d999932c5274b9740c4404b7c61f532bd58",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "machine-contracts",
+        "kind": "law"
+      }
+    }
+  ]
+}

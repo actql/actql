@@ -1,0 +1,458 @@
+{
+  "version": "d11-derive-expectations/0.1",
+  "status": "specified-not-executed",
+  "purpose": "Hand-authored specification examples, not production canonical vectors or tests of ActQL/MoonBit.",
+  "vectors": [
+    {
+      "id": "array-shadow-prior",
+      "input_rows": [
+        {
+          "id": "r1",
+          "amount": 10,
+          "private_note": "retain until select"
+        }
+      ],
+      "derive_body": [
+        {
+          "amount": {
+            "multiply": [
+              {
+                "field": "amount"
+              },
+              {
+                "literal": 2
+              }
+            ]
+          }
+        },
+        {
+          "tax": {
+            "multiply": [
+              {
+                "field": "amount"
+              },
+              {
+                "literal": 0.5
+              }
+            ]
+          }
+        },
+        {
+          "total": {
+            "add": [
+              {
+                "field": "amount"
+              },
+              {
+                "field": "tax"
+              }
+            ]
+          }
+        }
+      ],
+      "status": "specified-not-executed",
+      "select": [
+        "id",
+        "amount",
+        "tax",
+        "total"
+      ],
+      "expected_rows": [
+        {
+          "id": "r1",
+          "amount": 20,
+          "tax": 10,
+          "total": 30
+        }
+      ]
+    },
+    {
+      "id": "array-save-old",
+      "input_rows": [
+        {
+          "id": "r1",
+          "amount": 10
+        }
+      ],
+      "derive_body": [
+        {
+          "original_amount": {
+            "field": "amount"
+          }
+        },
+        {
+          "amount": {
+            "multiply": [
+              {
+                "field": "amount"
+              },
+              {
+                "literal": 2
+              }
+            ]
+          }
+        },
+        {
+          "total": {
+            "add": [
+              {
+                "field": "original_amount"
+              },
+              {
+                "field": "amount"
+              }
+            ]
+          }
+        }
+      ],
+      "status": "specified-not-executed",
+      "expected_rows": [
+        {
+          "id": "r1",
+          "amount": 20,
+          "original_amount": 10,
+          "total": 30
+        }
+      ]
+    },
+    {
+      "id": "future-slot-name-is-input",
+      "input_rows": [
+        {
+          "b": 10
+        }
+      ],
+      "derive_body": [
+        {
+          "a": {
+            "add": [
+              {
+                "field": "b"
+              },
+              {
+                "literal": 1
+              }
+            ]
+          }
+        },
+        {
+          "b": {
+            "literal": 20
+          }
+        }
+      ],
+      "status": "specified-not-executed",
+      "expected_rows": [
+        {
+          "b": 20,
+          "a": 11
+        }
+      ]
+    },
+    {
+      "id": "map-input-snapshot",
+      "input_rows": [
+        {
+          "x": 5
+        }
+      ],
+      "derive_body": {
+        "a": {
+          "add": [
+            {
+              "field": "x"
+            },
+            {
+              "literal": 1
+            }
+          ]
+        },
+        "b": {
+          "multiply": [
+            {
+              "field": "x"
+            },
+            {
+              "literal": 2
+            }
+          ]
+        }
+      },
+      "status": "specified-not-executed",
+      "expected_rows": [
+        {
+          "x": 5,
+          "a": 6,
+          "b": 10
+        }
+      ]
+    },
+    {
+      "id": "map-no-prior-reference",
+      "input_rows": [
+        {
+          "x": 5
+        }
+      ],
+      "derive_body": {
+        "a": {
+          "add": [
+            {
+              "field": "x"
+            },
+            {
+              "literal": 1
+            }
+          ]
+        },
+        "b": {
+          "multiply": [
+            {
+              "field": "a"
+            },
+            {
+              "literal": 2
+            }
+          ]
+        }
+      },
+      "status": "specified-not-executed",
+      "expected_failure": {
+        "phase": "check",
+        "reason": "unknown input field a; map siblings are not in scope"
+      }
+    },
+    {
+      "id": "map-no-shadow",
+      "input_rows": [
+        {
+          "amount": 10
+        }
+      ],
+      "derive_body": {
+        "amount": {
+          "multiply": [
+            {
+              "field": "amount"
+            },
+            {
+              "literal": 2
+            }
+          ]
+        }
+      },
+      "status": "specified-not-executed",
+      "expected_failure": {
+        "phase": "check",
+        "reason": "map output collides with visible input field amount"
+      }
+    },
+    {
+      "id": "array-one-write-per-name",
+      "input_rows": [
+        {
+          "amount": 10
+        }
+      ],
+      "derive_body": [
+        {
+          "amount": {
+            "literal": 20
+          }
+        },
+        {
+          "amount": {
+            "literal": 30
+          }
+        }
+      ],
+      "status": "specified-not-executed",
+      "expected_failure": {
+        "phase": "check",
+        "reason": "duplicate ordered output amount, not input shadow"
+      }
+    },
+    {
+      "id": "type-shadow",
+      "input_rows": [
+        {
+          "raw": "12"
+        }
+      ],
+      "derive_body": [
+        {
+          "raw": {
+            "to_number": {
+              "field": "raw"
+            }
+          }
+        },
+        {
+          "twice": {
+            "multiply": [
+              {
+                "field": "raw"
+              },
+              {
+                "literal": 2
+              }
+            ]
+          }
+        }
+      ],
+      "status": "specified-not-executed",
+      "expected_rows": [
+        {
+          "raw": 12,
+          "twice": 24
+        }
+      ],
+      "notes": "Schema supplied by fixture binds input raw:string and resulting raw:number; conversion is explicit."
+    },
+    {
+      "id": "input-passthrough",
+      "input_rows": [
+        {
+          "id": "r1",
+          "future_field": {
+            "label": "unchanged"
+          }
+        }
+      ],
+      "derive_body": [
+        {
+          "tag": {
+            "literal": "ok"
+          }
+        }
+      ],
+      "status": "specified-not-executed",
+      "expected_rows": [
+        {
+          "id": "r1",
+          "future_field": {
+            "label": "unchanged"
+          },
+          "tag": "ok"
+        }
+      ]
+    },
+    {
+      "id": "discarded-failing-slot",
+      "input_rows": [
+        {
+          "id": "r1"
+        }
+      ],
+      "derive_body": [
+        {
+          "bad": {
+            "divide": [
+              {
+                "literal": 1
+              },
+              {
+                "literal": 0
+              }
+            ]
+          }
+        }
+      ],
+      "status": "specified-not-executed",
+      "select": [
+        "id"
+      ],
+      "expected_failure": {
+        "phase": "execution",
+        "reason": "division by zero; select does not erase prior evaluation obligation"
+      }
+    },
+    {
+      "id": "row-major-failure",
+      "input_rows": [
+        {
+          "id": "r1",
+          "a": "1",
+          "b": "bad"
+        },
+        {
+          "id": "r2",
+          "a": "bad",
+          "b": "2"
+        }
+      ],
+      "derive_body": [
+        {
+          "a_num": {
+            "to_number": {
+              "field": "a"
+            }
+          }
+        },
+        {
+          "b_num": {
+            "to_number": {
+              "field": "b"
+            }
+          }
+        }
+      ],
+      "status": "specified-not-executed",
+      "expected_failure": {
+        "phase": "execution",
+        "row_index": 0,
+        "slot_index": 1,
+        "reason": "first logical failure is r1/b_num, not r2/a_num"
+      }
+    },
+    {
+      "id": "special-names",
+      "input_rows": [
+        {
+          "x": 1
+        }
+      ],
+      "derive_body": [
+        {
+          "10": {
+            "add": [
+              {
+                "field": "x"
+              },
+              {
+                "literal": 1
+              }
+            ]
+          }
+        },
+        {
+          "2": {
+            "add": [
+              {
+                "field": "10"
+              },
+              {
+                "literal": 1
+              }
+            ]
+          }
+        },
+        {
+          "__proto__": {
+            "literal": "data"
+          }
+        }
+      ],
+      "status": "specified-not-executed",
+      "expected_rows": [
+        {
+          "x": 1,
+          "10": 2,
+          "2": 3,
+          "__proto__": "data"
+        }
+      ],
+      "notes": "The expected slot order is [10,2,__proto__], independent of host object-key enumeration."
+    }
+  ]
+}

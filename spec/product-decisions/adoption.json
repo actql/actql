@@ -1,0 +1,933 @@
+{
+  "version": "actql-product-decision-adoption/0.1",
+  "normative": false,
+  "entries": [
+    {
+      "id": "D1",
+      "disposition": "adopted",
+      "owner_targets": [
+        "docs/spec/language.md#stages",
+        "docs/spec/protocols/run-graph.md#run-graph",
+        "docs/spec/execution.md#source-state",
+        "docs/spec/protocols/run.md#approval-attestation",
+        "docs/spec/protocols/artifacts.md#result-artifacts"
+      ],
+      "acceptance_cases": [
+        "D1.linear-order",
+        "D1.partial-stage",
+        "D1.item-recovery",
+        "D1.unknown-holds",
+        "D1.completed-default",
+        "D1.accepted-explicit",
+        "D1.receipt-data-gate",
+        "D1.fresh-not-hoisted",
+        "D1.receipt-correlation",
+        "D1.scope-rejections",
+        "D1.future-ports",
+        "D1.template-id-only",
+        "D1.template-escape",
+        "D1.fresh-allow",
+        "D1.engine-pin",
+        "D1.no-auto-compensation",
+        "D1.all-results",
+        "D1.zero-row"
+      ],
+      "source_review_refs": [
+        "R1-#1",
+        "R2-#1"
+      ]
+    },
+    {
+      "id": "D2",
+      "disposition": "adopted",
+      "owner_targets": [
+        "docs/spec/execution.md#effect-application",
+        "docs/spec/protocols/run.md#policy-risk-acceptance"
+      ],
+      "acceptance_cases": [
+        "D2.multi-allow",
+        "D2.multi-review",
+        "D2.contract-floor",
+        "D2.wrong-claim",
+        "D2.future-outside-envelope"
+      ],
+      "source_review_refs": [
+        "R2-#2"
+      ]
+    },
+    {
+      "id": "D3",
+      "disposition": "adopted",
+      "owner_targets": [
+        "docs/spec/language.md#effects",
+        "docs/spec/execution.md#preview-strength",
+        "docs/spec/protocols/contracts.md#command-contracts"
+      ],
+      "acceptance_cases": [
+        "D3.notify-two",
+        "D3.notify-duplicate",
+        "D3.row-conflict",
+        "D3.disjoint-create-update",
+        "D3.opaque-not-independent"
+      ],
+      "source_review_refs": [
+        "R1-#3",
+        "R2-#3"
+      ]
+    },
+    {
+      "id": "D4",
+      "disposition": "adopted",
+      "owner_targets": [
+        "docs/spec/protocols/contracts.md#mapping-generation",
+        "docs/spec/protocols/discovery.md#discovery"
+      ],
+      "acceptance_cases": [
+        "D4.deterministic-generation",
+        "D4.semantic-rule-change",
+        "D4.optional-missing",
+        "D4.required-missing",
+        "D4.write-omission",
+        "D4.write-null",
+        "D4.read-only",
+        "D4.no-synthesis-of-guarantee"
+      ],
+      "source_review_refs": [
+        "R1-#4",
+        "R2-#13"
+      ]
+    },
+    {
+      "id": "D5",
+      "disposition": "adopted",
+      "owner_targets": [
+        "docs/spec/execution.md#preview-strength",
+        "docs/spec/protocols/run.md#approval-renewal",
+        "docs/design/reference-host.md"
+      ],
+      "acceptance_cases": [
+        "D5.renew-unrelated",
+        "D5.written-value-drift",
+        "D5.metadata-drift",
+        "D5.schema-drift",
+        "D5.bounded-refresh"
+      ],
+      "source_review_refs": [
+        "R1-#5"
+      ]
+    },
+    {
+      "id": "D6",
+      "disposition": "adopted",
+      "owner_targets": [
+        "docs/spec/execution.md#reconciliation",
+        "docs/spec/protocols/run.md#logical-request",
+        "docs/spec/protocols/contracts.md#command-contracts",
+        "docs/design/reference-host.md"
+      ],
+      "acceptance_cases": [
+        "D6.duplicate-request",
+        "D6.request-conflict",
+        "D6.tenant-isolation",
+        "D6.intentional-repeat",
+        "D6.recovery-new-worker",
+        "D6.crash-before-dispatch",
+        "D6.crash-after-apply",
+        "D6.stamp-gap",
+        "D6.natural-key-collision",
+        "D6.delayed-readback",
+        "D6.key-request-conflict",
+        "D6.expired-ledger",
+        "D6.fenced-worker"
+      ],
+      "source_review_refs": [
+        "R1-#7",
+        "R2-#5",
+        "R2-#7"
+      ]
+    },
+    {
+      "id": "D7",
+      "disposition": "adopted",
+      "owner_targets": [
+        "docs/spec/language.md#infer",
+        "docs/spec/protocols/contracts.md#model-task",
+        "docs/spec/protocols/artifacts.md#reference-admission"
+      ],
+      "acceptance_cases": [
+        "D7.one-transient",
+        "D7.strict-opt-in",
+        "D7.refusal-no-retry",
+        "D7.all-failed",
+        "D7.empty",
+        "D7.auth-fatal",
+        "D7.budget-fatal",
+        "D7.late-attempt",
+        "D7.replay",
+        "D7.artifact-egress",
+        "D7.artifact-tamper",
+        "D7.model-null"
+      ],
+      "source_review_refs": [
+        "R2-#8",
+        "R2-#10"
+      ]
+    },
+    {
+      "id": "D8",
+      "disposition": "adopted",
+      "owner_targets": [
+        "docs/spec/language.md#group",
+        "docs/spec/execution.md#numeric-observation",
+        "docs/spec/language.md#canonical-identities"
+      ],
+      "acceptance_cases": [
+        "D8.different-placement",
+        "D8.captured-replay",
+        "D8.cancellation-numerics",
+        "D8.exact-lanes",
+        "D8.structural-mismatch",
+        "D8.no-arbitrary-compute",
+        "D8.acyclic-identity"
+      ],
+      "source_review_refs": [
+        "R2-#17"
+      ]
+    },
+    {
+      "id": "D9",
+      "disposition": "adopted",
+      "owner_targets": [
+        "docs/spec/language.md#local-inputs",
+        "docs/spec/language.md#evidence-propagation"
+      ],
+      "acceptance_cases": [
+        "D9.default-reject",
+        "D9.first-by-order",
+        "D9.missing-order",
+        "D9.invalid-dropped-row",
+        "D9.post-key-proof",
+        "D9.cursor-raw"
+      ],
+      "source_review_refs": [
+        "R1-#10"
+      ]
+    },
+    {
+      "id": "D10",
+      "disposition": "adopted",
+      "owner_targets": [
+        "docs/spec/language.md#parameters",
+        "docs/spec/protocols/contracts.md#bound-template-wire"
+      ],
+      "acceptance_cases": [
+        "D10.missing-default",
+        "D10.nullable-no-default",
+        "D10.explicit-null",
+        "D10.object-exact",
+        "D10.equal-default-identity",
+        "D10.freeze-once",
+        "D10.structural-forbidden",
+        "D10.unused-or-extra"
+      ],
+      "source_review_refs": [
+        "R1-#23",
+        "R2-#14"
+      ]
+    },
+    {
+      "id": "D11",
+      "disposition": "adopted",
+      "owner_targets": [
+        "docs/spec/language.md#derive",
+        "docs/spec/language.md#select",
+        "docs/spec/language.md#expression-decoding",
+        "docs/spec/language.md#operation-binding",
+        "docs/spec/language.md#evidence-propagation"
+      ],
+      "acceptance_cases": [
+        "D11.shadow",
+        "D11.prior-output",
+        "D11.forward-missing",
+        "D11.duplicate-output",
+        "D11.key-drop",
+        "D11.row-priority-failure",
+        "D11.map-derive",
+        "D11.literal-opaque",
+        "D11.array-singleton",
+        "D11.shape-preserved",
+        "D11.map-order-identity",
+        "D11.array-order-semantic",
+        "D11.save-old-value",
+        "D11.future-name-is-input",
+        "D11.no-self-definition",
+        "D11.shadow-type",
+        "D11.input-validation-before-shadow",
+        "D11.select-after",
+        "D11.early-select-negative",
+        "D11.original-column-position",
+        "D11.exact-copy-key",
+        "D11.shadowed-sort-key",
+        "D11.discarded-slot-failure",
+        "D11.no-budget-reset",
+        "D11.lazy-child",
+        "D11.literal-slot-separation",
+        "D11.special-field-names",
+        "D11.nfc-duplicate-slots",
+        "D11.no-extra-io",
+        "D11.no-project-registration",
+        "D11.old-sealed-plan",
+        "D11.overwritten-target",
+        "D11.x-y-budget-distinction"
+      ],
+      "source_review_refs": [
+        "R2-#22"
+      ]
+    },
+    {
+      "id": "keep.member-failure",
+      "disposition": "preserved",
+      "owner_targets": [
+        "docs/spec/execution.md#preview-strength"
+      ],
+      "acceptance_cases": [
+        "keep.member-failure.acceptance"
+      ],
+      "source_review_refs": [
+        "R1-#2"
+      ]
+    },
+    {
+      "id": "keep.risk-acceptance",
+      "disposition": "preserved",
+      "owner_targets": [
+        "docs/spec/protocols/run.md#approval-attestation"
+      ],
+      "acceptance_cases": [
+        "keep.risk-acceptance.acceptance"
+      ],
+      "source_review_refs": [
+        "R1-#6"
+      ]
+    },
+    {
+      "id": "keep.conversion-failure",
+      "disposition": "preserved",
+      "owner_targets": [
+        "docs/spec/language.md#scalar-expressions"
+      ],
+      "acceptance_cases": [
+        "keep.conversion-failure.acceptance"
+      ],
+      "source_review_refs": [
+        "R1-#8"
+      ]
+    },
+    {
+      "id": "keep.guard-failure",
+      "disposition": "preserved",
+      "owner_targets": [
+        "docs/spec/language.md#resolved-limits"
+      ],
+      "acceptance_cases": [
+        "keep.guard-failure.acceptance"
+      ],
+      "source_review_refs": [
+        "R1-#9"
+      ]
+    },
+    {
+      "id": "keep.failed-acquisition",
+      "disposition": "preserved",
+      "owner_targets": [
+        "docs/spec/execution.md#capture-and-replay"
+      ],
+      "acceptance_cases": [
+        "keep.failed-acquisition.acceptance"
+      ],
+      "source_review_refs": [
+        "R1-#11"
+      ]
+    },
+    {
+      "id": "keep.take-order",
+      "disposition": "preserved",
+      "owner_targets": [
+        "docs/spec/language.md#take"
+      ],
+      "acceptance_cases": [
+        "keep.take-order.acceptance"
+      ],
+      "source_review_refs": [
+        "R1-#12"
+      ]
+    },
+    {
+      "id": "keep.search-absence",
+      "disposition": "preserved",
+      "owner_targets": [
+        "docs/spec/language.md#candidate-search"
+      ],
+      "acceptance_cases": [
+        "keep.search-absence.acceptance"
+      ],
+      "source_review_refs": [
+        "R1-#13"
+      ]
+    },
+    {
+      "id": "keep.bounded-sourceview-acquisition",
+      "disposition": "preserved",
+      "owner_targets": [
+        "docs/spec/language.md#external-joins"
+      ],
+      "acceptance_cases": [
+        "keep.bounded-sourceview-acquisition.acceptance"
+      ],
+      "source_review_refs": [
+        "R1-#15"
+      ]
+    },
+    {
+      "id": "keep.cursor-commit",
+      "disposition": "preserved",
+      "owner_targets": [
+        "docs/spec/execution.md#source-state"
+      ],
+      "acceptance_cases": [
+        "keep.cursor-commit.acceptance"
+      ],
+      "source_review_refs": [
+        "R1-#16",
+        "R2-#26"
+      ]
+    },
+    {
+      "id": "keep.utc-calendar",
+      "disposition": "preserved",
+      "owner_targets": [
+        "docs/spec/language.md#text-time"
+      ],
+      "acceptance_cases": [
+        "keep.utc-calendar.acceptance"
+      ],
+      "source_review_refs": [
+        "R1-#18"
+      ]
+    },
+    {
+      "id": "keep.utf16-order",
+      "disposition": "preserved",
+      "owner_targets": [
+        "docs/spec/language.md#ordering"
+      ],
+      "acceptance_cases": [
+        "keep.utf16-order.acceptance"
+      ],
+      "source_review_refs": [
+        "R1-#19"
+      ]
+    },
+    {
+      "id": "keep.case-sensitive",
+      "disposition": "preserved",
+      "owner_targets": [
+        "docs/spec/language.md#expression-text"
+      ],
+      "acceptance_cases": [
+        "keep.case-sensitive.acceptance"
+      ],
+      "source_review_refs": [
+        "R1-#20"
+      ]
+    },
+    {
+      "id": "keep.decimal-number",
+      "disposition": "preserved",
+      "owner_targets": [
+        "docs/spec/language.md#decimal-expressions"
+      ],
+      "acceptance_cases": [
+        "keep.decimal-number.acceptance"
+      ],
+      "source_review_refs": [
+        "R1-#21"
+      ]
+    },
+    {
+      "id": "keep.closed-keys",
+      "disposition": "preserved",
+      "owner_targets": [
+        "docs/spec/language.md#structural-grammar"
+      ],
+      "acceptance_cases": [
+        "keep.closed-keys.acceptance"
+      ],
+      "source_review_refs": [
+        "R1-#22"
+      ]
+    },
+    {
+      "id": "keep.definition-id",
+      "disposition": "preserved",
+      "owner_targets": [
+        "docs/spec/language.md#canonical-identities"
+      ],
+      "acceptance_cases": [
+        "keep.definition-id.acceptance"
+      ],
+      "source_review_refs": [
+        "R1-#24",
+        "R2-#21"
+      ]
+    },
+    {
+      "id": "keep.one-result-delivery",
+      "disposition": "preserved",
+      "owner_targets": [
+        "docs/spec/protocols/artifacts.md#result-delivery"
+      ],
+      "acceptance_cases": [
+        "keep.one-result-delivery.acceptance"
+      ],
+      "source_review_refs": [
+        "R1-#25"
+      ]
+    },
+    {
+      "id": "keep.checkpoint-expiry",
+      "disposition": "preserved",
+      "owner_targets": [
+        "docs/spec/execution.md#checkpoints"
+      ],
+      "acceptance_cases": [
+        "keep.checkpoint-expiry.acceptance"
+      ],
+      "source_review_refs": [
+        "R1-#26"
+      ]
+    },
+    {
+      "id": "keep.whole-preflight",
+      "disposition": "preserved",
+      "owner_targets": [
+        "docs/spec/execution.md#effect-application"
+      ],
+      "acceptance_cases": [
+        "keep.whole-preflight.acceptance"
+      ],
+      "source_review_refs": [
+        "R2-#4"
+      ]
+    },
+    {
+      "id": "keep.accepted-not-complete",
+      "disposition": "preserved",
+      "owner_targets": [
+        "docs/spec/execution.md#reconciliation"
+      ],
+      "acceptance_cases": [
+        "keep.accepted-not-complete.acceptance"
+      ],
+      "source_review_refs": [
+        "R2-#6"
+      ]
+    },
+    {
+      "id": "keep.narrow-collection",
+      "disposition": "preserved",
+      "owner_targets": [
+        "docs/spec/protocols/collection.md#collection"
+      ],
+      "acceptance_cases": [
+        "keep.narrow-collection.acceptance"
+      ],
+      "source_review_refs": [
+        "R2-#9"
+      ]
+    },
+    {
+      "id": "keep.materialized-results",
+      "disposition": "preserved",
+      "owner_targets": [
+        "docs/spec/protocols/artifacts.md#result-artifacts"
+      ],
+      "acceptance_cases": [
+        "keep.materialized-results.acceptance"
+      ],
+      "source_review_refs": [
+        "R2-#11"
+      ]
+    },
+    {
+      "id": "keep.durable-local-defaults",
+      "disposition": "preserved",
+      "owner_targets": [
+        "docs/design/reference-host.md"
+      ],
+      "acceptance_cases": [
+        "keep.durable-local-defaults.acceptance"
+      ],
+      "source_review_refs": [
+        "R2-#12"
+      ]
+    },
+    {
+      "id": "keep.single-mapping-key",
+      "disposition": "preserved",
+      "owner_targets": [
+        "docs/spec/protocols/contracts.md#mapping-contracts"
+      ],
+      "acceptance_cases": [
+        "keep.single-mapping-key.acceptance"
+      ],
+      "source_review_refs": [
+        "R2-#15"
+      ]
+    },
+    {
+      "id": "keep.host-ceilings",
+      "disposition": "preserved",
+      "owner_targets": [
+        "docs/spec/language.md#resolved-limits"
+      ],
+      "acceptance_cases": [
+        "keep.host-ceilings.acceptance"
+      ],
+      "source_review_refs": [
+        "R2-#18"
+      ]
+    },
+    {
+      "id": "keep.no-author-approval-policy",
+      "disposition": "preserved",
+      "owner_targets": [
+        "docs/spec/language.md#effects"
+      ],
+      "acceptance_cases": [
+        "keep.no-author-approval-policy.acceptance"
+      ],
+      "source_review_refs": [
+        "R2-#19"
+      ]
+    },
+    {
+      "id": "keep.review-metadata",
+      "disposition": "preserved",
+      "owner_targets": [
+        "docs/spec/language.md#authoring-context"
+      ],
+      "acceptance_cases": [
+        "keep.review-metadata.acceptance"
+      ],
+      "source_review_refs": [
+        "R2-#20"
+      ]
+    },
+    {
+      "id": "keep.closed-core-extension",
+      "disposition": "preserved",
+      "owner_targets": [
+        "docs/spec/language.md#language-boundaries"
+      ],
+      "acceptance_cases": [
+        "keep.closed-core-extension.acceptance"
+      ],
+      "source_review_refs": [
+        "R2-#23"
+      ]
+    },
+    {
+      "id": "keep.outer-watch",
+      "disposition": "preserved",
+      "owner_targets": [
+        "docs/spec/protocols/run-graph.md#run-graph"
+      ],
+      "acceptance_cases": [
+        "keep.outer-watch.acceptance"
+      ],
+      "source_review_refs": [
+        "R2-#24"
+      ]
+    },
+    {
+      "id": "keep.scoped-references",
+      "disposition": "preserved",
+      "owner_targets": [
+        "docs/spec/language.md#opaque-references"
+      ],
+      "acceptance_cases": [
+        "keep.scoped-references.acceptance"
+      ],
+      "source_review_refs": [
+        "R2-#25"
+      ]
+    },
+    {
+      "id": "keep.private-inspection",
+      "disposition": "preserved",
+      "owner_targets": [
+        "docs/spec/protocols/run.md#private-inspection"
+      ],
+      "acceptance_cases": [
+        "keep.private-inspection.acceptance"
+      ],
+      "source_review_refs": [
+        "R2-#27"
+      ]
+    },
+    {
+      "id": "keep.canonical-export",
+      "disposition": "preserved",
+      "owner_targets": [
+        "docs/spec/protocols/artifacts.md#result-delivery"
+      ],
+      "acceptance_cases": [
+        "keep.canonical-export.acceptance"
+      ],
+      "source_review_refs": [
+        "R2-#28"
+      ]
+    },
+    {
+      "id": "keep.release-claim-separation",
+      "disposition": "preserved",
+      "owner_targets": [
+        "docs/spec/conformance.md#conformance-claims"
+      ],
+      "acceptance_cases": [
+        "keep.release-claim-separation.acceptance"
+      ],
+      "source_review_refs": [
+        "R2-#29"
+      ]
+    },
+    {
+      "id": "defer.compatible-lock-renewal",
+      "disposition": "deferred",
+      "owner_targets": [],
+      "acceptance_cases": [],
+      "source_review_refs": [
+        "R1-#14",
+        "R2-#16"
+      ]
+    },
+    {
+      "id": "defer.cross-run-model-cache",
+      "disposition": "deferred",
+      "owner_targets": [],
+      "acceptance_cases": [],
+      "source_review_refs": [
+        "R1-#17"
+      ]
+    },
+    {
+      "id": "A1",
+      "disposition": "explicit-followup",
+      "owner_targets": [
+        "docs/spec/language.md#canonical-identities",
+        "docs/spec/protocols/run.md#approval-attestation",
+        "docs/spec/protocols/contracts.md#authoring-context-wire",
+        "docs/spec/protocols/artifacts.md#result-artifacts",
+        "docs/spec/protocols/run-graph.md#run-graph"
+      ],
+      "acceptance_cases": [
+        "A1.suffix-payload",
+        "A1.suffix-meta",
+        "A1.unused-param",
+        "A1.used-param",
+        "A1.transitive-parent",
+        "A1.wrong-producer",
+        "A1.same-bytes-scope",
+        "A1.namespace-rename",
+        "A1.active-pin",
+        "A1.one-shot",
+        "A1.shared-review",
+        "A1.lock-drift",
+        "A1.extract-membership"
+      ],
+      "source_review_refs": []
+    },
+    {
+      "id": "A2",
+      "disposition": "explicit-followup",
+      "owner_targets": [
+        "docs/spec/execution.md#source-state",
+        "docs/spec/protocols/run-graph.md#run-graph",
+        "docs/spec/protocols/run.md#approval-attestation"
+      ],
+      "acceptance_cases": [
+        "A2.normal-block",
+        "A2.abandon-notification",
+        "A2.wrong-right",
+        "A2.unknown-handoff",
+        "A2.unknown-abandon",
+        "A2.future-watermark",
+        "A2.stale-state",
+        "A2.claim-replay",
+        "A2.handoff-crash",
+        "A2.ack-crash",
+        "A2.batch-owner",
+        "A2.new-request",
+        "A2.no-success-fabrication",
+        "A2.late-response",
+        "A2.multi-source"
+      ],
+      "source_review_refs": []
+    },
+    {
+      "id": "A3",
+      "disposition": "explicit-followup",
+      "owner_targets": [
+        "docs/spec/protocols/contracts.md#catalog-and-lock",
+        "docs/spec/protocols/artifacts.md#reference-admission",
+        "docs/spec/language.md#infer",
+        "docs/design/reference-host.md"
+      ],
+      "acceptance_cases": [
+        "A3.unlabelled-default",
+        "A3.missing-default",
+        "A3.unknown-label",
+        "A3.parent-stronger",
+        "A3.destination-deny",
+        "A3.region-training",
+        "A3.forged-ref",
+        "A3.same-content",
+        "A3.fixture-live"
+      ],
+      "source_review_refs": []
+    },
+    {
+      "id": "A4",
+      "disposition": "explicit-followup",
+      "owner_targets": [
+        "docs/spec/protocols/contracts.md#command-contracts",
+        "docs/spec/execution.md#effect-application",
+        "docs/spec/protocols/run.md#preview-row-state",
+        "docs/spec/protocols/http.md"
+      ],
+      "acceptance_cases": [
+        "A4.declared",
+        "A4.known-deny",
+        "A4.late-deny",
+        "A4.atomicity",
+        "A4.hash-cycle",
+        "A4.readonly",
+        "A4.overwrite-history",
+        "A4.no-escalation",
+        "A4.fallback"
+      ],
+      "source_review_refs": []
+    },
+    {
+      "id": "A5",
+      "disposition": "explicit-followup",
+      "owner_targets": [
+        "docs/spec/language.md#derive",
+        "docs/spec/language.md#select",
+        "docs/spec/language.md#operation-binding"
+      ],
+      "acceptance_cases": [
+        "A5.retain-vs-close",
+        "A5.snapshot",
+        "A5.prior",
+        "A5.unknown-fields",
+        "A5.failure-order",
+        "A5.safe-migration",
+        "A5.keys",
+        "D11.array-singleton",
+        "D11.shape-preserved",
+        "D11.map-order-identity",
+        "D11.array-order-semantic",
+        "D11.save-old-value",
+        "D11.future-name-is-input",
+        "D11.no-self-definition",
+        "D11.shadow-type",
+        "D11.input-validation-before-shadow",
+        "D11.select-after",
+        "D11.early-select-negative",
+        "D11.original-column-position",
+        "D11.exact-copy-key",
+        "D11.shadowed-sort-key",
+        "D11.discarded-slot-failure",
+        "D11.no-budget-reset",
+        "D11.lazy-child",
+        "D11.literal-slot-separation",
+        "D11.special-field-names",
+        "D11.nfc-duplicate-slots",
+        "D11.no-extra-io",
+        "D11.no-project-registration",
+        "D11.old-sealed-plan",
+        "D11.overwritten-target",
+        "D11.x-y-budget-distinction"
+      ],
+      "source_review_refs": []
+    },
+    {
+      "id": "A6",
+      "disposition": "explicit-followup",
+      "owner_targets": [
+        "docs/spec/language.md#effects",
+        "docs/spec/execution.md#effect-application",
+        "docs/spec/protocols/run.md"
+      ],
+      "acceptance_cases": [
+        "A6.two-notifications",
+        "A6.duplicate",
+        "A6.create-no-target",
+        "A6.stable-locator",
+        "A6.changed-payload",
+        "A6.intentional-repeat",
+        "A6.physical-retry",
+        "A6.recovery-link",
+        "A6.reuse-domain-ids"
+      ],
+      "source_review_refs": []
+    },
+    {
+      "id": "A7",
+      "disposition": "explicit-followup",
+      "owner_targets": [
+        "docs/spec/execution.md#run-admission",
+        "docs/spec/execution.md#checkpoints",
+        "docs/spec/protocols/contracts.md",
+        "docs/design/reference-host.md"
+      ],
+      "acceptance_cases": [
+        "A7.packaging",
+        "A7.stage-proxy",
+        "A7.real-count",
+        "A7.budget-split",
+        "A7.contract-proxy",
+        "A7.metadata",
+        "A7.capacity",
+        "A7.semantic-change"
+      ],
+      "source_review_refs": []
+    },
+    {
+      "id": "A8",
+      "disposition": "explicit-followup",
+      "owner_targets": [
+        "docs/spec/language.md#structural-grammar",
+        "docs/spec/conformance.md",
+        "docs/authoring.md"
+      ],
+      "acceptance_cases": [
+        "A8.no-claim",
+        "A8.pilot-not-holdout",
+        "A8.isolated-oracle",
+        "A8.semantic-pair",
+        "A8.one-repair",
+        "A8.honest-report",
+        "A8.orthogonal-d11-trial",
+        "A8.prefer-x",
+        "A8.y-reconsideration"
+      ],
+      "source_review_refs": []
+    }
+  ],
+  "schema_registry": "spec/contracts/actql-stage-contracts.json",
+  "scenario_manifest": "SCENARIOS.json",
+  "acceptance_manifest": "acceptance-cases.json"
+}

@@ -1,0 +1,265 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://smooth.dev/schemas/actql-regex-ast-0.1.json",
+  "title": "ActQL regex canonical AST",
+  "description": "Closed host-independent regex AST. Implementations lower this AST, never host parser acceptance.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "version",
+    "root",
+    "capture_count",
+    "ast_cid"
+  ],
+  "properties": {
+    "version": {
+      "const": "actql-regex-ast/0.1"
+    },
+    "root": {
+      "$ref": "#/$defs/node"
+    },
+    "capture_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "ast_cid": {
+      "type": "string",
+      "pattern": "^sha256:[a-f0-9]{64}$"
+    }
+  },
+  "$defs": {
+    "literal": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "value"
+      ],
+      "properties": {
+        "kind": {
+          "const": "literal"
+        },
+        "value": {
+          "type": "string"
+        }
+      }
+    },
+    "class_escape": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "value"
+      ],
+      "properties": {
+        "kind": {
+          "const": "class_escape"
+        },
+        "value": {
+          "enum": [
+            "d",
+            "D",
+            "s",
+            "S",
+            "w",
+            "W"
+          ]
+        }
+      }
+    },
+    "range": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "start",
+        "end"
+      ],
+      "properties": {
+        "kind": {
+          "const": "range"
+        },
+        "start": {
+          "type": "string",
+          "minLength": 1
+        },
+        "end": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "class_item": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/literal"
+        },
+        {
+          "$ref": "#/$defs/class_escape"
+        },
+        {
+          "$ref": "#/$defs/range"
+        }
+      ]
+    },
+    "node": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/literal"
+        },
+        {
+          "$ref": "#/$defs/class_escape"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ],
+          "properties": {
+            "kind": {
+              "const": "dot"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "value"
+          ],
+          "properties": {
+            "kind": {
+              "const": "anchor"
+            },
+            "value": {
+              "enum": [
+                "^",
+                "$"
+              ]
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "negated",
+            "items"
+          ],
+          "properties": {
+            "kind": {
+              "const": "class"
+            },
+            "negated": {
+              "type": "boolean"
+            },
+            "items": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "$ref": "#/$defs/class_item"
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "capture",
+            "expression"
+          ],
+          "properties": {
+            "kind": {
+              "const": "capture"
+            },
+            "capture": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "expression": {
+              "$ref": "#/$defs/node"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "items"
+          ],
+          "properties": {
+            "kind": {
+              "const": "sequence"
+            },
+            "items": {
+              "type": "array",
+              "minItems": 2,
+              "items": {
+                "$ref": "#/$defs/node"
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "branches"
+          ],
+          "properties": {
+            "kind": {
+              "const": "alternation"
+            },
+            "branches": {
+              "type": "array",
+              "minItems": 2,
+              "items": {
+                "$ref": "#/$defs/node"
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "min",
+            "max",
+            "expression"
+          ],
+          "properties": {
+            "kind": {
+              "const": "repeat"
+            },
+            "min": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "max": {
+              "oneOf": [
+                {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "expression": {
+              "$ref": "#/$defs/node"
+            }
+          }
+        }
+      ]
+    }
+  }
+}

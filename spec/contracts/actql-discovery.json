@@ -1,0 +1,357 @@
+{
+  "version": "actql-discovery-contracts/0.1",
+  "schemas": {
+    "host_capabilities": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "version": {
+          "const": "actql-host-capabilities/0.1"
+        },
+        "supported_profiles": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "profile_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "contract_cid": {
+                "type": "string",
+                "pattern": "^sha256:[a-f0-9]{64}$"
+              },
+              "status": {
+                "enum": [
+                  "conformant",
+                  "partial"
+                ]
+              }
+            },
+            "required": [
+              "profile_id",
+              "contract_cid",
+              "status"
+            ]
+          }
+        },
+        "interfaces": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "enum": [
+              "discovery",
+              "read_collection"
+            ]
+          },
+          "uniqueItems": true,
+          "contains": {
+            "const": "discovery"
+          }
+        }
+      },
+      "required": [
+        "version",
+        "supported_profiles",
+        "interfaces"
+      ]
+    },
+    "discovery_reference": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "enum": [
+            "catalog",
+            "model_task",
+            "grammar",
+            "program_schema",
+            "host_capabilities"
+          ]
+        },
+        "selector": {
+          "type": "string",
+          "minLength": 1
+        },
+        "content_cid": {
+          "type": "string",
+          "pattern": "^sha256:[a-f0-9]{64}$"
+        }
+      },
+      "required": [
+        "kind",
+        "selector",
+        "content_cid"
+      ]
+    },
+    "discovery_descriptor": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "version": {
+          "const": "actql-discovery/0.1"
+        },
+        "publication_snapshot_cid": {
+          "type": "string",
+          "pattern": "^sha256:[a-f0-9]{64}$"
+        },
+        "scope_cid": {
+          "type": "string",
+          "pattern": "^sha256:[a-f0-9]{64}$"
+        },
+        "max_page_size": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "max_response_bytes": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "references": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "kind": {
+                "enum": [
+                  "catalog",
+                  "model_task",
+                  "grammar",
+                  "program_schema",
+                  "host_capabilities"
+                ]
+              },
+              "selector": {
+                "type": "string",
+                "minLength": 1
+              },
+              "content_cid": {
+                "type": "string",
+                "pattern": "^sha256:[a-f0-9]{64}$"
+              }
+            },
+            "required": [
+              "kind",
+              "selector",
+              "content_cid"
+            ]
+          }
+        }
+      },
+      "required": [
+        "version",
+        "publication_snapshot_cid",
+        "scope_cid",
+        "max_page_size",
+        "max_response_bytes",
+        "references"
+      ]
+    },
+    "discovery_list_request": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "publication_snapshot_cid": {
+          "type": "string",
+          "pattern": "^sha256:[a-f0-9]{64}$"
+        },
+        "query": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "enum": [
+                "catalog",
+                "model_task",
+                "grammar",
+                "program_schema",
+                "host_capabilities"
+              ]
+            },
+            "selector": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": []
+        },
+        "page_size": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "cursor": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "publication_snapshot_cid",
+        "query",
+        "page_size"
+      ]
+    },
+    "discovery_page": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "version": {
+          "const": "actql-discovery/0.1"
+        },
+        "publication_snapshot_cid": {
+          "type": "string",
+          "pattern": "^sha256:[a-f0-9]{64}$"
+        },
+        "scope_cid": {
+          "type": "string",
+          "pattern": "^sha256:[a-f0-9]{64}$"
+        },
+        "query": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "enum": [
+                "catalog",
+                "model_task",
+                "grammar",
+                "program_schema",
+                "host_capabilities"
+              ]
+            },
+            "selector": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": []
+        },
+        "entries": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "kind": {
+                "enum": [
+                  "catalog",
+                  "model_task",
+                  "grammar",
+                  "program_schema",
+                  "host_capabilities"
+                ]
+              },
+              "selector": {
+                "type": "string",
+                "minLength": 1
+              },
+              "content_cid": {
+                "type": "string",
+                "pattern": "^sha256:[a-f0-9]{64}$"
+              }
+            },
+            "required": [
+              "kind",
+              "selector",
+              "content_cid"
+            ]
+          }
+        },
+        "complete": {
+          "type": "boolean"
+        },
+        "next_cursor": {
+          "type": "string",
+          "minLength": 1
+        },
+        "page_cid": {
+          "type": "string",
+          "pattern": "^sha256:[a-f0-9]{64}$"
+        }
+      },
+      "required": [
+        "version",
+        "publication_snapshot_cid",
+        "scope_cid",
+        "query",
+        "entries",
+        "complete",
+        "page_cid"
+      ]
+    },
+    "discovery_read": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "version": {
+          "const": "actql-discovery/0.1"
+        },
+        "publication_snapshot_cid": {
+          "type": "string",
+          "pattern": "^sha256:[a-f0-9]{64}$"
+        },
+        "reference": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "enum": [
+                "catalog",
+                "model_task",
+                "grammar",
+                "program_schema",
+                "host_capabilities"
+              ]
+            },
+            "selector": {
+              "type": "string",
+              "minLength": 1
+            },
+            "content_cid": {
+              "type": "string",
+              "pattern": "^sha256:[a-f0-9]{64}$"
+            }
+          },
+          "required": [
+            "kind",
+            "selector",
+            "content_cid"
+          ]
+        },
+        "artifact": {
+          "type": "object"
+        }
+      },
+      "required": [
+        "version",
+        "publication_snapshot_cid",
+        "reference",
+        "artifact"
+      ]
+    }
+  },
+  "schema_cids": {
+    "host_capabilities": "sha256:cb8bec73fdbbd866778284090af411502298bbef1d2f472cdaf1caa6cd110423",
+    "discovery_reference": "sha256:0ab236e1f68df896212836a9c4f6d46792595aff2c066e611cfd51b5892a6c16",
+    "discovery_descriptor": "sha256:7eca298d771158cb26d6b2a2e02297755507ca75f4f3c33a68e1c4bab2607674",
+    "discovery_list_request": "sha256:4064c2e50b9baca0978c704c213f544260aa567d46993330a69481a2df763295",
+    "discovery_page": "sha256:6c52fabd737a5ce26f6ac54c23d49c1c1c4b613d9620e4cbe2ada752b474b048",
+    "discovery_read": "sha256:60073d1039f5e7c21eda2b0d35b1afb638f156cf360b42e9c970d39325a23b78"
+  },
+  "laws": [
+    "exact-publication-snapshot",
+    "query-and-authority-bound-cursor",
+    "current-disclosure-admission",
+    "projection-not-resolution-evidence",
+    "content-cid-not-issuer-trust",
+    "no-provider-observation"
+  ],
+  "contract_cid": "sha256:7c072235df093a90d4cf5de8283993bcf78a5f0a504e77deb053277c44dda12d"
+}

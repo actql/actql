@@ -1,0 +1,133 @@
+version: actql/0.1
+id: fixture.parent_child
+stages:
+- id: parents
+  inputs:
+    requested:
+      carrier: relation
+      schema:
+        parent_key:
+          type: string
+          nullable: false
+        name:
+          type: string
+          nullable: false
+      primary_key:
+      - parent_key
+  from: requested
+  steps: []
+  results:
+    requested:
+      from: requested
+      fields:
+      - parent_key
+      - name
+      order_by:
+      - parent_key: asc
+  effects:
+    create_parent:
+      create:
+        target: connector://fixture/main/Parents
+        mapping: mapping:fixture.parents.v1
+        from:
+          result: requested
+- id: children
+  inputs:
+    created:
+      receipt:
+        stage: parents
+        effect: create_parent
+    requested:
+      carrier: relation
+      schema:
+        child_key:
+          type: string
+          nullable: false
+        parent_key:
+          type: string
+          nullable: false
+        name:
+          type: string
+          nullable: false
+      primary_key:
+      - child_key
+  from: requested
+  steps:
+  - join:
+      with: created
+      kind: inner
+      'on':
+      - left: parent_key
+        right: input_key
+      cardinality: many_to_one
+      select:
+        child_key: left.child_key
+        parent_id: right.external_id
+        name: left.name
+    as: child_rows
+  results:
+    requested:
+      from: child_rows
+      fields:
+      - child_key
+      - parent_id
+      - name
+      order_by:
+      - child_key: asc
+  effects:
+    create_child:
+      create:
+        target: connector://fixture/main/Children
+        mapping: mapping:fixture.children.v1
+        from:
+          result: requested
+- id: notify
+  inputs:
+    channels:
+      carrier: relation
+      schema:
+        channel_key:
+          type: string
+          nullable: false
+        channel:
+          type: resource_ref
+          nullable: false
+          resource_kind: fixture.channel
+      primary_key:
+      - channel_key
+  from: channels
+  steps:
+  - derive:
+      text: '''Parent and child records have been created'''
+    as: messages
+  results:
+    messages:
+      from: messages
+      fields:
+      - channel_key
+      - channel
+      - text
+      order_by:
+      - channel_key: asc
+    response:
+      from: messages
+      fields:
+      - text
+      order_by:
+      - channel_key: asc
+  effects:
+    notify_success:
+      command:
+        contract: command:fixture.notify.v1
+        from:
+          result: messages
+        target:
+          field: channel
+        input:
+          text:
+            field: text
+results:
+  response:
+    from:
+      stage: notify
+      result: response

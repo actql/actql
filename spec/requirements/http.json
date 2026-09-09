@@ -1,0 +1,39 @@
+{
+  "version": "actql-requirement-evidence/0.1",
+  "document_id": "actql.protocol.http",
+  "requirements": [
+    {
+      "requirement_id": "actql.protocol.http/http-transport.a-checked-write-must-be-idempotent-or-provably-reconcilable",
+      "statement_sha256": "9065c3d385330a7f6f61d90394c3d5d3cb6ec4f4d5b6d0bca63628fa83469060",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "http-transport",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.http/stage-transport.product-6053b661e961",
+      "statement_sha256": "6053b661e9610e69e44ca9ff95736a41117b0cf7531827e22343b65a78712dc0",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "stage-transport",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.http/machine-contracts.exact-artifacts",
+      "statement_sha256": "d2c4fffa26f45805681eb31dba14c308c62e69ab758a2149f17f6d3ff2857157",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "machine-contracts",
+        "kind": "law"
+      }
+    }
+  ]
+}

@@ -1,0 +1,314 @@
+{
+  "version": "actql-requirement-evidence/0.1",
+  "document_id": "actql.conformance",
+  "requirements": [
+    {
+      "requirement_id": "actql.conformance/conformance-profiles.an-implementation-must-accept-every-valid-program-and-reject-every",
+      "statement_sha256": "a866a9b1f8607c983bb4d0b1e39323fc183d2ce2cc7b4757fc0df29085b7f4be",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "conformance-profiles",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.conformance/conformance-profiles.a-generally-usable-actql-0-1-implementation-must-claim-core-and",
+      "statement_sha256": "26b697b37a1b3f42285346f81e2b76ae2b04ae8be2d48946a19dd2d663d19c72",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "conformance-profiles",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.conformance/conformance-profiles.an-implementation-must-publish-complete-module-claims-separately-from-partial",
+      "statement_sha256": "644a0f3e1f2a2ad79a78228b039f2da7c7327c96b0d1090fbec743c2a1fec302",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "conformance-profiles",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.conformance/conformance-profiles.an-implementation-must-publish-complete-module-claims-separately-from-partial.second",
+      "statement_sha256": "ce29fc9bde1f0bef8836f4d199e1f43808a151e6766a247e19bc07c0543ef30e",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "conformance-profiles",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.conformance/conformance-profiles.within-their-supported-profile-sets-conforming-checkers-must-produce-the",
+      "statement_sha256": "9001771d989ef38ca3da8c8fdb3e12c5e13c69a7c07d51212bf0609076979d3b",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "conformance-profiles",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.conformance/conformance-profiles.an-unclaimed-profile-must-be-rejected-with-actql-e-profile-unsupported-before-computation",
+      "statement_sha256": "9ca211e411a8f71f63fc12284fc31ac3e4fb347ba0e1201cf784710898c433b0",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "conformance-profiles",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.conformance/conformance-profiles.known-profile-vocabulary-must-not-be-reported-as-unknown-or",
+      "statement_sha256": "f78f59c6005ccca033833a8f367315f63b038e931099dede056a4049ef153615",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "conformance-profiles",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.conformance/conformance-profiles.any-published-plan-must-satisfy-the-same-canonical-contracts-as",
+      "statement_sha256": "937ea3f793d7f2350be0d78153f355572cf8719292caa6a45183ec279491063e",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "conformance-profiles",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.conformance/product-decision-acceptance.product-079ca9c4bcb9",
+      "statement_sha256": "079ca9c4bcb9d0d8e5a495c15f580ccf2fd67d168a777c5191f278f7ae55665d",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "product-decision-acceptance",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.conformance/authoring-evaluation-gate.final-freeze-evaluation",
+      "statement_sha256": "f366a053b151130a54ef23bb5b6a7c9fb0bfa840ae4178dd90f447124bf00752",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "authoring-evaluation-gate",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.conformance/module-workloads.module-required-closure-workload-core",
+      "statement_sha256": "51b2f95f8d6a8c074c2e9d430eb20e700aeecd7275c256b0aa109ca32e5af92a",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "module-workloads",
+        "kind": "table"
+      }
+    },
+    {
+      "requirement_id": "actql.conformance/conformance-tests.a-conforming-implementation-must-publish-and-pass",
+      "statement_sha256": "11422ad6464cd7a096b38793b0fc601de329d563ab2409cde130c59b1d4791c9",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "conformance-tests",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.conformance/operations-conformance.independent-vectors",
+      "statement_sha256": "01bf159816eadaafbc10b5ebeef2efba553386f4e65e527777910758a8d780dd",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "operations-conformance",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.conformance/conformance-tests.conformance-reports-must-state-core-support-the-required-rela-claim",
+      "statement_sha256": "22ebe0761777f4dca99550457f87a9029b16b31ff4dd09bf809328516836ed7c",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "operations-conformance",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.conformance/conformance-tests.all-conforming-core-compilers-must-check-all-six-effect-declarations",
+      "statement_sha256": "fd6101d00178cb6f12eac2420b3adb77a26cf8209ea0527f5ec8191f39da86a0",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "operations-conformance",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.conformance/conformance-tests.reports-must-also-include-actql-diagnostic-semantic-profile-cid-and-actql-aoa-contract-cid",
+      "statement_sha256": "a918fd845bfccf615b450a215ecf2d0bae579619b535482affd9c906449c94a8",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "operations-conformance",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.conformance/versioning.the-grammar-diagnostic-portability-and-protocol-contract-bodies-must-agree",
+      "statement_sha256": "b69d15ba6c1e060a1787eeb63c2a9ada89f990047d18fdf9dbd747a8cdbd6952",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "versioning",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.conformance/versioning.a-release-s-conformance-manifest-must-bind-their-exact-recomputed-identities",
+      "statement_sha256": "c5d3d8d90790cd162d973075ec843220ac0ebf0c6e589e98941507e7a11d23a4",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "versioning",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.conformance/versioning.each-runtime-and-cli-artifact-protocol-is-separately-versioned-and",
+      "statement_sha256": "d604545f3c4a143182269108b286feba72288a483d80c5c50051a2b544ca59d8",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "versioning",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.conformance/versioning.the-source-parser-must-reject-an-absent-or-unsupported-version",
+      "statement_sha256": "16e57c3a9edfa59a58517fc5c4acef73036d50e27e84332c85801a73778e4a59",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "versioning",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.conformance/versioning.unknown-document-input-operation-parameter-result-and-effect-fields-must",
+      "statement_sha256": "7c8fc7cac6c2aa539a28f3d7bf53824b39e3ed1e78f4b0777ece042d23175bc3",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "versioning",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.conformance/versioning.a-patch-must-not-accept-a-new-source-spelling-alias",
+      "statement_sha256": "142ab7174ac910817a01c70ccdc14b9f3dec5e4c70d28cf32ad5d29f6647d16b",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "versioning",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.conformance/versioning.a-runtime-must-reject-unsupported-actql-aoa-ir-connector-spi",
+      "statement_sha256": "4ddb6af5a828f24fa5af5433a69b9d6485b17a3f6efc4686aac202005899d89d",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "versioning",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.conformance/versioning.the-installed-skill-must-bind-the-compiler-s-exact-grammar-manifest",
+      "statement_sha256": "b0223ea5e91cb4e6921e5323a5ce48402edaaaeba251f91ee1af1185d4ad6ffb",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "versioning",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.conformance/versioning.aoa-execution-must-bind-the-exact-frozen-aoa-contract-cid",
+      "statement_sha256": "566bc1f464879981997663d93dc0aae2645f7e9d3963bd1ef41127e5c46c5afd",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "versioning",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.conformance/versioning.a-migration-must-refuse-a-transformation-whose-target-authority-or",
+      "statement_sha256": "0dd22950baf03ce07850edc4f7d74e0458e297b7dea20186b4462f92c9650fd5",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "versioning",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.conformance/versioning.it-must-produce-new-source-and-an-edit-journal-rather",
+      "statement_sha256": "2ca654a2b67a231ccad5418b4bc3c0b0af153e88412fc38815f7d9dd77dffda6",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "versioning",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.conformance/contract-owner-index",
+      "statement_sha256": "295900968b3cd0c3d6d7642b2e1e1a09a530b893c9ecc241a7ed013379237f28",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "contract-index",
+        "kind": "table"
+      }
+    }
+  ]
+}

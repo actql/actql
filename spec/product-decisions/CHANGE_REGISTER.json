@@ -1,0 +1,138 @@
+{
+  "version": "final-instruction-change-register/0.1",
+  "status": "adopted",
+  "entries": [
+    {
+      "id": "A1",
+      "question": "Local stage approval identity",
+      "decision_refs": [
+        "D1",
+        "D6",
+        "D10",
+        "keep.definition-id",
+        "keep.review-metadata"
+      ],
+      "decision_delta": "Separate node-local definitions, Previews and reviews from whole-graph revision. Bind concrete import content, issuer, policy, target and guards, not only types.",
+      "owner_targets": [
+        "language.md#canonical-identities",
+        "protocols/run.md#approval-attestation",
+        "protocols/contracts.md#authoring-context-wire",
+        "protocols/artifacts.md#result-artifacts",
+        "protocols/run-graph.md#run-graph"
+      ],
+      "adoption_status": "adopted"
+    },
+    {
+      "id": "A2",
+      "question": "Cursor recovery after permanent failure",
+      "decision_refs": [
+        "D1",
+        "D6",
+        "keep.cursor-commit"
+      ],
+      "decision_delta": "Keep normal commit eligibility separate from exact exceptional claims under management authority. Explicitly abandon or hand off known unmet duties; retain unknown evidence and reconciliation obligations.",
+      "owner_targets": [
+        "execution.md#source-state",
+        "protocols/run-graph.md#run-graph",
+        "protocols/run.md#approval-attestation"
+      ],
+      "adoption_status": "adopted"
+    },
+    {
+      "id": "A3",
+      "question": "Capture classification defaults",
+      "decision_refs": [
+        "D4",
+        "D7",
+        "keep.durable-local-defaults",
+        "keep.scoped-references"
+      ],
+      "decision_delta": "Inherit published SourceView/Connector-instance defaults during capture. Distinguish absent from unknown/invalid labels and decide ModelTask egress independently.",
+      "owner_targets": [
+        "protocols/contracts.md#catalog-and-lock",
+        "protocols/artifacts.md#reference-admission",
+        "language.md#infer",
+        "design/reference-host.md"
+      ],
+      "adoption_status": "adopted"
+    },
+    {
+      "id": "A4",
+      "question": "Stamp declaration, visibility and authority",
+      "decision_refs": [
+        "D3",
+        "D4",
+        "D6"
+      ],
+      "decision_delta": "Declare management-write capability and horizon; check combined business/stamp permissions, separate Preview display, known denial at check and current execution preflight.",
+      "owner_targets": [
+        "protocols/contracts.md#command-contracts",
+        "execution.md#effect-application",
+        "protocols/run.md#effect-preview",
+        "protocols/http.md"
+      ],
+      "adoption_status": "adopted"
+    },
+    {
+      "id": "A5",
+      "question": "Derive and explicit field selection",
+      "decision_refs": [
+        "D11"
+      ],
+      "decision_delta": "Map derive uses snapshot/add-only semantics. Ordered-array derive supports prior slots, input shadowing and input retention. Select closes the output shape.",
+      "owner_targets": [
+        "language.md#derive",
+        "language.md#select",
+        "language.md#operation-binding"
+      ],
+      "adoption_status": "adopted"
+    },
+    {
+      "id": "A6",
+      "question": "Minimal identity roles",
+      "decision_refs": [
+        "D3",
+        "D6"
+      ],
+      "decision_delta": "Target and item reuse domain values. Logical locator and exact dispatch key are distinct runtime roles; avoid unnecessary dedicated identity artifacts.",
+      "owner_targets": [
+        "language.md#effects",
+        "execution.md#effect-application",
+        "protocols/run.md"
+      ],
+      "adoption_status": "adopted"
+    },
+    {
+      "id": "A7",
+      "question": "Semantic risk routing",
+      "decision_refs": [
+        "D2",
+        "keep.no-author-approval-policy",
+        "keep.host-ceilings"
+      ],
+      "decision_delta": "Reject source Effect/stage counts and proxies as routing authority. Evaluate actual scope, items, amounts, permissions and uncertainty, retaining cumulative budgets.",
+      "owner_targets": [
+        "execution.md#run-admission",
+        "execution.md#checkpoints",
+        "protocols/contracts.md",
+        "design/reference-host.md"
+      ],
+      "adoption_status": "adopted"
+    },
+    {
+      "id": "A8",
+      "question": "Independent authoring evaluation",
+      "decision_refs": [
+        "D1",
+        "D11"
+      ],
+      "decision_delta": "Evaluate stage and derive authoring independently with sealed tasks and hidden oracles. Record only actual attempts, errors and measured outcomes; evaluation does not register new syntax.",
+      "owner_targets": [
+        "language.md#structural-grammar",
+        "conformance.md",
+        "authoring.md"
+      ],
+      "adoption_status": "adopted"
+    }
+  ]
+}

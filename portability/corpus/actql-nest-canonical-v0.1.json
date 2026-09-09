@@ -1,0 +1,5277 @@
+{
+  "version": "actql-nest-canonical-goldens/0.1",
+  "oracle": "portability/python/nest_graph.py",
+  "cases": [
+    {
+      "name": "candidate-key",
+      "program_definition_cid": "sha256:0188253d045d7d73c2830513cb7366d7132190fa94a1790d78e1e565a3107350",
+      "program_semantics_cid": "sha256:1d4c13072623449b2f9e9301fbf4a1d1deb64d1313a77eb7317564e365e5a725",
+      "stage_semantics_cid": "sha256:2c8ca75d85926a8d1d650a2e17e204f98fb99557af3fb4f87ae623c0e08eb0b8",
+      "identity_envelopes": {
+        "stage": {
+          "version": "actql-stage-semantics/0.1",
+          "expression_contract_cid": "sha256:6e9f53dc1542e70b4618c45a3f7fba7ad749f4703e39dfda94ce1b990577a6f1",
+          "parameters": {},
+          "parameter_references": [],
+          "bindings": {},
+          "binding_references": [],
+          "local_body": {
+            "inputs": {
+              "parents": {
+                "carrier": "relation",
+                "primary_key": [
+                  "id"
+                ],
+                "schema": {
+                  "id": {
+                    "type": "string",
+                    "nullable": false
+                  },
+                  "key": {
+                    "type": "string",
+                    "nullable": true
+                  }
+                }
+              },
+              "children": {
+                "carrier": "relation",
+                "primary_key": [
+                  "id"
+                ],
+                "schema": {
+                  "id": {
+                    "type": "string",
+                    "nullable": false
+                  },
+                  "key": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "value": {
+                    "type": "number",
+                    "nullable": true
+                  }
+                }
+              }
+            },
+            "from": "parents",
+            "steps": [
+              {
+                "nest": {
+                  "with": "children",
+                  "on": [
+                    {
+                      "left": "key",
+                      "right": "key"
+                    }
+                  ],
+                  "into": "items",
+                  "fields": [
+                    "value"
+                  ],
+                  "max_items": 3
+                },
+                "as": "nested"
+              }
+            ],
+            "results": {
+              "main": {
+                "from": "nested",
+                "fields": [
+                  "id",
+                  "key",
+                  "items"
+                ]
+              }
+            },
+            "effects": {}
+          }
+        },
+        "program": {
+          "version": "actql-program-semantics/0.1",
+          "actql_version": "actql/0.1",
+          "expression_contract_cid": "sha256:6e9f53dc1542e70b4618c45a3f7fba7ad749f4703e39dfda94ce1b990577a6f1",
+          "parameters": {},
+          "parameter_references": [],
+          "bindings": {},
+          "binding_references": [],
+          "program_template": {
+            "stages": [
+              {
+                "id": "main",
+                "stage_semantics_cid": "sha256:2c8ca75d85926a8d1d650a2e17e204f98fb99557af3fb4f87ae623c0e08eb0b8",
+                "after": "initial",
+                "imports": {}
+              }
+            ],
+            "exports": {
+              "main": {
+                "from": {
+                  "stage": "main",
+                  "result": "main"
+                }
+              }
+            }
+          }
+        },
+        "definition": {
+          "version": "actql-program-definition/0.1",
+          "id": "nest.golden.candidate-key",
+          "program_semantics_cid": "sha256:1d4c13072623449b2f9e9301fbf4a1d1deb64d1313a77eb7317564e365e5a725"
+        }
+      },
+      "pipeline": {
+        "version": "aoa-pipeline/0.1",
+        "sources": {
+          "parents": {
+            "sort": "relation"
+          },
+          "children": {
+            "sort": "relation"
+          }
+        },
+        "steps": [
+          {
+            "id": "rel_join_1",
+            "op": "REL.join",
+            "params": {
+              "how": "semi",
+              "on": {
+                "type": "cmp",
+                "op": "eq",
+                "left": {
+                  "type": "col",
+                  "path": [
+                    "left",
+                    "key"
+                  ]
+                },
+                "right": {
+                  "type": "col",
+                  "path": [
+                    "right",
+                    "key"
+                  ]
+                }
+              },
+              "key_pairs": [
+                {
+                  "left": "key",
+                  "right": "key"
+                }
+              ],
+              "null_key": "no_match"
+            },
+            "in": [
+              "children",
+              "parents"
+            ]
+          },
+          {
+            "id": "rel_select_2",
+            "op": "REL.select",
+            "params": {
+              "columns": [
+                {
+                  "from": "left.id",
+                  "to": "id"
+                },
+                {
+                  "from": "left.key",
+                  "to": "key"
+                },
+                {
+                  "from": "left.value",
+                  "to": "value"
+                }
+              ]
+            },
+            "in": [
+              "rel_join_1"
+            ]
+          },
+          {
+            "id": "rel_orderbystable_3",
+            "op": "REL.orderByStable",
+            "params": {
+              "by": [
+                {
+                  "field": "id",
+                  "dir": "asc",
+                  "nulls": "last"
+                }
+              ]
+            },
+            "in": [
+              "rel_select_2"
+            ]
+          },
+          {
+            "id": "rel_groupby_4",
+            "op": "REL.groupBy",
+            "params": {
+              "by": [
+                "key"
+              ],
+              "aggs": {
+                "__actql_nest_items": {
+                  "fn": "array_agg",
+                  "expr": {
+                    "type": "object",
+                    "fields": {
+                      "value": {
+                        "type": "col",
+                        "path": [
+                          "value"
+                        ]
+                      }
+                    }
+                  },
+                  "max_items": 3
+                }
+              }
+            },
+            "in": [
+              "rel_orderbystable_3"
+            ]
+          },
+          {
+            "id": "rel_where_5",
+            "op": "REL.where",
+            "params": {
+              "expr": {
+                "type": "cmp",
+                "op": "eq",
+                "left": {
+                  "type": "lit",
+                  "value": 0
+                },
+                "right": {
+                  "type": "lit",
+                  "value": 1
+                }
+              }
+            },
+            "in": [
+              "children"
+            ]
+          },
+          {
+            "id": "rel_groupby_6",
+            "op": "REL.groupBy",
+            "params": {
+              "by": [],
+              "aggs": {
+                "__actql_nest_empty": {
+                  "fn": "array_agg",
+                  "expr": {
+                    "type": "object",
+                    "fields": {
+                      "value": {
+                        "type": "col",
+                        "path": [
+                          "value"
+                        ]
+                      }
+                    }
+                  },
+                  "max_items": 1
+                }
+              }
+            },
+            "in": [
+              "rel_where_5"
+            ]
+          },
+          {
+            "id": "rel_join_7",
+            "op": "REL.join",
+            "params": {
+              "how": "left",
+              "on": {
+                "type": "cmp",
+                "op": "eq",
+                "left": {
+                  "type": "col",
+                  "path": [
+                    "left",
+                    "key"
+                  ]
+                },
+                "right": {
+                  "type": "col",
+                  "path": [
+                    "right",
+                    "key"
+                  ]
+                }
+              },
+              "key_pairs": [
+                {
+                  "left": "key",
+                  "right": "key"
+                }
+              ],
+              "cardinality": "many_to_one",
+              "on_duplicate": "fail",
+              "null_key": "no_match"
+            },
+            "in": [
+              "parents",
+              "rel_groupby_4"
+            ]
+          },
+          {
+            "id": "rel_select_8",
+            "op": "REL.select",
+            "params": {
+              "columns": [
+                {
+                  "from": "left.id",
+                  "to": "id"
+                },
+                {
+                  "from": "left.key",
+                  "to": "key"
+                },
+                {
+                  "from": "right.__actql_nest_items",
+                  "to": "__actql_nest_items"
+                }
+              ]
+            },
+            "in": [
+              "rel_join_7"
+            ]
+          },
+          {
+            "id": "rel_join_9",
+            "op": "REL.join",
+            "params": {
+              "how": "left",
+              "on": {
+                "type": "cmp",
+                "op": "eq",
+                "left": {
+                  "type": "lit",
+                  "value": 1
+                },
+                "right": {
+                  "type": "lit",
+                  "value": 1
+                }
+              }
+            },
+            "in": [
+              "rel_select_8",
+              "rel_groupby_6"
+            ]
+          },
+          {
+            "id": "rel_select_10",
+            "op": "REL.select",
+            "params": {
+              "columns": [
+                {
+                  "from": "left.id",
+                  "to": "id"
+                },
+                {
+                  "from": "left.key",
+                  "to": "key"
+                },
+                {
+                  "from": "left.__actql_nest_items",
+                  "to": "__actql_nest_items"
+                },
+                {
+                  "from": "right.__actql_nest_empty",
+                  "to": "__actql_nest_empty"
+                }
+              ]
+            },
+            "in": [
+              "rel_join_9"
+            ]
+          },
+          {
+            "id": "rel_derive_11",
+            "op": "REL.derive",
+            "params": {
+              "exprs": {
+                "items": {
+                  "type": "case",
+                  "when": [
+                    {
+                      "cond": {
+                        "type": "isnull",
+                        "expr": {
+                          "type": "col",
+                          "path": [
+                            "__actql_nest_items"
+                          ]
+                        }
+                      },
+                      "then": {
+                        "type": "col",
+                        "path": [
+                          "__actql_nest_empty"
+                        ]
+                      }
+                    }
+                  ],
+                  "else": {
+                    "type": "col",
+                    "path": [
+                      "__actql_nest_items"
+                    ]
+                  }
+                }
+              }
+            },
+            "in": [
+              "rel_select_10"
+            ]
+          },
+          {
+            "id": "nested",
+            "op": "REL.select",
+            "params": {
+              "columns": [
+                "id",
+                "key",
+                "items"
+              ]
+            },
+            "in": [
+              "rel_derive_11"
+            ]
+          },
+          {
+            "id": "rel_orderbystable_12",
+            "op": "REL.orderByStable",
+            "params": {
+              "by": [
+                {
+                  "field": "id",
+                  "dir": "asc",
+                  "nulls": "last"
+                }
+              ]
+            },
+            "in": [
+              "nested"
+            ]
+          }
+        ],
+        "output": "rel_orderbystable_12"
+      },
+      "aoa_logical_cid": "sha256:e40bb0a2f4ff8daa17f2c7fb2b9021ab0edaf2b2e0b0ca5e280ab1804110394f",
+      "limit_bindings": [
+        {
+          "version": "actql-execution-limit-binding/0.1",
+          "target": {
+            "kind": "aoa_step",
+            "step_id": "rel_groupby_6",
+            "field_path": "params.aggs.__actql_nest_empty.max_items"
+          },
+          "subject_ref": "nest-empty:$.stages[0].steps[0]",
+          "unit": "array_items",
+          "effective_max": 1,
+          "resolved_limit_cid": "sha256:b594a70f7e8406fc17b705497cc2dcf91338909dde03afb85a5a7e708d60f9eb",
+          "binding_cid": "sha256:1b63223888b81abaf354e2538df17c45beba0693657359a12a4ede91f42dfebc"
+        },
+        {
+          "version": "actql-execution-limit-binding/0.1",
+          "target": {
+            "kind": "aoa_step",
+            "step_id": "rel_groupby_4",
+            "field_path": "params.aggs.__actql_nest_items.max_items"
+          },
+          "subject_ref": "array_agg:$.stages[0].steps[0].nest.__actql_nest_items",
+          "unit": "array_items",
+          "effective_max": 3,
+          "resolved_limit_cid": "sha256:2aae5f18d68af4fe54e6100ca4d04ee14222ea4abd86b3e8df2d5028f743df73",
+          "binding_cid": "sha256:2b7d137af124ff06193a56c56e5d2a3d612aa3148758bfdac769780f90507a84"
+        },
+        {
+          "version": "actql-execution-limit-binding/0.1",
+          "target": {
+            "kind": "aoa_output",
+            "step_id": "rel_groupby_4",
+            "fields": [
+              "__actql_nest_items"
+            ],
+            "measure": "bytes"
+          },
+          "subject_ref": "nest-value:rel_groupby_4:[\"__actql_nest_items\"]",
+          "unit": "bytes",
+          "effective_max": 16777216,
+          "resolved_limit_cid": "sha256:b9664f54c93013c23b740a0c3713222779a0d09ee61cb75c7b8d88a6b2fb0067",
+          "binding_cid": "sha256:3a38337ee308668ceb9bb641ea1a60263624bf5daab855a0bd3ae58a49b6dac7"
+        },
+        {
+          "version": "actql-execution-limit-binding/0.1",
+          "target": {
+            "kind": "aoa_output",
+            "step_id": "nested",
+            "fields": [
+              "items"
+            ],
+            "measure": "bytes"
+          },
+          "subject_ref": "nest-value:nested:[\"items\"]",
+          "unit": "bytes",
+          "effective_max": 16777216,
+          "resolved_limit_cid": "sha256:63b51a1398e983c43565daaa527cdd8431858bddb40a01570c474f878b7ed493",
+          "binding_cid": "sha256:be2013cf3a182db1ad72b5aef73168a7d212d8af92b3748186e2b0e1ff487e74"
+        }
+      ],
+      "resolved_limits": [
+        {
+          "version": "actql-resolved-limit/0.1",
+          "subject_ref": "array_agg:$.stages[0].steps[0].nest.__actql_nest_items",
+          "unit": "array_items",
+          "candidates": [
+            {
+              "version": "actql-bound-witness/0.1",
+              "unit": "array_items",
+              "value": 3,
+              "role": "author_guard",
+              "law_id": "actql.guard.array-aggregate",
+              "source": {
+                "kind": "author_guard",
+                "source_path": "$.stages[0].steps[0].nest.__actql_nest_items.max_items",
+                "program_definition_cid": "sha256:0188253d045d7d73c2830513cb7366d7132190fa94a1790d78e1e565a3107350"
+              },
+              "derivation": {
+                "op": "source"
+              },
+              "dependencies": [
+                "sha256:0188253d045d7d73c2830513cb7366d7132190fa94a1790d78e1e565a3107350"
+              ],
+              "witness_cid": "sha256:42222f483ac80404aeef91f475184960f335ab47fb326d6003a1fdeb2fedcd52"
+            },
+            {
+              "version": "actql-bound-witness/0.1",
+              "unit": "array_items",
+              "value": 100000,
+              "role": "host_ceiling",
+              "law_id": "actql.host.aggregate-array-items",
+              "source": {
+                "kind": "host_policy",
+                "policy_cid": "sha256:6f2d5be40e5bc06c029ffd138969de3bf7b826fa185cd87dcc2a169ea60d1e7a",
+                "field": "max_aggregate_array_items"
+              },
+              "derivation": {
+                "op": "source"
+              },
+              "dependencies": [
+                "sha256:6f2d5be40e5bc06c029ffd138969de3bf7b826fa185cd87dcc2a169ea60d1e7a"
+              ],
+              "witness_cid": "sha256:d28bebc3d42f2400da59c3310eff6a93d1361913a1ff0f234184e3b31723e793"
+            }
+          ],
+          "effective_max": 3,
+          "author_guard_binding": "binding",
+          "enforcement": "engine_atomic",
+          "breach": "fail",
+          "resolved_limit_cid": "sha256:2aae5f18d68af4fe54e6100ca4d04ee14222ea4abd86b3e8df2d5028f743df73"
+        },
+        {
+          "version": "actql-resolved-limit/0.1",
+          "subject_ref": "nest-value:nested:[\"items\"]",
+          "unit": "bytes",
+          "candidates": [
+            {
+              "version": "actql-bound-witness/0.1",
+              "unit": "bytes",
+              "value": 16777216,
+              "role": "host_ceiling",
+              "law_id": "actql.host.nested-value-bytes",
+              "source": {
+                "kind": "host_policy",
+                "policy_cid": "sha256:6f2d5be40e5bc06c029ffd138969de3bf7b826fa185cd87dcc2a169ea60d1e7a",
+                "field": "max_nested_value_bytes"
+              },
+              "derivation": {
+                "op": "source"
+              },
+              "dependencies": [
+                "sha256:6f2d5be40e5bc06c029ffd138969de3bf7b826fa185cd87dcc2a169ea60d1e7a"
+              ],
+              "witness_cid": "sha256:c1925b1b62d6d84e6a06b1a9184d259995e84e49add17509268fa100df38dbaf"
+            }
+          ],
+          "effective_max": 16777216,
+          "author_guard_binding": "absent",
+          "enforcement": "engine_atomic",
+          "breach": "fail",
+          "resolved_limit_cid": "sha256:63b51a1398e983c43565daaa527cdd8431858bddb40a01570c474f878b7ed493"
+        },
+        {
+          "version": "actql-resolved-limit/0.1",
+          "subject_ref": "nest-empty:$.stages[0].steps[0]",
+          "unit": "array_items",
+          "candidates": [
+            {
+              "version": "actql-bound-witness/0.1",
+              "unit": "array_items",
+              "value": 1,
+              "role": "proven_upper_bound",
+              "law_id": "actql.bound.nest-empty-array",
+              "source": {
+                "kind": "program",
+                "semantic_ref": "$.stages[0].steps[0].nest",
+                "proof_cid": "sha256:f57db2ffdbf99bbc91a28e59384e687e14ccc053eb656fe8039a8c7170166325"
+              },
+              "derivation": {
+                "op": "source"
+              },
+              "dependencies": [
+                "sha256:0188253d045d7d73c2830513cb7366d7132190fa94a1790d78e1e565a3107350",
+                "sha256:f57db2ffdbf99bbc91a28e59384e687e14ccc053eb656fe8039a8c7170166325"
+              ],
+              "witness_cid": "sha256:c3e595db4918a980f908b90d611760acfb8c6e0390996b8be29d74e72aca339a"
+            }
+          ],
+          "effective_max": 1,
+          "author_guard_binding": "absent",
+          "enforcement": "engine_atomic",
+          "breach": "fail",
+          "resolved_limit_cid": "sha256:b594a70f7e8406fc17b705497cc2dcf91338909dde03afb85a5a7e708d60f9eb"
+        },
+        {
+          "version": "actql-resolved-limit/0.1",
+          "subject_ref": "nest-value:rel_groupby_4:[\"__actql_nest_items\"]",
+          "unit": "bytes",
+          "candidates": [
+            {
+              "version": "actql-bound-witness/0.1",
+              "unit": "bytes",
+              "value": 16777216,
+              "role": "host_ceiling",
+              "law_id": "actql.host.nested-value-bytes",
+              "source": {
+                "kind": "host_policy",
+                "policy_cid": "sha256:6f2d5be40e5bc06c029ffd138969de3bf7b826fa185cd87dcc2a169ea60d1e7a",
+                "field": "max_nested_value_bytes"
+              },
+              "derivation": {
+                "op": "source"
+              },
+              "dependencies": [
+                "sha256:6f2d5be40e5bc06c029ffd138969de3bf7b826fa185cd87dcc2a169ea60d1e7a"
+              ],
+              "witness_cid": "sha256:c1925b1b62d6d84e6a06b1a9184d259995e84e49add17509268fa100df38dbaf"
+            }
+          ],
+          "effective_max": 16777216,
+          "author_guard_binding": "absent",
+          "enforcement": "engine_atomic",
+          "breach": "fail",
+          "resolved_limit_cid": "sha256:b9664f54c93013c23b740a0c3713222779a0d09ee61cb75c7b8d88a6b2fb0067"
+        }
+      ],
+      "inferred_shapes": [
+        {
+          "name": "nested",
+          "carrier": "relation",
+          "known_fields": [
+            "id",
+            "key",
+            "items"
+          ],
+          "fields_complete": true,
+          "schema_evidence": "typed",
+          "identity_fields": [
+            "id"
+          ],
+          "stable_order": false,
+          "role": "named_result"
+        },
+        {
+          "name": "main",
+          "carrier": "relation",
+          "known_fields": [
+            "id",
+            "key",
+            "items"
+          ],
+          "fields_complete": true,
+          "schema_evidence": "typed",
+          "identity_fields": [
+            "id"
+          ],
+          "stable_order": true,
+          "role": "named_result"
+        }
+      ],
+      "empty_array_schema": {
+        "type": "array",
+        "nullable": false,
+        "max_items": 3,
+        "items": {
+          "type": "object",
+          "nullable": false,
+          "additional_properties": false,
+          "fields": {
+            "value": {
+              "type": "number",
+              "nullable": true
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "explicit-tie",
+      "program_definition_cid": "sha256:17c281e5dae3cd6436399f3659086cea3f3ab42224d4ce3fba71fa90af4b1d7c",
+      "program_semantics_cid": "sha256:e5856db035a8a111c8079bace443d363e9932d57f3879b9c693bad5906938210",
+      "stage_semantics_cid": "sha256:7812480abd45b9d7356b73b890f7aa23a3052627abd0c63bb8c2d879cf196076",
+      "identity_envelopes": {
+        "stage": {
+          "version": "actql-stage-semantics/0.1",
+          "expression_contract_cid": "sha256:6e9f53dc1542e70b4618c45a3f7fba7ad749f4703e39dfda94ce1b990577a6f1",
+          "parameters": {},
+          "parameter_references": [],
+          "bindings": {},
+          "binding_references": [],
+          "local_body": {
+            "inputs": {
+              "parents": {
+                "carrier": "relation",
+                "primary_key": [
+                  "id"
+                ],
+                "schema": {
+                  "id": {
+                    "type": "string",
+                    "nullable": false
+                  },
+                  "key": {
+                    "type": "string",
+                    "nullable": true
+                  }
+                }
+              },
+              "children": {
+                "carrier": "relation",
+                "primary_key": [
+                  "id"
+                ],
+                "schema": {
+                  "id": {
+                    "type": "string",
+                    "nullable": false
+                  },
+                  "key": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "value": {
+                    "type": "number",
+                    "nullable": true
+                  }
+                }
+              }
+            },
+            "from": "parents",
+            "steps": [
+              {
+                "nest": {
+                  "with": "children",
+                  "on": [
+                    {
+                      "left": "key",
+                      "right": "key"
+                    }
+                  ],
+                  "into": "items",
+                  "fields": [
+                    "value"
+                  ],
+                  "max_items": 3,
+                  "order_by": [
+                    {
+                      "value": "desc"
+                    }
+                  ]
+                },
+                "as": "nested"
+              }
+            ],
+            "results": {
+              "main": {
+                "from": "nested",
+                "fields": [
+                  "id",
+                  "key",
+                  "items"
+                ]
+              }
+            },
+            "effects": {}
+          }
+        },
+        "program": {
+          "version": "actql-program-semantics/0.1",
+          "actql_version": "actql/0.1",
+          "expression_contract_cid": "sha256:6e9f53dc1542e70b4618c45a3f7fba7ad749f4703e39dfda94ce1b990577a6f1",
+          "parameters": {},
+          "parameter_references": [],
+          "bindings": {},
+          "binding_references": [],
+          "program_template": {
+            "stages": [
+              {
+                "id": "main",
+                "stage_semantics_cid": "sha256:7812480abd45b9d7356b73b890f7aa23a3052627abd0c63bb8c2d879cf196076",
+                "after": "initial",
+                "imports": {}
+              }
+            ],
+            "exports": {
+              "main": {
+                "from": {
+                  "stage": "main",
+                  "result": "main"
+                }
+              }
+            }
+          }
+        },
+        "definition": {
+          "version": "actql-program-definition/0.1",
+          "id": "nest.golden.explicit-tie",
+          "program_semantics_cid": "sha256:e5856db035a8a111c8079bace443d363e9932d57f3879b9c693bad5906938210"
+        }
+      },
+      "pipeline": {
+        "version": "aoa-pipeline/0.1",
+        "sources": {
+          "parents": {
+            "sort": "relation"
+          },
+          "children": {
+            "sort": "relation"
+          }
+        },
+        "steps": [
+          {
+            "id": "rel_join_1",
+            "op": "REL.join",
+            "params": {
+              "how": "semi",
+              "on": {
+                "type": "cmp",
+                "op": "eq",
+                "left": {
+                  "type": "col",
+                  "path": [
+                    "left",
+                    "key"
+                  ]
+                },
+                "right": {
+                  "type": "col",
+                  "path": [
+                    "right",
+                    "key"
+                  ]
+                }
+              },
+              "key_pairs": [
+                {
+                  "left": "key",
+                  "right": "key"
+                }
+              ],
+              "null_key": "no_match"
+            },
+            "in": [
+              "children",
+              "parents"
+            ]
+          },
+          {
+            "id": "rel_select_2",
+            "op": "REL.select",
+            "params": {
+              "columns": [
+                {
+                  "from": "left.id",
+                  "to": "id"
+                },
+                {
+                  "from": "left.key",
+                  "to": "key"
+                },
+                {
+                  "from": "left.value",
+                  "to": "value"
+                }
+              ]
+            },
+            "in": [
+              "rel_join_1"
+            ]
+          },
+          {
+            "id": "rel_orderbystable_3",
+            "op": "REL.orderByStable",
+            "params": {
+              "by": [
+                {
+                  "field": "value",
+                  "dir": "desc",
+                  "nulls": "last"
+                },
+                {
+                  "field": "id",
+                  "dir": "asc",
+                  "nulls": "last"
+                }
+              ]
+            },
+            "in": [
+              "rel_select_2"
+            ]
+          },
+          {
+            "id": "rel_groupby_4",
+            "op": "REL.groupBy",
+            "params": {
+              "by": [
+                "key"
+              ],
+              "aggs": {
+                "__actql_nest_items": {
+                  "fn": "array_agg",
+                  "expr": {
+                    "type": "object",
+                    "fields": {
+                      "value": {
+                        "type": "col",
+                        "path": [
+                          "value"
+                        ]
+                      }
+                    }
+                  },
+                  "max_items": 3
+                }
+              }
+            },
+            "in": [
+              "rel_orderbystable_3"
+            ]
+          },
+          {
+            "id": "rel_where_5",
+            "op": "REL.where",
+            "params": {
+              "expr": {
+                "type": "cmp",
+                "op": "eq",
+                "left": {
+                  "type": "lit",
+                  "value": 0
+                },
+                "right": {
+                  "type": "lit",
+                  "value": 1
+                }
+              }
+            },
+            "in": [
+              "children"
+            ]
+          },
+          {
+            "id": "rel_groupby_6",
+            "op": "REL.groupBy",
+            "params": {
+              "by": [],
+              "aggs": {
+                "__actql_nest_empty": {
+                  "fn": "array_agg",
+                  "expr": {
+                    "type": "object",
+                    "fields": {
+                      "value": {
+                        "type": "col",
+                        "path": [
+                          "value"
+                        ]
+                      }
+                    }
+                  },
+                  "max_items": 1
+                }
+              }
+            },
+            "in": [
+              "rel_where_5"
+            ]
+          },
+          {
+            "id": "rel_join_7",
+            "op": "REL.join",
+            "params": {
+              "how": "left",
+              "on": {
+                "type": "cmp",
+                "op": "eq",
+                "left": {
+                  "type": "col",
+                  "path": [
+                    "left",
+                    "key"
+                  ]
+                },
+                "right": {
+                  "type": "col",
+                  "path": [
+                    "right",
+                    "key"
+                  ]
+                }
+              },
+              "key_pairs": [
+                {
+                  "left": "key",
+                  "right": "key"
+                }
+              ],
+              "cardinality": "many_to_one",
+              "on_duplicate": "fail",
+              "null_key": "no_match"
+            },
+            "in": [
+              "parents",
+              "rel_groupby_4"
+            ]
+          },
+          {
+            "id": "rel_select_8",
+            "op": "REL.select",
+            "params": {
+              "columns": [
+                {
+                  "from": "left.id",
+                  "to": "id"
+                },
+                {
+                  "from": "left.key",
+                  "to": "key"
+                },
+                {
+                  "from": "right.__actql_nest_items",
+                  "to": "__actql_nest_items"
+                }
+              ]
+            },
+            "in": [
+              "rel_join_7"
+            ]
+          },
+          {
+            "id": "rel_join_9",
+            "op": "REL.join",
+            "params": {
+              "how": "left",
+              "on": {
+                "type": "cmp",
+                "op": "eq",
+                "left": {
+                  "type": "lit",
+                  "value": 1
+                },
+                "right": {
+                  "type": "lit",
+                  "value": 1
+                }
+              }
+            },
+            "in": [
+              "rel_select_8",
+              "rel_groupby_6"
+            ]
+          },
+          {
+            "id": "rel_select_10",
+            "op": "REL.select",
+            "params": {
+              "columns": [
+                {
+                  "from": "left.id",
+                  "to": "id"
+                },
+                {
+                  "from": "left.key",
+                  "to": "key"
+                },
+                {
+                  "from": "left.__actql_nest_items",
+                  "to": "__actql_nest_items"
+                },
+                {
+                  "from": "right.__actql_nest_empty",
+                  "to": "__actql_nest_empty"
+                }
+              ]
+            },
+            "in": [
+              "rel_join_9"
+            ]
+          },
+          {
+            "id": "rel_derive_11",
+            "op": "REL.derive",
+            "params": {
+              "exprs": {
+                "items": {
+                  "type": "case",
+                  "when": [
+                    {
+                      "cond": {
+                        "type": "isnull",
+                        "expr": {
+                          "type": "col",
+                          "path": [
+                            "__actql_nest_items"
+                          ]
+                        }
+                      },
+                      "then": {
+                        "type": "col",
+                        "path": [
+                          "__actql_nest_empty"
+                        ]
+                      }
+                    }
+                  ],
+                  "else": {
+                    "type": "col",
+                    "path": [
+                      "__actql_nest_items"
+                    ]
+                  }
+                }
+              }
+            },
+            "in": [
+              "rel_select_10"
+            ]
+          },
+          {
+            "id": "nested",
+            "op": "REL.select",
+            "params": {
+              "columns": [
+                "id",
+                "key",
+                "items"
+              ]
+            },
+            "in": [
+              "rel_derive_11"
+            ]
+          },
+          {
+            "id": "rel_orderbystable_12",
+            "op": "REL.orderByStable",
+            "params": {
+              "by": [
+                {
+                  "field": "id",
+                  "dir": "asc",
+                  "nulls": "last"
+                }
+              ]
+            },
+            "in": [
+              "nested"
+            ]
+          }
+        ],
+        "output": "rel_orderbystable_12"
+      },
+      "aoa_logical_cid": "sha256:1ed88ec3f1324fd3de763158a23ae3df2c2f0a6936aa320d0a66b6d5f1b78544",
+      "limit_bindings": [
+        {
+          "version": "actql-execution-limit-binding/0.1",
+          "target": {
+            "kind": "aoa_output",
+            "step_id": "rel_groupby_4",
+            "fields": [
+              "__actql_nest_items"
+            ],
+            "measure": "bytes"
+          },
+          "subject_ref": "nest-value:rel_groupby_4:[\"__actql_nest_items\"]",
+          "unit": "bytes",
+          "effective_max": 16777216,
+          "resolved_limit_cid": "sha256:b9664f54c93013c23b740a0c3713222779a0d09ee61cb75c7b8d88a6b2fb0067",
+          "binding_cid": "sha256:3a38337ee308668ceb9bb641ea1a60263624bf5daab855a0bd3ae58a49b6dac7"
+        },
+        {
+          "version": "actql-execution-limit-binding/0.1",
+          "target": {
+            "kind": "aoa_step",
+            "step_id": "rel_groupby_4",
+            "field_path": "params.aggs.__actql_nest_items.max_items"
+          },
+          "subject_ref": "array_agg:$.stages[0].steps[0].nest.__actql_nest_items",
+          "unit": "array_items",
+          "effective_max": 3,
+          "resolved_limit_cid": "sha256:51e10ca1b00bae50154912356ab3a4aa38f235f66c221a68cfee95fd053c456e",
+          "binding_cid": "sha256:88f77a71dd237dc0cd72579569152cb7d91308ce4dcdd3772f266767ee18c949"
+        },
+        {
+          "version": "actql-execution-limit-binding/0.1",
+          "target": {
+            "kind": "aoa_step",
+            "step_id": "rel_groupby_6",
+            "field_path": "params.aggs.__actql_nest_empty.max_items"
+          },
+          "subject_ref": "nest-empty:$.stages[0].steps[0]",
+          "unit": "array_items",
+          "effective_max": 1,
+          "resolved_limit_cid": "sha256:709d6b44fd7e07ed7b89504a83300a38f466f2b2fce9b7fa83e3120043d115f4",
+          "binding_cid": "sha256:a61d695be3ea1a9a56a8b1e03f0345b06d14eaf06051707e29423a80591e2bde"
+        },
+        {
+          "version": "actql-execution-limit-binding/0.1",
+          "target": {
+            "kind": "aoa_output",
+            "step_id": "nested",
+            "fields": [
+              "items"
+            ],
+            "measure": "bytes"
+          },
+          "subject_ref": "nest-value:nested:[\"items\"]",
+          "unit": "bytes",
+          "effective_max": 16777216,
+          "resolved_limit_cid": "sha256:63b51a1398e983c43565daaa527cdd8431858bddb40a01570c474f878b7ed493",
+          "binding_cid": "sha256:be2013cf3a182db1ad72b5aef73168a7d212d8af92b3748186e2b0e1ff487e74"
+        }
+      ],
+      "resolved_limits": [
+        {
+          "version": "actql-resolved-limit/0.1",
+          "subject_ref": "array_agg:$.stages[0].steps[0].nest.__actql_nest_items",
+          "unit": "array_items",
+          "candidates": [
+            {
+              "version": "actql-bound-witness/0.1",
+              "unit": "array_items",
+              "value": 3,
+              "role": "author_guard",
+              "law_id": "actql.guard.array-aggregate",
+              "source": {
+                "kind": "author_guard",
+                "source_path": "$.stages[0].steps[0].nest.__actql_nest_items.max_items",
+                "program_definition_cid": "sha256:17c281e5dae3cd6436399f3659086cea3f3ab42224d4ce3fba71fa90af4b1d7c"
+              },
+              "derivation": {
+                "op": "source"
+              },
+              "dependencies": [
+                "sha256:17c281e5dae3cd6436399f3659086cea3f3ab42224d4ce3fba71fa90af4b1d7c"
+              ],
+              "witness_cid": "sha256:145f29d0e92cbcbffcb88a9db04c34e2ace5233867d828e4f7d3068d4330f4f6"
+            },
+            {
+              "version": "actql-bound-witness/0.1",
+              "unit": "array_items",
+              "value": 100000,
+              "role": "host_ceiling",
+              "law_id": "actql.host.aggregate-array-items",
+              "source": {
+                "kind": "host_policy",
+                "policy_cid": "sha256:6f2d5be40e5bc06c029ffd138969de3bf7b826fa185cd87dcc2a169ea60d1e7a",
+                "field": "max_aggregate_array_items"
+              },
+              "derivation": {
+                "op": "source"
+              },
+              "dependencies": [
+                "sha256:6f2d5be40e5bc06c029ffd138969de3bf7b826fa185cd87dcc2a169ea60d1e7a"
+              ],
+              "witness_cid": "sha256:d28bebc3d42f2400da59c3310eff6a93d1361913a1ff0f234184e3b31723e793"
+            }
+          ],
+          "effective_max": 3,
+          "author_guard_binding": "binding",
+          "enforcement": "engine_atomic",
+          "breach": "fail",
+          "resolved_limit_cid": "sha256:51e10ca1b00bae50154912356ab3a4aa38f235f66c221a68cfee95fd053c456e"
+        },
+        {
+          "version": "actql-resolved-limit/0.1",
+          "subject_ref": "nest-value:nested:[\"items\"]",
+          "unit": "bytes",
+          "candidates": [
+            {
+              "version": "actql-bound-witness/0.1",
+              "unit": "bytes",
+              "value": 16777216,
+              "role": "host_ceiling",
+              "law_id": "actql.host.nested-value-bytes",
+              "source": {
+                "kind": "host_policy",
+                "policy_cid": "sha256:6f2d5be40e5bc06c029ffd138969de3bf7b826fa185cd87dcc2a169ea60d1e7a",
+                "field": "max_nested_value_bytes"
+              },
+              "derivation": {
+                "op": "source"
+              },
+              "dependencies": [
+                "sha256:6f2d5be40e5bc06c029ffd138969de3bf7b826fa185cd87dcc2a169ea60d1e7a"
+              ],
+              "witness_cid": "sha256:c1925b1b62d6d84e6a06b1a9184d259995e84e49add17509268fa100df38dbaf"
+            }
+          ],
+          "effective_max": 16777216,
+          "author_guard_binding": "absent",
+          "enforcement": "engine_atomic",
+          "breach": "fail",
+          "resolved_limit_cid": "sha256:63b51a1398e983c43565daaa527cdd8431858bddb40a01570c474f878b7ed493"
+        },
+        {
+          "version": "actql-resolved-limit/0.1",
+          "subject_ref": "nest-empty:$.stages[0].steps[0]",
+          "unit": "array_items",
+          "candidates": [
+            {
+              "version": "actql-bound-witness/0.1",
+              "unit": "array_items",
+              "value": 1,
+              "role": "proven_upper_bound",
+              "law_id": "actql.bound.nest-empty-array",
+              "source": {
+                "kind": "program",
+                "semantic_ref": "$.stages[0].steps[0].nest",
+                "proof_cid": "sha256:f0b926a2fb52a7eb7e09cac4507a690dc0516a879044524f4496f3a54cb63d21"
+              },
+              "derivation": {
+                "op": "source"
+              },
+              "dependencies": [
+                "sha256:17c281e5dae3cd6436399f3659086cea3f3ab42224d4ce3fba71fa90af4b1d7c",
+                "sha256:f0b926a2fb52a7eb7e09cac4507a690dc0516a879044524f4496f3a54cb63d21"
+              ],
+              "witness_cid": "sha256:739fe9cc40557d4055490e089daf793cfb3eee681851e34b933f9f13afefb0cc"
+            }
+          ],
+          "effective_max": 1,
+          "author_guard_binding": "absent",
+          "enforcement": "engine_atomic",
+          "breach": "fail",
+          "resolved_limit_cid": "sha256:709d6b44fd7e07ed7b89504a83300a38f466f2b2fce9b7fa83e3120043d115f4"
+        },
+        {
+          "version": "actql-resolved-limit/0.1",
+          "subject_ref": "nest-value:rel_groupby_4:[\"__actql_nest_items\"]",
+          "unit": "bytes",
+          "candidates": [
+            {
+              "version": "actql-bound-witness/0.1",
+              "unit": "bytes",
+              "value": 16777216,
+              "role": "host_ceiling",
+              "law_id": "actql.host.nested-value-bytes",
+              "source": {
+                "kind": "host_policy",
+                "policy_cid": "sha256:6f2d5be40e5bc06c029ffd138969de3bf7b826fa185cd87dcc2a169ea60d1e7a",
+                "field": "max_nested_value_bytes"
+              },
+              "derivation": {
+                "op": "source"
+              },
+              "dependencies": [
+                "sha256:6f2d5be40e5bc06c029ffd138969de3bf7b826fa185cd87dcc2a169ea60d1e7a"
+              ],
+              "witness_cid": "sha256:c1925b1b62d6d84e6a06b1a9184d259995e84e49add17509268fa100df38dbaf"
+            }
+          ],
+          "effective_max": 16777216,
+          "author_guard_binding": "absent",
+          "enforcement": "engine_atomic",
+          "breach": "fail",
+          "resolved_limit_cid": "sha256:b9664f54c93013c23b740a0c3713222779a0d09ee61cb75c7b8d88a6b2fb0067"
+        }
+      ],
+      "inferred_shapes": [
+        {
+          "name": "nested",
+          "carrier": "relation",
+          "known_fields": [
+            "id",
+            "key",
+            "items"
+          ],
+          "fields_complete": true,
+          "schema_evidence": "typed",
+          "identity_fields": [
+            "id"
+          ],
+          "stable_order": false,
+          "role": "named_result"
+        },
+        {
+          "name": "main",
+          "carrier": "relation",
+          "known_fields": [
+            "id",
+            "key",
+            "items"
+          ],
+          "fields_complete": true,
+          "schema_evidence": "typed",
+          "identity_fields": [
+            "id"
+          ],
+          "stable_order": true,
+          "role": "named_result"
+        }
+      ],
+      "empty_array_schema": {
+        "type": "array",
+        "nullable": false,
+        "max_items": 3,
+        "items": {
+          "type": "object",
+          "nullable": false,
+          "additional_properties": false,
+          "fields": {
+            "value": {
+              "type": "number",
+              "nullable": true
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "numeric-rename",
+      "program_definition_cid": "sha256:3f652e4cf340c0f20f710f5d300712e714ca43d55775c48d7fc4b0681dd5bf4c",
+      "program_semantics_cid": "sha256:c14c95fdf5a4f0b686392220e961d209cb2d5db63aa5d4796583a6c343ea469a",
+      "stage_semantics_cid": "sha256:53d195290b0b57614870c7656cbc765c86d78256919c927174362135b018fa3c",
+      "identity_envelopes": {
+        "stage": {
+          "version": "actql-stage-semantics/0.1",
+          "expression_contract_cid": "sha256:6e9f53dc1542e70b4618c45a3f7fba7ad749f4703e39dfda94ce1b990577a6f1",
+          "parameters": {},
+          "parameter_references": [],
+          "bindings": {},
+          "binding_references": [],
+          "local_body": {
+            "inputs": {
+              "parents": {
+                "carrier": "relation",
+                "primary_key": [
+                  "id"
+                ],
+                "schema": {
+                  "id": {
+                    "type": "string",
+                    "nullable": false
+                  },
+                  "key": {
+                    "type": "string",
+                    "nullable": true
+                  }
+                }
+              },
+              "children": {
+                "carrier": "relation",
+                "schema": {
+                  "id": {
+                    "type": "string",
+                    "nullable": false
+                  },
+                  "key": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "value": {
+                    "type": "number",
+                    "nullable": true
+                  },
+                  "a": {
+                    "type": "number",
+                    "nullable": true
+                  },
+                  "b": {
+                    "type": "number",
+                    "nullable": true
+                  }
+                }
+              }
+            },
+            "from": "parents",
+            "steps": [
+              {
+                "nest": {
+                  "with": "children",
+                  "on": [
+                    {
+                      "left": "key",
+                      "right": "key"
+                    }
+                  ],
+                  "into": "items",
+                  "fields": [
+                    {
+                      "10": "a"
+                    },
+                    {
+                      "2": "b"
+                    },
+                    {
+                      "値": "value"
+                    }
+                  ],
+                  "max_items": 3
+                },
+                "as": "nested"
+              }
+            ],
+            "results": {
+              "main": {
+                "from": "nested",
+                "fields": [
+                  "id",
+                  "key",
+                  "items"
+                ]
+              }
+            },
+            "effects": {}
+          }
+        },
+        "program": {
+          "version": "actql-program-semantics/0.1",
+          "actql_version": "actql/0.1",
+          "expression_contract_cid": "sha256:6e9f53dc1542e70b4618c45a3f7fba7ad749f4703e39dfda94ce1b990577a6f1",
+          "parameters": {},
+          "parameter_references": [],
+          "bindings": {},
+          "binding_references": [],
+          "program_template": {
+            "stages": [
+              {
+                "id": "main",
+                "stage_semantics_cid": "sha256:53d195290b0b57614870c7656cbc765c86d78256919c927174362135b018fa3c",
+                "after": "initial",
+                "imports": {}
+              }
+            ],
+            "exports": {
+              "main": {
+                "from": {
+                  "stage": "main",
+                  "result": "main"
+                }
+              }
+            }
+          }
+        },
+        "definition": {
+          "version": "actql-program-definition/0.1",
+          "id": "nest.golden.numeric-rename",
+          "program_semantics_cid": "sha256:c14c95fdf5a4f0b686392220e961d209cb2d5db63aa5d4796583a6c343ea469a"
+        }
+      },
+      "pipeline": {
+        "version": "aoa-pipeline/0.1",
+        "sources": {
+          "parents": {
+            "sort": "relation"
+          },
+          "children": {
+            "sort": "relation"
+          }
+        },
+        "steps": [
+          {
+            "id": "rel_join_1",
+            "op": "REL.join",
+            "params": {
+              "how": "semi",
+              "on": {
+                "type": "cmp",
+                "op": "eq",
+                "left": {
+                  "type": "col",
+                  "path": [
+                    "left",
+                    "key"
+                  ]
+                },
+                "right": {
+                  "type": "col",
+                  "path": [
+                    "right",
+                    "key"
+                  ]
+                }
+              },
+              "key_pairs": [
+                {
+                  "left": "key",
+                  "right": "key"
+                }
+              ],
+              "null_key": "no_match"
+            },
+            "in": [
+              "children",
+              "parents"
+            ]
+          },
+          {
+            "id": "rel_select_2",
+            "op": "REL.select",
+            "params": {
+              "columns": [
+                {
+                  "from": "left.a",
+                  "to": "a"
+                },
+                {
+                  "from": "left.b",
+                  "to": "b"
+                },
+                {
+                  "from": "left.id",
+                  "to": "id"
+                },
+                {
+                  "from": "left.key",
+                  "to": "key"
+                },
+                {
+                  "from": "left.value",
+                  "to": "value"
+                }
+              ]
+            },
+            "in": [
+              "rel_join_1"
+            ]
+          },
+          {
+            "id": "rel_orderbystable_3",
+            "op": "REL.orderByStable",
+            "params": {
+              "by": [
+                {
+                  "field": "a",
+                  "dir": "asc",
+                  "nulls": "last"
+                },
+                {
+                  "field": "b",
+                  "dir": "asc",
+                  "nulls": "last"
+                },
+                {
+                  "field": "value",
+                  "dir": "asc",
+                  "nulls": "last"
+                }
+              ]
+            },
+            "in": [
+              "rel_select_2"
+            ]
+          },
+          {
+            "id": "rel_groupby_4",
+            "op": "REL.groupBy",
+            "params": {
+              "by": [
+                "key"
+              ],
+              "aggs": {
+                "__actql_nest_items": {
+                  "fn": "array_agg",
+                  "expr": {
+                    "type": "object",
+                    "fields": {
+                      "2": {
+                        "type": "col",
+                        "path": [
+                          "b"
+                        ]
+                      },
+                      "10": {
+                        "type": "col",
+                        "path": [
+                          "a"
+                        ]
+                      },
+                      "値": {
+                        "type": "col",
+                        "path": [
+                          "value"
+                        ]
+                      }
+                    }
+                  },
+                  "max_items": 3
+                }
+              }
+            },
+            "in": [
+              "rel_orderbystable_3"
+            ]
+          },
+          {
+            "id": "rel_where_5",
+            "op": "REL.where",
+            "params": {
+              "expr": {
+                "type": "cmp",
+                "op": "eq",
+                "left": {
+                  "type": "lit",
+                  "value": 0
+                },
+                "right": {
+                  "type": "lit",
+                  "value": 1
+                }
+              }
+            },
+            "in": [
+              "children"
+            ]
+          },
+          {
+            "id": "rel_groupby_6",
+            "op": "REL.groupBy",
+            "params": {
+              "by": [],
+              "aggs": {
+                "__actql_nest_empty": {
+                  "fn": "array_agg",
+                  "expr": {
+                    "type": "object",
+                    "fields": {
+                      "2": {
+                        "type": "col",
+                        "path": [
+                          "b"
+                        ]
+                      },
+                      "10": {
+                        "type": "col",
+                        "path": [
+                          "a"
+                        ]
+                      },
+                      "値": {
+                        "type": "col",
+                        "path": [
+                          "value"
+                        ]
+                      }
+                    }
+                  },
+                  "max_items": 1
+                }
+              }
+            },
+            "in": [
+              "rel_where_5"
+            ]
+          },
+          {
+            "id": "rel_join_7",
+            "op": "REL.join",
+            "params": {
+              "how": "left",
+              "on": {
+                "type": "cmp",
+                "op": "eq",
+                "left": {
+                  "type": "col",
+                  "path": [
+                    "left",
+                    "key"
+                  ]
+                },
+                "right": {
+                  "type": "col",
+                  "path": [
+                    "right",
+                    "key"
+                  ]
+                }
+              },
+              "key_pairs": [
+                {
+                  "left": "key",
+                  "right": "key"
+                }
+              ],
+              "cardinality": "many_to_one",
+              "on_duplicate": "fail",
+              "null_key": "no_match"
+            },
+            "in": [
+              "parents",
+              "rel_groupby_4"
+            ]
+          },
+          {
+            "id": "rel_select_8",
+            "op": "REL.select",
+            "params": {
+              "columns": [
+                {
+                  "from": "left.id",
+                  "to": "id"
+                },
+                {
+                  "from": "left.key",
+                  "to": "key"
+                },
+                {
+                  "from": "right.__actql_nest_items",
+                  "to": "__actql_nest_items"
+                }
+              ]
+            },
+            "in": [
+              "rel_join_7"
+            ]
+          },
+          {
+            "id": "rel_join_9",
+            "op": "REL.join",
+            "params": {
+              "how": "left",
+              "on": {
+                "type": "cmp",
+                "op": "eq",
+                "left": {
+                  "type": "lit",
+                  "value": 1
+                },
+                "right": {
+                  "type": "lit",
+                  "value": 1
+                }
+              }
+            },
+            "in": [
+              "rel_select_8",
+              "rel_groupby_6"
+            ]
+          },
+          {
+            "id": "rel_select_10",
+            "op": "REL.select",
+            "params": {
+              "columns": [
+                {
+                  "from": "left.id",
+                  "to": "id"
+                },
+                {
+                  "from": "left.key",
+                  "to": "key"
+                },
+                {
+                  "from": "left.__actql_nest_items",
+                  "to": "__actql_nest_items"
+                },
+                {
+                  "from": "right.__actql_nest_empty",
+                  "to": "__actql_nest_empty"
+                }
+              ]
+            },
+            "in": [
+              "rel_join_9"
+            ]
+          },
+          {
+            "id": "rel_derive_11",
+            "op": "REL.derive",
+            "params": {
+              "exprs": {
+                "items": {
+                  "type": "case",
+                  "when": [
+                    {
+                      "cond": {
+                        "type": "isnull",
+                        "expr": {
+                          "type": "col",
+                          "path": [
+                            "__actql_nest_items"
+                          ]
+                        }
+                      },
+                      "then": {
+                        "type": "col",
+                        "path": [
+                          "__actql_nest_empty"
+                        ]
+                      }
+                    }
+                  ],
+                  "else": {
+                    "type": "col",
+                    "path": [
+                      "__actql_nest_items"
+                    ]
+                  }
+                }
+              }
+            },
+            "in": [
+              "rel_select_10"
+            ]
+          },
+          {
+            "id": "nested",
+            "op": "REL.select",
+            "params": {
+              "columns": [
+                "id",
+                "key",
+                "items"
+              ]
+            },
+            "in": [
+              "rel_derive_11"
+            ]
+          },
+          {
+            "id": "rel_orderbystable_12",
+            "op": "REL.orderByStable",
+            "params": {
+              "by": [
+                {
+                  "field": "id",
+                  "dir": "asc",
+                  "nulls": "last"
+                }
+              ]
+            },
+            "in": [
+              "nested"
+            ]
+          }
+        ],
+        "output": "rel_orderbystable_12"
+      },
+      "aoa_logical_cid": "sha256:abbf2551bb1ace4985582ffa5a7bc47ece71325aab7148615d879349c7aeeb54",
+      "limit_bindings": [
+        {
+          "version": "actql-execution-limit-binding/0.1",
+          "target": {
+            "kind": "aoa_output",
+            "step_id": "rel_groupby_4",
+            "fields": [
+              "__actql_nest_items"
+            ],
+            "measure": "bytes"
+          },
+          "subject_ref": "nest-value:rel_groupby_4:[\"__actql_nest_items\"]",
+          "unit": "bytes",
+          "effective_max": 16777216,
+          "resolved_limit_cid": "sha256:b9664f54c93013c23b740a0c3713222779a0d09ee61cb75c7b8d88a6b2fb0067",
+          "binding_cid": "sha256:3a38337ee308668ceb9bb641ea1a60263624bf5daab855a0bd3ae58a49b6dac7"
+        },
+        {
+          "version": "actql-execution-limit-binding/0.1",
+          "target": {
+            "kind": "aoa_step",
+            "step_id": "rel_groupby_6",
+            "field_path": "params.aggs.__actql_nest_empty.max_items"
+          },
+          "subject_ref": "nest-empty:$.stages[0].steps[0]",
+          "unit": "array_items",
+          "effective_max": 1,
+          "resolved_limit_cid": "sha256:363553169e2a62140c5845dd653341a25645c65a649fef4e479008fb8c5cd33a",
+          "binding_cid": "sha256:3c390527e3113bd56981951c49b7e90157ed9a9cc566d81ceffc223835d79851"
+        },
+        {
+          "version": "actql-execution-limit-binding/0.1",
+          "target": {
+            "kind": "aoa_step",
+            "step_id": "rel_groupby_4",
+            "field_path": "params.aggs.__actql_nest_items.max_items"
+          },
+          "subject_ref": "array_agg:$.stages[0].steps[0].nest.__actql_nest_items",
+          "unit": "array_items",
+          "effective_max": 3,
+          "resolved_limit_cid": "sha256:edad1aa3491d1dea84756504f30b9b12e67d4e3c9317677a92b5a236c3e20e8d",
+          "binding_cid": "sha256:880d791e85e5f1f40961f48f62ce97f74944def04389910b12c233366973b124"
+        },
+        {
+          "version": "actql-execution-limit-binding/0.1",
+          "target": {
+            "kind": "aoa_output",
+            "step_id": "nested",
+            "fields": [
+              "items"
+            ],
+            "measure": "bytes"
+          },
+          "subject_ref": "nest-value:nested:[\"items\"]",
+          "unit": "bytes",
+          "effective_max": 16777216,
+          "resolved_limit_cid": "sha256:63b51a1398e983c43565daaa527cdd8431858bddb40a01570c474f878b7ed493",
+          "binding_cid": "sha256:be2013cf3a182db1ad72b5aef73168a7d212d8af92b3748186e2b0e1ff487e74"
+        }
+      ],
+      "resolved_limits": [
+        {
+          "version": "actql-resolved-limit/0.1",
+          "subject_ref": "nest-empty:$.stages[0].steps[0]",
+          "unit": "array_items",
+          "candidates": [
+            {
+              "version": "actql-bound-witness/0.1",
+              "unit": "array_items",
+              "value": 1,
+              "role": "proven_upper_bound",
+              "law_id": "actql.bound.nest-empty-array",
+              "source": {
+                "kind": "program",
+                "semantic_ref": "$.stages[0].steps[0].nest",
+                "proof_cid": "sha256:b428f24c0cd3c194df8c50ba2c87b9493623fee517d55bff7cd750089f905ae6"
+              },
+              "derivation": {
+                "op": "source"
+              },
+              "dependencies": [
+                "sha256:3f652e4cf340c0f20f710f5d300712e714ca43d55775c48d7fc4b0681dd5bf4c",
+                "sha256:b428f24c0cd3c194df8c50ba2c87b9493623fee517d55bff7cd750089f905ae6"
+              ],
+              "witness_cid": "sha256:31a48262ffbd03bec172e0699a4f5de13aa41650ef1fc4b7fed383cc39f2ea91"
+            }
+          ],
+          "effective_max": 1,
+          "author_guard_binding": "absent",
+          "enforcement": "engine_atomic",
+          "breach": "fail",
+          "resolved_limit_cid": "sha256:363553169e2a62140c5845dd653341a25645c65a649fef4e479008fb8c5cd33a"
+        },
+        {
+          "version": "actql-resolved-limit/0.1",
+          "subject_ref": "nest-value:nested:[\"items\"]",
+          "unit": "bytes",
+          "candidates": [
+            {
+              "version": "actql-bound-witness/0.1",
+              "unit": "bytes",
+              "value": 16777216,
+              "role": "host_ceiling",
+              "law_id": "actql.host.nested-value-bytes",
+              "source": {
+                "kind": "host_policy",
+                "policy_cid": "sha256:6f2d5be40e5bc06c029ffd138969de3bf7b826fa185cd87dcc2a169ea60d1e7a",
+                "field": "max_nested_value_bytes"
+              },
+              "derivation": {
+                "op": "source"
+              },
+              "dependencies": [
+                "sha256:6f2d5be40e5bc06c029ffd138969de3bf7b826fa185cd87dcc2a169ea60d1e7a"
+              ],
+              "witness_cid": "sha256:c1925b1b62d6d84e6a06b1a9184d259995e84e49add17509268fa100df38dbaf"
+            }
+          ],
+          "effective_max": 16777216,
+          "author_guard_binding": "absent",
+          "enforcement": "engine_atomic",
+          "breach": "fail",
+          "resolved_limit_cid": "sha256:63b51a1398e983c43565daaa527cdd8431858bddb40a01570c474f878b7ed493"
+        },
+        {
+          "version": "actql-resolved-limit/0.1",
+          "subject_ref": "nest-value:rel_groupby_4:[\"__actql_nest_items\"]",
+          "unit": "bytes",
+          "candidates": [
+            {
+              "version": "actql-bound-witness/0.1",
+              "unit": "bytes",
+              "value": 16777216,
+              "role": "host_ceiling",
+              "law_id": "actql.host.nested-value-bytes",
+              "source": {
+                "kind": "host_policy",
+                "policy_cid": "sha256:6f2d5be40e5bc06c029ffd138969de3bf7b826fa185cd87dcc2a169ea60d1e7a",
+                "field": "max_nested_value_bytes"
+              },
+              "derivation": {
+                "op": "source"
+              },
+              "dependencies": [
+                "sha256:6f2d5be40e5bc06c029ffd138969de3bf7b826fa185cd87dcc2a169ea60d1e7a"
+              ],
+              "witness_cid": "sha256:c1925b1b62d6d84e6a06b1a9184d259995e84e49add17509268fa100df38dbaf"
+            }
+          ],
+          "effective_max": 16777216,
+          "author_guard_binding": "absent",
+          "enforcement": "engine_atomic",
+          "breach": "fail",
+          "resolved_limit_cid": "sha256:b9664f54c93013c23b740a0c3713222779a0d09ee61cb75c7b8d88a6b2fb0067"
+        },
+        {
+          "version": "actql-resolved-limit/0.1",
+          "subject_ref": "array_agg:$.stages[0].steps[0].nest.__actql_nest_items",
+          "unit": "array_items",
+          "candidates": [
+            {
+              "version": "actql-bound-witness/0.1",
+              "unit": "array_items",
+              "value": 3,
+              "role": "author_guard",
+              "law_id": "actql.guard.array-aggregate",
+              "source": {
+                "kind": "author_guard",
+                "source_path": "$.stages[0].steps[0].nest.__actql_nest_items.max_items",
+                "program_definition_cid": "sha256:3f652e4cf340c0f20f710f5d300712e714ca43d55775c48d7fc4b0681dd5bf4c"
+              },
+              "derivation": {
+                "op": "source"
+              },
+              "dependencies": [
+                "sha256:3f652e4cf340c0f20f710f5d300712e714ca43d55775c48d7fc4b0681dd5bf4c"
+              ],
+              "witness_cid": "sha256:c9aa37df5256e6a13f27299f3d1e78858c677856e53ed486af99594c977d9bc0"
+            },
+            {
+              "version": "actql-bound-witness/0.1",
+              "unit": "array_items",
+              "value": 100000,
+              "role": "host_ceiling",
+              "law_id": "actql.host.aggregate-array-items",
+              "source": {
+                "kind": "host_policy",
+                "policy_cid": "sha256:6f2d5be40e5bc06c029ffd138969de3bf7b826fa185cd87dcc2a169ea60d1e7a",
+                "field": "max_aggregate_array_items"
+              },
+              "derivation": {
+                "op": "source"
+              },
+              "dependencies": [
+                "sha256:6f2d5be40e5bc06c029ffd138969de3bf7b826fa185cd87dcc2a169ea60d1e7a"
+              ],
+              "witness_cid": "sha256:d28bebc3d42f2400da59c3310eff6a93d1361913a1ff0f234184e3b31723e793"
+            }
+          ],
+          "effective_max": 3,
+          "author_guard_binding": "binding",
+          "enforcement": "engine_atomic",
+          "breach": "fail",
+          "resolved_limit_cid": "sha256:edad1aa3491d1dea84756504f30b9b12e67d4e3c9317677a92b5a236c3e20e8d"
+        }
+      ],
+      "inferred_shapes": [
+        {
+          "name": "nested",
+          "carrier": "relation",
+          "known_fields": [
+            "id",
+            "key",
+            "items"
+          ],
+          "fields_complete": true,
+          "schema_evidence": "typed",
+          "identity_fields": [
+            "id"
+          ],
+          "stable_order": false,
+          "role": "named_result"
+        },
+        {
+          "name": "main",
+          "carrier": "relation",
+          "known_fields": [
+            "id",
+            "key",
+            "items"
+          ],
+          "fields_complete": true,
+          "schema_evidence": "typed",
+          "identity_fields": [
+            "id"
+          ],
+          "stable_order": true,
+          "role": "named_result"
+        }
+      ],
+      "empty_array_schema": {
+        "type": "array",
+        "nullable": false,
+        "max_items": 3,
+        "items": {
+          "type": "object",
+          "nullable": false,
+          "additional_properties": false,
+          "fields": {
+            "2": {
+              "type": "number",
+              "nullable": true
+            },
+            "10": {
+              "type": "number",
+              "nullable": true
+            },
+            "値": {
+              "type": "number",
+              "nullable": true
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "composite-correlation",
+      "program_definition_cid": "sha256:b4ec809b5e349cb8cf2ff94a47554c7881412580a51978852ebdae33d1b61f03",
+      "program_semantics_cid": "sha256:de1dc71ddd7f21941d720d04c03d1da80d62211afde722ef77e4c1a2b7dcc5cd",
+      "stage_semantics_cid": "sha256:81320da0e5237ec4601e8c9b8f02d374fc1ba6af7cafbbf05ffa3b62a9cabe10",
+      "identity_envelopes": {
+        "stage": {
+          "version": "actql-stage-semantics/0.1",
+          "expression_contract_cid": "sha256:6e9f53dc1542e70b4618c45a3f7fba7ad749f4703e39dfda94ce1b990577a6f1",
+          "parameters": {},
+          "parameter_references": [],
+          "bindings": {},
+          "binding_references": [],
+          "local_body": {
+            "inputs": {
+              "parents": {
+                "carrier": "relation",
+                "primary_key": [
+                  "id"
+                ],
+                "schema": {
+                  "id": {
+                    "type": "string",
+                    "nullable": false
+                  },
+                  "key": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "zone": {
+                    "type": "string",
+                    "nullable": false
+                  }
+                }
+              },
+              "children": {
+                "carrier": "relation",
+                "primary_key": [
+                  "id"
+                ],
+                "schema": {
+                  "id": {
+                    "type": "string",
+                    "nullable": false
+                  },
+                  "key": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "value": {
+                    "type": "number",
+                    "nullable": true
+                  },
+                  "zone": {
+                    "type": "string",
+                    "nullable": false
+                  }
+                }
+              }
+            },
+            "from": "parents",
+            "steps": [
+              {
+                "nest": {
+                  "with": "children",
+                  "on": [
+                    {
+                      "left": "key",
+                      "right": "key"
+                    },
+                    {
+                      "left": "zone",
+                      "right": "zone"
+                    }
+                  ],
+                  "into": "items",
+                  "fields": [
+                    "value"
+                  ],
+                  "max_items": 3
+                },
+                "as": "nested"
+              }
+            ],
+            "results": {
+              "main": {
+                "from": "nested",
+                "fields": [
+                  "id",
+                  "key",
+                  "zone",
+                  "items"
+                ]
+              }
+            },
+            "effects": {}
+          }
+        },
+        "program": {
+          "version": "actql-program-semantics/0.1",
+          "actql_version": "actql/0.1",
+          "expression_contract_cid": "sha256:6e9f53dc1542e70b4618c45a3f7fba7ad749f4703e39dfda94ce1b990577a6f1",
+          "parameters": {},
+          "parameter_references": [],
+          "bindings": {},
+          "binding_references": [],
+          "program_template": {
+            "stages": [
+              {
+                "id": "main",
+                "stage_semantics_cid": "sha256:81320da0e5237ec4601e8c9b8f02d374fc1ba6af7cafbbf05ffa3b62a9cabe10",
+                "after": "initial",
+                "imports": {}
+              }
+            ],
+            "exports": {
+              "main": {
+                "from": {
+                  "stage": "main",
+                  "result": "main"
+                }
+              }
+            }
+          }
+        },
+        "definition": {
+          "version": "actql-program-definition/0.1",
+          "id": "nest.golden.composite-correlation",
+          "program_semantics_cid": "sha256:de1dc71ddd7f21941d720d04c03d1da80d62211afde722ef77e4c1a2b7dcc5cd"
+        }
+      },
+      "pipeline": {
+        "version": "aoa-pipeline/0.1",
+        "sources": {
+          "parents": {
+            "sort": "relation"
+          },
+          "children": {
+            "sort": "relation"
+          }
+        },
+        "steps": [
+          {
+            "id": "rel_join_1",
+            "op": "REL.join",
+            "params": {
+              "how": "semi",
+              "on": {
+                "type": "bool",
+                "op": "and",
+                "args": [
+                  {
+                    "type": "cmp",
+                    "op": "eq",
+                    "left": {
+                      "type": "col",
+                      "path": [
+                        "left",
+                        "key"
+                      ]
+                    },
+                    "right": {
+                      "type": "col",
+                      "path": [
+                        "right",
+                        "key"
+                      ]
+                    }
+                  },
+                  {
+                    "type": "cmp",
+                    "op": "eq",
+                    "left": {
+                      "type": "col",
+                      "path": [
+                        "left",
+                        "zone"
+                      ]
+                    },
+                    "right": {
+                      "type": "col",
+                      "path": [
+                        "right",
+                        "zone"
+                      ]
+                    }
+                  }
+                ]
+              },
+              "key_pairs": [
+                {
+                  "left": "key",
+                  "right": "key"
+                },
+                {
+                  "left": "zone",
+                  "right": "zone"
+                }
+              ],
+              "null_key": "no_match"
+            },
+            "in": [
+              "children",
+              "parents"
+            ]
+          },
+          {
+            "id": "rel_select_2",
+            "op": "REL.select",
+            "params": {
+              "columns": [
+                {
+                  "from": "left.id",
+                  "to": "id"
+                },
+                {
+                  "from": "left.key",
+                  "to": "key"
+                },
+                {
+                  "from": "left.value",
+                  "to": "value"
+                },
+                {
+                  "from": "left.zone",
+                  "to": "zone"
+                }
+              ]
+            },
+            "in": [
+              "rel_join_1"
+            ]
+          },
+          {
+            "id": "rel_orderbystable_3",
+            "op": "REL.orderByStable",
+            "params": {
+              "by": [
+                {
+                  "field": "id",
+                  "dir": "asc",
+                  "nulls": "last"
+                }
+              ]
+            },
+            "in": [
+              "rel_select_2"
+            ]
+          },
+          {
+            "id": "rel_groupby_4",
+            "op": "REL.groupBy",
+            "params": {
+              "by": [
+                "key",
+                "zone"
+              ],
+              "aggs": {
+                "__actql_nest_items": {
+                  "fn": "array_agg",
+                  "expr": {
+                    "type": "object",
+                    "fields": {
+                      "value": {
+                        "type": "col",
+                        "path": [
+                          "value"
+                        ]
+                      }
+                    }
+                  },
+                  "max_items": 3
+                }
+              }
+            },
+            "in": [
+              "rel_orderbystable_3"
+            ]
+          },
+          {
+            "id": "rel_where_5",
+            "op": "REL.where",
+            "params": {
+              "expr": {
+                "type": "cmp",
+                "op": "eq",
+                "left": {
+                  "type": "lit",
+                  "value": 0
+                },
+                "right": {
+                  "type": "lit",
+                  "value": 1
+                }
+              }
+            },
+            "in": [
+              "children"
+            ]
+          },
+          {
+            "id": "rel_groupby_6",
+            "op": "REL.groupBy",
+            "params": {
+              "by": [],
+              "aggs": {
+                "__actql_nest_empty": {
+                  "fn": "array_agg",
+                  "expr": {
+                    "type": "object",
+                    "fields": {
+                      "value": {
+                        "type": "col",
+                        "path": [
+                          "value"
+                        ]
+                      }
+                    }
+                  },
+                  "max_items": 1
+                }
+              }
+            },
+            "in": [
+              "rel_where_5"
+            ]
+          },
+          {
+            "id": "rel_join_7",
+            "op": "REL.join",
+            "params": {
+              "how": "left",
+              "on": {
+                "type": "bool",
+                "op": "and",
+                "args": [
+                  {
+                    "type": "cmp",
+                    "op": "eq",
+                    "left": {
+                      "type": "col",
+                      "path": [
+                        "left",
+                        "key"
+                      ]
+                    },
+                    "right": {
+                      "type": "col",
+                      "path": [
+                        "right",
+                        "key"
+                      ]
+                    }
+                  },
+                  {
+                    "type": "cmp",
+                    "op": "eq",
+                    "left": {
+                      "type": "col",
+                      "path": [
+                        "left",
+                        "zone"
+                      ]
+                    },
+                    "right": {
+                      "type": "col",
+                      "path": [
+                        "right",
+                        "zone"
+                      ]
+                    }
+                  }
+                ]
+              },
+              "key_pairs": [
+                {
+                  "left": "key",
+                  "right": "key"
+                },
+                {
+                  "left": "zone",
+                  "right": "zone"
+                }
+              ],
+              "cardinality": "many_to_one",
+              "on_duplicate": "fail",
+              "null_key": "no_match"
+            },
+            "in": [
+              "parents",
+              "rel_groupby_4"
+            ]
+          },
+          {
+            "id": "rel_select_8",
+            "op": "REL.select",
+            "params": {
+              "columns": [
+                {
+                  "from": "left.id",
+                  "to": "id"
+                },
+                {
+                  "from": "left.key",
+                  "to": "key"
+                },
+                {
+                  "from": "left.zone",
+                  "to": "zone"
+                },
+                {
+                  "from": "right.__actql_nest_items",
+                  "to": "__actql_nest_items"
+                }
+              ]
+            },
+            "in": [
+              "rel_join_7"
+            ]
+          },
+          {
+            "id": "rel_join_9",
+            "op": "REL.join",
+            "params": {
+              "how": "left",
+              "on": {
+                "type": "cmp",
+                "op": "eq",
+                "left": {
+                  "type": "lit",
+                  "value": 1
+                },
+                "right": {
+                  "type": "lit",
+                  "value": 1
+                }
+              }
+            },
+            "in": [
+              "rel_select_8",
+              "rel_groupby_6"
+            ]
+          },
+          {
+            "id": "rel_select_10",
+            "op": "REL.select",
+            "params": {
+              "columns": [
+                {
+                  "from": "left.id",
+                  "to": "id"
+                },
+                {
+                  "from": "left.key",
+                  "to": "key"
+                },
+                {
+                  "from": "left.zone",
+                  "to": "zone"
+                },
+                {
+                  "from": "left.__actql_nest_items",
+                  "to": "__actql_nest_items"
+                },
+                {
+                  "from": "right.__actql_nest_empty",
+                  "to": "__actql_nest_empty"
+                }
+              ]
+            },
+            "in": [
+              "rel_join_9"
+            ]
+          },
+          {
+            "id": "rel_derive_11",
+            "op": "REL.derive",
+            "params": {
+              "exprs": {
+                "items": {
+                  "type": "case",
+                  "when": [
+                    {
+                      "cond": {
+                        "type": "isnull",
+                        "expr": {
+                          "type": "col",
+                          "path": [
+                            "__actql_nest_items"
+                          ]
+                        }
+                      },
+                      "then": {
+                        "type": "col",
+                        "path": [
+                          "__actql_nest_empty"
+                        ]
+                      }
+                    }
+                  ],
+                  "else": {
+                    "type": "col",
+                    "path": [
+                      "__actql_nest_items"
+                    ]
+                  }
+                }
+              }
+            },
+            "in": [
+              "rel_select_10"
+            ]
+          },
+          {
+            "id": "nested",
+            "op": "REL.select",
+            "params": {
+              "columns": [
+                "id",
+                "key",
+                "zone",
+                "items"
+              ]
+            },
+            "in": [
+              "rel_derive_11"
+            ]
+          },
+          {
+            "id": "rel_orderbystable_12",
+            "op": "REL.orderByStable",
+            "params": {
+              "by": [
+                {
+                  "field": "id",
+                  "dir": "asc",
+                  "nulls": "last"
+                }
+              ]
+            },
+            "in": [
+              "nested"
+            ]
+          }
+        ],
+        "output": "rel_orderbystable_12"
+      },
+      "aoa_logical_cid": "sha256:c6cf81b683f47315a2ea90dd34d23d12b726078272d733545c5f31c9bb30484a",
+      "limit_bindings": [
+        {
+          "version": "actql-execution-limit-binding/0.1",
+          "target": {
+            "kind": "aoa_output",
+            "step_id": "rel_groupby_4",
+            "fields": [
+              "__actql_nest_items"
+            ],
+            "measure": "bytes"
+          },
+          "subject_ref": "nest-value:rel_groupby_4:[\"__actql_nest_items\"]",
+          "unit": "bytes",
+          "effective_max": 16777216,
+          "resolved_limit_cid": "sha256:b9664f54c93013c23b740a0c3713222779a0d09ee61cb75c7b8d88a6b2fb0067",
+          "binding_cid": "sha256:3a38337ee308668ceb9bb641ea1a60263624bf5daab855a0bd3ae58a49b6dac7"
+        },
+        {
+          "version": "actql-execution-limit-binding/0.1",
+          "target": {
+            "kind": "aoa_step",
+            "step_id": "rel_groupby_4",
+            "field_path": "params.aggs.__actql_nest_items.max_items"
+          },
+          "subject_ref": "array_agg:$.stages[0].steps[0].nest.__actql_nest_items",
+          "unit": "array_items",
+          "effective_max": 3,
+          "resolved_limit_cid": "sha256:12fb972f1d997634cf65d4cbdeb15d8ccb0afbf97f88f142e70144894ada7efb",
+          "binding_cid": "sha256:934012c042f87a15b4fc5dd74245026fa3c7cd8d5d27bf71d7899fe363b50c1e"
+        },
+        {
+          "version": "actql-execution-limit-binding/0.1",
+          "target": {
+            "kind": "aoa_step",
+            "step_id": "rel_groupby_6",
+            "field_path": "params.aggs.__actql_nest_empty.max_items"
+          },
+          "subject_ref": "nest-empty:$.stages[0].steps[0]",
+          "unit": "array_items",
+          "effective_max": 1,
+          "resolved_limit_cid": "sha256:32cfaf815af6dafcb7359cf18d8d66cb9d07e27f87346d78866e9baeae89d707",
+          "binding_cid": "sha256:93ce57c2f206f6965dfea30f62c9009bd1e6955e8ee94e857bbe8494924e1b1f"
+        },
+        {
+          "version": "actql-execution-limit-binding/0.1",
+          "target": {
+            "kind": "aoa_output",
+            "step_id": "nested",
+            "fields": [
+              "items"
+            ],
+            "measure": "bytes"
+          },
+          "subject_ref": "nest-value:nested:[\"items\"]",
+          "unit": "bytes",
+          "effective_max": 16777216,
+          "resolved_limit_cid": "sha256:63b51a1398e983c43565daaa527cdd8431858bddb40a01570c474f878b7ed493",
+          "binding_cid": "sha256:be2013cf3a182db1ad72b5aef73168a7d212d8af92b3748186e2b0e1ff487e74"
+        }
+      ],
+      "resolved_limits": [
+        {
+          "version": "actql-resolved-limit/0.1",
+          "subject_ref": "array_agg:$.stages[0].steps[0].nest.__actql_nest_items",
+          "unit": "array_items",
+          "candidates": [
+            {
+              "version": "actql-bound-witness/0.1",
+              "unit": "array_items",
+              "value": 100000,
+              "role": "host_ceiling",
+              "law_id": "actql.host.aggregate-array-items",
+              "source": {
+                "kind": "host_policy",
+                "policy_cid": "sha256:6f2d5be40e5bc06c029ffd138969de3bf7b826fa185cd87dcc2a169ea60d1e7a",
+                "field": "max_aggregate_array_items"
+              },
+              "derivation": {
+                "op": "source"
+              },
+              "dependencies": [
+                "sha256:6f2d5be40e5bc06c029ffd138969de3bf7b826fa185cd87dcc2a169ea60d1e7a"
+              ],
+              "witness_cid": "sha256:d28bebc3d42f2400da59c3310eff6a93d1361913a1ff0f234184e3b31723e793"
+            },
+            {
+              "version": "actql-bound-witness/0.1",
+              "unit": "array_items",
+              "value": 3,
+              "role": "author_guard",
+              "law_id": "actql.guard.array-aggregate",
+              "source": {
+                "kind": "author_guard",
+                "source_path": "$.stages[0].steps[0].nest.__actql_nest_items.max_items",
+                "program_definition_cid": "sha256:b4ec809b5e349cb8cf2ff94a47554c7881412580a51978852ebdae33d1b61f03"
+              },
+              "derivation": {
+                "op": "source"
+              },
+              "dependencies": [
+                "sha256:b4ec809b5e349cb8cf2ff94a47554c7881412580a51978852ebdae33d1b61f03"
+              ],
+              "witness_cid": "sha256:dceb3f697ca811dcd3d3af1bfc47cb397156df6b3161bde5eee0e14c543ff076"
+            }
+          ],
+          "effective_max": 3,
+          "author_guard_binding": "binding",
+          "enforcement": "engine_atomic",
+          "breach": "fail",
+          "resolved_limit_cid": "sha256:12fb972f1d997634cf65d4cbdeb15d8ccb0afbf97f88f142e70144894ada7efb"
+        },
+        {
+          "version": "actql-resolved-limit/0.1",
+          "subject_ref": "nest-empty:$.stages[0].steps[0]",
+          "unit": "array_items",
+          "candidates": [
+            {
+              "version": "actql-bound-witness/0.1",
+              "unit": "array_items",
+              "value": 1,
+              "role": "proven_upper_bound",
+              "law_id": "actql.bound.nest-empty-array",
+              "source": {
+                "kind": "program",
+                "semantic_ref": "$.stages[0].steps[0].nest",
+                "proof_cid": "sha256:b36aa08c6ff10c022a0a3e9d6dff5f23853402b1c76b4ad674371c950ab7a19d"
+              },
+              "derivation": {
+                "op": "source"
+              },
+              "dependencies": [
+                "sha256:b36aa08c6ff10c022a0a3e9d6dff5f23853402b1c76b4ad674371c950ab7a19d",
+                "sha256:b4ec809b5e349cb8cf2ff94a47554c7881412580a51978852ebdae33d1b61f03"
+              ],
+              "witness_cid": "sha256:43263d1c3486e6c1ac18373b87fcbc5d14cc6eed3f91f909d56f33e55922c9a9"
+            }
+          ],
+          "effective_max": 1,
+          "author_guard_binding": "absent",
+          "enforcement": "engine_atomic",
+          "breach": "fail",
+          "resolved_limit_cid": "sha256:32cfaf815af6dafcb7359cf18d8d66cb9d07e27f87346d78866e9baeae89d707"
+        },
+        {
+          "version": "actql-resolved-limit/0.1",
+          "subject_ref": "nest-value:nested:[\"items\"]",
+          "unit": "bytes",
+          "candidates": [
+            {
+              "version": "actql-bound-witness/0.1",
+              "unit": "bytes",
+              "value": 16777216,
+              "role": "host_ceiling",
+              "law_id": "actql.host.nested-value-bytes",
+              "source": {
+                "kind": "host_policy",
+                "policy_cid": "sha256:6f2d5be40e5bc06c029ffd138969de3bf7b826fa185cd87dcc2a169ea60d1e7a",
+                "field": "max_nested_value_bytes"
+              },
+              "derivation": {
+                "op": "source"
+              },
+              "dependencies": [
+                "sha256:6f2d5be40e5bc06c029ffd138969de3bf7b826fa185cd87dcc2a169ea60d1e7a"
+              ],
+              "witness_cid": "sha256:c1925b1b62d6d84e6a06b1a9184d259995e84e49add17509268fa100df38dbaf"
+            }
+          ],
+          "effective_max": 16777216,
+          "author_guard_binding": "absent",
+          "enforcement": "engine_atomic",
+          "breach": "fail",
+          "resolved_limit_cid": "sha256:63b51a1398e983c43565daaa527cdd8431858bddb40a01570c474f878b7ed493"
+        },
+        {
+          "version": "actql-resolved-limit/0.1",
+          "subject_ref": "nest-value:rel_groupby_4:[\"__actql_nest_items\"]",
+          "unit": "bytes",
+          "candidates": [
+            {
+              "version": "actql-bound-witness/0.1",
+              "unit": "bytes",
+              "value": 16777216,
+              "role": "host_ceiling",
+              "law_id": "actql.host.nested-value-bytes",
+              "source": {
+                "kind": "host_policy",
+                "policy_cid": "sha256:6f2d5be40e5bc06c029ffd138969de3bf7b826fa185cd87dcc2a169ea60d1e7a",
+                "field": "max_nested_value_bytes"
+              },
+              "derivation": {
+                "op": "source"
+              },
+              "dependencies": [
+                "sha256:6f2d5be40e5bc06c029ffd138969de3bf7b826fa185cd87dcc2a169ea60d1e7a"
+              ],
+              "witness_cid": "sha256:c1925b1b62d6d84e6a06b1a9184d259995e84e49add17509268fa100df38dbaf"
+            }
+          ],
+          "effective_max": 16777216,
+          "author_guard_binding": "absent",
+          "enforcement": "engine_atomic",
+          "breach": "fail",
+          "resolved_limit_cid": "sha256:b9664f54c93013c23b740a0c3713222779a0d09ee61cb75c7b8d88a6b2fb0067"
+        }
+      ],
+      "inferred_shapes": [
+        {
+          "name": "nested",
+          "carrier": "relation",
+          "known_fields": [
+            "id",
+            "key",
+            "zone",
+            "items"
+          ],
+          "fields_complete": true,
+          "schema_evidence": "typed",
+          "identity_fields": [
+            "id"
+          ],
+          "stable_order": false,
+          "role": "named_result"
+        },
+        {
+          "name": "main",
+          "carrier": "relation",
+          "known_fields": [
+            "id",
+            "key",
+            "zone",
+            "items"
+          ],
+          "fields_complete": true,
+          "schema_evidence": "typed",
+          "identity_fields": [
+            "id"
+          ],
+          "stable_order": true,
+          "role": "named_result"
+        }
+      ],
+      "empty_array_schema": {
+        "type": "array",
+        "nullable": false,
+        "max_items": 3,
+        "items": {
+          "type": "object",
+          "nullable": false,
+          "additional_properties": false,
+          "fields": {
+            "value": {
+              "type": "number",
+              "nullable": true
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "reference-key",
+      "program_definition_cid": "sha256:a32dbf958ae475aae3e82b9b879968de501d8ade4b3ea5b2058b26075eee91c6",
+      "program_semantics_cid": "sha256:682cb97ed71585a46521d1fb89f34407a0f79a5bb66ca37e6c8ad339fc37028e",
+      "stage_semantics_cid": "sha256:4a3d3b333867600ff9575d388aa8da6bb394a7344e05ace66efc72cdd59dd773",
+      "identity_envelopes": {
+        "stage": {
+          "version": "actql-stage-semantics/0.1",
+          "expression_contract_cid": "sha256:6e9f53dc1542e70b4618c45a3f7fba7ad749f4703e39dfda94ce1b990577a6f1",
+          "parameters": {},
+          "parameter_references": [],
+          "bindings": {},
+          "binding_references": [],
+          "local_body": {
+            "inputs": {
+              "parents": {
+                "connector": "fixture",
+                "resource": "parents",
+                "view": "records"
+              },
+              "children": {
+                "connector": "fixture",
+                "resource": "children",
+                "view": "records"
+              }
+            },
+            "from": "parents",
+            "steps": [
+              {
+                "nest": {
+                  "with": "children",
+                  "on": [
+                    {
+                      "left": "key",
+                      "right": "key"
+                    }
+                  ],
+                  "into": "items",
+                  "fields": [
+                    "value"
+                  ],
+                  "max_items": 3
+                },
+                "as": "nested"
+              }
+            ],
+            "results": {
+              "main": {
+                "from": "nested",
+                "fields": [
+                  "id",
+                  "key",
+                  "items"
+                ]
+              }
+            },
+            "effects": {}
+          }
+        },
+        "program": {
+          "version": "actql-program-semantics/0.1",
+          "actql_version": "actql/0.1",
+          "expression_contract_cid": "sha256:6e9f53dc1542e70b4618c45a3f7fba7ad749f4703e39dfda94ce1b990577a6f1",
+          "parameters": {},
+          "parameter_references": [],
+          "bindings": {},
+          "binding_references": [],
+          "program_template": {
+            "stages": [
+              {
+                "id": "main",
+                "stage_semantics_cid": "sha256:4a3d3b333867600ff9575d388aa8da6bb394a7344e05ace66efc72cdd59dd773",
+                "after": "initial",
+                "imports": {}
+              }
+            ],
+            "exports": {
+              "main": {
+                "from": {
+                  "stage": "main",
+                  "result": "main"
+                }
+              }
+            }
+          }
+        },
+        "definition": {
+          "version": "actql-program-definition/0.1",
+          "id": "nest.golden.reference-key",
+          "program_semantics_cid": "sha256:682cb97ed71585a46521d1fb89f34407a0f79a5bb66ca37e6c8ad339fc37028e"
+        }
+      },
+      "pipeline": {
+        "version": "aoa-pipeline/0.1",
+        "sources": {
+          "parents": {
+            "sort": "relation"
+          },
+          "children": {
+            "sort": "relation"
+          }
+        },
+        "steps": [
+          {
+            "id": "rel_derive_1",
+            "op": "REL.derive",
+            "params": {
+              "exprs": {
+                "__actql_nest_ref_1": {
+                  "type": "col",
+                  "path": [
+                    "key",
+                    "identity_cid"
+                  ]
+                }
+              }
+            },
+            "in": [
+              "parents"
+            ]
+          },
+          {
+            "id": "rel_derive_2",
+            "op": "REL.derive",
+            "params": {
+              "exprs": {
+                "__actql_nest_ref_0": {
+                  "type": "col",
+                  "path": [
+                    "id",
+                    "identity_cid"
+                  ]
+                },
+                "__actql_nest_ref_1": {
+                  "type": "col",
+                  "path": [
+                    "key",
+                    "identity_cid"
+                  ]
+                }
+              }
+            },
+            "in": [
+              "children"
+            ]
+          },
+          {
+            "id": "rel_join_3",
+            "op": "REL.join",
+            "params": {
+              "how": "semi",
+              "on": {
+                "type": "cmp",
+                "op": "eq",
+                "left": {
+                  "type": "col",
+                  "path": [
+                    "left",
+                    "__actql_nest_ref_1"
+                  ]
+                },
+                "right": {
+                  "type": "col",
+                  "path": [
+                    "right",
+                    "__actql_nest_ref_1"
+                  ]
+                }
+              },
+              "key_pairs": [
+                {
+                  "left": "__actql_nest_ref_1",
+                  "right": "__actql_nest_ref_1"
+                }
+              ],
+              "null_key": "no_match"
+            },
+            "in": [
+              "rel_derive_2",
+              "rel_derive_1"
+            ]
+          },
+          {
+            "id": "rel_select_4",
+            "op": "REL.select",
+            "params": {
+              "columns": [
+                {
+                  "from": "left.id",
+                  "to": "id"
+                },
+                {
+                  "from": "left.key",
+                  "to": "key"
+                },
+                {
+                  "from": "left.value",
+                  "to": "value"
+                },
+                {
+                  "from": "left.__actql_nest_ref_0",
+                  "to": "__actql_nest_ref_0"
+                },
+                {
+                  "from": "left.__actql_nest_ref_1",
+                  "to": "__actql_nest_ref_1"
+                }
+              ]
+            },
+            "in": [
+              "rel_join_3"
+            ]
+          },
+          {
+            "id": "rel_orderbystable_5",
+            "op": "REL.orderByStable",
+            "params": {
+              "by": [
+                {
+                  "field": "__actql_nest_ref_0",
+                  "dir": "asc",
+                  "nulls": "last"
+                }
+              ]
+            },
+            "in": [
+              "rel_select_4"
+            ]
+          },
+          {
+            "id": "rel_groupby_6",
+            "op": "REL.groupBy",
+            "params": {
+              "by": [
+                "__actql_nest_ref_1"
+              ],
+              "aggs": {
+                "__actql_nest_items": {
+                  "fn": "array_agg",
+                  "expr": {
+                    "type": "object",
+                    "fields": {
+                      "value": {
+                        "type": "col",
+                        "path": [
+                          "value"
+                        ]
+                      }
+                    }
+                  },
+                  "max_items": 3
+                }
+              }
+            },
+            "in": [
+              "rel_orderbystable_5"
+            ]
+          },
+          {
+            "id": "rel_where_7",
+            "op": "REL.where",
+            "params": {
+              "expr": {
+                "type": "cmp",
+                "op": "eq",
+                "left": {
+                  "type": "lit",
+                  "value": 0
+                },
+                "right": {
+                  "type": "lit",
+                  "value": 1
+                }
+              }
+            },
+            "in": [
+              "children"
+            ]
+          },
+          {
+            "id": "rel_groupby_8",
+            "op": "REL.groupBy",
+            "params": {
+              "by": [],
+              "aggs": {
+                "__actql_nest_empty": {
+                  "fn": "array_agg",
+                  "expr": {
+                    "type": "object",
+                    "fields": {
+                      "value": {
+                        "type": "col",
+                        "path": [
+                          "value"
+                        ]
+                      }
+                    }
+                  },
+                  "max_items": 1
+                }
+              }
+            },
+            "in": [
+              "rel_where_7"
+            ]
+          },
+          {
+            "id": "rel_join_9",
+            "op": "REL.join",
+            "params": {
+              "how": "left",
+              "on": {
+                "type": "cmp",
+                "op": "eq",
+                "left": {
+                  "type": "col",
+                  "path": [
+                    "left",
+                    "__actql_nest_ref_1"
+                  ]
+                },
+                "right": {
+                  "type": "col",
+                  "path": [
+                    "right",
+                    "__actql_nest_ref_1"
+                  ]
+                }
+              },
+              "key_pairs": [
+                {
+                  "left": "__actql_nest_ref_1",
+                  "right": "__actql_nest_ref_1"
+                }
+              ],
+              "cardinality": "many_to_one",
+              "on_duplicate": "fail",
+              "null_key": "no_match"
+            },
+            "in": [
+              "rel_derive_1",
+              "rel_groupby_6"
+            ]
+          },
+          {
+            "id": "rel_select_10",
+            "op": "REL.select",
+            "params": {
+              "columns": [
+                {
+                  "from": "left.id",
+                  "to": "id"
+                },
+                {
+                  "from": "left.key",
+                  "to": "key"
+                },
+                {
+                  "from": "right.__actql_nest_items",
+                  "to": "__actql_nest_items"
+                }
+              ]
+            },
+            "in": [
+              "rel_join_9"
+            ]
+          },
+          {
+            "id": "rel_join_11",
+            "op": "REL.join",
+            "params": {
+              "how": "left",
+              "on": {
+                "type": "cmp",
+                "op": "eq",
+                "left": {
+                  "type": "lit",
+                  "value": 1
+                },
+                "right": {
+                  "type": "lit",
+                  "value": 1
+                }
+              }
+            },
+            "in": [
+              "rel_select_10",
+              "rel_groupby_8"
+            ]
+          },
+          {
+            "id": "rel_select_12",
+            "op": "REL.select",
+            "params": {
+              "columns": [
+                {
+                  "from": "left.id",
+                  "to": "id"
+                },
+                {
+                  "from": "left.key",
+                  "to": "key"
+                },
+                {
+                  "from": "left.__actql_nest_items",
+                  "to": "__actql_nest_items"
+                },
+                {
+                  "from": "right.__actql_nest_empty",
+                  "to": "__actql_nest_empty"
+                }
+              ]
+            },
+            "in": [
+              "rel_join_11"
+            ]
+          },
+          {
+            "id": "rel_derive_13",
+            "op": "REL.derive",
+            "params": {
+              "exprs": {
+                "items": {
+                  "type": "case",
+                  "when": [
+                    {
+                      "cond": {
+                        "type": "isnull",
+                        "expr": {
+                          "type": "col",
+                          "path": [
+                            "__actql_nest_items"
+                          ]
+                        }
+                      },
+                      "then": {
+                        "type": "col",
+                        "path": [
+                          "__actql_nest_empty"
+                        ]
+                      }
+                    }
+                  ],
+                  "else": {
+                    "type": "col",
+                    "path": [
+                      "__actql_nest_items"
+                    ]
+                  }
+                }
+              }
+            },
+            "in": [
+              "rel_select_12"
+            ]
+          },
+          {
+            "id": "nested",
+            "op": "REL.select",
+            "params": {
+              "columns": [
+                "id",
+                "key",
+                "items"
+              ]
+            },
+            "in": [
+              "rel_derive_13"
+            ]
+          },
+          {
+            "id": "rel_orderbystable_14",
+            "op": "REL.orderByStable",
+            "params": {
+              "by": [
+                {
+                  "field": "id",
+                  "dir": "asc",
+                  "nulls": "last"
+                }
+              ]
+            },
+            "in": [
+              "nested"
+            ]
+          }
+        ],
+        "output": "rel_orderbystable_14"
+      },
+      "aoa_logical_cid": "sha256:774291c4effd90db3b4070f41e68caaf2a680848b1bfa08ab6bf68475db44d4b",
+      "limit_bindings": [
+        {
+          "version": "actql-execution-limit-binding/0.1",
+          "target": {
+            "kind": "aoa_step",
+            "step_id": "rel_groupby_8",
+            "field_path": "params.aggs.__actql_nest_empty.max_items"
+          },
+          "subject_ref": "nest-empty:$.stages[0].steps[0]",
+          "unit": "array_items",
+          "effective_max": 1,
+          "resolved_limit_cid": "sha256:c66f87e2e38c3eb8640298424c796d2368e1fb7b29c32a681e0bda9bbd05083c",
+          "binding_cid": "sha256:34931f4dfd4bad4ebc2ce95695a8f02f9b57a8b4873be432e0b73f50c502de07"
+        },
+        {
+          "version": "actql-execution-limit-binding/0.1",
+          "target": {
+            "kind": "aoa_output",
+            "step_id": "rel_groupby_6",
+            "fields": [
+              "__actql_nest_items"
+            ],
+            "measure": "bytes"
+          },
+          "subject_ref": "nest-value:rel_groupby_6:[\"__actql_nest_items\"]",
+          "unit": "bytes",
+          "effective_max": 16777216,
+          "resolved_limit_cid": "sha256:b81bfd9ae68d63661729610ede05c203c584b242f525475725832027a429a7d0",
+          "binding_cid": "sha256:9a623d38c7f88cdac3ef75e129aa4d6b99213569c16d0ed00df87c12be3a18ff"
+        },
+        {
+          "version": "actql-execution-limit-binding/0.1",
+          "target": {
+            "kind": "aoa_output",
+            "step_id": "nested",
+            "fields": [
+              "items"
+            ],
+            "measure": "bytes"
+          },
+          "subject_ref": "nest-value:nested:[\"items\"]",
+          "unit": "bytes",
+          "effective_max": 16777216,
+          "resolved_limit_cid": "sha256:63b51a1398e983c43565daaa527cdd8431858bddb40a01570c474f878b7ed493",
+          "binding_cid": "sha256:be2013cf3a182db1ad72b5aef73168a7d212d8af92b3748186e2b0e1ff487e74"
+        },
+        {
+          "version": "actql-execution-limit-binding/0.1",
+          "target": {
+            "kind": "aoa_step",
+            "step_id": "rel_groupby_6",
+            "field_path": "params.aggs.__actql_nest_items.max_items"
+          },
+          "subject_ref": "array_agg:$.stages[0].steps[0].nest.__actql_nest_items",
+          "unit": "array_items",
+          "effective_max": 3,
+          "resolved_limit_cid": "sha256:1c208b82324f6822bc0065068d2c57c9c8d8ce2c8cb40d0bdd2c083b9f20f670",
+          "binding_cid": "sha256:ed45ee1389fb0978f924a775b3c05645fce00f6684af82623e2c4efe4d97a488"
+        }
+      ],
+      "resolved_limits": [
+        {
+          "version": "actql-resolved-limit/0.1",
+          "subject_ref": "array_agg:$.stages[0].steps[0].nest.__actql_nest_items",
+          "unit": "array_items",
+          "candidates": [
+            {
+              "version": "actql-bound-witness/0.1",
+              "unit": "array_items",
+              "value": 3,
+              "role": "author_guard",
+              "law_id": "actql.guard.array-aggregate",
+              "source": {
+                "kind": "author_guard",
+                "source_path": "$.stages[0].steps[0].nest.__actql_nest_items.max_items",
+                "program_definition_cid": "sha256:a32dbf958ae475aae3e82b9b879968de501d8ade4b3ea5b2058b26075eee91c6"
+              },
+              "derivation": {
+                "op": "source"
+              },
+              "dependencies": [
+                "sha256:a32dbf958ae475aae3e82b9b879968de501d8ade4b3ea5b2058b26075eee91c6"
+              ],
+              "witness_cid": "sha256:6c37cea4220413676619a779f7f441c2c8cd80efb92f8bbe1848779d7595e96c"
+            },
+            {
+              "version": "actql-bound-witness/0.1",
+              "unit": "array_items",
+              "value": 100000,
+              "role": "host_ceiling",
+              "law_id": "actql.host.aggregate-array-items",
+              "source": {
+                "kind": "host_policy",
+                "policy_cid": "sha256:6f2d5be40e5bc06c029ffd138969de3bf7b826fa185cd87dcc2a169ea60d1e7a",
+                "field": "max_aggregate_array_items"
+              },
+              "derivation": {
+                "op": "source"
+              },
+              "dependencies": [
+                "sha256:6f2d5be40e5bc06c029ffd138969de3bf7b826fa185cd87dcc2a169ea60d1e7a"
+              ],
+              "witness_cid": "sha256:d28bebc3d42f2400da59c3310eff6a93d1361913a1ff0f234184e3b31723e793"
+            }
+          ],
+          "effective_max": 3,
+          "author_guard_binding": "binding",
+          "enforcement": "engine_atomic",
+          "breach": "fail",
+          "resolved_limit_cid": "sha256:1c208b82324f6822bc0065068d2c57c9c8d8ce2c8cb40d0bdd2c083b9f20f670"
+        },
+        {
+          "version": "actql-resolved-limit/0.1",
+          "subject_ref": "nest-value:nested:[\"items\"]",
+          "unit": "bytes",
+          "candidates": [
+            {
+              "version": "actql-bound-witness/0.1",
+              "unit": "bytes",
+              "value": 16777216,
+              "role": "host_ceiling",
+              "law_id": "actql.host.nested-value-bytes",
+              "source": {
+                "kind": "host_policy",
+                "policy_cid": "sha256:6f2d5be40e5bc06c029ffd138969de3bf7b826fa185cd87dcc2a169ea60d1e7a",
+                "field": "max_nested_value_bytes"
+              },
+              "derivation": {
+                "op": "source"
+              },
+              "dependencies": [
+                "sha256:6f2d5be40e5bc06c029ffd138969de3bf7b826fa185cd87dcc2a169ea60d1e7a"
+              ],
+              "witness_cid": "sha256:c1925b1b62d6d84e6a06b1a9184d259995e84e49add17509268fa100df38dbaf"
+            }
+          ],
+          "effective_max": 16777216,
+          "author_guard_binding": "absent",
+          "enforcement": "engine_atomic",
+          "breach": "fail",
+          "resolved_limit_cid": "sha256:63b51a1398e983c43565daaa527cdd8431858bddb40a01570c474f878b7ed493"
+        },
+        {
+          "version": "actql-resolved-limit/0.1",
+          "subject_ref": "nest-value:rel_groupby_6:[\"__actql_nest_items\"]",
+          "unit": "bytes",
+          "candidates": [
+            {
+              "version": "actql-bound-witness/0.1",
+              "unit": "bytes",
+              "value": 16777216,
+              "role": "host_ceiling",
+              "law_id": "actql.host.nested-value-bytes",
+              "source": {
+                "kind": "host_policy",
+                "policy_cid": "sha256:6f2d5be40e5bc06c029ffd138969de3bf7b826fa185cd87dcc2a169ea60d1e7a",
+                "field": "max_nested_value_bytes"
+              },
+              "derivation": {
+                "op": "source"
+              },
+              "dependencies": [
+                "sha256:6f2d5be40e5bc06c029ffd138969de3bf7b826fa185cd87dcc2a169ea60d1e7a"
+              ],
+              "witness_cid": "sha256:c1925b1b62d6d84e6a06b1a9184d259995e84e49add17509268fa100df38dbaf"
+            }
+          ],
+          "effective_max": 16777216,
+          "author_guard_binding": "absent",
+          "enforcement": "engine_atomic",
+          "breach": "fail",
+          "resolved_limit_cid": "sha256:b81bfd9ae68d63661729610ede05c203c584b242f525475725832027a429a7d0"
+        },
+        {
+          "version": "actql-resolved-limit/0.1",
+          "subject_ref": "nest-empty:$.stages[0].steps[0]",
+          "unit": "array_items",
+          "candidates": [
+            {
+              "version": "actql-bound-witness/0.1",
+              "unit": "array_items",
+              "value": 1,
+              "role": "proven_upper_bound",
+              "law_id": "actql.bound.nest-empty-array",
+              "source": {
+                "kind": "program",
+                "semantic_ref": "$.stages[0].steps[0].nest",
+                "proof_cid": "sha256:7b56caa1240edfbbfc7470c17da1d1f1b8ac35b7a8bcf6e6e945117f40b1b07c"
+              },
+              "derivation": {
+                "op": "source"
+              },
+              "dependencies": [
+                "sha256:7b56caa1240edfbbfc7470c17da1d1f1b8ac35b7a8bcf6e6e945117f40b1b07c",
+                "sha256:a32dbf958ae475aae3e82b9b879968de501d8ade4b3ea5b2058b26075eee91c6"
+              ],
+              "witness_cid": "sha256:8170789f413db546cf2650b0797b5d84b52c017035d5ac8df8e031457d84c12b"
+            }
+          ],
+          "effective_max": 1,
+          "author_guard_binding": "absent",
+          "enforcement": "engine_atomic",
+          "breach": "fail",
+          "resolved_limit_cid": "sha256:c66f87e2e38c3eb8640298424c796d2368e1fb7b29c32a681e0bda9bbd05083c"
+        }
+      ],
+      "inferred_shapes": [
+        {
+          "name": "nested",
+          "carrier": "relation",
+          "known_fields": [
+            "id",
+            "key",
+            "items"
+          ],
+          "fields_complete": true,
+          "schema_evidence": "typed",
+          "identity_fields": [
+            "id"
+          ],
+          "stable_order": false,
+          "role": "named_result"
+        },
+        {
+          "name": "main",
+          "carrier": "relation",
+          "known_fields": [
+            "id",
+            "key",
+            "items"
+          ],
+          "fields_complete": true,
+          "schema_evidence": "typed",
+          "identity_fields": [
+            "id"
+          ],
+          "stable_order": true,
+          "role": "named_result"
+        }
+      ],
+      "empty_array_schema": {
+        "type": "array",
+        "nullable": false,
+        "max_items": 3,
+        "items": {
+          "type": "object",
+          "nullable": false,
+          "additional_properties": false,
+          "fields": {
+            "value": {
+              "type": "number",
+              "nullable": true
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "artifact-key",
+      "program_definition_cid": "sha256:3797763a30c8b0a26a9e727e91de88a13c380a2985afe53f9b2b65b703873182",
+      "program_semantics_cid": "sha256:682cb97ed71585a46521d1fb89f34407a0f79a5bb66ca37e6c8ad339fc37028e",
+      "stage_semantics_cid": "sha256:4a3d3b333867600ff9575d388aa8da6bb394a7344e05ace66efc72cdd59dd773",
+      "identity_envelopes": {
+        "stage": {
+          "version": "actql-stage-semantics/0.1",
+          "expression_contract_cid": "sha256:6e9f53dc1542e70b4618c45a3f7fba7ad749f4703e39dfda94ce1b990577a6f1",
+          "parameters": {},
+          "parameter_references": [],
+          "bindings": {},
+          "binding_references": [],
+          "local_body": {
+            "inputs": {
+              "parents": {
+                "connector": "fixture",
+                "resource": "parents",
+                "view": "records"
+              },
+              "children": {
+                "connector": "fixture",
+                "resource": "children",
+                "view": "records"
+              }
+            },
+            "from": "parents",
+            "steps": [
+              {
+                "nest": {
+                  "with": "children",
+                  "on": [
+                    {
+                      "left": "key",
+                      "right": "key"
+                    }
+                  ],
+                  "into": "items",
+                  "fields": [
+                    "value"
+                  ],
+                  "max_items": 3
+                },
+                "as": "nested"
+              }
+            ],
+            "results": {
+              "main": {
+                "from": "nested",
+                "fields": [
+                  "id",
+                  "key",
+                  "items"
+                ]
+              }
+            },
+            "effects": {}
+          }
+        },
+        "program": {
+          "version": "actql-program-semantics/0.1",
+          "actql_version": "actql/0.1",
+          "expression_contract_cid": "sha256:6e9f53dc1542e70b4618c45a3f7fba7ad749f4703e39dfda94ce1b990577a6f1",
+          "parameters": {},
+          "parameter_references": [],
+          "bindings": {},
+          "binding_references": [],
+          "program_template": {
+            "stages": [
+              {
+                "id": "main",
+                "stage_semantics_cid": "sha256:4a3d3b333867600ff9575d388aa8da6bb394a7344e05ace66efc72cdd59dd773",
+                "after": "initial",
+                "imports": {}
+              }
+            ],
+            "exports": {
+              "main": {
+                "from": {
+                  "stage": "main",
+                  "result": "main"
+                }
+              }
+            }
+          }
+        },
+        "definition": {
+          "version": "actql-program-definition/0.1",
+          "id": "nest.golden.artifact-key",
+          "program_semantics_cid": "sha256:682cb97ed71585a46521d1fb89f34407a0f79a5bb66ca37e6c8ad339fc37028e"
+        }
+      },
+      "pipeline": {
+        "version": "aoa-pipeline/0.1",
+        "sources": {
+          "parents": {
+            "sort": "relation"
+          },
+          "children": {
+            "sort": "relation"
+          }
+        },
+        "steps": [
+          {
+            "id": "rel_derive_1",
+            "op": "REL.derive",
+            "params": {
+              "exprs": {
+                "__actql_nest_ref_0": {
+                  "type": "col",
+                  "path": [
+                    "id",
+                    "artifact_ref_cid"
+                  ]
+                }
+              }
+            },
+            "in": [
+              "children"
+            ]
+          },
+          {
+            "id": "rel_join_2",
+            "op": "REL.join",
+            "params": {
+              "how": "semi",
+              "on": {
+                "type": "cmp",
+                "op": "eq",
+                "left": {
+                  "type": "col",
+                  "path": [
+                    "left",
+                    "key"
+                  ]
+                },
+                "right": {
+                  "type": "col",
+                  "path": [
+                    "right",
+                    "key"
+                  ]
+                }
+              },
+              "key_pairs": [
+                {
+                  "left": "key",
+                  "right": "key"
+                }
+              ],
+              "null_key": "no_match"
+            },
+            "in": [
+              "rel_derive_1",
+              "parents"
+            ]
+          },
+          {
+            "id": "rel_select_3",
+            "op": "REL.select",
+            "params": {
+              "columns": [
+                {
+                  "from": "left.id",
+                  "to": "id"
+                },
+                {
+                  "from": "left.key",
+                  "to": "key"
+                },
+                {
+                  "from": "left.value",
+                  "to": "value"
+                },
+                {
+                  "from": "left.__actql_nest_ref_0",
+                  "to": "__actql_nest_ref_0"
+                }
+              ]
+            },
+            "in": [
+              "rel_join_2"
+            ]
+          },
+          {
+            "id": "rel_orderbystable_4",
+            "op": "REL.orderByStable",
+            "params": {
+              "by": [
+                {
+                  "field": "__actql_nest_ref_0",
+                  "dir": "asc",
+                  "nulls": "last"
+                }
+              ]
+            },
+            "in": [
+              "rel_select_3"
+            ]
+          },
+          {
+            "id": "rel_groupby_5",
+            "op": "REL.groupBy",
+            "params": {
+              "by": [
+                "key"
+              ],
+              "aggs": {
+                "__actql_nest_items": {
+                  "fn": "array_agg",
+                  "expr": {
+                    "type": "object",
+                    "fields": {
+                      "value": {
+                        "type": "col",
+                        "path": [
+                          "value"
+                        ]
+                      }
+                    }
+                  },
+                  "max_items": 3
+                }
+              }
+            },
+            "in": [
+              "rel_orderbystable_4"
+            ]
+          },
+          {
+            "id": "rel_where_6",
+            "op": "REL.where",
+            "params": {
+              "expr": {
+                "type": "cmp",
+                "op": "eq",
+                "left": {
+                  "type": "lit",
+                  "value": 0
+                },
+                "right": {
+                  "type": "lit",
+                  "value": 1
+                }
+              }
+            },
+            "in": [
+              "children"
+            ]
+          },
+          {
+            "id": "rel_groupby_7",
+            "op": "REL.groupBy",
+            "params": {
+              "by": [],
+              "aggs": {
+                "__actql_nest_empty": {
+                  "fn": "array_agg",
+                  "expr": {
+                    "type": "object",
+                    "fields": {
+                      "value": {
+                        "type": "col",
+                        "path": [
+                          "value"
+                        ]
+                      }
+                    }
+                  },
+                  "max_items": 1
+                }
+              }
+            },
+            "in": [
+              "rel_where_6"
+            ]
+          },
+          {
+            "id": "rel_join_8",
+            "op": "REL.join",
+            "params": {
+              "how": "left",
+              "on": {
+                "type": "cmp",
+                "op": "eq",
+                "left": {
+                  "type": "col",
+                  "path": [
+                    "left",
+                    "key"
+                  ]
+                },
+                "right": {
+                  "type": "col",
+                  "path": [
+                    "right",
+                    "key"
+                  ]
+                }
+              },
+              "key_pairs": [
+                {
+                  "left": "key",
+                  "right": "key"
+                }
+              ],
+              "cardinality": "many_to_one",
+              "on_duplicate": "fail",
+              "null_key": "no_match"
+            },
+            "in": [
+              "parents",
+              "rel_groupby_5"
+            ]
+          },
+          {
+            "id": "rel_select_9",
+            "op": "REL.select",
+            "params": {
+              "columns": [
+                {
+                  "from": "left.id",
+                  "to": "id"
+                },
+                {
+                  "from": "left.key",
+                  "to": "key"
+                },
+                {
+                  "from": "right.__actql_nest_items",
+                  "to": "__actql_nest_items"
+                }
+              ]
+            },
+            "in": [
+              "rel_join_8"
+            ]
+          },
+          {
+            "id": "rel_join_10",
+            "op": "REL.join",
+            "params": {
+              "how": "left",
+              "on": {
+                "type": "cmp",
+                "op": "eq",
+                "left": {
+                  "type": "lit",
+                  "value": 1
+                },
+                "right": {
+                  "type": "lit",
+                  "value": 1
+                }
+              }
+            },
+            "in": [
+              "rel_select_9",
+              "rel_groupby_7"
+            ]
+          },
+          {
+            "id": "rel_select_11",
+            "op": "REL.select",
+            "params": {
+              "columns": [
+                {
+                  "from": "left.id",
+                  "to": "id"
+                },
+                {
+                  "from": "left.key",
+                  "to": "key"
+                },
+                {
+                  "from": "left.__actql_nest_items",
+                  "to": "__actql_nest_items"
+                },
+                {
+                  "from": "right.__actql_nest_empty",
+                  "to": "__actql_nest_empty"
+                }
+              ]
+            },
+            "in": [
+              "rel_join_10"
+            ]
+          },
+          {
+            "id": "rel_derive_12",
+            "op": "REL.derive",
+            "params": {
+              "exprs": {
+                "items": {
+                  "type": "case",
+                  "when": [
+                    {
+                      "cond": {
+                        "type": "isnull",
+                        "expr": {
+                          "type": "col",
+                          "path": [
+                            "__actql_nest_items"
+                          ]
+                        }
+                      },
+                      "then": {
+                        "type": "col",
+                        "path": [
+                          "__actql_nest_empty"
+                        ]
+                      }
+                    }
+                  ],
+                  "else": {
+                    "type": "col",
+                    "path": [
+                      "__actql_nest_items"
+                    ]
+                  }
+                }
+              }
+            },
+            "in": [
+              "rel_select_11"
+            ]
+          },
+          {
+            "id": "nested",
+            "op": "REL.select",
+            "params": {
+              "columns": [
+                "id",
+                "key",
+                "items"
+              ]
+            },
+            "in": [
+              "rel_derive_12"
+            ]
+          },
+          {
+            "id": "rel_orderbystable_13",
+            "op": "REL.orderByStable",
+            "params": {
+              "by": [
+                {
+                  "field": "id",
+                  "dir": "asc",
+                  "nulls": "last"
+                }
+              ]
+            },
+            "in": [
+              "nested"
+            ]
+          }
+        ],
+        "output": "rel_orderbystable_13"
+      },
+      "aoa_logical_cid": "sha256:33de9df84a21f1cdb983c0bccb64a59036e38d8574c735d16af5daaddd604f8b",
+      "limit_bindings": [
+        {
+          "version": "actql-execution-limit-binding/0.1",
+          "target": {
+            "kind": "aoa_output",
+            "step_id": "nested",
+            "fields": [
+              "items"
+            ],
+            "measure": "bytes"
+          },
+          "subject_ref": "nest-value:nested:[\"items\"]",
+          "unit": "bytes",
+          "effective_max": 16777216,
+          "resolved_limit_cid": "sha256:63b51a1398e983c43565daaa527cdd8431858bddb40a01570c474f878b7ed493",
+          "binding_cid": "sha256:be2013cf3a182db1ad72b5aef73168a7d212d8af92b3748186e2b0e1ff487e74"
+        },
+        {
+          "version": "actql-execution-limit-binding/0.1",
+          "target": {
+            "kind": "aoa_step",
+            "step_id": "rel_groupby_7",
+            "field_path": "params.aggs.__actql_nest_empty.max_items"
+          },
+          "subject_ref": "nest-empty:$.stages[0].steps[0]",
+          "unit": "array_items",
+          "effective_max": 1,
+          "resolved_limit_cid": "sha256:68111edd8508acceb134130c95f0377c8fef9d73a195a75bd9631b636d46f090",
+          "binding_cid": "sha256:c5a14571ffcaff6ddd0c8af836c86dc3fd48f319b005abd92db0cc02fa7faca0"
+        },
+        {
+          "version": "actql-execution-limit-binding/0.1",
+          "target": {
+            "kind": "aoa_output",
+            "step_id": "rel_groupby_5",
+            "fields": [
+              "__actql_nest_items"
+            ],
+            "measure": "bytes"
+          },
+          "subject_ref": "nest-value:rel_groupby_5:[\"__actql_nest_items\"]",
+          "unit": "bytes",
+          "effective_max": 16777216,
+          "resolved_limit_cid": "sha256:92764e06ab16506fc4a13729b32e912863e3925c1ad4f414a2b94ec19934b2b3",
+          "binding_cid": "sha256:dcd1959d9a29612834131e732397c10151f0fbd43f299954807894508ee2aa48"
+        },
+        {
+          "version": "actql-execution-limit-binding/0.1",
+          "target": {
+            "kind": "aoa_step",
+            "step_id": "rel_groupby_5",
+            "field_path": "params.aggs.__actql_nest_items.max_items"
+          },
+          "subject_ref": "array_agg:$.stages[0].steps[0].nest.__actql_nest_items",
+          "unit": "array_items",
+          "effective_max": 3,
+          "resolved_limit_cid": "sha256:2e100b6dbfc510c10fd10cfc51333c577b4eabf0e11b7a78a3e617d71b68d233",
+          "binding_cid": "sha256:f12324c10c925be2c69d887e4ae395102aed8939c7ff6095ce9aa2cb86b3ce41"
+        }
+      ],
+      "resolved_limits": [
+        {
+          "version": "actql-resolved-limit/0.1",
+          "subject_ref": "array_agg:$.stages[0].steps[0].nest.__actql_nest_items",
+          "unit": "array_items",
+          "candidates": [
+            {
+              "version": "actql-bound-witness/0.1",
+              "unit": "array_items",
+              "value": 3,
+              "role": "author_guard",
+              "law_id": "actql.guard.array-aggregate",
+              "source": {
+                "kind": "author_guard",
+                "source_path": "$.stages[0].steps[0].nest.__actql_nest_items.max_items",
+                "program_definition_cid": "sha256:3797763a30c8b0a26a9e727e91de88a13c380a2985afe53f9b2b65b703873182"
+              },
+              "derivation": {
+                "op": "source"
+              },
+              "dependencies": [
+                "sha256:3797763a30c8b0a26a9e727e91de88a13c380a2985afe53f9b2b65b703873182"
+              ],
+              "witness_cid": "sha256:9321a75c36b0a0d1ab505a077d62470257c75c27f14459101b82116ecd05c843"
+            },
+            {
+              "version": "actql-bound-witness/0.1",
+              "unit": "array_items",
+              "value": 100000,
+              "role": "host_ceiling",
+              "law_id": "actql.host.aggregate-array-items",
+              "source": {
+                "kind": "host_policy",
+                "policy_cid": "sha256:6f2d5be40e5bc06c029ffd138969de3bf7b826fa185cd87dcc2a169ea60d1e7a",
+                "field": "max_aggregate_array_items"
+              },
+              "derivation": {
+                "op": "source"
+              },
+              "dependencies": [
+                "sha256:6f2d5be40e5bc06c029ffd138969de3bf7b826fa185cd87dcc2a169ea60d1e7a"
+              ],
+              "witness_cid": "sha256:d28bebc3d42f2400da59c3310eff6a93d1361913a1ff0f234184e3b31723e793"
+            }
+          ],
+          "effective_max": 3,
+          "author_guard_binding": "binding",
+          "enforcement": "engine_atomic",
+          "breach": "fail",
+          "resolved_limit_cid": "sha256:2e100b6dbfc510c10fd10cfc51333c577b4eabf0e11b7a78a3e617d71b68d233"
+        },
+        {
+          "version": "actql-resolved-limit/0.1",
+          "subject_ref": "nest-value:nested:[\"items\"]",
+          "unit": "bytes",
+          "candidates": [
+            {
+              "version": "actql-bound-witness/0.1",
+              "unit": "bytes",
+              "value": 16777216,
+              "role": "host_ceiling",
+              "law_id": "actql.host.nested-value-bytes",
+              "source": {
+                "kind": "host_policy",
+                "policy_cid": "sha256:6f2d5be40e5bc06c029ffd138969de3bf7b826fa185cd87dcc2a169ea60d1e7a",
+                "field": "max_nested_value_bytes"
+              },
+              "derivation": {
+                "op": "source"
+              },
+              "dependencies": [
+                "sha256:6f2d5be40e5bc06c029ffd138969de3bf7b826fa185cd87dcc2a169ea60d1e7a"
+              ],
+              "witness_cid": "sha256:c1925b1b62d6d84e6a06b1a9184d259995e84e49add17509268fa100df38dbaf"
+            }
+          ],
+          "effective_max": 16777216,
+          "author_guard_binding": "absent",
+          "enforcement": "engine_atomic",
+          "breach": "fail",
+          "resolved_limit_cid": "sha256:63b51a1398e983c43565daaa527cdd8431858bddb40a01570c474f878b7ed493"
+        },
+        {
+          "version": "actql-resolved-limit/0.1",
+          "subject_ref": "nest-empty:$.stages[0].steps[0]",
+          "unit": "array_items",
+          "candidates": [
+            {
+              "version": "actql-bound-witness/0.1",
+              "unit": "array_items",
+              "value": 1,
+              "role": "proven_upper_bound",
+              "law_id": "actql.bound.nest-empty-array",
+              "source": {
+                "kind": "program",
+                "semantic_ref": "$.stages[0].steps[0].nest",
+                "proof_cid": "sha256:206abca48b73b4787e23fb9e356aafb7534310205c6eb14ef5437db18759e055"
+              },
+              "derivation": {
+                "op": "source"
+              },
+              "dependencies": [
+                "sha256:206abca48b73b4787e23fb9e356aafb7534310205c6eb14ef5437db18759e055",
+                "sha256:3797763a30c8b0a26a9e727e91de88a13c380a2985afe53f9b2b65b703873182"
+              ],
+              "witness_cid": "sha256:b5ba323dd013ee17b7703463bcea5a103001eda4e96da0c6a436a8862859ad2d"
+            }
+          ],
+          "effective_max": 1,
+          "author_guard_binding": "absent",
+          "enforcement": "engine_atomic",
+          "breach": "fail",
+          "resolved_limit_cid": "sha256:68111edd8508acceb134130c95f0377c8fef9d73a195a75bd9631b636d46f090"
+        },
+        {
+          "version": "actql-resolved-limit/0.1",
+          "subject_ref": "nest-value:rel_groupby_5:[\"__actql_nest_items\"]",
+          "unit": "bytes",
+          "candidates": [
+            {
+              "version": "actql-bound-witness/0.1",
+              "unit": "bytes",
+              "value": 16777216,
+              "role": "host_ceiling",
+              "law_id": "actql.host.nested-value-bytes",
+              "source": {
+                "kind": "host_policy",
+                "policy_cid": "sha256:6f2d5be40e5bc06c029ffd138969de3bf7b826fa185cd87dcc2a169ea60d1e7a",
+                "field": "max_nested_value_bytes"
+              },
+              "derivation": {
+                "op": "source"
+              },
+              "dependencies": [
+                "sha256:6f2d5be40e5bc06c029ffd138969de3bf7b826fa185cd87dcc2a169ea60d1e7a"
+              ],
+              "witness_cid": "sha256:c1925b1b62d6d84e6a06b1a9184d259995e84e49add17509268fa100df38dbaf"
+            }
+          ],
+          "effective_max": 16777216,
+          "author_guard_binding": "absent",
+          "enforcement": "engine_atomic",
+          "breach": "fail",
+          "resolved_limit_cid": "sha256:92764e06ab16506fc4a13729b32e912863e3925c1ad4f414a2b94ec19934b2b3"
+        }
+      ],
+      "inferred_shapes": [
+        {
+          "name": "nested",
+          "carrier": "relation",
+          "known_fields": [
+            "id",
+            "key",
+            "items"
+          ],
+          "fields_complete": true,
+          "schema_evidence": "typed",
+          "identity_fields": [
+            "id"
+          ],
+          "stable_order": false,
+          "role": "named_result"
+        },
+        {
+          "name": "main",
+          "carrier": "relation",
+          "known_fields": [
+            "id",
+            "key",
+            "items"
+          ],
+          "fields_complete": true,
+          "schema_evidence": "typed",
+          "identity_fields": [
+            "id"
+          ],
+          "stable_order": true,
+          "role": "named_result"
+        }
+      ],
+      "empty_array_schema": {
+        "type": "array",
+        "nullable": false,
+        "max_items": 3,
+        "items": {
+          "type": "object",
+          "nullable": false,
+          "additional_properties": false,
+          "fields": {
+            "value": {
+              "type": "number",
+              "nullable": true
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "existing-witness",
+      "program_definition_cid": "sha256:a0d1e0d30c824341d49b02bbe2fdbcce6094543ef4eb10fe9b12691c6885a4c6",
+      "program_semantics_cid": "sha256:f1af4d033725418240ff3777871a8bab49a46c9c34a25b3e1220479698ea35e1",
+      "stage_semantics_cid": "sha256:9ac4d5d7eba8257d726f9901a16db0eaa2d3810697a10f97710dac869cb5ff31",
+      "identity_envelopes": {
+        "stage": {
+          "version": "actql-stage-semantics/0.1",
+          "expression_contract_cid": "sha256:6e9f53dc1542e70b4618c45a3f7fba7ad749f4703e39dfda94ce1b990577a6f1",
+          "parameters": {},
+          "parameter_references": [],
+          "bindings": {},
+          "binding_references": [],
+          "local_body": {
+            "inputs": {
+              "parents": {
+                "carrier": "relation",
+                "primary_key": [
+                  "id"
+                ],
+                "schema": {
+                  "id": {
+                    "type": "string",
+                    "nullable": false
+                  },
+                  "key": {
+                    "type": "string",
+                    "nullable": true
+                  }
+                }
+              },
+              "children": {
+                "carrier": "relation",
+                "primary_key": [
+                  "id"
+                ],
+                "schema": {
+                  "id": {
+                    "type": "string",
+                    "nullable": false
+                  },
+                  "key": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "value": {
+                    "type": "number",
+                    "nullable": true
+                  }
+                }
+              }
+            },
+            "from": "parents",
+            "steps": [
+              {
+                "from": "children",
+                "sort": [
+                  {
+                    "value": "desc"
+                  },
+                  {
+                    "id": "asc"
+                  }
+                ],
+                "as": "ranked_children"
+              },
+              {
+                "nest": {
+                  "with": "ranked_children",
+                  "on": [
+                    {
+                      "left": "key",
+                      "right": "key"
+                    }
+                  ],
+                  "into": "items",
+                  "fields": [
+                    "value"
+                  ],
+                  "max_items": 3
+                },
+                "as": "nested",
+                "from": "parents"
+              }
+            ],
+            "results": {
+              "main": {
+                "from": "nested",
+                "fields": [
+                  "id",
+                  "key",
+                  "items"
+                ]
+              }
+            },
+            "effects": {}
+          }
+        },
+        "program": {
+          "version": "actql-program-semantics/0.1",
+          "actql_version": "actql/0.1",
+          "expression_contract_cid": "sha256:6e9f53dc1542e70b4618c45a3f7fba7ad749f4703e39dfda94ce1b990577a6f1",
+          "parameters": {},
+          "parameter_references": [],
+          "bindings": {},
+          "binding_references": [],
+          "program_template": {
+            "stages": [
+              {
+                "id": "main",
+                "stage_semantics_cid": "sha256:9ac4d5d7eba8257d726f9901a16db0eaa2d3810697a10f97710dac869cb5ff31",
+                "after": "initial",
+                "imports": {}
+              }
+            ],
+            "exports": {
+              "main": {
+                "from": {
+                  "stage": "main",
+                  "result": "main"
+                }
+              }
+            }
+          }
+        },
+        "definition": {
+          "version": "actql-program-definition/0.1",
+          "id": "nest.golden.existing-witness",
+          "program_semantics_cid": "sha256:f1af4d033725418240ff3777871a8bab49a46c9c34a25b3e1220479698ea35e1"
+        }
+      },
+      "pipeline": {
+        "version": "aoa-pipeline/0.1",
+        "sources": {
+          "parents": {
+            "sort": "relation"
+          },
+          "children": {
+            "sort": "relation"
+          }
+        },
+        "steps": [
+          {
+            "id": "ranked_children",
+            "op": "REL.orderByStable",
+            "params": {
+              "by": [
+                {
+                  "field": "value",
+                  "dir": "desc",
+                  "nulls": "last"
+                },
+                {
+                  "field": "id",
+                  "dir": "asc",
+                  "nulls": "last"
+                }
+              ]
+            },
+            "in": [
+              "children"
+            ]
+          },
+          {
+            "id": "rel_join_1",
+            "op": "REL.join",
+            "params": {
+              "how": "semi",
+              "on": {
+                "type": "cmp",
+                "op": "eq",
+                "left": {
+                  "type": "col",
+                  "path": [
+                    "left",
+                    "key"
+                  ]
+                },
+                "right": {
+                  "type": "col",
+                  "path": [
+                    "right",
+                    "key"
+                  ]
+                }
+              },
+              "key_pairs": [
+                {
+                  "left": "key",
+                  "right": "key"
+                }
+              ],
+              "null_key": "no_match"
+            },
+            "in": [
+              "ranked_children",
+              "parents"
+            ]
+          },
+          {
+            "id": "rel_select_2",
+            "op": "REL.select",
+            "params": {
+              "columns": [
+                {
+                  "from": "left.id",
+                  "to": "id"
+                },
+                {
+                  "from": "left.key",
+                  "to": "key"
+                },
+                {
+                  "from": "left.value",
+                  "to": "value"
+                }
+              ]
+            },
+            "in": [
+              "rel_join_1"
+            ]
+          },
+          {
+            "id": "rel_groupby_3",
+            "op": "REL.groupBy",
+            "params": {
+              "by": [
+                "key"
+              ],
+              "aggs": {
+                "__actql_nest_items": {
+                  "fn": "array_agg",
+                  "expr": {
+                    "type": "object",
+                    "fields": {
+                      "value": {
+                        "type": "col",
+                        "path": [
+                          "value"
+                        ]
+                      }
+                    }
+                  },
+                  "max_items": 3
+                }
+              }
+            },
+            "in": [
+              "rel_select_2"
+            ]
+          },
+          {
+            "id": "rel_where_4",
+            "op": "REL.where",
+            "params": {
+              "expr": {
+                "type": "cmp",
+                "op": "eq",
+                "left": {
+                  "type": "lit",
+                  "value": 0
+                },
+                "right": {
+                  "type": "lit",
+                  "value": 1
+                }
+              }
+            },
+            "in": [
+              "ranked_children"
+            ]
+          },
+          {
+            "id": "rel_groupby_5",
+            "op": "REL.groupBy",
+            "params": {
+              "by": [],
+              "aggs": {
+                "__actql_nest_empty": {
+                  "fn": "array_agg",
+                  "expr": {
+                    "type": "object",
+                    "fields": {
+                      "value": {
+                        "type": "col",
+                        "path": [
+                          "value"
+                        ]
+                      }
+                    }
+                  },
+                  "max_items": 1
+                }
+              }
+            },
+            "in": [
+              "rel_where_4"
+            ]
+          },
+          {
+            "id": "rel_join_6",
+            "op": "REL.join",
+            "params": {
+              "how": "left",
+              "on": {
+                "type": "cmp",
+                "op": "eq",
+                "left": {
+                  "type": "col",
+                  "path": [
+                    "left",
+                    "key"
+                  ]
+                },
+                "right": {
+                  "type": "col",
+                  "path": [
+                    "right",
+                    "key"
+                  ]
+                }
+              },
+              "key_pairs": [
+                {
+                  "left": "key",
+                  "right": "key"
+                }
+              ],
+              "cardinality": "many_to_one",
+              "on_duplicate": "fail",
+              "null_key": "no_match"
+            },
+            "in": [
+              "parents",
+              "rel_groupby_3"
+            ]
+          },
+          {
+            "id": "rel_select_7",
+            "op": "REL.select",
+            "params": {
+              "columns": [
+                {
+                  "from": "left.id",
+                  "to": "id"
+                },
+                {
+                  "from": "left.key",
+                  "to": "key"
+                },
+                {
+                  "from": "right.__actql_nest_items",
+                  "to": "__actql_nest_items"
+                }
+              ]
+            },
+            "in": [
+              "rel_join_6"
+            ]
+          },
+          {
+            "id": "rel_join_8",
+            "op": "REL.join",
+            "params": {
+              "how": "left",
+              "on": {
+                "type": "cmp",
+                "op": "eq",
+                "left": {
+                  "type": "lit",
+                  "value": 1
+                },
+                "right": {
+                  "type": "lit",
+                  "value": 1
+                }
+              }
+            },
+            "in": [
+              "rel_select_7",
+              "rel_groupby_5"
+            ]
+          },
+          {
+            "id": "rel_select_9",
+            "op": "REL.select",
+            "params": {
+              "columns": [
+                {
+                  "from": "left.id",
+                  "to": "id"
+                },
+                {
+                  "from": "left.key",
+                  "to": "key"
+                },
+                {
+                  "from": "left.__actql_nest_items",
+                  "to": "__actql_nest_items"
+                },
+                {
+                  "from": "right.__actql_nest_empty",
+                  "to": "__actql_nest_empty"
+                }
+              ]
+            },
+            "in": [
+              "rel_join_8"
+            ]
+          },
+          {
+            "id": "rel_derive_10",
+            "op": "REL.derive",
+            "params": {
+              "exprs": {
+                "items": {
+                  "type": "case",
+                  "when": [
+                    {
+                      "cond": {
+                        "type": "isnull",
+                        "expr": {
+                          "type": "col",
+                          "path": [
+                            "__actql_nest_items"
+                          ]
+                        }
+                      },
+                      "then": {
+                        "type": "col",
+                        "path": [
+                          "__actql_nest_empty"
+                        ]
+                      }
+                    }
+                  ],
+                  "else": {
+                    "type": "col",
+                    "path": [
+                      "__actql_nest_items"
+                    ]
+                  }
+                }
+              }
+            },
+            "in": [
+              "rel_select_9"
+            ]
+          },
+          {
+            "id": "nested",
+            "op": "REL.select",
+            "params": {
+              "columns": [
+                "id",
+                "key",
+                "items"
+              ]
+            },
+            "in": [
+              "rel_derive_10"
+            ]
+          },
+          {
+            "id": "rel_orderbystable_11",
+            "op": "REL.orderByStable",
+            "params": {
+              "by": [
+                {
+                  "field": "id",
+                  "dir": "asc",
+                  "nulls": "last"
+                }
+              ]
+            },
+            "in": [
+              "nested"
+            ]
+          }
+        ],
+        "output": "rel_orderbystable_11"
+      },
+      "aoa_logical_cid": "sha256:195ad9d075dce9095c55d4b19769b702736048a0ff41eb62bce3b076a36b9bd2",
+      "limit_bindings": [
+        {
+          "version": "actql-execution-limit-binding/0.1",
+          "target": {
+            "kind": "aoa_step",
+            "step_id": "rel_groupby_3",
+            "field_path": "params.aggs.__actql_nest_items.max_items"
+          },
+          "subject_ref": "array_agg:$.stages[0].steps[1].nest.__actql_nest_items",
+          "unit": "array_items",
+          "effective_max": 3,
+          "resolved_limit_cid": "sha256:ea9155866d140786d14d6b139256eeaaf0982caf23cbe9a545780f6a7f0fda76",
+          "binding_cid": "sha256:5966be3ccdac356ecc2d56b80e62244bc74df9f18c11812946950371d6a9e880"
+        },
+        {
+          "version": "actql-execution-limit-binding/0.1",
+          "target": {
+            "kind": "aoa_output",
+            "step_id": "rel_groupby_3",
+            "fields": [
+              "__actql_nest_items"
+            ],
+            "measure": "bytes"
+          },
+          "subject_ref": "nest-value:rel_groupby_3:[\"__actql_nest_items\"]",
+          "unit": "bytes",
+          "effective_max": 16777216,
+          "resolved_limit_cid": "sha256:021f50f807bb385b3188e70cf8fba32a4f13b59e660aede20f35f984eca6f21d",
+          "binding_cid": "sha256:aeb640fbc6d3aa600d53beb02e5cf1f3b27dc4bd386254f0725b28d2c0d6a3ee"
+        },
+        {
+          "version": "actql-execution-limit-binding/0.1",
+          "target": {
+            "kind": "aoa_output",
+            "step_id": "nested",
+            "fields": [
+              "items"
+            ],
+            "measure": "bytes"
+          },
+          "subject_ref": "nest-value:nested:[\"items\"]",
+          "unit": "bytes",
+          "effective_max": 16777216,
+          "resolved_limit_cid": "sha256:63b51a1398e983c43565daaa527cdd8431858bddb40a01570c474f878b7ed493",
+          "binding_cid": "sha256:be2013cf3a182db1ad72b5aef73168a7d212d8af92b3748186e2b0e1ff487e74"
+        },
+        {
+          "version": "actql-execution-limit-binding/0.1",
+          "target": {
+            "kind": "aoa_step",
+            "step_id": "rel_groupby_5",
+            "field_path": "params.aggs.__actql_nest_empty.max_items"
+          },
+          "subject_ref": "nest-empty:$.stages[0].steps[1]",
+          "unit": "array_items",
+          "effective_max": 1,
+          "resolved_limit_cid": "sha256:52eb46353e9acb960b530f45c4411b1c652a90f60035240386b5501fcc6d3d09",
+          "binding_cid": "sha256:d83c51b2cf572af48aa909250a1ff51f64b25363a4b5f5568b031b13bc1d9829"
+        }
+      ],
+      "resolved_limits": [
+        {
+          "version": "actql-resolved-limit/0.1",
+          "subject_ref": "nest-value:rel_groupby_3:[\"__actql_nest_items\"]",
+          "unit": "bytes",
+          "candidates": [
+            {
+              "version": "actql-bound-witness/0.1",
+              "unit": "bytes",
+              "value": 16777216,
+              "role": "host_ceiling",
+              "law_id": "actql.host.nested-value-bytes",
+              "source": {
+                "kind": "host_policy",
+                "policy_cid": "sha256:6f2d5be40e5bc06c029ffd138969de3bf7b826fa185cd87dcc2a169ea60d1e7a",
+                "field": "max_nested_value_bytes"
+              },
+              "derivation": {
+                "op": "source"
+              },
+              "dependencies": [
+                "sha256:6f2d5be40e5bc06c029ffd138969de3bf7b826fa185cd87dcc2a169ea60d1e7a"
+              ],
+              "witness_cid": "sha256:c1925b1b62d6d84e6a06b1a9184d259995e84e49add17509268fa100df38dbaf"
+            }
+          ],
+          "effective_max": 16777216,
+          "author_guard_binding": "absent",
+          "enforcement": "engine_atomic",
+          "breach": "fail",
+          "resolved_limit_cid": "sha256:021f50f807bb385b3188e70cf8fba32a4f13b59e660aede20f35f984eca6f21d"
+        },
+        {
+          "version": "actql-resolved-limit/0.1",
+          "subject_ref": "nest-empty:$.stages[0].steps[1]",
+          "unit": "array_items",
+          "candidates": [
+            {
+              "version": "actql-bound-witness/0.1",
+              "unit": "array_items",
+              "value": 1,
+              "role": "proven_upper_bound",
+              "law_id": "actql.bound.nest-empty-array",
+              "source": {
+                "kind": "program",
+                "semantic_ref": "$.stages[0].steps[1].nest",
+                "proof_cid": "sha256:f7ab2e59143b80fc64319da19ff2d051a9e706ca15ca2575f2ee16b1f2dc7b2a"
+              },
+              "derivation": {
+                "op": "source"
+              },
+              "dependencies": [
+                "sha256:a0d1e0d30c824341d49b02bbe2fdbcce6094543ef4eb10fe9b12691c6885a4c6",
+                "sha256:f7ab2e59143b80fc64319da19ff2d051a9e706ca15ca2575f2ee16b1f2dc7b2a"
+              ],
+              "witness_cid": "sha256:515398f5556e1aef20bac64c3f3e9cdd232ab1f9805a3173abee17ad0ed2a350"
+            }
+          ],
+          "effective_max": 1,
+          "author_guard_binding": "absent",
+          "enforcement": "engine_atomic",
+          "breach": "fail",
+          "resolved_limit_cid": "sha256:52eb46353e9acb960b530f45c4411b1c652a90f60035240386b5501fcc6d3d09"
+        },
+        {
+          "version": "actql-resolved-limit/0.1",
+          "subject_ref": "nest-value:nested:[\"items\"]",
+          "unit": "bytes",
+          "candidates": [
+            {
+              "version": "actql-bound-witness/0.1",
+              "unit": "bytes",
+              "value": 16777216,
+              "role": "host_ceiling",
+              "law_id": "actql.host.nested-value-bytes",
+              "source": {
+                "kind": "host_policy",
+                "policy_cid": "sha256:6f2d5be40e5bc06c029ffd138969de3bf7b826fa185cd87dcc2a169ea60d1e7a",
+                "field": "max_nested_value_bytes"
+              },
+              "derivation": {
+                "op": "source"
+              },
+              "dependencies": [
+                "sha256:6f2d5be40e5bc06c029ffd138969de3bf7b826fa185cd87dcc2a169ea60d1e7a"
+              ],
+              "witness_cid": "sha256:c1925b1b62d6d84e6a06b1a9184d259995e84e49add17509268fa100df38dbaf"
+            }
+          ],
+          "effective_max": 16777216,
+          "author_guard_binding": "absent",
+          "enforcement": "engine_atomic",
+          "breach": "fail",
+          "resolved_limit_cid": "sha256:63b51a1398e983c43565daaa527cdd8431858bddb40a01570c474f878b7ed493"
+        },
+        {
+          "version": "actql-resolved-limit/0.1",
+          "subject_ref": "array_agg:$.stages[0].steps[1].nest.__actql_nest_items",
+          "unit": "array_items",
+          "candidates": [
+            {
+              "version": "actql-bound-witness/0.1",
+              "unit": "array_items",
+              "value": 100000,
+              "role": "host_ceiling",
+              "law_id": "actql.host.aggregate-array-items",
+              "source": {
+                "kind": "host_policy",
+                "policy_cid": "sha256:6f2d5be40e5bc06c029ffd138969de3bf7b826fa185cd87dcc2a169ea60d1e7a",
+                "field": "max_aggregate_array_items"
+              },
+              "derivation": {
+                "op": "source"
+              },
+              "dependencies": [
+                "sha256:6f2d5be40e5bc06c029ffd138969de3bf7b826fa185cd87dcc2a169ea60d1e7a"
+              ],
+              "witness_cid": "sha256:d28bebc3d42f2400da59c3310eff6a93d1361913a1ff0f234184e3b31723e793"
+            },
+            {
+              "version": "actql-bound-witness/0.1",
+              "unit": "array_items",
+              "value": 3,
+              "role": "author_guard",
+              "law_id": "actql.guard.array-aggregate",
+              "source": {
+                "kind": "author_guard",
+                "source_path": "$.stages[0].steps[1].nest.__actql_nest_items.max_items",
+                "program_definition_cid": "sha256:a0d1e0d30c824341d49b02bbe2fdbcce6094543ef4eb10fe9b12691c6885a4c6"
+              },
+              "derivation": {
+                "op": "source"
+              },
+              "dependencies": [
+                "sha256:a0d1e0d30c824341d49b02bbe2fdbcce6094543ef4eb10fe9b12691c6885a4c6"
+              ],
+              "witness_cid": "sha256:edf48813919dc978b6827cd02de3f23c2fafa0b7ddcd7874bddb2418cc4a9d97"
+            }
+          ],
+          "effective_max": 3,
+          "author_guard_binding": "binding",
+          "enforcement": "engine_atomic",
+          "breach": "fail",
+          "resolved_limit_cid": "sha256:ea9155866d140786d14d6b139256eeaaf0982caf23cbe9a545780f6a7f0fda76"
+        }
+      ],
+      "inferred_shapes": [
+        {
+          "name": "ranked_children",
+          "carrier": "relation",
+          "known_fields": [
+            "id",
+            "key",
+            "value"
+          ],
+          "fields_complete": true,
+          "schema_evidence": "typed",
+          "identity_fields": [
+            "id"
+          ],
+          "stable_order": true,
+          "role": "named_result"
+        },
+        {
+          "name": "nested",
+          "carrier": "relation",
+          "known_fields": [
+            "id",
+            "key",
+            "items"
+          ],
+          "fields_complete": true,
+          "schema_evidence": "typed",
+          "identity_fields": [
+            "id"
+          ],
+          "stable_order": false,
+          "role": "named_result"
+        },
+        {
+          "name": "main",
+          "carrier": "relation",
+          "known_fields": [
+            "id",
+            "key",
+            "items"
+          ],
+          "fields_complete": true,
+          "schema_evidence": "typed",
+          "identity_fields": [
+            "id"
+          ],
+          "stable_order": true,
+          "role": "named_result"
+        }
+      ],
+      "empty_array_schema": {
+        "type": "array",
+        "nullable": false,
+        "max_items": 3,
+        "items": {
+          "type": "object",
+          "nullable": false,
+          "additional_properties": false,
+          "fields": {
+            "value": {
+              "type": "number",
+              "nullable": true
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "unresolved-authored-tie",
+      "error": "ACTQL_E_ORDER_REQUIRED"
+    }
+  ]
+}

@@ -1,0 +1,29 @@
+{
+  "version": "actql-expression-peer-expectations/0.1",
+  "cases": [
+    {
+      "id": "recursive peer evidence types nested empty arrays",
+      "source": "if(TRUE, [[1]], [[]])",
+      "expected_contract": {
+        "type": "array", "nullable": false, "max_items": 1,
+        "items": {
+          "type": "array", "nullable": false, "max_items": 1,
+          "items": { "type": "number", "nullable": false }
+        }
+      },
+      "expected_value": [[1]]
+    },
+    {
+      "id": "recursive peer evidence types nested NULL elements",
+      "source": "if(TRUE, [[1]], [[NULL]])",
+      "expected_contract": {
+        "type": "array", "nullable": false, "max_items": 1,
+        "items": {
+          "type": "array", "nullable": false, "max_items": 1,
+          "items": { "type": "number", "nullable": true }
+        }
+      },
+      "expected_value": [[1]]
+    }
+  ]
+}

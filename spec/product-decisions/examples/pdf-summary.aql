@@ -1,0 +1,82 @@
+version: actql/0.1
+id: fixture.pdf_summary
+stages:
+- id: summarize
+  inputs:
+    documents:
+      carrier: relation
+      schema:
+        document_id:
+          type: string
+          nullable: false
+        record_id:
+          type: string
+          nullable: false
+        file:
+          type: artifact_ref
+          nullable: false
+          media_type: application/pdf
+      primary_key:
+      - document_id
+  from: documents
+  steps:
+  - infer:
+      contract: model-task:fixture.pdf_summary.v1
+      input:
+        file:
+          field: file
+    as: outcomes
+  - filter: outcome = 'ok'
+    as: successful
+  - derive:
+      summary: value.summary
+    as: summaries
+  - join:
+      with: documents
+      kind: inner
+      'on':
+      - left: document_id
+        right: document_id
+      cardinality: one_to_one
+      select:
+        document_id: left.document_id
+        record_id: right.record_id
+        summary: left.summary
+    as: updates
+  results:
+    outcomes:
+      from: outcomes
+      fields:
+      - document_id
+      - outcome
+      - value
+      order_by:
+      - document_id: asc
+    updates:
+      from: updates
+      fields:
+      - document_id
+      - record_id
+      - summary
+      order_by:
+      - document_id: asc
+  effects:
+    update_crm:
+      update:
+        target: connector://fixture/main/Records
+        mapping: mapping:fixture.record_summary.v1
+        from:
+          result: updates
+        id: record_id
+        set:
+          summary:
+            field: summary
+results:
+  outcomes:
+    from:
+      stage: summarize
+      result: outcomes
+  updated:
+    from:
+      stage: summarize
+      result: updates
