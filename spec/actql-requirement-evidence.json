@@ -3589,6 +3589,39 @@
       }
     },
     {
+      "requirement_id": "actql.language/asof-join.source-contract",
+      "statement_sha256": "a09637cb7dbe09b15458f835ff4de0fdd59ebfd9b047e67b0975e948814ab0c1",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "asof-join",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/asof-join.temporal-domains",
+      "statement_sha256": "1d5db59235a119002935caafaeb56d42582adc12bb8a9fa58baf7835ba0c5e3b",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "asof-join",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/asof-join.identity-evidence",
+      "statement_sha256": "e183c4f6521d2002374b7453df091e0358d3ab1f7d7aa81560ccaeb1ff65cb85",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "asof-join",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.language/asof-join.kind-left-inner-direction-backward-forward-nearest-and-positive-tolerance-are-required",
       "statement_sha256": "b3cf33dd34fc76a2dbc799fecff8c9ec759e51556b2221099022e3370985bffb",
       "status": "pending",
@@ -3602,6 +3635,17 @@
     {
       "requirement_id": "actql.language/asof-join.descending-business-priority-requires-an-explicit-preceding-derive-that-produces",
       "statement_sha256": "c3bebe1c1dc38e9210dcbdee7c1887b84d9103efd64fd744fd4897e4e61233d2",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "asof-join",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/asof-join.tie-evidence",
+      "statement_sha256": "d40180e897200457c5e36846124d13d1b84f2d518822ef37b4fe82897a28b152",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
@@ -5944,7 +5988,7 @@
     },
     {
       "requirement_id": "actql.language/structural-grammar.grammar",
-      "statement_sha256": "9b6544cf566db064c027f8a4d3528aac3625ca6c9377b3759379684b77fc4cd8",
+      "statement_sha256": "e064d93131c5a43e6b37511ff0c25016ba51194788c7485a1d923424a4c5a7bd",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
@@ -7814,7 +7858,7 @@
     },
     {
       "requirement_id": "actql.protocol.contracts/machine-contracts.exact-artifacts",
-      "statement_sha256": "292939edb6cd66f0343dfd230249f50aca366627d0c422a0ce234c0694e0f296",
+      "statement_sha256": "444c7564853279c33436ceb89c5db2c289c94901ee92421240c3e3f53006438a",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",

@@ -4,6 +4,24 @@ import {readFileSync} from 'node:fs';
 import {eventSchemas,checkEventSchemas} from './event-schema.mjs';
 import {parameterPrograms} from './parameter-schema.mjs';
 
+test('as-of source syntax separates temporal keys, identity evidence and projection',()=>{
+  const s=eventSchemas().asof_join;
+  assert.equal(s.additionalProperties,false);
+  assert.deepEqual(s.required,['with','kind','by','left_time','right_time','direction','tolerance','select']);
+  assert.deepEqual(s.properties.kind.enum,['left','inner']);
+  assert.deepEqual(s.properties.direction.enum,['backward','forward','nearest']);
+  for(const name of ['by','right_tie_break']) {
+    assert.equal(s.properties[name].minItems,undefined);
+    assert.equal(s.properties[name].uniqueItems,undefined);
+  }
+  assert.deepEqual(s.properties.by.items.required,['left','right']);
+  assert.equal(s.properties.by.items.additionalProperties,false);
+  assert.equal(s.properties.select.minProperties,1);
+  assert.equal(s.properties.null_key,undefined);
+  assert.equal(s.properties.tolerance.oneOf[0].minimum,1);
+  assert.equal(s.properties.tolerance.oneOf[0].maximum,Number.MAX_SAFE_INTEGER);
+});
+
 test('event dedupe preserves empty and repeated partition keys but requires order',()=>{
   const s=eventSchemas().dedupe_events;
   assert.equal(s.additionalProperties,false);

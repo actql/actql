@@ -14,6 +14,16 @@ export function eventSchemas() {
   const point = {type:'object',additionalProperties:false,required:['time'],properties:{time:field}};
   const timestamp = {oneOf:[{type:'string',pattern:'^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.[0-9]{3}Z$(?![\\s\\S])'},parameter]};
   return {
+    asof_join: {type:'object',additionalProperties:false,
+      required:['with','kind','by','left_time','right_time','direction','tolerance','select'],
+      properties:{
+        with:{type:'string',minLength:1},kind:{enum:['left','inner']},
+        by:{type:'array',items:{type:'object',additionalProperties:false,
+          required:['left','right'],properties:{left:field,right:field}}},
+        left_id:field,left_time:field,right_time:field,
+        direction:{enum:['backward','forward','nearest']},tolerance:millisecondsSchema(),
+        right_tie_break:{type:'array',items:field},select:crossJoinSchema().properties.select,
+      }},
     interval_join: {type:'object',additionalProperties:false,
       required:['with','kind','mode','on','left','right'],properties:{
         with:{type:'string',minLength:1},kind:{enum:['inner','left','semi','anti']},

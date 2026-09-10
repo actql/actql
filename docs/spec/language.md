@@ -4426,6 +4426,41 @@ IDs are not repaired by business-key deduplication.
       owner_id: right.owner_id
 ```
 
+<!-- requirement-block: asof-join.source-contract -->
+The body MUST contain exactly `with`, `kind`, `by`, `left_time`, `right_time`,
+`direction`, `tolerance`, `select`, and optionally `left_id` and
+`right_tie_break`. `by` is a possibly empty array of exactly
+`{left: Field, right: Field}` pairs. Empty `by` correlates across the entire
+captured right Relation; repeated pairs retain authored order but neither
+multiply candidates nor prove uniqueness. Each pair has compatible
+KeyComparable types. `select` is a nonempty ordinary join alias map; repeated
+source fields under different output aliases are allowed. `null_key` is not
+an authored option. Explicit null is not omission for any optional member.
+
+<!-- requirement-block: asof-join.temporal-domains -->
+Both time fields MUST have complete non-null number or timestamp contracts.
+Number values are safe-integer UTC milliseconds; timestamp values use canonical
+UTC millisecond precision and are mechanically converted to that clock for
+matching without changing their authored values or contracts. The two fields
+may use different representations of this same clock. `tolerance` uses
+`MillisecondValue`: a positive safe-integer millisecond number, a positive fixed
+duration token, or a whole non-null number/duration Parameter. Parameter binding
+does not bypass the positive safe-integer constraint. All time values and checked
+distance arithmetic are validated before output is exposed, including rows with
+no key match. The explicit `left_time` selects the comparison clock on either
+Relation or Events input; it does not rewrite an Events carrier's intrinsic role.
+
+<!-- requirement-block: asof-join.identity-evidence -->
+Left identity MUST be complete, non-null and KeyComparable, with uniqueness
+validated independently of its type. Relation `left_id` selects a single field;
+when omitted, retained candidate-key evidence supplies the entire ordered key
+tuple, never just its first field. Without that evidence omission fails during
+Check. Events use their retained semantic identity; an explicit `left_id`, if
+present, names that same role rather than replacing it. Internal ascending
+identity order is the existing type-specific order, including internal Ref
+identity order; this does not make Ref fields authored order keys. No implicit
+stringification or hidden row CID replaces semantic identity.
+
 <!-- requirement-block: asof-join.kind-left-inner-direction-backward-forward-nearest-and-positive-tolerance-are-required -->
 `kind: left|inner`, `direction: backward|forward|nearest`, and positive
 `tolerance` are REQUIRED. Relation input additionally requires `left_id` unless
@@ -4445,6 +4480,25 @@ with null right fields; `inner` drops them. Results use stable ascending left
 Descending business priority requires an explicit preceding `derive` that
 produces an ascending surrogate; a compiler MUST NOT infer direction from a
 field name or input order.
+
+<!-- requirement-block: asof-join.tie-evidence -->
+Each authored `right_tie_break` field MUST be AuthorOrderable; ascending null
+placement is last. An empty list supplies no authored tie evidence. Repeated
+fields and their order are retained, without strengthening uniqueness. A valid
+complete right candidate key can complete either an omitted or an insufficient
+authored tie-break, with that completion recorded in the compiler journal.
+Absent such evidence, equal first-place candidates fail rather than selecting
+input order or a hidden identifier. Merely naming fields is not proof that their
+tuple is unique. A nearest tie can involve different right timestamps at equal
+distance, not only two rows at the same timestamp.
+
+The output has at most one row per left occurrence and therefore inherits the
+checked left row-count upper bound. Search-work and allocation ceilings remain
+separate requirements; a small output bound does not authorize an unbounded
+right scan. Empty input and no-match results refer only to the captured operands,
+not to unobserved external coverage. None of these static contracts authorizes
+execution before the remaining value, identity, tie and resource obligations are
+discharged.
 
 <a id="sequence"></a>
 
@@ -7199,6 +7253,15 @@ IntervalJoinBody := {with: InputOrStepName, kind: inner | left | semi | anti,
 IntervalJoinConstraints := left is exactly {time} in point_in_interval mode,
   exactly {start,end} in overlap mode; all temporal fields have the same non-null
   timestamp or safe-integer UTC-millisecond domain; on pair occurrences are retained.
+AsofJoinBody := {with: InputOrStepName, kind: left | inner,
+  by: [{left: Field, right: Field}, ...] | [], left_id?: Field,
+  left_time: Field, right_time: Field, direction: backward | forward | nearest,
+  tolerance: MillisecondValue, right_tie_break?: [Field, ...] | [],
+  select: {OutputFieldName: QualifiedJoinField}+}
+AsofJoinConstraints := Relation left_id omission requires a complete retained
+  candidate key; Events retain their intrinsic identity; comparison time fields
+  are non-null UTC timestamps or safe-integer milliseconds; key occurrences and
+  ascending tie-break occurrences are retained; null equality keys do not match.
 MillisecondValue := PositiveSafeInteger | PositiveDurationToken | ParamRef
 SignedMillisecondValue := integer number in [-9007199254740991, 9007199254740991]
   | PositiveDurationToken | ParamRef
