@@ -143,6 +143,11 @@ fn corpus_rejected(
     Ok(_) => fail("unexpected acceptance: " + text)
     Err(issue) => {
       let actual = match issue.kind {
+        InvalidOrder => "InvalidOrder"
+        NotAuthorOrderable(_) => "NotAuthorOrderable"
+        NotKeyComparable(_) => "NotKeyComparable"
+        InvalidCount => "InvalidCount"
+        UnknownParameter(_) => "UnknownParameter"
         ExpectedBoolean => "ExpectedBoolean"
         UnknownField(_) => "UnknownField"
         Expression(@typing.NullTypeUnresolved) => "NullTypeUnresolved"

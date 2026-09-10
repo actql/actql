@@ -100,6 +100,7 @@ fn check_impl(
     limits,
   }
   schema_preflight(b, body, input)
+  let parameter_types : Map[String, @contract.Contract] = Map([])
   if parameters is Some(params) {
     let count = @parameter.declaration_count(params)
     spend(b, body, count~)
@@ -107,6 +108,7 @@ fn check_impl(
       let p = @parameter.declaration_at(params, i).unwrap()
       charge(b, body, p.name)
       preflight(b, body, p.parameter_type.contract)
+      parameter_types[p.name] = p.parameter_type.contract
     }
   }
   let visible : Map[String, (@contract.Contract, ReferenceTarget)] = Map([])
@@ -121,8 +123,95 @@ fn check_impl(
   }
   let bindings : Array[Binding] = []
   let projection : Array[ProjectionField] = []
+  let pending : Array[PendingValidation] = []
+  let mut row_operation : RowOperation? = None
   let mut output = input
   let form = match operation {
+    Sort | Take | Distinct | DedupeRows => {
+      row_source(b, body)
+      row_operation = Some(
+        match operation {
+          Sort => {
+            let terms = row_order(b, body, visible)
+            if !terms.is_empty() {
+              pending.push({ kind: SortOrderCompletion, source: body, })
+            }
+            RowOperation::Sort(terms)
+          }
+          Take => {
+            let (count_source, offset_source) = match @decode.view(body) {
+              ObjectValue(_) => {
+                let names = @decode.object_field_names(body).unwrap()
+                if names.length() == 1 && names[0] == "$param" {
+                  (body, None)
+                } else {
+                  let obj = decoded(
+                    @decode.closed_object(body, ["count", "offset"]),
+                    body,
+                  )
+                  (
+                    decoded(@decode.required(obj, "count"), body),
+                    @decode.lookup(obj, "offset"),
+                  )
+                }
+              }
+              _ => (body, None)
+            }
+            let count = row_count(b, count_source, 1L, parameter_types, pending)
+            let offset = match offset_source {
+              Some(s) => row_count(b, s, 0L, parameter_types, pending)
+              None => Literal(0L)
+            }
+            pending.push({ kind: StableInputOrder, source: body, })
+            RowOperation::Take(count~, offset~)
+          }
+          Distinct =>
+            match @decode.view(body) {
+              BoolValue(true) => DistinctRows
+              ArrayValue(_) => {
+                let keys = row_keys(b, body, visible, unique=true)
+                if keys.is_empty() {
+                  fail(body, EmptyBody)
+                }
+                let fields : Array[(@schema.FieldName, @contract.Contract)] = []
+                for key in keys {
+                  projection.push({ output: key.field, input: key.field, })
+                  fields.push(
+                    (
+                      key.field,
+                      visible.get(@schema.reference_name(key.field)).unwrap().0,
+                    ),
+                  )
+                }
+                output = schema_type(b, body, fields)
+                DistinctKeys(keys)
+              }
+              _ => fail(body, InvalidBody)
+            }
+          DedupeRows => {
+            let obj = decoded(
+              @decode.closed_object(body, ["by", "order_by"]),
+              body,
+            )
+            let by = row_keys(
+              b,
+              decoded(@decode.required(obj, "by"), body),
+              visible,
+              unique=false,
+            )
+            let order_source = decoded(@decode.required(obj, "order_by"), body)
+            let order = row_order(b, order_source, visible)
+            if order.is_empty() {
+              fail(order_source, EmptyBody)
+            }
+            pending.push({ kind: FailOnTopTie, source: order_source, })
+            RowOperation::DedupeRows(by~, order~)
+          }
+          _ => fail(body, InvalidBody)
+        },
+      )
+      Form::RowOperation
+    }
     Filter => {
       let binding = expression(b, body, None, visible, parameters)
       if !(@typing.result_type(binding.expression).shape is @contract.Boolean) {
@@ -308,6 +397,8 @@ fn check_impl(
     parameters,
     bindings,
     projection,
+    row_operation,
+    pending,
     work_used: limits.max_work - b.work,
     text_bytes_used: limits.max_text_bytes - b.text,
     nodes_used: limits.max_nodes - b.nodes,

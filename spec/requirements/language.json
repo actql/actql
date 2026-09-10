@@ -2313,6 +2313,17 @@
       }
     },
     {
+      "requirement_id": "actql.language/distinct-and-dedupe.equality-key-domains",
+      "statement_sha256": "bf41aa59484e34650d01fd0c565668552210de91a62ba3f8b2e2e2e0682e300d",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "distinct-and-dedupe",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.language/distinct-and-dedupe.by-and-non-empty-order-by-are-required",
       "statement_sha256": "547b8e67af8c1dc1d026c5d18cb56ce237e178be51f9b2b86f9b49c2b453d095",
       "status": "pending",

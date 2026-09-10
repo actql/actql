@@ -37,6 +37,9 @@ implicit conversion at the Result or consumption boundary.
 Optional `order_by` is nonempty. Each key follows the closed grammar:
 `{Field: asc|desc}` or `{field, dir, nulls}`. The explicit form requires
 `nulls: first|last`; shorthand records `last` independently of direction.
+The `order_key` leaf reader and its `AuthorOrderable` classification are shared
+with sort and dedupe type checking. Direction and null-placement types are
+re-exported from that package; Result diagnostics retain their existing paths.
 The result retains whether null placement was explicit and keeps the original
 key cursor. Repeated order terms are retained, not silently simplified.
 Each authored key must be string, number, decimal, boolean, date or timestamp;

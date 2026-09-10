@@ -67,7 +67,7 @@ test "pipeline corpus: duplicate-as" {
 
 ///|
 test "pipeline corpus: unsupported" {
-  corpus_rejected("[{\"take\":1}]", ["rows"], None, "UnsupportedOperation")
+  corpus_rejected("[{\"group\":{}}]", ["rows"], None, "UnsupportedOperation")
 }
 
 ///|

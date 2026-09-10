@@ -1,7 +1,8 @@
 # Relation operation type checking
 
-`relation_typing.check` checks one `derive`, `filter`, `select`, `rename`, or
-`drop` body against a supplied complete `relation_schema.Schema` and optional
+`relation_typing.check` checks one `derive`, `filter`, `select`, `rename`, `drop`,
+`sort`, `take`, `distinct`, or `dedupe_rows` body against a supplied complete
+`relation_schema.Schema` and optional
 Parameter declarations. The operation kind is a closed enum; the body is an
 owned `decode_core.Cursor`. It is not a parser for the step envelope:
 `from`, `as`, `meta`, stage naming and input acquisition belong to the caller.
@@ -15,6 +16,11 @@ ActQL. Candidate-key proofs, row-order witnesses, policy/provenance, cardinality
 and execution envelopes are not supplied to or established by this API.
 
 ## Inputs, scopes and outputs
+
+The [ordering and deduplication guide](relation-ordering.md) describes the four
+row operations, their retained `row_operation` details and `pending_validations`.
+They do not use expression syntax or consume expression tokens. The existing
+expression/projection forms remain distinct from `Form::RowOperation`.
 
 The result retains the input and output Relation schemas, original body, original
 operation kind and Parameter declarations. `binding_at` returns each typed RHS

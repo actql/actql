@@ -3,7 +3,8 @@
 `pipeline_typing.check` connects an ordered array of steps using the
 [pipeline naming rules](../spec/language.md#pipeline-references) and the
 [single-operation checker](relation-typing.md). It supports only `derive`,
-`filter`, `select`, `rename`, `drop`, and [local join](relation-join.md). Other operation names are explicitly
+`filter`, `select`, `rename`, `drop`, [ordering and deduplication](relation-ordering.md)
+(`sort`, `take`, `distinct`, `dedupe_rows`), and [local join](relation-join.md). Other operation names are explicitly
 unsupported; no step is skipped or treated as an opaque successful operation.
 
 ## Inputs and scope
@@ -19,7 +20,7 @@ selects an ambiguous current input. The input list is copied.
 Inputs and outputs use `relation_schema.Schema`, not ordinary object value
 contracts. `relation_schema.from_object` adapts an already checked non-null
 object contract. Qualified schemas are also accepted and preflighted even when
-unused. The five unary operation checks use `relation_typing` with this same
+unused. The unary operation checks use `relation_typing` with this same
 schema representation. No dotted names are added to ordinary object contracts.
 Only join operands must be flat: qualified output needs explicit projection
 before another join. This applies to both the left and right input.

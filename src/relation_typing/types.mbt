@@ -5,6 +5,10 @@ pub(all) enum Operation {
   Select
   Rename
   Drop
+  Sort
+  Take
+  Distinct
+  DedupeRows
 } derive(Eq, Debug)
 
 ///|
@@ -13,6 +17,7 @@ pub(all) enum Form {
   DeriveArray
   Predicate
   Projection
+  RowOperation
 } derive(Eq, Debug)
 
 ///|
@@ -34,6 +39,11 @@ pub(all) enum IssueKind {
   UnknownField(String)
   InputCollision(String)
   ExpectedBoolean
+  InvalidOrder
+  NotAuthorOrderable(String)
+  NotKeyComparable(String)
+  InvalidCount
+  UnknownParameter(String)
   BudgetExceeded
   Syntax(@syntax.Issue)
   Expression(@typing.IssueKind)
@@ -85,6 +95,8 @@ struct CheckedOperation {
   parameters : @parameter.Declarations?
   bindings : Array[Binding]
   projection : Array[ProjectionField]
+  row_operation : RowOperation?
+  pending : Array[PendingValidation]
   work_used : Int
   text_bytes_used : Int
   nodes_used : Int

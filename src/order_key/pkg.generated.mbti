@@ -1,0 +1,51 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/order_key"
+
+import {
+  "actql/actql/decode_core",
+  "actql/actql/value_contract",
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn author_orderable(@value_contract.Contract) -> Bool
+
+pub fn read(@decode_core.Cursor) -> Result[Key, Issue]
+
+// Errors
+
+// Types and methods
+pub(all) enum Direction {
+  Asc
+  Desc
+} derive(Eq, @debug.Debug)
+
+pub struct Issue {
+  kind : IssueKind
+  source : @decode_core.Cursor
+  diagnostic : @decode_core.Issue?
+}
+
+pub(all) enum IssueKind {
+  InvalidOrder
+  Decode(@decode_core.IssueKind)
+} derive(Eq, @debug.Debug)
+
+pub struct Key {
+  field : String
+  direction : Direction
+  nulls : NullPlacement
+  explicit_nulls : Bool
+  source : @decode_core.Cursor
+  field_source : @decode_core.Cursor
+  work : Int
+}
+
+pub(all) enum NullPlacement {
+  First
+  Last
+} derive(Eq, @debug.Debug)
+
+// Type aliases
+
+// Traits

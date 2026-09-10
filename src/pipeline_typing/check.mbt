@@ -142,6 +142,10 @@ fn check_impl(
       "select" => Some(Select)
       "rename" => Some(Rename)
       "drop" => Some(Drop)
+      "sort" => Some(Sort)
+      "take" => Some(Take)
+      "distinct" => Some(Distinct)
+      "dedupe_rows" => Some(DedupeRows)
       "join" => None
       _ => fail(@decode.lookup(object, key).unwrap(), UnsupportedOperation(key))
     }

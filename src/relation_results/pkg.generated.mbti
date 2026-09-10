@@ -3,6 +3,7 @@ package "actql/actql/relation_results"
 
 import {
   "actql/actql/decode_core",
+  "actql/actql/order_key",
   "actql/actql/pipeline_typing",
   "actql/actql/relation_schema",
   "actql/actql/source_span",
@@ -46,11 +47,6 @@ pub fn usage(CheckedResults) -> Usage
 // Types and methods
 type CheckedResults
 
-pub(all) enum Direction {
-  Asc
-  Desc
-} derive(Eq, @debug.Debug)
-
 pub struct Issue {
   kind : IssueKind
   source : @decode_core.Cursor
@@ -81,19 +77,14 @@ pub(all) struct Limits {
   max_depth : Int
 } derive(Eq, @debug.Debug)
 
-pub(all) enum NullPlacement {
-  First
-  Last
-} derive(Eq, @debug.Debug)
-
 pub(all) enum Obligation {
   TotalDeterministicOrder
 } derive(Eq, @debug.Debug)
 
 pub struct OrderKey {
   field : String
-  direction : Direction
-  nulls : NullPlacement
+  direction : @order_key.Direction
+  nulls : @order_key.NullPlacement
   explicit_nulls : Bool
   source : @decode_core.Cursor
 }
@@ -107,5 +98,8 @@ pub(all) struct Usage {
 } derive(Eq, @debug.Debug)
 
 // Type aliases
+pub using @order_key {type Direction}
+
+pub using @order_key {type NullPlacement}
 
 // Traits

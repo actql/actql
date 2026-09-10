@@ -233,7 +233,7 @@ test "closed envelopes reject unknown operations and unavailable or duplicate na
   }
   for
     source in [
-      "[{\"values\":[],\"as\":\"v\"}]", "[{\"sort\":[]}]", "[{\"search_candidates\":{}}]",
+      "[{\"values\":[],\"as\":\"v\"}]", "[{\"group\":{}}]", "[{\"search_candidates\":{}}]",
     ] {
     assert_true(
       @pipeline_typing.check(cursor(source), [], None, None, limits())

@@ -67,51 +67,48 @@ fn contract_preflight(
 }
 
 ///|
-fn direction(source : @decode.Cursor) -> Direction raise Stop {
-  match decoded(@decode.text(source), source) {
-    "asc" => Asc
-    "desc" => Desc
-    _ => fail(source, InvalidOrder)
-  }
-}
-
-///|
 fn order_key(
   b : Budget,
   source : @decode.Cursor,
   fields : Map[String, @schema.Field],
 ) -> OrderKey raise Stop {
-  let obj = decoded(@decode.open_object(source), source)
-  let names = @decode.object_field_names(source).unwrap()
-  spend(b, source, names.length() + 1)
-  let (field, dir, nulls, explicit_nulls, field_source) = if names.length() == 1 {
-    let key = names[0]
-    (key, direction(@decode.lookup(obj, key).unwrap()), Last, false, source)
-  } else {
-    let obj = decoded(
-      @decode.closed_object(source, ["field", "dir", "nulls"]),
-      source,
-    )
-    let field_source = decoded(@decode.required(obj, "field"), source)
-    let field = decoded(@decode.text(field_source), field_source)
-    let dir = direction(decoded(@decode.required(obj, "dir"), source))
-    let null_source = decoded(@decode.required(obj, "nulls"), source)
-    let nulls = match decoded(@decode.text(null_source), null_source) {
-      "first" => First
-      "last" => Last
-      _ => fail(null_source, InvalidOrder)
+  let key = match @order.read(source) {
+    Ok(k) => k
+    Err(e) => {
+      if e.diagnostic is Some(d) {
+        raise Stop({
+          source: e.source,
+          kind: Decode(d.kind),
+          path: d.path.copy(),
+          span: d.span,
+        })
+      }
+      fail(
+        e.source,
+        match e.kind {
+          @order.InvalidOrder => InvalidOrder
+          @order.Decode(kind) => Decode(kind)
+        },
+      )
     }
-    (field, dir, nulls, true, field_source)
   }
+  spend(b, source, key.work)
+  let field = key.field
+  let field_source = key.field_source
   let contract = match fields.get(field) {
     Some(v) => v
     None => fail(field_source, UnknownField(field))
   }
-  match contract.contract.shape {
-    @contract.Text(_) | Number | Boolean | Decimal(..) | Date | Timestamp => ()
-    _ => fail(field_source, NotAuthorOrderable(field))
+  if !@order.author_orderable(contract.contract) {
+    fail(field_source, NotAuthorOrderable(field))
   }
-  { field, direction: dir, nulls, explicit_nulls, source, }
+  {
+    field,
+    direction: key.direction,
+    nulls: key.nulls,
+    explicit_nulls: key.explicit_nulls,
+    source,
+  }
 }
 
 ///|

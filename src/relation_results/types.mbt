@@ -15,16 +15,10 @@ pub(all) struct Usage {
 } derive(Eq, Debug)
 
 ///|
-pub(all) enum Direction {
-  Asc
-  Desc
-} derive(Eq, Debug)
+pub type Direction = @order.Direction
 
 ///|
-pub(all) enum NullPlacement {
-  First
-  Last
-} derive(Eq, Debug)
+pub type NullPlacement = @order.NullPlacement
 
 ///|
 pub struct OrderKey {

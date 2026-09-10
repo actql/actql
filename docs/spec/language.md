@@ -2966,6 +2966,13 @@ Check MUST reject `distinct: []` rather than reinterpret it as `distinct: true`.
 The list retains its authored projection order; these rules do not reject
 empty runtime input or impose a scalar-only schema on whole-row distinct.
 
+<!-- requirement-block: distinct-and-dedupe.equality-key-domains -->
+Fields selected by keyed `distinct` and fields in `dedupe_rows.by` MUST belong
+to the scalar or reference domains admitted by `KeyComparable`; nullable keys
+are permitted. Object, array, json and vector fields are not admitted as these
+explicit equality keys. This restriction does not apply to complete-row
+`distinct: true`. Authored ordering keys separately follow `AuthorOrderable`.
+
 Representative-row selection is a separate operation:
 
 ```yaml

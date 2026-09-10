@@ -6,6 +6,7 @@ import {
   "actql/actql/expression_syntax",
   "actql/actql/expression_text",
   "actql/actql/expression_typing",
+  "actql/actql/order_key",
   "actql/actql/parameter_binding",
   "actql/actql/relation_schema",
   "actql/actql/source_span",
@@ -32,9 +33,13 @@ pub fn output_schema(CheckedOperation) -> @relation_schema.Schema
 
 pub fn parameters(CheckedOperation) -> @parameter_binding.Declarations?
 
+pub fn pending_validations(CheckedOperation) -> Array[PendingValidation]
+
 pub fn projection(CheckedOperation) -> Array[ProjectionField]
 
 pub fn references(Binding) -> Array[Reference]
+
+pub fn row_operation(CheckedOperation) -> RowOperation?
 
 pub fn source(CheckedOperation) -> @decode_core.Cursor
 
@@ -56,11 +61,17 @@ pub struct Binding {
 
 type CheckedOperation
 
+pub(all) enum CountValue {
+  Literal(Int64)
+  Parameter(String)
+} derive(Eq, @debug.Debug)
+
 pub(all) enum Form {
   DeriveMap
   DeriveArray
   Predicate
   Projection
+  RowOperation
 } derive(Eq, @debug.Debug)
 
 pub struct Issue {
@@ -80,10 +91,20 @@ pub(all) enum IssueKind {
   UnknownField(String)
   InputCollision(String)
   ExpectedBoolean
+  InvalidOrder
+  NotAuthorOrderable(String)
+  NotKeyComparable(String)
+  InvalidCount
+  UnknownParameter(String)
   BudgetExceeded
   Syntax(@expression_syntax.Issue)
   Expression(@expression_typing.IssueKind)
 } derive(Eq, @debug.Debug)
+
+pub struct KeyField {
+  field : @relation_schema.FieldName
+  source : @decode_core.Cursor
+}
 
 pub(all) struct Limits {
   max_work : Int
@@ -99,7 +120,24 @@ pub(all) enum Operation {
   Select
   Rename
   Drop
+  Sort
+  Take
+  Distinct
+  DedupeRows
 } derive(Eq, @debug.Debug)
+
+pub struct OrderTerm {
+  field : @relation_schema.FieldName
+  direction : @order_key.Direction
+  nulls : @order_key.NullPlacement
+  explicit_nulls : Bool
+  source : @decode_core.Cursor
+}
+
+pub struct PendingValidation {
+  kind : ValidationKind
+  source : @decode_core.Cursor
+}
 
 pub struct ProjectionField {
   output : @relation_schema.FieldName
@@ -114,6 +152,21 @@ pub struct Reference {
 pub(all) enum ReferenceTarget {
   InputField(@relation_schema.FieldName)
   PriorSlot(Int)
+} derive(Eq, @debug.Debug)
+
+pub enum RowOperation {
+  Sort(Array[OrderTerm])
+  Take(count~ : CountValue, offset~ : CountValue)
+  DistinctRows
+  DistinctKeys(Array[KeyField])
+  DedupeRows(by~ : Array[KeyField], order~ : Array[OrderTerm])
+}
+
+pub(all) enum ValidationKind {
+  SortOrderCompletion
+  StableInputOrder
+  FailOnTopTie
+  BoundInteger(name~ : String, minimum~ : Int64)
 } derive(Eq, @debug.Debug)
 
 // Type aliases
