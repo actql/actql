@@ -34,6 +34,8 @@ pub(all) enum ValidationKind {
   StableInputOrder
   FailOnTopTie
   BoundInteger(name~ : String, minimum~ : Int64)
+  ValidateReshapeRows
+  ExpansionEnvelope
 } derive(Eq, Debug)
 
 ///|

@@ -3459,6 +3459,21 @@ composed through the parent path under [Closed value contracts](#value-contracts
 shape evidence; absence of that evidence is not permission to guess a result
 type.
 
+<!-- requirement-block: reshaping.json-pick-output-is-an-authored-field-name reshaping.json-pick-output-must-not-collide -->
+`json_pick` preserves every existing field and adds `output`; its output name
+MUST be an authored field name and MUST NOT collide with an existing field.
+Each path segment denotes one exact object key, not a dot-separated path or an
+array index. A selected leaf may have type `json`; shape evidence is needed
+only when traversing an opaque `json`, not when retaining it as a leaf.
+
+<!-- requirement-block: reshaping.unnest-output-names-are-authored reshaping.unnest-index-options-are-closed -->
+For `unnest`, `as` and a string `with_index` MUST be authored field names.
+Omitting `with_index` emits no index field; its only explicit forms are `true`
+or a field-name string. `false` and null MUST fail during check. The source
+array field remains in the output. Without `outer: true`, the element contract
+retains exactly the array's item contract: a nullable array container does not
+make its elements nullable. `outer` accepts only booleans when present.
+
 <!-- requirement-block: reshaping.pivot-values-are-required-nfc-unique-output-field-names -->
 `pivot aggregate: first` is order-sensitive and requires a previously proven
 stable input order. Pivot values are REQUIRED, NFC-unique output field names.
@@ -6732,6 +6747,13 @@ StepConstraints :=
   otherwise => ordinary current-input and optional as rules.
 
 SortBody := [OrderKey, ...] | []
+JsonPickBody := {column: Field, path: [String, ...], output: OutputFieldName}
+UnnestBody := {
+  column: Field,
+  as: OutputFieldName,
+  with_index?: true | OutputFieldName,
+  outer?: Boolean
+}
 DistinctBody := true | [Field, ...] # nonempty, no repeated references
 DedupeRowsBody := {
   by: [Field, ...] | [],

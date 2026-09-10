@@ -2896,6 +2896,50 @@
       }
     },
     {
+      "requirement_id": "actql.language/reshaping.json-pick-output-is-an-authored-field-name",
+      "statement_sha256": "ed08f7ee8f5b55491eee3e7e3515389313fbb6248aad69946d06054dcaddb382",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "reshaping",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/reshaping.json-pick-output-must-not-collide",
+      "statement_sha256": "a5596acaaba581ffb26c8ce3f0b1b8646805627cde3579b5457fec8f58e4bc47",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "reshaping",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/reshaping.unnest-output-names-are-authored",
+      "statement_sha256": "dc7a85a5a9ea3f16481fbe610546481d240bfda3b37e7750acec4835359a628b",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "reshaping",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/reshaping.unnest-index-options-are-closed",
+      "statement_sha256": "9abfcede70d318b4a97c1a05be5007f2337d063ec2e5787b57a4427596d00acd",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "reshaping",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.language/reshaping.pivot-values-are-required-nfc-unique-output-field-names",
       "statement_sha256": "42292413b43a49b17c737a54ee968068448386832f165293443568fcbc86122f",
       "status": "pending",
@@ -5449,7 +5493,7 @@
     },
     {
       "requirement_id": "actql.language/structural-grammar.grammar",
-      "statement_sha256": "b0ae7f140b8d99158e7feb490dd2a5de719a937a14ec32aa2df6daf1f2581c02",
+      "statement_sha256": "7713a42155dc1c78ee9fd62155e106c785f1147aa8544a88850d25d15cba3b3b",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",

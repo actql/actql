@@ -133,8 +133,20 @@ fn check_impl(
   let projection : Array[ProjectionField] = []
   let pending : Array[PendingValidation] = []
   let mut row_operation : RowOperation? = None
+  let mut reshape : Reshape? = None
   let mut output = input
   let form = match operation {
+    JsonPick | Unnest => {
+      row_source(b, body)
+      let (details, fields) = check_reshape(b, operation, body, input, visible)
+      reshape = Some(details)
+      output = schema_type(b, body, fields)
+      pending.push({ kind: ValidateReshapeRows, source: body, })
+      if operation is Unnest {
+        pending.push({ kind: ExpansionEnvelope, source: body, })
+      }
+      Form::Reshape
+    }
     Sort | Take | Distinct | DedupeRows => {
       row_source(b, body)
       row_operation = Some(
@@ -406,6 +418,7 @@ fn check_impl(
     bindings,
     projection,
     row_operation,
+    reshape,
     pending,
     work_used: limits.max_work - b.work,
     text_bytes_used: limits.max_text_bytes - b.text,

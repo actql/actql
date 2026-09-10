@@ -146,6 +146,8 @@ fn check_impl(
       "take" => Some(Take)
       "distinct" => Some(Distinct)
       "dedupe_rows" => Some(DedupeRows)
+      "json_pick" => Some(JsonPick)
+      "unnest" => Some(Unnest)
       "join" => None
       _ => fail(@decode.lookup(object, key).unwrap(), UnsupportedOperation(key))
     }

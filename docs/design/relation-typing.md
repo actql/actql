@@ -1,7 +1,7 @@
 # Relation operation type checking
 
 `relation_typing.check` checks one `derive`, `filter`, `select`, `rename`, `drop`,
-`sort`, `take`, `distinct`, or `dedupe_rows` body against a supplied complete
+`sort`, `take`, `distinct`, `dedupe_rows`, `json_pick`, or `unnest` body against a supplied complete
 `relation_schema.Schema` and optional
 Parameter declarations. The operation kind is a closed enum; the body is an
 owned `decode_core.Cursor`. It is not a parser for the step envelope:
@@ -88,6 +88,41 @@ The existing AoA adapter rejects empty `REL.derive.exprs` and empty
 can implement the admitted empty derive/rename/drop cases; this checker does
 not lower operations. The complete-schema restriction belongs to this API's
 current scope, not to the language's general derive contract.
+
+## Typed reshaping
+
+`Form::Reshape` retains detached `reshape` details for
+[json_pick and unnest](../spec/language.md#reshaping). Both preserve existing
+columns and their typed qualification. The source column may be `left.payload`;
+new output names are flat authored names and cannot overwrite existing fields.
+
+`json_pick` follows exact keys through closed object contracts, combining
+parent and leaf nullability. Binary search reads each opaque field set without
+copying it. A final `json` leaf is retained; traversing an opaque `json` fails
+with `ShapeEvidenceRequired`. This is an unsupported evidence boundary, not a
+language-wide ban on object-valued JSON. No Host shape-evidence API is added.
+
+`unnest` retains the declared item type for normal expansion, even when the
+array container is nullable. Outer expansion makes the element and exposed
+index nullable. Omitted index, `true`, and an explicit name remain distinct in
+the retained source; `true` resolves to `<as>_index`. `max_items` in the details
+is the original array bound; it is not an output-row or key proof.
+
+`ValidateReshapeRows` records missing/nonconforming row validation, and
+`ExpansionEnvelope` records unnest's pending output/byte/Host bounds. Execution,
+source-plus-index identity (including the distinct outer sentinel), candidate
+keys, order and completeness evidence are not established by this checker.
+Non-outer expansion uses the array bound; outer expansion uses its maximum with
+one when known. The existing AoA unnest adapter neither implements outer rows
+nor rejects every missing/non-array input; lowering must close that gap before
+claiming execution support. No whole-data tree or evaluator is introduced.
+
+Both operations preflight their entire body and input/output schemas with
+shared work, text and node budgets; they consume no expression tokens. Source
+locations identify the failing column, path segment or option. Returned path
+arrays are copies. Their fixed corpus is type-checking evidence, not executed
+row conformance. The operation bodies have no dedicated existing machine
+schema to regenerate; normative grammar, requirements and fixtures are updated.
 
 ## Budgets and immutability
 

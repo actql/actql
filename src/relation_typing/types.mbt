@@ -9,6 +9,8 @@ pub(all) enum Operation {
   Take
   Distinct
   DedupeRows
+  JsonPick
+  Unnest
 } derive(Eq, Debug)
 
 ///|
@@ -18,6 +20,7 @@ pub(all) enum Form {
   Predicate
   Projection
   RowOperation
+  Reshape
 } derive(Eq, Debug)
 
 ///|
@@ -44,6 +47,9 @@ pub(all) enum IssueKind {
   NotKeyComparable(String)
   InvalidCount
   UnknownParameter(String)
+  ExpectedObject
+  ExpectedArray
+  ShapeEvidenceRequired
   BudgetExceeded
   Syntax(@syntax.Issue)
   Expression(@typing.IssueKind)
@@ -96,6 +102,7 @@ struct CheckedOperation {
   bindings : Array[Binding]
   projection : Array[ProjectionField]
   row_operation : RowOperation?
+  reshape : Reshape?
   pending : Array[PendingValidation]
   work_used : Int
   text_bytes_used : Int

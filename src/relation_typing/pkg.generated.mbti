@@ -39,6 +39,8 @@ pub fn projection(CheckedOperation) -> Array[ProjectionField]
 
 pub fn references(Binding) -> Array[Reference]
 
+pub fn reshape(CheckedOperation) -> Reshape?
+
 pub fn row_operation(CheckedOperation) -> RowOperation?
 
 pub fn source(CheckedOperation) -> @decode_core.Cursor
@@ -72,6 +74,7 @@ pub(all) enum Form {
   Predicate
   Projection
   RowOperation
+  Reshape
 } derive(Eq, @debug.Debug)
 
 pub struct Issue {
@@ -96,6 +99,9 @@ pub(all) enum IssueKind {
   NotKeyComparable(String)
   InvalidCount
   UnknownParameter(String)
+  ExpectedObject
+  ExpectedArray
+  ShapeEvidenceRequired
   BudgetExceeded
   Syntax(@expression_syntax.Issue)
   Expression(@expression_typing.IssueKind)
@@ -124,6 +130,8 @@ pub(all) enum Operation {
   Take
   Distinct
   DedupeRows
+  JsonPick
+  Unnest
 } derive(Eq, @debug.Debug)
 
 pub struct OrderTerm {
@@ -154,6 +162,11 @@ pub(all) enum ReferenceTarget {
   PriorSlot(Int)
 } derive(Eq, @debug.Debug)
 
+pub enum Reshape {
+  JsonPick(column~ : @relation_schema.FieldName, path~ : Array[String], output~ : String)
+  Unnest(column~ : @relation_schema.FieldName, element~ : String, index~ : String?, outer~ : Bool, max_items~ : Int64?)
+}
+
 pub enum RowOperation {
   Sort(Array[OrderTerm])
   Take(count~ : CountValue, offset~ : CountValue)
@@ -167,6 +180,8 @@ pub(all) enum ValidationKind {
   StableInputOrder
   FailOnTopTie
   BoundInteger(name~ : String, minimum~ : Int64)
+  ValidateReshapeRows
+  ExpansionEnvelope
 } derive(Eq, @debug.Debug)
 
 // Type aliases
