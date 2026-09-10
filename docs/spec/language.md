@@ -792,6 +792,15 @@ uses string arguments, and `NULL IS TRUE` and `CASE WHEN NULL THEN 1 ELSE 2 END`
 use a nullable boolean condition. An overloaded argument without a unique
 domain supplies no type; two untyped NULL operands of `IS DISTINCT FROM`
 still require independent type evidence.
+
+<!-- requirement-block: value-contracts.decimal-output-target-is-not-input-evidence -->
+For `quantize` and `decimal_divide`, implementations MUST NOT use the output
+precision and scale to supply an input type: the decimal input domain has no
+unique precision/scale, and the divisor domain also permits `number`.
+Bare literal NULL operands remain
+unresolved; an explicit cast such as `CAST(NULL AS DECIMAL(8,2))` supplies
+the missing input type. Already-typed nullable operands still propagate null.
+
 An empty array obtains its item type from an explicit `empty_array.items`
 contract or the unique common item type of independently typed peers in an
 `if`/`case`, `coalesce`, or array constructor. A schema-typed array with
@@ -2597,8 +2606,13 @@ alternation, anchors, dot, and greedy bounded/unbounded quantifiers. Lookaround,
 backreferences, named captures, lazy quantifiers, Unicode property escapes,
 and implementation-specific escapes are outside the grammar. Patterns are
 literal or invocation-parameter values, not fields; recursion and
-host-specific flags are forbidden. The profile
-requires positive limits for input codepoints, pattern bytes, output bytes,
+host-specific flags are forbidden.
+
+<!-- requirement-block: text-time.portable-regex-flags -->
+Regex flags MUST be a string containing only `m` (anchors also match
+U+000A line boundaries) and `s` (dot also matches U+000A), each at most once,
+in either order. Omitted flags and the empty string both select neither flag.
+The profile requires positive limits for input codepoints, pattern bytes, output bytes,
 and replacements. `regex_extract` requires an explicit capture index and
 returns null for no match; `regex_replace` applies a bounded left-to-right
 global replacement. Its closed replacement grammar uses `$$` for a literal
@@ -6901,13 +6915,13 @@ through the pinned expression contract.
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/canonical_value_contract sha256:02859499357530af0ae58e4f2958d1c8fa48f957b86b0a2976dad43bed99b551
 ../../spec/contracts/actql-production-profile-schemas.json#/schemas/text_time_expression sha256:a9fd34634569c0da417ca5a8770ab064ad8351bbd253c8fea1dae60c756c61c1
 ../../spec/contracts/actql-production-profile-schemas.json#/schemas/regex_replacement_ast sha256:92c3fc4fc790cdf8f985b634dfe513f85b6cd5c904bb673de7330d18f577aeed
-../../spec/contracts/actql-expressions.json# sha256:0af136d99d856fb2a704350390766513ec8af6758247b6adc844fddbc4c73c76
-../../spec/contracts/actql-expressions.json#/schemas/expression sha256:63678c169a88524c094e102c877eba5b8fdc22345b8dba2d8b0c07553cb5b68e
-../../spec/contracts/actql-expressions.json#/schemas/expression_node sha256:847bb33502b28029d542a2f9ab5e5ae793496c61570f54810cc67bca9b34f341
+../../spec/contracts/actql-expressions.json# sha256:037df1de97bc5b3add9b34b562c097a9be5ef6aaf8ede8ea7ee7810554c86a9c
+../../spec/contracts/actql-expressions.json#/schemas/expression sha256:8196cef99c66248917d44d322cb21f69f9873cac768bc5bbda2e3757e8e9d66f
+../../spec/contracts/actql-expressions.json#/schemas/expression_node sha256:eea37ee96bf6be954e46db196f7ec8101506ed4a28ecc647e8f929a512194b94
 ../../spec/contracts/actql-expressions.json#/schemas/evaluation_envelope sha256:629342d58af8fa879da391532a838788338ddc42b5f17db814d0bdf7236c195b
 ../../spec/contracts/actql-expressions.json#/laws sha256:3a431204abcf37b4649e5b3aade0182d4bcba2b76eac7b21e36fcbfdca629540
-../../spec/contracts/actql-expressions.json#/schemas/fragment sha256:24776b3247a83cd2a44a13caf3256ae95c87ac5e24452c3994c80e10ea885069
-../../spec/contracts/actql-expressions.json#/schemas/predicate_consumer sha256:42d05744b4563c50b1c739c18530922be32adf95f3b8a4a3400145151000fd63
+../../spec/contracts/actql-expressions.json#/schemas/fragment sha256:2ccb093915f713003ae0f5e31043bbdd5fc0861cb6c718b1f5430872a4be3717
+../../spec/contracts/actql-expressions.json#/schemas/predicate_consumer sha256:36320fcc16612a4bd0a64274fcf07526845ae91ad802afce601f4e391f5ba1de
 ```
 
 <!-- stage-contract-pins:start -->

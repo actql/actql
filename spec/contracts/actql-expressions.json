@@ -5019,7 +5019,14 @@
                       "$ref": "#/$defs/expression"
                     },
                     "flags": {
-                      "type": "string"
+                      "type": "string",
+                      "enum": [
+                        "",
+                        "m",
+                        "s",
+                        "ms",
+                        "sm"
+                      ]
                     }
                   }
                 }
@@ -5051,7 +5058,14 @@
                       "$ref": "#/$defs/expression"
                     },
                     "flags": {
-                      "type": "string"
+                      "type": "string",
+                      "enum": [
+                        "",
+                        "m",
+                        "s",
+                        "ms",
+                        "sm"
+                      ]
                     }
                   }
                 }
@@ -5083,7 +5097,14 @@
                       "$ref": "#/$defs/expression"
                     },
                     "flags": {
-                      "type": "string"
+                      "type": "string",
+                      "enum": [
+                        "",
+                        "m",
+                        "s",
+                        "ms",
+                        "sm"
+                      ]
                     }
                   }
                 }
@@ -10386,7 +10407,14 @@
                       "$ref": "#/$defs/expression"
                     },
                     "flags": {
-                      "type": "string"
+                      "type": "string",
+                      "enum": [
+                        "",
+                        "m",
+                        "s",
+                        "ms",
+                        "sm"
+                      ]
                     }
                   }
                 }
@@ -10422,7 +10450,14 @@
                       "$ref": "#/$defs/expression"
                     },
                     "flags": {
-                      "type": "string"
+                      "type": "string",
+                      "enum": [
+                        "",
+                        "m",
+                        "s",
+                        "ms",
+                        "sm"
+                      ]
                     }
                   }
                 }
@@ -10458,7 +10493,14 @@
                       "$ref": "#/$defs/expression"
                     },
                     "flags": {
-                      "type": "string"
+                      "type": "string",
+                      "enum": [
+                        "",
+                        "m",
+                        "s",
+                        "ms",
+                        "sm"
+                      ]
                     }
                   }
                 }
@@ -19143,7 +19185,14 @@
                       "$ref": "#/$defs/source_expression"
                     },
                     "flags": {
-                      "type": "string"
+                      "type": "string",
+                      "enum": [
+                        "",
+                        "m",
+                        "s",
+                        "ms",
+                        "sm"
+                      ]
                     }
                   }
                 }
@@ -19175,7 +19224,14 @@
                       "$ref": "#/$defs/source_expression"
                     },
                     "flags": {
-                      "type": "string"
+                      "type": "string",
+                      "enum": [
+                        "",
+                        "m",
+                        "s",
+                        "ms",
+                        "sm"
+                      ]
                     }
                   }
                 }
@@ -19207,7 +19263,14 @@
                       "$ref": "#/$defs/source_expression"
                     },
                     "flags": {
-                      "type": "string"
+                      "type": "string",
+                      "enum": [
+                        "",
+                        "m",
+                        "s",
+                        "ms",
+                        "sm"
+                      ]
                     }
                   }
                 }
@@ -23612,7 +23675,14 @@
                       "$ref": "#/$defs/machine_expression"
                     },
                     "flags": {
-                      "type": "string"
+                      "type": "string",
+                      "enum": [
+                        "",
+                        "m",
+                        "s",
+                        "ms",
+                        "sm"
+                      ]
                     }
                   }
                 }
@@ -23648,7 +23718,14 @@
                       "$ref": "#/$defs/machine_expression"
                     },
                     "flags": {
-                      "type": "string"
+                      "type": "string",
+                      "enum": [
+                        "",
+                        "m",
+                        "s",
+                        "ms",
+                        "sm"
+                      ]
                     }
                   }
                 }
@@ -23684,7 +23761,14 @@
                       "$ref": "#/$defs/machine_expression"
                     },
                     "flags": {
-                      "type": "string"
+                      "type": "string",
+                      "enum": [
+                        "",
+                        "m",
+                        "s",
+                        "ms",
+                        "sm"
+                      ]
                     }
                   }
                 }
@@ -30739,7 +30823,14 @@
                       "$ref": "#/$defs/source_expression"
                     },
                     "flags": {
-                      "type": "string"
+                      "type": "string",
+                      "enum": [
+                        "",
+                        "m",
+                        "s",
+                        "ms",
+                        "sm"
+                      ]
                     }
                   }
                 }
@@ -30771,7 +30862,14 @@
                       "$ref": "#/$defs/source_expression"
                     },
                     "flags": {
-                      "type": "string"
+                      "type": "string",
+                      "enum": [
+                        "",
+                        "m",
+                        "s",
+                        "ms",
+                        "sm"
+                      ]
                     }
                   }
                 }
@@ -30803,7 +30901,14 @@
                       "$ref": "#/$defs/source_expression"
                     },
                     "flags": {
-                      "type": "string"
+                      "type": "string",
+                      "enum": [
+                        "",
+                        "m",
+                        "s",
+                        "ms",
+                        "sm"
+                      ]
                     }
                   }
                 }
@@ -35208,7 +35313,14 @@
                       "$ref": "#/$defs/machine_expression"
                     },
                     "flags": {
-                      "type": "string"
+                      "type": "string",
+                      "enum": [
+                        "",
+                        "m",
+                        "s",
+                        "ms",
+                        "sm"
+                      ]
                     }
                   }
                 }
@@ -35244,7 +35356,14 @@
                       "$ref": "#/$defs/machine_expression"
                     },
                     "flags": {
-                      "type": "string"
+                      "type": "string",
+                      "enum": [
+                        "",
+                        "m",
+                        "s",
+                        "ms",
+                        "sm"
+                      ]
                     }
                   }
                 }
@@ -35280,7 +35399,14 @@
                       "$ref": "#/$defs/machine_expression"
                     },
                     "flags": {
-                      "type": "string"
+                      "type": "string",
+                      "enum": [
+                        "",
+                        "m",
+                        "s",
+                        "ms",
+                        "sm"
+                      ]
                     }
                   }
                 }

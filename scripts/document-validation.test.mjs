@@ -31,6 +31,28 @@ test('annotation schemas preserve open metadata and all authored target kinds', 
   assert.equal(registry.artifact_registry_cid, machineCid(artifacts));
 });
 
+test('expression regex flag schemas admit exactly the portable flag strings', () => {
+  const admitted = ['', 'm', 's', 'ms', 'sm'];
+  for (const [name, count] of [['actql-expressions', 18], ['actql-protocol-schemas', 12]]) {
+    const document = JSON.parse(readFileSync(new URL(`../spec/contracts/${name}.json`, import.meta.url)));
+    let found = 0;
+    function visit(value) {
+      if (!value || typeof value !== 'object') return;
+      const flags = value.properties?.flags;
+      if (flags?.type === 'string') {
+        found++;
+        assert.deepEqual(flags, { type: 'string', enum: admitted });
+        for (const invalid of ['mm', 'ss', 'msm', 'i', 'g', 'M', 'm\n', ' ']) {
+          assert.equal(flags.enum.includes(invalid), false);
+        }
+      }
+      for (const child of Object.values(value)) visit(child);
+    }
+    visit(document);
+    assert.equal(found, count, name);
+  }
+});
+
 test('metadata updates report changes, clear evidence and preserve explicit IDs', () => {
   const d = { spec_id: 'actql.test', path: 'test.md' };
   const source = '<a id="rule"></a>\n\n<!-- requirement-block: rule -->\nThe input MUST be finite.\n';
