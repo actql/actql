@@ -45,5 +45,5 @@ The existing AoA empty-aggregate path keeps the first complete input row and
 does not synthesize a global empty-input row. Lowering must implement the
 specified key-only/global behavior before claiming execution compatibility.
 
-`pivot` and `analytic` will reuse the applicable signature rules, but selection,
+`pivot` and `analytic` reuse the applicable signature rules, but selection,
 fill, frames and their distinct demand boundaries are separate consumers.

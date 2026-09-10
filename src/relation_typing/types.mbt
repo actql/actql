@@ -15,6 +15,7 @@ pub(all) enum Operation {
   Unpivot
   Group
   Pivot
+  Analytic
 } derive(Eq, Debug)
 
 ///|
@@ -61,6 +62,7 @@ pub(all) enum IssueKind {
   InvalidAggregateArgument(String)
   ForbiddenAggregateValue
   InvalidFill
+  InvalidFrame
   FillValue(@value.Issue)
   BudgetExceeded
   Syntax(@syntax.Issue)
@@ -117,6 +119,7 @@ struct CheckedOperation {
   reshape : Reshape?
   group : CheckedGroup?
   pivot : CheckedPivot?
+  analytic : CheckedAnalytic?
   pending : Array[PendingValidation]
   work_used : Int
   text_bytes_used : Int

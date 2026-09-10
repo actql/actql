@@ -45,6 +45,16 @@ pub fn aggregate_result(CheckedAggregate) -> @value_contract.Contract
 
 pub fn aggregate_source(CheckedAggregate) -> @decode_core.Cursor
 
+pub fn analytic(CheckedOperation) -> CheckedAnalytic?
+
+pub fn analytic_calls(CheckedAnalytic) -> Array[AnalyticCall]
+
+pub fn analytic_frame(CheckedAnalytic) -> RowsFrame?
+
+pub fn analytic_order(CheckedAnalytic) -> Array[OrderTerm]
+
+pub fn analytic_partition(CheckedAnalytic) -> Array[KeyField]
+
 pub fn binding_at(CheckedOperation, Int) -> Binding?
 
 pub fn binding_count(CheckedOperation) -> Int
@@ -131,6 +141,24 @@ pub(all) enum AggregateFunction {
   StddevSamp
 } derive(Eq, @debug.Debug)
 
+pub struct AnalyticCall {
+  name : String
+  source : @decode_core.Cursor
+  function : AnalyticFunction
+  result : @value_contract.Contract
+}
+
+pub enum AnalyticFunction {
+  RowNumber
+  Rank
+  DenseRank
+  Lag(argument~ : Int, offset~ : CountValue)
+  Lead(argument~ : Int, offset~ : CountValue)
+  FirstValue(argument~ : Int)
+  LastValue(argument~ : Int)
+  Aggregate(CheckedAggregate)
+}
+
 pub struct Binding {
   name : String?
   source : @decode_core.Cursor
@@ -139,6 +167,8 @@ pub struct Binding {
 }
 
 type CheckedAggregate
+
+type CheckedAnalytic
 
 type CheckedGroup
 
@@ -164,6 +194,14 @@ pub(all) enum Form {
 pub(all) enum FractionValue {
   Fraction(Double)
   ParameterFraction(String)
+} derive(Eq, @debug.Debug)
+
+pub(all) enum FrameBoundary {
+  UnboundedPreceding
+  Preceding(CountValue)
+  CurrentRow
+  Following(CountValue)
+  UnboundedFollowing
 } derive(Eq, @debug.Debug)
 
 pub struct Issue {
@@ -197,6 +235,7 @@ pub(all) enum IssueKind {
   InvalidAggregateArgument(String)
   ForbiddenAggregateValue
   InvalidFill
+  InvalidFrame
   FillValue(@value_admission.Issue)
   BudgetExceeded
   Syntax(@expression_syntax.Issue)
@@ -232,6 +271,7 @@ pub(all) enum Operation {
   Unpivot
   Group
   Pivot
+  Analytic
 } derive(Eq, @debug.Debug)
 
 pub struct OrderTerm {
@@ -284,6 +324,12 @@ pub enum RowOperation {
   DedupeRows(by~ : Array[KeyField], order~ : Array[OrderTerm])
 }
 
+pub struct RowsFrame {
+  start : FrameBoundary
+  end : FrameBoundary
+  source : @decode_core.Cursor
+}
+
 pub(all) enum ValidationKind {
   SortOrderCompletion
   StableInputOrder
@@ -297,6 +343,11 @@ pub(all) enum ValidationKind {
   GroupPartitioning
   PivotPartitioning
   BoundFill(String)
+  AnalyticPeerOrder
+  AnalyticPositionOrder
+  AnalyticFrameDemand
+  AnalyticEnvelope
+  BoundFrameOrder
   AggregateEnvelope
   NumericAggregateObservation
   StatisticalAggregateLaw

@@ -6,8 +6,8 @@ import { parameterPrograms } from './parameter-schema.mjs';
 import { machineCid } from './actql-spec-family.mjs';
 
 export const functions = ['count', 'count_if', 'sum', 'avg', 'min', 'max', 'array_agg', 'string_agg', 'first', 'last', 'percentile_disc', 'percentile_cont', 'var_pop', 'var_samp', 'stddev_pop', 'stddev_samp'];
-const parameter = {type:'object', additionalProperties:false, required:['$param'], properties:{$param:{type:'string',pattern:'^[A-Za-z_][A-Za-z0-9_]*$'}}};
-const positive = {oneOf:[{type:'integer',minimum:1,maximum:9007199254740991},parameter]};
+export const parameter = {type:'object', additionalProperties:false, required:['$param'], properties:{$param:{type:'string',pattern:'^[A-Za-z_][A-Za-z0-9_]*$'}}};
+export const positive = {oneOf:[{type:'integer',minimum:1,maximum:9007199254740991},parameter]};
 const field = {type:'string',minLength:1};
 export const fieldPattern = '^(?!__cid$)(?!__actql_)(?![\\s\\S]*\\.)(?=[\\s\\S]*\\S)[\\s\\S]+$';
 export const orderKeys = {type:'array',minItems:1,items:{oneOf:[

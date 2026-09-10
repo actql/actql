@@ -152,6 +152,7 @@ fn check_impl(
       "unpivot" => Some(Unpivot)
       "group" => Some(Group)
       "pivot" => Some(Pivot)
+      "analytic" => Some(Analytic)
       "join" | "append" | "nest" => None
       _ => fail(@decode.lookup(object, key).unwrap(), UnsupportedOperation(key))
     }

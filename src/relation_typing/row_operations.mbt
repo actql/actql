@@ -44,6 +44,11 @@ pub(all) enum ValidationKind {
   GroupPartitioning
   PivotPartitioning
   BoundFill(String)
+  AnalyticPeerOrder
+  AnalyticPositionOrder
+  AnalyticFrameDemand
+  AnalyticEnvelope
+  BoundFrameOrder
   AggregateEnvelope
   NumericAggregateObservation
   StatisticalAggregateLaw

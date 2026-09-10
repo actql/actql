@@ -3204,6 +3204,28 @@
       }
     },
     {
+      "requirement_id": "actql.language/analytic.partition-repetitions",
+      "statement_sha256": "f53a45b537721af662f27264ac8bba6eca62c1a5c04c31a432b47043ea2de15d",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "analytic",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/analytic.bound-numeric-options",
+      "statement_sha256": "6aff8ce47a728b8b85bcc6605064e38e2d52070a0608715e393836a17d1f6775",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "analytic",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.language/analytic.peers",
       "statement_sha256": "1019a9234ee82ba11bd7b35d3b95f9f5b06b933d7e15a989faf3f3e9d62b1934",
       "status": "pending",
@@ -5636,7 +5658,7 @@
     },
     {
       "requirement_id": "actql.language/structural-grammar.grammar",
-      "statement_sha256": "b0b1a52ae58ff86ad8ff523100a80eb2e84db4b74af6755de31d5fe59ad44078",
+      "statement_sha256": "6019dda74cbedc75357d7e38eb7b81a64c3683e48fca55d64295e060ef8a0039",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
@@ -7506,7 +7528,7 @@
     },
     {
       "requirement_id": "actql.protocol.contracts/machine-contracts.exact-artifacts",
-      "statement_sha256": "00253c3f45006ce0a66a033f0161baa6e325b88b1d3039c903bacce7a340188d",
+      "statement_sha256": "d695fe6b7142704ff88cb145ddabe444112aad5e6f83372033936cb4ecb824ff",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",

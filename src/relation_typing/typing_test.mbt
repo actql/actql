@@ -144,6 +144,7 @@ fn corpus_rejected(
     Err(issue) => {
       let actual = match issue.kind {
         InvalidFill => "InvalidFill"
+        InvalidFrame => "InvalidFrame"
         FillValue(_) => "FillValue"
         InvalidAggregate(_) => "InvalidAggregate"
         InvalidAggregateArgument(_) => "InvalidAggregateArgument"

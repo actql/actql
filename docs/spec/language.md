@@ -3903,6 +3903,24 @@ singleton aggregate can be broadcast without a fabricated equality field.
 
 ### Row-preserving analytics: `analytic`
 
+<!-- requirement-block: analytic.partition-repetitions analytic.bound-numeric-options -->
+Check MUST retain repeated `partition_by` references and their authored order
+while validating every key. Repetition adds no rows, output fields or key
+evidence. An empty partition list denotes one global partition of existing rows;
+empty input remains empty. Names in `functions` are checked against the input
+snapshot, not earlier sibling outputs. Neither identity rewriting nor a new
+publication order follows from these acceptance rules.
+
+Navigation `offset` and numeric `preceding`/`following` boundaries MUST be a
+literal or whole Parameter reference, not an arbitrary expression. Offset is
+a nonnegative safe integer; preceding/following distance is positive. Invalid static
+literals and structurally reversed boundary classes fail during checking;
+unbound values and unresolved within-class boundary comparisons are validated
+before execution. A Parameter cannot select frame kind, boundary direction or
+function name. Selecting existing structured or reference values with navigation
+or first_value/last_value does not construct new reference evidence; their
+argument contracts are retained with nullable root output.
+
 The body contains required `partition_by`, `order_by`, `functions`, and optional
 `frame`. `partition_by` is a possibly empty list of equality-key fields;
 `order_by` is a nonempty authored OrderKey list. `functions` is a nonempty map
@@ -6845,6 +6863,20 @@ AggregateCall := {fn: AggregateFunction, field?: Field, expr?: Expression,
 AggregateFunction := count | count_if | sum | avg | min | max | array_agg |
   string_agg | first | last | percentile_disc | percentile_cont |
   var_pop | var_samp | stddev_pop | stddev_samp
+AnalyticBody := {partition_by: [Field, ...] | [], order_by: [OrderKey, ...],
+  functions: {OutputFieldName: AnalyticCall}+, frame?: RowsFrame}
+AnalyticCall := {fn: row_number | rank | dense_rank}
+  | {fn: lag | lead, expr: Expression, offset?: NonnegativeIntegerValue}
+  | {fn: first_value | last_value, expr: Expression} | AggregateCall
+RowsFrame := {start: FrameBoundary, end: FrameBoundary}
+FrameBoundary := unbounded_preceding | current_row | unbounded_following
+  | {preceding: PositiveIntegerValue} | {following: PositiveIntegerValue}
+NonnegativeIntegerValue := NonnegativeSafeInteger | ParamRef
+AnalyticConstraints := fresh outputs, all expressions use input snapshot;
+  aggregate-local order_by forbidden; frame required exactly when any frame call exists;
+  rank/navigation/value calls reject filter/distinct; offset only lag/lead;
+  start not unbounded_following, end not unbounded_preceding, start <= end;
+  no RANGE/GROUPS/exclusion; peer order, position order and publication order separate.
 AggregateConstraints := exactly one field/expr except optional row-count argument;
   distinct follows the closed group matrix; no other modifiers are admitted;
   array_agg/string_agg/first/last require nonempty order_by outside analytic;

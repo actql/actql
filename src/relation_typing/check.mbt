@@ -148,8 +148,18 @@ fn check_impl(
   let mut reshape : Reshape? = None
   let mut group : CheckedGroup? = None
   let mut pivot : CheckedPivot? = None
+  let mut analytic : CheckedAnalytic? = None
   let mut output = input
   let form = match operation {
+    Analytic => {
+      row_source(b, body)
+      let (details, fields) = check_analytic(
+        b, body, input, visible, parameters, parameter_types, bindings, pending,
+      )
+      analytic = Some(details)
+      output = schema_type(b, body, fields)
+      Aggregation
+    }
     Pivot => {
       row_source(b, body)
       let (details, fields) = check_pivot(
@@ -491,6 +501,7 @@ fn check_impl(
     reshape,
     group,
     pivot,
+    analytic,
     pending,
     work_used: limits.max_work - b.work,
     text_bytes_used: limits.max_text_bytes - b.text,
