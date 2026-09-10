@@ -3380,6 +3380,17 @@
       }
     },
     {
+      "requirement_id": "actql.language/event-bridges.watermark-labels",
+      "statement_sha256": "775436852e7e4964f93206f5f87f834d43c458e2da12981d8185e581bbb94b83",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "event-bridges",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.language/event-bridges.semantic-identity-domain",
       "statement_sha256": "61c00bfa6fbf0c58e9c89aa2e5bcd7c8818632c14907367b4f0cc4278597c2f6",
       "status": "pending",
@@ -7748,7 +7759,7 @@
     },
     {
       "requirement_id": "actql.protocol.contracts/machine-contracts.exact-artifacts",
-      "statement_sha256": "710be5ee5b36d09a6ed2e413a472174afdc5e2cccdba3fc65ad7f423158f9824",
+      "statement_sha256": "59adfb5aca01b4f2ff14c08f76da6152b69791aed61f985d5d0c8d348b06b74d",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",

@@ -5,6 +5,7 @@ import {
   "actql/actql/carrier_contract",
   "actql/actql/carrier_projection",
   "actql/actql/decode_core",
+  "actql/actql/event_typing",
   "actql/actql/expression_text",
   "actql/actql/graph_typing",
   "actql/actql/parameter_binding",
@@ -78,6 +79,7 @@ pub enum CheckedOperation {
   Projection(@carrier_projection.CheckedProjection)
   Graph(@graph_typing.CheckedGraph)
   Vector(@vector_typing.CheckedVector)
+  Event(@event_typing.CheckedEvent)
   WindowGroup(@relation_typing.CheckedOperation)
 }
 
@@ -132,6 +134,7 @@ pub(all) enum IssueKind {
   Projection(@carrier_projection.IssueKind)
   Graph(@graph_typing.IssueKind)
   Vector(@vector_typing.IssueKind)
+  Event(@event_typing.IssueKind)
   MissingWindowEvidence
   UnsupportedOperation(String)
   InvalidMetadata

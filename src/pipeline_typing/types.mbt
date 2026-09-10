@@ -41,6 +41,7 @@ pub(all) enum IssueKind {
   Projection(@projection.IssueKind)
   Graph(@graph.IssueKind)
   Vector(@vector.IssueKind)
+  Event(@event.IssueKind)
   MissingWindowEvidence
   UnsupportedOperation(String)
   InvalidMetadata
@@ -118,6 +119,7 @@ pub enum CheckedOperation {
   Projection(@projection.CheckedProjection)
   Graph(@graph.CheckedGraph)
   Vector(@vector.CheckedVector)
+  Event(@event.CheckedEvent)
   WindowGroup(@relation.CheckedOperation)
 }
 

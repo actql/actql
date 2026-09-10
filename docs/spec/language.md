@@ -4174,6 +4174,19 @@ boundary and lowers to
 explicit `drop` or `mark` policy, lowers to `TEA.watermark.label`, and also
 preserves `events`.
 
+<!-- requirement-block: event-bridges.watermark-labels -->
+`watermark_events` MUST have a closed body containing `watermark_ms` and
+`policy`. Both policies add fresh non-null fields `watermark_ms: number`,
+`late: boolean` and `watermark_decision: string` to every retained event.
+Existing fields with any of these names are collisions; unknown field-set
+completeness does not establish their absence. The event is late exactly when
+its numeric millisecond time is less than the threshold; equality is not late.
+`mark` retains every event, with decision `mark` for late events and `keep`
+otherwise. `drop` removes late events and labels all survivors `keep`. Both
+preserve retained events' semantic identity, time, payload and relative order;
+they do not establish uniqueness or a new ordering proof. The threshold is a
+finite number literal, not a Parameter, and may be negative or fractional.
+
 <!-- requirement-block: event-bridges.semantic-identity-domain event-bridges.identity-uniqueness event-bridges.preserve-identity-order event-bridges.reject-unsupported-identity-lowering -->
 `to_events.id` MUST have a complete, non-null `KeyComparable` value contract.
 The semantic identity retains that contract and its values; it is not limited

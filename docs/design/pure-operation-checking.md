@@ -34,6 +34,8 @@ The [Graph operation checker](graph-typing.md) preserves typed identity and
 partial property evidence for each supported Graph operation.
 The [Vector operation checker](vector-typing.md) retains dimensions and semantic
 identity across normalization and scoring before the explicit Relation bridge.
+The [Event operation checker](event-typing.md) retains semantic roles and window
+evidence across watermark labeling and filtering.
 
 Use a typed Carrier sum with Relation, Graph, Events and Vectors variants, not a
 Carrier string attached to an otherwise untyped object. Retain recursive value

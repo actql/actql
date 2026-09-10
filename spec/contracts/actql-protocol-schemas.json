@@ -10672,7 +10672,7 @@
       }
     }
   },
-  "artifact_registry_cid": "sha256:fc92de9e05ce4a5abaded5c63fb583df8780c51efa79a03cab243d7185ac4bfa",
+  "artifact_registry_cid": "sha256:31143834f0573de732c1163b971bbeb67d54cf9795b897a89ca6a4609e67b3b0",
   "artifact_schema_cids": {
     "authoring_context": "sha256:930efa0eff6819f19378cc397c0f268de71d9fcbb5f1543aa0ac4be30f676398",
     "parameter_values": "sha256:6376d9cbe27f40771a0e47ed84128364c218f7403ed3734612ab719b722da6a3",
@@ -10681,7 +10681,7 @@
     "observation_set": "sha256:960b462c42c793913e981f64473c374538283d1dc7379cc694239d729e8f8537",
     "model_invocation_evidence": "sha256:9b883bf32553da51b01bd88ff912f460eb2308034b33a591a18f7f6e91c38b27",
     "model_capture_bundle": "sha256:9e4c76623e09216b81f70ca5573b90dc6f17f4a8754638345da2f8ec617507ba",
-    "executable_plan": "sha256:0fb2a2b78dc9dd0223313d950ec7e05948561dd7c08730b5296e745c1e1f83df",
+    "executable_plan": "sha256:2db2569906a3aa438a84e457f8743aacd67a9293b9af4224b7cd518913bc9a29",
     "normalization_journal": "sha256:485ccc0d3215dfc0d9f13101dbc7bc0d4a72b8eb28a346ab8122cafd635ae6f0",
     "effect_preview": "sha256:bb3c388b79286bc702077c6bc66ac64d9f6789470f67864f67c789f3069e97f2",
     "review_projection": "sha256:7585ae7f6737a8a0a196df98e64f496fbca271c910840f1116f6d7990caf39fb",
@@ -10703,7 +10703,7 @@
     "verified_checkpoint_resolution": "sha256:a0576742d08e69b46c928ac8b13e8479f26d47ccf8bc474c1fa1d0807254a820",
     "result_manifest": "sha256:5548089a638828dc22b7c9d47fad41c50280da24dec9aae4131cafc9303893d6",
     "result_delivery_receipt": "sha256:d68ae5fbe6b23410b08b4419e5ebfa10eb61c38d61273360399e71ae2681de21",
-    "plan_document": "sha256:2ca298a074c9e7bee61584b153e1d0fb94d7e7c9ec1e5d5b91f4f9bea5965c2b",
+    "plan_document": "sha256:f4738b924a247d59599c4064a0bb4685d99fb010d529b341a4bfbdafc27a9156",
     "plan_result": "sha256:dd6343496e0673405ab47bcafe0cf38b2812601f6d84e95fd0232cc1f0320ec7",
     "run_state": "sha256:da91655cb28d2722123c91ee5ea4f6887f991ff0e6c1252106e9b3c022036c40",
     "captured_run": "sha256:25f2008b1aa1bd071474dfe8908a970e640e128c4f2eff8b0d2a23d988777330"
@@ -32919,6 +32919,25 @@
                           "vector": {
                             "type": "string",
                             "minLength": 1
+                          }
+                        }
+                      },
+                      "watermark_events": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "watermark_ms",
+                          "policy"
+                        ],
+                        "properties": {
+                          "watermark_ms": {
+                            "type": "number"
+                          },
+                          "policy": {
+                            "enum": [
+                              "drop",
+                              "mark"
+                            ]
                           }
                         }
                       }
@@ -58658,6 +58677,25 @@
                               "vector": {
                                 "type": "string",
                                 "minLength": 1
+                              }
+                            }
+                          },
+                          "watermark_events": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "watermark_ms",
+                              "policy"
+                            ],
+                            "properties": {
+                              "watermark_ms": {
+                                "type": "number"
+                              },
+                              "policy": {
+                                "enum": [
+                                  "drop",
+                                  "mark"
+                                ]
                               }
                             }
                           }

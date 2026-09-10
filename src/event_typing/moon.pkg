@@ -1,0 +1,14 @@
+supported_targets = "+js+wasm+native"
+
+import {
+  "actql/actql/carrier_contract" @carrier,
+  "actql/actql/decode_core" @decode,
+  "actql/actql/decode_scalar" @scalar,
+  "actql/actql/value_contract" @contract,
+  "actql/actql/relation_schema" @row,
+  "actql/actql/source_span" @span,
+}
+
+import {
+  "actql/actql/source_value" @source,
+} for "test"

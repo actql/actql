@@ -221,6 +221,7 @@ fn check_impl(
       | "cross_join"
       | "row_window"
       | "events"
+      | "watermark_events"
       | "normalize_graph"
       | "normalize_vectors"
       | "to_vectors"
@@ -380,6 +381,47 @@ fn check_impl(
         output: @vector.output(checked),
         connections: { entries: [{ role: Primary, target: input, }], },
         window: None,
+      })
+      if binding_name is Some(name) {
+        names[name] = target
+      }
+      current = Some(target)
+      continue
+    }
+    if key == "watermark_events" {
+      let checked = match
+        @event.check_watermark(operation_body, carrier(input, inputs, steps), {
+          max_work: b.work,
+          max_nodes: b.nodes,
+          max_depth: limits.max_depth,
+          max_text_bytes: b.text,
+        }) {
+        Ok(value) => value
+        Err(e) =>
+          raise Stop({
+            kind: Event(e.kind),
+            source: operation_body,
+            path: e.path.copy(),
+            span: e.span,
+            range: None,
+          })
+      }
+      let used = @event.usage(checked)
+      b.work -= used.work
+      b.nodes -= used.nodes
+      b.text -= used.text_bytes
+      let target = Step(steps.length())
+      let operation : CheckedOperation = Event(checked)
+      let window = transfer_window(b, operation_body, input, steps, operation)
+      steps.push({
+        source: body,
+        input: Some(input),
+        binding_name,
+        metadata: meta,
+        operation,
+        output: @event.output(checked),
+        connections: { entries: [{ role: Primary, target: input, }], },
+        window,
       })
       if binding_name is Some(name) {
         names[name] = target
@@ -744,6 +786,7 @@ fn check_impl(
         | WindowGroup(_)
         | Projection(_)
         | Graph(_)
+        | Event(_)
         | Vector(_) => [{ role: Primary, target: input, }]
         Join(right~, ..)
         | Append(right~, ..)

@@ -11,6 +11,9 @@ fn transfer_window(
     Input(_) => None
   }
   guard previous is Some(roles) else { return None }
+  if operation is Event(_) {
+    return Some(roles)
+  }
   if operation is Projection(projection) {
     return if @projection.operation(projection) == @projection.Events {
       Some(roles)

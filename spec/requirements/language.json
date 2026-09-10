@@ -3380,6 +3380,17 @@
       }
     },
     {
+      "requirement_id": "actql.language/event-bridges.watermark-labels",
+      "statement_sha256": "775436852e7e4964f93206f5f87f834d43c458e2da12981d8185e581bbb94b83",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "event-bridges",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.language/event-bridges.semantic-identity-domain",
       "statement_sha256": "61c00bfa6fbf0c58e9c89aa2e5bcd7c8818632c14907367b4f0cc4278597c2f6",
       "status": "pending",

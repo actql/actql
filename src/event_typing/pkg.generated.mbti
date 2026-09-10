@@ -1,0 +1,78 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/event_typing"
+
+import {
+  "actql/actql/carrier_contract",
+  "actql/actql/decode_core",
+  "actql/actql/source_span",
+  "actql/actql/source_value",
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn check_watermark(@decode_core.Cursor, @carrier_contract.Carrier, Limits) -> Result[CheckedEvent, Issue]
+
+pub fn input(CheckedEvent) -> @carrier_contract.Carrier
+
+pub fn output(CheckedEvent) -> @carrier_contract.Carrier
+
+pub fn pending_validations(CheckedEvent) -> Array[Obligation]
+
+pub fn policy(CheckedEvent) -> Policy
+
+pub fn source(CheckedEvent) -> @decode_core.Cursor
+
+pub fn usage(CheckedEvent) -> Usage
+
+pub fn watermark(CheckedEvent) -> Double
+
+// Errors
+
+// Types and methods
+type CheckedEvent
+
+pub struct Issue {
+  kind : IssueKind
+  path : Array[@source_value.PathSegment]
+  span : @source_span.Span
+}
+
+pub(all) enum IssueKind {
+  InvalidLimits
+  BudgetExceeded
+  InvalidBody
+  Decode(@decode_core.IssueKind)
+  WrongCarrier(@carrier_contract.Kind)
+  UnknownOutputFields
+  OutputCollision(String)
+} derive(Eq, @debug.Debug)
+
+pub(all) struct Limits {
+  max_work : Int
+  max_nodes : Int
+  max_depth : Int
+  max_text_bytes : Int
+}
+
+pub(all) enum Obligation {
+  ValidateEventValues
+  ValidateUniqueIdentities
+  ResolveTeaProfile
+  ResolveEventResources
+  WatermarkClassification
+} derive(Eq, @debug.Debug)
+
+pub(all) enum Policy {
+  Drop
+  Mark
+} derive(Eq, @debug.Debug)
+
+pub(all) struct Usage {
+  work : Int
+  nodes : Int
+  text_bytes : Int
+} derive(Eq, @debug.Debug)
+
+// Type aliases
+
+// Traits
