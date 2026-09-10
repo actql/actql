@@ -17,6 +17,12 @@
   },
   "input": {"amount":"number","flag":"boolean?","id":"string"},
   "accepted": [
+    {"operation":"pivot","body":{"index":[],"column":"id","values":[],"value":"amount","aggregate":"sum"},"output":{}},
+    {"operation":"pivot","body":{"index":["id","id"],"column":"id","values":[],"value":"amount","aggregate":"sum"},"output":{"id":"string"}},
+    {"operation":"pivot","body":{"index":[],"column":"id","values":["b","a"],"value":"amount","aggregate":"sum"},"output":{"a":"number?","b":"number?"}},
+    {"operation":"pivot","body":{"index":[],"column":"id","values":["b","a"],"value":"amount","aggregate":"sum","fill":0},"output":{"a":"number","b":"number"}},
+    {"operation":"pivot","body":{"index":[],"column":"id","values":["a"],"value":"amount","aggregate":"count"},"output":{"a":"number"}},
+    {"operation":"pivot","body":{"index":[],"column":"id","values":["a"],"value":"id","aggregate":"first","fill":{"literal":"empty"}},"output":{"a":"string"}},
     {"operation":"group","body":{"by":[],"aggregates":{"result":{"fn":"count","field":"amount"}}},"output":{"result":"number"}},
     {"operation":"group","body":{"by":[],"aggregates":{"result":{"fn":"count_if","field":"flag"}}},"output":{"result":"number"}},
     {"operation":"group","body":{"by":[],"aggregates":{"result":{"fn":"sum","field":"amount"}}},"output":{"result":"number?"}},
@@ -79,6 +85,11 @@
     {"operation":"drop","body":["id","id"],"output":{"amount":"number","flag":"boolean?"},"order":["amount","flag"]}
   ],
   "rejected": [
+    {"operation":"pivot","body":{"index":[],"column":"id","values":[],"value":"amount","aggregate":"count","fill":null},"issue":"InvalidFill"},
+    {"operation":"pivot","body":{"index":[],"column":"id","values":["a","a"],"value":"amount","aggregate":"sum"},"issue":"DuplicateOutput"},
+    {"operation":"pivot","body":{"index":["id"],"column":"id","values":["id"],"value":"amount","aggregate":"sum"},"issue":"DuplicateOutput"},
+    {"operation":"pivot","body":{"index":[],"column":"amount","values":[],"value":"amount","aggregate":"sum"},"issue":"InvalidAggregateArgument"},
+    {"operation":"pivot","body":{"index":[],"column":"id","values":["a"],"value":"amount","aggregate":"sum","fill":"0"},"issue":"FillValue"},
     {"operation":"group","body":{"by":[],"aggregates":{"v":{"fn":"count","distinct":true}}},"issue":"InvalidAggregateOption"},
     {"operation":"group","body":{"by":[],"aggregates":{"v":{"fn":"sum","field":"amount","expr":"amount"}}},"issue":"InvalidAggregateArgument"},
     {"operation":"group","body":{"by":[],"aggregates":{"v":{"fn":"sum","expr":"NULL"}}},"issue":"NullTypeUnresolved"},

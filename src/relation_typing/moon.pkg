@@ -7,6 +7,7 @@ import {
   "actql/actql/source_span" @span,
   "actql/actql/expression_text" @text,
   "actql/actql/value_contract" @contract,
+  "actql/actql/value_admission" @value,
   "actql/actql/relation_schema" @schema,
   "actql/actql/canonical_value" @canonical,
   "actql/actql/parameter_binding" @parameter,

@@ -151,6 +151,7 @@ fn check_impl(
       "assert_rows" => Some(AssertRows)
       "unpivot" => Some(Unpivot)
       "group" => Some(Group)
+      "pivot" => Some(Pivot)
       "join" | "append" | "nest" => None
       _ => fail(@decode.lookup(object, key).unwrap(), UnsupportedOperation(key))
     }

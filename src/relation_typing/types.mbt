@@ -14,6 +14,7 @@ pub(all) enum Operation {
   AssertRows
   Unpivot
   Group
+  Pivot
 } derive(Eq, Debug)
 
 ///|
@@ -59,6 +60,8 @@ pub(all) enum IssueKind {
   InvalidAggregateOption(String)
   InvalidAggregateArgument(String)
   ForbiddenAggregateValue
+  InvalidFill
+  FillValue(@value.Issue)
   BudgetExceeded
   Syntax(@syntax.Issue)
   Expression(@typing.IssueKind)
@@ -113,6 +116,7 @@ struct CheckedOperation {
   row_operation : RowOperation?
   reshape : Reshape?
   group : CheckedGroup?
+  pivot : CheckedPivot?
   pending : Array[PendingValidation]
   work_used : Int
   text_bytes_used : Int
@@ -214,6 +218,8 @@ priv suberror Stop {
 fn[T] fail(source : @decode.Cursor, kind : IssueKind) -> T raise Stop {
   let (path, span, range) = match kind {
     Syntax(issue) => (issue.path.copy(), issue.span, issue.range)
+    FillValue(@value.ValueIssue(_, path~, span~)) => (path.copy(), span, None)
+    FillValue(@value.Decode(issue)) => (issue.path.copy(), issue.span, None)
     _ => (@decode.cursor_path(source), @decode.cursor_span(source), None)
   }
   raise Stop({ source, kind, path, span, range, })

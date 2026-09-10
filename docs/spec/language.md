@@ -1423,7 +1423,8 @@ resource, view, mapping, permission, approval, or failure policy.
 A sequence `pattern` is structural and cannot be parameterized.
 
 The additional recursive-value positions are exactly a values CellValue
-`{$param: name}`, an immediate EffectValue `{literal: {$param: name}}`, and a
+`{$param: name}`, a pivot `fill` CellValue `{$param: name}`, an immediate
+EffectValue `{literal: {$param: name}}`, and a
 SourceView request value role accepting the same declared object/array contract.
 An array parameter may also occupy an IN literal list, explicit ID list or
 query-vector value where that consumer admits its element contract and extent.
@@ -3530,6 +3531,36 @@ bucket, after which an authored `fill` is applied. Binary64 sum/avg use the same
 captured numeric boundary as `group`; exact aggregates keep their own laws.
 Only `first` observes the
 already-proven stable input order.
+
+<!-- requirement-block: reshaping.pivot-empty-axes reshaping.pivot-column-domain reshaping.pivot-fill-contract -->
+Check MUST accept `pivot.index: []` and `pivot.values: []` while retaining all
+input-contract, name, type and budget checks. Empty index means one global
+group, including empty input; empty values emits only index fields, once in
+first-occurrence order. Both empty emits one empty object. Repeated index
+references are retained without adding output columns or uniqueness evidence.
+The operation and authored value order remain identity-relevant; empty axes
+do not authorize operation deletion or CID equivalence with another operation.
+
+The pivot `column` MUST have string or nullable string type, without implicit
+conversion. A null or undeclared string contributes to no generated bucket but
+still establishes its index group. Generated columns follow canonical UTF-16
+string order, independently of authored `values` order; index fields precede
+them. Empty buckets produce zero for count and null for the other five functions,
+then apply fill only to null, never to count's zero.
+
+Pivot `fill` MUST use the whole-value CellValue alternatives and satisfy the
+aggregate result contract without implicit coercion or deep merge. Bare
+unreserved wire values and `{literal: WireValue}` are literals, with the latter's
+payload opaque. Only an exact singleton `{$param: name}` is a Parameter hole;
+malformed reserved roots fail, and nested holes are not traversed. Recursive
+object/array Parameters are admitted at this whole-value position. Bound
+Parameter values receive the same value validation before execution. Decimal
+literal fills use the exact canonical fixed-scale wire string and are validated
+in the aggregate's precision/scale context. A compatible non-null fill makes
+an otherwise nullable result non-null; nullable fills do not. Fill is validated
+even for count and empty generated-column lists. Reference values still require
+their own evidence: a raw JSON object is not reference proof. Literal NULL
+requires only a nullable result and constructs no reference value.
 
 <!-- requirement-block: reshaping.as-with-index-and-existing-fields-must-not-collide -->
 For `unnest`, optional `outer: true` retains a parent with an empty or null
@@ -6800,6 +6831,13 @@ ParamRef := { $param: ParamName }
 PositiveIntegerValue := PositiveSafeInteger | ParamRef
 FractionValue := finite number in [0, 1] | ParamRef
 GroupBody := {by: [Field, ...] | [], aggregates: {OutputFieldName: AggregateCall}*}
+PivotBody := {index: [Field, ...] | [], column: Field,
+  values: [OutputFieldName, ...] | [], value: Field,
+  aggregate: sum | avg | count | min | max | first, fill?: CellValue}
+PivotConstraints := repeated index references retained; values NFC-unique;
+  generated columns canonical string order; no generated/index name collisions;
+  column string or nullable string; fill whole-value literal or Parameter;
+  empty axes preserve the specified global-group and index-only semantics.
 AggregateCall := {fn: AggregateFunction, field?: Field, expr?: Expression,
   filter?: Expression, distinct?: Boolean, order_by?: [OrderKey, ...],
   max_items?: PositiveIntegerValue, max_bytes?: PositiveIntegerValue,

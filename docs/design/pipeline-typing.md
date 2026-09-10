@@ -7,7 +7,7 @@
 (`sort`, `take`, `distinct`, `dedupe_rows`), row assertions (`assert_rows`), typed
 reshaping (`json_pick`, `unnest`, `unpivot`), [local join](relation-join.md),
 [append](relation-append.md), [nest](relation-nest.md), and
-[group aggregates](relation-aggregates.md). Other operation names are explicitly
+[group aggregates](relation-aggregates.md), and [pivot](relation-pivot.md). Other operation names are explicitly
 unsupported; no step is skipped or treated as an opaque successful operation.
 
 ## Inputs and scope

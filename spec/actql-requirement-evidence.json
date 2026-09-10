@@ -3006,6 +3006,39 @@
       }
     },
     {
+      "requirement_id": "actql.language/reshaping.pivot-empty-axes",
+      "statement_sha256": "91f3820660c3038ee714bcf78a0b1b9e5cb7e5a8e7792684d011d39db75b1c74",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "reshaping",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/reshaping.pivot-column-domain",
+      "statement_sha256": "f98de588d265127a8d86095c788d36e26550de112a59acf6e69e15635f190703",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "reshaping",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/reshaping.pivot-fill-contract",
+      "statement_sha256": "b48cb003abd982dd4495818b57a40a5881bd3ec5cdf3dec1525f6cc67c914310",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "reshaping",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.language/reshaping.as-with-index-and-existing-fields-must-not-collide",
       "statement_sha256": "c3855700113b1b46107d75b502348a971685d33c02c1a9a266f7d87d83601026",
       "status": "pending",
@@ -5603,7 +5636,7 @@
     },
     {
       "requirement_id": "actql.language/structural-grammar.grammar",
-      "statement_sha256": "bef58613bf4f251d9735a2b517709475d463cd8edde86da6134ddcbb499cf931",
+      "statement_sha256": "b0b1a52ae58ff86ad8ff523100a80eb2e84db4b74af6755de31d5fe59ad44078",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
@@ -7473,7 +7506,7 @@
     },
     {
       "requirement_id": "actql.protocol.contracts/machine-contracts.exact-artifacts",
-      "statement_sha256": "a95ac78772f3f1e9dcd261ba8ee180d9cbca1be9e710786fb4c1ecea73f436ab",
+      "statement_sha256": "00253c3f45006ce0a66a033f0161baa6e325b88b1d3039c903bacce7a340188d",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",

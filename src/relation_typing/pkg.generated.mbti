@@ -11,6 +11,7 @@ import {
   "actql/actql/relation_schema",
   "actql/actql/source_span",
   "actql/actql/source_value",
+  "actql/actql/value_admission",
   "actql/actql/value_contract",
   "moonbitlang/core/debug",
 }
@@ -67,6 +68,24 @@ pub fn output_schema(CheckedOperation) -> @relation_schema.Schema
 pub fn parameters(CheckedOperation) -> @parameter_binding.Declarations?
 
 pub fn pending_validations(CheckedOperation) -> Array[PendingValidation]
+
+pub fn pivot(CheckedOperation) -> CheckedPivot?
+
+pub fn pivot_column(CheckedPivot) -> KeyField
+
+pub fn pivot_columns(CheckedPivot) -> Array[String]
+
+pub fn pivot_fill(CheckedPivot) -> PivotFill?
+
+pub fn pivot_function(CheckedPivot) -> AggregateFunction
+
+pub fn pivot_index(CheckedPivot) -> Array[KeyField]
+
+pub fn pivot_result(CheckedPivot) -> @value_contract.Contract
+
+pub fn pivot_value(CheckedPivot) -> KeyField
+
+pub fn pivot_values(CheckedPivot) -> Array[String]
 
 pub fn projection(CheckedOperation) -> Array[ProjectionField]
 
@@ -125,6 +144,8 @@ type CheckedGroup
 
 type CheckedOperation
 
+type CheckedPivot
+
 pub(all) enum CountValue {
   Literal(Int64)
   Parameter(String)
@@ -175,6 +196,8 @@ pub(all) enum IssueKind {
   InvalidAggregateOption(String)
   InvalidAggregateArgument(String)
   ForbiddenAggregateValue
+  InvalidFill
+  FillValue(@value_admission.Issue)
   BudgetExceeded
   Syntax(@expression_syntax.Issue)
   Expression(@expression_typing.IssueKind)
@@ -208,6 +231,7 @@ pub(all) enum Operation {
   AssertRows
   Unpivot
   Group
+  Pivot
 } derive(Eq, @debug.Debug)
 
 pub struct OrderTerm {
@@ -221,6 +245,12 @@ pub struct OrderTerm {
 pub struct PendingValidation {
   kind : ValidationKind
   source : @decode_core.Cursor
+}
+
+pub enum PivotFill {
+  Null(source~ : @decode_core.Cursor)
+  Literal(@value_admission.CheckedValue, source~ : @decode_core.Cursor)
+  Parameter(String, contract~ : @value_contract.Contract, source~ : @decode_core.Cursor)
 }
 
 pub struct ProjectionField {
@@ -265,6 +295,8 @@ pub(all) enum ValidationKind {
   AssertionConsumption
   AggregateDemand
   GroupPartitioning
+  PivotPartitioning
+  BoundFill(String)
   AggregateEnvelope
   NumericAggregateObservation
   StatisticalAggregateLaw

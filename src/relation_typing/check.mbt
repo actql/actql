@@ -147,8 +147,18 @@ fn check_impl(
   let mut row_operation : RowOperation? = None
   let mut reshape : Reshape? = None
   let mut group : CheckedGroup? = None
+  let mut pivot : CheckedPivot? = None
   let mut output = input
   let form = match operation {
+    Pivot => {
+      row_source(b, body)
+      let (details, fields) = check_pivot(
+        b, body, visible, parameter_types, pending,
+      )
+      pivot = Some(details)
+      output = schema_type(b, body, fields)
+      Aggregation
+    }
     Group => {
       row_source(b, body)
       let (details, fields) = check_group(
@@ -480,6 +490,7 @@ fn check_impl(
     row_operation,
     reshape,
     group,
+    pivot,
     pending,
     work_used: limits.max_work - b.work,
     text_bytes_used: limits.max_text_bytes - b.text,

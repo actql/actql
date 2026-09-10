@@ -42,6 +42,8 @@ pub(all) enum ValidationKind {
   AssertionConsumption
   AggregateDemand
   GroupPartitioning
+  PivotPartitioning
+  BoundFill(String)
   AggregateEnvelope
   NumericAggregateObservation
   StatisticalAggregateLaw

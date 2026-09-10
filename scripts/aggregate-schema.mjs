@@ -9,7 +9,7 @@ export const functions = ['count', 'count_if', 'sum', 'avg', 'min', 'max', 'arra
 const parameter = {type:'object', additionalProperties:false, required:['$param'], properties:{$param:{type:'string',pattern:'^[A-Za-z_][A-Za-z0-9_]*$'}}};
 const positive = {oneOf:[{type:'integer',minimum:1,maximum:9007199254740991},parameter]};
 const field = {type:'string',minLength:1};
-const fieldPattern = '^(?!__cid$)(?!__actql_)(?![\\s\\S]*\\.)(?=[\\s\\S]*\\S)[\\s\\S]+$';
+export const fieldPattern = '^(?!__cid$)(?!__actql_)(?![\\s\\S]*\\.)(?=[\\s\\S]*\\S)[\\s\\S]+$';
 export const orderKeys = {type:'array',minItems:1,items:{oneOf:[
   {type:'object',required:['field','dir','nulls'],additionalProperties:false,properties:{field,dir:{enum:['asc','desc']},nulls:{enum:['first','last']}}},
   {type:'object',minProperties:1,maxProperties:1,additionalProperties:{enum:['asc','desc']}},
