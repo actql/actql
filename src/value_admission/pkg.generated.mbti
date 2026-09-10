@@ -1,0 +1,76 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/value_admission"
+
+import {
+  "actql/actql/decode_core",
+  "actql/actql/source_span",
+  "actql/actql/source_value",
+  "actql/actql/value_contract",
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn admit(@value_contract.Contract, @decode_core.Cursor, Limits) -> Result[CheckedValue, Issue]
+
+pub fn[T] elements(FrozenArray[T]) -> Array[T]
+
+// Errors
+
+// Types and methods
+pub struct CheckedValue {
+  contract : @value_contract.Contract
+  value : Value
+}
+
+pub struct DecimalValue {
+  coefficient : String
+  precision : Int
+  scale : Int
+}
+
+type FrozenArray[T]
+
+pub(all) enum Issue {
+  Decode(@decode_core.Issue)
+  ValueIssue(IssueKind, path~ : Array[@source_value.PathSegment], span~ : @source_span.Span)
+} derive(Eq, @debug.Debug)
+
+pub(all) enum IssueKind {
+  InvalidLimits
+  WrongType
+  UnexpectedNull
+  InvalidNumber
+  InvalidUnicode
+  NonCanonicalText
+  InvalidDecimal
+  InvalidDate
+  InvalidTimestamp
+  StringConstraint
+  ArrayConstraint
+  VectorDimension
+  UnsupportedReference
+  BudgetExceeded
+} derive(Eq, @debug.Debug)
+
+pub(all) struct Limits {
+  max_nodes : Int
+  max_depth : Int
+  max_text_bytes : Int
+} derive(Eq, @debug.Debug)
+
+pub enum Value {
+  Null
+  Boolean(Bool)
+  Number(Double)
+  Text(String)
+  Date(String)
+  Timestamp(String)
+  Decimal(DecimalValue)
+  Array(FrozenArray[Value])
+  Object(FrozenArray[(String, Value)])
+  Vector(FrozenArray[Double])
+}
+
+// Type aliases
+
+// Traits

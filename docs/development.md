@@ -76,6 +76,7 @@ The checks are read-only:
 - `check:encoding`: kernel manifest pin, fixed scalar spelling expectations and generated encoding-test freshness.
 - `check:canonical`: canonical JSON corpus, existing contract CIDs and generated identity-test freshness.
 - `check:value-contracts`: fixed contract vectors, generated-test freshness and embedded schema consistency.
+- `check:value-admission`: fixed value-admission vectors, generated-test freshness and generator regressions.
 
 Dependencies are pinned in `package-lock.json`. External URL availability is
 not part of the deterministic local checks.
@@ -162,6 +163,12 @@ type grammars, expands fixed machine members and implements shared equality,
 assignability, nullability join and key-domain compatibility. `generate:value-contracts`
 regenerates tests from the fixed contract corpus. This is not Parameter binding,
 runtime value admission or whole-Program type checking.
+
+[Value admission](design/value-admission.md) checks normalized values against
+admitted contracts with explicit whole-value budgets and source diagnostics.
+`generate:value-admission` regenerates tests from fixed expectations. Reference
+authorization, vector operation admission, Parameter binding and expression
+execution remain separate.
 
 [Owned tree decoding](design/decode-core.md) admits editable Nodes into bounded
 opaque cursors, with exact-key checks, source spans and primitive readers.
