@@ -1,0 +1,118 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/temporal_window"
+
+import {
+  "actql/actql/carrier_contract",
+  "actql/actql/decode_core",
+  "actql/actql/parameter_binding",
+  "actql/actql/relation_schema",
+  "actql/actql/source_span",
+  "actql/actql/source_value",
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn boundary_fields(WindowRoles) -> (@relation_schema.FieldName, @relation_schema.FieldName)
+
+pub fn check(@decode_core.Cursor, @carrier_contract.Carrier, @parameter_binding.Declarations?, Limits) -> Result[CheckedWindow, Issue]
+
+pub fn check_usage(CheckedWindow) -> Usage
+
+pub fn input(CheckedWindow) -> @carrier_contract.Carrier
+
+pub fn kind(Options) -> Kind
+
+pub fn offset(Options) -> Milliseconds
+
+pub fn options(CheckedWindow) -> Options
+
+pub fn output(CheckedWindow) -> @carrier_contract.Carrier
+
+pub fn pending_validations(CheckedWindow) -> Array[Obligation]
+
+pub fn read_options(@decode_core.Cursor, relation~ : Bool, @parameter_binding.Declarations?, Limits) -> Result[Options, Issue]
+
+pub fn requires_epoch_milliseconds(CheckedWindow) -> Bool
+
+pub fn size(Options) -> Milliseconds
+
+pub fn source(CheckedWindow) -> @decode_core.Cursor
+
+pub fn step(Options) -> Milliseconds?
+
+pub fn time_field(CheckedWindow) -> @relation_schema.FieldName
+
+pub fn time_source(Options) -> @decode_core.Cursor?
+
+pub fn usage(Options) -> Usage
+
+pub fn window_roles(CheckedWindow) -> WindowRoles
+
+// Errors
+
+// Types and methods
+type CheckedWindow
+
+pub(all) enum Domain {
+  PositiveMilliseconds
+  SignedMilliseconds
+} derive(Eq, @debug.Debug)
+
+pub struct Issue {
+  kind : IssueKind
+  path : Array[@source_value.PathSegment]
+  span : @source_span.Span
+}
+
+pub(all) enum IssueKind {
+  InvalidLimits
+  BudgetExceeded
+  InvalidBody
+  InvalidMilliseconds
+  UnknownParameter(String)
+  IncompatibleParameter(String)
+  WrongCarrier
+  UnknownTime(String)
+  InvalidTime(String)
+  OutputCollision(String)
+  UnknownOutputFields
+}
+
+pub(all) enum Kind {
+  Fixed
+  Sliding
+} derive(Eq, @debug.Debug)
+
+pub(all) struct Limits {
+  max_nodes : Int
+  max_depth : Int
+  max_text_bytes : Int
+  max_work : Int
+}
+
+pub enum Milliseconds {
+  Literal(Int64)
+  Parameter(String, duration~ : Bool, domain~ : Domain)
+}
+
+pub(all) enum Obligation {
+  BindMilliseconds(String, Domain)
+  ValidateTimeValues
+  CheckedWindowArithmetic
+  ResolveMembershipBound
+  ResolvePublicationResources
+} derive(Eq, @debug.Debug)
+
+type Options
+
+pub(all) struct Usage {
+  nodes : Int
+  text_bytes : Int
+  work : Int
+}
+
+type WindowRoles
+
+// Type aliases
+
+// Traits
