@@ -5174,7 +5174,7 @@
     },
     {
       "requirement_id": "actql.language/structural-grammar.grammar",
-      "statement_sha256": "1fb8fb6571fa3b1b59fadd8836e4bbb78df81d7b8e50b98511f6f002245065e5",
+      "statement_sha256": "46c6b1c2dabef5f3aeed8ed4ec1e5002bb9c93320aec89f3c1b0002635717bbc",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",

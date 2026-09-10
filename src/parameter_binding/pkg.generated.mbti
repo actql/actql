@@ -1,0 +1,91 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/parameter_binding"
+
+import {
+  "actql/actql/decode_core",
+  "actql/actql/source_span",
+  "actql/actql/source_value",
+  "actql/actql/value_admission",
+  "actql/actql/value_contract",
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn bind(Declarations, @decode_core.Cursor?, @value_admission.Limits) -> Result[BindingResult, Issue]
+
+pub fn bound_values(BoundValues) -> Array[BoundParameter]
+
+pub fn declarations(Declarations) -> Array[Declaration]
+
+pub fn has_default(Declaration) -> Bool
+
+pub fn missing_names(MissingNames) -> Array[String]
+
+pub fn read_declarations(@decode_core.Cursor?, DeclarationLimits) -> Result[Declarations, Issue]
+
+// Errors
+
+// Types and methods
+pub enum BindingResult {
+  Ready(BoundValues)
+  NeedsBindings(MissingNames)
+}
+
+pub struct BoundParameter {
+  name : String
+  value : @value_admission.CheckedValue
+  origin : Origin
+}
+
+type BoundValues
+
+pub struct Declaration {
+  name : String
+  parameter_type : @value_contract.ParameterType
+  metadata : @decode_core.Cursor?
+  // private fields
+}
+
+pub(all) struct DeclarationLimits {
+  max_parameters : Int
+  max_nodes : Int
+  max_depth : Int
+  max_text_bytes : Int
+} derive(Eq, @debug.Debug)
+
+type Declarations
+
+pub(all) enum Issue {
+  Decode(@decode_core.Issue)
+  Contract(@value_contract.AdmissionError)
+  Value(@value_admission.Issue)
+  ParameterIssue(IssueKind, path~ : Array[@source_value.PathSegment], span~ : @source_span.Span)
+  InvalidLimits
+} derive(Eq, @debug.Debug)
+
+pub(all) enum IssueKind {
+  InvalidLimits
+  EmptyDeclarations
+  InvalidName
+  ParameterLimit
+  InvalidMetadata
+  ReservedMetadataKey
+  InvalidUnicode
+  NonCanonicalText
+  InvalidNumber
+  NumericConstraint
+  DurationConstraint
+  LengthConstraint
+  BudgetExceeded
+} derive(Eq, @debug.Debug)
+
+type MissingNames
+
+pub enum Origin {
+  Supplied
+  Default
+}
+
+// Type aliases
+
+// Traits

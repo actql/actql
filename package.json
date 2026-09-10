@@ -7,7 +7,10 @@
     "node": ">=22"
   },
   "scripts": {
-    "check:docs": "npm run check:contracts && npm run check:links && npm run check:examples && npm run test:docs && npm run check:nest && npm run check:unicode && npm run check:encoding && npm run check:canonical && npm run check:value-contracts && npm run check:value-admission",
+    "check:docs": "npm run check:contracts && npm run check:links && npm run check:examples && npm run test:docs && npm run check:nest && npm run check:unicode && npm run check:encoding && npm run check:canonical && npm run check:value-contracts && npm run check:value-admission && npm run check:parameters",
+    "check:parameters": "node scripts/check-parameters.mjs && node --test scripts/parameters.test.mjs",
+    "generate:parameters": "node scripts/check-parameters.mjs --write",
+    "generate:parameter-schemas": "node scripts/parameter-schema.mjs --write",
     "check:value-admission": "node scripts/check-value-admission.mjs && node --test scripts/value-admission.test.mjs",
     "generate:value-admission": "node scripts/check-value-admission.mjs --write",
     "check:value-contracts": "node scripts/check-value-contracts.mjs",

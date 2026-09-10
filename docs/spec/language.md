@@ -1399,6 +1399,11 @@ of its wire-format string, including for array elements.
 <!-- requirement-block: parameters.they-must-not-select-an-operation-input-result-name-field-name -->
 Number declarations MAY add `integer: true` and finite inclusive
 `minimum`/`maximum`; string declarations MAY add `format: duration`.
+These type-specific constraints apply recursively to Parameter object fields and
+array items. `integer: false` imposes no integrality restriction; `integer: true`
+requires a finite integral binary64 value, not an implicit safe-integer ceiling.
+Array `length` is a positive safe integer and fixes the exact element count;
+the shared optional `max_items` bound remains a nonnegative safe integer.
 These constraints are checked at bind time, before AoA lowering. Parameters may
 appear in scalar value positions, including
 predicate literals, explicit ID lists, time/duration values, `k`, query vectors,
@@ -1431,7 +1436,12 @@ Invocation value admission is closed:
 | Undeclared supplied name or unused declaration | Reject | Reject |
 | Structural selector or authority-policy substitution | Reject | Reject |
 
-Parameter root `nullable` defaults to false. Optional `default` is a complete
+In Parameter type syntax, `nullable` defaults to false at every recursive type
+position, including object fields and array items; this shorthand does not change
+the explicit-nullability rule for general value contracts or checked contracts.
+`default` and annotation `meta` are admitted only on a named Parameter declaration,
+not on its nested type contracts. A business object field named `meta` is ordinary
+data. Optional `default` is a complete
 typed canonical literal, never an expression, clock, environment lookup or
 reference to another parameter. Every object field is required; nullable does
 not mean optional. Default substitution is top-level only, without deep merge.
@@ -6567,7 +6577,11 @@ InputConstraints := Input forms defined in Local typed inputs and SourceViews;
   only materialized relation inputs admit MaterializedInputExtension;
   keyed/search acquisition templates and authoritative uniqueness claims are not weakened.
 ParameterConstraints := recursive closed scalar/object/array value contract;
-  nullable defaults false; default is a typed literal applied only for missing values.
+  nullable defaults false at every recursive Parameter type position;
+  number integer/minimum/maximum, string format: duration, and array length/max_items
+  apply at their respective type positions recursively;
+  default and annotation meta are named-declaration-only;
+  default is a typed literal applied only for missing values.
 DeriveBody := DeriveMap | OrderedDeriveSlots
 DeriveMap := {OutputFieldName: Expression}*
 OrderedDeriveSlots := [DeriveSlot, ...]
@@ -6895,7 +6909,7 @@ through the pinned expression contract.
 
 <!-- stage-contract-pins:start -->
 ```text
-../../spec/contracts/actql-stage-contracts.json#/source sha256:135be67f565895fcfbc6ebf45f2de6978310f109e138f035d3f12879a5c9d056
+../../spec/contracts/actql-stage-contracts.json#/source sha256:b98f2467f609677c7b5bfd256892763e4772dd45fe51a494402e56f3a847cdd8
 ../../spec/contracts/actql-stage-contracts.json#/schemas/derive_binding sha256:b6a35f38e753f19ffd9f4c3265ff4865f85415a3b194bdbf280115227a03ac34
 ../../spec/contracts/actql-stage-contracts.json#/schemas/local_dependencies sha256:22a2636742d270464988e350adc168af898987e83f620cba893efb091d9f49e8
 ../../spec/contracts/actql-stage-contracts.json#/laws/lifecycle sha256:da02951b68ca4255a25ac5b3f60288dbde2a8f7b252f518d73247c9feca09c54

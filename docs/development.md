@@ -77,6 +77,7 @@ The checks are read-only:
 - `check:canonical`: canonical JSON corpus, existing contract CIDs and generated identity-test freshness.
 - `check:value-contracts`: fixed contract vectors, generated-test freshness and embedded schema consistency.
 - `check:value-admission`: fixed value-admission vectors, generated-test freshness and generator regressions.
+- `check:parameters`: fixed Parameter binding cases, recursive schema consistency and generator regressions.
 
 Dependencies are pinned in `package-lock.json`. External URL availability is
 not part of the deterministic local checks.
@@ -169,6 +170,13 @@ admitted contracts with explicit whole-value budgets and source diagnostics.
 `generate:value-admission` regenerates tests from fixed expectations. Reference
 authorization, vector operation admission, Parameter binding and expression
 execution remain separate.
+
+[Parameter binding](design/parameter-binding.md) admits recursive declarations,
+validates defaults and resolves supplied values to immutable `Ready` or
+`NeedsBindings` results. `generate:parameters` regenerates fixed tests;
+`generate:parameter-schemas` updates the embedded Parameter schemas and their
+artifact pins. Whole-Program usage, typed identities and Plan/Run integration
+remain separate.
 
 [Owned tree decoding](design/decode-core.md) admits editable Nodes into bounded
 opaque cursors, with exact-key checks, source spans and primitive readers.

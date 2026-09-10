@@ -17,7 +17,14 @@ to `element_type: f32`. Those fields are rejected at the author entry and requir
 with their exact values at the checked entry. Checked string extents are not author
 vocabulary. Optional members stay absent when omitted; explicit `null` is rejected.
 Every contract, including array items and object properties, requires `nullable`.
-Parameter-specific omissions, defaults and constraints belong to a later consumer.
+Parameter-specific omissions, defaults and constraints belong to the separate
+Parameter grammar and binding boundary.
+
+`read_parameter_syntax` is a separate [Parameter type adapter](parameter-binding.md).
+It applies recursive Parameter nullability shorthand and preserves constraints,
+default and metadata cursors for declaration admission; it does not validate the
+default or metadata itself. The general `read_author`/`read_checked` grammars are
+unchanged.
 
 Both entries allow empty object fields. Field names follow the Language rule,
 including line breaks, and reject dots, blank names, `__cid` and the `__actql_`

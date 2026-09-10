@@ -41,6 +41,19 @@
     "parameters": {
       "recursive_objects_arrays": true,
       "nullable_default": false,
+      "nullable_default_scope": "all-recursive-parameter-type-positions",
+      "recursive_constraints": [
+        "integer",
+        "minimum",
+        "maximum",
+        "format",
+        "length",
+        "max_items"
+      ],
+      "declaration_only_members": [
+        "default",
+        "meta"
+      ],
       "literal_default_on_missing_only": true,
       "deep_merge": false,
       "bind_once_program_wide": true

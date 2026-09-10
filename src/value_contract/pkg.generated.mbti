@@ -20,9 +20,13 @@ pub fn join_nullability(Contract, Contract, Int) -> Contract? raise RelationErro
 
 pub fn key_comparable(Contract, Contract) -> Bool
 
+pub fn parameter_fields(ParameterFields) -> Array[(String, ParameterType)]
+
 pub fn read_author(@decode_core.Cursor, Limits) -> Result[Contract, AdmissionError]
 
 pub fn read_checked(@decode_core.Cursor, Limits) -> Result[Contract, AdmissionError]
+
+pub fn read_parameter_syntax(@decode_core.Cursor, Limits) -> Result[ParameterSyntax, AdmissionError]
 
 pub fn stringify_checked(Contract, Int, Int, Int) -> String raise @encode_core.EncodeFailure
 
@@ -68,6 +72,27 @@ pub(all) struct Limits {
   max_depth : Int
   max_text_bytes : Int
 } derive(Eq, @debug.Debug)
+
+type ParameterFields
+
+pub enum ParameterRule {
+  Plain
+  Numeric(integer~ : Bool, minimum~ : Double?, maximum~ : Double?)
+  Duration
+  Items(ParameterType, length~ : Int64?)
+  Properties(ParameterFields)
+}
+
+pub struct ParameterSyntax {
+  parameter_type : ParameterType
+  default_value : @decode_core.Cursor?
+  metadata : @decode_core.Cursor?
+}
+
+pub struct ParameterType {
+  contract : Contract
+  rule : ParameterRule
+}
 
 pub enum Shape {
   Text(TextLimits)
