@@ -60,7 +60,15 @@ pub fn inputs(CheckedPipeline) -> Array[(String, @carrier_contract.Carrier)]
 
 pub fn join_evidence(CheckedPipeline, Int) -> JoinEvidence?
 
+pub fn logical_order(CheckedPipeline, Target) -> LogicalOrder?
+
 pub fn lookup(CheckedPipeline, String) -> Target?
+
+pub fn order_origin(LogicalOrder) -> Target
+
+pub fn order_predecessor(LogicalOrder) -> Target?
+
+pub fn order_producer(LogicalOrder) -> CheckedStep
 
 pub fn output_carrier(CheckedPipeline) -> @carrier_contract.Carrier?
 
@@ -229,6 +237,8 @@ pub(all) struct Limits {
   max_tokens : Int
   max_depth : Int
 } derive(Eq, @debug.Debug)
+
+type LogicalOrder
 
 type RelationEvidence
 

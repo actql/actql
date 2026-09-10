@@ -269,3 +269,26 @@ fn row_count(
     }
   }
 }
+
+///|
+/// Recognized order-preserving rules, not evidence that the input is ordered.
+/// Reads private checked metadata without copying authored order arrays.
+pub fn preserves_input_order(value : CheckedOperation) -> Bool {
+  match value.operation {
+    Filter
+    | Derive
+    | Select
+    | Rename
+    | Drop
+    | Take
+    | AssertRows
+    | Lag
+    | WatermarkRows => true
+    Sort =>
+      match value.row_operation {
+        Some(Sort(terms)) => terms.is_empty()
+        _ => false
+      }
+    _ => false
+  }
+}

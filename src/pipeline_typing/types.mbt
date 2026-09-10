@@ -189,6 +189,7 @@ pub fn window_aliases(
 
 ///|
 struct CheckedPipeline {
+  logical_orders : Array[LogicalOrder?]
   graph_counts : Array[GraphCount?]
   join_evidence : Array[JoinEvidence?]
   row_counts : Array[RowCount?]

@@ -105,6 +105,8 @@ pub fn pivot_value(CheckedPivot) -> KeyField
 
 pub fn pivot_values(CheckedPivot) -> Array[String]
 
+pub fn preserves_input_order(CheckedOperation) -> Bool
+
 pub fn projection(CheckedOperation) -> Array[ProjectionField]
 
 pub fn references(Binding) -> Array[Reference]
