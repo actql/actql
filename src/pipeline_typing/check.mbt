@@ -55,6 +55,7 @@ fn check_impl(
   parameters : @parameter.Declarations?,
   from : @decode.Cursor?,
   limits : Limits,
+  calendar_profile : @calendar_profile.Profile?,
 ) -> CheckedPipeline raise Stop {
   if limits.max_steps < 0 ||
     limits.max_work < 0 ||
@@ -188,6 +189,103 @@ fn check_impl(
         window: None,
       })
       names[binding] = target
+      current = Some(target)
+      continue
+    }
+    if key == "calendar_bucket" || key == "calendar_series" {
+      let generator = key == "calendar_series"
+      let main = if generator {
+        if @decode.lookup(object, "from") is Some(s) {
+          fail(s, GeneratorFrom)
+        }
+        None
+      } else {
+        Some(
+          match @decode.lookup(object, "from") {
+            Some(s) => resolve_target(b, s, names)
+            None =>
+              match current {
+                Some(t) => t
+                None => fail(body, MissingCurrent)
+              }
+          },
+        )
+      }
+      let binding_name = match @decode.lookup(object, "as") {
+        Some(s) => {
+          let name = read_name(b, s)
+          if names.contains(name) {
+            fail(s, DuplicateName(name))
+          }
+          Some(name)
+        }
+        None =>
+          if generator {
+            fail(body, GeneratorRequiresAlias)
+          } else {
+            None
+          }
+      }
+      let meta = @decode.lookup(object, "meta")
+      if meta is Some(s) {
+        metadata(b, s)
+      }
+      let operation_body = @decode.lookup(object, key).unwrap()
+      let checked = match
+        @calendar.check(
+          if generator {
+            Series
+          } else {
+            Bucket
+          },
+          operation_body,
+          main.map(t => carrier(t, inputs, steps)),
+          parameters,
+          calendar_profile,
+          {
+            max_work: b.work,
+            max_nodes: b.nodes,
+            max_text_bytes: b.text,
+            max_depth: limits.max_depth,
+          },
+        ) {
+        Ok(v) => v
+        Err(e) =>
+          raise Stop({
+            kind: Calendar(e.kind),
+            source: operation_body,
+            path: e.path.copy(),
+            span: e.span,
+            range: None,
+          })
+      }
+      let u = @calendar.usage(checked)
+      b.work -= u.work
+      b.nodes -= u.nodes
+      b.text -= u.text_bytes
+      let target = Step(steps.length())
+      steps.push({
+        source: body,
+        input: main,
+        binding_name,
+        metadata: meta,
+        operation: Calendar(checked),
+        output: @calendar.output(checked),
+        connections: {
+          entries: match main {
+            None => []
+            Some(t) => [{ role: Primary, target: t, }]
+          },
+        },
+        window: match main {
+          None => None
+          Some(Step(i)) => steps[i].window
+          Some(Input(_)) => None
+        },
+      })
+      if binding_name is Some(name) {
+        names[name] = target
+      }
       current = Some(target)
       continue
     }
@@ -1001,6 +1099,7 @@ fn check_impl(
     let connections : Connections = {
       entries: match checked {
         Values(_) | TimeSeries(_) => []
+        Calendar(_) => [{ role: Primary, target: input, }]
         Unary(_)
         | Window(_)
         | WindowGroup(_)
@@ -1074,6 +1173,7 @@ pub fn check(
   parameters : @parameter.Declarations?,
   from : @decode.Cursor?,
   limits : Limits,
+  calendar_profile? : @calendar_profile.Profile? = None,
 ) -> Result[CheckedPipeline, Issue] {
   check_carriers(
     source,
@@ -1081,6 +1181,7 @@ pub fn check(
     parameters,
     from,
     limits,
+    calendar_profile~,
   )
 }
 
@@ -1093,8 +1194,9 @@ pub fn check_carriers(
   parameters : @parameter.Declarations?,
   from : @decode.Cursor?,
   limits : Limits,
+  calendar_profile? : @calendar_profile.Profile? = None,
 ) -> Result[CheckedPipeline, Issue] {
-  Ok(check_impl(source, inputs, parameters, from, limits)) catch {
+  Ok(check_impl(source, inputs, parameters, from, limits, calendar_profile)) catch {
     Stop(issue) => Err(issue)
   }
 }

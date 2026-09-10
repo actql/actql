@@ -1,0 +1,19 @@
+supported_targets = "+js+wasm+native"
+
+import {
+  "actql/actql/calendar_options" @options,
+  "actql/actql/calendar_profile" @profile,
+  "actql/actql/carrier_contract" @carrier,
+  "actql/actql/relation_schema" @row,
+  "actql/actql/value_contract" @contract,
+  "actql/actql/parameter_binding" @parameter,
+  "actql/actql/decode_core" @decode,
+  "actql/actql/decode_scalar" @scalar,
+  "actql/actql/source_span" @span,
+}
+
+import {
+  "actql/actql/source_value" @source,
+  "actql/actql/sha256" @sha,
+  "moonbitlang/core/encoding/utf8",
+} for "test"

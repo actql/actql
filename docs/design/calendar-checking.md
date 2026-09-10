@@ -12,9 +12,36 @@ rows; reversed literals fail at the end source location. Unit, timezone and week
 origin are fixed literal selectors, not data-dependent expressions.
 
 The time field accepts ordinary qualified reference spelling; `into` remains an
-authored output name. Field existence, timestamp type and freshness are the
-operation checker's responsibility. The options package does not yet connect
-either operation to pipeline dispatch or produce a checked output Carrier.
+authored output name. `calendar_typing` checks field existence, non-null timestamp
+type and output freshness against a Relation Carrier. Other untyped fields are
+retained without inventing their types. An open field set cannot establish
+absence of a fresh output name and fails explicitly.
+
+## Operation and pipeline checking
+
+Both Calendar operations now require an admitted `calendar_profile.Profile`.
+The pipeline APIs accept it as the optional named `calendar_profile` argument;
+omission leaves existing operations unaffected but fails Calendar checking,
+including UTC. The checker retains the selected profile with each operation.
+Profile selection is not an authored source option or a per-row choice.
+
+Series is input-free, requires `as`, rejects step `from`, and produces a complete
+Relation of non-null timestamp `start` and `end`. Bucket consumes the selected
+Relation, adds a non-null object with those fields, and preserves existing window
+roles because no existing field is changed. It does not fabricate new window-role
+evidence from its nested output. Both outputs connect to ordinary Relation
+consumers, and all source, parameter and output-schema work shares the pipeline
+budget. Diagnostics retain the time, timezone or output-name selector location.
+
+The typed cardinality fact is input preservation for bucket and a finite upper
+bound for series. The latter counts possible civil starts in 9999 Gregorian
+years (3,652,059 days), divided by the unit with conservative edge allowance.
+Folds select one UTC instant and gaps/coincident boundaries cannot add civil
+starts. Identical literal endpoints yield the stronger bound zero. This is a
+conservative bound, not an evaluated row count or a byte-memory ceiling.
+Calendar-value and boundary-domain validation and actual resource ceilings remain
+explicit obligations; parameter endpoints also retain binding/range validation.
+Shared candidate-key/order/resource proof propagation is still separate work.
 
 ## Semantic artifact boundary
 
@@ -32,8 +59,8 @@ selected CID and external release. The selected-zone
 [2025b fixture](../../vendor/tzdb/2025b/README.md) is reproduced from pinned IANA
 data and compiler archives, alongside synthetic rejection fixtures. It exercises
 offsets at gaps, folds, a skipped date and future recurrence through year 9999.
-Calendar boundary conversion vectors, operation checking and count/evidence
-propagation remain. The API does not certify an arbitrary
+Calendar boundary conversion vectors and shared count/evidence propagation
+remain. The API does not certify an arbitrary
 caller-selected hash as authentic IANA data.
 
 The `calendar_transition` package supplies the validated offset-table primitive
@@ -70,7 +97,7 @@ data or quietly treat unknown zones as UTC. Missing semantic artifacts prevent
 a runnable Plan, including an unpinned UTC shortcut.
 
 The fixed reference revisions do not contain these Calendar operations or a TZDB
-artifact to reuse. Operation checking, production profile selection, conservative
-count/evidence propagation and independent transition vectors remain in the full
+artifact to reuse. Production profile selection, shared count/evidence propagation
+and independent Calendar boundary vectors remain in the full
 pure-operation goal. Adding source options does not close those requirements.
 Actual calendar evaluation and acquisition of provider data are outside that goal.

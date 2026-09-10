@@ -38,6 +38,7 @@ pub(all) enum IssueKind {
   GeneratorFrom
   Values(@values.IssueKind)
   TimeSeries(@series.IssueKind)
+  Calendar(@calendar.IssueKind)
   Window(@window.IssueKind)
   Projection(@projection.IssueKind)
   Graph(@graph.IssueKind)
@@ -120,6 +121,7 @@ pub enum CheckedOperation {
   Sequence(@relation.CheckedSequence)
   Values(@values.CheckedValues)
   TimeSeries(@series.CheckedSeries)
+  Calendar(@calendar.CheckedCalendar)
   Window(@window.CheckedWindow)
   Projection(@projection.CheckedProjection)
   Graph(@graph.CheckedGraph)

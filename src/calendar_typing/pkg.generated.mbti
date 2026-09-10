@@ -1,0 +1,69 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/calendar_typing"
+
+import {
+  "actql/actql/calendar_options",
+  "actql/actql/calendar_profile",
+  "actql/actql/carrier_contract",
+  "actql/actql/decode_core",
+  "actql/actql/parameter_binding",
+  "actql/actql/source_span",
+  "actql/actql/source_value",
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn cardinality(CheckedCalendar) -> Cardinality
+
+pub fn check(@calendar_options.Operation, @decode_core.Cursor, @carrier_contract.Carrier?, @parameter_binding.Declarations?, @calendar_profile.Profile?, @calendar_options.Limits) -> Result[CheckedCalendar, Issue]
+
+pub fn options(CheckedCalendar) -> @calendar_options.Options
+
+pub fn output(CheckedCalendar) -> @carrier_contract.Carrier
+
+pub fn pending_validations(CheckedCalendar) -> Array[Obligation]
+
+pub fn profile(CheckedCalendar) -> @calendar_profile.Profile
+
+pub fn usage(CheckedCalendar) -> @calendar_options.Usage
+
+// Errors
+
+// Types and methods
+pub(all) enum Cardinality {
+  PreserveInput
+  AtMost(Int)
+} derive(Eq, @debug.Debug)
+
+type CheckedCalendar
+
+pub struct Issue {
+  kind : IssueKind
+  path : Array[@source_value.PathSegment]
+  span : @source_span.Span
+}
+
+pub(all) enum IssueKind {
+  Options(@calendar_options.IssueKind)
+  MissingProfile
+  UnknownTimezone(String)
+  WrongInput
+  MissingField(String)
+  UnknownFieldType(String)
+  InvalidTime(String)
+  UnknownOutputFields
+  OutputCollision(String)
+  BudgetExceeded
+} derive(Eq, @debug.Debug)
+
+pub(all) enum Obligation {
+  ValidateCalendarValues
+  ValidateBoundaryDomain
+  ResolveResources
+  BindTimestamp(String)
+  ValidateBoundRange
+} derive(Eq, @debug.Debug)
+
+// Type aliases
+
+// Traits

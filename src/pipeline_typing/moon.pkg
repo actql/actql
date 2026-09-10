@@ -1,6 +1,8 @@
 supported_targets = "+js+wasm+native"
 
 import {
+  "actql/actql/calendar_typing" @calendar,
+  "actql/actql/calendar_profile",
   "actql/actql/time_series" @series,
   "actql/actql/graph_typing" @graph,
   "actql/actql/vector_typing" @vector,
@@ -26,6 +28,7 @@ import {
 
 import {
   "actql/actql/source_value" @source,
+  "moonbitlang/core/encoding/utf8",
   "actql/actql/expression_typing" @typing,
   "moonbitlang/core/debug",
 } for "test"
