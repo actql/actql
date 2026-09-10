@@ -103,3 +103,8 @@ must emit the specified version, resolve the common contract CID and bind both
 snapshot CIDs. Action ordering, unique identities, exact complete records and
 resource resolution remain explicit obligations. This does not implement Delta
 evaluation or make arbitrary structurally matching JSON safe to apply.
+
+The [Graph contract identity boundary](graph-contract.md) now provides bounded
+CID construction for a complete Graph contract and pins the identity/value law
+body. Connecting that checked evidence to Diff and Apply remains separate from
+this type-only Delta output and its outstanding snapshot obligations.

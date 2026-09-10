@@ -1,0 +1,40 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/graph_contract"
+
+import {
+  "actql/actql/carrier_contract",
+  "actql/actql/encode_core",
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn admit(@carrier_contract.Carrier, Limits) -> Result[CheckedContract, Issue]
+
+pub fn cid(CheckedContract) -> String
+
+pub fn graph(CheckedContract) -> @carrier_contract.Graph
+
+pub fn law_cid() -> String
+
+pub fn stringify(CheckedContract, Limits) -> String raise @encode_core.EncodeFailure
+
+// Errors
+
+// Types and methods
+type CheckedContract
+
+pub(all) enum Issue {
+  InvalidLimits
+  IncompleteGraph
+  BudgetExceeded
+} derive(Eq, @debug.Debug)
+
+pub(all) struct Limits {
+  max_bytes : Int
+  max_nodes : Int
+  max_depth : Int
+}
+
+// Type aliases
+
+// Traits

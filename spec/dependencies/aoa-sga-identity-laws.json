@@ -1,0 +1,13 @@
+{
+  "manifest_version": "aoa-sga-identity-laws/0.1",
+  "identity_law_id": "aoa.sga.semantic-identity.v0.1",
+  "value_law_id": "aoa.sga.typed-value-equality.v0.1",
+  "status": "normative-contract-not-execution-conformance",
+  "node_identity": "The complete non-null semantic ID value under node_id_contract; never an implicit string or CID replacement.",
+  "edge_identity": "The ordered tuple of source ID, target ID and semantic edge label; absent label is explicit null. Endpoints use node_id_contract. Directed simple edges with the same identity cannot carry conflicting payloads.",
+  "value_equality": "Compare admitted values under the common checked contract using ActQL typed equality. Null is a value, missing required fields fail admission. Compare arrays positionally and objects by their complete field set. Decimal identity retains precision, scale and exact coefficient; reference identity retains its specified identity preimage rather than display text or content identity alone.",
+  "graph_equality": "Compare semantic node and edge identities, labels and complete typed property values after canonical admission, independently of input enumeration, observations and provider locators. This is neither graph isomorphism nor approximate similarity.",
+  "duplicates": "Identity-equal declarations collapse only when their complete canonical payloads agree; conflicting payloads fail before graph publication.",
+  "record_shape": "Node records are closed {id,props}; edge records are closed {src,dst,rel,props}. Property maps are complete, including empty maps. No undeclared display label or carrier field is silently introduced or discarded.",
+  "common_contract": "Require compatible complete identity and property domains. Join nullability and extents recursively. Union two known closed edge-label domains; otherwise retain unknown. Both snapshots are admitted under that common contract. Empty snapshots do not bypass contract checks."
+}

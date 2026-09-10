@@ -23,6 +23,7 @@
   "rela_primitive_law_manifest_cid": "sha256:a2a14eb0cca10f73ad577406a124f388cdde295cb6263e645675e967bcfa8b4d",
   "veca_numeric_law_manifest_cid": "sha256:926c086c2ea57e49102ca5dfb724c851fa7fc148370a0bdf8363457fe5fcd004",
   "sga_structural_law_manifest_cid": "sha256:7dbf4a4b5830e66867388a34f12751691e9c90594e8e09cab754472144a65b18",
+  "sga_identity_law_manifest_cid": "sha256:ab1ae472462b96ac48e56d3ce0544213cab5d422e6bb198bc9acd5e4d90e0fe4",
   "pipeline_registry_cid": "sha256:00ac46baefe7fa34412ad83beb85cf1899b906e792d74fa89211a7c4972f0d5a",
   "target_module_contract_cid": "sha256:ae21e53e9cd0727435f707f49efb2ffc9fa1665abda9adde0ff57312265e06e1",
   "target_registry_requirements": {

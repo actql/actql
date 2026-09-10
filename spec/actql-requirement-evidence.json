@@ -509,6 +509,17 @@
       }
     },
     {
+      "requirement_id": "actql.language/carriers.graph-law-body",
+      "statement_sha256": "42d23543974c4566887b344a91265dc587b2c8a3fb9218a259d2395f2083c26a",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "carriers",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.language/carriers.a-compiler-must-not-reinterpret-a-value-as-another-carrier",
       "statement_sha256": "32b017bb8a92ed68b9edee5dd691b2bb4c9ba69de6c72488b6771a58ad29c6f2",
       "status": "pending",
@@ -6065,7 +6076,7 @@
     },
     {
       "requirement_id": "actql.language/machine-contracts.exact-artifacts",
-      "statement_sha256": "8b3f32d247a7051ed5972ccc8bd15d8ca8f9436cd36cf42346f19ce30b40e652",
+      "statement_sha256": "fea1ff9ee6ba491997d44bc54bf0eb186dc97ca6ec2a1043ce086da54726d227",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",

@@ -656,6 +656,13 @@ compatible input domains; both snapshots are admitted under it. Apply verifies
 the base against that pinned contract. A different contract is not inferred
 from the Delta's payload or from a matching self-CID.
 
+<!-- requirement-block: carriers.graph-law-body -->
+For the 0.1 contract, both graph law CID members MUST equal
+`sga_identity_law_manifest_cid` in the admitted ActQL AoA contract. That pin
+resolves `aoa-sga-identity-laws/0.1`, which contains the semantic identity and
+typed value equality laws together. Computing a structural contract CID proves
+neither snapshot admission nor base/target content identity.
+
 ActQL source uses four public Carrier names:
 
 ```text
@@ -7747,7 +7754,7 @@ through the pinned expression contract.
 <!-- requirement-block: machine-contracts.exact-artifacts -->
 <!-- normative-code: law -->
 ```text
-../../spec/contracts/actql-aoa.json# sha256:0337aa35a8347b515bdb573b30658676d760399e8f09f196943be8637499a8e7
+../../spec/contracts/actql-aoa.json# sha256:2eb1547021f081fa87cec8f78a8a687a1205dfaf875e50a9c55fd074238aea6a
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/resource_ref sha256:f88141c15be5ac040af593008fdca7c85214fcb4ba60ea7110160b8fe8ee25ac
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/artifact_ref sha256:2143a7c6bd2e0b110822670a3cb146cddaa23bcade9de7c1ab8ed4e1ebf88a55
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/author_value_contract sha256:ad31b593c607142e6fce65b15ca12531c46d61f3bcf8cc55f34eef1b4dca6b6e

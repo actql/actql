@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { checkDependencies, checkVersionTokens, loadDependencies } from './check-aoa-versions.mjs';
 import { machineCid } from './actql-spec-family.mjs';
+import { readFileSync } from 'node:fs';
 
 test('adopted AoA bodies match their exact pins', () => checkDependencies(loadDependencies()));
 
@@ -16,7 +17,7 @@ test('legacy contract and law versions are rejected while external versions are 
 });
 
 test('missing manifests and modified preimages cannot keep their old pins', () => {
-  for (const key of ['kernel', 'pipeline', 'scalar', 'primitive', 'vector', 'graph']) {
+  for (const key of ['kernel', 'pipeline', 'scalar', 'primitive', 'vector', 'graph', 'graphIdentity']) {
     const missing = loadDependencies();
     delete missing.bodies[key];
     assert.throws(() => checkDependencies(missing));
@@ -24,6 +25,12 @@ test('missing manifests and modified preimages cannot keep their old pins', () =
     changed.bodies[key].unexpected = true;
     assert.throws(() => checkDependencies(changed));
   }
+});
+
+test('Graph contract implementation pins the published identity and value law body', () => {
+  const {contract} = loadDependencies();
+  const implementation = readFileSync(new URL('../src/graph_contract/contract.mbt', import.meta.url), 'utf8');
+  assert.ok(implementation.includes('"' + contract.sga_identity_law_manifest_cid + '"'));
 });
 
 test('renamed Effect law must be present even if the manifest pin is recomputed', () => {

@@ -26,6 +26,10 @@ pub fn graph_edge_properties(Graph) -> Knowledge
 
 pub fn graph_identity(Graph) -> @value_contract.Contract
 
+pub fn graph_label_at(Graph, Int) -> String?
+
+pub fn graph_label_count(Graph) -> Int?
+
 pub fn graph_labels(Graph) -> Array[String]?
 
 pub fn graph_node_properties(Graph) -> Knowledge

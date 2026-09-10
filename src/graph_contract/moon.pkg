@@ -1,0 +1,13 @@
+supported_targets = "+js+wasm+native"
+
+import {
+  "actql/actql/carrier_contract" @carrier,
+  "actql/actql/value_contract" @value,
+  "actql/actql/relation_schema" @row,
+  "actql/actql/encode_core" @encode,
+}
+
+import {
+  "actql/actql/canonical_json" @canonical,
+  "moonbitlang/core/json",
+} for "test"

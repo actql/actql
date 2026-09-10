@@ -176,6 +176,24 @@ pub fn graph_labels(graph : Graph) -> Array[String]? {
 }
 
 ///|
+pub fn graph_label_count(graph : Graph) -> Int? {
+  graph.labels.map(labels => labels.length())
+}
+
+///|
+pub fn graph_label_at(graph : Graph, index : Int) -> String? {
+  match graph.labels {
+    Some(labels) =>
+      if index < 0 || index >= labels.length() {
+        None
+      } else {
+        Some(labels[index])
+      }
+    None => None
+  }
+}
+
+///|
 /// Retain the authored clock source and its required interpretation. Timestamp
 /// encoding requires UTC-millisecond conversion at execution; this constructor
 /// validates contracts only and never claims converted or admitted data.
