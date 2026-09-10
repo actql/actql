@@ -171,6 +171,29 @@ fn check_impl(
   if with_name == "" || @canonical.normalize_nfc_lf(with_name) != Ok(with_name) {
     fail(source, InvalidName(with_name))
   }
+  let (output, alignment) = align(b, source, left, right)
+  {
+    source: body,
+    with_name,
+    left,
+    right,
+    output,
+    alignment,
+    usage: {
+      work: limits.max_work - b.work,
+      text_bytes: limits.max_text_bytes - b.text,
+      nodes: limits.max_nodes - b.nodes,
+    },
+  }
+}
+
+///|
+fn align(
+  b : Budget,
+  source : @decode.Cursor,
+  left : @schema.Schema,
+  right : @schema.Schema,
+) -> (@schema.Schema, Array[Alignment]) raise Stop {
   let count = @schema.field_count(left)
   let right_count = @schema.field_count(right)
   // Typed keys prevent a spelling match from discarding provenance.
@@ -217,19 +240,68 @@ fn check_impl(
     Err(_) => fail(source, BudgetExceeded)
   }
   preflight(b, source, output)
-  {
-    source: body,
-    with_name,
-    left,
-    right,
-    output,
-    alignment,
-    usage: {
-      work: limits.max_work - b.work,
-      text_bytes: limits.max_text_bytes - b.text,
-      nodes: limits.max_nodes - b.nodes,
-    },
+  (output, alignment)
+}
+
+///|
+struct AlignedSchemas {
+  output : @schema.Schema
+  fields : Array[Alignment]
+  usage : Usage
+}
+
+///|
+/// Shared recursive schema alignment for append and complete-row set operators.
+/// This establishes no row equality, multiplicity, order or identity evidence.
+pub fn align_schemas(
+  source : @decode.Cursor,
+  left : @schema.Schema,
+  right : @schema.Schema,
+  limits : Limits,
+) -> Result[AlignedSchemas, Issue] {
+  try {
+    if limits.max_work < 0 ||
+      limits.max_text_bytes < 0 ||
+      limits.max_nodes < 0 ||
+      limits.max_depth < 0 {
+      fail(source, InvalidLimits)
+    }
+    let b : Budget = {
+      limits,
+      work: limits.max_work,
+      text: limits.max_text_bytes,
+      nodes: limits.max_nodes,
+    }
+    preflight(b, source, left)
+    preflight(b, source, right)
+    let (output, fields) = align(b, source, left, right)
+    Ok({
+      output,
+      fields,
+      usage: {
+        work: limits.max_work - b.work,
+        text_bytes: limits.max_text_bytes - b.text,
+        nodes: 0,
+      },
+    })
+  } catch {
+    Stop(issue) => Err(issue)
   }
+}
+
+///|
+pub fn aligned_schema(value : AlignedSchemas) -> @schema.Schema {
+  value.output
+}
+
+///|
+pub fn aligned_fields(value : AlignedSchemas) -> Array[Alignment] {
+  value.fields.copy()
+}
+
+///|
+pub fn alignment_usage(value : AlignedSchemas) -> Usage {
+  value.usage
 }
 
 ///|

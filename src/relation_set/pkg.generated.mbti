@@ -1,0 +1,79 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/relation_set"
+
+import {
+  "actql/actql/decode_core",
+  "actql/actql/relation_append",
+  "actql/actql/relation_schema",
+  "actql/actql/source_span",
+  "actql/actql/source_value",
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn alignment(CheckedSet) -> Array[@relation_append.Alignment]
+
+pub fn check(Operation, @decode_core.Cursor, @relation_schema.Schema, @relation_schema.Schema, @relation_append.Limits) -> Result[CheckedSet, Issue]
+
+pub fn duplicates(CheckedSet) -> Duplicates
+
+pub fn input_schema(CheckedSet, @relation_schema.Side) -> @relation_schema.Schema
+
+pub fn operation(CheckedSet) -> Operation
+
+pub fn output_schema(CheckedSet) -> @relation_schema.Schema
+
+pub fn pending_validations(CheckedSet) -> Array[Obligation]
+
+pub fn source(CheckedSet) -> @decode_core.Cursor
+
+pub fn usage(CheckedSet) -> @relation_append.Usage
+
+pub fn with_name(CheckedSet) -> String
+
+// Errors
+
+// Types and methods
+type CheckedSet
+
+pub(all) enum Duplicates {
+  Distinct
+  All
+} derive(Eq, @debug.Debug)
+
+pub struct Issue {
+  kind : IssueKind
+  source : @decode_core.Cursor
+  path : Array[@source_value.PathSegment]
+  span : @source_span.Span
+}
+
+pub(all) enum IssueKind {
+  InvalidLimits
+  BudgetExceeded
+  InvalidBody
+  InvalidName(String)
+  InvalidDuplicates
+  Schema(@relation_append.IssueKind)
+} derive(Eq, @debug.Debug)
+
+pub(all) enum Obligation {
+  ValidateInputRows
+  CompareCompleteTypedRows
+  PreserveEarliestLeftOccurrences
+  BoundOutputByLeftInput
+  ResolveComparisonResources
+  ResolveIdentityAndCompleteness
+} derive(Eq, @debug.Debug)
+
+pub(all) enum Operation {
+  Except
+  Intersect
+} derive(Eq, @debug.Debug)
+
+// Type aliases
+pub using @relation_append {type Limits}
+
+pub using @relation_append {type Usage}
+
+// Traits

@@ -10,7 +10,15 @@ import {
 }
 
 // Values
+pub fn align_schemas(@decode_core.Cursor, @relation_schema.Schema, @relation_schema.Schema, Limits) -> Result[AlignedSchemas, Issue]
+
+pub fn aligned_fields(AlignedSchemas) -> Array[Alignment]
+
+pub fn aligned_schema(AlignedSchemas) -> @relation_schema.Schema
+
 pub fn alignment(CheckedAppend) -> Array[Alignment]
+
+pub fn alignment_usage(AlignedSchemas) -> Usage
 
 pub fn check(@decode_core.Cursor, @relation_schema.Schema, @relation_schema.Schema, Limits) -> Result[CheckedAppend, Issue]
 
@@ -29,6 +37,8 @@ pub fn with_name(CheckedAppend) -> String
 // Errors
 
 // Types and methods
+type AlignedSchemas
+
 pub struct Alignment {
   field : @relation_schema.FieldName
   left_index : Int

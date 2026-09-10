@@ -6,7 +6,8 @@
 `filter`, `select`, `rename`, `drop`, [ordering and deduplication](relation-ordering.md)
 (`sort`, `take`, `distinct`, `dedupe_rows`), row assertions (`assert_rows`), typed
 reshaping (`json_pick`, `unnest`, `unpivot`), [local join](relation-join.md),
-[append](relation-append.md), [nest](relation-nest.md), and
+[append](relation-append.md), [row set operations](relation-set.md)
+(`except`, `intersect`), [nest](relation-nest.md), and
 [group aggregates](relation-aggregates.md), [pivot](relation-pivot.md), and
 [analytic](relation-analytic.md), and [top-k](relation-top-k.md). Other operation names are explicitly
 unsupported; no step is skipped or treated as an opaque successful operation.
@@ -54,7 +55,7 @@ before another join. This applies to both the left and right input.
 The package owns shared naming, connection, budget and diagnostic rules; its
 current checked steps have one output. Main input and final current are optional
 in the representation. `CheckedOperation` distinguishes `Unary`, `Join`, `Append`,
-and `Nest`; binary variants retain their checked operation and right target.
+`Nest`, and `Set`; binary variants retain their checked operation and right target.
 `input_occurrences` returns detached, ordered, role-tagged edges, preserving two
 occurrences even when both operands resolve to the same target. General
 multi-output ports, generator checking and non-Relation operations are not yet

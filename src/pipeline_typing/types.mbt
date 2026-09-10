@@ -41,6 +41,7 @@ pub(all) enum IssueKind {
   Join(@join.IssueKind)
   Append(@append.IssueKind)
   Nest(@nest.IssueKind)
+  Set(@set.IssueKind)
 } derive(Eq, Debug)
 
 ///|
@@ -101,6 +102,7 @@ pub enum CheckedOperation {
   Join(right~ : Target, checked~ : @join.CheckedJoin)
   Append(right~ : Target, checked~ : @append.CheckedAppend)
   Nest(right~ : Target, checked~ : @nest.CheckedNest)
+  Set(right~ : Target, checked~ : @set.CheckedSet)
 }
 
 ///|

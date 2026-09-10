@@ -155,7 +155,7 @@ fn check_impl(
       "analytic" => Some(Analytic)
       "top_k" => Some(TopK)
       "top_k_by" => Some(TopKBy)
-      "join" | "append" | "nest" => None
+      "join" | "append" | "nest" | "except" | "intersect" => None
       _ => fail(@decode.lookup(object, key).unwrap(), UnsupportedOperation(key))
     }
     let selected = match @decode.lookup(object, "from") {
@@ -240,7 +240,49 @@ fn check_impl(
         (Unary(checked), @relation.output_schema(checked))
       }
       None =>
-        if key == "nest" {
+        if key == "except" || key == "intersect" {
+          let obj = match @decode.open_object(operation_body) {
+            Ok(v) => v
+            Err(_) => fail(operation_body, InvalidBody)
+          }
+          let right_source = match @decode.required(obj, "with") {
+            Ok(v) => v
+            Err(_) => fail(operation_body, InvalidBody)
+          }
+          let right = resolve_target(b, right_source, names)
+          let checked = match
+            @set.check(
+              if key == "except" {
+                Except
+              } else {
+                Intersect
+              },
+              operation_body,
+              schema(operation_body, input, inputs, steps),
+              schema(right_source, right, inputs, steps),
+              {
+                max_work: b.work,
+                max_text_bytes: b.text,
+                max_nodes: b.nodes,
+                max_depth: limits.max_depth,
+              },
+            ) {
+            Ok(v) => v
+            Err(issue) =>
+              raise Stop({
+                kind: Set(issue.kind),
+                source: issue.source,
+                path: issue.path.copy(),
+                span: issue.span,
+                range: None,
+              })
+          }
+          let used = @set.usage(checked)
+          b.work -= used.work
+          b.text -= used.text_bytes
+          b.nodes -= used.nodes
+          (Set(right~, checked~), @set.output_schema(checked))
+        } else if key == "nest" {
           let obj = match @decode.open_object(operation_body) {
             Ok(v) => v
             Err(_) => fail(operation_body, InvalidBody)
@@ -356,7 +398,10 @@ fn check_impl(
     let connections : Connections = {
       entries: match checked {
         Unary(_) => [{ role: Primary, target: input, }]
-        Join(right~, ..) | Append(right~, ..) | Nest(right~, ..) =>
+        Join(right~, ..)
+        | Append(right~, ..)
+        | Nest(right~, ..)
+        | Set(right~, ..) =>
           [{ role: Left, target: input, }, { role: Right, target: right, }]
       },
     }
