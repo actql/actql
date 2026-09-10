@@ -153,6 +153,8 @@ fn check_impl(
       "group" => Some(Group)
       "pivot" => Some(Pivot)
       "analytic" => Some(Analytic)
+      "top_k" => Some(TopK)
+      "top_k_by" => Some(TopKBy)
       "join" | "append" | "nest" => None
       _ => fail(@decode.lookup(object, key).unwrap(), UnsupportedOperation(key))
     }

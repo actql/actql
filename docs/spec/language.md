@@ -3405,6 +3405,22 @@ by their keys in canonical ascending order, and rows within each partition use
 the authored order. It lowers to an AoA partitioned-top-k operation; repeated
 global `top_k` or host-side grouping is not a conforming substitute.
 
+<!-- requirement-block: top-k.closed-bodies top-k.empty-partitions -->
+Check MUST use the closed `{k, by}` body for `top_k` and
+`{partition_by, k, by}` for `top_k_by`. The count is a positive-safe-integer
+literal or whole Parameter reference, not an arbitrary expression; bound
+values satisfy the same range before execution. The operations retain the
+input field contracts without fabricating row-count or total-order evidence.
+
+Check MUST accept empty and repeated `top_k_by.partition_by` references while
+validating each equality-key field. Empty partition keys mean one global
+partition of existing rows, with no row synthesized on empty input. Repetitions
+and authored order remain in the checked representation; they add neither rows
+nor uniqueness evidence. Repeated authored order keys are also retained and
+cannot establish a missing tie-breaker. Neither empty partition keys nor
+repetition authorizes operation deletion, preimage deduplication, or identity
+equivalence with `top_k`.
+
 <a id="relational-temporal"></a>
 
 #### Relational temporal operators
@@ -6849,6 +6865,13 @@ ParamRef := { $param: ParamName }
 PositiveIntegerValue := PositiveSafeInteger | ParamRef
 FractionValue := finite number in [0, 1] | ParamRef
 GroupBody := {by: [Field, ...] | [], aggregates: {OutputFieldName: AggregateCall}*}
+TopKBody := {k: PositiveIntegerValue, by: [OrderKey, ...]}
+TopKByBody := {partition_by: [Field, ...] | [], k: PositiveIntegerValue,
+  by: [OrderKey, ...]}
+TopKConstraints := by nonempty; keys repeated without deduplication;
+  partition keys KeyComparable; authored order keys AuthorOrderable;
+  total-order completion and selection bounds are separate required evidence;
+  no expression-valued k or implicit global/partitioned operation rewrite.
 PivotBody := {index: [Field, ...] | [], column: Field,
   values: [OutputFieldName, ...] | [], value: Field,
   aggregate: sum | avg | count | min | max | first, fill?: CellValue}

@@ -151,6 +151,53 @@ fn check_impl(
   let mut analytic : CheckedAnalytic? = None
   let mut output = input
   let form = match operation {
+    TopK | TopKBy => {
+      row_source(b, body)
+      let obj = decoded(
+        @decode.closed_object(
+          body,
+          if operation is TopK {
+            ["k", "by"]
+          } else {
+            ["partition_by", "k", "by"]
+          },
+        ),
+        body,
+      )
+      let partition = if operation is TopKBy {
+        row_keys(
+          b,
+          decoded(@decode.required(obj, "partition_by"), body),
+          visible,
+          unique=false,
+        )
+      } else {
+        []
+      }
+      let count = row_count(
+        b,
+        decoded(@decode.required(obj, "k"), body),
+        1L,
+        parameter_types,
+        pending,
+      )
+      let source = decoded(@decode.required(obj, "by"), body)
+      let order = row_order(b, source, visible)
+      if order.is_empty() {
+        fail(source, InvalidOrder)
+      }
+      row_operation = Some(
+        if operation is TopKBy {
+          pending.push({ kind: TopKPartitioning, source: body, })
+          RowOperation::TopKBy(partition~, count~, order~)
+        } else {
+          RowOperation::TopK(count~, order~)
+        },
+      )
+      pending.push({ kind: SortOrderCompletion, source, })
+      pending.push({ kind: TopKSelectionEnvelope, source: body, })
+      Form::RowOperation
+    }
     Analytic => {
       row_source(b, body)
       let (details, fields) = check_analytic(

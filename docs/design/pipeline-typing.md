@@ -8,7 +8,7 @@
 reshaping (`json_pick`, `unnest`, `unpivot`), [local join](relation-join.md),
 [append](relation-append.md), [nest](relation-nest.md), and
 [group aggregates](relation-aggregates.md), [pivot](relation-pivot.md), and
-[analytic](relation-analytic.md). Other operation names are explicitly
+[analytic](relation-analytic.md), and [top-k](relation-top-k.md). Other operation names are explicitly
 unsupported; no step is skipped or treated as an opaque successful operation.
 
 ## Inputs and scope

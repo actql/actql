@@ -17,6 +17,10 @@
   },
   "input": {"amount":"number","flag":"boolean?","id":"string"},
   "accepted": [
+    {"operation":"top_k","body":{"k":1,"by":[{"amount":"desc"}]},"output":{"amount":"number","flag":"boolean?","id":"string"}},
+    {"operation":"top_k","body":{"k":9007199254740991,"by":[{"id":"asc"},{"id":"asc"}]},"output":{"amount":"number","flag":"boolean?","id":"string"}},
+    {"operation":"top_k_by","body":{"partition_by":[],"k":3,"by":[{"amount":"desc"}]},"output":{"amount":"number","flag":"boolean?","id":"string"}},
+    {"operation":"top_k_by","body":{"partition_by":["id","id"],"k":3,"by":[{"amount":"desc"}]},"output":{"amount":"number","flag":"boolean?","id":"string"}},
     {"operation":"analytic","body":{"partition_by":[],"order_by":[{"id":"asc"}],"functions":{"result":{"fn":"count","expr":"amount"}},"frame":{"start":"current_row","end":"current_row"}},"output":{"amount":"number","flag":"boolean?","id":"string","result":"number"}},
     {"operation":"analytic","body":{"partition_by":[],"order_by":[{"id":"asc"}],"functions":{"result":{"fn":"count_if","expr":"flag"}},"frame":{"start":"current_row","end":"current_row"}},"output":{"amount":"number","flag":"boolean?","id":"string","result":"number"}},
     {"operation":"analytic","body":{"partition_by":[],"order_by":[{"id":"asc"}],"functions":{"result":{"fn":"sum","expr":"amount"}},"frame":{"start":"current_row","end":"current_row"}},"output":{"amount":"number","flag":"boolean?","id":"string","result":"number?"}},
@@ -108,6 +112,11 @@
     {"operation":"drop","body":["id","id"],"output":{"amount":"number","flag":"boolean?"},"order":["amount","flag"]}
   ],
   "rejected": [
+    {"operation":"top_k","body":{"k":0,"by":[{"id":"asc"}]},"issue":"InvalidCount"},
+    {"operation":"top_k","body":{"k":9007199254740992,"by":[{"id":"asc"}]},"issue":"InvalidCount"},
+    {"operation":"top_k","body":{"k":1,"by":[]},"issue":"InvalidOrder"},
+    {"operation":"top_k_by","body":{"k":1,"by":[{"id":"asc"}]},"issue":"InvalidBody"},
+    {"operation":"top_k_by","body":{"partition_by":["missing"],"k":1,"by":[{"id":"asc"}]},"issue":"UnknownField"},
     {"operation":"analytic","body":{"partition_by":[],"order_by":[{"id":"asc"}],"functions":{"r":{"fn":"rank"}},"frame":{"start":"current_row","end":"current_row"}},"issue":"InvalidFrame"},
     {"operation":"analytic","body":{"partition_by":[],"order_by":[{"id":"asc"}],"functions":{"a":{"fn":"count"}}},"issue":"InvalidFrame"},
     {"operation":"analytic","body":{"partition_by":[],"order_by":[],"functions":{"r":{"fn":"rank"}}},"issue":"InvalidOrder"},

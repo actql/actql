@@ -2,8 +2,8 @@
 
 `relation_typing.check` checks one `derive`, `filter`, `select`, `rename`, `drop`,
 `sort`, `take`, `distinct`, `dedupe_rows`, `json_pick`, `unnest`, `unpivot`,
-`assert_rows`, [group](relation-aggregates.md), [pivot](relation-pivot.md), or
-[analytic](relation-analytic.md) body against a supplied complete
+`assert_rows`, [group](relation-aggregates.md), [pivot](relation-pivot.md),
+[analytic](relation-analytic.md), or [top-k](relation-top-k.md) body against a supplied complete
 `relation_schema.Schema` and optional
 Parameter declarations. The operation kind is a closed enum; the body is an
 owned `decode_core.Cursor`. It is not a parser for the step envelope:

@@ -16,6 +16,8 @@ pub(all) enum Operation {
   Group
   Pivot
   Analytic
+  TopK
+  TopKBy
 } derive(Eq, Debug)
 
 ///|

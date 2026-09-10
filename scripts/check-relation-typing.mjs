@@ -7,7 +7,7 @@ const literal = text => '"' + [...text].map(c => {
   const cp = c.codePointAt(0);
   return cp < 32 || cp > 126 ? '\\u{' + cp.toString(16) + '}' : c === '"' || c === '\\' ? '\\' + c : c;
 }).join('') + '"';
-const operations = { analytic: 'Analytic', pivot: 'Pivot', group: 'Group', derive: 'Derive', filter: 'Filter', select: 'Select', rename: 'Rename', drop: 'Drop', sort: 'Sort', take: 'Take', distinct: 'Distinct', dedupe_rows: 'DedupeRows', json_pick: 'JsonPick', unnest: 'Unnest', assert_rows: 'AssertRows', unpivot: 'Unpivot' };
+const operations = { top_k: 'TopK', top_k_by: 'TopKBy', analytic: 'Analytic', pivot: 'Pivot', group: 'Group', derive: 'Derive', filter: 'Filter', select: 'Select', rename: 'Rename', drop: 'Drop', sort: 'Sort', take: 'Take', distinct: 'Distinct', dedupe_rows: 'DedupeRows', json_pick: 'JsonPick', unnest: 'Unnest', assert_rows: 'AssertRows', unpivot: 'Unpivot' };
 const issues = ['InvalidFrame', 'InvalidFill', 'FillValue', 'InvalidAggregate', 'InvalidAggregateArgument', 'InvalidAggregateOption', 'ForbiddenAggregateValue', 'ExpectedBoolean', 'UnknownField', 'NullTypeUnresolved', 'EmptyBody', 'InvalidBody', 'InputCollision', 'DuplicateOutput', 'InvalidName', 'InvalidOrder', 'NotAuthorOrderable', 'NotKeyComparable', 'InvalidCount', 'UnknownParameter', 'ExpectedObject', 'ExpectedArray', 'ShapeEvidenceRequired', 'IncompatibleColumn'];
 
 export function generate(corpus) {

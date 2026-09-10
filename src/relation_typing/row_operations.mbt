@@ -28,6 +28,12 @@ pub enum RowOperation {
   DistinctRows
   DistinctKeys(Array[KeyField])
   DedupeRows(by~ : Array[KeyField], order~ : Array[OrderTerm])
+  TopK(count~ : CountValue, order~ : Array[OrderTerm])
+  TopKBy(
+    partition~ : Array[KeyField],
+    count~ : CountValue,
+    order~ : Array[OrderTerm]
+  )
 }
 
 ///|
@@ -49,6 +55,8 @@ pub(all) enum ValidationKind {
   AnalyticFrameDemand
   AnalyticEnvelope
   BoundFrameOrder
+  TopKSelectionEnvelope
+  TopKPartitioning
   AggregateEnvelope
   NumericAggregateObservation
   StatisticalAggregateLaw
@@ -80,6 +88,9 @@ pub fn row_operation(value : CheckedOperation) -> RowOperation? {
       DistinctRows => DistinctRows
       DistinctKeys(keys) => DistinctKeys(keys.copy())
       DedupeRows(by~, order~) => DedupeRows(by=by.copy(), order=order.copy())
+      TopK(count~, order~) => TopK(count~, order=order.copy())
+      TopKBy(partition~, count~, order~) =>
+        TopKBy(partition=partition.copy(), count~, order=order.copy())
     }
   })
 }
