@@ -198,6 +198,11 @@ pub fn selector_ids(c : CheckedSelector) -> Array[@value.CheckedValue] {
 }
 
 ///|
+pub fn selector_id_count(c : CheckedSelector) -> Int {
+  c.ids.length()
+}
+
+///|
 pub fn selector_predicate(c : CheckedSelector) -> CheckedPredicate? {
   c.predicate
 }

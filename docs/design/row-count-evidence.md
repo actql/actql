@@ -42,6 +42,14 @@ accumulation to avoid overflow in an irrelevant partial sum. The two passes each
 charge one work unit per sample, and indexed weight access avoids copying a list.
 Graph diff, like graph equality, emits exactly one Relation row: the number of
 actions inside its Delta payload is a separate bound, not its output row count.
+Reach emits at most one row per node for its single start. Shortest-path endpoint
+selection is bounded by both the graph's node extent and the selector extent
+(literal ID occurrences or selected Relation rows), with deduplication leaving
+an upper bound rather than an exact count. Predicate selectors use the graph
+bound. Each-pair output is bounded by the endpoint product, nearest-per-source by
+the source count, and nearest-pair by one. An empty endpoint makes every mode
+empty. These bounds say nothing about path existence, endpoint membership,
+weighted search work, or the number of simple paths enumerated by traversal.
 
 | Checked operation | Count rule |
 | --- | --- |

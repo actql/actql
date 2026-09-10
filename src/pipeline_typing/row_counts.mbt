@@ -252,6 +252,41 @@ fn ranking_count(
 }
 
 ///|
+fn selector_count(
+  selector : @graph.CheckedSelector,
+  target : Target?,
+  rows : Array[RowCount?],
+  nodes : RowCount?,
+) -> RowCount? {
+  let selected = match @graph.selector_form(selector) {
+    ExplicitIds =>
+      Some(count(@graph.selector_id_count(selector).to_int64(), false))
+    RelationIds(_) => reduce_count(target.bind(t => count_at(t, rows)))
+    PredicateNodes => None
+  }
+  match (selected, nodes) {
+    (Some(a), Some(z)) =>
+      Some(count(if a.upper < z.upper { a.upper } else { z.upper }, false))
+    (Some(a), None) => Some(a)
+    (None, _) => reduce_count(nodes)
+  }
+}
+
+///|
+fn endpoint_count(
+  endpoint : @graph.PathEndpoint,
+  target : Target?,
+  rows : Array[RowCount?],
+  nodes : RowCount?,
+) -> RowCount? {
+  match endpoint {
+    Single(_) =>
+      Some(count(if nodes is Some({ upper: 0L, .. }) { 0L } else { 1L }, false))
+    Selected(s) => selector_count(s, target, rows, nodes)
+  }
+}
+
+///|
 fn mean_graph_count(
   b : Budget,
   step : CheckedStep,
@@ -383,6 +418,43 @@ fn derive_row_counts(
           _ => None
         }
       GraphEquality(_) | GraphDiff(_) => Some(count(1L, true))
+      Reach(_) => reduce_count(graph_input.bind(g => g.nodes))
+      Shortest(source_selector~, target_selector~, checked~) => {
+        let nodes = graph_input.bind(g => g.nodes)
+        let left = endpoint_count(
+          @graph.shortest_endpoint(checked, Left),
+          source_selector,
+          result,
+          nodes,
+        )
+        let right = endpoint_count(
+          @graph.shortest_endpoint(checked, Right),
+          target_selector,
+          result,
+          nodes,
+        )
+        match @graph.shortest_selection(checked) {
+          EachPair => reduce_count(product_counts(step.source, left, right))
+          NearestPerSource =>
+            if right is Some({ upper: 0L, .. }) {
+              Some(count(0L, true))
+            } else {
+              reduce_count(left)
+            }
+          NearestPair =>
+            Some(
+              count(
+                if left is Some({ upper: 0L, .. }) ||
+                  right is Some({ upper: 0L, .. }) {
+                  0L
+                } else {
+                  1L
+                },
+                false,
+              ),
+            )
+        }
+      }
       GraphMatch(v) =>
         reduce_count(
           graph_input.bind(g => {
