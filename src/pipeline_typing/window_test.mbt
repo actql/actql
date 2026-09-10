@@ -20,6 +20,80 @@ fn window_input() -> @carrier.Carrier {
 }
 
 ///|
+test "window groups prepend boundaries once and preserve ordinary repeated keys" {
+  let p = @pipeline_typing.check_carriers(
+    cursor(
+      "[{\"row_window\":{\"kind\":\"fixed\",\"time\":\"at\",\"size\":10}},{\"window_group\":{\"by\":[\"value\",\"window_start\",\"value\",\"window_end\"],\"aggregates\":{\"n\":{\"fn\":\"count\"}}}}]",
+    ),
+    [("rows", window_input())],
+    None,
+    None,
+    limits(),
+  ).unwrap()
+  let step = @pipeline_typing.step_at(p, 1).unwrap()
+  match step.operation {
+    WindowGroup(checked) => {
+      let group = @relation.group(checked).unwrap()
+      assert_eq(
+        @relation.group_keys(group).map(k => @schema.reference_name(k.field)),
+        ["window_start", "window_end", "value", "value"],
+      )
+      assert_eq(@relation.aggregate_count(group), 1)
+    }
+    _ => fail("expected window group")
+  }
+  assert_eq(
+    @schema.fields(@pipeline_typing.output_schema(p).unwrap()).map(f => {
+      @schema.reference_name(f.name)
+    }),
+    ["n", "value", "window_end", "window_start"],
+  )
+  assert_true(@pipeline_typing.window_evidence(step) is Some(_))
+}
+
+///|
+test "window groups use transferred roles and permit empty ordinary grouping" {
+  let p = @pipeline_typing.check_carriers(
+    cursor(
+      "[{\"row_window\":{\"kind\":\"sliding\",\"time\":\"at\",\"size\":10,\"step\":3}},{\"rename\":{\"window_start\":\"begin\",\"window_end\":\"end\"}},{\"window_group\":{\"by\":[],\"aggregates\":{}}}]",
+    ),
+    [("rows", window_input())],
+    None,
+    None,
+    limits(),
+  ).unwrap()
+  match @pipeline_typing.step_at(p, 2).unwrap().operation {
+    WindowGroup(checked) =>
+      assert_eq(
+        @relation.group_keys(@relation.group(checked).unwrap()).map(k => {
+          @schema.reference_name(k.field)
+        }),
+        ["begin", "end"],
+      )
+    _ => fail("expected window group")
+  }
+  assert_eq(@schema.field_count(@pipeline_typing.output_schema(p).unwrap()), 2)
+}
+
+///|
+test "window groups reject missing or invalidated evidence before aggregate checking" {
+  for
+    prefix in [
+      "", "{\"row_window\":{\"kind\":\"fixed\",\"time\":\"at\",\"size\":1}},{\"drop\":[\"window_end\"]},",
+      "{\"row_window\":{\"kind\":\"fixed\",\"time\":\"at\",\"size\":1}},{\"derive\":[{\"window_start\":{\"literal\":1}}]},",
+    ] {
+    let issue = @pipeline_typing.check_carriers(
+      cursor("[" + prefix + "{\"window_group\":{\"by\":[],\"aggregates\":{}}}]"),
+      [("rows", window_input())],
+      None,
+      None,
+      limits(),
+    ).unwrap_err()
+    assert_eq(issue.kind, MissingWindowEvidence)
+  }
+}
+
+///|
 test "window pipeline retains bindings connections and value-preserving roles" {
   let p = @pipeline_typing.check_carriers(
     cursor(

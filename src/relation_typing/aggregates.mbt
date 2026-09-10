@@ -468,14 +468,39 @@ fn check_group(
   parameter_types : Map[String, @contract.Contract],
   bindings : Array[Binding],
   pending : Array[PendingValidation],
+  prefix : Array[@schema.FieldName],
 ) -> (CheckedGroup, Array[(@schema.FieldName, @contract.Contract)]) raise Stop {
   let obj = decoded(@decode.closed_object(source, ["by", "aggregates"]), source)
-  let keys = row_keys(
+  let authored = row_keys(
     b,
     decoded(@decode.required(obj, "by"), source),
     visible,
     unique=false,
   )
+  let keys : Array[KeyField] = []
+  let prefixed : Map[String, Bool] = Map([])
+  spend(b, source, count=prefix.length())
+  for field in prefix {
+    let name = @schema.reference_name(field)
+    let resolved = input_reference(b, source, name, visible)
+    if resolved != field {
+      fail(source, UnknownField(name))
+    }
+    let ty = visible.get(name).unwrap().0
+    if !@contract.key_comparable(ty, ty) {
+      fail(source, NotKeyComparable(name))
+    }
+    if !prefixed.contains(name) {
+      prefixed[name] = true
+      keys.push({ field, source, })
+    }
+  }
+  for key in authored {
+    spend(b, key.source)
+    if !prefixed.contains(@schema.reference_name(key.field)) {
+      keys.push(key)
+    }
+  }
   pending.push({ kind: GroupPartitioning, source, })
   let fields : Array[(@schema.FieldName, @contract.Contract)] = []
   let seen : Map[String, Bool] = Map([])
@@ -507,4 +532,19 @@ fn check_group(
     aggregates.push(checked)
   }
   ({ keys, aggregates, }, fields)
+}
+
+///|
+/// Check a group with explicit additional leading keys. This validates grouping
+/// types only; it does not establish window-role evidence for the caller.
+pub fn check_group_with_prefix(
+  body : @decode.Cursor,
+  input : @schema.Schema,
+  prefix : Array[@schema.FieldName],
+  parameters : @parameter.Declarations?,
+  limits : Limits,
+) -> Result[CheckedOperation, Issue] {
+  Ok(check_impl(Group, body, input, parameters, limits, group_prefix=prefix)) catch {
+    Stop(issue) => Err(issue)
+  }
 }

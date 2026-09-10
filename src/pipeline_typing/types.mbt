@@ -38,6 +38,7 @@ pub(all) enum IssueKind {
   GeneratorFrom
   Values(@values.IssueKind)
   Window(@window.IssueKind)
+  MissingWindowEvidence
   UnsupportedOperation(String)
   InvalidMetadata
   ReservedMetadataKey(String)
@@ -111,6 +112,7 @@ pub enum CheckedOperation {
   CrossJoin(right~ : Target, checked~ : @join.CheckedCrossJoin)
   Values(@values.CheckedValues)
   Window(@window.CheckedWindow)
+  WindowGroup(@relation.CheckedOperation)
 }
 
 ///|

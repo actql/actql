@@ -4,6 +4,7 @@ import {resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {parameterPrograms} from './parameter-schema.mjs';
 import {machineCid} from './actql-spec-family.mjs';
+import {groupSchema} from './aggregate-schema.mjs';
 
 export function millisecondsSchema(signed=false) {
   return {oneOf:[
@@ -29,6 +30,7 @@ export function checkWindowSchemas(registry) {
   for(const p of parameterPrograms(registry)) {
     assert.deepEqual(p.properties.steps.items.properties.row_window,windowSchema(true));
     assert.deepEqual(p.properties.steps.items.properties.window_events,windowSchema(false));
+    assert.deepEqual(p.properties.steps.items.properties.window_group,groupSchema());
   }
   for(const [name,body] of Object.entries(registry.artifact_schemas)) assert.equal(registry.artifact_schema_cids[name],machineCid(body));
   assert.equal(registry.artifact_registry_cid,machineCid(registry.artifact_schemas));
@@ -41,6 +43,7 @@ if(process.argv[1]&&resolve(process.argv[1])===fileURLToPath(import.meta.url)) {
     for(const p of parameterPrograms(registry)) {
       p.properties.steps.items.properties.row_window=windowSchema(true);
       p.properties.steps.items.properties.window_events=windowSchema(false);
+      p.properties.steps.items.properties.window_group=groupSchema();
     }
     for(const [name,body] of Object.entries(registry.artifact_schemas)) registry.artifact_schema_cids[name]=machineCid(body);
     registry.artifact_registry_cid=machineCid(registry.artifact_schemas);

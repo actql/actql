@@ -11,6 +11,9 @@ fn transfer_window(
     Input(_) => None
   }
   guard previous is Some(roles) else { return None }
+  if operation is WindowGroup(_) {
+    return Some(roles)
+  }
   guard operation is Unary(op) else { return None }
   match @relation.operation(op) {
     Filter | Sort | Take | AssertRows | DedupeRows | TopK | TopKBy =>

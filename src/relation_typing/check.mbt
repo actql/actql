@@ -104,6 +104,7 @@ fn check_impl(
   input : @schema.Schema,
   parameters : @parameter.Declarations?,
   limits : Limits,
+  group_prefix? : Array[@schema.FieldName] = [],
 ) -> CheckedOperation raise Stop {
   if limits.max_work < 0 ||
     limits.max_text_bytes < 0 ||
@@ -219,7 +220,7 @@ fn check_impl(
     Group => {
       row_source(b, body)
       let (details, fields) = check_group(
-        b, body, visible, parameters, parameter_types, bindings, pending,
+        b, body, visible, parameters, parameter_types, bindings, pending, group_prefix,
       )
       group = Some(details)
       output = schema_type(b, body, fields)

@@ -70,6 +70,7 @@ pub enum CheckedOperation {
   CrossJoin(right~ : Target, checked~ : @relation_join.CheckedCrossJoin)
   Values(@relation_values.CheckedValues)
   Window(@temporal_window.CheckedWindow)
+  WindowGroup(@relation_typing.CheckedOperation)
 }
 
 type CheckedPipeline
@@ -120,6 +121,7 @@ pub(all) enum IssueKind {
   GeneratorFrom
   Values(@relation_values.IssueKind)
   Window(@temporal_window.IssueKind)
+  MissingWindowEvidence
   UnsupportedOperation(String)
   InvalidMetadata
   ReservedMetadataKey(String)

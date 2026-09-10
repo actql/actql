@@ -206,6 +206,7 @@ fn check_impl(
       "assert_rows" => Some(AssertRows)
       "unpivot" => Some(Unpivot)
       "group" => Some(Group)
+      "window_group" => Some(Group)
       "pivot" => Some(Pivot)
       "analytic" => Some(Analytic)
       "top_k" => Some(TopK)
@@ -320,20 +321,36 @@ fn check_impl(
     }
     let (checked, output) = match op {
       Some(op) => {
-        let checked = match
-          @relation.check(
-            op,
+        let input_schema = schema(operation_body, input, inputs, steps)
+        let operation_limits : @relation.Limits = {
+          max_work: b.work,
+          max_text_bytes: b.text,
+          max_nodes: b.nodes,
+          max_tokens: b.tokens,
+          max_depth: limits.max_depth,
+        }
+        let result = if key == "window_group" {
+          let evidence = match input {
+            Step(i) => steps[i].window
+            Input(_) => None
+          }
+          let roles = match evidence {
+            Some(v) => v
+            None => fail(operation_body, MissingWindowEvidence)
+          }
+          @relation.check_group_with_prefix(
             operation_body,
-            schema(operation_body, input, inputs, steps),
+            input_schema,
+            [roles.start, roles.end],
             parameters,
-            {
-              max_work: b.work,
-              max_text_bytes: b.text,
-              max_nodes: b.nodes,
-              max_tokens: b.tokens,
-              max_depth: limits.max_depth,
-            },
-          ) {
+            operation_limits,
+          )
+        } else {
+          @relation.check(
+            op, operation_body, input_schema, parameters, operation_limits,
+          )
+        }
+        let checked = match result {
           Ok(v) => v
           Err(issue) =>
             raise Stop({
@@ -348,7 +365,14 @@ fn check_impl(
         b.text -= @relation.text_bytes_used(checked)
         b.nodes -= @relation.nodes_used(checked)
         b.tokens -= @relation.tokens_used(checked)
-        (Unary(checked), @relation.output_schema(checked))
+        (
+          if key == "window_group" {
+            WindowGroup(checked)
+          } else {
+            Unary(checked)
+          },
+          @relation.output_schema(checked),
+        )
       }
       None =>
         if key == "cross_join" {
@@ -547,7 +571,8 @@ fn check_impl(
     let connections : Connections = {
       entries: match checked {
         Values(_) => []
-        Unary(_) | Window(_) => [{ role: Primary, target: input, }]
+        Unary(_) | Window(_) | WindowGroup(_) =>
+          [{ role: Primary, target: input, }]
         Join(right~, ..)
         | Append(right~, ..)
         | Nest(right~, ..)

@@ -50,6 +50,16 @@ The generated embedded Program schemas require the closed bodies, sliding step,
 and lexical numeric/duration/Parameter alternatives. Runtime duration overflow
 and bound Parameter domains remain semantic checks, not claims of JSON Schema.
 
-Already-windowed external input admission, `window_group` consumption and complete
-temporal-family integration remain to be connected. Successful pipeline window
-checking does not imply completion of those boundaries.
+`window_group` requires the selected input's window evidence before invoking the
+shared aggregate checker. Its effective key list begins with the two proven
+boundaries exactly once, followed by ordinary authored keys in their existing
+order, retaining repetitions other than those already supplied boundary keys.
+The original source retains all authored occurrences. Empty ordinary `by` and
+empty aggregates are admitted; this is grouping by the two boundaries, not an
+empty global group. Boundary roles survive that grouping. Named aggregate rules,
+type derivation and pending validation obligations are the same as for `group`.
+The embedded schema reuses the exact group body generator.
+
+Already-windowed external input admission and complete temporal-family integration
+remain to be connected. Successful pipeline window checking does not imply
+completion of those boundaries.
