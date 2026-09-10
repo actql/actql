@@ -153,6 +153,8 @@ pub fn query_values(Query) -> Array[Double]?
 
 pub fn ranking_by(RankingOptions) -> Array[@relation_schema.FieldName]
 
+pub fn ranking_by_count(RankingOptions) -> Int
+
 pub fn ranking_candidate(RankingOptions) -> @relation_schema.FieldName
 
 pub fn ranking_from_fusion(CheckedRanking) -> RankingInput

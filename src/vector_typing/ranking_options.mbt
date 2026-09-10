@@ -266,6 +266,12 @@ pub fn ranking_by(o : RankingOptions) -> Array[@row.FieldName] {
 }
 
 ///|
+/// Constant-time partition arity without copying field references.
+pub fn ranking_by_count(o : RankingOptions) -> Int {
+  o.by.length()
+}
+
+///|
 pub fn ranking_candidate(o : RankingOptions) -> @row.FieldName {
   o.candidate
 }

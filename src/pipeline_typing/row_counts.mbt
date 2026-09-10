@@ -115,6 +115,44 @@ fn window_count(
 }
 
 ///|
+fn ranking_count(
+  b : Budget,
+  step : CheckedStep,
+  prior : Array[RowCount?],
+  op : @vector.CheckedRanking,
+) -> RowCount? raise Stop {
+  let options = @vector.merged_ranking_options(op)
+  let global = @vector.ranking_by_count(options) == 0
+  let k = @vector.ranking_k(options).to_int64()
+  // Inspect completeness before adding: an unknown operand prevents deriving
+  // a finite union bound, so a known prefix must not fail with a bogus overflow.
+  spend(b, step.source, step.connections.entries.length())
+  let mut known = true
+  for edge in step.connections.entries {
+    if count_at(edge.target, prior) is None {
+      known = false
+    }
+  }
+  if !known {
+    return if global { Some(count(k, false)) } else { None }
+  }
+  spend(b, step.source, step.connections.entries.length())
+  let mut total = Some(count(0L, true))
+  for edge in step.connections.entries {
+    let next = count_at(edge.target, prior)
+    if global {
+      // Compute min(k, sum) directly; no oversized intermediate is needed.
+      let a = total.unwrap().upper
+      let z = next.unwrap().upper
+      total = Some(count(if z >= k - a { k } else { a + z }, false))
+    } else {
+      total = sum_counts(step.source, total, next)
+    }
+  }
+  reduce_count(total)
+}
+
+///|
 // Single forward pass over already checked, ordered operand occurrences.
 fn derive_row_counts(
   b : Budget,
@@ -145,6 +183,29 @@ fn derive_row_counts(
           Dedupe(_) | Watermark(_, Drop) => reduce_count(input)
         }
       Window(v) => window_count(step.source, input, @window.options(v))
+      Pool(_) => reduce_count(input)
+      Nearest(queries~, checked~) => {
+        let k = @vector.nearest_k(
+          @vector.nearest_pair_options(@vector.nearest_pair(checked)),
+        )
+        product_counts(
+          step.source,
+          count_at(queries, result),
+          slice_count(input, Some(k), Some(0L)),
+        )
+      }
+      TextRank(queries~, checked~) => {
+        let k = @vector.text_rank_k(@vector.text_rank_options(checked)).to_int64()
+        // Zero-score documents are omitted, unlike nearest's full ranking.
+        reduce_count(
+          product_counts(
+            step.source,
+            count_at(queries, result),
+            slice_count(input, Some(k), Some(0L)),
+          ),
+        )
+      }
+      Ranking(v) => ranking_count(b, step, result, v)
       Nest(_) => input
       Append(right~, ..) =>
         sum_counts(step.source, input, count_at(right, result))

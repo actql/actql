@@ -43,6 +43,10 @@ in [resolved limits](../spec/language.md#resolved-limits).
 | dedupe_events | Retain upper bound |
 | fixed row_window/window_events | Preserve count, independently of an explicitly supplied step |
 | sliding row_window/window_events | Multiply by ceil(size / step) for literal size/step; exact multiplicity only when size is divisible by step |
+| pool_vectors | Input upper bound; every nonempty group emits one vector |
+| nearest | Query count times min(k, candidate count); exact when both factors are exact |
+| text_rank | Query count times min(k, corpus count), upper bound only because zero-score documents are omitted |
+| merge_rankings | Sum input-occurrence upper bounds, not exact; empty by additionally clamps the whole output to k |
 
 Window multiplicity follows the integer lattice and closed-open membership rule
 in [event windows](../spec/language.md#event-windows). When size is not divisible
@@ -56,6 +60,15 @@ and profile/resource resolution remain required even for exact or zero counts.
 `relation_typing.row_count_rule` reads private checked metadata in constant time;
 it does not copy the operation's field, order or aggregate arrays. Pipeline
 derivation is one nonrecursive forward pass with one work-budget unit per step.
+Ranking fusion additionally charges one unit per operand to inspect completeness
+and, when all counts are known, another unit per operand to accumulate the bound.
+Partition arity is read without copying its field list. Repeated ranking inputs
+are included in the sum, although their repeated candidates need not emit repeated
+rows. With nonempty by, k is per group, not a bound on the entire output. Empty by
+is one global group: compute min(k, sum) without overflowing an unnecessary
+unclamped intermediate. Unknown operand counts keep this global k bound, but do
+not manufacture a finite union bound for partitioned fusion. Rank windows may
+reduce participation further; these summaries do not claim the bound is tight.
 It respects resolved operand edges and does not deduplicate repeated inputs.
 Checked addition and multiplication reject safe-integer overflow with
 `RowBoundOverflow` at the step source, rather than saturating or silently dropping
@@ -66,6 +79,6 @@ The fixed Sketch bound-transfer registry distinguishes preservation, clamping,
 addition, multiplication, reduction and carrier-specific laws. This implementation
 uses the same distinctions and additionally records exactness where warranted by
 the current language. It does not adopt a Host ceiling or physical estimate as
-an exact count. General join cardinality, ranking and Graph transfers,
+an exact count. General join cardinality and Graph transfers,
 validated external count facts and dependency-closed Plan witness
 serialization remain shared-evidence work. No execution conformance is claimed.
