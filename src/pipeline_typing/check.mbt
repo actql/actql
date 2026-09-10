@@ -613,6 +613,7 @@ fn check_impl(
       | "nearest"
       | "pool_vectors"
       | "merge_rankings"
+      | "text_rank"
       | "degree"
       | "components"
       | "graph_bounds"
@@ -1273,6 +1274,66 @@ fn check_impl(
         operation: Graph(checked),
         output: @graph.output(checked),
         connections: { entries: [{ role: Primary, target: input, }], },
+        window: None,
+      })
+      if binding_name is Some(name) {
+        names[name] = target
+      }
+      current = Some(target)
+      continue
+    }
+    if key == "text_rank" {
+      let options = vector_result(
+        operation_body,
+        @vector.read_text_rank_options(operation_body, {
+          max_work: b.work,
+          max_nodes: b.nodes,
+          max_depth: limits.max_depth,
+          max_text_bytes: b.text,
+        }),
+      )
+      let u = @vector.text_rank_options_usage(options)
+      b.work -= u.work
+      b.nodes -= u.nodes
+      b.text -= u.text_bytes
+      let root = @decode.open_object(operation_body).unwrap()
+      let queries = resolve_target(
+        b,
+        @decode.required(root, "queries").unwrap(),
+        names,
+      )
+      let checked = vector_result(
+        operation_body,
+        @vector.check_text_rank_inputs(
+          options,
+          carrier(input, inputs, steps),
+          carrier(queries, inputs, steps),
+          {
+            max_work: b.work,
+            max_nodes: b.nodes,
+            max_depth: limits.max_depth,
+            max_text_bytes: b.text,
+          },
+        ),
+      )
+      let u = @vector.text_rank_usage(checked)
+      b.work -= u.work
+      b.nodes -= u.nodes
+      b.text -= u.text_bytes
+      let target = Step(steps.length())
+      steps.push({
+        source: body,
+        input: Some(input),
+        binding_name,
+        metadata: meta,
+        operation: TextRank(queries~, checked~),
+        output: @vector.text_rank_output(checked),
+        connections: {
+          entries: [
+            { role: Left, target: input, },
+            { role: Right, target: queries, },
+          ],
+        },
         window: None,
       })
       if binding_name is Some(name) {
@@ -1993,7 +2054,7 @@ fn check_impl(
         | Event(_)
         | Sequence(_)
         | Vector(_) => [{ role: Primary, target: input, }]
-        Nearest(queries~, ..) =>
+        Nearest(queries~, ..) | TextRank(queries~, ..) =>
           [{ role: Left, target: input, }, { role: Right, target: queries, }]
         Join(right~, ..)
         | Append(right~, ..)

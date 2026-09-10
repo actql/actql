@@ -29,6 +29,7 @@ fn ranking_at(
       match steps[i].operation {
         Nearest(checked~, ..) => @vector.ranking_from_nearest(checked)
         Ranking(checked) => @vector.ranking_from_fusion(checked)
+        TextRank(checked~, ..) => @vector.ranking_from_text(checked)
         _ => @vector.ranking_relation(steps[i].output)
       }
   }

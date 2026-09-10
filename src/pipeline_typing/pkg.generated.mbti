@@ -113,6 +113,7 @@ pub enum CheckedOperation {
   Nearest(queries~ : Target, checked~ : @vector_typing.CheckedNearest)
   Pool(@vector_typing.CheckedPool)
   Ranking(@vector_typing.CheckedRanking)
+  TextRank(queries~ : Target, checked~ : @vector_typing.CheckedTextRank)
   Event(@event_typing.CheckedEvent)
   WindowGroup(@relation_typing.CheckedOperation)
 }

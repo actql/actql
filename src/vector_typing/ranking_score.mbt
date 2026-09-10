@@ -44,6 +44,7 @@ pub fn declare_ranking_score(
       carrier: input,
       nearest: None,
       fusion: None,
+      lexical: None,
       tuples: Map([]),
       score_declaration: Some({
         source,

@@ -185,6 +185,38 @@ silently acquire score declarations. Diagnostics retain the failing source path
 and span. Evidence transfer through arbitrary intervening operations and derived
 output score envelopes remain unfinished shared evidence work.
 
+## Pure lexical ranking
+
+`read_text_rank_options` admits the closed body specified by
+[text_rank](../spec/language.md#text-rank); `check_text_rank_inputs` checks its
+roles on the corpus and query Relations. Identity and text roles require known
+non-null strings. Other payload fields may remain unknown: the language does not
+require a complete payload schema for this operation. Role declarations impose
+whole-input uniqueness checks; known string types alone do not prove uniqueness.
+BM25 constants and k are explicit, with no tokenizer, scoring or ranking defaults.
+
+Output consists only of typed query_id/candidate_id and non-null number score/rank.
+Identity contracts are retained without encoding IDs as strings from other types
+or hashing them. Contiguous positive ranks, canonical ordering and the bound
+query_count * min(k, corpus_count) require their execution/resource checks.
+Pipeline query edges retain their target separately from the current corpus;
+`ranking_from_text` preserves the producer and its obligations for RRF. It does
+not declare lexical scores comparable with arbitrary vector scores.
+
+The checker records Unicode NFKC/full-fold/tokenization, actual-input corpus
+statistics, correctly rounded logarithms, exact fold order, empty-input guards,
+non-finite rejection and separate token/statistics/scoring/output ceilings as
+obligations. This implements no tokenizer or BM25 evaluator. Resolving the pinned
+text-rank profile and its numerical/tokenizer vectors remains shared profile work;
+MoonBit type-check tests are not numerical conformance evidence.
+
+Fixed-revision searches found no text_rank implementation in Sketch
+`87dc7144138edfcba108cdc59dc485ac976ba976` (src and moonbit/src), no text_rank/BM25
+in AoA `dbab4fe8c1d624d81ed967f90e2abe742163f84f` packages, and none in Smooth
+`55b83448ac44c66c992b2f1c33452b7849e6c3f8` Data Plane operator-runtime/container.
+This operation follows the current normative language rather than borrowing
+external index statistics or a library-specific BM25 variant.
+
 ## Existing vector preparation and scoring
 
 The checker supports `to_vectors` from Relation and `normalize_vectors` and `score_vectors` on Vectors,

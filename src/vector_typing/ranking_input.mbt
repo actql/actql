@@ -4,6 +4,7 @@ struct RankingInput {
   carrier : @carrier.Carrier
   nearest : CheckedNearest?
   fusion : CheckedRanking?
+  lexical : CheckedTextRank?
   score_declaration : DeclaredScore?
   tuples : Map[String, Int]
 }
@@ -15,6 +16,7 @@ pub fn ranking_relation(input : @carrier.Carrier) -> RankingInput {
     carrier: input,
     nearest: None,
     fusion: None,
+    lexical: None,
     score_declaration: None,
     tuples: Map([]),
   }
@@ -37,6 +39,7 @@ pub fn ranking_from_nearest(input : CheckedNearest) -> RankingInput {
     carrier: input.output,
     nearest: Some(input),
     fusion: None,
+    lexical: None,
     score_declaration: None,
     tuples,
   }
@@ -49,6 +52,7 @@ pub fn ranking_from_fusion(input : CheckedRanking) -> RankingInput {
     carrier: input.output,
     nearest: None,
     fusion: Some(input),
+    lexical: None,
     score_declaration: None,
     tuples: input.tuples,
   }
@@ -57,6 +61,23 @@ pub fn ranking_from_fusion(input : CheckedRanking) -> RankingInput {
 ///|
 pub fn ranking_input_fusion(input : RankingInput) -> CheckedRanking? {
   input.fusion
+}
+
+///|
+pub fn ranking_from_text(input : CheckedTextRank) -> RankingInput {
+  {
+    carrier: input.output,
+    nearest: None,
+    fusion: None,
+    lexical: Some(input),
+    score_declaration: None,
+    tuples: Map([]),
+  }
+}
+
+///|
+pub fn ranking_input_text(input : RankingInput) -> CheckedTextRank? {
+  input.lexical
 }
 
 ///|

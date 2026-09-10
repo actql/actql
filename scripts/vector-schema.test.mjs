@@ -6,6 +6,11 @@ import {parameterPrograms} from './parameter-schema.mjs';
 
 test('vector source bodies are closed and distinguish literal and whole-parameter queries', () => {
   const s = vectorSchemas();
+  assert.equal(s.text_rank.additionalProperties,false);
+  assert.deepEqual(s.text_rank.required,['queries','query_id','query_text','candidate_id','candidate_text','tokenizer','scoring','k']);
+  assert.equal(s.text_rank.properties.scoring.properties.bm25.properties.k1.exclusiveMinimum,0);
+  assert.equal(s.text_rank.properties.scoring.properties.bm25.properties.b.maximum,1);
+  assert.equal(s.text_rank.properties.k.maximum,9007199254740991);
   const [maximum, weighted, rrf] = s.merge_rankings.oneOf;
   assert.equal(maximum.properties.score_policy.const,'max');
   assert.equal(weighted.properties.score_policy.properties.weighted_sum.additionalProperties,false);

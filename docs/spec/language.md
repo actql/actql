@@ -7544,6 +7544,10 @@ ScoreContract := {domain: NonemptyString, range: [finite minimum, finite maximum
   normalization: NonemptyString, higher_is_better?: true}
 MergeRankingsConstraints := minimum <= maximum; weighted_sum weights sum to one;
   RRF weights include the current input and have positive total weight.
+TextRankBody := {queries: InputOrStepName, query_id: Field, query_text: Field,
+  candidate_id: Field, candidate_text: Field, tokenizer: unicode_words | char_bigram,
+  scoring: {bm25: {k1: positive finite number, b: finite number in [0, 1]}},
+  k: positive safe-integer literal}
 MeanGraphsBody := {with: [InputOrStepName, ...], weights: [nonnegative number, ...],
   support: {nodes: number in (0, 1], edges: number in (0, 1]},
   properties: {nodes: {Field: MeanPropertyStrategy}*, edges: {Field: MeanPropertyStrategy}*}}

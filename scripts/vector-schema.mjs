@@ -18,6 +18,11 @@ export function vectorSchemas() {
     ...common,with:field,score:field,score_contract:scoreContract,score_policy:policy,tie_break:{type:'array',items:field},
   }});
   return {
+    text_rank:{type:'object',additionalProperties:false,required:['queries','query_id','query_text','candidate_id','candidate_text','tokenizer','scoring','k'],properties:{
+      queries:field,query_id:field,query_text:field,candidate_id:field,candidate_text:field,
+      tokenizer:{enum:['unicode_words','char_bigram']},k:positive,
+      scoring:{type:'object',additionalProperties:false,required:['bm25'],properties:{bm25:{type:'object',additionalProperties:false,required:['k1','b'],properties:{k1:{type:'number',exclusiveMinimum:0},b:{type:'number',minimum:0,maximum:1}}}}},
+    }},
     merge_rankings:{oneOf:[
       scored({const:'max'}),
       scored({type:'object',additionalProperties:false,required:['weighted_sum'],properties:{weighted_sum:{

@@ -154,6 +154,7 @@ pub enum CheckedOperation {
   Nearest(queries~ : Target, checked~ : @vector.CheckedNearest)
   Pool(@vector.CheckedPool)
   Ranking(@vector.CheckedRanking)
+  TextRank(queries~ : Target, checked~ : @vector.CheckedTextRank)
   Event(@event.CheckedEvent)
   WindowGroup(@relation.CheckedOperation)
 }

@@ -31,6 +31,10 @@ pub fn check_ranking_fusion(RankingOptions, Array[RankingInput], Limits) -> Resu
 
 pub fn check_ranking_shape(RankingOptions, RankingInput, Limits) -> Result[RankingShape, Issue]
 
+pub fn check_text_rank(@decode_core.Cursor, @carrier_contract.Carrier, @carrier_contract.Carrier, Limits) -> Result[CheckedTextRank, Issue]
+
+pub fn check_text_rank_inputs(TextRankOptions, @carrier_contract.Carrier, @carrier_contract.Carrier, Limits) -> Result[CheckedTextRank, Issue]
+
 pub fn declare_ranking_score(@decode_core.Cursor, @carrier_contract.Carrier, @relation_schema.FieldName, Limits) -> Result[RankingInput, Issue]
 
 pub fn declared_score_contract(DeclaredScore) -> ScoreContract
@@ -141,11 +145,15 @@ pub fn ranking_from_fusion(CheckedRanking) -> RankingInput
 
 pub fn ranking_from_nearest(CheckedNearest) -> RankingInput
 
+pub fn ranking_from_text(CheckedTextRank) -> RankingInput
+
 pub fn ranking_input_carrier(RankingInput) -> @carrier_contract.Carrier
 
 pub fn ranking_input_fusion(RankingInput) -> CheckedRanking?
 
 pub fn ranking_input_nearest(RankingInput) -> CheckedNearest?
+
+pub fn ranking_input_text(RankingInput) -> CheckedTextRank?
 
 pub fn ranking_inputs(RankingOptions) -> Array[String]
 
@@ -189,7 +197,33 @@ pub fn read_pool_options(@decode_core.Cursor, Limits) -> Result[PoolOptions, Iss
 
 pub fn read_ranking_options(@decode_core.Cursor, Limits) -> Result[RankingOptions, Issue]
 
+pub fn read_text_rank_options(@decode_core.Cursor, Limits) -> Result[TextRankOptions, Issue]
+
 pub fn source(CheckedVector) -> @decode_core.Cursor
+
+pub fn text_rank_bm25(TextRankOptions) -> (Double, Double)
+
+pub fn text_rank_input(CheckedTextRank, TextRankSide) -> @carrier_contract.Carrier
+
+pub fn text_rank_k(TextRankOptions) -> Double
+
+pub fn text_rank_options(CheckedTextRank) -> TextRankOptions
+
+pub fn text_rank_options_usage(TextRankOptions) -> Usage
+
+pub fn text_rank_output(CheckedTextRank) -> @carrier_contract.Carrier
+
+pub fn text_rank_pending(CheckedTextRank) -> Array[TextRankObligation]
+
+pub fn text_rank_queries(TextRankOptions) -> String
+
+pub fn text_rank_roles(TextRankOptions, TextRankSide) -> TextRankRoles
+
+pub fn text_rank_source(TextRankOptions) -> @decode_core.Cursor
+
+pub fn text_rank_tokenizer(TextRankOptions) -> Tokenizer
+
+pub fn text_rank_usage(CheckedTextRank) -> Usage
 
 pub fn usage(CheckedVector) -> Usage
 
@@ -201,6 +235,8 @@ type CheckedNearest
 type CheckedPool
 
 type CheckedRanking
+
+type CheckedTextRank
 
 type CheckedVector
 
@@ -361,6 +397,39 @@ pub struct ScoreContract {
   minimum : Double
   maximum : Double
 }
+
+pub(all) enum TextRankObligation {
+  ValidateCompleteTextInputs
+  ValidateGlobalStringIdentities(TextRankSide)
+  NormalizeAndTokenizeWithPinnedUnicode
+  ResolveTokenizerAndNormalizedTextCeilings
+  ComputeStatisticsFromAdmittedCorpusOnly
+  EvaluatePinnedBm25AndCorrectlyRoundedLogarithm
+  FoldTermsInCanonicalOrder
+  RejectNonFiniteTextScores
+  ExcludeZeroScoresAndHandleEmptyInputs
+  OrderTextScoresAndSemanticIdentities
+  AssignContiguousTextRanks
+  ResolveTextRankProfile
+  ResolveStatisticsScoringAndOutputResources
+} derive(Eq, @debug.Debug)
+
+type TextRankOptions
+
+pub struct TextRankRoles {
+  identity : @relation_schema.FieldName
+  text : @relation_schema.FieldName
+}
+
+pub(all) enum TextRankSide {
+  Corpus
+  Queries
+} derive(Eq, @debug.Debug)
+
+pub(all) enum Tokenizer {
+  UnicodeWords
+  CharBigram
+} derive(Eq, @debug.Debug)
 
 pub(all) struct Usage {
   work : Int
