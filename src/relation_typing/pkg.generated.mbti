@@ -2,6 +2,7 @@
 package "actql/actql/relation_typing"
 
 import {
+  "actql/actql/carrier_contract",
   "actql/actql/decode_core",
   "actql/actql/expression_syntax",
   "actql/actql/expression_text",
@@ -11,6 +12,7 @@ import {
   "actql/actql/relation_schema",
   "actql/actql/source_span",
   "actql/actql/source_value",
+  "actql/actql/temporal_window",
   "actql/actql/value_admission",
   "actql/actql/value_contract",
   "moonbitlang/core/debug",
@@ -63,6 +65,8 @@ pub fn check(Operation, @decode_core.Cursor, @relation_schema.Schema, @parameter
 
 pub fn check_group_with_prefix(@decode_core.Cursor, @relation_schema.Schema, Array[@relation_schema.FieldName], @parameter_binding.Declarations?, Limits) -> Result[CheckedOperation, Issue]
 
+pub fn check_sequence(@decode_core.Cursor, @carrier_contract.Carrier, @parameter_binding.Declarations?, Limits) -> Result[CheckedSequence, Issue]
+
 pub fn form(CheckedOperation) -> Form
 
 pub fn group(CheckedOperation) -> CheckedGroup?
@@ -106,6 +110,36 @@ pub fn references(Binding) -> Array[Reference]
 pub fn reshape(CheckedOperation) -> Reshape?
 
 pub fn row_operation(CheckedOperation) -> RowOperation?
+
+pub fn sequence_contiguity(CheckedSequence) -> SequenceContiguity
+
+pub fn sequence_identity(CheckedSequence) -> @relation_schema.FieldName
+
+pub fn sequence_keys(CheckedSequence) -> Array[KeyField]
+
+pub fn sequence_obligations(CheckedSequence) -> Array[SequenceObligation]
+
+pub fn sequence_output(CheckedSequence) -> @relation_schema.Schema
+
+pub fn sequence_output_guard(CheckedSequence) -> CountValue?
+
+pub fn sequence_overlap(CheckedSequence) -> SequenceOverlap
+
+pub fn sequence_pattern(CheckedSequence) -> Array[SequencePattern]
+
+pub fn sequence_pending_validations(CheckedSequence) -> Array[PendingValidation]
+
+pub fn sequence_per_key_guard(CheckedSequence) -> CountValue?
+
+pub fn sequence_requires_timestamp_conversion(CheckedSequence) -> Bool
+
+pub fn sequence_source(CheckedSequence) -> @decode_core.Cursor
+
+pub fn sequence_time(CheckedSequence) -> @relation_schema.FieldName
+
+pub fn sequence_usage(CheckedSequence) -> SequenceUsage
+
+pub fn sequence_within(CheckedSequence) -> @temporal_window.Milliseconds
 
 pub fn source(CheckedOperation) -> @decode_core.Cursor
 
@@ -178,6 +212,8 @@ type CheckedOperation
 
 type CheckedPivot
 
+type CheckedSequence
+
 pub(all) enum CountValue {
   Literal(Int64)
   Parameter(String)
@@ -242,6 +278,10 @@ pub(all) enum IssueKind {
   BudgetExceeded
   Syntax(@expression_syntax.Issue)
   Expression(@expression_typing.IssueKind)
+  WrongCarrier(@carrier_contract.Kind)
+  InvalidEventIdentity
+  DuplicatePatternLabel(String)
+  Temporal(@temporal_window.IssueKind)
 } derive(Eq, @debug.Debug)
 
 pub struct KeyField {
@@ -344,6 +384,39 @@ pub struct RowsFrame {
   end : FrameBoundary
   source : @decode_core.Cursor
 }
+
+pub(all) enum SequenceContiguity {
+  Adjacent
+  Subsequence
+} derive(Eq, @debug.Debug)
+
+pub(all) enum SequenceObligation {
+  ValidateEventValues
+  UniqueEventIdentity
+  AscendingEventOrder
+  BoundedMatchSearch
+  AtomicMatchLimits
+  TeaProfile
+  BindWithin(String)
+} derive(Eq, @debug.Debug)
+
+pub(all) enum SequenceOverlap {
+  Allow
+  Disallow
+} derive(Eq, @debug.Debug)
+
+pub struct SequencePattern {
+  label : String
+  predicate : @expression_typing.TypedExpression
+  source : @decode_core.Cursor
+}
+
+pub(all) struct SequenceUsage {
+  work : Int
+  nodes : Int
+  text_bytes : Int
+  tokens : Int
+} derive(Eq, @debug.Debug)
 
 pub(all) enum ValidationKind {
   SortOrderCompletion

@@ -4517,6 +4517,22 @@ discharged.
     contiguity: subsequence
 ```
 
+<!-- requirement-block: sequence.source-contract -->
+The closed body MUST contain `by`, `id`, `time`, `pattern`, `within`, `overlap`
+and `contiguity`, with only `max_matches_per_key` and `max_output_rows` optional.
+`by` is a possibly empty list of KeyComparable fields: empty denotes one global
+partition. Repeated grouping fields retain their source occurrences but do not
+duplicate output columns or strengthen uniqueness. Each pattern element is
+exactly `{as: label, where: predicate}`; the predicate has Boolean result type,
+possibly nullable, and only true matches. It sees the original input fields and
+Parameters, not fields captured by earlier pattern labels. Generated column names
+obey the ordinary output-field name rules in addition to collision checks.
+`id` is non-null and KeyComparable; on Events it names the retained semantic
+identity, not a replacement identity. `within` uses `MillisecondValue`, and the
+optional guards use `PositiveIntegerValue`; supplied Parameters retain binding
+and value-validation obligations. Omitted guards insert no fixed language
+default and still require resolved execution limits from current Host policy.
+
 <!-- requirement-block: sequence.the-key-event-time-event-identity-at-least-two-pattern sequence.pattern-as-labels-must-be-non-empty-and-unique -->
 The key, event time, event identity, at least two pattern elements, positive
 `within`, explicit `overlap: allow|disallow`, and explicit
@@ -7262,6 +7278,14 @@ AsofJoinConstraints := Relation left_id omission requires a complete retained
   candidate key; Events retain their intrinsic identity; comparison time fields
   are non-null UTC timestamps or safe-integer milliseconds; key occurrences and
   ascending tie-break occurrences are retained; null equality keys do not match.
+SequenceBody := {by: [Field, ...] | [], id: Field, time: Field,
+  pattern: [{as: nonempty string, where: Predicate}, ...],
+  within: MillisecondValue, overlap: allow | disallow,
+  contiguity: adjacent | subsequence,
+  max_matches_per_key?: PositiveIntegerValue, max_output_rows?: PositiveIntegerValue}
+SequenceConstraints := at least two uniquely labeled pattern elements; generated
+  output names are valid and collision-free; Events id names the intrinsic role;
+  the explicit Events clock is numeric milliseconds, not a timestamp.
 MillisecondValue := PositiveSafeInteger | PositiveDurationToken | ParamRef
 SignedMillisecondValue := integer number in [-9007199254740991, 9007199254740991]
   | PositiveDurationToken | ParamRef

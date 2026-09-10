@@ -273,6 +273,7 @@ fn check_impl(
       | "cross_join"
       | "interval_join"
       | "asof_join"
+      | "sequence"
       | "row_window"
       | "events"
       | "watermark_events"
@@ -338,6 +339,54 @@ fn check_impl(
     let meta = @decode.lookup(object, "meta")
     if meta is Some(cursor) {
       metadata(b, cursor)
+    }
+    if key == "sequence" {
+      let checked = match
+        @relation.check_sequence(
+          operation_body,
+          carrier(input, inputs, steps),
+          parameters,
+          {
+            max_work: b.work,
+            max_nodes: b.nodes,
+            max_text_bytes: b.text,
+            max_tokens: b.tokens,
+            max_depth: limits.max_depth,
+          },
+        ) {
+        Ok(v) => v
+        Err(e) =>
+          raise Stop({
+            kind: Operation(e.kind),
+            source: e.source,
+            path: e.path.copy(),
+            span: e.span,
+            range: e.range,
+          })
+      }
+      let used = @relation.sequence_usage(checked)
+      b.work -= used.work
+      b.nodes -= used.nodes
+      b.text -= used.text_bytes
+      b.tokens -= used.tokens
+      let target = Step(steps.length())
+      steps.push({
+        source: body,
+        input: Some(input),
+        binding_name,
+        metadata: meta,
+        operation: Sequence(checked),
+        output: @carrier.relation(
+          @carrier.typed_rows(@relation.sequence_output(checked)),
+        ),
+        connections: { entries: [{ role: Primary, target: input, }], },
+        window: None,
+      })
+      if binding_name is Some(name) {
+        names[name] = target
+      }
+      current = Some(target)
+      continue
     }
     if key == "asof_join" {
       let obj = match @decode.open_object(operation_body) {
@@ -958,6 +1007,7 @@ fn check_impl(
         | Projection(_)
         | Graph(_)
         | Event(_)
+        | Sequence(_)
         | Vector(_) => [{ role: Primary, target: input, }]
         Join(right~, ..)
         | Append(right~, ..)

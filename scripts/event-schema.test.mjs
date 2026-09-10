@@ -4,6 +4,21 @@ import {readFileSync} from 'node:fs';
 import {eventSchemas,checkEventSchemas} from './event-schema.mjs';
 import {parameterPrograms} from './parameter-schema.mjs';
 
+test('sequence shares predicate grammar and never inserts implicit match limits',()=>{
+  const s=eventSchemas().sequence;
+  assert.deepEqual(s.required,['by','id','time','pattern','within','overlap','contiguity']);
+  assert.equal(s.additionalProperties,false);
+  assert.equal(s.properties.by.minItems,undefined);
+  assert.equal(s.properties.by.uniqueItems,undefined);
+  assert.equal(s.properties.pattern.minItems,2);
+  assert.deepEqual(s.properties.pattern.items.properties.where,{$ref:'#/$defs/predicate'});
+  assert.equal(s.properties.pattern.items.additionalProperties,false);
+  for(const key of ['max_matches_per_key','max_output_rows']) {
+    assert.equal(s.properties[key].default,undefined);
+    assert.equal(s.properties[key].oneOf[0].minimum,1);
+  }
+});
+
 test('as-of source syntax separates temporal keys, identity evidence and projection',()=>{
   const s=eventSchemas().asof_join;
   assert.equal(s.additionalProperties,false);

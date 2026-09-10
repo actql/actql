@@ -43,6 +43,8 @@ independent output/search-work obligations on two Relation inputs.
 The [as-of contract decisions](asof-join.md) distinguish typed temporal roles,
 whole identity tuples and validated tie evidence. Typed Relation/Events admission
 is connected; retained candidate-key completion still requires the shared proof boundary.
+The [sequence checker](sequence-typing.md) shares predicate budgets across pattern
+slots and retains typed event identities in its match-output contract.
 
 Use a typed Carrier sum with Relation, Graph, Events and Vectors variants, not a
 Carrier string attached to an otherwise untyped object. Retain recursive value

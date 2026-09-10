@@ -3655,6 +3655,17 @@
       }
     },
     {
+      "requirement_id": "actql.language/sequence.source-contract",
+      "statement_sha256": "afb92983ee4efe022d40f71c92d5760726ca5a217213f5a596f5194a6bacfa75",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "sequence",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.language/sequence.the-key-event-time-event-identity-at-least-two-pattern",
       "statement_sha256": "f9f9cc11f1b074aa86dfd5742ca106ea930769a703d92584892217a9d25d148e",
       "status": "pending",
@@ -5988,7 +5999,7 @@
     },
     {
       "requirement_id": "actql.language/structural-grammar.grammar",
-      "statement_sha256": "e064d93131c5a43e6b37511ff0c25016ba51194788c7485a1d923424a4c5a7bd",
+      "statement_sha256": "650fd0753bec7b26f11df11899772545ced65d3b6270ebf93098d610a15f12bb",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",

@@ -10672,7 +10672,7 @@
       }
     }
   },
-  "artifact_registry_cid": "sha256:b8b0a57d89c67f2d1c9f806e74048586556fa936e4a66744b1a3887e7e51eeab",
+  "artifact_registry_cid": "sha256:61aaa1c4b991a4a1aeaf1dbbda220b1fbc8acaaa100a639c98b6b3e621982fdf",
   "artifact_schema_cids": {
     "authoring_context": "sha256:930efa0eff6819f19378cc397c0f268de71d9fcbb5f1543aa0ac4be30f676398",
     "parameter_values": "sha256:6376d9cbe27f40771a0e47ed84128364c218f7403ed3734612ab719b722da6a3",
@@ -10681,7 +10681,7 @@
     "observation_set": "sha256:960b462c42c793913e981f64473c374538283d1dc7379cc694239d729e8f8537",
     "model_invocation_evidence": "sha256:9b883bf32553da51b01bd88ff912f460eb2308034b33a591a18f7f6e91c38b27",
     "model_capture_bundle": "sha256:9e4c76623e09216b81f70ca5573b90dc6f17f4a8754638345da2f8ec617507ba",
-    "executable_plan": "sha256:f94fb647d11d4b6f1200160f4cbb458b8e1d87949f831a391baa3158c47b53dd",
+    "executable_plan": "sha256:fe95c6b4712ab2899517d568760e6776da6760a0aea5aaa82629494b5c4e6c8c",
     "normalization_journal": "sha256:485ccc0d3215dfc0d9f13101dbc7bc0d4a72b8eb28a346ab8122cafd635ae6f0",
     "effect_preview": "sha256:bb3c388b79286bc702077c6bc66ac64d9f6789470f67864f67c789f3069e97f2",
     "review_projection": "sha256:7585ae7f6737a8a0a196df98e64f496fbca271c910840f1116f6d7990caf39fb",
@@ -10703,7 +10703,7 @@
     "verified_checkpoint_resolution": "sha256:a0576742d08e69b46c928ac8b13e8479f26d47ccf8bc474c1fa1d0807254a820",
     "result_manifest": "sha256:5548089a638828dc22b7c9d47fad41c50280da24dec9aae4131cafc9303893d6",
     "result_delivery_receipt": "sha256:d68ae5fbe6b23410b08b4419e5ebfa10eb61c38d61273360399e71ae2681de21",
-    "plan_document": "sha256:1848eac2acf65ff220c277fc66250c6671617df960080af0411c51ac6495da60",
+    "plan_document": "sha256:be49525f21aa36aa68c18a30c1e2aa89e97d7a46120715d2766ab04e0a064de2",
     "plan_result": "sha256:dd6343496e0673405ab47bcafe0cf38b2812601f6d84e95fd0232cc1f0320ec7",
     "run_state": "sha256:da91655cb28d2722123c91ee5ea4f6887f991ff0e6c1252106e9b3c022036c40",
     "captured_run": "sha256:25f2008b1aa1bd071474dfe8908a970e640e128c4f2eff8b0d2a23d988777330"
@@ -33459,6 +33459,139 @@
                               "type": "string",
                               "pattern": "^(left|right)\\.[\\s\\S]+$"
                             }
+                          }
+                        }
+                      },
+                      "sequence": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "by",
+                          "id",
+                          "time",
+                          "pattern",
+                          "within",
+                          "overlap",
+                          "contiguity"
+                        ],
+                        "properties": {
+                          "by": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "pattern": "^(?!__cid$)(?!__actql_)(?![\\s\\S]*\\.)(?=[\\s\\S]*\\S)[\\s\\S]+$"
+                            }
+                          },
+                          "id": {
+                            "type": "string",
+                            "pattern": "^(?!__cid$)(?!__actql_)(?![\\s\\S]*\\.)(?=[\\s\\S]*\\S)[\\s\\S]+$"
+                          },
+                          "time": {
+                            "type": "string",
+                            "pattern": "^(?!__cid$)(?!__actql_)(?![\\s\\S]*\\.)(?=[\\s\\S]*\\S)[\\s\\S]+$"
+                          },
+                          "pattern": {
+                            "type": "array",
+                            "minItems": 2,
+                            "items": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "as",
+                                "where"
+                              ],
+                              "properties": {
+                                "as": {
+                                  "type": "string",
+                                  "minLength": 1
+                                },
+                                "where": {
+                                  "$ref": "#/$defs/predicate"
+                                }
+                              }
+                            }
+                          },
+                          "within": {
+                            "oneOf": [
+                              {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 9007199254740991
+                              },
+                              {
+                                "type": "string",
+                                "pattern": "^0*[1-9][0-9]*([mM][sS]|[sSmMhHdD])$(?![\\s\\S])"
+                              },
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "$param"
+                                ],
+                                "properties": {
+                                  "$param": {
+                                    "type": "string",
+                                    "pattern": "^[A-Za-z_][A-Za-z0-9_]*$(?![\\s\\S])"
+                                  }
+                                }
+                              }
+                            ]
+                          },
+                          "overlap": {
+                            "enum": [
+                              "allow",
+                              "disallow"
+                            ]
+                          },
+                          "contiguity": {
+                            "enum": [
+                              "adjacent",
+                              "subsequence"
+                            ]
+                          },
+                          "max_matches_per_key": {
+                            "oneOf": [
+                              {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 9007199254740991
+                              },
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "$param"
+                                ],
+                                "properties": {
+                                  "$param": {
+                                    "type": "string",
+                                    "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+                                  }
+                                }
+                              }
+                            ]
+                          },
+                          "max_output_rows": {
+                            "oneOf": [
+                              {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 9007199254740991
+                              },
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "$param"
+                                ],
+                                "properties": {
+                                  "$param": {
+                                    "type": "string",
+                                    "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+                                  }
+                                }
+                              }
+                            ]
                           }
                         }
                       }
@@ -59738,6 +59871,139 @@
                                   "type": "string",
                                   "pattern": "^(left|right)\\.[\\s\\S]+$"
                                 }
+                              }
+                            }
+                          },
+                          "sequence": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "by",
+                              "id",
+                              "time",
+                              "pattern",
+                              "within",
+                              "overlap",
+                              "contiguity"
+                            ],
+                            "properties": {
+                              "by": {
+                                "type": "array",
+                                "items": {
+                                  "type": "string",
+                                  "pattern": "^(?!__cid$)(?!__actql_)(?![\\s\\S]*\\.)(?=[\\s\\S]*\\S)[\\s\\S]+$"
+                                }
+                              },
+                              "id": {
+                                "type": "string",
+                                "pattern": "^(?!__cid$)(?!__actql_)(?![\\s\\S]*\\.)(?=[\\s\\S]*\\S)[\\s\\S]+$"
+                              },
+                              "time": {
+                                "type": "string",
+                                "pattern": "^(?!__cid$)(?!__actql_)(?![\\s\\S]*\\.)(?=[\\s\\S]*\\S)[\\s\\S]+$"
+                              },
+                              "pattern": {
+                                "type": "array",
+                                "minItems": 2,
+                                "items": {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "as",
+                                    "where"
+                                  ],
+                                  "properties": {
+                                    "as": {
+                                      "type": "string",
+                                      "minLength": 1
+                                    },
+                                    "where": {
+                                      "$ref": "#/$defs/predicate"
+                                    }
+                                  }
+                                }
+                              },
+                              "within": {
+                                "oneOf": [
+                                  {
+                                    "type": "integer",
+                                    "minimum": 1,
+                                    "maximum": 9007199254740991
+                                  },
+                                  {
+                                    "type": "string",
+                                    "pattern": "^0*[1-9][0-9]*([mM][sS]|[sSmMhHdD])$(?![\\s\\S])"
+                                  },
+                                  {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "required": [
+                                      "$param"
+                                    ],
+                                    "properties": {
+                                      "$param": {
+                                        "type": "string",
+                                        "pattern": "^[A-Za-z_][A-Za-z0-9_]*$(?![\\s\\S])"
+                                      }
+                                    }
+                                  }
+                                ]
+                              },
+                              "overlap": {
+                                "enum": [
+                                  "allow",
+                                  "disallow"
+                                ]
+                              },
+                              "contiguity": {
+                                "enum": [
+                                  "adjacent",
+                                  "subsequence"
+                                ]
+                              },
+                              "max_matches_per_key": {
+                                "oneOf": [
+                                  {
+                                    "type": "integer",
+                                    "minimum": 1,
+                                    "maximum": 9007199254740991
+                                  },
+                                  {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "required": [
+                                      "$param"
+                                    ],
+                                    "properties": {
+                                      "$param": {
+                                        "type": "string",
+                                        "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+                                      }
+                                    }
+                                  }
+                                ]
+                              },
+                              "max_output_rows": {
+                                "oneOf": [
+                                  {
+                                    "type": "integer",
+                                    "minimum": 1,
+                                    "maximum": 9007199254740991
+                                  },
+                                  {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "required": [
+                                      "$param"
+                                    ],
+                                    "properties": {
+                                      "$param": {
+                                        "type": "string",
+                                        "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+                                      }
+                                    }
+                                  }
+                                ]
                               }
                             }
                           }

@@ -14,6 +14,15 @@ export function eventSchemas() {
   const point = {type:'object',additionalProperties:false,required:['time'],properties:{time:field}};
   const timestamp = {oneOf:[{type:'string',pattern:'^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.[0-9]{3}Z$(?![\\s\\S])'},parameter]};
   return {
+    sequence: {type:'object',additionalProperties:false,
+      required:['by','id','time','pattern','within','overlap','contiguity'],properties:{
+        by:{type:'array',items:field},id:field,time:field,
+        pattern:{type:'array',minItems:2,items:{type:'object',additionalProperties:false,
+          required:['as','where'],properties:{as:{type:'string',minLength:1},where:{$ref:'#/$defs/predicate'}}}},
+        within:millisecondsSchema(),overlap:{enum:['allow','disallow']},
+        contiguity:{enum:['adjacent','subsequence']},
+        max_matches_per_key:positive,max_output_rows:positive,
+      }},
     asof_join: {type:'object',additionalProperties:false,
       required:['with','kind','by','left_time','right_time','direction','tolerance','select'],
       properties:{

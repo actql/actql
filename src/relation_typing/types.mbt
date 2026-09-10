@@ -71,6 +71,10 @@ pub(all) enum IssueKind {
   BudgetExceeded
   Syntax(@syntax.Issue)
   Expression(@typing.IssueKind)
+  WrongCarrier(@carrier.Kind)
+  InvalidEventIdentity
+  DuplicatePatternLabel(String)
+  Temporal(@temporal.IssueKind)
 } derive(Eq, Debug)
 
 ///|
