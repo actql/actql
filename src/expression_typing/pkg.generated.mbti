@@ -26,6 +26,8 @@ pub fn required_profiles(TypedExpression) -> Array[String]
 
 pub fn result_type(TypedExpression) -> @value_contract.Contract
 
+pub fn usage(TypedExpression) -> Usage
+
 // Errors
 
 // Types and methods
@@ -86,6 +88,12 @@ pub struct TypedNode {
   contract : @value_contract.Contract
   role : AnnotationRole
 }
+
+pub(all) struct Usage {
+  work : Int
+  text_bytes : Int
+  nodes : Int
+} derive(Eq, @debug.Debug)
 
 // Type aliases
 

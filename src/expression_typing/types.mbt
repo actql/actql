@@ -75,6 +75,19 @@ struct TypedExpression {
   annotations : Array[TypedNode]
   profiles : Array[String]
   pending : Array[Obligation]
+  usage : Usage
+}
+
+///|
+pub(all) struct Usage {
+  work : Int
+  text_bytes : Int
+  nodes : Int
+} derive(Eq, Debug)
+
+///|
+pub fn usage(value : TypedExpression) -> Usage {
+  value.usage
 }
 
 ///|

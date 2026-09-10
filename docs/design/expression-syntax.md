@@ -21,6 +21,12 @@ Boolean input types, comparison compatibility, and evaluation-time domains such
 as negative subscript indices are not decided here.
 The separate [Expression type checker](expression-typing.md) checks types against
 supplied scopes and Parameter declarations; evaluation-time domains remain later work.
+`field_references` retains ordinary field occurrences and template substitutions,
+excluding join fields and opaque literal payloads. Text field occurrences retain
+the original scalar slot's path and span plus the identifier token's half-open
+Unicode scalar range within the decoded text; property names are not separate
+row-field references. `usage` reports consumed
+syntax nodes, text bytes and tokens for callers sharing a larger budget.
 
 `to_*` becomes `cast`. A whole-field alias such as `left.customer.city`,
 whether text-decoded or structured, becomes a join field followed by property access. No constant folding,

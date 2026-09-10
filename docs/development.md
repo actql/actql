@@ -80,6 +80,7 @@ The checks are read-only:
 - `check:parameters`: fixed Parameter binding cases, recursive schema consistency and generator regressions.
 - `check:expression-syntax`: fixed mixed-Expression cases, text-corpus integration, generated-test freshness and generator regressions.
 - `check:expression-typing`: fixed expression type/rejection vectors, generated-test freshness and generator regressions; not expression evaluation or complete Program admission.
+- `check:relation-typing`: fixed single-operation schemas, projection order and rejection vectors; generated-test freshness and generator regressions, not Relation execution.
 - `check:parameter-identities`: fixed Parameter value preimages/CIDs, projected-value schema and generator regressions.
 - `check:expression-text`: fixed expression-text trees/rejections, generated-test freshness and generator regressions.
 

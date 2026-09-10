@@ -16,6 +16,7 @@ fn read(root : @decode.Cursor, limits : Limits) -> Expression raise Stop {
     bytes: limits.max_text_bytes,
     tokens: limits.max_tokens,
     references: [],
+    field_references: [],
   }
   let work : Array[Work] = [Visit(root, Expr, Authored, 0)]
   let values : Array[@source.Node] = []
@@ -95,6 +96,17 @@ fn read(root : @decode.Cursor, limits : Limits) -> Expression raise Stop {
             })
           }
           let range : @text.Range = { start: 0, end: source.iter().count(), }
+          for r in @text.field_references(expression) {
+            // Whole-field aliases become join_field, not ordinary row fields.
+            if !r.name.has_prefix("left.") && !r.name.has_prefix("right.") {
+              budget.field_references.push({
+                name: r.name,
+                path: @decode.cursor_path(cursor),
+                span: @decode.cursor_span(cursor),
+                range: Some(r.range),
+              })
+            }
+          }
           if budget.nodes <= budget.scheduled {
             invalid(cursor, origin, BudgetExceeded)
           }
@@ -303,7 +315,16 @@ fn read(root : @decode.Cursor, limits : Limits) -> Expression raise Stop {
     @decode.admit(values.pop().unwrap(), limits.tree),
     Authored,
   )
-  { cursor, references: budget.references, }
+  {
+    cursor,
+    references: budget.references,
+    field_references: budget.field_references,
+    usage: {
+      nodes: limits.max_nodes - budget.nodes,
+      text_bytes: limits.max_text_bytes - budget.bytes,
+      tokens: limits.max_tokens - budget.tokens,
+    },
+  }
 }
 
 ///|

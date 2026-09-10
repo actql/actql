@@ -408,21 +408,41 @@ test "expression type corpus accepted: 80" {
 
 ///|
 test "expression type corpus accepted: 81" {
-  assert_type("\"regex_replace(s,'(a)','$1','sm')\"", corpus_fields(), corpus_parameters(), "{\"type\":\"string\",\"nullable\":false}")
+  assert_type("\"regex_extract(s,'(a)',0)\"", corpus_fields(), corpus_parameters(), "{\"type\":\"string\",\"nullable\":true}")
 }
 
 ///|
 test "expression type corpus accepted: 82" {
-  assert_type("\"vector_score(v,vn,'dot')\"", corpus_fields(), corpus_parameters(), "{\"type\":\"number\",\"nullable\":true}")
+  assert_type("\"regex_extract(s,'(a)',$q)\"", corpus_fields(), corpus_parameters(), "{\"type\":\"string\",\"nullable\":true}")
 }
 
 ///|
 test "expression type corpus accepted: 83" {
-  assert_type("\"vector_concat(v,v2)\"", corpus_fields(), corpus_parameters(), "{\"type\":\"vector\",\"nullable\":false,\"dimensions\":5,\"element_type\":\"f32\"}")
+  assert_type("\"regex_replace(s,'(a)',$p)\"", corpus_fields(), corpus_parameters(), "{\"type\":\"string\",\"nullable\":false}")
 }
 
 ///|
 test "expression type corpus accepted: 84" {
+  assert_type("\"regex_replace(s,'(a)','')\"", corpus_fields(), corpus_parameters(), "{\"type\":\"string\",\"nullable\":false}")
+}
+
+///|
+test "expression type corpus accepted: 85" {
+  assert_type("\"regex_replace(s,'(a)','$1','sm')\"", corpus_fields(), corpus_parameters(), "{\"type\":\"string\",\"nullable\":false}")
+}
+
+///|
+test "expression type corpus accepted: 86" {
+  assert_type("\"vector_score(v,vn,'dot')\"", corpus_fields(), corpus_parameters(), "{\"type\":\"number\",\"nullable\":true}")
+}
+
+///|
+test "expression type corpus accepted: 87" {
+  assert_type("\"vector_concat(v,v2)\"", corpus_fields(), corpus_parameters(), "{\"type\":\"vector\",\"nullable\":false,\"dimensions\":5,\"element_type\":\"f32\"}")
+}
+
+///|
+test "expression type corpus accepted: 88" {
   assert_type("\"vector_concat(v,vn)\"", corpus_fields(), corpus_parameters(), "{\"type\":\"vector\",\"nullable\":true,\"dimensions\":6,\"element_type\":\"f32\"}")
 }
 
@@ -628,35 +648,95 @@ test "expression type corpus rejected: 40" {
 
 ///|
 test "expression type corpus rejected: 41" {
-  assert_rejected("\"regex_match(s,'a','mm')\"", corpus_fields(), corpus_parameters(), "InvalidStaticOption")
+  assert_rejected("\"regex_extract(s,'(a)',n)\"", corpus_fields(), corpus_parameters(), "InvalidStaticOption")
 }
 
 ///|
 test "expression type corpus rejected: 42" {
-  assert_rejected("\"regex_match(s,'a','ss')\"", corpus_fields(), corpus_parameters(), "InvalidStaticOption")
+  assert_rejected("\"regex_extract(s,'(a)',1 + 0)\"", corpus_fields(), corpus_parameters(), "InvalidStaticOption")
 }
 
 ///|
 test "expression type corpus rejected: 43" {
-  assert_rejected("\"regex_match(s,'a','msm')\"", corpus_fields(), corpus_parameters(), "InvalidStaticOption")
+  assert_rejected("\"regex_extract(s,'(a)',-1)\"", corpus_fields(), corpus_parameters(), "InvalidStaticOption")
 }
 
 ///|
 test "expression type corpus rejected: 44" {
-  assert_rejected("\"regex_match(s,'a','M')\"", corpus_fields(), corpus_parameters(), "InvalidStaticOption")
+  assert_rejected("\"regex_extract(s,'(a)',0.5)\"", corpus_fields(), corpus_parameters(), "InvalidStaticOption")
 }
 
 ///|
 test "expression type corpus rejected: 45" {
-  assert_rejected("\"vector_score(v,v2,'l2')\"", corpus_fields(), corpus_parameters(), "TypeMismatch")
+  assert_rejected("\"regex_extract(s,'(a)',NULL)\"", corpus_fields(), corpus_parameters(), "InvalidStaticOption")
 }
 
 ///|
 test "expression type corpus rejected: 46" {
-  assert_rejected("\"vector_concat(v,[1,2,3])\"", corpus_fields(), corpus_parameters(), "TypeMismatch")
+  assert_rejected("\"regex_extract(s,'(a)',$p)\"", corpus_fields(), corpus_parameters(), "TypeMismatch")
 }
 
 ///|
 test "expression type corpus rejected: 47" {
+  assert_rejected("\"regex_replace(s,'(a)',s)\"", corpus_fields(), corpus_parameters(), "InvalidStaticOption")
+}
+
+///|
+test "expression type corpus rejected: 48" {
+  assert_rejected("\"regex_replace(s,'(a)',concat('x','y'))\"", corpus_fields(), corpus_parameters(), "InvalidStaticOption")
+}
+
+///|
+test "expression type corpus rejected: 49" {
+  assert_rejected("\"regex_replace(s,'(a)',NULL)\"", corpus_fields(), corpus_parameters(), "InvalidStaticOption")
+}
+
+///|
+test "expression type corpus rejected: 50" {
+  assert_rejected("\"regex_replace(s,'(a)',$q)\"", corpus_fields(), corpus_parameters(), "TypeMismatch")
+}
+
+///|
+test "expression type corpus rejected: 51" {
+  assert_rejected("{\"regex_extract\":{\"value\":\"s\",\"pattern\":{\"literal\":\"(a)\"},\"capture\":\"n\"}}", corpus_fields(), corpus_parameters(), "InvalidStaticOption")
+}
+
+///|
+test "expression type corpus rejected: 52" {
+  assert_rejected("{\"regex_replace\":{\"value\":\"s\",\"pattern\":{\"literal\":\"(a)\"},\"replacement\":\"s\"}}", corpus_fields(), corpus_parameters(), "InvalidStaticOption")
+}
+
+///|
+test "expression type corpus rejected: 53" {
+  assert_rejected("\"regex_match(s,'a','mm')\"", corpus_fields(), corpus_parameters(), "InvalidStaticOption")
+}
+
+///|
+test "expression type corpus rejected: 54" {
+  assert_rejected("\"regex_match(s,'a','ss')\"", corpus_fields(), corpus_parameters(), "InvalidStaticOption")
+}
+
+///|
+test "expression type corpus rejected: 55" {
+  assert_rejected("\"regex_match(s,'a','msm')\"", corpus_fields(), corpus_parameters(), "InvalidStaticOption")
+}
+
+///|
+test "expression type corpus rejected: 56" {
+  assert_rejected("\"regex_match(s,'a','M')\"", corpus_fields(), corpus_parameters(), "InvalidStaticOption")
+}
+
+///|
+test "expression type corpus rejected: 57" {
+  assert_rejected("\"vector_score(v,v2,'l2')\"", corpus_fields(), corpus_parameters(), "TypeMismatch")
+}
+
+///|
+test "expression type corpus rejected: 58" {
+  assert_rejected("\"vector_concat(v,[1,2,3])\"", corpus_fields(), corpus_parameters(), "TypeMismatch")
+}
+
+///|
+test "expression type corpus rejected: 59" {
   assert_rejected("\"n IN (TRUE)\"", corpus_fields(), corpus_parameters(), "TypeMismatch")
 }

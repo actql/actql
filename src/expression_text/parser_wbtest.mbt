@@ -267,6 +267,19 @@ test "numeric rebasing preserves long significands and exponent cancellation" {
 }
 
 ///|
+test "ordinary field references retain token ranges and detached storage" {
+  let result = accepted("a + a.x + left.id + \"left\".id + len('hidden')")
+  assert_eq(field_references(result), [
+    { name: "a", range: { start: 0, end: 1, }, },
+    { name: "a", range: { start: 4, end: 5, }, },
+    { name: "left", range: { start: 20, end: 26, }, },
+  ])
+  let references = field_references(result)
+  references.clear()
+  assert_eq(field_references(result).length(), 3)
+}
+
+///|
 test "decoded scalar ranges and enclosing source are separate" {
   let outer : @value.Span = {
     source_path: "program.aql",

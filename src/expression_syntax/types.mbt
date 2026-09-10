@@ -47,7 +47,36 @@ pub(all) struct ParameterReference {
 struct Expression {
   cursor : @decode.Cursor
   references : Array[ParameterReference]
+  field_references : Array[FieldReference]
+  usage : Usage
 }
+
+///|
+pub(all) struct Usage {
+  nodes : Int
+  text_bytes : Int
+  tokens : Int
+} derive(Eq, Debug)
+
+///|
+pub fn usage(expression : Expression) -> Usage {
+  expression.usage
+}
+
+///|
+/// Ordinary field occurrences, including template substitutions, but not join
+/// fields or opaque literal data. Coordinates follow parameter_references.
+pub fn field_references(expression : Expression) -> Array[FieldReference] {
+  expression.field_references.map(r => { ..r, path: r.path.copy(), })
+}
+
+///|
+pub(all) struct FieldReference {
+  name : String
+  path : Array[@source.PathSegment]
+  span : @source.Span
+  range : @text.Range?
+} derive(Eq, Debug)
 
 ///|
 pub fn tree(expression : Expression) -> @decode.Cursor {
@@ -98,6 +127,7 @@ priv struct Budget {
   mut bytes : Int
   mut tokens : Int
   references : Array[ParameterReference]
+  field_references : Array[FieldReference]
 }
 
 ///|

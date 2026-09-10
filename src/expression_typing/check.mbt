@@ -47,7 +47,18 @@ fn check_impl(
   pending.sort_by((a, b) => a.node_index.compare(b.node_index))
   let names = profiles.keys().to_array()
   names.sort_by(@canonical.compare_utf16)
-  { expression, environment, annotations, profiles: names, pending, }
+  {
+    expression,
+    environment,
+    annotations,
+    profiles: names,
+    pending,
+    usage: {
+      work: limits.max_work - budget.work,
+      text_bytes: limits.max_text_bytes - budget.text,
+      nodes: nodes.length(),
+    },
+  }
 }
 
 ///|

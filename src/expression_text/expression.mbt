@@ -42,6 +42,12 @@ pub(all) struct ParameterReference {
 } derive(Eq, Debug)
 
 ///|
+pub(all) struct FieldReference {
+  name : String
+  range : Range
+} derive(Eq, Debug)
+
+///|
 /// Actual work consumed by a successful parse; EOF does not count as a token.
 pub(all) struct Usage {
   input_bytes : Int
@@ -52,6 +58,7 @@ pub(all) struct Usage {
 ///|
 /// The owned cursor is the common structured Expression tree, not a second AST.
 struct Expression {
+  field_references : Array[FieldReference]
   cursor : @decode.Cursor
   references : Array[ParameterReference]
   enclosing_span : @value.Span?
@@ -76,6 +83,13 @@ pub fn parameter_references(
   expression : Expression,
 ) -> Array[ParameterReference] {
   expression.references.copy()
+}
+
+///|
+/// Ordinary field tokens, not function names, property names, join fields or
+/// literal contents. Whole-field aliases are normalized by expression_syntax.
+pub fn field_references(expression : Expression) -> Array[FieldReference] {
+  expression.field_references.copy()
 }
 
 ///|
@@ -162,6 +176,7 @@ pub fn parse(
       })
   }
   let parser : Parser = {
+    field_references: [],
     tokens,
     span: decoded_span(source, source_path),
     pos: 0,
@@ -200,7 +215,7 @@ pub fn parse(
         enclosing_span,
       })
   }
-  let references = []
+  let references : Array[ParameterReference] = []
   for token in tokens {
     if token.kind is Parameter(name) {
       references.push({ name, range: { start: token.start, end: token.end, }, })
@@ -209,6 +224,7 @@ pub fn parse(
   Ok({
     cursor,
     references,
+    field_references: parser.field_references,
     enclosing_span,
     usage: {
       input_bytes: parser.span.end_byte,

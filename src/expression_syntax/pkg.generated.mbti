@@ -12,14 +12,25 @@ import {
 // Values
 pub fn admit(@decode_core.Cursor, Limits) -> Result[Expression, Issue]
 
+pub fn field_references(Expression) -> Array[FieldReference]
+
 pub fn parameter_references(Expression) -> Array[ParameterReference]
 
 pub fn tree(Expression) -> @decode_core.Cursor
+
+pub fn usage(Expression) -> Usage
 
 // Errors
 
 // Types and methods
 type Expression
+
+pub(all) struct FieldReference {
+  name : String
+  path : Array[@source_value.PathSegment]
+  span : @source_span.Span
+  range : @expression_text.Range?
+} derive(Eq, @debug.Debug)
 
 pub(all) struct Issue {
   kind : IssueKind
@@ -56,6 +67,12 @@ pub(all) struct ParameterReference {
   path : Array[@source_value.PathSegment]
   span : @source_span.Span
   range : @expression_text.Range?
+} derive(Eq, @debug.Debug)
+
+pub(all) struct Usage {
+  nodes : Int
+  text_bytes : Int
+  tokens : Int
 } derive(Eq, @debug.Debug)
 
 // Type aliases

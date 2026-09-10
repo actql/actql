@@ -21,6 +21,26 @@ fn finish(
         }
         if tag == "template" {
           template(name, cursor, origin)
+          let chars = name.to_array()
+          let mut i = 0
+          while i < chars.length() {
+            if i + 1 < chars.length() &&
+              (chars[i] == '{' || chars[i] == '}') &&
+              chars[i] == chars[i + 1] {
+              i += 2
+            } else if chars[i] == '{' {
+              i += 1
+              let field : Array[Char] = []
+              while chars[i] != '}' {
+                field.push(chars[i])
+                i += 1
+              }
+              i += 1
+              record_field(String::from_array(field), cursor, origin, budget)
+            } else {
+              i += 1
+            }
+          }
         } else {
           // Quotation suppresses lexical qualifier recognition, not this
           // whole-field alias normalization shared by text and structured input.
@@ -65,6 +85,7 @@ fn finish(
           if !field_name(name) {
             invalid(cursor, origin, InvalidName(name))
           }
+          record_field(name, cursor, origin, budget)
         }
       }
       if ["to_number", "to_string", "to_boolean", "to_timestamp", "to_decimal"].contains(
@@ -198,4 +219,24 @@ fn finish(
     _ => ()
   }
   value
+}
+
+///|
+fn record_field(
+  name : String,
+  cursor : @decode.Cursor,
+  origin : Origin,
+  budget : Budget,
+) -> Unit {
+  // Text occurrences already carry exact token ranges from the text parser.
+  let (source, range) = match origin {
+    Authored => (cursor, None)
+    TextDecoded(_, _) => return
+  }
+  budget.field_references.push({
+    name,
+    path: @decode.cursor_path(source),
+    span: @decode.cursor_span(source),
+    range,
+  })
 }

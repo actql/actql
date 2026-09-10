@@ -7,6 +7,9 @@ including text-time and row-local vector forms. The authority remains the
 [Language type relations](../spec/language.md#value-contracts),
 [Expression contracts](../spec/language.md#expressions), and their machine laws.
 It neither evaluates an expression nor checks a whole Program.
+The [Relation operation checker](relation-typing.md) consumes these type proofs
+for single-operation schema checking. `usage` reports consumed work, text bytes
+and typed nodes so callers can preserve cumulative budgets across expressions.
 
 ## Environment and result
 
@@ -78,7 +81,13 @@ branches. Returned lists are detached copies. A literal regex/timestamp pattern
 is still pending; being available now is not evidence that a parser has checked
 it. Pattern validation includes canonical pattern AST/CID, timestamp token
 combinations, and capture/replacement consistency. LIKE pattern validation is
-also recorded. Regex flags are restricted to non-repeated `m` and `s`, matching
+also recorded. Regex capture and replacement arguments are restricted to
+literal or Parameter forms: capture literals are nonnegative integers and
+replacement literals are strings. Fields and computed expressions fail with
+`InvalidStaticOption`, even when constant. Parameter values are not substituted
+here; non-nullness, integer range and consistency with the parsed pattern remain
+pending bound validation. Regex flags are restricted to non-repeated `m` and
+`s`, matching
 the [language profile](../spec/language.md#text-time); pattern execution is not
 delegated to a host regex.
 

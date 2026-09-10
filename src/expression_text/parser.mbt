@@ -187,12 +187,21 @@ fn Parser::expression(self : Parser) -> @value.Node raise ExpressionError {
                 ),
               )
             } else {
+              self.field_references.push({
+                name,
+                range: { start: token.start, end: token.end, },
+              })
               result = parsed(
                 self.form("field", self.node(@value.String(name))),
               )
             }
-          QuotedName(name) =>
+          QuotedName(name) => {
+            self.field_references.push({
+              name,
+              range: { start: token.start, end: token.end, },
+            })
             result = parsed(self.form("field", self.node(@value.String(name))))
+          }
           _ => raise SyntaxFailure(token.start, token.end)
         }
       }

@@ -10,6 +10,8 @@ import {
 // Values
 pub fn enclosing_span(Expression) -> @source_span.Span?
 
+pub fn field_references(Expression) -> Array[FieldReference]
+
 pub fn parameter_references(Expression) -> Array[ParameterReference]
 
 pub fn parse(String, Limits, source_path? : String, enclosing_span? : @source_span.Span) -> Result[Expression, Issue]
@@ -22,6 +24,11 @@ pub fn usage(Expression) -> Usage
 
 // Types and methods
 type Expression
+
+pub(all) struct FieldReference {
+  name : String
+  range : Range
+} derive(Eq, @debug.Debug)
 
 pub(all) struct Issue {
   kind : IssueKind

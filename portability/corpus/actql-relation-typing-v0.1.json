@@ -1,0 +1,49 @@
+{
+  "version": "actql-relation-typing-corpus/0.1",
+  "types": {
+    "number": {"type":"number","nullable":false},
+    "string": {"type":"string","nullable":false},
+    "boolean?": {"type":"boolean","nullable":true}
+  },
+  "input": {"amount":"number","flag":"boolean?","id":"string"},
+  "accepted": [
+    {"operation":"derive","body":{},"output":{"amount":"number","flag":"boolean?","id":"string"}},
+    {"operation":"rename","body":{},"output":{"amount":"number","flag":"boolean?","id":"string"},"order":["amount","flag","id"]},
+    {"operation":"drop","body":[],"output":{"amount":"number","flag":"boolean?","id":"string"},"order":["amount","flag","id"]},
+    {"operation":"filter","body":"flag","output":{"amount":"number","flag":"boolean?","id":"string"}},
+    {"operation":"filter","body":"CAST(NULL AS BOOLEAN)","output":{"amount":"number","flag":"boolean?","id":"string"}},
+    {"operation":"filter","body":"if(FALSE,1 / 0 > 0,TRUE)","output":{"amount":"number","flag":"boolean?","id":"string"}},
+    {"operation":"derive","body":{"tax":"amount * 0.1"},"output":{"amount":"number","flag":"boolean?","id":"string","tax":"number"}},
+    {"operation":"derive","body":[{"old":"amount"},{"amount":"amount * 2"},{"total":"amount + old"}],"output":{"amount":"number","flag":"boolean?","id":"string","old":"number","total":"number"}},
+    {"operation":"derive","body":[{"amount":"to_string(amount)"}],"output":{"amount":"string","flag":"boolean?","id":"string"}},
+    {"operation":"derive","body":{"__proto__":"amount"},"output":{"amount":"number","flag":"boolean?","id":"string","__proto__":"number"}},
+    {"operation":"select","body":["id","amount"],"output":{"id":"string","amount":"number"},"order":["id","amount"]},
+    {"operation":"select","body":[{"z":"id"},{"a":"id"}],"output":{"z":"string","a":"string"},"order":["z","a"]},
+    {"operation":"select","body":[{"from":"id"},{"to":"amount"}],"output":{"from":"string","to":"number"},"order":["from","to"]},
+    {"operation":"rename","body":{"amount":"id","id":"amount"},"output":{"amount":"string","id":"number","flag":"boolean?"},"order":["id","flag","amount"]},
+    {"operation":"drop","body":["id","id"],"output":{"amount":"number","flag":"boolean?"},"order":["amount","flag"]}
+  ],
+  "rejected": [
+    {"operation":"filter","body":"amount","issue":"ExpectedBoolean"},
+    {"operation":"filter","body":"missing > 0","issue":"UnknownField"},
+    {"operation":"filter","body":"NULL","issue":"NullTypeUnresolved"},
+    {"operation":"derive","body":[],"issue":"EmptyBody"},
+    {"operation":"derive","body":[{}],"issue":"InvalidBody"},
+    {"operation":"derive","body":[{"x":"amount","y":"id"}],"issue":"InvalidBody"},
+    {"operation":"derive","body":{"amount":"amount * 2"},"issue":"InputCollision"},
+    {"operation":"derive","body":{"a":"amount","b":"a"},"issue":"UnknownField"},
+    {"operation":"derive","body":[{"a":"b"},{"b":"amount"}],"issue":"UnknownField"},
+    {"operation":"derive","body":[{"a":"a"}],"issue":"UnknownField"},
+    {"operation":"derive","body":[{"a":"amount"},{"a":"id"}],"issue":"DuplicateOutput"},
+    {"operation":"derive","body":{"__cid":"amount"},"issue":"InvalidName"},
+    {"operation":"select","body":[],"issue":"EmptyBody"},
+    {"operation":"select","body":{"x":"id"},"issue":"InvalidBody"},
+    {"operation":"select","body":["id",{"id":"amount"}],"issue":"DuplicateOutput"},
+    {"operation":"select","body":["missing"],"issue":"UnknownField"},
+    {"operation":"select","body":[{"from":"id","to":"x"}],"issue":"InvalidBody"},
+    {"operation":"rename","body":{"id":"amount"},"issue":"DuplicateOutput"},
+    {"operation":"rename","body":{"missing":"x"},"issue":"UnknownField"},
+    {"operation":"drop","body":["id","flag","amount"],"issue":"EmptyBody"},
+    {"operation":"drop","body":["missing"],"issue":"UnknownField"}
+  ]
+}

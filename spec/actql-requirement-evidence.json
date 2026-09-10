@@ -2005,6 +2005,28 @@
       }
     },
     {
+      "requirement_id": "actql.language/text-time.regex-static-capture",
+      "statement_sha256": "2cd5532ab5b4d9bc5edc022d6f4aabc8b37394b9ace5c8ef8093ebb2ad09aa15",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "text-time",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/text-time.regex-static-replacement",
+      "statement_sha256": "f5455a4579fc0ebca56486645c899dd68e2589323defb2e46642f31d0cd211d7",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "text-time",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.language/text-time.it-must-return-null-for-invalid-calendar-input-text",
       "statement_sha256": "8290bdcf611d7a063445a706e44bc97f6ef07b3b190204d8fe5348d7685beaea",
       "status": "pending",
@@ -2117,6 +2139,17 @@
     {
       "requirement_id": "actql.language/select.duplicate-output-names-unknown-fields-or-dropping-every-field-must",
       "statement_sha256": "8ffd0e0afdeb2ec8c729cc3fccb28bd3f868244def82d178e3d9722e749e12da",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "select",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/select.empty-rename-and-drop-are-identity-projections",
+      "statement_sha256": "6dc8d46832f859cf8e30bbb20c989af84e77dfc61208121d3e0e2bd0c3f00c59",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
@@ -2491,6 +2524,17 @@
     {
       "requirement_id": "actql.language/derive.product-84665ce46b6b",
       "statement_sha256": "84665ce46b6bf1b3c75b2f50ba3760c68188d013120c31d688de15d33af0a7e3",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "derive",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/derive.empty-map-is-no-op",
+      "statement_sha256": "ac44c0b1812c443282ae0438da837fc77088279ceaff62fb962e8a1a85340e98",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
@@ -5196,7 +5240,7 @@
     },
     {
       "requirement_id": "actql.language/structural-grammar.grammar",
-      "statement_sha256": "46c6b1c2dabef5f3aeed8ed4ec1e5002bb9c93320aec89f3c1b0002635717bbc",
+      "statement_sha256": "a722a6a2ea274eb0e8b771790022cb6180c458a1e9f2d4931ca0815274b7eee7",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
@@ -7066,7 +7110,7 @@
     },
     {
       "requirement_id": "actql.protocol.contracts/machine-contracts.exact-artifacts",
-      "statement_sha256": "53c609c2abbfc250d08c8da17a3a669393606a17aed3da147e1adfd8849ce1a4",
+      "statement_sha256": "8fa4e2a1cfcdd683e2a87afde76e9c41fd001435b04b8a9bb3d7a15e14553bdf",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",

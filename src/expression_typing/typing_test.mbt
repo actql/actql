@@ -254,6 +254,35 @@ test "profile and pattern obligations include undemanded branches and stay detac
 }
 
 ///|
+test "regex static arguments retain bound validation without evaluating defaults" {
+  let environment = env(
+    parameters="{\"capture\":{\"type\":\"number\",\"nullable\":true,\"default\":-1},\"replacement\":{\"type\":\"string\",\"nullable\":true,\"default\":\"$99\"}}",
+  )
+  for
+    (source, tag) in [
+      ("\"regex_extract('a', '(a)', $capture)\"", "regex_extract"),
+      ("\"regex_replace('a', '(a)', $replacement)\"", "regex_replace"),
+      ("\"regex_extract('a', '(a)', 99)\"", "regex_extract"),
+      ("\"regex_replace('a', '(a)', '$99')\"", "regex_replace"),
+    ] {
+    let typed = @expression_typing.check(
+      syntax(source),
+      environment,
+      test_limits(),
+    ).unwrap()
+    assert_true(
+      @expression_typing.pending_validations(typed).any(o => {
+        o.kind is PatternValidation(name) && name == tag
+      }),
+    )
+  }
+  assert_rejected(
+    "\"if(TRUE, 'ok', regex_replace('a', '(a)', concat('x', 'y')))\"", "{}", "null",
+    "InvalidStaticOption",
+  )
+}
+
+///|
 test "join scopes never fall back to ordinary fields and parameters remain declared" {
   let normal = env(fields="{\"n\":{\"type\":\"string\",\"nullable\":false}}")
   let left = env(fields="{\"n\":{\"type\":\"number\",\"nullable\":true}}").fields

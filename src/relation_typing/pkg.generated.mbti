@@ -1,0 +1,118 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/relation_typing"
+
+import {
+  "actql/actql/decode_core",
+  "actql/actql/expression_syntax",
+  "actql/actql/expression_text",
+  "actql/actql/expression_typing",
+  "actql/actql/parameter_binding",
+  "actql/actql/source_span",
+  "actql/actql/source_value",
+  "actql/actql/value_contract",
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn binding_at(CheckedOperation, Int) -> Binding?
+
+pub fn binding_count(CheckedOperation) -> Int
+
+pub fn check(Operation, @decode_core.Cursor, @value_contract.Contract, @parameter_binding.Declarations?, Limits) -> Result[CheckedOperation, Issue]
+
+pub fn form(CheckedOperation) -> Form
+
+pub fn input_schema(CheckedOperation) -> @value_contract.Contract
+
+pub fn operation(CheckedOperation) -> Operation
+
+pub fn output_schema(CheckedOperation) -> @value_contract.Contract
+
+pub fn parameters(CheckedOperation) -> @parameter_binding.Declarations?
+
+pub fn projection(CheckedOperation) -> Array[ProjectionField]
+
+pub fn references(Binding) -> Array[Reference]
+
+pub fn source(CheckedOperation) -> @decode_core.Cursor
+
+pub fn text_bytes_used(CheckedOperation) -> Int
+
+pub fn work_used(CheckedOperation) -> Int
+
+// Errors
+
+// Types and methods
+pub struct Binding {
+  name : String?
+  source : @decode_core.Cursor
+  expression : @expression_typing.TypedExpression
+  references : Array[Reference]
+}
+
+type CheckedOperation
+
+pub(all) enum Form {
+  DeriveMap
+  DeriveArray
+  Predicate
+  Projection
+} derive(Eq, @debug.Debug)
+
+pub struct Issue {
+  kind : IssueKind
+  source : @decode_core.Cursor
+  path : Array[@source_value.PathSegment]
+  span : @source_span.Span
+  range : @expression_text.Range?
+}
+
+pub(all) enum IssueKind {
+  InvalidLimits
+  InvalidInputSchema
+  InvalidBody
+  EmptyBody
+  InvalidName(String)
+  DuplicateOutput(String)
+  UnknownField(String)
+  InputCollision(String)
+  ExpectedBoolean
+  BudgetExceeded
+  Syntax(@expression_syntax.Issue)
+  Expression(@expression_typing.IssueKind)
+} derive(Eq, @debug.Debug)
+
+pub(all) struct Limits {
+  max_work : Int
+  max_text_bytes : Int
+  max_nodes : Int
+  max_depth : Int
+  max_tokens : Int
+} derive(Eq, @debug.Debug)
+
+pub(all) enum Operation {
+  Derive
+  Filter
+  Select
+  Rename
+  Drop
+} derive(Eq, @debug.Debug)
+
+pub struct ProjectionField {
+  output : String
+  input : String
+}
+
+pub struct Reference {
+  occurrence : @expression_syntax.FieldReference
+  target : ReferenceTarget
+}
+
+pub(all) enum ReferenceTarget {
+  InputField(String)
+  PriorSlot(Int)
+} derive(Eq, @debug.Debug)
+
+// Type aliases
+
+// Traits

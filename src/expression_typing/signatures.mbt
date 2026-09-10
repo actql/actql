@@ -169,6 +169,38 @@ fn text_time(tag : String) -> Bool {
 }
 
 ///|
+fn regex_static_argument(tag : String, option : Node) -> Unit raise Stop {
+  // Bound values and pattern-dependent checks remain PatternValidation work.
+  if option.tag == "$param" {
+    return
+  }
+  let valid = if option.tag == "literal" {
+    match @decode.view(option.body) {
+      NumberValue(n) =>
+        tag == "regex_extract" &&
+        n >= 0 &&
+        @scalar.read_integer_number(n) is Some(_)
+      TextValue(_) => tag == "regex_replace"
+      _ => false
+    }
+  } else {
+    false
+  }
+  if !valid {
+    fail(
+      option.source,
+      InvalidStaticOption(
+        if tag == "regex_extract" {
+          "regex capture"
+        } else {
+          "regex replacement"
+        },
+      ),
+    )
+  }
+}
+
+///|
 fn infer(
   t : Types,
   nodes : Array[Node],
@@ -183,6 +215,9 @@ fn infer(
   spend(t.budget, source)
   let values = node.children.map(id => nodes[id].inferred)
   if text_time(tag) {
+    if tag == "regex_extract" || tag == "regex_replace" {
+      regex_static_argument(tag, nodes[node.children[2]])
+    }
     profiles["actql-text-time/0.1"] = true
     pending.push({
       node_index: index,

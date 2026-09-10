@@ -2612,6 +2612,16 @@ host-specific flags are forbidden.
 Regex flags MUST be a string containing only `m` (anchors also match
 U+000A line boundaries) and `s` (dot also matches U+000A), each at most once,
 in either order. Omitted flags and the empty string both select neither flag.
+
+<!-- requirement-block: text-time.regex-static-capture text-time.regex-static-replacement -->
+The `regex_extract` capture argument MUST be a nonnegative integer literal or
+an invocation parameter of number type. The `regex_replace` replacement argument
+MUST be a string literal or an invocation parameter of string type. Neither
+argument admits a row field or a computed expression, including a constant
+expression. Check validates the resolved non-null parameter value and its
+capture/replacement consistency with the admitted pattern before evaluation;
+declaration-only type checking does not discharge that obligation.
+
 The profile requires positive limits for input codepoints, pattern bytes, output bytes,
 and replacements. `regex_extract` requires an explicit capture index and
 returns null for no match; `regex_replace` applies a bounded left-to-right
@@ -2859,6 +2869,17 @@ The map form means `{output_name: input_field}`. Projection order is semantic.
 forms that retain the remaining complete input shape and lower directly to
 `REL.select`. They require a complete statically known field set. Duplicate
 output names, unknown fields, or dropping every field MUST fail during check.
+
+<!-- requirement-block: select.empty-rename-and-drop-are-identity-projections -->
+Given a complete input schema, check MUST accept `rename: {}` and `drop: []`
+as identity projections retaining every input field, including when the input
+schema itself has no fields. The prohibition on dropping every field applies
+to removing all fields from a nonempty input, not to preserving an already
+empty input. This does not admit `select: []`. Accepting an identity projection
+does not authorize deleting the authored operation or equating its semantic
+identity with omission of the operation; ordinary lowering and identity rules
+continue to apply. Repeated names in `drop` denote the same removal, not
+duplicate output fields.
 
 <a id="sort"></a>
 
@@ -3133,7 +3154,7 @@ runtime ordering evidence attached to the relation result.
 Candidate-key preservation is separate from row ordering and follows this
 closed table:
 
-<!-- requirement-block: join.join-kind-cardinality-candidate-keys-preserved-before derive.product-84665ce46b6b derive.product-bbab978e258b derive.product-7852090b86a2 derive.product-8abbc7816d26 derive.product-74d1432fc5b5 derive.product-7a7bed99441f -->
+<!-- requirement-block: join.join-kind-cardinality-candidate-keys-preserved-before derive.product-84665ce46b6b -->
 | Join kind | Cardinality | Candidate keys preserved before `select` |
 | --- | --- | --- |
 | `semi` / `anti` | any | left |
@@ -3162,8 +3183,16 @@ to [select](#select). Derive preserves input fields, row order and multiplicity.
 | map | operation-start input snapshot only | rejected | canonical UTF-16 output-name order |
 | nonempty array of singleton maps | prior slot, otherwise input | allowed once per name | authored array order |
 
-Existing map behavior, including its empty-body rule, is unchanged. All map
-expressions read the input, never siblings. Map keys are canonically sorted
+<!-- requirement-block: derive.empty-map-is-no-op -->
+An empty derive map MUST be accepted, including with an empty input schema,
+and preserves input values, schema, row order and row count. Input-contract and
+budget checks still apply. No-op admission does not authorize operation deletion
+or CID equivalence with an omitted operation. This rule does not require a
+complete input schema for derive in general; the ordinary input contract applies.
+The array form remains nonempty, with exactly one entry in every slot map.
+
+<!-- requirement-block: derive.product-bbab978e258b derive.product-7852090b86a2 derive.product-8abbc7816d26 derive.product-74d1432fc5b5 derive.product-7a7bed99441f -->
+All map expressions read the input, never siblings. Map keys are canonically sorted
 before lowering to the existing `REL.derive`. An output name MUST NOT collide
 with a visible input field in map form.
 
@@ -6644,6 +6673,12 @@ Nest := {
   max_items?: PositiveIntegerValue
 }
 SelectProjection := non-empty select projection defined in select (#select)
+RenameBody := {ExistingFieldName: AuthoredFieldName}*
+DropBody := [Field, ...] | []
+ProjectionConstraints := rename/drop require a complete input schema;
+  empty rename/drop retain all input fields; select remains nonempty;
+  unknown fields, duplicate output names, and removing all fields
+  from a nonempty input fail check.
 
 EffectDeclaration :=
     ({ meta?: Meta } & { create: CreateBody })
