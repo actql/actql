@@ -56,6 +56,13 @@ Thus `0x` is `InvalidSyntax`, `01` and `-0` are `NonCanonical`, and
 `9223372036854775808` is `RangeExceeded`. No whitespace trimming or implicit coercion
 is performed.
 
+`read_duration_ms` reads ASCII digits followed by `ms`, `s`, `m`, `h` or `d`,
+with ASCII case-insensitive units and leading zeros permitted. It returns exact
+positive safe-integer milliseconds, rejecting zero, overflow, signs, fractions,
+exponents and whitespace. Parameter validation and parameter identity share
+this reader; temporal operation readers can use the same lexical boundary.
+It does not read signed numeric window offsets or resolve parameter references.
+
 ## Unicode, limits and diagnostics
 
 UTF-8 length checks count the original text without normalization, escaping,

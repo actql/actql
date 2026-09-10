@@ -12,6 +12,8 @@ pub fn admit_utf8_length64(String, Int64) -> Result[Int64, Utf8AdmissionIssue]
 
 pub fn read_decimal_int64(String) -> Result[Int64, DecimalIssue]
 
+pub fn read_duration_ms(String) -> Int64?
+
 pub fn read_finite_number(Double) -> Double?
 
 pub fn read_hex_uint64(String) -> UInt64?

@@ -67,7 +67,7 @@ fn emit_bound_value(
         @value.Text(text) =>
           if parameter.rule is @contract.Duration {
             // Ready can only be constructed after this exact duration check.
-            let milliseconds = duration(text).unwrap()
+            let milliseconds = @scalar.read_duration_ms(text).unwrap()
             marker(output, "duration")
             @encode.number_value(output, milliseconds.to_double())
             end_marker(output)
