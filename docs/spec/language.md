@@ -4347,6 +4347,17 @@ an exact IANA name in the profile's pinned TZDB artifact; Host locale/timezone
 and ambient OS databases are irrelevant. No optional gap/fold interpretation
 switch is admitted. Unknown zones or out-of-domain boundaries fail.
 
+<!-- requirement-block: calendar.source-admission -->
+`unit`, `timezone`, and `week_start` MUST be literal strings, not expressions or
+Parameters. `week_start` is required exactly for `unit: week` and forbidden for
+other units, including explicit null. Series `start` and `end` are canonical UTC
+timestamp literals or whole non-null timestamp Parameters; bound values retain
+calendar-year and interval validation obligations. Literal endpoints use years
+0001..9999, reject reversed ranges, and admit equal endpoints as an empty range.
+Bucket `time` is a field reference and `into` an ordinary authored output name.
+Source-option admission alone is not recognition of a timezone: a checked
+Calendar operation requires membership in the selected fixed semantic artifact.
+
 `calendar_bucket: {time, unit, timezone, week_start?, into}` is row-preserving.
 `time` names a non-null timestamp field; `into` is a fresh object field with
 non-null timestamp `start` and `end`. Local calendar boundaries start at
@@ -7286,6 +7297,14 @@ SequenceBody := {by: [Field, ...] | [], id: Field, time: Field,
 SequenceConstraints := at least two uniquely labeled pattern elements; generated
   output names are valid and collision-free; Events id names the intrinsic role;
   the explicit Events clock is numeric milliseconds, not a timestamp.
+CalendarUnit := day | week | month | quarter | year
+CalendarTimestamp := canonical UTC millisecond timestamp in years 0001..9999 | ParamRef
+CalendarBucketBody := {time: Field, into: OutputFieldName, unit: CalendarUnit,
+  timezone: nonempty string, week_start?: monday | sunday}
+CalendarSeriesBody := {start: CalendarTimestamp, end: CalendarTimestamp,
+  unit: CalendarUnit, timezone: nonempty string, week_start?: monday | sunday}
+CalendarConstraints := week_start is required for week and forbidden otherwise;
+  literal profile selectors only; the selected pinned TZDB determines zone membership.
 MillisecondValue := PositiveSafeInteger | PositiveDurationToken | ParamRef
 SignedMillisecondValue := integer number in [-9007199254740991, 9007199254740991]
   | PositiveDurationToken | ParamRef

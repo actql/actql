@@ -1,0 +1,98 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/calendar_options"
+
+import {
+  "actql/actql/decode_core",
+  "actql/actql/parameter_binding",
+  "actql/actql/source_span",
+  "actql/actql/source_value",
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn input(Options) -> Input
+
+pub fn operation(Options) -> Operation
+
+pub fn read(Operation, @decode_core.Cursor, @parameter_binding.Declarations?, Limits) -> Result[Options, Issue]
+
+pub fn source(Options) -> @decode_core.Cursor
+
+pub fn timezone(Options) -> String
+
+pub fn unit(Options) -> CalendarUnit
+
+pub fn usage(Options) -> Usage
+
+pub fn week_start(Options) -> WeekStart?
+
+// Errors
+
+// Types and methods
+pub(all) enum CalendarUnit {
+  Day
+  Week
+  Month
+  Quarter
+  Year
+} derive(Eq, @debug.Debug)
+
+pub enum Endpoint {
+  Literal(String)
+  Parameter(String)
+}
+
+pub enum Input {
+  Field(time~ : String, into~ : String)
+  Range(start~ : Endpoint, end~ : Endpoint)
+}
+
+pub struct Issue {
+  kind : IssueKind
+  path : Array[@source_value.PathSegment]
+  span : @source_span.Span
+}
+
+pub(all) enum IssueKind {
+  InvalidLimits
+  BudgetExceeded
+  InvalidBody
+  Decode(@decode_core.IssueKind)
+  InvalidUnit
+  InvalidWeekStart
+  EmptyTimezone
+  InvalidField(String)
+  InvalidTimestamp
+  UnknownParameter(String)
+  IncompatibleParameter(String)
+  ReversedRange
+} derive(Eq, @debug.Debug)
+
+pub(all) struct Limits {
+  max_work : Int
+  max_nodes : Int
+  max_depth : Int
+  max_text_bytes : Int
+}
+
+pub(all) enum Operation {
+  Bucket
+  Series
+} derive(Eq, @debug.Debug)
+
+type Options
+
+pub(all) struct Usage {
+  work : Int
+  nodes : Int
+  text_bytes : Int
+}
+
+pub(all) enum WeekStart {
+  Monday
+  Sunday
+} derive(Eq, @debug.Debug)
+
+// Type aliases
+
+// Traits

@@ -9,11 +9,24 @@ import {parameterPrograms} from './parameter-schema.mjs';
 import {machineCid} from './actql-spec-family.mjs';
 
 export function eventSchemas() {
+  const calendarCommon = {
+    unit:{enum:['day','week','month','quarter','year']},timezone:{type:'string',minLength:1},
+    week_start:{enum:['monday','sunday']},
+  };
+  const calendarWeek = [{if:{properties:{unit:{const:'week'}},required:['unit']},
+    then:{required:['week_start']},else:{not:{required:['week_start']}}}];
+  const calendarTimestamp = {oneOf:[{type:'string',pattern:'^(?!0000-)[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.[0-9]{3}Z$(?![\\s\\S])'},parameter]};
   const field = {type:'string',pattern:fieldPattern};
   const interval = {type:'object',additionalProperties:false,required:['start','end'],properties:{start:field,end:field}};
   const point = {type:'object',additionalProperties:false,required:['time'],properties:{time:field}};
   const timestamp = {oneOf:[{type:'string',pattern:'^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.[0-9]{3}Z$(?![\\s\\S])'},parameter]};
   return {
+    calendar_bucket:{type:'object',additionalProperties:false,
+      required:['time','into','unit','timezone'],allOf:calendarWeek,
+      properties:{...calendarCommon,time:{type:'string',pattern:'^(?:(?:left|right)\\.)?'+fieldPattern.slice(1)},into:field}},
+    calendar_series:{type:'object',additionalProperties:false,
+      required:['start','end','unit','timezone'],allOf:calendarWeek,
+      properties:{...calendarCommon,start:calendarTimestamp,end:calendarTimestamp}},
     sequence: {type:'object',additionalProperties:false,
       required:['by','id','time','pattern','within','overlap','contiguity'],properties:{
         by:{type:'array',items:field},id:field,time:field,

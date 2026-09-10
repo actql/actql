@@ -4,6 +4,23 @@ import {readFileSync} from 'node:fs';
 import {eventSchemas,checkEventSchemas} from './event-schema.mjs';
 import {parameterPrograms} from './parameter-schema.mjs';
 
+test('calendar literal selectors enforce week origin and preserve field provenance syntax',()=>{
+  const {calendar_bucket:b,calendar_series:s}=eventSchemas();
+  for(const body of [b,s]) {
+    assert.equal(body.additionalProperties,false);
+    assert.deepEqual(body.allOf[0].then,{required:['week_start']});
+    assert.deepEqual(body.allOf[0].else,{not:{required:['week_start']}});
+    assert.deepEqual(body.properties.unit.enum,['day','week','month','quarter','year']);
+    assert.equal(body.properties.timezone.type,'string');
+  }
+  const time=new RegExp(b.properties.time.pattern);
+  for(const name of ['time','left.time','right.line\nname']) assert.ok(time.test(name));
+  for(const name of ['left.__cid','left.a.b','__actql_x','']) assert.ok(!time.test(name));
+  const stamp=new RegExp(s.properties.start.oneOf[0].pattern);
+  assert.ok(stamp.test('0001-01-01T00:00:00.000Z'));
+  assert.ok(!stamp.test('0000-01-01T00:00:00.000Z'));
+});
+
 test('sequence shares predicate grammar and never inserts implicit match limits',()=>{
   const s=eventSchemas().sequence;
   assert.deepEqual(s.required,['by','id','time','pattern','within','overlap','contiguity']);

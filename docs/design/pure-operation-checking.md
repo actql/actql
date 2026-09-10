@@ -45,6 +45,8 @@ whole identity tuples and validated tie evidence. Typed Relation/Events admissio
 is connected; retained candidate-key completion still requires the shared proof boundary.
 The [sequence checker](sequence-typing.md) shares predicate budgets across pattern
 slots and retains typed event identities in its match-output contract.
+The [Calendar boundary](calendar-checking.md) currently admits source options;
+validated TZDB membership and operation/pipeline checking remain to be connected.
 
 Use a typed Carrier sum with Relation, Graph, Events and Vectors variants, not a
 Carrier string attached to an otherwise untyped object. Retain recursive value
