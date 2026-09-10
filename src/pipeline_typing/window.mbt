@@ -16,7 +16,7 @@ fn transfer_window(
   }
   guard operation is Unary(op) else { return None }
   match @relation.operation(op) {
-    Filter | Sort | Take | AssertRows | DedupeRows | TopK | TopKBy =>
+    Filter | Sort | Take | AssertRows | DedupeRows | TopK | TopKBy | Lag =>
       Some(roles)
     Derive => {
       spend(b, source, @relation.binding_count(op))

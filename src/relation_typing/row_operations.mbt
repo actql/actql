@@ -34,6 +34,13 @@ pub enum RowOperation {
     count~ : CountValue,
     order~ : Array[OrderTerm]
   )
+  Lag(
+    partition~ : Array[KeyField],
+    order~ : Array[OrderTerm],
+    field~ : KeyField,
+    output~ : String,
+    offset~ : CountValue
+  )
 }
 
 ///|
@@ -61,6 +68,7 @@ pub(all) enum ValidationKind {
   NumericAggregateObservation
   StatisticalAggregateLaw
   BoundFraction(String)
+  LagCandidateKeyOrder
 } derive(Eq, Debug)
 
 ///|
@@ -91,6 +99,14 @@ pub fn row_operation(value : CheckedOperation) -> RowOperation? {
       TopK(count~, order~) => TopK(count~, order=order.copy())
       TopKBy(partition~, count~, order~) =>
         TopKBy(partition=partition.copy(), count~, order=order.copy())
+      Lag(partition~, order~, field~, output~, offset~) =>
+        Lag(
+          partition=partition.copy(),
+          order=order.copy(),
+          field~,
+          output~,
+          offset~,
+        )
     }
   })
 }

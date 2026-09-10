@@ -4,7 +4,16 @@ import {resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {parameterPrograms} from './parameter-schema.mjs';
 import {machineCid} from './actql-spec-family.mjs';
-import {groupSchema} from './aggregate-schema.mjs';
+import {groupSchema,orderKeys,positive,fieldPattern} from './aggregate-schema.mjs';
+
+export function lagSchema() {
+  return {type:'object',additionalProperties:false,
+    required:['partition_by','order_by','field','output'],properties:{
+      partition_by:{type:'array',items:{type:'string',minLength:1}},
+      order_by:orderKeys,field:{type:'string',minLength:1},
+      output:{type:'string',pattern:fieldPattern},offset:positive,
+    }};
+}
 
 export function millisecondsSchema(signed=false) {
   return {oneOf:[
@@ -31,6 +40,7 @@ export function checkWindowSchemas(registry) {
     assert.deepEqual(p.properties.steps.items.properties.row_window,windowSchema(true));
     assert.deepEqual(p.properties.steps.items.properties.window_events,windowSchema(false));
     assert.deepEqual(p.properties.steps.items.properties.window_group,groupSchema());
+    assert.deepEqual(p.properties.steps.items.properties.lag,lagSchema());
   }
   for(const [name,body] of Object.entries(registry.artifact_schemas)) assert.equal(registry.artifact_schema_cids[name],machineCid(body));
   assert.equal(registry.artifact_registry_cid,machineCid(registry.artifact_schemas));
@@ -44,6 +54,7 @@ if(process.argv[1]&&resolve(process.argv[1])===fileURLToPath(import.meta.url)) {
       p.properties.steps.items.properties.row_window=windowSchema(true);
       p.properties.steps.items.properties.window_events=windowSchema(false);
       p.properties.steps.items.properties.window_group=groupSchema();
+      p.properties.steps.items.properties.lag=lagSchema();
     }
     for(const [name,body] of Object.entries(registry.artifact_schemas)) registry.artifact_schema_cids[name]=machineCid(body);
     registry.artifact_registry_cid=machineCid(registry.artifact_schemas);

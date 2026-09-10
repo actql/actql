@@ -276,6 +276,7 @@ pub(all) enum Operation {
   Analytic
   TopK
   TopKBy
+  Lag
 } derive(Eq, @debug.Debug)
 
 pub struct OrderTerm {
@@ -328,6 +329,7 @@ pub enum RowOperation {
   DedupeRows(by~ : Array[KeyField], order~ : Array[OrderTerm])
   TopK(count~ : CountValue, order~ : Array[OrderTerm])
   TopKBy(partition~ : Array[KeyField], count~ : CountValue, order~ : Array[OrderTerm])
+  Lag(partition~ : Array[KeyField], order~ : Array[OrderTerm], field~ : KeyField, output~ : String, offset~ : CountValue)
 }
 
 pub struct RowsFrame {
@@ -360,6 +362,7 @@ pub(all) enum ValidationKind {
   NumericAggregateObservation
   StatisticalAggregateLaw
   BoundFraction(String)
+  LagCandidateKeyOrder
 } derive(Eq, @debug.Debug)
 
 // Type aliases

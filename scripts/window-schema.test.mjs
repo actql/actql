@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import {test} from 'node:test';
 import {readFileSync} from 'node:fs';
-import {millisecondsSchema,windowSchema,checkWindowSchemas} from './window-schema.mjs';
+import {millisecondsSchema,windowSchema,lagSchema,checkWindowSchemas} from './window-schema.mjs';
 import {parameterPrograms} from './parameter-schema.mjs';
 
 test('window options distinguish signed offsets and positive durations',()=>{
@@ -23,4 +23,14 @@ test('embedded window schema and pins reject drift',()=>{
     parameterPrograms(copy)[index].properties.steps.items.properties.row_window.properties.offset=millisecondsSchema();
     assert.throws(()=>checkWindowSchemas(copy));
   }
+});
+
+test('lag requires explicit nonempty order and admits omitted or positive offset',()=>{
+  const s=lagSchema();
+  assert.deepEqual(s.required,['partition_by','order_by','field','output']);
+  assert.equal(s.properties.order_by.minItems,1);
+  assert.equal(s.properties.partition_by.minItems,undefined);
+  assert.equal(s.properties.offset.oneOf[0].minimum,1);
+  assert.equal(s.properties.offset.oneOf[0].maximum,9007199254740991);
+  assert.equal(s.additionalProperties,false);
 });

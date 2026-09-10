@@ -18,6 +18,7 @@ pub(all) enum Operation {
   Analytic
   TopK
   TopKBy
+  Lag
 } derive(Eq, Debug)
 
 ///|

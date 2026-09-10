@@ -20,6 +20,36 @@ fn window_input() -> @carrier.Carrier {
 }
 
 ///|
+test "lag retains window roles and exposes nullable output through the pipeline" {
+  let p = @pipeline_typing.check_carriers(
+    cursor(
+      "[{\"row_window\":{\"kind\":\"fixed\",\"time\":\"at\",\"size\":10}},{\"lag\":{\"partition_by\":[\"window_start\"],\"order_by\":[{\"at\":\"asc\"}],\"field\":\"value\",\"output\":\"previous\",\"offset\":1},\"as\":\"lagged\"}]",
+    ),
+    [("rows", window_input())],
+    None,
+    None,
+    limits(),
+  ).unwrap()
+  let step = @pipeline_typing.step_at(p, 1).unwrap()
+  assert_true(@pipeline_typing.window_evidence(step) is Some(_))
+  assert_eq(@pipeline_typing.lookup(p, "lagged"), Some(Step(1)))
+  let ty = @schema.lookup(
+    @pipeline_typing.output_schema(p).unwrap(),
+    Unqualified("previous"),
+  ).unwrap()
+  assert_true(ty.nullable && ty.shape is Number)
+  match step.operation {
+    Unary(op) =>
+      assert_true(
+        @relation.pending_validations(op).any(p => {
+          p.kind == LagCandidateKeyOrder
+        }),
+      )
+    _ => fail("expected lag")
+  }
+}
+
+///|
 test "window groups prepend boundaries once and preserve ordinary repeated keys" {
   let p = @pipeline_typing.check_carriers(
     cursor(

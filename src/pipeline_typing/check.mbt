@@ -211,6 +211,7 @@ fn check_impl(
       "analytic" => Some(Analytic)
       "top_k" => Some(TopK)
       "top_k_by" => Some(TopKBy)
+      "lag" => Some(Lag)
       "join"
       | "append"
       | "nest"

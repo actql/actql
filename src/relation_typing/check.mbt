@@ -152,6 +152,63 @@ fn check_impl(
   let mut analytic : CheckedAnalytic? = None
   let mut output = input
   let form = match operation {
+    Lag => {
+      row_source(b, body)
+      let obj = decoded(
+        @decode.closed_object(body, [
+          "partition_by", "order_by", "field", "output", "offset",
+        ]),
+        body,
+      )
+      let partition = row_keys(
+        b,
+        decoded(@decode.required(obj, "partition_by"), body),
+        visible,
+        unique=false,
+      )
+      let order_source = decoded(@decode.required(obj, "order_by"), body)
+      let order = row_order(b, order_source, visible)
+      if order.is_empty() {
+        fail(order_source, InvalidOrder)
+      }
+      let field_source = decoded(@decode.required(obj, "field"), body)
+      let name = decoded(@decode.text(field_source), field_source)
+      let field = input_reference(b, field_source, name, visible)
+      let result = @contract.with_nullability(
+        visible.get(name).unwrap().0,
+        true,
+      )
+      let output_source = decoded(@decode.required(obj, "output"), body)
+      let output_name = decoded(@decode.text(output_source), output_source)
+      field_name(b, output_source, output_name)
+      if visible.contains(output_name) {
+        fail(output_source, InputCollision(output_name))
+      }
+      let offset = match @decode.lookup(obj, "offset") {
+        Some(s) => row_count(b, s, 1L, parameter_types, pending)
+        None => Literal(1L)
+      }
+      let fields : Array[(@schema.FieldName, @contract.Contract)] = []
+      spend(b, body, count=@schema.field_count(input))
+      for i in 0..<@schema.field_count(input) {
+        let f = @schema.field_at(input, i).unwrap()
+        fields.push((f.name, f.contract))
+      }
+      fields.push((Unqualified(output_name), result))
+      output = schema_type(b, body, fields)
+      row_operation = Some(
+        RowOperation::Lag(
+          partition~,
+          order~,
+          field={ field, source: field_source, },
+          output=output_name,
+          offset~,
+        ),
+      )
+      pending.push({ kind: LagCandidateKeyOrder, source: order_source, })
+      pending.push({ kind: ValidateReshapeRows, source: body, })
+      Form::RowOperation
+    }
     TopK | TopKBy => {
       row_source(b, body)
       let obj = decoded(

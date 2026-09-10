@@ -60,6 +60,23 @@ empty global group. Boundary roles survive that grouping. Named aggregate rules,
 type derivation and pending validation obligations are the same as for `group`.
 The embedded schema reuses the exact group body generator.
 
+## Lag
+
+`lag` reuses the Relation field, partition, OrderKey and positive safe-integer
+count readers. Its output preserves the selected field contract with nullable
+set to true and rejects any existing output field. Empty partition keys and
+repeated partition references are retained; the order list is nonempty. The
+default offset and explicit numeric one both produce `Literal(1)`. A whole
+numeric Parameter reference remains unbound with the required minimum of one.
+No string-to-number coercion or reference-implementation-only default-value
+member is introduced. Row count and the window roles are preserved.
+
+`LagCandidateKeyOrder` is an explicit unresolved requirement for retained
+candidate-key-based total partition order, not proof provided by a typed
+`order_by` list. This static result cannot authorize lag execution until the
+planning/evidence boundary discharges that requirement. No candidate key or
+provider-arrival ordering is fabricated here.
+
 Already-windowed external input admission and complete temporal-family integration
 remain to be connected. Successful pipeline window checking does not imply
 completion of those boundaries.
