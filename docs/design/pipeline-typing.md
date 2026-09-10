@@ -1,17 +1,15 @@
 # Pipeline type checking
 
-`pipeline_typing.check` connects an ordered array of steps using the
-[pipeline naming rules](../spec/language.md#pipeline-references) and the
-[single-operation checker](relation-typing.md). It supports only `derive`,
-`filter`, `select`, `rename`, `drop`, [ordering and deduplication](relation-ordering.md)
-(`sort`, `take`, `distinct`, `dedupe_rows`), row assertions (`assert_rows`), typed
-reshaping (`json_pick`, `unnest`, `unpivot`), [local join](relation-join.md),
-[append](relation-append.md), [row set operations](relation-set.md)
-(`except`, `intersect`), [cross join](relation-cross-join.md),
-[finite values](relation-values.md), [nest](relation-nest.md), and
-[group aggregates](relation-aggregates.md), [pivot](relation-pivot.md), and
-[analytic](relation-analytic.md), and [top-k](relation-top-k.md). Other operation names are explicitly
-unsupported; no step is skipped or treated as an opaque successful operation.
+`pipeline_typing` connects an ordered array of steps using the
+[pipeline naming rules](../spec/language.md#pipeline-references). Dispatch covers
+the 48 operations listed in [Pure operation checking](pure-operation-checking.md)
+and the existing Relation operations: derive/filter/projection, ordering and
+deduplication, assertions, reshaping, join, append, nest, aggregates, pivot,
+analytic and top-k. Carrier-specific checkers own their source/type rules;
+the pipeline owns naming, connections, shared budgets and evidence propagation.
+Unsupported operation names fail; no step is skipped or treated as an opaque
+successful operation. Dispatch coverage alone does not complete the shared
+evidence or executable-profile work in that implementation contract.
 
 ## Inputs and scope
 
@@ -20,8 +18,11 @@ the same input/prior-`as` namespace. It has no `left` override. The retained
 `Nest` variant includes the child target, payload projection sequence, authored
 ordering and guard, and unresolved order/capacity/validation obligations. It
 accepts qualified schemas on either side; child payload names must be explicitly
-flat. Assertions and unpivot remain unary operations. Neither nesting nor row
-assertions produce proven keys or permission to publish during this check.
+flat. Assertions and unpivot remain unary operations. An `assert_rows.unique_by`
+operation can produce a conditional key witness retaining its validation
+obligation; successful checking does not prove observed uniqueness or grant
+permission to publish. Nest retains the parent row-count summary, not a
+general output-key proof.
 
 Append uses the current/step-selected Relation as its left input and resolves
 `with` through the same input/prior-`as` namespace as join. It does not inherit
@@ -31,9 +32,13 @@ are the same target. Registration of `as` occurs after checking, so forward
 and self references remain invalid. Append's work, text and node usage is
 debited from the shared pipeline budget; it consumes no expression tokens.
 
-The caller supplies an owned, source-normalized steps cursor, a list of
-materialized input names and complete [Relation schemas](relation-schema.md), optional
-Parameter declarations, an optional cursor for stage-level `from`, and limits.
+The caller supplies an owned, source-normalized steps cursor, named materialized
+inputs, optional Parameter declarations, an optional cursor for stage-level
+`from`, and limits. `check` accepts complete [Relation schemas](relation-schema.md);
+`check_carriers` accepts structural Carriers; `check_with_evidence` additionally
+accepts admitted key/ranking inputs. Calendar operations require the supplied
+admitted Calendar profile. Expected Graph Delta contracts can be supplied through
+the `delta_contracts` option and are validated even for unused bindings.
 Input names must already be NFC/LF and well-formed Unicode, with nonempty
 contents. They are dataflow names, not field names or Parameter identifiers.
 Input order only defines the returned `Input(index)` coordinates; it never
@@ -42,10 +47,11 @@ selects an ambiguous current input. The input list is copied.
 `check` adapts complete Relation schemas to the common `check_carriers` entry.
 Inputs and outputs use [structural Carrier contracts](carrier-contracts.md).
 Open or partially typed Relations and opaque Graph/Events/Vectors are retained
-without inventing field or type evidence. The currently implemented operation
-checkers still require complete Relation schemas; they explicitly distinguish
-`WrongCarrier` from `IncompleteSchema`. Supporting partial inputs where each
-operation permits them remains part of the pure-operation implementation scope.
+without inventing field or type evidence. Each operation applies its own
+required knowledge: for example Graph normalization accepts an opaque Graph,
+while ordinary Relation operations may require a complete schema. Wrong Carrier
+and missing schema/type evidence are distinct failures. There is no global
+conversion of unknown fields into JSON or of an open field set into an empty one.
 `relation_schema.from_object` adapts an already checked non-null
 object contract. Qualified schemas are also accepted and preflighted even when
 unused. The unary operation checks use `relation_typing` with this same
@@ -55,19 +61,22 @@ before another join. This applies to both the left and right input.
 
 The package owns shared naming, connection, budget and diagnostic rules; its
 current checked steps have one output. Main input and final current are optional
-in the representation. `CheckedOperation` distinguishes `Unary`, `Join`, `Append`,
-`Nest`, `Set`, `CrossJoin` and input-free `Values`; binary variants retain their checked operation and right target.
+in the representation. `CheckedOperation` has typed variants for Relation,
+Graph, temporal, Calendar, vector and lexical operations, including binary
+operands, graph selectors and independent ranking queries.
 `input_occurrences` returns detached, ordered, role-tagged edges, preserving two
-occurrences even when both operands resolve to the same target. General
-multi-output ports and non-Relation operations are not yet implemented; their
-Carrier kinds can already pass through an empty pipeline. `values` is an
-input-free generator: it requires `as`, rejects step `from`, retains no input
-occurrence, and establishes current. Other generators are not yet dispatched.
+occurrences even when operands resolve to the same target. General multi-output
+ports remain outside this pure-operation scope. `values`, `time_series` and
+`calendar_series` are input-free generators. Explicit Graph construction and
+`mean_graphs` have named operands but no implicit current operand. Generator
+steps require `as`, reject step `from` and establish current. Concise Graph
+construction instead consumes the selected Relation.
 
 SourceView acquisition, Catalog/authority checks, Carrier resolution, search
 template classification and stage imports belong to callers. Search templates
-must not appear in this materialized-input list. Complete schemas are a scope
-restriction of this API, not a general restriction on ActQL derive.
+must not appear in this materialized-input list. Complete-schema requirements
+belong to individual implemented operation boundaries, not a general restriction
+on ActQL derive.
 
 Stage-level `from` resolves only against inputs. Without it, exactly one input
 becomes current; zero or multiple inputs leave current unset. An explicit step
@@ -121,6 +130,27 @@ including nested mixed expressions. Input-contract failures use the supplied
 steps cursor as context because independently supplied contracts have no source
 cursor here. Errors return no partial pipeline.
 
+## Conditional evidence
+
+The retained pipeline keeps distinct evidence axes, not a universal checked flag:
+
+| Accessor | Meaning and retained dependencies |
+| --- | --- |
+| `candidate_keys` | Conditional input or producer key witnesses, with all surviving component aliases; `candidate_key` only returns a sole witness |
+| `join_evidence` | Whole-key coverage on each actual join operand, combined with but not replacing authored cardinality assertions |
+| `window_evidence` / `window_aliases` | Surviving start/end roles from a checked window producer; not arbitrary matching column names |
+| `ranking_evidence` | Producer-bound ranking identity/score annotations and admitted score declarations; not a claim that runtime ranks passed validation |
+| `expected_delta_contract` | The expected typed Delta contract, not proof of a valid Delta row |
+| `row_count` / `graph_count` | Conditional successful-output counts or upper bounds; graph node and edge extents stay separate |
+
+Input key and ranking evidence can be combined only through the validated
+same-Relation boundary, preserving both sets of obligations. Transfer follows
+the operation-specific rules in [Relation evidence](relation-evidence.md) and
+[conditional counts](row-count-evidence.md); unimplemented transfers drop the
+fact, not the operation. General logical-order proofs, additional cross-family
+key transfers and dependency-closed Plan witnesses are still required work.
+Successful checks do not imply these missing proofs are available.
+
 ## Shared limits
 
 `max_steps` bounds the authored array. Work/text/nodes/tokens are cumulative
@@ -142,12 +172,17 @@ tokens; its work/text/nodes are deducted from the same remaining counters.
 Input and Parameter contracts are preflighted even
 if unused or the steps array is empty. Operations currently preflight their
 own input and Parameter contracts again; repeated work is charged, not hidden.
-`usage` reports these logical counters, not heap bytes or CPU instructions.
+Evidence selection, transfer and count derivation also debit the shared counters;
+their scans do not receive a fresh budget. `usage` reports these logical counters,
+not heap bytes or CPU instructions.
 Collection views, maps and retained source/contracts have separate memory costs.
 
-No evaluation, optimizer, operation elimination, Result/Effect checking,
-lowering, policy/key/order proofs, envelope completion or CID calculation is
-implemented. Success is conditional type consistency, not a checked Plan or
+No evaluation, optimizer, operation elimination, Effect checking,
+lowering, authority proofs, general logical-order proofs, envelope completion or
+Program/Plan CID calculation is implemented here. Result definitions use the
+separate `relation_results` checker and retain this pipeline. Conditional key
+and count derivation is implemented as described above; it is not runtime proof
+discharge. Success is conditional type consistency, not a checked Plan or
 permission to execute. Empty-operation AoA adapter compatibility remains the
 lowering work described in the relation checker guide.
 
