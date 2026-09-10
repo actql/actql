@@ -17,6 +17,16 @@ and execution envelopes are not supplied to or established by this API.
 
 ## Inputs, scopes and outputs
 
+`unpivot` retains `Reshape::Unpivot` with detached authored column and keep
+arrays. It permits repeated columns but rejects repeated kept names and actual
+output collisions. Omitted keep retains no input fields. Recursive `TypeEqual`,
+including nullability and bounds, is charged against the shared work budget;
+neither a common supertype nor scalar-only restriction is substituted. Qualified
+kept fields retain provenance and generated names are flat. `ExpansionEnvelope`
+must use the column count including repetitions; this checker constructs no
+candidate-key or order proof. `ValidateReshapeRows` remains required before
+execution consumers. No rows are materialized by this static API.
+
 `assert_rows` retains either a typed boolean predicate (`AssertWhere`, with one
 binding) or an ordered, duplicate-free `KeyComparable` key list (`AssertUnique`).
 Nullable booleans and nullable scalar or reference keys are admitted statically.

@@ -136,6 +136,15 @@ fn check_impl(
   let mut reshape : Reshape? = None
   let mut output = input
   let form = match operation {
+    Unpivot => {
+      row_source(b, body)
+      let (details, fields) = check_unpivot(b, body, visible)
+      reshape = Some(details)
+      output = schema_type(b, body, fields)
+      pending.push({ kind: ValidateReshapeRows, source: body, })
+      pending.push({ kind: ExpansionEnvelope, source: body, })
+      Form::Reshape
+    }
     AssertRows => {
       row_source(b, body)
       let obj = decoded(

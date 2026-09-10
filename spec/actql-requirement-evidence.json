@@ -2896,6 +2896,39 @@
       }
     },
     {
+      "requirement_id": "actql.language/reshaping.unpivot-columns-nonempty",
+      "statement_sha256": "a72d1467e8e7fd932589847a4c4622673fe8994c591cc96349e0a7177554b006",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "reshaping",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/reshaping.unpivot-output-collisions",
+      "statement_sha256": "dedaaec6c6fb35b5a8635f6f78e30857afa78b73e22d03f10ad400c6d2048a9a",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "reshaping",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/reshaping.unpivot-order-and-multiplicity",
+      "statement_sha256": "479770840d1bfda2f5b2b1e1102667a23f64acabba541b4021ded18cd1b18ff3",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "reshaping",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.language/reshaping.json-pick-output-is-an-authored-field-name",
       "statement_sha256": "ed08f7ee8f5b55491eee3e7e3515389313fbb6248aad69946d06054dcaddb382",
       "status": "pending",
@@ -5526,7 +5559,7 @@
     },
     {
       "requirement_id": "actql.language/structural-grammar.grammar",
-      "statement_sha256": "cbb0eac9583c041d4d0538a0abe3f0f833d9df5b8f7fd5a041deb6a555d6829f",
+      "statement_sha256": "8be6be98a20738006e5e28006eb46f3838acb157628cc6c360c0f9a7e880849a",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",

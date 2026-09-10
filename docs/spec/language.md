@@ -3459,6 +3459,20 @@ composed through the parent path under [Closed value contracts](#value-contracts
 shape evidence; absence of that evidence is not permission to guess a result
 type.
 
+<!-- requirement-block: reshaping.unpivot-columns-nonempty reshaping.unpivot-output-collisions reshaping.unpivot-order-and-multiplicity -->
+`unpivot.columns` MUST be nonempty; an empty list cannot establish the value
+column's type. A typed input containing zero rows is valid. Repeated source
+columns are retained. Omitted `keep` means `[]`; overlapping `keep` and `columns`
+is permitted. The output consists of the kept fields followed by `name_column`
+and `value_column`. Generated names MUST be authored field names and the actual
+output names must be distinct, including repeated `keep` entries. Names of input
+fields that are not kept do not cause collisions. The name column is non-null
+string; the value column retains the exact selected contract, including nested
+structure and nullability. Each input row MUST produce one row per authored
+column occurrence, in input-row then column order, retaining null values. Expansion
+bounds count repeated columns; repeating a source column does not establish
+uniqueness of the input candidate key combined with the name column.
+
 <!-- requirement-block: reshaping.json-pick-output-is-an-authored-field-name reshaping.json-pick-output-must-not-collide -->
 `json_pick` preserves every existing field and adds `output`; its output name
 MUST be an authored field name and MUST NOT collide with an existing field.
@@ -6768,6 +6782,12 @@ StepConstraints :=
 SortBody := [OrderKey, ...] | []
 JsonPickBody := {column: Field, path: [String, ...], output: OutputFieldName}
 AppendBody := {with: InputOrStepName}
+UnpivotBody := {
+  columns: [Field, ...], # nonempty; repeated references retained
+  keep?: [Field, ...] | [], # omitted means []; no repeated output fields
+  name_column: OutputFieldName,
+  value_column: OutputFieldName
+}
 UnnestBody := {
   column: Field,
   as: OutputFieldName,

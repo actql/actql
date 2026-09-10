@@ -12,6 +12,7 @@ pub(all) enum Operation {
   JsonPick
   Unnest
   AssertRows
+  Unpivot
 } derive(Eq, Debug)
 
 ///|
@@ -51,6 +52,7 @@ pub(all) enum IssueKind {
   ExpectedObject
   ExpectedArray
   ShapeEvidenceRequired
+  IncompatibleColumn(String)
   BudgetExceeded
   Syntax(@syntax.Issue)
   Expression(@typing.IssueKind)

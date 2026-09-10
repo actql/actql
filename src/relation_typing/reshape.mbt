@@ -1,5 +1,11 @@
 ///|
 pub enum Reshape {
+  Unpivot(
+    columns~ : Array[KeyField],
+    keep~ : Array[KeyField],
+    name_column~ : String,
+    value_column~ : String
+  )
   JsonPick(column~ : @schema.FieldName, path~ : Array[String], output~ : String)
   Unnest(
     column~ : @schema.FieldName,
@@ -15,6 +21,13 @@ pub enum Reshape {
 pub fn reshape(value : CheckedOperation) -> Reshape? {
   value.reshape.map(r => {
     match r {
+      Unpivot(columns~, keep~, name_column~, value_column~) =>
+        Unpivot(
+          columns=columns.copy(),
+          keep=keep.copy(),
+          name_column~,
+          value_column~,
+        )
       JsonPick(column~, path~, output~) =>
         JsonPick(column~, path=path.copy(), output~)
       Unnest(column~, element~, index~, outer~, max_items~) =>

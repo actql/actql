@@ -144,6 +144,7 @@ fn corpus_rejected(
     Err(issue) => {
       let actual = match issue.kind {
         InvalidOrder => "InvalidOrder"
+        IncompatibleColumn(_) => "IncompatibleColumn"
         NotAuthorOrderable(_) => "NotAuthorOrderable"
         NotKeyComparable(_) => "NotKeyComparable"
         InvalidCount => "InvalidCount"

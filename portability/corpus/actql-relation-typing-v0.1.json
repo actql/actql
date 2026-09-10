@@ -16,6 +16,11 @@
   },
   "input": {"amount":"number","flag":"boolean?","id":"string"},
   "accepted": [
+    {"operation":"unpivot","body":{"columns":["amount","amount"],"name_column":"id","value_column":"v"},"output":{"id":"string","v":"number"}},
+    {"operation":"unpivot","body":{"columns":["amount"],"keep":["amount"],"name_column":"k","value_column":"v"},"output":{"amount":"number","k":"string","v":"number"}},
+    {"operation":"unpivot","body":{"columns":["a","b"],"name_column":"k","value_column":"v"},"input":{"a":"array?","b":"array?"},"output":{"k":"string","v":"array?"}},
+    {"operation":"unpivot","body":{"columns":["a"],"name_column":"k","value_column":"v"},"input":{"a":"ref?"},"output":{"k":"string","v":"ref?"}},
+    {"operation":"unpivot","body":{"columns":["a"],"name_column":"k","value_column":"v"},"input":{"a":"json"},"output":{"k":"string","v":"json"}},
     {"operation":"assert_rows","body":{"where":"flag"},"output":{"amount":"number","flag":"boolean?","id":"string"}},
     {"operation":"assert_rows","body":{"unique_by":["ref"]},"input":{"ref":"ref?"},"output":{"ref":"ref?"}},
     {"operation":"json_pick","body":{"column":"p","path":["x"],"output":"x"},"input":{"p":"payload?"},"output":{"p":"payload?","x":"number?"}},
@@ -55,6 +60,14 @@
     {"operation":"drop","body":["id","id"],"output":{"amount":"number","flag":"boolean?"},"order":["amount","flag"]}
   ],
   "rejected": [
+    {"operation":"unpivot","body":{"columns":[],"name_column":"k","value_column":"v"},"issue":"EmptyBody"},
+    {"operation":"unpivot","body":{"columns":["amount"],"keep":["id","id"],"name_column":"k","value_column":"v"},"issue":"DuplicateOutput"},
+    {"operation":"unpivot","body":{"columns":["amount"],"keep":["id"],"name_column":"id","value_column":"v"},"issue":"DuplicateOutput"},
+    {"operation":"unpivot","body":{"columns":["amount"],"name_column":"v","value_column":"v"},"issue":"DuplicateOutput"},
+    {"operation":"unpivot","body":{"columns":["amount","id"],"name_column":"k","value_column":"v"},"issue":"IncompatibleColumn"},
+    {"operation":"unpivot","body":{"columns":["a","b"],"name_column":"k","value_column":"v"},"input":{"a":"number","b":"number?"},"issue":"IncompatibleColumn"},
+    {"operation":"unpivot","body":{"columns":["amount"],"keep":null,"name_column":"k","value_column":"v"},"issue":"InvalidBody"},
+    {"operation":"unpivot","body":{"columns":["missing"],"name_column":"k","value_column":"v"},"issue":"UnknownField"},
     {"operation":"assert_rows","body":{"unique_by":[]},"issue":"EmptyBody"},
     {"operation":"assert_rows","body":{"unique_by":["id","id"]},"issue":"DuplicateOutput"},
     {"operation":"assert_rows","body":{"unique_by":["x"]},"input":{"x":"array"},"issue":"NotKeyComparable"},
