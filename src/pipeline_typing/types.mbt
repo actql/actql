@@ -189,6 +189,7 @@ pub fn window_aliases(
 ///|
 struct CheckedPipeline {
   ranked_inputs : Array[@vector.RankingInput?]
+  ranked_steps : Array[@vector.RankingInput]
   keyed_inputs : Array[@evidence.KeyedRelation?]
   keyed_steps : Array[@evidence.KeyedRelation?]
   delta_inputs : Array[DeltaEvidence]

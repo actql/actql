@@ -155,7 +155,7 @@ pub fn check_ranking_fusion(
       b.nodes -= c.usage.nodes
       b.text -= c.usage.text_bytes
       if options.contract is Some(expected) {
-        guard input.score_declaration is Some(declared) else {
+        guard ranking_score_at(input, options.score.unwrap()) is Some(declared) else {
           fail(source, MissingScoreContract)
         }
         let actual = declared.contract
@@ -168,8 +168,7 @@ pub fn check_ranking_fusion(
           ] {
           charge(b, source, s)
         }
-        if declared.field != options.score.unwrap() ||
-          actual.domain != expected.domain ||
+        if actual.domain != expected.domain ||
           actual.normalization != expected.normalization ||
           actual.minimum != expected.minimum ||
           actual.maximum != expected.maximum {
@@ -207,9 +206,9 @@ pub fn check_ranking_fusion(
     let tuples : Map[String, Int] = Map([])
     for (name, at) in selected {
       let mut c = @row.lookup(shapes[0].schema, name).unwrap()
-      let tuple = shapes[0].input.tuples.get(@row.reference_name(name))
+      let tuple = shapes[0].input.tuples.get(ranking_field_key(name))
       for i in 1..<shapes.length() {
-        if shapes[i].input.tuples.get(@row.reference_name(name)) != tuple {
+        if shapes[i].input.tuples.get(ranking_field_key(name)) != tuple {
           fail(at, RankingDomainMismatch(name))
         }
         c = ranking_join(
@@ -223,7 +222,7 @@ pub fn check_ranking_fusion(
       charge(b, at, @row.reference_name(name))
       fields.push((name, Some(c)))
       if tuple is Some(n) {
-        tuples[@row.reference_name(name)] = n
+        tuples[ranking_field_key(name)] = n
       }
     }
     if options.tie_break is Some(names) {

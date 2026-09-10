@@ -1,6 +1,7 @@
 ///|
 struct DeclaredScore {
   source : @decode.Cursor
+  records : @carrier.Knowledge
   field : @row.FieldName
   contract : ScoreContract
   usage : Usage
@@ -46,8 +47,10 @@ pub fn declare_ranking_score(
       fusion: None,
       lexical: None,
       tuples: Map([]),
+      score_aliases: Map([(ranking_field_key(field), true)]),
       score_declaration: Some({
         source,
+        records: rows,
         field,
         contract,
         usage: {
@@ -64,12 +67,35 @@ pub fn declare_ranking_score(
 
 ///|
 pub fn ranking_score_declaration(input : RankingInput) -> DeclaredScore? {
-  input.score_declaration
+  if input.score_aliases.is_empty() {
+    None
+  } else {
+    input.score_declaration
+  }
+}
+
+///|
+/// Maps a current alias to its original captured-input declaration.
+pub fn ranking_score_at(
+  input : RankingInput,
+  field : @row.FieldName,
+) -> DeclaredScore? {
+  if input.score_aliases.contains(ranking_field_key(field)) {
+    input.score_declaration
+  } else {
+    None
+  }
 }
 
 ///|
 pub fn declared_score_source(value : DeclaredScore) -> @decode.Cursor {
   value.source
+}
+
+///|
+/// Original input row contract, before downstream aliases or projections.
+pub fn declared_score_records(value : DeclaredScore) -> @carrier.Knowledge {
+  value.records
 }
 
 ///|

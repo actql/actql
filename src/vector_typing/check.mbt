@@ -49,6 +49,7 @@ pub(all) enum IssueKind {
   RankingDomainMismatch(@row.FieldName)
   MissingScoreContract
   ScoreContractMismatch
+  RankingInputMismatch
 } derive(Eq, Debug)
 
 ///|

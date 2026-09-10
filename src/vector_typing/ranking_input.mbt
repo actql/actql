@@ -1,4 +1,13 @@
 ///|
+fn ranking_field_key(name : @row.FieldName) -> String {
+  match name {
+    Unqualified(name) => "u:" + name
+    Qualified(Left, name) => "l:" + name
+    Qualified(Right, name) => "r:" + name
+  }
+}
+
+///|
 /// Row shape and producer-bound composite identities are distinct evidence.
 struct RankingInput {
   carrier : @carrier.Carrier
@@ -6,6 +15,7 @@ struct RankingInput {
   fusion : CheckedRanking?
   lexical : CheckedTextRank?
   score_declaration : DeclaredScore?
+  score_aliases : Map[String, Bool]
   tuples : Map[String, Int]
 }
 
@@ -18,6 +28,7 @@ pub fn ranking_relation(input : @carrier.Carrier) -> RankingInput {
     fusion: None,
     lexical: None,
     score_declaration: None,
+    score_aliases: Map([]),
     tuples: Map([]),
   }
 }
@@ -32,7 +43,9 @@ pub fn ranking_from_nearest(input : CheckedNearest) -> RankingInput {
       ("candidate_id", input.pair.candidates),
     ] {
     if side.vectors is Some(v) && @carrier.vector_identity_count(v) > 1 {
-      tuples[name] = @carrier.vector_identity_count(v)
+      tuples[ranking_field_key(@row.Unqualified(name))] = @carrier.vector_identity_count(
+        v,
+      )
     }
   }
   {
@@ -41,6 +54,7 @@ pub fn ranking_from_nearest(input : CheckedNearest) -> RankingInput {
     fusion: None,
     lexical: None,
     score_declaration: None,
+    score_aliases: Map([]),
     tuples,
   }
 }
@@ -54,6 +68,7 @@ pub fn ranking_from_fusion(input : CheckedRanking) -> RankingInput {
     fusion: Some(input),
     lexical: None,
     score_declaration: None,
+    score_aliases: Map([]),
     tuples: input.tuples,
   }
 }
@@ -71,6 +86,7 @@ pub fn ranking_from_text(input : CheckedTextRank) -> RankingInput {
     fusion: None,
     lexical: Some(input),
     score_declaration: None,
+    score_aliases: Map([]),
     tuples: Map([]),
   }
 }
@@ -118,7 +134,7 @@ fn ranking_identity(
   }
   // Only the producing checker can attest that this object encodes an ordered
   // semantic identity tuple. An arbitrary object with the same shape cannot.
-  guard input.tuples.get(@row.reference_name(name)) is Some(count) else {
+  guard input.tuples.get(ranking_field_key(name)) is Some(count) else {
     fail(at, InvalidRankingField(name))
   }
   spend(b, at, count)

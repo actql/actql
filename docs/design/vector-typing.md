@@ -182,8 +182,24 @@ shared budget. `RankingInput` in `check_with_evidence` supplies captured score
 declarations. Nearest and fusion producers supply their bound identity domains
 directly, supporting repeated RRF composition. Ordinary input columns do not
 silently acquire score declarations. Diagnostics retain the failing source path
-and span. Evidence transfer through arbitrary intervening operations and derived
-output score envelopes remain unfinished shared evidence work.
+and span.
+
+`transfer_ranking_unary` preserves value-domain and declared-score annotations
+through supported row-preserving/subsetting operations. Projection transfers all
+aliases; dropping one alias does not erase another. Derive overwrites invalidate
+the affected annotations even when the replacement has the same type. Whole-row
+distinct preserves them. Other operations currently clear these annotations.
+The checked operation must use the exact bound input schema, not an unrelated
+equal schema. Maps distinguish qualification from an unqualified dotted spelling.
+Score aliases point back to the original captured declaration, row contract and source field;
+they do not rewrite that declaration or perform normalization.
+
+Pipeline caches each step's transferred annotations once and charges the work
+and names to its shared budget. A retained producer does not certify that the
+current rows still have contiguous ranks: filtering may leave gaps, and RRF must
+validate its complete current input before applying rank_window. Order/uniqueness
+witnesses, cross-family transfers and derived output score envelopes remain
+unfinished shared evidence work.
 
 ## Pure lexical ranking
 

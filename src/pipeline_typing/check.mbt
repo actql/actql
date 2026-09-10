@@ -123,6 +123,7 @@ fn check_impl(
     None => if inputs.length() == 1 { Some(Input(0)) } else { None }
   }
   let steps : Array[CheckedStep] = []
+  let ranked_steps : Array[@vector.RankingInput] = []
   let keyed_steps : Array[@evidence.KeyedRelation?] = []
   let delta_inputs = inputs.map(_ => empty_delta())
   let delta_steps : Array[DeltaEvidence] = []
@@ -155,6 +156,7 @@ fn check_impl(
   for body in bodies {
     sync_delta(b, body, delta_inputs, steps, delta_steps)
     sync_keys(b, keyed_inputs, steps, keyed_steps)
+    sync_rankings(b, inputs, ranked_inputs, steps, ranked_steps)
     spend(b, body, 1)
     if b.nodes == 0 {
       fail(body, BudgetExceeded)
@@ -1370,7 +1372,7 @@ fn check_impl(
       }
       spend(b, operation_body, targets.length())
       let ranking_inputs = targets.map(t => {
-        ranking_at(t, inputs, ranked_inputs, steps)
+        ranking_at(t, inputs, ranked_inputs, ranked_steps)
       })
       let checked = vector_result(
         operation_body,
@@ -2087,8 +2089,10 @@ fn check_impl(
   }
   sync_delta(b, source, delta_inputs, steps, delta_steps)
   sync_keys(b, keyed_inputs, steps, keyed_steps)
+  sync_rankings(b, inputs, ranked_inputs, steps, ranked_steps)
   {
     ranked_inputs,
+    ranked_steps,
     keyed_inputs,
     keyed_steps,
     delta_inputs,

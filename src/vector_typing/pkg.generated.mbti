@@ -7,6 +7,7 @@ import {
   "actql/actql/parameter_binding",
   "actql/actql/relation_evidence",
   "actql/actql/relation_schema",
+  "actql/actql/relation_typing",
   "actql/actql/source_span",
   "actql/actql/source_value",
   "moonbitlang/core/debug",
@@ -40,6 +41,8 @@ pub fn declare_ranking_score(@decode_core.Cursor, @carrier_contract.Carrier, @re
 pub fn declared_score_contract(DeclaredScore) -> ScoreContract
 
 pub fn declared_score_field(DeclaredScore) -> @relation_schema.FieldName
+
+pub fn declared_score_records(DeclaredScore) -> @carrier_contract.Knowledge
 
 pub fn declared_score_source(DeclaredScore) -> @decode_core.Cursor
 
@@ -173,6 +176,8 @@ pub fn ranking_relation(@carrier_contract.Carrier) -> RankingInput
 
 pub fn ranking_score(RankingOptions) -> @relation_schema.FieldName?
 
+pub fn ranking_score_at(RankingInput, @relation_schema.FieldName) -> DeclaredScore?
+
 pub fn ranking_score_contract(RankingOptions) -> ScoreContract?
 
 pub fn ranking_score_declaration(RankingInput) -> DeclaredScore?
@@ -225,6 +230,8 @@ pub fn text_rank_tokenizer(TextRankOptions) -> Tokenizer
 
 pub fn text_rank_usage(CheckedTextRank) -> Usage
 
+pub fn transfer_ranking_unary(RankingInput, @relation_typing.CheckedOperation, Limits) -> Result[RankingTransfer, Issue]
+
 pub fn usage(CheckedVector) -> Usage
 
 // Errors
@@ -271,6 +278,7 @@ pub(all) enum IssueKind {
   RankingDomainMismatch(@relation_schema.FieldName)
   MissingScoreContract
   ScoreContractMismatch
+  RankingInputMismatch
 } derive(Eq, @debug.Debug)
 
 pub(all) struct Limits {
@@ -390,6 +398,11 @@ pub(all) enum RankingPolicy {
 } derive(Eq, @debug.Debug)
 
 type RankingShape
+
+pub struct RankingTransfer {
+  input : RankingInput
+  usage : Usage
+}
 
 pub struct ScoreContract {
   domain : String
