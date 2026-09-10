@@ -96,6 +96,10 @@ pub fn interval_usage(CheckedIntervalJoin) -> Usage
 
 pub fn interval_uses_timestamps(CheckedIntervalJoin) -> Bool
 
+pub fn key_at(CheckedJoin, Int) -> KeyPair?
+
+pub fn key_count(CheckedJoin) -> Int
+
 pub fn keys(CheckedJoin) -> Array[KeyPair]
 
 pub fn kind(CheckedJoin) -> Kind

@@ -197,10 +197,25 @@ rather than imposing a non-null scalar restriction. Consumers must independently
 check operation-specific comparability, bind the witness's record contract to
 the actual operand, and retain its original producer/admission obligations.
 This API does not accept an arbitrary boolean proof or rebind a key to another
-Relation. It prepares whole-key matching; pipeline join inference remains a
-separate consumer connection.
+Relation. Pipeline join inference uses this boundary against each checked
+operand's own immutable schema, never a structurally similar foreign schema.
 
 The field set is copied into a provenance-tagged lookup under work/text budgets;
 all witnesses and alias candidates share the remaining budget. Returned selected
 fields are detached from caller arrays, while immutable declaration and producer
 provenance remain attached. Selection does not consume or mutate alternative keys.
+
+`pipeline_typing.join_evidence` exposes the selected left/right witnesses,
+authored assertion and combined conditional cardinality for an ordinary join.
+Each side is unique if its full join-key tuple covers a candidate key or the
+authored assertion requires that side's uniqueness. Repeated equality pairs
+remain in the checked operation but cannot cover a missing key component.
+One proven side combines with an asserted opposite side as one-to-one; unknown
+on both sides remains unknown, never an inferred many-to-many assertion.
+
+The derivation charges pair preparation and candidate selection to the pipeline's
+shared work/text budgets and keeps both sources of evidence. Conditional count
+transfer uses these combined facts without evaluating rows or discharging
+`ValidateCardinality` or producer/input admission obligations. Join-output key
+transfer and dependency-closed Plan serialization remain separate unfinished
+connections; this pass does not grant downstream output uniqueness by a flag.

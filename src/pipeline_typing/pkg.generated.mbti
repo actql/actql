@@ -55,6 +55,8 @@ pub fn input_occurrences(CheckedStep) -> Array[InputOccurrence]
 
 pub fn inputs(CheckedPipeline) -> Array[(String, @carrier_contract.Carrier)]
 
+pub fn join_evidence(CheckedPipeline, Int) -> JoinEvidence?
+
 pub fn lookup(CheckedPipeline, String) -> Target?
 
 pub fn output_carrier(CheckedPipeline) -> @carrier_contract.Carrier?
@@ -203,6 +205,13 @@ pub(all) enum IssueKind {
   Nest(@relation_nest.IssueKind)
   Set(@relation_set.IssueKind)
 } derive(Eq, @debug.Debug)
+
+pub struct JoinEvidence {
+  left : @relation_evidence.KeyedRelation?
+  right : @relation_evidence.KeyedRelation?
+  assertion : @relation_join.Cardinality?
+  cardinality : @relation_join.Cardinality?
+}
 
 pub(all) struct Limits {
   max_steps : Int

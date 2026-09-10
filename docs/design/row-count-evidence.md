@@ -61,6 +61,10 @@ joins with either side unique have upper bound L + R. Empty-side rules remain
 stronger and preserve the surviving side's exactness. These are mathematical
 consequences conditional on validating the assertion, not automatic uniqueness
 inference from the data's size or a permission to skip a failed assertion.
+The pipeline combines these per-side assertions with complete candidate-key
+coverage of checked ordinary join keys. Its `join_evidence` retains selected
+operand-bound witnesses and their original producer/admission requirements;
+count transfer consumes the combined uniqueness without erasing either source.
 
 Window multiplicity follows the integer lattice and closed-open membership rule
 in [event windows](../spec/language.md#event-windows). When size is not divisible
@@ -94,6 +98,6 @@ addition, multiplication, reduction and carrier-specific laws. This implementati
 uses the same distinctions and additionally records exactness where warranted by
 the current language. It does not adopt a Host ceiling or physical estimate as
 an exact count. Join-key uniqueness can further tighten these conservative
-matching bounds; candidate-key proof integration and Graph transfers,
+matching bounds. Graph transfers,
 validated external count facts and dependency-closed Plan witness
 serialization remain shared-evidence work. No execution conformance is claimed.

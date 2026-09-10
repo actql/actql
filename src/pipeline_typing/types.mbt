@@ -189,6 +189,7 @@ pub fn window_aliases(
 
 ///|
 struct CheckedPipeline {
+  join_evidence : Array[JoinEvidence?]
   row_counts : Array[RowCount?]
   ranked_inputs : Array[@vector.RankingInput?]
   ranked_steps : Array[@vector.RankingInput]

@@ -241,6 +241,7 @@ fn ranking_count(
 fn derive_row_counts(
   b : Budget,
   steps : Array[CheckedStep],
+  joins : Array[JoinEvidence?],
 ) -> Array[RowCount?] raise Stop {
   let result : Array[RowCount?] = []
   for step in steps {
@@ -297,8 +298,8 @@ fn derive_row_counts(
           input,
           count_at(right, result),
           @join.kind(checked),
-          left_unique=@join.assertion(checked) is Some(OneToOne | OneToMany),
-          right_unique=@join.assertion(checked) is Some(OneToOne | ManyToOne),
+          left_unique=join_uniqueness(joins[result.length()].unwrap()).0,
+          right_unique=join_uniqueness(joins[result.length()].unwrap()).1,
         )
       IntervalJoin(right~, checked~) =>
         join_count(

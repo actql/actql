@@ -161,6 +161,16 @@ pub fn keys(v : CheckedJoin) -> Array[KeyPair] {
 }
 
 ///|
+pub fn key_count(v : CheckedJoin) -> Int {
+  v.keys.length()
+}
+
+///|
+pub fn key_at(v : CheckedJoin, index : Int) -> KeyPair? {
+  v.keys.get(index)
+}
+
+///|
 pub fn projection(v : CheckedJoin) -> Array[Projection]? {
   v.projection.map(p => p.copy())
 }
