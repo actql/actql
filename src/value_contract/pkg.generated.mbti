@@ -1,0 +1,95 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/value_contract"
+
+import {
+  "actql/actql/decode_core",
+  "actql/actql/encode_core",
+  "actql/actql/source_span",
+  "actql/actql/source_value",
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn assignable(Contract, Contract, Int) -> Bool raise RelationError
+
+pub fn emit_checked(Contract, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
+
+pub fn fields(Fields) -> Array[Field]
+
+pub fn join_nullability(Contract, Contract, Int) -> Contract? raise RelationError
+
+pub fn key_comparable(Contract, Contract) -> Bool
+
+pub fn read_author(@decode_core.Cursor, Limits) -> Result[Contract, AdmissionError]
+
+pub fn read_checked(@decode_core.Cursor, Limits) -> Result[Contract, AdmissionError]
+
+pub fn stringify_checked(Contract, Int, Int, Int) -> String raise @encode_core.EncodeFailure
+
+pub fn type_equal(Contract, Contract, Int) -> Bool raise RelationError
+
+// Errors
+pub(all) suberror RelationError {
+  InvalidRelationLimit
+  RelationLimit
+} derive(Eq, @debug.Debug)
+
+// Types and methods
+pub(all) enum AdmissionError {
+  InvalidLimits
+  Decode(@decode_core.Issue)
+  ContractIssue(ContractIssue, path~ : Array[@source_value.PathSegment], span~ : @source_span.Span)
+} derive(Eq, @debug.Debug)
+
+pub struct Contract {
+  nullable : Bool
+  shape : Shape
+}
+
+pub(all) enum ContractIssue {
+  UnknownType(String)
+  InvalidFieldName(String)
+  NonCanonicalText
+  InvalidUnicode
+  InvalidFixedField
+  InvalidRange
+  BudgetExceeded
+} derive(Eq, @debug.Debug)
+
+pub struct Field {
+  name : String
+  contract : Contract
+}
+
+type Fields
+
+pub(all) struct Limits {
+  max_nodes : Int
+  max_depth : Int
+  max_text_bytes : Int
+} derive(Eq, @debug.Debug)
+
+pub enum Shape {
+  Text(TextLimits)
+  Number
+  Boolean
+  Timestamp
+  Date
+  Json
+  Decimal(precision~ : Int, scale~ : Int)
+  Array(Contract, max_items~ : Int64?)
+  Object(Fields)
+  Vector(dimensions~ : Double)
+  ResourceRef(resource_kind~ : String)
+  ArtifactRef(media_type~ : String?)
+}
+
+pub struct TextLimits {
+  min_length : Int64?
+  max_codepoints : Int64?
+  max_utf8_bytes : Int64?
+} derive(Eq, @debug.Debug)
+
+// Type aliases
+
+// Traits

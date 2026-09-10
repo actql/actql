@@ -75,6 +75,7 @@ The checks are read-only:
 - `check:nest`: independent Python lowering and JavaScript identity-preimage checks for the authored nest fixture subset.
 - `check:encoding`: kernel manifest pin, fixed scalar spelling expectations and generated encoding-test freshness.
 - `check:canonical`: canonical JSON corpus, existing contract CIDs and generated identity-test freshness.
+- `check:value-contracts`: fixed contract vectors, generated-test freshness and embedded schema consistency.
 
 Dependencies are pinned in `package-lock.json`. External URL availability is
 not part of the deterministic local checks.
@@ -155,6 +156,12 @@ Its structural parsing tests do not establish Program or execution conformance.
 ordered predecessors and named cross-stage ports over owned source cursors.
 Automatic JSON/YAML selection does not retry semantic or resource failures.
 Local operation and type checking remain separate.
+
+[Value contracts](design/value-contracts.md) admits distinct authored and checked
+type grammars, expands fixed machine members and implements shared equality,
+assignability, nullability join and key-domain compatibility. `generate:value-contracts`
+regenerates tests from the fixed contract corpus. This is not Parameter binding,
+runtime value admission or whole-Program type checking.
 
 [Owned tree decoding](design/decode-core.md) admits editable Nodes into bounded
 opaque cursors, with exact-key checks, source spans and primitive readers.
