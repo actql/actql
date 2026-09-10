@@ -8,7 +8,8 @@ pub(all) enum Policy {
 pub(all) enum Options {
   ToEvents
   Watermark(Double, Policy)
-} derive(Eq, Debug)
+  Dedupe(DedupeSpec)
+}
 
 ///|
 pub(all) enum Obligation {
@@ -18,6 +19,7 @@ pub(all) enum Obligation {
   ResolveEventResources
   WatermarkClassification
   ConvertTimestampClock
+  FailOnTopTie
 } derive(Eq, Debug)
 
 ///|
@@ -30,6 +32,11 @@ pub(all) enum IssueKind {
   UnknownOutputFields
   OutputCollision(String)
   InvalidRole(@carrier.Issue)
+  UnknownField(String)
+  UnknownFieldType(String)
+  NotKeyComparable(String)
+  NotAuthorOrderable(String)
+  InvalidOrder
 } derive(Eq, Debug)
 
 ///|
@@ -178,7 +185,7 @@ pub fn output(v : CheckedEvent) -> @carrier.Carrier {
 pub fn watermark(v : CheckedEvent) -> Double? {
   match v.options {
     Watermark(n, _) => Some(n)
-    ToEvents => None
+    ToEvents | Dedupe(_) => None
   }
 }
 
@@ -186,7 +193,7 @@ pub fn watermark(v : CheckedEvent) -> Double? {
 pub fn policy(v : CheckedEvent) -> Policy? {
   match v.options {
     Watermark(_, p) => Some(p)
-    ToEvents => None
+    ToEvents | Dedupe(_) => None
   }
 }
 
@@ -210,6 +217,9 @@ pub fn pending_validations(v : CheckedEvent) -> Array[Obligation] {
   ]
   if v.options is Watermark(_, _) {
     pending.push(WatermarkClassification)
+  }
+  if v.options is Dedupe(_) {
+    pending.push(FailOnTopTie)
   }
   if v.output is @carrier.EventValue(e) &&
     e.clock_encoding == @carrier.UtcTimestamp {

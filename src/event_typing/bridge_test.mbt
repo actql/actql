@@ -34,7 +34,7 @@ test "bridge validates clock roles and retains partial payload knowledge" {
         assert_true(issue.kind is InvalidRole(InvalidRole(Unqualified("time"))))
       } else {
         let checked = result.unwrap()
-        assert_eq(@event_typing.options(checked), @event_typing.ToEvents)
+        assert_true(@event_typing.options(checked) is ToEvents)
         assert_true(@event_typing.watermark(checked) is None)
         let pending = @event_typing.pending_validations(checked)
         assert_eq(

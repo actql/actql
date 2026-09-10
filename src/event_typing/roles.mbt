@@ -1,6 +1,14 @@
 ///|
 fn role_name(source : @decode.Cursor) -> @row.FieldName raise Stop {
   let name = decoded(@decode.text(source))
+  role_spelling(name, source)
+}
+
+///|
+fn role_spelling(
+  name : String,
+  source : @decode.Cursor,
+) -> @row.FieldName raise Stop {
   let parts = name.split(".").to_array()
   match parts {
     ["left", field] if !field.is_empty() =>

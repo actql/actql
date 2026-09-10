@@ -4,6 +4,8 @@ package "actql/actql/event_typing"
 import {
   "actql/actql/carrier_contract",
   "actql/actql/decode_core",
+  "actql/actql/order_key",
+  "actql/actql/relation_schema",
   "actql/actql/source_span",
   "actql/actql/source_value",
   "moonbitlang/core/debug",
@@ -12,7 +14,13 @@ import {
 // Values
 pub fn check_bridge(@decode_core.Cursor, @carrier_contract.Carrier, Limits) -> Result[CheckedEvent, Issue]
 
+pub fn check_dedupe(@decode_core.Cursor, @carrier_contract.Carrier, Limits) -> Result[CheckedEvent, Issue]
+
 pub fn check_watermark(@decode_core.Cursor, @carrier_contract.Carrier, Limits) -> Result[CheckedEvent, Issue]
+
+pub fn dedupe_keys(DedupeSpec) -> Array[@relation_schema.FieldName]
+
+pub fn dedupe_order(DedupeSpec) -> Array[OrderTerm]
 
 pub fn input(CheckedEvent) -> @carrier_contract.Carrier
 
@@ -35,6 +43,8 @@ pub fn watermark(CheckedEvent) -> Double?
 // Types and methods
 type CheckedEvent
 
+type DedupeSpec
+
 pub struct Issue {
   kind : IssueKind
   path : Array[@source_value.PathSegment]
@@ -50,6 +60,11 @@ pub(all) enum IssueKind {
   UnknownOutputFields
   OutputCollision(String)
   InvalidRole(@carrier_contract.Issue)
+  UnknownField(String)
+  UnknownFieldType(String)
+  NotKeyComparable(String)
+  NotAuthorOrderable(String)
+  InvalidOrder
 } derive(Eq, @debug.Debug)
 
 pub(all) struct Limits {
@@ -66,12 +81,21 @@ pub(all) enum Obligation {
   ResolveEventResources
   WatermarkClassification
   ConvertTimestampClock
+  FailOnTopTie
 } derive(Eq, @debug.Debug)
 
 pub(all) enum Options {
   ToEvents
   Watermark(Double, Policy)
-} derive(Eq, @debug.Debug)
+  Dedupe(DedupeSpec)
+}
+
+pub struct OrderTerm {
+  field : @relation_schema.FieldName
+  direction : @order_key.Direction
+  nulls : @order_key.NullPlacement
+  source : @decode_core.Cursor
+}
 
 pub(all) enum Policy {
   Drop

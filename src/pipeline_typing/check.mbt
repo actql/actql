@@ -223,6 +223,7 @@ fn check_impl(
       | "events"
       | "watermark_events"
       | "to_events"
+      | "dedupe_events"
       | "normalize_graph"
       | "normalize_vectors"
       | "to_vectors"
@@ -389,11 +390,11 @@ fn check_impl(
       current = Some(target)
       continue
     }
-    if key == "watermark_events" || key == "to_events" {
-      let check_event = if key == "to_events" {
-        @event.check_bridge
-      } else {
-        @event.check_watermark
+    if key == "watermark_events" || key == "to_events" || key == "dedupe_events" {
+      let check_event = match key {
+        "to_events" => @event.check_bridge
+        "dedupe_events" => @event.check_dedupe
+        _ => @event.check_watermark
       }
       let checked = match
         check_event(operation_body, carrier(input, inputs, steps), {

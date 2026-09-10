@@ -4366,6 +4366,18 @@ fails an unresolved top tie. It preserves an
 event stream and MUST fail when the authored order cannot choose one record.
 Arrival order MUST NOT serve as an implicit tie-break.
 
+<!-- requirement-block: dedupe-events.partition-shape -->
+The closed body MUST contain only `by` and `order_by`, using the same partition
+and OrderKey rules as `dedupe_rows`: empty `by` selects one global partition,
+repeated partition references remain in authored order, and `order_by` is
+nonempty. An empty input yields no event, including for the global partition.
+Partition fields require known KeyComparable contracts; order fields require
+known AuthorOrderable contracts. Unrelated payload contracts and field-set
+completeness may remain unknown. The operation retains the chosen events'
+identity, clock encoding, payload, and window boundary values, but a repeated
+key does not prove uniqueness or resolve a top tie. Existing duplicate event
+IDs are not repaired by business-key deduplication.
+
 <a id="asof-join"></a>
 
 #### `asof_join`

@@ -3545,6 +3545,17 @@
       }
     },
     {
+      "requirement_id": "actql.language/dedupe-events.partition-shape",
+      "statement_sha256": "e415fb37257a6995f2f6afd3d84590b30175b4d3c983a9cc1707f314dca15ea6",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "dedupe-events",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.language/asof-join.kind-left-inner-direction-backward-forward-nearest-and-positive-tolerance-are-required",
       "statement_sha256": "b3cf33dd34fc76a2dbc799fecff8c9ec759e51556b2221099022e3370985bffb",
       "status": "pending",
