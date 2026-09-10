@@ -61,6 +61,7 @@ pub enum CheckedOperation {
   Append(right~ : Target, checked~ : @relation_append.CheckedAppend)
   Nest(right~ : Target, checked~ : @relation_nest.CheckedNest)
   Set(right~ : Target, checked~ : @relation_set.CheckedSet)
+  CrossJoin(right~ : Target, checked~ : @relation_join.CheckedCrossJoin)
 }
 
 type CheckedPipeline

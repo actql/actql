@@ -35,6 +35,9 @@ pub(all) enum Obligation {
   ValidateCardinality(Cardinality)
   RejectNullKeys
   BindGuard(String)
+  ValidateExactlyOneRightRow
+  ResolveProductBound
+  PreserveLeftMajorProductOrder
 } derive(Eq, Debug)
 
 ///|

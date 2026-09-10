@@ -15,6 +15,24 @@ pub fn assertion(CheckedJoin) -> Cardinality?
 
 pub fn check(@decode_core.Cursor, @relation_schema.Schema, @relation_schema.Schema, @parameter_binding.Declarations?, Limits) -> Result[CheckedJoin, Issue]
 
+pub fn check_cross(@decode_core.Cursor, @relation_schema.Schema, @relation_schema.Schema, @parameter_binding.Declarations?, Limits) -> Result[CheckedCrossJoin, Issue]
+
+pub fn cross_input_schema(CheckedCrossJoin, @relation_schema.Side) -> @relation_schema.Schema
+
+pub fn cross_output_guard(CheckedCrossJoin) -> Guard?
+
+pub fn cross_output_schema(CheckedCrossJoin) -> @relation_schema.Schema
+
+pub fn cross_pending_validations(CheckedCrossJoin) -> Array[Obligation]
+
+pub fn cross_projection(CheckedCrossJoin) -> Array[Projection]?
+
+pub fn cross_requires_one_right_row(CheckedCrossJoin) -> Bool
+
+pub fn cross_source(CheckedCrossJoin) -> @decode_core.Cursor
+
+pub fn cross_usage(CheckedCrossJoin) -> Usage
+
 pub fn input_schema(CheckedJoin, @relation_schema.Side) -> @relation_schema.Schema
 
 pub fn keys(CheckedJoin) -> Array[KeyPair]
@@ -43,6 +61,8 @@ pub(all) enum Cardinality {
   ManyToOne
   OneToMany
 } derive(Eq, @debug.Debug)
+
+type CheckedCrossJoin
 
 type CheckedJoin
 
@@ -106,6 +126,9 @@ pub(all) enum Obligation {
   ValidateCardinality(Cardinality)
   RejectNullKeys
   BindGuard(String)
+  ValidateExactlyOneRightRow
+  ResolveProductBound
+  PreserveLeftMajorProductOrder
 } derive(Eq, @debug.Debug)
 
 pub struct Projection {

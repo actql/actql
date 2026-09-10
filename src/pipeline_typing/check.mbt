@@ -155,7 +155,7 @@ fn check_impl(
       "analytic" => Some(Analytic)
       "top_k" => Some(TopK)
       "top_k_by" => Some(TopKBy)
-      "join" | "append" | "nest" | "except" | "intersect" => None
+      "join" | "append" | "nest" | "except" | "intersect" | "cross_join" => None
       _ => fail(@decode.lookup(object, key).unwrap(), UnsupportedOperation(key))
     }
     let selected = match @decode.lookup(object, "from") {
@@ -240,7 +240,45 @@ fn check_impl(
         (Unary(checked), @relation.output_schema(checked))
       }
       None =>
-        if key == "except" || key == "intersect" {
+        if key == "cross_join" {
+          let obj = match @decode.open_object(operation_body) {
+            Ok(v) => v
+            Err(_) => fail(operation_body, InvalidBody)
+          }
+          let right_source = match @decode.required(obj, "with") {
+            Ok(v) => v
+            Err(_) => fail(operation_body, InvalidBody)
+          }
+          let right = resolve_target(b, right_source, names)
+          let checked = match
+            @join.check_cross(
+              operation_body,
+              schema(operation_body, input, inputs, steps),
+              schema(right_source, right, inputs, steps),
+              parameters,
+              {
+                max_work: b.work,
+                max_text_bytes: b.text,
+                max_nodes: b.nodes,
+                max_depth: limits.max_depth,
+              },
+            ) {
+            Ok(v) => v
+            Err(issue) =>
+              raise Stop({
+                kind: Join(issue.kind),
+                source: issue.source,
+                path: issue.path.copy(),
+                span: issue.span,
+                range: None,
+              })
+          }
+          let used = @join.cross_usage(checked)
+          b.work -= used.work
+          b.text -= used.text_bytes
+          b.nodes -= used.nodes
+          (CrossJoin(right~, checked~), @join.cross_output_schema(checked))
+        } else if key == "except" || key == "intersect" {
           let obj = match @decode.open_object(operation_body) {
             Ok(v) => v
             Err(_) => fail(operation_body, InvalidBody)
@@ -401,7 +439,8 @@ fn check_impl(
         Join(right~, ..)
         | Append(right~, ..)
         | Nest(right~, ..)
-        | Set(right~, ..) =>
+        | Set(right~, ..)
+        | CrossJoin(right~, ..) =>
           [{ role: Left, target: input, }, { role: Right, target: right, }]
       },
     }

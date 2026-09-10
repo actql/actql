@@ -127,7 +127,46 @@ fn check_impl(
   if null_key == Fail {
     pending.push(RejectNullKeys)
   }
-  let output_guard = match @decode.lookup(obj, "max_output_rows") {
+  let output_guard = read_guard(
+    @decode.lookup(obj, "max_output_rows"),
+    params,
+    pending,
+  )
+  let (output, projection) = join_output(
+    b,
+    body,
+    @decode.lookup(obj, "select"),
+    left,
+    right,
+    kind,
+  )
+  {
+    source: body,
+    left,
+    right,
+    output,
+    kind,
+    null_key,
+    keys,
+    projection,
+    assertion,
+    output_guard,
+    pending,
+    usage: {
+      work: limits.max_work - b.work,
+      text_bytes: limits.max_text_bytes - b.text,
+      nodes: limits.max_nodes - b.nodes,
+    },
+  }
+}
+
+///|
+fn read_guard(
+  source : @decode.Cursor?,
+  params : Map[String, @contract.ParameterType],
+  pending : Array[Obligation],
+) -> Guard? raise Stop {
+  match source {
     None => None
     Some(s) =>
       Some(
@@ -160,6 +199,17 @@ fn check_impl(
         },
       )
   }
+}
+
+///|
+fn join_output(
+  b : Budget,
+  body : @decode.Cursor,
+  select : @decode.Cursor?,
+  left : @schema.Schema,
+  right : @schema.Schema,
+  kind : Kind,
+) -> (@schema.Schema, Array[Projection]?) raise Stop {
   let raw : Array[(@schema.FieldName, @contract.Contract)] = []
   for (side, schema) in [(@schema.Left, left), (@schema.Right, right)] {
     if side == @schema.Right && (kind == Semi || kind == Anti) {
@@ -182,7 +232,7 @@ fn check_impl(
     }
   }
   let raw = make_schema(b, body, raw)
-  let (output, projection) = match @decode.lookup(obj, "select") {
+  match select {
     None => (raw, None)
     Some(s) => {
       let o = decoded(@decode.open_object(s), s)
@@ -212,24 +262,6 @@ fn check_impl(
       }
       (make_schema(b, s, fields), Some(projection))
     }
-  }
-  {
-    source: body,
-    left,
-    right,
-    output,
-    kind,
-    null_key,
-    keys,
-    projection,
-    assertion,
-    output_guard,
-    pending,
-    usage: {
-      work: limits.max_work - b.work,
-      text_bytes: limits.max_text_bytes - b.text,
-      nodes: limits.max_nodes - b.nodes,
-    },
   }
 }
 

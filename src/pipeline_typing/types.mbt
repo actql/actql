@@ -103,6 +103,7 @@ pub enum CheckedOperation {
   Append(right~ : Target, checked~ : @append.CheckedAppend)
   Nest(right~ : Target, checked~ : @nest.CheckedNest)
   Set(right~ : Target, checked~ : @set.CheckedSet)
+  CrossJoin(right~ : Target, checked~ : @join.CheckedCrossJoin)
 }
 
 ///|
