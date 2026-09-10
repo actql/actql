@@ -52,6 +52,16 @@ in [resolved limits](../spec/language.md#resolved-limits).
 | text_rank | Query count times min(k, corpus count), upper bound only because zero-score documents are omitted |
 | merge_rankings | Sum input-occurrence upper bounds, not exact; empty by additionally clamps the whole output to k |
 
+Authored join cardinality assertions refine the successful-output bounds without
+discharging `ValidateCardinality`. For inner joins, unique right keys bound output
+by L, unique left keys by R, and both by the minimum of available bounds. Left
+joins with unique right keys preserve L exactly; unique left keys alone give
+L + max(0, R - 1) when both bounds are known (empty left remains empty). Full
+joins with either side unique have upper bound L + R. Empty-side rules remain
+stronger and preserve the surviving side's exactness. These are mathematical
+consequences conditional on validating the assertion, not automatic uniqueness
+inference from the data's size or a permission to skip a failed assertion.
+
 Window multiplicity follows the integer lattice and closed-open membership rule
 in [event windows](../spec/language.md#event-windows). When size is not divisible
 by step, some times have fewer memberships (including zero when size < step),
@@ -84,6 +94,6 @@ addition, multiplication, reduction and carrier-specific laws. This implementati
 uses the same distinctions and additionally records exactness where warranted by
 the current language. It does not adopt a Host ceiling or physical estimate as
 an exact count. Join-key uniqueness can further tighten these conservative
-matching bounds; declared/proven cardinality integration and Graph transfers,
+matching bounds; candidate-key proof integration and Graph transfers,
 validated external count facts and dependency-closed Plan witness
 serialization remain shared-evidence work. No execution conformance is claimed.

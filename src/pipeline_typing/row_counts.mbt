@@ -98,7 +98,41 @@ fn join_count(
   left : RowCount?,
   right : RowCount?,
   kind : @join.Kind,
+  left_unique? : Bool = false,
+  right_unique? : Bool = false,
 ) -> RowCount? raise Stop {
+  // Empty-side rules below are stronger than uniqueness-based upper bounds.
+  if (left_unique || right_unique) &&
+    !(left is Some({ upper: 0L, .. })) &&
+    !(right is Some({ upper: 0L, .. })) {
+    match kind {
+      Inner => {
+        if left_unique && right_unique {
+          return match (left, right) {
+            (Some(a), Some(z)) =>
+              Some(
+                count(if a.upper < z.upper { a.upper } else { z.upper }, false),
+              )
+            (Some(v), None) | (None, Some(v)) => Some(count(v.upper, false))
+            _ => None
+          }
+        }
+        return reduce_count(if right_unique { left } else { right })
+      }
+      Left => {
+        if right_unique || (right is Some(v) && v.upper <= 1L) {
+          return left
+        }
+        // Each right row matches at most one left row. Once a match exists,
+        // one left row no longer contributes an unmatched output occurrence.
+        return reduce_count(
+          sum_counts(source, left, right.map(v => count(v.upper - 1L, false))),
+        )
+      }
+      Full => return reduce_count(sum_counts(source, left, right))
+      Semi | Anti => ()
+    }
+  }
   match kind {
     Inner => reduce_count(product_counts(source, left, right))
     Semi =>
@@ -263,6 +297,8 @@ fn derive_row_counts(
           input,
           count_at(right, result),
           @join.kind(checked),
+          left_unique=@join.assertion(checked) is Some(OneToOne | OneToMany),
+          right_unique=@join.assertion(checked) is Some(OneToOne | ManyToOne),
         )
       IntervalJoin(right~, checked~) =>
         join_count(
