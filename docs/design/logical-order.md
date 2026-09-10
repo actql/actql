@@ -44,6 +44,26 @@ publication-order obligation. Connecting other completed orders and their
 consumer checks, other ordered operations, validated external witnesses and Results
 publication remains shared-evidence work.
 
+## Take consumption
+
+`take_order` reports the conditional order available before a checked take's
+offset/count selection. It first retains existing generator or completed-sort
+order, including descending authored terms. Only when no such order exists does
+it select the actual input's eligible whole candidate key and record ascending,
+nulls-last internal identity order. `order_key_completion` retains that selected
+witness with its original declaration and validation requirements; it is not a
+replacement of the authored take body and does not emit a journal itself.
+The same canonical whole-key selector and shared budgets serve sort and take.
+
+An empty preceding sort still establishes nothing, but does not prevent take
+from applying its own permitted completion. A second take preserves the first
+take's established sequence instead of choosing another ordering. Plain Carrier
+input has neither admitted order nor a declared key: `take_order` then returns
+None, so downstream checking must retain the unresolved StableInputOrder
+obligation. The generic operation's pending list remains context-independent;
+this pipeline result supplies the contextual resolution, conditional on all
+retained key/producer checks. No provider-return order is assumed.
+
 The pass is nonrecursive and charges one work unit per checked step plus bounded
 candidate selection, authored-term and key-alias scans for completion. Field text
 is charged to the shared text budget. It shares

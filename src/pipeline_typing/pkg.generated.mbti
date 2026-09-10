@@ -64,6 +64,8 @@ pub fn logical_order(CheckedPipeline, Target) -> LogicalOrder?
 
 pub fn lookup(CheckedPipeline, String) -> Target?
 
+pub fn order_key_completion(LogicalOrder) -> @relation_evidence.KeyedRelation?
+
 pub fn order_origin(LogicalOrder) -> Target
 
 pub fn order_predecessor(LogicalOrder) -> Target?
@@ -97,6 +99,8 @@ pub fn step_at(CheckedPipeline, Int) -> CheckedStep?
 pub fn step_count(CheckedPipeline) -> Int
 
 pub fn step_schema(CheckedStep) -> @relation_schema.Schema?
+
+pub fn take_order(CheckedPipeline, Int) -> LogicalOrder?
 
 pub fn usage(CheckedPipeline) -> Usage
 

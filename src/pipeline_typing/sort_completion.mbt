@@ -38,11 +38,11 @@ fn order_field_key(f : @schema.FieldName) -> String {
 }
 
 ///|
-fn complete_sort(
+fn select_order_key(
   b : Budget,
   op : @relation.CheckedOperation,
   keys : @evidence.KeySet?,
-) -> SortCompletion? raise Stop {
+) -> @evidence.KeyedRelation? raise Stop {
   guard keys is Some(keys) else { return None }
   let source = @relation.source(op)
   guard @carrier.complete_schema(@evidence.key_set_records(keys)) is Some(input) &&
@@ -66,7 +66,17 @@ fn complete_sort(
   }
   b.work -= selected.work
   b.text -= selected.name_bytes
-  guard selected.key is Some(key) else { return None }
+  selected.key
+}
+
+///|
+fn complete_sort(
+  b : Budget,
+  op : @relation.CheckedOperation,
+  keys : @evidence.KeySet?,
+) -> SortCompletion? raise Stop {
+  guard select_order_key(b, op, keys) is Some(key) else { return None }
+  let source = @relation.source(op)
   let seen : Map[String, Bool] = Map([])
   let n = @relation.sort_term_count(op)
   spend(b, source, n)
