@@ -6364,7 +6364,8 @@ The graph output index aggregates node history without new Invocations:
 - `authoring_context_cid` identifies the separately extracted metadata sidecar
   bound to that Program Definition;
 - `check_environment_cid` binds the exact evidence bundle used by check;
-- `parameter_values_cid` binds one canonical typed value map;
+- `parameter_values_cid` binds one canonical typed value map using the
+  [Parameter value identity projection](protocols/contracts.md#parameter-value-projection);
 - `invocation_template_cid` binds Program Definition CID, Parameter Values
   CID, Check Environment CID, and the fact that runtime sources remain unbound;
 - `executable_plan_cid` binds the complete graph and execution material ([Typed barriers and Plan Documents](#plan-documents)),

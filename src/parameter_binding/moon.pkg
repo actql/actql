@@ -7,10 +7,14 @@ import {
   "actql/actql/decode_scalar" @scalar,
   "actql/actql/canonical_value" @canonical,
   "actql/actql/source_span" @span,
+  "actql/actql/encode_core" @encode,
 }
 
 import {
   "actql/actql/source_value" @source,
+  "actql/actql/sha256",
 } for "test"
 
-formatter(ignore: [ "corpus.generated_test.mbt" ])
+formatter(
+  ignore: [ "corpus.generated_test.mbt", "identity.generated_test.mbt" ],
+)

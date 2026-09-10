@@ -123,7 +123,12 @@ pub fn bind(
           } else {
             (declaration.default_value.unwrap(), Default)
           }
-          entries.push({ name: declaration.name, value, origin, })
+          entries.push({
+            name: declaration.name,
+            value,
+            origin,
+            parameter_type: declaration.parameter_type,
+          })
         }
       }
     }

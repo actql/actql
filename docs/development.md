@@ -78,6 +78,7 @@ The checks are read-only:
 - `check:value-contracts`: fixed contract vectors, generated-test freshness and embedded schema consistency.
 - `check:value-admission`: fixed value-admission vectors, generated-test freshness and generator regressions.
 - `check:parameters`: fixed Parameter binding cases, recursive schema consistency and generator regressions.
+- `check:parameter-identities`: fixed Parameter value preimages/CIDs, projected-value schema and generator regressions.
 
 Dependencies are pinned in `package-lock.json`. External URL availability is
 not part of the deterministic local checks.
@@ -175,7 +176,8 @@ execution remain separate.
 validates defaults and resolves supplied values to immutable `Ready` or
 `NeedsBindings` results. `generate:parameters` regenerates fixed tests;
 `generate:parameter-schemas` updates the embedded Parameter schemas and their
-artifact pins. Whole-Program usage, typed identities and Plan/Run integration
+artifact pins. Parameter Values identity uses the same bounded emitter for
+canonical text and incremental hashing. Whole-Program usage and Plan/Run integration
 remain separate.
 
 [Owned tree decoding](design/decode-core.md) admits editable Nodes into bounded

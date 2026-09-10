@@ -513,6 +513,67 @@ its array binding evidence requires the registered shared row-kernel extension.
  source_evidence:"unbound", bound_invocation_template_cid}
 ```
 
+<a id="parameter-value-projection"></a>
+
+#### Parameter value identity projection
+
+The `values` member is a map from Parameter names to projected, admitted values,
+not an untyped copy of supplied JSON. The canonical hash preimage is exactly
+`{version:"actql-parameter-values/0.1", values}`; the outer
+`parameter_values_cid` member is not included. Empty maps are permitted for a
+Program with no Parameters. Program and local used-value projections select
+their required names before constructing this envelope; this definition does
+not authorize dropping required names.
+
+<!-- requirement-block: bound-template-wire.parameter-projection -->
+Parameter Values identity MUST use the following recursive projection of a
+complete bound set and its admitted Parameter types. Null projects to null.
+Ordinary booleans, numbers and normalized strings retain their JSON values;
+date and timestamp retain their canonical wire strings. Arrays project their
+elements in order. Object values project their fields in normalized UTF-16
+code-unit order. Neither null nor an empty collection receives a declaration
+type wrapper. Admission-only constraints (`nullable`, `integer`, numeric bounds,
+array length and `max_items`), default declarations, supplied/default origin and
+annotation metadata are not value-preimage members. Their exclusion from this
+value identity does not remove the Program's declaration or evidence obligations.
+
+Decimal projects to the following value, using the exact coefficient and the
+declared precision and scale:
+
+```json
+{"$actql_value":["decimal",{"version":"aoa-decimal-value/0.1","precision":4,"scale":2,"coefficient":"1990"}]}
+```
+
+The second array member is the AoA decimal value identity preimage with its
+version, precision, scale and coefficient, not its display string or a binary64
+conversion. A non-null string constrained by `format: duration` projects to
+`{"$actql_value":["duration", milliseconds]}`, where milliseconds is the positive
+safe integer defined by the Language duration rule. Thus `1s`, `1S`, `01s` and
+`1000ms` share a projection; unconstrained strings with those spellings do not
+undergo duration conversion. These rules also apply to object fields and array
+items. No tag is inferred by inspecting business data.
+
+<!-- requirement-block: bound-template-wire.parameter-object-escape -->
+A business object containing the exact normalized key `$actql_value` MUST
+project to `{"$actql_value":["object", pairs]}`, where `pairs` contains every
+field as `[name, projectedValue]` in strictly increasing UTF-16 name order.
+The pair list has unique names and includes `$actql_value` exactly once. Its
+arrays are structural containers, not recursively re-escaped objects; each
+field value is recursively projected under its declared type. Objects without
+that key remain ordinary projected objects. This escape does not reserve an
+authored field name or alter the admitted business value. In particular,
+business data resembling a decimal, duration or object tag cannot impersonate
+that tag in the preimage.
+
+<!-- requirement-block: bound-template-wire.parameter-projection-canonical -->
+The complete preimage MUST be serialized by the canonical JSON rules and hashed
+over its UTF-8 bytes. The schema fixes projected shapes; canonical normalization,
+numeric admission, sorted unique escaped field pairs and agreement with the
+admitted declarations remain semantic validation requirements. Invalid or
+incomplete bindings do not produce a Parameter Values CID. Hashing the raw
+binding strings, stripping arbitrary metadata-shaped business fields, or
+interpreting supplied tags as proof of admission is not an alternative.
+
 <a id="compilation-identities"></a>
 
 ### Compilation identity envelopes
@@ -765,7 +826,7 @@ These exact schema/law references are owned here. Their identities do not includ
 ../../../spec/contracts/actql-protocol-schemas.json#/schemas/connector_catalog sha256:877f1571d0ec91367c8ea53f39e9692a6b34fa788334a748f9f878bcefc004a3
 ../../../spec/contracts/actql-protocol-schemas.json#/schemas/lock sha256:02e3693c855d6137ac1fee89705a2a11824cf6607ea593b3ee7786263f49bdd4
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/authoring_context sha256:930efa0eff6819f19378cc397c0f268de71d9fcbb5f1543aa0ac4be30f676398
-../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/parameter_values sha256:5799ca8d309e1dc57ddc3d611e24d46c42362b96b755652bc77695b97bca5cf7
+../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/parameter_values sha256:6376d9cbe27f40771a0e47ed84128364c218f7403ed3734612ab719b722da6a3
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/bound_invocation_template sha256:d7ba95795c14fc1145fb430f3311d38139a834f15a3dc636bb881ecde9f1cbb7
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/executable_plan sha256:edd5216bc1684de4f58aab71c0a9d57717a469828de3a7d07706ccec925d2044
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/normalization_journal sha256:485ccc0d3215dfc0d9f13101dbc7bc0d4a72b8eb28a346ab8122cafd635ae6f0

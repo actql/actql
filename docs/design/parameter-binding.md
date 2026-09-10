@@ -2,7 +2,7 @@
 
 `parameter_binding` implements the pure declaration and invocation-value part of
 [Parameters and binding](../spec/language.md#parameters). It does not establish
-whole-Program use proofs, substitute expressions, issue typed value CIDs, admit
+whole-Program use proofs, substitute expressions, admit
 opaque `bindings`, publish protocol envelopes or start a Plan/Run.
 
 ## Declaration grammar
@@ -52,15 +52,46 @@ cannot hide an invalid supplied value. `Ready` contains an immutable complete
 set; `NeedsBindings` exposes only the sorted missing-name list, not partially
 ready values. Both accessors return detached arrays. Each bound value records
 `Supplied` or `Default` separately from its checked typed value. These origins
-are not typed identity inputs. No CID equality claim is implemented here.
+are not typed identity inputs. `Ready` privately retains the admitted Parameter
+types alongside the values; callers cannot pair the values with another declaration
+set when computing identity.
 
 Duration validation parses `[0-9]+(ms|s|m|h|d)` with ASCII case-insensitive units,
 including leading-zero digit sequences. Exact integer conversion to milliseconds
 must be positive and no larger than 9007199254740991. No binary64 parsing,
 fractional tokens or zero duration are accepted. The checked value remains a
 string with its source-normalized spelling; duration operand lowering consumes
-the millisecond interpretation. This package does not emit a canonical typed
-Parameter Values artifact or decide its preimage.
+the millisecond interpretation. Parameter identity emission applies that same
+interpretation without replacing the stored string.
+
+## Parameter Values identity
+
+`emit_values` emits the exact version/values preimage defined by the
+[Parameter identity wire contract](../spec/protocols/contracts.md#parameter-value-projection).
+`stringify_values`, `measure_values` and `parameter_values_cid` use the same
+emitter with text, measurement and incremental hash sinks. Their input is the
+opaque `BoundValues` from `Ready`, not `NeedsBindings` or an independently supplied
+declaration/value pair. The output is the hash preimage, not the wire envelope
+including `parameter_values_cid`. External artifact admission and whole-Program
+or extracted-unit used-name proofs remain separate.
+
+Decimal uses the versioned coefficient/precision/scale preimage. Duration uses
+positive safe integer milliseconds. Business objects containing `$actql_value`
+are escaped into sorted name/value pairs; ordinary values are not universally
+wrapped with their declarations. Origin, metadata and admission-only constraints
+do not enter the value preimage. All values come from trusted binding; tags are
+never interpreted from arbitrary input JSON.
+
+Emission is nonrecursive and uses read-only indexed access to owned values and
+type fields, scheduling one child at a time. It creates no second projected tree.
+The hash sink does not materialize a serialized String or byte array. Bytes,
+nodes and depth limits cover the complete emitted preimage, including version,
+maps, tags, decimal bodies, escaped pair containers and pair-name strings. These
+are output budgets, separate from binding's input budgets. Object keys are not
+nodes; escaped pair names are string values and are nodes. Text and hash paths
+make the same admission decisions. Writer failure prevents finalization or reuse;
+no partial body or CID is returned. Retained input, writer key tracking and
+traversal state still use memory, so output limits are not total-heap limits.
 
 The result is immutable, but enforcing one retained set across attempts/resume is
 the later Run boundary's responsibility. Usage across stages and prohibition of
@@ -105,6 +136,15 @@ document metadata and identity fixtures are updated with their existing commands
 Decimal schemas enforce scale <= precision at both declaration and recursive type
 positions. Schema shape checking does not replace duration conversion or the
 validation of complete typed defaults.
+
+The [identity corpus](../../portability/corpus/parameter-identities.json) fixes
+canonical text and CIDs independently of MoonBit output. `check:parameter-identities`
+verifies those expectations with an independent projection and SHA-256, generated
+test freshness and schema regressions. `generate:parameter-identities` regenerates
+tests without rewriting expectations. `generate:parameter-identity-schema` updates
+the projected-value schema and artifact pins; use the metadata and canonical
+identity generators afterward. Product tests check exact output budgets and
+text/hash parity in addition to these fixed identities.
 
 Product tests additionally exercise whole-set budgets, metadata, source locations,
 ownership, wide maps and deep recursive declarations on JS, Wasm and native.

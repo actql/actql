@@ -3,6 +3,7 @@ package "actql/actql/parameter_binding"
 
 import {
   "actql/actql/decode_core",
+  "actql/actql/encode_core",
   "actql/actql/source_span",
   "actql/actql/source_value",
   "actql/actql/value_admission",
@@ -17,11 +18,19 @@ pub fn bound_values(BoundValues) -> Array[BoundParameter]
 
 pub fn declarations(Declarations) -> Array[Declaration]
 
+pub fn emit_values(BoundValues, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
+
 pub fn has_default(Declaration) -> Bool
+
+pub fn measure_values(BoundValues, Int, Int, Int) -> Int raise @encode_core.EncodeFailure
 
 pub fn missing_names(MissingNames) -> Array[String]
 
+pub fn parameter_values_cid(BoundValues, Int, Int, Int) -> String raise @encode_core.EncodeFailure
+
 pub fn read_declarations(@decode_core.Cursor?, DeclarationLimits) -> Result[Declarations, Issue]
+
+pub fn stringify_values(BoundValues, Int, Int, Int) -> String raise @encode_core.EncodeFailure
 
 // Errors
 
@@ -35,6 +44,7 @@ pub struct BoundParameter {
   name : String
   value : @value_admission.CheckedValue
   origin : Origin
+  // private fields
 }
 
 type BoundValues

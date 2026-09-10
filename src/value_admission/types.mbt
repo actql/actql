@@ -37,6 +37,17 @@ pub fn[T] elements(value : FrozenArray[T]) -> Array[T] {
 }
 
 ///|
+/// Read-only indexed access without allocating a detached array.
+pub fn[T] element_at(value : FrozenArray[T], index : Int) -> T? {
+  value.values.get(index)
+}
+
+///|
+pub fn[T] element_count(value : FrozenArray[T]) -> Int {
+  value.values.length()
+}
+
+///|
 pub(all) struct Limits {
   max_nodes : Int
   max_depth : Int

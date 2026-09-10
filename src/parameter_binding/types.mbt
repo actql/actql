@@ -33,6 +33,7 @@ pub struct BoundParameter {
   name : String
   value : @value.CheckedValue
   origin : Origin
+  priv parameter_type : @contract.ParameterType
 }
 
 ///|

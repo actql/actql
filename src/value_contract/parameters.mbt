@@ -27,6 +27,15 @@ pub fn parameter_fields(
 }
 
 ///|
+/// Read-only access in canonical field order without copying the field array.
+pub fn parameter_field_at(
+  fields : ParameterFields,
+  index : Int,
+) -> (String, ParameterType)? {
+  fields.values.get(index)
+}
+
+///|
 /// Type syntax only. Defaults and metadata are retained for the binding boundary
 /// to validate; this is not an admitted set of parameter declarations.
 pub struct ParameterSyntax {

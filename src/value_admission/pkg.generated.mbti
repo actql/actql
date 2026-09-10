@@ -12,6 +12,10 @@ import {
 // Values
 pub fn admit(@value_contract.Contract, @decode_core.Cursor, Limits) -> Result[CheckedValue, Issue]
 
+pub fn[T] element_at(FrozenArray[T], Int) -> T?
+
+pub fn[T] element_count(FrozenArray[T]) -> Int
+
 pub fn[T] elements(FrozenArray[T]) -> Array[T]
 
 // Errors

@@ -20,6 +20,8 @@ pub fn join_nullability(Contract, Contract, Int) -> Contract? raise RelationErro
 
 pub fn key_comparable(Contract, Contract) -> Bool
 
+pub fn parameter_field_at(ParameterFields, Int) -> (String, ParameterType)?
+
 pub fn parameter_fields(ParameterFields) -> Array[(String, ParameterType)]
 
 pub fn read_author(@decode_core.Cursor, Limits) -> Result[Contract, AdmissionError]
