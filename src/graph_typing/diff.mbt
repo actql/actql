@@ -84,6 +84,46 @@ fn delta_actions(
 }
 
 ///|
+fn delta_shape(
+  b : Budget,
+  source : @decode.Cursor,
+  graph : @carrier.Graph,
+) -> @contract.Contract raise Stop {
+  if b.limits.max_depth < 6 {
+    fail(source, BudgetExceeded)
+  }
+  let id = @carrier.graph_identity(graph)
+  let node_props = delta_properties(
+    b,
+    source,
+    @carrier.graph_node_properties(graph),
+  )
+  let edge_props = delta_properties(
+    b,
+    source,
+    @carrier.graph_edge_properties(graph),
+  )
+  let node = delta_object(b, source, [("id", id), ("props", node_props)])
+  let edge = delta_object(b, source, [
+    ("src", id),
+    ("dst", id),
+    ("rel", @contract.primitive(StringType, nullable=true)),
+    ("props", edge_props),
+  ])
+  let nodes = delta_actions(b, source, node)
+  let edges = delta_actions(b, source, edge)
+  let text = @contract.primitive(StringType, nullable=false)
+  delta_object(b, source, [
+    ("version", text),
+    ("base_graph_cid", text),
+    ("target_graph_cid", text),
+    ("graph_contract_cid", text),
+    ("nodes", nodes),
+    ("edges", edges),
+  ])
+}
+
+///|
 pub fn check_diff(
   source : @decode.Cursor,
   left : @carrier.Carrier,
@@ -125,35 +165,7 @@ pub fn check_diff(
     b.nodes -= contract_nodes
     spend(b, source, contract_nodes)
     b.text -= @graph_contract.bytes(pinned)
-    let id = @carrier.graph_identity(graph)
-    let node_props = delta_properties(
-      b,
-      source,
-      @carrier.graph_node_properties(graph),
-    )
-    let edge_props = delta_properties(
-      b,
-      source,
-      @carrier.graph_edge_properties(graph),
-    )
-    let node = delta_object(b, source, [("id", id), ("props", node_props)])
-    let edge = delta_object(b, source, [
-      ("src", id),
-      ("dst", id),
-      ("rel", @contract.primitive(StringType, nullable=true)),
-      ("props", edge_props),
-    ])
-    let nodes = delta_actions(b, source, node)
-    let edges = delta_actions(b, source, edge)
-    let text = @contract.primitive(StringType, nullable=false)
-    let delta = delta_object(b, source, [
-      ("version", text),
-      ("base_graph_cid", text),
-      ("target_graph_cid", text),
-      ("graph_contract_cid", text),
-      ("nodes", nodes),
-      ("edges", edges),
-    ])
+    let delta = delta_shape(b, source, graph)
     // Account for the enclosing one-row Relation field separately.
     spend(b, source, 1)
     charge(b, source, "delta")

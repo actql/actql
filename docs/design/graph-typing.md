@@ -112,3 +112,46 @@ from the shared budget; each emitted value node also consumes one work unit.
 The remaining depth bounds this traversal independently. Runtime emits the stored
 CID rather than selecting or inferring another contract from Delta payloads.
 Apply integration remains separate, as do all outstanding snapshot obligations.
+
+## Delta application checking
+
+`check_apply` accepts the closed `{with, field}` body, a typed base Graph, a
+Relation containing the selected field, and an independently resolved opaque
+`graph_contract.CheckedContract`. It retains that exact contract and uses it
+for the output Graph and expected complete Delta record type. It never derives
+a replacement contract from action payloads or a matching self-CID.
+
+Base identity/property domains must be known and compatible. Extents and
+nullability can differ: execution admits the actual base under the pinned
+contract, rather than replacing it with the joined type used for compatibility
+checking. Label-domain membership is also a data-admission obligation. The
+output therefore follows the supplied contract, not the narrower base snapshot.
+
+A selected JSON-typed field requires complete runtime shape admission. A known
+object contract additionally undergoes recursive domain compatibility checking;
+other known value kinds fail statically. Nullable declarations are not proof of
+a usable Delta: actual null fails the mandatory closed-shape admission. This
+uses the language's explicit additional semantic admission for ordinary data,
+not a new authority-bearing Delta type. Unknown/untyped fields cannot silently
+become JSON. Unrelated Relation fields need not be complete. Qualified field
+references retain their left/right provenance.
+
+The checker retains separate obligations for exactly one row, version and closed
+shape, exact contract/base/target identities, action ordering and uniqueness,
+before-record equality, existence rules, atomic node/edge changes, endpoints,
+complete result admission, policy dependencies, SGA profile and resources.
+No row count or successful application is inferred from a static type.
+
+Diff and Apply share the complete-record type builder. Compatibility traversal,
+contract emission and new record wrappers share work/node/text budgets with
+source admission. Contract hashing does not materialize serialized text.
+
+Reference review: pinned Sketch accepts an embedded `{delta: ...}` and preserves
+the base shape. Pinned AoA application skips missing updates and deletes incident
+edges on node removal. Neither behavior implements the current language's
+Relation input, exact before records and explicit endpoint validation. Those
+behaviors are not copied into this checker or its obligations.
+
+The standalone Apply checker is implemented; pipeline contract-evidence selection
+and propagation, its source-schema connection and end-to-end dispatch remain
+unfinished. This API is not execution or pipeline support by itself.

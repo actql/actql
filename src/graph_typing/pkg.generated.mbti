@@ -15,7 +15,25 @@ import {
 }
 
 // Values
+pub fn apply_delta_contract(CheckedApply) -> @value_contract.Contract
+
+pub fn apply_field(CheckedApply) -> String
+
+pub fn apply_graph_contract(CheckedApply) -> @graph_contract.CheckedContract
+
+pub fn apply_output(CheckedApply) -> @carrier_contract.Carrier
+
+pub fn apply_pending(CheckedApply) -> Array[ApplyObligation]
+
+pub fn apply_source(CheckedApply) -> @decode_core.Cursor
+
+pub fn apply_usage(CheckedApply) -> Usage
+
+pub fn apply_with_name(CheckedApply) -> String
+
 pub fn check(Operation, @decode_core.Cursor, @carrier_contract.Carrier, @parameter_binding.Declarations?, Limits) -> Result[CheckedGraph, Issue]
+
+pub fn check_apply(@decode_core.Cursor, @carrier_contract.Carrier, @carrier_contract.Carrier, @graph_contract.CheckedContract, Limits) -> Result[CheckedApply, Issue]
 
 pub fn check_diff(@decode_core.Cursor, @carrier_contract.Carrier, @carrier_contract.Carrier, Limits) -> Result[CheckedDiff, Issue]
 
@@ -66,6 +84,25 @@ pub fn usage(CheckedGraph) -> Usage
 // Errors
 
 // Types and methods
+pub(all) enum ApplyObligation {
+  RequireExactlyOneDeltaRow
+  ValidateDeltaVersionAndClosedShape
+  MatchPinnedGraphContract
+  AdmitBaseUnderPinnedContract
+  MatchExactBaseIdentity
+  ValidateOrderedUniqueActions
+  ValidateExactBeforeRecords
+  ValidateAddRemoveUpdateExistence
+  ApplyNodeAndEdgeChangesTogether
+  ValidateResultEndpointsAndContract
+  MatchExactTargetIdentity
+  PreserveGraphPolicyDependencies
+  ResolveApplyResources
+  ResolveSgaProfile
+} derive(Eq, @debug.Debug)
+
+type CheckedApply
+
 type CheckedDiff
 
 type CheckedEquality
@@ -120,6 +157,9 @@ pub(all) enum IssueKind {
   WrongCarrier(@carrier_contract.Kind)
   InvalidCount
   IncompleteGraph
+  UnknownDeltaField(String)
+  UntypedDeltaField(String)
+  InvalidDeltaType
   InvalidName(String)
   ContractMismatch(@relation_append.IssueKind)
   UnknownParameter(String)

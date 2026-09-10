@@ -54,6 +54,9 @@ pub(all) enum IssueKind {
   WrongCarrier(@carrier.Kind)
   InvalidCount
   IncompleteGraph
+  UnknownDeltaField(String)
+  UntypedDeltaField(String)
+  InvalidDeltaType
   InvalidName(String)
   ContractMismatch(@alignment.IssueKind)
   UnknownParameter(String)

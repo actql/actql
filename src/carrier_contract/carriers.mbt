@@ -176,6 +176,12 @@ pub fn graph_labels(graph : Graph) -> Array[String]? {
 }
 
 ///|
+/// Rewrap an already admitted opaque Graph without copying its domains.
+pub fn graph_carrier(graph : Graph) -> Carrier {
+  GraphValue(graph)
+}
+
+///|
 pub fn graph_label_count(graph : Graph) -> Int? {
   graph.labels.map(labels => labels.length())
 }

@@ -22,6 +22,8 @@ pub fn fields(Knowledge) -> Array[Field]
 
 pub fn graph(@value_contract.Contract, Knowledge, Knowledge, labels~ : Array[String]?, max_labels~ : Int, max_label_bytes~ : Int) -> Result[Carrier, Issue]
 
+pub fn graph_carrier(Graph) -> Carrier
+
 pub fn graph_edge_properties(Graph) -> Knowledge
 
 pub fn graph_identity(Graph) -> @value_contract.Contract
