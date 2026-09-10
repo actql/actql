@@ -7,6 +7,37 @@ closed-contract checkers. Structural `graft_graph`, `union_graphs` and
 The normative owner is [Graph operations](../spec/language.md#graph-operations).
 This is not the complete SGA operation family or an evaluator.
 
+## Property-match implementation boundary
+
+The `check_match` boundary shares typed semantic scopes and the
+existing expression checker. Unlike the explicit row bridges, these scopes do
+not add undeclared `id`, `src`, `dst` or `rel` columns. Unknown and untyped
+properties remain distinct; only referenced fields must have known contracts.
+Predicate diagnostics retain source paths, spans and embedded-text ranges.
+
+Selected fields retain their source order and must be nonempty, unique and
+statically known. Node selectors retain explicit typed ID occurrences without
+string conversion; membership deduplication and existence remain execution
+obligations. Empty and repeated edge-type filters are retained, not rewritten
+to absence. Expressions and scopes consume the same remaining work/node/text
+and token budgets. This does not establish order or publication evidence.
+
+Pipeline dispatch now connects both match operations to Relation consumers and
+retains the predicate's exact diagnostic location and cumulative token budget.
+The grammar/schema now fix the previously implicit selector and projection
+shapes: one node selector, nonempty unique fields, and optional edge filters.
+Accepting empty edge types as an empty selection is an explicit membership-law
+decision, not an alias for an absent filter. Static predicate errors remain
+errors even when the type filter selects no edges.
+
+Direct Ref-typed IDs encounter `value_admission`'s UnsupportedReference rejection:
+the opaque-reference owner forbids authored JSON alone from establishing a valid
+Ref. This does not restrict Graph identity types to strings or to constructible
+values. Selection from issued Relation values belongs to the shared traversal
+selector boundary, still unfinished; fabricated tagged objects do not replace it.
+The pinned Sketch reader supplies the closed source forms, but its string-only
+IDs, implicit carrier aliases and silent duplicate-column removal are not used.
+
 Normalization requires `true` and preserves the structural Graph contract,
 including partial property knowledge, semantic identity type and labels.
 It does not assert that untrusted data has already been normalized.

@@ -89,6 +89,7 @@ pub enum CheckedOperation {
   Window(@temporal_window.CheckedWindow)
   Projection(@carrier_projection.CheckedProjection)
   Graph(@graph_typing.CheckedGraph)
+  GraphMatch(@graph_typing.CheckedMatch)
   GraphEquality(right~ : Target, checked~ : @graph_typing.CheckedEquality)
   GraphDiff(right~ : Target, checked~ : @graph_typing.CheckedDiff)
   GraphApply(right~ : Target, checked~ : @graph_typing.CheckedApply)
@@ -151,6 +152,7 @@ pub(all) enum IssueKind {
   Window(@temporal_window.IssueKind)
   Projection(@carrier_projection.IssueKind)
   Graph(@graph_typing.IssueKind)
+  GraphMatch(@graph_typing.MatchIssueKind)
   Vector(@vector_typing.IssueKind)
   Event(@event_typing.IssueKind)
   MissingWindowEvidence

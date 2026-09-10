@@ -1,6 +1,10 @@
 supported_targets = "+js+wasm+native"
 
 import {
+  "actql/actql/expression_text" @text,
+  "actql/actql/value_admission" @value,
+  "actql/actql/expression_syntax" @syntax,
+  "actql/actql/expression_typing" @typing,
   "actql/actql/graph_contract",
   "actql/actql/canonical_value" @canonical,
   "actql/actql/relation_append" @alignment,

@@ -4040,6 +4040,17 @@
       }
     },
     {
+      "requirement_id": "actql.language/graph-property-match.closed-selectors-and-projections",
+      "statement_sha256": "49539fdf45a318a63b0272b5afda5ae3f9e64406b7e6c69d3875378910f608ce",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "graph-property-match",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.language/shortest-path-and-components.max-hops-is-required",
       "statement_sha256": "e19d52d133af3bca32db7c4d4e592f84168efa9988c5c97f9b0af8d4a81b20d8",
       "status": "pending",
@@ -6120,7 +6131,7 @@
     },
     {
       "requirement_id": "actql.language/structural-grammar.grammar",
-      "statement_sha256": "31286d93cf610e659b1ebab5a1b61c3ccebad45f3171e7358fe082311a8d0139",
+      "statement_sha256": "09a8cd1ed8f57b6ffe46246038cc02646a6b54533b7bb1aab52f44822b881644",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",

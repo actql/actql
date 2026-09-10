@@ -42,6 +42,7 @@ pub(all) enum IssueKind {
   Window(@window.IssueKind)
   Projection(@projection.IssueKind)
   Graph(@graph.IssueKind)
+  GraphMatch(@graph.MatchIssueKind)
   Vector(@vector.IssueKind)
   Event(@event.IssueKind)
   MissingWindowEvidence
@@ -127,6 +128,7 @@ pub enum CheckedOperation {
   Window(@window.CheckedWindow)
   Projection(@projection.CheckedProjection)
   Graph(@graph.CheckedGraph)
+  GraphMatch(@graph.CheckedMatch)
   GraphEquality(right~ : Target, checked~ : @graph.CheckedEquality)
   GraphDiff(right~ : Target, checked~ : @graph.CheckedDiff)
   GraphApply(right~ : Target, checked~ : @graph.CheckedApply)

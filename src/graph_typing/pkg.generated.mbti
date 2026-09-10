@@ -4,12 +4,16 @@ package "actql/actql/graph_typing"
 import {
   "actql/actql/carrier_contract",
   "actql/actql/decode_core",
+  "actql/actql/expression_syntax",
+  "actql/actql/expression_text",
+  "actql/actql/expression_typing",
   "actql/actql/graph_contract",
   "actql/actql/parameter_binding",
   "actql/actql/relation_append",
   "actql/actql/relation_schema",
   "actql/actql/source_span",
   "actql/actql/source_value",
+  "actql/actql/value_admission",
   "actql/actql/value_contract",
   "moonbitlang/core/debug",
 }
@@ -40,6 +44,12 @@ pub fn check_construction(@decode_core.Cursor, @carrier_contract.Carrier?, @carr
 pub fn check_diff(@decode_core.Cursor, @carrier_contract.Carrier, @carrier_contract.Carrier, Limits) -> Result[CheckedDiff, Issue]
 
 pub fn check_equality(@decode_core.Cursor, @carrier_contract.Carrier, @carrier_contract.Carrier, Limits) -> Result[CheckedEquality, Issue]
+
+pub fn check_match(EntityKind, @decode_core.Cursor, @carrier_contract.Carrier, @parameter_binding.Declarations?, PredicateLimits) -> Result[CheckedMatch, MatchIssue]
+
+pub fn check_predicate(EntityKind, @decode_core.Cursor, @carrier_contract.Carrier, @parameter_binding.Declarations?, PredicateLimits) -> Result[CheckedPredicate, PredicateIssue]
+
+pub fn check_scope(EntityKind, @decode_core.Cursor, @carrier_contract.Carrier, Limits) -> Result[CheckedScope, Issue]
 
 pub fn check_structural(StructuralOperation, @decode_core.Cursor, @carrier_contract.Carrier, @carrier_contract.Carrier, Limits) -> Result[CheckedStructural, Issue]
 
@@ -85,6 +95,24 @@ pub fn equality_with_name(CheckedEquality) -> String
 
 pub fn input(CheckedGraph) -> @carrier_contract.Carrier
 
+pub fn match_diagnostic(MatchIssue, @decode_core.Cursor) -> MatchDiagnostic
+
+pub fn match_entity(CheckedMatch) -> EntityKind
+
+pub fn match_ids(CheckedMatch) -> Array[@value_admission.CheckedValue]
+
+pub fn match_output(CheckedMatch) -> @carrier_contract.Carrier
+
+pub fn match_pending(CheckedMatch) -> Array[MatchObligation]
+
+pub fn match_predicate(CheckedMatch) -> CheckedPredicate?
+
+pub fn match_source(CheckedMatch) -> @decode_core.Cursor
+
+pub fn match_types(CheckedMatch) -> Array[String]?
+
+pub fn match_usage(CheckedMatch) -> PredicateUsage
+
 pub fn operation(CheckedGraph) -> Operation
 
 pub fn options(CheckedGraph) -> Options
@@ -92,6 +120,14 @@ pub fn options(CheckedGraph) -> Options
 pub fn output(CheckedGraph) -> @carrier_contract.Carrier
 
 pub fn pending_validations(CheckedGraph) -> Array[Obligation]
+
+pub fn predicate_expression(CheckedPredicate) -> @expression_typing.TypedExpression
+
+pub fn predicate_usage(CheckedPredicate) -> PredicateUsage
+
+pub fn scope_fields(CheckedScope) -> @carrier_contract.Knowledge
+
+pub fn scope_usage(CheckedScope) -> Usage
 
 pub fn source(CheckedGraph) -> @decode_core.Cursor
 
@@ -141,6 +177,12 @@ type CheckedEquality
 
 type CheckedGraph
 
+type CheckedMatch
+
+type CheckedPredicate
+
+type CheckedScope
+
 type CheckedStructural
 
 pub(all) enum ComponentKind {
@@ -180,6 +222,11 @@ pub(all) enum Direction {
   Incoming
   Outgoing
   Both
+} derive(Eq, @debug.Debug)
+
+pub(all) enum EntityKind {
+  Nodes
+  Edges
 } derive(Eq, @debug.Debug)
 
 pub(all) enum EqualityObligation {
@@ -223,6 +270,10 @@ pub(all) enum IssueKind {
   InvalidPropertyStrategy(String)
   UnknownMergeProperty(String)
   IncompatiblePropertyStrategy(String)
+  ScopeCollision(String)
+  DuplicateMatchField(String)
+  UnknownMatchField(String)
+  UntypedMatchField(String)
   InvalidName(String)
   ContractMismatch(@relation_append.IssueKind)
   UnknownParameter(String)
@@ -235,6 +286,40 @@ pub(all) struct Limits {
   max_depth : Int
   max_text_bytes : Int
 }
+
+pub struct MatchDiagnostic {
+  kind : MatchIssueKind
+  path : Array[@source_value.PathSegment]
+  span : @source_span.Span
+  range : @expression_text.Range?
+}
+
+pub enum MatchIssue {
+  MatchStructure(Issue)
+  MatchPredicate(PredicateIssue)
+  MatchIdentity(@value_admission.Issue)
+}
+
+pub(all) enum MatchIssueKind {
+  Structure(IssueKind)
+  Syntax(@expression_syntax.IssueKind)
+  Typing(@expression_typing.IssueKind)
+  UnknownField(String)
+  UntypedField(String)
+  ExpectedBoolean
+  Value(@value_admission.IssueKind)
+  Decode(@decode_core.IssueKind)
+} derive(Eq, @debug.Debug)
+
+pub(all) enum MatchObligation {
+  AdmitMatchGraphData
+  ValidateSelectedIdentityMembership
+  FilterSelectedEdgeTypes
+  EvaluateMatchPredicate
+  CanonicalMatchOrder
+  ResolveMatchResources
+  ResolveMatchProfile
+} derive(Eq, @debug.Debug)
 
 pub(all) enum Obligation {
   ValidateGraphData
@@ -259,6 +344,32 @@ pub enum Options {
   DegreeOptions(Direction)
   ComponentOptions(ComponentKind, max_output_rows~ : Count?)
   BoundsOptions(max_nodes~ : Count?, max_edges~ : Count?, max_degree~ : Count?)
+}
+
+pub enum PredicateIssue {
+  InvalidPredicateLimits
+  PredicateBudget(@decode_core.Cursor)
+  ScopeIssue(Issue)
+  SyntaxIssue(@expression_syntax.Issue)
+  TypingIssue(@expression_typing.Issue)
+  UnknownPredicateField(@expression_syntax.FieldReference)
+  UntypedPredicateField(@expression_syntax.FieldReference)
+  ExpectedPredicateBoolean(@decode_core.Cursor)
+}
+
+pub(all) struct PredicateLimits {
+  max_work : Int
+  max_nodes : Int
+  max_depth : Int
+  max_text_bytes : Int
+  max_tokens : Int
+}
+
+pub(all) struct PredicateUsage {
+  work : Int
+  nodes : Int
+  text_bytes : Int
+  tokens : Int
 }
 
 pub struct PropertyStrategy {

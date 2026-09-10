@@ -529,6 +529,8 @@ fn check_impl(
       | "graph_bounds"
       | "graphs_equal"
       | "graph_diff"
+      | "match_nodes"
+      | "match_edges"
       | "graft_graph"
       | "union_graphs"
       | "subtract_graphs"
@@ -833,6 +835,59 @@ fn check_impl(
             { role: Right, target: right, },
           ],
         },
+        window: None,
+      })
+      if binding_name is Some(name) {
+        names[name] = target
+      }
+      current = Some(target)
+      continue
+    }
+    if key == "match_nodes" || key == "match_edges" {
+      let checked = match
+        @graph.check_match(
+          if key == "match_nodes" {
+            @graph.Nodes
+          } else {
+            @graph.Edges
+          },
+          operation_body,
+          carrier(input, inputs, steps),
+          parameters,
+          {
+            max_work: b.work,
+            max_nodes: b.nodes,
+            max_depth: limits.max_depth,
+            max_text_bytes: b.text,
+            max_tokens: b.tokens,
+          },
+        ) {
+        Ok(c) => c
+        Err(e) => {
+          let d = @graph.match_diagnostic(e, operation_body)
+          raise Stop({
+            kind: GraphMatch(d.kind),
+            source: operation_body,
+            path: d.path.copy(),
+            span: d.span,
+            range: d.range,
+          })
+        }
+      }
+      let used = @graph.match_usage(checked)
+      b.work -= used.work
+      b.nodes -= used.nodes
+      b.text -= used.text_bytes
+      b.tokens -= used.tokens
+      let target = Step(steps.length())
+      steps.push({
+        source: body,
+        input: Some(input),
+        binding_name,
+        metadata: meta,
+        operation: GraphMatch(checked),
+        output: @graph.match_output(checked),
+        connections: { entries: [{ role: Primary, target: input, }], },
         window: None,
       })
       if binding_name is Some(name) {
@@ -1409,6 +1464,7 @@ fn check_impl(
         | WindowGroup(_)
         | Projection(_)
         | Graph(_)
+        | GraphMatch(_)
         | Event(_)
         | Sequence(_)
         | Vector(_) => [{ role: Primary, target: input, }]

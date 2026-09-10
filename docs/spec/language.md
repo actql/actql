@@ -4898,6 +4898,26 @@ Edge results are ordered by semantic source identity, target identity, edge
 type, then edge identity. A graph lacking a requested property or identity
 MUST fail during check.
 
+<!-- requirement-block: graph-property-match.closed-selectors-and-projections -->
+`match_nodes` admits only `ids`, `where` and `fields`, with exactly one of `ids`
+and `where`. `ids` is a nonempty array of explicit values admitted under the
+semantic node-ID contract, without string conversion or implicit Parameter
+substitution. Authored JSON alone cannot establish an opaque Ref as specified
+in [Opaque reference values](#opaque-references). Repeated IDs remain in the
+authored representation; membership selection deduplicates them and requires
+every selected identity to exist before publication. `match_edges` admits only
+`types`, `where` and `fields`; both filters are optional and, when present, are
+conjoined. `types` contains nonempty normalized strings. An empty type list
+selects no edges, while absence does not filter types. Repeated types do not
+repeat output rows and remain in the authored representation.
+
+Both `fields` lists MUST be nonempty and free of repeated references. Their
+order is the output projection order. Predicates admit nullable boolean and
+retain only rows for which the result is true. Only referenced fields require
+static type evidence; unrelated unknown property types do not invalidate a
+match. Visible identity and label names come from declared semantic roles, not
+implicit carrier aliases. Matching does not create a missing edge identity.
+
 <a id="traverse"></a>
 
 #### `traverse`
@@ -7356,6 +7376,12 @@ Meta := non-empty JSON object subject to Authoring Context (#authoring-context)
 EventsBody := true
 VectorsBody := true
 NormalizeGraphBody := true
+MatchNodesBody := {ids: [WireValue, ...], fields: [Field, ...]}
+  | {where: Expression, fields: [Field, ...]}
+MatchEdgesBody := {types?: [NonemptyString, ...] | [], where?: Expression,
+  fields: [Field, ...]}
+MatchConstraints := fields are nonempty with no repeated reference;
+  ids are nonempty typed identities; repeated IDs/types do not repeat result rows.
 GraphBody := {nodes: GraphNodes, edges: GraphEdges}
   | {source: Field, target: Field, label?: Field}
 GraphNodes := {from: InputOrStepName, id: Field, fields?: [Field, ...] | []}

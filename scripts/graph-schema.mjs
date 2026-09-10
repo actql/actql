@@ -10,6 +10,8 @@ export function graphSchemas() {
   const nonnegative = {oneOf:[{type:'integer',minimum:0,maximum:9007199254740991},parameter]};
   const field = {type:'string',minLength:1};
   const fields = {type:'array',items:field,uniqueItems:true};
+  const projectedFields = {...fields,minItems:1};
+  const predicate = {oneOf:[{type:'string'},{type:'object',minProperties:1,maxProperties:1}]};
   const strategies = {type:'object',additionalProperties:{enum:[
     'exact_equal','set_union','set_difference','number_sum','number_mean','number_min','number_max',
   ]}};
@@ -18,6 +20,11 @@ export function graphSchemas() {
     merge:{type:'object',additionalProperties:false,properties:{node_properties:strategies,edge_properties:strategies}},
   }};
   return {
+    match_nodes: {type:'object',additionalProperties:false,required:['fields'],
+      properties:{fields:projectedFields,ids:{type:'array',minItems:1,items:{}},where:predicate},
+      oneOf:[{required:['ids'],not:{required:['where']}},{required:['where'],not:{required:['ids']}}]},
+    match_edges: {type:'object',additionalProperties:false,required:['fields'],
+      properties:{fields:projectedFields,types:{type:'array',items:field},where:predicate}},
     graft_graph: {type:'object',additionalProperties:false,required:['with'],properties:{with:field}},
     union_graphs: structural,
     subtract_graphs: structuredClone(structural),

@@ -11,6 +11,103 @@ fn graph_input() -> @carrier.Carrier {
 }
 
 ///|
+test "graph property matches connect relation consumers and preserve predicate ranges" {
+  let boolean = @contract.primitive(BooleanType, nullable=true)
+  let props = @carrier.rows(
+    [(Unqualified("active"), Some(boolean))],
+    field_set=Closed,
+    max_fields=1,
+    max_name_bytes=6,
+  ).unwrap()
+  let names = @carrier.graph_row_names(
+    Unqualified("node_id"),
+    Unqualified("source_id"),
+    Unqualified("target_id"),
+    None,
+    max_name_bytes=100,
+  ).unwrap()
+  let g = @carrier.graph(
+    @contract.primitive(NumberType, nullable=false),
+    props,
+    props,
+    labels=None,
+    max_labels=0,
+    max_label_bytes=0,
+    row_names=Some(names),
+  ).unwrap()
+  for (op, field) in [("match_nodes", "node_id"), ("match_edges", "source_id")] {
+    let body = cursor(
+      "[{\"" +
+      op +
+      "\":{\"where\":\"active\",\"fields\":[\"" +
+      field +
+      "\",\"active\"]},\"as\":\"matched\"},{\"filter\":\"active\"},{\"select\":[\"" +
+      field +
+      "\"]}]",
+    )
+    let p = @pipeline_typing.check_carriers(
+      body,
+      [("g", g)],
+      None,
+      None,
+      limits(),
+    ).unwrap()
+    let step = @pipeline_typing.step_at(p, 0).unwrap()
+    assert_true(step.operation is GraphMatch(_))
+    let edges = @pipeline_typing.input_occurrences(step)
+    assert_eq(edges.length(), 1)
+    assert_eq(edges[0].target, Input(0))
+    assert_true(
+      @schema.lookup(
+        @pipeline_typing.output_schema(p).unwrap(),
+        Unqualified(field),
+      ).unwrap().shape
+      is Number,
+    )
+    let u = @pipeline_typing.usage(p)
+    let exact = {
+      ..limits(),
+      max_work: u.work,
+      max_nodes: u.nodes,
+      max_text_bytes: u.text_bytes,
+      max_tokens: u.tokens,
+    }
+    assert_true(
+      @pipeline_typing.check_carriers(body, [("g", g)], None, None, exact)
+      is Ok(_),
+    )
+    for
+      cap in [
+        { ..exact, max_work: u.work - 1, },
+        { ..exact, max_nodes: u.nodes - 1, },
+        { ..exact, max_text_bytes: u.text_bytes - 1, },
+        { ..exact, max_tokens: u.tokens - 1, },
+      ] {
+      assert_true(
+        @pipeline_typing.check_carriers(body, [("g", g)], None, None, cap)
+        is Err(_),
+      )
+    }
+  }
+  let e = @pipeline_typing.check_carriers(
+    cursor(
+      "[{\"match_nodes\":{\"where\":\"active AND missing\",\"fields\":[\"node_id\"]}}]",
+    ),
+    [("g", g)],
+    None,
+    None,
+    limits(),
+  ).unwrap_err()
+  assert_true(e.kind is GraphMatch(UnknownField("missing")))
+  assert_eq(e.path, [
+    @source.Index(0),
+    @source.Key("match_nodes"),
+    @source.Key("where"),
+  ])
+  assert_true(e.range is Some(_))
+}
+
+///|
 test "structural graph composition retains repeated operands and feeds row consumers" {
   let empty = @carrier.rows(
     [],
