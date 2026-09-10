@@ -1,6 +1,6 @@
 # Vector operation checking
 
-The checker supports `normalize_vectors` and `score_vectors` on Vectors,
+The checker supports `to_vectors` from Relation and `normalize_vectors` and `score_vectors` on Vectors,
 retaining semantic identity, dimensions and partial payload contracts. The
 normative owner is [vector bridges](../spec/language.md#vector-bridges).
 The explicit `vectors` bridge exposes the resulting fields to Relation consumers.
@@ -29,3 +29,17 @@ Repeated scoring requires an explicit bridge/reshape rather than silent overwrit
 Normalization preserves an existing score as payload, but does not refresh its
 meaning. Score provenance and order proofs must not be inferred from a field name.
 No evaluator or lowering adapter is implemented by this package.
+
+## Explicit input bridge
+
+The Relation bridge validates only the selected semantic roles and shares the
+already-owned payload knowledge. Unknown payload types or an open field set do
+not invalidate otherwise known roles. Unknown, nullable or incompatible role
+types do fail at the specific source option. Qualified references preserve join
+provenance instead of flattening the schema.
+
+The reference bridge restricts IDs to strings and adds physical `id`/`vector`
+columns. This implementation follows the semantic Carrier boundary instead:
+non-null KeyComparable identity values and authored role names are retained.
+The expanded identity domain is an explicit language decision; incompatible
+backend adapters require work before execution support can be claimed.

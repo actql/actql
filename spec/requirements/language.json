@@ -4073,6 +4073,17 @@
       }
     },
     {
+      "requirement_id": "actql.language/vector-bridges.explicit-roles",
+      "statement_sha256": "d69216a0bbc62972a651e6ac0803452308109c05d04855ba42b4377c22189933",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "vector-bridges",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.language/vector-bridges.scoring-options",
       "statement_sha256": "e5de8c01ddc0344c1a95f994dce648a34f66235fd8ac1de89d8f80edabb83fe7",
       "status": "pending",

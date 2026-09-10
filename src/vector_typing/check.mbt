@@ -1,5 +1,6 @@
 ///|
 pub(all) enum Operation {
+  ToVectors
   NormalizeVectors
   ScoreVectors
 } derive(Eq, Debug)
@@ -37,6 +38,7 @@ pub(all) enum IssueKind {
   DimensionMismatch(Double, Double)
   OutputCollision(String)
   UnknownOutputFields
+  InvalidRole(@carrier.Issue)
 } derive(Eq, Debug)
 
 ///|
@@ -148,7 +150,12 @@ pub fn check(
       text: limits.max_text_bytes,
     }
     scan(b, source)
-    if @carrier.kind(input) != @carrier.VectorsKind {
+    let expected = if operation == ToVectors {
+      @carrier.RelationKind
+    } else {
+      @carrier.VectorsKind
+    }
+    if @carrier.kind(input) != expected {
       fail(source, WrongCarrier(@carrier.kind(input)))
     }
     let params : Map[String, @contract.ParameterType] = Map([])
@@ -168,6 +175,37 @@ pub fn check(
       ResolveVectorResources,
     ]
     let (output, query, metric) = match operation {
+      ToVectors => {
+        let object = decoded(@decode.closed_object(source, ["id", "vector"]))
+        let id_source = decoded(@decode.required(object, "id"))
+        let vector_source = decoded(@decode.required(object, "vector"))
+        let id = role_name(id_source)
+        let components = role_name(vector_source)
+        let records = @carrier.relation_rows(input).unwrap()
+        spend(b, source, 2)
+        let output = match
+          @carrier.vectors(
+            records,
+            ids=[id],
+            components~,
+            max_identity_fields=1,
+          ) {
+          Ok(value) => value
+          Err(e) => {
+            let at = match e {
+              UnknownRole(name) | InvalidRole(name) | DuplicateRole(name) =>
+                if name == components {
+                  vector_source
+                } else {
+                  id_source
+                }
+              _ => source
+            }
+            fail(at, InvalidRole(e))
+          }
+        }
+        (output, None, None)
+      }
       NormalizeVectors => {
         if @decode.boolean(source) != Ok(true) {
           fail(source, InvalidBody)

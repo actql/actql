@@ -58,6 +58,7 @@ pub(all) enum IssueKind {
   DimensionMismatch(Double, Double)
   OutputCollision(String)
   UnknownOutputFields
+  InvalidRole(@carrier_contract.Issue)
 } derive(Eq, @debug.Debug)
 
 pub(all) struct Limits {
@@ -86,6 +87,7 @@ pub(all) enum Obligation {
 } derive(Eq, @debug.Debug)
 
 pub(all) enum Operation {
+  ToVectors
   NormalizeVectors
   ScoreVectors
 } derive(Eq, @debug.Debug)

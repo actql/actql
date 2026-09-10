@@ -223,6 +223,7 @@ fn check_impl(
       | "events"
       | "normalize_graph"
       | "normalize_vectors"
+      | "to_vectors"
       | "score_vectors"
       | "degree"
       | "components"
@@ -334,11 +335,13 @@ fn check_impl(
       current = Some(target)
       continue
     }
-    if key == "normalize_vectors" || key == "score_vectors" {
-      let operation = if key == "normalize_vectors" {
-        @vector.NormalizeVectors
-      } else {
-        @vector.ScoreVectors
+    if key == "normalize_vectors" ||
+      key == "score_vectors" ||
+      key == "to_vectors" {
+      let operation = match key {
+        "to_vectors" => @vector.ToVectors
+        "normalize_vectors" => @vector.NormalizeVectors
+        _ => @vector.ScoreVectors
       }
       let checked = match
         @vector.check(

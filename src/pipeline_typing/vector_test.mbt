@@ -23,6 +23,28 @@ fn vector_input() -> @carrier.Carrier {
 }
 
 ///|
+test "relation bridge composes with vector normalization scoring and projection" {
+  guard vector_input() is @carrier.VectorValue(v) else { abort("vectors") }
+  let p = @pipeline_typing.check_carriers(
+    cursor(
+      "[{\"to_vectors\":{\"id\":\"id\",\"vector\":\"embedding\"}},{\"normalize_vectors\":true},{\"score_vectors\":{\"query\":[1,2],\"metric\":\"cosine\"}},{\"vectors\":true},{\"select\":[\"id\",\"score\"]}]",
+    ),
+    [("rows", @carrier.relation(@carrier.vector_records(v)))],
+    None,
+    None,
+    limits(),
+  ).unwrap()
+  assert_eq(@schema.field_count(@pipeline_typing.output_schema(p).unwrap()), 2)
+  assert_true(
+    @schema.lookup(
+      @pipeline_typing.output_schema(p).unwrap(),
+      Unqualified("id"),
+    ).unwrap().shape
+    is Number,
+  )
+}
+
+///|
 test "vector checking connects branches and explicit relation projection" {
   let body = cursor(
     "[{\"normalize_vectors\":true,\"as\":\"unit\"},{\"score_vectors\":{\"query\":[1,2],\"metric\":\"dot\"}},{\"vectors\":true},{\"select\":[\"id\",\"score\"]},{\"score_vectors\":{\"query\":[2,1],\"metric\":\"l2\"},\"from\":\"unit\",\"as\":\"other\"},{\"vectors\":true}]",

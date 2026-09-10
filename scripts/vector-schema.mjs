@@ -8,6 +8,9 @@ import {machineCid} from './actql-spec-family.mjs';
 
 export function vectorSchemas() {
   return {
+    to_vectors: {type:'object',additionalProperties:false,required:['id','vector'],properties:{
+      id:{type:'string',minLength:1},vector:{type:'string',minLength:1},
+    }},
     normalize_vectors: {const:true},
     score_vectors: {type:'object',additionalProperties:false,required:['query','metric'],properties:{
       query:{oneOf:[{type:'array',minItems:1,items:{type:'number'}},parameter]},

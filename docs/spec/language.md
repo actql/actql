@@ -5212,6 +5212,18 @@ independent fixed vectors must be pinned before an executable profile claim.
 
 #### Vector-set-preserving operations and explicit bridges
 
+<!-- requirement-block: vector-bridges.explicit-roles -->
+`to_vectors` MUST have a closed body containing `id` and `vector` field
+references on its Relation input. The distinct selected roles require a complete
+non-null KeyComparable identity contract and a non-null fixed-dimension vector
+contract respectively. Other payload contracts and field-set knowledge remain
+unchanged; no complete payload schema is required. The bridge retains authored
+field names and semantic identity values without inserting physical `id` or
+`vector` aliases, stringifying identities or replacing them with CIDs. Actual
+identity uniqueness and finite component admission are separate validation
+obligations. A backend unable to preserve the selected identity domain rejects
+lowering explicitly rather than changing that domain.
+
 ```yaml
 - to_vectors: {id: product_id, vector: embedding}
 - normalize_vectors: true
