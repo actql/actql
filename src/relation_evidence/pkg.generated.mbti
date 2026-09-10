@@ -13,6 +13,8 @@ import {
 }
 
 // Values
+pub fn collect_keys(@decode_core.Cursor, @carrier_contract.Carrier, Array[KeyedRelation], KeySetLimits) -> Result[KeySet, Issue]
+
 pub fn declare_primary_key(@decode_core.Cursor, @carrier_contract.Carrier, Limits) -> Result[KeyedRelation, Issue]
 
 pub fn declared_key_field_at(KeyedRelation, Int) -> KeyField?
@@ -29,11 +31,21 @@ pub fn key_field_count(KeyedRelation) -> Int
 
 pub fn key_pending(KeyedRelation) -> Array[KeyObligation]
 
+pub fn key_set_records(KeySet) -> @carrier_contract.Knowledge
+
+pub fn key_set_usage(KeySet) -> (Int, Int)
+
 pub fn key_source(KeyedRelation) -> @decode_core.Cursor
 
 pub fn key_usage(KeyedRelation) -> Usage
 
+pub fn key_witness_at(KeySet, Int) -> KeyedRelation?
+
+pub fn key_witness_count(KeySet) -> Int
+
 pub fn keyed_records(KeyedRelation) -> @carrier_contract.Knowledge
+
+pub fn select_key(@decode_core.Cursor, KeySet, KeyUse, TransferLimits) -> Result[KeySelection, Issue]
 
 pub fn transfer_unary(KeyedRelation, @relation_typing.CheckedOperation, TransferLimits) -> Result[Transfer, Issue]
 
@@ -68,6 +80,25 @@ pub(all) enum KeyObligation {
   AdmitPresentNonNullComparableComponents
   ValidateWholeTupleUniquenessAfterInputNormalization
   RevalidateReferenceComponents
+} derive(Eq, @debug.Debug)
+
+pub struct KeySelection {
+  key : KeyedRelation?
+  work : Int
+  name_bytes : Int
+}
+
+type KeySet
+
+pub(all) struct KeySetLimits {
+  max_keys : Int
+  max_work : Int
+  max_name_bytes : Int
+}
+
+pub(all) enum KeyUse {
+  CanonicalOrder
+  ScalarIdentity
 } derive(Eq, @debug.Debug)
 
 type KeyedRelation

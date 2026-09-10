@@ -38,8 +38,36 @@ and declaration location remain attached. Admission validators use
 `declared_records` and `declared_key_field_at`, not the renamed output tuple.
 Transfer work and name bytes are bounded and charged to the pipeline budget.
 
-Multiple independent candidate-key witnesses, join cardinality propagation and
-new keys established by grouping remain part of the shared evidence work, not
-implemented by this single input assertion. The pooling checker and pipeline
-retain these dependencies when they use the declared identity. Unknown key types
-cannot be treated as known scalar member types merely because a declaration exists.
+## Candidate collections and completion selection
+
+`collect_keys` owns independent conditional witnesses on the same immutable row
+knowledge (or exact complete schema handle), not a structurally equal but unrelated
+contract. An empty collection establishes no key. Counts refer to witnesses, not
+distinct canonical tuples; repeated declarations retain their provenance.
+
+`select_key` follows [deterministic completion](../spec/language.md#completion):
+eligible fields only, each tuple in UTF-16 code-unit order, shortest tuple first,
+then lexicographic field sequence. Identical tuples are equivalent for selection;
+the original collection is not rewritten. This is not the sole-candidate check
+required by omitted `infer.key`.
+
+`CanonicalOrder` allows known non-null reference types as well as scalar types;
+`ScalarIdentity` selects primitive scalar domains supported by scalar identity
+encoding. It does not prohibit reference identities elsewhere in the language.
+Unknown types cannot become known merely because a key was declared. Neither
+mode establishes runtime uniqueness or actual sorted rows.
+
+Alias alternatives are retained per component. Selecting the smallest eligible
+alias for each component yields the smallest sorted tuple without expanding the
+Cartesian product: valid key components have disjoint output aliases. Selection
+reorders only the current tuple and alias groups. Original admission fields,
+row contract, source and obligations stay attached unchanged. Collection and
+selection charge witness/component/alias visits and UTF-8 name bytes; selection
+also charges selected tuple elements. Sorting is O(k log k) for a k-component
+tuple; work units are logical visits, not CPU-time measurements.
+
+The pipeline currently carries a single input key. Transferring collections,
+choosing among them at consumer boundaries, join cardinality propagation and
+new keys established by grouping remain shared evidence work. The pooling
+checker still consumes its explicit retained declaration; adding this selector
+does not silently change that consumer's identity preimage.
