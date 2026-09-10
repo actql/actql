@@ -37,6 +37,10 @@ in [resolved limits](../spec/language.md#resolved-limits).
 | intersect | Minimum of available operand upper bounds |
 | nest, left asof_join | Preserve left count |
 | inner asof_join | Left upper bound |
+| inner join/interval_join | Operand product upper bound |
+| left join/interval_join | L * max(1, R); preserve the left count exactly when the right upper bound is at most one |
+| full join | max(L * R, L + R); an empty side preserves the other side's count |
+| semi/anti join and interval_join | Left upper bound; empty right gives exact zero for semi and preserves left count for anti |
 | to_events, events, to_vectors, vectors, normalize_vectors, score_vectors | Preserve record count |
 | session | Preserve count: label events, do not aggregate sessions into rows |
 | watermark_events | Mark preserves count; drop retains only the upper bound |
@@ -79,6 +83,7 @@ The fixed Sketch bound-transfer registry distinguishes preservation, clamping,
 addition, multiplication, reduction and carrier-specific laws. This implementation
 uses the same distinctions and additionally records exactness where warranted by
 the current language. It does not adopt a Host ceiling or physical estimate as
-an exact count. General join cardinality and Graph transfers,
+an exact count. Join-key uniqueness can further tighten these conservative
+matching bounds; declared/proven cardinality integration and Graph transfers,
 validated external count facts and dependency-closed Plan witness
 serialization remain shared-evidence work. No execution conformance is claimed.

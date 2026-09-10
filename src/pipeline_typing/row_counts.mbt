@@ -93,6 +93,56 @@ fn unary_count(
 }
 
 ///|
+fn join_count(
+  source : @decode.Cursor,
+  left : RowCount?,
+  right : RowCount?,
+  kind : @join.Kind,
+) -> RowCount? raise Stop {
+  match kind {
+    Inner => reduce_count(product_counts(source, left, right))
+    Semi =>
+      if right is Some({ upper: 0L, .. }) {
+        Some(count(0L, true))
+      } else {
+        reduce_count(left)
+      }
+    Anti =>
+      if right is Some({ upper: 0L, .. }) {
+        left
+      } else {
+        reduce_count(left)
+      }
+    Left =>
+      if right is Some(v) && v.upper <= 1L {
+        left
+      } else {
+        product_counts(
+          source,
+          reduce_count(left),
+          right.map(v => count(if v.upper == 0L { 1L } else { v.upper }, false)),
+        )
+      }
+    Full => {
+      if left is Some({ upper: 0L, .. }) {
+        return right
+      }
+      if right is Some({ upper: 0L, .. }) {
+        return left
+      }
+      guard left is Some(a) && right is Some(z) else { return None }
+      // Maximum over matching pairs and isolated vertices is max(L*R, L+R).
+      // For L,R >= 2 the product dominates; avoid an unnecessary sum.
+      if a.upper == 1L || z.upper == 1L {
+        reduce_count(sum_counts(source, left, right))
+      } else {
+        reduce_count(product_counts(source, left, right))
+      }
+    }
+  }
+}
+
+///|
 fn window_count(
   source : @decode.Cursor,
   input : RowCount?,
@@ -207,6 +257,20 @@ fn derive_row_counts(
       }
       Ranking(v) => ranking_count(b, step, result, v)
       Nest(_) => input
+      Join(right~, checked~) =>
+        join_count(
+          step.source,
+          input,
+          count_at(right, result),
+          @join.kind(checked),
+        )
+      IntervalJoin(right~, checked~) =>
+        join_count(
+          step.source,
+          input,
+          count_at(right, result),
+          @join.interval_kind(checked),
+        )
       Append(right~, ..) =>
         sum_counts(step.source, input, count_at(right, result))
       CrossJoin(right~, checked~) =>
