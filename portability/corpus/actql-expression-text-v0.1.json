@@ -1,6 +1,13 @@
 {
   "version": "actql-expression-text-corpus/0.1",
   "positive": [
+    {"source":"NULL","tree":{"literal":null}},
+    {"source":"-NULL","tree":{"negate":{"literal":null}}},
+    {"source":"coalesce(x, NULL)","tree":{"coalesce":[{"field":"x"},{"literal":null}]}},
+    {"source":"x IN (1, NULL)","tree":{"in":[{"field":"x"},{"literal":[1,null]}]}},
+    {"source":"(x IS NULL).c","tree":{"property":{"value":{"is_null":{"field":"x"}},"name":"c"}}},
+    {"source":"(x IS TRUE)[0]","tree":{"subscript":{"value":{"is_true":{"field":"x"}},"index":{"literal":0}}}},
+    {"source":"(x IN (1)).c","tree":{"property":{"value":{"in":[{"field":"x"},{"literal":[1]}]},"name":"c"}}},
     {"source":"x IN ((1), (($p)), -(2))","tree":{"in":[{"field":"x"},{"literal":[1,{"$param":"p"},-2]}]}},
     {"source":"x LIKE ('a%')","tree":{"like":[{"field":"x"},{"literal":"a%"}]}},
     {
@@ -184,6 +191,9 @@
     }
   ],
   "negative": [
+    "x IS NULL.c",
+    "x IS TRUE[0]",
+    "x IN (1).c",
     "x IN items",
     "x IN (other)",
     "x IN (1 + 2)",

@@ -79,6 +79,7 @@ The checks are read-only:
 - `check:value-admission`: fixed value-admission vectors, generated-test freshness and generator regressions.
 - `check:parameters`: fixed Parameter binding cases, recursive schema consistency and generator regressions.
 - `check:parameter-identities`: fixed Parameter value preimages/CIDs, projected-value schema and generator regressions.
+- `check:expression-text`: fixed expression-text trees/rejections, generated-test freshness and generator regressions.
 
 Dependencies are pinned in `package-lock.json`. External URL availability is
 not part of the deterministic local checks.
@@ -179,6 +180,11 @@ validates defaults and resolves supplied values to immutable `Ready` or
 artifact pins. Parameter Values identity uses the same bounded emitter for
 canonical text and incremental hashing. Whole-Program usage and Plan/Run integration
 remain separate.
+
+[Expression text admission](design/expression-text.md) decodes the common
+Expression syntax into an owned Cursor and reports Parameter occurrences.
+It does not yet perform expression type checking, evaluation or whole-Program
+Parameter-use analysis.
 
 [Owned tree decoding](design/decode-core.md) admits editable Nodes into bounded
 opaque cursors, with exact-key checks, source spans and primitive readers.

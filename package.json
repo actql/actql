@@ -7,7 +7,9 @@
     "node": ">=22"
   },
   "scripts": {
-    "check:docs": "npm run check:contracts && npm run check:links && npm run check:examples && npm run test:docs && npm run check:nest && npm run check:unicode && npm run check:encoding && npm run check:canonical && npm run check:value-contracts && npm run check:value-admission && npm run check:parameters && npm run check:parameter-identities",
+    "check:docs": "npm run check:contracts && npm run check:links && npm run check:examples && npm run test:docs && npm run check:nest && npm run check:unicode && npm run check:encoding && npm run check:canonical && npm run check:value-contracts && npm run check:value-admission && npm run check:parameters && npm run check:parameter-identities && npm run check:expression-text",
+    "check:expression-text": "node scripts/check-expression-text.mjs && node --test scripts/expression-text.test.mjs",
+    "generate:expression-text": "node scripts/check-expression-text.mjs --write",
     "check:parameter-identities": "node scripts/parameter-identity.mjs && node --test scripts/parameter-identity.test.mjs",
     "generate:parameter-identities": "node scripts/parameter-identity.mjs --write",
     "generate:parameter-identity-schema": "node scripts/parameter-identity.mjs --write-schema",

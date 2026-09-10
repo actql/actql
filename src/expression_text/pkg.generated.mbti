@@ -1,0 +1,73 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/expression_text"
+
+import {
+  "actql/actql/decode_core",
+  "actql/actql/source_span",
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn enclosing_span(Expression) -> @source_span.Span?
+
+pub fn parameter_references(Expression) -> Array[ParameterReference]
+
+pub fn parse(String, Limits, source_path? : String, enclosing_span? : @source_span.Span) -> Result[Expression, Issue]
+
+pub fn tree(Expression) -> @decode_core.Cursor
+
+// Errors
+
+// Types and methods
+type Expression
+
+pub(all) struct Issue {
+  kind : IssueKind
+  range : Range
+  enclosing_span : @source_span.Span?
+} derive(Eq, @debug.Debug)
+
+pub(all) enum IssueKind {
+  InvalidLimits
+  Lexical(LexicalProblem)
+  Syntax
+  UnknownFunction
+  InvalidArguments
+  CapacityExceeded
+  TreeAdmission(@decode_core.IssueKind)
+} derive(Eq, @debug.Debug)
+
+pub(all) enum LexicalProblem {
+  InvalidLimits
+  ByteLimit
+  TokenLimit
+  InvalidUnicode
+  UnsupportedToken
+  Comment
+  UnclosedQuote
+  EmptyQuotedName
+  ParameterName
+  NonfiniteNumber
+} derive(Eq, @debug.Debug)
+
+pub(all) struct Limits {
+  max_input_bytes : Int
+  max_tokens : Int
+  max_nodes : Int
+  max_depth : Int
+  tree : @decode_core.Limits
+} derive(Eq, @debug.Debug)
+
+pub(all) struct ParameterReference {
+  name : String
+  range : Range
+} derive(Eq, @debug.Debug)
+
+pub(all) struct Range {
+  start : Int
+  end : Int
+} derive(Eq, @debug.Debug)
+
+// Type aliases
+
+// Traits
