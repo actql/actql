@@ -209,6 +209,45 @@ The pinned Sketch compiler has structural binary graph dispatch but no
 section. The shared comparison boundary is also needed by later diff/apply work;
 application and structural merge policies are not implemented by equality.
 
+## Weighted graph means
+
+The source-option reader retains ordered sample occurrences, explicit finite
+nonnegative weights, node/edge support thresholds and each property's complete
+missing/null strategy. Repeated graph names are distinct samples. Positive total
+weight is tested by the presence of a positive weight, not by a binary64 sum:
+the exact sum of finite samples can exceed the largest finite binary64 number
+without invalidating support ratios or a finite weighted mean. Empty property
+maps are allowed at this boundary; graph checking must still require exact
+coverage of every admitted property, including zero-weight input contracts.
+
+The pinned AoA `meanStructuralSgaGraphs` implementation supplies default weights,
+uses a rounded support quotient and returns stringified property means. Those
+are compatibility gaps, not ActQL semantics. ActQL requires explicit source
+options and exact-rational support and property reduction with one final rounding.
+No default weight, numeric coercion or last-input winner is imported.
+
+`check_mean_options` checks only source options. `check_mean` additionally aligns
+every sample's complete identity/property contracts, requires exact strategy
+coverage and constructs nullable number properties for weighted means. Exact
+equality properties retain their aligned contract. The checks use the existing
+bounded recursive domain alignment, including compatible nullability and extents;
+they do not equate a declared schema with admitted graph data.
+
+Semantic row aliases survive only when every sample carries the same role names,
+so reordering samples cannot select a different alias winner. Known output label
+domains are the union of positive-weight sample domains; zero-weight samples still
+undergo contract checks. Runtime support and label agreement do not follow from
+that static domain union. Exact arithmetic, canonical order, input admission,
+observation/policy and resolved-resource obligations remain explicit.
+
+The pipeline requires `as`, rejects step `from` and records every declared graph
+as an ordered `Sample(index)` input occurrence, including repeated targets. There
+is no implicit current operand. The generated Graph can enter the existing
+explicit row bridge; it is not a Relation that can be published directly.
+The machine schema enforces the closed option grammar; equal list lengths,
+finite binary64 admission and contract-dependent coverage require the checker.
+None of these checks is evidence of a numerical evaluator.
+
 ## Structural graph composition
 
 The three structural operations retain both input occurrences, including repeated

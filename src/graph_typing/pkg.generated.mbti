@@ -47,6 +47,10 @@ pub fn check_equality(@decode_core.Cursor, @carrier_contract.Carrier, @carrier_c
 
 pub fn check_match(EntityKind, @decode_core.Cursor, @carrier_contract.Carrier, @parameter_binding.Declarations?, PredicateLimits) -> Result[CheckedMatch, MatchIssue]
 
+pub fn check_mean(@decode_core.Cursor, Array[@carrier_contract.Carrier], Limits) -> Result[CheckedMean, Issue]
+
+pub fn check_mean_options(@decode_core.Cursor, Limits) -> Result[CheckedMeanOptions, Issue]
+
 pub fn check_path_contract(PathOutput, @decode_core.Cursor, @carrier_contract.Carrier, Limits) -> Result[CheckedPathContract, Issue]
 
 pub fn check_predicate(EntityKind, @decode_core.Cursor, @carrier_contract.Carrier, @parameter_binding.Declarations?, PredicateLimits) -> Result[CheckedPredicate, PredicateIssue]
@@ -130,6 +134,26 @@ pub fn match_source(CheckedMatch) -> @decode_core.Cursor
 pub fn match_types(CheckedMatch) -> Array[String]?
 
 pub fn match_usage(CheckedMatch) -> PredicateUsage
+
+pub fn mean_input_names(CheckedMeanOptions) -> Array[String]
+
+pub fn mean_options(CheckedMean) -> CheckedMeanOptions
+
+pub fn mean_options_source(CheckedMeanOptions) -> @decode_core.Cursor
+
+pub fn mean_options_usage(CheckedMeanOptions) -> Usage
+
+pub fn mean_output(CheckedMean) -> @carrier_contract.Carrier
+
+pub fn mean_pending(CheckedMean) -> Array[MeanObligation]
+
+pub fn mean_properties(CheckedMeanOptions, EntityKind) -> Array[MeanProperty]
+
+pub fn mean_support(CheckedMeanOptions, EntityKind) -> Double
+
+pub fn mean_usage(CheckedMean) -> Usage
+
+pub fn mean_weights(CheckedMeanOptions) -> Array[Double]
 
 pub fn operation(CheckedGraph) -> Operation
 
@@ -282,6 +306,10 @@ type CheckedEquality
 type CheckedGraph
 
 type CheckedMatch
+
+type CheckedMean
+
+type CheckedMeanOptions
 
 type CheckedPathContract
 
@@ -437,6 +465,41 @@ pub(all) enum MatchObligation {
   CanonicalMatchOrder
   ResolveMatchResources
   ResolveMatchProfile
+} derive(Eq, @debug.Debug)
+
+pub(all) enum MeanObligation {
+  AdmitEveryMeanSample
+  CompareExactRationalSupport
+  RetainSupportedNodesBeforeEdges
+  RequirePositiveWeightLabelAgreement
+  ApplyEveryMeanPropertyPolicy
+  RoundExactWeightedMeansOnce
+  RejectNonfiniteMeanResults
+  CanonicalMeanIdentityOrder
+  PreserveMeanObservationAndPolicy
+  ResolveMeanResources
+  ResolveMeanProfile
+} derive(Eq, @debug.Debug)
+
+pub struct MeanProperty {
+  name : String
+  strategy : MeanStrategy
+}
+
+pub(all) enum MeanStrategy {
+  EqualValues
+  WeightedMean(MissingMeanValue, NullMeanValue)
+} derive(Eq, @debug.Debug)
+
+pub(all) enum MissingMeanValue {
+  ExcludeMissing
+  ZeroMissing
+} derive(Eq, @debug.Debug)
+
+pub(all) enum NullMeanValue {
+  ExcludeNull
+  ZeroNull
+  FailNull
 } derive(Eq, @debug.Debug)
 
 pub(all) enum Obligation {

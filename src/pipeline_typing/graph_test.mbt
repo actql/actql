@@ -1,4 +1,75 @@
 ///|
+test "mean generator preserves repeated graph samples and supports explicit bridges" {
+  let empty = @carrier.rows(
+    [],
+    field_set=Closed,
+    max_fields=0,
+    max_name_bytes=0,
+  ).unwrap()
+  let g = @carrier.graph(
+    @contract.primitive(NumberType, nullable=false),
+    empty,
+    empty,
+    labels=None,
+    max_labels=0,
+    max_label_bytes=0,
+  ).unwrap()
+  let body = "\"mean_graphs\":{\"with\":[\"g\",\"g\"],\"weights\":[1,0],\"support\":{\"nodes\":1,\"edges\":1},\"properties\":{\"nodes\":{},\"edges\":{}}}"
+  let source = cursor("[{" + body + ",\"as\":\"m\"},{\"node_rows\":true}]")
+  let inputs = [("g", g), ("unused", @carrier.relation(empty))]
+  let p = @pipeline_typing.check_carriers(source, inputs, None, None, limits()).unwrap()
+  let step = @pipeline_typing.step_at(p, 0).unwrap()
+  assert_true(step.input is None)
+  assert_true(step.operation is GraphMean(_))
+  let occurrences = @pipeline_typing.input_occurrences(step)
+  assert_eq(occurrences.length(), 2)
+  assert_eq(occurrences[0].role, Sample(0))
+  assert_eq(occurrences[1].role, Sample(1))
+  assert_eq(occurrences[0].target, occurrences[1].target)
+  assert_true(@pipeline_typing.output_schema(p) is Some(_))
+  assert_true(
+    @pipeline_typing.check_carriers(
+      cursor("[{" + body + "}]"),
+      inputs,
+      None,
+      None,
+      limits(),
+    )
+    is Err({ kind: GeneratorRequiresAlias, .. }),
+  )
+  assert_true(
+    @pipeline_typing.check_carriers(
+      cursor("[{" + body + ",\"as\":\"m\",\"from\":\"g\"}]"),
+      inputs,
+      None,
+      None,
+      limits(),
+    )
+    is Err({ kind: GeneratorFrom, .. }),
+  )
+  let u = @pipeline_typing.usage(p)
+  let exact = {
+    ..limits(),
+    max_work: u.work,
+    max_nodes: u.nodes,
+    max_text_bytes: u.text_bytes,
+  }
+  assert_true(
+    @pipeline_typing.check_carriers(source, inputs, None, None, exact) is Ok(_),
+  )
+  for
+    cap in [
+      { ..exact, max_work: u.work - 1, },
+      { ..exact, max_nodes: u.nodes - 1, },
+      { ..exact, max_text_bytes: u.text_bytes - 1, },
+    ] {
+    assert_true(
+      @pipeline_typing.check_carriers(source, inputs, None, None, cap) is Err(_),
+    )
+  }
+}
+
+///|
 fn graph_input() -> @carrier.Carrier {
   @carrier.graph(
     @contract.decimal_contract(38, 9, nullable=false).unwrap(),

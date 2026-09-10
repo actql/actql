@@ -84,6 +84,7 @@ pub(all) enum InputRole {
   Primary
   Left
   Right
+  Sample(Int)
 } derive(Eq, Debug)
 
 ///|
@@ -141,6 +142,7 @@ pub enum CheckedOperation {
   GraphDiff(right~ : Target, checked~ : @graph.CheckedDiff)
   GraphApply(right~ : Target, checked~ : @graph.CheckedApply)
   GraphStructural(right~ : Target, checked~ : @graph.CheckedStructural)
+  GraphMean(@graph.CheckedMean)
   GraphConstruction(
     nodes~ : Target?,
     edges~ : Target,

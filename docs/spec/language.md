@@ -5314,6 +5314,15 @@ composition and inversion are outside this vocabulary.
 
 #### `mean_graphs`
 
+<!-- requirement-block: graph-mean.closed-source -->
+The body MUST contain exactly with, weights, support and properties. Weights
+and support thresholds are literal numbers, not Parameter references. Both
+property-strategy maps are required; an empty map is valid exactly when the
+corresponding complete property domain is empty. Compatible property extents
+and nullability are joined using the common typed-domain alignment rules.
+Semantic row-role aliases survive only when all samples declare the same roles;
+no sample-order winner supplies aliases for the generated graph.
+
 `mean_graphs: {with, weights, support, properties}` is a generator over a
 nonempty finite list of graph names. `weights` has one finite nonnegative
 number per graph and positive total weight. `support` is a closed object
@@ -7450,6 +7459,12 @@ ShortestPathBody := {source: PathEndpoint, target: PathEndpoint,
 PathEndpoint := single typed identity | GraphNodeSelector
 ShortestPathConstraints := selection is required with any selector and forbidden
   with two single identities; weight names a known non-null number edge field.
+MeanGraphsBody := {with: [InputOrStepName, ...], weights: [nonnegative number, ...],
+  support: {nodes: number in (0, 1], edges: number in (0, 1]},
+  properties: {nodes: {Field: MeanPropertyStrategy}*, edges: {Field: MeanPropertyStrategy}*}}
+MeanPropertyStrategy := exact_equal | {mean: {missing: exclude | zero, nulls: exclude | zero | fail}}
+MeanGraphsConstraints := nonempty graph list; weights match list length with positive
+  exact total; complete property coverage; generator requires as and rejects step from.
 GraphBody := {nodes: GraphNodes, edges: GraphEdges}
   | {source: Field, target: Field, label?: Field}
 GraphNodes := {from: InputOrStepName, id: Field, fields?: [Field, ...] | []}

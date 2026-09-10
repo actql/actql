@@ -431,6 +431,81 @@ fn check_impl(
       current = Some(target)
       continue
     }
+    if key == "mean_graphs" {
+      if @decode.lookup(object, "from") is Some(s) {
+        fail(s, GeneratorFrom)
+      }
+      let alias_source = match @decode.lookup(object, "as") {
+        Some(s) => s
+        None => fail(body, GeneratorRequiresAlias)
+      }
+      let binding = read_name(b, alias_source)
+      if names.contains(binding) {
+        fail(alias_source, DuplicateName(binding))
+      }
+      let meta = @decode.lookup(object, "meta")
+      if meta is Some(s) {
+        metadata(b, s)
+      }
+      let operation_body = @decode.lookup(object, key).unwrap()
+      let root = match
+        @decode.closed_object(operation_body, [
+          "with", "weights", "support", "properties",
+        ]) {
+        Ok(o) => o
+        Err(_) => fail(operation_body, InvalidBody)
+      }
+      let with_at = match @decode.required(root, "with") {
+        Ok(c) => c
+        Err(_) => fail(operation_body, InvalidBody)
+      }
+      let operands = match @decode.elements(with_at) {
+        Ok(xs) => xs
+        Err(_) => fail(with_at, InvalidBody)
+      }
+      let graphs : Array[@carrier.Carrier] = []
+      let entries : Array[InputOccurrence] = []
+      for i in 0..<operands.length() {
+        let t = resolve_target(b, operands[i], names)
+        graphs.push(carrier(t, inputs, steps))
+        entries.push({ role: Sample(i), target: t, })
+      }
+      let checked = match
+        @graph.check_mean(operation_body, graphs, {
+          max_work: b.work,
+          max_nodes: b.nodes,
+          max_text_bytes: b.text,
+          max_depth: limits.max_depth,
+        }) {
+        Ok(c) => c
+        Err(e) =>
+          raise Stop({
+            kind: Graph(e.kind),
+            source: operation_body,
+            path: e.path.copy(),
+            span: e.span,
+            range: None,
+          })
+      }
+      let u = @graph.mean_usage(checked)
+      b.work -= u.work
+      b.nodes -= u.nodes
+      b.text -= u.text_bytes
+      let target = Step(steps.length())
+      steps.push({
+        source: body,
+        input: None,
+        binding_name: Some(binding),
+        metadata: meta,
+        operation: GraphMean(checked),
+        output: @graph.mean_output(checked),
+        connections: { entries, },
+        window: None,
+      })
+      names[binding] = target
+      current = Some(target)
+      continue
+    }
     if key == "time_series" {
       if @decode.lookup(object, "from") is Some(s) {
         fail(s, GeneratorFrom)
@@ -1699,7 +1774,7 @@ fn check_impl(
               [{ role: Left, target: t, }, { role: Right, target: edges, }]
             None => [{ role: Primary, target: edges, }]
           }
-        Values(_) | TimeSeries(_) => []
+        Values(_) | TimeSeries(_) | GraphMean(_) => []
         Calendar(_) => [{ role: Primary, target: input, }]
         Shortest(source_selector~, target_selector~, ..) => {
           let entries = [{ role: Primary, target: input, }]

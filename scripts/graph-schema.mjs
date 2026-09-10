@@ -25,6 +25,15 @@ export function graphSchemas() {
     merge:{type:'object',additionalProperties:false,properties:{node_properties:strategies,edge_properties:strategies}},
   }};
   return {
+    mean_graphs:{type:'object',additionalProperties:false,required:['with','weights','support','properties'],properties:{
+      with:{type:'array',minItems:1,items:field},
+      weights:{type:'array',minItems:1,items:{type:'number',minimum:0},contains:{type:'number',exclusiveMinimum:0}},
+      support:{type:'object',additionalProperties:false,required:['nodes','edges'],properties:Object.fromEntries(['nodes','edges'].map(k => [k,{type:'number',exclusiveMinimum:0,maximum:1}]))},
+      properties:{type:'object',additionalProperties:false,required:['nodes','edges'],properties:Object.fromEntries(['nodes','edges'].map(k => [k,{type:'object',additionalProperties:{oneOf:[
+        {const:'exact_equal'},
+        {type:'object',additionalProperties:false,required:['mean'],properties:{mean:{type:'object',additionalProperties:false,required:['missing','nulls'],properties:{missing:{enum:['exclude','zero']},nulls:{enum:['exclude','zero','fail']}}}}},
+      ]}}]))},
+    }},
     shortest_path:{type:'object',additionalProperties:false,required:['source','target','direction','max_hops'],properties:{
       source:{oneOf:[selector,{type:['string','number','boolean']}]},
       target:{oneOf:[selector,{type:['string','number','boolean']}]},

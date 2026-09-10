@@ -4194,6 +4194,17 @@
       }
     },
     {
+      "requirement_id": "actql.language/graph-mean.closed-source",
+      "statement_sha256": "2e47aab2f216cffb105000988489b903d5787bfa93d65c7e3668bb3720bf87d5",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "graph-mean",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.language/graph-mean.numeric-law",
       "statement_sha256": "48e3b4901abed3039bc71768dd81bcadea61451e4f7b80ba95612678ee4fdcd4",
       "status": "pending",
@@ -6175,7 +6186,7 @@
     },
     {
       "requirement_id": "actql.language/structural-grammar.grammar",
-      "statement_sha256": "de7e309f7a82b93c412fd170aa645ff4d71a3aff60cb1e2b0dc88fbb331c2f53",
+      "statement_sha256": "d10754fc0b17445cd58a5e60830067adaa18277965c9921acdd2c8f7ad077f8e",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
@@ -8045,7 +8056,7 @@
     },
     {
       "requirement_id": "actql.protocol.contracts/machine-contracts.exact-artifacts",
-      "statement_sha256": "e08d1be7697d8a4d4b6df6c154fe21f7817344b714c64120d934f6b9e1a9ff57",
+      "statement_sha256": "31489e7eaa4c3e0708684e9d0c7d43884e26ce85855c585362dc620a5ce3cbb0",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",

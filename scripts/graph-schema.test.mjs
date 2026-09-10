@@ -6,6 +6,10 @@ import {parameterPrograms} from './parameter-schema.mjs';
 
 test('graph bodies preserve literal options and optional positive component guards', () => {
   const s = graphSchemas();
+  assert.equal(s.mean_graphs.additionalProperties, false);
+  assert.deepEqual(s.mean_graphs.required, ['with','weights','support','properties']);
+  assert.equal(s.mean_graphs.properties.with.uniqueItems, undefined);
+  assert.equal(s.mean_graphs.properties.weights.contains.exclusiveMinimum, 0);
   assert.equal(s.shortest_path.additionalProperties, false);
   assert.deepEqual(s.shortest_path.required, ['source','target','direction','max_hops']);
   assert.deepEqual(s.shortest_path.then, {required:['selection']});
