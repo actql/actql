@@ -2897,11 +2897,20 @@ single-field map uses `last` for null placement where the AoA contract defines
 that completion as exact. The explicit `{field, dir, nulls}` form selects
 `first` or `last`; `nulls` is REQUIRED in that form. Null placement is
 independent of ascending or descending direction. `sort` lowers to
-`REL.orderByStable`.
+`REL.orderByStable` for a nonempty authored key list.
+
+<!-- requirement-block: sort.empty-sort-identity sort.empty-sort-no-completion sort.empty-sort-retained -->
+Check MUST accept `sort: []` as an identity operation preserving row values,
+multiplicity, schema, current order and existing evidence, including for empty
+input. An empty sort MUST NOT perform candidate-key sorting or establish new
+order evidence; it is an exception to the completion rule below. Acceptance
+MUST NOT authorize deleting the authored operation or equating its semantic
+identity with omission. Later consumers still apply their own order requirements,
+including any candidate-key completion permitted for `take`.
 
 <!-- requirement-block: sort.ordering-ties-that-can-affect-a-published-result-or-an sort.when-the-current-relation-retains-a-candidate-key-whose-fields sort.without-a-retained-candidate-key-the-compiler-must-not-invent -->
 Ordering ties that can affect a published Result or an order-sensitive
-operation MUST be resolved. When the
+operation MUST be resolved. For a nonempty authored sort, when the
 current relation retains a candidate key whose fields all have a portable
 order, the compiler MUST append missing key fields in ascending order as a
 deterministic identity tie-break and journal
@@ -2950,6 +2959,13 @@ Keyed distinct projects the declared keys before applying `REL.distinct`; it
 does not retain unspecified fields. A compiler MUST NOT choose a representative
 row for unspecified fields.
 
+<!-- requirement-block: distinct-and-dedupe.nonempty-distinct-projection distinct-and-dedupe.distinct-no-empty-reinterpretation -->
+A keyed `distinct` list MUST be nonempty and contain no repeated field
+references, because it defines a projection with distinct output names.
+Check MUST reject `distinct: []` rather than reinterpret it as `distinct: true`.
+The list retains its authored projection order; these rules do not reject
+empty runtime input or impose a scalar-only schema on whole-row distinct.
+
 Representative-row selection is a separate operation:
 
 ```yaml
@@ -2967,6 +2983,17 @@ invariants rather than authoring fields and are recorded in the Plan.
 The compiler lowers this to `REL.dedupeRows`. If two candidate rows for one
 key tie on every authored order key, execution MUST fail; implementation row
 order or CID MUST NOT silently choose the representative.
+
+<!-- requirement-block: distinct-and-dedupe.global-dedupe distinct-and-dedupe.repeated-dedupe-keys distinct-and-dedupe.retain-dedupe-keys -->
+Check MUST accept `dedupe_rows` with `by: []`, treating all input rows as one
+global partition. Its required nonempty `order_by` selects the first existing
+row; empty input yields zero rows, and a tie between top candidates fails under
+the same rule as any other partition. No representative row is synthesized.
+This differs from a global aggregate and from sort followed by take-one.
+Check MUST accept repeated `by` references while checking each reference's
+existence and applicable type requirements. The checked representation MUST
+retain their authored order and repetitions without preimage deduplication;
+repetition neither adds output columns nor proves uniqueness or resolves ties.
 
 <a id="group"></a>
 
@@ -6696,6 +6723,16 @@ StepConstraints :=
   generator => from absent, as required;
   search_candidates => as absent, body.outputs required;
   otherwise => ordinary current-input and optional as rules.
+
+SortBody := [OrderKey, ...] | []
+DistinctBody := true | [Field, ...] # nonempty, no repeated references
+DedupeRowsBody := {
+  by: [Field, ...] | [],
+  order_by: [OrderKey, ...] # nonempty
+}
+DedupeRowsConstraints := repeated by references are retained;
+  empty by denotes one global partition; keep first, fail on top tie;
+  keep/on_tie are language invariants, not authored members.
 
 Take := PositiveIntegerValue | {
   count: PositiveIntegerValue,
