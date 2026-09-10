@@ -5,6 +5,10 @@ and its pinned machine contracts. Language semantics, wire representations and
 CID preimages come from those contracts, not from another implementation's
 internal APIs or limitations.
 
+Owned version assignments are maintained here as well. Follow the
+[versioning policy](versioning.md) when reusing contract bodies or
+identity code; a reference implementation's version is not an immutable input.
+
 ## Component boundaries
 
 The following are responsibilities, not a prescribed directory layout:
