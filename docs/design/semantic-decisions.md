@@ -60,7 +60,12 @@ columns, whereas repeated projection fields can create forbidden duplicate names
 For each disputed case, state: the current requirements; reference behavior;
 the proposed semantics and reason; whether this clarifies or changes a rule;
 effects on identities, proofs and consumers; and remaining implementation gaps.
-Get agreement before changing acceptance. A later proposal should identify new
+Get agreement before changing acceptance unless the user has explicitly delegated
+specification decisions. Under that delegation, investigate the competing
+evidence, select the recommended semantics, record the rationale and impact,
+and proceed without another approval round. Report the decision; do not hide
+it as an already-existing requirement. Escalate choices outside the delegated
+scope or requiring additional authority. A later proposal should identify new
 evidence or an explicit decision change, not merely a different reviewer preference.
 
 After agreement, update normative prose, structural grammar, applicable schemas

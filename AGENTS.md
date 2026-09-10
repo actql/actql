@@ -6,7 +6,11 @@
   follow [Semantic decision criteria](docs/design/semantic-decisions.md).
   Separate existing requirements, conflicting evidence and new decisions. Do
   not turn a reference implementation limitation or a lint preference into a
-  language restriction; obtain agreement before changing the contract.
+  language restriction. When the user delegates specification decisions, resolve
+  ambiguities using these criteria, document the rationale and compatibility
+  impact, and proceed with the recommended contract. Otherwise obtain agreement
+  before changing the contract. Delegation does not expand implementation scope
+  or authorize destructive/external actions.
 - Owned specifications, machine contracts and identity domains use the current
   initial 0.1 baseline, including AoA contracts (`/0.1`) and versioned AoA law
   identifiers (`.v0.1`). Follow each contract's declared identifier syntax;
