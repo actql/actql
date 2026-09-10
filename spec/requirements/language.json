@@ -3490,6 +3490,17 @@
       }
     },
     {
+      "requirement_id": "actql.language/time-series.source-arguments",
+      "statement_sha256": "8df44740b548e8b1382ebc84d69e4e5f247dc07247642e98bb683a09b03bc05c",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "time-series",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.language/time-series.coverage",
       "statement_sha256": "64d03b6862f449f3708359cfdef95b2ff8a726126cf00839e944db4512c557b2",
       "status": "pending",

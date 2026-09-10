@@ -1,0 +1,83 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/time_series"
+
+import {
+  "actql/actql/carrier_contract",
+  "actql/actql/decode_core",
+  "actql/actql/parameter_binding",
+  "actql/actql/source_span",
+  "actql/actql/source_value",
+  "actql/actql/temporal_window",
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn check(@decode_core.Cursor, @parameter_binding.Declarations?, Limits) -> Result[CheckedSeries, Issue]
+
+pub fn end(CheckedSeries) -> Endpoint
+
+pub fn output(CheckedSeries) -> @carrier_contract.Carrier
+
+pub fn pending_validations(CheckedSeries) -> Array[Obligation]
+
+pub fn source(CheckedSeries) -> @decode_core.Cursor
+
+pub fn start(CheckedSeries) -> Endpoint
+
+pub fn step(CheckedSeries) -> @temporal_window.Milliseconds
+
+pub fn usage(CheckedSeries) -> Usage
+
+// Errors
+
+// Types and methods
+type CheckedSeries
+
+pub enum Endpoint {
+  Literal(String)
+  Parameter(String)
+}
+
+pub struct Issue {
+  kind : IssueKind
+  path : Array[@source_value.PathSegment]
+  span : @source_span.Span
+}
+
+pub(all) enum IssueKind {
+  InvalidLimits
+  BudgetExceeded
+  InvalidBody
+  Decode(@decode_core.IssueKind)
+  InvalidTimestamp
+  UnknownParameter(String)
+  IncompatibleParameter(String)
+  ReversedRange
+  Temporal(@temporal_window.IssueKind)
+} derive(Eq, @debug.Debug)
+
+pub(all) struct Limits {
+  max_work : Int
+  max_nodes : Int
+  max_depth : Int
+  max_text_bytes : Int
+}
+
+pub(all) enum Obligation {
+  BindTimestamp(String)
+  BindStep(String)
+  ValidateRange
+  CheckedArithmetic
+  ResolveRowBound
+  ResolveResources
+} derive(Eq, @debug.Debug)
+
+pub(all) struct Usage {
+  work : Int
+  nodes : Int
+  text_bytes : Int
+}
+
+// Type aliases
+
+// Traits

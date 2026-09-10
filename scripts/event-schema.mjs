@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {orderKeys} from './aggregate-schema.mjs';
+import {orderKeys,parameter} from './aggregate-schema.mjs';
 import {millisecondsSchema} from './window-schema.mjs';
 import {readFileSync, writeFileSync} from 'node:fs';
 import {resolve} from 'node:path';
@@ -8,7 +8,11 @@ import {parameterPrograms} from './parameter-schema.mjs';
 import {machineCid} from './actql-spec-family.mjs';
 
 export function eventSchemas() {
+  const timestamp = {oneOf:[{type:'string',pattern:'^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.[0-9]{3}Z$(?![\\s\\S])'},parameter]};
   return {
+    time_series: {type:'object',additionalProperties:false,required:['start','end','step'],properties:{
+      start:timestamp,end:timestamp,step:millisecondsSchema(),
+    }},
     session: {type:'object',additionalProperties:false,required:['by','gap'],
       dependentRequired:{id:['time'],time:['id']},properties:{
         id:{type:'string',minLength:1},time:{type:'string',minLength:1},

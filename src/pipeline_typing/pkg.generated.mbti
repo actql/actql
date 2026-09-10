@@ -19,6 +19,7 @@ import {
   "actql/actql/source_span",
   "actql/actql/source_value",
   "actql/actql/temporal_window",
+  "actql/actql/time_series",
   "actql/actql/vector_typing",
   "moonbitlang/core/debug",
 }
@@ -75,6 +76,7 @@ pub enum CheckedOperation {
   Set(right~ : Target, checked~ : @relation_set.CheckedSet)
   CrossJoin(right~ : Target, checked~ : @relation_join.CheckedCrossJoin)
   Values(@relation_values.CheckedValues)
+  TimeSeries(@time_series.CheckedSeries)
   Window(@temporal_window.CheckedWindow)
   Projection(@carrier_projection.CheckedProjection)
   Graph(@graph_typing.CheckedGraph)
@@ -130,6 +132,7 @@ pub(all) enum IssueKind {
   GeneratorRequiresAlias
   GeneratorFrom
   Values(@relation_values.IssueKind)
+  TimeSeries(@time_series.IssueKind)
   Window(@temporal_window.IssueKind)
   Projection(@carrier_projection.IssueKind)
   Graph(@graph_typing.IssueKind)

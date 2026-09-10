@@ -4276,6 +4276,15 @@ No end sentinel or extrapolated row is emitted. Timestamp domain or safe
 integer overflow fails before publication. Its row bound is the checked ceiling
 of duration/step. No timezone or calendar arithmetic is implicit.
 
+<!-- requirement-block: time-series.source-arguments -->
+The closed `time_series` body MUST contain exactly `start`, `end` and `step`.
+Each endpoint is a canonical UTC millisecond timestamp string or a whole
+Parameter reference with a non-null timestamp declaration. Step uses the shared
+positive safe-integer millisecond literal, fixed duration token or whole non-null
+number/duration Parameter forms. Literal endpoint validity and reversed ranges
+are checked statically; Parameter defaults are not substituted during declaration
+checking, and bound ranges and positive steps are validated before generation.
+
 <!-- requirement-block: time-series.coverage -->
 A generated time grid MUST NOT attest observed absence. Joining it to counts
 and replacing missing counts with zero is explicit computation; describing a

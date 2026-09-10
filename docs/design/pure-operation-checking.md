@@ -36,6 +36,8 @@ The [Vector operation checker](vector-typing.md) retains dimensions and semantic
 identity across normalization and scoring before the explicit Relation bridge.
 The [Event operation checker](event-typing.md) retains semantic roles and window
 evidence across watermark labeling and filtering.
+The [time-series checker](time-series.md) admits input-free timestamp grids with
+explicit binding and execution-bound obligations.
 
 Use a typed Carrier sum with Relation, Graph, Events and Vectors variants, not a
 Carrier string attached to an otherwise untyped object. Retain recursive value

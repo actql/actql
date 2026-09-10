@@ -1,6 +1,7 @@
 supported_targets = "+js+wasm+native"
 
 import {
+  "actql/actql/time_series" @series,
   "actql/actql/graph_typing" @graph,
   "actql/actql/vector_typing" @vector,
   "actql/actql/event_typing" @event,

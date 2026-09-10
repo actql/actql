@@ -191,6 +191,58 @@ fn check_impl(
       current = Some(target)
       continue
     }
+    if key == "time_series" {
+      if @decode.lookup(object, "from") is Some(s) {
+        fail(s, GeneratorFrom)
+      }
+      let alias_source = match @decode.lookup(object, "as") {
+        Some(s) => s
+        None => fail(body, GeneratorRequiresAlias)
+      }
+      let binding = read_name(b, alias_source)
+      if names.contains(binding) {
+        fail(alias_source, DuplicateName(binding))
+      }
+      let meta = @decode.lookup(object, "meta")
+      if meta is Some(s) {
+        metadata(b, s)
+      }
+      let checked = match
+        @series.check(@decode.lookup(object, key).unwrap(), parameters, {
+          max_work: b.work,
+          max_nodes: b.nodes,
+          max_text_bytes: b.text,
+          max_depth: limits.max_depth,
+        }) {
+        Ok(v) => v
+        Err(issue) =>
+          raise Stop({
+            kind: TimeSeries(issue.kind),
+            source: @decode.lookup(object, key).unwrap(),
+            path: issue.path.copy(),
+            span: issue.span,
+            range: None,
+          })
+      }
+      let used = @series.usage(checked)
+      b.work -= used.work
+      b.nodes -= used.nodes
+      b.text -= used.text_bytes
+      let target = Step(steps.length())
+      steps.push({
+        source: body,
+        input: None,
+        binding_name: Some(binding),
+        metadata: meta,
+        operation: TimeSeries(checked),
+        output: @series.output(checked),
+        connections: { entries: [], },
+        window: None,
+      })
+      names[binding] = target
+      current = Some(target)
+      continue
+    }
     let op : @relation.Operation? = match key {
       "derive" => Some(Derive)
       "filter" => Some(Filter)
@@ -795,7 +847,7 @@ fn check_impl(
     let target = Step(steps.length())
     let connections : Connections = {
       entries: match checked {
-        Values(_) => []
+        Values(_) | TimeSeries(_) => []
         Unary(_)
         | Window(_)
         | WindowGroup(_)

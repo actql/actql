@@ -32,7 +32,7 @@ test('embedded event schemas and identity pins reject drift',()=>{
   const registry=JSON.parse(readFileSync('spec/contracts/actql-protocol-schemas.json'));
   checkEventSchemas(registry);
   for (const index of [0,1]) {
-    for (const name of ['watermark_events','to_events','dedupe_events','session']) {
+    for (const name of ['watermark_events','to_events','dedupe_events','session','time_series']) {
       const copy=structuredClone(registry);
       parameterPrograms(copy)[index].properties.steps.items.properties[name]={};
       assert.throws(()=>checkEventSchemas(copy));

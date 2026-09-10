@@ -37,6 +37,7 @@ pub(all) enum IssueKind {
   GeneratorRequiresAlias
   GeneratorFrom
   Values(@values.IssueKind)
+  TimeSeries(@series.IssueKind)
   Window(@window.IssueKind)
   Projection(@projection.IssueKind)
   Graph(@graph.IssueKind)
@@ -115,6 +116,7 @@ pub enum CheckedOperation {
   Set(right~ : Target, checked~ : @set.CheckedSet)
   CrossJoin(right~ : Target, checked~ : @join.CheckedCrossJoin)
   Values(@values.CheckedValues)
+  TimeSeries(@series.CheckedSeries)
   Window(@window.CheckedWindow)
   Projection(@projection.CheckedProjection)
   Graph(@graph.CheckedGraph)
