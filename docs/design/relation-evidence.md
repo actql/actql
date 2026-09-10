@@ -39,6 +39,30 @@ and origin location remain attached. For input declarations, admission validator
 `declared_records` and `declared_key_field_at`, not the renamed output tuple.
 Transfer work and name bytes are bounded and charged to the pipeline budget.
 
+## Independent input evidence
+
+`pipeline_typing.combine_relation_evidence` binds a candidate-key collection and
+ranking annotations into an opaque `RelationEvidence`. Pass it using
+`RelationEvidenceInput` to retain both axes on one pipeline input; the existing
+key-only and ranking-only variants remain available. Combining never chooses a
+preferred key or changes the score domain, producer, original declaration or
+validation obligations. Uniqueness does not authenticate a score declaration,
+and a captured score contract does not establish a candidate key.
+
+The constructor checks the same row-knowledge or complete-schema handle in
+constant time, matching the key-collection ownership boundary. Merely equal
+independently constructed schemas are rejected, as are non-Relation rankings.
+An empty collection and unannotated ranking can accompany shared partial
+knowledge without inventing facts. The checker still preflights the input
+contract and all key witnesses against the pipeline's shared budget. Annotation
+transfers and consumers retain their own existing budget checks.
+
+This is an implementation-boundary extension, not new authored syntax or
+permission to reuse evidence for unrelated captured data. The independent axes
+then follow their own transfer laws through branches and exact aliases; merging
+their container does not discharge the source-admission, score-authentication or
+producer-execution requirements. Other shared evidence axes remain separate work.
+
 ## Candidate collections and completion selection
 
 `collect_keys` owns independent conditional witnesses on the same immutable row

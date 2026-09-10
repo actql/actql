@@ -212,6 +212,7 @@ pub(all) enum InputContract {
   KeyedInput(@evidence.KeyedRelation)
   CandidateKeysInput(@evidence.KeySet)
   RankingInput(@vector.RankingInput)
+  RelationEvidenceInput(RelationEvidence)
 }
 
 ///|

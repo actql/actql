@@ -41,6 +41,8 @@ pub fn check_carriers(@decode_core.Cursor, Array[(String, @carrier_contract.Carr
 
 pub fn check_with_evidence(@decode_core.Cursor, Array[(String, InputContract)], @parameter_binding.Declarations?, @decode_core.Cursor?, Limits, calendar_profile? : @calendar_profile.Profile?, delta_contracts? : Array[(String, @relation_schema.FieldName, @graph_contract.CheckedContract)]) -> Result[CheckedPipeline, Issue]
 
+pub fn combine_relation_evidence(@decode_core.Cursor, @relation_evidence.KeySet, @vector_typing.RankingInput) -> Result[RelationEvidence, Issue]
+
 pub fn current(CheckedPipeline) -> Target?
 
 pub fn expected_delta_contract(CheckedPipeline, Target, @relation_schema.FieldName) -> @graph_contract.CheckedContract?
@@ -140,6 +142,7 @@ pub(all) enum InputContract {
   KeyedInput(@relation_evidence.KeyedRelation)
   CandidateKeysInput(@relation_evidence.KeySet)
   RankingInput(@vector_typing.RankingInput)
+  RelationEvidenceInput(RelationEvidence)
 }
 
 pub struct InputOccurrence {
@@ -206,6 +209,8 @@ pub(all) struct Limits {
   max_tokens : Int
   max_depth : Int
 } derive(Eq, @debug.Debug)
+
+type RelationEvidence
 
 pub(all) enum Target {
   Input(Int)

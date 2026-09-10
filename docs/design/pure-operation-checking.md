@@ -63,6 +63,8 @@ Keep field knowledge, field-set completeness, recursive type evidence, candidate
 keys, logical order, window roles, score contracts and resource facts separate.
 The [Relation key boundary](relation-evidence.md) retains declared input identity
 with its admission obligations; it does not replace runtime validation with a flag.
+Its validated combined-input boundary retains keys and ranking annotations on
+the same immutable Relation contract without conflating their obligations.
 Support typed, columns-only and unknown inputs where the operation's existing
 rules allow them. Unknown information is neither an empty closed schema nor
 `json`. Missing mandatory static evidence fails; only already admitted deferrals

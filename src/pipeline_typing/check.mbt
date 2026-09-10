@@ -2213,6 +2213,7 @@ pub fn check_with_evidence(
         KeyedInput(k) => @carrier.relation(@evidence.keyed_records(k))
         CandidateKeysInput(k) => @carrier.relation(@evidence.key_set_records(k))
         RankingInput(r) => @vector.ranking_input_carrier(r)
+        RelationEvidenceInput(e) => @vector.ranking_input_carrier(e.ranking)
       },
     )
   })
@@ -2221,11 +2222,13 @@ pub fn check_with_evidence(
       CarrierInput(_) | RankingInput(_) => None
       KeyedInput(k) => Some(@evidence.singleton_key(k))
       CandidateKeysInput(k) => Some(k)
+      RelationEvidenceInput(e) => Some(e.keys)
     }
   })
   let rankings = inputs.map(pair => {
     match pair.1 {
       RankingInput(r) => Some(r)
+      RelationEvidenceInput(e) => Some(e.ranking)
       _ => None
     }
   })
