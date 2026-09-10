@@ -42,7 +42,8 @@ The [interval-join checker](interval-join.md) validates temporal roles and retai
 independent output/search-work obligations on two Relation inputs.
 The [as-of contract decisions](asof-join.md) distinguish typed temporal roles,
 whole identity tuples and validated tie evidence. Typed Relation/Events admission
-is connected; retained candidate-key completion still requires the shared proof boundary.
+and whole retained candidate-key completion are connected through the shared
+key boundary; actual uniqueness and first-place tie checks remain obligations.
 The [sequence checker](sequence-typing.md) shares predicate budgets across pattern
 slots and retains typed event identities in its match-output contract.
 The [Calendar boundary](calendar-checking.md) admits source options and binds

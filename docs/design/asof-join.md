@@ -58,10 +58,26 @@ is not the as-of output ordering contract. Runtime time validation, uniqueness,
 first-place tie rejection and resource discharge are distinct from static type
 acceptance and from the schema checks introduced with this contract.
 
-The current input API carries no candidate-key evidence. It therefore requires
-an explicit Relation `left_id`, accepts the retained Events identity, and never
-chooses a first field or assumes a hidden key. Whole-tuple key supply and
-compiler-journaled right-key completion remain part of the shared evidence work,
-not completed by this checker increment. Unresolved first-place ties remain a
-failure obligation even when authored tie fields are supplied. The checker does
-not certify stable order or coverage merely from the output contract.
+`check_asof_sources` accepts either an ordinary Carrier or an opaque candidate-key
+collection bound to its own Relation. An omitted Relation `left_id` selects an
+eligible complete non-null key using deterministic completion, retaining every
+component in canonical field order and the original declaration separately.
+Explicit left IDs and intrinsic Events IDs are not replaced by preferred keys.
+The ordinary `check_asof` entry still has no implicit key evidence.
+
+Right-key selection uses internal canonical-order eligibility, including Ref
+domains. `asof_tie_break` retains the authored option, including omission versus
+empty and repeated terms. `asof_completed_tie_break` appends only missing fields
+from the selected canonical key; internal reference order does not authorize
+authored Ref tie fields. Left completion and added right terms retain journal
+obligations, and `asof_key_completion` retains the selected declarations with
+their original admission requirements. An already sufficient authored list still
+retains the supporting right-key declaration without inventing added terms.
+
+The pipeline passes both sides' retained collections through this same boundary,
+including keys transferred through earlier derive/projection steps. Source
+admission, key selection, completed terms, temporal options and projection share
+one budget. Key declarations remain conditional on input admission and uniqueness
+validation. Unresolved first-place ties remain a failure obligation even when
+authored tie fields or conditional key completions are supplied. The checker does
+not certify actual stable order or coverage merely from the output contract.

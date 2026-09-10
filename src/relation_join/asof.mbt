@@ -7,6 +7,9 @@ pub(all) enum AsOfDirection {
 
 ///|
 struct CheckedAsOf {
+  left_key : @evidence.KeyedRelation?
+  right_key : @evidence.KeyedRelation?
+  completed_ties : Array[@schema.FieldName]
   source : @decode.Cursor
   output : @schema.Schema
   kind : Kind
@@ -22,6 +25,42 @@ struct CheckedAsOf {
   projection : Array[Projection]
   pending : Array[Obligation]
   usage : Usage
+}
+
+///|
+pub(all) enum AsOfSource {
+  CarrierSource(@carrier.Carrier)
+  KeySource(@evidence.KeySet)
+}
+
+///|
+fn asof_source_parts(
+  value : AsOfSource,
+) -> (@carrier.Carrier, @evidence.KeySet?) {
+  match value {
+    CarrierSource(c) => (c, None)
+    KeySource(k) => (@carrier.relation(@evidence.key_set_records(k)), Some(k))
+  }
+}
+
+///|
+fn asof_choose_key(
+  b : Budget,
+  source : @decode.Cursor,
+  keys : @evidence.KeySet?,
+) -> @evidence.KeyedRelation? raise Stop {
+  guard keys is Some(keys) else { return None }
+  let selection = match
+    @evidence.select_key(source, keys, CanonicalOrder, {
+      max_work: b.work,
+      max_name_bytes: b.text,
+    }) {
+    Ok(v) => v
+    Err(_) => fail(source, BudgetExceeded)
+  }
+  b.work -= selection.work
+  b.text -= selection.name_bytes
+  selection.key
 }
 
 ///|
@@ -88,6 +127,23 @@ pub fn check_asof(
   parameters : @parameter.Declarations?,
   limits : Limits,
 ) -> Result[CheckedAsOf, Issue] {
+  check_asof_sources(
+    body,
+    CarrierSource(left),
+    CarrierSource(right),
+    parameters,
+    limits,
+  )
+}
+
+///|
+pub fn check_asof_sources(
+  body : @decode.Cursor,
+  left_source : AsOfSource,
+  right_source : AsOfSource,
+  parameters : @parameter.Declarations?,
+  limits : Limits,
+) -> Result[CheckedAsOf, Issue] {
   try {
     if limits.max_work < 0 ||
       limits.max_text_bytes < 0 ||
@@ -111,6 +167,8 @@ pub fn check_asof(
     )
     let with_source = decoded(@decode.required(obj, "with"), body)
     ignore(dataflow_name(with_source))
+    let (left, left_keys) = asof_source_parts(left_source)
+    let (right, right_keys) = asof_source_parts(right_source)
     let (left_rows, event_identity) = match left {
       Relation(rows) => (rows, None)
       EventValue(e) => (e.records, Some(e.identity.name))
@@ -135,6 +193,7 @@ pub fn check_asof(
       "nearest" => Nearest
       _ => fail(ds, InvalidBody)
     }
+    let mut left_key = None
     let identity = match @decode.lookup(obj, "left_id") {
       Some(s) => {
         let (f, c) = asof_field(b, s, left_rows, @schema.Left)
@@ -149,7 +208,17 @@ pub fn check_asof(
       None =>
         match event_identity {
           Some(f) => [f]
-          None => fail(body, MissingLeftIdentity)
+          None => {
+            guard asof_choose_key(b, body, left_keys) is Some(key) else {
+              fail(body, MissingLeftIdentity)
+            }
+            left_key = Some(key)
+            let count = @evidence.key_field_count(key)
+            spend(b, body, n=count)
+            Array::makei(count, i => {
+              @evidence.key_field_at(key, i).unwrap().name
+            })
+          }
         }
     }
     let ls = decoded(@decode.required(obj, "left_time"), body)
@@ -203,6 +272,27 @@ pub fn check_asof(
         Some(fields)
       }
     }
+    let right_key = asof_choose_key(b, with_source, right_keys)
+    let completed_ties = ties.map(fields => fields.copy()).unwrap_or([])
+    spend(b, body, n=completed_ties.length())
+    let seen : Map[String, Bool] = Map([])
+    for field in completed_ties {
+      seen[@schema.reference_name(field)] = true
+    }
+    let mut appended = false
+    if right_key is Some(key) {
+      spend(b, body, n=@evidence.key_field_count(key))
+      for i in 0..<@evidence.key_field_count(key) {
+        let field = @evidence.key_field_at(key, i).unwrap().name
+        let name = @schema.reference_name(field)
+        charge(b, body, name)
+        if !seen.contains(name) {
+          completed_ties.push(field)
+          seen[name] = true
+          appended = true
+        }
+      }
+    }
     let ts = decoded(@decode.required(obj, "tolerance"), body)
     let tolerance = match
       @temporal.read_milliseconds(ts, PositiveMilliseconds, parameters, {
@@ -246,7 +336,23 @@ pub fn check_asof(
     if tolerance is @temporal.Parameter(name, ..) {
       pending.push(BindTolerance(name))
     }
+    for (side, key) in [(@schema.Left, left_key), (@schema.Right, right_key)] {
+      if key is Some(key) {
+        for obligation in @evidence.key_pending(key) {
+          pending.push(ValidateAsOfKey(side, obligation))
+        }
+      }
+    }
+    if left_key is Some(_) {
+      pending.push(JournalAsOfKeyCompletion(@schema.Left))
+    }
+    if appended {
+      pending.push(JournalAsOfKeyCompletion(@schema.Right))
+    }
     Ok({
+      left_key,
+      right_key,
+      completed_ties,
       source: body,
       output,
       kind,
@@ -323,6 +429,25 @@ pub fn asof_keys(v : CheckedAsOf) -> Array[KeyPair] {
 ///|
 pub fn asof_tie_break(v : CheckedAsOf) -> Array[@schema.FieldName]? {
   v.ties.map(a => a.copy())
+}
+
+///|
+/// Authored terms followed by missing canonical key fields; internal Ref order
+/// is not exposed as an authored order option.
+pub fn asof_completed_tie_break(v : CheckedAsOf) -> Array[@schema.FieldName] {
+  v.completed_ties.copy()
+}
+
+///|
+pub fn asof_key_completion(
+  v : CheckedAsOf,
+  side : @schema.Side,
+) -> @evidence.KeyedRelation? {
+  if side == Left {
+    v.left_key
+  } else {
+    v.right_key
+  }
 }
 
 ///|

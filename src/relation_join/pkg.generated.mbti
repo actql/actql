@@ -5,6 +5,7 @@ import {
   "actql/actql/carrier_contract",
   "actql/actql/decode_core",
   "actql/actql/parameter_binding",
+  "actql/actql/relation_evidence",
   "actql/actql/relation_schema",
   "actql/actql/source_span",
   "actql/actql/source_value",
@@ -13,9 +14,13 @@ import {
 }
 
 // Values
+pub fn asof_completed_tie_break(CheckedAsOf) -> Array[@relation_schema.FieldName]
+
 pub fn asof_direction(CheckedAsOf) -> AsOfDirection
 
 pub fn asof_identity(CheckedAsOf) -> Array[@relation_schema.FieldName]
+
+pub fn asof_key_completion(CheckedAsOf, @relation_schema.Side) -> @relation_evidence.KeyedRelation?
 
 pub fn asof_keys(CheckedAsOf) -> Array[KeyPair]
 
@@ -44,6 +49,8 @@ pub fn assertion(CheckedJoin) -> Cardinality?
 pub fn check(@decode_core.Cursor, @relation_schema.Schema, @relation_schema.Schema, @parameter_binding.Declarations?, Limits) -> Result[CheckedJoin, Issue]
 
 pub fn check_asof(@decode_core.Cursor, @carrier_contract.Carrier, @carrier_contract.Carrier, @parameter_binding.Declarations?, Limits) -> Result[CheckedAsOf, Issue]
+
+pub fn check_asof_sources(@decode_core.Cursor, AsOfSource, AsOfSource, @parameter_binding.Declarations?, Limits) -> Result[CheckedAsOf, Issue]
 
 pub fn check_cross(@decode_core.Cursor, @relation_schema.Schema, @relation_schema.Schema, @parameter_binding.Declarations?, Limits) -> Result[CheckedCrossJoin, Issue]
 
@@ -115,6 +122,11 @@ pub(all) enum AsOfDirection {
   Forward
   Nearest
 } derive(Eq, @debug.Debug)
+
+pub(all) enum AsOfSource {
+  CarrierSource(@carrier_contract.Carrier)
+  KeySource(@relation_evidence.KeySet)
+}
 
 pub(all) enum Cardinality {
   OneToOne
@@ -212,6 +224,8 @@ pub(all) enum Obligation {
   ValidateAsOfValues
   ResolveAsOfOrder
   RejectAsOfTies
+  JournalAsOfKeyCompletion(@relation_schema.Side)
+  ValidateAsOfKey(@relation_schema.Side, @relation_evidence.KeyObligation)
   ResolveTeaProfile
   BindTolerance(String)
 } derive(Eq, @debug.Debug)

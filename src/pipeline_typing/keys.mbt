@@ -25,6 +25,20 @@ fn nearest_input_source(
 }
 
 ///|
+fn asof_input_source(
+  target : Target,
+  inputs : Array[(String, @carrier.Carrier)],
+  steps : Array[CheckedStep],
+  keys : Array[@evidence.KeySet?],
+  step_keys : Array[@evidence.KeySet?],
+) -> @join.AsOfSource {
+  match key_at(target, keys, step_keys) {
+    Some(k) => KeySource(k)
+    None => CarrierSource(carrier(target, inputs, steps))
+  }
+}
+
+///|
 fn sync_keys(
   b : Budget,
   inputs : Array[@evidence.KeySet?],

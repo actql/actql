@@ -29,6 +29,66 @@ test "as-of pipeline consumes retained Events identity and emits a typed Relatio
 }
 
 ///|
+test "as-of pipeline supplies whole retained keys on both input edges" {
+  let relation = @carrier.relation(@carrier.typed_rows(schema()))
+  let key = @evidence.declare_primary_key(cursor("[\"id\"]"), relation, {
+    max_fields: 1,
+    max_name_bytes: 2,
+  }).unwrap()
+  let inputs = [
+    ("l", @pipeline_typing.KeyedInput(key)),
+    ("r", @pipeline_typing.KeyedInput(key)),
+  ]
+  let source = cursor(
+    "[{\"from\":\"l\",\"derive\":{\"saved\":\"id\"}},{\"drop\":[\"id\"]},{\"asof_join\":{\"with\":\"r\",\"kind\":\"left\",\"by\":[],\"left_time\":\"amount\",\"right_time\":\"amount\",\"direction\":\"nearest\",\"tolerance\":100,\"select\":{\"id\":\"left.saved\",\"value\":\"right.amount\"}}}]",
+  )
+  let p = @pipeline_typing.check_with_evidence(
+    source,
+    inputs,
+    None,
+    None,
+    limits(),
+  ).unwrap()
+  let step = @pipeline_typing.step_at(p, 2).unwrap()
+  guard step.operation is AsOfJoin(checked~, ..) else { abort("as-of") }
+  assert_eq(@join.asof_identity(checked), [Unqualified("saved")])
+  assert_eq(@join.asof_completed_tie_break(checked), [Unqualified("id")])
+  assert_eq(
+    @evidence.declared_key_field_at(
+      @join.asof_key_completion(checked, Left).unwrap(),
+      0,
+    ).unwrap().name,
+    Unqualified("id"),
+  )
+  assert_eq(@pipeline_typing.input_occurrences(step).map(e => e.target), [
+    Step(1),
+    Input(1),
+  ])
+  let u = @pipeline_typing.usage(p)
+  let exact = {
+    ..limits(),
+    max_work: u.work,
+    max_nodes: u.nodes,
+    max_text_bytes: u.text_bytes,
+  }
+  assert_true(
+    @pipeline_typing.check_with_evidence(source, inputs, None, None, exact)
+    is Ok(_),
+  )
+  for
+    cap in [
+      { ..exact, max_work: exact.max_work - 1, },
+      { ..exact, max_nodes: exact.max_nodes - 1, },
+      { ..exact, max_text_bytes: exact.max_text_bytes - 1, },
+    ] {
+    assert_true(
+      @pipeline_typing.check_with_evidence(source, inputs, None, None, cap)
+      is Err(_),
+    )
+  }
+}
+
+///|
 test "as-of pipeline Relation input requires identity and preserves right diagnostics" {
   let body = cursor(
     "[{\"asof_join\":{\"with\":\"r\",\"kind\":\"left\",\"by\":[],\"left_time\":\"amount\",\"right_time\":\"amount\",\"direction\":\"nearest\",\"tolerance\":100,\"select\":{\"id\":\"left.id\",\"value\":\"right.amount\"},\"left_id\":\"id\"},\"from\":\"l\"}]",

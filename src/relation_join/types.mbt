@@ -44,6 +44,8 @@ pub(all) enum Obligation {
   ValidateAsOfValues
   ResolveAsOfOrder
   RejectAsOfTies
+  JournalAsOfKeyCompletion(@schema.Side)
+  ValidateAsOfKey(@schema.Side, @evidence.KeyObligation)
   ResolveTeaProfile
   BindTolerance(String)
 } derive(Eq, Debug)

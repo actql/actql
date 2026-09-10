@@ -752,10 +752,10 @@ fn check_impl(
       }
       let right = resolve_target(b, right_source, names)
       let checked = match
-        @join.check_asof(
+        @join.check_asof_sources(
           operation_body,
-          carrier(input, inputs, steps),
-          carrier(right, inputs, steps),
+          asof_input_source(input, inputs, steps, keyed_inputs, keyed_steps),
+          asof_input_source(right, inputs, steps, keyed_inputs, keyed_steps),
           parameters,
           {
             max_work: b.work,
