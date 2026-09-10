@@ -346,12 +346,26 @@ for checking the fixed expected behavior. Independent Node canonicalization
 also verifies the profile's byte representation.
 
 The fixture establishes a reproducible selection candidate, not a default
-production Check Environment and not an admitted MoonBit Profile. Product
-admission must still receive the independently selected CID and required blobs,
-validate their bounded representation and integrity, and recognize supported
-law descriptors. Until that boundary is implemented and connected,
-`ResolveTextRankProfile` remains pending; this artifact alone cannot discharge
-it or any evaluation/resource obligations.
+production Check Environment. `text_rank_profile.admit` receives an independently
+selected CID and all seven dependency blobs. It verifies original profile bytes,
+the closed shape, supported versions and complete law descriptors, canonical JSON
+without repair, and every dependency's exact hash. Missing, duplicate, altered or
+unsupported dependencies/profiles are rejected. The immutable result retains the
+CID and dependency bytes without retaining the caller's mutable array.
+
+Profile bytes and the cumulative size of all dependency bytes have separate
+inclusive limits. Node and depth ceilings apply independently to profile parsing,
+owned admission and canonical emission; dependency blobs are opaque at this
+boundary. Hashing does not establish that arbitrary bytes are valid Unicode data
+or executable conformance vectors, nor establish provenance. Those checks remain
+the responsibility of profile construction and the selected execution component.
+The small synthetic MoonBit fixture tests byte integrity only; the real vendored
+data and independent vector oracles are checked separately by `check:vector`.
+The supported law hashes and synthetic fixture are generated and freshness-checked
+alongside the selected artifact, without deriving expected CIDs from product code.
+
+Pipeline binding is not yet connected: `ResolveTextRankProfile` remains pending.
+An admitted profile cannot discharge evaluation, tokenizer or resource obligations.
 
 Fixed-revision searches found no text_rank implementation in Sketch
 `87dc7144138edfcba108cdc59dc485ac976ba976` (src and moonbit/src), no text_rank/BM25

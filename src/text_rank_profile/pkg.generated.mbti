@@ -1,0 +1,57 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/text_rank_profile"
+
+import {
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn admit(Bytes, String, Array[(Dependency, Bytes)], Limits) -> Result[Profile, Issue]
+
+pub fn cid(Profile) -> String
+
+pub fn dependency_bytes(Profile, Dependency) -> Bytes
+
+pub fn dependency_cid(Profile, Dependency) -> String
+
+// Errors
+
+// Types and methods
+pub(all) enum Dependency {
+  UnicodeData
+  CompositionExclusions
+  CaseFolding
+  NormalizationTest
+  License
+  TokenizerVectors
+  NumericVectors
+} derive(Eq, @debug.Debug)
+
+pub(all) enum Issue {
+  InvalidLimits
+  BudgetExceeded
+  InvalidDependencySet
+  MissingDependency(Dependency)
+  DuplicateDependency(Dependency)
+  DependencyMismatch(Dependency)
+  IdentityMismatch
+  InvalidJson
+  InvalidBody
+  InvalidDigest
+  UnsupportedVersion
+  UnsupportedLaw
+  NoncanonicalArtifact
+} derive(Eq, @debug.Debug)
+
+pub(all) struct Limits {
+  max_profile_bytes : Int
+  max_dependency_bytes : Int
+  max_nodes : Int
+  max_depth : Int
+}
+
+type Profile
+
+// Type aliases
+
+// Traits
