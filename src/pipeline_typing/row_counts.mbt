@@ -93,6 +93,28 @@ fn unary_count(
 }
 
 ///|
+fn window_count(
+  source : @decode.Cursor,
+  input : RowCount?,
+  options : @window.Options,
+) -> RowCount? raise Stop {
+  if @window.kind(options) == Fixed {
+    return input
+  }
+  let factor = match (@window.size(options), @window.step(options)) {
+    (Literal(size), Some(Literal(step))) =>
+      Some(
+        count(
+          size / step + (if size % step == 0L { 0L } else { 1L }),
+          size % step == 0L,
+        ),
+      )
+    _ => None
+  }
+  product_counts(source, input, factor)
+}
+
+///|
 // Single forward pass over already checked, ordered operand occurrences.
 fn derive_row_counts(
   b : Budget,
@@ -111,6 +133,18 @@ fn derive_row_counts(
           AtMost(n) => Some(count(n.to_int64(), false))
         }
       Unary(op) | WindowGroup(op) => unary_count(step.source, input, op)
+      Vector(_) => input
+      Projection(v) =>
+        match @projection.operation(v) {
+          Events | Vectors => input
+          NodeRows | EdgeRows => None
+        }
+      Event(v) =>
+        match @event.options(v) {
+          ToEvents | Session(_) | Watermark(_, Mark) => input
+          Dedupe(_) | Watermark(_, Drop) => reduce_count(input)
+        }
+      Window(v) => window_count(step.source, input, @window.options(v))
       Nest(_) => input
       Append(right~, ..) =>
         sum_counts(step.source, input, count_at(right, result))

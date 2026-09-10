@@ -37,6 +37,21 @@ in [resolved limits](../spec/language.md#resolved-limits).
 | intersect | Minimum of available operand upper bounds |
 | nest, left asof_join | Preserve left count |
 | inner asof_join | Left upper bound |
+| to_events, events, to_vectors, vectors, normalize_vectors, score_vectors | Preserve record count |
+| session | Preserve count: label events, do not aggregate sessions into rows |
+| watermark_events | Mark preserves count; drop retains only the upper bound |
+| dedupe_events | Retain upper bound |
+| fixed row_window/window_events | Preserve count, independently of an explicitly supplied step |
+| sliding row_window/window_events | Multiply by ceil(size / step) for literal size/step; exact multiplicity only when size is divisible by step |
+
+Window multiplicity follows the integer lattice and closed-open membership rule
+in [event windows](../spec/language.md#event-windows). When size is not divisible
+by step, some times have fewer memberships (including zero when size < step),
+so an exact input count becomes an upper bound. Offset shifts the lattice but
+not this bound. Unbound size/step leaves the factor unknown; a Parameter default
+is not a binding. Fixed windows do not use step for geometry, but still retain
+all authored-step binding and validation obligations. Checked boundary arithmetic
+and profile/resource resolution remain required even for exact or zero counts.
 
 `relation_typing.row_count_rule` reads private checked metadata in constant time;
 it does not copy the operation's field, order or aggregate arrays. Pipeline
@@ -51,6 +66,6 @@ The fixed Sketch bound-transfer registry distinguishes preservation, clamping,
 addition, multiplication, reduction and carrier-specific laws. This implementation
 uses the same distinctions and additionally records exactness where warranted by
 the current language. It does not adopt a Host ceiling or physical estimate as
-an exact count. General join cardinality, temporal expansion, Graph/Events/Vectors
-transfers, validated external count facts and dependency-closed Plan witness
+an exact count. General join cardinality, ranking and Graph transfers,
+validated external count facts and dependency-closed Plan witness
 serialization remain shared-evidence work. No execution conformance is claimed.
