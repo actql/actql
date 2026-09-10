@@ -2100,8 +2100,9 @@ fn check_impl(
   sync_keys(b, keyed_inputs, steps, keyed_steps)
   sync_rankings(b, inputs, ranked_inputs, steps, ranked_steps)
   let join_evidence = derive_join_evidence(b, steps, keyed_inputs, keyed_steps)
-  let row_counts = derive_row_counts(b, steps, join_evidence)
+  let (row_counts, graph_counts) = derive_row_counts(b, steps, join_evidence)
   {
+    graph_counts,
     join_evidence,
     row_counts,
     ranked_inputs,

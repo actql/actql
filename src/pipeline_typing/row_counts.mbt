@@ -6,6 +6,21 @@ pub struct RowCount {
 } derive(Eq, Debug)
 
 ///|
+/// Distinct graph extents; neither is a Relation row count.
+pub struct GraphCount {
+  nodes : RowCount?
+  edges : RowCount?
+} derive(Eq, Debug)
+
+///|
+fn graph_count_at(target : Target, steps : Array[GraphCount?]) -> GraphCount? {
+  match target {
+    Input(_) => None
+    Step(i) => steps[i]
+  }
+}
+
+///|
 fn count(n : Int64, exact : Bool) -> RowCount {
   { upper: n, exact: exact || n == 0L, }
 }
@@ -242,11 +257,37 @@ fn derive_row_counts(
   b : Budget,
   steps : Array[CheckedStep],
   joins : Array[JoinEvidence?],
-) -> Array[RowCount?] raise Stop {
+) -> (Array[RowCount?], Array[GraphCount?]) raise Stop {
   let result : Array[RowCount?] = []
+  let graphs : Array[GraphCount?] = []
   for step in steps {
     spend(b, step.source, 1)
     let input = step.input.bind(t => count_at(t, result))
+    let graph_input = step.input.bind(t => graph_count_at(t, graphs))
+    let graph_output = match step.operation {
+      GraphConstruction(nodes~, edges~, ..) => {
+        let edges = reduce_count(count_at(edges, result))
+        let nodes = match nodes {
+          Some(t) => reduce_count(count_at(t, result))
+          None => product_counts(step.source, edges, Some(count(2L, true)))
+        }
+        Some({
+          nodes,
+          edges: if nodes is Some({ upper: 0L, .. }) {
+            Some(count(0L, true))
+          } else {
+            edges
+          },
+        })
+      }
+      Graph(v) =>
+        if @graph.operation(v) == NormalizeGraph {
+          graph_input
+        } else {
+          None
+        }
+      _ => None
+    }
     let next = match step.operation {
       Values(v) => Some(count(@values.row_count(v).to_int64(), true))
       TimeSeries(v) => @series.known_row_count(v).map(n => count(n, true))
@@ -260,8 +301,15 @@ fn derive_row_counts(
       Projection(v) =>
         match @projection.operation(v) {
           Events | Vectors => input
-          NodeRows | EdgeRows => None
+          NodeRows => graph_input.bind(v => v.nodes)
+          EdgeRows => graph_input.bind(v => v.edges)
         }
+      Graph(v) =>
+        match @graph.operation(v) {
+          Degree | Components => graph_input.bind(v => v.nodes)
+          _ => None
+        }
+      GraphEquality(_) => Some(count(1L, true))
       Event(v) =>
         match @event.options(v) {
           ToEvents | Session(_) | Watermark(_, Mark) => input
@@ -341,8 +389,17 @@ fn derive_row_counts(
       _ => None
     }
     result.push(next)
+    graphs.push(graph_output)
   }
-  result
+  (result, graphs)
+}
+
+///|
+pub fn graph_count(value : CheckedPipeline, target : Target) -> GraphCount? {
+  match target {
+    Input(_) => None
+    Step(i) => value.graph_counts.get(i).bind(v => v)
+  }
 }
 
 ///|

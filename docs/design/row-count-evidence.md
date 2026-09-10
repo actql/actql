@@ -18,6 +18,17 @@ in [resolved limits](../spec/language.md#resolved-limits).
 
 ## Implemented transfer
 
+`graph_count` reports separate node/edge summaries; Graph steps still return
+`None` from `row_count`. Concise construction bounds distinct edges by its input
+row count and endpoint-derived nodes by twice that bound. Explicit construction
+bounds nodes and edges from their respective branches; an empty node universe
+gives exactly zero edges because endpoint closure excludes them all. Equal-payload
+duplicate collapse and explicit endpoint filtering mean nonempty construction
+counts are upper bounds, not exact counts. Normalization retains these summaries.
+Node/edge projection selects the corresponding extent, while degree/components
+emit one row per node. Graph equality emits exactly one boolean row even for
+empty inputs. Graph validation and profile obligations are not skipped.
+
 | Checked operation | Count rule |
 | --- | --- |
 | values | Exact authored row count, including Parameter cells awaiting binding |
@@ -98,6 +109,6 @@ addition, multiplication, reduction and carrier-specific laws. This implementati
 uses the same distinctions and additionally records exactness where warranted by
 the current language. It does not adopt a Host ceiling or physical estimate as
 an exact count. Join-key uniqueness can further tighten these conservative
-matching bounds. Graph transfers,
+matching bounds. Further Graph structural/query transfers,
 validated external count facts and dependency-closed Plan witness
 serialization remain shared-evidence work. No execution conformance is claimed.

@@ -47,6 +47,8 @@ pub fn current(CheckedPipeline) -> Target?
 
 pub fn expected_delta_contract(CheckedPipeline, Target, @relation_schema.FieldName) -> @graph_contract.CheckedContract?
 
+pub fn graph_count(CheckedPipeline, Target) -> GraphCount?
+
 pub fn initial_from(CheckedPipeline) -> @decode_core.Cursor?
 
 pub fn input_key(CheckedPipeline, Int) -> @relation_evidence.KeyedRelation?
@@ -140,6 +142,11 @@ pub struct CheckedStep {
 }
 
 type Connections
+
+pub struct GraphCount {
+  nodes : RowCount?
+  edges : RowCount?
+} derive(Eq, @debug.Debug)
 
 pub(all) enum InputContract {
   CarrierInput(@carrier_contract.Carrier)
