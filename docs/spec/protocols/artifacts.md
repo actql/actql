@@ -847,7 +847,7 @@ These exact schema/law references are owned here. Their identities do not includ
 ../../../spec/contracts/actql-lookup-identities.json#/schemas/adoption sha256:565792923a43d7caf62dacf25d0aaa4f2718da2642295f34a300bc4963f4e73c
 ../../../spec/contracts/actql-lookup-identities.json#/schemas/raw_response sha256:9cfcd5971b2ba28901bc41a75a00dac78f2b85e69b32a8dde6a7b34a8cc86b4e
 ../../../spec/contracts/actql-lookup-identities.json#/schemas/egress sha256:de8ac3646c90f9451c7ddc47dcc05effad43209ca208b5dfd307671c84b1bfa3
-../../../spec/contracts/actql-lookup-identities.json#/schemas/transport_plan sha256:635b15625d124ad246ad7884433ce1bf3a7bb3bb014e839578a06aa0a8e27e1f
+../../../spec/contracts/actql-lookup-identities.json#/schemas/transport_plan sha256:301a3ef1a26d2762fccd169f18267d3ed6484625ae49f68508bc1962ca3796f7
 ../../../spec/contracts/actql-lookup-identities.json#/schemas/derivation sha256:2b26eb9af1fee57313bc5d339d3be9dd407608a458b249f41aa4d5d5fa340015
 ../../../spec/contracts/actql-lookup-identities.json#/schemas/accounting sha256:b39a1bffd1e47679b7092f5eefdb5830ae7d93ebc20afa2f3daddc1febaaea70
 ../../../spec/contracts/actql-lookup-identities.json#/schemas/attempt_event sha256:c9b5a6332e1bf918718bd4d5b58a34bcd7f420d4e55693f8f48ba28cb9067310
@@ -856,7 +856,7 @@ These exact schema/law references are owned here. Their identities do not includ
 ../../../spec/contracts/actql-lookup-identities.json#/schemas/request sha256:89d3817588c84e52e7ab57911a9e4c667bb63a49b6051a90ec9ce3741c112a72
 ../../../spec/contracts/actql-lookup-identities.json#/schemas/call_slot sha256:dd49a504455f782e2d17059880512f1b133cd5b035107a7f96c0cef25f79d5bd
 ../../../spec/contracts/actql-lookup-identities.json#/schemas/relation sha256:b00bc1456e19c3809adaf69774b2af1a1ee1ca6a98fd02fcb2f8cc9cb7344cc0
-../../../spec/contracts/actql-lookup-identities.json#/schemas/key_set sha256:3fc718c3047e6f326014f1cf71cf020fb242ade7a9690e95adcd8212949ed519
+../../../spec/contracts/actql-lookup-identities.json#/schemas/key_set sha256:d7007ff64a153a1f9365ea1dc2c7191738017ea4bdc58ba87a736d6d41fcde35
 ../../../spec/contracts/actql-lookup-identities.json#/schemas/batch_plan sha256:df125a7737abbb76c72f9f4cd73a0ba8981506c1cdb7ae6465309a7d44517261
 ../../../spec/contracts/actql-lookup-identities.json#/schemas/attempt_receipt sha256:a48afadbe4bb2378a6bd3203f35c451081d84d316514f47e544a6c2c4f102620
 ../../../spec/contracts/actql-lookup-identities.json#/evidence_slots sha256:d5257ad4c6368df06bdd720a132c1759b46ed0d3457b46e66e750b1f7f4aaa66

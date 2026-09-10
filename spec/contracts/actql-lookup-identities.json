@@ -1315,7 +1315,7 @@
                 "fields": {
                   "type": "object",
                   "propertyNames": {
-                    "pattern": "^(?!__cid$)(?!__actql_)(?!.*\\.)(?=.*\\S).+$"
+                    "pattern": "^(?!__cid$)(?!__actql_)(?![\\s\\S]*\\.)(?=[\\s\\S]*\\S)[\\s\\S]+$"
                   },
                   "additionalProperties": {
                     "$ref": "#/$defs/value_contract"
@@ -3137,7 +3137,7 @@
                 "fields": {
                   "type": "object",
                   "propertyNames": {
-                    "pattern": "^(?!__cid$)(?!__actql_)(?!.*\\.)(?=.*\\S).+$"
+                    "pattern": "^(?!__cid$)(?!__actql_)(?![\\s\\S]*\\.)(?=[\\s\\S]*\\S)[\\s\\S]+$"
                   },
                   "additionalProperties": {
                     "$ref": "#/$defs/value_contract"
@@ -3769,7 +3769,7 @@
     "adoption": "sha256:565792923a43d7caf62dacf25d0aaa4f2718da2642295f34a300bc4963f4e73c",
     "raw_response": "sha256:9cfcd5971b2ba28901bc41a75a00dac78f2b85e69b32a8dde6a7b34a8cc86b4e",
     "egress": "sha256:de8ac3646c90f9451c7ddc47dcc05effad43209ca208b5dfd307671c84b1bfa3",
-    "transport_plan": "sha256:635b15625d124ad246ad7884433ce1bf3a7bb3bb014e839578a06aa0a8e27e1f",
+    "transport_plan": "sha256:301a3ef1a26d2762fccd169f18267d3ed6484625ae49f68508bc1962ca3796f7",
     "derivation": "sha256:2b26eb9af1fee57313bc5d339d3be9dd407608a458b249f41aa4d5d5fa340015",
     "accounting": "sha256:b39a1bffd1e47679b7092f5eefdb5830ae7d93ebc20afa2f3daddc1febaaea70",
     "attempt_event": "sha256:c9b5a6332e1bf918718bd4d5b58a34bcd7f420d4e55693f8f48ba28cb9067310",
@@ -3778,7 +3778,7 @@
     "request": "sha256:89d3817588c84e52e7ab57911a9e4c667bb63a49b6051a90ec9ce3741c112a72",
     "call_slot": "sha256:dd49a504455f782e2d17059880512f1b133cd5b035107a7f96c0cef25f79d5bd",
     "relation": "sha256:b00bc1456e19c3809adaf69774b2af1a1ee1ca6a98fd02fcb2f8cc9cb7344cc0",
-    "key_set": "sha256:3fc718c3047e6f326014f1cf71cf020fb242ade7a9690e95adcd8212949ed519",
+    "key_set": "sha256:d7007ff64a153a1f9365ea1dc2c7191738017ea4bdc58ba87a736d6d41fcde35",
     "batch_plan": "sha256:df125a7737abbb76c72f9f4cd73a0ba8981506c1cdb7ae6465309a7d44517261",
     "attempt_receipt": "sha256:a48afadbe4bb2378a6bd3203f35c451081d84d316514f47e544a6c2c4f102620"
   }

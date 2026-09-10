@@ -544,11 +544,19 @@ operation. An unavailable or Carrier-incompatible name MUST fail during check.
 An `AuthoredFieldName` is a flat NFC string containing at least one
 non-whitespace character. This rule applies to relation/graph/event/vector
 fields and recursively to object properties.
+Here whitespace is the union of ECMAScript 2025
+[WhiteSpace and LineTerminator](https://tc39.es/ecma262/2025/multipage/ecmascript-language-lexical-grammar.html#sec-white-space):
+U+0009–U+000D, U+0020, U+00A0, U+1680, U+2000–U+200A, U+2028,
+U+2029, U+202F, U+205F, U+3000, and U+FEFF.
 Authored schema fields MUST NOT contain `.`, equal `__cid`, or begin with the
 reserved `__actql_` prefix. Generated semantic fields such as `edge_id`,
 `window_start_ms`, `session_id`, and score/identity restorations are checked
 for collision before lowering. A compiler MUST NOT reinterpret a user field as
 join provenance or an internal carrier field.
+
+<!-- requirement-block: field-paths.line-breaks-in-field-names -->
+Implementations MUST permit line breaks within field names; source NFC/LF normalization and quoted or
+escaped representations apply as for other strings.
 
 `GeneratedFieldName` denotes a field introduced by a specified operation;
 it is not permission for authors to declare reserved internal fields.
@@ -712,6 +720,10 @@ present, it is complete: runtime rows MUST have exactly that field set and
 every value, nested array element, and declared object property MUST satisfy
 the declared type/nullability. `nullable: true` permits a present value to be
 `null`; it does not make the field or property optional.
+
+<!-- requirement-block: value-contracts.empty-object-contracts -->
+Both authored and checked object contracts MUST permit `fields: {}`. This closed
+contract admits only the empty object, plus `null` when `nullable: true`.
 
 An empty array retains its declared item contract; its contents do not infer
 `json` or change nullability. `nest` ([nest](#nest)) derives that contract from the
@@ -6868,17 +6880,17 @@ through the pinned expression contract.
 ../../spec/contracts/actql-aoa.json# sha256:beab1b266fad54726bfb9e84ab45e56a5ba94cfc8032cb1e38aa32ba841793cc
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/resource_ref sha256:f88141c15be5ac040af593008fdca7c85214fcb4ba60ea7110160b8fe8ee25ac
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/artifact_ref sha256:2143a7c6bd2e0b110822670a3cb146cddaa23bcade9de7c1ab8ed4e1ebf88a55
-../../spec/contracts/actql-protocol-schemas.json#/schemas/author_value_contract sha256:57b47ff13f4c196828099b101c28c39c49ff85b2551deb71673131cd5fb1559f
-../../spec/contracts/actql-protocol-schemas.json#/schemas/canonical_value_contract sha256:634215a45ed2004f790865b5d0369acf26a3d80d9ee70247d450b609423de44f
+../../spec/contracts/actql-protocol-schemas.json#/schemas/author_value_contract sha256:ad31b593c607142e6fce65b15ca12531c46d61f3bcf8cc55f34eef1b4dca6b6e
+../../spec/contracts/actql-protocol-schemas.json#/schemas/canonical_value_contract sha256:02859499357530af0ae58e4f2958d1c8fa48f957b86b0a2976dad43bed99b551
 ../../spec/contracts/actql-production-profile-schemas.json#/schemas/text_time_expression sha256:a9fd34634569c0da417ca5a8770ab064ad8351bbd253c8fea1dae60c756c61c1
 ../../spec/contracts/actql-production-profile-schemas.json#/schemas/regex_replacement_ast sha256:92c3fc4fc790cdf8f985b634dfe513f85b6cd5c904bb673de7330d18f577aeed
-../../spec/contracts/actql-expressions.json# sha256:6e9f53dc1542e70b4618c45a3f7fba7ad749f4703e39dfda94ce1b990577a6f1
-../../spec/contracts/actql-expressions.json#/schemas/expression sha256:86a01c4fe9a95f83229e09aeba72e57d932da746839e6278ec7e317623656221
-../../spec/contracts/actql-expressions.json#/schemas/expression_node sha256:23130aacbbac24299adb794280a6e3e73b0d8321d9bde7cb5f96a20792daf699
+../../spec/contracts/actql-expressions.json# sha256:0af136d99d856fb2a704350390766513ec8af6758247b6adc844fddbc4c73c76
+../../spec/contracts/actql-expressions.json#/schemas/expression sha256:63678c169a88524c094e102c877eba5b8fdc22345b8dba2d8b0c07553cb5b68e
+../../spec/contracts/actql-expressions.json#/schemas/expression_node sha256:847bb33502b28029d542a2f9ab5e5ae793496c61570f54810cc67bca9b34f341
 ../../spec/contracts/actql-expressions.json#/schemas/evaluation_envelope sha256:629342d58af8fa879da391532a838788338ddc42b5f17db814d0bdf7236c195b
 ../../spec/contracts/actql-expressions.json#/laws sha256:3a431204abcf37b4649e5b3aade0182d4bcba2b76eac7b21e36fcbfdca629540
-../../spec/contracts/actql-expressions.json#/schemas/fragment sha256:2b134f420b9a0e3446cf3a9fda646e1e7919f296a6ac37704080f9192adcf816
-../../spec/contracts/actql-expressions.json#/schemas/predicate_consumer sha256:388f33808e9a0ddc7ba5fd6aef618dfd33863f3ab06d9b287976c3a2715b6d83
+../../spec/contracts/actql-expressions.json#/schemas/fragment sha256:24776b3247a83cd2a44a13caf3256ae95c87ac5e24452c3994c80e10ea885069
+../../spec/contracts/actql-expressions.json#/schemas/predicate_consumer sha256:42d05744b4563c50b1c739c18530922be32adf95f3b8a4a3400145151000fd63
 ```
 
 <!-- stage-contract-pins:start -->

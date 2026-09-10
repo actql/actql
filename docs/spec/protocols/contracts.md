@@ -755,26 +755,26 @@ These exact schema/law references are owned here. Their identities do not includ
 <!-- requirement-block: machine-contracts.exact-artifacts -->
 <!-- normative-code: law -->
 ```text
-../../../spec/contracts/actql-protocol-schemas.json#/schemas/model_task sha256:791f958c6a03970c39a425d45677e7e62de0ebfed77f32f2c03eea5f9240de7a
+../../../spec/contracts/actql-protocol-schemas.json#/schemas/model_task sha256:19408a610dbc52552bff3a7f97f25a120a66688e7db4f41383c91c9298f02dd2
 ../../../spec/contracts/actql-consumer-capacity.json# sha256:7d59718b965451d8a19ccf7095b92777ba0cdd8c3bb71f437ab387801fe7271f
 ../../../spec/contracts/actql-consumer-capacity.json#/laws sha256:a799f82a4a06d6b2402c434142dd6e13a265bef160f4143160de1770f0e52853
 ../../../spec/contracts/actql-protocol-schemas.json#/schemas/contract_ref sha256:a149fa3216f6e15bfaca58a886f7a3e6a269b0109fe7b9ccca1c402c1a103e94
 ../../../spec/contracts/actql-protocol-schemas.json#/schemas/contract_envelope sha256:12b59aa2fd993c1d540f8cc80f658760f17ee9f179d8d12cb5f037127b8ae6fe
 ../../../spec/contracts/actql-protocol-schemas.json#/schemas/source_view sha256:d6952a589192f22a335237629da2babd794b3b7f9a0c51d674d05146a5ea8d74
-../../../spec/contracts/actql-protocol-schemas.json#/schemas/command_contract sha256:2b2d1e89ec410beab7523538b8efe59aaf18a3daa1e3dea4c573ea139df89156
-../../../spec/contracts/actql-protocol-schemas.json#/schemas/connector_catalog sha256:d0af2edb5f9087f337f0f76ff20cd9e22a79fbeb3cca309bba67023eee06ed47
+../../../spec/contracts/actql-protocol-schemas.json#/schemas/command_contract sha256:1d4f0afc13fe2fb73b193d377cf7f42729f80f8438076f31bcb80f951c8eff01
+../../../spec/contracts/actql-protocol-schemas.json#/schemas/connector_catalog sha256:877f1571d0ec91367c8ea53f39e9692a6b34fa788334a748f9f878bcefc004a3
 ../../../spec/contracts/actql-protocol-schemas.json#/schemas/lock sha256:02e3693c855d6137ac1fee89705a2a11824cf6607ea593b3ee7786263f49bdd4
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/authoring_context sha256:930efa0eff6819f19378cc397c0f268de71d9fcbb5f1543aa0ac4be30f676398
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/parameter_values sha256:5799ca8d309e1dc57ddc3d611e24d46c42362b96b755652bc77695b97bca5cf7
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/bound_invocation_template sha256:d7ba95795c14fc1145fb430f3311d38139a834f15a3dc636bb881ecde9f1cbb7
-../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/executable_plan sha256:25f43a36e53f9fa08d2150bfcf17c7e8b67d1260e58c2d6de3489bef4f8c16c6
+../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/executable_plan sha256:4900c1965d55691b39e82ecb35c54d6a92fe84df1dd4ab1f757c244f7ba93277
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/normalization_journal sha256:485ccc0d3215dfc0d9f13101dbc7bc0d4a72b8eb28a346ab8122cafd635ae6f0
-../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/plan_document sha256:1fb7099c5b2a6ee4e2cd6578e99900021ba288232c7ab63da1e0038a2d27ead0
+../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/plan_document sha256:23dbc4f6991bf673e60f79256c5cb6fe1a835c583d91b12ef65edaaa42e9a95a
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/plan_result sha256:dd6343496e0673405ab47bcafe0cf38b2812601f6d84e95fd0232cc1f0320ec7
 ../../../spec/contracts/actql-production-profile-schemas.json#/schemas/lookup_source sha256:6730fdb00f7b0f21ae796bd55f686fb984cddac5b8da5325cec2114b82a37e1c
 ../../../spec/contracts/actql-production-profile-schemas.json#/schemas/lookup_barrier sha256:587bfea69fbab0d23d200ac65ffc20c373142c4843820d37db6e0c617f10206a
 ../../../spec/contracts/actql-production-profile-schemas.json#/schemas/text_time_evaluation_envelope sha256:168fa3b40dd267423f0cbf0b350e9fbab589f094afb400f9f83a2dad22171ba9
-../../../spec/contracts/actql-production-profile-schemas.json#/schemas/text_time_evaluation_barrier sha256:e1f3e142a17b9ef081e76d7d038da645ce17a5a7fe37624fcc0ab4f60563de28
+../../../spec/contracts/actql-production-profile-schemas.json#/schemas/text_time_evaluation_barrier sha256:291c96a7206b05aeee3512d1232e399bf3be179b7a1c160030ebd0728b903237
 ```
 
 <!-- stage-contract-pins:start -->

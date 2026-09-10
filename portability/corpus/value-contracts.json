@@ -1,0 +1,28 @@
+{
+  "version": "actql-value-contract-vectors/0.1",
+  "cases": [
+    {"id":"nel-field","mode":"author","input":{"type":"object","nullable":false,"fields":{"\u0085":{"type":"string","nullable":false}}},"expected_json":"{\"additional_properties\":false,\"fields\":{\"\u0085\":{\"nullable\":false,\"type\":\"string\"}},\"nullable\":false,\"type\":\"object\"}"},
+    {"id":"feff-only-field","mode":"author","input":{"type":"object","nullable":false,"fields":{"\ufeff":{"type":"string","nullable":false}}},"expected_error":"InvalidFieldName"},
+    {"id":"empty-object","mode":"author","input":{"type":"object","nullable":false,"fields":{}},"expected_json":"{\"additional_properties\":false,\"fields\":{},\"nullable\":false,\"type\":\"object\"}"},
+    {"id":"newline-field","mode":"author","input":{"type":"object","nullable":false,"fields":{"first\nname":{"type":"string","nullable":true}}},"expected_json":"{\"additional_properties\":false,\"fields\":{\"first\\nname\":{\"nullable\":true,\"type\":\"string\"}},\"nullable\":false,\"type\":\"object\"}"},
+    {"id":"number","mode":"author","input":{"type":"number","nullable":false},"expected_json":"{\"nullable\":false,\"type\":\"number\"}"},
+    {"id":"boolean","mode":"author","input":{"type":"boolean","nullable":true},"expected_json":"{\"nullable\":true,\"type\":\"boolean\"}"},
+    {"id":"timestamp","mode":"author","input":{"type":"timestamp","nullable":false},"expected_json":"{\"nullable\":false,\"type\":\"timestamp\"}"},
+    {"id":"date","mode":"author","input":{"type":"date","nullable":false},"expected_json":"{\"nullable\":false,\"type\":\"date\"}"},
+    {"id":"json","mode":"author","input":{"type":"json","nullable":true},"expected_json":"{\"nullable\":true,\"type\":\"json\"}"},
+    {"id":"decimal","mode":"author","input":{"type":"decimal","nullable":false,"precision":38,"scale":38},"expected_json":"{\"nullable\":false,\"precision\":38,\"scale\":38,\"type\":\"decimal\"}"},
+    {"id":"array-zero-bound","mode":"author","input":{"type":"array","nullable":true,"items":{"type":"number","nullable":false},"max_items":0},"expected_json":"{\"items\":{\"nullable\":false,\"type\":\"number\"},\"max_items\":0,\"nullable\":true,\"type\":\"array\"}"},
+    {"id":"vector","mode":"author","input":{"type":"vector","nullable":false,"dimensions":3},"expected_json":"{\"dimensions\":3,\"element_type\":\"f32\",\"nullable\":false,\"type\":\"vector\"}"},
+    {"id":"resource-kind","mode":"author","input":{"type":"resource_ref","nullable":false,"resource_kind":"mail/message"},"expected_json":"{\"nullable\":false,\"resource_kind\":\"mail/message\",\"type\":\"resource_ref\"}"},
+    {"id":"artifact-unrestricted","mode":"author","input":{"type":"artifact_ref","nullable":true},"expected_json":"{\"nullable\":true,\"type\":\"artifact_ref\"}"},
+    {"id":"artifact-media","mode":"checked","input":{"type":"artifact_ref","nullable":false,"media_type":"application/pdf"},"expected_json":"{\"media_type\":\"application/pdf\",\"nullable\":false,\"type\":\"artifact_ref\"}"},
+    {"id":"checked-string-bounds","mode":"checked","input":{"type":"string","nullable":false,"min_length":0,"max_codepoints":4,"max_utf8_bytes":16},"expected_json":"{\"max_codepoints\":4,\"max_utf8_bytes\":16,\"min_length\":0,\"nullable\":false,\"type\":\"string\"}"},
+    {"id":"missing-nullable","mode":"author","input":{"type":"string"},"expected_error":"MissingField"},
+    {"id":"author-machine-field","mode":"author","input":{"type":"vector","nullable":false,"dimensions":1,"element_type":"f32"},"expected_error":"UnknownField"},
+    {"id":"checked-missing-fixed-field","mode":"checked","input":{"type":"object","nullable":false,"fields":{}},"expected_error":"MissingField"},
+    {"id":"invalid-decimal-scale","mode":"author","input":{"type":"decimal","nullable":false,"precision":2,"scale":3},"expected_error":"InvalidRange"},
+    {"id":"blank-field","mode":"author","input":{"type":"object","nullable":false,"fields":{"\n \t":{"type":"string","nullable":false}}},"expected_error":"InvalidFieldName"},
+    {"id":"dot-after-newline","mode":"author","input":{"type":"object","nullable":false,"fields":{"first\n.name":{"type":"string","nullable":false}}},"expected_error":"InvalidFieldName"},
+    {"id":"reserved-field","mode":"author","input":{"type":"object","nullable":false,"fields":{"__actql_internal":{"type":"string","nullable":false}}},"expected_error":"InvalidFieldName"}
+  ]
+}

@@ -12,7 +12,7 @@
     "artifact_evidence": "sha256:702409a249ef4617394564dc251f2a361a5da1494d220fe16e14d7563153349e",
     "text_time_expression": "sha256:a9fd34634569c0da417ca5a8770ab064ad8351bbd253c8fea1dae60c756c61c1",
     "text_time_evaluation_envelope": "sha256:168fa3b40dd267423f0cbf0b350e9fbab589f094afb400f9f83a2dad22171ba9",
-    "text_time_evaluation_barrier": "sha256:e1f3e142a17b9ef081e76d7d038da645ce17a5a7fe37624fcc0ab4f60563de28",
+    "text_time_evaluation_barrier": "sha256:291c96a7206b05aeee3512d1232e399bf3be179b7a1c160030ebd0728b903237",
     "regex_replacement_ast": "sha256:92c3fc4fc790cdf8f985b634dfe513f85b6cd5c904bb673de7330d18f577aeed",
     "http_review_attestation": "sha256:78708b99a081b9916f63f36da8d740d4bd76e6b91c64cc834896be0361a12cae",
     "http_read_transport": "sha256:9d1b94d787b76a5e9ef6714bf9d44bc9c5edd42e3f9f60ffa106c9bc4ecb525c",
@@ -3264,7 +3264,7 @@
                 "fields": {
                   "type": "object",
                   "propertyNames": {
-                    "pattern": "^(?!__cid$)(?!__actql_)(?!.*\\.)(?=.*\\S).+$"
+                    "pattern": "^(?!__cid$)(?!__actql_)(?![\\s\\S]*\\.)(?=[\\s\\S]*\\S)[\\s\\S]+$"
                   },
                   "additionalProperties": {
                     "$ref": "#/$defs/value_contract"
@@ -6979,5 +6979,5 @@
       }
     }
   },
-  "registry_cid": "sha256:cbe3c90ab94ffa25d339ece7e75f350399cd0bd3132510c9bd6f7b19a9bc7bb3"
+  "registry_cid": "sha256:bbb13c6fc3d4dbaa674cb62dbe7b464be59fbdd7ff8e4213669941d812b59abd"
 }
