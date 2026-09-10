@@ -18,6 +18,31 @@ either operation to pipeline dispatch or produce a checked output Carrier.
 
 ## Remaining semantic artifact boundary
 
+The `calendar_transition` package supplies the validated offset-table primitive
+for that boundary. A table has a closed-open UTC millisecond coverage interval,
+an initial offset in seconds, and strictly increasing interior transitions.
+The new offset applies at the transition instant. Offset-only tables omit
+abbreviation and DST-label changes that do not change the offset; redundant
+offset transitions are rejected. Initial state represents the coverage start,
+so a transition at that start is not a second representation of the same state.
+These are normalized-table representation choices, not additional restrictions
+on the source TZDB or authored Calendar operations.
+
+Admission checks its transition-count ceiling before traversal or copying and
+owns a detached array; indexed access does not expose the array. Lookup is
+logarithmic and returns no offset outside coverage, rather than silently
+extrapolating. Coverage endpoints are safe JSON integers. Signed offset seconds
+use the TZif domain (signed 32-bit except its minimum), not an assumed 24-hour
+bound. RFC 9636's narrower recommended range is not a mandatory input limit.
+See [RFC 9636, section 3.2](https://www.rfc-editor.org/rfc/rfc9636.html#section-3.2).
+
+The table API neither accepts a profile identity nor certifies IANA provenance.
+Its synthetic transition tests establish interval mechanics, validation,
+ownership and lookup, not historical TZDB correctness or Calendar conformance.
+An admitted table is therefore not sufficient to construct a checked Calendar
+operation. The selected artifact boundary must bind tables to the trusted
+version, byte CID, conversion law and exact zone names before operation checking.
+
 A nonempty timezone string does not establish IANA membership. The options API
 deliberately has no `CheckedCalendar` result and cannot discharge profile or zone
 validation. The next boundary must resolve the pinned version, canonical table

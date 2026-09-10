@@ -1,0 +1,42 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/calendar_transition"
+
+import {
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn admit(Int64, Int64, Int, Array[Transition], max_transitions~ : Int) -> Result[Table, Issue]
+
+pub fn coverage(Table) -> (Int64, Int64)
+
+pub fn initial_offset(Table) -> Int
+
+pub fn offset_at(Table, Int64) -> Int?
+
+pub fn transition_at(Table, Int) -> Transition?
+
+pub fn transition_count(Table) -> Int
+
+// Errors
+
+// Types and methods
+pub(all) enum Issue {
+  InvalidLimit
+  TransitionLimit
+  InvalidCoverage
+  InvalidOffset(Int)
+  InvalidTransition(Int)
+  RedundantTransition(Int)
+} derive(Eq, @debug.Debug)
+
+type Table
+
+pub(all) struct Transition {
+  at_ms : Int64
+  offset_seconds : Int
+} derive(Eq, @debug.Debug)
+
+// Type aliases
+
+// Traits
