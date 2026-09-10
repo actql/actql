@@ -179,3 +179,28 @@ keys, while its derived uniqueness tuple counts each field once. Window-role
 evidence and candidate-key evidence remain distinct: neither boundary names
 alone nor successful type checking establish runtime uniqueness. This follows
 the existing `window_group` group-key law rather than adding a new source rule.
+
+## Field coverage for uniqueness consumers
+
+`select_covered_key` selects a conditional witness whose entire component tuple
+is covered by supplied field occurrences. One surviving alias per original
+component suffices; repeated occurrences do not cover a missing component.
+Among covered witnesses it uses the same arity then UTF-16 tuple ordering as
+canonical selection, without expanding the Cartesian product of aliases.
+Tagged field provenance is compared exactly: a displayed `left.id` name is not
+by itself evidence of a qualified left-side reference.
+
+Coverage differs from scalar identity/order completion eligibility. A nullable
+grouping key can still prove uniqueness of matching non-null join keys under
+the join's own rules. Coverage therefore retains the key's actual contracts
+rather than imposing a non-null scalar restriction. Consumers must independently
+check operation-specific comparability, bind the witness's record contract to
+the actual operand, and retain its original producer/admission obligations.
+This API does not accept an arbitrary boolean proof or rebind a key to another
+Relation. It prepares whole-key matching; pipeline join inference remains a
+separate consumer connection.
+
+The field set is copied into a provenance-tagged lookup under work/text budgets;
+all witnesses and alias candidates share the remaining budget. Returned selected
+fields are detached from caller arrays, while immutable declaration and producer
+provenance remain attached. Selection does not consume or mutate alternative keys.

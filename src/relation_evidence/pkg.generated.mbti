@@ -59,6 +59,8 @@ pub fn key_witness_count(KeySet) -> Int
 
 pub fn keyed_records(KeyedRelation) -> @carrier_contract.Knowledge
 
+pub fn select_covered_key(@decode_core.Cursor, KeySet, Array[@relation_schema.FieldName], TransferLimits) -> Result[KeySelection, Issue]
+
 pub fn select_key(@decode_core.Cursor, KeySet, KeyUse, TransferLimits) -> Result[KeySelection, Issue]
 
 pub fn select_sole_string_key(@decode_core.Cursor, KeySet, TransferLimits) -> Result[KeySelection, Issue]

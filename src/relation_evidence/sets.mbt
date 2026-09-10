@@ -149,6 +149,16 @@ pub fn select_key(
   usage : KeyUse,
   limits : TransferLimits,
 ) -> Result[KeySelection, Issue] {
+  select_matching_key(source, value, field => eligible(field, usage), limits)
+}
+
+///|
+fn select_matching_key(
+  source : @decode.Cursor,
+  value : KeySet,
+  accepts : (KeyField) -> Bool,
+  limits : TransferLimits,
+) -> Result[KeySelection, Issue] {
   try {
     if limits.max_work < 0 || limits.max_name_bytes < 0 {
       fail(source, InvalidLimits)
@@ -169,7 +179,7 @@ pub fn select_key(
         spend(b, source, aliases.length())
         for field in aliases {
           charge(b, source, field.name)
-          if eligible(field, usage) {
+          if accepts(field) {
             surviving.push(field)
             if best is None ||
               @canonical.compare_utf16(
