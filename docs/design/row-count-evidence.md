@@ -28,6 +28,11 @@ counts are upper bounds, not exact counts. Normalization retains these summaries
 Node/edge projection selects the corresponding extent, while degree/components
 emit one row per node. Graph equality emits exactly one boolean row even for
 empty inputs. Graph validation and profile obligations are not skipped.
+Union and graft bound each extent by the sum of its two operand extents;
+overlapping identities prevent claiming an exact sum. Subtraction and induced
+subgraph retain input upper bounds rather than exact counts. Property matching
+retains the relevant node/edge bound on its Relation output. None of these
+rules treats a diagnostic threshold, selector or policy as observed data.
 
 | Checked operation | Count rule |
 | --- | --- |

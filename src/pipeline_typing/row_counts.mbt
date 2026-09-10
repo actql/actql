@@ -286,6 +286,36 @@ fn derive_row_counts(
         } else {
           None
         }
+      Subgraph(_) =>
+        graph_input.map(v => {
+          nodes: reduce_count(v.nodes),
+          edges: reduce_count(v.edges),
+        })
+      GraphStructural(right~, checked~) =>
+        if @graph.structural_operation(checked) == Subtract {
+          graph_input.map(v => {
+            nodes: reduce_count(v.nodes),
+            edges: reduce_count(v.edges),
+          })
+        } else {
+          let other = graph_count_at(right, graphs)
+          Some({
+            nodes: reduce_count(
+              sum_counts(
+                step.source,
+                graph_input.bind(v => v.nodes),
+                other.bind(v => v.nodes),
+              ),
+            ),
+            edges: reduce_count(
+              sum_counts(
+                step.source,
+                graph_input.bind(v => v.edges),
+                other.bind(v => v.edges),
+              ),
+            ),
+          })
+        }
       _ => None
     }
     let next = match step.operation {
@@ -310,6 +340,16 @@ fn derive_row_counts(
           _ => None
         }
       GraphEquality(_) => Some(count(1L, true))
+      GraphMatch(v) =>
+        reduce_count(
+          graph_input.bind(g => {
+            if @graph.match_entity(v) == Nodes {
+              g.nodes
+            } else {
+              g.edges
+            }
+          }),
+        )
       Event(v) =>
         match @event.options(v) {
           ToEvents | Session(_) | Watermark(_, Mark) => input

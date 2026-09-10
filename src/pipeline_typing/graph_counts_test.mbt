@@ -1,4 +1,47 @@
 ///|
+test "graph structural bounds propagate both extents through branches and matching" {
+  for n in [0, 3] {
+    for op in ["union_graphs", "graft_graph", "subtract_graphs"] {
+      let source = cursor(
+        "[" +
+        graph_count_seed(n) +
+        ",{\"graph\":{\"source\":\"src\",\"target\":\"dst\"},\"as\":\"g\"},{\"" +
+        op +
+        "\":{\"with\":\"g\"},\"as\":\"combined\"},{\"subgraph\":{\"nodes\":{\"ids\":[1]}},\"as\":\"subset\"},{\"match_nodes\":{\"where\":\"true\",\"fields\":[\"node_id\"]}},{\"match_edges\":{\"where\":\"true\",\"fields\":[\"src\"]},\"from\":\"subset\"}]",
+      )
+      let p = graph_count_checked(
+        @pipeline_typing.check_carriers(source, [], None, None, limits()),
+      )
+      let factor = if op == "subtract_graphs" { 1 } else { 2 }
+      for i in [2, 3] {
+        let bounds = @pipeline_typing.graph_count(p, Step(i)).unwrap()
+        assert_eq(bounds.nodes.unwrap().upper, (factor * n * 2).to_int64())
+        assert_eq(bounds.edges.unwrap().upper, (factor * n).to_int64())
+      }
+      assert_count(p, 4, (factor * n * 2).to_int64(), n == 0)
+      assert_count(p, 5, (factor * n).to_int64(), n == 0)
+      let u = @pipeline_typing.usage(p)
+      let cap = {
+        ..limits(),
+        max_work: u.work,
+        max_nodes: u.nodes,
+        max_text_bytes: u.text_bytes,
+      }
+      assert_true(
+        @pipeline_typing.check_carriers(source, [], None, None, cap) is Ok(_),
+      )
+      assert_true(
+        @pipeline_typing.check_carriers(source, [], None, None, {
+          ..cap,
+          max_work: cap.max_work - 1,
+        })
+        is Err(_),
+      )
+    }
+  }
+}
+
+///|
 fn graph_count_seed(n : Int) -> String {
   let rows = Array::makei(n, i => {
     "{\"src\":" + i.to_string() + ",\"dst\":" + (i + 1).to_string() + "}"
