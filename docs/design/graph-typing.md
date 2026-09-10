@@ -33,8 +33,9 @@ errors even when the type filter selects no edges.
 Direct Ref-typed IDs encounter `value_admission`'s UnsupportedReference rejection:
 the opaque-reference owner forbids authored JSON alone from establishing a valid
 Ref. This does not restrict Graph identity types to strings or to constructible
-values. Selection from issued Relation values belongs to the shared traversal
-selector boundary, still unfinished; fabricated tagged objects do not replace it.
+values. Selection from issued Relation values uses the shared selector boundary
+below; fabricated tagged objects do not replace it. Traversal consumers remain
+separate work.
 The pinned Sketch reader supplies the closed source forms, but its string-only
 IDs, implicit carrier aliases and silent duplicate-column removal are not used.
 
@@ -87,6 +88,33 @@ Source traversal is iterative and budgeted for nodes, depth, work and text.
 Already admitted recursive contracts are shared; pipeline input preflight
 accounts for their structures separately. Diagnostic paths/spans identify the
 specific body slot. Collections returned from checked values are detached.
+
+## Shared selectors and induced subgraphs
+
+`check_selector` admits closed nonempty literal IDs, named Relation ID fields,
+and node predicates. `check_subgraph` composes it with an optional edge predicate
+and returns the input Graph contract unchanged. The optional selector Relation
+is independently resolved by the pipeline and retained after the primary Graph
+input; neither it nor its current row count is confused with the output Graph.
+Unknown names and future/self references fail at that source slot.
+
+Relation selectors retain the actual field provenance and compatible semantic
+identity contract, including Ref types, without string conversion. Unrelated
+open or untyped columns do not block selection. Compatibility does not prove
+that any actual value is non-null, within the graph identity domain, authorized,
+or present in the Graph. Those checks remain explicit selector obligations,
+along with typed deduplication. An empty Relation/predicate selection is valid.
+An authored tagged JSON object does not issue a Ref; issued Relation values
+retain their separate revalidation boundary.
+
+Subgraph evaluation must induce both endpoints before applying its edge
+predicate, preserve endpoint nodes after edge removal, and retain properties,
+identities, labels, policy and observation scope. The checker preserves partial
+property evidence rather than manufacturing completeness or reduced count facts.
+Source, selectors and both predicate scopes debit cumulative work/node/text/token
+budgets. Child predicate obligations are accessible through their typed expressions.
+Graph materialization and selector evaluation require resolved resources.
+This implements static checking, not traversal, induction or publication proofs.
 
 ## Typed graph equality
 

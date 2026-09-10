@@ -531,6 +531,7 @@ fn check_impl(
       | "graph_diff"
       | "match_nodes"
       | "match_edges"
+      | "subgraph"
       | "graft_graph"
       | "union_graphs"
       | "subtract_graphs"
@@ -835,6 +836,76 @@ fn check_impl(
             { role: Right, target: right, },
           ],
         },
+        window: None,
+      })
+      if binding_name is Some(name) {
+        names[name] = target
+      }
+      current = Some(target)
+      continue
+    }
+    if key == "subgraph" {
+      let root = match
+        @decode.closed_object(operation_body, ["nodes", "edges"]) {
+        Ok(o) => o
+        Err(_) => fail(operation_body, InvalidBody)
+      }
+      let at = match @decode.required(root, "nodes") {
+        Ok(c) => c
+        Err(_) => fail(operation_body, InvalidBody)
+      }
+      let selector_body = match
+        @decode.closed_object(at, ["ids", "from", "id", "where"]) {
+        Ok(o) => o
+        Err(_) => fail(at, InvalidBody)
+      }
+      let selector = @decode.lookup(selector_body, "from").map(at => {
+        resolve_target(b, at, names)
+      })
+      let checked = match
+        @graph.check_subgraph(
+          operation_body,
+          carrier(input, inputs, steps),
+          selector.map(t => carrier(t, inputs, steps)),
+          parameters,
+          {
+            max_work: b.work,
+            max_nodes: b.nodes,
+            max_depth: limits.max_depth,
+            max_text_bytes: b.text,
+            max_tokens: b.tokens,
+          },
+        ) {
+        Ok(c) => c
+        Err(e) => {
+          let d = @graph.match_diagnostic(e, operation_body)
+          raise Stop({
+            kind: GraphMatch(d.kind),
+            source: operation_body,
+            path: d.path.copy(),
+            span: d.span,
+            range: d.range,
+          })
+        }
+      }
+      let used = @graph.subgraph_usage(checked)
+      b.work -= used.work
+      b.nodes -= used.nodes
+      b.text -= used.text_bytes
+      b.tokens -= used.tokens
+      let entries = [{ role: Primary, target: input, }]
+      if selector is Some(t) {
+        entries.push({ role: Right, target: t, })
+      }
+      let target = Step(steps.length())
+      steps.push({
+        source: body,
+        input: Some(input),
+        binding_name,
+        metadata: meta,
+        operation: Subgraph(selector~, checked~),
+        output: @graph.subgraph_output(checked),
+        connections: { entries, },
         window: None,
       })
       if binding_name is Some(name) {
@@ -1459,6 +1530,13 @@ fn check_impl(
           }
         Values(_) | TimeSeries(_) => []
         Calendar(_) => [{ role: Primary, target: input, }]
+        Subgraph(selector~, ..) => {
+          let entries = [{ role: Primary, target: input, }]
+          if selector is Some(t) {
+            entries.push({ role: Right, target: t, })
+          }
+          entries
+        }
         Unary(_)
         | Window(_)
         | WindowGroup(_)

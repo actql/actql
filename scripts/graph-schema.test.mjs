@@ -6,6 +6,11 @@ import {parameterPrograms} from './parameter-schema.mjs';
 
 test('graph bodies preserve literal options and optional positive component guards', () => {
   const s = graphSchemas();
+  assert.deepEqual(s.subgraph.required, ['nodes']);
+  assert.equal(s.subgraph.additionalProperties, false);
+  assert.equal(s.subgraph.properties.nodes.oneOf.length, 3);
+  for (const alternative of s.subgraph.properties.nodes.oneOf) assert.equal(alternative.additionalProperties, false);
+  assert.deepEqual(s.subgraph.properties.nodes.oneOf[1].required, ['from','id']);
   for (const name of ['match_nodes','match_edges']) {
     assert.deepEqual(s[name].required, ['fields']);
     assert.equal(s[name].additionalProperties, false);

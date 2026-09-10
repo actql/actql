@@ -129,6 +129,7 @@ pub enum CheckedOperation {
   Projection(@projection.CheckedProjection)
   Graph(@graph.CheckedGraph)
   GraphMatch(@graph.CheckedMatch)
+  Subgraph(selector~ : Target?, checked~ : @graph.CheckedSubgraph)
   GraphEquality(right~ : Target, checked~ : @graph.CheckedEquality)
   GraphDiff(right~ : Target, checked~ : @graph.CheckedDiff)
   GraphApply(right~ : Target, checked~ : @graph.CheckedApply)

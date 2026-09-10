@@ -51,7 +51,11 @@ pub fn check_predicate(EntityKind, @decode_core.Cursor, @carrier_contract.Carrie
 
 pub fn check_scope(EntityKind, @decode_core.Cursor, @carrier_contract.Carrier, Limits) -> Result[CheckedScope, Issue]
 
+pub fn check_selector(@decode_core.Cursor, @carrier_contract.Carrier, @carrier_contract.Carrier?, @parameter_binding.Declarations?, PredicateLimits) -> Result[CheckedSelector, MatchIssue]
+
 pub fn check_structural(StructuralOperation, @decode_core.Cursor, @carrier_contract.Carrier, @carrier_contract.Carrier, Limits) -> Result[CheckedStructural, Issue]
+
+pub fn check_subgraph(@decode_core.Cursor, @carrier_contract.Carrier, @carrier_contract.Carrier?, @parameter_binding.Declarations?, PredicateLimits) -> Result[CheckedSubgraph, MatchIssue]
 
 pub fn construction_edges_name(CheckedConstruction) -> String?
 
@@ -129,6 +133,20 @@ pub fn scope_fields(CheckedScope) -> @carrier_contract.Knowledge
 
 pub fn scope_usage(CheckedScope) -> Usage
 
+pub fn selector_form(CheckedSelector) -> SelectorForm
+
+pub fn selector_identity(CheckedSelector) -> @value_contract.Contract
+
+pub fn selector_ids(CheckedSelector) -> Array[@value_admission.CheckedValue]
+
+pub fn selector_pending(CheckedSelector) -> Array[SelectorObligation]
+
+pub fn selector_predicate(CheckedSelector) -> CheckedPredicate?
+
+pub fn selector_source(CheckedSelector) -> @decode_core.Cursor
+
+pub fn selector_usage(CheckedSelector) -> PredicateUsage
+
 pub fn source(CheckedGraph) -> @decode_core.Cursor
 
 pub fn structural_operation(CheckedStructural) -> StructuralOperation
@@ -144,6 +162,18 @@ pub fn structural_strategies(CheckedStructural, @relation_schema.Side) -> Array[
 pub fn structural_usage(CheckedStructural) -> Usage
 
 pub fn structural_with_name(CheckedStructural) -> String
+
+pub fn subgraph_edges(CheckedSubgraph) -> CheckedPredicate?
+
+pub fn subgraph_nodes(CheckedSubgraph) -> CheckedSelector
+
+pub fn subgraph_output(CheckedSubgraph) -> @carrier_contract.Carrier
+
+pub fn subgraph_pending(CheckedSubgraph) -> Array[SubgraphObligation]
+
+pub fn subgraph_source(CheckedSubgraph) -> @decode_core.Cursor
+
+pub fn subgraph_usage(CheckedSubgraph) -> PredicateUsage
 
 pub fn usage(CheckedGraph) -> Usage
 
@@ -183,7 +213,11 @@ type CheckedPredicate
 
 type CheckedScope
 
+type CheckedSelector
+
 type CheckedStructural
+
+type CheckedSubgraph
 
 pub(all) enum ComponentKind {
   Weak
@@ -377,6 +411,21 @@ pub struct PropertyStrategy {
   strategy : FieldStrategy
 }
 
+pub enum SelectorForm {
+  ExplicitIds
+  RelationIds(from~ : String, field~ : @relation_schema.FieldName)
+  PredicateNodes
+}
+
+pub(all) enum SelectorObligation {
+  AdmitSelectorIdentities
+  RevalidateSelectorReferences
+  DeduplicateSelectorIdentities
+  RequireSelectorMembership
+  EvaluateSelectorPredicate
+  ResolveSelectorResources
+} derive(Eq, @debug.Debug)
+
 pub(all) enum StructuralObligation {
   AdmitGraphsUnderCommonContract
   CompareCompleteIdentityPayloads
@@ -396,6 +445,16 @@ pub(all) enum StructuralOperation {
   Graft
   Union
   Subtract
+} derive(Eq, @debug.Debug)
+
+pub(all) enum SubgraphObligation {
+  AdmitSubgraphInput
+  InduceSelectedEndpoints
+  FilterInducedEdges
+  PreserveSubgraphIdentitiesAndProperties
+  PreserveSubgraphPolicyAndScope
+  ResolveSubgraphResources
+  ResolveSubgraphProfile
 } derive(Eq, @debug.Debug)
 
 pub(all) struct Usage {

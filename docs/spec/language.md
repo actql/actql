@@ -7382,6 +7382,11 @@ MatchEdgesBody := {types?: [NonemptyString, ...] | [], where?: Expression,
   fields: [Field, ...]}
 MatchConstraints := fields are nonempty with no repeated reference;
   ids are nonempty typed identities; repeated IDs/types do not repeat result rows.
+GraphNodeSelector := {ids: [WireValue, ...]}
+  | {from: InputOrStepName, id: Field} | {where: Expression}
+SubgraphBody := {nodes: GraphNodeSelector, edges?: Expression}
+GraphSelectorConstraints := exactly one closed selector form; selected identities
+  are admitted, deduplicated and required to exist; empty Relation/predicate is valid.
 GraphBody := {nodes: GraphNodes, edges: GraphEdges}
   | {source: Field, target: Field, label?: Field}
 GraphNodes := {from: InputOrStepName, id: Field, fields?: [Field, ...] | []}

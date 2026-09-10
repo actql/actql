@@ -12,6 +12,11 @@ export function graphSchemas() {
   const fields = {type:'array',items:field,uniqueItems:true};
   const projectedFields = {...fields,minItems:1};
   const predicate = {oneOf:[{type:'string'},{type:'object',minProperties:1,maxProperties:1}]};
+  const selector = {oneOf:[
+    {type:'object',additionalProperties:false,required:['ids'],properties:{ids:{type:'array',minItems:1,items:{}}}},
+    {type:'object',additionalProperties:false,required:['from','id'],properties:{from:field,id:field}},
+    {type:'object',additionalProperties:false,required:['where'],properties:{where:predicate}},
+  ]};
   const strategies = {type:'object',additionalProperties:{enum:[
     'exact_equal','set_union','set_difference','number_sum','number_mean','number_min','number_max',
   ]}};
@@ -20,6 +25,7 @@ export function graphSchemas() {
     merge:{type:'object',additionalProperties:false,properties:{node_properties:strategies,edge_properties:strategies}},
   }};
   return {
+    subgraph:{type:'object',additionalProperties:false,required:['nodes'],properties:{nodes:selector,edges:predicate}},
     match_nodes: {type:'object',additionalProperties:false,required:['fields'],
       properties:{fields:projectedFields,ids:{type:'array',minItems:1,items:{}},where:predicate},
       oneOf:[{required:['ids'],not:{required:['where']}},{required:['where'],not:{required:['ids']}}]},

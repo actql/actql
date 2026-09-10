@@ -11,6 +11,107 @@ fn graph_input() -> @carrier.Carrier {
 }
 
 ///|
+test "subgraph resolves selector Relation edges and preserves graph contracts" {
+  let empty = @carrier.rows(
+    [],
+    field_set=Closed,
+    max_fields=0,
+    max_name_bytes=0,
+  ).unwrap()
+  let number = @contract.primitive(NumberType, nullable=false)
+  let g = @carrier.graph(
+    number,
+    empty,
+    empty,
+    labels=None,
+    max_labels=0,
+    max_label_bytes=0,
+  ).unwrap()
+  let relation = @carrier.relation(
+    @carrier.rows(
+      [(Unqualified("chosen"), Some(number))],
+      field_set=Closed,
+      max_fields=1,
+      max_name_bytes=6,
+    ).unwrap(),
+  )
+  let body = cursor(
+    "[{\"from\":\"g\",\"subgraph\":{\"nodes\":{\"from\":\"r\",\"id\":\"chosen\"}},\"as\":\"subset\"},{\"node_rows\":true},{\"select\":[\"id\"]}]",
+  )
+  let p = @pipeline_typing.check_carriers(
+    body,
+    [("g", g), ("r", relation)],
+    None,
+    None,
+    limits(),
+  ).unwrap()
+  let step = @pipeline_typing.step_at(p, 0).unwrap()
+  assert_true(step.operation is Subgraph(selector=Some(Input(1)), ..))
+  let edges = @pipeline_typing.input_occurrences(step)
+  assert_eq(edges.length(), 2)
+  assert_eq(edges[0].target, Input(0))
+  assert_eq(edges[1].target, Input(1))
+  assert_eq(edges[1].role, Right)
+  assert_true(
+    @schema.lookup(
+      @pipeline_typing.output_schema(p).unwrap(),
+      Unqualified("id"),
+    ).unwrap().shape
+    is Number,
+  )
+  let u = @pipeline_typing.usage(p)
+  let exact = {
+    ..limits(),
+    max_work: u.work,
+    max_nodes: u.nodes,
+    max_text_bytes: u.text_bytes,
+  }
+  assert_true(
+    @pipeline_typing.check_carriers(
+      body,
+      [("g", g), ("r", relation)],
+      None,
+      None,
+      exact,
+    )
+    is Ok(_),
+  )
+  assert_true(
+    @pipeline_typing.check_carriers(
+      body,
+      [("g", g), ("r", relation)],
+      None,
+      None,
+      { ..exact, max_work: u.work - 1, },
+    )
+    is Err(_),
+  )
+  let c = @pipeline_typing.check_carriers(
+    cursor("[{\"subgraph\":{\"nodes\":{\"ids\":[2]}}}]"),
+    [("g", g)],
+    None,
+    None,
+    limits(),
+  ).unwrap()
+  assert_eq(
+    @pipeline_typing.input_occurrences(@pipeline_typing.step_at(c, 0).unwrap()).length(),
+    1,
+  )
+  assert_true(
+    @pipeline_typing.check_carriers(
+      cursor(
+        "[{\"subgraph\":{\"nodes\":{\"from\":\"future\",\"id\":\"chosen\"}},\"as\":\"future\"}]",
+      ),
+      [("g", g)],
+      None,
+      None,
+      limits(),
+    )
+    is Err({ kind: UnknownName("future"), .. }),
+  )
+}
+
+///|
 test "graph property matches connect relation consumers and preserve predicate ranges" {
   let boolean = @contract.primitive(BooleanType, nullable=true)
   let props = @carrier.rows(
