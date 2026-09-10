@@ -1,4 +1,78 @@
 ///|
+test "whole row distinct retains window evidence" {
+  let p = @pipeline_typing.check_carriers(
+    cursor(
+      "[{\"row_window\":{\"kind\":\"fixed\",\"time\":\"at\",\"size\":10}},{\"distinct\":true},{\"window_group\":{\"by\":[],\"aggregates\":{}}}]",
+    ),
+    [("rows", window_input())],
+    None,
+    None,
+    limits(),
+  ).unwrap()
+  assert_true(
+    @pipeline_typing.window_evidence(@pipeline_typing.step_at(p, 2).unwrap())
+    is Some(_),
+  )
+}
+
+///|
+test "all boundary aliases survive independently of projection order" {
+  for
+    projection in [
+      "[{\"a\":\"window_start\"},{\"b\":\"window_start\"},{\"c\":\"window_end\"},{\"d\":\"window_end\"}]",
+      "[{\"b\":\"window_start\"},{\"a\":\"window_start\"},{\"d\":\"window_end\"},{\"c\":\"window_end\"}]",
+    ] {
+    for
+      removal in [
+        "{\"drop\":[\"a\",\"c\"]}", "{\"derive\":[{\"a\":{\"literal\":1}},{\"c\":{\"literal\":2}}]}",
+        "{\"distinct\":[\"b\",\"d\"]}",
+      ] {
+      let p = @pipeline_typing.check_carriers(
+        cursor(
+          "[{\"row_window\":{\"kind\":\"fixed\",\"time\":\"at\",\"size\":10}},{\"select\":" +
+          projection +
+          "}," +
+          removal +
+          ",{\"window_group\":{\"by\":[],\"aggregates\":{}}}]",
+        ),
+        [("rows", window_input())],
+        None,
+        None,
+        limits(),
+      ).unwrap()
+      let roles = @pipeline_typing.window_evidence(
+        @pipeline_typing.step_at(p, 2).unwrap(),
+      ).unwrap()
+      assert_eq(
+        @pipeline_typing.window_fields(roles),
+        (Unqualified("b"), Unqualified("d")),
+      )
+      let (starts, ends) = @pipeline_typing.window_aliases(roles)
+      starts.clear()
+      ends.clear()
+      assert_eq(
+        @pipeline_typing.window_aliases(roles),
+        ([Unqualified("b")], [Unqualified("d")]),
+      )
+    }
+  }
+}
+
+///|
+test "grouping does not preserve aliases absent from its output keys" {
+  let issue = @pipeline_typing.check_carriers(
+    cursor(
+      "[{\"row_window\":{\"kind\":\"fixed\",\"time\":\"at\",\"size\":10}},{\"select\":[{\"a\":\"window_start\"},{\"b\":\"window_start\"},\"window_end\"]},{\"window_group\":{\"by\":[],\"aggregates\":{}}},{\"drop\":[\"a\"]},{\"window_group\":{\"by\":[],\"aggregates\":{}}}]",
+    ),
+    [("rows", window_input())],
+    None,
+    None,
+    limits(),
+  ).unwrap_err()
+  assert_eq(issue.kind, MissingWindowEvidence)
+}
+
+///|
 fn window_input() -> @carrier.Carrier {
   @carrier.relation(
     @carrier.rows(

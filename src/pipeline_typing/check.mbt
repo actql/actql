@@ -313,7 +313,7 @@ fn check_impl(
         operation: Window(checked),
         output: @window.output(checked),
         connections: { entries: [{ role: Primary, target: input, }], },
-        window: Some({ start, end, }),
+        window: Some({ starts: [start], ends: [end], }),
       })
       if binding_name is Some(name) {
         names[name] = target
@@ -343,7 +343,7 @@ fn check_impl(
           @relation.check_group_with_prefix(
             operation_body,
             input_schema,
-            [roles.start, roles.end],
+            [roles.starts[0], roles.ends[0]],
             parameters,
             operation_limits,
           )

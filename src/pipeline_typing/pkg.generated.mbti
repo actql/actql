@@ -54,6 +54,8 @@ pub fn step_schema(CheckedStep) -> @relation_schema.Schema?
 
 pub fn usage(CheckedPipeline) -> Usage
 
+pub fn window_aliases(WindowEvidence) -> (Array[@relation_schema.FieldName], Array[@relation_schema.FieldName])
+
 pub fn window_evidence(CheckedStep) -> WindowEvidence?
 
 pub fn window_fields(WindowEvidence) -> (@relation_schema.FieldName, @relation_schema.FieldName)

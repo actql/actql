@@ -11,8 +11,21 @@ fn transfer_window(
     Input(_) => None
   }
   guard previous is Some(roles) else { return None }
-  if operation is WindowGroup(_) {
-    return Some(roles)
+  if operation is WindowGroup(op) {
+    let keys = @relation.group_keys(@relation.group(op).unwrap())
+    spend(
+      b,
+      source,
+      keys.length() + roles.starts.length() + roles.ends.length(),
+    )
+    let retained : Map[String, Bool] = Map([])
+    for key in keys {
+      retained[@schema.reference_name(key.field)] = true
+    }
+    return retained_window(
+      roles.starts.filter(f => retained.contains(@schema.reference_name(f))),
+      roles.ends.filter(f => retained.contains(@schema.reference_name(f))),
+    )
   }
   guard operation is Unary(op) else { return None }
   match @relation.operation(op) {
@@ -26,35 +39,73 @@ fn transfer_window(
     | Lag
     | WatermarkRows => Some(roles)
     Derive => {
-      spend(b, source, @relation.binding_count(op))
+      spend(
+        b,
+        source,
+        @relation.binding_count(op) +
+        roles.starts.length() +
+        roles.ends.length(),
+      )
+      let overwritten : Map[String, Bool] = Map([])
       for i in 0..<@relation.binding_count(op) {
         if @relation.binding_at(op, i).unwrap().name is Some(name) {
-          if @schema.Unqualified(name) == roles.start ||
-            @schema.Unqualified(name) == roles.end {
-            return None
-          }
+          overwritten[name] = true
         }
       }
-      Some(roles)
+      let preserved = fn(f) {
+        match f {
+          @schema.Unqualified(name) => !overwritten.contains(name)
+          _ => true
+        }
+      }
+      retained_window(
+        roles.starts.filter(preserved),
+        roles.ends.filter(preserved),
+      )
     }
     Select | Rename | Drop | Distinct => {
+      if @relation.row_operation(op) is Some(DistinctRows) {
+        return Some(roles)
+      }
       let projection = @relation.projection(op)
-      spend(b, source, projection.length())
-      let mut start = None
-      let mut end = None
+      spend(
+        b,
+        source,
+        projection.length() + roles.starts.length() + roles.ends.length(),
+      )
+      let start_names : Map[String, Bool] = Map([])
+      let end_names : Map[String, Bool] = Map([])
+      for name in roles.starts {
+        start_names[@schema.reference_name(name)] = true
+      }
+      for name in roles.ends {
+        end_names[@schema.reference_name(name)] = true
+      }
+      let starts = []
+      let ends = []
       for field in projection {
-        if field.input == roles.start && start is None {
-          start = Some(field.output)
+        let name = @schema.reference_name(field.input)
+        if start_names.contains(name) {
+          starts.push(field.output)
         }
-        if field.input == roles.end && end is None {
-          end = Some(field.output)
+        if end_names.contains(name) {
+          ends.push(field.output)
         }
       }
-      match (start, end) {
-        (Some(start), Some(end)) => Some({ start, end, })
-        _ => None
-      }
+      retained_window(starts, ends)
     }
     _ => None
+  }
+}
+
+///|
+fn retained_window(
+  starts : Array[@schema.FieldName],
+  ends : Array[@schema.FieldName],
+) -> WindowEvidence? {
+  if starts.is_empty() || ends.is_empty() {
+    None
+  } else {
+    Some({ starts, ends, })
   }
 }

@@ -117,8 +117,8 @@ pub enum CheckedOperation {
 
 ///|
 struct WindowEvidence {
-  start : @schema.FieldName
-  end : @schema.FieldName
+  starts : Array[@schema.FieldName]
+  ends : Array[@schema.FieldName]
 }
 
 ///|
@@ -127,10 +127,19 @@ pub fn window_evidence(step : CheckedStep) -> WindowEvidence? {
 }
 
 ///|
+/// Select one surviving start/end pair. Use window_aliases for all witnesses.
 pub fn window_fields(
   value : WindowEvidence,
 ) -> (@schema.FieldName, @schema.FieldName) {
-  (value.start, value.end)
+  (value.starts[0], value.ends[0])
+}
+
+///|
+/// Return detached arrays of all surviving start and end aliases.
+pub fn window_aliases(
+  value : WindowEvidence,
+) -> (Array[@schema.FieldName], Array[@schema.FieldName]) {
+  (value.starts.copy(), value.ends.copy())
 }
 
 ///|
