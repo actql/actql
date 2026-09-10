@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import {orderKeys} from './aggregate-schema.mjs';
+import {millisecondsSchema} from './window-schema.mjs';
 import {readFileSync, writeFileSync} from 'node:fs';
 import {resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
@@ -8,6 +9,11 @@ import {machineCid} from './actql-spec-family.mjs';
 
 export function eventSchemas() {
   return {
+    session: {type:'object',additionalProperties:false,required:['by','gap'],
+      dependentRequired:{id:['time'],time:['id']},properties:{
+        id:{type:'string',minLength:1},time:{type:'string',minLength:1},
+        by:{type:'array',items:{type:'string',minLength:1}},gap:millisecondsSchema(),
+      }},
     dedupe_events: {type:'object',additionalProperties:false,required:['by','order_by'],properties:{
       by:{type:'array',items:{type:'string',minLength:1}},order_by:orderKeys,
     }},

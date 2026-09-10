@@ -5,9 +5,11 @@ import {
   "actql/actql/carrier_contract",
   "actql/actql/decode_core",
   "actql/actql/order_key",
+  "actql/actql/parameter_binding",
   "actql/actql/relation_schema",
   "actql/actql/source_span",
   "actql/actql/source_value",
+  "actql/actql/temporal_window",
   "moonbitlang/core/debug",
 }
 
@@ -15,6 +17,8 @@ import {
 pub fn check_bridge(@decode_core.Cursor, @carrier_contract.Carrier, Limits) -> Result[CheckedEvent, Issue]
 
 pub fn check_dedupe(@decode_core.Cursor, @carrier_contract.Carrier, Limits) -> Result[CheckedEvent, Issue]
+
+pub fn check_session(@decode_core.Cursor, @carrier_contract.Carrier, @parameter_binding.Declarations?, Limits) -> Result[CheckedEvent, Issue]
 
 pub fn check_watermark(@decode_core.Cursor, @carrier_contract.Carrier, Limits) -> Result[CheckedEvent, Issue]
 
@@ -31,6 +35,16 @@ pub fn output(CheckedEvent) -> @carrier_contract.Carrier
 pub fn pending_validations(CheckedEvent) -> Array[Obligation]
 
 pub fn policy(CheckedEvent) -> Policy?
+
+pub fn session_gap(SessionSpec) -> @temporal_window.Milliseconds
+
+pub fn session_identity(SessionSpec) -> @relation_schema.FieldName
+
+pub fn session_keys(SessionSpec) -> Array[@relation_schema.FieldName]
+
+pub fn session_time(SessionSpec) -> @relation_schema.FieldName
+
+pub fn session_timestamp(SessionSpec) -> Bool
 
 pub fn source(CheckedEvent) -> @decode_core.Cursor
 
@@ -65,6 +79,7 @@ pub(all) enum IssueKind {
   NotKeyComparable(String)
   NotAuthorOrderable(String)
   InvalidOrder
+  Temporal(@temporal_window.IssueKind)
 } derive(Eq, @debug.Debug)
 
 pub(all) struct Limits {
@@ -82,12 +97,16 @@ pub(all) enum Obligation {
   WatermarkClassification
   ConvertTimestampClock
   FailOnTopTie
+  BindGap(String)
+  SessionArithmetic
+  SessionIdentity
 } derive(Eq, @debug.Debug)
 
 pub(all) enum Options {
   ToEvents
   Watermark(Double, Policy)
   Dedupe(DedupeSpec)
+  Session(SessionSpec)
 }
 
 pub struct OrderTerm {
@@ -101,6 +120,8 @@ pub(all) enum Policy {
   Drop
   Mark
 } derive(Eq, @debug.Debug)
+
+type SessionSpec
 
 pub(all) struct Usage {
   work : Int

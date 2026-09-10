@@ -4252,6 +4252,18 @@ ordering. Later sequence/dedupe operations use `session_id` explicitly in their
 partition keys to prevent crossing sessions; Carrier preservation alone does
 not provide that guarantee.
 
+<!-- requirement-block: session.closed-body -->
+The closed session body MUST contain `by` and `gap`, plus exactly `id` and
+`time` on Relation input; Events input uses its intrinsic roles and does not
+admit role overrides. `by` contains known KeyComparable fields, preserves
+repeated references and admits an empty global partition. Empty input remains
+empty. `gap` uses the same positive safe-integer millisecond, positive fixed
+duration token or whole non-null number/duration Parameter forms as window
+size; a Parameter retains validation obligations even if its default is known.
+The three generated session fields are fresh and non-null: start/end have
+number type and `session_id` has string type. Unrelated payload contracts may
+remain unknown, but generated-field absence requires field-set evidence.
+
 <a id="time-series"></a>
 
 #### `time_series`

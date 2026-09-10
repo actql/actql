@@ -224,6 +224,7 @@ fn check_impl(
       | "watermark_events"
       | "to_events"
       | "dedupe_events"
+      | "session"
       | "normalize_graph"
       | "normalize_vectors"
       | "to_vectors"
@@ -390,8 +391,15 @@ fn check_impl(
       current = Some(target)
       continue
     }
-    if key == "watermark_events" || key == "to_events" || key == "dedupe_events" {
+    if key == "watermark_events" ||
+      key == "to_events" ||
+      key == "dedupe_events" ||
+      key == "session" {
       let check_event = match key {
+        "session" =>
+          fn(source, input, caps) {
+            @event.check_session(source, input, parameters, caps)
+          }
         "to_events" => @event.check_bridge
         "dedupe_events" => @event.check_dedupe
         _ => @event.check_watermark

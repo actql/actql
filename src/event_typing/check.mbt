@@ -9,6 +9,7 @@ pub(all) enum Options {
   ToEvents
   Watermark(Double, Policy)
   Dedupe(DedupeSpec)
+  Session(SessionSpec)
 }
 
 ///|
@@ -20,6 +21,9 @@ pub(all) enum Obligation {
   WatermarkClassification
   ConvertTimestampClock
   FailOnTopTie
+  BindGap(String)
+  SessionArithmetic
+  SessionIdentity
 } derive(Eq, Debug)
 
 ///|
@@ -37,6 +41,7 @@ pub(all) enum IssueKind {
   NotKeyComparable(String)
   NotAuthorOrderable(String)
   InvalidOrder
+  Temporal(@temporal.IssueKind)
 } derive(Eq, Debug)
 
 ///|
@@ -185,7 +190,7 @@ pub fn output(v : CheckedEvent) -> @carrier.Carrier {
 pub fn watermark(v : CheckedEvent) -> Double? {
   match v.options {
     Watermark(n, _) => Some(n)
-    ToEvents | Dedupe(_) => None
+    ToEvents | Dedupe(_) | Session(_) => None
   }
 }
 
@@ -193,7 +198,7 @@ pub fn watermark(v : CheckedEvent) -> Double? {
 pub fn policy(v : CheckedEvent) -> Policy? {
   match v.options {
     Watermark(_, p) => Some(p)
-    ToEvents | Dedupe(_) => None
+    ToEvents | Dedupe(_) | Session(_) => None
   }
 }
 
@@ -221,9 +226,21 @@ pub fn pending_validations(v : CheckedEvent) -> Array[Obligation] {
   if v.options is Dedupe(_) {
     pending.push(FailOnTopTie)
   }
+  if v.options is Session(s) {
+    pending.push(SessionArithmetic)
+    pending.push(SessionIdentity)
+    if s.gap is @temporal.Parameter(name, ..) {
+      pending.push(BindGap(name))
+    }
+    if s.timestamp {
+      pending.push(ConvertTimestampClock)
+    }
+  }
   if v.output is @carrier.EventValue(e) &&
     e.clock_encoding == @carrier.UtcTimestamp {
-    pending.push(ConvertTimestampClock)
+    if !pending.contains(ConvertTimestampClock) {
+      pending.push(ConvertTimestampClock)
+    }
   }
   pending
 }

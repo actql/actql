@@ -1,7 +1,8 @@
 # Event operation checking
 
-The event checker supports `to_events`, `watermark_events` and `dedupe_events`; its normative owner is
-[event bridges](../spec/language.md#event-bridges). It preserves semantic ID
+The event checker supports `to_events`, `watermark_events`, `dedupe_events` and
+`session`; their normative owners are the corresponding Language sections,
+including [event bridges](../spec/language.md#event-bridges). It preserves semantic ID
 and clock-source roles and partial payload contracts. UTC timestamp clock sources
 retain a separate conversion obligation; their payload values are not replaced.
 It requires proof that
@@ -45,3 +46,18 @@ the old reference compiler's nonempty restriction. No implicit keep/tie options
 are accepted: first-in-order and failure on an unresolved top tie are the fixed
 semantics. The checker retains the tie obligation and cannot infer that actual
 event IDs were unique or that data was sorted from a successful static result.
+
+## Sessions
+
+Session checking preserves the input Carrier, unlike the older reference compiler
+which always projects its result to Relation. Relation input supplies explicit
+identity/time roles; Events uses intrinsic roles. Both retain unknown payload
+types but require absence evidence for generated fields. The shared millisecond
+reader charges its own scalar/declaration inspection after source preflight;
+its usage is deducted from the same operation budget, never reset per argument.
+
+Empty `by` uses one global partition, consistent with partition semantics
+elsewhere; repeated keys remain authored occurrences. Both are explicit language
+decisions beyond the reference compiler's nonempty restriction. Time arithmetic,
+stable session identity construction, binding and execution bounds remain
+obligations, not a claim that session assignment has executed.
