@@ -24,6 +24,8 @@ pub fn check_nearest_input(NearestOptions, NearestSide, @carrier_contract.Carrie
 
 pub fn check_nearest_pair(@decode_core.Cursor, @carrier_contract.Carrier, @carrier_contract.Carrier, Limits) -> Result[NearestPair, Issue]
 
+pub fn check_pool_keys(@decode_core.Cursor, @relation_evidence.KeySet, Limits) -> Result[CheckedPool, Issue]
+
 pub fn check_pool_relation(@decode_core.Cursor, @relation_evidence.KeyedRelation, Limits) -> Result[CheckedPool, Issue]
 
 pub fn check_pool_vectors(@decode_core.Cursor, @carrier_contract.Carrier, Limits) -> Result[CheckedPool, Issue]
@@ -273,6 +275,7 @@ pub(all) enum IssueKind {
   IncompleteNearestInput
   DuplicatePoolField(@relation_schema.FieldName)
   UnsupportedPoolMemberIdentity(@relation_schema.FieldName)
+  MissingEligiblePoolKey
   IncompleteRankingInput
   InvalidRankingField(@relation_schema.FieldName)
   RankingDomainMismatch(@relation_schema.FieldName)

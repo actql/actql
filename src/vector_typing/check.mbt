@@ -44,6 +44,7 @@ pub(all) enum IssueKind {
   IncompleteNearestInput
   DuplicatePoolField(@row.FieldName)
   UnsupportedPoolMemberIdentity(@row.FieldName)
+  MissingEligiblePoolKey
   IncompleteRankingInput
   InvalidRankingField(@row.FieldName)
   RankingDomainMismatch(@row.FieldName)

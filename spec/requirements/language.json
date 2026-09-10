@@ -4491,6 +4491,17 @@
       }
     },
     {
+      "requirement_id": "actql.language/pool-vectors.member-key-selection",
+      "statement_sha256": "6e4b17413ce2bf3f0e84095f5ca97fd23480d4c1dcf3c63cfc69d31174ef42a2",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "pool-vectors",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.language/merge-rankings.source-options",
       "statement_sha256": "1e791c22a7946fee5dd80f07d5da637493519cff263f5c8af238f9bbaf851468",
       "status": "pending",

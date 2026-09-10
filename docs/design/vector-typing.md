@@ -84,7 +84,23 @@ length-prefixed member encoding, including singleton non-string keys. Language
 now closes that singleton case explicitly. Reference keys are not silently
 stringified, and unknown key types cannot satisfy scalar completion.
 
-Typed checking retains the original tuple and an encoding obligation rather than
+`check_pool_keys` accepts multiple independent witnesses and selects the eligible
+scalar tuple using deterministic completion. The single-key entry delegates to
+the same selection, so both paths sort tuple fields in UTF-16 order and retain
+the original declaration separately. A singleton string key has no preference
+over an earlier eligible numeric key. No eligible tuple yields
+`MissingEligiblePoolKey`, including when all available key types remain unknown.
+
+This resolves the older pooling wording "declared key order" in favor of the
+general completion rule. It changes the generated member preimage for a tuple
+whose declaration order differs from canonical order; declarations and authored
+source are not rewritten. At Sketch `87dc7144`, `completeVectorRecordIdentity`
+also selects a preferred key before encoding, but validates scalar eligibility
+only after that selection. ActQL filters eligibility first, as its completion
+rule requires, so an ineligible preferred key cannot hide a usable alternative.
+The original admission tuple order remains available for input validation.
+
+Typed checking retains both the selected tuple and original declaration with an encoding obligation rather than
 materializing the reserved physical field in authored row knowledge. Its absence
 must be provable before admitting encoded completion; open unknown fields are
 insufficient. Member ordering is by completed identity for Relation pooling, not

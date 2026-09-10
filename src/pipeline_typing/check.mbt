@@ -59,7 +59,7 @@ fn check_impl(
   delta_contracts : Array[
     (String, @schema.FieldName, @graph_contract.CheckedContract),
   ],
-  keyed_inputs : Array[@evidence.KeyedRelation?],
+  keyed_inputs : Array[@evidence.KeySet?],
   ranked_inputs : Array[@vector.RankingInput?],
 ) -> CheckedPipeline raise Stop {
   if limits.max_steps < 0 ||
@@ -94,11 +94,18 @@ fn check_impl(
       fail(source, DuplicateName(key))
     }
     carrier_preflight(b, source, schema)
-    if keyed_inputs[i] is Some(declaration) {
-      spend(b, source, @evidence.key_field_count(declaration))
-      for j in 0..<@evidence.key_field_count(declaration) {
-        let field = @evidence.key_field_at(declaration, j).unwrap()
-        charge(b, source, @schema.reference_name(field.name))
+    if keyed_inputs[i] is Some(collection) {
+      spend(b, source, @evidence.key_witness_count(collection))
+      for k in 0..<@evidence.key_witness_count(collection) {
+        let declaration = @evidence.key_witness_at(collection, k).unwrap()
+        spend(b, source, @evidence.key_field_count(declaration))
+        for j in 0..<@evidence.key_field_count(declaration) {
+          spend(b, source, @evidence.key_alias_count(declaration, j))
+          for n in 0..<@evidence.key_alias_count(declaration, j) {
+            let field = @evidence.key_alias_at(declaration, j, n).unwrap()
+            charge(b, source, @schema.reference_name(field.name))
+          }
+        }
       }
     }
     names[key] = Input(i)
@@ -124,7 +131,7 @@ fn check_impl(
   }
   let steps : Array[CheckedStep] = []
   let ranked_steps : Array[@vector.RankingInput] = []
-  let keyed_steps : Array[@evidence.KeyedRelation?] = []
+  let keyed_steps : Array[@evidence.KeySet?] = []
   let delta_inputs = inputs.map(_ => empty_delta())
   let delta_steps : Array[DeltaEvidence] = []
   spend(b, source, delta_contracts.length())
@@ -1421,7 +1428,7 @@ fn check_impl(
           guard declaration is Some(declaration) else {
             fail(operation_body, MissingKeyEvidence)
           }
-          @vector.check_pool_relation(operation_body, declaration, caps)
+          @vector.check_pool_keys(operation_body, declaration, caps)
         }
         other => @vector.check_pool_vectors(operation_body, other, caps)
       }
@@ -2202,6 +2209,7 @@ pub fn check_with_evidence(
       match pair.1 {
         CarrierInput(c) => c
         KeyedInput(k) => @carrier.relation(@evidence.keyed_records(k))
+        CandidateKeysInput(k) => @carrier.relation(@evidence.key_set_records(k))
         RankingInput(r) => @vector.ranking_input_carrier(r)
       },
     )
@@ -2209,7 +2217,8 @@ pub fn check_with_evidence(
   let keys = inputs.map(pair => {
     match pair.1 {
       CarrierInput(_) | RankingInput(_) => None
-      KeyedInput(k) => Some(k)
+      KeyedInput(k) => Some(@evidence.singleton_key(k))
+      CandidateKeysInput(k) => Some(k)
     }
   })
   let rankings = inputs.map(pair => {

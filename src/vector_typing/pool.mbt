@@ -337,6 +337,62 @@ pub fn check_pool_relation(
   input : @evidence.KeyedRelation,
   limits : Limits,
 ) -> Result[CheckedPool, Issue] {
+  check_pool_keys(source, @evidence.singleton_key(input), limits)
+}
+
+///|
+/// Selects the canonical eligible scalar key while retaining its admission origin.
+pub fn check_pool_keys(
+  source : @decode.Cursor,
+  input : @evidence.KeySet,
+  limits : Limits,
+) -> Result[CheckedPool, Issue] {
+  try {
+    if limits.max_work < 0 ||
+      limits.max_nodes < 0 ||
+      limits.max_depth < 0 ||
+      limits.max_text_bytes < 0 {
+      fail(source, InvalidLimits)
+    }
+    let selection = match
+      @evidence.select_key(source, input, ScalarIdentity, {
+        max_work: limits.max_work,
+        max_name_bytes: limits.max_text_bytes,
+      }) {
+      Ok(v) => v
+      Err(_) => fail(source, BudgetExceeded)
+    }
+    guard selection.key is Some(key) else {
+      fail(source, MissingEligiblePoolKey)
+    }
+    let checked = match
+      check_pool_selected(source, key, {
+        ..limits,
+        max_work: limits.max_work - selection.work,
+        max_text_bytes: limits.max_text_bytes - selection.name_bytes,
+      }) {
+      Ok(v) => v
+      Err(e) => raise Stop(e)
+    }
+    Ok({
+      ..checked,
+      usage: {
+        ..checked.usage,
+        work: checked.usage.work + selection.work,
+        text_bytes: checked.usage.text_bytes + selection.name_bytes,
+      },
+    })
+  } catch {
+    Stop(e) => Err(e)
+  }
+}
+
+///|
+fn check_pool_selected(
+  source : @decode.Cursor,
+  input : @evidence.KeyedRelation,
+  limits : Limits,
+) -> Result[CheckedPool, Issue] {
   try {
     if limits.max_work < 0 ||
       limits.max_nodes < 0 ||

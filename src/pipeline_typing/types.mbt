@@ -190,8 +190,8 @@ pub fn window_aliases(
 struct CheckedPipeline {
   ranked_inputs : Array[@vector.RankingInput?]
   ranked_steps : Array[@vector.RankingInput]
-  keyed_inputs : Array[@evidence.KeyedRelation?]
-  keyed_steps : Array[@evidence.KeyedRelation?]
+  keyed_inputs : Array[@evidence.KeySet?]
+  keyed_steps : Array[@evidence.KeySet?]
   delta_inputs : Array[DeltaEvidence]
   delta_steps : Array[DeltaEvidence]
   source : @decode.Cursor
@@ -210,6 +210,7 @@ struct CheckedPipeline {
 pub(all) enum InputContract {
   CarrierInput(@carrier.Carrier)
   KeyedInput(@evidence.KeyedRelation)
+  CandidateKeysInput(@evidence.KeySet)
   RankingInput(@vector.RankingInput)
 }
 
@@ -221,7 +222,7 @@ pub fn input_key(
   if index < 0 || index >= value.keyed_inputs.length() {
     None
   } else {
-    value.keyed_inputs[index]
+    value.keyed_inputs[index].bind(single_candidate)
   }
 }
 

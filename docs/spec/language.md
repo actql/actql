@@ -5656,10 +5656,20 @@ Generated columns and aliases cannot collide with retained output columns;
 names of dropped input columns do not cause a collision. A vector option on a
 Vectors input can restate, but not override, its existing component role.
 
-A sole non-null string candidate-key field is used directly and journaled as
+<!-- requirement-block: pool-vectors.member-key-selection -->
+Relation pooling MUST select its member candidate key using
+[Deterministic completion](#completion), after retaining only keys with known
+non-null scalar component types eligible for this encoding. A shorter or
+lexicographically earlier ineligible key cannot hide an eligible alternative.
+The selected tuple's fields, including explicit surviving aliases, are in
+canonical code-unit order. Input key declarations and their admission obligations
+retain their original names and declaration order; that order does not override
+the selected completion tuple. Selection does not establish actual row uniqueness.
+
+A selected singleton non-null string candidate-key field is used directly and journaled as
 `actql.vector.candidate-key-identity-completion`. Any other non-null scalar
 candidate key, including a singleton non-string key, is encoded into reserved internal field
-`__actql_vector_record_id`: for each component in declared key order the
+`__actql_vector_record_id`: for each component in the selected canonical key order the
 compiler concatenates its Unicode-scalar length in AoA canonical `to_string`
 form, `:`, that canonical form, and `|`. The reserved field is
 collision-checked and the completion is journaled as

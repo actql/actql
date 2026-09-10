@@ -76,8 +76,15 @@ projection. Name lookup distinguishes qualified provenance from a literal dotted
 name. `transfer_unary` delegates to the same implementation with one witness.
 An empty result collection still retains the operation's output row knowledge.
 
-The pipeline currently carries a single input key. Choosing among collections
-at consumer boundaries, integrating their transfer into the pipeline, join cardinality propagation and
-new keys established by grouping remain shared evidence work. The pooling
-checker still consumes its explicit retained declaration; adding this selector
-does not silently change that consumer's identity preimage.
+The pipeline accepts `CandidateKeysInput` and carries collections through these
+unary transfers. `KeyedInput` wraps one existing declaration without rescanning
+it before the normal input budget check. All witnesses and aliases are charged
+at that boundary, including unused inputs. `candidate_keys` returns the retained
+collection. Legacy `candidate_key` and `input_key` return a witness only when
+exactly one witness remains; they do not perform preferred-key selection or
+implement the language's distinct-tuple sole-candidate inference rule.
+
+Relation pooling selects an eligible scalar member key at the consumer boundary
+and charges selection to the same pipeline budget. Join cardinality propagation,
+new keys established by grouping, and other completion consumers remain shared
+evidence work. This integration does not establish runtime uniqueness or ordering.

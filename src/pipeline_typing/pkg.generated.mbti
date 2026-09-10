@@ -31,6 +31,8 @@ import {
 // Values
 pub fn candidate_key(CheckedPipeline, Target) -> @relation_evidence.KeyedRelation?
 
+pub fn candidate_keys(CheckedPipeline, Target) -> @relation_evidence.KeySet?
+
 pub fn carrier_at(CheckedPipeline, Target) -> @carrier_contract.Carrier?
 
 pub fn check(@decode_core.Cursor, Array[(String, @relation_schema.Schema)], @parameter_binding.Declarations?, @decode_core.Cursor?, Limits, calendar_profile? : @calendar_profile.Profile?, delta_contracts? : Array[(String, @relation_schema.FieldName, @graph_contract.CheckedContract)]) -> Result[CheckedPipeline, Issue]
@@ -136,6 +138,7 @@ type Connections
 pub(all) enum InputContract {
   CarrierInput(@carrier_contract.Carrier)
   KeyedInput(@relation_evidence.KeyedRelation)
+  CandidateKeysInput(@relation_evidence.KeySet)
   RankingInput(@vector_typing.RankingInput)
 }
 

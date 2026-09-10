@@ -1,9 +1,9 @@
 ///|
 fn key_at(
   target : Target,
-  inputs : Array[@evidence.KeyedRelation?],
-  steps : Array[@evidence.KeyedRelation?],
-) -> @evidence.KeyedRelation? {
+  inputs : Array[@evidence.KeySet?],
+  steps : Array[@evidence.KeySet?],
+) -> @evidence.KeySet? {
   match target {
     Input(i) => inputs[i]
     Step(i) => steps[i]
@@ -13,9 +13,9 @@ fn key_at(
 ///|
 fn sync_keys(
   b : Budget,
-  inputs : Array[@evidence.KeyedRelation?],
+  inputs : Array[@evidence.KeySet?],
   steps : Array[CheckedStep],
-  keys : Array[@evidence.KeyedRelation?],
+  keys : Array[@evidence.KeySet?],
 ) -> Unit raise Stop {
   while keys.length() < steps.length() {
     let step = steps[keys.length()]
@@ -23,7 +23,7 @@ fn sync_keys(
     let next = match (previous, step.operation) {
       (Some(key), Unary(op)) => {
         let transfer = match
-          @evidence.transfer_unary(key, op, {
+          @evidence.transfer_keys(key, op, {
             max_work: b.work,
             max_name_bytes: b.text,
           }) {
@@ -39,7 +39,7 @@ fn sync_keys(
         }
         b.work -= transfer.work
         b.text -= transfer.name_bytes
-        transfer.key
+        Some(transfer.keys)
       }
       _ => None
     }
@@ -48,11 +48,29 @@ fn sync_keys(
 }
 
 ///|
-/// Conditional key dependencies survive transfers; this is not a data check.
+/// Returns the sole witness, not a preferred key when multiple witnesses exist.
 pub fn candidate_key(
   value : CheckedPipeline,
   target : Target,
 ) -> @evidence.KeyedRelation? {
+  candidate_keys(value, target).bind(single_candidate)
+}
+
+///|
+fn single_candidate(value : @evidence.KeySet) -> @evidence.KeyedRelation? {
+  if @evidence.key_witness_count(value) == 1 {
+    @evidence.key_witness_at(value, 0)
+  } else {
+    None
+  }
+}
+
+///|
+/// Conditional witnesses retain their admission requirements, not runtime proof.
+pub fn candidate_keys(
+  value : CheckedPipeline,
+  target : Target,
+) -> @evidence.KeySet? {
   match target {
     Input(i) => value.keyed_inputs.get(i).bind(v => v)
     Step(i) => value.keyed_steps.get(i).bind(v => v)

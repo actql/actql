@@ -14,6 +14,12 @@ struct KeySet {
 }
 
 ///|
+/// Wraps an already admitted witness without rescanning its immutable contents.
+pub fn singleton_key(value : KeyedRelation) -> KeySet {
+  { records: value.records, witnesses: [value], work: 0, name_bytes: 0, }
+}
+
+///|
 fn same_records(a : @carrier.Knowledge, b : @carrier.Knowledge) -> Bool {
   if physical_equal(a, b) {
     return true
