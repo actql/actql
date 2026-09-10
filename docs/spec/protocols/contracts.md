@@ -828,9 +828,9 @@ These exact schema/law references are owned here. Their identities do not includ
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/authoring_context sha256:930efa0eff6819f19378cc397c0f268de71d9fcbb5f1543aa0ac4be30f676398
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/parameter_values sha256:6376d9cbe27f40771a0e47ed84128364c218f7403ed3734612ab719b722da6a3
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/bound_invocation_template sha256:d7ba95795c14fc1145fb430f3311d38139a834f15a3dc636bb881ecde9f1cbb7
-../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/executable_plan sha256:abc402075d75a43c95c9092569833f161790f0a84af85433fe1445a758b69a57
+../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/executable_plan sha256:85700ba01632c1b8341010f1e49727667b694f0e26b3e7b7cfa99249e45fd6b3
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/normalization_journal sha256:485ccc0d3215dfc0d9f13101dbc7bc0d4a72b8eb28a346ab8122cafd635ae6f0
-../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/plan_document sha256:ef289f6d44d9c989f2d4f129e794050f4cc3e1681c368783b3363da9cd6203ae
+../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/plan_document sha256:74d98dccddeb8790ceb653ae0305fb0302978b21a3bf50c58d22a97021d0a369
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/plan_result sha256:dd6343496e0673405ab47bcafe0cf38b2812601f6d84e95fd0232cc1f0320ec7
 ../../../spec/contracts/actql-production-profile-schemas.json#/schemas/lookup_source sha256:6730fdb00f7b0f21ae796bd55f686fb984cddac5b8da5325cec2114b82a37e1c
 ../../../spec/contracts/actql-production-profile-schemas.json#/schemas/lookup_barrier sha256:587bfea69fbab0d23d200ac65ffc20c373142c4843820d37db6e0c617f10206a

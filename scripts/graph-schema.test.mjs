@@ -13,6 +13,12 @@ test('graph bodies preserve literal options and optional positive component guar
   assert.equal(s.components.properties.max_nodes, undefined);
   assert.equal(s.components.properties.max_output_rows.oneOf[0].minimum, 1);
   assert.equal(s.components.properties.max_output_rows.oneOf[0].maximum, 9007199254740991);
+  assert.equal(s.graph_bounds.minProperties, 1);
+  assert.equal(s.graph_bounds.additionalProperties, false);
+  for (const name of ['max_nodes','max_edges','max_degree']) {
+    assert.equal(s.graph_bounds.properties[name].oneOf[0].minimum, 0);
+    assert.equal(s.graph_bounds.properties[name].oneOf[0].maximum, 9007199254740991);
+  }
 });
 
 test('embedded graph schemas and pins reject drift', () => {

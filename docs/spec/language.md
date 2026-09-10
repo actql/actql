@@ -4785,6 +4785,24 @@ one non-negative `max_nodes`, `max_edges`, or `max_degree` and lowers to
 `SGA.bounds_check`. Delta application uses only [apply_graph_delta](#graph-equality-and-delta);
 the compiler MUST NOT synthesize an application from prose or untyped data.
 
+<!-- requirement-block: structural-graphs.bounds-report -->
+`graph_bounds` MUST return a Relation with exactly `kind: string`,
+`node_id: nullable semantic graph ID`, `actual: number`, and `max: number`.
+The body admits only `max_nodes`, `max_edges` and `max_degree`, at least one
+present, each a nonnegative safe-integer literal or a whole non-null number
+Parameter subject to that range at binding. A violated node/edge count emits
+`kind: nodes`/`edges` and `node_id: null`; a violated total degree emits
+`kind: degree` and the original semantic node ID. Total degree counts both
+incoming and outgoing incidences, including two for a self-loop. Only strict
+excess (`actual > max`) emits a row; satisfied bounds, including empty input
+under zero bounds, emit no rows. Emit the node-count violation, then edge-count
+violation, then degree violations in canonical semantic node-identity order.
+These thresholds select diagnostic rows, not execution-resource ceilings:
+violations do not truncate or mutate the graph or themselves fail the operation.
+Data admission and resource failures retain their ordinary failure boundaries.
+The adapter supplies explicit nulls instead of the AoA representation's absent
+`node_id` member for whole-graph violations.
+
 Binary graph operations name the second graph with `with`:
 
 ```yaml
@@ -7055,6 +7073,9 @@ VectorsBody := true
 NormalizeGraphBody := true
 DegreeBody := {direction: in | out | both}
 ComponentsBody := {kind: weak | strong, max_output_rows?: PositiveIntegerValue}
+GraphBoundsBody := {max_nodes?: NonnegativeIntegerValue,
+  max_edges?: NonnegativeIntegerValue, max_degree?: NonnegativeIntegerValue}
+GraphBoundsConstraints := at least one bound; diagnostic thresholds, not resource ceilings.
 ParamRef := { $param: ParamName }
 PositiveIntegerValue := PositiveSafeInteger | ParamRef
 FractionValue := finite number in [0, 1] | ParamRef

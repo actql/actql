@@ -3,6 +3,7 @@ pub(all) enum Operation {
   NormalizeGraph
   Degree
   Components
+  GraphBounds
 } derive(Eq, Debug)
 
 ///|
@@ -29,6 +30,7 @@ pub enum Options {
   Normalize
   DegreeOptions(Direction)
   ComponentOptions(ComponentKind, max_output_rows~ : Count?)
+  BoundsOptions(max_nodes~ : Count?, max_edges~ : Count?, max_degree~ : Count?)
 }
 
 ///|
@@ -38,6 +40,8 @@ pub(all) enum Obligation {
   ResolveGraphResources
   ComponentIdentityOrder
   BindPositiveCount(String)
+  BindNonnegativeCount(String)
+  BoundsReportOrder
   EnforceOutputGuard
 } derive(Eq, Debug)
 
@@ -171,9 +175,10 @@ fn scan(b : Budget, source : @decode.Cursor) -> Unit raise Stop {
 fn count(
   c : @decode.Cursor,
   parameters : Map[String, @contract.Contract],
+  minimum? : Int64 = 1L,
 ) -> Count raise Stop {
   if @decode.view(c) is NumberValue(number) {
-    guard @scalar.read_safe_integer(number) is Some(n) && n > 0 else {
+    guard @scalar.read_safe_integer(number) is Some(n) && n >= minimum else {
       fail(c, InvalidCount)
     }
     return Literal(n)
@@ -273,6 +278,35 @@ pub fn check(
         pending.push(ComponentIdentityOrder)
         ComponentOptions(kind, max_output_rows=bound)
       }
+      GraphBounds => {
+        let object = decoded(
+          @decode.closed_object(source, ["max_nodes", "max_edges", "max_degree"]),
+        )
+        let bounds : Array[Count?] = []
+        for key in ["max_nodes", "max_edges", "max_degree"] {
+          bounds.push(
+            match @decode.lookup(object, key) {
+              None => None
+              Some(c) => {
+                let bound = count(c, params, minimum=0L)
+                if bound is Parameter(name) {
+                  pending.push(BindNonnegativeCount(name))
+                }
+                Some(bound)
+              }
+            },
+          )
+        }
+        if bounds.all(v => v is None) {
+          fail(source, InvalidBody)
+        }
+        pending.push(BoundsReportOrder)
+        BoundsOptions(
+          max_nodes=bounds[0],
+          max_edges=bounds[1],
+          max_degree=bounds[2],
+        )
+      }
     }
     let output = if operation == NormalizeGraph {
       input
@@ -285,6 +319,19 @@ pub fn check(
       let fields : Array[(@row.FieldName, @contract.Contract?)] = if operation ==
         Degree {
         [(Unqualified("node"), id), (Unqualified("degree"), number)]
+      } else if operation == GraphBounds {
+        [
+          (
+            Unqualified("kind"),
+            Some(@contract.primitive(StringType, nullable=false)),
+          ),
+          (
+            Unqualified("node_id"),
+            id.map(c => @contract.with_nullability(c, true)),
+          ),
+          (Unqualified("actual"), number),
+          (Unqualified("max"), number),
+        ]
       } else {
         [
           (Unqualified("node_id"), id),

@@ -1,6 +1,7 @@
 # Graph operation checking
 
-`graph_typing` currently checks `normalize_graph`, `degree` and `components`.
+`graph_typing` currently checks `normalize_graph`, `degree`, `components` and
+`graph_bounds`.
 The normative owner is [Graph operations](../spec/language.md#graph-operations).
 This is not the complete SGA operation family or an evaluator.
 
@@ -32,7 +33,22 @@ The reference implementation's string ID outputs and mandatory resolved graph
 bounds are not authoring rules: typed semantic IDs and optional authored guards
 follow the current Language specification. Backend ID encoding and resolved
 Host resource ceilings belong to lowering. No implicit string/CID substitution
-or authored `max_nodes` is introduced by this checker.
+is introduced. `components` does not acquire an authored `max_nodes` option.
+
+`graph_bounds` has separate diagnostic thresholds: at least one of `max_nodes`,
+`max_edges` or `max_degree`, each a nonnegative safe integer or a whole non-null
+number Parameter. Zero is meaningful; absence is retained rather than filled.
+The fixed output is `kind: string`, `node_id: nullable semantic ID`,
+`actual: number`, `max: number`. Unknown IDs remain untyped. A report is not a
+proof that the graph satisfies its bounds and its thresholds are not Host
+resource ceilings. Parameter checks and report ordering remain explicit obligations.
+
+The fixed nullable ID column is an explicit specification decision: AoA omits
+node_id on whole-graph violations, whereas ActQL's closed row contract requires
+every field. The lowering adapter inserts null for those cases without changing
+violation selection. Specification-only corpus cases cover zero bounds, exact
+thresholds, self-loop degree, report ordering and non-string IDs; no graph
+evaluator is implemented here.
 
 Source traversal is iterative and budgeted for nodes, depth, work and text.
 Already admitted recursive contracts are shared; pipeline input preflight

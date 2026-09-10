@@ -3831,6 +3831,17 @@
       }
     },
     {
+      "requirement_id": "actql.language/structural-graphs.bounds-report",
+      "statement_sha256": "02af2d7a5143aca10378cd9ab9fb639acc8fb4b822c85e1f762badf29a728b07",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "structural-graphs",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.language/structural-graphs.property-contracts-and-strategies",
       "statement_sha256": "33eebbbd7638c218c8f8abe0046d797e56a5975684d620958bf51ac2c2b6dfff",
       "status": "pending",
@@ -5834,7 +5845,7 @@
     },
     {
       "requirement_id": "actql.language/structural-grammar.grammar",
-      "statement_sha256": "59b47f26ae90f90f79025612bc4c0fa92cf8ed2c3bdaa9aedcc4652f43a641b8",
+      "statement_sha256": "f92fa6d46dc633a48f2b694a2500a006e08a60da63907844aa539a7bab038c69",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",

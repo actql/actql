@@ -1,6 +1,13 @@
 {
   "version": "actql-pure-operation-law-vectors/0.1",
   "status": "specification-only",
+  "graph_bounds": [
+    {"name":"empty graph satisfies zero bounds", "nodes":[], "edges":[], "bounds":{"max_nodes":0,"max_edges":0,"max_degree":0}, "expected":[]},
+    {"name":"graph bounds equality emits no violation", "nodes":[2,10], "edges":[[2,10]], "bounds":{"max_nodes":2,"max_edges":1,"max_degree":1}, "expected":[]},
+    {"name":"global graph violations have explicit null identities", "nodes":[2,10], "edges":[[2,10]], "bounds":{"max_nodes":0,"max_edges":0}, "expected":[{"kind":"nodes","node_id":null,"actual":2,"max":0},{"kind":"edges","node_id":null,"actual":1,"max":0}]},
+    {"name":"numeric degree violations use semantic identity order", "nodes":[10,2], "edges":[[2,10],[10,2]], "bounds":{"max_degree":1}, "expected":[{"kind":"degree","node_id":2,"actual":2,"max":1},{"kind":"degree","node_id":10,"actual":2,"max":1}]},
+    {"name":"self loop has two degree incidences", "nodes":["a"], "edges":[["a","a"]], "bounds":{"max_degree":1}, "expected":[{"kind":"degree","node_id":"a","actual":2,"max":1}]}
+  ],
   "vectors": [
     {"name":"dot dimension fold", "op":"dot", "a":[16777216,1,-16777216], "b":[1,1,1], "expected":1},
     {"name":"f32 input quantization", "op":"dot", "a":[16777217], "b":[1], "expected":16777216},

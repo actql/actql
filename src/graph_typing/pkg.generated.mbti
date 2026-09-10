@@ -78,6 +78,8 @@ pub(all) enum Obligation {
   ResolveGraphResources
   ComponentIdentityOrder
   BindPositiveCount(String)
+  BindNonnegativeCount(String)
+  BoundsReportOrder
   EnforceOutputGuard
 } derive(Eq, @debug.Debug)
 
@@ -85,12 +87,14 @@ pub(all) enum Operation {
   NormalizeGraph
   Degree
   Components
+  GraphBounds
 } derive(Eq, @debug.Debug)
 
 pub enum Options {
   Normalize
   DegreeOptions(Direction)
   ComponentOptions(ComponentKind, max_output_rows~ : Count?)
+  BoundsOptions(max_nodes~ : Count?, max_edges~ : Count?, max_degree~ : Count?)
 }
 
 pub(all) struct Usage {

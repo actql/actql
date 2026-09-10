@@ -72,6 +72,22 @@ function ranking(f) {
   return zero(finite(left + right));
 }
 
+function graphBounds(f) {
+  const out = [];
+  const add = (kind, node_id, actual, max) => {
+    if (max !== undefined && actual > max) out.push({kind, node_id, actual, max});
+  };
+  add('nodes', null, f.nodes.length, f.bounds.max_nodes);
+  add('edges', null, f.edges.length, f.bounds.max_edges);
+  // These fixtures use homogeneous number or string IDs, not a generic
+  // implementation of every typed identity domain or graph admission law.
+  for (const id of [...f.nodes].sort((a,b) => a < b ? -1 : a > b ? 1 : 0)) {
+    const degree = f.edges.reduce((n,[a,b]) => n + Number(a === id) + Number(b === id), 0);
+    add('degree', id, degree, f.bounds.max_degree);
+  }
+  return out;
+}
+
 function windows(f) {
   const step = f.kind === 'fixed' ? f.size : f.step;
   const last = Math.floor((f.time - f.offset) / step);
@@ -140,14 +156,14 @@ function graph(f) {
 test('pure operation fixtures have the current version and distinct case identities', () => {
   assert.equal(corpus.version, 'actql-pure-operation-law-vectors/0.1');
   assert.equal(corpus.status, 'specification-only');
-  const cases = ['vectors', 'rankings', 'windows', 'watermarks', 'graphs', 'endpoint_closure'].flatMap(k => {
+  const cases = ['vectors', 'rankings', 'windows', 'watermarks', 'graphs', 'endpoint_closure', 'graph_bounds'].flatMap(k => {
     assert.ok(Array.isArray(corpus[k]) && corpus[k].length > 0);
     return corpus[k];
   });
   assert.equal(new Set(cases.map(c => c.name)).size, cases.length);
 });
 
-for (const [key, oracle] of Object.entries({vectors:vector, rankings:ranking, windows, watermarks:watermark, graphs:graph,
+for (const [key, oracle] of Object.entries({vectors:vector, rankings:ranking, windows, watermarks:watermark, graphs:graph, graph_bounds:graphBounds,
   endpoint_closure:f => f.remaining_edges.filter(([a, b]) => f.retained_nodes.includes(a) && f.retained_nodes.includes(b)),
 })) for (const f of corpus[key]) {
   test(f.name, () => {

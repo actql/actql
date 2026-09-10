@@ -224,6 +224,7 @@ fn check_impl(
       | "normalize_graph"
       | "degree"
       | "components"
+      | "graph_bounds"
       | "vectors"
       | "window_events" => None
       _ => fail(@decode.lookup(object, key).unwrap(), UnsupportedOperation(key))
@@ -277,10 +278,14 @@ fn check_impl(
     if meta is Some(cursor) {
       metadata(b, cursor)
     }
-    if key == "normalize_graph" || key == "degree" || key == "components" {
+    if key == "normalize_graph" ||
+      key == "degree" ||
+      key == "components" ||
+      key == "graph_bounds" {
       let operation = match key {
         "degree" => @graph.Degree
         "components" => @graph.Components
+        "graph_bounds" => @graph.GraphBounds
         _ => @graph.NormalizeGraph
       }
       let checked = match
