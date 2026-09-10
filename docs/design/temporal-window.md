@@ -37,7 +37,19 @@ schema with coincidentally named fields cannot construct it. Input validation,
 checked arithmetic, membership bounds, Parameter binding and publication
 resources remain explicit obligations, not claimed runtime conformance.
 
-Pipeline dispatch, preservation/invalidation of window roles across operations,
-`window_group` consumption, schema generation and complete temporal-family
-integration remain to be connected. A standalone successful window check does
-not imply completion of those boundaries.
+Pipeline dispatch enforces the operation-specific input Carrier before checking,
+retains the single primary input occurrence, and debits the shared budgets.
+Validated filters and row-order/subset operations preserve roles. Explicit
+select/rename/drop projections transfer both roles only when both fields remain;
+overwriting a boundary in derive invalidates the evidence. An ordinary input
+with matching column names provides no window evidence. Other transformations
+currently invalidate the roles conservatively. Evidence-transfer traversal is
+also charged against the shared work budget.
+
+The generated embedded Program schemas require the closed bodies, sliding step,
+and lexical numeric/duration/Parameter alternatives. Runtime duration overflow
+and bound Parameter domains remain semantic checks, not claims of JSON Schema.
+
+Already-windowed external input admission, `window_group` consumption and complete
+temporal-family integration remain to be connected. Successful pipeline window
+checking does not imply completion of those boundaries.

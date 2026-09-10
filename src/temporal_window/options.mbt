@@ -44,7 +44,7 @@ pub(all) enum IssueKind {
   InvalidTime(String)
   OutputCollision(String)
   UnknownOutputFields
-}
+} derive(Eq, Debug)
 
 ///|
 pub struct Issue {

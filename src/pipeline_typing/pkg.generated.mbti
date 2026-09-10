@@ -15,6 +15,7 @@ import {
   "actql/actql/relation_values",
   "actql/actql/source_span",
   "actql/actql/source_value",
+  "actql/actql/temporal_window",
   "moonbitlang/core/debug",
 }
 
@@ -53,6 +54,10 @@ pub fn step_schema(CheckedStep) -> @relation_schema.Schema?
 
 pub fn usage(CheckedPipeline) -> Usage
 
+pub fn window_evidence(CheckedStep) -> WindowEvidence?
+
+pub fn window_fields(WindowEvidence) -> (@relation_schema.FieldName, @relation_schema.FieldName)
+
 // Errors
 
 // Types and methods
@@ -64,6 +69,7 @@ pub enum CheckedOperation {
   Set(right~ : Target, checked~ : @relation_set.CheckedSet)
   CrossJoin(right~ : Target, checked~ : @relation_join.CheckedCrossJoin)
   Values(@relation_values.CheckedValues)
+  Window(@temporal_window.CheckedWindow)
 }
 
 type CheckedPipeline
@@ -76,6 +82,7 @@ pub struct CheckedStep {
   operation : CheckedOperation
   output : @carrier_contract.Carrier
   connections : Connections
+  window : WindowEvidence?
 }
 
 type Connections
@@ -112,6 +119,7 @@ pub(all) enum IssueKind {
   GeneratorRequiresAlias
   GeneratorFrom
   Values(@relation_values.IssueKind)
+  Window(@temporal_window.IssueKind)
   UnsupportedOperation(String)
   InvalidMetadata
   ReservedMetadataKey(String)
@@ -142,6 +150,8 @@ pub(all) struct Usage {
   nodes : Int
   tokens : Int
 } derive(Eq, @debug.Debug)
+
+type WindowEvidence
 
 // Type aliases
 

@@ -37,6 +37,7 @@ pub(all) enum IssueKind {
   GeneratorRequiresAlias
   GeneratorFrom
   Values(@values.IssueKind)
+  Window(@window.IssueKind)
   UnsupportedOperation(String)
   InvalidMetadata
   ReservedMetadataKey(String)
@@ -65,6 +66,7 @@ pub struct CheckedStep {
   operation : CheckedOperation
   output : @carrier.Carrier
   connections : Connections
+  window : WindowEvidence?
 }
 
 ///|
@@ -108,6 +110,25 @@ pub enum CheckedOperation {
   Set(right~ : Target, checked~ : @set.CheckedSet)
   CrossJoin(right~ : Target, checked~ : @join.CheckedCrossJoin)
   Values(@values.CheckedValues)
+  Window(@window.CheckedWindow)
+}
+
+///|
+struct WindowEvidence {
+  start : @schema.FieldName
+  end : @schema.FieldName
+}
+
+///|
+pub fn window_evidence(step : CheckedStep) -> WindowEvidence? {
+  step.window
+}
+
+///|
+pub fn window_fields(
+  value : WindowEvidence,
+) -> (@schema.FieldName, @schema.FieldName) {
+  (value.start, value.end)
 }
 
 ///|

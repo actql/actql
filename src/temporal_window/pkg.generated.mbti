@@ -76,7 +76,7 @@ pub(all) enum IssueKind {
   InvalidTime(String)
   OutputCollision(String)
   UnknownOutputFields
-}
+} derive(Eq, @debug.Debug)
 
 pub(all) enum Kind {
   Fixed

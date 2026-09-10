@@ -185,6 +185,7 @@ fn check_impl(
           @carrier.typed_rows(@values.output_schema(checked)),
         ),
         connections: { entries: [], },
+        window: None,
       })
       names[binding] = target
       current = Some(target)
@@ -209,7 +210,14 @@ fn check_impl(
       "analytic" => Some(Analytic)
       "top_k" => Some(TopK)
       "top_k_by" => Some(TopKBy)
-      "join" | "append" | "nest" | "except" | "intersect" | "cross_join" => None
+      "join"
+      | "append"
+      | "nest"
+      | "except"
+      | "intersect"
+      | "cross_join"
+      | "row_window"
+      | "window_events" => None
       _ => fail(@decode.lookup(object, key).unwrap(), UnsupportedOperation(key))
     }
     let selected = match @decode.lookup(object, "from") {
@@ -260,6 +268,55 @@ fn check_impl(
     let meta = @decode.lookup(object, "meta")
     if meta is Some(cursor) {
       metadata(b, cursor)
+    }
+    if key == "row_window" || key == "window_events" {
+      let input_carrier = carrier(input, inputs, steps)
+      let expected = if key == "row_window" {
+        @carrier.RelationKind
+      } else {
+        @carrier.EventsKind
+      }
+      if @carrier.kind(input_carrier) != expected {
+        fail(operation_body, WrongCarrier(@carrier.kind(input_carrier)))
+      }
+      let checked = match
+        @window.check(operation_body, input_carrier, parameters, {
+          max_work: b.work,
+          max_nodes: b.nodes,
+          max_text_bytes: b.text,
+          max_depth: limits.max_depth,
+        }) {
+        Ok(v) => v
+        Err(e) =>
+          raise Stop({
+            kind: Window(e.kind),
+            source: operation_body,
+            path: e.path.copy(),
+            span: e.span,
+            range: None,
+          })
+      }
+      let used = @window.check_usage(checked)
+      b.work -= used.work
+      b.nodes -= used.nodes
+      b.text -= used.text_bytes
+      let (start, end) = @window.boundary_fields(@window.window_roles(checked))
+      let target = Step(steps.length())
+      steps.push({
+        source: body,
+        input: Some(input),
+        binding_name,
+        metadata: meta,
+        operation: Window(checked),
+        output: @window.output(checked),
+        connections: { entries: [{ role: Primary, target: input, }], },
+        window: Some({ start, end, }),
+      })
+      if binding_name is Some(name) {
+        names[name] = target
+      }
+      current = Some(target)
+      continue
     }
     let (checked, output) = match op {
       Some(op) => {
@@ -490,7 +547,7 @@ fn check_impl(
     let connections : Connections = {
       entries: match checked {
         Values(_) => []
-        Unary(_) => [{ role: Primary, target: input, }]
+        Unary(_) | Window(_) => [{ role: Primary, target: input, }]
         Join(right~, ..)
         | Append(right~, ..)
         | Nest(right~, ..)
@@ -507,6 +564,7 @@ fn check_impl(
       operation: checked,
       output: @carrier.relation(@carrier.typed_rows(output)),
       connections,
+      window: transfer_window(b, operation_body, input, steps, checked),
     })
     if binding_name is Some(key) {
       names[key] = target
