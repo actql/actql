@@ -33,65 +33,75 @@ test "score evidence lookup distinguishes qualification and transfers require th
   assert_true(
     @vector_typing.ranking_score_at(input, Qualified(Right, "score")) is None,
   )
-  let op = @relation.check(
-    Select,
-    cursor("[\"id\",{\"s\":\"left.score\"}]"),
-    @carrier.complete_schema(@carrier.relation_rows(rows).unwrap()).unwrap(),
-    None,
-    {
-      max_work: 1000,
-      max_nodes: 1000,
-      max_text_bytes: 1000,
-      max_tokens: 1000,
-      max_depth: 10,
-    },
-  ).unwrap()
-  let c = @vector_typing.transfer_ranking_unary(input, op, limits()).unwrap()
-  let declaration = @vector_typing.ranking_score_at(c.input, Unqualified("s")).unwrap()
-  assert_eq(
-    @vector_typing.declared_score_field(declaration),
-    Qualified(Left, "score"),
-  )
-  assert_true(
-    @carrier.lookup(
-      @vector_typing.declared_score_records(declaration),
+  let forms : Array[(@relation.Operation, String)] = [
+    (Select, "[\"id\",{\"s\":\"left.score\"}]"),
+    (Derive, "{\"s\":\"left.score\"}"),
+  ]
+  for (operation, body) in forms {
+    let op = @relation.check(
+      operation,
+      cursor(body),
+      @carrier.complete_schema(@carrier.relation_rows(rows).unwrap()).unwrap(),
+      None,
+      {
+        max_work: 1000,
+        max_nodes: 1000,
+        max_text_bytes: 1000,
+        max_tokens: 1000,
+        max_depth: 10,
+      },
+    ).unwrap()
+    let c = @vector_typing.transfer_ranking_unary(input, op, limits()).unwrap()
+    let declaration = @vector_typing.ranking_score_at(c.input, Unqualified("s")).unwrap()
+    assert_eq(
+      @vector_typing.declared_score_field(declaration),
       Qualified(Left, "score"),
     )
-    is Present(_),
-  )
-  assert_true(
-    @carrier.lookup(
-      @vector_typing.declared_score_records(declaration),
-      Unqualified("s"),
-    )
-    is Absent,
-  )
-  assert_true(@vector_typing.ranking_score_at(input, Unqualified("s")) is None)
-  let exact = {
-    ..limits(),
-    max_work: c.usage.work,
-    max_text_bytes: c.usage.text_bytes,
-    max_nodes: 0,
-  }
-  assert_true(@vector_typing.transfer_ranking_unary(input, op, exact) is Ok(_))
-  for
-    cap in [
-      { ..exact, max_work: c.usage.work - 1, },
-      { ..exact, max_text_bytes: c.usage.text_bytes - 1, },
-    ] {
     assert_true(
-      @vector_typing.transfer_ranking_unary(input, op, cap)
-      is Err({ kind: BudgetExceeded, .. }),
+      @carrier.lookup(
+        @vector_typing.declared_score_records(declaration),
+        Qualified(Left, "score"),
+      )
+      is Present(_),
+    )
+    assert_true(
+      @carrier.lookup(
+        @vector_typing.declared_score_records(declaration),
+        Unqualified("s"),
+      )
+      is Absent,
+    )
+    assert_true(
+      @vector_typing.ranking_score_at(input, Unqualified("s")) is None,
+    )
+    let exact = {
+      ..limits(),
+      max_work: c.usage.work,
+      max_text_bytes: c.usage.text_bytes,
+      max_nodes: 0,
+    }
+    assert_true(
+      @vector_typing.transfer_ranking_unary(input, op, exact) is Ok(_),
+    )
+    for
+      cap in [
+        { ..exact, max_work: c.usage.work - 1, },
+        { ..exact, max_text_bytes: c.usage.text_bytes - 1, },
+      ] {
+      assert_true(
+        @vector_typing.transfer_ranking_unary(input, op, cap)
+        is Err({ kind: BudgetExceeded, .. }),
+      )
+    }
+    let other = @vector_typing.declare_ranking_score(
+      source,
+      make_rows(),
+      Qualified(Left, "score"),
+      limits(),
+    ).unwrap()
+    assert_true(
+      @vector_typing.transfer_ranking_unary(other, op, limits())
+      is Err({ kind: RankingInputMismatch, .. }),
     )
   }
-  let other = @vector_typing.declare_ranking_score(
-    source,
-    make_rows(),
-    Qualified(Left, "score"),
-    limits(),
-  ).unwrap()
-  assert_true(
-    @vector_typing.transfer_ranking_unary(other, op, limits())
-    is Err({ kind: RankingInputMismatch, .. }),
-  )
 }

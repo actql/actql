@@ -89,43 +89,58 @@ test "compound ranking identities survive all aliases and filtering before fusio
     components=Unqualified("v"),
     max_identity_fields=2,
   ).unwrap()
-  let source = cursor(
-    "[{\"nearest\":{\"queries\":\"v\",\"metric\":\"dot\",\"k\":10}},{\"select\":[\"query_id\",{\"x\":\"candidate_id\"},{\"y\":\"candidate_id\"},\"rank\"]},{\"drop\":[\"x\"]},{\"filter\":\"rank > 0\",\"as\":\"prepared\"},{\"merge_rankings\":{\"with\":\"prepared\",\"by\":[\"query_id\"],\"candidate\":\"y\",\"rank\":\"rank\",\"k\":2,\"score_policy\":{\"rrf\":{\"rank_constant\":60,\"weights\":[1,1],\"rank_window\":10}}}}]",
-  )
-  let inputs = [("v", vectors)]
-  let p = @pipeline_typing.check_carriers(source, inputs, None, None, limits()).unwrap()
-  assert_true(
-    @vector.ranking_input_nearest(
-      @pipeline_typing.ranking_evidence(p, Step(3)).unwrap(),
-    )
-    is Some(_),
-  )
-  guard @pipeline_typing.step_at(p, 4).unwrap().operation is Ranking(c) else {
-    abort("ranking")
-  }
-  assert_true(
-    @vector.merged_ranking_pending(c).contains(
-      ValidatePositiveSafeContiguousRanks,
-    ),
-  )
-  let u = @pipeline_typing.usage(p)
-  let exact = {
-    ..limits(),
-    max_work: u.work,
-    max_nodes: u.nodes,
-    max_text_bytes: u.text_bytes,
-  }
-  assert_true(
-    @pipeline_typing.check_carriers(source, inputs, None, None, exact) is Ok(_),
-  )
   for
-    cap in [
-      { ..exact, max_work: u.work - 1, },
-      { ..exact, max_text_bytes: u.text_bytes - 1, },
+    source in [
+      cursor(
+        "[{\"nearest\":{\"queries\":\"v\",\"metric\":\"dot\",\"k\":10}},{\"select\":[\"query_id\",{\"x\":\"candidate_id\"},{\"y\":\"candidate_id\"},\"rank\"]},{\"drop\":[\"x\"]},{\"filter\":\"rank > 0\",\"as\":\"prepared\"},{\"merge_rankings\":{\"with\":\"prepared\",\"by\":[\"query_id\"],\"candidate\":\"y\",\"rank\":\"rank\",\"k\":2,\"score_policy\":{\"rrf\":{\"rank_constant\":60,\"weights\":[1,1],\"rank_window\":10}}}}]",
+      ),
+      cursor(
+        "[{\"nearest\":{\"queries\":\"v\",\"metric\":\"dot\",\"k\":10}},{\"derive\":{\"x\":\"candidate_id\",\"y\":\"candidate_id\"}},{\"drop\":[\"x\",\"candidate_id\"]},{\"filter\":\"rank > 0\",\"as\":\"prepared\"},{\"merge_rankings\":{\"with\":\"prepared\",\"by\":[\"query_id\"],\"candidate\":\"y\",\"rank\":\"rank\",\"k\":2,\"score_policy\":{\"rrf\":{\"rank_constant\":60,\"weights\":[1,1],\"rank_window\":10}}}}]",
+      ),
     ] {
+    let inputs = [("v", vectors)]
+    let p = @pipeline_typing.check_carriers(
+      source,
+      inputs,
+      None,
+      None,
+      limits(),
+    ).unwrap()
     assert_true(
-      @pipeline_typing.check_carriers(source, inputs, None, None, cap) is Err(_),
+      @vector.ranking_input_nearest(
+        @pipeline_typing.ranking_evidence(p, Step(3)).unwrap(),
+      )
+      is Some(_),
     )
+    guard @pipeline_typing.step_at(p, 4).unwrap().operation is Ranking(c) else {
+      abort("ranking")
+    }
+    assert_true(
+      @vector.merged_ranking_pending(c).contains(
+        ValidatePositiveSafeContiguousRanks,
+      ),
+    )
+    let u = @pipeline_typing.usage(p)
+    let exact = {
+      ..limits(),
+      max_work: u.work,
+      max_nodes: u.nodes,
+      max_text_bytes: u.text_bytes,
+    }
+    assert_true(
+      @pipeline_typing.check_carriers(source, inputs, None, None, exact)
+      is Ok(_),
+    )
+    for
+      cap in [
+        { ..exact, max_work: u.work - 1, },
+        { ..exact, max_text_bytes: u.text_bytes - 1, },
+      ] {
+      assert_true(
+        @pipeline_typing.check_carriers(source, inputs, None, None, cap)
+        is Err(_),
+      )
+    }
   }
 }
 
@@ -147,33 +162,46 @@ test "captured score aliases preserve their original declaration and overwrites 
     Unqualified("score"),
     { max_work: 1000, max_nodes: 1000, max_depth: 10, max_text_bytes: 1000, },
   ).unwrap()
-  let prefix = "{\"select\":[\"id\",{\"a\":\"score\"},{\"b\":\"score\"}]},{\"drop\":[\"a\"],\"as\":\"prepared\"}"
-  let merge = "{\"merge_rankings\":{\"with\":\"prepared\",\"by\":[],\"candidate\":\"id\",\"score\":\"b\",\"k\":1,\"score_policy\":\"max\",\"score_contract\":" +
-    contract +
-    "}}"
-  let inputs = [("rows", @pipeline_typing.RankingInput(ranking))]
-  let p = @pipeline_typing.check_with_evidence(
-    cursor("[" + prefix + "," + merge + "]"),
-    inputs,
-    None,
-    None,
-    limits(),
-  ).unwrap()
-  let retained = @pipeline_typing.ranking_evidence(p, Step(1)).unwrap()
-  let declaration = @vector.ranking_score_at(retained, Unqualified("b")).unwrap()
-  assert_eq(@vector.declared_score_field(declaration), Unqualified("score"))
-  assert_true(@vector.ranking_score_at(retained, Unqualified("a")) is None)
-  assert_true(
-    @vector.ranking_score_at(ranking, Unqualified("score")) is Some(_),
-  )
-  let changed = @pipeline_typing.check_with_evidence(
-    cursor("[" + prefix + ",{\"derive\":[{\"b\":\"1\"}]}," + merge + "]"),
-    inputs,
-    None,
-    None,
-    limits(),
-  )
-  assert_true(changed is Err({ kind: Vector(MissingScoreContract), .. }))
+  for
+    prefix in [
+      "{\"select\":[\"id\",{\"a\":\"score\"},{\"b\":\"score\"}]},{\"drop\":[\"a\"],\"as\":\"prepared\"}",
+      "{\"derive\":[{\"a\":\"score\"},{\"score\":\"0\"},{\"b\":\"a\"}]},{\"drop\":[\"a\"],\"as\":\"prepared\"}",
+    ] {
+    let merge = "{\"merge_rankings\":{\"with\":\"prepared\",\"by\":[],\"candidate\":\"id\",\"score\":\"b\",\"k\":1,\"score_policy\":\"max\",\"score_contract\":" +
+      contract +
+      "}}"
+    let inputs = [("rows", @pipeline_typing.RankingInput(ranking))]
+    let p = @pipeline_typing.check_with_evidence(
+      cursor("[" + prefix + "," + merge + "]"),
+      inputs,
+      None,
+      None,
+      limits(),
+    ).unwrap()
+    let retained = @pipeline_typing.ranking_evidence(p, Step(1)).unwrap()
+    let declaration = @vector.ranking_score_at(retained, Unqualified("b")).unwrap()
+    assert_eq(@vector.declared_score_field(declaration), Unqualified("score"))
+    assert_true(@vector.ranking_score_at(retained, Unqualified("a")) is None)
+    assert_true(
+      @vector.ranking_score_at(ranking, Unqualified("score")) is Some(_),
+    )
+    let changed = @pipeline_typing.check_with_evidence(
+      cursor("[" + prefix + ",{\"derive\":[{\"b\":\"1\"}]}," + merge + "]"),
+      inputs,
+      None,
+      None,
+      limits(),
+    )
+    assert_true(changed is Err({ kind: Vector(MissingScoreContract), .. }))
+    let computed = @pipeline_typing.check_with_evidence(
+      cursor("[" + prefix + ",{\"derive\":[{\"b\":\"b + 0\"}]}," + merge + "]"),
+      inputs,
+      None,
+      None,
+      limits(),
+    )
+    assert_true(computed is Err({ kind: Vector(MissingScoreContract), .. }))
+  }
 }
 
 ///|

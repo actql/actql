@@ -219,8 +219,15 @@ and span.
 
 `transfer_ranking_unary` preserves value-domain and declared-score annotations
 through supported row-preserving/subsetting operations. Projection transfers all
-aliases; dropping one alias does not erase another. Derive overwrites invalidate
-the affected annotations even when the replacement has the same type. Whole-row
+aliases; dropping one alias does not erase another. Exact whole-field derive
+copies transfer both score and composite-identity annotations. The checker-owned
+copy targets distinguish input-snapshot reads from prior-slot reads: saving an
+annotated value before shadowing its source retains the saved annotation, while
+copying the computed replacement does not. Slot annotations are resolved once,
+then attached only to retained output fields. Computed derive overwrites invalidate
+the affected annotations even when the replacement has the same type or looks
+arithmetically equivalent. No value evaluation or constant folding proves a copy.
+Whole-row
 distinct preserves them. Other operations currently clear these annotations.
 The checked operation must use the exact bound input schema, not an unrelated
 equal schema. Maps distinguish qualification from an unqualified dotted spelling.

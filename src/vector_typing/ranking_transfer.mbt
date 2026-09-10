@@ -47,26 +47,42 @@ pub fn transfer_ranking_unary(
       | WatermarkRows => ()
       Derive => {
         spend(b, source, @relation.binding_count(op))
-        let changed : Map[String, Bool] = Map([])
+        let slots : Array[(Int?, Bool)] = []
+        let assigned : Map[String, (Int?, Bool)] = Map([])
         for i in 0..<@relation.binding_count(op) {
-          if @relation.binding_at(op, i).unwrap().name is Some(name) {
-            changed[ranking_field_key(@row.Unqualified(name))] = true
+          let binding = @relation.binding_copy_at(op, i).unwrap()
+          let annotation = match binding.input {
+            Some(InputField(field)) => {
+              charge(b, source, @row.reference_name(field))
+              let name = ranking_field_key(field)
+              (previous.tuples.get(name), previous.score_aliases.contains(name))
+            }
+            Some(PriorSlot(slot)) => slots[slot]
+            None => (None, false)
+          }
+          slots.push(annotation)
+          if binding.output is Some(name) {
+            charge(b, source, name)
+            assigned[ranking_field_key(@row.Unqualified(name))] = annotation
           }
         }
-        spend(
-          b,
-          source,
-          previous.tuples.length() + previous.score_aliases.length(),
-        )
         tuples = Map([])
         scores = Map([])
-        for name, n in previous.tuples {
-          if !changed.contains(name) {
+        let output = @relation.output_schema(op)
+        spend(b, source, @row.field_count(output))
+        for i in 0..<@row.field_count(output) {
+          let field = @row.field_at(output, i).unwrap().name
+          charge(b, source, @row.reference_name(field))
+          let name = ranking_field_key(field)
+          let (tuple, score) = assigned
+            .get(name)
+            .unwrap_or(
+              (previous.tuples.get(name), previous.score_aliases.contains(name)),
+            )
+          if tuple is Some(n) {
             tuples[name] = n
           }
-        }
-        for name, _ in previous.score_aliases {
-          if !changed.contains(name) {
+          if score {
             scores[name] = true
           }
         }
