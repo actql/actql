@@ -20,6 +20,7 @@ priv enum Frame {
 priv enum OutputSink {
   TextOutput(StringBuilder)
   MeasureOutput
+  HashOutput(@sha256.Hasher)
 }
 
 ///|
@@ -82,6 +83,51 @@ fn create_writer(
 }
 
 ///|
+/// Hash the same bounded UTF-8 stream without retaining serialized output.
+pub fn hashing_writer(
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Writer raise EncodeFailure {
+  create_writer(max_bytes, max_nodes, max_depth, HashOutput(@sha256.hasher()))
+}
+
+///|
+fn hash_byte(
+  w : Writer,
+  h : @sha256.Hasher,
+  byte : Int,
+) -> Unit raise EncodeFailure {
+  @sha256.update_byte(h, byte.to_byte()) catch {
+    @sha256.ClosedHasher => fail(w, ClosedWriter)
+    @sha256.MessageTooLong => fail(w, OutputLimit)
+  }
+}
+
+///|
+fn hash_scalar(
+  w : Writer,
+  h : @sha256.Hasher,
+  scalar : Int,
+) -> Unit raise EncodeFailure {
+  if scalar < 128 {
+    hash_byte(w, h, scalar)
+  } else if scalar < 2048 {
+    hash_byte(w, h, 0xc0 | (scalar >> 6))
+    hash_byte(w, h, 0x80 | (scalar & 63))
+  } else if scalar < 65536 {
+    hash_byte(w, h, 0xe0 | (scalar >> 12))
+    hash_byte(w, h, 0x80 | ((scalar >> 6) & 63))
+    hash_byte(w, h, 0x80 | (scalar & 63))
+  } else {
+    hash_byte(w, h, 0xf0 | (scalar >> 18))
+    hash_byte(w, h, 0x80 | ((scalar >> 12) & 63))
+    hash_byte(w, h, 0x80 | ((scalar >> 6) & 63))
+    hash_byte(w, h, 0x80 | (scalar & 63))
+  }
+}
+
+///|
 fn[T] fail(w : Writer, error : EncodeFailure) -> T raise EncodeFailure {
   w.closed = true
   raise error
@@ -103,6 +149,10 @@ fn ascii(w : Writer, text : String) -> Unit raise EncodeFailure {
   match w.output {
     TextOutput(output) => output.write_string(text)
     MeasureOutput => ()
+    HashOutput(h) =>
+      for unit in text {
+        hash_byte(w, h, unit.to_int())
+      }
   }
 }
 
@@ -158,6 +208,7 @@ fn quoted(w : Writer, text : String) -> Unit raise EncodeFailure {
         match w.output {
           TextOutput(output) => output.write_char(scalar.unsafe_to_char())
           MeasureOutput => ()
+          HashOutput(h) => hash_scalar(w, h, scalar)
         }
       }
     }
@@ -328,4 +379,16 @@ fn finish_state(w : Writer) -> Unit raise EncodeFailure {
     fail(w, InvalidStructure)
   }
   w.closed = true
+}
+
+///|
+/// A digest is exposed only after successful completion; wrong sink types close the writer.
+pub fn finish_hash(w : Writer) -> String raise EncodeFailure {
+  active(w)
+  guard w.output is HashOutput(h) else { fail(w, InvalidStructure) }
+  finish_state(w)
+  @sha256.finish_hex(h) catch {
+    @sha256.ClosedHasher => fail(w, ClosedWriter)
+    @sha256.MessageTooLong => fail(w, OutputLimit)
+  }
 }

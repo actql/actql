@@ -1,5 +1,1 @@
 supported_targets = "+js+wasm+native"
-
-import {
-  "moonbitlang/core/encoding/utf8",
-}

@@ -32,74 +32,137 @@ fn word_at(input : Array[Byte], offset : Int) -> UInt {
 }
 
 ///|
-/// Returns the 32-byte SHA-256 digest without modifying the input.
-pub fn digest(input : Bytes) -> Bytes {
-  let bytes = input.to_array()
-  let original_length = bytes.length()
-  bytes.push(0x80)
-  while bytes.length() % 64 != 56 {
-    bytes.push(0x00)
+/// Incremental SHA-256 state with one 64-byte block and a fixed word schedule.
+struct Hasher {
+  state : Array[UInt]
+  words : Array[UInt]
+  block : Array[Byte]
+  mut used : Int
+  mut length : UInt64
+  mut closed : Bool
+}
+
+///|
+pub(all) suberror HashFailure {
+  ClosedHasher
+  MessageTooLong
+} derive(Debug)
+
+///|
+/// Creates a single-use incremental state. Updates retain no input buffers.
+pub fn hasher() -> Hasher {
+  {
+    state: initial_state.iter().collect(),
+    words: Array::make(64, 0U),
+    block: Array::make(64, 0x00),
+    used: 0,
+    length: 0UL,
+    closed: false,
   }
-  let bit_length = UInt64::extend_uint(original_length.reinterpret_as_uint()) *
-    8UL
-  let length_bytes = bit_length.to_be_bytes()
-  for byte in length_bytes {
-    bytes.push(byte)
+}
+
+///|
+fn compress(h : Hasher) -> Unit {
+  let state = h.state
+  let words = h.words
+  let bytes = h.block
+  for index = 0; index < 16; index = index + 1 {
+    words[index] = word_at(bytes, index * 4)
   }
-  let state : Array[UInt] = initial_state.iter().collect()
-  let words = Array::make(64, 0U)
-  for offset = 0; offset < bytes.length(); offset = offset + 64 {
-    for index = 0; index < 16; index = index + 1 {
-      words[index] = word_at(bytes, offset + index * 4)
-    }
-    for index = 16; index < 64; index = index + 1 {
-      let earlier = words[index - 15]
-      let later = words[index - 2]
-      let s0 = rotate_right(earlier, 7) ^
-        rotate_right(earlier, 18) ^
-        (earlier >> 3)
-      let s1 = rotate_right(later, 17) ^ rotate_right(later, 19) ^ (later >> 10)
-      words[index] = words[index - 16] + s0 + words[index - 7] + s1
-    }
-    let mut a = state[0]
-    let mut b = state[1]
-    let mut c = state[2]
-    let mut d = state[3]
-    let mut e = state[4]
-    let mut f = state[5]
-    let mut g = state[6]
-    let mut h = state[7]
-    for index = 0; index < 64; index = index + 1 {
-      let sigma1 = rotate_right(e, 6) ^
-        rotate_right(e, 11) ^
-        rotate_right(e, 25)
-      let choose = (e & f) ^ (e.lnot() & g)
-      let temp1 = h + sigma1 + choose + round_constants[index] + words[index]
-      let sigma0 = rotate_right(a, 2) ^
-        rotate_right(a, 13) ^
-        rotate_right(a, 22)
-      let majority = (a & b) ^ (a & c) ^ (b & c)
-      let temp2 = sigma0 + majority
-      h = g
-      g = f
-      f = e
-      e = d + temp1
-      d = c
-      c = b
-      b = a
-      a = temp1 + temp2
-    }
-    state[0] = state[0] + a
-    state[1] = state[1] + b
-    state[2] = state[2] + c
-    state[3] = state[3] + d
-    state[4] = state[4] + e
-    state[5] = state[5] + f
-    state[6] = state[6] + g
-    state[7] = state[7] + h
+  for index = 16; index < 64; index = index + 1 {
+    let earlier = words[index - 15]
+    let later = words[index - 2]
+    let s0 = rotate_right(earlier, 7) ^
+      rotate_right(earlier, 18) ^
+      (earlier >> 3)
+    let s1 = rotate_right(later, 17) ^ rotate_right(later, 19) ^ (later >> 10)
+    words[index] = words[index - 16] + s0 + words[index - 7] + s1
   }
+  let mut a = state[0]
+  let mut b = state[1]
+  let mut c = state[2]
+  let mut d = state[3]
+  let mut e = state[4]
+  let mut f = state[5]
+  let mut g = state[6]
+  let mut h = state[7]
+  for index = 0; index < 64; index = index + 1 {
+    let sigma1 = rotate_right(e, 6) ^ rotate_right(e, 11) ^ rotate_right(e, 25)
+    let choose = (e & f) ^ (e.lnot() & g)
+    let temp1 = h + sigma1 + choose + round_constants[index] + words[index]
+    let sigma0 = rotate_right(a, 2) ^ rotate_right(a, 13) ^ rotate_right(a, 22)
+    let majority = (a & b) ^ (a & c) ^ (b & c)
+    let temp2 = sigma0 + majority
+    h = g
+    g = f
+    f = e
+    e = d + temp1
+    d = c
+    c = b
+    b = a
+    a = temp1 + temp2
+  }
+  state[0] = state[0] + a
+  state[1] = state[1] + b
+  state[2] = state[2] + c
+  state[3] = state[3] + d
+  state[4] = state[4] + e
+  state[5] = state[5] + f
+  state[6] = state[6] + g
+  state[7] = state[7] + h
+}
+
+///|
+fn append(h : Hasher, byte : Byte) -> Unit {
+  h.block[h.used] = byte
+  h.used += 1
+  if h.used == 64 {
+    compress(h)
+    h.used = 0
+  }
+}
+
+///|
+fn admit_length(h : Hasher, length : UInt64) -> Unit raise HashFailure {
+  if h.closed {
+    raise ClosedHasher
+  }
+  // SHA-256 encodes the original bit length in 64 bits.
+  if length > 0x1fffffffffffffffUL - h.length {
+    h.closed = true
+    raise MessageTooLong
+  }
+  h.length += length
+}
+
+///|
+/// Adds bytes without copying the complete input. Length overflow closes the state.
+pub fn update(h : Hasher, input : Bytes) -> Unit raise HashFailure {
+  admit_length(h, input.length().to_uint64())
+  for byte in input {
+    append(h, byte)
+  }
+}
+
+///|
+pub fn update_byte(h : Hasher, byte : Byte) -> Unit raise HashFailure {
+  admit_length(h, 1UL)
+  append(h, byte)
+}
+
+///|
+fn finish_bytes(h : Hasher) -> Bytes {
+  let bit_length = h.length * 8UL
+  append(h, 0x80)
+  while h.used != 56 {
+    append(h, 0x00)
+  }
+  for byte in bit_length.to_be_bytes() {
+    append(h, byte)
+  }
+  h.closed = true
   let output : Array[Byte] = []
-  for word in state {
+  for word in h.state {
     output.push((word >> 24).to_byte())
     output.push((word >> 16).to_byte())
     output.push((word >> 8).to_byte())
@@ -109,10 +172,18 @@ pub fn digest(input : Bytes) -> Bytes {
 }
 
 ///|
-/// Returns the SHA-256 digest as 64 lowercase hexadecimal characters.
-pub fn hex(input : Bytes) -> String {
+/// Finalizes the digest and closes the state; subsequent updates or finishes fail.
+pub fn finish_digest(h : Hasher) -> Bytes raise HashFailure {
+  if h.closed {
+    raise ClosedHasher
+  }
+  finish_bytes(h)
+}
+
+///|
+fn hex_bytes(bytes : Bytes) -> String {
   let builder = StringBuilder(size_hint=64)
-  for byte in digest(input) {
+  for byte in bytes {
     let part = byte.to_hex()
     if part.length() == 1 {
       builder.write_char('0')
@@ -120,6 +191,27 @@ pub fn hex(input : Bytes) -> String {
     builder.write_string(part)
   }
   builder.to_string()
+}
+
+///|
+pub fn finish_hex(h : Hasher) -> String raise HashFailure {
+  hex_bytes(finish_digest(h))
+}
+
+///|
+/// One-shot hashing uses the same fixed-size block state without copying input.
+pub fn digest(input : Bytes) -> Bytes {
+  let h = hasher()
+  h.length = input.length().to_uint64()
+  for byte in input {
+    append(h, byte)
+  }
+  finish_bytes(h)
+}
+
+///|
+pub fn hex(input : Bytes) -> String {
+  hex_bytes(digest(input))
 }
 
 ///|
@@ -131,12 +223,13 @@ pub(all) enum TextEncodingError {
 ///|
 /// Hashes the UTF-8 encoding without Unicode or newline normalization.
 /// Input must represent Unicode scalar values. Unpaired surrogates are rejected
-/// before encoding, rather than replaced or passed to a backend that may panic.
+/// without returning a digest, rather than replaced or passed to a backend that may panic.
 pub fn text_hex(input : String) -> Result[String, TextEncodingError] {
+  let h = hasher()
   let mut index = 0
   while index < input.length() {
     let unit = input[index].to_int()
-    if unit >= 0xD800 && unit <= 0xDBFF {
+    let scalar = if unit >= 0xD800 && unit <= 0xDBFF {
       if index + 1 >= input.length() {
         return Err(UnpairedSurrogate(index))
       }
@@ -145,11 +238,32 @@ pub fn text_hex(input : String) -> Result[String, TextEncodingError] {
         return Err(UnpairedSurrogate(index))
       }
       index = index + 2
+      0x10000 + ((unit - 0xD800) << 10) + low - 0xDC00
     } else if unit >= 0xDC00 && unit <= 0xDFFF {
       return Err(UnpairedSurrogate(index))
     } else {
       index = index + 1
+      unit
+    }
+    if scalar < 0x80 {
+      append(h, scalar.to_byte())
+      h.length += 1UL
+    } else if scalar < 0x800 {
+      append(h, (0xc0 | (scalar >> 6)).to_byte())
+      append(h, (0x80 | (scalar & 63)).to_byte())
+      h.length += 2UL
+    } else if scalar < 0x10000 {
+      append(h, (0xe0 | (scalar >> 12)).to_byte())
+      append(h, (0x80 | ((scalar >> 6) & 63)).to_byte())
+      append(h, (0x80 | (scalar & 63)).to_byte())
+      h.length += 3UL
+    } else {
+      append(h, (0xf0 | (scalar >> 18)).to_byte())
+      append(h, (0x80 | ((scalar >> 12) & 63)).to_byte())
+      append(h, (0x80 | ((scalar >> 6) & 63)).to_byte())
+      append(h, (0x80 | (scalar & 63)).to_byte())
+      h.length += 4UL
     }
   }
-  Ok(hex(@utf8.encode(input)))
+  Ok(hex_bytes(finish_bytes(h)))
 }

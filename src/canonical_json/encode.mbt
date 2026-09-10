@@ -105,9 +105,7 @@ pub fn cid_value(
   max_nodes : Int,
   max_depth : Int,
 ) -> String raise @encode.EncodeFailure {
-  let text = stringify_value(value, max_bytes, max_nodes, max_depth)
-  match @sha256.text_hex(text) {
-    Ok(hex) => "sha256:" + hex
-    Err(_) => raise @encode.InvalidUnicode
-  }
+  let output = @encode.hashing_writer(max_bytes, max_nodes, max_depth)
+  emit_value(value, output)
+  "sha256:" + @encode.finish_hash(output)
 }

@@ -73,8 +73,12 @@ There are no implicit unlimited or abort-on-error convenience APIs.
 
 Input units and output bytes are different budgets: NFC can expand text, and JSON
 escaping adds bytes. These are work-size limits, not exact heap or CPU quotas.
-CID generation currently materializes canonical text and UTF-8 bytes; it is not
-a streaming hash sink.
+CID generation sends the canonical emitter's UTF-8 bytes directly to an
+incremental SHA-256 sink, without materializing the complete serialized String
+or byte array. Text serialization and hashing share escaping and budget checks.
+The hash state retains one 64-byte block and a fixed word schedule. This does
+not bound total heap usage: the admitted value, traversal frames and object-key
+tracking still occupy memory. `max_bytes` limits emitted bytes, not process memory.
 
 ## Verification
 

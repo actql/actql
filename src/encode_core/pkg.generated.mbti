@@ -28,7 +28,11 @@ pub fn finish(Writer) -> String raise EncodeFailure
 
 pub fn finish_document(Writer) -> EncodedDocument raise EncodeFailure
 
+pub fn finish_hash(Writer) -> String raise EncodeFailure
+
 pub fn finish_measurement(Writer) -> Int raise EncodeFailure
+
+pub fn hashing_writer(Int, Int, Int) -> Writer raise EncodeFailure
 
 pub fn key(Writer, String) -> Unit raise EncodeFailure
 

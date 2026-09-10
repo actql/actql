@@ -3,10 +3,10 @@ supported_targets = "+js+wasm+native"
 import {
   "actql/actql/encode_core" @encode,
   "actql/actql/canonical_value" @value,
-  "actql/actql/sha256",
 }
 
 import {
+  "actql/actql/sha256",
   "moonbitlang/core/json",
 } for "test"
 

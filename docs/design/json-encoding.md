@@ -18,6 +18,16 @@ object ordering, normalization and CID composition remain outside this package.
 The [canonical JSON layer](canonical-json.md) defines their serialization contract,
 bounded admission and pinned identity tests; this does not resolve all AoA laws.
 
+## Output sinks
+
+`writer`, `measuring_writer` and `hashing_writer` share the same bounded emitter.
+The hash sink feeds UTF-8 bytes incrementally to SHA-256 and `finish_hash` returns
+the lowercase digest without a CID prefix. It does not retain serialized text.
+Only a complete, successful emission can be finalized; failure or finalization
+closes the writer, and using a finalizer for another sink is an error. The hash
+state is private to the writer, so a failed prefix cannot be finalized separately.
+This changes storage, not canonical ordering, preimage selection or byte budgets.
+
 ## Scalar spelling
 
 Finite binary64 numbers use shortest round-tripping decimal digits, choosing

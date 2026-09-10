@@ -1,4 +1,23 @@
 ///|
+test "large canonical CID matches text serialization without changing preimages" {
+  let input = Json::string("é😀\n\"\\".repeat(200000))
+  let value = @canonical_json.from_json(input, 1, 0, 2000000)
+  let size = @canonical_json.measure_value(value, 4000000, 1, 0)
+  let text = @canonical_json.stringify_value(value, size, 1, 0)
+  assert_eq(
+    @canonical_json.cid_value(value, size, 1, 0),
+    "sha256:" + @sha256.text_hex(text).unwrap(),
+  )
+  let rejected = try {
+    ignore(@canonical_json.cid_value(value, size - 1, 1, 0))
+    false
+  } catch {
+    _ => true
+  }
+  assert_true(rejected)
+}
+
+///|
 test "normalization and ordering precede canonical emission" {
   let input = @json.parse(
     "{\"2\":\"e\\u0301\\r\\n\",\"10\":\"x\\ry\",\"z\":null,\"a\":true}",

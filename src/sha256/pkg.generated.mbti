@@ -8,13 +8,29 @@ import {
 // Values
 pub fn digest(Bytes) -> Bytes
 
+pub fn finish_digest(Hasher) -> Bytes raise HashFailure
+
+pub fn finish_hex(Hasher) -> String raise HashFailure
+
+pub fn hasher() -> Hasher
+
 pub fn hex(Bytes) -> String
 
 pub fn text_hex(String) -> Result[String, TextEncodingError]
 
+pub fn update(Hasher, Bytes) -> Unit raise HashFailure
+
+pub fn update_byte(Hasher, Byte) -> Unit raise HashFailure
+
 // Errors
+pub(all) suberror HashFailure {
+  ClosedHasher
+  MessageTooLong
+} derive(@debug.Debug)
 
 // Types and methods
+type Hasher
+
 pub(all) enum TextEncodingError {
   UnpairedSurrogate(Int)
 } derive(Eq, @debug.Debug)
