@@ -19,6 +19,7 @@ pub(all) enum Operation {
   TopK
   TopKBy
   Lag
+  WatermarkRows
 } derive(Eq, Debug)
 
 ///|

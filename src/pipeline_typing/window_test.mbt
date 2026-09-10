@@ -20,6 +20,37 @@ fn window_input() -> @carrier.Carrier {
 }
 
 ///|
+test "watermark keeps boundary roles without claiming prefix order evidence" {
+  let p = @pipeline_typing.check_carriers(
+    cursor(
+      "[{\"row_window\":{\"kind\":\"fixed\",\"time\":\"at\",\"size\":10}},{\"watermark_rows\":{\"time\":\"at\",\"max_skew\":\"1s\",\"late_policy\":\"drop\"}}]",
+    ),
+    [("rows", window_input())],
+    None,
+    None,
+    limits(),
+  ).unwrap()
+  let step = @pipeline_typing.step_at(p, 1).unwrap()
+  assert_true(@pipeline_typing.window_evidence(step) is Some(_))
+  match step.operation {
+    Unary(op) =>
+      assert_true(
+        @relation.pending_validations(op).any(p => {
+          p.kind == WatermarkPrefixOrder
+        }),
+      )
+    _ => fail("expected watermark")
+  }
+  assert_true(
+    @schema.lookup(
+      @pipeline_typing.output_schema(p).unwrap(),
+      Unqualified("watermark_late"),
+    ).unwrap().shape
+    is Boolean,
+  )
+}
+
+///|
 test "lag retains window roles and exposes nullable output through the pipeline" {
   let p = @pipeline_typing.check_carriers(
     cursor(

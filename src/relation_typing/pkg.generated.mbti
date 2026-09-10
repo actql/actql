@@ -249,6 +249,11 @@ pub struct KeyField {
   source : @decode_core.Cursor
 }
 
+pub(all) enum LatePolicy {
+  DropLate
+  MarkLate
+} derive(Eq, @debug.Debug)
+
 pub(all) struct Limits {
   max_work : Int
   max_text_bytes : Int
@@ -277,6 +282,7 @@ pub(all) enum Operation {
   TopK
   TopKBy
   Lag
+  WatermarkRows
 } derive(Eq, @debug.Debug)
 
 pub struct OrderTerm {
@@ -320,6 +326,7 @@ pub enum Reshape {
 }
 
 pub enum RowOperation {
+  Watermark(time~ : KeyField, timestamp~ : Bool, threshold~ : WatermarkSource, policy~ : LatePolicy)
   AssertWhere
   AssertUnique(Array[KeyField])
   Sort(Array[OrderTerm])
@@ -363,7 +370,17 @@ pub(all) enum ValidationKind {
   StatisticalAggregateLaw
   BoundFraction(String)
   LagCandidateKeyOrder
+  WatermarkPrefixOrder
+  WatermarkArithmetic
+  BoundFinite(String)
+  BoundDuration(String)
 } derive(Eq, @debug.Debug)
+
+pub enum WatermarkSource {
+  FixedThreshold(Double)
+  ThresholdParameter(String)
+  PrefixSkew(CountValue, duration~ : Bool)
+}
 
 // Type aliases
 

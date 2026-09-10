@@ -21,6 +21,12 @@ pub(all) enum CountValue {
 
 ///|
 pub enum RowOperation {
+  Watermark(
+    time~ : KeyField,
+    timestamp~ : Bool,
+    threshold~ : WatermarkSource,
+    policy~ : LatePolicy
+  )
   AssertWhere
   AssertUnique(Array[KeyField])
   Sort(Array[OrderTerm])
@@ -69,6 +75,10 @@ pub(all) enum ValidationKind {
   StatisticalAggregateLaw
   BoundFraction(String)
   LagCandidateKeyOrder
+  WatermarkPrefixOrder
+  WatermarkArithmetic
+  BoundFinite(String)
+  BoundDuration(String)
 } derive(Eq, Debug)
 
 ///|
@@ -89,6 +99,8 @@ pub fn pending_validations(
 pub fn row_operation(value : CheckedOperation) -> RowOperation? {
   value.row_operation.map(op => {
     match op {
+      Watermark(time~, timestamp~, threshold~, policy~) =>
+        Watermark(time~, timestamp~, threshold~, policy~)
       AssertWhere => AssertWhere
       AssertUnique(keys) => AssertUnique(keys.copy())
       Sort(terms) => Sort(terms.copy())

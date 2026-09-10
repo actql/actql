@@ -152,6 +152,63 @@ fn check_impl(
   let mut analytic : CheckedAnalytic? = None
   let mut output = input
   let form = match operation {
+    WatermarkRows => {
+      row_source(b, body)
+      let obj = decoded(
+        @decode.closed_object(body, [
+          "time", "late_policy", "watermark_ms", "max_skew",
+        ]),
+        body,
+      )
+      let time_source = decoded(@decode.required(obj, "time"), body)
+      let name = decoded(@decode.text(time_source), time_source)
+      let time = input_reference(b, time_source, name, visible)
+      let ty = visible.get(name).unwrap().0
+      if ty.nullable ||
+        !(ty.shape is @contract.Number || ty.shape is @contract.Timestamp) {
+        fail(time_source, IncompatibleColumn(name))
+      }
+      let policy_source = decoded(@decode.required(obj, "late_policy"), body)
+      let policy = match decoded(@decode.text(policy_source), policy_source) {
+        "drop" => DropLate
+        "mark" => MarkLate
+        _ => fail(policy_source, InvalidBody)
+      }
+      let threshold = watermark_source(
+        b, body, obj, parameters, parameter_types, pending,
+      )
+      let fields : Array[(@schema.FieldName, @contract.Contract)] = []
+      spend(b, body, count=@schema.field_count(input))
+      for i in 0..<@schema.field_count(input) {
+        let f = @schema.field_at(input, i).unwrap()
+        fields.push((f.name, f.contract))
+      }
+      for
+        (name, primitive) in [
+          ("watermark_ms", @contract.NumberType),
+          ("watermark_late", @contract.BooleanType),
+          ("watermark_decision", @contract.StringType),
+        ] {
+        if visible.contains(name) {
+          fail(body, InputCollision(name))
+        }
+        fields.push(
+          (Unqualified(name), @contract.primitive(primitive, nullable=false)),
+        )
+      }
+      output = schema_type(b, body, fields)
+      row_operation = Some(
+        Watermark(
+          time={ field: time, source: time_source, },
+          timestamp=ty.shape is @contract.Timestamp,
+          threshold~,
+          policy~,
+        ),
+      )
+      pending.push({ kind: ValidateReshapeRows, source: body, })
+      pending.push({ kind: WatermarkArithmetic, source: body, })
+      Form::RowOperation
+    }
     Lag => {
       row_source(b, body)
       let obj = decoded(

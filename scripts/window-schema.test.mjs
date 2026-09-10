@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import {test} from 'node:test';
 import {readFileSync} from 'node:fs';
-import {millisecondsSchema,windowSchema,lagSchema,checkWindowSchemas} from './window-schema.mjs';
+import {millisecondsSchema,windowSchema,lagSchema,watermarkRowsSchema,checkWindowSchemas} from './window-schema.mjs';
 import {parameterPrograms} from './parameter-schema.mjs';
 
 test('window options distinguish signed offsets and positive durations',()=>{
@@ -33,4 +33,13 @@ test('lag requires explicit nonempty order and admits omitted or positive offset
   assert.equal(s.properties.offset.oneOf[0].minimum,1);
   assert.equal(s.properties.offset.oneOf[0].maximum,9007199254740991);
   assert.equal(s.additionalProperties,false);
+});
+
+test('watermark requires exactly one threshold source and explicit policy',()=>{
+  const s=watermarkRowsSchema();
+  assert.deepEqual(s.required,['time','late_policy']);
+  assert.deepEqual(s.oneOf,[{required:['watermark_ms'],not:{required:['max_skew']}},
+    {required:['max_skew'],not:{required:['watermark_ms']}}]);
+  assert.deepEqual(s.properties.late_policy.enum,['drop','mark']);
+  assert.equal(s.properties.max_skew.oneOf[0].minimum,1);
 });

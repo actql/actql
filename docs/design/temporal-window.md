@@ -77,6 +77,24 @@ candidate-key-based total partition order, not proof provided by a typed
 planning/evidence boundary discharges that requirement. No candidate key or
 provider-arrival ordering is fabricated here.
 
+## Relation watermark
+
+`watermark_rows` requires exactly one fixed finite threshold or positive
+millisecond skew, an explicit drop/mark policy, and a known non-null numeric or
+timestamp time field. Numeric thresholds need not be integral. Skew accepts
+exact duration tokens and compatible whole numeric/duration Parameters; fixed
+threshold Parameters require non-null number declarations. Binding obligations
+remain separate from declaration checks.
+
+The result retains the original fields and adds fresh non-null `watermark_ms`,
+`watermark_late`, and `watermark_decision` fields. Existing window roles survive
+both policies. The checked threshold distinguishes a fixed value from the
+inclusive prefix-maximum law; only the latter requires `WatermarkPrefixOrder`.
+This does not establish logical order from provider arrival. Time-row validation,
+timestamp conversion and finite threshold arithmetic still require completion
+before execution/publication. This implementation performs no row filtering and
+does not claim to execute watermark decisions.
+
 Already-windowed external input admission and complete temporal-family integration
 remain to be connected. Successful pipeline window checking does not imply
 completion of those boundaries.

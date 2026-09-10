@@ -212,6 +212,7 @@ fn check_impl(
       "top_k" => Some(TopK)
       "top_k_by" => Some(TopKBy)
       "lag" => Some(Lag)
+      "watermark_rows" => Some(WatermarkRows)
       "join"
       | "append"
       | "nest"
