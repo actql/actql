@@ -2099,7 +2099,9 @@ fn check_impl(
   sync_delta(b, source, delta_inputs, steps, delta_steps)
   sync_keys(b, keyed_inputs, steps, keyed_steps)
   sync_rankings(b, inputs, ranked_inputs, steps, ranked_steps)
+  let row_counts = derive_row_counts(b, steps)
   {
+    row_counts,
     ranked_inputs,
     ranked_steps,
     keyed_inputs,

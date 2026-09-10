@@ -40,6 +40,8 @@ fabricated, including for an empty series. Ordinary timestamp columns alone do
 not authorize this proof. `ValidateKeyProducer` remains pending.
 
 No generator rows are materialized here, and this checker does not establish
-source coverage or observed absence. Logical-order and shared row-bound
-propagation remain separate work; a typed output or local count is not proof
-that the complete pipeline's execution resources are resolved.
+source coverage or observed absence. The [conditional row-count pass](row-count-evidence.md)
+propagates the known count through supported Relation operations. Logical order,
+remaining carrier-specific transfers and resolved capacity witnesses are still
+separate work; a typed output or count is not proof that the complete pipeline's
+execution resources are resolved.

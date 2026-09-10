@@ -41,8 +41,10 @@ starts. Identical literal endpoints yield the stronger bound zero. This is a
 conservative bound, not an evaluated row count or a byte-memory ceiling.
 Calendar-value and boundary-domain validation and actual resource ceilings remain
 explicit obligations; parameter endpoints also retain binding/range validation.
-Candidate-key and ranking-annotation transfers are connected below; shared
-logical-order and resource proof propagation is still separate work.
+Candidate-key and ranking-annotation transfers are connected below. The
+[conditional row-count pass](row-count-evidence.md) retains bucket counts and
+the series upper bound through supported Relation operations; shared logical-order
+and resolved resource proof propagation is still separate work.
 
 `CheckedCalendar` retains its bound input (absent for series). Bucket evidence
 transfer requires that same row-knowledge or complete-schema handle and uses

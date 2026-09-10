@@ -65,6 +65,8 @@ pub fn parameters(CheckedPipeline) -> @parameter_binding.Declarations?
 
 pub fn ranking_evidence(CheckedPipeline, Target) -> @vector_typing.RankingInput?
 
+pub fn row_count(CheckedPipeline, Target) -> RowCount?
+
 pub fn schema_at(CheckedPipeline, Target) -> @relation_schema.Schema?
 
 pub fn source(CheckedPipeline) -> @decode_core.Cursor
@@ -168,6 +170,7 @@ pub struct Issue {
 pub(all) enum IssueKind {
   InvalidLimits
   BudgetExceeded
+  RowBoundOverflow
   InvalidBody
   InvalidName(String)
   DuplicateName(String)
@@ -211,6 +214,11 @@ pub(all) struct Limits {
 } derive(Eq, @debug.Debug)
 
 type RelationEvidence
+
+pub struct RowCount {
+  upper : Int64
+  exact : Bool
+} derive(Eq, @debug.Debug)
 
 pub(all) enum Target {
   Input(Int)

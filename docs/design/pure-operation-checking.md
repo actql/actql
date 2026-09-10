@@ -65,6 +65,9 @@ The [Relation key boundary](relation-evidence.md) retains declared input identit
 with its admission obligations; it does not replace runtime validation with a flag.
 Its validated combined-input boundary retains keys and ranking annotations on
 the same immutable Relation contract without conflating their obligations.
+The [conditional row-count pass](row-count-evidence.md) connects known generator
+counts to implemented unary and binary Relation laws, keeping exact counts,
+upper bounds and unresolved execution obligations distinct.
 Support typed, columns-only and unknown inputs where the operation's existing
 rules allow them. Unknown information is neither an empty closed schema nor
 `json`. Missing mandatory static evidence fails; only already admitted deferrals

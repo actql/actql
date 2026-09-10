@@ -27,6 +27,7 @@ pub(all) enum Target {
 pub(all) enum IssueKind {
   InvalidLimits
   BudgetExceeded
+  RowBoundOverflow
   InvalidBody
   InvalidName(String)
   DuplicateName(String)
@@ -188,6 +189,7 @@ pub fn window_aliases(
 
 ///|
 struct CheckedPipeline {
+  row_counts : Array[RowCount?]
   ranked_inputs : Array[@vector.RankingInput?]
   ranked_steps : Array[@vector.RankingInput]
   keyed_inputs : Array[@evidence.KeySet?]

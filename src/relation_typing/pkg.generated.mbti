@@ -111,6 +111,8 @@ pub fn references(Binding) -> Array[Reference]
 
 pub fn reshape(CheckedOperation) -> Reshape?
 
+pub fn row_count_rule(CheckedOperation) -> RowCountRule
+
 pub fn row_operation(CheckedOperation) -> RowOperation?
 
 pub fn sequence_contiguity(CheckedSequence) -> SequenceContiguity
@@ -370,6 +372,17 @@ pub enum Reshape {
   Unpivot(columns~ : Array[KeyField], keep~ : Array[KeyField], name_column~ : String, value_column~ : String)
   JsonPick(column~ : @relation_schema.FieldName, path~ : Array[String], output~ : String)
   Unnest(column~ : @relation_schema.FieldName, element~ : String, index~ : String?, outer~ : Bool, max_items~ : Int64?)
+}
+
+pub enum RowCountRule {
+  Unknown
+  Preserve
+  Reduce
+  OneRow
+  OneExistingRow
+  Slice(limit~ : Int64?, offset~ : Int64?)
+  Repeat(Int64)
+  Expand(Int64?)
 }
 
 pub enum RowOperation {
