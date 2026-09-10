@@ -1,0 +1,103 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/vector_typing"
+
+import {
+  "actql/actql/carrier_contract",
+  "actql/actql/decode_core",
+  "actql/actql/parameter_binding",
+  "actql/actql/source_span",
+  "actql/actql/source_value",
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn check(Operation, @decode_core.Cursor, @carrier_contract.Carrier, @parameter_binding.Declarations?, Limits) -> Result[CheckedVector, Issue]
+
+pub fn input(CheckedVector) -> @carrier_contract.Carrier
+
+pub fn metric(CheckedVector) -> Metric?
+
+pub fn operation(CheckedVector) -> Operation
+
+pub fn output(CheckedVector) -> @carrier_contract.Carrier
+
+pub fn pending_validations(CheckedVector) -> Array[Obligation]
+
+pub fn query(CheckedVector) -> Query?
+
+pub fn query_dimensions(Query) -> Double?
+
+pub fn query_parameter(Query) -> String?
+
+pub fn query_values(Query) -> Array[Double]?
+
+pub fn source(CheckedVector) -> @decode_core.Cursor
+
+pub fn usage(CheckedVector) -> Usage
+
+// Errors
+
+// Types and methods
+type CheckedVector
+
+pub struct Issue {
+  kind : IssueKind
+  path : Array[@source_value.PathSegment]
+  span : @source_span.Span
+}
+
+pub(all) enum IssueKind {
+  InvalidLimits
+  BudgetExceeded
+  InvalidBody
+  Decode(@decode_core.IssueKind)
+  WrongCarrier(@carrier_contract.Kind)
+  InvalidQuery
+  UnknownParameter(String)
+  IncompatibleParameter(String)
+  DimensionMismatch(Double, Double)
+  OutputCollision(String)
+  UnknownOutputFields
+} derive(Eq, @debug.Debug)
+
+pub(all) struct Limits {
+  max_work : Int
+  max_nodes : Int
+  max_depth : Int
+  max_text_bytes : Int
+}
+
+pub(all) enum Metric {
+  Cosine
+  Dot
+  L2
+} derive(Eq, @debug.Debug)
+
+pub(all) enum Obligation {
+  ValidateVectorValues
+  ValidateUniqueIdentities
+  ResolveVecaProfile
+  ResolveVectorResources
+  NormalizeArithmetic
+  ScoreArithmetic
+  ScoreOrder
+  BindQuery(String)
+  MatchDimensions
+} derive(Eq, @debug.Debug)
+
+pub(all) enum Operation {
+  NormalizeVectors
+  ScoreVectors
+} derive(Eq, @debug.Debug)
+
+type Query
+
+pub(all) struct Usage {
+  work : Int
+  nodes : Int
+  text_bytes : Int
+} derive(Eq, @debug.Debug)
+
+// Type aliases
+
+// Traits

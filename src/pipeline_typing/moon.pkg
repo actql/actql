@@ -2,6 +2,7 @@ supported_targets = "+js+wasm+native"
 
 import {
   "actql/actql/graph_typing" @graph,
+  "actql/actql/vector_typing" @vector,
   "actql/actql/carrier_projection" @projection,
   "actql/actql/temporal_window" @window,
   "actql/actql/relation_values" @values,

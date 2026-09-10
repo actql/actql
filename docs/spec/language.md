@@ -5226,6 +5226,27 @@ independent fixed vectors must be pinned before an executable profile claim.
 preserve the vector carrier until `vectors`; `nearest` remains the
 two-input relation-returning exact KNN form.
 
+<!-- requirement-block: vector-bridges.scoring-options -->
+The `normalize_vectors` body MUST be exactly `true`; the `score_vectors` body
+is closed and requires exactly `query` and `metric`. A query is either the
+nonempty finite numeric array above or a whole Parameter reference whose
+declaration is a non-null array of non-null numbers. A known exact query
+length is checked against the carrier dimensions; otherwise matching dimensions
+remain a validation obligation before scoring. Defaults are not type evidence,
+and binding does not waive finite-component, nonempty or dimension validation.
+
+<!-- requirement-block: vector-bridges.score-output -->
+Scoring MUST preserve semantic identities, vector components and payload fields
+and add a fresh non-null number field named `score`. An existing `score` field
+is an output collision, and unknown field-set completeness does not prove its
+absence. This fresh-field rule prevents silent payload replacement; repeated
+scoring requires an explicit transformation that removes the previous score.
+Normalization preserves these fields and their contracts except for replacing
+the component values with normalized values; it does not recompute an existing
+score or establish that score's validity for the changed components. Neither
+operation's successful type check proves arithmetic validity, uniqueness,
+execution bounds or the score ordering required at execution.
+
 <a id="pool-vectors"></a>
 
 #### `pool_vectors`

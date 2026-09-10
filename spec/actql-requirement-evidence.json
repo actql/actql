@@ -4073,6 +4073,28 @@
       }
     },
     {
+      "requirement_id": "actql.language/vector-bridges.scoring-options",
+      "statement_sha256": "e5de8c01ddc0344c1a95f994dce648a34f66235fd8ac1de89d8f80edabb83fe7",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "vector-bridges",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/vector-bridges.score-output",
+      "statement_sha256": "b81d581b628fed5191dedc662ae61b8731fda4564f958d5bd10de4707facee8b",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "vector-bridges",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.language/pool-vectors.actql-source-does-not-expose-a-separate-relation-pooling-carrier-id",
       "statement_sha256": "514a7018bb7b3d03824fd86eea69f1bd0174b5a1b8708dac65d702cb3e6b2a60",
       "status": "pending",
@@ -7715,7 +7737,7 @@
     },
     {
       "requirement_id": "actql.protocol.contracts/machine-contracts.exact-artifacts",
-      "statement_sha256": "f33b04a00bd1816d989f9110a647cb828d078af4a319675d83041725a8097481",
+      "statement_sha256": "85ce0ed2576c26e226ad9ad08e4d9f69b29ec0fad6beb9de86f4c2b58a134b01",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",

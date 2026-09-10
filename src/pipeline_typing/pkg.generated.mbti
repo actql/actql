@@ -18,6 +18,7 @@ import {
   "actql/actql/source_span",
   "actql/actql/source_value",
   "actql/actql/temporal_window",
+  "actql/actql/vector_typing",
   "moonbitlang/core/debug",
 }
 
@@ -76,6 +77,7 @@ pub enum CheckedOperation {
   Window(@temporal_window.CheckedWindow)
   Projection(@carrier_projection.CheckedProjection)
   Graph(@graph_typing.CheckedGraph)
+  Vector(@vector_typing.CheckedVector)
   WindowGroup(@relation_typing.CheckedOperation)
 }
 
@@ -129,6 +131,7 @@ pub(all) enum IssueKind {
   Window(@temporal_window.IssueKind)
   Projection(@carrier_projection.IssueKind)
   Graph(@graph_typing.IssueKind)
+  Vector(@vector_typing.IssueKind)
   MissingWindowEvidence
   UnsupportedOperation(String)
   InvalidMetadata

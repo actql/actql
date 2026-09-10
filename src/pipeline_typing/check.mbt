@@ -222,6 +222,8 @@ fn check_impl(
       | "row_window"
       | "events"
       | "normalize_graph"
+      | "normalize_vectors"
+      | "score_vectors"
       | "degree"
       | "components"
       | "graph_bounds"
@@ -323,6 +325,56 @@ fn check_impl(
         metadata: meta,
         operation: Graph(checked),
         output: @graph.output(checked),
+        connections: { entries: [{ role: Primary, target: input, }], },
+        window: None,
+      })
+      if binding_name is Some(name) {
+        names[name] = target
+      }
+      current = Some(target)
+      continue
+    }
+    if key == "normalize_vectors" || key == "score_vectors" {
+      let operation = if key == "normalize_vectors" {
+        @vector.NormalizeVectors
+      } else {
+        @vector.ScoreVectors
+      }
+      let checked = match
+        @vector.check(
+          operation,
+          operation_body,
+          carrier(input, inputs, steps),
+          parameters,
+          {
+            max_work: b.work,
+            max_nodes: b.nodes,
+            max_depth: limits.max_depth,
+            max_text_bytes: b.text,
+          },
+        ) {
+        Ok(value) => value
+        Err(e) =>
+          raise Stop({
+            kind: Vector(e.kind),
+            source: operation_body,
+            path: e.path.copy(),
+            span: e.span,
+            range: None,
+          })
+      }
+      let used = @vector.usage(checked)
+      b.work -= used.work
+      b.nodes -= used.nodes
+      b.text -= used.text_bytes
+      let target = Step(steps.length())
+      steps.push({
+        source: body,
+        input: Some(input),
+        binding_name,
+        metadata: meta,
+        operation: Vector(checked),
+        output: @vector.output(checked),
         connections: { entries: [{ role: Primary, target: input, }], },
         window: None,
       })
@@ -684,8 +736,12 @@ fn check_impl(
     let connections : Connections = {
       entries: match checked {
         Values(_) => []
-        Unary(_) | Window(_) | WindowGroup(_) | Projection(_) | Graph(_) =>
-          [{ role: Primary, target: input, }]
+        Unary(_)
+        | Window(_)
+        | WindowGroup(_)
+        | Projection(_)
+        | Graph(_)
+        | Vector(_) => [{ role: Primary, target: input, }]
         Join(right~, ..)
         | Append(right~, ..)
         | Nest(right~, ..)
