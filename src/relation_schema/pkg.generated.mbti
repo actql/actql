@@ -21,6 +21,8 @@ pub fn from_object(@value_contract.Contract) -> Result[Schema, Issue]
 
 pub fn lookup(Schema, FieldName) -> @value_contract.Contract?
 
+pub fn lookup_reference(Schema, String) -> Field?
+
 pub fn reference_name(FieldName) -> String
 
 // Errors

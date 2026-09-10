@@ -7,9 +7,9 @@ import {
   "actql/actql/expression_text",
   "actql/actql/expression_typing",
   "actql/actql/parameter_binding",
+  "actql/actql/relation_schema",
   "actql/actql/source_span",
   "actql/actql/source_value",
-  "actql/actql/value_contract",
   "moonbitlang/core/debug",
 }
 
@@ -18,17 +18,17 @@ pub fn binding_at(CheckedOperation, Int) -> Binding?
 
 pub fn binding_count(CheckedOperation) -> Int
 
-pub fn check(Operation, @decode_core.Cursor, @value_contract.Contract, @parameter_binding.Declarations?, Limits) -> Result[CheckedOperation, Issue]
+pub fn check(Operation, @decode_core.Cursor, @relation_schema.Schema, @parameter_binding.Declarations?, Limits) -> Result[CheckedOperation, Issue]
 
 pub fn form(CheckedOperation) -> Form
 
-pub fn input_schema(CheckedOperation) -> @value_contract.Contract
+pub fn input_schema(CheckedOperation) -> @relation_schema.Schema
 
 pub fn nodes_used(CheckedOperation) -> Int
 
 pub fn operation(CheckedOperation) -> Operation
 
-pub fn output_schema(CheckedOperation) -> @value_contract.Contract
+pub fn output_schema(CheckedOperation) -> @relation_schema.Schema
 
 pub fn parameters(CheckedOperation) -> @parameter_binding.Declarations?
 
@@ -73,7 +73,6 @@ pub struct Issue {
 
 pub(all) enum IssueKind {
   InvalidLimits
-  InvalidInputSchema
   InvalidBody
   EmptyBody
   InvalidName(String)
@@ -103,8 +102,8 @@ pub(all) enum Operation {
 } derive(Eq, @debug.Debug)
 
 pub struct ProjectionField {
-  output : String
-  input : String
+  output : @relation_schema.FieldName
+  input : @relation_schema.FieldName
 }
 
 pub struct Reference {
@@ -113,7 +112,7 @@ pub struct Reference {
 }
 
 pub(all) enum ReferenceTarget {
-  InputField(String)
+  InputField(@relation_schema.FieldName)
   PriorSlot(Int)
 } derive(Eq, @debug.Debug)
 

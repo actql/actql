@@ -16,6 +16,7 @@ priv struct Parsed {
 ///|
 priv struct Parser {
   field_references : Array[FieldReference]
+  relation_references : Array[FieldReference]
   tokens : Array[Token]
   span : @value.Span
   mut pos : Int

@@ -177,6 +177,13 @@ fn Parser::expression(self : Parser) -> @value.Node raise ExpressionError {
               self.has(Punctuation(Dot)) {
               ignore(self.advance())
               let field = self.field_name()
+              self.relation_references.push({
+                name: name + "." + field,
+                range: {
+                  start: token.start,
+                  end: self.tokens[self.pos - 1].end,
+                },
+              })
               result = parsed(
                 self.form(
                   "join_field",
@@ -191,12 +198,20 @@ fn Parser::expression(self : Parser) -> @value.Node raise ExpressionError {
                 name,
                 range: { start: token.start, end: token.end, },
               })
+              self.relation_references.push({
+                name,
+                range: { start: token.start, end: token.end, },
+              })
               result = parsed(
                 self.form("field", self.node(@value.String(name))),
               )
             }
           QuotedName(name) => {
             self.field_references.push({
+              name,
+              range: { start: token.start, end: token.end, },
+            })
+            self.relation_references.push({
               name,
               range: { start: token.start, end: token.end, },
             })

@@ -5,6 +5,7 @@ import {
   "actql/actql/decode_core",
   "actql/actql/expression_text",
   "actql/actql/parameter_binding",
+  "actql/actql/relation_join",
   "actql/actql/relation_schema",
   "actql/actql/relation_typing",
   "actql/actql/source_span",
@@ -40,6 +41,11 @@ pub fn usage(CheckedPipeline) -> Usage
 // Errors
 
 // Types and methods
+pub enum CheckedOperation {
+  Unary(@relation_typing.CheckedOperation)
+  Join(right~ : Target, checked~ : @relation_join.CheckedJoin)
+}
+
 type CheckedPipeline
 
 pub struct CheckedStep {
@@ -47,7 +53,7 @@ pub struct CheckedStep {
   input : Target
   binding_name : String?
   metadata : @decode_core.Cursor?
-  operation : @relation_typing.CheckedOperation
+  operation : CheckedOperation
   output : @relation_schema.Schema
 }
 
@@ -63,7 +69,6 @@ pub(all) enum IssueKind {
   InvalidLimits
   BudgetExceeded
   InvalidBody
-  UnsupportedInputSchema(String)
   InvalidName(String)
   DuplicateName(String)
   UnknownName(String)
@@ -72,6 +77,7 @@ pub(all) enum IssueKind {
   InvalidMetadata
   ReservedMetadataKey(String)
   Operation(@relation_typing.IssueKind)
+  Join(@relation_join.IssueKind)
 } derive(Eq, @debug.Debug)
 
 pub(all) struct Limits {

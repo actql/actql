@@ -352,7 +352,17 @@ fn infer(
         i += 1
         let name = String::from_array(name)
         spend(t.budget, source)
-        let id = match env.fields.get(name) {
+        let id = match
+          (if name.has_prefix("left.") || name.has_prefix("right.") {
+            let parts = name.split(".").to_array()
+            let scope = if parts[0] == "left" { env.left } else { env.right }
+            match scope {
+              Some(scope) => scope.get(parts[1].to_owned())
+              None => fail(source, MissingJoinScope(parts[0].to_owned()))
+            }
+          } else {
+            env.fields.get(name)
+          }) {
           Some(id) => id
           None => fail(source, UnknownField(name))
         }

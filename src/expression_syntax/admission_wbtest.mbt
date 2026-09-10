@@ -101,6 +101,23 @@ test "mixed expressions normalize aliases without folding or reassociation" {
 }
 
 ///|
+test "template references separate ordinary fields from qualified fields" {
+  let expression = admit(
+    source_cursor(
+      "{\"template\":\"{name} {left.amount} {right.amount} {{left.hidden}}\"}",
+    ),
+    test_limits(),
+  ).unwrap()
+  assert_eq(field_references(expression).map(r => r.name), ["name"])
+  assert_eq(relation_references(expression).map(r => r.name), [
+    "name", "left.amount", "right.amount",
+  ])
+  let detached = relation_references(expression)
+  detached.clear()
+  assert_eq(relation_references(expression).length(), 3)
+}
+
+///|
 test "whole-field aliases normalize independently of lexical quotation" {
   for side in ["left", "right"] {
     let expected = source_cursor(

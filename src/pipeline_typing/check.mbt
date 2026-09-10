@@ -87,11 +87,7 @@ fn check_impl(
     if names.contains(key) {
       fail(source, DuplicateName(key))
     }
-    let contract = match @schema.as_object(schema) {
-      Some(c) => c
-      None => fail(source, UnsupportedInputSchema(key))
-    }
-    preflight(b, source, contract)
+    schema_preflight(b, source, schema)
     names[key] = Input(i)
   }
   if parameters is Some(p) {
@@ -140,24 +136,46 @@ fn check_impl(
       Some(v) => v
       None => fail(body, InvalidBody)
     }
-    let op : @relation.Operation = match key {
-      "derive" => Derive
-      "filter" => Filter
-      "select" => Select
-      "rename" => Rename
-      "drop" => Drop
+    let op : @relation.Operation? = match key {
+      "derive" => Some(Derive)
+      "filter" => Some(Filter)
+      "select" => Some(Select)
+      "rename" => Some(Rename)
+      "drop" => Some(Drop)
+      "join" => None
       _ => fail(@decode.lookup(object, key).unwrap(), UnsupportedOperation(key))
     }
-    let input = match @decode.lookup(object, "from") {
+    let selected = match @decode.lookup(object, "from") {
       Some(cursor) => {
         let key = read_name(b, cursor)
         match names.get(key) {
-          Some(v) => v
+          Some(v) => Some(v)
           None => fail(cursor, UnknownName(key))
         }
       }
+      None => current
+    }
+    let operation_body = @decode.lookup(object, key).unwrap()
+    let join_object = if op is None {
+      match @decode.open_object(operation_body) {
+        Ok(v) => Some(v)
+        Err(_) => fail(operation_body, InvalidBody)
+      }
+    } else {
+      None
+    }
+    let input = match join_object {
+      Some(obj) =>
+        match @decode.lookup(obj, "left") {
+          Some(s) => resolve_target(b, s, names)
+          None =>
+            match selected {
+              Some(v) => v
+              None => fail(body, MissingCurrent)
+            }
+        }
       None =>
-        match current {
+        match selected {
           Some(v) => v
           None => fail(body, MissingCurrent)
         }
@@ -176,34 +194,75 @@ fn check_impl(
     if meta is Some(cursor) {
       metadata(b, cursor)
     }
-    let checked = match
-      @relation.check(
-        op,
-        @decode.lookup(object, key).unwrap(),
-        @schema.as_object(schema(input, inputs, steps)).unwrap(),
-        parameters,
-        {
-          max_work: b.work,
-          max_text_bytes: b.text,
-          max_nodes: b.nodes,
-          max_tokens: b.tokens,
-          max_depth: limits.max_depth,
-        },
-      ) {
-      Ok(v) => v
-      Err(issue) =>
-        raise Stop({
-          kind: Operation(issue.kind),
-          source: issue.source,
-          path: issue.path.copy(),
-          span: issue.span,
-          range: issue.range,
-        })
+    let (checked, output) = match op {
+      Some(op) => {
+        let checked = match
+          @relation.check(
+            op,
+            operation_body,
+            schema(input, inputs, steps),
+            parameters,
+            {
+              max_work: b.work,
+              max_text_bytes: b.text,
+              max_nodes: b.nodes,
+              max_tokens: b.tokens,
+              max_depth: limits.max_depth,
+            },
+          ) {
+          Ok(v) => v
+          Err(issue) =>
+            raise Stop({
+              kind: Operation(issue.kind),
+              source: issue.source,
+              path: issue.path.copy(),
+              span: issue.span,
+              range: issue.range,
+            })
+        }
+        b.work -= @relation.work_used(checked)
+        b.text -= @relation.text_bytes_used(checked)
+        b.nodes -= @relation.nodes_used(checked)
+        b.tokens -= @relation.tokens_used(checked)
+        (Unary(checked), @relation.output_schema(checked))
+      }
+      None => {
+        let obj = join_object.unwrap()
+        let right_source = match @decode.required(obj, "with") {
+          Ok(v) => v
+          Err(_) => fail(operation_body, InvalidBody)
+        }
+        let right = resolve_target(b, right_source, names)
+        let checked = match
+          @join.check(
+            operation_body,
+            schema(input, inputs, steps),
+            schema(right, inputs, steps),
+            parameters,
+            {
+              max_work: b.work,
+              max_text_bytes: b.text,
+              max_nodes: b.nodes,
+              max_depth: limits.max_depth,
+            },
+          ) {
+          Ok(v) => v
+          Err(issue) =>
+            raise Stop({
+              kind: Join(issue.kind),
+              source: issue.source,
+              path: issue.path.copy(),
+              span: issue.span,
+              range: None,
+            })
+        }
+        let usage = @join.usage(checked)
+        b.work -= usage.work
+        b.text -= usage.text_bytes
+        b.nodes -= usage.nodes
+        (Join(right~, checked~), @join.output_schema(checked))
+      }
     }
-    b.work -= @relation.work_used(checked)
-    b.text -= @relation.text_bytes_used(checked)
-    b.nodes -= @relation.nodes_used(checked)
-    b.tokens -= @relation.tokens_used(checked)
     let target = Step(steps.length())
     steps.push({
       source: body,
@@ -211,7 +270,7 @@ fn check_impl(
       binding_name,
       metadata: meta,
       operation: checked,
-      output: @schema.from_object(@relation.output_schema(checked)).unwrap(),
+      output,
     })
     if binding_name is Some(key) {
       names[key] = target
@@ -237,6 +296,19 @@ fn check_impl(
       nodes: limits.max_nodes - b.nodes,
       tokens: limits.max_tokens - b.tokens,
     },
+  }
+}
+
+///|
+fn resolve_target(
+  b : Budget,
+  source : @decode.Cursor,
+  names : Map[String, Target],
+) -> Target raise Stop {
+  let name = read_name(b, source)
+  match names.get(name) {
+    Some(v) => v
+    None => fail(source, UnknownName(name))
   }
 }
 

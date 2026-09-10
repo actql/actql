@@ -293,7 +293,14 @@ fn template(
         name.write_char(chars[i])
         i += 1
       }
-      if i == chars.length() || !field_name(name.to_string()) {
+      let name = name.to_string()
+      let valid = if name.has_prefix("left.") || name.has_prefix("right.") {
+        let parts = name.split(".").to_array()
+        parts.length() == 2 && field_name(parts[1].to_owned())
+      } else {
+        field_name(name)
+      }
+      if i == chars.length() || !valid {
         invalid(cursor, origin, InvalidArguments)
       }
     }

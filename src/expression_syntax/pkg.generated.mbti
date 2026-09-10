@@ -16,6 +16,8 @@ pub fn field_references(Expression) -> Array[FieldReference]
 
 pub fn parameter_references(Expression) -> Array[ParameterReference]
 
+pub fn relation_references(Expression) -> Array[FieldReference]
+
 pub fn tree(Expression) -> @decode_core.Cursor
 
 pub fn usage(Expression) -> Usage

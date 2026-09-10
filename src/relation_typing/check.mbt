@@ -29,8 +29,10 @@ fn expression(
   b.tokens -= usage.tokens
   let references : Array[Reference] = []
   let fields : Array[(String, @contract.Contract)] = []
+  let left : Array[(String, @contract.Contract)] = []
+  let right : Array[(String, @contract.Contract)] = []
   let seen : Map[String, Bool] = Map([])
-  for occurrence in @syntax.field_references(admitted) {
+  for occurrence in @syntax.relation_references(admitted) {
     spend(b, source)
     match visible.get(occurrence.name) {
       None => unknown_reference(source, occurrence)
@@ -38,23 +40,33 @@ fn expression(
         references.push({ occurrence, target, })
         if !seen.contains(occurrence.name) {
           seen[occurrence.name] = true
-          fields.push((occurrence.name, contract))
+          match reference_target(occurrence.name, target) {
+            @schema.Unqualified(name) => fields.push((name, contract))
+            @schema.Qualified(Left, name) => left.push((name, contract))
+            @schema.Qualified(Right, name) => right.push((name, contract))
+          }
         }
       }
     }
   }
   let scope = object_type(b, source, fields)
+  let left = if left.is_empty() {
+    None
+  } else {
+    Some(object_type(b, source, left))
+  }
+  let right = if right.is_empty() {
+    None
+  } else {
+    Some(object_type(b, source, right))
+  }
   let typed = match
-    @typing.check(
-      admitted,
-      { fields: Some(scope), left: None, right: None, parameters, },
-      {
-        max_nodes: b.nodes.min(b.work),
-        max_depth: b.limits.max_depth,
-        max_work: b.work,
-        max_text_bytes: b.text,
-      },
-    ) {
+    @typing.check(admitted, { fields: Some(scope), left, right, parameters, }, {
+      max_nodes: b.nodes.min(b.work),
+      max_depth: b.limits.max_depth,
+      max_work: b.work,
+      max_text_bytes: b.text,
+    }) {
     Ok(value) => value
     Err(issue) => fail(issue.source, Expression(issue.kind))
   }
@@ -69,7 +81,7 @@ fn expression(
 fn check_impl(
   operation : Operation,
   body : @decode.Cursor,
-  input : @contract.Contract,
+  input : @schema.Schema,
   parameters : @parameter.Declarations?,
   limits : Limits,
 ) -> CheckedOperation raise Stop {
@@ -87,16 +99,7 @@ fn check_impl(
     tokens: limits.max_tokens,
     limits,
   }
-  let input_fields = match input.shape {
-    @contract.Object(fields) =>
-      if input.nullable {
-        fail(body, InvalidInputSchema)
-      } else {
-        fields
-      }
-    _ => fail(body, InvalidInputSchema)
-  }
-  preflight(b, body, input)
+  schema_preflight(b, body, input)
   if parameters is Some(params) {
     let count = @parameter.declaration_count(params)
     spend(b, body, count~)
@@ -107,11 +110,14 @@ fn check_impl(
     }
   }
   let visible : Map[String, (@contract.Contract, ReferenceTarget)] = Map([])
-  let count = @contract.field_count(input_fields)
+  let count = @schema.field_count(input)
   spend(b, body, count~)
   for i in 0..<count {
-    let field = @contract.field_at(input_fields, i).unwrap()
-    visible[field.name] = (field.contract, InputField(field.name))
+    let field = @schema.field_at(input, i).unwrap()
+    visible[@schema.reference_name(field.name)] = (
+      field.contract,
+      InputField(field.name),
+    )
   }
   let bindings : Array[Binding] = []
   let projection : Array[ProjectionField] = []
@@ -183,12 +189,12 @@ fn check_impl(
           )
         }
       }
-      let fields : Array[(String, @contract.Contract)] = []
+      let fields : Array[(@schema.FieldName, @contract.Contract)] = []
       spend(b, body, count=visible.length())
       for name, value in visible {
-        fields.push((name, value.0))
+        fields.push((reference_target(name, value.1), value.0))
       }
-      output = object_type(b, body, fields)
+      output = schema_type(b, body, fields)
       if sequential {
         DeriveArray
       } else {
@@ -203,32 +209,33 @@ fn check_impl(
           spend(b, body, count=items.length())
           for item in items {
             let (output, input) = match @decode.view(item) {
-              @decode.TextValue(name) => (name, name)
+              @decode.TextValue(name) => {
+                let field = input_reference(b, item, name, visible)
+                (field, field)
+              }
               @decode.ObjectValue(obj) => {
                 let names = decoded(@decode.object_field_names(item), item)
                 if names.length() != 1 {
                   fail(item, InvalidBody)
                 }
                 let name = names[0]
+                field_name(b, item, name)
+                let reference = decoded(
+                  @decode.text(@decode.lookup(obj, name).unwrap()),
+                  item,
+                )
                 (
-                  name,
-                  decoded(
-                    @decode.text(@decode.lookup(obj, name).unwrap()),
-                    item,
-                  ),
+                  @schema.Unqualified(name),
+                  input_reference(b, item, reference, visible),
                 )
               }
               _ => fail(item, InvalidBody)
             }
-            field_name(b, item, output)
-            field_name(b, item, input)
-            if !visible.contains(input) {
-              fail(item, UnknownField(input))
+            let output_name = @schema.reference_name(output)
+            if selected.contains(output_name) {
+              fail(item, DuplicateOutput(output_name))
             }
-            if selected.contains(output) {
-              fail(item, DuplicateOutput(output))
-            }
-            selected[output] = true
+            selected[output_name] = true
             projection.push({ output, input, })
           }
         }
@@ -239,22 +246,23 @@ fn check_impl(
           spend(b, body, count=names.length())
           for name in names {
             let source = @decode.lookup(object, name).unwrap()
-            field_name(b, source, name)
-            if !visible.contains(name) {
-              fail(source, UnknownField(name))
-            }
+            ignore(input_reference(b, source, name, visible))
             let target = decoded(@decode.text(source), source)
             field_name(b, source, target)
             renamed[name] = target
           }
           for i in 0..<count {
             spend(b, body)
-            let input = @contract.field_at(input_fields, i).unwrap().name
-            let output = renamed.get(input).unwrap_or(input)
-            if selected.contains(output) {
-              fail(body, DuplicateOutput(output))
+            let input = @schema.field_at(input, i).unwrap().name
+            let output = match renamed.get(@schema.reference_name(input)) {
+              Some(name) => @schema.Unqualified(name)
+              None => input
             }
-            selected[output] = true
+            let output_name = @schema.reference_name(output)
+            if selected.contains(output_name) {
+              fail(body, DuplicateOutput(output_name))
+            }
+            selected[output_name] = true
             projection.push({ output, input, })
           }
         }
@@ -263,16 +271,13 @@ fn check_impl(
           spend(b, body, count=items.length())
           for item in items {
             let name = decoded(@decode.text(item), item)
-            field_name(b, item, name)
-            if !visible.contains(name) {
-              fail(item, UnknownField(name))
-            }
+            ignore(input_reference(b, item, name, visible))
             selected[name] = true
           }
           for i in 0..<count {
             spend(b, body)
-            let name = @contract.field_at(input_fields, i).unwrap().name
-            if !selected.contains(name) {
+            let name = @schema.field_at(input, i).unwrap().name
+            if !selected.contains(@schema.reference_name(name)) {
               projection.push({ output: name, input: name, })
             }
           }
@@ -282,16 +287,18 @@ fn check_impl(
       if projection.is_empty() && (operation is Select || count > 0) {
         fail(body, EmptyBody)
       }
-      let fields : Array[(String, @contract.Contract)] = []
+      let fields : Array[(@schema.FieldName, @contract.Contract)] = []
       spend(b, body, count=projection.length())
       for p in projection {
-        fields.push((p.output, visible.get(p.input).unwrap().0))
+        fields.push(
+          (p.output, visible.get(@schema.reference_name(p.input)).unwrap().0),
+        )
       }
-      output = object_type(b, body, fields)
+      output = schema_type(b, body, fields)
       Projection
     }
   }
-  preflight(b, body, output)
+  schema_preflight(b, body, output)
   {
     operation,
     form,
@@ -314,7 +321,7 @@ fn check_impl(
 pub fn check(
   operation : Operation,
   body : @decode.Cursor,
-  input : @contract.Contract,
+  input : @schema.Schema,
   parameters : @parameter.Declarations?,
   limits : Limits,
 ) -> Result[CheckedOperation, Issue] {

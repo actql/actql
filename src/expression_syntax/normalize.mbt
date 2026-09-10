@@ -36,7 +36,12 @@ fn finish(
                 i += 1
               }
               i += 1
-              record_field(String::from_array(field), cursor, origin, budget)
+              let field = String::from_array(field)
+              if field.has_prefix("left.") || field.has_prefix("right.") {
+                record_relation(field, cursor, origin, budget)
+              } else {
+                record_field(field, cursor, origin, budget)
+              }
             } else {
               i += 1
             }
@@ -66,6 +71,12 @@ fn finish(
                 cursor,
               ),
               cursor,
+            )
+            record_relation(
+              parts[0].to_owned() + "." + parts[1].to_owned(),
+              cursor,
+              origin,
+              budget,
             )
             for i = 2; i < parts.length(); i = i + 1 {
               result = form(
@@ -190,6 +201,17 @@ fn finish(
           _ => invalid(cursor, origin, InvalidArguments)
         }
       }
+      if tag == "join_field" {
+        let side = match part(value, "side").unwrap().value {
+          @source.String(s) => s
+          _ => invalid(cursor, origin, InvalidArguments)
+        }
+        let name = match part(value, "name").unwrap().value {
+          @source.String(s) => s
+          _ => invalid(cursor, origin, InvalidArguments)
+        }
+        record_relation(side + "." + name, cursor, origin, budget)
+      }
       if tag == "split_part" &&
         !literal_or_param(part(value, "delimiter").unwrap()) {
         invalid(cursor, origin, InvalidArguments)
@@ -228,6 +250,7 @@ fn record_field(
   origin : Origin,
   budget : Budget,
 ) -> Unit {
+  record_relation(name, cursor, origin, budget)
   // Text occurrences already carry exact token ranges from the text parser.
   let (source, range) = match origin {
     Authored => (cursor, None)
@@ -239,4 +262,23 @@ fn record_field(
     span: @decode.cursor_span(source),
     range,
   })
+}
+
+///|
+fn record_relation(
+  name : String,
+  cursor : @decode.Cursor,
+  origin : Origin,
+  budget : Budget,
+) -> Unit {
+  match origin {
+    Authored =>
+      budget.relation_references.push({
+        name,
+        path: @decode.cursor_path(cursor),
+        span: @decode.cursor_span(cursor),
+        range: None,
+      })
+    TextDecoded(_, _) => ()
+  }
 }

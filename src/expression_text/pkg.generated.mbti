@@ -16,6 +16,8 @@ pub fn parameter_references(Expression) -> Array[ParameterReference]
 
 pub fn parse(String, Limits, source_path? : String, enclosing_span? : @source_span.Span) -> Result[Expression, Issue]
 
+pub fn relation_references(Expression) -> Array[FieldReference]
+
 pub fn tree(Expression) -> @decode_core.Cursor
 
 pub fn usage(Expression) -> Usage

@@ -111,6 +111,16 @@ pub fn reference_name(name : FieldName) -> String {
 ///|
 pub fn lookup(schema : Schema, name : FieldName) -> @contract.Contract? {
   let spelling = reference_name(name)
+  match lookup_reference(schema, spelling) {
+    Some(f) => if f.name == name { Some(f.contract) } else { None }
+    None => None
+  }
+}
+
+///|
+/// Resolves an exact reference spelling against admitted schema entries. Never
+/// parses a chain of dots or invents qualification for an authored field.
+pub fn lookup_reference(schema : Schema, spelling : String) -> Field? {
   let mut lo = 0
   let mut hi = field_count(schema)
   while lo < hi {
@@ -127,7 +137,7 @@ pub fn lookup(schema : Schema, name : FieldName) -> @contract.Contract? {
     }
   }
   match field_at(schema, lo) {
-    Some(f) => if f.name == name { Some(f.contract) } else { None }
+    Some(f) => if reference_name(f.name) == spelling { Some(f) } else { None }
     None => None
   }
 }

@@ -48,6 +48,7 @@ struct Expression {
   cursor : @decode.Cursor
   references : Array[ParameterReference]
   field_references : Array[FieldReference]
+  relation_references : Array[FieldReference]
   usage : Usage
 }
 
@@ -68,6 +69,13 @@ pub fn usage(expression : Expression) -> Usage {
 /// fields or opaque literal data. Coordinates follow parameter_references.
 pub fn field_references(expression : Expression) -> Array[FieldReference] {
   expression.field_references.map(r => { ..r, path: r.path.copy(), })
+}
+
+///|
+/// Ordinary and provenance-qualified field occurrences, excluding properties
+/// and opaque literal data. Qualified names denote the base field only.
+pub fn relation_references(expression : Expression) -> Array[FieldReference] {
+  expression.relation_references.map(r => { ..r, path: r.path.copy(), })
 }
 
 ///|
@@ -128,6 +136,7 @@ priv struct Budget {
   mut tokens : Int
   references : Array[ParameterReference]
   field_references : Array[FieldReference]
+  relation_references : Array[FieldReference]
 }
 
 ///|

@@ -27,7 +27,6 @@ pub(all) struct Limits {
 ///|
 pub(all) enum IssueKind {
   InvalidLimits
-  InvalidInputSchema
   InvalidBody
   EmptyBody
   InvalidName(String)
@@ -52,7 +51,7 @@ pub struct Issue {
 
 ///|
 pub(all) enum ReferenceTarget {
-  InputField(String)
+  InputField(@schema.FieldName)
   PriorSlot(Int)
 } derive(Eq, Debug)
 
@@ -72,8 +71,8 @@ pub struct Binding {
 
 ///|
 pub struct ProjectionField {
-  output : String
-  input : String
+  output : @schema.FieldName
+  input : @schema.FieldName
 }
 
 ///|
@@ -81,8 +80,8 @@ struct CheckedOperation {
   operation : Operation
   form : Form
   source : @decode.Cursor
-  input : @contract.Contract
-  output : @contract.Contract
+  input : @schema.Schema
+  output : @schema.Schema
   parameters : @parameter.Declarations?
   bindings : Array[Binding]
   projection : Array[ProjectionField]
@@ -103,12 +102,12 @@ pub fn form(value : CheckedOperation) -> Form {
 }
 
 ///|
-pub fn input_schema(value : CheckedOperation) -> @contract.Contract {
+pub fn input_schema(value : CheckedOperation) -> @schema.Schema {
   value.input
 }
 
 ///|
-pub fn output_schema(value : CheckedOperation) -> @contract.Contract {
+pub fn output_schema(value : CheckedOperation) -> @schema.Schema {
   value.output
 }
 
@@ -294,8 +293,9 @@ fn preflight(
   b : Budget,
   source : @decode.Cursor,
   root : @contract.Contract,
+  depth? : Int = 0,
 ) -> Unit raise Stop {
-  let work = [(root, 0)]
+  let work = [(root, depth)]
   while work.pop() is Some((c, depth)) {
     spend(b, source)
     if depth > b.limits.max_depth {
@@ -316,5 +316,78 @@ fn preflight(
       @contract.ArtifactRef(media_type=Some(media)) => charge(b, source, media)
       _ => ()
     }
+  }
+}
+
+///|
+fn schema_preflight(
+  b : Budget,
+  source : @decode.Cursor,
+  schema : @schema.Schema,
+) -> Unit raise Stop {
+  spend(b, source)
+  let count = @schema.field_count(schema)
+  spend(b, source, count~)
+  for i in 0..<count {
+    let f = @schema.field_at(schema, i).unwrap()
+    charge(b, source, @schema.reference_name(f.name))
+    preflight(b, source, f.contract, depth=1)
+  }
+}
+
+///|
+fn schema_type(
+  b : Budget,
+  source : @decode.Cursor,
+  fields : Array[(@schema.FieldName, @contract.Contract)],
+) -> @schema.Schema raise Stop {
+  let bytes = b.text
+  spend(b, source, count=fields.length())
+  for (name, _) in fields {
+    charge(b, source, @schema.reference_name(name))
+  }
+  match
+    @schema.from_fields(
+      fields,
+      max_fields=fields.length(),
+      max_name_bytes=bytes,
+    ) {
+    Ok(v) => v
+    Err(_) => fail(source, InvalidBody)
+  }
+}
+
+///|
+fn reference_target(
+  name : String,
+  value : ReferenceTarget,
+) -> @schema.FieldName {
+  match value {
+    InputField(name) => name
+    PriorSlot(_) => @schema.Unqualified(name)
+  }
+}
+
+///|
+fn input_reference(
+  b : Budget,
+  source : @decode.Cursor,
+  name : String,
+  visible : Map[String, (@contract.Contract, ReferenceTarget)],
+) -> @schema.FieldName raise Stop {
+  spend(b, source)
+  charge(b, source, name)
+  if name.has_prefix("left.") || name.has_prefix("right.") {
+    let parts = name.split(".").to_array()
+    if parts.length() != 2 {
+      fail(source, InvalidName(name))
+    }
+    field_name(b, source, parts[1].to_owned())
+  } else {
+    field_name(b, source, name)
+  }
+  match visible.get(name) {
+    Some((_, target)) => reference_target(name, target)
+    None => fail(source, UnknownField(name))
   }
 }

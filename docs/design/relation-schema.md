@@ -33,6 +33,8 @@ returns a detached array, `field_at` is bounds checked, and `lookup` uses binary
 search with exact typed-reference equality. A raw
 `Unqualified("left.id")` lookup cannot alias `Qualified(Left, "id")`.
 `reference_name` renders a reference; it is not a validator or parser.
+`lookup_reference` resolves an exact spelling against admitted entries and
+returns the typed field. It does not parse nested access or invent provenance.
 
 ## Construction limits and scope
 
@@ -47,7 +49,7 @@ or total physical heap usage.
 
 Constructing a qualified schema does not validate a join, establish provenance
 evidence, extend nullability or prove cardinality. It is representation only.
-The current [pipeline checker](pipeline-typing.md) rejects qualified inputs as
-unsupported. Qualified operation and Result checking must be added together;
-the existing flat operations continue to use explicit object-contract adapters.
+The [pipeline checker](pipeline-typing.md), unary operation checker and Result
+checker retain qualified fields. Local join requires flat operand schemas;
+explicit projection must remove qualification before rejoining.
 No general Carrier union, Graph/Vectors/Events checking or lowering is provided.

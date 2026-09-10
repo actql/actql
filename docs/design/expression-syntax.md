@@ -21,7 +21,10 @@ Boolean input types, comparison compatibility, and evaluation-time domains such
 as negative subscript indices are not decided here.
 The separate [Expression type checker](expression-typing.md) checks types against
 supplied scopes and Parameter declarations; evaluation-time domains remain later work.
-`field_references` retains ordinary field occurrences and template substitutions,
+`field_references` retains ordinary field occurrences and unqualified template placeholders,
+while `relation_references` additionally retains normalized join-field occurrences
+for downstream Relation checking, with their original path/span/text range.
+The ordinary-only accessor remains available,
 excluding join fields and opaque literal payloads. Text field occurrences retain
 the original scalar slot's path and span plus the identifier token's half-open
 Unicode scalar range within the decoded text; property names are not separate
@@ -36,6 +39,10 @@ empty until checking supplies evidence. `empty_array.items` uses the existing
 author value-contract reader, including required `nullable` at every type node;
 it is retained in author form, not expanded to a checked contract.
 
+Template placeholders accept ordinary fields and exact `left.name`/`right.name`
+join references, not nested properties or expressions. Qualified placeholders
+are included in `relation_references` and excluded from `field_references`;
+typing resolves the corresponding side scope and propagates nullability.
 Template brace syntax and static placeholder names are validated, but templates
 are not expanded and their placeholders do not become Parameter references.
 Field existence and whether each placeholder's type is printable require later

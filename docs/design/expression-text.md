@@ -39,6 +39,12 @@ literal/Parameter pattern and delimiter positions. It does not evaluate operands
 
 ## Positions and references
 
+`relation_references` retains both ordinary and qualified field occurrences with
+their original token ranges. Property names and literal contents are not field
+occurrences. The ordinary-only `field_references` accessor remains available;
+both accessors return detached arrays. Structured expression admission resolves
+whole-field aliases such as `"left.id"` while retaining these source positions.
+
 `Range` uses half-open **Unicode scalar offsets in the decoded expression**,
 before token payload normalization. Invalid UTF-16 reports the position of the
 offending unit after the valid scalar prefix. A separately optional

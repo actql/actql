@@ -1,0 +1,34 @@
+{
+  "version": "actql-relation-join-corpus/0.1",
+  "input_fields": {
+    "id": {"type": "number", "nullable": false},
+    "value": {"type": "string", "nullable": true}
+  },
+  "cases": [
+    {"id":"inner-raw","body":{"with":"r","kind":"inner","on":"id"},"fields":["left.id","left.value","right.id","right.value"],"nullable":[false,true,false,true],"key_count":1},
+    {"id":"left-raw","body":{"with":"r","kind":"left","on":"id"},"fields":["left.id","left.value","right.id","right.value"],"nullable":[false,true,true,true],"key_count":1},
+    {"id":"full-raw","body":{"with":"r","kind":"full","on":"id"},"fields":["left.id","left.value","right.id","right.value"],"nullable":[true,true,true,true],"key_count":1},
+    {"id":"semi-left-qualified","body":{"with":"r","kind":"semi","on":"id"},"fields":["left.id","left.value"],"nullable":[false,true],"key_count":1},
+    {"id":"anti-left-qualified","body":{"with":"r","kind":"anti","on":"id"},"fields":["left.id","left.value"],"nullable":[false,true],"key_count":1},
+    {"id":"repeated-pairs","body":{"with":"r","kind":"inner","on":["id",{"left":"id","right":"id"},"id"]},"fields":["left.id","left.value","right.id","right.value"],"nullable":[false,true,false,true],"key_count":3},
+    {"id":"multiple-aliases","body":{"with":"r","kind":"left","on":"id","select":{"z":"left.id","a":"left.id","r":"right.id"}},"fields":["a","r","z"],"nullable":[false,true,false],"key_count":1},
+    {"id":"explicit-no-match","body":{"with":"r","kind":"inner","on":"id","null_key":"no_match"},"fields":["left.id","left.value","right.id","right.value"],"nullable":[false,true,false,true],"key_count":1},
+    {"id":"safe-integer-guard","body":{"with":"r","kind":"semi","on":"id","max_output_rows":9007199254740991},"fields":["left.id","left.value"],"nullable":[false,true],"key_count":1},
+    {"id":"empty-select","body":{"with":"r","kind":"inner","on":"id","select":{}},"issue":"EmptyBody"},
+    {"id":"empty-on","body":{"with":"r","kind":"inner","on":[]},"issue":"EmptyBody"},
+    {"id":"nested-on","body":{"with":"r","kind":"inner","on":[["id"]]},"issue":"InvalidBody"},
+    {"id":"missing-kind","body":{"with":"r","on":"id"},"issue":"InvalidBody"},
+    {"id":"unknown-kind","body":{"with":"r","kind":"cross","on":"id"},"issue":"InvalidBody"},
+    {"id":"unknown-body-field","body":{"with":"r","kind":"inner","on":"id","extra":1},"issue":"InvalidBody"},
+    {"id":"unknown-key","body":{"with":"r","kind":"inner","on":"missing"},"issue":"UnknownField"},
+    {"id":"incomparable-key","body":{"with":"r","kind":"inner","on":{"left":"id","right":"value"}},"issue":"IncomparableKeys"},
+    {"id":"unqualified-select","body":{"with":"r","kind":"inner","on":"id","select":{"x":"id"}},"issue":"InvalidProjection"},
+    {"id":"semi-right-select","body":{"with":"r","kind":"semi","on":"id","select":{"x":"right.id"}},"issue":"InvalidProjection"},
+    {"id":"dotted-output","body":{"with":"r","kind":"inner","on":"id","select":{"x.y":"left.id"}},"issue":"InvalidName"},
+    {"id":"many-to-many-forbidden","body":{"with":"r","kind":"inner","on":"id","cardinality":"many_to_many"},"issue":"InvalidBody"},
+    {"id":"null-policy-null","body":{"with":"r","kind":"inner","on":"id","null_key":null},"issue":"InvalidBody"},
+    {"id":"guard-zero","body":{"with":"r","kind":"inner","on":"id","max_output_rows":0},"issue":"InvalidGuard"},
+    {"id":"guard-fraction","body":{"with":"r","kind":"inner","on":"id","max_output_rows":1.5},"issue":"InvalidGuard"},
+    {"id":"guard-overflow","body":{"with":"r","kind":"inner","on":"id","max_output_rows":9007199254740992},"issue":"InvalidGuard"}
+  ]
+}

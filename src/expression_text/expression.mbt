@@ -59,6 +59,7 @@ pub(all) struct Usage {
 /// The owned cursor is the common structured Expression tree, not a second AST.
 struct Expression {
   field_references : Array[FieldReference]
+  relation_references : Array[FieldReference]
   cursor : @decode.Cursor
   references : Array[ParameterReference]
   enclosing_span : @value.Span?
@@ -90,6 +91,13 @@ pub fn parameter_references(
 /// literal contents. Whole-field aliases are normalized by expression_syntax.
 pub fn field_references(expression : Expression) -> Array[FieldReference] {
   expression.field_references.copy()
+}
+
+///|
+/// Field tokens including explicit join fields; quoted aliases are normalized
+/// by expression_syntax. Property names and literal contents are excluded.
+pub fn relation_references(expression : Expression) -> Array[FieldReference] {
+  expression.relation_references.copy()
 }
 
 ///|
@@ -177,6 +185,7 @@ pub fn parse(
   }
   let parser : Parser = {
     field_references: [],
+    relation_references: [],
     tokens,
     span: decoded_span(source, source_path),
     pos: 0,
@@ -225,6 +234,7 @@ pub fn parse(
     cursor,
     references,
     field_references: parser.field_references,
+    relation_references: parser.relation_references,
     enclosing_span,
     usage: {
       input_bytes: parser.span.end_byte,

@@ -1,7 +1,7 @@
 # Relation operation type checking
 
 `relation_typing.check` checks one `derive`, `filter`, `select`, `rename`, or
-`drop` body against a supplied complete, non-null object contract and optional
+`drop` body against a supplied complete `relation_schema.Schema` and optional
 Parameter declarations. The operation kind is a closed enum; the body is an
 owned `decode_core.Cursor`. It is not a parser for the step envelope:
 `from`, `as`, `meta`, stage naming and input acquisition belong to the caller.
@@ -16,17 +16,18 @@ and execution envelopes are not supplied to or established by this API.
 
 ## Inputs, scopes and outputs
 
-The result retains the input and output contracts, original body, original
+The result retains the input and output Relation schemas, original body, original
 operation kind and Parameter declarations. `binding_at` returns each typed RHS
-and its retained source location. `references` reports ordinary field
-occurrences, including template substitutions, as `InputField(name)` or
+and its retained source location. `references` reports ordinary and qualified field
+occurrences, including template substitutions, as `InputField(FieldName)` or
 `PriorSlot(index)`. Literal JSON and escaped template braces do not introduce
 field references. Reference coordinates retain the syntax layer's source-slot
 path/span and optional expression-text range; they do not claim a fabricated
 byte mapping through source escapes or YAML folding.
 
 The visible field index is built once. Each RHS receives only its referenced
-field contracts, avoiding a copy of the entire growing schema at every slot.
+field contracts, partitioned into ordinary, left and right expression scopes,
+avoiding a copy of the entire growing schema at every slot.
 Consequently the environment retained by each `TypedExpression` is that
 projection, while `CheckedOperation` retains the original complete input and
 the preceding bindings. Entire input contracts are preflighted even if a
@@ -51,6 +52,10 @@ and missing invocation bindings do not block type checking.
 - Select accepts a nonempty array of field names or singleton
   `{output_name: input_name}` maps. Unknown inputs and duplicate output names
   fail. Several distinct output aliases may refer to the same input.
+  A string selection preserves the input's typed qualification; an explicit
+  alias must be an authored flat name. Derived names and rename targets are
+  also flat. Rename/drop leave qualification on retained fields intact.
+  Unqualified references never choose one side of a raw join by precedence.
 - Rename is simultaneous, so swapping two names is valid. Drop uses a set of
   input names; repeated removal of an existing name is not a duplicate output.
   Unknown fields and removing every input field fail.
@@ -61,13 +66,13 @@ and missing invocation bindings do not block type checking.
   inferred from its being a no-op. Empty select remains rejected.
 
 `projection` separately preserves select's authored order; it is not recovered
-from the output object contract, whose fields are canonically sorted.
+from the output Relation schema, whose reference names are canonically sorted.
 Rename/drop expand in canonical input-name order because this API receives no
 independent physical or publication column-order witness. They do not infer
 Result publication order. A caller can pass the output schema to another
 single-operation check, but that is not whole-pipeline admission or proof
 propagation.
-The [Relation pipeline checker](pipeline-typing.md) composes these checks
+The [pipeline checker](pipeline-typing.md) composes these checks and local joins
 with step naming and cumulative limits. `nodes_used` and `tokens_used` expose
 the operation's consumed syntax/type nodes and expression tokens alongside
 the existing work/text counters; retained source trees have separate costs.

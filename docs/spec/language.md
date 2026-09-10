@@ -3085,6 +3085,22 @@ same-name field shorthand is permitted. Arbitrary non-equality conditions are no
 bounded Cartesian products and temporal overlap use the separately specified
 `cross_join` and `interval_join` operations.
 
+<!-- requirement-block: join.explicit-selector-precedence join.validate-overridden-selector -->
+Check MUST permit step-level `from` together with `join.left`: step `from`
+selects the main input first, then `join.left` replaces it as the actual left
+operand. Without step `from`, `join.left` replaces current and can establish
+the left operand when current is unset. Both explicit selectors MUST resolve
+to available Relation bindings under the ordinary name-scope rules; an invalid
+`from` is not ignored merely because `join.left` overrides its selection.
+The checked join's left input edge identifies the final selected operand,
+not the overridden binding. The join output becomes current as usual.
+
+<!-- requirement-block: join.repeated-equality-keys join.retain-equality-key-order -->
+Check MUST accept repeated equality pairs and repeated use of one side's field
+with different fields on the other side. Every pair is checked independently;
+the checked representation MUST retain the authored pair order and repetitions.
+Acceptance does not authorize deduplication of the operation's semantic preimage.
+
 <!-- requirement-block: join.a-violated-uniqueness-assertion-must-fail-before-a-result-is -->
 `cardinality` is an OPTIONAL validation assertion, not output semantics. It is
 one of `one_to_one`, `many_to_one`, or `one_to_many`; it asserts uniqueness of
@@ -3136,6 +3152,14 @@ sides are REQUIRED for `full`; the compiler MUST NOT synthesize them.
 With `select`, every output field maps to a provenance-qualified source field,
 and subsequent steps use the flat output names. A compiler MUST NOT select a
 same-named field from one side by precedence.
+
+<!-- requirement-block: join.nonempty-projection join.empty-projection-rejected join.multiple-projection-aliases join.retain-projection-aliases -->
+An explicitly authored join `select` MUST be a nonempty map; `{}` MUST fail
+during check. Omission retains the qualified output and is not an empty
+projection. Check MUST permit distinct output names to select the same source
+field, preserving its exact type and nullability in each output. Duplicate
+output names remain invalid. Projection mappings MUST retain every alias;
+accepting aliases does not itself prove candidate-key preservation.
 
 Because object key order is not semantic, join `select` output names are
 lowered in AoA canonical UTF-16 code-unit order. Authors control final column
@@ -5544,6 +5568,20 @@ closes the data published by the Result, including delivery and Effect
 consumption; the compiler does not widen that boundary when an upstream
 Relation gains a field.
 Optional `order_by` belongs to the named Result, not to serialization.
+
+<!-- requirement-block: results-and-delivery.preserve-join-provenance results-and-delivery.explicit-flat-projection -->
+A Result MAY select a raw join output using exact provenance-qualified names
+such as `fields: [left.id, right.id]`; its `order_by` uses the same reference
+rules against the source before projection. The Result schema and published
+column names MUST retain the selected qualification and provenance without
+implicitly stripping prefixes, merging same-named fields, or reinterpreting
+them as authored flat names. This does not permit dotted authored source fields
+or nested-property selection through `fields`. Result `fields` introduces no
+alias syntax. A consumer that requires flat fields MUST be supplied a Result
+whose required fields have been explicitly flattened upstream with join
+`select`, a select alias, or `rename`; it cannot silently flatten them at the
+consumption boundary. All ordinary Result type, order and publication checks
+still apply.
 
 <!-- requirement-block: results-and-delivery.the-compiler-must-verify-that-every-ordered-and-projected-field results-and-delivery.it-must-report-the-exact-result-schema-when-statically-known -->
 If present, result `order_by` is applied before its field projection and lowers to

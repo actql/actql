@@ -28,7 +28,6 @@ pub(all) enum IssueKind {
   InvalidLimits
   BudgetExceeded
   InvalidBody
-  UnsupportedInputSchema(String)
   InvalidName(String)
   DuplicateName(String)
   UnknownName(String)
@@ -37,6 +36,7 @@ pub(all) enum IssueKind {
   InvalidMetadata
   ReservedMetadataKey(String)
   Operation(@relation.IssueKind)
+  Join(@join.IssueKind)
 } derive(Eq, Debug)
 
 ///|
@@ -54,8 +54,15 @@ pub struct CheckedStep {
   input : Target
   binding_name : String?
   metadata : @decode.Cursor?
-  operation : @relation.CheckedOperation
+  operation : CheckedOperation
   output : @schema.Schema
+}
+
+///|
+/// Main input is stored on CheckedStep; only join has an additional input.
+pub enum CheckedOperation {
+  Unary(@relation.CheckedOperation)
+  Join(right~ : Target, checked~ : @join.CheckedJoin)
 }
 
 ///|
@@ -214,8 +221,9 @@ fn preflight(
   b : Budget,
   source : @decode.Cursor,
   root : @contract.Contract,
+  depth? : Int = 0,
 ) -> Unit raise Stop {
-  let work = [(root, 0)]
+  let work = [(root, depth)]
   while work.pop() is Some((c, depth)) {
     spend(b, source, 1)
     if depth > b.limits.max_depth {
@@ -236,6 +244,22 @@ fn preflight(
       @contract.ArtifactRef(media_type=Some(media)) => charge(b, source, media)
       _ => ()
     }
+  }
+}
+
+///|
+fn schema_preflight(
+  b : Budget,
+  source : @decode.Cursor,
+  schema : @schema.Schema,
+) -> Unit raise Stop {
+  spend(b, source, 1)
+  let n = @schema.field_count(schema)
+  spend(b, source, n)
+  for i in 0..<n {
+    let f = @schema.field_at(schema, i).unwrap()
+    charge(b, source, @schema.reference_name(f.name))
+    preflight(b, source, f.contract, depth=1)
   }
 }
 

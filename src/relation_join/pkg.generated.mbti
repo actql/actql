@@ -1,0 +1,125 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/relation_join"
+
+import {
+  "actql/actql/decode_core",
+  "actql/actql/parameter_binding",
+  "actql/actql/relation_schema",
+  "actql/actql/source_span",
+  "actql/actql/source_value",
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn assertion(CheckedJoin) -> Cardinality?
+
+pub fn check(@decode_core.Cursor, @relation_schema.Schema, @relation_schema.Schema, @parameter_binding.Declarations?, Limits) -> Result[CheckedJoin, Issue]
+
+pub fn input_schema(CheckedJoin, @relation_schema.Side) -> @relation_schema.Schema
+
+pub fn keys(CheckedJoin) -> Array[KeyPair]
+
+pub fn kind(CheckedJoin) -> Kind
+
+pub fn null_key(CheckedJoin) -> NullKey
+
+pub fn output_guard(CheckedJoin) -> Guard?
+
+pub fn output_schema(CheckedJoin) -> @relation_schema.Schema
+
+pub fn pending_validations(CheckedJoin) -> Array[Obligation]
+
+pub fn projection(CheckedJoin) -> Array[Projection]?
+
+pub fn source(CheckedJoin) -> @decode_core.Cursor
+
+pub fn usage(CheckedJoin) -> Usage
+
+// Errors
+
+// Types and methods
+pub(all) enum Cardinality {
+  OneToOne
+  ManyToOne
+  OneToMany
+} derive(Eq, @debug.Debug)
+
+type CheckedJoin
+
+pub(all) enum Guard {
+  Literal(Int64)
+  Parameter(String)
+} derive(Eq, @debug.Debug)
+
+pub struct Issue {
+  kind : IssueKind
+  source : @decode_core.Cursor
+  path : Array[@source_value.PathSegment]
+  span : @source_span.Span
+}
+
+pub(all) enum IssueKind {
+  InvalidLimits
+  BudgetExceeded
+  InvalidBody
+  EmptyBody
+  InvalidName(String)
+  UnknownField(@relation_schema.Side, String)
+  IncomparableKeys(String, String)
+  QualifiedInput(@relation_schema.Side)
+  InvalidProjection(String)
+  InvalidGuard
+  UnknownParameter(String)
+} derive(Eq, @debug.Debug)
+
+pub struct KeyPair {
+  left : @relation_schema.FieldName
+  right : @relation_schema.FieldName
+  source : @decode_core.Cursor
+}
+
+pub(all) enum Kind {
+  Inner
+  Left
+  Full
+  Semi
+  Anti
+} derive(Eq, @debug.Debug)
+
+pub(all) struct Limits {
+  max_work : Int
+  max_text_bytes : Int
+  max_nodes : Int
+  max_depth : Int
+} derive(Eq, @debug.Debug)
+
+pub(all) enum NullKey {
+  NoMatch
+  Fail
+} derive(Eq, @debug.Debug)
+
+pub(all) enum Obligation {
+  ResolveCardinality
+  ResolveOutputLimit
+  PreserveRowOrder
+  StableIdentity(@relation_schema.Side)
+  ValidateCardinality(Cardinality)
+  RejectNullKeys
+  BindGuard(String)
+} derive(Eq, @debug.Debug)
+
+pub struct Projection {
+  output : @relation_schema.FieldName
+  input : @relation_schema.FieldName
+  source : @decode_core.Cursor
+}
+
+pub(all) struct Usage {
+  work : Int
+  text_bytes : Int
+  nodes : Int
+} derive(Eq, @debug.Debug)
+
+// Type aliases
+
+// Traits

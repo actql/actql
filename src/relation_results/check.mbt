@@ -40,8 +40,9 @@ fn contract_preflight(
   b : Budget,
   source : @decode.Cursor,
   root : @contract.Contract,
+  depth? : Int = 0,
 ) -> Unit raise Stop {
-  let work = [(root, 0)]
+  let work = [(root, depth)]
   while work.pop() is Some((c, depth)) {
     spend(b, source, 1)
     if depth > b.limits.max_depth {
@@ -78,7 +79,7 @@ fn direction(source : @decode.Cursor) -> Direction raise Stop {
 fn order_key(
   b : Budget,
   source : @decode.Cursor,
-  fields : Map[String, @contract.Contract],
+  fields : Map[String, @schema.Field],
 ) -> OrderKey raise Stop {
   let obj = decoded(@decode.open_object(source), source)
   let names = @decode.object_field_names(source).unwrap()
@@ -106,7 +107,7 @@ fn order_key(
     Some(v) => v
     None => fail(field_source, UnknownField(field))
   }
-  match contract.shape {
+  match contract.contract.shape {
     @contract.Text(_) | Number | Boolean | Decimal(..) | Date | Timestamp => ()
     _ => fail(field_source, NotAuthorOrderable(field))
   }
@@ -142,8 +143,8 @@ fn check_impl(
   }
   source_preflight(b, root)
   // One schema index per referenced input/step, shared across all Results.
-  let inputs : Map[Int, Map[String, @contract.Contract]] = Map([])
-  let steps : Map[Int, Map[String, @contract.Contract]] = Map([])
+  let inputs : Map[Int, Map[String, @schema.Field]] = Map([])
+  let steps : Map[Int, Map[String, @schema.Field]] = Map([])
   let definitions : Array[ResultDefinition] = []
   let index : Map[String, Int] = Map([])
   for name in names {
@@ -169,16 +170,19 @@ fn check_impl(
       Some(v) => v
       None => {
         let c = @pipeline.schema_at(pipeline, target).unwrap()
-        // The current pipeline admits flat Relation schemas only. Keep the
-        // row-contract adapter explicit; qualified operation support is separate.
-        contract_preflight(b, from, @schema.as_object(c).unwrap())
-        let fields : Map[String, @contract.Contract] = Map([])
+        // The schema root has depth zero, as with an ordinary object contract.
+        spend(b, from, 1)
+        let fields : Map[String, @schema.Field] = Map([])
         let n = @schema.field_count(c)
         spend(b, from, n)
         for i in 0..<n {
           let f = @schema.field_at(c, i).unwrap()
-          fields[@schema.reference_name(f.name)] = f.contract
+          let name = @schema.reference_name(f.name)
+          charge(b, from, name)
+          contract_preflight(b, from, f.contract, depth=1)
+          fields[name] = f
         }
+        spend(b, from, n)
         cache[id] = fields
         fields
       }
@@ -189,7 +193,7 @@ fn check_impl(
       fail(selected, InvalidBody)
     }
     spend(b, selected, entries.length())
-    let projection : Array[(String, @contract.Contract)] = []
+    let projection : Array[(@schema.FieldName, @contract.Contract)] = []
     let seen : Map[String, Bool] = Map([])
     let output_names : Array[String] = []
     let name_budget = b.text
@@ -204,13 +208,12 @@ fn check_impl(
       }
       seen[key] = true
       charge(b, entry, key)
-      projection.push((key, contract))
+      projection.push((contract.name, contract.contract))
       output_names.push(key)
     }
     let output = match
-      @contract.object_contract(
+      @schema.from_fields(
         projection,
-        nullable=false,
         max_fields=projection.length(),
         max_name_bytes=name_budget,
       ) {
@@ -254,7 +257,7 @@ fn check_impl(
       name,
       source,
       target,
-      schema: @schema.from_object(output).unwrap(),
+      schema: output,
       fields: output_names,
       order,
       metadata: meta,

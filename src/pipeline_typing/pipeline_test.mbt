@@ -1,4 +1,12 @@
 ///|
+fn unary(op : @pipeline_typing.CheckedOperation) -> @relation.CheckedOperation {
+  match op {
+    Unary(v) => v
+    _ => abort("expected unary test operation")
+  }
+}
+
+///|
 fn limits() -> @pipeline_typing.Limits {
   {
     max_steps: 20000,
@@ -47,7 +55,7 @@ fn schema() -> @schema.Schema {
 }
 
 ///|
-test "qualified schemas remain unsupported even when an input is unused" {
+test "qualified schemas are admitted without implicit current selection" {
   let qualified = @schema.from_fields(
     [(Qualified(Left, "id"), @contract.primitive(StringType, nullable=false))],
     max_fields=1,
@@ -59,8 +67,14 @@ test "qualified schemas remain unsupported even when an input is unused" {
       [("rows", schema()), ("joined", qualified)],
     ] {
     assert_true(
-      @pipeline_typing.check(cursor("[]"), inputs, None, None, limits())
-      is Err({ kind: UnsupportedInputSchema("joined"), .. }),
+      @pipeline_typing.check(
+        cursor("[]"),
+        inputs,
+        None,
+        Some(cursor("\"joined\"")),
+        limits(),
+      )
+      is Ok(_),
     )
   }
   assert_true(
@@ -71,7 +85,7 @@ test "qualified schemas remain unsupported even when an input is unused" {
       Some(cursor("\"rows\"")),
       limits(),
     )
-    is Err({ kind: UnsupportedInputSchema("joined"), .. }),
+    is Ok(_),
   )
 }
 
@@ -121,8 +135,10 @@ test "linear steps and explicit branches retain exact sources and old schemas" {
   )
   assert_eq(@pipeline_typing.step_at(linear, 1).unwrap().input, Step(0))
   assert_eq(
-    @relation.projection(@pipeline_typing.step_at(linear, 1).unwrap().operation)[0].output,
-    "tax",
+    @relation.projection(
+      unary(@pipeline_typing.step_at(linear, 1).unwrap().operation),
+    )[0].output,
+    @schema.Unqualified("tax"),
   )
 }
 
@@ -424,7 +440,7 @@ test "parameter declarations are retained without binding defaults or narrowing 
     1,
   )
   let b = @relation.binding_at(
-    @pipeline_typing.step_at(p, 0).unwrap().operation,
+    unary(@pipeline_typing.step_at(p, 0).unwrap().operation),
     0,
   ).unwrap()
   assert_true(@typing.result_type(b.expression).nullable)
@@ -523,7 +539,7 @@ test "unselected branches retain pending expression obligations" {
   let p = check(
     "[{\"derive\":{\"test\":\"if(TRUE, TRUE, regex_match(id, '('))\"}},{\"select\":[\"id\"]}]",
   )
-  let op = @pipeline_typing.step_at(p, 0).unwrap().operation
+  let op = unary(@pipeline_typing.step_at(p, 0).unwrap().operation)
   let expression = @relation.binding_at(op, 0).unwrap().expression
   assert_true(
     @typing.pending_validations(expression).any(o => {

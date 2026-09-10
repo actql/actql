@@ -1,4 +1,31 @@
 ///|
+fn check_row(
+  op : @relation_typing.Operation,
+  body : @decode.Cursor,
+  row : @contract.Contract,
+  parameters : @parameter.Declarations?,
+  limits : @relation_typing.Limits,
+) -> Result[@relation_typing.CheckedOperation, @relation_typing.Issue] {
+  @relation_typing.check(
+    op,
+    body,
+    @schema.from_object(row).unwrap(),
+    parameters,
+    limits,
+  )
+}
+
+///|
+fn output_row(v : @relation_typing.CheckedOperation) -> @contract.Contract {
+  @schema.as_object(@relation_typing.output_schema(v)).unwrap()
+}
+
+///|
+fn input_row(v : @relation_typing.CheckedOperation) -> @contract.Contract {
+  @schema.as_object(@relation_typing.input_schema(v)).unwrap()
+}
+
+///|
 fn limits() -> @relation_typing.Limits {
   {
     max_work: 20000000,
@@ -46,7 +73,7 @@ fn checked(
   op : @relation_typing.Operation,
   body : String,
 ) -> @relation_typing.CheckedOperation raise {
-  match @relation_typing.check(op, cursor(body), input(), None, limits()) {
+  match check_row(op, cursor(body), input(), None, limits()) {
     Ok(v) => v
     Err(issue) => fail(@debug.to_string(issue.kind))
   }
@@ -58,7 +85,7 @@ fn rejected(
   body : String,
   kind : @relation_typing.IssueKind,
 ) -> Unit raise {
-  match @relation_typing.check(op, cursor(body), input(), None, limits()) {
+  match check_row(op, cursor(body), input(), None, limits()) {
     Ok(_) => fail("unexpected acceptance")
     Err(issue) => assert_eq(issue.kind, kind)
   }
@@ -86,25 +113,20 @@ fn corpus_accepted(
   expected : String,
   order : Array[String]?,
 ) -> Unit raise {
-  let result = @relation_typing.check(
-    op,
-    cursor(text),
-    schema(fields),
-    None,
-    limits(),
-  )
+  let result = check_row(op, cursor(text), schema(fields), None, limits())
   match result {
     Err(issue) => fail(text + ": " + @debug.to_string(issue.kind))
     Ok(value) => {
       assert_true(
-        @contract.type_equal(
-          @relation_typing.output_schema(value),
-          schema(expected),
-          1000000,
-        ),
+        @contract.type_equal(output_row(value), schema(expected), 1000000),
       )
       if order is Some(order) {
-        assert_eq(@relation_typing.projection(value).map(p => p.output), order)
+        assert_eq(
+          @relation_typing.projection(value).map(p => {
+            @schema.reference_name(p.output)
+          }),
+          order,
+        )
       }
     }
   }
@@ -117,8 +139,7 @@ fn corpus_rejected(
   fields : String,
   expected : String,
 ) -> Unit raise {
-  match
-    @relation_typing.check(op, cursor(text), schema(fields), None, limits()) {
+  match check_row(op, cursor(text), schema(fields), None, limits()) {
     Ok(_) => fail("unexpected acceptance: " + text)
     Err(issue) => {
       let actual = match issue.kind {
@@ -143,13 +164,10 @@ test "derive map uses only the snapshot and canonical binding order" {
   assert_eq(@relation_typing.form(result), DeriveMap)
   assert_eq(@relation_typing.binding_at(result, 0).unwrap().name, Some("a"))
   assert_eq(@relation_typing.binding_at(result, 1).unwrap().name, Some("z"))
-  assert_true(
-    field(@relation_typing.output_schema(result), "amount").shape
-    is @contract.Number,
-  )
+  assert_true(field(output_row(result), "amount").shape is @contract.Number)
   assert_eq(
     @relation_typing.references(@relation_typing.binding_at(result, 0).unwrap())[0].target,
-    InputField("amount"),
+    InputField(@schema.Unqualified("amount")),
   )
   rejected(Derive, "{\"amount\":\"amount + 1\"}", InputCollision("amount"))
   rejected(Derive, "{\"a\":\"1\",\"b\":\"a + 1\"}", UnknownField("a"))
@@ -162,23 +180,20 @@ test "ordered derive records exact value versions and replacement types" {
     "[{\"old\":\"amount\"},{\"amount\":\"to_string(amount)\"},{\"copy\":\"amount\"}]",
   )
   assert_eq(@relation_typing.form(result), DeriveArray)
-  assert_true(
-    field(@relation_typing.output_schema(result), "amount").shape
-    is @contract.Text(_),
-  )
-  assert_true(
-    field(@relation_typing.output_schema(result), "old").shape
-    is @contract.Number,
-  )
-  assert_true(
-    field(@relation_typing.output_schema(result), "copy").shape
-    is @contract.Text(_),
-  )
+  assert_true(field(output_row(result), "amount").shape is @contract.Text(_))
+  assert_true(field(output_row(result), "old").shape is @contract.Number)
+  assert_true(field(output_row(result), "copy").shape is @contract.Text(_))
   let first = @relation_typing.binding_at(result, 0).unwrap()
   let second = @relation_typing.binding_at(result, 1).unwrap()
   let third = @relation_typing.binding_at(result, 2).unwrap()
-  assert_eq(@relation_typing.references(first)[0].target, InputField("amount"))
-  assert_eq(@relation_typing.references(second)[0].target, InputField("amount"))
+  assert_eq(
+    @relation_typing.references(first)[0].target,
+    InputField(@schema.Unqualified("amount")),
+  )
+  assert_eq(
+    @relation_typing.references(second)[0].target,
+    InputField(@schema.Unqualified("amount")),
+  )
   assert_eq(@relation_typing.references(third)[0].target, PriorSlot(1))
   assert_eq(@relation_typing.references(third)[0].occurrence.path, [
     @source.Index(2),
@@ -191,7 +206,7 @@ test "ordered derive records exact value versions and replacement types" {
   let future = checked(Derive, "[{\"x\":\"amount\"},{\"amount\":\"1\"}]")
   assert_eq(
     @relation_typing.references(@relation_typing.binding_at(future, 0).unwrap())[0].target,
-    InputField("amount"),
+    InputField(@schema.Unqualified("amount")),
   )
 }
 
@@ -206,7 +221,7 @@ test "field references include templates but exclude opaque data" {
   )
   assert_eq(refs.length(), 3)
   assert_eq(refs[0].target, PriorSlot(0))
-  assert_eq(refs[1].target, InputField("amount"))
+  assert_eq(refs[1].target, InputField(@schema.Unqualified("amount")))
   assert_eq(refs[2].target, PriorSlot(0))
   assert_eq(
     @relation_typing.references(@relation_typing.binding_at(result, 2).unwrap()).length(),
@@ -217,9 +232,7 @@ test "field references include templates but exclude opaque data" {
 ///|
 test "filter preserves the input schema and pending obligations" {
   let result = checked(Filter, "\"flag\"")
-  assert_true(
-    @contract.type_equal(@relation_typing.output_schema(result), input(), 1000),
-  )
+  assert_true(@contract.type_equal(output_row(result), input(), 1000))
   assert_eq(@relation_typing.form(result), Predicate)
   rejected(Filter, "\"amount\"", ExpectedBoolean)
   let result = checked(Filter, "\"regex_match(id, 'x')\"")
@@ -233,12 +246,9 @@ test "filter preserves the input schema and pending obligations" {
 test "select retains semantic order and permits distinct aliases of one input" {
   let result = checked(Select, "[{\"z\":\"id\"},\"amount\",{\"a\":\"id\"}]")
   let p = @relation_typing.projection(result)
-  assert_eq(p.map(x => x.output), ["z", "amount", "a"])
-  assert_eq(p.map(x => x.input), ["id", "amount", "id"])
-  assert_true(
-    field(@relation_typing.output_schema(result), "a").shape
-    is @contract.Text(_),
-  )
+  assert_eq(p.map(x => @schema.reference_name(x.output)), ["z", "amount", "a"])
+  assert_eq(p.map(x => @schema.reference_name(x.input)), ["id", "amount", "id"])
+  assert_true(field(output_row(result), "a").shape is @contract.Text(_))
   rejected(Select, "[\"id\",{\"id\":\"amount\"}]", DuplicateOutput("id"))
   rejected(Select, "[\"missing\"]", UnknownField("missing"))
   rejected(Select, "[]", EmptyBody)
@@ -250,20 +260,17 @@ test "select retains semantic order and permits distinct aliases of one input" {
 ///|
 test "rename and drop expand without sequential rename effects" {
   let result = checked(Rename, "{\"id\":\"amount\",\"amount\":\"id\"}")
-  assert_true(
-    field(@relation_typing.output_schema(result), "id").shape
-    is @contract.Number,
-  )
-  assert_true(
-    field(@relation_typing.output_schema(result), "amount").shape
-    is @contract.Text(_),
-  )
+  assert_true(field(output_row(result), "id").shape is @contract.Number)
+  assert_true(field(output_row(result), "amount").shape is @contract.Text(_))
   rejected(Rename, "{\"id\":\"amount\"}", DuplicateOutput("amount"))
   rejected(Rename, "{\"missing\":\"x\"}", UnknownField("missing"))
   let result = checked(Drop, "[\"id\"]")
-  assert_eq(@relation_typing.projection(result).map(x => x.output), [
-    "amount", "flag",
-  ])
+  assert_eq(
+    @relation_typing.projection(result).map(x => {
+      @schema.reference_name(x.output)
+    }),
+    ["amount", "flag"],
+  )
   rejected(Drop, "[\"amount\",\"id\",\"flag\"]", EmptyBody)
   rejected(Drop, "[\"missing\"]", UnknownField("missing"))
 }
@@ -272,35 +279,24 @@ test "rename and drop expand without sequential rename effects" {
 test "empty derive maps retain schemas and still check input budgets" {
   for input in [input(), schema("{}")] {
     let body = cursor("{}")
-    let value = @relation_typing.check(Derive, body, input, None, limits()).unwrap()
+    let value = check_row(Derive, body, input, None, limits()).unwrap()
     assert_eq(@relation_typing.operation(value), Derive)
     assert_eq(@relation_typing.form(value), DeriveMap)
     assert_eq(@relation_typing.binding_count(value), 0)
-    assert_true(
-      @contract.type_equal(@relation_typing.output_schema(value), input, 10000),
-    )
+    assert_true(@contract.type_equal(output_row(value), input, 10000))
     let work = @relation_typing.work_used(value)
     assert_true(work > 0)
     assert_true(
-      @relation_typing.check(Derive, body, input, None, {
-        ..limits(),
-        max_work: work,
-      })
+      check_row(Derive, body, input, None, { ..limits(), max_work: work, })
       is Ok(_),
     )
     assert_true(
-      @relation_typing.check(Derive, body, input, None, {
-        ..limits(),
-        max_work: work - 1,
-      })
+      check_row(Derive, body, input, None, { ..limits(), max_work: work - 1, })
       is Err({ kind: BudgetExceeded, .. }),
     )
   }
   let invalid = @contract.with_nullability(input(), true)
-  assert_true(
-    @relation_typing.check(Derive, cursor("{}"), invalid, None, limits())
-    is Err(_),
-  )
+  assert_true(@schema.from_object(invalid) is Err(InvalidRowContract))
   rejected(Derive, "[]", EmptyBody)
   rejected(Derive, "[{}]", InvalidBody)
 }
@@ -313,35 +309,31 @@ test "empty rename and drop retain both nonempty and empty input schemas" {
       (@relation_typing.Drop, "[]"),
     ] {
     for input in [input(), schema("{}")] {
-      let value = @relation_typing.check(
-        op,
-        cursor(body),
-        input,
-        None,
-        limits(),
-      ).unwrap()
+      let value = check_row(op, cursor(body), input, None, limits()).unwrap()
       assert_eq(@relation_typing.operation(value), op)
-      assert_true(
-        @contract.type_equal(@relation_typing.input_schema(value), input, 10000),
-      )
-      assert_true(
-        @contract.type_equal(
-          @relation_typing.output_schema(value),
-          input,
-          10000,
-        ),
-      )
+      assert_true(@contract.type_equal(input_row(value), input, 10000))
+      assert_true(@contract.type_equal(output_row(value), input, 10000))
       assert_eq(@relation_typing.binding_count(value), 0)
       let expected = match input.shape {
         @contract.Object(fields) => @contract.fields(fields).map(f => f.name)
         _ => abort("test input object")
       }
-      assert_eq(@relation_typing.projection(value).map(p => p.output), expected)
-      assert_eq(@relation_typing.projection(value).map(p => p.input), expected)
+      assert_eq(
+        @relation_typing.projection(value).map(p => {
+          @schema.reference_name(p.output)
+        }),
+        expected,
+      )
+      assert_eq(
+        @relation_typing.projection(value).map(p => {
+          @schema.reference_name(p.input)
+        }),
+        expected,
+      )
     }
   }
   assert_true(
-    @relation_typing.check(Select, cursor("[]"), schema("{}"), None, limits())
+    check_row(Select, cursor("[]"), schema("{}"), None, limits())
     is Err({ kind: EmptyBody, .. }),
   )
 }
@@ -357,10 +349,7 @@ test "derive rejects malformed slots and preserves lawful data names" {
     Derive,
     "{\"__proto__\":\"1\",\"7\":\"2\",\"line\\nname\":\"3\"}",
   )
-  assert_true(
-    field(@relation_typing.output_schema(result), "__proto__").shape
-    is @contract.Number,
-  )
+  assert_true(field(output_row(result), "__proto__").shape is @contract.Number)
   rejected(Derive, "[{\"é\":\"1\"},{\"é\":\"2\"}]", DuplicateOutput("é"))
 }
 
@@ -386,11 +375,11 @@ test "operation result accessors detach arrays and preserve input evidence" {
 ///|
 test "operation work and text budgets are cumulative and exact at reported usage" {
   let body = cursor("[{\"x\":\"amount + 1\"},{\"y\":\"x + 2\"}]")
-  let result = @relation_typing.check(Derive, body, input(), None, limits()).unwrap()
+  let result = check_row(Derive, body, input(), None, limits()).unwrap()
   let work = @relation_typing.work_used(result)
   let text = @relation_typing.text_bytes_used(result)
   assert_true(
-    @relation_typing.check(Derive, body, input(), None, {
+    check_row(Derive, body, input(), None, {
       ..limits(),
       max_work: work,
       max_text_bytes: text,
@@ -398,14 +387,11 @@ test "operation work and text budgets are cumulative and exact at reported usage
     is Ok(_),
   )
   assert_true(
-    @relation_typing.check(Derive, body, input(), None, {
-      ..limits(),
-      max_work: work - 1,
-    })
+    check_row(Derive, body, input(), None, { ..limits(), max_work: work - 1, })
     is Err(_),
   )
   assert_true(
-    @relation_typing.check(Derive, body, input(), None, {
+    check_row(Derive, body, input(), None, {
       ..limits(),
       max_text_bytes: text - 1,
     })
@@ -413,10 +399,7 @@ test "operation work and text budgets are cumulative and exact at reported usage
   )
   for bound in [-1, 0, 1] {
     assert_true(
-      @relation_typing.check(Derive, body, input(), None, {
-        ..limits(),
-        max_work: bound,
-      })
+      check_row(Derive, body, input(), None, { ..limits(), max_work: bound, })
       is Err(_),
     )
   }
@@ -429,7 +412,7 @@ test "long ordered derive chains reuse the visible field map" {
     let rhs = if i == 0 { "amount" } else { "x" + (i - 1).to_string() }
     entries.push("{\"x" + i.to_string() + "\":\"" + rhs + "\"}")
   }
-  let result = @relation_typing.check(
+  let result = check_row(
     Derive,
     cursor("[" + entries.join(",") + "]"),
     input(),
@@ -450,16 +433,8 @@ test "deep expressions remain nonrecursive inside an operation" {
   let text = "{\"not\":".repeat(10000) +
     "{\"literal\":true}" +
     "}".repeat(10000)
-  let result = @relation_typing.check(
-    Filter,
-    cursor(text),
-    input(),
-    None,
-    limits(),
-  ).unwrap()
-  assert_true(
-    @contract.type_equal(@relation_typing.output_schema(result), input(), 1000),
-  )
+  let result = check_row(Filter, cursor(text), input(), None, limits()).unwrap()
+  assert_true(@contract.type_equal(output_row(result), input(), 1000))
 }
 
 ///|
@@ -469,21 +444,18 @@ test "operation composition uses the previous output without dropping derive slo
     "[{\"unused\":\"1 / 0\"},{\"total\":\"amount * 2\"}]",
   )
   assert_eq(@relation_typing.binding_count(derived), 2)
-  let select = @relation_typing.check(
+  let select = check_row(
     Select,
     cursor("[\"total\"]"),
-    @relation_typing.output_schema(derived),
+    output_row(derived),
     None,
     limits(),
   ).unwrap()
-  assert_true(
-    field(@relation_typing.output_schema(select), "total").shape
-    is @contract.Number,
-  )
-  let later = @relation_typing.check(
+  assert_true(field(output_row(select), "total").shape is @contract.Number)
+  let later = check_row(
     Derive,
     cursor("{\"old\":\"amount\"}"),
-    @relation_typing.output_schema(select),
+    output_row(select),
     None,
     limits(),
   )
@@ -505,19 +477,19 @@ test "parameters are declarations and patterns remain pending" {
       max_text_bytes: 10000,
     },
   ).unwrap()
-  let result = @relation_typing.check(
+  let result = check_row(
     Derive,
     cursor("{\"total\":\"amount * $factor\"}"),
     input(),
     Some(params),
     limits(),
   ).unwrap()
-  assert_true(field(@relation_typing.output_schema(result), "total").nullable)
+  assert_true(field(output_row(result), "total").nullable)
   assert_eq(
     @parameter.declaration_count(@relation_typing.parameters(result).unwrap()),
     2,
   )
-  let filtered = @relation_typing.check(
+  let filtered = check_row(
     Filter,
     cursor("\"regex_match(id, $pattern)\""),
     input(),
@@ -526,7 +498,7 @@ test "parameters are declarations and patterns remain pending" {
   ).unwrap()
   let expr = @relation_typing.binding_at(filtered, 0).unwrap().expression
   assert_true(@typing.pending_validations(expr).length() > 0)
-  let unknown = @relation_typing.check(
+  let unknown = check_row(
     Derive,
     cursor("{\"x\":\"$missing\"}"),
     input(),
@@ -544,18 +516,11 @@ test "syntax budgets cannot reset between slots" {
   let one = cursor("[{\"x\":\"amount + 1\"}]")
   let two = cursor("[{\"x\":\"amount + 1\"},{\"y\":\"amount + 1\"}]")
   let narrow = { ..limits(), max_tokens: 4, }
-  assert_true(
-    @relation_typing.check(Derive, one, input(), None, narrow) is Ok(_),
-  )
-  assert_true(
-    @relation_typing.check(Derive, two, input(), None, narrow) is Err(_),
-  )
+  assert_true(check_row(Derive, one, input(), None, narrow) is Ok(_))
+  assert_true(check_row(Derive, two, input(), None, narrow) is Err(_))
   for bound in [0, 1] {
     assert_true(
-      @relation_typing.check(Derive, one, input(), None, {
-        ..limits(),
-        max_nodes: bound,
-      })
+      check_row(Derive, one, input(), None, { ..limits(), max_nodes: bound, })
       is Err(_),
     )
   }
@@ -574,31 +539,19 @@ test "input schema preflight includes fields that projection removes" {
     max_name_bytes=100,
   ).unwrap()
   assert_true(
-    @relation_typing.check(Select, cursor("[\"id\"]"), input, None, {
+    check_row(Select, cursor("[\"id\"]"), input, None, {
       ..limits(),
       max_depth: 50,
     })
     is Err({ kind: BudgetExceeded, .. }),
   )
   assert_true(
-    @relation_typing.check(
-      Select,
-      cursor("[\"id\"]"),
-      @contract.with_nullability(input, true),
-      None,
-      limits(),
-    )
-    is Err({ kind: InvalidInputSchema, .. }),
+    @schema.from_object(@contract.with_nullability(input, true))
+    is Err(InvalidRowContract),
   )
   assert_true(
-    @relation_typing.check(
-      Filter,
-      cursor("\"TRUE\""),
-      @contract.primitive(NumberType, nullable=false),
-      None,
-      limits(),
-    )
-    is Err({ kind: InvalidInputSchema, .. }),
+    @schema.from_object(@contract.primitive(NumberType, nullable=false))
+    is Err(InvalidRowContract),
   )
 }
 
@@ -617,7 +570,7 @@ test "wide select uses indexed lookups and retains authored projection order" {
     max_fields=5000,
     max_name_bytes=100000,
   ).unwrap()
-  let result = @relation_typing.check(
+  let result = check_row(
     Select,
     cursor("[" + names.join(",") + "]"),
     input,
@@ -626,8 +579,8 @@ test "wide select uses indexed lookups and retains authored projection order" {
   ).unwrap()
   let projection = @relation_typing.projection(result)
   assert_eq(projection.length(), 5000)
-  assert_eq(projection[2].output, "f2")
-  assert_eq(projection[4999].output, "f4999")
+  assert_eq(projection[2].output, @schema.Unqualified("f2"))
+  assert_eq(projection[4999].output, @schema.Unqualified("f4999"))
 }
 
 ///|
@@ -638,7 +591,7 @@ test "unknown structured field diagnostics retain the nested occurrence" {
   let x = @decode.lookup(@decode.open_object(body).unwrap(), "x").unwrap()
   let add = @decode.lookup(@decode.open_object(x).unwrap(), "add").unwrap()
   let missing = @decode.elements(add).unwrap()[1]
-  match @relation_typing.check(Derive, body, input(), None, limits()) {
+  match check_row(Derive, body, input(), None, limits()) {
     Ok(_) => fail("unknown field accepted")
     Err(issue) => {
       assert_eq(issue.kind, UnknownField("missing"))
@@ -662,7 +615,7 @@ test "unknown fields in mixed text retain scalar spans and scalar-relative range
   let x = @decode.lookup(@decode.open_object(slot).unwrap(), "x").unwrap()
   let add = @decode.lookup(@decode.open_object(x).unwrap(), "add").unwrap()
   let text = @decode.elements(add).unwrap()[1]
-  match @relation_typing.check(Derive, body, input(), None, limits()) {
+  match check_row(Derive, body, input(), None, limits()) {
     Ok(_) => fail("unknown field accepted")
     Err(issue) => {
       assert_eq(issue.kind, UnknownField("missing"))
@@ -682,7 +635,7 @@ test "unknown fields in mixed text retain scalar spans and scalar-relative range
 ///|
 test "syntax failures expose their original diagnostic coordinates" {
   let body = cursor("{\"x\":{\"add\":[\"amount\",\"amount +\"]}}")
-  match @relation_typing.check(Derive, body, input(), None, limits()) {
+  match check_row(Derive, body, input(), None, limits()) {
     Ok(_) => fail("invalid syntax accepted")
     Err(issue) => {
       match issue.kind {

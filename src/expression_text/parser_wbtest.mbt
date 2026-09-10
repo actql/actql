@@ -15,6 +15,23 @@ fn test_limits() -> Limits {
 }
 
 ///|
+test "relation references retain qualified token ranges without property names" {
+  let expression = accepted(
+    "left.id + right.value.x + \"left\".id + \"right.id\"",
+  )
+  assert_eq(relation_references(expression), [
+    { name: "left.id", range: { start: 0, end: 7, }, },
+    { name: "right.value", range: { start: 10, end: 21, }, },
+    { name: "left", range: { start: 26, end: 32, }, },
+    { name: "right.id", range: { start: 38, end: 48, }, },
+  ])
+  let detached = relation_references(expression)
+  detached.clear()
+  assert_eq(relation_references(expression).length(), 4)
+  assert_eq(field_references(expression).length(), 2)
+}
+
+///|
 fn accepted(source : String) -> Expression raise {
   match parse(source, test_limits()) {
     Ok(value) => value

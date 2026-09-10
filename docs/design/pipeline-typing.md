@@ -3,7 +3,7 @@
 `pipeline_typing.check` connects an ordered array of steps using the
 [pipeline naming rules](../spec/language.md#pipeline-references) and the
 [single-operation checker](relation-typing.md). It supports only `derive`,
-`filter`, `select`, `rename`, and `drop`. Other operation names are explicitly
+`filter`, `select`, `rename`, `drop`, and [local join](relation-join.md). Other operation names are explicitly
 unsupported; no step is skipped or treated as an opaque successful operation.
 
 ## Inputs and scope
@@ -18,16 +18,17 @@ selects an ambiguous current input. The input list is copied.
 
 Inputs and outputs use `relation_schema.Schema`, not ordinary object value
 contracts. `relation_schema.from_object` adapts an already checked non-null
-object contract. The current operation checker accepts only flat schemas;
-any supplied qualified schema fails with `UnsupportedInputSchema`, even if
-unused. This is an implementation boundary, not a language prohibition.
-The five unary operation checks still use `relation_typing` through the explicit
-`as_object` adapter. No dotted names are added to ordinary object contracts.
+object contract. Qualified schemas are also accepted and preflighted even when
+unused. The five unary operation checks use `relation_typing` with this same
+schema representation. No dotted names are added to ordinary object contracts.
+Only join operands must be flat: qualified output needs explicit projection
+before another join. This applies to both the left and right input.
 
 The package owns shared naming, connection, budget and diagnostic rules; its
-current checked steps still have one input and one output and require a final
-current. Join, multiple input/output ports, generators and non-Relation Carriers
-are not implemented. The package name does not imply support for those cases.
+current checked steps have a main input and one output and require a final
+current. `CheckedOperation` distinguishes `Unary` from `Join`; the latter
+retains an additional right-input target and a checked join. General multi-output
+ports, generators and non-Relation Carriers are not implemented.
 
 SourceView acquisition, Catalog/authority checks, Carrier resolution, search
 template classification and stage imports belong to callers. Search templates
@@ -40,6 +41,12 @@ becomes current; zero or multiple inputs leave current unset. An explicit step
 current. Otherwise a consuming step requires current. Each successful step
 becomes current, whether or not it has `as`; generated names are not exposed.
 Inputs and `as` share a unique namespace. Forward and self references fail.
+Join's `with` resolves the right input in that namespace; optional `join.left`
+replaces the selected main input and can establish it when no current exists.
+Step `from` and `join.left` may coexist: `from` selects first and `left` wins,
+but both explicit selectors are validated. The retained main input edge names
+the final left operand, not the overridden binding. Resolving both sides to the same
+existing input is legal, unlike referencing the current step's own `as`.
 Empty steps return the selected input unchanged; this Relation pipeline API
 requires a selected final current even when empty. It does not admit the
 zero-input/generator or no-current publication-only stage cases.
@@ -66,7 +73,7 @@ this boundary after pipeline checking and retains the originating pipeline.
 
 Each checked operation preserves typed expressions, projection order and
 pending profile/pattern/Host obligations. Callers access them through
-`step_at` and the existing relation/expression APIs; obligations are not copied
+`step_at`, the operation variant and the relation/join/expression APIs; obligations are not copied
 into a second aggregate list. A later projection does not delete earlier
 bindings or their failures and pending validations. Returned input lists and
 the operation's array accessors are detached; contracts and cursors are opaque.
@@ -93,7 +100,9 @@ Work charges input registration, whole-contract preflight, step envelopes,
 names, metadata and each operation's reported work. Text charges processed
 names, contract text, metadata text and operation text. Nodes charge step
 envelopes, metadata values and operation syntax/type nodes. Tokens charge
-embedded expression lexing. Input and Parameter contracts are preflighted even
+embedded expression lexing. Join body traversal consumes nodes but no text-parser
+tokens; its work/text/nodes are deducted from the same remaining counters.
+Input and Parameter contracts are preflighted even
 if unused or the steps array is empty. Operations currently preflight their
 own input and Parameter contracts again; repeated work is charged, not hidden.
 `usage` reports these logical counters, not heap bytes or CPU instructions.

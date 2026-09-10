@@ -283,6 +283,45 @@ test "regex static arguments retain bound validation without evaluating defaults
 }
 
 ///|
+test "qualified template fields require their own scalar scope" {
+  let normal = env(fields="{\"n\":{\"type\":\"number\",\"nullable\":false}}")
+  for side in ["left", "right"] {
+    let expression = syntax("{\"template\":\"{" + side + ".n}\"}")
+    assert_true(
+      @expression_typing.check(expression, normal, test_limits())
+      is Err({ kind: MissingJoinScope(_), .. }),
+    )
+    let scalar = env(fields="{\"n\":{\"type\":\"string\",\"nullable\":true}}")
+    let environment : @expression_typing.Environment = {
+      ..normal,
+      left: scalar.fields,
+      right: scalar.fields,
+    }
+    let result = @expression_typing.check(
+      expression,
+      environment,
+      test_limits(),
+    ).unwrap()
+    assert_true(@expression_typing.result_type(result).nullable)
+    let absent = syntax("{\"template\":\"{" + side + ".missing}\"}")
+    assert_true(
+      @expression_typing.check(absent, environment, test_limits())
+      is Err({ kind: UnknownField(_), .. }),
+    )
+    let nonscalar = env(fields="{\"n\":{\"type\":\"json\",\"nullable\":false}}")
+    let environment : @expression_typing.Environment = {
+      ..normal,
+      left: nonscalar.fields,
+      right: nonscalar.fields,
+    }
+    assert_true(
+      @expression_typing.check(expression, environment, test_limits())
+      is Err({ kind: TypeMismatch("printable template field"), .. }),
+    )
+  }
+}
+
+///|
 test "join scopes never fall back to ordinary fields and parameters remain declared" {
   let normal = env(fields="{\"n\":{\"type\":\"string\",\"nullable\":false}}")
   let left = env(fields="{\"n\":{\"type\":\"number\",\"nullable\":true}}").fields

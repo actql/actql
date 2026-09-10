@@ -17,6 +17,7 @@ fn read(root : @decode.Cursor, limits : Limits) -> Expression raise Stop {
     tokens: limits.max_tokens,
     references: [],
     field_references: [],
+    relation_references: [],
   }
   let work : Array[Work] = [Visit(root, Expr, Authored, 0)]
   let values : Array[@source.Node] = []
@@ -96,6 +97,21 @@ fn read(root : @decode.Cursor, limits : Limits) -> Expression raise Stop {
             })
           }
           let range : @text.Range = { start: 0, end: source.iter().count(), }
+          for r in @text.relation_references(expression) {
+            let name = if r.name.has_prefix("left.") ||
+              r.name.has_prefix("right.") {
+              let parts = r.name.split(".").to_array()
+              parts[0].to_owned() + "." + parts[1].to_owned()
+            } else {
+              r.name
+            }
+            budget.relation_references.push({
+              name,
+              path: @decode.cursor_path(cursor),
+              span: @decode.cursor_span(cursor),
+              range: Some(r.range),
+            })
+          }
           for r in @text.field_references(expression) {
             // Whole-field aliases become join_field, not ordinary row fields.
             if !r.name.has_prefix("left.") && !r.name.has_prefix("right.") {
@@ -319,6 +335,7 @@ fn read(root : @decode.Cursor, limits : Limits) -> Expression raise Stop {
     cursor,
     references: budget.references,
     field_references: budget.field_references,
+    relation_references: budget.relation_references,
     usage: {
       nodes: limits.max_nodes - budget.nodes,
       text_bytes: limits.max_text_bytes - budget.bytes,

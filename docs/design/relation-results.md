@@ -23,12 +23,16 @@ maps. Its order is retained independently of the canonical ordering of the
 output Relation schema. The exact selected field contracts and nullability are
 preserved. Whole-Program root exports are outside this API.
 
-The public output is `relation_schema.Schema`. The current pipeline accepts
-only flat Relation schemas, so Result checking explicitly adapts these to
-ordinary object contracts for preflight and constructs a flat projected schema.
-Qualified field projection is not implemented yet; its support must accompany
-the pipeline's qualified operation support. No qualified names are silently
-flattened or admitted as authored object field names.
+The public output is `relation_schema.Schema`. Preflight and projection work on
+its typed fields directly, including raw join output. A `fields` entry such as
+`left.id` preserves that qualification in the output schema, independently of
+the requested column order. Flat aliases must be established by an earlier
+operation; Results do not introduce an alias-map syntax. `order_by` resolves
+exact qualified names against the source before projection. No qualified names
+are silently flattened or admitted as authored object field names.
+This retention also governs published column names. A downstream consumer
+requiring flat fields needs an explicit upstream projection or rename, not an
+implicit conversion at the Result or consumption boundary.
 
 Optional `order_by` is nonempty. Each key follows the closed grammar:
 `{Field: asc|desc}` or `{field, dir, nulls}`. The explicit form requires
