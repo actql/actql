@@ -6,6 +6,17 @@ import {parameterPrograms} from './parameter-schema.mjs';
 
 test('vector source bodies are closed and distinguish literal and whole-parameter queries', () => {
   const s = vectorSchemas();
+  const [maximum, weighted, rrf] = s.merge_rankings.oneOf;
+  assert.equal(maximum.properties.score_policy.const,'max');
+  assert.equal(weighted.properties.score_policy.properties.weighted_sum.additionalProperties,false);
+  assert.equal(maximum.properties.rank,undefined);
+  assert.equal(maximum.properties.by.minItems,undefined);
+  assert.equal(maximum.properties.tie_break.minItems,undefined);
+  assert.equal(rrf.properties.score,undefined);
+  assert.equal(rrf.properties.score_contract,undefined);
+  assert.equal(rrf.properties.tie_break,undefined);
+  assert.equal(rrf.properties.with.oneOf[1].uniqueItems,undefined);
+  assert.equal(rrf.properties.score_policy.properties.rrf.properties.weights.contains.exclusiveMinimum,0);
   assert.equal(s.pool_vectors.additionalProperties,false);
   assert.deepEqual(s.pool_vectors.required,['by','method']);
   assert.equal(s.pool_vectors.properties.by.minItems,1);

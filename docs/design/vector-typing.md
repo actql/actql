@@ -102,6 +102,89 @@ transfer boundary, including all surviving aliases of each component. The
 single-declaration path is not the completed multiple-witness evidence model;
 join cardinality propagation and operation-created keys remain separate work.
 
+## Ranking fusion options
+
+`read_ranking_options` separates max/weighted_sum from reciprocal-rank fusion.
+It retains all input occurrences and authored ordering, including repeated RRF
+input names and zero-weight occurrences. RRF weight count includes the current
+input; its positive total is checked by the existence of a positive finite
+weight, avoiding an unnecessary overflowing binary64 sum. Rank window and output
+k are independent. Reading options establishes no input score-contract evidence
+and does not validate any ranking rows.
+
+The normative owner is [merge_rankings](../spec/language.md#merge-rankings).
+The source-options paragraph closes previously unspecified boundaries: empty by
+is global grouping, repeated by fields occur once in output, and empty business
+tie-break still uses the mandatory final candidate identity. These follow the
+existing partition and repeated-condition decisions, not a no-op rule. The fixed
+higher-is-better law permits omission or explicit true, never false. Weighted
+sum uses binary64 equality to one without the old adapter's epsilon tolerance.
+These are explicit decisions; source spelling is retained rather than repaired.
+
+Fixed Sketch `87dc7144138edfcba108cdc59dc485ac976ba976` decodes only two-input
+max/weighted_sum, requires nonempty by/tie_break and explicit higher_is_better.
+AoA `dbab4fe8c1d624d81ed967f90e2abe742163f84f` pipeline mapping also hashes
+semantic IDs and carries a representative payload through score fusion. The
+current Language instead preserves semantic identity domains, requires complete
+input uniqueness, rejects conflicting business tie-break values and defines a
+closed output with new ranks. Those older behaviors are not imported. Searches
+of Smooth `55b83448ac44c66c992b2f1c33452b7849e6c3f8` Data Plane operator runtime
+and container found no merge_rankings/RRF implementation; this is not evidence
+of support elsewhere.
+
+`RankingInput` separates ordinary Relation contracts from `nearest` outputs.
+`ranking_from_nearest` binds the row contract, ordered composite identity domains
+and producer obligations in one opaque value; a same-shaped ordinary object is
+not thereby a semantic identity. The producer remains accessible for discharging
+its obligations. `check_ranking_shape` requires complete row types, validates
+query/candidate roles and non-null numeric score/rank roles, and checks business
+tie-break fields against the authored ordering domain. Nullable query grouping
+keys remain grouping values; candidate identity must be non-null. The constructor
+does not certify actual rows, input uniqueness, contiguous ranks or score scale.
+Checks share bounded work/name budgets and retain owned contracts without
+constructing a second contract tree.
+
+Generated machine schemas distinguish all three closed policy forms. Arithmetic
+relations between values (weight sum, range endpoint ordering and weights length
+versus input occurrences) remain semantic checks, not claims of JSON Schema
+coverage.
+
+`check_merge_rankings` consumes ordered `RankingInput` occurrences, aligns query,
+candidate and business tie-break value domains, and creates only the specified
+output fields. Contract joins widen admissible string bounds/nullability without
+converting values; incompatible domains, including different decimal P/S, fail.
+Composite identities require producer evidence on both sides in the same tuple
+shape. Output tuples retain that evidence through `ranking_from_fusion`, allowing
+another RRF stage without treating an arbitrary object as an identity.
+
+For max/weighted_sum, `declare_ranking_score` represents a captured input's
+semantic score assertion bound to its immutable row contract and score field.
+It is not a normalization operation or a proof obtained by naming a range.
+Both input assertions must exactly match the authored contract, and the checker
+retains authentication and range-admission obligations. Ordinary Relation inputs
+and nearest outputs do not acquire this declaration implicitly. Hosts must bind
+the assertion to captured input evidence before execution, not use this boundary
+to relabel newly computed scores. Producer handles and their obligations remain
+reachable through indexed input accessors.
+
+Whole-input uniqueness, contiguous input ranks, score arithmetic, business
+tie-value agreement and output resource envelopes are explicit obligations.
+Fusion emits fresh ranks; business payload is not copied. In particular a
+weighted result can lie outside the original range because one-sided candidates
+receive an absent-side zero. No input score declaration is reused as the output
+score envelope; deriving and propagating that envelope remains shared evidence
+work.
+
+Pipeline fusion keeps the current ranking first and each authored with occurrence
+after it, with separate `Sample(index)` edges even for repeated targets. Options
+are admitted once; reference resolution and typed fusion debit the remaining
+shared budget. `RankingInput` in `check_with_evidence` supplies captured score
+declarations. Nearest and fusion producers supply their bound identity domains
+directly, supporting repeated RRF composition. Ordinary input columns do not
+silently acquire score declarations. Diagnostics retain the failing source path
+and span. Evidence transfer through arbitrary intervening operations and derived
+output score envelopes remain unfinished shared evidence work.
+
 ## Existing vector preparation and scoring
 
 The checker supports `to_vectors` from Relation and `normalize_vectors` and `score_vectors` on Vectors,

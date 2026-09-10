@@ -5694,6 +5694,23 @@ already passed non-nullness, domain and uniqueness checks.
     k: 20
 ```
 
+<!-- requirement-block: merge-rankings.source-options -->
+The source body MUST be closed to with, by, candidate, score, rank, score_policy,
+score_contract, k and tie_break, with policy-specific required and forbidden
+members as specified below. An empty by list denotes one global query group;
+repeated by references retain their authored order but create each output field
+only once, in first-occurrence order. For max and weighted_sum, with is one input
+name. An explicitly empty tie_break adds no business fields and still completes
+to candidate identity; repeated business tie-break references are retained and
+do not strengthen uniqueness evidence. Omission and an explicit empty list are
+not canonical-source substitutions. Score_contract admits exactly domain, range,
+normalization and optional higher_is_better: true; domain and normalization are
+nonempty strings, range has exactly two finite endpoints in nondecreasing order.
+The fixed higher-is-better law applies when the redundant true member is absent
+as well. All k, rank_constant and rank_window options are positive safe-integer
+literals. Weighted-sum admission compares the binary64 sum of its two weights
+with exactly one, without an epsilon tolerance.
+
 <!-- requirement-block: merge-rankings.by-candidate-score-score-policy-max-weighted-sum-left-right-and-positive-k-are-required merge-rankings.weighted-sum-weights-must-be-finite-non-negative-and-sum-exactly-to merge-rankings.an-explicit-identical-score-contract-is-required-for-both-ranking-semantics -->
 Both inputs are relation rankings with complete typed schemas. `by`,
 `candidate`, `score`, `score_policy: max|{weighted_sum:{left,right}}`, and
@@ -7516,6 +7533,17 @@ PoolVectorsBody := {vector?: Field, by: [Field, ...], method: mean | sum | max,
 PoolVectorsConstraints := by is nonempty and duplicate-free; output_id requires
   exactly one grouping field; Relation input requires vector and a scalar candidate
   key, while Vectors input retains its intrinsic member identity.
+MergeRankingsBody := {with: InputOrStepName, by: [Field, ...] | [],
+  candidate: Field, score: Field, score_policy: max | {weighted_sum: {left: number, right: number}},
+  score_contract: ScoreContract, k: positive safe-integer literal, tie_break?: [Field, ...] | []}
+  | {with: InputOrStepName | [InputOrStepName, ...], by: [Field, ...] | [],
+     candidate: Field, rank: Field, k: positive safe-integer literal,
+     score_policy: {rrf: {rank_constant: positive safe-integer literal,
+       weights: [nonnegative finite number, ...], rank_window: positive safe-integer literal}}}
+ScoreContract := {domain: NonemptyString, range: [finite minimum, finite maximum],
+  normalization: NonemptyString, higher_is_better?: true}
+MergeRankingsConstraints := minimum <= maximum; weighted_sum weights sum to one;
+  RRF weights include the current input and have positive total weight.
 MeanGraphsBody := {with: [InputOrStepName, ...], weights: [nonnegative number, ...],
   support: {nodes: number in (0, 1], edges: number in (0, 1]},
   properties: {nodes: {Field: MeanPropertyStrategy}*, edges: {Field: MeanPropertyStrategy}*}}

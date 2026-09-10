@@ -7,7 +7,31 @@ import {parameterPrograms} from './parameter-schema.mjs';
 import {machineCid} from './actql-spec-family.mjs';
 
 export function vectorSchemas() {
+  const field = {type:'string',minLength:1};
+  const positive = {type:'integer',minimum:1,maximum:9007199254740991};
+  const common = {by:{type:'array',items:field},candidate:field,k:positive};
+  const scoreContract = {type:'object',additionalProperties:false,required:['domain','range','normalization'],properties:{
+    domain:field,normalization:field,higher_is_better:{const:true},
+    range:{type:'array',minItems:2,maxItems:2,items:{type:'number'}},
+  }};
+  const scored = policy => ({type:'object',additionalProperties:false,required:['with','by','candidate','score','score_policy','score_contract','k'],properties:{
+    ...common,with:field,score:field,score_contract:scoreContract,score_policy:policy,tie_break:{type:'array',items:field},
+  }});
   return {
+    merge_rankings:{oneOf:[
+      scored({const:'max'}),
+      scored({type:'object',additionalProperties:false,required:['weighted_sum'],properties:{weighted_sum:{
+        type:'object',additionalProperties:false,required:['left','right'],properties:{left:{type:'number',minimum:0,maximum:1},right:{type:'number',minimum:0,maximum:1}},
+      }}}),
+      {type:'object',additionalProperties:false,required:['with','by','candidate','rank','score_policy','k'],properties:{
+        ...common,with:{oneOf:[field,{type:'array',minItems:1,items:field}]},rank:field,
+        score_policy:{type:'object',additionalProperties:false,required:['rrf'],properties:{rrf:{
+          type:'object',additionalProperties:false,required:['rank_constant','weights','rank_window'],properties:{
+            rank_constant:positive,rank_window:positive,weights:{type:'array',minItems:2,items:{type:'number',minimum:0},contains:{type:'number',exclusiveMinimum:0}},
+          },
+        }}},
+      }},
+    ]},
     pool_vectors:{type:'object',additionalProperties:false,required:['by','method'],properties:{
       vector:{type:'string',minLength:1},
       by:{type:'array',minItems:1,uniqueItems:true,items:{type:'string',minLength:1}},

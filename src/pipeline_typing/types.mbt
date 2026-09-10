@@ -153,6 +153,7 @@ pub enum CheckedOperation {
   Vector(@vector.CheckedVector)
   Nearest(queries~ : Target, checked~ : @vector.CheckedNearest)
   Pool(@vector.CheckedPool)
+  Ranking(@vector.CheckedRanking)
   Event(@event.CheckedEvent)
   WindowGroup(@relation.CheckedOperation)
 }
@@ -186,6 +187,7 @@ pub fn window_aliases(
 
 ///|
 struct CheckedPipeline {
+  ranked_inputs : Array[@vector.RankingInput?]
   keyed_inputs : Array[@evidence.KeyedRelation?]
   keyed_steps : Array[@evidence.KeyedRelation?]
   delta_inputs : Array[DeltaEvidence]
@@ -206,6 +208,7 @@ struct CheckedPipeline {
 pub(all) enum InputContract {
   CarrierInput(@carrier.Carrier)
   KeyedInput(@evidence.KeyedRelation)
+  RankingInput(@vector.RankingInput)
 }
 
 ///|

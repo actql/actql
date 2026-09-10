@@ -59,6 +59,8 @@ pub fn output_schema(CheckedPipeline) -> @relation_schema.Schema?
 
 pub fn parameters(CheckedPipeline) -> @parameter_binding.Declarations?
 
+pub fn ranking_evidence(CheckedPipeline, Target) -> @vector_typing.RankingInput?
+
 pub fn schema_at(CheckedPipeline, Target) -> @relation_schema.Schema?
 
 pub fn source(CheckedPipeline) -> @decode_core.Cursor
@@ -110,6 +112,7 @@ pub enum CheckedOperation {
   Vector(@vector_typing.CheckedVector)
   Nearest(queries~ : Target, checked~ : @vector_typing.CheckedNearest)
   Pool(@vector_typing.CheckedPool)
+  Ranking(@vector_typing.CheckedRanking)
   Event(@event_typing.CheckedEvent)
   WindowGroup(@relation_typing.CheckedOperation)
 }
@@ -132,6 +135,7 @@ type Connections
 pub(all) enum InputContract {
   CarrierInput(@carrier_contract.Carrier)
   KeyedInput(@relation_evidence.KeyedRelation)
+  RankingInput(@vector_typing.RankingInput)
 }
 
 pub struct InputOccurrence {

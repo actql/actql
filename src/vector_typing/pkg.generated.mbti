@@ -15,6 +15,8 @@ import {
 // Values
 pub fn check(Operation, @decode_core.Cursor, @carrier_contract.Carrier, @parameter_binding.Declarations?, Limits) -> Result[CheckedVector, Issue]
 
+pub fn check_merge_rankings(@decode_core.Cursor, Array[RankingInput], Limits) -> Result[CheckedRanking, Issue]
+
 pub fn check_nearest(@decode_core.Cursor, @carrier_contract.Carrier, @carrier_contract.Carrier, Limits) -> Result[CheckedNearest, Issue]
 
 pub fn check_nearest_input(NearestOptions, NearestSide, @carrier_contract.Carrier, Limits) -> Result[NearestInput, Issue]
@@ -25,7 +27,33 @@ pub fn check_pool_relation(@decode_core.Cursor, @relation_evidence.KeyedRelation
 
 pub fn check_pool_vectors(@decode_core.Cursor, @carrier_contract.Carrier, Limits) -> Result[CheckedPool, Issue]
 
+pub fn check_ranking_fusion(RankingOptions, Array[RankingInput], Limits) -> Result[CheckedRanking, Issue]
+
+pub fn check_ranking_shape(RankingOptions, RankingInput, Limits) -> Result[RankingShape, Issue]
+
+pub fn declare_ranking_score(@decode_core.Cursor, @carrier_contract.Carrier, @relation_schema.FieldName, Limits) -> Result[RankingInput, Issue]
+
+pub fn declared_score_contract(DeclaredScore) -> ScoreContract
+
+pub fn declared_score_field(DeclaredScore) -> @relation_schema.FieldName
+
+pub fn declared_score_source(DeclaredScore) -> @decode_core.Cursor
+
+pub fn declared_score_usage(DeclaredScore) -> Usage
+
 pub fn input(CheckedVector) -> @carrier_contract.Carrier
+
+pub fn merged_ranking_input_at(CheckedRanking, Int) -> RankingShape?
+
+pub fn merged_ranking_input_count(CheckedRanking) -> Int
+
+pub fn merged_ranking_options(CheckedRanking) -> RankingOptions
+
+pub fn merged_ranking_output(CheckedRanking) -> @carrier_contract.Carrier
+
+pub fn merged_ranking_pending(CheckedRanking) -> Array[RankingObligation]
+
+pub fn merged_ranking_usage(CheckedRanking) -> Usage
 
 pub fn metric(CheckedVector) -> Metric?
 
@@ -105,9 +133,61 @@ pub fn query_parameter(Query) -> String?
 
 pub fn query_values(Query) -> Array[Double]?
 
+pub fn ranking_by(RankingOptions) -> Array[@relation_schema.FieldName]
+
+pub fn ranking_candidate(RankingOptions) -> @relation_schema.FieldName
+
+pub fn ranking_from_fusion(CheckedRanking) -> RankingInput
+
+pub fn ranking_from_nearest(CheckedNearest) -> RankingInput
+
+pub fn ranking_input_carrier(RankingInput) -> @carrier_contract.Carrier
+
+pub fn ranking_input_fusion(RankingInput) -> CheckedRanking?
+
+pub fn ranking_input_nearest(RankingInput) -> CheckedNearest?
+
+pub fn ranking_inputs(RankingOptions) -> Array[String]
+
+pub fn ranking_k(RankingOptions) -> Double
+
+pub fn ranking_options_usage(RankingOptions) -> Usage
+
+pub fn ranking_policy(RankingOptions) -> RankingPolicy
+
+pub fn ranking_rank(RankingOptions) -> @relation_schema.FieldName?
+
+pub fn ranking_rank_constant(RankingOptions) -> Double?
+
+pub fn ranking_rank_window(RankingOptions) -> Double?
+
+pub fn ranking_relation(@carrier_contract.Carrier) -> RankingInput
+
+pub fn ranking_score(RankingOptions) -> @relation_schema.FieldName?
+
+pub fn ranking_score_contract(RankingOptions) -> ScoreContract?
+
+pub fn ranking_score_declaration(RankingInput) -> DeclaredScore?
+
+pub fn ranking_shape_input(RankingShape) -> RankingInput
+
+pub fn ranking_shape_options(RankingShape) -> RankingOptions
+
+pub fn ranking_shape_schema(RankingShape) -> @relation_schema.Schema
+
+pub fn ranking_shape_usage(RankingShape) -> Usage
+
+pub fn ranking_source(RankingOptions) -> @decode_core.Cursor
+
+pub fn ranking_tie_break(RankingOptions) -> Array[@relation_schema.FieldName]?
+
+pub fn ranking_weights(RankingOptions) -> Array[Double]
+
 pub fn read_nearest_options(@decode_core.Cursor, Limits) -> Result[NearestOptions, Issue]
 
 pub fn read_pool_options(@decode_core.Cursor, Limits) -> Result[PoolOptions, Issue]
+
+pub fn read_ranking_options(@decode_core.Cursor, Limits) -> Result[RankingOptions, Issue]
 
 pub fn source(CheckedVector) -> @decode_core.Cursor
 
@@ -120,7 +200,11 @@ type CheckedNearest
 
 type CheckedPool
 
+type CheckedRanking
+
 type CheckedVector
+
+type DeclaredScore
 
 pub struct Issue {
   kind : IssueKind
@@ -146,6 +230,11 @@ pub(all) enum IssueKind {
   IncompleteNearestInput
   DuplicatePoolField(@relation_schema.FieldName)
   UnsupportedPoolMemberIdentity(@relation_schema.FieldName)
+  IncompleteRankingInput
+  InvalidRankingField(@relation_schema.FieldName)
+  RankingDomainMismatch(@relation_schema.FieldName)
+  MissingScoreContract
+  ScoreContractMismatch
 } derive(Eq, @debug.Debug)
 
 pub(all) struct Limits {
@@ -237,6 +326,41 @@ pub(all) enum PoolObligation {
 type PoolOptions
 
 type Query
+
+type RankingInput
+
+pub(all) enum RankingObligation {
+  ValidateCompleteRankingInputs
+  ValidateUniqueQueryCandidatePerInput
+  ValidatePositiveSafeContiguousRanks
+  AuthenticateCapturedScoreDeclarations
+  ValidateDeclaredScoreRanges
+  ValidateBusinessTieAgreement
+  ApplyRankWindowAfterAdmission
+  EvaluateRankingPolicyWithFiniteIntermediates
+  OrderRankingByScoreAndSemanticIdentity
+  AssignFusedContiguousRanks
+  ResolveRankingResources
+  ResolveRankingProfile
+  DeriveOutputScoreEnvelope
+} derive(Eq, @debug.Debug)
+
+type RankingOptions
+
+pub(all) enum RankingPolicy {
+  Maximum
+  WeightedSum
+  ReciprocalRank
+} derive(Eq, @debug.Debug)
+
+type RankingShape
+
+pub struct ScoreContract {
+  domain : String
+  normalization : String
+  minimum : Double
+  maximum : Double
+}
 
 pub(all) struct Usage {
   work : Int

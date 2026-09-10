@@ -4491,6 +4491,17 @@
       }
     },
     {
+      "requirement_id": "actql.language/merge-rankings.source-options",
+      "statement_sha256": "1e791c22a7946fee5dd80f07d5da637493519cff263f5c8af238f9bbaf851468",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "merge-rankings",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.language/merge-rankings.by-candidate-score-score-policy-max-weighted-sum-left-right-and-positive-k-are-required",
       "statement_sha256": "28623d2f0507fe21d1a094141c3934d2344302cc97bfcd5626eaf0862e014004",
       "status": "pending",
@@ -6230,7 +6241,7 @@
     },
     {
       "requirement_id": "actql.language/structural-grammar.grammar",
-      "statement_sha256": "451b402aff25d1367165e01a309eb5f141fdc8a3a06dd8fb7cc2233777a59c47",
+      "statement_sha256": "c57b9f9c4f61d8381569777a1c5f4a311a5bc47a561c121d3b038f5920cd08b9",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",

@@ -60,6 +60,7 @@ fn check_impl(
     (String, @schema.FieldName, @graph_contract.CheckedContract),
   ],
   keyed_inputs : Array[@evidence.KeyedRelation?],
+  ranked_inputs : Array[@vector.RankingInput?],
 ) -> CheckedPipeline raise Stop {
   if limits.max_steps < 0 ||
     limits.max_work < 0 ||
@@ -611,6 +612,7 @@ fn check_impl(
       | "score_vectors"
       | "nearest"
       | "pool_vectors"
+      | "merge_rankings"
       | "degree"
       | "components"
       | "graph_bounds"
@@ -1279,6 +1281,70 @@ fn check_impl(
       current = Some(target)
       continue
     }
+    if key == "merge_rankings" {
+      let options = vector_result(
+        operation_body,
+        @vector.read_ranking_options(operation_body, {
+          max_work: b.work,
+          max_nodes: b.nodes,
+          max_depth: limits.max_depth,
+          max_text_bytes: b.text,
+        }),
+      )
+      let u = @vector.ranking_options_usage(options)
+      b.work -= u.work
+      b.nodes -= u.nodes
+      b.text -= u.text_bytes
+      let root = @decode.open_object(operation_body).unwrap()
+      let at = @decode.required(root, "with").unwrap()
+      let targets = [input]
+      match @decode.view(at) {
+        ArrayValue(items) => {
+          spend(b, at, items.length())
+          for item in items {
+            targets.push(resolve_target(b, item, names))
+          }
+        }
+        _ => targets.push(resolve_target(b, at, names))
+      }
+      spend(b, operation_body, targets.length())
+      let ranking_inputs = targets.map(t => {
+        ranking_at(t, inputs, ranked_inputs, steps)
+      })
+      let checked = vector_result(
+        operation_body,
+        @vector.check_ranking_fusion(options, ranking_inputs, {
+          max_work: b.work,
+          max_nodes: b.nodes,
+          max_depth: limits.max_depth,
+          max_text_bytes: b.text,
+        }),
+      )
+      let u = @vector.merged_ranking_usage(checked)
+      b.work -= u.work
+      b.nodes -= u.nodes
+      b.text -= u.text_bytes
+      let edges : Array[InputOccurrence] = []
+      for i in 0..<targets.length() {
+        edges.push({ role: Sample(i), target: targets[i], })
+      }
+      let target = Step(steps.length())
+      steps.push({
+        source: body,
+        input: Some(input),
+        binding_name,
+        metadata: meta,
+        operation: Ranking(checked),
+        output: @vector.merged_ranking_output(checked),
+        connections: { entries: edges, },
+        window: None,
+      })
+      if binding_name is Some(name) {
+        names[name] = target
+      }
+      current = Some(target)
+      continue
+    }
     if key == "pool_vectors" {
       let caps : @vector.Limits = {
         max_work: b.work,
@@ -1898,7 +1964,8 @@ fn check_impl(
             None => [{ role: Primary, target: edges, }]
           }
         Values(_) | TimeSeries(_) | GraphMean(_) => []
-        Calendar(_) | Pool(_) => [{ role: Primary, target: input, }]
+        Calendar(_) | Pool(_) | Ranking(_) =>
+          [{ role: Primary, target: input, }]
         Shortest(source_selector~, target_selector~, ..) => {
           let entries = [{ role: Primary, target: input, }]
           if source_selector is Some(t) {
@@ -1960,6 +2027,7 @@ fn check_impl(
   sync_delta(b, source, delta_inputs, steps, delta_steps)
   sync_keys(b, keyed_inputs, steps, keyed_steps)
   {
+    ranked_inputs,
     keyed_inputs,
     keyed_steps,
     delta_inputs,
@@ -2043,6 +2111,7 @@ pub fn check_carriers(
       calendar_profile,
       delta_contracts,
       inputs.map(_ => None),
+      inputs.map(_ => None),
     ),
   ) catch {
     Stop(issue) => Err(issue)
@@ -2068,19 +2137,26 @@ pub fn check_with_evidence(
       match pair.1 {
         CarrierInput(c) => c
         KeyedInput(k) => @carrier.relation(@evidence.keyed_records(k))
+        RankingInput(r) => @vector.ranking_input_carrier(r)
       },
     )
   })
   let keys = inputs.map(pair => {
     match pair.1 {
-      CarrierInput(_) => None
+      CarrierInput(_) | RankingInput(_) => None
       KeyedInput(k) => Some(k)
+    }
+  })
+  let rankings = inputs.map(pair => {
+    match pair.1 {
+      RankingInput(r) => Some(r)
+      _ => None
     }
   })
   Ok(
     check_impl(
       source, carriers, parameters, from, limits, calendar_profile, delta_contracts,
-      keys,
+      keys, rankings,
     ),
   ) catch {
     Stop(issue) => Err(issue)

@@ -44,6 +44,11 @@ pub(all) enum IssueKind {
   IncompleteNearestInput
   DuplicatePoolField(@row.FieldName)
   UnsupportedPoolMemberIdentity(@row.FieldName)
+  IncompleteRankingInput
+  InvalidRankingField(@row.FieldName)
+  RankingDomainMismatch(@row.FieldName)
+  MissingScoreContract
+  ScoreContractMismatch
 } derive(Eq, Debug)
 
 ///|
