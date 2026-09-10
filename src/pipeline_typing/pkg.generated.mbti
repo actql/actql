@@ -3,6 +3,7 @@ package "actql/actql/pipeline_typing"
 
 import {
   "actql/actql/carrier_contract",
+  "actql/actql/carrier_projection",
   "actql/actql/decode_core",
   "actql/actql/expression_text",
   "actql/actql/parameter_binding",
@@ -72,6 +73,7 @@ pub enum CheckedOperation {
   CrossJoin(right~ : Target, checked~ : @relation_join.CheckedCrossJoin)
   Values(@relation_values.CheckedValues)
   Window(@temporal_window.CheckedWindow)
+  Projection(@carrier_projection.CheckedProjection)
   WindowGroup(@relation_typing.CheckedOperation)
 }
 
@@ -123,6 +125,7 @@ pub(all) enum IssueKind {
   GeneratorFrom
   Values(@relation_values.IssueKind)
   Window(@temporal_window.IssueKind)
+  Projection(@carrier_projection.IssueKind)
   MissingWindowEvidence
   UnsupportedOperation(String)
   InvalidMetadata

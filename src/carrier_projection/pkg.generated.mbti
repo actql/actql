@@ -1,0 +1,63 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/carrier_projection"
+
+import {
+  "actql/actql/carrier_contract",
+  "actql/actql/decode_core",
+  "actql/actql/source_span",
+  "actql/actql/source_value",
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn check(Operation, @decode_core.Cursor, @carrier_contract.Carrier, Limits) -> Result[CheckedProjection, Issue]
+
+pub fn input(CheckedProjection) -> @carrier_contract.Carrier
+
+pub fn operation(CheckedProjection) -> Operation
+
+pub fn output(CheckedProjection) -> @carrier_contract.Carrier
+
+pub fn source(CheckedProjection) -> @decode_core.Cursor
+
+pub fn usage(CheckedProjection) -> Usage
+
+// Errors
+
+// Types and methods
+type CheckedProjection
+
+pub struct Issue {
+  kind : IssueKind
+  path : Array[@source_value.PathSegment]
+  span : @source_span.Span
+}
+
+pub(all) enum IssueKind {
+  InvalidLimits
+  BudgetExceeded
+  InvalidBody
+  WrongCarrier(@carrier_contract.Kind)
+} derive(Eq, @debug.Debug)
+
+pub(all) struct Limits {
+  max_work : Int
+  max_nodes : Int
+  max_text_bytes : Int
+  max_depth : Int
+}
+
+pub(all) enum Operation {
+  Events
+  Vectors
+} derive(Eq, @debug.Debug)
+
+pub(all) struct Usage {
+  work : Int
+  nodes : Int
+  text_bytes : Int
+} derive(Eq, @debug.Debug)
+
+// Type aliases
+
+// Traits

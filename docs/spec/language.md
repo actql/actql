@@ -7050,6 +7050,8 @@ DeriveConstraints := array is nonempty; NFC-unique slot outputs;
   shape and array order survive normalization; only RHS is Expression.
 
 Meta := non-empty JSON object subject to Authoring Context (#authoring-context)
+EventsBody := true
+VectorsBody := true
 ParamRef := { $param: ParamName }
 PositiveIntegerValue := PositiveSafeInteger | ParamRef
 FractionValue := finite number in [0, 1] | ParamRef

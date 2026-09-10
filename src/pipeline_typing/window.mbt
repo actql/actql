@@ -11,6 +11,13 @@ fn transfer_window(
     Input(_) => None
   }
   guard previous is Some(roles) else { return None }
+  if operation is Projection(projection) {
+    return if @projection.operation(projection) == @projection.Events {
+      Some(roles)
+    } else {
+      None
+    }
+  }
   if operation is WindowGroup(op) {
     let keys = @relation.group_keys(@relation.group(op).unwrap())
     spend(

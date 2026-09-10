@@ -28,6 +28,8 @@ or checking them does not prove that a MoonBit evaluator implements that law.
 
 The [structural Carrier contracts](carrier-contracts.md) implement the type
 representation independently of pipeline evidence propagation.
+The [explicit Carrier projections](carrier-projection.md) connect retained
+Events/Vectors record knowledge to Relation consumers.
 
 Use a typed Carrier sum with Relation, Graph, Events and Vectors variants, not a
 Carrier string attached to an otherwise untyped object. Retain recursive value

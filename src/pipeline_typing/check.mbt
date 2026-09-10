@@ -220,6 +220,8 @@ fn check_impl(
       | "intersect"
       | "cross_join"
       | "row_window"
+      | "events"
+      | "vectors"
       | "window_events" => None
       _ => fail(@decode.lookup(object, key).unwrap(), UnsupportedOperation(key))
     }
@@ -271,6 +273,57 @@ fn check_impl(
     let meta = @decode.lookup(object, "meta")
     if meta is Some(cursor) {
       metadata(b, cursor)
+    }
+    if key == "events" || key == "vectors" {
+      let projection = if key == "events" {
+        @projection.Events
+      } else {
+        @projection.Vectors
+      }
+      let checked = match
+        @projection.check(
+          projection,
+          operation_body,
+          carrier(input, inputs, steps),
+          {
+            max_work: b.work,
+            max_nodes: b.nodes,
+            max_text_bytes: b.text,
+            max_depth: limits.max_depth,
+          },
+        ) {
+        Ok(value) => value
+        Err(e) =>
+          raise Stop({
+            kind: Projection(e.kind),
+            source: operation_body,
+            path: e.path.copy(),
+            span: e.span,
+            range: None,
+          })
+      }
+      let used = @projection.usage(checked)
+      b.work -= used.work
+      b.nodes -= used.nodes
+      b.text -= used.text_bytes
+      let operation : CheckedOperation = Projection(checked)
+      let window = transfer_window(b, operation_body, input, steps, operation)
+      let target = Step(steps.length())
+      steps.push({
+        source: body,
+        input: Some(input),
+        binding_name,
+        metadata: meta,
+        operation,
+        output: @projection.output(checked),
+        connections: { entries: [{ role: Primary, target: input, }], },
+        window,
+      })
+      if binding_name is Some(name) {
+        names[name] = target
+      }
+      current = Some(target)
+      continue
     }
     if key == "row_window" || key == "window_events" {
       let input_carrier = carrier(input, inputs, steps)
@@ -573,7 +626,7 @@ fn check_impl(
     let connections : Connections = {
       entries: match checked {
         Values(_) => []
-        Unary(_) | Window(_) | WindowGroup(_) =>
+        Unary(_) | Window(_) | WindowGroup(_) | Projection(_) =>
           [{ role: Primary, target: input, }]
         Join(right~, ..)
         | Append(right~, ..)
