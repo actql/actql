@@ -24,6 +24,12 @@ pub fn check_nearest_input(NearestOptions, NearestSide, @carrier_contract.Carrie
 
 pub fn check_nearest_pair(@decode_core.Cursor, @carrier_contract.Carrier, @carrier_contract.Carrier, Limits) -> Result[NearestPair, Issue]
 
+pub fn check_nearest_pair_sources(@decode_core.Cursor, NearestSource, NearestSource, Limits) -> Result[NearestPair, Issue]
+
+pub fn check_nearest_source(NearestOptions, NearestSide, NearestSource, Limits) -> Result[NearestInput, Issue]
+
+pub fn check_nearest_sources(@decode_core.Cursor, NearestSource, NearestSource, Limits) -> Result[CheckedNearest, Issue]
+
 pub fn check_pool_keys(@decode_core.Cursor, @relation_evidence.KeySet, Limits) -> Result[CheckedPool, Issue]
 
 pub fn check_pool_relation(@decode_core.Cursor, @relation_evidence.KeyedRelation, Limits) -> Result[CheckedPool, Issue]
@@ -67,6 +73,8 @@ pub fn merged_ranking_usage(CheckedRanking) -> Usage
 pub fn metric(CheckedVector) -> Metric?
 
 pub fn nearest_candidate_roles(NearestOptions) -> NearestRoles
+
+pub fn nearest_completed_identity(NearestInput) -> @relation_evidence.KeyedRelation?
 
 pub fn nearest_completed_vector(NearestInput) -> @relation_schema.FieldName?
 
@@ -310,6 +318,8 @@ pub(all) enum NearestObligation {
   OrderCandidatesByDescendingScoreThenIdentity
   AssignContiguousOneBasedRanks
   JournalVectorFieldCompletion(NearestSide, @relation_schema.FieldName)
+  JournalIdentityFieldCompletion(NearestSide, @relation_schema.FieldName)
+  ValidateNearestKey(NearestSide, @relation_evidence.KeyObligation)
   ResolveNearestResources
   ResolveNearestProfile
   PreserveSimilarityAuthorityBoundary
@@ -328,6 +338,11 @@ pub(all) enum NearestSide {
   Candidates
   Queries
 } derive(Eq, @debug.Debug)
+
+pub(all) enum NearestSource {
+  CarrierSource(@carrier_contract.Carrier)
+  KeySource(@relation_evidence.KeySet)
+}
 
 pub(all) enum Obligation {
   ValidateVectorValues

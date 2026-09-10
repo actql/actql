@@ -140,7 +140,14 @@ pub(all) enum NearestSide {
 struct NearestInput {
   vectors : @carrier.Vectors?
   completed_vector : @row.FieldName?
+  completed_identity : @evidence.KeyedRelation?
   usage : Usage
+}
+
+///|
+pub(all) enum NearestSource {
+  CarrierSource(@carrier.Carrier)
+  KeySource(@evidence.KeySet)
 }
 
 ///|
@@ -149,6 +156,16 @@ pub fn check_nearest_input(
   options : NearestOptions,
   side : NearestSide,
   input : @carrier.Carrier,
+  limits : Limits,
+) -> Result[NearestInput, Issue] {
+  check_nearest_source(options, side, CarrierSource(input), limits)
+}
+
+///|
+pub fn check_nearest_source(
+  options : NearestOptions,
+  side : NearestSide,
+  supplied : NearestSource,
   limits : Limits,
 ) -> Result[NearestInput, Issue] {
   try {
@@ -173,6 +190,11 @@ pub fn check_nearest_input(
     let id_at = @decode.lookup(root, id_key).unwrap_or(source)
     let vector_at = @decode.lookup(root, vector_key).unwrap_or(source)
     let mut completed_vector = None
+    let mut completed_identity = None
+    let (input, keys) = match supplied {
+      CarrierSource(c) => (c, None)
+      KeySource(k) => (@carrier.relation(@evidence.key_set_records(k)), Some(k))
+    }
     let vectors = match input {
       @carrier.VectorValue(v) => {
         // Existing carrier roles are authoritative: optional spellings can only
@@ -195,7 +217,26 @@ pub fn check_nearest_input(
       @carrier.Relation(rows) => {
         let id = match roles.identity {
           Some(id) => id
-          None => fail(id_at, MissingNearestRole(id_key))
+          None => {
+            guard keys is Some(keys) else {
+              fail(id_at, MissingNearestRole(id_key))
+            }
+            let selected = match
+              @evidence.select_sole_string_key(id_at, keys, {
+                max_work: b.work,
+                max_name_bytes: b.text,
+              }) {
+              Ok(v) => v
+              Err(_) => fail(id_at, BudgetExceeded)
+            }
+            b.work -= selected.work
+            b.text -= selected.name_bytes
+            guard selected.key is Some(key) else {
+              fail(id_at, MissingNearestRole(id_key))
+            }
+            completed_identity = Some(key)
+            @evidence.key_field_at(key, 0).unwrap().name
+          }
         }
         let vector = match roles.vector {
           Some(vector) => vector
@@ -256,6 +297,7 @@ pub fn check_nearest_input(
     Ok({
       vectors,
       completed_vector,
+      completed_identity,
       usage: {
         work: limits.max_work - b.work,
         nodes: limits.max_nodes - b.nodes,
@@ -278,6 +320,11 @@ pub fn nearest_completed_vector(c : NearestInput) -> @row.FieldName? {
 }
 
 ///|
+pub fn nearest_completed_identity(c : NearestInput) -> @evidence.KeyedRelation? {
+  c.completed_identity
+}
+
+///|
 pub fn nearest_input_usage(c : NearestInput) -> Usage {
   c.usage
 }
@@ -294,6 +341,8 @@ pub(all) enum NearestObligation {
   OrderCandidatesByDescendingScoreThenIdentity
   AssignContiguousOneBasedRanks
   JournalVectorFieldCompletion(NearestSide, @row.FieldName)
+  JournalIdentityFieldCompletion(NearestSide, @row.FieldName)
+  ValidateNearestKey(NearestSide, @evidence.KeyObligation)
   ResolveNearestResources
   ResolveNearestProfile
   PreserveSimilarityAuthorityBoundary
@@ -315,6 +364,21 @@ pub fn check_nearest_pair(
   queries : @carrier.Carrier,
   limits : Limits,
 ) -> Result[NearestPair, Issue] {
+  check_nearest_pair_sources(
+    source,
+    CarrierSource(candidates),
+    CarrierSource(queries),
+    limits,
+  )
+}
+
+///|
+pub fn check_nearest_pair_sources(
+  source : @decode.Cursor,
+  candidates : NearestSource,
+  queries : NearestSource,
+  limits : Limits,
+) -> Result[NearestPair, Issue] {
   try {
     let options = match read_nearest_options(source, limits) {
       Ok(c) => c
@@ -328,7 +392,7 @@ pub fn check_nearest_pair(
       max_text_bytes: limits.max_text_bytes - u.text_bytes,
     }
     let candidates = match
-      check_nearest_input(options, Candidates, candidates, remaining) {
+      check_nearest_source(options, Candidates, candidates, remaining) {
       Ok(c) => c
       Err(e) => raise Stop(e)
     }
@@ -340,7 +404,7 @@ pub fn check_nearest_pair(
       max_text_bytes: remaining.max_text_bytes - c.text_bytes,
     }
     let queries = match
-      check_nearest_input(options, Queries, queries, remaining) {
+      check_nearest_source(options, Queries, queries, remaining) {
       Ok(c) => c
       Err(e) => raise Stop(e)
     }
@@ -418,6 +482,19 @@ pub fn nearest_pair_pending(c : NearestPair) -> Array[NearestObligation] {
   if c.queries.completed_vector is Some(n) {
     pending.push(JournalVectorFieldCompletion(Queries, n))
   }
+  for (side, input) in [(Candidates, c.candidates), (Queries, c.queries)] {
+    if input.completed_identity is Some(key) {
+      pending.push(
+        JournalIdentityFieldCompletion(
+          side,
+          @evidence.key_field_at(key, 0).unwrap().name,
+        ),
+      )
+      for obligation in @evidence.key_pending(key) {
+        pending.push(ValidateNearestKey(side, obligation))
+      }
+    }
+  }
   pending
 }
 
@@ -471,8 +548,24 @@ pub fn check_nearest(
   queries : @carrier.Carrier,
   limits : Limits,
 ) -> Result[CheckedNearest, Issue] {
+  check_nearest_sources(
+    source,
+    CarrierSource(candidates),
+    CarrierSource(queries),
+    limits,
+  )
+}
+
+///|
+pub fn check_nearest_sources(
+  source : @decode.Cursor,
+  candidates : NearestSource,
+  queries : NearestSource,
+  limits : Limits,
+) -> Result[CheckedNearest, Issue] {
   try {
-    let pair = match check_nearest_pair(source, candidates, queries, limits) {
+    let pair = match
+      check_nearest_pair_sources(source, candidates, queries, limits) {
       Ok(p) => p
       Err(e) => raise Stop(e)
     }

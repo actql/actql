@@ -57,6 +57,12 @@ encoding. It does not prohibit reference identities elsewhere in the language.
 Unknown types cannot become known merely because a key was declared. Neither
 mode establishes runtime uniqueness or actual sorted rows.
 
+`select_sole_string_key` is the separate nearest role-inference rule: admit only
+singleton non-null string components and require exactly one distinct field.
+It scans and charges all witnesses and aliases, deduplicates identical fields
+for this decision, and returns no key for zero or multiple candidates. It must
+not be replaced by canonical preferred selection, which could hide ambiguity.
+
 Alias alternatives are retained per component. Selecting the smallest eligible
 alias for each component yields the smallest sorted tuple without expanding the
 Cartesian product: valid key components have disjoint output aliases. Selection

@@ -1479,10 +1479,12 @@ fn check_impl(
       }
       let queries = resolve_target(b, query_source, names)
       let checked = match
-        @vector.check_nearest(
+        @vector.check_nearest_sources(
           operation_body,
-          carrier(input, inputs, steps),
-          carrier(queries, inputs, steps),
+          nearest_input_source(input, inputs, steps, keyed_inputs, keyed_steps),
+          nearest_input_source(
+            queries, inputs, steps, keyed_inputs, keyed_steps,
+          ),
           {
             max_work: b.work,
             max_nodes: b.nodes,

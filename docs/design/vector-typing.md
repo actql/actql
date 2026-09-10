@@ -48,9 +48,26 @@ available namespace and advances current to the ranking Relation. No second
 corpus reference can replace the selected step input. Opaque Vectors preserve
 unknown ID contracts as untyped known output fields, not json, and retain role
 binding and dimension-match obligations before scoring. Known mismatches still
-fail statically. Candidate-key-backed ID completion and ranking evidence
-propagation remain to be connected. No arithmetic, search algorithm or provider
+fail statically. No arithmetic, search algorithm or provider
 dispatch is implemented.
+
+`NearestSource.KeySource` supplies a retained candidate-key collection bound to
+its own Relation contract. The pipeline uses that boundary for both sides.
+An omitted ID is completed only when exactly one distinct non-null string
+singleton-key field remains. Repeated witnesses for the same field count once;
+multiple aliases count as different available fields and require an explicit
+authored ID. Numeric and composite keys cannot supply this specific implicit
+role, although an explicitly selected numeric identity remains valid. This is
+the existing nearest completion rule, not pooling's preferred-key selection.
+Sketch `87dc7144` uses the same singleton/string filter and distinct-field count.
+
+The completed identity retains its declaration, original fields and admission
+obligations, plus a side-specific typed-field completion journal requirement.
+Explicit IDs bypass inference and are never replaced by an available key.
+Existing Vectors roles remain authoritative. Options, both input completions and
+output construction consume one cumulative budget; repeated declarations and
+every alias visit are accounted for even when completion proves ambiguous.
+The single-Carrier APIs remain available and cannot invent key evidence.
 
 ## Grouped vector pooling
 
