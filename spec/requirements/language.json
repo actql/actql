@@ -1742,7 +1742,7 @@
     },
     {
       "requirement_id": "actql.language/common-expression-contract.canonical-nodes",
-      "statement_sha256": "4ab03c12fc3fd056f6dd9d27a9bf43da65279d155392530296c2716a89bee1db",
+      "statement_sha256": "87d0f8c2aecaf9c3e4876bbff27a70c85e562a65cde2d29244fe85f66e42e90e",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",

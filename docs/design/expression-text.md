@@ -9,6 +9,11 @@ common structured Expression tree. It does not introduce another public AST.
 in source order, including repeated names. A successful parse is syntax evidence,
 not a typed expression or execution permission.
 
+`usage` reports consumed input bytes, non-EOF tokens and temporary parser nodes
+after success. The [common syntax reader](expression-syntax.md) uses these counts
+to debit a shared budget across embedded fragments; limits are not reset for
+each child.
+
 ## Decoding
 
 The lexer consumes the whole input using ASCII case-insensitive keywords, exact

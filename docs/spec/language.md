@@ -2094,6 +2094,7 @@ Program semantics envelope pins `expression_contract_cid`.
 | `receiver.name` | `{property: {value: receiver, name}}` |
 | `receiver[index]` | `{subscript: {value: receiver, index}}` |
 | unquoted initial `left.name` / `right.name` | `{join_field: {side: left\|right, name}}` |
+| qualified `{field: "left.a.b"}` (likewise `right`) | `{property: {value: {join_field: {side: "left", name: "a"}}, name: "b"}}`; each subsequent segment adds property access in order, as in expression text |
 | `[a,b,...]`, `[]` | `{array: [a,b,...]}`, `{array: []}` |
 | explicit typed empty array | `{empty_array: {items: AuthorValueContract}}` (structured only) |
 | `a \|\| b`, `concat_strict(a,b)` | `{concat_strict: [a,b]}` |
@@ -2103,7 +2104,8 @@ All named expression bodies are closed; no sibling tags or unknown fields are
 accepted. Text and structured spellings undergo the same normalization, including
 `to_*` to `cast` and qualified `{field: "left.name"}` to `join_field`.
 Bare field spelling and explicit quotation retain the same field node, except
-that quotation prevents recognition of a leading join qualifier. Cast targets
+that quotation prevents lexical recognition of a leading join qualifier, not
+subsequent whole-field alias normalization. Cast targets
 contain `type` and, only for decimal, `precision` and `scale`, not `nullable`.
 An explicit cast of null remains a cast node in Program identity; it supplies
 the typed null in checking. A same-type cast also remains a node, even though its

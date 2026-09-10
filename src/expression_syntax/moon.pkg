@@ -1,0 +1,12 @@
+supported_targets = "+js+wasm+native"
+
+import {
+  "actql/actql/source_value" @source,
+  "actql/actql/decode_core" @decode,
+  "actql/actql/decode_scalar" @scalar,
+  "actql/actql/canonical_value" @canonical,
+  "actql/actql/value_contract" @contract,
+  "actql/actql/expression_text" @text,
+}
+
+formatter(ignore: [ "corpus.generated_wbtest.mbt" ])

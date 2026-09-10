@@ -1,0 +1,63 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/expression_syntax"
+
+import {
+  "actql/actql/decode_core",
+  "actql/actql/expression_text",
+  "actql/actql/source_span",
+  "actql/actql/source_value",
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn admit(@decode_core.Cursor, Limits) -> Result[Expression, Issue]
+
+pub fn parameter_references(Expression) -> Array[ParameterReference]
+
+pub fn tree(Expression) -> @decode_core.Cursor
+
+// Errors
+
+// Types and methods
+type Expression
+
+pub(all) struct Issue {
+  kind : IssueKind
+  path : Array[@source_value.PathSegment]
+  span : @source_span.Span
+  range : @expression_text.Range?
+} derive(Eq, @debug.Debug)
+
+pub(all) enum IssueKind {
+  InvalidLimits
+  Decode(@decode_core.IssueKind)
+  InvalidExpression
+  UnknownTag(String)
+  InvalidArguments
+  InvalidName(String)
+  NonCanonicalText
+  InvalidUnicode
+  InvalidNumber
+  InvalidItemContract
+  BudgetExceeded
+  Text(@expression_text.IssueKind)
+} derive(Eq, @debug.Debug)
+
+pub(all) struct Limits {
+  max_nodes : Int
+  max_depth : Int
+  max_text_bytes : Int
+  max_tokens : Int
+  tree : @decode_core.Limits
+} derive(Eq, @debug.Debug)
+
+pub(all) struct ParameterReference {
+  name : String
+  path : Array[@source_value.PathSegment]
+  span : @source_span.Span
+  range : @expression_text.Range?
+} derive(Eq, @debug.Debug)
+
+// Type aliases
+
+// Traits

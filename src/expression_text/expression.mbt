@@ -42,11 +42,27 @@ pub(all) struct ParameterReference {
 } derive(Eq, Debug)
 
 ///|
+/// Actual work consumed by a successful parse; EOF does not count as a token.
+pub(all) struct Usage {
+  input_bytes : Int
+  tokens : Int
+  nodes : Int
+} derive(Eq, Debug)
+
+///|
 /// The owned cursor is the common structured Expression tree, not a second AST.
 struct Expression {
   cursor : @decode.Cursor
   references : Array[ParameterReference]
   enclosing_span : @value.Span?
+  usage : Usage
+}
+
+///|
+/// Successful parser work, including temporary nodes. Callers can share one
+/// cumulative budget across fragments without resetting it for every child.
+pub fn usage(expression : Expression) -> Usage {
+  expression.usage
 }
 
 ///|
@@ -190,5 +206,14 @@ pub fn parse(
       references.push({ name, range: { start: token.start, end: token.end, }, })
     }
   }
-  Ok({ cursor, references, enclosing_span, })
+  Ok({
+    cursor,
+    references,
+    enclosing_span,
+    usage: {
+      input_bytes: parser.span.end_byte,
+      tokens: tokens.length() - 1,
+      nodes: parser.nodes,
+    },
+  })
 }

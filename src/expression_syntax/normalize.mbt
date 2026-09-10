@@ -1,0 +1,201 @@
+///|
+fn finish(
+  value : @source.Node,
+  role : Role,
+  cursor : @decode.Cursor,
+  origin : Origin,
+  budget : Budget,
+) -> @source.Node raise Stop {
+  match role {
+    Expr | InRight => {
+      let fields = match value.value {
+        @source.Object(fields) => fields
+        _ => invalid(cursor, origin, InvalidExpression)
+      }
+      let tag = fields[0].key
+      let body = fields[0].value
+      if tag == "field" || tag == "template" {
+        let name = match body.value {
+          @source.String(name) => name
+          _ => invalid(cursor, origin, InvalidArguments)
+        }
+        if tag == "template" {
+          template(name, cursor, origin)
+        } else {
+          // Quotation suppresses lexical qualifier recognition, not this
+          // whole-field alias normalization shared by text and structured input.
+          if name.has_prefix("left.") || name.has_prefix("right.") {
+            let parts = name.split(".").to_array()
+            let available = budget.nodes - budget.scheduled
+            if available < 4 || parts.length() - 2 > (available - 4) / 3 {
+              invalid(cursor, origin, BudgetExceeded)
+            }
+            budget.nodes -= 4 + 3 * (parts.length() - 2)
+            for i = 1; i < parts.length(); i = i + 1 {
+              if !field_name(parts[i].to_owned()) {
+                invalid(cursor, origin, InvalidName(name))
+              }
+            }
+            let mut result = form(
+              "join_field",
+              named(
+                [
+                  ("side", node(@source.String(parts[0].to_owned()), cursor)),
+                  ("name", node(@source.String(parts[1].to_owned()), cursor)),
+                ],
+                cursor,
+              ),
+              cursor,
+            )
+            for i = 2; i < parts.length(); i = i + 1 {
+              result = form(
+                "property",
+                named(
+                  [
+                    ("value", result),
+                    ("name", node(@source.String(parts[i].to_owned()), cursor)),
+                  ],
+                  cursor,
+                ),
+                cursor,
+              )
+            }
+            return result
+          }
+          if !field_name(name) {
+            invalid(cursor, origin, InvalidName(name))
+          }
+        }
+      }
+      if ["to_number", "to_string", "to_boolean", "to_timestamp", "to_decimal"].contains(
+          tag,
+        ) {
+        let target_fields = [
+          (
+            "type",
+            node(
+              @source.String(
+                match tag {
+                  "to_number" => "number"
+                  "to_string" => "string"
+                  "to_boolean" => "boolean"
+                  "to_timestamp" => "timestamp"
+                  _ => "decimal"
+                },
+              ),
+              cursor,
+            ),
+          ),
+        ]
+        let input = if tag == "to_decimal" {
+          target_fields.push(("precision", part(body, "precision").unwrap()))
+          target_fields.push(("scale", part(body, "scale").unwrap()))
+          part(body, "value").unwrap()
+        } else {
+          body
+        }
+        if budget.nodes - budget.scheduled < 4 {
+          invalid(cursor, origin, BudgetExceeded)
+        }
+        budget.nodes -= 4
+        return form(
+          "cast",
+          named(
+            [("value", input), ("target", named(target_fields, cursor))],
+            cursor,
+          ),
+          cursor,
+        )
+      }
+    }
+    Arguments(tag) => {
+      let args = match value.value {
+        @source.Array(args) => args
+        _ => invalid(cursor, origin, InvalidArguments)
+      }
+      if ["eq", "neq", "lt", "lte", "gt", "gte"].contains(tag) {
+        for arg in args {
+          if literal(arg) is Some({ value: @source.Null, .. }) {
+            invalid(cursor, origin, InvalidArguments)
+          }
+        }
+      }
+      if tag == "like" && !literal_or_param(args[1]) {
+        invalid(cursor, origin, InvalidArguments)
+      }
+      if tag == "date_trunc" || tag == "date_add" || tag == "date_diff" {
+        let index = if tag == "date_trunc" { 0 } else { 2 }
+        if !(literal(args[index])
+          is Some({ value: @source.String("ms" | "s" | "m" | "h" | "d"), .. })) {
+          invalid(cursor, origin, InvalidArguments)
+        }
+      }
+    }
+    Body(tag) => {
+      if ["to_decimal", "try_decimal", "quantize", "decimal_divide"].contains(
+          tag,
+        ) {
+        decimal_fields(value, cursor, origin)
+      }
+      if tag == "quantize" || tag == "decimal_divide" {
+        if !(part(value, "rounding")
+          is Some(
+            {
+              value: @source.String(
+                "half_even"
+                | "half_up"
+                | "toward_zero"
+                | "floor"
+                | "ceiling"
+              ),
+              ..
+            }
+          )) {
+          invalid(cursor, origin, InvalidArguments)
+        }
+      }
+      if tag == "join_field" {
+        if !(part(value, "side")
+          is Some({ value: @source.String("left" | "right"), .. })) {
+          invalid(cursor, origin, InvalidArguments)
+        }
+      }
+      if tag == "join_field" || tag == "property" {
+        match part(value, "name") {
+          Some({ value: @source.String(name), .. }) =>
+            if !field_name(name) {
+              invalid(cursor, origin, InvalidName(name))
+            }
+          _ => invalid(cursor, origin, InvalidArguments)
+        }
+      }
+      if tag == "split_part" &&
+        !literal_or_param(part(value, "delimiter").unwrap()) {
+        invalid(cursor, origin, InvalidArguments)
+      }
+      if [
+          "parse_timestamp", "try_timestamp", "format_timestamp", "regex_match",
+          "regex_extract", "regex_replace",
+        ].contains(tag) {
+        if !literal_or_param(part(value, "pattern").unwrap()) {
+          invalid(cursor, origin, InvalidArguments)
+        }
+        if part(value, "flags") is Some(flags) &&
+          !(flags.value is @source.String(_)) {
+          invalid(cursor, origin, InvalidArguments)
+        }
+      }
+      if tag == "vector_score" &&
+        !(part(value, "metric")
+        is Some({ value: @source.String("cosine" | "dot" | "l2"), .. })) {
+        invalid(cursor, origin, InvalidArguments)
+      }
+    }
+    CastTarget =>
+      if part(value, "type") is Some({ value: @source.String("decimal"), .. }) {
+        decimal_fields(value, cursor, origin)
+      }
+    _ => ()
+  }
+  value
+}

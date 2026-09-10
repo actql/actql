@@ -16,6 +16,8 @@ pub fn parse(String, Limits, source_path? : String, enclosing_span? : @source_sp
 
 pub fn tree(Expression) -> @decode_core.Cursor
 
+pub fn usage(Expression) -> Usage
+
 // Errors
 
 // Types and methods
@@ -66,6 +68,12 @@ pub(all) struct ParameterReference {
 pub(all) struct Range {
   start : Int
   end : Int
+} derive(Eq, @debug.Debug)
+
+pub(all) struct Usage {
+  input_bytes : Int
+  tokens : Int
+  nodes : Int
 } derive(Eq, @debug.Debug)
 
 // Type aliases

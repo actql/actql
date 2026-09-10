@@ -10,6 +10,16 @@ pub fn cursor_span(cursor : Cursor) -> @span.Span {
 }
 
 ///|
+/// The source key span of an object child, absent for roots and array elements.
+/// This reads the owned edge directly without rebuilding the containing map.
+pub fn cursor_key_span(cursor : Cursor) -> @span.Span? {
+  match cursor.tree[cursor.index].edge {
+    Field(_, span) => Some(span)
+    _ => None
+  }
+}
+
+///|
 /// Return a fresh path; mutating it cannot change a cursor or later issue.
 pub fn cursor_path(cursor : Cursor) -> Array[PathSegment] {
   let node = cursor.tree[cursor.index]
