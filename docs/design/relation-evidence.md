@@ -66,8 +66,18 @@ selection charge witness/component/alias visits and UTF-8 name bytes; selection
 also charges selected tuple elements. Sorting is O(k log k) for a k-component
 tuple; work units are logical visits, not CPU-time measurements.
 
-The pipeline currently carries a single input key. Transferring collections,
-choosing among them at consumer boundaries, join cardinality propagation and
+`transfer_keys` applies the unary transfer rules to every independent witness.
+It prepares overwritten-name or projection lookup tables once per operation and
+builds one shared output row contract. Each witness then visits its own components
+and aliases, retaining all explicit output aliases or dropping only that witness
+when a component has no surviving alias. Projection work is proportional to the
+prepared mapping plus visited and emitted aliases, not witnesses times the whole
+projection. Name lookup distinguishes qualified provenance from a literal dotted
+name. `transfer_unary` delegates to the same implementation with one witness.
+An empty result collection still retains the operation's output row knowledge.
+
+The pipeline currently carries a single input key. Choosing among collections
+at consumer boundaries, integrating their transfer into the pipeline, join cardinality propagation and
 new keys established by grouping remain shared evidence work. The pooling
 checker still consumes its explicit retained declaration; adding this selector
 does not silently change that consumer's identity preimage.

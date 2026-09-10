@@ -47,6 +47,8 @@ pub fn keyed_records(KeyedRelation) -> @carrier_contract.Knowledge
 
 pub fn select_key(@decode_core.Cursor, KeySet, KeyUse, TransferLimits) -> Result[KeySelection, Issue]
 
+pub fn transfer_keys(KeySet, @relation_typing.CheckedOperation, TransferLimits) -> Result[KeySetTransfer, Issue]
+
 pub fn transfer_unary(KeyedRelation, @relation_typing.CheckedOperation, TransferLimits) -> Result[Transfer, Issue]
 
 // Errors
@@ -94,6 +96,12 @@ pub(all) struct KeySetLimits {
   max_keys : Int
   max_work : Int
   max_name_bytes : Int
+}
+
+pub struct KeySetTransfer {
+  keys : KeySet
+  work : Int
+  name_bytes : Int
 }
 
 pub(all) enum KeyUse {
