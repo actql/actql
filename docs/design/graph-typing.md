@@ -116,6 +116,21 @@ budgets. Child predicate obligations are accessible through their typed expressi
 Graph materialization and selector evaluation require resolved resources.
 This implements static checking, not traversal, induction or publication proofs.
 
+## Bounded reach checking
+
+`check_reach` requires a typed explicit start, direction and positive finite
+integer-valued depth. It neither supplies the reference decoder's `both` default
+nor imports its string-only ID restriction. The depth is a semantic bound,
+not a claim that exploration resources are resolved; no safe-integer ceiling
+is added to the specification's integer domain merely for convenience.
+
+The normative clarification reconciles the traversal expansion with semantic
+name restoration: retain `start_id`, `node_id`, `depth`, plus any distinct
+declared node-ID alias. Distinct-role collisions fail, and source properties
+are not silently added. The pipeline exposes this Relation to ordinary typed
+consumers. Actual membership, minimum-depth traversal, canonical order,
+expansion journaling and Host/profile checks remain explicit obligations.
+
 ## Typed graph equality
 
 `graphs_equal: {with: name}` resolves both Graph inputs and returns the complete

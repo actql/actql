@@ -11,6 +11,72 @@ fn graph_input() -> @carrier.Carrier {
 }
 
 ///|
+test "reach preserves semantic aliases through pipeline Relation consumers" {
+  let empty = @carrier.rows(
+    [],
+    field_set=Closed,
+    max_fields=0,
+    max_name_bytes=0,
+  ).unwrap()
+  let number = @contract.primitive(NumberType, nullable=false)
+  let names = @carrier.graph_row_names(
+    Unqualified("customer"),
+    Unqualified("source"),
+    Unqualified("target"),
+    None,
+    max_name_bytes=100,
+  ).unwrap()
+  let g = @carrier.graph(
+    number,
+    empty,
+    empty,
+    labels=None,
+    max_labels=0,
+    max_label_bytes=0,
+    row_names=Some(names),
+  ).unwrap()
+  let body = cursor(
+    "[{\"reach\":{\"start\":2,\"direction\":\"out\",\"max_depth\":3}},{\"select\":[\"customer\",\"depth\"]}]",
+  )
+  let p = @pipeline_typing.check_carriers(
+    body,
+    [("g", g)],
+    None,
+    None,
+    limits(),
+  ).unwrap()
+  let step = @pipeline_typing.step_at(p, 0).unwrap()
+  assert_true(step.operation is Reach(_))
+  assert_eq(@pipeline_typing.input_occurrences(step).length(), 1)
+  assert_eq(@schema.field_count(@pipeline_typing.step_schema(step).unwrap()), 4)
+  assert_true(
+    @schema.lookup(
+      @pipeline_typing.output_schema(p).unwrap(),
+      Unqualified("customer"),
+    ).unwrap().shape
+    is Number,
+  )
+  let u = @pipeline_typing.usage(p)
+  let exact = {
+    ..limits(),
+    max_work: u.work,
+    max_nodes: u.nodes,
+    max_text_bytes: u.text_bytes,
+  }
+  assert_true(
+    @pipeline_typing.check_carriers(body, [("g", g)], None, None, exact)
+    is Ok(_),
+  )
+  assert_true(
+    @pipeline_typing.check_carriers(body, [("g", g)], None, None, {
+      ..exact,
+      max_work: u.work - 1,
+    })
+    is Err(_),
+  )
+}
+
+///|
 test "subgraph resolves selector Relation edges and preserves graph contracts" {
   let empty = @carrier.rows(
     [],

@@ -90,6 +90,7 @@ pub enum CheckedOperation {
   Projection(@carrier_projection.CheckedProjection)
   Graph(@graph_typing.CheckedGraph)
   GraphMatch(@graph_typing.CheckedMatch)
+  Reach(@graph_typing.CheckedReach)
   Subgraph(selector~ : Target?, checked~ : @graph_typing.CheckedSubgraph)
   GraphEquality(right~ : Target, checked~ : @graph_typing.CheckedEquality)
   GraphDiff(right~ : Target, checked~ : @graph_typing.CheckedDiff)

@@ -531,6 +531,7 @@ fn check_impl(
       | "graph_diff"
       | "match_nodes"
       | "match_edges"
+      | "reach"
       | "subgraph"
       | "graft_graph"
       | "union_graphs"
@@ -836,6 +837,47 @@ fn check_impl(
             { role: Right, target: right, },
           ],
         },
+        window: None,
+      })
+      if binding_name is Some(name) {
+        names[name] = target
+      }
+      current = Some(target)
+      continue
+    }
+    if key == "reach" {
+      let checked = match
+        @graph.check_reach(operation_body, carrier(input, inputs, steps), {
+          max_work: b.work,
+          max_nodes: b.nodes,
+          max_depth: limits.max_depth,
+          max_text_bytes: b.text,
+        }) {
+        Ok(c) => c
+        Err(e) => {
+          let d = @graph.match_diagnostic(e, operation_body)
+          raise Stop({
+            kind: GraphMatch(d.kind),
+            source: operation_body,
+            path: d.path.copy(),
+            span: d.span,
+            range: d.range,
+          })
+        }
+      }
+      let u = @graph.reach_usage(checked)
+      b.work -= u.work
+      b.nodes -= u.nodes
+      b.text -= u.text_bytes
+      let target = Step(steps.length())
+      steps.push({
+        source: body,
+        input: Some(input),
+        binding_name,
+        metadata: meta,
+        operation: Reach(checked),
+        output: @graph.reach_output(checked),
+        connections: { entries: [{ role: Primary, target: input, }], },
         window: None,
       })
       if binding_name is Some(name) {
@@ -1543,6 +1585,7 @@ fn check_impl(
         | Projection(_)
         | Graph(_)
         | GraphMatch(_)
+        | Reach(_)
         | Event(_)
         | Sequence(_)
         | Vector(_) => [{ role: Primary, target: input, }]

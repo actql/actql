@@ -49,6 +49,8 @@ pub fn check_match(EntityKind, @decode_core.Cursor, @carrier_contract.Carrier, @
 
 pub fn check_predicate(EntityKind, @decode_core.Cursor, @carrier_contract.Carrier, @parameter_binding.Declarations?, PredicateLimits) -> Result[CheckedPredicate, PredicateIssue]
 
+pub fn check_reach(@decode_core.Cursor, @carrier_contract.Carrier, Limits) -> Result[CheckedReach, MatchIssue]
+
 pub fn check_scope(EntityKind, @decode_core.Cursor, @carrier_contract.Carrier, Limits) -> Result[CheckedScope, Issue]
 
 pub fn check_selector(@decode_core.Cursor, @carrier_contract.Carrier, @carrier_contract.Carrier?, @parameter_binding.Declarations?, PredicateLimits) -> Result[CheckedSelector, MatchIssue]
@@ -128,6 +130,20 @@ pub fn pending_validations(CheckedGraph) -> Array[Obligation]
 pub fn predicate_expression(CheckedPredicate) -> @expression_typing.TypedExpression
 
 pub fn predicate_usage(CheckedPredicate) -> PredicateUsage
+
+pub fn reach_direction(CheckedReach) -> Direction
+
+pub fn reach_max_depth(CheckedReach) -> Double
+
+pub fn reach_output(CheckedReach) -> @carrier_contract.Carrier
+
+pub fn reach_pending(CheckedReach) -> Array[ReachObligation]
+
+pub fn reach_source(CheckedReach) -> @decode_core.Cursor
+
+pub fn reach_start(CheckedReach) -> @value_admission.CheckedValue
+
+pub fn reach_usage(CheckedReach) -> Usage
 
 pub fn scope_fields(CheckedScope) -> @carrier_contract.Knowledge
 
@@ -210,6 +226,8 @@ type CheckedGraph
 type CheckedMatch
 
 type CheckedPredicate
+
+type CheckedReach
 
 type CheckedScope
 
@@ -410,6 +428,16 @@ pub struct PropertyStrategy {
   name : String
   strategy : FieldStrategy
 }
+
+pub(all) enum ReachObligation {
+  AdmitReachGraph
+  RequireReachStartMembership
+  JournalReachExpansion
+  BoundedMinimumDepthTraversal
+  CanonicalReachOrder
+  ResolveReachResources
+  ResolveReachProfile
+} derive(Eq, @debug.Debug)
 
 pub enum SelectorForm {
   ExplicitIds

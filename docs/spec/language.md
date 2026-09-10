@@ -4868,6 +4868,19 @@ filter, homogeneous edges, `min_hops: 0`, `emit: nodes`, and the authored
 direction and `max_depth`. The compiler journals this expansion. There is no
 outgoing-direction default.
 
+<!-- requirement-block: reach.typed-result-and-semantic-alias -->
+The closed `reach` body admits only `start`, `direction` and `max_depth`.
+`start` is one explicit value admitted under the semantic node-ID contract;
+authored JSON cannot issue an opaque Ref. `max_depth` is a positive finite
+integer-valued number, not a resolved Host ceiling. The result follows the
+node-emitting traversal shape: `start_id` and `node_id` retain the semantic ID
+type, and `depth` is a non-null number holding the minimum hop count. The start
+node is included at depth zero. A declared semantic node name other than
+`node_id` is an additional alias of the reached `node_id`, not a renamed
+`start_id`; collisions with distinct fixed output columns MUST fail during
+check. No other node properties are implicitly projected. This output-shape
+clarification does not create uniqueness, order or resource proofs at check.
+
 <a id="graph-property-match"></a>
 
 #### Property match
@@ -7376,6 +7389,8 @@ Meta := non-empty JSON object subject to Authoring Context (#authoring-context)
 EventsBody := true
 VectorsBody := true
 NormalizeGraphBody := true
+ReachBody := {start: WireValue, direction: in | out | both,
+  max_depth: positive finite integer-valued number}
 MatchNodesBody := {ids: [WireValue, ...], fields: [Field, ...]}
   | {where: Expression, fields: [Field, ...]}
 MatchEdgesBody := {types?: [NonemptyString, ...] | [], where?: Expression,

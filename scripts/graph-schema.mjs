@@ -25,6 +25,7 @@ export function graphSchemas() {
     merge:{type:'object',additionalProperties:false,properties:{node_properties:strategies,edge_properties:strategies}},
   }};
   return {
+    reach:{type:'object',additionalProperties:false,required:['start','direction','max_depth'],properties:{start:{},direction:{enum:['in','out','both']},max_depth:{type:'integer',minimum:1}}},
     subgraph:{type:'object',additionalProperties:false,required:['nodes'],properties:{nodes:selector,edges:predicate}},
     match_nodes: {type:'object',additionalProperties:false,required:['fields'],
       properties:{fields:projectedFields,ids:{type:'array',minItems:1,items:{}},where:predicate},

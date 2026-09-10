@@ -4007,6 +4007,17 @@
       }
     },
     {
+      "requirement_id": "actql.language/reach.typed-result-and-semantic-alias",
+      "statement_sha256": "846742fb199e22a3953ade94d750096d5f73fb1e506cd5c91d9aa9403d9da2ab",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "reach",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.language/graph-property-match.fields-is-required-the-compiler-must-not-expose-undeclared-carrier",
       "statement_sha256": "e46d086be862f2872b884f76fb88868225b5e5218343f66c27c2b5bd4a2e6793",
       "status": "pending",
@@ -6131,7 +6142,7 @@
     },
     {
       "requirement_id": "actql.language/structural-grammar.grammar",
-      "statement_sha256": "08df9e7cc5e677d2c73370e38491ecfd7207df6a41494f66807ab7e2a022d36a",
+      "statement_sha256": "4716d862afeaac41a6fd96839685f51046465cbb05a5c815b1204e91b5e2bebf",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
