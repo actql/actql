@@ -63,12 +63,16 @@ pub fn hasher() -> Hasher {
 
 ///|
 fn compress(h : Hasher) -> Unit {
+  for index = 0; index < 16; index = index + 1 {
+    h.words[index] = word_at(h.block, index * 4)
+  }
+  compress_words(h)
+}
+
+///|
+fn compress_words(h : Hasher) -> Unit {
   let state = h.state
   let words = h.words
-  let bytes = h.block
-  for index = 0; index < 16; index = index + 1 {
-    words[index] = word_at(bytes, index * 4)
-  }
   for index = 16; index < 64; index = index + 1 {
     let earlier = words[index - 15]
     let later = words[index - 2]
@@ -139,8 +143,31 @@ fn admit_length(h : Hasher, length : UInt64) -> Unit raise HashFailure {
 /// Adds bytes without copying the complete input. Length overflow closes the state.
 pub fn update(h : Hasher, input : Bytes) -> Unit raise HashFailure {
   admit_length(h, input.length().to_uint64())
-  for byte in input {
-    append(h, byte)
+  absorb(h, input)
+}
+
+///|
+fn absorb(h : Hasher, input : Bytes) -> Unit {
+  let mut offset = 0
+  // Complete a buffered partial block before reading full blocks directly.
+  while h.used != 0 && offset < input.length() {
+    append(h, input[offset])
+    offset += 1
+  }
+  while input.length() - offset >= 64 {
+    for index = 0; index < 16; index = index + 1 {
+      let start = offset + index * 4
+      h.words[index] = (input[start].to_uint() << 24) |
+        (input[start + 1].to_uint() << 16) |
+        (input[start + 2].to_uint() << 8) |
+        input[start + 3].to_uint()
+    }
+    compress_words(h)
+    offset += 64
+  }
+  while offset < input.length() {
+    append(h, input[offset])
+    offset += 1
   }
 }
 
@@ -203,9 +230,7 @@ pub fn finish_hex(h : Hasher) -> String raise HashFailure {
 pub fn digest(input : Bytes) -> Bytes {
   let h = hasher()
   h.length = input.length().to_uint64()
-  for byte in input {
-    append(h, byte)
-  }
+  absorb(h, input)
   finish_bytes(h)
 }
 
