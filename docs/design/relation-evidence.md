@@ -135,3 +135,13 @@ whole-row keys containing structured values retain their actual contracts;
 non-null scalar/reference completion eligibility is still checked by each use.
 An empty tuple does not create a fabricated field ID or imply sorted rows:
 global group/dedupe cardinality facts require the separate cardinality boundary.
+
+`window_group` uses the same producer-key boundary as ordinary grouping. Its
+checked group includes the proven window boundary fields followed by authored
+group fields, even when the authored `by` array is empty. The entire tuple is
+retained, including through later exact projections; dropping any required
+component loses the witness. The checked producer preserves repeated authored
+keys, while its derived uniqueness tuple counts each field once. Window-role
+evidence and candidate-key evidence remain distinct: neither boundary names
+alone nor successful type checking establish runtime uniqueness. This follows
+the existing `window_group` group-key law rather than adding a new source rule.
