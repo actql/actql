@@ -3637,6 +3637,16 @@ of explicit equality-key pairs checked with `KeyComparable`. `fields` reuses
 query, overwrite mode, or error handler is added. Both operands are Relations
 from the checked graph; keyed-only acquisition must be explicit upstream work.
 
+<!-- requirement-block: nest.qualified-payload-projection nest.repeated-correlation-pairs -->
+Parent and child schemas may carry qualified fields. `fields` MUST use only
+field strings or singleton `{output_name: input_field}` maps, with distinct flat
+authored output names. A qualified child field requires an explicit flat alias;
+the legacy `{from: ..., to: ...}` object is not authored projection syntax.
+Parent fields retain their qualification. Repeated `on` pairs MUST retain their
+authored sequence and do not multiply matching child rows or prove uniqueness.
+This does not alter the canonical lowering's first-occurrence deduplication of
+right correlation fields for the internal group key.
+
 ##### Values, types, and order
 
 Output preserves every parent row, its fields, order, and candidate keys.

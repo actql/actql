@@ -150,7 +150,7 @@ fn check_impl(
       "unnest" => Some(Unnest)
       "assert_rows" => Some(AssertRows)
       "unpivot" => Some(Unpivot)
-      "join" | "append" => None
+      "join" | "append" | "nest" => None
       _ => fail(@decode.lookup(object, key).unwrap(), UnsupportedOperation(key))
     }
     let selected = match @decode.lookup(object, "from") {
@@ -235,7 +235,45 @@ fn check_impl(
         (Unary(checked), @relation.output_schema(checked))
       }
       None =>
-        if key == "append" {
+        if key == "nest" {
+          let obj = match @decode.open_object(operation_body) {
+            Ok(v) => v
+            Err(_) => fail(operation_body, InvalidBody)
+          }
+          let right_source = match @decode.required(obj, "with") {
+            Ok(v) => v
+            Err(_) => fail(operation_body, InvalidBody)
+          }
+          let right = resolve_target(b, right_source, names)
+          let checked = match
+            @nest.check(
+              operation_body,
+              schema(input, inputs, steps),
+              schema(right, inputs, steps),
+              parameters,
+              {
+                max_work: b.work,
+                max_text_bytes: b.text,
+                max_nodes: b.nodes,
+                max_depth: limits.max_depth,
+              },
+            ) {
+            Ok(v) => v
+            Err(issue) =>
+              raise Stop({
+                kind: Nest(issue.kind),
+                source: issue.source,
+                path: issue.path.copy(),
+                span: issue.span,
+                range: None,
+              })
+          }
+          let usage = @nest.usage(checked)
+          b.work -= usage.work
+          b.text -= usage.text_bytes
+          b.nodes -= usage.nodes
+          (Nest(right~, checked~), @nest.output_schema(checked))
+        } else if key == "append" {
           let obj = match @decode.open_object(operation_body) {
             Ok(v) => v
             Err(_) => fail(operation_body, InvalidBody)

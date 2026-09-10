@@ -4,11 +4,20 @@
 [pipeline naming rules](../spec/language.md#pipeline-references) and the
 [single-operation checker](relation-typing.md). It supports only `derive`,
 `filter`, `select`, `rename`, `drop`, [ordering and deduplication](relation-ordering.md)
-(`sort`, `take`, `distinct`, `dedupe_rows`), typed reshaping (`json_pick`, `unnest`),
-and [local join](relation-join.md) and [append](relation-append.md). Other operation names are explicitly
+(`sort`, `take`, `distinct`, `dedupe_rows`), row assertions (`assert_rows`), typed
+reshaping (`json_pick`, `unnest`, `unpivot`), [local join](relation-join.md),
+[append](relation-append.md), and [nest](relation-nest.md). Other operation names are explicitly
 unsupported; no step is skipped or treated as an opaque successful operation.
 
 ## Inputs and scope
+
+Nest uses the current/step-selected parent and resolves its child `with` through
+the same input/prior-`as` namespace. It has no `left` override. The retained
+`Nest` variant includes the child target, payload projection sequence, authored
+ordering and guard, and unresolved order/capacity/validation obligations. It
+accepts qualified schemas on either side; child payload names must be explicitly
+flat. Assertions and unpivot remain unary operations. Neither nesting nor row
+assertions produce proven keys or permission to publish during this check.
 
 Append uses the current/step-selected Relation as its left input and resolves
 `with` through the same input/prior-`as` namespace as join. It does not inherit
@@ -36,7 +45,7 @@ before another join. This applies to both the left and right input.
 
 The package owns shared naming, connection, budget and diagnostic rules; its
 current checked steps have a main input and one output and require a final
-current. `CheckedOperation` distinguishes `Unary`, `Join`, and `Append`; both
+current. `CheckedOperation` distinguishes `Unary`, `Join`, `Append`, and `Nest`; all
 binary variants retain an additional right-input target and their checked operation. General multi-output
 ports, generators and non-Relation Carriers are not implemented.
 

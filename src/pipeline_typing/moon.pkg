@@ -1,6 +1,7 @@
 supported_targets = "+js+wasm+native"
 
 import {
+  "actql/actql/relation_nest" @nest,
   "actql/actql/relation_append" @append,
   "actql/actql/decode_core" @decode,
   "actql/actql/decode_scalar" @scalar,

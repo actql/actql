@@ -1,0 +1,705 @@
+{
+  "version": "actql-relation-nest-corpus/0.1",
+  "types": {
+    "number": {
+      "type": "number",
+      "nullable": false
+    },
+    "nullable": {
+      "type": "number",
+      "nullable": true
+    },
+    "string": {
+      "type": "string",
+      "nullable": false
+    },
+    "json": {
+      "type": "json",
+      "nullable": false
+    },
+    "ref": {
+      "type": "resource_ref",
+      "nullable": true,
+      "resource_kind": "Customer"
+    },
+    "hidden": {
+      "type": "array",
+      "nullable": false,
+      "items": {
+        "type": "resource_ref",
+        "nullable": false,
+        "resource_kind": "Customer"
+      }
+    },
+    "items": {
+      "type": "array",
+      "nullable": false,
+      "items": {
+        "type": "object",
+        "nullable": false,
+        "fields": {
+          "v": {
+            "type": "number",
+            "nullable": true
+          }
+        }
+      }
+    }
+  },
+  "cases": [
+    {
+      "body": {
+        "with": "c",
+        "on": [
+          {
+            "left": "id",
+            "right": "id"
+          }
+        ],
+        "into": "items",
+        "fields": [
+          {
+            "v": "score"
+          }
+        ]
+      },
+      "parent": {
+        "id": "number"
+      },
+      "child": {
+        "id": "number",
+        "score": "nullable"
+      },
+      "output": {
+        "id": "number",
+        "items": "items"
+      }
+    },
+    {
+      "body": {
+        "with": "c",
+        "on": [
+          {
+            "left": "id",
+            "right": "id"
+          },
+          {
+            "left": "id",
+            "right": "id"
+          }
+        ],
+        "into": "items",
+        "fields": [
+          {
+            "v": "score"
+          }
+        ],
+        "max_items": 9007199254740991
+      },
+      "parent": {
+        "id": "number"
+      },
+      "child": {
+        "id": "number",
+        "score": "nullable"
+      },
+      "output": {
+        "id": "number",
+        "items": "items"
+      }
+    },
+    {
+      "body": {
+        "with": "c",
+        "on": [
+          {
+            "left": "id",
+            "right": "id"
+          }
+        ],
+        "into": "items",
+        "fields": [
+          {
+            "v": "score"
+          }
+        ],
+        "order_by": [
+          {
+            "id": "desc"
+          }
+        ]
+      },
+      "parent": {
+        "id": "number"
+      },
+      "child": {
+        "id": "number",
+        "score": "nullable"
+      },
+      "output": {
+        "id": "number",
+        "items": "items"
+      }
+    },
+    {
+      "body": {
+        "with": "c",
+        "on": [],
+        "into": "items",
+        "fields": [
+          {
+            "v": "score"
+          }
+        ]
+      },
+      "parent": {
+        "id": "number"
+      },
+      "child": {
+        "id": "number",
+        "score": "nullable"
+      },
+      "issue": "EmptyBody"
+    },
+    {
+      "body": {
+        "with": "c",
+        "on": [
+          {
+            "left": "id",
+            "right": "id"
+          }
+        ],
+        "into": "items",
+        "fields": []
+      },
+      "parent": {
+        "id": "number"
+      },
+      "child": {
+        "id": "number",
+        "score": "nullable"
+      },
+      "issue": "EmptyBody"
+    },
+    {
+      "body": {
+        "with": "c",
+        "on": [
+          {
+            "left": "id",
+            "right": "id"
+          }
+        ],
+        "into": "items",
+        "fields": [
+          "score",
+          "score"
+        ]
+      },
+      "parent": {
+        "id": "number"
+      },
+      "child": {
+        "id": "number",
+        "score": "nullable"
+      },
+      "issue": "DuplicateOutput"
+    },
+    {
+      "body": {
+        "with": "c",
+        "on": [
+          {
+            "left": "id",
+            "right": "id"
+          }
+        ],
+        "into": "items",
+        "fields": [
+          {
+            "from": "score",
+            "to": "v"
+          }
+        ]
+      },
+      "parent": {
+        "id": "number"
+      },
+      "child": {
+        "id": "number",
+        "score": "nullable"
+      },
+      "issue": "InvalidBody"
+    },
+    {
+      "body": {
+        "with": "c",
+        "on": [
+          {
+            "left": "id",
+            "right": "id"
+          }
+        ],
+        "into": "id",
+        "fields": [
+          {
+            "v": "score"
+          }
+        ]
+      },
+      "parent": {
+        "id": "number"
+      },
+      "child": {
+        "id": "number",
+        "score": "nullable"
+      },
+      "issue": "InputCollision"
+    },
+    {
+      "body": {
+        "with": "c",
+        "on": [
+          {
+            "left": "id",
+            "right": "id"
+          }
+        ],
+        "into": "a.b",
+        "fields": [
+          {
+            "v": "score"
+          }
+        ]
+      },
+      "parent": {
+        "id": "number"
+      },
+      "child": {
+        "id": "number",
+        "score": "nullable"
+      },
+      "issue": "InvalidName"
+    },
+    {
+      "body": {
+        "with": "c",
+        "on": [
+          {
+            "left": "missing",
+            "right": "id"
+          }
+        ],
+        "into": "items",
+        "fields": [
+          {
+            "v": "score"
+          }
+        ]
+      },
+      "parent": {
+        "id": "number"
+      },
+      "child": {
+        "id": "number",
+        "score": "nullable"
+      },
+      "issue": "UnknownField"
+    },
+    {
+      "body": {
+        "with": "c",
+        "on": [
+          {
+            "left": "id",
+            "right": "missing"
+          }
+        ],
+        "into": "items",
+        "fields": [
+          {
+            "v": "score"
+          }
+        ]
+      },
+      "parent": {
+        "id": "number"
+      },
+      "child": {
+        "id": "number",
+        "score": "nullable"
+      },
+      "issue": "UnknownField"
+    },
+    {
+      "body": {
+        "with": "c",
+        "on": [
+          {
+            "left": "id",
+            "right": "id"
+          }
+        ],
+        "into": "items",
+        "fields": [
+          {
+            "v": "score"
+          }
+        ],
+        "order_by": []
+      },
+      "parent": {
+        "id": "number"
+      },
+      "child": {
+        "id": "number",
+        "score": "nullable"
+      },
+      "issue": "EmptyBody"
+    },
+    {
+      "body": {
+        "with": "c",
+        "on": [
+          {
+            "left": "id",
+            "right": "id"
+          }
+        ],
+        "into": "items",
+        "fields": [
+          {
+            "v": "score"
+          }
+        ],
+        "order_by": [
+          {
+            "score": "sideways"
+          }
+        ]
+      },
+      "parent": {
+        "id": "number"
+      },
+      "child": {
+        "id": "number",
+        "score": "nullable"
+      },
+      "issue": "InvalidOrder"
+    },
+    {
+      "body": {
+        "with": "c",
+        "on": [
+          {
+            "left": "id",
+            "right": "id"
+          }
+        ],
+        "into": "items",
+        "fields": [
+          {
+            "v": "score"
+          }
+        ],
+        "max_items": 0
+      },
+      "parent": {
+        "id": "number"
+      },
+      "child": {
+        "id": "number",
+        "score": "nullable"
+      },
+      "issue": "InvalidGuard"
+    },
+    {
+      "body": {
+        "with": "c",
+        "on": [
+          {
+            "left": "id",
+            "right": "id"
+          }
+        ],
+        "into": "items",
+        "fields": [
+          {
+            "v": "score"
+          }
+        ],
+        "max_items": 1.5
+      },
+      "parent": {
+        "id": "number"
+      },
+      "child": {
+        "id": "number",
+        "score": "nullable"
+      },
+      "issue": "InvalidGuard"
+    },
+    {
+      "body": {
+        "with": "c",
+        "on": [
+          {
+            "left": "id",
+            "right": "id"
+          }
+        ],
+        "into": "items",
+        "fields": [
+          {
+            "v": "score"
+          }
+        ],
+        "max_items": {
+          "$param": "missing"
+        }
+      },
+      "parent": {
+        "id": "number"
+      },
+      "child": {
+        "id": "number",
+        "score": "nullable"
+      },
+      "issue": "UnknownParameter"
+    },
+    {
+      "body": {
+        "with": "c",
+        "on": [
+          {
+            "left": "id",
+            "right": "id"
+          }
+        ],
+        "into": "items",
+        "fields": [
+          "missing"
+        ]
+      },
+      "parent": {
+        "id": "number"
+      },
+      "child": {
+        "id": "number",
+        "score": "nullable"
+      },
+      "issue": "UnknownField"
+    },
+    {
+      "body": {
+        "with": "c",
+        "on": [
+          {
+            "left": "id",
+            "right": "id"
+          }
+        ],
+        "into": "items",
+        "fields": [
+          {
+            "v": "score"
+          }
+        ],
+        "extra": true
+      },
+      "parent": {
+        "id": "number"
+      },
+      "child": {
+        "id": "number",
+        "score": "nullable"
+      },
+      "issue": "InvalidBody"
+    },
+    {
+      "body": {
+        "with": "",
+        "on": [
+          {
+            "left": "id",
+            "right": "id"
+          }
+        ],
+        "into": "items",
+        "fields": [
+          {
+            "v": "score"
+          }
+        ]
+      },
+      "parent": {
+        "id": "number"
+      },
+      "child": {
+        "id": "number",
+        "score": "nullable"
+      },
+      "issue": "InvalidName"
+    },
+    {
+      "body": {
+        "with": "c",
+        "on": [
+          {
+            "left": "id",
+            "right": "id"
+          }
+        ],
+        "into": "items",
+        "fields": [
+          {
+            "v": "score"
+          }
+        ]
+      },
+      "parent": {
+        "id": "number"
+      },
+      "child": {
+        "id": "number",
+        "score": "json"
+      },
+      "issue": "NotConstructible"
+    },
+    {
+      "body": {
+        "with": "c",
+        "on": [
+          {
+            "left": "id",
+            "right": "id"
+          }
+        ],
+        "into": "items",
+        "fields": [
+          {
+            "v": "score"
+          }
+        ]
+      },
+      "parent": {
+        "id": "number"
+      },
+      "child": {
+        "id": "number",
+        "score": "ref"
+      },
+      "issue": "NotConstructible"
+    },
+    {
+      "body": {
+        "with": "c",
+        "on": [
+          {
+            "left": "id",
+            "right": "id"
+          }
+        ],
+        "into": "items",
+        "fields": [
+          {
+            "v": "score"
+          }
+        ]
+      },
+      "parent": {
+        "id": "number"
+      },
+      "child": {
+        "id": "number",
+        "score": "hidden"
+      },
+      "issue": "NotConstructible"
+    },
+    {
+      "body": {
+        "with": "c",
+        "on": [
+          {
+            "left": "id",
+            "right": "id"
+          }
+        ],
+        "into": "items",
+        "fields": [
+          {
+            "v": "score"
+          }
+        ]
+      },
+      "parent": {
+        "id": "number"
+      },
+      "child": {
+        "id": "string",
+        "score": "nullable"
+      },
+      "issue": "IncomparableKeys"
+    },
+    {
+      "body": {
+        "with": "c",
+        "on": [
+          {
+            "left": "id",
+            "right": "id"
+          }
+        ],
+        "into": "items",
+        "fields": [
+          {
+            "v": "score"
+          }
+        ],
+        "order_by": [
+          {
+            "ref": "asc"
+          }
+        ]
+      },
+      "parent": {
+        "id": "number"
+      },
+      "child": {
+        "id": "number",
+        "score": "nullable",
+        "ref": "ref"
+      },
+      "issue": "NotAuthorOrderable"
+    },
+    {
+      "body": {
+        "with": "c",
+        "on": [
+          {
+            "left": "id",
+            "right": "id"
+          }
+        ],
+        "into": "items",
+        "fields": [
+          {
+            "v": "score"
+          }
+        ]
+      },
+      "parent": {
+        "id": "ref"
+      },
+      "child": {
+        "id": "ref",
+        "score": "nullable"
+      },
+      "output": {
+        "id": "ref",
+        "items": "items"
+      }
+    }
+  ]
+}

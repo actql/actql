@@ -3072,6 +3072,28 @@
       }
     },
     {
+      "requirement_id": "actql.language/nest.qualified-payload-projection",
+      "statement_sha256": "3f2f82d748dbccb31f6e51948f4523202edec2bf08e00092ae87f702be09dd65",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "nest",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/nest.repeated-correlation-pairs",
+      "statement_sha256": "3278162f6256526fc18cf9b83776fc9fcbc6c182744ffbca8e86e068d12e2421",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "nest",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.language/nest.projection-sequence",
       "statement_sha256": "e7f286f665d61a8c616b31159ebe3389f70a1025511fba781ffb9635454b4986",
       "status": "pending",

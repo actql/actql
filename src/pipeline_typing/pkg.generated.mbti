@@ -7,6 +7,7 @@ import {
   "actql/actql/parameter_binding",
   "actql/actql/relation_append",
   "actql/actql/relation_join",
+  "actql/actql/relation_nest",
   "actql/actql/relation_schema",
   "actql/actql/relation_typing",
   "actql/actql/source_span",
@@ -46,6 +47,7 @@ pub enum CheckedOperation {
   Unary(@relation_typing.CheckedOperation)
   Join(right~ : Target, checked~ : @relation_join.CheckedJoin)
   Append(right~ : Target, checked~ : @relation_append.CheckedAppend)
+  Nest(right~ : Target, checked~ : @relation_nest.CheckedNest)
 }
 
 type CheckedPipeline
@@ -81,6 +83,7 @@ pub(all) enum IssueKind {
   Operation(@relation_typing.IssueKind)
   Join(@relation_join.IssueKind)
   Append(@relation_append.IssueKind)
+  Nest(@relation_nest.IssueKind)
 } derive(Eq, @debug.Debug)
 
 pub(all) struct Limits {

@@ -1,0 +1,117 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/relation_nest"
+
+import {
+  "actql/actql/decode_core",
+  "actql/actql/order_key",
+  "actql/actql/parameter_binding",
+  "actql/actql/relation_schema",
+  "actql/actql/source_span",
+  "actql/actql/source_value",
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn check(@decode_core.Cursor, @relation_schema.Schema, @relation_schema.Schema, @parameter_binding.Declarations?, Limits) -> Result[CheckedNest, Issue]
+
+pub fn input_schema(CheckedNest, @relation_schema.Side) -> @relation_schema.Schema
+
+pub fn into(CheckedNest) -> String
+
+pub fn item_guard(CheckedNest) -> Guard?
+
+pub fn keys(CheckedNest) -> Array[KeyPair]
+
+pub fn order(CheckedNest) -> Array[OrderTerm]?
+
+pub fn output_schema(CheckedNest) -> @relation_schema.Schema
+
+pub fn pending_validations(CheckedNest) -> Array[Obligation]
+
+pub fn projection(CheckedNest) -> Array[Projection]
+
+pub fn source(CheckedNest) -> @decode_core.Cursor
+
+pub fn usage(CheckedNest) -> Usage
+
+pub fn with_name(CheckedNest) -> String
+
+// Errors
+
+// Types and methods
+type CheckedNest
+
+pub(all) enum Guard {
+  Literal(Int64)
+  Parameter(String)
+} derive(Eq, @debug.Debug)
+
+pub struct Issue {
+  kind : IssueKind
+  source : @decode_core.Cursor
+  path : Array[@source_value.PathSegment]
+  span : @source_span.Span
+}
+
+pub(all) enum IssueKind {
+  InvalidLimits
+  BudgetExceeded
+  InvalidBody
+  EmptyBody
+  InvalidName(String)
+  UnknownField(@relation_schema.Side, String)
+  IncomparableKeys(String, String)
+  DuplicateOutput(String)
+  InputCollision(String)
+  NotConstructible(String)
+  InvalidOrder
+  NotAuthorOrderable(String)
+  InvalidGuard
+  UnknownParameter(String)
+} derive(Eq, @debug.Debug)
+
+pub struct KeyPair {
+  left : @relation_schema.FieldName
+  right : @relation_schema.FieldName
+  source : @decode_core.Cursor
+}
+
+pub(all) struct Limits {
+  max_work : Int
+  max_text_bytes : Int
+  max_nodes : Int
+  max_depth : Int
+} derive(Eq, @debug.Debug)
+
+pub(all) enum Obligation {
+  ResolveTotalOrder
+  ResolveItemLimit
+  ResolveNestedEnvelope
+  ValidateOutputsBeforeConsumers
+  PropagatePolicyAndCompleteness
+  BindGuard(String)
+} derive(Eq, @debug.Debug)
+
+pub struct OrderTerm {
+  field : @relation_schema.FieldName
+  direction : @order_key.Direction
+  nulls : @order_key.NullPlacement
+  explicit_nulls : Bool
+  source : @decode_core.Cursor
+}
+
+pub struct Projection {
+  output : String
+  input : @relation_schema.FieldName
+  source : @decode_core.Cursor
+}
+
+pub(all) struct Usage {
+  work : Int
+  text_bytes : Int
+  nodes : Int
+} derive(Eq, @debug.Debug)
+
+// Type aliases
+
+// Traits
