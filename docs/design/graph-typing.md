@@ -1,7 +1,7 @@
 # Graph operation checking
 
 `graph_typing` currently checks `normalize_graph`, `degree`, `components` and
-`graph_bounds`.
+`graph_bounds`, plus binary `graphs_equal` through `check_equality`.
 The normative owner is [Graph operations](../spec/language.md#graph-operations).
 This is not the complete SGA operation family or an evaluator.
 
@@ -54,3 +54,31 @@ Source traversal is iterative and budgeted for nodes, depth, work and text.
 Already admitted recursive contracts are shared; pipeline input preflight
 accounts for their structures separately. Diagnostic paths/spans identify the
 specific body slot. Collections returned from checked values are detached.
+
+## Typed graph equality
+
+`graphs_equal: {with: name}` resolves both Graph inputs and returns the complete
+one-column Relation `equal: boolean` (non-null), with exactly one row on successful
+evaluation. Both operands require known semantic identity and complete closed node
+and edge property contracts. Opaque, open or untyped property evidence cannot
+discharge the existing specification's compatibility requirement.
+
+The checker reuses bounded recursive schema alignment for both property domains
+and the identity domain, sharing the remaining budget between them. Compatible
+extents and nullability are joined for domain checking; declarations need not
+have identical bytes. Different property names or incompatible value domains
+fail even for empty runtime graphs. Label-domain differences are not a static
+false result: canonical admitted identities, labels and property values must be
+compared at execution. Input order, acquisition identity and graph isomorphism
+are not substitutes for that equality law.
+
+The checked operation retains both typed Graph contracts and the authored right
+reference. Pipeline connections retain Left and Right occurrences, including
+self-comparison; no constant folding or equality proof is created. Result rows
+can feed ordinary boolean expressions. Data admission, comparison, SGA profile
+and work/byte resource validation remain explicit obligations.
+
+The pinned Sketch compiler has structural binary graph dispatch but no
+`graphs_equal` checker; this operation follows the newer normative Graph equality
+section. The shared comparison boundary is also needed by later diff/apply work;
+those operations and structural merge policies are not implemented by equality.

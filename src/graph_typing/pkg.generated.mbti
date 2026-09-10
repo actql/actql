@@ -5,6 +5,8 @@ import {
   "actql/actql/carrier_contract",
   "actql/actql/decode_core",
   "actql/actql/parameter_binding",
+  "actql/actql/relation_append",
+  "actql/actql/relation_schema",
   "actql/actql/source_span",
   "actql/actql/source_value",
   "moonbitlang/core/debug",
@@ -12,6 +14,20 @@ import {
 
 // Values
 pub fn check(Operation, @decode_core.Cursor, @carrier_contract.Carrier, @parameter_binding.Declarations?, Limits) -> Result[CheckedGraph, Issue]
+
+pub fn check_equality(@decode_core.Cursor, @carrier_contract.Carrier, @carrier_contract.Carrier, Limits) -> Result[CheckedEquality, Issue]
+
+pub fn equality_input(CheckedEquality, @relation_schema.Side) -> @carrier_contract.Graph
+
+pub fn equality_output(CheckedEquality) -> @carrier_contract.Carrier
+
+pub fn equality_pending(CheckedEquality) -> Array[EqualityObligation]
+
+pub fn equality_source(CheckedEquality) -> @decode_core.Cursor
+
+pub fn equality_usage(CheckedEquality) -> Usage
+
+pub fn equality_with_name(CheckedEquality) -> String
 
 pub fn input(CheckedGraph) -> @carrier_contract.Carrier
 
@@ -30,6 +46,8 @@ pub fn usage(CheckedGraph) -> Usage
 // Errors
 
 // Types and methods
+type CheckedEquality
+
 type CheckedGraph
 
 pub(all) enum ComponentKind {
@@ -48,6 +66,13 @@ pub(all) enum Direction {
   Both
 } derive(Eq, @debug.Debug)
 
+pub(all) enum EqualityObligation {
+  AdmitBothGraphs
+  CompareTypedCanonicalGraphs
+  ResolveComparisonResources
+  ResolveSgaProfile
+} derive(Eq, @debug.Debug)
+
 pub struct Issue {
   kind : IssueKind
   path : Array[@source_value.PathSegment]
@@ -61,6 +86,9 @@ pub(all) enum IssueKind {
   Decode(@decode_core.IssueKind)
   WrongCarrier(@carrier_contract.Kind)
   InvalidCount
+  IncompleteGraph
+  InvalidName(String)
+  ContractMismatch(@relation_append.IssueKind)
   UnknownParameter(String)
   IncompatibleParameter(String)
 } derive(Eq, @debug.Debug)

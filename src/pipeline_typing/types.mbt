@@ -125,6 +125,7 @@ pub enum CheckedOperation {
   Window(@window.CheckedWindow)
   Projection(@projection.CheckedProjection)
   Graph(@graph.CheckedGraph)
+  GraphEquality(right~ : Target, checked~ : @graph.CheckedEquality)
   Vector(@vector.CheckedVector)
   Event(@event.CheckedEvent)
   WindowGroup(@relation.CheckedOperation)

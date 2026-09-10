@@ -86,6 +86,7 @@ pub enum CheckedOperation {
   Window(@temporal_window.CheckedWindow)
   Projection(@carrier_projection.CheckedProjection)
   Graph(@graph_typing.CheckedGraph)
+  GraphEquality(right~ : Target, checked~ : @graph_typing.CheckedEquality)
   Vector(@vector_typing.CheckedVector)
   Event(@event_typing.CheckedEvent)
   WindowGroup(@relation_typing.CheckedOperation)

@@ -385,6 +385,7 @@ fn check_impl(
       | "degree"
       | "components"
       | "graph_bounds"
+      | "graphs_equal"
       | "vectors"
       | "window_events" => None
       _ => fail(@decode.lookup(object, key).unwrap(), UnsupportedOperation(key))
@@ -533,6 +534,64 @@ fn check_impl(
         output: @carrier.relation(
           @carrier.typed_rows(@join.asof_output_schema(checked)),
         ),
+        connections: {
+          entries: [
+            { role: Left, target: input, },
+            { role: Right, target: right, },
+          ],
+        },
+        window: None,
+      })
+      if binding_name is Some(name) {
+        names[name] = target
+      }
+      current = Some(target)
+      continue
+    }
+    if key == "graphs_equal" {
+      let o = match @decode.closed_object(operation_body, ["with"]) {
+        Ok(o) => o
+        Err(_) => fail(operation_body, InvalidBody)
+      }
+      let at = match @decode.required(o, "with") {
+        Ok(c) => c
+        Err(_) => fail(operation_body, InvalidBody)
+      }
+      let right = resolve_target(b, at, names)
+      let checked = match
+        @graph.check_equality(
+          operation_body,
+          carrier(input, inputs, steps),
+          carrier(right, inputs, steps),
+          {
+            max_work: b.work,
+            max_nodes: b.nodes,
+            max_depth: limits.max_depth,
+            max_text_bytes: b.text,
+          },
+        ) {
+        Ok(v) => v
+        Err(e) =>
+          raise Stop({
+            kind: Graph(e.kind),
+            source: operation_body,
+            path: e.path.copy(),
+            span: e.span,
+            range: None,
+          })
+      }
+      let u = @graph.equality_usage(checked)
+      b.work -= u.work
+      b.nodes -= u.nodes
+      b.text -= u.text_bytes
+      let target = Step(steps.length())
+      steps.push({
+        source: body,
+        input: Some(input),
+        binding_name,
+        metadata: meta,
+        operation: GraphEquality(right~, checked~),
+        output: @graph.equality_output(checked),
         connections: {
           entries: [
             { role: Left, target: input, },
@@ -1114,6 +1173,7 @@ fn check_impl(
         | Set(right~, ..)
         | CrossJoin(right~, ..)
         | IntervalJoin(right~, ..)
+        | GraphEquality(right~, ..)
         | AsOfJoin(right~, ..) =>
           [{ role: Left, target: input, }, { role: Right, target: right, }]
       },

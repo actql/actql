@@ -53,6 +53,9 @@ pub(all) enum IssueKind {
   Decode(@decode.IssueKind)
   WrongCarrier(@carrier.Kind)
   InvalidCount
+  IncompleteGraph
+  InvalidName(String)
+  ContractMismatch(@alignment.IssueKind)
   UnknownParameter(String)
   IncompatibleParameter(String)
 } derive(Eq, Debug)

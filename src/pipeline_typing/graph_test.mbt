@@ -11,6 +11,51 @@ fn graph_input() -> @carrier.Carrier {
 }
 
 ///|
+test "graph equality resolves both inputs and feeds boolean relation consumers" {
+  let empty = @carrier.rows(
+    [],
+    field_set=Closed,
+    max_fields=0,
+    max_name_bytes=0,
+  ).unwrap()
+  let g = @carrier.graph(
+    @contract.primitive(NumberType, nullable=false),
+    empty,
+    empty,
+    labels=None,
+    max_labels=0,
+    max_label_bytes=0,
+  ).unwrap()
+  let p = @pipeline_typing.check_carriers(
+    cursor(
+      "[{\"graphs_equal\":{\"with\":\"b\"},\"from\":\"a\",\"as\":\"comparison\"},{\"filter\":\"equal\"}]",
+    ),
+    [("a", g), ("b", g)],
+    None,
+    None,
+    limits(),
+  ).unwrap()
+  let step = @pipeline_typing.step_at(p, 0).unwrap()
+  assert_true(step.operation is GraphEquality(right=Input(1), ..))
+  let edges = @pipeline_typing.input_occurrences(step)
+  assert_eq(edges.length(), 2)
+  assert_eq(edges[0].role, Left)
+  assert_eq(edges[0].target, Input(0))
+  assert_eq(edges[1].target, Input(1))
+  assert_eq(@schema.field_count(@pipeline_typing.output_schema(p).unwrap()), 1)
+  assert_true(
+    @pipeline_typing.check_carriers(
+      cursor("[{\"graphs_equal\":{\"with\":\"future\"},\"as\":\"future\"}]"),
+      [("a", g)],
+      None,
+      None,
+      limits(),
+    )
+    is Err({ kind: UnknownName("future"), .. }),
+  )
+}
+
+///|
 test "graph checking connects normalization components and relation projection" {
   let p = @pipeline_typing.check_carriers(
     cursor(
