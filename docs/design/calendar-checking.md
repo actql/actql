@@ -28,9 +28,12 @@ uses the same collision-resistance assumption as CIDs.
 
 This format is a new representation decision, not a format supplied by the fixed
 reference implementations. The opaque profile binds exact zone lookup to one
-selected CID and external release. Current fixtures are synthetic: a trusted real
-release fixture, independent historical transition vectors, operation checking
-and count/evidence propagation remain. The API does not certify an arbitrary
+selected CID and external release. The selected-zone
+[2025b fixture](../../vendor/tzdb/2025b/README.md) is reproduced from pinned IANA
+data and compiler archives, alongside synthetic rejection fixtures. It exercises
+offsets at gaps, folds, a skipped date and future recurrence through year 9999.
+Calendar boundary conversion vectors, operation checking and count/evidence
+propagation remain. The API does not certify an arbitrary
 caller-selected hash as authentic IANA data.
 
 The `calendar_transition` package supplies the validated offset-table primitive
@@ -67,7 +70,7 @@ data or quietly treat unknown zones as UTC. Missing semantic artifacts prevent
 a runnable Plan, including an unpinned UTC shortcut.
 
 The fixed reference revisions do not contain these Calendar operations or a TZDB
-artifact to reuse. Operation checking, selection of a real pinned release, conservative
+artifact to reuse. Operation checking, production profile selection, conservative
 count/evidence propagation and independent transition vectors remain in the full
 pure-operation goal. Adding source options does not close those requirements.
 Actual calendar evaluation and acquisition of provider data are outside that goal.

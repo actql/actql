@@ -2,7 +2,7 @@
 
 ## Setup and verification
 
-With Node.js 22 or newer and Python 3.10 or newer:
+With Node.js 22 or newer, Python 3.10 or newer, a C compiler and `make`:
 
 ```sh
 npm ci
@@ -73,6 +73,10 @@ The checks are read-only:
 - `check:examples`: YAML Program fixtures, valid-example root layout, example registration and acceptance-case references.
 - `test:docs`: validator regression tests.
 - `check:nest`: independent Python lowering and JavaScript identity-preimage checks for the authored nest fixture subset.
+- `check:calendar` (included in `check:events`): rebuild pinned IANA zic source in
+  isolation, reproduce the selected-zone TZDB fixture exactly, and test the TZif
+  reader. No installed timezone database is used. `generate:calendar` updates
+  both generated artifacts. See [fixture provenance](../vendor/tzdb/2025b/README.md).
 - `check:encoding`: kernel manifest pin, fixed scalar spelling expectations and generated encoding-test freshness.
 - `check:canonical`: canonical JSON corpus, existing contract CIDs and generated identity-test freshness.
 - `check:value-contracts`: fixed contract vectors, generated-test freshness and embedded schema consistency.

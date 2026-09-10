@@ -1,0 +1,31 @@
+# IANA TZDB fixture inputs
+
+These unmodified archives were obtained over HTTPS from IANA:
+
+- [tzdata2025b.tar.gz](https://data.iana.org/time-zones/releases/tzdata2025b.tar.gz)
+- [tzcode2025b.tar.gz](https://data.iana.org/time-zones/releases/tzcode2025b.tar.gz)
+
+SHA-256 pins are maintained in `scripts/generate-calendar-fixture.py`, checked
+before extraction or compilation. No detached-signature verification is claimed.
+2025b is a historical reproducibility fixture, not a claim to be the latest
+release or a default production Check Environment.
+
+Both archives retain their complete upstream contents and license notices. The
+top-level [LICENSE](LICENSE) is copied from the distribution; files with their
+own notices retain them inside the archives. This material is independent of
+ActQL-owned versioning.
+
+The generator compiles this release's zic in a temporary directory, passing an
+explicit UTC year 0001..9999 range and `-R` to expand future rules through that
+range. It reads the 64-bit TZif block only after confirming explicit coverage
+sentinels. It does not use Python/system zoneinfo or the installed zic binary.
+The fixture selects America/New_York, Pacific/Apia and UTC. UTC uses the Etc/UTC
+table, following the `Link Etc/UTC UTC` record in the pinned backward file.
+Other zones are not implicitly available in this fixture.
+
+`npm run generate:calendar` updates the canonical JSON and embedded MoonBit test
+input. `npm run check:calendar` regenerates in isolation and checks exact bytes,
+then runs parser regressions. A C compiler, make and Python 3.10+ are needed.
+The MoonBit tests independently assert US gap/fold offsets, Samoa's skipped-date
+offset change and future recurrence through year 9999. These test offsets and
+artifact admission, not yet Calendar boundary conversion or full conformance.
