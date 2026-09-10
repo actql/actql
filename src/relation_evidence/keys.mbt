@@ -56,6 +56,7 @@ pub(all) enum KeyOrigin {
   CalendarSeriesResult
   TimeSeriesResult
   VectorProjectionResult
+  GraphProjectionResult
 } derive(Eq, Debug)
 
 ///|
@@ -64,6 +65,7 @@ priv enum KeyProducer {
   CalendarProducer(@calendar.CheckedCalendar)
   TimeSeriesProducer(@series.CheckedSeries)
   VectorProjectionProducer(@projection.CheckedProjection)
+  GraphProjectionProducer(@projection.CheckedProjection)
 }
 
 ///|
@@ -271,6 +273,16 @@ pub fn key_vector_projection_producer(
 ) -> @projection.CheckedProjection? {
   match c.producer {
     Some(VectorProjectionProducer(op)) => Some(op)
+    _ => None
+  }
+}
+
+///|
+pub fn key_graph_projection_producer(
+  c : KeyedRelation,
+) -> @projection.CheckedProjection? {
+  match c.producer {
+    Some(GraphProjectionProducer(op)) => Some(op)
     _ => None
   }
 }

@@ -28,6 +28,8 @@ pub fn declared_key_field_at(KeyedRelation, Int) -> KeyField?
 
 pub fn declared_records(KeyedRelation) -> @carrier_contract.Knowledge
 
+pub fn graph_projection_keys(@carrier_projection.CheckedProjection, TransferLimits) -> Result[KeySetTransfer, Issue]
+
 pub fn key_alias_at(KeyedRelation, Int, Int) -> KeyField?
 
 pub fn key_alias_count(KeyedRelation, Int) -> Int
@@ -37,6 +39,8 @@ pub fn key_calendar_producer(KeyedRelation) -> @calendar_typing.CheckedCalendar?
 pub fn key_field_at(KeyedRelation, Int) -> KeyField?
 
 pub fn key_field_count(KeyedRelation) -> Int
+
+pub fn key_graph_projection_producer(KeyedRelation) -> @carrier_projection.CheckedProjection?
 
 pub fn key_origin(KeyedRelation) -> KeyOrigin
 
@@ -124,6 +128,7 @@ pub(all) enum KeyOrigin {
   CalendarSeriesResult
   TimeSeriesResult
   VectorProjectionResult
+  GraphProjectionResult
 } derive(Eq, @debug.Debug)
 
 pub struct KeySelection {

@@ -49,6 +49,30 @@ a sole non-null string key. Vector-to-Relation conversion does not broaden it.
 Field traversal and UTF-8 name costs are charged to the shared pipeline budget.
 
 Event window assignments may repeat original event IDs. The vector identity
-rule is not applied to Event bridges or Graph projections; their distinct
-identity/multiplicity transfer remains separate work. Neither this witness nor
+rule is not applied to Event bridges; their distinct identity/multiplicity
+transfer remains separate work. Neither this witness nor
 the bridge supplies general logical-order or publication proof.
+
+## Graph identity evidence
+
+`relation_evidence.graph_projection_keys` binds a conditional node `id` key or
+edge `(src, dst, rel)` key to the exact checked Graph bridge. The origin is
+`GraphProjectionResult`; `key_graph_projection_producer` exposes the retained
+operation, whose `ValidateGraphRecords`, collision, semantic-name restoration
+and resource obligations must still be discharged. This is not a declaration
+that arbitrary supplied rows already satisfy graph identity. An opaque Graph
+retains no key witness because its identity domain is unknown.
+
+The additional authored node/endpoint/label names are exact-copy aliases of the
+bridge roles. Each component retains all such aliases, so dropping `id` while
+retaining its authored name preserves the node key. Dropping both `rel` and its
+label alias loses the edge key; the remaining endpoint pair is not inferred
+unique. The original tuple order and producer remain available even when a
+consumer selects a different canonical alias order.
+
+Absent edge labels remain null. Consequently the edge tuple can remain a
+conditional uniqueness witness without passing a consumer's non-null canonical
+key eligibility rule. No fabricated scalar edge ID, non-null label assertion or
+general order proof is added. Shared work/name budgets include all retained
+components and aliases. Exact projections and supported row-subsetting operations
+use the existing whole-tuple transfer instead of rebuilding graph evidence.

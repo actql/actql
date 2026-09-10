@@ -157,10 +157,19 @@ The retained checked series also exposes its statically known row count when
 available, without claiming downstream cardinality or source coverage.
 For a produced key, `declared_records` and `declared_key_field_at` describe its
 original producer output, not an upstream input primary-key declaration.
-`key_pending` returns `ValidateKeyProducer`: consumers must retain that producer's
+For these operation-derived keys, `key_pending` returns `ValidateKeyProducer`:
+consumers must retain that producer's
 execution and validation obligations, including atomic assertion and top-tie
 failure where applicable. They must not apply local-input duplicate normalization
 to an operation result or treat successful type checking as observed uniqueness.
+
+The [explicit Carrier bridges](carrier-projection.md) also retain conditional
+identity witnesses. Graph node/edge tuples use `GraphProjectionResult` and
+`key_graph_projection_producer`, preserving graph-record admission and source-role
+aliases. Vectors use `VectorProjectionResult` and `key_vector_projection_producer`;
+their pending set additionally makes component, whole-tuple uniqueness and
+reference validation explicit. Neither bridge is a public proof boolean, and
+neither changes a downstream consumer's admissible key domains.
 
 The pipeline advances this evidence even when no input key was supplied. It
 preserves independent inherited keys where the operation allows them and appends
