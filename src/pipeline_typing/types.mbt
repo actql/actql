@@ -132,6 +132,11 @@ pub enum CheckedOperation {
   Reach(@graph.CheckedReach)
   Subgraph(selector~ : Target?, checked~ : @graph.CheckedSubgraph)
   Traverse(selector~ : Target?, checked~ : @graph.CheckedTraverse)
+  Shortest(
+    source_selector~ : Target?,
+    target_selector~ : Target?,
+    checked~ : @graph.CheckedShortest
+  )
   GraphEquality(right~ : Target, checked~ : @graph.CheckedEquality)
   GraphDiff(right~ : Target, checked~ : @graph.CheckedDiff)
   GraphApply(right~ : Target, checked~ : @graph.CheckedApply)

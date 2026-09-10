@@ -5022,6 +5022,14 @@ representation of the existing edge-identity law; it does not issue new IDs.
     max_hops: 8
 ```
 
+<!-- requirement-block: shortest-path-and-components.closed-body -->
+The closed body MUST admit only source, target, selection, direction, max_hops,
+weight, edge_types and max_output_rows. Source, target and direction are explicit;
+direction is in, out or both, and max_hops is a positive finite integer-valued
+number. Optional edge_types follows the homogeneous traverse filter rules,
+including semantic label evidence, empty filters and retained repetitions.
+No max_paths option or implicit output ceiling is added.
+
 <!-- requirement-block: shortest-path-and-components.max-hops-is-required -->
 `max_hops` is REQUIRED. Without `weight`, paths have unit edge cost; optional
 `weight` names a non-null number edge field. Every admitted edge cost is finite
@@ -7434,6 +7442,14 @@ TraverseBody := {start: GraphNodeSelector, emit: nodes | paths,
      max_output_rows?: PositiveIntegerValue}
 TraversalHop := {direction: in | out | both, edge_types?: [NonemptyString, ...] | [],
   edge_where?: Expression, node_where?: Expression}
+ShortestPathBody := {source: PathEndpoint, target: PathEndpoint,
+  selection?: each_pair | nearest_per_source | nearest_pair,
+  direction: in | out | both, max_hops: positive integer-valued number,
+  weight?: Field, edge_types?: [NonemptyString, ...] | [],
+  max_output_rows?: PositiveIntegerValue}
+PathEndpoint := single typed identity | GraphNodeSelector
+ShortestPathConstraints := selection is required with any selector and forbidden
+  with two single identities; weight names a known non-null number edge field.
 GraphBody := {nodes: GraphNodes, edges: GraphEdges}
   | {source: Field, target: Field, label?: Field}
 GraphNodes := {from: InputOrStepName, id: Field, fields?: [Field, ...] | []}

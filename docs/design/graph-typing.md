@@ -146,6 +146,26 @@ Minimum node depth, simple paths, exact path deduplication, canonical order,
 binding checks and execution resources remain separate obligations. No evaluator
 or lowering is included.
 
+## Shortest-path checking
+
+`check_shortest` composes typed single identities or shared selectors with the
+path result builder. Each Relation selector has its own pipeline edge, even when
+both refer to the same Relation. Predicate tokens and source/output work are
+cumulative across both endpoints. Returned contracts preserve semantic identity
+types; authored JSON cannot issue opaque references.
+
+The closed body and explicit direction/hop bound clarify the existing bounded
+search contract. Unlike the pinned reference decoder's single-string endpoints,
+the checker supports the specified selector forms and typed IDs. It introduces
+neither max_paths nor default output limits. A weight must resolve to a known
+non-null number edge field; unrelated unknown properties need not become known.
+
+Graph admission, endpoint membership, all-edge finite/nonnegative weight checks,
+rounded cost accumulation, atomic rejection of selected overrange paths, simple
+hop-bounded selection, tie-breaking and canonical output order remain explicit
+execution obligations. Guard binding, profile and resource resolution remain
+separate. Static acceptance is not weighted-search execution support.
+
 ## Bounded reach checking
 
 `check_reach` requires a typed explicit start, direction and positive finite

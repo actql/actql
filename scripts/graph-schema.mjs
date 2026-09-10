@@ -25,6 +25,14 @@ export function graphSchemas() {
     merge:{type:'object',additionalProperties:false,properties:{node_properties:strategies,edge_properties:strategies}},
   }};
   return {
+    shortest_path:{type:'object',additionalProperties:false,required:['source','target','direction','max_hops'],properties:{
+      source:{oneOf:[selector,{type:['string','number','boolean']}]},
+      target:{oneOf:[selector,{type:['string','number','boolean']}]},
+      selection:{enum:['each_pair','nearest_per_source','nearest_pair']},
+      direction:{enum:['in','out','both']},max_hops:{type:'integer',minimum:1},
+      weight:field,edge_types:{type:'array',items:field},max_output_rows:positive,
+    },if:{anyOf:['source','target'].map(name => ({properties:{[name]:{type:'object'}},required:[name]}))},
+    then:{required:['selection']},else:{not:{required:['selection']}}},
     traverse:{type:'object',additionalProperties:false,required:['start','emit'],properties:{
       start:selector,emit:{enum:['nodes','paths']},max_output_rows:positive,
       direction:{enum:['in','out','both']},edge_types:{type:'array',items:field},

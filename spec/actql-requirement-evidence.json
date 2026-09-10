@@ -4084,6 +4084,17 @@
       }
     },
     {
+      "requirement_id": "actql.language/shortest-path-and-components.closed-body",
+      "statement_sha256": "25d82d4400a5ec1d87c0a7661a4fbc27dcf3e39ea844c2a0509d3cdb615a313a",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "shortest-path-and-components",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.language/shortest-path-and-components.max-hops-is-required",
       "statement_sha256": "e19d52d133af3bca32db7c4d4e592f84168efa9988c5c97f9b0af8d4a81b20d8",
       "status": "pending",
@@ -6164,7 +6175,7 @@
     },
     {
       "requirement_id": "actql.language/structural-grammar.grammar",
-      "statement_sha256": "c19e99572372ce4a41929869d543a0a187cdd42ad88b7563365ee9b12487eb99",
+      "statement_sha256": "de7e309f7a82b93c412fd170aa645ff4d71a3aff60cb1e2b0dc88fbb331c2f53",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
@@ -8034,7 +8045,7 @@
     },
     {
       "requirement_id": "actql.protocol.contracts/machine-contracts.exact-artifacts",
-      "statement_sha256": "3fede59caf8f43f421bb15bdab2856fb51c48a69005b92b63501dc59910ee82c",
+      "statement_sha256": "e08d1be7697d8a4d4b6df6c154fe21f7817344b714c64120d934f6b9e1a9ff57",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",

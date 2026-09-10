@@ -11,6 +11,105 @@ fn graph_input() -> @carrier.Carrier {
 }
 
 ///|
+test "shortest paths preserve repeated selector Relation roles and typed output" {
+  let empty = @carrier.rows(
+    [],
+    field_set=Closed,
+    max_fields=0,
+    max_name_bytes=0,
+  ).unwrap()
+  let number = @contract.primitive(NumberType, nullable=false)
+  let g = @carrier.graph(
+    number,
+    empty,
+    empty,
+    labels=None,
+    max_labels=0,
+    max_label_bytes=0,
+  ).unwrap()
+  let r = @carrier.relation(
+    @carrier.rows(
+      [(Unqualified("id"), Some(number))],
+      field_set=Closed,
+      max_fields=1,
+      max_name_bytes=2,
+    ).unwrap(),
+  )
+  let source = cursor(
+    "[{\"from\":\"g\",\"shortest_path\":{\"source\":{\"from\":\"r\",\"id\":\"id\"},\"target\":{\"from\":\"r\",\"id\":\"id\"},\"selection\":\"each_pair\",\"direction\":\"both\",\"max_hops\":2}},{\"select\":[\"source_id\",\"target_id\",\"total_cost\"]}]",
+  )
+  let p = @pipeline_typing.check_carriers(
+    source,
+    [("g", g), ("r", r)],
+    None,
+    None,
+    limits(),
+  ).unwrap()
+  let step = @pipeline_typing.step_at(p, 0).unwrap()
+  assert_true(
+    step.operation
+    is Shortest(
+      source_selector=Some(Input(1)),
+      target_selector=Some(Input(1)),
+      ..
+    ),
+  )
+  let edges = @pipeline_typing.input_occurrences(step)
+  assert_eq(edges.length(), 3)
+  assert_eq(edges[0].role, Primary)
+  assert_eq(edges[1].role, Left)
+  assert_eq(edges[2].role, Right)
+  assert_eq(edges[1].target, edges[2].target)
+  assert_eq(@schema.field_count(@pipeline_typing.output_schema(p).unwrap()), 3)
+  let u = @pipeline_typing.usage(p)
+  let exact = {
+    ..limits(),
+    max_work: u.work,
+    max_nodes: u.nodes,
+    max_text_bytes: u.text_bytes,
+  }
+  assert_true(
+    @pipeline_typing.check_carriers(
+      source,
+      [("g", g), ("r", r)],
+      None,
+      None,
+      exact,
+    )
+    is Ok(_),
+  )
+  for
+    cap in [
+      { ..exact, max_work: u.work - 1, },
+      { ..exact, max_nodes: u.nodes - 1, },
+      { ..exact, max_text_bytes: u.text_bytes - 1, },
+    ] {
+    assert_true(
+      @pipeline_typing.check_carriers(
+        source,
+        [("g", g), ("r", r)],
+        None,
+        None,
+        cap,
+      )
+      is Err(_),
+    )
+  }
+  assert_true(
+    @pipeline_typing.check_carriers(
+      cursor(
+        "[{\"shortest_path\":{\"source\":2,\"target\":{\"from\":\"later\",\"id\":\"id\"},\"direction\":\"in\",\"max_hops\":1,\"selection\":\"each_pair\"},\"as\":\"later\"}]",
+      ),
+      [("g", g)],
+      None,
+      None,
+      limits(),
+    )
+    is Err({ kind: UnknownName("later"), .. }),
+  )
+}
+
+///|
 test "traverse retains selector inputs and feeds typed path arrays to projection" {
   let empty = @carrier.rows(
     [],
