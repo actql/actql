@@ -529,6 +529,9 @@ fn check_impl(
       | "graph_bounds"
       | "graphs_equal"
       | "graph_diff"
+      | "graft_graph"
+      | "union_graphs"
+      | "subtract_graphs"
       | "apply_graph_delta"
       | "vectors"
       | "node_rows"
@@ -696,12 +699,17 @@ fn check_impl(
     }
     if key == "graphs_equal" ||
       key == "graph_diff" ||
+      key == "graft_graph" ||
+      key == "union_graphs" ||
+      key == "subtract_graphs" ||
       key == "apply_graph_delta" {
       let o = match
         @decode.closed_object(
           operation_body,
           if key == "apply_graph_delta" {
             ["with", "field"]
+          } else if key == "union_graphs" || key == "subtract_graphs" {
+            ["with", "merge"]
           } else {
             ["with"]
           },
@@ -723,7 +731,30 @@ fn check_impl(
       let result : Result[
         (CheckedOperation, @carrier.Carrier, @graph.Usage),
         @graph.Issue,
-      ] = if key == "apply_graph_delta" {
+      ] = if key == "graft_graph" ||
+        key == "union_graphs" ||
+        key == "subtract_graphs" {
+        let operation = if key == "graft_graph" {
+          @graph.Graft
+        } else if key == "union_graphs" {
+          @graph.Union
+        } else {
+          @graph.Subtract
+        }
+        @graph.check_structural(
+          operation,
+          operation_body,
+          carrier(input, inputs, steps),
+          carrier(right, inputs, steps),
+          caps,
+        ).map(c => {
+          (
+            GraphStructural(right~, checked=c),
+            @graph.structural_output(c),
+            @graph.structural_usage(c),
+          )
+        })
+      } else if key == "apply_graph_delta" {
         let field_source = match @decode.required(o, "field") {
           Ok(c) => c
           Err(_) => fail(operation_body, InvalidBody)
@@ -1390,6 +1421,7 @@ fn check_impl(
         | GraphEquality(right~, ..)
         | GraphDiff(right~, ..)
         | GraphApply(right~, ..)
+        | GraphStructural(right~, ..)
         | AsOfJoin(right~, ..) =>
           [{ role: Left, target: input, }, { role: Right, target: right, }]
       },

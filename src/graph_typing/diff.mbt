@@ -131,7 +131,7 @@ pub fn check_diff(
   limits : Limits,
 ) -> Result[CheckedDiff, Issue] {
   try {
-    let comparison = match check_equality(source, left, right, limits) {
+    let comparison = match check_graph_pair(source, left, right, limits) {
       Ok(c) => c
       Err(e) => raise Stop(e)
     }

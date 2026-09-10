@@ -130,6 +130,7 @@ pub enum CheckedOperation {
   GraphEquality(right~ : Target, checked~ : @graph.CheckedEquality)
   GraphDiff(right~ : Target, checked~ : @graph.CheckedDiff)
   GraphApply(right~ : Target, checked~ : @graph.CheckedApply)
+  GraphStructural(right~ : Target, checked~ : @graph.CheckedStructural)
   GraphConstruction(
     nodes~ : Target?,
     edges~ : Target,

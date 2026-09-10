@@ -5089,7 +5089,7 @@ Subtraction is identity-based and conflicting payload evidence fails unless the
 authored merge contract explicitly admits the structural difference.
 
 <!-- requirement-block: structural-graphs.property-contracts-and-strategies -->
-Structural union and subtraction MUST require the same node-property and edge-property
+Graft, structural union and subtraction MUST require the same node-property and edge-property
 field sets respectively, with compatible recursive value domains. The common
 type rules join nullability and extents; missing properties are not filled with
 null. A present record must contain every declared property even when nullable.
@@ -7368,6 +7368,14 @@ ComponentsBody := {kind: weak | strong, max_output_rows?: PositiveIntegerValue}
 GraphBoundsBody := {max_nodes?: NonnegativeIntegerValue,
   max_edges?: NonnegativeIntegerValue, max_degree?: NonnegativeIntegerValue}
 GraphBoundsConstraints := at least one bound; diagnostic thresholds, not resource ceilings.
+GraftGraphBody := {with: InputOrStepName}
+StructuralGraphBody := {with: InputOrStepName, merge?: GraphMerge}
+GraphMerge := {node_properties?: {AuthoredFieldName: GraphFieldStrategy}*,
+  edge_properties?: {AuthoredFieldName: GraphFieldStrategy}*}
+GraphFieldStrategy := exact_equal | set_union | set_difference | number_sum
+  | number_mean | number_min | number_max
+StructuralGraphConstraints := union_graphs/subtract_graphs use StructuralGraphBody;
+  empty maps are retained; strategies refer to existing properties of compatible type.
 ParamRef := { $param: ParamName }
 PositiveIntegerValue := PositiveSafeInteger | ParamRef
 FractionValue := finite number in [0, 1] | ParamRef

@@ -2,7 +2,8 @@
 
 `graph_typing` currently checks `normalize_graph`, `degree`, `components` and
 `graph_bounds`, plus binary `graphs_equal` and `graph_diff` through dedicated
-closed-contract checkers.
+closed-contract checkers. Structural `graft_graph`, `union_graphs` and
+`subtract_graphs` use the same pair admission and pipeline operand resolution.
 The normative owner is [Graph operations](../spec/language.md#graph-operations).
 This is not the complete SGA operation family or an evaluator.
 
@@ -83,6 +84,37 @@ The pinned Sketch compiler has structural binary graph dispatch but no
 `graphs_equal` checker; this operation follows the newer normative Graph equality
 section. The shared comparison boundary is also needed by later diff/apply work;
 application and structural merge policies are not implemented by equality.
+
+## Structural graph composition
+
+The three structural operations retain both input occurrences, including repeated
+references to one input. They require compatible complete identity/property
+domains; no missing property is repaired with null. Source bodies remain available
+without deleting empty strategy maps or deduplicating authored operations.
+The common-field-set requirement now explicitly includes graft: an add-only
+union cannot produce a complete uniform property contract from mismatched field
+sets without the forbidden missing-field repair. This clarifies its contract
+boundary rather than adopting AoA's looser optional-property representation.
+
+Union and subtraction admit separate closed node/edge strategy maps. Unknown
+properties, unknown strategies, non-number numeric domains and non-array set
+domains fail statically. Nullable declarations remain nullable: an actual null
+operand fails the execution strategy, while untouched one-sided records retain
+their original values. A nonempty subtraction map retains transformed shared
+entities; an empty map retains the complete-payload removal obligation instead.
+
+`set_union` widens the output array bound to the sum of both known input bounds.
+If either bound is unknown or the sum exceeds the representable safe-integer
+contract bound, no array bound is claimed. Other strategies retain the compatible
+common extent. These are type envelopes, not cardinality or resource proofs.
+Field maps, label domains and source traversal share the remaining budget;
+recursive admitted child contracts are shared.
+
+The pinned AoA structural implementation supplies the union/difference strategy
+semantics, not its string-only identity restriction. Typed canonical equality,
+strategy execution even on equal values, finite numeric results, canonical set
+ordering, subtraction endpoint closure, policy, profile and resources remain
+explicit obligations. This checker does not execute graph composition.
 
 ## Graph Delta typing
 

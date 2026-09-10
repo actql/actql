@@ -41,6 +41,8 @@ pub fn check_diff(@decode_core.Cursor, @carrier_contract.Carrier, @carrier_contr
 
 pub fn check_equality(@decode_core.Cursor, @carrier_contract.Carrier, @carrier_contract.Carrier, Limits) -> Result[CheckedEquality, Issue]
 
+pub fn check_structural(StructuralOperation, @decode_core.Cursor, @carrier_contract.Carrier, @carrier_contract.Carrier, Limits) -> Result[CheckedStructural, Issue]
+
 pub fn construction_edges_name(CheckedConstruction) -> String?
 
 pub fn construction_nodes_name(CheckedConstruction) -> String?
@@ -93,6 +95,20 @@ pub fn pending_validations(CheckedGraph) -> Array[Obligation]
 
 pub fn source(CheckedGraph) -> @decode_core.Cursor
 
+pub fn structural_operation(CheckedStructural) -> StructuralOperation
+
+pub fn structural_output(CheckedStructural) -> @carrier_contract.Carrier
+
+pub fn structural_pending(CheckedStructural) -> Array[StructuralObligation]
+
+pub fn structural_source(CheckedStructural) -> @decode_core.Cursor
+
+pub fn structural_strategies(CheckedStructural, @relation_schema.Side) -> Array[PropertyStrategy]
+
+pub fn structural_usage(CheckedStructural) -> Usage
+
+pub fn structural_with_name(CheckedStructural) -> String
+
 pub fn usage(CheckedGraph) -> Usage
 
 // Errors
@@ -124,6 +140,8 @@ type CheckedDiff
 type CheckedEquality
 
 type CheckedGraph
+
+type CheckedStructural
 
 pub(all) enum ComponentKind {
   Weak
@@ -171,6 +189,16 @@ pub(all) enum EqualityObligation {
   ResolveSgaProfile
 } derive(Eq, @debug.Debug)
 
+pub(all) enum FieldStrategy {
+  ExactEqual
+  SetUnion
+  SetDifference
+  NumberSum
+  NumberMean
+  NumberMin
+  NumberMax
+} derive(Eq, @debug.Debug)
+
 pub struct Issue {
   kind : IssueKind
   path : Array[@source_value.PathSegment]
@@ -192,6 +220,9 @@ pub(all) enum IssueKind {
   InvalidConstructionIdentity
   InvalidConstructionLabel
   DuplicateConstructionField(String)
+  InvalidPropertyStrategy(String)
+  UnknownMergeProperty(String)
+  IncompatiblePropertyStrategy(String)
   InvalidName(String)
   ContractMismatch(@relation_append.IssueKind)
   UnknownParameter(String)
@@ -229,6 +260,32 @@ pub enum Options {
   ComponentOptions(ComponentKind, max_output_rows~ : Count?)
   BoundsOptions(max_nodes~ : Count?, max_edges~ : Count?, max_degree~ : Count?)
 }
+
+pub struct PropertyStrategy {
+  name : String
+  strategy : FieldStrategy
+}
+
+pub(all) enum StructuralObligation {
+  AdmitGraphsUnderCommonContract
+  CompareCompleteIdentityPayloads
+  RejectUnspecifiedConflicts
+  ApplyEveryAuthoredStrategy
+  KeepCompleteOneSidedUnionRecords
+  KeepOnlyLeftSubtractionRecords
+  CloseSubtractionEndpoints
+  ValidateCanonicalSetOperations
+  ValidateFiniteNumericResults
+  PreservePolicyDependencies
+  ResolveStructuralResources
+  ResolveSgaProfile
+} derive(Eq, @debug.Debug)
+
+pub(all) enum StructuralOperation {
+  Graft
+  Union
+  Subtract
+} derive(Eq, @debug.Debug)
 
 pub(all) struct Usage {
   work : Int

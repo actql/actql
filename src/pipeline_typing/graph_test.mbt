@@ -11,6 +11,75 @@ fn graph_input() -> @carrier.Carrier {
 }
 
 ///|
+test "structural graph composition retains repeated operands and feeds row consumers" {
+  let empty = @carrier.rows(
+    [],
+    field_set=Closed,
+    max_fields=0,
+    max_name_bytes=0,
+  ).unwrap()
+  let g = @carrier.graph(
+    @contract.primitive(NumberType, nullable=false),
+    empty,
+    empty,
+    labels=None,
+    max_labels=0,
+    max_label_bytes=0,
+  ).unwrap()
+  for name in ["graft_graph", "union_graphs", "subtract_graphs"] {
+    let body = cursor(
+      "[{\"" +
+      name +
+      "\":{\"with\":\"g\"},\"as\":\"composed\"},{\"node_rows\":true},{\"select\":[\"id\"]}]",
+    )
+    let p = @pipeline_typing.check_carriers(
+      body,
+      [("g", g)],
+      None,
+      None,
+      limits(),
+    ).unwrap()
+    let step = @pipeline_typing.step_at(p, 0).unwrap()
+    assert_true(step.operation is GraphStructural(right=Input(0), ..))
+    let edges = @pipeline_typing.input_occurrences(step)
+    assert_eq(edges.length(), 2)
+    assert_eq(edges[0].role, Left)
+    assert_eq(edges[1].role, Right)
+    assert_eq(edges[0].target, Input(0))
+    assert_eq(edges[1].target, Input(0))
+    assert_true(
+      @schema.lookup(
+        @pipeline_typing.output_schema(p).unwrap(),
+        Unqualified("id"),
+      ).unwrap().shape
+      is Number,
+    )
+    let u = @pipeline_typing.usage(p)
+    let exact = {
+      ..limits(),
+      max_work: u.work,
+      max_nodes: u.nodes,
+      max_text_bytes: u.text_bytes,
+    }
+    assert_true(
+      @pipeline_typing.check_carriers(body, [("g", g)], None, None, exact)
+      is Ok(_),
+    )
+    for
+      cap in [
+        { ..exact, max_work: u.work - 1, },
+        { ..exact, max_nodes: u.nodes - 1, },
+        { ..exact, max_text_bytes: u.text_bytes - 1, },
+      ] {
+      assert_true(
+        @pipeline_typing.check_carriers(body, [("g", g)], None, None, cap)
+        is Err(_),
+      )
+    }
+  }
+}
+
+///|
 test "graph diff exposes typed delta rows and retains binary connections" {
   let empty = @carrier.rows(
     [],

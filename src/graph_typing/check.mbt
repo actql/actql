@@ -61,6 +61,9 @@ pub(all) enum IssueKind {
   InvalidConstructionIdentity
   InvalidConstructionLabel
   DuplicateConstructionField(String)
+  InvalidPropertyStrategy(String)
+  UnknownMergeProperty(String)
+  IncompatiblePropertyStrategy(String)
   InvalidName(String)
   ContractMismatch(@alignment.IssueKind)
   UnknownParameter(String)

@@ -10,7 +10,17 @@ export function graphSchemas() {
   const nonnegative = {oneOf:[{type:'integer',minimum:0,maximum:9007199254740991},parameter]};
   const field = {type:'string',minLength:1};
   const fields = {type:'array',items:field,uniqueItems:true};
+  const strategies = {type:'object',additionalProperties:{enum:[
+    'exact_equal','set_union','set_difference','number_sum','number_mean','number_min','number_max',
+  ]}};
+  const structural = {type:'object',additionalProperties:false,required:['with'],properties:{
+    with:field,
+    merge:{type:'object',additionalProperties:false,properties:{node_properties:strategies,edge_properties:strategies}},
+  }};
   return {
+    graft_graph: {type:'object',additionalProperties:false,required:['with'],properties:{with:field}},
+    union_graphs: structural,
+    subtract_graphs: structuredClone(structural),
     graph: {oneOf:[
       {type:'object',additionalProperties:false,required:['nodes','edges'],properties:{
         nodes:{type:'object',additionalProperties:false,required:['from','id'],properties:{from:field,id:field,fields}},

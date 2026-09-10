@@ -46,11 +46,12 @@ fn align_domains(
 }
 
 ///|
-pub fn check_equality(
+fn check_graph_pair(
   source : @decode.Cursor,
   left : @carrier.Carrier,
   right : @carrier.Carrier,
   limits : Limits,
+  allowed? : Array[String] = ["with"],
 ) -> Result[CheckedEquality, Issue] {
   try {
     if limits.max_work < 0 ||
@@ -66,7 +67,7 @@ pub fn check_equality(
       text: limits.max_text_bytes,
     }
     scan(b, source)
-    let o = decoded(@decode.closed_object(source, ["with"]))
+    let o = decoded(@decode.closed_object(source, allowed))
     let target = decoded(@decode.required(o, "with"))
     let with_name = decoded(@decode.text(target))
     if with_name.is_empty() ||
@@ -118,9 +119,10 @@ pub fn check_equality(
     let seen : Map[String, Bool] = Map([])
     let mut all_known = true
     for g in graphs {
-      if @carrier.graph_labels(g) is Some(domain) {
-        spend(b, source, domain.length())
-        for label in domain {
+      if @carrier.graph_label_count(g) is Some(count) {
+        spend(b, source, count)
+        for i in 0..<count {
+          let label = @carrier.graph_label_at(g, i).unwrap()
           charge(b, source, label)
           if !seen.contains(label) {
             seen[label] = true
@@ -156,8 +158,6 @@ pub fn check_equality(
       Ok(@carrier.GraphValue(g)) => g
       _ => fail(source, BudgetExceeded)
     }
-    spend(b, source, 1)
-    charge(b, source, "equal")
     Ok({
       source,
       with_name,
@@ -173,6 +173,35 @@ pub fn check_equality(
   } catch {
     Stop(e) => Err(e)
   }
+}
+
+///|
+pub fn check_equality(
+  source : @decode.Cursor,
+  left : @carrier.Carrier,
+  right : @carrier.Carrier,
+  limits : Limits,
+) -> Result[CheckedEquality, Issue] {
+  let c = match check_graph_pair(source, left, right, limits) {
+    Ok(c) => c
+    Err(e) => return Err(e)
+  }
+  if c.usage.work >= limits.max_work ||
+    limits.max_text_bytes - c.usage.text_bytes < 5 {
+    return Err({
+      kind: BudgetExceeded,
+      path: @decode.cursor_path(source),
+      span: @decode.cursor_span(source),
+    })
+  }
+  Ok({
+    ..c,
+    usage: {
+      ..c.usage,
+      work: c.usage.work + 1,
+      text_bytes: c.usage.text_bytes + 5,
+    },
+  })
 }
 
 ///|

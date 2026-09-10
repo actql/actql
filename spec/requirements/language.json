@@ -4074,7 +4074,7 @@
     },
     {
       "requirement_id": "actql.language/structural-graphs.property-contracts-and-strategies",
-      "statement_sha256": "33eebbbd7638c218c8f8abe0046d797e56a5975684d620958bf51ac2c2b6dfff",
+      "statement_sha256": "0c199b79938961073677e9dfe26c3b5a292ba9edd25489ccc7be0f3e8845720a",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
@@ -6120,7 +6120,7 @@
     },
     {
       "requirement_id": "actql.language/structural-grammar.grammar",
-      "statement_sha256": "ac3971b6a697448183ce57b6ce21e8cd67f88594bca025edd5799f6c2e4b6398",
+      "statement_sha256": "31286d93cf610e659b1ebab5a1b61c3ccebad45f3171e7358fe082311a8d0139",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",

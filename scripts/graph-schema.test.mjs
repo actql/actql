@@ -6,10 +6,20 @@ import {parameterPrograms} from './parameter-schema.mjs';
 
 test('graph bodies preserve literal options and optional positive component guards', () => {
   const s = graphSchemas();
-  for (const name of ['graphs_equal','graph_diff']) {
+  for (const name of ['graphs_equal','graph_diff','graft_graph','union_graphs','subtract_graphs']) {
     assert.deepEqual(s[name].required, ['with']);
     assert.equal(s[name].additionalProperties, false);
     assert.deepEqual(s[name].properties.with, {type:'string',minLength:1});
+  }
+  assert.equal(s.graft_graph.properties.merge, undefined);
+  for (const name of ['union_graphs','subtract_graphs']) {
+    const merge = s[name].properties.merge;
+    assert.equal(merge.additionalProperties, false);
+    for (const entity of ['node_properties','edge_properties']) {
+      assert.equal(merge.properties[entity].minProperties, undefined);
+      assert.deepEqual(merge.properties[entity].additionalProperties.enum,
+        ['exact_equal','set_union','set_difference','number_sum','number_mean','number_min','number_max']);
+    }
   }
   assert.deepEqual(s.normalize_graph, {const:true});
   assert.deepEqual(s.degree.properties.direction.enum, ['in','out','both']);
