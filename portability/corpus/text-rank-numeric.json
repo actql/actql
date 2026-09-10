@@ -1,0 +1,32 @@
+{
+  "version": "actql-text-rank-numeric-vectors/0.1",
+  "status": "specification-only-pretokenized",
+  "logarithms": [
+    {"input_bits":"3ff0000000000000","expected_bits":"0000000000000000"},
+    {"input_bits":"3ff0000000000001","expected_bits":"3cafffffffffffff"},
+    {"input_bits":"3ff3333333333333","expected_bits":"3fc7565011e49675"},
+    {"input_bits":"3ff5555555555555","expected_bits":"3fd269621134db91"},
+    {"input_bits":"3ff8000000000000","expected_bits":"3fd9f323ecbf984c"},
+    {"input_bits":"4000000000000000","expected_bits":"3fe62e42fefa39ef"},
+    {"input_bits":"4008000000000000","expected_bits":"3ff193ea7aad030b"},
+    {"input_bits":"4024000000000000","expected_bits":"40026bb1bbb55516"},
+    {"input_bits":"3fe0000000000000","expected_bits":"bfe62e42fefa39ef"},
+    {"input_bits":"0000000000000001","expected_bits":"c0874385446d71c3"},
+    {"input_bits":"7fefffffffffffff","expected_bits":"40862e42fefa39ef"}
+  ],
+  "cases": [
+    {"id":"one-document","k1":1.2,"b":0.75,"k":2,"corpus":[{"id":"d","tokens":["dog"]}],"queries":[{"id":"q","tokens":["dog"]}],"expected":[{"query_id":"q","candidate_id":"d","score_bits":"3fd269621134db91","rank":1}]},
+    {"id":"empty-document-counts-in-statistics","k1":1.2,"b":0.75,"k":2,"corpus":[{"id":"empty","tokens":[]},{"id":"d","tokens":["dog"]}],"queries":[{"id":"q","tokens":["dog"]}],"expected":[{"query_id":"q","candidate_id":"d","score_bits":"3fdf7b77dd843133","rank":1}]},
+    {"id":"term-frequency-and-query-deduplication","k1":1.2,"b":0.75,"k":3,"corpus":[{"id":"d1","tokens":["a","a","b"]},{"id":"d2","tokens":["b"]},{"id":"d3","tokens":[]}],"queries":[{"id":"q","tokens":["a","b","a","missing"]}],"expected":[{"query_id":"q","candidate_id":"d1","score_bits":"3ff4f0ead3800845","rank":1},{"query_id":"q","candidate_id":"d2","score_bits":"3fe0c0e876432c4c","rank":2}]},
+    {"id":"utf16-identity-ties-and-top-k","k1":1.2,"b":0.75,"k":2,"corpus":[{"id":"\ue000","tokens":["x"]},{"id":"𐀀","tokens":["x"]},{"id":"a","tokens":["x"]}],"queries":[{"id":"\ue000","tokens":["x"]},{"id":"𐀀","tokens":["x"]}],"expected":[{"query_id":"𐀀","candidate_id":"a","score_bits":"3fc1178e8227e47a","rank":1},{"query_id":"𐀀","candidate_id":"𐀀","score_bits":"3fc1178e8227e47a","rank":2},{"query_id":"\ue000","candidate_id":"a","score_bits":"3fc1178e8227e47a","rank":1},{"query_id":"\ue000","candidate_id":"𐀀","score_bits":"3fc1178e8227e47a","rank":2}]},
+    {"id":"zero-length-normalization","k1":2,"b":0,"k":2,"corpus":[{"id":"a","tokens":["x","z","z","z"]},{"id":"b","tokens":["x"]}],"queries":[{"id":"q","tokens":["x"]}],"expected":[{"query_id":"q","candidate_id":"a","score_bits":"3fc7565011e49675","rank":1},{"query_id":"q","candidate_id":"b","score_bits":"3fc7565011e49675","rank":2}]},
+    {"id":"full-length-normalization","k1":2,"b":1,"k":2,"corpus":[{"id":"a","tokens":["x","z","z","z"]},{"id":"b","tokens":["x"]}],"queries":[{"id":"q","tokens":["x"]}],"expected":[{"query_id":"q","candidate_id":"b","score_bits":"3fd372980ee9280c","rank":1},{"query_id":"q","candidate_id":"a","score_bits":"3fc0ab5dc3a346e6","rank":2}]},
+    {"id":"utf16-term-fold-order","k1":0.3,"b":0.4,"k":3,"corpus":[{"id":"a","tokens":["\ufa11","𐀀","x","x","y"]},{"id":"b","tokens":["x","y"]},{"id":"c","tokens":["y"]}],"queries":[{"id":"q","tokens":["\ufa11","x","y","𐀀"]}],"expected":[{"query_id":"q","candidate_id":"a","score_bits":"400392e2eec4a39c","rank":1},{"query_id":"q","candidate_id":"b","score_bits":"3fe3c4f336c185c4","rank":2},{"query_id":"q","candidate_id":"c","score_bits":"3fc22372a978b3c6","rank":3}]},
+    {"id":"empty-corpus","k1":1.2,"b":0.75,"k":1,"corpus":[],"queries":[{"id":"q","tokens":["x"]}],"expected":[]},
+    {"id":"all-empty-corpus","k1":1.2,"b":0.75,"k":1,"corpus":[{"id":"d","tokens":[]}],"queries":[{"id":"q","tokens":["x"]}],"expected":[]},
+    {"id":"empty-and-unmatched-queries","k1":1.2,"b":0.75,"k":1,"corpus":[{"id":"d","tokens":["x"]}],"queries":[{"id":"q","tokens":[]},{"id":"r","tokens":["z"]}],"expected":[]},
+    {"id":"non-finite-intermediate","k1":1.7976931348623157e308,"b":0,"k":1,"corpus":[{"id":"d","tokens":["x","x"]}],"queries":[{"id":"q","tokens":["x"]}],"error":"NonFinite"},
+    {"id":"duplicate-document-id","k1":1.2,"b":0.75,"k":1,"corpus":[{"id":"d","tokens":[]},{"id":"d","tokens":[]}],"queries":[],"error":"DuplicateIdentity"},
+    {"id":"duplicate-query-id-even-with-empty-corpus","k1":1.2,"b":0.75,"k":1,"corpus":[],"queries":[{"id":"q","tokens":[]},{"id":"q","tokens":[]}],"error":"DuplicateIdentity"}
+  ]
+}

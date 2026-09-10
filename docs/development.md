@@ -82,6 +82,9 @@ The checks are read-only:
   [fixture provenance](../vendor/tzdb/2025b/README.md) and
   [boundary vector scope](design/calendar-checking.md#independent-boundary-vectors).
 - `check:encoding`: kernel manifest pin, fixed scalar spelling expectations and generated encoding-test freshness.
+- `check:text-rank-numeric` (included in `check:vector`): fixed pretokenized BM25
+  score bits and ranks, rational-interval logarithm checks and independent
+  high-precision regression tests. This does not test a product tokenizer or scorer.
 - `check:canonical`: canonical JSON corpus, existing contract CIDs and generated identity-test freshness.
 - `check:value-contracts`: fixed contract vectors, generated-test freshness and embedded schema consistency.
 - `check:value-admission`: fixed value-admission vectors, generated-test freshness and generator regressions.

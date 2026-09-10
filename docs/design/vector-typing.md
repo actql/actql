@@ -269,8 +269,35 @@ The checker records Unicode NFKC/full-fold/tokenization, actual-input corpus
 statistics, correctly rounded logarithms, exact fold order, empty-input guards,
 non-finite rejection and separate token/statistics/scoring/output ceilings as
 obligations. This implements no tokenizer or BM25 evaluator. Resolving the pinned
-text-rank profile and its numerical/tokenizer vectors remains shared profile work;
-MoonBit type-check tests are not numerical conformance evidence.
+text-rank profile and its tokenizer vectors remains shared profile work.
+Independent pretokenized numerical vectors are connected below; MoonBit
+type-check tests are not numerical conformance evidence.
+
+The fixed [BM25 numerical corpus](../../portability/corpus/text-rank-numeric.json)
+uses already tokenized documents and queries, never raw text passed through a
+Host tokenizer. It fixes 64-bit score patterns and exact output ordering/ranks
+for document and query frequency, empty documents in statistics, unmatched/empty
+queries, both length-normalization endpoints, UTF-16 term/identity ordering,
+top-k ties, and non-finite intermediate rejection. Every successful case is also
+checked under corpus/query permutation and duplicated query terms.
+
+`scripts/check_text_rank_numeric.py` follows the displayed binary64 operation
+tree and encloses ln with rational atanh-series bounds. It accepts a logarithm
+only when both enclosure endpoints round to the same binary64 value, using range
+reduction and an explicit unresolved-rounding failure rather than a Host-log
+fallback. The fixed expectations were calculated independently with 160-digit
+Decimal logarithms; regression tests compare 104 additional fixed-seed binary64
+inputs between these two different algorithms. Log vectors include near-one,
+subnormal and maximum-finite inputs. Score bits are big-endian IEEE-754 binary64
+hex, not platform-dependent decimal formatting.
+
+`check:text-rank-numeric` runs the fixed cases and oracle regression tests and is
+included in `check:vector`/`check:docs`. There is no write mode for expectations.
+The oracle is specification test tooling, not a bounded production scorer or
+MoonBit evaluator. It does not implement or prove Unicode normalization,
+tokenization, tokenizer resource admission or full text-rank profile conformance.
+The selected tokenizer table artifact, profile admission and end-to-end tokenizer
+vectors remain required before claiming that profile is resolved.
 
 Fixed-revision searches found no text_rank implementation in Sketch
 `87dc7144138edfcba108cdc59dc485ac976ba976` (src and moonbit/src), no text_rank/BM25
