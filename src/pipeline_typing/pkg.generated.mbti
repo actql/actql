@@ -12,6 +12,7 @@ import {
   "actql/actql/relation_schema",
   "actql/actql/relation_set",
   "actql/actql/relation_typing",
+  "actql/actql/relation_values",
   "actql/actql/source_span",
   "actql/actql/source_value",
   "moonbitlang/core/debug",
@@ -62,6 +63,7 @@ pub enum CheckedOperation {
   Nest(right~ : Target, checked~ : @relation_nest.CheckedNest)
   Set(right~ : Target, checked~ : @relation_set.CheckedSet)
   CrossJoin(right~ : Target, checked~ : @relation_join.CheckedCrossJoin)
+  Values(@relation_values.CheckedValues)
 }
 
 type CheckedPipeline
@@ -107,6 +109,9 @@ pub(all) enum IssueKind {
   MissingCurrent
   WrongCarrier(@carrier_contract.Kind)
   IncompleteSchema
+  GeneratorRequiresAlias
+  GeneratorFrom
+  Values(@relation_values.IssueKind)
   UnsupportedOperation(String)
   InvalidMetadata
   ReservedMetadataKey(String)

@@ -34,6 +34,9 @@ pub(all) enum IssueKind {
   MissingCurrent
   WrongCarrier(@carrier.Kind)
   IncompleteSchema
+  GeneratorRequiresAlias
+  GeneratorFrom
+  Values(@values.IssueKind)
   UnsupportedOperation(String)
   InvalidMetadata
   ReservedMetadataKey(String)
@@ -104,6 +107,7 @@ pub enum CheckedOperation {
   Nest(right~ : Target, checked~ : @nest.CheckedNest)
   Set(right~ : Target, checked~ : @set.CheckedSet)
   CrossJoin(right~ : Target, checked~ : @join.CheckedCrossJoin)
+  Values(@values.CheckedValues)
 }
 
 ///|

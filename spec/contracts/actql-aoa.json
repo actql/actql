@@ -13,6 +13,22 @@
   "pipeline_registry_cid": "sha256:00ac46baefe7fa34412ad83beb85cf1899b906e792d74fa89211a7c4972f0d5a",
   "target_module_contract_cid": "sha256:ae21e53e9cd0727435f707f49efb2ffc9fa1665abda9adde0ff57312265e06e1",
   "target_registry_requirements": {
+    "REL.values": {
+      "inputs": [],
+      "output": "relation"
+    },
+    "REL.except_rows": {
+      "inputs": ["relation", "relation"],
+      "output": "relation"
+    },
+    "REL.intersect_rows": {
+      "inputs": ["relation", "relation"],
+      "output": "relation"
+    },
+    "REL.cross_join": {
+      "inputs": ["relation", "relation"],
+      "output": "relation"
+    },
     "REL.topk_partitioned": {
       "inputs": [
         "relation"

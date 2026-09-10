@@ -7,7 +7,8 @@
 (`sort`, `take`, `distinct`, `dedupe_rows`), row assertions (`assert_rows`), typed
 reshaping (`json_pick`, `unnest`, `unpivot`), [local join](relation-join.md),
 [append](relation-append.md), [row set operations](relation-set.md)
-(`except`, `intersect`), [cross join](relation-cross-join.md), [nest](relation-nest.md), and
+(`except`, `intersect`), [cross join](relation-cross-join.md),
+[finite values](relation-values.md), [nest](relation-nest.md), and
 [group aggregates](relation-aggregates.md), [pivot](relation-pivot.md), and
 [analytic](relation-analytic.md), and [top-k](relation-top-k.md). Other operation names are explicitly
 unsupported; no step is skipped or treated as an opaque successful operation.
@@ -55,11 +56,13 @@ before another join. This applies to both the left and right input.
 The package owns shared naming, connection, budget and diagnostic rules; its
 current checked steps have one output. Main input and final current are optional
 in the representation. `CheckedOperation` distinguishes `Unary`, `Join`, `Append`,
-`Nest`, `Set`, and `CrossJoin`; binary variants retain their checked operation and right target.
+`Nest`, `Set`, `CrossJoin` and input-free `Values`; binary variants retain their checked operation and right target.
 `input_occurrences` returns detached, ordered, role-tagged edges, preserving two
 occurrences even when both operands resolve to the same target. General
-multi-output ports, generator checking and non-Relation operations are not yet
-implemented; their Carrier kinds can already pass through an empty pipeline.
+multi-output ports and non-Relation operations are not yet implemented; their
+Carrier kinds can already pass through an empty pipeline. `values` is an
+input-free generator: it requires `as`, rejects step `from`, retains no input
+occurrence, and establishes current. Other generators are not yet dispatched.
 
 SourceView acquisition, Catalog/authority checks, Carrier resolution, search
 template classification and stage imports belong to callers. Search templates

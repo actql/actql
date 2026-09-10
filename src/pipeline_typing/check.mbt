@@ -136,6 +136,60 @@ fn check_impl(
       Some(v) => v
       None => fail(body, InvalidBody)
     }
+    if key == "values" {
+      if @decode.lookup(object, "from") is Some(s) {
+        fail(s, GeneratorFrom)
+      }
+      let alias_source = match @decode.lookup(object, "as") {
+        Some(s) => s
+        None => fail(body, GeneratorRequiresAlias)
+      }
+      let binding = read_name(b, alias_source)
+      if names.contains(binding) {
+        fail(alias_source, DuplicateName(binding))
+      }
+      let meta = @decode.lookup(object, "meta")
+      if meta is Some(s) {
+        metadata(b, s)
+      }
+      let checked = match
+        @values.check(@decode.lookup(object, key).unwrap(), parameters, {
+          max_rows: b.nodes,
+          max_work: b.work,
+          max_nodes: b.nodes,
+          max_text_bytes: b.text,
+          max_depth: limits.max_depth,
+        }) {
+        Ok(v) => v
+        Err(issue) =>
+          raise Stop({
+            kind: Values(issue.kind),
+            source: issue.source,
+            path: issue.path.copy(),
+            span: issue.span,
+            range: None,
+          })
+      }
+      let used = @values.usage(checked)
+      b.work -= used.work
+      b.nodes -= used.nodes
+      b.text -= used.text_bytes
+      let target = Step(steps.length())
+      steps.push({
+        source: body,
+        input: None,
+        binding_name: Some(binding),
+        metadata: meta,
+        operation: Values(checked),
+        output: @carrier.relation(
+          @carrier.typed_rows(@values.output_schema(checked)),
+        ),
+        connections: { entries: [], },
+      })
+      names[binding] = target
+      current = Some(target)
+      continue
+    }
     let op : @relation.Operation? = match key {
       "derive" => Some(Derive)
       "filter" => Some(Filter)
@@ -435,6 +489,7 @@ fn check_impl(
     let target = Step(steps.length())
     let connections : Connections = {
       entries: match checked {
+        Values(_) => []
         Unary(_) => [{ role: Primary, target: input, }]
         Join(right~, ..)
         | Append(right~, ..)
