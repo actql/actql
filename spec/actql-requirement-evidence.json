@@ -2094,7 +2094,7 @@
     },
     {
       "requirement_id": "actql.language/operation-inventory.family-operation-input-output",
-      "statement_sha256": "901480c54ec2839e38acf4766742eb78263db8a0cce21b62c784fc8bee4ac1b3",
+      "statement_sha256": "771315d3c642a7fc30ef9c2317078290e1e2bffcfc5565dcd0cc8f8edb808415",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
@@ -5438,7 +5438,7 @@
     },
     {
       "requirement_id": "actql.language/algebra-lowering.actql-surface-form-canonical-aoa-registry-operation",
-      "statement_sha256": "5290b4012a64a0c7a3e0388b6e4ad07367ec2030aa980c58bfd13f8704b415dc",
+      "statement_sha256": "9184c62a1eae377e38ef115deebb9de2de70d63faa553c04c2406d7101f89fc6",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",

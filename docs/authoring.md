@@ -263,14 +263,14 @@ Events:
 
 ```text
 row_window  to_events  window_events  session  watermark_events  dedupe_events
-asof_join  sequence  event_rows
+asof_join  sequence  events
 ```
 
 Vectors:
 
 ```text
 nearest  to_vectors  normalize_vectors  score_vectors  pool_vectors
-merge_rankings  vector_rows
+merge_rankings  vectors
 ```
 
 Optional production-integration profiles:
@@ -736,7 +736,7 @@ never mirror a bound the compiler can already prove from the Program, Contract,
 or Host policy. A written guard is preserved even when it is currently
 non-binding, and every breach fails atomically rather than truncating output.
 
-Use `to_events`/`event_rows`, `to_vectors`/`vector_rows`, or
+Use `to_events`/`events`, `to_vectors`/`vectors`, or
 `graph`/`node_rows`/`edge_rows` only when a later step must remain in that
 Carrier. These are explicit ActQL operations, not another language layer.
 

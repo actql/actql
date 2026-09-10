@@ -11,9 +11,9 @@ The work comprises the shared Carrier/evidence model and these 48 operations:
 | Family | Operations |
 | --- | --- |
 | Relation | `values`, `except`, `intersect`, `cross_join`, `row_window`, `window_group`, `lag`, `watermark_rows` |
-| TEA and Calendar | `window_events`, `watermark_events`, `session`, `time_series`, `interval_join`, `dedupe_events`, `asof_join`, `sequence`, `calendar_bucket`, `calendar_series`, `to_events`, `event_rows` |
+| TEA and Calendar | `window_events`, `watermark_events`, `session`, `time_series`, `interval_join`, `dedupe_events`, `asof_join`, `sequence`, `calendar_bucket`, `calendar_series`, `to_events`, `events` |
 | Graph | `graph`, `node_rows`, `edge_rows`, `normalize_graph`, `match_nodes`, `match_edges`, `traverse`, `shortest_path`, `components`, `reach`, `graph_bounds`, `graph_diff`, `graft_graph`, `union_graphs`, `subtract_graphs`, `subgraph`, `graphs_equal`, `apply_graph_delta`, `mean_graphs`, `degree` |
-| Vector and lexical ranking | `to_vectors`, `vector_rows`, `normalize_vectors`, `score_vectors`, `nearest`, `pool_vectors`, `merge_rankings`, `text_rank` |
+| Vector and lexical ranking | `to_vectors`, `vectors`, `normalize_vectors`, `score_vectors`, `nearest`, `pool_vectors`, `merge_rankings`, `text_rank` |
 
 Existing operation checking remains supported and is tested through the same
 pipeline. Both Carrier alternatives of an overloaded operation are in scope;

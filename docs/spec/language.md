@@ -2766,9 +2766,9 @@ canonical vocabulary is:
 | Bridge | [`node_rows`](#graph-rows) | graph -> relation |
 | Bridge | [`edge_rows`](#graph-rows) | graph -> relation |
 | Bridge | [`to_events`](#event-bridges) | relation -> events |
-| Bridge | [`event_rows`](#event-bridges) | events -> relation |
+| Bridge | [`events`](#event-bridges) | events -> relation |
 | Bridge | [`to_vectors`](#vector-bridges) | relation -> vectors |
-| Bridge | [`vector_rows`](#vector-bridges) | vectors -> relation |
+| Bridge | [`vectors`](#vector-bridges) | vectors -> relation |
 | Acquisition | [`infer`](#infer) | relation -> relation |
 | Acquisition | [`search_candidates`](#candidate-search) | relation -> candidates and coverage relations |
 | Search | [`text_rank`](#text-rank) | relation x relation -> relation |
@@ -4151,10 +4151,10 @@ event-stream form:
   as: events
 - window_events: {kind: sliding, size: 1h, step: 15m}
 - watermark_events: {watermark_ms: 0, policy: mark}
-- event_rows: true
+- events: true
 ```
 
-`to_events` and `event_rows` lower to `BRIDGE.rows.to_events` and
+`to_events` and `events` lower to `BRIDGE.rows.to_events` and
 `BRIDGE.events.to_rows`. `window_events` uses the same fixed closed-open
 boundary and lowers to
 `TEA.window.fixed_label` or `TEA.window.sliding_assign` and preserves
@@ -5174,14 +5174,14 @@ independent fixed vectors must be pinned before an executable profile claim.
 - to_vectors: {id: product_id, vector: embedding}
 - normalize_vectors: true
 - score_vectors: {query: [0.1, 0.2], metric: cosine}
-- vector_rows: true
+- vectors: true
 ```
 
-`to_vectors` and `vector_rows` lower to `BRIDGE.rows.to_vectors` and
+`to_vectors` and `vectors` lower to `BRIDGE.rows.to_vectors` and
 `BRIDGE.vectors.to_rows`. `normalize_vectors` lowers to `VEC.normalize_l2`.
 `score_vectors` requires a non-empty finite query vector and an explicit
 `cosine`, `dot`, or `l2` metric, and lowers to `VEC.score_sort`. These forms
-preserve the vector carrier until `vector_rows`; `nearest` remains the
+preserve the vector carrier until `vectors`; `nearest` remains the
 two-input relation-returning exact KNN form.
 
 <a id="pool-vectors"></a>
@@ -5203,7 +5203,7 @@ identity. ActQL source does not expose a separate relation-pooling carrier
 identity and MUST reject relation pooling when none is proven. `by` is
 non-empty and `method` is `mean`, `sum`, or `max`. A single `by` field becomes
 the pooled identity; multiple fields use their canonical tuple and are restored
-as separate fields by `vector_rows`. Optional `output_id` may rename a
+as separate fields by `vectors`. Optional `output_id` may rename a
 single-field identity. All vectors in a group MUST
 be finite and have the same non-zero dimension. Groups are ordered by their key
 tuple; binary32 quantization occurs before pooling, and each output component
@@ -5221,7 +5221,7 @@ compiler concatenates its Unicode-scalar length in AoA canonical `to_string`
 form, `:`, that canonical form, and `|`. The reserved field is
 collision-checked and the completion is journaled as
 `actql.vector.composite-candidate-key-identity-completion`. This carrier-only
-field is not part of the public pooled relation. `vector_rows` exposes the
+field is not part of the public pooled relation. `vectors` exposes the
 group fields, optional `output_id`, pooled vector, and exact positive
 `member_count`.
 
@@ -5329,7 +5329,7 @@ row_number in the retained ranking order before using such a list as RRF input.
 
 <!-- requirement-block: merge-rankings.the-compiler-must-not-invent-a-threshold-or-silently-change -->
 Score thresholds are ordinary explicit RelA filters after `nearest`,
-`score_vectors`/`vector_rows`, or `merge_rankings`. The compiler MUST NOT invent
+`score_vectors`/`vectors`, or `merge_rankings`. The compiler MUST NOT invent
 a threshold or silently change exact search into approximate retrieval.
 
 <a id="text-rank"></a>
@@ -6422,9 +6422,9 @@ operations is:
 | `edge_rows` | `BRIDGE.graph.to_edge_rows` |
 | `node_rows` | `BRIDGE.graph.to_node_rows` |
 | `graph` | `BRIDGE.rows.to_graph` |
-| `event_rows` | `BRIDGE.events.to_rows` |
+| `events` | `BRIDGE.events.to_rows` |
 | `to_events` | `BRIDGE.rows.to_events` |
-| `vector_rows` | `BRIDGE.vectors.to_rows` |
+| `vectors` | `BRIDGE.vectors.to_rows` |
 | `to_vectors` | `BRIDGE.rows.to_vectors` |
 
 <!-- requirement-block: algebra-lowering.failure-to-lower-completely-is-a-validation-failure-a-compiler -->
