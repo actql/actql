@@ -92,6 +92,7 @@ pub enum CheckedOperation {
   GraphEquality(right~ : Target, checked~ : @graph_typing.CheckedEquality)
   GraphDiff(right~ : Target, checked~ : @graph_typing.CheckedDiff)
   GraphApply(right~ : Target, checked~ : @graph_typing.CheckedApply)
+  GraphConstruction(nodes~ : Target?, edges~ : Target, checked~ : @graph_typing.CheckedConstruction)
   Vector(@vector_typing.CheckedVector)
   Event(@event_typing.CheckedEvent)
   WindowGroup(@relation_typing.CheckedOperation)

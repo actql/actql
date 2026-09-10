@@ -4715,6 +4715,39 @@ fields and MUST be explicit. ActQL 0.1 supports directed graphs only.
 Direction is therefore a language invariant recorded in the Plan, not an
 authoring field.
 
+<!-- requirement-block: graph-construction.source-forms -->
+Construction MUST use either both named `nodes` and `edges` branches, or the
+concise `{source, target, label?}` current-Relation form, never a mixture. The
+explicit form has no implicit current operand, requires step `as`, and rejects
+step `from`. Branch names are independently resolved, retaining both occurrences
+when they name the same Relation. Branch bodies are closed: nodes has `from`,
+`id`, optional `fields`; edges has `from`, `source`, `target`, optional `label`
+and `fields`. Input filtering, if authored, is an upstream operation.
+
+<!-- requirement-block: graph-construction.identity-domains -->
+Node IDs and both endpoint fields MUST have known non-null KeyComparable types
+with compatible domains under recursive common-type rules. They retain that
+common identity type, not an implicit string encoding. Endpoint-derived nodes
+use the semantic name `node_id` and have no properties. Type compatibility does
+not establish uniqueness, payload agreement or observed endpoint membership.
+
+<!-- requirement-block: graph-construction.property-projection -->
+An explicit `fields` list MUST have distinct existing field references; an empty
+or omitted branch list selects no properties. Already selected identity/label
+roles are not duplicated as properties if listed. Other selected property names
+must be flat authored names; qualified inputs require upstream aliasing.
+The concise form retains all non-role edge properties and their known field/type
+evidence. Unknown remaining properties are not replaced by a closed empty map.
+
+<!-- requirement-block: graph-construction.label-completion -->
+Explicit label roles MUST have a known string type, with nullable strings
+allowed for absent labels. Only the concise form completes an omitted label
+from a statically known `edge_type` field, otherwise a known `rel` field, in
+that priority order; an explicit label overrides completion. Completion is
+journaled. A field retained only in explicit `edges.fields` never establishes
+a semantic label role. Known role type and a proven closed label-value domain
+are separate evidence; construction does not invent a closed value domain.
+
 <!-- requirement-block: graph-construction.before-graph-construction-the-compiler-must-close-both-edge-endpoints -->
 When an explicit `nodes` branch is present, it defines the complete graph node
 universe. Before graph construction the compiler MUST close both edge
@@ -7323,6 +7356,13 @@ Meta := non-empty JSON object subject to Authoring Context (#authoring-context)
 EventsBody := true
 VectorsBody := true
 NormalizeGraphBody := true
+GraphBody := {nodes: GraphNodes, edges: GraphEdges}
+  | {source: Field, target: Field, label?: Field}
+GraphNodes := {from: InputOrStepName, id: Field, fields?: [Field, ...] | []}
+GraphEdges := {from: InputOrStepName, source: Field, target: Field,
+  label?: Field, fields?: [Field, ...] | []}
+GraphConstraints := directed only; explicit branches require step as and reject
+  step from; fields lists have no repeated reference; label completion is concise-only.
 DegreeBody := {direction: in | out | both}
 ComponentsBody := {kind: weak | strong, max_output_rows?: PositiveIntegerValue}
 GraphBoundsBody := {max_nodes?: NonnegativeIntegerValue,

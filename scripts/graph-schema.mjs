@@ -8,7 +8,16 @@ import {machineCid} from './actql-spec-family.mjs';
 
 export function graphSchemas() {
   const nonnegative = {oneOf:[{type:'integer',minimum:0,maximum:9007199254740991},parameter]};
+  const field = {type:'string',minLength:1};
+  const fields = {type:'array',items:field,uniqueItems:true};
   return {
+    graph: {oneOf:[
+      {type:'object',additionalProperties:false,required:['nodes','edges'],properties:{
+        nodes:{type:'object',additionalProperties:false,required:['from','id'],properties:{from:field,id:field,fields}},
+        edges:{type:'object',additionalProperties:false,required:['from','source','target'],properties:{from:field,source:field,target:field,label:field,fields}},
+      }},
+      {type:'object',additionalProperties:false,required:['source','target'],properties:{source:field,target:field,label:field}},
+    ]},
     node_rows: {const:true},
     edge_rows: {const:true},
     graphs_equal: {type:'object', additionalProperties:false, required:['with'],

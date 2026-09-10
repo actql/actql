@@ -191,7 +191,37 @@ non-identical semantic aliases; collisions fail instead of dropping properties.
 This clarifies the former brief AoA-bridge reference using Sketch's restoration
 behavior, while retaining actual non-string identity types and complete property
 knowledge. An undeclared optional AoA display label is not a typed property.
-Source graph construction still needs to attach these names when it is added.
+Source graph construction attaches these names from the selected role fields.
 Projection is connected to the ordinary pipeline and Relation consumers, without
 inventing order/uniqueness/resource proofs. Lowering must implement these admitted
 typed rows rather than copy a string-only or property-dropping reference shape.
+
+## Graph construction
+
+`check_construction` supports explicit named branches and the concise edge-list
+form, both connected to pipeline resolution. Explicit branches are generators
+with ordered Nodes/Edges operands (represented by Left/Right roles); repeated
+input names are retained. The concise form consumes current or step `from`.
+The normative source grammar and completion rules are in
+[Graph construction](../spec/language.md#graph-construction).
+
+This fixes previously unstated field-selection/default and completion details.
+Explicit fields default to no properties; concise edges retain non-role fields.
+Duplicate selected references fail, while a role listed once is not copied into
+the property map. Known selected types are shared, unknown property evidence is
+preserved, and identities require compatible known non-null domains. Qualified
+properties require a flat upstream alias; semantic role aliases retain provenance.
+
+The concise label priority follows the pinned Sketch compiler. Its extension of
+that completion to explicit branches disagrees with the current language's rule
+that merely retained properties do not become labels, and is not copied.
+`graph_label_contract` records a validated string role independently of row-name
+aliases and a closed label domain. It is source/type evidence, not observed data.
+No string-only ID restriction or branch-level authored distinct is introduced.
+
+Endpoint-node completion, explicit induced-graph closure, equal-payload duplicate
+collapse, conflicting-payload rejection, profile and resource resolution remain
+distinct obligations. The checker performs no joins or graph construction on
+actual rows. Source admission, identity-domain alignment, selected-field inspection
+and retained names share budgets; pre-admitted property children are shared rather
+than recursively copied. Pipeline preflight still checks supplied Carrier contracts.

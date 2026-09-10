@@ -3831,6 +3831,50 @@
       }
     },
     {
+      "requirement_id": "actql.language/graph-construction.source-forms",
+      "statement_sha256": "ef12d4cb1e02a914a8e611c86548bb6021f6122d090a20fa2689cc7ab783043a",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "graph-construction",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/graph-construction.identity-domains",
+      "statement_sha256": "b75de712890426eded401a1b14dd22b9cd227e6ca118d2408458322517a471b3",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "graph-construction",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/graph-construction.property-projection",
+      "statement_sha256": "aed8a53e27b32574b6c5b9eec878e0063a519ae57c50137c37edd5d8dbdda3c1",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "graph-construction",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/graph-construction.label-completion",
+      "statement_sha256": "de4c57a61c8f3146ee0e94ad34c398add0b86305aeff083714e092a3ade9ecac",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "graph-construction",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.language/graph-construction.before-graph-construction-the-compiler-must-close-both-edge-endpoints",
       "statement_sha256": "0fdf670fa970f310ccb0ba01f5cfdec97951abd49857687fcef75ac69f692f77",
       "status": "pending",
@@ -6076,7 +6120,7 @@
     },
     {
       "requirement_id": "actql.language/structural-grammar.grammar",
-      "statement_sha256": "32aa0d1d9feb5c0fd47dabc392467486aa85b1ff782844e14abacbe7f8a1a539",
+      "statement_sha256": "ac3971b6a697448183ce57b6ce21e8cd67f88594bca025edd5799f6c2e4b6398",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",

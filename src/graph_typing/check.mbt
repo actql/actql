@@ -57,6 +57,10 @@ pub(all) enum IssueKind {
   UnknownDeltaField(String)
   UntypedDeltaField(String)
   InvalidDeltaType
+  UnknownConstructionField(String)
+  InvalidConstructionIdentity
+  InvalidConstructionLabel
+  DuplicateConstructionField(String)
   InvalidName(String)
   ContractMismatch(@alignment.IssueKind)
   UnknownParameter(String)

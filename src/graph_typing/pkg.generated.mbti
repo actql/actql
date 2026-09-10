@@ -35,9 +35,23 @@ pub fn check(Operation, @decode_core.Cursor, @carrier_contract.Carrier, @paramet
 
 pub fn check_apply(@decode_core.Cursor, @carrier_contract.Carrier, @carrier_contract.Carrier, @graph_contract.CheckedContract, Limits) -> Result[CheckedApply, Issue]
 
+pub fn check_construction(@decode_core.Cursor, @carrier_contract.Carrier?, @carrier_contract.Carrier, Limits) -> Result[CheckedConstruction, Issue]
+
 pub fn check_diff(@decode_core.Cursor, @carrier_contract.Carrier, @carrier_contract.Carrier, Limits) -> Result[CheckedDiff, Issue]
 
 pub fn check_equality(@decode_core.Cursor, @carrier_contract.Carrier, @carrier_contract.Carrier, Limits) -> Result[CheckedEquality, Issue]
+
+pub fn construction_edges_name(CheckedConstruction) -> String?
+
+pub fn construction_nodes_name(CheckedConstruction) -> String?
+
+pub fn construction_output(CheckedConstruction) -> @carrier_contract.Carrier
+
+pub fn construction_pending(CheckedConstruction) -> Array[ConstructionObligation]
+
+pub fn construction_source(CheckedConstruction) -> @decode_core.Cursor
+
+pub fn construction_usage(CheckedConstruction) -> Usage
 
 pub fn diff_common_graph(CheckedDiff) -> @carrier_contract.Graph
 
@@ -103,6 +117,8 @@ pub(all) enum ApplyObligation {
 
 type CheckedApply
 
+type CheckedConstruction
+
 type CheckedDiff
 
 type CheckedEquality
@@ -112,6 +128,18 @@ type CheckedGraph
 pub(all) enum ComponentKind {
   Weak
   Strong
+} derive(Eq, @debug.Debug)
+
+pub(all) enum ConstructionObligation {
+  AdmitGraphInputRows
+  CloseBothEndpointsAgainstDeclaredNodes
+  DeriveDistinctEndpointNodes
+  JournalEndpointCompletion
+  JournalLabelCompletion
+  CollapseEqualIdentityPayloads
+  RejectConflictingIdentityPayloads
+  ResolveGraphConstructionResources
+  ResolveSgaProfile
 } derive(Eq, @debug.Debug)
 
 pub enum Count {
@@ -160,6 +188,10 @@ pub(all) enum IssueKind {
   UnknownDeltaField(String)
   UntypedDeltaField(String)
   InvalidDeltaType
+  UnknownConstructionField(String)
+  InvalidConstructionIdentity
+  InvalidConstructionLabel
+  DuplicateConstructionField(String)
   InvalidName(String)
   ContractMismatch(@relation_append.IssueKind)
   UnknownParameter(String)

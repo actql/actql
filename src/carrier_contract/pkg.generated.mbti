@@ -20,7 +20,7 @@ pub fn field_set(Knowledge) -> FieldSet
 
 pub fn fields(Knowledge) -> Array[Field]
 
-pub fn graph(@value_contract.Contract, Knowledge, Knowledge, labels~ : Array[String]?, max_labels~ : Int, max_label_bytes~ : Int, row_names? : GraphRowNames?) -> Result[Carrier, Issue]
+pub fn graph(@value_contract.Contract, Knowledge, Knowledge, labels~ : Array[String]?, max_labels~ : Int, max_label_bytes~ : Int, row_names? : GraphRowNames?, label_contract? : @value_contract.Contract?) -> Result[Carrier, Issue]
 
 pub fn graph_carrier(Graph) -> Carrier
 
@@ -29,6 +29,8 @@ pub fn graph_edge_properties(Graph) -> Knowledge
 pub fn graph_identity(Graph) -> @value_contract.Contract
 
 pub fn graph_label_at(Graph, Int) -> String?
+
+pub fn graph_label_contract(Graph) -> @value_contract.Contract?
 
 pub fn graph_label_count(Graph) -> Int?
 

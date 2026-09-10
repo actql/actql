@@ -131,6 +131,17 @@ pub fn check_equality(
         all_known = false
       }
     }
+    let label_contract = match
+      (@carrier.graph_label_contract(a), @carrier.graph_label_contract(z)) {
+      (Some(x), Some(y)) =>
+        Some(
+          @row.lookup(
+            align_domains(b, source, singleton_schema(x), singleton_schema(y)),
+            Unqualified("value"),
+          ).unwrap(),
+        )
+      _ => None
+    }
     let common = match
       @carrier.graph(
         @row.lookup(identities, Unqualified("id")).unwrap(),
@@ -140,6 +151,7 @@ pub fn check_equality(
         max_labels=labels.length(),
         max_label_bytes=limits.max_text_bytes,
         row_names=@carrier.graph_names(a),
+        label_contract~,
       ) {
       Ok(@carrier.GraphValue(g)) => g
       _ => fail(source, BudgetExceeded)

@@ -169,6 +169,116 @@ fn check_impl(
       Some(v) => v
       None => fail(body, InvalidBody)
     }
+    if key == "graph" {
+      let at = @decode.lookup(object, key).unwrap()
+      let config = match @decode.open_object(at) {
+        Ok(o) => o
+        Err(_) => fail(at, InvalidBody)
+      }
+      let explicit = @decode.lookup(config, "nodes") is Some(_) ||
+        @decode.lookup(config, "edges") is Some(_)
+      let (node_input, edge_input) = if explicit {
+        if @decode.lookup(object, "from") is Some(s) {
+          fail(s, GeneratorFrom)
+        }
+        let refs : Array[Target] = []
+        for key in ["nodes", "edges"] {
+          let branch = match @decode.required(config, key) {
+            Ok(c) => c
+            Err(_) => fail(at, InvalidBody)
+          }
+          let branch = match @decode.open_object(branch) {
+            Ok(o) => o
+            Err(_) => fail(branch, InvalidBody)
+          }
+          let from = match @decode.required(branch, "from") {
+            Ok(c) => c
+            Err(_) => fail(at, InvalidBody)
+          }
+          refs.push(resolve_target(b, from, names))
+        }
+        (Some(refs[0]), refs[1])
+      } else {
+        let edge = match @decode.lookup(object, "from") {
+          Some(s) => resolve_target(b, s, names)
+          None =>
+            match current {
+              Some(t) => t
+              None => fail(body, MissingCurrent)
+            }
+        }
+        (None, edge)
+      }
+      let binding = match @decode.lookup(object, "as") {
+        Some(s) => {
+          let name = read_name(b, s)
+          if names.contains(name) {
+            fail(s, DuplicateName(name))
+          }
+          Some(name)
+        }
+        None => if explicit { fail(body, GeneratorRequiresAlias) } else { None }
+      }
+      let meta = @decode.lookup(object, "meta")
+      if meta is Some(s) {
+        metadata(b, s)
+      }
+      let checked = match
+        @graph.check_construction(
+          at,
+          node_input.map(t => carrier(t, inputs, steps)),
+          carrier(edge_input, inputs, steps),
+          {
+            max_work: b.work,
+            max_nodes: b.nodes,
+            max_text_bytes: b.text,
+            max_depth: limits.max_depth,
+          },
+        ) {
+        Ok(c) => c
+        Err(e) =>
+          raise Stop({
+            kind: Graph(e.kind),
+            source: at,
+            path: e.path.copy(),
+            span: e.span,
+            range: None,
+          })
+      }
+      let u = @graph.construction_usage(checked)
+      b.work -= u.work
+      b.nodes -= u.nodes
+      b.text -= u.text_bytes
+      let target = Step(steps.length())
+      let entries : Array[InputOccurrence] = match node_input {
+        Some(t) =>
+          [{ role: Left, target: t, }, { role: Right, target: edge_input, }]
+        None => [{ role: Primary, target: edge_input, }]
+      }
+      steps.push({
+        source: body,
+        input: if explicit {
+          None
+        } else {
+          Some(edge_input)
+        },
+        binding_name: binding,
+        metadata: meta,
+        operation: GraphConstruction(
+          nodes=node_input,
+          edges=edge_input,
+          checked~,
+        ),
+        output: @graph.construction_output(checked),
+        connections: { entries, },
+        window: None,
+      })
+      if binding is Some(name) {
+        names[name] = target
+      }
+      current = Some(target)
+      continue
+    }
     if key == "values" {
       if @decode.lookup(object, "from") is Some(s) {
         fail(s, GeneratorFrom)
@@ -1255,6 +1365,12 @@ fn check_impl(
     let target = Step(steps.length())
     let connections : Connections = {
       entries: match checked {
+        GraphConstruction(nodes~, edges~, ..) =>
+          match nodes {
+            Some(t) =>
+              [{ role: Left, target: t, }, { role: Right, target: edges, }]
+            None => [{ role: Primary, target: edges, }]
+          }
         Values(_) | TimeSeries(_) => []
         Calendar(_) => [{ role: Primary, target: input, }]
         Unary(_)

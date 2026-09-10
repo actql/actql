@@ -130,6 +130,11 @@ pub enum CheckedOperation {
   GraphEquality(right~ : Target, checked~ : @graph.CheckedEquality)
   GraphDiff(right~ : Target, checked~ : @graph.CheckedDiff)
   GraphApply(right~ : Target, checked~ : @graph.CheckedApply)
+  GraphConstruction(
+    nodes~ : Target?,
+    edges~ : Target,
+    checked~ : @graph.CheckedConstruction
+  )
   Vector(@vector.CheckedVector)
   Event(@event.CheckedEvent)
   WindowGroup(@relation.CheckedOperation)
@@ -407,6 +412,9 @@ fn carrier_preflight(
     @carrier.GraphValue(graph) => {
       spend(b, source, 1)
       preflight(b, source, @carrier.graph_identity(graph))
+      if @carrier.graph_label_contract(graph) is Some(c) {
+        preflight(b, source, c)
+      }
       rows_preflight(b, source, @carrier.graph_node_properties(graph))
       rows_preflight(b, source, @carrier.graph_edge_properties(graph))
       if @carrier.graph_names(graph) is Some(names) {

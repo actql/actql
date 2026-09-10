@@ -21,6 +21,7 @@ pub(all) enum Issue {
 
 ///|
 struct Graph {
+  semantic_label : @value.Contract?
   row_names : GraphRowNames?
   identity : @value.Contract
   node_properties : Knowledge
@@ -127,12 +128,16 @@ pub fn graph(
   max_labels~ : Int,
   max_label_bytes~ : Int,
   row_names? : GraphRowNames? = None,
+  label_contract? : @value.Contract? = None,
 ) -> Result[Carrier, Issue] {
   if max_labels < 0 || max_label_bytes < 0 {
     return Err(InvalidLimits)
   }
   if !identity_domain(identity) {
     return Err(InvalidIdentity)
+  }
+  if label_contract is Some(c) && !(c.shape is @value.Text(_)) {
+    return Err(InvalidProperties)
   }
   if node_properties.has_qualified_fields ||
     edge_properties.has_qualified_fields {
@@ -174,6 +179,7 @@ pub fn graph(
       edge_properties,
       labels: admitted,
       row_names,
+      semantic_label: label_contract,
     }),
   )
 }
@@ -181,6 +187,12 @@ pub fn graph(
 ///|
 pub fn graph_labels(graph : Graph) -> Array[String]? {
   graph.labels.map(labels => labels.copy())
+}
+
+///|
+/// Known semantic label-role type, distinct from its closed value domain.
+pub fn graph_label_contract(graph : Graph) -> @value.Contract? {
+  graph.semantic_label
 }
 
 ///|
