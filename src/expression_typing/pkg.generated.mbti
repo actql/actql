@@ -1,0 +1,92 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/expression_typing"
+
+import {
+  "actql/actql/decode_core",
+  "actql/actql/expression_syntax",
+  "actql/actql/parameter_binding",
+  "actql/actql/value_contract",
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn check(@expression_syntax.Expression, Environment, Limits) -> Result[TypedExpression, Issue]
+
+pub fn environment(TypedExpression) -> Environment
+
+pub fn expression(TypedExpression) -> @expression_syntax.Expression
+
+pub fn node_at(TypedExpression, Int) -> TypedNode?
+
+pub fn node_count(TypedExpression) -> Int
+
+pub fn pending_validations(TypedExpression) -> Array[Obligation]
+
+pub fn required_profiles(TypedExpression) -> Array[String]
+
+pub fn result_type(TypedExpression) -> @value_contract.Contract
+
+// Errors
+
+// Types and methods
+pub(all) enum AnnotationRole {
+  ExpressionNode
+  MembershipList
+  MembershipElement
+  ImplicitElse
+} derive(Eq, @debug.Debug)
+
+pub(all) struct Environment {
+  fields : @value_contract.Contract?
+  left : @value_contract.Contract?
+  right : @value_contract.Contract?
+  parameters : @parameter_binding.Declarations?
+}
+
+pub struct Issue {
+  kind : IssueKind
+  source : @decode_core.Cursor
+}
+
+pub(all) enum IssueKind {
+  InvalidLimits
+  InvalidScope(String)
+  UnknownField(String)
+  MissingJoinScope(String)
+  UnknownParameter(String)
+  TypeMismatch(String)
+  NullTypeUnresolved
+  ForbiddenConstructorValue
+  InvalidStaticOption(String)
+  BudgetExceeded
+} derive(Eq, @debug.Debug)
+
+pub(all) struct Limits {
+  max_nodes : Int
+  max_depth : Int
+  max_work : Int
+  max_text_bytes : Int
+} derive(Eq, @debug.Debug)
+
+pub struct Obligation {
+  node_index : Int
+  kind : ObligationKind
+}
+
+pub(all) enum ObligationKind {
+  ProfileAdmission(String)
+  PatternValidation(String)
+  HostEnvelope
+} derive(Eq, @debug.Debug)
+
+type TypedExpression
+
+pub struct TypedNode {
+  source : @decode_core.Cursor
+  contract : @value_contract.Contract
+  role : AnnotationRole
+}
+
+// Type aliases
+
+// Traits

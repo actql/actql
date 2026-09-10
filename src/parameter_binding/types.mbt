@@ -18,6 +18,20 @@ pub fn declarations(value : Declarations) -> Array[Declaration] {
 }
 
 ///|
+pub fn declaration_count(value : Declarations) -> Int {
+  value.entries.length()
+}
+
+///|
+pub fn declaration_at(value : Declarations, index : Int) -> Declaration? {
+  if index < 0 || index >= value.entries.length() {
+    None
+  } else {
+    Some(value.entries[index])
+  }
+}
+
+///|
 pub fn has_default(value : Declaration) -> Bool {
   value.default_value is Some(_)
 }

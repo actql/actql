@@ -16,6 +16,10 @@ pub fn bind(Declarations, @decode_core.Cursor?, @value_admission.Limits) -> Resu
 
 pub fn bound_values(BoundValues) -> Array[BoundParameter]
 
+pub fn declaration_at(Declarations, Int) -> Declaration?
+
+pub fn declaration_count(Declarations) -> Int
+
 pub fn declarations(Declarations) -> Array[Declaration]
 
 pub fn emit_values(BoundValues, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure

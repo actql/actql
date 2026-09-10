@@ -19,6 +19,8 @@ literal time units and vector metrics, and literal/Parameter pattern and
 delimiter positions. Ordinary comparisons reject direct literal null operands.
 Boolean input types, comparison compatibility, and evaluation-time domains such
 as negative subscript indices are not decided here.
+The separate [Expression type checker](expression-typing.md) checks types against
+supplied scopes and Parameter declarations; evaluation-time domains remain later work.
 
 `to_*` becomes `cast`. A whole-field alias such as `left.customer.city`,
 whether text-decoded or structured, becomes a join field followed by property access. No constant folding,
