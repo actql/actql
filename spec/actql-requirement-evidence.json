@@ -4315,6 +4315,28 @@
       }
     },
     {
+      "requirement_id": "actql.language/nearest.closed-source-and-role-consistency",
+      "statement_sha256": "3a9ee73be159e6486dbe94b2b0d0c7debbed0647d3b3b335bc9ab77c48e9fa89",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "nearest",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/nearest.semantic-id-output",
+      "statement_sha256": "5d7b38329e5050a12022f7e6b65c8d41ff712955e8fb86123f3e27c41c3c12a0",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "nearest",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.language/nearest.every-such-completion-must-be-journaled-as-actql-vector-typed-field-completion-zero-or",
       "statement_sha256": "c60415e6c5e1032b31991c3a9187d101231db1b23590db96874b580f9a57e303",
       "status": "pending",
@@ -6186,7 +6208,7 @@
     },
     {
       "requirement_id": "actql.language/structural-grammar.grammar",
-      "statement_sha256": "d10754fc0b17445cd58a5e60830067adaa18277965c9921acdd2c8f7ad077f8e",
+      "statement_sha256": "5f06c7c1ba90a906603513bd523fda8474cc80b255fc0d4cd842231bc70f0c0c",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
@@ -8056,7 +8078,7 @@
     },
     {
       "requirement_id": "actql.protocol.contracts/machine-contracts.exact-artifacts",
-      "statement_sha256": "31489e7eaa4c3e0708684e9d0c7d43884e26ce85855c585362dc620a5ce3cbb0",
+      "statement_sha256": "e5f55137a0bbb71e966dc7e50791621605d5d79c09d16379cd4be2b9d3c827a4",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",

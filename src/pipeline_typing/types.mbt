@@ -149,6 +149,7 @@ pub enum CheckedOperation {
     checked~ : @graph.CheckedConstruction
   )
   Vector(@vector.CheckedVector)
+  Nearest(queries~ : Target, checked~ : @vector.CheckedNearest)
   Event(@event.CheckedEvent)
   WindowGroup(@relation.CheckedOperation)
 }

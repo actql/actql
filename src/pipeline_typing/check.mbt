@@ -599,6 +599,7 @@ fn check_impl(
       | "normalize_vectors"
       | "to_vectors"
       | "score_vectors"
+      | "nearest"
       | "degree"
       | "components"
       | "graph_bounds"
@@ -1267,6 +1268,68 @@ fn check_impl(
       current = Some(target)
       continue
     }
+    if key == "nearest" {
+      let root = match
+        @decode.closed_object(operation_body, [
+          "queries", "candidate_id", "candidate_vector", "query_id", "query_vector",
+          "metric", "k",
+        ]) {
+        Ok(o) => o
+        Err(_) => fail(operation_body, InvalidBody)
+      }
+      let query_source = match @decode.required(root, "queries") {
+        Ok(s) => s
+        Err(_) => fail(operation_body, InvalidBody)
+      }
+      let queries = resolve_target(b, query_source, names)
+      let checked = match
+        @vector.check_nearest(
+          operation_body,
+          carrier(input, inputs, steps),
+          carrier(queries, inputs, steps),
+          {
+            max_work: b.work,
+            max_nodes: b.nodes,
+            max_depth: limits.max_depth,
+            max_text_bytes: b.text,
+          },
+        ) {
+        Ok(c) => c
+        Err(e) =>
+          raise Stop({
+            kind: Vector(e.kind),
+            source: operation_body,
+            path: e.path.copy(),
+            span: e.span,
+            range: None,
+          })
+      }
+      let u = @vector.nearest_usage(checked)
+      b.work -= u.work
+      b.nodes -= u.nodes
+      b.text -= u.text_bytes
+      let target = Step(steps.length())
+      steps.push({
+        source: body,
+        input: Some(input),
+        binding_name,
+        metadata: meta,
+        operation: Nearest(queries~, checked~),
+        output: @vector.nearest_output(checked),
+        connections: {
+          entries: [
+            { role: Left, target: input, },
+            { role: Right, target: queries, },
+          ],
+        },
+        window: None,
+      })
+      if binding_name is Some(name) {
+        names[name] = target
+      }
+      current = Some(target)
+      continue
+    }
     if key == "normalize_vectors" ||
       key == "score_vectors" ||
       key == "to_vectors" {
@@ -1803,6 +1866,8 @@ fn check_impl(
         | Event(_)
         | Sequence(_)
         | Vector(_) => [{ role: Primary, target: input, }]
+        Nearest(queries~, ..) =>
+          [{ role: Left, target: input, }, { role: Right, target: queries, }]
         Join(right~, ..)
         | Append(right~, ..)
         | Nest(right~, ..)

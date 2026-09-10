@@ -66,6 +66,10 @@ pub fn vector_dimensions(Vectors) -> Double
 
 pub fn vector_identities(Vectors) -> Array[Field]
 
+pub fn vector_identity_at(Vectors, Int) -> Field?
+
+pub fn vector_identity_count(Vectors) -> Int
+
 pub fn vector_records(Vectors) -> Knowledge
 
 pub fn vectors(Knowledge, ids~ : Array[@relation_schema.FieldName], components~ : @relation_schema.FieldName, max_identity_fields~ : Int) -> Result[Carrier, Issue]

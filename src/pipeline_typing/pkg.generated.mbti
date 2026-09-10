@@ -101,6 +101,7 @@ pub enum CheckedOperation {
   GraphMean(@graph_typing.CheckedMean)
   GraphConstruction(nodes~ : Target?, edges~ : Target, checked~ : @graph_typing.CheckedConstruction)
   Vector(@vector_typing.CheckedVector)
+  Nearest(queries~ : Target, checked~ : @vector_typing.CheckedNearest)
   Event(@event_typing.CheckedEvent)
   WindowGroup(@relation_typing.CheckedOperation)
 }

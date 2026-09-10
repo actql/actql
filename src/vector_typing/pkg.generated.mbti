@@ -5,6 +5,7 @@ import {
   "actql/actql/carrier_contract",
   "actql/actql/decode_core",
   "actql/actql/parameter_binding",
+  "actql/actql/relation_schema",
   "actql/actql/source_span",
   "actql/actql/source_value",
   "moonbitlang/core/debug",
@@ -13,9 +14,51 @@ import {
 // Values
 pub fn check(Operation, @decode_core.Cursor, @carrier_contract.Carrier, @parameter_binding.Declarations?, Limits) -> Result[CheckedVector, Issue]
 
+pub fn check_nearest(@decode_core.Cursor, @carrier_contract.Carrier, @carrier_contract.Carrier, Limits) -> Result[CheckedNearest, Issue]
+
+pub fn check_nearest_input(NearestOptions, NearestSide, @carrier_contract.Carrier, Limits) -> Result[NearestInput, Issue]
+
+pub fn check_nearest_pair(@decode_core.Cursor, @carrier_contract.Carrier, @carrier_contract.Carrier, Limits) -> Result[NearestPair, Issue]
+
 pub fn input(CheckedVector) -> @carrier_contract.Carrier
 
 pub fn metric(CheckedVector) -> Metric?
+
+pub fn nearest_candidate_roles(NearestOptions) -> NearestRoles
+
+pub fn nearest_completed_vector(NearestInput) -> @relation_schema.FieldName?
+
+pub fn nearest_input_usage(NearestInput) -> Usage
+
+pub fn nearest_input_vectors(NearestInput) -> @carrier_contract.Vectors?
+
+pub fn nearest_k(NearestOptions) -> Int64
+
+pub fn nearest_metric(NearestOptions) -> Metric
+
+pub fn nearest_options_usage(NearestOptions) -> Usage
+
+pub fn nearest_output(CheckedNearest) -> @carrier_contract.Carrier
+
+pub fn nearest_pair(CheckedNearest) -> NearestPair
+
+pub fn nearest_pair_input(NearestPair, NearestSide) -> NearestInput
+
+pub fn nearest_pair_options(NearestPair) -> NearestOptions
+
+pub fn nearest_pair_pending(NearestPair) -> Array[NearestObligation]
+
+pub fn nearest_pair_usage(NearestPair) -> Usage
+
+pub fn nearest_pending(CheckedNearest) -> Array[NearestObligation]
+
+pub fn nearest_query_name(NearestOptions) -> String
+
+pub fn nearest_query_roles(NearestOptions) -> NearestRoles
+
+pub fn nearest_source(NearestOptions) -> @decode_core.Cursor
+
+pub fn nearest_usage(CheckedNearest) -> Usage
 
 pub fn operation(CheckedVector) -> Operation
 
@@ -31,6 +74,8 @@ pub fn query_parameter(Query) -> String?
 
 pub fn query_values(Query) -> Array[Double]?
 
+pub fn read_nearest_options(@decode_core.Cursor, Limits) -> Result[NearestOptions, Issue]
+
 pub fn source(CheckedVector) -> @decode_core.Cursor
 
 pub fn usage(CheckedVector) -> Usage
@@ -38,6 +83,8 @@ pub fn usage(CheckedVector) -> Usage
 // Errors
 
 // Types and methods
+type CheckedNearest
+
 type CheckedVector
 
 pub struct Issue {
@@ -59,6 +106,9 @@ pub(all) enum IssueKind {
   OutputCollision(String)
   UnknownOutputFields
   InvalidRole(@carrier_contract.Issue)
+  MissingNearestRole(String)
+  ConflictingNearestRole(String)
+  IncompleteNearestInput
 } derive(Eq, @debug.Debug)
 
 pub(all) struct Limits {
@@ -72,6 +122,38 @@ pub(all) enum Metric {
   Cosine
   Dot
   L2
+} derive(Eq, @debug.Debug)
+
+type NearestInput
+
+pub(all) enum NearestObligation {
+  ValidateNearestRoleBindings(NearestSide)
+  MatchNearestDimensions
+  AdmitQuantizedVectorComponents
+  ValidateBothUniqueIdentities
+  EvaluateExactNearestScores
+  RestoreSemanticIdentityValues
+  OrderQueriesByIdentity
+  OrderCandidatesByDescendingScoreThenIdentity
+  AssignContiguousOneBasedRanks
+  JournalVectorFieldCompletion(NearestSide, @relation_schema.FieldName)
+  ResolveNearestResources
+  ResolveNearestProfile
+  PreserveSimilarityAuthorityBoundary
+} derive(Eq, @debug.Debug)
+
+type NearestOptions
+
+type NearestPair
+
+pub struct NearestRoles {
+  identity : @relation_schema.FieldName?
+  vector : @relation_schema.FieldName?
+}
+
+pub(all) enum NearestSide {
+  Candidates
+  Queries
 } derive(Eq, @debug.Debug)
 
 pub(all) enum Obligation {

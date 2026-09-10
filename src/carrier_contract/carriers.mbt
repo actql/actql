@@ -304,6 +304,16 @@ pub fn vector_identities(vector : Vectors) -> Array[Field] {
 }
 
 ///|
+pub fn vector_identity_count(vector : Vectors) -> Int {
+  vector.identities.length()
+}
+
+///|
+pub fn vector_identity_at(vector : Vectors, index : Int) -> Field? {
+  vector.identities.get(index)
+}
+
+///|
 pub fn graph_identity(graph : Graph) -> @value.Contract {
   graph.identity
 }

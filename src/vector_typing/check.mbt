@@ -39,6 +39,9 @@ pub(all) enum IssueKind {
   OutputCollision(String)
   UnknownOutputFields
   InvalidRole(@carrier.Issue)
+  MissingNearestRole(String)
+  ConflictingNearestRole(String)
+  IncompleteNearestInput
 } derive(Eq, Debug)
 
 ///|

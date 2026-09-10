@@ -5458,12 +5458,33 @@ evidence, but only an approved graph-binding delta may become authoritative.
 A compiler or host MUST NOT auto-merge entities solely because a vector score
 exceeds a threshold.
 
+<!-- requirement-block: nearest.closed-source-and-role-consistency -->
+The closed body MUST admit only queries, candidate_id, candidate_vector, query_id,
+query_vector, metric and k. The k option is a positive safe-integer literal,
+not a Parameter reference. Optional field references on an already-typed Vectors
+input may restate its roles but cannot override them; an identity field reference
+can restate only a singleton identity tuple. Unknown Vectors role and dimension
+information remains an input-validation obligation before scoring and does not
+invent a public identity type. A known role conflict fails during Check.
+
 Relation inputs require explicit semantic ID and vector fields. Vector-set
 inputs already carry those roles. The compiler inserts `BRIDGE.rows.to_vectors`
 where necessary and lowers to `VEC.knn_join`. The ranking Relation exposes
 `query_id`, `candidate_id`, `score`, and `rank`: the IDs contain the authored identity
 values, not internal bridge record IDs. These two role names are fixed even
 when the source identity fields have different names.
+<!-- requirement-block: nearest.semantic-id-output -->
+A single identity component MUST retain its value and type directly in its
+fixed output role. A composite identity is represented by a non-null closed
+record whose keys are the zero-based decimal positions `"0"`, `"1"`, and so on
+in the Carrier's declared identity tuple. Each slot retains its original value
+and type, including decimal or reference contracts. Input field aliases are not
+encoded into this record. Identity comparison uses the ordered typed components,
+not serialized record text or lexicographic ordering of position keys. This
+representation does not make arbitrary objects KeyComparable or authorize a
+string/CID replacement. It fixes the previously unspecified public tuple shape
+without changing the Carrier's internal semantic identity.
+
 Rank is a non-null positive safe integer: the one-based position in each
 query's completed score-descending/candidate-identity order after top-k.
 It is contiguous from one, not a dense rank or provider-supplied position.
@@ -7459,6 +7480,9 @@ ShortestPathBody := {source: PathEndpoint, target: PathEndpoint,
 PathEndpoint := single typed identity | GraphNodeSelector
 ShortestPathConstraints := selection is required with any selector and forbidden
   with two single identities; weight names a known non-null number edge field.
+NearestBody := {queries: InputOrStepName, metric: cosine | dot | l2,
+  k: positive safe-integer literal, candidate_id?: Field, candidate_vector?: Field,
+  query_id?: Field, query_vector?: Field}
 MeanGraphsBody := {with: [InputOrStepName, ...], weights: [nonnegative number, ...],
   support: {nodes: number in (0, 1], edges: number in (0, 1]},
   properties: {nodes: {Field: MeanPropertyStrategy}*, edges: {Field: MeanPropertyStrategy}*}}

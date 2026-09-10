@@ -1,4 +1,57 @@
 ///|
+test "nearest preserves current corpus and repeated query edges before Relation projection" {
+  let source = cursor(
+    "[{\"normalize_vectors\":true,\"as\":\"prepared\"},{\"nearest\":{\"queries\":\"prepared\",\"k\":3,\"metric\":\"cosine\"},\"as\":\"ranking\"},{\"select\":[\"query_id\",\"candidate_id\",\"rank\"]}]",
+  )
+  let inputs = [("v", vector_input())]
+  let p = @pipeline_typing.check_carriers(source, inputs, None, None, limits()).unwrap()
+  let step = @pipeline_typing.step_at(p, 1).unwrap()
+  assert_true(step.operation is Nearest(queries=Step(0), ..))
+  let edges = @pipeline_typing.input_occurrences(step)
+  assert_eq(edges.length(), 2)
+  assert_eq(edges[0].target, Step(0))
+  assert_eq(edges[1].target, Step(0))
+  assert_eq(edges[0].role, Left)
+  assert_eq(edges[1].role, Right)
+  assert_eq(@schema.field_count(@pipeline_typing.output_schema(p).unwrap()), 3)
+  let u = @pipeline_typing.usage(p)
+  let exact = {
+    ..limits(),
+    max_work: u.work,
+    max_nodes: u.nodes,
+    max_text_bytes: u.text_bytes,
+  }
+  assert_true(
+    @pipeline_typing.check_carriers(source, inputs, None, None, exact) is Ok(_),
+  )
+  for
+    cap in [
+      { ..exact, max_work: u.work - 1, },
+      { ..exact, max_nodes: u.nodes - 1, },
+      { ..exact, max_text_bytes: u.text_bytes - 1, },
+    ] {
+    assert_true(
+      @pipeline_typing.check_carriers(source, inputs, None, None, cap) is Err(_),
+    )
+  }
+  let issue = @pipeline_typing.check_carriers(
+    cursor(
+      "[{\"nearest\":{\"queries\":\"later\",\"k\":1,\"metric\":\"dot\"}},{\"normalize_vectors\":true,\"as\":\"later\"}]",
+    ),
+    inputs,
+    None,
+    None,
+    limits(),
+  ).unwrap_err()
+  assert_eq(issue.kind, UnknownName("later"))
+  assert_eq(issue.path, [
+    @source.Index(0),
+    @source.Key("nearest"),
+    @source.Key("queries"),
+  ])
+}
+
+///|
 fn vector_input() -> @carrier.Carrier {
   @carrier.vectors(
     @carrier.rows(

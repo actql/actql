@@ -8,6 +8,11 @@ import {machineCid} from './actql-spec-family.mjs';
 
 export function vectorSchemas() {
   return {
+    nearest:{type:'object',additionalProperties:false,required:['queries','metric','k'],properties:{
+      queries:{type:'string',minLength:1},metric:{enum:['cosine','dot','l2']},
+      k:{type:'integer',minimum:1,maximum:9007199254740991},
+      ...Object.fromEntries(['candidate_id','candidate_vector','query_id','query_vector'].map(k => [k,{type:'string',minLength:1}])),
+    }},
     to_vectors: {type:'object',additionalProperties:false,required:['id','vector'],properties:{
       id:{type:'string',minLength:1},vector:{type:'string',minLength:1},
     }},
