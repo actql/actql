@@ -75,8 +75,12 @@ The checks are read-only:
 - `check:nest`: independent Python lowering and JavaScript identity-preimage checks for the authored nest fixture subset.
 - `check:calendar` (included in `check:events`): rebuild pinned IANA zic source in
   isolation, reproduce the selected-zone TZDB fixture exactly, and test the TZif
-  reader. No installed timezone database is used. `generate:calendar` updates
-  both generated artifacts. See [fixture provenance](../vendor/tzdb/2025b/README.md).
+  reader. It also checks fixed Calendar boundary intervals with an independent
+  Python oracle and its regressions. No installed timezone database is used.
+  `generate:calendar` updates only the transition JSON and embedded MoonBit
+  fixture, never boundary expectations. See
+  [fixture provenance](../vendor/tzdb/2025b/README.md) and
+  [boundary vector scope](design/calendar-checking.md#independent-boundary-vectors).
 - `check:encoding`: kernel manifest pin, fixed scalar spelling expectations and generated encoding-test freshness.
 - `check:canonical`: canonical JSON corpus, existing contract CIDs and generated identity-test freshness.
 - `check:value-contracts`: fixed contract vectors, generated-test freshness and embedded schema consistency.

@@ -80,8 +80,9 @@ selected CID and external release. The selected-zone
 [2025b fixture](../../vendor/tzdb/2025b/README.md) is reproduced from pinned IANA
 data and compiler archives, alongside synthetic rejection fixtures. It exercises
 offsets at gaps, folds, a skipped date and future recurrence through year 9999.
-Calendar boundary conversion vectors and shared count/evidence propagation
-remain. The API does not certify an arbitrary
+The independent boundary corpus described below fixes conversion expectations;
+general logical-order and resolved resource proofs remain unfinished. The API
+does not certify an arbitrary
 caller-selected hash as authentic IANA data.
 
 The `calendar_transition` package supplies the validated offset-table primitive
@@ -118,7 +119,41 @@ data or quietly treat unknown zones as UTC. Missing semantic artifacts prevent
 a runnable Plan, including an unpinned UTC shortcut.
 
 The fixed reference revisions do not contain these Calendar operations or a TZDB
-artifact to reuse. Production profile selection, shared count/evidence propagation
-and independent Calendar boundary vectors remain in the full
-pure-operation goal. Adding source options does not close those requirements.
-Actual calendar evaluation and acquisition of provider data are outside that goal.
+artifact to reuse. Production profile selection and shared logical-order and
+resolved resource evidence remain in the full pure-operation goal. Adding source
+options does not close those requirements. Actual calendar evaluation and
+acquisition of provider data are outside that goal.
+
+## Independent boundary vectors
+
+The fixed [boundary corpus](../../portability/corpus/calendar-boundaries.json)
+binds its external release, conversion-law domain and transition artifact CID.
+Its expected UTC intervals are hand-authored from the normative rule and the
+selected historical offsets, not obtained from product output. It covers leap
+and non-leap centuries, month/quarter/year boundaries, both weekly origins,
+23/25-hour DST days, midnight gaps, earliest folds, Apia's repeated 48-hour day
+and skipped date, coincident-boundary collapse, historical second offsets,
+future recurrence, unclipped series, closed-open endpoints, empty/reversed
+ranges, exact-name lookup and out-of-domain boundaries.
+
+`bucket` cases return a two-element `[start, end]` UTC timestamp array; `series`
+returns arrays of those full intervals in UTC order. `resolve` tests the civil
+conversion primitive: its `local` timestamp has **no timezone suffix**, whereas
+expected instants and bucket/series inputs use canonical UTC timestamps. These
+primitive cases do not add an authored operation. An `error` expectation names
+an oracle category, not a new public MoonBit diagnostic code.
+
+`scripts/check_calendar_boundaries.py` independently inverts pinned offset
+intervals, picks the earliest ambiguous instant, advances gaps to their first
+valid instant, and walks Gregorian boundaries with duplicate UTC boundaries
+collapsed. Python datetime supplies proleptic Gregorian arithmetic only: there
+is no zoneinfo, local timezone conversion, system TZDB or product evaluator call.
+The checker compares against fixed expectations and has no write/generate mode.
+Its regression tests include mutated fixture bytes and a wrong interval to ensure
+that either fails the check. `check:calendar`, and therefore `check:docs`, runs
+both the corpus and these regressions after reproducing the transition artifact.
+
+These are independent semantic vectors and oracle tests, not MoonBit Calendar
+evaluation conformance. A future evaluator must consume the same fixed cases.
+They pin one selected release; they do not claim a differential test against a
+second TZDB release or production Check Environment selection.
