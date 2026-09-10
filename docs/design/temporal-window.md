@@ -40,8 +40,12 @@ resources remain explicit obligations, not claimed runtime conformance.
 Pipeline dispatch enforces the operation-specific input Carrier before checking,
 retains the single primary input occurrence, and debits the shared budgets.
 Validated filters and row-order/subset operations preserve roles. Explicit
-select/rename/drop projections transfer both roles only when both fields remain;
-overwriting a boundary in derive invalidates the evidence. An ordinary input
+select/rename/drop and keyed-distinct projections retain every output alias of
+each boundary. Whole-row distinct retains the existing roles unchanged.
+Dropping or overwriting an alias invalidates only that alias; evidence is lost
+only when either boundary has no surviving alias. `window_aliases` returns
+detached arrays; `window_fields` selects the first surviving pair for consumers
+requiring one pair. An ordinary input
 with matching column names provides no window evidence. Other transformations
 currently invalidate the roles conservatively. Evidence-transfer traversal is
 also charged against the shared work budget.
@@ -49,6 +53,10 @@ also charged against the shared work budget.
 The generated embedded Program schemas require the closed bodies, sliding step,
 and lexical numeric/duration/Parameter alternatives. Runtime duration overflow
 and bound Parameter domains remain semantic checks, not claims of JSON Schema.
+An explicit fixed step has the same positive domain and binding obligations,
+is retained in the source, and is never inserted when absent. It does not affect
+boundaries, membership or cardinality bounds. Fixed-step corpus examples test
+the specification oracle, not an implemented MoonBit window evaluator.
 
 `window_group` requires the selected input's window evidence before invoking the
 shared aggregate checker. Its effective key list begins with the two proven
@@ -56,7 +64,9 @@ boundaries exactly once, followed by ordinary authored keys in their existing
 order, retaining repetitions other than those already supplied boundary keys.
 The original source retains all authored occurrences. Empty ordinary `by` and
 empty aggregates are admitted; this is grouping by the two boundaries, not an
-empty global group. Boundary roles survive that grouping. Named aggregate rules,
+empty global group. Only boundary aliases present in the effective grouping keys
+survive that grouping; aggregate output names cannot manufacture role evidence.
+Named aggregate rules,
 type derivation and pending validation obligations are the same as for `group`.
 The embedded schema reuses the exact group body generator.
 

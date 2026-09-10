@@ -26,6 +26,8 @@
   ],
   "windows": [
     {"name":"fixed shifted window", "kind":"fixed", "time":999, "size":1000, "offset":250, "expected":[[250,1250]]},
+    {"name":"fixed explicit small step", "kind":"fixed", "time":999, "size":1000, "step":1, "offset":250, "expected":[[250,1250]]},
+    {"name":"fixed explicit large step", "kind":"fixed", "time":999, "size":1000, "step":2000, "offset":250, "expected":[[250,1250]]},
     {"name":"explicit zero window", "kind":"fixed", "time":0, "size":1000, "offset":0, "expected":[[0,1000]]},
     {"name":"negative offset window", "kind":"fixed", "time":0, "size":1000, "offset":-250, "expected":[[-250,750]]},
     {"name":"sliding shifted memberships", "kind":"sliding", "time":1000, "size":1000, "step":500, "offset":250, "expected":[[250,1250],[750,1750]]},

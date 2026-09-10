@@ -3,6 +3,19 @@
   "kernel_law_manifest": "aoa-kernel-laws/0.1",
   "kernel_law_manifest_cid": "sha256:5a79d6cb9b012d0c3871c72e496eec7183948ac81d8ebff91b4f7ee6a59ae19d",
   "pipeline_ir_version": "aoa-pipeline/0.1",
+  "event_identity_contract": {
+    "domain": "complete_non_null_KeyComparable",
+    "representation": "preserve_semantic_type_and_value",
+    "uniqueness": "separate_data_validation",
+    "equal_time_order": {
+      "scalar": "existing_type_specific_order",
+      "reference": "existing_internal_identity_order"
+    },
+    "authored_reference_order_keys": false,
+    "unsupported_lowering": "reject",
+    "implicit_stringification": false,
+    "implicit_cid_substitution": false
+  },
   "expression_contract_cid": "sha256:6e9f53dc1542e70b4618c45a3f7fba7ad749f4703e39dfda94ce1b990577a6f1",
   "pipeline_law_manifest": "aoa-pipeline-laws/0.1",
   "pipeline_law_manifest_cid": "sha256:587ab651a11c93172b597234f849d732319f61490fbb59d3d8841436e1e842dc",

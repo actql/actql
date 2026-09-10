@@ -9,6 +9,21 @@ import { checkDependencies, loadDependencies } from './check-aoa-versions.mjs';
 // are fixed in the corpus, never generated from a product evaluator.
 const read = path => JSON.parse(readFileSync(new URL('../' + path, import.meta.url), 'utf8'));
 const corpus = read('portability/corpus/pure-operation-laws.json');
+test('event identity contract preserves typed equality and separates uniqueness and lowering', () => {
+  assert.deepEqual(read('spec/contracts/actql-aoa.json').event_identity_contract, {
+    domain: 'complete_non_null_KeyComparable',
+    representation: 'preserve_semantic_type_and_value',
+    uniqueness: 'separate_data_validation',
+    equal_time_order: {
+      scalar: 'existing_type_specific_order',
+      reference: 'existing_internal_identity_order',
+    },
+    authored_reference_order_keys: false,
+    unsupported_lowering: 'reject',
+    implicit_stringification: false,
+    implicit_cid_substitution: false,
+  });
+});
 const fail = kind => { throw new Error(kind); };
 const finite = value => Number.isFinite(value) ? value : fail('NonFinite');
 const zero = value => value === 0 ? 0 : value;

@@ -25,6 +25,17 @@ test('embedded window schema and pins reject drift',()=>{
   }
 });
 
+test('fixed step is an optional positive option without an inserted default',()=>{
+  for(const relation of [false,true]) {
+    const schema=windowSchema(relation);
+    assert.ok(!schema.required.includes('step'));
+    assert.equal(schema.allOf[0].if.properties.kind.const,'sliding');
+    assert.deepEqual(schema.properties.step,millisecondsSchema());
+    assert.equal(schema.properties.step.default,undefined);
+    assert.equal(schema.properties.step.oneOf[0].minimum,1);
+  }
+});
+
 test('lag requires explicit nonempty order and admits omitted or positive offset',()=>{
   const s=lagSchema();
   assert.deepEqual(s.required,['partition_by','order_by','field','output']);

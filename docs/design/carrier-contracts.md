@@ -46,6 +46,18 @@ must already have non-null numeric millisecond type; Relation timestamps use the
 specified conversion when constructing an event bridge, not implicit conversion
 in this type constructor. Additional payload fields may remain unknown.
 
+Event identity requires complete, non-null KeyComparable evidence, preserving
+the original type, including decimal precision/scale and reference domains.
+This is not a proof of unique data. Equal-time session/sequence ordering uses
+the type-specific scalar order or internal reference identity order; it does
+not broaden authored ordering. See the normative
+[event identity contract](../spec/language.md#event-bridges).
+The existing Sketch and AoA event bridges require string IDs. This is a lowering
+compatibility gap, not a language restriction: a faithful adapter is required
+before claiming execution support for other ID domains. Implicit stringification
+or CID substitution is not permitted (numeric 2 < 10 must not become lexical
+"10" < "2"). This constructor implements neither lowering nor runtime ordering.
+
 Vectors retain record knowledge, an ordered nonempty tuple of non-null comparable
 identity fields, and a non-null vector field with its checked dimensions. Tuple
 order is preserved; fields cannot repeat. This supports composite semantic

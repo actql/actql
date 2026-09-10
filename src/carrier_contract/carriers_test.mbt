@@ -1,4 +1,49 @@
 ///|
+test "event identities preserve non-null comparable semantic domains" {
+  let domains = [
+    @value.primitive(StringType, nullable=false),
+    @value.primitive(NumberType, nullable=false),
+    @value.primitive(BooleanType, nullable=false),
+    @value.primitive(DateType, nullable=false),
+    @value.primitive(TimestampType, nullable=false),
+    @value.decimal_contract(38, 19, nullable=false).unwrap(),
+    @value.primitive(JsonType, nullable=false),
+    @value.vector_contract(3, nullable=false).unwrap(),
+    @value.array_contract(
+      @value.primitive(NumberType, nullable=false),
+      nullable=false,
+    ).unwrap(),
+    @value.object_contract([], nullable=false, max_fields=0, max_name_bytes=0).unwrap(),
+  ]
+  for i in 0..<domains.length() {
+    let domain = domains[i]
+    for nullable in [false, true] {
+      let contract = @value.with_nullability(domain, nullable)
+      let id = @row.Unqualified("id")
+      let time = @row.Unqualified("at")
+      let records = rows(
+        [
+          (id, Some(contract)),
+          (time, Some(@value.primitive(NumberType, nullable=false))),
+        ],
+        field_set=Closed,
+        max_fields=2,
+        max_name_bytes=4,
+      ).unwrap()
+      let result = events(records, id~, time~)
+      if !nullable && i < 6 {
+        guard result.unwrap() is EventValue(e) else { fail("expected events") }
+        assert_true(
+          @value.type_equal(e.identity.contract.unwrap(), contract, 100),
+        )
+      } else {
+        assert_eq(result.unwrap_err(), InvalidRole(id))
+      }
+    }
+  }
+}
+
+///|
 test "unknown carriers retain kind and are not coerced into relation schemas" {
   let kinds : Array[Kind] = [RelationKind, GraphKind, EventsKind, VectorsKind]
   for k in kinds {

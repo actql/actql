@@ -3476,9 +3476,13 @@ emitted with missing generated fields.
 `row_window` or an admitted already-windowed input contract. Coincidentally
 named fields are insufficient. The evidence identifies the two boundary
 fields and their interval law separately from ordinary field-type knowledge.
-Value-preserving filters retain it; removing or overwriting a boundary
-invalidates it. A name-changing projection may transfer the roles only by
-its explicit, value-preserving field mapping. Required evidence must resolve
+Value-preserving filters and whole-row distinct retain it. A name-changing
+projection transfers each role to every alias in its explicit, value-preserving
+field mapping; keyed distinct follows its projection. Removing or overwriting
+an alias removes only that alias's evidence. The window evidence becomes invalid
+when either boundary has no surviving alias. Window grouping retains only
+aliases that remain actual grouping keys, not same-named aggregate outputs.
+Required evidence must resolve
 before window-group checking is complete; this rule grants no new runtime
 deferral. Window keys are prepended exactly once to the ordinary group keys;
 the shared empty-group and repeated-key laws remain unchanged.
@@ -4107,6 +4111,14 @@ REQUIRED and MUST be `fixed` or `sliding`. `size` is REQUIRED and accepts a
 positive integer millisecond value or a duration string using `ms`, `s`, `m`,
 `h`, or `d`. Sliding windows additionally require `step`.
 
+<!-- requirement-block: event-windows.fixed-step-retention -->
+Fixed windows MUST admit an explicit `step`, validate it under the same positive
+integer millisecond constraints as a sliding step, and retain its authored and
+identity representation. It does not participate in boundary, membership or
+cardinality-bound calculations, which continue to use `size` and `offset`.
+Omission does not insert a step. An explicit Parameter step retains its binding
+and value-validation obligations even though it does not affect these calculations.
+
 <!-- requirement-block: event-windows.offset-grid -->
 Both `row_window` and `window_events` MUST admit `offset`. It is a
 signed safe-integer millisecond value, a positive duration token under the
@@ -4162,13 +4174,25 @@ boundary and lowers to
 explicit `drop` or `mark` policy, lowers to `TEA.watermark.label`, and also
 preserves `events`.
 
+<!-- requirement-block: event-bridges.semantic-identity-domain event-bridges.identity-uniqueness event-bridges.preserve-identity-order event-bridges.reject-unsupported-identity-lowering -->
+`to_events.id` MUST have a complete, non-null `KeyComparable` value contract.
+The semantic identity retains that contract and its values; it is not limited
+to strings. Type comparability does not prove uniqueness: duplicate event
+identities MUST be rejected separately before identity-dependent operations.
+Session and sequence order equal-time events by the existing type-specific
+scalar order, or by the existing internal identity order for reference values.
+This does not admit references as authored `OrderKey` fields. Lowering MUST
+preserve typed equality and ordering, and MUST reject unsupported identity
+domains before claiming executable support rather than implicitly converting
+identities to strings or replacing them with CIDs.
+
 <!-- requirement-block: event-bridges.every-relation-form-tea-time-field-must-have-complete-typed-evidence event-bridges.unknown-nullable-date-only-string-or-other-time-evidence-is-rejected -->
 Every relation-form TEA time field MUST have complete typed evidence as either
 a non-null `timestamp` or a non-null `number` containing UTC epoch
 milliseconds. For a typed `timestamp`, the compiler inserts a reserved,
 collision-checked `REL.derive` using `date_diff(authored_time,
 1970-01-01T00:00:00.000Z, ms)` before the event bridge, records
-the checked Plan records the fixed UTC epoch-millisecond carrier law, and preserves the authored
+the fixed UTC epoch-millisecond carrier law in the checked Plan, and preserves the authored
 timestamp in public relation results. A numeric field passes through
 unchanged. Unknown, nullable, date-only, string, or other time evidence is
 rejected; an explicit not-null filter may refine nullable evidence, but the
@@ -7030,6 +7054,43 @@ ParamRef := { $param: ParamName }
 PositiveIntegerValue := PositiveSafeInteger | ParamRef
 FractionValue := finite number in [0, 1] | ParamRef
 GroupBody := {by: [Field, ...] | [], aggregates: {OutputFieldName: AggregateCall}*}
+ValuesBody := {schema: {OutputFieldName: ConstructibleValueContract}+,
+  rows: [{OutputFieldName: CellValue}*, ...] | []}
+ConstructibleValueContract := AuthorValueContract excluding json/resource_ref/artifact_ref
+  at every recursive type position
+ValuesConstraints := each row has exactly the declared field set;
+  cells use CellValue, not expressions; schema is nonempty even for zero rows.
+SetBody := {with: InputOrStepName, duplicates: distinct | all}
+SetConstraints := body of except/intersect; compatible aligned input contracts required.
+CrossJoinBody := {with: InputOrStepName, right_rows?: one,
+  max_output_rows?: PositiveIntegerValue,
+  select?: {OutputFieldName: QualifiedJoinField}+}
+QualifiedJoinField := left.Field | right.Field
+MillisecondValue := PositiveSafeInteger | PositiveDurationToken | ParamRef
+SignedMillisecondValue := integer number in [-9007199254740991, 9007199254740991]
+  | PositiveDurationToken | ParamRef
+PositiveDurationToken := ASCII digits followed by ms | s | m | h | d,
+  ASCII case-insensitive; positive safe-integer milliseconds after multiplication
+RowWindowBody := {kind: fixed | sliding, time: Field, size: MillisecondValue,
+  step?: MillisecondValue, offset?: SignedMillisecondValue}
+WindowEventsBody := {kind: fixed | sliding, size: MillisecondValue,
+  step?: MillisecondValue, offset?: SignedMillisecondValue}
+WindowConstraints := sliding requires step; offset defaults to numeric zero;
+  fixed admits and retains an explicit step without using it in window calculations;
+  omitted fixed step is not inserted; supplied step retains validation obligations;
+  Parameter declarations are non-null number or duration string;
+  bound numbers satisfy the corresponding signed/positive safe-integer domain.
+WindowGroupBody := GroupBody
+LagBody := {partition_by: [Field, ...] | [], order_by: [OrderKey, ...],
+  field: Field, output: OutputFieldName, offset?: PositiveIntegerValue}
+LagConstraints := order_by nonempty; offset defaults to one;
+  partition-key occurrences retained; output is fresh and nullable.
+WatermarkRowsBody := {time: Field, late_policy: drop | mark,
+  watermark_ms: FiniteNumberValue} | {time: Field, late_policy: drop | mark,
+  max_skew: MillisecondValue}
+FiniteNumberValue := finite number | ParamRef
+WatermarkRowsConstraints := exactly one threshold source; fixed threshold permits
+  fractional and negative values, but not negative zero; number Parameter non-null.
 TopKBody := {k: PositiveIntegerValue, by: [OrderKey, ...]}
 TopKByBody := {partition_by: [Field, ...] | [], k: PositiveIntegerValue,
   by: [OrderKey, ...]}
@@ -7401,7 +7462,7 @@ through the pinned expression contract.
 <!-- requirement-block: machine-contracts.exact-artifacts -->
 <!-- normative-code: law -->
 ```text
-../../spec/contracts/actql-aoa.json# sha256:7473c013c8eb4c6fb2682935fe59c6ebb2b4f73d3345b7ff147fc6121d9a2530
+../../spec/contracts/actql-aoa.json# sha256:0337aa35a8347b515bdb573b30658676d760399e8f09f196943be8637499a8e7
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/resource_ref sha256:f88141c15be5ac040af593008fdca7c85214fcb4ba60ea7110160b8fe8ee25ac
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/artifact_ref sha256:2143a7c6bd2e0b110822670a3cb146cddaa23bcade9de7c1ab8ed4e1ebf88a55
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/author_value_contract sha256:ad31b593c607142e6fce65b15ca12531c46d61f3bcf8cc55f34eef1b4dca6b6e

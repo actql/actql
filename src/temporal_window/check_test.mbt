@@ -1,4 +1,78 @@
 ///|
+test "fixed steps remain explicit validated options with binding obligations" {
+  for n in [1, 2000] {
+    let checked = @temporal_window.check(
+      cursor(
+        "{\"kind\":\"fixed\",\"time\":\"at\",\"size\":1000,\"step\":" +
+        n.to_string() +
+        "}",
+      ),
+      @carrier.relation(
+        records(Some(@contract.primitive(NumberType, nullable=false))),
+      ),
+      None,
+      limits(),
+    ).unwrap()
+    let options = @temporal_window.options(checked)
+    assert_true(@temporal_window.size(options) is Literal(1000L))
+    match @temporal_window.step(options) {
+      Some(Literal(value)) => assert_eq(value, n.to_int64())
+      _ => fail("step lost")
+    }
+    assert_eq(
+      @decode.finite_number(
+        @decode.required(
+          @decode.open_object(@temporal_window.source(checked)).unwrap(),
+          "step",
+        ).unwrap(),
+      ).unwrap(),
+      n.to_double(),
+    )
+  }
+  let omitted = @temporal_window.read_options(
+    cursor("{\"kind\":\"fixed\",\"size\":1000}"),
+    relation=false,
+    None,
+    limits(),
+  ).unwrap()
+  assert_true(@temporal_window.step(omitted) is None)
+  for invalid in ["0", "-1", "1.5", "9007199254740992", "\"0s\""] {
+    let issue = @temporal_window.read_options(
+      cursor("{\"kind\":\"fixed\",\"size\":1000,\"step\":" + invalid + "}"),
+      relation=false,
+      None,
+      limits(),
+    ).unwrap_err()
+    assert_eq(issue.kind, InvalidMilliseconds)
+    assert_eq(issue.path, [@source.Key("step")])
+  }
+  let ds = @parameter.read_declarations(
+    Some(cursor("{\"stride\":{\"type\":\"number\",\"default\":-1}}")),
+    { max_parameters: 10, max_nodes: 100, max_depth: 10, max_text_bytes: 1000, },
+  ).unwrap()
+  let body = cursor(
+    "{\"kind\":\"fixed\",\"time\":\"at\",\"size\":1000,\"step\":{\"$param\":\"stride\"}}",
+  )
+  let input = @carrier.relation(
+    records(Some(@contract.primitive(NumberType, nullable=false))),
+  )
+  assert_eq(
+    @temporal_window.check(body, input, None, limits()).unwrap_err().kind,
+    UnknownParameter("stride"),
+  )
+  let checked = @temporal_window.check(body, input, Some(ds), limits()).unwrap()
+  assert_true(
+    @temporal_window.pending_validations(checked).contains(
+      BindMilliseconds("stride", PositiveMilliseconds),
+    ),
+  )
+  assert_true(
+    @temporal_window.step(@temporal_window.options(checked))
+    is Some(Parameter("stride", duration=false, domain=PositiveMilliseconds)),
+  )
+}
+
+///|
 fn records(
   time : @contract.Contract?,
   open? : Bool = false,
