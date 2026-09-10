@@ -17,6 +17,8 @@ pub fn check(@decode_core.Cursor, @relation_schema.Schema, @relation_schema.Sche
 
 pub fn check_cross(@decode_core.Cursor, @relation_schema.Schema, @relation_schema.Schema, @parameter_binding.Declarations?, Limits) -> Result[CheckedCrossJoin, Issue]
 
+pub fn check_interval(@decode_core.Cursor, @relation_schema.Schema, @relation_schema.Schema, @parameter_binding.Declarations?, Limits) -> Result[CheckedIntervalJoin, Issue]
+
 pub fn cross_input_schema(CheckedCrossJoin, @relation_schema.Side) -> @relation_schema.Schema
 
 pub fn cross_output_guard(CheckedCrossJoin) -> Guard?
@@ -34,6 +36,28 @@ pub fn cross_source(CheckedCrossJoin) -> @decode_core.Cursor
 pub fn cross_usage(CheckedCrossJoin) -> Usage
 
 pub fn input_schema(CheckedJoin, @relation_schema.Side) -> @relation_schema.Schema
+
+pub fn interval_keys(CheckedIntervalJoin) -> Array[KeyPair]
+
+pub fn interval_kind(CheckedIntervalJoin) -> Kind
+
+pub fn interval_mode(CheckedIntervalJoin) -> IntervalMode
+
+pub fn interval_operand(CheckedIntervalJoin, @relation_schema.Side) -> TemporalOperand
+
+pub fn interval_output_guard(CheckedIntervalJoin) -> Guard?
+
+pub fn interval_output_schema(CheckedIntervalJoin) -> @relation_schema.Schema
+
+pub fn interval_pending_validations(CheckedIntervalJoin) -> Array[Obligation]
+
+pub fn interval_projection(CheckedIntervalJoin) -> Array[Projection]?
+
+pub fn interval_source(CheckedIntervalJoin) -> @decode_core.Cursor
+
+pub fn interval_usage(CheckedIntervalJoin) -> Usage
+
+pub fn interval_uses_timestamps(CheckedIntervalJoin) -> Bool
 
 pub fn keys(CheckedJoin) -> Array[KeyPair]
 
@@ -64,11 +88,18 @@ pub(all) enum Cardinality {
 
 type CheckedCrossJoin
 
+type CheckedIntervalJoin
+
 type CheckedJoin
 
 pub(all) enum Guard {
   Literal(Int64)
   Parameter(String)
+} derive(Eq, @debug.Debug)
+
+pub(all) enum IntervalMode {
+  PointInInterval
+  Overlap
 } derive(Eq, @debug.Debug)
 
 pub struct Issue {
@@ -90,6 +121,8 @@ pub(all) enum IssueKind {
   InvalidProjection(String)
   InvalidGuard
   UnknownParameter(String)
+  InvalidTemporalField(@relation_schema.Side, String)
+  MixedTimeDomains
 } derive(Eq, @debug.Debug)
 
 pub struct KeyPair {
@@ -129,6 +162,9 @@ pub(all) enum Obligation {
   ValidateExactlyOneRightRow
   ResolveProductBound
   PreserveLeftMajorProductOrder
+  ValidateIntervalEndpoints
+  ValidateSafeIntegerClocks
+  ResolveSearchWork
 } derive(Eq, @debug.Debug)
 
 pub struct Projection {
@@ -136,6 +172,11 @@ pub struct Projection {
   input : @relation_schema.FieldName
   source : @decode_core.Cursor
 }
+
+pub(all) enum TemporalOperand {
+  Point(@relation_schema.FieldName)
+  Interval(@relation_schema.FieldName, @relation_schema.FieldName)
+} derive(Eq, @debug.Debug)
 
 pub(all) struct Usage {
   work : Int

@@ -3512,6 +3512,17 @@
       }
     },
     {
+      "requirement_id": "actql.language/interval-join.source-shape",
+      "statement_sha256": "a9b8addb761aa9a6f3900a18ecda8a1339975de2ab0d71925510838883d626e0",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "interval-join",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.language/interval-join.bounds",
       "statement_sha256": "55af923ac5d2a525302f1b2498af3eca40c14c33c4830c0ff8ae3d510a709a5d",
       "status": "pending",
@@ -5933,7 +5944,7 @@
     },
     {
       "requirement_id": "actql.language/structural-grammar.grammar",
-      "statement_sha256": "f92fa6d46dc633a48f2b694a2500a006e08a60da63907844aa539a7bab038c69",
+      "statement_sha256": "9b6544cf566db064c027f8a4d3528aac3625ca6c9377b3759379684b77fc4cd8",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",

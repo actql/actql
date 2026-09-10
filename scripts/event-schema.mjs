@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
-import {orderKeys,parameter} from './aggregate-schema.mjs';
+import {orderKeys,parameter,positive,fieldPattern} from './aggregate-schema.mjs';
+import {crossJoinSchema} from './cross-join-schema.mjs';
 import {millisecondsSchema} from './window-schema.mjs';
 import {readFileSync, writeFileSync} from 'node:fs';
 import {resolve} from 'node:path';
@@ -8,8 +9,21 @@ import {parameterPrograms} from './parameter-schema.mjs';
 import {machineCid} from './actql-spec-family.mjs';
 
 export function eventSchemas() {
+  const field = {type:'string',pattern:fieldPattern};
+  const interval = {type:'object',additionalProperties:false,required:['start','end'],properties:{start:field,end:field}};
+  const point = {type:'object',additionalProperties:false,required:['time'],properties:{time:field}};
   const timestamp = {oneOf:[{type:'string',pattern:'^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.[0-9]{3}Z$(?![\\s\\S])'},parameter]};
   return {
+    interval_join: {type:'object',additionalProperties:false,
+      required:['with','kind','mode','on','left','right'],properties:{
+        with:{type:'string',minLength:1},kind:{enum:['inner','left','semi','anti']},
+        mode:{enum:['point_in_interval','overlap']},
+        on:{type:'array',items:{type:'object',additionalProperties:false,
+          required:['left','right'],properties:{left:field,right:field}}},
+        left:{oneOf:[point,interval]},right:interval,
+        select:crossJoinSchema().properties.select,max_output_rows:positive,
+      },allOf:[{if:{properties:{mode:{const:'point_in_interval'}},required:['mode']},
+        then:{properties:{left:point}},else:{properties:{left:interval}}}]},
     time_series: {type:'object',additionalProperties:false,required:['start','end','step'],properties:{
       start:timestamp,end:timestamp,step:millisecondsSchema(),
     }},

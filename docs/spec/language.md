@@ -4303,6 +4303,7 @@ reconciliation. A full variant is possible, but would additionally need a
 closed unmatched-right ordering, identity transfer and coverage contract.
 This restriction is not a claim that full temporal joins are inherently unsafe.
 
+<!-- requirement-block: interval-join.source-shape -->
 The closed body is `{with, kind, mode, on, left, right, select?, max_output_rows?}`.
 `kind` is `inner|left|semi|anti`; `mode` is `point_in_interval|overlap`; `on` is
 a possibly empty equality-key-pair list. `left` is `{time}` for point mode or
@@ -4311,6 +4312,12 @@ of two Relations, not dataflow sources. Each temporal field has the same
 non-null timestamp domain or all use safe-integer UTC milliseconds; explicit
 casts precede mixed-domain joins. Every interval requires start<end, even when
 its equality key matches no row. Null equality keys do not match.
+Each `on` item MUST be exactly `{left: Field, right: Field}`; the list preserves
+authored pair order and repeated pairs without multiplying matches. Empty `on`
+applies temporal matching across the two captured Relations without equality
+partitioning. Ordinary join's single-name or standalone-pair shorthand is not
+part of this body's list grammar. Step `from` selects the left Relation;
+body `left` specifies its temporal fields and does not replace that selection.
 
 Point mode matches r.start<=l.time<r.end. Overlap matches
 l.start<r.end and r.start<l.end. Endpoints are closed-open, so touching intervals
@@ -7183,6 +7190,15 @@ CrossJoinBody := {with: InputOrStepName, right_rows?: one,
   max_output_rows?: PositiveIntegerValue,
   select?: {OutputFieldName: QualifiedJoinField}+}
 QualifiedJoinField := left.Field | right.Field
+IntervalJoinBody := {with: InputOrStepName, kind: inner | left | semi | anti,
+  mode: point_in_interval | overlap, on: [{left: Field, right: Field}, ...] | [],
+  left: {time: Field} | {start: Field, end: Field},
+  right: {start: Field, end: Field},
+  select?: {OutputFieldName: QualifiedJoinField}+,
+  max_output_rows?: PositiveIntegerValue}
+IntervalJoinConstraints := left is exactly {time} in point_in_interval mode,
+  exactly {start,end} in overlap mode; all temporal fields have the same non-null
+  timestamp or safe-integer UTC-millisecond domain; on pair occurrences are retained.
 MillisecondValue := PositiveSafeInteger | PositiveDurationToken | ParamRef
 SignedMillisecondValue := integer number in [-9007199254740991, 9007199254740991]
   | PositiveDurationToken | ParamRef

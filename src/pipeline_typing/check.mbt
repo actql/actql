@@ -271,6 +271,7 @@ fn check_impl(
       | "except"
       | "intersect"
       | "cross_join"
+      | "interval_join"
       | "row_window"
       | "events"
       | "watermark_events"
@@ -652,7 +653,48 @@ fn check_impl(
         )
       }
       None =>
-        if key == "cross_join" {
+        if key == "interval_join" {
+          let obj = match @decode.open_object(operation_body) {
+            Ok(v) => v
+            Err(_) => fail(operation_body, InvalidBody)
+          }
+          let right_source = match @decode.required(obj, "with") {
+            Ok(v) => v
+            Err(_) => fail(operation_body, InvalidBody)
+          }
+          let right = resolve_target(b, right_source, names)
+          let checked = match
+            @join.check_interval(
+              operation_body,
+              schema(operation_body, input, inputs, steps),
+              schema(right_source, right, inputs, steps),
+              parameters,
+              {
+                max_work: b.work,
+                max_text_bytes: b.text,
+                max_nodes: b.nodes,
+                max_depth: limits.max_depth,
+              },
+            ) {
+            Ok(v) => v
+            Err(issue) =>
+              raise Stop({
+                kind: Join(issue.kind),
+                source: issue.source,
+                path: issue.path.copy(),
+                span: issue.span,
+                range: None,
+              })
+          }
+          let used = @join.interval_usage(checked)
+          b.work -= used.work
+          b.text -= used.text_bytes
+          b.nodes -= used.nodes
+          (
+            IntervalJoin(right~, checked~),
+            @join.interval_output_schema(checked),
+          )
+        } else if key == "cross_join" {
           let obj = match @decode.open_object(operation_body) {
             Ok(v) => v
             Err(_) => fail(operation_body, InvalidBody)
@@ -859,7 +901,8 @@ fn check_impl(
         | Append(right~, ..)
         | Nest(right~, ..)
         | Set(right~, ..)
-        | CrossJoin(right~, ..) =>
+        | CrossJoin(right~, ..)
+        | IntervalJoin(right~, ..) =>
           [{ role: Left, target: input, }, { role: Right, target: right, }]
       },
     }

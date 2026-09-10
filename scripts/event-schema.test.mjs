@@ -32,10 +32,27 @@ test('embedded event schemas and identity pins reject drift',()=>{
   const registry=JSON.parse(readFileSync('spec/contracts/actql-protocol-schemas.json'));
   checkEventSchemas(registry);
   for (const index of [0,1]) {
-    for (const name of ['watermark_events','to_events','dedupe_events','session','time_series']) {
+    for (const name of Object.keys(eventSchemas())) {
       const copy=structuredClone(registry);
       parameterPrograms(copy)[index].properties.steps.items.properties[name]={};
       assert.throws(()=>checkEventSchemas(copy));
     }
   }
+});
+
+test('interval joins require closed temporal operands and preserve repeated equality conditions',()=>{
+  const s=eventSchemas().interval_join;
+  assert.deepEqual(s.required,['with','kind','mode','on','left','right']);
+  assert.deepEqual(s.properties.kind.enum,['inner','left','semi','anti']);
+  assert.equal(s.additionalProperties,false);
+  assert.equal(s.properties.on.minItems,undefined);
+  assert.equal(s.properties.on.uniqueItems,undefined);
+  assert.deepEqual(s.properties.on.items.required,['left','right']);
+  assert.equal(s.properties.on.items.additionalProperties,false);
+  assert.deepEqual(s.allOf[0].then.properties.left.required,['time']);
+  assert.deepEqual(s.allOf[0].else.properties.left.required,['start','end']);
+  assert.equal(s.allOf[0].then.properties.left.additionalProperties,false);
+  assert.equal(s.allOf[0].else.properties.left.additionalProperties,false);
+  assert.deepEqual(s.properties.right.required,['start','end']);
+  assert.equal(s.properties.select.minProperties,1);
 });

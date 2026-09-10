@@ -38,6 +38,9 @@ pub(all) enum Obligation {
   ValidateExactlyOneRightRow
   ResolveProductBound
   PreserveLeftMajorProductOrder
+  ValidateIntervalEndpoints
+  ValidateSafeIntegerClocks
+  ResolveSearchWork
 } derive(Eq, Debug)
 
 ///|
@@ -68,6 +71,8 @@ pub(all) enum IssueKind {
   InvalidProjection(String)
   InvalidGuard
   UnknownParameter(String)
+  InvalidTemporalField(@schema.Side, String)
+  MixedTimeDomains
 } derive(Eq, Debug)
 
 ///|
