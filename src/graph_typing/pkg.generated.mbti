@@ -153,6 +153,8 @@ pub fn mean_support(CheckedMeanOptions, EntityKind) -> Double
 
 pub fn mean_usage(CheckedMean) -> Usage
 
+pub fn mean_weight_at(CheckedMeanOptions, Int) -> Double?
+
 pub fn mean_weights(CheckedMeanOptions) -> Array[Double]
 
 pub fn operation(CheckedGraph) -> Operation

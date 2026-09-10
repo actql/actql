@@ -33,6 +33,15 @@ overlapping identities prevent claiming an exact sum. Subtraction and induced
 subgraph retain input upper bounds rather than exact counts. Property matching
 retains the relevant node/edge bound on its Relation output. None of these
 rules treats a diagnostic threshold, selector or policy as observed data.
+`mean_graphs` sums node and edge bounds separately across positive-weight sample
+occurrences, including repeated targets, then retains upper bounds because
+support and endpoint selection may reduce the union. A zero-weight sample cannot
+contribute entities, but its input validation remains required. Unknown extents
+on positive-weight samples remain unknown; completeness is inspected before
+accumulation to avoid overflow in an irrelevant partial sum. The two passes each
+charge one work unit per sample, and indexed weight access avoids copying a list.
+Graph diff, like graph equality, emits exactly one Relation row: the number of
+actions inside its Delta payload is a separate bound, not its output row count.
 
 | Checked operation | Count rule |
 | --- | --- |

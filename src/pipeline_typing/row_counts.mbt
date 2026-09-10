@@ -252,6 +252,48 @@ fn ranking_count(
 }
 
 ///|
+fn mean_graph_count(
+  b : Budget,
+  step : CheckedStep,
+  graphs : Array[GraphCount?],
+  op : @graph.CheckedMean,
+) -> GraphCount raise Stop {
+  let options = @graph.mean_options(op)
+  let entries = step.connections.entries
+  spend(b, step.source, entries.length())
+  let mut known_nodes = true
+  let mut known_edges = true
+  for i in 0..<entries.length() {
+    if @graph.mean_weight_at(options, i).unwrap() == 0.0 {
+      continue
+    }
+    let value = graph_count_at(entries[i].target, graphs)
+    if value.bind(v => v.nodes) is None {
+      known_nodes = false
+    }
+    if value.bind(v => v.edges) is None {
+      known_edges = false
+    }
+  }
+  let mut nodes = if known_nodes { Some(count(0L, true)) } else { None }
+  let mut edges = if known_edges { Some(count(0L, true)) } else { None }
+  spend(b, step.source, entries.length())
+  for i in 0..<entries.length() {
+    if @graph.mean_weight_at(options, i).unwrap() == 0.0 {
+      continue
+    }
+    let value = graph_count_at(entries[i].target, graphs)
+    if known_nodes {
+      nodes = sum_counts(step.source, nodes, value.bind(v => v.nodes))
+    }
+    if known_edges {
+      edges = sum_counts(step.source, edges, value.bind(v => v.edges))
+    }
+  }
+  { nodes: reduce_count(nodes), edges: reduce_count(edges), }
+}
+
+///|
 // Single forward pass over already checked, ordered operand occurrences.
 fn derive_row_counts(
   b : Budget,
@@ -265,6 +307,7 @@ fn derive_row_counts(
     let input = step.input.bind(t => count_at(t, result))
     let graph_input = step.input.bind(t => graph_count_at(t, graphs))
     let graph_output = match step.operation {
+      GraphMean(op) => Some(mean_graph_count(b, step, graphs, op))
       GraphConstruction(nodes~, edges~, ..) => {
         let edges = reduce_count(count_at(edges, result))
         let nodes = match nodes {
@@ -339,7 +382,7 @@ fn derive_row_counts(
           Degree | Components => graph_input.bind(v => v.nodes)
           _ => None
         }
-      GraphEquality(_) => Some(count(1L, true))
+      GraphEquality(_) | GraphDiff(_) => Some(count(1L, true))
       GraphMatch(v) =>
         reduce_count(
           graph_input.bind(g => {

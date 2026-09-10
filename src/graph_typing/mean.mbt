@@ -186,6 +186,12 @@ pub fn mean_weights(c : CheckedMeanOptions) -> Array[Double] {
 }
 
 ///|
+/// Read one admitted sample weight without copying the sample list.
+pub fn mean_weight_at(c : CheckedMeanOptions, index : Int) -> Double? {
+  c.weights.get(index)
+}
+
+///|
 pub fn mean_support(c : CheckedMeanOptions, entity : EntityKind) -> Double {
   match entity {
     Nodes => c.node_support
