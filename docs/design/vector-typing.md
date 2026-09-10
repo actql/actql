@@ -325,6 +325,34 @@ still produces the same product tables; the additional data serves the tokenizer
 and future selected-profile construction. Unicode license notices remain in
 the vendored directory and must be retained when distributing derived tables.
 
+### Selected lexical profile artifact
+
+The [selected artifact](../../portability/profiles/text-rank-unicode16.json)
+uses the closed semantic-artifact representation in Language. This is an
+explicit representation decision for the existing rules, not a reference
+backend format or a new authored option. It binds the five original Unicode
+input/license hashes, complete tokenizer and numerical law descriptors and
+both vector corpora's exact byte CIDs. The complete profile is canonical JSON;
+its SHA-256 CID changes if any embedded law, input pin or vector pin changes.
+Vector whitespace is byte-significant at this artifact boundary, even when
+the decoded expected cases are unchanged.
+
+`generate:text-rank-profile` checks the input pins and vector version/domain
+headers before recreating the profile; it never downloads data or rewrites
+vector expectations. `check:text-rank-profile` verifies exact reproduction
+and negative regression probes. The vector/tokenizer oracles run separately
+before it in `check:vector`, so matching dependency hashes is not substituted
+for checking the fixed expected behavior. Independent Node canonicalization
+also verifies the profile's byte representation.
+
+The fixture establishes a reproducible selection candidate, not a default
+production Check Environment and not an admitted MoonBit Profile. Product
+admission must still receive the independently selected CID and required blobs,
+validate their bounded representation and integrity, and recognize supported
+law descriptors. Until that boundary is implemented and connected,
+`ResolveTextRankProfile` remains pending; this artifact alone cannot discharge
+it or any evaluation/resource obligations.
+
 Fixed-revision searches found no text_rank implementation in Sketch
 `87dc7144138edfcba108cdc59dc485ac976ba976` (src and moonbit/src), no text_rank/BM25
 in AoA `dbab4fe8c1d624d81ed967f90e2abe742163f84f` packages, and none in Smooth

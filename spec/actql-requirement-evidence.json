@@ -4590,6 +4590,39 @@
       }
     },
     {
+      "requirement_id": "actql.language/text-rank.semantic-artifact",
+      "statement_sha256": "a58ae6188d76b034f7bf2ab0d6bfe0fe36072a1fb33bed62d2295ead9cbeb368",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "text-rank",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/text-rank.unicode-input-pins",
+      "statement_sha256": "15da82ff6c573a190673425c7c2e084204115ea2624fe4173f072c245a812706",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "text-rank",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/text-rank.artifact-admission",
+      "statement_sha256": "c488a35f55e8171d58d688bec9560fce2660065525912467b59394f2ea341853",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "text-rank",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.language/candidate-search.acquisition-boundary",
       "statement_sha256": "ef9bf221eabc94ebfd1db16e739c7665df27e83fe7183e542bd92338f7ed47d3",
       "status": "pending",

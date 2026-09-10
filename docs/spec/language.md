@@ -5869,6 +5869,35 @@ Tokenization, corpus statistics, candidate scoring, work and bytes have
 separate resolved ceilings; k alone does not bound scoring work. The profile
 pins tokenizer tables, the complete numerical law and conformance vectors.
 
+<!-- requirement-block: text-rank.semantic-artifact text-rank.unicode-input-pins text-rank.artifact-admission -->
+The selected lexical profile MUST be exact canonical JSON with closed top-level
+shape `{version: "actql-text-rank-profile/0.1", unicode_version: "16.0.0",
+unicode_source_sha256, tokenizer_law, numeric_law, tokenizer_vectors_bytes_cid,
+numeric_vectors_bytes_cid}`. `unicode_source_sha256` MUST contain exactly
+`UnicodeData.txt`, `CompositionExclusions.txt`, `CaseFolding.txt`,
+`NormalizationTest.txt` and `LICENSE.txt`, each with a lowercase 64-hex SHA-256
+of its original bytes. The two vector CIDs are SHA-256 CIDs of their exact
+fixture bytes, not reserialized parsed values. `tokenizer_law` and `numeric_law`
+are the complete closed law descriptors illustrated by the
+[selected Unicode 16 artifact](../../portability/profiles/text-rank-unicode16.json):
+their versions are `actql-text-rank-tokenizers/0.1` and
+`actql-bm25-binary64/0.1`, and their fields encode the normalization, tokenization,
+statistics, binary64 arithmetic and ranking rules above. A different descriptor
+does not select a Host-defined replacement law under the same version.
+
+Check Environment selects the profile's byte CID independently. Admission MUST
+compare the original profile bytes to that pin, reject noncanonical bytes
+without repair, verify every required source/vector byte pin, and reject
+unsupported law descriptors before reporting that profile resolved. Required
+artifacts are locally provided within explicit input byte/node/depth ceilings;
+no ambient Unicode data or implicit download supplies a missing artifact.
+Matching hashes establish selected-byte integrity, not independent provenance
+or evaluator conformance. Profile resolution does not discharge tokenization,
+scoring, uniqueness, resource or publication obligations. These profile bytes
+and dependencies participate in Check Environment identity, not authored
+Program syntax; selecting or updating a profile never changes a source body
+implicitly.
+
 <a id="candidate-search"></a>
 
 ### External ranked acquisition: `search_candidates`

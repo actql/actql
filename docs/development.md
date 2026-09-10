@@ -89,6 +89,11 @@ The checks are read-only:
   tokenizer vectors from pinned source tables, full enumerated NFC/NFKC corpus
   checks and default-fold map regressions for the independent oracle. No Host
   Unicode implementation or product evaluator is used.
+- `check:text-rank-profile` (included in `check:vector`): exact selected-profile
+  reproduction, canonical byte validation and pin/version regressions.
+  `generate:text-rank-profile` refreshes that profile after an intentional input,
+  law or vector change; it does not regenerate the expectations or admit a
+  production Check Environment.
 - `check:canonical`: canonical JSON corpus, existing contract CIDs and generated identity-test freshness.
 - `check:value-contracts`: fixed contract vectors, generated-test freshness and embedded schema consistency.
 - `check:value-admission`: fixed value-admission vectors, generated-test freshness and generator regressions.

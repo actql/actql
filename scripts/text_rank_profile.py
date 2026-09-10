@@ -1,0 +1,108 @@
+"""Reproduce the selected lexical-ranking semantic artifact without network I/O."""
+import argparse
+import hashlib
+import importlib.util
+import json
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+UCD = ROOT / "vendor/unicode/16.0.0"
+OUT = ROOT / "portability/profiles/text-rank-unicode16.json"
+VECTORS = {
+    "numeric_vectors_bytes_cid": ("text-rank-numeric.json", "actql-text-rank-numeric-vectors/0.1"),
+    "tokenizer_vectors_bytes_cid": ("text-rank-tokenizer.json", "actql-text-rank-tokenizer-vectors/0.1"),
+}
+
+TOKENIZER_LAW = {
+    "version": "actql-text-rank-tokenizers/0.1",
+    "normalization": ["NFKC", "full_default_case_fold_C_F", "NFC"],
+    "unicode_version": "16.0.0",
+    "run_start_categories": ["L", "N"],
+    "run_continue_categories": ["L", "N", "M"],
+    "category_matching": "Unicode_general_category_prefix",
+    "other_scalars": "delimiter",
+    "unicode_words": "maximal_runs",
+    "char_bigram": "adjacent_scalar_pairs_per_run_or_singleton",
+    "token_multiplicity": "preserve",
+    "malformed_unicode": "reject",
+    "default_ignorable_removal": False,
+    "host_locale_dictionary_stopwords_synonyms_stemming": False,
+}
+
+NUMERIC_LAW = {
+    "version": "actql-bm25-binary64/0.1",
+    "parameters": {"k1": "finite_positive_binary64", "b": "finite_binary64_in_closed_0_1"},
+    "N": "all_admitted_documents_including_empty",
+    "document_length": "token_count_with_multiplicity",
+    "tf": "term_occurrences_in_document",
+    "df": "documents_containing_term",
+    "average_length": "total_document_token_count / N",
+    "query_terms": "deduplicate_then_canonical_UTF16_order",
+    "idf": "ln(1 + ((N - df) + 0.5) / (df + 0.5))",
+    "norm": "(1 - b) + (b * (document_length / average_length))",
+    "term_score": "idf * ((tf * (k1 + 1)) / (tf + (k1 * norm)))",
+    "rounding": "binary64_nearest_ties_even_after_each_displayed_operation",
+    "logarithm": "correctly_rounded_ln_of_binary64_argument",
+    "fold": "left_fold_from_positive_zero_in_canonical_query_term_order",
+    "missing_term": "zero_without_division",
+    "nonfinite_intermediate": "reject",
+    "empty_corpus_or_all_empty_or_empty_query": "no_rows_without_division_by_zero",
+    "zero_scores": "omit",
+    "order": ["query_id_ascending", "score_descending", "candidate_id_ascending"],
+    "identity_order": "canonical_UTF16",
+    "rank": "contiguous_one_based_after_per_query_top_k",
+    "k": "positive_safe_integer",
+    "duplicate_identities": "reject_before_scoring",
+    "statistics_scope": "actual_admitted_corpus_only",
+}
+
+
+def byte_cid(raw):
+    return "sha256:" + hashlib.sha256(raw).hexdigest()
+
+
+def generate(ucd=UCD, corpus_dir=ROOT / "portability/corpus"):
+    spec = importlib.util.spec_from_file_location("unicode_inputs", ROOT / "scripts/generate-unicode-tables.py")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    manifest = json.loads((ucd / "manifest.json").read_text(encoding="utf-8"))
+    pins = module.validate_manifest(manifest)
+    for name, digest in pins.items():
+        if hashlib.sha256((ucd / name).read_bytes()).hexdigest() != digest:
+            raise ValueError(f"Unicode hash mismatch: {name}")
+    profile = {
+        "version": "actql-text-rank-profile/0.1",
+        "unicode_version": "16.0.0",
+        "unicode_source_sha256": pins,
+        "tokenizer_law": TOKENIZER_LAW,
+        "numeric_law": NUMERIC_LAW,
+    }
+    for field, (name, version) in VECTORS.items():
+        raw = (corpus_dir / name).read_bytes()
+        body = json.loads(raw)
+        if body["version"] != version or not body["cases"]:
+            raise ValueError(f"Invalid vectors: {name}")
+        if "tokenizer" in field and body["unicode_version"] != profile["unicode_version"]:
+            raise ValueError("Tokenizer Unicode version mismatch")
+        profile[field] = byte_cid(raw)
+    # All law strings and keys are ASCII, no numbers require cross-language
+    # spelling, and pins refer to exact source/vector bytes, not parsed models.
+    return json.dumps(profile, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
+
+
+def check(path=OUT):
+    expected = generate()
+    if not path.exists() or path.read_bytes() != expected:
+        raise ValueError(f"Stale or noncanonical text-rank profile: {path}")
+    print("Text-rank profile:", byte_cid(expected))
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--write", action="store_true")
+    args = parser.parse_args()
+    if args.write:
+        expected = generate()
+        OUT.parent.mkdir(parents=True, exist_ok=True)
+        OUT.write_bytes(expected)
+    check()
