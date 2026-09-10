@@ -15,8 +15,31 @@ number/duration Parameters. Source and declaration inspection share finite budge
 
 The machine schema fixes source shape and timestamp spelling, not calendar
 validity, endpoint comparison or Parameter types. Product checking supplies those
-static validations. Bound-value range, arithmetic overflow, exact row-bound
-derivation and resource resolution remain explicit obligations before execution.
+static validations. `known_row_count` exposes an exact conditional count when
+both endpoints and step are literal, or zero for equal literal endpoints even
+when the step still needs binding. The count uses Gregorian UTC milliseconds
+in signed 64-bit integers and quotient/remainder ceiling division; it does not
+add a potentially large step to the duration. The full admitted timestamp range
+fits below 2^49 milliseconds. Year 0000 and century leap rules are included.
+Fixed boundary expectations were independently checked against ECMAScript UTC
+Date parsing, not derived from the MoonBit implementation.
+
+An unknown count retains `ResolveRowBound`; defaults are never substituted.
+A known count does not discharge binding, positive-step validation, checked
+arithmetic or resource obligations. Empty intervals still require valid bound
+arguments. Output contract construction and constant-time count derivation
+are charged during check, and repeated `output` access shares the same immutable
+contract instead of constructing unrelated schema handles.
+
+`relation_evidence.time_series_keys` creates the specified `time` candidate-key
+witness from the opaque checked generator. `TimeSeriesResult` and
+`key_time_series_producer` retain its source, arguments, known count and pending
+requirements. The pipeline supplies that witness through later exact projection
+and Calendar-bucket transfers to identity completion. No input declaration is
+fabricated, including for an empty series. Ordinary timestamp columns alone do
+not authorize this proof. `ValidateKeyProducer` remains pending.
+
 No generator rows are materialized here, and this checker does not establish
-source coverage or observed absence. Candidate-key and order evidence require
-the pipeline's validated proof boundary; a typed output is not that proof.
+source coverage or observed absence. Logical-order and shared row-bound
+propagation remain separate work; a typed output or local count is not proof
+that the complete pipeline's execution resources are resolved.

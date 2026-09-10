@@ -151,6 +151,10 @@ origins. `advance_calendar_keys` creates the series start key or transfers bucke
 input witnesses. `transfer_calendar_keys` is the bucket-only entry and refuses
 generators or unrelated inputs. Both retain the original producer through later
 transfers and keep `ValidateKeyProducer` pending.
+Fixed-duration grids similarly use `TimeSeriesResult`, `time_series_keys` and
+`key_time_series_producer`; their `time` field is the conditional candidate key.
+The retained checked series also exposes its statically known row count when
+available, without claiming downstream cardinality or source coverage.
 For a produced key, `declared_records` and `declared_key_field_at` describe its
 original producer output, not an upstream input primary-key declaration.
 `key_pending` returns `ValidateKeyProducer`: consumers must retain that producer's

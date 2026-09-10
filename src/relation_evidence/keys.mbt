@@ -54,12 +54,14 @@ pub(all) enum KeyOrigin {
   UniqueAssertion
   PivotResult
   CalendarSeriesResult
+  TimeSeriesResult
 } derive(Eq, Debug)
 
 ///|
 priv enum KeyProducer {
   RelationProducer(@relation.CheckedOperation)
   CalendarProducer(@calendar.CheckedCalendar)
+  TimeSeriesProducer(@series.CheckedSeries)
 }
 
 ///|
@@ -241,6 +243,14 @@ pub fn key_producer(c : KeyedRelation) -> @relation.CheckedOperation? {
 pub fn key_calendar_producer(c : KeyedRelation) -> @calendar.CheckedCalendar? {
   match c.producer {
     Some(CalendarProducer(op)) => Some(op)
+    _ => None
+  }
+}
+
+///|
+pub fn key_time_series_producer(c : KeyedRelation) -> @series.CheckedSeries? {
+  match c.producer {
+    Some(TimeSeriesProducer(op)) => Some(op)
     _ => None
   }
 }

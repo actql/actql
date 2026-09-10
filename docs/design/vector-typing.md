@@ -119,7 +119,7 @@ The original admission tuple order remains available for input validation.
 
 Pool and nearest key-completion handles may also originate from checked
 operations, not only local-input declarations. Consumers inspect `key_origin`
-and the matching `key_producer` or `key_calendar_producer`:
+and the matching `key_producer`, `key_calendar_producer` or `key_time_series_producer`:
 `ValidateKeyProducer` retains the producing operation's
 obligations instead of authorizing input duplicate normalization on its output.
 

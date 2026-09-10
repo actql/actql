@@ -9,6 +9,7 @@ import {
   "actql/actql/relation_typing",
   "actql/actql/source_span",
   "actql/actql/source_value",
+  "actql/actql/time_series",
   "actql/actql/value_contract",
   "moonbitlang/core/debug",
 }
@@ -48,6 +49,8 @@ pub fn key_set_usage(KeySet) -> (Int, Int)
 
 pub fn key_source(KeyedRelation) -> @decode_core.Cursor
 
+pub fn key_time_series_producer(KeyedRelation) -> @time_series.CheckedSeries?
+
 pub fn key_usage(KeyedRelation) -> Usage
 
 pub fn key_witness_at(KeySet, Int) -> KeyedRelation?
@@ -61,6 +64,8 @@ pub fn select_key(@decode_core.Cursor, KeySet, KeyUse, TransferLimits) -> Result
 pub fn select_sole_string_key(@decode_core.Cursor, KeySet, TransferLimits) -> Result[KeySelection, Issue]
 
 pub fn singleton_key(KeyedRelation) -> KeySet
+
+pub fn time_series_keys(@time_series.CheckedSeries, TransferLimits) -> Result[KeySetTransfer, Issue]
 
 pub fn transfer_calendar_keys(KeySet, @calendar_typing.CheckedCalendar, TransferLimits) -> Result[KeySetTransfer, Issue]
 
@@ -110,6 +115,7 @@ pub(all) enum KeyOrigin {
   UniqueAssertion
   PivotResult
   CalendarSeriesResult
+  TimeSeriesResult
 } derive(Eq, @debug.Debug)
 
 pub struct KeySelection {

@@ -51,6 +51,8 @@ pub(all) struct Usage {
 
 ///|
 struct CheckedSeries {
+  output : @carrier.Carrier
+  row_count : Int64?
   source : @decode.Cursor
   start : Endpoint
   end : Endpoint
@@ -153,7 +155,16 @@ pub fn check(
     b.work -= u.work
     b.nodes -= u.nodes
     b.text -= u.text_bytes
+    spend(b, source, 2)
+    charge(b, source, "time")
+    if b.nodes < 1 {
+      fail(source, BudgetExceeded)
+    }
+    b.nodes -= 1
+    let output = output_contract()
     Ok({
+      output,
+      row_count: known_count(start, end, @temporal.milliseconds_value(step)),
       source,
       start,
       end,
@@ -195,7 +206,7 @@ pub fn usage(v : CheckedSeries) -> Usage {
 }
 
 ///|
-pub fn output(_v : CheckedSeries) -> @carrier.Carrier {
+fn output_contract() -> @carrier.Carrier {
   @carrier.relation(
     @carrier.rows(
       [
@@ -212,13 +223,20 @@ pub fn output(_v : CheckedSeries) -> @carrier.Carrier {
 }
 
 ///|
+pub fn output(v : CheckedSeries) -> @carrier.Carrier {
+  v.output
+}
+
+///|
 pub fn pending_validations(v : CheckedSeries) -> Array[Obligation] {
   let pending : Array[Obligation] = [
     ValidateRange,
     CheckedArithmetic,
-    ResolveRowBound,
     ResolveResources,
   ]
+  if v.row_count is None {
+    pending.push(ResolveRowBound)
+  }
   for value in [v.start, v.end] {
     if value is Parameter(name) {
       pending.push(BindTimestamp(name))

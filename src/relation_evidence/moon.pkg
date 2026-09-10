@@ -1,6 +1,7 @@
 supported_targets = "+js+wasm+native"
 
 import {
+  "actql/actql/time_series" @series,
   "actql/actql/calendar_typing" @calendar,
   "actql/actql/canonical_value" @canonical,
   "actql/actql/relation_typing" @relation,

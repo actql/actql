@@ -16,6 +16,8 @@ pub fn check(@decode_core.Cursor, @parameter_binding.Declarations?, Limits) -> R
 
 pub fn end(CheckedSeries) -> Endpoint
 
+pub fn known_row_count(CheckedSeries) -> Int64?
+
 pub fn output(CheckedSeries) -> @carrier_contract.Carrier
 
 pub fn pending_validations(CheckedSeries) -> Array[Obligation]

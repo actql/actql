@@ -75,7 +75,7 @@ their original admission requirements. An already sufficient authored list still
 retains the supporting right-key declaration without inventing added terms.
 
 For an operation-established key, `key_origin` and the corresponding
-`key_producer` or `key_calendar_producer` identify the original producer;
+`key_producer`, `key_calendar_producer` or `key_time_series_producer` identify the original producer;
 `ValidateKeyProducer` retains its obligations. Such a key
 is not relabeled as a local-input declaration or permission to normalize away
 duplicate producer output rows.
