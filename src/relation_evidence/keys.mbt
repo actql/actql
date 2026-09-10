@@ -55,6 +55,7 @@ pub(all) enum KeyOrigin {
   PivotResult
   CalendarSeriesResult
   TimeSeriesResult
+  VectorProjectionResult
 } derive(Eq, Debug)
 
 ///|
@@ -62,6 +63,7 @@ priv enum KeyProducer {
   RelationProducer(@relation.CheckedOperation)
   CalendarProducer(@calendar.CheckedCalendar)
   TimeSeriesProducer(@series.CheckedSeries)
+  VectorProjectionProducer(@projection.CheckedProjection)
 }
 
 ///|
@@ -216,6 +218,14 @@ pub fn key_usage(c : KeyedRelation) -> Usage {
 
 ///|
 pub fn key_pending(c : KeyedRelation) -> Array[KeyObligation] {
+  if c.producer is Some(VectorProjectionProducer(_)) {
+    return [
+      ValidateKeyProducer,
+      AdmitPresentNonNullComparableComponents,
+      ValidateWholeTupleUniquenessAfterInputNormalization,
+      RevalidateReferenceComponents,
+    ]
+  }
   if c.producer is Some(_) {
     return [ValidateKeyProducer]
   }
@@ -251,6 +261,16 @@ pub fn key_calendar_producer(c : KeyedRelation) -> @calendar.CheckedCalendar? {
 pub fn key_time_series_producer(c : KeyedRelation) -> @series.CheckedSeries? {
   match c.producer {
     Some(TimeSeriesProducer(op)) => Some(op)
+    _ => None
+  }
+}
+
+///|
+pub fn key_vector_projection_producer(
+  c : KeyedRelation,
+) -> @projection.CheckedProjection? {
+  match c.producer {
+    Some(VectorProjectionProducer(op)) => Some(op)
     _ => None
   }
 }

@@ -4,6 +4,7 @@ package "actql/actql/relation_evidence"
 import {
   "actql/actql/calendar_typing",
   "actql/actql/carrier_contract",
+  "actql/actql/carrier_projection",
   "actql/actql/decode_core",
   "actql/actql/relation_schema",
   "actql/actql/relation_typing",
@@ -53,6 +54,8 @@ pub fn key_time_series_producer(KeyedRelation) -> @time_series.CheckedSeries?
 
 pub fn key_usage(KeyedRelation) -> Usage
 
+pub fn key_vector_projection_producer(KeyedRelation) -> @carrier_projection.CheckedProjection?
+
 pub fn key_witness_at(KeySet, Int) -> KeyedRelation?
 
 pub fn key_witness_count(KeySet) -> Int
@@ -74,6 +77,8 @@ pub fn transfer_calendar_keys(KeySet, @calendar_typing.CheckedCalendar, Transfer
 pub fn transfer_keys(KeySet, @relation_typing.CheckedOperation, TransferLimits) -> Result[KeySetTransfer, Issue]
 
 pub fn transfer_unary(KeyedRelation, @relation_typing.CheckedOperation, TransferLimits) -> Result[Transfer, Issue]
+
+pub fn vector_projection_keys(@carrier_projection.CheckedProjection, TransferLimits) -> Result[KeySetTransfer, Issue]
 
 // Errors
 
@@ -118,6 +123,7 @@ pub(all) enum KeyOrigin {
   PivotResult
   CalendarSeriesResult
   TimeSeriesResult
+  VectorProjectionResult
 } derive(Eq, @debug.Debug)
 
 pub struct KeySelection {
