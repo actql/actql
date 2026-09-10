@@ -1,0 +1,7 @@
+supported_targets = "+js+wasm+native"
+
+import {
+  "actql/actql/value_contract" @contract,
+  "actql/actql/canonical_value" @canonical,
+  "actql/actql/decode_scalar" @scalar,
+}

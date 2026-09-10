@@ -169,18 +169,15 @@ fn check_impl(
       Some(v) => v
       None => {
         let c = @pipeline.schema_at(pipeline, target).unwrap()
-        contract_preflight(b, from, c)
+        // The current pipeline admits flat Relation schemas only. Keep the
+        // row-contract adapter explicit; qualified operation support is separate.
+        contract_preflight(b, from, @schema.as_object(c).unwrap())
         let fields : Map[String, @contract.Contract] = Map([])
-        match c.shape {
-          @contract.Object(fs) => {
-            let n = @contract.field_count(fs)
-            spend(b, from, n)
-            for i in 0..<n {
-              let f = @contract.field_at(fs, i).unwrap()
-              fields[f.name] = f.contract
-            }
-          }
-          _ => fail(from, InvalidBody)
+        let n = @schema.field_count(c)
+        spend(b, from, n)
+        for i in 0..<n {
+          let f = @schema.field_at(c, i).unwrap()
+          fields[@schema.reference_name(f.name)] = f.contract
         }
         cache[id] = fields
         fields
@@ -257,7 +254,7 @@ fn check_impl(
       name,
       source,
       target,
-      schema: output,
+      schema: @schema.from_object(output).unwrap(),
       fields: output_names,
       order,
       metadata: meta,

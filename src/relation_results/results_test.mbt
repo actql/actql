@@ -42,7 +42,7 @@ fn pipeline() -> @pipeline.CheckedPipeline {
     cursor(
       "[{\"select\":[\"id\"],\"as\":\"ids\"},{\"derive\":{},\"from\":\"rows\"}]",
     ),
-    [("rows", input())],
+    [("rows", @schema.from_object(input()).unwrap())],
     None,
     None,
     {
@@ -88,14 +88,20 @@ test "order domains follow AuthorOrderable rather than canonical ordering" {
       ),
       { max_nodes: 100, max_depth: 20, max_text_bytes: 10000, },
     ).unwrap()
-    let p = @pipeline.check(cursor("[]"), [("rows", c)], None, None, {
-      max_steps: 10,
-      max_work: 10000,
-      max_nodes: 10000,
-      max_text_bytes: 10000,
-      max_tokens: 100,
-      max_depth: 100,
-    }).unwrap()
+    let p = @pipeline.check(
+      cursor("[]"),
+      [("rows", @schema.from_object(c).unwrap())],
+      None,
+      None,
+      {
+        max_steps: 10,
+        max_work: 10000,
+        max_nodes: 10000,
+        max_text_bytes: 10000,
+        max_tokens: 100,
+        max_depth: 100,
+      },
+    ).unwrap()
     let r = @relation_results.check(
       p,
       cursor(
@@ -381,7 +387,7 @@ test "pipeline schema access is bounds checked without exposing input storage" {
   assert_true(@pipeline.schema_at(p, Step(2)) is None)
   assert_true(
     @contract.type_equal(
-      @pipeline.schema_at(p, Input(0)).unwrap(),
+      @schema.as_object(@pipeline.schema_at(p, Input(0)).unwrap()).unwrap(),
       input(),
       1000,
     ),

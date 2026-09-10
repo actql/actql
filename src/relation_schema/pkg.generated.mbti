@@ -1,0 +1,56 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/relation_schema"
+
+import {
+  "actql/actql/value_contract",
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn as_object(Schema) -> @value_contract.Contract?
+
+pub fn field_at(Schema, Int) -> Field?
+
+pub fn field_count(Schema) -> Int
+
+pub fn fields(Schema) -> Array[Field]
+
+pub fn from_fields(Array[(FieldName, @value_contract.Contract)], max_fields~ : Int, max_name_bytes~ : Int) -> Result[Schema, Issue]
+
+pub fn from_object(@value_contract.Contract) -> Result[Schema, Issue]
+
+pub fn lookup(Schema, FieldName) -> @value_contract.Contract?
+
+pub fn reference_name(FieldName) -> String
+
+// Errors
+
+// Types and methods
+pub struct Field {
+  name : FieldName
+  contract : @value_contract.Contract
+}
+
+pub(all) enum FieldName {
+  Unqualified(String)
+  Qualified(Side, String)
+} derive(Eq, @debug.Debug)
+
+pub(all) enum Issue {
+  InvalidRowContract
+  InvalidLimits
+  LimitExceeded
+  DuplicateField(FieldName)
+  InvalidField(FieldName, @value_contract.ConstructionIssue)
+} derive(Eq, @debug.Debug)
+
+type Schema
+
+pub(all) enum Side {
+  Left
+  Right
+} derive(Eq, @debug.Debug)
+
+// Type aliases
+
+// Traits

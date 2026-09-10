@@ -5,7 +5,8 @@ import {
   "actql/actql/decode_scalar" @scalar,
   "actql/actql/source_span" @span,
   "actql/actql/value_contract" @contract,
-  "actql/actql/relation_pipeline" @pipeline,
+  "actql/actql/relation_schema" @schema,
+  "actql/actql/pipeline_typing" @pipeline,
   "actql/actql/canonical_value" @canonical,
 }
 

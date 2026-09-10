@@ -1,6 +1,6 @@
-# Relation pipeline type checking
+# Pipeline type checking
 
-`relation_pipeline.check` connects an ordered array of steps using the
+`pipeline_typing.check` connects an ordered array of steps using the
 [pipeline naming rules](../spec/language.md#pipeline-references) and the
 [single-operation checker](relation-typing.md). It supports only `derive`,
 `filter`, `select`, `rename`, and `drop`. Other operation names are explicitly
@@ -9,12 +9,25 @@ unsupported; no step is skipped or treated as an opaque successful operation.
 ## Inputs and scope
 
 The caller supplies an owned, source-normalized steps cursor, a list of
-materialized input names and complete non-null object contracts, optional
+materialized input names and complete [Relation schemas](relation-schema.md), optional
 Parameter declarations, an optional cursor for stage-level `from`, and limits.
 Input names must already be NFC/LF and well-formed Unicode, with nonempty
 contents. They are dataflow names, not field names or Parameter identifiers.
 Input order only defines the returned `Input(index)` coordinates; it never
 selects an ambiguous current input. The input list is copied.
+
+Inputs and outputs use `relation_schema.Schema`, not ordinary object value
+contracts. `relation_schema.from_object` adapts an already checked non-null
+object contract. The current operation checker accepts only flat schemas;
+any supplied qualified schema fails with `UnsupportedInputSchema`, even if
+unused. This is an implementation boundary, not a language prohibition.
+The five unary operation checks still use `relation_typing` through the explicit
+`as_object` adapter. No dotted names are added to ordinary object contracts.
+
+The package owns shared naming, connection, budget and diagnostic rules; its
+current checked steps still have one input and one output and require a final
+current. Join, multiple input/output ports, generators and non-Relation Carriers
+are not implemented. The package name does not imply support for those cases.
 
 SourceView acquisition, Catalog/authority checks, Carrier resolution, search
 template classification and stage imports belong to callers. Search templates
@@ -40,10 +53,10 @@ keys are ordinary data. Metadata traversal is iterative and budgeted.
 ## Retained result and diagnostics
 
 The opaque result retains source, the optional authored stage selector,
-input contracts, Parameter declarations,
-checked steps, the final current target and output contract. A step retains its
+input schemas, Parameter declarations,
+checked steps, the final current target and output schema. A step retains its
 source, explicit binding name, metadata cursor, checked operation and exact
-`Input(index)` or `Step(index)` edge. These indices are local storage coordinates,
+`Input(index)` or `Step(index)` edge and its output schema. These indices are local storage coordinates,
 not generated names, stable semantic identities or an AoA graph. `lookup`
 resolves authored dataflow names without rescanning steps.
 

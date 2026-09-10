@@ -27,7 +27,11 @@ fn corpus_accepted(
     max_name_bytes=10000,
   ).unwrap()
   assert_true(
-    @contract.type_equal(@relation_results.output_schema(r), expected, 10000),
+    @contract.type_equal(
+      @schema.as_object(@relation_results.output_schema(r)).unwrap(),
+      expected,
+      10000,
+    ),
   )
   match order {
     None => assert_true(@relation_results.order_by(r) is None)

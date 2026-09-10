@@ -1,11 +1,11 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { readFileSync } from 'node:fs';
-import { generate } from './check-relation-pipeline.mjs';
+import { generate } from './check-pipeline-typing.mjs';
 const fixture = () => JSON.parse(readFileSync('portability/corpus/actql-relation-pipeline-v0.1.json', 'utf8'));
 test('pipeline generation preserves fixed expectations and source escaping', () => {
   const c = fixture(), copy = structuredClone(c);
-  assert.equal(generate(c), readFileSync('src/relation_pipeline/corpus.generated_test.mbt','utf8'));
+  assert.equal(generate(c), readFileSync('src/pipeline_typing/corpus.generated_test.mbt','utf8'));
   assert.deepEqual(c, copy);
   assert.match(generate(c), /__proto__/);
   assert.match(generate(c), /\\u\{e9\}/);

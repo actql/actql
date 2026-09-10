@@ -1,7 +1,7 @@
 # Relation Result definition checking
 
 `relation_results.check` consumes a retained
-[`relation_pipeline.CheckedPipeline`](relation-pipeline.md), a normalized owned
+[`pipeline_typing.CheckedPipeline`](pipeline-typing.md), a normalized owned
 cursor for a nonempty stage-local `results` map and limits. It checks names,
 projection and authored ordering types under
 [Named Results](../spec/language.md#results-and-delivery) and
@@ -20,8 +20,15 @@ Names are nonempty, source-normalized strings, not Parameter identifiers.
 
 `fields` is a nonempty list of distinct existing field names, not select alias
 maps. Its order is retained independently of the canonical ordering of the
-output object contract. The exact selected field contracts and nullability are
+output Relation schema. The exact selected field contracts and nullability are
 preserved. Whole-Program root exports are outside this API.
+
+The public output is `relation_schema.Schema`. The current pipeline accepts
+only flat Relation schemas, so Result checking explicitly adapts these to
+ordinary object contracts for preflight and constructs a flat projected schema.
+Qualified field projection is not implemented yet; its support must accompany
+the pipeline's qualified operation support. No qualified names are silently
+flattened or admitted as authored object field names.
 
 Optional `order_by` is nonempty. Each key follows the closed grammar:
 `{Field: asc|desc}` or `{field, dir, nulls}`. The explicit form requires

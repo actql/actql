@@ -70,7 +70,7 @@ struct ResultDefinition {
   name : String
   source : @decode.Cursor
   target : @pipeline.Target
-  schema : @contract.Contract
+  schema : @schema.Schema
   fields : Array[String]
   order : Array[OrderKey]?
   metadata : @decode.Cursor?
@@ -135,7 +135,7 @@ pub fn target(value : ResultDefinition) -> @pipeline.Target {
 }
 
 ///|
-pub fn output_schema(value : ResultDefinition) -> @contract.Contract {
+pub fn output_schema(value : ResultDefinition) -> @schema.Schema {
   value.schema
 }
 

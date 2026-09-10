@@ -1,33 +1,33 @@
 // Generated using `moon info`, DON'T EDIT IT
-package "actql/actql/relation_pipeline"
+package "actql/actql/pipeline_typing"
 
 import {
   "actql/actql/decode_core",
   "actql/actql/expression_text",
   "actql/actql/parameter_binding",
+  "actql/actql/relation_schema",
   "actql/actql/relation_typing",
   "actql/actql/source_span",
   "actql/actql/source_value",
-  "actql/actql/value_contract",
   "moonbitlang/core/debug",
 }
 
 // Values
-pub fn check(@decode_core.Cursor, Array[(String, @value_contract.Contract)], @parameter_binding.Declarations?, @decode_core.Cursor?, Limits) -> Result[CheckedPipeline, Issue]
+pub fn check(@decode_core.Cursor, Array[(String, @relation_schema.Schema)], @parameter_binding.Declarations?, @decode_core.Cursor?, Limits) -> Result[CheckedPipeline, Issue]
 
 pub fn current(CheckedPipeline) -> Target
 
 pub fn initial_from(CheckedPipeline) -> @decode_core.Cursor?
 
-pub fn inputs(CheckedPipeline) -> Array[(String, @value_contract.Contract)]
+pub fn inputs(CheckedPipeline) -> Array[(String, @relation_schema.Schema)]
 
 pub fn lookup(CheckedPipeline, String) -> Target?
 
-pub fn output_schema(CheckedPipeline) -> @value_contract.Contract
+pub fn output_schema(CheckedPipeline) -> @relation_schema.Schema
 
 pub fn parameters(CheckedPipeline) -> @parameter_binding.Declarations?
 
-pub fn schema_at(CheckedPipeline, Target) -> @value_contract.Contract?
+pub fn schema_at(CheckedPipeline, Target) -> @relation_schema.Schema?
 
 pub fn source(CheckedPipeline) -> @decode_core.Cursor
 
@@ -48,6 +48,7 @@ pub struct CheckedStep {
   binding_name : String?
   metadata : @decode_core.Cursor?
   operation : @relation_typing.CheckedOperation
+  output : @relation_schema.Schema
 }
 
 pub struct Issue {
@@ -62,7 +63,7 @@ pub(all) enum IssueKind {
   InvalidLimits
   BudgetExceeded
   InvalidBody
-  InvalidInputSchema(String)
+  UnsupportedInputSchema(String)
   InvalidName(String)
   DuplicateName(String)
   UnknownName(String)

@@ -1,5 +1,5 @@
 ///|
-fn target(value : @relation_pipeline.Target) -> String {
+fn target(value : @pipeline_typing.Target) -> String {
   match value {
     Input(i) => "input:" + i.to_string()
     Step(i) => "step:" + i.to_string()
@@ -15,17 +15,17 @@ fn corpus_accepted(
   edges : Array[String],
   fields : Array[String],
 ) -> Unit raise {
-  let p = @relation_pipeline.check(
+  let p = @pipeline_typing.check(
     cursor(source),
     names.map(n => (n, schema())),
     None,
     from.map(cursor),
     limits(),
   ).unwrap()
-  assert_eq(target(@relation_pipeline.current(p)), current)
-  assert_eq(@relation_pipeline.step_count(p), edges.length())
+  assert_eq(target(@pipeline_typing.current(p)), current)
+  assert_eq(@pipeline_typing.step_count(p), edges.length())
   for i in 0..<edges.length() {
-    assert_eq(target(@relation_pipeline.step_at(p, i).unwrap().input), edges[i])
+    assert_eq(target(@pipeline_typing.step_at(p, i).unwrap().input), edges[i])
   }
   let expected = @contract.object_contract(
     fields.map(name => {
@@ -41,7 +41,11 @@ fn corpus_accepted(
     max_name_bytes=10000,
   ).unwrap()
   assert_true(
-    @contract.type_equal(@relation_pipeline.output_schema(p), expected, 1000),
+    @contract.type_equal(
+      @schema.as_object(@pipeline_typing.output_schema(p)).unwrap(),
+      expected,
+      1000,
+    ),
   )
 }
 
@@ -52,7 +56,7 @@ fn corpus_rejected(
   from : String?,
   issue : String,
 ) -> Unit raise {
-  let result = @relation_pipeline.check(
+  let result = @pipeline_typing.check(
     cursor(source),
     names.map(n => (n, schema())),
     None,

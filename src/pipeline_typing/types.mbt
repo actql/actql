@@ -28,7 +28,7 @@ pub(all) enum IssueKind {
   InvalidLimits
   BudgetExceeded
   InvalidBody
-  InvalidInputSchema(String)
+  UnsupportedInputSchema(String)
   InvalidName(String)
   DuplicateName(String)
   UnknownName(String)
@@ -55,17 +55,18 @@ pub struct CheckedStep {
   binding_name : String?
   metadata : @decode.Cursor?
   operation : @relation.CheckedOperation
+  output : @schema.Schema
 }
 
 ///|
 struct CheckedPipeline {
   source : @decode.Cursor
   initial_from : @decode.Cursor?
-  inputs : Array[(String, @contract.Contract)]
+  inputs : Array[(String, @schema.Schema)]
   steps : Array[CheckedStep]
   names : Map[String, Target]
   current : Target
-  output : @contract.Contract
+  output : @schema.Schema
   parameters : @parameter.Declarations?
   usage : Usage
 }
@@ -81,7 +82,7 @@ pub fn initial_from(value : CheckedPipeline) -> @decode.Cursor? {
 }
 
 ///|
-pub fn inputs(value : CheckedPipeline) -> Array[(String, @contract.Contract)] {
+pub fn inputs(value : CheckedPipeline) -> Array[(String, @schema.Schema)] {
   value.inputs.copy()
 }
 
@@ -110,17 +111,14 @@ pub fn current(value : CheckedPipeline) -> Target {
 }
 
 ///|
-pub fn output_schema(value : CheckedPipeline) -> @contract.Contract {
+pub fn output_schema(value : CheckedPipeline) -> @schema.Schema {
   value.output
 }
 
 ///|
 /// Checked lookup without copying the input list. Coordinates remain local to
 /// this pipeline and carry no authority outside it.
-pub fn schema_at(
-  value : CheckedPipeline,
-  target : Target,
-) -> @contract.Contract? {
+pub fn schema_at(value : CheckedPipeline, target : Target) -> @schema.Schema? {
   match target {
     Input(i) =>
       if i < 0 || i >= value.inputs.length() {
@@ -132,7 +130,7 @@ pub fn schema_at(
       if i < 0 || i >= value.steps.length() {
         None
       } else {
-        Some(@relation.output_schema(value.steps[i].operation))
+        Some(value.steps[i].output)
       }
   }
 }
@@ -244,11 +242,11 @@ fn preflight(
 ///|
 fn schema(
   target : Target,
-  inputs : Array[(String, @contract.Contract)],
+  inputs : Array[(String, @schema.Schema)],
   steps : Array[CheckedStep],
-) -> @contract.Contract {
+) -> @schema.Schema {
   match target {
     Input(i) => inputs[i].1
-    Step(i) => @relation.output_schema(steps[i].operation)
+    Step(i) => steps[i].output
   }
 }

@@ -51,7 +51,7 @@ fn metadata(b : Budget, root : @decode.Cursor) -> Unit raise Stop {
 ///|
 fn check_impl(
   source : @decode.Cursor,
-  supplied_inputs : Array[(String, @contract.Contract)],
+  supplied_inputs : Array[(String, @schema.Schema)],
   parameters : @parameter.Declarations?,
   from : @decode.Cursor?,
   limits : Limits,
@@ -82,13 +82,14 @@ fn check_impl(
   let inputs = supplied_inputs.copy()
   let names : Map[String, Target] = Map([])
   for i in 0..<inputs.length() {
-    let (key, contract) = inputs[i]
+    let (key, schema) = inputs[i]
     name(b, source, key)
     if names.contains(key) {
       fail(source, DuplicateName(key))
     }
-    if contract.nullable || !(contract.shape is @contract.Object(_)) {
-      fail(source, InvalidInputSchema(key))
+    let contract = match @schema.as_object(schema) {
+      Some(c) => c
+      None => fail(source, UnsupportedInputSchema(key))
     }
     preflight(b, source, contract)
     names[key] = Input(i)
@@ -179,7 +180,7 @@ fn check_impl(
       @relation.check(
         op,
         @decode.lookup(object, key).unwrap(),
-        schema(input, inputs, steps),
+        @schema.as_object(schema(input, inputs, steps)).unwrap(),
         parameters,
         {
           max_work: b.work,
@@ -210,6 +211,7 @@ fn check_impl(
       binding_name,
       metadata: meta,
       operation: checked,
+      output: @schema.from_object(@relation.output_schema(checked)).unwrap(),
     })
     if binding_name is Some(key) {
       names[key] = target
@@ -243,7 +245,7 @@ fn check_impl(
 /// Source is the normalized steps array; from is the optional stage selector.
 pub fn check(
   source : @decode.Cursor,
-  inputs : Array[(String, @contract.Contract)],
+  inputs : Array[(String, @schema.Schema)],
   parameters : @parameter.Declarations?,
   from : @decode.Cursor?,
   limits : Limits,

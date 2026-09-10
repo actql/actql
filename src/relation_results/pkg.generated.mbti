@@ -3,15 +3,15 @@ package "actql/actql/relation_results"
 
 import {
   "actql/actql/decode_core",
-  "actql/actql/relation_pipeline",
+  "actql/actql/pipeline_typing",
+  "actql/actql/relation_schema",
   "actql/actql/source_span",
   "actql/actql/source_value",
-  "actql/actql/value_contract",
   "moonbitlang/core/debug",
 }
 
 // Values
-pub fn check(@relation_pipeline.CheckedPipeline, @decode_core.Cursor, Limits) -> Result[CheckedResults, Issue]
+pub fn check(@pipeline_typing.CheckedPipeline, @decode_core.Cursor, Limits) -> Result[CheckedResults, Issue]
 
 pub fn count(CheckedResults) -> Int
 
@@ -27,17 +27,17 @@ pub fn name(ResultDefinition) -> String
 
 pub fn order_by(ResultDefinition) -> Array[OrderKey]?
 
-pub fn output_schema(ResultDefinition) -> @value_contract.Contract
+pub fn output_schema(ResultDefinition) -> @relation_schema.Schema
 
 pub fn pending_validations(ResultDefinition) -> Array[Obligation]
 
-pub fn pipeline(CheckedResults) -> @relation_pipeline.CheckedPipeline
+pub fn pipeline(CheckedResults) -> @pipeline_typing.CheckedPipeline
 
 pub fn result_at(CheckedResults, Int) -> ResultDefinition?
 
 pub fn source(CheckedResults) -> @decode_core.Cursor
 
-pub fn target(ResultDefinition) -> @relation_pipeline.Target
+pub fn target(ResultDefinition) -> @pipeline_typing.Target
 
 pub fn usage(CheckedResults) -> Usage
 

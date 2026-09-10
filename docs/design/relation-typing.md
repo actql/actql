@@ -67,7 +67,7 @@ independent physical or publication column-order witness. They do not infer
 Result publication order. A caller can pass the output schema to another
 single-operation check, but that is not whole-pipeline admission or proof
 propagation.
-The [Relation pipeline checker](relation-pipeline.md) composes these checks
+The [Relation pipeline checker](pipeline-typing.md) composes these checks
 with step naming and cumulative limits. `nodes_used` and `tokens_used` expose
 the operation's consumed syntax/type nodes and expression tokens alongside
 the existing work/text counters; retained source trees have separate costs.

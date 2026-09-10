@@ -1,5 +1,5 @@
 ///|
-fn limits() -> @relation_pipeline.Limits {
+fn limits() -> @pipeline_typing.Limits {
   {
     max_steps: 20000,
     max_work: 20000000,
@@ -28,7 +28,7 @@ fn cursor(text : String) -> @decode.Cursor {
 }
 
 ///|
-fn schema() -> @contract.Contract {
+fn row() -> @contract.Contract {
   @contract.object_contract(
     [
       ("amount", @contract.primitive(NumberType, nullable=false)),
@@ -42,9 +42,43 @@ fn schema() -> @contract.Contract {
 }
 
 ///|
-fn check(text : String) -> @relation_pipeline.CheckedPipeline raise {
+fn schema() -> @schema.Schema {
+  @schema.from_object(row()).unwrap()
+}
+
+///|
+test "qualified schemas remain unsupported even when an input is unused" {
+  let qualified = @schema.from_fields(
+    [(Qualified(Left, "id"), @contract.primitive(StringType, nullable=false))],
+    max_fields=1,
+    max_name_bytes=7,
+  ).unwrap()
+  for
+    inputs in [
+      [("joined", qualified)],
+      [("rows", schema()), ("joined", qualified)],
+    ] {
+    assert_true(
+      @pipeline_typing.check(cursor("[]"), inputs, None, None, limits())
+      is Err({ kind: UnsupportedInputSchema("joined"), .. }),
+    )
+  }
+  assert_true(
+    @pipeline_typing.check(
+      cursor("[]"),
+      [("rows", schema()), ("joined", qualified)],
+      None,
+      Some(cursor("\"rows\"")),
+      limits(),
+    )
+    is Err({ kind: UnsupportedInputSchema("joined"), .. }),
+  )
+}
+
+///|
+fn check(text : String) -> @pipeline_typing.CheckedPipeline raise {
   match
-    @relation_pipeline.check(
+    @pipeline_typing.check(
       cursor(text),
       [("rows", schema())],
       None,
@@ -61,31 +95,33 @@ test "linear steps and explicit branches retain exact sources and old schemas" {
   let p = check(
     "[{\"derive\":[{\"amount\":\"to_string(amount)\"}],\"as\":\"text\"},{\"select\":[\"id\"],\"from\":\"rows\"},{\"filter\":\"amount = '1'\",\"from\":\"text\",\"as\":\"result\"}]",
   )
-  assert_eq(@relation_pipeline.step_count(p), 3)
-  assert_eq(@relation_pipeline.step_at(p, 0).unwrap().input, Input(0))
-  assert_eq(@relation_pipeline.step_at(p, 1).unwrap().input, Input(0))
-  assert_eq(@relation_pipeline.step_at(p, 2).unwrap().input, Step(0))
-  assert_eq(@relation_pipeline.current(p), Step(2))
-  assert_eq(@relation_pipeline.lookup(p, "rows"), Some(Input(0)))
-  assert_eq(@relation_pipeline.lookup(p, "result"), Some(Step(2)))
-  assert_eq(@relation_pipeline.lookup(p, "1"), None)
-  assert_eq(@relation_pipeline.step_at(p, 1).unwrap().binding_name, None)
-  assert_true(@relation_pipeline.step_at(p, -1) is None)
-  assert_true(@relation_pipeline.step_at(p, 3) is None)
-  let inputs = @relation_pipeline.inputs(p)
+  assert_eq(@pipeline_typing.step_count(p), 3)
+  assert_eq(@pipeline_typing.step_at(p, 0).unwrap().input, Input(0))
+  assert_eq(@pipeline_typing.step_at(p, 1).unwrap().input, Input(0))
+  assert_eq(@pipeline_typing.step_at(p, 2).unwrap().input, Step(0))
+  assert_eq(@pipeline_typing.current(p), Step(2))
+  assert_eq(@pipeline_typing.lookup(p, "rows"), Some(Input(0)))
+  assert_eq(@pipeline_typing.lookup(p, "result"), Some(Step(2)))
+  assert_eq(@pipeline_typing.lookup(p, "1"), None)
+  assert_eq(@pipeline_typing.step_at(p, 1).unwrap().binding_name, None)
+  assert_true(@pipeline_typing.step_at(p, -1) is None)
+  assert_true(@pipeline_typing.step_at(p, 3) is None)
+  let inputs = @pipeline_typing.inputs(p)
   inputs.clear()
-  assert_eq(@relation_pipeline.inputs(p).length(), 1)
+  assert_eq(@pipeline_typing.inputs(p).length(), 1)
   assert_true(
-    @contract.type_equal(@relation_pipeline.inputs(p)[0].1, schema(), 100),
+    @contract.type_equal(
+      @schema.as_object(@pipeline_typing.inputs(p)[0].1).unwrap(),
+      row(),
+      100,
+    ),
   )
   let linear = check(
     "[{\"derive\":{\"tax\":\"amount * 0.1\"}},{\"select\":[\"tax\"]}]",
   )
-  assert_eq(@relation_pipeline.step_at(linear, 1).unwrap().input, Step(0))
+  assert_eq(@pipeline_typing.step_at(linear, 1).unwrap().input, Step(0))
   assert_eq(
-    @relation.projection(
-      @relation_pipeline.step_at(linear, 1).unwrap().operation,
-    )[0].output,
+    @relation.projection(@pipeline_typing.step_at(linear, 1).unwrap().operation)[0].output,
     "tax",
   )
 }
@@ -95,33 +131,33 @@ test "initial selection is explicit or uniquely materialized and never declarati
   let inputs = [("a", schema()), ("b", schema())]
   for source in ["[]", "[{\"derive\":{}}]"] {
     assert_true(
-      @relation_pipeline.check(cursor(source), inputs, None, None, limits())
+      @pipeline_typing.check(cursor(source), inputs, None, None, limits())
       is Err({ kind: MissingCurrent, .. }),
     )
   }
-  let empty = @relation_pipeline.check(
+  let empty = @pipeline_typing.check(
     cursor("[]"),
     inputs,
     None,
     Some(cursor("\"b\"")),
     limits(),
   ).unwrap()
-  assert_eq(@relation_pipeline.current(empty), Input(1))
-  let selected = @relation_pipeline.check(
+  assert_eq(@pipeline_typing.current(empty), Input(1))
+  let selected = @pipeline_typing.check(
     cursor("[{\"derive\":{},\"from\":\"b\"},{\"drop\":[]}]"),
     inputs,
     None,
     None,
     limits(),
   ).unwrap()
-  assert_eq(@relation_pipeline.step_at(selected, 0).unwrap().input, Input(1))
-  assert_eq(@relation_pipeline.step_at(selected, 1).unwrap().input, Step(0))
+  assert_eq(@pipeline_typing.step_at(selected, 0).unwrap().input, Input(1))
+  assert_eq(@pipeline_typing.step_at(selected, 1).unwrap().input, Step(0))
   assert_true(
-    @relation_pipeline.check(cursor("[]"), [], None, None, limits())
+    @pipeline_typing.check(cursor("[]"), [], None, None, limits())
     is Err({ kind: MissingCurrent, .. }),
   )
   assert_true(
-    @relation_pipeline.check(
+    @pipeline_typing.check(
       cursor("[]"),
       inputs,
       None,
@@ -139,7 +175,7 @@ test "closed envelopes reject unknown operations and unavailable or duplicate na
       "[{}]", "[null]", "[1]", "[{\"derive\":{},\"drop\":[]}]", "[{\"meta\":{\"x\":1}}]",
     ] {
     assert_true(
-      @relation_pipeline.check(
+      @pipeline_typing.check(
         cursor(source),
         [("rows", schema())],
         None,
@@ -154,7 +190,7 @@ test "closed envelopes reject unknown operations and unavailable or duplicate na
       "[{\"derive\":{},\"as\":\"rows\"}]", "[{\"derive\":{},\"as\":\"x\"},{\"drop\":[],\"as\":\"x\"}]",
     ] {
     assert_true(
-      @relation_pipeline.check(
+      @pipeline_typing.check(
         cursor(source),
         [("rows", schema())],
         None,
@@ -169,7 +205,7 @@ test "closed envelopes reject unknown operations and unavailable or duplicate na
       "[{\"derive\":{},\"from\":\"x\",\"as\":\"x\"}]", "[{\"derive\":{},\"from\":\"x\"},{\"drop\":[],\"as\":\"x\"}]",
     ] {
     assert_true(
-      @relation_pipeline.check(
+      @pipeline_typing.check(
         cursor(source),
         [("rows", schema())],
         None,
@@ -184,7 +220,7 @@ test "closed envelopes reject unknown operations and unavailable or duplicate na
       "[{\"values\":[],\"as\":\"v\"}]", "[{\"sort\":[]}]", "[{\"search_candidates\":{}}]",
     ] {
     assert_true(
-      @relation_pipeline.check(cursor(source), [], None, None, limits())
+      @pipeline_typing.check(cursor(source), [], None, None, limits())
       is Err({ kind: UnsupportedOperation(_), .. }),
     )
   }
@@ -193,7 +229,7 @@ test "closed envelopes reject unknown operations and unavailable or duplicate na
       "[{\"derive\":{},\"from\":null}]", "[{\"derive\":{},\"as\":null}]",
     ] {
     assert_true(
-      @relation_pipeline.check(
+      @pipeline_typing.check(
         cursor(source),
         [("rows", schema())],
         None,
@@ -210,15 +246,19 @@ test "metadata is retained and constrained without changing connections or schem
   let p = check(
     "[{\"derive\":{},\"as\":\"x\",\"meta\":{\"custom\":[null,true,{\"actql_note\":42}]}}]",
   )
-  let s = @relation_pipeline.step_at(p, 0).unwrap()
+  let s = @pipeline_typing.step_at(p, 0).unwrap()
   assert_true(s.metadata is Some(_))
   assert_eq(@decode.cursor_path(s.metadata.unwrap()), [Index(0), Key("meta")])
   assert_true(
-    @contract.type_equal(@relation_pipeline.output_schema(p), schema(), 100),
+    @contract.type_equal(
+      @schema.as_object(@pipeline_typing.output_schema(p)).unwrap(),
+      row(),
+      100,
+    ),
   )
   for meta in ["null", "[]", "{}", "1"] {
     assert_true(
-      @relation_pipeline.check(
+      @pipeline_typing.check(
         cursor("[{\"derive\":{},\"meta\":" + meta + "}]"),
         [("rows", schema())],
         None,
@@ -228,7 +268,7 @@ test "metadata is retained and constrained without changing connections or schem
       is Err({ kind: InvalidMetadata, .. }),
     )
   }
-  let e = @relation_pipeline.check(
+  let e = @pipeline_typing.check(
     cursor("[{\"derive\":{},\"meta\":{\"actql_reserved\":1}}]"),
     [("rows", schema())],
     None,
@@ -244,7 +284,7 @@ test "nested and mixed expression diagnostics survive pipeline wrapping" {
   let source = cursor(
     "[{\"derive\":{\"x\":{\"add\":[\"amount\",\"len('😀') + missing\"]}}}]",
   )
-  let e = @relation_pipeline.check(
+  let e = @pipeline_typing.check(
     source,
     [("rows", schema())],
     None,
@@ -263,8 +303,8 @@ test "budgets cover the whole pipeline including metadata and empty input select
     "[{\"derive\":{\"x\":\"amount + 1\"},\"meta\":{\"x\":[1,2]}},{\"derive\":{\"y\":\"x + 1\"}}]",
   )
   let inputs = [("rows", schema())]
-  let p = @relation_pipeline.check(source, inputs, None, None, limits()).unwrap()
-  let u = @relation_pipeline.usage(p)
+  let p = @pipeline_typing.check(source, inputs, None, None, limits()).unwrap()
+  let u = @pipeline_typing.usage(p)
   let exact = {
     ..limits(),
     max_steps: 2,
@@ -274,7 +314,7 @@ test "budgets cover the whole pipeline including metadata and empty input select
     max_tokens: u.tokens,
   }
   assert_true(
-    @relation_pipeline.check(source, inputs, None, None, exact) is Ok(_),
+    @pipeline_typing.check(source, inputs, None, None, exact) is Ok(_),
   )
   for
     l in [
@@ -285,21 +325,13 @@ test "budgets cover the whole pipeline including metadata and empty input select
       { ..exact, max_tokens: u.tokens - 1, },
       { ..exact, max_depth: 0, },
     ] {
-    assert_true(
-      @relation_pipeline.check(source, inputs, None, None, l) is Err(_),
-    )
+    assert_true(@pipeline_typing.check(source, inputs, None, None, l) is Err(_))
   }
-  let empty = @relation_pipeline.check(
-    cursor("[]"),
-    inputs,
-    None,
-    None,
-    limits(),
-  ).unwrap()
-  let cost = @relation_pipeline.usage(empty)
+  let empty = @pipeline_typing.check(cursor("[]"), inputs, None, None, limits()).unwrap()
+  let cost = @pipeline_typing.usage(empty)
   assert_true(cost.work > 0 && cost.text_bytes > 0)
   assert_true(
-    @relation_pipeline.check(cursor("[]"), inputs, None, None, {
+    @pipeline_typing.check(cursor("[]"), inputs, None, None, {
       ..limits(),
       max_work: cost.work - 1,
     })
@@ -315,7 +347,7 @@ test "budgets cover the whole pipeline including metadata and empty input select
       { ..limits(), max_depth: -1, },
     ] {
     assert_true(
-      @relation_pipeline.check(cursor("[]"), inputs, None, None, l)
+      @pipeline_typing.check(cursor("[]"), inputs, None, None, l)
       is Err({ kind: InvalidLimits, .. }),
     )
   }
@@ -323,19 +355,10 @@ test "budgets cover the whole pipeline including metadata and empty input select
 
 ///|
 test "unused inputs and parameter declarations are still preflighted" {
-  let invalid = @contract.with_nullability(schema(), true)
+  let invalid = @contract.with_nullability(row(), true)
+  assert_true(@schema.from_object(invalid) is Err(InvalidRowContract))
   assert_true(
-    @relation_pipeline.check(
-      cursor("[]"),
-      [("a", schema()), ("b", invalid)],
-      None,
-      Some(cursor("\"a\"")),
-      limits(),
-    )
-    is Err({ kind: InvalidInputSchema("b"), .. }),
-  )
-  assert_true(
-    @relation_pipeline.check(
+    @pipeline_typing.check(
       cursor("[]"),
       [("a", schema()), ("a", schema())],
       None,
@@ -345,16 +368,10 @@ test "unused inputs and parameter declarations are still preflighted" {
     is Err({ kind: DuplicateName("a"), .. }),
   )
   assert_true(
-    @relation_pipeline.check(
-      cursor("[]"),
-      [("", schema())],
-      None,
-      None,
-      limits(),
-    )
+    @pipeline_typing.check(cursor("[]"), [("", schema())], None, None, limits())
     is Err({ kind: InvalidName(""), .. }),
   )
-  let mut deep = schema()
+  let mut deep = row()
   for _ in 0..<100 {
     deep = @contract.array_contract(deep, nullable=false).unwrap()
   }
@@ -365,9 +382,9 @@ test "unused inputs and parameter declarations are still preflighted" {
     max_name_bytes=10,
   ).unwrap()
   assert_true(
-    @relation_pipeline.check(
+    @pipeline_typing.check(
       cursor("[]"),
-      [("a", schema()), ("b", wide)],
+      [("a", schema()), ("b", @schema.from_object(wide).unwrap())],
       None,
       Some(cursor("\"a\"")),
       { ..limits(), max_depth: 10, },
@@ -393,7 +410,7 @@ test "parameter declarations are retained without binding defaults or narrowing 
   ).unwrap()
   let source = cursor("[{\"derive\":{\"matched\":\"regex_match(id, $p)\"}}]")
   let supplied = [("rows", schema())]
-  let p = @relation_pipeline.check(
+  let p = @pipeline_typing.check(
     source,
     supplied,
     Some(declarations),
@@ -401,13 +418,13 @@ test "parameter declarations are retained without binding defaults or narrowing 
     limits(),
   ).unwrap()
   supplied.clear()
-  assert_eq(@relation_pipeline.inputs(p).length(), 1)
+  assert_eq(@pipeline_typing.inputs(p).length(), 1)
   assert_eq(
-    @parameter.declaration_count(@relation_pipeline.parameters(p).unwrap()),
+    @parameter.declaration_count(@pipeline_typing.parameters(p).unwrap()),
     1,
   )
   let b = @relation.binding_at(
-    @relation_pipeline.step_at(p, 0).unwrap().operation,
+    @pipeline_typing.step_at(p, 0).unwrap().operation,
     0,
   ).unwrap()
   assert_true(@typing.result_type(b.expression).nullable)
@@ -416,14 +433,14 @@ test "parameter declarations are retained without binding defaults or narrowing 
       o.kind is PatternValidation("regex_match")
     }),
   )
-  let empty = @relation_pipeline.check(
+  let empty = @pipeline_typing.check(
     cursor("[]"),
     [("rows", schema())],
     Some(declarations),
     None,
     limits(),
   ).unwrap()
-  let plain = @relation_pipeline.check(
+  let plain = @pipeline_typing.check(
     cursor("[]"),
     [("rows", schema())],
     None,
@@ -431,19 +448,19 @@ test "parameter declarations are retained without binding defaults or narrowing 
     limits(),
   ).unwrap()
   assert_true(
-    @relation_pipeline.usage(empty).work > @relation_pipeline.usage(plain).work,
+    @pipeline_typing.usage(empty).work > @pipeline_typing.usage(plain).work,
   )
   assert_true(
-    @relation_pipeline.usage(empty).text_bytes >
-    @relation_pipeline.usage(plain).text_bytes,
+    @pipeline_typing.usage(empty).text_bytes >
+    @pipeline_typing.usage(plain).text_bytes,
   )
   assert_true(
-    @relation_pipeline.check(
+    @pipeline_typing.check(
       cursor("[]"),
       [("rows", schema())],
       Some(declarations),
       None,
-      { ..limits(), max_work: @relation_pipeline.usage(plain).work, },
+      { ..limits(), max_work: @pipeline_typing.usage(plain).work, },
     )
     is Err(_),
   )
@@ -457,40 +474,46 @@ test "empty schemas and metadata depth keep their own admission boundaries" {
     max_fields=0,
     max_name_bytes=0,
   ).unwrap()
-  let p = @relation_pipeline.check(
+  let p = @pipeline_typing.check(
     cursor("[]"),
-    [("empty", empty)],
+    [("empty", @schema.from_object(empty).unwrap())],
     None,
     None,
     limits(),
   ).unwrap()
-  assert_eq(@relation_pipeline.current(p), Input(0))
-  assert_true(@relation_pipeline.initial_from(p) is None)
+  assert_eq(@pipeline_typing.current(p), Input(0))
+  assert_true(@pipeline_typing.initial_from(p) is None)
   let selected = cursor("\"empty\"")
-  let p = @relation_pipeline.check(
+  let p = @pipeline_typing.check(
     cursor("[]"),
-    [("empty", empty)],
+    [("empty", @schema.from_object(empty).unwrap())],
     None,
     Some(selected),
     limits(),
   ).unwrap()
   assert_eq(
-    @decode.cursor_span(@relation_pipeline.initial_from(p).unwrap()),
+    @decode.cursor_span(@pipeline_typing.initial_from(p).unwrap()),
     @decode.cursor_span(selected),
   )
   let body = cursor("[{\"derive\":{},\"meta\":{\"x\":{\"y\":[1]}}}]")
   assert_true(
-    @relation_pipeline.check(body, [("empty", empty)], None, None, {
-      ..limits(),
-      max_depth: 3,
-    })
+    @pipeline_typing.check(
+      body,
+      [("empty", @schema.from_object(empty).unwrap())],
+      None,
+      None,
+      { ..limits(), max_depth: 3, },
+    )
     is Ok(_),
   )
   assert_true(
-    @relation_pipeline.check(body, [("empty", empty)], None, None, {
-      ..limits(),
-      max_depth: 2,
-    })
+    @pipeline_typing.check(
+      body,
+      [("empty", @schema.from_object(empty).unwrap())],
+      None,
+      None,
+      { ..limits(), max_depth: 2, },
+    )
     is Err({ kind: BudgetExceeded, .. }),
   )
 }
@@ -500,7 +523,7 @@ test "unselected branches retain pending expression obligations" {
   let p = check(
     "[{\"derive\":{\"test\":\"if(TRUE, TRUE, regex_match(id, '('))\"}},{\"select\":[\"id\"]}]",
   )
-  let op = @relation_pipeline.step_at(p, 0).unwrap().operation
+  let op = @pipeline_typing.step_at(p, 0).unwrap().operation
   let expression = @relation.binding_at(op, 0).unwrap().expression
   assert_true(
     @typing.pending_validations(expression).any(o => {
@@ -519,9 +542,13 @@ test "long linear pipelines preserve references without recursive checking" {
     parts.push("{\"derive\":{}}")
   }
   let p = check("[" + parts.join(",") + "]")
-  assert_eq(@relation_pipeline.current(p), Step(2999))
-  assert_eq(@relation_pipeline.step_at(p, 2999).unwrap().input, Step(2998))
+  assert_eq(@pipeline_typing.current(p), Step(2999))
+  assert_eq(@pipeline_typing.step_at(p, 2999).unwrap().input, Step(2998))
   assert_true(
-    @contract.type_equal(@relation_pipeline.output_schema(p), schema(), 100),
+    @contract.type_equal(
+      @schema.as_object(@pipeline_typing.output_schema(p)).unwrap(),
+      row(),
+      100,
+    ),
   )
 }
