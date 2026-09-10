@@ -17,6 +17,17 @@ and execution envelopes are not supplied to or established by this API.
 
 ## Inputs, scopes and outputs
 
+`assert_rows` retains either a typed boolean predicate (`AssertWhere`, with one
+binding) or an ordered, duplicate-free `KeyComparable` key list (`AssertUnique`).
+Nullable booleans and nullable scalar or reference keys are admitted statically.
+The input schema is unchanged: neither nullability narrowing nor a
+candidate-key proof is produced. `AtomicRowAssertion` requires physical validation
+before publication or any proof consumer; `AssertionConsumption` requires later
+planning to reject unconsumed assertion branches. These obligations survive a
+subsequent projection through the retained pipeline step. This is not a filter:
+false and unknown predicates fail the eventual assertion rather than discard rows.
+The current boundary does not execute `REL.assert_all` or `REL.assert_unique`.
+
 The [ordering and deduplication guide](relation-ordering.md) describes the four
 row operations, their retained `row_operation` details and `pending_validations`.
 They do not use expression syntax or consume expression tokens. The existing

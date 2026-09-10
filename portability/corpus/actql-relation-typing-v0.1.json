@@ -16,6 +16,8 @@
   },
   "input": {"amount":"number","flag":"boolean?","id":"string"},
   "accepted": [
+    {"operation":"assert_rows","body":{"where":"flag"},"output":{"amount":"number","flag":"boolean?","id":"string"}},
+    {"operation":"assert_rows","body":{"unique_by":["ref"]},"input":{"ref":"ref?"},"output":{"ref":"ref?"}},
     {"operation":"json_pick","body":{"column":"p","path":["x"],"output":"x"},"input":{"p":"payload?"},"output":{"p":"payload?","x":"number?"}},
     {"operation":"json_pick","body":{"column":"p","path":["raw"],"output":"raw"},"input":{"p":"payload?"},"output":{"p":"payload?","raw":"json?"}},
     {"operation":"unnest","body":{"column":"a","as":"v"},"input":{"a":"array?"},"output":{"a":"array?","v":"number"}},
@@ -53,6 +55,12 @@
     {"operation":"drop","body":["id","id"],"output":{"amount":"number","flag":"boolean?"},"order":["amount","flag"]}
   ],
   "rejected": [
+    {"operation":"assert_rows","body":{"unique_by":[]},"issue":"EmptyBody"},
+    {"operation":"assert_rows","body":{"unique_by":["id","id"]},"issue":"DuplicateOutput"},
+    {"operation":"assert_rows","body":{"unique_by":["x"]},"input":{"x":"array"},"issue":"NotKeyComparable"},
+    {"operation":"assert_rows","body":{"unique_by":["x"]},"input":{"x":"object"},"issue":"NotKeyComparable"},
+    {"operation":"assert_rows","body":{"unique_by":["x"]},"input":{"x":"vector"},"issue":"NotKeyComparable"},
+    {"operation":"assert_rows","body":{"where":"NULL"},"issue":"NullTypeUnresolved"},
     {"operation":"json_pick","body":{"column":"p","path":[],"output":"x"},"input":{"p":"payload?"},"issue":"EmptyBody"},
     {"operation":"json_pick","body":{"column":"p","path":[0],"output":"x"},"input":{"p":"payload?"},"issue":"InvalidBody"},
     {"operation":"json_pick","body":{"column":"p","path":["raw","x"],"output":"x"},"input":{"p":"payload?"},"issue":"ShapeEvidenceRequired"},

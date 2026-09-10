@@ -21,6 +21,8 @@ pub(all) enum CountValue {
 
 ///|
 pub enum RowOperation {
+  AssertWhere
+  AssertUnique(Array[KeyField])
   Sort(Array[OrderTerm])
   Take(count~ : CountValue, offset~ : CountValue)
   DistinctRows
@@ -36,6 +38,8 @@ pub(all) enum ValidationKind {
   BoundInteger(name~ : String, minimum~ : Int64)
   ValidateReshapeRows
   ExpansionEnvelope
+  AtomicRowAssertion
+  AssertionConsumption
 } derive(Eq, Debug)
 
 ///|
@@ -56,6 +60,8 @@ pub fn pending_validations(
 pub fn row_operation(value : CheckedOperation) -> RowOperation? {
   value.row_operation.map(op => {
     match op {
+      AssertWhere => AssertWhere
+      AssertUnique(keys) => AssertUnique(keys.copy())
       Sort(terms) => Sort(terms.copy())
       Take(count~, offset~) => Take(count~, offset~)
       DistinctRows => DistinctRows

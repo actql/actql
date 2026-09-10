@@ -11,6 +11,7 @@ pub(all) enum Operation {
   DedupeRows
   JsonPick
   Unnest
+  AssertRows
 } derive(Eq, Debug)
 
 ///|

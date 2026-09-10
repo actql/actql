@@ -132,6 +132,7 @@ pub(all) enum Operation {
   DedupeRows
   JsonPick
   Unnest
+  AssertRows
 } derive(Eq, @debug.Debug)
 
 pub struct OrderTerm {
@@ -168,6 +169,8 @@ pub enum Reshape {
 }
 
 pub enum RowOperation {
+  AssertWhere
+  AssertUnique(Array[KeyField])
   Sort(Array[OrderTerm])
   Take(count~ : CountValue, offset~ : CountValue)
   DistinctRows
@@ -182,6 +185,8 @@ pub(all) enum ValidationKind {
   BoundInteger(name~ : String, minimum~ : Int64)
   ValidateReshapeRows
   ExpansionEnvelope
+  AtomicRowAssertion
+  AssertionConsumption
 } derive(Eq, @debug.Debug)
 
 // Type aliases

@@ -3574,7 +3574,7 @@ normally excluded by a complete typed schema).
 
 Exactly one of `where` and `unique_by` is present. `where` requires strict
 true on every row; false and three-valued unknown fail. `unique_by` is a
-non-empty, duplicate-free list of visible scalar fields and rejects null or
+non-empty, duplicate-free list of visible fields and rejects null or
 missing components and duplicate canonical tuples. Both variants preserve row
 bytes, shape, order, and identity on success. The `unique_by` variant additionally
 proves non-null uniqueness for the declared tuple. The physical assertion
@@ -3582,6 +3582,15 @@ precedes every consumer of that proof.
 Any violation fails before publishing the assertion output. Unconsumed
 assertion branches fail planning rather than silently disappearing. No
 `on_failure`, skip, warning, catch, or custom-message form is admitted.
+
+<!-- requirement-block: assert-rows.equality-key-domains assert-rows.nullable-key-contracts -->
+Fields in `assert_rows.unique_by` MUST belong to the scalar or reference
+domains admitted by `KeyComparable` ([Closed value contracts](#value-contracts)),
+including ResourceRef and ArtifactRef. Object, array, json and vector fields
+are not admitted. Nullable field contracts MUST be accepted during type
+checking; the physical assertion rejects null or missing component values.
+Type checking alone neither narrows those contracts nor establishes a
+non-null uniqueness proof.
 
 <!-- requirement-block: assert-rows.implementations-must-execute-an-atomic-row-assertion-before-any-consumer -->
 Implementations MUST execute an atomic row assertion before any consumer of

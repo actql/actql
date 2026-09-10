@@ -136,6 +136,35 @@ fn check_impl(
   let mut reshape : Reshape? = None
   let mut output = input
   let form = match operation {
+    AssertRows => {
+      row_source(b, body)
+      let obj = decoded(
+        @decode.closed_object(body, ["where", "unique_by"]),
+        body,
+      )
+      match (@decode.lookup(obj, "where"), @decode.lookup(obj, "unique_by")) {
+        (Some(predicate), None) => {
+          let binding = expression(b, predicate, None, visible, parameters)
+          if !(@typing.result_type(binding.expression).shape
+            is @contract.Boolean) {
+            fail(predicate, ExpectedBoolean)
+          }
+          bindings.push(binding)
+          row_operation = Some(AssertWhere)
+        }
+        (None, Some(source)) => {
+          let keys = row_keys(b, source, visible, unique=true)
+          if keys.is_empty() {
+            fail(source, EmptyBody)
+          }
+          row_operation = Some(AssertUnique(keys))
+        }
+        _ => fail(body, InvalidBody)
+      }
+      pending.push({ kind: AtomicRowAssertion, source: body, })
+      pending.push({ kind: AssertionConsumption, source: body, })
+      Form::RowOperation
+    }
     JsonPick | Unnest => {
       row_source(b, body)
       let (details, fields) = check_reshape(b, operation, body, input, visible)

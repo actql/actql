@@ -2,7 +2,7 @@
 test "appended raw join outputs remain available to Result selection and order checking" {
   let p = joined_pipeline(
     "left",
-    suffix=",{\"append\":{\"with\":\"joined\"},\"as\":\"combined\"}",
+    suffix=",{\"assert_rows\":{\"unique_by\":[\"right.id\"]}},{\"append\":{\"with\":\"joined\"},\"as\":\"combined\"}",
   )
   let results = @relation_results.check(
     p,
@@ -20,7 +20,7 @@ test "appended raw join outputs remain available to Result selection and order c
     ).unwrap().nullable,
   )
   assert_true(!@relation_results.pending_validations(result).is_empty())
-  assert_eq(@relation_results.target(result), @pipeline.Step(1))
+  assert_eq(@relation_results.target(result), @pipeline.Step(2))
 }
 
 ///|

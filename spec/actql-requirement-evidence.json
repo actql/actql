@@ -3006,6 +3006,28 @@
       }
     },
     {
+      "requirement_id": "actql.language/assert-rows.equality-key-domains",
+      "statement_sha256": "2f18dbfbb2dcf086a80634cb5ef99027dcf66bfda178a62dc52466606c151f20",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "assert-rows",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/assert-rows.nullable-key-contracts",
+      "statement_sha256": "ff92d8eabb74b16b8916fd63b12208570b9cfa7912dc85b9e44587a11d4c54f8",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "assert-rows",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.language/assert-rows.implementations-must-execute-an-atomic-row-assertion-before-any-consumer",
       "statement_sha256": "87bdcbf1ee1391844f30ee8c19dad33b66d39f70f1bdf85852134ac7800f3afe",
       "status": "pending",

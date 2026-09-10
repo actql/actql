@@ -7,7 +7,7 @@ const literal = text => '"' + [...text].map(c => {
   const cp = c.codePointAt(0);
   return cp < 32 || cp > 126 ? '\\u{' + cp.toString(16) + '}' : c === '"' || c === '\\' ? '\\' + c : c;
 }).join('') + '"';
-const operations = { derive: 'Derive', filter: 'Filter', select: 'Select', rename: 'Rename', drop: 'Drop', sort: 'Sort', take: 'Take', distinct: 'Distinct', dedupe_rows: 'DedupeRows', json_pick: 'JsonPick', unnest: 'Unnest' };
+const operations = { derive: 'Derive', filter: 'Filter', select: 'Select', rename: 'Rename', drop: 'Drop', sort: 'Sort', take: 'Take', distinct: 'Distinct', dedupe_rows: 'DedupeRows', json_pick: 'JsonPick', unnest: 'Unnest', assert_rows: 'AssertRows' };
 const issues = ['ExpectedBoolean', 'UnknownField', 'NullTypeUnresolved', 'EmptyBody', 'InvalidBody', 'InputCollision', 'DuplicateOutput', 'InvalidName', 'InvalidOrder', 'NotAuthorOrderable', 'NotKeyComparable', 'InvalidCount', 'UnknownParameter', 'ExpectedObject', 'ExpectedArray', 'ShapeEvidenceRequired'];
 
 export function generate(corpus) {
