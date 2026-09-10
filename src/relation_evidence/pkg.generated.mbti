@@ -2,6 +2,7 @@
 package "actql/actql/relation_evidence"
 
 import {
+  "actql/actql/calendar_typing",
   "actql/actql/carrier_contract",
   "actql/actql/decode_core",
   "actql/actql/relation_schema",
@@ -13,6 +14,8 @@ import {
 }
 
 // Values
+pub fn advance_calendar_keys(KeySet?, @calendar_typing.CheckedCalendar, TransferLimits) -> Result[KeySetTransfer, Issue]
+
 pub fn advance_keys(KeySet?, @relation_typing.CheckedOperation, TransferLimits) -> Result[KeySetTransfer, Issue]
 
 pub fn collect_keys(@decode_core.Cursor, @carrier_contract.Carrier, Array[KeyedRelation], KeySetLimits) -> Result[KeySet, Issue]
@@ -26,6 +29,8 @@ pub fn declared_records(KeyedRelation) -> @carrier_contract.Knowledge
 pub fn key_alias_at(KeyedRelation, Int, Int) -> KeyField?
 
 pub fn key_alias_count(KeyedRelation, Int) -> Int
+
+pub fn key_calendar_producer(KeyedRelation) -> @calendar_typing.CheckedCalendar?
 
 pub fn key_field_at(KeyedRelation, Int) -> KeyField?
 
@@ -56,6 +61,8 @@ pub fn select_key(@decode_core.Cursor, KeySet, KeyUse, TransferLimits) -> Result
 pub fn select_sole_string_key(@decode_core.Cursor, KeySet, TransferLimits) -> Result[KeySelection, Issue]
 
 pub fn singleton_key(KeyedRelation) -> KeySet
+
+pub fn transfer_calendar_keys(KeySet, @calendar_typing.CheckedCalendar, TransferLimits) -> Result[KeySetTransfer, Issue]
 
 pub fn transfer_keys(KeySet, @relation_typing.CheckedOperation, TransferLimits) -> Result[KeySetTransfer, Issue]
 
@@ -102,6 +109,7 @@ pub(all) enum KeyOrigin {
   DedupeResult
   UniqueAssertion
   PivotResult
+  CalendarSeriesResult
 } derive(Eq, @debug.Debug)
 
 pub struct KeySelection {

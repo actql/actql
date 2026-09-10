@@ -41,7 +41,26 @@ starts. Identical literal endpoints yield the stronger bound zero. This is a
 conservative bound, not an evaluated row count or a byte-memory ceiling.
 Calendar-value and boundary-domain validation and actual resource ceilings remain
 explicit obligations; parameter endpoints also retain binding/range validation.
-Shared candidate-key/order/resource proof propagation is still separate work.
+Candidate-key and ranking-annotation transfers are connected below; shared
+logical-order and resource proof propagation is still separate work.
+
+`CheckedCalendar` retains its bound input (absent for series). Bucket evidence
+transfer requires that same row-knowledge or complete-schema handle and uses
+the checked output contract. It retains every candidate-key witness and alias,
+original producer/declaration, and ranking identity/score annotation on unchanged
+fields. Fresh bucket fields gain no such annotation. Arrays and annotation maps
+are privately shared rather than rescanned or reconstructed; rebinding keys costs
+one unit per witness plus the operation, and ranking annotation transfer is
+constant work. Pipeline budgets include these costs.
+
+Series establishes the specification's `start` candidate key, including for an
+empty range. `CalendarSeriesResult` and `key_calendar_producer` retain the exact
+Calendar producer, selected profile and validation/resource obligations. Bucket
+and later exact projections preserve that origin; they do not turn it into a
+captured-input declaration or infer runtime completion. A series cannot inherit
+unrelated input evidence. These transfers implement existing row-preservation
+and start-key rules, not new authored syntax. Actual boundary correctness, logical
+order and row-count facts remain separate from the candidate-key witness.
 
 ## Semantic artifact boundary
 

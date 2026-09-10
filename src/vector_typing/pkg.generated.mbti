@@ -2,6 +2,7 @@
 package "actql/actql/vector_typing"
 
 import {
+  "actql/actql/calendar_typing",
   "actql/actql/carrier_contract",
   "actql/actql/decode_core",
   "actql/actql/parameter_binding",
@@ -239,6 +240,8 @@ pub fn text_rank_source(TextRankOptions) -> @decode_core.Cursor
 pub fn text_rank_tokenizer(TextRankOptions) -> Tokenizer
 
 pub fn text_rank_usage(CheckedTextRank) -> Usage
+
+pub fn transfer_ranking_calendar(RankingInput, @calendar_typing.CheckedCalendar, Limits) -> Result[RankingTransfer, Issue]
 
 pub fn transfer_ranking_unary(RankingInput, @relation_typing.CheckedOperation, Limits) -> Result[RankingTransfer, Issue]
 

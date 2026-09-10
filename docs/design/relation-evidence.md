@@ -145,6 +145,12 @@ operation still retains the original repetitions and order.
 
 `key_origin` distinguishes input declarations from these producer results, and
 `key_producer` retains the checked operation through later alias transfers.
+Calendar-series keys use `CalendarSeriesResult` and `key_calendar_producer`
+instead; the internal producer is a tagged alternative, never two competing
+origins. `advance_calendar_keys` creates the series start key or transfers bucket
+input witnesses. `transfer_calendar_keys` is the bucket-only entry and refuses
+generators or unrelated inputs. Both retain the original producer through later
+transfers and keep `ValidateKeyProducer` pending.
 For a produced key, `declared_records` and `declared_key_field_at` describe its
 original producer output, not an upstream input primary-key declaration.
 `key_pending` returns `ValidateKeyProducer`: consumers must retain that producer's

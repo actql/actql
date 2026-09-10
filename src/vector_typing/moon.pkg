@@ -1,6 +1,7 @@
 supported_targets = "+js+wasm+native"
 
 import {
+  "actql/actql/calendar_typing" @calendar,
   "actql/actql/relation_typing" @relation,
   "actql/actql/relation_evidence" @evidence,
   "actql/actql/carrier_contract" @carrier,

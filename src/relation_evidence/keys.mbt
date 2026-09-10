@@ -53,12 +53,19 @@ pub(all) enum KeyOrigin {
   DedupeResult
   UniqueAssertion
   PivotResult
+  CalendarSeriesResult
 } derive(Eq, Debug)
+
+///|
+priv enum KeyProducer {
+  RelationProducer(@relation.CheckedOperation)
+  CalendarProducer(@calendar.CheckedCalendar)
+}
 
 ///|
 struct KeyedRelation {
   origin : KeyOrigin
-  producer : @relation.CheckedOperation?
+  producer : KeyProducer?
   records : @carrier.Knowledge
   declared_records : @carrier.Knowledge
   declared_fields : Array[KeyField]
@@ -224,7 +231,18 @@ pub fn key_origin(c : KeyedRelation) -> KeyOrigin {
 
 ///|
 pub fn key_producer(c : KeyedRelation) -> @relation.CheckedOperation? {
-  c.producer
+  match c.producer {
+    Some(RelationProducer(op)) => Some(op)
+    _ => None
+  }
+}
+
+///|
+pub fn key_calendar_producer(c : KeyedRelation) -> @calendar.CheckedCalendar? {
+  match c.producer {
+    Some(CalendarProducer(op)) => Some(op)
+    _ => None
+  }
 }
 
 ///|

@@ -57,6 +57,26 @@ fn sync_rankings(
       Nearest(checked~, ..) => @vector.ranking_from_nearest(checked)
       Ranking(c) => @vector.ranking_from_fusion(c)
       TextRank(checked~, ..) => @vector.ranking_from_text(checked)
+      Calendar(c) =>
+        match step.input {
+          None => @vector.ranking_relation(step.output)
+          Some(input) => {
+            let previous = ranking_at(input, inputs, rankings, retained)
+            let transfer = vector_result(
+              step.source,
+              @vector.transfer_ranking_calendar(previous, c, {
+                max_work: b.work,
+                max_nodes: b.nodes,
+                max_depth: b.limits.max_depth,
+                max_text_bytes: b.text,
+              }),
+            )
+            b.work -= transfer.usage.work
+            b.nodes -= transfer.usage.nodes
+            b.text -= transfer.usage.text_bytes
+            transfer.input
+          }
+        }
       Unary(op) => {
         let previous = ranking_at(
           step.input.unwrap(),

@@ -64,7 +64,7 @@ fn producer_key(
   }
   Some({
     origin,
-    producer: Some(operation),
+    producer: Some(RelationProducer(operation)),
     records,
     declared_records: records,
     declared_fields: fields,

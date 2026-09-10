@@ -17,6 +17,8 @@ pub fn cardinality(CheckedCalendar) -> Cardinality
 
 pub fn check(@calendar_options.Operation, @decode_core.Cursor, @carrier_contract.Carrier?, @parameter_binding.Declarations?, @calendar_profile.Profile?, @calendar_options.Limits) -> Result[CheckedCalendar, Issue]
 
+pub fn input(CheckedCalendar) -> @carrier_contract.Carrier?
+
 pub fn options(CheckedCalendar) -> @calendar_options.Options
 
 pub fn output(CheckedCalendar) -> @carrier_contract.Carrier
@@ -24,6 +26,8 @@ pub fn output(CheckedCalendar) -> @carrier_contract.Carrier
 pub fn pending_validations(CheckedCalendar) -> Array[Obligation]
 
 pub fn profile(CheckedCalendar) -> @calendar_profile.Profile
+
+pub fn source(CheckedCalendar) -> @decode_core.Cursor
 
 pub fn usage(CheckedCalendar) -> @calendar_options.Usage
 

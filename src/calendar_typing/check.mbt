@@ -36,6 +36,7 @@ pub(all) enum Cardinality {
 
 ///|
 struct CheckedCalendar {
+  input : @carrier.Carrier?
   options : @options.Options
   profile : @profile.Profile
   output : @carrier.Carrier
@@ -187,6 +188,7 @@ pub fn check(
       Err(_) => fail(source, BudgetExceeded)
     }
     Ok({
+      input,
       options,
       profile: selected,
       output: @carrier.relation(rows),
@@ -205,6 +207,17 @@ pub fn check(
 ///|
 pub fn output(v : CheckedCalendar) -> @carrier.Carrier {
   v.output
+}
+
+///|
+/// Original bound input; series has no input and cannot transfer row evidence.
+pub fn input(v : CheckedCalendar) -> @carrier.Carrier? {
+  v.input
+}
+
+///|
+pub fn source(v : CheckedCalendar) -> @decode.Cursor {
+  @options.source(v.options)
 }
 
 ///|
