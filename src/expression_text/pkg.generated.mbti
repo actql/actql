@@ -12,6 +12,8 @@ pub fn enclosing_span(Expression) -> @source_span.Span?
 
 pub fn field_references(Expression) -> Array[FieldReference]
 
+pub fn node_range(Expression, @decode_core.Cursor) -> Range?
+
 pub fn parameter_references(Expression) -> Array[ParameterReference]
 
 pub fn parse(String, Limits, source_path? : String, enclosing_span? : @source_span.Span) -> Result[Expression, Issue]

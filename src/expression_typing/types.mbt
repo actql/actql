@@ -31,11 +31,12 @@ pub(all) enum IssueKind {
 } derive(Eq, Debug)
 
 ///|
-/// Location is in the retained normalized syntax tree, not a fabricated byte
-/// mapping through JSON escapes or YAML folding.
+/// source is a semantic-tree cursor; location separately identifies the original
+/// source slot and decoded-text range, without a fabricated file-byte mapping.
 pub struct Issue {
   kind : IssueKind
   source : @decode.Cursor
+  location : @syntax.Location
 }
 
 ///|
@@ -131,7 +132,7 @@ pub fn pending_validations(value : TypedExpression) -> Array[Obligation] {
 
 ///|
 priv suberror Stop {
-  Stop(Issue)
+  Stop(@decode.Cursor, IssueKind)
 }
 
 ///|
@@ -143,7 +144,7 @@ priv struct Budget {
 
 ///|
 fn[T] fail(source : @decode.Cursor, kind : IssueKind) -> T raise Stop {
-  raise Stop({ source, kind, })
+  raise Stop(source, kind)
 }
 
 ///|

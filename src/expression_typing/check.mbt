@@ -70,6 +70,11 @@ pub fn check(
   limits : Limits,
 ) -> Result[TypedExpression, Issue] {
   Ok(check_impl(expression, environment, limits)) catch {
-    Stop(issue) => Err(issue)
+    Stop(source, kind) =>
+      Err({
+        source,
+        kind,
+        location: @syntax.origin(expression, source).unwrap(),
+      })
   }
 }

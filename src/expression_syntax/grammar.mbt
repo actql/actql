@@ -207,8 +207,8 @@ fn closed(
 }
 
 ///|
-fn part(value : @source.Node, name : String) -> @source.Node? {
-  if value.value is @source.Object(fields) {
+fn part(value : Node, name : String) -> Node? {
+  if value.value is @map.Object(fields) {
     for f in fields {
       if f.key == name {
         return Some(f.value)
@@ -219,8 +219,8 @@ fn part(value : @source.Node, name : String) -> @source.Node? {
 }
 
 ///|
-fn literal(value : @source.Node) -> @source.Node? {
-  if value.value is @source.Object(fields) &&
+fn literal(value : Node) -> Node? {
+  if value.value is @map.Object(fields) &&
     fields.length() == 1 &&
     fields[0].key == "literal" {
     Some(fields[0].value)
@@ -230,8 +230,8 @@ fn literal(value : @source.Node) -> @source.Node? {
 }
 
 ///|
-fn param(value : @source.Node) -> Bool {
-  if value.value is @source.Object(fields) {
+fn param(value : Node) -> Bool {
+  if value.value is @map.Object(fields) {
     fields.length() == 1 && fields[0].key == "$param"
   } else {
     false
@@ -239,21 +239,18 @@ fn param(value : @source.Node) -> Bool {
 }
 
 ///|
-fn literal_or_param(value : @source.Node) -> Bool {
-  param(value) || literal(value) is Some({ value: @source.String(_), .. })
+fn literal_or_param(value : Node) -> Bool {
+  param(value) || literal(value) is Some({ value: @map.String(_), .. })
 }
 
 ///|
 fn decimal_fields(
-  value : @source.Node,
+  value : Node,
   cursor : @decode.Cursor,
   origin : Origin,
 ) -> Unit raise Stop {
   match (part(value, "precision"), part(value, "scale")) {
-    (
-      Some({ value: @source.Number(p), .. }),
-      Some({ value: @source.Number(s), .. }),
-    ) =>
+    (Some({ value: @map.Number(p), .. }), Some({ value: @map.Number(s), .. })) =>
       if p < 1.0 ||
         p > 38.0 ||
         s < 0.0 ||

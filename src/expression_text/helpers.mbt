@@ -1,4 +1,24 @@
 ///|
+type Node = @map.Node[Range]
+
+///|
+fn Parser::node_range(self : Parser, value : @map.Value[Range]) -> Range {
+  let token = self.tokens[(self.pos - 1).max(0)]
+  let mut start = token.start
+  let mut end = token.end
+  let children = match value {
+    @map.Array(xs) => xs
+    @map.Object(fs) => fs.map(f => f.value)
+    _ => []
+  }
+  for child in children {
+    start = start.min(child.annotation.start)
+    end = end.max(child.annotation.end)
+  }
+  { start, end, }
+}
+
+///|
 priv suberror ExpressionError {
   SyntaxFailure(Int, Int)
   UnknownFunction(Int, Int)
@@ -8,7 +28,7 @@ priv suberror ExpressionError {
 
 ///|
 priv struct Parsed {
-  node : @value.Node
+  node : Node
   numeric_token : Bool
   chain : String?
 }
@@ -57,23 +77,23 @@ fn Parser::take(self : Parser, kind : TokenKind) -> Unit raise ExpressionError {
 ///|
 fn Parser::node(
   self : Parser,
-  value : @value.Value,
-) -> @value.Node raise ExpressionError {
+  value : @map.Value[Range],
+) -> Node raise ExpressionError {
   if self.nodes >= self.max_nodes {
     let token = self.peek()
     raise CapacityExceeded(token.start, token.end)
   }
   self.nodes = self.nodes + 1
-  { value, span: self.span, }
+  { value, span: self.span, annotation: self.node_range(value), }
 }
 
 ///|
 fn Parser::object(
   self : Parser,
-  fields : Array[(String, @value.Node)],
-) -> @value.Node raise ExpressionError {
+  fields : Array[(String, Node)],
+) -> Node raise ExpressionError {
   self.node(
-    @value.Object(
+    @map.Object(
       fields.map(pair => { key: pair.0, key_span: self.span, value: pair.1, }),
     ),
   )
@@ -83,8 +103,8 @@ fn Parser::object(
 fn Parser::form(
   self : Parser,
   name : String,
-  value : @value.Node,
-) -> @value.Node raise ExpressionError {
+  value : Node,
+) -> Node raise ExpressionError {
   self.object([(name, value)])
 }
 
@@ -92,18 +112,18 @@ fn Parser::form(
 fn Parser::arguments(
   self : Parser,
   name : String,
-  args : Array[@value.Node],
-) -> @value.Node raise ExpressionError {
-  self.form(name, self.node(@value.Array(args)))
+  args : Array[Node],
+) -> Node raise ExpressionError {
+  self.form(name, self.node(@map.Array(args)))
 }
 
 ///|
-fn parsed(node : @value.Node) -> Parsed {
+fn parsed(node : Node) -> Parsed {
   { node, numeric_token: false, chain: None, }
 }
 
 ///|
-fn literal_value(node : @value.Node) -> @value.Node? {
+fn literal_value(node : Node) -> Node? {
   object_get(node, "literal")
 }
 

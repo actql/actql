@@ -196,14 +196,14 @@ test "literals and templates are opaque except immediate IN parameter holes" {
   let expression = admit(source_cursor(source), test_limits()).unwrap()
   let refs = parameter_references(expression)
   assert_eq(refs.map(r => r.name), ["left", "item", "repeat", "repeat", "tail"])
-  assert_eq(refs[0].path, [
+  assert_eq(location_path(refs[0].location), [
     @source.Key("array"),
     @source.Index(2),
     @source.Key("in"),
     @source.Index(0),
   ])
-  assert_eq(refs[0].range, Some({ start: 0, end: 5, }))
-  assert_eq(refs[1].path, [
+  assert_eq(refs[0].location.range, Some({ start: 0, end: 5, }))
+  assert_eq(location_path(refs[1].location), [
     @source.Key("array"),
     @source.Index(2),
     @source.Key("in"),
@@ -211,13 +211,16 @@ test "literals and templates are opaque except immediate IN parameter holes" {
     @source.Key("literal"),
     @source.Index(2),
   ])
-  assert_eq(refs[1].range, None)
-  assert_eq(refs[2].range, Some({ start: 0, end: 7, }))
-  assert_eq(refs[3].range, Some({ start: 10, end: 17, }))
-  refs[0].path.clear()
+  assert_eq(refs[1].location.range, None)
+  assert_eq(refs[2].location.range, Some({ start: 0, end: 7, }))
+  assert_eq(refs[3].location.range, Some({ start: 10, end: 17, }))
+  location_path(refs[0].location).clear()
   refs.clear()
   assert_eq(parameter_references(expression).length(), 5)
-  assert_eq(parameter_references(expression)[0].path.length(), 4)
+  assert_eq(
+    location_path(parameter_references(expression)[0].location).length(),
+    4,
+  )
 }
 
 ///|

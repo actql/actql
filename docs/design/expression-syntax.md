@@ -82,22 +82,40 @@ original token ranges. This is not canonical artifact byte or signature admissio
 
 Structured failures and occurrences retain original Cursor paths and spans.
 Embedded-text failures identify the original scalar slot and a separate
-half-open Unicode-scalar range in the decoded expression. Parser failures and
-Parameter tokens have precise ranges; post-decode structural failures identify
-the whole fragment because text-generated nodes have no token-level spans.
+half-open Unicode-scalar range in the decoded expression. Text parser node ranges
+survive common admission and alias expansion, not only Parameter/field tokens.
+`origin(expression, cursor)` resolves any normalized node to its original
+`Location`: an immutable source Cursor and optional decoded-text range.
+Synthetic alias nodes inherit their source expression, while retained operands
+keep their own locations. No synthetic canonical path is presented as authored.
 No range pretends to map through JSON escapes or YAML folding to original bytes.
 
 Unchanged structured nodes and keys preserve source spans. Rewritten nodes use
 their containing expression span; text-generated nodes retain the text parser's
-decoded coordinate space. Use the dedicated occurrence records for source
+decoded coordinate space. Use the origin sidecar for source
 locations, not a reconstructed path through the normalized output. Output-tree
 budget failures refer to that retained tree and its supplied spans.
 
 Parameter records are syntactic occurrences in source order, including repeated
 names. Literal data, quoted names, template text, and structural option strings
-do not contribute references. Copies of records and their paths are detached.
+do not contribute references. Records hold read-only `location` handles, not
+expanded path arrays. `location_path` materializes one detached path on demand;
+`location_span` returns the supplied original span. Array accessors copy only
+handles. `relation_reference_count`/`relation_reference_at` support indexed
+checking without exporting arrays. Ordinary fields index the same records as
+relation references, rather than retaining a second copy of each origin.
+There is no bulk expanded-path export. Callers displaying many paths must budget
+their output; requesting one path costs its ancestry length.
 Neither successful admission nor occurrence discovery proves declaration,
 binding, actual runtime use, or Program/local-unit identity membership.
+
+The internal `source_map` builder keeps annotations outside semantic values and
+owns the normalized tree with a preorder sidecar. Both conversion and admission
+are bounded by output-tree node/depth limits; indexed lookup checks arena identity
+before using a local coordinate. Sidecar storage and pending builder frames are
+linear in tree size. `origin_count` exposes the retained node count for structural
+regressions. These logical limits are not RSS quotas, and temporary builders and
+owned trees may coexist.
 
 ## Bounded work
 

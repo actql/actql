@@ -200,11 +200,15 @@ test "ordered derive records exact value versions and replacement types" {
     InputField(@schema.Unqualified("amount")),
   )
   assert_eq(@relation_typing.references(third)[0].target, PriorSlot(1))
-  assert_eq(@relation_typing.references(third)[0].occurrence.path, [
-    @source.Index(2),
-    @source.Key("copy"),
-  ])
-  assert_true(@relation_typing.references(third)[0].occurrence.range is Some(_))
+  assert_eq(
+    @syntax.location_path(
+      @relation_typing.references(third)[0].occurrence.location,
+    ),
+    [@source.Index(2), @source.Key("copy")],
+  )
+  assert_true(
+    @relation_typing.references(third)[0].occurrence.location.range is Some(_),
+  )
   rejected(Derive, "[{\"x\":\"y\"},{\"y\":\"1\"}]", UnknownField("y"))
   rejected(Derive, "[{\"x\":\"x\"}]", UnknownField("x"))
   rejected(Derive, "[{\"x\":\"1\"},{\"x\":\"2\"}]", DuplicateOutput("x"))
@@ -363,11 +367,15 @@ test "operation result accessors detach arrays and preserve input evidence" {
   let result = checked(Derive, "[{\"x\":\"amount\"},{\"y\":\"x\"}]")
   let b = @relation_typing.binding_at(result, 1).unwrap()
   let refs = @relation_typing.references(b)
-  refs[0].occurrence.path.clear()
+  @syntax.location_path(refs[0].occurrence.location).clear()
   refs.clear()
   assert_eq(@relation_typing.references(b).length(), 1)
   assert_true(
-    @relation_typing.references(@relation_typing.binding_at(result, 1).unwrap())[0].occurrence.path.length() >
+    @syntax.location_path(
+      @relation_typing.references(
+        @relation_typing.binding_at(result, 1).unwrap(),
+      )[0].occurrence.location,
+    ).length() >
     0,
   )
   assert_true(@relation_typing.binding_at(result, -1) is None)

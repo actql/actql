@@ -61,6 +61,7 @@ struct Expression {
   field_references : Array[FieldReference]
   relation_references : Array[FieldReference]
   cursor : @decode.Cursor
+  origins : @map.Map[Range]
   references : Array[ParameterReference]
   enclosing_span : @value.Span?
   usage : Usage
@@ -76,6 +77,12 @@ pub fn usage(expression : Expression) -> Usage {
 ///|
 pub fn tree(expression : Expression) -> @decode.Cursor {
   expression.cursor
+}
+
+///|
+/// Decoded scalar coordinates for a node of this expression only.
+pub fn node_range(expression : Expression, cursor : @decode.Cursor) -> Range? {
+  @map.annotation(expression.origins, cursor)
 }
 
 ///|
@@ -215,8 +222,8 @@ pub fn parse(
         enclosing_span,
       })
   }
-  let cursor = match @decode.admit(node, limits.tree) {
-    Ok(cursor) => cursor
+  let (cursor, origins) = match @map.admit(node, limits.tree) {
+    Ok(pair) => pair
     Err(issue) =>
       return Err({
         kind: TreeAdmission(issue.kind),
@@ -232,6 +239,7 @@ pub fn parse(
   }
   Ok({
     cursor,
+    origins,
     references,
     field_references: parser.field_references,
     relation_references: parser.relation_references,

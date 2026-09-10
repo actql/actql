@@ -48,6 +48,7 @@ pub(all) struct Environment {
 pub struct Issue {
   kind : IssueKind
   source : @decode_core.Cursor
+  location : @expression_syntax.Location
 }
 
 pub(all) enum IssueKind {

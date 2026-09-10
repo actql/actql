@@ -44,6 +44,8 @@ pub fn safe_integer(Cursor) -> Result[Int64, Issue]
 
 pub fn text(Cursor) -> Result[String, Issue]
 
+pub fn tree_index(Cursor, Cursor) -> Int?
+
 pub fn view(Cursor) -> ValueView
 
 // Errors

@@ -56,6 +56,11 @@ not invented token-level source spans. Its `source_path` names that decoded
 coordinate space (default `<expression>`). Byte extents are UTF-8; lines count
 CRLF once and lone CR/LF once, and columns count scalars, including tabs once.
 Diagnostics and Parameter occurrences additionally retain precise scalar ranges.
+`node_range(expression, cursor)` reads a non-semantic sidecar for any node of
+that owned tree, returning None for a foreign tree. Primary expressions retain
+their consumed token range; compound expressions span their operands and syntax.
+Generated wrappers inherit the associated expression/operand range. None of
+these coordinates changes the canonical structured expression.
 
 Parameter occurrences are collected from Parameter tokens only after complete
 syntax acceptance. Quoted strings/names are opaque; IN-list Parameter items

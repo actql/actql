@@ -32,7 +32,8 @@ fn expression(
   let left : Array[(String, @contract.Contract)] = []
   let right : Array[(String, @contract.Contract)] = []
   let seen : Map[String, Bool] = Map([])
-  for occurrence in @syntax.relation_references(admitted) {
+  for i in 0..<@syntax.relation_reference_count(admitted) {
+    let occurrence = @syntax.relation_reference_at(admitted, i).unwrap()
     spend(b, source)
     match visible.get(occurrence.name) {
       None => unknown_reference(source, occurrence)
@@ -68,7 +69,14 @@ fn expression(
       max_text_bytes: b.text,
     }) {
     Ok(value) => value
-    Err(issue) => fail(issue.source, Expression(issue.kind))
+    Err(issue) =>
+      raise Stop({
+        kind: Expression(issue.kind),
+        source: issue.location.source,
+        path: @syntax.location_path(issue.location),
+        span: @syntax.location_span(issue.location),
+        range: issue.location.range,
+      })
   }
   let usage = @typing.usage(typed)
   spend(b, source, count=usage.work)

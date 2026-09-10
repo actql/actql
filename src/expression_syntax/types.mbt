@@ -36,18 +36,40 @@ pub(all) struct Issue {
 } derive(Eq, Debug)
 
 ///|
-pub(all) struct ParameterReference {
-  name : String
-  path : Array[@source.PathSegment]
-  span : @source.Span
+/// Original source handle. Range is decoded Unicode scalars, never file bytes.
+pub struct Location {
+  source : @decode.Cursor
   range : @text.Range?
-} derive(Eq, Debug)
+}
+
+///|
+pub fn location_path(location : Location) -> Array[@source.PathSegment] {
+  @decode.cursor_path(location.source)
+}
+
+///|
+pub fn location_span(location : Location) -> @source.Span {
+  @decode.cursor_span(location.source)
+}
+
+///|
+pub struct FieldReference {
+  name : String
+  location : Location
+}
+
+///|
+pub type ParameterReference = FieldReference
+
+///|
+type Node = @map.Node[Location]
 
 ///|
 struct Expression {
   cursor : @decode.Cursor
+  origins : @map.Map[Location]
   references : Array[ParameterReference]
-  field_references : Array[FieldReference]
+  field_indices : Array[Int]
   relation_references : Array[FieldReference]
   usage : Usage
 }
@@ -65,26 +87,42 @@ pub fn usage(expression : Expression) -> Usage {
 }
 
 ///|
-/// Ordinary field occurrences, including template substitutions, but not join
-/// fields or opaque literal data. Coordinates follow parameter_references.
+/// Local node-to-source sidecar lookup, never a canonical identity.
+pub fn origin(expression : Expression, cursor : @decode.Cursor) -> Location? {
+  @map.annotation(expression.origins, cursor)
+}
+
+///|
+pub fn origin_count(expression : Expression) -> Int {
+  @map.node_count(expression.origins)
+}
+
+///|
 pub fn field_references(expression : Expression) -> Array[FieldReference] {
-  expression.field_references.map(r => { ..r, path: r.path.copy(), })
+  expression.field_indices.map(i => expression.relation_references[i])
 }
 
 ///|
-/// Ordinary and provenance-qualified field occurrences, excluding properties
-/// and opaque literal data. Qualified names denote the base field only.
 pub fn relation_references(expression : Expression) -> Array[FieldReference] {
-  expression.relation_references.map(r => { ..r, path: r.path.copy(), })
+  expression.relation_references.copy()
 }
 
 ///|
-pub(all) struct FieldReference {
-  name : String
-  path : Array[@source.PathSegment]
-  span : @source.Span
-  range : @text.Range?
-} derive(Eq, Debug)
+pub fn relation_reference_count(expression : Expression) -> Int {
+  expression.relation_references.length()
+}
+
+///|
+pub fn relation_reference_at(
+  expression : Expression,
+  index : Int,
+) -> FieldReference? {
+  if index < 0 || index >= expression.relation_references.length() {
+    None
+  } else {
+    Some(expression.relation_references[index])
+  }
+}
 
 ///|
 pub fn tree(expression : Expression) -> @decode.Cursor {
@@ -92,11 +130,10 @@ pub fn tree(expression : Expression) -> @decode.Cursor {
 }
 
 ///|
-/// Syntactic occurrences only, in source order, with duplicates retained.
 pub fn parameter_references(
   expression : Expression,
 ) -> Array[ParameterReference] {
-  expression.references.map(r => { ..r, path: r.path.copy(), })
+  expression.references.copy()
 }
 
 ///|
@@ -109,7 +146,7 @@ priv suberror Stop {
 // both origins undergo the same alias normalization and closed validation.
 priv enum Origin {
   Authored
-  TextDecoded(@decode.Cursor, @text.Range)
+  TextDecoded(@decode.Cursor, @text.Expression)
 }
 
 ///|
@@ -135,7 +172,7 @@ priv struct Budget {
   mut bytes : Int
   mut tokens : Int
   references : Array[ParameterReference]
-  field_references : Array[FieldReference]
+  field_indices : Array[Int]
   relation_references : Array[FieldReference]
 }
 
@@ -153,7 +190,8 @@ fn[T] invalid(
 ) -> T raise Stop {
   let (location, range) = match origin {
     Authored => (cursor, None)
-    TextDecoded(slot, range) => (slot, Some(range))
+    TextDecoded(slot, expression) =>
+      (slot, @text.node_range(expression, cursor))
   }
   raise Stop({
     kind,
@@ -179,12 +217,12 @@ fn[T] decoded(
             span: issue.span,
             range: None,
           })
-        TextDecoded(slot, range) =>
+        TextDecoded(slot, expression) =>
           raise Stop({
             kind: Decode(issue.kind),
             path: @decode.cursor_path(slot),
             span: @decode.cursor_span(slot),
-            range: Some(range),
+            range: @text.node_range(expression, @text.tree(expression)),
           })
       }
   }
@@ -217,31 +255,51 @@ fn canonical(
 }
 
 ///|
-fn node(value : @source.Value, cursor : @decode.Cursor) -> @source.Node {
-  { value, span: @decode.cursor_span(cursor), }
+fn location(cursor : @decode.Cursor, origin : Origin) -> Location {
+  match origin {
+    Authored => { source: cursor, range: None, }
+    TextDecoded(slot, expression) =>
+      { source: slot, range: @text.node_range(expression, cursor), }
+  }
+}
+
+///|
+fn node(
+  value : @map.Value[Location],
+  cursor : @decode.Cursor,
+  origin : Origin,
+) -> Node {
+  {
+    value,
+    span: @decode.cursor_span(cursor),
+    annotation: location(cursor, origin),
+  }
 }
 
 ///|
 fn form(
   tag : String,
-  body : @source.Node,
+  body : Node,
   cursor : @decode.Cursor,
-) -> @source.Node {
+  origin : Origin,
+) -> Node {
   node(
-    @source.Object([
+    @map.Object([
       { key: tag, key_span: @decode.cursor_span(cursor), value: body, },
     ]),
     cursor,
+    origin,
   )
 }
 
 ///|
 fn named(
-  fields : Array[(String, @source.Node)],
+  fields : Array[(String, Node)],
   cursor : @decode.Cursor,
-) -> @source.Node {
+  origin : Origin,
+) -> Node {
   node(
-    @source.Object(
+    @map.Object(
       fields.map(f => {
         key: f.0,
         key_span: @decode.cursor_span(cursor),
@@ -249,5 +307,6 @@ fn named(
       }),
     ),
     cursor,
+    origin,
   )
 }

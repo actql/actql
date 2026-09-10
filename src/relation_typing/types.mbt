@@ -150,10 +150,7 @@ pub fn binding_at(value : CheckedOperation, index : Int) -> Binding? {
 
 ///|
 pub fn references(value : Binding) -> Array[Reference] {
-  value.references.map(r => {
-    ..r,
-    occurrence: { ..r.occurrence, path: r.occurrence.path.copy(), },
-  })
+  value.references.copy()
 }
 
 ///|
@@ -213,9 +210,9 @@ fn[T] unknown_reference(
   raise Stop({
     source,
     kind: UnknownField(occurrence.name),
-    path: occurrence.path.copy(),
-    span: occurrence.span,
-    range: occurrence.range,
+    path: @syntax.location_path(occurrence.location),
+    span: @syntax.location_span(occurrence.location),
+    range: occurrence.location.range,
   })
 }
 

@@ -1,22 +1,22 @@
 ///|
 fn finish(
-  value : @source.Node,
+  value : Node,
   role : Role,
   cursor : @decode.Cursor,
   origin : Origin,
   budget : Budget,
-) -> @source.Node raise Stop {
+) -> Node raise Stop {
   match role {
     Expr | InRight => {
       let fields = match value.value {
-        @source.Object(fields) => fields
+        @map.Object(fields) => fields
         _ => invalid(cursor, origin, InvalidExpression)
       }
       let tag = fields[0].key
       let body = fields[0].value
       if tag == "field" || tag == "template" {
         let name = match body.value {
-          @source.String(name) => name
+          @map.String(name) => name
           _ => invalid(cursor, origin, InvalidArguments)
         }
         if tag == "template" {
@@ -65,12 +65,20 @@ fn finish(
               "join_field",
               named(
                 [
-                  ("side", node(@source.String(parts[0].to_owned()), cursor)),
-                  ("name", node(@source.String(parts[1].to_owned()), cursor)),
+                  (
+                    "side",
+                    node(@map.String(parts[0].to_owned()), cursor, origin),
+                  ),
+                  (
+                    "name",
+                    node(@map.String(parts[1].to_owned()), cursor, origin),
+                  ),
                 ],
                 cursor,
+                origin,
               ),
               cursor,
+              origin,
             )
             record_relation(
               parts[0].to_owned() + "." + parts[1].to_owned(),
@@ -84,11 +92,16 @@ fn finish(
                 named(
                   [
                     ("value", result),
-                    ("name", node(@source.String(parts[i].to_owned()), cursor)),
+                    (
+                      "name",
+                      node(@map.String(parts[i].to_owned()), cursor, origin),
+                    ),
                   ],
                   cursor,
+                  origin,
                 ),
                 cursor,
+                origin,
               )
             }
             return result
@@ -106,7 +119,7 @@ fn finish(
           (
             "type",
             node(
-              @source.String(
+              @map.String(
                 match tag {
                   "to_number" => "number"
                   "to_string" => "string"
@@ -116,6 +129,7 @@ fn finish(
                 },
               ),
               cursor,
+              origin,
             ),
           ),
         ]
@@ -133,21 +147,23 @@ fn finish(
         return form(
           "cast",
           named(
-            [("value", input), ("target", named(target_fields, cursor))],
+            [("value", input), ("target", named(target_fields, cursor, origin))],
             cursor,
+            origin,
           ),
           cursor,
+          origin,
         )
       }
     }
     Arguments(tag) => {
       let args = match value.value {
-        @source.Array(args) => args
+        @map.Array(args) => args
         _ => invalid(cursor, origin, InvalidArguments)
       }
       if ["eq", "neq", "lt", "lte", "gt", "gte"].contains(tag) {
         for arg in args {
-          if literal(arg) is Some({ value: @source.Null, .. }) {
+          if literal(arg) is Some({ value: @map.Null, .. }) {
             invalid(cursor, origin, InvalidArguments)
           }
         }
@@ -158,7 +174,7 @@ fn finish(
       if tag == "date_trunc" || tag == "date_add" || tag == "date_diff" {
         let index = if tag == "date_trunc" { 0 } else { 2 }
         if !(literal(args[index])
-          is Some({ value: @source.String("ms" | "s" | "m" | "h" | "d"), .. })) {
+          is Some({ value: @map.String("ms" | "s" | "m" | "h" | "d"), .. })) {
           invalid(cursor, origin, InvalidArguments)
         }
       }
@@ -173,7 +189,7 @@ fn finish(
         if !(part(value, "rounding")
           is Some(
             {
-              value: @source.String(
+              value: @map.String(
                 "half_even"
                 | "half_up"
                 | "toward_zero"
@@ -188,13 +204,13 @@ fn finish(
       }
       if tag == "join_field" {
         if !(part(value, "side")
-          is Some({ value: @source.String("left" | "right"), .. })) {
+          is Some({ value: @map.String("left" | "right"), .. })) {
           invalid(cursor, origin, InvalidArguments)
         }
       }
       if tag == "join_field" || tag == "property" {
         match part(value, "name") {
-          Some({ value: @source.String(name), .. }) =>
+          Some({ value: @map.String(name), .. }) =>
             if !field_name(name) {
               invalid(cursor, origin, InvalidName(name))
             }
@@ -203,11 +219,11 @@ fn finish(
       }
       if tag == "join_field" {
         let side = match part(value, "side").unwrap().value {
-          @source.String(s) => s
+          @map.String(s) => s
           _ => invalid(cursor, origin, InvalidArguments)
         }
         let name = match part(value, "name").unwrap().value {
-          @source.String(s) => s
+          @map.String(s) => s
           _ => invalid(cursor, origin, InvalidArguments)
         }
         record_relation(side + "." + name, cursor, origin, budget)
@@ -224,18 +240,18 @@ fn finish(
           invalid(cursor, origin, InvalidArguments)
         }
         if part(value, "flags") is Some(flags) &&
-          !(flags.value is @source.String(_)) {
+          !(flags.value is @map.String(_)) {
           invalid(cursor, origin, InvalidArguments)
         }
       }
       if tag == "vector_score" &&
         !(part(value, "metric")
-        is Some({ value: @source.String("cosine" | "dot" | "l2"), .. })) {
+        is Some({ value: @map.String("cosine" | "dot" | "l2"), .. })) {
         invalid(cursor, origin, InvalidArguments)
       }
     }
     CastTarget =>
-      if part(value, "type") is Some({ value: @source.String("decimal"), .. }) {
+      if part(value, "type") is Some({ value: @map.String("decimal"), .. }) {
         decimal_fields(value, cursor, origin)
       }
     _ => ()
@@ -250,18 +266,10 @@ fn record_field(
   origin : Origin,
   budget : Budget,
 ) -> Unit {
-  record_relation(name, cursor, origin, budget)
-  // Text occurrences already carry exact token ranges from the text parser.
-  let (source, range) = match origin {
-    Authored => (cursor, None)
-    TextDecoded(_, _) => return
+  if origin is Authored {
+    budget.field_indices.push(budget.relation_references.length())
+    record_relation(name, cursor, origin, budget)
   }
-  budget.field_references.push({
-    name,
-    path: @decode.cursor_path(source),
-    span: @decode.cursor_span(source),
-    range,
-  })
 }
 
 ///|
@@ -271,14 +279,10 @@ fn record_relation(
   origin : Origin,
   budget : Budget,
 ) -> Unit {
-  match origin {
-    Authored =>
-      budget.relation_references.push({
-        name,
-        path: @decode.cursor_path(cursor),
-        span: @decode.cursor_span(cursor),
-        range: None,
-      })
-    TextDecoded(_, _) => ()
+  if origin is Authored {
+    budget.relation_references.push({
+      name,
+      location: location(cursor, origin),
+    })
   }
 }

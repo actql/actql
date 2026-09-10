@@ -34,10 +34,18 @@ has its separate typed-array role, as specified by syntax admission.
 
 Issue kinds identify missing scopes/names, type incompatibility, unresolved
 evidence, forbidden constructor values, static options, and budget failure.
-Locations are cursors in the retained normalized syntax, with the coordinate
-conventions described in the syntax guide. They do not pretend to reconstruct
-original token bytes through source escapes or YAML folding. Environment failures
+`Issue.source` is the cursor used internally in normalized syntax;
+`Issue.location` is its original source handle, resolved through the syntax
+sidecar. Consumers must use the latter for user-facing paths, spans and ranges.
+They do not pretend to reconstruct original token bytes through source escapes
+or YAML folding. Environment failures
 are anchored at the checked expression's root. No partial typed result escapes.
+
+Diagnostic selection follows the failing check: per-operand domain checks point
+to that operand (for example TRUE in `1 + TRUE`); whole-expression checks such
+as cast compatibility and property lookup point to the containing cast/property.
+Alias expansion does not invent an authored `cast.value` path. Structured origins
+have no text range; embedded text retains the original slot plus a scalar range.
 
 ## Local evidence and signatures
 

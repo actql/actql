@@ -1,28 +1,29 @@
 ///|
 priv enum Frame {
+  Located(Int)
   Enter(Int, Int)
   Tail(Int, Int, Int)
   Group
   Prefix(Token)
-  List(String?, Token, Array[@value.Node], Int)
+  List(String?, Token, Array[Node], Int)
   CastFinish(Token)
-  CaseCondition(Array[@value.Node], Int)
-  CaseValue(Array[@value.Node], @value.Node, Int)
-  CaseElse(Array[(String, @value.Node)])
-  Subscript(@value.Node)
+  CaseCondition(Array[Node], Int)
+  CaseValue(Array[Node], Node, Int)
+  CaseElse(Array[(String, Node)])
+  Subscript(Node)
   Binary(Parsed, TokenKind, Int, Token)
-  Distinct(@value.Node, Bool)
-  BetweenLow(@value.Node, Bool, Int)
-  BetweenHigh(@value.Node, @value.Node, Bool)
-  LikeFinish(@value.Node, Bool, Token)
-  InParameter(@value.Node, Bool, Token)
-  InItem(@value.Node, Bool, Array[@value.Node], Token, Int)
+  Distinct(Node, Bool)
+  BetweenLow(Node, Bool, Int)
+  BetweenHigh(Node, Node, Bool)
+  LikeFinish(Node, Bool, Token)
+  InParameter(Node, Bool, Token)
+  InItem(Node, Bool, Array[Node], Token, Int)
 }
 
 ///|
-fn object_get(node : @value.Node, key : String) -> @value.Node? {
+fn object_get(node : Node, key : String) -> Node? {
   match node.value {
-    @value.Object(fields) => {
+    @map.Object(fields) => {
       for field in fields {
         if field.key == key {
           return Some(field.value)
@@ -47,15 +48,15 @@ fn Parser::field_name(self : Parser) -> String raise ExpressionError {
 fn Parser::binary(
   self : Parser,
   left : Parsed,
-  right : @value.Node,
+  right : Node,
   op : TokenKind,
   level : Int,
   token : Token,
 ) -> Parsed raise ExpressionError {
   if level == 5 &&
     (
-      literal_value(left.node) is Some({ value: @value.Null, .. }) ||
-      literal_value(right) is Some({ value: @value.Null, .. })
+      literal_value(left.node) is Some({ value: @map.Null, .. }) ||
+      literal_value(right) is Some({ value: @map.Null, .. })
     ) {
     raise InvalidArguments(token.start, token.end)
   }
@@ -84,10 +85,20 @@ fn Parser::binary(
   if chain is Some(_) && left.chain == chain {
     // Only private, unparenthesized chains share this mutable builder.
     match object_get(left.node, name) {
-      Some({ value: @value.Array(args), .. }) => args.push(right)
+      Some({ value: @map.Array(args), .. }) => args.push(right)
       _ => raise SyntaxFailure(token.start, token.end)
     }
-    { ..left, numeric_token: false, }
+    {
+      ..left,
+      node: {
+        ..left.node,
+        annotation: {
+          start: left.node.annotation.start,
+          end: right.annotation.end,
+        },
+      },
+      numeric_token: false,
+    }
   } else {
     {
       node: self.arguments(name, [left.node, right]),
@@ -101,11 +112,23 @@ fn Parser::binary(
 /// Pratt continuations live on the heap. Sibling operands resume at the same
 /// nesting budget; neither long left-associative chains nor nested calls use
 /// the native call stack.
-fn Parser::expression(self : Parser) -> @value.Node raise ExpressionError {
+fn Parser::expression(self : Parser) -> Node raise ExpressionError {
   let stack : Array[Frame] = [Enter(1, 1)]
-  let mut result = parsed({ value: @value.Null, span: self.span, })
+  let mut result = parsed({
+    value: @map.Null,
+    span: self.span,
+    annotation: { start: 0, end: 0, },
+  })
   while stack.pop() is Some(frame) {
     match frame {
+      Located(start) =>
+        result = {
+          ..result,
+          node: {
+            ..result.node,
+            annotation: { start, end: self.tokens[self.pos - 1].end, },
+          },
+        }
       Enter(minimum, depth) => {
         let token = self.peek()
         if depth > self.max_depth {
@@ -113,25 +136,24 @@ fn Parser::expression(self : Parser) -> @value.Node raise ExpressionError {
         }
         ignore(self.advance())
         stack.push(Tail(minimum, 10, depth))
+        stack.push(Located(token.start))
         match token.kind {
           NumberLiteral(value~, ..) =>
             result = {
-              node: self.form("literal", self.node(@value.Number(value))),
+              node: self.form("literal", self.node(@map.Number(value))),
               numeric_token: true,
               chain: None,
             }
           StringLiteral(text) =>
-            result = parsed(
-              self.form("literal", self.node(@value.String(text))),
-            )
+            result = parsed(self.form("literal", self.node(@map.String(text))))
           Parameter(name) =>
-            result = parsed(self.form("$param", self.node(@value.String(name))))
+            result = parsed(self.form("$param", self.node(@map.String(name))))
           Reserved(Null) =>
-            result = parsed(self.form("literal", self.node(@value.Null)))
+            result = parsed(self.form("literal", self.node(@map.Null)))
           Reserved(True) =>
-            result = parsed(self.form("literal", self.node(@value.Bool(true))))
+            result = parsed(self.form("literal", self.node(@map.Bool(true))))
           Reserved(False) =>
-            result = parsed(self.form("literal", self.node(@value.Bool(false))))
+            result = parsed(self.form("literal", self.node(@map.Bool(false))))
           Punctuation(OpenParen) => {
             stack.push(Group)
             stack.push(Enter(1, depth + 1))
@@ -188,8 +210,8 @@ fn Parser::expression(self : Parser) -> @value.Node raise ExpressionError {
                 self.form(
                   "join_field",
                   self.object([
-                    ("side", self.node(@value.String(name))),
-                    ("name", self.node(@value.String(field))),
+                    ("side", self.node(@map.String(name))),
+                    ("name", self.node(@map.String(field))),
                   ]),
                 ),
               )
@@ -202,9 +224,7 @@ fn Parser::expression(self : Parser) -> @value.Node raise ExpressionError {
                 name,
                 range: { start: token.start, end: token.end, },
               })
-              result = parsed(
-                self.form("field", self.node(@value.String(name))),
-              )
+              result = parsed(self.form("field", self.node(@map.String(name))))
             }
           QuotedName(name) => {
             self.field_references.push({
@@ -215,7 +235,7 @@ fn Parser::expression(self : Parser) -> @value.Node raise ExpressionError {
               name,
               range: { start: token.start, end: token.end, },
             })
-            result = parsed(self.form("field", self.node(@value.String(name))))
+            result = parsed(self.form("field", self.node(@map.String(name))))
           }
           _ => raise SyntaxFailure(token.start, token.end)
         }
@@ -229,9 +249,9 @@ fn Parser::expression(self : Parser) -> @value.Node raise ExpressionError {
           result = parsed(self.form("not", result.node))
         } else if result.numeric_token {
           match literal_value(result.node) {
-            Some({ value: @value.Number(number), .. }) if number != 0.0 =>
+            Some({ value: @map.Number(number), .. }) if number != 0.0 =>
               result = parsed(
-                self.form("literal", self.node(@value.Number(-number))),
+                self.form("literal", self.node(@map.Number(-number))),
               )
             _ => raise InvalidArguments(token.start, token.end)
           }
@@ -269,7 +289,7 @@ fn Parser::expression(self : Parser) -> @value.Node raise ExpressionError {
           stack.push(CaseCondition(branches, depth))
           stack.push(Enter(1, depth + 1))
         } else {
-          let fields = [("when", self.node(@value.Array(branches)))]
+          let fields = [("when", self.node(@map.Array(branches)))]
           if self.has(Reserved(Else)) {
             ignore(self.advance())
             stack.push(CaseElse(fields))
@@ -310,7 +330,7 @@ fn Parser::expression(self : Parser) -> @value.Node raise ExpressionError {
         result = parsed(if negated { self.form("not", base) } else { base })
       }
       LikeFinish(left, negated, token) => {
-        if !(literal_value(result.node) is Some({ value: @value.String(_), .. })) &&
+        if !(literal_value(result.node) is Some({ value: @map.String(_), .. })) &&
           object_get(result.node, "$param") is None {
           raise SyntaxFailure(token.start, token.end)
         }
@@ -344,7 +364,7 @@ fn Parser::expression(self : Parser) -> @value.Node raise ExpressionError {
           stack.push(Enter(1, depth + 1))
         } else {
           self.take(Punctuation(CloseParen))
-          let rhs = self.form("literal", self.node(@value.Array(items)))
+          let rhs = self.form("literal", self.node(@map.Array(items)))
           result = parsed(
             self.arguments(if negated { "not_in" } else { "in" }, [left, rhs]),
           )
@@ -370,7 +390,7 @@ fn Parser::expression(self : Parser) -> @value.Node raise ExpressionError {
               "property",
               self.object([
                 ("value", result.node),
-                ("name", self.node(@value.String(name))),
+                ("name", self.node(@map.String(name))),
               ]),
             ),
           )

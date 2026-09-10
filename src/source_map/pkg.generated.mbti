@@ -1,0 +1,46 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/source_map"
+
+import {
+  "actql/actql/decode_core",
+  "actql/actql/source_span",
+}
+
+// Values
+pub fn[T] admit(Node[T], @decode_core.Limits) -> Result[(@decode_core.Cursor, Map[T]), @decode_core.Issue]
+
+pub fn[T] annotation(Map[T], @decode_core.Cursor) -> T?
+
+pub fn[T] node_count(Map[T]) -> Int
+
+pub fn[T] peak_frames(Map[T]) -> Int
+
+// Errors
+
+// Types and methods
+pub(all) struct Field[T] {
+  key : String
+  key_span : @source_span.Span
+  value : Node[T]
+}
+
+type Map[T]
+
+pub(all) struct Node[T] {
+  value : Value[T]
+  span : @source_span.Span
+  annotation : T
+}
+
+pub(all) enum Value[T] {
+  Null
+  Bool(Bool)
+  Number(Double)
+  String(String)
+  Array(Array[Node[T]])
+  Object(Array[Field[T]])
+}
+
+// Type aliases
+
+// Traits

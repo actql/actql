@@ -113,8 +113,10 @@ does not claim a once-only prepared Parameter type index.
 
 Traversal is iterative. The visible-field map is updated in place internally,
 but never exposed. Results and child contracts are read-only; exported arrays
-and reference paths are detached copies. A failure exposes no partial result.
-Syntax issues retain syntax diagnostics; type issues retain the failing cursor.
+are detached copies; references retain shared read-only source handles and expand
+one path only when requested. A failure exposes no partial result.
+Syntax issues retain syntax diagnostics; type issues resolve the failing
+normalized node through its original origin sidecar before propagation.
 Operation-level shape/name errors identify the relevant body or declaration.
 Diagnostics expose `path`, `span` and optional expression-text `range`;
 `source` retains the enclosing checking context and is not a substitute for

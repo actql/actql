@@ -14,7 +14,19 @@ pub fn admit(@decode_core.Cursor, Limits) -> Result[Expression, Issue]
 
 pub fn field_references(Expression) -> Array[FieldReference]
 
-pub fn parameter_references(Expression) -> Array[ParameterReference]
+pub fn location_path(Location) -> Array[@source_value.PathSegment]
+
+pub fn location_span(Location) -> @source_span.Span
+
+pub fn origin(Expression, @decode_core.Cursor) -> Location?
+
+pub fn origin_count(Expression) -> Int
+
+pub fn parameter_references(Expression) -> Array[FieldReference]
+
+pub fn relation_reference_at(Expression, Int) -> FieldReference?
+
+pub fn relation_reference_count(Expression) -> Int
 
 pub fn relation_references(Expression) -> Array[FieldReference]
 
@@ -27,12 +39,11 @@ pub fn usage(Expression) -> Usage
 // Types and methods
 type Expression
 
-pub(all) struct FieldReference {
+#alias(ParameterReference)
+pub struct FieldReference {
   name : String
-  path : Array[@source_value.PathSegment]
-  span : @source_span.Span
-  range : @expression_text.Range?
-} derive(Eq, @debug.Debug)
+  location : Location
+}
 
 pub(all) struct Issue {
   kind : IssueKind
@@ -64,12 +75,10 @@ pub(all) struct Limits {
   tree : @decode_core.Limits
 } derive(Eq, @debug.Debug)
 
-pub(all) struct ParameterReference {
-  name : String
-  path : Array[@source_value.PathSegment]
-  span : @source_span.Span
+pub struct Location {
+  source : @decode_core.Cursor
   range : @expression_text.Range?
-} derive(Eq, @debug.Debug)
+}
 
 pub(all) struct Usage {
   nodes : Int

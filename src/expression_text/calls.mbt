@@ -2,8 +2,8 @@
 fn Parser::cast_target(
   self : Parser,
   token : Token,
-  value : @value.Node,
-) -> @value.Node raise ExpressionError {
+  value : Node,
+) -> Node raise ExpressionError {
   self.take(Reserved(As))
   let type_token = self.advance()
   let name = match type_token.kind {
@@ -13,7 +13,7 @@ fn Parser::cast_target(
   if !["number", "string", "boolean", "timestamp", "decimal"].contains(name) {
     raise SyntaxFailure(type_token.start, type_token.end)
   }
-  let fields = [("type", self.node(@value.String(name)))]
+  let fields = [("type", self.node(@map.String(name)))]
   if name == "decimal" {
     self.take(Punctuation(OpenParen))
     let numbers = []
@@ -24,7 +24,7 @@ fn Parser::cast_target(
         _ => raise InvalidArguments(next.start, next.end)
       }
       numbers.push(number)
-      fields.push((field, self.node(@value.Number(number))))
+      fields.push((field, self.node(@map.Number(number))))
       if field == "precision" {
         self.take(Punctuation(Comma))
       }
@@ -48,9 +48,9 @@ fn Parser::cast_target(
 fn Parser::call(
   self : Parser,
   name : String,
-  args : Array[@value.Node],
+  args : Array[Node],
   token : Token,
-) -> @value.Node raise ExpressionError {
+) -> Node raise ExpressionError {
   let (minimum, maximum) = match name {
     "len"
     | "sqrt"
@@ -101,14 +101,14 @@ fn Parser::call(
         ("value", args[0]),
         (
           "target",
-          self.object([("type", self.node(@value.String(name[3:].to_owned())))]),
+          self.object([("type", self.node(@map.String(name[3:].to_owned())))]),
         ),
       ]),
     )
   }
   if name == "vector_score" {
     let metric = literal_value(args[2])
-    if !(metric is Some({ value: @value.String("cosine" | "dot" | "l2"), .. })) {
+    if !(metric is Some({ value: @map.String("cosine" | "dot" | "l2"), .. })) {
       raise InvalidArguments(token.start, token.end)
     }
     return self.form(
@@ -123,7 +123,7 @@ fn Parser::call(
   if ["date_trunc", "date_add", "date_diff"].contains(name) {
     let index = if name == "date_trunc" { 0 } else { 2 }
     if !(literal_value(args[index])
-      is Some({ value: @value.String("ms" | "s" | "m" | "h" | "d"), .. })) {
+      is Some({ value: @map.String("ms" | "s" | "m" | "h" | "d"), .. })) {
       raise InvalidArguments(token.start, token.end)
     }
   }
@@ -147,7 +147,7 @@ fn Parser::call(
     for i, arg in args {
       let key = fields[i]
       if key == "pattern" || key == "delimiter" {
-        if !(literal_value(arg) is Some({ value: @value.String(_), .. })) &&
+        if !(literal_value(arg) is Some({ value: @map.String(_), .. })) &&
           object_get(arg, "$param") is None {
           raise InvalidArguments(token.start, token.end)
         }
@@ -159,12 +159,12 @@ fn Parser::call(
         }
         if key == "precision" || key == "scale" {
           match raw.value {
-            @value.Number(value) if value >= -9007199254740991.0 &&
+            @map.Number(value) if value >= -9007199254740991.0 &&
               value <= 9007199254740991.0 &&
               value.trunc() == value => ()
             _ => raise InvalidArguments(token.start, token.end)
           }
-        } else if !(raw.value is @value.String(_)) {
+        } else if !(raw.value is @map.String(_)) {
           raise InvalidArguments(token.start, token.end)
         }
         raw
@@ -178,7 +178,7 @@ fn Parser::call(
       ) {
       let offset = if name == "decimal_divide" { 2 } else { 1 }
       match (body[offset].1.value, body[offset + 1].1.value) {
-        (@value.Number(precision), @value.Number(scale)) if precision >= 1.0 &&
+        (@map.Number(precision), @map.Number(scale)) if precision >= 1.0 &&
           precision <= 38.0 &&
           scale >= 0.0 &&
           scale <= precision => ()
@@ -187,7 +187,7 @@ fn Parser::call(
     }
     if name == "quantize" || name == "decimal_divide" {
       match body[body.length() - 1].1.value {
-        @value.String(
+        @map.String(
           "half_even"
           | "half_up"
           | "toward_zero"
@@ -205,7 +205,7 @@ fn Parser::call(
           (
             "target",
             self.object([
-              ("type", self.node(@value.String("decimal"))),
+              ("type", self.node(@map.String("decimal"))),
               ("precision", body[1].1),
               ("scale", body[2].1),
             ]),
