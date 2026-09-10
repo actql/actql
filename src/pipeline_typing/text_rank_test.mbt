@@ -30,7 +30,85 @@ test "text ranking resolves query occurrences and composes with reciprocal rank 
     is Some(_),
   )
   assert_eq(@schema.field_count(@pipeline_typing.output_schema(p).unwrap()), 4)
+  let selected = @text_rank_profile.admit(
+    @utf8.encode(text_profile_fixture()),
+    text_profile_fixture_cid(),
+    text_profile_blobs(),
+    {
+      max_profile_bytes: 10000,
+      max_dependency_bytes: 1000,
+      max_nodes: 1000,
+      max_depth: 20,
+    },
+  ).unwrap()
+  let bound = @pipeline_typing.check_carriers(
+    source,
+    inputs,
+    None,
+    from,
+    limits(),
+    text_rank_profile=Some(selected),
+  ).unwrap()
+  let bound_rank = @vector.ranking_input_text(
+    @pipeline_typing.ranking_evidence(bound, Step(0)).unwrap(),
+  ).unwrap()
+  let unbound_rank = @vector.ranking_input_text(
+    @pipeline_typing.ranking_evidence(p, Step(0)).unwrap(),
+  ).unwrap()
+  assert_true(@vector.text_rank_profile(unbound_rank) is None)
+  assert_eq(
+    @text_rank_profile.cid(@vector.text_rank_profile(bound_rank).unwrap()),
+    text_profile_fixture_cid(),
+  )
+  assert_true(
+    @vector.text_rank_pending(unbound_rank).contains(ResolveTextRankProfile),
+  )
+  let pending = @vector.text_rank_pending(bound_rank)
+  assert_false(pending.contains(ResolveTextRankProfile))
+  assert_true(pending.contains(NormalizeAndTokenizeWithPinnedUnicode))
+  assert_true(pending.contains(EvaluatePinnedBm25AndCorrectlyRoundedLogarithm))
+  assert_true(pending.contains(ResolveStatisticsScoringAndOutputResources))
+  assert_eq(
+    pending.length() + 1,
+    @vector.text_rank_pending(unbound_rank).length(),
+  )
+  // The options-only and direct checker paths bind the same admitted profile.
+  let direct = @vector.check_text_rank(
+    cursor(body),
+    rows,
+    rows,
+    {
+      max_work: 10000,
+      max_nodes: 10000,
+      max_depth: 100,
+      max_text_bytes: 10000,
+    },
+    profile=Some(selected),
+  ).unwrap()
+  assert_eq(
+    @text_rank_profile.cid(@vector.text_rank_profile(direct).unwrap()),
+    text_profile_fixture_cid(),
+  )
   let u = @pipeline_typing.usage(p)
+  let bound_usage = @pipeline_typing.usage(bound)
+  assert_eq(bound_usage.work, u.work)
+  assert_eq(bound_usage.nodes, u.nodes)
+  assert_eq(bound_usage.text_bytes, u.text_bytes)
+  let evidence_path = @pipeline_typing.check_with_evidence(
+    source,
+    inputs.map(pair => (pair.0, @pipeline_typing.CarrierInput(pair.1))),
+    None,
+    from,
+    limits(),
+    text_rank_profile=Some(selected),
+  ).unwrap()
+  let producer = @vector.ranking_input_text(
+    @pipeline_typing.ranking_evidence(evidence_path, Step(0)).unwrap(),
+  ).unwrap()
+  assert_eq(
+    @text_rank_profile.cid(@vector.text_rank_profile(producer).unwrap()),
+    text_profile_fixture_cid(),
+  )
   let exact = {
     ..limits(),
     max_work: u.work,

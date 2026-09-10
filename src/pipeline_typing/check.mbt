@@ -56,6 +56,7 @@ fn check_impl(
   from : @decode.Cursor?,
   limits : Limits,
   calendar_profile : @calendar_profile.Profile?,
+  text_rank_profile : @text_rank_profile.Profile?,
   delta_contracts : Array[
     (String, @schema.FieldName, @graph_contract.CheckedContract),
   ],
@@ -1323,6 +1324,7 @@ fn check_impl(
             max_depth: limits.max_depth,
             max_text_bytes: b.text,
           },
+          profile=text_rank_profile,
         ),
       )
       let u = @vector.text_rank_usage(checked)
@@ -2151,6 +2153,7 @@ pub fn check(
   from : @decode.Cursor?,
   limits : Limits,
   calendar_profile? : @calendar_profile.Profile? = None,
+  text_rank_profile? : @text_rank_profile.Profile? = None,
   delta_contracts? : Array[
     (String, @schema.FieldName, @graph_contract.CheckedContract),
   ] = [],
@@ -2162,6 +2165,7 @@ pub fn check(
     from,
     limits,
     calendar_profile~,
+    text_rank_profile~,
     delta_contracts~,
   )
 }
@@ -2176,6 +2180,7 @@ pub fn check_carriers(
   from : @decode.Cursor?,
   limits : Limits,
   calendar_profile? : @calendar_profile.Profile? = None,
+  text_rank_profile? : @text_rank_profile.Profile? = None,
   delta_contracts? : Array[
     (String, @schema.FieldName, @graph_contract.CheckedContract),
   ] = [],
@@ -2188,6 +2193,7 @@ pub fn check_carriers(
       from,
       limits,
       calendar_profile,
+      text_rank_profile,
       delta_contracts,
       inputs.map(_ => None),
       inputs.map(_ => None),
@@ -2206,6 +2212,7 @@ pub fn check_with_evidence(
   from : @decode.Cursor?,
   limits : Limits,
   calendar_profile? : @calendar_profile.Profile? = None,
+  text_rank_profile? : @text_rank_profile.Profile? = None,
   delta_contracts? : Array[
     (String, @schema.FieldName, @graph_contract.CheckedContract),
   ] = [],
@@ -2239,8 +2246,8 @@ pub fn check_with_evidence(
   })
   Ok(
     check_impl(
-      source, carriers, parameters, from, limits, calendar_profile, delta_contracts,
-      keys, rankings,
+      source, carriers, parameters, from, limits, calendar_profile, text_rank_profile,
+      delta_contracts, keys, rankings,
     ),
   ) catch {
     Stop(issue) => Err(issue)

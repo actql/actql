@@ -268,8 +268,8 @@ not declare lexical scores comparable with arbitrary vector scores.
 The checker records Unicode NFKC/full-fold/tokenization, actual-input corpus
 statistics, correctly rounded logarithms, exact fold order, empty-input guards,
 non-finite rejection and separate token/statistics/scoring/output ceilings as
-obligations. This implements no tokenizer or BM25 evaluator. Resolving the pinned
-text-rank profile remains shared profile work. Independent tokenizer and
+obligations. This implements no tokenizer or BM25 evaluator. The pinned profile
+admission and optional checker binding are described below. Independent tokenizer and
 pretokenized numerical vectors are connected below; MoonBit
 type-check tests are not numerical conformance evidence.
 
@@ -364,8 +364,15 @@ data and independent vector oracles are checked separately by `check:vector`.
 The supported law hashes and synthetic fixture are generated and freshness-checked
 alongside the selected artifact, without deriving expected CIDs from product code.
 
-Pipeline binding is not yet connected: `ResolveTextRankProfile` remains pending.
-An admitted profile cannot discharge evaluation, tokenizer or resource obligations.
+Both text-rank checker entry points accept an optional admitted profile, and all
+pipeline checker entry points forward the selected `text_rank_profile`. The
+checked operation retains that immutable profile; ranking evidence retains the
+same checked producer. No source option can replace this Check Environment
+selection. Absence retains `ResolveTextRankProfile`; presence removes only that
+obligation. This supports partial static analysis, not execution without a
+selected profile. An admitted profile cannot discharge evaluation, tokenizer or
+resource obligations. Profile admission has its own explicit budgets; sharing an
+already admitted profile across steps neither reparses nor rehashes its blobs.
 
 Fixed-revision searches found no text_rank implementation in Sketch
 `87dc7144138edfcba108cdc59dc485ac976ba976` (src and moonbit/src), no text_rank/BM25

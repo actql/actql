@@ -11,6 +11,7 @@ import {
   "actql/actql/relation_typing",
   "actql/actql/source_span",
   "actql/actql/source_value",
+  "actql/actql/text_rank_profile",
   "moonbitlang/core/debug",
 }
 
@@ -41,9 +42,9 @@ pub fn check_ranking_fusion(RankingOptions, Array[RankingInput], Limits) -> Resu
 
 pub fn check_ranking_shape(RankingOptions, RankingInput, Limits) -> Result[RankingShape, Issue]
 
-pub fn check_text_rank(@decode_core.Cursor, @carrier_contract.Carrier, @carrier_contract.Carrier, Limits) -> Result[CheckedTextRank, Issue]
+pub fn check_text_rank(@decode_core.Cursor, @carrier_contract.Carrier, @carrier_contract.Carrier, Limits, profile? : @text_rank_profile.Profile?) -> Result[CheckedTextRank, Issue]
 
-pub fn check_text_rank_inputs(TextRankOptions, @carrier_contract.Carrier, @carrier_contract.Carrier, Limits) -> Result[CheckedTextRank, Issue]
+pub fn check_text_rank_inputs(TextRankOptions, @carrier_contract.Carrier, @carrier_contract.Carrier, Limits, profile? : @text_rank_profile.Profile?) -> Result[CheckedTextRank, Issue]
 
 pub fn declare_ranking_score(@decode_core.Cursor, @carrier_contract.Carrier, @relation_schema.FieldName, Limits) -> Result[RankingInput, Issue]
 
@@ -232,6 +233,8 @@ pub fn text_rank_options_usage(TextRankOptions) -> Usage
 pub fn text_rank_output(CheckedTextRank) -> @carrier_contract.Carrier
 
 pub fn text_rank_pending(CheckedTextRank) -> Array[TextRankObligation]
+
+pub fn text_rank_profile(CheckedTextRank) -> @text_rank_profile.Profile?
 
 pub fn text_rank_queries(TextRankOptions) -> String
 

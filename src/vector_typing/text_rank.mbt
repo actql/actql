@@ -127,6 +127,7 @@ pub(all) enum TextRankObligation {
 
 ///|
 struct CheckedTextRank {
+  profile : @text_rank_profile.Profile?
   options : TextRankOptions
   corpus : @carrier.Carrier
   queries : @carrier.Carrier
@@ -165,6 +166,7 @@ pub fn check_text_rank(
   corpus : @carrier.Carrier,
   queries : @carrier.Carrier,
   limits : Limits,
+  profile? : @text_rank_profile.Profile? = None,
 ) -> Result[CheckedTextRank, Issue] {
   let options = match read_text_rank_options(source, limits) {
     Ok(o) => o
@@ -172,12 +174,18 @@ pub fn check_text_rank(
   }
   let u = options.usage
   match
-    check_text_rank_inputs(options, corpus, queries, {
-      max_work: limits.max_work - u.work,
-      max_nodes: limits.max_nodes - u.nodes,
-      max_text_bytes: limits.max_text_bytes - u.text_bytes,
-      max_depth: limits.max_depth,
-    }) {
+    check_text_rank_inputs(
+      options,
+      corpus,
+      queries,
+      {
+        max_work: limits.max_work - u.work,
+        max_nodes: limits.max_nodes - u.nodes,
+        max_text_bytes: limits.max_text_bytes - u.text_bytes,
+        max_depth: limits.max_depth,
+      },
+      profile~,
+    ) {
     Err(e) => Err(e)
     Ok(c) =>
       Ok({
@@ -198,6 +206,7 @@ pub fn check_text_rank_inputs(
   corpus : @carrier.Carrier,
   queries : @carrier.Carrier,
   limits : Limits,
+  profile? : @text_rank_profile.Profile? = None,
 ) -> Result[CheckedTextRank, Issue] {
   try {
     let source = options.source
@@ -258,6 +267,7 @@ pub fn check_text_rank_inputs(
       Err(_) => fail(source, BudgetExceeded)
     }
     Ok({
+      profile,
       options,
       corpus,
       queries,
@@ -341,8 +351,13 @@ pub fn text_rank_usage(c : CheckedTextRank) -> Usage {
 }
 
 ///|
-pub fn text_rank_pending(_c : CheckedTextRank) -> Array[TextRankObligation] {
-  [
+pub fn text_rank_profile(c : CheckedTextRank) -> @text_rank_profile.Profile? {
+  c.profile
+}
+
+///|
+pub fn text_rank_pending(c : CheckedTextRank) -> Array[TextRankObligation] {
+  let obligations = [
     ValidateCompleteTextInputs,
     ValidateGlobalStringIdentities(Corpus),
     ValidateGlobalStringIdentities(Queries),
@@ -355,7 +370,10 @@ pub fn text_rank_pending(_c : CheckedTextRank) -> Array[TextRankObligation] {
     ExcludeZeroScoresAndHandleEmptyInputs,
     OrderTextScoresAndSemanticIdentities,
     AssignContiguousTextRanks,
-    ResolveTextRankProfile,
     ResolveStatisticsScoringAndOutputResources,
   ]
+  if c.profile is None {
+    obligations.push(ResolveTextRankProfile)
+  }
+  obligations
 }

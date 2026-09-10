@@ -122,7 +122,14 @@ def moonbit_files():
         test += f'    (@text_rank_profile.{kind}, @utf8.encode("{kind}")),\n'
     test += '  ]\n}\n'
     base = ROOT / "src/text_rank_profile"
-    return {base / "laws.generated.mbt": laws, base / "fixture.generated_test.mbt": test}
+    pipeline_test = test.replace("fn fixture()", "fn text_profile_fixture()").replace(
+        "fn fixture_cid()", "fn text_profile_fixture_cid()"
+    ).replace("fn blobs()", "fn text_profile_blobs()")
+    return {
+        base / "laws.generated.mbt": laws,
+        base / "fixture.generated_test.mbt": test,
+        ROOT / "src/pipeline_typing/text_profile.generated_test.mbt": pipeline_test,
+    }
 
 
 if __name__ == "__main__":

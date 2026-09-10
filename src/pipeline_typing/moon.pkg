@@ -1,6 +1,7 @@
 supported_targets = "+js+wasm+native"
 
 import {
+  "actql/actql/text_rank_profile",
   "actql/actql/relation_evidence" @evidence,
   "actql/actql/graph_contract",
   "actql/actql/calendar_typing" @calendar,
@@ -35,7 +36,9 @@ import {
   "moonbitlang/core/debug",
 } for "test"
 
-formatter(ignore: [ "corpus.generated_test.mbt" ])
+formatter(
+  ignore: [ "corpus.generated_test.mbt", "text_profile.generated_test.mbt" ],
+)
 
 import {
   "actql/actql/source_value" @source,
