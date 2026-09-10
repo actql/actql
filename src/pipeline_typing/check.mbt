@@ -2103,7 +2103,9 @@ fn check_impl(
   sync_rankings(b, inputs, ranked_inputs, steps, ranked_steps)
   let join_evidence = derive_join_evidence(b, steps, keyed_inputs, keyed_steps)
   let (row_counts, graph_counts) = derive_row_counts(b, steps, join_evidence)
-  let logical_orders = derive_logical_orders(b, steps)
+  let logical_orders = derive_logical_orders(
+    b, steps, keyed_inputs, keyed_steps,
+  )
   {
     logical_orders,
     graph_counts,

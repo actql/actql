@@ -147,6 +147,10 @@ pub fn sequence_usage(CheckedSequence) -> SequenceUsage
 
 pub fn sequence_within(CheckedSequence) -> @temporal_window.Milliseconds
 
+pub fn sort_term_at(CheckedOperation, Int) -> OrderTerm?
+
+pub fn sort_term_count(CheckedOperation) -> Int
+
 pub fn source(CheckedOperation) -> @decode_core.Cursor
 
 pub fn text_bytes_used(CheckedOperation) -> Int

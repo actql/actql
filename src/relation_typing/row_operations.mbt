@@ -292,3 +292,19 @@ pub fn preserves_input_order(value : CheckedOperation) -> Bool {
     _ => false
   }
 }
+
+///|
+pub fn sort_term_count(value : CheckedOperation) -> Int {
+  match value.row_operation {
+    Some(Sort(terms)) => terms.length()
+    _ => 0
+  }
+}
+
+///|
+pub fn sort_term_at(value : CheckedOperation, index : Int) -> OrderTerm? {
+  match value.row_operation {
+    Some(Sort(terms)) => terms.get(index)
+    _ => None
+  }
+}

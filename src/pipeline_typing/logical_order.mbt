@@ -5,6 +5,7 @@ struct LogicalOrder {
   origin : Target
   producer : CheckedStep
   predecessor : Target?
+  completion : SortCompletion?
 }
 
 ///|
@@ -35,11 +36,23 @@ pub fn order_predecessor(order : LogicalOrder) -> Target? {
 fn derive_logical_orders(
   b : Budget,
   steps : Array[CheckedStep],
+  input_keys : Array[@evidence.KeySet?],
+  step_keys : Array[@evidence.KeySet?],
 ) -> Array[LogicalOrder?] raise Stop {
   let out : Array[LogicalOrder?] = []
   for i in 0..<steps.length() {
     let step = steps[i]
     spend(b, step.source, 1)
+    let completion = match step.operation {
+      Unary(op) if @relation.operation(op) == @relation.Sort &&
+        @relation.sort_term_count(op) > 0 =>
+        complete_sort(
+          b,
+          op,
+          step.input.bind(t => key_at(t, input_keys, step_keys)),
+        )
+      _ => None
+    }
     let previous = step.input.bind(t => {
       match t {
         Input(_) => None
@@ -57,8 +70,8 @@ fn derive_logical_orders(
       _ => false
     }
     out.push(
-      if establishes {
-        Some({ origin: Step(i), producer: step, predecessor: None, })
+      if establishes || completion is Some(_) {
+        Some({ origin: Step(i), producer: step, predecessor: None, completion, })
       } else if preserve {
         previous.map(v => { ..v, predecessor: step.input, })
       } else {

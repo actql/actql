@@ -20,15 +20,33 @@ Projection may remove the original ordering field without changing occurrence
 order: this does not make a remaining constant field a candidate key. Logical
 order and candidate keys are deliberately separate evidence.
 
-External inputs have no implicit order. Nonempty sort is not considered resolved
-merely because its keys type-check; its completion/tie evidence needs a separate
-boundary. Other unimplemented transfer rules return no summary rather than an
+External inputs have no implicit order. Nonempty sort establishes conditional
+order when its actual input retains an eligible canonical-order candidate key.
+The existing key selector chooses the canonical whole tuple (arity, then UTF-16
+field order); its producer and admission obligations remain attached. Authored
+terms retain their order, direction and null placement. Missing components are
+recorded separately as ascending, nulls-last internal identity terms; any retained
+alias of a component already present in the authored terms covers that component.
+This can produce an empty completion for an already-covered key, but it does not
+deduplicate or rewrite authored terms. Empty sort never invokes this completion.
+Reference identity ordering is internal and does not expand authored OrderKey
+types. The current selector requires complete non-null portable components;
+nullable-key completion remains unimplemented rather than silently reinterpreted.
+
+`order_sort_completion` exposes the selected witness and indexed appended fields.
+The retained origin operation supplies the unchanged authored terms. This is
+information for later Plan construction and journaling, not a claim that a
+journal or executable sort has already been emitted. A sort with no selected
+key is not resolved merely because its keys type-check. Other unimplemented
+transfer rules return no summary rather than an
 invented unordered value or an unconditional success. Results still retain their
-publication-order obligation. Connecting completed authored orders, candidate-key
-completion, other ordered operations, validated external witnesses and Results
+publication-order obligation. Connecting other completed orders and their
+consumer checks, other ordered operations, validated external witnesses and Results
 publication remains shared-evidence work.
 
-The pass is nonrecursive and charges one work unit per checked step. It shares
+The pass is nonrecursive and charges one work unit per checked step plus bounded
+candidate selection, authored-term and key-alias scans for completion. Field text
+is charged to the shared text budget. It shares
 the generator and records immediate edges without copying an ever-growing path.
 The Relation transfer classifier reads private checked metadata in constant time,
 including empty-sort detection, without copying order arrays. Fixed Sketch

@@ -70,6 +70,8 @@ pub fn order_predecessor(LogicalOrder) -> Target?
 
 pub fn order_producer(LogicalOrder) -> CheckedStep
 
+pub fn order_sort_completion(LogicalOrder) -> SortCompletion?
+
 pub fn output_carrier(CheckedPipeline) -> @carrier_contract.Carrier?
 
 pub fn output_schema(CheckedPipeline) -> @relation_schema.Schema?
@@ -81,6 +83,12 @@ pub fn ranking_evidence(CheckedPipeline, Target) -> @vector_typing.RankingInput?
 pub fn row_count(CheckedPipeline, Target) -> RowCount?
 
 pub fn schema_at(CheckedPipeline, Target) -> @relation_schema.Schema?
+
+pub fn sort_completion_count(SortCompletion) -> Int
+
+pub fn sort_completion_field(SortCompletion, Int) -> @relation_schema.FieldName?
+
+pub fn sort_completion_key(SortCompletion) -> @relation_evidence.KeyedRelation
 
 pub fn source(CheckedPipeline) -> @decode_core.Cursor
 
@@ -246,6 +254,8 @@ pub struct RowCount {
   upper : Int64
   exact : Bool
 } derive(Eq, @debug.Debug)
+
+type SortCompletion
 
 pub(all) enum Target {
   Input(Int)
