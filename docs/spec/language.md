@@ -4386,6 +4386,37 @@ calendar rows carry no external absence evidence. Independent vectors cover
 leap years, quarter/year boundaries, both weekly origins, folds, gaps, skipped
 days, coincident boundaries and version-sensitive historical transitions.
 
+<!-- requirement-block: calendar.transition-artifact -->
+The selected transition artifact MUST be exact canonical JSON with closed shape
+`{version: "actql-tzdb-table/0.1", tzdb_version, conversion_law:
+"actql-calendar-boundaries/0.1", coverage_start_ms: -62135596800000,
+coverage_end_ms: 253402300800000, zones}`. Coverage is UTC year 0001 inclusive
+through year 10000 exclusive; lookup outside it fails without extrapolation.
+`tzdb_version` is the nonempty external release identifier selected by Check
+Environment, not an ActQL-owned version. `zones` maps exact nonempty names to
+closed `{initial_offset_seconds, transitions}` objects; each transition is closed
+`{at_ms, offset_seconds}`. Times are exact safe-integer UTC milliseconds,
+strictly increasing and interior to coverage. Offsets are signed 32-bit integer
+seconds excluding -2147483648. Initial offset holds at coverage start; each
+transition changes the offset at its instant. Repeated offsets are omitted from
+this offset-only representation, regardless of abbreviation or DST-label changes.
+The map includes `UTC` with zero initial offset and no transitions. Other selected
+names, including aliases, retain exact spellings and complete offset tables.
+
+<!-- requirement-block: calendar.artifact-admission -->
+Artifact admission MUST compare the original bytes' SHA-256 CID and external
+release identifier against the independently selected Check Environment pins,
+reject noncanonical bytes without repair, and validate table structure within
+explicit byte, node, depth, zone and cumulative transition ceilings before
+exposing a profile. The conversion-law domain identifies the Calendar boundary
+rules above, including earliest fold resolution, gap advancement and coincident
+boundary collapse; it is not a Host-selectable interpretation. A matching CID
+proves selected-byte integrity, not independent IANA authenticity. Establishing
+release provenance belongs to selection of the trusted semantic artifact.
+Synthetic tables test admission but do not establish historical TZDB or Calendar
+conformance. Exact-name lookup has no locale, case-folding, alias inference or
+ambient database fallback.
+
 <a id="dedupe-events"></a>
 
 #### `dedupe_events`

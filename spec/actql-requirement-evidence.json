@@ -3556,6 +3556,28 @@
       }
     },
     {
+      "requirement_id": "actql.language/calendar.transition-artifact",
+      "statement_sha256": "f2f57faa45f1b9c80fd6c42f605670cf87ca6bdfa503d6744bcdce78c2adbb26",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "calendar",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/calendar.artifact-admission",
+      "statement_sha256": "879e72b58e7b5aa35ffdd3320789c9692ef5b4edcc8926a0e0048047f26c0bff",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "calendar",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.language/dedupe-events.by-and-a-stable-non-empty-order-by-are-required",
       "statement_sha256": "f2f0348050e87e5421ffa4b423f8e404833a010d2599f81d962135e1e91bb62f",
       "status": "pending",

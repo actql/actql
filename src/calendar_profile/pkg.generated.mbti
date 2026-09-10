@@ -1,0 +1,47 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/calendar_profile"
+
+import {
+  "actql/actql/calendar_transition",
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn admit(Bytes, String, String, Limits) -> Result[Profile, Issue]
+
+pub fn cid(Profile) -> String
+
+pub fn tzdb_version(Profile) -> String
+
+pub fn zone(Profile, String) -> @calendar_transition.Table?
+
+// Errors
+
+// Types and methods
+pub(all) enum Issue {
+  InvalidLimits
+  BudgetExceeded
+  IdentityMismatch
+  InvalidJson
+  InvalidBody
+  UnsupportedVersion
+  UnsupportedLaw
+  InvalidCoverage
+  InvalidZone
+  InvalidTable(String, @calendar_transition.Issue)
+  NoncanonicalArtifact
+} derive(Eq, @debug.Debug)
+
+pub(all) struct Limits {
+  max_bytes : Int
+  max_nodes : Int
+  max_depth : Int
+  max_zones : Int
+  max_transitions : Int
+}
+
+type Profile
+
+// Type aliases
+
+// Traits

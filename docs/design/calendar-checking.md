@@ -16,7 +16,22 @@ authored output name. Field existence, timestamp type and freshness are the
 operation checker's responsibility. The options package does not yet connect
 either operation to pipeline dispatch or produce a checked output Carrier.
 
-## Remaining semantic artifact boundary
+## Semantic artifact boundary
+
+`calendar_profile.admit` accepts raw bytes and independently selected byte
+CID/release pins. It checks the original hash before parsing, admits the closed
+table format defined in the Calendar profile, and hashes canonical re-emission
+without materializing a second serialized String. Equality to the original CID
+rejects parser normalization repairs, alternate numeric spelling, key order and
+whitespace. Duplicate keys fail before a map can erase them. This comparison
+uses the same collision-resistance assumption as CIDs.
+
+This format is a new representation decision, not a format supplied by the fixed
+reference implementations. The opaque profile binds exact zone lookup to one
+selected CID and external release. Current fixtures are synthetic: a trusted real
+release fixture, independent historical transition vectors, operation checking
+and count/evidence propagation remain. The API does not certify an arbitrary
+caller-selected hash as authentic IANA data.
 
 The `calendar_transition` package supplies the validated offset-table primitive
 for that boundary. A table has a closed-open UTC millisecond coverage interval,
@@ -45,14 +60,14 @@ version, byte CID, conversion law and exact zone names before operation checking
 
 A nonempty timezone string does not establish IANA membership. The options API
 deliberately has no `CheckedCalendar` result and cannot discharge profile or zone
-validation. The next boundary must resolve the pinned version, canonical table
-bytes and conversion-law identity, validate the local artifact, and reject names
-not present in that selected artifact. It must not use ambient OS/ICU timezone
+validation. The profile boundary resolves the pinned version, canonical table
+bytes and conversion-law identity and validates the local artifact. Name lookup
+returns no table for names absent from that artifact. It does not use OS/ICU timezone
 data or quietly treat unknown zones as UTC. Missing semantic artifacts prevent
 a runnable Plan, including an unpinned UTC shortcut.
 
 The fixed reference revisions do not contain these Calendar operations or a TZDB
-artifact to reuse. Operation checking, the validated artifact boundary, conservative
+artifact to reuse. Operation checking, selection of a real pinned release, conservative
 count/evidence propagation and independent transition vectors remain in the full
 pure-operation goal. Adding source options does not close those requirements.
 Actual calendar evaluation and acquisition of provider data are outside that goal.
