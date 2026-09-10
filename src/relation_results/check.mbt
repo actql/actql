@@ -166,7 +166,15 @@ fn check_impl(
     let fields = match cache.get(id) {
       Some(v) => v
       None => {
-        let c = @pipeline.schema_at(pipeline, target).unwrap()
+        let carrier = @pipeline.carrier_at(pipeline, target).unwrap()
+        let c = match carrier {
+          @carrier.Relation(rows) =>
+            match @carrier.complete_schema(rows) {
+              Some(c) => c
+              None => fail(from, IncompleteSchema)
+            }
+          _ => fail(from, WrongCarrier(@carrier.kind(carrier)))
+        }
         // The schema root has depth zero, as with an ordinary object contract.
         spend(b, from, 1)
         let fields : Map[String, @schema.Field] = Map([])

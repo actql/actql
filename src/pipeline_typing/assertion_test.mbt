@@ -6,7 +6,10 @@ test "assertions on qualified join fields retain obligations after projection" {
   for i in [1, 2] {
     let step = @pipeline_typing.step_at(p, i).unwrap()
     assert_true(
-      @schema.lookup(step.output, Qualified(Right, "id")).unwrap().nullable,
+      @schema.lookup(
+        @pipeline_typing.step_schema(step).unwrap(),
+        Qualified(Right, "id"),
+      ).unwrap().nullable,
     )
     match step.operation {
       Unary(value) => {
@@ -18,6 +21,6 @@ test "assertions on qualified join fields retain obligations after projection" {
       _ => fail("expected assertion")
     }
   }
-  assert_eq(@schema.field_count(@pipeline_typing.output_schema(p)), 1)
+  assert_eq(@schema.field_count(@pipeline_typing.output_schema(p).unwrap()), 1)
   assert_eq(@pipeline_typing.lookup(p, "out"), Some(Step(3)))
 }

@@ -51,7 +51,7 @@ fn metadata(b : Budget, root : @decode.Cursor) -> Unit raise Stop {
 ///|
 fn check_impl(
   source : @decode.Cursor,
-  supplied_inputs : Array[(String, @schema.Schema)],
+  supplied_inputs : Array[(String, @carrier.Carrier)],
   parameters : @parameter.Declarations?,
   from : @decode.Cursor?,
   limits : Limits,
@@ -87,7 +87,7 @@ fn check_impl(
     if names.contains(key) {
       fail(source, DuplicateName(key))
     }
-    schema_preflight(b, source, schema)
+    carrier_preflight(b, source, schema)
     names[key] = Input(i)
   }
   if parameters is Some(p) {
@@ -213,7 +213,7 @@ fn check_impl(
           @relation.check(
             op,
             operation_body,
-            schema(input, inputs, steps),
+            schema(operation_body, input, inputs, steps),
             parameters,
             {
               max_work: b.work,
@@ -253,8 +253,8 @@ fn check_impl(
           let checked = match
             @nest.check(
               operation_body,
-              schema(input, inputs, steps),
-              schema(right, inputs, steps),
+              schema(operation_body, input, inputs, steps),
+              schema(right_source, right, inputs, steps),
               parameters,
               {
                 max_work: b.work,
@@ -291,8 +291,8 @@ fn check_impl(
           let checked = match
             @append.check(
               operation_body,
-              schema(input, inputs, steps),
-              schema(right, inputs, steps),
+              schema(operation_body, input, inputs, steps),
+              schema(right_source, right, inputs, steps),
               {
                 max_work: b.work,
                 max_text_bytes: b.text,
@@ -325,8 +325,8 @@ fn check_impl(
           let checked = match
             @join.check(
               operation_body,
-              schema(input, inputs, steps),
-              schema(right, inputs, steps),
+              schema(operation_body, input, inputs, steps),
+              schema(right_source, right, inputs, steps),
               parameters,
               {
                 max_work: b.work,
@@ -353,22 +353,26 @@ fn check_impl(
         }
     }
     let target = Step(steps.length())
+    let connections : Connections = {
+      entries: match checked {
+        Unary(_) => [{ role: Primary, target: input, }]
+        Join(right~, ..) | Append(right~, ..) | Nest(right~, ..) =>
+          [{ role: Left, target: input, }, { role: Right, target: right, }]
+      },
+    }
     steps.push({
       source: body,
-      input,
+      input: Some(input),
       binding_name,
       metadata: meta,
       operation: checked,
-      output,
+      output: @carrier.relation(@carrier.typed_rows(output)),
+      connections,
     })
     if binding_name is Some(key) {
       names[key] = target
     }
     current = Some(target)
-  }
-  let current = match current {
-    Some(v) => v
-    None => fail(source, MissingCurrent)
   }
   {
     source,
@@ -376,7 +380,7 @@ fn check_impl(
     steps,
     names,
     current,
-    output: schema(current, inputs, steps),
+    output: current.map(target => carrier(target, inputs, steps)),
     initial_from: from,
     parameters,
     usage: {
@@ -407,6 +411,25 @@ fn resolve_target(
 pub fn check(
   source : @decode.Cursor,
   inputs : Array[(String, @schema.Schema)],
+  parameters : @parameter.Declarations?,
+  from : @decode.Cursor?,
+  limits : Limits,
+) -> Result[CheckedPipeline, Issue] {
+  check_carriers(
+    source,
+    inputs.map(pair => (pair.0, @carrier.relation(@carrier.typed_rows(pair.1)))),
+    parameters,
+    from,
+    limits,
+  )
+}
+
+///|
+/// Structural Carrier inputs carry no implicit runtime, ordering or uniqueness
+/// proof. Existing Relation operations require complete row type information.
+pub fn check_carriers(
+  source : @decode.Cursor,
+  inputs : Array[(String, @carrier.Carrier)],
   parameters : @parameter.Declarations?,
   from : @decode.Cursor?,
   limits : Limits,

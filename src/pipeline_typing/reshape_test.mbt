@@ -27,18 +27,27 @@ test "raw join pick and unnest retain scopes through downstream expression and p
   let p = reshaping_pipeline(text, limits()).unwrap()
   let pick = @pipeline_typing.step_at(p, 1).unwrap()
   assert_true(
-    @schema.lookup(pick.output, Unqualified("items")).unwrap().nullable,
+    @schema.lookup(
+      @pipeline_typing.step_schema(pick).unwrap(),
+      Unqualified("items"),
+    ).unwrap().nullable,
   )
   assert_true(
-    @schema.lookup(pick.output, Qualified(Right, "payload")).unwrap().nullable,
+    @schema.lookup(
+      @pipeline_typing.step_schema(pick).unwrap(),
+      Qualified(Right, "payload"),
+    ).unwrap().nullable,
   )
   let expanded = @pipeline_typing.step_at(p, 2).unwrap()
   assert_true(
-    @schema.lookup(expanded.output, Unqualified("v")).unwrap().nullable,
+    @schema.lookup(
+      @pipeline_typing.step_schema(expanded).unwrap(),
+      Unqualified("v"),
+    ).unwrap().nullable,
   )
   assert_eq(@pipeline_typing.lookup(p, "expanded"), Some(Step(2)))
   assert_true(
-    @schema.lookup(@pipeline_typing.output_schema(p), Unqualified("n")).unwrap().nullable,
+    @schema.lookup(@pipeline_typing.output_schema(p).unwrap(), Unqualified("n")).unwrap().nullable,
   )
   let usage = @pipeline_typing.usage(p)
   let exact = {

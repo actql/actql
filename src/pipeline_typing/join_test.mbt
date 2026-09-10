@@ -30,7 +30,7 @@ test "templates resolve both join scopes and propagate outer null extension" {
       } else {
         let p = join_pipeline(text).unwrap()
         let caption = @schema.lookup(
-          @pipeline_typing.output_schema(p),
+          @pipeline_typing.output_schema(p).unwrap(),
           Unqualified("caption"),
         ).unwrap()
         assert_eq(
@@ -103,7 +103,10 @@ test "join resolves both sides from inputs and prior bindings without inventing 
   let overridden = join_pipeline(
     "[{\"join\":{\"left\":\"l\",\"with\":\"r\",\"kind\":\"inner\",\"on\":\"id\"},\"from\":\"r\"}]",
   ).unwrap()
-  assert_eq(@pipeline_typing.step_at(overridden, 0).unwrap().input, Input(0))
+  assert_eq(
+    @pipeline_typing.step_at(overridden, 0).unwrap().input.unwrap(),
+    Input(0),
+  )
   assert_true(
     @pipeline_typing.step_at(overridden, 0).unwrap().operation
     is Join(right=Input(1), ..),
@@ -112,9 +115,9 @@ test "join resolves both sides from inputs and prior bindings without inventing 
     "[{\"select\":[\"id\",\"amount\"],\"from\":\"r\",\"as\":\"right_rows\"},{\"join\":{\"left\":\"l\",\"with\":\"right_rows\",\"kind\":\"left\",\"on\":\"id\"},\"as\":\"joined\"}]",
   ).unwrap()
   let step = @pipeline_typing.step_at(p, 1).unwrap()
-  assert_eq(step.input, Input(0))
+  assert_eq(step.input.unwrap(), Input(0))
   assert_true(step.operation is Join(right=Step(0), ..))
-  assert_eq(@pipeline_typing.current(p), Step(1))
+  assert_eq(@pipeline_typing.current(p).unwrap(), Step(1))
   assert_eq(@pipeline_typing.lookup(p, "joined"), Some(Step(1)))
   let self_join = join_pipeline(
     "[{\"join\":{\"left\":\"l\",\"with\":\"l\",\"kind\":\"inner\",\"on\":\"id\"}}]",
@@ -141,12 +144,14 @@ test "all unary operations consume qualified outputs without silently flattening
     start +
     ",{\"filter\":\"right.amount > 0\"},{\"derive\":{\"total\":\"left.amount + right.amount\"}},{\"rename\":{\"left.id\":\"id\"}},{\"drop\":[\"right.id\"]},{\"select\":[\"id\",\"total\",{\"amount\":\"left.amount\"}]}]",
   ).unwrap()
-  let output = @pipeline_typing.output_schema(p)
+  let output = @pipeline_typing.output_schema(p).unwrap()
   assert_true(@schema.as_object(output) is Some(_))
   assert_true(@schema.lookup(output, Unqualified("total")).unwrap().nullable)
   assert_true(!@schema.lookup(output, Unqualified("id")).unwrap().nullable)
   let filtered = @pipeline_typing.step_at(p, 1).unwrap()
-  assert_true(@schema.as_object(filtered.output) is None)
+  assert_true(
+    @schema.as_object(@pipeline_typing.step_schema(filtered).unwrap()) is None,
+  )
   let derived = unary(@pipeline_typing.step_at(p, 2).unwrap().operation)
   let refs = @relation.references(@relation.binding_at(derived, 0).unwrap())
   assert_eq(
@@ -162,7 +167,9 @@ test "all unary operations consume qualified outputs without silently flattening
       "{\"derive\":{}}", "{\"rename\":{}}", "{\"drop\":[]}", "{\"select\":[\"left.id\",\"right.id\"]}",
     ] {
     let p = join_pipeline("[" + start + "," + op + "]").unwrap()
-    assert_true(@schema.as_object(@pipeline_typing.output_schema(p)) is None)
+    assert_true(
+      @schema.as_object(@pipeline_typing.output_schema(p).unwrap()) is None,
+    )
   }
   for
     op in [
@@ -178,7 +185,7 @@ test "derived flat fields coexist with qualified scopes and sequential replaceme
   let p = join_pipeline(
     "[{\"join\":{\"left\":\"l\",\"with\":\"r\",\"kind\":\"full\",\"on\":\"id\"}},{\"derive\":[{\"x\":\"left.amount\"},{\"x2\":\"x + right.amount\"}]},{\"filter\":\"x2 > 0 AND left.amount > 0\"}]",
   ).unwrap()
-  let output = @pipeline_typing.output_schema(p)
+  let output = @pipeline_typing.output_schema(p).unwrap()
   assert_true(@schema.lookup(output, Unqualified("x2")).unwrap().nullable)
   assert_true(
     @schema.lookup(output, Qualified(Left, "amount")).unwrap().nullable,
@@ -211,7 +218,7 @@ test "rejoin requires flat schemas on both sides and explicit projection enables
     ",{\"select\":[{\"id\":\"left.id\"}]},{\"join\":{\"with\":\"r\",\"kind\":\"semi\",\"on\":\"id\"}}]",
   ).unwrap()
   assert_eq(
-    @schema.fields(@pipeline_typing.output_schema(p)).map(f => f.name),
+    @schema.fields(@pipeline_typing.output_schema(p).unwrap()).map(f => f.name),
     [@schema.Qualified(Left, "id")],
   )
 }

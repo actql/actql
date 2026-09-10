@@ -182,7 +182,7 @@ test "results resolve authored bindings and retain projection order separately f
   assert_eq(@relation_results.fields(r), ["score", "id"])
   assert_eq(@relation_results.order_by(r).unwrap().length(), 1)
   assert_eq(@relation_results.pending_validations(r).length(), 1)
-  assert_eq(@pipeline.current(@relation_results.pipeline(p)), Step(1))
+  assert_eq(@pipeline.current(@relation_results.pipeline(p)).unwrap(), Step(1))
 }
 
 ///|

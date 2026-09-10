@@ -2,6 +2,7 @@
 package "actql/actql/relation_results"
 
 import {
+  "actql/actql/carrier_contract",
   "actql/actql/decode_core",
   "actql/actql/order_key",
   "actql/actql/pipeline_typing",
@@ -60,6 +61,8 @@ pub(all) enum IssueKind {
   InvalidBody
   InvalidName(String)
   UnknownSource(String)
+  WrongCarrier(@carrier_contract.Kind)
+  IncompleteSchema
   UnknownField(String)
   DuplicateField(String)
   InvalidOrder

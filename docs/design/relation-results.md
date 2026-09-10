@@ -1,5 +1,11 @@
 # Relation Result definition checking
 
+The shared pipeline may have no current target; Results always resolve their
+explicit named source. Non-Relation Carriers fail with `WrongCarrier` and require
+an explicit bridge before publication. This checker currently requires complete
+Relation type evidence (`IncompleteSchema` otherwise); partial-column publication
+and its permitted deferred ordering checks remain in the pure-operation scope.
+
 `relation_results.check` consumes a retained
 [`pipeline_typing.CheckedPipeline`](pipeline-typing.md), a normalized owned
 cursor for a nonempty stage-local `results` map and limits. It checks names,

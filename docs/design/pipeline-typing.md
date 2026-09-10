@@ -37,8 +37,14 @@ contents. They are dataflow names, not field names or Parameter identifiers.
 Input order only defines the returned `Input(index)` coordinates; it never
 selects an ambiguous current input. The input list is copied.
 
-Inputs and outputs use `relation_schema.Schema`, not ordinary object value
-contracts. `relation_schema.from_object` adapts an already checked non-null
+`check` adapts complete Relation schemas to the common `check_carriers` entry.
+Inputs and outputs use [structural Carrier contracts](carrier-contracts.md).
+Open or partially typed Relations and opaque Graph/Events/Vectors are retained
+without inventing field or type evidence. The currently implemented operation
+checkers still require complete Relation schemas; they explicitly distinguish
+`WrongCarrier` from `IncompleteSchema`. Supporting partial inputs where each
+operation permits them remains part of the pure-operation implementation scope.
+`relation_schema.from_object` adapts an already checked non-null
 object contract. Qualified schemas are also accepted and preflighted even when
 unused. The unary operation checks use `relation_typing` with this same
 schema representation. No dotted names are added to ordinary object contracts.
@@ -46,10 +52,13 @@ Only join operands must be flat: qualified output needs explicit projection
 before another join. This applies to both the left and right input.
 
 The package owns shared naming, connection, budget and diagnostic rules; its
-current checked steps have a main input and one output and require a final
-current. `CheckedOperation` distinguishes `Unary`, `Join`, `Append`, and `Nest`; all
-binary variants retain an additional right-input target and their checked operation. General multi-output
-ports, generators and non-Relation Carriers are not implemented.
+current checked steps have one output. Main input and final current are optional
+in the representation. `CheckedOperation` distinguishes `Unary`, `Join`, `Append`,
+and `Nest`; binary variants retain their checked operation and right target.
+`input_occurrences` returns detached, ordered, role-tagged edges, preserving two
+occurrences even when both operands resolve to the same target. General
+multi-output ports, generator checking and non-Relation operations are not yet
+implemented; their Carrier kinds can already pass through an empty pipeline.
 
 SourceView acquisition, Catalog/authority checks, Carrier resolution, search
 template classification and stage imports belong to callers. Search templates
@@ -68,9 +77,10 @@ Step `from` and `join.left` may coexist: `from` selects first and `left` wins,
 but both explicit selectors are validated. The retained main input edge names
 the final left operand, not the overridden binding. Resolving both sides to the same
 existing input is legal, unlike referencing the current step's own `as`.
-Empty steps return the selected input unchanged; this Relation pipeline API
-requires a selected final current even when empty. It does not admit the
-zero-input/generator or no-current publication-only stage cases.
+Empty steps preserve the selected input unchanged or retain no current when
+none was selected. Zero-input empty pipelines and no-current publication-only
+pipelines are admitted. A consuming operation still fails with `MissingCurrent`
+unless a selector establishes its operand; no input is chosen by list order.
 
 Step objects are closed to one supported operation key plus `from`, `as` and
 `meta`. Explicit null selectors/aliases are invalid. Metadata is a nonempty
@@ -81,16 +91,18 @@ keys are ordinary data. Metadata traversal is iterative and budgeted.
 ## Retained result and diagnostics
 
 The opaque result retains source, the optional authored stage selector,
-input schemas, Parameter declarations,
-checked steps, the final current target and output schema. A step retains its
+input Carriers, Parameter declarations,
+checked steps, the optional final current target and output Carrier. A step retains its
 source, explicit binding name, metadata cursor, checked operation and exact
-`Input(index)` or `Step(index)` edge and its output schema. These indices are local storage coordinates,
+`Input(index)` or `Step(index)` edges and its output Carrier. These indices are local storage coordinates,
 not generated names, stable semantic identities or an AoA graph. `lookup`
 resolves authored dataflow names without rescanning steps.
 
-`schema_at` retrieves an input or step schema by bounds-checked target without
-copying the input list. [Result definition checking](relation-results.md) uses
-this boundary after pipeline checking and retains the originating pipeline.
+`carrier_at` retrieves an input or step by bounds-checked target without copying
+the input list. `schema_at`, `step_schema` and `output_schema` return a schema
+only for a complete Relation; absence is not an empty schema.
+[Result definition checking](relation-results.md) explicitly checks the Carrier
+kind at this boundary and retains the originating pipeline.
 
 Each checked operation preserves typed expressions, projection order and
 pending profile/pattern/Host obligations. Callers access them through

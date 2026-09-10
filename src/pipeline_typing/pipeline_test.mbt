@@ -110,10 +110,10 @@ test "linear steps and explicit branches retain exact sources and old schemas" {
     "[{\"derive\":[{\"amount\":\"to_string(amount)\"}],\"as\":\"text\"},{\"select\":[\"id\"],\"from\":\"rows\"},{\"filter\":\"amount = '1'\",\"from\":\"text\",\"as\":\"result\"}]",
   )
   assert_eq(@pipeline_typing.step_count(p), 3)
-  assert_eq(@pipeline_typing.step_at(p, 0).unwrap().input, Input(0))
-  assert_eq(@pipeline_typing.step_at(p, 1).unwrap().input, Input(0))
-  assert_eq(@pipeline_typing.step_at(p, 2).unwrap().input, Step(0))
-  assert_eq(@pipeline_typing.current(p), Step(2))
+  assert_eq(@pipeline_typing.step_at(p, 0).unwrap().input.unwrap(), Input(0))
+  assert_eq(@pipeline_typing.step_at(p, 1).unwrap().input.unwrap(), Input(0))
+  assert_eq(@pipeline_typing.step_at(p, 2).unwrap().input.unwrap(), Step(0))
+  assert_eq(@pipeline_typing.current(p).unwrap(), Step(2))
   assert_eq(@pipeline_typing.lookup(p, "rows"), Some(Input(0)))
   assert_eq(@pipeline_typing.lookup(p, "result"), Some(Step(2)))
   assert_eq(@pipeline_typing.lookup(p, "1"), None)
@@ -125,7 +125,7 @@ test "linear steps and explicit branches retain exact sources and old schemas" {
   assert_eq(@pipeline_typing.inputs(p).length(), 1)
   assert_true(
     @contract.type_equal(
-      @schema.as_object(@pipeline_typing.inputs(p)[0].1).unwrap(),
+      @schema.as_object(@pipeline_typing.schema_at(p, Input(0)).unwrap()).unwrap(),
       row(),
       100,
     ),
@@ -133,7 +133,10 @@ test "linear steps and explicit branches retain exact sources and old schemas" {
   let linear = check(
     "[{\"derive\":{\"tax\":\"amount * 0.1\"}},{\"select\":[\"tax\"]}]",
   )
-  assert_eq(@pipeline_typing.step_at(linear, 1).unwrap().input, Step(0))
+  assert_eq(
+    @pipeline_typing.step_at(linear, 1).unwrap().input.unwrap(),
+    Step(0),
+  )
   assert_eq(
     @relation.projection(
       unary(@pipeline_typing.step_at(linear, 1).unwrap().operation),
@@ -145,7 +148,7 @@ test "linear steps and explicit branches retain exact sources and old schemas" {
 ///|
 test "initial selection is explicit or uniquely materialized and never declaration order" {
   let inputs = [("a", schema()), ("b", schema())]
-  for source in ["[]", "[{\"derive\":{}}]"] {
+  for source in ["[{\"derive\":{}}]"] {
     assert_true(
       @pipeline_typing.check(cursor(source), inputs, None, None, limits())
       is Err({ kind: MissingCurrent, .. }),
@@ -158,7 +161,7 @@ test "initial selection is explicit or uniquely materialized and never declarati
     Some(cursor("\"b\"")),
     limits(),
   ).unwrap()
-  assert_eq(@pipeline_typing.current(empty), Input(1))
+  assert_eq(@pipeline_typing.current(empty).unwrap(), Input(1))
   let selected = @pipeline_typing.check(
     cursor("[{\"derive\":{},\"from\":\"b\"},{\"drop\":[]}]"),
     inputs,
@@ -166,11 +169,16 @@ test "initial selection is explicit or uniquely materialized and never declarati
     None,
     limits(),
   ).unwrap()
-  assert_eq(@pipeline_typing.step_at(selected, 0).unwrap().input, Input(1))
-  assert_eq(@pipeline_typing.step_at(selected, 1).unwrap().input, Step(0))
+  assert_eq(
+    @pipeline_typing.step_at(selected, 0).unwrap().input.unwrap(),
+    Input(1),
+  )
+  assert_eq(
+    @pipeline_typing.step_at(selected, 1).unwrap().input.unwrap(),
+    Step(0),
+  )
   assert_true(
-    @pipeline_typing.check(cursor("[]"), [], None, None, limits())
-    is Err({ kind: MissingCurrent, .. }),
+    @pipeline_typing.check(cursor("[]"), [], None, None, limits()) is Ok(_),
   )
   assert_true(
     @pipeline_typing.check(
@@ -267,7 +275,7 @@ test "metadata is retained and constrained without changing connections or schem
   assert_eq(@decode.cursor_path(s.metadata.unwrap()), [Index(0), Key("meta")])
   assert_true(
     @contract.type_equal(
-      @schema.as_object(@pipeline_typing.output_schema(p)).unwrap(),
+      @schema.as_object(@pipeline_typing.output_schema(p).unwrap()).unwrap(),
       row(),
       100,
     ),
@@ -497,7 +505,7 @@ test "empty schemas and metadata depth keep their own admission boundaries" {
     None,
     limits(),
   ).unwrap()
-  assert_eq(@pipeline_typing.current(p), Input(0))
+  assert_eq(@pipeline_typing.current(p).unwrap(), Input(0))
   assert_true(@pipeline_typing.initial_from(p) is None)
   let selected = cursor("\"empty\"")
   let p = @pipeline_typing.check(
@@ -558,11 +566,14 @@ test "long linear pipelines preserve references without recursive checking" {
     parts.push("{\"derive\":{}}")
   }
   let p = check("[" + parts.join(",") + "]")
-  assert_eq(@pipeline_typing.current(p), Step(2999))
-  assert_eq(@pipeline_typing.step_at(p, 2999).unwrap().input, Step(2998))
+  assert_eq(@pipeline_typing.current(p).unwrap(), Step(2999))
+  assert_eq(
+    @pipeline_typing.step_at(p, 2999).unwrap().input.unwrap(),
+    Step(2998),
+  )
   assert_true(
     @contract.type_equal(
-      @schema.as_object(@pipeline_typing.output_schema(p)).unwrap(),
+      @schema.as_object(@pipeline_typing.output_schema(p).unwrap()).unwrap(),
       row(),
       100,
     ),

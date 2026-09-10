@@ -62,7 +62,7 @@ test "join reshape and append compose without losing qualified array inputs or o
       max_tokens: 0,
     },
   ).unwrap()
-  let output = @pipeline.output_schema(p)
+  let output = @pipeline.output_schema(p).unwrap()
   assert_true(@schema.lookup(output, Unqualified("amount")).unwrap().nullable)
   assert_true(!@schema.lookup(output, Unqualified("item")).unwrap().nullable)
   assert_true(

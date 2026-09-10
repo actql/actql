@@ -2,47 +2,52 @@
 
 ///|
 test "pipeline corpus: empty-single" {
-  corpus_accepted("[]", ["rows"], None, "input:0", [], ["amount","flag","id"])
+  corpus_accepted("[]", ["rows"], None, Some("input:0"), [], ["amount","flag","id"])
 }
 
 ///|
 test "pipeline corpus: empty-selected" {
-  corpus_accepted("[]", ["a","b"], Some("\"b\""), "input:1", [], ["amount","flag","id"])
+  corpus_accepted("[]", ["a","b"], Some("\"b\""), Some("input:1"), [], ["amount","flag","id"])
 }
 
 ///|
 test "pipeline corpus: linear" {
-  corpus_accepted("[{\"filter\":\"flag\"},{\"select\":[\"id\"]}]", ["rows"], None, "step:1", ["input:0","step:0"], ["id"])
+  corpus_accepted("[{\"filter\":\"flag\"},{\"select\":[\"id\"]}]", ["rows"], None, Some("step:1"), ["input:0","step:0"], ["id"])
 }
 
 ///|
 test "pipeline corpus: explicit-first" {
-  corpus_accepted("[{\"rename\":{\"id\":\"name\"},\"from\":\"b\"},{\"select\":[\"name\"]}]", ["a","b"], None, "step:1", ["input:1","step:0"], ["name"])
+  corpus_accepted("[{\"rename\":{\"id\":\"name\"},\"from\":\"b\"},{\"select\":[\"name\"]}]", ["a","b"], None, Some("step:1"), ["input:1","step:0"], ["name"])
 }
 
 ///|
 test "pipeline corpus: branch-reuse" {
-  corpus_accepted("[{\"select\":[\"id\"],\"as\":\"saved\"},{\"drop\":[\"id\"],\"from\":\"rows\"},{\"rename\":{\"id\":\"name\"},\"from\":\"saved\"}]", ["rows"], None, "step:2", ["input:0","input:0","step:0"], ["name"])
+  corpus_accepted("[{\"select\":[\"id\"],\"as\":\"saved\"},{\"drop\":[\"id\"],\"from\":\"rows\"},{\"rename\":{\"id\":\"name\"},\"from\":\"saved\"}]", ["rows"], None, Some("step:2"), ["input:0","input:0","step:0"], ["name"])
 }
 
 ///|
 test "pipeline corpus: noop-retained" {
-  corpus_accepted("[{\"derive\":{}},{\"rename\":{}},{\"drop\":[]}]", ["rows"], None, "step:2", ["input:0","step:0","step:1"], ["amount","flag","id"])
+  corpus_accepted("[{\"derive\":{}},{\"rename\":{}},{\"drop\":[]}]", ["rows"], None, Some("step:2"), ["input:0","step:0","step:1"], ["amount","flag","id"])
 }
 
 ///|
 test "pipeline corpus: data-names" {
-  corpus_accepted("[{\"select\":[\"id\"],\"as\":\"line\\nname\"},{\"drop\":[],\"from\":\"line\\nname\"}]", ["__proto__"], None, "step:1", ["input:0","step:0"], ["id"])
+  corpus_accepted("[{\"select\":[\"id\"],\"as\":\"line\\nname\"},{\"drop\":[],\"from\":\"line\\nname\"}]", ["__proto__"], None, Some("step:1"), ["input:0","step:0"], ["id"])
 }
 
 ///|
 test "pipeline corpus: nfc-name" {
-  corpus_accepted("[{\"select\":[\"id\"],\"from\":\"e\u{301}\"}]", ["\u{e9}"], None, "step:0", ["input:0"], ["id"])
+  corpus_accepted("[{\"select\":[\"id\"],\"from\":\"e\u{301}\"}]", ["\u{e9}"], None, Some("step:0"), ["input:0"], ["id"])
 }
 
 ///|
 test "pipeline corpus: no-current" {
-  corpus_rejected("[]", ["a","b"], None, "MissingCurrent")
+  corpus_accepted("[]", ["a","b"], None, None, [], [])
+}
+
+///|
+test "pipeline corpus: empty-no-input" {
+  corpus_accepted("[]", [], None, None, [], [])
 }
 
 ///|

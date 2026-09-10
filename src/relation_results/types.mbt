@@ -42,6 +42,8 @@ pub(all) enum IssueKind {
   InvalidBody
   InvalidName(String)
   UnknownSource(String)
+  WrongCarrier(@carrier.Kind)
+  IncompleteSchema
   UnknownField(String)
   DuplicateField(String)
   InvalidOrder

@@ -32,6 +32,8 @@ pub(all) enum IssueKind {
   DuplicateName(String)
   UnknownName(String)
   MissingCurrent
+  WrongCarrier(@carrier.Kind)
+  IncompleteSchema
   UnsupportedOperation(String)
   InvalidMetadata
   ReservedMetadataKey(String)
@@ -53,11 +55,43 @@ pub struct Issue {
 ///|
 pub struct CheckedStep {
   source : @decode.Cursor
-  input : Target
+  input : Target?
   binding_name : String?
   metadata : @decode.Cursor?
   operation : CheckedOperation
-  output : @schema.Schema
+  output : @carrier.Carrier
+  connections : Connections
+}
+
+///|
+pub(all) enum InputRole {
+  Primary
+  Left
+  Right
+} derive(Eq, Debug)
+
+///|
+pub struct InputOccurrence {
+  role : InputRole
+  target : Target
+}
+
+///|
+struct Connections {
+  entries : Array[InputOccurrence]
+}
+
+///|
+pub fn input_occurrences(step : CheckedStep) -> Array[InputOccurrence] {
+  step.connections.entries.copy()
+}
+
+///|
+pub fn step_schema(step : CheckedStep) -> @schema.Schema? {
+  match step.output {
+    @carrier.Relation(rows) => @carrier.complete_schema(rows)
+    _ => None
+  }
 }
 
 ///|
@@ -73,11 +107,11 @@ pub enum CheckedOperation {
 struct CheckedPipeline {
   source : @decode.Cursor
   initial_from : @decode.Cursor?
-  inputs : Array[(String, @schema.Schema)]
+  inputs : Array[(String, @carrier.Carrier)]
   steps : Array[CheckedStep]
   names : Map[String, Target]
-  current : Target
-  output : @schema.Schema
+  current : Target?
+  output : @carrier.Carrier?
   parameters : @parameter.Declarations?
   usage : Usage
 }
@@ -93,7 +127,7 @@ pub fn initial_from(value : CheckedPipeline) -> @decode.Cursor? {
 }
 
 ///|
-pub fn inputs(value : CheckedPipeline) -> Array[(String, @schema.Schema)] {
+pub fn inputs(value : CheckedPipeline) -> Array[(String, @carrier.Carrier)] {
   value.inputs.copy()
 }
 
@@ -117,12 +151,20 @@ pub fn lookup(value : CheckedPipeline, name : String) -> Target? {
 }
 
 ///|
-pub fn current(value : CheckedPipeline) -> Target {
+pub fn current(value : CheckedPipeline) -> Target? {
   value.current
 }
 
 ///|
-pub fn output_schema(value : CheckedPipeline) -> @schema.Schema {
+pub fn output_schema(value : CheckedPipeline) -> @schema.Schema? {
+  match value.output {
+    Some(@carrier.Relation(rows)) => @carrier.complete_schema(rows)
+    _ => None
+  }
+}
+
+///|
+pub fn output_carrier(value : CheckedPipeline) -> @carrier.Carrier? {
   value.output
 }
 
@@ -130,6 +172,17 @@ pub fn output_schema(value : CheckedPipeline) -> @schema.Schema {
 /// Checked lookup without copying the input list. Coordinates remain local to
 /// this pipeline and carry no authority outside it.
 pub fn schema_at(value : CheckedPipeline, target : Target) -> @schema.Schema? {
+  match carrier_at(value, target) {
+    Some(@carrier.Relation(rows)) => @carrier.complete_schema(rows)
+    _ => None
+  }
+}
+
+///|
+pub fn carrier_at(
+  value : CheckedPipeline,
+  target : Target,
+) -> @carrier.Carrier? {
   match target {
     Input(i) =>
       if i < 0 || i >= value.inputs.length() {
@@ -252,29 +305,93 @@ fn preflight(
 }
 
 ///|
-fn schema_preflight(
+fn rows_preflight(
   b : Budget,
   source : @decode.Cursor,
-  schema : @schema.Schema,
+  rows : @carrier.Knowledge,
 ) -> Unit raise Stop {
   spend(b, source, 1)
-  let n = @schema.field_count(schema)
+  let n = @carrier.field_count(rows)
   spend(b, source, n)
   for i in 0..<n {
-    let f = @schema.field_at(schema, i).unwrap()
+    let f = @carrier.field_at(rows, i).unwrap()
     charge(b, source, @schema.reference_name(f.name))
-    preflight(b, source, f.contract, depth=1)
+    if f.contract is Some(c) {
+      preflight(b, source, c, depth=1)
+    }
+  }
+}
+
+///|
+fn carrier(
+  target : Target,
+  inputs : Array[(String, @carrier.Carrier)],
+  steps : Array[CheckedStep],
+) -> @carrier.Carrier {
+  match target {
+    Input(i) => inputs[i].1
+    Step(i) => steps[i].output
+  }
+}
+
+///|
+fn carrier_preflight(
+  b : Budget,
+  source : @decode.Cursor,
+  value : @carrier.Carrier,
+) -> Unit raise Stop {
+  match value {
+    @carrier.Relation(rows) => rows_preflight(b, source, rows)
+    @carrier.Opaque(_) => spend(b, source, 1)
+    @carrier.GraphValue(graph) => {
+      spend(b, source, 1)
+      preflight(b, source, @carrier.graph_identity(graph))
+      rows_preflight(b, source, @carrier.graph_node_properties(graph))
+      rows_preflight(b, source, @carrier.graph_edge_properties(graph))
+      if @carrier.graph_labels(graph) is Some(labels) {
+        spend(b, source, labels.length())
+        for label in labels {
+          charge(b, source, label)
+        }
+      }
+    }
+    @carrier.EventValue(events) => {
+      rows_preflight(b, source, events.records)
+      spend(b, source, 2)
+      charge(b, source, @schema.reference_name(events.identity.name))
+      charge(b, source, @schema.reference_name(events.time.name))
+    }
+    @carrier.VectorValue(vectors) => {
+      rows_preflight(b, source, @carrier.vector_records(vectors))
+      let ids = @carrier.vector_identities(vectors)
+      spend(b, source, ids.length())
+      for field in ids {
+        charge(b, source, @schema.reference_name(field.name))
+      }
+      spend(b, source, 1)
+      charge(
+        b,
+        source,
+        @schema.reference_name(@carrier.vector_components(vectors).name),
+      )
+    }
   }
 }
 
 ///|
 fn schema(
+  source : @decode.Cursor,
   target : Target,
-  inputs : Array[(String, @schema.Schema)],
+  inputs : Array[(String, @carrier.Carrier)],
   steps : Array[CheckedStep],
-) -> @schema.Schema {
-  match target {
-    Input(i) => inputs[i].1
-    Step(i) => steps[i].output
+) -> @schema.Schema raise Stop {
+  let value = carrier(target, inputs, steps)
+  match value {
+    @carrier.Relation(rows) =>
+      match @carrier.complete_schema(rows) {
+        Some(schema) => schema
+        None => fail(source, IncompleteSchema)
+      }
+    _ => fail(source, WrongCarrier(@carrier.kind(value)))
   }
 }

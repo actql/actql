@@ -2,6 +2,7 @@
 package "actql/actql/pipeline_typing"
 
 import {
+  "actql/actql/carrier_contract",
   "actql/actql/decode_core",
   "actql/actql/expression_text",
   "actql/actql/parameter_binding",
@@ -16,17 +17,25 @@ import {
 }
 
 // Values
+pub fn carrier_at(CheckedPipeline, Target) -> @carrier_contract.Carrier?
+
 pub fn check(@decode_core.Cursor, Array[(String, @relation_schema.Schema)], @parameter_binding.Declarations?, @decode_core.Cursor?, Limits) -> Result[CheckedPipeline, Issue]
 
-pub fn current(CheckedPipeline) -> Target
+pub fn check_carriers(@decode_core.Cursor, Array[(String, @carrier_contract.Carrier)], @parameter_binding.Declarations?, @decode_core.Cursor?, Limits) -> Result[CheckedPipeline, Issue]
+
+pub fn current(CheckedPipeline) -> Target?
 
 pub fn initial_from(CheckedPipeline) -> @decode_core.Cursor?
 
-pub fn inputs(CheckedPipeline) -> Array[(String, @relation_schema.Schema)]
+pub fn input_occurrences(CheckedStep) -> Array[InputOccurrence]
+
+pub fn inputs(CheckedPipeline) -> Array[(String, @carrier_contract.Carrier)]
 
 pub fn lookup(CheckedPipeline, String) -> Target?
 
-pub fn output_schema(CheckedPipeline) -> @relation_schema.Schema
+pub fn output_carrier(CheckedPipeline) -> @carrier_contract.Carrier?
+
+pub fn output_schema(CheckedPipeline) -> @relation_schema.Schema?
 
 pub fn parameters(CheckedPipeline) -> @parameter_binding.Declarations?
 
@@ -37,6 +46,8 @@ pub fn source(CheckedPipeline) -> @decode_core.Cursor
 pub fn step_at(CheckedPipeline, Int) -> CheckedStep?
 
 pub fn step_count(CheckedPipeline) -> Int
+
+pub fn step_schema(CheckedStep) -> @relation_schema.Schema?
 
 pub fn usage(CheckedPipeline) -> Usage
 
@@ -54,12 +65,26 @@ type CheckedPipeline
 
 pub struct CheckedStep {
   source : @decode_core.Cursor
-  input : Target
+  input : Target?
   binding_name : String?
   metadata : @decode_core.Cursor?
   operation : CheckedOperation
-  output : @relation_schema.Schema
+  output : @carrier_contract.Carrier
+  connections : Connections
 }
+
+type Connections
+
+pub struct InputOccurrence {
+  role : InputRole
+  target : Target
+}
+
+pub(all) enum InputRole {
+  Primary
+  Left
+  Right
+} derive(Eq, @debug.Debug)
 
 pub struct Issue {
   kind : IssueKind
@@ -77,6 +102,8 @@ pub(all) enum IssueKind {
   DuplicateName(String)
   UnknownName(String)
   MissingCurrent
+  WrongCarrier(@carrier_contract.Kind)
+  IncompleteSchema
   UnsupportedOperation(String)
   InvalidMetadata
   ReservedMetadataKey(String)

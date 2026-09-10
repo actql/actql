@@ -9,9 +9,15 @@ test "row operations consume raw join schemas on every join kind" {
       "{\"sort\":[{\"left.amount\":\"desc\"}]},{\"take\":{\"count\":2,\"offset\":1}},{\"distinct\":true},{\"dedupe_rows\":{\"by\":[\"left.id\",\"left.id\"],\"order_by\":[{\"left.amount\":\"asc\"}]}},{\"distinct\":[\"left.id\"],\"as\":\"ids\"}]",
     ).unwrap()
     assert_eq(@pipeline_typing.step_count(p), 6)
-    assert_eq(@schema.field_count(@pipeline_typing.output_schema(p)), 1)
     assert_eq(
-      @schema.lookup(@pipeline_typing.output_schema(p), Qualified(Left, "id")).unwrap().nullable,
+      @schema.field_count(@pipeline_typing.output_schema(p).unwrap()),
+      1,
+    )
+    assert_eq(
+      @schema.lookup(
+        @pipeline_typing.output_schema(p).unwrap(),
+        Qualified(Left, "id"),
+      ).unwrap().nullable,
       kind == "full",
     )
     assert_eq(@pipeline_typing.lookup(p, "ids"), Some(Step(5)))
@@ -51,7 +57,7 @@ test "empty sort cannot discharge take ordering and branch changes retain obliga
   assert_true(@relation.pending_validations(sort).is_empty())
   let take = unary(@pipeline_typing.step_at(p, 1).unwrap().operation)
   assert_eq(@relation.pending_validations(take)[0].kind, StableInputOrder)
-  assert_eq(@pipeline_typing.step_at(p, 2).unwrap().input, Input(1))
+  assert_eq(@pipeline_typing.step_at(p, 2).unwrap().input.unwrap(), Input(1))
 }
 
 ///|

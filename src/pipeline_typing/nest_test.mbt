@@ -3,7 +3,7 @@ test "nest connects qualified parents and children with cumulative budgets" {
   let text = "[{\"join\":{\"left\":\"l\",\"with\":\"r\",\"kind\":\"left\",\"on\":\"id\"},\"as\":\"raw\"},{\"nest\":{\"with\":\"raw\",\"on\":[{\"left\":\"left.id\",\"right\":\"left.id\"}],\"into\":\"items\",\"fields\":[{\"amount\":\"right.amount\"}]},\"as\":\"nested\"},{\"unnest\":{\"column\":\"items\",\"as\":\"item\"}},{\"derive\":{\"value\":\"item.amount + left.amount\"}}]"
   let p = join_pipeline(text).unwrap()
   let step = @pipeline_typing.step_at(p, 1).unwrap()
-  assert_eq(step.input, Step(0))
+  assert_eq(step.input.unwrap(), Step(0))
   match step.operation {
     Nest(right~, checked~) => {
       assert_eq(right, Step(0))
@@ -17,7 +17,10 @@ test "nest connects qualified parents and children with cumulative budgets" {
     _ => fail("expected nest")
   }
   assert_true(
-    @schema.lookup(@pipeline_typing.output_schema(p), Unqualified("value")).unwrap().nullable,
+    @schema.lookup(
+      @pipeline_typing.output_schema(p).unwrap(),
+      Unqualified("value"),
+    ).unwrap().nullable,
   )
   let u = @pipeline_typing.usage(p)
   let exact = {

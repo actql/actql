@@ -24,11 +24,12 @@ export function generate(c) {
       assert.ok(issues.has(v.issue)); assert.equal(v.current, undefined);
       args.push(quote(v.issue));
     } else {
-      assert.match(v.current, /^(input|step):[0-9]+$/);
+      if (v.current !== null) assert.match(v.current, /^(input|step):[0-9]+$/);
+      else { assert.equal(v.steps.length, 0); assert.equal(v.fields, null); }
       assert.ok(Array.isArray(v.edges) && v.edges.length === v.steps.length);
       for (const edge of v.edges) assert.match(edge, /^(input|step):[0-9]+$/);
-      assert.ok(Array.isArray(v.fields) && v.fields.every(x => typeof x === 'string'));
-      args.push(quote(v.current), array(v.edges), array(v.fields));
+      if (v.current !== null) assert.ok(Array.isArray(v.fields) && v.fields.every(x => typeof x === 'string'));
+      args.push(v.current === null ? 'None' : 'Some(' + quote(v.current) + ')', array(v.edges), v.fields === null ? '[]' : array(v.fields));
     }
     out.push('', '///|', `test ${quote('pipeline corpus: ' + v.id)} {`,
       `  corpus_${v.issue === undefined ? 'accepted' : 'rejected'}(${args.join(', ')})`, '}');

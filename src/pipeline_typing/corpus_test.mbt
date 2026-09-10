@@ -11,7 +11,7 @@ fn corpus_accepted(
   source : String,
   names : Array[String],
   from : String?,
-  current : String,
+  current : String?,
   edges : Array[String],
   fields : Array[String],
 ) -> Unit raise {
@@ -22,10 +22,18 @@ fn corpus_accepted(
     from.map(cursor),
     limits(),
   ).unwrap()
-  assert_eq(target(@pipeline_typing.current(p)), current)
+  assert_eq(@pipeline_typing.current(p).map(target), current)
   assert_eq(@pipeline_typing.step_count(p), edges.length())
   for i in 0..<edges.length() {
-    assert_eq(target(@pipeline_typing.step_at(p, i).unwrap().input), edges[i])
+    assert_eq(
+      target(@pipeline_typing.step_at(p, i).unwrap().input.unwrap()),
+      edges[i],
+    )
+  }
+  if current is None {
+    assert_true(@pipeline_typing.output_carrier(p) is None)
+    assert_true(@pipeline_typing.output_schema(p) is None)
+    return
   }
   let expected = @contract.object_contract(
     fields.map(name => {
@@ -42,7 +50,7 @@ fn corpus_accepted(
   ).unwrap()
   assert_true(
     @contract.type_equal(
-      @schema.as_object(@pipeline_typing.output_schema(p)).unwrap(),
+      @schema.as_object(@pipeline_typing.output_schema(p).unwrap()).unwrap(),
       expected,
       1000,
     ),

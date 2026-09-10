@@ -6,7 +6,7 @@ test "append resolves two retained operands and permits appending the same input
     ] {
     let p = join_pipeline(text).unwrap()
     let step = @pipeline_typing.step_at(p, 0).unwrap()
-    assert_eq(step.input, Input(0))
+    assert_eq(step.input.unwrap(), Input(0))
     match step.operation {
       Append(right~, checked~) => {
         assert_true(right == Input(0) || right == Input(1))
@@ -15,7 +15,7 @@ test "append resolves two retained operands and permits appending the same input
       }
       _ => fail("expected append")
     }
-    assert_eq(@pipeline_typing.current(p), Step(0))
+    assert_eq(@pipeline_typing.current(p).unwrap(), Step(0))
     assert_eq(@pipeline_typing.lookup(p, "combined"), Some(Step(0)))
   }
   for
@@ -43,14 +43,19 @@ test "append retains raw join provenance then feeds existing expression and proj
   let text = "[{\"join\":{\"left\":\"l\",\"with\":\"r\",\"kind\":\"left\",\"on\":\"id\"},\"as\":\"raw\"},{\"append\":{\"with\":\"raw\"},\"as\":\"twice\"},{\"derive\":{\"v\":\"left.amount + right.amount\"}},{\"select\":[\"v\"]}]"
   let p = join_pipeline(text).unwrap()
   let step = @pipeline_typing.step_at(p, 1).unwrap()
-  assert_eq(step.input, Step(0))
+  assert_eq(step.input.unwrap(), Step(0))
   assert_true(step.operation is Append(right=Step(0), ..))
-  assert_true(@schema.as_object(step.output) is None)
   assert_true(
-    @schema.lookup(step.output, Qualified(Right, "amount")).unwrap().nullable,
+    @schema.as_object(@pipeline_typing.step_schema(step).unwrap()) is None,
   )
   assert_true(
-    @schema.lookup(@pipeline_typing.output_schema(p), Unqualified("v")).unwrap().nullable,
+    @schema.lookup(
+      @pipeline_typing.step_schema(step).unwrap(),
+      Qualified(Right, "amount"),
+    ).unwrap().nullable,
+  )
+  assert_true(
+    @schema.lookup(@pipeline_typing.output_schema(p).unwrap(), Unqualified("v")).unwrap().nullable,
   )
   let u = @pipeline_typing.usage(p)
   let exact = {
