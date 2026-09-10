@@ -13,6 +13,8 @@ export function graphSchemas() {
       properties:{with:{type:'string',minLength:1}}},
     graph_diff: {type:'object', additionalProperties:false, required:['with'],
       properties:{with:{type:'string',minLength:1}}},
+    apply_graph_delta: {type:'object', additionalProperties:false, required:['with','field'],
+      properties:{with:{type:'string',minLength:1},field:{type:'string',minLength:1}}},
     graph_bounds: {type:'object', additionalProperties:false, minProperties:1,
       properties:{max_nodes:nonnegative,max_edges:nonnegative,max_degree:nonnegative}},
     normalize_graph: {const: true},

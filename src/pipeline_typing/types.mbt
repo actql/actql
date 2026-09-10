@@ -45,6 +45,8 @@ pub(all) enum IssueKind {
   Vector(@vector.IssueKind)
   Event(@event.IssueKind)
   MissingWindowEvidence
+  MissingDeltaContract
+  InvalidDeltaContractBinding
   UnsupportedOperation(String)
   InvalidMetadata
   ReservedMetadataKey(String)
@@ -127,6 +129,7 @@ pub enum CheckedOperation {
   Graph(@graph.CheckedGraph)
   GraphEquality(right~ : Target, checked~ : @graph.CheckedEquality)
   GraphDiff(right~ : Target, checked~ : @graph.CheckedDiff)
+  GraphApply(right~ : Target, checked~ : @graph.CheckedApply)
   Vector(@vector.CheckedVector)
   Event(@event.CheckedEvent)
   WindowGroup(@relation.CheckedOperation)
@@ -161,6 +164,8 @@ pub fn window_aliases(
 
 ///|
 struct CheckedPipeline {
+  delta_inputs : Array[DeltaEvidence]
+  delta_steps : Array[DeltaEvidence]
   source : @decode.Cursor
   initial_from : @decode.Cursor?
   inputs : Array[(String, @carrier.Carrier)]

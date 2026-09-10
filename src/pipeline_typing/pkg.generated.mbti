@@ -9,6 +9,7 @@ import {
   "actql/actql/decode_core",
   "actql/actql/event_typing",
   "actql/actql/expression_text",
+  "actql/actql/graph_contract",
   "actql/actql/graph_typing",
   "actql/actql/parameter_binding",
   "actql/actql/relation_append",
@@ -29,11 +30,13 @@ import {
 // Values
 pub fn carrier_at(CheckedPipeline, Target) -> @carrier_contract.Carrier?
 
-pub fn check(@decode_core.Cursor, Array[(String, @relation_schema.Schema)], @parameter_binding.Declarations?, @decode_core.Cursor?, Limits, calendar_profile? : @calendar_profile.Profile?) -> Result[CheckedPipeline, Issue]
+pub fn check(@decode_core.Cursor, Array[(String, @relation_schema.Schema)], @parameter_binding.Declarations?, @decode_core.Cursor?, Limits, calendar_profile? : @calendar_profile.Profile?, delta_contracts? : Array[(String, @relation_schema.FieldName, @graph_contract.CheckedContract)]) -> Result[CheckedPipeline, Issue]
 
-pub fn check_carriers(@decode_core.Cursor, Array[(String, @carrier_contract.Carrier)], @parameter_binding.Declarations?, @decode_core.Cursor?, Limits, calendar_profile? : @calendar_profile.Profile?) -> Result[CheckedPipeline, Issue]
+pub fn check_carriers(@decode_core.Cursor, Array[(String, @carrier_contract.Carrier)], @parameter_binding.Declarations?, @decode_core.Cursor?, Limits, calendar_profile? : @calendar_profile.Profile?, delta_contracts? : Array[(String, @relation_schema.FieldName, @graph_contract.CheckedContract)]) -> Result[CheckedPipeline, Issue]
 
 pub fn current(CheckedPipeline) -> Target?
+
+pub fn expected_delta_contract(CheckedPipeline, Target, @relation_schema.FieldName) -> @graph_contract.CheckedContract?
 
 pub fn initial_from(CheckedPipeline) -> @decode_core.Cursor?
 
@@ -88,6 +91,7 @@ pub enum CheckedOperation {
   Graph(@graph_typing.CheckedGraph)
   GraphEquality(right~ : Target, checked~ : @graph_typing.CheckedEquality)
   GraphDiff(right~ : Target, checked~ : @graph_typing.CheckedDiff)
+  GraphApply(right~ : Target, checked~ : @graph_typing.CheckedApply)
   Vector(@vector_typing.CheckedVector)
   Event(@event_typing.CheckedEvent)
   WindowGroup(@relation_typing.CheckedOperation)
@@ -148,6 +152,8 @@ pub(all) enum IssueKind {
   Vector(@vector_typing.IssueKind)
   Event(@event_typing.IssueKind)
   MissingWindowEvidence
+  MissingDeltaContract
+  InvalidDeltaContractBinding
   UnsupportedOperation(String)
   InvalidMetadata
   ReservedMetadataKey(String)

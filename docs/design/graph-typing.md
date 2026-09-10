@@ -152,6 +152,23 @@ edges on node removal. Neither behavior implements the current language's
 Relation input, exact before records and explicit endpoint validation. Those
 behaviors are not copied into this checker or its obligations.
 
-The standalone Apply checker is implemented; pipeline contract-evidence selection
-and propagation, its source-schema connection and end-to-end dispatch remain
-unfinished. This API is not execution or pipeline support by itself.
+Pipeline dispatch now resolves `with` as a separate right operand and requires a
+retained expected contract for `field`. Diff creates the expectation on `delta`.
+Value-preserving unary row operations retain it; select/rename/drop transfer it
+to every surviving alias. Derive removes expectations for overwritten fields.
+Expectations do not survive unsupported transformations by accident: broader
+binary/aggregate propagation remains part of the shared-evidence audit.
+
+Captured input Relations can receive explicit `delta_contracts` bindings of
+input name, provenance-aware field name and an opaque checked Graph contract.
+These select the contract to validate against; they do not attest that the
+actual input's `graph_contract_cid` matches or that the Delta is otherwise valid.
+Bindings are validated and preflighted, including unused bindings, and duplicates
+fail. Ordinary matching object types alone do not create expectations. Missing
+contract resolution fails before a successful pipeline is exposed.
+
+Expectation maps are private and shared across unchanged row operations; alias
+maps and derive invalidation are bounded and charged once per step. Public lookup
+returns only an opaque contract, never the mutable map. All runtime admission,
+identity and resource obligations remain. This is checking support, not an
+implementation of Graph Delta execution.

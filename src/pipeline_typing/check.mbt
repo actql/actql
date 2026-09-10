@@ -56,6 +56,9 @@ fn check_impl(
   from : @decode.Cursor?,
   limits : Limits,
   calendar_profile : @calendar_profile.Profile?,
+  delta_contracts : Array[
+    (String, @schema.FieldName, @graph_contract.CheckedContract),
+  ],
 ) -> CheckedPipeline raise Stop {
   if limits.max_steps < 0 ||
     limits.max_work < 0 ||
@@ -111,7 +114,36 @@ fn check_impl(
     None => if inputs.length() == 1 { Some(Input(0)) } else { None }
   }
   let steps : Array[CheckedStep] = []
+  let delta_inputs = inputs.map(_ => empty_delta())
+  let delta_steps : Array[DeltaEvidence] = []
+  spend(b, source, delta_contracts.length())
+  for (input_name, field, contract) in delta_contracts {
+    name(b, source, input_name)
+    let index = match names.get(input_name) {
+      Some(Input(i)) => i
+      _ => fail(source, InvalidDeltaContractBinding)
+    }
+    let rows = match inputs[index].1 {
+      @carrier.Relation(r) => r
+      _ => fail(source, InvalidDeltaContractBinding)
+    }
+    guard @carrier.lookup(rows, field) is Present({ contract: Some(_), .. }) else {
+      fail(source, InvalidDeltaContractBinding)
+    }
+    let key = @schema.reference_name(field)
+    charge(b, source, key)
+    if delta_inputs[index].fields.contains(key) {
+      fail(source, InvalidDeltaContractBinding)
+    }
+    carrier_preflight(
+      b,
+      source,
+      @carrier.graph_carrier(@graph_contract.graph(contract)),
+    )
+    delta_inputs[index].fields[key] = contract
+  }
   for body in bodies {
+    sync_delta(b, body, delta_inputs, steps, delta_steps)
     spend(b, body, 1)
     if b.nodes == 0 {
       fail(body, BudgetExceeded)
@@ -387,6 +419,7 @@ fn check_impl(
       | "graph_bounds"
       | "graphs_equal"
       | "graph_diff"
+      | "apply_graph_delta"
       | "vectors"
       | "window_events" => None
       _ => fail(@decode.lookup(object, key).unwrap(), UnsupportedOperation(key))
@@ -549,8 +582,18 @@ fn check_impl(
       current = Some(target)
       continue
     }
-    if key == "graphs_equal" || key == "graph_diff" {
-      let o = match @decode.closed_object(operation_body, ["with"]) {
+    if key == "graphs_equal" ||
+      key == "graph_diff" ||
+      key == "apply_graph_delta" {
+      let o = match
+        @decode.closed_object(
+          operation_body,
+          if key == "apply_graph_delta" {
+            ["with", "field"]
+          } else {
+            ["with"]
+          },
+        ) {
         Ok(o) => o
         Err(_) => fail(operation_body, InvalidBody)
       }
@@ -568,7 +611,31 @@ fn check_impl(
       let result : Result[
         (CheckedOperation, @carrier.Carrier, @graph.Usage),
         @graph.Issue,
-      ] = if key == "graph_diff" {
+      ] = if key == "apply_graph_delta" {
+        let field_source = match @decode.required(o, "field") {
+          Ok(c) => c
+          Err(_) => fail(operation_body, InvalidBody)
+        }
+        let field = read_name(b, field_source)
+        let expected = match
+          delta_at(right, delta_inputs, delta_steps).fields.get(field) {
+          Some(c) => c
+          None => fail(field_source, MissingDeltaContract)
+        }
+        @graph.check_apply(
+          operation_body,
+          carrier(input, inputs, steps),
+          carrier(right, inputs, steps),
+          expected,
+          { ..caps, max_work: b.work, max_text_bytes: b.text, },
+        ).map(c => {
+          (
+            GraphApply(right~, checked=c),
+            @graph.apply_output(c),
+            @graph.apply_usage(c),
+          )
+        })
+      } else if key == "graph_diff" {
         @graph.check_diff(
           operation_body,
           carrier(input, inputs, steps),
@@ -1200,6 +1267,7 @@ fn check_impl(
         | IntervalJoin(right~, ..)
         | GraphEquality(right~, ..)
         | GraphDiff(right~, ..)
+        | GraphApply(right~, ..)
         | AsOfJoin(right~, ..) =>
           [{ role: Left, target: input, }, { role: Right, target: right, }]
       },
@@ -1219,7 +1287,10 @@ fn check_impl(
     }
     current = Some(target)
   }
+  sync_delta(b, source, delta_inputs, steps, delta_steps)
   {
+    delta_inputs,
+    delta_steps,
     source,
     inputs,
     steps,
@@ -1260,6 +1331,9 @@ pub fn check(
   from : @decode.Cursor?,
   limits : Limits,
   calendar_profile? : @calendar_profile.Profile? = None,
+  delta_contracts? : Array[
+    (String, @schema.FieldName, @graph_contract.CheckedContract),
+  ] = [],
 ) -> Result[CheckedPipeline, Issue] {
   check_carriers(
     source,
@@ -1268,6 +1342,7 @@ pub fn check(
     from,
     limits,
     calendar_profile~,
+    delta_contracts~,
   )
 }
 
@@ -1281,8 +1356,15 @@ pub fn check_carriers(
   from : @decode.Cursor?,
   limits : Limits,
   calendar_profile? : @calendar_profile.Profile? = None,
+  delta_contracts? : Array[
+    (String, @schema.FieldName, @graph_contract.CheckedContract),
+  ] = [],
 ) -> Result[CheckedPipeline, Issue] {
-  Ok(check_impl(source, inputs, parameters, from, limits, calendar_profile)) catch {
+  Ok(
+    check_impl(
+      source, inputs, parameters, from, limits, calendar_profile, delta_contracts,
+    ),
+  ) catch {
     Stop(issue) => Err(issue)
   }
 }

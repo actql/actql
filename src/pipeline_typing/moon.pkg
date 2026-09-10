@@ -1,6 +1,7 @@
 supported_targets = "+js+wasm+native"
 
 import {
+  "actql/actql/graph_contract",
   "actql/actql/calendar_typing" @calendar,
   "actql/actql/calendar_profile",
   "actql/actql/time_series" @series,
