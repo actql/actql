@@ -11,6 +11,43 @@ fn graph_input() -> @carrier.Carrier {
 }
 
 ///|
+test "graph diff exposes typed delta rows and retains binary connections" {
+  let empty = @carrier.rows(
+    [],
+    field_set=Closed,
+    max_fields=0,
+    max_name_bytes=0,
+  ).unwrap()
+  let g = @carrier.graph(
+    @contract.primitive(StringType, nullable=false),
+    empty,
+    empty,
+    labels=Some([]),
+    max_labels=0,
+    max_label_bytes=0,
+  ).unwrap()
+  let p = @pipeline_typing.check_carriers(
+    cursor(
+      "[{\"graph_diff\":{\"with\":\"b\"},\"from\":\"a\",\"as\":\"changes\"},{\"select\":[\"delta\"]}]",
+    ),
+    [("a", g), ("b", g)],
+    None,
+    None,
+    limits(),
+  ).unwrap()
+  let step = @pipeline_typing.step_at(p, 0).unwrap()
+  assert_true(step.operation is GraphDiff(right=Input(1), ..))
+  assert_eq(@pipeline_typing.input_occurrences(step).length(), 2)
+  assert_true(
+    @schema.lookup(
+      @pipeline_typing.output_schema(p).unwrap(),
+      Unqualified("delta"),
+    ).unwrap().shape
+    is Object(_),
+  )
+}
+
+///|
 test "graph equality resolves both inputs and feeds boolean relation consumers" {
   let empty = @carrier.rows(
     [],

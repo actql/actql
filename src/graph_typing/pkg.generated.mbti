@@ -9,13 +9,30 @@ import {
   "actql/actql/relation_schema",
   "actql/actql/source_span",
   "actql/actql/source_value",
+  "actql/actql/value_contract",
   "moonbitlang/core/debug",
 }
 
 // Values
 pub fn check(Operation, @decode_core.Cursor, @carrier_contract.Carrier, @parameter_binding.Declarations?, Limits) -> Result[CheckedGraph, Issue]
 
+pub fn check_diff(@decode_core.Cursor, @carrier_contract.Carrier, @carrier_contract.Carrier, Limits) -> Result[CheckedDiff, Issue]
+
 pub fn check_equality(@decode_core.Cursor, @carrier_contract.Carrier, @carrier_contract.Carrier, Limits) -> Result[CheckedEquality, Issue]
+
+pub fn diff_common_graph(CheckedDiff) -> @carrier_contract.Graph
+
+pub fn diff_contract(CheckedDiff) -> @value_contract.Contract
+
+pub fn diff_output(CheckedDiff) -> @carrier_contract.Carrier
+
+pub fn diff_pending(CheckedDiff) -> Array[DeltaObligation]
+
+pub fn diff_source(CheckedDiff) -> @decode_core.Cursor
+
+pub fn diff_usage(CheckedDiff) -> Usage
+
+pub fn diff_with_name(CheckedDiff) -> String
 
 pub fn equality_input(CheckedEquality, @relation_schema.Side) -> @carrier_contract.Graph
 
@@ -46,6 +63,8 @@ pub fn usage(CheckedGraph) -> Usage
 // Errors
 
 // Types and methods
+type CheckedDiff
+
 type CheckedEquality
 
 type CheckedGraph
@@ -59,6 +78,17 @@ pub enum Count {
   Literal(Int64)
   Parameter(String)
 }
+
+pub(all) enum DeltaObligation {
+  EmitDeltaVersion
+  AdmitSnapshotsUnderCommonContract
+  ResolveGraphContractIdentity
+  BindBaseAndTargetIdentities
+  EmitCompleteBeforeAfterRecords
+  SortUniqueActionIdentities
+  ResolveDeltaResources
+  ResolveSgaProfile
+} derive(Eq, @debug.Debug)
 
 pub(all) enum Direction {
   Incoming

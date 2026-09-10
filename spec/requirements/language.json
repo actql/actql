@@ -4040,6 +4040,17 @@
       }
     },
     {
+      "requirement_id": "actql.language/graph-equality-and-delta.complete-records",
+      "statement_sha256": "76a9e79b282955893a4807c9b23bb66140c82eb8d1e5a012da95e82fafdeff21",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "graph-equality-and-delta",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.language/graph-equality-and-delta.admission",
       "statement_sha256": "573a372b31bd87b261e0bc4974192de01e2296f9c7df9b5c928a1af62b2dc564",
       "status": "pending",

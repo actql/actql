@@ -1,7 +1,8 @@
 # Graph operation checking
 
 `graph_typing` currently checks `normalize_graph`, `degree`, `components` and
-`graph_bounds`, plus binary `graphs_equal` through `check_equality`.
+`graph_bounds`, plus binary `graphs_equal` and `graph_diff` through dedicated
+closed-contract checkers.
 The normative owner is [Graph operations](../spec/language.md#graph-operations).
 This is not the complete SGA operation family or an evaluator.
 
@@ -81,4 +82,24 @@ and work/byte resource validation remain explicit obligations.
 The pinned Sketch compiler has structural binary graph dispatch but no
 `graphs_equal` checker; this operation follows the newer normative Graph equality
 section. The shared comparison boundary is also needed by later diff/apply work;
-those operations and structural merge policies are not implemented by equality.
+application and structural merge policies are not implemented by equality.
+
+## Graph Delta typing
+
+`check_diff` retains the recursively joined common Graph contract and constructs
+the complete typed Delta object specified by Language. Node records are
+`{id, props}`; edge records are `{src, dst, rel, props}`. Property objects remain
+closed and nested even when empty. Updates contain complete before/after records,
+not partial patches. This is a representation decision filling the previous
+record-shape gap; AoA's optional members and partial updates are not equivalent.
+Properties with identity-like names stay under `props`, and IDs keep their type.
+
+The common label domain is the union when both domains are known, otherwise
+unknown. New wrappers and property maps consume the remaining work/node/text
+budget; admitted recursive child contracts are shared. Output is a one-row
+Relation with non-null `delta`, connected to ordinary Relation consumers.
+Its string-typed headers do not alone prove the version or CID values: execution
+must emit the specified version, resolve the common contract CID and bind both
+snapshot CIDs. Action ordering, unique identities, exact complete records and
+resource resolution remain explicit obligations. This does not implement Delta
+evaluation or make arbitrary structurally matching JSON safe to apply.

@@ -386,6 +386,7 @@ fn check_impl(
       | "components"
       | "graph_bounds"
       | "graphs_equal"
+      | "graph_diff"
       | "vectors"
       | "window_events" => None
       _ => fail(@decode.lookup(object, key).unwrap(), UnsupportedOperation(key))
@@ -548,7 +549,7 @@ fn check_impl(
       current = Some(target)
       continue
     }
-    if key == "graphs_equal" {
+    if key == "graphs_equal" || key == "graph_diff" {
       let o = match @decode.closed_object(operation_body, ["with"]) {
         Ok(o) => o
         Err(_) => fail(operation_body, InvalidBody)
@@ -558,18 +559,43 @@ fn check_impl(
         Err(_) => fail(operation_body, InvalidBody)
       }
       let right = resolve_target(b, at, names)
-      let checked = match
+      let caps : @graph.Limits = {
+        max_work: b.work,
+        max_nodes: b.nodes,
+        max_depth: limits.max_depth,
+        max_text_bytes: b.text,
+      }
+      let result : Result[
+        (CheckedOperation, @carrier.Carrier, @graph.Usage),
+        @graph.Issue,
+      ] = if key == "graph_diff" {
+        @graph.check_diff(
+          operation_body,
+          carrier(input, inputs, steps),
+          carrier(right, inputs, steps),
+          caps,
+        ).map(c => {
+          (
+            GraphDiff(right~, checked=c),
+            @graph.diff_output(c),
+            @graph.diff_usage(c),
+          )
+        })
+      } else {
         @graph.check_equality(
           operation_body,
           carrier(input, inputs, steps),
           carrier(right, inputs, steps),
-          {
-            max_work: b.work,
-            max_nodes: b.nodes,
-            max_depth: limits.max_depth,
-            max_text_bytes: b.text,
-          },
-        ) {
+          caps,
+        ).map(c => {
+          (
+            GraphEquality(right~, checked=c),
+            @graph.equality_output(c),
+            @graph.equality_usage(c),
+          )
+        })
+      }
+      let (operation, output, u) = match result {
         Ok(v) => v
         Err(e) =>
           raise Stop({
@@ -580,7 +606,6 @@ fn check_impl(
             range: None,
           })
       }
-      let u = @graph.equality_usage(checked)
       b.work -= u.work
       b.nodes -= u.nodes
       b.text -= u.text_bytes
@@ -590,8 +615,8 @@ fn check_impl(
         input: Some(input),
         binding_name,
         metadata: meta,
-        operation: GraphEquality(right~, checked~),
-        output: @graph.equality_output(checked),
+        operation,
+        output,
         connections: {
           entries: [
             { role: Left, target: input, },
@@ -1174,6 +1199,7 @@ fn check_impl(
         | CrossJoin(right~, ..)
         | IntervalJoin(right~, ..)
         | GraphEquality(right~, ..)
+        | GraphDiff(right~, ..)
         | AsOfJoin(right~, ..) =>
           [{ role: Left, target: input, }, { role: Right, target: right, }]
       },

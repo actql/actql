@@ -5149,6 +5149,21 @@ per entity kind. A changed identity is a removal and addition, not an update.
 The graph contract fixes all record fields and equality laws; no patch paths,
 arbitrary JSON instructions or implicit property merge exist.
 
+<!-- requirement-block: graph-equality-and-delta.complete-records -->
+Delta node records MUST use the closed shape `{id, props}` and edge records
+the closed shape `{src, dst, rel, props}`. IDs retain the common contract's
+semantic node-ID type without string conversion; `rel` is the semantic edge
+label as nullable string, with explicit null for absent type. Each non-null
+`props` object contains exactly its complete node/edge property field set;
+an empty property map is `{}`, not an omitted member. These wrappers prevent
+business properties named `id`, `src`, `rel` or `props` from shadowing identity
+members. A node display label, if retained by a source mapping, is an ordinary
+declared property, not an undeclared extra Delta member. The adapter does not
+copy AoA's optional or partial update records into this complete-record format.
+Before and after snapshots are admitted under the one common graph contract;
+closed edge-label evidence is the union of both known domains, or unknown when
+either domain is unknown. Empty graphs do not weaken these contract requirements.
+
 `apply_graph_delta: {with: relation_name, field: delta_field}` consumes the
 base graph and exactly one Delta row; zero or multiple rows fail. Delta is
 ordinary typed data with this additional semantic admission, not a new

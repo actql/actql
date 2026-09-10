@@ -12,6 +12,7 @@ struct CheckedEquality {
   with_name : String
   left : @carrier.Graph
   right : @carrier.Graph
+  common : @carrier.Graph
   usage : Usage
 }
 
@@ -21,7 +22,7 @@ fn align_domains(
   source : @decode.Cursor,
   left : @row.Schema,
   right : @row.Schema,
-) -> Unit raise Stop {
+) -> @row.Schema raise Stop {
   let aligned = match
     @alignment.align_schemas(source, left, right, {
       max_work: b.work,
@@ -41,6 +42,7 @@ fn align_domains(
   b.work -= used.work
   b.nodes -= used.nodes
   b.text -= used.text_bytes
+  @alignment.aligned_schema(aligned)
 }
 
 ///|
@@ -83,6 +85,7 @@ pub fn check_equality(
     let z = graphs[1]
     // Use the same bounded recursive domain join as the Relation checker.
     // Compatible extents/nullability are not forced to be byte-identical.
+    let properties : Array[@carrier.Knowledge] = []
     for
       (x, y) in [
         (@carrier.graph_node_properties(a), @carrier.graph_node_properties(z)),
@@ -96,7 +99,7 @@ pub fn check_equality(
         Some(s) => s
         None => fail(target, IncompleteGraph)
       }
-      align_domains(b, source, x, y)
+      properties.push(@carrier.typed_rows(align_domains(b, source, x, y)))
     }
     let x = @row.from_fields(
       [(Unqualified("id"), @carrier.graph_identity(a))],
@@ -108,16 +111,37 @@ pub fn check_equality(
       max_fields=1,
       max_name_bytes=2,
     ).unwrap()
-    align_domains(b, source, x, y)
+    let identities = align_domains(b, source, x, y)
     // Label-domain differences are values to compare, not a reason to return
     // false statically or to reject otherwise compatible graph contracts.
+    let labels : Array[String] = []
+    let seen : Map[String, Bool] = Map([])
+    let mut all_known = true
     for g in graphs {
-      if @carrier.graph_labels(g) is Some(labels) {
-        spend(b, source, labels.length())
-        for label in labels {
+      if @carrier.graph_labels(g) is Some(domain) {
+        spend(b, source, domain.length())
+        for label in domain {
           charge(b, source, label)
+          if !seen.contains(label) {
+            seen[label] = true
+            labels.push(label)
+          }
         }
+      } else {
+        all_known = false
       }
+    }
+    let common = match
+      @carrier.graph(
+        @row.lookup(identities, Unqualified("id")).unwrap(),
+        properties[0],
+        properties[1],
+        labels=if all_known { Some(labels) } else { None },
+        max_labels=labels.length(),
+        max_label_bytes=limits.max_text_bytes,
+      ) {
+      Ok(@carrier.GraphValue(g)) => g
+      _ => fail(source, BudgetExceeded)
     }
     spend(b, source, 1)
     charge(b, source, "equal")
@@ -126,6 +150,7 @@ pub fn check_equality(
       with_name,
       left: a,
       right: z,
+      common,
       usage: {
         work: limits.max_work - b.work,
         nodes: limits.max_nodes - b.nodes,
