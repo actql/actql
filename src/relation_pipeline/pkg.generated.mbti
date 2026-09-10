@@ -1,0 +1,97 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/relation_pipeline"
+
+import {
+  "actql/actql/decode_core",
+  "actql/actql/expression_text",
+  "actql/actql/parameter_binding",
+  "actql/actql/relation_typing",
+  "actql/actql/source_span",
+  "actql/actql/source_value",
+  "actql/actql/value_contract",
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn check(@decode_core.Cursor, Array[(String, @value_contract.Contract)], @parameter_binding.Declarations?, @decode_core.Cursor?, Limits) -> Result[CheckedPipeline, Issue]
+
+pub fn current(CheckedPipeline) -> Target
+
+pub fn initial_from(CheckedPipeline) -> @decode_core.Cursor?
+
+pub fn inputs(CheckedPipeline) -> Array[(String, @value_contract.Contract)]
+
+pub fn lookup(CheckedPipeline, String) -> Target?
+
+pub fn output_schema(CheckedPipeline) -> @value_contract.Contract
+
+pub fn parameters(CheckedPipeline) -> @parameter_binding.Declarations?
+
+pub fn source(CheckedPipeline) -> @decode_core.Cursor
+
+pub fn step_at(CheckedPipeline, Int) -> CheckedStep?
+
+pub fn step_count(CheckedPipeline) -> Int
+
+pub fn usage(CheckedPipeline) -> Usage
+
+// Errors
+
+// Types and methods
+type CheckedPipeline
+
+pub struct CheckedStep {
+  source : @decode_core.Cursor
+  input : Target
+  binding_name : String?
+  metadata : @decode_core.Cursor?
+  operation : @relation_typing.CheckedOperation
+}
+
+pub struct Issue {
+  kind : IssueKind
+  source : @decode_core.Cursor
+  path : Array[@source_value.PathSegment]
+  span : @source_span.Span
+  range : @expression_text.Range?
+}
+
+pub(all) enum IssueKind {
+  InvalidLimits
+  BudgetExceeded
+  InvalidBody
+  InvalidInputSchema(String)
+  InvalidName(String)
+  DuplicateName(String)
+  UnknownName(String)
+  MissingCurrent
+  UnsupportedOperation(String)
+  InvalidMetadata
+  ReservedMetadataKey(String)
+  Operation(@relation_typing.IssueKind)
+} derive(Eq, @debug.Debug)
+
+pub(all) struct Limits {
+  max_steps : Int
+  max_work : Int
+  max_text_bytes : Int
+  max_nodes : Int
+  max_tokens : Int
+  max_depth : Int
+} derive(Eq, @debug.Debug)
+
+pub(all) enum Target {
+  Input(Int)
+  Step(Int)
+} derive(Eq, @debug.Debug)
+
+pub(all) struct Usage {
+  work : Int
+  text_bytes : Int
+  nodes : Int
+  tokens : Int
+} derive(Eq, @debug.Debug)
+
+// Type aliases
+
+// Traits

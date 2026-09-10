@@ -24,6 +24,8 @@ pub fn form(CheckedOperation) -> Form
 
 pub fn input_schema(CheckedOperation) -> @value_contract.Contract
 
+pub fn nodes_used(CheckedOperation) -> Int
+
 pub fn operation(CheckedOperation) -> Operation
 
 pub fn output_schema(CheckedOperation) -> @value_contract.Contract
@@ -37,6 +39,8 @@ pub fn references(Binding) -> Array[Reference]
 pub fn source(CheckedOperation) -> @decode_core.Cursor
 
 pub fn text_bytes_used(CheckedOperation) -> Int
+
+pub fn tokens_used(CheckedOperation) -> Int
 
 pub fn work_used(CheckedOperation) -> Int
 

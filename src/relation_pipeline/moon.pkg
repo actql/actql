@@ -1,0 +1,20 @@
+supported_targets = "+js+wasm+native"
+
+import {
+  "actql/actql/decode_core" @decode,
+  "actql/actql/decode_scalar" @scalar,
+  "actql/actql/canonical_value" @canonical,
+  "actql/actql/source_span" @span,
+  "actql/actql/expression_text" @text,
+  "actql/actql/value_contract" @contract,
+  "actql/actql/parameter_binding" @parameter,
+  "actql/actql/relation_typing" @relation,
+}
+
+import {
+  "actql/actql/source_value" @source,
+  "actql/actql/expression_typing" @typing,
+  "moonbitlang/core/debug",
+} for "test"
+
+formatter(ignore: [ "corpus.generated_test.mbt" ])

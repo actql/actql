@@ -88,6 +88,8 @@ struct CheckedOperation {
   projection : Array[ProjectionField]
   work_used : Int
   text_bytes_used : Int
+  nodes_used : Int
+  tokens_used : Int
 }
 
 ///|
@@ -157,6 +159,16 @@ pub fn work_used(value : CheckedOperation) -> Int {
 ///|
 pub fn text_bytes_used(value : CheckedOperation) -> Int {
   value.text_bytes_used
+}
+
+///|
+pub fn nodes_used(value : CheckedOperation) -> Int {
+  value.nodes_used
+}
+
+///|
+pub fn tokens_used(value : CheckedOperation) -> Int {
+  value.tokens_used
 }
 
 ///|

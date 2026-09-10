@@ -1,0 +1,23 @@
+{
+  "version": "actql-relation-pipeline-corpus/0.1",
+  "authority": "docs/spec/language.md#pipeline-references; fixed schema and edge expectations, not execution results",
+  "cases": [
+    {"id":"empty-single", "inputs":["rows"], "steps":[], "current":"input:0", "edges":[], "fields":["amount","flag","id"]},
+    {"id":"empty-selected", "inputs":["a","b"], "from":"b", "steps":[], "current":"input:1", "edges":[], "fields":["amount","flag","id"]},
+    {"id":"linear", "inputs":["rows"], "steps":[{"filter":"flag"},{"select":["id"]}], "current":"step:1", "edges":["input:0","step:0"], "fields":["id"]},
+    {"id":"explicit-first", "inputs":["a","b"], "steps":[{"rename":{"id":"name"},"from":"b"},{"select":["name"]}], "current":"step:1", "edges":["input:1","step:0"], "fields":["name"]},
+    {"id":"branch-reuse", "inputs":["rows"], "steps":[{"select":["id"],"as":"saved"},{"drop":["id"],"from":"rows"},{"rename":{"id":"name"},"from":"saved"}], "current":"step:2", "edges":["input:0","input:0","step:0"], "fields":["name"]},
+    {"id":"noop-retained", "inputs":["rows"], "steps":[{"derive":{}},{"rename":{}},{"drop":[]}], "current":"step:2", "edges":["input:0","step:0","step:1"], "fields":["amount","flag","id"]},
+    {"id":"data-names", "inputs":["__proto__"], "steps":[{"select":["id"],"as":"line\nname"},{"drop":[],"from":"line\nname"}], "current":"step:1", "edges":["input:0","step:0"], "fields":["id"]},
+    {"id":"nfc-name", "inputs":["é"], "steps":[{"select":["id"],"from":"é"}], "current":"step:0", "edges":["input:0"], "fields":["id"]},
+    {"id":"no-current", "inputs":["a","b"], "steps":[], "issue":"MissingCurrent"},
+    {"id":"no-input", "inputs":[], "steps":[{"derive":{}}], "issue":"MissingCurrent"},
+    {"id":"duplicate-input", "inputs":["a","a"], "steps":[], "issue":"DuplicateName"},
+    {"id":"forward", "inputs":["rows"], "steps":[{"drop":[],"from":"later"},{"drop":[],"as":"later"}], "issue":"UnknownName"},
+    {"id":"duplicate-as", "inputs":["rows"], "steps":[{"drop":[],"as":"rows"}], "issue":"DuplicateName"},
+    {"id":"unsupported", "inputs":["rows"], "steps":[{"take":1}], "issue":"UnsupportedOperation"},
+    {"id":"unknown-field-after-select", "inputs":["rows"], "steps":[{"select":["id"]},{"filter":"amount > 0"}], "issue":"Operation"},
+    {"id":"missing-operation", "inputs":["rows"], "steps":[{"as":"x"}], "issue":"InvalidBody"},
+    {"id":"reserved-metadata", "inputs":["rows"], "steps":[{"derive":{},"meta":{"actql_x":true}}], "issue":"ReservedMetadataKey"}
+  ]
+}

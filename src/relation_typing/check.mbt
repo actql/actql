@@ -303,6 +303,8 @@ fn check_impl(
     projection,
     work_used: limits.max_work - b.work,
     text_bytes_used: limits.max_text_bytes - b.text,
+    nodes_used: limits.max_nodes - b.nodes,
+    tokens_used: limits.max_tokens - b.tokens,
   }
 }
 
