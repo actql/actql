@@ -3006,6 +3006,35 @@ repetition neither adds output columns nor proves uniqueness or resolves ties.
 
 #### `group`
 
+<!-- requirement-block: group.closed-calls group.empty-and-repeated -->
+Aggregate calls MUST use the closed function-specific grammar below: `field`
+and `expr` are mutually exclusive, and only row-count `count` may omit both.
+String shorthand, `op`, function-name keys and `count_if.where` are not aliases.
+Check MUST accept an empty `aggregates` map and repeated `by` references while
+checking every input contract, reference and budget. An empty aggregate map
+produces only the grouping fields, once each in first-occurrence order; repeated
+conditions do not duplicate rows or strengthen uniqueness. With `by: []`, it
+produces one empty object even on empty input. Authored repetitions and the
+operation remain in the semantic source; no preimage deduplication, operation
+deletion or identity equivalence with another operation is implied.
+
+The `distinct` member accepts either boolean for `count(expr)`, `sum`, `avg`,
+`array_agg` and `string_agg`; only `false` for row-count `count`, `min` and `max`;
+and neither boolean for all other aggregate functions. No implicit cast is
+performed. A unique fixed immediate input domain supplies literal NULL with
+type evidence (for example number for `avg`, boolean for `count_if`, string for
+`string_agg`), but overloaded input domains and unresolved child computations
+receive no inferred type from the aggregate's result.
+
+`array_agg` constructs a non-null array of non-null root items, retaining nested
+nullability. Its item contract follows recursive value-construction rules:
+opaque `json` and reference types, including those hidden in arrays or objects,
+are not constructible here. In contrast, `first` and `last` select existing
+typed values and may retain structured, opaque JSON and reference contracts;
+their ordering keys independently satisfy AuthorOrderable. Aggregate capacity,
+order completion and numeric observation obligations are not discharged by
+static type checking alone.
+
 ```yaml
 - group:
     by: [customer_id]
@@ -6769,6 +6798,23 @@ DeriveConstraints := array is nonempty; NFC-unique slot outputs;
 Meta := non-empty JSON object subject to Authoring Context (#authoring-context)
 ParamRef := { $param: ParamName }
 PositiveIntegerValue := PositiveSafeInteger | ParamRef
+FractionValue := finite number in [0, 1] | ParamRef
+GroupBody := {by: [Field, ...] | [], aggregates: {OutputFieldName: AggregateCall}*}
+AggregateCall := {fn: AggregateFunction, field?: Field, expr?: Expression,
+  filter?: Expression, distinct?: Boolean, order_by?: [OrderKey, ...],
+  max_items?: PositiveIntegerValue, max_bytes?: PositiveIntegerValue,
+  delimiter?: String, fraction?: FractionValue}
+AggregateFunction := count | count_if | sum | avg | min | max | array_agg |
+  string_agg | first | last | percentile_disc | percentile_cont |
+  var_pop | var_samp | stddev_pop | stddev_samp
+AggregateConstraints := exactly one field/expr except optional row-count argument;
+  distinct follows the closed group matrix; no other modifiers are admitted;
+  array_agg/string_agg/first/last require nonempty order_by outside analytic;
+  analytic supplies their order and rejects aggregate-local order_by;
+  max_items only array_agg; max_bytes and required literal delimiter only string_agg;
+  required fraction only percentile_disc/percentile_cont;
+  numeric guards/fractions admit a literal or whole ParamRef, not Expression;
+  bound parameters satisfy the same finite/range constraints before execution.
 NonnegativeSafeInteger := integer number in [0, 9007199254740991]
 WireValue := canonical JSON data-model value, opaque to expression/binding traversal
 UnreservedCell := WireValue excluding singleton objects with key literal or $param
@@ -7104,11 +7150,11 @@ through the pinned expression contract.
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/canonical_value_contract sha256:02859499357530af0ae58e4f2958d1c8fa48f957b86b0a2976dad43bed99b551
 ../../spec/contracts/actql-production-profile-schemas.json#/schemas/text_time_expression sha256:a9fd34634569c0da417ca5a8770ab064ad8351bbd253c8fea1dae60c756c61c1
 ../../spec/contracts/actql-production-profile-schemas.json#/schemas/regex_replacement_ast sha256:92c3fc4fc790cdf8f985b634dfe513f85b6cd5c904bb673de7330d18f577aeed
-../../spec/contracts/actql-expressions.json# sha256:037df1de97bc5b3add9b34b562c097a9be5ef6aaf8ede8ea7ee7810554c86a9c
+../../spec/contracts/actql-expressions.json# sha256:2587ba927c08a797960ef083be3cf32cef56ce478c88df2cb12bcb306ba865e1
 ../../spec/contracts/actql-expressions.json#/schemas/expression sha256:8196cef99c66248917d44d322cb21f69f9873cac768bc5bbda2e3757e8e9d66f
 ../../spec/contracts/actql-expressions.json#/schemas/expression_node sha256:eea37ee96bf6be954e46db196f7ec8101506ed4a28ecc647e8f929a512194b94
 ../../spec/contracts/actql-expressions.json#/schemas/evaluation_envelope sha256:629342d58af8fa879da391532a838788338ddc42b5f17db814d0bdf7236c195b
-../../spec/contracts/actql-expressions.json#/laws sha256:3a431204abcf37b4649e5b3aade0182d4bcba2b76eac7b21e36fcbfdca629540
+../../spec/contracts/actql-expressions.json#/laws sha256:8d3631483761fbe93ea422500bf81f84b8cd7638b57da57fe36545fba17e4a80
 ../../spec/contracts/actql-expressions.json#/schemas/fragment sha256:2ccb093915f713003ae0f5e31043bbdd5fc0861cb6c718b1f5430872a4be3717
 ../../spec/contracts/actql-expressions.json#/schemas/predicate_consumer sha256:36320fcc16612a4bd0a64274fcf07526845ae91ad802afce601f4e391f5ba1de
 ```

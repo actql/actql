@@ -5,6 +5,7 @@ fn expression(
   name : String?,
   visible : Map[String, (@contract.Contract, ReferenceTarget)],
   parameters : @parameter.Declarations?,
+  argument_domain? : @typing.ArgumentDomain? = None,
 ) -> Binding raise Stop {
   let admitted = match
     @syntax.admit(source, {
@@ -61,13 +62,24 @@ fn expression(
   } else {
     Some(object_type(b, source, right))
   }
-  let typed = match
-    @typing.check(admitted, { fields: Some(scope), left, right, parameters, }, {
-      max_nodes: b.nodes.min(b.work),
-      max_depth: b.limits.max_depth,
-      max_work: b.work,
-      max_text_bytes: b.text,
-    }) {
+  let environment : @typing.Environment = {
+    fields: Some(scope),
+    left,
+    right,
+    parameters,
+  }
+  let limits : @typing.Limits = {
+    max_nodes: b.nodes.min(b.work),
+    max_depth: b.limits.max_depth,
+    max_work: b.work,
+    max_text_bytes: b.text,
+  }
+  let result = match argument_domain {
+    Some(domain) =>
+      @typing.check_argument(admitted, environment, domain, limits)
+    None => @typing.check(admitted, environment, limits)
+  }
+  let typed = match result {
     Ok(value) => value
     Err(issue) =>
       raise Stop({
@@ -134,8 +146,18 @@ fn check_impl(
   let pending : Array[PendingValidation] = []
   let mut row_operation : RowOperation? = None
   let mut reshape : Reshape? = None
+  let mut group : CheckedGroup? = None
   let mut output = input
   let form = match operation {
+    Group => {
+      row_source(b, body)
+      let (details, fields) = check_group(
+        b, body, visible, parameters, parameter_types, bindings, pending,
+      )
+      group = Some(details)
+      output = schema_type(b, body, fields)
+      Aggregation
+    }
     Unpivot => {
       row_source(b, body)
       let (details, fields) = check_unpivot(b, body, visible)
@@ -457,6 +479,7 @@ fn check_impl(
     projection,
     row_operation,
     reshape,
+    group,
     pending,
     work_used: limits.max_work - b.work,
     text_bytes_used: limits.max_text_bytes - b.text,

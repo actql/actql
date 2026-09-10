@@ -15,7 +15,7 @@
     {"id":"duplicate-input", "inputs":["a","a"], "steps":[], "issue":"DuplicateName"},
     {"id":"forward", "inputs":["rows"], "steps":[{"drop":[],"from":"later"},{"drop":[],"as":"later"}], "issue":"UnknownName"},
     {"id":"duplicate-as", "inputs":["rows"], "steps":[{"drop":[],"as":"rows"}], "issue":"DuplicateName"},
-    {"id":"unsupported", "inputs":["rows"], "steps":[{"group":{}}], "issue":"UnsupportedOperation"},
+    {"id":"unsupported", "inputs":["rows"], "steps":[{"window_group":{}}], "issue":"UnsupportedOperation"},
     {"id":"unknown-field-after-select", "inputs":["rows"], "steps":[{"select":["id"]},{"filter":"amount > 0"}], "issue":"Operation"},
     {"id":"missing-operation", "inputs":["rows"], "steps":[{"as":"x"}], "issue":"InvalidBody"},
     {"id":"reserved-metadata", "inputs":["rows"], "steps":[{"derive":{},"meta":{"actql_x":true}}], "issue":"ReservedMetadataKey"}

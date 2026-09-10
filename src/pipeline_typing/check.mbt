@@ -150,6 +150,7 @@ fn check_impl(
       "unnest" => Some(Unnest)
       "assert_rows" => Some(AssertRows)
       "unpivot" => Some(Unpivot)
+      "group" => Some(Group)
       "join" | "append" | "nest" => None
       _ => fail(@decode.lookup(object, key).unwrap(), UnsupportedOperation(key))
     }

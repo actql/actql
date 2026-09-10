@@ -3,6 +3,7 @@ fn check_impl(
   expression : @syntax.Expression,
   environment : Environment,
   limits : Limits,
+  argument_domain? : ArgumentDomain? = None,
 ) -> TypedExpression raise Stop {
   let source = @syntax.tree(expression)
   if limits.max_nodes < 0 ||
@@ -34,6 +35,14 @@ fn check_impl(
       }
     }
   }
+  if argument_domain is Some(domain) {
+    let expected = match domain {
+      NumberArgument => "number"
+      BooleanArgument => "boolean"
+      StringArgument => "string"
+    }
+    ignore(require_type(t, nodes, 0, expected))
+  }
   let annotations : Array[TypedNode] = []
   let safe : Map[Int, Bool] = Map([])
   for node in nodes {
@@ -58,6 +67,33 @@ fn check_impl(
       text_bytes: limits.max_text_bytes - budget.text,
       nodes: nodes.length(),
     },
+  }
+}
+
+///|
+/// Unique immediate argument domains, not an expected result type or a cast.
+pub(all) enum ArgumentDomain {
+  NumberArgument
+  BooleanArgument
+  StringArgument
+} derive(Eq, Debug)
+
+///|
+/// Check an immediate argument of a fixed signature. Only a root literal NULL
+/// receives domain evidence; unresolved descendants are never repaired.
+pub fn check_argument(
+  expression : @syntax.Expression,
+  environment : Environment,
+  domain : ArgumentDomain,
+  limits : Limits,
+) -> Result[TypedExpression, Issue] {
+  Ok(check_impl(expression, environment, limits, argument_domain=Some(domain))) catch {
+    Stop(source, kind) =>
+      Err({
+        source,
+        kind,
+        location: @syntax.origin(expression, source).unwrap(),
+      })
   }
 }
 

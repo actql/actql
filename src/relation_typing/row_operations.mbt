@@ -40,6 +40,12 @@ pub(all) enum ValidationKind {
   ExpansionEnvelope
   AtomicRowAssertion
   AssertionConsumption
+  AggregateDemand
+  GroupPartitioning
+  AggregateEnvelope
+  NumericAggregateObservation
+  StatisticalAggregateLaw
+  BoundFraction(String)
 } derive(Eq, Debug)
 
 ///|

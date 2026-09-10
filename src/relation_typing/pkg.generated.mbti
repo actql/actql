@@ -11,10 +11,39 @@ import {
   "actql/actql/relation_schema",
   "actql/actql/source_span",
   "actql/actql/source_value",
+  "actql/actql/value_contract",
   "moonbitlang/core/debug",
 }
 
 // Values
+pub fn aggregate_argument(CheckedAggregate) -> AggregateArgument
+
+pub fn aggregate_at(CheckedGroup, Int) -> CheckedAggregate?
+
+pub fn aggregate_byte_limit(CheckedAggregate) -> CountValue?
+
+pub fn aggregate_count(CheckedGroup) -> Int
+
+pub fn aggregate_delimiter(CheckedAggregate) -> String?
+
+pub fn aggregate_distinct(CheckedAggregate) -> Bool?
+
+pub fn aggregate_filter(CheckedAggregate) -> Int?
+
+pub fn aggregate_fraction(CheckedAggregate) -> FractionValue?
+
+pub fn aggregate_function(CheckedAggregate) -> AggregateFunction
+
+pub fn aggregate_item_limit(CheckedAggregate) -> CountValue?
+
+pub fn aggregate_name(CheckedAggregate) -> String
+
+pub fn aggregate_order(CheckedAggregate) -> Array[OrderTerm]
+
+pub fn aggregate_result(CheckedAggregate) -> @value_contract.Contract
+
+pub fn aggregate_source(CheckedAggregate) -> @decode_core.Cursor
+
 pub fn binding_at(CheckedOperation, Int) -> Binding?
 
 pub fn binding_count(CheckedOperation) -> Int
@@ -22,6 +51,10 @@ pub fn binding_count(CheckedOperation) -> Int
 pub fn check(Operation, @decode_core.Cursor, @relation_schema.Schema, @parameter_binding.Declarations?, Limits) -> Result[CheckedOperation, Issue]
 
 pub fn form(CheckedOperation) -> Form
+
+pub fn group(CheckedOperation) -> CheckedGroup?
+
+pub fn group_keys(CheckedGroup) -> Array[KeyField]
 
 pub fn input_schema(CheckedOperation) -> @relation_schema.Schema
 
@@ -54,12 +87,41 @@ pub fn work_used(CheckedOperation) -> Int
 // Errors
 
 // Types and methods
+pub enum AggregateArgument {
+  Field(KeyField)
+  Expression(Int)
+  Rows
+}
+
+pub(all) enum AggregateFunction {
+  Count
+  CountIf
+  Sum
+  Avg
+  Min
+  Max
+  ArrayAgg
+  StringAgg
+  First
+  Last
+  PercentileDisc
+  PercentileCont
+  VarPop
+  VarSamp
+  StddevPop
+  StddevSamp
+} derive(Eq, @debug.Debug)
+
 pub struct Binding {
   name : String?
   source : @decode_core.Cursor
   expression : @expression_typing.TypedExpression
   references : Array[Reference]
 }
+
+type CheckedAggregate
+
+type CheckedGroup
 
 type CheckedOperation
 
@@ -75,6 +137,12 @@ pub(all) enum Form {
   Projection
   RowOperation
   Reshape
+  Aggregation
+} derive(Eq, @debug.Debug)
+
+pub(all) enum FractionValue {
+  Fraction(Double)
+  ParameterFraction(String)
 } derive(Eq, @debug.Debug)
 
 pub struct Issue {
@@ -103,6 +171,10 @@ pub(all) enum IssueKind {
   ExpectedArray
   ShapeEvidenceRequired
   IncompatibleColumn(String)
+  InvalidAggregate(String)
+  InvalidAggregateOption(String)
+  InvalidAggregateArgument(String)
+  ForbiddenAggregateValue
   BudgetExceeded
   Syntax(@expression_syntax.Issue)
   Expression(@expression_typing.IssueKind)
@@ -135,6 +207,7 @@ pub(all) enum Operation {
   Unnest
   AssertRows
   Unpivot
+  Group
 } derive(Eq, @debug.Debug)
 
 pub struct OrderTerm {
@@ -190,6 +263,12 @@ pub(all) enum ValidationKind {
   ExpansionEnvelope
   AtomicRowAssertion
   AssertionConsumption
+  AggregateDemand
+  GroupPartitioning
+  AggregateEnvelope
+  NumericAggregateObservation
+  StatisticalAggregateLaw
+  BoundFraction(String)
 } derive(Eq, @debug.Debug)
 
 // Type aliases

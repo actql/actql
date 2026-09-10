@@ -12,6 +12,8 @@ import {
 // Values
 pub fn check(@expression_syntax.Expression, Environment, Limits) -> Result[TypedExpression, Issue]
 
+pub fn check_argument(@expression_syntax.Expression, Environment, ArgumentDomain, Limits) -> Result[TypedExpression, Issue]
+
 pub fn environment(TypedExpression) -> Environment
 
 pub fn expression(TypedExpression) -> @expression_syntax.Expression
@@ -36,6 +38,12 @@ pub(all) enum AnnotationRole {
   MembershipList
   MembershipElement
   ImplicitElse
+} derive(Eq, @debug.Debug)
+
+pub(all) enum ArgumentDomain {
+  NumberArgument
+  BooleanArgument
+  StringArgument
 } derive(Eq, @debug.Debug)
 
 pub(all) struct Environment {

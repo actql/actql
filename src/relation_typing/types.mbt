@@ -13,6 +13,7 @@ pub(all) enum Operation {
   Unnest
   AssertRows
   Unpivot
+  Group
 } derive(Eq, Debug)
 
 ///|
@@ -23,6 +24,7 @@ pub(all) enum Form {
   Projection
   RowOperation
   Reshape
+  Aggregation
 } derive(Eq, Debug)
 
 ///|
@@ -53,6 +55,10 @@ pub(all) enum IssueKind {
   ExpectedArray
   ShapeEvidenceRequired
   IncompatibleColumn(String)
+  InvalidAggregate(String)
+  InvalidAggregateOption(String)
+  InvalidAggregateArgument(String)
+  ForbiddenAggregateValue
   BudgetExceeded
   Syntax(@syntax.Issue)
   Expression(@typing.IssueKind)
@@ -106,6 +112,7 @@ struct CheckedOperation {
   projection : Array[ProjectionField]
   row_operation : RowOperation?
   reshape : Reshape?
+  group : CheckedGroup?
   pending : Array[PendingValidation]
   work_used : Int
   text_bytes_used : Int
