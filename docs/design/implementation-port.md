@@ -51,6 +51,25 @@ The shared Host interfaces and Local Host belong in OSS; Cloud-specific service
 integration belongs outside the portable core. Exact code/package boundaries
 and the Containers Host language are decided during implementation integration.
 
+## Bulk execution resource boundary
+
+Physical readers and writers declare streaming or hard-bounded behavior. The
+Host admits their combined live-memory requirements with operator state and
+runtime overhead; the largest component alone is not the memory budget. Include
+decompression, object amplification and concurrent buffers. Spool/spill paths
+also require temporary-storage and time limits. Missing enforceable bounds or
+unsupported spill paths fail admission rather than falling back to whole-dataset
+in-memory execution. Numeric limits remain Host configuration, not core constants.
+
+Use [row/batch admission](value-admission.md#bulk-row-admission-boundary) for
+row-local validation. Engines such as DuckDB may read staged files directly and
+produce bounded output batches or parts without routing every row through a
+MoonBit object tree. That placement does not remove checked-contract validation:
+the adapter must preserve exact decimals, temporal representations, nested values,
+nullability and canonical output rules before claiming ActQL result identity or
+equivalence. Storage-byte integrity alone does not establish typed value identity.
+Unsupported mappings are rejected wherever the requested contract requires them.
+
 ## Implementation order
 
 1. Implement canonical values, UTF-16 ordering, recursive type contracts and

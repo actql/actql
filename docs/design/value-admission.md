@@ -85,6 +85,24 @@ Errors retain source paths and spans; key failures point at key spans. No partia
 checked value escapes on failure. Each call owns fresh budget state. Returned
 values retain neither mutable source arrays nor mutable public views.
 
+## Bulk row admission boundary
+
+Use this whole-value API for individually bounded values, including Parameters,
+Effect payloads and individual rows. Bulk Relation ingestion uses streaming or
+explicitly hard-bounded batches; it does not build a complete dataset as source
+Nodes, an owned arena and checked Values. Bounded arrays remain valid inputs.
+
+Readers bound individual rows, pending input, decompressed bytes and in-flight
+batches, with backpressure between stages. Release row/batch representations
+after consumption. Account for parsing and object-allocation amplification, not
+just compressed input size or `max_text_bytes`. Batch-local validation limits do
+not reset the enclosing acquisition's total limits or evidence obligations.
+
+These are integration requirements, not an implemented streaming API. Any future
+normalization fast path requires an unforgeable invariant on the owned input;
+a caller-supplied flag cannot bypass validation of manually constructed values.
+Measure optimizations without weakening rejection, ownership or budget checks.
+
 ## Verification
 
 [Fixed vectors](../../portability/corpus/value-admission.json) specify acceptance,
