@@ -8,9 +8,10 @@ Parameters, check a Program or establish reference authority.
 
 `read_author` and `read_checked` accept an owned `decode_core.Cursor` and explicit
 `Limits`. They implement distinct closed grammars for all twelve types. Both
-return the same read-only checked `Contract`; recursive child contracts and field
-arrays cannot be constructed or mutated through the public API. `fields` returns
-a detached array in UTF-16 key order.
+return the same read-only checked `Contract`; raw construction and mutation remain
+private. Validated assembly functions can combine admitted children. `fields`
+returns a detached array in UTF-16 key order; `field_count` and `field_at` provide
+read-only indexed access without copying the array.
 
 Authored objects expand to `additional_properties: false`; authored vectors expand
 to `element_type: f32`. Those fields are rejected at the author entry and required
@@ -69,6 +70,30 @@ an entire child frontier for insufficient budget before examining child contents
 These are package diagnostics, not stable CLI codes. No partial contract escapes.
 
 ## Type relations
+
+### Constructing inferred contracts
+
+`primitive`, `string_contract`, `decimal_contract`, `vector_contract`,
+`array_contract` and `object_contract` construct checked contracts without a
+JSON serialization/admission round trip. They retain the same type domains as
+the readers: safe-integer size bounds, decimal precision/scale, positive finite
+integral vector dimensions, and canonical closed object field names. Object
+assembly rejects duplicate or noncanonical names, sorts by UTF-16 code units,
+and owns its field array. It accepts an empty field set. It neither normalizes
+names nor adds cross-bound satisfiability restrictions.
+
+These are type-description functions, not proofs about runtime values or the
+evidence for inferred bounds. `with_nullability` changes only root nullability;
+it does not change child contracts or establish that a value is non-null.
+The type checker remains responsible for justifying every refinement.
+
+Assembly shares immutable admitted children rather than recursively copying or
+rechecking them. Object limits count the newly supplied fields and their UTF-8
+names only; they are not whole-tree limits. A caller constructing a sequence of
+contracts must account for cumulative work and tree depth separately. Indexed
+field access returns `None` outside the field range.
+
+### Comparing contracts
 
 - `type_equal` compares complete checked contracts, including optional bounds and
   nullability. Object source order is irrelevant.

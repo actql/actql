@@ -10,9 +10,17 @@ import {
 }
 
 // Values
+pub fn array_contract(Contract, nullable~ : Bool, max_items? : Int64?) -> Contract?
+
 pub fn assignable(Contract, Contract, Int) -> Bool raise RelationError
 
+pub fn decimal_contract(Int, Int, nullable~ : Bool) -> Contract?
+
 pub fn emit_checked(Contract, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
+
+pub fn field_at(Fields, Int) -> Field?
+
+pub fn field_count(Fields) -> Int
 
 pub fn fields(Fields) -> Array[Field]
 
@@ -20,9 +28,13 @@ pub fn join_nullability(Contract, Contract, Int) -> Contract? raise RelationErro
 
 pub fn key_comparable(Contract, Contract) -> Bool
 
+pub fn object_contract(Array[(String, Contract)], nullable~ : Bool, max_fields~ : Int, max_name_bytes~ : Int) -> Result[Contract, ConstructionIssue]
+
 pub fn parameter_field_at(ParameterFields, Int) -> (String, ParameterType)?
 
 pub fn parameter_fields(ParameterFields) -> Array[(String, ParameterType)]
+
+pub fn primitive(Primitive, nullable~ : Bool) -> Contract
 
 pub fn read_author(@decode_core.Cursor, Limits) -> Result[Contract, AdmissionError]
 
@@ -30,9 +42,15 @@ pub fn read_checked(@decode_core.Cursor, Limits) -> Result[Contract, AdmissionEr
 
 pub fn read_parameter_syntax(@decode_core.Cursor, Limits) -> Result[ParameterSyntax, AdmissionError]
 
+pub fn string_contract(nullable~ : Bool, min_length? : Int64?, max_codepoints? : Int64?, max_utf8_bytes? : Int64?) -> Contract?
+
 pub fn stringify_checked(Contract, Int, Int, Int) -> String raise @encode_core.EncodeFailure
 
 pub fn type_equal(Contract, Contract, Int) -> Bool raise RelationError
+
+pub fn vector_contract(Double, nullable~ : Bool) -> Contract?
+
+pub fn with_nullability(Contract, Bool) -> Contract
 
 // Errors
 pub(all) suberror RelationError {
@@ -45,6 +63,15 @@ pub(all) enum AdmissionError {
   InvalidLimits
   Decode(@decode_core.Issue)
   ContractIssue(ContractIssue, path~ : Array[@source_value.PathSegment], span~ : @source_span.Span)
+} derive(Eq, @debug.Debug)
+
+pub(all) enum ConstructionIssue {
+  InvalidConstructionLimits
+  ConstructionLimit
+  InvalidConstructionName(String)
+  NonCanonicalConstructionName(String)
+  InvalidConstructionUnicode
+  DuplicateConstructionName(String)
 } derive(Eq, @debug.Debug)
 
 pub struct Contract {
@@ -95,6 +122,15 @@ pub struct ParameterType {
   contract : Contract
   rule : ParameterRule
 }
+
+pub(all) enum Primitive {
+  StringType
+  NumberType
+  BooleanType
+  DateType
+  TimestampType
+  JsonType
+} derive(Eq, @debug.Debug)
 
 pub enum Shape {
   Text(TextLimits)
