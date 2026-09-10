@@ -49,9 +49,9 @@ fn sync_keys(
     let step = steps[keys.length()]
     let previous = step.input.bind(t => key_at(t, inputs, keys))
     let next = match (previous, step.operation) {
-      (Some(key), Unary(op)) => {
+      (previous, Unary(op)) => {
         let transfer = match
-          @evidence.transfer_keys(key, op, {
+          @evidence.advance_keys(previous, op, {
             max_work: b.work,
             max_name_bytes: b.text,
           }) {

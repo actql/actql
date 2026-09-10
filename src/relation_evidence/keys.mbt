@@ -33,6 +33,7 @@ pub struct Issue {
 
 ///|
 pub(all) enum KeyObligation {
+  ValidateKeyProducer
   AdmitPresentNonNullComparableComponents
   ValidateWholeTupleUniquenessAfterInputNormalization
   RevalidateReferenceComponents
@@ -45,7 +46,19 @@ pub struct KeyField {
 }
 
 ///|
+pub(all) enum KeyOrigin {
+  InputDeclaration
+  GroupResult
+  DistinctResult
+  DedupeResult
+  UniqueAssertion
+  PivotResult
+} derive(Eq, Debug)
+
+///|
 struct KeyedRelation {
+  origin : KeyOrigin
+  producer : @relation.CheckedOperation?
   records : @carrier.Knowledge
   declared_records : @carrier.Knowledge
   declared_fields : Array[KeyField]
@@ -137,6 +150,8 @@ pub fn declare_primary_key(
       fields.push({ name: field_name, contract, })
     }
     Ok({
+      origin: InputDeclaration,
+      producer: None,
       records,
       declared_records: records,
       declared_fields: fields,
@@ -164,7 +179,8 @@ pub fn key_source(c : KeyedRelation) -> @decode.Cursor {
 }
 
 ///|
-/// Original input contract for discharging the retained admission obligations.
+/// Contract at the key's origin: input declaration or producer output.
+/// Consult key_origin/key_producer before discharging its obligations.
 pub fn declared_records(c : KeyedRelation) -> @carrier.Knowledge {
   c.declared_records
 }
@@ -190,12 +206,25 @@ pub fn key_usage(c : KeyedRelation) -> Usage {
 }
 
 ///|
-pub fn key_pending(_c : KeyedRelation) -> Array[KeyObligation] {
+pub fn key_pending(c : KeyedRelation) -> Array[KeyObligation] {
+  if c.producer is Some(_) {
+    return [ValidateKeyProducer]
+  }
   [
     AdmitPresentNonNullComparableComponents,
     ValidateWholeTupleUniquenessAfterInputNormalization,
     RevalidateReferenceComponents,
   ]
+}
+
+///|
+pub fn key_origin(c : KeyedRelation) -> KeyOrigin {
+  c.origin
+}
+
+///|
+pub fn key_producer(c : KeyedRelation) -> @relation.CheckedOperation? {
+  c.producer
 }
 
 ///|

@@ -35,7 +35,7 @@ not a structurally equal but unrelated schema. This is an evidence API ownership
 boundary, not a restriction on authored Relation schemas. It also avoids an
 unbounded structural equality scan. Output contracts come from that operation;
 input-admission obligations, original input row contract, original tuple names
-and declaration location remain attached. Admission validators use
+and origin location remain attached. For input declarations, admission validators use
 `declared_records` and `declared_key_field_at`, not the renamed output tuple.
 Transfer work and name bytes are bounded and charged to the pipeline budget.
 
@@ -105,5 +105,33 @@ implement the language's distinct-tuple sole-candidate inference rule.
 
 Relation pooling selects an eligible scalar member key at the consumer boundary
 and charges selection to the same pipeline budget. Join cardinality propagation,
-new keys established by grouping, and other completion consumers remain shared
-evidence work. This integration does not establish runtime uniqueness or ordering.
+zero-column cardinality facts, cross-family produced keys and other completion
+consumers remain shared evidence work. This integration does not establish actual
+runtime uniqueness or ordering.
+
+## Operation-established keys
+
+`advance_keys` combines unary transfer with keys established by a checked group,
+keyed/whole-row distinct, dedupe, unique assertion or pivot. The input operation
+is opaque and already checked; callers cannot invent these witnesses using a
+public uniqueness flag. Group fields, dedupe fields, assertion fields, distinct
+output fields and pivot index fields provide the corresponding tuple. Repeated
+partition references count once in the derived uniqueness tuple; their authored
+operation still retains the original repetitions and order.
+
+`key_origin` distinguishes input declarations from these producer results, and
+`key_producer` retains the checked operation through later alias transfers.
+For a produced key, `declared_records` and `declared_key_field_at` describe its
+original producer output, not an upstream input primary-key declaration.
+`key_pending` returns `ValidateKeyProducer`: consumers must retain that producer's
+execution and validation obligations, including atomic assertion and top-tie
+failure where applicable. They must not apply local-input duplicate normalization
+to an operation result or treat successful type checking as observed uniqueness.
+
+The pipeline advances this evidence even when no input key was supplied. It
+preserves independent inherited keys where the operation allows them and appends
+the new witness without rewriting provenance. Nullable grouping keys and
+whole-row keys containing structured values retain their actual contracts;
+non-null scalar/reference completion eligibility is still checked by each use.
+An empty tuple does not create a fabricated field ID or imply sorted rows:
+global group/dedupe cardinality facts require the separate cardinality boundary.

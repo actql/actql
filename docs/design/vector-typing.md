@@ -117,6 +117,11 @@ only after that selection. ActQL filters eligibility first, as its completion
 rule requires, so an ineligible preferred key cannot hide a usable alternative.
 The original admission tuple order remains available for input validation.
 
+Pool and nearest key-completion handles may also originate from checked
+operations, not only local-input declarations. Consumers inspect `key_origin`
+and `key_producer`: `ValidateKeyProducer` retains the producing operation's
+obligations instead of authorizing input duplicate normalization on its output.
+
 Typed checking retains both the selected tuple and original declaration with an encoding obligation rather than
 materializing the reserved physical field in authored row knowledge. Its absence
 must be provable before admitting encoded completion; open unknown fields are

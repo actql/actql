@@ -13,6 +13,8 @@ import {
 }
 
 // Values
+pub fn advance_keys(KeySet?, @relation_typing.CheckedOperation, TransferLimits) -> Result[KeySetTransfer, Issue]
+
 pub fn collect_keys(@decode_core.Cursor, @carrier_contract.Carrier, Array[KeyedRelation], KeySetLimits) -> Result[KeySet, Issue]
 
 pub fn declare_primary_key(@decode_core.Cursor, @carrier_contract.Carrier, Limits) -> Result[KeyedRelation, Issue]
@@ -29,7 +31,11 @@ pub fn key_field_at(KeyedRelation, Int) -> KeyField?
 
 pub fn key_field_count(KeyedRelation) -> Int
 
+pub fn key_origin(KeyedRelation) -> KeyOrigin
+
 pub fn key_pending(KeyedRelation) -> Array[KeyObligation]
+
+pub fn key_producer(KeyedRelation) -> @relation_typing.CheckedOperation?
 
 pub fn key_set_records(KeySet) -> @carrier_contract.Knowledge
 
@@ -83,9 +89,19 @@ pub struct KeyField {
 }
 
 pub(all) enum KeyObligation {
+  ValidateKeyProducer
   AdmitPresentNonNullComparableComponents
   ValidateWholeTupleUniquenessAfterInputNormalization
   RevalidateReferenceComponents
+} derive(Eq, @debug.Debug)
+
+pub(all) enum KeyOrigin {
+  InputDeclaration
+  GroupResult
+  DistinctResult
+  DedupeResult
+  UniqueAssertion
+  PivotResult
 } derive(Eq, @debug.Debug)
 
 pub struct KeySelection {

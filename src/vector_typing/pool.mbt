@@ -331,7 +331,7 @@ pub fn pool_pending(c : CheckedPool) -> Array[PoolObligation] {
 }
 
 ///|
-/// Uses the immutable Relation bound to an explicit input-key declaration.
+/// Uses the immutable Relation bound to a retained key witness.
 pub fn check_pool_relation(
   source : @decode.Cursor,
   input : @evidence.KeyedRelation,

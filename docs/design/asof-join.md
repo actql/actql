@@ -74,6 +74,11 @@ obligations, and `asof_key_completion` retains the selected declarations with
 their original admission requirements. An already sufficient authored list still
 retains the supporting right-key declaration without inventing added terms.
 
+For an operation-established key, `key_origin` and `key_producer` identify the
+original producer and `ValidateKeyProducer` retains its obligations. Such a key
+is not relabeled as a local-input declaration or permission to normalize away
+duplicate producer output rows.
+
 The pipeline passes both sides' retained collections through this same boundary,
 including keys transferred through earlier derive/projection steps. Source
 admission, key selection, completed terms, temporal options and projection share
