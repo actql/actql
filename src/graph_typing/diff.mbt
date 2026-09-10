@@ -2,7 +2,7 @@
 pub(all) enum DeltaObligation {
   EmitDeltaVersion
   AdmitSnapshotsUnderCommonContract
-  ResolveGraphContractIdentity
+  EmitGraphContractIdentity
   BindBaseAndTargetIdentities
   EmitCompleteBeforeAfterRecords
   SortUniqueActionIdentities
@@ -14,6 +14,7 @@ pub(all) enum DeltaObligation {
 struct CheckedDiff {
   comparison : CheckedEquality
   delta : @contract.Contract
+  graph_contract : @graph_contract.CheckedContract
   usage : Usage
 }
 
@@ -106,6 +107,24 @@ pub fn check_diff(
       fail(source, BudgetExceeded)
     }
     let graph = comparison.common
+    let pinned = match
+      @graph_contract.admit_graph(graph, {
+        max_bytes: b.text,
+        max_nodes: if b.nodes < b.work {
+          b.nodes
+        } else {
+          b.work
+        },
+        max_depth: limits.max_depth,
+      }) {
+      Ok(c) => c
+      Err(_) => fail(source, BudgetExceeded)
+    }
+    // Charge the exact canonical contract stream once to the shared budget.
+    let contract_nodes = @graph_contract.nodes(pinned)
+    b.nodes -= contract_nodes
+    spend(b, source, contract_nodes)
+    b.text -= @graph_contract.bytes(pinned)
     let id = @carrier.graph_identity(graph)
     let node_props = delta_properties(
       b,
@@ -141,6 +160,7 @@ pub fn check_diff(
     Ok({
       comparison,
       delta,
+      graph_contract: pinned,
       usage: {
         work: limits.max_work - b.work,
         nodes: limits.max_nodes - b.nodes,
@@ -175,6 +195,11 @@ pub fn diff_common_graph(v : CheckedDiff) -> @carrier.Graph {
 }
 
 ///|
+pub fn diff_graph_contract(v : CheckedDiff) -> @graph_contract.CheckedContract {
+  v.graph_contract
+}
+
+///|
 pub fn diff_usage(v : CheckedDiff) -> Usage {
   v.usage
 }
@@ -194,7 +219,7 @@ pub fn diff_pending(_v : CheckedDiff) -> Array[DeltaObligation] {
   [
     EmitDeltaVersion,
     AdmitSnapshotsUnderCommonContract,
-    ResolveGraphContractIdentity,
+    EmitGraphContractIdentity,
     BindBaseAndTargetIdentities,
     EmitCompleteBeforeAfterRecords,
     SortUniqueActionIdentities,

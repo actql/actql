@@ -384,11 +384,19 @@ fn finish_state(w : Writer) -> Unit raise EncodeFailure {
 ///|
 /// A digest is exposed only after successful completion; wrong sink types close the writer.
 pub fn finish_hash(w : Writer) -> String raise EncodeFailure {
+  finish_hash_usage(w).0
+}
+
+///|
+/// Complete the hash sink once, returning (hex digest, UTF-8 bytes, value nodes).
+/// Counts cover the same successfully emitted stream, not a second traversal.
+pub fn finish_hash_usage(w : Writer) -> (String, Int, Int) raise EncodeFailure {
   active(w)
   guard w.output is HashOutput(h) else { fail(w, InvalidStructure) }
   finish_state(w)
-  @sha256.finish_hex(h) catch {
+  let hex = @sha256.finish_hex(h) catch {
     @sha256.ClosedHasher => fail(w, ClosedWriter)
     @sha256.MessageTooLong => fail(w, OutputLimit)
   }
+  (hex, w.max_bytes - w.remaining_bytes, w.max_nodes - w.remaining_nodes)
 }

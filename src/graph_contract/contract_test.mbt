@@ -117,6 +117,17 @@ test "graph contract identity matches independently fixed canonical preimage" {
     "sha256:2d338ba9310e353b1891ca91079d3e3fa894afb3f561d97cc444d55698e53e91",
   )
   let text = @graph_contract.stringify(c, caps())
+  assert_eq(@graph_contract.bytes(c), text.length())
+  assert_true(@graph_contract.nodes(c) > 0)
+  let exact = { ..caps(), max_nodes: @graph_contract.nodes(c), }
+  assert_true(@graph_contract.admit(graph(None), exact) is Ok(_))
+  assert_true(
+    @graph_contract.admit(graph(None), {
+      ..exact,
+      max_nodes: exact.max_nodes - 1,
+    })
+    is Err(BudgetExceeded),
+  )
   let canonical = @canonical.from_json(@json.parse(text), 100, 10, 10000)
   assert_eq(@canonical.stringify_value(canonical, 10000, 100, 10), text)
   assert_eq(

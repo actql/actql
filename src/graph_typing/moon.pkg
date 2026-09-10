@@ -1,6 +1,7 @@
 supported_targets = "+js+wasm+native"
 
 import {
+  "actql/actql/graph_contract",
   "actql/actql/canonical_value" @canonical,
   "actql/actql/relation_append" @alignment,
   "actql/actql/carrier_contract" @carrier,

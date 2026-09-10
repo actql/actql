@@ -1,4 +1,49 @@
 ///|
+test "hash completion reports the exact emitted stream once" {
+  let w = hashing_writer(100, 10, 4)
+  begin_object(w)
+  key(w, "x")
+  begin_array(w)
+  string_value(w, "é")
+  null_value(w)
+  end_array(w)
+  end_object(w)
+  let (hex, bytes, nodes) = finish_hash_usage(w)
+  assert_eq(hex, @sha256.text_hex("{\"x\":[\"é\",null]}").unwrap())
+  assert_eq(bytes, 17)
+  assert_eq(nodes, 4)
+  assert_true(
+    try {
+      ignore(finish_hash_usage(w))
+      false
+    } catch {
+      ClosedWriter => true
+      _ => false
+    },
+  )
+  let incomplete = hashing_writer(100, 10, 4)
+  begin_array(incomplete)
+  assert_true(
+    try {
+      ignore(finish_hash_usage(incomplete))
+      false
+    } catch {
+      InvalidStructure => true
+      _ => false
+    },
+  )
+  assert_true(
+    try {
+      ignore(finish_hash_usage(incomplete))
+      false
+    } catch {
+      ClosedWriter => true
+      _ => false
+    },
+  )
+}
+
+///|
 test "hash sink shares text emission embedding and exact admission" {
   let text = writer(10000, 100, 8)
   measurement_fixture(text)

@@ -16,6 +16,8 @@ pub(all) enum Issue {
 struct CheckedContract {
   graph : @carrier.Graph
   cid : String
+  bytes : Int
+  nodes : Int
 }
 
 ///|
@@ -94,6 +96,17 @@ pub fn admit(
     return Err(InvalidLimits)
   }
   guard input is @carrier.GraphValue(graph) else { return Err(IncompleteGraph) }
+  admit_graph(graph, limits)
+}
+
+///|
+pub fn admit_graph(
+  graph : @carrier.Graph,
+  limits : Limits,
+) -> Result[CheckedContract, Issue] {
+  if limits.max_bytes < 0 || limits.max_nodes < 0 || limits.max_depth < 0 {
+    return Err(InvalidLimits)
+  }
   for
     rows in [
       @carrier.graph_node_properties(graph),
@@ -113,7 +126,8 @@ pub fn admit(
       limits.max_depth,
     )
     emit(graph, w)
-    Ok({ graph, cid: "sha256:" + @encode.finish_hash(w), })
+    let (hex, bytes, nodes) = @encode.finish_hash_usage(w)
+    Ok({ graph, cid: "sha256:" + hex, bytes, nodes, })
   } catch {
     _ => Err(BudgetExceeded)
   }
@@ -122,6 +136,16 @@ pub fn admit(
 ///|
 pub fn cid(c : CheckedContract) -> String {
   c.cid
+}
+
+///|
+pub fn bytes(c : CheckedContract) -> Int {
+  c.bytes
+}
+
+///|
+pub fn nodes(c : CheckedContract) -> Int {
+  c.nodes
 }
 
 ///|

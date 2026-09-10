@@ -10,11 +10,17 @@ import {
 // Values
 pub fn admit(@carrier_contract.Carrier, Limits) -> Result[CheckedContract, Issue]
 
+pub fn admit_graph(@carrier_contract.Graph, Limits) -> Result[CheckedContract, Issue]
+
+pub fn bytes(CheckedContract) -> Int
+
 pub fn cid(CheckedContract) -> String
 
 pub fn graph(CheckedContract) -> @carrier_contract.Graph
 
 pub fn law_cid() -> String
+
+pub fn nodes(CheckedContract) -> Int
 
 pub fn stringify(CheckedContract, Limits) -> String raise @encode_core.EncodeFailure
 

@@ -99,12 +99,16 @@ unknown. New wrappers and property maps consume the remaining work/node/text
 budget; admitted recursive child contracts are shared. Output is a one-row
 Relation with non-null `delta`, connected to ordinary Relation consumers.
 Its string-typed headers do not alone prove the version or CID values: execution
-must emit the specified version, resolve the common contract CID and bind both
+must emit the specified version and computed common contract CID, and bind both
 snapshot CIDs. Action ordering, unique identities, exact complete records and
 resource resolution remain explicit obligations. This does not implement Delta
 evaluation or make arbitrary structurally matching JSON safe to apply.
 
 The [Graph contract identity boundary](graph-contract.md) now provides bounded
 CID construction for a complete Graph contract and pins the identity/value law
-body. Connecting that checked evidence to Diff and Apply remains separate from
-this type-only Delta output and its outstanding snapshot obligations.
+body. Diff retains this opaque checked contract alongside its typed Delta output.
+Canonical contract emission debits its exact value-node and UTF-8-byte counts
+from the shared budget; each emitted value node also consumes one work unit.
+The remaining depth bounds this traversal independently. Runtime emits the stored
+CID rather than selecting or inferring another contract from Delta payloads.
+Apply integration remains separate, as do all outstanding snapshot obligations.

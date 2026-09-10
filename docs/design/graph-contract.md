@@ -32,6 +32,8 @@ second contract tree, serialized String or full UTF-8 byte array. Indexed
 property/label access avoids collection copies. Nodes, container depth and
 serialized UTF-8 bytes are bounded by the writer; these are not total heap
 limits. The text API uses the same emitter with an independently bounded sink.
+Successful hashing retains the emitted byte and value-node counts for consumers
+to debit shared budgets, without measuring or serializing the contract again.
 
 Tests fix an independently calculated canonical CID, label-domain distinctions,
 incomplete-evidence rejection and output budget boundaries. These check contract
