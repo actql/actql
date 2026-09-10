@@ -1,0 +1,46 @@
+import assert from 'node:assert/strict';
+import {readFileSync, writeFileSync} from 'node:fs';
+import {resolve} from 'node:path';
+import {fileURLToPath} from 'node:url';
+import {parameterPrograms} from './parameter-schema.mjs';
+import {positive} from './aggregate-schema.mjs';
+import {machineCid} from './actql-spec-family.mjs';
+
+export function graphSchemas() {
+  return {
+    normalize_graph: {const: true},
+    degree: {type:'object', additionalProperties:false, required:['direction'],
+      properties:{direction:{enum:['in','out','both']}}},
+    components: {type:'object', additionalProperties:false, required:['kind'],
+      properties:{kind:{enum:['weak','strong']}, max_output_rows:positive}},
+  };
+}
+
+export function checkGraphSchemas(registry) {
+  for (const program of parameterPrograms(registry)) {
+    for (const [name, schema] of Object.entries(graphSchemas())) {
+      assert.deepEqual(program.properties.steps.items.properties[name], schema);
+    }
+  }
+  for (const [name, body] of Object.entries(registry.artifact_schemas)) {
+    assert.equal(registry.artifact_schema_cids[name], machineCid(body));
+  }
+  assert.equal(registry.artifact_registry_cid, machineCid(registry.artifact_schemas));
+}
+
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  const path = 'spec/contracts/actql-protocol-schemas.json';
+  const registry = JSON.parse(readFileSync(path, 'utf8'));
+  if (process.argv.includes('--write')) {
+    for (const program of parameterPrograms(registry)) {
+      Object.assign(program.properties.steps.items.properties, graphSchemas());
+    }
+    for (const [name, body] of Object.entries(registry.artifact_schemas)) {
+      registry.artifact_schema_cids[name] = machineCid(body);
+    }
+    registry.artifact_registry_cid = machineCid(registry.artifact_schemas);
+    writeFileSync(path, JSON.stringify(registry, null, 2) + '\n');
+  }
+  checkGraphSchemas(registry);
+  console.log('Graph schemas and artifact pins verified.');
+}

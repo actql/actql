@@ -1,0 +1,104 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/graph_typing"
+
+import {
+  "actql/actql/carrier_contract",
+  "actql/actql/decode_core",
+  "actql/actql/parameter_binding",
+  "actql/actql/source_span",
+  "actql/actql/source_value",
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn check(Operation, @decode_core.Cursor, @carrier_contract.Carrier, @parameter_binding.Declarations?, Limits) -> Result[CheckedGraph, Issue]
+
+pub fn input(CheckedGraph) -> @carrier_contract.Carrier
+
+pub fn operation(CheckedGraph) -> Operation
+
+pub fn options(CheckedGraph) -> Options
+
+pub fn output(CheckedGraph) -> @carrier_contract.Carrier
+
+pub fn pending_validations(CheckedGraph) -> Array[Obligation]
+
+pub fn source(CheckedGraph) -> @decode_core.Cursor
+
+pub fn usage(CheckedGraph) -> Usage
+
+// Errors
+
+// Types and methods
+type CheckedGraph
+
+pub(all) enum ComponentKind {
+  Weak
+  Strong
+} derive(Eq, @debug.Debug)
+
+pub enum Count {
+  Literal(Int64)
+  Parameter(String)
+}
+
+pub(all) enum Direction {
+  Incoming
+  Outgoing
+  Both
+} derive(Eq, @debug.Debug)
+
+pub struct Issue {
+  kind : IssueKind
+  path : Array[@source_value.PathSegment]
+  span : @source_span.Span
+}
+
+pub(all) enum IssueKind {
+  InvalidLimits
+  BudgetExceeded
+  InvalidBody
+  Decode(@decode_core.IssueKind)
+  WrongCarrier(@carrier_contract.Kind)
+  InvalidCount
+  UnknownParameter(String)
+  IncompatibleParameter(String)
+} derive(Eq, @debug.Debug)
+
+pub(all) struct Limits {
+  max_work : Int
+  max_nodes : Int
+  max_depth : Int
+  max_text_bytes : Int
+}
+
+pub(all) enum Obligation {
+  ValidateGraphData
+  ResolveSgaProfile
+  ResolveGraphResources
+  ComponentIdentityOrder
+  BindPositiveCount(String)
+  EnforceOutputGuard
+} derive(Eq, @debug.Debug)
+
+pub(all) enum Operation {
+  NormalizeGraph
+  Degree
+  Components
+} derive(Eq, @debug.Debug)
+
+pub enum Options {
+  Normalize
+  DegreeOptions(Direction)
+  ComponentOptions(ComponentKind, max_output_rows~ : Count?)
+}
+
+pub(all) struct Usage {
+  work : Int
+  nodes : Int
+  text_bytes : Int
+} derive(Eq, @debug.Debug)
+
+// Type aliases
+
+// Traits

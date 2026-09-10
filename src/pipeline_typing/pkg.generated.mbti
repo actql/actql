@@ -6,6 +6,7 @@ import {
   "actql/actql/carrier_projection",
   "actql/actql/decode_core",
   "actql/actql/expression_text",
+  "actql/actql/graph_typing",
   "actql/actql/parameter_binding",
   "actql/actql/relation_append",
   "actql/actql/relation_join",
@@ -74,6 +75,7 @@ pub enum CheckedOperation {
   Values(@relation_values.CheckedValues)
   Window(@temporal_window.CheckedWindow)
   Projection(@carrier_projection.CheckedProjection)
+  Graph(@graph_typing.CheckedGraph)
   WindowGroup(@relation_typing.CheckedOperation)
 }
 
@@ -126,6 +128,7 @@ pub(all) enum IssueKind {
   Values(@relation_values.IssueKind)
   Window(@temporal_window.IssueKind)
   Projection(@carrier_projection.IssueKind)
+  Graph(@graph_typing.IssueKind)
   MissingWindowEvidence
   UnsupportedOperation(String)
   InvalidMetadata

@@ -221,6 +221,9 @@ fn check_impl(
       | "cross_join"
       | "row_window"
       | "events"
+      | "normalize_graph"
+      | "degree"
+      | "components"
       | "vectors"
       | "window_events" => None
       _ => fail(@decode.lookup(object, key).unwrap(), UnsupportedOperation(key))
@@ -273,6 +276,56 @@ fn check_impl(
     let meta = @decode.lookup(object, "meta")
     if meta is Some(cursor) {
       metadata(b, cursor)
+    }
+    if key == "normalize_graph" || key == "degree" || key == "components" {
+      let operation = match key {
+        "degree" => @graph.Degree
+        "components" => @graph.Components
+        _ => @graph.NormalizeGraph
+      }
+      let checked = match
+        @graph.check(
+          operation,
+          operation_body,
+          carrier(input, inputs, steps),
+          parameters,
+          {
+            max_work: b.work,
+            max_nodes: b.nodes,
+            max_depth: limits.max_depth,
+            max_text_bytes: b.text,
+          },
+        ) {
+        Ok(value) => value
+        Err(e) =>
+          raise Stop({
+            kind: Graph(e.kind),
+            source: operation_body,
+            path: e.path.copy(),
+            span: e.span,
+            range: None,
+          })
+      }
+      let used = @graph.usage(checked)
+      b.work -= used.work
+      b.nodes -= used.nodes
+      b.text -= used.text_bytes
+      let target = Step(steps.length())
+      steps.push({
+        source: body,
+        input: Some(input),
+        binding_name,
+        metadata: meta,
+        operation: Graph(checked),
+        output: @graph.output(checked),
+        connections: { entries: [{ role: Primary, target: input, }], },
+        window: None,
+      })
+      if binding_name is Some(name) {
+        names[name] = target
+      }
+      current = Some(target)
+      continue
     }
     if key == "events" || key == "vectors" {
       let projection = if key == "events" {
@@ -626,7 +679,7 @@ fn check_impl(
     let connections : Connections = {
       entries: match checked {
         Values(_) => []
-        Unary(_) | Window(_) | WindowGroup(_) | Projection(_) =>
+        Unary(_) | Window(_) | WindowGroup(_) | Projection(_) | Graph(_) =>
           [{ role: Primary, target: input, }]
         Join(right~, ..)
         | Append(right~, ..)

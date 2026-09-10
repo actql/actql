@@ -30,6 +30,8 @@ The [structural Carrier contracts](carrier-contracts.md) implement the type
 representation independently of pipeline evidence propagation.
 The [explicit Carrier projections](carrier-projection.md) connect retained
 Events/Vectors record knowledge to Relation consumers.
+The [Graph operation checker](graph-typing.md) preserves typed identity and
+partial property evidence for each supported Graph operation.
 
 Use a typed Carrier sum with Relation, Graph, Events and Vectors variants, not a
 Carrier string attached to an otherwise untyped object. Retain recursive value
