@@ -59,6 +59,7 @@ fn check_impl(
   delta_contracts : Array[
     (String, @schema.FieldName, @graph_contract.CheckedContract),
   ],
+  keyed_inputs : Array[@evidence.KeyedRelation?],
 ) -> CheckedPipeline raise Stop {
   if limits.max_steps < 0 ||
     limits.max_work < 0 ||
@@ -92,6 +93,13 @@ fn check_impl(
       fail(source, DuplicateName(key))
     }
     carrier_preflight(b, source, schema)
+    if keyed_inputs[i] is Some(declaration) {
+      spend(b, source, @evidence.key_field_count(declaration))
+      for j in 0..<@evidence.key_field_count(declaration) {
+        let field = @evidence.key_field_at(declaration, j).unwrap()
+        charge(b, source, @schema.reference_name(field.name))
+      }
+    }
     names[key] = Input(i)
   }
   if parameters is Some(p) {
@@ -114,6 +122,7 @@ fn check_impl(
     None => if inputs.length() == 1 { Some(Input(0)) } else { None }
   }
   let steps : Array[CheckedStep] = []
+  let keyed_steps : Array[@evidence.KeyedRelation?] = []
   let delta_inputs = inputs.map(_ => empty_delta())
   let delta_steps : Array[DeltaEvidence] = []
   spend(b, source, delta_contracts.length())
@@ -144,6 +153,7 @@ fn check_impl(
   }
   for body in bodies {
     sync_delta(b, body, delta_inputs, steps, delta_steps)
+    sync_keys(b, keyed_inputs, steps, keyed_steps)
     spend(b, body, 1)
     if b.nodes == 0 {
       fail(body, BudgetExceeded)
@@ -600,6 +610,7 @@ fn check_impl(
       | "to_vectors"
       | "score_vectors"
       | "nearest"
+      | "pool_vectors"
       | "degree"
       | "components"
       | "graph_bounds"
@@ -1268,6 +1279,55 @@ fn check_impl(
       current = Some(target)
       continue
     }
+    if key == "pool_vectors" {
+      let caps : @vector.Limits = {
+        max_work: b.work,
+        max_nodes: b.nodes,
+        max_depth: limits.max_depth,
+        max_text_bytes: b.text,
+      }
+      let result = match carrier(input, inputs, steps) {
+        @carrier.Relation(_) => {
+          let declaration = key_at(input, keyed_inputs, keyed_steps)
+          guard declaration is Some(declaration) else {
+            fail(operation_body, MissingKeyEvidence)
+          }
+          @vector.check_pool_relation(operation_body, declaration, caps)
+        }
+        other => @vector.check_pool_vectors(operation_body, other, caps)
+      }
+      let checked = match result {
+        Ok(c) => c
+        Err(e) =>
+          raise Stop({
+            kind: Vector(e.kind),
+            source: operation_body,
+            path: e.path.copy(),
+            span: e.span,
+            range: None,
+          })
+      }
+      let u = @vector.pooled_usage(checked)
+      b.work -= u.work
+      b.nodes -= u.nodes
+      b.text -= u.text_bytes
+      let target = Step(steps.length())
+      steps.push({
+        source: body,
+        input: Some(input),
+        binding_name,
+        metadata: meta,
+        operation: Pool(checked),
+        output: @vector.pooled_output(checked),
+        connections: { entries: [{ role: Primary, target: input, }], },
+        window: None,
+      })
+      if binding_name is Some(name) {
+        names[name] = target
+      }
+      current = Some(target)
+      continue
+    }
     if key == "nearest" {
       let root = match
         @decode.closed_object(operation_body, [
@@ -1838,7 +1898,7 @@ fn check_impl(
             None => [{ role: Primary, target: edges, }]
           }
         Values(_) | TimeSeries(_) | GraphMean(_) => []
-        Calendar(_) => [{ role: Primary, target: input, }]
+        Calendar(_) | Pool(_) => [{ role: Primary, target: input, }]
         Shortest(source_selector~, target_selector~, ..) => {
           let entries = [{ role: Primary, target: input, }]
           if source_selector is Some(t) {
@@ -1898,7 +1958,10 @@ fn check_impl(
     current = Some(target)
   }
   sync_delta(b, source, delta_inputs, steps, delta_steps)
+  sync_keys(b, keyed_inputs, steps, keyed_steps)
   {
+    keyed_inputs,
+    keyed_steps,
     delta_inputs,
     delta_steps,
     source,
@@ -1972,7 +2035,52 @@ pub fn check_carriers(
 ) -> Result[CheckedPipeline, Issue] {
   Ok(
     check_impl(
-      source, inputs, parameters, from, limits, calendar_profile, delta_contracts,
+      source,
+      inputs,
+      parameters,
+      from,
+      limits,
+      calendar_profile,
+      delta_contracts,
+      inputs.map(_ => None),
+    ),
+  ) catch {
+    Stop(issue) => Err(issue)
+  }
+}
+
+///|
+/// Keyed inputs retain conditional admission assertions, not runtime proof.
+pub fn check_with_evidence(
+  source : @decode.Cursor,
+  inputs : Array[(String, InputContract)],
+  parameters : @parameter.Declarations?,
+  from : @decode.Cursor?,
+  limits : Limits,
+  calendar_profile? : @calendar_profile.Profile? = None,
+  delta_contracts? : Array[
+    (String, @schema.FieldName, @graph_contract.CheckedContract),
+  ] = [],
+) -> Result[CheckedPipeline, Issue] {
+  let carriers = inputs.map(pair => {
+    (
+      pair.0,
+      match pair.1 {
+        CarrierInput(c) => c
+        KeyedInput(k) => @carrier.relation(@evidence.keyed_records(k))
+      },
+    )
+  })
+  let keys = inputs.map(pair => {
+    match pair.1 {
+      CarrierInput(_) => None
+      KeyedInput(k) => Some(k)
+    }
+  })
+  Ok(
+    check_impl(
+      source, carriers, parameters, from, limits, calendar_profile, delta_contracts,
+      keys,
     ),
   ) catch {
     Stop(issue) => Err(issue)

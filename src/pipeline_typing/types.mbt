@@ -32,6 +32,8 @@ pub(all) enum IssueKind {
   DuplicateName(String)
   UnknownName(String)
   MissingCurrent
+  MissingKeyEvidence
+  KeyEvidence(@evidence.IssueKind)
   WrongCarrier(@carrier.Kind)
   IncompleteSchema
   GeneratorRequiresAlias
@@ -150,6 +152,7 @@ pub enum CheckedOperation {
   )
   Vector(@vector.CheckedVector)
   Nearest(queries~ : Target, checked~ : @vector.CheckedNearest)
+  Pool(@vector.CheckedPool)
   Event(@event.CheckedEvent)
   WindowGroup(@relation.CheckedOperation)
 }
@@ -183,6 +186,8 @@ pub fn window_aliases(
 
 ///|
 struct CheckedPipeline {
+  keyed_inputs : Array[@evidence.KeyedRelation?]
+  keyed_steps : Array[@evidence.KeyedRelation?]
   delta_inputs : Array[DeltaEvidence]
   delta_steps : Array[DeltaEvidence]
   source : @decode.Cursor
@@ -194,6 +199,25 @@ struct CheckedPipeline {
   output : @carrier.Carrier?
   parameters : @parameter.Declarations?
   usage : Usage
+}
+
+///|
+/// A key declaration retains its own Relation contract and admission obligations.
+pub(all) enum InputContract {
+  CarrierInput(@carrier.Carrier)
+  KeyedInput(@evidence.KeyedRelation)
+}
+
+///|
+pub fn input_key(
+  value : CheckedPipeline,
+  index : Int,
+) -> @evidence.KeyedRelation? {
+  if index < 0 || index >= value.keyed_inputs.length() {
+    None
+  } else {
+    value.keyed_inputs[index]
+  }
 }
 
 ///|

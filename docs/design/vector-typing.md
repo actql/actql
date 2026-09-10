@@ -52,6 +52,56 @@ fail statically. Candidate-key-backed ID completion and ranking evidence
 propagation remain to be connected. No arithmetic, search algorithm or provider
 dispatch is implemented.
 
+## Grouped vector pooling
+
+The source reader preserves grouping order, method and optional component/identity
+output names. Repeated grouping references are rejected because they restore
+duplicate output columns, unlike repeated predicate conditions. The closed body
+and singleton-only output_id rule are now explicit in Language. This is a
+clarification of the output contract, not permission to deduplicate authored
+group keys or fabricate a member ID.
+
+The pinned Sketch decoder has the same four source keys; its semantic checker
+adds physical id/vector fields and can invent nullable json for missing groups.
+Those behaviors are not imported. AoA's grouped pooling requires string record
+and group IDs; adapter encoding must preserve the language's semantic identities
+and specified numeric law rather than changing source acceptance.
+
+`check_pool_vectors` checks the Vectors alternative and retains member identity
+separately from output grouping identity. Group contracts must be known non-null
+KeyComparable values, matching the output Carrier invariant; this newly explicit
+acceptance rule is narrower than arbitrary nullable Relation grouping. Output
+contains group fields, the same component field, member_count and any distinct
+singleton output_id alias. Collisions are tested only among actual output fields,
+not dropped payload. The constructor shares owned contracts and budgets new work.
+
+Actual global member uniqueness, quantization/fold arithmetic, output count and
+order remain obligations. `check_pool_relation` consumes the opaque keyed Relation
+from the [key declaration boundary](relation-evidence.md), not a separate schema
+and an unverified name list. It retains every input-admission obligation. Single
+string keys use their values directly; other scalar keys use the specified
+length-prefixed member encoding, including singleton non-string keys. Language
+now closes that singleton case explicitly. Reference keys are not silently
+stringified, and unknown key types cannot satisfy scalar completion.
+
+Typed checking retains the original tuple and an encoding obligation rather than
+materializing the reserved physical field in authored row knowledge. Its absence
+must be provable before admitting encoded completion; open unknown fields are
+insufficient. Member ordering is by completed identity for Relation pooling, not
+the original numeric/tuple order, whereas Vectors pooling retains its intrinsic
+identity order. The encoded field never appears in the pooled output.
+
+Pipeline `check_with_evidence` accepts `KeyedInput` alongside ordinary
+`CarrierInput` values. The keyed wrapper supplies its own Relation contract,
+preventing an unrelated schema from being paired with the assertion. Pooling
+retains the declaration and its pending admission checks, shares the pipeline
+budget, and composes with the explicit `vectors` projection. `check_carriers`
+continues to accept Vectors pooling but supplies no candidate-key assertion for
+Relation pooling. Keys survive supported unary operations through the checked
+transfer boundary, including all surviving aliases of each component. The
+single-declaration path is not the completed multiple-witness evidence model;
+join cardinality propagation and operation-created keys remain separate work.
+
 ## Existing vector preparation and scoring
 
 The checker supports `to_vectors` from Relation and `normalize_vectors` and `score_vectors` on Vectors,

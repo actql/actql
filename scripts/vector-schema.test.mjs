@@ -6,6 +6,12 @@ import {parameterPrograms} from './parameter-schema.mjs';
 
 test('vector source bodies are closed and distinguish literal and whole-parameter queries', () => {
   const s = vectorSchemas();
+  assert.equal(s.pool_vectors.additionalProperties,false);
+  assert.deepEqual(s.pool_vectors.required,['by','method']);
+  assert.equal(s.pool_vectors.properties.by.minItems,1);
+  assert.equal(s.pool_vectors.properties.by.uniqueItems,true);
+  assert.deepEqual(s.pool_vectors.properties.method.enum,['mean','sum','max']);
+  assert.deepEqual(s.pool_vectors.allOf,[{if:{required:['output_id']},then:{properties:{by:{maxItems:1}}}}]);
   assert.equal(s.nearest.additionalProperties,false);
   assert.deepEqual(s.nearest.required,['queries','metric','k']);
   assert.equal(s.nearest.properties.k.maximum,9007199254740991);

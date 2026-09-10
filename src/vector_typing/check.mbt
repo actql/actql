@@ -42,6 +42,8 @@ pub(all) enum IssueKind {
   MissingNearestRole(String)
   ConflictingNearestRole(String)
   IncompleteNearestInput
+  DuplicatePoolField(@row.FieldName)
+  UnsupportedPoolMemberIdentity(@row.FieldName)
 } derive(Eq, Debug)
 
 ///|

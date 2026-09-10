@@ -5,6 +5,7 @@ import {
   "actql/actql/carrier_contract",
   "actql/actql/decode_core",
   "actql/actql/parameter_binding",
+  "actql/actql/relation_evidence",
   "actql/actql/relation_schema",
   "actql/actql/source_span",
   "actql/actql/source_value",
@@ -19,6 +20,10 @@ pub fn check_nearest(@decode_core.Cursor, @carrier_contract.Carrier, @carrier_co
 pub fn check_nearest_input(NearestOptions, NearestSide, @carrier_contract.Carrier, Limits) -> Result[NearestInput, Issue]
 
 pub fn check_nearest_pair(@decode_core.Cursor, @carrier_contract.Carrier, @carrier_contract.Carrier, Limits) -> Result[NearestPair, Issue]
+
+pub fn check_pool_relation(@decode_core.Cursor, @relation_evidence.KeyedRelation, Limits) -> Result[CheckedPool, Issue]
+
+pub fn check_pool_vectors(@decode_core.Cursor, @carrier_contract.Carrier, Limits) -> Result[CheckedPool, Issue]
 
 pub fn input(CheckedVector) -> @carrier_contract.Carrier
 
@@ -66,6 +71,32 @@ pub fn output(CheckedVector) -> @carrier_contract.Carrier
 
 pub fn pending_validations(CheckedVector) -> Array[Obligation]
 
+pub fn pool_encodes_member_key(CheckedPool) -> Bool
+
+pub fn pool_group_fields(PoolOptions) -> Array[@relation_schema.FieldName]
+
+pub fn pool_key_declaration(CheckedPool) -> @relation_evidence.KeyedRelation?
+
+pub fn pool_member_vectors(CheckedPool) -> @carrier_contract.Vectors
+
+pub fn pool_method(PoolOptions) -> PoolMethod
+
+pub fn pool_options_usage(PoolOptions) -> Usage
+
+pub fn pool_output_id(PoolOptions) -> String?
+
+pub fn pool_pending(CheckedPool) -> Array[PoolObligation]
+
+pub fn pool_source(PoolOptions) -> @decode_core.Cursor
+
+pub fn pool_vector(PoolOptions) -> @relation_schema.FieldName?
+
+pub fn pooled_options(CheckedPool) -> PoolOptions
+
+pub fn pooled_output(CheckedPool) -> @carrier_contract.Carrier
+
+pub fn pooled_usage(CheckedPool) -> Usage
+
 pub fn query(CheckedVector) -> Query?
 
 pub fn query_dimensions(Query) -> Double?
@@ -76,6 +107,8 @@ pub fn query_values(Query) -> Array[Double]?
 
 pub fn read_nearest_options(@decode_core.Cursor, Limits) -> Result[NearestOptions, Issue]
 
+pub fn read_pool_options(@decode_core.Cursor, Limits) -> Result[PoolOptions, Issue]
+
 pub fn source(CheckedVector) -> @decode_core.Cursor
 
 pub fn usage(CheckedVector) -> Usage
@@ -84,6 +117,8 @@ pub fn usage(CheckedVector) -> Usage
 
 // Types and methods
 type CheckedNearest
+
+type CheckedPool
 
 type CheckedVector
 
@@ -109,6 +144,8 @@ pub(all) enum IssueKind {
   MissingNearestRole(String)
   ConflictingNearestRole(String)
   IncompleteNearestInput
+  DuplicatePoolField(@relation_schema.FieldName)
+  UnsupportedPoolMemberIdentity(@relation_schema.FieldName)
 } derive(Eq, @debug.Debug)
 
 pub(all) struct Limits {
@@ -173,6 +210,31 @@ pub(all) enum Operation {
   NormalizeVectors
   ScoreVectors
 } derive(Eq, @debug.Debug)
+
+pub(all) enum PoolMethod {
+  Mean
+  Sum
+  Max
+} derive(Eq, @debug.Debug)
+
+pub(all) enum PoolObligation {
+  ValidateDeclaredPoolKey(@relation_evidence.KeyObligation)
+  JournalPoolMemberIdentity
+  EncodePoolMemberKeyByScalarLengths
+  OrderPoolMembersByEncodedIdentity
+  AdmitPoolVectorComponents
+  ValidatePoolMemberIdentityGlobally
+  MatchPoolDimensions
+  OrderPoolMembersByIdentity
+  QuantizeBeforeAndAfterPoolFold
+  EvaluateDeterministicPoolFold
+  OrderPoolGroupsByIdentity
+  ValidatePositiveSafeMemberCounts
+  ResolvePoolResources
+  ResolvePoolProfile
+} derive(Eq, @debug.Debug)
+
+type PoolOptions
 
 type Query
 

@@ -4469,6 +4469,28 @@
       }
     },
     {
+      "requirement_id": "actql.language/pool-vectors.closed-source",
+      "statement_sha256": "dfe6530bedbdf1c60661708fb9d7ec0434cca7a3ec6b9df252d8f146041002e0",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "pool-vectors",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/pool-vectors.typed-output",
+      "statement_sha256": "b4c743e1f598f99da5fabc35d6a739b7bebc9244bea14f74fdef1235f338953d",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "pool-vectors",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.language/merge-rankings.by-candidate-score-score-policy-max-weighted-sum-left-right-and-positive-k-are-required",
       "statement_sha256": "28623d2f0507fe21d1a094141c3934d2344302cc97bfcd5626eaf0862e014004",
       "status": "pending",
@@ -6208,7 +6230,7 @@
     },
     {
       "requirement_id": "actql.language/structural-grammar.grammar",
-      "statement_sha256": "5f06c7c1ba90a906603513bd523fda8474cc80b255fc0d4cd842231bc70f0c0c",
+      "statement_sha256": "451b402aff25d1367165e01a309eb5f141fdc8a3a06dd8fb7cc2233777a59c47",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",

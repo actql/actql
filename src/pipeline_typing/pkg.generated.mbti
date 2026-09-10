@@ -13,6 +13,7 @@ import {
   "actql/actql/graph_typing",
   "actql/actql/parameter_binding",
   "actql/actql/relation_append",
+  "actql/actql/relation_evidence",
   "actql/actql/relation_join",
   "actql/actql/relation_nest",
   "actql/actql/relation_schema",
@@ -28,17 +29,23 @@ import {
 }
 
 // Values
+pub fn candidate_key(CheckedPipeline, Target) -> @relation_evidence.KeyedRelation?
+
 pub fn carrier_at(CheckedPipeline, Target) -> @carrier_contract.Carrier?
 
 pub fn check(@decode_core.Cursor, Array[(String, @relation_schema.Schema)], @parameter_binding.Declarations?, @decode_core.Cursor?, Limits, calendar_profile? : @calendar_profile.Profile?, delta_contracts? : Array[(String, @relation_schema.FieldName, @graph_contract.CheckedContract)]) -> Result[CheckedPipeline, Issue]
 
 pub fn check_carriers(@decode_core.Cursor, Array[(String, @carrier_contract.Carrier)], @parameter_binding.Declarations?, @decode_core.Cursor?, Limits, calendar_profile? : @calendar_profile.Profile?, delta_contracts? : Array[(String, @relation_schema.FieldName, @graph_contract.CheckedContract)]) -> Result[CheckedPipeline, Issue]
 
+pub fn check_with_evidence(@decode_core.Cursor, Array[(String, InputContract)], @parameter_binding.Declarations?, @decode_core.Cursor?, Limits, calendar_profile? : @calendar_profile.Profile?, delta_contracts? : Array[(String, @relation_schema.FieldName, @graph_contract.CheckedContract)]) -> Result[CheckedPipeline, Issue]
+
 pub fn current(CheckedPipeline) -> Target?
 
 pub fn expected_delta_contract(CheckedPipeline, Target, @relation_schema.FieldName) -> @graph_contract.CheckedContract?
 
 pub fn initial_from(CheckedPipeline) -> @decode_core.Cursor?
+
+pub fn input_key(CheckedPipeline, Int) -> @relation_evidence.KeyedRelation?
 
 pub fn input_occurrences(CheckedStep) -> Array[InputOccurrence]
 
@@ -102,6 +109,7 @@ pub enum CheckedOperation {
   GraphConstruction(nodes~ : Target?, edges~ : Target, checked~ : @graph_typing.CheckedConstruction)
   Vector(@vector_typing.CheckedVector)
   Nearest(queries~ : Target, checked~ : @vector_typing.CheckedNearest)
+  Pool(@vector_typing.CheckedPool)
   Event(@event_typing.CheckedEvent)
   WindowGroup(@relation_typing.CheckedOperation)
 }
@@ -120,6 +128,11 @@ pub struct CheckedStep {
 }
 
 type Connections
+
+pub(all) enum InputContract {
+  CarrierInput(@carrier_contract.Carrier)
+  KeyedInput(@relation_evidence.KeyedRelation)
+}
 
 pub struct InputOccurrence {
   role : InputRole
@@ -149,6 +162,8 @@ pub(all) enum IssueKind {
   DuplicateName(String)
   UnknownName(String)
   MissingCurrent
+  MissingKeyEvidence
+  KeyEvidence(@relation_evidence.IssueKind)
   WrongCarrier(@carrier_contract.Kind)
   IncompleteSchema
   GeneratorRequiresAlias

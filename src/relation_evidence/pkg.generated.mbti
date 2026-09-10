@@ -1,0 +1,98 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/relation_evidence"
+
+import {
+  "actql/actql/carrier_contract",
+  "actql/actql/decode_core",
+  "actql/actql/relation_schema",
+  "actql/actql/relation_typing",
+  "actql/actql/source_span",
+  "actql/actql/source_value",
+  "actql/actql/value_contract",
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn declare_primary_key(@decode_core.Cursor, @carrier_contract.Carrier, Limits) -> Result[KeyedRelation, Issue]
+
+pub fn declared_key_field_at(KeyedRelation, Int) -> KeyField?
+
+pub fn declared_records(KeyedRelation) -> @carrier_contract.Knowledge
+
+pub fn key_alias_at(KeyedRelation, Int, Int) -> KeyField?
+
+pub fn key_alias_count(KeyedRelation, Int) -> Int
+
+pub fn key_field_at(KeyedRelation, Int) -> KeyField?
+
+pub fn key_field_count(KeyedRelation) -> Int
+
+pub fn key_pending(KeyedRelation) -> Array[KeyObligation]
+
+pub fn key_source(KeyedRelation) -> @decode_core.Cursor
+
+pub fn key_usage(KeyedRelation) -> Usage
+
+pub fn keyed_records(KeyedRelation) -> @carrier_contract.Knowledge
+
+pub fn transfer_unary(KeyedRelation, @relation_typing.CheckedOperation, TransferLimits) -> Result[Transfer, Issue]
+
+// Errors
+
+// Types and methods
+pub struct Issue {
+  kind : IssueKind
+  path : Array[@source_value.PathSegment]
+  span : @source_span.Span
+}
+
+pub(all) enum IssueKind {
+  InvalidLimits
+  LimitExceeded
+  Decode(@decode_core.IssueKind)
+  WrongCarrier(@carrier_contract.Kind)
+  EmptyKey
+  InvalidName(String)
+  DuplicateKeyField(String)
+  MissingKeyField(String)
+  InvalidKeyType(String)
+  InputContractMismatch
+} derive(Eq, @debug.Debug)
+
+pub struct KeyField {
+  name : @relation_schema.FieldName
+  contract : @value_contract.Contract?
+}
+
+pub(all) enum KeyObligation {
+  AdmitPresentNonNullComparableComponents
+  ValidateWholeTupleUniquenessAfterInputNormalization
+  RevalidateReferenceComponents
+} derive(Eq, @debug.Debug)
+
+type KeyedRelation
+
+pub(all) struct Limits {
+  max_fields : Int
+  max_name_bytes : Int
+}
+
+pub struct Transfer {
+  key : KeyedRelation?
+  work : Int
+  name_bytes : Int
+}
+
+pub(all) struct TransferLimits {
+  max_work : Int
+  max_name_bytes : Int
+}
+
+pub(all) struct Usage {
+  fields : Int
+  name_bytes : Int
+} derive(Eq, @debug.Debug)
+
+// Type aliases
+
+// Traits

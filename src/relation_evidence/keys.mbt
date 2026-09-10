@@ -1,0 +1,216 @@
+///|
+pub(all) struct Limits {
+  max_fields : Int
+  max_name_bytes : Int
+}
+
+///|
+pub(all) struct Usage {
+  fields : Int
+  name_bytes : Int
+} derive(Eq, Debug)
+
+///|
+pub(all) enum IssueKind {
+  InvalidLimits
+  LimitExceeded
+  Decode(@decode.IssueKind)
+  WrongCarrier(@carrier.Kind)
+  EmptyKey
+  InvalidName(String)
+  DuplicateKeyField(String)
+  MissingKeyField(String)
+  InvalidKeyType(String)
+  InputContractMismatch
+} derive(Eq, Debug)
+
+///|
+pub struct Issue {
+  kind : IssueKind
+  path : Array[@decode.PathSegment]
+  span : @span.Span
+}
+
+///|
+pub(all) enum KeyObligation {
+  AdmitPresentNonNullComparableComponents
+  ValidateWholeTupleUniquenessAfterInputNormalization
+  RevalidateReferenceComponents
+} derive(Eq, Debug)
+
+///|
+pub struct KeyField {
+  name : @row.FieldName
+  contract : @contract.Contract?
+}
+
+///|
+struct KeyedRelation {
+  records : @carrier.Knowledge
+  declared_records : @carrier.Knowledge
+  declared_fields : Array[KeyField]
+  source : @decode.Cursor
+  fields : Array[KeyField]
+  aliases : Array[Array[KeyField]]
+  usage : Usage
+}
+
+///|
+priv suberror Stop {
+  Stop(Issue)
+}
+
+///|
+fn[T] fail(at : @decode.Cursor, kind : IssueKind) -> T raise Stop {
+  raise Stop({
+    kind,
+    path: @decode.cursor_path(at),
+    span: @decode.cursor_span(at),
+  })
+}
+
+///|
+fn[T] decoded(value : Result[T, @decode.Issue]) -> T raise Stop {
+  match value {
+    Ok(v) => v
+    Err(e) =>
+      raise Stop({ kind: Decode(e.kind), path: e.path.copy(), span: e.span, })
+  }
+}
+
+///|
+/// Admits a local-input primary-key assertion, not evidence that data was tested.
+/// Every consumer must retain the returned input-admission obligations.
+pub fn declare_primary_key(
+  source : @decode.Cursor,
+  input : @carrier.Carrier,
+  limits : Limits,
+) -> Result[KeyedRelation, Issue] {
+  try {
+    if limits.max_fields < 0 || limits.max_name_bytes < 0 {
+      fail(source, InvalidLimits)
+    }
+    let records = match @carrier.relation_rows(input) {
+      Some(r) => r
+      None => fail(source, WrongCarrier(@carrier.kind(input)))
+    }
+    let entries = decoded(@decode.elements(source))
+    if entries.is_empty() {
+      fail(source, EmptyKey)
+    }
+    if entries.length() > limits.max_fields {
+      fail(source, LimitExceeded)
+    }
+    let fields : Array[KeyField] = []
+    let seen : Map[String, Bool] = Map([])
+    let mut remaining = limits.max_name_bytes
+    for at in entries {
+      let name = decoded(@decode.text(at))
+      let bytes = match @scalar.admit_utf8_length(name, remaining) {
+        Ok(n) => n
+        Err(_) => fail(at, LimitExceeded)
+      }
+      remaining -= bytes
+      match
+        @contract.object_contract(
+          [(name, @contract.primitive(NumberType, nullable=false))],
+          nullable=false,
+          max_fields=1,
+          max_name_bytes=bytes,
+        ) {
+        Ok(_) => ()
+        Err(_) => fail(at, InvalidName(name))
+      }
+      if seen.contains(name) {
+        fail(at, DuplicateKeyField(name))
+      }
+      seen[name] = true
+      let field_name = @row.Unqualified(name)
+      let contract = match @carrier.lookup(records, field_name) {
+        Absent => fail(at, MissingKeyField(name))
+        Unknown => None
+        Present(f) => f.contract
+      }
+      if contract is Some(c) && (c.nullable || !@contract.key_comparable(c, c)) {
+        fail(at, InvalidKeyType(name))
+      }
+      fields.push({ name: field_name, contract, })
+    }
+    Ok({
+      records,
+      declared_records: records,
+      declared_fields: fields,
+      source,
+      fields,
+      aliases: fields.map(f => [f]),
+      usage: {
+        fields: fields.length(),
+        name_bytes: limits.max_name_bytes - remaining,
+      },
+    })
+  } catch {
+    Stop(e) => Err(e)
+  }
+}
+
+///|
+pub fn keyed_records(c : KeyedRelation) -> @carrier.Knowledge {
+  c.records
+}
+
+///|
+pub fn key_source(c : KeyedRelation) -> @decode.Cursor {
+  c.source
+}
+
+///|
+/// Original input contract for discharging the retained admission obligations.
+pub fn declared_records(c : KeyedRelation) -> @carrier.Knowledge {
+  c.declared_records
+}
+
+///|
+pub fn declared_key_field_at(c : KeyedRelation, index : Int) -> KeyField? {
+  c.declared_fields.get(index)
+}
+
+///|
+pub fn key_field_count(c : KeyedRelation) -> Int {
+  c.fields.length()
+}
+
+///|
+pub fn key_field_at(c : KeyedRelation, i : Int) -> KeyField? {
+  c.fields.get(i)
+}
+
+///|
+pub fn key_usage(c : KeyedRelation) -> Usage {
+  c.usage
+}
+
+///|
+pub fn key_pending(_c : KeyedRelation) -> Array[KeyObligation] {
+  [
+    AdmitPresentNonNullComparableComponents,
+    ValidateWholeTupleUniquenessAfterInputNormalization,
+    RevalidateReferenceComponents,
+  ]
+}
+
+///|
+pub fn key_alias_count(c : KeyedRelation, component : Int) -> Int {
+  c.aliases.get(component).map(a => a.length()).unwrap_or(0)
+}
+
+///|
+pub fn key_alias_at(
+  c : KeyedRelation,
+  component : Int,
+  alias_index : Int,
+) -> KeyField? {
+  match c.aliases.get(component) {
+    Some(a) => a.get(alias_index)
+    None => None
+  }
+}

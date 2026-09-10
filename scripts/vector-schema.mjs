@@ -1,4 +1,4 @@
-import {parameter} from './aggregate-schema.mjs';
+import {parameter, fieldPattern} from './aggregate-schema.mjs';
 import assert from 'node:assert/strict';
 import {readFileSync, writeFileSync} from 'node:fs';
 import {resolve} from 'node:path';
@@ -8,6 +8,12 @@ import {machineCid} from './actql-spec-family.mjs';
 
 export function vectorSchemas() {
   return {
+    pool_vectors:{type:'object',additionalProperties:false,required:['by','method'],properties:{
+      vector:{type:'string',minLength:1},
+      by:{type:'array',minItems:1,uniqueItems:true,items:{type:'string',minLength:1}},
+      method:{enum:['mean','sum','max']},
+      output_id:{type:'string',pattern:fieldPattern},
+    },allOf:[{if:{required:['output_id']},then:{properties:{by:{maxItems:1}}}}]},
     nearest:{type:'object',additionalProperties:false,required:['queries','metric','k'],properties:{
       queries:{type:'string',minLength:1},metric:{enum:['cosine','dot','l2']},
       k:{type:'integer',minimum:1,maximum:9007199254740991},

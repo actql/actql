@@ -5635,9 +5635,30 @@ sum round at the law-defined fold points; max is componentwise after input
 quantization. Duplicate vector record identity anywhere in the carrier fails,
 even when duplicate records belong to different authored groups.
 
+<!-- requirement-block: pool-vectors.closed-source -->
+The body MUST admit only vector, by, method and output_id. The by list is
+nonempty, ordered and has no repeated field reference, because its fields are
+restored as distinct output columns. Repetition is not silently removed.
+Method is explicitly mean, sum or max. The optional output_id is an authored
+output field name and is permitted only for a single grouping field; it does
+not provide a member-identity override or encode an entire tuple into a name.
+
+<!-- requirement-block: pool-vectors.typed-output -->
+Each grouping field MUST have a known non-null KeyComparable contract, because
+its value becomes a component of the output Vectors identity, not merely an
+arbitrary nullable grouping label. The result retains the grouping fields and
+the selected component field's name and dimensions, drops other input payload,
+and adds non-null number member_count with the positive safe-integer obligation.
+For a single grouping field, a different output_id adds an alias with the same
+value and type and makes that alias the identity role; the original grouping
+field remains available. An identical output_id adds no duplicate field.
+Generated columns and aliases cannot collide with retained output columns;
+names of dropped input columns do not cause a collision. A vector option on a
+Vectors input can restate, but not override, its existing component role.
+
 A sole non-null string candidate-key field is used directly and journaled as
-`actql.vector.candidate-key-identity-completion`. A composite non-null scalar
-candidate key is encoded into reserved internal field
+`actql.vector.candidate-key-identity-completion`. Any other non-null scalar
+candidate key, including a singleton non-string key, is encoded into reserved internal field
 `__actql_vector_record_id`: for each component in declared key order the
 compiler concatenates its Unicode-scalar length in AoA canonical `to_string`
 form, `:`, that canonical form, and `|`. The reserved field is
@@ -5646,6 +5667,13 @@ collision-checked and the completion is journaled as
 field is not part of the public pooled relation. `vectors` exposes the
 group fields, optional `output_id`, pooled vector, and exact positive
 `member_count`.
+
+For this Relation member-identity completion, scalar excludes reference values:
+no reference-to-string or reference-to-CID conversion is inferred. Member ordering
+uses the completed string identity, including its length prefixes, while output
+group ordering continues to use the semantic group tuple. A declared input key
+retains its input-admission obligations; its use does not certify that rows have
+already passed non-nullness, domain and uniqueness checks.
 
 <a id="merge-rankings"></a>
 
@@ -7483,6 +7511,11 @@ ShortestPathConstraints := selection is required with any selector and forbidden
 NearestBody := {queries: InputOrStepName, metric: cosine | dot | l2,
   k: positive safe-integer literal, candidate_id?: Field, candidate_vector?: Field,
   query_id?: Field, query_vector?: Field}
+PoolVectorsBody := {vector?: Field, by: [Field, ...], method: mean | sum | max,
+  output_id?: OutputFieldName}
+PoolVectorsConstraints := by is nonempty and duplicate-free; output_id requires
+  exactly one grouping field; Relation input requires vector and a scalar candidate
+  key, while Vectors input retains its intrinsic member identity.
 MeanGraphsBody := {with: [InputOrStepName, ...], weights: [nonnegative number, ...],
   support: {nodes: number in (0, 1], edges: number in (0, 1]},
   properties: {nodes: {Field: MeanPropertyStrategy}*, edges: {Field: MeanPropertyStrategy}*}}
