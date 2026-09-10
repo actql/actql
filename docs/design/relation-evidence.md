@@ -22,7 +22,8 @@ components. Physical arrival order establishes nothing. Validation of types
 alone does not discharge these requirements.
 
 `transfer_unary` preserves the input assertion through row-subsetting and
-order-only operations. Derive invalidates overwritten key aliases, while
+order-only operations. Derive transfers exact whole-field copies and invalidates
+computed overwrites of key aliases, while
 select/rename/drop and keyed distinct transfer explicit aliases. Whole-row
 distinct preserves the key. Every original component must retain at least one
 alias; aliases are alternatives, not extra tuple components. This representation
@@ -73,7 +74,7 @@ also charges selected tuple elements. Sorting is O(k log k) for a k-component
 tuple; work units are logical visits, not CPU-time measurements.
 
 `transfer_keys` applies the unary transfer rules to every independent witness.
-It prepares overwritten-name or projection lookup tables once per operation and
+It prepares derive-lineage or projection lookup tables once per operation and
 builds one shared output row contract. Each witness then visits its own components
 and aliases, retaining all explicit output aliases or dropping only that witness
 when a component has no surviving alias. Projection work is proportional to the
@@ -81,6 +82,18 @@ prepared mapping plus visited and emitted aliases, not witnesses times the whole
 projection. Name lookup distinguishes qualified provenance from a literal dotted
 name. `transfer_unary` delegates to the same implementation with one witness.
 An empty result collection still retains the operation's output row knowledge.
+
+For derive, `relation_typing.binding_copy_at` reports only normalized whole-field
+or join-field expressions. It uses the already checked reference target, without
+copying the expression's reference array. Map references resolve against the input
+snapshot; array references may resolve to a prior slot. Transfer resolves each
+slot's original input lineage once and constructs an original-field to final-alias
+map. This preserves a saved copy when a later slot shadows the original field,
+but not a copy of a computed replacement. Self-copies preserve evidence; arithmetic,
+casts, templates and property extraction do not establish whole-field equality.
+No constant folding, algebraic simplification or type equality alone proves a copy.
+This implements the existing exact-copy rule in
+[derive](../spec/language.md#derive); it does not add a new identity inference rule.
 
 The pipeline accepts `CandidateKeysInput` and carries collections through these
 unary transfers. `KeyedInput` wraps one existing declaration without rescanning

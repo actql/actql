@@ -8,7 +8,6 @@ pub struct KeySetTransfer {
 ///|
 priv enum KeyMapping {
   Keep
-  Remove(Map[String, Bool])
   Project(Map[String, Array[KeyField]])
   Forget
 }
@@ -40,14 +39,46 @@ fn prepare_mapping(
     | WatermarkRows => Keep
     Derive => {
       spend(b, source, @relation.binding_count(operation))
-      let overwritten : Map[String, Bool] = Map([])
+      let origins : Array[@row.FieldName?] = []
+      let outputs : Map[String, @row.FieldName?] = Map([])
       for i in 0..<@relation.binding_count(operation) {
-        if @relation.binding_at(operation, i).unwrap().name is Some(name) {
+        let binding = @relation.binding_copy_at(operation, i).unwrap()
+        let origin = match binding.input {
+          Some(InputField(field)) => Some(field)
+          Some(PriorSlot(slot)) => origins[slot]
+          None => None
+        }
+        origins.push(origin)
+        if binding.output is Some(name) {
           charge(b, source, Unqualified(name))
-          overwritten[field_key(Unqualified(name))] = true
+          outputs[field_key(Unqualified(name))] = origin
         }
       }
-      Remove(overwritten)
+      let output = @relation.output_schema(operation)
+      spend(b, source, @row.field_count(output))
+      let mapping : Map[String, Array[KeyField]] = Map([])
+      for i in 0..<@row.field_count(output) {
+        let field = @row.field_at(output, i).unwrap()
+        charge(b, source, field.name)
+        let origin = match outputs.get(field_key(field.name)) {
+          Some(origin) => origin
+          None => Some(field.name)
+        }
+        if origin is Some(origin) {
+          charge(b, source, origin)
+          let key = field_key(origin)
+          let entries = match mapping.get(key) {
+            Some(entries) => entries
+            None => {
+              let entries = []
+              mapping[key] = entries
+              entries
+            }
+          }
+          entries.push({ name: field.name, contract: Some(field.contract), })
+        }
+      }
+      Project(mapping)
     }
     Select | Rename | Drop | Distinct => {
       if @relation.row_operation(operation) is Some(DistinctRows) {
@@ -101,10 +132,6 @@ fn mapped_key(
       charge(b, source, field.name)
       match mapping {
         Keep => remaining.push(field)
-        Remove(names) =>
-          if !names.contains(field_key(field.name)) {
-            remaining.push(field)
-          }
         Project(names) =>
           if names.get(field_key(field.name)) is Some(mapped) {
             spend(b, source, mapped.length())

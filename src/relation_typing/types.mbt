@@ -171,6 +171,35 @@ pub fn binding_count(value : CheckedOperation) -> Int {
 }
 
 ///|
+pub struct CopyBinding {
+  output : String?
+  input : ReferenceTarget?
+}
+
+///|
+/// Exact whole-field copies only; no constant folding or value equivalence.
+/// Reference targets retain snapshot versus prior-slot resolution from checking.
+pub fn binding_copy_at(value : CheckedOperation, index : Int) -> CopyBinding? {
+  guard value.bindings.get(index) is Some(binding) else { return None }
+  let tree = @syntax.tree(@typing.expression(binding.expression))
+  let input = if binding.references.length() == 1 {
+    match @decode.view(tree) {
+      ObjectValue(object) =>
+        if @decode.lookup(object, "field") is Some(_) ||
+          @decode.lookup(object, "join_field") is Some(_) {
+          Some(binding.references[0].target)
+        } else {
+          None
+        }
+      _ => None
+    }
+  } else {
+    None
+  }
+  Some({ output: binding.name, input, })
+}
+
+///|
 pub fn binding_at(value : CheckedOperation, index : Int) -> Binding? {
   if index < 0 || index >= value.bindings.length() {
     None

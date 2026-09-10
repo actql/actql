@@ -59,6 +59,8 @@ pub fn analytic_partition(CheckedAnalytic) -> Array[KeyField]
 
 pub fn binding_at(CheckedOperation, Int) -> Binding?
 
+pub fn binding_copy_at(CheckedOperation, Int) -> CopyBinding?
+
 pub fn binding_count(CheckedOperation) -> Int
 
 pub fn check(Operation, @decode_core.Cursor, @relation_schema.Schema, @parameter_binding.Declarations?, Limits) -> Result[CheckedOperation, Issue]
@@ -213,6 +215,11 @@ type CheckedOperation
 type CheckedPivot
 
 type CheckedSequence
+
+pub struct CopyBinding {
+  output : String?
+  input : ReferenceTarget?
+}
 
 pub(all) enum CountValue {
   Literal(Int64)
