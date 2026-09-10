@@ -2984,6 +2984,17 @@
       }
     },
     {
+      "requirement_id": "actql.language/append.typed-field-provenance-is-preserved",
+      "statement_sha256": "605fe0a57b8d590acda33496d768d8df25ec88e48615261281b8170c21dc41f9",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "append",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.language/append.the-compiler-must-not-add-a-missing-field-the-author",
       "statement_sha256": "0cd9181c662ae13a7138b8cc50fe0519a63e82dc5567129073d7eecbf0c70e42",
       "status": "pending",
@@ -5493,7 +5504,7 @@
     },
     {
       "requirement_id": "actql.language/structural-grammar.grammar",
-      "statement_sha256": "7713a42155dc1c78ee9fd62155e106c785f1147aa8544a88850d25d15cba3b3b",
+      "statement_sha256": "cbb0eac9583c041d4d0538a0abe3f0f833d9df5b8f7fd5a041deb6a555d6829f",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",

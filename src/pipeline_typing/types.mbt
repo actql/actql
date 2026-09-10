@@ -37,6 +37,7 @@ pub(all) enum IssueKind {
   ReservedMetadataKey(String)
   Operation(@relation.IssueKind)
   Join(@join.IssueKind)
+  Append(@append.IssueKind)
 } derive(Eq, Debug)
 
 ///|
@@ -59,10 +60,11 @@ pub struct CheckedStep {
 }
 
 ///|
-/// Main input is stored on CheckedStep; only join has an additional input.
+/// Main input is stored on CheckedStep; binary operations retain their right input.
 pub enum CheckedOperation {
   Unary(@relation.CheckedOperation)
   Join(right~ : Target, checked~ : @join.CheckedJoin)
+  Append(right~ : Target, checked~ : @append.CheckedAppend)
 }
 
 ///|

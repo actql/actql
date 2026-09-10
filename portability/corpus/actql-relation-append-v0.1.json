@@ -1,0 +1,32 @@
+{
+  "version": "actql-relation-append-corpus/0.1",
+  "types": {
+    "number": {"type":"number","nullable":false},
+    "number?": {"type":"number","nullable":true},
+    "string": {"type":"string","nullable":false},
+    "decimal": {"type":"decimal","precision":4,"scale":2,"nullable":false},
+    "decimal?": {"type":"decimal","precision":4,"scale":2,"nullable":true},
+    "other-decimal": {"type":"decimal","precision":5,"scale":2,"nullable":false},
+    "array": {"type":"array","nullable":false,"max_items":2,"items":{"type":"number","nullable":false}},
+    "array?": {"type":"array","nullable":true,"items":{"type":"number","nullable":true}},
+    "nested": {"type":"object","nullable":false,"additional_properties":false,"fields":{"x":{"type":"number","nullable":false}}},
+    "nested?": {"type":"object","nullable":true,"additional_properties":false,"fields":{"x":{"type":"number","nullable":true}}}
+  },
+  "cases": [
+    {"left":{},"right":{},"output":{}},
+    {"left":{"x":"number"},"right":{"x":"number"},"output":{"x":"number"}},
+    {"left":{"x":"number"},"right":{"x":"number?"},"output":{"x":"number?"}},
+    {"left":{"x":"number?"},"right":{"x":"number"},"output":{"x":"number?"}},
+    {"left":{"z":"decimal","a":"array"},"right":{"a":"array?","z":"decimal?"},"output":{"a":"array?","z":"decimal?"}},
+    {"left":{"x":"nested"},"right":{"x":"nested?"},"output":{"x":"nested?"}},
+    {"left":{"x":"decimal"},"right":{"x":"other-decimal"},"issue":"IncompatibleContracts"},
+    {"left":{"x":"number"},"right":{"x":"string"},"issue":"IncompatibleContracts"},
+    {"left":{"x":"array"},"right":{"x":"number"},"issue":"IncompatibleContracts"},
+    {"left":{},"right":{"x":"number"},"issue":"MissingField"},
+    {"left":{"x":"number"},"right":{},"issue":"MissingField"},
+    {"left":{"x":"number"},"right":{"y":"number"},"issue":"MissingField"},
+    {"left":{"x":"number"},"right":{"x":"number"},"body":{"with":"r","left":"l"},"issue":"InvalidBody"},
+    {"left":{},"right":{},"body":{"with":"r","schema":"union"},"issue":"InvalidBody"},
+    {"left":{},"right":{},"body":{"with":""},"issue":"InvalidName"}
+  ]
+}

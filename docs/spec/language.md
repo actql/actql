@@ -3527,6 +3527,16 @@ right relation by name before lowering to `REL.unionAll`. Missing or extra
 fields and incompatible types MUST fail. The common contract is
 `JoinNullability` ([Closed value contracts](#value-contracts)); no implicit base-type coercion occurs.
 
+<!-- requirement-block: append.typed-field-provenance-is-preserved -->
+Field-set comparison MUST include typed qualification: an unqualified `id` is not
+`left.id` or `right.id`. Compatible qualified schemas MAY be appended without
+flattening, and their qualification is preserved. Two empty schemas are
+compatible; appending their zero-column rows still adds their multiplicities.
+The closed body is `{with: InputOrStepName}`. Its left operand is the current
+relation selected by the normal step `from` rule; there is no `append.left`
+selector. Both operands may name the same available relation, in which case
+both occurrences are retained, without deduplication or no-op elimination.
+
 <!-- requirement-block: append.the-compiler-must-not-add-a-missing-field-the-author -->
 Contextual null typing follows [Closed value contracts](#value-contracts).
 The compiler MUST NOT add a missing field; the author writes the explicit
@@ -6748,6 +6758,7 @@ StepConstraints :=
 
 SortBody := [OrderKey, ...] | []
 JsonPickBody := {column: Field, path: [String, ...], output: OutputFieldName}
+AppendBody := {with: InputOrStepName}
 UnnestBody := {
   column: Field,
   as: OutputFieldName,

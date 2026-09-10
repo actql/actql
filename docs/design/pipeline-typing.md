@@ -5,10 +5,18 @@
 [single-operation checker](relation-typing.md). It supports only `derive`,
 `filter`, `select`, `rename`, `drop`, [ordering and deduplication](relation-ordering.md)
 (`sort`, `take`, `distinct`, `dedupe_rows`), typed reshaping (`json_pick`, `unnest`),
-and [local join](relation-join.md). Other operation names are explicitly
+and [local join](relation-join.md) and [append](relation-append.md). Other operation names are explicitly
 unsupported; no step is skipped or treated as an opaque successful operation.
 
 ## Inputs and scope
+
+Append uses the current/step-selected Relation as its left input and resolves
+`with` through the same input/prior-`as` namespace as join. It does not inherit
+join's explicit `left` selector. `CheckedOperation::Append` retains the right
+target and checked recursive schema alignment, including when both operands
+are the same target. Registration of `as` occurs after checking, so forward
+and self references remain invalid. Append's work, text and node usage is
+debited from the shared pipeline budget; it consumes no expression tokens.
 
 The caller supplies an owned, source-normalized steps cursor, a list of
 materialized input names and complete [Relation schemas](relation-schema.md), optional
@@ -28,8 +36,8 @@ before another join. This applies to both the left and right input.
 
 The package owns shared naming, connection, budget and diagnostic rules; its
 current checked steps have a main input and one output and require a final
-current. `CheckedOperation` distinguishes `Unary` from `Join`; the latter
-retains an additional right-input target and a checked join. General multi-output
+current. `CheckedOperation` distinguishes `Unary`, `Join`, and `Append`; both
+binary variants retain an additional right-input target and their checked operation. General multi-output
 ports, generators and non-Relation Carriers are not implemented.
 
 SourceView acquisition, Catalog/authority checks, Carrier resolution, search

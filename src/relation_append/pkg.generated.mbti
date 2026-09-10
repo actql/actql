@@ -1,0 +1,83 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/relation_append"
+
+import {
+  "actql/actql/decode_core",
+  "actql/actql/relation_schema",
+  "actql/actql/source_span",
+  "actql/actql/source_value",
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn alignment(CheckedAppend) -> Array[Alignment]
+
+pub fn check(@decode_core.Cursor, @relation_schema.Schema, @relation_schema.Schema, Limits) -> Result[CheckedAppend, Issue]
+
+pub fn input_schema(CheckedAppend, @relation_schema.Side) -> @relation_schema.Schema
+
+pub fn output_schema(CheckedAppend) -> @relation_schema.Schema
+
+pub fn pending_validations(CheckedAppend) -> Array[Obligation]
+
+pub fn source(CheckedAppend) -> @decode_core.Cursor
+
+pub fn usage(CheckedAppend) -> Usage
+
+pub fn with_name(CheckedAppend) -> String
+
+// Errors
+
+// Types and methods
+pub struct Alignment {
+  field : @relation_schema.FieldName
+  left_index : Int
+  right_index : Int
+}
+
+type CheckedAppend
+
+pub(all) enum ContractSegment {
+  Item
+  Field(String)
+} derive(Eq, @debug.Debug)
+
+pub struct Issue {
+  kind : IssueKind
+  source : @decode_core.Cursor
+  path : Array[@source_value.PathSegment]
+  span : @source_span.Span
+}
+
+pub(all) enum IssueKind {
+  InvalidLimits
+  BudgetExceeded
+  InvalidBody
+  InvalidName(String)
+  MissingField(@relation_schema.Side, @relation_schema.FieldName)
+  IncompatibleContracts(@relation_schema.FieldName, Array[ContractSegment])
+} derive(Eq, @debug.Debug)
+
+pub(all) struct Limits {
+  max_work : Int
+  max_text_bytes : Int
+  max_nodes : Int
+  max_depth : Int
+} derive(Eq, @debug.Debug)
+
+pub(all) enum Obligation {
+  ValidateInputRows
+  PreserveLeftThenRightOrder
+  ResolveOutputEnvelope
+  ResolveIdentityAndCompleteness
+} derive(Eq, @debug.Debug)
+
+pub(all) struct Usage {
+  work : Int
+  text_bytes : Int
+  nodes : Int
+} derive(Eq, @debug.Debug)
+
+// Type aliases
+
+// Traits

@@ -82,6 +82,7 @@ The checks are read-only:
 - `check:expression-typing`: fixed expression type/rejection vectors, generated-test freshness and generator regressions; not expression evaluation or complete Program admission.
 - `check:relation-typing`: fixed single-operation schemas, projection order and rejection vectors; generated-test freshness and generator regressions, not Relation execution.
 - `check:relation-join`: fixed local join fields, nullability, key counts and failures; generated-test freshness and generator regressions, not execution or complete proof admission. See the [join checking guide](design/relation-join.md).
+- `check:relation-append`: fixed recursive schema joins and rejection vectors; generated-test freshness and generator regressions, not row concatenation or identity proof. See the [append checking guide](design/relation-append.md).
 - `check:pipeline-typing`: fixed unary Relation pipeline edges, output types and rejection cases; generated-test freshness, not execution or whole-Program admission. See the [pipeline guide](design/pipeline-typing.md) and [Relation schema boundary](design/relation-schema.md).
 - `check:relation-results`: fixed Result projections, ordering types and rejection cases; generated-test freshness, not total-order proof or publication admission. See the [Result checking guide](design/relation-results.md).
 - `check:aoa`: owned AoA 0.1 contract/law identifiers and exact law-manifest pins; included in `check:contracts`, not runtime conformance. See the [repository versioning policy](design/versioning.md).

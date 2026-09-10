@@ -148,7 +148,7 @@ fn check_impl(
       "dedupe_rows" => Some(DedupeRows)
       "json_pick" => Some(JsonPick)
       "unnest" => Some(Unnest)
-      "join" => None
+      "join" | "append" => None
       _ => fail(@decode.lookup(object, key).unwrap(), UnsupportedOperation(key))
     }
     let selected = match @decode.lookup(object, "from") {
@@ -162,7 +162,7 @@ fn check_impl(
       None => current
     }
     let operation_body = @decode.lookup(object, key).unwrap()
-    let join_object = if op is None {
+    let join_object = if key == "join" {
       match @decode.open_object(operation_body) {
         Ok(v) => Some(v)
         Err(_) => fail(operation_body, InvalidBody)
@@ -232,42 +232,80 @@ fn check_impl(
         b.tokens -= @relation.tokens_used(checked)
         (Unary(checked), @relation.output_schema(checked))
       }
-      None => {
-        let obj = join_object.unwrap()
-        let right_source = match @decode.required(obj, "with") {
-          Ok(v) => v
-          Err(_) => fail(operation_body, InvalidBody)
+      None =>
+        if key == "append" {
+          let obj = match @decode.open_object(operation_body) {
+            Ok(v) => v
+            Err(_) => fail(operation_body, InvalidBody)
+          }
+          let right_source = match @decode.required(obj, "with") {
+            Ok(v) => v
+            Err(_) => fail(operation_body, InvalidBody)
+          }
+          let right = resolve_target(b, right_source, names)
+          let checked = match
+            @append.check(
+              operation_body,
+              schema(input, inputs, steps),
+              schema(right, inputs, steps),
+              {
+                max_work: b.work,
+                max_text_bytes: b.text,
+                max_nodes: b.nodes,
+                max_depth: limits.max_depth,
+              },
+            ) {
+            Ok(v) => v
+            Err(issue) =>
+              raise Stop({
+                kind: Append(issue.kind),
+                source: issue.source,
+                path: issue.path.copy(),
+                span: issue.span,
+                range: None,
+              })
+          }
+          let usage = @append.usage(checked)
+          b.work -= usage.work
+          b.text -= usage.text_bytes
+          b.nodes -= usage.nodes
+          (Append(right~, checked~), @append.output_schema(checked))
+        } else {
+          let obj = join_object.unwrap()
+          let right_source = match @decode.required(obj, "with") {
+            Ok(v) => v
+            Err(_) => fail(operation_body, InvalidBody)
+          }
+          let right = resolve_target(b, right_source, names)
+          let checked = match
+            @join.check(
+              operation_body,
+              schema(input, inputs, steps),
+              schema(right, inputs, steps),
+              parameters,
+              {
+                max_work: b.work,
+                max_text_bytes: b.text,
+                max_nodes: b.nodes,
+                max_depth: limits.max_depth,
+              },
+            ) {
+            Ok(v) => v
+            Err(issue) =>
+              raise Stop({
+                kind: Join(issue.kind),
+                source: issue.source,
+                path: issue.path.copy(),
+                span: issue.span,
+                range: None,
+              })
+          }
+          let usage = @join.usage(checked)
+          b.work -= usage.work
+          b.text -= usage.text_bytes
+          b.nodes -= usage.nodes
+          (Join(right~, checked~), @join.output_schema(checked))
         }
-        let right = resolve_target(b, right_source, names)
-        let checked = match
-          @join.check(
-            operation_body,
-            schema(input, inputs, steps),
-            schema(right, inputs, steps),
-            parameters,
-            {
-              max_work: b.work,
-              max_text_bytes: b.text,
-              max_nodes: b.nodes,
-              max_depth: limits.max_depth,
-            },
-          ) {
-          Ok(v) => v
-          Err(issue) =>
-            raise Stop({
-              kind: Join(issue.kind),
-              source: issue.source,
-              path: issue.path.copy(),
-              span: issue.span,
-              range: None,
-            })
-        }
-        let usage = @join.usage(checked)
-        b.work -= usage.work
-        b.text -= usage.text_bytes
-        b.nodes -= usage.nodes
-        (Join(right~, checked~), @join.output_schema(checked))
-      }
     }
     let target = Step(steps.length())
     steps.push({
