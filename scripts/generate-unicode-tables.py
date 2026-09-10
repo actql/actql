@@ -16,7 +16,7 @@ UCD = ROOT / "vendor" / "unicode" / "16.0.0"
 OUT = ROOT / "src" / "canonical_value" / "unicode_tables.generated.mbt"
 TEST_OUT = ROOT / "src" / "canonical_value" / "normalization_conformance.generated_test.mbt"
 REQUIRED_INPUTS = {
-    "UnicodeData.txt", "CompositionExclusions.txt", "NormalizationTest.txt", "LICENSE.txt",
+    "UnicodeData.txt", "CompositionExclusions.txt", "NormalizationTest.txt", "LICENSE.txt", "CaseFolding.txt",
 }
 
 
@@ -29,7 +29,7 @@ def validate_manifest(manifest: object) -> dict[str, str]:
         raise ValueError("license must be LICENSE.txt")
     pins = manifest.get("sha256")
     if not isinstance(pins, dict) or set(pins) != REQUIRED_INPUTS:
-        raise ValueError("sha256 must contain exactly the four required input files")
+        raise ValueError("sha256 must contain exactly the required input files")
     for name, digest in pins.items():
         if not isinstance(digest, str) or re.fullmatch(r"[0-9a-f]{64}", digest) is None:
             raise ValueError(f"invalid SHA-256 digest: {name}")

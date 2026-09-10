@@ -1,0 +1,25 @@
+{
+  "version": "actql-text-rank-tokenizer-vectors/0.1",
+  "unicode_version": "16.0.0",
+  "cases": [
+    {"id":"ascii-repetition","text":"Hello HELLO!","normalized":"hello hello!","unicode_words":["hello","hello"],"char_bigram":["he","el","ll","lo","he","el","ll","lo"]},
+    {"id":"full-fold-expansion","text":"Straße ẞ","normalized":"strasse ss","unicode_words":["strasse","ss"],"char_bigram":["st","tr","ra","as","ss","se","ss"]},
+    {"id":"compatibility-width","text":"ＡＢ１２","normalized":"ab12","unicode_words":["ab12"],"char_bigram":["ab","b1","12"]},
+    {"id":"compatibility-ligature","text":"ﬃ","normalized":"ffi","unicode_words":["ffi"],"char_bigram":["ff","fi"]},
+    {"id":"default-not-turkic-fold","text":"I İ ı","normalized":"i i\u0307 ı","unicode_words":["i","i\u0307","ı"],"char_bigram":["i","i\u0307","ı"]},
+    {"id":"sigma-without-context-rule","text":"Σ σ ς","normalized":"σ σ σ","unicode_words":["σ","σ","σ"],"char_bigram":["σ","σ","σ"]},
+    {"id":"hangul-composition","text":"각","normalized":"각","unicode_words":["각"],"char_bigram":["각"]},
+    {"id":"leading-mark-and-nfc","text":"\u0300a a\u0301","normalized":"\u0300a á","unicode_words":["a","á"],"char_bigram":["a","á"]},
+    {"id":"noncomposing-marks-in-run","text":"क़x","normalized":"क़x","unicode_words":["क़x"],"char_bigram":["क़","़x"]},
+    {"id":"no-default-ignorable-removal","text":"a_b-c\u200dd","normalized":"a_b-c\u200dd","unicode_words":["a","b","c","d"],"char_bigram":["a","b","c","d"]},
+    {"id":"variation-selector-is-following-mark","text":"a\ufe0fb","normalized":"a\ufe0fb","unicode_words":["a\ufe0fb"],"char_bigram":["a\ufe0f","\ufe0fb"]},
+    {"id":"unicode16-new-letters","text":"\ud801\uddc0\ud801\uddc1","normalized":"\ud801\uddc0\ud801\uddc1","unicode_words":["\ud801\uddc0\ud801\uddc1"],"char_bigram":["\ud801\uddc0\ud801\uddc1"]},
+    {"id":"standalone-marks","text":"\u0300\ufe0f","normalized":"\u0300\ufe0f","unicode_words":[],"char_bigram":[]},
+    {"id":"bigram-multiplicity","text":"aaaa","normalized":"aaaa","unicode_words":["aaaa"],"char_bigram":["aa","aa","aa"]},
+    {"id":"fraction-delimiter-after-nfkc","text":"½","normalized":"1⁄2","unicode_words":["1","2"],"char_bigram":["1","2"]},
+    {"id":"non-ascii-numbers","text":"١٢Ⅳ","normalized":"١٢iv","unicode_words":["١٢iv"],"char_bigram":["١٢","٢i","iv"]},
+    {"id":"empty","text":"","normalized":"","unicode_words":[],"char_bigram":[]},
+    {"id":"emoji-is-delimiter","text":"a😀b","normalized":"a😀b","unicode_words":["a","b"],"char_bigram":["a","b"]},
+    {"id":"unpaired-surrogate","text":"\ud800","error":"MalformedUnicode"}
+  ]
+}

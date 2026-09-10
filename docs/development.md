@@ -85,6 +85,10 @@ The checks are read-only:
 - `check:text-rank-numeric` (included in `check:vector`): fixed pretokenized BM25
   score bits and ranks, rational-interval logarithm checks and independent
   high-precision regression tests. This does not test a product tokenizer or scorer.
+- `check:text-rank-tokenizer` (included in `check:vector`): fixed Unicode 16
+  tokenizer vectors from pinned source tables, full enumerated NFC/NFKC corpus
+  checks and default-fold map regressions for the independent oracle. No Host
+  Unicode implementation or product evaluator is used.
 - `check:canonical`: canonical JSON corpus, existing contract CIDs and generated identity-test freshness.
 - `check:value-contracts`: fixed contract vectors, generated-test freshness and embedded schema consistency.
 - `check:value-admission`: fixed value-admission vectors, generated-test freshness and generator regressions.

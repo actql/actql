@@ -269,8 +269,8 @@ The checker records Unicode NFKC/full-fold/tokenization, actual-input corpus
 statistics, correctly rounded logarithms, exact fold order, empty-input guards,
 non-finite rejection and separate token/statistics/scoring/output ceilings as
 obligations. This implements no tokenizer or BM25 evaluator. Resolving the pinned
-text-rank profile and its tokenizer vectors remains shared profile work.
-Independent pretokenized numerical vectors are connected below; MoonBit
+text-rank profile remains shared profile work. Independent tokenizer and
+pretokenized numerical vectors are connected below; MoonBit
 type-check tests are not numerical conformance evidence.
 
 The fixed [BM25 numerical corpus](../../portability/corpus/text-rank-numeric.json)
@@ -296,8 +296,34 @@ included in `check:vector`/`check:docs`. There is no write mode for expectations
 The oracle is specification test tooling, not a bounded production scorer or
 MoonBit evaluator. It does not implement or prove Unicode normalization,
 tokenization, tokenizer resource admission or full text-rank profile conformance.
-The selected tokenizer table artifact, profile admission and end-to-end tokenizer
-vectors remain required before claiming that profile is resolved.
+The selected tokenizer table artifact and profile admission remain required
+before claiming that profile is resolved.
+
+The fixed [tokenizer corpus](../../portability/corpus/text-rank-tokenizer.json)
+covers both tokenizers after NFKC, full default C/F folding and NFC. It retains
+repeated tokens, uses Unicode scalars for bigrams and never crosses delimiters.
+Leading marks cannot start a run; following marks, including variation selectors,
+remain in their run. This is not the distinct `NFKC_Casefold` operation that
+removes default-ignorable characters. The corpus also covers non-Turkic folding,
+ligatures, width forms, fractions, Hangul, supplementary-plane Unicode 16 letters,
+malformed surrogates and empty outputs.
+
+`scripts/check_text_rank_tokenizer.py` independently reads vendored UnicodeData,
+composition exclusions and CaseFolding, with their required manifest pins checked
+before use. It uses no Host normalization, case folding, categories or regular
+expressions. Its NFC and NFKC routines are checked against all 19,965 enumerated
+Unicode NormalizationTest cases (five relations for each form), and its default
+fold map is checked against every C/F record. This validates the tooling used
+to check fixed tokenizer vectors, not a MoonBit tokenizer. `check:text-rank-tokenizer`
+joins `check:vector`/`check:docs`; it has no expectation write mode.
+
+CaseFolding.txt is the unmodified Unicode 16.0 source file; its SHA-256 was also
+compared with a fresh download from the
+[Unicode distribution](https://www.unicode.org/Public/16.0.0/ucd/CaseFolding.txt).
+The shared manifest now requires all five input/license pins. NFC generation
+still produces the same product tables; the additional data serves the tokenizer
+and future selected-profile construction. Unicode license notices remain in
+the vendored directory and must be retained when distributing derived tables.
 
 Fixed-revision searches found no text_rank implementation in Sketch
 `87dc7144138edfcba108cdc59dc485ac976ba976` (src and moonbit/src), no text_rank/BM25
