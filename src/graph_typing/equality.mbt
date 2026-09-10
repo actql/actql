@@ -139,6 +139,7 @@ pub fn check_equality(
         labels=if all_known { Some(labels) } else { None },
         max_labels=labels.length(),
         max_label_bytes=limits.max_text_bytes,
+        row_names=@carrier.graph_names(a),
       ) {
       Ok(@carrier.GraphValue(g)) => g
       _ => fail(source, BudgetExceeded)

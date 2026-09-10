@@ -4774,6 +4774,26 @@ These operations convert a graph to relation rows using the corresponding AoA
 bridge. Bare `to_rows` is not accepted for a graph because node rows and edge
 rows are distinct meanings.
 
+<!-- requirement-block: graph-rows.fields-and-aliases -->
+Graph row projection MUST retain the admitted identity types and property
+evidence. Node rows expose `id` and declared node properties; edge rows expose
+`src`, `dst`, nullable-string `rel` and declared edge properties. Absent edge
+labels are explicit null. No undeclared node display-label column is invented.
+Known authored identity/endpoint/label names are additional aliases of their
+corresponding bridge roles; an alias identical to its own role adds no column.
+Aliases retain their field provenance, not nested-property interpretation.
+These source-role names are not members of `graph_contract_cid`. Diff retains
+the base's names for its common contract metadata; Apply restores the base's
+names over the pinned output value contract.
+
+<!-- requirement-block: graph-rows.collisions-and-unknown-evidence -->
+Projection MUST reject collisions between distinct output roles, aliases and
+properties rather than silently overwrite a value. Unknown property sets remain
+open, and unknown identity/property types remain unknown rather than becoming
+string or json. Runtime graph admission rejects collisions that cannot be ruled
+out from partial evidence. Projection alone does not prove row order, unique
+keys, successful data admission or bounded execution.
+
 <a id="degree"></a>
 
 #### `degree`

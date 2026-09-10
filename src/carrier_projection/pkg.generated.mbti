@@ -4,6 +4,7 @@ package "actql/actql/carrier_projection"
 import {
   "actql/actql/carrier_contract",
   "actql/actql/decode_core",
+  "actql/actql/relation_schema",
   "actql/actql/source_span",
   "actql/actql/source_value",
   "moonbitlang/core/debug",
@@ -11,6 +12,8 @@ import {
 
 // Values
 pub fn check(Operation, @decode_core.Cursor, @carrier_contract.Carrier, Limits) -> Result[CheckedProjection, Issue]
+
+pub fn graph_pending(CheckedProjection) -> Array[GraphObligation]
 
 pub fn input(CheckedProjection) -> @carrier_contract.Carrier
 
@@ -27,6 +30,13 @@ pub fn usage(CheckedProjection) -> Usage
 // Types and methods
 type CheckedProjection
 
+pub(all) enum GraphObligation {
+  ValidateGraphRecords
+  RejectRuntimeColumnCollisions
+  RestoreSemanticIdentityNames
+  ResolveGraphProjectionResources
+} derive(Eq, @debug.Debug)
+
 pub struct Issue {
   kind : IssueKind
   path : Array[@source_value.PathSegment]
@@ -38,6 +48,7 @@ pub(all) enum IssueKind {
   BudgetExceeded
   InvalidBody
   WrongCarrier(@carrier_contract.Kind)
+  OutputCollision(@relation_schema.FieldName)
 } derive(Eq, @debug.Debug)
 
 pub(all) struct Limits {
@@ -50,6 +61,8 @@ pub(all) struct Limits {
 pub(all) enum Operation {
   Events
   Vectors
+  NodeRows
+  EdgeRows
 } derive(Eq, @debug.Debug)
 
 pub(all) struct Usage {

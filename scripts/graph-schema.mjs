@@ -9,6 +9,8 @@ import {machineCid} from './actql-spec-family.mjs';
 export function graphSchemas() {
   const nonnegative = {oneOf:[{type:'integer',minimum:0,maximum:9007199254740991},parameter]};
   return {
+    node_rows: {const:true},
+    edge_rows: {const:true},
     graphs_equal: {type:'object', additionalProperties:false, required:['with'],
       properties:{with:{type:'string',minLength:1}}},
     graph_diff: {type:'object', additionalProperties:false, required:['with'],

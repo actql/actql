@@ -21,6 +21,7 @@ pub(all) enum Issue {
 
 ///|
 struct Graph {
+  row_names : GraphRowNames?
   identity : @value.Contract
   node_properties : Knowledge
   edge_properties : Knowledge
@@ -125,6 +126,7 @@ pub fn graph(
   labels~ : Array[String]?,
   max_labels~ : Int,
   max_label_bytes~ : Int,
+  row_names? : GraphRowNames? = None,
 ) -> Result[Carrier, Issue] {
   if max_labels < 0 || max_label_bytes < 0 {
     return Err(InvalidLimits)
@@ -166,7 +168,13 @@ pub fn graph(
     }
   }
   Ok(
-    GraphValue({ identity, node_properties, edge_properties, labels: admitted, }),
+    GraphValue({
+      identity,
+      node_properties,
+      edge_properties,
+      labels: admitted,
+      row_names,
+    }),
   )
 }
 

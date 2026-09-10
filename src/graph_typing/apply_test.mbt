@@ -20,6 +20,46 @@ fn delta_rows(t : @contract.Contract?) -> @carrier.Carrier {
 }
 
 ///|
+test "diff and apply preserve base source-role names outside contract identity" {
+  let number = @contract.primitive(NumberType, nullable=false)
+  guard complete_graph(number, number, "a") is @carrier.GraphValue(g) else {
+    fail("graph")
+  }
+  let names = @carrier.graph_row_names(
+    Unqualified("customer"),
+    Unqualified("source"),
+    Unqualified("target"),
+    None,
+    max_name_bytes=100,
+  ).unwrap()
+  let base = @carrier.with_graph_names(g, Some(names))
+  let other = @carrier.graph_carrier(g)
+  let diff = @graph_typing.check_diff(
+    cursor("{\"with\":\"b\"}"),
+    base,
+    other,
+    limits(),
+  ).unwrap()
+  assert_true(
+    @carrier.graph_names(@graph_typing.diff_common_graph(diff)) is Some(_),
+  )
+  let checked = @graph_typing.check_apply(
+    cursor("{\"with\":\"d\",\"field\":\"change\"}"),
+    base,
+    delta_rows(Some(@graph_typing.diff_contract(diff))),
+    pinned_graph(other),
+    limits(),
+  ).unwrap()
+  guard @graph_typing.apply_output(checked) is @carrier.GraphValue(output) else {
+    fail("graph")
+  }
+  assert_eq(
+    @carrier.graph_row_fields(@carrier.graph_names(output).unwrap()).0,
+    Unqualified("customer"),
+  )
+}
+
+///|
 test "qualified delta fields and incompatible complete record domains" {
   let number = @contract.primitive(NumberType, nullable=false)
   let base = complete_graph(number, number, "a")

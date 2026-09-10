@@ -18,6 +18,7 @@ pub(all) enum ApplyObligation {
 
 ///|
 struct CheckedApply {
+  output : @carrier.Carrier
   source : @decode.Cursor
   with_name : String
   field : String
@@ -159,6 +160,10 @@ pub fn check_apply(
       _ => fail(field_at, InvalidDeltaType)
     }
     Ok({
+      output: @carrier.with_graph_names(
+        expected_graph,
+        @carrier.graph_names(graph),
+      ),
       source,
       with_name,
       field,
@@ -177,7 +182,7 @@ pub fn check_apply(
 
 ///|
 pub fn apply_output(v : CheckedApply) -> @carrier.Carrier {
-  @carrier.graph_carrier(@graph_contract.graph(v.expected))
+  v.output
 }
 
 ///|

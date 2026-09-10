@@ -409,6 +409,17 @@ fn carrier_preflight(
       preflight(b, source, @carrier.graph_identity(graph))
       rows_preflight(b, source, @carrier.graph_node_properties(graph))
       rows_preflight(b, source, @carrier.graph_edge_properties(graph))
+      if @carrier.graph_names(graph) is Some(names) {
+        let (node, src, dst, label) = @carrier.graph_row_fields(names)
+        let fields = [node, src, dst]
+        if label is Some(label) {
+          fields.push(label)
+        }
+        spend(b, source, fields.length())
+        for field in fields {
+          charge(b, source, @schema.reference_name(field))
+        }
+      }
       if @carrier.graph_labels(graph) is Some(labels) {
         spend(b, source, labels.length())
         for label in labels {

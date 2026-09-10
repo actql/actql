@@ -172,3 +172,26 @@ maps and derive invalidation are bounded and charged once per step. Public looku
 returns only an opaque contract, never the mutable map. All runtime admission,
 identity and resource obligations remain. This is checking support, not an
 implementation of Graph Delta execution.
+
+## Graph row projections and names
+
+`carrier_projection` checks `node_rows: true` and `edge_rows: true` on typed,
+partially known and opaque Graphs. The fixed roles and restored source aliases
+follow [Graph rows](../spec/language.md#graph-rows). Opaque Graphs produce open
+Relation knowledge with untyped identity columns, not an invented closed schema.
+Typed properties, including nullable and structural children, are preserved.
+
+`GraphRowNames` is validated source-role metadata, separate from value domains
+and graph law evidence. It does not establish a semantic edge-label role or a
+closed label domain. Graph contract serialization excludes it. Diff carries base
+names and Apply preserves current base names, regardless of names attached to
+the separately resolved contract. Projection returns both bridge roles and
+non-identical semantic aliases; collisions fail instead of dropping properties.
+
+This clarifies the former brief AoA-bridge reference using Sketch's restoration
+behavior, while retaining actual non-string identity types and complete property
+knowledge. An undeclared optional AoA display label is not a typed property.
+Source graph construction still needs to attach these names when it is added.
+Projection is connected to the ordinary pipeline and Relation consumers, without
+inventing order/uniqueness/resource proofs. Lowering must implement these admitted
+typed rows rather than copy a string-only or property-dropping reference shape.

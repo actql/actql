@@ -20,7 +20,7 @@ pub fn field_set(Knowledge) -> FieldSet
 
 pub fn fields(Knowledge) -> Array[Field]
 
-pub fn graph(@value_contract.Contract, Knowledge, Knowledge, labels~ : Array[String]?, max_labels~ : Int, max_label_bytes~ : Int) -> Result[Carrier, Issue]
+pub fn graph(@value_contract.Contract, Knowledge, Knowledge, labels~ : Array[String]?, max_labels~ : Int, max_label_bytes~ : Int, row_names? : GraphRowNames?) -> Result[Carrier, Issue]
 
 pub fn graph_carrier(Graph) -> Carrier
 
@@ -34,7 +34,13 @@ pub fn graph_label_count(Graph) -> Int?
 
 pub fn graph_labels(Graph) -> Array[String]?
 
+pub fn graph_names(Graph) -> GraphRowNames?
+
 pub fn graph_node_properties(Graph) -> Knowledge
+
+pub fn graph_row_fields(GraphRowNames) -> (@relation_schema.FieldName, @relation_schema.FieldName, @relation_schema.FieldName, @relation_schema.FieldName?)
+
+pub fn graph_row_names(@relation_schema.FieldName, @relation_schema.FieldName, @relation_schema.FieldName, @relation_schema.FieldName?, max_name_bytes~ : Int) -> Result[GraphRowNames, @relation_schema.Issue]
 
 pub fn kind(Carrier) -> Kind
 
@@ -61,6 +67,8 @@ pub fn vector_identities(Vectors) -> Array[Field]
 pub fn vector_records(Vectors) -> Knowledge
 
 pub fn vectors(Knowledge, ids~ : Array[@relation_schema.FieldName], components~ : @relation_schema.FieldName, max_identity_fields~ : Int) -> Result[Carrier, Issue]
+
+pub fn with_graph_names(Graph, GraphRowNames?) -> Carrier
 
 // Errors
 
@@ -96,6 +104,8 @@ pub(all) enum FieldSet {
 } derive(Eq, @debug.Debug)
 
 type Graph
+
+type GraphRowNames
 
 pub(all) enum Issue {
   InvalidLimits

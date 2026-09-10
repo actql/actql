@@ -421,6 +421,8 @@ fn check_impl(
       | "graph_diff"
       | "apply_graph_delta"
       | "vectors"
+      | "node_rows"
+      | "edge_rows"
       | "window_events" => None
       _ => fail(@decode.lookup(object, key).unwrap(), UnsupportedOperation(key))
     }
@@ -857,11 +859,15 @@ fn check_impl(
       current = Some(target)
       continue
     }
-    if key == "events" || key == "vectors" {
-      let projection = if key == "events" {
-        @projection.Events
-      } else {
-        @projection.Vectors
+    if key == "events" ||
+      key == "vectors" ||
+      key == "node_rows" ||
+      key == "edge_rows" {
+      let projection = match key {
+        "events" => @projection.Events
+        "vectors" => @projection.Vectors
+        "node_rows" => @projection.NodeRows
+        _ => @projection.EdgeRows
       }
       let checked = match
         @projection.check(

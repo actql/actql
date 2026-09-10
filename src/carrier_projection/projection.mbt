@@ -2,6 +2,8 @@
 pub(all) enum Operation {
   Events
   Vectors
+  NodeRows
+  EdgeRows
 } derive(Eq, Debug)
 
 ///|
@@ -10,6 +12,7 @@ pub(all) enum IssueKind {
   BudgetExceeded
   InvalidBody
   WrongCarrier(@carrier.Kind)
+  OutputCollision(@row.FieldName)
 } derive(Eq, Debug)
 
 ///|
@@ -77,9 +80,13 @@ pub fn check(
   let expected = match operation {
     Events => @carrier.EventsKind
     Vectors => @carrier.VectorsKind
+    NodeRows | EdgeRows => @carrier.GraphKind
   }
   if @carrier.kind(input) != expected {
     return Err(issue(source, WrongCarrier(@carrier.kind(input))))
+  }
+  if operation == NodeRows || operation == EdgeRows {
+    return graph_projection(operation, source, input, limits)
   }
   let records = match input {
     @carrier.EventValue(e) => e.records
