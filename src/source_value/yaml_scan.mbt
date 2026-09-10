@@ -58,12 +58,21 @@ fn Parser::yaml_newline(self : Parser) -> Unit raise ParseAbort {
 }
 
 ///|
-fn Parser::yaml_skip(self : Parser) -> Unit raise ParseAbort {
+/// In flow context, only the leading spaces count towards indentation.
+/// Tabs after that required prefix are separation, never indentation.
+fn Parser::yaml_skip(
+  self : Parser,
+  flow_indent? : Int? = None,
+) -> Unit raise ParseAbort {
   let mut prefix = self.column == 1
   let mut tab = false
+  let mut spaces = 0
   while true {
     let unit = self.yaml_at(0)
     if unit == 0x20 || unit == 0x09 {
+      if prefix && !tab && unit == 0x20 {
+        spaces += 1
+      }
       if prefix && unit == 0x09 {
         tab = true
       }
@@ -81,8 +90,9 @@ fn Parser::yaml_skip(self : Parser) -> Unit raise ParseAbort {
       self.yaml_newline()
       prefix = true
       tab = false
+      spaces = 0
     } else {
-      if tab && unit >= 0 {
+      if tab && unit >= 0 && !(flow_indent is Some(indent) && spaces > indent) {
         self.fail(InvalidYamlIndentation, self.path)
       }
       break

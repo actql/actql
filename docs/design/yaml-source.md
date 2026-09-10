@@ -44,8 +44,15 @@ restriction on all source numbers.
 
 Keys retain source order and are checked once after normalization with
 `decode_shape` key admission. Exact and normalized collisions are rejected before
-the repeated key's value. Tags, tag directives, anchors, aliases and merge keys
-are rejected, not expanded. No graph or executable scalar is constructed.
+the repeated key's value. Tags, tag directives, anchors, aliases and plain merge-key
+spellings are rejected, not expanded. Quoted `"<<"`, `'<<'` and equivalent
+escaped string keys are ordinary data and use the same duplicate-key checks.
+No graph or executable scalar is constructed.
+
+In flow collections, TAB may separate tokens after the required space indentation
+has been satisfied. Only leading spaces count towards that indentation; a TAB
+cannot replace them. Block indentation remains space-only. Source bytes are not
+rewritten, and TAB still counts as one source column.
 
 A single leading BOM and optional single-document `---`/`...` markers are allowed.
 Additional documents are rejected. An explicit empty document resolves to null

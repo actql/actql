@@ -44,6 +44,7 @@ fn Parser::yaml_key(
   explicit : Bool,
 ) -> (String, Span) raise ParseAbort {
   let start = self.point()
+  let mut plain = false
   let value = if self.yaml_at(0) == 0x22 || self.yaml_at(0) == 0x27 {
     String(self.yaml_quoted(!explicit, indent))
   } else if !flow &&
@@ -55,6 +56,7 @@ fn Parser::yaml_key(
     self.yaml_at(0) == 0x3a {
     self.fail(NonStringKey, self.path)
   } else {
+    plain = true
     self.yaml_plain(flow, true, indent, multiline_key=explicit)
   }
   let span = self.span(start)
@@ -67,7 +69,7 @@ fn Parser::yaml_key(
   }
   match value {
     String(key) => {
-      if key == "<<" {
+      if plain && key == "<<" {
         raise self.failure_at(ForbiddenYamlFeature, self.path, start)
       }
       (key, span)
@@ -148,7 +150,7 @@ fn Parser::yaml_document(self : Parser) -> Node raise ParseAbort {
   }
   while true {
     if need_value {
-      self.yaml_skip()
+      self.yaml_skip(flow_indent=if flow { Some(parent_indent) } else { None })
       if flow &&
         self.line > origin_line &&
         self.column - 1 <= parent_indent &&
@@ -288,8 +290,8 @@ fn Parser::yaml_document(self : Parser) -> Node raise ParseAbort {
       completed = None
     }
     let frame = frames[frames.length() - 1]
-    self.yaml_skip()
     let block = frame.style == BlockMapping || frame.style == BlockSequence
+    self.yaml_skip(flow_indent=if block { None } else { Some(frame.indent) })
     let sequence = frame.style == BlockSequence || frame.style == FlowSequence
     let closing = if sequence { 0x5d } else { 0x7d }
     if !block &&
@@ -379,7 +381,7 @@ fn Parser::yaml_document(self : Parser) -> Node raise ParseAbort {
       let explicit = self.yaml_indicator(0x3f)
       if explicit {
         ignore(self.yaml_take())
-        self.yaml_skip()
+        self.yaml_skip(flow_indent=if flow { Some(frame.indent) } else { None })
       }
       let (key, key_span) = self.yaml_key(flow, frame.indent, explicit)
       self.path.push(Key(key))
@@ -399,7 +401,7 @@ fn Parser::yaml_document(self : Parser) -> Node raise ParseAbort {
       let key_end = self.point()
       self.yaml_horizontal()
       if explicit {
-        self.yaml_skip()
+        self.yaml_skip(flow_indent=if flow { Some(frame.indent) } else { None })
       }
       if self.yaml_at(0) == 0x3a &&
         (!block || self.line == key_end.line || self.column - 1 == frame.indent) {

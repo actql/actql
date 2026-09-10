@@ -1,4 +1,87 @@
 ///|
+test "YAML quoted merge spellings are ordinary string keys" {
+  for key in ["\"<<\"", "'<<'", "\"\\u003c\\u003c\""] {
+    for
+      source in [
+        "meta: {" + key + ": \"ordinary data\"}",
+        "meta:\n  " + key + ": \"ordinary data\"",
+      ] {
+      same_values(yaml(source), parsed("{\"meta\":{\"<<\":\"ordinary data\"}}"))
+      same_values(
+        yaml(source),
+        parse_yaml_bytes(@utf8.encode(source), limits()).unwrap(),
+        spans=true,
+      )
+    }
+    let source = key + ": 1"
+    guard yaml(source).value is Object(fields) else { fail("expected object") }
+    assert_eq(fields[0].key, "<<")
+    assert_eq(
+      (fields[0].key_span.start_byte, fields[0].key_span.end_byte),
+      (0, key.length()),
+    )
+  }
+  for source in ["{\"<<\": 0, '<<': 1}", "\"<<\": 0\n\"\\u003c\\u003c\": 1"] {
+    assert_eq(yaml_error(source).issue, DuplicateKey("<<"))
+  }
+  for
+    source in ["<<: {}", "{<<: {}}", "a: &id value", "a: *id", "a: !!str value"] {
+    assert_eq(yaml_error(source).issue, ForbiddenYamlFeature)
+  }
+}
+
+///|
+test "YAML flow separation tabs follow space indentation" {
+  for
+    (source, spaces, expected) in [
+      (
+        "items: [\n  \t1,\n  2\n]", "items: [\n   1,\n  2\n]", "{\"items\":[1,2]}",
+      ),
+      ("{\n  \t\"x\": 1\n}", "{\n   \"x\": 1\n}", "{\"x\":1}"),
+      (
+        "items: [\r\n  \t1,\r\n  2\r\n]", "items: [\r\n   1,\r\n  2\r\n]", "{\"items\":[1,2]}",
+      ),
+      (
+        "a:\n  items: [\n   \t1,\n   \t2\n  ]", "a:\n  items: [\n    1,\n    2\n  ]",
+        "{\"a\":{\"items\":[1,2]}}",
+      ),
+      (
+        "items: [{\n \t\"x\":\n \t1\n}]", "items: [{\n  \"x\":\n  1\n}]", "{\"items\":[{\"x\":1}]}",
+      ),
+      (
+        "items: [\n \t? \"x\"\n \t: 1\n]", "items: [\n  ? \"x\"\n  : 1\n]", "{\"items\":[{\"x\":1}]}",
+      ),
+    ] {
+    let actual = yaml(source)
+    same_values(actual, parsed(expected))
+    same_values(actual, yaml(spaces))
+    same_values(
+      actual,
+      parse_yaml_bytes(@utf8.encode(source), limits()).unwrap(),
+      spans=true,
+    )
+  }
+  guard yaml("items: [\n  \t1,\n  2\n]").value is Object(fields) else {
+    fail("expected object")
+  }
+  guard fields[0].value.value is Array(items) else { fail("expected array") }
+  assert_eq((items[0].span.start_byte, items[0].span.end_byte), (12, 13))
+  assert_eq((items[0].span.start_line, items[0].span.start_column), (2, 4))
+}
+
+///|
+test "YAML separation tabs cannot replace required indentation" {
+  for
+    source in [
+      "a:\n\tb: 1", "a:\n \tb: 1", "items: [\n\t1\n]", "items: [\n\t 1\n]", "a:\n  items: [\n  \t1\n  ]",
+      "items: [1]\n\tnext: 2",
+    ] {
+    assert_eq(yaml_error(source).issue, InvalidYamlIndentation)
+  }
+  same_values(yaml("a: |\n  \tvalue\n"), parsed("{\"a\":\"\\tvalue\\n\"}"))
+}
+
+///|
 test "YAML folding preserves escaped whitespace but trims raw separation" {
   for
     (source, expected) in [
