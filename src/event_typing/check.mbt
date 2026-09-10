@@ -5,12 +5,19 @@ pub(all) enum Policy {
 } derive(Eq, Debug)
 
 ///|
+pub(all) enum Options {
+  ToEvents
+  Watermark(Double, Policy)
+} derive(Eq, Debug)
+
+///|
 pub(all) enum Obligation {
   ValidateEventValues
   ValidateUniqueIdentities
   ResolveTeaProfile
   ResolveEventResources
   WatermarkClassification
+  ConvertTimestampClock
 } derive(Eq, Debug)
 
 ///|
@@ -22,6 +29,7 @@ pub(all) enum IssueKind {
   WrongCarrier(@carrier.Kind)
   UnknownOutputFields
   OutputCollision(String)
+  InvalidRole(@carrier.Issue)
 } derive(Eq, Debug)
 
 ///|
@@ -51,8 +59,7 @@ struct CheckedEvent {
   source : @decode.Cursor
   input : @carrier.Carrier
   output : @carrier.Carrier
-  watermark : Double
-  policy : Policy
+  options : Options
   usage : Usage
 }
 
@@ -140,8 +147,7 @@ pub fn check_watermark(
       source,
       input,
       output,
-      watermark,
-      policy,
+      options: Watermark(watermark, policy),
       usage: {
         work: limits.max_work - b.work,
         nodes: limits.max_nodes - b.nodes,
@@ -169,13 +175,24 @@ pub fn output(v : CheckedEvent) -> @carrier.Carrier {
 }
 
 ///|
-pub fn watermark(v : CheckedEvent) -> Double {
-  v.watermark
+pub fn watermark(v : CheckedEvent) -> Double? {
+  match v.options {
+    Watermark(n, _) => Some(n)
+    ToEvents => None
+  }
 }
 
 ///|
-pub fn policy(v : CheckedEvent) -> Policy {
-  v.policy
+pub fn policy(v : CheckedEvent) -> Policy? {
+  match v.options {
+    Watermark(_, p) => Some(p)
+    ToEvents => None
+  }
+}
+
+///|
+pub fn options(v : CheckedEvent) -> Options {
+  v.options
 }
 
 ///|
@@ -184,12 +201,19 @@ pub fn usage(v : CheckedEvent) -> Usage {
 }
 
 ///|
-pub fn pending_validations(_v : CheckedEvent) -> Array[Obligation] {
-  [
+pub fn pending_validations(v : CheckedEvent) -> Array[Obligation] {
+  let pending = [
     ValidateEventValues,
     ValidateUniqueIdentities,
     ResolveTeaProfile,
     ResolveEventResources,
-    WatermarkClassification,
   ]
+  if v.options is Watermark(_, _) {
+    pending.push(WatermarkClassification)
+  }
+  if v.output is @carrier.EventValue(e) &&
+    e.clock_encoding == @carrier.UtcTimestamp {
+    pending.push(ConvertTimestampClock)
+  }
+  pending
 }

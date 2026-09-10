@@ -53,7 +53,7 @@ test "both policies add typed labels while retaining event roles and unknown pay
       events(),
       limits(),
     ).unwrap()
-    assert_eq(@event_typing.watermark(checked), -0.5)
+    assert_eq(@event_typing.watermark(checked), Some(-0.5))
     guard @event_typing.output(checked) is @carrier.EventValue(e) else {
       abort("events")
     }

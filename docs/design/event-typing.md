@@ -1,8 +1,10 @@
 # Event operation checking
 
-The event checker begins with `watermark_events`; its normative owner is
+The event checker supports `to_events` and `watermark_events`; its normative owner is
 [event bridges](../spec/language.md#event-bridges). It preserves semantic ID
-and numeric-time roles and partial payload contracts. It requires proof that
+and clock-source roles and partial payload contracts. UTC timestamp clock sources
+retain a separate conversion obligation; their payload values are not replaced.
+It requires proof that
 generated columns are absent, not complete types for unrelated payload fields.
 Classification, valid event values, uniqueness and profile/resource resolution
 remain obligations; no event is evaluated by this static checker.
@@ -21,3 +23,14 @@ The typed Carrier retains authored role names rather than inventing physical
 `id` or `event_time_ms` columns. Generated-column collisions are rejected rather
 than overwriting payload. Pipeline integration must preserve incoming window
 boundary aliases because labeling/filtering does not change those values.
+
+## Clock-source bridge
+
+The bridge selects existing identity/time fields, preserving qualified provenance
+and unrelated payload evidence. `ClockEncoding` distinguishes numeric milliseconds
+from UTC timestamp conversion without publishing a synthetic time field. Clock
+encoding is derived by the Carrier constructor from the validated source type,
+not supplied as a caller assertion. Window checking and watermark obligations
+retain that encoding; the explicit `events` projection still exposes the original
+timestamp field. Bridge options cannot be mistaken for watermark options or expose
+a fabricated threshold. The bridge does not claim that data conversion executed.

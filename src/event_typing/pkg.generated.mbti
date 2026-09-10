@@ -10,21 +10,25 @@ import {
 }
 
 // Values
+pub fn check_bridge(@decode_core.Cursor, @carrier_contract.Carrier, Limits) -> Result[CheckedEvent, Issue]
+
 pub fn check_watermark(@decode_core.Cursor, @carrier_contract.Carrier, Limits) -> Result[CheckedEvent, Issue]
 
 pub fn input(CheckedEvent) -> @carrier_contract.Carrier
+
+pub fn options(CheckedEvent) -> Options
 
 pub fn output(CheckedEvent) -> @carrier_contract.Carrier
 
 pub fn pending_validations(CheckedEvent) -> Array[Obligation]
 
-pub fn policy(CheckedEvent) -> Policy
+pub fn policy(CheckedEvent) -> Policy?
 
 pub fn source(CheckedEvent) -> @decode_core.Cursor
 
 pub fn usage(CheckedEvent) -> Usage
 
-pub fn watermark(CheckedEvent) -> Double
+pub fn watermark(CheckedEvent) -> Double?
 
 // Errors
 
@@ -45,6 +49,7 @@ pub(all) enum IssueKind {
   WrongCarrier(@carrier_contract.Kind)
   UnknownOutputFields
   OutputCollision(String)
+  InvalidRole(@carrier_contract.Issue)
 } derive(Eq, @debug.Debug)
 
 pub(all) struct Limits {
@@ -60,6 +65,12 @@ pub(all) enum Obligation {
   ResolveTeaProfile
   ResolveEventResources
   WatermarkClassification
+  ConvertTimestampClock
+} derive(Eq, @debug.Debug)
+
+pub(all) enum Options {
+  ToEvents
+  Watermark(Double, Policy)
 } derive(Eq, @debug.Debug)
 
 pub(all) enum Policy {

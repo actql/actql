@@ -29,10 +29,17 @@ struct Graph {
 }
 
 ///|
+pub(all) enum ClockEncoding {
+  Milliseconds
+  UtcTimestamp
+} derive(Eq, Debug)
+
+///|
 pub struct Events {
   records : Knowledge
   identity : Field
   time : Field
+  clock_encoding : ClockEncoding
 }
 
 ///|
@@ -169,8 +176,9 @@ pub fn graph_labels(graph : Graph) -> Array[String]? {
 }
 
 ///|
-/// Event-stream time is already a non-null numeric millisecond role. A Relation
-/// timestamp must go through the specified bridge conversion, not this function.
+/// Retain the authored clock source and its required interpretation. Timestamp
+/// encoding requires UTC-millisecond conversion at execution; this constructor
+/// validates contracts only and never claims converted or admitted data.
 pub fn events(
   records : Knowledge,
   id~ : @row.FieldName,
@@ -188,10 +196,15 @@ pub fn events(
     Err(e) => return Err(e)
   }
   let contract = clock.contract.unwrap()
-  if contract.nullable || !(contract.shape is @value.Number) {
+  if contract.nullable {
     return Err(InvalidRole(time))
   }
-  Ok(EventValue({ records, identity, time: clock, }))
+  let clock_encoding = match contract.shape {
+    @value.Number => Milliseconds
+    @value.Timestamp => UtcTimestamp
+    _ => return Err(InvalidRole(time))
+  }
+  Ok(EventValue({ records, identity, time: clock, clock_encoding, }))
 }
 
 ///|

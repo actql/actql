@@ -1,4 +1,55 @@
 ///|
+test "timestamp clock projection survives event windows watermark and relation exposure" {
+  let input = @carrier.events(
+    @carrier.rows(
+      [
+        (
+          Unqualified("id"),
+          Some(@contract.primitive(NumberType, nullable=false)),
+        ),
+        (
+          Unqualified("occurred_at"),
+          Some(@contract.primitive(TimestampType, nullable=false)),
+        ),
+      ],
+      field_set=Closed,
+      max_fields=2,
+      max_name_bytes=100,
+    ).unwrap(),
+    id=Unqualified("id"),
+    time=Unqualified("occurred_at"),
+  ).unwrap()
+  let p = @pipeline_typing.check_carriers(
+    cursor(
+      "[{\"to_events\":{\"id\":\"id\",\"time\":\"occurred_at\"}},{\"window_events\":{\"kind\":\"fixed\",\"size\":10}},{\"watermark_events\":{\"watermark_ms\":0,\"policy\":\"mark\"}},{\"events\":true}]",
+    ),
+    [
+      (
+        "input",
+        match input {
+          EventValue(e) => @carrier.relation(e.records)
+          _ => abort("events")
+        },
+      ),
+    ],
+    None,
+    None,
+    limits(),
+  ).unwrap()
+  guard @pipeline_typing.step_at(p, 2).unwrap().output is @carrier.EventValue(e) else {
+    abort("events")
+  }
+  assert_eq(e.clock_encoding, @carrier.UtcTimestamp)
+  assert_true(e.time.contract.unwrap().shape is Timestamp)
+  let schema = @pipeline_typing.output_schema(p).unwrap()
+  assert_true(
+    @schema.lookup(schema, Unqualified("occurred_at")).unwrap().shape
+    is Timestamp,
+  )
+  assert_true(@schema.lookup(schema, Unqualified("event_time_ms")) is None)
+}
+
+///|
 test "watermark events retain window evidence into relation grouping and branches" {
   for policy in ["mark", "drop"] {
     let body = cursor(

@@ -222,6 +222,7 @@ fn check_impl(
       | "row_window"
       | "events"
       | "watermark_events"
+      | "to_events"
       | "normalize_graph"
       | "normalize_vectors"
       | "to_vectors"
@@ -388,9 +389,14 @@ fn check_impl(
       current = Some(target)
       continue
     }
-    if key == "watermark_events" {
+    if key == "watermark_events" || key == "to_events" {
+      let check_event = if key == "to_events" {
+        @event.check_bridge
+      } else {
+        @event.check_watermark
+      }
       let checked = match
-        @event.check_watermark(operation_body, carrier(input, inputs, steps), {
+        check_event(operation_body, carrier(input, inputs, steps), {
           max_work: b.work,
           max_nodes: b.nodes,
           max_depth: limits.max_depth,

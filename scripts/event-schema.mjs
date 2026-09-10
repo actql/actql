@@ -7,6 +7,9 @@ import {machineCid} from './actql-spec-family.mjs';
 
 export function eventSchemas() {
   return {
+    to_events: {type:'object',additionalProperties:false,required:['id','time'],properties:{
+      id:{type:'string',minLength:1},time:{type:'string',minLength:1},
+    }},
     watermark_events: {type:'object',additionalProperties:false,required:['watermark_ms','policy'],properties:{
       watermark_ms:{type:'number'},policy:{enum:['drop','mark']},
     }},

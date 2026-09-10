@@ -41,10 +41,14 @@ collections are canonical, duplicate-free, byte/count bounded and detached.
 Absent label-domain evidence is not proof that a semantic label role exists.
 The constructor never validates graph records, endpoints or actual uniqueness.
 
-Events retain record knowledge and known identity/time roles. Event-stream time
-must already have non-null numeric millisecond type; Relation timestamps use the
-specified conversion when constructing an event bridge, not implicit conversion
-in this type constructor. Additional payload fields may remain unknown.
+Events retain record knowledge and known identity/time source roles. Clock
+encoding distinguishes non-null numeric milliseconds from a non-null UTC
+timestamp source. The latter requires execution-time conversion to the internal
+millisecond clock; the source field and timestamp contract remain unchanged in
+payload. This type constructor does not perform or prove that conversion.
+Additional payload fields may remain unknown. Explicit authored sequence clock
+selection on Events still obeys its numeric-field requirement; an intrinsic clock
+projection is not permission to accept a timestamp in that authored position.
 
 Event identity requires complete, non-null KeyComparable evidence, preserving
 the original type, including decimal precision/scale and reference domains.

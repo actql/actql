@@ -63,7 +63,8 @@ pub fn check(
       fields.push((f.name, f.contract))
     }
     let (time, timestamp) = match input {
-      @carrier.EventValue(e) => (e.time.name, false)
+      @carrier.EventValue(e) =>
+        (e.time.name, e.clock_encoding == @carrier.UtcTimestamp)
       _ => {
         let c = options.time.unwrap()
         let name = match @decode.text(c) {

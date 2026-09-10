@@ -4174,6 +4174,18 @@ boundary and lowers to
 explicit `drop` or `mark` policy, lowers to `TEA.watermark.label`, and also
 preserves `events`.
 
+<!-- requirement-block: event-bridges.clock-source -->
+The `to_events` body MUST contain exactly `id` and `time` field references on
+its Relation input, with the time source having a non-null number or UTC timestamp
+contract. Other field types may remain unknown, and the retained payload field
+set may be open. A timestamp source is converted to the internal numeric UTC-millisecond
+clock without replacing its authored payload value or inserting a public
+`event_time_ms` alias. The Event carrier retains the source role and its clock
+encoding separately; clock-consuming operations validate values and perform the
+required conversion before temporal arithmetic. An explicitly authored clock
+field on an existing Event carrier remains subject to that operation's own
+field-domain rules, including sequence's numeric-only rule.
+
 <!-- requirement-block: event-bridges.watermark-labels -->
 `watermark_events` MUST have a closed body containing `watermark_ms` and
 `policy`. Both policies add fresh non-null fields `watermark_ms: number`,

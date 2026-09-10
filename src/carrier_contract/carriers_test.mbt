@@ -1,4 +1,35 @@
 ///|
+test "event clock encoding preserves timestamp payload without fabricating a numeric field" {
+  for
+    (kind, encoding) in [
+      (@value.NumberType, @carrier_contract.Milliseconds),
+      (@value.TimestampType, @carrier_contract.UtcTimestamp),
+    ] {
+    let clock = @value.primitive(kind, nullable=false)
+    let records = rows(
+      [
+        (
+          @row.Unqualified("id"),
+          Some(@value.primitive(NumberType, nullable=false)),
+        ),
+        (@row.Unqualified("occurred_at"), Some(clock)),
+      ],
+      field_set=Closed,
+      max_fields=2,
+      max_name_bytes=100,
+    ).unwrap()
+    guard events(records, id=Unqualified("id"), time=Unqualified("occurred_at")).unwrap()
+      is EventValue(e) else {
+      abort("events")
+    }
+    assert_eq(e.clock_encoding, encoding)
+    assert_true(@value.type_equal(e.time.contract.unwrap(), clock, 10))
+    assert_true(lookup(e.records, Unqualified("event_time_ms")) is Absent)
+    assert_eq(field_count(e.records), 2)
+  }
+}
+
+///|
 test "event identities preserve non-null comparable semantic domains" {
   let domains = [
     @value.primitive(StringType, nullable=false),
@@ -119,7 +150,7 @@ test "graph label domains are owned canonical sets, not graph data evidence" {
 }
 
 ///|
-test "events require a known numeric clock and preserve unknown payload evidence" {
+test "events require a known clock encoding and preserve unknown payload evidence" {
   let id = @row.Unqualified("id")
   let clock = @row.Unqualified("time")
   let fields = rows(
@@ -145,7 +176,10 @@ test "events require a known numeric clock and preserve unknown payload evidence
     max_fields=2,
     max_name_bytes=6,
   ).unwrap()
-  assert_true(events(timestamp, id~, time=clock) is Err(InvalidRole(_)))
+  guard events(timestamp, id~, time=clock).unwrap() is EventValue(t) else {
+    abort("event kind")
+  }
+  assert_eq(t.clock_encoding, @carrier_contract.UtcTimestamp)
 }
 
 ///|

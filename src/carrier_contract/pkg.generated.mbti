@@ -67,10 +67,16 @@ pub enum Carrier {
   Opaque(Kind)
 }
 
+pub(all) enum ClockEncoding {
+  Milliseconds
+  UtcTimestamp
+} derive(Eq, @debug.Debug)
+
 pub struct Events {
   records : Knowledge
   identity : Field
   time : Field
+  clock_encoding : ClockEncoding
 }
 
 pub struct Field {
