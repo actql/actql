@@ -11,6 +11,82 @@ fn graph_input() -> @carrier.Carrier {
 }
 
 ///|
+test "traverse retains selector inputs and feeds typed path arrays to projection" {
+  let empty = @carrier.rows(
+    [],
+    field_set=Closed,
+    max_fields=0,
+    max_name_bytes=0,
+  ).unwrap()
+  let number = @contract.primitive(NumberType, nullable=false)
+  let g = @carrier.graph(
+    number,
+    empty,
+    empty,
+    labels=None,
+    max_labels=0,
+    max_label_bytes=0,
+  ).unwrap()
+  let r = @carrier.relation(
+    @carrier.rows(
+      [(Unqualified("id"), Some(number))],
+      field_set=Closed,
+      max_fields=1,
+      max_name_bytes=2,
+    ).unwrap(),
+  )
+  let source = cursor(
+    "[{\"from\":\"g\",\"traverse\":{\"start\":{\"from\":\"r\",\"id\":\"id\"},\"direction\":\"out\",\"min_hops\":0,\"max_hops\":2,\"emit\":\"paths\"}},{\"select\":[\"start_id\",\"edge_ids\"]}]",
+  )
+  let p = @pipeline_typing.check_carriers(
+    source,
+    [("g", g), ("r", r)],
+    None,
+    None,
+    limits(),
+  ).unwrap()
+  let step = @pipeline_typing.step_at(p, 0).unwrap()
+  assert_true(step.operation is Traverse(selector=Some(Input(1)), ..))
+  let edges = @pipeline_typing.input_occurrences(step)
+  assert_eq(edges.length(), 2)
+  assert_eq(edges[0].target, Input(0))
+  assert_eq(edges[1].target, Input(1))
+  guard @schema.lookup(
+      @pipeline_typing.output_schema(p).unwrap(),
+      Unqualified("edge_ids"),
+    ).unwrap().shape
+    is @contract.Array(item, ..) else {
+    abort("missing typed path")
+  }
+  assert_true(item.shape is Object(_))
+  let u = @pipeline_typing.usage(p)
+  let exact = {
+    ..limits(),
+    max_work: u.work,
+    max_nodes: u.nodes,
+    max_text_bytes: u.text_bytes,
+    max_tokens: u.tokens,
+  }
+  assert_true(
+    @pipeline_typing.check_carriers(
+      source,
+      [("g", g), ("r", r)],
+      None,
+      None,
+      exact,
+    )
+    is Ok(_),
+  )
+  assert_true(
+    @pipeline_typing.check_carriers(source, [("g", g), ("r", r)], None, None, {
+      ..exact,
+      max_work: u.work - 1,
+    })
+    is Err(_),
+  )
+}
+
+///|
 test "reach preserves semantic aliases through pipeline Relation consumers" {
   let empty = @carrier.rows(
     [],

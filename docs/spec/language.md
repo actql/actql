@@ -4977,12 +4977,36 @@ traversal requires non-negative `min_hops`, positive `max_hops`, and
 direction and may constrain edge types, edge properties, and the reached node.
 No implementation may widen the authored maximum.
 
+<!-- requirement-block: traverse.closed-modes-and-filters -->
+The closed body MUST admit only `start`, `emit`, optional `max_output_rows`, and exactly
+one traversal mode. Homogeneous mode requires literal finite integer-valued
+`min_hops` and `max_hops` in the stated ranges and explicit `direction`, with
+optional `edge_types`. Pattern mode instead requires a nonempty `hops` array
+and rejects all four homogeneous members. Each hop admits only `direction`,
+optional `edge_types`, `edge_where`, and `node_where`. A pattern follows its
+entire ordered hop list. Predicates require nullable or non-null boolean and
+retain only true. Edge-type lists contain nonempty normalized strings; absence
+does not filter types, empty lists admit no matching edge, and repetition does
+not repeat paths. Any authored list, including an empty one, requires semantic
+edge-label evidence. An empty selection does not bypass static checks.
+
 `emit: nodes` returns `start_id`, `node_id`, and minimum `depth`, ordered by
 those fields. `emit: paths` additionally requires semantic edge identity and
 returns `start_id`, `end_id`, `hop_count`, `node_ids`, and `edge_ids`. Paths are
 simple (a node cannot repeat) and are ordered by start identity, hop count,
 node-identity sequence, then edge-identity sequence using AoA canonical value
 order. Duplicate paths are removed by exact identity.
+
+<!-- requirement-block: traverse.typed-edge-identity-records -->
+In traversal and shortest-path output, each `edge_ids` element MUST be the
+closed record `{src, dst, rel}` representing the pinned SGA edge-identity tuple.
+`src` and `dst` retain the semantic node-ID type; `rel` is the semantic label
+or explicit null. These are the edge's original directed endpoints, even when
+the path traverses that edge in the incoming direction. Ordering compares the
+semantic tuple `(src, dst, rel)`, not JSON field order or serialized text.
+No provider edge locator, string conversion, property named `edge_id`, or
+newly computed CID substitutes for this identity. This fixes the output
+representation of the existing edge-identity law; it does not issue new IDs.
 
 <a id="shortest-path-and-components"></a>
 
@@ -7402,6 +7426,14 @@ GraphNodeSelector := {ids: [WireValue, ...]}
 SubgraphBody := {nodes: GraphNodeSelector, edges?: Expression}
 GraphSelectorConstraints := exactly one closed selector form; selected identities
   are admitted, deduplicated and required to exist; empty Relation/predicate is valid.
+TraverseBody := {start: GraphNodeSelector, emit: nodes | paths,
+  direction: in | out | both, min_hops: nonnegative integer-valued number,
+  max_hops: positive integer-valued number, edge_types?: [NonemptyString, ...] | [],
+  max_output_rows?: PositiveIntegerValue}
+  | {start: GraphNodeSelector, emit: nodes | paths, hops: [TraversalHop, ...],
+     max_output_rows?: PositiveIntegerValue}
+TraversalHop := {direction: in | out | both, edge_types?: [NonemptyString, ...] | [],
+  edge_where?: Expression, node_where?: Expression}
 GraphBody := {nodes: GraphNodes, edges: GraphEdges}
   | {source: Field, target: Field, label?: Field}
 GraphNodes := {from: InputOrStepName, id: Field, fields?: [Field, ...] | []}

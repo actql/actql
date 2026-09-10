@@ -116,6 +116,36 @@ budgets. Child predicate obligations are accessible through their typed expressi
 Graph materialization and selector evaluation require resolved resources.
 This implements static checking, not traversal, induction or publication proofs.
 
+## Path result contracts
+
+`check_path_contract` is the shared output builder for node traversal, path
+traversal and shortest paths. The pinned SGA identity law defines edge identity
+as the source/target/label tuple, so path output uses closed `{src,dst,rel}`
+records with typed endpoints and nullable labels, not string IDs or an assumed
+`edge_id` property. The new normative paragraph fixes that formerly unstated
+wire representation. Tuple comparison uses the law's component order, and
+incoming traversal does not reverse the identity record's endpoints.
+
+New arrays and records are budgeted; existing admitted scalar contracts are
+shared. The builder does not prove path existence, simple-path constraints,
+cardinality, ordering, weights or execution bounds. It is not yet a complete
+traversal checker or pipeline operation.
+
+`check_traverse` now composes that builder with shared start selectors and either
+homogeneous bounds or an ordered nonempty pattern. The closed modes are mutually
+exclusive. All source/predicate/output work shares one cumulative budget, including
+tokens across the selector and every edge/node predicate. A named start Relation
+is retained as a separate pipeline input. Guards preserve literal/Parameter
+forms; they do not establish actual output cardinality.
+
+The mode and empty-filter rules are now explicit in Language and the machine
+schema. Unlike the pinned reference decoder, no max_paths source option or
+default output ceiling is admitted. A present edge-type filter requires semantic
+label evidence even when empty; a mere property or closed domain is insufficient.
+Minimum node depth, simple paths, exact path deduplication, canonical order,
+binding checks and execution resources remain separate obligations. No evaluator
+or lowering is included.
+
 ## Bounded reach checking
 
 `check_reach` requires a typed explicit start, direction and positive finite

@@ -65,6 +65,7 @@ pub(all) enum IssueKind {
   UnknownMergeProperty(String)
   IncompatiblePropertyStrategy(String)
   ScopeCollision(String)
+  MissingEdgeLabel
   DuplicateMatchField(String)
   UnknownMatchField(String)
   UntypedMatchField(String)

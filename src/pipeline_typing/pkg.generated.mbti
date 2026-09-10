@@ -92,6 +92,7 @@ pub enum CheckedOperation {
   GraphMatch(@graph_typing.CheckedMatch)
   Reach(@graph_typing.CheckedReach)
   Subgraph(selector~ : Target?, checked~ : @graph_typing.CheckedSubgraph)
+  Traverse(selector~ : Target?, checked~ : @graph_typing.CheckedTraverse)
   GraphEquality(right~ : Target, checked~ : @graph_typing.CheckedEquality)
   GraphDiff(right~ : Target, checked~ : @graph_typing.CheckedDiff)
   GraphApply(right~ : Target, checked~ : @graph_typing.CheckedApply)

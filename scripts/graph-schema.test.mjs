@@ -6,6 +6,12 @@ import {parameterPrograms} from './parameter-schema.mjs';
 
 test('graph bodies preserve literal options and optional positive component guards', () => {
   const s = graphSchemas();
+  assert.equal(s.traverse.additionalProperties, false);
+  assert.deepEqual(s.traverse.required, ['start','emit']);
+  assert.equal(s.traverse.properties.hops.minItems, 1);
+  assert.equal(s.traverse.properties.hops.items.additionalProperties, false);
+  assert.equal(s.traverse.oneOf.length, 2);
+  assert.equal(s.traverse.properties.max_paths, undefined);
   assert.deepEqual(s.reach.required, ['start','direction','max_depth']);
   assert.equal(s.reach.additionalProperties, false);
   assert.deepEqual(s.reach.properties.max_depth, {type:'integer',minimum:1});

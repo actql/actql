@@ -25,6 +25,15 @@ export function graphSchemas() {
     merge:{type:'object',additionalProperties:false,properties:{node_properties:strategies,edge_properties:strategies}},
   }};
   return {
+    traverse:{type:'object',additionalProperties:false,required:['start','emit'],properties:{
+      start:selector,emit:{enum:['nodes','paths']},max_output_rows:positive,
+      direction:{enum:['in','out','both']},edge_types:{type:'array',items:field},
+      min_hops:{type:'integer',minimum:0},max_hops:{type:'integer',minimum:1},
+      hops:{type:'array',minItems:1,items:{type:'object',additionalProperties:false,required:['direction'],properties:{direction:{enum:['in','out','both']},edge_types:{type:'array',items:field},edge_where:predicate,node_where:predicate}}},
+    },oneOf:[
+      {required:['hops'],not:{anyOf:['direction','edge_types','min_hops','max_hops'].map(name => ({required:[name]}))}},
+      {required:['direction','min_hops','max_hops'],not:{required:['hops']}},
+    ]},
     reach:{type:'object',additionalProperties:false,required:['start','direction','max_depth'],properties:{start:{},direction:{enum:['in','out','both']},max_depth:{type:'integer',minimum:1}}},
     subgraph:{type:'object',additionalProperties:false,required:['nodes'],properties:{nodes:selector,edges:predicate}},
     match_nodes: {type:'object',additionalProperties:false,required:['fields'],

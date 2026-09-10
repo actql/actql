@@ -47,6 +47,8 @@ pub fn check_equality(@decode_core.Cursor, @carrier_contract.Carrier, @carrier_c
 
 pub fn check_match(EntityKind, @decode_core.Cursor, @carrier_contract.Carrier, @parameter_binding.Declarations?, PredicateLimits) -> Result[CheckedMatch, MatchIssue]
 
+pub fn check_path_contract(PathOutput, @decode_core.Cursor, @carrier_contract.Carrier, Limits) -> Result[CheckedPathContract, Issue]
+
 pub fn check_predicate(EntityKind, @decode_core.Cursor, @carrier_contract.Carrier, @parameter_binding.Declarations?, PredicateLimits) -> Result[CheckedPredicate, PredicateIssue]
 
 pub fn check_reach(@decode_core.Cursor, @carrier_contract.Carrier, Limits) -> Result[CheckedReach, MatchIssue]
@@ -58,6 +60,8 @@ pub fn check_selector(@decode_core.Cursor, @carrier_contract.Carrier, @carrier_c
 pub fn check_structural(StructuralOperation, @decode_core.Cursor, @carrier_contract.Carrier, @carrier_contract.Carrier, Limits) -> Result[CheckedStructural, Issue]
 
 pub fn check_subgraph(@decode_core.Cursor, @carrier_contract.Carrier, @carrier_contract.Carrier?, @parameter_binding.Declarations?, PredicateLimits) -> Result[CheckedSubgraph, MatchIssue]
+
+pub fn check_traverse(@decode_core.Cursor, @carrier_contract.Carrier, @carrier_contract.Carrier?, @parameter_binding.Declarations?, PredicateLimits) -> Result[CheckedTraverse, MatchIssue]
 
 pub fn construction_edges_name(CheckedConstruction) -> String?
 
@@ -99,6 +103,12 @@ pub fn equality_usage(CheckedEquality) -> Usage
 
 pub fn equality_with_name(CheckedEquality) -> String
 
+pub fn hop_direction(TraversalHop) -> Direction
+
+pub fn hop_predicate(TraversalHop, EntityKind) -> CheckedPredicate?
+
+pub fn hop_types(TraversalHop) -> Array[String]?
+
 pub fn input(CheckedGraph) -> @carrier_contract.Carrier
 
 pub fn match_diagnostic(MatchIssue, @decode_core.Cursor) -> MatchDiagnostic
@@ -124,6 +134,10 @@ pub fn operation(CheckedGraph) -> Operation
 pub fn options(CheckedGraph) -> Options
 
 pub fn output(CheckedGraph) -> @carrier_contract.Carrier
+
+pub fn path_output(CheckedPathContract) -> @carrier_contract.Carrier
+
+pub fn path_usage(CheckedPathContract) -> Usage
 
 pub fn pending_validations(CheckedGraph) -> Array[Obligation]
 
@@ -191,6 +205,26 @@ pub fn subgraph_source(CheckedSubgraph) -> @decode_core.Cursor
 
 pub fn subgraph_usage(CheckedSubgraph) -> PredicateUsage
 
+pub fn traverse_bounds(CheckedTraverse) -> (Double, Double)
+
+pub fn traverse_hop_at(CheckedTraverse, Int) -> TraversalHop?
+
+pub fn traverse_hop_count(CheckedTraverse) -> Int
+
+pub fn traverse_output(CheckedTraverse) -> @carrier_contract.Carrier
+
+pub fn traverse_output_guard(CheckedTraverse) -> Count?
+
+pub fn traverse_patterned(CheckedTraverse) -> Bool
+
+pub fn traverse_pending(CheckedTraverse) -> Array[TraverseObligation]
+
+pub fn traverse_source(CheckedTraverse) -> @decode_core.Cursor
+
+pub fn traverse_start(CheckedTraverse) -> CheckedSelector
+
+pub fn traverse_usage(CheckedTraverse) -> PredicateUsage
+
 pub fn usage(CheckedGraph) -> Usage
 
 // Errors
@@ -225,6 +259,8 @@ type CheckedGraph
 
 type CheckedMatch
 
+type CheckedPathContract
+
 type CheckedPredicate
 
 type CheckedReach
@@ -236,6 +272,8 @@ type CheckedSelector
 type CheckedStructural
 
 type CheckedSubgraph
+
+type CheckedTraverse
 
 pub(all) enum ComponentKind {
   Weak
@@ -323,6 +361,7 @@ pub(all) enum IssueKind {
   UnknownMergeProperty(String)
   IncompatiblePropertyStrategy(String)
   ScopeCollision(String)
+  MissingEdgeLabel
   DuplicateMatchField(String)
   UnknownMatchField(String)
   UntypedMatchField(String)
@@ -397,6 +436,12 @@ pub enum Options {
   ComponentOptions(ComponentKind, max_output_rows~ : Count?)
   BoundsOptions(max_nodes~ : Count?, max_edges~ : Count?, max_degree~ : Count?)
 }
+
+pub(all) enum PathOutput {
+  TraversedNodes
+  TraversedPaths
+  ShortestPaths
+} derive(Eq, @debug.Debug)
 
 pub enum PredicateIssue {
   InvalidPredicateLimits
@@ -483,6 +528,22 @@ pub(all) enum SubgraphObligation {
   PreserveSubgraphPolicyAndScope
   ResolveSubgraphResources
   ResolveSubgraphProfile
+} derive(Eq, @debug.Debug)
+
+type TraversalHop
+
+pub(all) enum TraverseObligation {
+  AdmitTraversalGraph
+  RespectTraversalHopBounds
+  EvaluateTraversalHopPredicates
+  EmitMinimumNodeDepth
+  EnumerateSimplePaths
+  DeduplicateExactPaths
+  CanonicalTraversalOrder
+  EnforceTraversalOutputGuard
+  BindTraversalOutputGuard(String)
+  ResolveTraversalResources
+  ResolveTraversalProfile
 } derive(Eq, @debug.Debug)
 
 pub(all) struct Usage {

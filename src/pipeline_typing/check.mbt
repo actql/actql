@@ -533,6 +533,7 @@ fn check_impl(
       | "match_edges"
       | "reach"
       | "subgraph"
+      | "traverse"
       | "graft_graph"
       | "union_graphs"
       | "subtract_graphs"
@@ -886,13 +887,31 @@ fn check_impl(
       current = Some(target)
       continue
     }
-    if key == "subgraph" {
+    if key == "subgraph" || key == "traverse" {
       let root = match
-        @decode.closed_object(operation_body, ["nodes", "edges"]) {
+        @decode.closed_object(
+          operation_body,
+          if key == "subgraph" {
+            ["nodes", "edges"]
+          } else {
+            [
+              "start", "hops", "direction", "edge_types", "min_hops", "max_hops",
+              "emit", "max_output_rows",
+            ]
+          },
+        ) {
         Ok(o) => o
         Err(_) => fail(operation_body, InvalidBody)
       }
-      let at = match @decode.required(root, "nodes") {
+      let at = match
+        @decode.required(
+          root,
+          if key == "subgraph" {
+            "nodes"
+          } else {
+            "start"
+          },
+        ) {
         Ok(c) => c
         Err(_) => fail(operation_body, InvalidBody)
       }
@@ -904,20 +923,43 @@ fn check_impl(
       let selector = @decode.lookup(selector_body, "from").map(at => {
         resolve_target(b, at, names)
       })
-      let checked = match
+      let caps : @graph.PredicateLimits = {
+        max_work: b.work,
+        max_nodes: b.nodes,
+        max_depth: limits.max_depth,
+        max_text_bytes: b.text,
+        max_tokens: b.tokens,
+      }
+      let checked = if key == "subgraph" {
         @graph.check_subgraph(
           operation_body,
           carrier(input, inputs, steps),
           selector.map(t => carrier(t, inputs, steps)),
           parameters,
-          {
-            max_work: b.work,
-            max_nodes: b.nodes,
-            max_depth: limits.max_depth,
-            max_text_bytes: b.text,
-            max_tokens: b.tokens,
-          },
-        ) {
+          caps,
+        ).map(c => {
+          (
+            Subgraph(selector~, checked=c),
+            @graph.subgraph_output(c),
+            @graph.subgraph_usage(c),
+          )
+        })
+      } else {
+        @graph.check_traverse(
+          operation_body,
+          carrier(input, inputs, steps),
+          selector.map(t => carrier(t, inputs, steps)),
+          parameters,
+          caps,
+        ).map(c => {
+          (
+            Traverse(selector~, checked=c),
+            @graph.traverse_output(c),
+            @graph.traverse_usage(c),
+          )
+        })
+      }
+      let (operation, output, used) = match checked {
         Ok(c) => c
         Err(e) => {
           let d = @graph.match_diagnostic(e, operation_body)
@@ -930,7 +972,6 @@ fn check_impl(
           })
         }
       }
-      let used = @graph.subgraph_usage(checked)
       b.work -= used.work
       b.nodes -= used.nodes
       b.text -= used.text_bytes
@@ -945,8 +986,8 @@ fn check_impl(
         input: Some(input),
         binding_name,
         metadata: meta,
-        operation: Subgraph(selector~, checked~),
-        output: @graph.subgraph_output(checked),
+        operation,
+        output,
         connections: { entries, },
         window: None,
       })
@@ -1572,7 +1613,7 @@ fn check_impl(
           }
         Values(_) | TimeSeries(_) => []
         Calendar(_) => [{ role: Primary, target: input, }]
-        Subgraph(selector~, ..) => {
+        Subgraph(selector~, ..) | Traverse(selector~, ..) => {
           let entries = [{ role: Primary, target: input, }]
           if selector is Some(t) {
             entries.push({ role: Right, target: t, })
