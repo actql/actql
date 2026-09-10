@@ -1,0 +1,119 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/carrier_contract"
+
+import {
+  "actql/actql/relation_schema",
+  "actql/actql/value_contract",
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn complete_schema(Knowledge) -> @relation_schema.Schema?
+
+pub fn events(Knowledge, id~ : @relation_schema.FieldName, time~ : @relation_schema.FieldName) -> Result[Carrier, Issue]
+
+pub fn field_at(Knowledge, Int) -> Field?
+
+pub fn field_count(Knowledge) -> Int
+
+pub fn field_set(Knowledge) -> FieldSet
+
+pub fn fields(Knowledge) -> Array[Field]
+
+pub fn graph(@value_contract.Contract, Knowledge, Knowledge, labels~ : Array[String]?, max_labels~ : Int, max_label_bytes~ : Int) -> Result[Carrier, Issue]
+
+pub fn graph_edge_properties(Graph) -> Knowledge
+
+pub fn graph_identity(Graph) -> @value_contract.Contract
+
+pub fn graph_labels(Graph) -> Array[String]?
+
+pub fn graph_node_properties(Graph) -> Knowledge
+
+pub fn kind(Carrier) -> Kind
+
+pub fn lookup(Knowledge, @relation_schema.FieldName) -> Lookup
+
+pub fn relation(Knowledge) -> Carrier
+
+pub fn relation_rows(Carrier) -> Knowledge?
+
+pub fn rows(Array[(@relation_schema.FieldName, @value_contract.Contract?)], field_set~ : FieldSet, max_fields~ : Int, max_name_bytes~ : Int) -> Result[Knowledge, @relation_schema.Issue]
+
+pub fn typed_rows(@relation_schema.Schema) -> Knowledge
+
+pub fn unknown_carrier(Kind) -> Carrier
+
+pub fn unknown_rows() -> Knowledge
+
+pub fn vector_components(Vectors) -> Field
+
+pub fn vector_dimensions(Vectors) -> Double
+
+pub fn vector_identities(Vectors) -> Array[Field]
+
+pub fn vector_records(Vectors) -> Knowledge
+
+pub fn vectors(Knowledge, ids~ : Array[@relation_schema.FieldName], components~ : @relation_schema.FieldName, max_identity_fields~ : Int) -> Result[Carrier, Issue]
+
+// Errors
+
+// Types and methods
+pub enum Carrier {
+  Relation(Knowledge)
+  GraphValue(Graph)
+  EventValue(Events)
+  VectorValue(Vectors)
+  Opaque(Kind)
+}
+
+pub struct Events {
+  records : Knowledge
+  identity : Field
+  time : Field
+}
+
+pub struct Field {
+  name : @relation_schema.FieldName
+  contract : @value_contract.Contract?
+}
+
+pub(all) enum FieldSet {
+  Open
+  Closed
+} derive(Eq, @debug.Debug)
+
+type Graph
+
+pub(all) enum Issue {
+  InvalidLimits
+  LimitExceeded
+  UnknownRole(@relation_schema.FieldName)
+  InvalidRole(@relation_schema.FieldName)
+  DuplicateRole(@relation_schema.FieldName)
+  InvalidIdentity
+  InvalidProperties
+  InvalidLabel(String)
+  DuplicateLabel(String)
+} derive(Eq, @debug.Debug)
+
+pub(all) enum Kind {
+  RelationKind
+  GraphKind
+  EventsKind
+  VectorsKind
+} derive(Eq, @debug.Debug)
+
+type Knowledge
+
+pub enum Lookup {
+  Unknown
+  Absent
+  Present(Field)
+}
+
+type Vectors
+
+// Type aliases
+
+// Traits
