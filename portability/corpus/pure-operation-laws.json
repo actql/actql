@@ -1,0 +1,52 @@
+{
+  "version": "actql-pure-operation-law-vectors/0.1",
+  "status": "specification-only",
+  "vectors": [
+    {"name":"dot dimension fold", "op":"dot", "a":[16777216,1,-16777216], "b":[1,1,1], "expected":1},
+    {"name":"f32 input quantization", "op":"dot", "a":[16777217], "b":[1], "expected":16777216},
+    {"name":"orthogonal cosine", "op":"cosine", "a":[1,0], "b":[0,1], "expected":0},
+    {"name":"zero cosine", "op":"cosine", "a":[0,0], "b":[3,4], "expected":0},
+    {"name":"opposite cosine", "op":"cosine", "a":[1,0], "b":[-1,0], "expected":-1},
+    {"name":"negative L2", "op":"l2", "a":[0,0], "b":[3,4], "expected":-5},
+    {"name":"equal L2 positive zero", "op":"l2", "a":[3,4], "b":[3,4], "expected":0},
+    {"name":"final f32 normalization", "op":"normalize", "a":[3,4], "expected":[0.6000000238418579,0.800000011920929]},
+    {"name":"zero normalization rejects", "op":"normalize", "a":[0,0], "error":"ZeroNorm"},
+    {"name":"quantized zero normalization rejects", "op":"normalize", "a":[1e-50], "error":"ZeroNorm"},
+    {"name":"quantization overflow rejects", "op":"dot", "a":[3.5e38], "b":[1], "error":"NonFinite"},
+    {"name":"no arbitrary score ceiling", "op":"dot", "a":[1048576], "b":[1048576], "expected":1099511627776},
+    {"name":"pool binary64 accumulation", "op":"pool_sum", "members":[{"id":"a","value":[16777216]},{"id":"c","value":[-16777216]},{"id":"b","value":[1]}], "expected":[1]},
+    {"name":"pool mean divides after fold", "op":"pool_mean", "members":[{"id":"a","value":[16777216]},{"id":"b","value":[1]},{"id":"c","value":[-16777216]}], "expected":[0.3333333432674408]},
+    {"name":"pool max all negative", "op":"pool_max", "members":[{"id":"a","value":[-3]},{"id":"b","value":[-2]}], "expected":[-2]}
+  ],
+  "rankings": [
+    {"name":"one-sided weighted range", "op":"weighted_sum", "scores":[1,null], "weights":[0.5,0.5], "expected":0.5},
+    {"name":"missing side does not beat negative score", "op":"max", "scores":[-2,null], "expected":-2},
+    {"name":"weighted both present", "op":"weighted_sum", "scores":[2,4], "weights":[0.5,0.5], "expected":3},
+    {"name":"zero-weight candidate retains zero contribution", "op":"weighted_sum", "scores":[5,null], "weights":[0,1], "expected":0}
+  ],
+  "windows": [
+    {"name":"fixed shifted window", "kind":"fixed", "time":999, "size":1000, "offset":250, "expected":[[250,1250]]},
+    {"name":"explicit zero window", "kind":"fixed", "time":0, "size":1000, "offset":0, "expected":[[0,1000]]},
+    {"name":"negative offset window", "kind":"fixed", "time":0, "size":1000, "offset":-250, "expected":[[-250,750]]},
+    {"name":"sliding shifted memberships", "kind":"sliding", "time":1000, "size":1000, "step":500, "offset":250, "expected":[[250,1250],[750,1750]]},
+    {"name":"window excludes right endpoint", "kind":"sliding", "time":1250, "size":1000, "step":500, "offset":250, "expected":[[750,1750],[1250,2250]]}
+  ],
+  "watermarks": [
+    {"name":"prefix not whole maximum", "times":[0,100,50,90], "max_skew":10, "policy":"mark", "expected":[[-10,false,"keep"],[90,false,"keep"],[90,true,"mark"],[90,false,"keep"]]},
+    {"name":"drop late rows", "times":[0,100,50,90], "max_skew":10, "policy":"drop", "expected":[[-10,false,"keep"],[90,false,"keep"],[90,false,"keep"]]},
+    {"name":"empty watermark", "times":[], "max_skew":10, "policy":"mark", "expected":[]}
+  ],
+  "graphs": [
+    {"name":"union sum applies to equal values", "op":"union", "left":{"a":{"score":2}}, "right":{"a":{"score":2}}, "merge":{"score":"number_sum"}, "expected":{"a":{"score":4}}},
+    {"name":"ordinary subtraction removes equal entity", "op":"subtract", "left":{"a":{"score":2}}, "right":{"a":{"score":2}}, "merge":{}, "expected":{}},
+    {"name":"subtraction explicit sum retains transformed entity", "op":"subtract", "left":{"a":{"score":2}}, "right":{"a":{"score":2}}, "merge":{"score":"number_sum"}, "expected":{"a":{"score":4}}},
+    {"name":"explicit equal retains entity", "op":"subtract", "left":{"a":{"score":2}}, "right":{"a":{"score":2}}, "merge":{"score":"exact_equal"}, "expected":{"a":{"score":2}}},
+    {"name":"empty residual does not remove entity", "op":"subtract", "left":{"a":{"tags":["x"]}}, "right":{"a":{"tags":["x"]}}, "merge":{"tags":"set_difference"}, "expected":{"a":{"tags":[]}}},
+    {"name":"one-sided entity is not null operand", "op":"union", "left":{"a":{"score":null}}, "right":{}, "merge":{"score":"number_sum"}, "expected":{"a":{"score":null}}},
+    {"name":"null numeric operands reject", "op":"union", "left":{"a":{"score":null}}, "right":{"a":{"score":null}}, "merge":{"score":"number_sum"}, "error":"NullOperand"},
+    {"name":"unconfigured subtraction conflict rejects", "op":"subtract", "left":{"a":{"score":2}}, "right":{"a":{"score":3}}, "merge":{}, "error":"Conflict"}
+  ],
+  "endpoint_closure": [
+    {"name":"deleted node is not resurrected", "retained_nodes":["a"], "remaining_edges":[["a","b"],["a","a"]], "expected":[["a","a"]]}
+  ]
+}

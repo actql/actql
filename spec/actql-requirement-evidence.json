@@ -2896,6 +2896,28 @@
       }
     },
     {
+      "requirement_id": "actql.language/relational-temporal.watermark-source-and-output",
+      "statement_sha256": "0d2e82358e3ce9a206ace38df80db74c88d7612d88016be99d35701cde59dc5b",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "relational-temporal",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/relational-temporal.window-role-evidence",
+      "statement_sha256": "666d0337d90ddeb455c1147609f78723f7b6f5d66d6227a5705909ed6c72da64",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "relational-temporal",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.language/reshaping.json-pick-accepts-a-non-empty-path-of-object-keys-and-must",
       "statement_sha256": "3e097ea660a8607ba3fa7b735146b67d6cb69d044988214663a414e570750196",
       "status": "pending",
@@ -3325,6 +3347,17 @@
       }
     },
     {
+      "requirement_id": "actql.language/event-windows.offset-grid",
+      "statement_sha256": "b02bad021b4abf39293962a74a907dcdfb536bb46e96016cac9bff47f6066e6d",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "event-windows",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.language/event-windows.session-has-a-distinct-shape-in-and-must-not-be",
       "statement_sha256": "4bc8f086bcf2d3f48646327edb04c95b7a2476228329577761507ae5620895a4",
       "status": "pending",
@@ -3470,6 +3503,17 @@
     {
       "requirement_id": "actql.language/sequence.pattern-as-labels-must-be-non-empty-and-unique",
       "statement_sha256": "96a448b5a08ff608d0b276fd3fb4112466d1c1885eb1f68c3ee8e639bd1a99f4",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "sequence",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/sequence.generated-output-contract",
+      "statement_sha256": "6d18531fe6ebffcba0c6e7835526166d4c62e8951058e5dfaea703526418c827",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
@@ -3732,6 +3776,28 @@
       }
     },
     {
+      "requirement_id": "actql.language/structural-graphs.property-contracts-and-strategies",
+      "statement_sha256": "33eebbbd7638c218c8f8abe0046d797e56a5975684d620958bf51ac2c2b6dfff",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "structural-graphs",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/structural-graphs.subtraction-entity-and-property-laws",
+      "statement_sha256": "dc94a7f2294ef13ac7677ac283ac9c86843c973e6f10eb8aae9ad7cda095cc63",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "structural-graphs",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.language/structural-graphs.a-breach-must-fail-the-whole-operation-without-publishing-a",
       "statement_sha256": "c82b09547c0ff88a9649ee912756afd4928d470b473ead9c95a1e72dad6d01da",
       "status": "pending",
@@ -3919,6 +3985,28 @@
       }
     },
     {
+      "requirement_id": "actql.language/vector-operations.ordered-numeric-law",
+      "statement_sha256": "69e413e881ebb082d5e9cb4f27c9ca1fd5645c1cdd2eaf6e861774348fc6d275",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "vector-arithmetic",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/vector-operations.rounding-and-zero-boundaries",
+      "statement_sha256": "eb7998b9c26ab5537c33fd53828ade04ed2d8022a53b1432f2ce6455b4088339",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "vector-arithmetic",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.language/pool-vectors.actql-source-does-not-expose-a-separate-relation-pooling-carrier-id",
       "statement_sha256": "514a7018bb7b3d03824fd86eea69f1bd0174b5a1b8708dac65d702cb3e6b2a60",
       "status": "pending",
@@ -3976,6 +4064,17 @@
     {
       "requirement_id": "actql.language/merge-rankings.an-explicit-identical-score-contract-is-required-for-both-ranking-semantics",
       "statement_sha256": "d04a01c1c80f0dfad9c63dac18534d91b873a9a696271ef3075e36aa9cf67b70",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "merge-rankings",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/merge-rankings.common-input-uniqueness-and-output",
+      "statement_sha256": "f5979fc59d6947af07fcd77f379766f7801675393fa4e67054fea6652ae84256",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
@@ -5702,7 +5801,7 @@
     },
     {
       "requirement_id": "actql.language/machine-contracts.exact-artifacts",
-      "statement_sha256": "407433ec25c7c18a7a1731f5cf12eb794bb0836b5292ec0a934d85db4ab3d724",
+      "statement_sha256": "00d8f9508fa168bad7dd7ab194e64584a668b0488c62fb71972db3713cb41351",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",

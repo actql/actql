@@ -1,0 +1,20 @@
+{
+  "manifest_version": "aoa-sga-structural-laws/0.1",
+  "law_id": "aoa.sga.structural-fields.v0.1",
+  "contracts": "Node and edge property field sets must respectively agree with compatible recursive domains. Join nullability and extents without implicit missing-property completion. Empty graphs retain their contracts.",
+  "input": "Every present entity record contains every declared property; a missing entity is not a record with missing properties.",
+  "strategies": {
+    "exact_equal": "Require typed equality, including null/null, and return the value.",
+    "number_sum": "Add two finite number values, including when equal.",
+    "number_mean": "Compute the binary pairwise average of two finite number values, not a multi-sample global mean.",
+    "number_min": "Return the minimum of two finite number values.",
+    "number_max": "Return the maximum of two finite number values.",
+    "set_union": "Return the union of typed-value equality classes of two arrays in canonical typed-value order.",
+    "set_difference": "Return left typed-value equality classes absent from the right array in canonical typed-value order."
+  },
+  "null": "Nullable numeric/array property domains may be checked, but an actual null operand fails before publication when its strategy is applied. No zero or empty-array substitution. Nullable item values remain legal set members.",
+  "union": "Keep complete one-sided entities unchanged. For shared identities apply every explicit property strategy even to equal values; unlisted properties require typed equality.",
+  "subtraction": "Keep left-only entities; ignore right-only entities. For shared identities with no nonempty strategy map for the entity kind, remove equal complete payloads and fail on conflict. With a nonempty map, apply named strategies and equality for unlisted properties, retaining the transformed entity even if unchanged or all values are zero/empty. Strategy names retain their union meaning, including number_sum as addition. Node and edge maps are independent.",
+  "endpoint_closure": "After subtraction remove remaining edges whose endpoints are absent from retained nodes; never resurrect deleted nodes. This does not alter apply_graph_delta admission.",
+  "conditional_laws": "Union idempotence and subtraction self-annihilation are not unconditional under explicit field strategies. No strategy map gives ordinary exact-payload removal for subtract(g,g); an explicit sum map gives transformed retained entities."
+}

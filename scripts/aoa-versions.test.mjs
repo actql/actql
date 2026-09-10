@@ -16,7 +16,7 @@ test('legacy contract and law versions are rejected while external versions are 
 });
 
 test('missing manifests and modified preimages cannot keep their old pins', () => {
-  for (const key of ['kernel', 'pipeline', 'scalar', 'primitive']) {
+  for (const key of ['kernel', 'pipeline', 'scalar', 'primitive', 'vector', 'graph']) {
     const missing = loadDependencies();
     delete missing.bodies[key];
     assert.throws(() => checkDependencies(missing));

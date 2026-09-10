@@ -42,7 +42,7 @@
     "check:nest": "node scripts/check-nest-reference.mjs",
     "generate:nest": "node scripts/check-nest-reference.mjs --write",
     "check:contracts": "node scripts/check-actql-spec-family.mjs && npm run check:aoa",
-    "check:aoa": "node scripts/check-aoa-versions.mjs && node --test scripts/aoa-versions.test.mjs",
+    "check:aoa": "node scripts/check-aoa-versions.mjs && node --test scripts/aoa-versions.test.mjs scripts/pure-operation-laws.test.mjs",
     "check:links": "node scripts/check-document-links.mjs",
     "check:examples": "node scripts/check-document-examples.mjs",
     "test:docs": "node --test scripts/document-validation.test.mjs",

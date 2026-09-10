@@ -3454,6 +3454,35 @@ no unresolved tie. The output name is written as `output`. `watermark_rows` lowe
 explicit `late_policy` of `drop` or `mark`, and either a finite `watermark_ms`
 or positive `max_skew`.
 
+<!-- requirement-block: relational-temporal.watermark-source-and-output -->
+`watermark_rows` MUST specify exactly one of `watermark_ms` and `max_skew`;
+neither omission of both nor precedence between two supplied sources is admitted.
+It adds fresh non-null fields `watermark_ms: number`, `watermark_late: boolean`
+and `watermark_decision: string`. Any collision with an input field fails check.
+For `max_skew`, the threshold at input occurrence i is the maximum time over
+occurrences 0 through i inclusive, minus the resolved skew. This is an
+unpartitioned prefix in the proven logical input order, not a maximum over
+the complete Relation or a provider-arrival-order completion. Such order
+evidence is required for the prefix path. A row is late exactly when its time
+is strictly less than its threshold; equality is not late. `mark` preserves
+every row, using decision `mark` for late rows and `keep` otherwise. `drop`
+removes late rows and emits `keep` for retained rows. Empty input has the same
+output contract and no threshold observation. Non-finite threshold arithmetic
+fails before publication; invalid time rows cannot be silently discarded or
+emitted with missing generated fields.
+
+<!-- requirement-block: relational-temporal.window-role-evidence -->
+`window_group` MUST have checked window-boundary role evidence, introduced by
+`row_window` or an admitted already-windowed input contract. Coincidentally
+named fields are insufficient. The evidence identifies the two boundary
+fields and their interval law separately from ordinary field-type knowledge.
+Value-preserving filters retain it; removing or overwriting a boundary
+invalidates it. A name-changing projection may transfer the roles only by
+its explicit, value-preserving field mapping. Required evidence must resolve
+before window-group checking is complete; this rule grants no new runtime
+deferral. Window keys are prepended exactly once to the ordinary group keys;
+the shared empty-group and repeated-key laws remain unchanged.
+
 <a id="reshaping"></a>
 
 #### Reshaping and nested data
@@ -4078,6 +4107,19 @@ REQUIRED and MUST be `fixed` or `sliding`. `size` is REQUIRED and accepts a
 positive integer millisecond value or a duration string using `ms`, `s`, `m`,
 `h`, or `d`. Sliding windows additionally require `step`.
 
+<!-- requirement-block: event-windows.offset-grid -->
+Both `row_window` and `window_events` MUST admit `offset`. It is a
+signed safe-integer millisecond value, a positive duration token under the
+common lexical rule, or a whole Parameter reference to a compatible number
+or duration declaration. Numeric values and bound numeric Parameters must be
+safe integers. Omission inserts numeric zero; explicit zero is valid.
+Fixed-window starts are `offset + n * size`, and sliding-window starts are
+`offset + n * step`, for integer n. A window contains t exactly when
+`start <= t < start + size`; emitted memberships are in ascending start order.
+Checked arithmetic must not saturate or wrap. `offset` is not reduced modulo
+size or step for canonical identity. In particular, a supplied sliding offset
+must not be ignored by a lowerer or evaluator.
+
 `row_window` preserves relation fields and adds `window_start` and
 `window_end`. It lowers directly:
 
@@ -4332,7 +4374,7 @@ field name or input order.
     contiguity: subsequence
 ```
 
-<!-- requirement-block: sequence.the-key-event-time-event-identity-at-least-two-pattern sequence.pattern-as-labels-must-be-non-empty-and-unique sequence.a-breach-of-either-limit-must-fail-the-whole-operation -->
+<!-- requirement-block: sequence.the-key-event-time-event-identity-at-least-two-pattern sequence.pattern-as-labels-must-be-non-empty-and-unique -->
 The key, event time, event identity, at least two pattern elements, positive
 `within`, explicit `overlap: allow|disallow`, and explicit
 `contiguity: adjacent|subsequence` are REQUIRED. `adjacent` permits no
@@ -4351,6 +4393,17 @@ Output is a stable relation containing the key, match start/end, and the
 authored label's `{label}_id` and `{label}_time_ms` for each pattern element.
 It does not copy arbitrary event payload fields into the match relation. No
 unbounded automaton or processing-time interpretation is permitted.
+
+<!-- requirement-block: sequence.generated-output-contract -->
+The match boundary fields MUST be exactly `match_start_ms` and `match_end_ms`,
+both non-null numbers in UTC milliseconds. Each `{label}_id` retains the
+complete non-null semantic event-identity contract, and each
+`{label}_time_ms` is a non-null numeric millisecond value. Group fields retain
+their contracts and appear once for each distinct authored grouping field.
+All generated names must be distinct from one another and the retained group
+fields. Collisions fail check, not overwrite or implicit renaming. Empty
+results retain this complete contract.
+<!-- requirement-block: sequence.a-breach-of-either-limit-must-fail-the-whole-operation -->
 `max_matches_per_key` and `max_output_rows` are author guards as defined in
 [Author guards, resolved limits, and Plan facts](#resolved-limits). They count matches for one key and total output matches respectively.
 Both limits use current Host policy and any authored guards; this specification
@@ -4483,11 +4536,15 @@ edge-label evidence. The compiler MUST NOT reinterpret an arbitrary retained
 property as an edge label.
 
 <!-- requirement-block: graph-construction.external-opaque-graphs-without-that-evidence-may-be-normalized-or -->
-Every graph carrier binds a complete node-property schema, edge-property
+Every typed graph carrier binds a complete node-property schema, edge-property
 schema, node identity, edge identity rule, and optional closed label/type
 evidence. External opaque graphs without that evidence may be normalized or
 projected, but property predicates MUST fail check because their fields cannot
-be proven.
+be proven. Normalization preserves the opaque evidence level. Projection
+retains only the field and type evidence actually known, including unknown or
+columns-only Relation evidence where appropriate; it does not replace unknown
+properties with an empty closed schema or invented `json` contracts. Later
+consumers and Result publication retain their ordinary proof requirements.
 
 For a plain edge-list relation, the shorter form is deterministic:
 
@@ -4751,6 +4808,53 @@ authored structural merge policy must name every non-failing property
 strategy; no last-write or provider-order precedence exists.
 Subtraction is identity-based and conflicting payload evidence fails unless the
 authored merge contract explicitly admits the structural difference.
+
+<!-- requirement-block: structural-graphs.property-contracts-and-strategies -->
+Structural union and subtraction MUST require the same node-property and edge-property
+field sets respectively, with compatible recursive value domains. The common
+type rules join nullability and extents; missing properties are not filled with
+null. A present record must contain every declared property even when nullable.
+Empty graphs retain those contracts and do not bypass compatibility checking.
+An entity present only on one side is distinct from a missing property in a
+present entity: union keeps its complete record without applying a binary
+property strategy, while subtraction keeps only left-only entities.
+
+On a shared identity, an explicitly named strategy applies even when its two
+values are equal. `exact_equal` requires typed value equality and returns that
+value; a property without a strategy has the same equality requirement.
+`number_sum`, `number_mean`, `number_min` and `number_max` require two finite
+number values and compute addition, binary pairwise average, minimum and maximum
+respectively. `set_union` and `set_difference` require arrays with compatible
+item domains and compute canonical typed-value set union and left difference.
+Nullable property contracts may reach these strategies, but an actual null
+numeric or array operand fails before result publication: null is never zero
+or an empty array. Null array elements are ordinary members when their item
+contract admits null. Set results contain one representative per typed equality
+class in canonical typed-value order. Output contracts must cover both shared
+identity results and untouched one-sided records; no non-null or size proof
+may be inferred from the strategy alone for those untouched records.
+
+<!-- requirement-block: structural-graphs.subtraction-entity-and-property-laws -->
+Subtraction MUST treat the node and edge strategy maps independently. For a shared
+identity with no nonempty strategy map for its entity kind, equal complete
+payloads remove the entity and a payload conflict fails. With a nonempty map,
+apply its property strategies and the equality requirement for unlisted
+properties, then retain the transformed entity. An explicit `exact_equal`
+entry is a strategy, not an entity-removal instruction. A zero, empty array,
+or unchanged transformed payload never implicitly deletes its entity.
+Strategy names keep their meaning in both operations: `number_sum` remains
+addition in subtraction, not a context-dependent spelling for subtraction.
+After node subtraction, remove every remaining edge whose endpoint is absent
+from the retained node set. This induced endpoint closure never resurrects a
+deleted node. It is specific to subtraction and does not change the exact
+endpoint/admission rules of `apply_graph_delta`.
+
+Thus union is not unconditionally idempotent under explicit non-idempotent
+strategies, and subtraction is not unconditionally self-annihilating under
+explicit transformation maps. In particular a shared value 2 under
+`number_sum` becomes 4, including when subtracting a graph from itself with
+that strategy. Unconditional versions of those algebra laws cannot justify
+an optimization or be retained as the admitted law for these operations.
 
 `graph_diff` returns exactly one relation row with field `delta`. That result
 has the checked Delta contract defined in [Graph equality and Delta](#graph-equality-and-delta),
@@ -5024,6 +5128,44 @@ their usual higher-is-better orientation. The canonical `l2` score is
 **negative Euclidean distance**, so zero is best and all three metrics share
 descending ranking order.
 
+<a id="vector-arithmetic"></a>
+
+#### Deterministic vector arithmetic
+
+<!-- requirement-block: vector-operations.ordered-numeric-law -->
+The pinned [VecA numeric law](../../spec/dependencies/aoa-veca-numeric-laws.json)
+fixes the arithmetic shared by row-local vector expressions and Carrier
+operations. Let R round each individual operation to binary64, nearest
+ties-to-even, and Q round to binary32, nearest ties-to-even, represented
+exactly in binary64. Admit finite input components through Q before use and
+reject non-finite quantized values. Every arithmetic intermediate and output
+must be finite. Neither an arbitrary magnitude ceiling nor Decimal128
+arithmetic is implied by the finite binary64 score contract.
+
+| Operation | Arithmetic after component admission |
+| --- | --- |
+| dot | Starting at +0, fold `R(sum + R(a[i] * b[i]))` in increasing dimension order. |
+| cosine | Compute dot and each squared-norm fold separately in dimension order. If either norm-squared is zero, return +0; otherwise return `R(dot / R(R(sqrt(left_squared)) * R(sqrt(right_squared))))`. |
+| negative L2 | For each dimension compute `d = R(a[i] - b[i])`; fold `R(sum + R(d*d))` from +0; return `-R(sqrt(sum))`. |
+| normalize | Fold squared norm identically, compute `n = R(sqrt(sum))`, reject n=0, then emit each `Q(R(a[i]/n))`. |
+| pool sum | For each dimension fold `R(sum + component)` from +0 in ascending semantic member-identity order, then emit Q(sum). |
+| pool mean | Use the same sum; divide once by member count with R, then emit Q. No incremental mean. |
+| pool max | Take the maximum admitted component among the nonempty group's members. No infinite sentinel is an admitted operand. |
+| weighted ranking merge | Substitute +0 for a missing score; compute `R(R(left_weight * left_score) + R(right_weight * right_score))`. |
+
+<!-- requirement-block: vector-operations.rounding-and-zero-boundaries -->
+Square roots MUST be correctly rounded binary64 operations. Fused multiply-add,
+reassociation, pairwise reduction, intermediate f32 accumulation and score
+clamping cannot replace the prescribed tree. In particular rounded cosine
+scores are not silently clamped to [-1,1]. All emitted zero scores and vector
+components are canonical positive zero; internal arithmetic retains IEEE
+signed-zero behavior. A nonzero source vector quantized entirely to zero is
+a zero vector for scoring and normalization. Zero vectors are valid results
+of pooling, but cannot be L2-normalized. Vector-valued output components use
+the final f32 conversion; scores remain binary64. Empty grouped inputs create
+no groups and no artificial zero-member pooled vector. These laws and their
+independent fixed vectors must be pinned before an executable profile claim.
+
 <a id="vector-bridges"></a>
 
 #### Vector-set-preserving operations and explicit bridges
@@ -5106,8 +5248,14 @@ group fields, optional `output_id`, pooled vector, and exact positive
 Both inputs are relation rankings with complete typed schemas. `by`,
 `candidate`, `score`, `score_policy: max|{weighted_sum:{left,right}}`, and
 positive `k` are REQUIRED. Weighted-sum weights MUST be finite, non-negative,
-and sum exactly to one under the numeric contract. This convex combination
-preserves the declared input score range. Raw sum is not an ActQL 0.1 policy.
+and sum exactly to one under the numeric contract. A candidate missing from
+one input contributes positive zero for that input; weights are not
+renormalized over the inputs containing that candidate. Output score bounds
+must therefore include one-sided participation and the prescribed rounding;
+they are not automatically the declared input score range. For example an
+input range [1,2] and equal weights can emit 0.5 for a candidate whose only
+score is 1. `max` takes the maximum of present scores only, not the maximum
+with an invented zero for an absent side. Raw sum is not an ActQL 0.1 policy.
 An explicit identical `score_contract` is REQUIRED for both ranking semantics:
 it binds domain, finite range, and normalization identity. Higher scores are
 better in ActQL 0.1 and the checked Plan records that fixed law.
@@ -5119,6 +5267,23 @@ the declared score policy, then ordered by score descending and the authored
 tie-break ascending; only the first `k` per query remain. Query groups are
 ordered canonically. This operation lowers to exact VecA ranking composition
 plus RelA projection; host-language list merging is not conforming.
+
+<!-- requirement-block: merge-rankings.common-input-uniqueness-and-output -->
+Every policy MUST require at most one row per query-key/candidate tuple within
+each individual ranking input. Validate complete inputs before fusion or
+truncation; duplicate rows fail rather than overwrite, collapse or supply an
+implicit within-list score aggregation. Repeated references to the same
+ranking in an RRF input list remain separate weighted input occurrences.
+For max and weighted_sum, output consists only of the by fields, candidate
+field, non-null number `score`, and fresh non-null positive safe-integer `rank`.
+Business tie-break fields influence ordering but do not implicitly copy a
+representative payload into the output. When the same query/candidate occurs
+in both inputs, corresponding business tie-break values must agree under
+typed equality; disagreement fails before publication. A candidate present
+only on one side uses that side's tie-break values. Hidden row identities,
+input order and maximum-score representative selection do not resolve a
+tie-break-value conflict. Additional business payload is obtained by an
+explicit subsequent join.
 
 The preceding score-contract requirement applies to max and weighted_sum,
 not to reciprocal-rank fusion. RRF uses the same current ranking Relation and
@@ -7236,7 +7401,7 @@ through the pinned expression contract.
 <!-- requirement-block: machine-contracts.exact-artifacts -->
 <!-- normative-code: law -->
 ```text
-../../spec/contracts/actql-aoa.json# sha256:beab1b266fad54726bfb9e84ab45e56a5ba94cfc8032cb1e38aa32ba841793cc
+../../spec/contracts/actql-aoa.json# sha256:aa986e2b57475508a4dbe28daed9293fa291a26bd54ec56c078e3a29fd83cbe1
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/resource_ref sha256:f88141c15be5ac040af593008fdca7c85214fcb4ba60ea7110160b8fe8ee25ac
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/artifact_ref sha256:2143a7c6bd2e0b110822670a3cb146cddaa23bcade9de7c1ab8ed4e1ebf88a55
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/author_value_contract sha256:ad31b593c607142e6fce65b15ca12531c46d61f3bcf8cc55f34eef1b4dca6b6e

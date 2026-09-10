@@ -228,3 +228,9 @@ update specification pins merely to match implementation output.
 Remaining independent corpora are still implementation inputs to supply.
 README operation excerpts need typed fixture contexts before
 compiler conformance checks; parsing complete Programs does not validate excerpts.
+
+The [pure operation checking scope](design/pure-operation-checking.md) lists
+the remaining 48 operations, shared Carrier/evidence work and completion gates.
+`check:aoa` also checks fixed pure-operation law examples with independent small
+oracles. Those examples and their law pins are specification checks, not proof
+that the product executes graph, vector or temporal profiles.

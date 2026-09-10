@@ -63,6 +63,8 @@ The exact adopted law manifests are available locally:
 - [Pipeline laws](../../spec/dependencies/aoa-pipeline-laws.json)
 - [RelA scalar laws](../../spec/dependencies/aoa-rela-scalar-laws.json)
 - [RelA primitive laws](../../spec/dependencies/aoa-rela-primitive-laws.json)
+- [VecA numeric laws](../../spec/dependencies/aoa-veca-numeric-laws.json)
+- [SGA structural laws](../../spec/dependencies/aoa-sga-structural-laws.json)
 
 Their complete canonical JSON bodies hash to the corresponding pins in
 [the AoA contract](../../spec/contracts/actql-aoa.json). Version and law-ID strings
@@ -90,7 +92,7 @@ History rewrites require explicit approval; they are not a routine version
 update mechanism. Keep recoverable history and coordinate any remote rewrite
 separately.
 
-`check:aoa` verifies all four manifest pins, the selected version conventions
+`check:aoa` verifies all six manifest pins, the selected version conventions
 throughout source/specification/tooling/fixtures, and the declared Effect law's
 membership in the pipeline manifest. Its regression tests reject stale pins,
 renamed or missing law bodies, and legacy version strings. The check is part

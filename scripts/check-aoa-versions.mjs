@@ -10,6 +10,8 @@ const manifests = [
   ['pipeline', 'aoa-pipeline-laws', 'pipeline_law_manifest_cid', 'aoa-pipeline-laws/0.1'],
   ['scalar', 'aoa-rela-scalar-laws', 'rela_scalar_law_manifest_cid', 'aoa-rela-scalar-laws/0.1'],
   ['primitive', 'aoa-rela-primitive-laws', 'rela_primitive_law_manifest_cid', 'aoa-rela-laws/0.1'],
+  ['vector', 'aoa-veca-numeric-laws', 'veca_numeric_law_manifest_cid', 'aoa-veca-numeric-laws/0.1'],
+  ['graph', 'aoa-sga-structural-laws', 'sga_structural_law_manifest_cid', 'aoa-sga-structural-laws/0.1'],
 ];
 
 export function checkVersionTokens(text, context = 'AoA identifier') {
@@ -60,5 +62,5 @@ export function checkRepository(directory = root) {
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   checkRepository();
-  console.log('AoA 0.1 identifiers and four exact law-manifest pins verified; not runtime conformance.');
+  console.log('AoA 0.1 identifiers and six exact law-manifest pins verified; not runtime conformance.');
 }

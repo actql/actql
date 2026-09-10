@@ -1,0 +1,23 @@
+{
+  "manifest_version": "aoa-veca-numeric-laws/0.1",
+  "law_id": "aoa.veca.ordered-numeric.v0.1",
+  "input": "Finite binary64 components are rounded to binary32 nearest-ties-even and widened exactly to binary64 before arithmetic. A non-finite quantized value fails.",
+  "rounding": "R rounds each elementary arithmetic operation, including sqrt, to binary64 nearest-ties-even; Q rounds to binary32 nearest-ties-even and widens exactly. No FMA, reassociation, pairwise reduction, intermediate f32 fold, score clamping or arbitrary magnitude ceiling substitutes for this law.",
+  "dimension_order": "Increasing component index; every additive fold begins at positive zero.",
+  "member_order": "Ascending semantic member identity, independently for each output dimension.",
+  "operations": {
+    "dot": "s = fold_i R(s + R(a[i] * b[i])); return s.",
+    "cosine": "Compute dot, L = fold_i R(L + R(a[i]*a[i])), H = fold_i R(H + R(b[i]*b[i])). If L=0 or H=0 return +0; otherwise return R(dot / R(R(sqrt(L)) * R(sqrt(H)))).",
+    "l2": "d[i] = R(a[i]-b[i]); s = fold_i R(s + R(d[i]*d[i])); return -R(sqrt(s)).",
+    "normalize": "s = fold_i R(s + R(a[i]*a[i])); n = R(sqrt(s)); n=0 fails; output[i] = Q(R(a[i]/n)).",
+    "pool_sum": "For each dimension, s = fold_members R(s + component); return Q(s).",
+    "pool_mean": "For each dimension, s = fold_members R(s + component); return Q(R(s/member_count)).",
+    "pool_max": "For each dimension return the maximum present quantized member component; no infinite sentinel is an operand.",
+    "weighted_merge": "Missing score contributions are +0; return R(R(left_weight*left_score) + R(right_weight*right_score)). No present-only weight renormalization.",
+    "max_merge": "Return the maximum of present scores only. Missing scores are not zero operands."
+  },
+  "failure": "Every quantization, elementary intermediate and final conversion must be finite. Invalid input is rejected before scoring or output truncation.",
+  "zero": "Cosine with either quantized zero vector returns +0; normalization of a quantized zero vector fails. Canonicalize every emitted zero scalar/component to +0, preserving internal IEEE signed-zero arithmetic.",
+  "empty_pool": "No member groups means no output vectors; no zero-member group is invented.",
+  "output": "Vector components are finally rounded with Q; scores remain binary64."
+}
