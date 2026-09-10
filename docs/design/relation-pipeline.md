@@ -47,6 +47,10 @@ source, explicit binding name, metadata cursor, checked operation and exact
 not generated names, stable semantic identities or an AoA graph. `lookup`
 resolves authored dataflow names without rescanning steps.
 
+`schema_at` retrieves an input or step schema by bounds-checked target without
+copying the input list. [Result definition checking](relation-results.md) uses
+this boundary after pipeline checking and retains the originating pipeline.
+
 Each checked operation preserves typed expressions, projection order and
 pending profile/pattern/Host obligations. Callers access them through
 `step_at` and the existing relation/expression APIs; obligations are not copied

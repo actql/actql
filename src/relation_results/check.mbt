@@ -1,0 +1,290 @@
+///|
+// Source admission has already normalized and owned this JSON-model tree.
+fn source_preflight(b : Budget, root : @decode.Cursor) -> Unit raise Stop {
+  let work = [(root, 0)]
+  while work.pop() is Some((source, depth)) {
+    spend(b, source, 1)
+    if b.nodes == 0 {
+      fail(source, BudgetExceeded)
+    }
+    b.nodes -= 1
+    match @decode.view(source) {
+      TextValue(text) => charge(b, source, text)
+      ArrayValue(items) => {
+        if depth >= b.limits.max_depth {
+          fail(source, BudgetExceeded)
+        }
+        spend(b, source, items.length())
+        for item in items {
+          work.push((item, depth + 1))
+        }
+      }
+      ObjectValue(object) => {
+        if depth >= b.limits.max_depth {
+          fail(source, BudgetExceeded)
+        }
+        let keys = @decode.object_field_names(source).unwrap()
+        spend(b, source, keys.length())
+        for key in keys {
+          charge(b, source, key)
+          work.push((@decode.lookup(object, key).unwrap(), depth + 1))
+        }
+      }
+      _ => ()
+    }
+  }
+}
+
+///|
+fn contract_preflight(
+  b : Budget,
+  source : @decode.Cursor,
+  root : @contract.Contract,
+) -> Unit raise Stop {
+  let work = [(root, 0)]
+  while work.pop() is Some((c, depth)) {
+    spend(b, source, 1)
+    if depth > b.limits.max_depth {
+      fail(source, BudgetExceeded)
+    }
+    match c.shape {
+      @contract.Array(item, ..) => work.push((item, depth + 1))
+      @contract.Object(fields) => {
+        let count = @contract.field_count(fields)
+        spend(b, source, count)
+        for i in 0..<count {
+          let f = @contract.field_at(fields, i).unwrap()
+          charge(b, source, f.name)
+          work.push((f.contract, depth + 1))
+        }
+      }
+      @contract.ResourceRef(resource_kind~) => charge(b, source, resource_kind)
+      @contract.ArtifactRef(media_type=Some(media)) => charge(b, source, media)
+      _ => ()
+    }
+  }
+}
+
+///|
+fn direction(source : @decode.Cursor) -> Direction raise Stop {
+  match decoded(@decode.text(source), source) {
+    "asc" => Asc
+    "desc" => Desc
+    _ => fail(source, InvalidOrder)
+  }
+}
+
+///|
+fn order_key(
+  b : Budget,
+  source : @decode.Cursor,
+  fields : Map[String, @contract.Contract],
+) -> OrderKey raise Stop {
+  let obj = decoded(@decode.open_object(source), source)
+  let names = @decode.object_field_names(source).unwrap()
+  spend(b, source, names.length() + 1)
+  let (field, dir, nulls, explicit_nulls, field_source) = if names.length() == 1 {
+    let key = names[0]
+    (key, direction(@decode.lookup(obj, key).unwrap()), Last, false, source)
+  } else {
+    let obj = decoded(
+      @decode.closed_object(source, ["field", "dir", "nulls"]),
+      source,
+    )
+    let field_source = decoded(@decode.required(obj, "field"), source)
+    let field = decoded(@decode.text(field_source), field_source)
+    let dir = direction(decoded(@decode.required(obj, "dir"), source))
+    let null_source = decoded(@decode.required(obj, "nulls"), source)
+    let nulls = match decoded(@decode.text(null_source), null_source) {
+      "first" => First
+      "last" => Last
+      _ => fail(null_source, InvalidOrder)
+    }
+    (field, dir, nulls, true, field_source)
+  }
+  let contract = match fields.get(field) {
+    Some(v) => v
+    None => fail(field_source, UnknownField(field))
+  }
+  match contract.shape {
+    @contract.Text(_) | Number | Boolean | Decimal(..) | Date | Timestamp => ()
+    _ => fail(field_source, NotAuthorOrderable(field))
+  }
+  { field, direction: dir, nulls, explicit_nulls, source, }
+}
+
+///|
+fn check_impl(
+  pipeline : @pipeline.CheckedPipeline,
+  root : @decode.Cursor,
+  limits : Limits,
+) -> CheckedResults raise Stop {
+  if limits.max_results < 0 ||
+    limits.max_work < 0 ||
+    limits.max_nodes < 0 ||
+    limits.max_text_bytes < 0 ||
+    limits.max_depth < 0 {
+    fail(root, InvalidLimits)
+  }
+  let b : Budget = {
+    limits,
+    work: limits.max_work,
+    nodes: limits.max_nodes,
+    text: limits.max_text_bytes,
+  }
+  let object = decoded(@decode.open_object(root), root)
+  let names = @decode.object_field_names(root).unwrap()
+  if names.is_empty() {
+    fail(root, InvalidBody)
+  }
+  if names.length() > limits.max_results {
+    fail(root, BudgetExceeded)
+  }
+  source_preflight(b, root)
+  // One schema index per referenced input/step, shared across all Results.
+  let inputs : Map[Int, Map[String, @contract.Contract]] = Map([])
+  let steps : Map[Int, Map[String, @contract.Contract]] = Map([])
+  let definitions : Array[ResultDefinition] = []
+  let index : Map[String, Int] = Map([])
+  for name in names {
+    let source = @decode.lookup(object, name).unwrap()
+    spend(b, source, 1)
+    valid_name(source, name)
+    let obj = decoded(
+      @decode.closed_object(source, ["from", "fields", "order_by", "meta"]),
+      source,
+    )
+    let from = decoded(@decode.required(obj, "from"), source)
+    let from_name = decoded(@decode.text(from), from)
+    valid_name(from, from_name)
+    let target = match @pipeline.lookup(pipeline, from_name) {
+      Some(v) => v
+      None => fail(from, UnknownSource(from_name))
+    }
+    let (cache, id) = match target {
+      Input(i) => (inputs, i)
+      Step(i) => (steps, i)
+    }
+    let fields = match cache.get(id) {
+      Some(v) => v
+      None => {
+        let c = @pipeline.schema_at(pipeline, target).unwrap()
+        contract_preflight(b, from, c)
+        let fields : Map[String, @contract.Contract] = Map([])
+        match c.shape {
+          @contract.Object(fs) => {
+            let n = @contract.field_count(fs)
+            spend(b, from, n)
+            for i in 0..<n {
+              let f = @contract.field_at(fs, i).unwrap()
+              fields[f.name] = f.contract
+            }
+          }
+          _ => fail(from, InvalidBody)
+        }
+        cache[id] = fields
+        fields
+      }
+    }
+    let selected = decoded(@decode.required(obj, "fields"), source)
+    let entries = decoded(@decode.elements(selected), selected)
+    if entries.is_empty() {
+      fail(selected, InvalidBody)
+    }
+    spend(b, selected, entries.length())
+    let projection : Array[(String, @contract.Contract)] = []
+    let seen : Map[String, Bool] = Map([])
+    let output_names : Array[String] = []
+    let name_budget = b.text
+    for entry in entries {
+      let key = decoded(@decode.text(entry), entry)
+      if seen.contains(key) {
+        fail(entry, DuplicateField(key))
+      }
+      let contract = match fields.get(key) {
+        Some(v) => v
+        None => fail(entry, UnknownField(key))
+      }
+      seen[key] = true
+      charge(b, entry, key)
+      projection.push((key, contract))
+      output_names.push(key)
+    }
+    let output = match
+      @contract.object_contract(
+        projection,
+        nullable=false,
+        max_fields=projection.length(),
+        max_name_bytes=name_budget,
+      ) {
+      Ok(v) => v
+      Err(_) => fail(selected, InvalidBody)
+    }
+    let order = match @decode.lookup(obj, "order_by") {
+      None => None
+      Some(source) => {
+        let entries = decoded(@decode.elements(source), source)
+        if entries.is_empty() {
+          fail(source, InvalidOrder)
+        }
+        spend(b, source, entries.length())
+        let keys : Array[OrderKey] = []
+        for entry in entries {
+          keys.push(order_key(b, entry, fields))
+        }
+        Some(keys)
+      }
+    }
+    let meta = @decode.lookup(obj, "meta")
+    if meta is Some(source) {
+      let obj = match @decode.open_object(source) {
+        Ok(v) => v
+        Err(_) => fail(source, InvalidMetadata)
+      }
+      let keys = @decode.object_field_names(source).unwrap()
+      if keys.is_empty() {
+        fail(source, InvalidMetadata)
+      }
+      spend(b, source, keys.length())
+      for key in keys {
+        if key.has_prefix("actql_") {
+          fail(@decode.lookup(obj, key).unwrap(), ReservedMetadataKey(key))
+        }
+      }
+    }
+    index[name] = definitions.length()
+    definitions.push({
+      name,
+      source,
+      target,
+      schema: output,
+      fields: output_names,
+      order,
+      metadata: meta,
+    })
+  }
+  {
+    pipeline,
+    source: root,
+    definitions,
+    names: index,
+    usage: {
+      work: limits.max_work - b.work,
+      nodes: limits.max_nodes - b.nodes,
+      text_bytes: limits.max_text_bytes - b.text,
+    },
+  }
+}
+
+///|
+/// Checks stage-local Result definitions, not deterministic publication order,
+/// root exports, policy, delivery or execution admission.
+pub fn check(
+  pipeline : @pipeline.CheckedPipeline,
+  source : @decode.Cursor,
+  limits : Limits,
+) -> Result[CheckedResults, Issue] {
+  Ok(check_impl(pipeline, source, limits)) catch {
+    Stop(issue) => Err(issue)
+  }
+}

@@ -82,6 +82,7 @@ The checks are read-only:
 - `check:expression-typing`: fixed expression type/rejection vectors, generated-test freshness and generator regressions; not expression evaluation or complete Program admission.
 - `check:relation-typing`: fixed single-operation schemas, projection order and rejection vectors; generated-test freshness and generator regressions, not Relation execution.
 - `check:relation-pipeline`: fixed pipeline edges, output types and rejection cases; generated-test freshness, not execution or whole-Program admission.
+- `check:relation-results`: fixed Result projections, ordering types and rejection cases; generated-test freshness, not total-order proof or publication admission. See the [Result checking guide](design/relation-results.md).
 - `check:parameter-identities`: fixed Parameter value preimages/CIDs, projected-value schema and generator regressions.
 - `check:expression-text`: fixed expression-text trees/rejections, generated-test freshness and generator regressions.
 

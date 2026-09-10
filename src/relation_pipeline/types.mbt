@@ -115,6 +115,29 @@ pub fn output_schema(value : CheckedPipeline) -> @contract.Contract {
 }
 
 ///|
+/// Checked lookup without copying the input list. Coordinates remain local to
+/// this pipeline and carry no authority outside it.
+pub fn schema_at(
+  value : CheckedPipeline,
+  target : Target,
+) -> @contract.Contract? {
+  match target {
+    Input(i) =>
+      if i < 0 || i >= value.inputs.length() {
+        None
+      } else {
+        Some(value.inputs[i].1)
+      }
+    Step(i) =>
+      if i < 0 || i >= value.steps.length() {
+        None
+      } else {
+        Some(@relation.output_schema(value.steps[i].operation))
+      }
+  }
+}
+
+///|
 pub fn parameters(value : CheckedPipeline) -> @parameter.Declarations? {
   value.parameters
 }

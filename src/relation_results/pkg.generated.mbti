@@ -1,0 +1,111 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/relation_results"
+
+import {
+  "actql/actql/decode_core",
+  "actql/actql/relation_pipeline",
+  "actql/actql/source_span",
+  "actql/actql/source_value",
+  "actql/actql/value_contract",
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn check(@relation_pipeline.CheckedPipeline, @decode_core.Cursor, Limits) -> Result[CheckedResults, Issue]
+
+pub fn count(CheckedResults) -> Int
+
+pub fn definition_source(ResultDefinition) -> @decode_core.Cursor
+
+pub fn fields(ResultDefinition) -> Array[String]
+
+pub fn lookup(CheckedResults, String) -> ResultDefinition?
+
+pub fn metadata(ResultDefinition) -> @decode_core.Cursor?
+
+pub fn name(ResultDefinition) -> String
+
+pub fn order_by(ResultDefinition) -> Array[OrderKey]?
+
+pub fn output_schema(ResultDefinition) -> @value_contract.Contract
+
+pub fn pending_validations(ResultDefinition) -> Array[Obligation]
+
+pub fn pipeline(CheckedResults) -> @relation_pipeline.CheckedPipeline
+
+pub fn result_at(CheckedResults, Int) -> ResultDefinition?
+
+pub fn source(CheckedResults) -> @decode_core.Cursor
+
+pub fn target(ResultDefinition) -> @relation_pipeline.Target
+
+pub fn usage(CheckedResults) -> Usage
+
+// Errors
+
+// Types and methods
+type CheckedResults
+
+pub(all) enum Direction {
+  Asc
+  Desc
+} derive(Eq, @debug.Debug)
+
+pub struct Issue {
+  kind : IssueKind
+  source : @decode_core.Cursor
+  path : Array[@source_value.PathSegment]
+  span : @source_span.Span
+}
+
+pub(all) enum IssueKind {
+  InvalidLimits
+  BudgetExceeded
+  InvalidBody
+  InvalidName(String)
+  UnknownSource(String)
+  UnknownField(String)
+  DuplicateField(String)
+  InvalidOrder
+  NotAuthorOrderable(String)
+  InvalidMetadata
+  ReservedMetadataKey(String)
+  Decode(@decode_core.IssueKind)
+} derive(Eq, @debug.Debug)
+
+pub(all) struct Limits {
+  max_results : Int
+  max_work : Int
+  max_nodes : Int
+  max_text_bytes : Int
+  max_depth : Int
+} derive(Eq, @debug.Debug)
+
+pub(all) enum NullPlacement {
+  First
+  Last
+} derive(Eq, @debug.Debug)
+
+pub(all) enum Obligation {
+  TotalDeterministicOrder
+} derive(Eq, @debug.Debug)
+
+pub struct OrderKey {
+  field : String
+  direction : Direction
+  nulls : NullPlacement
+  explicit_nulls : Bool
+  source : @decode_core.Cursor
+}
+
+type ResultDefinition
+
+pub(all) struct Usage {
+  work : Int
+  nodes : Int
+  text_bytes : Int
+} derive(Eq, @debug.Debug)
+
+// Type aliases
+
+// Traits

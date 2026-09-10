@@ -27,6 +27,8 @@ pub fn output_schema(CheckedPipeline) -> @value_contract.Contract
 
 pub fn parameters(CheckedPipeline) -> @parameter_binding.Declarations?
 
+pub fn schema_at(CheckedPipeline, Target) -> @value_contract.Contract?
+
 pub fn source(CheckedPipeline) -> @decode_core.Cursor
 
 pub fn step_at(CheckedPipeline, Int) -> CheckedStep?

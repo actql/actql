@@ -1,0 +1,23 @@
+{
+  "version": "actql-relation-results-corpus/0.1",
+  "authority": "docs/spec/language.md#results-and-delivery and #ordering; fixed type/projection expectations, not publication admission",
+  "cases": [
+    {"id":"input", "body":{"r":{"from":"rows","fields":["id"]}}, "target":"input:0", "fields":["id"]},
+    {"id":"step", "body":{"r":{"from":"ids","fields":["id"]}}, "target":"step:0", "fields":["id"]},
+    {"id":"field-order", "body":{"r":{"from":"rows","fields":["score","id"]}}, "target":"input:0", "fields":["score","id"]},
+    {"id":"hidden-sort", "body":{"r":{"from":"rows","fields":["id"],"order_by":[{"score":"desc"}]}}, "target":"input:0", "fields":["id"], "order":[["score","desc","last",false]]},
+    {"id":"explicit-nulls", "body":{"r":{"from":"rows","fields":["score"],"order_by":[{"field":"score","dir":"asc","nulls":"first"}]}}, "target":"input:0", "fields":["score"], "order":[["score","asc","first",true]]},
+    {"id":"field-named-field", "body":{"r":{"from":"rows","fields":["field"],"order_by":[{"field":"desc"}]}}, "target":"input:0", "fields":["field"], "order":[["field","desc","last",false]]},
+    {"id":"nonorderable-publication-pending", "body":{"r":{"from":"rows","fields":["data","ref"]}}, "target":"input:0", "fields":["data","ref"]},
+    {"id":"missing-from", "body":{"r":{"fields":["id"]}}, "issue":"Decode"},
+    {"id":"missing-fields", "body":{"r":{"from":"rows"}}, "issue":"Decode"},
+    {"id":"empty-fields", "body":{"r":{"from":"rows","fields":[]}}, "issue":"InvalidBody"},
+    {"id":"duplicate-fields", "body":{"r":{"from":"rows","fields":["id","id"]}}, "issue":"DuplicateField"},
+    {"id":"unknown-field", "body":{"r":{"from":"ids","fields":["score"]}}, "issue":"UnknownField"},
+    {"id":"unknown-from", "body":{"r":{"from":"current","fields":["id"]}}, "issue":"UnknownSource"},
+    {"id":"empty-order", "body":{"r":{"from":"rows","fields":["id"],"order_by":[]}}, "issue":"InvalidOrder"},
+    {"id":"ref-authored-order", "body":{"r":{"from":"rows","fields":["id"],"order_by":[{"ref":"asc"}]}}, "issue":"NotAuthorOrderable"},
+    {"id":"nulls-required", "body":{"r":{"from":"rows","fields":["id"],"order_by":[{"field":"id","dir":"asc"}]}}, "issue":"Decode"},
+    {"id":"empty-meta", "body":{"r":{"from":"rows","fields":["id"],"meta":{}}}, "issue":"InvalidMetadata"}
+  ]
+}
