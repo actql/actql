@@ -272,6 +272,7 @@ fn check_impl(
       | "intersect"
       | "cross_join"
       | "interval_join"
+      | "asof_join"
       | "row_window"
       | "events"
       | "watermark_events"
@@ -337,6 +338,67 @@ fn check_impl(
     let meta = @decode.lookup(object, "meta")
     if meta is Some(cursor) {
       metadata(b, cursor)
+    }
+    if key == "asof_join" {
+      let obj = match @decode.open_object(operation_body) {
+        Ok(v) => v
+        Err(_) => fail(operation_body, InvalidBody)
+      }
+      let right_source = match @decode.required(obj, "with") {
+        Ok(v) => v
+        Err(_) => fail(operation_body, InvalidBody)
+      }
+      let right = resolve_target(b, right_source, names)
+      let checked = match
+        @join.check_asof(
+          operation_body,
+          carrier(input, inputs, steps),
+          carrier(right, inputs, steps),
+          parameters,
+          {
+            max_work: b.work,
+            max_nodes: b.nodes,
+            max_text_bytes: b.text,
+            max_depth: limits.max_depth,
+          },
+        ) {
+        Ok(v) => v
+        Err(e) =>
+          raise Stop({
+            kind: Join(e.kind),
+            source: e.source,
+            path: e.path.copy(),
+            span: e.span,
+            range: None,
+          })
+      }
+      let used = @join.asof_usage(checked)
+      b.work -= used.work
+      b.nodes -= used.nodes
+      b.text -= used.text_bytes
+      let target = Step(steps.length())
+      steps.push({
+        source: body,
+        input: Some(input),
+        binding_name,
+        metadata: meta,
+        operation: AsOfJoin(right~, checked~),
+        output: @carrier.relation(
+          @carrier.typed_rows(@join.asof_output_schema(checked)),
+        ),
+        connections: {
+          entries: [
+            { role: Left, target: input, },
+            { role: Right, target: right, },
+          ],
+        },
+        window: None,
+      })
+      if binding_name is Some(name) {
+        names[name] = target
+      }
+      current = Some(target)
+      continue
     }
     if key == "normalize_graph" ||
       key == "degree" ||
@@ -902,7 +964,8 @@ fn check_impl(
         | Nest(right~, ..)
         | Set(right~, ..)
         | CrossJoin(right~, ..)
-        | IntervalJoin(right~, ..) =>
+        | IntervalJoin(right~, ..)
+        | AsOfJoin(right~, ..) =>
           [{ role: Left, target: input, }, { role: Right, target: right, }]
       },
     }

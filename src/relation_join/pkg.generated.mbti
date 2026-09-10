@@ -2,18 +2,48 @@
 package "actql/actql/relation_join"
 
 import {
+  "actql/actql/carrier_contract",
   "actql/actql/decode_core",
   "actql/actql/parameter_binding",
   "actql/actql/relation_schema",
   "actql/actql/source_span",
   "actql/actql/source_value",
+  "actql/actql/temporal_window",
   "moonbitlang/core/debug",
 }
 
 // Values
+pub fn asof_direction(CheckedAsOf) -> AsOfDirection
+
+pub fn asof_identity(CheckedAsOf) -> Array[@relation_schema.FieldName]
+
+pub fn asof_keys(CheckedAsOf) -> Array[KeyPair]
+
+pub fn asof_kind(CheckedAsOf) -> Kind
+
+pub fn asof_output_schema(CheckedAsOf) -> @relation_schema.Schema
+
+pub fn asof_pending_validations(CheckedAsOf) -> Array[Obligation]
+
+pub fn asof_projection(CheckedAsOf) -> Array[Projection]
+
+pub fn asof_source(CheckedAsOf) -> @decode_core.Cursor
+
+pub fn asof_tie_break(CheckedAsOf) -> Array[@relation_schema.FieldName]?
+
+pub fn asof_time(CheckedAsOf, @relation_schema.Side) -> @relation_schema.FieldName
+
+pub fn asof_tolerance(CheckedAsOf) -> @temporal_window.Milliseconds
+
+pub fn asof_usage(CheckedAsOf) -> Usage
+
+pub fn asof_uses_timestamp(CheckedAsOf, @relation_schema.Side) -> Bool
+
 pub fn assertion(CheckedJoin) -> Cardinality?
 
 pub fn check(@decode_core.Cursor, @relation_schema.Schema, @relation_schema.Schema, @parameter_binding.Declarations?, Limits) -> Result[CheckedJoin, Issue]
+
+pub fn check_asof(@decode_core.Cursor, @carrier_contract.Carrier, @carrier_contract.Carrier, @parameter_binding.Declarations?, Limits) -> Result[CheckedAsOf, Issue]
 
 pub fn check_cross(@decode_core.Cursor, @relation_schema.Schema, @relation_schema.Schema, @parameter_binding.Declarations?, Limits) -> Result[CheckedCrossJoin, Issue]
 
@@ -80,11 +110,19 @@ pub fn usage(CheckedJoin) -> Usage
 // Errors
 
 // Types and methods
+pub(all) enum AsOfDirection {
+  Backward
+  Forward
+  Nearest
+} derive(Eq, @debug.Debug)
+
 pub(all) enum Cardinality {
   OneToOne
   ManyToOne
   OneToMany
 } derive(Eq, @debug.Debug)
+
+type CheckedAsOf
 
 type CheckedCrossJoin
 
@@ -123,6 +161,12 @@ pub(all) enum IssueKind {
   UnknownParameter(String)
   InvalidTemporalField(@relation_schema.Side, String)
   MixedTimeDomains
+  WrongCarrier(@relation_schema.Side, @carrier_contract.Kind)
+  UnknownFieldType(@relation_schema.Side, String)
+  MissingLeftIdentity
+  InvalidLeftIdentity
+  InvalidTieField(String)
+  Temporal(@temporal_window.IssueKind)
 } derive(Eq, @debug.Debug)
 
 pub struct KeyPair {
@@ -165,6 +209,11 @@ pub(all) enum Obligation {
   ValidateIntervalEndpoints
   ValidateSafeIntegerClocks
   ResolveSearchWork
+  ValidateAsOfValues
+  ResolveAsOfOrder
+  RejectAsOfTies
+  ResolveTeaProfile
+  BindTolerance(String)
 } derive(Eq, @debug.Debug)
 
 pub struct Projection {

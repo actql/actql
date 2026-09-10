@@ -41,6 +41,11 @@ pub(all) enum Obligation {
   ValidateIntervalEndpoints
   ValidateSafeIntegerClocks
   ResolveSearchWork
+  ValidateAsOfValues
+  ResolveAsOfOrder
+  RejectAsOfTies
+  ResolveTeaProfile
+  BindTolerance(String)
 } derive(Eq, Debug)
 
 ///|
@@ -73,6 +78,12 @@ pub(all) enum IssueKind {
   UnknownParameter(String)
   InvalidTemporalField(@schema.Side, String)
   MixedTimeDomains
+  WrongCarrier(@schema.Side, @carrier.Kind)
+  UnknownFieldType(@schema.Side, String)
+  MissingLeftIdentity
+  InvalidLeftIdentity
+  InvalidTieField(String)
+  Temporal(@temporal.IssueKind)
 } derive(Eq, Debug)
 
 ///|

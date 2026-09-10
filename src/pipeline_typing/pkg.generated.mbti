@@ -76,6 +76,7 @@ pub enum CheckedOperation {
   Set(right~ : Target, checked~ : @relation_set.CheckedSet)
   CrossJoin(right~ : Target, checked~ : @relation_join.CheckedCrossJoin)
   IntervalJoin(right~ : Target, checked~ : @relation_join.CheckedIntervalJoin)
+  AsOfJoin(right~ : Target, checked~ : @relation_join.CheckedAsOf)
   Values(@relation_values.CheckedValues)
   TimeSeries(@time_series.CheckedSeries)
   Window(@temporal_window.CheckedWindow)

@@ -1,8 +1,9 @@
 # As-of join contract
 
 The normative owner is [asof_join](../spec/language.md#asof-join). This decision
-record closes source and evidence boundaries before implementing both Relation
-and Events alternatives. It does not claim an implemented checker or evaluator.
+record closes source and evidence boundaries for Relation and Events alternatives.
+`relation_join.check_asof` implements typed operand admission for both alternatives;
+it does not implement matching or an evaluator.
 
 ## Decisions and evidence
 
@@ -47,10 +48,20 @@ Lowering must preserve complete typed identity, arithmetic and tie semantics or
 explicitly reject unsupported execution; lexicographic stringification would
 even reverse some numeric ID orderings.
 
-The checker implementation needs both Carrier alternatives, source-located
-diagnostics, detached output collections and cumulative budgets. Candidate-key
+The checker retains source-located diagnostics, detached output collections and
+cumulative budgets. Unknown unselected payload does not require a fabricated
+type; explicit keys, roles, tie fields and selected output require known types.
+Candidate-key
 inputs require a validated proof boundary, not public booleans. Ordinary join
 projection/nullability can be reused, but ordinary join's left-major input order
 is not the as-of output ordering contract. Runtime time validation, uniqueness,
 first-place tie rejection and resource discharge are distinct from static type
 acceptance and from the schema checks introduced with this contract.
+
+The current input API carries no candidate-key evidence. It therefore requires
+an explicit Relation `left_id`, accepts the retained Events identity, and never
+chooses a first field or assumes a hidden key. Whole-tuple key supply and
+compiler-journaled right-key completion remain part of the shared evidence work,
+not completed by this checker increment. Unresolved first-place ties remain a
+failure obligation even when authored tie fields are supplied. The checker does
+not certify stable order or coverage merely from the output contract.

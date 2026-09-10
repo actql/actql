@@ -41,7 +41,8 @@ explicit binding and execution-bound obligations.
 The [interval-join checker](interval-join.md) validates temporal roles and retains
 independent output/search-work obligations on two Relation inputs.
 The [as-of contract decisions](asof-join.md) distinguish typed temporal roles,
-whole identity tuples and validated tie evidence before checker implementation.
+whole identity tuples and validated tie evidence. Typed Relation/Events admission
+is connected; retained candidate-key completion still requires the shared proof boundary.
 
 Use a typed Carrier sum with Relation, Graph, Events and Vectors variants, not a
 Carrier string attached to an otherwise untyped object. Retain recursive value
