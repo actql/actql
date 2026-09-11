@@ -103,6 +103,10 @@ pub fn output_schema(CheckedOperation) -> @relation_schema.Schema
 
 pub fn parameters(CheckedOperation) -> @parameter_binding.Declarations?
 
+pub fn pending_validation_at(CheckedOperation, Int) -> PendingValidation?
+
+pub fn pending_validation_count(CheckedOperation) -> Int
+
 pub fn pending_validations(CheckedOperation) -> Array[PendingValidation]
 
 pub fn pivot(CheckedOperation) -> CheckedPivot?

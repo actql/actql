@@ -71,7 +71,8 @@ pub fn resolve_contextual_orders(
               entry.push(TakeSequence(order))
             }
             Analytic =>
-              for pending in @relation.pending_validations(op) {
+              for j in 0..<@relation.pending_validation_count(op) {
+                let pending = @relation.pending_validation_at(op, j).unwrap()
                 if work == 0 {
                   fail(pending.source, BudgetExceeded)
                 }

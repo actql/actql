@@ -23,6 +23,11 @@ one work unit; analytic pending entries also cost one each. Group and nest
 resolvers consume the remaining shared work/text budgets, not a fresh allowance.
 Key/sequence resolutions already computed during pipeline checking retain their
 existing evidence without rebuilding it. Any failure returns no partial result.
+Analytic obligations are read through immutable indexed accessors rather than
+copying their full collection before checking the remaining work allowance.
+Exhaustion still identifies the first unprocessed obligation's source, and
+exact work accounting is unchanged. The legacy detached-array accessor remains
+available to callers that actually need an owned collection.
 
 These are conditional static resolutions, not observed execution evidence or an
 executable plan. Runtime uniqueness, tie checks, pattern/profile obligations,

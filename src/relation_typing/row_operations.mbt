@@ -96,6 +96,20 @@ pub fn pending_validations(
 }
 
 ///|
+pub fn pending_validation_count(value : CheckedOperation) -> Int {
+  value.pending.length()
+}
+
+///|
+/// Read one immutable obligation without copying the entire collection.
+pub fn pending_validation_at(
+  value : CheckedOperation,
+  index : Int,
+) -> PendingValidation? {
+  value.pending.get(index)
+}
+
+///|
 pub fn row_operation(value : CheckedOperation) -> RowOperation? {
   value.row_operation.map(op => {
     match op {

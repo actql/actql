@@ -1,4 +1,56 @@
 ///|
+test "analytic obligation reads preserve source positions and inclusive scan budgets" {
+  let p = @pipeline_typing.check(
+    cursor(
+      "[{\"analytic\":{\"partition_by\":[],\"order_by\":[{\"amount\":\"asc\"}],\"functions\":{\"rank\":{\"fn\":\"rank\"}}}}]",
+    ),
+    [("rows", schema())],
+    None,
+    None,
+    limits(),
+  ).unwrap()
+  guard @pipeline_typing.step_at(p, 0).unwrap().operation
+    is @pipeline_typing.Unary(op) else {
+    abort("analytic expected")
+  }
+  let pending = @relation.pending_validations(op)
+  let count = @relation.pending_validation_count(op)
+  assert_eq(count, pending.length())
+  assert_true(count > 0)
+  for i in 0..<count {
+    let item = @relation.pending_validation_at(op, i).unwrap()
+    assert_eq(item.kind, pending[i].kind)
+    assert_true(physical_equal(item.source, pending[i].source))
+  }
+  pending.clear()
+  assert_eq(@relation.pending_validation_count(op), count)
+  assert_true(@relation.pending_validation_at(op, -1) is None)
+  assert_true(@relation.pending_validation_at(op, count) is None)
+  let checked = @pipeline_typing.resolve_contextual_orders(
+    p,
+    max_steps=1,
+    max_work=count + 1,
+    max_text_bytes=0,
+  ).unwrap()
+  assert_eq(@pipeline_typing.contextual_orders_usage(checked), (count + 1, 0))
+  for budget in 1..<(count + 1) {
+    let issue = @pipeline_typing.resolve_contextual_orders(
+      p,
+      max_steps=1,
+      max_work=budget,
+      max_text_bytes=0,
+    ).unwrap_err()
+    assert_eq(issue.kind, BudgetExceeded)
+    assert_eq(
+      issue.path,
+      @decode.cursor_path(
+        @relation.pending_validation_at(op, budget - 1).unwrap().source,
+      ),
+    )
+  }
+}
+
+///|
 test "contextual orders inspect unused branches and reject unresolved consumers" {
   for
     body in [
