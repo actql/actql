@@ -14,6 +14,8 @@ fn wired_inputs_fixture(
   use_snapshots : Bool,
   profile? : String = "{}",
   expression? : String = "$n",
+  parameters? : String = "{\"n\":{\"type\":\"number\",\"default\":1}}",
+  supplied? : @decode.Cursor? = None,
 ) -> (
   StageContexts,
   @stage_results.ResultWiring,
@@ -25,6 +27,10 @@ fn wired_inputs_fixture(
   let program = @syntax.parse(
     (
       #|{"version":"actql/0.1","id":"p","params":{"n":{"type":"number","default":1}},"stages":[{"id":"first","inputs":{"a":{"carrier":"relation","schema":{"id":{"type":"number","nullable":false}}}},"steps":[{"derive":{"x":"$n"}}],"results":{"out":{"from":"a","fields":["id"]}}},{"id":"second","inputs":{"a":{"result":{"stage":"first","result":"out"}}},"steps":[{"derive":{"x":"$n"}}],"results":{"out":{"from":"a","fields":["id"]}}}],"results":{"out":{"from":{"stage":"second","result":"out"}}}}
+    )
+    .replace(
+      old="\"params\":{\"n\":{\"type\":\"number\",\"default\":1}}",
+      new="\"params\":" + parameters,
     )
     .replace(old="\"x\":\"$n\"", new="\"x\":\"" + expression + "\"")
     .replace(old="\"x\":\"$n\"", new="\"x\":\"" + expression + "\""),
@@ -59,7 +65,7 @@ fn wired_inputs_fixture(
     max_depth: 100,
     max_text_bytes: 100000,
   }
-  guard @parameter.bind(declarations, None, {
+  guard @parameter.bind(declarations, supplied, {
       max_nodes: 100,
       max_depth: 10,
       max_text_bytes: 1000,

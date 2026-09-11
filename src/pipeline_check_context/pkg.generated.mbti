@@ -14,6 +14,7 @@ import {
   "actql/actql/stage_local_inputs",
   "actql/actql/stage_parameters",
   "actql/actql/stage_results",
+  "actql/actql/timestamp_pattern",
   "moonbitlang/core/debug",
 }
 
@@ -37,6 +38,8 @@ pub fn check(@relation_results.CheckedResults, Array[@parameter_binding.BoundVal
 pub fn check_parameter_bindings(PipelineContext, max_work~ : Int, max_text_bytes~ : Int) -> Result[BoundParameters, ParameterIssue]
 
 pub fn check_resolved_orders(@relation_results.CheckedOrders, Array[@parameter_binding.BoundValues?], Array[@capacity_graph_preflight.ApplicationCoverage], @capacity_policy.Policy, max_work~ : Int, max_text_bytes~ : Int, proof_owners? : Array[(Int, Int, Int)], input_owners? : Array[(Int, Int, Int, Int)]) -> Result[PipelineContext, Issue]
+
+pub fn check_timestamp_patterns(ExpressionValidationContext, TimestampPatternLimits) -> Result[TimestampPatternChecks, TimestampPatternIssue]
 
 pub fn checked_capacity(PipelineContext) -> @capacity_graph_preflight.ApplicationClosure
 
@@ -107,6 +110,22 @@ pub fn stage_policy(StageContexts) -> @capacity_policy.Policy
 pub fn stage_results(StageContexts) -> @stage_results.Checked
 
 pub fn stage_usage(StageContexts) -> (Int, Int)
+
+pub fn timestamp_pattern_ast(TimestampPatternResolution) -> @timestamp_pattern.Pattern
+
+pub fn timestamp_pattern_at(TimestampPatternChecks, Int) -> TimestampPatternResolution?
+
+pub fn timestamp_pattern_context(TimestampPatternChecks) -> ExpressionValidationContext
+
+pub fn timestamp_pattern_count(TimestampPatternChecks) -> Int
+
+pub fn timestamp_pattern_parameter(TimestampPatternResolution) -> @parameter_binding.BoundParameter?
+
+pub fn timestamp_pattern_policy(TimestampPatternResolution) -> @check_environment.TextTime
+
+pub fn timestamp_pattern_site(TimestampPatternResolution) -> ExpressionValidationSite
+
+pub fn timestamp_pattern_usage(TimestampPatternChecks) -> TimestampPatternUsage
 
 pub fn usage(PipelineContext) -> (Int, Int)
 
@@ -252,6 +271,35 @@ pub(all) enum StageIssue {
   ForeignBindings(Int, Int)
   ForeignPolicy(Int)
   BudgetExceeded(Int)
+} derive(Eq, @debug.Debug)
+
+type TimestampPatternChecks
+
+pub(all) enum TimestampPatternIssue {
+  InvalidLimits
+  BudgetExceeded
+  MissingPolicy(Int)
+  MissingBindings(Int)
+  InvalidSite(Int)
+  InvalidPatternValue(Int)
+  PatternCeiling(Int)
+  Pattern(Int, @timestamp_pattern.Issue)
+} derive(Eq, @debug.Debug)
+
+pub(all) struct TimestampPatternLimits {
+  max_work : Int
+  max_text_bytes : Int
+  max_ast_bytes : Int
+  max_ast_nodes : Int
+} derive(Eq, @debug.Debug)
+
+type TimestampPatternResolution
+
+pub(all) struct TimestampPatternUsage {
+  work : Int
+  text_bytes : Int
+  ast_bytes : Int
+  ast_nodes : Int
 } derive(Eq, @debug.Debug)
 
 type WiredStages

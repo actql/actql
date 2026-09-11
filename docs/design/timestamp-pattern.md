@@ -68,10 +68,12 @@ token subsets in both modes, duplicate tokens, non-grammar Unicode/surrogates,
 long repeated literals, exact/short budgets and bounded text/hash/measure sinks.
 The fixed vectors prove AST and identity behavior, not timestamp evaluation.
 
-The staged expression resolver still needs to obtain the literal or exact bound
-Parameter at an owned validation site, select parse mode for parse/try and format
-mode for formatting, enforce the selected policy's pattern ceiling, and attach
-the admitted pattern to that occurrence. Regex pattern/replacement checking,
+The staged `pipeline_check_context.check_timestamp_patterns` resolver obtains
+the literal or exact bound Parameter at an owned validation site, selects parse
+mode for parse/try and format mode for formatting, enforces the selected policy's
+pattern ceiling, and attaches the admitted pattern to that occurrence. Its
+opaque collection does not accept caller-supplied substitute patterns or bindings.
+Regex pattern/replacement checking,
 full expression envelope derivation, profile admission and final Program
 readiness remain separate unfinished requirements. This parser is not a reason
 to discharge a caller-supplied `PatternValidation` flag without that association.

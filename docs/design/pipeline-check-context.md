@@ -123,7 +123,48 @@ Tests use two source-bound stages and a repeated producer with an unselected
 regex branch whose capture argument is a bound Parameter. They check all nine
 pending occurrences, exact expression/binding/environment ownership, independent
 equal-content contexts, exact/short/negative budgets, missing policy and invalid
-unused components. Pattern validation and envelope derivation remain pending.
+unused components. At this preparation boundary, pattern validation and envelope
+derivation remain pending.
+
+### Timestamp-pattern resolution
+
+`check_timestamp_patterns` consumes that opaque environment-bound context and
+resolves every `PatternValidation` for `parse_timestamp`, `try_timestamp` and
+`format_timestamp`. It derives the operation and pattern operand from each
+retained typed annotation, not a caller-supplied expression or pattern string.
+Literal data is read once. A Parameter is looked up in the exact visit's checked
+BoundValues, using their canonical name ordering; no declaration default is
+reapplied and Parameter-looking string contents are not substituted again.
+Resolved null/non-string patterns fail static checking even in an unselected
+branch. The selected text-time policy is required for every such occurrence,
+and its `max_pattern_bytes` applies before pattern construction.
+
+Parse and try use parse mode; format uses format mode. The
+[timestamp pattern parser](timestamp-pattern.md) supplies the immutable AST and
+CID. Each opaque resolution retains the exact validation site, selected policy
+component and selected BoundParameter when applicable. Equal AST CIDs do not
+make sites or bindings interchangeable. Repeated producer occurrences remain
+separate resolutions, with no caller-controlled evidence list to omit a failure.
+Any late failure returns no partially checked collection.
+Pattern/policy/value errors identify the original inventory index, so callers
+can recover the owned expression's source location and producer visit. A parser
+offset refers to the resolved pattern text, not fabricated source-file bytes
+inside a Parameter's spelling.
+
+Work/text limits include the prior context's usage, then inventory visits,
+constant-shape operand reads, bounded binary-search comparisons, pattern text
+and generated AST nodes. AST byte/node limits are cumulative across occurrences;
+repeated patterns do not reset them. Successful pattern text is ASCII, so its
+length is the exact Host pattern-byte charge. Invalid non-ASCII cannot be
+accepted by exploiting the length check. These are integration budgets, not
+runtime input/output envelope ceilings or a claim to bound all retained memory.
+
+The collection resolves only these timestamp-pattern obligations. Other kinds
+remain in the retained context, including regex/replacement validation, profile
+admission and Host envelope derivation. Timestamp value evaluation, calendar
+validity of runtime inputs, argument/demand envelopes and Program readiness are
+not established by an AST. Later static closure can verify the collection's
+exact context owner before using its occurrence-bound resolutions.
 
 ## Not yet a checked Program
 
