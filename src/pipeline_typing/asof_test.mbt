@@ -26,6 +26,11 @@ test "as-of pipeline consumes retained Events identity and emits a typed Relatio
   let output = @pipeline_typing.output_schema(p).unwrap()
   assert_true(@schema.lookup(output, Unqualified("value")).unwrap().nullable)
   assert_true(@schema.lookup(output, Unqualified("copy")).unwrap().nullable)
+  assert_true(@pipeline_typing.logical_order(p, Step(0)) is None)
+  let order = @pipeline_typing.logical_order(p, Step(2)).unwrap()
+  assert_eq(@pipeline_typing.order_origin(order), Step(1))
+  assert_eq(@pipeline_typing.order_dependency_count(order), 0)
+  assert_true(@pipeline_typing.order_producer(order).operation is AsOfJoin(..))
 }
 
 ///|

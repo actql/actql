@@ -113,6 +113,19 @@ but right-side admission, equality and completeness obligations are not waived.
 An ordered right input cannot repair an unordered left input. Source branches
 use their resolved targets rather than the last syntactically preceding step.
 
+Interval join requires both operand orders for its left-major/right-minor rule,
+retaining both dependencies just like the ordinary product enumeration. As-of
+join instead establishes ascending left `(time, identity)` order independently
+of input enumeration, using the checked producer's exact semantic identity and
+clock contracts. It retains all time, uniqueness, tie-selection and resource
+obligations; this does not choose an unresolved right-time tie or execute a sort.
+
+Analytic and typed json_pick preserve an existing sequence. Analytic's authored
+calculation order is not publication order and cannot establish a sequence on
+unordered input. Its peer, position and frame obligations remain separate.
+Object projection adds a field without changing row positions. Neither operation
+manufactures order from its output names or field contracts.
+
 Row and Event windows also retain a source-order dependency. The Language
 occurrence-order rule clarifies input-major enumeration followed by ascending
 membership starts, not a global window-start sort. This agrees with the fixed

@@ -1,13 +1,15 @@
 ///|
-test "append and cross join order require both operands through take and publication" {
+test "concatenation and product joins require both operand orders through publication" {
   let number = @contract.primitive(NumberType, nullable=false)
   let row = @schema.from_fields(
     [(Unqualified("x"), number)],
     max_fields=1,
     max_name_bytes=1,
   ).unwrap()
-  for operation in ["append", "cross_join"] {
-    let selection = if operation == "cross_join" {
+  for operation in ["append", "cross_join", "interval_join"] {
+    let selection = if operation == "interval_join" {
+      ",\"kind\":\"left\",\"mode\":\"point_in_interval\",\"on\":[],\"left\":{\"time\":\"x\"},\"right\":{\"start\":\"x\",\"end\":\"x\"},\"select\":{\"x\":\"left.x\"}"
+    } else if operation == "cross_join" {
       ",\"select\":{\"x\":\"left.x\"}"
     } else {
       ""

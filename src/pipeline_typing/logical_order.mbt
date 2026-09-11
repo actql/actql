@@ -112,7 +112,8 @@ fn derive_logical_orders(
       _ => false
     }
     let establishes = match step.operation {
-      TimeSeries(_) | Nearest(..) | Ranking(_) | TextRank(..) => true
+      TimeSeries(_) | Nearest(..) | Ranking(_) | TextRank(..) | AsOfJoin(..) =>
+        true
       GraphMatch(_) | Reach(_) | Traverse(..) | Shortest(..) => true
       Graph(op) => @graph.operation(op) == @graph.Components
       Unary(op) | WindowGroup(op) =>
@@ -147,7 +148,7 @@ fn derive_logical_orders(
           _ => []
         }
       }
-      Append(right~, ..) | CrossJoin(right~, ..) => {
+      Append(right~, ..) | CrossJoin(right~, ..) | IntervalJoin(right~, ..) => {
         let right_order = match right {
           Input(_) => None
           Step(j) => out[j]
