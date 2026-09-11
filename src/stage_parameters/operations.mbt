@@ -61,7 +61,7 @@ pub fn collect_operations(
       ) +
       @pipeline.parameter_slot_count(@collection.operands(local_collection))
     remaining = {
-      max_work: remaining.max_work - @collection.work(local_collection),
+      max_work: remaining.max_work - collection_work(result),
       max_slots: remaining.max_slots - slot_count,
       max_references: remaining.max_references -
       @references.reference_count(local_index),

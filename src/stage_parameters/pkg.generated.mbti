@@ -27,6 +27,8 @@ pub fn collect_operations(Source, Array[@pipeline_typing.CheckedPipeline], @pipe
 
 pub fn collection(CollectedStage) -> @pipeline_parameters.Collected
 
+pub fn collection_work(CollectedStage) -> Int
+
 pub fn declarations(Source) -> @parameter_binding.Declarations
 
 pub fn operations_index(CollectedOperations) -> @parameter_references.Index
@@ -71,6 +73,8 @@ pub(all) enum Issue {
   ForeignDeclarations
   ForeignSteps
   ForeignInitialFrom
+  InputCountMismatch
+  ForeignInput(String)
   Collection(@pipeline_parameters.Issue)
 } derive(Eq, @debug.Debug)
 

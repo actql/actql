@@ -816,6 +816,10 @@ admission, resource enforcement or complete source authority.
    final wiring-to-context attachment now requires the same prepared source and
    each stage's exact published order owner. It retains validated Result imports
    and root exports with stage contexts, charging shared prior order costs once.
+   Stage source attachment also checks the exact input-name set, including
+   unused inputs, without requiring source map enumeration order. It rejects
+   omitted or invented names under the shared collection work cap; Carrier and
+   input evidence semantics still need the corresponding admission boundary.
    A two-stage actual Result import tests final publication ownership, foreign
    reissued orders and exact/short cumulative budgets. Ordinary/receipt inputs,
    static discharge and complete semantic Program identity remain incomplete.

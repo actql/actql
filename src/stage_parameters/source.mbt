@@ -12,6 +12,8 @@ pub(all) enum Issue {
   ForeignDeclarations
   ForeignSteps
   ForeignInitialFrom
+  InputCountMismatch
+  ForeignInput(String)
   Collection(@collection.Issue)
 } derive(Eq, Debug)
 
@@ -20,6 +22,7 @@ struct CollectedStage {
   source : Source
   stage_index : Int
   collection : @collection.Collected
+  work : Int
 }
 
 ///|
@@ -79,6 +82,13 @@ pub fn collect(
   pipeline : @pipeline.CheckedPipeline,
   limits : @collection.Limits,
 ) -> Result[CollectedStage, Issue] {
+  if limits.max_work < 0 ||
+    limits.max_slots < 0 ||
+    limits.max_references < 0 ||
+    limits.max_pointer_units < 0 ||
+    limits.max_direct_text_bytes < 0 {
+    return Err(Collection(@collection.InvalidLimits))
+  }
   let stage = match stage_at(source, index) {
     None => return Err(InvalidStage)
     Some(stage) => stage
@@ -102,9 +112,41 @@ pub fn collect(
     ) {
     return Err(ForeignInitialFrom)
   }
-  match @collection.collect(body, pipeline, limits) {
+  let inputs = @decode.required(object, "inputs").unwrap()
+  let count = @decode.object_length(inputs).unwrap()
+  if count != @pipeline.input_count(pipeline) {
+    return Err(InputCountMismatch)
+  }
+  // Charge both source-name registration and pipeline-name lookup before
+  // allocating the index. Input enumeration order is not semantic.
+  if count > limits.max_work || count > limits.max_work - count {
+    return Err(Collection(@collection.WorkLimit))
+  }
+  let names : Map[String, Bool] = Map([])
+  for i in 0..<count {
+    let (name, _) = @decode.field_at(inputs, i).unwrap()
+    names[name] = true
+  }
+  for i in 0..<count {
+    let (name, _) = @pipeline.input_at(pipeline, i).unwrap()
+    if !names.contains(name) {
+      return Err(ForeignInput(name))
+    }
+  }
+  let input_work = count + count
+  match
+    @collection.collect(body, pipeline, {
+      ..limits,
+      max_work: limits.max_work - input_work,
+    }) {
     Err(e) => Err(Collection(e))
-    Ok(collection) => Ok({ source, stage_index: index, collection, })
+    Ok(collection) =>
+      Ok({
+        source,
+        stage_index: index,
+        collection,
+        work: input_work + @collection.work(collection),
+      })
   }
 }
 
@@ -121,4 +163,10 @@ pub fn stage_index(value : CollectedStage) -> Int {
 ///|
 pub fn collection(value : CollectedStage) -> @collection.Collected {
   value.collection
+}
+
+///|
+/// Source input-name checks plus local operation collection work.
+pub fn collection_work(value : CollectedStage) -> Int {
+  value.work
 }

@@ -9,6 +9,7 @@ is absent. Preparation does not accept an independently supplied declaration map
 `collect` selects an actual stage by index and requires:
 
 - the exact declaration owner produced by preparation;
+- exactly the authored stage input-name set, including unused declarations;
 - the exact source arena and node for that stage's `steps`;
 - the exact optional source node for its authored initial `from`, including
   presence versus absence.
@@ -25,9 +26,25 @@ position in the enclosing Program. The immutable result retains both the prepare
 source and local collection. Invalid stage indices and ownership mismatches
 reject before local collection; collection failures retain their nested issues.
 
+Input-name matching is set-based: object enumeration or caller registration order
+does not change acceptance. Missing or extra inputs reject; an equal-size set
+with a substituted name rejects with that name. This prevents an otherwise
+source-owned pipeline from introducing an undeclared input or omitting an unused
+one. It checks registration correspondence, not the input Carrier, key evidence,
+SourceView selection, receipt contract or runtime admission. The currently
+supported pipeline input registry is not a substitute for a future separately
+typed acquisition-template registry.
+
 Preparation uses the existing declaration limits and the Program's prior source,
 tree and stage bounds. Single-stage collection uses the local collector's shared
 limits per call; repeated calls do not establish a Program-wide work bound.
+
+`collection_work` includes one source-name registration and one pipeline-name
+lookup per input, charged before building the name index, plus the local
+operation collector's work. All-stage collection consumes this total from its
+remaining allowance. Names are retained by earlier owned source/pipeline trees,
+so this pass does not charge them as newly admitted direct-operand text. This is
+logical work accounting, not a string-hashing or heap-size bound.
 
 ## All-stage operation collection
 
