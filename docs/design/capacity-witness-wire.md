@@ -215,9 +215,10 @@ and all repeated limit candidates. Bytes and nodes are cumulative across full
 limit artifacts, not reset per limit. Depth is a per-artifact nesting ceiling.
 Witness bodies were already admitted under their own byte/node/depth budgets.
 
-This closes numeric and mixed-reference consistency only. Program proof-body
-edges, external source truth, governing-law applicability, candidate completeness
-and actual consumer/preflight bindings still require combined validation.
+This entry closes numeric and mixed-reference consistency only. The combined
+entry below additionally resolves Program proof-body edges. External source
+truth, governing-law applicability, candidate completeness and actual
+consumer/preflight bindings still require validation.
 In particular, `semantic_ref` and `subject_ref` are retained but not equated:
 the fixed graph-input constructor uses an input name for the former and
 `graph-input:<name>:nodes|edges` for the latter. A separate consumer owner must
@@ -229,3 +230,33 @@ arithmetic dependencies, mismatched units/values/proof dependencies, missing and
 duplicate limits, unsupported enforcement and shared budget boundaries. A
 white-box test injects synthetic cyclic topology without claiming to construct
 a cyclic SHA-256 preimage.
+
+## Combined Program and limit references
+
+`check_mixed_program_claims` adds bound Program proof bodies to `MixedClaims`
+and reruns one union dependency traversal. Ordinary Program witnesses require
+exactly one proof, including unused witnesses, with the same operand-occurrence
+rules as `check_program_claims`. Preflight witnesses instead retain their
+already-bound resolved limit; no fictitious `actql-bound-proof/0.1` body is
+substituted for that different proof domain.
+
+The union includes Program source-proof inputs, ordinary arithmetic operands,
+enforced witness-to-limit edges and every candidate occurrence. Resolving each
+subgraph separately cannot replace this check: a source-proof edge may complete
+a cycle through an otherwise acyclic limit. Traversal remains iterative and
+failure returns no partial result. Missing, foreign or duplicate Program proofs
+and missing or mismatched proof inputs fail before cycle acceptance.
+
+The entity budget includes arithmetic witnesses, retained limits and supplied
+proof bodies. The reference budget carries forward all mixed-closure charges
+and adds every proof input occurrence, including repeats. The result retains
+the original `MixedClaims` and proof index; `program_claim_mixed` exposes that
+owner instead of losing the preflight associations. Passing only the extracted
+arithmetic collection to the older entry does not bypass proof requirements.
+
+Fixed independent fixtures exercise both Program proof forms alongside forward
+preflight chains, repeated source inputs, exact budgets, missing unused proofs,
+foreign/duplicate bodies and operand mismatches. Synthetic white-box topology
+confirms rejection of a cycle introduced specifically by a Program proof input.
+This completes the implemented internal reference-union check, not external
+source validation, law application, consumer matching or execution permission.

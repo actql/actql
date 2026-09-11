@@ -19,6 +19,8 @@ pub fn check_arithmetic_claims(Array[WireWitness], ClosureLimits) -> Result[Arit
 
 pub fn check_mixed_claims(Array[WireWitness], Array[(Bytes, String)], MixedLimits) -> Result[MixedClaims, MixedIssue]
 
+pub fn check_mixed_program_claims(MixedClaims, Array[ProgramProofClaim], ClosureLimits) -> Result[ProgramClaims, ProgramClosureIssue]
+
 pub fn check_program_claims(ArithmeticClaims, Array[ProgramProofClaim], ClosureLimits) -> Result[ProgramClaims, ProgramClosureIssue]
 
 pub fn cid(WireWitness) -> String
@@ -64,6 +66,8 @@ pub fn mixed_limit_count(MixedClaims) -> Int
 pub fn mixed_usage(MixedClaims) -> (Int, Int, Int)
 
 pub fn program_claim_arithmetic(ProgramClaims) -> ArithmeticClaims
+
+pub fn program_claim_mixed(ProgramClaims) -> MixedClaims?
 
 pub fn program_claim_proof_at(ProgramClaims, Int) -> ProgramProofClaim?
 

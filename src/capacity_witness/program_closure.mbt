@@ -15,6 +15,7 @@ pub(all) enum ProgramClosureIssue {
 /// External sources and semantic law application are still unvalidated.
 struct ProgramClaims {
   claims : ArithmeticClaims
+  mixed : MixedClaims?
   proofs : Array[ProgramProofClaim?]
   references : Int
 }
@@ -63,14 +64,44 @@ pub fn check_program_claims(
   proofs : Array[ProgramProofClaim],
   limits : ClosureLimits,
 ) -> Result[ProgramClaims, ProgramClosureIssue] {
+  program_claims(claims, proofs, limits, None)
+}
+
+///|
+/// Check Program proof inputs together with every mixed witness/limit edge.
+/// Enforced claims retain the validated limit instead of a fictitious proof body.
+pub fn check_mixed_program_claims(
+  mixed : MixedClaims,
+  proofs : Array[ProgramProofClaim],
+  limits : ClosureLimits,
+) -> Result[ProgramClaims, ProgramClosureIssue] {
+  program_claims(mixed.arithmetic, proofs, limits, Some(mixed))
+}
+
+///|
+fn program_claims(
+  claims : ArithmeticClaims,
+  proofs : Array[ProgramProofClaim],
+  limits : ClosureLimits,
+  mixed : MixedClaims?,
+) -> Result[ProgramClaims, ProgramClosureIssue] {
   if limits.max_witnesses < 0 || limits.max_references < 0 {
     return Err(InvalidProgramLimits)
   }
   let n = claims.witnesses.length()
-  if n > limits.max_witnesses || proofs.length() > limits.max_witnesses - n {
+  let extra = match mixed {
+    Some(v) => v.limits.length()
+    None => 0
+  }
+  if n > limits.max_witnesses ||
+    extra > limits.max_witnesses - n ||
+    proofs.length() > limits.max_witnesses - n - extra {
     return Err(ProgramBudgetExceeded)
   }
-  let mut references = claims.references
+  let mut references = match mixed {
+    Some(v) => v.references
+    None => claims.references
+  }
   if references > limits.max_references {
     return Err(ProgramBudgetExceeded)
   }
@@ -90,9 +121,21 @@ pub fn check_program_claims(
     }
     indexed[index] = Some(proof)
   }
-  let successors : Array[Array[Int]] = Array::makei(n, _ => [])
-  let indegrees = Array::make(n, 0)
+  let successors : Array[Array[Int]] = Array::makei(n + extra, _ => [])
+  let indegrees = Array::make(n + extra, 0)
   for i, witness in claims.witnesses {
+    let preflight = match mixed {
+      Some(v) => v.bound[i]
+      None => None
+    }
+    if preflight is Some(j) {
+      if indexed[i] is Some(_) {
+        return Err(ProgramOperandMismatch(i))
+      }
+      successors[n + j].push(i)
+      indegrees[i] += 1
+      continue
+    }
     if witness.source is Program(_, _) {
       guard indexed[i] is Some(proof) else {
         return Err(MissingProgramProof(i))
@@ -126,10 +169,19 @@ pub fn check_program_claims(
       }
     }
   }
+  if mixed is Some(mixed) {
+    for j, limit in mixed.limits {
+      for k in 0..<@arithmetic.minimum_candidate_count(limit.minimum) {
+        let input = @arithmetic.minimum_candidate_at(limit.minimum, k).unwrap().node
+        successors[input].push(n + j)
+        indegrees[n + j] += 1
+      }
+    }
+  }
   if !program_inputs_acyclic(successors, indegrees) {
     return Err(CyclicProgramInputs)
   }
-  Ok({ claims, proofs: indexed, references, })
+  Ok({ claims, mixed, proofs: indexed, references, })
 }
 
 ///|
@@ -160,6 +212,11 @@ fn program_inputs_acyclic(
 ///|
 pub fn program_claim_arithmetic(claims : ProgramClaims) -> ArithmeticClaims {
   claims.claims
+}
+
+///|
+pub fn program_claim_mixed(claims : ProgramClaims) -> MixedClaims? {
+  claims.mixed
 }
 
 ///|

@@ -154,8 +154,11 @@ consumer audit.
    Mixed witness/limit closure now binds preflight ceilings by exact source
    dependency, unit and value, and rejects cycles across limit candidates and
    witness operands under cumulative artifact/reference budgets. Program-proof
-   edges and consumer/source/application validation still need to be combined
-   with that graph; this does not discharge enforcement or produce input counts.
+   inputs now join that same graph, with one body for each ordinary Program
+   witness and retained limits for preflight claims. Synthetic tests detect a
+   cycle introduced only by a Program input edge. Consumer/source/application
+   validation remains open; this does not discharge enforcement or produce
+   input counts.
    Do not
    expand into acquisition, an evaluator or Host dispatch.
 3. Connect contextual resolutions into a complete static checking/discharge
