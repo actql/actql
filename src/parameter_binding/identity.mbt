@@ -158,12 +158,22 @@ pub fn emit_values(
   @encode.begin_object(output)
   for entry in values.entries {
     @encode.key(output, entry.name)
-    emit_bound_value(entry.value.value, entry.parameter_type, output)
+    emit_value_identity(entry, output)
   }
   @encode.end_object(output)
   @encode.key(output, "version")
   @encode.string_value(output, "actql-parameter-values/0.1")
   @encode.end_object(output)
+}
+
+///|
+/// Emit one admitted Parameter's typed identity projection, not its wire value.
+/// The sealed bound parameter retains the declaration type used for admission.
+pub fn emit_value_identity(
+  value : BoundParameter,
+  output : @encode.Writer,
+) -> Unit raise @encode.EncodeFailure {
+  emit_bound_value(value.value.value, value.parameter_type, output)
 }
 
 ///|

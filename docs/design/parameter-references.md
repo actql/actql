@@ -39,6 +39,28 @@ This prevents later array edits from replacing the indexed source occurrences.
 
 ## Limits and remaining composition
 
+`bind_values` attaches complete admitted bindings to the exact declaration
+owner retained by an Index. Equal declaration text from a separately admitted
+owner is rejected. The opaque BoundIndex retains both owners and selects each
+used name once, in canonical name order; repeated source occurrences remain
+in the reference index. Opaque literal data still contributes no references.
+The binding work cap charges all bound entries plus selected names before
+building the name map or selected array. Exact caps succeed, negative or short
+caps reject, and no caller-owned mutable collection is retained.
+
+`emit_used_values` writes the existing Parameter Values preimage for that
+selection, using `parameter_binding.emit_value_identity` for each sealed BoundParameter.
+It shares the established decimal/duration/business-marker projection rather
+than copying or changing it. A change to an unused value does not change this
+preimage; a selected duration uses canonical milliseconds. Text, measurement
+and hash Writers use the same emitter and output limits. This is an identity
+projection, not REL.values execution wire data or a whole Program identity.
+
+An Index can cover only a local subtree. Binding it does not certify that the
+selected names are complete for a Program, stage or unit. The enclosing
+compiler still has to collect the normative slots and bind their owners before
+placing the selected-value identity in the appropriate semantic envelope.
+
 `max_slots` and `max_references` bound collection size; `max_pointer_units` bounds
 the sum of emitted pointer UTF-16 units after escaping, including repeated paths.
 Equality is accepted, negative limits reject, and failures return no partial index.

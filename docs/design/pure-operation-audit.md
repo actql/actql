@@ -786,6 +786,11 @@ admission, resource enforcement or complete source authority.
    steps and unselected expression branches. Exact expression/node ownership
    and cumulative collection work are retained. Inventory is not discharge;
    operation-level obligations and validated resolutions remain required.
+   Reference indexes can now bind exact declaration-owned Parameter values and
+   emit the selected-name typed value preimage without a second projection tree.
+   Repeated references and opaque literals retain their existing interpretation.
+   This closes the local reference-to-value owner link, not completeness of all
+   staged source slots or assembly of Program/stage/Invocation envelopes.
    [Combined order checking](combined-order-checking.md) now resolves
    all steps and named Results with one shared budget and one pipeline owner.
    Capacity and other mandatory obligations still require the final combined

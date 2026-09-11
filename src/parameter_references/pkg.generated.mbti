@@ -10,6 +10,14 @@ import {
 }
 
 // Values
+pub fn bind_values(Index, @parameter_binding.BoundValues, max_work~ : Int) -> Result[BoundIndex, BindingIssue]
+
+pub fn binding_work(BoundIndex) -> Int
+
+pub fn bound_index(BoundIndex) -> Index
+
+pub fn bound_values(BoundIndex) -> @parameter_binding.BoundValues
+
 pub fn build(@decode_core.Cursor, @parameter_binding.Declarations, Array[@expression_syntax.ParameterOccurrences], Limits) -> Result[Index, Issue]
 
 pub fn declarations(Index) -> @parameter_binding.Declarations
@@ -17,6 +25,8 @@ pub fn declarations(Index) -> @parameter_binding.Declarations
 pub fn emit_references(Index, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
 
 pub fn emit_used_declarations(Index, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
+
+pub fn emit_used_values(BoundIndex, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
 
 pub fn pointer_units(Index) -> Int
 
@@ -28,9 +38,22 @@ pub fn slot_at(Index, Int) -> @expression_syntax.ParameterOccurrences?
 
 pub fn source(Index) -> @decode_core.Cursor
 
+pub fn used_value_at(BoundIndex, Int) -> @parameter_binding.BoundParameter?
+
+pub fn used_value_count(BoundIndex) -> Int
+
 // Errors
 
 // Types and methods
+pub(all) enum BindingIssue {
+  InvalidLimits
+  ForeignDeclarations
+  WorkLimit
+  MissingValue(String)
+} derive(Eq, @debug.Debug)
+
+type BoundIndex
+
 type Index
 
 pub(all) enum Issue {
