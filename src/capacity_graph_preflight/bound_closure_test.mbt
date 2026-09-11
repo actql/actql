@@ -3,6 +3,7 @@
 fn bound_capacity(
   p : @pipeline.CheckedPipeline,
   values : @parameter.BoundValues,
+  proof_pipeline? : @pipeline.CheckedPipeline? = None,
 ) -> @capacity_graph_preflight.ApplicationCoverage {
   let proof = "{\"inputs\":[],\"law_id\":\"actql.bound.take\",\"semantic_ref\":\"checked-step:0\",\"unit\":\"rows\",\"value\":7,\"version\":\"actql-bound-proof/0.1\"}"
   let id = "sha256:db6a87fa0b3a193fe3ecf19742e8071fb7736e24e7847e89a315a487305aa449"
@@ -35,14 +36,15 @@ fn bound_capacity(
     max_nodes: 100,
     max_depth: 10,
   }).unwrap()
+  let owner = proof_pipeline.unwrap_or(p)
   let bindings = @program.bind_parameters(
-    p,
+    owner,
     values,
     max_work=10,
     max_text_bytes=100,
   ).unwrap()
   let app = @program.check_with_inputs(
-    p,
+    owner,
     0,
     @wire.program_claim_proof_at(claims, 0).unwrap(),
     [],
@@ -134,7 +136,7 @@ test "producer capacity closure rejects substituted bindings at a later repeated
   let cost = 3 +
     @capacity_graph_preflight.application_coverage_work(a) +
     2 * @capacity_graph_preflight.application_coverage_work(b) +
-    2
+    4
   let guards = @pipeline.bind_contextual_guards(
     orders,
     [None, Some(values), Some(values)],
@@ -185,7 +187,7 @@ test "producer capacity closure rejects substituted bindings at a later repeated
       bound_guards=guards,
       max_work=cost - 1,
     )
-    is Err(GuardBindings(2, WorkLimit)),
+    is Err(ProofWorkLimit),
   )
   let other_orders = @pipeline.resolve_contextual_closure(
     root,
@@ -202,5 +204,91 @@ test "producer capacity closure rejects substituted bindings at a later repeated
       max_work=cost,
     )
     is Err(ForeignGuardClosure),
+  )
+  let cross = bound_capacity(root, values, proof_pipeline=Some(base))
+  let membership_cost = 3 +
+    @capacity_graph_preflight.application_coverage_work(cross) +
+    2 * @capacity_graph_preflight.application_coverage_work(b) +
+    3 +
+    3 +
+    1
+  let registrations = [(0, 0, 1)]
+  let combined = @capacity_graph_preflight.check_application_closure(
+    orders,
+    [cross, b, b],
+    selected_policy=policy(false),
+    bound_guards=guards,
+    proof_owners=registrations,
+    max_work=membership_cost,
+  ).unwrap()
+  assert_eq(
+    @capacity_graph_preflight.application_closure_work(combined),
+    membership_cost,
+  )
+  assert_eq(
+    @capacity_graph_preflight.application_closure_proof_owner(combined, 0, 0),
+    Some(1),
+  )
+  assert_eq(
+    @capacity_graph_preflight.application_closure_proof_owner(combined, 1, 0),
+    Some(1),
+  )
+  assert_eq(
+    @capacity_graph_preflight.application_closure_proof_owner(combined, 2, 0),
+    Some(2),
+  )
+  registrations[0] = (0, 0, 0)
+  assert_eq(
+    @capacity_graph_preflight.application_closure_proof_owner(combined, 0, 0),
+    Some(1),
+  )
+  for
+    (owners, issue) in [
+      ([], @capacity_graph_preflight.MissingProofOwner(0, 0)),
+      ([(0, 0, 0)], @capacity_graph_preflight.ForeignProofOwner(0, 0)),
+      ([(0, 0, 3)], @capacity_graph_preflight.InvalidProofOwner(0, 0)),
+      ([(0, 1, 1)], @capacity_graph_preflight.InvalidProofOwner(0, 1)),
+      (
+        [(0, 0, 1), (0, 0, 2)],
+        @capacity_graph_preflight.DuplicateProofOwner(0, 0),
+      ),
+      ([(1, 0, 1)], @capacity_graph_preflight.UnnecessaryProofOwner(1, 0)),
+    ] {
+    let actual = @capacity_graph_preflight.check_application_closure(
+      orders,
+      [cross, b, b],
+      selected_policy=policy(false),
+      bound_guards=guards,
+      proof_owners=owners,
+      max_work=membership_cost + 1,
+    )
+    guard actual is Err(error) else { abort("rejection expected") }
+    assert_eq(error, issue)
+  }
+  assert_true(
+    @capacity_graph_preflight.check_application_closure(
+      orders,
+      [cross, b, b],
+      selected_policy=policy(false),
+      bound_guards=guards,
+      proof_owners=[(0, 0, 1)],
+      max_work=membership_cost - 1,
+    )
+    is Err(ProofWorkLimit),
+  )
+  guard @parameter.bind(declarations, None, bind_limits).unwrap() is Ready(copy) else {
+    abort("ready expected")
+  }
+  let substituted = bound_capacity(root, copy, proof_pipeline=Some(base))
+  assert_true(
+    @capacity_graph_preflight.check_application_closure(
+      orders,
+      [substituted, b, b],
+      selected_policy=policy(false),
+      bound_guards=guards,
+      proof_owners=[(0, 0, 1)],
+      max_work=membership_cost,
+    )
+    is Err(ProofBindingMismatch(0, 0)),
   )
 }

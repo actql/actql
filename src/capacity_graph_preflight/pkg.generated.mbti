@@ -22,6 +22,8 @@ pub fn application_closure_orders(ApplicationClosure) -> @pipeline_typing.Contex
 
 pub fn application_closure_policy(ApplicationClosure) -> @capacity_policy.Policy
 
+pub fn application_closure_proof_owner(ApplicationClosure, Int, Int) -> Int?
+
 pub fn application_closure_work(ApplicationClosure) -> Int
 
 pub fn application_coverage_consumers(ApplicationCoverage) -> ConsumerCoverage
@@ -32,7 +34,7 @@ pub fn application_coverage_work(ApplicationCoverage) -> Int
 
 pub fn check(@pipeline_typing.CheckedPipeline, @capacity_host_witness.HostSources, @capacity_policy.Policy, Limits) -> Result[GraphInputs, Issue]
 
-pub fn check_application_closure(@pipeline_typing.ContextualClosure, Array[ApplicationCoverage], selected_policy~ : @capacity_policy.Policy, bound_guards~ : @pipeline_typing.BoundGuardClosure, max_work~ : Int) -> Result[ApplicationClosure, ApplicationClosureIssue]
+pub fn check_application_closure(@pipeline_typing.ContextualClosure, Array[ApplicationCoverage], selected_policy~ : @capacity_policy.Policy, bound_guards~ : @pipeline_typing.BoundGuardClosure, proof_owners? : Array[(Int, Int, Int)], max_work~ : Int) -> Result[ApplicationClosure, ApplicationClosureIssue]
 
 pub fn check_application_coverage(GraphInputs, @capacity_program_step.Applications, @capacity_sequence_limit.Applications, joins? : @capacity_program_step.JoinApplications?, max_work~ : Int) -> Result[ApplicationCoverage, ApplicationCoverageIssue]
 
@@ -81,6 +83,13 @@ pub(all) enum ApplicationClosureIssue {
   ForeignPolicy(Int)
   ForeignGuardClosure
   GuardBindings(Int, @capacity_program_step.GuardBindingIssue)
+  ProofWorkLimit
+  InvalidProofOwner(Int, Int)
+  DuplicateProofOwner(Int, Int)
+  UnnecessaryProofOwner(Int, Int)
+  ForeignProofOwner(Int, Int)
+  MissingProofOwner(Int, Int)
+  ProofBindingMismatch(Int, Int)
 } derive(Eq, @debug.Debug)
 
 type ApplicationCoverage

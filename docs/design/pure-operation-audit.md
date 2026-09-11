@@ -599,8 +599,12 @@ for Graph membership, preflight and search-resource validation.
    binding-dependent proofs. Foreign producer entries are explicitly outside
    that local result. The capacity occurrence closure now requires the exact
    bound guard closure and performs each local comparison under its shared
-   budget, including repeated and unused visits. Enclosing Invocation identity
-   and membership of foreign proof-table producers remain unfinished.
+   budget, including repeated and unused visits. Nonlocal proof-table entries
+   now require validated producer coordinates, exact pipeline ownership and
+   matching bound values in the same closure. Missing/foreign registrations and
+   binding substitutions fail under a shared linear scan budget. Enclosing
+   Program/Invocation semantic identity remains unfinished; closure membership
+   and owner-relative coordinates are not substitutes for that identity.
    Do not
    expand into acquisition, an evaluator or Host dispatch.
 3. Connect contextual resolutions into a complete static checking/discharge

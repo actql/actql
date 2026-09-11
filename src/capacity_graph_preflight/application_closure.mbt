@@ -7,6 +7,13 @@ pub(all) enum ApplicationClosureIssue {
   ForeignPolicy(Int)
   ForeignGuardClosure
   GuardBindings(Int, @program.GuardBindingIssue)
+  ProofWorkLimit
+  InvalidProofOwner(Int, Int)
+  DuplicateProofOwner(Int, Int)
+  UnnecessaryProofOwner(Int, Int)
+  ForeignProofOwner(Int, Int)
+  MissingProofOwner(Int, Int)
+  ProofBindingMismatch(Int, Int)
 } derive(Eq, Debug)
 
 ///|
@@ -18,6 +25,7 @@ struct ApplicationClosure {
   policy : @policy.Policy
   guards : @pipeline.BoundGuardClosure
   bound_applications : Array[@program.GuardApplications]
+  proof_owners : Map[(Int, Int), Int]
   work : Int
 }
 
@@ -27,6 +35,7 @@ pub fn check_application_closure(
   applications : Array[ApplicationCoverage],
   selected_policy~ : @policy.Policy,
   bound_guards~ : @pipeline.BoundGuardClosure,
+  proof_owners? : Array[(Int, Int, Int)] = [],
   max_work~ : Int,
 ) -> Result[ApplicationClosure, ApplicationClosureIssue] {
   if max_work < 0 {
@@ -71,14 +80,36 @@ pub fn check_application_closure(
     work += @program.guard_application_work(bound)
     bound_applications.push(bound)
   }
+  let membership = match
+    check_proof_membership(
+      orders,
+      applications,
+      bound_guards,
+      proof_owners,
+      max_work - work,
+    ) {
+    Ok(v) => v
+    Err(e) => return Err(e)
+  }
+  work += membership.work
   Ok({
     orders,
     entries: applications.copy(),
     policy: selected_policy,
     guards: bound_guards,
     bound_applications,
+    proof_owners: membership.owners,
     work,
   })
+}
+
+///|
+pub fn application_closure_proof_owner(
+  v : ApplicationClosure,
+  visit : Int,
+  claim : Int,
+) -> Int? {
+  v.proof_owners.get((visit, claim))
 }
 
 ///|

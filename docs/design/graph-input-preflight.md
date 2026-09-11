@@ -191,14 +191,34 @@ this comparison is no longer a successful capacity-closure path. Local proofs
 that use Parameter values must retain that context's exact bound collection.
 Repeated visits are checked independently and charged again. The result retains
 the bound closure and each local comparison. Foreign producer entries in a
-local proof table remain outside that local comparison's coverage.
+local proof table are checked by the subsequent membership pass.
 
 A fixed, independently hashed take-bound fixture covers a producer referenced
 twice, including an unused second reference. Substituting a different bound
 value collection at the later visit fails atomically, as does a one-short scan
 budget. Recomputing an otherwise identical contextual closure cannot substitute
 for the bound guards' original owner. This is occurrence-local agreement, not
-proof that every proof-table producer belongs to the enclosing Program.
+proof of enclosing Program semantic identity.
+
+The membership pass visits every ordinary proof in every retained table.
+Proofs owned by that visit's pipeline use the current visit automatically.
+Nonlocal proofs require `proof_owners` coordinates `(table visit, claim index,
+producer visit)`. Each coordinate must resolve to an ordinary proof and an
+actual contextual visit whose pipeline is physically the proof's owner.
+Missing, duplicate, out-of-range, mismatched and unnecessary local registrations
+are rejected. The selected producer's bound Parameter collection must also
+match any bindings retained by the proof. Coordinates cannot manufacture a
+producer or establish ownership merely by matching source text.
+
+Registration costs one unit each, followed by one unit per table slot, under
+the remaining aggregation budget. Direct indices and a coordinate map avoid
+searching every producer for every proof. The owned result exposes the resolved
+visit through `application_closure_proof_owner`; mutating the registration array
+does not change it. Tests cover nonlocal proof reuse, missing and invalid owner
+coordinates, duplicate registration, equal-valued foreign binding collections,
+and an exact/one-short membership budget. This establishes membership in the
+submitted producer closure, not semantic Program/Invocation identity or Host
+authority; normal proof-input checks still govern actual dependency edges.
 
 This establishes supported local capacity coverage across the producer graph,
 not complete source authority or all capacity consumers. Contextual resolution
