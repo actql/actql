@@ -138,8 +138,12 @@ consumer audit.
    cover the added route. Contextual producer closure now collects guards for
    every visit, including unused branches and repeated owners, under its shared
    budgets. Result order checking retains these collections with their original
-   source owners. This closes upstream enumeration, not numeric binding across
-   owners, Program identity binding or consumer enforcement.
+   source owners. Closure-wide numeric binding now validates one optional
+   declaration-owned BoundValues per visit under cumulative budgets, preserving
+   repeated occurrences and reporting late failures atomically. Reusable
+   pipeline ownership is not Invocation identity: consistency of bindings within
+   a Program/Invocation, source identity binding and consumer enforcement remain
+   required.
    [Producer-bound input evidence](produced-input-evidence.md) now retains the
    original pipeline/target and conditional record/node/edge facts through
    input forwarding. Repeated operands and existing key/ranking owners remain

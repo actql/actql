@@ -76,7 +76,15 @@ pub fn author_guards_usage(AuthorGuards) -> (Int, Int)
 
 pub fn bind_author_guards(AuthorGuards, @parameter_binding.BoundValues?, max_work~ : Int, max_text_bytes~ : Int) -> Result[BoundAuthorGuards, Issue]
 
+pub fn bind_contextual_guards(ContextualClosure, Array[@parameter_binding.BoundValues?], max_work~ : Int, max_text_bytes~ : Int) -> Result[BoundGuardClosure, ProducerOrderIssue]
+
 pub fn bound_guard_bindings(BoundAuthorGuards) -> @parameter_binding.BoundValues?
+
+pub fn bound_guard_closure_at(BoundGuardClosure, Int) -> BoundAuthorGuards?
+
+pub fn bound_guard_closure_source(BoundGuardClosure) -> ContextualClosure
+
+pub fn bound_guard_closure_usage(BoundGuardClosure) -> (Int, Int)
 
 pub fn bound_guard_occurrences(BoundAuthorGuards) -> AuthorGuards
 
@@ -267,6 +275,8 @@ type AuthorGuards
 
 type BoundAuthorGuards
 
+type BoundGuardClosure
+
 pub enum CheckedOperation {
   Unary(@relation_typing.CheckedOperation)
   Join(right~ : Target, checked~ : @relation_join_shape.CheckedJoin)
@@ -412,6 +422,7 @@ pub(all) enum IssueKind {
   MissingDeltaContract
   InvalidDeltaContractBinding
   GuardBindingOwnerMismatch
+  GuardBindingCountMismatch
   MissingGuardBinding(String)
   InvalidGuardValue(String)
   UnsupportedOperation(String)

@@ -48,8 +48,7 @@ collects every visited producer's guards under the same cumulative work/text
 budget as order checking. Its indexed guard collections retain repeated producer
 occurrences and unused branches. Result `resolve_all_orders` retains that closure
 and charges publication work against the remaining budget. An imported guard
-is never reassigned to a coincidentally numbered local step. Numeric binding
-and source/application validation across that closure remain separate work.
+is never reassigned to a coincidentally numbered local step.
 
 ## Numeric binding and declaration ownership
 
@@ -75,6 +74,28 @@ not scan unrelated Parameter value trees; those remain owned by their completed
 admission. A later invalid guard returns no partial collection. Enumeration and
 binding budgets are explicit separate costs for a future combined caller to
 accumulate, not implicit execution-policy limits.
+
+## Producer-closure binding
+
+`bind_contextual_guards` takes the retained contextual closure and exactly one
+optional BoundValues per visit, in closure order. Every supplied owner is checked,
+including visits with no guards. A missing, extra or foreign entry is not ignored;
+`None` only permits guards that do not need Parameter values. The result retains
+the exact closure and bound occurrences without retaining the caller's array.
+
+Binding charges one work unit per visit plus each local binder's work/text cost,
+with no budget reset between producers. Empty visits cost work, repeated visits
+are charged separately, and a late error returns no partial successful closure.
+Diagnostics retain the actual failing pipeline and original guard location.
+`bound_guard_closure_usage` reports additional binding cost; a combined checker
+must also account for prior closure and publication costs.
+
+An unbound checked pipeline is a reusable template, not a Program or Invocation
+identity. Repeated visits may therefore retain distinct valid bound collections
+from the same declaration owner. This API does not assert that those visits
+belong to one Invocation or resolve whether their Program identity requires the
+same values. That consistency check belongs to source/identity binding; the
+numeric collection is not a substitute for it.
 
 ## Remaining source binding
 

@@ -53,6 +53,7 @@ pub(all) enum IssueKind {
   MissingDeltaContract
   InvalidDeltaContractBinding
   GuardBindingOwnerMismatch
+  GuardBindingCountMismatch
   MissingGuardBinding(String)
   InvalidGuardValue(String)
   UnsupportedOperation(String)

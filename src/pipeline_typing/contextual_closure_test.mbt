@@ -162,6 +162,23 @@ test "producer closure bounds empty forwarding chains without recursion" {
   ).unwrap()
   assert_eq(@pipeline_typing.contextual_closure_count(closure), 2001)
   assert_eq(@pipeline_typing.contextual_closure_usage(closure), (4003, 0))
+  let bindings = Array::make(2001, None)
+  let bound = @pipeline_typing.bind_contextual_guards(
+    closure,
+    bindings,
+    max_work=2001,
+    max_text_bytes=0,
+  ).unwrap()
+  assert_eq(@pipeline_typing.bound_guard_closure_usage(bound), (2001, 0))
+  assert_true(
+    @pipeline_typing.bind_contextual_guards(
+      closure,
+      bindings,
+      max_work=2000,
+      max_text_bytes=0,
+    )
+    is Err(_),
+  )
   assert_true(
     @pipeline_typing.resolve_contextual_closure(
       p,
