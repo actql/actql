@@ -73,6 +73,41 @@ every supplied snapshot to be covered under the same source/environment owners.
 This is local-Relation snapshot coverage, not admission of other sections or proof
 that all inputs have the evidence their governing policy will require.
 
+## Contract Registry integrity and exact references
+
+`check_contract_registry` checks every member of the derived `contract_registry`,
+including unused entries. The opaque result retains the exact `WireEnvironment`;
+each opaque ContractEnvelope retains its original member handle and body cursor.
+It validates the closed shape and 17 kinds in
+`actql-protocol-schemas.json#/schemas/contract_envelope`, nonempty external
+id/version strings, and each self-CID. External contract versions are not forced
+to the owned specification baseline.
+
+The preimage contains `schema`, `id`, `version`, `kind` and `body`, excluding only
+the root `cid`. This follows the Catalog rule in
+`actql-lookup-identities.json#/laws/catalog` and the reference
+`87dc7144:src/actql-protocol.ts` envelope constructor. Nested `cid`, `$param`
+and `literal` are ordinary data. A null body is legal at this envelope-shape
+boundary, not proof that it satisfies a particular role's body contract.
+Aggregate rehashing cannot repair a stale inner self-CID.
+
+The indexed resolver matches id, version, CID and required kind independently.
+Conflicting id/version identities fail; identical whole envelopes were already
+rejected by wire admission because they must be deduplicated before constructing
+the canonical environment. Tuple keys avoid concatenation collisions. Limits
+charge all full envelope bytes/nodes and members cumulatively, with depth bounded
+per envelope; hashing performs bounded nonrecursive passes without materializing
+another complete JSON string. Usage is payload accounting, not a heap ceiling.
+
+This result is deliberately **not Catalog closure**. Catalog ownership, reference
+closure inside each Catalog, role-specific body validation, equality of derived
+arrays to that closure, and issuer/Host authority remain required. In particular,
+successful resolution here does not establish complete SourceView candidates or
+authorize sole-view completion. Final assembly must retain these separate proofs.
+Fixed independently calculated self-CIDs cover null and nested business data;
+tests cover stale inner identity, role/version/CID mismatches, conflicting names,
+closed shapes, cumulative limits, exact ownership and depth 1,000.
+
 ## Capacity component selection
 
 The normative component selector is now `/host_policy_profile/capacity`, with

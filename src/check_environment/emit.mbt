@@ -12,7 +12,24 @@ fn emit_cursor(
   writer : @encode.Writer,
   omit_identity : Bool,
 ) -> Unit raise @encode.EncodeFailure {
-  let pending = if omit_identity {
+  emit_except(
+    root,
+    writer,
+    if omit_identity {
+      Some("evidence_bundle_cid")
+    } else {
+      None
+    },
+  )
+}
+
+///|
+fn emit_except(
+  root : @decode.Cursor,
+  writer : @encode.Writer,
+  omitted : String?,
+) -> Unit raise @encode.EncodeFailure {
+  let pending = if omitted is Some(_) {
     @encode.begin_object(writer)
     [ObjectNext(root, 0, @decode.object_length(root).unwrap(), None, true)]
   } else {
@@ -52,7 +69,7 @@ fn emit_cursor(
             raise @encode.InvalidStructure
           }
           pending.push(ObjectNext(cursor, i + 1, count, Some(key), omit))
-          if !(omit && key == "evidence_bundle_cid") {
+          if !(omit && omitted == Some(key)) {
             @encode.key(writer, key)
             pending.push(Visit(value))
           }

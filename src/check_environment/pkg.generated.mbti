@@ -16,7 +16,23 @@ pub fn capacity_policy(Capacity) -> @capacity_policy.Policy
 
 pub fn capacity_usage(Capacity) -> (Int, Int)
 
+pub fn check_contract_registry(WireEnvironment, Limits) -> Result[ContractRegistry, ContractIssue]
+
 pub fn cid(WireEnvironment) -> String
+
+pub fn contract_at(ContractRegistry, Int) -> ContractEnvelope?
+
+pub fn contract_body(ContractEnvelope) -> @decode_core.Cursor
+
+pub fn contract_identity(ContractEnvelope) -> (String, String, String)
+
+pub fn contract_member(ContractEnvelope) -> Member
+
+pub fn contract_registry_environment(ContractRegistry) -> WireEnvironment
+
+pub fn contract_registry_usage(ContractRegistry) -> (Int, Int, Int)
+
+pub fn contract_role(ContractEnvelope) -> String
 
 pub fn emit(WireEnvironment, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
 
@@ -44,6 +60,8 @@ pub fn read_capacity(WireEnvironment, @capacity_policy.Limits) -> Result[Capacit
 
 pub fn read_text_time(WireEnvironment, @text_time_policy.Limits) -> Result[TextTime, TextTimeIssue]
 
+pub fn resolve_contract(ContractRegistry, String, String, String, String) -> Result[ContractEnvelope, ContractIssue]
+
 pub fn text_time_environment(TextTime) -> WireEnvironment
 
 pub fn text_time_policy(TextTime) -> @text_time_policy.Policy
@@ -64,6 +82,21 @@ pub(all) enum CapacityIssue {
   BudgetExceeded
   Policy(@capacity_policy.Issue)
 } derive(Eq, @debug.Debug)
+
+type ContractEnvelope
+
+pub(all) enum ContractIssue {
+  InvalidLimits
+  BudgetExceeded
+  InvalidEnvelope(Int)
+  IdentityMismatch(Int)
+  ConflictingIdentity(String, String)
+  UnknownReference(String, String)
+  ReferenceMismatch(String, String)
+  WrongKind(String, String)
+} derive(Eq, @debug.Debug)
+
+type ContractRegistry
 
 pub(all) enum Issue {
   InvalidLimits
