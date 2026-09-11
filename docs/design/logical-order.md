@@ -81,6 +81,22 @@ One ordered operand cannot establish order for the unordered operand; neither
 concatenation nor take's output cardinality supplies that missing proof. The
 append summary does not establish global key uniqueness or completeness.
 
+Cross join similarly requires both input sequences and records both operand
+occurrences, using left-major, right-minor product order. Its own checked
+projection may hide either identity without losing occurrence order. The
+singleton-right assertion and product resource checks remain required; neither
+typed fields nor a right-side bound substitutes for missing input order.
+
+Unnest and unpivot establish expansion order conditional on their selected
+input's order, with that input retained as an origin dependency. Unnest uses
+source occurrence then element index, including the synthetic outer occurrence
+for empty/null arrays; no exposed index is required for this internal sequence.
+Unpivot uses source occurrence then authored column occurrence, including
+repeated columns. Removing the parent or index columns can lose field-key
+evidence without losing this sequence. None of these operations fabricates order
+from an unordered source. These are the existing Language expansion laws, not
+new acceptance rules or execution conformance claims.
+
 `order_sort_completion` exposes the selected witness and indexed appended fields.
 The retained origin operation supplies the unchanged authored terms. This is
 information for later Plan construction and journaling, not a claim that a

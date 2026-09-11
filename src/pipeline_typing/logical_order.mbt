@@ -125,7 +125,7 @@ fn derive_logical_orders(
       _ => false
     }
     let dependencies = match step.operation {
-      Append(right~, ..) => {
+      Append(right~, ..) | CrossJoin(right~, ..) => {
         let right_order = match right {
           Input(_) => None
           Step(j) => out[j]
@@ -135,6 +135,12 @@ fn derive_logical_orders(
           _ => []
         }
       }
+      Unary(op) if @relation.operation(op) == @relation.Unnest ||
+        @relation.operation(op) == @relation.Unpivot =>
+        match (step.input, previous) {
+          (Some(input), Some(_)) => [input]
+          _ => []
+        }
       _ => []
     }
     out.push(
