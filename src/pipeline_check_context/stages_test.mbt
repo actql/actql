@@ -114,6 +114,71 @@ test "all stage contexts share source Results bindings policy and cumulative wor
     max_text_bytes=100000,
   ).unwrap()
   assert_true(physical_equal(stage_operations(attached), bound))
+  let reference_values = reference_values_for(operations, values)
+  let joined = attach_program_references(
+    attached,
+    reference_values,
+    max_work=10000000,
+  ).unwrap()
+  assert_true(physical_equal(program_reference_stages(joined), attached))
+  assert_true(
+    physical_equal(program_reference_values(joined), reference_values),
+  )
+  let exact = program_reference_work(joined)
+  assert_eq(
+    exact,
+    stage_usage(attached).0 + @program_refs.parameter_work(reference_values) + 2,
+  )
+  assert_true(
+    attach_program_references(attached, reference_values, max_work=exact)
+    is Ok(_),
+  )
+  assert_true(
+    attach_program_references(attached, reference_values, max_work=exact - 1)
+    is Err(WorkLimit),
+  )
+  assert_true(
+    attach_program_references(attached, reference_values, max_work=-1)
+    is Err(InvalidLimits),
+  )
+  let replaced = reference_operations(source, [
+    pipelines[0],
+    reference_pipeline(source, 1),
+  ])
+  assert_true(
+    attach_program_references(
+      attached,
+      reference_values_for(replaced, values),
+      max_work=10000000,
+    )
+    is Err(ForeignPipeline(1)),
+  )
+  let other_source = @stages.prepare(program, {
+    max_parameters: 10,
+    max_nodes: 1000,
+    max_depth: 100,
+    max_text_bytes: 10000,
+  }).unwrap()
+  guard @parameter.bind(@stages.declarations(other_source), None, {
+      max_nodes: 100,
+      max_depth: 10,
+      max_text_bytes: 1000,
+    }).unwrap()
+    is Ready(other_values) else {
+    fail("missing defaults")
+  }
+  let foreign_operations = reference_operations(other_source, [
+    reference_pipeline(other_source, 0),
+    reference_pipeline(other_source, 1),
+  ])
+  assert_true(
+    attach_program_references(
+      attached,
+      reference_values_for(foreign_operations, other_values),
+      max_work=10000000,
+    )
+    is Err(ForeignSource),
+  )
   assert_true(physical_equal(stage_results(attached), results))
   assert_eq(@policy.cid(stage_policy(attached)), @policy.cid(policy()))
   let (work, text) = stage_usage(attached)
@@ -198,6 +263,14 @@ test "all stage contexts share source Results bindings policy and cumulative wor
     @stage_results.stage_at(results, 1).unwrap(),
     pipelines[1],
     other,
+  )
+  assert_true(
+    attach_program_references(
+      attached,
+      reference_values_for(operations, other),
+      max_work=10000000,
+    )
+    is Err(ForeignValues),
   )
   assert_true(
     attach_stage_contexts(

@@ -2,6 +2,9 @@ supported_targets = "+js+wasm+native"
 
 import {
   "actql/actql/stage_parameters" @stages,
+  "actql/actql/program_references" @program_refs,
+  "actql/actql/source_request_slots" @request_slots,
+  "actql/actql/stage_source" @stage_body,
   "actql/actql/stage_results",
   "actql/actql/stage_local_inputs" @local_inputs,
   "actql/actql/pipeline_parameters" @parameter_slots,
@@ -25,6 +28,7 @@ import {
 
 import {
   "actql/actql/local_relation_snapshot" @snapshot,
+  "actql/actql/binding_declarations",
   "actql/actql/stage_source_refs" @refs,
   "actql/actql/sha256" @sha,
   "actql/actql/source_value" @source,

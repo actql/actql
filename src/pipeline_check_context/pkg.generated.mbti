@@ -10,6 +10,7 @@ import {
   "actql/actql/parameter_references",
   "actql/actql/pipeline_parameters",
   "actql/actql/pipeline_typing",
+  "actql/actql/program_references",
   "actql/actql/regex_pattern",
   "actql/actql/regex_replacement",
   "actql/actql/relation_results",
@@ -26,6 +27,8 @@ import {
 pub fn attach_environment(InputContexts, @stage_local_inputs.ProgramEnvironmentInputs, max_work~ : Int, max_text_bytes~ : Int, max_local_input_nodes~ : Int) -> Result[EnvironmentContext, EnvironmentIssue]
 
 pub fn attach_local_inputs(WiredStages, Array[@stage_local_inputs.Attached], max_work~ : Int, max_text_bytes~ : Int, max_local_input_nodes~ : Int) -> Result[InputContexts, InputIssue]
+
+pub fn attach_program_references(StageContexts, @program_references.ParameterValues, max_work~ : Int) -> Result[ProgramReferences, ProgramReferenceIssue]
 
 pub fn attach_reconciled_inputs(WiredStages, @stage_local_inputs.ProgramEnvironmentInputs, Array[@stage_local_inputs.ReconciledAttachment], max_work~ : Int, max_text_bytes~ : Int, max_local_input_nodes~ : Int) -> Result[ReconciledContexts, ReconciledIssue]
 
@@ -122,6 +125,12 @@ pub fn pattern_usage(PatternChecks) -> PatternUsage
 pub fn policy_context(SelectedPolicyContext) -> ReconciledContexts
 
 pub fn prepare_expression_validation(SelectedPolicyContext, ExpressionValidationLimits) -> Result[ExpressionValidationContext, ExpressionValidationIssue]
+
+pub fn program_reference_stages(ProgramReferences) -> StageContexts
+
+pub fn program_reference_values(ProgramReferences) -> @program_references.ParameterValues
+
+pub fn program_reference_work(ProgramReferences) -> Int
 
 pub fn reconciled_local_at(ReconciledContexts, Int) -> @stage_local_inputs.ReconciledAttachment?
 
@@ -370,6 +379,16 @@ pub(all) struct PatternUsage {
 } derive(Eq, @debug.Debug)
 
 type PipelineContext
+
+pub(all) enum ProgramReferenceIssue {
+  InvalidLimits
+  ForeignSource
+  ForeignValues
+  ForeignPipeline(Int)
+  WorkLimit
+} derive(Eq, @debug.Debug)
+
+type ProgramReferences
 
 type ReconciledContexts
 

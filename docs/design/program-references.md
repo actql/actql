@@ -91,6 +91,23 @@ checks and pipeline validation against the same bound values remain separate.
 In particular, attaching Parameter values here does not resolve operation guards
 or prove that existing pipeline checks used those values.
 
+`pipeline_check_context.attach_program_references` now joins this projection to
+`StageContexts`. It checks the exact prepared source, the exact BoundValues
+already selected by the stage operation/guard checks, and the exact checked
+pipeline at every stage ordinal. Re-checking the same source into another
+pipeline is not interchangeable with the retained producer. The opaque joined
+result retains both inputs; no checker results are reconstructed from emitted
+JSON or CID equality. Its cumulative cap charges the two input branches' reported
+work plus one comparison visit per stage. This conservative composition does
+not claim exact unique-object memory accounting or subtract shared work without
+an accounting proof. Earlier text/value caps remain attached to their owners.
+
+This is a connection of existing checks, not the final CheckedProgram. Final
+assembly must retain this joined evidence together with input/import wiring,
+environment, static policy checks and residual obligations, rather than unwrap
+the StageContexts and discard the reference-use proof. Complete Input/Effect
+admission and opaque binding issuer evidence remain outstanding.
+
 ## What this does not certify
 
 The inventory closes composition of the currently admitted reference roles,
