@@ -3,6 +3,7 @@ package "actql/actql/stage_parameters"
 
 import {
   "actql/actql/parameter_binding",
+  "actql/actql/parameter_references",
   "actql/actql/pipeline_parameters",
   "actql/actql/pipeline_typing",
   "actql/actql/stage_syntax",
@@ -12,9 +13,19 @@ import {
 // Values
 pub fn collect(Source, Int, @pipeline_typing.CheckedPipeline, @pipeline_parameters.Limits) -> Result[CollectedStage, Issue]
 
+pub fn collect_operations(Source, Array[@pipeline_typing.CheckedPipeline], @pipeline_parameters.Limits) -> Result[CollectedOperations, OperationsIssue]
+
 pub fn collection(CollectedStage) -> @pipeline_parameters.Collected
 
 pub fn declarations(Source) -> @parameter_binding.Declarations
+
+pub fn operations_index(CollectedOperations) -> @parameter_references.Index
+
+pub fn operations_source(CollectedOperations) -> Source
+
+pub fn operations_stage_at(CollectedOperations, Int) -> CollectedStage?
+
+pub fn operations_usage(CollectedOperations) -> OperationsUsage
 
 pub fn prepare(@stage_syntax.Program, @parameter_binding.DeclarationLimits) -> Result[Source, Issue]
 
@@ -31,6 +42,8 @@ pub fn stage_index(CollectedStage) -> Int
 // Errors
 
 // Types and methods
+type CollectedOperations
+
 type CollectedStage
 
 pub(all) enum Issue {
@@ -40,6 +53,22 @@ pub(all) enum Issue {
   ForeignSteps
   ForeignInitialFrom
   Collection(@pipeline_parameters.Issue)
+} derive(Eq, @debug.Debug)
+
+pub(all) enum OperationsIssue {
+  InvalidLimits
+  PipelineCountMismatch
+  WorkLimit
+  Stage(Int, Issue)
+  References(@parameter_references.Issue)
+} derive(Eq, @debug.Debug)
+
+pub(all) struct OperationsUsage {
+  work : Int
+  slots : Int
+  references : Int
+  pointer_units : Int
+  direct_text_bytes : Int
 } derive(Eq, @debug.Debug)
 
 type Source

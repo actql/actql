@@ -6,9 +6,10 @@ import {
   "actql/actql/pipeline_typing" @pipeline,
   "actql/actql/pipeline_parameters" @collection,
   "actql/actql/decode_core" @decode,
+  "actql/actql/parameter_references" @references,
+  "actql/actql/expression_syntax" @expression,
 }
 
 import {
-  "actql/actql/parameter_references" @references,
   "actql/actql/relation_schema" @schema,
 } for "test"
