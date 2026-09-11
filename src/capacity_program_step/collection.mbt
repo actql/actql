@@ -14,8 +14,8 @@ pub(all) enum ApplicationIssue {
 struct Applications {
   claims : @wire.ProgramClaims
   entries : Array[StepBound?]
-  remaining : Int
-  work : Int
+  mut remaining : Int
+  mut work : Int
 }
 
 ///|
@@ -60,7 +60,15 @@ pub fn check_applications(
         }
         remaining = remaining + 1
       }
-      Some(application) =>
+      Some(application) => {
+        let bound_claims = match application.enforcement {
+          Some(ComponentsEnforcement(v)) => Some(@host.source_claims(v.sources))
+          Some(TraversalEnforcement(v)) => Some(@host.source_claims(v.sources))
+          None => None
+        }
+        if bound_claims is Some(owner) && !physical_equal(owner, claims) {
+          return Err(ForeignApplication(i))
+        }
         for j, child in application.inputs {
           if work >= max_work {
             return Err(WorkLimit)
@@ -87,6 +95,7 @@ pub fn check_applications(
             }
           }
         }
+      }
     }
   }
   Ok({ claims, entries, remaining, work, })

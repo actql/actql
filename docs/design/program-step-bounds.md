@@ -517,11 +517,44 @@ work budget before allocating their membership maps. The result retains both
 limit handles, their indices and all input owners. Authored output guards still
 report `UnresolvedAuthorSource` until source identity admission is connected.
 
-This local check does not yet discharge `components-output` or prove runtime
-enforcement. Tests
+This local check alone does not produce `components-output` or prove runtime
+enforcement. The atomic resolver below binds its output application. Tests
 fix exact/short shared budgets, retained owners, missing and wrong candidates,
 wrong scope/enforcement and unresolved authored guards independently of wire
 integrity.
+
+## Atomic output-bound construction
+
+`resolve_applications` constructs an opaque `ResolvedApplications` from
+dependency-ordered requests, under one cumulative work budget. Components and
+traversal output limits need candidate applications; later steps in turn need
+the resulting output bounds. The resolver breaks this construction-order cycle
+with a private table that cannot escape before validation completes, rather
+than a public mutable builder or a partially checked success result.
+
+Ordinary derivation requests can reference earlier resolved applications.
+Components and traversal requests validate both operation-specific limits and
+bind the output proof to the exact local step, Rows unit, output law, minimum
+value and multiset of candidate CIDs. Repeated candidates are retained and
+candidate presentation order is irrelevant. These engine-atomic output proofs
+use ordinary `SourceValue` claims, not the separate `UnitPreflight`
+`EnforcedCeiling` representation. They retain the limit owner and Program
+dependencies: an upper bound remains conditional on runtime enforcement.
+
+Before returning, every ordinary claim must have an application, every dependent
+application must belong to the collection, and every output limit is rechecked
+against the complete table. A later registered candidate cannot be omitted from
+an earlier minimum merely because the earlier construction succeeded. Combined
+source coverage requires the retained output owner to be the exact application
+table, sources and selected policy; rebuilding an equal-content table does not
+transfer ownership. Caller request arrays are not retained.
+
+Tests cover downstream `take`, components and traversal limit consumption,
+late candidate omission, foreign reconstructed tables, forward dependencies,
+duplicate and missing applications, and exact/short cumulative budgets. This
+is a capacity construction boundary, not the formal `CheckedProgram` boundary:
+authored-source semantic identity, other output families, all runtime obligation
+bindings and enclosing Program/stage/Invocation integration remain separate work.
 
 `check_components_applications` covers every components step, including unused
 branches, and consumes both limit indices exactly once. It retains the same

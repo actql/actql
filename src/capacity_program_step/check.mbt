@@ -40,6 +40,7 @@ struct StepBound {
   operand_work : Int
   bindings : CountBindings?
   join_evidence : @pipeline.JoinEvidence?
+  enforcement : OutputEnforcement?
 }
 
 ///|
@@ -826,6 +827,7 @@ fn check_application(
     operand_work,
     bindings,
     join_evidence,
+    enforcement: None,
   })
 }
 

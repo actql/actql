@@ -55,6 +55,8 @@ pub fn check_with_sources(@pipeline_typing.CheckedPipeline, Int, @capacity_witne
 
 pub fn checked_bindings(StepBound) -> CountBindings?
 
+pub fn checked_enforcement(StepBound) -> OutputEnforcement?
+
 pub fn checked_join_evidence(StepBound) -> @pipeline_typing.JoinEvidence?
 
 pub fn checked_pipeline(StepBound) -> @pipeline_typing.CheckedPipeline
@@ -146,6 +148,14 @@ pub fn operand_work(StepBound) -> Int
 pub fn parameter_values(CountBindings) -> @parameter_binding.BoundValues
 
 pub fn remaining_source_count(Applications) -> Int
+
+pub fn resolution_work(ResolvedApplications) -> Int
+
+pub fn resolve_applications(@pipeline_typing.CheckedPipeline, @capacity_host_witness.HostSources, @capacity_policy.Policy, Array[ResolutionRequest], max_work~ : Int) -> Result[ResolvedApplications, ResolutionIssue]
+
+pub fn resolved_application_at(ResolvedApplications, Int) -> StepBound?
+
+pub fn resolved_program(ResolvedApplications) -> Applications
 
 pub fn source_at(StepBound, Int) -> BoundInput?
 
@@ -324,6 +334,38 @@ pub(all) enum JoinLimitIssue {
   MissingHostCandidate
   MissingProgramCandidate(Int)
 } derive(Eq, @debug.Debug)
+
+pub(all) enum OutputEnforcement {
+  ComponentsEnforcement(ComponentsLimits)
+  TraversalEnforcement(TraversalLimits)
+}
+
+pub(all) enum ResolutionInput {
+  ExistingInput(BoundInput)
+  PriorApplication(Int)
+}
+
+pub(all) enum ResolutionIssue {
+  InvalidLimits
+  WorkLimit
+  InvalidDependency(Int, Int)
+  ForeignApplication(Int)
+  DuplicateApplication(Int)
+  Step(Int, Issue)
+  Components(Int, ComponentsLimitIssue)
+  Traversal(Int, TraversalLimitIssue)
+  InvalidOutputProof(Int)
+  Collection(ApplicationIssue)
+}
+
+pub(all) enum ResolutionRequest {
+  ExistingApplication(StepBound)
+  DeriveApplication(Int, @capacity_witness.ProgramProofClaim, Array[ResolutionInput], CountBindings?)
+  ComponentsApplication(Int, @capacity_witness.ProgramProofClaim, Int, Int)
+  TraversalApplication(Int, @capacity_witness.ProgramProofClaim, Int, Int)
+}
+
+type ResolvedApplications
 
 type StepBound
 

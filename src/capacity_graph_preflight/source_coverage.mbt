@@ -4,6 +4,7 @@ pub(all) enum SourceCoverageIssue {
   ForeignClaims
   WorkLimit
   UnsupportedSource(Int)
+  ForeignOutputOwner(Int)
 } derive(Eq, Debug)
 
 ///|
@@ -36,6 +37,36 @@ pub fn check_source_coverage(
     return Err(WorkLimit)
   }
   for i in 0..<n {
+    if @program.application_at(program, i) is Some(app) &&
+      physical_equal(@program.checked_pipeline(app), checked_pipeline(graph)) {
+      let output_owner = match @program.checked_enforcement(app) {
+        Some(@program.ComponentsEnforcement(v)) =>
+          Some(
+            (
+              @program.components_limit_program(v),
+              @program.components_limit_sources(v),
+              @program.components_limit_policy(v),
+            ),
+          )
+        Some(@program.TraversalEnforcement(v)) =>
+          Some(
+            (
+              @program.traversal_limit_program(v),
+              @program.traversal_limit_sources(v),
+              @program.traversal_limit_policy(v),
+            ),
+          )
+        None => None
+      }
+      if output_owner is Some((table, sources, policy)) &&
+        (
+          !physical_equal(table, program) ||
+          !physical_equal(sources, checked_sources(graph)) ||
+          @policy.cid(policy) != @policy.cid(selected_policy(graph))
+        ) {
+        return Err(ForeignOutputOwner(i))
+      }
+    }
     if @host.source_at(checked_sources(graph), i) is Some(_) ||
       @program.application_at(program, i) is Some(_) ||
       @wire.mixed_enforced_limit(mixed, i) is Some(_) {

@@ -136,6 +136,7 @@ pub(all) enum SourceCoverageIssue {
   ForeignClaims
   WorkLimit
   UnsupportedSource(Int)
+  ForeignOutputOwner(Int)
 } derive(Eq, @debug.Debug)
 
 // Type aliases
