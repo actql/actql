@@ -49,6 +49,26 @@ fn sync_keys(
     let step = steps[keys.length()]
     let previous = step.input.bind(t => key_at(t, inputs, keys))
     let next = match (previous, step.operation) {
+      (Some(previous), Nest(checked~, ..)) => {
+        let transfer = match
+          @evidence.transfer_nest_keys(previous, checked, {
+            max_work: b.work,
+            max_name_bytes: b.text,
+          }) {
+          Ok(v) => v
+          Err(e) =>
+            raise Stop({
+              kind: KeyEvidence(e.kind),
+              source: step.source,
+              path: e.path.copy(),
+              span: e.span,
+              range: None,
+            })
+        }
+        b.work -= transfer.work
+        b.text -= transfer.name_bytes
+        Some(transfer.keys)
+      }
       (_, Projection(op)) if @projection.operation(op) == @projection.NodeRows ||
         @projection.operation(op) == @projection.EdgeRows => {
         let transfer = match

@@ -1,5 +1,15 @@
 # Nest type checking
 
+The shared key pass preserves all parent candidate-key witnesses through nest.
+`relation_evidence.transfer_nest_keys` requires the exact admitted parent schema
+handle and rebinds the retained witnesses to the output contract. Original
+declarations, producers, aliases and validation obligations remain unchanged;
+child keys and correlation equality cannot create parent uniqueness. Work is
+one unit plus one per retained witness; immutable field metadata is shared,
+not rescanned or copied. Later projection and ordering consume the surviving
+parent aliases normally. This transfer is conditional on successful nest
+validation and execution, not proof that its child arrays are already valid.
+
 `relation_nest.check` checks the closed body against parent and child Relation
 schemas and optional Parameter declarations. The caller resolves `with`;
 `pipeline_typing` retains both input edges and ordinary from/as/current scope.

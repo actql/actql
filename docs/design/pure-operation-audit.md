@@ -49,8 +49,8 @@ consumer audit.
 | --- | --- | --- |
 | Typed Carrier and explicit connections | `pipeline_typing/types.mbt`, dispatch branches | Present; exhaustive alternative/consumer tests still need inventory-level review. |
 | Input evidence bound to immutable records | `pipeline_typing/input_evidence.mbt`, `InputContract` | Keys and ranking can be combined only on matching handles. No external count/order witness variant is admitted. |
-| Candidate-key transfer | `pipeline_typing/keys.mbt::sync_keys` | Handles unary/window_group, Calendar, time grids and Graph/Vector projections. Its default branch returns None for other operations; this is incomplete transfer, not a language rule. |
-| Nest parent keys | `language.md#nest`, `sync_keys` | Confirmed gap: nest must preserve parent keys, but the shared pass drops them. Child-order resolution does not repair this loss. |
+| Candidate-key transfer | `pipeline_typing/keys.mbt::sync_keys` | Handles unary/window_group, Calendar, time grids, nest and Graph/Vector projections. Its default branch returns None for other operations; this is incomplete transfer, not a language rule. |
+| Nest parent keys | `language.md#nest`, `sync_keys`, `relation_evidence/nest.mbt`, `pipeline_typing/nest_keys_test.mbt` | The baseline gap is now closed by exact-parent-bound witness transfer. Alias survival, child-key noninterference, budget boundaries and mismatched-contract rejection are tested. Child-order and capacity obligations remain independent. |
 | External order and counts | `logical_order.mbt::logical_order`, `row_counts.mbt` input cases | Inputs return None. Validated external facts still need a boundary; provider enumeration and caller booleans cannot fill it. |
 | Conditional operation order | `logical_order.mbt` | Implemented origin/dependency graph; inspected separately from keys and counts. It is not an execution certificate. |
 | Contextual order consumers | `aggregate_order.mbt`, `analytic_order.mbt`, `nest_order.mbt`, `input_order.mbt`, `sort_completion.mbt`, `relation_results/publication_order.mbt` | Group, analytic, nest, prefix watermark/pivot, lag, sort/top-k/take and Results have explicit resolutions. A whole-pipeline discharge boundary has not been demonstrated. |
@@ -62,8 +62,8 @@ consumer audit.
 
 ## Remaining implementation and verification
 
-1. Close semantically required key transfers, starting with the demonstrated
-   nest parent-key loss. Audit windows and Carrier bridges independently: row
+1. Close the remaining semantically required key transfers; the demonstrated
+   nest parent-key loss has been addressed. Audit windows and Carrier bridges independently: row
    preservation, repeated membership and semantic identity uniqueness are not
    interchangeable rules. Preserve original key producers and validation debts.
 2. Define validated external evidence and resolved-capacity boundaries using
