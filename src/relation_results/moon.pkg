@@ -12,6 +12,7 @@ import {
   "actql/actql/pipeline_typing" @pipeline,
   "actql/actql/canonical_value" @canonical,
   "actql/actql/relation_typing" @relation,
+  "actql/actql/publication_order_policy" @policy,
 }
 
 import {

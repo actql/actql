@@ -1,0 +1,62 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/publication_order_policy"
+
+import {
+  "actql/actql/decode_core",
+  "actql/actql/order_key",
+  "actql/actql/relation_evidence",
+  "actql/actql/relation_schema",
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn[T] decide(@decode_core.Cursor, @relation_schema.Schema, @relation_schema.Schema, Array[String], Array[AuthoredTerm]?, @relation_evidence.KeySet?, T?, max_work~ : Int, max_text_bytes~ : Int) -> Result[Decision[T], Issue]
+
+// Errors
+
+// Types and methods
+pub(all) struct AuthoredTerm {
+  field : String
+  direction : @order_key.Direction
+  nulls : @order_key.NullPlacement
+  source : @decode_core.Cursor
+}
+
+pub struct Decision[T] {
+  strategy : Strategy
+  terms : Array[Term]
+  inherited : T?
+  key : @relation_evidence.KeyedRelation?
+  work : Int
+  text_bytes : Int
+}
+
+pub struct Issue {
+  kind : IssueKind
+  source : @decode_core.Cursor
+}
+
+pub(all) enum IssueKind {
+  InvalidLimits
+  InvalidInput
+  BudgetExceeded
+  UnresolvedOrder
+} derive(Eq, @debug.Debug)
+
+pub(all) enum Strategy {
+  Authored
+  Inherited
+  CandidateKey
+  ProjectedFields
+} derive(Eq, @debug.Debug)
+
+pub struct Term {
+  field : @relation_schema.FieldName
+  direction : @order_key.Direction
+  nulls : @order_key.NullPlacement
+  authored : Bool
+}
+
+// Type aliases
+
+// Traits

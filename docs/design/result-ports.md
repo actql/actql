@@ -12,7 +12,8 @@ schema and uses the existing producer evidence-transfer implementation. This
 adds no authored step and does not rewrite the Result source or Program identity.
 Qualified fields and their nullability remain qualified, not flattened.
 
-The publication strategy is not recomputed: authored order, inherited order,
+The publication strategy is not recomputed: the owning Result checker uses the
+[shared order policy](publication-order-policy.md) for authored order, inherited order,
 candidate-key completion and projected-field fallback use the existing resolver.
 Two Results with the same producer and selected fields can therefore retain
 different authored orders. An order can refer to a source column hidden by the
