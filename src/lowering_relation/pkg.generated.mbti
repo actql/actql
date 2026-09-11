@@ -78,9 +78,17 @@ pub fn prepare(@pipeline_typing.CheckedPipeline, Limits) -> Result[Prepared, Iss
 
 pub fn prepare_kernel(BoundPrepared, Int, max_bindings~ : Int, max_name_bytes~ : Int, ExpressionLimits) -> Result[PreparedKernel, KernelIssue]
 
+pub fn prepare_roots(PreparedSequence, RootLimits) -> Result[RootIndex, RootIssue]
+
 pub fn prepare_sequence(BoundPrepared, SequenceLimits) -> Result[PreparedSequence, SequenceIssue]
 
 pub fn prepare_values_node(BoundPrepared, Int, max_rows~ : Int, max_cells~ : Int) -> Result[PreparedValues, ValuesIssue]
+
+pub fn root_at(RootIndex, Int) -> ExpressionRoot?
+
+pub fn root_count(RootIndex) -> Int
+
+pub fn root_sequence(RootIndex) -> PreparedSequence
 
 pub fn sequence_count(PreparedSequence) -> Int
 
@@ -162,6 +170,13 @@ pub(all) struct ExpressionLimits {
   max_literal_text_bytes : Int
 } derive(Eq, @debug.Debug)
 
+pub struct ExpressionRoot {
+  step_index : Int
+  step_id : String
+  parameter_pointer : String
+  expression : Expression
+}
+
 pub struct Issue {
   kind : IssueKind
   source : @decode_core.Cursor
@@ -224,6 +239,19 @@ pub enum PreparedStep {
 }
 
 type PreparedValues
+
+type RootIndex
+
+pub(all) enum RootIssue {
+  InvalidRootLimits
+  RootLimit
+}
+
+pub(all) struct RootLimits {
+  max_roots : Int
+  max_pointer_bytes : Int
+  max_work : Int
+}
 
 pub(all) enum SequenceIssue {
   InvalidSequenceLimits

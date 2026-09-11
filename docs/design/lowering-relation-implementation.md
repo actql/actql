@@ -89,7 +89,7 @@ contracts, final serialized size or any Program-level authorization.
 | Area | Current state | Condition for closing |
 | --- | --- | --- |
 | Four-operation wiring | Atomic preparation, body-hashed primitive registry selection and one internal driver implemented | Connect the sealed expression-fragment entry, not only primitive signatures |
-| AoA expression lowering | Typed scalar/conditional nodes, inline Relation step encoding and common evaluator implemented | Bind canonical root positions, demand paths and the outer expression contract |
+| AoA expression lowering | Typed nodes, inline step encoding, common evaluator and bounded root-position index implemented | Bind canonical source, demand paths and the outer expression contract |
 | Bound parameters | Owner association, expression substitution, values capture and four-operation private execution tested | Repeat vectors through admitted fragment driver |
 | External rows | Object-schema capture, key validation, exact completed producer binding and receiving projection/budgets implemented | Close inherited evidence obligations; scoped row representation remains unsupported |
 | Map/filter/select row evaluation | Internal sequence driver runs values/supplied-input/parameter chains and branch retention; component NULL cases remain tested | Move remaining component vectors through admitted fragment driver |
@@ -839,3 +839,39 @@ This closes checked projection adoption within the internal driver;
 ordered derive still awaits the shared row-kernel handoff. The complete fragment
 entry's outstanding input obligations and capacity integration remain separate
 from this component success. No Program/Run execution permission is claimed.
+
+## Expression root positions
+
+`prepare_roots` consumes an opaque `PreparedSequence`, not source JSON. Each
+read-only root entry retains the exact lowered expression used by that sequence's
+AoA emitter, together with the generated step ID, step index and parameter pointer.
+The index retains the sequence itself; callers cannot replace entries or detach
+their owner. Values, select and empty derive have no invented expression root,
+but their operation nodes remain present and executable.
+
+Map pointers are `/exprs/<RFC6901-escaped-name>` and filter uses `/expr`. Root
+ordering follows graph step order, then UTF-16 pointer order, independently of
+row evaluation order. For example the map evaluates `/`, `a`, `~` in that name
+order, while its root pointers sort as `/exprs/a`, `/exprs/~0`, `/exprs/~1`.
+Generated `derive_10` does not sort ahead of `derive_2`: graph position wins.
+
+Explicit limits bound root count, cumulative UTF-8 pointer bytes and work.
+Pointer capacity is checked before escaped-string construction. Bottom-up merge
+sort checks its work budget before comparisons and output writes, including
+pointer-comparison lengths; at most two root-reference arrays coexist. Overflow
+safe range arithmetic avoids unchecked doubling at the final merge. Budget
+failure publishes no index and leaves sequence/evaluation order unchanged.
+
+The root index is location preparation, not the complete machine root record.
+Canonical source regeneration, demand paths, fragment witnesses, shared outer
+registration and final re-admission remain open. It does not supply dummy demand
+evidence or claim a fragment CID. The API is an internal core package surface,
+not a public SDK or an arbitrary wire execution entry.
+
+Independent tests cover escaped pointer order, exact expression identity, empty
+map retention, graph order beyond nine steps, UTF-16 versus UTF-8 Unicode cases,
+and exact/one-below cumulative budgets. Lowering tests pass 53/53 on each of JS,
+Wasm and native. Shared schemas/pins and execution/Host APIs are unchanged.
+The added lowering-package API matches across targets; formatting, both fixed
+vector generators and 872 local links pass. Full-repository and Linux CI tests
+were not rerun for this increment.

@@ -4,6 +4,8 @@ This is an implementation handoff, not a new contract or a release approval.
 Audited lowering revision: `a02860fe55bb5a02ddbb739dffef0fce098b3eef`.
 Main inspected read-only: `7069330542308ee5c75dd2efbf092c4300bb135f`.
 Main's uncommitted `check_environment` work was not imported or modified.
+The root-position row below includes the subsequent implementation increment;
+the original audit's full-suite totals do not certify that later change.
 
 ## What the current success proves
 
@@ -26,7 +28,7 @@ root, limit witness or input evidence has been admitted.
 | --- | --- | --- |
 | Registered four primitive signatures | Selected registry contains `REL.values`, `REL.derive`, `REL.where`, `REL.select`; runtime hashes its actual body | Retain this check; it does not establish the outer expression binding |
 | Executable expression binding | `actql-expressions.json#/schemas/fragment` exists; Language specifies `ACTQL.expression_fragment/0.1` with exactly `{fragment}` | Main/integration supplies its selected registration and contract dependency pins, or points to the authoritative alternative registration mechanism |
-| Bound expression roots | Prepared nodes retain checked expressions, sources and contracts; inline expression encoding is implemented | Lowering builds canonical root positions/order and demand paths, and binds them to the same emitted graph; no source retyping |
+| Bound expression roots | Prepared nodes retain checked expressions, sources and contracts; inline encoding and a sequence-owned root-position index are implemented | Lowering connects canonical source and demand paths to those same graph expressions; no source retyping |
 | Fragment request and re-admission | Normative request, root and limit-witness schemas exist | Connect canonical checked source, schemas, typed parameters, request ceilings and exact regeneration comparison. Shared API gaps go to main; do not invent request data or capacity evidence |
 | Ordered derive | Input/prior-slot references exist; preparation reports `NeedsSharedRowKernelContract` | Main finalizes the [row-kernel handoff](row-kernel-integration-request.md); lowering then implements row-major slots and shadowing |
 | Supplied input obligations | Shape/canonical-value capture and candidate-key validation run; raw captures cannot impersonate completed producers | Audit all retained evidence axes before a fragment claims them as established; component success alone cannot authenticate ranking declarations or computed witnesses |
