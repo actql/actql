@@ -137,3 +137,5 @@ Linux CI success require their own evidence and are not implied by local checks.
 The final audit compares the complete operation list above against actual
 dispatch, per-operation tests, schemas and consumers. This design document is
 not completion evidence by itself.
+The [open completion audit](pure-operation-audit.md) records inspected boundaries,
+confirmed gaps and still-unverified coverage without treating dispatch as completion.
