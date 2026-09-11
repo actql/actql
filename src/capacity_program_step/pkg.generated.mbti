@@ -27,6 +27,8 @@ pub fn check(@pipeline_typing.CheckedPipeline, Int, @capacity_witness.ProgramPro
 
 pub fn check_applications(@capacity_witness.ProgramClaims, Array[StepBound], max_work~ : Int) -> Result[Applications, ApplicationIssue]
 
+pub fn check_components_limits(@pipeline_typing.CheckedPipeline, Int, @capacity_host_witness.HostSources, Applications, @capacity_policy.Policy, Int, Int, max_work~ : Int) -> Result[ComponentsLimits, ComponentsLimitIssue]
+
 pub fn check_guard_bindings(Applications, @pipeline_typing.BoundAuthorGuards, max_work~ : Int) -> Result[GuardApplications, GuardBindingIssue]
 
 pub fn check_join_applications(@pipeline_typing.CheckedPipeline, @capacity_host_witness.HostSources, Applications, @capacity_policy.Policy, Array[JoinLimit], max_work~ : Int) -> Result[JoinApplications, JoinCollectionIssue]
@@ -50,6 +52,22 @@ pub fn checked_pipeline(StepBound) -> @pipeline_typing.CheckedPipeline
 pub fn checked_proof(StepBound) -> @capacity_witness.ProgramProofClaim
 
 pub fn checked_step(StepBound) -> Int
+
+pub fn components_limit_claim(ComponentsLimits, ComponentsScope) -> @capacity_witness.LimitClaim
+
+pub fn components_limit_index(ComponentsLimits, ComponentsScope) -> Int
+
+pub fn components_limit_pipeline(ComponentsLimits) -> @pipeline_typing.CheckedPipeline
+
+pub fn components_limit_policy(ComponentsLimits) -> @capacity_policy.Policy
+
+pub fn components_limit_program(ComponentsLimits) -> Applications
+
+pub fn components_limit_sources(ComponentsLimits) -> @capacity_host_witness.HostSources
+
+pub fn components_limit_step(ComponentsLimits) -> Int
+
+pub fn components_limit_work(ComponentsLimits) -> Int
 
 pub fn guard_application_context(GuardApplications) -> @pipeline_typing.BoundAuthorGuards
 
@@ -125,6 +143,36 @@ pub(all) enum BoundInput {
   StepInput(StepBound)
   GraphInput(@capacity_graph_input.InputBound)
 }
+
+pub(all) enum CandidateIssue {
+  WorkLimit
+  WrongUnit
+  UnsupportedCandidate(Int)
+  CandidateScopeMismatch(Int)
+  MissingHostCandidate
+  MissingProgramCandidate(Int)
+  MissingProgramEvidence
+} derive(Eq, @debug.Debug)
+
+pub(all) enum ComponentsLimitIssue {
+  InvalidLimits
+  InvalidStep
+  WrongOperation
+  UnresolvedAuthorSource
+  ForeignClaims
+  MissingMixedClosure
+  MissingLimit(ComponentsScope)
+  SubjectMismatch(ComponentsScope)
+  WrongEnforcement(ComponentsScope)
+  Candidates(ComponentsScope, CandidateIssue)
+} derive(Eq, @debug.Debug)
+
+type ComponentsLimits
+
+pub(all) enum ComponentsScope {
+  InputNodes
+  OutputRows
+} derive(Eq, @debug.Debug)
 
 type CountBindings
 

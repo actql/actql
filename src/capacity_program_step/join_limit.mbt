@@ -74,55 +74,30 @@ pub fn check_join_limit(
   if @wire.limit_enforcement(limit) != @wire.EngineAtomic {
     return Err(WrongEnforcement)
   }
-  let minimum = @wire.limit_minimum(limit)
-  let n = @arithmetic.minimum_candidate_count(minimum)
-  let entries = program.entries.length()
-  if entries > max_work || n > max_work - entries {
-    return Err(WorkLimit)
+  let work = match
+    check_limit_candidates(
+      pipeline,
+      step,
+      sources,
+      program,
+      policy,
+      limit,
+      @arithmetic.Rows,
+      Some("max_relation_output_rows"),
+      false,
+      _ => true,
+      max_work,
+    ) {
+    Ok(n) => n
+    Err(WorkLimit) => return Err(WorkLimit)
+    Err(WrongUnit) => return Err(SubjectMismatch)
+    Err(UnsupportedCandidate(i)) => return Err(UnsupportedCandidate(i))
+    Err(CandidateScopeMismatch(i)) => return Err(CandidateScopeMismatch(i))
+    Err(MissingHostCandidate) => return Err(MissingHostCandidate)
+    Err(MissingProgramCandidate(i)) => return Err(MissingProgramCandidate(i))
+    Err(MissingProgramEvidence) => return Err(MissingHostCandidate)
   }
-  let seen : Map[Int, Bool] = Map([])
-  let mut host_present = false
-  for i in 0..<n {
-    let candidate = @arithmetic.minimum_candidate_at(minimum, i).unwrap()
-    if @host.source_at(sources, candidate.node) is Some(host) {
-      let ceiling = @host.ceiling(host)
-      if @policy.cid(@policy.ceiling_policy(ceiling)) != @policy.cid(policy) ||
-        @policy.ceiling_field(ceiling) != "max_relation_output_rows" ||
-        @host.unit(host) != @arithmetic.Rows {
-        return Err(CandidateScopeMismatch(i))
-      }
-      host_present = true
-    } else {
-      guard program.entries[candidate.node] is Some(app) else {
-        return Err(UnsupportedCandidate(i))
-      }
-      if !physical_equal(app.pipeline, pipeline) || app.index != step {
-        return Err(CandidateScopeMismatch(i))
-      }
-      seen[candidate.node] = true
-    }
-  }
-  if !host_present {
-    return Err(MissingHostCandidate)
-  }
-  for i, app in program.entries {
-    if app is Some(app) &&
-      physical_equal(app.pipeline, pipeline) &&
-      app.index == step &&
-      !seen.contains(i) {
-      return Err(MissingProgramCandidate(i))
-    }
-  }
-  Ok({
-    pipeline,
-    step,
-    sources,
-    program,
-    policy,
-    limit,
-    index,
-    work: entries + n,
-  })
+  Ok({ pipeline, step, sources, program, policy, limit, index, work, })
 }
 
 ///|

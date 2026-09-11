@@ -437,6 +437,37 @@ discharged here. Zero does not prove candidate completeness, whole-Invocation
 consistency, enclosing Program identity or execution permission. The result
 retains the original collection for those remaining checks.
 
+## Components limit consumers
+
+`check_components_limits` checks the two engine-atomic limits of a checked
+`components` operation. The local subjects are
+`components:checked-step:<index>:nodes` (Nodes) and
+`components:checked-step:<index>` (Rows). These are owner-relative handles,
+not Program Definition identities. This follows the separate node and output
+limits in the fixed Sketch `87dc7144` compiler; it does not implement lowering.
+
+The node minimum requires registered `actql.bound.components-input-nodes`
+applications for this exact pipeline and step. The output minimum accepts
+`actql.bound.components-nodes` applications and requires the selected policy's
+`max_graph_output_rows` Host witness. Every applicable registered application
+must occur, even when numerically redundant. A graph construction's same-valued
+node bound cannot replace the operation's node candidate; node and row proofs
+cannot substitute for each other. The node candidate already retains its input
+proof ownership, including admitted Graph preflight sources where applicable.
+
+Candidate scanning is shared with join limits, but allowed units, laws and Host
+fields are selected by each consumer, not by a public caller-supplied policy.
+Both scans charge all Program table entries and minimum candidates against one
+work budget before allocating their membership maps. The result retains both
+limit handles, their indices and all input owners. Authored output guards still
+report `UnresolvedAuthorSource` until source identity admission is connected.
+
+This local check does not yet discharge `components-output`, register components
+in the complete pipeline consumer ledger, or prove runtime enforcement. Tests
+fix exact/short shared budgets, retained owners, missing and wrong candidates,
+wrong scope/enforcement and unresolved authored guards independently of wire
+integrity.
+
 ## Join output limit consumers
 
 `check_join_limit` binds an engine-atomic output limit to an actual ordinary
