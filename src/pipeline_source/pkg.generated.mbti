@@ -1,0 +1,34 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/pipeline_source"
+
+import {
+  "actql/actql/encode_core",
+  "actql/actql/pipeline_parameters",
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn collection(Steps) -> @pipeline_parameters.Collected
+
+pub fn emit(Steps, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
+
+pub fn prepare(@pipeline_parameters.Collected, max_work~ : Int) -> Result[Steps, Issue]
+
+pub fn work(Steps) -> Int
+
+// Errors
+
+// Types and methods
+pub(all) enum Issue {
+  InvalidLimits
+  WorkLimit
+  InvalidOrigin
+  NonCanonicalText
+  InvalidNumber
+} derive(Eq, @debug.Debug)
+
+type Steps
+
+// Type aliases
+
+// Traits

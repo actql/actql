@@ -53,6 +53,11 @@ The complete stage/Program semantic envelope, Invocation identity and capacity
 applicability still require those enclosing checks. A local reference index
 must not be presented as a completed Program semantic owner.
 
+The [pipeline source projection](pipeline-source.md) consumes this same complete
+collection to emit expression-normalized steps with Step metadata excluded.
+It retains this index's owner and does not turn a local reference collection
+into a complete stage or Program identity.
+
 Tests cover mixed expression/direct references, retained declaration ownership,
 unused branches, metadata opacity, document/local pointer roots, empty and
 foreign roots, all exact-limit boundaries and shared direct-operand text usage.
