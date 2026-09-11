@@ -14,4 +14,5 @@ import {
 
 import {
   "actql/actql/source_value" @source,
+  "actql/actql/parameter_binding" @parameter,
 } for "wbtest"

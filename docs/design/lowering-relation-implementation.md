@@ -88,9 +88,9 @@ contracts, final serialized size or any Program-level authorization.
 | --- | --- | --- |
 | Four-operation wiring | Implemented preparation | Keep tests as executable lowering is connected |
 | AoA expression lowering | Typed scalar/conditional nodes and bounded encoding implemented | Connect roots to complete Relation nodes and evaluator |
-| Bound parameters | Owner association, expression substitution and values-cell capture implemented | Add parameterized end-to-end fragment execution vectors |
+| Bound parameters | Owner association, expression substitution, values capture and four-operation private execution tested | Repeat vectors through admitted fragment driver |
 | External rows | Object-schema input admission and immutable capture implemented | Connect to full fragment input obligations; scoped row representation remains unsupported |
-| Map/filter/select row evaluation | Private evaluator connected; values/supplied-input chains, branches and cross-kernel budgets tested | Connect parameter vectors and all cases through fragment driver |
+| Map/filter/select row evaluation | Private evaluator connected; values/supplied-input/parameter chains, NULL, branches and cross-kernel budgets tested | Connect all cases through fragment driver |
 | AoA fragment lowering | Complete map/filter/select step emission and expression wire implemented; values/pipeline envelope remain open | Bind registry contracts, roots and runtime obligations, then admit complete fragment |
 | Runtime budgets | Cumulative expression/control/logical-value limits implemented | Close temporary/live allocations and complete work accounting before exposing fragment API |
 | Ordered derive | Checked references available; executable contract pending main | Consume main's registered row-kernel extension without a substitute opcode |
@@ -349,3 +349,10 @@ which earlier table a later explicit branch consumes. These tests still wire
 the kernels explicitly, so they do not prove automatic fragment execution.
 The exact values parameter-schema owner is an open main/integration lookup
 recorded in the shared-contract request; no shape has been invented here.
+
+Parameterized four-operation vectors now bind the same checked preparation to
+two different values, use each Parameter in both values cells and derive RHSs,
+and compare fixed results. Mixing a table from one binding with the other's
+kernel fails before evaluation. A separate nullable-input vector verifies lazy
+conditional selection and that a NULL filter predicate excludes the row. These
+close private-kernel coverage gaps, not the still-open fragment admission gate.
