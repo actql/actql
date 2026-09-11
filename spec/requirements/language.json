@@ -3380,6 +3380,17 @@
       }
     },
     {
+      "requirement_id": "actql.language/event-windows.occurrence-order",
+      "statement_sha256": "bbf6095489dc43e4f39a6007e5adcfdf1db707ee0852b80a884d8aa6de6afd01",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "event-windows",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.language/event-windows.session-has-a-distinct-shape-in-and-must-not-be",
       "statement_sha256": "4bc8f086bcf2d3f48646327edb04c95b7a2476228329577761507ae5620895a4",
       "status": "pending",

@@ -97,6 +97,17 @@ evidence without losing this sequence. None of these operations fabricates order
 from an unordered source. These are the existing Language expansion laws, not
 new acceptance rules or execution conformance claims.
 
+Row and Event windows also retain a source-order dependency. The Language
+occurrence-order rule clarifies input-major enumeration followed by ascending
+membership starts, not a global window-start sort. This agrees with the fixed
+AoA Relation/Event adapters' per-input expansion and Sketch's retained source
+ordering. Both fixed labeling and sliding expansion require existing input
+order for this summary. Their exact options and unresolved binding/arithmetic/
+resource obligations remain on the origin. Events can expose the sequence via
+the explicit events bridge. Projection can discard boundary roles while
+retaining sequence order; repeated sliding memberships do not establish event
+ID uniqueness. No evaluator is implemented or certified by this pass.
+
 `order_sort_completion` exposes the selected witness and indexed appended fields.
 The retained origin operation supplies the unchanged authored terms. This is
 information for later Plan construction and journaling, not a claim that a

@@ -4139,6 +4139,16 @@ Checked arithmetic must not saturate or wrap. `offset` is not reduced modulo
 size or step for canonical identity. In particular, a supplied sliding offset
 must not be ignored by a lowerer or evaluator.
 
+<!-- requirement-block: event-windows.occurrence-order -->
+Window output MUST enumerate input occurrences in their existing logical order,
+then each occurrence's memberships in ascending window-start order, for both
+Relation and Events inputs. This is not a global sort by window start. Fixed
+windows retain one occurrence; sliding windows retain each matching membership.
+The operation does not establish input order when no such evidence exists.
+Removing boundary columns can lose window-role evidence without changing the
+retained occurrence sequence. Membership expansion alone does not prove ID
+uniqueness, completeness or successful discharge of resource obligations.
+
 `row_window` preserves relation fields and adds `window_start` and
 `window_end`. It lowers directly:
 

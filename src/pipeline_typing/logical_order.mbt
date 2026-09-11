@@ -141,6 +141,11 @@ fn derive_logical_orders(
           (Some(input), Some(_)) => [input]
           _ => []
         }
+      Window(_) =>
+        match (step.input, previous) {
+          (Some(input), Some(_)) => [input]
+          _ => []
+        }
       _ => []
     }
     out.push(
