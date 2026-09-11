@@ -293,6 +293,39 @@ projection. Exact work/node/text budgets accept and one-less budgets reject.
 This is static evidence propagation, not traversal execution or a substitute
 for Graph membership, preflight and search-resource validation.
 
+## Pooling Carrier acceptance audit
+
+Language's `pool-vectors.closed-source`, `typed-output` and
+`member-key-selection` blocks were compared with `vector_typing/pool.mbt`, the
+shared pipeline route and `vector-schema.test.mjs`. The schema gate fixes the
+closed body, nonempty distinct grouping fields, three explicit methods and
+single-group restriction on `output_id`. The fixed Sketch `87dc7144`
+`semantic_check` likewise requires a candidate key for Relation pooling, but
+its physical `id`/`vector` output reconstruction is not the current semantic
+Carrier contract and is not reused as the expected output.
+
+`pipeline_typing/pool_carrier_audit_test.mbt` adds 96 combinations of Relation
+and Vectors, string/numeric member identities, string/number/decimal/ResourceRef
+group identities, mean/sum/max and original/aliased output identity. Every path
+continues through `vectors`, projection and `take`, retaining the group contract,
+component dimensions and pooling's logical-order origin. The aliased path reuses
+the dropped member-ID field name without confusing its old type with the new
+group identity. Other input payload and hidden component columns do not leak
+into the selected output.
+
+The matrix distinguishes direct string member identity from Relation numeric
+key encoding, preserves declared-key ownership, and retains global member-ID
+validation, quantization and resource obligations. Every accepted case checks
+exact work/node/text budgets and one-less rejection. Sixteen rejection cases
+cover both Carriers with empty/repeated grouping fields, invalid method or
+component role, reserved member-ID override, output collision, tuple alias and
+nullable grouping identity. Existing pooling suites separately cover composite
+member-key selection, open field knowledge and key-alias transfer.
+
+This closes the inspected static alternative/consumer matrix. It does not
+execute quantization or deterministic folds, prove runtime identity uniqueness,
+or resolve the separate profile and capacity obligations.
+
 ## Shared-boundary findings
 
 | Requirement | Inspected evidence | Audit finding |
