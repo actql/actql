@@ -1,0 +1,17 @@
+{
+  "version": "actql-local-source-reference/0.1",
+  "schema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "string",
+    "pattern": "^source:local/(?:[^~/]|~[01])+/(?:[^~/]|~[01])+$"
+  },
+  "semantics": {
+    "scope": "one_selected_staged_program",
+    "components": ["stage_id", "local_input_name"],
+    "escaping": "replace_tilde_with_tilde_zero_then_slash_with_tilde_one",
+    "text": "nonempty_well_formed_nfc_lf_names_without_repair",
+    "resolution": "exact_stage_and_local_non_connector_non_import_input",
+    "identity": "selector_not_program_identity_or_authorization",
+    "duplicates": "reject_repeated_schema_snapshot_source_refs"
+  }
+}

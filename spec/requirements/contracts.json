@@ -91,6 +91,61 @@
       }
     },
     {
+      "requirement_id": "actql.protocol.contracts/check-environment.local-input-selector",
+      "statement_sha256": "86f24065785ce2c4f4e5b972eeb750aa29a53deba64df7984b9a4e29e6452946",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "local-input-source-reference",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/check-environment.local-input-selector-canonical",
+      "statement_sha256": "7aa6982cbd0722b4f50a8dd7e875658e0d3f287de7fa79217ebd3fe8c961dc24",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "local-input-source-reference",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/check-environment.local-input-selector-resolution",
+      "statement_sha256": "2a3c7f1477a9acaad287507bfda6da04be25e79917c941aeafc013da19817f52",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "local-input-source-reference",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/check-environment.local-input-selector-unique",
+      "statement_sha256": "4f431f8e33fccb8b38bec4811f21650b48763a9478bf2ab73581d64d2beb0e57",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "local-input-source-reference",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/check-environment.local-input-selector-ownership",
+      "statement_sha256": "a3c086c27070092251855968d113a9cba54ec72e3052ed27aefe74c4386e0206",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "local-input-source-reference",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.protocol.contracts/capacity-law-registry.closed-identifiers",
       "statement_sha256": "5b4183b1730383cd1d4f77a9f6386e2ea64d4431da08d0c446fe0ce7640f24a9",
       "status": "pending",
@@ -884,7 +939,7 @@
     },
     {
       "requirement_id": "actql.protocol.contracts/machine-contracts.exact-artifacts",
-      "statement_sha256": "3a91c28789a9432ce283086e89f7a9c1567db7593905bbca721de294faa4157e",
+      "statement_sha256": "25661f3a5a7b352de3785a41b17e036ef7dd0c0f600dd72ac8b2a57f8eb98f19",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",

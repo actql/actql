@@ -841,6 +841,10 @@ admission, resource enforcement or complete source authority.
    explicitly and rejecting unknown/duplicate selectors. Its opaque result is
    still type-assertion evidence, not external snapshot admission or a stronger
    input registration accepted by the Program assembly.
+   [Staged local source references](local-source-reference.md) now have a pinned
+   canonical selector grammar and bounded codec with independent fixed vectors.
+   Actual Program resolution and snapshot body/environment admission remain
+   necessary; a parsed selector is not an authenticated input owner.
    A two-stage actual Result import tests final publication ownership, foreign
    reissued orders and exact/short cumulative budgets. Ordinary/receipt inputs,
    static discharge and complete semantic Program identity remain incomplete.

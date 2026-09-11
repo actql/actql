@@ -1,0 +1,33 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/local_source_ref"
+
+import {
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn create(String, String, max_bytes~ : Int) -> Result[Reference, Issue]
+
+pub fn input_name(Reference) -> String
+
+pub fn read(String, max_bytes~ : Int) -> Result[Reference, Issue]
+
+pub fn stage_name(Reference) -> String
+
+pub fn stringify(Reference) -> String
+
+// Errors
+
+// Types and methods
+pub(all) enum Issue {
+  InvalidLimit
+  LimitExceeded
+  InvalidReference
+  NonCanonicalName
+} derive(Eq, @debug.Debug)
+
+type Reference
+
+// Type aliases
+
+// Traits

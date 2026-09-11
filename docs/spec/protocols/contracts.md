@@ -121,6 +121,37 @@ the same selector naming different contract CIDs is rejected.
 
 Runtime source evidence and drift validation are specified in [Runtime source evidence](run.md#runtime-source-evidence).
 
+<a id="local-input-source-reference"></a>
+
+#### Local input source references
+
+<!-- requirement-block: check-environment.local-input-selector check-environment.local-input-selector-canonical -->
+A local-input schema snapshot source reference MUST use
+`source:local/<stage-token>/<input-token>` within the selected staged Program.
+The tokens encode the authored stage ID and local input name, not array indices
+or generated step handles: replace each `~` with `~0`, then each `/` with `~1`.
+Both decoded names MUST be nonempty, well-formed NFC-plus-LF text, without
+normalization repair, percent decoding or a second escape pass. No other escape,
+extra path component, or legacy `source:local.<name>` spelling is admitted.
+
+<!-- requirement-block: check-environment.local-input-selector-resolution check-environment.local-input-selector-unique check-environment.local-input-selector-ownership -->
+Admission MUST resolve both names exactly against the selected Program and
+require a local input, not a Connector declaration or Result/receipt import;
+it MUST reject unknown stages, unknown inputs and repeated snapshot selectors,
+including identical duplicates. An input with the same name in a different
+stage is a different selector. The selector alone does not identify a Program,
+authenticate the Host, prove materialization or discharge any input obligation.
+Check Environment admission and subsequent compiler assembly MUST retain the
+selected Program ownership; a selector from another Program is not transferable
+merely because its text or schema matches.
+
+The pinned local-source-reference schema checks string syntax only. Canonical
+Unicode, exact Program resolution, snapshot Carrier/type correspondence and
+evidence authority require separate semantic checks. This definition applies
+to all local Carrier selectors, without defining their snapshot body formats.
+Schema evidence alone is not evidence that input rows already exist: static
+checking does not implicitly acquire, materialize or authorize data.
+
 <a id="capacity-law-registry"></a>
 
 ### Capacity witness law registry
@@ -919,6 +950,7 @@ These exact schema/law references are owned here. Their identities do not includ
 <!-- requirement-block: machine-contracts.exact-artifacts -->
 <!-- normative-code: law -->
 ```text
+../../../spec/contracts/actql-local-source-reference.json# sha256:9be664306a6a91a8e5bfca53d579e6dac77baf4567eb241ceeedc3216ffe47d9
 ../../../spec/contracts/actql-protocol-schemas.json#/schemas/model_task sha256:19408a610dbc52552bff3a7f97f25a120a66688e7db4f41383c91c9298f02dd2
 ../../../spec/contracts/actql-consumer-capacity.json# sha256:7d59718b965451d8a19ccf7095b92777ba0cdd8c3bb71f437ab387801fe7271f
 ../../../spec/contracts/actql-consumer-capacity.json#/laws sha256:a799f82a4a06d6b2402c434142dd6e13a265bef160f4143160de1770f0e52853

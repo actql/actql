@@ -1,0 +1,23 @@
+{
+  "version": "actql-local-source-reference-vectors/0.1",
+  "accepted": [
+    {"stage": "s", "input": "rows", "reference": "source:local/s/rows"},
+    {"stage": "t", "input": "rows", "reference": "source:local/t/rows"},
+    {"stage": "a/b", "input": "~1", "reference": "source:local/a~1b/~01"},
+    {"stage": "a~1b", "input": "/", "reference": "source:local/a~01b/~1"},
+    {"stage": "é", "input": "行😀", "reference": "source:local/é/行😀"},
+    {"stage": "s\nx", "input": "a.b %2F", "reference": "source:local/s\nx/a.b %2F"}
+  ],
+  "rejected": [
+    "source:local.rows",
+    "source:local/s",
+    "source:local//rows",
+    "source:local/s/",
+    "source:local/s/a/b",
+    "source:local/s/~",
+    "source:local/s/~2",
+    "SOURCE:local/s/rows",
+    "source:local/é/rows",
+    "source:local/s/a\r\nb"
+  ]
+}

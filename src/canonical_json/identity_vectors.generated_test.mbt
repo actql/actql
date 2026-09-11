@@ -1028,6 +1028,16 @@ test "contract spec/contracts/actql-stage-contracts.json#/schemas/commit_eligibi
 }
 
 ///|
+test "contract spec/contracts/actql-local-source-reference.json#" {
+  let input = @json.parse([
+    "{\"version\":\"actql-local-source-reference/0.1\",\"schema\":{\"$schema\":\"https://json-schema.org/draft/2020-12/schema\",\"type\":\"string\",\"pattern\":\"^source:local/(?:[^~/]|~[01])+/(?:[^~/]|~[01])+$\"},\"semantics\":{\"scope\":\"one_selected_staged_program\",\"components\":[\"stage_id\",\"local_input_name\"],\"escaping\":\"replace_tilde_with_tilde_zero_then_slash_with_tilde_one\",\"text\":\"nonempty_well_formed_nfc_lf_names_without_repair\",\"resolution\":\"exact_stage_and_local_non_connector_non_import_input\",\"identity\":\"selector_not_program_identity_or_authorization\",\"duplicates\":\"reject_repeated_schema_snapshot_source_refs\"}}",
+  ].join(""))
+  let value = @canonical_json.from_json(input, 16, 3, 602)
+  assert_eq(@canonical_json.cid_value(value, 602, 16, 3), "sha256:9be664306a6a91a8e5bfca53d579e6dac77baf4567eb241ceeedc3216ffe47d9")
+  assert_eq(@canonical_json.measure_value(value, 602, 16, 3), 602)
+}
+
+///|
 test "contract spec/contracts/actql-bound-law-registry.json#" {
   let input = @json.parse([
     "{\"version\":\"actql-bound-law-registry/0.1\",\"law_ids\":[\"actql.bound.append\",\"actql.bound.array-aggregate-input\",\"actql.bound.asof-left\",\"actql.bound.calendar-series\",\"actql.bound.canonical-artifact-bytes\",\"actql.bound.components-input-nodes\",\"actql.bound.components-nodes\",\"actql.bound.components-output\",\"actql.bound.effect-scope\",\"actql.bound.global-group\",\"actql.bound.graph-degree\",\"actql.bound.graph-edge-rows\",\"actql.bound.graph-edges\",\"actql.bound.graph-endpoints\",\"actql.bound.graph-input-edges\",\"actql.bound.graph-input-nodes\",\"actql.bound.graph-node-rows\",\"actql.bound.graph-nodes\",\"actql.bound.infer-distinct-keys\",\"actql.bound.infer-output\",\"actql.bound.join-output\",\"actql.bound.join-projection\",\"actql.bound.join-resolved-output\",\"actql.bound.lookup.complete-response\",\"actql.bound.match-edges\",\"actql.bound.match-node-ids\",\"actql.bound.match-nodes\",\"actql.bound.merge-rankings\",\"actql.bound.nearest\",\"actql.bound.nest-empty-array\",\"actql.bound.reach-nodes\",\"actql.bound.row-window\",\"actql.bound.sequence-output\"",
