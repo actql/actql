@@ -388,6 +388,28 @@
       }
     },
     {
+      "requirement_id": "actql.protocol.contracts/catalog-and-lock.canonical-preimage",
+      "statement_sha256": "a81f2b7e12f78eae763b1e327deb5ae0ba4124754d4b4542c13cf284f38f5ba7",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "catalog-and-lock",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/catalog-and-lock.member-order",
+      "statement_sha256": "939acfab5f00b535025699c43c3f734d9d07d44969b6a1bbf9436bcf55a47f88",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "catalog-and-lock",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.protocol.contracts/catalog-and-lock.when-a-lock-is-supplied-to-planning-or-execution-the",
       "statement_sha256": "3ac385b5ce2453845883bff1d1f739b90d318aa1c8f3394b678225303f780e4f",
       "status": "pending",
@@ -1038,7 +1060,7 @@
     },
     {
       "requirement_id": "actql.protocol.contracts/machine-contracts.exact-artifacts",
-      "statement_sha256": "50f95c23ca3b09803bc4042a05070b8a7e8c54989d0e13cf741ea6de9b22e6fa",
+      "statement_sha256": "bf6776b1e8d242cd18d7f6f0f8971dbbfdca30702b3080338b85ec2c5f7b623b",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",

@@ -375,6 +375,20 @@ Implementation-package pinning belongs to Host deployment and supply-chain
 verification, not the portable program lock. Runtime schema snapshots and
 Resource observations belong to plan and receipt evidence, not the program lock.
 
+<!-- requirement-block: catalog-and-lock.canonical-preimage -->
+The Catalog self-CID MUST hash the complete canonical Catalog excluding only its
+root `catalog_cid`. SourceView and Command self-CIDs exclude only their root
+`contract_cid`; Contract Envelope self-CIDs exclude only their root `cid`.
+Nested members with these names remain ordinary data in every preimage.
+
+<!-- requirement-block: catalog-and-lock.member-order -->
+Within a canonical Catalog, `source_views` and `commands` MUST be strictly ordered
+by their `contract_cid`, and `contracts` by their `cid`. Duplicate entries and
+unsorted arrays are rejected without repair. The Check Environment's derived
+arrays instead use their existing full-body-CID order; identical Contract
+Envelopes shared across Catalogs appear once in the derived registry, while each
+Catalog's references still resolve within that Catalog's own contract set.
+
 <!-- requirement-block: catalog-and-lock.when-a-lock-is-supplied-to-planning-or-execution-the -->
 When a lock is supplied to planning or execution, the host MUST compare the complete canonical lock against
 the current Grammar, AoA, Connector Catalog, SourceView, and Command
@@ -1039,7 +1053,7 @@ These exact schema/law references are owned here. Their identities do not includ
 <!-- requirement-block: machine-contracts.exact-artifacts -->
 <!-- normative-code: law -->
 ```text
-../../../spec/contracts/actql-check-environment.json# sha256:1b332d2cc106404b39a77c5baa947ddf1b6b8ba574a95b085fd6662ead440fb3
+../../../spec/contracts/actql-check-environment.json# sha256:30b27eda0c1d630b2fdbebdbabdb98d034f9d878290f0e266506cc0460472d35
 ../../../spec/contracts/actql-local-relation-snapshot.json# sha256:60e8136aea733421e75fa3dcef4934c87ce98959b36f8a56da93ccfbf03d81b2
 ../../../spec/contracts/actql-local-source-reference.json# sha256:9be664306a6a91a8e5bfca53d579e6dac77baf4567eb241ceeedc3216ffe47d9
 ../../../spec/contracts/actql-protocol-schemas.json#/schemas/model_task sha256:19408a610dbc52552bff3a7f97f25a120a66688e7db4f41383c91c9298f02dd2

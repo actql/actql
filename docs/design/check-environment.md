@@ -108,6 +108,45 @@ Fixed independently calculated self-CIDs cover null and nested business data;
 tests cover stale inner identity, role/version/CID mismatches, conflicting names,
 closed shapes, cumulative limits, exact ownership and depth 1,000.
 
+## Catalog contents and derived-array equality
+
+`check_catalog_contents` consumes the exact checked ContractRegistry and returns
+opaque CatalogContents. It checks closed Catalog headers, root-excluded Catalog
+self-CIDs, unique Connector selectors, SourceView/Command self-CIDs and Connector
+ownership, unique view triples and globally unique Command IDs. It matches each
+embedded body to an exact full-body-CID member of the same environment, and
+requires all three derived sections to be covered exactly. Only shared Contract
+Envelopes are deduplicated across Catalogs; each Catalog retains its own contract
+set. `resolve_catalog_contract` adds that local membership check to the registry's
+exact identity/kind resolution. An envelope found only in another Catalog cannot
+satisfy a reference. Returned view/command handles retain their original derived
+section membership, and the Catalog handle retains its environment membership.
+
+The normative Catalog preimage and array-order paragraphs make the reference
+constructor's rules explicit (`87dc7144:src/actql-protocol.ts`,
+`createActqlConnectorCatalog`). Catalog contents sort by member **self-CID**, not
+the **full-body CID** used by outer environment sections. Readers reject wrong
+order instead of invoking the reference builder's sorting repair. This clarifies
+the canonical representation; it does not add defaults or change valid reference
+Catalog identities. The Check Environment machine contract records these rules.
+
+Limits count full Catalog bytes/nodes cumulatively, including repeated embedded
+envelopes, and Catalog plus direct member occurrences. Each derived section is
+also bounded by the member cap before indexing. Depth is bounded per Catalog;
+the disjoint member hashing passes have the same cap, not an unbounded reset.
+Indices are built once and tuple selectors preserve exact components. Payload
+accounting does not claim a heap bound. Tests cover empty Catalogs, an independent
+fixed self-CID, repeated/shared contracts, unsorted contents, stale inner bodies,
+extra/missing derived entries, ownership, selectors and cumulative limits.
+
+This is not yet full Catalog admission: SourceView/Command body grammars and
+semantic constraints, automatic traversal of all role-reference slots, policy
+bodies, correlation/type compatibility and issuer authority remain required.
+The shape-limited fixtures intentionally demonstrate that membership alone does
+not prove these properties. CatalogContents is not a sole-view completion token,
+and no Program input resolver consumes it as one. Those subsequent checks must
+retain this exact proof instead of independently reconstructing candidate lists.
+
 ## Capacity component selection
 
 The normative component selector is now `/host_policy_profile/capacity`, with
