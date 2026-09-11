@@ -53,6 +53,7 @@ test "input key validation rejects duplicates before row evaluation" {
   ).unwrap()
   assert_true(
     evaluate_sequence_components(
+      registered_relation_contracts(),
       prepared_sequence(owner),
       [rows],
       ["select_0"],
@@ -78,6 +79,7 @@ test "compound key preserves duplicates of individual fields and supplied order"
     run_limits().input_values,
   ).unwrap()
   let result = evaluate_sequence_components(
+    registered_relation_contracts(),
     prepared_sequence(owner),
     [rows],
     ["select_0"],

@@ -44,6 +44,7 @@ test "sequence driver executes all four operators and follows branch retention a
     ",{\"derive\":{\"c\":\"a + 10\"},\"as\":\"augmented\"},{\"filter\":\"c > 10\"},{\"from\":\"augmented\",\"select\":[\"c\",\"b\"]}",
   )
   let result = evaluate_sequence_components(
+    registered_relation_contracts(),
     prepared_sequence(owner),
     [],
     ["select_3"],
@@ -68,6 +69,7 @@ test "sequence driver does not prune an unused failing derive and returns no par
     ",{\"derive\":{\"unused\":\"1 / b\"}},{\"from\":\"seed\",\"select\":[\"a\"]}",
   )
   let result = evaluate_sequence_components(
+    registered_relation_contracts(),
     prepared_sequence(owner),
     [],
     ["select_2"],
@@ -89,6 +91,7 @@ test "sequence driver supplied input uses the same path and rejects foreign capt
   ).unwrap()
   let sequence = prepared_sequence(owner)
   let result = evaluate_sequence_components(
+    registered_relation_contracts(),
     sequence,
     [capture],
     ["select_0"],
@@ -99,6 +102,7 @@ test "sequence driver supplied input uses the same path and rejects foreign capt
   assert_true(result.tables[0] is None)
   assert_true(
     evaluate_sequence_components(
+      registered_relation_contracts(),
       prepared_sequence(input_owner()),
       [capture],
       ["select_0"],
@@ -108,10 +112,14 @@ test "sequence driver supplied input uses the same path and rejects foreign capt
     is Err(InputOwnership),
   )
   assert_true(
-    evaluate_sequence_components(sequence, [], ["select_0"], run_limits(), {
-      remaining: 10000,
-      max_frames: 100,
-    })
+    evaluate_sequence_components(
+      registered_relation_contracts(),
+      sequence,
+      [],
+      ["select_0"],
+      run_limits(),
+      { remaining: 10000, max_frames: 100, },
+    )
     is Err(InputSet),
   )
 }
@@ -137,6 +145,7 @@ test "sequence driver carries bound parameters and cumulative output limits thro
       },
     }
     let result = evaluate_sequence_components(
+      registered_relation_contracts(),
       prepared_sequence(owner),
       [],
       ["select_3"],
@@ -153,6 +162,7 @@ test "sequence driver carries bound parameters and cumulative output limits thro
     }
     assert_true(
       evaluate_sequence_components(
+        registered_relation_contracts(),
         prepared_sequence(owner),
         [],
         ["select_3"],
@@ -171,6 +181,7 @@ test "sequence driver input ceiling includes all values nodes even when earlier 
   )
   let sequence = prepared_sequence(owner)
   let result = evaluate_sequence_components(
+    registered_relation_contracts(),
     sequence,
     [],
     ["values_1"],
@@ -181,6 +192,7 @@ test "sequence driver input ceiling includes all values nodes even when earlier 
   assert_true(result.tables[1].unwrap().table.rows[0][0] is Number(3.0))
   assert_true(
     evaluate_sequence_components(
+      registered_relation_contracts(),
       sequence,
       [],
       ["values_1"],

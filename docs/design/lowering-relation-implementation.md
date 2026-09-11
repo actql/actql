@@ -672,3 +672,36 @@ JS, Wasm and native. Shared/lowering registry checks pass 7/7, `check:docs` pass
 metadata reports no changes, and fixed values generator freshness/whitespace
 checks pass. This branch's smaller count than main reflects its isolated baseline,
 not a claim to have run main's staged compiler suite. Linux CI was not run.
+
+## Runtime registry identity admission
+
+`execution_relation.admit_relation_registry` accepts immutable canonical registry
+and REL.values execution-contract bodies, not caller-asserted CID strings. It
+hashes both through the common canonical encoder under explicit per-body byte,
+node and depth limits. Only the exact selected identities generate the opaque
+`RegisteredRelationContracts` value. Exact registry identity binds the operation
+signatures and contract file/pointer; exact execution-contract identity binds
+its schema, semantics and dependency references. This implementation supports
+the current selected contract set, not arbitrary registry negotiation.
+
+Pins and test bodies are generated from main-owned files by
+`scripts/lowering-registry-vectors.mjs`; the existing independent registry tests
+continue checking those files and historical identities. No new shared registry
+or contract is defined. Raw artifact parsing and noncanonical-input rejection
+remain the loader's preceding responsibility: this function neither parses nor
+normalizes a wire artifact.
+
+The single private sequence driver now requires this opaque value. All existing
+driver vectors, including the 18 fixed values cases, obtain it by validating the
+actual shared bodies; there is no unchecked replacement driver or fabricated
+test permit. This discharges registration identity only, not backend support,
+input provenance/order, ordered derive or Program authorization. The general
+fragment entry remains unexposed until its remaining obligations are connected.
+
+Validation: execution tests 65/65 on JS, Wasm and native; public API identical
+across targets (SHA-256
+`5174c383f9d9aa2d19c23055ff1cd941b4d06be4575144491ac2591a72253f29`).
+New negative tests reject the historical body, wrong execution body, invalid
+limits and byte/node/depth exhaustion at either hashing stage. Formatting and
+both owned vector generators pass. Ordinary info builds retain 39 private-code
+warnings and no errors; the whole-repository suite is not rerun for this unit.

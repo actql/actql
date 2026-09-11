@@ -6,6 +6,7 @@ test "values four-operation execution: ordinary" {
     "[{\"values\":{\"schema\":{\"x\":{\"type\":\"number\",\"nullable\":false}},\"rows\":[{\"x\":{\"literal\":1}},{\"x\":{\"literal\":2}}]},\"as\":\"seed\"},{\"derive\":{}},{\"filter\":\"true\"},{\"select\":[\"x\"]}]",
   )
   let result = evaluate_sequence_components(
+    registered_relation_contracts(),
     prepared_sequence(owner),
     [],
     ["select_3"],
@@ -28,6 +29,7 @@ test "values four-operation execution: empty" {
     "[{\"values\":{\"schema\":{\"x\":{\"type\":\"number\",\"nullable\":false}},\"rows\":[]},\"as\":\"seed\"},{\"derive\":{}},{\"filter\":\"true\"},{\"select\":[\"x\"]}]",
   )
   let result = evaluate_sequence_components(
+    registered_relation_contracts(),
     prepared_sequence(owner),
     [],
     ["select_3"],
@@ -46,6 +48,7 @@ test "values four-operation execution: repeated" {
     "[{\"values\":{\"schema\":{\"x\":{\"type\":\"number\",\"nullable\":false}},\"rows\":[{\"x\":{\"literal\":1}},{\"x\":{\"literal\":1}}]},\"as\":\"seed\"},{\"derive\":{}},{\"filter\":\"true\"},{\"select\":[\"x\"]}]",
   )
   let result = evaluate_sequence_components(
+    registered_relation_contracts(),
     prepared_sequence(owner),
     [],
     ["select_3"],
@@ -68,6 +71,7 @@ test "values four-operation execution: reversed" {
     "[{\"values\":{\"schema\":{\"x\":{\"type\":\"number\",\"nullable\":false}},\"rows\":[{\"x\":{\"literal\":2}},{\"x\":{\"literal\":1}}]},\"as\":\"seed\"},{\"derive\":{}},{\"filter\":\"true\"},{\"select\":[\"x\"]}]",
   )
   let result = evaluate_sequence_components(
+    registered_relation_contracts(),
     prepared_sequence(owner),
     [],
     ["select_3"],
@@ -90,6 +94,7 @@ test "values four-operation execution: key-order-a" {
     "[{\"values\":{\"schema\":{\"x\":{\"type\":\"number\",\"nullable\":false},\"s\":{\"type\":\"string\",\"nullable\":false}},\"rows\":[{\"x\":{\"literal\":1},\"s\":{\"literal\":\"\u{e9}\"}}]},\"as\":\"seed\"},{\"derive\":{}},{\"filter\":\"true\"},{\"select\":[\"x\",\"s\"]}]",
   )
   let result = evaluate_sequence_components(
+    registered_relation_contracts(),
     prepared_sequence(owner),
     [],
     ["select_3"],
@@ -111,6 +116,7 @@ test "values four-operation execution: key-order-b" {
     "[{\"values\":{\"schema\":{\"s\":{\"nullable\":false,\"type\":\"string\"},\"x\":{\"nullable\":false,\"type\":\"number\"}},\"rows\":[{\"s\":{\"literal\":\"\u{e9}\"},\"x\":{\"literal\":1}}]},\"as\":\"seed\"},{\"derive\":{}},{\"filter\":\"true\"},{\"select\":[\"x\",\"s\"]}]",
   )
   let result = evaluate_sequence_components(
+    registered_relation_contracts(),
     prepared_sequence(owner),
     [],
     ["select_3"],
@@ -132,6 +138,7 @@ test "values four-operation execution: nullable" {
     "[{\"values\":{\"schema\":{\"x\":{\"type\":\"number\",\"nullable\":true}},\"rows\":[{\"x\":{\"literal\":null}}]},\"as\":\"seed\"},{\"derive\":{}},{\"filter\":\"true\"},{\"select\":[\"x\"]}]",
   )
   let result = evaluate_sequence_components(
+    registered_relation_contracts(),
     prepared_sequence(owner),
     [],
     ["select_3"],
@@ -152,6 +159,7 @@ test "values four-operation execution: bound-parameter" {
     "[{\"values\":{\"schema\":{\"x\":{\"type\":\"number\",\"nullable\":false}},\"rows\":[{\"x\":{\"literal\":7}}]},\"as\":\"seed\"},{\"derive\":{}},{\"filter\":\"true\"},{\"select\":[\"x\"]}]",
   )
   let result = evaluate_sequence_components(
+    registered_relation_contracts(),
     prepared_sequence(owner),
     [],
     ["select_3"],
@@ -172,6 +180,7 @@ test "values four-operation execution: quoted-scalar" {
     "[{\"values\":{\"schema\":{\"x\":{\"type\":\"number\",\"nullable\":false}},\"rows\":[{\"x\":{\"literal\":7}}]},\"as\":\"seed\"},{\"derive\":{}},{\"filter\":\"true\"},{\"select\":[\"x\"]}]",
   )
   let result = evaluate_sequence_components(
+    registered_relation_contracts(),
     prepared_sequence(owner),
     [],
     ["select_3"],
@@ -192,6 +201,7 @@ test "values four-operation execution: plain-scalar" {
     "[{\"values\":{\"schema\":{\"x\":{\"type\":\"number\",\"nullable\":false}},\"rows\":[{\"x\":{\"literal\":7}}]},\"as\":\"seed\"},{\"derive\":{}},{\"filter\":\"true\"},{\"select\":[\"x\"]}]",
   )
   let result = evaluate_sequence_components(
+    registered_relation_contracts(),
     prepared_sequence(owner),
     [],
     ["select_3"],
@@ -212,6 +222,7 @@ test "values four-operation execution: quoted-business-hole" {
     "[{\"values\":{\"schema\":{\"x\":{\"type\":\"object\",\"nullable\":false,\"fields\":{\"$param\":{\"type\":\"string\",\"nullable\":false}}}},\"rows\":[{\"x\":{\"literal\":{\"$param\":\"business\"}}}]},\"as\":\"seed\"},{\"derive\":{}},{\"filter\":\"true\"},{\"select\":[\"x\"]}]",
   )
   let result = evaluate_sequence_components(
+    registered_relation_contracts(),
     prepared_sequence(owner),
     [],
     ["select_3"],
@@ -237,6 +248,7 @@ test "values four-operation execution: quoted-business-literal" {
     "[{\"values\":{\"schema\":{\"x\":{\"type\":\"object\",\"nullable\":false,\"fields\":{\"literal\":{\"type\":\"number\",\"nullable\":false}}}},\"rows\":[{\"x\":{\"literal\":{\"literal\":1}}}]},\"as\":\"seed\"},{\"derive\":{}},{\"filter\":\"true\"},{\"select\":[\"x\"]}]",
   )
   let result = evaluate_sequence_components(
+    registered_relation_contracts(),
     prepared_sequence(owner),
     [],
     ["select_3"],
@@ -262,6 +274,7 @@ test "values four-operation execution: supplied-business-hole" {
     "[{\"values\":{\"schema\":{\"x\":{\"type\":\"object\",\"nullable\":false,\"fields\":{\"$param\":{\"type\":\"string\",\"nullable\":false}}}},\"rows\":[{\"x\":{\"literal\":{\"$param\":\"business\"}}}]},\"as\":\"seed\"},{\"derive\":{}},{\"filter\":\"true\"},{\"select\":[\"x\"]}]",
   )
   let result = evaluate_sequence_components(
+    registered_relation_contracts(),
     prepared_sequence(owner),
     [],
     ["select_3"],
@@ -287,6 +300,7 @@ test "values four-operation execution: nested-business" {
     "[{\"values\":{\"schema\":{\"x\":{\"type\":\"array\",\"nullable\":false,\"items\":{\"type\":\"object\",\"nullable\":false,\"fields\":{\"$param\":{\"type\":\"string\",\"nullable\":false},\"literal\":{\"type\":\"number\",\"nullable\":false}}}}},\"rows\":[{\"x\":{\"literal\":[{\"$param\":\"business\",\"literal\":2}]}}]},\"as\":\"seed\"},{\"derive\":{}},{\"filter\":\"true\"},{\"select\":[\"x\"]}]",
   )
   let result = evaluate_sequence_components(
+    registered_relation_contracts(),
     prepared_sequence(owner),
     [],
     ["select_3"],
@@ -318,6 +332,7 @@ test "values four-operation execution: decimal" {
     "[{\"values\":{\"schema\":{\"x\":{\"type\":\"decimal\",\"precision\":4,\"scale\":2,\"nullable\":false}},\"rows\":[{\"x\":{\"literal\":\"19.90\"}}]},\"as\":\"seed\"},{\"derive\":{}},{\"filter\":\"true\"},{\"select\":[\"x\"]}]",
   )
   let result = evaluate_sequence_components(
+    registered_relation_contracts(),
     prepared_sequence(owner),
     [],
     ["select_3"],
@@ -342,6 +357,7 @@ test "values four-operation execution: decimal-precision-38" {
     "[{\"values\":{\"schema\":{\"x\":{\"type\":\"decimal\",\"precision\":38,\"scale\":0,\"nullable\":false}},\"rows\":[{\"x\":{\"literal\":\"99999999999999999999999999999999999999\"}}]},\"as\":\"seed\"},{\"derive\":{}},{\"filter\":\"true\"},{\"select\":[\"x\"]}]",
   )
   let result = evaluate_sequence_components(
+    registered_relation_contracts(),
     prepared_sequence(owner),
     [],
     ["select_3"],
@@ -366,6 +382,7 @@ test "values four-operation execution: array-object" {
     "[{\"values\":{\"schema\":{\"x\":{\"type\":\"array\",\"nullable\":false,\"items\":{\"type\":\"object\",\"nullable\":false,\"fields\":{}}}},\"rows\":[{\"x\":{\"literal\":[{},{}]}},{\"x\":{\"literal\":[]}}]},\"as\":\"seed\"},{\"derive\":{}},{\"filter\":\"true\"},{\"select\":[\"x\"]}]",
   )
   let result = evaluate_sequence_components(
+    registered_relation_contracts(),
     prepared_sequence(owner),
     [],
     ["select_3"],
@@ -398,6 +415,7 @@ test "values four-operation execution: temporal-vector" {
     "[{\"values\":{\"schema\":{\"d\":{\"type\":\"date\",\"nullable\":false},\"t\":{\"type\":\"timestamp\",\"nullable\":false},\"v\":{\"type\":\"vector\",\"nullable\":false,\"dimensions\":2}},\"rows\":[{\"d\":{\"literal\":\"0000-02-29\"},\"t\":{\"literal\":\"2000-02-29T12:30:00.000Z\"},\"v\":{\"literal\":[0.1,2]}}]},\"as\":\"seed\"},{\"derive\":{}},{\"filter\":\"true\"},{\"select\":[\"v\",\"t\",\"d\"]}]",
   )
   let result = evaluate_sequence_components(
+    registered_relation_contracts(),
     prepared_sequence(owner),
     [],
     ["select_3"],

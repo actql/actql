@@ -73,7 +73,7 @@ for (const c of corpus.cases) {
   const program = [{values:source, as:'seed'}, {derive:{}}, {filter:'true'}, {select:columns}];
   execution.push('', '///|', `test ${quote('values four-operation execution: '+c.id)} {`,
     '  let owner = bound_pipeline(', `    ${quote(JSON.stringify(program))},`, '  )',
-    '  let result = evaluate_sequence_components(', '    prepared_sequence(owner),',
+    '  let result = evaluate_sequence_components(', '    registered_relation_contracts(),', '    prepared_sequence(owner),',
     '    [],', '    ["select_3"],', '    run_limits(),',
     '    { remaining: 100000, max_frames: 100, },', '  ).unwrap()',
     '  assert_eq(result.next, 4)',

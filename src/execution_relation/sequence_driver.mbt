@@ -45,6 +45,7 @@ fn charge_capture_rows(input : CapturedRows, budget : ValueBudget) -> Bool {
 /// It never accepts arbitrary JSON, skips a prepared operation or returns a
 /// partial store. This is the single driver for these row-evaluation components.
 fn evaluate_sequence_components(
+  _contracts : RegisteredRelationContracts,
   sequence : @lower.PreparedSequence,
   supplied : Array[CapturedRows],
   retained_ids : Array[String],

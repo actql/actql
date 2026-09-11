@@ -2,6 +2,7 @@
 package "actql/actql/execution_relation"
 
 import {
+  "actql/actql/canonical_json",
   "actql/actql/decode_core",
   "actql/actql/lowering_relation",
   "actql/actql/relation_schema",
@@ -10,6 +11,8 @@ import {
 }
 
 // Values
+pub fn admit_relation_registry(@canonical_json.CanonicalValue, @canonical_json.CanonicalValue, RegistryLimits) -> Result[RegisteredRelationContracts, RegistryIssue]
+
 pub fn binary(@lowering_relation.BinaryOperator, Value, Value) -> Result[Value, ScalarIssue]
 
 pub fn boolean_pair(@lowering_relation.ManyOperator, Value, Value) -> Result[Value, ScalarIssue]
@@ -54,6 +57,22 @@ pub(all) enum CaptureOrigin {
 } derive(Eq, @debug.Debug)
 
 type CapturedRows
+
+type RegisteredRelationContracts
+
+pub(all) enum RegistryIssue {
+  InvalidRegistryLimits
+  RegistryBodyLimit
+  ValuesContractBodyLimit
+  UnsupportedRegistry
+  ValuesContractMismatch
+} derive(Eq, @debug.Debug)
+
+pub(all) struct RegistryLimits {
+  max_body_bytes : Int
+  max_body_nodes : Int
+  max_body_depth : Int
+}
 
 pub(all) enum ScalarIssue {
   InvalidOperand
