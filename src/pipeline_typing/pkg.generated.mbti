@@ -4,6 +4,8 @@ package "actql/actql/pipeline_typing"
 import {
   "actql/actql/calendar_profile",
   "actql/actql/calendar_typing",
+  "actql/actql/capacity_derivation",
+  "actql/actql/capacity_law",
   "actql/actql/carrier_contract",
   "actql/actql/carrier_projection",
   "actql/actql/decode_core",
@@ -52,6 +54,10 @@ pub fn author_guard_at(AuthorGuards, Int) -> AuthorGuard?
 
 pub fn author_guard_count(AuthorGuards) -> Int
 
+pub fn author_guard_field(AuthorGuard) -> String
+
+pub fn author_guard_law(AuthorGuard) -> @capacity_law.RegisteredLaw
+
 pub fn author_guard_pipeline(AuthorGuard) -> CheckedPipeline
 
 pub fn author_guard_scope(AuthorGuard) -> GuardScope
@@ -59,6 +65,8 @@ pub fn author_guard_scope(AuthorGuard) -> GuardScope
 pub fn author_guard_source(AuthorGuard) -> @decode_core.Cursor
 
 pub fn author_guard_step(AuthorGuard) -> Int
+
+pub fn author_guard_unit(AuthorGuard) -> @capacity_derivation.BoundUnit
 
 pub fn author_guard_value(AuthorGuard) -> @relation_typing.CountValue
 

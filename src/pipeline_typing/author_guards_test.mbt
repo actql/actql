@@ -29,6 +29,15 @@ test "author guards retain repeated owners exact source slots and shared budgets
   for i in 0..<2 {
     let occurrence = @pipeline_typing.author_guard_at(guards, i).unwrap()
     assert_eq(@pipeline_typing.author_guard_scope(occurrence), JoinOutputRows)
+    assert_eq(
+      @pipeline_typing.author_guard_field(occurrence),
+      "max_output_rows",
+    )
+    assert_eq(@pipeline_typing.author_guard_unit(occurrence), @derivation.Rows)
+    assert_eq(
+      @law.name(@pipeline_typing.author_guard_law(occurrence)),
+      "actql.guard.join-output",
+    )
     assert_eq(@pipeline_typing.author_guard_step(occurrence), i)
     assert_true(
       physical_equal(@pipeline_typing.author_guard_pipeline(occurrence), p),

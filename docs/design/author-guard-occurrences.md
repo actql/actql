@@ -70,6 +70,12 @@ accumulate, not implicit execution-policy limits.
 
 ## Remaining source binding
 
+The pinned registry now fixes field/unit/law mappings for every collected scope.
+`author_guard_field`, `author_guard_unit` and `author_guard_law` derive these
+from the occurrence. The collector also checks that its actual source field
+matches the table. This fixes source-law selection without permitting caller
+overrides; it does not bind Program identity or select an enforcement boundary.
+
 Neither an occurrence nor its bound quantity is a numeric bound witness,
 verified source artifact, resolved limit or permission to execute. Subsequent
 source/application validation must verify governing law/unit/enforcement,

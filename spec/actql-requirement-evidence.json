@@ -7538,8 +7538,41 @@
       }
     },
     {
+      "requirement_id": "actql.protocol.contracts/capacity-law-registry.author-guard-sources",
+      "statement_sha256": "a8f2d6793abe7de1fac05eff59127be288ad5ee3b48b26b352745de9874ca77c",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "capacity-law-registry",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/capacity-law-registry.author-guard-occurrence",
+      "statement_sha256": "bec410cb1152198c5f4298798a8460b548b1283d21fbe58e8fbd12887f94a6d5",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "capacity-law-registry",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/capacity-law-registry.author-guard-value",
+      "statement_sha256": "3e78efc65b4ae0534c40e99eba3a6c17c33457fa4464c735b01e68e5368ae05a",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "capacity-law-registry",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.protocol.contracts/capacity-law-registry.machine-contract",
-      "statement_sha256": "2fef6ee18b03ef25b121f087fc3b129dcf127a0d89a0e09d363d9376c5f2c139",
+      "statement_sha256": "f2ea9dbdbebdf7d05c583b57920a36730c4f496ca4ef3c4177bc60ca482d8f9f",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",

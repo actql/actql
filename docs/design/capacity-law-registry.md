@@ -3,11 +3,24 @@
 The [normative registry](../spec/protocols/contracts.md#capacity-law-registry)
 pins the closed vocabulary of governing witness names. It is separate from the
 operation transfer classification and the Host field/unit/law table. Its initial
-68 IDs consist of the fixed Sketch witness-name inventory plus the already
+68 IDs consisted of the fixed Sketch witness-name inventory plus the already
 adopted `actql.host.model-request-bytes` law. The names are sorted explicitly;
 the old reference array order and global created-witness cache are not imported.
 This adds an owned registry where the repository previously had only a
 normative requirement to check known law IDs, not a pinned registry body.
+
+The registry now also fixes eleven author-guard scope mappings to field, unit
+and law. Three new names cover already-admitted nest item, string-aggregate byte
+and shortest-path output guards; the inventory is now 71 names. Join, cross-join
+and interval-join share the existing join-output law but retain distinct owners.
+The generated pipeline accessors derive law and unit from an opaque occurrence,
+not independent caller strings. Scope and bound quantity still do not establish
+Program source identity or enforcement. Existing guard syntax and Program
+identities are unchanged; the registry body and its pinned CID change.
+
+This closes a source-law naming gap against the current specification, not a
+claim that the fixed reference already implemented these three new names.
+The expression-fragment capacity law remains extension-local and is not added.
 
 `capacity_law.admit` returns an opaque `RegisteredLaw` only for an exact name.
 It proves membership alone. It is not a witness, source fact, authorization or

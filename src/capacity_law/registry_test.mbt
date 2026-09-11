@@ -32,6 +32,13 @@ test "registered capacity laws require exact spellings" {
   }
   for
     id in [
+      "actql.guard.nested-array-items", "actql.guard.string-aggregate", "actql.guard.shortest-output",
+    ] {
+    assert_eq(name(admit(id).unwrap()), id)
+  }
+  assert_true(admit("actql.expression-fragment.capacity") is None)
+  for
+    id in [
       "", "actql.bound.unknown", "ACTQL.bound.append", "actql.host.relation-output.v1",
     ] {
     assert_true(admit(id) is None)

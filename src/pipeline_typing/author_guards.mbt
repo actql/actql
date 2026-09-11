@@ -132,6 +132,9 @@ pub fn collect_author_guards(
         field : String,
       ) raise Stop {
         if value is Some(value) {
+          if guard_law(scope).2 != field {
+            fail(source, InvalidBody)
+          }
           spend(b, source, 1)
           charge(b, source, field)
           if value is Parameter(name) {

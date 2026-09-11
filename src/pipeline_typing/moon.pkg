@@ -1,6 +1,8 @@
 supported_targets = "+js+wasm+native"
 
 import {
+  "actql/actql/capacity_law" @law,
+  "actql/actql/capacity_derivation" @derivation,
   "actql/actql/capacity_arithmetic" @capacity,
   "actql/actql/order_key" @order,
   "actql/actql/text_rank_profile",
@@ -39,7 +41,11 @@ import {
 } for "test"
 
 formatter(
-  ignore: [ "corpus.generated_test.mbt", "text_profile.generated_test.mbt" ],
+  ignore: [
+    "corpus.generated_test.mbt",
+    "text_profile.generated_test.mbt",
+    "guard_laws.generated.mbt",
+  ],
 )
 
 import {

@@ -127,6 +127,10 @@ consumer audit.
    rejection and separate cumulative work/text costs. Program identity,
    governing source laws and consumer enforcement remain required; bound guard
    quantities are not capacity witnesses.
+   The pinned author-guard table now fixes every collected scope's source field,
+   unit and law, with generated product accessors and independent mapping tests.
+   Three newly named laws cover nest items, string-aggregate bytes and
+   shortest-path output. Source identity and enforcement still require binding.
    [Producer-bound input evidence](produced-input-evidence.md) now retains the
    original pipeline/target and conditional record/node/edge facts through
    input forwarding. Repeated operands and existing key/ranking owners remain

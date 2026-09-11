@@ -137,10 +137,33 @@ pinned capacity policy's `host_witness_laws` table. Other law names retain their
 separate source/application obligations rather than accepting arbitrary witness
 claims by name alone.
 
+<!-- requirement-block: capacity-law-registry.author-guard-sources capacity-law-registry.author-guard-occurrence capacity-law-registry.author-guard-value -->
+The registry's `author_guard_laws` table fixes the source field, quantity unit
+and governing law for each listed checked-operation guard scope. These source
+witnesses MUST have role `author_guard`, source kind `author_guard`, source
+derivation and the owning Program Definition CID as their sole dependency.
+Their source path MUST address the actual authored guard occurrence, and their
+value MUST equal its bound positive safe-integer value. Omitted guards create
+no witness; Parameter guards require binding, not default inference by the
+witness reader. Repeated occurrences and currently non-binding guards remain
+distinct. A matching unit or number does not allow one occurrence to govern
+another consumer.
+
+The join-output law applies separately to `join`, `cross_join` and
+`interval_join` output guards; the owning occurrence determines the operation
+and protected output. The nested-array-items law restricts each matched
+parent's nested array, not total input rows. String-aggregate guards restrict
+UTF-8 output bytes; array-aggregate guards restrict array items. Sequence
+per-key match and total-output scopes remain distinct. Components, traversal
+and shortest-path guards restrict their operation's output rows, not input
+nodes or path length. These restrictions do not establish measured bounds
+before enforcement. The operation contract still determines the enforcement
+boundary; the table does not grant truncation, selection, or execution authority.
+
 <!-- requirement-block: capacity-law-registry.machine-contract -->
 <!-- normative-code: law -->
 ```text
-../../../spec/contracts/actql-bound-law-registry.json# sha256:f7b4eccb94ab84d61367bb89e84f9ede39bf14d459df18b23dd214ad7c510796
+../../../spec/contracts/actql-bound-law-registry.json# sha256:43121f11140ba607477398f90286872f759e0fff978562d81124a5e70d9137fd
 ```
 
 <a id="capacity-host-policy"></a>
