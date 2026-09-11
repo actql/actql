@@ -10,6 +10,19 @@ this entry is not a general Input dispatcher or a completed CheckedProgram.
 
 ## Evidence retained
 
+Optional `minimum_classification` admits exactly `public`, `internal`,
+`confidential`, or `restricted`, as pinned by the Program input schema. The
+reader retains it as an authored lower bound, with absence preserved as None.
+It does not assign an observed classification, default to public, lower a
+Host/Connector classification, or authorize model/provider egress. The language's
+[inference boundary](../spec/language.md#infer) requires effective classification
+and current data-handling checks separately. Unknown source classification still
+cannot be repaired merely by supplying this authored floor. This closes an earlier
+reader acceptance omission; it does not change the schema or language.
+Sketch `87dc7144:src/actql.ts` also admits this field; its legacy `schema_ref`
+spelling is not imported. Ordinary source preflight charges the classification
+key and value, and invalid vocabulary retains the original field cursor.
+
 Absent schema yields open field knowledge. `expected_columns` is duplicate-free
 and may be empty; listed fields are known present without inferred value types.
 Additional fields remain unknown, not absent. Inline schema uses the common

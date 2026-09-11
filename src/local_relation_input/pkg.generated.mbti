@@ -20,6 +20,8 @@ pub fn expected_columns(Checked) -> Array[String]
 
 pub fn first_by_order(Checked) -> Array[@order_key.Key]?
 
+pub fn minimum_classification(Checked) -> String?
+
 pub fn primary_key(Checked) -> @relation_evidence.KeyedRelation?
 
 pub fn read(@decode_core.Cursor, Limits) -> Result[Checked, Issue]
@@ -50,6 +52,7 @@ pub enum Issue {
   Decode(@decode_core.Issue)
   UnsupportedCarrier(String)
   InvalidMetadata
+  InvalidClassification(@decode_core.Cursor)
   InvalidName(String)
   DuplicateColumn(String)
   MissingColumn(String)

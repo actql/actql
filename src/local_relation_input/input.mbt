@@ -13,6 +13,7 @@ pub enum Issue {
   Decode(@decode.Issue)
   UnsupportedCarrier(String)
   InvalidMetadata
+  InvalidClassification(@decode.Cursor)
   InvalidName(String)
   DuplicateColumn(String)
   MissingColumn(String)
@@ -31,6 +32,7 @@ struct Checked {
   expected : Array[String]
   key : @evidence.KeyedRelation?
   order : Array[@order.Key]?
+  minimum_classification : String?
   used : Usage
 }
 
@@ -154,17 +156,31 @@ pub fn read(source : @decode.Cursor, limits : Limits) -> Result[Checked, Issue] 
         expected: [],
         key: None,
         order: None,
+        minimum_classification: None,
         used,
       })
     }
     let body = unwrap(
       @decode.closed_object(source, [
         "carrier", "expected_columns", "schema", "primary_key", "duplicates", "meta",
+        "minimum_classification",
       ]),
     )
     let name = unwrap(@decode.text(unwrap(@decode.required(body, "carrier"))))
     if name != "relation" {
       raise Stop(UnsupportedCarrier(name))
+    }
+    let minimum_classification = match
+      @decode.lookup(body, "minimum_classification") {
+      None => None
+      Some(at) => {
+        let classification = unwrap(@decode.text(at))
+        match classification {
+          "public" | "internal" | "confidential" | "restricted" =>
+            Some(classification)
+          _ => raise Stop(InvalidClassification(at))
+        }
+      }
     }
     if @decode.lookup(body, "meta") is Some(meta) {
       let _ = unwrap(@decode.open_object(meta))
@@ -284,7 +300,7 @@ pub fn read(source : @decode.Cursor, limits : Limits) -> Result[Checked, Issue] 
           Some(keys)
         }
     }
-    Ok({ source, carrier, expected, key, order, used, })
+    Ok({ source, carrier, expected, key, order, minimum_classification, used, })
   } catch {
     Stop(e) => Err(e)
   }
@@ -293,6 +309,13 @@ pub fn read(source : @decode.Cursor, limits : Limits) -> Result[Checked, Issue] 
 ///|
 pub fn source(v : Checked) -> @decode.Cursor {
   v.source
+}
+
+///|
+/// An authored lower bound, not observed classification or egress permission.
+/// Absence remains unknown here; it does not default to public.
+pub fn minimum_classification(v : Checked) -> String? {
+  v.minimum_classification
 }
 
 ///|

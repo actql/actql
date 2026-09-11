@@ -12,6 +12,8 @@ export function checkLocalInputSchemas(registry) {
     assert.equal(object.additionalProperties, false);
     assert.ok(object.properties.schema, 'inline schema must remain available');
     assert.ok(object.properties.expected_columns);
+    assert.deepEqual(object.properties.minimum_classification.enum,
+      ['public', 'internal', 'confidential', 'restricted']);
     assert.ok(!JSON.stringify(alternatives).includes('"schema_ref"'), 'schema_ref is not an authored input field');
   }
 }
