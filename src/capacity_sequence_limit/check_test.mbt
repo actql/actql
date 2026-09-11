@@ -16,6 +16,11 @@ fn pipeline(
     "\",\"contiguity\":\"adjacent\"" +
     guard_text +
     "}}]"
+  pipeline_text(text)
+}
+
+///|
+fn pipeline_text(text : String) -> @pipeline.CheckedPipeline {
   let source = @source.parse_json(text, {
     max_input_bytes: 4096,
     max_nodes: 100,

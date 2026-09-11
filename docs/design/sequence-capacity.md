@@ -42,6 +42,32 @@ their separately admitted body/reference budgets. Successful binding does not
 mutate the checked sequence or remove `AtomicMatchLimits`, identity, time,
 predicate or binding obligations. No output row count is inferred.
 
+## Collection coverage
+
+`check_applications` requires one opaque application per local sequence step,
+including unused branches. It scans every step rather than trusting the supplied
+application list as the scope. Registration requires the exact pipeline and
+Host-source collection owners and the selected policy CID. Re-admitting the
+same bytes does not make a foreign collection handle interchangeable.
+Applications may arrive in any order; duplicates are rejected. The result owns
+its per-step index and limit-consumption bitmap independently of caller arrays.
+
+Each application consumes both of its original mixed-collection limit indices.
+`consumes_limit` reports exact index membership, and `unconsumed_limit_count`
+keeps unrelated limits visible. `check_complete` additionally requires every
+limit in this dedicated collection to be consumed by a sequence. Use the partial
+entry when other consumer families must account for the remainder. Neither
+entry claims that those other operations, upstream producer owners or all source
+claims have been checked.
+
+Collection work is `2 * steps + limits + 3 * applications`: owned step slots
+and the all-step coverage scan, limit slots, registration and two consumptions.
+This cumulative limit is checked with overflow-safe subtraction before allocating
+the index arrays. Individual application checks retain their own candidate-work
+budgets; coverage does not rerun or reset them. Tests cover both missing branches,
+out-of-order registration, foreign owners/policy, duplicate applications, exact
+and one-short budgets, detached results and unconsumed limits.
+
 ## Explicit remaining boundaries
 
 An authored `max_matches_per_key` or `max_output_rows` fails this entry with

@@ -390,7 +390,10 @@ matching automaton or proof that session-boundary values have been computed.
    per-key and total-output limits to an actual step, preserving distinct units,
    policy fields, candidate occurrences and enforcement obligations. Authored
    guards explicitly prevent using this incomplete source branch; they are not
-   discarded when Host limits are tighter. Complete source identity, all-step
+   discarded when Host limits are tighter. The sequence collection entry now
+   checks every local sequence, including unused branches, with exact owner
+   matching and an isolated limit-consumption ledger. Dedicated collection
+   completeness rejects unused limits. Complete source identity, upstream
    coverage and mixed consumer consumption remain required.
    Do not
    expand into acquisition, an evaluator or Host dispatch.

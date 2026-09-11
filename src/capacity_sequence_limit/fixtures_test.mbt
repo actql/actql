@@ -21,8 +21,11 @@ fn policy(other : Bool) -> @policy.Policy {
 }
 
 ///|
-fn fixtures(mode : Int, step : Int) -> @host.HostSources {
-  let (raw, limits) = match (mode, step) {
+fn raw_fixture(
+  mode : Int,
+  step : Int,
+) -> (Array[(String, String)], Array[(String, String)]) {
+  match (mode, step) {
     (0, 0) =>
       (
         [
@@ -354,6 +357,30 @@ fn fixtures(mode : Int, step : Int) -> @host.HostSources {
         ],
       )
     _ => abort("invalid fixture")
+  }
+}
+
+///|
+fn fixtures(mode : Int, step : Int) -> @host.HostSources {
+  fixture_set(mode, [step])
+}
+
+///|
+fn fixture_set(mode : Int, steps : Array[Int]) -> @host.HostSources {
+  let raw : Array[(String, String)] = []
+  let limits : Array[(String, String)] = []
+  let seen : Map[String, Bool] = Map([])
+  for step in steps {
+    let (witnesses, scope_limits) = raw_fixture(mode, step)
+    for pair in witnesses {
+      if !seen.contains(pair.1) {
+        seen[pair.1] = true
+        raw.push(pair)
+      }
+    }
+    for limit in scope_limits {
+      limits.push(limit)
+    }
   }
   let wires = raw.map(pair => {
     @wire.admit(@utf8.encode(pair.0), pair.1, {

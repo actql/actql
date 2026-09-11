@@ -125,7 +125,11 @@ The [Host-only sequence consumer entry](sequence-capacity.md) now binds both
 scopes to an actual checked step and exact selected-policy candidates from one
 mixed collection. It retains engine-atomic obligations, rejects absent/wrong
 subjects and scope substitution, and refuses to discard any authored guard.
-The author-source branch and complete all-step/all-consumer boundary remain open.
+Its collection entry now requires every local sequence application, rejects
+foreign owners and duplicate registrations, and tracks both consumed limit
+indices. The complete variant rejects remaining limits in a sequence-only
+collection. The author-source branch, upstream closure and combined consumer
+boundary remain open.
 
 ## Extension-local capacity law
 
