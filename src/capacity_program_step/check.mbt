@@ -107,6 +107,7 @@ priv enum Rule {
   Join(@join.Kind)
   GraphMeasure(@arithmetic.BoundUnit, @arithmetic.BoundUnit, Int, Int64)
   GraphCombine(@arithmetic.BoundUnit, Int)
+  GraphQuery(QueryBound)
 }
 
 ///|
@@ -136,6 +137,21 @@ fn operation_rule(
     return Ok((law, GraphCombine(unit, n)))
   }
   match step.operation {
+    @pipeline.Traverse(checked~, ..) => {
+      if @graph.traverse_emission(checked) != @graph.TraversedNodes {
+        return Err(UnsupportedOperation)
+      }
+      return Ok(
+        ("actql.bound.traverse-nodes", GraphQuery(traversal_bound(checked))),
+      )
+    }
+    @pipeline.Shortest(source_selector~, checked~, ..) =>
+      return Ok(
+        (
+          "actql.bound.shortest-path",
+          GraphQuery(shortest_bound(checked, source_selector is Some(_))),
+        ),
+      )
     @pipeline.Graph(op) =>
       match @graph.operation(op) {
         @graph.Degree =>
@@ -572,6 +588,7 @@ fn check_application(
     Multiply(_) => n == 1
     GraphMeasure(_, _, _, _) => n == 1
     GraphCombine(_, expected) => n == expected
+    GraphQuery(query) => n == query.inputs.length()
     QueryTopK(_) => n == 1 || n == 2
     Ranking(expected, maximum) =>
       n == expected || (n == 0 && maximum is Some(_))
@@ -598,6 +615,7 @@ fn check_application(
     let expected_unit = match rule {
       GraphMeasure(_, unit, _, _) => unit
       GraphCombine(unit, _) => unit
+      GraphQuery(query) => query.inputs[i].0
       _ => @arithmetic.Rows
     }
     if @wire.unit(source_witness(input)) != expected_unit {
@@ -607,6 +625,7 @@ fn check_application(
     // Per-query top-k uses the query side for its one-operand bound.
     let edge = match rule {
       GraphMeasure(_, _, edge, _) => edge
+      GraphQuery(query) => query.inputs[i].1
       QueryTopK(_) if n == 1 => 1
       _ => i
     }
@@ -685,6 +704,11 @@ fn check_application(
   let count = match rule {
     One => 1L
     Constant(n) => n
+    GraphQuery(query) =>
+      match query_bound_value(query, i => @numeric.value(input_value(i))) {
+        Ok(n) => n
+        Err(e) => return Err(e)
+      }
     GraphMeasure(_, _, _, factor) =>
       match @numeric.multiply(input_value(0), @numeric.read(factor).unwrap()) {
         Ok(v) => @numeric.value(v)
@@ -766,6 +790,7 @@ fn check_application(
   match (rule, @wire.derivation(witness)) {
     (One, @wire.SourceValue) => ()
     (Constant(_), @wire.SourceValue) => ()
+    (GraphQuery(_), @wire.SourceValue) => ()
     (GraphMeasure(_, _, _, _), @wire.SourceValue) => ()
     (GraphCombine(_, _), @wire.SourceValue) => ()
     (GraphCombine(_, 1), @wire.Preserve(input)) if input == ids[0] => ()

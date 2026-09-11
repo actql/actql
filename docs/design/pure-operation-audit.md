@@ -710,6 +710,12 @@ admission, resource enforcement or complete source authority.
    ledger with Graph and sequence, rejecting leftovers even after all three
    families are supplied. Other consumers and complete upstream/source closure
    remain required.
+   Components now has separate input-node and output-row limit applications,
+   an all-step ledger and integration into the same mixed consumer scan. An
+   absent components ledger is rejected even when both limit artifacts are
+   omitted or the operation is on an unused branch. Traversal node-pair and
+   shortest-path selection bounds now have owned Program candidate applications;
+   traversal path/output limit consumers and enforced output proofs remain open.
    Combined supported application coverage now runs source and consumer scans
    under one budget and requires the exact same Program application table for
    join candidates and source completeness. Unsupported sources and late

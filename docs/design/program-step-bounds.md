@@ -437,6 +437,33 @@ discharged here. Zero does not prove candidate completeness, whole-Invocation
 consistency, enclosing Program identity or execution permission. The result
 retains the original collection for those remaining checks.
 
+## Graph query candidate proofs
+
+Graph query candidate proofs distinguish output cardinality from search work.
+`actql.bound.traverse-nodes` requires the actual input Graph's Nodes bound and,
+for a Relation start selector, that selector edge's Rows bound. Explicit IDs use
+their retained occurrence count as a conservative upper bound; predicates use
+the Graph node bound. Starts are capped by the Graph node bound before computing
+start-by-node pairs because selector admission requires Graph membership.
+Repeated IDs do not prove distinctness or exact counts. `emit: paths` cannot use
+this law, even with the same output schema size or numeric witness value.
+
+`actql.bound.shortest-path` uses the checked selection: at most one result for
+two single endpoints or nearest-pair, at most the source count for
+nearest-per-source, and the endpoint-count product for each-pair. Relation
+endpoint proofs follow their actual ordered selector edges; predicate endpoints
+require a Graph Nodes proof. Literal endpoints require no manufactured input
+proof. The bound may be conservative for empty target selections or duplicate
+IDs; it is not an exact count, reachability result or evaluated predicate.
+Source derivations retain all capacity operands used by these rules, including
+repeated Relation occurrences, and safe-integer overflow is rejected.
+
+These rules extend fixed Sketch `87dc7144`, whose compiler only produced the
+single-result shortest-path proof, using Language's selector and path-selection
+contracts. Neither candidate discharges Graph admission, selector membership,
+weight validation, path-search budgets, authored output guards or runtime
+enforcement. The separate traversal path/output limit consumers remain required.
+
 ## Components limit consumers
 
 `check_components_limits` checks the two engine-atomic limits of a checked
