@@ -1,0 +1,61 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/parameter_references"
+
+import {
+  "actql/actql/decode_core",
+  "actql/actql/encode_core",
+  "actql/actql/expression_syntax",
+  "actql/actql/parameter_binding",
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn build(@decode_core.Cursor, @parameter_binding.Declarations, Array[@expression_syntax.ParameterOccurrences], Limits) -> Result[Index, Issue]
+
+pub fn declarations(Index) -> @parameter_binding.Declarations
+
+pub fn emit_references(Index, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
+
+pub fn emit_used_declarations(Index, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
+
+pub fn pointer_units(Index) -> Int
+
+pub fn reference_at(Index, Int) -> Reference?
+
+pub fn reference_count(Index) -> Int
+
+pub fn slot_at(Index, Int) -> @expression_syntax.ParameterOccurrences?
+
+pub fn source(Index) -> @decode_core.Cursor
+
+// Errors
+
+// Types and methods
+type Index
+
+pub(all) enum Issue {
+  InvalidLimits
+  SlotLimit
+  ReferenceLimit
+  PointerLimit
+  ForeignExpression(Int)
+  EmptyLocation
+  UnknownParameter(String, String)
+  DuplicateLocation(String)
+} derive(Eq, @debug.Debug)
+
+pub(all) struct Limits {
+  max_slots : Int
+  max_references : Int
+  max_pointer_units : Int
+} derive(Eq, @debug.Debug)
+
+pub struct Reference {
+  name : String
+  path : String
+  declaration : @parameter_binding.Declaration
+}
+
+// Type aliases
+
+// Traits

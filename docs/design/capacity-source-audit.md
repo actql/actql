@@ -128,7 +128,9 @@ source occurrences; the separate bounded
 [normalized-expression occurrence traversal](expression-syntax.md#text-provenance-and-locations)
 provides owned Parameter-node coordinates after expression normalization. Neither
 enumerates all Parameter/binding slots across inputs, operations, Results and
-effects, attaches declarations, or constructs the canonical reference index.
+effects. The [Parameter reference index](parameter-references.md) attaches admitted
+declarations and emits canonical pointers for a supplied set of expression slots;
+complete slot discovery and the enclosing Program owner remain required.
 
 The implementation boundary therefore still needs three connected results:
 
