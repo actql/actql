@@ -797,6 +797,11 @@ admission, resource enforcement or complete source authority.
    because no guard requested their values. Cumulative work includes the earlier
    context, and late missing bindings expose no partial success. Local source
    coordinates remain distinct from whole staged Program collection.
+   The existing source-bound all-stage operation collector now attaches one
+   complete declaration-owned binding set to both stage-local and combined
+   Program-coordinate indexes, under a cap including prior collection work.
+   This prevents per-stage binding substitution in that collection; joining it
+   with checking contexts and the remaining non-operation slots is still required.
    [Combined order checking](combined-order-checking.md) now resolves
    all steps and named Results with one shared budget and one pipeline owner.
    Capacity and other mandatory obligations still require the final combined

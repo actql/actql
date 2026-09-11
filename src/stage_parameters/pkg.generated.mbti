@@ -11,6 +11,16 @@ import {
 }
 
 // Values
+pub fn bind_operations(CollectedOperations, @parameter_binding.BoundValues, max_work~ : Int) -> Result[BoundOperations, BindingsIssue]
+
+pub fn bindings_usage(BoundOperations) -> OperationsUsage
+
+pub fn bound_operations(BoundOperations) -> CollectedOperations
+
+pub fn bound_program_index(BoundOperations) -> @parameter_references.BoundIndex
+
+pub fn bound_stage_at(BoundOperations, Int) -> @parameter_references.BoundIndex?
+
 pub fn collect(Source, Int, @pipeline_typing.CheckedPipeline, @pipeline_parameters.Limits) -> Result[CollectedStage, Issue]
 
 pub fn collect_operations(Source, Array[@pipeline_typing.CheckedPipeline], @pipeline_parameters.Limits) -> Result[CollectedOperations, OperationsIssue]
@@ -42,6 +52,15 @@ pub fn stage_index(CollectedStage) -> Int
 // Errors
 
 // Types and methods
+pub(all) enum BindingsIssue {
+  InvalidLimits
+  WorkLimit
+  ProgramBinding(@parameter_references.BindingIssue)
+  StageBinding(Int, @parameter_references.BindingIssue)
+} derive(Eq, @debug.Debug)
+
+type BoundOperations
+
 type CollectedOperations
 
 type CollectedStage

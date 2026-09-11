@@ -12,4 +12,6 @@ import {
 
 import {
   "actql/actql/relation_schema" @schema,
+  "actql/actql/encode_core" @encode,
+  "actql/actql/source_value" @source,
 } for "test"

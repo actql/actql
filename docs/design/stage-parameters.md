@@ -60,6 +60,32 @@ stage Result maps and their structural-only reference positions while retaining
 publication obligations. Complete traversal must also charge additional slots against
 the enclosing budget, rather than give them another independent full allowance.
 
+## Source-owned operation bindings
+
+`bind_operations` attaches one complete admitted Parameter value set to the
+combined Program-coordinate index and every stage-local index. The declaration
+owner is the one prepared from the same admitted Program; an equal-looking
+declaration set from another preparation fails. The caller cannot supply an
+independent value set for each stage or omit a stage from this binding pass.
+Each index uses the common typed value projection, retaining repeated reference
+locations but selecting each used name once. Local and Program paths remain
+different even when their selected value preimages happen to be equal.
+
+The opaque result retains the collected operations and indexed bound selections,
+not caller arrays. Its work cap includes all earlier operation collection work,
+the combined binding work, one registration per stage and each local binding
+cost. Other usage counters remain the retained collection's counts: no paths
+or expression occurrences are reconstructed. A late stage budget failure exposes
+no partial result. Tests verify exact source/value/index owners, repeated names,
+fixed projected bytes, aggregate exact/short limits and foreign preparations.
+
+These are operation-only selections, not completed whole-Program or stage
+identities. Input/Result/Effect/binding slots, stage input wiring, static
+obligation discharge and semantic envelope construction still require their
+enclosing integration. A bound operation index does not discharge a guard's
+numeric constraint or prove that another independently assembled checking
+context used the same bindings.
+
 This boundary proves source correspondence for declarations, steps and initial
 selection only. It does not prove the supplied input Carrier contracts, inspect
 input/Result/Effect/binding reference slots, establish complete usage or generate
