@@ -429,3 +429,32 @@ Expression-workspace validation: execution 31/31 on each of JS, Wasm and native,
 unchanged matching public API, format/whitespace and 865 links pass. Existing
 private-code warnings remain; fragment-wide retention and shared-contract
 admission are still open, not inferred from these component tests.
+
+## Retention wiring preparation
+
+Private `prepare_wiring` consumes the bound prepared owner's generated input
+IDs and checked occurrence counts. It resolves ordered references to physical
+slots, preserving branch edges, and records each table's last consumer. Sources
+are registered before steps and a step only after resolving its references;
+forward/foreign IDs cannot be repaired by a global name lookup. Authored input
+names are not confused with generated step IDs. No expression or source is
+parsed or retyped here.
+
+Every prepared step remains in the schedule. An unconsumed output expires after
+its producer runs, not before: unused derive failures and no-op operations must
+still occur. The future fragment driver supplies retained output IDs; this is
+not Program Result selection, root pruning or Result publication. Unknown
+retained IDs fail atomically and duplicates do not duplicate retained storage.
+
+Metadata construction precharges structural entries, copied reference views,
+work and identifier lengths. Its lookup map is released logically after
+construction. A fixed four-step branch vector has routes `[], [0], [1], [1]`,
+last-use positions `1, 3, 2, 3`, 23 peak slots / 19 retained slots and 71 work
+units; one-unit deficits fail. This remains retention metadata, **not an
+executable fragment**: actual table release, registry/params admission, input
+proof obligations and complete fragment budgeting still need connection.
+
+Retention-preparation validation: execution tests 34/34 on each target, matching
+unchanged public API, formatting/whitespace and 865 links pass. Ordinary builds
+now report 25 unused-private-code warnings, including the unconnected retention
+metadata. No public execution entry or runtime-conformance claim is added.
