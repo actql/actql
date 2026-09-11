@@ -1,0 +1,75 @@
+{
+  "version": "actql-check-environment-vectors/0.1",
+  "base": {
+    "version": "actql-check-environment/0.1",
+    "schema_snapshots": [],
+    "connector_capabilities": [],
+    "mapping_contracts": [],
+    "source_views": [],
+    "command_contracts": [],
+    "model_task_contracts": [],
+    "contract_registry": [],
+    "connector_catalogs": [],
+    "host_policy_profile": {
+      "version": "actql-host-policy/0.1",
+      "mode": "unresolved"
+    }
+  },
+  "cases": [
+    {
+      "id": "empty-unresolved",
+      "replace": {},
+      "expected_preimage": "{\"command_contracts\":[],\"connector_capabilities\":[],\"connector_catalogs\":[],\"contract_registry\":[],\"host_policy_profile\":{\"mode\":\"unresolved\",\"version\":\"actql-host-policy/0.1\"},\"mapping_contracts\":[],\"model_task_contracts\":[],\"schema_snapshots\":[],\"source_views\":[],\"version\":\"actql-check-environment/0.1\"}",
+      "expected_cid": "sha256:61d8d1281599c8a42c2bdd57c8a6902bf4f92cf63d806ba853c45261ab2f8211",
+      "expected_wire": "{\"command_contracts\":[],\"connector_capabilities\":[],\"connector_catalogs\":[],\"contract_registry\":[],\"evidence_bundle_cid\":\"sha256:61d8d1281599c8a42c2bdd57c8a6902bf4f92cf63d806ba853c45261ab2f8211\",\"host_policy_profile\":{\"mode\":\"unresolved\",\"version\":\"actql-host-policy/0.1\"},\"mapping_contracts\":[],\"model_task_contracts\":[],\"schema_snapshots\":[],\"source_views\":[],\"version\":\"actql-check-environment/0.1\"}"
+    },
+    {
+      "id": "nested-identity-data",
+      "replace": {
+        "host_policy_profile": {
+          "version": "actql-host-policy/0.1",
+          "mode": "unresolved",
+          "extension": {
+            "evidence_bundle_cid": "business data"
+          }
+        }
+      },
+      "expected_preimage": "{\"command_contracts\":[],\"connector_capabilities\":[],\"connector_catalogs\":[],\"contract_registry\":[],\"host_policy_profile\":{\"extension\":{\"evidence_bundle_cid\":\"business data\"},\"mode\":\"unresolved\",\"version\":\"actql-host-policy/0.1\"},\"mapping_contracts\":[],\"model_task_contracts\":[],\"schema_snapshots\":[],\"source_views\":[],\"version\":\"actql-check-environment/0.1\"}",
+      "expected_cid": "sha256:c8da75b46caaa64b8aaccd32103f64c0402b7118040b68e67f081239e912d869",
+      "expected_wire": "{\"command_contracts\":[],\"connector_capabilities\":[],\"connector_catalogs\":[],\"contract_registry\":[],\"evidence_bundle_cid\":\"sha256:c8da75b46caaa64b8aaccd32103f64c0402b7118040b68e67f081239e912d869\",\"host_policy_profile\":{\"extension\":{\"evidence_bundle_cid\":\"business data\"},\"mode\":\"unresolved\",\"version\":\"actql-host-policy/0.1\"},\"mapping_contracts\":[],\"model_task_contracts\":[],\"schema_snapshots\":[],\"source_views\":[],\"version\":\"actql-check-environment/0.1\"}"
+    },
+    {
+      "id": "changed-policy",
+      "replace": {
+        "host_policy_profile": {
+          "version": "actql-host-policy/0.1",
+          "mode": "reference-local"
+        }
+      },
+      "expected_preimage": "{\"command_contracts\":[],\"connector_capabilities\":[],\"connector_catalogs\":[],\"contract_registry\":[],\"host_policy_profile\":{\"mode\":\"reference-local\",\"version\":\"actql-host-policy/0.1\"},\"mapping_contracts\":[],\"model_task_contracts\":[],\"schema_snapshots\":[],\"source_views\":[],\"version\":\"actql-check-environment/0.1\"}",
+      "expected_cid": "sha256:aabc8710b1fbdaefdad39af377371cdc3e4d6a116751bdefe3b1d1a652249146",
+      "expected_wire": "{\"command_contracts\":[],\"connector_capabilities\":[],\"connector_catalogs\":[],\"contract_registry\":[],\"evidence_bundle_cid\":\"sha256:aabc8710b1fbdaefdad39af377371cdc3e4d6a116751bdefe3b1d1a652249146\",\"host_policy_profile\":{\"mode\":\"reference-local\",\"version\":\"actql-host-policy/0.1\"},\"mapping_contracts\":[],\"model_task_contracts\":[],\"schema_snapshots\":[],\"source_views\":[],\"version\":\"actql-check-environment/0.1\"}"
+    },
+    {
+      "id": "local-static-schema",
+      "replace": {
+        "schema_snapshots": [
+          {
+            "version": "actql-local-input-schema/0.1",
+            "source_ref": "source:local/s/rows",
+            "output_carrier": "relation",
+            "schema": {
+              "type": "object",
+              "nullable": false,
+              "additional_properties": false,
+              "fields": {}
+            }
+          }
+        ]
+      },
+      "expected_preimage": "{\"command_contracts\":[],\"connector_capabilities\":[],\"connector_catalogs\":[],\"contract_registry\":[],\"host_policy_profile\":{\"mode\":\"unresolved\",\"version\":\"actql-host-policy/0.1\"},\"mapping_contracts\":[],\"model_task_contracts\":[],\"schema_snapshots\":[{\"output_carrier\":\"relation\",\"schema\":{\"additional_properties\":false,\"fields\":{},\"nullable\":false,\"type\":\"object\"},\"source_ref\":\"source:local/s/rows\",\"version\":\"actql-local-input-schema/0.1\"}],\"source_views\":[],\"version\":\"actql-check-environment/0.1\"}",
+      "expected_cid": "sha256:91ba2b29f5ce3266de9696dcf226c727bf4efa34074676b957b96e206af158ca",
+      "expected_wire": "{\"command_contracts\":[],\"connector_capabilities\":[],\"connector_catalogs\":[],\"contract_registry\":[],\"evidence_bundle_cid\":\"sha256:91ba2b29f5ce3266de9696dcf226c727bf4efa34074676b957b96e206af158ca\",\"host_policy_profile\":{\"mode\":\"unresolved\",\"version\":\"actql-host-policy/0.1\"},\"mapping_contracts\":[],\"model_task_contracts\":[],\"schema_snapshots\":[{\"output_carrier\":\"relation\",\"schema\":{\"additional_properties\":false,\"fields\":{},\"nullable\":false,\"type\":\"object\"},\"source_ref\":\"source:local/s/rows\",\"version\":\"actql-local-input-schema/0.1\"}],\"source_views\":[],\"version\":\"actql-check-environment/0.1\"}"
+    }
+  ]
+}

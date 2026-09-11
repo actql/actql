@@ -855,6 +855,10 @@ admission, resource enforcement or complete source authority.
    owners with cumulative budgets. Environment binding, provenance validation
    and augmented pipeline registration still need integration; integrity and
    schema agreement are not authority.
+   The [Check Environment envelope](check-environment.md) now has a pinned
+   closed wire shape, root-only identity exclusion and independent preimage
+   fixtures. Product envelope/member admission, Catalog closure and policy
+   checks still remain; these fixtures do not certify an admitted environment.
    A two-stage actual Result import tests final publication ownership, foreign
    reissued orders and exact/short cumulative budgets. Ordinary/receipt inputs,
    static discharge and complete semantic Program identity remain incomplete.

@@ -97,6 +97,38 @@ or access a connector. Two compilers using different evidence MUST produce
 different Check Environment and Compiled Plan identities even when the
 evidence-independent Program CID is unchanged.
 
+<!-- requirement-block: check-environment.envelope-shape -->
+The Check Environment wire envelope MUST contain exactly `version`,
+`schema_snapshots`, `connector_capabilities`, `mapping_contracts`, `source_views`,
+`command_contracts`, `model_task_contracts`, `contract_registry`,
+`connector_catalogs`, `host_policy_profile`, and `evidence_bundle_cid`.
+The version is `actql-check-environment/0.1`; all eight evidence sections are
+arrays of objects, including explicit empty arrays, and `host_policy_profile`
+is an object. There are no omitted-section defaults or extra top-level members.
+
+<!-- requirement-block: check-environment.envelope-preimage -->
+The `evidence_bundle_cid` MUST equal SHA-256 over the canonical JSON UTF-8 of
+the entire envelope excluding only that root member. A same-named nested
+member is ordinary data and remains in the preimage. `check_environment_cid`
+is not an additional member or independently hashed envelope. Canonical-byte
+admission rejects noncanonical encodings rather than repairing them.
+
+<!-- requirement-block: check-environment.envelope-array-order -->
+Each evidence array MUST be ordered by ascending full canonical body CID of
+its members. Ordering never removes a repeated schema-snapshot selector:
+those repetitions fail as specified below, even for identical bodies.
+Byte-identical Contract Envelopes are deduplicated before canonical envelope
+construction, as required by the Catalog closure rules. Sorting other evidence
+does not itself authorize deduplication, infer selector uniqueness or validate
+the evidence's meaning.
+
+The envelope schema intentionally checks only the closed outer shape. Hash and
+array-order integrity do not validate Catalog authority, derived-array equality,
+snapshot correspondence, capability/mapping contracts, policy components or
+runtime claims. Their governing checks remain mandatory before the environment
+can be used as admitted checking evidence. An implementation that only reads an
+integrity-checked envelope must not label it an admitted Check Environment.
+
 <!-- requirement-block: check-environment.admission-must-recompute-every-catalog-sourceview-command-modeltask-and-contractenvelope check-environment.a-sourceview-output-must-reference-one-closed-data-policy-contract check-environment.each-connector-derived-schema-snapshot-must-bind-that-exact-policy-cid check-environment.a-local-input-schema-snapshot-must-bind-its-input-source-reference -->
 Connector Catalogs are the sole authority for SourceView, Command, and
 referenced ContractEnvelope bodies inside a Check Environment. Admission MUST
@@ -984,6 +1016,7 @@ These exact schema/law references are owned here. Their identities do not includ
 <!-- requirement-block: machine-contracts.exact-artifacts -->
 <!-- normative-code: law -->
 ```text
+../../../spec/contracts/actql-check-environment.json# sha256:98fe506c9cd7428268684e8ee7a537703016d12bc2182e62aa734b479415a85c
 ../../../spec/contracts/actql-local-relation-snapshot.json# sha256:60e8136aea733421e75fa3dcef4934c87ce98959b36f8a56da93ccfbf03d81b2
 ../../../spec/contracts/actql-local-source-reference.json# sha256:9be664306a6a91a8e5bfca53d579e6dac77baf4567eb241ceeedc3216ffe47d9
 ../../../spec/contracts/actql-protocol-schemas.json#/schemas/model_task sha256:19408a610dbc52552bff3a7f97f25a120a66688e7db4f41383c91c9298f02dd2
