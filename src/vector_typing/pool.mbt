@@ -25,53 +25,53 @@ pub fn read_pool_options(
       limits.max_nodes < 0 ||
       limits.max_depth < 0 ||
       limits.max_text_bytes < 0 {
-      fail(source, InvalidLimits)
+      @checking.fail(source, InvalidLimits)
     }
-    let b : Budget = {
+    let b : @checking.Budget = {
       limits,
       work: limits.max_work,
       nodes: limits.max_nodes,
       text: limits.max_text_bytes,
     }
-    scan(b, source)
-    let root = decoded(
+    @checking.scan(b, source)
+    let root = @checking.decoded(
       @decode.closed_object(source, ["vector", "by", "method", "output_id"]),
     )
     let vector = match @decode.lookup(root, "vector") {
-      Some(at) => Some(role_name(at))
+      Some(at) => Some(@checking.role_name(at))
       None => None
     }
-    let by_at = decoded(@decode.required(root, "by"))
-    let items = decoded(@decode.elements(by_at))
+    let by_at = @checking.decoded(@decode.required(root, "by"))
+    let items = @checking.decoded(@decode.elements(by_at))
     if items.is_empty() {
-      fail(by_at, InvalidBody)
+      @checking.fail(by_at, InvalidBody)
     }
-    spend(b, by_at, items.length())
+    @checking.spend(b, by_at, items.length())
     let by : Array[@row.FieldName] = []
     let seen : Map[String, Bool] = Map([])
     for at in items {
-      let name = role_name(at)
+      let name = @checking.role_name(at)
       let spelling = @row.reference_name(name)
       if seen.contains(spelling) {
-        fail(at, DuplicatePoolField(name))
+        @checking.fail(at, DuplicatePoolField(name))
       }
       seen[spelling] = true
       by.push(name)
     }
-    let at = decoded(@decode.required(root, "method"))
-    let reduction = match decoded(@decode.text(at)) {
+    let at = @checking.decoded(@decode.required(root, "method"))
+    let reduction = match @checking.decoded(@decode.text(at)) {
       "mean" => Mean
       "sum" => Sum
       "max" => Max
-      _ => fail(at, InvalidBody)
+      _ => @checking.fail(at, InvalidBody)
     }
     let output_id = match @decode.lookup(root, "output_id") {
       None => None
       Some(at) => {
         if by.length() != 1 {
-          fail(at, InvalidBody)
+          @checking.fail(at, InvalidBody)
         }
-        let name = decoded(@decode.text(at))
+        let name = @checking.decoded(@decode.text(at))
         // Generated names use the same authored-name contract as object fields.
         match
           @contract.object_contract(
@@ -81,7 +81,7 @@ pub fn read_pool_options(
             max_name_bytes=limits.max_text_bytes,
           ) {
           Ok(_) => ()
-          Err(_) => fail(at, InvalidBody)
+          Err(_) => @checking.fail(at, InvalidBody)
         }
         Some(name)
       }
@@ -99,7 +99,7 @@ pub fn read_pool_options(
       },
     })
   } catch {
-    Stop(e) => Err(e)
+    @checking.Stop(e) => Err(e)
   }
 }
 
@@ -171,10 +171,10 @@ pub fn check_pool_vectors(
   try {
     let options = match read_pool_options(source, limits) {
       Ok(c) => c
-      Err(e) => raise Stop(e)
+      Err(e) => raise @checking.Stop(e)
     }
     let u = options.usage
-    let b : Budget = {
+    let b : @checking.Budget = {
       limits,
       work: limits.max_work - u.work,
       nodes: limits.max_nodes - u.nodes,
@@ -182,21 +182,21 @@ pub fn check_pool_vectors(
     }
     let members = match input {
       @carrier.VectorValue(v) => v
-      _ => fail(source, WrongCarrier(@carrier.kind(input)))
+      _ => @checking.fail(source, WrongCarrier(@carrier.kind(input)))
     }
-    let root = decoded(@decode.open_object(source))
+    let root = @checking.decoded(@decode.open_object(source))
     let vector = @carrier.vector_components(members)
     if options.vector is Some(name) && name != vector.name {
-      fail(
+      @checking.fail(
         @decode.lookup(root, "vector").unwrap(),
         InvalidRole(@carrier.InvalidRole(name)),
       )
     }
     let records = @carrier.vector_records(members)
-    let groups = decoded(
-      @decode.elements(decoded(@decode.required(root, "by"))),
+    let groups = @checking.decoded(
+      @decode.elements(@checking.decoded(@decode.required(root, "by"))),
     )
-    spend(b, source, options.by.length() + 2)
+    @checking.spend(b, source, options.by.length() + 2)
     let fields : Array[(@row.FieldName, @contract.Contract?)] = []
     let names : Map[String, Bool] = Map([])
     for i in 0..<options.by.length() {
@@ -204,29 +204,29 @@ pub fn check_pool_vectors(
       let at = groups[i]
       let c = match @carrier.lookup(records, name) {
         Present({ contract: Some(c), .. }) => c
-        _ => fail(at, InvalidRole(@carrier.UnknownRole(name)))
+        _ => @checking.fail(at, InvalidRole(@carrier.UnknownRole(name)))
       }
       if c.nullable || !@contract.key_comparable(c, c) {
-        fail(at, InvalidRole(@carrier.InvalidRole(name)))
+        @checking.fail(at, InvalidRole(@carrier.InvalidRole(name)))
       }
       let spelling = @row.reference_name(name)
-      charge(b, at, spelling)
+      @checking.charge(b, at, spelling)
       names[spelling] = true
       fields.push((name, Some(c)))
     }
     let count = @row.Unqualified("member_count")
     let number = @contract.primitive(NumberType, nullable=false)
     if b.nodes <= 0 {
-      fail(source, BudgetExceeded)
+      @checking.fail(source, BudgetExceeded)
     }
     b.nodes -= 1
     for (name, c) in [(vector.name, vector.contract.unwrap()), (count, number)] {
       let spelling = @row.reference_name(name)
       if names.contains(spelling) {
-        fail(source, OutputCollision(spelling))
+        @checking.fail(source, OutputCollision(spelling))
       }
       names[spelling] = true
-      charge(b, source, spelling)
+      @checking.charge(b, source, spelling)
       fields.push((name, Some(c)))
     }
     let ids = match options.output_id {
@@ -236,10 +236,10 @@ pub fn check_pool_vectors(
         if name != options.by[0] {
           let at = @decode.lookup(root, "output_id").unwrap()
           if names.contains(output_name) {
-            fail(at, OutputCollision(output_name))
+            @checking.fail(at, OutputCollision(output_name))
           }
-          spend(b, at, 1)
-          charge(b, at, output_name)
+          @checking.spend(b, at, 1)
+          @checking.charge(b, at, output_name)
           fields.push((name, fields[0].1))
         }
         [name]
@@ -253,7 +253,7 @@ pub fn check_pool_vectors(
         max_name_bytes=limits.max_text_bytes,
       ) {
       Ok(rows) => rows
-      Err(_) => fail(source, BudgetExceeded)
+      Err(_) => @checking.fail(source, BudgetExceeded)
     }
     let output = match
       @carrier.vectors(
@@ -263,7 +263,7 @@ pub fn check_pool_vectors(
         max_identity_fields=ids.length(),
       ) {
       Ok(v) => v
-      Err(e) => fail(source, InvalidRole(e))
+      Err(e) => @checking.fail(source, InvalidRole(e))
     }
     Ok({
       options,
@@ -278,7 +278,7 @@ pub fn check_pool_vectors(
       },
     })
   } catch {
-    Stop(e) => Err(e)
+    @checking.Stop(e) => Err(e)
   }
 }
 
@@ -352,7 +352,7 @@ pub fn check_pool_keys(
       limits.max_nodes < 0 ||
       limits.max_depth < 0 ||
       limits.max_text_bytes < 0 {
-      fail(source, InvalidLimits)
+      @checking.fail(source, InvalidLimits)
     }
     let selection = match
       @evidence.select_key(source, input, ScalarIdentity, {
@@ -360,10 +360,10 @@ pub fn check_pool_keys(
         max_name_bytes: limits.max_text_bytes,
       }) {
       Ok(v) => v
-      Err(_) => fail(source, BudgetExceeded)
+      Err(_) => @checking.fail(source, BudgetExceeded)
     }
     guard selection.key is Some(key) else {
-      fail(source, MissingEligiblePoolKey)
+      @checking.fail(source, MissingEligiblePoolKey)
     }
     let checked = match
       check_pool_selected(source, key, {
@@ -372,7 +372,7 @@ pub fn check_pool_keys(
         max_text_bytes: limits.max_text_bytes - selection.name_bytes,
       }) {
       Ok(v) => v
-      Err(e) => raise Stop(e)
+      Err(e) => raise @checking.Stop(e)
     }
     Ok({
       ..checked,
@@ -383,7 +383,7 @@ pub fn check_pool_keys(
       },
     })
   } catch {
-    Stop(e) => Err(e)
+    @checking.Stop(e) => Err(e)
   }
 }
 
@@ -398,28 +398,29 @@ fn check_pool_selected(
       limits.max_nodes < 0 ||
       limits.max_depth < 0 ||
       limits.max_text_bytes < 0 {
-      fail(source, InvalidLimits)
+      @checking.fail(source, InvalidLimits)
     }
-    let b : Budget = {
+    let b : @checking.Budget = {
       limits,
       work: limits.max_work,
       nodes: limits.max_nodes,
       text: limits.max_text_bytes,
     }
-    let root = decoded(@decode.open_object(source))
-    let vector_at = decoded(@decode.required(root, "vector"))
-    let components = role_name(vector_at)
+    let root = @checking.decoded(@decode.open_object(source))
+    let vector_at = @checking.decoded(@decode.required(root, "vector"))
+    let components = @checking.role_name(vector_at)
     let rows = @evidence.keyed_records(input)
     let n = @evidence.key_field_count(input)
-    spend(b, source, n + 1)
+    @checking.spend(b, source, n + 1)
     let ids : Array[@row.FieldName] = []
     let mut direct_string = false
     for i in 0..<n {
       let field = @evidence.key_field_at(input, i).unwrap()
-      charge(b, source, @row.reference_name(field.name))
+      @checking.charge(b, source, @row.reference_name(field.name))
       let c = match field.contract {
         Some(c) => c
-        None => fail(source, UnsupportedPoolMemberIdentity(field.name))
+        None =>
+          @checking.fail(source, UnsupportedPoolMemberIdentity(field.name))
       }
       match c.shape {
         @contract.Text(_) => if n == 1 { direct_string = true }
@@ -428,21 +429,22 @@ fn check_pool_selected(
         | @contract.Date
         | @contract.Timestamp
         | @contract.Decimal(..) => ()
-        _ => fail(source, UnsupportedPoolMemberIdentity(field.name))
+        _ => @checking.fail(source, UnsupportedPoolMemberIdentity(field.name))
       }
       ids.push(field.name)
     }
     if !direct_string {
       match @carrier.lookup(rows, Unqualified("__actql_vector_record_id")) {
         Absent => ()
-        Unknown => fail(source, UnknownOutputFields)
-        Present(_) => fail(source, OutputCollision("__actql_vector_record_id"))
+        Unknown => @checking.fail(source, UnknownOutputFields)
+        Present(_) =>
+          @checking.fail(source, OutputCollision("__actql_vector_record_id"))
       }
     }
     let members = match
       @carrier.vectors(rows, ids~, components~, max_identity_fields=n) {
       Ok(v) => v
-      Err(e) => fail(vector_at, InvalidRole(e))
+      Err(e) => @checking.fail(vector_at, InvalidRole(e))
     }
     let checked = match
       check_pool_vectors(source, members, {
@@ -452,7 +454,7 @@ fn check_pool_selected(
         max_text_bytes: b.text,
       }) {
       Ok(c) => c
-      Err(e) => raise Stop(e)
+      Err(e) => raise @checking.Stop(e)
     }
     Ok({
       ..checked,
@@ -465,7 +467,7 @@ fn check_pool_selected(
       },
     })
   } catch {
-    Stop(e) => Err(e)
+    @checking.Stop(e) => Err(e)
   }
 }
 

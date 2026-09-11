@@ -92,7 +92,7 @@ test "parameter queries retain binding obligations and use only declaration dime
       None,
       limits(),
     ).unwrap_err().kind,
-    @vector_typing.UnknownParameter("missing"),
+    @vector_typing.IssueKind::UnknownParameter("missing"),
   )
 }
 
@@ -222,7 +222,7 @@ test "query errors retain paths and unknown output knowledge cannot prove a fres
     None,
     limits(),
   ).unwrap_err()
-  assert_eq(issue.kind, @vector_typing.DimensionMismatch(2.0, 1.0))
+  assert_eq(issue.kind, @vector_typing.IssueKind::DimensionMismatch(2.0, 1.0))
   assert_eq(issue.path, [@source.Key("query")])
   for
     body in [
@@ -249,12 +249,12 @@ test "query errors retain paths and unknown output knowledge cannot prove a fres
       None,
       limits(),
     ).unwrap_err().kind,
-    @vector_typing.OutputCollision("score"),
+    @vector_typing.IssueKind::OutputCollision("score"),
   )
   for input in [vectors(open=true), @carrier.unknown_carrier(VectorsKind)] {
     assert_eq(
       @vector_typing.check(ScoreVectors, source, input, None, limits()).unwrap_err().kind,
-      @vector_typing.UnknownOutputFields,
+      @vector_typing.IssueKind::UnknownOutputFields,
     )
   }
 }
@@ -283,7 +283,7 @@ test "reported budgets are exact and each exhausted budget rejects" {
   for cap in caps {
     assert_eq(
       @vector_typing.check(ScoreVectors, source, vectors(), None, cap).unwrap_err().kind,
-      @vector_typing.BudgetExceeded,
+      @vector_typing.IssueKind::BudgetExceeded,
     )
   }
 }

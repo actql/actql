@@ -1,5 +1,5 @@
 ///|
-fn role_name(source : @decode.Cursor) -> @row.FieldName raise Stop {
+pub fn role_name(source : @decode.Cursor) -> @row.FieldName raise Stop {
   let name = decoded(@decode.text(source))
   let parts = name.split(".").to_array()
   match parts {

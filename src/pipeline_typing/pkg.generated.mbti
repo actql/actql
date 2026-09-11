@@ -26,6 +26,7 @@ import {
   "actql/actql/temporal_window",
   "actql/actql/text_rank_profile",
   "actql/actql/time_series",
+  "actql/actql/vector_checking",
   "actql/actql/vector_typing",
   "moonbitlang/core/debug",
 }
@@ -218,7 +219,7 @@ pub enum CheckedOperation {
   GraphMean(@graph_typing.CheckedMean)
   GraphConstruction(nodes~ : Target?, edges~ : Target, checked~ : @graph_typing.CheckedConstruction)
   Vector(@vector_typing.CheckedVector)
-  Nearest(queries~ : Target, checked~ : @vector_typing.CheckedNearest)
+  Nearest(queries~ : Target, checked~ : @relation_evidence.CheckedNearest)
   Pool(@vector_typing.CheckedPool)
   Ranking(@vector_typing.CheckedRanking)
   TextRank(queries~ : Target, checked~ : @vector_typing.CheckedTextRank)
@@ -312,7 +313,7 @@ pub(all) enum IssueKind {
   Projection(@carrier_projection.IssueKind)
   Graph(@graph_typing.IssueKind)
   GraphMatch(@graph_typing.MatchIssueKind)
-  Vector(@vector_typing.IssueKind)
+  Vector(@vector_checking.IssueKind)
   Event(@event_typing.IssueKind)
   MissingWindowEvidence
   MissingDeltaContract

@@ -39,17 +39,18 @@ pub fn ranking_from_nearest(input : CheckedNearest) -> RankingInput {
   let tuples : Map[String, Int] = Map([])
   for
     (name, side) in [
-      ("query_id", input.pair.queries),
-      ("candidate_id", input.pair.candidates),
+      ("query_id", nearest_pair_input(nearest_pair(input), Queries)),
+      ("candidate_id", nearest_pair_input(nearest_pair(input), Candidates)),
     ] {
-    if side.vectors is Some(v) && @carrier.vector_identity_count(v) > 1 {
+    if nearest_input_vectors(side) is Some(v) &&
+      @carrier.vector_identity_count(v) > 1 {
       tuples[ranking_field_key(@row.Unqualified(name))] = @carrier.vector_identity_count(
         v,
       )
     }
   }
   {
-    carrier: input.output,
+    carrier: nearest_output(input),
     nearest: Some(input),
     fusion: None,
     lexical: None,
@@ -117,17 +118,17 @@ struct RankingShape {
 
 ///|
 fn ranking_identity(
-  b : Budget,
+  b : @checking.Budget,
   at : @decode.Cursor,
   input : RankingInput,
   name : @row.FieldName,
   contract : @contract.Contract,
   nonnull : Bool,
-) -> Unit raise Stop {
-  spend(b, at, 1)
-  charge(b, at, @row.reference_name(name))
+) -> Unit raise @checking.Stop {
+  @checking.spend(b, at, 1)
+  @checking.charge(b, at, @row.reference_name(name))
   if nonnull && contract.nullable {
-    fail(at, InvalidRankingField(name))
+    @checking.fail(at, InvalidRankingField(name))
   }
   if @contract.key_comparable(contract, contract) {
     return
@@ -135,9 +136,9 @@ fn ranking_identity(
   // Only the producing checker can attest that this object encodes an ordered
   // semantic identity tuple. An arbitrary object with the same shape cannot.
   guard input.tuples.get(ranking_field_key(name)) is Some(count) else {
-    fail(at, InvalidRankingField(name))
+    @checking.fail(at, InvalidRankingField(name))
   }
-  spend(b, at, count)
+  @checking.spend(b, at, count)
 }
 
 ///|
@@ -154,9 +155,9 @@ pub fn check_ranking_shape(
       limits.max_nodes < 0 ||
       limits.max_depth < 0 ||
       limits.max_text_bytes < 0 {
-      fail(source, InvalidLimits)
+      @checking.fail(source, InvalidLimits)
     }
-    let b : Budget = {
+    let b : @checking.Budget = {
       limits,
       work: limits.max_work,
       nodes: limits.max_nodes,
@@ -164,52 +165,54 @@ pub fn check_ranking_shape(
     }
     let rows = match input.carrier {
       @carrier.Relation(r) => r
-      _ => fail(source, WrongCarrier(@carrier.kind(input.carrier)))
+      _ => @checking.fail(source, WrongCarrier(@carrier.kind(input.carrier)))
     }
     let schema = match @carrier.complete_schema(rows) {
       Some(s) => s
-      None => fail(source, IncompleteRankingInput)
+      None => @checking.fail(source, IncompleteRankingInput)
     }
-    let root = decoded(@decode.open_object(source))
-    let by = decoded(@decode.elements(decoded(@decode.required(root, "by"))))
-    spend(b, source, options.by.length())
+    let root = @checking.decoded(@decode.open_object(source))
+    let by = @checking.decoded(
+      @decode.elements(@checking.decoded(@decode.required(root, "by"))),
+    )
+    @checking.spend(b, source, options.by.length())
     for i in 0..<options.by.length() {
       let name = options.by[i]
       let c = match @row.lookup(schema, name) {
         Some(c) => c
-        None => fail(by[i], InvalidRankingField(name))
+        None => @checking.fail(by[i], InvalidRankingField(name))
       }
       ranking_identity(b, by[i], input, name, c, false)
     }
-    let at = decoded(@decode.required(root, "candidate"))
+    let at = @checking.decoded(@decode.required(root, "candidate"))
     let name = options.candidate
     let c = match @row.lookup(schema, name) {
       Some(c) => c
-      None => fail(at, InvalidRankingField(name))
+      None => @checking.fail(at, InvalidRankingField(name))
     }
     ranking_identity(b, at, input, name, c, true)
     let key = if options.policy == ReciprocalRank { "rank" } else { "score" }
-    let at = decoded(@decode.required(root, key))
+    let at = @checking.decoded(@decode.required(root, key))
     let name = if options.policy == ReciprocalRank {
       options.rank.unwrap()
     } else {
       options.score.unwrap()
     }
-    spend(b, at, 1)
-    charge(b, at, @row.reference_name(name))
+    @checking.spend(b, at, 1)
+    @checking.charge(b, at, @row.reference_name(name))
     match @row.lookup(schema, name) {
       Some({ nullable: false, shape: Number, }) => ()
-      _ => fail(at, InvalidRankingField(name))
+      _ => @checking.fail(at, InvalidRankingField(name))
     }
     if options.tie_break is Some(names) {
-      let items = decoded(
-        @decode.elements(decoded(@decode.required(root, "tie_break"))),
+      let items = @checking.decoded(
+        @decode.elements(@checking.decoded(@decode.required(root, "tie_break"))),
       )
-      spend(b, source, names.length())
+      @checking.spend(b, source, names.length())
       for i in 0..<names.length() {
         let name = names[i]
-        spend(b, items[i], 1)
-        charge(b, items[i], @row.reference_name(name))
+        @checking.spend(b, items[i], 1)
+        @checking.charge(b, items[i], @row.reference_name(name))
         match @row.lookup(schema, name) {
           Some(
             {
@@ -222,7 +225,7 @@ pub fn check_ranking_shape(
               ..
             }
           ) => ()
-          _ => fail(items[i], InvalidRankingField(name))
+          _ => @checking.fail(items[i], InvalidRankingField(name))
         }
       }
     }
@@ -237,7 +240,7 @@ pub fn check_ranking_shape(
       },
     })
   } catch {
-    Stop(e) => Err(e)
+    @checking.Stop(e) => Err(e)
   }
 }
 

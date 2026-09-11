@@ -18,16 +18,16 @@ pub fn transfer_ranking_unary(
       limits.max_nodes < 0 ||
       limits.max_depth < 0 ||
       limits.max_text_bytes < 0 {
-      fail(source, InvalidLimits)
+      @checking.fail(source, InvalidLimits)
     }
     guard @carrier.relation_rows(previous.carrier).bind(r => {
         @carrier.complete_schema(r)
       })
       is Some(schema) &&
       physical_equal(schema, @relation.input_schema(op)) else {
-      fail(source, RankingInputMismatch)
+      @checking.fail(source, RankingInputMismatch)
     }
-    let b : Budget = {
+    let b : @checking.Budget = {
       limits,
       work: limits.max_work,
       nodes: limits.max_nodes,
@@ -46,14 +46,14 @@ pub fn transfer_ranking_unary(
       | Lag
       | WatermarkRows => ()
       Derive => {
-        spend(b, source, @relation.binding_count(op))
+        @checking.spend(b, source, @relation.binding_count(op))
         let slots : Array[(Int?, Bool)] = []
         let assigned : Map[String, (Int?, Bool)] = Map([])
         for i in 0..<@relation.binding_count(op) {
           let binding = @relation.binding_copy_at(op, i).unwrap()
           let annotation = match binding.input {
             Some(InputField(field)) => {
-              charge(b, source, @row.reference_name(field))
+              @checking.charge(b, source, @row.reference_name(field))
               let name = ranking_field_key(field)
               (previous.tuples.get(name), previous.score_aliases.contains(name))
             }
@@ -62,17 +62,17 @@ pub fn transfer_ranking_unary(
           }
           slots.push(annotation)
           if binding.output is Some(name) {
-            charge(b, source, name)
+            @checking.charge(b, source, name)
             assigned[ranking_field_key(@row.Unqualified(name))] = annotation
           }
         }
         tuples = Map([])
         scores = Map([])
         let output = @relation.output_schema(op)
-        spend(b, source, @row.field_count(output))
+        @checking.spend(b, source, @row.field_count(output))
         for i in 0..<@row.field_count(output) {
           let field = @row.field_at(output, i).unwrap().name
-          charge(b, source, @row.reference_name(field))
+          @checking.charge(b, source, @row.reference_name(field))
           let name = ranking_field_key(field)
           let (tuple, score) = assigned
             .get(name)
@@ -94,12 +94,12 @@ pub fn transfer_ranking_unary(
           tuples = Map([])
           scores = Map([])
           let projection = @relation.projection(op)
-          spend(b, source, projection.length())
+          @checking.spend(b, source, projection.length())
           for p in projection {
             let old = ranking_field_key(p.input)
             let name = ranking_field_key(p.output)
-            charge(b, source, @row.reference_name(p.input))
-            charge(b, source, @row.reference_name(p.output))
+            @checking.charge(b, source, @row.reference_name(p.input))
+            @checking.charge(b, source, @row.reference_name(p.output))
             if previous.tuples.get(old) is Some(n) {
               tuples[name] = n
             }
@@ -114,7 +114,7 @@ pub fn transfer_ranking_unary(
       }
     }
     let output = @relation.output_schema(op)
-    spend(b, source, @row.field_count(output))
+    @checking.spend(b, source, @row.field_count(output))
     Ok({
       input: {
         ..previous,
@@ -129,6 +129,6 @@ pub fn transfer_ranking_unary(
       },
     })
   } catch {
-    Stop(e) => Err(e)
+    @checking.Stop(e) => Err(e)
   }
 }

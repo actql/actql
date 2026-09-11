@@ -12,11 +12,11 @@ pub fn transfer_ranking_calendar(
       limits.max_nodes < 0 ||
       limits.max_depth < 0 ||
       limits.max_text_bytes < 0 {
-      fail(source, InvalidLimits)
+      @checking.fail(source, InvalidLimits)
     }
     guard @calendar.input(operation) is Some(@carrier.Relation(input)) &&
       previous.carrier is @carrier.Relation(records) else {
-      fail(source, RankingInputMismatch)
+      @checking.fail(source, RankingInputMismatch)
     }
     let same = if physical_equal(input, records) {
       true
@@ -28,16 +28,16 @@ pub fn transfer_ranking_calendar(
       }
     }
     if !same {
-      fail(source, RankingInputMismatch)
+      @checking.fail(source, RankingInputMismatch)
     }
     if limits.max_work < 1 {
-      fail(source, BudgetExceeded)
+      @checking.fail(source, BudgetExceeded)
     }
     Ok({
       input: { ..previous, carrier: @calendar.output(operation), },
       usage: { work: 1, nodes: 0, text_bytes: 0, },
     })
   } catch {
-    Stop(e) => Err(e)
+    @checking.Stop(e) => Err(e)
   }
 }

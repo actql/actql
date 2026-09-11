@@ -83,6 +83,11 @@ consumer audit.
    supplied key. Ranking provenance can recover both original sides without
    reconstructing them from output fields. VecA query/candidate key transfer,
    including producer-bound positional identities, still remains to be closed.
+   The nearest checker now lives in `relation_evidence`, with shared vector
+   checking support below both packages and the original `vector_typing` facade
+   retained. Dependency tests enforce the direction. This removes the ownership
+   cycle for nearest key producers; it does not itself implement their transfer
+   or close ranking-fusion evidence.
 2. Define validated external evidence and resolved-capacity boundaries using
    the existing normative witness domains, governing laws and dependency checks.
    Shared [capacity arithmetic](capacity-arithmetic.md) is implemented and used

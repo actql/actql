@@ -21,25 +21,25 @@ pub fn declare_ranking_score(
       limits.max_nodes < 0 ||
       limits.max_depth < 0 ||
       limits.max_text_bytes < 0 {
-      fail(source, InvalidLimits)
+      @checking.fail(source, InvalidLimits)
     }
-    let b : Budget = {
+    let b : @checking.Budget = {
       limits,
       work: limits.max_work,
       nodes: limits.max_nodes,
       text: limits.max_text_bytes,
     }
-    scan(b, source)
+    @checking.scan(b, source)
     let contract = read_score_contract(source)
     let rows = match input {
       @carrier.Relation(r) => r
-      _ => fail(source, WrongCarrier(@carrier.kind(input)))
+      _ => @checking.fail(source, WrongCarrier(@carrier.kind(input)))
     }
-    spend(b, source, 1)
-    charge(b, source, @row.reference_name(field))
+    @checking.spend(b, source, 1)
+    @checking.charge(b, source, @row.reference_name(field))
     match @carrier.lookup(rows, field) {
       Present({ contract: Some({ nullable: false, shape: Number, }), .. }) => ()
-      _ => fail(source, InvalidRankingField(field))
+      _ => @checking.fail(source, InvalidRankingField(field))
     }
     Ok({
       carrier: input,
@@ -61,7 +61,7 @@ pub fn declare_ranking_score(
       }),
     })
   } catch {
-    Stop(e) => Err(e)
+    @checking.Stop(e) => Err(e)
   }
 }
 

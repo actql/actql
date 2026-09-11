@@ -20,6 +20,7 @@ import {
   "actql/actql/temporal_window",
   "actql/actql/time_series",
   "actql/actql/value_contract",
+  "actql/actql/vector_checking",
   "moonbitlang/core/debug",
 }
 
@@ -67,6 +68,18 @@ pub fn asof_uses_timestamp(CheckedAsOf, @relation_schema.Side) -> Bool
 pub fn check_asof(@decode_core.Cursor, @carrier_contract.Carrier, @carrier_contract.Carrier, @parameter_binding.Declarations?, @relation_join_shape.Limits) -> Result[CheckedAsOf, @relation_join_shape.Issue]
 
 pub fn check_asof_sources(@decode_core.Cursor, AsOfSource, AsOfSource, @parameter_binding.Declarations?, @relation_join_shape.Limits) -> Result[CheckedAsOf, @relation_join_shape.Issue]
+
+pub fn check_nearest(@decode_core.Cursor, @carrier_contract.Carrier, @carrier_contract.Carrier, @vector_checking.Limits) -> Result[CheckedNearest, @vector_checking.Issue]
+
+pub fn check_nearest_input(NearestOptions, NearestSide, @carrier_contract.Carrier, @vector_checking.Limits) -> Result[NearestInput, @vector_checking.Issue]
+
+pub fn check_nearest_pair(@decode_core.Cursor, @carrier_contract.Carrier, @carrier_contract.Carrier, @vector_checking.Limits) -> Result[NearestPair, @vector_checking.Issue]
+
+pub fn check_nearest_pair_sources(@decode_core.Cursor, NearestSource, NearestSource, @vector_checking.Limits) -> Result[NearestPair, @vector_checking.Issue]
+
+pub fn check_nearest_source(NearestOptions, NearestSide, NearestSource, @vector_checking.Limits) -> Result[NearestInput, @vector_checking.Issue]
+
+pub fn check_nearest_sources(@decode_core.Cursor, NearestSource, NearestSource, @vector_checking.Limits) -> Result[CheckedNearest, @vector_checking.Issue]
 
 pub fn collect_keys(@decode_core.Cursor, @carrier_contract.Carrier, Array[KeyedRelation], KeySetLimits) -> Result[KeySet, Issue]
 
@@ -152,6 +165,48 @@ pub fn key_witness_count(KeySet) -> Int
 
 pub fn keyed_records(KeyedRelation) -> @carrier_contract.Knowledge
 
+pub fn nearest_candidate_roles(NearestOptions) -> NearestRoles
+
+pub fn nearest_completed_identity(NearestInput) -> KeyedRelation?
+
+pub fn nearest_completed_vector(NearestInput) -> @relation_schema.FieldName?
+
+pub fn nearest_input_source(NearestInput) -> NearestSource
+
+pub fn nearest_input_usage(NearestInput) -> @vector_checking.Usage
+
+pub fn nearest_input_vectors(NearestInput) -> @carrier_contract.Vectors?
+
+pub fn nearest_k(NearestOptions) -> Int64
+
+pub fn nearest_metric(NearestOptions) -> @vector_checking.Metric
+
+pub fn nearest_options_usage(NearestOptions) -> @vector_checking.Usage
+
+pub fn nearest_output(CheckedNearest) -> @carrier_contract.Carrier
+
+pub fn nearest_pair(CheckedNearest) -> NearestPair
+
+pub fn nearest_pair_input(NearestPair, NearestSide) -> NearestInput
+
+pub fn nearest_pair_options(NearestPair) -> NearestOptions
+
+pub fn nearest_pair_pending(NearestPair) -> Array[NearestObligation]
+
+pub fn nearest_pair_usage(NearestPair) -> @vector_checking.Usage
+
+pub fn nearest_pending(CheckedNearest) -> Array[NearestObligation]
+
+pub fn nearest_query_name(NearestOptions) -> String
+
+pub fn nearest_query_roles(NearestOptions) -> NearestRoles
+
+pub fn nearest_source(NearestOptions) -> @decode_core.Cursor
+
+pub fn nearest_usage(CheckedNearest) -> @vector_checking.Usage
+
+pub fn read_nearest_options(@decode_core.Cursor, @vector_checking.Limits) -> Result[NearestOptions, @vector_checking.Issue]
+
 pub fn select_covered_key(@decode_core.Cursor, KeySet, Array[@relation_schema.FieldName], TransferLimits) -> Result[KeySelection, Issue]
 
 pub fn select_key(@decode_core.Cursor, KeySet, KeyUse, TransferLimits) -> Result[KeySelection, Issue]
@@ -205,6 +260,8 @@ pub(all) enum AsOfSource {
 }
 
 type CheckedAsOf
+
+type CheckedNearest
 
 pub(all) enum GraphKeyOperation {
   GraphOperation(@graph_typing.CheckedGraph)
@@ -288,6 +345,45 @@ type KeyedRelation
 pub(all) struct Limits {
   max_fields : Int
   max_name_bytes : Int
+}
+
+type NearestInput
+
+pub(all) enum NearestObligation {
+  ValidateNearestRoleBindings(NearestSide)
+  MatchNearestDimensions
+  AdmitQuantizedVectorComponents
+  ValidateBothUniqueIdentities
+  EvaluateExactNearestScores
+  RestoreSemanticIdentityValues
+  OrderQueriesByIdentity
+  OrderCandidatesByDescendingScoreThenIdentity
+  AssignContiguousOneBasedRanks
+  JournalVectorFieldCompletion(NearestSide, @relation_schema.FieldName)
+  JournalIdentityFieldCompletion(NearestSide, @relation_schema.FieldName)
+  ValidateNearestKey(NearestSide, @relation_key_obligation.KeyObligation)
+  ResolveNearestResources
+  ResolveNearestProfile
+  PreserveSimilarityAuthorityBoundary
+} derive(Eq, @debug.Debug)
+
+type NearestOptions
+
+type NearestPair
+
+pub struct NearestRoles {
+  identity : @relation_schema.FieldName?
+  vector : @relation_schema.FieldName?
+}
+
+pub(all) enum NearestSide {
+  Candidates
+  Queries
+} derive(Eq, @debug.Debug)
+
+pub(all) enum NearestSource {
+  CarrierSource(@carrier_contract.Carrier)
+  KeySource(KeySet)
 }
 
 pub struct Transfer {

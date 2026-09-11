@@ -29,5 +29,10 @@ test('checked join shape remains below key evidence and as-of completion', () =>
   assert.ok(closure('relation_join').has('relation_evidence'));
   assert.ok(!closure('relation_evidence').has('relation_join'));
   assert.ok(!closure('graph_typing').has('relation_evidence'));
+  assert.ok(!closure('vector_checking').has('relation_evidence'));
+  assert.ok(!closure('vector_checking').has('vector_typing'));
+  assert.ok(closure('relation_evidence').has('vector_checking'));
+  assert.ok(!closure('relation_evidence').has('vector_typing'));
+  assert.ok(closure('vector_typing').has('relation_evidence'));
   assert.deepEqual([...closure('relation_key_obligation')], ['relation_key_obligation']);
 });

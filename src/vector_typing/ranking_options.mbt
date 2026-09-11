@@ -32,67 +32,71 @@ struct RankingOptions {
 }
 
 ///|
-fn ranking_positive(at : @decode.Cursor) -> Double raise Stop {
-  let n = decoded(@decode.safe_integer(at))
+fn ranking_positive(at : @decode.Cursor) -> Double raise @checking.Stop {
+  let n = @checking.decoded(@decode.safe_integer(at))
   if n <= 0 {
-    fail(at, InvalidBody)
+    @checking.fail(at, InvalidBody)
   }
   n.to_double()
 }
 
 ///|
-fn ranking_nonnegative(at : @decode.Cursor) -> Double raise Stop {
-  let n = decoded(@decode.finite_number(at))
+fn ranking_nonnegative(at : @decode.Cursor) -> Double raise @checking.Stop {
+  let n = @checking.decoded(@decode.finite_number(at))
   if n < 0 || (n == 0 && 1.0 / n < 0) {
-    fail(at, InvalidBody)
+    @checking.fail(at, InvalidBody)
   }
   n
 }
 
 ///|
 fn ranking_names(
-  b : Budget,
+  b : @checking.Budget,
   at : @decode.Cursor,
-) -> Array[@row.FieldName] raise Stop {
-  let items = decoded(@decode.elements(at))
-  spend(b, at, items.length())
-  items.map(item => role_name(item))
+) -> Array[@row.FieldName] raise @checking.Stop {
+  let items = @checking.decoded(@decode.elements(at))
+  @checking.spend(b, at, items.length())
+  items.map(item => @checking.role_name(item))
 }
 
 ///|
-fn ranking_input_name(at : @decode.Cursor) -> String raise Stop {
-  let name = decoded(@decode.text(at))
+fn ranking_input_name(at : @decode.Cursor) -> String raise @checking.Stop {
+  let name = @checking.decoded(@decode.text(at))
   if name.is_empty() {
-    fail(at, InvalidBody)
+    @checking.fail(at, InvalidBody)
   }
   name
 }
 
 ///|
-fn read_score_contract(at : @decode.Cursor) -> ScoreContract raise Stop {
-  let root = decoded(
+fn read_score_contract(
+  at : @decode.Cursor,
+) -> ScoreContract raise @checking.Stop {
+  let root = @checking.decoded(
     @decode.closed_object(at, [
       "domain", "range", "normalization", "higher_is_better",
     ]),
   )
-  let domain = ranking_input_name(decoded(@decode.required(root, "domain")))
+  let domain = ranking_input_name(
+    @checking.decoded(@decode.required(root, "domain")),
+  )
   let normalization = ranking_input_name(
-    decoded(@decode.required(root, "normalization")),
+    @checking.decoded(@decode.required(root, "normalization")),
   )
   if @decode.lookup(root, "higher_is_better") is Some(at) {
-    if !decoded(@decode.boolean(at)) {
-      fail(at, InvalidBody)
+    if !@checking.decoded(@decode.boolean(at)) {
+      @checking.fail(at, InvalidBody)
     }
   }
-  let range_at = decoded(@decode.required(root, "range"))
-  let items = decoded(@decode.elements(range_at))
+  let range_at = @checking.decoded(@decode.required(root, "range"))
+  let items = @checking.decoded(@decode.elements(range_at))
   if items.length() != 2 {
-    fail(range_at, InvalidBody)
+    @checking.fail(range_at, InvalidBody)
   }
-  let minimum = decoded(@decode.finite_number(items[0]))
-  let maximum = decoded(@decode.finite_number(items[1]))
+  let minimum = @checking.decoded(@decode.finite_number(items[0]))
+  let maximum = @checking.decoded(@decode.finite_number(items[1]))
   if minimum > maximum {
-    fail(range_at, InvalidBody)
+    @checking.fail(range_at, InvalidBody)
   }
   { domain, normalization, minimum, maximum, }
 }
@@ -109,66 +113,73 @@ pub fn read_ranking_options(
       limits.max_nodes < 0 ||
       limits.max_depth < 0 ||
       limits.max_text_bytes < 0 {
-      fail(source, InvalidLimits)
+      @checking.fail(source, InvalidLimits)
     }
-    let b : Budget = {
+    let b : @checking.Budget = {
       limits,
       work: limits.max_work,
       nodes: limits.max_nodes,
       text: limits.max_text_bytes,
     }
-    scan(b, source)
-    let root = decoded(
+    @checking.scan(b, source)
+    let root = @checking.decoded(
       @decode.closed_object(source, [
         "with", "by", "candidate", "score", "rank", "score_policy", "score_contract",
         "k", "tie_break",
       ]),
     )
-    let policy_at = decoded(@decode.required(root, "score_policy"))
+    let policy_at = @checking.decoded(@decode.required(root, "score_policy"))
     let weights = []
     let mut rank_constant = None
     let mut rank_window = None
     let policy = match @decode.view(policy_at) {
       TextValue("max") => Maximum
       _ => {
-        let object = decoded(
+        let object = @checking.decoded(
           @decode.closed_object(policy_at, ["weighted_sum", "rrf"]),
         )
-        if decoded(@decode.object_field_names(policy_at)).length() != 1 {
-          fail(policy_at, InvalidBody)
+        if @checking.decoded(@decode.object_field_names(policy_at)).length() !=
+          1 {
+          @checking.fail(policy_at, InvalidBody)
         }
         match @decode.lookup(object, "weighted_sum") {
           Some(at) => {
-            let weighted = decoded(@decode.closed_object(at, ["left", "right"]))
+            let weighted = @checking.decoded(
+              @decode.closed_object(at, ["left", "right"]),
+            )
             let left = ranking_nonnegative(
-              decoded(@decode.required(weighted, "left")),
+              @checking.decoded(@decode.required(weighted, "left")),
             )
             let right = ranking_nonnegative(
-              decoded(@decode.required(weighted, "right")),
+              @checking.decoded(@decode.required(weighted, "right")),
             )
             if left + right != 1.0 {
-              fail(at, InvalidBody)
+              @checking.fail(at, InvalidBody)
             }
             weights.push(left)
             weights.push(right)
             WeightedSum
           }
           None => {
-            let at = decoded(@decode.required(object, "rrf"))
-            let rrf = decoded(
+            let at = @checking.decoded(@decode.required(object, "rrf"))
+            let rrf = @checking.decoded(
               @decode.closed_object(at, [
                 "rank_constant", "weights", "rank_window",
               ]),
             )
             rank_constant = Some(
-              ranking_positive(decoded(@decode.required(rrf, "rank_constant"))),
+              ranking_positive(
+                @checking.decoded(@decode.required(rrf, "rank_constant")),
+              ),
             )
             rank_window = Some(
-              ranking_positive(decoded(@decode.required(rrf, "rank_window"))),
+              ranking_positive(
+                @checking.decoded(@decode.required(rrf, "rank_window")),
+              ),
             )
-            let weights_at = decoded(@decode.required(rrf, "weights"))
-            let items = decoded(@decode.elements(weights_at))
-            spend(b, weights_at, items.length())
+            let weights_at = @checking.decoded(@decode.required(rrf, "weights"))
+            let items = @checking.decoded(@decode.elements(weights_at))
+            @checking.spend(b, weights_at, items.length())
             let mut positive = false
             for item in items {
               let weight = ranking_nonnegative(item)
@@ -178,30 +189,35 @@ pub fn read_ranking_options(
               weights.push(weight)
             }
             if !positive {
-              fail(weights_at, InvalidBody)
+              @checking.fail(weights_at, InvalidBody)
             }
             ReciprocalRank
           }
         }
       }
     }
-    let with_at = decoded(@decode.required(root, "with"))
+    let with_at = @checking.decoded(@decode.required(root, "with"))
     let others = match @decode.view(with_at) {
       ArrayValue(items) if policy == ReciprocalRank => {
         if items.is_empty() {
-          fail(with_at, InvalidBody)
+          @checking.fail(with_at, InvalidBody)
         }
-        spend(b, with_at, items.length())
+        @checking.spend(b, with_at, items.length())
         items.map(at => ranking_input_name(at))
       }
       _ => [ranking_input_name(with_at)]
     }
     if policy == ReciprocalRank && weights.length() - 1 != others.length() {
-      fail(decoded(@decode.required(root, "score_policy")), InvalidBody)
+      @checking.fail(
+        @checking.decoded(@decode.required(root, "score_policy")),
+        InvalidBody,
+      )
     }
-    let by = ranking_names(b, decoded(@decode.required(root, "by")))
-    let candidate = role_name(decoded(@decode.required(root, "candidate")))
-    let k = ranking_positive(decoded(@decode.required(root, "k")))
+    let by = ranking_names(b, @checking.decoded(@decode.required(root, "by")))
+    let candidate = @checking.role_name(
+      @checking.decoded(@decode.required(root, "candidate")),
+    )
+    let k = ranking_positive(@checking.decoded(@decode.required(root, "k")))
     let mut score = None
     let mut rank = None
     let mut contract = None
@@ -209,17 +225,23 @@ pub fn read_ranking_options(
     if policy == ReciprocalRank {
       for name in ["score", "score_contract", "tie_break"] {
         if @decode.lookup(root, name) is Some(at) {
-          fail(at, InvalidBody)
+          @checking.fail(at, InvalidBody)
         }
       }
-      rank = Some(role_name(decoded(@decode.required(root, "rank"))))
+      rank = Some(
+        @checking.role_name(@checking.decoded(@decode.required(root, "rank"))),
+      )
     } else {
       if @decode.lookup(root, "rank") is Some(at) {
-        fail(at, InvalidBody)
+        @checking.fail(at, InvalidBody)
       }
-      score = Some(role_name(decoded(@decode.required(root, "score"))))
+      score = Some(
+        @checking.role_name(@checking.decoded(@decode.required(root, "score"))),
+      )
       contract = Some(
-        read_score_contract(decoded(@decode.required(root, "score_contract"))),
+        read_score_contract(
+          @checking.decoded(@decode.required(root, "score_contract")),
+        ),
       )
       if @decode.lookup(root, "tie_break") is Some(at) {
         tie_break = Some(ranking_names(b, at))
@@ -246,7 +268,7 @@ pub fn read_ranking_options(
       },
     })
   } catch {
-    Stop(e) => Err(e)
+    @checking.Stop(e) => Err(e)
   }
 }
 

@@ -39,55 +39,69 @@ pub fn read_text_rank_options(
       limits.max_nodes < 0 ||
       limits.max_text_bytes < 0 ||
       limits.max_depth < 0 {
-      fail(source, InvalidLimits)
+      @checking.fail(source, InvalidLimits)
     }
-    let b : Budget = {
+    let b : @checking.Budget = {
       limits,
       work: limits.max_work,
       nodes: limits.max_nodes,
       text: limits.max_text_bytes,
     }
-    scan(b, source)
-    let root = decoded(
+    @checking.scan(b, source)
+    let root = @checking.decoded(
       @decode.closed_object(source, [
         "queries", "query_id", "query_text", "candidate_id", "candidate_text", "tokenizer",
         "scoring", "k",
       ]),
     )
-    let queries = ranking_input_name(decoded(@decode.required(root, "queries")))
+    let queries = ranking_input_name(
+      @checking.decoded(@decode.required(root, "queries")),
+    )
     let corpus = {
-      identity: role_name(decoded(@decode.required(root, "candidate_id"))),
-      text: role_name(decoded(@decode.required(root, "candidate_text"))),
+      identity: @checking.role_name(
+        @checking.decoded(@decode.required(root, "candidate_id")),
+      ),
+      text: @checking.role_name(
+        @checking.decoded(@decode.required(root, "candidate_text")),
+      ),
     }
     let query_roles = {
-      identity: role_name(decoded(@decode.required(root, "query_id"))),
-      text: role_name(decoded(@decode.required(root, "query_text"))),
+      identity: @checking.role_name(
+        @checking.decoded(@decode.required(root, "query_id")),
+      ),
+      text: @checking.role_name(
+        @checking.decoded(@decode.required(root, "query_text")),
+      ),
     }
-    let at = decoded(@decode.required(root, "tokenizer"))
-    let tokenizer = match decoded(@decode.text(at)) {
+    let at = @checking.decoded(@decode.required(root, "tokenizer"))
+    let tokenizer = match @checking.decoded(@decode.text(at)) {
       "unicode_words" => UnicodeWords
       "char_bigram" => CharBigram
-      _ => fail(at, InvalidBody)
+      _ => @checking.fail(at, InvalidBody)
     }
-    let scoring = decoded(
-      @decode.closed_object(decoded(@decode.required(root, "scoring")), ["bm25"]),
+    let scoring = @checking.decoded(
+      @decode.closed_object(
+        @checking.decoded(@decode.required(root, "scoring")),
+        ["bm25"],
+      ),
     )
-    let bm25 = decoded(
-      @decode.closed_object(decoded(@decode.required(scoring, "bm25")), [
-        "k1", "b",
-      ]),
+    let bm25 = @checking.decoded(
+      @decode.closed_object(
+        @checking.decoded(@decode.required(scoring, "bm25")),
+        ["k1", "b"],
+      ),
     )
-    let at = decoded(@decode.required(bm25, "k1"))
-    let k1 = decoded(@decode.finite_number(at))
+    let at = @checking.decoded(@decode.required(bm25, "k1"))
+    let k1 = @checking.decoded(@decode.finite_number(at))
     if k1 <= 0 {
-      fail(at, InvalidBody)
+      @checking.fail(at, InvalidBody)
     }
-    let at = decoded(@decode.required(bm25, "b"))
+    let at = @checking.decoded(@decode.required(bm25, "b"))
     let length_normalization = ranking_nonnegative(at)
     if length_normalization > 1 {
-      fail(at, InvalidBody)
+      @checking.fail(at, InvalidBody)
     }
-    let k = ranking_positive(decoded(@decode.required(root, "k")))
+    let k = ranking_positive(@checking.decoded(@decode.required(root, "k")))
     Ok({
       source,
       queries,
@@ -104,7 +118,7 @@ pub fn read_text_rank_options(
       },
     })
   } catch {
-    Stop(e) => Err(e)
+    @checking.Stop(e) => Err(e)
   }
 }
 
@@ -137,26 +151,26 @@ struct CheckedTextRank {
 
 ///|
 fn text_role(
-  b : Budget,
+  b : @checking.Budget,
   root : @decode.ObjectView,
   input : @carrier.Carrier,
   key : String,
   name : @row.FieldName,
-) -> @contract.Contract raise Stop {
-  let at = decoded(@decode.required(root, key))
+) -> @contract.Contract raise @checking.Stop {
+  let at = @checking.decoded(@decode.required(root, key))
   let rows = match input {
     @carrier.Relation(r) => r
-    _ => fail(at, WrongCarrier(@carrier.kind(input)))
+    _ => @checking.fail(at, WrongCarrier(@carrier.kind(input)))
   }
-  spend(b, at, 1)
-  charge(b, at, @row.reference_name(name))
+  @checking.spend(b, at, 1)
+  @checking.charge(b, at, @row.reference_name(name))
   match @carrier.lookup(rows, name) {
     Present({ contract: Some(c), .. }) =>
       match c {
         { nullable: false, shape: Text(_), } => c
-        _ => fail(at, InvalidRankingField(name))
+        _ => @checking.fail(at, InvalidRankingField(name))
       }
-    _ => fail(at, InvalidRankingField(name))
+    _ => @checking.fail(at, InvalidRankingField(name))
   }
 }
 
@@ -214,15 +228,15 @@ pub fn check_text_rank_inputs(
       limits.max_nodes < 0 ||
       limits.max_depth < 0 ||
       limits.max_text_bytes < 0 {
-      fail(source, InvalidLimits)
+      @checking.fail(source, InvalidLimits)
     }
-    let b : Budget = {
+    let b : @checking.Budget = {
       limits,
       work: limits.max_work,
       nodes: limits.max_nodes,
       text: limits.max_text_bytes,
     }
-    let root = decoded(@decode.open_object(source))
+    let root = @checking.decoded(@decode.open_object(source))
     let candidate = text_role(
       b,
       root,
@@ -239,9 +253,9 @@ pub fn check_text_rank_inputs(
       options.query_roles.identity,
     )
     ignore(text_role(b, root, queries, "query_text", options.query_roles.text))
-    spend(b, source, 4)
+    @checking.spend(b, source, 4)
     if b.nodes == 0 {
-      fail(source, BudgetExceeded)
+      @checking.fail(source, BudgetExceeded)
     }
     b.nodes -= 1
     let number = @contract.primitive(NumberType, nullable=false)
@@ -253,7 +267,7 @@ pub fn check_text_rank_inputs(
         ("score", number),
         ("rank", number),
       ] {
-      charge(b, source, name)
+      @checking.charge(b, source, name)
       fields.push((@row.Unqualified(name), Some(c)))
     }
     let output = match
@@ -264,7 +278,7 @@ pub fn check_text_rank_inputs(
         max_name_bytes=limits.max_text_bytes,
       ) {
       Ok(r) => @carrier.relation(r)
-      Err(_) => fail(source, BudgetExceeded)
+      Err(_) => @checking.fail(source, BudgetExceeded)
     }
     Ok({
       profile,
@@ -279,7 +293,7 @@ pub fn check_text_rank_inputs(
       },
     })
   } catch {
-    Stop(e) => Err(e)
+    @checking.Stop(e) => Err(e)
   }
 }
 

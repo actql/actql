@@ -26,18 +26,18 @@ struct CheckedRanking {
 
 ///|
 fn ranking_join(
-  b : Budget,
+  b : @checking.Budget,
   at : @decode.Cursor,
   name : @row.FieldName,
   a : @contract.Contract,
   z : @contract.Contract,
-) -> @contract.Contract raise Stop {
+) -> @contract.Contract raise @checking.Stop {
   let work = [(a, z, 0)]
   let mut pairs = 0
   while work.pop() is Some((x, y, depth)) {
-    spend(b, at, 1)
+    @checking.spend(b, at, 1)
     if b.nodes <= 0 || depth > b.limits.max_depth {
-      fail(at, BudgetExceeded)
+      @checking.fail(at, BudgetExceeded)
     }
     b.nodes -= 1
     pairs += 1
@@ -45,40 +45,43 @@ fn ranking_join(
       (Object(left), Object(right)) => {
         let n = @contract.field_count(left)
         if n != @contract.field_count(right) {
-          fail(at, RankingDomainMismatch(name))
+          @checking.fail(at, RankingDomainMismatch(name))
         }
-        spend(b, at, n)
+        @checking.spend(b, at, n)
         if n > b.nodes {
-          fail(at, BudgetExceeded)
+          @checking.fail(at, BudgetExceeded)
         }
         for i in 0..<n {
           let l = @contract.field_at(left, i).unwrap()
           let r = @contract.field_at(right, i).unwrap()
-          charge(b, at, l.name)
-          charge(b, at, r.name)
+          @checking.charge(b, at, l.name)
+          @checking.charge(b, at, r.name)
           if l.name != r.name {
-            fail(at, RankingDomainMismatch(name))
+            @checking.fail(at, RankingDomainMismatch(name))
           }
           work.push((l.contract, r.contract, depth + 1))
         }
       }
-      (Object(_), _) | (_, Object(_)) => fail(at, RankingDomainMismatch(name))
+      (Object(_), _) | (_, Object(_)) =>
+        @checking.fail(at, RankingDomainMismatch(name))
       _ =>
         for c in [x, y] {
           match c.shape {
-            ResourceRef(resource_kind~) => charge(b, at, resource_kind)
-            ArtifactRef(media_type=Some(media)) => charge(b, at, media)
+            ResourceRef(resource_kind~) =>
+              @checking.charge(b, at, resource_kind)
+            ArtifactRef(media_type=Some(media)) =>
+              @checking.charge(b, at, media)
             _ => ()
           }
         }
     }
   }
   let joined = @contract.join_nullability(a, z, pairs) catch {
-    _ => fail(at, BudgetExceeded)
+    _ => @checking.fail(at, BudgetExceeded)
   }
   match joined {
     Some(c) => c
-    None => fail(at, RankingDomainMismatch(name))
+    None => @checking.fail(at, RankingDomainMismatch(name))
   }
 }
 
@@ -127,18 +130,18 @@ pub fn check_ranking_fusion(
       limits.max_nodes < 0 ||
       limits.max_depth < 0 ||
       limits.max_text_bytes < 0 {
-      fail(source, InvalidLimits)
+      @checking.fail(source, InvalidLimits)
     }
     if inputs.length() - 1 != options.others.length() {
-      fail(source, InvalidBody)
+      @checking.fail(source, InvalidBody)
     }
-    let b : Budget = {
+    let b : @checking.Budget = {
       limits,
       work: limits.max_work,
       nodes: limits.max_nodes,
       text: limits.max_text_bytes,
     }
-    spend(b, source, inputs.length())
+    @checking.spend(b, source, inputs.length())
     let shapes : Array[RankingShape] = []
     for input in inputs {
       let c = match
@@ -149,14 +152,14 @@ pub fn check_ranking_fusion(
           max_text_bytes: b.text,
         }) {
         Ok(c) => c
-        Err(e) => raise Stop(e)
+        Err(e) => raise @checking.Stop(e)
       }
       b.work -= c.usage.work
       b.nodes -= c.usage.nodes
       b.text -= c.usage.text_bytes
       if options.contract is Some(expected) {
         guard ranking_score_at(input, options.score.unwrap()) is Some(declared) else {
-          fail(source, MissingScoreContract)
+          @checking.fail(source, MissingScoreContract)
         }
         let actual = declared.contract
         for
@@ -166,22 +169,24 @@ pub fn check_ranking_fusion(
             expected.normalization,
             actual.normalization,
           ] {
-          charge(b, source, s)
+          @checking.charge(b, source, s)
         }
         if actual.domain != expected.domain ||
           actual.normalization != expected.normalization ||
           actual.minimum != expected.minimum ||
           actual.maximum != expected.maximum {
-          fail(source, ScoreContractMismatch)
+          @checking.fail(source, ScoreContractMismatch)
         }
       }
       shapes.push(c)
     }
-    let root = decoded(@decode.open_object(source))
-    let by_at = decoded(@decode.elements(decoded(@decode.required(root, "by"))))
+    let root = @checking.decoded(@decode.open_object(source))
+    let by_at = @checking.decoded(
+      @decode.elements(@checking.decoded(@decode.required(root, "by"))),
+    )
     let selected : Array[(@row.FieldName, @decode.Cursor)] = []
     let seen : Map[String, Bool] = Map([])
-    spend(b, source, options.by.length() + 1)
+    @checking.spend(b, source, options.by.length() + 1)
     for i in 0..<options.by.length() {
       let name = options.by[i]
       let spelling = @row.reference_name(name)
@@ -190,16 +195,16 @@ pub fn check_ranking_fusion(
         selected.push((name, by_at[i]))
       }
     }
-    let candidate_at = decoded(@decode.required(root, "candidate"))
+    let candidate_at = @checking.decoded(@decode.required(root, "candidate"))
     let spelling = @row.reference_name(options.candidate)
     if seen.contains(spelling) {
-      fail(candidate_at, OutputCollision(spelling))
+      @checking.fail(candidate_at, OutputCollision(spelling))
     }
     selected.push((options.candidate, candidate_at))
     seen[spelling] = true
     for name in ["score", "rank"] {
       if seen.contains(name) {
-        fail(source, OutputCollision(name))
+        @checking.fail(source, OutputCollision(name))
       }
     }
     let fields : Array[(@row.FieldName, @contract.Contract?)] = []
@@ -209,7 +214,7 @@ pub fn check_ranking_fusion(
       let tuple = shapes[0].input.tuples.get(ranking_field_key(name))
       for i in 1..<shapes.length() {
         if shapes[i].input.tuples.get(ranking_field_key(name)) != tuple {
-          fail(at, RankingDomainMismatch(name))
+          @checking.fail(at, RankingDomainMismatch(name))
         }
         c = ranking_join(
           b,
@@ -219,15 +224,15 @@ pub fn check_ranking_fusion(
           @row.lookup(shapes[i].schema, name).unwrap(),
         )
       }
-      charge(b, at, @row.reference_name(name))
+      @checking.charge(b, at, @row.reference_name(name))
       fields.push((name, Some(c)))
       if tuple is Some(n) {
         tuples[ranking_field_key(name)] = n
       }
     }
     if options.tie_break is Some(names) {
-      let locations = decoded(
-        @decode.elements(decoded(@decode.required(root, "tie_break"))),
+      let locations = @checking.decoded(
+        @decode.elements(@checking.decoded(@decode.required(root, "tie_break"))),
       )
       for i in 0..<names.length() {
         let name = names[i]
@@ -245,14 +250,14 @@ pub fn check_ranking_fusion(
         }
       }
     }
-    spend(b, source, fields.length() + 2)
+    @checking.spend(b, source, fields.length() + 2)
     if b.nodes == 0 {
-      fail(source, BudgetExceeded)
+      @checking.fail(source, BudgetExceeded)
     }
     b.nodes -= 1
     let number = @contract.primitive(NumberType, nullable=false)
     for name in ["score", "rank"] {
-      charge(b, source, name)
+      @checking.charge(b, source, name)
       fields.push((@row.Unqualified(name), Some(number)))
     }
     let output = match
@@ -263,7 +268,7 @@ pub fn check_ranking_fusion(
         max_name_bytes=limits.max_text_bytes,
       ) {
       Ok(r) => @carrier.relation(r)
-      Err(_) => fail(source, BudgetExceeded)
+      Err(_) => @checking.fail(source, BudgetExceeded)
     }
     Ok({
       options,
@@ -277,7 +282,7 @@ pub fn check_ranking_fusion(
       },
     })
   } catch {
-    Stop(e) => Err(e)
+    @checking.Stop(e) => Err(e)
   }
 }
 

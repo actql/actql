@@ -2,6 +2,17 @@
 
 ## Exact nearest-neighbor checking
 
+Nearest checking is owned by `relation_evidence`, alongside the key declarations
+it consumes. `vector_typing` reexports its opaque types and functions; it does
+not implement a second checker. Shared diagnostics, limits, metrics and bounded
+source scanning live in the lower `vector_checking` package, which imports
+neither evidence nor vector operation checking. Its mutable counters are local
+checker implementation state, not admitted input facts or public proof objects.
+This dependency direction lets key producers retain the actual checked nearest
+operation without a package cycle. Other vector and ranking operations remain
+in `vector_typing`. Enum aliases use type-qualified constructors when there is
+no expected type, such as `IssueKind::BudgetExceeded`.
+
 `read_nearest_options` admits the closed authored body and preserves optional
 ID/vector references independently for the candidate and query sides. It does
 not manufacture missing roles, a metric or an exactness flag. The corpus is the

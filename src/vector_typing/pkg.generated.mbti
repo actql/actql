@@ -10,44 +10,43 @@ import {
   "actql/actql/relation_key_obligation",
   "actql/actql/relation_schema",
   "actql/actql/relation_typing",
-  "actql/actql/source_span",
-  "actql/actql/source_value",
   "actql/actql/text_rank_profile",
+  "actql/actql/vector_checking",
   "moonbitlang/core/debug",
 }
 
 // Values
-pub fn check(Operation, @decode_core.Cursor, @carrier_contract.Carrier, @parameter_binding.Declarations?, Limits) -> Result[CheckedVector, Issue]
+pub fn check(Operation, @decode_core.Cursor, @carrier_contract.Carrier, @parameter_binding.Declarations?, @vector_checking.Limits) -> Result[CheckedVector, @vector_checking.Issue]
 
-pub fn check_merge_rankings(@decode_core.Cursor, Array[RankingInput], Limits) -> Result[CheckedRanking, Issue]
+pub fn check_merge_rankings(@decode_core.Cursor, Array[RankingInput], @vector_checking.Limits) -> Result[CheckedRanking, @vector_checking.Issue]
 
-pub fn check_nearest(@decode_core.Cursor, @carrier_contract.Carrier, @carrier_contract.Carrier, Limits) -> Result[CheckedNearest, Issue]
+pub fn check_nearest(@decode_core.Cursor, @carrier_contract.Carrier, @carrier_contract.Carrier, @vector_checking.Limits) -> Result[@relation_evidence.CheckedNearest, @vector_checking.Issue]
 
-pub fn check_nearest_input(NearestOptions, NearestSide, @carrier_contract.Carrier, Limits) -> Result[NearestInput, Issue]
+pub fn check_nearest_input(@relation_evidence.NearestOptions, @relation_evidence.NearestSide, @carrier_contract.Carrier, @vector_checking.Limits) -> Result[@relation_evidence.NearestInput, @vector_checking.Issue]
 
-pub fn check_nearest_pair(@decode_core.Cursor, @carrier_contract.Carrier, @carrier_contract.Carrier, Limits) -> Result[NearestPair, Issue]
+pub fn check_nearest_pair(@decode_core.Cursor, @carrier_contract.Carrier, @carrier_contract.Carrier, @vector_checking.Limits) -> Result[@relation_evidence.NearestPair, @vector_checking.Issue]
 
-pub fn check_nearest_pair_sources(@decode_core.Cursor, NearestSource, NearestSource, Limits) -> Result[NearestPair, Issue]
+pub fn check_nearest_pair_sources(@decode_core.Cursor, @relation_evidence.NearestSource, @relation_evidence.NearestSource, @vector_checking.Limits) -> Result[@relation_evidence.NearestPair, @vector_checking.Issue]
 
-pub fn check_nearest_source(NearestOptions, NearestSide, NearestSource, Limits) -> Result[NearestInput, Issue]
+pub fn check_nearest_source(@relation_evidence.NearestOptions, @relation_evidence.NearestSide, @relation_evidence.NearestSource, @vector_checking.Limits) -> Result[@relation_evidence.NearestInput, @vector_checking.Issue]
 
-pub fn check_nearest_sources(@decode_core.Cursor, NearestSource, NearestSource, Limits) -> Result[CheckedNearest, Issue]
+pub fn check_nearest_sources(@decode_core.Cursor, @relation_evidence.NearestSource, @relation_evidence.NearestSource, @vector_checking.Limits) -> Result[@relation_evidence.CheckedNearest, @vector_checking.Issue]
 
-pub fn check_pool_keys(@decode_core.Cursor, @relation_evidence.KeySet, Limits) -> Result[CheckedPool, Issue]
+pub fn check_pool_keys(@decode_core.Cursor, @relation_evidence.KeySet, @vector_checking.Limits) -> Result[CheckedPool, @vector_checking.Issue]
 
-pub fn check_pool_relation(@decode_core.Cursor, @relation_evidence.KeyedRelation, Limits) -> Result[CheckedPool, Issue]
+pub fn check_pool_relation(@decode_core.Cursor, @relation_evidence.KeyedRelation, @vector_checking.Limits) -> Result[CheckedPool, @vector_checking.Issue]
 
-pub fn check_pool_vectors(@decode_core.Cursor, @carrier_contract.Carrier, Limits) -> Result[CheckedPool, Issue]
+pub fn check_pool_vectors(@decode_core.Cursor, @carrier_contract.Carrier, @vector_checking.Limits) -> Result[CheckedPool, @vector_checking.Issue]
 
-pub fn check_ranking_fusion(RankingOptions, Array[RankingInput], Limits) -> Result[CheckedRanking, Issue]
+pub fn check_ranking_fusion(RankingOptions, Array[RankingInput], @vector_checking.Limits) -> Result[CheckedRanking, @vector_checking.Issue]
 
-pub fn check_ranking_shape(RankingOptions, RankingInput, Limits) -> Result[RankingShape, Issue]
+pub fn check_ranking_shape(RankingOptions, RankingInput, @vector_checking.Limits) -> Result[RankingShape, @vector_checking.Issue]
 
-pub fn check_text_rank(@decode_core.Cursor, @carrier_contract.Carrier, @carrier_contract.Carrier, Limits, profile? : @text_rank_profile.Profile?) -> Result[CheckedTextRank, Issue]
+pub fn check_text_rank(@decode_core.Cursor, @carrier_contract.Carrier, @carrier_contract.Carrier, @vector_checking.Limits, profile? : @text_rank_profile.Profile?) -> Result[CheckedTextRank, @vector_checking.Issue]
 
-pub fn check_text_rank_inputs(TextRankOptions, @carrier_contract.Carrier, @carrier_contract.Carrier, Limits, profile? : @text_rank_profile.Profile?) -> Result[CheckedTextRank, Issue]
+pub fn check_text_rank_inputs(TextRankOptions, @carrier_contract.Carrier, @carrier_contract.Carrier, @vector_checking.Limits, profile? : @text_rank_profile.Profile?) -> Result[CheckedTextRank, @vector_checking.Issue]
 
-pub fn declare_ranking_score(@decode_core.Cursor, @carrier_contract.Carrier, @relation_schema.FieldName, Limits) -> Result[RankingInput, Issue]
+pub fn declare_ranking_score(@decode_core.Cursor, @carrier_contract.Carrier, @relation_schema.FieldName, @vector_checking.Limits) -> Result[RankingInput, @vector_checking.Issue]
 
 pub fn declared_score_contract(DeclaredScore) -> ScoreContract
 
@@ -57,7 +56,7 @@ pub fn declared_score_records(DeclaredScore) -> @carrier_contract.Knowledge
 
 pub fn declared_score_source(DeclaredScore) -> @decode_core.Cursor
 
-pub fn declared_score_usage(DeclaredScore) -> Usage
+pub fn declared_score_usage(DeclaredScore) -> @vector_checking.Usage
 
 pub fn input(CheckedVector) -> @carrier_contract.Carrier
 
@@ -71,49 +70,49 @@ pub fn merged_ranking_output(CheckedRanking) -> @carrier_contract.Carrier
 
 pub fn merged_ranking_pending(CheckedRanking) -> Array[RankingObligation]
 
-pub fn merged_ranking_usage(CheckedRanking) -> Usage
+pub fn merged_ranking_usage(CheckedRanking) -> @vector_checking.Usage
 
-pub fn metric(CheckedVector) -> Metric?
+pub fn metric(CheckedVector) -> @vector_checking.Metric?
 
-pub fn nearest_candidate_roles(NearestOptions) -> NearestRoles
+pub fn nearest_candidate_roles(@relation_evidence.NearestOptions) -> @relation_evidence.NearestRoles
 
-pub fn nearest_completed_identity(NearestInput) -> @relation_evidence.KeyedRelation?
+pub fn nearest_completed_identity(@relation_evidence.NearestInput) -> @relation_evidence.KeyedRelation?
 
-pub fn nearest_completed_vector(NearestInput) -> @relation_schema.FieldName?
+pub fn nearest_completed_vector(@relation_evidence.NearestInput) -> @relation_schema.FieldName?
 
-pub fn nearest_input_source(NearestInput) -> NearestSource
+pub fn nearest_input_source(@relation_evidence.NearestInput) -> @relation_evidence.NearestSource
 
-pub fn nearest_input_usage(NearestInput) -> Usage
+pub fn nearest_input_usage(@relation_evidence.NearestInput) -> @vector_checking.Usage
 
-pub fn nearest_input_vectors(NearestInput) -> @carrier_contract.Vectors?
+pub fn nearest_input_vectors(@relation_evidence.NearestInput) -> @carrier_contract.Vectors?
 
-pub fn nearest_k(NearestOptions) -> Int64
+pub fn nearest_k(@relation_evidence.NearestOptions) -> Int64
 
-pub fn nearest_metric(NearestOptions) -> Metric
+pub fn nearest_metric(@relation_evidence.NearestOptions) -> @vector_checking.Metric
 
-pub fn nearest_options_usage(NearestOptions) -> Usage
+pub fn nearest_options_usage(@relation_evidence.NearestOptions) -> @vector_checking.Usage
 
-pub fn nearest_output(CheckedNearest) -> @carrier_contract.Carrier
+pub fn nearest_output(@relation_evidence.CheckedNearest) -> @carrier_contract.Carrier
 
-pub fn nearest_pair(CheckedNearest) -> NearestPair
+pub fn nearest_pair(@relation_evidence.CheckedNearest) -> @relation_evidence.NearestPair
 
-pub fn nearest_pair_input(NearestPair, NearestSide) -> NearestInput
+pub fn nearest_pair_input(@relation_evidence.NearestPair, @relation_evidence.NearestSide) -> @relation_evidence.NearestInput
 
-pub fn nearest_pair_options(NearestPair) -> NearestOptions
+pub fn nearest_pair_options(@relation_evidence.NearestPair) -> @relation_evidence.NearestOptions
 
-pub fn nearest_pair_pending(NearestPair) -> Array[NearestObligation]
+pub fn nearest_pair_pending(@relation_evidence.NearestPair) -> Array[@relation_evidence.NearestObligation]
 
-pub fn nearest_pair_usage(NearestPair) -> Usage
+pub fn nearest_pair_usage(@relation_evidence.NearestPair) -> @vector_checking.Usage
 
-pub fn nearest_pending(CheckedNearest) -> Array[NearestObligation]
+pub fn nearest_pending(@relation_evidence.CheckedNearest) -> Array[@relation_evidence.NearestObligation]
 
-pub fn nearest_query_name(NearestOptions) -> String
+pub fn nearest_query_name(@relation_evidence.NearestOptions) -> String
 
-pub fn nearest_query_roles(NearestOptions) -> NearestRoles
+pub fn nearest_query_roles(@relation_evidence.NearestOptions) -> @relation_evidence.NearestRoles
 
-pub fn nearest_source(NearestOptions) -> @decode_core.Cursor
+pub fn nearest_source(@relation_evidence.NearestOptions) -> @decode_core.Cursor
 
-pub fn nearest_usage(CheckedNearest) -> Usage
+pub fn nearest_usage(@relation_evidence.CheckedNearest) -> @vector_checking.Usage
 
 pub fn operation(CheckedVector) -> Operation
 
@@ -131,7 +130,7 @@ pub fn pool_member_vectors(CheckedPool) -> @carrier_contract.Vectors
 
 pub fn pool_method(PoolOptions) -> PoolMethod
 
-pub fn pool_options_usage(PoolOptions) -> Usage
+pub fn pool_options_usage(PoolOptions) -> @vector_checking.Usage
 
 pub fn pool_output_id(PoolOptions) -> String?
 
@@ -145,7 +144,7 @@ pub fn pooled_options(CheckedPool) -> PoolOptions
 
 pub fn pooled_output(CheckedPool) -> @carrier_contract.Carrier
 
-pub fn pooled_usage(CheckedPool) -> Usage
+pub fn pooled_usage(CheckedPool) -> @vector_checking.Usage
 
 pub fn query(CheckedVector) -> Query?
 
@@ -163,7 +162,7 @@ pub fn ranking_candidate(RankingOptions) -> @relation_schema.FieldName
 
 pub fn ranking_from_fusion(CheckedRanking) -> RankingInput
 
-pub fn ranking_from_nearest(CheckedNearest) -> RankingInput
+pub fn ranking_from_nearest(@relation_evidence.CheckedNearest) -> RankingInput
 
 pub fn ranking_from_text(CheckedTextRank) -> RankingInput
 
@@ -171,7 +170,7 @@ pub fn ranking_input_carrier(RankingInput) -> @carrier_contract.Carrier
 
 pub fn ranking_input_fusion(RankingInput) -> CheckedRanking?
 
-pub fn ranking_input_nearest(RankingInput) -> CheckedNearest?
+pub fn ranking_input_nearest(RankingInput) -> @relation_evidence.CheckedNearest?
 
 pub fn ranking_input_text(RankingInput) -> CheckedTextRank?
 
@@ -179,7 +178,7 @@ pub fn ranking_inputs(RankingOptions) -> Array[String]
 
 pub fn ranking_k(RankingOptions) -> Double
 
-pub fn ranking_options_usage(RankingOptions) -> Usage
+pub fn ranking_options_usage(RankingOptions) -> @vector_checking.Usage
 
 pub fn ranking_policy(RankingOptions) -> RankingPolicy
 
@@ -205,7 +204,7 @@ pub fn ranking_shape_options(RankingShape) -> RankingOptions
 
 pub fn ranking_shape_schema(RankingShape) -> @relation_schema.Schema
 
-pub fn ranking_shape_usage(RankingShape) -> Usage
+pub fn ranking_shape_usage(RankingShape) -> @vector_checking.Usage
 
 pub fn ranking_source(RankingOptions) -> @decode_core.Cursor
 
@@ -213,13 +212,13 @@ pub fn ranking_tie_break(RankingOptions) -> Array[@relation_schema.FieldName]?
 
 pub fn ranking_weights(RankingOptions) -> Array[Double]
 
-pub fn read_nearest_options(@decode_core.Cursor, Limits) -> Result[NearestOptions, Issue]
+pub fn read_nearest_options(@decode_core.Cursor, @vector_checking.Limits) -> Result[@relation_evidence.NearestOptions, @vector_checking.Issue]
 
-pub fn read_pool_options(@decode_core.Cursor, Limits) -> Result[PoolOptions, Issue]
+pub fn read_pool_options(@decode_core.Cursor, @vector_checking.Limits) -> Result[PoolOptions, @vector_checking.Issue]
 
-pub fn read_ranking_options(@decode_core.Cursor, Limits) -> Result[RankingOptions, Issue]
+pub fn read_ranking_options(@decode_core.Cursor, @vector_checking.Limits) -> Result[RankingOptions, @vector_checking.Issue]
 
-pub fn read_text_rank_options(@decode_core.Cursor, Limits) -> Result[TextRankOptions, Issue]
+pub fn read_text_rank_options(@decode_core.Cursor, @vector_checking.Limits) -> Result[TextRankOptions, @vector_checking.Issue]
 
 pub fn source(CheckedVector) -> @decode_core.Cursor
 
@@ -231,7 +230,7 @@ pub fn text_rank_k(TextRankOptions) -> Double
 
 pub fn text_rank_options(CheckedTextRank) -> TextRankOptions
 
-pub fn text_rank_options_usage(TextRankOptions) -> Usage
+pub fn text_rank_options_usage(TextRankOptions) -> @vector_checking.Usage
 
 pub fn text_rank_output(CheckedTextRank) -> @carrier_contract.Carrier
 
@@ -247,19 +246,17 @@ pub fn text_rank_source(TextRankOptions) -> @decode_core.Cursor
 
 pub fn text_rank_tokenizer(TextRankOptions) -> Tokenizer
 
-pub fn text_rank_usage(CheckedTextRank) -> Usage
+pub fn text_rank_usage(CheckedTextRank) -> @vector_checking.Usage
 
-pub fn transfer_ranking_calendar(RankingInput, @calendar_typing.CheckedCalendar, Limits) -> Result[RankingTransfer, Issue]
+pub fn transfer_ranking_calendar(RankingInput, @calendar_typing.CheckedCalendar, @vector_checking.Limits) -> Result[RankingTransfer, @vector_checking.Issue]
 
-pub fn transfer_ranking_unary(RankingInput, @relation_typing.CheckedOperation, Limits) -> Result[RankingTransfer, Issue]
+pub fn transfer_ranking_unary(RankingInput, @relation_typing.CheckedOperation, @vector_checking.Limits) -> Result[RankingTransfer, @vector_checking.Issue]
 
-pub fn usage(CheckedVector) -> Usage
+pub fn usage(CheckedVector) -> @vector_checking.Usage
 
 // Errors
 
 // Types and methods
-type CheckedNearest
-
 type CheckedPool
 
 type CheckedRanking
@@ -269,91 +266,6 @@ type CheckedTextRank
 type CheckedVector
 
 type DeclaredScore
-
-pub struct Issue {
-  kind : IssueKind
-  path : Array[@source_value.PathSegment]
-  span : @source_span.Span
-}
-
-pub(all) enum IssueKind {
-  InvalidLimits
-  BudgetExceeded
-  InvalidBody
-  Decode(@decode_core.IssueKind)
-  WrongCarrier(@carrier_contract.Kind)
-  InvalidQuery
-  UnknownParameter(String)
-  IncompatibleParameter(String)
-  DimensionMismatch(Double, Double)
-  OutputCollision(String)
-  UnknownOutputFields
-  InvalidRole(@carrier_contract.Issue)
-  MissingNearestRole(String)
-  ConflictingNearestRole(String)
-  IncompleteNearestInput
-  DuplicatePoolField(@relation_schema.FieldName)
-  UnsupportedPoolMemberIdentity(@relation_schema.FieldName)
-  MissingEligiblePoolKey
-  IncompleteRankingInput
-  InvalidRankingField(@relation_schema.FieldName)
-  RankingDomainMismatch(@relation_schema.FieldName)
-  MissingScoreContract
-  ScoreContractMismatch
-  RankingInputMismatch
-} derive(Eq, @debug.Debug)
-
-pub(all) struct Limits {
-  max_work : Int
-  max_nodes : Int
-  max_depth : Int
-  max_text_bytes : Int
-}
-
-pub(all) enum Metric {
-  Cosine
-  Dot
-  L2
-} derive(Eq, @debug.Debug)
-
-type NearestInput
-
-pub(all) enum NearestObligation {
-  ValidateNearestRoleBindings(NearestSide)
-  MatchNearestDimensions
-  AdmitQuantizedVectorComponents
-  ValidateBothUniqueIdentities
-  EvaluateExactNearestScores
-  RestoreSemanticIdentityValues
-  OrderQueriesByIdentity
-  OrderCandidatesByDescendingScoreThenIdentity
-  AssignContiguousOneBasedRanks
-  JournalVectorFieldCompletion(NearestSide, @relation_schema.FieldName)
-  JournalIdentityFieldCompletion(NearestSide, @relation_schema.FieldName)
-  ValidateNearestKey(NearestSide, @relation_key_obligation.KeyObligation)
-  ResolveNearestResources
-  ResolveNearestProfile
-  PreserveSimilarityAuthorityBoundary
-} derive(Eq, @debug.Debug)
-
-type NearestOptions
-
-type NearestPair
-
-pub struct NearestRoles {
-  identity : @relation_schema.FieldName?
-  vector : @relation_schema.FieldName?
-}
-
-pub(all) enum NearestSide {
-  Candidates
-  Queries
-} derive(Eq, @debug.Debug)
-
-pub(all) enum NearestSource {
-  CarrierSource(@carrier_contract.Carrier)
-  KeySource(@relation_evidence.KeySet)
-}
 
 pub(all) enum Obligation {
   ValidateVectorValues
@@ -430,7 +342,7 @@ type RankingShape
 
 pub struct RankingTransfer {
   input : RankingInput
-  usage : Usage
+  usage : @vector_checking.Usage
 }
 
 pub struct ScoreContract {
@@ -473,12 +385,31 @@ pub(all) enum Tokenizer {
   CharBigram
 } derive(Eq, @debug.Debug)
 
-pub(all) struct Usage {
-  work : Int
-  nodes : Int
-  text_bytes : Int
-} derive(Eq, @debug.Debug)
-
 // Type aliases
+pub using @relation_evidence {type CheckedNearest}
+
+pub using @vector_checking {type Issue}
+
+pub using @vector_checking {type IssueKind}
+
+pub using @vector_checking {type Limits}
+
+pub using @vector_checking {type Metric}
+
+pub using @relation_evidence {type NearestInput}
+
+pub using @relation_evidence {type NearestObligation}
+
+pub using @relation_evidence {type NearestOptions}
+
+pub using @relation_evidence {type NearestPair}
+
+pub using @relation_evidence {type NearestRoles}
+
+pub using @relation_evidence {type NearestSide}
+
+pub using @relation_evidence {type NearestSource}
+
+pub using @vector_checking {type Usage}
 
 // Traits
