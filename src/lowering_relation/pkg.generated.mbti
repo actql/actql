@@ -34,6 +34,16 @@ pub fn input_id(Prepared, Int) -> String?
 
 pub fn input_ids(PreparedNode) -> Array[String]
 
+pub fn kernel_body(PreparedKernel) -> KernelBody
+
+pub fn kernel_checked(PreparedKernel) -> @relation_typing.CheckedOperation
+
+pub fn kernel_input(PreparedKernel) -> String
+
+pub fn kernel_owner(PreparedKernel) -> BoundPrepared
+
+pub fn kernel_step(PreparedKernel) -> Int
+
 pub fn lower_expression(BoundPrepared, Int, Int, ExpressionLimits) -> Result[Expression, ExpressionIssue]
 
 pub fn node_at(Prepared, Int) -> PreparedNode?
@@ -53,6 +63,8 @@ pub fn payload(PreparedNode) -> Payload
 pub fn pipeline(Prepared) -> @pipeline_typing.CheckedPipeline
 
 pub fn prepare(@pipeline_typing.CheckedPipeline, Limits) -> Result[Prepared, Issue]
+
+pub fn prepare_kernel(BoundPrepared, Int, max_bindings~ : Int, max_name_bytes~ : Int, ExpressionLimits) -> Result[PreparedKernel, KernelIssue]
 
 pub fn source(PreparedNode) -> @decode_core.Cursor
 
@@ -141,6 +153,21 @@ pub(all) enum IssueKind {
   IdentifierCollision
 } derive(Eq, @debug.Debug)
 
+pub enum KernelBody {
+  SnapshotMap(Array[(String, Expression)])
+  Filter(Expression)
+  Select(Array[@relation_typing.ProjectionField])
+}
+
+pub(all) enum KernelIssue {
+  MissingKernelNode
+  InvalidKernelWiring
+  KernelBudgetExceeded
+  InvalidKernelLimits
+  NeedsSharedRowKernelContract
+  ExpressionFailure(ExpressionIssue)
+}
+
 pub(all) struct Limits {
   max_nodes : Int
   max_references : Int
@@ -162,6 +189,8 @@ pub enum Payload {
 }
 
 type Prepared
+
+type PreparedKernel
 
 type PreparedNode
 

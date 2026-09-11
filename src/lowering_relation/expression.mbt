@@ -338,6 +338,18 @@ pub fn lower_expression(
   binding_index : Int,
   limits : ExpressionLimits,
 ) -> Result[Expression, ExpressionIssue] {
+  lower_expression_measured(bound, step_index, binding_index, limits).map(p => {
+    p.0
+  })
+}
+
+///|
+fn lower_expression_measured(
+  bound : BoundPrepared,
+  step_index : Int,
+  binding_index : Int,
+  limits : ExpressionLimits,
+) -> Result[(Expression, ExpressionBudget), ExpressionIssue] {
   try {
     let source = @pipeline.source(bound.prepared.owner)
     if limits.max_nodes < 0 ||
@@ -526,7 +538,9 @@ pub fn lower_expression(
         location: @syntax.origin(syntax, cursor).unwrap(),
       }
     }
-    Ok(completed.get(@decode.tree_index(root, root).unwrap()).unwrap())
+    Ok(
+      (completed.get(@decode.tree_index(root, root).unwrap()).unwrap(), budget),
+    )
   } catch {
     ExpressionStop(issue) => Err(issue)
   }

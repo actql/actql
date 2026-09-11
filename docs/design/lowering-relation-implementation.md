@@ -260,3 +260,24 @@ order or capacity claims. Those obligations must be checked before final
 fragment execution admission. Tests include source-parser normalization versus
 noncanonical supplied data, non-null/type/closed-field constraints, empty input,
 cumulative limits, alias/index separation and post-capture caller mutation.
+
+## Checked operation kernels
+
+`prepare_kernel` groups already checked map bindings, predicates and projections
+with their exact bound owner, step and input ID. Expressions remain the normative
+typed expression representation. This is a non-wire preparation object, not a
+new execution language, registered AoA fragment or final Plan admission token.
+The map and projection arrays are defensively copied at access boundaries.
+
+Expression-lowering node/work/literal limits are consumed cumulatively across
+all bindings rather than reset for each RHS. Separate binding/name limits bound
+the operation container. Canonical map binding order and authored projection
+order come from the existing checked APIs; preparation does not infer either.
+Empty maps retain a real preparation object. Ordered arrays return the temporary
+`NeedsSharedRowKernelContract` gap until main supplies the registered extension.
+Their individual checked expressions remain available for independent work.
+
+Fixed tests cover map payloads/order, retained no-op, projection order, defensive
+access, whole-operation cumulative failure and the explicit shared-contract gap.
+Connecting these objects through registry-bound fragment construction and the
+row evaluator remains open; this increment alone does not authorize execution.

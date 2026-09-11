@@ -12,6 +12,7 @@ import {
   "actql/actql/expression_syntax" @syntax,
   "actql/actql/value_contract" @contract,
   "actql/actql/encode_core" @encode,
+  "actql/actql/relation_schema" @schema,
 }
 
 import {
