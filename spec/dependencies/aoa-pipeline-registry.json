@@ -360,5 +360,16 @@
       "pointer": "/execution_contracts/REL.values",
       "cid": "sha256:c95bc0d474fd6fbe62d3182bdefe6af412070f6ad2c8e102c5279d7a8b3eed17"
     }
+  },
+  "ACTQL.expression_fragment/0.1": {
+    "inputs": [
+      "relation"
+    ],
+    "output": "relation",
+    "execution_contract": {
+      "file": "spec/contracts/actql-aoa.json",
+      "pointer": "/execution_contracts/ACTQL.expression_fragment~10.1",
+      "cid": "sha256:3cf4269dcf6c78f77bac984a228a18b743501905821fef41fa926b055f75d2e1"
+    }
   }
 }

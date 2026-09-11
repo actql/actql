@@ -75,7 +75,12 @@ of all runtime checks. No lowerer or evaluator is added here. Unsupported
 backends reject runnable plans. Ordered derive's row-kernel contract and
 whole-Program integration remain separate work.
 
-## Selected shared registry
+## REL.values registry introduction
+
+The following records the 58-entry registry introduced with REL.values.
+The current selection subsequently adds the
+[expression-fragment registration](expression-fragment-registration.md);
+its historical body is retained in `portability/fixtures/pipeline-registry-values.json`.
 
 The selected body is [aoa-pipeline-registry.json](../../spec/dependencies/aoa-pipeline-registry.json),
 at JSON Pointer `""`; REL.values is at `/REL.values`. Its canonical whole-body CID is

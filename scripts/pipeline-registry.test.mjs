@@ -8,6 +8,7 @@ import {checkExecutionContract} from './values-execution-contract.mjs';
 const read = path => JSON.parse(readFileSync(path, 'utf8'));
 const aoa = read('spec/contracts/actql-aoa.json');
 const registry = read('spec/dependencies/aoa-pipeline-registry.json');
+const valuesRegistry = read('portability/fixtures/pipeline-registry-values.json');
 const base = read('portability/fixtures/pipeline-registry-base.json');
 const protocol = read('spec/contracts/actql-protocol-schemas.json');
 const oldCid = 'sha256:00ac46baefe7fa34412ad83beb85cf1899b906e792d74fa89211a7c4972f0d5a';
@@ -46,11 +47,11 @@ function resolveValues(body, selected = aoa.pipeline_registry_cid, contract = ao
 test('shared registry extends the exact historical body without relabeling its CID', () => {
   assert.equal(cid(base),oldCid);
   assert.equal(Object.keys(base).length,57);
-  assert.equal(cid(registry),newCid);
+  assert.equal(cid(valuesRegistry),newCid);
   assert.equal(aoa.pipeline_registry_file,'spec/dependencies/aoa-pipeline-registry.json');
-  assert.equal(aoa.pipeline_registry_cid,newCid);
-  assert.equal(Object.keys(registry).length,58);
-  const {['REL.values']:added,...retained} = registry;
+  assert.equal(aoa.pipeline_registry_cid,cid(registry));
+  assert.equal(Object.keys(valuesRegistry).length,58);
+  const {['REL.values']:added,...retained} = valuesRegistry;
   assert.deepEqual(retained,base);
   assert.ok(added);
   assert.equal(Object.hasOwn(base,'REL.values'),false);
@@ -86,7 +87,7 @@ test('rehashing a changed signature or contract reference does not satisfy the r
 test('a matching reference cannot hide a changed execution body or dependency', () => {
   const changed = structuredClone(aoa);
   changed.execution_contracts['REL.values'].semantics.row_order = 'sort';
-  assert.throws(() => resolveValues(registry,newCid,changed),/ContractCidMismatch/);
+  assert.throws(() => resolveValues(registry,cid(registry),changed),/ContractCidMismatch/);
   const altered = structuredClone(aoa), body = structuredClone(registry);
   altered.execution_contracts['REL.values'].dependencies.canonical_value_contract.cid = oldCid;
   const forgedCid = cid(altered.execution_contracts['REL.values']);

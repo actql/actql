@@ -63,7 +63,7 @@
     "generate:nest": "node scripts/check-nest-reference.mjs --write",
     "check:contracts": "node --test scripts/text-time-policy.test.mjs && node scripts/check-environment-contract.mjs && node scripts/catalog-reference-roles.mjs && node scripts/check-environment-vectors.mjs && node --test scripts/check-environment.test.mjs scripts/catalog-reference-roles.test.mjs && node scripts/local-snapshot-schema.mjs && node scripts/check-local-snapshots.mjs && node scripts/check-local-source-refs.mjs && node scripts/local-input-schema.mjs && node --test scripts/local-input-schema.test.mjs && node scripts/check-actql-spec-family.mjs && npm run check:aoa && npm run check:bound-transfer",
     "check:bound-transfer": "node scripts/bound-transfer-laws.mjs && node scripts/capacity-law-registry.mjs && node --test scripts/bound-transfer-laws.test.mjs scripts/capacity-policy.test.mjs scripts/capacity-law-registry.test.mjs",
-    "check:aoa": "node scripts/check-aoa-versions.mjs && node --test scripts/aoa-versions.test.mjs scripts/pure-operation-laws.test.mjs scripts/pure-operation-inventory.test.mjs scripts/pipeline-registry.test.mjs",
+    "check:aoa": "node scripts/check-aoa-versions.mjs && node scripts/expression-fragment-registration.mjs && node --test scripts/aoa-versions.test.mjs scripts/pure-operation-laws.test.mjs scripts/pure-operation-inventory.test.mjs scripts/pipeline-registry.test.mjs scripts/expression-fragment-registration.test.mjs",
     "check:links": "node scripts/check-document-links.mjs",
     "check:examples": "node scripts/check-document-examples.mjs",
     "test:docs": "node --test scripts/document-validation.test.mjs scripts/evidence-transfer-coverage.test.mjs",

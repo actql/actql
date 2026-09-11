@@ -16,7 +16,7 @@
     "implicit_stringification": false,
     "implicit_cid_substitution": false
   },
-  "expression_contract_cid": "sha256:6e9f53dc1542e70b4618c45a3f7fba7ad749f4703e39dfda94ce1b990577a6f1",
+  "expression_contract_cid": "sha256:aa85f7d3bbb42d890de47dcec6f3f2993fc232df3575012a114951ee7d40dbf7",
   "pipeline_law_manifest": "aoa-pipeline-laws/0.1",
   "pipeline_law_manifest_cid": "sha256:587ab651a11c93172b597234f849d732319f61490fbb59d3d8841436e1e842dc",
   "rela_scalar_law_manifest_cid": "sha256:a866ed224e15da7e25b45d4e166b25b6bd6749a31bd7dfacb185391ad3f80122",
@@ -25,7 +25,7 @@
   "sga_structural_law_manifest_cid": "sha256:7dbf4a4b5830e66867388a34f12751691e9c90594e8e09cab754472144a65b18",
   "sga_identity_law_manifest_cid": "sha256:ab1ae472462b96ac48e56d3ce0544213cab5d422e6bb198bc9acd5e4d90e0fe4",
   "pipeline_registry_file": "spec/dependencies/aoa-pipeline-registry.json",
-  "pipeline_registry_cid": "sha256:b97a22de3664c1dafe3bc1e6791f1f8bcfb70324a1fcc1087450fe057e0f2311",
+  "pipeline_registry_cid": "sha256:23a7f1081d1a2cdab7b20e425dddce846510355ba964058e0c809350fae33816",
   "target_module_contract_cid": "sha256:ae21e53e9cd0727435f707f49efb2ffc9fa1665abda9adde0ff57312265e06e1",
   "target_registry_requirements": {
     "REL.values": {
@@ -168,6 +168,16 @@
         "relation"
       ],
       "output": "graph"
+    },
+    "ACTQL.expression_fragment/0.1": {
+      "inputs": [
+        "relation"
+      ],
+      "output": "relation",
+      "execution_contract": {
+        "pointer": "/execution_contracts/ACTQL.expression_fragment~10.1",
+        "cid": "sha256:3cf4269dcf6c78f77bac984a228a18b743501905821fef41fa926b055f75d2e1"
+      }
     }
   },
   "non_authoring_registry_operations": [
@@ -1147,6 +1157,52 @@
         "object_key_order": "canonical_utf16_order_not_row_order",
         "publication": "validate_all_rows_and_resolved_limits_before_publication",
         "unsupported_backend": "reject_runnable_plan_without_exact_registered_contract_support"
+      }
+    },
+    "ACTQL.expression_fragment/0.1": {
+      "version": "actql-expression-fragment-execution/0.1",
+      "operation": "ACTQL.expression_fragment/0.1",
+      "inputs": [
+        "relation"
+      ],
+      "output": "relation",
+      "dependencies": {
+        "expression_contract": {
+          "file": "spec/contracts/actql-expressions.json",
+          "pointer": "",
+          "cid": "sha256:aa85f7d3bbb42d890de47dcec6f3f2993fc232df3575012a114951ee7d40dbf7"
+        },
+        "fragment_schema": {
+          "file": "spec/contracts/actql-expressions.json",
+          "pointer": "/schemas/fragment",
+          "cid": "sha256:2ccb093915f713003ae0f5e31043bbdd5fc0861cb6c718b1f5430872a4be3717"
+        }
+      },
+      "params_schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "urn:actql:expression-fragment-params:0.1",
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "fragment"
+        ],
+        "properties": {
+          "fragment": {
+            "$ref": "urn:actql:expression-fragment:0.1"
+          }
+        }
+      },
+      "semantics": {
+        "schema_resolution": "resolve_fragment_schema_from_exact_pinned_dependency_without_network_lookup",
+        "local_source": "exactly_one_request_pipeline_source_named_input",
+        "admission": "regenerate_and_compare_sealed_fragment_under_pinned_expression_contract_before_evaluation",
+        "fragment_identity": "hash_complete_canonical_fragment_excluding_only_root_fragment_cid",
+        "retained_material": "retain_opcode_and_complete_fragment_in_canonical_composition",
+        "inner_graph": "not_a_standalone_execution_artifact",
+        "carrier_projection": "validation_witness_only_never_hashed_executed_or_used_as_type_evidence",
+        "obligations": "enforce_fragment_input_root_output_limits_demands_and_runtime_checks",
+        "backend": "reject_execution_without_support_for_exact_contract_and_all_used_extensions",
+        "authority": "registration_does_not_establish_program_completion_or_execution_permission"
       }
     }
   }

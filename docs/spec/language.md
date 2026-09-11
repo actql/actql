@@ -2262,6 +2262,17 @@ Admission regenerates these witnesses and limits alongside the graph.
 The capacity law is registered by the expression 0.1 contract for this
 fragment's admission. Admission uses that pinned law and its witness contract.
 
+<!-- requirement-block: common-expression-contract.composition-registration common-expression-contract.composition-dependencies common-expression-contract.composition-capability -->
+The selected pipeline registry MUST register `ACTQL.expression_fragment/0.1`
+with its one-Relation-input/output signature and the execution contract at
+`spec/contracts/actql-aoa.json#/execution_contracts/ACTQL.expression_fragment~10.1`.
+That contract pins both the expression contract and its existing fragment schema;
+schema references MUST resolve against those pinned bodies, not a network lookup.
+A consumer MUST reject a missing registration, mismatched contract or dependency
+CID, or unsupported execution capability. Registration is not whole-Program
+completion or execution authorization; sealed-fragment re-admission and all
+required runtime checks remain mandatory.
+
 <!-- requirement-block: common-expression-contract.relation-root-slots -->
 | AoA consumer | Root pointer relative to `params` |
 | --- | --- |
@@ -8308,7 +8319,7 @@ through the pinned expression contract.
 <!-- requirement-block: machine-contracts.exact-artifacts -->
 <!-- normative-code: law -->
 ```text
-../../spec/contracts/actql-aoa.json# sha256:2a1cf37fe7758d439beb68b047dc3f3126d4cb4d794ff808572409c0cb2e0c5e
+../../spec/contracts/actql-aoa.json# sha256:855daa7797d982d3cc7a5393c8bcb04af0cb4030383d8f74292483c16bf18c1f
 ../../spec/contracts/actql-bound-transfer-laws.json# sha256:014682262d00c8435f300731e823e5b267ec66b78f980c765c4fd3772c68c911
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/resource_ref sha256:f88141c15be5ac040af593008fdca7c85214fcb4ba60ea7110160b8fe8ee25ac
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/artifact_ref sha256:2143a7c6bd2e0b110822670a3cb146cddaa23bcade9de7c1ab8ed4e1ebf88a55
