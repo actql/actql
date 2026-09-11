@@ -38,6 +38,10 @@ explicit rule for the previously underspecified nested Binding case.
 
 ## Scope and limits
 
+[SourceView input syntax](sourceview-input.md) now checks the closed authored
+connector form separately. Final assembly must bind both passes to the same
+prepared source; neither one alone establishes resolved Input admissibility.
+
 Connector/resource selectors must be present nonempty strings, and connector
 inputs cannot also author a local carrier. Request must be an object when
 present. Only actual source request fields become slots; local inputs and

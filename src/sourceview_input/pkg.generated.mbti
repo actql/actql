@@ -1,0 +1,64 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/sourceview_input"
+
+import {
+  "actql/actql/decode_core",
+  "actql/actql/order_key",
+  "actql/actql/stage_parameters",
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn at(Inputs, Int) -> Declaration?
+
+pub fn collect(@stage_parameters.Source, Limits) -> Result[Inputs, Issue]
+
+pub fn count(Inputs) -> Int
+
+pub fn first_by_order(Declaration) -> Array[@order_key.Key]?
+
+pub fn source(Inputs) -> @stage_parameters.Source
+
+pub fn work(Inputs) -> Int
+
+// Errors
+
+// Types and methods
+pub struct Declaration {
+  stage_index : Int
+  input_name : String
+  source : @decode_core.Cursor
+  connector : String
+  resource : String
+  view : String?
+  request : @decode_core.Cursor?
+  scan : ScanMode?
+  minimum_classification : String?
+  // private fields
+}
+
+type Inputs
+
+pub enum Issue {
+  InvalidLimits
+  WorkLimit
+  OrderLimit
+  Decode(@decode_core.Issue)
+  InvalidValue(@decode_core.Cursor)
+  InvalidMetadata(@decode_core.Cursor)
+  Order(@order_key.Issue)
+}
+
+pub(all) struct Limits {
+  max_work : Int
+  max_order_keys : Int
+}
+
+pub(all) enum ScanMode {
+  Snapshot
+  Changes
+} derive(Eq, @debug.Debug)
+
+// Type aliases
+
+// Traits
