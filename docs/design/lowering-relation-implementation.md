@@ -348,8 +348,9 @@ output budget across operations. A filter that emits no rows does not change
 which earlier table a later explicit branch consumes. These tests still wire
 the kernels explicitly, so they do not prove automatic fragment execution.
 Main/integration has accepted ownership of the missing values execution-params
-contract, as recorded in the shared-contract request; delivery is pending and
-no shape has been invented here.
+contract, as recorded in the shared-contract request. Delivery subsequently
+arrived in main `dab50b1` (incorporated as `d38d2ad`); values wire lowering and
+backend/registry admission still need to consume it. No local shape was invented.
 
 Parameterized four-operation vectors now bind the same checked preparation to
 two different values, use each Parameter in both values cells and derive RHSs,

@@ -27,7 +27,15 @@ test('four preparation handlers use pinned sort/arity including values extension
   ]) {
     const op = `REL.${name}`;
     const signature = contract.target_registry_requirements[op] ?? fixtures.registry[op];
-    assert.deepEqual(signature, { inputs: Array(arity).fill('relation'), output: 'relation' });
+    assert.deepEqual({inputs: signature.inputs, output: signature.output},
+      { inputs: Array(arity).fill('relation'), output: 'relation' });
+    if (op === 'REL.values') {
+      assert.deepEqual(signature.execution_contract, {
+        pointer: '/execution_contracts/REL.values',
+        cid: 'sha256:c95bc0d474fd6fbe62d3182bdefe6af412070f6ad2c8e102c5279d7a8b3eed17',
+      });
+      assert.equal(cid(contract.execution_contracts[op]), signature.execution_contract.cid);
+    }
     assert.ok(source.includes(`${variant}(_) => ("${name}", ${arity})`));
     assert.ok(source.includes(`${variant}(_) => "${op}"`));
   }

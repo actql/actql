@@ -216,6 +216,19 @@ already registered elsewhere should be referenced rather than recreated.
 
 ### Additional values-node parameter contract lookup
 
+**Resolved by main `dab50b1`, incorporated here as `d38d2ad`.** The authoritative
+contract is `spec/contracts/actql-aoa.json#/execution_contracts/REL.values`, CID
+`sha256:c95bc0d474fd6fbe62d3182bdefe6af412070f6ad2c8e102c5279d7a8b3eed17`.
+See [the handoff](rel-values-execution.md) and
+`portability/corpus/rel-values-execution.json` (35 fixed vectors). Lowering must
+now consume the closed `schema`/`rows` shape with complete checked contracts and
+already-bound wire values. Delivery closes the contract lookup, not lowerer or
+backend conformance: runtime checks and supporting registry admission remain
+lowering integration work. Ordered derive remains independently pending.
+
+The following paragraphs preserve the investigation that led to this delivery;
+their missing-contract statements describe the pre-`dab50b1` baseline.
+
 Integration response: main inspected `2e8f0a0` and accepted ownership of this
 missing binding. Main will provide the closed params schema, registration and
 dependency pins, schema type-contract representation, bound-cell/literal rules,
