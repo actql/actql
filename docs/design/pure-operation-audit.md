@@ -76,6 +76,31 @@ This verifies these source/Carrier/connection boundaries alongside the listed
 consumer regressions. It does not discharge runtime admission, external count
 or order evidence, capacity sources, or the remaining operation audit.
 
+## Session Carrier acceptance audit
+
+Language's `session.closed-body` and `session.by-and-positive-gap-are-required`
+blocks match the two branches of `event_typing/check_session`: Relation requires
+explicit id/time; Events takes intrinsic roles and rejects overrides. Both keep
+the input Carrier, repeated/global partition keys and source roles, add fresh
+non-null numeric boundaries/string session IDs, and retain arithmetic/identity
+and Parameter-gap validation obligations. Existing session unit tests cover
+partial payload knowledge and bound gaps without reading defaults; pipeline
+tests cover window-role preservation through Events projection/window_group.
+
+`pipeline_typing/session_carrier_audit_test.mbt` adds 32 cases across both
+Carriers, number/timestamp clocks and eight identity types (including exact
+decimal and both Ref domains). The consumer chain explicitly projects Events
+to Relation, selects original roles/session fields and resolves take's contextual
+order. Identity and clock contracts remain unchanged, and session arithmetic
+and identity obligations remain attached to the original producer. Every
+accepted case tests exact work/node/text limits and one-less rejection. Four
+negative cases reject missing Relation roles and Events role overrides.
+
+This closes that static Carrier/role/consumer matrix, not execution of session
+membership, gap-boundary arithmetic, reference identity comparison or stable
+session-ID generation. Those runtime laws remain separate from type/order
+checking and from the remaining TEA/window/sequence acceptance audit.
+
 ## Shared-boundary findings
 
 | Requirement | Inspected evidence | Audit finding |
