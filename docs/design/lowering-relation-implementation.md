@@ -83,7 +83,8 @@ contracts, final serialized size or any Program-level authorization.
 | --- | --- | --- |
 | Four-operation wiring | Implemented preparation | Keep tests as executable lowering is connected |
 | AoA parameter/expression lowering | Not implemented | Fixed normative node vectors; preserve derive snapshot/slot semantics and no-ops |
-| Bound parameters and external rows | Not implemented | Existing admission plus owner association; literal opacity and alias tests |
+| Bound parameters | Owner association implemented | Connect admitted parameter values to expression and values-cell lowering; add execution vectors |
+| External rows | Not implemented | Existing value admission plus pipeline/input association; literal opacity and alias tests |
 | Pure fragment evaluator | Not implemented | Independent expected values, NULL, conditional demand, errors and resource tests |
 | Additional expression obligations | Not implemented | Discharge the specific profile/pattern/other obligation before evaluation |
 | Other operation handlers | Not implemented here | Add normative lowering and evaluator support, then replace coverage-status tests |
@@ -110,3 +111,17 @@ Package format checks and `npm run check:docs` passed (839 local links and
 19 parsed example programs). These are preparation/documentation checks, not
 evidence of expression execution or full Program conformance. No full repository
 MoonBit test-suite result is claimed for this increment.
+
+## Parameter association increment
+
+`bind_parameters` consumes existing opaque `BoundValues`; it does not bind raw
+JSON again. Like main's bound-guard implementation, it checks physical identity
+of the retained declarations before associating values with the prepared
+pipeline. Equal-looking declarations created independently are not accepted as
+the same checked owner. Missing environments, foreign environments and local
+indexing limits have distinct typed failures. Parameter counts and cumulative
+UTF-8 name bytes are bounded before retaining the index. Nested admitted values
+remain frozen and are not rewritten or interpreted as parameter syntax.
+
+Eight package tests now pass on each of JS, Wasm and native. This proves owner
+association and bounded indexing, not yet expression substitution or evaluation.

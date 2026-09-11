@@ -3,13 +3,19 @@ package "actql/actql/lowering_relation"
 
 import {
   "actql/actql/decode_core",
+  "actql/actql/parameter_binding",
   "actql/actql/pipeline_typing",
   "actql/actql/relation_typing",
   "actql/actql/relation_values",
+  "actql/actql/value_admission",
   "moonbitlang/core/debug",
 }
 
 // Values
+pub fn bind_parameters(Prepared, @parameter_binding.BoundValues?, max_parameters~ : Int, max_name_bytes~ : Int) -> Result[BoundPrepared, BindingIssue]
+
+pub fn bound_preparation(BoundPrepared) -> Prepared
+
 pub fn input_id(Prepared, Int) -> String?
 
 pub fn input_ids(PreparedNode) -> Array[String]
@@ -21,6 +27,10 @@ pub fn node_count(Prepared) -> Int
 pub fn node_id(PreparedNode) -> String
 
 pub fn operation(PreparedNode) -> String
+
+pub fn parameter_bindings(BoundPrepared) -> @parameter_binding.BoundValues?
+
+pub fn parameter_value(BoundPrepared, String) -> @value_admission.CheckedValue?
 
 pub fn payload(PreparedNode) -> Payload
 
@@ -35,6 +45,20 @@ pub fn usage(Prepared) -> Usage
 // Errors
 
 // Types and methods
+pub struct BindingIssue {
+  kind : BindingIssueKind
+  source : @decode_core.Cursor
+}
+
+pub(all) enum BindingIssueKind {
+  InvalidBindingLimits
+  BindingOwnerMismatch
+  MissingBindings
+  BindingBudgetExceeded
+} derive(Eq, @debug.Debug)
+
+type BoundPrepared
+
 pub struct Issue {
   kind : IssueKind
   source : @decode_core.Cursor
