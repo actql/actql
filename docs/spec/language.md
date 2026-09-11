@@ -7291,9 +7291,17 @@ existing canonical JSON, typed-value and failure laws. A matching operation
 name or input/output signature alone is insufficient. A backend unable to
 preserve typed decimals, empty schema evidence, order, multiplicity or required
 validation/limits rejects executable compilation, without casts or alternate
-encodings. This target requirement does not assert that the currently pinned
-AoA registry implements the extension, authorize a Program, or discharge other
-Program and runtime obligations.
+encodings. The selected registry is the complete JSON body at
+`pipeline_registry_file` (repository-root-relative) in the AoA contract; its
+canonical CID is `pipeline_registry_cid`. The REL.values entry's
+`execution_contract.file` is repository-root-relative and its `pointer` resolves
+within that file; its `cid` identifies the complete selected subtree, not just
+the params schema. Registration resolution verifies the registry body CID,
+signature, reference and execution-contract CID against the target requirement.
+The selected registry registers this extension; registration does not assert
+backend implementation, authorize a Program, or discharge other Program and
+runtime obligations. Other target requirements remain separate from actual
+registrations and are not implicitly added to this registry.
 
 <a id="plan-documents"></a>
 
@@ -8300,7 +8308,7 @@ through the pinned expression contract.
 <!-- requirement-block: machine-contracts.exact-artifacts -->
 <!-- normative-code: law -->
 ```text
-../../spec/contracts/actql-aoa.json# sha256:2215dbd77fd06633dabad2d68b52c68d49aa663c966acdebc860b80120f87fd3
+../../spec/contracts/actql-aoa.json# sha256:2a1cf37fe7758d439beb68b047dc3f3126d4cb4d794ff808572409c0cb2e0c5e
 ../../spec/contracts/actql-bound-transfer-laws.json# sha256:014682262d00c8435f300731e823e5b267ec66b78f980c765c4fd3772c68c911
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/resource_ref sha256:f88141c15be5ac040af593008fdca7c85214fcb4ba60ea7110160b8fe8ee25ac
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/artifact_ref sha256:2143a7c6bd2e0b110822670a3cb146cddaa23bcade9de7c1ab8ed4e1ebf88a55

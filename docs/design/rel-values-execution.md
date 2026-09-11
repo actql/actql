@@ -69,10 +69,46 @@ bytes and SHA-256 identities. Binding/quotation examples are fixed conversion
 expectations for the lowerer, not evidence that a conversion implementation
 has already been added on main.
 
-Main owns this contract, registration requirement and fixtures. Lowering owns
+Main owns this contract, the shared registration and fixtures. Lowering owns
 conversion, binding provenance, executable registry admission and implementation
-of all runtime checks. No lowerer or evaluator is added here. The old registry
-pin is not relabeled as supporting a new operation; supporting registries need
-their own accurate registration/identity. Unsupported backends reject runnable
-plans. Ordered derive's row-kernel contract and whole-Program integration remain
-separate work, without a dependency on this definition.
+of all runtime checks. No lowerer or evaluator is added here. Unsupported
+backends reject runnable plans. Ordered derive's row-kernel contract and
+whole-Program integration remain separate work.
+
+## Selected shared registry
+
+The selected body is [aoa-pipeline-registry.json](../../spec/dependencies/aoa-pipeline-registry.json),
+at JSON Pointer `""`; REL.values is at `/REL.values`. Its canonical whole-body CID is
+`sha256:b97a22de3664c1dafe3bc1e6791f1f8bcfb70324a1fcc1087450fe057e0f2311`.
+`actql-aoa.json` selects it through `pipeline_registry_file` and
+`pipeline_registry_cid`. The enclosing contract's family pin and its normative
+document import pins consequently change. The execution-contract and params-schema
+CIDs above do not change.
+
+This body preserves all 57 previous signatures and adds only REL.values, with
+`inputs: []`, `output: relation`, and `execution_contract: {file, pointer, cid}`.
+The file is repository-root-relative; the pointer resolves inside that file.
+The registry hash includes the reference and its CID, not only the signature.
+Consumers must not strip registration metadata when verifying the registry CID.
+The complete execution-contract pin transitively binds the checked-type schema
+and semantic rules; equality of params-schema CIDs alone is insufficient.
+
+The [historical body](../../portability/fixtures/pipeline-registry-base.json)
+still hashes to
+`sha256:00ac46baefe7fa34412ad83beb85cf1899b906e792d74fa89211a7c4972f0d5a`.
+It was recovered from `src/lowering_relation/registry-preimages.json#/registry`
+at `42e8a0bcff8fa816c44d163517372d130ecd3938` and independently hash-checked before
+extension. It remains a negative registration fixture, not the current selected
+registry. Historical lowering fixtures are not rewritten; after importing this
+commit, lowering should resolve the shared file for current selection and keep
+historical fixtures explicitly bound to their old CID rather than comparing
+them to the new selection. The target-module contract pin is unchanged.
+
+`scripts/pipeline-registry.test.mjs` tests registration-only resolution, including
+old-body absence, body/CID mismatch, signature mismatch, wrong file/pointer/CID,
+and a changed execution body or checked-type dependency. Its independent Node
+oracle is a contract test, not a production resolver. Both registry body hashes
+also run through MoonBit's canonical JSON/SHA-256 tests on all three targets.
+Existing execution-params corpus tests remain separate. Other target requirements
+are not automatically registered, and registration does not certify any backend
+or close Program execution admission.

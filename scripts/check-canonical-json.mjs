@@ -129,6 +129,8 @@ function fixtures() {
   const vector = read('spec/lookup-key-encoding-vector.json');
   result.push({ id: 'lookup key envelope', value: vector.expected_body, cid: vector.expected_cid, text: vector.expected_canonical_bytes });
   const aoa = read('spec/contracts/actql-aoa.json');
+  result.push({ id: 'selected pipeline registry', value: read(aoa.pipeline_registry_file), cid: aoa.pipeline_registry_cid });
+  result.push({ id: 'historical pipeline registry', value: read('portability/fixtures/pipeline-registry-base.json'), cid: 'sha256:00ac46baefe7fa34412ad83beb85cf1899b906e792d74fa89211a7c4972f0d5a' });
   result.push({ id: 'kernel manifest', value: read('spec/dependencies/aoa-kernel-laws.json'), cid: aoa.kernel_law_manifest_cid });
   return result;
 }
