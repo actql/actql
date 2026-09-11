@@ -275,6 +275,24 @@ downstream ordering. This audit does not execute degree counting, SCC discovery,
 normalization or diagnostic-row generation, and does not discharge Graph input
 preflights or output resource obligations.
 
+## Empty Graph selector Relation audit
+
+The traverse and shortest-path sections explicitly allow an empty selected
+Relation, unlike an empty authored `ids` list. `graph_typing/selector.mbt`
+checks the selected column's identity domain without requiring a data row;
+membership remains a separate obligation. Existing selector tests cover
+closed selector forms, literal occurrences and reference identity contracts.
+
+`pipeline_typing/graph_empty_selector_audit_test.mbt` fixes 15 pipeline cases:
+three directions across both traversal emit modes and all three shortest-path
+selection modes. An input-free, empty typed `values` Relation supplies the
+selector while an explicit `from` retains the Graph operand. Both shortest-path
+selector occurrences remain separate edges even when they share that Relation.
+The fixed-role output feeds select, and exact zero output evidence survives
+projection. Exact work/node/text budgets accept and one-less budgets reject.
+This is static evidence propagation, not traversal execution or a substitute
+for Graph membership, preflight and search-resource validation.
+
 ## Shared-boundary findings
 
 | Requirement | Inspected evidence | Audit finding |
