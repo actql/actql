@@ -175,6 +175,47 @@ neither evaluation nor HostEnvelope evidence. Tests fix nested profile operand
 order, implicit CASE ELSE, IN values/holes, object field alignment, source owner
 consistency, invalid indices and depth-10,000 traversal.
 
+## Expression-local conditional demand
+
+`derive_demands` implements the common-expression contract's demand-derivation
+table from the immutable typed topology. IF appends true/not_true tests, CASE
+retains all earlier not_true tests before the selected condition's true test,
+and coalesce retains earlier null tests. Eager children inherit the outer path;
+no extra AND/OR short-circuit rule or constant-condition folding is invented.
+The tests refer to already evaluated values in the same expression frame,
+not instructions to reevaluate the referenced expression.
+
+The opaque DemandPaths retains its exact TypedExpression. Tests reference local
+typed node indices internally, but `demand_pointer` derives RFC6901 addresses
+from the normalized semantic source tree, with proper tilde/slash escaping and
+Unicode preservation. The root pointer is the empty string. Consumer attachment
+must rebase both the occurrence and all tests to the same semantic root; it must
+not substitute a step index for a semantic step ID. An implicit CASE ELSE has
+its inherited demand but no source occurrence and returns None for its pointer.
+Literal payloads and other childless forms are opaque, including business data
+that happens to look like an expression.
+
+Address segments and conditional prefixes are parent-linked shared tables.
+Construction does not materialize every complete pointer or copy every prior
+coalesce/CASE condition list. `max_links` covers address and condition links;
+`max_text_bytes` charges escaped UTF-8 address segments once, and `max_work`
+covers table construction and traversals. Accessors independently bound full
+pointer bytes and returned test counts before allocation, and return detached
+arrays. Deep pointers and long conditional prefixes therefore have bounded
+explicit materialization rather than hidden quadratic retained storage.
+
+The reference is Sketch `87dc7144`'s `deriveActqlExpressionDemandsV2`, compared
+against the normative table rather than used to generate expectations. Its
+`/expression` prefix is a consumer position; this component deliberately returns
+root-relative pointers. The main text-bound checker retains one DemandPaths per
+expression slot and producer visit, including unused branches. Aggregate-filter
+prefixes and full semantic root placement remain consumer-level work; these
+local results alone are not a sealed envelope or executable admission.
+
+Fixed tests cover nested conditionals, mixed CASE/coalesce, normalized pointers,
+opaque values, implicit ELSE, detached views, exact budgets, 10,000 coalesce
+operands and depth 10,000 without recursive traversal.
+
 ## Verification
 
 [Fixed type vectors](../../portability/corpus/actql-expression-typing-v0.1.json)

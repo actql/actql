@@ -65,6 +65,12 @@ test "text bounds resolve every portable formula from owned expression sites" {
         validation_site_requirement(text_bound_site(v)).obligation.kind
         is HostEnvelope,
       )
+      assert_true(
+        physical_equal(
+          @typing.demand_expression(text_bound_demands(v)),
+          validation_site_requirement(text_bound_site(v)).expression,
+        ),
+      )
     }
     assert_true(text_bound_at(checks, -1) is None)
     assert_true(text_bound_at(checks, 3) is None)
@@ -224,4 +230,26 @@ test "text bound checks share cumulative limits and reject late static failures"
     text_bound_count(check_text_bounds(patterns, bound_limits()).unwrap()),
     0,
   )
+}
+
+///|
+test "text bounds retain derived conditional demand without evaluating it" {
+  let patterns = bound_fixture("if(TRUE, 'selected', nfkc('unselected'))")
+  let checked = check_text_bounds(patterns, bound_limits()).unwrap()
+  for i in 0..<text_bound_count(checked) {
+    let entry = text_bound_at(checked, i).unwrap()
+    let demand = text_bound_demands(entry)
+    let node = validation_site_requirement(text_bound_site(entry)).obligation.node_index
+    assert_eq(
+      @typing.demand_pointer(demand, node, max_bytes=100).unwrap(),
+      Some("/if/2"),
+    )
+    let tests = @typing.demand_tests(demand, node, max_tests=1).unwrap()
+    assert_eq(tests.length(), 1)
+    assert_eq(tests[0].kind, @typing.NotTrue)
+    assert_eq(
+      @typing.demand_pointer(demand, tests[0].node_index, max_bytes=100).unwrap(),
+      Some("/if/0"),
+    )
+  }
 }

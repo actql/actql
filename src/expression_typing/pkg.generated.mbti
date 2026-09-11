@@ -18,6 +18,16 @@ pub fn child_at(TypedExpression, Int, Int) -> Int?
 
 pub fn child_count(TypedExpression, Int) -> Int?
 
+pub fn demand_expression(DemandPaths) -> TypedExpression
+
+pub fn demand_pointer(DemandPaths, Int, max_bytes~ : Int) -> Result[String?, DemandIssue]
+
+pub fn demand_tests(DemandPaths, Int, max_tests~ : Int) -> Result[Array[DemandTest], DemandIssue]
+
+pub fn demand_usage(DemandPaths) -> DemandUsage
+
+pub fn derive_demands(TypedExpression, DemandLimits) -> Result[DemandPaths, DemandIssue]
+
 pub fn environment(TypedExpression) -> Environment
 
 pub fn expression(TypedExpression) -> @expression_syntax.Expression
@@ -56,6 +66,37 @@ pub(all) enum ArgumentDomain {
   NumberArgument
   BooleanArgument
   StringArgument
+} derive(Eq, @debug.Debug)
+
+pub(all) enum DemandIssue {
+  InvalidLimits
+  BudgetExceeded
+  InvalidNode
+} derive(Eq, @debug.Debug)
+
+pub(all) struct DemandLimits {
+  max_work : Int
+  max_text_bytes : Int
+  max_links : Int
+} derive(Eq, @debug.Debug)
+
+type DemandPaths
+
+pub struct DemandTest {
+  node_index : Int
+  kind : DemandTestKind
+} derive(Eq, @debug.Debug)
+
+pub(all) enum DemandTestKind {
+  IsTrue
+  NotTrue
+  IsNull
+} derive(Eq, @debug.Debug)
+
+pub(all) struct DemandUsage {
+  work : Int
+  text_bytes : Int
+  links : Int
 } derive(Eq, @debug.Debug)
 
 pub(all) struct Environment {

@@ -14,6 +14,7 @@ pub(all) enum TextBoundsIssue {
   UnsupportedOperation(Int, String)
   Value(Int, @value.Issue)
   Bounds(Int, @bounds.Issue)
+  Demand(Int, @typing.DemandIssue)
 } derive(Eq, Debug)
 
 ///|
@@ -29,6 +30,7 @@ struct TextBoundResolution {
   input_parameter : @parameter.BoundParameter?
   length_parameter : @parameter.BoundParameter?
   policy : @environment.TextTime
+  demands : @typing.DemandPaths
 }
 
 ///|
@@ -272,6 +274,19 @@ pub fn check_text_bounds(
           None => raise TextBoundStop(MissingPolicy(hosts[order[0]].1))
         }
         let p = @environment.text_time_policy(policy)
+        let demands = match
+          @typing.derive_demands(expression, {
+            max_work: b.work,
+            max_text_bytes: b.text,
+            max_links: b.work,
+          }) {
+          Ok(v) => v
+          Err(@typing.BudgetExceeded) => raise TextBoundStop(BudgetExceeded)
+          Err(e) => raise TextBoundStop(Demand(hosts[order[0]].1, e))
+        }
+        let demand_usage = @typing.demand_usage(demands)
+        bound_spend(b, demand_usage.work)
+        b.text -= demand_usage.text_bytes
         let n = @typing.node_count(expression)
         // Charge allocation and the postorder scan before creating node tables.
         bound_spend(b, n)
@@ -356,6 +371,7 @@ pub fn check_text_bounds(
             input_parameter,
             length_parameter,
             policy,
+            demands,
           }
         }
         bound_spend(b, order.length())
@@ -425,4 +441,11 @@ pub fn text_bound_length_parameter(
 ///|
 pub fn text_bound_policy(v : TextBoundResolution) -> @environment.TextTime {
   v.policy
+}
+
+///|
+/// Expression-local demand only; consumer filters and semantic root placement
+/// still belong to the enclosing compilation boundary.
+pub fn text_bound_demands(v : TextBoundResolution) -> @typing.DemandPaths {
+  v.demands
 }

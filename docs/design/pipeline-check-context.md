@@ -277,6 +277,14 @@ Parameter when used. A process-local expression slot ordinal distinguishes
 multiple expressions in one step, even when a typed expression object is reused.
 It is not a semantic identity. Each producer visit is checked independently.
 
+Each slot also owns an [expression-local demand derivation](expression-typing.md#expression-local-conditional-demand),
+shared by its text-bound resolutions and exposed by `text_bound_demands`.
+Construction and address-segment bytes are included in the shared work/text
+budget. The site's typed node index selects its demand and root-relative
+semantic pointer. No separately supplied demand list can be attached. Full
+consumer placement and aggregate-filter prefixes are still required before
+sealing the envelope; root-relative paths are not global fragment addresses.
+
 Within a slot, immutable typed topology is traversed in reverse preorder so a
 direct text-time child has its output derivation before its parent is processed.
 The parent retains that exact producer and rechecks its extent against input

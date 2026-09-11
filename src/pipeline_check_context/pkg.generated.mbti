@@ -173,6 +173,8 @@ pub fn text_bound_at(TextBoundsChecks, Int) -> TextBoundResolution?
 
 pub fn text_bound_count(TextBoundsChecks) -> Int
 
+pub fn text_bound_demands(TextBoundResolution) -> @expression_typing.DemandPaths
+
 pub fn text_bound_input_parameter(TextBoundResolution) -> @parameter_binding.BoundParameter?
 
 pub fn text_bound_length_parameter(TextBoundResolution) -> @parameter_binding.BoundParameter?
@@ -456,6 +458,7 @@ pub(all) enum TextBoundsIssue {
   UnsupportedOperation(Int, String)
   Value(Int, @value_admission.Issue)
   Bounds(Int, @text_time_bounds.Issue)
+  Demand(Int, @expression_typing.DemandIssue)
 } derive(Eq, @debug.Debug)
 
 pub(all) struct TextBoundsLimits {
