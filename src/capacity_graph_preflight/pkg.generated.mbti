@@ -62,6 +62,8 @@ type ApplicationCoverage
 pub(all) enum ApplicationCoverageIssue {
   InvalidLimits
   ForeignProgram
+  WorkLimit
+  MissingJoinApplications(Int)
   Source(SourceCoverageIssue)
   Consumer(ConsumerCoverageIssue)
 } derive(Eq, @debug.Debug)

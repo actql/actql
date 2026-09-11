@@ -132,12 +132,20 @@ This prevents candidate availability from being checked against one table while
 source completeness is certified against another.
 
 The work budget is shared: source scanning consumes one unit per witness, then
-consumer scanning receives only the remainder. The opaque result retains both
+consumer scanning receives only the remainder. When the join ledger is absent,
+an additional scan costs one unit per local step and requires that no ordinary,
+cross or interval join exists, including unused branches. Omitting both the
+application and its limit artifact therefore cannot pass this entry. An admitted
+join ledger already carries this all-step coverage. The lower-level consumer
+ledger scan remains artifact-consumption-only, not operation coverage.
+The opaque result retains both
 checked results and their summed work. A late unconsumed limit or short consumer
 budget returns only an error, never a partial combined result. Source and
 consumer diagnostics remain distinguished. Regressions include an unsupported
 Contract source even with no consumers, proof-table substitution, an omitted
 join ledger, unused limits and exact/short combined budgets.
+Empty mixed collections are tested with all three join families, as well as
+empty and non-join pipelines; only the latter may omit a join ledger.
 
 This entry closes composition for the supported source and consumer branches;
 it is not full pipeline readiness. Selected-policy authority, enclosing

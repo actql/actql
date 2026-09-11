@@ -2,6 +2,8 @@
 pub(all) enum ApplicationCoverageIssue {
   InvalidLimits
   ForeignProgram
+  WorkLimit
+  MissingJoinApplications(Int)
   Source(SourceCoverageIssue)
   Consumer(ConsumerCoverageIssue)
 } derive(Eq, Debug)
@@ -34,17 +36,31 @@ pub fn check_application_coverage(
     Ok(v) => v
     Err(e) => return Err(Source(e))
   }
+  let mut remaining = max_work - sources.work
+  // An absent ledger is valid only if the pipeline has no join-family steps.
+  // Limit-set completeness alone cannot prove operation coverage: the caller
+  // could omit both an operation's application and its limit artifact.
+  if joins is None {
+    let steps = @pipeline.step_count(graph.pipeline)
+    if steps > remaining {
+      return Err(WorkLimit)
+    }
+    remaining -= steps
+    for i in 0..<steps {
+      match @pipeline.step_at(graph.pipeline, i).unwrap().operation {
+        @pipeline.Join(..)
+        | @pipeline.CrossJoin(..)
+        | @pipeline.IntervalJoin(..) => return Err(MissingJoinApplications(i))
+        _ => ()
+      }
+    }
+  }
   let consumers = match
-    check_consumer_coverage(
-      graph,
-      sequence,
-      joins~,
-      max_work=max_work - sources.work,
-    ) {
+    check_consumer_coverage(graph, sequence, joins~, max_work=remaining) {
     Ok(v) => v
     Err(e) => return Err(Consumer(e))
   }
-  Ok({ sources, consumers, work: sources.work + consumers.work, })
+  Ok({ sources, consumers, work: max_work - remaining + consumers.work, })
 }
 
 ///|

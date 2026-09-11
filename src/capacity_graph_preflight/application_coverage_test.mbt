@@ -118,7 +118,121 @@ test "combined application coverage shares source and consumer budgets and proof
           sequence,
           max_work=work,
         )
-        is Err(Consumer(UnconsumedLimit(4))),
+        is Err(MissingJoinApplications(1)),
+      )
+    }
+  }
+}
+
+///|
+test "empty limit collections cannot hide omitted join applications" {
+  let mixed = @wire.check_mixed_claims([], [], {
+    max_entities: 0,
+    max_references: 0,
+    max_bytes: 0,
+    max_nodes: 0,
+    max_depth: 0,
+  }).unwrap()
+  let claims = @wire.check_mixed_program_claims(mixed, [], {
+    max_witnesses: 0,
+    max_references: 0,
+  }).unwrap()
+  let source = @host.bind_claim_sources(claims, [], {
+    max_entries: 0,
+    max_bytes: 0,
+    max_nodes: 0,
+    max_depth: 0,
+  }).unwrap()
+  let program = @program.check_applications(claims, [], max_work=0).unwrap()
+  let selected = policy(false)
+  let row = @schema.from_object(
+    @contract.object_contract(
+      [("id", @contract.primitive(NumberType, nullable=false))],
+      nullable=false,
+      max_fields=1,
+      max_name_bytes=2,
+    ).unwrap(),
+  ).unwrap()
+  for
+    body in [
+      "[]", "[{\"select\":[\"id\"]}]", "[{\"join\":{\"with\":\"rows\",\"kind\":\"inner\",\"on\":\"id\"}}]",
+      "[{\"cross_join\":{\"with\":\"rows\"}}]", "[{\"interval_join\":{\"with\":\"rows\",\"kind\":\"inner\",\"mode\":\"point_in_interval\",\"on\":[],\"left\":{\"time\":\"id\"},\"right\":{\"start\":\"id\",\"end\":\"id\"}}}]",
+    ] {
+    let root = @decode.admit(
+      @source.parse_json(body, {
+        max_input_bytes: 4096,
+        max_nodes: 100,
+        max_depth: 20,
+      }).unwrap(),
+      {
+        max_nodes: 100,
+        max_depth: 20,
+        max_string_bytes: 4096,
+        max_total_string_bytes: 4096,
+      },
+    ).unwrap()
+    let p = @pipeline.check_carriers(
+      root,
+      [("rows", @carrier.relation(@carrier.typed_rows(row)))],
+      None,
+      None,
+      {
+        max_steps: 1,
+        max_work: 10000,
+        max_text_bytes: 10000,
+        max_nodes: 1000,
+        max_tokens: 1000,
+        max_depth: 100,
+      },
+    ).unwrap()
+    let graph = @capacity_graph_preflight.check(p, source, selected, caps()).unwrap()
+    let sequence = @sequence.check_applications(
+      p,
+      source,
+      selected,
+      [],
+      max_work=2,
+    ).unwrap()
+    let steps = @pipeline.step_count(p)
+    let result = @capacity_graph_preflight.check_application_coverage(
+      graph,
+      program,
+      sequence,
+      max_work=2 + steps,
+    )
+    if body == "[]" || body == "[{\"select\":[\"id\"]}]" {
+      assert_eq(
+        @capacity_graph_preflight.application_coverage_work(result.unwrap()),
+        2 + steps,
+      )
+      assert_true(
+        @capacity_graph_preflight.check_application_coverage(
+          graph,
+          program,
+          sequence,
+          max_work=1 + steps,
+        )
+        is Err(Consumer(WorkLimit)),
+      )
+    } else {
+      // The lower-level ledger scan intentionally checks artifacts only.
+      assert_true(
+        @capacity_graph_preflight.check_consumer_coverage(
+          graph,
+          sequence,
+          max_work=2,
+        )
+        is Ok(_),
+      )
+      assert_true(result is Err(MissingJoinApplications(0)))
+      assert_true(
+        @capacity_graph_preflight.check_application_coverage(
+          graph,
+          program,
+          sequence,
+          max_work=0,
+        )
+        is Err(WorkLimit),
       )
     }
   }

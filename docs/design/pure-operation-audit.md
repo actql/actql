@@ -415,6 +415,9 @@ matching automaton or proof that session-boundary values have been computed.
    join candidates and source completeness. Unsupported sources and late
    consumer failures cannot produce a partial combined result. This composition
    does not establish external authority or enclosing Program/Invocation identity.
+   An omitted join ledger now requires a budgeted all-step scan proving the
+   absence of join-family operations. An empty limit collection is not proof
+   that no operation requires a limit; regressions cover all three join families.
    Do not
    expand into acquisition, an evaluator or Host dispatch.
 3. Connect contextual resolutions into a complete static checking/discharge
