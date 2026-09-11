@@ -156,6 +156,26 @@ close duplicate normalization's total-order requirement, discharge static
 expression obligations or construct Program semantic identity. It must not be
 used as the final lowering-ready CheckedProgram.
 
+`attach_environment` connects `InputContexts` to the all-stage local snapshot
+coverage result. It requires the same Program source and the exact prepared
+local-input owner at every stage. Re-preparing equal source declarations is not
+a substitute. The opaque `EnvironmentContext` retains both branches, preserving
+snapshot environment membership through the Program context rather than reducing
+it to a CID or independently supplied schema.
+
+Usage includes both branches and one owner comparison per stage. Only the exact
+shared local preparation costs (work, nodes and text) are subtracted once;
+snapshot parsing/size, selector resolution and type comparisons remain charged.
+Here `max_local_input_nodes` includes snapshot reconciliation nodes in addition
+to local declaration nodes. It is still not total process heap or runtime rows.
+Tests cover actual two-stage Result wiring, a supplied local snapshot, exact/short
+budgets, foreign Program sources and separately prepared equal declarations.
+
+This connection neither retypes the pipeline using stronger snapshot information
+nor admits policy, Catalog closure, Host authority or runtime materialization.
+Those checks and augmented input registration remain prerequisites of the final
+lowering-ready compiler boundary. Snapshot coverage is not execution permission.
+
 `check_parameter_bindings` extends a context with local Parameter reference
 indexes for every contextual producer visit. It uses the exhaustive pipeline
 collector for both typed expressions and direct operands, including values

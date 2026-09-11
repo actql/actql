@@ -17,6 +17,8 @@ import {
 }
 
 // Values
+pub fn attach_environment(InputContexts, @stage_local_inputs.ProgramEnvironmentInputs, max_work~ : Int, max_text_bytes~ : Int, max_local_input_nodes~ : Int) -> Result[EnvironmentContext, EnvironmentIssue]
+
 pub fn attach_local_inputs(WiredStages, Array[@stage_local_inputs.Attached], max_work~ : Int, max_text_bytes~ : Int, max_local_input_nodes~ : Int) -> Result[InputContexts, InputIssue]
 
 pub fn attach_result_wiring(StageContexts, @stage_results.ResultWiring, max_work~ : Int, max_text_bytes~ : Int) -> Result[WiredStages, WiringIssue]
@@ -36,6 +38,12 @@ pub fn checked_capacity(PipelineContext) -> @capacity_graph_preflight.Applicatio
 pub fn checked_orders(PipelineContext) -> @relation_results.CheckedOrders
 
 pub fn checked_results(PipelineContext) -> @relation_results.CheckedResults
+
+pub fn environment_inputs(EnvironmentContext) -> InputContexts
+
+pub fn environment_snapshots(EnvironmentContext) -> @stage_local_inputs.ProgramEnvironmentInputs
+
+pub fn environment_usage(EnvironmentContext) -> InputUsage
 
 pub fn expression_requirement_at(PipelineContext, Int) -> ExpressionRequirement?
 
@@ -79,6 +87,16 @@ pub fn wired_usage(WiredStages) -> (Int, Int)
 
 // Types and methods
 type BoundParameters
+
+type EnvironmentContext
+
+pub(all) enum EnvironmentIssue {
+  InvalidLimits
+  ForeignProgram
+  ForeignInputs(Int)
+  InconsistentUsage
+  BudgetExceeded
+} derive(Eq, @debug.Debug)
 
 pub struct ExpressionRequirement {
   visit : Int

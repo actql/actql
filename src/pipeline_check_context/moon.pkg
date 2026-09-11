@@ -15,6 +15,10 @@ import {
 }
 
 import {
+  "actql/actql/check_environment" @environment,
+  "actql/actql/local_relation_snapshot" @snapshot,
+  "actql/actql/stage_source_refs" @refs,
+  "actql/actql/sha256" @sha,
   "actql/actql/source_value" @source,
   "actql/actql/stage_syntax" @syntax,
   "actql/actql/decode_core" @decode,

@@ -832,6 +832,9 @@ admission, resource enforcement or complete source authority.
    shared-cost accounting and aggregate local source limits. A real local input
    followed by a Result-importing stage exercises this path, without claiming
    Host/receipt admission, static discharge or final Program readiness.
+   All-stage snapshot coverage now attaches to that context with exact prepared
+   input owners and shared preparation accounting. Stronger snapshot types do
+   not silently replace the already checked pipeline input registrations.
    Local schema assertion comparison now preserves a supplied stronger complete
    checked schema after recursive assignability, expected-column and newly known
    key/order-type checks. It is not snapshot source/CID/Host admission and is not
