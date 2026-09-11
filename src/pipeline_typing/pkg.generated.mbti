@@ -64,6 +64,10 @@ pub fn logical_order(CheckedPipeline, Target) -> LogicalOrder?
 
 pub fn lookup(CheckedPipeline, String) -> Target?
 
+pub fn order_dependency_at(LogicalOrder, Int) -> Target?
+
+pub fn order_dependency_count(LogicalOrder) -> Int
+
 pub fn order_key_completion(LogicalOrder) -> @relation_evidence.KeyedRelation?
 
 pub fn order_origin(LogicalOrder) -> Target

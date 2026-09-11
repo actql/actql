@@ -1,4 +1,54 @@
 ///|
+test "append order requires both operand occurrences and survives take and publication" {
+  let number = @contract.primitive(NumberType, nullable=false)
+  let row = @schema.from_fields(
+    [(Unqualified("x"), number)],
+    max_fields=1,
+    max_name_bytes=1,
+  ).unwrap()
+  for
+    (left, right, ordered) in [
+      ("grid", "grid", true),
+      ("grid", "raw", false),
+      ("raw", "grid", false),
+      ("raw", "raw", false),
+    ] {
+    let p = @pipeline.check(
+      cursor(
+        "[{\"time_series\":{\"start\":\"2000-01-01T00:00:00.000Z\",\"end\":\"2000-01-01T00:00:00.010Z\",\"step\":1},\"as\":\"source_grid\"},{\"derive\":{\"x\":{\"literal\":1}}},{\"select\":[\"x\"],\"as\":\"grid\"},{\"append\":{\"with\":\"" +
+        right +
+        "\"},\"from\":\"" +
+        left +
+        "\"},{\"take\":1,\"as\":\"out\"}]",
+      ),
+      [("raw", row)],
+      None,
+      None,
+      ranking_limits(),
+    ).unwrap()
+    let evidence = @pipeline.logical_order(p, Step(3))
+    assert_eq(evidence is Some(_), ordered)
+    assert_eq(@pipeline.take_order(p, 4) is Some(_), ordered)
+    if ordered {
+      let order = @pipeline.take_order(p, 4).unwrap()
+      assert_eq(@pipeline.order_origin(order), Step(3))
+      assert_eq(@pipeline.order_predecessor(order), Some(Step(3)))
+      assert_eq(@pipeline.order_dependency_count(order), 2)
+      assert_eq(@pipeline.order_dependency_at(order, 0), Some(Step(2)))
+      assert_eq(@pipeline.order_dependency_at(order, 1), Some(Step(2)))
+      assert_eq(@pipeline.order_dependency_at(order, -1), None)
+      assert_eq(@pipeline.order_dependency_at(order, 2), None)
+      let r = @relation_results.check(
+        p,
+        cursor("{\"result\":{\"from\":\"out\",\"fields\":[\"x\"]}}"),
+        limits(),
+      ).unwrap()
+      assert_eq(@relation_results.publication_strategy(resolve(r)), Inherited)
+    }
+  }
+}
+
+///|
 test "appended raw join outputs remain available to Result selection and order checking" {
   let p = joined_pipeline(
     "left",

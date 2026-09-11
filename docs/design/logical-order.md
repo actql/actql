@@ -71,6 +71,16 @@ definition. A nullable Graph label tuple can retain a conditional identity/
 uniqueness witness for other consumers, but is not an eligible candidate key
 for this ordering completion. This is not a missing nullable-key feature.
 
+Append establishes left-then-right order only when both resolved operands retain
+logical order. Its origin exposes the required operand occurrences through
+`order_dependency_count` and `order_dependency_at`, in left/right order, retaining
+two occurrences even when both name the same target. Preserving operations keep
+these origin dependencies as well as their immediate predecessor. This is a
+bounded dependency graph within the originating pipeline, not a copied history.
+One ordered operand cannot establish order for the unordered operand; neither
+concatenation nor take's output cardinality supplies that missing proof. The
+append summary does not establish global key uniqueness or completeness.
+
 `order_sort_completion` exposes the selected witness and indexed appended fields.
 The retained origin operation supplies the unchanged authored terms. This is
 information for later Plan construction and journaling, not a claim that a

@@ -7,6 +7,19 @@ struct LogicalOrder {
   predecessor : Target?
   completion : SortCompletion?
   key_order : @evidence.KeyedRelation?
+  dependencies : Array[Target]
+}
+
+///|
+/// Ordered operand occurrences required by the originating operation.
+pub fn order_dependency_count(order : LogicalOrder) -> Int {
+  order.dependencies.length()
+}
+
+///|
+/// Repeated operand targets remain separate occurrences, in operand order.
+pub fn order_dependency_at(order : LogicalOrder, index : Int) -> Target? {
+  order.dependencies.get(index)
 }
 
 ///|
@@ -111,14 +124,31 @@ fn derive_logical_orders(
       Calendar(op) => @calendar.input(op) is None
       _ => false
     }
+    let dependencies = match step.operation {
+      Append(right~, ..) => {
+        let right_order = match right {
+          Input(_) => None
+          Step(j) => out[j]
+        }
+        match (step.input, previous, right_order) {
+          (Some(left), Some(_), Some(_)) => [left, right]
+          _ => []
+        }
+      }
+      _ => []
+    }
     out.push(
-      if establishes || completion is Some(_) || key_order is Some(_) {
+      if establishes ||
+        completion is Some(_) ||
+        key_order is Some(_) ||
+        !dependencies.is_empty() {
         Some({
           origin: Step(i),
           producer: step,
           predecessor: None,
           completion,
           key_order,
+          dependencies,
         })
       } else if preserve {
         previous.map(v => { ..v, predecessor: step.input, })
