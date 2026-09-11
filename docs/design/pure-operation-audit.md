@@ -128,6 +128,35 @@ sequence tests separately cover predicate diagnostic ranges, label aliases and
 Result publication. These are static connection tests, not evaluation of the
 matching automaton or proof that session-boundary values have been computed.
 
+## Watermark Carrier acceptance audit
+
+Language's `relational-temporal.watermark-source-and-output` and
+`event-bridges.watermark-labels` were compared with `relation_typing/check.mbt`,
+`relation_typing/watermark.mbt`, `event_typing/check.mbt` and pipeline dispatch.
+The embedded Program shapes are checked by `window-schema.test.mjs` and
+`event-schema.test.mjs`. The fixed Sketch `87dc7144` semantic checker likewise
+separates `watermark_rows` and `watermark_events`; their different option names
+and threshold forms must not be collapsed into a shared permissive body.
+
+`pipeline_typing/watermark_carrier_audit_test.mbt` adds 64 combinations of
+Relation/Event paths, number/timestamp clocks, declared/absent input keys,
+mark/drop policy and negative fractional, zero, positive and large finite
+thresholds. The Event path explicitly passes through `to_events` and `events`.
+Both paths preserve the clock contract and emit the correct distinct generated
+field names with non-null types, then feed an ordinary select. Existing keys
+survive; no input key, count or order is invented. Exact work/node/text budgets
+and one-less failures are checked for each combination. Ten rejection cases
+cover wrong Carriers, exchanged policy names, Events role overrides and
+Parameter/skew thresholds, invalid policy and ambiguous/missing Relation sources.
+
+Existing `relation_typing/watermark_test.mbt` separately fixes Parameter domains,
+positive skew, generated-column collisions and bad clock contracts.
+`pipeline_typing/carrier_counts_test.mbt` covers exact counts for mark versus
+upper bounds for drop on zero/nonzero Event inputs, while Event/window key tests
+cover preservation of membership evidence. Prefix-skew order requirements are
+not replaced by fixed-threshold tests. This is static admission and transfer
+evidence, not execution of late-row comparisons, prefix arithmetic or publication.
+
 ## Shared-boundary findings
 
 | Requirement | Inspected evidence | Audit finding |
