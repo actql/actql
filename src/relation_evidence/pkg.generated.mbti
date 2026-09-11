@@ -7,6 +7,7 @@ import {
   "actql/actql/carrier_projection",
   "actql/actql/decode_core",
   "actql/actql/event_typing",
+  "actql/actql/graph_typing",
   "actql/actql/parameter_binding",
   "actql/actql/relation_join_shape",
   "actql/actql/relation_key_obligation",
@@ -77,6 +78,8 @@ pub fn declared_records(KeyedRelation) -> @carrier_contract.Knowledge
 
 pub fn graph_projection_keys(@carrier_projection.CheckedProjection, TransferLimits) -> Result[KeySetTransfer, Issue]
 
+pub fn graph_query_keys(GraphKeyOperation, TransferLimits) -> Result[KeySetTransfer, Issue]
+
 pub fn key_alias_at(KeyedRelation, Int, Int) -> KeyField?
 
 pub fn key_alias_count(KeyedRelation, Int) -> Int
@@ -100,6 +103,8 @@ pub fn key_field_at(KeyedRelation, Int) -> KeyField?
 pub fn key_field_count(KeyedRelation) -> Int
 
 pub fn key_graph_projection_producer(KeyedRelation) -> @carrier_projection.CheckedProjection?
+
+pub fn key_graph_query_producer(KeyedRelation) -> GraphKeyOperation?
 
 pub fn key_interval_join_dependency_at(KeyedRelation, Int) -> KeyedRelation?
 
@@ -201,6 +206,14 @@ pub(all) enum AsOfSource {
 
 type CheckedAsOf
 
+pub(all) enum GraphKeyOperation {
+  GraphOperation(@graph_typing.CheckedGraph)
+  MatchOperation(@graph_typing.CheckedMatch)
+  ReachOperation(@graph_typing.CheckedReach)
+  TraverseOperation(@graph_typing.CheckedTraverse)
+  ShortestOperation(@graph_typing.CheckedShortest)
+}
+
 pub struct Issue {
   kind : IssueKind
   path : Array[@source_value.PathSegment]
@@ -242,6 +255,7 @@ pub(all) enum KeyOrigin {
   IntervalJoinResult
   AsOfResult
   SequenceResult
+  GraphQueryResult
 } derive(Eq, @debug.Debug)
 
 pub struct KeySelection {

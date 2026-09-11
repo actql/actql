@@ -23,6 +23,7 @@ pub(all) enum TraverseObligation {
 
 ///|
 struct CheckedTraverse {
+  input : @carrier.Carrier
   source : @decode.Cursor
   start : CheckedSelector
   patterned : Bool
@@ -257,6 +258,7 @@ pub fn check_traverse(
     b.text -= output.usage.text_bytes
     Ok({
       source,
+      input,
       start,
       patterned,
       minimum,
@@ -374,4 +376,9 @@ pub fn traverse_pending(c : CheckedTraverse) -> Array[TraverseObligation] {
     }
   }
   out
+}
+
+///|
+pub fn traverse_input(c : CheckedTraverse) -> @carrier.Carrier {
+  c.input
 }

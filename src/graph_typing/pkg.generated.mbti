@@ -123,6 +123,8 @@ pub fn match_entity(CheckedMatch) -> EntityKind
 
 pub fn match_ids(CheckedMatch) -> Array[@value_admission.CheckedValue]
 
+pub fn match_input(CheckedMatch) -> @carrier_contract.Carrier
+
 pub fn match_output(CheckedMatch) -> @carrier_contract.Carrier
 
 pub fn match_pending(CheckedMatch) -> Array[MatchObligation]
@@ -175,6 +177,8 @@ pub fn predicate_usage(CheckedPredicate) -> PredicateUsage
 
 pub fn reach_direction(CheckedReach) -> Direction
 
+pub fn reach_input(CheckedReach) -> @carrier_contract.Carrier
+
 pub fn reach_max_depth(CheckedReach) -> Double
 
 pub fn reach_output(CheckedReach) -> @carrier_contract.Carrier
@@ -210,6 +214,8 @@ pub fn selector_usage(CheckedSelector) -> PredicateUsage
 pub fn shortest_direction(CheckedShortest) -> Direction
 
 pub fn shortest_endpoint(CheckedShortest, @relation_schema.Side) -> PathEndpoint
+
+pub fn shortest_input(CheckedShortest) -> @carrier_contract.Carrier
 
 pub fn shortest_max_hops(CheckedShortest) -> Double
 
@@ -264,6 +270,8 @@ pub fn traverse_emission(CheckedTraverse) -> PathOutput
 pub fn traverse_hop_at(CheckedTraverse, Int) -> TraversalHop?
 
 pub fn traverse_hop_count(CheckedTraverse) -> Int
+
+pub fn traverse_input(CheckedTraverse) -> @carrier_contract.Carrier
 
 pub fn traverse_output(CheckedTraverse) -> @carrier_contract.Carrier
 

@@ -58,10 +58,12 @@ pub(all) enum KeyOrigin {
   IntervalJoinResult
   AsOfResult
   SequenceResult
+  GraphQueryResult
 } derive(Eq, Debug)
 
 ///|
 priv enum KeyProducer {
+  GraphQueryProducer(GraphKeyOperation)
   SequenceProducer(@relation.CheckedSequence)
   AsOfProducer(CheckedAsOf, KeyedRelation?)
   RelationProducer(@relation.CheckedOperation)

@@ -47,6 +47,21 @@ fn asof_input_source(
 }
 
 ///|
+fn graph_key_operation(
+  operation : CheckedOperation,
+) -> @evidence.GraphKeyOperation? {
+  match operation {
+    Graph(op) if @graph.operation(op) != NormalizeGraph =>
+      Some(GraphOperation(op))
+    GraphMatch(op) => Some(MatchOperation(op))
+    Reach(op) => Some(ReachOperation(op))
+    Traverse(checked~, ..) => Some(TraverseOperation(checked))
+    Shortest(checked~, ..) => Some(ShortestOperation(checked))
+    _ => None
+  }
+}
+
+///|
 fn sync_keys(
   b : Budget,
   inputs : Array[@evidence.KeySet?],
@@ -57,6 +72,26 @@ fn sync_keys(
     let step = steps[keys.length()]
     let previous = step.input.bind(t => key_at(t, inputs, keys))
     let next = match (previous, step.operation) {
+      (_, op) if graph_key_operation(op) is Some(operation) => {
+        let transfer = match
+          @evidence.graph_query_keys(operation, {
+            max_work: b.work,
+            max_name_bytes: b.text,
+          }) {
+          Ok(v) => v
+          Err(e) =>
+            raise Stop({
+              kind: KeyEvidence(e.kind),
+              source: step.source,
+              path: e.path.copy(),
+              span: e.span,
+              range: None,
+            })
+        }
+        b.work -= transfer.work
+        b.text -= transfer.name_bytes
+        Some(transfer.keys)
+      }
       (_, Sequence(operation)) => {
         let transfer = match
           @evidence.sequence_keys(operation, {

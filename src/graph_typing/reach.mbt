@@ -11,6 +11,7 @@ pub(all) enum ReachObligation {
 
 ///|
 struct CheckedReach {
+  input : @carrier.Carrier
   source : @decode.Cursor
   start : @value.CheckedValue
   direction : Direction
@@ -106,6 +107,7 @@ pub fn check_reach(
     }
     Ok({
       source,
+      input,
       start,
       direction,
       max_depth: maximum,
@@ -164,4 +166,9 @@ pub fn reach_pending(_c : CheckedReach) -> Array[ReachObligation] {
     ResolveReachResources,
     ResolveReachProfile,
   ]
+}
+
+///|
+pub fn reach_input(c : CheckedReach) -> @carrier.Carrier {
+  c.input
 }

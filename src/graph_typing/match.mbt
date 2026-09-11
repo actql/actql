@@ -18,6 +18,7 @@ pub(all) enum MatchObligation {
 
 ///|
 struct CheckedMatch {
+  input : @carrier.Carrier
   entity : EntityKind
   source : @decode.Cursor
   output : @carrier.Carrier
@@ -198,6 +199,7 @@ pub fn check_match(
     }
     Ok({
       entity,
+      input,
       source,
       output: @carrier.relation(rows),
       predicate,
@@ -270,4 +272,9 @@ pub fn match_pending(c : CheckedMatch) -> Array[MatchObligation] {
     out.push(EvaluateMatchPredicate)
   }
   out
+}
+
+///|
+pub fn match_input(c : CheckedMatch) -> @carrier.Carrier {
+  c.input
 }

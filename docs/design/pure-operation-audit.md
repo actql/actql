@@ -63,6 +63,11 @@ consumer audit.
 ## Remaining implementation and verification
 
 1. Close the remaining semantically required key transfers; the demonstrated
+   Graph query gap now retains exposed node/edge identities and the actual
+   selection units of traversal, shortest paths and diagnostic reports. Checked
+   query producers retain original input contracts and obligations through
+   aliases and Result publication. Path endpoints alone do not identify all
+   enumerated paths. The demonstrated
    sequence gap now establishes each independent label identity for disallowed
    overlap and retains the checked matching producer through aliases, contextual
    sorting/take and Result publication. Allowed overlap does not gain a key.

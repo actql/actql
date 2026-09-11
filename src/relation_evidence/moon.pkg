@@ -1,6 +1,7 @@
 supported_targets = "+js+wasm+native"
 
 import {
+  "actql/actql/graph_typing" @graph,
   "actql/actql/order_key" @order,
   "actql/actql/parameter_binding" @parameter,
   "actql/actql/relation_join_shape" @join,

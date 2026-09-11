@@ -1,5 +1,8 @@
 # Graph operation checking
 
+Conditional query identity propagation is described in
+[Graph query evidence](graph-query-evidence.md).
+
 `graph_typing` currently checks `normalize_graph`, `degree`, `components` and
 `graph_bounds`, plus binary `graphs_equal` and `graph_diff` through dedicated
 closed-contract checkers. Structural `graft_graph`, `union_graphs` and

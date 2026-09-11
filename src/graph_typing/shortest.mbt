@@ -29,6 +29,7 @@ pub(all) enum ShortestObligation {
 
 ///|
 struct CheckedShortest {
+  input : @carrier.Carrier
   source : @decode.Cursor
   endpoints : Array[PathEndpoint]
   selection : PathSelection
@@ -232,6 +233,7 @@ pub fn check_shortest(
     b.text -= output.usage.text_bytes
     Ok({
       source,
+      input,
       endpoints: [start, end],
       selection,
       direction,
@@ -327,4 +329,9 @@ pub fn shortest_pending(c : CheckedShortest) -> Array[ShortestObligation] {
     }
   }
   out
+}
+
+///|
+pub fn shortest_input(c : CheckedShortest) -> @carrier.Carrier {
+  c.input
 }
