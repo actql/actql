@@ -346,3 +346,19 @@ pub fn ranking_term_at(value : CheckedOperation, index : Int) -> OrderTerm? {
     _ => None
   }
 }
+
+///|
+pub fn lag_term_count(value : CheckedOperation) -> Int {
+  match value.row_operation {
+    Some(Lag(order=terms, ..)) => terms.length()
+    _ => 0
+  }
+}
+
+///|
+pub fn lag_term_at(value : CheckedOperation, index : Int) -> OrderTerm? {
+  match value.row_operation {
+    Some(Lag(order=terms, ..)) => terms.get(index)
+    _ => None
+  }
+}

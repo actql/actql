@@ -79,6 +79,10 @@ pub fn group_keys(CheckedGroup) -> Array[KeyField]
 
 pub fn input_schema(CheckedOperation) -> @relation_schema.Schema
 
+pub fn lag_term_at(CheckedOperation, Int) -> OrderTerm?
+
+pub fn lag_term_count(CheckedOperation) -> Int
+
 pub fn nodes_used(CheckedOperation) -> Int
 
 pub fn operation(CheckedOperation) -> Operation

@@ -69,11 +69,23 @@ fn derive_logical_orders(
   steps : Array[CheckedStep],
   input_keys : Array[@evidence.KeySet?],
   step_keys : Array[@evidence.KeySet?],
-) -> Array[LogicalOrder?] raise Stop {
+) -> (Array[LogicalOrder?], Array[SortCompletion?]) raise Stop {
   let out : Array[LogicalOrder?] = []
+  let lag_orders : Array[SortCompletion?] = []
   for i in 0..<steps.length() {
     let step = steps[i]
     spend(b, step.source, 1)
+    lag_orders.push(
+      match step.operation {
+        Unary(op) if @relation.operation(op) == @relation.Lag =>
+          complete_sort(
+            b,
+            op,
+            step.input.bind(t => key_at(t, input_keys, step_keys)),
+          )
+        _ => None
+      },
+    )
     let completion = match step.operation {
       Unary(op) if @relation.ranking_term_count(op) > 0 =>
         complete_sort(
@@ -209,5 +221,15 @@ fn derive_logical_orders(
       },
     )
   }
-  out
+  (out, lag_orders)
+}
+
+///|
+/// Conditional partition-order completion for lag, never output row ordering.
+/// The originating pipeline retains the lag operation and its input edge.
+pub fn lag_order_completion(
+  p : CheckedPipeline,
+  index : Int,
+) -> SortCompletion? {
+  p.lag_orders.get(index).bind(v => v)
 }

@@ -78,10 +78,19 @@ fn complete_sort(
   guard select_order_key(b, op, keys) is Some(key) else { return None }
   let source = @relation.source(op)
   let seen : Map[String, Bool] = Map([])
-  let n = @relation.ranking_term_count(op)
+  let lag = @relation.operation(op) == @relation.Lag
+  let n = if lag {
+    @relation.lag_term_count(op)
+  } else {
+    @relation.ranking_term_count(op)
+  }
   spend(b, source, n)
   for i in 0..<n {
-    let term = @relation.ranking_term_at(op, i).unwrap()
+    let term = (if lag {
+      @relation.lag_term_at(op, i)
+    } else {
+      @relation.ranking_term_at(op, i)
+    }).unwrap()
     charge(b, term.source, @schema.reference_name(term.field))
     seen[order_field_key(term.field)] = true
   }

@@ -68,6 +68,8 @@ pub fn inputs(CheckedPipeline) -> Array[(String, @carrier_contract.Carrier)]
 
 pub fn join_evidence(CheckedPipeline, Int) -> JoinEvidence?
 
+pub fn lag_order_completion(CheckedPipeline, Int) -> SortCompletion?
+
 pub fn logical_order(CheckedPipeline, Target) -> LogicalOrder?
 
 pub fn lookup(CheckedPipeline, String) -> Target?

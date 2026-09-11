@@ -195,6 +195,16 @@ operations and validated external witnesses remains shared-evidence work.
 
 ## Existing input-order consumers
 
+Lag has a separate `lag_order_completion` entry, computed under the shared
+pipeline budget from the actual input's eligible whole candidate key. Its
+authored partition order uses the same alias-aware missing-component completion
+as sort, while output rows retain the original input sequence. Even when the
+calculation order resolves, it cannot establish publication order on unordered
+input. Conversely, an existing input sequence without a retained candidate key
+does not satisfy lag's required key-based partition order. The lag source,
+offset/binding and runtime obligations remain on its checked step; no physical
+sort or offset evaluation is performed here.
+
 `resolve_existing_input_order` resolves prefix watermark and pivot(first) against
 their actual input edge, never their output order. Its opaque result retains
 the consumer, obligation kind, target and conditional input witness. In
