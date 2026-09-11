@@ -88,12 +88,12 @@ contracts, final serialized size or any Program-level authorization.
 
 | Area | Current state | Condition for closing |
 | --- | --- | --- |
-| Four-operation wiring | Atomic sequence preparation and internal driver implemented | Connect registry-admitted fragment entry |
-| AoA expression lowering | Typed scalar/conditional nodes and bounded encoding implemented | Connect roots to complete Relation nodes and evaluator |
+| Four-operation wiring | Atomic preparation, body-hashed primitive registry selection and one internal driver implemented | Connect the sealed expression-fragment entry, not only primitive signatures |
+| AoA expression lowering | Typed scalar/conditional nodes, inline Relation step encoding and common evaluator implemented | Bind canonical root positions, demand paths and the outer expression contract |
 | Bound parameters | Owner association, expression substitution, values capture and four-operation private execution tested | Repeat vectors through admitted fragment driver |
-| External rows | Object-schema input admission and immutable capture implemented | Connect to full fragment input obligations; scoped row representation remains unsupported |
+| External rows | Object-schema capture, key validation, exact completed producer binding and receiving projection/budgets implemented | Close inherited evidence obligations; scoped row representation remains unsupported |
 | Map/filter/select row evaluation | Internal sequence driver runs values/supplied-input/parameter chains and branch retention; component NULL cases remain tested | Move remaining component vectors through admitted fragment driver |
-| AoA fragment lowering | Values/map/filter/select step emission and expression wire implemented; pipeline envelope remains open | Bind registry contracts, roots and runtime obligations, then admit complete fragment |
+| AoA fragment lowering | Values/map/filter/select step array and inline expression wire implemented | Bind request, roots, witnesses and outer expression-fragment registration, then admit the fragment |
 | Runtime budgets | Cumulative expression/control/logical-value limits implemented | Close temporary/live allocations and complete work accounting before exposing fragment API |
 | Ordered derive | Checked references available; executable contract pending main | Consume main's registered row-kernel extension without a substitute opcode |
 | Additional expression obligations | Not implemented | Discharge the specific profile/pattern/other obligation before evaluation |
@@ -108,6 +108,9 @@ contracts and runtime budgets, not adding more operations.
 The ordered-derive wire/capability binding requires the
 [shared row-kernel integration unit](row-kernel-integration-request.md).
 This is not a reason to drop array-form derive from the agreed goal.
+The [fragment closure audit](lowering-fragment-closure.md) separates the remaining
+lowering work from shared registration/API handoffs, including the existing
+expression-fragment contract whose outer registration is not in the selected body.
 
 Unsupported-operation tests describe implementation coverage, not permanent
 language rejection. Implemented common paths must not grow a separate restrictive
