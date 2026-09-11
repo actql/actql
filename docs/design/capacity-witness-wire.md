@@ -156,3 +156,37 @@ cycles and a 10,000-node chain without claiming cyclic SHA-256 preimages.
 arithmetic and Program-input closure, not source truth, author/Contract/language
 authority, the actual Program subject or governing-law applicability. Complete
 source/application validation and resolved-limit enforcement remain mandatory.
+
+## Resolved-limit wire claims
+
+`admit_limit` admits the closed `actql-resolved-limit/0.1` representation against
+an independently expected CID and an existing `ArithmeticClaims` collection.
+Every embedded candidate must match the complete admitted witness body in that
+collection, not merely copy its CID. Admission recomputes the same-unit minimum
+and strict author-guard binding, checks fail-only breach and the closed
+enforcement vocabulary, then verifies preimage identity and canonical original
+bytes. Candidate order is nondecreasing witness CID order; repeated candidates
+remain repeated, as in fixed Sketch `87dc7144` `resolveActqlLimit`.
+
+The opaque `LimitClaim` retains the collection, candidate indexes, subject,
+enforcement, identity and canonical body. `emit_limit` reproduces that artifact
+under the caller's writer limits. Missing witnesses, altered candidate bodies,
+wrong units or computed fields, unknown members and alternate encodings fail
+without repair. All candidates are checked, not only a winning minimum. An
+iterative comparison against admitted fixed-shape witnesses precedes emission,
+so malformed deep candidates cannot enter the fixed-shape emitter. Byte/node/
+depth budgets cover the complete artifact; a separate candidate budget counts
+repeated occurrences. No global witness cache is consulted.
+
+This is not runnable evidence. It does not establish that all applicable
+candidates were supplied, validate sources or governing law applications, bind
+the subject to an actual consumer, or prove enforcement appropriate there.
+Naming `static` does not discharge a ceiling. No pipeline API accepts this type
+as count or execution evidence. Enforced-ceiling dependency nodes remain
+unsupported by `ArithmeticClaims`; mixed witness/limit closure still requires
+its own validation boundary.
+
+Independent Node SHA-256 fixtures cover all six enforcement spellings, absent,
+binding and equal-valued non-binding guards, guard-only limits, repeated
+candidates, altered self-consistent artifacts and exact admission budgets.
+Synthetic source claims in these tests do not assert source-law truth.

@@ -147,6 +147,11 @@ consumer audit.
    This closes the input-reference gap, not external source bodies or semantic
    applicability; no pipeline execution evidence is produced by this result.
    Do not add public proof flags, treat policy ceilings as observations, or
+   mistake a `LimitClaim` for runnable evidence. Resolved-limit wire admission
+   now binds every embedded candidate to the arithmetic collection, recomputes
+   the minimum and guard binding, and verifies canonical body identity. Candidate
+   completeness, source/law applicability and consumer enforcement remain open.
+   Do not
    expand into acquisition, an evaluator or Host dispatch.
 3. Connect contextual resolutions into a complete static checking/discharge
    boundary. [Combined order checking](combined-order-checking.md) now resolves

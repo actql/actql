@@ -11,6 +11,8 @@ import {
 // Values
 pub fn admit(Bytes, String, Limits) -> Result[WireWitness, Issue]
 
+pub fn admit_limit(Bytes, String, ArithmeticClaims, LimitLimits) -> Result[LimitClaim, Issue]
+
 pub fn bind_program_proof(Bytes, WireWitness, Limits) -> Result[ProgramProofClaim, Issue]
 
 pub fn check_arithmetic_claims(Array[WireWitness], ClosureLimits) -> Result[ArithmeticClaims, ClosureIssue]
@@ -35,7 +37,19 @@ pub fn derivation(WireWitness) -> Derivation
 
 pub fn emit(WireWitness, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
 
+pub fn emit_limit(LimitClaim, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
+
 pub fn law(WireWitness) -> @capacity_law.RegisteredLaw
+
+pub fn limit_cid(LimitClaim) -> String
+
+pub fn limit_claims(LimitClaim) -> ArithmeticClaims
+
+pub fn limit_enforcement(LimitClaim) -> Enforcement
+
+pub fn limit_minimum(LimitClaim) -> @capacity_derivation.CandidateMinimum
+
+pub fn limit_subject(LimitClaim) -> String
 
 pub fn program_claim_arithmetic(ProgramClaims) -> ArithmeticClaims
 
@@ -86,6 +100,15 @@ pub(all) enum Derivation {
   EnforcedCeiling(String)
 }
 
+pub(all) enum Enforcement {
+  Static
+  UnitPreflight
+  BeforeProviderDispatch
+  BeforeEffectCommit
+  StreamingAtomic
+  EngineAtomic
+} derive(Eq, @debug.Debug)
+
 pub(all) enum Issue {
   InvalidLimits
   BudgetExceeded
@@ -93,6 +116,15 @@ pub(all) enum Issue {
   IdentityMismatch
   NoncanonicalArtifact
 } derive(Eq, @debug.Debug)
+
+type LimitClaim
+
+pub(all) struct LimitLimits {
+  max_bytes : Int
+  max_nodes : Int
+  max_depth : Int
+  max_candidates : Int
+}
 
 pub(all) struct Limits {
   max_bytes : Int
