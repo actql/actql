@@ -56,6 +56,29 @@ input evidence. The later admitted snapshot boundary must retain this exact
 prepared owner and validate those external links before registering stronger
 types. In particular, equal input names in another stage are not global selectors.
 
+`reconcile_snapshots` now joins integrity-checked `local_relation_snapshot.Snapshot`
+bodies to a `stage_source_refs.Index` and this exact prepared stage. It requires
+the index's original Program source owner, resolves each snapshot's own selector
+(not a separately supplied label), and rejects resolutions to another stage.
+It then uses `reconcile_schemas` for the complete supplied batch. Each opaque
+binding retains the original snapshot, resolved input and exact declaration/type
+agreement; no caller may pair a snapshot CID with unrelated asserted fields.
+Snapshot order is retained while schema assertions stay in declaration order.
+Missing snapshots remain missing, and late failures expose no partial binding.
+
+The aggregate includes full snapshot byte/node sizes per occurrence, source-index
+resolution costs, prepared-source costs, schema comparison costs and the indexed
+binding assembly. Shared node/work/text caps do not reset per snapshot. Depth
+limits the new type comparisons; already checked source/snapshot passes retain
+their original depth checks. Snapshot bytes here are conservative evidence-size
+charges, not a claim of exact retained heap size. No duplicate cost is subtracted
+based merely on matching CID or equal types.
+
+`CheckedSnapshots` closes source correspondence and assertion agreement, not
+Check Environment membership, Host authority, materialization validation or
+runtime key/order obligations. It does not alter source-only `input_at`/`attach`
+registration and is not the final Program's admitted external-input boundary.
+
 Preparation charges stage input enumeration and import-name indexing, then each
 local declaration's source nodes as logical work. Node and UTF-8 allowances are
 shared across all local declarations, including metadata; depth is measured from

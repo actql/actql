@@ -37,6 +37,8 @@ acceptance. This is not a claim of generic JSON Schema validator conformance.
 
 The opaque `Snapshot` establishes content integrity and envelope/type validity
 only. It retains unverified materialization claims without executing I/O.
-Subsequent admission must bind the resolved local source, authored assertions,
-selected Check Environment and governing provenance/authority. It cannot be
+`stage_local_inputs.reconcile_snapshots` now binds resolved local source slots
+and authored assertions to the exact snapshot and prepared Program/stage owners
+under cumulative budgets. Subsequent admission must still bind the selected
+Check Environment and governing provenance/authority. The snapshot cannot be
 passed to the source-only pipeline assembly as authenticated Host evidence.

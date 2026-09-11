@@ -3,9 +3,11 @@ package "actql/actql/stage_local_inputs"
 
 import {
   "actql/actql/local_relation_input",
+  "actql/actql/local_relation_snapshot",
   "actql/actql/pipeline_typing",
   "actql/actql/relation_schema",
   "actql/actql/stage_parameters",
+  "actql/actql/stage_source_refs",
   "moonbitlang/core/debug",
 }
 
@@ -18,6 +20,12 @@ pub fn attached_stage(Attached) -> @stage_parameters.CollectedStage
 
 pub fn attached_work(Attached) -> Int
 
+pub fn bound_input(SnapshotBinding) -> @stage_source_refs.ResolvedInput
+
+pub fn bound_schema(SnapshotBinding) -> @local_relation_input.SchemaAgreement
+
+pub fn bound_snapshot(SnapshotBinding) -> @local_relation_snapshot.Snapshot
+
 pub fn count(Prepared) -> Int
 
 pub fn entry_at(Prepared, Int) -> (String, @local_relation_input.Checked)?
@@ -28,11 +36,25 @@ pub fn prepare(@stage_parameters.Source, Int, Limits) -> Result[Prepared, Issue]
 
 pub fn reconcile_schemas(Prepared, Array[(String, @relation_schema.Schema)], Limits) -> Result[SchemaAssertions, SchemaIssue]
 
+pub fn reconcile_snapshots(Prepared, @stage_source_refs.Index, Array[@local_relation_snapshot.Snapshot], Limits) -> Result[CheckedSnapshots, SnapshotIssue]
+
 pub fn schema_agreement_at(SchemaAssertions, Int) -> @local_relation_input.SchemaAgreement?
 
 pub fn schema_assertion_usage(SchemaAssertions) -> Usage
 
 pub fn schema_inputs(SchemaAssertions) -> Prepared
+
+pub fn snapshot_assertions(CheckedSnapshots) -> SchemaAssertions
+
+pub fn snapshot_binding_at(CheckedSnapshots, Int) -> SnapshotBinding?
+
+pub fn snapshot_count(CheckedSnapshots) -> Int
+
+pub fn snapshot_inputs(CheckedSnapshots) -> Prepared
+
+pub fn snapshot_resolutions(CheckedSnapshots) -> @stage_source_refs.Resolved
+
+pub fn snapshot_usage(CheckedSnapshots) -> Usage
 
 pub fn source(Prepared) -> @stage_parameters.Source
 
@@ -44,6 +66,8 @@ pub fn usage(Prepared) -> Usage
 
 // Types and methods
 type Attached
+
+type CheckedSnapshots
 
 pub enum Issue {
   InvalidLimits
@@ -71,6 +95,17 @@ pub enum SchemaIssue {
   UnknownInput(String)
   DuplicateInput(String)
   Assertion(String, @local_relation_input.SchemaIssue)
+}
+
+type SnapshotBinding
+
+pub enum SnapshotIssue {
+  InvalidLimits
+  BudgetExceeded
+  ForeignProgram
+  ForeignStage(String)
+  Resolution(@stage_source_refs.Issue)
+  Assertions(SchemaIssue)
 }
 
 pub(all) struct Usage {

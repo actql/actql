@@ -850,8 +850,11 @@ admission, resource enforcement or complete source authority.
    not an authenticated input owner or a stronger pipeline registration.
    [Local Relation snapshots](local-relation-snapshot.md) now have a pinned
    envelope and canonical-byte integrity reader retaining checked schema and
-   optional materialization claims. Resolution/assertion/environment binding
-   and provenance validation still need integration; integrity is not authority.
+   optional materialization claims. Stage-local snapshot reconciliation now binds
+   these bodies to their own resolved selectors and exact source/type-assertion
+   owners with cumulative budgets. Environment binding, provenance validation
+   and augmented pipeline registration still need integration; integrity and
+   schema agreement are not authority.
    A two-stage actual Result import tests final publication ownership, foreign
    reissued orders and exact/short cumulative budgets. Ordinary/receipt inputs,
    static discharge and complete semantic Program identity remain incomplete.

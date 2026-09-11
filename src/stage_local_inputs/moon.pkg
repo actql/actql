@@ -9,9 +9,14 @@ import {
   "actql/actql/pipeline_parameters" @collection,
   "actql/actql/relation_schema" @schema,
   "actql/actql/decode_scalar" @scalar,
+  "actql/actql/local_relation_snapshot" @snapshot,
+  "actql/actql/stage_source_refs" @refs,
+  "actql/actql/local_source_ref" @source_ref,
 }
 
 import {
   "actql/actql/carrier_contract" @carrier,
   "actql/actql/relation_evidence" @evidence,
+  "actql/actql/sha256" @sha,
+  "moonbitlang/core/encoding/utf8",
 } for "test"
