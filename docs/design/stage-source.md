@@ -106,3 +106,8 @@ immediate-hole and opaque-data rules require the explicit role walk above.
 their actual Program owner and closed constraints. This is a prerequisite for
 Binding reference resolution, not evidence that request references or concrete
 opaque values have already been admitted.
+
+[Static SourceView request slots](source-request-slots.md) now resolve whole-value
+Parameter and Binding holes against the actual Program declarations. Their
+occurrences still need canonical reference indexing and combination with the
+operation/Effect inventory before whole-Program use is closed.

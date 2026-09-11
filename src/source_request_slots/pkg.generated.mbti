@@ -1,0 +1,61 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/source_request_slots"
+
+import {
+  "actql/actql/binding_declarations",
+  "actql/actql/decode_core",
+  "actql/actql/parameter_binding",
+  "actql/actql/stage_parameters",
+}
+
+// Values
+pub fn at(Slots, Int) -> Slot?
+
+pub fn bindings(Slots) -> @binding_declarations.Declarations
+
+pub fn collect(@stage_parameters.Source, @binding_declarations.Declarations, Limits) -> Result[Slots, Issue]
+
+pub fn count(Slots) -> Int
+
+pub fn source(Slots) -> @stage_parameters.Source
+
+pub fn work(Slots) -> Int
+
+// Errors
+
+// Types and methods
+pub enum Issue {
+  InvalidLimits
+  ForeignBindings
+  WorkLimit
+  SlotLimit
+  Decode(@decode_core.Issue)
+  InvalidSource(@decode_core.Cursor)
+  UnknownParameter(String, @decode_core.Cursor)
+  UnknownBinding(String, @decode_core.Cursor)
+}
+
+pub(all) struct Limits {
+  max_work : Int
+  max_slots : Int
+}
+
+pub struct Slot {
+  stage_index : Int
+  input_name : String
+  field_name : String
+  source : @decode_core.Cursor
+  value : Value
+}
+
+type Slots
+
+pub enum Value {
+  Literal(@decode_core.Cursor)
+  Parameter(@parameter_binding.Declaration)
+  Binding(@binding_declarations.Declaration)
+}
+
+// Type aliases
+
+// Traits

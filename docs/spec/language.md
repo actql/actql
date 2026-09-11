@@ -1201,6 +1201,16 @@ inputs:
       require_full: false
 ```
 
+<!-- requirement-block: sourceviews.static-request-value-slots -->
+Each field of an authored static `request` is one whole-value slot. An exact
+singleton `{$param: name}` or `{$binding: name}` at that slot denotes the named
+declaration; other slot values are literal JSON. Request decoding MUST NOT
+descend into literal values to discover or substitute references. In particular,
+nested parameter-shaped or binding-shaped business objects are data, and a
+`literal` key does not introduce an additional request quotation operator.
+The resolved request contract still determines each slot's admissible type and
+whether all required static and correlation roles are covered.
+
 <!-- requirement-block: sourceviews.bindings-must-be-used-only-inside-sourceview-requests sourceviews.a-binding-must-not-create-a-resourceref-or-artifactref sourceviews.the-host-invocation-contract-must-expose-each-declaration-name-and sourceviews.authors-must-not-inspect-that-artifact-to-discover-keys-and sourceviews.authors-must-not-inspect-that-artifact-to-discover-keys-and.second -->
 The host supplies the opaque binding at invocation. Its declaration and request
 position belong to Program identity; the concrete binding belongs to Invocation

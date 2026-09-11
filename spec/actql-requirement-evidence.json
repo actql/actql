@@ -960,6 +960,17 @@
       }
     },
     {
+      "requirement_id": "actql.language/sourceviews.static-request-value-slots",
+      "statement_sha256": "ae3cf4956a5a05b4319c05554a8886eaeddd36ad2e2a55260216eb02a7764bdc",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "sourceviews",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.language/sourceviews.bindings-must-be-used-only-inside-sourceview-requests",
       "statement_sha256": "0cbe56621a352aa210e402a10abe8f54ff3122b349cf3c2e33c994e464a4b0c5",
       "status": "pending",
