@@ -1,15 +1,13 @@
 supported_targets = "+js+wasm+native"
 
 import {
+  "actql/actql/relation_join_shape" @shape,
   "actql/actql/relation_evidence" @evidence,
   "actql/actql/carrier_contract" @carrier,
   "actql/actql/temporal_window" @temporal,
   "actql/actql/order_key" @order,
   "actql/actql/decode_core" @decode,
-  "actql/actql/decode_scalar" @scalar,
-  "actql/actql/source_span" @span,
   "actql/actql/value_contract" @contract,
-  "actql/actql/canonical_value" @canonical,
   "actql/actql/relation_schema" @schema,
   "actql/actql/parameter_binding" @parameter,
 }

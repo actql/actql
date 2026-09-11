@@ -42,7 +42,7 @@ test "join bounds cover every small matching graph including isolated rows" {
         }
         for
           (kind, actual) in [
-            (@join.Inner, pairs),
+            (@join.Kind::Inner, pairs),
             (Left, pairs + unmatched_left),
             (Full, pairs + unmatched_left + unmatched_right),
             (Semi, a - unmatched_left),
@@ -84,7 +84,7 @@ test "join bounds cover every small matching graph including isolated rows" {
       }
     }
   }
-  for kind in [@join.Inner, Left, Semi, Anti] {
+  for kind in [@join.Kind::Inner, Left, Semi, Anti] {
     assert_eq(
       join_count(source, Some(count(0L, true)), None, kind),
       Some(count(0L, true)),

@@ -202,7 +202,7 @@ test "rejoin requires flat schemas on both sides and explicit projection enables
       start +
       ",{\"join\":{\"with\":\"r\",\"kind\":\"inner\",\"on\":\"id\"}}]",
     )
-    is Err({ kind: Join(@join.QualifiedInput(Left)), .. }),
+    is Err({ kind: Join(@join.IssueKind::QualifiedInput(Left)), .. }),
   )
   assert_true(
     join_pipeline(
@@ -210,7 +210,7 @@ test "rejoin requires flat schemas on both sides and explicit projection enables
       start +
       ",{\"join\":{\"left\":\"l\",\"with\":\"raw\",\"kind\":\"inner\",\"on\":\"id\"}}]",
     )
-    is Err({ kind: Join(@join.QualifiedInput(Right)), .. }),
+    is Err({ kind: Join(@join.IssueKind::QualifiedInput(Right)), .. }),
   )
   let p = join_pipeline(
     "[" +

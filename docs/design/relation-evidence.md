@@ -277,21 +277,28 @@ connections; this pass does not grant downstream output uniqueness by a flag.
 
 ## Join evidence dependency boundary
 
-Before implementing output-key transfer, separate ordinary checked join shape
-from evidence-dependent as-of completion. The current package graph is
+Before implementing output-key transfer, ordinary checked join shape is separated
+from evidence-dependent as-of completion. The previous package graph was
 `pipeline_typing -> relation_join -> relation_evidence`: `asof.mbt` retains
 `KeyedRelation` and selects complete keys, and the shared `Obligation` enum
-embeds `KeyObligation`. Adding a reverse import for ordinary join transfer would
+embedded `KeyObligation`. Adding a reverse import for ordinary join transfer would
 create a cycle even though ordinary join shape checking needs neither feature.
 
-The required split is a lower checked-join package owning the ordinary checked
+The split is now implemented as `relation_join_shape`, a lower package owning the ordinary checked
 join, its closed operand/projection shape, and evidence-independent shared join
-types. The upper as-of boundary retains key selection and the original key
+types. It also owns cross/interval checking and their shared decoding helpers.
+`relation_key_obligation` owns only the closed obligation vocabulary, not proofs.
+The upper `relation_join` facade retains key selection and the original key
 obligations. `relation_evidence` can then consume the lower checked join without
 depending on its own callers. Shared implementation helpers must have a clear
 owner; do not duplicate parsers or introduce caller-supplied proof flags to avoid
-the dependency. Preserve existing diagnostic and budget behavior when moving
-the boundary. Public facade aliases may preserve names where types permit it.
+the dependency. Existing diagnostic and budget behavior is preserved; shared
+budget/error helpers are exported for the as-of checker, but no public unchecked
+constructor can create a checked join. The facade aliases the moved types and
+delegates ordinary check/accessor functions. Explicit enum constructors use the
+type-qualified spelling (for example `@join.Kind::Inner`) across aliases.
+A dependency-closure test prevents the lower package from importing evidence or
+the upper facade. Existing join/cross/interval/as-of tests run through the facade.
 
 Transfer must bind both exact operand handles and retain the checked producer,
 all contributing key witnesses and any cardinality assertion. Projection must

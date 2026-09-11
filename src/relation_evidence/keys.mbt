@@ -32,12 +32,7 @@ pub struct Issue {
 }
 
 ///|
-pub(all) enum KeyObligation {
-  ValidateKeyProducer
-  AdmitPresentNonNullComparableComponents
-  ValidateWholeTupleUniquenessAfterInputNormalization
-  RevalidateReferenceComponents
-} derive(Eq, Debug)
+pub type KeyObligation = @key_obligation.KeyObligation
 
 ///|
 pub struct KeyField {

@@ -63,7 +63,7 @@
     "generate:requirements": "node scripts/check-actql-spec-family.mjs --write",
     "check:metadata": "node scripts/update-document-metadata.mjs",
     "update:metadata": "node scripts/update-document-metadata.mjs --write && npm run generate:requirements",
-    "check:relation-join": "node scripts/check-relation-join.mjs && node --test scripts/relation-join.test.mjs && node scripts/cross-join-schema.mjs && node --test scripts/cross-join-schema.test.mjs",
+    "check:relation-join": "node scripts/check-relation-join.mjs && node --test scripts/relation-join.test.mjs scripts/join-boundaries.test.mjs && node scripts/cross-join-schema.mjs && node --test scripts/cross-join-schema.test.mjs",
     "generate:relation-join": "node scripts/check-relation-join.mjs --write"
   },
   "devDependencies": {

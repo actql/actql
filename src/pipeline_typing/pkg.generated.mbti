@@ -16,6 +16,7 @@ import {
   "actql/actql/relation_append",
   "actql/actql/relation_evidence",
   "actql/actql/relation_join",
+  "actql/actql/relation_join_shape",
   "actql/actql/relation_nest",
   "actql/actql/relation_schema",
   "actql/actql/relation_set",
@@ -192,12 +193,12 @@ type AnalyticPositionOrder
 
 pub enum CheckedOperation {
   Unary(@relation_typing.CheckedOperation)
-  Join(right~ : Target, checked~ : @relation_join.CheckedJoin)
+  Join(right~ : Target, checked~ : @relation_join_shape.CheckedJoin)
   Append(right~ : Target, checked~ : @relation_append.CheckedAppend)
   Nest(right~ : Target, checked~ : @relation_nest.CheckedNest)
   Set(right~ : Target, checked~ : @relation_set.CheckedSet)
-  CrossJoin(right~ : Target, checked~ : @relation_join.CheckedCrossJoin)
-  IntervalJoin(right~ : Target, checked~ : @relation_join.CheckedIntervalJoin)
+  CrossJoin(right~ : Target, checked~ : @relation_join_shape.CheckedCrossJoin)
+  IntervalJoin(right~ : Target, checked~ : @relation_join_shape.CheckedIntervalJoin)
   AsOfJoin(right~ : Target, checked~ : @relation_join.CheckedAsOf)
   Sequence(@relation_typing.CheckedSequence)
   Values(@relation_values.CheckedValues)
@@ -321,7 +322,7 @@ pub(all) enum IssueKind {
   InvalidMetadata
   ReservedMetadataKey(String)
   Operation(@relation_typing.IssueKind)
-  Join(@relation_join.IssueKind)
+  Join(@relation_join_shape.IssueKind)
   Append(@relation_append.IssueKind)
   Nest(@relation_nest.IssueKind)
   Set(@relation_set.IssueKind)
@@ -330,8 +331,8 @@ pub(all) enum IssueKind {
 pub struct JoinEvidence {
   left : @relation_evidence.KeyedRelation?
   right : @relation_evidence.KeyedRelation?
-  assertion : @relation_join.Cardinality?
-  cardinality : @relation_join.Cardinality?
+  assertion : @relation_join_shape.Cardinality?
+  cardinality : @relation_join_shape.Cardinality?
 }
 
 pub(all) struct Limits {

@@ -6,9 +6,8 @@ import {
   "actql/actql/decode_core",
   "actql/actql/parameter_binding",
   "actql/actql/relation_evidence",
+  "actql/actql/relation_join_shape",
   "actql/actql/relation_schema",
-  "actql/actql/source_span",
-  "actql/actql/source_value",
   "actql/actql/temporal_window",
   "moonbitlang/core/debug",
 }
@@ -22,15 +21,15 @@ pub fn asof_identity(CheckedAsOf) -> Array[@relation_schema.FieldName]
 
 pub fn asof_key_completion(CheckedAsOf, @relation_schema.Side) -> @relation_evidence.KeyedRelation?
 
-pub fn asof_keys(CheckedAsOf) -> Array[KeyPair]
+pub fn asof_keys(CheckedAsOf) -> Array[@relation_join_shape.KeyPair]
 
-pub fn asof_kind(CheckedAsOf) -> Kind
+pub fn asof_kind(CheckedAsOf) -> @relation_join_shape.Kind
 
 pub fn asof_output_schema(CheckedAsOf) -> @relation_schema.Schema
 
-pub fn asof_pending_validations(CheckedAsOf) -> Array[Obligation]
+pub fn asof_pending_validations(CheckedAsOf) -> Array[@relation_join_shape.Obligation]
 
-pub fn asof_projection(CheckedAsOf) -> Array[Projection]
+pub fn asof_projection(CheckedAsOf) -> Array[@relation_join_shape.Projection]
 
 pub fn asof_source(CheckedAsOf) -> @decode_core.Cursor
 
@@ -40,83 +39,83 @@ pub fn asof_time(CheckedAsOf, @relation_schema.Side) -> @relation_schema.FieldNa
 
 pub fn asof_tolerance(CheckedAsOf) -> @temporal_window.Milliseconds
 
-pub fn asof_usage(CheckedAsOf) -> Usage
+pub fn asof_usage(CheckedAsOf) -> @relation_join_shape.Usage
 
 pub fn asof_uses_timestamp(CheckedAsOf, @relation_schema.Side) -> Bool
 
-pub fn assertion(CheckedJoin) -> Cardinality?
+pub fn assertion(@relation_join_shape.CheckedJoin) -> @relation_join_shape.Cardinality?
 
-pub fn check(@decode_core.Cursor, @relation_schema.Schema, @relation_schema.Schema, @parameter_binding.Declarations?, Limits) -> Result[CheckedJoin, Issue]
+pub fn check(@decode_core.Cursor, @relation_schema.Schema, @relation_schema.Schema, @parameter_binding.Declarations?, @relation_join_shape.Limits) -> Result[@relation_join_shape.CheckedJoin, @relation_join_shape.Issue]
 
-pub fn check_asof(@decode_core.Cursor, @carrier_contract.Carrier, @carrier_contract.Carrier, @parameter_binding.Declarations?, Limits) -> Result[CheckedAsOf, Issue]
+pub fn check_asof(@decode_core.Cursor, @carrier_contract.Carrier, @carrier_contract.Carrier, @parameter_binding.Declarations?, @relation_join_shape.Limits) -> Result[CheckedAsOf, @relation_join_shape.Issue]
 
-pub fn check_asof_sources(@decode_core.Cursor, AsOfSource, AsOfSource, @parameter_binding.Declarations?, Limits) -> Result[CheckedAsOf, Issue]
+pub fn check_asof_sources(@decode_core.Cursor, AsOfSource, AsOfSource, @parameter_binding.Declarations?, @relation_join_shape.Limits) -> Result[CheckedAsOf, @relation_join_shape.Issue]
 
-pub fn check_cross(@decode_core.Cursor, @relation_schema.Schema, @relation_schema.Schema, @parameter_binding.Declarations?, Limits) -> Result[CheckedCrossJoin, Issue]
+pub fn check_cross(@decode_core.Cursor, @relation_schema.Schema, @relation_schema.Schema, @parameter_binding.Declarations?, @relation_join_shape.Limits) -> Result[@relation_join_shape.CheckedCrossJoin, @relation_join_shape.Issue]
 
-pub fn check_interval(@decode_core.Cursor, @relation_schema.Schema, @relation_schema.Schema, @parameter_binding.Declarations?, Limits) -> Result[CheckedIntervalJoin, Issue]
+pub fn check_interval(@decode_core.Cursor, @relation_schema.Schema, @relation_schema.Schema, @parameter_binding.Declarations?, @relation_join_shape.Limits) -> Result[@relation_join_shape.CheckedIntervalJoin, @relation_join_shape.Issue]
 
-pub fn cross_input_schema(CheckedCrossJoin, @relation_schema.Side) -> @relation_schema.Schema
+pub fn cross_input_schema(@relation_join_shape.CheckedCrossJoin, @relation_schema.Side) -> @relation_schema.Schema
 
-pub fn cross_output_guard(CheckedCrossJoin) -> Guard?
+pub fn cross_output_guard(@relation_join_shape.CheckedCrossJoin) -> @relation_join_shape.Guard?
 
-pub fn cross_output_schema(CheckedCrossJoin) -> @relation_schema.Schema
+pub fn cross_output_schema(@relation_join_shape.CheckedCrossJoin) -> @relation_schema.Schema
 
-pub fn cross_pending_validations(CheckedCrossJoin) -> Array[Obligation]
+pub fn cross_pending_validations(@relation_join_shape.CheckedCrossJoin) -> Array[@relation_join_shape.Obligation]
 
-pub fn cross_projection(CheckedCrossJoin) -> Array[Projection]?
+pub fn cross_projection(@relation_join_shape.CheckedCrossJoin) -> Array[@relation_join_shape.Projection]?
 
-pub fn cross_requires_one_right_row(CheckedCrossJoin) -> Bool
+pub fn cross_requires_one_right_row(@relation_join_shape.CheckedCrossJoin) -> Bool
 
-pub fn cross_source(CheckedCrossJoin) -> @decode_core.Cursor
+pub fn cross_source(@relation_join_shape.CheckedCrossJoin) -> @decode_core.Cursor
 
-pub fn cross_usage(CheckedCrossJoin) -> Usage
+pub fn cross_usage(@relation_join_shape.CheckedCrossJoin) -> @relation_join_shape.Usage
 
-pub fn input_schema(CheckedJoin, @relation_schema.Side) -> @relation_schema.Schema
+pub fn input_schema(@relation_join_shape.CheckedJoin, @relation_schema.Side) -> @relation_schema.Schema
 
-pub fn interval_keys(CheckedIntervalJoin) -> Array[KeyPair]
+pub fn interval_keys(@relation_join_shape.CheckedIntervalJoin) -> Array[@relation_join_shape.KeyPair]
 
-pub fn interval_kind(CheckedIntervalJoin) -> Kind
+pub fn interval_kind(@relation_join_shape.CheckedIntervalJoin) -> @relation_join_shape.Kind
 
-pub fn interval_mode(CheckedIntervalJoin) -> IntervalMode
+pub fn interval_mode(@relation_join_shape.CheckedIntervalJoin) -> @relation_join_shape.IntervalMode
 
-pub fn interval_operand(CheckedIntervalJoin, @relation_schema.Side) -> TemporalOperand
+pub fn interval_operand(@relation_join_shape.CheckedIntervalJoin, @relation_schema.Side) -> @relation_join_shape.TemporalOperand
 
-pub fn interval_output_guard(CheckedIntervalJoin) -> Guard?
+pub fn interval_output_guard(@relation_join_shape.CheckedIntervalJoin) -> @relation_join_shape.Guard?
 
-pub fn interval_output_schema(CheckedIntervalJoin) -> @relation_schema.Schema
+pub fn interval_output_schema(@relation_join_shape.CheckedIntervalJoin) -> @relation_schema.Schema
 
-pub fn interval_pending_validations(CheckedIntervalJoin) -> Array[Obligation]
+pub fn interval_pending_validations(@relation_join_shape.CheckedIntervalJoin) -> Array[@relation_join_shape.Obligation]
 
-pub fn interval_projection(CheckedIntervalJoin) -> Array[Projection]?
+pub fn interval_projection(@relation_join_shape.CheckedIntervalJoin) -> Array[@relation_join_shape.Projection]?
 
-pub fn interval_source(CheckedIntervalJoin) -> @decode_core.Cursor
+pub fn interval_source(@relation_join_shape.CheckedIntervalJoin) -> @decode_core.Cursor
 
-pub fn interval_usage(CheckedIntervalJoin) -> Usage
+pub fn interval_usage(@relation_join_shape.CheckedIntervalJoin) -> @relation_join_shape.Usage
 
-pub fn interval_uses_timestamps(CheckedIntervalJoin) -> Bool
+pub fn interval_uses_timestamps(@relation_join_shape.CheckedIntervalJoin) -> Bool
 
-pub fn key_at(CheckedJoin, Int) -> KeyPair?
+pub fn key_at(@relation_join_shape.CheckedJoin, Int) -> @relation_join_shape.KeyPair?
 
-pub fn key_count(CheckedJoin) -> Int
+pub fn key_count(@relation_join_shape.CheckedJoin) -> Int
 
-pub fn keys(CheckedJoin) -> Array[KeyPair]
+pub fn keys(@relation_join_shape.CheckedJoin) -> Array[@relation_join_shape.KeyPair]
 
-pub fn kind(CheckedJoin) -> Kind
+pub fn kind(@relation_join_shape.CheckedJoin) -> @relation_join_shape.Kind
 
-pub fn null_key(CheckedJoin) -> NullKey
+pub fn null_key(@relation_join_shape.CheckedJoin) -> @relation_join_shape.NullKey
 
-pub fn output_guard(CheckedJoin) -> Guard?
+pub fn output_guard(@relation_join_shape.CheckedJoin) -> @relation_join_shape.Guard?
 
-pub fn output_schema(CheckedJoin) -> @relation_schema.Schema
+pub fn output_schema(@relation_join_shape.CheckedJoin) -> @relation_schema.Schema
 
-pub fn pending_validations(CheckedJoin) -> Array[Obligation]
+pub fn pending_validations(@relation_join_shape.CheckedJoin) -> Array[@relation_join_shape.Obligation]
 
-pub fn projection(CheckedJoin) -> Array[Projection]?
+pub fn projection(@relation_join_shape.CheckedJoin) -> Array[@relation_join_shape.Projection]?
 
-pub fn source(CheckedJoin) -> @decode_core.Cursor
+pub fn source(@relation_join_shape.CheckedJoin) -> @decode_core.Cursor
 
-pub fn usage(CheckedJoin) -> Usage
+pub fn usage(@relation_join_shape.CheckedJoin) -> @relation_join_shape.Usage
 
 // Errors
 
@@ -132,125 +131,39 @@ pub(all) enum AsOfSource {
   KeySource(@relation_evidence.KeySet)
 }
 
-pub(all) enum Cardinality {
-  OneToOne
-  ManyToOne
-  OneToMany
-} derive(Eq, @debug.Debug)
-
 type CheckedAsOf
 
-type CheckedCrossJoin
-
-type CheckedIntervalJoin
-
-type CheckedJoin
-
-pub(all) enum Guard {
-  Literal(Int64)
-  Parameter(String)
-} derive(Eq, @debug.Debug)
-
-pub(all) enum IntervalMode {
-  PointInInterval
-  Overlap
-} derive(Eq, @debug.Debug)
-
-pub struct Issue {
-  kind : IssueKind
-  source : @decode_core.Cursor
-  path : Array[@source_value.PathSegment]
-  span : @source_span.Span
-}
-
-pub(all) enum IssueKind {
-  InvalidLimits
-  BudgetExceeded
-  InvalidBody
-  EmptyBody
-  InvalidName(String)
-  UnknownField(@relation_schema.Side, String)
-  IncomparableKeys(String, String)
-  QualifiedInput(@relation_schema.Side)
-  InvalidProjection(String)
-  InvalidGuard
-  UnknownParameter(String)
-  InvalidTemporalField(@relation_schema.Side, String)
-  MixedTimeDomains
-  WrongCarrier(@relation_schema.Side, @carrier_contract.Kind)
-  UnknownFieldType(@relation_schema.Side, String)
-  MissingLeftIdentity
-  InvalidLeftIdentity
-  InvalidTieField(String)
-  Temporal(@temporal_window.IssueKind)
-} derive(Eq, @debug.Debug)
-
-pub struct KeyPair {
-  left : @relation_schema.FieldName
-  right : @relation_schema.FieldName
-  source : @decode_core.Cursor
-}
-
-pub(all) enum Kind {
-  Inner
-  Left
-  Full
-  Semi
-  Anti
-} derive(Eq, @debug.Debug)
-
-pub(all) struct Limits {
-  max_work : Int
-  max_text_bytes : Int
-  max_nodes : Int
-  max_depth : Int
-} derive(Eq, @debug.Debug)
-
-pub(all) enum NullKey {
-  NoMatch
-  Fail
-} derive(Eq, @debug.Debug)
-
-pub(all) enum Obligation {
-  ResolveCardinality
-  ResolveOutputLimit
-  PreserveRowOrder
-  StableIdentity(@relation_schema.Side)
-  ValidateCardinality(Cardinality)
-  RejectNullKeys
-  BindGuard(String)
-  ValidateExactlyOneRightRow
-  ResolveProductBound
-  PreserveLeftMajorProductOrder
-  ValidateIntervalEndpoints
-  ValidateSafeIntegerClocks
-  ResolveSearchWork
-  ValidateAsOfValues
-  ResolveAsOfOrder
-  RejectAsOfTies
-  JournalAsOfKeyCompletion(@relation_schema.Side)
-  ValidateAsOfKey(@relation_schema.Side, @relation_evidence.KeyObligation)
-  ResolveTeaProfile
-  BindTolerance(String)
-} derive(Eq, @debug.Debug)
-
-pub struct Projection {
-  output : @relation_schema.FieldName
-  input : @relation_schema.FieldName
-  source : @decode_core.Cursor
-}
-
-pub(all) enum TemporalOperand {
-  Point(@relation_schema.FieldName)
-  Interval(@relation_schema.FieldName, @relation_schema.FieldName)
-} derive(Eq, @debug.Debug)
-
-pub(all) struct Usage {
-  work : Int
-  text_bytes : Int
-  nodes : Int
-} derive(Eq, @debug.Debug)
-
 // Type aliases
+pub using @relation_join_shape {type Cardinality}
+
+pub using @relation_join_shape {type CheckedCrossJoin}
+
+pub using @relation_join_shape {type CheckedIntervalJoin}
+
+pub using @relation_join_shape {type CheckedJoin}
+
+pub using @relation_join_shape {type Guard}
+
+pub using @relation_join_shape {type IntervalMode}
+
+pub using @relation_join_shape {type Issue}
+
+pub using @relation_join_shape {type IssueKind}
+
+pub using @relation_join_shape {type KeyPair}
+
+pub using @relation_join_shape {type Kind}
+
+pub using @relation_join_shape {type Limits}
+
+pub using @relation_join_shape {type NullKey}
+
+pub using @relation_join_shape {type Obligation}
+
+pub using @relation_join_shape {type Projection}
+
+pub using @relation_join_shape {type TemporalOperand}
+
+pub using @relation_join_shape {type Usage}
 
 // Traits

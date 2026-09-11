@@ -48,7 +48,7 @@ test "graph edge identity supports whole-tuple join coverage without a non-null 
     )
     let joined = @pipeline_typing.join_evidence(p, 1).unwrap()
     if complete {
-      assert_eq(joined.cardinality, Some(@join.OneToOne))
+      assert_eq(joined.cardinality, Some(@join.Cardinality::OneToOne))
       for key in [joined.left.unwrap(), joined.right.unwrap()] {
         assert_eq(@evidence.key_origin(key), GraphProjectionResult)
         assert_true(@evidence.key_graph_projection_producer(key) is Some(_))

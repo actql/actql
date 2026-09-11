@@ -45,7 +45,7 @@ pub(all) enum Obligation {
   ResolveAsOfOrder
   RejectAsOfTies
   JournalAsOfKeyCompletion(@schema.Side)
-  ValidateAsOfKey(@schema.Side, @evidence.KeyObligation)
+  ValidateAsOfKey(@schema.Side, @key_obligation.KeyObligation)
   ResolveTeaProfile
   BindTolerance(String)
 } derive(Eq, Debug)
@@ -89,7 +89,7 @@ pub(all) enum IssueKind {
 } derive(Eq, Debug)
 
 ///|
-pub struct Issue {
+pub(all) struct Issue {
   kind : IssueKind
   source : @decode.Cursor
   path : Array[@decode.PathSegment]
@@ -97,7 +97,7 @@ pub struct Issue {
 }
 
 ///|
-pub struct KeyPair {
+pub(all) struct KeyPair {
   left : @schema.FieldName
   right : @schema.FieldName
   source : @decode.Cursor
@@ -196,12 +196,12 @@ pub fn usage(v : CheckedJoin) -> Usage {
 }
 
 ///|
-priv suberror Stop {
+pub(all) suberror Stop {
   Stop(Issue)
 }
 
 ///|
-priv struct Budget {
+pub(all) struct Budget {
   limits : Limits
   mut work : Int
   mut text : Int
@@ -209,7 +209,7 @@ priv struct Budget {
 }
 
 ///|
-fn[T] fail(source : @decode.Cursor, kind : IssueKind) -> T raise Stop {
+pub fn[T] fail(source : @decode.Cursor, kind : IssueKind) -> T raise Stop {
   raise Stop({
     source,
     kind,
@@ -219,7 +219,7 @@ fn[T] fail(source : @decode.Cursor, kind : IssueKind) -> T raise Stop {
 }
 
 ///|
-fn[T] decoded(
+pub fn[T] decoded(
   value : Result[T, @decode.Issue],
   source : @decode.Cursor,
 ) -> T raise Stop {
@@ -230,7 +230,11 @@ fn[T] decoded(
 }
 
 ///|
-fn spend(b : Budget, source : @decode.Cursor, n? : Int = 1) -> Unit raise Stop {
+pub fn spend(
+  b : Budget,
+  source : @decode.Cursor,
+  n? : Int = 1,
+) -> Unit raise Stop {
   if n < 0 || n > b.work {
     fail(source, BudgetExceeded)
   }
@@ -238,7 +242,7 @@ fn spend(b : Budget, source : @decode.Cursor, n? : Int = 1) -> Unit raise Stop {
 }
 
 ///|
-fn charge(
+pub fn charge(
   b : Budget,
   source : @decode.Cursor,
   name : String,
@@ -250,7 +254,7 @@ fn charge(
 }
 
 ///|
-fn field_name(
+pub fn field_name(
   b : Budget,
   source : @decode.Cursor,
   name : String,
@@ -271,7 +275,7 @@ fn field_name(
 }
 
 ///|
-fn dataflow_name(source : @decode.Cursor) -> String raise Stop {
+pub fn dataflow_name(source : @decode.Cursor) -> String raise Stop {
   let name = decoded(@decode.text(source), source)
   if name == "" || @canonical.normalize_nfc_lf(name) != Ok(name) {
     fail(source, InvalidName(name))
@@ -280,7 +284,7 @@ fn dataflow_name(source : @decode.Cursor) -> String raise Stop {
 }
 
 ///|
-fn source_preflight(b : Budget, root : @decode.Cursor) -> Unit raise Stop {
+pub fn source_preflight(b : Budget, root : @decode.Cursor) -> Unit raise Stop {
   let work = [(root, 0)]
   while work.pop() is Some((source, depth)) {
     spend(b, source)
@@ -316,7 +320,7 @@ fn source_preflight(b : Budget, root : @decode.Cursor) -> Unit raise Stop {
 }
 
 ///|
-fn contract_preflight(
+pub fn contract_preflight(
   b : Budget,
   source : @decode.Cursor,
   root : @contract.Contract,

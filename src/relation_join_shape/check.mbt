@@ -202,7 +202,7 @@ fn read_guard(
 }
 
 ///|
-fn join_output(
+pub fn join_output(
   b : Budget,
   body : @decode.Cursor,
   select : @decode.Cursor?,
@@ -266,7 +266,7 @@ fn join_output(
 }
 
 ///|
-fn make_schema(
+pub fn make_schema(
   b : Budget,
   source : @decode.Cursor,
   fields : Array[(@schema.FieldName, @contract.Contract)],

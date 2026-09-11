@@ -92,7 +92,7 @@ test "interval join domains and kinds preserve qualified columns and null extens
   for timestamp in [false, true] {
     for
       (kind_name, kind) in [
-        ("inner", @relation_join.Inner),
+        ("inner", @relation_join.Kind::Inner),
         ("left", Left),
         ("semi", Semi),
         ("anti", Anti),
@@ -151,7 +151,7 @@ test "interval join domains and kinds preserve qualified columns and null extens
         let pending = @relation_join.interval_pending_validations(checked)
         for
           required in [
-            @relation_join.ValidateIntervalEndpoints,
+            @relation_join.Obligation::ValidateIntervalEndpoints,
             ResolveProductBound,
             ResolveSearchWork,
             ResolveOutputLimit,

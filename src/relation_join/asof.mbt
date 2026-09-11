@@ -45,10 +45,10 @@ fn asof_source_parts(
 
 ///|
 fn asof_choose_key(
-  b : Budget,
+  b : @shape.Budget,
   source : @decode.Cursor,
   keys : @evidence.KeySet?,
-) -> @evidence.KeyedRelation? raise Stop {
+) -> @evidence.KeyedRelation? raise @shape.Stop {
   guard keys is Some(keys) else { return None }
   let selection = match
     @evidence.select_key(source, keys, CanonicalOrder, {
@@ -56,7 +56,7 @@ fn asof_choose_key(
       max_name_bytes: b.text,
     }) {
     Ok(v) => v
-    Err(_) => fail(source, BudgetExceeded)
+    Err(_) => @shape.fail(source, BudgetExceeded)
   }
   b.work -= selection.work
   b.text -= selection.name_bytes
@@ -65,19 +65,19 @@ fn asof_choose_key(
 
 ///|
 fn asof_field(
-  b : Budget,
+  b : @shape.Budget,
   s : @decode.Cursor,
   rows : @carrier.Knowledge,
   side : @schema.Side,
-) -> (@schema.FieldName, @contract.Contract) raise Stop {
-  let name = decoded(@decode.text(s), s)
-  field_name(b, s, name)
+) -> (@schema.FieldName, @contract.Contract) raise @shape.Stop {
+  let name = @shape.decoded(@decode.text(s), s)
+  @shape.field_name(b, s, name)
   let field = @schema.Unqualified(name)
   match @carrier.lookup(rows, field) {
     Present({ contract: Some(c), .. }) => (field, c)
-    Present(_) => fail(s, UnknownFieldType(side, name))
-    Unknown => fail(s, UnknownFieldType(side, name))
-    Absent => fail(s, UnknownField(side, name))
+    Present(_) => @shape.fail(s, UnknownFieldType(side, name))
+    Unknown => @shape.fail(s, UnknownFieldType(side, name))
+    Absent => @shape.fail(s, UnknownField(side, name))
   }
 }
 
@@ -87,36 +87,37 @@ fn asof_clock(
   field : @schema.FieldName,
   s : @decode.Cursor,
   side : @schema.Side,
-) -> Bool raise Stop {
+) -> Bool raise @shape.Stop {
   if c.nullable {
-    fail(s, InvalidTemporalField(side, @schema.reference_name(field)))
+    @shape.fail(s, InvalidTemporalField(side, @schema.reference_name(field)))
   }
   match c.shape {
     Number => false
     Timestamp => true
-    _ => fail(s, InvalidTemporalField(side, @schema.reference_name(field)))
+    _ =>
+      @shape.fail(s, InvalidTemporalField(side, @schema.reference_name(field)))
   }
 }
 
 ///|
 /// Snapshot only known field types. Unknown unselected payload is not guessed.
 fn asof_known(
-  b : Budget,
+  b : @shape.Budget,
   s : @decode.Cursor,
   rows : @carrier.Knowledge,
-) -> @schema.Schema raise Stop {
+) -> @schema.Schema raise @shape.Stop {
   let fields = []
   let n = @carrier.field_count(rows)
-  spend(b, s, n~)
+  @shape.spend(b, s, n~)
   for i in 0..<n {
     let f = @carrier.field_at(rows, i).unwrap()
-    charge(b, s, @schema.reference_name(f.name))
+    @shape.charge(b, s, @schema.reference_name(f.name))
     if f.contract is Some(c) {
-      contract_preflight(b, s, c)
+      @shape.contract_preflight(b, s, c)
       fields.push((f.name, c))
     }
   }
-  make_schema(b, s, fields)
+  @shape.make_schema(b, s, fields)
 }
 
 ///|
@@ -149,59 +150,63 @@ pub fn check_asof_sources(
       limits.max_text_bytes < 0 ||
       limits.max_nodes < 0 ||
       limits.max_depth < 0 {
-      fail(body, InvalidLimits)
+      @shape.fail(body, InvalidLimits)
     }
-    let b : Budget = {
+    let b : @shape.Budget = {
       limits,
       work: limits.max_work,
       text: limits.max_text_bytes,
       nodes: limits.max_nodes,
     }
-    source_preflight(b, body)
-    let obj = decoded(
+    @shape.source_preflight(b, body)
+    let obj = @shape.decoded(
       @decode.closed_object(body, [
         "with", "kind", "by", "left_id", "left_time", "right_time", "direction",
         "tolerance", "right_tie_break", "select",
       ]),
       body,
     )
-    let with_source = decoded(@decode.required(obj, "with"), body)
-    ignore(dataflow_name(with_source))
+    let with_source = @shape.decoded(@decode.required(obj, "with"), body)
+    ignore(@shape.dataflow_name(with_source))
     let (left, left_keys) = asof_source_parts(left_source)
     let (right, right_keys) = asof_source_parts(right_source)
     let (left_rows, event_identity) = match left {
       Relation(rows) => (rows, None)
       EventValue(e) => (e.records, Some(e.identity.name))
-      _ => fail(body, WrongCarrier(@schema.Left, @carrier.kind(left)))
+      _ => @shape.fail(body, WrongCarrier(@schema.Left, @carrier.kind(left)))
     }
     let right_rows = match right {
       Relation(rows) => rows
-      _ => fail(with_source, WrongCarrier(@schema.Right, @carrier.kind(right)))
+      _ =>
+        @shape.fail(
+          with_source,
+          WrongCarrier(@schema.Right, @carrier.kind(right)),
+        )
     }
     let left_schema = asof_known(b, body, left_rows)
     let right_schema = asof_known(b, with_source, right_rows)
-    let ks = decoded(@decode.required(obj, "kind"), body)
-    let kind = match decoded(@decode.text(ks), ks) {
-      "left" => Left
-      "inner" => Inner
-      _ => fail(ks, InvalidBody)
+    let ks = @shape.decoded(@decode.required(obj, "kind"), body)
+    let kind = match @shape.decoded(@decode.text(ks), ks) {
+      "left" => @shape.Left
+      "inner" => @shape.Inner
+      _ => @shape.fail(ks, InvalidBody)
     }
-    let ds = decoded(@decode.required(obj, "direction"), body)
-    let direction = match decoded(@decode.text(ds), ds) {
+    let ds = @shape.decoded(@decode.required(obj, "direction"), body)
+    let direction = match @shape.decoded(@decode.text(ds), ds) {
       "backward" => Backward
       "forward" => Forward
       "nearest" => Nearest
-      _ => fail(ds, InvalidBody)
+      _ => @shape.fail(ds, InvalidBody)
     }
     let mut left_key = None
     let identity = match @decode.lookup(obj, "left_id") {
       Some(s) => {
         let (f, c) = asof_field(b, s, left_rows, @schema.Left)
         if c.nullable || !@contract.key_comparable(c, c) {
-          fail(s, InvalidLeftIdentity)
+          @shape.fail(s, InvalidLeftIdentity)
         }
         if event_identity is Some(expected) && expected != f {
-          fail(s, InvalidLeftIdentity)
+          @shape.fail(s, InvalidLeftIdentity)
         }
         [f]
       }
@@ -210,43 +215,46 @@ pub fn check_asof_sources(
           Some(f) => [f]
           None => {
             guard asof_choose_key(b, body, left_keys) is Some(key) else {
-              fail(body, MissingLeftIdentity)
+              @shape.fail(body, MissingLeftIdentity)
             }
             left_key = Some(key)
             let count = @evidence.key_field_count(key)
-            spend(b, body, n=count)
+            @shape.spend(b, body, n=count)
             Array::makei(count, i => {
               @evidence.key_field_at(key, i).unwrap().name
             })
           }
         }
     }
-    let ls = decoded(@decode.required(obj, "left_time"), body)
-    let rs = decoded(@decode.required(obj, "right_time"), body)
+    let ls = @shape.decoded(@decode.required(obj, "left_time"), body)
+    let rs = @shape.decoded(@decode.required(obj, "right_time"), body)
     let (left_time, lc) = asof_field(b, ls, left_rows, @schema.Left)
     let (right_time, rc) = asof_field(b, rs, right_rows, @schema.Right)
     let left_timestamp = asof_clock(lc, left_time, ls, @schema.Left)
     let right_timestamp = asof_clock(rc, right_time, rs, @schema.Right)
-    let by = decoded(@decode.required(obj, "by"), body)
-    let pairs = decoded(@decode.elements(by), by)
-    spend(b, by, n=pairs.length())
+    let by = @shape.decoded(@decode.required(obj, "by"), body)
+    let pairs = @shape.decoded(@decode.elements(by), by)
+    @shape.spend(b, by, n=pairs.length())
     let keys : Array[KeyPair] = []
     for pair in pairs {
-      let p = decoded(@decode.closed_object(pair, ["left", "right"]), pair)
+      let p = @shape.decoded(
+        @decode.closed_object(pair, ["left", "right"]),
+        pair,
+      )
       let (lf, lc) = asof_field(
         b,
-        decoded(@decode.required(p, "left"), pair),
+        @shape.decoded(@decode.required(p, "left"), pair),
         left_rows,
         @schema.Left,
       )
       let (rf, rc) = asof_field(
         b,
-        decoded(@decode.required(p, "right"), pair),
+        @shape.decoded(@decode.required(p, "right"), pair),
         right_rows,
         @schema.Right,
       )
       if !@contract.key_comparable(lc, rc) {
-        fail(
+        @shape.fail(
           pair,
           IncomparableKeys(
             @schema.reference_name(lf),
@@ -259,13 +267,13 @@ pub fn check_asof_sources(
     let ties = match @decode.lookup(obj, "right_tie_break") {
       None => None
       Some(s) => {
-        let terms = decoded(@decode.elements(s), s)
-        spend(b, s, n=terms.length())
+        let terms = @shape.decoded(@decode.elements(s), s)
+        @shape.spend(b, s, n=terms.length())
         let fields = []
         for term in terms {
           let (f, c) = asof_field(b, term, right_rows, @schema.Right)
           if !@order.author_orderable(c) {
-            fail(term, InvalidTieField(@schema.reference_name(f)))
+            @shape.fail(term, InvalidTieField(@schema.reference_name(f)))
           }
           fields.push(f)
         }
@@ -274,18 +282,18 @@ pub fn check_asof_sources(
     }
     let right_key = asof_choose_key(b, with_source, right_keys)
     let completed_ties = ties.map(fields => fields.copy()).unwrap_or([])
-    spend(b, body, n=completed_ties.length())
+    @shape.spend(b, body, n=completed_ties.length())
     let seen : Map[String, Bool] = Map([])
     for field in completed_ties {
       seen[@schema.reference_name(field)] = true
     }
     let mut appended = false
     if right_key is Some(key) {
-      spend(b, body, n=@evidence.key_field_count(key))
+      @shape.spend(b, body, n=@evidence.key_field_count(key))
       for i in 0..<@evidence.key_field_count(key) {
         let field = @evidence.key_field_at(key, i).unwrap().name
         let name = @schema.reference_name(field)
-        charge(b, body, name)
+        @shape.charge(b, body, name)
         if !seen.contains(name) {
           completed_ties.push(field)
           seen[name] = true
@@ -293,7 +301,7 @@ pub fn check_asof_sources(
         }
       }
     }
-    let ts = decoded(@decode.required(obj, "tolerance"), body)
+    let ts = @shape.decoded(@decode.required(obj, "tolerance"), body)
     let tolerance = match
       @temporal.read_milliseconds(ts, PositiveMilliseconds, parameters, {
         max_work: b.work,
@@ -303,7 +311,7 @@ pub fn check_asof_sources(
       }) {
       Ok(v) => v
       Err(e) =>
-        raise Stop({
+        raise @shape.Stop({
           kind: Temporal(e.kind),
           source: ts,
           path: e.path.copy(),
@@ -315,8 +323,8 @@ pub fn check_asof_sources(
     b.nodes -= used.nodes
     b.text -= used.text_bytes
     let tolerance = @temporal.milliseconds_value(tolerance)
-    let selected = decoded(@decode.required(obj, "select"), body)
-    let (output, projection) = join_output(
+    let selected = @shape.decoded(@decode.required(obj, "select"), body)
+    let (output, projection) = @shape.join_output(
       b,
       body,
       Some(selected),
@@ -374,7 +382,7 @@ pub fn check_asof_sources(
       },
     })
   } catch {
-    Stop(e) => Err(e)
+    @shape.Stop(e) => Err(e)
   }
 }
 

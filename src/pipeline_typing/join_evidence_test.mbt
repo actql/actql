@@ -10,7 +10,7 @@ test "join derives both unique sides from generated keys and tightens counts" {
     limits(),
   ).unwrap()
   let evidence = @pipeline_typing.join_evidence(p, 1).unwrap()
-  assert_eq(evidence.cardinality, Some(@join.OneToOne))
+  assert_eq(evidence.cardinality, Some(@join.Cardinality::OneToOne))
   assert_true(evidence.assertion is None)
   for key in [evidence.left.unwrap(), evidence.right.unwrap()] {
     assert_eq(@evidence.key_origin(key), TimeSeriesResult)
@@ -60,10 +60,10 @@ test "join whole key coverage includes alternate aliases and combines assertions
       limits(),
     ).unwrap()
     let proof = @pipeline_typing.join_evidence(p, 1).unwrap()
-    assert_eq(proof.assertion, Some(@join.ManyToOne))
+    assert_eq(proof.assertion, Some(@join.Cardinality::ManyToOne))
     assert_eq(
       proof.cardinality,
-      Some(if complete { @join.OneToOne } else { ManyToOne }),
+      Some(if complete { @join.Cardinality::OneToOne } else { ManyToOne }),
     )
     if complete {
       let left = proof.left.unwrap()
