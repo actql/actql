@@ -1,0 +1,78 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/lowering_relation"
+
+import {
+  "actql/actql/decode_core",
+  "actql/actql/pipeline_typing",
+  "actql/actql/relation_typing",
+  "actql/actql/relation_values",
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn input_id(Prepared, Int) -> String?
+
+pub fn input_ids(PreparedNode) -> Array[String]
+
+pub fn node_at(Prepared, Int) -> PreparedNode?
+
+pub fn node_count(Prepared) -> Int
+
+pub fn node_id(PreparedNode) -> String
+
+pub fn operation(PreparedNode) -> String
+
+pub fn payload(PreparedNode) -> Payload
+
+pub fn pipeline(Prepared) -> @pipeline_typing.CheckedPipeline
+
+pub fn prepare(@pipeline_typing.CheckedPipeline, Limits) -> Result[Prepared, Issue]
+
+pub fn source(PreparedNode) -> @decode_core.Cursor
+
+pub fn usage(Prepared) -> Usage
+
+// Errors
+
+// Types and methods
+pub struct Issue {
+  kind : IssueKind
+  source : @decode_core.Cursor
+}
+
+pub(all) enum IssueKind {
+  InvalidLimits
+  BudgetExceeded
+  OperationNotImplemented
+  InvalidCheckedWiring
+  IdentifierCollision
+} derive(Eq, @debug.Debug)
+
+pub(all) struct Limits {
+  max_nodes : Int
+  max_references : Int
+  max_work : Int
+  max_identifier_bytes : Int
+} derive(Eq, @debug.Debug)
+
+pub enum Payload {
+  Values(@relation_values.CheckedValues)
+  Derive(@relation_typing.CheckedOperation)
+  Where(@relation_typing.CheckedOperation)
+  Select(@relation_typing.CheckedOperation)
+}
+
+type Prepared
+
+type PreparedNode
+
+pub(all) struct Usage {
+  nodes : Int
+  references : Int
+  work : Int
+  identifier_bytes : Int
+} derive(Eq, @debug.Debug)
+
+// Type aliases
+
+// Traits

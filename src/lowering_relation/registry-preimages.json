@@ -1,0 +1,543 @@
+{
+  "registry": {
+    "REL.select": {
+      "inputs": [
+        "relation"
+      ],
+      "output": "relation"
+    },
+    "REL.where": {
+      "inputs": [
+        "relation"
+      ],
+      "output": "relation"
+    },
+    "REL.assert_all": {
+      "inputs": [
+        "relation"
+      ],
+      "output": "relation"
+    },
+    "REL.assert_unique": {
+      "inputs": [
+        "relation"
+      ],
+      "output": "relation"
+    },
+    "REL.derive": {
+      "inputs": [
+        "relation"
+      ],
+      "output": "relation"
+    },
+    "REL.orderByStable": {
+      "inputs": [
+        "relation"
+      ],
+      "output": "relation"
+    },
+    "REL.limit": {
+      "inputs": [
+        "relation"
+      ],
+      "output": "relation"
+    },
+    "REL.topk": {
+      "inputs": [
+        "relation"
+      ],
+      "output": "relation"
+    },
+    "REL.window.fixed": {
+      "inputs": [
+        "relation"
+      ],
+      "output": "relation"
+    },
+    "REL.window.sliding": {
+      "inputs": [
+        "relation"
+      ],
+      "output": "relation"
+    },
+    "REL.window.project": {
+      "inputs": [
+        "relation"
+      ],
+      "output": "relation"
+    },
+    "REL.window.lag": {
+      "inputs": [
+        "relation"
+      ],
+      "output": "relation"
+    },
+    "REL.watermark": {
+      "inputs": [
+        "relation"
+      ],
+      "output": "relation"
+    },
+    "REL.pivot": {
+      "inputs": [
+        "relation"
+      ],
+      "output": "relation"
+    },
+    "REL.unpivot": {
+      "inputs": [
+        "relation"
+      ],
+      "output": "relation"
+    },
+    "REL.unnest": {
+      "inputs": [
+        "relation"
+      ],
+      "output": "relation"
+    },
+    "REL.dedupeRows": {
+      "inputs": [
+        "relation"
+      ],
+      "output": "relation"
+    },
+    "REL.json.pick": {
+      "inputs": [
+        "relation"
+      ],
+      "output": "relation"
+    },
+    "REL.join": {
+      "inputs": [
+        "relation",
+        "relation"
+      ],
+      "output": "relation"
+    },
+    "REL.groupBy": {
+      "inputs": [
+        "relation"
+      ],
+      "output": "relation"
+    },
+    "REL.distinct": {
+      "inputs": [
+        "relation"
+      ],
+      "output": "relation"
+    },
+    "REL.unionAll": {
+      "inputs": [
+        "relation",
+        "relation"
+      ],
+      "output": "relation"
+    },
+    "REL.topk_partitioned": {
+      "inputs": [
+        "relation"
+      ],
+      "output": "relation"
+    },
+    "SGA.normalize": {
+      "inputs": [
+        "graph"
+      ],
+      "output": "graph"
+    },
+    "SGA.reachable": {
+      "inputs": [
+        "graph"
+      ],
+      "output": "relation"
+    },
+    "SGA.bounds_check": {
+      "inputs": [
+        "graph"
+      ],
+      "output": "relation"
+    },
+    "SGA.degree_metrics": {
+      "inputs": [
+        "graph"
+      ],
+      "output": "relation"
+    },
+    "SGA.apply_delta": {
+      "inputs": [
+        "graph"
+      ],
+      "output": "graph"
+    },
+    "SGA.diff": {
+      "inputs": [
+        "graph",
+        "graph"
+      ],
+      "output": "relation"
+    },
+    "SGA.graft": {
+      "inputs": [
+        "graph",
+        "graph"
+      ],
+      "output": "graph"
+    },
+    "SGA.union_structural": {
+      "inputs": [
+        "graph",
+        "graph"
+      ],
+      "output": "graph"
+    },
+    "SGA.diff_structural": {
+      "inputs": [
+        "graph",
+        "graph"
+      ],
+      "output": "graph"
+    },
+    "SGA.match_nodes": {
+      "inputs": [
+        "graph"
+      ],
+      "output": "relation"
+    },
+    "SGA.match_edges": {
+      "inputs": [
+        "graph"
+      ],
+      "output": "relation"
+    },
+    "SGA.traverse": {
+      "inputs": [
+        "graph",
+        "relation"
+      ],
+      "output": "relation"
+    },
+    "SGA.shortest_path": {
+      "inputs": [
+        "graph"
+      ],
+      "output": "relation"
+    },
+    "SGA.components": {
+      "inputs": [
+        "graph"
+      ],
+      "output": "relation"
+    },
+    "TEA.window.fixed_label": {
+      "inputs": [
+        "event_stream"
+      ],
+      "output": "event_stream"
+    },
+    "TEA.window.sliding_assign": {
+      "inputs": [
+        "event_stream"
+      ],
+      "output": "event_stream"
+    },
+    "TEA.watermark.label": {
+      "inputs": [
+        "event_stream"
+      ],
+      "output": "event_stream"
+    },
+    "TEA.window.session_assign": {
+      "inputs": [
+        "event_stream"
+      ],
+      "output": "event_stream"
+    },
+    "TEA.dedupe": {
+      "inputs": [
+        "event_stream"
+      ],
+      "output": "event_stream"
+    },
+    "TEA.join.asof": {
+      "inputs": [
+        "event_stream",
+        "relation"
+      ],
+      "output": "relation"
+    },
+    "TEA.sequence.match": {
+      "inputs": [
+        "event_stream"
+      ],
+      "output": "relation"
+    },
+    "VEC.normalize_l2": {
+      "inputs": [
+        "vector_set"
+      ],
+      "output": "vector_set"
+    },
+    "VEC.score_sort": {
+      "inputs": [
+        "vector_set"
+      ],
+      "output": "vector_set"
+    },
+    "VEC.knn_join": {
+      "inputs": [
+        "vector_set",
+        "vector_set"
+      ],
+      "output": "relation"
+    },
+    "VEC.pool": {
+      "inputs": [
+        "vector_set"
+      ],
+      "output": "vector_set"
+    },
+    "VEC.merge_rankings": {
+      "inputs": [
+        "relation",
+        "relation"
+      ],
+      "output": "relation"
+    },
+    "BRIDGE.graph.to_edge_rows": {
+      "inputs": [
+        "graph"
+      ],
+      "output": "relation"
+    },
+    "BRIDGE.graph.to_node_rows": {
+      "inputs": [
+        "graph"
+      ],
+      "output": "relation"
+    },
+    "BRIDGE.rows.to_graph": {
+      "inputs": [
+        "relation",
+        "relation"
+      ],
+      "output": "graph"
+    },
+    "BRIDGE.events.to_rows": {
+      "inputs": [
+        "event_stream"
+      ],
+      "output": "relation"
+    },
+    "BRIDGE.rows.to_events": {
+      "inputs": [
+        "relation"
+      ],
+      "output": "event_stream"
+    },
+    "BRIDGE.vectors.to_rows": {
+      "inputs": [
+        "vector_set"
+      ],
+      "output": "relation"
+    },
+    "BRIDGE.rows.to_vectors": {
+      "inputs": [
+        "relation"
+      ],
+      "output": "vector_set"
+    },
+    "EFFECT.plan": {
+      "inputs": [
+        "relation"
+      ],
+      "output": "relation"
+    }
+  },
+  "target": {
+    "core": {
+      "id": "actql-core/0.1",
+      "description": "Direct ActQL-to-AoA lowering, sources, typed contracts, diagnostics, outputs, receipts, and checked effects.",
+      "required": true,
+      "status": "final",
+      "closure_workload": "bind typed inputs -> compile without executing author code -> check -> relation artifact and/or non-executing effect preview -> verifiable receipt",
+      "required_operations": [],
+      "required_semantics": [
+        "closed JSON/YAML source model",
+        "deterministic normalization journal",
+        "stable diagnostics with complete replacement or ambiguity candidates",
+        "a finite unordered checked Effect Set with exact authority, disjoint targets, and preview identity",
+        "ActQL source CID and AoA logical CID"
+      ],
+      "exclusions": [
+        "effect application",
+        "cross-effect orchestration",
+        "arbitrary host-language execution"
+      ],
+      "contract_cid": "sha256:793352ed2b9d0f2dba349f0b93a529bcfda5b1a4c4528e10384e3b6b0180a0d2"
+    },
+    "rela": {
+      "id": "actql-rela/0.1",
+      "description": "Authoring-complete deterministic relational and semi-structured transformation.",
+      "required": true,
+      "status": "final",
+      "closure_workload": "typed semi-structured rows -> unnest/normalize/derive -> checked join or reconciliation -> aggregate/dedupe/rank -> relation output or checked effect",
+      "required_operations": [
+        "filter",
+        "assert_rows",
+        "select",
+        "rename",
+        "drop",
+        "derive",
+        "sort",
+        "take",
+        "top_k",
+        "top_k_by",
+        "nest",
+        "join",
+        "group",
+        "distinct",
+        "dedupe_rows",
+        "append",
+        "unnest",
+        "pivot",
+        "unpivot",
+        "json_pick",
+        "row_window",
+        "window_group",
+        "lag",
+        "watermark_rows"
+      ],
+      "required_semantics": [
+        "typed schema and nullability evidence",
+        "closed predicates shared by scans, relations, and effect selectors",
+        "case/coalesce/casts and closed numeric/string/time scalar normalization",
+        "exact decimal coefficient/precision/scale arithmetic with explicit rounding and no binary64 mixing",
+        "closed object products and finite homogeneous array construction",
+        "identity-preserving atomic row assertions before candidate-key proof consumers",
+        "composite equality joins including full reconciliation with cardinality, duplicate, null-key, and output bounds",
+        "stable global and partitioned ranking",
+        "deterministic representative-row dedupe",
+        "strict append schema alignment",
+        "explicit order evidence for every order-sensitive result"
+      ],
+      "exclusions": [
+        "arbitrary SQL",
+        "host regex engines",
+        "UDFs",
+        "implicit type coercion",
+        "non-equality joins"
+      ],
+      "contract_cid": "sha256:8d99ccc799739e97b4fbbccb6b22bd5867dd0dd44d00adb361172bd9c8c35791"
+    },
+    "sga": {
+      "id": "actql-sga/0.1",
+      "description": "Authoring-complete deterministic graph construction, property query, bounded path analysis, projection, and pure graph-value change.",
+      "required": false,
+      "status": "final",
+      "closure_workload": "typed relation rows -> graph -> node/edge property match -> typed bounded traversal or path/component analysis -> stable node/path relation projection",
+      "required_operations": [
+        "graph",
+        "normalize_graph",
+        "match_nodes",
+        "match_edges",
+        "reach",
+        "traverse",
+        "shortest_path",
+        "components",
+        "degree",
+        "graph_bounds",
+        "graph_diff",
+        "graft_graph",
+        "union_graphs",
+        "subtract_graphs",
+        "node_rows",
+        "edge_rows"
+      ],
+      "required_semantics": [
+        "directed typed edges and typed/property-bearing nodes",
+        "closed RelA predicate grammar for node and edge properties",
+        "explicit direction, edge types, minimum hops, and maximum hops",
+        "stable node and path identities with deterministic path ordering",
+        "weak and strong connected components",
+        "loss-accounted relation bridges",
+        "structural graph delta operations remain pure values"
+      ],
+      "exclusions": [
+        "canonical-entity authority",
+        "source-record binding",
+        "entity merge or split",
+        "persistent graph CAS/apply",
+        "unbounded traversal",
+        "vector score as merge authority"
+      ],
+      "contract_cid": "sha256:6682d180cf58e9a5801bfa9ec35c9d03016281f91fbcd07440f0043ca3c74a07"
+    },
+    "veca": {
+      "id": "actql-veca/0.1",
+      "description": "Authoring-complete deterministic exact vector preparation, scoring, retrieval, pooling, and ranking composition.",
+      "required": false,
+      "status": "final",
+      "closure_workload": "RelA-filtered corpus/query rows -> vectorize/pool -> exact score or nearest -> threshold/merge/dedupe/per-query top-k -> metadata relation output",
+      "required_operations": [
+        "to_vectors",
+        "normalize_vectors",
+        "score_vectors",
+        "nearest",
+        "pool_vectors",
+        "merge_rankings",
+        "vector_rows"
+      ],
+      "required_semantics": [
+        "finite fixed-dimension vectors with binary32 quantization",
+        "exact cosine, dot, and l2 metrics",
+        "mean, sum, and max pooling with explicit grouping",
+        "stable score thresholding, ranking-list merge, dedupe, and per-query top-k",
+        "semantic query/candidate identity restoration",
+        "metadata filtering and final metadata join through RelA"
+      ],
+      "exclusions": [
+        "embedding generation",
+        "approximate nearest-neighbor substitution",
+        "external index construction",
+        "automatic entity merge"
+      ],
+      "contract_cid": "sha256:d0d5625cd868c9e76cb5d2f2100a04cefaa5ca455e5f63fa4898db0bb4862c57"
+    },
+    "tea": {
+      "id": "actql-tea/0.1",
+      "description": "Authoring-complete deterministic event-time windowing, late/deduplication policy, temporal correlation, and relation projection.",
+      "required": false,
+      "status": "final",
+      "closure_workload": "typed rows -> event stream -> fixed/sliding/session assignment -> late handling and event dedupe -> as-of join or bounded sequence -> relation aggregate/output",
+      "required_operations": [
+        "to_events",
+        "row_window",
+        "window_events",
+        "session",
+        "watermark_events",
+        "dedupe_events",
+        "asof_join",
+        "sequence",
+        "event_rows"
+      ],
+      "required_semantics": [
+        "explicit event identity and event-time field",
+        "closed-open fixed, sliding, and session boundaries",
+        "explicit late-event drop or mark policy",
+        "stable event dedupe with authored representative order",
+        "backward/forward/nearest as-of correlation with explicit tolerance and tie-break",
+        "bounded ordered event-sequence matching per key",
+        "stable relation projection for ordinary RelA aggregation"
+      ],
+      "exclusions": [
+        "processing-time substitution",
+        "unbounded state",
+        "implicit reordering",
+        "resampling/gap fill",
+        "general interval algebra"
+      ],
+      "contract_cid": "sha256:5062de1e2703fa8a6cab3297cb9b21e0a2809cfb095bc0971236fcef32fe04ae"
+    }
+  }
+}
