@@ -12,6 +12,12 @@ import {
 }
 
 // Values
+pub fn application_closure_at(ApplicationClosure, Int) -> ApplicationCoverage?
+
+pub fn application_closure_orders(ApplicationClosure) -> @pipeline_typing.ContextualClosure
+
+pub fn application_closure_work(ApplicationClosure) -> Int
+
 pub fn application_coverage_consumers(ApplicationCoverage) -> ConsumerCoverage
 
 pub fn application_coverage_sources(ApplicationCoverage) -> SourceCoverage
@@ -19,6 +25,8 @@ pub fn application_coverage_sources(ApplicationCoverage) -> SourceCoverage
 pub fn application_coverage_work(ApplicationCoverage) -> Int
 
 pub fn check(@pipeline_typing.CheckedPipeline, @capacity_host_witness.HostSources, @capacity_policy.Policy, Limits) -> Result[GraphInputs, Issue]
+
+pub fn check_application_closure(@pipeline_typing.ContextualClosure, Array[ApplicationCoverage], max_work~ : Int) -> Result[ApplicationClosure, ApplicationClosureIssue]
 
 pub fn check_application_coverage(GraphInputs, @capacity_program_step.Applications, @capacity_sequence_limit.Applications, joins? : @capacity_program_step.JoinApplications?, max_work~ : Int) -> Result[ApplicationCoverage, ApplicationCoverageIssue]
 
@@ -57,6 +65,15 @@ pub fn usage(GraphInputs) -> (Int, Int)
 // Errors
 
 // Types and methods
+type ApplicationClosure
+
+pub(all) enum ApplicationClosureIssue {
+  InvalidLimits
+  CoverageCount(expected~ : Int, actual~ : Int)
+  WorkLimit(Int)
+  ForeignPipeline(Int)
+} derive(Eq, @debug.Debug)
+
 type ApplicationCoverage
 
 pub(all) enum ApplicationCoverageIssue {

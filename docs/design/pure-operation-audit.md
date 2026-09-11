@@ -418,6 +418,12 @@ matching automaton or proof that session-boundary values have been computed.
    An omitted join ledger now requires a budgeted all-step scan proving the
    absence of join-family operations. An empty limit collection is not proof
    that no operation requires a limit; regressions cover all three join families.
+   Supported capacity application coverage now pairs every contextual producer
+   visit with an exact-owner local result, including unused and repeated input
+   occurrences. Its cumulative capacity work and detached result are tested on
+   long forwarding chains. This closes occurrence coverage for that subset,
+   not remaining source authority, unsupported consumers, Invocation binding
+   consistency or the final all-obligation boundary.
    Do not
    expand into acquisition, an evaluator or Host dispatch.
 3. Connect contextual resolutions into a complete static checking/discharge

@@ -151,3 +151,26 @@ This entry closes composition for the supported source and consumer branches;
 it is not full pipeline readiness. Selected-policy authority, enclosing
 Program/Invocation identity, author and other external sources, remaining
 operation consumers and upstream closure are still required separately.
+
+## Producer occurrence coverage
+
+`check_application_closure` pairs one supported `ApplicationCoverage` with each
+visit of the admitted contextual producer closure, in its existing root-first
+depth-first order. The exact pipeline handle must match at every position;
+equal source text or a matching input name is insufficient. Missing and extra
+entries fail. This includes unused inputs and branches because the contextual
+closure enumerates them rather than taking a caller-selected target subset.
+Repeated producer references remain separate occurrences and are charged again.
+
+The capacity aggregation budget is one registration unit plus the retained local
+application work per visit, using subtraction before addition to avoid overflow.
+It does not rerun or silently reset each local budget. The returned entry array
+is detached, and a failure at a later visit returns no partial closure. Tests
+cover repeated producers, an unused second input, equal-content foreign owners,
+missing/extra entries, exact/short budgets and a 1,000-link forwarding chain.
+
+This establishes supported local capacity coverage across the producer graph,
+not complete source authority or all capacity consumers. Contextual resolution
+and the prerequisite local checks retain their own budgets; this aggregate is
+not a replacement for the final all-obligation budget. Enclosing identity and
+consistent parameter bindings within a Program/Invocation remain separate.
