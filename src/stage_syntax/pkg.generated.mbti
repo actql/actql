@@ -13,6 +13,10 @@ pub fn effect_names(Stage) -> Array[String]
 
 pub fn exports(Program) -> Array[(String, String, String)]
 
+pub fn import_at(Stage, Int) -> (String, ImportPort)?
+
+pub fn import_count(Stage) -> Int
+
 pub fn imports(Stage) -> Array[(String, ImportPort)]
 
 pub fn parse(String, Limits, format? : Format, source_path? : String) -> Result[Program, SyntaxError]

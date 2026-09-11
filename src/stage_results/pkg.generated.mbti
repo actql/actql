@@ -2,30 +2,93 @@
 package "actql/actql/stage_results"
 
 import {
+  "actql/actql/pipeline_typing",
   "actql/actql/relation_results",
   "actql/actql/stage_parameters",
   "moonbitlang/core/debug",
 }
 
 // Values
+pub fn attach_imports(ResultImports, @stage_parameters.CollectedStage, max_work~ : Int) -> Result[AttachedImports, ImportIssue]
+
+pub fn attached_imports(AttachedImports) -> ResultImports
+
+pub fn attached_stage(AttachedImports) -> @stage_parameters.CollectedStage
+
+pub fn attached_work(AttachedImports) -> Int
+
+pub fn bind_ports(@stage_parameters.CollectedStage, @relation_results.ResultPorts) -> Result[StagePorts, ImportIssue]
+
 pub fn check(@stage_parameters.CollectedOperations, @relation_results.Limits) -> Result[Checked, Issue]
+
+pub fn import_at(ResultImports, Int) -> ResultImport?
+
+pub fn import_count(ResultImports) -> Int
+
+pub fn import_source(ResultImports) -> @stage_parameters.Source
+
+pub fn import_stage(ResultImports) -> Int
+
+pub fn import_usage(ResultImports) -> (Int, Int)
+
+pub fn input_name(ResultImport) -> String
+
+pub fn input_port(ResultImport) -> @relation_results.ResultPort
+
+pub fn input_producer(ResultImport) -> @pipeline_typing.ProducedInput
+
+pub fn input_stage(ResultImport) -> StagePorts
 
 pub fn operations(Checked) -> @stage_parameters.CollectedOperations
 
+pub fn resolve_imports(@stage_parameters.Source, Int, Array[StagePorts], ImportLimits) -> Result[ResultImports, ImportIssue]
+
 pub fn stage_at(Checked, Int) -> @relation_results.CheckedResults?
+
+pub fn stage_port_publications(StagePorts) -> @relation_results.ResultPorts
+
+pub fn stage_port_source(StagePorts) -> @stage_parameters.CollectedStage
 
 pub fn usage(Checked) -> Usage
 
 // Errors
 
 // Types and methods
+type AttachedImports
+
 type Checked
+
+pub(all) enum ImportIssue {
+  InvalidLimits
+  InvalidStage
+  ForeignPipeline
+  ForeignResults
+  ForeignSource
+  NotEarlierStage(Int)
+  DuplicateProducer(String)
+  MissingProducer(String)
+  MissingResult(String, String)
+  ForeignInput(String)
+  BudgetExceeded
+} derive(Eq, @debug.Debug)
+
+pub(all) struct ImportLimits {
+  max_work : Int
+  max_imports : Int
+  max_text_bytes : Int
+} derive(Eq, @debug.Debug)
 
 pub enum Issue {
   InvalidLimits
   WorkLimit
   Stage(Int, @relation_results.Issue)
 }
+
+type ResultImport
+
+type ResultImports
+
+type StagePorts
 
 pub(all) struct Usage {
   work : Int

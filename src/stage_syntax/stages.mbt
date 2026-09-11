@@ -276,6 +276,16 @@ pub fn imports(stage : Stage) -> Array[(String, ImportPort)] {
 }
 
 ///|
+pub fn import_count(stage : Stage) -> Int {
+  stage.imports.length()
+}
+
+///|
+pub fn import_at(stage : Stage, index : Int) -> (String, ImportPort)? {
+  stage.imports.get(index)
+}
+
+///|
 pub fn exports(program : Program) -> Array[(String, String, String)] {
   program.exports.copy()
 }

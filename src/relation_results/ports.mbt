@@ -133,6 +133,11 @@ pub fn port_at(ports : ResultPorts, index : Int) -> ResultPort? {
 }
 
 ///|
+pub fn lookup_port(ports : ResultPorts, name : String) -> ResultPort? {
+  ports.orders.publication.results.names.get(name).map(i => ports.entries[i])
+}
+
+///|
 pub fn port_orders(port : ResultPort) -> CheckedOrders {
   port.orders
 }

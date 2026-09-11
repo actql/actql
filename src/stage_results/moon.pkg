@@ -6,10 +6,11 @@ import {
   "actql/actql/pipeline_parameters" @collection,
   "actql/actql/relation_results" @results,
   "actql/actql/decode_core" @decode,
+  "actql/actql/pipeline_typing" @pipeline,
+  "actql/actql/decode_scalar" @scalar,
 }
 
 import {
-  "actql/actql/pipeline_typing" @pipeline,
   "actql/actql/relation_schema" @schema,
   "actql/actql/value_contract" @contract,
 } for "test"

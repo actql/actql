@@ -33,6 +33,8 @@ pub fn fields(ResultDefinition) -> Array[String]
 
 pub fn lookup(CheckedResults, String) -> ResultDefinition?
 
+pub fn lookup_port(ResultPorts, String) -> ResultPort?
+
 pub fn metadata(ResultDefinition) -> @decode_core.Cursor?
 
 pub fn name(ResultDefinition) -> String
