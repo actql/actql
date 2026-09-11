@@ -1,0 +1,405 @@
+{
+  "version": "actql-timestamp-pattern-vectors/0.1",
+  "accepted": [
+    {
+      "id": "date",
+      "pattern": "yyyy-MM-dd",
+      "mode": "parse",
+      "components": [
+        {
+          "kind": "token",
+          "value": "yyyy"
+        },
+        {
+          "kind": "literal",
+          "value": "-"
+        },
+        {
+          "kind": "token",
+          "value": "MM"
+        },
+        {
+          "kind": "literal",
+          "value": "-"
+        },
+        {
+          "kind": "token",
+          "value": "dd"
+        }
+      ],
+      "expected_preimage": "{\"components\":[{\"kind\":\"token\",\"value\":\"yyyy\"},{\"kind\":\"literal\",\"value\":\"-\"},{\"kind\":\"token\",\"value\":\"MM\"},{\"kind\":\"literal\",\"value\":\"-\"},{\"kind\":\"token\",\"value\":\"dd\"}],\"full_input_match\":true,\"mode\":\"parse\",\"timezone\":\"UTC\",\"version\":\"actql-timestamp-pattern-ast/0.1\"}",
+      "expected_cid": "sha256:cf77592823088ed49287e7cc1b85df60aaa0718d32753155c140dea46f0e9447",
+      "expected_ast": "{\"ast_cid\":\"sha256:cf77592823088ed49287e7cc1b85df60aaa0718d32753155c140dea46f0e9447\",\"components\":[{\"kind\":\"token\",\"value\":\"yyyy\"},{\"kind\":\"literal\",\"value\":\"-\"},{\"kind\":\"token\",\"value\":\"MM\"},{\"kind\":\"literal\",\"value\":\"-\"},{\"kind\":\"token\",\"value\":\"dd\"}],\"full_input_match\":true,\"mode\":\"parse\",\"timezone\":\"UTC\",\"version\":\"actql-timestamp-pattern-ast/0.1\"}"
+    },
+    {
+      "id": "date-format",
+      "pattern": "yyyy-MM-dd",
+      "mode": "format",
+      "components": [
+        {
+          "kind": "token",
+          "value": "yyyy"
+        },
+        {
+          "kind": "literal",
+          "value": "-"
+        },
+        {
+          "kind": "token",
+          "value": "MM"
+        },
+        {
+          "kind": "literal",
+          "value": "-"
+        },
+        {
+          "kind": "token",
+          "value": "dd"
+        }
+      ],
+      "expected_preimage": "{\"components\":[{\"kind\":\"token\",\"value\":\"yyyy\"},{\"kind\":\"literal\",\"value\":\"-\"},{\"kind\":\"token\",\"value\":\"MM\"},{\"kind\":\"literal\",\"value\":\"-\"},{\"kind\":\"token\",\"value\":\"dd\"}],\"full_input_match\":true,\"mode\":\"format\",\"timezone\":\"UTC\",\"version\":\"actql-timestamp-pattern-ast/0.1\"}",
+      "expected_cid": "sha256:931b9c862c8dabb341b889b7e49ce0b4beae5f86c15ca2f623c616782fdf22e2",
+      "expected_ast": "{\"ast_cid\":\"sha256:931b9c862c8dabb341b889b7e49ce0b4beae5f86c15ca2f623c616782fdf22e2\",\"components\":[{\"kind\":\"token\",\"value\":\"yyyy\"},{\"kind\":\"literal\",\"value\":\"-\"},{\"kind\":\"token\",\"value\":\"MM\"},{\"kind\":\"literal\",\"value\":\"-\"},{\"kind\":\"token\",\"value\":\"dd\"}],\"full_input_match\":true,\"mode\":\"format\",\"timezone\":\"UTC\",\"version\":\"actql-timestamp-pattern-ast/0.1\"}"
+    },
+    {
+      "id": "full",
+      "pattern": "yyyy-MM-ddTHH:mm:ss.SSS",
+      "mode": "parse",
+      "components": [
+        {
+          "kind": "token",
+          "value": "yyyy"
+        },
+        {
+          "kind": "literal",
+          "value": "-"
+        },
+        {
+          "kind": "token",
+          "value": "MM"
+        },
+        {
+          "kind": "literal",
+          "value": "-"
+        },
+        {
+          "kind": "token",
+          "value": "dd"
+        },
+        {
+          "kind": "literal",
+          "value": "T"
+        },
+        {
+          "kind": "token",
+          "value": "HH"
+        },
+        {
+          "kind": "literal",
+          "value": ":"
+        },
+        {
+          "kind": "token",
+          "value": "mm"
+        },
+        {
+          "kind": "literal",
+          "value": ":"
+        },
+        {
+          "kind": "token",
+          "value": "ss"
+        },
+        {
+          "kind": "literal",
+          "value": "."
+        },
+        {
+          "kind": "token",
+          "value": "SSS"
+        }
+      ],
+      "expected_preimage": "{\"components\":[{\"kind\":\"token\",\"value\":\"yyyy\"},{\"kind\":\"literal\",\"value\":\"-\"},{\"kind\":\"token\",\"value\":\"MM\"},{\"kind\":\"literal\",\"value\":\"-\"},{\"kind\":\"token\",\"value\":\"dd\"},{\"kind\":\"literal\",\"value\":\"T\"},{\"kind\":\"token\",\"value\":\"HH\"},{\"kind\":\"literal\",\"value\":\":\"},{\"kind\":\"token\",\"value\":\"mm\"},{\"kind\":\"literal\",\"value\":\":\"},{\"kind\":\"token\",\"value\":\"ss\"},{\"kind\":\"literal\",\"value\":\".\"},{\"kind\":\"token\",\"value\":\"SSS\"}],\"full_input_match\":true,\"mode\":\"parse\",\"timezone\":\"UTC\",\"version\":\"actql-timestamp-pattern-ast/0.1\"}",
+      "expected_cid": "sha256:8f523f0e0fb4229502e47b9da7a31a5793302b3d7714674c1a86300ae61abc12",
+      "expected_ast": "{\"ast_cid\":\"sha256:8f523f0e0fb4229502e47b9da7a31a5793302b3d7714674c1a86300ae61abc12\",\"components\":[{\"kind\":\"token\",\"value\":\"yyyy\"},{\"kind\":\"literal\",\"value\":\"-\"},{\"kind\":\"token\",\"value\":\"MM\"},{\"kind\":\"literal\",\"value\":\"-\"},{\"kind\":\"token\",\"value\":\"dd\"},{\"kind\":\"literal\",\"value\":\"T\"},{\"kind\":\"token\",\"value\":\"HH\"},{\"kind\":\"literal\",\"value\":\":\"},{\"kind\":\"token\",\"value\":\"mm\"},{\"kind\":\"literal\",\"value\":\":\"},{\"kind\":\"token\",\"value\":\"ss\"},{\"kind\":\"literal\",\"value\":\".\"},{\"kind\":\"token\",\"value\":\"SSS\"}],\"full_input_match\":true,\"mode\":\"parse\",\"timezone\":\"UTC\",\"version\":\"actql-timestamp-pattern-ast/0.1\"}"
+    },
+    {
+      "id": "reordered",
+      "pattern": "dd/MM/yyyy",
+      "mode": "parse",
+      "components": [
+        {
+          "kind": "token",
+          "value": "dd"
+        },
+        {
+          "kind": "literal",
+          "value": "/"
+        },
+        {
+          "kind": "token",
+          "value": "MM"
+        },
+        {
+          "kind": "literal",
+          "value": "/"
+        },
+        {
+          "kind": "token",
+          "value": "yyyy"
+        }
+      ],
+      "expected_preimage": "{\"components\":[{\"kind\":\"token\",\"value\":\"dd\"},{\"kind\":\"literal\",\"value\":\"/\"},{\"kind\":\"token\",\"value\":\"MM\"},{\"kind\":\"literal\",\"value\":\"/\"},{\"kind\":\"token\",\"value\":\"yyyy\"}],\"full_input_match\":true,\"mode\":\"parse\",\"timezone\":\"UTC\",\"version\":\"actql-timestamp-pattern-ast/0.1\"}",
+      "expected_cid": "sha256:88bfc7d1f7fe858f4aeef3c643b3ab2cadab1cf9698cf80caef509c36fb28125",
+      "expected_ast": "{\"ast_cid\":\"sha256:88bfc7d1f7fe858f4aeef3c643b3ab2cadab1cf9698cf80caef509c36fb28125\",\"components\":[{\"kind\":\"token\",\"value\":\"dd\"},{\"kind\":\"literal\",\"value\":\"/\"},{\"kind\":\"token\",\"value\":\"MM\"},{\"kind\":\"literal\",\"value\":\"/\"},{\"kind\":\"token\",\"value\":\"yyyy\"}],\"full_input_match\":true,\"mode\":\"parse\",\"timezone\":\"UTC\",\"version\":\"actql-timestamp-pattern-ast/0.1\"}"
+    },
+    {
+      "id": "adjacent",
+      "pattern": "yyyyMMdd",
+      "mode": "parse",
+      "components": [
+        {
+          "kind": "token",
+          "value": "yyyy"
+        },
+        {
+          "kind": "token",
+          "value": "MM"
+        },
+        {
+          "kind": "token",
+          "value": "dd"
+        }
+      ],
+      "expected_preimage": "{\"components\":[{\"kind\":\"token\",\"value\":\"yyyy\"},{\"kind\":\"token\",\"value\":\"MM\"},{\"kind\":\"token\",\"value\":\"dd\"}],\"full_input_match\":true,\"mode\":\"parse\",\"timezone\":\"UTC\",\"version\":\"actql-timestamp-pattern-ast/0.1\"}",
+      "expected_cid": "sha256:00388c1d433112197845b35284b80fcd5434d1d765817d5539ca32b33f7f55cb",
+      "expected_ast": "{\"ast_cid\":\"sha256:00388c1d433112197845b35284b80fcd5434d1d765817d5539ca32b33f7f55cb\",\"components\":[{\"kind\":\"token\",\"value\":\"yyyy\"},{\"kind\":\"token\",\"value\":\"MM\"},{\"kind\":\"token\",\"value\":\"dd\"}],\"full_input_match\":true,\"mode\":\"parse\",\"timezone\":\"UTC\",\"version\":\"actql-timestamp-pattern-ast/0.1\"}"
+    },
+    {
+      "id": "year",
+      "pattern": "yyyy",
+      "mode": "format",
+      "components": [
+        {
+          "kind": "token",
+          "value": "yyyy"
+        }
+      ],
+      "expected_preimage": "{\"components\":[{\"kind\":\"token\",\"value\":\"yyyy\"}],\"full_input_match\":true,\"mode\":\"format\",\"timezone\":\"UTC\",\"version\":\"actql-timestamp-pattern-ast/0.1\"}",
+      "expected_cid": "sha256:c6a48d7b63f03c7942a01edc9d1fbd21d9c6ed13ff80937d96dcb5918f00dd6b",
+      "expected_ast": "{\"ast_cid\":\"sha256:c6a48d7b63f03c7942a01edc9d1fbd21d9c6ed13ff80937d96dcb5918f00dd6b\",\"components\":[{\"kind\":\"token\",\"value\":\"yyyy\"}],\"full_input_match\":true,\"mode\":\"format\",\"timezone\":\"UTC\",\"version\":\"actql-timestamp-pattern-ast/0.1\"}"
+    },
+    {
+      "id": "time",
+      "pattern": "HH:mm",
+      "mode": "format",
+      "components": [
+        {
+          "kind": "token",
+          "value": "HH"
+        },
+        {
+          "kind": "literal",
+          "value": ":"
+        },
+        {
+          "kind": "token",
+          "value": "mm"
+        }
+      ],
+      "expected_preimage": "{\"components\":[{\"kind\":\"token\",\"value\":\"HH\"},{\"kind\":\"literal\",\"value\":\":\"},{\"kind\":\"token\",\"value\":\"mm\"}],\"full_input_match\":true,\"mode\":\"format\",\"timezone\":\"UTC\",\"version\":\"actql-timestamp-pattern-ast/0.1\"}",
+      "expected_cid": "sha256:92ef9da474668b364890987eee5743494224769b48da8745495bfce0af9c4134",
+      "expected_ast": "{\"ast_cid\":\"sha256:92ef9da474668b364890987eee5743494224769b48da8745495bfce0af9c4134\",\"components\":[{\"kind\":\"token\",\"value\":\"HH\"},{\"kind\":\"literal\",\"value\":\":\"},{\"kind\":\"token\",\"value\":\"mm\"}],\"full_input_match\":true,\"mode\":\"format\",\"timezone\":\"UTC\",\"version\":\"actql-timestamp-pattern-ast/0.1\"}"
+    },
+    {
+      "id": "literal-occurrences",
+      "pattern": " --yyyy.. ",
+      "mode": "format",
+      "components": [
+        {
+          "kind": "literal",
+          "value": " "
+        },
+        {
+          "kind": "literal",
+          "value": "-"
+        },
+        {
+          "kind": "literal",
+          "value": "-"
+        },
+        {
+          "kind": "token",
+          "value": "yyyy"
+        },
+        {
+          "kind": "literal",
+          "value": "."
+        },
+        {
+          "kind": "literal",
+          "value": "."
+        },
+        {
+          "kind": "literal",
+          "value": " "
+        }
+      ],
+      "expected_preimage": "{\"components\":[{\"kind\":\"literal\",\"value\":\" \"},{\"kind\":\"literal\",\"value\":\"-\"},{\"kind\":\"literal\",\"value\":\"-\"},{\"kind\":\"token\",\"value\":\"yyyy\"},{\"kind\":\"literal\",\"value\":\".\"},{\"kind\":\"literal\",\"value\":\".\"},{\"kind\":\"literal\",\"value\":\" \"}],\"full_input_match\":true,\"mode\":\"format\",\"timezone\":\"UTC\",\"version\":\"actql-timestamp-pattern-ast/0.1\"}",
+      "expected_cid": "sha256:c16d841d06375e7700c789c0030ee9582ea9a60fdf92f8e785d2a494ba618e39",
+      "expected_ast": "{\"ast_cid\":\"sha256:c16d841d06375e7700c789c0030ee9582ea9a60fdf92f8e785d2a494ba618e39\",\"components\":[{\"kind\":\"literal\",\"value\":\" \"},{\"kind\":\"literal\",\"value\":\"-\"},{\"kind\":\"literal\",\"value\":\"-\"},{\"kind\":\"token\",\"value\":\"yyyy\"},{\"kind\":\"literal\",\"value\":\".\"},{\"kind\":\"literal\",\"value\":\".\"},{\"kind\":\"literal\",\"value\":\" \"}],\"full_input_match\":true,\"mode\":\"format\",\"timezone\":\"UTC\",\"version\":\"actql-timestamp-pattern-ast/0.1\"}"
+    },
+    {
+      "id": "tokens-reordered",
+      "pattern": "mmHHddMMyyyy",
+      "mode": "parse",
+      "components": [
+        {
+          "kind": "token",
+          "value": "mm"
+        },
+        {
+          "kind": "token",
+          "value": "HH"
+        },
+        {
+          "kind": "token",
+          "value": "dd"
+        },
+        {
+          "kind": "token",
+          "value": "MM"
+        },
+        {
+          "kind": "token",
+          "value": "yyyy"
+        }
+      ],
+      "expected_preimage": "{\"components\":[{\"kind\":\"token\",\"value\":\"mm\"},{\"kind\":\"token\",\"value\":\"HH\"},{\"kind\":\"token\",\"value\":\"dd\"},{\"kind\":\"token\",\"value\":\"MM\"},{\"kind\":\"token\",\"value\":\"yyyy\"}],\"full_input_match\":true,\"mode\":\"parse\",\"timezone\":\"UTC\",\"version\":\"actql-timestamp-pattern-ast/0.1\"}",
+      "expected_cid": "sha256:d976e3d026cd0e608f6df76fc26fe10a8ae67cfae326fa503b2fbf551a256179",
+      "expected_ast": "{\"ast_cid\":\"sha256:d976e3d026cd0e608f6df76fc26fe10a8ae67cfae326fa503b2fbf551a256179\",\"components\":[{\"kind\":\"token\",\"value\":\"mm\"},{\"kind\":\"token\",\"value\":\"HH\"},{\"kind\":\"token\",\"value\":\"dd\"},{\"kind\":\"token\",\"value\":\"MM\"},{\"kind\":\"token\",\"value\":\"yyyy\"}],\"full_input_match\":true,\"mode\":\"parse\",\"timezone\":\"UTC\",\"version\":\"actql-timestamp-pattern-ast/0.1\"}"
+    },
+    {
+      "id": "literal-only",
+      "pattern": "--",
+      "mode": "format",
+      "components": [
+        {
+          "kind": "literal",
+          "value": "-"
+        },
+        {
+          "kind": "literal",
+          "value": "-"
+        }
+      ],
+      "expected_preimage": "{\"components\":[{\"kind\":\"literal\",\"value\":\"-\"},{\"kind\":\"literal\",\"value\":\"-\"}],\"full_input_match\":true,\"mode\":\"format\",\"timezone\":\"UTC\",\"version\":\"actql-timestamp-pattern-ast/0.1\"}",
+      "expected_cid": "sha256:b4be20e4549ea4d274c1035743b9fa26856d271ab817c7358543d9ca43192358",
+      "expected_ast": "{\"ast_cid\":\"sha256:b4be20e4549ea4d274c1035743b9fa26856d271ab817c7358543d9ca43192358\",\"components\":[{\"kind\":\"literal\",\"value\":\"-\"},{\"kind\":\"literal\",\"value\":\"-\"}],\"full_input_match\":true,\"mode\":\"format\",\"timezone\":\"UTC\",\"version\":\"actql-timestamp-pattern-ast/0.1\"}"
+    }
+  ],
+  "rejected": [
+    {
+      "id": "empty",
+      "pattern": "",
+      "mode": "format",
+      "issue": "EmptyPattern"
+    },
+    {
+      "id": "parse-literal-only",
+      "pattern": "--",
+      "mode": "parse",
+      "issue": "MissingDate"
+    },
+    {
+      "id": "parse-year",
+      "pattern": "yyyy",
+      "mode": "parse",
+      "issue": "MissingDate"
+    },
+    {
+      "id": "duplicate",
+      "pattern": "yyyyyyyy",
+      "mode": "format",
+      "issue": "DuplicateToken(\"yyyy\")"
+    },
+    {
+      "id": "hour-alone",
+      "pattern": "HH",
+      "mode": "format",
+      "issue": "InvalidTimeDependencies"
+    },
+    {
+      "id": "minute-alone",
+      "pattern": "mm",
+      "mode": "format",
+      "issue": "InvalidTimeDependencies"
+    },
+    {
+      "id": "seconds-alone",
+      "pattern": "ss",
+      "mode": "format",
+      "issue": "InvalidTimeDependencies"
+    },
+    {
+      "id": "millis-without-seconds",
+      "pattern": "HHmmSSS",
+      "mode": "format",
+      "issue": "InvalidTimeDependencies"
+    },
+    {
+      "id": "partial-token",
+      "pattern": "yyy",
+      "mode": "format",
+      "issue": "InvalidComponent(0)"
+    },
+    {
+      "id": "unknown-suffix",
+      "pattern": "yyyyZ",
+      "mode": "format",
+      "issue": "InvalidComponent(4)"
+    },
+    {
+      "id": "quoted-literal",
+      "pattern": "yyyy'T'",
+      "mode": "format",
+      "issue": "InvalidComponent(4)"
+    },
+    {
+      "id": "timezone",
+      "pattern": "yyyy-MM-ddXXX",
+      "mode": "parse",
+      "issue": "InvalidComponent(10)"
+    },
+    {
+      "id": "newline",
+      "pattern": "yyyy\n",
+      "mode": "format",
+      "issue": "InvalidComponent(4)"
+    },
+    {
+      "id": "tab",
+      "pattern": "yyyy\t",
+      "mode": "format",
+      "issue": "InvalidComponent(4)"
+    },
+    {
+      "id": "nbsp",
+      "pattern": "yyyy ",
+      "mode": "format",
+      "issue": "InvalidComponent(4)"
+    },
+    {
+      "id": "non-ascii",
+      "pattern": "yyyy年",
+      "mode": "format",
+      "issue": "InvalidComponent(4)"
+    },
+    {
+      "id": "token-case",
+      "pattern": "YYYY",
+      "mode": "format",
+      "issue": "InvalidComponent(0)"
+    }
+  ]
+}

@@ -1,0 +1,7 @@
+supported_targets = "+js+wasm+native"
+
+formatter(ignore: [ "vectors.generated_test.mbt" ])
+
+import {
+  "actql/actql/encode_core" @encode,
+}

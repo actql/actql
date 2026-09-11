@@ -2555,6 +2555,15 @@ closed year range `0000..9999`.
 number grammar as `to_number`, but returns null instead of failing for a
 non-null unparsable string.
 
+<!-- requirement-block: text-time.timestamp-pattern-modes -->
+Timestamp patterns MUST be nonempty sequences of the admitted components;
+both parse and format modes reject duplicate semantic tokens and apply the
+`HH`/`mm`, `ss`, and `SSS` dependencies above. Only parse mode requires `yyyy`,
+`MM`, and `dd`. Format mode admits a pattern consisting solely of the admitted
+literals, producing that literal text for a non-null timestamp. Literal
+components retain their individual occurrences in the canonical AST, without
+coalescing or reordering. An empty pattern is not a literal-only pattern.
+
 <!-- requirement-block: text-time.every-text-time-barrier-also-binds-a-versioned-host-ceiling-the text-time.if-a-finite-admitted-envelope-cannot-be-established-the-unit -->
 Text, pattern, replacement, and output resource bounds are not expression
 arguments. The compiler derives the strongest envelope available from the

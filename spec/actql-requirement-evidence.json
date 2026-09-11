@@ -1950,6 +1950,17 @@
       }
     },
     {
+      "requirement_id": "actql.language/text-time.timestamp-pattern-modes",
+      "statement_sha256": "44cf145bf4a2450c4e1f700e809cb12c8f6dfd07dd9584e4b47740bd4980902f",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "text-time",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.language/text-time.every-text-time-barrier-also-binds-a-versioned-host-ceiling-the",
       "statement_sha256": "f68b6e54b94f62d74070a78b840cf4e5502e519bcaa8c193963937718f1ac56b",
       "status": "pending",

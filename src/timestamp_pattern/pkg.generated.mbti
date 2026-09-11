@@ -1,0 +1,62 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/timestamp_pattern"
+
+import {
+  "actql/actql/encode_core",
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn cid(Pattern) -> String
+
+pub fn component_at(Pattern, Int) -> Component?
+
+pub fn component_count(Pattern) -> Int
+
+pub fn emit(Pattern, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
+
+pub fn emit_preimage(Pattern, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
+
+pub fn mode(Pattern) -> Mode
+
+pub fn parse(String, Mode, Limits) -> Result[Pattern, Issue]
+
+pub fn usage(Pattern) -> (Int, Int, Int, Int)
+
+pub fn value_width(Pattern) -> Int
+
+// Errors
+
+// Types and methods
+pub(all) enum Component {
+  Token(String)
+  Literal(String)
+} derive(Eq, @debug.Debug)
+
+pub(all) enum Issue {
+  InvalidLimits
+  BudgetExceeded
+  EmptyPattern
+  InvalidComponent(Int)
+  DuplicateToken(String)
+  MissingDate
+  InvalidTimeDependencies
+} derive(Eq, @debug.Debug)
+
+pub(all) struct Limits {
+  max_pattern_bytes : Int
+  max_components : Int
+  max_ast_bytes : Int
+  max_ast_nodes : Int
+} derive(Eq, @debug.Debug)
+
+pub(all) enum Mode {
+  Parse
+  Format
+} derive(Eq, @debug.Debug)
+
+type Pattern
+
+// Type aliases
+
+// Traits
