@@ -12,7 +12,7 @@ test "values capture pins exact owner and charges row keys and UTF-8 across rows
   let rows = capture_values(owner, 0, max_rows=2, limits).unwrap()
   assert_true(physical_equal(captured_owner(rows), owner))
   assert_true(!physical_equal(captured_owner(rows), capture_fixture()))
-  assert_eq(captured_node(rows), 0)
+  assert_eq(captured_origin(rows), ValuesNode(0))
   assert_eq(captured_row_count(rows), 2)
   assert_eq(captured_usage(rows), { nodes: 6, text_bytes: 10, work: 16, })
   assert_true(captured_cell(rows, 0, 0) is Some(@admitted.Number(1.0)))

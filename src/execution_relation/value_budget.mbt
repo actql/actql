@@ -20,6 +20,15 @@ pub(all) enum CaptureIssue {
   NotValuesNode
   MissingParameter(String)
   InvalidCheckedRow
+  NotRelationInput
+  ScopedInputNotImplemented
+  InputValue(Int, @admitted.Issue)
+} derive(Eq, Debug)
+
+///|
+pub(all) enum CaptureOrigin {
+  ValuesNode(Int)
+  SuppliedInput(Int)
 } derive(Eq, Debug)
 
 ///|

@@ -3,7 +3,7 @@
 /// This is input material, not proof of executable-fragment admission.
 struct CapturedRows {
   owner : @lower.BoundPrepared
-  node_index : Int
+  origin : CaptureOrigin
   schema : @schema.Schema
   rows : Array[Array[@admitted.Value]]
   usage : ValueUsage
@@ -15,8 +15,8 @@ pub fn captured_owner(rows : CapturedRows) -> @lower.BoundPrepared {
 }
 
 ///|
-pub fn captured_node(rows : CapturedRows) -> Int {
-  rows.node_index
+pub fn captured_origin(rows : CapturedRows) -> CaptureOrigin {
+  rows.origin
 }
 
 ///|
@@ -105,7 +105,7 @@ pub fn capture_values(
   }
   Ok({
     owner,
-    node_index,
+    origin: ValuesNode(node_index),
     schema,
     rows,
     usage: { nodes: budget.nodes, text_bytes: budget.text, work: budget.work, },

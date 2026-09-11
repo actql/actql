@@ -231,5 +231,32 @@ checks capacity before retaining cells, and counts repeated logical occurrences
 even when backing storage is shared. A failed capture returns no row prefix;
 its local counters cannot contaminate a later invocation. Tests cover exact and
 one-under limits, multibyte text, nested literal opacity, defensive access and
-wrong-node/owner identity. External supplied-Relation admission and physical
-live-value accounting remain to be integrated before a fragment execution API.
+wrong-node/owner identity. Physical live-value accounting remains to be integrated
+before a fragment execution API.
+
+## Explicit supplied input
+
+`capture_input` selects the input schema from the exact bound checked owner,
+then reuses `value_admission.admit` for explicitly supplied data cursors. It does
+not parse expressions, acquire Connector data, coerce values or repair text.
+Data has an explicit `SuppliedInput(index)` origin, distinct from
+`ValuesNode(index)`. The caller's mutable cursor array is not retained.
+
+The same logical capture limits apply cumulatively across input rows. Admission
+receives remaining node/text limits before constructing each immutable row;
+measurement enforces their combined work bound before retaining it. This work
+counter is a logical size measure, not a claim that schema traversal or Unicode
+normalization CPU time is fully metered. Physical temporary allocations and
+schema-processing work remain part of the final execution budget integration.
+
+Current input support covers schemas with an existing ordinary object Value
+Contract. Qualified/scoped schemas without that representation return the
+implementation-gap error `ScopedInputNotImplemented`, not a language rejection.
+Exit condition: a lossless supplied row representation for scoped fields, using
+their existing contracts, with the same ownership and resource checks.
+
+This establishes row value admission, not validity of supplied candidate-key,
+order or capacity claims. Those obligations must be checked before final
+fragment execution admission. Tests include source-parser normalization versus
+noncanonical supplied data, non-null/type/closed-field constraints, empty input,
+cumulative limits, alias/index separation and post-capture caller mutation.

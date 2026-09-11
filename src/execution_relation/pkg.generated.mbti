@@ -2,6 +2,7 @@
 package "actql/actql/execution_relation"
 
 import {
+  "actql/actql/decode_core",
   "actql/actql/lowering_relation",
   "actql/actql/relation_schema",
   "actql/actql/value_admission",
@@ -15,11 +16,13 @@ pub fn boolean_pair(@lowering_relation.ManyOperator, Value, Value) -> Result[Val
 
 pub fn capture(@value_admission.Value) -> Value
 
+pub fn capture_input(@lowering_relation.BoundPrepared, Int, Array[@decode_core.Cursor], max_rows~ : Int, ValueLimits) -> Result[CapturedRows, CaptureIssue]
+
 pub fn capture_values(@lowering_relation.BoundPrepared, Int, max_rows~ : Int, ValueLimits) -> Result[CapturedRows, CaptureIssue]
 
 pub fn captured_cell(CapturedRows, Int, Int) -> @value_admission.Value?
 
-pub fn captured_node(CapturedRows) -> Int
+pub fn captured_origin(CapturedRows) -> CaptureOrigin
 
 pub fn captured_owner(CapturedRows) -> @lowering_relation.BoundPrepared
 
@@ -40,6 +43,14 @@ pub(all) enum CaptureIssue {
   NotValuesNode
   MissingParameter(String)
   InvalidCheckedRow
+  NotRelationInput
+  ScopedInputNotImplemented
+  InputValue(Int, @value_admission.Issue)
+} derive(Eq, @debug.Debug)
+
+pub(all) enum CaptureOrigin {
+  ValuesNode(Int)
+  SuppliedInput(Int)
 } derive(Eq, @debug.Debug)
 
 type CapturedRows
