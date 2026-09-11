@@ -97,10 +97,11 @@ Sketch `87dc7144:moonbit/src/syntax_decode/decode.mbt` supplies reusable structu
 but defaults an input with only expected columns to Relation and rejects an empty
 expected-column list. Current language requirements instead require `carrier`
 and do not require that list to be nonempty. The reader follows current prose.
-Some embedded protocol input schemas still expose legacy `schema_ref`; the
-language explicitly excludes it. This reader does not revive that field, and
-the broader source-schema alignment remains necessary before claiming a complete
-Program input contract. No registry, backend or execution support is implied.
+The embedded protocol input schemas and this reader both exclude legacy
+`schema_ref`, as required by the language. `scripts/local-input-schema.mjs`
+checks both embedded Program input definitions and their closed field sets;
+inline `schema` remains available. This alignment does not define a Host
+snapshot reference or imply registry, backend or execution support.
 
 Subsequent integration must associate declarations with actual stage input slots,
 reconcile admitted Host evidence against explicit assertions, close duplicate

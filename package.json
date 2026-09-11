@@ -54,7 +54,7 @@
     "check:unicode": "python3 scripts/generate-unicode-tables.py --check && python3 -m unittest discover -s scripts -p test_unicode_generation.py",
     "check:nest": "node scripts/check-nest-reference.mjs",
     "generate:nest": "node scripts/check-nest-reference.mjs --write",
-    "check:contracts": "node scripts/check-actql-spec-family.mjs && npm run check:aoa && npm run check:bound-transfer",
+    "check:contracts": "node scripts/local-input-schema.mjs && node --test scripts/local-input-schema.test.mjs && node scripts/check-actql-spec-family.mjs && npm run check:aoa && npm run check:bound-transfer",
     "check:bound-transfer": "node scripts/bound-transfer-laws.mjs && node scripts/capacity-law-registry.mjs && node --test scripts/bound-transfer-laws.test.mjs scripts/capacity-policy.test.mjs scripts/capacity-law-registry.test.mjs",
     "check:aoa": "node scripts/check-aoa-versions.mjs && node --test scripts/aoa-versions.test.mjs scripts/pure-operation-laws.test.mjs scripts/pure-operation-inventory.test.mjs",
     "check:links": "node scripts/check-document-links.mjs",
