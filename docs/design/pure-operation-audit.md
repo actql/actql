@@ -189,6 +189,37 @@ These close the inspected static admission and transfer cases; external
 comparison evidence, memory ceilings and the final combined consumer boundary
 remain independent obligations.
 
+## Input-free generator acceptance audit
+
+The `values.admission` generator rules and the time/Calendar sections were
+compared with the early generator branches in `pipeline_typing/check.mbt`,
+`relation_values`, `time_series` and `calendar_typing`. These three operations
+require `as`, reject step `from`, and establish current without consuming it.
+`mean_graphs` is not covered by this input-free argument: it retains its explicit
+graph-list operands and has a separate acceptance boundary.
+
+`pipeline_typing/generator_acceptance_audit_test.mbt` adds 36 cases: three
+generators, empty/nonempty ranges or literal rows, and six input arrangements
+(none, typed Relation, opaque Graph/Events/Vectors, and multiple inputs).
+Every generator has no input occurrence; downstream select and take consume
+its result rather than an unrelated prior current. Literal values and time-grid
+counts are exact; a nonempty Calendar bound is not asserted to be an exact
+number of buckets. All empty cases retain exact zero. Generated order survives
+selection and satisfies take's contextual check. Each case fixes exact shared
+work/node/text budgets and one-less rejection.
+
+Existing generator pipeline tests cover missing aliases and explicit `from`;
+time-series tests cover producer-backed keys through Calendar aliases and
+as-of completion. `time_series/count_test.mbt` and `resolved_count_test.mbt`
+keep unbound Parameters separate from defaults and validate bound endpoint/step
+domains even for empty intervals. Calendar admission tests require an admitted
+profile and retain located zone/clock errors. The values schema and its corpus
+separately constrain cell grammar and typed literal admission.
+
+The opaque unused inputs in this matrix are not certified snapshots. The test
+does not waive their source, producer-closure or Graph-input preflight checks,
+and does not execute time grids, Calendar transitions or Result publication.
+
 ## Shared-boundary findings
 
 | Requirement | Inspected evidence | Audit finding |
