@@ -115,7 +115,7 @@ fn derive_logical_orders(
           ToVectors | NormalizeVectors => true
           ScoreVectors => false
         }
-      Set(..) => true
+      Set(..) | Nest(..) => true
       _ => false
     }
     let establishes = match step.operation {
@@ -125,6 +125,7 @@ fn derive_logical_orders(
       | Ranking(_)
       | TextRank(..)
       | AsOfJoin(..) => true
+      Pool(_) => true
       GraphMatch(_) | Reach(_) | Traverse(..) | Shortest(..) => true
       Graph(op) => @graph.operation(op) == @graph.Components
       Vector(op) => @vector.operation(op) == @vector.ScoreVectors

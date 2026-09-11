@@ -1,5 +1,18 @@
 # Conditional logical order
 
+Pool establishes canonical grouping-key tuple order for both Relation and
+Vectors inputs. Its internal member-identity fold order and input-uniqueness,
+numeric/profile and resource obligations remain attached to the producer;
+the output sequence is not a substitute for those validations. The vectors
+bridge preserves the sequence even when a Result projects only vector payloads.
+
+Nest preserves the parent sequence independently of child enumeration. Its
+separate effective child-array order must still be resolved before execution;
+retaining parent row order neither resolves that nested order nor permits an
+unordered array to be published. The retained pipeline keeps both input edges
+and the checked nest's obligations. An ordered child cannot repair an unordered
+parent, and projecting the nested payload does not require sorting that array.
+
 Vector bridges and normalization retain an existing occurrence sequence; scoring
 establishes score-descending, semantic-ID-ascending order independently of input
 enumeration. The explicit vectors bridge can carry that sequence to Relation
