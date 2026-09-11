@@ -877,6 +877,12 @@ admission, resource enforcement or complete source authority.
    A two-stage actual Result import tests final publication ownership, foreign
    reissued orders and exact/short cumulative budgets. Ordinary/receipt inputs,
    static discharge and complete semantic Program identity remain incomplete.
+   [Source-bound stage local bodies](stage-source.md) now combine the exact
+   collected pipeline source, Inputs, Results and Effect selector decoding.
+   Only admitted annotation positions are excluded; opaque business data and
+   unbound references remain. This closes source emission, not full declaration
+   admission, used Parameter/Binding reference closure or stage/Program identity.
+   The opaque projection does not replace the final CheckedProgram constructor.
    [Combined order checking](combined-order-checking.md) now resolves
    all steps and named Results with one shared budget and one pipeline owner.
    Capacity and other mandatory obligations still require the final combined

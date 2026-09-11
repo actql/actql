@@ -34,10 +34,10 @@ limits. Per-object key sorting uses the previously bounded input; max_bytes is
 not a whole-heap bound. Text, measurement and hash sinks consume the same
 canonical events, without constructing a second normalized steps tree.
 
-This is the steps component of a future semantic stage body, not a complete
-stage or Program identity. Inputs, Results, Effects, binding declarations,
-their used references and enclosing membership still need their own admitted
-projections. No Fragment root index, semantic step ID, executable node or backend
+This is the steps component consumed by [stage local bodies](stage-source.md),
+not a complete stage or Program identity. Inputs, Results, Effects, binding
+declarations, their used references and enclosing membership still require full
+semantic admission. No Fragment root index, semantic step ID, executable node or backend
 capability is assigned here. The original checked pipeline and reference index
 remain attached for that integration.
 

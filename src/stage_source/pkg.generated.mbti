@@ -1,0 +1,50 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/stage_source"
+
+import {
+  "actql/actql/decode_core",
+  "actql/actql/encode_core",
+  "actql/actql/expression_syntax",
+  "actql/actql/pipeline_source",
+  "actql/actql/selector_syntax",
+  "actql/actql/stage_parameters",
+}
+
+// Values
+pub fn emit(Body, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
+
+pub fn prepare(@stage_parameters.CollectedStage, Limits) -> Result[Body, Issue]
+
+pub fn selector_at(Body, Int) -> @selector_syntax.Selector?
+
+pub fn selector_count(Body) -> Int
+
+pub fn stage(Body) -> @stage_parameters.CollectedStage
+
+pub fn steps(Body) -> @pipeline_source.Steps
+
+pub fn work(Body) -> Int
+
+// Errors
+
+// Types and methods
+type Body
+
+pub enum Issue {
+  InvalidLimits
+  WorkLimit
+  Decode(@decode_core.Issue)
+  Steps(@pipeline_source.Issue)
+  Selector(@selector_syntax.Issue)
+  InvalidMetadata(@decode_core.Cursor)
+  InvalidEffect(@decode_core.Cursor)
+}
+
+pub(all) struct Limits {
+  max_work : Int
+  selectors : @expression_syntax.Limits
+}
+
+// Type aliases
+
+// Traits
