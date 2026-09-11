@@ -383,8 +383,8 @@ execution semantics or production default.
 
 Slots are structural entries, **not bytes, allocator capacity or RSS**. Empty
 container headers and hash-map capacity are not modeled. This is not a claim of
-complete physical memory admission: capture-to-table conversion, retained tables
-across a fragment, nested immutable payloads and expression-frame/view lifetimes
+complete physical memory admission: retained tables across a fragment,
+nested immutable payloads and expression-frame/view lifetimes
 still need an integrated budget. Logical output and cumulative work remain
 separate counters, and none replace main's static capacity evidence.
 
@@ -394,3 +394,20 @@ and are unchanged by this unit. Registry checks 2/2, document tests 11/11 and
 865 local links pass. Formatting and whitespace checks pass. The ordinary build
 still reports 14 unused private-code warnings while the fragment driver is not
 connected. The full repository suite and production execution are not claimed.
+
+Capture-to-table conversion now also requires an explicit fresh structural
+workspace and the caller's cumulative control budget. It reserves both borrowed
+capture row entries and the new table layout, checks each row width, and charges
+field-name bytes and cell-copy work before allocating copied arrays. Nested
+admitted values remain immutable shared payloads. There is no unbounded
+production-private conversion helper; the whitebox helper delegates with stated
+limits. Independent vectors require 14 slots and 10 work units for a two-column,
+two-row capture, reject one-unit deficits, and verify that modifying copied row
+containers cannot mutate captured input. Conversion followed by projection uses
+one 28-unit work budget (27 fails), not fresh per-step work budgets. Structural
+workspace lifetime across the complete fragment still needs integration; these
+per-operation checks do not authorize resetting a future fragment-wide limit.
+
+Conversion-unit validation: execution tests 29/29 on JS, Wasm and native;
+unchanged matching public interfaces across those targets; format, whitespace
+and 865-link checks pass. The 14 unconnected-private-code warnings remain.

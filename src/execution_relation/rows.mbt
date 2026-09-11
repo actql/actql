@@ -19,7 +19,48 @@ priv enum RowIssue {
 }
 
 ///|
-fn table_from_capture(input : CapturedRows) -> Table {
+fn table_from_capture_bounded(
+  input : CapturedRows,
+  control : ControlBudget,
+  workspace : RowWorkspace,
+) -> Result[Table, RowIssue] {
+  if control.remaining < 0 ||
+    workspace.limit < 0 ||
+    workspace.live != 0 ||
+    workspace.peak != 0 {
+    return Err(InvalidRowLimits)
+  }
+  let width = @schema.field_count(input.schema)
+  // Admit the complete layout before allocating copied arrays. Borrowed
+  // capture containers coexist with the new table during conversion.
+  if !reserve_slots(workspace, input.rows.length()) ||
+    !reserve_slots(workspace, input.rows.length()) ||
+    !reserve_slots(workspace, width) {
+    return Err(RowLimit)
+  }
+  for i = 0; i < width; i = i + 1 {
+    if !spend_control(control, 1) ||
+      !spend_control_text(
+        control,
+        @schema.reference_name(@schema.field_at(input.schema, i).unwrap().name),
+      ) {
+      return Err(RowLimit)
+    }
+  }
+  for row in input.rows {
+    if !spend_control(control, 1) {
+      return Err(RowLimit)
+    }
+    if row.length() != width {
+      return Err(InvalidRows)
+    }
+    // Subtraction-based reservation avoids overflowing rows * width.
+    if !reserve_slots(workspace, width) ||
+      !reserve_slots(workspace, width) ||
+      !spend_control(control, width) {
+      return Err(RowLimit)
+    }
+  }
   let prepared = @lower.bound_preparation(input.owner)
   let id = match input.origin {
     ValuesNode(i) => @lower.node_id(@lower.node_at(prepared, i).unwrap())
@@ -28,12 +69,12 @@ fn table_from_capture(input : CapturedRows) -> Table {
   let names = Array::makei(@schema.field_count(input.schema), i => {
     @schema.reference_name(@schema.field_at(input.schema, i).unwrap().name)
   })
-  {
+  Ok({
     owner: input.owner,
     id,
     names,
     rows: input.rows.map(row => row.map(capture)),
-  }
+  })
 }
 
 ///|

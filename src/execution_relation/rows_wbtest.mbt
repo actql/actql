@@ -1,4 +1,13 @@
 ///|
+fn table_from_capture(input : CapturedRows) -> Table {
+  table_from_capture_bounded(input, { remaining: 100000, max_frames: 0, }, {
+    limit: 100000,
+    live: 0,
+    peak: 0,
+  }).unwrap()
+}
+
+///|
 // Test convenience only: delegates to the sole production row evaluator with
 // an explicit generous workspace ceiling. No alternate execution semantics.
 fn evaluate_rows(
@@ -58,6 +67,112 @@ fn row_output() -> ValueBudget {
     max_depth: 100,
     max_work: 10000,
   }).unwrap()
+}
+
+///|
+test "capture conversion admits both layouts before copying and spends shared work" {
+  let owner = row_owner("")
+  let input = capture_values(owner, 0, max_rows=2, {
+    max_nodes: 100,
+    max_text_bytes: 100,
+    max_depth: 10,
+    max_work: 100,
+  }).unwrap()
+  // Captured row references/cells: 6; copied row references/cells/names: 8.
+  let workspace = { limit: 14, live: 0, peak: 0, }
+  let control = { remaining: 10, max_frames: 0, }
+  let table = table_from_capture_bounded(input, control, workspace).unwrap()
+  assert_eq(control.remaining, 0)
+  assert_eq(workspace.live, 14)
+  assert_eq(workspace.peak, 14)
+  assert_eq(table.names, ["a", "b"])
+  assert_true(table.rows[0][0] is Number(1.0))
+  assert_true(
+    table_from_capture_bounded(input, { remaining: 10, max_frames: 0, }, {
+      limit: 13,
+      live: 0,
+      peak: 0,
+    })
+    is Err(RowLimit),
+  )
+  assert_true(
+    table_from_capture_bounded(input, { remaining: 9, max_frames: 0, }, {
+      limit: 14,
+      live: 0,
+      peak: 0,
+    })
+    is Err(RowLimit),
+  )
+  assert_true(
+    table_from_capture_bounded(input, control, { limit: 14, live: 0, peak: 0, })
+    is Err(RowLimit),
+  )
+  assert_true(
+    table_from_capture_bounded(
+      input,
+      { remaining: 10, max_frames: 0, },
+      workspace,
+    )
+    is Err(InvalidRowLimits),
+  )
+  // Output layout mutation cannot alter admitted capture row containers.
+  table.rows[0][0] = Number(99.0)
+  assert_true(capture(captured_cell(input, 0, 0).unwrap()) is Number(1.0))
+  assert_true(
+    table_from_capture_bounded(input, { remaining: 10, max_frames: 0, }, {
+      limit: 14,
+      live: 0,
+      peak: 0,
+    }).unwrap().rows[0][0]
+    is Number(1.0),
+  )
+}
+
+///|
+test "conversion work is not reset before row execution" {
+  let owner = row_owner(",{\"select\":[\"b\",\"a\"]}")
+  let input = capture_values(owner, 0, max_rows=2, {
+    max_nodes: 100,
+    max_text_bytes: 100,
+    max_depth: 10,
+    max_work: 100,
+  }).unwrap()
+  // Conversion consumes 10; select metadata and rows consume 18 more.
+  let exact = { remaining: 28, max_frames: 0, }
+  let table = table_from_capture_bounded(input, exact, {
+    limit: 14,
+    live: 0,
+    peak: 0,
+  }).unwrap()
+  assert_eq(
+    evaluate_rows_with_workspace(
+      row_kernel(owner, 1),
+      table,
+      2,
+      exact,
+      row_output(),
+      { limit: 22, live: 0, peak: 0, },
+    ).unwrap().rows.length(),
+    2,
+  )
+  assert_eq(exact.remaining, 0)
+  let short = { remaining: 27, max_frames: 0, }
+  let table2 = table_from_capture_bounded(input, short, {
+    limit: 14,
+    live: 0,
+    peak: 0,
+  }).unwrap()
+  assert_true(
+    evaluate_rows_with_workspace(
+      row_kernel(owner, 1),
+      table2,
+      2,
+      short,
+      row_output(),
+      { limit: 22, live: 0, peak: 0, },
+    )
+    is Err(RowLimit),
+  )
 }
 
 ///|
