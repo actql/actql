@@ -1,0 +1,57 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/local_relation_input"
+
+import {
+  "actql/actql/carrier_contract",
+  "actql/actql/decode_core",
+  "actql/actql/order_key",
+  "actql/actql/relation_evidence",
+  "actql/actql/relation_schema",
+  "actql/actql/value_contract",
+}
+
+// Values
+pub fn carrier(Checked) -> @carrier_contract.Carrier
+
+pub fn expected_columns(Checked) -> Array[String]
+
+pub fn first_by_order(Checked) -> Array[@order_key.Key]?
+
+pub fn primary_key(Checked) -> @relation_evidence.KeyedRelation?
+
+pub fn read(@decode_core.Cursor, Limits) -> Result[Checked, Issue]
+
+pub fn source(Checked) -> @decode_core.Cursor
+
+// Errors
+
+// Types and methods
+type Checked
+
+pub enum Issue {
+  InvalidLimits
+  BudgetExceeded
+  NonCanonicalSource(@decode_core.Cursor)
+  Decode(@decode_core.Issue)
+  UnsupportedCarrier(String)
+  InvalidMetadata
+  InvalidName(String)
+  DuplicateColumn(String)
+  MissingColumn(String)
+  Contract(@value_contract.AdmissionError)
+  Schema(@relation_schema.Issue)
+  PrimaryKey(@relation_evidence.Issue)
+  InvalidDuplicates
+  Order(@order_key.Issue)
+  InvalidOrderField(String)
+}
+
+pub(all) struct Limits {
+  max_nodes : Int
+  max_depth : Int
+  max_text_bytes : Int
+}
+
+// Type aliases
+
+// Traits

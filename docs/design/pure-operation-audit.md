@@ -820,6 +820,11 @@ admission, resource enforcement or complete source authority.
    unused inputs, without requiring source map enumeration order. It rejects
    omitted or invented names under the shared collection work cap; Carrier and
    input evidence semantics still need the corresponding admission boundary.
+   [Local Relation input declarations](local-relation-input.md) now read explicit
+   source schema, open expected-column assertions, conditional primary keys and
+   duplicate-policy terms without inventing complete types or runtime proof.
+   Host assertion reconciliation, duplicate total-order resolution, source-slot
+   attachment and the other Input families remain unfinished.
    A two-stage actual Result import tests final publication ownership, foreign
    reissued orders and exact/short cumulative budgets. Ordinary/receipt inputs,
    static discharge and complete semantic Program identity remain incomplete.
