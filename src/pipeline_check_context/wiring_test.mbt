@@ -14,6 +14,7 @@ fn wired_inputs_fixture(
   use_snapshots : Bool,
   profile? : String = "{}",
   expression? : String = "$n",
+  steps? : String? = None,
   parameters? : String = "{\"n\":{\"type\":\"number\",\"default\":1}}",
   supplied? : @decode.Cursor? = None,
 ) -> (
@@ -31,6 +32,14 @@ fn wired_inputs_fixture(
     .replace(
       old="\"params\":{\"n\":{\"type\":\"number\",\"default\":1}}",
       new="\"params\":" + parameters,
+    )
+    .replace(
+      old="\"steps\":[{\"derive\":{\"x\":\"$n\"}}]",
+      new="\"steps\":" + steps.unwrap_or("[{\"derive\":{\"x\":\"$n\"}}]"),
+    )
+    .replace(
+      old="\"steps\":[{\"derive\":{\"x\":\"$n\"}}]",
+      new="\"steps\":" + steps.unwrap_or("[{\"derive\":{\"x\":\"$n\"}}]"),
     )
     .replace(
       old="\"x\":\"$n\"",

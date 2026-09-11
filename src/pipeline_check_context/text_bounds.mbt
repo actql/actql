@@ -444,8 +444,8 @@ pub fn text_bound_policy(v : TextBoundResolution) -> @environment.TextTime {
 }
 
 ///|
-/// Expression-local demand only; consumer filters and semantic root placement
-/// still belong to the enclosing compilation boundary.
+/// Expression-local demand only. Use text_bound_demand_tests for the full
+/// consumer prefix; semantic root placement remains an enclosing responsibility.
 pub fn text_bound_demands(v : TextBoundResolution) -> @typing.DemandPaths {
   v.demands
 }

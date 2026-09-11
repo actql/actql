@@ -173,6 +173,8 @@ pub fn text_bound_at(TextBoundsChecks, Int) -> TextBoundResolution?
 
 pub fn text_bound_count(TextBoundsChecks) -> Int
 
+pub fn text_bound_demand_tests(TextBoundResolution, max_tests~ : Int) -> Result[Array[TextDemandTest], @expression_typing.DemandIssue]
+
 pub fn text_bound_demands(TextBoundResolution) -> @expression_typing.DemandPaths
 
 pub fn text_bound_input_parameter(TextBoundResolution) -> @parameter_binding.BoundParameter?
@@ -472,6 +474,13 @@ pub(all) struct TextBoundsUsage {
   work : Int
   text_bytes : Int
 } derive(Eq, @debug.Debug)
+
+pub struct TextDemandTest {
+  slot : Int
+  expression : @expression_typing.TypedExpression
+  node_index : Int
+  kind : @expression_typing.DemandTestKind
+}
 
 type TimestampPatternChecks
 

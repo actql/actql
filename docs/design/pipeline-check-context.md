@@ -291,8 +291,19 @@ shared by its text-bound resolutions and exposed by `text_bound_demands`.
 Construction and address-segment bytes are included in the shared work/text
 budget. The site's typed node index selects its demand and root-relative
 semantic pointer. No separately supplied demand list can be attached. Full
-consumer placement and aggregate-filter prefixes are still required before
-sealing the envelope; root-relative paths are not global fragment addresses.
+consumer placement is still required before sealing the envelope; root-relative
+paths are not global fragment addresses.
+
+`text_bound_demand_tests` composes the aggregate filter's root `IsTrue` test
+before the local outer-to-inner tests. It accepts only an owned resolution and
+an allocation cap, never an independently supplied predicate. Every returned
+test retains its exact typed expression and slot in the site's stage/producer
+visit. Filter expressions have no self-filter prefix; their own lazy branches
+remain local demands. Analytic aggregate arguments use the same composition.
+Equal filter source text does not merge frames. No constant folding or row
+evaluation occurs, including for constant false or nullable filters. The cap
+includes the prefix, and returned arrays are detached. Slot-to-Fragment-root
+rebasing remains a separate canonical placement step, not an index cast.
 
 Within a slot, immutable typed topology is traversed in reverse preorder so a
 direct text-time child has its output derivation before its parent is processed.

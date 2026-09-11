@@ -24,6 +24,7 @@ fn selected_fixture(
   changed : Bool,
   profile? : String = capacity_profile(changed),
   expression? : String = "$n",
+  steps? : String? = None,
   parameters? : String = "{\"n\":{\"type\":\"number\",\"default\":1}}",
   supplied? : @decode.Cursor? = None,
 ) -> (ReconciledContexts, @environment.Capacity) {
@@ -31,6 +32,7 @@ fn selected_fixture(
     true,
     profile~,
     expression~,
+    steps~,
     parameters~,
     supplied~,
   )
