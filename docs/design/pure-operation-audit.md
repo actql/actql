@@ -212,6 +212,11 @@ matching automaton or proof that session-boundary values have been computed.
    and derivation. Input-dependent append, literal clamps and known unpivot/
    unnest expansion now retain checked child applications from actual same-owner
    producer edges, preserving repeated operands and checking arithmetic.
+   Dedicated generator applications now bind values row occurrences, literal
+   or bound time-series counts and Calendar civil-domain upper bounds to their
+   actual input-free steps. Timestamp and step resolution retain the exact
+   binding owner; empty intervals do not bypass step checks. Calendar bounds
+   retain the selected profile and do not claim exact generated row counts.
    As-of applications now check the existing left-row-bound law for both kinds
    and every direction, rejecting right-side substitution and retaining both
    data edges without treating the right scan as capacity-free. The right proof,

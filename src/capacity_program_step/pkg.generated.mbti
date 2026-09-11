@@ -5,6 +5,7 @@ import {
   "actql/actql/capacity_witness",
   "actql/actql/parameter_binding",
   "actql/actql/pipeline_typing",
+  "actql/actql/time_series",
   "moonbitlang/core/debug",
 }
 
@@ -93,6 +94,7 @@ pub(all) enum Issue {
   InvalidOperandWorkLimit
   OperandWorkLimit
   MissingJoinUniqueness
+  InvalidSeriesCount(@time_series.CountIssue)
 } derive(Eq, @debug.Debug)
 
 type StepBound

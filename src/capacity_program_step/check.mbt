@@ -25,6 +25,7 @@ pub(all) enum Issue {
   InvalidOperandWorkLimit
   OperandWorkLimit
   MissingJoinUniqueness
+  InvalidSeriesCount(@series.CountIssue)
 } derive(Eq, Debug)
 
 ///|
@@ -66,6 +67,7 @@ pub fn check(
 ///|
 priv enum Rule {
   One
+  Constant(Int64)
   Preserve
   Clamp(Int64)
   Sum
@@ -80,6 +82,57 @@ fn operation_rule(
   step : @pipeline.CheckedStep,
   bindings : CountBindings?,
 ) -> Result[(String, Rule), Issue] {
+  match step.operation {
+    @pipeline.Values(op) =>
+      return Ok(
+        ("actql.bound.values", Constant(@values.row_count(op).to_int64())),
+      )
+    @pipeline.Calendar(op) =>
+      match @calendar.cardinality(op) {
+        @calendar.AtMost(n) =>
+          return Ok(("actql.bound.calendar-series", Constant(n.to_int64())))
+        _ => ()
+      }
+    @pipeline.TimeSeries(op) => {
+      let a = match @series.start(op) {
+        @series.Literal(_) => None
+        @series.Parameter(name) => {
+          guard bindings is Some(b) && b.entries.get(name) is Some(entry) else {
+            return Err(UnresolvedCount)
+          }
+          Some(entry.value)
+        }
+      }
+      let z = match @series.end(op) {
+        @series.Literal(_) => None
+        @series.Parameter(name) => {
+          guard bindings is Some(b) && b.entries.get(name) is Some(entry) else {
+            return Err(UnresolvedCount)
+          }
+          Some(entry.value)
+        }
+      }
+      let delta = match @series.step(op) {
+        @window.Literal(_) => None
+        value =>
+          match resolve_milliseconds(value, bindings) {
+            Ok(n) => Some(n)
+            Err(e) => return Err(e)
+          }
+      }
+      return match
+        @series.resolve_row_count(
+          op,
+          start_value=a,
+          end_value=z,
+          step_value=delta,
+        ) {
+        Ok(n) => Ok(("actql.bound.time-series", Constant(n)))
+        Err(e) => Err(InvalidSeriesCount(e))
+      }
+    }
+    _ => ()
+  }
   if step.operation is @pipeline.Append(..) {
     return Ok(("actql.bound.append", Sum))
   }
@@ -315,7 +368,7 @@ fn check_application(
   }
   let n = inputs.length()
   let valid_count = match rule {
-    One => n == 0
+    One | Constant(_) => n == 0
     Preserve => n == 1
     Clamp(_) => n <= 1
     Sum => n == 2
@@ -412,6 +465,7 @@ fn check_application(
   }
   let count = match rule {
     One => 1L
+    Constant(n) => n
     Preserve => @numeric.value(input_value(0))
     Clamp(maximum) =>
       @numeric.value(
@@ -477,6 +531,7 @@ fn check_application(
   }
   match (rule, @wire.derivation(witness)) {
     (One, @wire.SourceValue) => ()
+    (Constant(_), @wire.SourceValue) => ()
     (Join(_), @wire.SourceValue) => ()
     (Preserve, @wire.Preserve(input)) if input == ids[0] => ()
     (Clamp(expected), @wire.Clamp(input, maximum)) if maximum == expected &&

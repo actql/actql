@@ -28,6 +28,9 @@ The proof must use the existing `DerivedInputs` form. Its role is
 | Actual checked operation | Required proof application |
 | --- | --- |
 | Global Group with empty grouping keys | `actql.bound.global-group`, source derivation, value one. This holds independently of the input row count, including empty input. Other internal `OneRow` rules do not inherit this law. |
+| `values` | `actql.bound.values`, input-free source derivation with the exact authored row occurrence count. Cells and their binding obligations remain intact. |
+| `time_series` | `actql.bound.time-series`, input-free source derivation with exact `ceil((end-start)/step)` after endpoint and step resolution. |
+| `calendar_series` | `actql.bound.calendar-series`, input-free source derivation with the admitted Calendar unit's conservative domain upper bound (zero for equal literal endpoints). |
 | `take` with a literal or bound count | `actql.bound.take`, input-free clamp with the exact resolved count as maximum and value. Offset and order obligations remain on the checked operation. |
 | `top_k`, or `top_k_by` with no partition keys, with a literal or bound count | `actql.bound.top-k`, the same exact input-free clamp. Nonempty partition keys cannot use this global bound. |
 | `append` | `actql.bound.append`, checked addition of both input upper bounds, with the actual left/right witness IDs in the derivation. Repeated inputs count twice. |
@@ -45,6 +48,27 @@ The proof must use the existing `DerivedInputs` form. Its role is
 clamping its bound to the exact checked count. Offset does not weaken this upper
 bound and remains an independent checked-operation obligation. `check` is the
 input-free convenience entry.
+
+Generator count claims do not invent data-input dependencies. Values retains
+every authored row occurrence, including repetitions and Parameter cells; a
+known row count is not proof that those cells are bound. Time series resolves
+literal endpoints directly and Parameter endpoints from `CountBindings` owned
+by the exact pipeline/declarations. Typed timestamp values have already passed
+fixed-width UTC/calendar admission; arbitrary strings cannot substitute for
+them. Numeric or duration steps use the existing positive safe-integer resolver.
+`time_series.resolve_row_count` shares the literal counting core, rejects missing
+or invalid supplied values, reversed ranges and overrides of literals, and
+validates step even for an empty interval. This fixed-width arithmetic does not
+generate rows, read the Host timezone or claim whole-Invocation consistency.
+
+Calendar series uses its retained `AtMost` value, not a new interpretation of
+`max_steps` or a guessed exact boundary count. The chosen Calendar profile is
+retained; bound range and actual boundary/resource validation remain obligations.
+The existing conservative maxima include the civil-domain edge allowance:
+3,652,061 days, 521,725 weeks, 119,990 months, 39,998 quarters or 10,001 years.
+Their use as source proofs changes no Calendar boundary or profile law.
+The dedicated generator law names extend the registry and its CID; they do
+not reuse global-group's fixed-one identity or a Host-ceiling source.
 
 Join applications with operand upper bounds `L` and `R` use `L*R` for inner
 and cross joins, `L*max(1,R)` for left joins, `max(L*R,L+R)` for full joins,

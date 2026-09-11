@@ -17,6 +17,8 @@ import {
   "actql/actql/value_contract" @contract,
   "actql/actql/relation_join_shape" @join,
   "actql/actql/calendar_typing" @calendar,
+  "actql/actql/time_series" @series,
+  "actql/actql/relation_values" @values,
 }
 
 import {

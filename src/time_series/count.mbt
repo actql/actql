@@ -43,11 +43,16 @@ fn known_count(
     return Some(0L)
   }
   guard step is @temporal.Literal(step) else { return None }
+  Some(count_range(a, z, step))
+}
+
+///|
+fn count_range(a : String, z : String, step : Int64) -> Int64 {
   let duration = timestamp_milliseconds(z) - timestamp_milliseconds(a)
   // Valid endpoints span less than 2^49 milliseconds. Avoid duration+step-1:
   // the admitted step can be as large as the maximum safe JSON integer.
   let extra = if duration % step == 0L { 0L } else { 1L }
-  Some(duration / step + extra)
+  duration / step + extra
 }
 
 ///|
@@ -55,4 +60,72 @@ fn known_count(
 /// None requires bound-value resolution; Some never discharges other obligations.
 pub fn known_row_count(value : CheckedSeries) -> Int64? {
   value.row_count
+}
+
+///|
+pub(all) enum CountIssue {
+  MissingEndpoint(String)
+  InvalidEndpoint(String)
+  UnexpectedEndpoint(String)
+  MissingStep
+  InvalidStep
+  UnexpectedStep
+  ReversedRange
+} derive(Eq, Debug)
+
+///|
+fn resolved_endpoint(
+  endpoint : Endpoint,
+  value : @value.CheckedValue?,
+  name : String,
+) -> Result[String, CountIssue] {
+  match endpoint {
+    Literal(text) =>
+      if value is None {
+        Ok(text)
+      } else {
+        Err(UnexpectedEndpoint(name))
+      }
+    Parameter(_) =>
+      match value {
+        None => Err(MissingEndpoint(name))
+        Some(value) =>
+          match value.value {
+            @value.Timestamp(text) => Ok(text)
+            _ => Err(InvalidEndpoint(name))
+          }
+      }
+  }
+}
+
+///|
+/// Count admitted literal or supplied typed endpoints without materializing rows.
+/// The caller owns Parameter-name/owner binding and retains other obligations.
+pub fn resolve_row_count(
+  series : CheckedSeries,
+  start_value? : @value.CheckedValue? = None,
+  end_value? : @value.CheckedValue? = None,
+  step_value? : Int64? = None,
+) -> Result[Int64, CountIssue] {
+  let a = match resolved_endpoint(series.start, start_value, "start") {
+    Ok(v) => v
+    Err(e) => return Err(e)
+  }
+  let z = match resolved_endpoint(series.end, end_value, "end") {
+    Ok(v) => v
+    Err(e) => return Err(e)
+  }
+  let step = match (series.step, step_value) {
+    (@temporal.Literal(n), None) => n
+    (@temporal.Literal(_), Some(_)) => return Err(UnexpectedStep)
+    (@temporal.Parameter(_, ..), Some(n)) => n
+    (@temporal.Parameter(_, ..), None) => return Err(MissingStep)
+  }
+  if step <= 0L || step > 9007199254740991L {
+    return Err(InvalidStep)
+  }
+  if a > z {
+    return Err(ReversedRange)
+  }
+  Ok(count_range(a, z, step))
 }

@@ -168,10 +168,19 @@ work. A corpus-dependent reduction retains the corpus count dependency in
 addition to the query dependency; a scalar factor alone is not evidence of
 the corpus size. This law is separate from the nearest output law.
 
+Input-free Program count laws distinguish their evidence. `actql.bound.values`
+uses the authored row occurrence count, without discharging cell binding.
+`actql.bound.time-series` uses the admitted UTC endpoint interval and positive
+integer-millisecond step, including resolved typed Parameter values when needed.
+`actql.bound.calendar-series` uses the Calendar generator's conservative civil
+domain upper bound for its selected unit and profile, not a claim that all
+possible boundaries occur in the requested interval. Binding, range, profile
+and resource obligations remain distinct from these output-row bounds.
+
 <!-- requirement-block: capacity-law-registry.machine-contract -->
 <!-- normative-code: law -->
 ```text
-../../../spec/contracts/actql-bound-law-registry.json# sha256:e8f2bc38c037ab19204ad4863714351140c2aea9de3a30683e868ea08fd87e40
+../../../spec/contracts/actql-bound-law-registry.json# sha256:45f824fa077ac7eb6fecda6e25fa954834f1854c512f99f6803ad2ab84dd899a
 ```
 
 <a id="capacity-host-policy"></a>

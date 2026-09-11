@@ -8,6 +8,7 @@ import {
   "actql/actql/source_span",
   "actql/actql/source_value",
   "actql/actql/temporal_window",
+  "actql/actql/value_admission",
   "moonbitlang/core/debug",
 }
 
@@ -22,6 +23,8 @@ pub fn output(CheckedSeries) -> @carrier_contract.Carrier
 
 pub fn pending_validations(CheckedSeries) -> Array[Obligation]
 
+pub fn resolve_row_count(CheckedSeries, start_value? : @value_admission.CheckedValue?, end_value? : @value_admission.CheckedValue?, step_value? : Int64?) -> Result[Int64, CountIssue]
+
 pub fn source(CheckedSeries) -> @decode_core.Cursor
 
 pub fn start(CheckedSeries) -> Endpoint
@@ -34,6 +37,16 @@ pub fn usage(CheckedSeries) -> Usage
 
 // Types and methods
 type CheckedSeries
+
+pub(all) enum CountIssue {
+  MissingEndpoint(String)
+  InvalidEndpoint(String)
+  UnexpectedEndpoint(String)
+  MissingStep
+  InvalidStep
+  UnexpectedStep
+  ReversedRange
+} derive(Eq, @debug.Debug)
 
 pub enum Endpoint {
   Literal(String)
