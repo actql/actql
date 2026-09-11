@@ -6,10 +6,8 @@ import {
   "actql/actql/canonical_value" @unicode,
   "actql/actql/encode_core" @encode,
   "actql/actql/sha256" @sha,
-}
-
-import {
+  "actql/actql/capacity_policy" @policy,
   "moonbitlang/core/encoding/utf8",
-} for "test"
+}
 
 formatter(ignore: [ "vectors.generated_test.mbt" ])

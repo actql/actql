@@ -72,3 +72,23 @@ partial. `stage_local_inputs.assemble_environment` now requires every stage and
 every supplied snapshot to be covered under the same source/environment owners.
 This is local-Relation snapshot coverage, not admission of other sections or proof
 that all inputs have the evidence their governing policy will require.
+
+## Capacity component selection
+
+The normative component selector is now `/host_policy_profile/capacity`, with
+the existing capacity-policy contract pinned as a dependency. Sketch at `87dc7144`
+uses this same property in `hostCapacityPolicy` and its reference profile. The
+prior normative text required environment selection but did not specify this
+location; fixing it is an explicit wire clarification, not a new policy default.
+The outer profile remains an object whose other components need their own checks.
+
+`read_capacity` validates the selected body through `capacity_policy.admit` and
+returns an opaque owner retaining both the exact wire environment and Policy.
+The selected CID hashes the full component, distinct from profile/environment
+identity. Missing capacity is unresolved; null or an invalid supplied body cannot
+be treated as absent. Only this bounded component is serialized, not the whole
+environment. Independent fixture identity, limit boundaries, malformed ceilings
+and separate environment owners are tested. The envelope contract CID changes
+because it now pins component selection/dependency; unchanged envelope bytes do
+not change their own CID. Compiler policy matching and other component admission
+remain separate work, and no Host authorization follows from this reader.

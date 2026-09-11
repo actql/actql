@@ -18,6 +18,7 @@ for(const c of [...corpus.cases,...corpus.invalid_cases]){
     c.expected_wire=canonicalText({...preimage,evidence_bundle_cid:c.expected_cid});
   }
   verifyIdentity(preimage,c.expected_cid,c.expected_preimage);
+  if(c.capacity_cid) verifyIdentity(preimage.host_policy_profile.capacity,c.capacity_cid);
   assert.equal(canonicalText({...preimage,evidence_bundle_cid:c.expected_cid}),c.expected_wire);
   if(!c.issue)fixtures.push({id:'Check Environment preimage '+c.id,value:preimage,cid:c.expected_cid,text:c.expected_preimage});
   tests.push('','///|',`test ${literal('environment wire '+c.id)} {`,

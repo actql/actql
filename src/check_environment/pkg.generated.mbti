@@ -2,12 +2,17 @@
 package "actql/actql/check_environment"
 
 import {
+  "actql/actql/capacity_policy",
   "actql/actql/decode_core",
   "actql/actql/encode_core",
   "moonbitlang/core/debug",
 }
 
 // Values
+pub fn capacity_environment(Capacity) -> WireEnvironment
+
+pub fn capacity_policy(Capacity) -> @capacity_policy.Policy
+
 pub fn cid(WireEnvironment) -> String
 
 pub fn emit(WireEnvironment, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
@@ -32,11 +37,23 @@ pub fn member_section(Member) -> Section
 
 pub fn read(Bytes, String, Limits) -> Result[WireEnvironment, Issue]
 
+pub fn read_capacity(WireEnvironment, @capacity_policy.Limits) -> Result[Capacity, CapacityIssue]
+
 pub fn usage(WireEnvironment) -> (Int, Int, Int)
 
 // Errors
 
 // Types and methods
+type Capacity
+
+pub(all) enum CapacityIssue {
+  InvalidLimits
+  MissingCapacity
+  InvalidComponent
+  BudgetExceeded
+  Policy(@capacity_policy.Issue)
+} derive(Eq, @debug.Debug)
+
 pub(all) enum Issue {
   InvalidLimits
   BudgetExceeded

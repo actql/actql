@@ -2,6 +2,17 @@
 // Fixed corpus and existing specification pins are the expected identities.
 
 ///|
+test "Check Environment preimage capacity-component" {
+  let input = @json.parse([
+    "{\"version\":\"actql-check-environment/0.1\",\"schema_snapshots\":[],\"connector_capabilities\":[],\"mapping_contracts\":[],\"source_views\":[],\"command_contracts\":[],\"model_task_contracts\":[],\"contract_registry\":[],\"connector_catalogs\":[],\"host_policy_profile\":{\"capacity\":{\"max_aggregate_array_items\":1,\"max_artifact_bytes\":1,\"max_artifact_rows\":1,\"max_effect_items\":1,\"max_graph_input_edges\":1,\"max_graph_input_nodes\":1,\"max_graph_output_rows\":1,\"max_graph_paths\":1,\"max_infer_items\":1,\"max_model_input_tokens_per_item\":1,\"max_model_request_bytes_per_item\":1,\"max_model_total_duration_ms\":1,\"max_nested_value_bytes\":1,\"max_nested_value_depth\":1,\"max_relation_output_rows\":1,\"max_temporal_matches_per_key\":1,\"max_temporal_output_rows\":1,\"version\":\"actql-capacity-host-policy/0.1\"}}}",
+  ].join(""))
+  let value = @canonical_json.from_json(input, 30, 3, 772)
+  assert_eq(@canonical_json.cid_value(value, 772, 30, 3), "sha256:b0ed89dcd18123933c6431af68a071c04bb0fb64fac91c55b914e6030d885d5f")
+  assert_eq(@canonical_json.measure_value(value, 772, 30, 3), 772)
+  assert_eq(@canonical_json.stringify_value(value, 772, 30, 3), "{\"command_contracts\":[],\"connector_capabilities\":[],\"connector_catalogs\":[],\"contract_registry\":[],\"host_policy_profile\":{\"capacity\":{\"max_aggregate_array_items\":1,\"max_artifact_bytes\":1,\"max_artifact_rows\":1,\"max_effect_items\":1,\"max_graph_input_edges\":1,\"max_graph_input_nodes\":1,\"max_graph_output_rows\":1,\"max_graph_paths\":1,\"max_infer_items\":1,\"max_model_input_tokens_per_item\":1,\"max_model_request_bytes_per_item\":1,\"max_model_total_duration_ms\":1,\"max_nested_value_bytes\":1,\"max_nested_value_depth\":1,\"max_relation_output_rows\":1,\"max_temporal_matches_per_key\":1,\"max_temporal_output_rows\":1,\"version\":\"actql-capacity-host-policy/0.1\"}},\"mapping_contracts\":[],\"model_task_contracts\":[],\"schema_snapshots\":[],\"source_views\":[],\"version\":\"actql-check-environment/0.1\"}")
+}
+
+///|
 test "Check Environment preimage empty-unresolved" {
   let input = @json.parse([
     "{\"version\":\"actql-check-environment/0.1\",\"schema_snapshots\":[],\"connector_capabilities\":[],\"mapping_contracts\":[],\"source_views\":[],\"command_contracts\":[],\"model_task_contracts\":[],\"contract_registry\":[],\"connector_catalogs\":[],\"host_policy_profile\":{\"version\":\"actql-host-policy/0.1\",\"mode\":\"unresolved\"}}",

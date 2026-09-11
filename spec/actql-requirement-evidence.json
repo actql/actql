@@ -7780,6 +7780,17 @@
       }
     },
     {
+      "requirement_id": "actql.protocol.contracts/capacity-host-policy.environment-component",
+      "statement_sha256": "767eb14472f992004639ecdcd822ab2d0c99f8682f808c0a49bba0bfada307ab",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "capacity-host-policy",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.protocol.contracts/capacity-host-policy.ceiling-provenance",
       "statement_sha256": "4ec618cbc2106db8199f8021f6aebe80476abccda084ee89415116f24f010822",
       "status": "pending",
@@ -8507,7 +8518,7 @@
     },
     {
       "requirement_id": "actql.protocol.contracts/machine-contracts.exact-artifacts",
-      "statement_sha256": "414b34f6bbfa41ce18edba4428610e428584fffb5d774fed88d9dc05d72320cd",
+      "statement_sha256": "c1f3572a81b224d791fa211401b69d9d7e80a2f7623487425e777440ef7be464",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",

@@ -28,6 +28,16 @@ const body = {
     policy:'validate_selected_profile_and_every_supplied_policy_component',
     authority:'shape_hash_and_membership_are_not_authorization_or_runtime_evidence',
   },
+  policy_components:{
+    capacity:{
+      pointer:'/host_policy_profile/capacity',
+      contract:{path:'spec/contracts/actql-capacity-host-policy.json',pointer:'',cid:machineCid(JSON.parse(readFileSync('spec/contracts/actql-capacity-host-policy.json','utf8')))},
+      identity:'full_canonical_component_body_no_exclusions',
+      absent:'unresolved_no_implicit_defaults',
+      present:'validate_even_when_unused_null_is_not_absence',
+      selection:'retain_exact_environment_membership_and_match_selected_policy_cid',
+    },
+  },
 };
 const path='spec/contracts/actql-check-environment.json';
 if(process.argv.includes('--write'))writeFileSync(path,JSON.stringify(body,null,2)+'\n');

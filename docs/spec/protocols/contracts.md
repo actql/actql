@@ -293,6 +293,17 @@ defaults are rejected. The Check Environment selects the expected policy CID
 independently of the supplied body. Validation checks that CID against the
 complete canonical body, without removing a field or repairing the encoding.
 
+<!-- requirement-block: capacity-host-policy.environment-component -->
+The capacity policy component, when supplied, MUST be the complete body at
+`/host_policy_profile/capacity` in the Check Environment. Its selected CID is
+the hash of that complete canonical component, not the profile or environment
+CID. Absence leaves capacity policy unresolved and supplies no implicit default;
+explicit null is not absence. Every supplied capacity component is validated
+even if no operation consumes a capacity ceiling. Compiler assembly retains
+the exact environment association and compares the selected policy CID against
+this validated component. This component check does not admit other profile
+members, the whole environment or Host authority.
+
 <!-- requirement-block: capacity-host-policy.ceiling-provenance -->
 A policy ceiling MUST retain the exact policy CID, field name and value.
 Policy admission establishes integrity and structural validity relative to the
@@ -1016,7 +1027,7 @@ These exact schema/law references are owned here. Their identities do not includ
 <!-- requirement-block: machine-contracts.exact-artifacts -->
 <!-- normative-code: law -->
 ```text
-../../../spec/contracts/actql-check-environment.json# sha256:98fe506c9cd7428268684e8ee7a537703016d12bc2182e62aa734b479415a85c
+../../../spec/contracts/actql-check-environment.json# sha256:1bc76bd45f7b316471b8eef5831f4a16d867ad1a66529dfeec892a0a827bf056
 ../../../spec/contracts/actql-local-relation-snapshot.json# sha256:60e8136aea733421e75fa3dcef4934c87ce98959b36f8a56da93ccfbf03d81b2
 ../../../spec/contracts/actql-local-source-reference.json# sha256:9be664306a6a91a8e5bfca53d579e6dac77baf4567eb241ceeedc3216ffe47d9
 ../../../spec/contracts/actql-protocol-schemas.json#/schemas/model_task sha256:19408a610dbc52552bff3a7f97f25a120a66688e7db4f41383c91c9298f02dd2
