@@ -104,6 +104,8 @@ pub fn contextual_closure_at(ContextualClosure, Int) -> ContextualOrders?
 
 pub fn contextual_closure_count(ContextualClosure) -> Int
 
+pub fn contextual_closure_guards_at(ContextualClosure, Int) -> AuthorGuards?
+
 pub fn contextual_closure_root(ContextualClosure) -> ContextualOrders
 
 pub fn contextual_closure_steps(ContextualClosure) -> Int

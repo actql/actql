@@ -77,12 +77,12 @@ test "producer closure shares budgets across repeated owners" {
   let closure = @pipeline_typing.resolve_contextual_closure(
     p,
     max_steps=2,
-    max_work=7,
+    max_work=9,
     max_text_bytes=0,
   ).unwrap()
   assert_eq(@pipeline_typing.contextual_closure_count(closure), 3)
   assert_eq(@pipeline_typing.contextual_closure_steps(closure), 2)
-  assert_eq(@pipeline_typing.contextual_closure_usage(closure), (7, 0))
+  assert_eq(@pipeline_typing.contextual_closure_usage(closure), (9, 0))
   assert_true(
     physical_equal(
       @pipeline_typing.contextual_orders_pipeline(
@@ -116,7 +116,7 @@ test "producer closure shares budgets across repeated owners" {
     @pipeline_typing.resolve_contextual_closure(
       p,
       max_steps=2,
-      max_work=6,
+      max_work=8,
       max_text_bytes=0,
     )
     is Err(_),
@@ -157,16 +157,16 @@ test "producer closure bounds empty forwarding chains without recursion" {
   let closure = @pipeline_typing.resolve_contextual_closure(
     p,
     max_steps=1,
-    max_work=4002,
+    max_work=4003,
     max_text_bytes=0,
   ).unwrap()
   assert_eq(@pipeline_typing.contextual_closure_count(closure), 2001)
-  assert_eq(@pipeline_typing.contextual_closure_usage(closure), (4002, 0))
+  assert_eq(@pipeline_typing.contextual_closure_usage(closure), (4003, 0))
   assert_true(
     @pipeline_typing.resolve_contextual_closure(
       p,
       max_steps=1,
-      max_work=4001,
+      max_work=4002,
       max_text_bytes=0,
     )
     is Err(_),

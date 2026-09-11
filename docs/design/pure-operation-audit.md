@@ -135,7 +135,11 @@ consumer audit.
    array/string aggregate guards inside analytic now retain full call indices,
    exact source slots and the existing item/byte laws. Non-aggregate calls and
    frame extents do not create guard occurrences; binding and budget regressions
-   cover the added route.
+   cover the added route. Contextual producer closure now collects guards for
+   every visit, including unused branches and repeated owners, under its shared
+   budgets. Result order checking retains these collections with their original
+   source owners. This closes upstream enumeration, not numeric binding across
+   owners, Program identity binding or consumer enforcement.
    [Producer-bound input evidence](produced-input-evidence.md) now retains the
    original pipeline/target and conditional record/node/edge facts through
    input forwarding. Repeated operands and existing key/ranking owners remain

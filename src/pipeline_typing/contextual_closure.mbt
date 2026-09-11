@@ -7,6 +7,7 @@ pub struct ProducerOrderIssue {
 ///|
 struct ContextualClosure {
   entries : Array[ContextualOrders]
+  guards : Array[AuthorGuards]
   work : Int
   text : Int
   steps : Int
@@ -31,6 +32,7 @@ pub fn resolve_contextual_closure(
     let mut steps = 0
     let pending = [root]
     let entries : Array[ContextualOrders] = []
+    let guards : Array[AuthorGuards] = []
     while pending.pop() is Some(pipeline) {
       current = pipeline
       let n = pipeline.produced_inputs.length()
@@ -54,8 +56,17 @@ pub fn resolve_contextual_closure(
       let (w, t) = contextual_orders_usage(checked)
       work -= w
       text -= t
+      let authored = match
+        collect_author_guards(pipeline, max_work=work, max_text_bytes=text) {
+        Ok(v) => v
+        Err(e) => raise Stop(e)
+      }
+      let (guard_work, guard_text) = author_guards_usage(authored)
+      work -= guard_work
+      text -= guard_text
       steps += pipeline.steps.length()
       entries.push(checked)
+      guards.push(authored)
       // Reverse push visits producer inputs in their declared order.
       for i = n - 1; i >= 0; i = i - 1 {
         if pipeline.produced_inputs[i] is Some(input) {
@@ -63,7 +74,13 @@ pub fn resolve_contextual_closure(
         }
       }
     }
-    Ok({ entries, work: max_work - work, text: max_text_bytes - text, steps, })
+    Ok({
+      entries,
+      guards,
+      work: max_work - work,
+      text: max_text_bytes - text,
+      steps,
+    })
   } catch {
     Stop(issue) => Err({ pipeline: current, issue, })
   }
@@ -77,6 +94,16 @@ pub fn contextual_closure_root(v : ContextualClosure) -> ContextualOrders {
 ///|
 pub fn contextual_closure_count(v : ContextualClosure) -> Int {
   v.entries.length()
+}
+
+///|
+/// Guard occurrences for the same producer visit as contextual_closure_at.
+/// Quantities and source identities are not resolved by order closure.
+pub fn contextual_closure_guards_at(
+  v : ContextualClosure,
+  index : Int,
+) -> AuthorGuards? {
+  v.guards.get(index)
 }
 
 ///|

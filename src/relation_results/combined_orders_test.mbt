@@ -9,7 +9,7 @@ test "aggregate and publication order checks share their text budget" {
   }).unwrap()
   let p = @pipeline.check_with_evidence(
     cursor(
-      "[{\"group\":{\"by\":[],\"aggregates\":{\"v\":{\"fn\":\"array_agg\",\"field\":\"score\",\"order_by\":[{\"score\":\"asc\"}]}}},\"as\":\"unused\"}]",
+      "[{\"group\":{\"by\":[],\"aggregates\":{\"v\":{\"fn\":\"array_agg\",\"field\":\"score\",\"max_items\":7,\"order_by\":[{\"score\":\"asc\"}]}}},\"as\":\"unused\"}]",
     ),
     [("rows", @pipeline.KeyedInput(key))],
     None,
@@ -28,6 +28,21 @@ test "aggregate and publication order checks share their text budget" {
     max_text_bytes: 10000,
   }
   let orders = @relation_results.resolve_all_orders(results, caps).unwrap()
+  let guards = @pipeline.contextual_closure_guards_at(
+    @relation_results.checked_producer_orders(orders),
+    0,
+  ).unwrap()
+  assert_eq(@pipeline.author_guard_count(guards), 1)
+  assert_true(physical_equal(@pipeline.author_guards_pipeline(guards), p))
+  let occurrence = @pipeline.author_guard_at(guards, 0).unwrap()
+  assert_eq(@pipeline.author_guard_scope(occurrence), AggregateArrayItems(0))
+  assert_eq(@decode.cursor_path(@pipeline.author_guard_source(occurrence)), [
+    @source.Index(0),
+    @source.Key("group"),
+    @source.Key("aggregates"),
+    @source.Key("v"),
+    @source.Key("max_items"),
+  ])
   let (sw, st) = @pipeline.contextual_closure_usage(
     @relation_results.checked_producer_orders(orders),
   )

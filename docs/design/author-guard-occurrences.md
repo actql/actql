@@ -43,10 +43,13 @@ Original source paths and spans remain available from the retained cursor;
 getters do not expose the mutable collection array.
 
 Upstream producer pipelines have their own local step coordinates and guards.
-This API enumerates one owner only; the final combined checker must visit
-producer occurrences under shared budgets, as contextual order closure already
-does. An imported guard must not be reassigned to a coincidentally numbered
-local step.
+The local API enumerates one owner only. `resolve_contextual_closure` also
+collects every visited producer's guards under the same cumulative work/text
+budget as order checking. Its indexed guard collections retain repeated producer
+occurrences and unused branches. Result `resolve_all_orders` retains that closure
+and charges publication work against the remaining budget. An imported guard
+is never reassigned to a coincidentally numbered local step. Numeric binding
+and source/application validation across that closure remain separate work.
 
 ## Numeric binding and declaration ownership
 

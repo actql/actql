@@ -35,10 +35,16 @@ these immutable owners only references already checked pipelines, so it cannot
 create a cycle.
 
 Each visit charges one work unit plus its input count before adding parents to
-the stack, then the contextual resolver consumes the remaining work/text budget.
+the stack, then the contextual resolver and local author-guard collector consume
+the remaining work/text budget in that order.
 Even empty forwarding chains and shared ancestry are bounded. Step limits and
 aggregate text budgets do not reset between visits. The returned closure retains
-each occurrence's context, total steps and combined work/text usage. Errors
+each occurrence's context and author guards, total steps and combined work/text
+usage. `contextual_closure_guards_at` uses the same visit index as
+`contextual_closure_at`; guards retain the original producer and local source
+coordinates, including unused branches. Parameter guards remain unresolved:
+enumeration does not bind values, create witnesses or discharge capacity checks.
+Errors
 carry the actual failing pipeline with its original located issue. Root failures
 remain `PipelineOrder`; upstream failures are `ProducerOrder`. No partial closure
 or publication result is returned after a later failure.
