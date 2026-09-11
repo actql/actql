@@ -96,6 +96,60 @@ and bound Invocation consistency are separate prerequisites; a fragment hash or
 an authored alias does not supply either identity. No additional law name,
 source constructor or runnable Plan is introduced by this audit.
 
+## Enclosing semantic identity prerequisites
+
+The current Language `canonical-identities` requirement and the pinned
+`actql-stage-contracts.json` stage/program schemas were compared with the fixed
+Sketch `87dc7144` identity helpers. Neither of the following helpers is an
+implementation of the current staged semantic envelope:
+
+| Reference entry | Inspected preimage | Current requirement it does not establish |
+| --- | --- | --- |
+| `aoa_ir/ir.mbt` portable-case identity construction | Program semantics contains `portable_case` and `module`; its Check Environment is also a portable-case envelope. | A real decoded Program, its references, selected evidence and ordered stage descriptors. These are fixture identities, not a Program identity authority. |
+| `compiler_slice/compiler_slice.mbt` `semantic_template` / `identities` | Drops only root `id` and `meta`, places the remaining source in `program_template`, and includes declarations/references without the current complete envelope fields. | The staged descriptor template, per-stage semantics, expression-contract pin, binding projection and allowed annotation exclusion. Hashing those old bytes correctly does not produce the current Program identity. |
+
+The current root template is exactly `{stages, exports}`, with ordered stage
+descriptors `{id, stage_semantics_cid, after, imports}`. A stage hashes its
+decoded local inputs/steps/results, explicit authored `from` and normalized
+effects, along with used declarations and references. Omitted effects becomes
+an explicit empty map. Stage ID and predecessor belong to the descriptor, not
+the stage local body; root authority-bearing ID belongs to Program Definition,
+not Program semantics. Only allowed annotation positions are excluded: a
+business-data key named `meta` is not recursively erased.
+
+The machine schemas deliberately admit source-body containers, so satisfying
+their object shape cannot create an opaque, semantically checked Program owner.
+The same applies to `stage_syntax.Program`: it retains structurally admitted
+source cursors and import/export connections, not a completed semantic
+projection. `pipeline_typing.source` retains a local source cursor; hashing it
+directly would bypass semantic projection and omit the enclosing staged
+structure. Existing expression reference accessors provide
+source occurrences, but do not by themselves enumerate all Parameter/binding
+slots across inputs, operations, Results and effects.
+
+The implementation boundary therefore still needs three connected results:
+
+1. A source-correspondent decoded stage body, with expressions normalized only
+   in grammar-designated slots and opaque literal data untouched. Exclude
+   annotations only at admitted annotation positions. Do not use checked
+   schema expansion or lowered operations as the authored semantic body.
+2. Canonical used-declaration/reference projections for each stage and the
+   whole Program. References carry the annotation-free declaration, an RFC 6901
+   pointer and name, sorted by UTF-16 path then name with duplicate locations
+   rejected. Stage pointers start at local body; root pointers start at source.
+   Merely searching JSON for `$param` is not this enumeration.
+3. Stage and root envelope construction from those retained owners, followed by
+   Program Definition binding of authored ID. The resulting owner can then
+   associate an author-guard occurrence with its Definition CID; an arbitrary
+   caller CID, fixture identity or local pipeline hash cannot do so.
+
+Acceptance must distinguish changes to root ID, stage ID, predecessor, exports,
+used versus unrelated declarations, annotations versus literal `meta`, and
+reference pointer escaping/order. Known hash fixtures should be computed from
+the normative preimages independently of the product emitter. These are
+identified prerequisites, not completed semantic-identity implementation,
+runtime permission, or an expansion into Effect execution and algebra lowering.
+
 ## Sequence capacity consumer prerequisites
 
 Language's `sequence.a-breach-of-either-limit-must-fail-the-whole-operation`
