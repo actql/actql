@@ -4,6 +4,7 @@ struct CountBindings {
   pipeline : @pipeline.CheckedPipeline
   values : @parameter.BoundValues
   entries : Map[String, @parameter.BoundParameter]
+  durations : Map[String, Int64]
   work : Int
   text : Int
 }
@@ -29,6 +30,7 @@ pub fn bind_parameters(
   }
   let mut text = 0
   let entries : Map[String, @parameter.BoundParameter] = Map([])
+  let durations : Map[String, Int64] = Map([])
   for i in 0..<work {
     let entry = @parameter.bound_value_at(values, i).unwrap()
     // Parameter names have already been admitted as ASCII identifiers.
@@ -37,9 +39,77 @@ pub fn bind_parameters(
       return Err(BindingTextLimit)
     }
     text = text + size
+    if @parameter.bound_parameter_type(entry).rule is @contract.Duration &&
+      entry.value.value is Text(value) {
+      // Admitted duration tokens are ASCII. Charge before the one-time parse;
+      // repeated window references use the cached scalar without rescanning.
+      if value.length() > max_text_bytes - text {
+        return Err(BindingTextLimit)
+      }
+      text = text + value.length()
+      durations[entry.name] = @scalar.read_duration_ms(value).unwrap()
+    }
     entries[entry.name] = entry
   }
-  Ok({ pipeline, values, entries, work, text, })
+  Ok({ pipeline, values, entries, durations, work, text, })
+}
+
+///|
+fn resolve_milliseconds(
+  value : @window.Milliseconds,
+  bindings : CountBindings?,
+) -> Result[Int64, Issue] {
+  match value {
+    @window.Literal(n) => Ok(n)
+    @window.Parameter(name, duration~, domain~) => {
+      guard bindings is Some(bound) else { return Err(UnresolvedCount) }
+      let n = if duration {
+        bound.durations.get(name)
+      } else {
+        match bound.entries.get(name) {
+          Some(entry) =>
+            match entry.value.value {
+              Number(n) => @scalar.read_safe_integer(n)
+              _ => None
+            }
+          None => None
+        }
+      }
+      match n {
+        Some(n) if domain == @window.SignedMilliseconds || n > 0L => Ok(n)
+        _ => Err(InvalidBoundMilliseconds(name))
+      }
+    }
+  }
+}
+
+///|
+fn window_factor(
+  options : @window.Options,
+  bindings : CountBindings?,
+) -> Result[Int64, Issue] {
+  let size = match resolve_milliseconds(@window.size(options), bindings) {
+    Ok(n) => n
+    Err(e) => return Err(e)
+  }
+  let step = match @window.step(options) {
+    Some(value) =>
+      match resolve_milliseconds(value, bindings) {
+        Ok(n) => Some(n)
+        Err(e) => return Err(e)
+      }
+    None => None
+  }
+  match resolve_milliseconds(@window.offset(options), bindings) {
+    Ok(_) => ()
+    Err(e) => return Err(e)
+  }
+  if @window.kind(options) == @window.Fixed {
+    return Ok(1L)
+  }
+  let divisor = step.unwrap() // Checked sliding options always carry a step.
+  // Exact ceil(size / step), with no binary64 rounding or size + step overflow.
+  Ok(size / divisor + (if size % divisor == 0L { 0L } else { 1L }))
 }
 
 ///|

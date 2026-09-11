@@ -16,6 +16,8 @@ pub fn bind(Declarations, @decode_core.Cursor?, @value_admission.Limits) -> Resu
 
 pub fn bound_declarations(BoundValues) -> Declarations
 
+pub fn bound_parameter_type(BoundParameter) -> @value_contract.ParameterType
+
 pub fn bound_value_at(BoundValues, Int) -> BoundParameter?
 
 pub fn bound_value_count(BoundValues) -> Int

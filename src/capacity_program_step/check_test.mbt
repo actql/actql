@@ -120,6 +120,272 @@ fn bound_id(bound : @capacity_program_step.StepBound) -> String {
 }
 
 ///|
+fn window_pipeline(
+  kind : String,
+  options : String,
+  events : Bool,
+  parameters? : @parameter.Declarations? = None,
+  rows? : Int64 = 3,
+) -> @pipeline.CheckedPipeline {
+  let (bridge, operation, time) = if events {
+    ("{\"to_events\":{\"id\":\"id\",\"time\":\"id\"}},", "window_events", "")
+  } else {
+    ("", "row_window", ",\"time\":\"id\"")
+  }
+  pipeline(
+    "[{\"take\":" +
+    rows.to_string() +
+    "}," +
+    bridge +
+    "{\"" +
+    operation +
+    "\":{\"kind\":\"" +
+    kind +
+    "\"" +
+    time +
+    "," +
+    options +
+    "}}]",
+    parameters~,
+  )
+}
+
+///|
+fn window_proof(
+  input : @capacity_program_step.StepBound,
+  events : Bool,
+  factor : Int64,
+  value : Int64,
+) -> @wire.ProgramProofClaim {
+  let id = bound_id(input)
+  proof(
+    if events {
+      "actql.bound.window-events"
+    } else {
+      "actql.bound.row-window"
+    },
+    value,
+    "{\"factor\":" +
+    factor.to_string() +
+    ",\"input\":\"" +
+    id +
+    "\",\"op\":\"multiply\"}",
+    reference=if events { "checked-step:2" } else { "checked-step:1" },
+    inputs=[id],
+  )
+}
+
+///|
+test "fixed and sliding window proofs use exact checked membership factors on both Carriers" {
+  for events in [false, true] {
+    for
+      (kind, options, factor, rows) in [
+        ("fixed", "\"size\":10", 1L, 3L),
+        ("fixed", "\"size\":10,\"step\":1,\"offset\":-9007199254740991", 1L, 3L),
+        ("fixed", "\"size\":1,\"step\":9007199254740991", 1L, 3L),
+        ("sliding", "\"size\":10,\"step\":3,\"offset\":-7", 4L, 3L),
+        ("sliding", "\"size\":10,\"step\":5", 2L, 3L),
+        ("sliding", "\"size\":10,\"step\":20", 1L, 3L),
+        (
+          "sliding", "\"size\":9007199254740991,\"step\":1", 9007199254740991L, 1L,
+        ),
+        (
+          "sliding", "\"size\":9007199254740991,\"step\":9007199254740990", 2L, 3L,
+        ),
+      ] {
+      let p = window_pipeline(kind, options, events, rows~)
+      let input = @capacity_program_step.check(
+        p,
+        0,
+        proof(
+          "actql.bound.take",
+          rows,
+          "{\"maximum\":" + rows.to_string() + ",\"op\":\"clamp\"}",
+        ),
+      ).unwrap()
+      let claim = window_proof(input, events, factor, rows * factor)
+      let index = if events { 2 } else { 1 }
+      let cost = if events { 1 } else { 0 }
+      let checked = @capacity_program_step.check_with_inputs(
+        p,
+        index,
+        claim,
+        [input],
+        max_input_work=cost,
+      ).unwrap()
+      assert_eq(@capacity_program_step.input_work(checked), cost)
+      let false_factor = window_proof(
+        input,
+        events,
+        if factor == 9007199254740991L {
+          factor - 1
+        } else {
+          factor + 1
+        },
+        rows * factor,
+      )
+      assert_true(
+        @capacity_program_step.check_with_inputs(
+          p,
+          index,
+          false_factor,
+          [input],
+          max_input_work=cost,
+        )
+        is Err(InvalidDerivation),
+      )
+    }
+    let d = @parameter.read_declarations(
+      Some(
+        cursor("{\"size\":{\"type\":\"number\",\"default\":9007199254740991}}"),
+      ),
+      {
+        max_parameters: 1,
+        max_nodes: 100,
+        max_depth: 10,
+        max_text_bytes: 1000,
+      },
+    ).unwrap()
+    let p = window_pipeline(
+      "sliding",
+      "\"size\":{\"$param\":\"size\"},\"step\":1",
+      events,
+      rows=2,
+      parameters=Some(d),
+    )
+    let bound = @capacity_program_step.bind_parameters(
+      p,
+      count_values(d, None),
+      max_work=1,
+      max_text_bytes=4,
+    ).unwrap()
+    let input = @capacity_program_step.check(
+      p,
+      0,
+      proof("actql.bound.take", 2, "{\"maximum\":2,\"op\":\"clamp\"}"),
+    ).unwrap()
+    let claim = window_proof(input, events, 9007199254740991L, 1)
+    assert_true(
+      @capacity_program_step.check_with_inputs(
+        p,
+        if events {
+          2
+        } else {
+          1
+        },
+        claim,
+        [input],
+        max_input_work=1,
+        bindings=Some(bound),
+      )
+      is Err(BoundOverflow),
+    )
+  }
+}
+
+///|
+test "window Parameters bind once and validate unused fixed step and signed offset" {
+  let declarations = @parameter.read_declarations(
+    Some(
+      cursor(
+        "{\"size\":{\"type\":\"string\",\"format\":\"duration\",\"default\":\"01s\"},\"step\":{\"type\":\"number\",\"default\":3},\"offset\":{\"type\":\"number\",\"default\":-1}}",
+      ),
+    ),
+    { max_parameters: 3, max_nodes: 100, max_depth: 10, max_text_bytes: 1000, },
+  ).unwrap()
+  for events in [false, true] {
+    for kind in ["fixed", "sliding"] {
+      let p = window_pipeline(
+        kind,
+        "\"size\":{\"$param\":\"size\"},\"step\":{\"$param\":\"step\"},\"offset\":{\"$param\":\"offset\"}",
+        events,
+        parameters=Some(declarations),
+      )
+      let input = @capacity_program_step.check(
+        p,
+        0,
+        proof("actql.bound.take", 3, "{\"maximum\":3,\"op\":\"clamp\"}"),
+      ).unwrap()
+      let factor = if kind == "fixed" { 1L } else { 334L }
+      let claim = window_proof(input, events, factor, 3 * factor)
+      let index = if events { 2 } else { 1 }
+      assert_true(
+        @capacity_program_step.check_with_inputs(
+          p,
+          index,
+          claim,
+          [input],
+          max_input_work=1,
+        )
+        is Err(UnresolvedCount),
+      )
+      let values = count_values(declarations, None)
+      let bindings = @capacity_program_step.bind_parameters(
+        p,
+        values,
+        max_work=3,
+        max_text_bytes=17,
+      ).unwrap()
+      assert_eq(@capacity_program_step.binding_usage(bindings), (3, 17))
+      assert_true(
+        @capacity_program_step.bind_parameters(
+          p,
+          values,
+          max_work=3,
+          max_text_bytes=16,
+        )
+        is Err(BindingTextLimit),
+      )
+      let checked = @capacity_program_step.check_with_inputs(
+        p,
+        index,
+        claim,
+        [input],
+        max_input_work=1,
+        bindings=Some(bindings),
+      ).unwrap()
+      assert_true(
+        physical_equal(
+          @capacity_program_step.checked_bindings(checked).unwrap(),
+          bindings,
+        ),
+      )
+      for
+        (field, value) in [
+          ("step", "0"),
+          ("step", "-1"),
+          ("step", "0.5"),
+          ("step", "9007199254740992"),
+          ("offset", "0.5"),
+          ("offset", "-9007199254740992"),
+        ] {
+        let bad = count_values(
+          declarations,
+          Some("{\"" + field + "\":" + value + "}"),
+        )
+        let bad_bindings = @capacity_program_step.bind_parameters(
+          p,
+          bad,
+          max_work=3,
+          max_text_bytes=17,
+        ).unwrap()
+        assert_eq(
+          @capacity_program_step.check_with_inputs(
+            p,
+            index,
+            claim,
+            [input],
+            max_input_work=1,
+            bindings=Some(bad_bindings),
+          ).unwrap_err(),
+          InvalidBoundMilliseconds(field),
+        )
+      }
+    }
+  }
+}
+
+///|
 fn transport_case(
   body : String,
   last : Int,
@@ -173,6 +439,63 @@ fn transport_case(
     )
     is Ok(_),
   )
+}
+
+///|
+test "repeated duration window options share a budgeted canonical millisecond lookup" {
+  let d = @parameter.read_declarations(
+    Some(cursor("{\"t\":{\"type\":\"string\",\"format\":\"duration\"}}")),
+    { max_parameters: 1, max_nodes: 100, max_depth: 10, max_text_bytes: 1000, },
+  ).unwrap()
+  for events in [false, true] {
+    let p = window_pipeline(
+      "sliding",
+      "\"size\":{\"$param\":\"t\"},\"step\":{\"$param\":\"t\"},\"offset\":{\"$param\":\"t\"}",
+      events,
+      parameters=Some(d),
+    )
+    let input = @capacity_program_step.check(
+      p,
+      0,
+      proof("actql.bound.take", 3, "{\"maximum\":3,\"op\":\"clamp\"}"),
+    ).unwrap()
+    let claim = window_proof(input, events, 1, 3)
+    for token in ["1s", "1S", "01s", "1000ms"] {
+      let values = count_values(d, Some("{\"t\":\"" + token + "\"}"))
+      let bytes = 1 + token.length()
+      let bindings = @capacity_program_step.bind_parameters(
+        p,
+        values,
+        max_work=1,
+        max_text_bytes=bytes,
+      ).unwrap()
+      assert_eq(@capacity_program_step.binding_usage(bindings), (1, bytes))
+      assert_true(
+        @capacity_program_step.bind_parameters(
+          p,
+          values,
+          max_work=1,
+          max_text_bytes=bytes - 1,
+        )
+        is Err(BindingTextLimit),
+      )
+      assert_true(
+        @capacity_program_step.check_with_inputs(
+          p,
+          if events {
+            2
+          } else {
+            1
+          },
+          claim,
+          [input],
+          max_input_work=1,
+          bindings=Some(bindings),
+        )
+        is Ok(_),
+      )
+    }
+  }
 }
 
 ///|

@@ -57,6 +57,12 @@ struct BoundValues {
 }
 
 ///|
+/// The declaration type retained by this admitted parameter value.
+pub fn bound_parameter_type(value : BoundParameter) -> @contract.ParameterType {
+  value.parameter_type
+}
+
+///|
 /// Exact declaration owner used to admit these bindings.
 pub fn bound_declarations(value : BoundValues) -> Declarations {
   value.declarations

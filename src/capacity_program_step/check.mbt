@@ -21,6 +21,7 @@ pub(all) enum Issue {
   BindingWorkLimit
   BindingTextLimit
   InvalidBoundCount
+  InvalidBoundMilliseconds(String)
 } derive(Eq, Debug)
 
 ///|
@@ -76,6 +77,16 @@ fn operation_rule(
   }
   if step.operation is @pipeline.AsOfJoin(..) {
     return Ok(("actql.bound.asof-left", Preserve))
+  }
+  if step.operation is @pipeline.Window(window) {
+    let law = match @window.input(window) {
+      @carrier.Relation(_) => "actql.bound.row-window"
+      @carrier.EventValue(_) => "actql.bound.window-events"
+      _ => return Err(UnsupportedOperation)
+    }
+    return window_factor(@window.options(window), bindings).map(factor => {
+      (law, Multiply(factor))
+    })
   }
   guard step.operation is @pipeline.Unary(operation) else {
     return Err(UnsupportedOperation)

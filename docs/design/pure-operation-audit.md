@@ -226,7 +226,12 @@ matching automaton or proof that session-boundary values have been computed.
    This transports conditional upper bounds, not exact counts or discharged
    intermediate obligations. Parameter selection
    counts now resolve through budgeted lookups retaining exact declaration,
-   pipeline and bound-value owners, without implicit defaults. Collection
+   pipeline and bound-value owners, without implicit defaults.
+   Window applications now validate literal/bound size, step and offset on both
+   Relation and Events inputs and derive exact fixed/sliding membership factors.
+   Duration lookup parses once under an explicit text budget; fixed unused step
+   remains validated and overflow fails. Profile, time-value and endpoint checks
+   remain obligations. Collection
    application coverage now rejects missing unused Program applications and
    substituted child handles under cumulative work limits, while retaining
    other source branches as unresolved. Graph preflight source coverage can now

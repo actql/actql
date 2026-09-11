@@ -12,13 +12,15 @@ import {
   "actql/actql/carrier_projection" @projection,
   "actql/actql/event_typing" @event,
   "actql/actql/vector_typing" @vector,
+  "actql/actql/temporal_window" @window,
+  "actql/actql/carrier_contract" @carrier,
+  "actql/actql/value_contract" @contract,
 }
 
 import {
   "actql/actql/source_value" @source,
   "actql/actql/decode_core" @decode,
   "actql/actql/relation_schema" @schema,
-  "actql/actql/value_contract" @contract,
   "actql/actql/sha256" @sha,
   "moonbitlang/core/encoding/utf8",
 } for "test"

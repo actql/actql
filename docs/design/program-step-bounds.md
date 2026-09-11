@@ -34,6 +34,8 @@ The proof must use the existing `DerivedInputs` form. Its role is
 | `asof_join` | `actql.bound.asof-left`, preserve the exact left input upper bound for either kind and every direction. The right data input is not an operand of this row-count proof. |
 | `unpivot` | `actql.bound.unpivot`, multiplication by the authored column occurrence count, including repetitions. |
 | Array `unnest` with known `max_items` | `actql.bound.unnest-array-items`, multiplication by the checked expansion factor. Outer expansion of a zero-length array uses one, not zero. Unknown bounds remain unresolved. |
+| `row_window` | `actql.bound.row-window`, multiply by one for fixed windows or exact `ceil(size / step)` for sliding windows. |
+| `window_events` | `actql.bound.window-events`, the same membership factor applied to the Events input occurrence bound, with Carrier-preserving output. |
 
 `check_with_inputs` also accepts one input application for selection,
 clamping its bound to the exact checked count. Offset does not weaken this upper
@@ -76,6 +78,28 @@ by the capacity checker. The referenced count must be a positive safe integer,
 even if its declaration merely admits a number. The result retains the bindings
 and their supplied/default provenance; it does not substitute the smaller
 computed bound for the derivation's actual count maximum.
+
+Window size, explicit step and offset all resolve before applying a membership
+factor. Fixed step and every offset remain validated even though they do not
+affect that factor. Size/step require positive safe integers; numeric offsets
+admit signed safe integers. Duration Parameters use their retained declaration
+rule, not a guess from a string's spelling. `bind_parameters` charges the ASCII
+duration token bytes before parsing and caches each root duration once, including
+unused entries; plain strings and nested value trees are not scanned. Repeated
+window references use the cache without reparsing. Defaults remain the Parameter
+binder's responsibility. Missing bindings, invalid numeric options and arithmetic
+overflow reject the application; no rounded, saturated or invented bound escapes.
+Ceiling division uses integer quotient and remainder, not binary64 division or
+an overflowing `size + step - 1`. Time-value, endpoint arithmetic, profile and
+publication-resource obligations remain on the checked window.
+
+These are the existing `event-windows` laws and the two window bound laws used
+by Sketch at `87dc7144`; no source spelling or identity changes. Tests exercise
+both Carriers, fixed-step retention, negative offsets, exact and fractional
+ratios, step larger than size, safe-integer endpoints, bound multiplication
+overflow, duration spelling equivalence, repeated option references and exact
+lookup text budgets. Invalid fixed step and offset bindings fail even though
+the expected membership multiplier is one.
 
 Binding checks are local application evidence, not whole-Invocation consistency.
 Applications and their ancestors retain their respective binding owners; the

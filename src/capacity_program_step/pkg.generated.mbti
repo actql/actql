@@ -83,6 +83,7 @@ pub(all) enum Issue {
   BindingWorkLimit
   BindingTextLimit
   InvalidBoundCount
+  InvalidBoundMilliseconds(String)
 } derive(Eq, @debug.Debug)
 
 type StepBound
