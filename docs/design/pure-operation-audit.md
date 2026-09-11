@@ -737,7 +737,13 @@ admission, resource enforcement or complete source authority.
    budget, including repeated and unused visits. Nonlocal proof-table entries
    now require validated producer coordinates, exact pipeline ownership and
    matching bound values in the same closure. Missing/foreign registrations and
-   binding substitutions fail under a shared linear scan budget. Enclosing
+   binding substitutions fail under a shared linear scan budget.
+   Graph input dependencies now also resolve to the exact registered preflight
+   owner, automatically for proof-local roots or through checked contextual
+   coordinates for imported roots. Missing, duplicate and detached preflight
+   registrations fail; repeated tables and dependency occurrences are charged.
+   This preserves pending preflight enforcement rather than claiming execution.
+   Enclosing
    Program/Invocation semantic identity remains unfinished; closure membership
    and owner-relative coordinates are not substitutes for that identity.
    Do not

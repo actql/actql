@@ -14,6 +14,11 @@ pub(all) enum ApplicationClosureIssue {
   ForeignProofOwner(Int, Int)
   MissingProofOwner(Int, Int)
   ProofBindingMismatch(Int, Int)
+  InvalidInputOwner(Int, Int, Int)
+  DuplicateInputOwner(Int, Int, Int)
+  UnnecessaryInputOwner(Int, Int, Int)
+  MissingInputOwner(Int, Int, Int)
+  ForeignInputOwner(Int, Int, Int)
 } derive(Eq, Debug)
 
 ///|
@@ -26,6 +31,7 @@ struct ApplicationClosure {
   guards : @pipeline.BoundGuardClosure
   bound_applications : Array[@program.GuardApplications]
   proof_owners : Map[(Int, Int), Int]
+  input_owners : Map[(Int, Int, Int), Int]
   work : Int
 }
 
@@ -36,6 +42,7 @@ pub fn check_application_closure(
   selected_policy~ : @policy.Policy,
   bound_guards~ : @pipeline.BoundGuardClosure,
   proof_owners? : Array[(Int, Int, Int)] = [],
+  input_owners? : Array[(Int, Int, Int, Int)] = [],
   max_work~ : Int,
 ) -> Result[ApplicationClosure, ApplicationClosureIssue] {
   if max_work < 0 {
@@ -93,6 +100,17 @@ pub fn check_application_closure(
     Err(e) => return Err(e)
   }
   work += membership.work
+  let inputs = match
+    check_input_membership(
+      applications,
+      membership.owners,
+      input_owners,
+      max_work - work,
+    ) {
+    Ok(v) => v
+    Err(e) => return Err(e)
+  }
+  work += inputs.work
   Ok({
     orders,
     entries: applications.copy(),
@@ -100,8 +118,20 @@ pub fn check_application_closure(
     guards: bound_guards,
     bound_applications,
     proof_owners: membership.owners,
+    input_owners: inputs.owners,
     work,
   })
+}
+
+///|
+/// Contextual visit containing the exact retained Graph preflight owner.
+pub fn application_closure_input_owner(
+  v : ApplicationClosure,
+  visit : Int,
+  claim : Int,
+  dependency : Int,
+) -> Int? {
+  v.input_owners.get((visit, claim, dependency))
 }
 
 ///|

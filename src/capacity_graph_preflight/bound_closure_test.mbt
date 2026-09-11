@@ -136,7 +136,7 @@ test "producer capacity closure rejects substituted bindings at a later repeated
   let cost = 3 +
     @capacity_graph_preflight.application_coverage_work(a) +
     2 * @capacity_graph_preflight.application_coverage_work(b) +
-    4
+    6
   let guards = @pipeline.bind_contextual_guards(
     orders,
     [None, Some(values), Some(values)],
@@ -209,6 +209,7 @@ test "producer capacity closure rejects substituted bindings at a later repeated
   let membership_cost = 3 +
     @capacity_graph_preflight.application_coverage_work(cross) +
     2 * @capacity_graph_preflight.application_coverage_work(b) +
+    3 +
     3 +
     3 +
     1

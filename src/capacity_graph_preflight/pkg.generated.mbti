@@ -19,6 +19,8 @@ pub fn application_closure_bindings_at(ApplicationClosure, Int) -> @capacity_pro
 
 pub fn application_closure_guards(ApplicationClosure) -> @pipeline_typing.BoundGuardClosure
 
+pub fn application_closure_input_owner(ApplicationClosure, Int, Int, Int) -> Int?
+
 pub fn application_closure_orders(ApplicationClosure) -> @pipeline_typing.ContextualClosure
 
 pub fn application_closure_policy(ApplicationClosure) -> @capacity_policy.Policy
@@ -35,7 +37,7 @@ pub fn application_coverage_work(ApplicationCoverage) -> Int
 
 pub fn check(@pipeline_typing.CheckedPipeline, @capacity_host_witness.HostSources, @capacity_policy.Policy, @capacity_graph_input.Limits) -> Result[@capacity_graph_input.GraphInputs, @capacity_graph_input.Issue]
 
-pub fn check_application_closure(@pipeline_typing.ContextualClosure, Array[ApplicationCoverage], selected_policy~ : @capacity_policy.Policy, bound_guards~ : @pipeline_typing.BoundGuardClosure, proof_owners? : Array[(Int, Int, Int)], max_work~ : Int) -> Result[ApplicationClosure, ApplicationClosureIssue]
+pub fn check_application_closure(@pipeline_typing.ContextualClosure, Array[ApplicationCoverage], selected_policy~ : @capacity_policy.Policy, bound_guards~ : @pipeline_typing.BoundGuardClosure, proof_owners? : Array[(Int, Int, Int)], input_owners? : Array[(Int, Int, Int, Int)], max_work~ : Int) -> Result[ApplicationClosure, ApplicationClosureIssue]
 
 pub fn check_application_coverage(@capacity_graph_input.GraphInputs, @capacity_program_step.Applications, @capacity_sequence_limit.Applications, joins? : @capacity_program_step.JoinApplications?, max_work~ : Int) -> Result[ApplicationCoverage, ApplicationCoverageIssue]
 
@@ -91,6 +93,11 @@ pub(all) enum ApplicationClosureIssue {
   ForeignProofOwner(Int, Int)
   MissingProofOwner(Int, Int)
   ProofBindingMismatch(Int, Int)
+  InvalidInputOwner(Int, Int, Int)
+  DuplicateInputOwner(Int, Int, Int)
+  UnnecessaryInputOwner(Int, Int, Int)
+  MissingInputOwner(Int, Int, Int)
+  ForeignInputOwner(Int, Int, Int)
 } derive(Eq, @debug.Debug)
 
 type ApplicationCoverage

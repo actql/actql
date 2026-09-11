@@ -239,6 +239,24 @@ and an exact/one-short membership budget. This establishes membership in the
 submitted producer closure, not semantic Program/Invocation identity or Host
 authority; normal proof-input checks still govern actual dependency edges.
 
+Graph preflight dependencies are also checked against the registered contextual
+coverage. A dependency whose exact `GraphInputs` handle is the proof owner's
+registered preflight resolves automatically to that visit. Other roots require
+`input_owners` coordinates `(table visit, claim index, dependency index,
+producer visit)`. The target must hold that exact preflight handle; equal input
+names, equal CIDs, or rerunning the same check are not substitutes. This is
+ownership consistency of the submitted checks, not a restriction on rechecking
+a Program with a newly assembled consistent set of owners.
+
+The additional scan charges every table slot and every ordered proof dependency,
+including repeated dependencies and tables, plus one unit per registration.
+Missing, duplicate, out-of-range, unnecessary and foreign registrations fail
+atomically. `application_closure_input_owner` exposes the retained resolved
+visit without retaining the caller's registration array. Local and imported
+regressions cover exact/one-short budgets and replacement of a preflight with
+an independently checked identical input. The preflight execution obligation
+remains on the retained input owner; membership does not claim it has run.
+
 This establishes supported local capacity coverage across the producer graph,
 not complete source authority or all capacity consumers. Contextual resolution
 and the prerequisite local checks retain their own budgets; this aggregate is
