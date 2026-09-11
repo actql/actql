@@ -120,6 +120,163 @@ fn bound_id(bound : @capacity_program_step.StepBound) -> String {
 }
 
 ///|
+fn consume(
+  producer : @pipeline.CheckedPipeline,
+  target : @pipeline.Target,
+  body : String,
+) -> @pipeline.CheckedPipeline {
+  @pipeline.check_with_evidence(
+    cursor(body),
+    [
+      (
+        "prior",
+        @pipeline.ProducedInput(
+          @pipeline.produced_input(producer, target).unwrap(),
+        ),
+      ),
+    ],
+    None,
+    None,
+    {
+      max_steps: 20,
+      max_work: 10000,
+      max_text_bytes: 10000,
+      max_nodes: 10000,
+      max_tokens: 10000,
+      max_depth: 100,
+    },
+  ).unwrap()
+}
+
+///|
+test "producer edges retain exact source owners and cumulative traversal work" {
+  let root = pipeline("[{\"take\":7}]")
+  let root_claim = proof(
+    "actql.bound.take", 7, "{\"maximum\":7,\"op\":\"clamp\"}",
+  )
+  let a = @capacity_program_step.check(root, 0, root_claim).unwrap()
+  let id = bound_id(a)
+  let middle = consume(root, @pipeline.Step(0), "[]")
+  let end = consume(
+    middle,
+    @pipeline.Input(0),
+    "[{\"append\":{\"with\":\"prior\"}}]",
+  )
+  let claim = proof(
+    "actql.bound.append",
+    14,
+    "{\"left\":\"" + id + "\",\"op\":\"add\",\"right\":\"" + id + "\"}",
+    inputs=[id, id],
+  )
+  let checked = @capacity_program_step.check_with_inputs(
+    end,
+    0,
+    claim,
+    [a, a],
+    max_input_work=4,
+  ).unwrap()
+  assert_eq(@capacity_program_step.input_work(checked), 4)
+  assert_true(
+    physical_equal(@capacity_program_step.checked_pipeline(checked), end),
+  )
+  assert_true(
+    physical_equal(@capacity_program_step.input_at(checked, 0).unwrap(), a),
+  )
+  assert_true(
+    @capacity_program_step.check_with_inputs(
+      end,
+      0,
+      claim,
+      [a, a],
+      max_input_work=3,
+    )
+    is Err(InputWorkLimit),
+  )
+  assert_true(
+    @capacity_program_step.check_with_inputs(end, 0, claim, [a, a])
+    is Err(InputWorkLimit),
+  )
+  assert_true(
+    @capacity_program_step.check_with_inputs(
+      end,
+      0,
+      claim,
+      [a, a],
+      max_input_work=-1,
+    )
+    is Err(InvalidInputWorkLimit),
+  )
+  let foreign = @capacity_program_step.check(
+    pipeline("[{\"take\":7}]"),
+    0,
+    root_claim,
+  ).unwrap()
+  assert_true(
+    @capacity_program_step.check_with_inputs(
+      end,
+      0,
+      claim,
+      [a, foreign],
+      max_input_work=4,
+    )
+    is Err(InputOwnerMismatch(1)),
+  )
+  let ordinary = pipeline("[{\"append\":{\"with\":\"rows\"}}]")
+  assert_true(
+    @capacity_program_step.check_with_inputs(
+      ordinary,
+      0,
+      claim,
+      [a, a],
+      max_input_work=4,
+    )
+    is Err(MissingInputProducer(0)),
+  )
+}
+
+///|
+test "forwarded proof inputs use an iterative bounded walk" {
+  let root = pipeline("[{\"take\":7}]")
+  let a = @capacity_program_step.check(
+    root,
+    0,
+    proof("actql.bound.take", 7, "{\"maximum\":7,\"op\":\"clamp\"}"),
+  ).unwrap()
+  let mut owner = root
+  let mut target = @pipeline.Step(0)
+  for _ in 0..<2000 {
+    owner = consume(owner, target, "[]")
+    target = @pipeline.Input(0)
+  }
+  let end = consume(owner, target, "[{\"take\":3}]")
+  let id = bound_id(a)
+  let claim = proof(
+    "actql.bound.take",
+    3,
+    "{\"input\":\"" + id + "\",\"maximum\":3,\"op\":\"clamp\"}",
+    inputs=[id],
+  )
+  let checked = @capacity_program_step.check_with_inputs(
+    end,
+    0,
+    claim,
+    [a],
+    max_input_work=2001,
+  ).unwrap()
+  assert_eq(@capacity_program_step.input_work(checked), 2001)
+  assert_true(
+    @capacity_program_step.check_with_inputs(
+      end,
+      0,
+      claim,
+      [a],
+      max_input_work=2000,
+    )
+    is Err(InputWorkLimit),
+  )
+}
+
+///|
 test "unnest derives expansion from the admitted array bound including outer empty arrays" {
   for
     (maximum, outer, factor) in [

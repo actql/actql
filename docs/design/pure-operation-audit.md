@@ -153,7 +153,9 @@ or order evidence, capacity sources, or the remaining operation audit.
    operation, using owner-relative step references and checking law/unit/value
    and derivation. Input-dependent append, literal clamps and known unpivot/
    unnest expansion now retain checked child applications from actual same-owner
-   producer edges, preserving repeated operands and checking arithmetic. External
+   producer edges, preserving repeated operands and checking arithmetic. Retained
+   `ProducedInput` links also connect exact upstream owners through forwarding
+   inputs under cumulative iterative-traversal budgets. Plain external
    input applications, general imported semantic subjects and enclosing Program
    identity remain open; arithmetic closure or matching an
    `as` name cannot substitute for those boundaries.

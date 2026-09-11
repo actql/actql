@@ -84,9 +84,11 @@ enclosing Program identity.
 | `actql.bound.unpivot`, `actql.bound.unnest-array-items` | Derive the expansion factor from the checked column occurrences or admitted item bound. Repeated unpivot columns count repeatedly; outer unnest of an empty array may still contribute one row. A self-consistent multiplication by a caller-selected factor is insufficient. |
 | Graph input enforced ceilings | Use the existing mixed-limit and Graph preflight binding, not a fabricated ordinary Program proof. Input node and edge measures remain distinct; successful static binding does not observe their counts. |
 
-The checked step entry now applies the global-group and input-free literal
-take/top-k cases above. Input-dependent and imported semantic-subject application
-remain unimplemented. Author-guard Program Definition identity
+The checked step entry now applies the global-group, literal take/top-k, append
+and known unpivot/unnest cases above. Producer-input edges can retain applications
+across exact checked owners, with bounded iterative forwarding traversal. Plain
+external source facts and imported semantic-subject application remain
+unimplemented. Author-guard Program Definition identity
 and bound Invocation consistency are separate prerequisites; a fragment hash or
 an authored alias does not supply either identity. No additional law name,
 source constructor or runnable Plan is introduced by this audit.

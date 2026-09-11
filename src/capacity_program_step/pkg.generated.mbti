@@ -10,7 +10,7 @@ import {
 // Values
 pub fn check(@pipeline_typing.CheckedPipeline, Int, @capacity_witness.ProgramProofClaim) -> Result[StepBound, Issue]
 
-pub fn check_with_inputs(@pipeline_typing.CheckedPipeline, Int, @capacity_witness.ProgramProofClaim, Array[StepBound]) -> Result[StepBound, Issue]
+pub fn check_with_inputs(@pipeline_typing.CheckedPipeline, Int, @capacity_witness.ProgramProofClaim, Array[StepBound], max_input_work? : Int) -> Result[StepBound, Issue]
 
 pub fn checked_pipeline(StepBound) -> @pipeline_typing.CheckedPipeline
 
@@ -21,6 +21,8 @@ pub fn checked_step(StepBound) -> Int
 pub fn input_at(StepBound, Int) -> StepBound?
 
 pub fn input_count(StepBound) -> Int
+
+pub fn input_work(StepBound) -> Int
 
 pub fn subject_ref(@pipeline_typing.CheckedPipeline, Int) -> String?
 
@@ -41,6 +43,9 @@ pub(all) enum Issue {
   InputTargetMismatch(Int)
   InputWitnessMismatch(Int)
   BoundOverflow
+  InvalidInputWorkLimit
+  InputWorkLimit
+  MissingInputProducer(Int)
 } derive(Eq, @debug.Debug)
 
 type StepBound

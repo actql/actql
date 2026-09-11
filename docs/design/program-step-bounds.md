@@ -39,9 +39,12 @@ clamping its bound to the exact checked count. Offset does not weaken this upper
 bound and remains an independent checked-operation obligation. `check` is the
 input-free convenience entry.
 
-Input applications must retain the same physical pipeline owner and match the
-actual producer step on each data edge. Ordinary external input facts cannot be
-substituted for these owners. Proof input IDs are sorted with repetitions;
+Input applications must retain the exact physical producer pipeline owner and
+match the actual producer step on each data edge. For a local step this is the
+current pipeline; for a `ProducedInput`, the check follows its retained owner and
+target through forwarding inputs. Equal source text, names or counts never
+substitute for that owner. Ordinary external input facts cannot be substituted
+for these owners. Proof input IDs are sorted with repetitions;
 derivation operands must additionally preserve their actual left/right roles.
 Checked arithmetic rejects overflow rather than rounding or saturating. The
 result retains immutable child applications without rewalking their ancestors.
@@ -54,9 +57,16 @@ Tighter available input bounds and other applicable capacity candidates must
 still participate in final resolution. This entry never creates a ceiling or
 converts a guard into a measured bound.
 
-The check inspects one already-admitted step and at most two child applications
-in bounded constant work; oversized input arrays are rejected before traversal
-or copying. Existing source/claim admission owns recursive byte/node limits;
+The local check inspects one already-admitted step and at most two child
+applications in bounded constant work; oversized input arrays are rejected
+before traversal or copying. Following producer inputs is optional and uses
+`max_input_work` (default zero): one work unit per visited input link, shared
+across both operands, including repetitions. `input_work` reports consumed work
+on success. Negative limits fail; exhaustion fails without exposing a partial
+application. Forwarding walks are iterative, do not copy input trees, and stop
+only at an actual producer step. A plain external input without a retained
+producer is explicitly rejected rather than inventing source evidence.
+Existing source/claim admission owns recursive byte/node limits;
 there is no new unbounded collection traversal. Collection-wide application and
 completeness remain required at the combined boundary.
 
@@ -68,3 +78,7 @@ versus partitioned selection and unresolved Parameter defaults are also tested.
 Input-dependent tests cover foreign owners, swapped data roles, repeated edges,
 false arithmetic claims, overflow, repeated unpivot columns and outer unnest
 of empty arrays. These are operation-application tests, not evaluator tests.
+Producer tests additionally cover repeated cross-owner operands, a wrong owner
+on the second operand, ordinary external inputs, exact work boundaries and a
+2,000-owner forwarding chain. Retaining a producer does not discharge its
+runtime obligations or establish whole-Program/Invocation identity.

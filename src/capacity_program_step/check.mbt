@@ -13,6 +13,9 @@ pub(all) enum Issue {
   InputTargetMismatch(Int)
   InputWitnessMismatch(Int)
   BoundOverflow
+  InvalidInputWorkLimit
+  InputWorkLimit
+  MissingInputProducer(Int)
 } derive(Eq, Debug)
 
 ///|
@@ -22,6 +25,7 @@ struct StepBound {
   index : Int
   proof : @wire.ProgramProofClaim
   inputs : Array[StepBound]
+  input_work : Int
 }
 
 ///|
@@ -90,13 +94,18 @@ fn operation_rule(
 
 ///|
 /// Inputs are verified applications in actual data-input order, not CID order.
-/// Imported input facts and Program identity require their separate owners.
+/// Producer-input traversal requires an explicit cumulative work allowance.
+/// Imported external facts and Program identity require their separate owners.
 pub fn check_with_inputs(
   pipeline : @pipeline.CheckedPipeline,
   index : Int,
   proof : @wire.ProgramProofClaim,
   inputs : Array[StepBound],
+  max_input_work? : Int = 0,
 ) -> Result[StepBound, Issue] {
+  if max_input_work < 0 {
+    return Err(InvalidInputWorkLimit)
+  }
   guard @pipeline.step_at(pipeline, index) is Some(step) else {
     return Err(MissingStep)
   }
@@ -124,11 +133,25 @@ pub fn check_with_inputs(
   }
   let edges = @pipeline.input_occurrences(step)
   let ids : Array[String] = []
+  let mut input_work = 0
   for i in 0..<n {
-    if !physical_equal(inputs[i].pipeline, pipeline) {
+    let mut owner = pipeline
+    let mut target = edges[i].target
+    while target is @pipeline.Input(input_index) {
+      if input_work >= max_input_work {
+        return Err(InputWorkLimit)
+      }
+      input_work = input_work + 1
+      guard @pipeline.input_producer(owner, input_index) is Some(producer) else {
+        return Err(MissingInputProducer(i))
+      }
+      owner = @pipeline.producer_pipeline(producer)
+      target = @pipeline.producer_target(producer)
+    }
+    if !physical_equal(inputs[i].pipeline, owner) {
       return Err(InputOwnerMismatch(i))
     }
-    if edges[i].target != @pipeline.Step(inputs[i].index) {
+    if target != @pipeline.Step(inputs[i].index) {
       return Err(InputTargetMismatch(i))
     }
     ids.push(@wire.cid(@wire.program_proof_witness(inputs[i].proof)))
@@ -185,7 +208,7 @@ pub fn check_with_inputs(
       input == ids[0] => ()
     _ => return Err(InvalidDerivation)
   }
-  Ok({ pipeline, index, proof, inputs: inputs.copy(), })
+  Ok({ pipeline, index, proof, inputs: inputs.copy(), input_work, })
 }
 
 ///|
@@ -211,4 +234,10 @@ pub fn input_count(v : StepBound) -> Int {
 ///|
 pub fn input_at(v : StepBound, index : Int) -> StepBound? {
   v.inputs.get(index)
+}
+
+///|
+/// Producer-input links visited, cumulatively across repeated operands.
+pub fn input_work(v : StepBound) -> Int {
+  v.input_work
 }
