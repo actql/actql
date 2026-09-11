@@ -272,8 +272,43 @@ The derivation charges pair preparation and candidate selection to the pipeline'
 shared work/text budgets and keeps both sources of evidence. Conditional count
 transfer uses these combined facts without evaluating rows or discharging
 `ValidateCardinality` or producer/input admission obligations. Join-output key
-transfer and dependency-closed Plan serialization remain separate unfinished
-connections; this pass does not grant downstream output uniqueness by a flag.
+transfer is now connected separately as described below. Dependency-closed Plan
+serialization remains unfinished; neither pass grants uniqueness by a flag.
+
+## Conditional join-output keys
+
+`transfer_join_keys` validates each supplied KeySet against its exact operand
+schema and computes whole-key coverage of the actual equality pairs. Semi/anti
+retain left witnesses; inner/left retain left keys when right coverage or an
+authored assertion requires at most one match, and inner symmetrically retains
+right keys. A coverage witness is retained even if its columns are not projected.
+
+Inner/left/full also combine surviving left and right tuples. Full joins require
+a known non-null component in each original key to distinguish an unmatched
+side from a real all-null tuple; otherwise this pair witness is not produced.
+Null-extended output components remain nullable and cannot silently become
+non-null canonical-order evidence. This does not reject the join itself or
+claim that every possible full-join proof is implemented.
+
+Every resulting `JoinResult` retains the checked join and role-tagged parent
+witnesses. Self-joins do not erase Left/Right roles merely because the same
+record handle is used twice. `key_pending` requires producer validation;
+`key_join_dependency_at` exposes the original producer/input obligations, and
+the checked join retains cardinality assertions and its own pending checks.
+Dropping a projected column cannot remove a hidden validation dependency.
+
+Projection maps are prepared once per side and preserve all aliases of each
+component. A missing component removes only that candidate. Combining multiple
+independent left/right keys can yield multiple pair witnesses; pair enumeration
+and component storage consume the shared work budget before allocation. Equal
+values or matching displayed names do not merge witnesses. The shared pipeline
+connects transferred keys before downstream join/order/count consumers run.
+The original pipeline's order and execution obligations still apply.
+
+Regression tests cover all five kinds, key-derived and asserted cardinality,
+keyless opposite inputs, equality fields not covering a key, full-join null
+sentinels, retained parent roles, multiple projection aliases followed by drop
+and sort/take, exact work/text limits and structurally equal foreign schemas.
 
 ## Join evidence dependency boundary
 
@@ -317,9 +352,11 @@ The implementation must cover, and distinguish, these cases:
 - Projection can remove all usable keys, and subsequent joins cannot recover
   missing components merely from identical column types or strings.
 
-This is an implementation dependency plan, not evidence that join transfer is
-finished. The next acceptance run must include all five join kinds, assertion
-and key-derived cardinality, asymmetric inputs, repeated equality pairs,
-multiple aliases followed by deletion, downstream sort/take/Result consumers,
-and work/text boundaries. Existing join cardinality/count tests remain required
-regressions. Algebra lowering and runtime validation stay separate.
+The dependency split and conditional transfer above are implemented. Acceptance
+includes all five join kinds, assertion and key-derived cardinality, asymmetric
+inputs, repeated equality pairs, aliases followed by deletion, downstream
+sort/take/Result consumers and work/text boundaries. Existing join
+cardinality/count tests remain regressions. This does not complete the entire
+shared evidence audit: other binary operators, authenticated external facts,
+dependency-closed Plan serialization, lowering and runtime validation remain
+separate work.

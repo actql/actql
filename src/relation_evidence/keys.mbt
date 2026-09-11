@@ -53,6 +53,7 @@ pub(all) enum KeyOrigin {
   VectorProjectionResult
   GraphProjectionResult
   WindowMembershipResult
+  JoinResult
 } derive(Eq, Debug)
 
 ///|
@@ -63,6 +64,7 @@ priv enum KeyProducer {
   VectorProjectionProducer(@projection.CheckedProjection)
   GraphProjectionProducer(@projection.CheckedProjection)
   WindowProducer(@window.CheckedWindow, KeyedRelation)
+  JoinProducer(@join.CheckedJoin, Array[(@row.Side, KeyedRelation)])
 }
 
 ///|
