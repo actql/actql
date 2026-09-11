@@ -160,7 +160,10 @@ or order evidence, capacity sources, or the remaining operation audit.
    pipeline and bound-value owners, without implicit defaults. Collection
    application coverage now rejects missing unused Program applications and
    substituted child handles under cumulative work limits, while retaining
-   other source branches as unresolved. Plain external
+   other source branches as unresolved. Graph preflight source coverage can now
+   join Host and ordinary Program application checks for the same exact claim
+   collection, rejecting unsupported source branches without implying full
+   limit consumption or source authority. Plain external
    input applications, general imported semantic subjects and enclosing Program
    identity remain open; arithmetic closure or matching an
    `as` name cannot substitute for those boundaries.

@@ -63,3 +63,26 @@ the remaining consumers before claiming execution readiness.
 Tests use independently hashed fixed wire artifacts and cover both measures,
 repeated candidates, exact budgets, foreign scopes, incomplete and duplicate
 bindings, unsupported candidates, opaque Graph inputs and unused inputs.
+
+## Shared source coverage
+
+`check_source_coverage` combines `GraphInputs` with the ordinary Program
+application table from `capacity_program_step`. Both must retain the exact same
+`ProgramClaims` owner; identical-looking separately admitted collections cannot
+be substituted. Each claim must have either an admitted Host source, a checked
+ordinary Program application, or a mixed enforced-limit association already
+validated by the Graph preflight checker. This includes unused claims. Other
+sources fail explicitly instead of being treated as trusted because their CIDs
+and arithmetic are internally consistent.
+
+The flat coverage scan costs one work unit per witness and retains both checked
+owners without copying their trees. It does not change the selected policy's
+authority status, establish enclosing Program/Invocation identity, or consume
+additional limits. In particular `unconsumed_limit_count` on the retained Graph
+result remains meaningful after source coverage succeeds. The combined result
+is source-application coverage for this supported subset, not a runnable Plan
+or a claim that Contract/Language source application has been implemented.
+
+Regression checks cover exact scan limits, same-content foreign collection
+owners, remaining unused limits, and a valid Contract wire claim whose source
+body has not been admitted.

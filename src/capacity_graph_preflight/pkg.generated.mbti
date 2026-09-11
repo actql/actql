@@ -4,6 +4,7 @@ package "actql/actql/capacity_graph_preflight"
 import {
   "actql/actql/capacity_host_witness",
   "actql/actql/capacity_policy",
+  "actql/actql/capacity_program_step",
   "actql/actql/capacity_witness",
   "actql/actql/pipeline_typing",
   "moonbitlang/core/debug",
@@ -14,6 +15,8 @@ pub fn check(@pipeline_typing.CheckedPipeline, @capacity_host_witness.HostSource
 
 pub fn check_complete(@pipeline_typing.CheckedPipeline, @capacity_host_witness.HostSources, @capacity_policy.Policy, Limits) -> Result[GraphInputs, Issue]
 
+pub fn check_source_coverage(GraphInputs, @capacity_program_step.Applications, max_work~ : Int) -> Result[SourceCoverage, SourceCoverageIssue]
+
 pub fn checked_pipeline(GraphInputs) -> @pipeline_typing.CheckedPipeline
 
 pub fn checked_sources(GraphInputs) -> @capacity_host_witness.HostSources
@@ -21,6 +24,12 @@ pub fn checked_sources(GraphInputs) -> @capacity_host_witness.HostSources
 pub fn input_limit(GraphInputs, Int, Measure) -> @capacity_witness.LimitClaim?
 
 pub fn selected_policy(GraphInputs) -> @capacity_policy.Policy
+
+pub fn source_coverage_graph(SourceCoverage) -> GraphInputs
+
+pub fn source_coverage_program(SourceCoverage) -> @capacity_program_step.Applications
+
+pub fn source_coverage_work(SourceCoverage) -> Int
 
 pub fn unconsumed_limit_count(GraphInputs) -> Int
 
@@ -54,6 +63,15 @@ pub(all) struct Limits {
 pub(all) enum Measure {
   Nodes
   Edges
+} derive(Eq, @debug.Debug)
+
+type SourceCoverage
+
+pub(all) enum SourceCoverageIssue {
+  InvalidLimits
+  ForeignClaims
+  WorkLimit
+  UnsupportedSource(Int)
 } derive(Eq, @debug.Debug)
 
 // Type aliases
