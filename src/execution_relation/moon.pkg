@@ -4,4 +4,11 @@ import {
   "actql/actql/lowering_relation" @lower,
   "actql/actql/value_admission" @admitted,
   "actql/actql/canonical_value" @canonical,
+  "actql/actql/relation_typing" @relation,
 }
+
+import {
+  "actql/actql/pipeline_typing" @pipeline,
+  "actql/actql/source_value" @source,
+  "actql/actql/decode_core" @decode,
+} for "wbtest"

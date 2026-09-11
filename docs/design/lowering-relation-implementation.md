@@ -182,3 +182,28 @@ ordering remain the evaluator's responsibility, not a guarantee of these
 already-evaluated-operand helpers. Captured immutable values are retained for
 pass-through; unsupported comparison domains return a distinct implementation
 gap instead of inventing stringified equality.
+
+## Expression control increment
+
+The private `execution_relation` evaluator consumes lowerer-created expressions
+using a typed continuation stack, not recursion or re-parsed source. Fixed tests
+exercise actual checked/lowered expressions: lazy IF/CASE/coalesce, eager AND,
+left-before-right failure, missing-field rejection, exact control-work and stack
+boundaries, shared counters across roots, fresh execution after failure, and
+512 nested unary operations. JS, Wasm and native each pass 8 execution-package
+tests (3 scalar plus 5 control tests).
+
+This is deliberately not a public execution entry point. Its row frame must
+eventually come from the admitted fragment executor. The current input map and
+slot array are internal borrowed inputs, not evidence of public ownership
+admission. Private code currently has only whitebox-test callers, so ordinary
+builds report unused-code warnings; these are not suppressed or represented as
+completed integration.
+
+Control transitions and continuation depth are bounded here, but this is not
+complete resource enforcement: runtime text work, nested-value sizes,
+defensive-copy child arrays, retained output and physical live-value accounting
+remain to be connected. A bounded lowering tree is not a replacement for those
+execution limits. The four-operation fragment, registry-bound node emission,
+input/schema ownership admission, map row loop and ordered-kernel integration
+remain open. No ordered derive executable wire form or shared pin changed.
