@@ -101,7 +101,7 @@ test "conditional join assertions refine bounds without becoming validated key e
             @capacity_program_step.check_join_with_uniqueness(p, 2, claim, [
               right, left,
             ])
-            is Err(InputTargetMismatch(0)),
+            is Err(InputWorkLimit),
           )
         }
       }

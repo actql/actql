@@ -16,6 +16,7 @@ import {
   "actql/actql/carrier_contract" @carrier,
   "actql/actql/value_contract" @contract,
   "actql/actql/relation_join_shape" @join,
+  "actql/actql/calendar_typing" @calendar,
 }
 
 import {
@@ -23,6 +24,7 @@ import {
   "actql/actql/decode_core" @decode,
   "actql/actql/relation_schema" @schema,
   "actql/actql/relation_evidence" @evidence,
+  "actql/actql/calendar_profile",
   "actql/actql/sha256" @sha,
   "moonbitlang/core/encoding/utf8",
 } for "test"

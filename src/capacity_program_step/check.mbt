@@ -167,9 +167,32 @@ fn forwarded_input(step : @pipeline.CheckedStep) -> @pipeline.Target? {
   let preserves_upper = match step.operation {
     @pipeline.Unary(op) | @pipeline.WindowGroup(op) =>
       match @relation.row_count_rule(op) {
-        @relation.Preserve | @relation.Reduce | @relation.OneExistingRow => true
+        @relation.Preserve
+        | @relation.Reduce
+        | @relation.OneExistingRow
+        | @relation.Slice(..) => true
+        @relation.Repeat(n) | @relation.Expand(Some(n)) => n <= 1L
         _ => false
       }
+    @pipeline.Set(..)
+    | @pipeline.Nest(..)
+    | @pipeline.AsOfJoin(..)
+    | @pipeline.Pool(_) => true
+    @pipeline.Join(checked~, ..) =>
+      match @join.kind(checked) {
+        @join.Semi | @join.Anti => true
+        _ => false
+      }
+    @pipeline.IntervalJoin(checked~, ..) =>
+      match @join.interval_kind(checked) {
+        @join.Semi | @join.Anti => true
+        _ => false
+      }
+    @pipeline.CrossJoin(checked~, ..) =>
+      @join.cross_requires_one_right_row(checked)
+    @pipeline.Calendar(op) =>
+      @calendar.cardinality(op) == @calendar.PreserveInput
+    @pipeline.Window(op) => @window.kind(@window.options(op)) == @window.Fixed
     @pipeline.Event(op) =>
       match @event.options(op) {
         @event.ToEvents

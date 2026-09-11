@@ -23,6 +23,7 @@ fn pipeline(
     NumberType,
     nullable=false,
   ),
+  calendar_profile? : @calendar_profile.Profile? = None,
 ) -> @pipeline.CheckedPipeline {
   let schema = @schema.from_object(
     @contract.object_contract(
@@ -32,14 +33,21 @@ fn pipeline(
       max_name_bytes=2,
     ).unwrap(),
   ).unwrap()
-  @pipeline.check(cursor(body), [("rows", schema)], parameters, None, {
-    max_steps: 20,
-    max_work: 10000,
-    max_text_bytes: 10000,
-    max_nodes: 10000,
-    max_tokens: 10000,
-    max_depth: 100,
-  }).unwrap()
+  @pipeline.check(
+    cursor(body),
+    [("rows", schema)],
+    parameters,
+    None,
+    {
+      max_steps: 20,
+      max_work: 10000,
+      max_text_bytes: 10000,
+      max_nodes: 10000,
+      max_tokens: 10000,
+      max_depth: 100,
+    },
+    calendar_profile~,
+  ).unwrap()
 }
 
 ///|
@@ -394,7 +402,7 @@ test "nearest bounds select query evidence and retain candidate-dependent factor
             [c],
             max_input_work=2,
           )
-          is Err(InputTargetMismatch(0)),
+          is Err(InputWorkLimit),
         )
         assert_true(
           @capacity_program_step.check_with_inputs(
@@ -442,7 +450,7 @@ test "nearest bounds select query evidence and retain candidate-dependent factor
             [q, c],
             max_input_work=4,
           )
-          is Err(InputTargetMismatch(0)),
+          is Err(MissingInputProducer(0)),
         )
         let claims = program_claims([cp, qp, tight])
         assert_true(
@@ -612,7 +620,7 @@ test "maximum and weighted ranking policies bind both ordered score input bounds
           [r, l],
           max_operand_work=10,
         )
-        is Err(InputTargetMismatch(0)),
+        is Err(InputWorkLimit),
       )
       if !global {
         let reversed = proof(
@@ -1398,7 +1406,7 @@ test "as-of output bounds retain the left application independently of right car
         )
         assert_true(
           @capacity_program_step.check_with_inputs(p, 2, claim, [right])
-          is Err(InputTargetMismatch(0)),
+          is Err(InputWorkLimit),
         )
         let false_value = proof(
           "actql.bound.asof-left",
@@ -1872,7 +1880,7 @@ test "producer edges retain exact source owners and cumulative traversal work" {
       [a, foreign],
       max_input_work=4,
     )
-    is Err(InputOwnerMismatch(1)),
+    is Err(InputWorkLimit),
   )
   let ordinary = pipeline("[{\"append\":{\"with\":\"rows\"}}]")
   assert_true(
@@ -1945,7 +1953,7 @@ test "forwarded proof inputs use an iterative bounded walk" {
         [foreign],
         max_input_work=cost,
       )
-      is Err(InputOwnerMismatch(0)),
+      is Err(InputWorkLimit),
     )
   }
 }
@@ -2080,7 +2088,7 @@ test "selection clamps a verified input and unpivot counts repeated columns" {
   )
   assert_true(
     @capacity_program_step.check_with_inputs(p, 2, claim, [a])
-    is Err(InputTargetMismatch(0)),
+    is Err(InputWorkLimit),
   )
   let false_factor = proof(
     "actql.bound.unpivot",

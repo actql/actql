@@ -167,13 +167,29 @@ match the actual bound-producing step reached from each data edge. For a local
 step this is the current pipeline; for a `ProducedInput`, the check follows its
 retained owner and target through forwarding inputs. A checked non-expanding
 step may transport the original upper bound without inventing a new source
-witness. Supported transports are unary `Preserve`, `Reduce` and
-`OneExistingRow` rules, including window-group reduction; Events bridge,
-session, watermark and deduplication; Vectors bridge, normalization and scoring;
-and the explicit Events/Vectors-to-Relation projections. Graph projections do
-not reinterpret row bounds as node or edge bounds. Global aggregation, expansion,
-generators, and other unsupported transfers stop the walk rather than guessing
-a path. Selection clamps retain their own application boundary.
+witness. Supported transports are unary `Preserve`, `Reduce`, `OneExistingRow`
+and `Slice` rules, including window-group reduction; known repeat/array expansion
+factors at most one; Events bridge, session, watermark and deduplication;
+Vectors bridge, normalization, scoring and pooling; fixed windows on either
+Carrier; calendar buckets; and explicit Events/Vectors-to-Relation projections.
+Set operations, nest, as-of joins, semi/anti equality or interval joins and
+cross joins with `right_rows: one` transport the actual left bound.
+Graph projections do not reinterpret row bounds as node or edge bounds.
+Global aggregation, expanding operations, generators, and other unsupported
+transfers stop the walk rather than guessing a path. General sliding-window
+factor applications remain explicit. A selection may transport its input upper
+bound without resolving the authored clamp count; a tighter clamp claim still
+requires its own validated application and any necessary binding.
+
+The singleton cross-join path is conditional on its retained exactly-one-right
+assertion, not proof that the right data passed. Nest child-array sizes and
+right-input scan/hash/search resources are not bounded by the parent row count.
+Pool retains its candidate-key, component-admission and deterministic-fold
+obligations across both Relation and Vectors inputs. Calendar transport keeps
+the selected profile and boundary obligations and cannot cross a generator.
+The checked intermediate steps and their ordered data inputs remain available
+to complete validation; transport neither prunes unused proofs from collection
+coverage nor marks those operations ready to execute.
 
 This follows Language's resolved-limit transfer rules and the same conditional
 count laws as `pipeline_typing.row_counts`. Reduction keeps a valid upper bound,
@@ -187,6 +203,13 @@ for these owners. Proof input IDs are sorted with repetitions;
 derivation operands must additionally preserve their actual left/right roles.
 Checked arithmetic rejects overflow rather than rounding or saturating. The
 result retains immutable child applications without rewalking their ancestors.
+
+The traversal allowance is consumed before each traversable edge. Consequently,
+a wrong input application can exhaust that allowance before reaching the missing
+producer or mismatched owner: permitting transport through selection does not
+permit unbudgeted traversal merely to obtain a more specific diagnostic. With
+sufficient work, a sibling/right input still cannot substitute for the actual
+left dependency.
 
 Parameterized counts stay unresolved unless `check_with_inputs` receives a
 `CountBindings` from `bind_parameters`. This opaque lookup retains the exact

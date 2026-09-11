@@ -224,7 +224,12 @@ matching automaton or proof that session-boundary values have been computed.
    the original bound owner. Repeated paths share the same cumulative budget;
    expansion, global aggregation and unrelated inputs cannot substitute a bound.
    This transports conditional upper bounds, not exact counts or discharged
-   intermediate obligations. Parameter selection
+   intermediate obligations. Transport now also covers set/nest/as-of left
+   paths, semi/anti joins, asserted singleton cross joins, selections,
+   non-expanding known factors, fixed windows, pooling on both input Carriers
+   and calendar buckets. Expansion and generators still stop the walk; right
+   resources, child-array sizes, singleton and key/profile validation remain
+   separate. Parameter selection
    counts now resolve through budgeted lookups retaining exact declaration,
    pipeline and bound-value owners, without implicit defaults.
    Window applications now validate literal/bound size, step and offset on both
