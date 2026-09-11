@@ -109,6 +109,26 @@ their output; requesting one path costs its ancestry length.
 Neither successful admission nor occurrence discovery proves declaration,
 binding, actual runtime use, or Program/local-unit identity membership.
 
+`collect_parameter_occurrences` separately enumerates Parameter nodes in the
+normalized expression tree. Its opaque result retains that exact Expression;
+indexed records contain the name and an owned Cursor. For `$p + $p`, the two
+normalized paths are `/add/0` and `/add/1`, although both diagnostic locations
+refer to the same source scalar slot. Cast rewrites likewise use `/cast/value`.
+Use `origin` for original path/span/text range; a normalized path is not an
+authored diagnostic location.
+
+This traversal reuses grammar roles, visits expression children in retained
+object/array order, and preserves repeated references. It skips literal payloads,
+templates, cast targets and item contracts, except for the specified immediate
+IN/NOT IN Parameter holes. Indexed child navigation and explicit continuations
+avoid full child-array copies, recursive traversal and eager expanded paths.
+`max_work` bounds popped traversal frames, including skipped nodes and collection
+continuations; equality is accepted, negative limits fail, and exhaustion returns
+no partial result. The reported work belongs to this pass, not admission.
+The result is not a canonical reference index: enclosing grammar-slot discovery,
+declaration/type attachment, RFC 6901 pointer encoding and canonical sorting still
+belong to the Program/stage identity boundary.
+
 The internal `source_map` builder keeps annotations outside semantic values and
 owns the normalized tree with a preorder sidecar. Both conversion and admission
 are bounded by output-tree node/depth limits; indexed lookup checks arena identity

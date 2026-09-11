@@ -124,8 +124,11 @@ source cursors and import/export connections, not a completed semantic
 projection. `pipeline_typing.source` retains a local source cursor; hashing it
 directly would bypass semantic projection and omit the enclosing staged
 structure. Existing expression reference accessors provide
-source occurrences, but do not by themselves enumerate all Parameter/binding
-slots across inputs, operations, Results and effects.
+source occurrences; the separate bounded
+[normalized-expression occurrence traversal](expression-syntax.md#text-provenance-and-locations)
+provides owned Parameter-node coordinates after expression normalization. Neither
+enumerates all Parameter/binding slots across inputs, operations, Results and
+effects, attaches declarations, or constructs the canonical reference index.
 
 The implementation boundary therefore still needs three connected results:
 

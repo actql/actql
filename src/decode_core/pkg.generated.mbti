@@ -10,6 +10,8 @@ import {
 // Values
 pub fn admit(@source_value.Node, Limits) -> Result[Cursor, Issue]
 
+pub fn array_length(Cursor) -> Int?
+
 pub fn boolean(Cursor) -> Result[Bool, Issue]
 
 pub fn closed_object(Cursor, Array[String]) -> Result[ObjectView, Issue]
@@ -22,9 +24,13 @@ pub fn cursor_span(Cursor) -> @source_span.Span
 
 pub fn decimal_int64(Cursor) -> Result[Int64, Issue]
 
+pub fn element_at(Cursor, Int) -> Cursor?
+
 pub fn elements(Cursor) -> Result[Array[Cursor], Issue]
 
 pub fn field(ObjectView, String) -> Presence[Cursor]
+
+pub fn field_at(Cursor, Int) -> (String, Cursor)?
 
 pub fn finite_number(Cursor) -> Result[Double, Issue]
 
@@ -35,6 +41,8 @@ pub fn is_null(Cursor) -> Bool
 pub fn lookup(ObjectView, String) -> Cursor?
 
 pub fn object_field_names(Cursor) -> Result[Array[String], Issue]
+
+pub fn object_length(Cursor) -> Int?
 
 pub fn open_object(Cursor) -> Result[ObjectView, Issue]
 

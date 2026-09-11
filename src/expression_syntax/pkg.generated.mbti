@@ -12,6 +12,8 @@ import {
 // Values
 pub fn admit(@decode_core.Cursor, Limits) -> Result[Expression, Issue]
 
+pub fn collect_parameter_occurrences(Expression, max_work~ : Int) -> Result[ParameterOccurrences, Issue]
+
 pub fn field_references(Expression) -> Array[FieldReference]
 
 pub fn location_path(Location) -> Array[@source_value.PathSegment]
@@ -21,6 +23,14 @@ pub fn location_span(Location) -> @source_span.Span
 pub fn origin(Expression, @decode_core.Cursor) -> Location?
 
 pub fn origin_count(Expression) -> Int
+
+pub fn parameter_occurrence_at(ParameterOccurrences, Int) -> NormalizedParameterReference?
+
+pub fn parameter_occurrence_count(ParameterOccurrences) -> Int
+
+pub fn parameter_occurrence_expression(ParameterOccurrences) -> Expression
+
+pub fn parameter_occurrence_work(ParameterOccurrences) -> Int
 
 pub fn parameter_references(Expression) -> Array[FieldReference]
 
@@ -79,6 +89,13 @@ pub struct Location {
   source : @decode_core.Cursor
   range : @expression_text.Range?
 }
+
+pub struct NormalizedParameterReference {
+  name : String
+  cursor : @decode_core.Cursor
+}
+
+type ParameterOccurrences
 
 pub(all) struct Usage {
   nodes : Int

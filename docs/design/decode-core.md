@@ -54,6 +54,13 @@ Those require canonical strings, as described in the
 
 ## Reading and failures
 
+`array_length`/`element_at` and `object_length`/`field_at` provide constant-time
+indexed navigation without copying complete child arrays or building field maps.
+Object indices follow admitted source order, not canonical key order. Wrong
+container kinds and out-of-range indices return `None`; an explicit null child
+is still returned as a Cursor. The same ownership and source-coordinate guarantees
+apply as for the detached collection accessors.
+
 `open_object` permits all names; `closed_object` checks allowed names in source
 order without imposing required fields. `field` distinguishes missing, explicit
 null and non-null values. `lookup` returns a cursor for explicit null, whereas
