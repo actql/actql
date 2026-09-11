@@ -35,6 +35,22 @@ test "source coverage rejects a self-consistent but unauthenticated Contract sou
     @capacity_graph_preflight.check_source_coverage(graph, program, max_work=1)
     is Err(UnsupportedSource(0)),
   )
+  let sequence = @sequence.check_applications(
+    @capacity_graph_preflight.checked_pipeline(graph),
+    source,
+    policy(false),
+    [],
+    max_work=0,
+  ).unwrap()
+  assert_true(
+    @capacity_graph_preflight.check_application_coverage(
+      graph,
+      program,
+      sequence,
+      max_work=10,
+    )
+    is Err(Source(UnsupportedSource(0))),
+  )
 }
 
 ///|

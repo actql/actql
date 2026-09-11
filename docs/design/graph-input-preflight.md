@@ -121,3 +121,25 @@ different policy selection and exact/short work budgets.
 Join regressions also cover omission of the optional ledger, a foreign join
 pipeline owner and an extra valid limit left unused after all three families
 have been connected.
+
+## Combined supported application coverage
+
+`check_application_coverage` runs source coverage and mixed consumer coverage
+against the same Graph input owner. Its optional join ledger must retain the
+exact Program application table supplied to source coverage; an independently
+constructed table with the same claim collection is not interchangeable.
+This prevents candidate availability from being checked against one table while
+source completeness is certified against another.
+
+The work budget is shared: source scanning consumes one unit per witness, then
+consumer scanning receives only the remainder. The opaque result retains both
+checked results and their summed work. A late unconsumed limit or short consumer
+budget returns only an error, never a partial combined result. Source and
+consumer diagnostics remain distinguished. Regressions include an unsupported
+Contract source even with no consumers, proof-table substitution, an omitted
+join ledger, unused limits and exact/short combined budgets.
+
+This entry closes composition for the supported source and consumer branches;
+it is not full pipeline readiness. Selected-policy authority, enclosing
+Program/Invocation identity, author and other external sources, remaining
+operation consumers and upstream closure are still required separately.
