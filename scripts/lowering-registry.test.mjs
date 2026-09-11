@@ -6,6 +6,7 @@ import { test } from 'node:test';
 const read = (path) => readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
 const fixtures = JSON.parse(read('src/lowering_relation/registry-preimages.json'));
 const contract = JSON.parse(read('spec/contracts/actql-aoa.json'));
+const registry = JSON.parse(read(contract.pipeline_registry_file));
 // These pinned preimages contain only ASCII keys and finite ordinary JSON.
 // Independent of the product encoder, with no reference package dependency.
 const canonical = (v) => Array.isArray(v) ? `[${v.map(canonical).join(',')}]`
@@ -14,8 +15,14 @@ const canonical = (v) => Array.isArray(v) ? `[${v.map(canonical).join(',')}]`
     : JSON.stringify(v);
 const cid = (v) => `sha256:${createHash('sha256').update(canonical(v)).digest('hex')}`;
 
-test('recovered full registry and module bodies match current pins', () => {
-  assert.equal(cid(fixtures.registry), contract.pipeline_registry_cid);
+test('current registry and historical preimages keep distinct identities', () => {
+  assert.equal(cid(registry), contract.pipeline_registry_cid);
+  assert.equal(cid(registry), 'sha256:b97a22de3664c1dafe3bc1e6791f1f8bcfb70324a1fcc1087450fe057e0f2311');
+  assert.equal(cid(fixtures.registry), 'sha256:00ac46baefe7fa34412ad83beb85cf1899b906e792d74fa89211a7c4972f0d5a');
+  assert.equal(Object.hasOwn(fixtures.registry, 'REL.values'), false);
+  const {['REL.values']: added, ...retained} = registry;
+  assert.ok(added);
+  assert.deepEqual(retained, fixtures.registry);
   assert.equal(cid(fixtures.target), contract.target_module_contract_cid);
 });
 
@@ -26,11 +33,14 @@ test('four preparation handlers use pinned sort/arity including values extension
     ['Where', 'where', 1], ['Select', 'select', 1],
   ]) {
     const op = `REL.${name}`;
-    const signature = contract.target_registry_requirements[op] ?? fixtures.registry[op];
+    // A target requirement is not a registration. Resolve the selected body.
+    const signature = registry[op];
+    assert.ok(signature, `missing selected registration: ${op}`);
     assert.deepEqual({inputs: signature.inputs, output: signature.output},
       { inputs: Array(arity).fill('relation'), output: 'relation' });
     if (op === 'REL.values') {
       assert.deepEqual(signature.execution_contract, {
+        file: 'spec/contracts/actql-aoa.json',
         pointer: '/execution_contracts/REL.values',
         cid: 'sha256:c95bc0d474fd6fbe62d3182bdefe6af412070f6ad2c8e102c5279d7a8b3eed17',
       });

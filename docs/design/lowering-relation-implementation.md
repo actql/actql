@@ -51,10 +51,12 @@ module preimages recovered from sketch. Construction follows sketch's
 `be37097b180634e6fbb3e5c1b026661b70f314fb7babead507dc4798ba18fcf4`.
 That dependency version is provenance, not an ActQL contract version.
 
-`node --test scripts/lowering-registry.test.mjs` independently verifies both
-full preimages against the existing pins. It also checks the four preparation
-signatures against the registry plus normative target requirements. In
-particular, `REL.values` is a target requirement, absent from the base registry.
+`node --test scripts/lowering-registry.test.mjs` independently verifies the
+selected shared registry and the historical registry as distinct identities,
+plus the module preimage. It checks all four preparation signatures against
+actual entries in the selected body, without using target requirements as a
+substitute for registration. `REL.values` is absent from the historical base
+but registered in the shared registry supplied by main at `a728bda`.
 These signatures do not prove operation-parameter or expression admission.
 Historical module descriptions are not substituted for newer normative rules.
 
@@ -641,3 +643,32 @@ checks pass; this increment changes only tests, their generator and this guide.
 No runtime or public API is changed. The first generated sources omitted the
 required values alias and failed checking; the source generator now includes
 `as: seed`. No product acceptance rule was relaxed to pass the vectors.
+
+## Shared registry handoff (a728bda)
+
+Main's complete 58-operation registry is imported unchanged at
+`spec/dependencies/aoa-pipeline-registry.json`, selected by
+`sha256:b97a22de3664c1dafe3bc1e6791f1f8bcfb70324a1fcc1087450fe057e0f2311`.
+The REL.values execution contract remains
+`sha256:c95bc0d474fd6fbe62d3182bdefe6af412070f6ad2c8e102c5279d7a8b3eed17`.
+The earlier admission audit's missing-registration finding is closed. Its
+historical 57-operation body/CID are not rewritten or accepted as values support.
+Lowering's registry checks consume the shared registration instead of falling
+back to a target requirement. Main's negative resolver vectors cover old
+selection, changed signatures/references and changed contract bodies.
+
+Cherry-pick `a52b2e2` reconciles generated requirement hashes and four language
+document references because this branch retains an earlier specification
+baseline. They were regenerated from the merged document; no other main changes
+were imported and the supplied registry/contract identities are unchanged.
+
+This closes the registry handoff, not runtime fragment admission. Ordered derive
+still awaits the separately owned row-kernel contract. Backend capability,
+remaining input obligations and the typed fragment execution entry are not
+established by registry tests. No arbitrary JSON execution entry is introduced.
+
+Handoff verification: the whole repository passes 2,173/2,173 tests on each of
+JS, Wasm and native. Shared/lowering registry checks pass 7/7, `check:docs` passes,
+metadata reports no changes, and fixed values generator freshness/whitespace
+checks pass. This branch's smaller count than main reflects its isolated baseline,
+not a claim to have run main's staged compiler suite. Linux CI was not run.
