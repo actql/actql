@@ -85,7 +85,9 @@ pub fn check_join_limit(
       @arithmetic.Rows,
       Some("max_relation_output_rows"),
       false,
-      _ => true,
+      // A resolved output depends on this minimum; it is not an independent
+      // candidate for the minimum that produced it.
+      app => app.enforcement is None,
       max_work,
     ) {
     Ok(n) => n

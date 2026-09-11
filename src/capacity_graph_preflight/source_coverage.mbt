@@ -40,6 +40,14 @@ pub fn check_source_coverage(
     if @program.application_at(program, i) is Some(app) &&
       physical_equal(@program.checked_pipeline(app), checked_pipeline(graph)) {
       let output_owner = match @program.checked_enforcement(app) {
+        Some(@program.JoinEnforcement(v)) =>
+          Some(
+            (
+              @program.join_limit_program(v),
+              @program.join_limit_sources(v),
+              @program.join_limit_policy(v),
+            ),
+          )
         Some(@program.ComponentsEnforcement(v)) =>
           Some(
             (

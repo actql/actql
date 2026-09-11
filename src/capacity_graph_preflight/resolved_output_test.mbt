@@ -144,6 +144,7 @@ test "resolved output bounds construct downstream proofs before sealing the comp
       max_work=1000,
     ).unwrap()
     match @program.checked_enforcement(producer).unwrap() {
+      @program.JoinEnforcement(_) => fail("unexpected join output")
       @program.ComponentsEnforcement(limit) => {
         assert_true(
           physical_equal(@program.components_limit_program(limit), program),

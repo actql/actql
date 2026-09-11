@@ -62,6 +62,7 @@ pub fn check_applications(
       }
       Some(application) => {
         let bound_claims = match application.enforcement {
+          Some(JoinEnforcement(v)) => Some(@host.source_claims(v.sources))
           Some(ComponentsEnforcement(v)) => Some(@host.source_claims(v.sources))
           Some(TraversalEnforcement(v)) => Some(@host.source_claims(v.sources))
           None => None

@@ -718,7 +718,7 @@ admission, resource enforcement or complete source authority.
    Traversal path/output limit consumers now bind the selected Host fields and
    all applicable registered node-output candidates, with an all-step ledger
    integrated into mixed consumption. Both emission modes and unused branches
-   are covered. Components and traversal output applications now resolve
+   are covered. Join, components and traversal output applications now resolve
    atomically with downstream bounds: a private dependency-ordered table is
    sealed only after complete claim coverage and final candidate revalidation.
    Output proofs retain exact limit owners; reconstructed tables cannot replace

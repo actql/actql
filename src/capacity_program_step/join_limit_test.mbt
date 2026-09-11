@@ -32,6 +32,7 @@ fn join_limit_sources(
   apps : Array[@capacity_program_step.StepBound],
   mode : Int,
   limit_steps? : Array[Int] = [0],
+  extra_proofs? : Array[@wire.ProgramProofClaim] = [],
 ) -> @host.HostSources raise {
   let policy = join_policy()
   let host = @host.create(
@@ -63,6 +64,10 @@ fn join_limit_sources(
     [host_wire, wires[0]]
   } else {
     [host_wire, wires[2]]
+  }
+  for proof in extra_proofs {
+    proofs.push(proof)
+    wires.push(@wire.program_proof_witness(proof))
   }
   candidates.sort_by((a, b) => @wire.cid(a).compare(@wire.cid(b)))
   let texts : Array[String] = []

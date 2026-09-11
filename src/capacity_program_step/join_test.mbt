@@ -58,6 +58,7 @@ fn join_pipeline(
   family : String,
   kind : String,
   assertion? : String? = None,
+  tail? : String = "",
 ) -> @pipeline.CheckedPipeline {
   let body = match family {
     "cross_join" => "{\"with\":\"r\"}"
@@ -76,7 +77,7 @@ fn join_pipeline(
       "}"
   }
   @pipeline.check_with_evidence(
-    cursor("[{\"from\":\"l\",\"" + family + "\":" + body + "}]"),
+    cursor("[{\"from\":\"l\",\"" + family + "\":" + body + "}" + tail + "]"),
     [
       (
         "l",
@@ -94,7 +95,7 @@ fn join_pipeline(
     None,
     None,
     {
-      max_steps: 1,
+      max_steps: 10,
       max_work: 10000,
       max_text_bytes: 10000,
       max_nodes: 10000,

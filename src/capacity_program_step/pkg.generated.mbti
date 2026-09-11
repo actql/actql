@@ -336,6 +336,7 @@ pub(all) enum JoinLimitIssue {
 } derive(Eq, @debug.Debug)
 
 pub(all) enum OutputEnforcement {
+  JoinEnforcement(JoinLimit)
   ComponentsEnforcement(ComponentsLimits)
   TraversalEnforcement(TraversalLimits)
 }
@@ -353,6 +354,7 @@ pub(all) enum ResolutionIssue {
   DuplicateApplication(Int)
   Step(Int, Issue)
   Components(Int, ComponentsLimitIssue)
+  Join(Int, JoinLimitIssue)
   Traversal(Int, TraversalLimitIssue)
   InvalidOutputProof(Int)
   Collection(ApplicationIssue)
@@ -362,6 +364,7 @@ pub(all) enum ResolutionRequest {
   ExistingApplication(StepBound)
   DeriveApplication(Int, @capacity_witness.ProgramProofClaim, Array[ResolutionInput], CountBindings?)
   ComponentsApplication(Int, @capacity_witness.ProgramProofClaim, Int, Int)
+  JoinApplication(Int, @capacity_witness.ProgramProofClaim, Int)
   TraversalApplication(Int, @capacity_witness.ProgramProofClaim, Int, Int)
 }
 

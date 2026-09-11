@@ -526,15 +526,16 @@ integrity.
 ## Atomic output-bound construction
 
 `resolve_applications` constructs an opaque `ResolvedApplications` from
-dependency-ordered requests, under one cumulative work budget. Components and
-traversal output limits need candidate applications; later steps in turn need
+dependency-ordered requests, under one cumulative work budget. Join, components
+and traversal output limits need candidate applications; later steps in turn need
 the resulting output bounds. The resolver breaks this construction-order cycle
 with a private table that cannot escape before validation completes, rather
 than a public mutable builder or a partially checked success result.
 
 Ordinary derivation requests can reference earlier resolved applications.
-Components and traversal requests validate both operation-specific limits and
-bind the output proof to the exact local step, Rows unit, output law, minimum
+Join requests validate their output limit; components and traversal requests
+validate both operation-specific limits. Each request binds the output proof
+to the exact local step, Rows unit, output law, minimum
 value and multiset of candidate CIDs. Repeated candidates are retained and
 candidate presentation order is irrelevant. These engine-atomic output proofs
 use ordinary `SourceValue` claims, not the separate `UnitPreflight`
@@ -549,7 +550,15 @@ source coverage requires the retained output owner to be the exact application
 table, sources and selected policy; rebuilding an equal-content table does not
 transfer ownership. Caller request arrays are not retained.
 
-Tests cover downstream `take`, components and traversal limit consumption,
+Join output proofs use `actql.bound.join-resolved-output`, distinct from the
+independent `actql.bound.join-output` candidate. The latter retains the actual
+operands and conditional uniqueness evidence; the former additionally retains
+the selected engine-atomic limit. Resolved outputs are not independent
+candidates for their own minima. This follows the fixed Sketch compiler's
+candidate/output separation and prevents cyclic proof construction. All three
+join families support Host-only limits when no Program candidate is available.
+
+Tests cover downstream `take`, join/components/traversal limit consumption,
 late candidate omission, foreign reconstructed tables, forward dependencies,
 duplicate and missing applications, and exact/short cumulative budgets. This
 is a capacity construction boundary, not the formal `CheckedProgram` boundary:
@@ -590,7 +599,7 @@ application for this exact pipeline and step. The latter preserves operand
 owners and any conditional uniqueness/assertion obligations from its checked
 application. Other steps' same-unit bounds and same-valued temporal Host fields
 cannot substitute. The selected Host candidate is required, as is every
-available registered Program application for this step, even when a tighter
+available independent registered Program application for this step, even when a tighter
 Host limit makes that proof numerically redundant. A Host-only limit is valid
 when no local output proof is available. Wire admission already checks the
 exact minimum and complete candidate bodies; this entry checks applicability
