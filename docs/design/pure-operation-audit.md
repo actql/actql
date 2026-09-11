@@ -157,6 +157,38 @@ cover preservation of membership evidence. Prefix-skew order requirements are
 not replaced by fixed-threshold tests. This is static admission and transfer
 evidence, not execution of late-row comparisons, prefix arithmetic or publication.
 
+## Row set acceptance audit
+
+Language `row-set-operations` and its multiplicity block were traced through
+`relation_set/check.mbt`, the shared `relation_append.align_schemas`, pipeline
+Set dispatch, count/order transfer and `set_keys_test.mbt`. The two embedded
+Program bodies are fixed by `set-schema.mjs` and `set-schema.test.mjs`: exact
+`with`/`duplicates` members and required lowercase `distinct|all`, without
+Parameter mode selection. Schema alignment uses typed field names, not column
+position, joins recursive nullability/extents and rejects incompatible domains
+or provenance. The package tests cover closed bodies, located invalid modes,
+empty schemas, detached alignments and work/text/node/depth boundaries.
+
+`pipeline_typing/set_acceptance_audit_test.mbt` adds 64 cases across both
+operators, both duplicate modes and left/right literal input lengths zero
+through three. Each fixture contains unique integer rows; an independent
+complete-row comparison counts survivors. At both the operation and downstream
+select, the retained bound covers those survivors, never exceeds the left
+bound, and cannot claim an incorrect exact count. The exact left/right producer
+edges and inherited left order are checked, as are cumulative work/node/text
+budgets and retained comparison/resource obligations. This does not evaluate
+the set operation in MoonBit or establish arbitrary row-equivalence execution.
+
+Duplicate-class multiplicities and empty schemas are separately covered by
+`row_counts_wbtest.mbt`, which enumerates actual m/n values under exact and
+upper-bound inputs. `set_keys_test.mbt` covers left-key transfer, nullability
+widening, distinct whole-row identity, structured/nullable fields that cannot
+serve as scalar or ordering keys, and foreign left-schema rejection. Existing
+`set_test.mbt` covers repeated input occurrences and forward-reference errors.
+These close the inspected static admission and transfer cases; external
+comparison evidence, memory ceilings and the final combined consumer boundary
+remain independent obligations.
+
 ## Shared-boundary findings
 
 | Requirement | Inspected evidence | Audit finding |
