@@ -141,8 +141,34 @@ predicates, subgraph node/edge predicates, traverse start and per-hop edge/node
 predicates, and shortest-path endpoint predicates. The operation match is
 exhaustive: forms without general Expression roots are listed explicitly.
 
-This pass charges one work unit per step and per inspected expression candidate,
-including absent optional predicates. `max_slots` bounds retained roots, not the
+Every slot also retains an explicit `ExpressionConsumer`: named derive output
+(and an ordinal for ordered derive), row filter/assertion, aggregate or analytic
+argument/filter, sequence pattern, or the particular Graph selector/hop/endpoint.
+These are semantic uses, not executable registry names or inferred lowering
+signatures. In particular an ordered derive slot is not silently treated as an
+independent snapshot-based derive operation.
+
+An aggregate expression argument additionally retains its own `ExpressionFilter`
+when present: the earlier slot coordinate and exact typed filter from the same
+CheckedOperation. Evaluation of the argument requires that filter to be true;
+the filter itself has no self-demand. Analytic aggregate filters obey the same
+dependency within their window-row scope. Navigation calls have no invented
+filter, and field shorthand/count-star arguments are not expanded into new
+Expression roots. Equal filter texts on different aggregates remain separate
+occurrences. Relation binding coverage is checked rather than silently leaving
+a newly retained binding unclassified.
+
+Slot coordinates identify this local collection only. They are not the sorted
+`roots` index of an expression Fragment, a semantic step ID, or persistent
+identity. The final root collector must apply the normative consumer-specific
+binding and ordering before rebasing both local demand and the filter edge.
+Sketch `87dc7144`'s fragment builder confirms that aggregate filters are separate
+roots and are prepended as true tests only to their own arguments. Its canonical
+root sorting must not be confused with this filter-before-argument intake order.
+
+This pass charges one work unit per step, aggregate/analytic descriptor and
+inspected expression candidate, including absent optional Graph predicates.
+`max_slots` bounds retained roots, not the
 number of Parameter occurrences inside them. Equality is accepted and failure
 returns no partial collection. Expression trees are not copied, re-normalized,
 evaluated or substituted. Their original source ownership and location sidecars

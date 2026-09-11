@@ -67,33 +67,33 @@ test "expression slots retain unused branches and feed source-correspondent para
 ///|
 test "aggregate and analytic expressions are enumerated without field shorthand expansion" {
   for
-    (steps, expected) in [
+    (steps, expected, work) in [
       (
         (
           #|[{"group":{"by":["id"],"aggregates":{"n":{"fn":"sum","expr":"amount","filter":"amount > 0"}}},"from":"l"}]
         ),
         2,
+        4,
       ),
       (
         (
           #|[{"analytic":{"partition_by":[],"order_by":[{"id":"asc"}],"functions":{"r":{"fn":"rank"},"n":{"fn":"lag","expr":"amount"}}},"from":"l"}]
         ),
         1,
+        4,
       ),
       (
         (
           #|[{"group":{"by":["id"],"aggregates":{"n":{"fn":"sum","field":"amount"}}},"from":"l"}]
         ),
         0,
+        2,
       ),
     ] {
     let p = join_pipeline(steps).unwrap()
-    let slots = collect_expression_slots(
-      p,
-      max_work=expected + 1,
-      max_slots=expected,
-    ).unwrap()
+    let slots = collect_expression_slots(p, max_work=work, max_slots=expected).unwrap()
     assert_eq(expression_slot_count(slots), expected)
+    assert_eq(expression_slots_work(slots), work)
   }
   let p = @pipeline_typing.check(
     cursor("[]"),
@@ -125,6 +125,8 @@ test "sequence expression slots retain all pattern predicates" {
   for i in 0..<2 {
     let slot = expression_slot_at(slots, i).unwrap()
     assert_eq(slot.step, 1)
+    assert_eq(slot.consumer, SequencePredicate(i))
+    assert_true(slot.filter is None)
     let e = @typing.expression(slot.expression)
     let origin = @expression.origin(e, @expression.tree(e)).unwrap()
     assert_eq(@expression.location_path(origin), [

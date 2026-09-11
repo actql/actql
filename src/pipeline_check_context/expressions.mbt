@@ -3,6 +3,8 @@ pub struct ExpressionRequirement {
   visit : Int
   step : Int
   slot : Int
+  consumer : @pipeline.ExpressionConsumer
+  filter : @pipeline.ExpressionFilter?
   expression : @typing.TypedExpression
   obligation : @typing.Obligation
 }
@@ -62,6 +64,8 @@ fn collect_expression_requirements(
           visit,
           step: slot.step,
           slot: i,
+          consumer: slot.consumer,
+          filter: slot.filter,
           expression: slot.expression,
           obligation: @typing.pending_validation_at(slot.expression, j).unwrap(),
         })

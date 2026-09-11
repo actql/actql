@@ -238,6 +238,8 @@ pub struct ExpressionRequirement {
   visit : Int
   step : Int
   slot : Int
+  consumer : @pipeline_typing.ExpressionConsumer
+  filter : @pipeline_typing.ExpressionFilter?
   expression : @expression_typing.TypedExpression
   obligation : @expression_typing.Obligation
 }

@@ -277,6 +277,15 @@ Parameter when used. A process-local expression slot ordinal distinguishes
 multiple expressions in one step, even when a typed expression object is reused.
 It is not a semantic identity. Each producer visit is checked independently.
 
+ExpressionRequirement also retains the slot's explicit consumer and its own
+aggregate filter dependency. A filter with no profile or pattern obligations
+still survives as an exact typed root; it is not lost by the pending-obligation
+inventory. Its slot coordinate belongs to that same stage/producer visit, not
+the global requirement array or a Fragment roots array. Aggregate arguments
+require that filter to be true before their expression-local demand tests;
+consumer rebasing must preserve this outer-to-inner order. Equal filter text is
+not permission to borrow a different aggregate's root or evaluation frame.
+
 Each slot also owns an [expression-local demand derivation](expression-typing.md#expression-local-conditional-demand),
 shared by its text-bound resolutions and exposed by `text_bound_demands`.
 Construction and address-segment bytes are included in the shared work/text

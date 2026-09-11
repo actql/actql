@@ -406,15 +406,41 @@ pub enum ContextualOrder {
 
 type ContextualOrders
 
+pub(all) enum ExpressionConsumer {
+  DerivedField(String, Int?)
+  RowFilter
+  RowAssertion
+  AggregateFilter(String)
+  AggregateArgument(String)
+  AnalyticFilter(String)
+  AnalyticArgument(String)
+  SequencePredicate(Int)
+  GraphMatchPredicate
+  SubgraphNodes
+  SubgraphEdges
+  TraverseStart
+  TraverseEdges(Int)
+  TraverseNodes(Int)
+  ShortestEndpoint(@relation_schema.Side)
+} derive(Eq, @debug.Debug)
+
+pub struct ExpressionFilter {
+  slot : Int
+  expression : @expression_typing.TypedExpression
+}
+
 pub struct ExpressionSlot {
   step : Int
   expression : @expression_typing.TypedExpression
+  consumer : ExpressionConsumer
+  filter : ExpressionFilter?
 }
 
 pub(all) enum ExpressionSlotIssue {
   InvalidLimits
   WorkLimit
   SlotLimit
+  InvalidBindings(Int)
 } derive(Eq, @debug.Debug)
 
 type ExpressionSlots

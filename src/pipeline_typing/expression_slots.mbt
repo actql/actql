@@ -1,7 +1,35 @@
 ///|
+pub(all) enum ExpressionConsumer {
+  DerivedField(String, Int?)
+  RowFilter
+  RowAssertion
+  AggregateFilter(String)
+  AggregateArgument(String)
+  AnalyticFilter(String)
+  AnalyticArgument(String)
+  SequencePredicate(Int)
+  GraphMatchPredicate
+  SubgraphNodes
+  SubgraphEdges
+  TraverseStart
+  TraverseEdges(Int)
+  TraverseNodes(Int)
+  ShortestEndpoint(@schema.Side)
+} derive(Eq, Debug)
+
+///|
+/// An earlier root in the same owning slot collection, not a caller predicate.
+pub struct ExpressionFilter {
+  slot : Int
+  expression : @typing.TypedExpression
+}
+
+///|
 pub struct ExpressionSlot {
   step : Int
   expression : @typing.TypedExpression
+  consumer : ExpressionConsumer
+  filter : ExpressionFilter?
 }
 
 ///|
@@ -16,6 +44,7 @@ pub(all) enum ExpressionSlotIssue {
   InvalidLimits
   WorkLimit
   SlotLimit
+  InvalidBindings(Int)
 } derive(Eq, Debug)
 
 ///|
@@ -43,13 +72,15 @@ fn slot_add(
   c : SlotCollector,
   step : Int,
   expression : @typing.TypedExpression?,
+  consumer : ExpressionConsumer,
+  filter? : ExpressionFilter? = None,
 ) -> Unit raise SlotFailure {
   slot_tick(c)
   if expression is Some(expression) {
     if c.entries.length() == c.max_slots {
       raise SlotFailure(SlotLimit)
     }
-    c.entries.push({ step, expression, })
+    c.entries.push({ step, expression, consumer, filter, })
   }
 }
 
@@ -58,8 +89,137 @@ fn slot_predicate(
   c : SlotCollector,
   step : Int,
   predicate : @graph.CheckedPredicate?,
+  consumer : ExpressionConsumer,
 ) -> Unit raise SlotFailure {
-  slot_add(c, step, predicate.map(@graph.predicate_expression))
+  slot_add(c, step, predicate.map(@graph.predicate_expression), consumer)
+}
+
+///|
+fn slot_aggregate(
+  c : SlotCollector,
+  step : Int,
+  operation : @relation.CheckedOperation,
+  aggregate : @relation.CheckedAggregate,
+  analytic : Bool,
+) -> Unit raise SlotFailure {
+  slot_tick(c)
+  let name = @relation.aggregate_name(aggregate)
+  let filter = match @relation.aggregate_filter(aggregate) {
+    None => None
+    Some(index) => {
+      let expression = @relation.binding_at(operation, index).unwrap().expression
+      let slot = c.entries.length()
+      slot_add(
+        c,
+        step,
+        Some(expression),
+        if analytic {
+          AnalyticFilter(name)
+        } else {
+          AggregateFilter(name)
+        },
+      )
+      Some({ slot, expression, })
+    }
+  }
+  if @relation.aggregate_argument(aggregate) is @relation.Expression(index) {
+    slot_add(
+      c,
+      step,
+      Some(@relation.binding_at(operation, index).unwrap().expression),
+      if analytic {
+        AnalyticArgument(name)
+      } else {
+        AggregateArgument(name)
+      },
+      filter~,
+    )
+  }
+}
+
+///|
+fn slot_relation(
+  c : SlotCollector,
+  step : Int,
+  operation : @relation.CheckedOperation,
+) -> Unit raise SlotFailure {
+  let before = c.entries.length()
+  match @relation.operation(operation) {
+    Derive | Filter | AssertRows =>
+      for i in 0..<@relation.binding_count(operation) {
+        let binding = @relation.binding_at(operation, i).unwrap()
+        let consumer = match @relation.operation(operation) {
+          Derive =>
+            DerivedField(
+              binding.name.unwrap(),
+              if @relation.form(operation) is DeriveArray {
+                Some(i)
+              } else {
+                None
+              },
+            )
+          Filter => RowFilter
+          _ => RowAssertion
+        }
+        slot_add(c, step, Some(binding.expression), consumer)
+      }
+    Group => {
+      let group = @relation.group(operation).unwrap()
+      for i in 0..<@relation.aggregate_count(group) {
+        slot_aggregate(
+          c,
+          step,
+          operation,
+          @relation.aggregate_at(group, i).unwrap(),
+          false,
+        )
+      }
+    }
+    Analytic => {
+      let analytic = @relation.analytic(operation).unwrap()
+      for i in 0..<@relation.analytic_call_count(analytic) {
+        let call = @relation.analytic_call_at(analytic, i).unwrap()
+        match call.function {
+          @relation.Aggregate(aggregate) =>
+            slot_aggregate(c, step, operation, aggregate, true)
+          @relation.Lag(argument~, ..)
+          | @relation.Lead(argument~, ..)
+          | @relation.FirstValue(argument~)
+          | @relation.LastValue(argument~) => {
+            slot_tick(c)
+            slot_add(
+              c,
+              step,
+              Some(
+                @relation.binding_at(operation, argument).unwrap().expression,
+              ),
+              AnalyticArgument(call.name),
+            )
+          }
+          @relation.RowNumber | @relation.Rank | @relation.DenseRank =>
+            slot_tick(c)
+        }
+      }
+    }
+    Select
+    | Rename
+    | Drop
+    | Sort
+    | Take
+    | Distinct
+    | DedupeRows
+    | JsonPick
+    | Unnest
+    | Unpivot
+    | Pivot
+    | TopK
+    | TopKBy
+    | Lag
+    | WatermarkRows => ()
+  }
+  if c.entries.length() - before != @relation.binding_count(operation) {
+    raise SlotFailure(InvalidBindings(step))
+  }
 }
 
 ///|
@@ -79,13 +239,7 @@ pub fn collect_expression_slots(
       slot_tick(c)
       match pipeline.steps[step].operation {
         Unary(operation) | WindowGroup(operation) =>
-          for i in 0..<@relation.binding_count(operation) {
-            slot_add(
-              c,
-              step,
-              Some(@relation.binding_at(operation, i).unwrap().expression),
-            )
-          }
+          slot_relation(c, step, operation)
         Sequence(operation) =>
           for i in 0..<@relation.sequence_pattern_count(operation) {
             slot_add(
@@ -94,28 +248,46 @@ pub fn collect_expression_slots(
               Some(
                 @relation.sequence_pattern_at(operation, i).unwrap().predicate,
               ),
+              SequencePredicate(i),
             )
           }
         GraphMatch(operation) =>
-          slot_predicate(c, step, @graph.match_predicate(operation))
+          slot_predicate(
+            c,
+            step,
+            @graph.match_predicate(operation),
+            GraphMatchPredicate,
+          )
         Subgraph(checked~, ..) => {
           slot_predicate(
             c,
             step,
             @graph.selector_predicate(@graph.subgraph_nodes(checked)),
+            SubgraphNodes,
           )
-          slot_predicate(c, step, @graph.subgraph_edges(checked))
+          slot_predicate(c, step, @graph.subgraph_edges(checked), SubgraphEdges)
         }
         Traverse(checked~, ..) => {
           slot_predicate(
             c,
             step,
             @graph.selector_predicate(@graph.traverse_start(checked)),
+            TraverseStart,
           )
           for i in 0..<@graph.traverse_hop_count(checked) {
             let hop = @graph.traverse_hop_at(checked, i).unwrap()
-            slot_predicate(c, step, @graph.hop_predicate(hop, @graph.Edges))
-            slot_predicate(c, step, @graph.hop_predicate(hop, @graph.Nodes))
+            slot_predicate(
+              c,
+              step,
+              @graph.hop_predicate(hop, @graph.Edges),
+              TraverseEdges(i),
+            )
+            slot_predicate(
+              c,
+              step,
+              @graph.hop_predicate(hop, @graph.Nodes),
+              TraverseNodes(i),
+            )
           }
         }
         Shortest(checked~, ..) =>
@@ -124,7 +296,7 @@ pub fn collect_expression_slots(
               @graph.Single(_) => None
               @graph.Selected(selector) => @graph.selector_predicate(selector)
             }
-            slot_predicate(c, step, predicate)
+            slot_predicate(c, step, predicate, ShortestEndpoint(side))
           }
         // These checked forms retain scalar/cell operands or field selectors,
         // not general Expression roots. Do not use a catch-all here.
