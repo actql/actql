@@ -13,6 +13,7 @@ priv enum SequenceRunIssue {
   InvalidLimits
   InputOwnership
   InputSet
+  InputExecutionEvidencePending(Int)
   InputLimit
   InputKey(Int, InputKeyIssue)
   Wiring(WiringIssue)
@@ -69,6 +70,7 @@ fn evaluate_sequence_components(
     Err(_) => return Err(InvalidLimits)
   }
   let owner = @lower.sequence_owner(sequence)
+  let pipeline = @lower.pipeline(@lower.bound_preparation(owner))
   let wiring = match
     prepare_wiring(owner, retained_ids, control, {
       limit: limits.metadata_entries,
@@ -92,6 +94,12 @@ fn evaluate_sequence_components(
     }
     if supplied[i].origin != SuppliedInput(i) {
       return Err(InputSet)
+    }
+    // CapturedRows proves schema/value ownership, not that an upstream producer
+    // successfully computed these exact rows. Never launder conditional producer
+    // evidence through a raw capture, even when counts and keys happen to agree.
+    if @pipeline.input_producer(pipeline, i) is Some(_) {
+      return Err(InputExecutionEvidencePending(i))
     }
   }
   let store = match

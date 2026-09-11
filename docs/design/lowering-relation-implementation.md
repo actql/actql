@@ -705,3 +705,26 @@ New negative tests reject the historical body, wrong execution body, invalid
 limits and byte/node/depth exhaustion at either hashing stage. Formatting and
 both owned vector generators pass. Ordinary info builds retain 39 private-code
 warnings and no errors; the whole-repository suite is not rerun for this unit.
+
+## Conditional producer evidence is not raw input admission
+
+`pipeline_typing.ProducedInput` and its `LogicalOrder` explicitly describe the
+conditional successful output of a retained checked producer, not measured data.
+The current `capture_input` establishes schema/value ownership only. The driver
+therefore returns `InputExecutionEvidencePending(input_index)` for a captured
+input with `input_producer`, before row evaluation. Equal counts, unique keys or
+apparently sorted rows cannot substitute for successful execution of that exact
+producer, its obligations and bindings. Normal explicitly supplied schema/key
+inputs remain supported and their existing driver tests still pass.
+
+This is an implementation gap, not a language prohibition. Closing it requires
+an immutable successful fragment output handle tied to the exact producer and
+target (plus any checked projection), then adopting that handle into the receiving
+owner. Do not silently strip producer evidence, rerun a potentially different
+producer, or treat arbitrary matching JSON as its output. Program publication,
+Host authority and whole-Program capacity are still outside this increment.
+
+Regression checks use a values producer with established order and test genuine
+expected rows, reversed rows and empty replacement. All pass value capture but
+none fabricates successful producer execution evidence. Execution package passes
+66/66 on JS, Wasm and native; this unit does not claim producer adoption complete.
