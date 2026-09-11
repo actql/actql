@@ -151,6 +151,11 @@ consumer audit.
    now binds every embedded candidate to the arithmetic collection, recomputes
    the minimum and guard binding, and verifies canonical body identity. Candidate
    completeness, source/law applicability and consumer enforcement remain open.
+   Mixed witness/limit closure now binds preflight ceilings by exact source
+   dependency, unit and value, and rejects cycles across limit candidates and
+   witness operands under cumulative artifact/reference budgets. Program-proof
+   edges and consumer/source/application validation still need to be combined
+   with that graph; this does not discharge enforcement or produce input counts.
    Do not
    expand into acquisition, an evaluator or Host dispatch.
 3. Connect contextual resolutions into a complete static checking/discharge

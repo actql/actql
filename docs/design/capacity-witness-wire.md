@@ -182,11 +182,50 @@ This is not runnable evidence. It does not establish that all applicable
 candidates were supplied, validate sources or governing law applications, bind
 the subject to an actual consumer, or prove enforcement appropriate there.
 Naming `static` does not discharge a ceiling. No pipeline API accepts this type
-as count or execution evidence. Enforced-ceiling dependency nodes remain
-unsupported by `ArithmeticClaims`; mixed witness/limit closure still requires
-its own validation boundary.
+as count or execution evidence. Direct arithmetic admission still rejects
+enforced-ceiling nodes. The mixed closure entry below owns their numeric and
+dependency binding, without proving that enforcement has occurred.
 
 Independent Node SHA-256 fixtures cover all six enforcement spellings, absent,
 binding and equal-valued non-binding guards, guard-only limits, repeated
 candidates, altered self-consistent artifacts and exact admission budgets.
 Synthetic source claims in these tests do not assert source-law truth.
+
+## Mixed witness and limit closure
+
+`check_mixed_claims` checks an entire supplied witness/limit collection atomically,
+including unused entries. It links ordinary arithmetic references, admits every
+limit against that same collection, and resolves each `enforced_ceiling` to a
+unique limit. Units and values must match and enforcement must be
+`unit_preflight`. This entry supports the fixed compiler's Program-source form:
+the proof CID is the resolved-limit CID and the exact dependency set contains
+only that CID. Other source/enforcement forms are not implicitly promoted.
+
+Limits may arrive before their dependencies. The union graph includes ordinary
+arithmetic operands, enforced-witness-to-limit edges and every limit candidate
+occurrence. An iterative traversal rejects cycles after all references are
+resolved. Numeric leaves used internally while binding enforced claims are
+never exposed on failure. The original arithmetic-only entry remains strict.
+The result retains the arithmetic claims, every admitted limit and an indexed
+association from enforced witnesses to their limits; caller arrays are detached.
+
+The entity budget counts witnesses plus limit artifacts. The reference budget
+counts declared witness dependencies, arithmetic/enforced operand occurrences
+and all repeated limit candidates. Bytes and nodes are cumulative across full
+limit artifacts, not reset per limit. Depth is a per-artifact nesting ceiling.
+Witness bodies were already admitted under their own byte/node/depth budgets.
+
+This closes numeric and mixed-reference consistency only. Program proof-body
+edges, external source truth, governing-law applicability, candidate completeness
+and actual consumer/preflight bindings still require combined validation.
+In particular, `semantic_ref` and `subject_ref` are retained but not equated:
+the fixed graph-input constructor uses an input name for the former and
+`graph-input:<name>:nodes|edges` for the latter. A separate consumer owner must
+validate that relationship rather than comparing arbitrary strings as authority.
+No observed count or runnable permission is issued by `MixedClaims`.
+
+Independent fixtures cover forward references, chained limits, retained
+arithmetic dependencies, mismatched units/values/proof dependencies, missing and
+duplicate limits, unsupported enforcement and shared budget boundaries. A
+white-box test injects synthetic cyclic topology without claiming to construct
+a cyclic SHA-256 preimage.

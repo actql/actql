@@ -11,6 +11,7 @@ pub(all) enum Enforcement {
 ///|
 /// Canonical limit assertions linked to arithmetic, not a runnable permission.
 struct LimitClaim {
+  nodes : Int
   cursor : @decode.Cursor
   claims : ArithmeticClaims
   minimum : @arithmetic.CandidateMinimum
@@ -165,7 +166,7 @@ pub fn admit_limit(
       text(object, "author_guard_binding") != binding {
       raise Stop(InvalidWitness)
     }
-    try {
+    let nodes = try {
       let hash = @encode.hashing_writer(
         limits.max_bytes,
         limits.max_nodes,
@@ -181,14 +182,17 @@ pub fn admit_limit(
         limits.max_depth,
       )
       limit_emit(root, full, false)
-      if @encode.finish_hash(full) != @sha.hex(bytes) {
+      let (hash, _, nodes) = @encode.finish_hash_usage(full)
+      if hash != @sha.hex(bytes) {
         raise Stop(NoncanonicalArtifact)
       }
+      nodes
     } catch {
       Stop(e) => raise Stop(e)
       _ => raise Stop(BudgetExceeded)
     }
     Ok({
+      nodes,
       cursor: root,
       claims,
       minimum,

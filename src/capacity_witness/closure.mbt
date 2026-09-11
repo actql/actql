@@ -39,6 +39,17 @@ pub fn check_arithmetic_claims(
   witnesses : Array[WireWitness],
   limits : ClosureLimits,
 ) -> Result[ArithmeticClaims, ClosureIssue] {
+  arithmetic_claims(witnesses, limits, false)
+}
+
+///|
+// The mixed-closure owner may provisionally defer enforced leaves, but must
+// bind their limits and check union cycles before exposing any result.
+fn arithmetic_claims(
+  witnesses : Array[WireWitness],
+  limits : ClosureLimits,
+  defer_enforcement : Bool,
+) -> Result[ArithmeticClaims, ClosureIssue] {
   if limits.max_witnesses < 0 || limits.max_references < 0 {
     return Err(InvalidClosureLimits)
   }
@@ -68,7 +79,12 @@ pub fn check_arithmetic_claims(
       Add(left, right) => @arithmetic.AddReferences(left, right)
       Multiply(id, factor) => @arithmetic.MultiplyReference(id, factor)
       Clamp(input, maximum) => @arithmetic.ClampReference(input, maximum)
-      EnforcedCeiling(id) => return Err(UnresolvedEnforcement(i, id))
+      EnforcedCeiling(id) =>
+        if defer_enforcement {
+          @arithmetic.Source
+        } else {
+          return Err(UnresolvedEnforcement(i, id))
+        }
     }
     nodes.push({ cid: w.cid, unit: w.unit, claimed: w.value, derivation, })
   }

@@ -17,6 +17,8 @@ pub fn bind_program_proof(Bytes, WireWitness, Limits) -> Result[ProgramProofClai
 
 pub fn check_arithmetic_claims(Array[WireWitness], ClosureLimits) -> Result[ArithmeticClaims, ClosureIssue]
 
+pub fn check_mixed_claims(Array[WireWitness], Array[(Bytes, String)], MixedLimits) -> Result[MixedClaims, MixedIssue]
+
 pub fn check_program_claims(ArithmeticClaims, Array[ProgramProofClaim], ClosureLimits) -> Result[ProgramClaims, ProgramClosureIssue]
 
 pub fn cid(WireWitness) -> String
@@ -50,6 +52,16 @@ pub fn limit_enforcement(LimitClaim) -> Enforcement
 pub fn limit_minimum(LimitClaim) -> @capacity_derivation.CandidateMinimum
 
 pub fn limit_subject(LimitClaim) -> String
+
+pub fn mixed_arithmetic(MixedClaims) -> ArithmeticClaims
+
+pub fn mixed_enforced_limit(MixedClaims, Int) -> LimitClaim?
+
+pub fn mixed_limit_at(MixedClaims, Int) -> LimitClaim?
+
+pub fn mixed_limit_count(MixedClaims) -> Int
+
+pub fn mixed_usage(MixedClaims) -> (Int, Int, Int)
 
 pub fn program_claim_arithmetic(ProgramClaims) -> ArithmeticClaims
 
@@ -127,6 +139,27 @@ pub(all) struct LimitLimits {
 }
 
 pub(all) struct Limits {
+  max_bytes : Int
+  max_nodes : Int
+  max_depth : Int
+}
+
+type MixedClaims
+
+pub(all) enum MixedIssue {
+  InvalidMixedLimits
+  MixedBudgetExceeded
+  MixedArithmetic(ClosureIssue)
+  InvalidLimit(Int, Issue)
+  DuplicateLimit(String)
+  MissingLimit(Int, String)
+  InvalidEnforcedClaim(Int)
+  CyclicLimitDependencies
+} derive(Eq, @debug.Debug)
+
+pub(all) struct MixedLimits {
+  max_entities : Int
+  max_references : Int
   max_bytes : Int
   max_nodes : Int
   max_depth : Int
