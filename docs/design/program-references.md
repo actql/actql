@@ -46,18 +46,41 @@ Canonical emitters share the enclosing writer's byte/node/depth limits and do
 not materialize a second JSON tree. These are explicit work/storage units, not
 claims of a whole-heap limit or exact wall-clock cost.
 
+## Declaration use
+
+`check_declaration_usage` separately enforces the language's
+[invocation declaration-use rule](../spec/language.md#parameters): every declared
+Parameter and opaque binding has at least one occurrence across all stages.
+One stage need not use every declaration. Defaults, metadata and nested
+reference-shaped business data do not establish use. The namespaces remain
+separate even when a Parameter and binding have the same name. Empty declaration
+sets pass. This does not reject unreferenced local declarations during inventory
+construction, which still supports local used-only identity projections.
+
+The successful opaque `DeclarationUsage` retains the exact Inventory. Its
+constructor cannot accept arbitrary occurrence lists or caller-asserted names.
+The work cap includes retained inventory preparation once, followed by reference
+and declaration visits and name units. Parameters are checked before bindings,
+and each declaration set is visited in canonical name order; the first unused
+declaration is returned with its admitted declaration object. Work exhaustion
+does not return a partial success. This fixed diagnostic traversal order is an
+implementation convention, not an additional language restriction.
+
 ## What this does not certify
 
 The inventory closes composition of the currently admitted reference roles,
 not complete Program admission. Input/Effect body grammar, Catalog/request type
-compatibility, concrete bindings, unused-declaration rejection and all other
+compatibility, concrete bindings and all other
 static/runtime obligations still require the final Program boundary. Invalid
 source is not made valid because its references can be indexed. No Program,
 stage or Invocation CID is issued here; their envelopes must bind this inventory
 only after the corresponding admission checks. The test's unused Binding
 declaration intentionally remains available but absent from used projections;
-that fixture is reference-index evidence, not a claim of a valid executable
-Program. No lowerer, evaluator or SourceView acquisition is added.
+that fixture is reference-index evidence and fails `check_declaration_usage`,
+not a claim of a valid executable Program. Passing declaration usage also does
+not certify complete Input/Effect grammar or correct consumer types; the final
+Program constructor still needs those independent checks and this usage result.
+No lowerer, evaluator or SourceView acquisition is added.
 
 Tests fix a two-stage combined operation/Effect/request inventory, repeated
 Binding uses, escaped local/Program pointers, local used-only declarations,

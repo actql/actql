@@ -1,9 +1,36 @@
 ///|
-fn fixture() -> (@requests.Slots, Array[@body.ParameterUses]) {
-  let program = @stage.parse(
+fn fixture(
+  used_bindings? : Bool = false,
+  unused_parameter? : Bool = false,
+  unused_parameter_name? : String = "unknown",
+  empty? : Bool = false,
+) -> (@requests.Slots, Array[@body.ParameterUses]) {
+  let text =
+    #|{"version":"actql/0.1","id":"p","params":{"n":{"type":"number"},"m":{"type":"number"}},"bindings":{"b":{"type":"resource_ref","resource_kind":"drive.file","meta":{"note":"omit"}},"unused":{"type":"artifact_ref"}},"stages":[{"id":"a","inputs":{"rows":"relation","remote/~":{"connector":"drive/main","resource":"file","request":{"p":{"$param":"n"},"f/~":{"$binding":"b"},"again":{"$binding":"b"},"data":{"nested":{"$param":"unknown"}}}}},"from":"rows","steps":[{"take":{"$param":"m"}}],"results":{"r":{}},"effects":{"d":{"delete":{"where":["1 < $n"]}}}},{"id":"b","inputs":{"rows":"relation"},"from":"rows","steps":[{"take":{"$param":"m"}}],"results":{"r":{}}}],"results":{"out":{"from":{"stage":"b","result":"r"}}}}
+  let text = if used_bindings {
+    text.replace(old=",\"unused\":{\"type\":\"artifact_ref\"}", new="")
+  } else {
+    text
+  }
+  let text = if unused_parameter {
+    text.replace(
+      old="\"params\":{",
+      new="\"params\":{\"" +
+        unused_parameter_name +
+        "\":{\"type\":\"number\",\"default\":7},",
+    )
+  } else {
+    text
+  }
+  let text = if empty {
     (
-      #|{"version":"actql/0.1","id":"p","params":{"n":{"type":"number"},"m":{"type":"number"}},"bindings":{"b":{"type":"resource_ref","resource_kind":"drive.file","meta":{"note":"omit"}},"unused":{"type":"artifact_ref"}},"stages":[{"id":"a","inputs":{"rows":"relation","remote/~":{"connector":"drive/main","resource":"file","request":{"p":{"$param":"n"},"f/~":{"$binding":"b"},"again":{"$binding":"b"},"data":{"nested":{"$param":"unknown"}}}}},"from":"rows","steps":[{"take":{"$param":"m"}}],"results":{"r":{}},"effects":{"d":{"delete":{"where":["1 < $n"]}}}},{"id":"b","inputs":{"rows":"relation"},"from":"rows","steps":[{"take":{"$param":"m"}}],"results":{"r":{}}}],"results":{"out":{"from":{"stage":"b","result":"r"}}}}
-    ),
+      #|{"version":"actql/0.1","id":"empty","stages":[{"id":"a","inputs":{"rows":"relation","remote/~":"relation"},"from":"rows","steps":[],"results":{"r":{}}},{"id":"b","inputs":{"rows":"relation"},"from":"rows","steps":[],"results":{"r":{}}}],"results":{"out":{"from":{"stage":"b","result":"r"}}}}
+    )
+  } else {
+    text
+  }
+  let program = @stage.parse(
+    text,
     {
       source: { max_input_bytes: 100000, max_nodes: 10000, max_depth: 100, },
       tree: {

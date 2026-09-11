@@ -5,6 +5,7 @@ import {
   "actql/actql/binding_declarations",
   "actql/actql/encode_core",
   "actql/actql/expression_syntax",
+  "actql/actql/parameter_binding",
   "actql/actql/parameter_references",
   "actql/actql/source_request_slots",
   "actql/actql/stage_source",
@@ -14,6 +15,8 @@ import {
 pub fn binding_at(Index, Int) -> BindingReference?
 
 pub fn binding_count(Index) -> Int
+
+pub fn check_declaration_usage(Inventory, max_work~ : Int) -> Result[DeclarationUsage, UsageIssue]
 
 pub fn emit_binding_references(Index, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
 
@@ -31,6 +34,10 @@ pub fn stage_index(Inventory, Int) -> Index?
 
 pub fn stage_uses(Inventory, Int) -> @stage_source.ParameterUses?
 
+pub fn usage_inventory(DeclarationUsage) -> Inventory
+
+pub fn usage_work(DeclarationUsage) -> Int
+
 pub fn work(Inventory) -> Int
 
 // Errors
@@ -41,6 +48,8 @@ pub struct BindingReference {
   path : String
   declaration : @binding_declarations.Declaration
 }
+
+type DeclarationUsage
 
 type Index
 
@@ -64,6 +73,13 @@ pub(all) struct Limits {
   max_references : Int
   max_pointer_units : Int
   max_request_text_bytes : Int
+}
+
+pub enum UsageIssue {
+  InvalidLimits
+  WorkLimit
+  UnusedParameter(@parameter_binding.Declaration)
+  UnusedBinding(@binding_declarations.Declaration)
 }
 
 // Type aliases

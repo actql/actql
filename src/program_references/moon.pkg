@@ -6,6 +6,7 @@ import {
   "actql/actql/stage_parameters" @stages,
   "actql/actql/stage_syntax" @stage,
   "actql/actql/parameter_references" @parameters,
+  "actql/actql/parameter_binding" @parameter,
   "actql/actql/pipeline_parameters" @collection,
   "actql/actql/binding_declarations" @bindings,
   "actql/actql/expression_syntax" @expression,
