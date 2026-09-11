@@ -47,6 +47,8 @@ producer pipelines, reject globally unused declarations or prove that the
 declaration owner came from the enclosing Program source. Choosing a document
 root controls pointer coordinates; it does not validate that document's grammar.
 
+The [source-bound stage collector](stage-parameters.md) binds declarations, steps
+and initial `from` to a structurally admitted Program before calling this layer.
 The complete stage/Program semantic envelope, Invocation identity and capacity
 applicability still require those enclosing checks. A local reference index
 must not be presented as a completed Program semantic owner.

@@ -1,0 +1,49 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/stage_parameters"
+
+import {
+  "actql/actql/parameter_binding",
+  "actql/actql/pipeline_parameters",
+  "actql/actql/pipeline_typing",
+  "actql/actql/stage_syntax",
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn collect(Source, Int, @pipeline_typing.CheckedPipeline, @pipeline_parameters.Limits) -> Result[CollectedStage, Issue]
+
+pub fn collection(CollectedStage) -> @pipeline_parameters.Collected
+
+pub fn declarations(Source) -> @parameter_binding.Declarations
+
+pub fn prepare(@stage_syntax.Program, @parameter_binding.DeclarationLimits) -> Result[Source, Issue]
+
+pub fn program(Source) -> @stage_syntax.Program
+
+pub fn source(CollectedStage) -> Source
+
+pub fn stage_at(Source, Int) -> @stage_syntax.Stage?
+
+pub fn stage_count(Source) -> Int
+
+pub fn stage_index(CollectedStage) -> Int
+
+// Errors
+
+// Types and methods
+type CollectedStage
+
+pub(all) enum Issue {
+  Declarations(@parameter_binding.Issue)
+  InvalidStage
+  ForeignDeclarations
+  ForeignSteps
+  ForeignInitialFrom
+  Collection(@pipeline_parameters.Issue)
+} derive(Eq, @debug.Debug)
+
+type Source
+
+// Type aliases
+
+// Traits
