@@ -130,6 +130,33 @@ including nested mixed expressions. Input-contract failures use the supplied
 steps cursor as context because independently supplied contracts have no source
 cursor here. Errors return no partial pipeline.
 
+## Retained expression slots
+
+`collect_expression_slots` enumerates the typed Expression roots retained by all
+local checked steps, including unused `as` branches. It retains the exact
+CheckedPipeline owner and returns indexed immutable handles with their step
+coordinates. Relation bindings include aggregate/analytic arguments and filters;
+Sequence includes every pattern predicate. Graph coverage includes match
+predicates, subgraph node/edge predicates, traverse start and per-hop edge/node
+predicates, and shortest-path endpoint predicates. The operation match is
+exhaustive: forms without general Expression roots are listed explicitly.
+
+This pass charges one work unit per step and per inspected expression candidate,
+including absent optional predicates. `max_slots` bounds retained roots, not the
+number of Parameter occurrences inside them. Equality is accepted and failure
+returns no partial collection. Expression trees are not copied, re-normalized,
+evaluated or substituted. Their original source ownership and location sidecars
+remain available through the typed Expression handles. Producer pipelines retain
+their own slots and require their own traversal.
+
+These slots feed the [Parameter reference index](parameter-references.md) after
+bounded occurrence discovery. The integration test retains root-source pointers
+through derive/filter checking, including an unused branch. This is not a
+complete Program reference enumeration: non-expression count/duration guards,
+CellValue operands, input requests, Results, effects and opaque binding references
+still require their grammar-specific paths. No checked schema expansion or
+evidence-dependent operation completion becomes the authored semantic body.
+
 ## Conditional evidence
 
 The retained pipeline keeps distinct evidence axes, not a universal checked flag:

@@ -11,6 +11,7 @@ import {
   "actql/actql/decode_core",
   "actql/actql/event_typing",
   "actql/actql/expression_text",
+  "actql/actql/expression_typing",
   "actql/actql/graph_contract",
   "actql/actql/graph_typing",
   "actql/actql/order_key",
@@ -106,6 +107,8 @@ pub fn check_with_evidence(@decode_core.Cursor, Array[(String, InputContract)], 
 
 pub fn collect_author_guards(CheckedPipeline, max_work~ : Int, max_text_bytes~ : Int) -> Result[AuthorGuards, Issue]
 
+pub fn collect_expression_slots(CheckedPipeline, max_work~ : Int, max_slots~ : Int) -> Result[ExpressionSlots, ExpressionSlotIssue]
+
 pub fn combine_relation_evidence(@decode_core.Cursor, @relation_evidence.KeySet, @relation_evidence.RankingInput) -> Result[RelationEvidence, Issue]
 
 pub fn contextual_closure_at(ContextualClosure, Int) -> ContextualOrders?
@@ -131,6 +134,14 @@ pub fn contextual_orders_usage(ContextualOrders) -> (Int, Int)
 pub fn current(CheckedPipeline) -> Target?
 
 pub fn expected_delta_contract(CheckedPipeline, Target, @relation_schema.FieldName) -> @graph_contract.CheckedContract?
+
+pub fn expression_slot_at(ExpressionSlots, Int) -> ExpressionSlot?
+
+pub fn expression_slot_count(ExpressionSlots) -> Int
+
+pub fn expression_slots_pipeline(ExpressionSlots) -> CheckedPipeline
+
+pub fn expression_slots_work(ExpressionSlots) -> Int
 
 pub fn graph_count(CheckedPipeline, Target) -> GraphCount?
 
@@ -344,6 +355,19 @@ pub enum ContextualOrder {
 }
 
 type ContextualOrders
+
+pub struct ExpressionSlot {
+  step : Int
+  expression : @expression_typing.TypedExpression
+}
+
+pub(all) enum ExpressionSlotIssue {
+  InvalidLimits
+  WorkLimit
+  SlotLimit
+} derive(Eq, @debug.Debug)
+
+type ExpressionSlots
 
 pub struct GraphCount {
   nodes : RowCount?
