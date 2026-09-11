@@ -121,6 +121,28 @@ the same selector naming different contract CIDs is rejected.
 
 Runtime source evidence and drift validation are specified in [Runtime source evidence](run.md#runtime-source-evidence).
 
+<a id="capacity-law-registry"></a>
+
+### Capacity witness law registry
+
+<!-- requirement-block: capacity-law-registry.closed-identifiers -->
+A bound witness MUST name a law in the pinned
+`actql-bound-law-registry/0.1`. Its `law_ids` is a nonempty, unique, ascending
+ASCII list. Registry membership identifies an admitted law name; it does not
+validate the witness's role, source, unit, derivation, applicable consumer or
+enforcement. Those checks remain mandatory under the governing source and
+operation contracts. A registered name without a validated application does not
+produce a runnable capacity fact. The Host entries are exactly the IDs in the
+pinned capacity policy's `host_witness_laws` table. Other law names retain their
+separate source/application obligations rather than accepting arbitrary witness
+claims by name alone.
+
+<!-- requirement-block: capacity-law-registry.machine-contract -->
+<!-- normative-code: law -->
+```text
+../../../spec/contracts/actql-bound-law-registry.json# sha256:f7b4eccb94ab84d61367bb89e84f9ede39bf14d459df18b23dd214ad7c510796
+```
+
 <a id="capacity-host-policy"></a>
 
 ### Host capacity policy evidence

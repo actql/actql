@@ -7527,6 +7527,28 @@
       }
     },
     {
+      "requirement_id": "actql.protocol.contracts/capacity-law-registry.closed-identifiers",
+      "statement_sha256": "5b4183b1730383cd1d4f77a9f6386e2ea64d4431da08d0c446fe0ce7640f24a9",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "capacity-law-registry",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/capacity-law-registry.machine-contract",
+      "statement_sha256": "2fef6ee18b03ef25b121f087fc3b129dcf127a0d89a0e09d363d9376c5f2c139",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "capacity-law-registry",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.protocol.contracts/capacity-host-policy.canonical-source",
       "statement_sha256": "bb1e897e78a3927e75e8e678e4304cd6cc2d03ee6ea40b3fa447235934d41c5a",
       "status": "pending",

@@ -75,8 +75,9 @@ consumer audit.
    now retains all numeric candidates and computes strict author-guard binding;
    supplied roles and applicability are not authenticated by that arithmetic.
    Canonical wire/source/law
-   verification remains open; a closed bound-law registry body was not found in
-   the inspected repository and still needs an authoritative owner.
+   verification remains open. The [closed law-name registry](capacity-law-registry.md)
+   now has a normative owner, pinned body and exact-membership API; individual
+   law applications and non-Host sources remain unvalidated by that membership.
    The separate [operation transfer registry](bound-transfer-registry.md) now
    covers all 72 public spellings and is pinned by the language owner. Coverage
    classification does not replace individual witness-law/source validation.

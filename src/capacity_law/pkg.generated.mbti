@@ -1,0 +1,16 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/capacity_law"
+
+// Values
+pub fn admit(String) -> RegisteredLaw?
+
+pub fn name(RegisteredLaw) -> String
+
+// Errors
+
+// Types and methods
+type RegisteredLaw
+
+// Type aliases
+
+// Traits

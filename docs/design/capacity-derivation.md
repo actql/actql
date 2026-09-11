@@ -67,14 +67,14 @@ validated resolved-limit/enforcement dependency; it is not represented here as
 a public proof constructor. Likewise, a program proof cannot be established
 merely by copying its claimed value into a leaf.
 
-Inspection found bound-witness and resolved-limit shapes in the protocol
-schemas and normative references to a closed law registry, but no corresponding
-closed bound-law registry body in this repository. The fixed Sketch
+The [closed law-name registry](capacity-law-registry.md) is now pinned and
+generated into an exact-membership boundary. Membership is not validation of
+an individual law application or source. The fixed Sketch
 `src/actql-bounds.ts` supplies implementation material, including law IDs,
 role/source checks and arithmetic derivations. Its optional dependency-map
 validation and global created-witness cache are not imported as trust rules.
-The missing registry and its operation-specific semantics must be resolved
-before claiming validated capacity evidence. They are not grounds to skip law
+The remaining operation-specific application semantics must be validated
+before claiming capacity evidence. They are not grounds to skip law
 checks or to accept any caller-provided law string.
 
 This implements a component of the original shared-capacity scope. Canonical

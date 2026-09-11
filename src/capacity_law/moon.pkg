@@ -1,0 +1,3 @@
+supported_targets = "+js+wasm+native"
+
+formatter(ignore: [ "registry.generated.mbt" ])

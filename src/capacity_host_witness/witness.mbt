@@ -18,7 +18,7 @@ pub(all) enum Issue {
 struct Witness {
   ceiling : @policy.Ceiling
   unit : @derivation.BoundUnit
-  law : String
+  law : @law.RegisteredLaw
   cid : String
 }
 
@@ -75,6 +75,7 @@ pub fn create(
   guard mapping(field) is Some((unit, law)) else {
     return Err(UnsupportedPolicyField(field))
   }
+  guard @law.admit(law) is Some(law) else { return Err(InvalidWitness) }
   let pending : Witness = { ceiling, unit, law, cid: "", }
   try {
     let writer = @encode.hashing_writer(
@@ -108,7 +109,7 @@ fn emit_body(
   @encode.string_value(writer, "source")
   @encode.end_object(writer)
   @encode.key(writer, "law_id")
-  @encode.string_value(writer, w.law)
+  @encode.string_value(writer, @law.name(w.law))
   @encode.key(writer, "role")
   @encode.string_value(writer, "host_ceiling")
   @encode.key(writer, "source")
@@ -160,5 +161,5 @@ pub fn unit(w : Witness) -> @derivation.BoundUnit {
 
 ///|
 pub fn law_id(w : Witness) -> String {
-  w.law
+  @law.name(w.law)
 }
