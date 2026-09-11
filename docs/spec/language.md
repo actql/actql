@@ -1769,6 +1769,19 @@ non-overlapping left-to-right and an empty search is a no-op. `lower`/`upper`
 use Unicode 16.0 default mappings; a runtime without exactly those tables MUST
 reject those functions rather than use host-dependent mappings.
 
+<!-- requirement-block: scalar-expressions.like-pattern-validation -->
+Before executable compilation, the compiler MUST resolve each LIKE pattern
+literal or Parameter from the selected checked bindings to a non-null string
+and validate its escape syntax, including in unselected branches. Backslash
+quotes exactly the next Unicode scalar; a final unpaired backslash is invalid.
+The empty pattern is valid, `%` matches any scalar sequence, and `_` matches
+one scalar, including line separators. Other scalars are literal and no regex
+syntax or flags are inferred. Validation preserves the normalized pattern text
+without rewriting repeated wildcards or escapes. A null value operand retains
+the ordinary nullable predicate semantics; it does not excuse an invalid or
+null static pattern. LIKE does not acquire the text-time profile's Host policy
+requirements merely because its pattern is checked at the same boundary.
+
 <a id="expression-text"></a>
 
 ### Expression text

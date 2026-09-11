@@ -37,6 +37,8 @@ pub fn bound_guards(PipelineContext) -> @pipeline_typing.BoundGuardClosure
 
 pub fn check(@relation_results.CheckedResults, Array[@parameter_binding.BoundValues?], Array[@capacity_graph_preflight.ApplicationCoverage], @capacity_policy.Policy, Limits, proof_owners? : Array[(Int, Int, Int)], input_owners? : Array[(Int, Int, Int, Int)]) -> Result[PipelineContext, Issue]
 
+pub fn check_like_patterns(ExpressionValidationContext, LikePatternLimits) -> Result[LikePatternChecks, LikePatternIssue]
+
 pub fn check_parameter_bindings(PipelineContext, max_work~ : Int, max_text_bytes~ : Int) -> Result[BoundParameters, ParameterIssue]
 
 pub fn check_patterns(ExpressionValidationContext, PatternLimits) -> Result[PatternChecks, PatternIssue]
@@ -78,6 +80,20 @@ pub fn expression_validation_usage(ExpressionValidationContext) -> SelectedPolic
 pub fn input_usage(InputContexts) -> InputUsage
 
 pub fn input_wiring(InputContexts) -> WiredStages
+
+pub fn like_pattern_at(LikePatternChecks, Int) -> LikePatternResolution?
+
+pub fn like_pattern_context(LikePatternChecks) -> ExpressionValidationContext
+
+pub fn like_pattern_count(LikePatternChecks) -> Int
+
+pub fn like_pattern_parameter(LikePatternResolution) -> @parameter_binding.BoundParameter?
+
+pub fn like_pattern_site(LikePatternResolution) -> ExpressionValidationSite
+
+pub fn like_pattern_source(LikePatternResolution) -> String
+
+pub fn like_pattern_usage(LikePatternChecks) -> LikePatternUsage
 
 pub fn local_inputs_at(InputContexts, Int) -> @stage_local_inputs.Attached?
 
@@ -249,6 +265,29 @@ pub(all) enum Issue {
   Capacity(@capacity_graph_preflight.ApplicationClosureIssue)
 }
 
+type LikePatternChecks
+
+pub(all) enum LikePatternIssue {
+  InvalidLimits
+  BudgetExceeded
+  InvalidSite(Int)
+  MissingBindings(Int)
+  InvalidPatternValue(Int)
+  TrailingEscape(Int, Int)
+} derive(Eq, @debug.Debug)
+
+pub(all) struct LikePatternLimits {
+  max_work : Int
+  max_text_bytes : Int
+} derive(Eq, @debug.Debug)
+
+type LikePatternResolution
+
+pub(all) struct LikePatternUsage {
+  work : Int
+  text_bytes : Int
+} derive(Eq, @debug.Debug)
+
 pub(all) struct Limits {
   max_steps : Int
   max_results : Int
@@ -277,6 +316,7 @@ pub(all) enum PatternIssue {
   UnsupportedPattern(Int, String)
   Timestamp(TimestampPatternIssue)
   Regex(RegexPatternIssue)
+  Like(LikePatternIssue)
 } derive(Eq, @debug.Debug)
 
 pub(all) struct PatternLimits {
@@ -290,6 +330,7 @@ pub(all) struct PatternLimits {
 pub(all) enum PatternResolution {
   Timestamp(TimestampPatternResolution)
   Regex(RegexPatternResolution)
+  Like(LikePatternResolution)
 }
 
 pub(all) struct PatternUsage {

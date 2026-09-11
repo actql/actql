@@ -44,6 +44,7 @@ test "pattern closure preserves one owner and original mixed occurrence order" {
           assert_true(op == "regex_match" || op == "regex_replace")
           assert_eq(@regex.capture_count(regex_pattern_ast(v)), 1)
         }
+        Like(_) => fail("unexpected LIKE resolution")
       }
       next += 1
     }
@@ -71,7 +72,7 @@ test "combined pattern budgets subtract shared context once and accumulate both 
   )
   assert_eq(
     used.work,
-    t.work + (r.work - base.work) + 2 * expression_validation_count(context),
+    t.work + (r.work - base.work) + 3 * expression_validation_count(context),
   )
   assert_eq(used.text_bytes, t.text_bytes + (r.text_bytes - base.text_bytes))
   assert_eq(used.ast_bytes, t.ast_bytes + r.ast_bytes)

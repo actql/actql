@@ -215,23 +215,23 @@ constructor lets the lowerer substitute an unrelated collection.
 ## Combined pattern validation
 
 `check_patterns` is the main integration entry for all PatternValidation sites.
-It accepts one ExpressionValidationContext and constructs both component checks
-itself; it does not accept timestamp and regex collections from the caller.
+It accepts one ExpressionValidationContext and constructs the component checks
+itself; it does not accept timestamp, regex or LIKE collections from the caller.
 The opaque PatternChecks retains that same context and every resolution in the
 original inventory order, including reused producer occurrences. The returned
-PatternResolution enum exposes a read-only timestamp or regex result, not a
+PatternResolution enum exposes a read-only timestamp, regex or LIKE result, not a
 constructor for the owning checked collection.
 
 The constructor first rejects any unhandled PatternValidation operation instead
 of silently omitting it. It then checks timestamps and regex/static replacement
-options, in that deterministic phase order. An error reports its component and
-original inventory index. Result ordering does not claim a different global
+options, then LIKE, in that deterministic phase order. An error reports its
+component and original inventory index. Result ordering does not claim a different global
 first-error order across phases, nor runtime first-failure semantics.
 
-All source/work caps include the retained base context exactly once. The second
-phase receives caps reduced by the first phase's incremental cost, not by the
-entire shared context. AST bytes and JSON nodes accumulate without overlap
-because both phases construct distinct ASTs. Inventory preflight and ordered
+All source/work caps include the retained base context exactly once. Each later
+phase receives caps reduced by prior phases' incremental cost, not by the
+entire shared context. Timestamp and regex AST bytes and JSON nodes accumulate
+without overlap; LIKE retains text instead of constructing an AST. Inventory preflight and ordered
 collection each cost one work unit per site. Subtraction before addition keeps
 all combined arithmetic within the caller's admitted caps. `max_regex_depth`
 limits the recursive regex shape; timestamp components have their fixed flat
@@ -245,6 +245,27 @@ sites returns zero pattern resolutions without pretending those sites were
 discharged. Host ceilings are not implementation profile claims: the remaining
 profile check must follow the conformance owner, not infer support from policy
 presence. PatternChecks is still not a CheckedProgram or an executable Plan.
+
+### LIKE pattern admission
+
+`check_like_patterns` resolves literal or Parameter patterns through the exact
+owned typed child and binding visit. The opaque result retains the canonical
+source string and selected BoundParameter, not a host regex or a fabricated AST
+identity. LIKE requires no TextTime policy. Caller work and UTF-8 text budgets
+are cumulative across all sites; each scan is charged before traversal. It
+adds no JSON AST bytes/nodes. A final unmatched backslash reports the original
+inventory index and a UTF-16 code-unit offset within the resolved pattern.
+The scan only establishes escape validity, not match results or execution cost.
+
+The normative clarification in the scalar-expression owner follows Sketch
+`87dc7144`'s literal trailing-escape rejection and AoA
+`dbab4fe8c1d624d81ed967f90e2abe742163f84f`'s scalar escape semantics. Bound
+patterns receive the same validation as literals, even in unused branches.
+The explicit non-null static pattern requirement closes the case of a nullable
+Parameter bound to null: it cannot supply a pattern for compilation. This does
+not reject null value operands. AoA's executor-specific hardcoded length and
+wildcard caps are not imported as language limits or text-time policy ceilings.
+Matching, backend admission and runtime resource enforcement remain separate.
 
 The [portable text-time bounds component](text-time-bounds.md) now provides
 contract/value input extents and the twelve output formulas, retaining child

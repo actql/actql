@@ -32,8 +32,14 @@ fn wired_inputs_fixture(
       old="\"params\":{\"n\":{\"type\":\"number\",\"default\":1}}",
       new="\"params\":" + parameters,
     )
-    .replace(old="\"x\":\"$n\"", new="\"x\":\"" + expression + "\"")
-    .replace(old="\"x\":\"$n\"", new="\"x\":\"" + expression + "\""),
+    .replace(
+      old="\"x\":\"$n\"",
+      new="\"x\":" + expression.to_json().stringify(),
+    )
+    .replace(
+      old="\"x\":\"$n\"",
+      new="\"x\":" + expression.to_json().stringify(),
+    ),
     {
       source: { max_input_bytes: 10000, max_nodes: 1000, max_depth: 100, },
       tree: {

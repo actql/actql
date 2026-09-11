@@ -1576,6 +1576,17 @@
       }
     },
     {
+      "requirement_id": "actql.language/scalar-expressions.like-pattern-validation",
+      "statement_sha256": "effe1f868d3b6ed6b097a3d53b97d9c971c56d745ef5332e8df1e6935e372902",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "scalar-expressions",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.language/expression-text.an-implementation-must-reject-unlisted-syntax-functions-and-wrong-arities",
       "statement_sha256": "954fdca231ee3f16d957dcdbbabe8e39340ffabca62428362a643b95d09614d7",
       "status": "pending",

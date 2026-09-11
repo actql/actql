@@ -14,6 +14,7 @@ pub(all) enum PatternIssue {
   UnsupportedPattern(Int, String)
   Timestamp(TimestampPatternIssue)
   Regex(RegexPatternIssue)
+  Like(LikePatternIssue)
 } derive(Eq, Debug)
 
 ///|
@@ -30,6 +31,7 @@ pub(all) struct PatternUsage {
 pub(all) enum PatternResolution {
   Timestamp(TimestampPatternResolution)
   Regex(RegexPatternResolution)
+  Like(LikePatternResolution)
 }
 
 ///|
@@ -71,7 +73,7 @@ pub fn check_patterns(
       PatternValidation(op) =>
         if ![
             "parse_timestamp", "try_timestamp", "format_timestamp", "regex_match",
-            "regex_extract", "regex_replace",
+            "regex_extract", "regex_replace", "like",
           ].contains(op) {
           return Err(UnsupportedPattern(i, op))
         }
@@ -105,9 +107,25 @@ pub fn check_patterns(
     Err(e) => return Err(Regex(e))
   }
   let r = regex_pattern_usage(regex)
+  let like = match
+    check_like_patterns(context, {
+      max_work: limits.max_work -
+      overhead -
+      (t.work - before.work) -
+      (r.work - before.work),
+      max_text_bytes: limits.max_text_bytes -
+      (t.text_bytes - before.text_bytes) -
+      (r.text_bytes - before.text_bytes),
+    }) {
+    Ok(v) => v
+    Err(LikePatternIssue::BudgetExceeded) => return Err(BudgetExceeded)
+    Err(e) => return Err(Like(e))
+  }
+  let l = like_pattern_usage(like)
   let entries : Array[PatternResolution] = []
   let mut ti = 0
   let mut ri = 0
+  let mut li = 0
   for i in 0..<count {
     let site = expression_validation_at(context, i).unwrap()
     match validation_site_requirement(site).obligation.kind {
@@ -115,6 +133,9 @@ pub fn check_patterns(
         if ["parse_timestamp", "try_timestamp", "format_timestamp"].contains(op) {
           entries.push(Timestamp(timestamp_pattern_at(timestamp, ti).unwrap()))
           ti += 1
+        } else if op == "like" {
+          entries.push(Like(like_pattern_at(like, li).unwrap()))
+          li += 1
         } else {
           entries.push(Regex(regex_pattern_at(regex, ri).unwrap()))
           ri += 1
@@ -126,8 +147,10 @@ pub fn check_patterns(
     context,
     entries,
     usage: {
-      work: t.work + (r.work - before.work) + overhead,
-      text_bytes: t.text_bytes + (r.text_bytes - before.text_bytes),
+      work: t.work + (r.work - before.work) + (l.work - before.work) + overhead,
+      text_bytes: t.text_bytes +
+      (r.text_bytes - before.text_bytes) +
+      (l.text_bytes - before.text_bytes),
       ast_bytes: t.ast_bytes + r.ast_bytes,
       ast_nodes: t.ast_nodes + r.ast_nodes,
     },
@@ -159,5 +182,6 @@ pub fn pattern_site(v : PatternResolution) -> ExpressionValidationSite {
   match v {
     Timestamp(v) => timestamp_pattern_site(v)
     Regex(v) => regex_pattern_site(v)
+    Like(v) => like_pattern_site(v)
   }
 }
