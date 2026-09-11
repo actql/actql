@@ -20,7 +20,10 @@ Stage metadata was already admitted by `stage_syntax` and is outside local_body.
 Newly excluded annotations must be nonempty objects with no top-level `actql_`
 key. Their JSON scalar validity already follows from the opaque parsed Stage
 source. No recursion interprets nested business keys as annotation or syntax:
-payloads, set values and literals retain `meta`, `$param` and `literal` as data.
+payloads and opaque literal descendants retain `meta`, `$param` and `literal`
+as data. The immediate EffectValue `{literal: {$param: name}}` is the explicit
+exception required by the Parameter contract: it remains an unbound hole in
+source output and is discovered by the separate reference collection below.
 
 Update/delete where arrays are decoded using `selector_syntax`, so common text
 and structured notation share the normalized source expression representation.
@@ -63,3 +66,38 @@ ownership, selector normalization and diagnostics, cumulative limits, malformed
 annotations and ambiguous Effect wrappers, a depth-10,000 business value,
 independent canonical bytes/digest and three-sink boundary equivalence. They are
 source-projection evidence, not Effect evaluation or Program conformance.
+
+## Operation and Effect Parameter use
+
+`collect_parameter_uses` consumes the opaque Body and includes every already
+collected operation slot, every normalized Effect where expression, and the
+closed direct value roles: max_items, update/delete ids (whole-list holes and
+immediate elements), external_id.value, update/upsert set values and command
+input values. In EffectValue only an exact literal wrapper whose immediate
+payload is an exact singleton $param is a hole. Explicit create.payload and
+deeper literal business data are not searched. No name-based recursive walker
+is used; fields named ids or literal inside business data do not create roles.
+
+The result retains the exact Body and original declaration owner. Its index uses
+stage-body-relative normalized source pointers, including internal expression
+paths for text notation, and sorts references by canonical path/name order.
+Unknown declarations and malformed holes fail atomically. Reference type is the
+original Parameter declaration, not a type inferred from a supplied value.
+Consumer-specific value/guard constraints and complete Effect shape checks are
+still separate; finding an ID-array reference does not prove its declaration
+is a valid ID array.
+
+Work includes Body preparation once, occurrence collection and re-indexing.
+The slot/reference caps cover the combined operation/Effect list. Pointer
+storage accounts for both the retained operation index and the new combined
+index; the direct-text cap includes previous operation direct-hole admission.
+Selector expression syntax was already charged during Body preparation. No
+caller-selected subset can omit a difficult Effect or reset these limits.
+
+This index is deliberately not all-Program reference closure. Input/SourceView
+request Parameter roles and opaque Binding references must still be collected
+and integrated before unused declarations, used-value projection or semantic
+stage/Program identities can be finalized. It must not be used to reject a
+declaration merely because only an Input uses it. Existing Sketch `87dc7144`
+uses path-key heuristics for Parameter positions; the current normative
+immediate-hole and opaque-data rules require the explicit role walk above.

@@ -9,6 +9,8 @@ import {
   "actql/actql/decode_core" @decode,
   "actql/actql/canonical_value" @canonical,
   "actql/actql/encode_core" @encode,
+  "actql/actql/pipeline_parameters" @collection,
+  "actql/actql/parameter_references" @references,
 }
 
 import {

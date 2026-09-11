@@ -5,13 +5,23 @@ import {
   "actql/actql/decode_core",
   "actql/actql/encode_core",
   "actql/actql/expression_syntax",
+  "actql/actql/parameter_references",
+  "actql/actql/pipeline_parameters",
   "actql/actql/pipeline_source",
   "actql/actql/selector_syntax",
   "actql/actql/stage_parameters",
 }
 
 // Values
+pub fn collect_parameter_uses(Body, @pipeline_parameters.Limits) -> Result[ParameterUses, ParameterIssue]
+
 pub fn emit(Body, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
+
+pub fn parameter_body(ParameterUses) -> Body
+
+pub fn parameter_index(ParameterUses) -> @parameter_references.Index
+
+pub fn parameter_work(ParameterUses) -> Int
 
 pub fn prepare(@stage_parameters.CollectedStage, Limits) -> Result[Body, Issue]
 
@@ -44,6 +54,15 @@ pub(all) struct Limits {
   max_work : Int
   selectors : @expression_syntax.Limits
 }
+
+pub enum ParameterIssue {
+  InvalidLimits
+  WorkLimit
+  Syntax(@expression_syntax.Issue)
+  References(@parameter_references.Issue)
+}
+
+type ParameterUses
 
 // Type aliases
 
