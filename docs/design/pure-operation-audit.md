@@ -147,9 +147,13 @@ or order evidence, capacity sources, or the remaining operation audit.
    as the next in-scope source connection. It does not add a generic trusted
    Contract/Program/Language witness constructor or expand into acquisition.
    Its Program application review also distinguishes semantic references from
-   authored names and capacity operands from data inputs. An owned
-   semantic-subject/checked-target correspondence remains missing; arithmetic
-   closure or matching an `as` name cannot substitute for that boundary.
+   authored names and capacity operands from data inputs. The
+   [checked step bound application](program-step-bounds.md) now binds local
+   input-independent global-group and literal take/top-k proofs to their actual
+   operation, using owner-relative step references and checking law/unit/value
+   and derivation. Input-dependent laws, general imported semantic subjects and
+   enclosing Program identity remain open; arithmetic closure or matching an
+   `as` name cannot substitute for those boundaries.
    [Checked author-guard occurrences](author-guard-occurrences.md) now retain
    actual local step/aggregate owners, exact guard slots and unresolved
    Parameter references under cumulative enumeration budgets. Numeric binding

@@ -1,0 +1,19 @@
+supported_targets = "+js+wasm+native"
+
+import {
+  "actql/actql/pipeline_typing" @pipeline,
+  "actql/actql/capacity_witness" @wire,
+  "actql/actql/capacity_derivation" @arithmetic,
+  "actql/actql/capacity_law" @law,
+  "actql/actql/relation_typing" @relation,
+}
+
+import {
+  "actql/actql/source_value" @source,
+  "actql/actql/decode_core" @decode,
+  "actql/actql/relation_schema" @schema,
+  "actql/actql/value_contract" @contract,
+  "actql/actql/sha256" @sha,
+  "actql/actql/parameter_binding" @parameter,
+  "moonbitlang/core/encoding/utf8",
+} for "test"

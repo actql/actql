@@ -68,7 +68,10 @@ and exact checked owners/targets. That correspondence must be supplied by the
 owner that constructs or validates the semantic graph, not inferred from equal
 names, equal counts or caller-provided numeric assertions. Preserve role-tagged
 data inputs separately from the subset of capacity witnesses used by a law.
-The existing pipeline does not yet expose that semantic-subject owner.
+The [checked step application](program-step-bounds.md) now introduces an
+owner-relative `checked-step:<index>` correspondence for supported local
+input-independent proofs. It does not map arbitrary imported compiler references
+or provide an enclosing Program identity.
 
 | Law family | Application checks beyond arithmetic closure |
 | --- | --- |
@@ -78,12 +81,12 @@ The existing pipeline does not yet expose that semantic-subject owner.
 | `actql.bound.unpivot`, `actql.bound.unnest-array-items` | Derive the expansion factor from the checked column occurrences or admitted item bound. Repeated unpivot columns count repeatedly; outer unnest of an empty array may still contribute one row. A self-consistent multiplication by a caller-selected factor is insufficient. |
 | Graph input enforced ceilings | Use the existing mixed-limit and Graph preflight binding, not a fabricated ordinary Program proof. Input node and edge measures remain distinct; successful static binding does not observe their counts. |
 
-These are application prerequisites, not newly admitted law applications. The
-next implementation must establish the owned semantic-subject correspondence
-before promoting wire Program claims. Author-guard Program Definition identity
+The checked step entry now applies the global-group and input-free literal
+take/top-k cases above. Input-dependent and imported semantic-subject application
+remain unimplemented. Author-guard Program Definition identity
 and bound Invocation consistency are separate prerequisites; a fragment hash or
 an authored alias does not supply either identity. No additional law name,
-source constructor or runnable capacity fact is introduced by this audit.
+source constructor or runnable Plan is introduced by this audit.
 
 ## Extension-local capacity law
 

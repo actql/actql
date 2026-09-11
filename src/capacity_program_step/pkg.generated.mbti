@@ -1,0 +1,39 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/capacity_program_step"
+
+import {
+  "actql/actql/capacity_witness",
+  "actql/actql/pipeline_typing",
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn check(@pipeline_typing.CheckedPipeline, Int, @capacity_witness.ProgramProofClaim) -> Result[StepBound, Issue]
+
+pub fn checked_pipeline(StepBound) -> @pipeline_typing.CheckedPipeline
+
+pub fn checked_proof(StepBound) -> @capacity_witness.ProgramProofClaim
+
+pub fn checked_step(StepBound) -> Int
+
+pub fn subject_ref(@pipeline_typing.CheckedPipeline, Int) -> String?
+
+// Errors
+
+// Types and methods
+pub(all) enum Issue {
+  MissingStep
+  SubjectMismatch
+  UnsupportedProofForm
+  UnsupportedOperation
+  UnresolvedCount
+  LawMismatch
+  ValueMismatch
+  InvalidDerivation
+} derive(Eq, @debug.Debug)
+
+type StepBound
+
+// Type aliases
+
+// Traits
