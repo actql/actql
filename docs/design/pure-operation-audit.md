@@ -813,7 +813,12 @@ admission, resource enforcement or complete source authority.
    collections. Producer ports can therefore be prepared before consumer
    checking without reissuing either owner for later assembly. Both reuse
    paths validate source/closure correspondence and include prior costs; the
-   final wiring-to-context attachment remains to be completed.
+   final wiring-to-context attachment now requires the same prepared source and
+   each stage's exact published order owner. It retains validated Result imports
+   and root exports with stage contexts, charging shared prior order costs once.
+   A two-stage actual Result import tests final publication ownership, foreign
+   reissued orders and exact/short cumulative budgets. Ordinary/receipt inputs,
+   static discharge and complete semantic Program identity remain incomplete.
    [Combined order checking](combined-order-checking.md) now resolves
    all steps and named Results with one shared budget and one pipeline owner.
    Capacity and other mandatory obligations still require the final combined

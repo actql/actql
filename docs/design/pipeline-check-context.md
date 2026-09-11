@@ -114,6 +114,27 @@ wiring, discharge static profiles or build semantic Program identities. In
 particular, source correspondence for a pipeline is not proof that its supplied
 input Carrier contracts correspond to the Program's input declarations.
 
+`attach_result_wiring` extends StageContexts with the opaque, already validated
+all-stage ResultWiring. It requires the same prepared Program source and the
+exact CheckedOrders owner retained by each stage's published ports. Consequently
+the imported ProducedInputs and root exports refer to the publications whose
+order, capacity and binding context was checked; equivalent but independently
+reissued publication orders reject. The opaque WiredStages retains both owners.
+The existing wiring validator remains responsible for exact import producers,
+source-order stage coverage and root export resolution, without redoing those
+decisions in this attachment.
+
+Its work/text usage adds wiring costs to stage-context costs, subtracting only
+the exact shared prior CheckedOrders usage already included by prepared ports.
+One ownership check per stage is added. Independent producer-context work is
+still counted, not deduplicated merely because the underlying pipeline agrees.
+Subtraction and remaining-cap checks avoid aggregate overflow. Negative caps,
+foreign source/order owners and short cumulative budgets reject atomically.
+The two-stage import test also checks the root export, exact/short budgets and
+detached caller arrays. This closes Result wiring attachment, not ordinary or
+receipt input admission, static obligation discharge, semantic Program identity
+or execution permission.
+
 `check_parameter_bindings` extends a context with local Parameter reference
 indexes for every contextual producer visit. It uses the exhaustive pipeline
 collector for both typed expressions and direct operands, including values
