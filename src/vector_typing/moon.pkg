@@ -2,9 +2,6 @@ supported_targets = "+js+wasm+native"
 
 import {
   "actql/actql/vector_checking" @checking,
-  "actql/actql/text_rank_profile",
-  "actql/actql/calendar_typing" @calendar,
-  "actql/actql/relation_typing" @relation,
   "actql/actql/relation_evidence" @evidence,
   "actql/actql/carrier_contract" @carrier,
   "actql/actql/decode_core" @decode,
@@ -15,4 +12,5 @@ import {
 
 import {
   "actql/actql/source_value" @source,
+  "actql/actql/relation_typing" @relation,
 } for "test"

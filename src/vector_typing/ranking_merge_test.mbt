@@ -42,6 +42,24 @@ test "RRF preserves input occurrences joins domains and emits only fresh ranking
     limits(),
   ).unwrap()
   assert_eq(@vector_typing.merged_ranking_input_count(c), 3)
+  let keys = @evidence.merged_ranking_keys(c, {
+    max_work: 4,
+    max_name_bytes: 4,
+  }).unwrap()
+  let key = @evidence.key_witness_at(keys.keys, 0).unwrap()
+  assert_eq(@evidence.key_field_count(key), 2)
+  assert_eq(keys.work, 4)
+  assert_eq(keys.name_bytes, 4)
+  assert_true(physical_equal(@evidence.key_ranking_producer(key).unwrap(), c))
+  assert_eq(@evidence.key_pending(key), [ValidateKeyProducer])
+  assert_true(
+    @evidence.merged_ranking_keys(c, { max_work: 3, max_name_bytes: 4, })
+    is Err(_),
+  )
+  assert_true(
+    @evidence.merged_ranking_keys(c, { max_work: 4, max_name_bytes: 3, })
+    is Err(_),
+  )
   let rows = @carrier.relation_rows(@vector_typing.merged_ranking_output(c)).unwrap()
   assert_eq(@carrier.field_count(rows), 4)
   assert_true(@carrier.lookup(rows, Unqualified("business")) is Absent)
@@ -115,6 +133,13 @@ test "weighted score fusion requires matching input declarations without inventi
     is Err({ kind: MissingScoreContract, .. }),
   )
   let c = @vector_typing.check_merge_rankings(source, [input, input], limits()).unwrap()
+  let key = @evidence.key_witness_at(
+    @evidence.merged_ranking_keys(c, { max_work: 2, max_name_bytes: 2, }).unwrap().keys,
+    0,
+  ).unwrap()
+  assert_eq(@evidence.key_field_count(key), 1)
+  assert_eq(@evidence.key_field_at(key, 0).unwrap().name, Unqualified("id"))
+  assert_true(physical_equal(@evidence.key_ranking_producer(key).unwrap(), c))
   let pending = @vector_typing.merged_ranking_pending(c)
   assert_true(pending.contains(AuthenticateCapturedScoreDeclarations))
   assert_true(pending.contains(ValidateBusinessTieAgreement))

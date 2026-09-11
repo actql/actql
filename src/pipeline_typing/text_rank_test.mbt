@@ -52,6 +52,29 @@ test "text ranking resolves query occurrences and composes with reciprocal rank 
   let bound_rank = @vector.ranking_input_text(
     @pipeline_typing.ranking_evidence(bound, Step(0)).unwrap(),
   ).unwrap()
+  let lexical_key = @pipeline_typing.candidate_key(bound, Step(0)).unwrap()
+  assert_eq(@evidence.key_origin(lexical_key), TextRankResult)
+  assert_eq(@evidence.key_field_count(lexical_key), 2)
+  assert_true(
+    physical_equal(
+      @evidence.key_text_rank_producer(lexical_key).unwrap(),
+      bound_rank,
+    ),
+  )
+  let lexical_transfer = @evidence.text_rank_keys(bound_rank, {
+    max_work: 3,
+    max_name_bytes: 20,
+  }).unwrap()
+  assert_eq(lexical_transfer.work, 3)
+  assert_eq(lexical_transfer.name_bytes, 20)
+  assert_true(
+    @evidence.text_rank_keys(bound_rank, { max_work: 2, max_name_bytes: 20, })
+    is Err(_),
+  )
+  assert_true(
+    @evidence.text_rank_keys(bound_rank, { max_work: 3, max_name_bytes: 19, })
+    is Err(_),
+  )
   let unbound_rank = @vector.ranking_input_text(
     @pipeline_typing.ranking_evidence(p, Step(0)).unwrap(),
   ).unwrap()

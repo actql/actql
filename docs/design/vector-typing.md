@@ -2,14 +2,14 @@
 
 ## Exact nearest-neighbor checking
 
-Nearest checking is owned by `relation_evidence`, alongside the key declarations
-it consumes. `vector_typing` reexports its opaque types and functions; it does
+Nearest and ranking checking are owned by `relation_evidence`, alongside the key
+declarations they consume and produce. `vector_typing` reexports their opaque types and functions; it does
 not implement a second checker. Shared diagnostics, limits, metrics and bounded
 source scanning live in the lower `vector_checking` package, which imports
 neither evidence nor vector operation checking. Its mutable counters are local
 checker implementation state, not admitted input facts or public proof objects.
 This dependency direction lets key producers retain the actual checked nearest
-operation without a package cycle. Other vector and ranking operations remain
+operation without a package cycle. Vector preparation, scoring and pooling remain
 in `vector_typing`. Enum aliases use type-qualified constructors when there is
 no expected type, such as `IssueKind::BudgetExceeded`.
 
@@ -104,7 +104,29 @@ Construction visits the two output roles and shares already checked component
 contracts without rescanning their trees. Key selection and alias transfer retain
 their existing cumulative budgets. Producer, profile, numerical, resource and
 input-admission obligations are not discharged by constructing or selecting a
-key. Ranking fusion and lexical-ranking key production remain separate work.
+key. Ranking fusion and lexical-ranking key production follow the same boundary
+as described below.
+
+`merged_ranking_keys` derives the distinct output by fields plus candidate as
+one conditional key. Empty by leaves the candidate-only key; repeated authored
+by occurrences are still charged and retained in the checked producer, without
+duplicating a field in the output key. Max, weighted_sum and RRF use the same
+key law. Every retained producer keeps the complete ordered input occurrence
+list, including repeated RRF inputs and their pending validation obligations.
+The selected numeric score policy does not establish input uniqueness.
+
+Fusion retains a representative original Vectors handle for each positional
+identity, after checking every input's positional width and joined value domain.
+The handle supplies component order/provenance, not an output value bound: the
+merged output contract is authoritative for value admission. These handles
+survive successive fusion and exact aliases. They replace the former width-only
+annotation, without changing source acceptance or admitting arbitrary objects.
+
+`text_rank_keys` derives query_id plus candidate_id and retains the actual
+lexical producer, original corpus/query contracts and selected profile if any.
+Profile admission, tokenization, global input uniqueness and BM25 evaluation
+remain distinct obligations. Both producers integrate with pipeline alias
+transfer, canonical key selection and Result publication-order completion.
 
 Each checked nearest input also retains its original `NearestSource`, accessible
 through `nearest_input_source`. A Relation stays a Relation at this boundary;

@@ -18,7 +18,7 @@ import {
 // Values
 pub fn check(Operation, @decode_core.Cursor, @carrier_contract.Carrier, @parameter_binding.Declarations?, @vector_checking.Limits) -> Result[CheckedVector, @vector_checking.Issue]
 
-pub fn check_merge_rankings(@decode_core.Cursor, Array[RankingInput], @vector_checking.Limits) -> Result[CheckedRanking, @vector_checking.Issue]
+pub fn check_merge_rankings(@decode_core.Cursor, Array[@relation_evidence.RankingInput], @vector_checking.Limits) -> Result[@relation_evidence.CheckedRanking, @vector_checking.Issue]
 
 pub fn check_nearest(@decode_core.Cursor, @carrier_contract.Carrier, @carrier_contract.Carrier, @vector_checking.Limits) -> Result[@relation_evidence.CheckedNearest, @vector_checking.Issue]
 
@@ -38,39 +38,39 @@ pub fn check_pool_relation(@decode_core.Cursor, @relation_evidence.KeyedRelation
 
 pub fn check_pool_vectors(@decode_core.Cursor, @carrier_contract.Carrier, @vector_checking.Limits) -> Result[CheckedPool, @vector_checking.Issue]
 
-pub fn check_ranking_fusion(RankingOptions, Array[RankingInput], @vector_checking.Limits) -> Result[CheckedRanking, @vector_checking.Issue]
+pub fn check_ranking_fusion(@relation_evidence.RankingOptions, Array[@relation_evidence.RankingInput], @vector_checking.Limits) -> Result[@relation_evidence.CheckedRanking, @vector_checking.Issue]
 
-pub fn check_ranking_shape(RankingOptions, RankingInput, @vector_checking.Limits) -> Result[RankingShape, @vector_checking.Issue]
+pub fn check_ranking_shape(@relation_evidence.RankingOptions, @relation_evidence.RankingInput, @vector_checking.Limits) -> Result[@relation_evidence.RankingShape, @vector_checking.Issue]
 
-pub fn check_text_rank(@decode_core.Cursor, @carrier_contract.Carrier, @carrier_contract.Carrier, @vector_checking.Limits, profile? : @text_rank_profile.Profile?) -> Result[CheckedTextRank, @vector_checking.Issue]
+pub fn check_text_rank(@decode_core.Cursor, @carrier_contract.Carrier, @carrier_contract.Carrier, @vector_checking.Limits, profile? : @text_rank_profile.Profile?) -> Result[@relation_evidence.CheckedTextRank, @vector_checking.Issue]
 
-pub fn check_text_rank_inputs(TextRankOptions, @carrier_contract.Carrier, @carrier_contract.Carrier, @vector_checking.Limits, profile? : @text_rank_profile.Profile?) -> Result[CheckedTextRank, @vector_checking.Issue]
+pub fn check_text_rank_inputs(@relation_evidence.TextRankOptions, @carrier_contract.Carrier, @carrier_contract.Carrier, @vector_checking.Limits, profile? : @text_rank_profile.Profile?) -> Result[@relation_evidence.CheckedTextRank, @vector_checking.Issue]
 
-pub fn declare_ranking_score(@decode_core.Cursor, @carrier_contract.Carrier, @relation_schema.FieldName, @vector_checking.Limits) -> Result[RankingInput, @vector_checking.Issue]
+pub fn declare_ranking_score(@decode_core.Cursor, @carrier_contract.Carrier, @relation_schema.FieldName, @vector_checking.Limits) -> Result[@relation_evidence.RankingInput, @vector_checking.Issue]
 
-pub fn declared_score_contract(DeclaredScore) -> ScoreContract
+pub fn declared_score_contract(@relation_evidence.DeclaredScore) -> @relation_evidence.ScoreContract
 
-pub fn declared_score_field(DeclaredScore) -> @relation_schema.FieldName
+pub fn declared_score_field(@relation_evidence.DeclaredScore) -> @relation_schema.FieldName
 
-pub fn declared_score_records(DeclaredScore) -> @carrier_contract.Knowledge
+pub fn declared_score_records(@relation_evidence.DeclaredScore) -> @carrier_contract.Knowledge
 
-pub fn declared_score_source(DeclaredScore) -> @decode_core.Cursor
+pub fn declared_score_source(@relation_evidence.DeclaredScore) -> @decode_core.Cursor
 
-pub fn declared_score_usage(DeclaredScore) -> @vector_checking.Usage
+pub fn declared_score_usage(@relation_evidence.DeclaredScore) -> @vector_checking.Usage
 
 pub fn input(CheckedVector) -> @carrier_contract.Carrier
 
-pub fn merged_ranking_input_at(CheckedRanking, Int) -> RankingShape?
+pub fn merged_ranking_input_at(@relation_evidence.CheckedRanking, Int) -> @relation_evidence.RankingShape?
 
-pub fn merged_ranking_input_count(CheckedRanking) -> Int
+pub fn merged_ranking_input_count(@relation_evidence.CheckedRanking) -> Int
 
-pub fn merged_ranking_options(CheckedRanking) -> RankingOptions
+pub fn merged_ranking_options(@relation_evidence.CheckedRanking) -> @relation_evidence.RankingOptions
 
-pub fn merged_ranking_output(CheckedRanking) -> @carrier_contract.Carrier
+pub fn merged_ranking_output(@relation_evidence.CheckedRanking) -> @carrier_contract.Carrier
 
-pub fn merged_ranking_pending(CheckedRanking) -> Array[RankingObligation]
+pub fn merged_ranking_pending(@relation_evidence.CheckedRanking) -> Array[@relation_evidence.RankingObligation]
 
-pub fn merged_ranking_usage(CheckedRanking) -> @vector_checking.Usage
+pub fn merged_ranking_usage(@relation_evidence.CheckedRanking) -> @vector_checking.Usage
 
 pub fn metric(CheckedVector) -> @vector_checking.Metric?
 
@@ -154,103 +154,103 @@ pub fn query_parameter(Query) -> String?
 
 pub fn query_values(Query) -> Array[Double]?
 
-pub fn ranking_by(RankingOptions) -> Array[@relation_schema.FieldName]
+pub fn ranking_by(@relation_evidence.RankingOptions) -> Array[@relation_schema.FieldName]
 
-pub fn ranking_by_count(RankingOptions) -> Int
+pub fn ranking_by_count(@relation_evidence.RankingOptions) -> Int
 
-pub fn ranking_candidate(RankingOptions) -> @relation_schema.FieldName
+pub fn ranking_candidate(@relation_evidence.RankingOptions) -> @relation_schema.FieldName
 
-pub fn ranking_from_fusion(CheckedRanking) -> RankingInput
+pub fn ranking_from_fusion(@relation_evidence.CheckedRanking) -> @relation_evidence.RankingInput
 
-pub fn ranking_from_nearest(@relation_evidence.CheckedNearest) -> RankingInput
+pub fn ranking_from_nearest(@relation_evidence.CheckedNearest) -> @relation_evidence.RankingInput
 
-pub fn ranking_from_text(CheckedTextRank) -> RankingInput
+pub fn ranking_from_text(@relation_evidence.CheckedTextRank) -> @relation_evidence.RankingInput
 
-pub fn ranking_input_carrier(RankingInput) -> @carrier_contract.Carrier
+pub fn ranking_input_carrier(@relation_evidence.RankingInput) -> @carrier_contract.Carrier
 
-pub fn ranking_input_fusion(RankingInput) -> CheckedRanking?
+pub fn ranking_input_fusion(@relation_evidence.RankingInput) -> @relation_evidence.CheckedRanking?
 
-pub fn ranking_input_nearest(RankingInput) -> @relation_evidence.CheckedNearest?
+pub fn ranking_input_nearest(@relation_evidence.RankingInput) -> @relation_evidence.CheckedNearest?
 
-pub fn ranking_input_text(RankingInput) -> CheckedTextRank?
+pub fn ranking_input_text(@relation_evidence.RankingInput) -> @relation_evidence.CheckedTextRank?
 
-pub fn ranking_inputs(RankingOptions) -> Array[String]
+pub fn ranking_inputs(@relation_evidence.RankingOptions) -> Array[String]
 
-pub fn ranking_k(RankingOptions) -> Double
+pub fn ranking_k(@relation_evidence.RankingOptions) -> Double
 
-pub fn ranking_options_usage(RankingOptions) -> @vector_checking.Usage
+pub fn ranking_options_usage(@relation_evidence.RankingOptions) -> @vector_checking.Usage
 
-pub fn ranking_policy(RankingOptions) -> RankingPolicy
+pub fn ranking_policy(@relation_evidence.RankingOptions) -> @relation_evidence.RankingPolicy
 
-pub fn ranking_rank(RankingOptions) -> @relation_schema.FieldName?
+pub fn ranking_rank(@relation_evidence.RankingOptions) -> @relation_schema.FieldName?
 
-pub fn ranking_rank_constant(RankingOptions) -> Double?
+pub fn ranking_rank_constant(@relation_evidence.RankingOptions) -> Double?
 
-pub fn ranking_rank_window(RankingOptions) -> Double?
+pub fn ranking_rank_window(@relation_evidence.RankingOptions) -> Double?
 
-pub fn ranking_relation(@carrier_contract.Carrier) -> RankingInput
+pub fn ranking_relation(@carrier_contract.Carrier) -> @relation_evidence.RankingInput
 
-pub fn ranking_score(RankingOptions) -> @relation_schema.FieldName?
+pub fn ranking_score(@relation_evidence.RankingOptions) -> @relation_schema.FieldName?
 
-pub fn ranking_score_at(RankingInput, @relation_schema.FieldName) -> DeclaredScore?
+pub fn ranking_score_at(@relation_evidence.RankingInput, @relation_schema.FieldName) -> @relation_evidence.DeclaredScore?
 
-pub fn ranking_score_contract(RankingOptions) -> ScoreContract?
+pub fn ranking_score_contract(@relation_evidence.RankingOptions) -> @relation_evidence.ScoreContract?
 
-pub fn ranking_score_declaration(RankingInput) -> DeclaredScore?
+pub fn ranking_score_declaration(@relation_evidence.RankingInput) -> @relation_evidence.DeclaredScore?
 
-pub fn ranking_shape_input(RankingShape) -> RankingInput
+pub fn ranking_shape_input(@relation_evidence.RankingShape) -> @relation_evidence.RankingInput
 
-pub fn ranking_shape_options(RankingShape) -> RankingOptions
+pub fn ranking_shape_options(@relation_evidence.RankingShape) -> @relation_evidence.RankingOptions
 
-pub fn ranking_shape_schema(RankingShape) -> @relation_schema.Schema
+pub fn ranking_shape_schema(@relation_evidence.RankingShape) -> @relation_schema.Schema
 
-pub fn ranking_shape_usage(RankingShape) -> @vector_checking.Usage
+pub fn ranking_shape_usage(@relation_evidence.RankingShape) -> @vector_checking.Usage
 
-pub fn ranking_source(RankingOptions) -> @decode_core.Cursor
+pub fn ranking_source(@relation_evidence.RankingOptions) -> @decode_core.Cursor
 
-pub fn ranking_tie_break(RankingOptions) -> Array[@relation_schema.FieldName]?
+pub fn ranking_tie_break(@relation_evidence.RankingOptions) -> Array[@relation_schema.FieldName]?
 
-pub fn ranking_weights(RankingOptions) -> Array[Double]
+pub fn ranking_weights(@relation_evidence.RankingOptions) -> Array[Double]
 
 pub fn read_nearest_options(@decode_core.Cursor, @vector_checking.Limits) -> Result[@relation_evidence.NearestOptions, @vector_checking.Issue]
 
 pub fn read_pool_options(@decode_core.Cursor, @vector_checking.Limits) -> Result[PoolOptions, @vector_checking.Issue]
 
-pub fn read_ranking_options(@decode_core.Cursor, @vector_checking.Limits) -> Result[RankingOptions, @vector_checking.Issue]
+pub fn read_ranking_options(@decode_core.Cursor, @vector_checking.Limits) -> Result[@relation_evidence.RankingOptions, @vector_checking.Issue]
 
-pub fn read_text_rank_options(@decode_core.Cursor, @vector_checking.Limits) -> Result[TextRankOptions, @vector_checking.Issue]
+pub fn read_text_rank_options(@decode_core.Cursor, @vector_checking.Limits) -> Result[@relation_evidence.TextRankOptions, @vector_checking.Issue]
 
 pub fn source(CheckedVector) -> @decode_core.Cursor
 
-pub fn text_rank_bm25(TextRankOptions) -> (Double, Double)
+pub fn text_rank_bm25(@relation_evidence.TextRankOptions) -> (Double, Double)
 
-pub fn text_rank_input(CheckedTextRank, TextRankSide) -> @carrier_contract.Carrier
+pub fn text_rank_input(@relation_evidence.CheckedTextRank, @relation_evidence.TextRankSide) -> @carrier_contract.Carrier
 
-pub fn text_rank_k(TextRankOptions) -> Double
+pub fn text_rank_k(@relation_evidence.TextRankOptions) -> Double
 
-pub fn text_rank_options(CheckedTextRank) -> TextRankOptions
+pub fn text_rank_options(@relation_evidence.CheckedTextRank) -> @relation_evidence.TextRankOptions
 
-pub fn text_rank_options_usage(TextRankOptions) -> @vector_checking.Usage
+pub fn text_rank_options_usage(@relation_evidence.TextRankOptions) -> @vector_checking.Usage
 
-pub fn text_rank_output(CheckedTextRank) -> @carrier_contract.Carrier
+pub fn text_rank_output(@relation_evidence.CheckedTextRank) -> @carrier_contract.Carrier
 
-pub fn text_rank_pending(CheckedTextRank) -> Array[TextRankObligation]
+pub fn text_rank_pending(@relation_evidence.CheckedTextRank) -> Array[@relation_evidence.TextRankObligation]
 
-pub fn text_rank_profile(CheckedTextRank) -> @text_rank_profile.Profile?
+pub fn text_rank_profile(@relation_evidence.CheckedTextRank) -> @text_rank_profile.Profile?
 
-pub fn text_rank_queries(TextRankOptions) -> String
+pub fn text_rank_queries(@relation_evidence.TextRankOptions) -> String
 
-pub fn text_rank_roles(TextRankOptions, TextRankSide) -> TextRankRoles
+pub fn text_rank_roles(@relation_evidence.TextRankOptions, @relation_evidence.TextRankSide) -> @relation_evidence.TextRankRoles
 
-pub fn text_rank_source(TextRankOptions) -> @decode_core.Cursor
+pub fn text_rank_source(@relation_evidence.TextRankOptions) -> @decode_core.Cursor
 
-pub fn text_rank_tokenizer(TextRankOptions) -> Tokenizer
+pub fn text_rank_tokenizer(@relation_evidence.TextRankOptions) -> @relation_evidence.Tokenizer
 
-pub fn text_rank_usage(CheckedTextRank) -> @vector_checking.Usage
+pub fn text_rank_usage(@relation_evidence.CheckedTextRank) -> @vector_checking.Usage
 
-pub fn transfer_ranking_calendar(RankingInput, @calendar_typing.CheckedCalendar, @vector_checking.Limits) -> Result[RankingTransfer, @vector_checking.Issue]
+pub fn transfer_ranking_calendar(@relation_evidence.RankingInput, @calendar_typing.CheckedCalendar, @vector_checking.Limits) -> Result[@relation_evidence.RankingTransfer, @vector_checking.Issue]
 
-pub fn transfer_ranking_unary(RankingInput, @relation_typing.CheckedOperation, @vector_checking.Limits) -> Result[RankingTransfer, @vector_checking.Issue]
+pub fn transfer_ranking_unary(@relation_evidence.RankingInput, @relation_typing.CheckedOperation, @vector_checking.Limits) -> Result[@relation_evidence.RankingTransfer, @vector_checking.Issue]
 
 pub fn usage(CheckedVector) -> @vector_checking.Usage
 
@@ -259,13 +259,7 @@ pub fn usage(CheckedVector) -> @vector_checking.Usage
 // Types and methods
 type CheckedPool
 
-type CheckedRanking
-
-type CheckedTextRank
-
 type CheckedVector
-
-type DeclaredScore
 
 pub(all) enum Obligation {
   ValidateVectorValues
@@ -312,81 +306,14 @@ type PoolOptions
 
 type Query
 
-type RankingInput
-
-pub(all) enum RankingObligation {
-  ValidateCompleteRankingInputs
-  ValidateUniqueQueryCandidatePerInput
-  ValidatePositiveSafeContiguousRanks
-  AuthenticateCapturedScoreDeclarations
-  ValidateDeclaredScoreRanges
-  ValidateBusinessTieAgreement
-  ApplyRankWindowAfterAdmission
-  EvaluateRankingPolicyWithFiniteIntermediates
-  OrderRankingByScoreAndSemanticIdentity
-  AssignFusedContiguousRanks
-  ResolveRankingResources
-  ResolveRankingProfile
-  DeriveOutputScoreEnvelope
-} derive(Eq, @debug.Debug)
-
-type RankingOptions
-
-pub(all) enum RankingPolicy {
-  Maximum
-  WeightedSum
-  ReciprocalRank
-} derive(Eq, @debug.Debug)
-
-type RankingShape
-
-pub struct RankingTransfer {
-  input : RankingInput
-  usage : @vector_checking.Usage
-}
-
-pub struct ScoreContract {
-  domain : String
-  normalization : String
-  minimum : Double
-  maximum : Double
-}
-
-pub(all) enum TextRankObligation {
-  ValidateCompleteTextInputs
-  ValidateGlobalStringIdentities(TextRankSide)
-  NormalizeAndTokenizeWithPinnedUnicode
-  ResolveTokenizerAndNormalizedTextCeilings
-  ComputeStatisticsFromAdmittedCorpusOnly
-  EvaluatePinnedBm25AndCorrectlyRoundedLogarithm
-  FoldTermsInCanonicalOrder
-  RejectNonFiniteTextScores
-  ExcludeZeroScoresAndHandleEmptyInputs
-  OrderTextScoresAndSemanticIdentities
-  AssignContiguousTextRanks
-  ResolveTextRankProfile
-  ResolveStatisticsScoringAndOutputResources
-} derive(Eq, @debug.Debug)
-
-type TextRankOptions
-
-pub struct TextRankRoles {
-  identity : @relation_schema.FieldName
-  text : @relation_schema.FieldName
-}
-
-pub(all) enum TextRankSide {
-  Corpus
-  Queries
-} derive(Eq, @debug.Debug)
-
-pub(all) enum Tokenizer {
-  UnicodeWords
-  CharBigram
-} derive(Eq, @debug.Debug)
-
 // Type aliases
 pub using @relation_evidence {type CheckedNearest}
+
+pub using @relation_evidence {type CheckedRanking}
+
+pub using @relation_evidence {type CheckedTextRank}
+
+pub using @relation_evidence {type DeclaredScore}
 
 pub using @vector_checking {type Issue}
 
@@ -409,6 +336,30 @@ pub using @relation_evidence {type NearestRoles}
 pub using @relation_evidence {type NearestSide}
 
 pub using @relation_evidence {type NearestSource}
+
+pub using @relation_evidence {type RankingInput}
+
+pub using @relation_evidence {type RankingObligation}
+
+pub using @relation_evidence {type RankingOptions}
+
+pub using @relation_evidence {type RankingPolicy}
+
+pub using @relation_evidence {type RankingShape}
+
+pub using @relation_evidence {type RankingTransfer}
+
+pub using @relation_evidence {type ScoreContract}
+
+pub using @relation_evidence {type TextRankObligation}
+
+pub using @relation_evidence {type TextRankOptions}
+
+pub using @relation_evidence {type TextRankRoles}
+
+pub using @relation_evidence {type TextRankSide}
+
+pub using @relation_evidence {type Tokenizer}
 
 pub using @vector_checking {type Usage}
 

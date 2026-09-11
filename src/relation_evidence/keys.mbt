@@ -70,11 +70,15 @@ pub(all) enum KeyOrigin {
   SequenceResult
   GraphQueryResult
   NearestResult
+  RankingResult
+  TextRankResult
 } derive(Eq, Debug)
 
 ///|
 priv enum KeyProducer {
   NearestProducer(CheckedNearest)
+  RankingProducer(CheckedRanking)
+  TextRankProducer(CheckedTextRank)
   GraphQueryProducer(GraphKeyOperation)
   SequenceProducer(@relation.CheckedSequence)
   AsOfProducer(CheckedAsOf, KeyedRelation?)

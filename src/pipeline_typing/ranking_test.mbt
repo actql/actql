@@ -236,6 +236,11 @@ test "scored fusion consumes captured score declarations rather than ordinary co
     limits(),
   ).unwrap()
   assert_eq(@pipeline_typing.lookup(p, "merged"), Some(Step(0)))
+  let key = @pipeline_typing.candidate_key(p, Step(0)).unwrap()
+  assert_eq(@evidence.key_origin(key), RankingResult)
+  assert_eq(@evidence.key_field_count(key), 1)
+  assert_eq(@evidence.key_field_at(key, 0).unwrap().name, Unqualified("id"))
+  assert_true(@evidence.key_ranking_producer(key) is Some(_))
   assert_eq(@schema.field_count(@pipeline_typing.output_schema(p).unwrap()), 3)
   guard @pipeline_typing.step_at(p, 0).unwrap().operation is Ranking(c) else {
     abort("ranking")

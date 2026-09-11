@@ -107,5 +107,23 @@ test "lexical and fused ranking orders retain independent profile and scoring ob
         assert_false(@vector.merged_ranking_pending(checked).is_empty())
       _ => abort("ranking producer")
     }
+    let name = if i == 0 { "lexical" } else { "fused" }
+    let authored = @relation_results.check(
+      p,
+      cursor(
+        "{\"out\":{\"from\":\"" +
+        name +
+        "\",\"fields\":[\"score\"],\"order_by\":[{\"score\":\"desc\"}]}}",
+      ),
+      limits(),
+    ).unwrap()
+    let key = @relation_results.publication_key(resolve(authored)).unwrap()
+    assert_eq(@evidence.key_field_count(key), 2)
+    assert_eq(@evidence.key_pending(key), [ValidateKeyProducer])
+    if i == 0 {
+      assert_true(@evidence.key_text_rank_producer(key) is Some(_))
+    } else {
+      assert_true(@evidence.key_ranking_producer(key) is Some(_))
+    }
   }
 }

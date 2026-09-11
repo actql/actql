@@ -84,12 +84,16 @@ consumer audit.
    reconstructing them from output fields. Nearest now produces its query plus
    candidate key, retaining positional identity domains through exact aliases
    and Result order completion. Opaque input roles do not manufacture keys, and
-   ordinary objects do not acquire comparison semantics. Ranking fusion and
-   lexical-ranking key production remain unfinished.
+   ordinary objects do not acquire comparison semantics. Ranking fusion now
+   retains its distinct by fields plus candidate key, ordered input occurrences
+   and positional domains across successive fusions and aliases. Lexical ranking
+   retains the query/candidate key with its corpus/query inputs and profile.
+   These are conditional producer-backed keys, not discharged row-validation,
+   arithmetic or resource obligations; the cross-operation audit remains open.
    The nearest checker now lives in `relation_evidence`, with shared vector
    checking support below both packages and the original `vector_typing` facade
    retained. Dependency tests enforce the direction. This removes the ownership
-   cycle for nearest key producers; ranking-fusion evidence remains separate.
+   cycle for nearest and ranking key producers, with unchanged facade entry points.
 2. Define validated external evidence and resolved-capacity boundaries using
    the existing normative witness domains, governing laws and dependency checks.
    Shared [capacity arithmetic](capacity-arithmetic.md) is implemented and used

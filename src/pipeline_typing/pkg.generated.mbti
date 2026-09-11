@@ -60,7 +60,7 @@ pub fn check_carriers(@decode_core.Cursor, Array[(String, @carrier_contract.Carr
 
 pub fn check_with_evidence(@decode_core.Cursor, Array[(String, InputContract)], @parameter_binding.Declarations?, @decode_core.Cursor?, Limits, calendar_profile? : @calendar_profile.Profile?, text_rank_profile? : @text_rank_profile.Profile?, delta_contracts? : Array[(String, @relation_schema.FieldName, @graph_contract.CheckedContract)]) -> Result[CheckedPipeline, Issue]
 
-pub fn combine_relation_evidence(@decode_core.Cursor, @relation_evidence.KeySet, @vector_typing.RankingInput) -> Result[RelationEvidence, Issue]
+pub fn combine_relation_evidence(@decode_core.Cursor, @relation_evidence.KeySet, @relation_evidence.RankingInput) -> Result[RelationEvidence, Issue]
 
 pub fn contextual_orders_at(ContextualOrders, Int) -> Array[ContextualOrder]?
 
@@ -146,7 +146,7 @@ pub fn output_schema(CheckedPipeline) -> @relation_schema.Schema?
 
 pub fn parameters(CheckedPipeline) -> @parameter_binding.Declarations?
 
-pub fn ranking_evidence(CheckedPipeline, Target) -> @vector_typing.RankingInput?
+pub fn ranking_evidence(CheckedPipeline, Target) -> @relation_evidence.RankingInput?
 
 pub fn resolve_contextual_orders(CheckedPipeline, max_steps~ : Int, max_work~ : Int, max_text_bytes~ : Int) -> Result[ContextualOrders, Issue]
 
@@ -221,8 +221,8 @@ pub enum CheckedOperation {
   Vector(@vector_typing.CheckedVector)
   Nearest(queries~ : Target, checked~ : @relation_evidence.CheckedNearest)
   Pool(@vector_typing.CheckedPool)
-  Ranking(@vector_typing.CheckedRanking)
-  TextRank(queries~ : Target, checked~ : @vector_typing.CheckedTextRank)
+  Ranking(@relation_evidence.CheckedRanking)
+  TextRank(queries~ : Target, checked~ : @relation_evidence.CheckedTextRank)
   Event(@event_typing.CheckedEvent)
   WindowGroup(@relation_typing.CheckedOperation)
 }
@@ -264,7 +264,7 @@ pub(all) enum InputContract {
   CarrierInput(@carrier_contract.Carrier)
   KeyedInput(@relation_evidence.KeyedRelation)
   CandidateKeysInput(@relation_evidence.KeySet)
-  RankingInput(@vector_typing.RankingInput)
+  RankingInput(@relation_evidence.RankingInput)
   RelationEvidenceInput(RelationEvidence)
 }
 

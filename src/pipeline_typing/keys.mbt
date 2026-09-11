@@ -72,6 +72,46 @@ fn sync_keys(
     let step = steps[keys.length()]
     let previous = step.input.bind(t => key_at(t, inputs, keys))
     let next = match (previous, step.operation) {
+      (_, Ranking(checked)) => {
+        let transfer = match
+          @evidence.merged_ranking_keys(checked, {
+            max_work: b.work,
+            max_name_bytes: b.text,
+          }) {
+          Ok(v) => v
+          Err(e) =>
+            raise Stop({
+              kind: KeyEvidence(e.kind),
+              source: step.source,
+              path: e.path.copy(),
+              span: e.span,
+              range: None,
+            })
+        }
+        b.work -= transfer.work
+        b.text -= transfer.name_bytes
+        Some(transfer.keys)
+      }
+      (_, TextRank(checked~, ..)) => {
+        let transfer = match
+          @evidence.text_rank_keys(checked, {
+            max_work: b.work,
+            max_name_bytes: b.text,
+          }) {
+          Ok(v) => v
+          Err(e) =>
+            raise Stop({
+              kind: KeyEvidence(e.kind),
+              source: step.source,
+              path: e.path.copy(),
+              span: e.span,
+              range: None,
+            })
+        }
+        b.work -= transfer.work
+        b.text -= transfer.name_bytes
+        Some(transfer.keys)
+      }
       (_, Nearest(checked~, ..)) => {
         let transfer = match
           @evidence.nearest_keys(checked, {
