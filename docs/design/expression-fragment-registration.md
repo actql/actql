@@ -1,44 +1,39 @@
 # Expression fragment registration
 
-The shared registry now explicitly registers `ACTQL.expression_fragment/0.1`.
-Its existing unary Relation signature and closed `{fragment}` parameters come
-from Language's common-expression contract, not a new lowering representation.
-Sketch `87dc7144:src/actql-expression-pipeline-v2.ts` implements the same binding
-through a separate validator while leaving its legacy registry unchanged.
-This registration replaces that implicit capability discovery with an exact
-shared contract reference. It does not replace sealed-fragment admission.
+`ACTQL.expression_fragment/0.1` is a unary Relation operation with closed
+`{fragment}` parameters. Explicit registration separates discovery of this
+execution capability from validation of the contained fragment.
 
-## Handoff
+## Contract resolution
 
-- Registry: `spec/dependencies/aoa-pipeline-registry.json`, root pointer `""`.
-- Registry CID: `sha256:23a7f1081d1a2cdab7b20e425dddce846510355ba964058e0c809350fae33816`.
-- Entry: `/ACTQL.expression_fragment~10.1` (RFC6901 escaping is significant).
-- Contract: `spec/contracts/actql-aoa.json#/execution_contracts/ACTQL.expression_fragment~10.1`.
-- Contract CID: `sha256:3cf4269dcf6c78f77bac984a228a18b743501905821fef41fa926b055f75d2e1`.
-- Fragment schema: `spec/contracts/actql-expressions.json#/schemas/fragment`;
-  resolve its URN from the pinned dependency, without fetching it over a network.
+The selected registry is identified by `pipeline_registry_file` and
+`pipeline_registry_cid` in `spec/contracts/actql-aoa.json`. Its entry is at
+`/ACTQL.expression_fragment~10.1`; the slash in the operation version is escaped
+according to RFC6901. The execution contract is at
+`/execution_contracts/ACTQL.expression_fragment~10.1` in the AoA contract.
 
-The contract pins both that schema and the complete expression contract, whose
-CID is also the AoA contract's `expression_contract_cid`. This closes a previously
-stale embedded expression pin. Schema validation checks the closed wrapper and
-fragment shape; semantic admission still regenerates the request's graph, roots,
-types, demand paths, limits and profile evaluations under the exact contract,
-checks self-CID, and requires exactly the local source `input`. It is not enough
-to verify shape or hashes alone. Keep the opcode and full fragment in the
-composition; a carrier-check projection is never executed or hashed instead.
+The execution contract pins both the complete expression contract and the
+existing fragment schema at `actql-expressions.json#/schemas/fragment`. Resolve
+the schema URN from this exact dependency, without a network lookup. The AoA
+contract's `expression_contract_cid` identifies the same expression body.
+The registry hash includes the execution-contract reference, not only the
+operation's input/output signature.
 
-The 58-entry values registry remains byte-preserved in
-`portability/fixtures/pipeline-registry-values.json`, with CID
-`sha256:b97a22de3664c1dafe3bc1e6791f1f8bcfb70324a1fcc1087450fe057e0f2311`.
-The new body adds only this registration. REL.values and all other entries are
-unchanged. Historical lowering fixtures remain bound to their historical CIDs.
-Current consumers resolve the newly selected registry instead of relabelling
-an old body. The containing AoA contract and its dependent document pins change.
+## Admission and execution boundaries
 
-`scripts/expression-fragment-registration.mjs --write` maintains the new entry
-and execution contract. Its check and independent fixed-hash Node tests are in
-`check:aoa`; mutations cover signature, pointer, file, body, dependency and old
-registry selection. These are registration tests, not a fragment lowerer or
-evaluator. Ordered derive's shared row-kernel remains a separate delivery.
-Backend support, runtime obligations, Program completion and execution authority
-are not established by registration.
+Schema validation checks the closed wrapper and fragment shape. Semantic
+admission regenerates the request's graph, roots, types, demand paths, limits
+and profile evaluations under the selected expression contract, checks the
+self-CID, and requires exactly the local source `input`. Shape and hashes alone
+do not establish semantic validity.
+
+The canonical composition retains the opcode and full fragment. A projection
+used to check carrier compatibility is neither executed nor hashed in place of
+that material, and supplies no expression type evidence. The inner graph is
+not a standalone execution artifact.
+
+Changing a registry body changes its identity. Historical bodies remain bound
+to their original CIDs; they are not relabelled to satisfy a new selection.
+A backend must support the exact registered contract and every extension used
+by the fragment. Registration does not establish runtime checks, whole-Program
+completion or execution authority.

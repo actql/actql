@@ -1,5 +1,10 @@
 # Repository conventions
 
+- Keep `docs/design` focused on architecture, semantic decisions and contract
+  boundaries. Do not put branch handoffs, cherry-pick instructions, delivery
+  status or test-run reports there. Report those in the working conversation
+  and commit history instead.
+
 - The specification and pinned machine contracts are authoritative. Reference
   implementations are implementation material, not an immutable version authority.
 - Before proposing acceptance changes or resolving an unspecified edge case,
