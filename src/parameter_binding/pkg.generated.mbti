@@ -30,6 +30,8 @@ pub fn declaration_count(Declarations) -> Int
 
 pub fn declarations(Declarations) -> Array[Declaration]
 
+pub fn emit_declaration(Declaration, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
+
 pub fn emit_values(BoundValues, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
 
 pub fn has_default(Declaration) -> Bool

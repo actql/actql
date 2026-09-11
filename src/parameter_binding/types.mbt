@@ -3,6 +3,7 @@ pub struct Declaration {
   name : String
   parameter_type : @contract.ParameterType
   metadata : @decode.Cursor?
+  priv source : @decode.Cursor
   priv default_cursor : @decode.Cursor?
   priv default_value : @value.CheckedValue?
 }

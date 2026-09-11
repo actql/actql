@@ -40,6 +40,33 @@ supply an override. Defaults satisfy both the base value contract and recursive
 Parameter constraints. Decimal uses canonical fixed-scale wire strings and exact
 coefficients, dates use the Language calendar, and nullable fields remain required.
 
+## Semantic declaration projection
+
+`emit_declaration` emits the annotation-free declaration required by the
+[stage/Program semantic envelopes](../spec/language.md#local-approval), including
+the `type` member of a canonical Parameter reference. It takes an admitted
+Declaration, whose original owned source is retained privately. It removes only
+that declaration's top-level `meta`, preserving defaults, authored optional type
+fields, recursive constraints, and business fields named `meta`. It does not
+expand a checked contract, insert omitted `nullable: false`, substitute a default,
+or apply the typed-value identity projection to a default's wire spelling.
+Changing a default remains a semantic declaration change; presentation annotation
+changes do not affect these bytes.
+
+Keys are emitted in canonical UTF-16 order, using text validated by declaration
+admission. Explicit continuation frames avoid recursive traversal and a second
+full value tree. Arrays use indexed reads; objects retain sorted field handles
+while being emitted. The original admission limits bound source size, and the
+shared Writer bounds emitted bytes, value nodes and open-container depth with
+the same text/measurement/hash behavior. Output limits are not sorting-work or
+heap-memory quotas, and the declaration keeps its source arena alive.
+
+This is an internal identity-preimage API, not public explain: the output can
+contain literal default values. It emits one declaration, not a Program/stage
+envelope, used-name proof, canonical reference index or authorized Invocation.
+The reference implementation's older `$.field[index]` paths are not reused;
+the current reference contract requires RFC 6901 pointers and explicit sorting.
+
 ## Binding result
 
 `bind` takes admitted declarations and an optional supplied-value object. Unknown

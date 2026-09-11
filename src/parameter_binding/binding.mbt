@@ -67,6 +67,7 @@ pub fn read_declarations(
         }
         entries.push({
           name,
+          source: cursor,
           parameter_type: syntax.parameter_type,
           metadata: syntax.metadata,
           default_cursor: syntax.default_value,
