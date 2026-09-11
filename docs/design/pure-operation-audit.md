@@ -124,6 +124,12 @@ consumer audit.
    unused inputs and branches, with shared step/work/text limits and original
    owner diagnostics. This is not external snapshot verification or complete
    non-order validation of the producer dependency graph.
+   Window-role evidence now crosses this boundary through the retained opaque
+   producer handle, including multiple aliases and Events row projection.
+   Identically typed ordinary inputs remain insufficient. Overwrite and alias
+   removal retain the existing invalidation rules; long forwarding chains use
+   cached lookup rather than recursive ancestry traversal. Typed Delta binding
+   and complete non-order producer validation remain unfinished.
    Shared [capacity arithmetic](capacity-arithmetic.md) is implemented and used
    by count propagation; arithmetic validation does not close this requirement.
    [Derivation consistency](capacity-derivation.md) checks bounded numerical

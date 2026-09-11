@@ -9,6 +9,7 @@ struct ProducedInput {
   keys : @evidence.KeySet?
   ranking : @vector.RankingInput?
   order : LogicalOrder?
+  window : WindowEvidence?
 }
 
 ///|
@@ -28,6 +29,7 @@ pub fn produced_input(
     keys: key_at(target, pipeline.keyed_inputs, pipeline.keyed_steps),
     ranking: ranking_evidence(pipeline, target),
     order: logical_order(pipeline, target),
+    window: window_evidence_at(pipeline, target),
   })
 }
 

@@ -65,10 +65,33 @@ or importing its unknown order through another owner, cannot establish order.
 `take`, existing-input-order consumers, binary order transfer and Result
 publication use this boundary through the shared logical-order lookup.
 
+## Window roles
+
+Produced inputs cache the producer's opaque window evidence, including every
+surviving start and end alias. `window_evidence_at` resolves a local step or an
+imported input without recursively walking producer ancestry. The original
+pipeline and target remain available through `input_producer`; forwarding does
+not discharge the producer's obligations or establish runtime membership.
+
+Window grouping and ordinary role transfer use this same lookup. Explicit
+projections retain every boundary alias, overwrites remove the affected alias,
+and losing all aliases of either boundary invalidates the evidence. Events
+watermarking and the Events-to-Relation bridge preserve retained roles;
+whole-row distinct does not erase them. An ordinary input with identical column
+names and types cannot manufacture these roles. This implements the existing
+[window-role requirement](../spec/language.md#relational-temporal), not admission
+of arbitrary external window claims.
+
+Regression tests cover both alias orders, detached accessor arrays, exact shared
+budgets, boundary overwrite, ordinary-input rejection and 2,000 producer-input
+forwardings followed by Events projection and window grouping. Capturing the
+opaque handle is constant-time; consuming aliases retains the existing bounded
+transfer scans.
+
 ## Remaining boundaries
 
-Window-role and typed Delta evidence still need their own cross-pipeline
-bindings; their absence is not a new language restriction.
+Typed Delta evidence still needs its own cross-pipeline binding; its absence is
+not a new language restriction.
 The combined order checker now traverses all producer occurrences under shared
 budgets, including unused branches. The final all-obligation checker must still
 reject unresolved capacity and other mandatory obligations. This handle alone

@@ -1,15 +1,34 @@
 ///|
+fn window_at(
+  target : Target,
+  steps : Array[CheckedStep],
+  inputs : Array[ProducedInput?],
+) -> WindowEvidence? {
+  match target {
+    Step(i) => steps.get(i).bind(step => step.window)
+    Input(i) => inputs.get(i).bind(input => input.bind(v => v.window))
+  }
+}
+
+///|
+/// Retained producer roles, never inferred from input column names or types.
+pub fn window_evidence_at(
+  p : CheckedPipeline,
+  target : Target,
+) -> WindowEvidence? {
+  window_at(target, p.steps, p.produced_inputs)
+}
+
+///|
 fn transfer_window(
   b : Budget,
   source : @decode.Cursor,
   input : Target,
   steps : Array[CheckedStep],
   operation : CheckedOperation,
+  inputs : Array[ProducedInput?],
 ) -> WindowEvidence? raise Stop {
-  let previous = match input {
-    Step(index) => steps[index].window
-    Input(_) => None
-  }
+  let previous = window_at(input, steps, inputs)
   guard previous is Some(roles) else { return None }
   if operation is Event(_) {
     return Some(roles)

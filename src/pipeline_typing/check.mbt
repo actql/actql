@@ -1619,7 +1619,9 @@ fn check_impl(
       b.text -= used.text_bytes
       let target = Step(steps.length())
       let operation : CheckedOperation = Event(checked)
-      let window = transfer_window(b, operation_body, input, steps, operation)
+      let window = transfer_window(
+        b, operation_body, input, steps, operation, produced_inputs,
+      )
       steps.push({
         source: body,
         input: Some(input),
@@ -1673,7 +1675,9 @@ fn check_impl(
       b.nodes -= used.nodes
       b.text -= used.text_bytes
       let operation : CheckedOperation = Projection(checked)
-      let window = transfer_window(b, operation_body, input, steps, operation)
+      let window = transfer_window(
+        b, operation_body, input, steps, operation, produced_inputs,
+      )
       let target = Step(steps.length())
       steps.push({
         source: body,
@@ -1751,10 +1755,7 @@ fn check_impl(
           max_depth: limits.max_depth,
         }
         let result = if key == "window_group" {
-          let evidence = match input {
-            Step(i) => steps[i].window
-            Input(_) => None
-          }
+          let evidence = window_at(input, steps, produced_inputs)
           let roles = match evidence {
             Some(v) => v
             None => fail(operation_body, MissingWindowEvidence)
@@ -2092,7 +2093,9 @@ fn check_impl(
       operation: checked,
       output: @carrier.relation(@carrier.typed_rows(output)),
       connections,
-      window: transfer_window(b, operation_body, input, steps, checked),
+      window: transfer_window(
+        b, operation_body, input, steps, checked, produced_inputs,
+      ),
     })
     if binding_name is Some(key) {
       names[key] = target
