@@ -157,7 +157,10 @@ or order evidence, capacity sources, or the remaining operation audit.
    `ProducedInput` links also connect exact upstream owners through forwarding
    inputs under cumulative iterative-traversal budgets. Parameter selection
    counts now resolve through budgeted lookups retaining exact declaration,
-   pipeline and bound-value owners, without implicit defaults. Plain external
+   pipeline and bound-value owners, without implicit defaults. Collection
+   application coverage now rejects missing unused Program applications and
+   substituted child handles under cumulative work limits, while retaining
+   other source branches as unresolved. Plain external
    input applications, general imported semantic subjects and enclosing Program
    identity remain open; arithmetic closure or matching an
    `as` name cannot substitute for those boundaries.

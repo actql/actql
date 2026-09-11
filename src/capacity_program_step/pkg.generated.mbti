@@ -9,11 +9,19 @@ import {
 }
 
 // Values
+pub fn application_at(Applications, Int) -> StepBound?
+
+pub fn application_claims(Applications) -> @capacity_witness.ProgramClaims
+
+pub fn application_work(Applications) -> Int
+
 pub fn bind_parameters(@pipeline_typing.CheckedPipeline, @parameter_binding.BoundValues, max_work~ : Int, max_text_bytes~ : Int) -> Result[CountBindings, Issue]
 
 pub fn binding_usage(CountBindings) -> (Int, Int)
 
 pub fn check(@pipeline_typing.CheckedPipeline, Int, @capacity_witness.ProgramProofClaim) -> Result[StepBound, Issue]
+
+pub fn check_applications(@capacity_witness.ProgramClaims, Array[StepBound], max_work~ : Int) -> Result[Applications, ApplicationIssue]
 
 pub fn check_with_inputs(@pipeline_typing.CheckedPipeline, Int, @capacity_witness.ProgramProofClaim, Array[StepBound], max_input_work? : Int, bindings? : CountBindings?) -> Result[StepBound, Issue]
 
@@ -33,11 +41,24 @@ pub fn input_work(StepBound) -> Int
 
 pub fn parameter_values(CountBindings) -> @parameter_binding.BoundValues
 
+pub fn remaining_source_count(Applications) -> Int
+
 pub fn subject_ref(@pipeline_typing.CheckedPipeline, Int) -> String?
 
 // Errors
 
 // Types and methods
+pub(all) enum ApplicationIssue {
+  InvalidLimits
+  WorkLimit
+  ForeignApplication(Int)
+  DuplicateApplication(Int)
+  MissingApplication(Int)
+  ForeignDependency(Int, Int)
+} derive(Eq, @debug.Debug)
+
+type Applications
+
 type CountBindings
 
 pub(all) enum Issue {

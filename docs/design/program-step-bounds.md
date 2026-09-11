@@ -102,3 +102,27 @@ Bound-count tests cover supplied/default values, unrelated string Parameters,
 same-text foreign declaration/pipeline owners, exact lookup budgets, positive
 safe-integer boundaries, all three selection forms and a tighter input bound
 whose derivation must still retain the larger resolved maximum.
+
+## Application collection coverage
+
+`check_applications` connects the already checked `ProgramClaims` collection to
+one `StepBound` for every ordinary Program proof, including unused claims and
+all dependency applications. Input order is arbitrary; returned entries use
+the arithmetic collection's stable indices. Duplicate or foreign applications
+are rejected. Every child must be the exact application handle registered for
+its witness, so a matching CID cannot substitute a different pipeline or
+binding context. Callers must reuse the child's checked handle, not reconstruct
+an equivalent-looking replacement. Repeated dependency edges still count twice.
+
+The check is iterative over the flat application table; it does not recursively
+walk each root's ancestors. `max_work` charges one unit per claim allocation,
+one per supplied application, one per claim coverage check and one per child
+occurrence. Exhaustion exposes no partial table. A complete set of retained
+child edges plus the wire layer's acyclic dependency checks closes ordinary
+Program proof application coverage without rechecking each ancestor repeatedly.
+
+`remaining_source_count` counts claims without an ordinary Program proof,
+including mixed preflight claims. Their source/consumer boundaries are not
+discharged here. Zero does not prove candidate completeness, whole-Invocation
+consistency, enclosing Program identity or execution permission. The result
+retains the original collection for those remaining checks.

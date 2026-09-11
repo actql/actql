@@ -120,6 +120,152 @@ fn bound_id(bound : @capacity_program_step.StepBound) -> String {
 }
 
 ///|
+fn program_claims(
+  proofs : Array[@wire.ProgramProofClaim],
+) -> @wire.ProgramClaims {
+  let arithmetic = @wire.check_arithmetic_claims(
+    proofs.map(@wire.program_proof_witness),
+    { max_witnesses: 100, max_references: 1000, },
+  ).unwrap()
+  @wire.check_program_claims(arithmetic, proofs, {
+    max_witnesses: 200,
+    max_references: 2000,
+  }).unwrap()
+}
+
+///|
+test "application collections cover unused proofs and preserve exact dependency handles" {
+  let p = pipeline(
+    "[{\"take\":7,\"as\":\"a\"},{\"append\":{\"with\":\"a\"}},{\"take\":3,\"from\":\"rows\"}]",
+  )
+  let leaf = proof("actql.bound.take", 7, "{\"maximum\":7,\"op\":\"clamp\"}")
+  let a = @capacity_program_step.check(p, 0, leaf).unwrap()
+  let id = bound_id(a)
+  let sum = proof(
+    "actql.bound.append",
+    14,
+    "{\"left\":\"" + id + "\",\"op\":\"add\",\"right\":\"" + id + "\"}",
+    reference="checked-step:1",
+    inputs=[id, id],
+  )
+  let b = @capacity_program_step.check_with_inputs(p, 1, sum, [a, a]).unwrap()
+  let unused = proof(
+    "actql.bound.take",
+    3,
+    "{\"maximum\":3,\"op\":\"clamp\"}",
+    reference="checked-step:2",
+  )
+  let c = @capacity_program_step.check(p, 2, unused).unwrap()
+  let claims = program_claims([leaf, sum, unused])
+  let supplied = [c, b, a]
+  let checked = @capacity_program_step.check_applications(
+    claims,
+    supplied,
+    max_work=11,
+  ).unwrap()
+  assert_eq(@capacity_program_step.application_work(checked), 11)
+  assert_eq(@capacity_program_step.remaining_source_count(checked), 0)
+  assert_true(
+    physical_equal(@capacity_program_step.application_claims(checked), claims),
+  )
+  let index = @wire.claim_index(@wire.program_claim_arithmetic(claims), id).unwrap()
+  supplied[2] = c
+  assert_true(
+    physical_equal(
+      @capacity_program_step.application_at(checked, index).unwrap(),
+      a,
+    ),
+  )
+  assert_true(@capacity_program_step.application_at(checked, -1) is None)
+  assert_true(@capacity_program_step.application_at(checked, 3) is None)
+  assert_true(
+    @capacity_program_step.check_applications(claims, [a, b, c], max_work=10)
+    is Err(WorkLimit),
+  )
+  assert_true(
+    @capacity_program_step.check_applications(claims, [a, b], max_work=11)
+    is Err(MissingApplication(_)),
+  )
+  assert_true(
+    @capacity_program_step.check_applications(claims, [a, b, c, c], max_work=20)
+    is Err(DuplicateApplication(3)),
+  )
+  let foreign = @capacity_program_step.check(
+    pipeline("[{\"take\":7}]"),
+    0,
+    leaf,
+  ).unwrap()
+  assert_true(
+    @capacity_program_step.check_applications(
+      claims,
+      [foreign, b, c],
+      max_work=11,
+    )
+    is Err(ForeignDependency(_, 0)),
+  )
+  let other = @capacity_program_step.check(
+    pipeline("[{\"take\":8}]"),
+    0,
+    proof("actql.bound.take", 8, "{\"maximum\":8,\"op\":\"clamp\"}"),
+  ).unwrap()
+  assert_true(
+    @capacity_program_step.check_applications(
+      claims,
+      [other, b, c],
+      max_work=11,
+    )
+    is Err(ForeignApplication(0)),
+  )
+}
+
+///|
+test "integrity-valid but unapplied Program claims cannot hide in a collection" {
+  let false_claim = proof("actql.bound.global-group", 99, "{\"op\":\"source\"}")
+  let claims = program_claims([false_claim])
+  assert_true(
+    @capacity_program_step.check_applications(claims, [], max_work=2)
+    is Err(MissingApplication(0)),
+  )
+  let empty = program_claims([])
+  let checked = @capacity_program_step.check_applications(empty, [], max_work=0).unwrap()
+  assert_eq(@capacity_program_step.application_work(checked), 0)
+  assert_eq(@capacity_program_step.remaining_source_count(checked), 0)
+  assert_true(
+    @capacity_program_step.check_applications(empty, [], max_work=-1)
+    is Err(InvalidLimits),
+  )
+}
+
+///|
+test "application coverage does not promote a Host claim to an admitted source" {
+  // Independent fixed wire fixture shared with the mixed-closure suite.
+  let id = "sha256:a3a3357de8d1a8d795ba7f889d31aa2c6da1449227adc5e8fe0228f7f7498a84"
+  let text = "{\"dependencies\":[\"sha256:0000000000000000000000000000000000000000000000000000000000000000\"],\"derivation\":{\"op\":\"source\"},\"law_id\":\"actql.host.graph-input-nodes\",\"role\":\"host_ceiling\",\"source\":{\"field\":\"max_graph_input_nodes\",\"kind\":\"host_policy\",\"policy_cid\":\"sha256:0000000000000000000000000000000000000000000000000000000000000000\"},\"unit\":\"nodes\",\"value\":10,\"version\":\"actql-bound-witness/0.1\",\"witness_cid\":\"" +
+    id +
+    "\"}"
+  let witness = @wire.admit(@utf8.encode(text), id, {
+    max_bytes: 4096,
+    max_nodes: 100,
+    max_depth: 10,
+  }).unwrap()
+  let arithmetic = @wire.check_arithmetic_claims([witness], {
+    max_witnesses: 1,
+    max_references: 10,
+  }).unwrap()
+  let claims = @wire.check_program_claims(arithmetic, [], {
+    max_witnesses: 1,
+    max_references: 10,
+  }).unwrap()
+  let checked = @capacity_program_step.check_applications(
+    claims,
+    [],
+    max_work=2,
+  ).unwrap()
+  assert_eq(@capacity_program_step.remaining_source_count(checked), 1)
+  assert_true(@capacity_program_step.application_at(checked, 0) is None)
+}
+
+///|
 fn count_declarations() -> @parameter.Declarations {
   @parameter.read_declarations(
     Some(
