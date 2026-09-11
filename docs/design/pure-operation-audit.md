@@ -248,6 +248,33 @@ unknown positive contributor keeps bounds unknown, and empty constructed
 Graphs have exact zero extents. These tests do not validate actual support,
 label agreement, rational accumulation or graph-mean runtime execution.
 
+## Unary Graph acceptance audit
+
+The degree, components and structural-graph sections were traced through
+`graph_typing/check.mbt` and the pipeline Graph branch. Normalization retains
+the original Graph knowledge; the other three operations return Relations with
+fixed roles. `graph_bounds` thresholds select diagnostics and are not execution
+ceilings. Its node-ID output is nullable for whole-graph violations, unlike
+degree and component membership identity fields.
+
+`pipeline_typing/graph_unary_audit_test.mbt` checks 65 cases: normalization,
+three degree directions, both component kinds and seven nonempty combinations
+of zero bounds, each on typed Graph, opaque Graph and three wrong Carriers.
+Typed Graph output preserves its exact decimal identity contract, including
+the bounds report's nullable form, and feeds ordinary select. Opaque Graph
+retains unknown identity evidence and cannot pass complete-schema selection.
+Normalization retains its original input handle. Every accepted case checks
+its input edge, graph-data/resource obligations and exact work/node/text budgets
+with one-less rejection. Wrong Carriers never become successful opaque steps.
+
+Existing `graph_typing/check_test.mbt` covers closed bodies, invalid counts,
+Parameter guards and normalization without invented data evidence.
+`graph_counts_test.mbt`, `graph_report_counts_test.mbt` and
+`graph_query_keys_test.mbt` cover node/report bounds, semantic identity keys and
+downstream ordering. This audit does not execute degree counting, SCC discovery,
+normalization or diagnostic-row generation, and does not discharge Graph input
+preflights or output resource obligations.
+
 ## Shared-boundary findings
 
 | Requirement | Inspected evidence | Audit finding |
