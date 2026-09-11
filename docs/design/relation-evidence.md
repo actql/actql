@@ -1,5 +1,22 @@
 # Relation key declarations and evidence
 
+Relation window transfer distinguishes fixed labels from sliding memberships.
+Fixed windows retain the original witnesses. Sliding windows retain each whole
+input key plus the generated start boundary: each successful input occurrence
+belongs at most once to a particular start in the checked window lattice. The
+composite's WindowMembershipResult producer retains both the exact window and
+the parent witness (`key_window_producer` / `key_window_input`); validating its
+producer includes that dependency, binding, arithmetic and membership checks.
+This does not declare the old key unique across memberships, or synthesize a key
+without an input witness. Boundary aliases transfer normally; losing every start
+alias loses the composite key. Fixed-step options remain checked and retained
+but do not change this distinction. Work accounts for witness and component-array
+copies, and text accounts for generated names under the shared budget.
+This boundary accepts Relation evidence, not an arbitrary Events identity claim;
+Events-to-Relation key admission is a separate Carrier boundary. The transfer is
+derived from current Language's fixed/sliding membership semantics, not from
+physical ordering or the number of rows in a test fixture.
+
 Row-preserving analytic and typed json_pick keep existing key components and
 aliases. Both checkers require fresh output fields and retain the original row
 values, so their newly computed columns neither replace nor establish keys.

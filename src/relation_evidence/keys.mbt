@@ -57,6 +57,7 @@ pub(all) enum KeyOrigin {
   TimeSeriesResult
   VectorProjectionResult
   GraphProjectionResult
+  WindowMembershipResult
 } derive(Eq, Debug)
 
 ///|
@@ -66,6 +67,7 @@ priv enum KeyProducer {
   TimeSeriesProducer(@series.CheckedSeries)
   VectorProjectionProducer(@projection.CheckedProjection)
   GraphProjectionProducer(@projection.CheckedProjection)
+  WindowProducer(@window.CheckedWindow, KeyedRelation)
 }
 
 ///|

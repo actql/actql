@@ -12,6 +12,7 @@ import {
   "actql/actql/relation_typing",
   "actql/actql/source_span",
   "actql/actql/source_value",
+  "actql/actql/temporal_window",
   "actql/actql/time_series",
   "actql/actql/value_contract",
   "moonbitlang/core/debug",
@@ -62,6 +63,10 @@ pub fn key_usage(KeyedRelation) -> Usage
 
 pub fn key_vector_projection_producer(KeyedRelation) -> @carrier_projection.CheckedProjection?
 
+pub fn key_window_input(KeyedRelation) -> KeyedRelation?
+
+pub fn key_window_producer(KeyedRelation) -> @temporal_window.CheckedWindow?
+
 pub fn key_witness_at(KeySet, Int) -> KeyedRelation?
 
 pub fn key_witness_count(KeySet) -> Int
@@ -87,6 +92,8 @@ pub fn transfer_nest_keys(KeySet, @relation_nest.CheckedNest, TransferLimits) ->
 pub fn transfer_set_keys(KeySet, @relation_set.CheckedSet, TransferLimits) -> Result[KeySetTransfer, Issue]
 
 pub fn transfer_unary(KeyedRelation, @relation_typing.CheckedOperation, TransferLimits) -> Result[Transfer, Issue]
+
+pub fn transfer_window_keys(KeySet, @temporal_window.CheckedWindow, TransferLimits) -> Result[KeySetTransfer, Issue]
 
 pub fn vector_projection_keys(@carrier_projection.CheckedProjection, TransferLimits) -> Result[KeySetTransfer, Issue]
 
@@ -135,6 +142,7 @@ pub(all) enum KeyOrigin {
   TimeSeriesResult
   VectorProjectionResult
   GraphProjectionResult
+  WindowMembershipResult
 } derive(Eq, @debug.Debug)
 
 pub struct KeySelection {
