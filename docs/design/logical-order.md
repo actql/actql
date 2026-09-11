@@ -97,6 +97,22 @@ evidence without losing this sequence. None of these operations fabricates order
 from an unordered source. These are the existing Language expansion laws, not
 new acceptance rules or execution conformance claims.
 
+Equijoins follow the kind-specific Language row-order contract. Inner, left and
+full joins require both operand sequences and retain ordered left/right
+dependencies. Semi and anti joins require only the left sequence, since right
+enumeration does not choose among or multiply matching left occurrences. The
+producer still retains the right input and all match, null-key, identity and
+resource obligations. In particular, full-join stable-identity requirements are
+not discharged by this order summary. Join projection may hide keys without
+erasing the conditional output sequence.
+
+Except/intersect preserve the selected left sequence under both ALL and DISTINCT
+policies: the specified earliest/first surviving left occurrences remain in
+left order. Right-side ordering is irrelevant to their multiplicity calculation,
+but right-side admission, equality and completeness obligations are not waived.
+An ordered right input cannot repair an unordered left input. Source branches
+use their resolved targets rather than the last syntactically preceding step.
+
 Row and Event windows also retain a source-order dependency. The Language
 occurrence-order rule clarifies input-major enumeration followed by ascending
 membership starts, not a global window-start sort. This agrees with the fixed

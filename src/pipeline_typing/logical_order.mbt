@@ -108,6 +108,7 @@ fn derive_logical_orders(
           _ => false
         }
       Projection(op) => @projection.operation(op) == @projection.Events
+      Set(..) => true
       _ => false
     }
     let establishes = match step.operation {
@@ -125,6 +126,27 @@ fn derive_logical_orders(
       _ => false
     }
     let dependencies = match step.operation {
+      Join(right~, checked~) => {
+        let left_only = match @join.kind(checked) {
+          Semi | Anti => true
+          _ => false
+        }
+        let right_order = match right {
+          Input(_) => None
+          Step(j) => out[j]
+        }
+        match (step.input, previous) {
+          (Some(left), Some(_)) =>
+            if left_only {
+              [left]
+            } else if right_order is Some(_) {
+              [left, right]
+            } else {
+              []
+            }
+          _ => []
+        }
+      }
       Append(right~, ..) | CrossJoin(right~, ..) => {
         let right_order = match right {
           Input(_) => None
