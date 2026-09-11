@@ -326,6 +326,35 @@ This closes the inspected static alternative/consumer matrix. It does not
 execute quantization or deterministic folds, prove runtime identity uniqueness,
 or resolve the separate profile and capacity obligations.
 
+## Nearest mixed-Carrier acceptance audit
+
+Language's `nearest` source, role-consistency and semantic-ID blocks were
+compared with the shared pair/output checking and `vector-schema.test.mjs`.
+The schema fixes the closed source, literal safe-integer k and absence of a
+second corpus or authored exactness option. Sketch `87dc7144`'s semantic checker
+has the four Carrier paths but restricts Relation IDs and public outputs to
+strings. The current specification instead retains each side's semantic ID
+type, so that old restriction is not an acceptance oracle.
+
+`pipeline_typing/nearest_carrier_audit_test.mbt` covers 192 combinations of
+Relation/Vectors on each side, independent string/number/decimal/ResourceRef
+IDs and cosine/dot/l2. Each uses explicit side roles, preserving the current
+corpus and separate query operand. The output continues through two aliases
+of candidate ID, deletion of the first alias, and take. Query and candidate
+contracts stay distinct, the two-component key retains its actual nearest
+producer, and logical order remains rooted at that operation. Exact
+work/node/text budgets and one-less failures are tested for every combination.
+
+Twenty-four negative cases cover known dimension mismatch across all four
+Carrier pairs, zero/fractional/unsafe k, Parameter-shaped k and an invalid
+metric. Dimension failures preserve the query-vector source path. Existing
+nearest suites separately exercise positional composite identities, unknown
+roles, repeated operand edges, completion paths and alias invalidation.
+
+The tests retain global identity uniqueness, exact scoring and contiguous rank
+assignment as obligations. They do not compute scores or certify f32 numerical
+conformance, actual identity uniqueness or capacity enforcement.
+
 ## Shared-boundary findings
 
 | Requirement | Inspected evidence | Audit finding |
