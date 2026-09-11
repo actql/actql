@@ -1,0 +1,62 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/binding_declarations"
+
+import {
+  "actql/actql/decode_core",
+  "actql/actql/encode_core",
+  "actql/actql/stage_syntax",
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn at(Declarations, Int) -> Declaration?
+
+pub fn count(Declarations) -> Int
+
+pub fn emit_declaration(Declaration, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
+
+pub fn find(Declarations, String) -> Declaration?
+
+pub fn prepare(@stage_syntax.Program, Limits) -> Result[Declarations, Issue]
+
+pub fn program(Declarations) -> @stage_syntax.Program
+
+pub fn source(Declaration) -> @decode_core.Cursor
+
+pub fn work(Declarations) -> Int
+
+// Errors
+
+// Types and methods
+pub(all) enum Constraint {
+  Resource(String)
+  Artifact(String?)
+} derive(Eq, @debug.Debug)
+
+pub struct Declaration {
+  name : String
+  constraint : Constraint
+  // private fields
+}
+
+type Declarations
+
+pub enum Issue {
+  InvalidLimits
+  WorkLimit
+  BindingLimit
+  Decode(@decode_core.Issue)
+  InvalidName(@decode_core.Cursor)
+  InvalidMetadata(@decode_core.Cursor)
+  UnknownType(@decode_core.Cursor)
+  EmptyConstraint(@decode_core.Cursor)
+}
+
+pub(all) struct Limits {
+  max_bindings : Int
+  max_work : Int
+}
+
+// Type aliases
+
+// Traits

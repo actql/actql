@@ -101,3 +101,8 @@ stage/Program identities can be finalized. It must not be used to reject a
 declaration merely because only an Input uses it. Existing Sketch `87dc7144`
 uses path-key heuristics for Parameter positions; the current normative
 immediate-hole and opaque-data rules require the explicit role walk above.
+
+[Opaque Binding declaration admission](binding-declarations.md) now retains
+their actual Program owner and closed constraints. This is a prerequisite for
+Binding reference resolution, not evidence that request references or concrete
+opaque values have already been admitted.
