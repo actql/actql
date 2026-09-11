@@ -70,6 +70,11 @@ fn assert_tree(source : String, expected : String) -> Unit raise {
   let parsed = admit(source_cursor(source), test_limits())
   assert_true(parsed is Ok(_), msg=source)
   assert_cursor(tree(parsed.unwrap()), source_cursor(expected))
+  let roundtrip = admit(
+    source_cursor(source_text(parsed.unwrap())),
+    test_limits(),
+  ).unwrap()
+  assert_cursor(tree(roundtrip), tree(parsed.unwrap()))
 }
 
 ///|

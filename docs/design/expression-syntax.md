@@ -6,6 +6,30 @@ or structured forms with text at grammar-owned Expression children. It returns
 an opaque Expression containing an owned normalized Cursor and detached
 Parameter occurrences; it does not introduce a second public AST.
 
+`emit_source` writes that same normalized source to an enclosing bounded
+canonical writer (text, measurement or hash sink). It does not lower to
+`{op, body}` nodes or compute a standalone Program/Fragment identity. Parameter
+references remain unbound; template remains a source template; literal null
+does not become typed_null. Literal payloads are serialized as data without
+interpreting `$param`, `literal`, `meta`, or other business keys. Only the
+already admitted normalization and canonical object-key order apply. Origin
+sidecars, spans and text ranges never enter the emitted value.
+
+This provides the source-value boundary needed by Program semantic projection
+and later canonical root placement without assigning AoA slots that a consumer
+contract has not defined. Ordered derive's row-kernel and other consumer
+bindings remain distinct from the Relation Fragment root table; local slot
+indices are not used as global Fragment root indices.
+
+Emission is iterative, preserves array order and repeated occurrences, and
+sorts each object's field handles in UTF-16 order. It does not materialize a
+second JSON tree or a complete output string for the hash sink. The writer's
+byte/node/depth budgets include the enclosing semantic body; object sorting
+uses memory bounded by the previously admitted source, not a whole-heap limit
+derived from max_bytes. Tests cover round trips through the existing admission
+cases, fixed canonical bytes and an independent digest, exact sink budget
+boundaries, depth 10,000 and width 10,000.
+
 The authority is [common expressions](../spec/language.md#common-expression-contract),
 the [text mappings](../spec/language.md#expression-text), and their pinned
 [machine contract](../../spec/contracts/actql-expressions.json), including the

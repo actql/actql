@@ -3,6 +3,7 @@ package "actql/actql/expression_syntax"
 
 import {
   "actql/actql/decode_core",
+  "actql/actql/encode_core",
   "actql/actql/expression_text",
   "actql/actql/source_span",
   "actql/actql/source_value",
@@ -13,6 +14,8 @@ import {
 pub fn admit(@decode_core.Cursor, Limits) -> Result[Expression, Issue]
 
 pub fn collect_parameter_occurrences(Expression, max_work~ : Int) -> Result[ParameterOccurrences, Issue]
+
+pub fn emit_source(Expression, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
 
 pub fn field_references(Expression) -> Array[FieldReference]
 
