@@ -16,6 +16,20 @@ pub fn leaf_at(CheckedArithmetic, Int) -> Int?
 
 pub fn leaf_count(CheckedArithmetic) -> Int
 
+pub fn minimum_candidate_at(CandidateMinimum, Int) -> Candidate?
+
+pub fn minimum_candidate_count(CandidateMinimum) -> Int
+
+pub fn minimum_graph(CandidateMinimum) -> CheckedArithmetic
+
+pub fn minimum_guard_binding(CandidateMinimum) -> GuardBinding
+
+pub fn minimum_unit(CandidateMinimum) -> BoundUnit
+
+pub fn minimum_value(CandidateMinimum) -> Int64
+
+pub fn select_candidate_minimum(CheckedArithmetic, Array[Candidate], BoundUnit, max_candidates~ : Int) -> Result[CandidateMinimum, CandidateIssue]
+
 pub fn unit_at(CheckedArithmetic, Int) -> BoundUnit?
 
 pub fn value_at(CheckedArithmetic, Int) -> Int64?
@@ -35,6 +49,30 @@ pub(all) enum BoundUnit {
   MatchesPerKey
 } derive(Eq, @debug.Debug)
 
+pub(all) struct Candidate {
+  node : Int
+  role : CandidateRole
+}
+
+pub(all) enum CandidateIssue {
+  InvalidLimit
+  BudgetExceeded
+  EmptyCandidates
+  MissingNode(Int)
+  WrongUnit(Int)
+  NonpositiveGuard(Int)
+} derive(Eq, @debug.Debug)
+
+type CandidateMinimum
+
+pub(all) enum CandidateRole {
+  ProvenUpperBound
+  AuthorGuard
+  ContractCeiling
+  LanguageCeiling
+  HostCeiling
+} derive(Eq, @debug.Debug)
+
 type CheckedArithmetic
 
 pub(all) enum Derivation {
@@ -45,6 +83,12 @@ pub(all) enum Derivation {
   Multiply(Int, Int64)
   Clamp(Int?, Int64)
 }
+
+pub(all) enum GuardBinding {
+  Absent
+  Binding
+  CurrentlyNonBinding
+} derive(Eq, @debug.Debug)
 
 pub(all) enum Issue {
   InvalidLimits

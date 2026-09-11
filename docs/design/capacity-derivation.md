@@ -41,6 +41,23 @@ dependency validation or make a cyclic graph valid.
 
 ## Required surrounding boundary
 
+`select_candidate_minimum` adds the common numeric limit-selection rule over an
+already checked graph. Candidates retain their graph indices and supplied roles;
+all must exist and match the requested unit. The minimum includes every supplied
+candidate. Author guards must be positive; they are binding only when their
+minimum is strictly below every non-author candidate. Equal ceilings make them
+currently non-binding, but do not remove them. With only guards they are binding;
+with no guards the status is absent. This matches the normative resolved-limit
+rule and `resolveActqlLimit` in the fixed Sketch reference.
+
+Selection is iterative O(candidates), with an inclusive candidate-count bound
+before copying. Equal values and repeated candidates remain distinct entries;
+even after finding zero, later invalid candidates fail. The opaque result retains
+the graph and detached entries. It is an arithmetic result, **not** a resolved
+limit or authenticated witness set: roles remain supplied classifications, source
+applicability/completeness is unproven, and CID ordering and enforcement binding
+are not performed. No pipeline evidence input accepts this result as a proof.
+
 Source authentication and law validation remain mandatory work. A wire witness
 adapter must verify canonical bodies/CIDs, resolve each reference into this
 graph, check the complete declared dependency set, validate role/source pairs

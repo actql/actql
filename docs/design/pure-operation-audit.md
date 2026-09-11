@@ -71,7 +71,10 @@ consumer audit.
    Shared [capacity arithmetic](capacity-arithmetic.md) is implemented and used
    by count propagation; arithmetic validation does not close this requirement.
    [Derivation consistency](capacity-derivation.md) checks bounded numerical
-   dependency graphs, including cycles and units. Canonical wire/source/law
+   dependency graphs, including cycles and units. Candidate minimum selection
+   now retains all numeric candidates and computes strict author-guard binding;
+   supplied roles and applicability are not authenticated by that arithmetic.
+   Canonical wire/source/law
    verification remains open; a closed bound-law registry body was not found in
    the inspected repository and still needs an authoritative owner.
    The separate [operation transfer registry](bound-transfer-registry.md) now
