@@ -32,6 +32,17 @@ const body = {
     policy:'validate_selected_profile_and_every_supplied_policy_component',
     authority:'shape_hash_and_membership_are_not_authorization_or_runtime_evidence',
   },
+  contract_bodies:{
+    data_policy:{
+      type:'object',additionalProperties:false,
+      required:['version','source_ref','classification'],
+      properties:{
+        version:{const:'actql-source-data-policy/0.1'},
+        source_ref:{type:'string',minLength:1},
+        classification:{enum:['public','internal','confidential','restricted','unknown']},
+      },
+    },
+  },
   policy_components:{
     text_time_evaluation:{
       pointer:'/host_policy_profile/text_time_evaluation',

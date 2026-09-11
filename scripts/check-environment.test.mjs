@@ -5,6 +5,17 @@ import {canonicalText,verifyIdentity} from './check-canonical-json.mjs';
 const read=p=>JSON.parse(readFileSync(p,'utf8'));
 const contract=read('spec/contracts/actql-check-environment.json');
 const corpus=read('portability/corpus/check-environment.json');
+test('source data policy body is closed and retains unknown classification',()=>{
+  assert.deepEqual(contract.contract_bodies.data_policy,{
+    type:'object',additionalProperties:false,
+    required:['version','source_ref','classification'],
+    properties:{
+      version:{const:'actql-source-data-policy/0.1'},
+      source_ref:{type:'string',minLength:1},
+      classification:{enum:['public','internal','confidential','restricted','unknown']},
+    },
+  });
+});
 // Only the explicit envelope schema subset; component admission is separate.
 function shape(value){
   const s=contract.schema;

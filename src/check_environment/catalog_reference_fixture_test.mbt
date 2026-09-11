@@ -47,6 +47,8 @@ fn reference_fixture(
   replacement? : Json? = None,
   misplaced? : Bool = false,
   modes? : Int = 1,
+  policy_body? : Json? = None,
+  unused_policy? : Json? = None,
 ) -> CatalogContents raise {
   let kinds = [
     "request_schema", "carrier_schema", "carrier_facts", "pushdown", "checkpoint",
@@ -55,20 +57,25 @@ fn reference_fixture(
     "request_data_handling", "data_policy", "provider_execution_capability",
   ]
   let contracts = []
+  let identities : Map[String, String] = Map([])
   let refs : Map[String, Json] = Map([])
   for kind in kinds {
-    let wire = sealed_fixture(
-      @json.parse(
-        "{\"schema\":\"actql.contract/0.1\",\"id\":\"" +
-        kind +
-        "\",\"kind\":\"" +
-        kind +
-        "\",\"version\":\"external\",\"body\":{\"literal\":{\"$param\":\"business\"}}}",
-      ),
-      "cid",
+    let core = @json.parse(
+      "{\"schema\":\"actql.contract/0.1\",\"id\":\"" +
+      kind +
+      "\",\"kind\":\"" +
+      kind +
+      "\",\"version\":\"external\",\"body\":{\"literal\":{\"$param\":\"business\"}}}",
     )
+    if kind == "data_policy" && policy_body is Some(body) {
+      guard core is Object(fields) else { abort("policy fixture") }
+      fields["body"] = body
+    }
+    let wire = sealed_fixture(core, "cid")
     contracts.push(wire)
     guard @json.parse(wire) is Object(fields) else { abort("envelope fixture") }
+    guard fields["cid"] is String(identity) else { abort("identity fixture") }
+    identities[wire] = identity
     refs[kind] = Json::object(
       Map([
         ("id", Json::string(kind)),
@@ -77,8 +84,18 @@ fn reference_fixture(
       ]),
     )
   }
-  // All envelopes share their body prefix; their next member is cid.
-  contracts.sort_by((a, b) => @unicode.compare_utf16(a, b))
+  if unused_policy is Some(body) {
+    let core = @json.parse(
+      "{\"schema\":\"actql.contract/0.1\",\"id\":\"unused-policy\",\"kind\":\"data_policy\",\"version\":\"external\"}",
+    )
+    guard core is Object(fields) else { abort("unused policy fixture") }
+    fields["body"] = body
+    let wire = sealed_fixture(core, "cid")
+    guard fields["cid"] is String(identity) else { abort("identity fixture") }
+    contracts.push(wire)
+    identities[wire] = identity
+  }
+  contracts.sort_by((a, b) => identities[a].compare(identities[b]))
   let mode = "{\"mode\":\"snapshot\",\"bounded\":true,\"checkpoint\":{\"value_schema\":\"@checkpoint\",\"expiration_schema\":\"@checkpoint\"},\"delivery\":{\"lease\":{\"expiration_schema\":\"@checkpoint\"}}}"
   let modes_text = Array::make(modes, mode).join(",")
   let mut text = "{\"view\":{\"schema\":\"actql.source_view/0.1\",\"connector_id\":\"example\",\"connector_version\":\"external-7\",\"resource_kind\":\"record\",\"view_id\":\"main\",\"view_version\":\"external\",\"acquisition\":{\"request_schema\":\"@request_schema\",\"batching\":{\"request_key_schema\":\"@lookup_request_key\",\"batch_request_schema\":\"@lookup_batch_request\",\"response_key_schema\":\"@lookup_response_key\"},\"modes\":[" +

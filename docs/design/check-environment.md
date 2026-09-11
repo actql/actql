@@ -187,6 +187,41 @@ policy contracts, type/correlation compatibility, acquisition-mode coherence and
 issuer authority remain unproven. Reference closure alone cannot authorize input
 resolution, sole-view completion, planning or execution.
 
+## Source data-policy bodies
+
+`check_source_data_policies` consumes the exact CatalogReferences proof, validates
+all `data_policy` envelopes in its registry (including unused ones), and links
+each SourceView output-policy reference to an opaque SourceDataPolicy. Access by
+SourceView member requires the same environment and correct section; equal bytes
+read into a different environment cannot substitute. The result retains the
+reference closure, exact output occurrence and original policy Envelope.
+
+The closed `version/source_ref/classification` body is now explicit in the
+normative Check Environment section and in
+`actql-check-environment.json#/contract_bodies/data_policy`. This records the
+existing reader at `87dc7144:src/actql-portability.ts` and publisher at
+`87dc7144:src/connectors/local-kernel.ts`; previously the general `body: {}`
+Envelope schema did not express the role-specific shape. No alternate `source`
+spelling or new selector syntax is inferred from other reference-code hashes.
+The publisher-supplied nonempty `source_ref` is retained exactly for subsequent
+snapshot correspondence. The policy CID is the Contract Envelope identity, not
+the bare-body hash. The fixed unknown-policy expectation was independently
+calculated with Python hashlib.
+
+DataClassification distinguishes all four known levels and Unknown. This check
+does not replace Unknown with Public, compute a Host classification floor,
+authenticate a publisher, establish source materialization or permit publication
+or model egress. Snapshot source/policy/Carrier correspondence and effective
+Host policy are separate obligations. A shared policy target can support several
+reference occurrences without discarding those ownership relationships.
+
+Work accounts for each registry entry and resolved occurrence plus the policy
+keys and value string units; policy-count limits count all distinct envelopes,
+including unused ones. Previous Catalog/reference budgets stay attached rather
+than being treated as zero-cost completed global admission. Tests cover every
+classification, closed shape, null/missing fields, unused malformed bodies,
+cumulative limits, foreign environments and full-envelope identity.
+
 ## Capacity component selection
 
 The normative component selector is now `/host_policy_profile/capacity`, with

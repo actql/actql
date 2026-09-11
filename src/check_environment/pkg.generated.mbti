@@ -38,6 +38,8 @@ pub fn check_catalog_references(CatalogContents, ReferenceLimits) -> Result[Cata
 
 pub fn check_contract_registry(WireEnvironment, Limits) -> Result[ContractRegistry, ContractIssue]
 
+pub fn check_source_data_policies(CatalogReferences, DataPolicyLimits) -> Result[SourceDataPolicies, DataPolicyIssue]
+
 pub fn cid(WireEnvironment) -> String
 
 pub fn contract_at(ContractRegistry, Int) -> ContractEnvelope?
@@ -53,6 +55,18 @@ pub fn contract_registry_environment(ContractRegistry) -> WireEnvironment
 pub fn contract_registry_usage(ContractRegistry) -> (Int, Int, Int)
 
 pub fn contract_role(ContractEnvelope) -> String
+
+pub fn data_classification(SourceDataPolicy) -> DataClassification
+
+pub fn data_policy_at(SourceDataPolicies, Int) -> SourceDataPolicy?
+
+pub fn data_policy_envelope(SourceDataPolicy) -> ContractEnvelope
+
+pub fn data_policy_references(SourceDataPolicies) -> CatalogReferences
+
+pub fn data_policy_source(SourceDataPolicy) -> String
+
+pub fn data_policy_usage(SourceDataPolicies) -> (Int, Int)
 
 pub fn emit(WireEnvironment, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
 
@@ -95,6 +109,12 @@ pub fn reference_usage(CatalogReferences) -> (Int, Int)
 pub fn resolve_catalog_contract(Catalog, String, String, String, String) -> Result[ContractEnvelope, CatalogIssue]
 
 pub fn resolve_contract(ContractRegistry, String, String, String, String) -> Result[ContractEnvelope, ContractIssue]
+
+pub fn source_view_data_policy(SourceViewPolicy) -> SourceDataPolicy
+
+pub fn source_view_policy(SourceDataPolicies, Member) -> SourceViewPolicy?
+
+pub fn source_view_policy_reference(SourceViewPolicy) -> CatalogReference
 
 pub fn text_time_environment(TextTime) -> WireEnvironment
 
@@ -154,6 +174,26 @@ pub(all) enum ContractIssue {
 
 type ContractRegistry
 
+pub(all) enum DataClassification {
+  Public
+  Internal
+  Confidential
+  Restricted
+  Unknown
+} derive(Eq, @debug.Debug)
+
+pub(all) enum DataPolicyIssue {
+  InvalidLimits
+  WorkLimit
+  PolicyLimit
+  InvalidPolicy(Int)
+} derive(Eq, @debug.Debug)
+
+pub(all) struct DataPolicyLimits {
+  max_work : Int
+  max_policies : Int
+}
+
 pub(all) enum Issue {
   InvalidLimits
   BudgetExceeded
@@ -202,6 +242,12 @@ pub(all) enum Section {
   ContractRegistry
   ConnectorCatalogs
 } derive(Eq, @debug.Debug)
+
+type SourceDataPolicies
+
+type SourceDataPolicy
+
+type SourceViewPolicy
 
 type TextTime
 

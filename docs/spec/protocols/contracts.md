@@ -144,6 +144,18 @@ SourceView CID. A local-input schema snapshot MUST bind its input source
 reference, Carrier, and schema contract; it requires no SourceView CID.
 Rehashing only the aggregate Check Environment after changing an inner body is invalid.
 
+<!-- requirement-block: check-environment.source-data-policy-body -->
+Each `data_policy` Contract Envelope body MUST be a closed object containing
+exactly `version: "actql-source-data-policy/0.1"`, a nonempty string `source_ref`,
+and `classification`, one of `public`, `internal`, `confidential`, `restricted`,
+or `unknown`. All supplied data-policy bodies are validated, including unused
+ones. Unknown classification remains unknown; no public default is inferred.
+The referenced policy CID identifies its complete Contract Envelope preimage,
+not the body alone. Validation retains the exact SourceView output reference
+and policy source identity; it does not authenticate the publisher or authorize
+publication or model egress. Snapshot correspondence and effective Host policy
+remain separate required checks.
+
 <!-- requirement-block: check-environment.within-one-admitted-check-environment-every-author-visible-selector-must-resolve -->
 Within one admitted Check Environment, every author-visible selector MUST
 resolve exactly once: Connector ID, SourceView `(connector, resource, view)`,
@@ -1053,7 +1065,7 @@ These exact schema/law references are owned here. Their identities do not includ
 <!-- requirement-block: machine-contracts.exact-artifacts -->
 <!-- normative-code: law -->
 ```text
-../../../spec/contracts/actql-check-environment.json# sha256:30b27eda0c1d630b2fdbebdbabdb98d034f9d878290f0e266506cc0460472d35
+../../../spec/contracts/actql-check-environment.json# sha256:4514b30ba9a025a21635c34d7f91300542bb6714ffb10728d863e75ab18f50be
 ../../../spec/contracts/actql-local-relation-snapshot.json# sha256:60e8136aea733421e75fa3dcef4934c87ce98959b36f8a56da93ccfbf03d81b2
 ../../../spec/contracts/actql-local-source-reference.json# sha256:9be664306a6a91a8e5bfca53d579e6dac77baf4567eb241ceeedc3216ffe47d9
 ../../../spec/contracts/actql-protocol-schemas.json#/schemas/model_task sha256:19408a610dbc52552bff3a7f97f25a120a66688e7db4f41383c91c9298f02dd2
