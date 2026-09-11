@@ -1,6 +1,7 @@
 supported_targets = "+js+wasm+native"
 
 import {
+  "actql/actql/publication_order_policy" @publication,
   "actql/actql/capacity_law" @law,
   "actql/actql/capacity_derivation" @derivation,
   "actql/actql/capacity_arithmetic" @capacity,

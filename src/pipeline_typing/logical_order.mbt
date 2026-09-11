@@ -9,6 +9,7 @@ struct LogicalOrder {
   completion : SortCompletion?
   key_order : @evidence.KeyedRelation?
   dependencies : Array[Target]
+  publication : ResultPublication?
 }
 
 ///|
@@ -64,6 +65,7 @@ fn imported_orders(inputs : Array[ProducedInput?]) -> Array[LogicalOrder?] {
         completion: None,
         key_order: None,
         dependencies: [],
+        publication: None,
       })
     })
   })
@@ -277,6 +279,7 @@ fn derive_logical_orders(
           completion,
           key_order,
           dependencies,
+          publication: None,
         })
       } else if preserve {
         previous.map(v => { ..v, predecessor: step.input, })

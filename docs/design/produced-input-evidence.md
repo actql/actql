@@ -144,6 +144,34 @@ preserved counts, candidate-key retention/loss, score aliases, multiple window
 aliases into window grouping, Delta contract aliases, exact transfer limits and
 foreign-schema/non-Select rejection.
 
+## Publication order on projected producers
+
+`publish_produced_input` composes the same evidence-preserving projection with
+the shared [publication policy](publication-order-policy.md). Unlike the generic
+projection API, it requires unchanged field names, matching Result `fields`.
+Authored order terms are validated against the original input schema, including
+columns omitted from the projection. The policy consumes only the selected
+producer's actual candidate keys and logical order. An authored order without
+either eligible keys or an inherited stable tie order fails rather than
+fabricating a total-order witness.
+
+The returned input retains an opaque `ResultPublication` as its logical-order
+origin. `order_publication` exposes that origin, with accessors for the original
+pipeline/target, checked projection, authored order cursor, resolved terms,
+selected key and prior order. This origin is neither an authored pipeline step
+nor an imported-input origin. Receivers wrap it in their own input coordinate
+in the usual way. Existing producer facts remain unchanged.
+
+Projection transfer, order admission and policy calculation share the supplied
+work/text/node limits. The policy does not discharge execution obligations.
+Tests cover fallback order into `take`, hidden authored sort fields, retained
+source ownership, unresolved ties, invalid terms, alias rejection and exact
+shared budget boundaries.
+
+This constructor is not yet a named Result import: it does not establish
+membership in a checked Result definition or its source Program. The named-port
+adapter must bind those owners before exposing complete Result import evidence.
+
 ## Remaining boundaries
 
 The combined order checker now traverses all producer occurrences under shared

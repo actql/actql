@@ -16,6 +16,7 @@ import {
   "actql/actql/graph_typing",
   "actql/actql/order_key",
   "actql/actql/parameter_binding",
+  "actql/actql/publication_order_policy",
   "actql/actql/relation_append",
   "actql/actql/relation_evidence",
   "actql/actql/relation_join_shape",
@@ -181,6 +182,8 @@ pub fn input_order_target(InputOrderResolution) -> Target
 
 pub fn input_producer(CheckedPipeline, Int) -> ProducedInput?
 
+pub fn input_publication(PublishedInput) -> ResultPublication
+
 pub fn inputs(CheckedPipeline) -> Array[(String, @carrier_contract.Carrier)]
 
 pub fn join_evidence(CheckedPipeline, Int) -> JoinEvidence?
@@ -221,6 +224,8 @@ pub fn order_predecessor(LogicalOrder) -> Target?
 
 pub fn order_producer(LogicalOrder) -> CheckedStep?
 
+pub fn order_publication(LogicalOrder) -> ResultPublication?
+
 pub fn order_sort_completion(LogicalOrder) -> SortCompletion?
 
 pub fn output_carrier(CheckedPipeline) -> @carrier_contract.Carrier?
@@ -252,6 +257,30 @@ pub fn project_produced_input(CheckedPipeline, Target, @relation_typing.CheckedO
 pub fn projected_input(ProducedProjection) -> ProducedInput
 
 pub fn projected_input_usage(ProducedProjection) -> Usage
+
+pub fn publication_key(ResultPublication) -> @relation_evidence.KeyedRelation?
+
+pub fn publication_order_source(ResultPublication) -> @decode_core.Cursor?
+
+pub fn publication_pipeline(ResultPublication) -> CheckedPipeline
+
+pub fn publication_prior_order(ResultPublication) -> LogicalOrder?
+
+pub fn publication_projection(ResultPublication) -> @relation_typing.CheckedOperation
+
+pub fn publication_strategy(ResultPublication) -> @publication_order_policy.Strategy
+
+pub fn publication_target(ResultPublication) -> Target
+
+pub fn publication_term_at(ResultPublication, Int) -> @publication_order_policy.Term?
+
+pub fn publication_term_count(ResultPublication) -> Int
+
+pub fn publish_produced_input(CheckedPipeline, Target, @relation_typing.CheckedOperation, @decode_core.Cursor?, Limits) -> Result[PublishedInput, Issue]
+
+pub fn published_input(PublishedInput) -> ProducedInput
+
+pub fn published_input_usage(PublishedInput) -> Usage
 
 pub fn ranking_evidence(CheckedPipeline, Target) -> @relation_evidence.RankingInput?
 
@@ -532,7 +561,11 @@ pub struct ProducerOrderIssue {
   issue : Issue
 }
 
+type PublishedInput
+
 type RelationEvidence
+
+type ResultPublication
 
 pub struct RowCount {
   upper : Int64
