@@ -337,6 +337,11 @@ pub fn traverse_output(c : CheckedTraverse) -> @carrier.Carrier {
 }
 
 ///|
+pub fn traverse_emission(c : CheckedTraverse) -> PathOutput {
+  c.emit
+}
+
+///|
 pub fn traverse_usage(c : CheckedTraverse) -> PredicateUsage {
   c.usage
 }

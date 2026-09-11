@@ -222,6 +222,65 @@ fn window_count(
 }
 
 ///|
+fn count_violation(actual : RowCount?, threshold : @graph.Count?) -> RowCount {
+  guard threshold is Some(threshold) else { return count(0L, true) }
+  extent_violation(
+    actual,
+    match threshold {
+      Literal(n) => Some(n)
+      Parameter(_) => None
+    },
+  )
+}
+
+///|
+fn extent_violation(actual : RowCount?, threshold : Int64?) -> RowCount {
+  if actual is Some({ upper: 0L, .. }) {
+    return count(0L, true)
+  }
+  match (actual, threshold) {
+    (Some(actual), Some(maximum)) =>
+      if actual.upper <= maximum {
+        count(0L, true)
+      } else {
+        count(1L, actual.exact)
+      }
+    _ => count(1L, false)
+  }
+}
+
+///|
+fn graph_report_count(
+  source : @decode.Cursor,
+  input : GraphCount?,
+  operation : @graph.CheckedGraph,
+) -> RowCount? raise Stop {
+  guard @graph.options(operation)
+    is BoundsOptions(max_nodes~, max_edges~, max_degree~) else {
+    return None
+  }
+  let nodes = input.bind(g => g.nodes)
+  let edges = input.bind(g => g.edges)
+  let whole = sum_counts(
+    source,
+    Some(count_violation(nodes, max_nodes)),
+    Some(count_violation(edges, max_edges)),
+  )
+  let degree = if max_degree is None || edges is Some({ upper: 0L, .. }) {
+    Some(count(0L, true))
+  } else if edges is Some(e) &&
+    max_degree is Some(Literal(maximum)) &&
+    e.upper <= maximum / 2L {
+    // Total degree is at most twice the edge count, including self-loops.
+    // Compare by division to avoid overflowing an unnecessary 2*E product.
+    Some(count(0L, true))
+  } else {
+    reduce_count(nodes)
+  }
+  sum_counts(source, whole, degree)
+}
+
+///|
 fn ranking_count(
   b : Budget,
   step : CheckedStep,
@@ -423,10 +482,28 @@ fn derive_row_counts(
       Graph(v) =>
         match @graph.operation(v) {
           Degree | Components => graph_input.bind(v => v.nodes)
+          GraphBounds => graph_report_count(step.source, graph_input, v)
           _ => None
         }
       GraphEquality(_) | GraphDiff(_) => Some(count(1L, true))
       Reach(_) => reduce_count(graph_input.bind(g => g.nodes))
+      Traverse(selector~, checked~) => {
+        let nodes = graph_input.bind(g => g.nodes)
+        let starts = selector_count(
+          @graph.traverse_start(checked),
+          selector,
+          result,
+          nodes,
+        )
+        if @graph.traverse_emission(checked) == TraversedNodes {
+          reduce_count(product_counts(step.source, starts, nodes))
+        } else if starts is Some({ upper: 0L, .. }) ||
+          nodes is Some({ upper: 0L, .. }) {
+          Some(count(0L, true))
+        } else {
+          None // Simple-path enumeration needs a separate law or enforced ceiling.
+        }
+      }
       Shortest(source_selector~, target_selector~, checked~) => {
         let nodes = graph_input.bind(g => g.nodes)
         let left = endpoint_count(

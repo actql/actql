@@ -259,6 +259,8 @@ pub fn subgraph_usage(CheckedSubgraph) -> PredicateUsage
 
 pub fn traverse_bounds(CheckedTraverse) -> (Double, Double)
 
+pub fn traverse_emission(CheckedTraverse) -> PathOutput
+
 pub fn traverse_hop_at(CheckedTraverse, Int) -> TraversalHop?
 
 pub fn traverse_hop_count(CheckedTraverse) -> Int

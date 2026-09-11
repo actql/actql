@@ -1,4 +1,40 @@
 ///|
+test "diagnostic cardinality bounds cover every possible extent and binding" {
+  for upper in 0..<10 {
+    for threshold in 0..<12 {
+      for exact in [false, true] {
+        let estimate = extent_violation(
+          Some(count(upper.to_int64(), exact)),
+          Some(threshold.to_int64()),
+        )
+        for actual in 0..<(upper + 1) {
+          if exact && actual != upper {
+            continue
+          }
+          let emitted = if actual > threshold { 1L } else { 0L }
+          assert_true(emitted <= estimate.upper)
+          if estimate.exact {
+            assert_eq(emitted, estimate.upper)
+          }
+        }
+        let bound = extent_violation(Some(count(upper.to_int64(), exact)), None)
+        assert_eq(bound.upper, if upper == 0 { 0L } else { 1L })
+        assert_eq(bound.exact, upper == 0)
+      }
+    }
+  }
+  assert_eq(count_violation(None, None), count(0L, true))
+  assert_eq(extent_violation(None, Some(9007199254740991L)), count(1L, false))
+  assert_eq(
+    extent_violation(
+      Some(count(9007199254740991L, true)),
+      Some(9007199254740990L),
+    ),
+    count(1L, true),
+  )
+}
+
+///|
 test "row count arithmetic distinguishes exact counts from upper bounds" {
   let source = @decode.admit(
     @source.parse_json("null", {

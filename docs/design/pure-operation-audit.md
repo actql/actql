@@ -126,7 +126,10 @@ consumer audit.
    boundary. It must not let callers omit a difficult step or local aggregate,
    reset shared budgets per resolver, or turn unresolved mandatory facts into
    execution permission. Runtime/binding obligations remain explicitly separate.
-4. Finish the 48-operation audit against source bodies, schemas, fixed accepted
+4. The demonstrated traversal/report count gaps now retain
+   node-pair bounds and bounded diagnostic rows, with path multiplicity and
+   resource guards explicitly kept separate. Finish the remaining 48-operation
+   audit against source bodies, schemas, fixed accepted
    and rejected vectors, overloaded Carrier alternatives, bounds and downstream
    consumers. The dispatch table above is only the navigation index for this
    audit. Record missing evidence as unverified rather than complete.

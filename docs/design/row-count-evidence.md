@@ -55,6 +55,29 @@ the source count, and nearest-pair by one. An empty endpoint makes every mode
 empty. These bounds say nothing about path existence, endpoint membership,
 weighted search work, or the number of simple paths enumerated by traversal.
 
+Node-emitting traversal has at most one row for each selected start/node pair,
+so it multiplies the selector's upper bound by the node extent. Relation
+selectors use their known row bound, explicit selector occurrences give a
+conservative bound even when IDs repeat, and both are limited by a known graph
+node extent. Predicate selection uses that node extent directly. Nonzero
+results remain upper bounds because membership, reachability and predicates
+may reduce output. Path-emitting traversal does not reuse this node-pair bound:
+many simple paths may share endpoints. Only an empty start or node bound proves
+zero paths here. A supplied output guard never becomes a successful-row count.
+
+`graph_bounds` emits at most one node-count report, one edge-count report and
+one degree report per node, for the thresholds actually present. A known extent
+at or below a literal threshold proves that report absent; an exact extent
+strictly above it proves exactly one whole-graph report. Unbound thresholds
+remain unknown nonnegative values. Zero edges prove no degree report, and a
+literal degree threshold at least twice the edge upper bound also proves none,
+including self-loops. The comparison uses division to avoid an unnecessary
+overflowing multiplication. Remaining degree reports are bounded by the node
+extent. Thus node/edge-only reports stay bounded even on an unknown Graph,
+whereas degree reports may remain unknown. These are diagnostic row counts,
+not claims that the input graph satisfies the authored thresholds. Shared
+checked addition still rejects an unrepresentable total upper bound.
+
 | Checked operation | Count rule |
 | --- | --- |
 | values | Exact authored row count, including Parameter cells awaiting binding |
@@ -85,6 +108,9 @@ weighted search work, or the number of simple paths enumerated by traversal.
 | fixed row_window/window_events | Preserve count, independently of an explicitly supplied step |
 | sliding row_window/window_events | Multiply by ceil(size / step) for literal size/step; exact multiplicity only when size is divisible by step |
 | pool_vectors | Input upper bound; every nonempty group emits one vector |
+| traverse, emit nodes | Selected-start upper bound times node upper bound |
+| traverse, emit paths | Exact zero for empty starts/nodes; otherwise unknown here |
+| graph_bounds | Selected whole-graph violation indicators plus per-node degree reports |
 | nearest | Query count times min(k, candidate count); exact when both factors are exact |
 | text_rank | Query count times min(k, corpus count), upper bound only because zero-score documents are omitted |
 | merge_rankings | Sum input-occurrence upper bounds, not exact; empty by additionally clamps the whole output to k |
