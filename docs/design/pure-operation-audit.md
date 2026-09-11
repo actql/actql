@@ -386,6 +386,12 @@ matching automaton or proof that session-boundary values have been computed.
    that have no Graph input consumer. This is complete consumption only for
    that dedicated collection, not whole-pipeline readiness. Other consumer
    families, non-Host candidate applicability and actual enforcement remain open.
+   [Sequence capacity consumers](sequence-capacity.md) now bind the Host-only
+   per-key and total-output limits to an actual step, preserving distinct units,
+   policy fields, candidate occurrences and enforcement obligations. Authored
+   guards explicitly prevent using this incomplete source branch; they are not
+   discarded when Host limits are tighter. Complete source identity, all-step
+   coverage and mixed consumer consumption remain required.
    Do not
    expand into acquisition, an evaluator or Host dispatch.
 3. Connect contextual resolutions into a complete static checking/discharge

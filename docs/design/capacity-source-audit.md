@@ -121,6 +121,12 @@ Neither a row bound nor one of those limits can substitute for the other.
 Author-source identity and complete candidate applicability remain prerequisites;
 this audit does not invent a local pipeline hash as Program Definition identity.
 
+The [Host-only sequence consumer entry](sequence-capacity.md) now binds both
+scopes to an actual checked step and exact selected-policy candidates from one
+mixed collection. It retains engine-atomic obligations, rejects absent/wrong
+subjects and scope substitution, and refuses to discard any authored guard.
+The author-source branch and complete all-step/all-consumer boundary remain open.
+
 ## Extension-local capacity law
 
 The current `actql-expressions.json` contract explicitly registers

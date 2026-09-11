@@ -1,0 +1,67 @@
+# Sequence capacity consumer binding
+
+`capacity_sequence_limit.check_host_limits` associates both sequence limit
+scopes with one actual checked pipeline step. It handles the Host-only branch;
+it is not complete source admission, whole-pipeline checking, an observed match
+count, runtime enforcement, or permission to execute.
+
+The normative owners are [Sequence](../spec/language.md#sequence),
+[resolved limits](../spec/language.md#resolved-limits), and the pinned
+[Host witness contract](../spec/protocols/contracts.md#capacity-host-policy).
+The fixed Sketch `87dc7144` compiler uses the same two field/unit associations
+and binds them independently to `TEA.sequence.match` parameters. The current
+checker does not copy its older source restrictions or implement lowering.
+
+| Scope | Required selected-policy field | Unit | Enforcement |
+| --- | --- | --- | --- |
+| Matches per key | `max_temporal_matches_per_key` | `matches_per_key` | engine atomic |
+| Total output matches | `max_temporal_output_rows` | `rows` | engine atomic |
+
+## Application and ownership
+
+Both limits are selected by index from the same retained mixed witness/limit
+collection. Their candidates have already passed arithmetic, canonical body,
+identity and collection-wide Host-source checks. This entry additionally
+requires every candidate occurrence to use the exact selected policy CID and
+the applicable field/unit. Equal values do not permit substituting the Relation
+output field for the temporal output field. Candidate lists are nonempty;
+their exact minima are checked by wire admission. Repeated identical Host
+candidates are retained and charged separately.
+
+The local subjects are `sequence:checked-step:<index>:matches-per-key` and
+`sequence:checked-step:<index>:output`. These are owner-relative application
+references, not Program/Invocation identities or an imported compiler-reference
+resolver. The opaque result retains the exact pipeline, step, source collection,
+selected policy and both original limit handles and indices. Swapped subjects,
+wrong enforcement, missing limits and non-sequence operations fail atomically.
+
+`max_work` charges one visit per scope and one per candidate occurrence,
+cumulatively across both scopes. It is checked before candidate iteration;
+only a constant-size pair of handles is allocated. Limits and sources retain
+their separately admitted body/reference budgets. Successful binding does not
+mutate the checked sequence or remove `AtomicMatchLimits`, identity, time,
+predicate or binding obligations. No output row count is inferred.
+
+## Explicit remaining boundaries
+
+An authored `max_matches_per_key` or `max_output_rows` fails this entry with
+`UnresolvedAuthorSource` for that scope. This applies whether the guard is
+looser, equal or tighter than the Host ceiling. It is a supported-implementation
+boundary, not a language restriction: the guard cannot be omitted until its
+Program Definition identity, exact occurrence and resolved value are bound.
+An unrequested author candidate or any other unsupported candidate source also
+fails instead of being trusted based on its self-CID.
+
+Host policy selection remains a Check Environment responsibility. The caller
+must still validate every step/producer, applicable source, available candidate
+and limit consumer in the combined boundary. This local result accounts for
+two selected limits only; other limits in its collection are not consumed by
+implication. Physical pipeline ownership does not establish Invocation binding
+consistency. Engine-atomic enforcement must happen before publication and is
+not executed by this static checker.
+
+Fixed wire fixtures were independently serialized and SHA-256 hashed with Node.
+Tests cover Relation/Events and overlap modes, independent maxima, repeated
+candidates, exact/short budgets, policy/field substitution, incorrect subjects,
+enforcement, missing scopes, unsupported sources, and preservation of guards
+and pending obligations.
