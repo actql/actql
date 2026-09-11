@@ -35,11 +35,40 @@ struct StepBound {
   pipeline : @pipeline.CheckedPipeline
   index : Int
   proof : @wire.ProgramProofClaim
-  inputs : Array[StepBound]
+  inputs : Array[BoundInput]
   input_work : Int
   operand_work : Int
   bindings : CountBindings?
   join_evidence : @pipeline.JoinEvidence?
+}
+
+///|
+/// Ordered capacity dependencies with their validated source owners intact.
+pub(all) enum BoundInput {
+  StepInput(StepBound)
+  GraphInput(@graph_input.InputBound)
+}
+
+///|
+fn source_witness(v : BoundInput) -> @wire.WireWitness {
+  match v {
+    StepInput(step) => @wire.program_proof_witness(step.proof)
+    GraphInput(input) => @graph_input.bound_witness(input)
+  }
+}
+
+///|
+fn source_target(
+  v : BoundInput,
+) -> (@pipeline.CheckedPipeline, @pipeline.Target) {
+  match v {
+    StepInput(step) => (step.pipeline, @pipeline.Step(step.index))
+    GraphInput(input) =>
+      (
+        @graph_input.checked_pipeline(@graph_input.bound_owner(input)),
+        @pipeline.Input(@graph_input.bound_input(input)),
+      )
+  }
 }
 
 ///|
@@ -378,7 +407,40 @@ pub fn check_with_inputs(
   bindings? : CountBindings? = None,
 ) -> Result[StepBound, Issue] {
   check_application(
-    pipeline, index, proof, inputs, max_input_work, max_operand_work, bindings, false,
+    pipeline,
+    index,
+    proof,
+    inputs.length(),
+    i => StepInput(inputs[i]),
+    max_input_work,
+    max_operand_work,
+    bindings,
+    false,
+  )
+}
+
+///|
+/// Accepts operation proofs and validated external Graph preflight bounds.
+/// Matching input coordinates do not replace exact pipeline/source ownership.
+pub fn check_with_sources(
+  pipeline : @pipeline.CheckedPipeline,
+  index : Int,
+  proof : @wire.ProgramProofClaim,
+  inputs : Array[BoundInput],
+  max_input_work? : Int = 0,
+  max_operand_work? : Int = 0,
+  bindings? : CountBindings? = None,
+) -> Result[StepBound, Issue] {
+  check_application(
+    pipeline,
+    index,
+    proof,
+    inputs.length(),
+    i => inputs[i],
+    max_input_work,
+    max_operand_work,
+    bindings,
+    false,
   )
 }
 
@@ -396,7 +458,8 @@ pub fn check_join_with_uniqueness(
     pipeline,
     index,
     proof,
-    inputs,
+    inputs.length(),
+    i => StepInput(inputs[i]),
     max_input_work,
     0,
     None,
@@ -409,7 +472,8 @@ fn check_application(
   pipeline : @pipeline.CheckedPipeline,
   index : Int,
   proof : @wire.ProgramProofClaim,
-  inputs : Array[StepBound],
+  n : Int,
+  get_input : (Int) -> BoundInput,
   max_input_work : Int,
   max_operand_work : Int,
   bindings : CountBindings?,
@@ -448,7 +512,6 @@ fn check_application(
     Ok(v) => v
     Err(e) => return Err(e)
   }
-  let n = inputs.length()
   let valid_count = match rule {
     One | Constant(_) => n == 0
     Preserve => n == 1
@@ -476,14 +539,17 @@ fn check_application(
     0
   }
   let ids : Array[String] = []
+  let inputs : Array[BoundInput] = []
   let mut input_work = 0
   for i in 0..<n {
+    let input = get_input(i)
+    let (input_owner, input_target) = source_target(input)
     let expected_unit = match rule {
       GraphMeasure(_, unit, _, _) => unit
       GraphCombine(unit, _) => unit
       _ => @arithmetic.Rows
     }
-    if @wire.unit(@wire.program_proof_witness(inputs[i].proof)) != expected_unit {
+    if @wire.unit(source_witness(input)) != expected_unit {
       return Err(InputUnitMismatch(i))
     }
     let mut owner = pipeline
@@ -494,8 +560,7 @@ fn check_application(
       _ => i
     }
     let mut target = @pipeline.input_occurrence_at(step, edge).unwrap().target
-    while !(physical_equal(owner, inputs[i].pipeline) &&
-          target == @pipeline.Step(inputs[i].index)) {
+    while !(physical_equal(owner, input_owner) && target == input_target) {
       let next = match target {
         @pipeline.Input(input_index) => {
           if input_work >= max_input_work {
@@ -517,7 +582,7 @@ fn check_application(
             None
           }
           guard forwarded is Some(next) else {
-            if !physical_equal(inputs[i].pipeline, owner) {
+            if !physical_equal(input_owner, owner) {
               return Err(InputOwnerMismatch(i))
             }
             return Err(InputTargetMismatch(i))
@@ -531,7 +596,8 @@ fn check_application(
       input_work = input_work + 1
       target = next
     }
-    ids.push(@wire.cid(@wire.program_proof_witness(inputs[i].proof)))
+    ids.push(@wire.cid(source_witness(input)))
+    inputs.push(input)
   }
   // Proof arrays sort capacity operands but retain repetitions. Derivations
   // below must still match their actual left/right data roles.
@@ -567,7 +633,7 @@ fn check_application(
     return Err(LawMismatch)
   }
   let input_value = fn(i) {
-    @numeric.read(@wire.value(@wire.program_proof_witness(inputs[i].proof))).unwrap()
+    @numeric.read(@wire.value(source_witness(inputs[i]))).unwrap()
   }
   let count = match rule {
     One => 1L
@@ -683,7 +749,7 @@ fn check_application(
     pipeline,
     index,
     proof,
-    inputs: inputs.copy(),
+    inputs,
     input_work,
     operand_work,
     bindings,
@@ -789,6 +855,15 @@ pub fn input_count(v : StepBound) -> Int {
 
 ///|
 pub fn input_at(v : StepBound, index : Int) -> StepBound? {
+  match v.inputs.get(index) {
+    Some(StepInput(step)) => Some(step)
+    _ => None
+  }
+}
+
+///|
+/// All dependency kinds; input_at exposes only operation dependencies.
+pub fn source_at(v : StepBound, index : Int) -> BoundInput? {
   v.inputs.get(index)
 }
 

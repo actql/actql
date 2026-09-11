@@ -402,8 +402,13 @@ actual input roles, unit conversion, source-law arithmetic and exact dependency
 owners; same-valued foreign inputs and swapped node/edge/row measures reject.
 Collection coverage retains all node/edge applications and their row sources.
 Imported Graph measures preserve original producer ownership under exact/one-less
-traversal budgets. This closes these local conversion applications, not
-preflight-to-measure admission or enclosing Program identity.
+traversal budgets. `capacity_graph_preflight/input_bounds_test.mbt` additionally
+connects validated external preflight node/edge bounds to both row bridges and
+repeated structural union operands. Bounds retain the original input, pipeline,
+policy and source-collection owner; equal CIDs from detached collections and
+wrong measures are rejected. Imported Graph inputs follow their real producers
+under cumulative traversal limits. This closes preflight-to-measure application
+linkage, not enclosing Program identity or execution of the retained preflight.
 
 `capacity_program_step/graph_structural_test.mbt` adds node and edge proof
 applications for graft, scalar/list union and subtraction across empty/nonempty

@@ -33,6 +33,7 @@ struct GraphInputs {
   sources : @host.HostSources
   policy : @policy.Policy
   bindings : Array[(@wire.LimitClaim?, @wire.LimitClaim?)]
+  witnesses : Array[(@wire.WireWitness?, @wire.WireWitness?)]
   work : Int
   names : Int
   remaining : Int
@@ -64,6 +65,10 @@ pub fn check(
   let mut consumed = 0
   let inputs : Map[String, Int] = Map([])
   let bindings : Array[(@wire.LimitClaim?, @wire.LimitClaim?)] = Array::make(
+    n,
+    (None, None),
+  )
+  let witnesses : Array[(@wire.WireWitness?, @wire.WireWitness?)] = Array::make(
     n,
     (None, None),
   )
@@ -130,6 +135,12 @@ pub fn check(
     } else {
       (pair.0, Some(limit))
     }
+    let prior = witnesses[input]
+    witnesses[input] = if measure == Nodes {
+      (Some(witness), prior.1)
+    } else {
+      (prior.0, Some(witness))
+    }
     consumed += 1
   }
   for i in 0..<n {
@@ -150,6 +161,7 @@ pub fn check(
     sources,
     policy,
     bindings,
+    witnesses,
     work,
     names,
     remaining: @wire.mixed_limit_count(mixed) - consumed,
@@ -211,4 +223,45 @@ pub fn input_limit(
 ///|
 pub fn usage(v : GraphInputs) -> (Int, Int) {
   (v.work, v.names)
+}
+
+///|
+/// Conditional input bound retaining the complete validated preflight owner.
+/// Construction does not execute its unit-preflight enforcement obligation.
+struct InputBound {
+  owner : GraphInputs
+  input : Int
+  witness : @wire.WireWitness
+}
+
+///|
+pub fn input_bound(
+  v : GraphInputs,
+  input : Int,
+  measure : Measure,
+) -> InputBound? {
+  v.witnesses
+  .get(input)
+  .bind(pair => {
+    (if measure == Nodes { pair.0 } else { pair.1 }).map(witness => {
+      owner: v,
+      input,
+      witness,
+    })
+  })
+}
+
+///|
+pub fn bound_owner(v : InputBound) -> GraphInputs {
+  v.owner
+}
+
+///|
+pub fn bound_input(v : InputBound) -> Int {
+  v.input
+}
+
+///|
+pub fn bound_witness(v : InputBound) -> @wire.WireWitness {
+  v.witness
 }

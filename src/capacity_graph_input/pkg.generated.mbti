@@ -10,6 +10,12 @@ import {
 }
 
 // Values
+pub fn bound_input(InputBound) -> Int
+
+pub fn bound_owner(InputBound) -> GraphInputs
+
+pub fn bound_witness(InputBound) -> @capacity_witness.WireWitness
+
 pub fn check(@pipeline_typing.CheckedPipeline, @capacity_host_witness.HostSources, @capacity_policy.Policy, Limits) -> Result[GraphInputs, Issue]
 
 pub fn check_complete(@pipeline_typing.CheckedPipeline, @capacity_host_witness.HostSources, @capacity_policy.Policy, Limits) -> Result[GraphInputs, Issue]
@@ -17,6 +23,8 @@ pub fn check_complete(@pipeline_typing.CheckedPipeline, @capacity_host_witness.H
 pub fn checked_pipeline(GraphInputs) -> @pipeline_typing.CheckedPipeline
 
 pub fn checked_sources(GraphInputs) -> @capacity_host_witness.HostSources
+
+pub fn input_bound(GraphInputs, Int, Measure) -> InputBound?
 
 pub fn input_limit(GraphInputs, Int, Measure) -> @capacity_witness.LimitClaim?
 
@@ -30,6 +38,8 @@ pub fn usage(GraphInputs) -> (Int, Int)
 
 // Types and methods
 type GraphInputs
+
+type InputBound
 
 pub(all) enum Issue {
   InvalidLimits

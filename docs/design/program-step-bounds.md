@@ -62,12 +62,21 @@ not assert that every input occurrence survives or becomes a distinct entity.
 
 All dependency applications now require the expected measure: a Graph edge
 bound cannot act as a Relation row bound merely because its value matches.
-Row bridges require a checked Graph measure application, not the pipeline's
-conditional numeric summary. Cross-pipeline forwarding retains exact producer
+Row bridges require a checked Graph measure application or a validated external
+Graph input bound, not the pipeline's conditional numeric summary.
+`check_with_sources` retains ordered `StepInput` / `GraphInput` dependencies;
+`source_at` exposes either kind, while the existing `input_at` returns only a
+step dependency (and `None` for an external input). `input_count` counts both.
+The original `check_with_inputs` remains the step-only convenience entry.
+Arity and operand budgets are checked before allocating the retained array.
+Cross-pipeline forwarding retains exact producer
 owners and charges the existing traversal budget. Non-row measures currently
 cross input forwarding only, not unchecked intermediate Graph operations.
-Graph preflight-to-measure linkage, source identity and complete consumer
-enforcement remain unfinished.
+Graph preflight linkage retains the admitted input owner, selected policy,
+source collection and pending enforcement obligation. Application collection
+closure rejects roots from a separately admitted collection, even when their
+witness CIDs match. Enclosing source identity and complete consumer enforcement
+remain unfinished.
 
 Structural composition validates each operand's measure and exact data-edge
 owner before summing; the proof's sorted input references retain multiplicity.

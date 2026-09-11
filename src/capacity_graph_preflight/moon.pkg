@@ -12,6 +12,7 @@ import {
 
 import {
   "actql/actql/carrier_contract" @carrier,
+  "actql/actql/sha256" @sha,
   "actql/actql/capacity_derivation" @arithmetic,
   "actql/actql/source_value" @source,
   "actql/actql/parameter_binding" @parameter,

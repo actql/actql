@@ -67,7 +67,11 @@ fn policy(other : Bool) -> @policy.Policy {
 }
 
 ///|
-fn sources(kind : Int, policy : @policy.Policy) -> @host.HostSources {
+fn sources(
+  kind : Int,
+  policy : @policy.Policy,
+  proofs? : Array[@wire.ProgramProofClaim] = [],
+) -> @host.HostSources {
   let (w, l) = match (if kind == 8 { 0 } else { kind }) {
     0 =>
       (
@@ -368,6 +372,9 @@ fn sources(kind : Int, policy : @policy.Policy) -> @host.HostSources {
   } else {
     wires
   }
+  for proof in proofs {
+    wires.push(@wire.program_proof_witness(proof))
+  }
   let mixed = @wire.check_mixed_claims(wires, l, {
     max_entities: 30,
     max_references: 100,
@@ -375,7 +382,7 @@ fn sources(kind : Int, policy : @policy.Policy) -> @host.HostSources {
     max_nodes: 1000,
     max_depth: 6,
   }).unwrap()
-  let claims = @wire.check_mixed_program_claims(mixed, [], {
+  let claims = @wire.check_mixed_program_claims(mixed, proofs, {
     max_witnesses: 30,
     max_references: 100,
   }).unwrap()

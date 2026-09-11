@@ -2,6 +2,7 @@
 package "actql/actql/capacity_program_step"
 
 import {
+  "actql/actql/capacity_graph_input",
   "actql/actql/capacity_host_witness",
   "actql/actql/capacity_policy",
   "actql/actql/capacity_witness",
@@ -37,6 +38,8 @@ pub fn check_join_limit(@pipeline_typing.CheckedPipeline, Int, @capacity_host_wi
 pub fn check_join_with_uniqueness(@pipeline_typing.CheckedPipeline, Int, @capacity_witness.ProgramProofClaim, Array[StepBound], max_input_work? : Int) -> Result[StepBound, Issue]
 
 pub fn check_with_inputs(@pipeline_typing.CheckedPipeline, Int, @capacity_witness.ProgramProofClaim, Array[StepBound], max_input_work? : Int, max_operand_work? : Int, bindings? : CountBindings?) -> Result[StepBound, Issue]
+
+pub fn check_with_sources(@pipeline_typing.CheckedPipeline, Int, @capacity_witness.ProgramProofClaim, Array[BoundInput], max_input_work? : Int, max_operand_work? : Int, bindings? : CountBindings?) -> Result[StepBound, Issue]
 
 pub fn checked_bindings(StepBound) -> CountBindings?
 
@@ -100,6 +103,8 @@ pub fn parameter_values(CountBindings) -> @parameter_binding.BoundValues
 
 pub fn remaining_source_count(Applications) -> Int
 
+pub fn source_at(StepBound, Int) -> BoundInput?
+
 pub fn subject_ref(@pipeline_typing.CheckedPipeline, Int) -> String?
 
 // Errors
@@ -115,6 +120,11 @@ pub(all) enum ApplicationIssue {
 } derive(Eq, @debug.Debug)
 
 type Applications
+
+pub(all) enum BoundInput {
+  StepInput(StepBound)
+  GraphInput(@capacity_graph_input.InputBound)
+}
 
 type CountBindings
 

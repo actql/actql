@@ -66,11 +66,25 @@ pub fn check_applications(
             return Err(WorkLimit)
           }
           work = work + 1
-          let id = @wire.cid(@wire.program_proof_witness(child.proof))
-          guard @wire.claim_index(arithmetic, id) is Some(index) &&
-            entries[index] is Some(registered) &&
-            physical_equal(child, registered) else {
-            return Err(ForeignDependency(i, j))
+          match child {
+            StepInput(child) => {
+              let id = @wire.cid(@wire.program_proof_witness(child.proof))
+              guard @wire.claim_index(arithmetic, id) is Some(index) &&
+                entries[index] is Some(registered) &&
+                physical_equal(child, registered) else {
+                return Err(ForeignDependency(i, j))
+              }
+            }
+            GraphInput(input) => {
+              // Equal numbers or CIDs do not substitute a detached collection.
+              let owner = @graph_input.bound_owner(input)
+              let source_claims = @host.source_claims(
+                @graph_input.checked_sources(owner),
+              )
+              if !physical_equal(source_claims, claims) {
+                return Err(ForeignDependency(i, j))
+              }
+            }
           }
         }
     }

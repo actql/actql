@@ -8,8 +8,10 @@ preflight or admission of measured counts.
 `capacity_graph_preflight` retains the existing entry points and types as a
 facade, and composes source/consumer coverage above Program applications. Input
 admission itself has no dependency on those application packages. This permits
-later application inputs to retain an admitted input owner without a dependency
-cycle; extraction alone does not make that connection or create measured counts.
+application inputs to retain an admitted input owner without a dependency
+cycle. `input_bound` selects the validated node or edge witness by input index;
+the opaque bound retains its original `GraphInputs` owner, including the policy,
+source collection and `unit_preflight` obligation. It does not create measured counts.
 The opaque result is shared, not copied or reconstructed by the facade. Coverage
 uses indexed input-limit access and preserves the previous budget accounting.
 
@@ -37,6 +39,15 @@ are not. Non-Graph inputs do not need these bindings. Missing or duplicate
 measures, unknown input names and wrong Carriers fail atomically. The returned
 opaque owner retains the exact pipeline, source collection, policy and resolved
 limits; it exposes no new observed-count evidence.
+
+`capacity_program_step.check_with_sources` accepts these bounds alongside
+ordinary operation applications. It matches the actual input occurrence, exact
+pipeline owner and measure before applying a Graph bridge or structural law.
+Imported input links are followed under the existing cumulative traversal budget;
+matching names, values or witness CIDs cannot replace the producer owner.
+The application collection requires an input bound's original `ProgramClaims`
+owner, not a separately admitted collection with identical bytes. This preserves
+conditional enforcement rather than asserting that preflight has already run.
 
 `max_work` charges two visits per input, every witness and every candidate
 occurrence of a bound limit. `max_name_bytes` charges each pipeline input name's
