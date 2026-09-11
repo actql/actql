@@ -74,6 +74,9 @@ consumer audit.
    dependency graphs, including cycles and units. Canonical wire/source/law
    verification remains open; a closed bound-law registry body was not found in
    the inspected repository and still needs an authoritative owner.
+   The separate [operation transfer registry](bound-transfer-registry.md) now
+   covers all 72 public spellings and is pinned by the language owner. Coverage
+   classification does not replace individual witness-law/source validation.
    Do not add public proof flags, treat policy ceilings as observations, or
    expand into acquisition, an evaluator or Host dispatch.
 3. Connect contextual resolutions into a complete static checking/discharge

@@ -7307,6 +7307,23 @@ graphs, vectors, temporal operations, inference, and serialization use their
 carrier-specific laws. A public operation absent from this registry cannot
 produce a runnable Plan.
 
+<!-- requirement-block: resolved-limits.transfer-classification -->
+The pinned transfer registry MUST cover exactly the public operation inventory.
+Its classifications describe upper-bound transfer, not exact output counts or
+permission to execute. `preserve` permits retention of an applicable input upper
+bound even when rows are removed; for `nest`, `except`, and `intersect` that
+input is the parent/left operand. `clamp`, `add`, and `multiply` select checked
+numeric transfer using the operation's actual limit, operand occurrences or
+expansion factor. `reduce` requires the operation-specific reduction law,
+including its empty-input behavior; it does not assert that every reduction
+emits at most the input count. `carrier_specific` requires the law for the
+selected Carrier, output port and quantity, rather than a generic row formula.
+`explicitly_unknown_requires_ceiling` supplies no derived finite upper bound:
+execution requires an applicable finite ceiling and its enforcement. Registry
+coverage alone establishes neither a governing witness-law application nor the
+validity of its source evidence. Unknown inputs or unresolved factors are not
+zero, and none of these classifications waives validation or enforcement.
+
 <!-- requirement-block: resolved-limits.it-must-not-issue-a-runnable-plan-whose-finite-capacity local-approval.product-54ee89eaf54b local-approval.product-6e21b62c13b1 -->
 Resolved limits, fixed language laws, and pinned Contract facts belong to the
 content-addressed `actql-plan-fact-manifest/0.1`, not the Normalization Journal.
@@ -8102,6 +8119,7 @@ through the pinned expression contract.
 <!-- normative-code: law -->
 ```text
 ../../spec/contracts/actql-aoa.json# sha256:2eb1547021f081fa87cec8f78a8a687a1205dfaf875e50a9c55fd074238aea6a
+../../spec/contracts/actql-bound-transfer-laws.json# sha256:014682262d00c8435f300731e823e5b267ec66b78f980c765c4fd3772c68c911
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/resource_ref sha256:f88141c15be5ac040af593008fdca7c85214fcb4ba60ea7110160b8fe8ee25ac
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/artifact_ref sha256:2143a7c6bd2e0b110822670a3cb146cddaa23bcade9de7c1ab8ed4e1ebf88a55
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/author_value_contract sha256:ad31b593c607142e6fce65b15ca12531c46d61f3bcf8cc55f34eef1b4dca6b6e

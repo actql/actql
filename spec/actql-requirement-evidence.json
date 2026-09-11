@@ -6262,6 +6262,17 @@
       }
     },
     {
+      "requirement_id": "actql.language/resolved-limits.transfer-classification",
+      "statement_sha256": "79021176e21231372d98700188cea2fd545c4a163ca9debae2c18084d6c6f036",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "resolved-limits",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.language/resolved-limits.it-must-not-issue-a-runnable-plan-whose-finite-capacity",
       "statement_sha256": "1d13d961fe29190c1c367856314f69664297e7386ee66466a6154104354ac5e2",
       "status": "pending",
@@ -6362,7 +6373,7 @@
     },
     {
       "requirement_id": "actql.language/machine-contracts.exact-artifacts",
-      "statement_sha256": "fea1ff9ee6ba491997d44bc54bf0eb186dc97ca6ec2a1043ce086da54726d227",
+      "statement_sha256": "dadadc3d56aa68a891204fed16897de1d4b33a47f478ad994136b275033cfda5",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
