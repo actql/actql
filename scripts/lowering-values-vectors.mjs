@@ -76,8 +76,8 @@ for (const c of corpus.cases) {
     '  let result = evaluate_sequence_components(', '    registered_relation_contracts(),', '    prepared_sequence(owner),',
     '    [],', '    ["select_3"],', '    run_limits(),',
     '    { remaining: 100000, max_frames: 100, },', '  ).unwrap()',
-    '  assert_eq(result.next, 4)',
-    '  let table = result.tables[3].unwrap().table',
+    '  assert_eq(result.store.next, 4)',
+    '  let table = result.store.tables[3].unwrap().table',
     `  assert_eq(table.names, [${columns.map(quote).join(', ')}])`,
     `  assert_eq(table.rows.length(), ${c.params.rows.length})`);
   c.params.rows.forEach((row, i) => {

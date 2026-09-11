@@ -46,13 +46,13 @@ fn charge_capture_rows(input : CapturedRows, budget : ValueBudget) -> Bool {
 /// It never accepts arbitrary JSON, skips a prepared operation or returns a
 /// partial store. This is the single driver for these row-evaluation components.
 fn evaluate_sequence_components(
-  _contracts : RegisteredRelationContracts,
+  contracts : RegisteredRelationContracts,
   sequence : @lower.PreparedSequence,
   supplied : Array[CapturedRows],
   retained_ids : Array[String],
   limits : SequenceRunLimits,
   control : ControlBudget,
-) -> Result[TableStore, SequenceRunIssue] {
+) -> Result[CompletedSequence, SequenceRunIssue] {
   if limits.max_rows < 0 ||
     limits.metadata_entries < 0 ||
     limits.retained_entries < 0 ||
@@ -198,5 +198,5 @@ fn evaluate_sequence_components(
       Err(e) => return Err(Store(e))
     }
   }
-  Ok(store)
+  Ok({ contracts, sequence, store, })
 }

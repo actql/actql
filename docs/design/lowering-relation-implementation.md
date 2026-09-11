@@ -728,3 +728,27 @@ Regression checks use a values producer with established order and test genuine
 expected rows, reversed rows and empty replacement. All pass value capture but
 none fabricates successful producer execution evidence. Execution package passes
 66/66 on JS, Wasm and native; this unit does not claim producer adoption complete.
+
+## Successful sequence output identity
+
+The internal driver's success type is now `CompletedSequence`, separate from its
+mutable in-progress `TableStore`. Its sole production constructor is after the
+last operation succeeds. It retains the selected registry contracts and the exact
+`PreparedSequence`/`BoundPrepared`, including Parameter bindings. `completed_output`
+selects an existing retained Input/Step target from that completion and preserves
+the parent alongside the table; absent, released and out-of-range targets return
+None without recomputing or substituting data. No arrays or constructors are
+exposed outside this package.
+
+This supplies the origin side of producer adoption. The receiving side still
+must match the checked producer owner, target, binding context and any explicit
+projection before accepting it; raw capture remains insufficient. The handle
+proves this component sequence completed, not whole-Program obligations or
+publication. Existing component failures return no handle, even when an earlier
+retained table was successfully computed.
+
+Execution tests pass 68/68 on JS, Wasm and native. New vectors cover exact target
+and bound-owner retention, unavailable output rejection, and later failure after
+a retained prefix. All existing sequence vectors use the same completion type.
+Formatting, generator freshness and whitespace checks pass. Public API is
+unchanged; these are private execution types, not an SDK expansion.
