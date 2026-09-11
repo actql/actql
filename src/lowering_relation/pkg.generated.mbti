@@ -20,15 +20,11 @@ pub fn bind_parameters(Prepared, @parameter_binding.BoundValues?, max_parameters
 
 pub fn bound_preparation(BoundPrepared) -> Prepared
 
-pub fn demand_condition_at(DemandIndex, Int) -> DemandCondition?
-
-pub fn demand_condition_count(DemandIndex) -> Int
-
-pub fn demand_entry_at(DemandIndex, Int) -> DemandEntry?
-
-pub fn demand_entry_count(DemandIndex) -> Int
+pub fn demand_root_at(DemandIndex, Int) -> @expression_typing.DemandPaths?
 
 pub fn demand_roots(DemandIndex) -> RootIndex
+
+pub fn demand_usage(DemandIndex) -> DemandUsage
 
 pub fn emit_expression(Expression, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
 
@@ -144,37 +140,28 @@ pub(all) enum BindingIssueKind {
 
 type BoundPrepared
 
-pub struct DemandCondition {
-  previous : Int?
-  entry : Int
-  predicate : DemandTest
-}
-
-pub struct DemandEntry {
-  root_index : Int
-  parent : (Int, Int)?
-  expression : Expression
-  condition : Int?
-}
-
 type DemandIndex
 
 pub(all) enum DemandIssue {
   InvalidDemandLimits
   DemandLimit
+  InvalidTypedTopology
 }
 
 pub(all) struct DemandLimits {
-  max_entries : Int
-  max_conditions : Int
-  max_pending : Int
+  max_roots : Int
+  max_nodes : Int
   max_work : Int
+  max_text_bytes : Int
+  max_links : Int
 }
 
-pub(all) enum DemandTest {
-  True
-  NotTrue
-  Null
+pub(all) struct DemandUsage {
+  roots : Int
+  nodes : Int
+  work : Int
+  text_bytes : Int
+  links : Int
 } derive(Eq, @debug.Debug)
 
 type Expression

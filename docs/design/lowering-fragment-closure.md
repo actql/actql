@@ -94,7 +94,14 @@ without requiring unrelated Program/context integration. These are existing
 implementations, not a request to redesign their semantics. Decode's exported
 `PathSegment` alias is already present in the lowering baseline.
 
-After import, lowering should:
+The standalone handoff `06742b9` is now imported as `df75931`. Lowering's
+duplicate demand rules have been removed: its root-scoped adapter consumes the
+exact typed owner and accumulates shared work/text/link budgets. The independent
+conditional and ownership vectors are retained using semantic source pointers.
+Implicit ELSE remains source-less. Final envelope source-prefix binding remains
+open; this handoff does not constitute fragment admission.
+
+The integration checklist is:
 
 1. Retain the exact `TypedExpression` and root/binding ownership used to lower
    each root, and associate lowered occurrences with shared typed node indices.

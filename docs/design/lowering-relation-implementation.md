@@ -876,52 +876,41 @@ The added lowering-package API matches across targets; formatting, both fixed
 vector generators and 872 local links pass. Full-repository and Linux CI tests
 were not rerun for this increment.
 
-## Occurrence-bound expression demand
+## Shared expression demand integration
 
-Integration update: main already provides typed topology and demand/source-pointer
-APIs in `41227eb` and `e836078`. The [shared handoff request](lowering-fragment-closure.md#shared-demandtopology-handoff-discovered-after-the-audit)
-supersedes further development of the duplicate rule derivation below. It will
-be replaced by an adapter to main's implementation; the independent vectors stay.
+Main's standalone API handoff `06742b9` is imported as `df75931`.
+The duplicate conditional-rule traversal introduced in `b3680f2` is removed.
+`prepare_demand` delegates directly to `expression_typing.derive_demands`
+using each root's exact retained `TypedExpression`. No source reparse, type
+inference, private topology copy or runtime reevaluation is introduced.
 
-Adapter preparation now retains the exact `TypedExpression` on each lowered
-expression and carries it into its read-only root entry. It is the already
-obtained checked owner, not a second type check or a fresh structurally equal
-handle. Root sorting moves the lowered/typed pair together. No extra
-`relation_typing.binding_at` call is used during root enumeration, avoiding that
-accessor's defensive reference-array copy. Existing independent wire vectors
-remain unchanged; map pointer-reordering and filter tests assert exact checked
-owner identity. This prepares the shared demand API connection but does not
-substitute for its pending import.
+The root-scoped index retains opaque shared `DemandPaths`. Node indices and
+condition tests belong to that root's typed expression, not a global numbering
+scheme. Shared bounded accessors expose source-relative RFC6901 pointers and
+detached test lists. An implicit CASE ELSE retains its conditional demand but has
+no source occurrence (`None`); the adapter never invents an ELSE pointer.
 
-`prepare_demand` traverses the existing lowered expression objects under a
-`RootIndex`. It records each occurrence's root, parent/child ordinal and condition
-chain. A condition refers to an occurrence, not merely an equal expression or
-field name. The read-only result retains its owning root index. None of these
-internal integers is a CID, source pointer or new wire identifier.
+One preparation budget spans all roots: root count, typed node count, work,
+address text bytes and retained links. Each shared call receives only the
+remaining resources, and its reported usage is accumulated without resetting.
+Root traversal/storage is charged before allocation. Negative limits and
+exhaustion return typed errors without publishing a partial index. Pointer/test
+expansion has its own explicit accessor limits, not an implicit unlimited copy.
 
-IF branches append the condition's `true`/`not_true` test. CASE carries earlier
-`not_true` tests before each condition and adds its own `true` test for the branch;
-ELSE retains all earlier failures, including an implicit typed-null ELSE.
-Coalesce appends earlier operand `null` tests. Eager children inherit only their
-outer conditions: AND/OR never acquire short-circuit semantics. Literal internals
-remain opaque and no condition is evaluated during preparation.
+Five independent vectors assert nested IF/coalesce source paths, CASE demand,
+implicit ELSE absence, eager AND/OR, opaque literal data, exact owner identity,
+root/frame separation, detached test lists and exact/one-below resource limits.
+Expectations use semantic pointers rather than the retired traversal's incidental
+node numbering. Exact-cost tests use measured usage only for resource boundaries,
+not to derive semantic expectations.
 
-The traversal is iterative, with explicit cumulative entry/condition/work limits
-and a pending-stack bound. Persistent condition links share prefixes rather than
-copying a growing list for every sibling. Each root starts a fresh condition
-frame but consumes the same budgets. Failure publishes no index and does not
-modify the prepared roots or expressions. The parent/ordinal relation preserves
-distinct source occurrences even if an expression object is shared.
+This remains an internal preparation API. Binding source-relative pointers into
+the final `/roots/i/source/...` envelope, canonical source emission, registered
+outer-fragment admission and ordered derive are separate integration work.
+The existing evaluator remains the only computation engine.
 
-This implements the demand relation, not its final `demand_paths` JSON object.
-Canonical source reconstruction and `/roots/i/source/...` pointer binding remain
-to connect; no node-wire pointer is substituted for a semantic-source pointer.
-The existing evaluator remains the single computation engine. No separate
-callback or runtime reevaluation mechanism is introduced.
-
-Five independent tests cover nested IF/coalesce, CASE with implicit ELSE, eager
-boolean operators, opaque literals, root/frame isolation, occurrence positions,
-and exact/one-below budgets. Lowering tests pass 58/58 on JS, Wasm and native.
-API equality, format, both fixed-vector generators and link checks pass. The
-full-repository suite and Linux CI were not rerun for this increment; shared
-schema/pins, runtime semantics and Host/public SDK surfaces are unchanged.
+Verification after the shared-API migration: full repository JS/Wasm/native
+2,200/2,200 each, including lowering 58/58; API equality, format, fixed-vector
+freshness, two registry checks, 872 document links and 11 document tests pass.
+Existing unused private-component warnings remain; this is not a global
+`--deny-warn` pass. Linux CI was not run.
