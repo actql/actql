@@ -53,6 +53,23 @@ fn run_expr(text : String) -> Result[Value, EvalIssue] {
 }
 
 ///|
+test "text comparison charges UTF-8 size in addition to control transitions" {
+  let expr = lowered(
+    "{\"eq\":[{\"literal\":\"é😀\"},{\"literal\":\"é😀\"}]}",
+  )
+  // Six control transitions and six UTF-8 bytes for each operand.
+  assert_true(
+    evaluate_expression(expr, {}, [], { remaining: 18, max_frames: 1, }).unwrap()
+    is Boolean(true),
+  )
+  guard evaluate_expression(expr, {}, [], { remaining: 17, max_frames: 1, })
+    is Err(issue) else {
+    fail("comparison work missing")
+  }
+  assert_eq(issue.kind, ControlLimit)
+}
+
+///|
 test "selected branches only execute; eager boolean still evaluates failure" {
   assert_true(run_expr("\"if(true, 7, 1 / 0)\"").unwrap() is Number(7.0))
   assert_true(run_expr("\"coalesce(7, 1 / 0)\"").unwrap() is Number(7.0))

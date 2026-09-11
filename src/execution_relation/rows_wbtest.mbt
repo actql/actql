@@ -44,6 +44,38 @@ fn row_output() -> ValueBudget {
 }
 
 ///|
+test "row setup consumes work even with empty input; projection skips snapshot allocation" {
+  let owner = row_owner(",{\"select\":[\"b\",\"a\"]}")
+  let input = row_capture(owner)
+  let empty = { ..input, rows: [], }
+  // Two input names: 2 * (entry + byte), two projection entries:
+  // 2 * (entry + input-name byte + output-name byte) = ten setup units.
+  let exact = { remaining: 10, max_frames: 0, }
+  assert_eq(
+    evaluate_rows(row_kernel(owner, 1), empty, 0, exact, row_output()).unwrap().rows.length(),
+    0,
+  )
+  assert_eq(exact.remaining, 0)
+  assert_true(
+    evaluate_rows(
+      row_kernel(owner, 1),
+      empty,
+      0,
+      { remaining: 9, max_frames: 0, },
+      row_output(),
+    )
+    is Err(RowLimit),
+  )
+  // Two rows each require one visit and two ordinal copies; no snapshot map.
+  let full = { remaining: 16, max_frames: 0, }
+  assert_eq(
+    evaluate_rows(row_kernel(owner, 1), input, 2, full, row_output()).unwrap().rows.length(),
+    2,
+  )
+  assert_eq(full.remaining, 0)
+}
+
+///|
 test "real values derive filter select chain preserves values and authored select order" {
   let owner = row_owner(
     ",{\"derive\":{\"c\":\"a + 10\"}},{\"filter\":\"c > 10\"},{\"select\":[\"c\",\"b\"]}",

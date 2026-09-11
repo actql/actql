@@ -8,6 +8,23 @@ priv struct ControlBudget {
 }
 
 ///|
+fn spend_control(budget : ControlBudget, units : Int) -> Bool {
+  if units < 0 || units > budget.remaining {
+    return false
+  }
+  budget.remaining -= units
+  true
+}
+
+///|
+fn spend_control_text(budget : ControlBudget, text : String) -> Bool {
+  match @scalar.admit_utf8_length(text, budget.remaining) {
+    Ok(bytes) => spend_control(budget, bytes)
+    Err(_) => false
+  }
+}
+
+///|
 priv enum EvalIssueKind {
   InvalidControlLimits
   ControlLimit
@@ -86,6 +103,9 @@ fn evaluate_expression(
         }
         match body {
           Field(name, target) => {
+            if !spend_control_text(budget, name) {
+              return Err({ kind: ControlLimit, expression: expr, })
+            }
             let value = match target {
               @relation.InputField(_) => input.get(name)
               @relation.PriorSlot(i) => slots.get(i)
@@ -146,6 +166,14 @@ fn evaluate_expression(
           }
           Right(expr, op, left) => {
             active = expr
+            // Bound variable-size comparison work before the comparison.
+            // Values are already canonical: never normalize inside compare.
+            if left is Text(a) && value is Text(b) {
+              if !spend_control_text(budget, a) ||
+                !spend_control_text(budget, b) {
+                return Err({ kind: ControlLimit, expression: expr, })
+              }
+            }
             match binary(op, left, value) {
               Ok(v) => state = Return(v)
               Err(e) => return Err({ kind: Scalar(e), expression: expr, })

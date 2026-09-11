@@ -91,6 +91,10 @@ fn evaluate_rows(
   let projection : Array[Int] = []
   let ordinals : Map[String, Int] = Map([])
   for i = 0; i < input.names.length(); i = i + 1 {
+    if !spend_control(control, 1) ||
+      !spend_control_text(control, input.names[i]) {
+      return Err(RowLimit)
+    }
     if ordinals.contains(input.names[i]) {
       return Err(InvalidRows)
     }
@@ -99,6 +103,11 @@ fn evaluate_rows(
   match kind {
     @lower.Select(fields) =>
       for field in fields {
+        if !spend_control(control, 1) ||
+          !spend_control_text(control, @schema.reference_name(field.input)) ||
+          !spend_control_text(control, @schema.reference_name(field.output)) {
+          return Err(RowLimit)
+        }
         guard ordinals.get(@schema.reference_name(field.input)) is Some(index) else {
           return Err(InvalidRows)
         }
@@ -107,13 +116,22 @@ fn evaluate_rows(
       }
     @lower.Filter(_) =>
       for name in input.names {
+        if !spend_control(control, 1) {
+          return Err(RowLimit)
+        }
         output_names.push(name)
       }
     @lower.SnapshotMap(bindings) => {
       for name in input.names {
+        if !spend_control(control, 1) {
+          return Err(RowLimit)
+        }
         output_names.push(name)
       }
       for (name, _) in bindings {
+        if !spend_control(control, 1) || !spend_control_text(control, name) {
+          return Err(RowLimit)
+        }
         if ordinals.contains(name) {
           return Err(InvalidRows)
         }
@@ -133,13 +151,22 @@ fn evaluate_rows(
     control.remaining -= 1
     // One immutable operation-start snapshot; map siblings never update it.
     let snapshot : Map[String, Value] = Map([])
-    for i = 0; i < input.names.length(); i = i + 1 {
-      snapshot[input.names[i]] = source[i]
+    if !(kind is @lower.Select(_)) {
+      for i = 0; i < input.names.length(); i = i + 1 {
+        if !spend_control(control, 1) ||
+          !spend_control_text(control, input.names[i]) {
+          return Err(RowLimit)
+        }
+        snapshot[input.names[i]] = source[i]
+      }
     }
     let row : Array[Value] = []
     match kind {
       @lower.Select(_) =>
         for index in projection {
+          if !spend_control(control, 1) {
+            return Err(RowLimit)
+          }
           row.push(source[index])
         }
       @lower.Filter(expr) => {
@@ -150,6 +177,9 @@ fn evaluate_rows(
         match value {
           Boolean(true) =>
             for v in source {
+              if !spend_control(control, 1) {
+                return Err(RowLimit)
+              }
               row.push(v)
             }
           Boolean(false) | Null => continue
@@ -158,6 +188,9 @@ fn evaluate_rows(
       }
       @lower.SnapshotMap(bindings) => {
         for v in source {
+          if !spend_control(control, 1) {
+            return Err(RowLimit)
+          }
           row.push(v)
         }
         for slot = 0; slot < bindings.length(); slot = slot + 1 {

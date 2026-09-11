@@ -63,7 +63,7 @@ informs node/parameter representation. Smooth Cloud's local lowering and DuckDB
 fragment compiler inform the engine boundary. Their restrictions (for example
 discarding empty transforms or rejecting empty derive) are not imported as laws.
 
-## Current increment: preparation only
+## Wiring preparation (first increment)
 
 `lowering_relation.prepare` retains one CheckedPipeline and checked operation
 payloads, allocates ASCII `input_<index>` and `<preferred-operation>_<step-index>`
@@ -88,12 +88,20 @@ contracts, final serialized size or any Program-level authorization.
 | --- | --- | --- |
 | Four-operation wiring | Implemented preparation | Keep tests as executable lowering is connected |
 | AoA expression lowering | Typed scalar/conditional nodes and bounded encoding implemented | Connect roots to complete Relation nodes and evaluator |
-| Bound parameters | Owner association implemented | Connect admitted parameter values to expression and values-cell lowering; add execution vectors |
-| External rows | Not implemented | Existing value admission plus pipeline/input association; literal opacity and alias tests |
-| Pure fragment evaluator | Not implemented | Independent expected values, NULL, conditional demand, errors and resource tests |
+| Bound parameters | Owner association, expression substitution and values-cell capture implemented | Add parameterized end-to-end fragment execution vectors |
+| External rows | Object-schema input admission and immutable capture implemented | Connect to full fragment input obligations; scoped row representation remains unsupported |
+| Map/filter/select row evaluation | Private evaluator connected; fixed four-operation values chain tested | Connect supplied input, branch and parameter cases through fragment driver |
+| AoA fragment lowering | Prepared kernels and expression wire only; complete Relation node emission remains open | Generate full registered nodes, validate contracts and map runtime obligations |
+| Runtime budgets | Cumulative expression/control/logical-value limits implemented | Close temporary/live allocations and complete work accounting before exposing fragment API |
+| Ordered derive | Checked references available; executable contract pending main | Consume main's registered row-kernel extension without a substitute opcode |
 | Additional expression obligations | Not implemented | Discharge the specific profile/pattern/other obligation before evaluation |
 | Other operation handlers | Not implemented here | Add normative lowering and evaluator support, then replace coverage-status tests |
 | Product Run/publication | Outside this increment | Separate integration with main's acceptance and capacity boundaries |
+
+This table is the current status. Increment sections below retain historical
+verification counts and describe what was established at each checkpoint, not
+the latest total. Priority is closing the existing four-operation path, its AoA
+contracts and runtime budgets, not adding more operations.
 
 The ordered-derive wire/capability binding requires the
 [shared row-kernel integration unit](row-kernel-integration-request.md).
@@ -305,3 +313,10 @@ admission/physical live-value tracking for row snapshots and output arrays.
 The current retained-output check is not a claim that temporary allocations are
 already bounded by the output limit. Ordinary builds retain unused private-code
 warnings until the fragment driver connects this path.
+
+Control-work accounting now includes column-index setup, projection metadata,
+snapshot name hashing, per-row field copies, expression field lookups and both
+operands' UTF-8 size before text comparison. Select uses pre-resolved ordinals
+without constructing a snapshot map. Exact fixed budgets cover empty-input
+setup and multibyte comparisons. These are logical work charges, not measured
+CPU instructions; physical live memory and allocation admission remain open.
