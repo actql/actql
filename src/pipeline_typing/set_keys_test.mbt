@@ -1,5 +1,5 @@
 ///|
-test "set operators retain only left key evidence even with a wider output contract" {
+test "set operators retain left keys and distinct establishes whole-row uniqueness" {
   let number = @contract.primitive(NumberType, nullable=false)
   let left_schema = @schema.from_fields(
     [(Unqualified("id"), number)],
@@ -54,13 +54,15 @@ test "set operators retain only left key evidence even with a wider output contr
             None,
             limits(),
           ).unwrap()
+          let keys = @pipeline_typing.candidate_keys(p, Step(0)).unwrap()
           assert_eq(
-            @pipeline_typing.candidate_key(p, Step(0)) is Some(_),
-            keyed,
+            @evidence.key_witness_count(keys),
+            (if keyed { 1 } else { 0 }) +
+            (if duplicates == "distinct" { 1 } else { 0 }),
           )
           assert_eq(
             @pipeline_typing.logical_order(p, Step(1)) is Some(_),
-            keyed,
+            keyed || (duplicates == "distinct" && !wider),
           )
           assert_eq(
             @schema.lookup(
@@ -70,7 +72,7 @@ test "set operators retain only left key evidence even with a wider output contr
             wider,
           )
           if keyed {
-            let retained = @pipeline_typing.candidate_key(p, Step(0)).unwrap()
+            let retained = @evidence.key_witness_at(keys, 0).unwrap()
             assert_eq(
               @evidence.key_pending(retained),
               @evidence.key_pending(key),
@@ -82,6 +84,34 @@ test "set operators retain only left key evidence even with a wider output contr
               @pipeline_typing.logical_order(p, Step(1)).unwrap(),
             ).unwrap()
             assert_eq(@pipeline_typing.sort_completion_count(completion), 0)
+          }
+          if duplicates == "distinct" {
+            let generated = @evidence.key_witness_at(
+              keys,
+              if keyed {
+                1
+              } else {
+                0
+              },
+            ).unwrap()
+            assert_eq(@evidence.key_origin(generated), SetDistinctResult)
+            assert_eq(@evidence.key_pending(generated), [
+              @evidence.KeyObligation::ValidateKeyProducer,
+            ])
+            guard @pipeline_typing.step_at(p, 0).unwrap().operation
+              is @pipeline_typing.Set(checked~, ..) else {
+              abort("expected set")
+            }
+            assert_true(
+              physical_equal(
+                @evidence.key_set_producer(generated).unwrap(),
+                checked,
+              ),
+            )
+            assert_eq(
+              @evidence.key_field_at(generated, 0).unwrap().contract.unwrap().nullable,
+              wider,
+            )
           }
           let u = @pipeline_typing.usage(p)
           let exact = {
@@ -109,6 +139,119 @@ test "set operators retain only left key evidence even with a wider output contr
             is Err(_),
           )
         }
+      }
+    }
+  }
+}
+
+///|
+test "distinct set keys retain every component and alias with exact budgets" {
+  let rows = @carrier.relation(
+    @carrier.typed_rows(
+      @schema.from_fields(
+        [
+          (Unqualified("id"), @contract.primitive(NumberType, nullable=false)),
+          (Unqualified("name"), @contract.primitive(StringType, nullable=false)),
+        ],
+        max_fields=2,
+        max_name_bytes=6,
+      ).unwrap(),
+    ),
+  )
+  for op in ["except", "intersect"] {
+    let p = @pipeline_typing.check_carriers(
+      cursor(
+        "[{\"" +
+        op +
+        "\":{\"with\":\"rows\",\"duplicates\":\"distinct\"}}," +
+        "{\"select\":[{\"a\":\"id\"},{\"b\":\"id\"},\"name\"]},{\"drop\":[\"a\"]},{\"drop\":[\"name\"]}]",
+      ),
+      [("rows", rows)],
+      None,
+      None,
+      limits(),
+    ).unwrap()
+    guard @pipeline_typing.step_at(p, 0).unwrap().operation
+      is @pipeline_typing.Set(checked~, ..) else {
+      abort("expected set")
+    }
+    let transfer = @evidence.advance_set_keys(None, checked, {
+      max_work: 3,
+      max_name_bytes: 6,
+    }).unwrap()
+    assert_eq(transfer.work, 3)
+    assert_eq(transfer.name_bytes, 6)
+    let insufficient : Array[@evidence.TransferLimits] = [
+      { max_work: 2, max_name_bytes: 6, },
+      { max_work: 3, max_name_bytes: 5, },
+    ]
+    for caps in insufficient {
+      assert_eq(
+        @evidence.advance_set_keys(None, checked, caps).unwrap_err().kind,
+        LimitExceeded,
+      )
+    }
+    let retained = @pipeline_typing.candidate_key(p, Step(2)).unwrap()
+    assert_eq(
+      @evidence.key_field_at(retained, 0).unwrap().name,
+      Unqualified("b"),
+    )
+    assert_true(
+      physical_equal(@evidence.key_set_producer(retained).unwrap(), checked),
+    )
+    assert_eq(
+      @evidence.key_witness_count(
+        @pipeline_typing.candidate_keys(p, Step(3)).unwrap(),
+      ),
+      0,
+    )
+  }
+}
+
+///|
+test "set distinct does not invent empty identities or scalar structural keys" {
+  let structure = @contract.read_checked(
+    cursor(
+      "{\"type\":\"object\",\"nullable\":false,\"additional_properties\":false,\"fields\":{}}",
+    ),
+    { max_nodes: 10, max_depth: 10, max_text_bytes: 1000, },
+  ).unwrap()
+  for empty in [false, true] {
+    let fields : Array[(@schema.FieldName, @contract.Contract)] = if empty {
+      []
+    } else {
+      [(Unqualified("obj"), structure)]
+    }
+    let rows = @carrier.relation(
+      @carrier.typed_rows(
+        @schema.from_fields(fields, max_fields=1, max_name_bytes=3).unwrap(),
+      ),
+    )
+    for op in ["except", "intersect"] {
+      let source = cursor(
+        "[{\"" + op + "\":{\"with\":\"rows\",\"duplicates\":\"distinct\"}}]",
+      )
+      let p = @pipeline_typing.check_carriers(
+        source,
+        [("rows", rows)],
+        None,
+        None,
+        limits(),
+      ).unwrap()
+      let keys = @pipeline_typing.candidate_keys(p, Step(0)).unwrap()
+      assert_eq(@evidence.key_witness_count(keys), if empty { 0 } else { 1 })
+      for
+        purpose in [
+          @evidence.KeyUse::CanonicalOrder,
+          @evidence.KeyUse::ScalarIdentity,
+        ] {
+        assert_true(
+          @evidence.select_key(source, keys, purpose, {
+            max_work: 100,
+            max_name_bytes: 100,
+          }).unwrap().key
+          is None,
+        )
       }
     }
   }

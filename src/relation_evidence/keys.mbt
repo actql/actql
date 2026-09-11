@@ -72,10 +72,12 @@ pub(all) enum KeyOrigin {
   NearestResult
   RankingResult
   TextRankResult
+  SetDistinctResult
 } derive(Eq, Debug)
 
 ///|
 priv enum KeyProducer {
+  SetProducer(@set.CheckedSet)
   NearestProducer(CheckedNearest)
   RankingProducer(CheckedRanking)
   TextRankProducer(CheckedTextRank)

@@ -319,9 +319,9 @@ fn sync_keys(
         b.text -= transfer.name_bytes
         Some(transfer.keys)
       }
-      (Some(previous), Set(checked~, ..)) => {
+      (previous, Set(checked~, ..)) => {
         let transfer = match
-          @evidence.transfer_set_keys(previous, checked, {
+          @evidence.advance_set_keys(previous, checked, {
             max_work: b.work,
             max_name_bytes: b.text,
           }) {

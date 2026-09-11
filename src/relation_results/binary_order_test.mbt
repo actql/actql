@@ -98,7 +98,25 @@ test "set multiplicity policies preserve left order without requiring right orde
           @pipeline.logical_order(p, Step(3)) is Some(_),
           left == "grid",
         )
-        assert_eq(@pipeline.take_order(p, 4) is Some(_), left == "grid")
+        assert_eq(
+          @pipeline.take_order(p, 4) is Some(_),
+          left == "grid" || policy == "distinct",
+        )
+        if left == "raw" && policy == "distinct" {
+          let order = @pipeline.take_order(p, 4).unwrap()
+          let key = @pipeline.order_key_completion(order).unwrap()
+          assert_eq(@evidence.key_origin(key), SetDistinctResult)
+          assert_true(@evidence.key_set_producer(key) is Some(_))
+          let r = @relation_results.check(
+            p,
+            cursor("{\"out\":{\"from\":\"out\",\"fields\":[\"x\"]}}"),
+            limits(),
+          ).unwrap()
+          assert_eq(
+            @relation_results.publication_strategy(resolve(r)),
+            Inherited,
+          )
+        }
         if left == "grid" {
           let order = @pipeline.logical_order(p, Step(3)).unwrap()
           assert_eq(@pipeline.order_origin(order), Step(0))

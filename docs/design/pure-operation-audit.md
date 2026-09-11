@@ -88,6 +88,10 @@ consumer audit.
    retains its distinct by fields plus candidate key, ordered input occurrences
    and positional domains across successive fusions and aliases. Lexical ranking
    retains the query/candidate key with its corpus/query inputs and profile.
+   Distinct set operations now add producer-backed whole-row uniqueness without
+   requiring an input key, alongside preserved left keys. ALL modes do not
+   manufacture uniqueness. Nullable/structural key-use restrictions and empty-row
+   cardinality remain separate from tuple provenance.
    These are conditional producer-backed keys, not discharged row-validation,
    arithmetic or resource obligations; the cross-operation audit remains open.
    The nearest checker now lives in `relation_evidence`, with shared vector

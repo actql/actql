@@ -28,6 +28,17 @@ exceed its bound. Comparison resources and the right capture's observation scope
 remain explicit obligations; absence in that capture is not external absence.
 The checker does not promote these obligations to proven keys, order or bounds.
 
+The pipeline evidence layer preserves existing left keys for both multiplicity
+policies. For `distinct`, it additionally retains a whole-row uniqueness witness
+backed by the exact checked set operation, even without an input key. This follows
+the normative one-occurrence-per-equivalence-class rule; it does not discharge
+the producer's row-comparison or resource obligations. Joined output contracts
+describe this new tuple, while retained left witnesses keep their original,
+possibly narrower contracts. Nullable and structural components remain subject
+to the separate key-use eligibility rules. Empty rows do not invent a field ID;
+their at-most-one property belongs to cardinality evidence. Exact projections
+transfer all aliases of each component; losing a component invalidates the tuple.
+
 Work/text/nodes are charged cumulatively across body admission, both input
 schemas, recursive alignment and output construction. Deep contract traversal
 is iterative. Exact limit tests, recursive extent/nullability cases, provenance,
