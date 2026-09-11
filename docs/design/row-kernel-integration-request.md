@@ -214,6 +214,23 @@ already registered elsewhere should be referenced rather than recreated.
 
 ## Work that proceeds without this decision
 
+### Additional values-node parameter contract lookup
+
+The `REL.values` mapping exists in Language and its zero-input/relation-output
+signature exists in `actql-aoa.json.target_registry_requirements`. This must not
+be described as an entirely missing operator contract. However, searches of the
+lowering base, local main, and the inspected AoA sources have not located its
+exact executable parameter schema (including how row contracts and bound cells
+are represented). Source `values.schema/rows` syntax is not by itself authority
+to copy those fields into an AoA node. Main/integration should identify the
+existing parameter owner or finalize that binding before wire emission here.
+This request does not propose a fallback opcode or external-source rewrite.
+
+Values capture and the private four-operation execution tests can proceed using
+the checked cells. Full values-node wire and whole-pipeline contract conformance
+remain unproven until this binding is identified. Schema/registry/pin changes
+continue to belong to main/integration, not this branch.
+
 Checked expression lowering, exact typed references, immutable parameter
 association, pure scalar evaluation and independent resource/failure tests can
 proceed. We do not label a locally invented array-node representation a validated

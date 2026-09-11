@@ -90,7 +90,7 @@ contracts, final serialized size or any Program-level authorization.
 | AoA expression lowering | Typed scalar/conditional nodes and bounded encoding implemented | Connect roots to complete Relation nodes and evaluator |
 | Bound parameters | Owner association, expression substitution and values-cell capture implemented | Add parameterized end-to-end fragment execution vectors |
 | External rows | Object-schema input admission and immutable capture implemented | Connect to full fragment input obligations; scoped row representation remains unsupported |
-| Map/filter/select row evaluation | Private evaluator connected; fixed four-operation values chain tested | Connect supplied input, branch and parameter cases through fragment driver |
+| Map/filter/select row evaluation | Private evaluator connected; values/supplied-input chains, branches and cross-kernel budgets tested | Connect parameter vectors and all cases through fragment driver |
 | AoA fragment lowering | Complete map/filter/select step emission and expression wire implemented; values/pipeline envelope remain open | Bind registry contracts, roots and runtime obligations, then admit complete fragment |
 | Runtime budgets | Cumulative expression/control/logical-value limits implemented | Close temporary/live allocations and complete work accounting before exposing fragment API |
 | Ordered derive | Checked references available; executable contract pending main | Consume main's registered row-kernel extension without a substitute opcode |
@@ -341,3 +341,11 @@ Independent full-string tests cover all three operations, branch wiring and
 exact whole-node byte limits. Registry parameter validation, expression-root
 evidence, runtime-obligation binding, values-node emission and the whole pipeline
 envelope remain open. No emitted individual node is an execution permit.
+
+The private row tests now also run supplied-input → map → filter → select,
+check branching back to the pre-filter producer, and enforce one cumulative
+output budget across operations. A filter that emits no rows does not change
+which earlier table a later explicit branch consumes. These tests still wire
+the kernels explicitly, so they do not prove automatic fragment execution.
+The exact values parameter-schema owner is an open main/integration lookup
+recorded in the shared-contract request; no shape has been invented here.

@@ -44,6 +44,118 @@ fn row_output() -> ValueBudget {
 }
 
 ///|
+test "explicit supplied input runs map filter select with the same owner and budgets" {
+  let seed = row_capture(row_owner(""))
+  // Obtain the schema from checked values, not inferred from supplied rows.
+  let captured = capture_values(seed.owner, 0, max_rows=2, {
+    max_nodes: 100,
+    max_text_bytes: 100,
+    max_depth: 10,
+    max_work: 200,
+  }).unwrap()
+  let checked = @pipeline.check(
+    input_cursor(
+      "[{\"derive\":{\"c\":\"a + 10\"}},{\"filter\":\"c > 10\"},{\"select\":[\"c\",\"b\"]}]",
+    ),
+    [("source", captured_schema(captured))],
+    None,
+    Some(input_cursor("\"source\"")),
+    {
+      max_steps: 100,
+      max_work: 10000,
+      max_text_bytes: 10000,
+      max_nodes: 1000,
+      max_tokens: 1000,
+      max_depth: 100,
+    },
+  ).unwrap()
+  let owner = @lower.bind_parameters(
+    @lower.prepare(checked, {
+      max_nodes: 100,
+      max_references: 100,
+      max_work: 1000,
+      max_identifier_bytes: 1000,
+    }).unwrap(),
+    None,
+    max_parameters=0,
+    max_name_bytes=0,
+  ).unwrap()
+  let input = table_from_capture(
+    capture_input(
+      owner,
+      0,
+      [input_cursor("{\"a\":1,\"b\":0}"), input_cursor("{\"a\":0,\"b\":1}")],
+      max_rows=2,
+      { max_nodes: 100, max_text_bytes: 100, max_depth: 10, max_work: 200, },
+    ).unwrap(),
+  )
+  let control = { remaining: 1000, max_frames: 100, }
+  let output = row_output()
+  let a = evaluate_rows(row_kernel(owner, 0), input, 2, control, output).unwrap()
+  let b = evaluate_rows(row_kernel(owner, 1), a, 2, control, output).unwrap()
+  let c = evaluate_rows(row_kernel(owner, 2), b, 2, control, output).unwrap()
+  assert_eq(c.names, ["c", "b"])
+  assert_eq(c.rows.length(), 1)
+  assert_true(c.rows[0][0] is Number(11.0))
+  assert_true(c.rows[0][1] is Number(0.0))
+}
+
+///|
+test "branch target skips previous producer and cumulative output cannot reset between kernels" {
+  let owner = row_owner(
+    ",{\"derive\":{\"c\":\"a + 1\"},\"as\":\"augmented\"},{\"filter\":\"a > 10\"},{\"from\":\"augmented\",\"select\":[\"c\"]}",
+  )
+  let control = { remaining: 1000, max_frames: 100, }
+  let output = value_budget({
+    max_nodes: 12,
+    max_text_bytes: 8,
+    max_depth: 2,
+    max_work: 20,
+  }).unwrap()
+  let derived = evaluate_rows(
+    row_kernel(owner, 1),
+    row_capture(owner),
+    2,
+    control,
+    output,
+  ).unwrap()
+  let empty = evaluate_rows(row_kernel(owner, 2), derived, 2, control, output).unwrap()
+  assert_eq(empty.rows.length(), 0)
+  assert_true(
+    evaluate_rows(row_kernel(owner, 3), empty, 2, control, output)
+    is Err(InputMismatch),
+  )
+  let selected = evaluate_rows(
+    row_kernel(owner, 3),
+    derived,
+    2,
+    control,
+    output,
+  ).unwrap()
+  assert_eq(selected.rows.length(), 2)
+  assert_eq(output.nodes, 12)
+  assert_eq(output.work, 20)
+  let short = value_budget({
+    max_nodes: 11,
+    max_text_bytes: 8,
+    max_depth: 2,
+    max_work: 20,
+  }).unwrap()
+  let control2 = { remaining: 1000, max_frames: 100, }
+  let again = evaluate_rows(
+    row_kernel(owner, 1),
+    row_capture(owner),
+    2,
+    control2,
+    short,
+  ).unwrap()
+  assert_true(
+    evaluate_rows(row_kernel(owner, 3), again, 2, control2, short)
+    is Err(RowLimit),
+  )
+}
+
+///|
 test "row setup consumes work even with empty input; projection skips snapshot allocation" {
   let owner = row_owner(",{\"select\":[\"b\",\"a\"]}")
   let input = row_capture(owner)
