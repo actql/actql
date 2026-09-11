@@ -281,3 +281,27 @@ Fixed tests cover map payloads/order, retained no-op, projection order, defensiv
 access, whole-operation cumulative failure and the explicit shared-contract gap.
 Connecting these objects through registry-bound fragment construction and the
 row evaluator remains open; this increment alone does not authorize execution.
+
+## Row evaluation connection
+
+The package-private row evaluator now consumes prepared map/filter/select kernels
+and captured tables. It rejects owner or input-ID mismatches before evaluating
+rows. Map bindings see a single operation-start snapshot, preserve all original
+fields, and execute in checked canonical name order inside each row. Filter
+retains only true (not null); select resolves its input ordinals before the row
+loop and emits authored projection order. Input tables are not mutated.
+
+Fixed tests execute a real checked/lowered values → derive → filter → select
+chain, check independent scalar results, competing row/binding failures, foreign
+owner/wrong-branch rejection, retained no-op identity and a derive-output limit
+that cannot be bypassed by later select. Operation failure exposes no row prefix.
+Logical output counters and expression-control counters can span kernels.
+
+The final fragment driver remains absent. Whitebox tests explicitly connect
+these production-intended pieces; there is no arbitrary-JSON run API or ordered
+derive workaround. Remaining work includes registry-bound fragment construction,
+input proof obligations, schema/field setup work accounting, and preallocation
+admission/physical live-value tracking for row snapshots and output arrays.
+The current retained-output check is not a claim that temporary allocations are
+already bounded by the output limit. Ordinary builds retain unused private-code
+warnings until the fragment driver connects this path.
