@@ -75,7 +75,7 @@
         {
           "path": "spec/contracts/actql-expressions.json",
           "pointer": "",
-          "cid": "sha256:64aea2f2763f15a1c76a1bc455c580f91f6621f9e51ed8cb21f1c15ba5ec80f5",
+          "cid": "sha256:aa85f7d3bbb42d890de47dcec6f3f2993fc232df3575012a114951ee7d40dbf7",
           "version": "actql-expression-contract/0.1"
         },
         {
@@ -99,7 +99,7 @@
         {
           "path": "spec/contracts/actql-expressions.json",
           "pointer": "/laws",
-          "cid": "sha256:8d3631483761fbe93ea422500bf81f84b8cd7638b57da57fe36545fba17e4a80",
+          "cid": "sha256:2c99289dbe519369a0482f8eaadc1dee12c752f214cb5467d81c5d0579a7d317",
           "version": "actql-expression-contract/0.1"
         },
         {
@@ -206,7 +206,7 @@
         {
           "owner": "actql.language",
           "version": "actql/0.1",
-          "document_cid": "sha256:845754cc52bb144b77ad67c6d84ea8b0d12e07a222f1caf9a2c50c6553e7eab8"
+          "document_cid": "sha256:a7ca00e497378574316455a37d94c88a890e29b2c54b32c4f041910c2ace8005"
         }
       ]
     },
@@ -457,7 +457,7 @@
         {
           "owner": "actql.language",
           "version": "actql/0.1",
-          "document_cid": "sha256:845754cc52bb144b77ad67c6d84ea8b0d12e07a222f1caf9a2c50c6553e7eab8"
+          "document_cid": "sha256:a7ca00e497378574316455a37d94c88a890e29b2c54b32c4f041910c2ace8005"
         }
       ]
     },
@@ -705,7 +705,7 @@
         {
           "owner": "actql.language",
           "version": "actql/0.1",
-          "document_cid": "sha256:845754cc52bb144b77ad67c6d84ea8b0d12e07a222f1caf9a2c50c6553e7eab8"
+          "document_cid": "sha256:a7ca00e497378574316455a37d94c88a890e29b2c54b32c4f041910c2ace8005"
         },
         {
           "owner": "actql.execution",
@@ -1345,7 +1345,7 @@
         {
           "owner": "actql.language",
           "version": "actql/0.1",
-          "document_cid": "sha256:845754cc52bb144b77ad67c6d84ea8b0d12e07a222f1caf9a2c50c6553e7eab8"
+          "document_cid": "sha256:a7ca00e497378574316455a37d94c88a890e29b2c54b32c4f041910c2ace8005"
         },
         {
           "owner": "actql.execution",

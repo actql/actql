@@ -2,6 +2,7 @@
 package "actql/actql/text_time_bounds"
 
 import {
+  "actql/actql/encode_core",
   "actql/actql/regex_replacement",
   "actql/actql/text_time_policy",
   "actql/actql/timestamp_pattern",
@@ -13,6 +14,8 @@ import {
 // Values
 pub fn derive_output(Input, Operation, additional_nullable? : Bool) -> Result[Output, Issue]
 
+pub fn emit_input_evidence(Input, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
+
 pub fn from_contract(@value_contract.Contract, @text_time_policy.Policy) -> Result[Input, Issue]
 
 pub fn from_output(Output) -> Result[Input, Issue]
@@ -20,6 +23,10 @@ pub fn from_output(Output) -> Result[Input, Issue]
 pub fn from_value(@value_admission.CheckedValue, @text_time_policy.Policy, max_text_bytes~ : Int) -> Result[Input, Issue]
 
 pub fn input_contract(Input) -> @value_contract.Contract
+
+pub fn input_evidence_cid(Input, Int, Int, Int) -> String raise @encode_core.EncodeFailure
+
+pub fn input_evidence_source(Input) -> String
 
 pub fn input_extent(Input) -> (Int64, Int64)
 

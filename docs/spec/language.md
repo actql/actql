@@ -2627,6 +2627,28 @@ consumes its children's checked extents, including nullable outputs, rather than
 requiring those children to be named columns. Envelope self-CIDs exclude only
 their self-CID field; argument CIDs bind the canonical argument subtrees.
 
+<!-- requirement-block: text-time.input-evidence-preimages -->
+Input evidence CIDs MUST hash the following complete canonical JSON preimages.
+For `source: value_contract`, the preimage is the complete checked input value
+contract. For `source: literal`, it is
+`{version: "actql-literal-text-extent/0.1", value: V}`, where V is the resolved
+canonical string, timestamp wire string, or known null. Selected Parameter
+values use the same rule as literals; declaration metadata and binding origin
+do not enter this extent identity. Known null has zero scalar and byte extent.
+For `source: runtime_preflight`, the preimage is
+`{version: "actql-text-time-runtime-preflight/0.1", contract: C, policy: P}`,
+where C is the complete checked input contract and P is the complete selected
+`actql-text-time-host-policy/0.1` value, not only its input ceilings.
+A derived child output uses `value_contract` with its checked output contract.
+
+<!-- requirement-block: text-time.input-evidence-applicability -->
+This CID identifies the extent evidence content, not its applicability: the
+owning expression, selected bindings, policy and child producer dependencies
+MUST still be verified and retained. Equal contract CIDs do not discharge a
+child's demanded runtime checks or authorize evidence from another Program.
+These preimages contain no process-local handle or step index and are not
+Program, Invocation, expression-argument or envelope identities.
+
 <!-- requirement-block: text-time.check-must-parse-every-literal-or-bound-regex-and-timestamp -->
 Regex expressions use `spec/grammar/actql-regex-0.1.ebnf` and the closed
 `actql-regex-ast/0.1` schema. Check MUST parse every literal or bound regex and
@@ -8277,11 +8299,11 @@ through the pinned expression contract.
 ../../spec/contracts/actql-production-profile-schemas.json#/schemas/text_time_expression sha256:a9fd34634569c0da417ca5a8770ab064ad8351bbd253c8fea1dae60c756c61c1
 ../../spec/contracts/actql-production-profile-schemas.json#/schemas/regex_replacement_ast sha256:92c3fc4fc790cdf8f985b634dfe513f85b6cd5c904bb673de7330d18f577aeed
 ../../spec/contracts/actql-regex-ast.json# sha256:9c4e0107ad1e6a1eb374e8365c07615c74773416b0b43f9a1e02db5e551efc78
-../../spec/contracts/actql-expressions.json# sha256:64aea2f2763f15a1c76a1bc455c580f91f6621f9e51ed8cb21f1c15ba5ec80f5
+../../spec/contracts/actql-expressions.json# sha256:aa85f7d3bbb42d890de47dcec6f3f2993fc232df3575012a114951ee7d40dbf7
 ../../spec/contracts/actql-expressions.json#/schemas/expression sha256:8196cef99c66248917d44d322cb21f69f9873cac768bc5bbda2e3757e8e9d66f
 ../../spec/contracts/actql-expressions.json#/schemas/expression_node sha256:eea37ee96bf6be954e46db196f7ec8101506ed4a28ecc647e8f929a512194b94
 ../../spec/contracts/actql-expressions.json#/schemas/evaluation_envelope sha256:629342d58af8fa879da391532a838788338ddc42b5f17db814d0bdf7236c195b
-../../spec/contracts/actql-expressions.json#/laws sha256:8d3631483761fbe93ea422500bf81f84b8cd7638b57da57fe36545fba17e4a80
+../../spec/contracts/actql-expressions.json#/laws sha256:2c99289dbe519369a0482f8eaadc1dee12c752f214cb5467d81c5d0579a7d317
 ../../spec/contracts/actql-expressions.json#/schemas/fragment sha256:2ccb093915f713003ae0f5e31043bbdd5fc0861cb6c718b1f5430872a4be3717
 ../../spec/contracts/actql-expressions.json#/schemas/predicate_consumer sha256:36320fcc16612a4bd0a64274fcf07526845ae91ad802afce601f4e391f5ba1de
 ```

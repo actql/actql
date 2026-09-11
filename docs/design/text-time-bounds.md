@@ -2,9 +2,9 @@
 
 `text_time_bounds` implements the numeric portion of the language's text-time
 bound laws. It is not an evaluation envelope, an expression checker, a backend
-capability claim or Program admission. In particular it assigns no evidence,
-argument, demand-path, step or envelope CID. Those identities require the
-owning expression and Program integration boundary.
+capability claim or Program admission. It can emit and hash input-evidence
+content, but assigns no argument, demand-path, step or envelope CID. Those
+identities require the owning expression and Program integration boundary.
 
 ## Inputs and ownership
 
@@ -85,6 +85,35 @@ child provenance. Both ownership and the distinction between derived output
 allowance and a parent's input admission are tested. The main
 [context-bound integration](pipeline-check-context.md#context-bound-text-extents)
 now derives Inputs from actual typed children and selected bindings and retains
-the producer and selected policy. Semantic evidence identities and the full
-demanded envelope remain to be constructed under shared Program budgets. This
+the producer and selected policy. The full demanded envelope remains to be
+constructed under shared Program budgets. This
 package alone does not close HostEnvelope obligations.
+
+## Input evidence identities
+
+`emit_input_evidence` writes to the common bounded canonical emitter;
+`input_evidence_cid` uses its hash sink without a serialized String/Bytes copy.
+`input_evidence_source` maps local provenance to the three existing wire cases.
+The normative owner is the language's `text-time.input-evidence-preimages`
+requirement and `actql-expressions.json#/laws/input_evidence_preimages`.
+
+The previously unspecified preimages are now explicit: complete checked
+contract for value_contract (including derived output); versioned resolved
+wire value for literal; versioned complete contract and policy for runtime
+preflight. This follows the fixed Sketch reference's preimages, with the already
+documented known-null extent extended to a null literal preimage. Timestamp
+values use their canonical wire string. These identities describe text extent,
+not typed-value identity; the owning typed expression still distinguishes
+timestamp/string and carries nullable/type evidence.
+
+No producer tree, local handle, or step index is serialized. In particular a
+derived contract can have the same evidence CID as an independent field
+contract without making their provenance interchangeable. Existing producer
+links and runtime obligations remain required. Literal evidence does not hash
+the policy, while the containing envelope must still bind that policy. Runtime
+preflight hashes the full policy, including non-input ceilings.
+
+Five independent fixed preimages/digests cover contract, multibyte literal,
+null, timestamp and runtime preflight. Tests exercise text/measurement/hash
+agreement at byte, node and depth boundaries, failure closure, policy changes,
+and equal content identities with distinct producer provenance.
