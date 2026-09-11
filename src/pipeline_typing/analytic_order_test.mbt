@@ -18,6 +18,16 @@ test "analytic position key completion preserves authored peers and shared budge
     limits(),
   ).unwrap()
   let order = @pipeline_typing.analytic_position_order(p, 0).unwrap()
+  let all = @pipeline_typing.resolve_contextual_orders(
+    p,
+    max_steps=1,
+    max_work=10000,
+    max_text_bytes=10000,
+  ).unwrap()
+  assert_true(
+    @pipeline_typing.contextual_orders_at(all, 0).unwrap()[0]
+    is AnalyticPosition(_),
+  )
   assert_eq(@pipeline_typing.analytic_order_input(order), Input(0))
   assert_true(@pipeline_typing.analytic_order_retained(order) is None)
   let c = @pipeline_typing.analytic_order_completion(order).unwrap()

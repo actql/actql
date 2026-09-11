@@ -48,10 +48,29 @@ test "nest order uses child evidence and never substitutes parent sequence" {
           max_text_bytes=10000,
         )
         if explicit && child == "raw" {
+          assert_eq(
+            @pipeline_typing.resolve_contextual_orders(
+              p,
+              max_steps=2,
+              max_work=10000,
+              max_text_bytes=10000,
+            ).unwrap_err().kind,
+            UnresolvedOrder,
+          )
           assert_eq(result.unwrap_err().kind, UnresolvedOrder)
           assert_eq(result.unwrap_err().path, [@source.Index(1), Key("nest")])
         } else {
           let r = result.unwrap()
+          let all = @pipeline_typing.resolve_contextual_orders(
+            p,
+            max_steps=2,
+            max_work=10000,
+            max_text_bytes=10000,
+          ).unwrap()
+          assert_true(
+            @pipeline_typing.contextual_orders_at(all, 1).unwrap()[0]
+            is NestedRows(_),
+          )
           assert_eq(
             @pipeline_typing.nest_order_child(r),
             if child == "seed" {

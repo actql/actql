@@ -20,6 +20,19 @@ test "existing-input order resolution cannot use a consumer's output order" {
       ).unwrap()
       let i = if ordered { 1 } else { 0 }
       let r = @pipeline_typing.resolve_existing_input_order(p, i)
+      let all = @pipeline_typing.resolve_contextual_orders(
+        p,
+        max_steps=2,
+        max_work=10000,
+        max_text_bytes=10000,
+      )
+      assert_eq(all is Ok(_), ordered)
+      if ordered {
+        assert_true(
+          @pipeline_typing.contextual_orders_at(all.unwrap(), i).unwrap()[0]
+          is InputSequence(_),
+        )
+      }
       assert_eq(r is Some(_), ordered)
       guard @pipeline_typing.step_at(p, i).unwrap().operation is Unary(consumer) else {
         abort("unary consumer")

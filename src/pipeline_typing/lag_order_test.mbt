@@ -19,6 +19,16 @@ test "lag calculation order is separate from output sequence and shares pipeline
   ).unwrap()
   assert_true(@pipeline_typing.logical_order(p, Step(0)) is None)
   let c = @pipeline_typing.lag_order_completion(p, 0).unwrap()
+  let all = @pipeline_typing.resolve_contextual_orders(
+    p,
+    max_steps=1,
+    max_work=10000,
+    max_text_bytes=10000,
+  ).unwrap()
+  assert_true(
+    @pipeline_typing.contextual_orders_at(all, 0).unwrap()[0]
+    is KeyCompletion(_),
+  )
   assert_eq(@pipeline_typing.sort_completion_count(c), 1)
   assert_eq(
     @pipeline_typing.sort_completion_field(c, 0),

@@ -61,6 +61,14 @@ pub fn check_with_evidence(@decode_core.Cursor, Array[(String, InputContract)], 
 
 pub fn combine_relation_evidence(@decode_core.Cursor, @relation_evidence.KeySet, @vector_typing.RankingInput) -> Result[RelationEvidence, Issue]
 
+pub fn contextual_orders_at(ContextualOrders, Int) -> Array[ContextualOrder]?
+
+pub fn contextual_orders_count(ContextualOrders) -> Int
+
+pub fn contextual_orders_pipeline(ContextualOrders) -> CheckedPipeline
+
+pub fn contextual_orders_usage(ContextualOrders) -> (Int, Int)
+
 pub fn current(CheckedPipeline) -> Target?
 
 pub fn expected_delta_contract(CheckedPipeline, Target, @relation_schema.FieldName) -> @graph_contract.CheckedContract?
@@ -138,6 +146,8 @@ pub fn output_schema(CheckedPipeline) -> @relation_schema.Schema?
 pub fn parameters(CheckedPipeline) -> @parameter_binding.Declarations?
 
 pub fn ranking_evidence(CheckedPipeline, Target) -> @vector_typing.RankingInput?
+
+pub fn resolve_contextual_orders(CheckedPipeline, max_steps~ : Int, max_work~ : Int, max_text_bytes~ : Int) -> Result[ContextualOrders, Issue]
 
 pub fn resolve_existing_input_order(CheckedPipeline, Int) -> InputOrderResolution?
 
@@ -230,6 +240,17 @@ pub struct CheckedStep {
 }
 
 type Connections
+
+pub enum ContextualOrder {
+  InputSequence(InputOrderResolution)
+  KeyCompletion(SortCompletion)
+  TakeSequence(LogicalOrder)
+  AnalyticPosition(AnalyticPositionOrder)
+  Aggregates(GroupOrders)
+  NestedRows(NestOrder)
+}
+
+type ContextualOrders
 
 pub struct GraphCount {
   nodes : RowCount?

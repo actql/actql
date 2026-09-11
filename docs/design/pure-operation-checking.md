@@ -70,8 +70,11 @@ The [conditional row-count pass](row-count-evidence.md) connects known generator
 counts to implemented unary and binary Relation laws, keeping exact counts,
 upper bounds and unresolved execution obligations distinct.
 The [conditional logical-order pass](logical-order.md) retains ordered generator
-origins and supported preserving edges independently of candidate keys. General
-order completion, external admission and publication integration remain required.
+origins and supported preserving edges independently of candidate keys.
+The [contextual order resolver](contextual-orders.md) checks all pipeline steps
+atomically, sharing budgets across aggregate and nest resolutions and rejecting
+unresolved static consumers even in unused branches. External evidence admission
+and combined order/capacity/publication discharge remain required.
 The [Result publication-order resolver](result-publication-order.md) now applies
 the declared priority to inherited order, eligible keys and projected-field
 fallback while retaining execution obligations and unresolved authored ties.
