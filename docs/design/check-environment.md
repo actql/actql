@@ -65,3 +65,7 @@ This proves content membership plus local snapshot shape/type integrity. It does
 not validate the rest of the environment or authenticate Host claims. The final
 Program connection must retain this membership alongside exact source/type
 agreement and the governing policy/Catalog checks, not unwrap and forget it.
+`stage_local_inputs.reconcile_environment` now preserves this ownership alongside
+resolved stage inputs and schema agreements. It rejects foreign member owners,
+including separately read identical envelopes. Its selected member set may be
+partial; all-stage coverage and full component admission remain separate work.

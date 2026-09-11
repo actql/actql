@@ -79,6 +79,19 @@ Check Environment membership, Host authority, materialization validation or
 runtime key/order obligations. It does not alter source-only `input_at`/`attach`
 registration and is not the final Program's admitted external-input boundary.
 
+`reconcile_environment` connects a selected stage's `EnvironmentSnapshot` values
+to this same source/type reconciliation, retaining an exact `WireEnvironment`
+owner in opaque `EnvironmentInputs`. A member from a separately read environment
+is rejected even when the environment bytes and CID are equal. The returned
+member positions correspond exactly to the returned snapshot bindings, independent
+of wire CID order or source declaration order; caller arrays are copied.
+Membership enumeration adds to the existing cumulative snapshot costs. This pass
+does not charge or re-admit unrelated environment bodies. Partial or empty selected
+sets remain partial evidence, never proof of complete environment coverage.
+Final Program assembly must check all required inputs and all supplied evidence,
+governing policy and provenance, and retain this owner when combining stages.
+This does not change source-only pipeline registration or grant Host authority.
+
 Preparation charges stage input enumeration and import-name indexing, then each
 local declaration's source nodes as logical work. Node and UTF-8 allowances are
 shared across all local declarations, including metadata; depth is measured from

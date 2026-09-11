@@ -131,7 +131,12 @@ pub fn check_schema(
             max_name_bytes: b.text,
           }) {
           Ok(v) => v
-          Err(e) => raise SchemaStop(PrimaryKey(e))
+          Err(e) => {
+            if e.kind == @evidence.LimitExceeded {
+              raise SchemaStop(BudgetExceeded)
+            }
+            raise SchemaStop(PrimaryKey(e))
+          }
         }
         for i in 0..<count {
           type_text(

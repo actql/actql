@@ -12,11 +12,13 @@ import {
   "actql/actql/local_relation_snapshot" @snapshot,
   "actql/actql/stage_source_refs" @refs,
   "actql/actql/local_source_ref" @source_ref,
+  "actql/actql/check_environment" @environment,
 }
 
 import {
   "actql/actql/carrier_contract" @carrier,
   "actql/actql/relation_evidence" @evidence,
   "actql/actql/sha256" @sha,
+  "actql/actql/encode_core" @encode,
   "moonbitlang/core/encoding/utf8",
 } for "test"
