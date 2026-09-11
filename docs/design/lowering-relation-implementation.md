@@ -308,8 +308,8 @@ Logical output counters and expression-control counters can span kernels.
 The final fragment driver remains absent. Whitebox tests explicitly connect
 these production-intended pieces; there is no arbitrary-JSON run API or ordered
 derive workaround. Remaining work includes registry-bound fragment construction,
-input proof obligations, schema/field setup work accounting, and preallocation
-admission/physical live-value tracking for row snapshots and output arrays.
+input proof obligations and complete preallocation admission/physical live-value
+tracking. Schema/field setup work is now charged as described below.
 The current retained-output check is not a claim that temporary allocations are
 already bounded by the output limit. Ordinary builds retain unused private-code
 warnings until the fragment driver connects this path.
@@ -347,8 +347,9 @@ check branching back to the pre-filter producer, and enforce one cumulative
 output budget across operations. A filter that emits no rows does not change
 which earlier table a later explicit branch consumes. These tests still wire
 the kernels explicitly, so they do not prove automatic fragment execution.
-The exact values parameter-schema owner is an open main/integration lookup
-recorded in the shared-contract request; no shape has been invented here.
+Main/integration has accepted ownership of the missing values execution-params
+contract, as recorded in the shared-contract request; delivery is pending and
+no shape has been invented here.
 
 Parameterized four-operation vectors now bind the same checked preparation to
 two different values, use each Parameter in both values cells and derive RHSs,
@@ -362,3 +363,34 @@ counts. Execution reserves their copy work before constructing the array view,
 rather than relying only on lowering limits. A lazy coalesce test distinguishes
 copying child references from evaluating unselected children. This bounds
 cumulative view-copy work; separate peak live-memory accounting is still open.
+
+## Per-operation row workspace
+
+The private row evaluator now requires a fresh, explicit `RowWorkspace` limit.
+Before inserting container entries it reserves structural slots for the borrowed
+input layout, copied kernel view, column ordinals, projection metadata, snapshot
+maps, output cells and retained row references. Snapshots are released logically
+at the end of each row, including a false/NULL filter result. Retained rows remain
+charged for the operation. Failure returns no partial table; a partly consumed
+workspace cannot be reused for another operation.
+
+Independent fixed boundary tests count a two-column/two-row projection at 22
+slots (21 fails), a fully rejecting filter at peak 14/live 12, and an empty map
+at peak 20/live 18. They also check unchanged borrowed input and a successful
+fresh invocation after resource failure. The whitebox convenience wrapper only
+supplies an explicit generous limit to this sole evaluator; it adds no alternate
+execution semantics or production default.
+
+Slots are structural entries, **not bytes, allocator capacity or RSS**. Empty
+container headers and hash-map capacity are not modeled. This is not a claim of
+complete physical memory admission: capture-to-table conversion, retained tables
+across a fragment, nested immutable payloads and expression-frame/view lifetimes
+still need an integrated budget. Logical output and cumulative work remain
+separate counters, and none replace main's static capacity evidence.
+
+Validation for this unit: execution tests 27/27 and lowering tests 25/25 on each
+of JS, Wasm and native; both package interfaces match across all three targets
+and are unchanged by this unit. Registry checks 2/2, document tests 11/11 and
+865 local links pass. Formatting and whitespace checks pass. The ordinary build
+still reports 14 unused private-code warnings while the fragment driver is not
+connected. The full repository suite and production execution are not claimed.

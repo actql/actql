@@ -66,14 +66,20 @@ fn retain_row(
 /// Row-major, atomic operation evaluation. Output and control budgets are
 /// supplied by the caller and can span multiple kernels without resetting.
 /// This is not yet complete physical live-memory accounting.
-fn evaluate_rows(
+fn evaluate_rows_with_workspace(
   kernel : @lower.PreparedKernel,
   input : Table,
   max_rows : Int,
   control : ControlBudget,
   output : ValueBudget,
+  workspace : RowWorkspace,
 ) -> Result[Table, RowIssue] {
-  if max_rows < 0 || control.remaining < 0 || control.max_frames < 0 {
+  if max_rows < 0 ||
+    control.remaining < 0 ||
+    control.max_frames < 0 ||
+    workspace.limit < 0 ||
+    workspace.live != 0 ||
+    workspace.peak != 0 {
     return Err(InvalidRowLimits)
   }
   if !physical_equal(@lower.kernel_owner(kernel), input.owner) {
@@ -84,6 +90,18 @@ fn evaluate_rows(
   }
   // This input ceiling applies even when a filter would emit zero rows.
   if input.rows.length() > max_rows {
+    return Err(RowLimit)
+  }
+  if !reserve_slots(workspace, input.names.length()) ||
+    !reserve_slots(workspace, input.rows.length()) {
+    return Err(RowLimit)
+  }
+  for row in input.rows {
+    if !reserve_slots(workspace, row.length()) {
+      return Err(RowLimit)
+    }
+  }
+  if !reserve_slots(workspace, @lower.kernel_view_entries(kernel)) {
     return Err(RowLimit)
   }
   if !spend_control(control, @lower.kernel_view_entries(kernel)) {
@@ -101,6 +119,9 @@ fn evaluate_rows(
     if ordinals.contains(input.names[i]) {
       return Err(InvalidRows)
     }
+    if !reserve_slots(workspace, 1) {
+      return Err(RowLimit)
+    }
     ordinals[input.names[i]] = i
   }
   match kind {
@@ -114,6 +135,9 @@ fn evaluate_rows(
         guard ordinals.get(@schema.reference_name(field.input)) is Some(index) else {
           return Err(InvalidRows)
         }
+        if !reserve_slots(workspace, 2) {
+          return Err(RowLimit)
+        }
         output_names.push(@schema.reference_name(field.output))
         projection.push(index)
       }
@@ -122,11 +146,17 @@ fn evaluate_rows(
         if !spend_control(control, 1) {
           return Err(RowLimit)
         }
+        if !reserve_slots(workspace, 1) {
+          return Err(RowLimit)
+        }
         output_names.push(name)
       }
     @lower.SnapshotMap(bindings) => {
       for name in input.names {
         if !spend_control(control, 1) {
+          return Err(RowLimit)
+        }
+        if !reserve_slots(workspace, 1) {
           return Err(RowLimit)
         }
         output_names.push(name)
@@ -137,6 +167,9 @@ fn evaluate_rows(
         }
         if ordinals.contains(name) {
           return Err(InvalidRows)
+        }
+        if !reserve_slots(workspace, 1) {
+          return Err(RowLimit)
         }
         output_names.push(name)
       }
@@ -160,6 +193,9 @@ fn evaluate_rows(
           !spend_control_text(control, input.names[i]) {
           return Err(RowLimit)
         }
+        if !reserve_slots(workspace, 1) {
+          return Err(RowLimit)
+        }
         snapshot[input.names[i]] = source[i]
       }
     }
@@ -168,6 +204,9 @@ fn evaluate_rows(
       @lower.Select(_) =>
         for index in projection {
           if !spend_control(control, 1) {
+            return Err(RowLimit)
+          }
+          if !reserve_slots(workspace, 1) {
             return Err(RowLimit)
           }
           row.push(source[index])
@@ -183,9 +222,15 @@ fn evaluate_rows(
               if !spend_control(control, 1) {
                 return Err(RowLimit)
               }
+              if !reserve_slots(workspace, 1) {
+                return Err(RowLimit)
+              }
               row.push(v)
             }
-          Boolean(false) | Null => continue
+          Boolean(false) | Null => {
+            release_slots(workspace, snapshot.length())
+            continue
+          }
           Number(_) | Text(_) | Captured(_) => return Err(InvalidRows)
         }
       }
@@ -194,12 +239,20 @@ fn evaluate_rows(
           if !spend_control(control, 1) {
             return Err(RowLimit)
           }
+          if !reserve_slots(workspace, 1) {
+            return Err(RowLimit)
+          }
           row.push(v)
         }
         for slot = 0; slot < bindings.length(); slot = slot + 1 {
           let expr = bindings[slot].1
           match evaluate_expression(expr, snapshot, [], control) {
-            Ok(v) => row.push(v)
+            Ok(v) => {
+              if !reserve_slots(workspace, 1) {
+                return Err(RowLimit)
+              }
+              row.push(v)
+            }
             Err(e) => return Err(Evaluation(row_index, slot, e))
           }
         }
@@ -208,7 +261,11 @@ fn evaluate_rows(
     if !retain_row(row, output_names, output) {
       return Err(RowLimit)
     }
+    if !reserve_slots(workspace, 1) {
+      return Err(RowLimit)
+    }
     rows.push(row)
+    release_slots(workspace, snapshot.length())
   }
   let prepared = @lower.bound_preparation(input.owner)
   let node = @lower.node_at(prepared, @lower.kernel_step(kernel)).unwrap()

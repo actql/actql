@@ -1,4 +1,21 @@
 ///|
+// Test convenience only: delegates to the sole production row evaluator with
+// an explicit generous workspace ceiling. No alternate execution semantics.
+fn evaluate_rows(
+  kernel : @lower.PreparedKernel,
+  input : Table,
+  max_rows : Int,
+  control : ControlBudget,
+  output : ValueBudget,
+) -> Result[Table, RowIssue] {
+  evaluate_rows_with_workspace(kernel, input, max_rows, control, output, {
+    limit: 100000,
+    live: 0,
+    peak: 0,
+  })
+}
+
+///|
 fn row_owner(tail : String) -> @lower.BoundPrepared {
   bound_pipeline(
     "[{\"values\":{\"schema\":{\"a\":{\"type\":\"number\",\"nullable\":false},\"b\":{\"type\":\"number\",\"nullable\":false}},\"rows\":[{\"a\":1,\"b\":0},{\"a\":0,\"b\":1}]},\"as\":\"seed\"}" +
@@ -41,6 +58,114 @@ fn row_output() -> ValueBudget {
     max_depth: 100,
     max_work: 10000,
   }).unwrap()
+}
+
+///|
+test "row workspace exact projection limit and failure isolation" {
+  let owner = row_owner(",{\"select\":[\"b\",\"a\"]}")
+  let kernel = row_kernel(owner, 1)
+  let input = row_capture(owner)
+  // Input: 2 names + 2 row references + 4 cells. Kernel view: 2.
+  // Ordinals: 2. Projection metadata: 4. Output: 4 cells + 2 rows.
+  let exact = { limit: 22, live: 0, peak: 0, }
+  let result = evaluate_rows_with_workspace(
+    kernel,
+    input,
+    2,
+    { remaining: 1000, max_frames: 10, },
+    row_output(),
+    exact,
+  ).unwrap()
+  assert_eq(result.names, ["b", "a"])
+  assert_eq(result.rows.length(), 2)
+  assert_eq(exact.live, 22)
+  assert_eq(exact.peak, 22)
+  let short = { limit: 21, live: 0, peak: 0, }
+  assert_true(
+    evaluate_rows_with_workspace(
+      kernel,
+      input,
+      2,
+      { remaining: 1000, max_frames: 10, },
+      row_output(),
+      short,
+    )
+    is Err(RowLimit),
+  )
+  assert_true(short.live <= short.limit)
+  // A failed operation cannot reuse a partly consumed workspace. A fresh
+  // invocation remains independent, and the borrowed input is unchanged.
+  assert_true(
+    evaluate_rows_with_workspace(
+      kernel,
+      input,
+      2,
+      { remaining: 1000, max_frames: 10, },
+      row_output(),
+      short,
+    )
+    is Err(InvalidRowLimits),
+  )
+  assert_eq(input.names, ["a", "b"])
+  assert_true(input.rows[0][0] is Number(1.0))
+  assert_eq(
+    evaluate_rows_with_workspace(
+      kernel,
+      input,
+      2,
+      { remaining: 1000, max_frames: 10, },
+      row_output(),
+      { limit: 22, live: 0, peak: 0, },
+    ).unwrap().rows.length(),
+    2,
+  )
+}
+
+///|
+test "row workspace releases discarded filter snapshots and bounds retained rows" {
+  let owner = row_owner(",{\"filter\":\"a > 10\"}")
+  // Eight input entries + two ordinals + two output names = twelve.
+  // Only one two-entry snapshot lives at a time; no output rows survive.
+  let workspace = { limit: 14, live: 0, peak: 0, }
+  let result = evaluate_rows_with_workspace(
+    row_kernel(owner, 1),
+    row_capture(owner),
+    2,
+    { remaining: 1000, max_frames: 10, },
+    row_output(),
+    workspace,
+  ).unwrap()
+  assert_eq(result.rows.length(), 0)
+  assert_eq(workspace.live, 12)
+  assert_eq(workspace.peak, 14)
+  assert_true(
+    evaluate_rows_with_workspace(
+      row_kernel(owner, 1),
+      row_capture(owner),
+      2,
+      { remaining: 1000, max_frames: 10, },
+      row_output(),
+      { limit: 13, live: 0, peak: 0, },
+    )
+    is Err(RowLimit),
+  )
+  let map_owner = row_owner(",{\"derive\":{}}")
+  // Empty map still preserves both rows. Retained output entries accumulate,
+  // but each input snapshot is released before constructing the next one.
+  let map_workspace = { limit: 20, live: 0, peak: 0, }
+  assert_eq(
+    evaluate_rows_with_workspace(
+      row_kernel(map_owner, 1),
+      row_capture(map_owner),
+      2,
+      { remaining: 1000, max_frames: 10, },
+      row_output(),
+      map_workspace,
+    ).unwrap().rows.length(),
+    2,
+  )
+  assert_eq(map_workspace.live, 18)
+  assert_eq(map_workspace.peak, 20)
 }
 
 ///|

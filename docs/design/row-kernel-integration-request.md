@@ -216,6 +216,14 @@ already registered elsewhere should be referenced rather than recreated.
 
 ### Additional values-node parameter contract lookup
 
+Integration response: main inspected `2e8f0a0` and accepted ownership of this
+missing binding. Main will provide the closed params schema, registration and
+dependency pins, schema type-contract representation, bound-cell/literal rules,
+independent canonical vectors (empty/duplicate/ordered rows, decimal and nested
+data), and semantic row-to-contract validation beyond JSON Schema. Track this
+as an independent small contract alongside ordered derive. Lowering must not
+emit it as a registered/conformant executable node before that delivery.
+
 The `REL.values` mapping exists in Language and its zero-input/relation-output
 signature exists in `actql-aoa.json.target_registry_requirements`. This must not
 be described as an entirely missing operator contract. However, searches of the
