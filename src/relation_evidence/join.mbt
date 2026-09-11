@@ -71,10 +71,24 @@ fn join_mapping(
   side : @row.Side,
   b : TransferBudget,
 ) -> KeyMapping raise Stop {
-  let source = @join.source(op)
-  let output = @join.output_schema(op)
+  binary_projection_mapping(
+    @join.source(op),
+    @join.output_schema(op),
+    @join.projection(op),
+    side,
+    b,
+  )
+}
+
+///|
+fn binary_projection_mapping(
+  source : @decode.Cursor,
+  output : @row.Schema,
+  projection : Array[@join.Projection]?,
+  side : @row.Side,
+  b : TransferBudget,
+) -> KeyMapping raise Stop {
   let names : Map[String, Array[KeyField]] = Map([])
-  let projection = @join.projection(op)
   let n = match projection {
     Some(p) => p.length()
     None => @row.field_count(output)

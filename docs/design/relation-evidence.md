@@ -310,6 +310,24 @@ keyless opposite inputs, equality fields not covering a key, full-join null
 sentinels, retained parent roles, multiple projection aliases followed by drop
 and sort/take, exact work/text limits and structurally equal foreign schemas.
 
+## Cross-join output keys
+
+Cross joins use the same exact-copy projection mapping. Their ordinary output
+key is the product of a complete retained left key and right key, with both
+operand roles and original validation dependencies retained. Neither equality
+coverage nor a key on just one side proves cross-product uniqueness. When
+`right_rows: one` is authored, a retained left key also becomes an output-key
+candidate; its checked producer retains `ValidateExactlyOneRightRow`. The
+assertion does not choose a row, become an observation or fabricate a right key.
+No side is null-extended, so nullable key components retain their input facts.
+
+`transfer_cross_join_keys` binds even unused supplied witnesses to the exact
+operand handles. Projection loss removes affected candidates; surviving aliases
+remain usable after another alias is dropped. Pair enumeration and component
+copying share the work budget. Pipeline tests cover all combinations of keyed
+operands, singleton assertion and retained right projection, plus downstream
+sort/take, raw qualified tuples, mismatched handles and exact work/text limits.
+
 ## Join evidence dependency boundary
 
 Before implementing output-key transfer, ordinary checked join shape is separated

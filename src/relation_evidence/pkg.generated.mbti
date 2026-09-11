@@ -42,6 +42,14 @@ pub fn key_alias_count(KeyedRelation, Int) -> Int
 
 pub fn key_calendar_producer(KeyedRelation) -> @calendar_typing.CheckedCalendar?
 
+pub fn key_cross_join_dependency_at(KeyedRelation, Int) -> KeyedRelation?
+
+pub fn key_cross_join_dependency_count(KeyedRelation) -> Int
+
+pub fn key_cross_join_dependency_side(KeyedRelation, Int) -> @relation_schema.Side?
+
+pub fn key_cross_join_producer(KeyedRelation) -> @relation_join_shape.CheckedCrossJoin?
+
 pub fn key_field_at(KeyedRelation, Int) -> KeyField?
 
 pub fn key_field_count(KeyedRelation) -> Int
@@ -95,6 +103,8 @@ pub fn singleton_key(KeyedRelation) -> KeySet
 pub fn time_series_keys(@time_series.CheckedSeries, TransferLimits) -> Result[KeySetTransfer, Issue]
 
 pub fn transfer_calendar_keys(KeySet, @calendar_typing.CheckedCalendar, TransferLimits) -> Result[KeySetTransfer, Issue]
+
+pub fn transfer_cross_join_keys(KeySet?, KeySet?, @relation_join_shape.CheckedCrossJoin, TransferLimits) -> Result[KeySetTransfer, Issue]
 
 pub fn transfer_event_keys(KeySet, @event_typing.CheckedEvent, TransferLimits) -> Result[KeySetTransfer, Issue]
 
@@ -154,6 +164,7 @@ pub(all) enum KeyOrigin {
   GraphProjectionResult
   WindowMembershipResult
   JoinResult
+  CrossJoinResult
 } derive(Eq, @debug.Debug)
 
 pub struct KeySelection {

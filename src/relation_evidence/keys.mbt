@@ -54,6 +54,7 @@ pub(all) enum KeyOrigin {
   GraphProjectionResult
   WindowMembershipResult
   JoinResult
+  CrossJoinResult
 } derive(Eq, Debug)
 
 ///|
@@ -65,6 +66,7 @@ priv enum KeyProducer {
   GraphProjectionProducer(@projection.CheckedProjection)
   WindowProducer(@window.CheckedWindow, KeyedRelation)
   JoinProducer(@join.CheckedJoin, Array[(@row.Side, KeyedRelation)])
+  CrossJoinProducer(@join.CheckedCrossJoin, Array[(@row.Side, KeyedRelation)])
 }
 
 ///|
