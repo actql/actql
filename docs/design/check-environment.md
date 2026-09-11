@@ -140,12 +140,52 @@ fixed self-CID, repeated/shared contracts, unsorted contents, stale inner bodies
 extra/missing derived entries, ownership, selectors and cumulative limits.
 
 This is not yet full Catalog admission: SourceView/Command body grammars and
-semantic constraints, automatic traversal of all role-reference slots, policy
-bodies, correlation/type compatibility and issuer authority remain required.
+semantic constraints, role-reference closure, policy bodies, correlation/type
+compatibility and issuer authority remain required at separate boundaries.
 The shape-limited fixtures intentionally demonstrate that membership alone does
 not prove these properties. CatalogContents is not a sole-view completion token,
 and no Program input resolver consumes it as one. Those subsequent checks must
 retain this exact proof instead of independently reconstructing candidate lists.
+
+## Catalog role-reference closure
+
+`check_catalog_references` consumes CatalogContents and checks every SourceView
+and Command reference slot, including all acquisition modes and unused members.
+It returns opaque CatalogReferences retaining that exact contents proof. Each
+resolved occurrence retains its Catalog, original derived member, exact cursor
+and resolved ContractEnvelope. Diagnostics preserve the offending reference
+cursor (or the containing object when a required slot is missing), so path and
+span are available without inventing a new source location.
+
+There are 13 SourceView role paths and 6 Command role paths. Their role meanings
+match `87dc7144:src/actql-protocol.ts`'s `contractRefsFromSourceView` and
+`contractRefsFromCommand`. The generator `scripts/catalog-reference-roles.mjs`
+derives required/optional parent hops from the pinned protocol schemas and
+compares all discovered ContractRef paths against the explicit role map. It
+rejects missing/extra classifications, unknown kinds and conditional reference
+forms requiring a new routing decision. `check:contracts` checks both coverage
+and the generated MoonBit table; adding a schema slot cannot silently leave it
+out of this table. This is schema routing coverage, not execution conformance.
+
+Absent optional containers or references contribute no occurrence. Present null,
+nonobjects and missing required members fail; `id`, `version`, `cid` form a closed
+reference. Resolution checks all identity components and role, and then membership
+inside the same Catalog. It never scans arbitrary contract bodies or interprets
+business `$param`/`literal` fields. All reference occurrences are retained, even
+when several slots point at one contract. Explicit frames traverse mode arrays
+without recursion or materializing all pending elements. Work counts Catalogs,
+members, route visits, object keys and reference string units cumulatively;
+reference-count limits apply to occurrences, not unique targets. The prior
+Catalog payload budget remains a separate retained check, not reset evidence.
+
+Fixed test locations independently enumerate all 19 roles for wrong-kind checks;
+tests also cover optional absence versus null, late errors, exact ownership,
+original diagnostic locations, cross-Catalog references, repeated mode slots and
+budget boundaries. Test envelopes use existing canonical serialization only to
+construct inputs, never to derive expected role resolutions. Full body grammars,
+policy contracts, type/correlation compatibility, acquisition-mode coherence and
+issuer authority remain unproven. Reference closure alone cannot authorize input
+resolution, sole-view completion, planning or execution.
 
 ## Capacity component selection
 

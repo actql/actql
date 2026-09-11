@@ -11,4 +11,11 @@ import {
   "moonbitlang/core/encoding/utf8",
 }
 
-formatter(ignore: [ "vectors.generated_test.mbt" ])
+import {
+  "moonbitlang/core/json",
+  "actql/actql/canonical_json" @canonical,
+} for "test"
+
+formatter(
+  ignore: [ "vectors.generated_test.mbt", "catalog_roles.generated.mbt" ],
+)

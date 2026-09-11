@@ -24,6 +24,8 @@ pub fn catalog_identity(Catalog) -> (String, String, String)
 
 pub fn catalog_member(Catalog) -> Member
 
+pub fn catalog_reference_at(CatalogReferences, Int) -> CatalogReference?
+
 pub fn catalog_registry(CatalogContents) -> ContractRegistry
 
 pub fn catalog_usage(CatalogContents) -> (Int, Int, Int)
@@ -31,6 +33,8 @@ pub fn catalog_usage(CatalogContents) -> (Int, Int, Int)
 pub fn catalog_view_at(Catalog, Int) -> Member?
 
 pub fn check_catalog_contents(ContractRegistry, Limits) -> Result[CatalogContents, CatalogIssue]
+
+pub fn check_catalog_references(CatalogContents, ReferenceLimits) -> Result[CatalogReferences, ReferenceIssue]
 
 pub fn check_contract_registry(WireEnvironment, Limits) -> Result[ContractRegistry, ContractIssue]
 
@@ -76,6 +80,18 @@ pub fn read_capacity(WireEnvironment, @capacity_policy.Limits) -> Result[Capacit
 
 pub fn read_text_time(WireEnvironment, @text_time_policy.Limits) -> Result[TextTime, TextTimeIssue]
 
+pub fn reference_catalog(CatalogReference) -> Catalog
+
+pub fn reference_contents(CatalogReferences) -> CatalogContents
+
+pub fn reference_contract(CatalogReference) -> ContractEnvelope
+
+pub fn reference_member(CatalogReference) -> Member
+
+pub fn reference_source(CatalogReference) -> @decode_core.Cursor
+
+pub fn reference_usage(CatalogReferences) -> (Int, Int)
+
 pub fn resolve_catalog_contract(Catalog, String, String, String, String) -> Result[ContractEnvelope, CatalogIssue]
 
 pub fn resolve_contract(ContractRegistry, String, String, String, String) -> Result[ContractEnvelope, ContractIssue]
@@ -119,6 +135,10 @@ pub(all) enum CatalogIssue {
   OutsideCatalog(String, String)
 } derive(Eq, @debug.Debug)
 
+type CatalogReference
+
+type CatalogReferences
+
 type ContractEnvelope
 
 pub(all) enum ContractIssue {
@@ -153,6 +173,24 @@ pub(all) struct Limits {
 }
 
 type Member
+
+pub(all) struct ReferenceIssue {
+  kind : ReferenceIssueKind
+  source : @decode_core.Cursor?
+}
+
+pub(all) enum ReferenceIssueKind {
+  InvalidLimits
+  WorkLimit
+  ReferenceLimit
+  InvalidSlot
+  Resolution(CatalogIssue)
+} derive(Eq, @debug.Debug)
+
+pub(all) struct ReferenceLimits {
+  max_work : Int
+  max_references : Int
+}
 
 pub(all) enum Section {
   SchemaSnapshots
