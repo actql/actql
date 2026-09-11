@@ -47,6 +47,44 @@ completion and timestamp conversion. They are not automatically
 depends on the old single-source/single-target form: the current selector
 language cannot inherit a universal one-row bound from that fact.
 
+## Program proof application prerequisites
+
+Inspection of `capacity_witness/program_proof.mbt` and `program_closure.mbt`
+confirms that proof bodies bind the claimed unit, value, law, semantic reference
+and input witness identities. The closure checks arithmetic operands and cycles;
+it does not bind those operands to actual checked pipeline connections.
+
+The fixed compiler's `boundClamp` and `boundAdd` helpers take their law and
+semantic reference from the caller. Its global-group branch constructs a bound
+with both a source-path-derived reference and a generated result reference.
+Consequently, `semantic_ref` is not necessarily an authored `as` name or a
+source pointer. Looking it up in the pipeline's authored-name map is not a
+general source validation algorithm. An empty proof-input array also does not
+mean that the checked operation has no data inputs: global aggregation can prove
+a one-row bound without using its input's row bound.
+
+The operation binding must retain a correspondence between semantic subjects
+and exact checked owners/targets. That correspondence must be supplied by the
+owner that constructs or validates the semantic graph, not inferred from equal
+names, equal counts or caller-provided numeric assertions. Preserve role-tagged
+data inputs separately from the subset of capacity witnesses used by a law.
+The existing pipeline does not yet expose that semantic-subject owner.
+
+| Law family | Application checks beyond arithmetic closure |
+| --- | --- |
+| `actql.bound.global-group` | Verify the actual global Group operation with empty grouping keys. The output bound is one even for empty input. `RowCountRule::OneRow` alone is insufficient: pivot also uses that internal numeric rule, but this does not assign it the global-group witness law. |
+| `actql.bound.take`, `actql.bound.top-k` | Bind the clamp to the actual operation and its literal or bound count. Retain offset/partition semantics and their validation. A positive authored number is not automatically a selection bound; partitioned top-k cannot use a global clamp without its additional conditions. |
+| `actql.bound.append` | Match both capacity operands to the actual ordered left/right input occurrences, including self-append. Same-unit checked addition and a sorted proof-input array do not establish that correspondence. |
+| `actql.bound.unpivot`, `actql.bound.unnest-array-items` | Derive the expansion factor from the checked column occurrences or admitted item bound. Repeated unpivot columns count repeatedly; outer unnest of an empty array may still contribute one row. A self-consistent multiplication by a caller-selected factor is insufficient. |
+| Graph input enforced ceilings | Use the existing mixed-limit and Graph preflight binding, not a fabricated ordinary Program proof. Input node and edge measures remain distinct; successful static binding does not observe their counts. |
+
+These are application prerequisites, not newly admitted law applications. The
+next implementation must establish the owned semantic-subject correspondence
+before promoting wire Program claims. Author-guard Program Definition identity
+and bound Invocation consistency are separate prerequisites; a fragment hash or
+an authored alias does not supply either identity. No additional law name,
+source constructor or runnable capacity fact is introduced by this audit.
+
 ## Extension-local capacity law
 
 The current `actql-expressions.json` contract explicitly registers
