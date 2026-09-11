@@ -758,7 +758,18 @@ admission, resource enforcement or complete source authority.
    Do not
    expand into acquisition, an evaluator or Host dispatch.
 3. Connect contextual resolutions into a complete static checking/discharge
-   boundary. [Combined order checking](combined-order-checking.md) now resolves
+   boundary on main, as required by the
+   [main/lowering ownership contract](pure-operation-checking.md#main-and-lowering-ownership).
+   Lowering must consume this boundary rather than substitute its own integration.
+   Completion requires an opaque validated Program result tying Program/stages,
+   input roles, bound Parameters, contracts/policy, type/order/capacity decisions
+   and producer dependencies together. Runtime obligations retain targets,
+   application locations and dependencies; they are not static success flags.
+   Persistent Program/stage/Invocation identities must come from their normative
+   semantic projections, independently of internal ownership handles.
+   This boundary remains unimplemented; documenting the division is not evidence
+   that a formal Program compiler entry is ready.
+   [Combined order checking](combined-order-checking.md) now resolves
    all steps and named Results with one shared budget and one pipeline owner.
    Capacity and other mandatory obligations still require the final combined
    boundary. It must not let callers omit a difficult step or local aggregate,

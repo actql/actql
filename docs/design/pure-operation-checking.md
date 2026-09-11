@@ -111,6 +111,47 @@ contract; they do not import an arbitrary stage-local Carrier or `as` binding.
 Commits group coherent functionality, its interfaces, tests and applicable
 schema/pin changes. This sequence is not authorization to omit a family.
 
+## Main and lowering ownership
+
+The pre-lowering Program integration boundary is a completion condition of
+**main**, not work delegated to the lowering branch. Main must construct one
+consistent static result for the authored Program and stages: inputs, Parameter
+bindings, selected contracts and policy, types, order strategies, capacity
+applications and their producer dependencies. The result must be opaque and
+constructible only through validation; a public aggregate of checker results or
+`validated: true` does not satisfy this boundary. `CheckedProgram` is a
+descriptive name here, not an already implemented API.
+
+Static unresolved requirements must prevent successful construction. Runtime
+obligations remain explicit, with their protected target, application location
+and required dependencies attached. Actual uniqueness, observed row counts,
+acquired-value validation and limit enforcement can remain runtime checks;
+that does not permit deferring static input, type, order-strategy, bound-source
+or binding inconsistencies. Nor does inability to observe runtime data at Check
+justify rejecting an otherwise admitted operation.
+
+Program, stage and Invocation semantic identities must be separate from process
+object identity and owner-relative `checked-step:<index>` handles. Main must
+bind the actual semantic projections and envelopes, not substitute a fixture
+identity or a hash of a local pipeline. Internal ownership remains useful for
+preventing mismatched checker results, but is not persistent identity.
+
+Lowering consumes this completed boundary through read-only APIs. It translates
+the selected semantics and runtime obligations to execution nodes and explicit
+checks/failure behavior, verifies representability under the selected registry
+and backend, and validates the generated Plan's structure and identity. It must
+not re-infer keys/order, combine unrelated checker results, or independently
+implement the Program integration boundary. Unsupported obligations or
+operations prevent creation of an executable Plan.
+
+During parallel development, lowering may test node construction and limited
+operation lowering with existing checked-operation APIs. Such entry points are
+internal, not the formal Program compilation interface. Lowering requests any
+missing read-only APIs; formal integration waits for the main boundary. Final
+Plan integration is a separate downstream check, not evidence that main's
+static boundary has already been completed. This division does not add actual
+lowering, evaluation, acquisition or Host dispatch to main's current scope.
+
 ## Acceptance
 
 For every operation, verify its closed source body, required input roles,
@@ -140,5 +181,10 @@ Linux CI success require their own evidence and are not implied by local checks.
 The final audit compares the complete operation list above against actual
 dispatch, per-operation tests, schemas and consumers. This design document is
 not completion evidence by itself.
+The pre-lowering review must also verify that a lowerer consuming the integrated
+result need not guess or re-decide ActQL semantics, and that it can locate every
+retained runtime obligation and dependency without reconstructing checker
+ownership or inventing identities. Static readiness is neither execution nor
+authorization to execute.
 The [open completion audit](pure-operation-audit.md) records inspected boundaries,
 confirmed gaps and still-unverified coverage without treating dispatch as completion.
