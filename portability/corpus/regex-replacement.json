@@ -1,0 +1,319 @@
+{
+  "version": "actql-regex-replacement-vectors/0.1",
+  "accepted": [
+    {
+      "id": "empty",
+      "text": "",
+      "parts": [],
+      "expected_preimage": "{\"capture_reference_count\":0,\"literal_utf8_bytes\":0,\"max_capture_index\":0,\"parts\":[],\"version\":\"actql-regex-replacement-ast/0.1\"}",
+      "expected_cid": "sha256:9218c6ad6d44f11f25fc33307f1d05632b6082038e6405829ab3fc07cf2bbc1b",
+      "expected_ast": "{\"ast_cid\":\"sha256:9218c6ad6d44f11f25fc33307f1d05632b6082038e6405829ab3fc07cf2bbc1b\",\"capture_reference_count\":0,\"literal_utf8_bytes\":0,\"max_capture_index\":0,\"parts\":[],\"version\":\"actql-regex-replacement-ast/0.1\"}"
+    },
+    {
+      "id": "plain",
+      "text": "text",
+      "parts": [
+        {
+          "kind": "literal",
+          "value": "text"
+        }
+      ],
+      "expected_preimage": "{\"capture_reference_count\":0,\"literal_utf8_bytes\":4,\"max_capture_index\":0,\"parts\":[{\"kind\":\"literal\",\"value\":\"text\"}],\"version\":\"actql-regex-replacement-ast/0.1\"}",
+      "expected_cid": "sha256:61983c0274de0d9a0f2155c728194c37b08400bc0430a6409eaf4455ef791c8d",
+      "expected_ast": "{\"ast_cid\":\"sha256:61983c0274de0d9a0f2155c728194c37b08400bc0430a6409eaf4455ef791c8d\",\"capture_reference_count\":0,\"literal_utf8_bytes\":4,\"max_capture_index\":0,\"parts\":[{\"kind\":\"literal\",\"value\":\"text\"}],\"version\":\"actql-regex-replacement-ast/0.1\"}"
+    },
+    {
+      "id": "dollar",
+      "text": "$$",
+      "parts": [
+        {
+          "kind": "literal",
+          "value": "$"
+        }
+      ],
+      "expected_preimage": "{\"capture_reference_count\":0,\"literal_utf8_bytes\":1,\"max_capture_index\":0,\"parts\":[{\"kind\":\"literal\",\"value\":\"$\"}],\"version\":\"actql-regex-replacement-ast/0.1\"}",
+      "expected_cid": "sha256:610223a754b5e4d35f289306c7cfc5192ac1ae1088d90897718a8e64ba6b32d1",
+      "expected_ast": "{\"ast_cid\":\"sha256:610223a754b5e4d35f289306c7cfc5192ac1ae1088d90897718a8e64ba6b32d1\",\"capture_reference_count\":0,\"literal_utf8_bytes\":1,\"max_capture_index\":0,\"parts\":[{\"kind\":\"literal\",\"value\":\"$\"}],\"version\":\"actql-regex-replacement-ast/0.1\"}"
+    },
+    {
+      "id": "double-dollar",
+      "text": "$$$$",
+      "parts": [
+        {
+          "kind": "literal",
+          "value": "$$"
+        }
+      ],
+      "expected_preimage": "{\"capture_reference_count\":0,\"literal_utf8_bytes\":2,\"max_capture_index\":0,\"parts\":[{\"kind\":\"literal\",\"value\":\"$$\"}],\"version\":\"actql-regex-replacement-ast/0.1\"}",
+      "expected_cid": "sha256:10570cdd1c8c5234f11a660467cfa2fd7394dd7627d9a28dd49507b02dd88e69",
+      "expected_ast": "{\"ast_cid\":\"sha256:10570cdd1c8c5234f11a660467cfa2fd7394dd7627d9a28dd49507b02dd88e69\",\"capture_reference_count\":0,\"literal_utf8_bytes\":2,\"max_capture_index\":0,\"parts\":[{\"kind\":\"literal\",\"value\":\"$$\"}],\"version\":\"actql-regex-replacement-ast/0.1\"}"
+    },
+    {
+      "id": "coalesced",
+      "text": "a$$b",
+      "parts": [
+        {
+          "kind": "literal",
+          "value": "a$b"
+        }
+      ],
+      "expected_preimage": "{\"capture_reference_count\":0,\"literal_utf8_bytes\":3,\"max_capture_index\":0,\"parts\":[{\"kind\":\"literal\",\"value\":\"a$b\"}],\"version\":\"actql-regex-replacement-ast/0.1\"}",
+      "expected_cid": "sha256:0c8ff743800be50dfd926b38c94e06b67237c342f1b09eec732836a7afacf73f",
+      "expected_ast": "{\"ast_cid\":\"sha256:0c8ff743800be50dfd926b38c94e06b67237c342f1b09eec732836a7afacf73f\",\"capture_reference_count\":0,\"literal_utf8_bytes\":3,\"max_capture_index\":0,\"parts\":[{\"kind\":\"literal\",\"value\":\"a$b\"}],\"version\":\"actql-regex-replacement-ast/0.1\"}"
+    },
+    {
+      "id": "capture",
+      "text": "$1",
+      "parts": [
+        {
+          "kind": "capture",
+          "capture": 1
+        }
+      ],
+      "expected_preimage": "{\"capture_reference_count\":1,\"literal_utf8_bytes\":0,\"max_capture_index\":1,\"parts\":[{\"capture\":1,\"kind\":\"capture\"}],\"version\":\"actql-regex-replacement-ast/0.1\"}",
+      "expected_cid": "sha256:4980d30c81449fa09e0526c2be2976f1cbf4b274080367c7bf90f827595deae5",
+      "expected_ast": "{\"ast_cid\":\"sha256:4980d30c81449fa09e0526c2be2976f1cbf4b274080367c7bf90f827595deae5\",\"capture_reference_count\":1,\"literal_utf8_bytes\":0,\"max_capture_index\":1,\"parts\":[{\"capture\":1,\"kind\":\"capture\"}],\"version\":\"actql-regex-replacement-ast/0.1\"}"
+    },
+    {
+      "id": "largest",
+      "text": "$99",
+      "parts": [
+        {
+          "kind": "capture",
+          "capture": 99
+        }
+      ],
+      "expected_preimage": "{\"capture_reference_count\":1,\"literal_utf8_bytes\":0,\"max_capture_index\":99,\"parts\":[{\"capture\":99,\"kind\":\"capture\"}],\"version\":\"actql-regex-replacement-ast/0.1\"}",
+      "expected_cid": "sha256:a5db9bee7d13f0b5a0e71a26361eb2d509524b37185bd8472d7c75c8a102c323",
+      "expected_ast": "{\"ast_cid\":\"sha256:a5db9bee7d13f0b5a0e71a26361eb2d509524b37185bd8472d7c75c8a102c323\",\"capture_reference_count\":1,\"literal_utf8_bytes\":0,\"max_capture_index\":99,\"parts\":[{\"capture\":99,\"kind\":\"capture\"}],\"version\":\"actql-regex-replacement-ast/0.1\"}"
+    },
+    {
+      "id": "greedy-two",
+      "text": "$100",
+      "parts": [
+        {
+          "kind": "capture",
+          "capture": 10
+        },
+        {
+          "kind": "literal",
+          "value": "0"
+        }
+      ],
+      "expected_preimage": "{\"capture_reference_count\":1,\"literal_utf8_bytes\":1,\"max_capture_index\":10,\"parts\":[{\"capture\":10,\"kind\":\"capture\"},{\"kind\":\"literal\",\"value\":\"0\"}],\"version\":\"actql-regex-replacement-ast/0.1\"}",
+      "expected_cid": "sha256:637f282ccb61b8371f9d1d64e809fc201517b97d9ceb9d00cc51db715ec0b976",
+      "expected_ast": "{\"ast_cid\":\"sha256:637f282ccb61b8371f9d1d64e809fc201517b97d9ceb9d00cc51db715ec0b976\",\"capture_reference_count\":1,\"literal_utf8_bytes\":1,\"max_capture_index\":10,\"parts\":[{\"capture\":10,\"kind\":\"capture\"},{\"kind\":\"literal\",\"value\":\"0\"}],\"version\":\"actql-regex-replacement-ast/0.1\"}"
+    },
+    {
+      "id": "extra-digits",
+      "text": "$9999",
+      "parts": [
+        {
+          "kind": "capture",
+          "capture": 99
+        },
+        {
+          "kind": "literal",
+          "value": "99"
+        }
+      ],
+      "expected_preimage": "{\"capture_reference_count\":1,\"literal_utf8_bytes\":2,\"max_capture_index\":99,\"parts\":[{\"capture\":99,\"kind\":\"capture\"},{\"kind\":\"literal\",\"value\":\"99\"}],\"version\":\"actql-regex-replacement-ast/0.1\"}",
+      "expected_cid": "sha256:ed2a0b637e3c5e2ccfa96d03ef1ef8520b7e40ae30365fd6155c1a0c203e5a33",
+      "expected_ast": "{\"ast_cid\":\"sha256:ed2a0b637e3c5e2ccfa96d03ef1ef8520b7e40ae30365fd6155c1a0c203e5a33\",\"capture_reference_count\":1,\"literal_utf8_bytes\":2,\"max_capture_index\":99,\"parts\":[{\"capture\":99,\"kind\":\"capture\"},{\"kind\":\"literal\",\"value\":\"99\"}],\"version\":\"actql-regex-replacement-ast/0.1\"}"
+    },
+    {
+      "id": "dollar-capture",
+      "text": "$$$1",
+      "parts": [
+        {
+          "kind": "literal",
+          "value": "$"
+        },
+        {
+          "kind": "capture",
+          "capture": 1
+        }
+      ],
+      "expected_preimage": "{\"capture_reference_count\":1,\"literal_utf8_bytes\":1,\"max_capture_index\":1,\"parts\":[{\"kind\":\"literal\",\"value\":\"$\"},{\"capture\":1,\"kind\":\"capture\"}],\"version\":\"actql-regex-replacement-ast/0.1\"}",
+      "expected_cid": "sha256:9d3f589f7f21a28390f6ebed149a2011bbd5e4aa41a59d6aa7e48abe4e79549a",
+      "expected_ast": "{\"ast_cid\":\"sha256:9d3f589f7f21a28390f6ebed149a2011bbd5e4aa41a59d6aa7e48abe4e79549a\",\"capture_reference_count\":1,\"literal_utf8_bytes\":1,\"max_capture_index\":1,\"parts\":[{\"kind\":\"literal\",\"value\":\"$\"},{\"capture\":1,\"kind\":\"capture\"}],\"version\":\"actql-regex-replacement-ast/0.1\"}"
+    },
+    {
+      "id": "repeated",
+      "text": "$2-$1$2",
+      "parts": [
+        {
+          "kind": "capture",
+          "capture": 2
+        },
+        {
+          "kind": "literal",
+          "value": "-"
+        },
+        {
+          "kind": "capture",
+          "capture": 1
+        },
+        {
+          "kind": "capture",
+          "capture": 2
+        }
+      ],
+      "expected_preimage": "{\"capture_reference_count\":3,\"literal_utf8_bytes\":1,\"max_capture_index\":2,\"parts\":[{\"capture\":2,\"kind\":\"capture\"},{\"kind\":\"literal\",\"value\":\"-\"},{\"capture\":1,\"kind\":\"capture\"},{\"capture\":2,\"kind\":\"capture\"}],\"version\":\"actql-regex-replacement-ast/0.1\"}",
+      "expected_cid": "sha256:57b44872220727d67640afab02c03e062c31e06abb39797ee365d072e9903a4c",
+      "expected_ast": "{\"ast_cid\":\"sha256:57b44872220727d67640afab02c03e062c31e06abb39797ee365d072e9903a4c\",\"capture_reference_count\":3,\"literal_utf8_bytes\":1,\"max_capture_index\":2,\"parts\":[{\"capture\":2,\"kind\":\"capture\"},{\"kind\":\"literal\",\"value\":\"-\"},{\"capture\":1,\"kind\":\"capture\"},{\"capture\":2,\"kind\":\"capture\"}],\"version\":\"actql-regex-replacement-ast/0.1\"}"
+    },
+    {
+      "id": "backslash",
+      "text": "\\$1",
+      "parts": [
+        {
+          "kind": "literal",
+          "value": "\\"
+        },
+        {
+          "kind": "capture",
+          "capture": 1
+        }
+      ],
+      "expected_preimage": "{\"capture_reference_count\":1,\"literal_utf8_bytes\":1,\"max_capture_index\":1,\"parts\":[{\"kind\":\"literal\",\"value\":\"\\\\\"},{\"capture\":1,\"kind\":\"capture\"}],\"version\":\"actql-regex-replacement-ast/0.1\"}",
+      "expected_cid": "sha256:16344c3ede1f0323914caa898846b50d1e3ffea8b39bac96c3f870b818d0b56e",
+      "expected_ast": "{\"ast_cid\":\"sha256:16344c3ede1f0323914caa898846b50d1e3ffea8b39bac96c3f870b818d0b56e\",\"capture_reference_count\":1,\"literal_utf8_bytes\":1,\"max_capture_index\":1,\"parts\":[{\"kind\":\"literal\",\"value\":\"\\\\\"},{\"capture\":1,\"kind\":\"capture\"}],\"version\":\"actql-regex-replacement-ast/0.1\"}"
+    },
+    {
+      "id": "unicode",
+      "text": "é😀$$$1日本",
+      "parts": [
+        {
+          "kind": "literal",
+          "value": "é😀$"
+        },
+        {
+          "kind": "capture",
+          "capture": 1
+        },
+        {
+          "kind": "literal",
+          "value": "日本"
+        }
+      ],
+      "expected_preimage": "{\"capture_reference_count\":1,\"literal_utf8_bytes\":13,\"max_capture_index\":1,\"parts\":[{\"kind\":\"literal\",\"value\":\"é😀$\"},{\"capture\":1,\"kind\":\"capture\"},{\"kind\":\"literal\",\"value\":\"日本\"}],\"version\":\"actql-regex-replacement-ast/0.1\"}",
+      "expected_cid": "sha256:4bb2b6ea30d7b253e28e9cf5608aabf621b60cb2ccc7eede34a030fa46d9b4e8",
+      "expected_ast": "{\"ast_cid\":\"sha256:4bb2b6ea30d7b253e28e9cf5608aabf621b60cb2ccc7eede34a030fa46d9b4e8\",\"capture_reference_count\":1,\"literal_utf8_bytes\":13,\"max_capture_index\":1,\"parts\":[{\"kind\":\"literal\",\"value\":\"é😀$\"},{\"capture\":1,\"kind\":\"capture\"},{\"kind\":\"literal\",\"value\":\"日本\"}],\"version\":\"actql-regex-replacement-ast/0.1\"}"
+    },
+    {
+      "id": "control",
+      "text": "\u0000\n$1",
+      "parts": [
+        {
+          "kind": "literal",
+          "value": "\u0000\n"
+        },
+        {
+          "kind": "capture",
+          "capture": 1
+        },
+        {
+          "kind": "literal",
+          "value": ""
+        }
+      ],
+      "expected_preimage": "{\"capture_reference_count\":1,\"literal_utf8_bytes\":4,\"max_capture_index\":1,\"parts\":[{\"kind\":\"literal\",\"value\":\"\\u0000\\n\"},{\"capture\":1,\"kind\":\"capture\"},{\"kind\":\"literal\",\"value\":\"\"}],\"version\":\"actql-regex-replacement-ast/0.1\"}",
+      "expected_cid": "sha256:79e04c76bdfa0bdc74d844ee6fef3189af833fce5a322a4e000e856a5c80945b",
+      "expected_ast": "{\"ast_cid\":\"sha256:79e04c76bdfa0bdc74d844ee6fef3189af833fce5a322a4e000e856a5c80945b\",\"capture_reference_count\":1,\"literal_utf8_bytes\":4,\"max_capture_index\":1,\"parts\":[{\"kind\":\"literal\",\"value\":\"\\u0000\\n\"},{\"capture\":1,\"kind\":\"capture\"},{\"kind\":\"literal\",\"value\":\"\"}],\"version\":\"actql-regex-replacement-ast/0.1\"}"
+    },
+    {
+      "id": "parameter-looking",
+      "text": "$$param",
+      "parts": [
+        {
+          "kind": "literal",
+          "value": "$param"
+        }
+      ],
+      "expected_preimage": "{\"capture_reference_count\":0,\"literal_utf8_bytes\":6,\"max_capture_index\":0,\"parts\":[{\"kind\":\"literal\",\"value\":\"$param\"}],\"version\":\"actql-regex-replacement-ast/0.1\"}",
+      "expected_cid": "sha256:9db8f5de00dab955002e29f26462fb8baea5df2614d044b4f2483cc9a2b67fc2",
+      "expected_ast": "{\"ast_cid\":\"sha256:9db8f5de00dab955002e29f26462fb8baea5df2614d044b4f2483cc9a2b67fc2\",\"capture_reference_count\":0,\"literal_utf8_bytes\":6,\"max_capture_index\":0,\"parts\":[{\"kind\":\"literal\",\"value\":\"$param\"}],\"version\":\"actql-regex-replacement-ast/0.1\"}"
+    },
+    {
+      "id": "zero-literal",
+      "text": "0",
+      "parts": [
+        {
+          "kind": "literal",
+          "value": "0"
+        }
+      ],
+      "expected_preimage": "{\"capture_reference_count\":0,\"literal_utf8_bytes\":1,\"max_capture_index\":0,\"parts\":[{\"kind\":\"literal\",\"value\":\"0\"}],\"version\":\"actql-regex-replacement-ast/0.1\"}",
+      "expected_cid": "sha256:e46a659132262e3b385f64abd11510a90171a84947043d27bb1ae32446858a33",
+      "expected_ast": "{\"ast_cid\":\"sha256:e46a659132262e3b385f64abd11510a90171a84947043d27bb1ae32446858a33\",\"capture_reference_count\":0,\"literal_utf8_bytes\":1,\"max_capture_index\":0,\"parts\":[{\"kind\":\"literal\",\"value\":\"0\"}],\"version\":\"actql-regex-replacement-ast/0.1\"}"
+    }
+  ],
+  "rejected": [
+    {
+      "id": "bare",
+      "text": "$",
+      "issue": "InvalidReplacement(0)"
+    },
+    {
+      "id": "tail",
+      "text": "a$",
+      "issue": "InvalidReplacement(1)"
+    },
+    {
+      "id": "zero",
+      "text": "$0",
+      "issue": "InvalidReplacement(0)"
+    },
+    {
+      "id": "leading-zero",
+      "text": "$01",
+      "issue": "InvalidReplacement(0)"
+    },
+    {
+      "id": "braced",
+      "text": "${1}",
+      "issue": "InvalidReplacement(0)"
+    },
+    {
+      "id": "named",
+      "text": "$name",
+      "issue": "InvalidReplacement(0)"
+    },
+    {
+      "id": "arabic",
+      "text": "$١",
+      "issue": "InvalidReplacement(0)"
+    },
+    {
+      "id": "fullwidth",
+      "text": "$１",
+      "issue": "InvalidReplacement(0)"
+    },
+    {
+      "id": "dollar-dangling",
+      "text": "$$$",
+      "issue": "InvalidReplacement(2)"
+    },
+    {
+      "id": "supplementary-offset",
+      "text": "😀$x",
+      "issue": "InvalidReplacement(2)"
+    },
+    {
+      "id": "nfd",
+      "text": "é",
+      "issue": "NonCanonicalText"
+    },
+    {
+      "id": "cr",
+      "text": "a\rb",
+      "issue": "NonCanonicalText"
+    },
+    {
+      "id": "crlf",
+      "text": "a\r\nb",
+      "issue": "NonCanonicalText"
+    }
+  ]
+}

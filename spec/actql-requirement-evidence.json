@@ -2049,6 +2049,17 @@
       }
     },
     {
+      "requirement_id": "actql.language/text-time.replacement-tokenization",
+      "statement_sha256": "858d65f604bb3f7ea7f374852605dfe8a09e16fa7ead992706c1454b32b95328",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "text-time",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.language/text-time.it-must-return-null-for-invalid-calendar-input-text",
       "statement_sha256": "8290bdcf611d7a063445a706e44bc97f6ef07b3b190204d8fe5348d7685beaea",
       "status": "pending",

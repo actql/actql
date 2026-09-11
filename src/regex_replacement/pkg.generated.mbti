@@ -1,0 +1,59 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/regex_replacement"
+
+import {
+  "actql/actql/encode_core",
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn cid(Replacement) -> String
+
+pub fn emit(Replacement, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
+
+pub fn emit_preimage(Replacement, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
+
+pub fn parse(String, Limits) -> Result[Replacement, Issue]
+
+pub fn part_at(Replacement, Int) -> Part?
+
+pub fn part_count(Replacement) -> Int
+
+pub fn stats(Replacement) -> Stats
+
+pub fn usage(Replacement) -> (Int, Int, Int)
+
+// Errors
+
+// Types and methods
+pub(all) enum Issue {
+  InvalidLimits
+  BudgetExceeded
+  InvalidUnicode(Int)
+  NonCanonicalText
+  InvalidReplacement(Int)
+} derive(Eq, @debug.Debug)
+
+pub(all) struct Limits {
+  max_input_bytes : Int
+  max_parts : Int
+  max_ast_bytes : Int
+  max_ast_nodes : Int
+} derive(Eq, @debug.Debug)
+
+pub(all) enum Part {
+  Literal(String)
+  Capture(Int)
+} derive(Eq, @debug.Debug)
+
+type Replacement
+
+pub struct Stats {
+  literal_utf8_bytes : Int
+  capture_reference_count : Int
+  max_capture_index : Int
+} derive(Eq, @debug.Debug)
+
+// Type aliases
+
+// Traits

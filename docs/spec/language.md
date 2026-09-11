@@ -2648,6 +2648,19 @@ at Check, while an unmatched admitted capture expands to the empty string. The
 portable output ceiling accounts for every literal and repeated capture
 expansion. A limit breach fails atomically.
 
+<!-- requirement-block: text-time.replacement-tokenization -->
+Regex replacement tokenization MUST consume `$$` as one literal dollar, or a
+dollar followed by one ASCII digit `1..9` and, when present, one further ASCII
+digit `0..9` as a capture reference. Further digits are literal text: `$100`
+denotes capture 10 followed by literal `0`, not capture 100. Other dollar
+forms, including `$0`, `$01`, a bare dollar and `${1}`, are invalid. Backslash
+has no special replacement meaning. The canonical replacement AST coalesces
+adjacent literal text, including decoded `$$`, into one nonempty literal part;
+capture parts retain their order and repetition. An empty replacement has an
+empty parts array. Its literal UTF-8 byte total, capture reference count and
+maximum capture index (zero with no references) describe these parts, not the
+source spelling or a deduplicated set of captures.
+
 The operation/input matrix is closed: `split_part`, `substring`,
 `utf8_truncate`, `try_number`, `parse_timestamp`, `regex_match`,
 `regex_extract`, `regex_replace`, `nfkc`, `case_fold`, and `try_timestamp`
