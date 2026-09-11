@@ -70,8 +70,13 @@ step dependency (and `None` for an external input). `input_count` counts both.
 The original `check_with_inputs` remains the step-only convenience entry.
 Arity and operand budgets are checked before allocating the retained array.
 Cross-pipeline forwarding retains exact producer
-owners and charges the existing traversal budget. Non-row measures currently
-cross input forwarding only, not unchecked intermediate Graph operations.
+owners and charges the existing traversal budget. Node/edge measures may also
+cross checked `normalize_graph` and `subgraph` steps: neither can increase the
+respective input entity count. They retain the original upper-bound owner,
+not an exact output count or evidence that selector/Graph validation has run.
+Every traversed step is charged. Other Graph operations, including expanding
+unions, still require their own checked capacity applications and cannot be
+skipped by this forwarding path.
 Graph preflight linkage retains the admitted input owner, selected policy,
 source collection and pending enforcement obligation. Application collection
 closure rejects roots from a separately admitted collection, even when their

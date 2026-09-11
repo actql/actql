@@ -210,6 +210,68 @@ test "Graph source bounds compose through repeated union inputs and row bridges"
 }
 
 ///|
+test "Graph bounds cross normalization and subgraph without crossing expanding unions" {
+  let policy = policy(false)
+  for
+    (operation, measure, law) in [
+      ("node_rows", @input.Nodes, "actql.bound.graph-node-rows"),
+      ("edge_rows", @input.Edges, "actql.bound.graph-edge-rows"),
+    ] {
+    let text = "[{\"normalize_graph\":true},{\"subgraph\":{\"nodes\":{\"ids\":[\"a\"]}}},{\"" +
+      operation +
+      "\":true}]"
+    let p = input_bound_pipeline(text)
+    let graph = @input.check(p, sources(0, policy), policy, caps()).unwrap()
+    let input = @input.input_bound(graph, 0, measure).unwrap()
+    let proof = graph_proof(
+      law,
+      1L,
+      "{\"op\":\"source\"}",
+      reference="checked-step:2",
+      inputs=[@wire.cid(@input.bound_witness(input))],
+    )
+    let app = @program.check_with_sources(
+      p,
+      2,
+      proof,
+      [@program.GraphInput(input)],
+      max_input_work=2,
+    ).unwrap()
+    assert_eq(@program.input_work(app), 2)
+    guard @program.source_at(app, 0) is Some(@program.GraphInput(retained)) else {
+      abort("missing original preflight")
+    }
+    assert_true(physical_equal(@input.bound_owner(retained), graph))
+    assert_true(
+      @program.check_with_sources(
+        p,
+        2,
+        proof,
+        [@program.GraphInput(input)],
+        max_input_work=1,
+      )
+      is Err(InputWorkLimit),
+    )
+    let expanded = input_bound_pipeline(
+      "[{\"union_graphs\":{\"with\":\"g\"}},{\"normalize_graph\":true},{\"" +
+      operation +
+      "\":true}]",
+    )
+    let root = @input.check(expanded, sources(0, policy), policy, caps()).unwrap()
+    assert_true(
+      @program.check_with_sources(
+        expanded,
+        2,
+        proof,
+        [@program.GraphInput(@input.input_bound(root, 0, measure).unwrap())],
+        max_input_work=2,
+      )
+      is Err(InputTargetMismatch(0)),
+    )
+  }
+}
+
+///|
 test "Graph preflight bounds follow actual imported owners under cumulative traversal budgets" {
   let policy = policy(false)
   let base = input_bound_pipeline("[]")

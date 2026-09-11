@@ -337,7 +337,21 @@ fn operation_rule(
 ///|
 // Reuse an upstream upper bound only through checked non-expanding operations.
 // This is not an exact-count transfer or discharge of their pending validations.
-fn forwarded_input(step : @pipeline.CheckedStep) -> @pipeline.Target? {
+fn forwarded_input(
+  step : @pipeline.CheckedStep,
+  unit : @arithmetic.BoundUnit,
+) -> @pipeline.Target? {
+  if unit == @arithmetic.Nodes || unit == @arithmetic.Edges {
+    return match step.operation {
+      @pipeline.Graph(op) if @graph.operation(op) == @graph.NormalizeGraph =>
+        step.input
+      @pipeline.Subgraph(..) => step.input
+      _ => None
+    }
+  }
+  if unit != @arithmetic.Rows {
+    return None
+  }
   let preserves_upper = match step.operation {
     @pipeline.Unary(op) | @pipeline.WindowGroup(op) =>
       match @relation.row_count_rule(op) {
@@ -576,11 +590,7 @@ fn check_application(
         }
         @pipeline.Step(index) => {
           let step = @pipeline.step_at(owner, index).unwrap()
-          let forwarded = if expected_unit == @arithmetic.Rows {
-            forwarded_input(step)
-          } else {
-            None
-          }
+          let forwarded = forwarded_input(step, expected_unit)
           guard forwarded is Some(next) else {
             if !physical_equal(input_owner, owner) {
               return Err(InputOwnerMismatch(i))
