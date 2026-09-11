@@ -16,6 +16,7 @@ import {
   "actql/actql/vector_typing" @vector,
   "actql/actql/temporal_window" @window,
   "actql/actql/carrier_contract" @carrier,
+  "actql/actql/graph_typing" @graph,
   "actql/actql/value_contract" @contract,
   "actql/actql/relation_join_shape" @join,
   "actql/actql/calendar_typing" @calendar,

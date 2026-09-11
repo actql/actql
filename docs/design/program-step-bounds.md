@@ -47,6 +47,8 @@ row bridges explicitly validate both the output and dependency units below.
 | Explicit `graph` construction | `actql.bound.graph-nodes` converts the actual node branch's row upper bound to `nodes`; `actql.bound.graph-edges` converts the actual edge branch's row upper bound to `edges`. Each uses a source derivation with its exact input application. |
 | Concise edge-list `graph` | The same Graph laws use the actual edge input: at most two endpoint nodes per row and at most one edge per row. Checked multiplication fails on overflow. |
 | `node_rows`, `edge_rows` | `actql.bound.graph-node-rows` and `actql.bound.graph-edge-rows` convert an actual producer's respective `nodes` or `edges` bound into `rows`, using a source derivation. |
+| `graft_graph`, `union_graphs` | `actql.bound.graph-nodes` / `actql.bound.graph-edges` sum the same-unit bounds from every actual operand occurrence. Union lists include the current input first, then every listed reference, including repetitions. |
+| `subtract_graphs` | The same measure-specific laws retain the left input bound; subtraction cannot add entities. The right data dependency and all property/endpoint validation obligations remain on the checked operation. |
 
 Graph measure conversion is a source-law application, not a same-unit preserve
 or multiply derivation. The fixed Sketch compiler separately materializes the
@@ -64,8 +66,19 @@ Row bridges require a checked Graph measure application, not the pipeline's
 conditional numeric summary. Cross-pipeline forwarding retains exact producer
 owners and charges the existing traversal budget. Non-row measures currently
 cross input forwarding only, not unchecked intermediate Graph operations.
-Union/graft/subtraction source applications, Graph preflight-to-measure linkage,
-source identity and complete consumer enforcement remain unfinished.
+Graph preflight-to-measure linkage, source identity and complete consumer
+enforcement remain unfinished.
+
+Structural composition validates each operand's measure and exact data-edge
+owner before summing; the proof's sorted input references retain multiplicity.
+Its bounded operand passes use `max_operand_work`, including before allocation
+of the owned dependency array. A source derivation retains all participating
+applications; binary additions may also use the exact left/right add derivation,
+and subtraction may use preserve of the exact left witness. Overflow rejects
+rather than truncating or claiming a saturated bound. Sum arithmetic does not
+authorize reassociation of graph property strategies such as pairwise mean.
+The fixed Sketch compiler copied the left graph shape after structural union;
+that implementation detail is not used as a sound output bound here.
 
 `check_with_inputs` also accepts one input application for selection,
 clamping its bound to the exact checked count. Offset does not weaken this upper

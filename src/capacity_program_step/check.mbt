@@ -77,6 +77,7 @@ priv enum Rule {
   Ranking(Int, Int64?)
   Join(@join.Kind)
   GraphMeasure(@arithmetic.BoundUnit, @arithmetic.BoundUnit, Int, Int64)
+  GraphCombine(@arithmetic.BoundUnit, Int)
 }
 
 ///|
@@ -85,6 +86,26 @@ fn operation_rule(
   bindings : CountBindings?,
   unit : @arithmetic.BoundUnit,
 ) -> Result[(String, Rule), Issue] {
+  let graph_inputs = match step.operation {
+    @pipeline.GraphUnion(_) => Some(@pipeline.input_occurrence_count(step))
+    @pipeline.GraphStructural(checked~, ..) =>
+      Some(
+        if @graph.structural_operation(checked) == @graph.Subtract {
+          1
+        } else {
+          2
+        },
+      )
+    _ => None
+  }
+  if graph_inputs is Some(n) {
+    let law = match unit {
+      @arithmetic.Nodes => "actql.bound.graph-nodes"
+      @arithmetic.Edges => "actql.bound.graph-edges"
+      _ => return Err(LawMismatch)
+    }
+    return Ok((law, GraphCombine(unit, n)))
+  }
   match step.operation {
     @pipeline.GraphConstruction(nodes~, ..) => {
       if unit == @arithmetic.Nodes {
@@ -436,6 +457,7 @@ fn check_application(
     Join(_) => n == 2
     Multiply(_) => n == 1
     GraphMeasure(_, _, _, _) => n == 1
+    GraphCombine(_, expected) => n == expected
     QueryTopK(_) => n == 1 || n == 2
     Ranking(expected, maximum) =>
       n == expected || (n == 0 && maximum is Some(_))
@@ -443,7 +465,7 @@ fn check_application(
   if !valid_count || @wire.program_proof_input_count(proof) != n {
     return Err(InputCountMismatch)
   }
-  let operand_work = if rule is Ranking(_, _) {
+  let operand_work = if rule is Ranking(_, _) || rule is GraphCombine(_, _) {
     // Five bounded passes: edges, multiset construction, proof comparison,
     // arithmetic and owned input copy. Check before allocating either table.
     if n > max_operand_work / 5 {
@@ -458,6 +480,7 @@ fn check_application(
   for i in 0..<n {
     let expected_unit = match rule {
       GraphMeasure(_, unit, _, _) => unit
+      GraphCombine(unit, _) => unit
       _ => @arithmetic.Rows
     }
     if @wire.unit(@wire.program_proof_witness(inputs[i].proof)) != expected_unit {
@@ -512,7 +535,7 @@ fn check_application(
   }
   // Proof arrays sort capacity operands but retain repetitions. Derivations
   // below must still match their actual left/right data roles.
-  if rule is Ranking(_, _) {
+  if rule is Ranking(_, _) || rule is GraphCombine(_, _) {
     let remaining : Map[String, Int] = Map([])
     for id in ids {
       remaining[id] = remaining.get(id).unwrap_or(0) + 1
@@ -535,6 +558,7 @@ fn check_application(
   }
   let output_unit = match rule {
     GraphMeasure(unit, _, _, _) => unit
+    GraphCombine(unit, _) => unit
     _ => @arithmetic.Rows
   }
   if @law.name(@wire.law(witness)) != law ||
@@ -553,6 +577,16 @@ fn check_application(
         Ok(v) => @numeric.value(v)
         Err(_) => return Err(BoundOverflow)
       }
+    GraphCombine(_, _) => {
+      let mut total = @numeric.read(0L).unwrap()
+      for i in 0..<n {
+        total = match @numeric.add(total, input_value(i)) {
+          Ok(v) => v
+          Err(_) => return Err(BoundOverflow)
+        }
+      }
+      @numeric.value(total)
+    }
     Preserve => @numeric.value(input_value(0))
     Clamp(maximum) =>
       @numeric.value(
@@ -620,6 +654,10 @@ fn check_application(
     (One, @wire.SourceValue) => ()
     (Constant(_), @wire.SourceValue) => ()
     (GraphMeasure(_, _, _, _), @wire.SourceValue) => ()
+    (GraphCombine(_, _), @wire.SourceValue) => ()
+    (GraphCombine(_, 1), @wire.Preserve(input)) if input == ids[0] => ()
+    (GraphCombine(_, 2), @wire.Add(left, right)) if left == ids[0] &&
+      right == ids[1] => ()
     (Join(_), @wire.SourceValue) => ()
     (Preserve, @wire.Preserve(input)) if input == ids[0] => ()
     (Clamp(expected), @wire.Clamp(input, maximum)) if maximum == expected &&

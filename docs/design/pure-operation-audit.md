@@ -391,11 +391,9 @@ checks; merge evaluation and canonical binary lowering remain outside this work.
 `capacity_program_step/graph_union_test.mbt` checks the separate capacity boundary
 for scalar, singleton and repeated-list union and both row bridges. Conditional
 node/edge bounds propagate, but integrity-valid union Program claims (including
-the same numeric bound) still fail with `UnsupportedOperation`. Row bridges now
-have measure-conversion applications but reject a claim without its required
-Graph dependency. Registry membership, source hashing and conditional counts
-cannot fill that gap. Union source/law validation remains required shared work;
-this rejection test prevents claiming it complete through the list addition.
+the same numeric bound) reject without their required checked Graph dependencies.
+Row bridges likewise require their corresponding measure applications. Registry
+membership, source hashing and conditional counts cannot replace those owners.
 
 `capacity_program_step/graph_measure_test.mbt` separately checks explicit Graph
 construction across empty/nonempty node and edge inputs, concise endpoint
@@ -404,8 +402,18 @@ actual input roles, unit conversion, source-law arithmetic and exact dependency
 owners; same-valued foreign inputs and swapped node/edge/row measures reject.
 Collection coverage retains all node/edge applications and their row sources.
 Imported Graph measures preserve original producer ownership under exact/one-less
-traversal budgets. This closes these local conversion applications, not Graph
-union laws, preflight-to-measure admission or enclosing Program identity.
+traversal budgets. This closes these local conversion applications, not
+preflight-to-measure admission or enclosing Program identity.
+
+`capacity_program_step/graph_structural_test.mbt` adds node and edge proof
+applications for graft, scalar/list union and subtraction across empty/nonempty
+inputs. Every case checks actual left/right owners, repeated occurrences,
+collection closure, row-bridge consumption and exact/one-less operand budgets.
+Subtraction uses only its left capacity bound without losing its right data
+dependency. A 33-occurrence union checks retained duplicates and safe-integer
+overflow rejection; matching conditional summaries do not bypass application
+checks. This closes local structural count-law application, not graph value
+admission, resource enforcement or complete source authority.
 
 ## Shared-boundary findings
 
