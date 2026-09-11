@@ -399,6 +399,11 @@ matching automaton or proof that session-boundary values have been computed.
    across those two supported families, requiring exact pipeline/source owners
    and selected policy identity. It preserves each scope's original bindings;
    remaining operation families and upstream closure are not certified by it.
+   Join-family output limit consumers now match selected Host fields and all
+   available registered local Program bounds to the exact checked join, cross
+   join or interval join. Tighter Host limits cannot hide omitted proofs or
+   authored guards. Author-source identity and all-join/mixed consumer coverage
+   remain open; local limit application does not discharge execution obligations.
    Do not
    expand into acquisition, an evaluator or Host dispatch.
 3. Connect contextual resolutions into a complete static checking/discharge

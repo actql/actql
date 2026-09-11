@@ -374,3 +374,41 @@ including mixed preflight claims. Their source/consumer boundaries are not
 discharged here. Zero does not prove candidate completeness, whole-Invocation
 consistency, enclosing Program identity or execution permission. The result
 retains the original collection for those remaining checks.
+
+## Join output limit consumers
+
+`check_join_limit` binds an engine-atomic output limit to an actual ordinary
+join, cross join or interval join. Its local subject is
+`join:checked-step:<index>:output`; this is an owner-relative reference, not a
+Program Definition identity or imported compiler-reference resolver. The fixed
+Sketch `87dc7144` join compiler combines available Program output proofs,
+authored guards and `max_relation_output_rows` into this kind of limit.
+The governing requirements remain Language's join and resolved-limit sections.
+
+Host sources and the complete ordinary Program application table must retain
+the exact same ProgramClaims owner. Each candidate must either be the selected
+policy's `max_relation_output_rows` Host witness, or a registered Program
+application for this exact pipeline and step. The latter preserves operand
+owners and any conditional uniqueness/assertion obligations from its checked
+application. Other steps' same-unit bounds and same-valued temporal Host fields
+cannot substitute. The selected Host candidate is required, as is every
+available registered Program application for this step, even when a tighter
+Host limit makes that proof numerically redundant. A Host-only limit is valid
+when no local output proof is available. Wire admission already checks the
+exact minimum and complete candidate bodies; this entry checks applicability
+and completeness within these supplied source owners.
+
+The result retains the pipeline, step, Host and Program owners, selected policy
+and original mixed-limit handle/index. `max_work` charges every candidate and
+every entry in the Program application table, before allocating the candidate
+membership map. Repeated candidates remain intact. Authored output guards fail
+with `UnresolvedAuthorSource`; neither equal nor tighter Host ceilings allow
+dropping them. Binding their source identity remains implementation work, not
+a language prohibition. Complete source authority, Invocation consistency,
+all-step/all-consumer coverage and runtime enforcement remain separate.
+
+Tests exercise all three join families, Host-only and Host/Program candidates,
+redundant-proof retention, omitted candidates, wrong owners/fields/subjects,
+enforcement, authored guards and exact/short work budgets. Dynamic wire helpers
+construct integrity-valid claims, including intentionally wrong applications;
+they do not compute the expected consumer acceptance from product output.
