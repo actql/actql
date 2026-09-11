@@ -18,6 +18,15 @@ exposes those retained witnesses as Relation keys. The transfer is
 derived from current Language's fixed/sliding membership semantics, not from
 physical ordering or the number of rows in a test fixture.
 
+In particular, an Event identity role is not an unconditional key on the
+projected rows: sliding membership can repeat that role value. A pending
+identity-validation obligation is not itself a tuple-uniqueness witness.
+Typed external Events and `to_events` without an input key therefore do not
+gain a projected row key. A retained membership key keeps the original
+declaration source and contract even when intermediate bridge transfers copy
+its wrapper. Multiple aliases of its start component are equivalent choices;
+deleting one must not lose a surviving alias, and deleting all loses the key.
+
 Row-preserving analytic and typed json_pick keep existing key components and
 aliases. Both checkers require fresh output fields and retain the original row
 values, so their newly computed columns neither replace nor establish keys.

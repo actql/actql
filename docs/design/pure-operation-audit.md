@@ -75,9 +75,19 @@ consumer audit.
    as-of gap now retains projected left keys and checked identity, including
    Events identity and multiple aliases, with the actual producer obligations.
    This does not complete the cross-operation key audit. The demonstrated
-   nest parent-key loss has been addressed. Audit windows and Carrier bridges independently: row
-   preservation, repeated membership and semantic identity uniqueness are not
-   interchangeable rules. Preserve original key producers and validation debts.
+   nest parent-key loss has been addressed. The Relation/Event window and Events
+   projection paths have now been inspected against `transfer_window_keys`,
+   `transfer_event_keys` and `transfer_events_projection_keys`. The regression
+   `event_membership_audit_test.mbt` adds external typed Events inputs and both
+   orders of multiple start aliases: retaining one alias preserves the composite
+   key and its original declaration debt; deleting all aliases loses that key
+   and its sort-completion evidence. Bare Event roles supply no row key, whether
+   the window is fixed or sliding. Existing `event_keys_test.mbt` and
+   `window_membership_keys_test.mbt` cover declared and absent keys through
+   `to_events`, fixed/sliding windows, watermark and row projection. This closes
+   these transfer cases, not external evidence admission or all Carrier bridges.
+   Row preservation, repeated membership and semantic identity uniqueness remain
+   distinct; producer validation debts are retained, not discharged.
    Nearest now retains its original Carrier or key collection independently of
    completed vector roles, including explicit-ID inputs that do not select a
    supplied key. Ranking provenance can recover both original sides without
