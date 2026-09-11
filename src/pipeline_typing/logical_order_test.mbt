@@ -8,7 +8,7 @@ test "generator order survives projection and empty sort without inventing field
     let order = @pipeline_typing.logical_order(p, Step(i)).unwrap()
     assert_eq(@pipeline_typing.order_origin(order), Step(0))
     assert_true(
-      @pipeline_typing.order_producer(order).operation is TimeSeries(_),
+      @pipeline_typing.order_producer(order).unwrap().operation is TimeSeries(_),
     )
     assert_eq(
       @pipeline_typing.order_predecessor(order),
@@ -60,7 +60,9 @@ test "calendar series order retains its admitted profile but unknown input order
   ).unwrap()
   let order = @pipeline_typing.logical_order(p, Step(1)).unwrap()
   assert_eq(@pipeline_typing.order_origin(order), Step(0))
-  assert_true(@pipeline_typing.order_producer(order).operation is Calendar(_))
+  assert_true(
+    @pipeline_typing.order_producer(order).unwrap().operation is Calendar(_),
+  )
   let unknown = @pipeline_typing.check_carriers(
     cursor("[{\"sort\":[]}]"),
     [("input", @pipeline_typing.output_carrier(p).unwrap())],

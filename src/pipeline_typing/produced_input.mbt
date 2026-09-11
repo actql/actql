@@ -8,6 +8,7 @@ struct ProducedInput {
   graph : GraphCount?
   keys : @evidence.KeySet?
   ranking : @vector.RankingInput?
+  order : LogicalOrder?
 }
 
 ///|
@@ -26,6 +27,7 @@ pub fn produced_input(
     graph: graph_count(pipeline, target),
     keys: key_at(target, pipeline.keyed_inputs, pipeline.keyed_steps),
     ranking: ranking_evidence(pipeline, target),
+    order: logical_order(pipeline, target),
   })
 }
 
@@ -45,4 +47,10 @@ pub fn producer_pipeline(input : ProducedInput) -> CheckedPipeline {
 ///|
 pub fn producer_target(input : ProducedInput) -> Target {
   input.target
+}
+
+///|
+/// Original order in producer_pipeline's coordinates, with all producer debts.
+pub fn producer_order(input : ProducedInput) -> LogicalOrder? {
+  input.order
 }

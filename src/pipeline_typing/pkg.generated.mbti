@@ -136,13 +136,15 @@ pub fn order_dependency_at(LogicalOrder, Int) -> Target?
 
 pub fn order_dependency_count(LogicalOrder) -> Int
 
+pub fn order_input_producer(LogicalOrder) -> ProducedInput?
+
 pub fn order_key_completion(LogicalOrder) -> @relation_evidence.KeyedRelation?
 
 pub fn order_origin(LogicalOrder) -> Target
 
 pub fn order_predecessor(LogicalOrder) -> Target?
 
-pub fn order_producer(LogicalOrder) -> CheckedStep
+pub fn order_producer(LogicalOrder) -> CheckedStep?
 
 pub fn order_sort_completion(LogicalOrder) -> SortCompletion?
 
@@ -153,6 +155,8 @@ pub fn output_schema(CheckedPipeline) -> @relation_schema.Schema?
 pub fn parameters(CheckedPipeline) -> @parameter_binding.Declarations?
 
 pub fn produced_input(CheckedPipeline, Target) -> ProducedInput?
+
+pub fn producer_order(ProducedInput) -> LogicalOrder?
 
 pub fn producer_pipeline(ProducedInput) -> CheckedPipeline
 

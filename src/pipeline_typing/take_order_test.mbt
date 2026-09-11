@@ -83,7 +83,7 @@ test "take preserves completed descending sort instead of replacing it with asce
   assert_eq(@pipeline_typing.order_origin(order), Step(1))
   assert_true(@pipeline_typing.order_key_completion(order) is None)
   assert_true(@pipeline_typing.order_sort_completion(order) is Some(_))
-  guard @pipeline_typing.order_producer(order).operation is Unary(op) else {
+  guard @pipeline_typing.order_producer(order).unwrap().operation is Unary(op) else {
     abort("sort")
   }
   assert_eq(@relation.sort_term_at(op, 0).unwrap().direction, Desc)

@@ -48,7 +48,9 @@ test "join kind determines which operand orders are required" {
         if !left_only {
           assert_eq(@pipeline.order_dependency_at(order, 1), Some(Step(2)))
         }
-        assert_true(@pipeline.order_producer(order).operation is Join(..))
+        assert_true(
+          @pipeline.order_producer(order).unwrap().operation is Join(..),
+        )
         let r = @relation_results.check(
           p,
           cursor("{\"out\":{\"from\":\"out\",\"fields\":[\"x\"]}}"),

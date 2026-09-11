@@ -55,7 +55,7 @@ test "vector scoring and pooling establish order while bridges and normalization
           Step(if established { start + 2 } else { 0 }),
         )
         if established {
-          match @pipeline.order_producer(order).operation {
+          match @pipeline.order_producer(order).unwrap().operation {
             Pool(_) => assert_eq(metric, "pool")
             Vector(op) => {
               assert_eq(@vector.operation(op), ScoreVectors)

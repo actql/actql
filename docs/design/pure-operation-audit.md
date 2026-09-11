@@ -51,7 +51,7 @@ consumer audit.
 | Input evidence bound to immutable records | `pipeline_typing/input_evidence.mbt`, `InputContract` | Keys and ranking can be combined only on matching handles. No external count/order witness variant is admitted. |
 | Candidate-key transfer | `pipeline_typing/keys.mbt::sync_keys` | Handles unary/window_group, ordinary/cross/interval joins, Calendar, time grids, nest, except/intersect, windows, Event record bridges and Graph/Vector projections. Joins retain role-tagged parent/key/cardinality dependencies; null extension does not fabricate non-null keys. Interval matching alone does not prove uniqueness; cross-join left-key preservation retains its checked singleton assertion. The default branch still returns None for other operations; this is incomplete transfer, not a language rule. |
 | Nest parent keys | `language.md#nest`, `sync_keys`, `relation_evidence/nest.mbt`, `pipeline_typing/nest_keys_test.mbt` | The baseline gap is now closed by exact-parent-bound witness transfer. Alias survival, child-key noninterference, budget boundaries and mismatched-contract rejection are tested. Child-order and capacity obligations remain independent. |
-| External order and counts | `logical_order.mbt::logical_order`, `row_counts.mbt` input cases | Ordinary inputs return None. Producer-bound inputs retain conditional counts from their immutable source pipeline; external snapshot facts and order imports still need their own boundaries. Provider enumeration and caller booleans cannot fill them. |
+| External order and counts | `logical_order.mbt::logical_order`, `row_counts.mbt` input cases | Ordinary inputs return None. Producer-bound inputs retain conditional counts and scoped order origins from their immutable source pipeline; external snapshot facts still need a verified source boundary. Provider enumeration and caller booleans cannot fill it. |
 | Conditional operation order | `logical_order.mbt` | Implemented origin/dependency graph; inspected separately from keys and counts. It is not an execution certificate. |
 | Contextual order consumers | `contextual_orders.mbt`, `aggregate_order.mbt`, `analytic_order.mbt`, `nest_order.mbt`, `input_order.mbt`, `sort_completion.mbt`, `relation_results/publication_order.mbt` | Whole-pipeline contextual order resolution now visits every step atomically under cumulative budgets, including unused branches. Results retain their separate whole-collection resolver. Combined all-obligation discharge and external input evidence admission remain unfinished. |
 | Conditional cardinality | `row_counts.mbt`, `join_evidence.mbt` | Implemented transfer and join refinement; exactness and upper bounds stay distinct. No dependency-closed resolved-limit artifact follows from a numeric summary alone. |
@@ -114,11 +114,14 @@ consumer audit.
    cycle for nearest and ranking key producers, with unchanged facade entry points.
 2. Define validated external evidence and resolved-capacity boundaries using
    the existing normative witness domains, governing laws and dependency checks.
-   [Producer-bound input counts](produced-input-evidence.md) now retain the
+   [Producer-bound input evidence](produced-input-evidence.md) now retains the
    original pipeline/target and conditional record/node/edge facts through
    input forwarding. Repeated operands and existing key/ranking owners remain
-   intact; this is not external snapshot verification, imported order evidence
-   or complete validation of the producer dependency graph.
+   intact. Imported order now uses a local input origin with an explicit
+   upstream owner, preserving repeated dependencies without reinterpreting
+   foreign step indices. Input consumers and Result publication are tested;
+   this is not external snapshot verification or complete validation of the
+   producer dependency graph.
    Shared [capacity arithmetic](capacity-arithmetic.md) is implemented and used
    by count propagation; arithmetic validation does not close this requirement.
    [Derivation consistency](capacity-derivation.md) checks bounded numerical

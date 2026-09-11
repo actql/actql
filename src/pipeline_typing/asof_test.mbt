@@ -30,7 +30,9 @@ test "as-of pipeline consumes retained Events identity and emits a typed Relatio
   let order = @pipeline_typing.logical_order(p, Step(2)).unwrap()
   assert_eq(@pipeline_typing.order_origin(order), Step(1))
   assert_eq(@pipeline_typing.order_dependency_count(order), 0)
-  assert_true(@pipeline_typing.order_producer(order).operation is AsOfJoin(..))
+  assert_true(
+    @pipeline_typing.order_producer(order).unwrap().operation is AsOfJoin(..),
+  )
 }
 
 ///|

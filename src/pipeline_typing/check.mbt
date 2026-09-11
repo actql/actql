@@ -2108,10 +2108,13 @@ fn check_impl(
   let (row_counts, graph_counts) = derive_row_counts(
     b, steps, join_evidence, produced_inputs,
   )
+  spend(b, source, produced_inputs.length())
+  let input_orders = imported_orders(produced_inputs)
   let (logical_orders, lag_orders, analytic_orders) = derive_logical_orders(
-    b, steps, keyed_inputs, keyed_steps,
+    b, steps, keyed_inputs, keyed_steps, input_orders,
   )
   {
+    input_orders,
     produced_inputs,
     logical_orders,
     lag_orders,

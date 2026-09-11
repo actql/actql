@@ -3,7 +3,8 @@
 /// This is not a standalone publication or runtime validation certificate.
 struct LogicalOrder {
   origin : Target
-  producer : CheckedStep
+  producer : CheckedStep?
+  imported : ProducedInput?
   predecessor : Target?
   completion : SortCompletion?
   key_order : @evidence.KeyedRelation?
@@ -25,7 +26,7 @@ pub fn order_dependency_at(order : LogicalOrder, index : Int) -> Target? {
 ///|
 pub fn logical_order(p : CheckedPipeline, target : Target) -> LogicalOrder? {
   match target {
-    Input(_) => None
+    Input(i) => p.input_orders.get(i).bind(v => v)
     Step(i) => p.logical_orders.get(i).bind(v => v)
   }
 }
@@ -36,8 +37,36 @@ pub fn order_origin(order : LogicalOrder) -> Target {
 }
 
 ///|
-pub fn order_producer(order : LogicalOrder) -> CheckedStep {
+/// A local step producer; imported input origins have no local producer step.
+pub fn order_producer(order : LogicalOrder) -> CheckedStep? {
   order.producer
+}
+
+///|
+/// The retained upstream owner for an input-origin order. Its targets belong
+/// to producer_pipeline, never to the receiving pipeline.
+pub fn order_input_producer(order : LogicalOrder) -> ProducedInput? {
+  order.imported
+}
+
+///|
+fn imported_orders(inputs : Array[ProducedInput?]) -> Array[LogicalOrder?] {
+  Array::makei(inputs.length(), i => {
+    inputs[i].bind(input => {
+      if input.order is None {
+        return None
+      }
+      Some({
+        origin: Input(i),
+        producer: None,
+        imported: Some(input),
+        predecessor: None,
+        completion: None,
+        key_order: None,
+        dependencies: [],
+      })
+    })
+  })
 }
 
 ///|
@@ -69,6 +98,7 @@ fn derive_logical_orders(
   steps : Array[CheckedStep],
   input_keys : Array[@evidence.KeySet?],
   step_keys : Array[@evidence.KeySet?],
+  input_orders : Array[LogicalOrder?],
 ) -> (
   Array[LogicalOrder?],
   Array[SortCompletion?],
@@ -102,7 +132,7 @@ fn derive_logical_orders(
     }
     let previous = step.input.bind(t => {
       match t {
-        Input(_) => None
+        Input(j) => input_orders[j]
         Step(j) => out[j]
       }
     })
@@ -195,7 +225,7 @@ fn derive_logical_orders(
           _ => false
         }
         let right_order = match right {
-          Input(_) => None
+          Input(j) => input_orders[j]
           Step(j) => out[j]
         }
         match (step.input, previous) {
@@ -212,7 +242,7 @@ fn derive_logical_orders(
       }
       Append(right~, ..) | CrossJoin(right~, ..) | IntervalJoin(right~, ..) => {
         let right_order = match right {
-          Input(_) => None
+          Input(j) => input_orders[j]
           Step(j) => out[j]
         }
         match (step.input, previous, right_order) {
@@ -241,7 +271,8 @@ fn derive_logical_orders(
         !dependencies.is_empty() {
         Some({
           origin: Step(i),
-          producer: step,
+          producer: Some(step),
+          imported: None,
           predecessor: None,
           completion,
           key_order,

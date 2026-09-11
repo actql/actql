@@ -57,7 +57,9 @@ test "Relation and Events windows retain only admitted input occurrence order" {
           assert_eq(@pipeline.order_origin(order), Step(i))
           assert_eq(@pipeline.order_dependency_count(order), 1)
           assert_eq(@pipeline.order_dependency_at(order, 0), Some(Step(i - 1)))
-          assert_true(@pipeline.order_producer(order).operation is Window(_))
+          assert_true(
+            @pipeline.order_producer(order).unwrap().operation is Window(_),
+          )
           let r = @relation_results.check(
             p,
             cursor("{\"out\":{\"from\":\"out\",\"fields\":[\"time\"]}}"),

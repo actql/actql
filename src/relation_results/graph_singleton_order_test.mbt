@@ -36,7 +36,7 @@ test "graph comparison singleton order supports structured Result publication" {
         assert_eq(@pipeline.order_origin(order), Step(0))
         assert_eq(@pipeline.order_dependency_count(order), 0)
         let inputs = @pipeline.input_occurrences(
-          @pipeline.order_producer(order),
+          @pipeline.order_producer(order).unwrap(),
         )
         assert_eq(inputs.length(), 2)
         assert_eq(inputs[0].target, Input(0))

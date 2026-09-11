@@ -17,7 +17,7 @@ test "sort completion preserves authored terms and recognizes equivalent key ali
     @evidence.key_origin(@pipeline_typing.sort_completion_key(completion)),
     TimeSeriesResult,
   )
-  guard @pipeline_typing.order_producer(order).operation is Unary(op) else {
+  guard @pipeline_typing.order_producer(order).unwrap().operation is Unary(op) else {
     abort("sort")
   }
   assert_eq(@relation.sort_term_count(op), 1)

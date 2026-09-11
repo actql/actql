@@ -37,7 +37,9 @@ test "pooling composes with vector projection and retains conditional input keys
   let order = @pipeline_typing.logical_order(p, Step(2)).unwrap()
   assert_eq(@pipeline_typing.order_origin(order), Step(0))
   assert_eq(@pipeline_typing.order_dependency_count(order), 0)
-  assert_true(@pipeline_typing.order_producer(order).operation is Pool(_))
+  assert_true(
+    @pipeline_typing.order_producer(order).unwrap().operation is Pool(_),
+  )
   let u = @pipeline_typing.usage(p)
   let exact = {
     ..limits(),

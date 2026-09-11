@@ -44,5 +44,7 @@ test "as-of output retains alias types but does not discharge Result order evide
   let order = @relation_results.publication_inherited_order(resolved).unwrap()
   assert_eq(@pipeline.order_origin(order), Step(0))
   assert_eq(@pipeline.order_dependency_count(order), 0)
-  assert_true(@pipeline.order_producer(order).operation is AsOfJoin(..))
+  assert_true(
+    @pipeline.order_producer(order).unwrap().operation is AsOfJoin(..),
+  )
 }

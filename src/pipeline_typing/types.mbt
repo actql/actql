@@ -190,6 +190,7 @@ pub fn window_aliases(
 
 ///|
 struct CheckedPipeline {
+  input_orders : Array[LogicalOrder?]
   produced_inputs : Array[ProducedInput?]
   logical_orders : Array[LogicalOrder?]
   lag_orders : Array[SortCompletion?]

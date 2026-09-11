@@ -34,7 +34,8 @@ test "top-k ranking completes keys instead of reusing unrelated input order" {
           Some(Unqualified("a")),
         )
       }
-      guard @pipeline_typing.order_producer(order).operation is Unary(op) else {
+      guard @pipeline_typing.order_producer(order).unwrap().operation
+        is Unary(op) else {
         abort("ranking")
       }
       assert_eq(@relation.ranking_term_count(op), 1)

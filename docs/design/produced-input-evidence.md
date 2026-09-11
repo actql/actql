@@ -1,4 +1,4 @@
-# Producer-bound input counts
+# Producer-bound input evidence
 
 `pipeline_typing.produced_input` selects a valid target in an immutable checked
 pipeline. `InputContract.ProducedInput` makes that target available as an input
@@ -41,12 +41,34 @@ construction additionally charges two input visits before allocating its row
 and graph tables. Exact shared budgets pass and insufficient budgets fail
 without exposing a partial pipeline.
 
-## Remaining boundaries
+## Order ownership
 
 Logical-order origins and dependency targets are pipeline-local coordinates.
-This increment deliberately does not copy those coordinates into another
-pipeline. Order import needs a separately retained origin boundary, as do window
-role and typed Delta evidence; their absence is not a new language restriction.
+An imported order has `Input(i)` as its receiving-pipeline origin, no local step
+producer and no copied foreign dependency targets. `order_input_producer`
+returns the retained input owner; `producer_order` yields its upstream order in
+`producer_pipeline`'s coordinates. That order retains the actual generator or
+operation, repeated dependency occurrences and validation obligations.
+
+Accordingly, `order_producer` returns an optional local `CheckedStep`. A caller
+must distinguish a step origin from an imported input origin rather than
+interpreting an upstream `Step(0)` as the receiving pipeline's `Step(0)`.
+Preserving steps keep this input origin and record local predecessor targets.
+An operation that establishes a new order has a local producer and local input
+dependencies, which may themselves resolve to imported owners.
+
+The order table charges one additional input visit per entry before allocation.
+Each produced input caches its order handle; forwarding and ordinary lookup are
+non-recursive. Provenance can be followed explicitly and iteratively. Unknown
+order stays unknown. Merely giving an ordinary Carrier the same field types,
+or importing its unknown order through another owner, cannot establish order.
+`take`, existing-input-order consumers, binary order transfer and Result
+publication use this boundary through the shared logical-order lookup.
+
+## Remaining boundaries
+
+Window-role and typed Delta evidence still need their own cross-pipeline
+bindings; their absence is not a new language restriction.
 The final combined checker must traverse producer dependencies with shared
 budgets and reject any unresolved mandatory obligations. This handle alone
 does not prove that the producer was fully discharged or actually executed.

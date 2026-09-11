@@ -39,7 +39,9 @@ test "array and column expansion retain occurrence order rather than inventing k
         assert_eq(@pipeline.order_origin(order), Step(i))
         assert_eq(@pipeline.order_dependency_count(order), 1)
         assert_eq(@pipeline.order_dependency_at(order, 0), Some(Step(2)))
-        assert_true(@pipeline.order_producer(order).operation is Unary(_))
+        assert_true(
+          @pipeline.order_producer(order).unwrap().operation is Unary(_),
+        )
         let r = @relation_results.check(
           p,
           cursor("{\"out\":{\"from\":\"out\",\"fields\":[\"item\"]}}"),

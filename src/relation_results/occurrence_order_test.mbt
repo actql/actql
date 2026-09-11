@@ -16,7 +16,7 @@ test "values occurrence order includes empty and repeated rows without inventing
     assert_eq(@pipeline.order_origin(order), Step(0))
     assert_eq(@pipeline.order_dependency_count(order), 0)
     assert_true(@pipeline.order_key_completion(order) is None)
-    assert_true(@pipeline.order_producer(order).operation is Values(_))
+    assert_true(@pipeline.order_producer(order).unwrap().operation is Values(_))
     let r = @relation_results.check(
       p,
       cursor("{\"out\":{\"from\":\"out\",\"fields\":[\"id\"]}}"),
@@ -44,7 +44,7 @@ test "event dedupe establishes partition order before explicit Relation exposure
     let order = @pipeline.take_order(p, 5).unwrap()
     assert_eq(@pipeline.order_origin(order), Step(2))
     assert_eq(@pipeline.order_dependency_count(order), 0)
-    assert_true(@pipeline.order_producer(order).operation is Event(_))
+    assert_true(@pipeline.order_producer(order).unwrap().operation is Event(_))
     let r = @relation_results.check(
       p,
       cursor("{\"out\":{\"from\":\"out\",\"fields\":[\"data\"]}}"),

@@ -1,5 +1,13 @@
 # Conditional logical order
 
+Producer-bound inputs can retain an upstream order through an explicit ownership
+boundary described in [Producer-bound input evidence](produced-input-evidence.md).
+An imported origin is a local `Input(i)`, not a copied foreign step index.
+`order_producer` is optional: `None` on this origin is paired with
+`order_input_producer`, whose `producer_order` belongs to `producer_pipeline`.
+Its unresolved obligations remain attached; this is not external snapshot or
+runtime-order validation.
+
 Graph equality and graph diff establish the trivial sequence of their specified
 single result row. The origin retains the exact two-input operation and all
 admission/identity/Delta/resource obligations. A structured Delta need not be

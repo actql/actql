@@ -54,7 +54,7 @@ test "nearest order reaches Results after projection hides query and candidate i
   assert_eq(@relation_results.publication_strategy(publication), Inherited)
   let origin = @pipeline.order_producer(
     @relation_results.publication_inherited_order(publication).unwrap(),
-  )
+  ).unwrap()
   guard origin.operation is Nearest(checked~, ..) else { abort("nearest") }
   assert_false(@vector.nearest_pending(checked).is_empty())
   assert_eq(@relation_results.publication_term_count(publication), 0)
@@ -98,7 +98,7 @@ test "lexical and fused ranking orders retain independent profile and scoring ob
     assert_eq(@relation_results.publication_strategy(publication), Inherited)
     let order = @relation_results.publication_inherited_order(publication).unwrap()
     assert_eq(@pipeline.order_origin(order), Step(i))
-    match @pipeline.order_producer(order).operation {
+    match @pipeline.order_producer(order).unwrap().operation {
       TextRank(checked~, ..) =>
         assert_true(
           @vector.text_rank_pending(checked).contains(ResolveTextRankProfile),

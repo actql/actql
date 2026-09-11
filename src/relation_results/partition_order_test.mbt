@@ -60,7 +60,7 @@ test "session order crosses Events watermark and explicit Relation exposure" {
       @pipeline.order_origin(origin),
       Step(if as_events { 1 } else { 0 }),
     )
-    assert_true(@pipeline.order_producer(origin).operation is Event(_))
+    assert_true(@pipeline.order_producer(origin).unwrap().operation is Event(_))
   }
 }
 
