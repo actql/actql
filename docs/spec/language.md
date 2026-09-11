@@ -5616,6 +5616,20 @@ score or establish that score's validity for the changed components. Neither
 operation's successful type check proves arithmetic validity, uniqueness,
 execution bounds or the score ordering required at execution.
 
+<!-- requirement-block: vector-bridges.occurrence-order -->
+The explicit `to_vectors` and `vectors` bridges and `normalize_vectors` MUST
+retain input occurrence order; none establishes order on an unordered input.
+Normalization after scoring preserves that sequence and stored score, but does
+not assert that the score measures the normalized components.
+
+<!-- requirement-block: vector-bridges.score-order -->
+`score_vectors` MUST order output by score descending, then semantic vector
+identity ascending using the existing internal type-specific identity order.
+This matches the single-query ordering of `nearest`; L2 scores remain negative
+distances under the numeric law. Identity uniqueness is validated independently;
+arrival order, stringification or a synthesized row CID cannot break ties.
+Binding, profile, finite-arithmetic and resource validation precede publication.
+
 <a id="pool-vectors"></a>
 
 #### `pool_vectors`

@@ -4447,6 +4447,28 @@
       }
     },
     {
+      "requirement_id": "actql.language/vector-bridges.occurrence-order",
+      "statement_sha256": "1936ecd6c2aff54635dc934d56d569bf8b1e396c9f3ce0798de7972c6821121f",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "vector-bridges",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/vector-bridges.score-order",
+      "statement_sha256": "4186374090668680373738ee401d62d9a915046c2389326370ad58dcaae9842e",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "vector-bridges",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.language/pool-vectors.actql-source-does-not-expose-a-separate-relation-pooling-carrier-id",
       "statement_sha256": "514a7018bb7b3d03824fd86eea69f1bd0174b5a1b8708dac65d702cb3e6b2a60",
       "status": "pending",

@@ -107,7 +107,14 @@ fn derive_logical_orders(
           ToEvents | Watermark(_, _) => true
           _ => false
         }
-      Projection(op) => @projection.operation(op) == @projection.Events
+      Projection(op) =>
+        @projection.operation(op) == @projection.Events ||
+        @projection.operation(op) == @projection.Vectors
+      Vector(op) =>
+        match @vector.operation(op) {
+          ToVectors | NormalizeVectors => true
+          ScoreVectors => false
+        }
       Set(..) => true
       _ => false
     }
@@ -120,6 +127,7 @@ fn derive_logical_orders(
       | AsOfJoin(..) => true
       GraphMatch(_) | Reach(_) | Traverse(..) | Shortest(..) => true
       Graph(op) => @graph.operation(op) == @graph.Components
+      Vector(op) => @vector.operation(op) == @vector.ScoreVectors
       Unary(op) | WindowGroup(op) =>
         match @relation.operation(op) {
           Group | Pivot | DedupeRows => true

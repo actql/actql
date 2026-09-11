@@ -1,5 +1,20 @@
 # Conditional logical order
 
+Vector bridges and normalization retain an existing occurrence sequence; scoring
+establishes score-descending, semantic-ID-ascending order independently of input
+enumeration. The explicit vectors bridge can carry that sequence to Relation
+consumers. Normalizing already-scored components retains the old sequence and
+stored score, not a claim that the score was recomputed for the new components.
+ResolveVecaProfile, ScoreArithmetic, ScoreOrder, identity uniqueness, query
+binding and resource obligations remain on the producer. A typed external score
+field is not an operation-order witness.
+
+The score tie rule is now explicit in Language, aligning single-query scoring
+with nearest and semantic identity preservation. Fixed AoA `dbab4fe8` instead
+uses a synthesized `{id, vector}` CID for score_sort ties. A future lowerer must
+implement the selected semantic-ID rule rather than silently adopt that backend
+behavior; this pass does not claim executable compatibility.
+
 Values establishes authored list occurrence order, including empty lists and
 repeated equal rows. The implicit ordinal is not a candidate key of the exposed
 field values, and the generator retains binding and admission obligations.
