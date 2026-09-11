@@ -220,6 +220,34 @@ The opaque unused inputs in this matrix are not certified snapshots. The test
 does not waive their source, producer-closure or Graph-input preflight checks,
 and does not execute time grids, Calendar transitions or Result publication.
 
+## Graph mean sample acceptance audit
+
+Language `graph-mean.closed-source` and its numeric law were compared with
+`graph_typing/mean.mbt`, the early pipeline mean branch and `graph-schema.mjs`.
+`mean_graphs` has no implicit current input but does retain every declared
+sample occurrence. Closed compatible Graph property/identity domains are
+checked before zero-weight contribution filtering. Property strategies cover
+every non-identity property; numeric means become nullable because an excluded
+denominator can be zero. Arbitrary input order does not choose row-role aliases.
+
+`graph_typing/mean_test.mbt` covers complete strategy maps, compatible recursive
+domains, zero-weight incompatibility, nonempty aligned weight lists, positive
+total weight, support bounds and finite weights whose ordinary binary64 sum
+would overflow. Those static checks do not calculate the weighted mean.
+`pipeline_typing/mean_acceptance_audit_test.mbt` adds zero-weight samples at both
+ends of the list, explicit sample roles/targets, preserved weights and names,
+an unrelated prior input, the `node_rows` consumer and exact work/node/text
+budgets. Twelve invalid zero-weight cases reject incomplete Graphs, other
+Carriers and incompatible identity/property information; zero does not waive
+input validation.
+
+Existing `graph_test.mbt` covers repeated names, missing `as` and forbidden
+step `from`. `mean_counts_test.mbt` verifies repeated positive samples are
+counted repeatedly, zero-weight samples do not contribute count bounds, an
+unknown positive contributor keeps bounds unknown, and empty constructed
+Graphs have exact zero extents. These tests do not validate actual support,
+label agreement, rational accumulation or graph-mean runtime execution.
+
 ## Shared-boundary findings
 
 | Requirement | Inspected evidence | Audit finding |
