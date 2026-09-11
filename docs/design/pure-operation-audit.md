@@ -41,7 +41,8 @@ not the assertion-by-assertion normative review or consumer completion below.
 | traverse, subgraph | selector branch retaining resolved auxiliary input |
 | shortest_path | endpoint-selector branch |
 | reach | concise reach branch |
-| graphs_equal, graph_diff, graft_graph, union_graphs, subtract_graphs, apply_graph_delta | typed binary Graph/Delta branches |
+| graphs_equal, graph_diff, graft_graph, subtract_graphs, apply_graph_delta | typed binary Graph/Delta branches |
+| union_graphs | binary or ordered nonempty-list Graph branch retaining each left fold |
 | mean_graphs | early sample-list branch retaining repeated operands |
 | to_vectors, normalize_vectors, score_vectors | unary Vector branch |
 | nearest | query/candidate branch |
@@ -386,6 +387,15 @@ The pipeline keeps one authored step and transfers node/edge count bounds to
 both row bridges. Grammar and machine schema distinguish union's nonempty list
 from binary graft/subtraction. These are static acceptance and propagation
 checks; merge evaluation and canonical binary lowering remain outside this work.
+
+`capacity_program_step/graph_union_test.mbt` checks the separate capacity boundary
+for scalar, singleton and repeated-list union and both row bridges. Conditional
+node/edge bounds propagate, but integrity-valid Program claims (including the
+same numeric bound) still fail with `UnsupportedOperation`: the ordinary row
+application checker has no Graph source/law application. Registry membership,
+source hashing and conditional counts cannot fill that gap. Graph node/edge
+source authentication and its consumer connection remain required shared work;
+this rejection test prevents claiming them complete through the list addition.
 
 ## Shared-boundary findings
 
