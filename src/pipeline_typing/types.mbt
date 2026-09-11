@@ -251,6 +251,19 @@ pub fn inputs(value : CheckedPipeline) -> Array[(String, @carrier.Carrier)] {
 }
 
 ///|
+pub fn input_count(value : CheckedPipeline) -> Int {
+  value.inputs.length()
+}
+
+///|
+pub fn input_at(
+  value : CheckedPipeline,
+  index : Int,
+) -> (String, @carrier.Carrier)? {
+  value.inputs.get(index)
+}
+
+///|
 pub fn step_count(value : CheckedPipeline) -> Int {
   value.steps.length()
 }

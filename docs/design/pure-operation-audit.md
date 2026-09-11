@@ -164,6 +164,10 @@ consumer audit.
    Program/mixed owner. Exact field/unit/law/value/source identity is checked;
    non-Host entries remain explicitly unvalidated. Policy selection authority
    and consumer applicability are not supplied by this catalog lookup.
+   [Graph input preflight binding](graph-input-preflight.md) now associates
+   Host-backed node/edge limits with the actual immutable pipeline inputs and
+   selected policy, including opaque and unused Graph inputs. Other consumer
+   families, non-Host candidate applicability and actual enforcement remain open.
    Do not
    expand into acquisition, an evaluator or Host dispatch.
 3. Connect contextual resolutions into a complete static checking/discharge
