@@ -16,7 +16,9 @@ import {
   "actql/actql/stage_local_inputs",
   "actql/actql/stage_parameters",
   "actql/actql/stage_results",
+  "actql/actql/text_time_bounds",
   "actql/actql/timestamp_pattern",
+  "actql/actql/value_admission",
   "moonbitlang/core/debug",
 }
 
@@ -46,6 +48,8 @@ pub fn check_patterns(ExpressionValidationContext, PatternLimits) -> Result[Patt
 pub fn check_regex_patterns(ExpressionValidationContext, RegexPatternLimits) -> Result[RegexPatternChecks, RegexPatternIssue]
 
 pub fn check_resolved_orders(@relation_results.CheckedOrders, Array[@parameter_binding.BoundValues?], Array[@capacity_graph_preflight.ApplicationCoverage], @capacity_policy.Policy, max_work~ : Int, max_text_bytes~ : Int, proof_owners? : Array[(Int, Int, Int)], input_owners? : Array[(Int, Int, Int, Int)]) -> Result[PipelineContext, Issue]
+
+pub fn check_text_bounds(PatternChecks, TextBoundsLimits) -> Result[TextBoundsChecks, TextBoundsIssue]
 
 pub fn check_timestamp_patterns(ExpressionValidationContext, TimestampPatternLimits) -> Result[TimestampPatternChecks, TimestampPatternIssue]
 
@@ -165,6 +169,24 @@ pub fn stage_results(StageContexts) -> @stage_results.Checked
 
 pub fn stage_usage(StageContexts) -> (Int, Int)
 
+pub fn text_bound_at(TextBoundsChecks, Int) -> TextBoundResolution?
+
+pub fn text_bound_count(TextBoundsChecks) -> Int
+
+pub fn text_bound_input_parameter(TextBoundResolution) -> @parameter_binding.BoundParameter?
+
+pub fn text_bound_length_parameter(TextBoundResolution) -> @parameter_binding.BoundParameter?
+
+pub fn text_bound_output(TextBoundResolution) -> @text_time_bounds.Output
+
+pub fn text_bound_policy(TextBoundResolution) -> @check_environment.TextTime
+
+pub fn text_bound_site(TextBoundResolution) -> ExpressionValidationSite
+
+pub fn text_bounds_patterns(TextBoundsChecks) -> PatternChecks
+
+pub fn text_bounds_usage(TextBoundsChecks) -> TextBoundsUsage
+
 pub fn timestamp_pattern_ast(TimestampPatternResolution) -> @timestamp_pattern.Pattern
 
 pub fn timestamp_pattern_at(TimestampPatternChecks, Int) -> TimestampPatternResolution?
@@ -213,6 +235,7 @@ pub(all) enum EnvironmentIssue {
 pub struct ExpressionRequirement {
   visit : Int
   step : Int
+  slot : Int
   expression : @expression_typing.TypedExpression
   obligation : @expression_typing.Obligation
 }
@@ -418,6 +441,31 @@ pub(all) enum StageIssue {
   ForeignBindings(Int, Int)
   ForeignPolicy(Int)
   BudgetExceeded(Int)
+} derive(Eq, @debug.Debug)
+
+type TextBoundResolution
+
+type TextBoundsChecks
+
+pub(all) enum TextBoundsIssue {
+  InvalidLimits
+  BudgetExceeded
+  MissingPolicy(Int)
+  MissingBindings(Int)
+  InvalidSite(Int)
+  UnsupportedOperation(Int, String)
+  Value(Int, @value_admission.Issue)
+  Bounds(Int, @text_time_bounds.Issue)
+} derive(Eq, @debug.Debug)
+
+pub(all) struct TextBoundsLimits {
+  max_work : Int
+  max_text_bytes : Int
+} derive(Eq, @debug.Debug)
+
+pub(all) struct TextBoundsUsage {
+  work : Int
+  text_bytes : Int
 } derive(Eq, @debug.Debug)
 
 type TimestampPatternChecks

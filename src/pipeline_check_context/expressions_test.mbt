@@ -29,6 +29,7 @@ test "static expression requirements retain unused branches and repeated produce
     ).unwrap()
     assert_eq(requirement.visit, if i < 5 { 1 } else { 2 })
     assert_eq(requirement.step, 0)
+    assert_eq(requirement.slot, if i % 5 < 3 { 0 } else { 1 })
     assert_true(
       @typing.node_at(requirement.expression, requirement.obligation.node_index)
       is Some(_),

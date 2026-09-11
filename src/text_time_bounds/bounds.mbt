@@ -182,6 +182,7 @@ fn literal_limit(v : Double?) -> Int64? {
 pub fn derive_output(
   input : Input,
   operation : Operation,
+  additional_nullable? : Bool = false,
 ) -> Result[Output, Issue] {
   let timestamp = input.contract.shape is @contract.Timestamp
   if (operation is FormatTimestamp(_)) != timestamp {
@@ -192,7 +193,7 @@ pub fn derive_output(
   let mut points = input.codepoints
   let mut replacements = None
   let mut kind = @contract.StringType
-  let mut nullable = input.contract.nullable
+  let mut nullable = input.contract.nullable || additional_nullable
   try {
     match operation {
       Substring(limit) => {

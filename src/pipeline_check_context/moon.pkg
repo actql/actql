@@ -20,6 +20,7 @@ import {
   "actql/actql/regex_replacement" @replacement,
   "actql/actql/decode_scalar" @scalar,
   "actql/actql/text_time_policy" @text_policy,
+  "actql/actql/text_time_bounds" @bounds,
 }
 
 import {

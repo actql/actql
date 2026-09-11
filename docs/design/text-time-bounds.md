@@ -58,7 +58,9 @@ Regex replacement additionally checks P+1 against max_replacements. Invalid or
 dynamic length operands retain the conservative B bound; this component does
 not evaluate them or introduce a new static error for invalid conversion data.
 Output nullability follows the input, with try_number, try_timestamp and
-regex_extract additionally nullable. String outputs retain their derived scalar
+regex_extract additionally nullable. `additional_nullable` only widens this
+result when the owning typed expression has nullable non-value operands; it
+cannot remove input or operation nullability. String outputs retain their derived scalar
 and byte limits for the next consumer.
 
 All arithmetic uses exact integers. Admitted contract/policy ceilings fit safe
@@ -80,8 +82,9 @@ Tests use explicit independent arithmetic examples for all twelve operations,
 multibyte and null inputs, cross-constrained field bounds, invalid/dynamic length
 operands, exact output/replacement ceilings, large integer products and retained
 child provenance. Both ownership and the distinction between derived output
-allowance and a parent's input admission are tested. Future integration must
-derive each Input from the actual typed child and bound-value occurrence, carry
-the producer and selected policy into evidence identities, and construct the
-full demanded envelope under shared Program budgets. This package alone does
-not close HostEnvelope obligations.
+allowance and a parent's input admission are tested. The main
+[context-bound integration](pipeline-check-context.md#context-bound-text-extents)
+now derives Inputs from actual typed children and selected bindings and retains
+the producer and selected policy. Semantic evidence identities and the full
+demanded envelope remain to be constructed under shared Program budgets. This
+package alone does not close HostEnvelope obligations.

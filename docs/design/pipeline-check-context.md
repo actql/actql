@@ -267,11 +267,44 @@ not reject null value operands. AoA's executor-specific hardcoded length and
 wildcard caps are not imported as language limits or text-time policy ceilings.
 Matching, backend admission and runtime resource enforcement remain separate.
 
-The [portable text-time bounds component](text-time-bounds.md) now provides
-contract/value input extents and the twelve output formulas, retaining child
-derivations and policy ownership. It is not yet attached to these typed sites:
-the expression traversal, demand/evidence identities and sealed HostEnvelope
-construction remain required before those obligations can be discharged.
+### Context-bound text extents
+
+`check_text_bounds` consumes the owning PatternChecks, not independently supplied
+pattern ASTs, values or policies. It connects the twelve portable
+[text-time formulas](text-time-bounds.md) to every HostEnvelope site, retaining
+that site's selected TextTime policy, input Parameter and numeric length
+Parameter when used. A process-local expression slot ordinal distinguishes
+multiple expressions in one step, even when a typed expression object is reused.
+It is not a semantic identity. Each producer visit is checked independently.
+
+Within a slot, immutable typed topology is traversed in reverse preorder so a
+direct text-time child has its output derivation before its parent is processed.
+The parent retains that exact producer and rechecks its extent against input
+ceilings. Results are returned in original obligation order, not traversal order.
+Selected literal/bound string or timestamp values provide actual extents;
+other operands use their checked type. An ordinary intermediate operation whose
+checked type has no text bound requires RuntimePreflight. This is an explicit
+runtime input obligation, not permission to drop the child operation's own
+checks, claim an extent was statically established, or evaluate the expression
+during compilation. Generic expression bounds are not fabricated by folding.
+
+Bound length values can tighten substring/utf8_truncate. Dynamic expressions,
+null, negative or fractional lengths keep the conservative bound; demanded
+evaluation errors remain separate. The original checked node's nullability
+widens the derived contract when another argument can be null. Derived bounds
+never narrow the expression's existing nullable type.
+
+Work/text budgets include the PatternChecks charge once. Pattern lookup, slot
+inventory, node-table allocation/traversal, static binding searches and value
+scans are charged before use; all repeated occurrences accumulate. No caller
+can splice a foreign result into this collection. A late ceiling failure
+returns no successful prefix. RuntimePreflight, profile availability and
+Unicode implementation requirements are not discharged here.
+
+This closes the typed-site/binding connection for extent derivation, not the
+full HostEnvelope obligation: semantic argument/demand/evidence CIDs and sealed
+envelope construction remain required. It is still not a CheckedProgram,
+executable Plan, matcher or evaluation engine.
 
 ## Not yet a checked Program
 

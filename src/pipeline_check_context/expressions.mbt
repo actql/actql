@@ -2,6 +2,7 @@
 pub struct ExpressionRequirement {
   visit : Int
   step : Int
+  slot : Int
   expression : @typing.TypedExpression
   obligation : @typing.Obligation
 }
@@ -60,6 +61,7 @@ fn collect_expression_requirements(
         entries.push({
           visit,
           step: slot.step,
+          slot: i,
           expression: slot.expression,
           obligation: @typing.pending_validation_at(slot.expression, j).unwrap(),
         })
