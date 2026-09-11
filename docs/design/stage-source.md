@@ -109,5 +109,6 @@ opaque values have already been admitted.
 
 [Static SourceView request slots](source-request-slots.md) now resolve whole-value
 Parameter and Binding holes against the actual Program declarations. Their
-occurrences still need canonical reference indexing and combination with the
-operation/Effect inventory before whole-Program use is closed.
+occurrences are combined with all operation/Effect uses by the
+[Program reference inventory](program-references.md). Full declaration-use
+validation and semantic Program admission remain separate.

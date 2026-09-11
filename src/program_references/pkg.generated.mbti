@@ -1,0 +1,71 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/program_references"
+
+import {
+  "actql/actql/binding_declarations",
+  "actql/actql/encode_core",
+  "actql/actql/expression_syntax",
+  "actql/actql/parameter_references",
+  "actql/actql/source_request_slots",
+  "actql/actql/stage_source",
+}
+
+// Values
+pub fn binding_at(Index, Int) -> BindingReference?
+
+pub fn binding_count(Index) -> Int
+
+pub fn emit_binding_references(Index, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
+
+pub fn emit_used_bindings(Index, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
+
+pub fn parameters(Index) -> @parameter_references.Index
+
+pub fn prepare(@source_request_slots.Slots, Array[@stage_source.ParameterUses], Limits) -> Result[Inventory, Issue]
+
+pub fn program_index(Inventory) -> Index
+
+pub fn requests(Inventory) -> @source_request_slots.Slots
+
+pub fn stage_index(Inventory, Int) -> Index?
+
+pub fn stage_uses(Inventory, Int) -> @stage_source.ParameterUses?
+
+pub fn work(Inventory) -> Int
+
+// Errors
+
+// Types and methods
+pub struct BindingReference {
+  name : String
+  path : String
+  declaration : @binding_declarations.Declaration
+}
+
+type Index
+
+type Inventory
+
+pub enum Issue {
+  InvalidLimits
+  StageCountMismatch
+  ForeignStage(Int)
+  WorkLimit
+  SlotLimit
+  ReferenceLimit
+  PointerLimit
+  Syntax(@expression_syntax.Issue)
+  Parameters(@parameter_references.Issue)
+}
+
+pub(all) struct Limits {
+  max_work : Int
+  max_slots : Int
+  max_references : Int
+  max_pointer_units : Int
+  max_request_text_bytes : Int
+}
+
+// Type aliases
+
+// Traits
