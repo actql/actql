@@ -22,6 +22,8 @@ pub(all) enum Issue {
   BindingTextLimit
   InvalidBoundCount
   InvalidBoundMilliseconds(String)
+  InvalidOperandWorkLimit
+  OperandWorkLimit
 } derive(Eq, Debug)
 
 ///|
@@ -32,6 +34,7 @@ struct StepBound {
   proof : @wire.ProgramProofClaim
   inputs : Array[StepBound]
   input_work : Int
+  operand_work : Int
   bindings : CountBindings?
 }
 
@@ -66,6 +69,7 @@ priv enum Rule {
   Sum
   Multiply(Int64)
   Nearest(Int64)
+  Ranking(Int, Int64?)
 }
 
 ///|
@@ -88,6 +92,20 @@ fn operation_rule(
             @vector.nearest_pair_options(@vector.nearest_pair(checked)),
           ),
         ),
+      ),
+    )
+  }
+  if step.operation is @pipeline.Ranking(checked) {
+    let options = @vector.merged_ranking_options(checked)
+    let maximum = if @vector.ranking_by_count(options) == 0 {
+      Some(@vector.ranking_k(options).to_int64())
+    } else {
+      None
+    }
+    return Ok(
+      (
+        "actql.bound.merge-rankings",
+        Ranking(@vector.merged_ranking_input_count(checked), maximum),
       ),
     )
   }
@@ -176,10 +194,14 @@ pub fn check_with_inputs(
   proof : @wire.ProgramProofClaim,
   inputs : Array[StepBound],
   max_input_work? : Int = 0,
+  max_operand_work? : Int = 0,
   bindings? : CountBindings? = None,
 ) -> Result[StepBound, Issue] {
   if max_input_work < 0 {
     return Err(InvalidInputWorkLimit)
+  }
+  if max_operand_work < 0 {
+    return Err(InvalidOperandWorkLimit)
   }
   if bindings is Some(bound) && !physical_equal(bound.pipeline, pipeline) {
     return Err(BindingOwnerMismatch)
@@ -207,18 +229,29 @@ pub fn check_with_inputs(
     Sum => n == 2
     Multiply(_) => n == 1
     Nearest(_) => n == 1 || n == 2
+    Ranking(expected, maximum) =>
+      n == expected || (n == 0 && maximum is Some(_))
   }
   if !valid_count || @wire.program_proof_input_count(proof) != n {
     return Err(InputCountMismatch)
   }
-  let edges = @pipeline.input_occurrences(step)
+  let operand_work = if rule is Ranking(_, _) {
+    // Five bounded passes: edges, multiset construction, proof comparison,
+    // arithmetic and owned input copy. Check before allocating either table.
+    if n > max_operand_work / 5 {
+      return Err(OperandWorkLimit)
+    }
+    n * 5
+  } else {
+    0
+  }
   let ids : Array[String] = []
   let mut input_work = 0
   for i in 0..<n {
     let mut owner = pipeline
     // nearest's one-operand bound is query-side, not the primary candidates.
     let edge = if rule is Nearest(_) && n == 1 { 1 } else { i }
-    let mut target = edges[edge].target
+    let mut target = @pipeline.input_occurrence_at(step, edge).unwrap().target
     while !(physical_equal(owner, inputs[i].pipeline) &&
           target == @pipeline.Step(inputs[i].index)) {
       let next = match target {
@@ -255,10 +288,25 @@ pub fn check_with_inputs(
   }
   // Proof arrays sort capacity operands but retain repetitions. Derivations
   // below must still match their actual left/right data roles.
-  for i in 0..<n {
-    let expected = if n == 2 && ids[0] > ids[1] { ids[1 - i] } else { ids[i] }
-    if @wire.program_proof_input_at(proof, i) != Some(expected) {
-      return Err(InputWitnessMismatch(i))
+  if rule is Ranking(_, _) {
+    let remaining : Map[String, Int] = Map([])
+    for id in ids {
+      remaining[id] = remaining.get(id).unwrap_or(0) + 1
+    }
+    for i in 0..<n {
+      let id = @wire.program_proof_input_at(proof, i).unwrap()
+      let count = remaining.get(id).unwrap_or(0)
+      if count == 0 {
+        return Err(InputWitnessMismatch(i))
+      }
+      remaining[id] = count - 1
+    }
+  } else {
+    for i in 0..<n {
+      let expected = if n == 2 && ids[0] > ids[1] { ids[1 - i] } else { ids[i] }
+      if @wire.program_proof_input_at(proof, i) != Some(expected) {
+        return Err(InputWitnessMismatch(i))
+      }
     }
   }
   if @law.name(@wire.law(witness)) != law ||
@@ -306,6 +354,25 @@ pub fn check_with_inputs(
         Err(_) => return Err(BoundOverflow)
       }
     }
+    Ranking(_, maximum) =>
+      if n == 0 {
+        maximum.unwrap()
+      } else {
+        let mut total = 0L
+        for i in 0..<n {
+          let next = @numeric.value(input_value(i))
+          total = match maximum {
+            Some(k) => if next >= k - total { k } else { total + next }
+            None =>
+              match
+                @numeric.add(@numeric.read(total).unwrap(), input_value(i)) {
+                Ok(v) => @numeric.value(v)
+                Err(_) => return Err(BoundOverflow)
+              }
+          }
+        }
+        total
+      }
   }
   if @wire.value(witness) != count {
     return Err(ValueMismatch)
@@ -324,9 +391,23 @@ pub fn check_with_inputs(
     // A candidate-dependent factor must retain that candidate proof as well.
     // Source-law validation computes the full product from both owned inputs.
     (Nearest(_), @wire.SourceValue) if n == 2 => ()
+    (Ranking(_, _), @wire.SourceValue) if n > 0 => ()
+    (Ranking(_, None), @wire.Add(left, right)) if n == 2 &&
+      left == ids[0] &&
+      right == ids[1] => ()
+    (Ranking(_, Some(k)), @wire.Clamp(None, maximum)) if n == 0 && maximum == k =>
+      ()
     _ => return Err(InvalidDerivation)
   }
-  Ok({ pipeline, index, proof, inputs: inputs.copy(), input_work, bindings, })
+  Ok({
+    pipeline,
+    index,
+    proof,
+    inputs: inputs.copy(),
+    input_work,
+    operand_work,
+    bindings,
+  })
 }
 
 ///|
@@ -358,6 +439,12 @@ pub fn input_at(v : StepBound, index : Int) -> StepBound? {
 /// Producer-input and non-expanding step links, across repeated operands.
 pub fn input_work(v : StepBound) -> Int {
   v.input_work
+}
+
+///|
+/// Linear ranking operand passes, separate from producer traversal work.
+pub fn operand_work(v : StepBound) -> Int {
+  v.operand_work
 }
 
 ///|

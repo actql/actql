@@ -23,7 +23,7 @@ pub fn check(@pipeline_typing.CheckedPipeline, Int, @capacity_witness.ProgramPro
 
 pub fn check_applications(@capacity_witness.ProgramClaims, Array[StepBound], max_work~ : Int) -> Result[Applications, ApplicationIssue]
 
-pub fn check_with_inputs(@pipeline_typing.CheckedPipeline, Int, @capacity_witness.ProgramProofClaim, Array[StepBound], max_input_work? : Int, bindings? : CountBindings?) -> Result[StepBound, Issue]
+pub fn check_with_inputs(@pipeline_typing.CheckedPipeline, Int, @capacity_witness.ProgramProofClaim, Array[StepBound], max_input_work? : Int, max_operand_work? : Int, bindings? : CountBindings?) -> Result[StepBound, Issue]
 
 pub fn checked_bindings(StepBound) -> CountBindings?
 
@@ -38,6 +38,8 @@ pub fn input_at(StepBound, Int) -> StepBound?
 pub fn input_count(StepBound) -> Int
 
 pub fn input_work(StepBound) -> Int
+
+pub fn operand_work(StepBound) -> Int
 
 pub fn parameter_values(CountBindings) -> @parameter_binding.BoundValues
 
@@ -84,6 +86,8 @@ pub(all) enum Issue {
   BindingTextLimit
   InvalidBoundCount
   InvalidBoundMilliseconds(String)
+  InvalidOperandWorkLimit
+  OperandWorkLimit
 } derive(Eq, @debug.Debug)
 
 type StepBound

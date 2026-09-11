@@ -112,6 +112,16 @@ pub fn input_occurrences(step : CheckedStep) -> Array[InputOccurrence] {
 }
 
 ///|
+pub fn input_occurrence_count(step : CheckedStep) -> Int {
+  step.connections.entries.length()
+}
+
+///|
+pub fn input_occurrence_at(step : CheckedStep, index : Int) -> InputOccurrence? {
+  step.connections.entries.get(index)
+}
+
+///|
 pub fn step_schema(step : CheckedStep) -> @schema.Schema? {
   match step.output {
     @carrier.Relation(rows) => @carrier.complete_schema(rows)

@@ -120,6 +120,222 @@ fn bound_id(bound : @capacity_program_step.StepBound) -> String {
 }
 
 ///|
+fn fusion_pipeline(
+  global : Bool,
+  inputs : Int,
+  parameters? : @parameter.Declarations? = None,
+) -> @pipeline.CheckedPipeline {
+  let amount = if parameters is Some(_) { "{\"$param\":\"n\"}" } else { "3" }
+  pipeline(
+    "[{\"take\":" +
+    amount +
+    "},{\"derive\":{\"query\":\"id\",\"rank\":{\"literal\":1}},\"as\":\"r\"}," +
+    "{\"merge_rankings\":{\"with\":[" +
+    Array::make(inputs - 1, "\"r\"").join(",") +
+    "],\"by\":" +
+    (if global { "[]" } else { "[\"query\"]" }) +
+    ",\"candidate\":\"id\",\"rank\":\"rank\",\"k\":5,\"score_policy\":{\"rrf\":{\"rank_constant\":60,\"weights\":[" +
+    Array::make(inputs, "1").join(",") +
+    "],\"rank_window\":10}}}}]",
+    parameters~,
+  )
+}
+
+///|
+test "ranking bound applications cover every repeated operand under exact shared budgets" {
+  for global in [false, true] {
+    for n in [2, 3, 16, 32] {
+      let p = fusion_pipeline(global, n)
+      let seed = proof(
+        "actql.bound.take", 3, "{\"maximum\":3,\"op\":\"clamp\"}",
+      )
+      let input = @capacity_program_step.check(p, 0, seed).unwrap()
+      let id = bound_id(input)
+      let ids = Array::make(n, id)
+      let value = if global { 5L } else { 3L * n.to_int64() }
+      let claim = proof(
+        "actql.bound.merge-rankings",
+        value,
+        "{\"op\":\"source\"}",
+        reference="checked-step:2",
+        inputs=ids,
+      )
+      let supplied = Array::make(n, input)
+      let checked = @capacity_program_step.check_with_inputs(
+        p,
+        2,
+        claim,
+        supplied,
+        max_input_work=n,
+        max_operand_work=5 * n,
+      ).unwrap()
+      assert_eq(@capacity_program_step.input_count(checked), n)
+      assert_eq(@capacity_program_step.input_work(checked), n)
+      assert_eq(@capacity_program_step.operand_work(checked), 5 * n)
+      assert_true(
+        @capacity_program_step.check_with_inputs(
+          p,
+          2,
+          claim,
+          supplied,
+          max_input_work=n,
+          max_operand_work=5 * n - 1,
+        )
+        is Err(OperandWorkLimit),
+      )
+      assert_true(
+        @capacity_program_step.check_with_inputs(
+          p,
+          2,
+          claim,
+          supplied,
+          max_input_work=n - 1,
+          max_operand_work=5 * n,
+        )
+        is Err(InputWorkLimit),
+      )
+      let step = @pipeline.step_at(p, 2).unwrap()
+      assert_eq(@pipeline.input_occurrence_count(step), n)
+      for i in 0..<n {
+        assert_eq(
+          @pipeline.input_occurrence_at(step, i).unwrap().target,
+          Step(1),
+        )
+        assert_true(
+          physical_equal(
+            @capacity_program_step.input_at(checked, i).unwrap(),
+            input,
+          ),
+        )
+      }
+      assert_true(@pipeline.input_occurrence_at(step, -1) is None)
+      assert_true(@pipeline.input_occurrence_at(step, n) is None)
+      let collection = program_claims([seed, claim])
+      assert_true(
+        @capacity_program_step.check_applications(
+          collection,
+          [checked, input],
+          max_work=6 + n,
+        )
+        is Ok(_),
+      )
+      let other = proof(
+        "actql.bound.take", 4, "{\"maximum\":4,\"op\":\"clamp\"}",
+      )
+      let wrong_ids = ids.copy()
+      wrong_ids[n - 1] = @wire.cid(@wire.program_proof_witness(other))
+      let wrong = proof(
+        "actql.bound.merge-rankings",
+        value,
+        "{\"op\":\"source\"}",
+        reference="checked-step:2",
+        inputs=wrong_ids,
+      )
+      assert_true(
+        @capacity_program_step.check_with_inputs(
+          p,
+          2,
+          wrong,
+          supplied,
+          max_input_work=n,
+          max_operand_work=5 * n,
+        )
+        is Err(InputWitnessMismatch(_)),
+      )
+      supplied[0] = @capacity_program_step.check(p, 0, seed).unwrap()
+      assert_true(
+        physical_equal(
+          @capacity_program_step.input_at(checked, 0).unwrap(),
+          input,
+        ),
+      )
+      if n == 2 && !global {
+        let binary = proof(
+          "actql.bound.merge-rankings",
+          6,
+          "{\"left\":\"" + id + "\",\"op\":\"add\",\"right\":\"" + id + "\"}",
+          reference="checked-step:2",
+          inputs=ids,
+        )
+        assert_true(
+          @capacity_program_step.check_with_inputs(
+            p,
+            2,
+            binary,
+            [input, input],
+            max_input_work=2,
+            max_operand_work=10,
+          )
+          is Ok(_),
+        )
+      }
+    }
+  }
+}
+
+///|
+test "global ranking bounds clamp without overflowing and grouped sums reject overflow" {
+  let d = @parameter.read_declarations(
+    Some(cursor("{\"n\":{\"type\":\"number\",\"default\":9007199254740991}}")),
+    { max_parameters: 1, max_nodes: 100, max_depth: 10, max_text_bytes: 1000, },
+  ).unwrap()
+  for global in [false, true] {
+    let p = fusion_pipeline(global, 3, parameters=Some(d))
+    let bindings = @capacity_program_step.bind_parameters(
+      p,
+      count_values(d, None),
+      max_work=1,
+      max_text_bytes=1,
+    ).unwrap()
+    let seed = proof(
+      "actql.bound.take", 9007199254740991L, "{\"maximum\":9007199254740991,\"op\":\"clamp\"}",
+    )
+    let input = @capacity_program_step.check_with_inputs(
+      p,
+      0,
+      seed,
+      [],
+      bindings=Some(bindings),
+    ).unwrap()
+    let claim = proof(
+      "actql.bound.merge-rankings",
+      5,
+      "{\"op\":\"source\"}",
+      reference="checked-step:2",
+      inputs=Array::make(3, bound_id(input)),
+    )
+    let result = @capacity_program_step.check_with_inputs(
+      p,
+      2,
+      claim,
+      [input, input, input],
+      max_input_work=3,
+      max_operand_work=15,
+    )
+    if global {
+      assert_true(result is Ok(_))
+    } else {
+      assert_true(result is Err(BoundOverflow))
+    }
+    let fallback = proof(
+      "actql.bound.merge-rankings",
+      5,
+      "{\"maximum\":5,\"op\":\"clamp\"}",
+      reference="checked-step:2",
+    )
+    if global {
+      let bound = @capacity_program_step.check(p, 2, fallback).unwrap()
+      assert_eq(@capacity_program_step.input_count(bound), 0)
+      assert_eq(@capacity_program_step.operand_work(bound), 0)
+    } else {
+      assert_true(
+        @capacity_program_step.check(p, 2, fallback) is Err(InputCountMismatch),
+      )
+    }
+  }
+}
+
+///|
 test "nearest bounds select query evidence and retain candidate-dependent factors" {
   for candidates in [1L, 2L, 7L] {
     for queries in [3L, 5L] {
@@ -311,6 +527,128 @@ fn window_pipeline(
     "}}]",
     parameters~,
   )
+}
+
+///|
+test "maximum and weighted ranking policies bind both ordered score input bounds" {
+  let number = @contract.primitive(NumberType, nullable=false)
+  let rows = @carrier.relation(
+    @carrier.rows(
+      [
+        (Unqualified("query"), Some(number)),
+        (Unqualified("id"), Some(number)),
+        (Unqualified("score"), Some(number)),
+      ],
+      field_set=Closed,
+      max_fields=3,
+      max_name_bytes=20,
+    ).unwrap(),
+  )
+  let contract = "{\"domain\":\"relevance\",\"range\":[0,1],\"normalization\":\"identity\"}"
+  let ranking = @vector.declare_ranking_score(
+    cursor(contract),
+    rows,
+    Unqualified("score"),
+    { max_work: 1000, max_nodes: 1000, max_depth: 10, max_text_bytes: 1000, },
+  ).unwrap()
+  for global in [false, true] {
+    for
+      policy in ["\"max\"", "{\"weighted_sum\":{\"left\":0.25,\"right\":0.75}}"] {
+      let p = @pipeline.check_with_evidence(
+        cursor(
+          "[{\"take\":2,\"as\":\"l\"},{\"take\":3,\"from\":\"rows\",\"as\":\"r\"},{\"from\":\"l\",\"merge_rankings\":{\"with\":\"r\",\"by\":" +
+          (if global { "[]" } else { "[\"query\"]" }) +
+          ",\"candidate\":\"id\",\"score\":\"score\",\"k\":3,\"score_policy\":" +
+          policy +
+          ",\"score_contract\":" +
+          contract +
+          "}}]",
+        ),
+        [("rows", @pipeline.RankingInput(ranking))],
+        None,
+        None,
+        {
+          max_steps: 3,
+          max_work: 10000,
+          max_text_bytes: 10000,
+          max_nodes: 10000,
+          max_tokens: 10000,
+          max_depth: 100,
+        },
+      ).unwrap()
+      let lp = proof("actql.bound.take", 2, "{\"maximum\":2,\"op\":\"clamp\"}")
+      let rp = proof(
+        "actql.bound.take",
+        3,
+        "{\"maximum\":3,\"op\":\"clamp\"}",
+        reference="checked-step:1",
+      )
+      let l = @capacity_program_step.check(p, 0, lp).unwrap()
+      let r = @capacity_program_step.check(p, 1, rp).unwrap()
+      let claim = proof(
+        "actql.bound.merge-rankings",
+        if global {
+          3L
+        } else {
+          5L
+        },
+        "{\"op\":\"source\"}",
+        reference="checked-step:2",
+        inputs=[bound_id(l), bound_id(r)],
+      )
+      let checked = @capacity_program_step.check_with_inputs(
+        p,
+        2,
+        claim,
+        [l, r],
+        max_operand_work=10,
+      ).unwrap()
+      assert_eq(@capacity_program_step.input_work(checked), 0)
+      assert_true(
+        @capacity_program_step.check_with_inputs(
+          p,
+          2,
+          claim,
+          [r, l],
+          max_operand_work=10,
+        )
+        is Err(InputTargetMismatch(0)),
+      )
+      if !global {
+        let reversed = proof(
+          "actql.bound.merge-rankings",
+          5,
+          "{\"left\":\"" +
+          bound_id(r) +
+          "\",\"op\":\"add\",\"right\":\"" +
+          bound_id(l) +
+          "\"}",
+          reference="checked-step:2",
+          inputs=[bound_id(l), bound_id(r)],
+        )
+        assert_true(
+          @capacity_program_step.check_with_inputs(
+            p,
+            2,
+            reversed,
+            [l, r],
+            max_operand_work=10,
+          )
+          is Err(InvalidDerivation),
+        )
+      }
+      assert_true(
+        @capacity_program_step.check_with_inputs(
+          p,
+          2,
+          claim,
+          [l, r],
+          max_operand_work=-1,
+        )
+        is Err(InvalidOperandWorkLimit),
+      )
+    }
+  }
 }
 
 ///|

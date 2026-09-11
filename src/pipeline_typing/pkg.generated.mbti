@@ -152,6 +152,10 @@ pub fn input_count(CheckedPipeline) -> Int
 
 pub fn input_key(CheckedPipeline, Int) -> @relation_evidence.KeyedRelation?
 
+pub fn input_occurrence_at(CheckedStep, Int) -> InputOccurrence?
+
+pub fn input_occurrence_count(CheckedStep) -> Int
+
 pub fn input_occurrences(CheckedStep) -> Array[InputOccurrence]
 
 pub fn input_order_consumer(InputOrderResolution) -> CheckedStep

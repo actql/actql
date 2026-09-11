@@ -37,6 +37,7 @@ The proof must use the existing `DerivedInputs` form. Its role is
 | `row_window` | `actql.bound.row-window`, multiply by one for fixed windows or exact `ceil(size / step)` for sliding windows. |
 | `window_events` | `actql.bound.window-events`, the same membership factor applied to the Events input occurrence bound, with Carrier-preserving output. |
 | `nearest` | `actql.bound.nearest`, query bound times the checked `k`, or query bound times `min(candidate bound, k)` with both input applications retained. |
+| `merge_rankings` | `actql.bound.merge-rankings`, sum all ordered input upper bounds; with empty `by`, clamp that sum to `k`, or use an input-independent `k` upper bound. |
 
 `check_with_inputs` also accepts one input application for selection,
 clamping its bound to the exact checked count. Offset does not weaken this upper
@@ -69,6 +70,35 @@ producer, complete application collection coverage, and overflow after Parameter
 binding. Candidate/query value, identity, profile, score, search-work and
 publication obligations remain on their checked operations; an output bound is
 not a search-work or memory admission certificate.
+
+Ranking fusion's full source proof lists every input witness, including repeated
+RRF occurrences, and uses `source` derivation. The application checks the actual
+input edges and recomputes the bound. Grouped binary addition also admits the
+existing ordered `add` derivation used by Sketch at `87dc7144`. Current Language
+extends RRF to a finite input list; the source-proof form covers that full list
+without inventing unnamed intermediate operations or dropping dependencies.
+For empty `by`, an input-independent `clamp` with maximum `k` remains valid;
+it does not mean that the ranking operation has no data inputs. Nonempty `by`
+cannot use a global `k` bound. Full global proofs compute `min(k, sum)` directly,
+avoiding an unnecessary overflowing sum; grouped sums fail on overflow.
+
+Ranking checks require `max_operand_work` (default zero), charging five units
+per supplied input before allocating operand tables: input-edge selection,
+identity multiset construction, proof comparison, arithmetic and the retained
+input copy. A bounded frequency map compares the already-canonical proof's
+sorted IDs to actual input IDs without losing repetition or sorting the data
+edges. Indexed pipeline connection access avoids copying an entire connection
+array before checking its budget. `operand_work` reports this additional cost;
+producer/step traversal remains separately cumulative in `input_work`. Both costs
+must be included by a combined caller. Existing at-most-two-operand rules keep
+their constant local work and do not add this ranking-specific charge.
+
+Tests cover max, weighted sum, and RRF; 2/3/16/32 repeated inputs; exact and
+insufficient work limits; unknown or reversed dependencies; detached retained
+input lists; grouped overflow; and global clamping of large bound inputs.
+Neither `k` nor `rank_window` bypasses complete input validation, identity,
+rank continuity, score or resource obligations. Output bounds do not certify
+ranking input admission or whole-pipeline capacity completeness.
 
 Input applications must retain the exact physical producer pipeline owner and
 match the actual bound-producing step reached from each data edge. For a local
@@ -140,9 +170,10 @@ Tighter available input bounds and other applicable capacity candidates must
 still participate in final resolution. This entry never creates a ceiling or
 converts a guard into a measured bound.
 
-The local rule check inspects one already-admitted step and at most two child
-applications in bounded constant work; oversized input arrays are rejected
-before traversal or copying. A Parameter count adds one lookup in the bounded
+The local rule check inspects one already-admitted step. Non-ranking rules
+accept at most two child applications in bounded constant work; ranking uses
+the explicit linear operand allowance above. Wrong-sized input arrays are
+rejected before traversal or copying. A Parameter count adds one lookup in the bounded
 name table; the name is already admitted by that table's declaration owner.
 Following producer inputs is optional and uses
 `max_input_work` (default zero): one work unit per visited producer-input link
