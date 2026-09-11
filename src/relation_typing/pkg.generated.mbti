@@ -111,6 +111,10 @@ pub fn preserves_input_order(CheckedOperation) -> Bool
 
 pub fn projection(CheckedOperation) -> Array[ProjectionField]
 
+pub fn ranking_term_at(CheckedOperation, Int) -> OrderTerm?
+
+pub fn ranking_term_count(CheckedOperation) -> Int
+
 pub fn references(Binding) -> Array[Reference]
 
 pub fn reshape(CheckedOperation) -> Reshape?

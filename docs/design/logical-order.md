@@ -195,6 +195,17 @@ operations and validated external witnesses remains shared-evidence work.
 
 ## Take consumption
 
+Top-k and partitioned top-k share sort's bounded candidate-key completion over
+their authored `by` terms. The resulting origin retains the selection operation,
+count, partition references and unresolved execution bounds. Top-k-by first
+orders partitions by their keys, then uses the completed authored ranking inside
+each partition. Input ordering alone cannot settle a tied authored ranking;
+without an eligible retained whole key this pass leaves the order unresolved.
+The shared `order_sort_completion` accessor supplies the missing ascending,
+nulls-last identity terms for these selection origins as well as sort. Aliases
+of an already-covered component avoid unnecessary appended fields. Neither
+authored terms nor partition occurrences are rewritten or deduplicated.
+
 `take_order` reports the conditional order available before a checked take's
 offset/count selection. It first retains existing generator or completed-sort
 order, including descending authored terms. Only when no such order exists does

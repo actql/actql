@@ -75,8 +75,7 @@ fn derive_logical_orders(
     let step = steps[i]
     spend(b, step.source, 1)
     let completion = match step.operation {
-      Unary(op) if @relation.operation(op) == @relation.Sort &&
-        @relation.sort_term_count(op) > 0 =>
+      Unary(op) if @relation.ranking_term_count(op) > 0 =>
         complete_sort(
           b,
           op,

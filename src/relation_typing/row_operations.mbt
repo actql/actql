@@ -310,3 +310,24 @@ pub fn sort_term_at(value : CheckedOperation, index : Int) -> OrderTerm? {
     _ => None
   }
 }
+
+///|
+/// Authored ranking terms of sort, top_k or top_k_by, without copying arrays.
+pub fn ranking_term_count(value : CheckedOperation) -> Int {
+  match value.row_operation {
+    Some(Sort(terms))
+    | Some(TopK(order=terms, ..))
+    | Some(TopKBy(order=terms, ..)) => terms.length()
+    _ => 0
+  }
+}
+
+///|
+pub fn ranking_term_at(value : CheckedOperation, index : Int) -> OrderTerm? {
+  match value.row_operation {
+    Some(Sort(terms))
+    | Some(TopK(order=terms, ..))
+    | Some(TopKBy(order=terms, ..)) => terms.get(index)
+    _ => None
+  }
+}
