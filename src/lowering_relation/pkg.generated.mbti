@@ -3,11 +3,15 @@ package "actql/actql/lowering_relation"
 
 import {
   "actql/actql/decode_core",
+  "actql/actql/encode_core",
+  "actql/actql/expression_syntax",
+  "actql/actql/expression_typing",
   "actql/actql/parameter_binding",
   "actql/actql/pipeline_typing",
   "actql/actql/relation_typing",
   "actql/actql/relation_values",
   "actql/actql/value_admission",
+  "actql/actql/value_contract",
   "moonbitlang/core/debug",
 }
 
@@ -16,9 +20,21 @@ pub fn bind_parameters(Prepared, @parameter_binding.BoundValues?, max_parameters
 
 pub fn bound_preparation(BoundPrepared) -> Prepared
 
+pub fn emit_expression(Expression, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
+
+pub fn expression_body(Expression) -> ExpressionBody
+
+pub fn expression_contract(Expression) -> @value_contract.Contract
+
+pub fn expression_location(Expression) -> @expression_syntax.Location
+
+pub fn expression_source(Expression) -> @decode_core.Cursor
+
 pub fn input_id(Prepared, Int) -> String?
 
 pub fn input_ids(PreparedNode) -> Array[String]
+
+pub fn lower_expression(BoundPrepared, Int, Int, ExpressionLimits) -> Result[Expression, ExpressionIssue]
 
 pub fn node_at(Prepared, Int) -> PreparedNode?
 
@@ -45,6 +61,21 @@ pub fn usage(Prepared) -> Usage
 // Errors
 
 // Types and methods
+pub(all) enum BinaryOperator {
+  Add
+  Subtract
+  Multiply
+  Divide
+  Modulo
+  Equal
+  NotEqual
+  Less
+  LessEqual
+  Greater
+  GreaterEqual
+  NullIf
+} derive(Eq, @debug.Debug)
+
 pub struct BindingIssue {
   kind : BindingIssueKind
   source : @decode_core.Cursor
@@ -58,6 +89,44 @@ pub(all) enum BindingIssueKind {
 } derive(Eq, @debug.Debug)
 
 type BoundPrepared
+
+type Expression
+
+pub enum ExpressionBody {
+  Field(String, @relation_typing.ReferenceTarget)
+  Literal(@value_admission.CheckedValue)
+  TypedNull
+  Unary(UnaryOperator, Expression)
+  Binary(BinaryOperator, Expression, Expression)
+  Many(ManyOperator, Array[Expression])
+  Conditional(Expression, Expression, Expression)
+  Case(Array[(Expression, Expression)], Expression)
+}
+
+pub struct ExpressionIssue {
+  kind : ExpressionIssueKind
+  source : @decode_core.Cursor
+}
+
+pub(all) enum ExpressionIssueKind {
+  InvalidExpressionLimits
+  ExpressionBudgetExceeded
+  MissingCheckedBinding
+  MissingParameter(String)
+  MissingTypeAnnotation
+  MissingResolvedField(String)
+  PendingValidation(@expression_typing.ObligationKind)
+  ExpressionNotImplemented(String)
+  LiteralAdmission(@value_admission.Issue)
+} derive(Eq, @debug.Debug)
+
+pub(all) struct ExpressionLimits {
+  max_nodes : Int
+  max_work : Int
+  max_depth : Int
+  max_literal_nodes : Int
+  max_literal_text_bytes : Int
+} derive(Eq, @debug.Debug)
 
 pub struct Issue {
   kind : IssueKind
@@ -79,6 +148,12 @@ pub(all) struct Limits {
   max_identifier_bytes : Int
 } derive(Eq, @debug.Debug)
 
+pub(all) enum ManyOperator {
+  And
+  Or
+  Coalesce
+} derive(Eq, @debug.Debug)
+
 pub enum Payload {
   Values(@relation_values.CheckedValues)
   Derive(@relation_typing.CheckedOperation)
@@ -89,6 +164,16 @@ pub enum Payload {
 type Prepared
 
 type PreparedNode
+
+pub(all) enum UnaryOperator {
+  Negate
+  Not
+  IsNull
+  NotNull
+  IsTrue
+  IsFalse
+  IsUnknown
+} derive(Eq, @debug.Debug)
 
 pub(all) struct Usage {
   nodes : Int

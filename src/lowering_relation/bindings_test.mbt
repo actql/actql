@@ -7,11 +7,16 @@ fn declarations() -> @parameter.Declarations {
 }
 
 ///|
-fn prepared_with(d : @parameter.Declarations) -> @lowering_relation.Prepared {
+fn prepared_with(
+  d : @parameter.Declarations,
+  tail? : String = "",
+) -> @lowering_relation.Prepared {
   @lowering_relation.prepare(
     @pipeline.check(
       cursor(
-        "[{\"values\":{\"schema\":{\"id\":{\"type\":\"number\",\"nullable\":false}},\"rows\":[{\"id\":{\"$param\":\"amount\"}}]},\"as\":\"seed\"}]",
+        "[{\"values\":{\"schema\":{\"id\":{\"type\":\"number\",\"nullable\":false}},\"rows\":[{\"id\":{\"$param\":\"amount\"}}]},\"as\":\"seed\"}" +
+        tail +
+        "]",
       ),
       [],
       Some(d),

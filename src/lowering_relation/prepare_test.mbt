@@ -3,12 +3,12 @@ fn cursor(text : String) -> @decode.Cursor {
   @decode.admit(
     @source.parse_json(
       text,
-      { max_input_bytes: 100000, max_nodes: 10000, max_depth: 100, },
+      { max_input_bytes: 100000, max_nodes: 10000, max_depth: 4000, },
       source_path="lowering-test.aql",
     ).unwrap(),
     {
       max_nodes: 10000,
-      max_depth: 100,
+      max_depth: 4000,
       max_string_bytes: 100000,
       max_total_string_bytes: 100000,
     },
@@ -32,7 +32,7 @@ fn checked(tail : String) -> @pipeline.CheckedPipeline {
       max_text_bytes: 100000,
       max_nodes: 10000,
       max_tokens: 10000,
-      max_depth: 100,
+      max_depth: 4000,
     },
   ).unwrap()
 }
