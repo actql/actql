@@ -775,6 +775,12 @@ admission, resource enforcement or complete source authority.
    semantic projections, independently of internal ownership handles.
    This boundary remains unimplemented; documenting the division is not evidence
    that a formal Program compiler entry is ready.
+   An [integrated pipeline context](pipeline-check-context.md) now runs order
+   resolution, per-visit guard binding and supported capacity closure in one
+   constructor with cumulative budgets and a shared internally created closure.
+   It rejects foreign or missing late producer entries without exposing partial
+   results. This closes manual assembly for that subset, not staged semantic
+   identity, source authority or remaining static/profile/runtime obligations.
    [Combined order checking](combined-order-checking.md) now resolves
    all steps and named Results with one shared budget and one pipeline owner.
    Capacity and other mandatory obligations still require the final combined

@@ -1,0 +1,45 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/pipeline_check_context"
+
+import {
+  "actql/actql/capacity_graph_preflight",
+  "actql/actql/capacity_policy",
+  "actql/actql/parameter_binding",
+  "actql/actql/pipeline_typing",
+  "actql/actql/relation_results",
+}
+
+// Values
+pub fn bound_guards(PipelineContext) -> @pipeline_typing.BoundGuardClosure
+
+pub fn check(@relation_results.CheckedResults, Array[@parameter_binding.BoundValues?], Array[@capacity_graph_preflight.ApplicationCoverage], @capacity_policy.Policy, Limits, proof_owners? : Array[(Int, Int, Int)], input_owners? : Array[(Int, Int, Int, Int)]) -> Result[PipelineContext, Issue]
+
+pub fn checked_capacity(PipelineContext) -> @capacity_graph_preflight.ApplicationClosure
+
+pub fn checked_orders(PipelineContext) -> @relation_results.CheckedOrders
+
+pub fn checked_results(PipelineContext) -> @relation_results.CheckedResults
+
+pub fn usage(PipelineContext) -> (Int, Int)
+
+// Errors
+
+// Types and methods
+pub(all) enum Issue {
+  Orders(@relation_results.OrderCheckIssue)
+  Guards(@pipeline_typing.ProducerOrderIssue)
+  Capacity(@capacity_graph_preflight.ApplicationClosureIssue)
+}
+
+pub(all) struct Limits {
+  max_steps : Int
+  max_results : Int
+  max_work : Int
+  max_text_bytes : Int
+}
+
+type PipelineContext
+
+// Type aliases
+
+// Traits
