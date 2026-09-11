@@ -28,6 +28,10 @@ implementation choice under the existing contract, not a change in acceptance.
 
 ## Remaining witness integration
 
+The [derivation consistency checker](capacity-derivation.md) now recomputes a
+bounded nonrecursive dependency graph using this arithmetic. Its result remains
+numerical consistency, not authenticated bound evidence.
+
 The next boundary must resolve source bodies and derivation dependencies,
 validate their identities, units, role/source pairs and governing laws, and
 recompute the closed derivation. Checking an arithmetic result alone cannot

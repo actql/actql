@@ -1,0 +1,74 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/capacity_derivation"
+
+import {
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn check(Array[Node], Limits) -> Result[CheckedArithmetic, Issue]
+
+pub fn count(CheckedArithmetic) -> Int
+
+pub fn edge_count(CheckedArithmetic) -> Int
+
+pub fn leaf_at(CheckedArithmetic, Int) -> Int?
+
+pub fn leaf_count(CheckedArithmetic) -> Int
+
+pub fn unit_at(CheckedArithmetic, Int) -> BoundUnit?
+
+pub fn value_at(CheckedArithmetic, Int) -> Int64?
+
+// Errors
+
+// Types and methods
+pub(all) enum BoundUnit {
+  Rows
+  DistinctKeys
+  EffectItems
+  Bytes
+  ArrayItems
+  Nodes
+  Edges
+  Paths
+  MatchesPerKey
+} derive(Eq, @debug.Debug)
+
+type CheckedArithmetic
+
+pub(all) enum Derivation {
+  Leaf
+  Preserve(Int)
+  Minimum(Array[Int])
+  Add(Int, Int)
+  Multiply(Int, Int64)
+  Clamp(Int?, Int64)
+}
+
+pub(all) enum Issue {
+  InvalidLimits
+  BudgetExceeded
+  InvalidValue(Int)
+  EmptyMinimum(Int)
+  MissingDependency(Int, Int)
+  UnitMismatch(Int, Int)
+  Overflow(Int)
+  ValueMismatch(Int)
+  Cycle
+} derive(Eq, @debug.Debug)
+
+pub(all) struct Limits {
+  max_nodes : Int
+  max_edges : Int
+}
+
+pub(all) struct Node {
+  unit : BoundUnit
+  claimed : Int64
+  derivation : Derivation
+}
+
+// Type aliases
+
+// Traits

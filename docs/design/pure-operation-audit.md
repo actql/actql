@@ -70,6 +70,10 @@ consumer audit.
    the existing normative witness domains, governing laws and dependency checks.
    Shared [capacity arithmetic](capacity-arithmetic.md) is implemented and used
    by count propagation; arithmetic validation does not close this requirement.
+   [Derivation consistency](capacity-derivation.md) checks bounded numerical
+   dependency graphs, including cycles and units. Canonical wire/source/law
+   verification remains open; a closed bound-law registry body was not found in
+   the inspected repository and still needs an authoritative owner.
    Do not add public proof flags, treat policy ceilings as observations, or
    expand into acquisition, an evaluator or Host dispatch.
 3. Connect contextual resolutions into a complete static checking/discharge
