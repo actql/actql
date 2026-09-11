@@ -55,7 +55,9 @@ retain their index and nested issue.
 The combined index covers operations only. Its used-declaration projection cannot
 stand in for whole-Program or whole-stage use until the remaining grammar slots
 have been included. In particular, unreferenced declarations are not rejected by
-this entry. Complete traversal must also charge those additional slots against
+this entry. The [source-bound Result pass](stage-results.md) now validates actual
+stage Result maps and their structural-only reference positions while retaining
+publication obligations. Complete traversal must also charge additional slots against
 the enclosing budget, rather than give them another independent full allowance.
 
 This boundary proves source correspondence for declarations, steps and initial

@@ -1,0 +1,39 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/stage_results"
+
+import {
+  "actql/actql/relation_results",
+  "actql/actql/stage_parameters",
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn check(@stage_parameters.CollectedOperations, @relation_results.Limits) -> Result[Checked, Issue]
+
+pub fn operations(Checked) -> @stage_parameters.CollectedOperations
+
+pub fn stage_at(Checked, Int) -> @relation_results.CheckedResults?
+
+pub fn usage(Checked) -> Usage
+
+// Errors
+
+// Types and methods
+type Checked
+
+pub enum Issue {
+  InvalidLimits
+  WorkLimit
+  Stage(Int, @relation_results.Issue)
+}
+
+pub(all) struct Usage {
+  work : Int
+  results : Int
+  nodes : Int
+  text_bytes : Int
+} derive(Eq, @debug.Debug)
+
+// Type aliases
+
+// Traits
