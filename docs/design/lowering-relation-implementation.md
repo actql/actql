@@ -764,9 +764,9 @@ The resulting private `BoundProducerInput` preserves receiver/input/output owner
 
 This is identity binding only. It does not install rows, waive input budgets or
 authorize a Program. The driver still refuses raw captures for produced inputs.
-Explicit checked producer projections return `ProjectionExecutionPending` until
-the projection is applied through the existing evaluator with its own accounting;
-this is not a permanent language rejection. No shared API/schema/pin is modified.
+At this checkpoint, checked producer projections returned
+`ProjectionExecutionPending`. The projection adoption increment below supersedes
+that temporary gap. No shared API/schema/pin is modified.
 
 Regression cases check exact matching, wrong target, foreign producer pipeline,
 wrong input, ordinary input with no producer, and a separately bound handle of
@@ -791,7 +791,8 @@ their backing data is shared. Input dispatch and retained producer-binding array
 are charged against the same metadata workspace used by wiring; completion copies
 the binding list under that budget and retains the exact successful dependency.
 Failure returns no receiving completion and neither mutates nor re-executes the
-upstream output. Explicit producer projection is still pending, not bypassed.
+upstream output. At this checkpoint explicit producer projection remained pending;
+the following increment connects it rather than bypassing it.
 
 These per-fragment logical budgets do not claim to bound the complete ancestor
 graph's physical RSS: completed dependency handles retain their parents. A future
@@ -805,3 +806,33 @@ inputs, duplicate producer slots, foreign receiver rejection and immutable retry
 after receiver budget failure. Existing fixed vectors remain unchanged in meaning.
 Formatting, both generator checks and whitespace checks pass; public API remains
 unchanged. This closes unprojected component adoption, not the full fragment entry.
+
+## Checked producer projection adoption
+
+The receiver now retains the exact checked projection from `ProducedInput` along
+with its bound producer, target and successful output. After charging the complete
+unprojected input to the receiver's cumulative input budget, the driver applies
+that projection through the same row-major evaluator as authored select. It does
+not infer a new schema, invent an authored node or recompute the producer. The
+private transient dispatch view is neither a wire format nor an executable
+fragment API.
+
+Projection preserves row order, duplicates, selected column order and aliases.
+The receiver-owned projected table is installed under its existing input ID.
+Projection metadata is reserved before obtaining the checked API's defensive
+array copy. Input layout, ordinals, output arrays and cells use the existing
+operation workspace, including for empty input. Projection output consumes the
+same cumulative output value budget as subsequent authored operations; dropping
+columns cannot evade input accounting. Failed projection or later operations
+produce no completion and leave the upstream result available unchanged.
+
+Independent tests cover reordered/aliased columns, a dropped column, empty rows,
+exact empty-layout workspace (10 entries, 9 rejected), cumulative input/output
+limits and retry after receiver failure. Execution tests pass 74/74 on JS, Wasm
+and native. Public interfaces match across targets and remain unchanged; format,
+both fixed-vector generators, links (869), documentation tests (11) and examples
+pass. Full-repository and Linux CI tests were not rerun for this increment.
+This closes checked projection adoption within the internal driver;
+ordered derive still awaits the shared row-kernel handoff. The complete fragment
+entry's outstanding input obligations and capacity integration remain separate
+from this component success. No Program/Run execution permission is claimed.

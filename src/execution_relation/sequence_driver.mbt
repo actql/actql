@@ -181,7 +181,29 @@ fn evaluate_sequence_components(
         input_rows += source.rows.length()
         // Exact producer identity establishes the unprojected schema. Private
         // immutable rows may share storage; retained slots are still charged.
-        { owner, id: wiring.ids[i], names: source.names, rows: source.rows, }
+        let adopted : Table = {
+          owner,
+          id: wiring.ids[i],
+          names: source.names,
+          rows: source.rows,
+        }
+        match bound.projection {
+          None => adopted
+          Some(projection) =>
+            match
+              evaluate_row_body(
+                CheckedProjection(projection),
+                adopted,
+                wiring.ids[i],
+                limits.max_rows,
+                control,
+                output_budget,
+                { limit: limits.operation_entries, live: 0, peak: 0, },
+              ) {
+              Ok(v) => v
+              Err(e) => return Err(Rows(i, e))
+            }
+        }
       }
     }
     match install_table_input(store, i, table, control) {

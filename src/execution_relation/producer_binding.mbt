@@ -1,10 +1,11 @@
 ///|
-/// Exact completed producer selection for one receiving input. This is not yet
-/// row adoption or permission to skip receiving input resource accounting.
+/// Exact completed producer selection and its checked input projection.
+/// Binding does not discharge receiving input resource accounting.
 priv struct BoundProducerInput {
   receiver : @lower.BoundPrepared
   input_index : Int
   output : CompletedOutput
+  projection : @relation.CheckedOperation?
 }
 
 ///|
@@ -13,7 +14,6 @@ priv enum ProducerBindingIssue {
   ProducerOwnerMismatch
   ProducerBindingMismatch
   ProducerTargetMismatch
-  ProjectionExecutionPending
 }
 
 ///|
@@ -46,8 +46,10 @@ fn bind_completed_input(
   if output.target != @pipeline.producer_target(producer) {
     return Err(ProducerTargetMismatch)
   }
-  if @pipeline.producer_projection(producer) is Some(_) {
-    return Err(ProjectionExecutionPending)
-  }
-  Ok({ receiver, input_index, output, })
+  Ok({
+    receiver,
+    input_index,
+    output,
+    projection: @pipeline.producer_projection(producer),
+  })
 }

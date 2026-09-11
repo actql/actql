@@ -104,12 +104,58 @@ fn retain_row(
 }
 
 ///|
+/// Sources remain bound to checked preparation; no arbitrary row program.
+priv enum RowBodySource {
+  PreparedBody(@lower.PreparedKernel)
+  CheckedProjection(@relation.CheckedOperation)
+}
+
+///|
+// Transient dispatch view only; never serialized or accepted as a fragment.
+priv enum RowBodyView {
+  SnapshotMap(Array[(String, @lower.Expression)])
+  Filter(@lower.Expression)
+  Select(Array[@relation.ProjectionField])
+}
+
+///|
 /// Row-major, atomic operation evaluation. Output and control budgets are
 /// supplied by the caller and can span multiple kernels without resetting.
 /// This is not yet complete physical live-memory accounting.
 fn evaluate_rows_with_workspace(
   kernel : @lower.PreparedKernel,
   input : Table,
+  max_rows : Int,
+  control : ControlBudget,
+  output : ValueBudget,
+  workspace : RowWorkspace,
+) -> Result[Table, RowIssue] {
+  if !physical_equal(@lower.kernel_owner(kernel), input.owner) {
+    return Err(OwnerMismatch)
+  }
+  if @lower.kernel_input(kernel) != input.id {
+    return Err(InputMismatch)
+  }
+  let prepared = @lower.bound_preparation(input.owner)
+  let node = @lower.node_at(prepared, @lower.kernel_step(kernel)).unwrap()
+  evaluate_row_body(
+    PreparedBody(kernel),
+    input,
+    @lower.node_id(node),
+    max_rows,
+    control,
+    output,
+    workspace,
+  )
+}
+
+///|
+// Both authored select and the checked producer projection use this evaluator.
+// The latter is an input adaptation, not an invented authored AoA node.
+fn evaluate_row_body(
+  body : RowBodySource,
+  input : Table,
+  output_id : String,
   max_rows : Int,
   control : ControlBudget,
   output : ValueBudget,
@@ -122,12 +168,6 @@ fn evaluate_rows_with_workspace(
     workspace.live != 0 ||
     workspace.peak != 0 {
     return Err(InvalidRowLimits)
-  }
-  if !physical_equal(@lower.kernel_owner(kernel), input.owner) {
-    return Err(OwnerMismatch)
-  }
-  if @lower.kernel_input(kernel) != input.id {
-    return Err(InputMismatch)
   }
   // This input ceiling applies even when a filter would emit zero rows.
   if input.rows.length() > max_rows {
@@ -142,13 +182,30 @@ fn evaluate_rows_with_workspace(
       return Err(RowLimit)
     }
   }
-  if !reserve_slots(workspace, @lower.kernel_view_entries(kernel)) {
+  let view_entries = match body {
+    PreparedBody(kernel) => @lower.kernel_view_entries(kernel)
+    CheckedProjection(checked) => {
+      if @relation.operation(checked) != Select {
+        return Err(InvalidRows)
+      }
+      @schema.field_count(@relation.output_schema(checked))
+    }
+  }
+  if !reserve_slots(workspace, view_entries) {
     return Err(RowLimit)
   }
-  if !spend_control(control, @lower.kernel_view_entries(kernel)) {
+  if !spend_control(control, view_entries) {
     return Err(RowLimit)
   }
-  let kind = @lower.kernel_body(kernel)
+  let kind : RowBodyView = match body {
+    PreparedBody(kernel) =>
+      match @lower.kernel_body(kernel) {
+        @lower.SnapshotMap(bindings) => SnapshotMap(bindings)
+        @lower.Filter(expr) => Filter(expr)
+        @lower.Select(fields) => Select(fields)
+      }
+    CheckedProjection(checked) => Select(@relation.projection(checked))
+  }
   let output_names : Array[String] = []
   let projection : Array[Int] = []
   let ordinals : Map[String, Int] = Map([])
@@ -166,7 +223,7 @@ fn evaluate_rows_with_workspace(
     ordinals[input.names[i]] = i
   }
   match kind {
-    @lower.Select(fields) =>
+    Select(fields) =>
       for field in fields {
         if !spend_control(control, 1) ||
           !spend_control_text(control, @schema.reference_name(field.input)) ||
@@ -182,7 +239,7 @@ fn evaluate_rows_with_workspace(
         output_names.push(@schema.reference_name(field.output))
         projection.push(index)
       }
-    @lower.Filter(_) =>
+    Filter(_) =>
       for name in input.names {
         if !spend_control(control, 1) {
           return Err(RowLimit)
@@ -192,7 +249,7 @@ fn evaluate_rows_with_workspace(
         }
         output_names.push(name)
       }
-    @lower.SnapshotMap(bindings) => {
+    SnapshotMap(bindings) => {
       for name in input.names {
         if !spend_control(control, 1) {
           return Err(RowLimit)
@@ -228,7 +285,7 @@ fn evaluate_rows_with_workspace(
     control.remaining -= 1
     // One immutable operation-start snapshot; map siblings never update it.
     let snapshot : Map[String, Value] = Map([])
-    if !(kind is @lower.Select(_)) {
+    if !(kind is Select(_)) {
       for i = 0; i < input.names.length(); i = i + 1 {
         if !spend_control(control, 1) ||
           !spend_control_text(control, input.names[i]) {
@@ -242,7 +299,7 @@ fn evaluate_rows_with_workspace(
     }
     let row : Array[Value] = []
     match kind {
-      @lower.Select(_) =>
+      Select(_) =>
         for index in projection {
           if !spend_control(control, 1) {
             return Err(RowLimit)
@@ -252,7 +309,7 @@ fn evaluate_rows_with_workspace(
           }
           row.push(source[index])
         }
-      @lower.Filter(expr) => {
+      Filter(expr) => {
         let value = match
           evaluate_expression_with_workspace(
             expr,
@@ -282,7 +339,7 @@ fn evaluate_rows_with_workspace(
           Number(_) | Text(_) | Captured(_) => return Err(InvalidRows)
         }
       }
-      @lower.SnapshotMap(bindings) => {
+      SnapshotMap(bindings) => {
         for v in source {
           if !spend_control(control, 1) {
             return Err(RowLimit)
@@ -322,12 +379,5 @@ fn evaluate_rows_with_workspace(
     rows.push(row)
     release_slots(workspace, snapshot.length())
   }
-  let prepared = @lower.bound_preparation(input.owner)
-  let node = @lower.node_at(prepared, @lower.kernel_step(kernel)).unwrap()
-  Ok({
-    owner: input.owner,
-    id: @lower.node_id(node),
-    names: output_names,
-    rows,
-  })
+  Ok({ owner: input.owner, id: output_id, names: output_names, rows, })
 }
