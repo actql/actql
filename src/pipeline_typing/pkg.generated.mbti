@@ -104,6 +104,8 @@ pub fn input_order_requirement(InputOrderResolution) -> @relation_typing.Validat
 
 pub fn input_order_target(InputOrderResolution) -> Target
 
+pub fn input_producer(CheckedPipeline, Int) -> ProducedInput?
+
 pub fn inputs(CheckedPipeline) -> Array[(String, @carrier_contract.Carrier)]
 
 pub fn join_evidence(CheckedPipeline, Int) -> JoinEvidence?
@@ -149,6 +151,12 @@ pub fn output_carrier(CheckedPipeline) -> @carrier_contract.Carrier?
 pub fn output_schema(CheckedPipeline) -> @relation_schema.Schema?
 
 pub fn parameters(CheckedPipeline) -> @parameter_binding.Declarations?
+
+pub fn produced_input(CheckedPipeline, Target) -> ProducedInput?
+
+pub fn producer_pipeline(ProducedInput) -> CheckedPipeline
+
+pub fn producer_target(ProducedInput) -> Target
 
 pub fn ranking_evidence(CheckedPipeline, Target) -> @relation_evidence.RankingInput?
 
@@ -265,6 +273,7 @@ pub struct GraphCount {
 type GroupOrders
 
 pub(all) enum InputContract {
+  ProducedInput(ProducedInput)
   CarrierInput(@carrier_contract.Carrier)
   KeyedInput(@relation_evidence.KeyedRelation)
   CandidateKeysInput(@relation_evidence.KeySet)
@@ -365,6 +374,8 @@ pub struct NestOrderTerm {
   nulls : @order_key.NullPlacement
   authored : Bool
 }
+
+type ProducedInput
 
 type RelationEvidence
 

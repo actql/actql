@@ -190,6 +190,7 @@ pub fn window_aliases(
 
 ///|
 struct CheckedPipeline {
+  produced_inputs : Array[ProducedInput?]
   logical_orders : Array[LogicalOrder?]
   lag_orders : Array[SortCompletion?]
   analytic_orders : Array[AnalyticPositionOrder?]
@@ -216,6 +217,7 @@ struct CheckedPipeline {
 ///|
 /// A key declaration retains its own Relation contract and admission obligations.
 pub(all) enum InputContract {
+  ProducedInput(ProducedInput)
   CarrierInput(@carrier.Carrier)
   KeyedInput(@evidence.KeyedRelation)
   CandidateKeysInput(@evidence.KeySet)

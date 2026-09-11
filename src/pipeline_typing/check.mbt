@@ -62,6 +62,7 @@ fn check_impl(
   ],
   keyed_inputs : Array[@evidence.KeySet?],
   ranked_inputs : Array[@vector.RankingInput?],
+  produced_inputs : Array[ProducedInput?],
 ) -> CheckedPipeline raise Stop {
   if limits.max_steps < 0 ||
     limits.max_work < 0 ||
@@ -2102,11 +2103,16 @@ fn check_impl(
   sync_keys(b, keyed_inputs, steps, keyed_steps)
   sync_rankings(b, inputs, ranked_inputs, steps, ranked_steps)
   let join_evidence = derive_join_evidence(b, steps, keyed_inputs, keyed_steps)
-  let (row_counts, graph_counts) = derive_row_counts(b, steps, join_evidence)
+  spend(b, source, produced_inputs.length())
+  spend(b, source, produced_inputs.length())
+  let (row_counts, graph_counts) = derive_row_counts(
+    b, steps, join_evidence, produced_inputs,
+  )
   let (logical_orders, lag_orders, analytic_orders) = derive_logical_orders(
     b, steps, keyed_inputs, keyed_steps,
   )
   {
+    produced_inputs,
     logical_orders,
     lag_orders,
     analytic_orders,
@@ -2203,6 +2209,7 @@ pub fn check_carriers(
       delta_contracts,
       inputs.map(_ => None),
       inputs.map(_ => None),
+      inputs.map(_ => None),
     ),
   ) catch {
     Stop(issue) => Err(issue)
@@ -2227,6 +2234,7 @@ pub fn check_with_evidence(
     (
       pair.0,
       match pair.1 {
+        ProducedInput(p) => p.carrier
         CarrierInput(c) => c
         KeyedInput(k) => @carrier.relation(@evidence.keyed_records(k))
         CandidateKeysInput(k) => @carrier.relation(@evidence.key_set_records(k))
@@ -2237,6 +2245,7 @@ pub fn check_with_evidence(
   })
   let keys = inputs.map(pair => {
     match pair.1 {
+      ProducedInput(p) => p.keys
       CarrierInput(_) | RankingInput(_) => None
       KeyedInput(k) => Some(@evidence.singleton_key(k))
       CandidateKeysInput(k) => Some(k)
@@ -2245,6 +2254,7 @@ pub fn check_with_evidence(
   })
   let rankings = inputs.map(pair => {
     match pair.1 {
+      ProducedInput(p) => p.ranking
       RankingInput(r) => Some(r)
       RelationEvidenceInput(e) => Some(e.ranking)
       _ => None
@@ -2252,8 +2262,22 @@ pub fn check_with_evidence(
   })
   Ok(
     check_impl(
-      source, carriers, parameters, from, limits, calendar_profile, text_rank_profile,
-      delta_contracts, keys, rankings,
+      source,
+      carriers,
+      parameters,
+      from,
+      limits,
+      calendar_profile,
+      text_rank_profile,
+      delta_contracts,
+      keys,
+      rankings,
+      inputs.map(pair => {
+        match pair.1 {
+          ProducedInput(p) => Some(p)
+          _ => None
+        }
+      }),
     ),
   ) catch {
     Stop(issue) => Err(issue)

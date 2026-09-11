@@ -13,10 +13,19 @@ pub struct GraphCount {
 } derive(Eq, Debug)
 
 ///|
-fn graph_count_at(target : Target, steps : Array[GraphCount?]) -> GraphCount? {
+priv struct CountTable[T] {
+  inputs : Array[T?]
+  steps : Array[T?]
+}
+
+///|
+fn graph_count_at(
+  target : Target,
+  table : CountTable[GraphCount],
+) -> GraphCount? {
   match target {
-    Input(_) => None
-    Step(i) => steps[i]
+    Input(i) => table.inputs[i]
+    Step(i) => table.steps[i]
   }
 }
 
@@ -82,10 +91,10 @@ fn set_count(
 }
 
 ///|
-fn count_at(target : Target, steps : Array[RowCount?]) -> RowCount? {
+fn count_at(target : Target, table : CountTable[RowCount]) -> RowCount? {
   match target {
-    Input(_) => None
-    Step(i) => steps[i]
+    Input(i) => table.inputs[i]
+    Step(i) => table.steps[i]
   }
 }
 
@@ -335,7 +344,7 @@ fn graph_report_count(
 fn ranking_count(
   b : Budget,
   step : CheckedStep,
-  prior : Array[RowCount?],
+  prior : CountTable[RowCount],
   op : @vector.CheckedRanking,
 ) -> RowCount? raise Stop {
   let options = @vector.merged_ranking_options(op)
@@ -373,7 +382,7 @@ fn ranking_count(
 fn selector_count(
   selector : @graph.CheckedSelector,
   target : Target?,
-  rows : Array[RowCount?],
+  rows : CountTable[RowCount],
   nodes : RowCount?,
 ) -> RowCount? {
   let selected = match @graph.selector_form(selector) {
@@ -394,7 +403,7 @@ fn selector_count(
 fn endpoint_count(
   endpoint : @graph.PathEndpoint,
   target : Target?,
-  rows : Array[RowCount?],
+  rows : CountTable[RowCount],
   nodes : RowCount?,
 ) -> RowCount? {
   match endpoint {
@@ -408,7 +417,7 @@ fn endpoint_count(
 fn mean_graph_count(
   b : Budget,
   step : CheckedStep,
-  graphs : Array[GraphCount?],
+  graphs : CountTable[GraphCount],
   op : @graph.CheckedMean,
 ) -> GraphCount raise Stop {
   let options = @graph.mean_options(op)
@@ -452,9 +461,16 @@ fn derive_row_counts(
   b : Budget,
   steps : Array[CheckedStep],
   joins : Array[JoinEvidence?],
+  inputs : Array[ProducedInput?],
 ) -> (Array[RowCount?], Array[GraphCount?]) raise Stop {
-  let result : Array[RowCount?] = []
-  let graphs : Array[GraphCount?] = []
+  let result : CountTable[RowCount] = {
+    inputs: inputs.map(v => v.bind(p => p.rows)),
+    steps: [],
+  }
+  let graphs : CountTable[GraphCount] = {
+    inputs: inputs.map(v => v.bind(p => p.graph)),
+    steps: [],
+  }
   for step in steps {
     spend(b, step.source, 1)
     let input = step.input.bind(t => count_at(t, result))
@@ -637,8 +653,8 @@ fn derive_row_counts(
           input,
           count_at(right, result),
           @join.kind(checked),
-          left_unique=join_uniqueness(joins[result.length()].unwrap()).0,
-          right_unique=join_uniqueness(joins[result.length()].unwrap()).1,
+          left_unique=join_uniqueness(joins[result.steps.length()].unwrap()).0,
+          right_unique=join_uniqueness(joins[result.steps.length()].unwrap()).1,
         )
       IntervalJoin(right~, checked~) =>
         join_count(
@@ -671,16 +687,16 @@ fn derive_row_counts(
         }
       _ => None
     }
-    result.push(next)
-    graphs.push(graph_output)
+    result.steps.push(next)
+    graphs.steps.push(graph_output)
   }
-  (result, graphs)
+  (result.steps, graphs.steps)
 }
 
 ///|
 pub fn graph_count(value : CheckedPipeline, target : Target) -> GraphCount? {
   match target {
-    Input(_) => None
+    Input(i) => value.produced_inputs.get(i).bind(v => v.bind(p => p.graph))
     Step(i) => value.graph_counts.get(i).bind(v => v)
   }
 }
@@ -690,7 +706,7 @@ pub fn graph_count(value : CheckedPipeline, target : Target) -> GraphCount? {
 /// Unknown input counts and unimplemented transfer rules return None, not zero.
 pub fn row_count(value : CheckedPipeline, target : Target) -> RowCount? {
   match target {
-    Input(_) => None
+    Input(i) => value.produced_inputs.get(i).bind(v => v.bind(p => p.rows))
     Step(i) => value.row_counts.get(i).bind(v => v)
   }
 }
