@@ -49,9 +49,13 @@ pub fn port_at(ResultPorts, Int) -> ResultPort?
 
 pub fn port_count(ResultPorts) -> Int
 
+pub fn port_input(ResultPort) -> @pipeline_typing.ProducedInput
+
 pub fn port_order(ResultPort) -> PublicationOrder
 
 pub fn port_orders(ResultPort) -> CheckedOrders
+
+pub fn port_publication(ResultPort) -> @pipeline_typing.ResultPublication
 
 pub fn port_result(ResultPort) -> ResultDefinition
 

@@ -19,7 +19,7 @@ pub enum PortIssue {
 struct ResultPort {
   orders : CheckedOrders
   index : Int
-  projection : @pipeline.ProducedProjection
+  publication : @pipeline.PublishedInput
 }
 
 ///|
@@ -78,10 +78,11 @@ pub fn prepare_ports(
     nodes -= @relation.nodes_used(projection)
     text -= @relation.text_bytes_used(projection)
     let prepared = match
-      @pipeline.project_produced_input(
+      @pipeline.publish_produced_input(
         results.pipeline,
         definition.target,
         projection,
+        @decode.lookup(object, "order_by"),
         {
           max_steps: 0,
           max_work: work,
@@ -94,11 +95,11 @@ pub fn prepare_ports(
       Err(e) => return Err(Transfer(i, e))
       Ok(v) => v
     }
-    let used = @pipeline.projected_input_usage(prepared)
+    let used = @pipeline.published_input_usage(prepared)
     work -= used.work
     nodes -= used.nodes
     text -= used.text_bytes
-    entries.push({ orders, index: i, projection: prepared, })
+    entries.push({ orders, index: i, publication: prepared, })
   }
   Ok({
     orders,
@@ -149,6 +150,18 @@ pub fn port_order(port : ResultPort) -> PublicationOrder {
 ///|
 pub fn port_schema(port : ResultPort) -> @schema.Schema {
   @relation.output_schema(
-    @pipeline.producer_projection(@pipeline.projected_input(port.projection)).unwrap(),
+    @pipeline.producer_projection(port_input(port)).unwrap(),
   )
+}
+
+///|
+/// Conditional producer input with this Result's projection and publication
+/// order. Source-stage membership and runtime completion are separate checks.
+pub fn port_input(port : ResultPort) -> @pipeline.ProducedInput {
+  @pipeline.published_input(port.publication)
+}
+
+///|
+pub fn port_publication(port : ResultPort) -> @pipeline.ResultPublication {
+  @pipeline.input_publication(port.publication)
 }

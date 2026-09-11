@@ -98,7 +98,7 @@ test "Result port preparation budgets include prior order checking and every pro
   let prior = @relation_results.checked_orders_usage(orders)
   assert_true(u.work > prior.0)
   assert_true(u.text_bytes > prior.1)
-  assert_eq(u.nodes, 0)
+  assert_true(u.nodes > 0)
   let exact = {
     ..port_limits(),
     max_results: 3,
@@ -111,6 +111,7 @@ test "Result port preparation budgets include prior order checking and every pro
     cap in [
       { ..exact, max_results: 2, },
       { ..exact, max_work: u.work - 1, },
+      { ..exact, max_nodes: u.nodes - 1, },
       { ..exact, max_text_bytes: u.text_bytes - 1, },
       { ..exact, max_depth: 0, },
     ] {
@@ -131,6 +132,57 @@ test "Result port preparation budgets include prior order checking and every pro
     @relation_results.prepare_ports(orders, { ..exact, max_results: -1, })
     is Err(InvalidLimits),
   )
+}
+
+///|
+test "named Result inputs expose their own publication order to downstream consumers" {
+  let orders = port_order_owner()
+  let ports = @relation_results.prepare_ports(orders, port_limits()).unwrap()
+  for i in 0..<@relation_results.port_count(ports) {
+    let port = @relation_results.port_at(ports, i).unwrap()
+    let input = @relation_results.port_input(port)
+    let publication = @relation_results.port_publication(port)
+    assert_true(
+      physical_equal(
+        @pipeline.order_publication(@pipeline.producer_order(input).unwrap()).unwrap(),
+        publication,
+      ),
+    )
+    let expected = @relation_results.port_order(port)
+    assert_eq(
+      @pipeline.publication_term_count(publication),
+      @relation_results.publication_term_count(expected),
+    )
+    for j in 0..<@pipeline.publication_term_count(publication) {
+      let actual = @pipeline.publication_term_at(publication, j).unwrap()
+      let term = @relation_results.publication_term_at(expected, j).unwrap()
+      assert_eq(actual.field, term.field)
+      assert_eq(actual.direction, term.direction)
+      assert_eq(actual.nulls, term.nulls)
+    }
+    let consumer = @pipeline.check_with_evidence(
+      cursor("[{\"take\":1}]"),
+      [("r", @pipeline.ProducedInput(input))],
+      None,
+      None,
+      ranking_limits(),
+    ).unwrap()
+    assert_true(@pipeline.take_order(consumer, 0) is Some(_))
+    assert_true(
+      physical_equal(@pipeline.input_producer(consumer, 0).unwrap(), input),
+    )
+    assert_true(
+      @schema.lookup_reference(
+        @pipeline.schema_at(consumer, Input(0)).unwrap(),
+        "time",
+      )
+      is None,
+    )
+    assert_eq(
+      @schema.field_count(@pipeline.schema_at(consumer, Input(0)).unwrap()),
+      1,
+    )
+  }
 }
 
 ///|
