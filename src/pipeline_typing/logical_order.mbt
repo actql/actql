@@ -92,7 +92,7 @@ fn derive_logical_orders(
       _ => false
     }
     let establishes = match step.operation {
-      TimeSeries(_) => true
+      TimeSeries(_) | Nearest(..) | Ranking(_) | TextRank(..) => true
       Calendar(op) => @calendar.input(op) is None
       _ => false
     }

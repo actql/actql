@@ -1,8 +1,9 @@
 # Conditional logical order
 
 `pipeline_typing.logical_order` retains a deterministic sequence established by a
-checked time-series or Calendar-series generator. Language explicitly orders
-these outputs by ascending time/start. The opaque summary retains the originating
+checked time-series/Calendar-series generator or exact ranking operation.
+Language explicitly orders time grids by ascending time/start and ranking
+outputs by canonical query group, score and semantic identity. The opaque summary retains the originating
 step and the immediate preserving input edge; callers cannot construct one from
 a `total: true` flag. Inspect it in its originating pipeline, which retains all
 intermediate steps, bindings, profiles and validation/resource obligations.
@@ -11,6 +12,18 @@ This is a conditional successful-execution law, not an observed order, a runnabl
 Plan certificate or a proof that a Connector returned complete data. A generator
 with unbound Parameters still requires successful binding and validation. An
 empty generated sequence retains the same law and does not waive those checks.
+
+Nearest, text_rank and every checked merge_rankings policy establish their
+specified final sequence. The producer retains both resolved operand edges and
+the complete ranking contract, including identity uniqueness, numeric evaluation,
+profile selection and resource obligations. RRF uses fused-score descending and
+semantic candidate identity for ties; its query groups use canonical key order.
+These rules do not infer order from arbitrary Relation fields named score/rank,
+nor from a Vector carrier merely having a score field. Projection can hide query
+and candidate identities while preserving this sequence through take and Result
+publication. A lexical producer with an unresolved profile still cannot execute:
+the sequence summary is conditional on successful discharge of that obligation,
+not a replacement for profile admission or correctly rounded scoring.
 
 Filter, derive, select, rename, drop, take, assertions, lag, watermark_rows and
 Calendar bucket preserve an existing sequence. Empty sort preserves it without
