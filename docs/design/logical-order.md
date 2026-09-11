@@ -1,7 +1,7 @@
 # Conditional logical order
 
 `pipeline_typing.logical_order` retains a deterministic sequence established by a
-checked time-series/Calendar-series generator or exact ranking operation.
+checked time-series/Calendar-series generator, exact ranking or ordered Graph query.
 Language explicitly orders time grids by ascending time/start and ranking
 outputs by canonical query group, score and semantic identity. The opaque summary retains the originating
 step and the immediate preserving input edge; callers cannot construct one from
@@ -24,6 +24,18 @@ and candidate identities while preserving this sequence through take and Result
 publication. A lexical producer with an unresolved profile still cannot execute:
 the sequence summary is conditional on successful discharge of that obligation,
 not a replacement for profile admission or correctly rounded scoring.
+
+Graph matching establishes the specified semantic node/edge ordering. Traverse
+uses its emit-specific node or path sequence order; concise reach inherits the
+node form's rule. Shortest-path output uses source then target identity (not
+global cost order), while components uses component then node identity. Their
+checked producers retain the exact mode and all graph, path-selection and
+resource obligations. This permits path-array Results to retain an established
+sequence even though those array fields cannot supply a projected-field sort.
+The Graph carrier itself, degree, and node_rows/edge_rows projection are not
+treated as ordered by this pass: the graph-rows contract explicitly says that
+projection alone does not establish row order. Additional ordering evidence or
+Result completion may still establish order for those outputs.
 
 Filter, derive, select, rename, drop, take, assertions, lag, watermark_rows and
 Calendar bucket preserve an existing sequence. Empty sort preserves it without

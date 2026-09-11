@@ -93,6 +93,8 @@ fn derive_logical_orders(
     }
     let establishes = match step.operation {
       TimeSeries(_) | Nearest(..) | Ranking(_) | TextRank(..) => true
+      GraphMatch(_) | Reach(_) | Traverse(..) | Shortest(..) => true
+      Graph(op) => @graph.operation(op) == @graph.Components
       Calendar(op) => @calendar.input(op) is None
       _ => false
     }
