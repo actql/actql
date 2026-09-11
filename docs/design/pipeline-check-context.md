@@ -176,6 +176,23 @@ nor admits policy, Catalog closure, Host authority or runtime materialization.
 Those checks and augmented input registration remain prerequisites of the final
 lowering-ready compiler boundary. Snapshot coverage is not execution permission.
 
+`attach_reconciled_inputs` is the schema-aware counterpart to the source-only
+attachment path. Pipelines are checked using `environment_input_at`, then their
+exact registrations are sealed by `attach_reconciled`. The all-stage connection
+requires each attachment's exact operation collection and the matching stage
+owner in the Program snapshot-coverage result. It cannot combine equivalent but
+independently reconciled evidence. `ReconciledContexts` retains Result wiring,
+bindings, policy selection, snapshot coverage and detached input attachments.
+
+Work includes the wired context, complete snapshot coverage and registration
+checks. Each attachment's shared operation collection and environment pass are
+subtracted only after both owners match. Snapshot node/text costs remain in the
+combined budget. Tests follow a snapshot-registered input through an actual
+Result import and check exact/short limits, reordered/missing attachments,
+foreign Programs and replacement evidence on a later stage.
+This closes schema-aware registration linkage, not Catalog/policy admission,
+Host authorization, receipt inputs, static discharge or semantic Program identity.
+
 `check_parameter_bindings` extends a context with local Parameter reference
 indexes for every contextual producer visit. It uses the exhaustive pipeline
 collector for both typed expressions and direct operands, including values

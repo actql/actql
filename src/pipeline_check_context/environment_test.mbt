@@ -1,9 +1,8 @@
 ///|
-fn snapshot_context(
-  locals : Array[@local_inputs.Attached],
-  reprepare : Bool,
-) -> @local_inputs.ProgramEnvironmentInputs {
-  let source = @local_inputs.source(@local_inputs.attached_inputs(locals[0]))
+fn snapshot_wire() -> (
+  @environment.WireEnvironment,
+  @snapshot.EnvironmentSnapshot,
+) {
   let prefix = "{\"command_contracts\":[],\"connector_capabilities\":[],\"connector_catalogs\":[],\"contract_registry\":[],"
   let suffix = "\"host_policy_profile\":{},\"mapping_contracts\":[],\"model_task_contracts\":[],\"schema_snapshots\":[{\"output_carrier\":\"relation\",\"schema\":{\"additional_properties\":false,\"fields\":{\"id\":{\"nullable\":false,\"type\":\"number\"}},\"nullable\":false,\"type\":\"object\"},\"source_ref\":\"source:local/first/a\",\"version\":\"actql-local-input-schema/0.1\"}],\"source_views\":[],\"version\":\"actql-check-environment/0.1\"}"
   // Linkage fixture, not an independent identity oracle.
@@ -17,6 +16,16 @@ fn snapshot_context(
     @environment.member_at(environment, @environment.SchemaSnapshots, 0).unwrap(),
     { max_bytes: 10000, max_nodes: 1000, max_depth: 100, },
   ).unwrap()
+  (environment, entry)
+}
+
+///|
+fn snapshot_context(
+  locals : Array[@local_inputs.Attached],
+  reprepare : Bool,
+) -> @local_inputs.ProgramEnvironmentInputs {
+  let source = @local_inputs.source(@local_inputs.attached_inputs(locals[0]))
+  let (environment, entry) = snapshot_wire()
   let index = @refs.prepare(source, {
     max_work: 100000,
     max_text_bytes: 100000,

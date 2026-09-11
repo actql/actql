@@ -837,7 +837,9 @@ admission, resource enforcement or complete source authority.
    not silently replace the already checked pipeline input registrations.
    An explicit schema-aware local registration path now selects retained schema/key
    handles before checking a pipeline and verifies their exact owners afterward.
-   Its all-stage context integration and Host/policy admission remain incomplete.
+   Its all-stage context integration now retains exact registration and snapshot
+   owners alongside Result wiring and bound Parameters. Host/policy admission
+   and final compiler closure remain incomplete.
    Local schema assertion comparison now preserves a supplied stronger complete
    checked schema after recursive assignability, expected-column and newly known
    key/order-type checks. It is not snapshot source/CID/Host admission and is not

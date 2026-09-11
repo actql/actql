@@ -5,6 +5,21 @@ fn wired_fixture() -> (
   @stage_results.ResultWiring,
   Array[@local_inputs.Attached],
 ) {
+  let (stages, wiring, alternative, locals, _, _) = wired_inputs_fixture(false)
+  (stages, wiring, alternative, locals)
+}
+
+///|
+fn wired_inputs_fixture(
+  use_snapshots : Bool,
+) -> (
+  StageContexts,
+  @stage_results.ResultWiring,
+  @stage_results.ResultWiring,
+  Array[@local_inputs.Attached],
+  Array[@local_inputs.ReconciledAttachment],
+  @local_inputs.ProgramEnvironmentInputs?,
+) {
   let program = @syntax.parse(
     (
       #|{"version":"actql/0.1","id":"p","params":{"n":{"type":"number","default":1}},"stages":[{"id":"first","inputs":{"a":{"carrier":"relation","schema":{"id":{"type":"number","nullable":false}}}},"steps":[{"derive":{"x":"$n"}}],"results":{"out":{"from":"a","fields":["id"]}}},{"id":"second","inputs":{"a":{"result":{"stage":"first","result":"out"}}},"steps":[{"derive":{"x":"$n"}}],"results":{"out":{"from":"a","fields":["id"]}}}],"results":{"out":{"from":{"stage":"second","result":"out"}}}}
@@ -28,6 +43,18 @@ fn wired_fixture() -> (
     max_text_bytes: 10000,
   }).unwrap()
   let declarations = @stages.declarations(source)
+  let (environment, snapshot) = snapshot_wire()
+  let source_index = @refs.prepare(source, {
+    max_work: 100000,
+    max_text_bytes: 100000,
+  }).unwrap()
+  let environment_inputs = []
+  let local_limits : @local_inputs.Limits = {
+    max_work: 100000,
+    max_nodes: 10000,
+    max_depth: 100,
+    max_text_bytes: 100000,
+  }
   guard @parameter.bind(declarations, None, {
       max_nodes: 100,
       max_depth: 10,
@@ -71,13 +98,32 @@ fn wired_fixture() -> (
       max_text_bytes: 10000,
     }).unwrap()
     local_declarations.push(prepared)
+    if use_snapshots {
+      environment_inputs.push(
+        @local_inputs.reconcile_environment(
+          prepared,
+          source_index,
+          environment,
+          if i == 0 {
+            [snapshot]
+          } else {
+            []
+          },
+          local_limits,
+        ).unwrap(),
+      )
+    }
     let resolved = @stage_results.resolve_imports(source, i, ports, {
       max_work: 10000,
       max_imports: 10,
       max_text_bytes: 10000,
     }).unwrap()
     let input = if i == 0 {
-      @local_inputs.input_at(prepared, 0).unwrap().1
+      if use_snapshots {
+        @local_inputs.environment_input_at(environment_inputs[i], 0).unwrap().1
+      } else {
+        @local_inputs.input_at(prepared, 0).unwrap().1
+      }
     } else {
       @pipeline.ProducedInput(
         @stage_results.input_producer(
@@ -169,7 +215,18 @@ fn wired_fixture() -> (
   ).unwrap()
   let bound = @stages.bind_operations(operations, values, max_work=100000).unwrap()
   let local_attachments = []
+  let reconciled = []
   for i in 0..<2 {
+    if use_snapshots {
+      reconciled.push(
+        @local_inputs.attach_reconciled(
+          environment_inputs[i],
+          @stages.operations_stage_at(operations, i).unwrap(),
+          max_work=1000000,
+        ).unwrap(),
+      )
+      continue
+    }
     local_attachments.push(
       @local_inputs.attach(
         local_declarations[i],
@@ -205,7 +262,16 @@ fn wired_fixture() -> (
   ports.clear()
   imports.clear()
   contexts.clear()
-  (stages, wiring, alternative, local_attachments)
+  let coverage = if use_snapshots {
+    Some(
+      @local_inputs.assemble_environment(
+        source, environment, environment_inputs, local_limits,
+      ).unwrap(),
+    )
+  } else {
+    None
+  }
+  (stages, wiring, alternative, local_attachments, reconciled, coverage)
 }
 
 ///|

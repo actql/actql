@@ -21,6 +21,8 @@ pub fn attach_environment(InputContexts, @stage_local_inputs.ProgramEnvironmentI
 
 pub fn attach_local_inputs(WiredStages, Array[@stage_local_inputs.Attached], max_work~ : Int, max_text_bytes~ : Int, max_local_input_nodes~ : Int) -> Result[InputContexts, InputIssue]
 
+pub fn attach_reconciled_inputs(WiredStages, @stage_local_inputs.ProgramEnvironmentInputs, Array[@stage_local_inputs.ReconciledAttachment], max_work~ : Int, max_text_bytes~ : Int, max_local_input_nodes~ : Int) -> Result[ReconciledContexts, ReconciledIssue]
+
 pub fn attach_result_wiring(StageContexts, @stage_results.ResultWiring, max_work~ : Int, max_text_bytes~ : Int) -> Result[WiredStages, WiringIssue]
 
 pub fn attach_stage_contexts(@stage_parameters.BoundOperations, @stage_results.Checked, Array[BoundParameters], @capacity_policy.Policy, max_work~ : Int, max_text_bytes~ : Int) -> Result[StageContexts, StageIssue]
@@ -64,6 +66,14 @@ pub fn parameter_usage(BoundParameters) -> (Int, Int)
 pub fn parameter_visit_at(BoundParameters, Int) -> ParameterVisit?
 
 pub fn parameter_visit_count(BoundParameters) -> Int
+
+pub fn reconciled_local_at(ReconciledContexts, Int) -> @stage_local_inputs.ReconciledAttachment?
+
+pub fn reconciled_snapshots(ReconciledContexts) -> @stage_local_inputs.ProgramEnvironmentInputs
+
+pub fn reconciled_usage(ReconciledContexts) -> InputUsage
+
+pub fn reconciled_wiring(ReconciledContexts) -> WiredStages
 
 pub fn result_wiring(WiredStages) -> @stage_results.ResultWiring
 
@@ -156,6 +166,18 @@ pub struct ParameterVisit {
 }
 
 type PipelineContext
+
+type ReconciledContexts
+
+pub(all) enum ReconciledIssue {
+  InvalidLimits
+  ForeignProgram
+  StageCount
+  ForeignStage(Int)
+  ForeignEvidence(Int)
+  InconsistentUsage
+  BudgetExceeded
+} derive(Eq, @debug.Debug)
 
 type StageContexts
 
