@@ -22,6 +22,14 @@ does not upgrade a count summary into validated capacity evidence.
 
 ## Implemented transfer
 
+A complete empty row schema has one possible row value, `{}`. Whole-row
+distinct therefore emits zero or one existing row, with an exact count when
+the input count is exact. Distinct set operations over that schema also have
+an upper bound of one even with unknown operand counts. When both counts are
+exact, the set multiplicity law determines their exact output count for both
+ALL and DISTINCT. These facts do not create a field-based identity or waive
+input validation. A nonempty schema is not assumed to have one possible value.
+
 `graph_count` reports separate node/edge summaries; Graph steps still return
 `None` from `row_count`. Concise construction bounds distinct edges by its input
 row count and endpoint-derived nodes by twice that bound. Explicit construction
@@ -93,8 +101,8 @@ checked addition still rejects an unrepresentable total upper bound.
 | unnest | Multiply by known element upper bound; outer expansion uses at least one; otherwise unknown |
 | append | Add both operand occurrences, including a repeated target |
 | cross_join | Multiply both counts; checked right_rows: one preserves the left count conditionally on that assertion |
-| except | Left upper bound |
-| intersect | Minimum of available operand upper bounds |
+| except | Left upper bound; ALL preserves the left count when the right is empty |
+| intersect | Minimum of available operand upper bounds; an empty operand proves zero |
 | nest, left asof_join | Preserve left count |
 | inner asof_join | Left upper bound |
 | inner join/interval_join | Operand product upper bound |

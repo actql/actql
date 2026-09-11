@@ -38,7 +38,13 @@ pub fn row_count_rule(op : CheckedOperation) -> RowCountRule {
       } else {
         Reduce
       }
-    Some(DistinctRows | DistinctKeys(_)) => Reduce
+    Some(DistinctRows) =>
+      if @schema.field_count(output_schema(op)) == 0 {
+        OneExistingRow
+      } else {
+        Reduce
+      }
+    Some(DistinctKeys(_)) => Reduce
     Some(Watermark(policy~, ..)) =>
       if policy == MarkLate {
         Preserve

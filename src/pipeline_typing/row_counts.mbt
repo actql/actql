@@ -31,6 +31,57 @@ fn reduce_count(input : RowCount?) -> RowCount? {
 }
 
 ///|
+fn set_count(
+  left : RowCount?,
+  right : RowCount?,
+  operation : @set.Operation,
+  duplicates : @set.Duplicates,
+  empty_schema : Bool,
+) -> RowCount? {
+  if left is Some({ upper: 0L, .. }) ||
+    (operation == @set.Intersect && right is Some({ upper: 0L, .. })) {
+    return Some(count(0L, true))
+  }
+  // With no fields there is exactly one possible row equivalence class.
+  if empty_schema && left is Some(a) && a.exact && right is Some(z) && z.exact {
+    let n = if operation == @set.Except {
+      if a.upper > z.upper {
+        a.upper - z.upper
+      } else {
+        0L
+      }
+    } else if a.upper < z.upper {
+      a.upper
+    } else {
+      z.upper
+    }
+    if duplicates == @set.All {
+      return Some(count(n, true))
+    }
+    let survives = a.upper > 0L &&
+      (if operation == @set.Except { z.upper == 0L } else { z.upper > 0L })
+    return Some(count(if survives { 1L } else { 0L }, true))
+  }
+  if operation == @set.Except &&
+    duplicates == @set.All &&
+    right is Some({ upper: 0L, .. }) {
+    return left
+  }
+  if empty_schema && duplicates == @set.Distinct {
+    return Some(count(1L, false))
+  }
+  if operation == @set.Except {
+    return reduce_count(left)
+  }
+  match (left, right) {
+    (Some(a), Some(z)) =>
+      Some(count(if a.upper < z.upper { a.upper } else { z.upper }, false))
+    (Some(a), None) | (None, Some(a)) => Some(count(a.upper, false))
+    _ => None
+  }
+}
+
+///|
 fn count_at(target : Target, steps : Array[RowCount?]) -> RowCount? {
   match target {
     Input(_) => None
@@ -604,22 +655,14 @@ fn derive_row_counts(
         } else {
           product_counts(step.source, input, count_at(right, result))
         }
-      Set(right~, checked~) => {
-        let left = reduce_count(input)
-        if @set.operation(checked) == Except {
-          left
-        } else {
-          let right = reduce_count(count_at(right, result))
-          match (left, right) {
-            (Some(a), Some(z)) =>
-              Some(
-                count(if a.upper < z.upper { a.upper } else { z.upper }, false),
-              )
-            (Some(a), None) | (None, Some(a)) => Some(a)
-            _ => None
-          }
-        }
-      }
+      Set(right~, checked~) =>
+        set_count(
+          input,
+          count_at(right, result),
+          @set.operation(checked),
+          @set.duplicates(checked),
+          @schema.field_count(@set.output_schema(checked)) == 0,
+        )
       AsOfJoin(checked~, ..) =>
         if @join.asof_kind(checked) == Left {
           input

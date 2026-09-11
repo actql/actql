@@ -92,6 +92,10 @@ consumer audit.
    requiring an input key, alongside preserved left keys. ALL modes do not
    manufacture uniqueness. Nullable/structural key-use restrictions and empty-row
    cardinality remain separate from tuple provenance.
+   Empty-schema distinct now retains its zero-or-one count; set multiplicities
+   use the single possible empty-row value when both counts are exact, with
+   exhaustive bounded-multiplicity checks. This remains conditional count
+   propagation, not admission of external count witnesses.
    These are conditional producer-backed keys, not discharged row-validation,
    arithmetic or resource obligations; the cross-operation audit remains open.
    The nearest checker now lives in `relation_evidence`, with shared vector

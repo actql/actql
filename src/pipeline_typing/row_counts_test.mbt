@@ -1,4 +1,52 @@
 ///|
+test "empty-schema distinct and set operations retain conditional cardinality" {
+  for n in [0, 1, 3] {
+    let steps = [
+      count_values(1, "initial"),
+      "{\"group\":{\"by\":[],\"aggregates\":{}},\"as\":\"unit\"}",
+    ]
+    if n == 0 {
+      steps.push("{\"take\":{\"count\":1,\"offset\":1}}")
+    }
+    if n == 3 {
+      steps.push("{\"append\":{\"with\":\"unit\"}}")
+      steps.push("{\"append\":{\"with\":\"unit\"}}")
+    }
+    steps.push("{\"derive\":{},\"as\":\"seed\"}")
+    let i = steps.length() - 1
+    let p = @pipeline_typing.check_carriers(
+      cursor(
+        "[" +
+        steps.join(",") +
+        "," +
+        "{\"distinct\":true},{\"intersect\":{\"with\":\"seed\",\"duplicates\":\"distinct\"}}," +
+        "{\"except\":{\"with\":\"seed\",\"duplicates\":\"distinct\"}}]",
+      ),
+      [],
+      None,
+      None,
+      limits(),
+    ).unwrap()
+    assert_count(p, i, n.to_int64(), true)
+    assert_count(p, i + 1, if n == 0 { 0L } else { 1L }, true)
+    assert_count(p, i + 2, if n == 0 { 0L } else { 1L }, true)
+    assert_count(p, i + 3, 0L, true)
+  }
+  let empty = @schema.from_fields([], max_fields=0, max_name_bytes=0).unwrap()
+  let p = @pipeline_typing.check(
+    cursor(
+      "[{\"distinct\":true},{\"intersect\":{\"with\":\"raw\",\"duplicates\":\"distinct\"}}]",
+    ),
+    [("raw", empty)],
+    None,
+    None,
+    limits(),
+  ).unwrap()
+  assert_count(p, 0, 1L, false)
+  assert_count(p, 1, 1L, false)
+}
+
+///|
 fn count_values(n : Int, binding : String) -> String {
   let rows = Array::makei(n, i => "{\"id\":" + i.to_string() + "}").join(",")
   "{\"values\":{\"schema\":{\"id\":{\"type\":\"number\",\"nullable\":false}},\"rows\":[" +
