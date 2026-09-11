@@ -474,6 +474,14 @@ for Graph membership, preflight and search-resource validation.
    unused inputs and branches, with shared step/work/text limits and original
    owner diagnostics. This is not external snapshot verification or complete
    non-order validation of the producer dependency graph.
+   [Source-bound stage Result wiring](stage-results.md) now binds actual
+   Program/stage Result definitions to their published projections and order
+   origins, checks exact imported-input attachment and assembles every stage
+   plus root exports. Foreign source maps, substituted producer publications,
+   omitted stages and aggregate budget overruns reject. Root exports retain the
+   exact named port without another projection. This closes static Result-edge
+   ownership within that assembly, not ordinary/receipt Input admission,
+   enclosing semantic identity, capacity or runtime publication evidence.
    Window-role evidence now crosses this boundary through the retained opaque
    producer handle, including multiple aliases and Events row projection.
    Identically typed ordinary inputs remain insufficient. Overwrite and alias

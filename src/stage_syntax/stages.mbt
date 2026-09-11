@@ -291,6 +291,16 @@ pub fn exports(program : Program) -> Array[(String, String, String)] {
 }
 
 ///|
+pub fn export_count(program : Program) -> Int {
+  program.exports.length()
+}
+
+///|
+pub fn export_at(program : Program, index : Int) -> (String, String, String)? {
+  program.exports.get(index)
+}
+
+///|
 pub fn stage_body(stage : Stage) -> @wire.Cursor {
   stage.body
 }

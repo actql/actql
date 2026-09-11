@@ -21,6 +21,16 @@ pub fn bind_ports(@stage_parameters.CollectedStage, @relation_results.ResultPort
 
 pub fn check(@stage_parameters.CollectedOperations, @relation_results.Limits) -> Result[Checked, Issue]
 
+pub fn export_at(ResultWiring, Int) -> ResultExport?
+
+pub fn export_count(ResultWiring) -> Int
+
+pub fn export_name(ResultExport) -> String
+
+pub fn export_port(ResultExport) -> @relation_results.ResultPort
+
+pub fn export_stage(ResultExport) -> StagePorts
+
 pub fn import_at(ResultImports, Int) -> ResultImport?
 
 pub fn import_count(ResultImports) -> Int
@@ -50,6 +60,16 @@ pub fn stage_port_publications(StagePorts) -> @relation_results.ResultPorts
 pub fn stage_port_source(StagePorts) -> @stage_parameters.CollectedStage
 
 pub fn usage(Checked) -> Usage
+
+pub fn wire_results(@stage_parameters.Source, Array[StagePorts], Array[AttachedImports], WiringLimits) -> Result[ResultWiring, WiringIssue]
+
+pub fn wiring_imports_at(ResultWiring, Int) -> AttachedImports?
+
+pub fn wiring_source(ResultWiring) -> @stage_parameters.Source
+
+pub fn wiring_stage_at(ResultWiring, Int) -> StagePorts?
+
+pub fn wiring_usage(ResultWiring) -> (Int, Int)
 
 // Errors
 
@@ -84,9 +104,13 @@ pub enum Issue {
   Stage(Int, @relation_results.Issue)
 }
 
+type ResultExport
+
 type ResultImport
 
 type ResultImports
+
+type ResultWiring
 
 type StagePorts
 
@@ -95,6 +119,22 @@ pub(all) struct Usage {
   results : Int
   nodes : Int
   text_bytes : Int
+} derive(Eq, @debug.Debug)
+
+pub(all) enum WiringIssue {
+  InvalidLimits
+  StageCountMismatch
+  ForeignStage(Int)
+  ForeignProducer(Int, String)
+  UnknownExport(String, String)
+  BudgetExceeded
+} derive(Eq, @debug.Debug)
+
+pub(all) struct WiringLimits {
+  max_work : Int
+  max_text_bytes : Int
+  max_imports : Int
+  max_exports : Int
 } derive(Eq, @debug.Debug)
 
 // Type aliases

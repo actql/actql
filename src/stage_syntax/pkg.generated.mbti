@@ -11,6 +11,10 @@ import {
 // Values
 pub fn effect_names(Stage) -> Array[String]
 
+pub fn export_at(Program, Int) -> (String, String, String)?
+
+pub fn export_count(Program) -> Int
+
 pub fn exports(Program) -> Array[(String, String, String)]
 
 pub fn import_at(Stage, Int) -> (String, ImportPort)?

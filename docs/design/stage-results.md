@@ -101,3 +101,35 @@ Regressions cover repeated imports into source-bound downstream `take`, foreign
 Program/pipeline/Results owners, non-earlier and duplicate registrations, absent
 producers, substituted consumer inputs, isolated caller arrays and exact
 work/text/import limits.
+
+## Complete Result wiring and root exports
+
+`wire_results` assembles one `StagePorts` and one `AttachedImports` for every
+stage, in source order. Missing, extra, reordered or foreign stage owners reject.
+For every Result import, including unused occurrences, the producer's checked
+stage and publication collection must be the corresponding earlier owners in
+this assembly. A second wrapper around identical owners is harmless; replacing
+the actual publications retained by a consumer is not.
+
+Root exports are read through indexed access from the same Program. Each export
+retains its authored name, producer stage and exact named Result port. It adds
+no Select, order transformation or materialization, preserving the selected
+Result's schema, qualified fields, publication order and retained obligations.
+Root export selection cannot omit checking an unexported stage or its imports.
+The result owns its index arrays and does not retain caller-owned arrays.
+
+The assembly builds its stage-name index once and visits each stage, import and
+export once; it does not rebuild a producer map for each reference. Shared work
+and text caps include every supplied port collection's prior usage and every
+import attachment's usage, then assembly visits and retained index/reference
+names. Import count is cumulative across stages and export count covers the
+entire root map. Already consumed amounts are subtracted independently to avoid
+overflow when combining usages. Earlier parsing, declarations and operation
+admission are not retroactively charged; composing those accounting domains is
+still a responsibility of the complete checking entry.
+
+This closes Result wiring, not the whole Program: ordinary/receipt Inputs,
+Effect validation, capacity discharge, identity and execution remain distinct.
+Regression tests cover exact export-port identity, all-stage completeness,
+source-order ownership, substituted producer publications, detached arrays and
+aggregate work/text/import/export limits.
