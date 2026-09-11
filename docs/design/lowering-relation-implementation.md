@@ -375,7 +375,8 @@ charged for the operation. Failure returns no partial table; a partly consumed
 workspace cannot be reused for another operation.
 
 Independent fixed boundary tests count a two-column/two-row projection at 22
-slots (21 fails), a fully rejecting filter at peak 14/live 12, and an empty map
+slots (21 fails), a fully rejecting filter at peak 15/live 12 (including its
+binary-expression continuation), and an empty map
 at peak 20/live 18. They also check unchanged borrowed input and a successful
 fresh invocation after resource failure. The whitebox convenience wrapper only
 supplies an explicit generous limit to this sole evaluator; it adds no alternate
@@ -384,7 +385,7 @@ execution semantics or production default.
 Slots are structural entries, **not bytes, allocator capacity or RSS**. Empty
 container headers and hash-map capacity are not modeled. This is not a claim of
 complete physical memory admission: retained tables across a fragment,
-nested immutable payloads and expression-frame/view lifetimes
+nested immutable payload bytes and actual allocator/GC behavior
 still need an integrated budget. Logical output and cumulative work remain
 separate counters, and none replace main's static capacity evidence.
 
@@ -411,3 +412,20 @@ per-operation checks do not authorize resetting a future fragment-wide limit.
 Conversion-unit validation: execution tests 29/29 on JS, Wasm and native;
 unchanged matching public interfaces across those targets; format, whitespace
 and 865-link checks pass. The 14 unconnected-private-code warnings remain.
+
+Expression evaluation now shares the row workspace, reserving copied child-view
+entries before copying and continuation slots before pushing. Parent views stay
+charged during descendant evaluation. Completed unary/binary/conditional frames
+and completed or short-circuited Many/Case views release their logical slots;
+moving a binary or multi-child continuation forward retains its reservation.
+Workspace failure carries its expression position separately from work/depth
+failure. Two nested two-child coalesces require six slots above the caller's
+existing live count; one fewer fails. Success restores the caller's live count,
+including CASE's selected and fallback paths. This changes resource accounting,
+not demanded expressions or result semantics. Counts describe logical container
+entries and frames, not the allocator size of a frame, tuple, object or array.
+
+Expression-workspace validation: execution 31/31 on each of JS, Wasm and native,
+unchanged matching public API, format/whitespace and 865 links pass. Existing
+private-code warnings remain; fragment-wide retention and shared-contract
+admission are still open, not inferred from these component tests.

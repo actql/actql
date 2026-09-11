@@ -253,7 +253,14 @@ fn evaluate_rows_with_workspace(
           row.push(source[index])
         }
       @lower.Filter(expr) => {
-        let value = match evaluate_expression(expr, snapshot, [], control) {
+        let value = match
+          evaluate_expression_with_workspace(
+            expr,
+            snapshot,
+            [],
+            control,
+            workspace,
+          ) {
           Ok(v) => v
           Err(e) => return Err(Evaluation(row_index, 0, e))
         }
@@ -287,7 +294,14 @@ fn evaluate_rows_with_workspace(
         }
         for slot = 0; slot < bindings.length(); slot = slot + 1 {
           let expr = bindings[slot].1
-          match evaluate_expression(expr, snapshot, [], control) {
+          match
+            evaluate_expression_with_workspace(
+              expr,
+              snapshot,
+              [],
+              control,
+              workspace,
+            ) {
             Ok(v) => {
               if !reserve_slots(workspace, 1) {
                 return Err(RowLimit)

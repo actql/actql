@@ -28,6 +28,7 @@ fn spend_control_text(budget : ControlBudget, text : String) -> Bool {
 priv enum EvalIssueKind {
   InvalidControlLimits
   ControlLimit
+  WorkspaceLimit
   MissingValue
   Scalar(ScalarIssue)
 } derive(Eq, Debug)
@@ -66,13 +67,18 @@ priv enum Evaluation {
 }
 
 ///|
-fn evaluate_expression(
+fn evaluate_expression_with_workspace(
   root : @lower.Expression,
   input : Map[String, Value],
   slots : Array[Value],
   budget : ControlBudget,
+  workspace : RowWorkspace,
 ) -> Result[Value, EvalIssue] {
-  if budget.remaining < 0 || budget.max_frames < 0 {
+  if budget.remaining < 0 ||
+    budget.max_frames < 0 ||
+    workspace.limit < 0 ||
+    workspace.live < 0 ||
+    workspace.live > workspace.limit {
     return Err({ kind: InvalidControlLimits, expression: root, })
   }
   let stack : Array[Continuation] = []
@@ -86,9 +92,12 @@ fn evaluate_expression(
     match state {
       Enter(expr) => {
         active = expr
-        // Charge before allocating the defensive-copy view. This bounds
-        // cumulative copy work, not total retained physical memory.
-        if !spend_control(budget, @lower.expression_view_entries(expr)) {
+        // Ancestor views stay reserved while descendants evaluate.
+        let entries = @lower.expression_view_entries(expr)
+        if !reserve_slots(workspace, entries) {
+          return Err({ kind: WorkspaceLimit, expression: expr, })
+        }
+        if !spend_control(budget, entries) {
           return Err({ kind: ControlLimit, expression: expr, })
         }
         let body = @lower.expression_body(expr)
@@ -102,6 +111,9 @@ fn evaluate_expression(
         }
         if !leaf && stack.length() >= budget.max_frames {
           return Err({ kind: ControlLimit, expression: expr, })
+        }
+        if !leaf && !reserve_slots(workspace, 1) {
+          return Err({ kind: WorkspaceLimit, expression: expr, })
         }
         match body {
           Field(name, target) => {
@@ -148,6 +160,7 @@ fn evaluate_expression(
               stack.push(Case(expr, clauses, 0, otherwise))
               state = Enter(condition)
             } else {
+              release_slots(workspace, 1)
               state = Enter(otherwise)
             }
         }
@@ -156,6 +169,7 @@ fn evaluate_expression(
         guard stack.pop() is Some(frame) else { return Ok(value) }
         match frame {
           Unary(expr, op) => {
+            release_slots(workspace, 1)
             active = expr
             match unary(op, value) {
               Ok(v) => state = Return(v)
@@ -167,6 +181,7 @@ fn evaluate_expression(
             state = Enter(right)
           }
           Right(expr, op, left) => {
+            release_slots(workspace, 1)
             active = expr
             // Bound variable-size comparison work before the comparison.
             // Values are already canonical: never normalize inside compare.
@@ -182,6 +197,7 @@ fn evaluate_expression(
             }
           }
           Choose(expr, yes, no) => {
+            release_slots(workspace, 1)
             if !(value is Null || value is Boolean(_)) {
               return Err({ kind: Scalar(InvalidOperand), expression: expr, })
             }
@@ -198,11 +214,15 @@ fn evaluate_expression(
                 }
             }
             if op == @lower.Coalesce && !(combined is Null) {
+              release_slots(workspace, children.length())
+              release_slots(workspace, 1)
               state = Return(combined)
             } else if children.get(index + 1) is Some(next) {
               stack.push(Many(expr, op, children, index + 1, combined))
               state = Enter(next)
             } else {
+              release_slots(workspace, children.length())
+              release_slots(workspace, 1)
               state = Return(combined)
             }
           }
@@ -211,11 +231,15 @@ fn evaluate_expression(
               return Err({ kind: Scalar(InvalidOperand), expression: expr, })
             }
             if value is Boolean(true) {
+              release_slots(workspace, clauses.length())
+              release_slots(workspace, 1)
               state = Enter(clauses[index].1)
             } else if clauses.get(index + 1) is Some((condition, _)) {
               stack.push(Case(expr, clauses, index + 1, otherwise))
               state = Enter(condition)
             } else {
+              release_slots(workspace, clauses.length())
+              release_slots(workspace, 1)
               state = Enter(otherwise)
             }
           }

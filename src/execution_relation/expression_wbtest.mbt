@@ -1,4 +1,18 @@
 ///|
+fn evaluate_expression(
+  root : @lower.Expression,
+  input : Map[String, Value],
+  slots : Array[Value],
+  budget : ControlBudget,
+) -> Result[Value, EvalIssue] {
+  evaluate_expression_with_workspace(root, input, slots, budget, {
+    limit: 100000,
+    live: 0,
+    peak: 0,
+  })
+}
+
+///|
 fn lowered(text : String) -> @lower.Expression {
   let raw = "[{\"values\":{\"schema\":{\"id\":{\"type\":\"number\",\"nullable\":false}},\"rows\":[{\"id\":1}]},\"as\":\"seed\"},{\"derive\":{\"v\":" +
     text +
@@ -10,6 +24,65 @@ fn lowered(text : String) -> @lower.Expression {
     max_literal_nodes: 10000,
     max_literal_text_bytes: 100000,
   }).unwrap()
+}
+
+///|
+test "nested expression views share row workspace and release on success" {
+  // Outer coalesce retains two child references and one frame while the
+  // inner coalesce retains its own two references and frame: six entries.
+  let expr = lowered("\"coalesce(coalesce(NULL, 7), 1 / 0)\"")
+  let workspace = { limit: 11, live: 5, peak: 5, }
+  let value = evaluate_expression_with_workspace(
+    expr,
+    Map([]),
+    [],
+    { remaining: 1000, max_frames: 10, },
+    workspace,
+  ).unwrap()
+  assert_true(value is Number(7.0))
+  assert_eq(workspace.peak, 11)
+  assert_eq(workspace.live, 5)
+  assert_true(
+    evaluate_expression_with_workspace(
+      expr,
+      Map([]),
+      [],
+      { remaining: 1000, max_frames: 10, },
+      { limit: 10, live: 5, peak: 5, },
+    )
+    is Err({ kind: WorkspaceLimit, .. }),
+  )
+  // Sequential expressions reuse released space, without resetting work.
+  let control = { remaining: 1000, max_frames: 10, }
+  let before = control.remaining
+  assert_true(
+    evaluate_expression_with_workspace(expr, Map([]), [], control, workspace).unwrap()
+    is Number(7.0),
+  )
+  assert_eq(workspace.live, 5)
+  assert_true(control.remaining < before)
+}
+
+///|
+test "expression workspace releases branch frames and case views" {
+  for
+    source in [
+      "\"if(true, -(1 + 2), 1 / 0)\"", "{\"case\":{\"when\":[{\"when\":{\"literal\":false},\"then\":{\"literal\":9}}]}}",
+      "{\"case\":{\"when\":[{\"when\":{\"literal\":true},\"then\":{\"literal\":9}}]}}",
+      "\"true AND false AND true\"",
+    ] {
+    let workspace = { limit: 100, live: 5, peak: 5, }
+    let result = evaluate_expression_with_workspace(
+      lowered(source),
+      Map([]),
+      [],
+      { remaining: 1000, max_frames: 10, },
+      workspace,
+    )
+    assert_true(result is Ok(_))
+    assert_eq(workspace.live, 5)
+    assert_true(workspace.peak > 5)
+  }
 }
 
 ///|

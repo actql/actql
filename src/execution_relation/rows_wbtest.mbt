@@ -240,8 +240,8 @@ test "row workspace exact projection limit and failure isolation" {
 test "row workspace releases discarded filter snapshots and bounds retained rows" {
   let owner = row_owner(",{\"filter\":\"a > 10\"}")
   // Eight input entries + two ordinals + two output names = twelve.
-  // Only one two-entry snapshot lives at a time; no output rows survive.
-  let workspace = { limit: 14, live: 0, peak: 0, }
+  // One two-entry snapshot and one binary continuation; no output survives.
+  let workspace = { limit: 15, live: 0, peak: 0, }
   let result = evaluate_rows_with_workspace(
     row_kernel(owner, 1),
     row_capture(owner),
@@ -252,7 +252,7 @@ test "row workspace releases discarded filter snapshots and bounds retained rows
   ).unwrap()
   assert_eq(result.rows.length(), 0)
   assert_eq(workspace.live, 12)
-  assert_eq(workspace.peak, 14)
+  assert_eq(workspace.peak, 15)
   assert_true(
     evaluate_rows_with_workspace(
       row_kernel(owner, 1),
@@ -260,9 +260,9 @@ test "row workspace releases discarded filter snapshots and bounds retained rows
       2,
       { remaining: 1000, max_frames: 10, },
       row_output(),
-      { limit: 13, live: 0, peak: 0, },
+      { limit: 14, live: 0, peak: 0, },
     )
-    is Err(RowLimit),
+    is Err(Evaluation(0, 0, { kind: WorkspaceLimit, .. })),
   )
   let map_owner = row_owner(",{\"derive\":{}}")
   // Empty map still preserves both rows. Retained output entries accumulate,

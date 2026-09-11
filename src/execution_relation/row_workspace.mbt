@@ -1,7 +1,8 @@
 ///|
 /// Per-operation structural storage bound, in container entries, not bytes.
-/// It counts borrowed input entries too. Immutable nested payload sizes and
-/// expression continuations use their own budgets; this is not a heap meter.
+/// It counts borrowed input entries, copied expression-view entries and live
+/// continuations too. Immutable nested payload sizes use separate logical
+/// budgets; this is not a heap meter.
 priv struct RowWorkspace {
   limit : Int
   mut live : Int
