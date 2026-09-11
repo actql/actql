@@ -61,6 +61,15 @@ selected names are complete for a Program, stage or unit. The enclosing
 compiler still has to collect the normative slots and bind their owners before
 placing the selected-value identity in the appropriate semantic envelope.
 
+For multiple indices, `prepare_values` builds one immutable shared name lookup
+from an admitted BoundValues owner. `bind_prepared` enforces the same exact
+declaration ownership and charges only selected-entry work; the caller charges
+`prepared_work` once. The original `bind_values` is the single-index wrapper,
+with its existing complete-value-plus-selected-entry work accounting unchanged.
+Neither entry point re-admits values or returns mutable maps. The Program
+inventory's `bind_parameter_values` composes all stage projections with one
+shared preparation and a cumulative budget; it is not an execution permit.
+
 `max_slots` and `max_references` bound collection size; `max_pointer_units` bounds
 the sum of emitted pointer UTF-16 units after escaping, including repeated paths.
 Equality is accepted, negative limits reject, and failures return no partial index.

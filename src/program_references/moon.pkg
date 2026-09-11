@@ -18,4 +18,5 @@ import {
 import {
   "actql/actql/pipeline_typing" @pipeline,
   "actql/actql/relation_schema" @schema,
+  "actql/actql/source_value" @source,
 } for "test"

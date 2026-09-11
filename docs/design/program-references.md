@@ -66,6 +66,31 @@ declaration is returned with its admitted declaration object. Work exhaustion
 does not return a partial success. This fixed diagnostic traversal order is an
 implementation convention, not an additional language restriction.
 
+## Bound Parameter projections
+
+`bind_parameter_values` accepts a `DeclarationUsage` and exactly one admitted
+`parameter_binding.BoundValues` from the same declaration owner. It prepares a
+shared value-name index once and binds both the Program index and every stage
+index atomically. Callers cannot omit a stage, supply different values by stage,
+or pair equal-looking declarations from another owner. The opaque result retains
+the usage proof and exact value set; its stage accessors return the corresponding
+`parameter_references.BoundIndex`. Local values contain only local uses, while
+the Program selection covers every declared Parameter after usage validation.
+
+The cumulative work cap charges prior usage work once, shared value indexing
+once, selected entries in each projection and one visit per stage (including
+stages with no Parameter use). It does not reconstruct the complete binding map
+for each stage. A late stage budget failure exposes no partial aggregate result.
+Value admission's node/depth/text budgets remain attached to the original binding
+operation; this projection does not re-admit or copy recursive values. Existing
+typed-value emitters preserve decimal/duration identity rules and share writer
+limits. These preimages are not Program/stage/Invocation envelopes.
+
+Binding concrete opaque references, issuer evidence, Input/Effect consumer type
+checks and pipeline validation against the same bound values remain separate.
+In particular, attaching Parameter values here does not resolve operation guards
+or prove that existing pipeline checks used those values.
+
 ## What this does not certify
 
 The inventory closes composition of the currently admitted reference roles,

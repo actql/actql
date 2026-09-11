@@ -10,6 +10,8 @@ import {
 }
 
 // Values
+pub fn bind_prepared(Index, PreparedValues, max_work~ : Int) -> Result[BoundIndex, BindingIssue]
+
 pub fn bind_values(Index, @parameter_binding.BoundValues, max_work~ : Int) -> Result[BoundIndex, BindingIssue]
 
 pub fn binding_work(BoundIndex) -> Int
@@ -29,6 +31,10 @@ pub fn emit_used_declarations(Index, @encode_core.Writer) -> Unit raise @encode_
 pub fn emit_used_values(BoundIndex, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
 
 pub fn pointer_units(Index) -> Int
+
+pub fn prepare_values(@parameter_binding.BoundValues, max_work~ : Int) -> Result[PreparedValues, BindingIssue]
+
+pub fn prepared_work(PreparedValues) -> Int
 
 pub fn reference_at(Index, Int) -> Reference?
 
@@ -72,6 +78,8 @@ pub(all) struct Limits {
   max_references : Int
   max_pointer_units : Int
 } derive(Eq, @debug.Debug)
+
+type PreparedValues
 
 pub struct Reference {
   name : String

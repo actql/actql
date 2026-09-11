@@ -12,6 +12,8 @@ import {
 }
 
 // Values
+pub fn bind_parameter_values(DeclarationUsage, @parameter_binding.BoundValues, max_work~ : Int) -> Result[ParameterValues, @parameter_references.BindingIssue]
+
 pub fn binding_at(Index, Int) -> BindingReference?
 
 pub fn binding_count(Index) -> Int
@@ -22,15 +24,25 @@ pub fn emit_binding_references(Index, @encode_core.Writer) -> Unit raise @encode
 
 pub fn emit_used_bindings(Index, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
 
+pub fn parameter_usage(ParameterValues) -> DeclarationUsage
+
+pub fn parameter_values(ParameterValues) -> @parameter_binding.BoundValues
+
+pub fn parameter_work(ParameterValues) -> Int
+
 pub fn parameters(Index) -> @parameter_references.Index
 
 pub fn prepare(@source_request_slots.Slots, Array[@stage_source.ParameterUses], Limits) -> Result[Inventory, Issue]
 
 pub fn program_index(Inventory) -> Index
 
+pub fn program_parameter_values(ParameterValues) -> @parameter_references.BoundIndex
+
 pub fn requests(Inventory) -> @source_request_slots.Slots
 
 pub fn stage_index(Inventory, Int) -> Index?
+
+pub fn stage_parameter_values(ParameterValues, Int) -> @parameter_references.BoundIndex?
 
 pub fn stage_uses(Inventory, Int) -> @stage_source.ParameterUses?
 
@@ -74,6 +86,8 @@ pub(all) struct Limits {
   max_pointer_units : Int
   max_request_text_bytes : Int
 }
+
+type ParameterValues
 
 pub enum UsageIssue {
   InvalidLimits

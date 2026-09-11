@@ -48,6 +48,15 @@ test "used values bind exact declarations and preserve typed identity projection
     ),
   )
   let bound = bind_values(index, values, max_work=5).unwrap()
+  let prepared = prepare_values(values, max_work=3).unwrap()
+  assert_eq(prepared_work(prepared), 3)
+  assert_true(prepare_values(values, max_work=2) is Err(WorkLimit))
+  assert_true(prepare_values(values, max_work=-1) is Err(InvalidLimits))
+  let reused = bind_prepared(index, prepared, max_work=2).unwrap()
+  assert_eq(binding_work(reused), 2)
+  assert_eq(selected_text(reused), selected_text(bound))
+  assert_true(bind_prepared(index, prepared, max_work=1) is Err(WorkLimit))
+  assert_true(bind_prepared(index, prepared, max_work=-1) is Err(InvalidLimits))
   let expected =
     #|{"values":{"d":{"$actql_value":["decimal",{"coefficient":"1990","precision":4,"scale":2,"version":"aoa-decimal-value/0.1"}]},"p":{"$actql_value":["duration",1000]}},"version":"actql-parameter-values/0.1"}
   assert_eq(selected_text(bound), expected)
@@ -89,6 +98,14 @@ test "used values bind exact declarations and preserve typed identity projection
   )
   assert_true(
     bind_values(index, foreign, max_work=100) is Err(ForeignDeclarations),
+  )
+  assert_true(
+    bind_prepared(
+      index,
+      prepare_values(foreign, max_work=3).unwrap(),
+      max_work=100,
+    )
+    is Err(ForeignDeclarations),
   )
   let measured = @encode.measuring_writer(10000, 1000, 100)
   emit_used_values(bound, measured)
