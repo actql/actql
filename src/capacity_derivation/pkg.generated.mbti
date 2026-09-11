@@ -16,6 +16,14 @@ pub fn leaf_at(CheckedArithmetic, Int) -> Int?
 
 pub fn leaf_count(CheckedArithmetic) -> Int
 
+pub fn link_references(Array[ReferencedNode], Limits) -> Result[LinkedArithmetic, ReferenceIssue]
+
+pub fn linked_arithmetic(LinkedArithmetic) -> CheckedArithmetic
+
+pub fn linked_identity_at(LinkedArithmetic, Int) -> String?
+
+pub fn linked_index(LinkedArithmetic, String) -> Int?
+
 pub fn minimum_candidate_at(CandidateMinimum, Int) -> Candidate?
 
 pub fn minimum_candidate_count(CandidateMinimum) -> Int
@@ -107,10 +115,38 @@ pub(all) struct Limits {
   max_edges : Int
 }
 
+type LinkedArithmetic
+
 pub(all) struct Node {
   unit : BoundUnit
   claimed : Int64
   derivation : Derivation
+}
+
+pub(all) enum ReferenceIssue {
+  InvalidReferenceLimits
+  ReferenceBudgetExceeded
+  InvalidIdentity(Int)
+  InvalidReference(Int)
+  DuplicateIdentity(Int)
+  MissingReference(Int, String)
+  ArithmeticFailure(Issue)
+} derive(Eq, @debug.Debug)
+
+pub(all) enum ReferencedDerivation {
+  Source
+  PreserveReference(String)
+  MinimumReferences(Array[String])
+  AddReferences(String, String)
+  MultiplyReference(String, Int64)
+  ClampReference(String?, Int64)
+}
+
+pub(all) struct ReferencedNode {
+  cid : String
+  unit : BoundUnit
+  claimed : Int64
+  derivation : ReferencedDerivation
 }
 
 // Type aliases

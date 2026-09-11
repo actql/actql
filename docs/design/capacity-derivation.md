@@ -41,6 +41,23 @@ dependency validation or make a cyclic graph valid.
 
 ## Required surrounding boundary
 
+`link_references` resolves a complete CID-addressed numerical graph into the
+same arithmetic checker. Identity strings must use canonical SHA-256 spelling
+and be unique; forward references and repeated operand occurrences are retained.
+All dependencies must be present, including those of unused nodes. No optional
+dependency map or global created-witness cache can bypass resolution. Node and
+edge-occurrence limits apply before array copying; fixed-size CID validation
+precedes lookup, and the retained index and computed results are detached.
+
+This API accepts **unauthenticated descriptions**, not wire witnesses. Checking
+a CID's spelling does not recompute its preimage. Source leaves, source/role/law
+relationships, wire dependency sets and enforced-ceiling applications still
+require their own validated owners. `LinkedArithmetic` is not accepted as
+pipeline evidence or permission to execute. An enforced ceiling is deliberately
+not exposed as a reference operation that could turn an arbitrary limit CID
+into a proven bound. The later wire adapter must connect its validated sources
+and enforcement dependencies to this numerical closure.
+
 `select_candidate_minimum` adds the common numeric limit-selection rule over an
 already checked graph. Candidates retain their graph indices and supplied roles;
 all must exist and match the requested unit. The minimum includes every supplied
@@ -91,3 +108,9 @@ exact graph budgets and detached results. A 10,000-node chain checks iterative
 handling. Three hundred permuted graphs use independent exact-integer formulas
 for accepted claims and deliberately corrupted output claims. These tests prove
 numerical graph consistency only, not external provenance or execution.
+
+CID-reference regressions additionally exercise every reference operation,
+forward/shared/repeated operands, malformed and duplicate identities, missing
+dependencies, unused cycles, numeric mismatch, exact allocation budgets and a
+reversed 10,000-node chain. Synthetic IDs in these tests are labels, not a claim
+that a wire witness with that content hash has been authenticated.

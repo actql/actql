@@ -72,6 +72,9 @@ consumer audit.
    by count propagation; arithmetic validation does not close this requirement.
    [Derivation consistency](capacity-derivation.md) checks bounded numerical
    dependency graphs, including cycles and units. Candidate minimum selection
+   is preceded, for CID-addressed descriptions, by complete bounded reference
+   linking; missing dependencies cannot skip arithmetic checks. Reference
+   spelling and closure are not content/source authentication. Candidate selection
    now retains all numeric candidates and computes strict author-guard binding;
    supplied roles and applicability are not authenticated by that arithmetic.
    Canonical wire/source/law
