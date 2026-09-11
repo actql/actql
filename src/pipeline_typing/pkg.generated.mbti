@@ -48,6 +48,24 @@ pub fn analytic_order_retained(AnalyticPositionOrder) -> LogicalOrder?
 
 pub fn analytic_position_order(CheckedPipeline, Int) -> AnalyticPositionOrder?
 
+pub fn author_guard_at(AuthorGuards, Int) -> AuthorGuard?
+
+pub fn author_guard_count(AuthorGuards) -> Int
+
+pub fn author_guard_pipeline(AuthorGuard) -> CheckedPipeline
+
+pub fn author_guard_scope(AuthorGuard) -> GuardScope
+
+pub fn author_guard_source(AuthorGuard) -> @decode_core.Cursor
+
+pub fn author_guard_step(AuthorGuard) -> Int
+
+pub fn author_guard_value(AuthorGuard) -> @relation_typing.CountValue
+
+pub fn author_guards_pipeline(AuthorGuards) -> CheckedPipeline
+
+pub fn author_guards_usage(AuthorGuards) -> (Int, Int)
+
 pub fn candidate_key(CheckedPipeline, Target) -> @relation_evidence.KeyedRelation?
 
 pub fn candidate_keys(CheckedPipeline, Target) -> @relation_evidence.KeySet?
@@ -59,6 +77,8 @@ pub fn check(@decode_core.Cursor, Array[(String, @relation_schema.Schema)], @par
 pub fn check_carriers(@decode_core.Cursor, Array[(String, @carrier_contract.Carrier)], @parameter_binding.Declarations?, @decode_core.Cursor?, Limits, calendar_profile? : @calendar_profile.Profile?, text_rank_profile? : @text_rank_profile.Profile?, delta_contracts? : Array[(String, @relation_schema.FieldName, @graph_contract.CheckedContract)]) -> Result[CheckedPipeline, Issue]
 
 pub fn check_with_evidence(@decode_core.Cursor, Array[(String, InputContract)], @parameter_binding.Declarations?, @decode_core.Cursor?, Limits, calendar_profile? : @calendar_profile.Profile?, text_rank_profile? : @text_rank_profile.Profile?, delta_contracts? : Array[(String, @relation_schema.FieldName, @graph_contract.CheckedContract)]) -> Result[CheckedPipeline, Issue]
+
+pub fn collect_author_guards(CheckedPipeline, max_work~ : Int, max_text_bytes~ : Int) -> Result[AuthorGuards, Issue]
 
 pub fn combine_relation_evidence(@decode_core.Cursor, @relation_evidence.KeySet, @relation_evidence.RankingInput) -> Result[RelationEvidence, Issue]
 
@@ -221,6 +241,10 @@ type AggregateOrder
 
 type AnalyticPositionOrder
 
+type AuthorGuard
+
+type AuthorGuards
+
 pub enum CheckedOperation {
   Unary(@relation_typing.CheckedOperation)
   Join(right~ : Target, checked~ : @relation_join_shape.CheckedJoin)
@@ -291,6 +315,20 @@ pub struct GraphCount {
 } derive(Eq, @debug.Debug)
 
 type GroupOrders
+
+pub(all) enum GuardScope {
+  JoinOutputRows
+  CrossJoinOutputRows
+  IntervalJoinOutputRows
+  NestedArrayItems
+  AggregateArrayItems(Int)
+  AggregateStringBytes(Int)
+  SequenceMatchesPerKey
+  SequenceOutputRows
+  ComponentOutputRows
+  TraverseOutputRows
+  ShortestOutputRows
+} derive(Eq, @debug.Debug)
 
 pub(all) enum InputContract {
   ProducedInput(ProducedInput)

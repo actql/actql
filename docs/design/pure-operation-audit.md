@@ -119,6 +119,11 @@ consumer audit.
    fragment law boundary, and identifies checked-operation author-guard binding
    as the next in-scope source connection. It does not add a generic trusted
    Contract/Program/Language witness constructor or expand into acquisition.
+   [Checked author-guard occurrences](author-guard-occurrences.md) now retain
+   actual local step/aggregate owners, exact guard slots and unresolved
+   Parameter references under cumulative enumeration budgets. Binding values,
+   Program identity, governing source laws and consumer enforcement remains
+   required; enumeration is not a capacity witness.
    [Producer-bound input evidence](produced-input-evidence.md) now retains the
    original pipeline/target and conditional record/node/edge facts through
    input forwarding. Repeated operands and existing key/ranking owners remain
