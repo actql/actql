@@ -7,6 +7,8 @@
 - [Extension policy](design/extension-policy.md): extension boundaries.
 - [Implementation guide](design/implementation-port.md): component responsibilities and implementation order.
 - [Reference Host](design/reference-host.md): durable execution and secure defaults.
+- [Host authorization design](design/host-authorization.md): agreed execution-account and delegated-decision model; normative/wire migration pending.
+- [OSS Host authorization draft](design/oss-host-authorization.md): CLI/embedded behavior, durable decisions and pending product choices.
 - [Acceptance scenarios](../spec/product-decisions/SCENARIOS.md): complete Programs and expected behavior.
 
 Specification documents have status `adopted`: they define the design.

@@ -5,6 +5,13 @@ and its pinned machine contracts. Language semantics, wire representations and
 CID preimages come from those contracts, not from another implementation's
 internal APIs or limitations.
 
+The agreed [authorization design](host-authorization.md) separates Core
+execution-account settings from Host application-user authorization and delegated
+decision handling. Its configuration and protocol definitions remain pending.
+Implement it against coordinated normative/wire owners, not this design guide
+alone. Connectors describe technical provider requirements, not account grants
+or business-approval policy.
+
 Owned version assignments are maintained here as well. Follow the
 [versioning policy](versioning.md) when reusing contract bodies or
 identity code; a reference implementation's version is not an immutable input.

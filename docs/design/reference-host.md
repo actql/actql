@@ -2,6 +2,27 @@
 
 Informative implementation guide, not an additional conformance profile.
 
+## Authorization
+
+The agreed [Host authorization design](host-authorization.md) uses execution-account settings and
+`allow / deny / delegate`. Local can use one execution account; Cloud can
+delegate application-user authorization without registering every user in Core.
+Immediate delegation answers need no dummy Checkpoint; deferred answers use the
+existing durable continuation. Human approval and application routing belong to
+the Host. Conflicting account settings are errors, not a rule-priority system.
+
+Configuration and protocol integration remain specification work. This design
+does not claim executable authorization support.
+Authorization behavior below is the design target, not the current pinned
+contract: the [listed contract changes](host-authorization.md#relationship-to-current-pinned-contracts)
+have not yet been applied. This informative guide does not override those contracts.
+Encrypted evidence, secure defaults, retention and recovery guarantees remain
+unchanged. Follow the linked specification-work matrix before changing any wire or Core.
+
+The [OSS authorization behavior draft](oss-host-authorization.md) details Local
+configuration, immediate/deferred adapters, CLI resolution and crash recovery.
+Its pending product choices are not changes to current defaults.
+
 ## Adopted local product boundary
 
 The official Local Host target includes durable execution, encrypted private
@@ -17,7 +38,8 @@ not provider exactly-once evidence. Engine and contract pins survive review wait
 Stages can span several tasks; task scheduling does not redefine stage success.
 
 Resolved allow can authorize independent multi-Effect stages without human
-checkpoints, with authenticated policy risk evidence. Target drift tolerance
+checkpoints or mandatory risk claims. If a Host requires a risk claim for
+delegation, authenticate and bind it to the decision's exact scope. Target drift tolerance
 issues a new Preview and renewal authorization under explicit finite Host rules.
 Private inspection independently checks data-read scope even for approvers;
 keys themselves are never inspectable. SDK progress distinguishes accepted,
@@ -30,8 +52,10 @@ The revised target runs stages through the common Run Graph scheduler, with
 ordinary local-unit admission and separately authenticated graph membership.
 Changing a downstream notification preserves unchanged upstream templates;
 launching a new revision still needs admission, and success reuse needs an
-explicit recovery link. Routing consumes semantic risk and cumulative actual
-spend, never source Effect/stage counts or their proxies.
+explicit recovery link. Semantic risk and cumulative actual spend are useful
+Host routing inputs, not mandatory restrictions on application authorization.
+Decision reuse and optimization must preserve the bound scope, context and
+validity of the actual decision inputs.
 
 The proposed mail-attachment connection preset issues unlabelled captures as
 confidential when the published policy permits that default. Stronger parent

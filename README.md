@@ -1,30 +1,32 @@
 # ActQL — Action Query Language
 
-*Declare the work. Check the plan. Approve the effects.*
+**One program. Across systems. Read, transform, infer, write.**
 
-Agents write fast and people read slowly. Once an agent can touch production
-systems, the bottleneck is no longer writing code, but understanding and
-authorizing what it will read, send, spend, or change.
+Read from Salesforce. Join it with your warehouse. Run an LLM. Write the
+results back. One ActQL program declares the whole job.
 
-ActQL is a typed, declarative language for transforming data and taking action
-across systems.
+The program defines the work. The runtime figures out how and where to
+execute it.
 
-Instead of writing glue code that reads from APIs and databases, transforms
-data, and writes back, you declare the whole operation as one program that can
-be inspected before it runs.
+That is the deal SQL made inside one database: say what you mean, and the
+engine decides how to run it. ActQL extends that deal to work that spans
+databases and APIs, to graphs, vectors, and event streams, and to the changes
+the program makes.
 
-Like SQL, ActQL separates meaning from execution and is built on an algebra. You
-declare what should happen; the runtime decides how and where to do it. Unlike
-SQL, that algebra covers graphs, vectors, and event streams as well as tables,
-and one program spans several databases and APIs.
+Because the program states its meaning, three things follow.
 
-Changes to those systems are declared in the same program, as Effects. The
-program is checked before it runs. During a Run, the runtime checks each
-external boundary against current permissions and policy. When human review is
-required, the Run pauses at a Checkpoint and resumes from the same point once
-approved.
+**It can be checked before it runs.** The compiler checks the program against
+its contracts before execution. The runtime checks each concrete operation as
+its inputs become available.
 
-**Designed for programs an agent writes and a human approves.**
+**It can run where the data lives.** Each Connector declares what it can
+compute, so a filter or an aggregation can move to the source, and the rest
+runs in the runtime. Nothing in the program changes.
+
+**Authorization is programmable.** A program cannot grant itself anything.
+The Host decides whether each external operation may proceed. When a decision
+cannot be made on the spot, a durable Checkpoint holds the Run. If it is
+authorized, execution continues from that same point.
 
 ## Quickstart
 
@@ -105,10 +107,140 @@ npx actql run query.aql \
 data. It is optional: `run` performs its own checking. Run accepts a Program,
 not a saved Plan.
 
-### Approve a change
+## A real-world program
 
-The packaged local example adds one Effect and exercises the complete approval
-loop without a provider account. It uses the bundled local JSONL Connector and
+That was a local query. Here is the same language across three systems: find
+the largest open Salesforce renewals, enrich them with current product usage
+from Snowflake, update the opportunities at risk, and notify Slack.
+
+```yaml
+version: actql/0.1
+id: revenue.renewal_risk
+stages:
+  - id: main
+    inputs:
+      opportunities: { connector: salesforce/main, resource: Opportunity, view: open_renewals }
+      account_usage: { connector: snowflake/main, resource: account_usage, view: latest_by_account }
+    from: opportunities
+    steps:
+      - filter: amount >= 100000
+      - top_k:
+          k: 100
+          by: [ { amount: desc }, { id: asc } ]
+        as: renewal_candidates
+      - join:
+          with: account_usage
+          kind: left
+          on: [ account_id ]
+          null_key: fail
+          select:
+            opportunity_id: left.id
+            account_id: left.account_id
+            opportunity_name: left.name
+            amount: left.amount
+            close_date: left.close_date
+            active_users_30d: right.active_users_30d
+      - filter: active_users_30d < 5
+      - derive:
+          risk_status: "'At risk'"
+          slack_channel: "'C012RENEWALS'"
+          slack_message: "opportunity_name || ' is at risk: fewer than 5 active users in 30 days'"
+        as: renewal_actions
+    results:
+      response:
+        from: renewal_actions
+        fields: [ opportunity_id, opportunity_name, amount, close_date, active_users_30d ]
+        order_by: [ { amount: desc }, { opportunity_id: asc } ]
+      crm_updates:
+        from: renewal_actions
+        fields: [ opportunity_id, risk_status ]
+      slack_alerts:
+        from: renewal_actions
+        fields: [ slack_channel, slack_message, opportunity_id ]
+    effects:
+      mark_opportunities_at_risk:
+        update:
+          target: connector://salesforce/main/Opportunity
+          mapping: mapping:salesforce.opportunity-risk.v1
+          from: { result: crm_updates }
+          id: opportunity_id
+          set:
+            Renewal_Risk__c: { field: risk_status }
+  - id: notify
+    inputs:
+      alerts: { result: { stage: main, result: slack_alerts } }
+    from: alerts
+    steps: []
+    results:
+      slack_alerts:
+        from: alerts
+        fields: [ slack_channel, slack_message, opportunity_id ]
+        order_by: [ { opportunity_id: asc } ]
+    effects:
+      notify_revenue_team:
+        create:
+          target: connector://slack/main/Message
+          mapping: mapping:slack.message.v1
+          from: { result: slack_alerts }
+results:
+  response:
+    from: { stage: main, result: response }
+```
+
+The author writes an ordinary join across systems. Because `top_k` proves the
+left side is at most 100 rows, the compiler can turn the Snowflake side into a
+bounded acquisition: deduplicate the keys, fetch them in batches or push the
+filter down, then join locally. Call counts, paging, and limits live in the
+Plan, not the source. If the bound cannot be proved, `check` fails before
+contacting either system.
+
+## Built for programs that agents write
+
+Agents write fast and people read slowly. That gap does not close by reading
+faster. It closes by writing the work in a form a machine can check, run,
+and authorize, so that a person is asked only when a decision actually needs
+a person. ActQL is that form.
+
+In ActQL, every read, every write, and every bound is a declaration. The
+compiler checks all stage templates before execution and materializes each
+stage's concrete Plan when its required inputs are available.
+
+What a person reads at a Checkpoint is what the Run is about to do: what will
+be read, sent, spent, or changed. For a record update, that is which records,
+how many, and from what to what. It comes from the actual Run, not from the
+agent's description of its code.
+
+## Effects
+
+An Effect is a declared change to an external system. ActQL supports checked
+`create`, `update`, `upsert`, `delete`, `command`, and `store`. A `command` is
+a typed operation the Connector owns, rather than a write to a record:
+
+```yaml
+effects:
+  reply:
+    command:
+      from: {result: replies}
+      target: {field: thread_ref}
+      contract: command:gmail.reply.v1
+      input:
+        body: {literal: Thanks}
+```
+
+Effects are built from the Run's own results, not by reading the sources again,
+and review-required Effects wait until their Checkpoint is approved. The data behind the
+review view can contain production values, so production runtimes must store and
+transfer it encrypted.
+
+Each logical item has a stable identity for recovery. Dispatch uses the recorded
+Preview and idempotency key, backed by a Connector's admitted idempotency or
+reconciliation guarantee. A durable ledger alone cannot make an ambiguous write
+safe to repeat. An intentional resend uses a new logical request identity.
+
+## Approve a change
+
+The packaged local example adds one Effect and exercises one Checkpoint end to
+end without a provider account. It uses the bundled local JSONL Connector and
 sets up a temporary local approval key:
 
 ```bash
@@ -206,140 +338,6 @@ The final command prints:
 ```
 
 See the [CLI reference](docs/cli.md) for approval and recovery.
-
-## Built for software written by agents
-
-Today the usual way to let an agent run code at all is a sandbox: it constrains
-arbitrary code inside an execution environment. That can protect the host, but
-it does not by itself explain or govern what authorized code will do to
-production systems. You can discard the sandbox; the production records it
-changed remain changed.
-
-A typed SDK can make each call well-formed, but it cannot say what a program
-will have read, sent, or changed by the end; with loops and branches, that is
-known only by running it. In ActQL, every read, every write, and every bound is
-a declaration. The compiler checks all stage templates before execution and
-materializes each stage's concrete Plan when its required inputs are available.
-
-The compiler reads the whole program. A person reads only what the Run is about
-to do when it pauses: what will be read, sent, spent, or changed. For an Effect,
-that is which records, how many, and from what to what. It comes from the actual
-Run, not from the agent's description of its code.
-
-## A real-world program
-
-That was a local query and one approved change. Here is the same language
-across three systems: find the largest open Salesforce renewals, enrich them
-with current product usage from Snowflake, update the opportunities at risk,
-and notify Slack.
-
-```yaml
-version: actql/0.1
-id: revenue.renewal_risk
-stages:
-  - id: main
-    inputs:
-      opportunities: { connector: salesforce/main, resource: Opportunity, view: open_renewals }
-      account_usage: { connector: snowflake/main, resource: account_usage, view: latest_by_account }
-    from: opportunities
-    steps:
-      - filter: amount >= 100000
-      - top_k:
-          k: 100
-          by: [ { amount: desc }, { id: asc } ]
-        as: renewal_candidates
-      - join:
-          with: account_usage
-          kind: left
-          on: [ account_id ]
-          null_key: fail
-          select:
-            opportunity_id: left.id
-            account_id: left.account_id
-            opportunity_name: left.name
-            amount: left.amount
-            close_date: left.close_date
-            active_users_30d: right.active_users_30d
-      - filter: active_users_30d < 5
-      - derive:
-          risk_status: "'At risk'"
-          slack_channel: "'C012RENEWALS'"
-          slack_message: "opportunity_name || ' is at risk: fewer than 5 active users in 30 days'"
-        as: renewal_actions
-    results:
-      response:
-        from: renewal_actions
-        fields: [ opportunity_id, opportunity_name, amount, close_date, active_users_30d ]
-        order_by: [ { amount: desc }, { opportunity_id: asc } ]
-      crm_updates:
-        from: renewal_actions
-        fields: [ opportunity_id, risk_status ]
-      slack_alerts:
-        from: renewal_actions
-        fields: [ slack_channel, slack_message, opportunity_id ]
-    effects:
-      mark_opportunities_at_risk:
-        update:
-          target: connector://salesforce/main/Opportunity
-          mapping: mapping:salesforce.opportunity-risk.v1
-          from: { result: crm_updates }
-          id: opportunity_id
-          set:
-            Renewal_Risk__c: { field: risk_status }
-  - id: notify
-    inputs:
-      alerts: { result: { stage: main, result: slack_alerts } }
-    from: alerts
-    steps: []
-    results:
-      slack_alerts:
-        from: alerts
-        fields: [ slack_channel, slack_message, opportunity_id ]
-        order_by: [ { opportunity_id: asc } ]
-    effects:
-      notify_revenue_team:
-        create:
-          target: connector://slack/main/Message
-          mapping: mapping:slack.message.v1
-          from: { result: slack_alerts }
-results:
-  response:
-    from: { stage: main, result: response }
-```
-
-The author writes an ordinary join across systems. Because `top_k` proves the
-left side is at most 100 rows, the compiler can turn the Snowflake side into a
-bounded acquisition: deduplicate the keys, fetch them in batches or push the
-filter down, then join locally. Call counts, paging, and limits live in the
-Plan, not the source. If the bound cannot be proved, `check` fails before
-contacting either system.
-
-## Effects
-
-An Effect is a declared change to an external system. ActQL supports checked
-`create`, `update`, `upsert`, `delete`, `command`, and `store`. A `command` is
-a typed operation the Connector owns, rather than a write to a record:
-
-```yaml
-effects:
-  reply:
-    command:
-      from: {result: replies}
-      target: {field: thread_ref}
-      contract: command:gmail.reply.v1
-      input:
-        body: {literal: Thanks}
-```
-
-Effects are built from the Run's own results, not by reading the sources again,
-and review-required Effects wait until their Checkpoint is approved. The data behind the
-review view can contain production values, so production runtimes must store and
-transfer it encrypted.
-
-Each logical item has a stable identity for recovery. Dispatch uses the recorded
-Preview and idempotency key, backed by a Connector's admitted idempotency or
-reconciliation guarantee. A durable ledger alone cannot make an ambiguous write
-safe to repeat. An intentional resend uses a new logical request identity.
 
 ## Beyond tables
 
@@ -440,7 +438,8 @@ not rewrite the integration to move work closer to the data.
 
 Which plan runs is the runtime's decision. Each runtime owns execution,
 authentication, and provider scheduling. Whatever plan it picks must preserve
-the same semantics, the same permission boundaries, and the same Checkpoints.
+the program's semantics and cross every permission boundary the program would
+have crossed. Optimization can move the work; it cannot skip a decision.
 Checking and pushdown come from the same fact: the program says what it means,
 so it can be inspected before it runs and moved without changing what it does.
 
@@ -455,6 +454,15 @@ design also reaches browser, edge, and managed runtimes.
 - [Agent authoring guide](docs/authoring.md) — canonical source patterns
 - [CLI reference](docs/cli.md) — commands, durable Runs, and Checkpoints
 - [Development](docs/development.md) — setup, document checks, and versioning
+
+## Status
+
+ActQL is in 0.1 stabilization. The CLI decides Effects with `effect_policy`
+and Connector minimums today. The authorization model in
+[docs/design/host-authorization.md](docs/design/host-authorization.md), which
+separates execution-account permissions from application-user decisions, is a
+design target and is not yet implemented in the CLI. Execution is governed by
+the currently pinned specifications and contracts.
 
 ## Contributing
 
