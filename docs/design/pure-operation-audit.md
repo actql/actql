@@ -103,6 +103,11 @@ consumer audit.
    the admitted policy and checks both expected CID and full byte identity;
    even a self-consistent wrong-unit witness is rejected. This closes that
    source branch, not the remaining mixed-source dependency closure.
+   Program proof body binding now checks the two fixed-reference body forms,
+   canonical identity, matching assertions and exact declared dependency sets.
+   It preserves repeated proof inputs but does not validate Program subjects,
+   governing-law applications or the truth of source bounds. Enforced ceilings
+   still require the separate resolved-limit owner.
    Do not add public proof flags, treat policy ceilings as observations, or
    expand into acquisition, an evaluator or Host dispatch.
 3. Connect contextual resolutions into a complete static checking/discharge

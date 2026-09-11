@@ -11,6 +11,8 @@ import {
 // Values
 pub fn admit(Bytes, String, Limits) -> Result[WireWitness, Issue]
 
+pub fn bind_program_proof(Bytes, WireWitness, Limits) -> Result[ProgramProofClaim, Issue]
+
 pub fn check_arithmetic_claims(Array[WireWitness], ClosureLimits) -> Result[ArithmeticClaims, ClosureIssue]
 
 pub fn cid(WireWitness) -> String
@@ -32,6 +34,14 @@ pub fn derivation(WireWitness) -> Derivation
 pub fn emit(WireWitness, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
 
 pub fn law(WireWitness) -> @capacity_law.RegisteredLaw
+
+pub fn program_proof_form(ProgramProofClaim) -> ProgramProofForm
+
+pub fn program_proof_input_at(ProgramProofClaim, Int) -> String?
+
+pub fn program_proof_input_count(ProgramProofClaim) -> Int
+
+pub fn program_proof_witness(ProgramProofClaim) -> WireWitness
 
 pub fn role(WireWitness) -> @capacity_derivation.CandidateRole
 
@@ -81,6 +91,13 @@ pub(all) struct Limits {
   max_nodes : Int
   max_depth : Int
 }
+
+type ProgramProofClaim
+
+pub(all) enum ProgramProofForm {
+  DerivedInputs
+  ProgramDependencies(String)
+} derive(Eq, @debug.Debug)
 
 pub(all) enum Source {
   Program(String, String)

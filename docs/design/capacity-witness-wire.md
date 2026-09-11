@@ -76,9 +76,44 @@ append unused numeric, unit, overflow and enforcement failures to a valid graph.
 The lower reference checker separately tests synthetic cyclic graphs and a
 10,000-node chain; these are not claimed to be real SHA-256 cyclic preimages.
 
-Non-Host source validation, proof/body identity, complete source dependency closure,
+Non-Host source validation, complete source dependency closure,
 enforced-limit dependencies, operation-specific applicability and complete
 consumer discharge remain required. `WireWitness` is intentionally not accepted
 as pipeline proof. Fixed Sketch `src/actql-bounds.ts` is reference material;
 its optional dependency-map validation and global witness cache are not trust
 mechanisms in this implementation.
+
+## Program proof body binding
+
+`bind_program_proof` binds a Program-source wire claim to original canonical
+proof bytes under byte/node/depth limits. It checks the source's `proof_cid`,
+version, semantic reference, governing law, unit, value and exact declared
+dependency set. Its opaque `ProgramProofClaim` retains the original witness,
+body form and indexed proof inputs. It is not a validated operation fact and
+cannot be supplied as pipeline evidence.
+
+Two closed forms share `actql-bound-proof/0.1` in the fixed reference:
+
+- Derived bodies contain `inputs`, retaining sorted repeated operand occurrences.
+- Program bodies contain `program_definition_cid` and `dependencies`, also
+  retaining sorted repeated occurrences.
+
+Both contain `version`, `law_id`, `semantic_ref`, `value` and `unit`. The wire's
+unique dependency set must be exactly the proof CID, the body's input CIDs and,
+for the second form, the Program Definition CID. Mixed forms, omitted fields,
+extra dependencies and noncanonical original bytes fail; none is repaired.
+Repeated proof inputs are not confused with the unique wire dependency set.
+
+These forms are implementation material from fixed Sketch
+`87dc7144138edfcba108cdc59dc485ac976ba976`, `src/actql-bounds.ts::derivedWitness`
+and `src/actql-compiler.ts::programUpperBound`, not a new universal restriction
+on Program proofs. In particular, an enforced ceiling references a resolved
+limit instead of either body form and is explicitly unsupported by this entry.
+Effect-scope proofs belong to a separate owner as well.
+
+Binding proves only that the body and claim agree. It does not validate the
+referenced Program Definition, resolve input bodies, check operand multiplicity
+against a particular law, or establish that the semantic operation guarantees
+the claimed bound. Those source/application obligations remain mandatory.
+Tests use independently computed proof and wire CIDs, retain repeated inputs,
+check exact budgets and reject self-consistent mismatches and altered encoding.
