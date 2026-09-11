@@ -527,3 +527,33 @@ Sequence-unit validation: lowering 49/49 and execution 36/36 on each target;
 matching interfaces, format, generator drift, whitespace and 867-link checks
 pass. Execution admission is still open; the 27 unused-private-code warnings
 are retained rather than disguised as a completed driver.
+
+## Internal sequence component driver
+
+The package-private `evaluate_sequence_components` now drives capture, conversion,
+row evaluation and retention automatically from `PreparedSequence`. It checks
+the complete supplied-input owner/origin set before computation, resolves each
+operation's checked branch from retention slots, and adopts outputs in original
+step order. Only the completed store is returned. Errors expose no prefix store,
+and unused failing operations are not pruned by retained output selection.
+
+Control work spans metadata, capture conversion, evaluation and adoption. Input
+rows and logical input values accumulate across supplied and inline inputs;
+logical output allocation accumulates across all row operations. Separate
+explicit ceilings bound metadata entries, store entries and per-operation
+workspace. These scopes are not a single measured heap budget; nested retained
+payloads are bounded by cumulative logical input/output limits, and allocator
+capacity/GC timing is not claimed. The driver does not reset cumulative budgets
+when an intermediate table is dropped.
+
+Fixed vectors run all four operations with branch retention, supplied-input
+owner rejection, two Parameter bindings, unused RHS failure, exact cumulative
+output limits and a second values node exceeding the total input-row limit.
+They no longer manually invoke a different kernel for each operation. This
+driver remains internal: registry/params admission, input key/order/capacity
+proofs and runtime obligations are not discharged by component execution and
+must precede any exposed fragment-run API. Ordered derive remains pending.
+
+Driver-unit validation: execution 41/41 on JS, Wasm and native; unchanged
+matching API, format/whitespace and 867 links pass. Ordinary builds report 29
+unused-private-code warnings while the admission entry remains unconnected.
