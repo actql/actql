@@ -9,17 +9,19 @@ occurrence from an independent number, source path or proof flag.
 ## Coverage and distinctions
 
 The collector visits every local step, including unused branches, and every
-group/window-group aggregate. It retains join, cross-join and interval-join
+group/window-group aggregate and analytic call. It retains join, cross-join and interval-join
 output guards; nest item guards; array/string aggregate item/byte guards;
 sequence per-key and output guards; and components, traversal and shortest-path
-output guards. Aggregate scopes include the checked aggregate index, so equal
+output guards. Analytic aggregate guards use the same array-item/UTF-8-byte
+laws, with the frame result as their operation-defined scope. Aggregate scopes
+include the checked aggregate index (the full call index for analytic), so equal
 values in different aggregates cannot collapse into one occurrence.
 
 An absent guard contributes no occurrence. A Parameter guard contributes an
 unresolved occurrence, even if its declaration has a default. Enumeration does
 not bind values, apply defaults or remove guards that may be non-binding under
 a tighter Host/Contract/Program candidate. Repeated guards remain repeated,
-in local step order; aggregate guards follow checked aggregate order.
+in local step order; aggregate guards follow checked aggregate/call order.
 
 Selection counts (`take`, `top_k`), hop limits, window size/step and diagnostic
 `graph_bounds` thresholds do not become author guards. In particular, Graph
@@ -29,11 +31,14 @@ even when numeric values or units coincide.
 
 ## Budgets and ownership
 
-The collection charges one work unit per step, one per visited aggregate and
+The collection charges one work unit per step, one per visited aggregate or analytic call and
 one per emitted guard. Text budget counts each emitted guard's fixed field name
 and any referenced Parameter name. The source lookup opens only the operation's
 already-checked closed option object, never an arbitrary payload or the whole
 Program. Insufficient budgets fail atomically without exposing a partial list.
+Analytic calls use count/index accessors so traversal does not copy the complete
+call array before charging it. Ranking/navigation calls and frame extents do
+not generate guards; missing aggregate guards remain absent.
 Original source paths and spans remain available from the retained cursor;
 getters do not expose the mutable collection array.
 
@@ -87,3 +92,6 @@ and source/application verification remain separate, as recorded in the
 Regression tests cover every emitted scope, exact source slots, repeated/unused
 steps, unresolved Parameters, omission, equal-valued different quantities,
 Graph diagnostic exclusion, owner identity and exact/insufficient budgets.
+Analytic regression cases mix ranking, guarded aggregates and navigation,
+verify original function indices and guard paths, resolve and reject Parameter
+values at that path, and keep absent guards distinct from frame-size bounds.

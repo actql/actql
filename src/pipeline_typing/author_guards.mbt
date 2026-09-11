@@ -227,7 +227,7 @@ pub fn collect_author_guards(
             @graph.shortest_source(checked),
             "max_output_rows",
           )
-        Unary(op) | WindowGroup(op) =>
+        Unary(op) | WindowGroup(op) => {
           if @relation.group(op) is Some(group) {
             spend(b, @relation.source(op), @relation.aggregate_count(group))
             for i in 0..<@relation.aggregate_count(group) {
@@ -246,6 +246,31 @@ pub fn collect_author_guards(
               )
             }
           }
+          if @relation.analytic(op) is Some(analytic) {
+            spend(
+              b,
+              @relation.source(op),
+              @relation.analytic_call_count(analytic),
+            )
+            for i in 0..<@relation.analytic_call_count(analytic) {
+              if @relation.analytic_call_at(analytic, i).unwrap().function
+                is Aggregate(aggregate) {
+                add(
+                  AggregateArrayItems(i),
+                  @relation.aggregate_item_limit(aggregate),
+                  @relation.aggregate_source(aggregate),
+                  "max_items",
+                )
+                add(
+                  AggregateStringBytes(i),
+                  @relation.aggregate_byte_limit(aggregate),
+                  @relation.aggregate_source(aggregate),
+                  "max_bytes",
+                )
+              }
+            }
+          }
+        }
         _ => ()
       }
     }

@@ -53,6 +53,10 @@ pub fn aggregate_source(CheckedAggregate) -> @decode_core.Cursor
 
 pub fn analytic(CheckedOperation) -> CheckedAnalytic?
 
+pub fn analytic_call_at(CheckedAnalytic, Int) -> AnalyticCall?
+
+pub fn analytic_call_count(CheckedAnalytic) -> Int
+
 pub fn analytic_calls(CheckedAnalytic) -> Array[AnalyticCall]
 
 pub fn analytic_frame(CheckedAnalytic) -> RowsFrame?

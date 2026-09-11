@@ -80,6 +80,16 @@ pub fn analytic_calls(value : CheckedAnalytic) -> Array[AnalyticCall] {
 }
 
 ///|
+pub fn analytic_call_count(value : CheckedAnalytic) -> Int {
+  value.calls.length()
+}
+
+///|
+pub fn analytic_call_at(value : CheckedAnalytic, index : Int) -> AnalyticCall? {
+  value.calls.get(index)
+}
+
+///|
 fn frame_boundary(
   b : Budget,
   source : @decode.Cursor,

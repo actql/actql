@@ -131,6 +131,11 @@ consumer audit.
    unit and law, with generated product accessors and independent mapping tests.
    Three newly named laws cover nest items, string-aggregate bytes and
    shortest-path output. Source identity and enforcement still require binding.
+   The consumer audit found and closed an analytic-aggregate enumeration gap:
+   array/string aggregate guards inside analytic now retain full call indices,
+   exact source slots and the existing item/byte laws. Non-aggregate calls and
+   frame extents do not create guard occurrences; binding and budget regressions
+   cover the added route.
    [Producer-bound input evidence](produced-input-evidence.md) now retains the
    original pipeline/target and conditional record/node/edge facts through
    input forwarding. Repeated operands and existing key/ranking owners remain
