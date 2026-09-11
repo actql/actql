@@ -504,3 +504,26 @@ obligation, and these successful emission tests do not close that obligation.
 Validation: lowering 45/45 and execution 36/36 on JS, Wasm and native; matching
 public interfaces, formatting, generator drift, five registry/contract tests and
 867 links pass. No shared schema/pin was independently revised by lowering.
+
+## Atomic sequence preparation
+
+`prepare_sequence` prepares every operation under one bound owner, returning an
+opaque `PreparedSequence` only after all steps succeed. It preserves no-op and
+unused operations. Node count, values rows/cells, binding count, field-name bytes
+and expression work/node/literal totals span the sequence rather than reset per
+operation; expression depth remains a depth limit. Kernel preparation exposes
+its residual budget privately so the sequence does not rewalk/reinfer expressions.
+
+The sequence is not an execution permit. Registry/params admission, input proofs
+and runtime obligations must still be discharged before a fragment execution
+entry exists. Ordered derive still returns the explicit pending-contract error,
+including after a supported prefix. `emit_sequence_steps` emits the normative
+steps array only; it does not invent a fragment envelope or final Plan identity.
+Independent tests fix the complete four-operation array and verify late failures
+from cumulative expression, binding, name, values-row/cell budgets and pending
+ordered derive. Failure exposes no partly prepared sequence.
+
+Sequence-unit validation: lowering 49/49 and execution 36/36 on each target;
+matching interfaces, format, generator drift, whitespace and 867-link checks
+pass. Execution admission is still open; the 27 unused-private-code warnings
+are retained rather than disguised as a completed driver.

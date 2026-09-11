@@ -73,6 +73,23 @@ pub fn prepare_kernel(
   max_name_bytes~ : Int,
   limits : ExpressionLimits,
 ) -> Result[PreparedKernel, KernelIssue] {
+  prepare_kernel_measured(
+    owner,
+    step_index,
+    max_bindings~,
+    max_name_bytes~,
+    limits,
+  ).map(result => result.0)
+}
+
+///|
+fn prepare_kernel_measured(
+  owner : BoundPrepared,
+  step_index : Int,
+  max_bindings~ : Int,
+  max_name_bytes~ : Int,
+  limits : ExpressionLimits,
+) -> Result[(PreparedKernel, ExpressionLimits, Int, Int), KernelIssue] {
   if max_bindings < 0 ||
     max_name_bytes < 0 ||
     limits.max_nodes < 0 ||
@@ -172,5 +189,17 @@ pub fn prepare_kernel(
     }
     RowOperation | Reshape | Aggregation => return Err(MissingKernelNode)
   }
-  Ok({ owner, step_index, input_id: node.inputs[0], checked, body, })
+  let binding_count = match body {
+    SnapshotMap(bindings) => bindings.length()
+    Filter(_) => 1
+    Select(fields) => fields.length()
+  }
+  Ok(
+    (
+      { owner, step_index, input_id: node.inputs[0], checked, body, },
+      remaining,
+      max_name_bytes - names_remaining,
+      binding_count,
+    ),
+  )
 }

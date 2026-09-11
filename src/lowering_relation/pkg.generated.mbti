@@ -24,6 +24,8 @@ pub fn emit_expression(Expression, @encode_core.Writer) -> Unit raise @encode_co
 
 pub fn emit_kernel_node(PreparedKernel, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
 
+pub fn emit_sequence_steps(PreparedSequence, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
+
 pub fn emit_values_node(PreparedValues, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
 
 pub fn emit_values_params(PreparedValues, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
@@ -76,7 +78,15 @@ pub fn prepare(@pipeline_typing.CheckedPipeline, Limits) -> Result[Prepared, Iss
 
 pub fn prepare_kernel(BoundPrepared, Int, max_bindings~ : Int, max_name_bytes~ : Int, ExpressionLimits) -> Result[PreparedKernel, KernelIssue]
 
+pub fn prepare_sequence(BoundPrepared, SequenceLimits) -> Result[PreparedSequence, SequenceIssue]
+
 pub fn prepare_values_node(BoundPrepared, Int, max_rows~ : Int, max_cells~ : Int) -> Result[PreparedValues, ValuesIssue]
+
+pub fn sequence_count(PreparedSequence) -> Int
+
+pub fn sequence_owner(PreparedSequence) -> BoundPrepared
+
+pub fn sequence_step(PreparedSequence, Int) -> PreparedStep?
 
 pub fn source(PreparedNode) -> @decode_core.Cursor
 
@@ -206,7 +216,30 @@ type PreparedKernel
 
 type PreparedNode
 
+type PreparedSequence
+
+pub enum PreparedStep {
+  ValuesStep(PreparedValues)
+  RowStep(PreparedKernel)
+}
+
 type PreparedValues
+
+pub(all) enum SequenceIssue {
+  InvalidSequenceLimits
+  SequenceLimit
+  ValuesFailure(Int, ValuesIssue)
+  KernelFailure(Int, KernelIssue)
+}
+
+pub(all) struct SequenceLimits {
+  max_steps : Int
+  max_rows : Int
+  max_cells : Int
+  max_bindings : Int
+  max_name_bytes : Int
+  expressions : ExpressionLimits
+}
 
 pub(all) enum UnaryOperator {
   Negate
