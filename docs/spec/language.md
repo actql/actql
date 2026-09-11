@@ -2636,6 +2636,20 @@ Source pattern text retains its ordinary NFC/LF admission; decoded AST scalars
 are not text-normalized. Literal nodes, class items, branches and captures
 retain their prescribed occurrence order.
 
+<!-- requirement-block: text-time.regex-ast-construction -->
+Canonical regex AST construction MUST retain each capturing group, number
+captures from one in opening-parenthesis order, and omit sequence/alternation
+wrappers only when they have exactly one child. Empty patterns, groups and
+alternation branches are invalid. A leading or trailing unescaped hyphen inside
+a class is a literal; elsewhere inside a class it separates scalar range
+endpoints. Outside a class, hyphen is a metacharacter and requires escaping.
+Quantifier bounds are exact nonnegative integers with the grammar's canonical
+decimal spelling. They are not rounded to fit AST numbers: a finite binary64
+integer must represent the complete authored integer exactly, without an
+additional safe-integer ceiling. A finite maximum is at least the minimum;
+an omitted unbounded maximum is represented by null. Identical class items,
+branches and repeated occurrences are not deduplicated.
+
 <!-- requirement-block: text-time.regex-ast-identity -->
 The regex AST CID MUST use ordinary canonical JSON of the complete AST body,
 excluding only `ast_cid`. Numeric scalar representation preserves CR versus LF

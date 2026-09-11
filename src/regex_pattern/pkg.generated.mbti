@@ -1,0 +1,75 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/regex_pattern"
+
+import {
+  "actql/actql/encode_core",
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn capture_count(Pattern) -> Int
+
+pub fn cid(Pattern) -> String
+
+pub fn emit(Pattern, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
+
+pub fn emit_preimage(Pattern, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
+
+pub fn node_at(Pattern, Int) -> Node?
+
+pub fn node_count(Pattern) -> Int
+
+pub fn nullable(Pattern) -> Bool
+
+pub fn parse(String, Limits) -> Result[Pattern, Issue]
+
+pub fn root(Pattern) -> Int
+
+pub fn usage(Pattern) -> (Int, Int, Int)
+
+// Errors
+
+// Types and methods
+pub(all) enum ClassItem {
+  Scalar(Int)
+  Range(Int, Int)
+  Escape(String)
+} derive(Eq, @debug.Debug)
+
+pub(all) enum Issue {
+  InvalidLimits
+  BudgetExceeded
+  InvalidUnicode(Int)
+  NonCanonicalText
+  InvalidSyntax(Int)
+  InvalidRange(Int)
+  InvalidQuantifier(Int)
+  QuantifierOutOfRange(Int)
+  NullableRepeat(Int)
+} derive(Eq, @debug.Debug)
+
+pub(all) struct Limits {
+  max_input_bytes : Int
+  max_nodes : Int
+  max_depth : Int
+  max_ast_bytes : Int
+  max_ast_nodes : Int
+} derive(Eq, @debug.Debug)
+
+pub(all) enum Node {
+  Literal(Int)
+  ClassEscape(String)
+  CharacterClass(Bool, Array[ClassItem])
+  Dot
+  Anchor(String)
+  Capture(Int, Int)
+  Sequence(Array[Int])
+  Alternation(Array[Int])
+  Repeat(Double, Double?, Int)
+} derive(Eq, @debug.Debug)
+
+type Pattern
+
+// Type aliases
+
+// Traits

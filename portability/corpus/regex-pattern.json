@@ -1,0 +1,1373 @@
+{
+  "version": "actql-regex-pattern-vectors/0.1",
+  "accepted": [
+    {
+      "id": "literal",
+      "text": "a",
+      "ast": {
+        "version": "actql-regex-ast/0.1",
+        "root": {
+          "kind": "literal",
+          "codepoint": 97
+        },
+        "capture_count": 0
+      },
+      "expected_preimage": "{\"capture_count\":0,\"root\":{\"codepoint\":97,\"kind\":\"literal\"},\"version\":\"actql-regex-ast/0.1\"}",
+      "expected_cid": "sha256:64c6c57d407cfb1baced41ee0d99a29c05303834b57399576471de7e925289d0",
+      "expected_ast": "{\"ast_cid\":\"sha256:64c6c57d407cfb1baced41ee0d99a29c05303834b57399576471de7e925289d0\",\"capture_count\":0,\"root\":{\"codepoint\":97,\"kind\":\"literal\"},\"version\":\"actql-regex-ast/0.1\"}"
+    },
+    {
+      "id": "lf",
+      "text": "\\n",
+      "ast": {
+        "version": "actql-regex-ast/0.1",
+        "root": {
+          "kind": "literal",
+          "codepoint": 10
+        },
+        "capture_count": 0
+      },
+      "expected_preimage": "{\"capture_count\":0,\"root\":{\"codepoint\":10,\"kind\":\"literal\"},\"version\":\"actql-regex-ast/0.1\"}",
+      "expected_cid": "sha256:782094b0483e1fdfcdd5383a6e8af31ea0487a42865d9739acd8c88f3e2518aa",
+      "expected_ast": "{\"ast_cid\":\"sha256:782094b0483e1fdfcdd5383a6e8af31ea0487a42865d9739acd8c88f3e2518aa\",\"capture_count\":0,\"root\":{\"codepoint\":10,\"kind\":\"literal\"},\"version\":\"actql-regex-ast/0.1\"}"
+    },
+    {
+      "id": "cr",
+      "text": "\\r",
+      "ast": {
+        "version": "actql-regex-ast/0.1",
+        "root": {
+          "kind": "literal",
+          "codepoint": 13
+        },
+        "capture_count": 0
+      },
+      "expected_preimage": "{\"capture_count\":0,\"root\":{\"codepoint\":13,\"kind\":\"literal\"},\"version\":\"actql-regex-ast/0.1\"}",
+      "expected_cid": "sha256:984789471cfed92ae7405b3d14b856713b1cf6534b7e3d8b7ca30c309042dbce",
+      "expected_ast": "{\"ast_cid\":\"sha256:984789471cfed92ae7405b3d14b856713b1cf6534b7e3d8b7ca30c309042dbce\",\"capture_count\":0,\"root\":{\"codepoint\":13,\"kind\":\"literal\"},\"version\":\"actql-regex-ast/0.1\"}"
+    },
+    {
+      "id": "tab",
+      "text": "\\t",
+      "ast": {
+        "version": "actql-regex-ast/0.1",
+        "root": {
+          "kind": "literal",
+          "codepoint": 9
+        },
+        "capture_count": 0
+      },
+      "expected_preimage": "{\"capture_count\":0,\"root\":{\"codepoint\":9,\"kind\":\"literal\"},\"version\":\"actql-regex-ast/0.1\"}",
+      "expected_cid": "sha256:0e7e92dfda49a1441c474e0744fb80c295ab9055ea455342ab2c54258f6008b9",
+      "expected_ast": "{\"ast_cid\":\"sha256:0e7e92dfda49a1441c474e0744fb80c295ab9055ea455342ab2c54258f6008b9\",\"capture_count\":0,\"root\":{\"codepoint\":9,\"kind\":\"literal\"},\"version\":\"actql-regex-ast/0.1\"}"
+    },
+    {
+      "id": "raw-lf",
+      "text": "\n",
+      "ast": {
+        "version": "actql-regex-ast/0.1",
+        "root": {
+          "kind": "literal",
+          "codepoint": 10
+        },
+        "capture_count": 0
+      },
+      "expected_preimage": "{\"capture_count\":0,\"root\":{\"codepoint\":10,\"kind\":\"literal\"},\"version\":\"actql-regex-ast/0.1\"}",
+      "expected_cid": "sha256:782094b0483e1fdfcdd5383a6e8af31ea0487a42865d9739acd8c88f3e2518aa",
+      "expected_ast": "{\"ast_cid\":\"sha256:782094b0483e1fdfcdd5383a6e8af31ea0487a42865d9739acd8c88f3e2518aa\",\"capture_count\":0,\"root\":{\"codepoint\":10,\"kind\":\"literal\"},\"version\":\"actql-regex-ast/0.1\"}"
+    },
+    {
+      "id": "nul",
+      "text": "\u0000",
+      "ast": {
+        "version": "actql-regex-ast/0.1",
+        "root": {
+          "kind": "literal",
+          "codepoint": 0
+        },
+        "capture_count": 0
+      },
+      "expected_preimage": "{\"capture_count\":0,\"root\":{\"codepoint\":0,\"kind\":\"literal\"},\"version\":\"actql-regex-ast/0.1\"}",
+      "expected_cid": "sha256:adc0db2340bebc3e50227a3c1eddcac6423237993240fde9726408c3183dfc52",
+      "expected_ast": "{\"ast_cid\":\"sha256:adc0db2340bebc3e50227a3c1eddcac6423237993240fde9726408c3183dfc52\",\"capture_count\":0,\"root\":{\"codepoint\":0,\"kind\":\"literal\"},\"version\":\"actql-regex-ast/0.1\"}"
+    },
+    {
+      "id": "supplementary",
+      "text": "😀",
+      "ast": {
+        "version": "actql-regex-ast/0.1",
+        "root": {
+          "kind": "literal",
+          "codepoint": 128512
+        },
+        "capture_count": 0
+      },
+      "expected_preimage": "{\"capture_count\":0,\"root\":{\"codepoint\":128512,\"kind\":\"literal\"},\"version\":\"actql-regex-ast/0.1\"}",
+      "expected_cid": "sha256:f093292ed90724121da0d4dcbfeb9baf04ef7c7d361d700c08657334966ee68a",
+      "expected_ast": "{\"ast_cid\":\"sha256:f093292ed90724121da0d4dcbfeb9baf04ef7c7d361d700c08657334966ee68a\",\"capture_count\":0,\"root\":{\"codepoint\":128512,\"kind\":\"literal\"},\"version\":\"actql-regex-ast/0.1\"}"
+    },
+    {
+      "id": "unassigned",
+      "text": "͸",
+      "ast": {
+        "version": "actql-regex-ast/0.1",
+        "root": {
+          "kind": "literal",
+          "codepoint": 888
+        },
+        "capture_count": 0
+      },
+      "expected_preimage": "{\"capture_count\":0,\"root\":{\"codepoint\":888,\"kind\":\"literal\"},\"version\":\"actql-regex-ast/0.1\"}",
+      "expected_cid": "sha256:161060340df448c185c863ef9d9c844b3e59298c1d21c41b5ab112945f3227fc",
+      "expected_ast": "{\"ast_cid\":\"sha256:161060340df448c185c863ef9d9c844b3e59298c1d21c41b5ab112945f3227fc\",\"capture_count\":0,\"root\":{\"codepoint\":888,\"kind\":\"literal\"},\"version\":\"actql-regex-ast/0.1\"}"
+    },
+    {
+      "id": "last-scalar",
+      "text": "􏿿",
+      "ast": {
+        "version": "actql-regex-ast/0.1",
+        "root": {
+          "kind": "literal",
+          "codepoint": 1114111
+        },
+        "capture_count": 0
+      },
+      "expected_preimage": "{\"capture_count\":0,\"root\":{\"codepoint\":1114111,\"kind\":\"literal\"},\"version\":\"actql-regex-ast/0.1\"}",
+      "expected_cid": "sha256:b21fe9bbc6c40dcf90e9bb5d2348ed8400455c6827396609571e999bb957888f",
+      "expected_ast": "{\"ast_cid\":\"sha256:b21fe9bbc6c40dcf90e9bb5d2348ed8400455c6827396609571e999bb957888f\",\"capture_count\":0,\"root\":{\"codepoint\":1114111,\"kind\":\"literal\"},\"version\":\"actql-regex-ast/0.1\"}"
+    },
+    {
+      "id": "dot",
+      "text": ".",
+      "ast": {
+        "version": "actql-regex-ast/0.1",
+        "root": {
+          "kind": "dot"
+        },
+        "capture_count": 0
+      },
+      "expected_preimage": "{\"capture_count\":0,\"root\":{\"kind\":\"dot\"},\"version\":\"actql-regex-ast/0.1\"}",
+      "expected_cid": "sha256:4fc561924f95203a16d33cdf2db0aef629f9217f5b24cf11ad50d3304924123f",
+      "expected_ast": "{\"ast_cid\":\"sha256:4fc561924f95203a16d33cdf2db0aef629f9217f5b24cf11ad50d3304924123f\",\"capture_count\":0,\"root\":{\"kind\":\"dot\"},\"version\":\"actql-regex-ast/0.1\"}"
+    },
+    {
+      "id": "anchors",
+      "text": "^$",
+      "ast": {
+        "version": "actql-regex-ast/0.1",
+        "root": {
+          "kind": "sequence",
+          "items": [
+            {
+              "kind": "anchor",
+              "value": "^"
+            },
+            {
+              "kind": "anchor",
+              "value": "$"
+            }
+          ]
+        },
+        "capture_count": 0
+      },
+      "expected_preimage": "{\"capture_count\":0,\"root\":{\"items\":[{\"kind\":\"anchor\",\"value\":\"^\"},{\"kind\":\"anchor\",\"value\":\"$\"}],\"kind\":\"sequence\"},\"version\":\"actql-regex-ast/0.1\"}",
+      "expected_cid": "sha256:fa74547f4dda3d5067be483d3475cf100bf44d40a0fcd153382173d7ef7f463c",
+      "expected_ast": "{\"ast_cid\":\"sha256:fa74547f4dda3d5067be483d3475cf100bf44d40a0fcd153382173d7ef7f463c\",\"capture_count\":0,\"root\":{\"items\":[{\"kind\":\"anchor\",\"value\":\"^\"},{\"kind\":\"anchor\",\"value\":\"$\"}],\"kind\":\"sequence\"},\"version\":\"actql-regex-ast/0.1\"}"
+    },
+    {
+      "id": "sequence",
+      "text": "abc",
+      "ast": {
+        "version": "actql-regex-ast/0.1",
+        "root": {
+          "kind": "sequence",
+          "items": [
+            {
+              "kind": "literal",
+              "codepoint": 97
+            },
+            {
+              "kind": "literal",
+              "codepoint": 98
+            },
+            {
+              "kind": "literal",
+              "codepoint": 99
+            }
+          ]
+        },
+        "capture_count": 0
+      },
+      "expected_preimage": "{\"capture_count\":0,\"root\":{\"items\":[{\"codepoint\":97,\"kind\":\"literal\"},{\"codepoint\":98,\"kind\":\"literal\"},{\"codepoint\":99,\"kind\":\"literal\"}],\"kind\":\"sequence\"},\"version\":\"actql-regex-ast/0.1\"}",
+      "expected_cid": "sha256:165caa23665ebc8f641b4c06e2dda9b709362a4e60b30a782cb4fd7606337939",
+      "expected_ast": "{\"ast_cid\":\"sha256:165caa23665ebc8f641b4c06e2dda9b709362a4e60b30a782cb4fd7606337939\",\"capture_count\":0,\"root\":{\"items\":[{\"codepoint\":97,\"kind\":\"literal\"},{\"codepoint\":98,\"kind\":\"literal\"},{\"codepoint\":99,\"kind\":\"literal\"}],\"kind\":\"sequence\"},\"version\":\"actql-regex-ast/0.1\"}"
+    },
+    {
+      "id": "alternative",
+      "text": "a|b|a",
+      "ast": {
+        "version": "actql-regex-ast/0.1",
+        "root": {
+          "kind": "alternation",
+          "branches": [
+            {
+              "kind": "literal",
+              "codepoint": 97
+            },
+            {
+              "kind": "literal",
+              "codepoint": 98
+            },
+            {
+              "kind": "literal",
+              "codepoint": 97
+            }
+          ]
+        },
+        "capture_count": 0
+      },
+      "expected_preimage": "{\"capture_count\":0,\"root\":{\"branches\":[{\"codepoint\":97,\"kind\":\"literal\"},{\"codepoint\":98,\"kind\":\"literal\"},{\"codepoint\":97,\"kind\":\"literal\"}],\"kind\":\"alternation\"},\"version\":\"actql-regex-ast/0.1\"}",
+      "expected_cid": "sha256:816be7af50b9d914a53e3d31328fa45745cd29120f2134d11e8fff6e27e461fb",
+      "expected_ast": "{\"ast_cid\":\"sha256:816be7af50b9d914a53e3d31328fa45745cd29120f2134d11e8fff6e27e461fb\",\"capture_count\":0,\"root\":{\"branches\":[{\"codepoint\":97,\"kind\":\"literal\"},{\"codepoint\":98,\"kind\":\"literal\"},{\"codepoint\":97,\"kind\":\"literal\"}],\"kind\":\"alternation\"},\"version\":\"actql-regex-ast/0.1\"}"
+    },
+    {
+      "id": "precedence",
+      "text": "ab|c",
+      "ast": {
+        "version": "actql-regex-ast/0.1",
+        "root": {
+          "kind": "alternation",
+          "branches": [
+            {
+              "kind": "sequence",
+              "items": [
+                {
+                  "kind": "literal",
+                  "codepoint": 97
+                },
+                {
+                  "kind": "literal",
+                  "codepoint": 98
+                }
+              ]
+            },
+            {
+              "kind": "literal",
+              "codepoint": 99
+            }
+          ]
+        },
+        "capture_count": 0
+      },
+      "expected_preimage": "{\"capture_count\":0,\"root\":{\"branches\":[{\"items\":[{\"codepoint\":97,\"kind\":\"literal\"},{\"codepoint\":98,\"kind\":\"literal\"}],\"kind\":\"sequence\"},{\"codepoint\":99,\"kind\":\"literal\"}],\"kind\":\"alternation\"},\"version\":\"actql-regex-ast/0.1\"}",
+      "expected_cid": "sha256:5c998d163a02af0d0599d0e0c72f038954963f2d29f6f4460c7e8ee159df5c02",
+      "expected_ast": "{\"ast_cid\":\"sha256:5c998d163a02af0d0599d0e0c72f038954963f2d29f6f4460c7e8ee159df5c02\",\"capture_count\":0,\"root\":{\"branches\":[{\"items\":[{\"codepoint\":97,\"kind\":\"literal\"},{\"codepoint\":98,\"kind\":\"literal\"}],\"kind\":\"sequence\"},{\"codepoint\":99,\"kind\":\"literal\"}],\"kind\":\"alternation\"},\"version\":\"actql-regex-ast/0.1\"}"
+    },
+    {
+      "id": "capture",
+      "text": "(a)",
+      "ast": {
+        "version": "actql-regex-ast/0.1",
+        "root": {
+          "kind": "capture",
+          "capture": 1,
+          "expression": {
+            "kind": "literal",
+            "codepoint": 97
+          }
+        },
+        "capture_count": 1
+      },
+      "expected_preimage": "{\"capture_count\":1,\"root\":{\"capture\":1,\"expression\":{\"codepoint\":97,\"kind\":\"literal\"},\"kind\":\"capture\"},\"version\":\"actql-regex-ast/0.1\"}",
+      "expected_cid": "sha256:950e8c81bae42b00965828fb63011ece7de6c982397d96d981f6ff5e683d04e0",
+      "expected_ast": "{\"ast_cid\":\"sha256:950e8c81bae42b00965828fb63011ece7de6c982397d96d981f6ff5e683d04e0\",\"capture_count\":1,\"root\":{\"capture\":1,\"expression\":{\"codepoint\":97,\"kind\":\"literal\"},\"kind\":\"capture\"},\"version\":\"actql-regex-ast/0.1\"}"
+    },
+    {
+      "id": "capture-order",
+      "text": "((a)|(b))",
+      "ast": {
+        "version": "actql-regex-ast/0.1",
+        "root": {
+          "kind": "capture",
+          "capture": 1,
+          "expression": {
+            "kind": "alternation",
+            "branches": [
+              {
+                "kind": "capture",
+                "capture": 2,
+                "expression": {
+                  "kind": "literal",
+                  "codepoint": 97
+                }
+              },
+              {
+                "kind": "capture",
+                "capture": 3,
+                "expression": {
+                  "kind": "literal",
+                  "codepoint": 98
+                }
+              }
+            ]
+          }
+        },
+        "capture_count": 3
+      },
+      "expected_preimage": "{\"capture_count\":3,\"root\":{\"capture\":1,\"expression\":{\"branches\":[{\"capture\":2,\"expression\":{\"codepoint\":97,\"kind\":\"literal\"},\"kind\":\"capture\"},{\"capture\":3,\"expression\":{\"codepoint\":98,\"kind\":\"literal\"},\"kind\":\"capture\"}],\"kind\":\"alternation\"},\"kind\":\"capture\"},\"version\":\"actql-regex-ast/0.1\"}",
+      "expected_cid": "sha256:cd05afda29ad7955a98b8ec2d8e677e8c553e03fdd064d7b00f1424f41696738",
+      "expected_ast": "{\"ast_cid\":\"sha256:cd05afda29ad7955a98b8ec2d8e677e8c553e03fdd064d7b00f1424f41696738\",\"capture_count\":3,\"root\":{\"capture\":1,\"expression\":{\"branches\":[{\"capture\":2,\"expression\":{\"codepoint\":97,\"kind\":\"literal\"},\"kind\":\"capture\"},{\"capture\":3,\"expression\":{\"codepoint\":98,\"kind\":\"literal\"},\"kind\":\"capture\"}],\"kind\":\"alternation\"},\"kind\":\"capture\"},\"version\":\"actql-regex-ast/0.1\"}"
+    },
+    {
+      "id": "grouped-sequence",
+      "text": "(ab)c",
+      "ast": {
+        "version": "actql-regex-ast/0.1",
+        "root": {
+          "kind": "sequence",
+          "items": [
+            {
+              "kind": "capture",
+              "capture": 1,
+              "expression": {
+                "kind": "sequence",
+                "items": [
+                  {
+                    "kind": "literal",
+                    "codepoint": 97
+                  },
+                  {
+                    "kind": "literal",
+                    "codepoint": 98
+                  }
+                ]
+              }
+            },
+            {
+              "kind": "literal",
+              "codepoint": 99
+            }
+          ]
+        },
+        "capture_count": 1
+      },
+      "expected_preimage": "{\"capture_count\":1,\"root\":{\"items\":[{\"capture\":1,\"expression\":{\"items\":[{\"codepoint\":97,\"kind\":\"literal\"},{\"codepoint\":98,\"kind\":\"literal\"}],\"kind\":\"sequence\"},\"kind\":\"capture\"},{\"codepoint\":99,\"kind\":\"literal\"}],\"kind\":\"sequence\"},\"version\":\"actql-regex-ast/0.1\"}",
+      "expected_cid": "sha256:b8874b3c3343236246acd1f6b20cb2a6756b759d0cd4aadc65996cec8ab54cb0",
+      "expected_ast": "{\"ast_cid\":\"sha256:b8874b3c3343236246acd1f6b20cb2a6756b759d0cd4aadc65996cec8ab54cb0\",\"capture_count\":1,\"root\":{\"items\":[{\"capture\":1,\"expression\":{\"items\":[{\"codepoint\":97,\"kind\":\"literal\"},{\"codepoint\":98,\"kind\":\"literal\"}],\"kind\":\"sequence\"},\"kind\":\"capture\"},{\"codepoint\":99,\"kind\":\"literal\"}],\"kind\":\"sequence\"},\"version\":\"actql-regex-ast/0.1\"}"
+    },
+    {
+      "id": "optional",
+      "text": "a?",
+      "ast": {
+        "version": "actql-regex-ast/0.1",
+        "root": {
+          "kind": "repeat",
+          "min": 0,
+          "max": 1,
+          "expression": {
+            "kind": "literal",
+            "codepoint": 97
+          }
+        },
+        "capture_count": 0
+      },
+      "expected_preimage": "{\"capture_count\":0,\"root\":{\"expression\":{\"codepoint\":97,\"kind\":\"literal\"},\"kind\":\"repeat\",\"max\":1,\"min\":0},\"version\":\"actql-regex-ast/0.1\"}",
+      "expected_cid": "sha256:42c36fab26b1ed97bafa9798f7fcf18eec459076e08b847fe8722fc3b2efe14b",
+      "expected_ast": "{\"ast_cid\":\"sha256:42c36fab26b1ed97bafa9798f7fcf18eec459076e08b847fe8722fc3b2efe14b\",\"capture_count\":0,\"root\":{\"expression\":{\"codepoint\":97,\"kind\":\"literal\"},\"kind\":\"repeat\",\"max\":1,\"min\":0},\"version\":\"actql-regex-ast/0.1\"}"
+    },
+    {
+      "id": "star",
+      "text": "a*",
+      "ast": {
+        "version": "actql-regex-ast/0.1",
+        "root": {
+          "kind": "repeat",
+          "min": 0,
+          "max": null,
+          "expression": {
+            "kind": "literal",
+            "codepoint": 97
+          }
+        },
+        "capture_count": 0
+      },
+      "expected_preimage": "{\"capture_count\":0,\"root\":{\"expression\":{\"codepoint\":97,\"kind\":\"literal\"},\"kind\":\"repeat\",\"max\":null,\"min\":0},\"version\":\"actql-regex-ast/0.1\"}",
+      "expected_cid": "sha256:08d81011aca1752be7872c29a71a737719af2a30bc5d2b38ee8a43645a0ff7e1",
+      "expected_ast": "{\"ast_cid\":\"sha256:08d81011aca1752be7872c29a71a737719af2a30bc5d2b38ee8a43645a0ff7e1\",\"capture_count\":0,\"root\":{\"expression\":{\"codepoint\":97,\"kind\":\"literal\"},\"kind\":\"repeat\",\"max\":null,\"min\":0},\"version\":\"actql-regex-ast/0.1\"}"
+    },
+    {
+      "id": "plus",
+      "text": "a+",
+      "ast": {
+        "version": "actql-regex-ast/0.1",
+        "root": {
+          "kind": "repeat",
+          "min": 1,
+          "max": null,
+          "expression": {
+            "kind": "literal",
+            "codepoint": 97
+          }
+        },
+        "capture_count": 0
+      },
+      "expected_preimage": "{\"capture_count\":0,\"root\":{\"expression\":{\"codepoint\":97,\"kind\":\"literal\"},\"kind\":\"repeat\",\"max\":null,\"min\":1},\"version\":\"actql-regex-ast/0.1\"}",
+      "expected_cid": "sha256:f91bcd2350b0299c31e4705c08a489a4ba77ba13b2df1a567ae6f855be8fe35f",
+      "expected_ast": "{\"ast_cid\":\"sha256:f91bcd2350b0299c31e4705c08a489a4ba77ba13b2df1a567ae6f855be8fe35f\",\"capture_count\":0,\"root\":{\"expression\":{\"codepoint\":97,\"kind\":\"literal\"},\"kind\":\"repeat\",\"max\":null,\"min\":1},\"version\":\"actql-regex-ast/0.1\"}"
+    },
+    {
+      "id": "bounded",
+      "text": "a{2,3}",
+      "ast": {
+        "version": "actql-regex-ast/0.1",
+        "root": {
+          "kind": "repeat",
+          "min": 2,
+          "max": 3,
+          "expression": {
+            "kind": "literal",
+            "codepoint": 97
+          }
+        },
+        "capture_count": 0
+      },
+      "expected_preimage": "{\"capture_count\":0,\"root\":{\"expression\":{\"codepoint\":97,\"kind\":\"literal\"},\"kind\":\"repeat\",\"max\":3,\"min\":2},\"version\":\"actql-regex-ast/0.1\"}",
+      "expected_cid": "sha256:73ff57c34d4ca6a8c41c99070fee21172f29ae8309b88fd20a8f500e7e1d0ab4",
+      "expected_ast": "{\"ast_cid\":\"sha256:73ff57c34d4ca6a8c41c99070fee21172f29ae8309b88fd20a8f500e7e1d0ab4\",\"capture_count\":0,\"root\":{\"expression\":{\"codepoint\":97,\"kind\":\"literal\"},\"kind\":\"repeat\",\"max\":3,\"min\":2},\"version\":\"actql-regex-ast/0.1\"}"
+    },
+    {
+      "id": "open-repeat",
+      "text": "a{2,}",
+      "ast": {
+        "version": "actql-regex-ast/0.1",
+        "root": {
+          "kind": "repeat",
+          "min": 2,
+          "max": null,
+          "expression": {
+            "kind": "literal",
+            "codepoint": 97
+          }
+        },
+        "capture_count": 0
+      },
+      "expected_preimage": "{\"capture_count\":0,\"root\":{\"expression\":{\"codepoint\":97,\"kind\":\"literal\"},\"kind\":\"repeat\",\"max\":null,\"min\":2},\"version\":\"actql-regex-ast/0.1\"}",
+      "expected_cid": "sha256:6f9d2fd7de373c83829074e0bd7a136c42291cbafec16823ec959c4a74e5c3c8",
+      "expected_ast": "{\"ast_cid\":\"sha256:6f9d2fd7de373c83829074e0bd7a136c42291cbafec16823ec959c4a74e5c3c8\",\"capture_count\":0,\"root\":{\"expression\":{\"codepoint\":97,\"kind\":\"literal\"},\"kind\":\"repeat\",\"max\":null,\"min\":2},\"version\":\"actql-regex-ast/0.1\"}"
+    },
+    {
+      "id": "zero-repeat",
+      "text": "a{0}",
+      "ast": {
+        "version": "actql-regex-ast/0.1",
+        "root": {
+          "kind": "repeat",
+          "min": 0,
+          "max": 0,
+          "expression": {
+            "kind": "literal",
+            "codepoint": 97
+          }
+        },
+        "capture_count": 0
+      },
+      "expected_preimage": "{\"capture_count\":0,\"root\":{\"expression\":{\"codepoint\":97,\"kind\":\"literal\"},\"kind\":\"repeat\",\"max\":0,\"min\":0},\"version\":\"actql-regex-ast/0.1\"}",
+      "expected_cid": "sha256:4bee75d880a4cc62cb3f84452232a63318466a7bb9c9633e8174d4cdca31b870",
+      "expected_ast": "{\"ast_cid\":\"sha256:4bee75d880a4cc62cb3f84452232a63318466a7bb9c9633e8174d4cdca31b870\",\"capture_count\":0,\"root\":{\"expression\":{\"codepoint\":97,\"kind\":\"literal\"},\"kind\":\"repeat\",\"max\":0,\"min\":0},\"version\":\"actql-regex-ast/0.1\"}"
+    },
+    {
+      "id": "exact-repeat",
+      "text": "a{3}",
+      "ast": {
+        "version": "actql-regex-ast/0.1",
+        "root": {
+          "kind": "repeat",
+          "min": 3,
+          "max": 3,
+          "expression": {
+            "kind": "literal",
+            "codepoint": 97
+          }
+        },
+        "capture_count": 0
+      },
+      "expected_preimage": "{\"capture_count\":0,\"root\":{\"expression\":{\"codepoint\":97,\"kind\":\"literal\"},\"kind\":\"repeat\",\"max\":3,\"min\":3},\"version\":\"actql-regex-ast/0.1\"}",
+      "expected_cid": "sha256:f4be71d47a8e61219d54b90dc93cbc7bc5745b9f31fe7816ebe046962ef22c57",
+      "expected_ast": "{\"ast_cid\":\"sha256:f4be71d47a8e61219d54b90dc93cbc7bc5745b9f31fe7816ebe046962ef22c57\",\"capture_count\":0,\"root\":{\"expression\":{\"codepoint\":97,\"kind\":\"literal\"},\"kind\":\"repeat\",\"max\":3,\"min\":3},\"version\":\"actql-regex-ast/0.1\"}"
+    },
+    {
+      "id": "positive-nested",
+      "text": "(a+){2}",
+      "ast": {
+        "version": "actql-regex-ast/0.1",
+        "root": {
+          "kind": "repeat",
+          "min": 2,
+          "max": 2,
+          "expression": {
+            "kind": "capture",
+            "capture": 1,
+            "expression": {
+              "kind": "repeat",
+              "min": 1,
+              "max": null,
+              "expression": {
+                "kind": "literal",
+                "codepoint": 97
+              }
+            }
+          }
+        },
+        "capture_count": 1
+      },
+      "expected_preimage": "{\"capture_count\":1,\"root\":{\"expression\":{\"capture\":1,\"expression\":{\"expression\":{\"codepoint\":97,\"kind\":\"literal\"},\"kind\":\"repeat\",\"max\":null,\"min\":1},\"kind\":\"capture\"},\"kind\":\"repeat\",\"max\":2,\"min\":2},\"version\":\"actql-regex-ast/0.1\"}",
+      "expected_cid": "sha256:c01022519d5ff309d85f223158cd2f03894856081a3e36fd834f58523f5d1655",
+      "expected_ast": "{\"ast_cid\":\"sha256:c01022519d5ff309d85f223158cd2f03894856081a3e36fd834f58523f5d1655\",\"capture_count\":1,\"root\":{\"expression\":{\"capture\":1,\"expression\":{\"expression\":{\"codepoint\":97,\"kind\":\"literal\"},\"kind\":\"repeat\",\"max\":null,\"min\":1},\"kind\":\"capture\"},\"kind\":\"repeat\",\"max\":2,\"min\":2},\"version\":\"actql-regex-ast/0.1\"}"
+    },
+    {
+      "id": "nullable-sequence-operand",
+      "text": "(^a)*",
+      "ast": {
+        "version": "actql-regex-ast/0.1",
+        "root": {
+          "kind": "repeat",
+          "min": 0,
+          "max": null,
+          "expression": {
+            "kind": "capture",
+            "capture": 1,
+            "expression": {
+              "kind": "sequence",
+              "items": [
+                {
+                  "kind": "anchor",
+                  "value": "^"
+                },
+                {
+                  "kind": "literal",
+                  "codepoint": 97
+                }
+              ]
+            }
+          }
+        },
+        "capture_count": 1
+      },
+      "expected_preimage": "{\"capture_count\":1,\"root\":{\"expression\":{\"capture\":1,\"expression\":{\"items\":[{\"kind\":\"anchor\",\"value\":\"^\"},{\"codepoint\":97,\"kind\":\"literal\"}],\"kind\":\"sequence\"},\"kind\":\"capture\"},\"kind\":\"repeat\",\"max\":null,\"min\":0},\"version\":\"actql-regex-ast/0.1\"}",
+      "expected_cid": "sha256:af286bd01552b3f7778b7573aae98610a0c4b2d674fb88304447159b8558393e",
+      "expected_ast": "{\"ast_cid\":\"sha256:af286bd01552b3f7778b7573aae98610a0c4b2d674fb88304447159b8558393e\",\"capture_count\":1,\"root\":{\"expression\":{\"capture\":1,\"expression\":{\"items\":[{\"kind\":\"anchor\",\"value\":\"^\"},{\"codepoint\":97,\"kind\":\"literal\"}],\"kind\":\"sequence\"},\"kind\":\"capture\"},\"kind\":\"repeat\",\"max\":null,\"min\":0},\"version\":\"actql-regex-ast/0.1\"}"
+    },
+    {
+      "id": "nullable-unquantified",
+      "text": "(^|a)",
+      "ast": {
+        "version": "actql-regex-ast/0.1",
+        "root": {
+          "kind": "capture",
+          "capture": 1,
+          "expression": {
+            "kind": "alternation",
+            "branches": [
+              {
+                "kind": "anchor",
+                "value": "^"
+              },
+              {
+                "kind": "literal",
+                "codepoint": 97
+              }
+            ]
+          }
+        },
+        "capture_count": 1
+      },
+      "expected_preimage": "{\"capture_count\":1,\"root\":{\"capture\":1,\"expression\":{\"branches\":[{\"kind\":\"anchor\",\"value\":\"^\"},{\"codepoint\":97,\"kind\":\"literal\"}],\"kind\":\"alternation\"},\"kind\":\"capture\"},\"version\":\"actql-regex-ast/0.1\"}",
+      "expected_cid": "sha256:9aca55651c3e3d2fc44d0228536911afb69cc5416bf3cc53f77faa9d413d9c9a",
+      "expected_ast": "{\"ast_cid\":\"sha256:9aca55651c3e3d2fc44d0228536911afb69cc5416bf3cc53f77faa9d413d9c9a\",\"capture_count\":1,\"root\":{\"capture\":1,\"expression\":{\"branches\":[{\"kind\":\"anchor\",\"value\":\"^\"},{\"codepoint\":97,\"kind\":\"literal\"}],\"kind\":\"alternation\"},\"kind\":\"capture\"},\"version\":\"actql-regex-ast/0.1\"}"
+    },
+    {
+      "id": "large-repeat",
+      "text": "a{9007199254740992}",
+      "ast": {
+        "version": "actql-regex-ast/0.1",
+        "root": {
+          "kind": "repeat",
+          "min": 9007199254740992,
+          "max": 9007199254740992,
+          "expression": {
+            "kind": "literal",
+            "codepoint": 97
+          }
+        },
+        "capture_count": 0
+      },
+      "expected_preimage": "{\"capture_count\":0,\"root\":{\"expression\":{\"codepoint\":97,\"kind\":\"literal\"},\"kind\":\"repeat\",\"max\":9007199254740992,\"min\":9007199254740992},\"version\":\"actql-regex-ast/0.1\"}",
+      "expected_cid": "sha256:20c81d43b269ed8d1dae63f51201c03767a1bb541e3bde1b0d870e118274dff9",
+      "expected_ast": "{\"ast_cid\":\"sha256:20c81d43b269ed8d1dae63f51201c03767a1bb541e3bde1b0d870e118274dff9\",\"capture_count\":0,\"root\":{\"expression\":{\"codepoint\":97,\"kind\":\"literal\"},\"kind\":\"repeat\",\"max\":9007199254740992,\"min\":9007199254740992},\"version\":\"actql-regex-ast/0.1\"}"
+    },
+    {
+      "id": "wide-repeat",
+      "text": "a{1267650600228229401496703205376}",
+      "ast": {
+        "version": "actql-regex-ast/0.1",
+        "root": {
+          "kind": "repeat",
+          "min": 1.2676506002282294e+30,
+          "max": 1.2676506002282294e+30,
+          "expression": {
+            "kind": "literal",
+            "codepoint": 97
+          }
+        },
+        "capture_count": 0
+      },
+      "expected_preimage": "{\"capture_count\":0,\"root\":{\"expression\":{\"codepoint\":97,\"kind\":\"literal\"},\"kind\":\"repeat\",\"max\":1.2676506002282294e+30,\"min\":1.2676506002282294e+30},\"version\":\"actql-regex-ast/0.1\"}",
+      "expected_cid": "sha256:4905ad247086ce3151ee8a472ef6022b7296671ed8709dee170bd6d074dfb6be",
+      "expected_ast": "{\"ast_cid\":\"sha256:4905ad247086ce3151ee8a472ef6022b7296671ed8709dee170bd6d074dfb6be\",\"capture_count\":0,\"root\":{\"expression\":{\"codepoint\":97,\"kind\":\"literal\"},\"kind\":\"repeat\",\"max\":1.2676506002282294e+30,\"min\":1.2676506002282294e+30},\"version\":\"actql-regex-ast/0.1\"}"
+    },
+    {
+      "id": "class",
+      "text": "[a-cx]",
+      "ast": {
+        "version": "actql-regex-ast/0.1",
+        "root": {
+          "kind": "class",
+          "negated": false,
+          "items": [
+            {
+              "kind": "range",
+              "start": 97,
+              "end": 99
+            },
+            {
+              "kind": "literal",
+              "codepoint": 120
+            }
+          ]
+        },
+        "capture_count": 0
+      },
+      "expected_preimage": "{\"capture_count\":0,\"root\":{\"items\":[{\"end\":99,\"kind\":\"range\",\"start\":97},{\"codepoint\":120,\"kind\":\"literal\"}],\"kind\":\"class\",\"negated\":false},\"version\":\"actql-regex-ast/0.1\"}",
+      "expected_cid": "sha256:390a9ab3c9cd944171e134f1dad5029aea5e81e8273932dd87f3c091749eb5f6",
+      "expected_ast": "{\"ast_cid\":\"sha256:390a9ab3c9cd944171e134f1dad5029aea5e81e8273932dd87f3c091749eb5f6\",\"capture_count\":0,\"root\":{\"items\":[{\"end\":99,\"kind\":\"range\",\"start\":97},{\"codepoint\":120,\"kind\":\"literal\"}],\"kind\":\"class\",\"negated\":false},\"version\":\"actql-regex-ast/0.1\"}"
+    },
+    {
+      "id": "negative-class",
+      "text": "[^\\d\\r]",
+      "ast": {
+        "version": "actql-regex-ast/0.1",
+        "root": {
+          "kind": "class",
+          "negated": true,
+          "items": [
+            {
+              "kind": "class_escape",
+              "value": "d"
+            },
+            {
+              "kind": "literal",
+              "codepoint": 13
+            }
+          ]
+        },
+        "capture_count": 0
+      },
+      "expected_preimage": "{\"capture_count\":0,\"root\":{\"items\":[{\"kind\":\"class_escape\",\"value\":\"d\"},{\"codepoint\":13,\"kind\":\"literal\"}],\"kind\":\"class\",\"negated\":true},\"version\":\"actql-regex-ast/0.1\"}",
+      "expected_cid": "sha256:e4b2f6ea202ec02aaf55eae4e742f30939c981dc9f81692c699b59569ffd0446",
+      "expected_ast": "{\"ast_cid\":\"sha256:e4b2f6ea202ec02aaf55eae4e742f30939c981dc9f81692c699b59569ffd0446\",\"capture_count\":0,\"root\":{\"items\":[{\"kind\":\"class_escape\",\"value\":\"d\"},{\"codepoint\":13,\"kind\":\"literal\"}],\"kind\":\"class\",\"negated\":true},\"version\":\"actql-regex-ast/0.1\"}"
+    },
+    {
+      "id": "ascending-control-range",
+      "text": "[\\t-\\r]",
+      "ast": {
+        "version": "actql-regex-ast/0.1",
+        "root": {
+          "kind": "class",
+          "negated": false,
+          "items": [
+            {
+              "kind": "range",
+              "start": 9,
+              "end": 13
+            }
+          ]
+        },
+        "capture_count": 0
+      },
+      "expected_preimage": "{\"capture_count\":0,\"root\":{\"items\":[{\"end\":13,\"kind\":\"range\",\"start\":9}],\"kind\":\"class\",\"negated\":false},\"version\":\"actql-regex-ast/0.1\"}",
+      "expected_cid": "sha256:f430dbc818abcae3f4e8cf9346e23775c9040a57204d7330e91783359425c51b",
+      "expected_ast": "{\"ast_cid\":\"sha256:f430dbc818abcae3f4e8cf9346e23775c9040a57204d7330e91783359425c51b\",\"capture_count\":0,\"root\":{\"items\":[{\"end\":13,\"kind\":\"range\",\"start\":9}],\"kind\":\"class\",\"negated\":false},\"version\":\"actql-regex-ast/0.1\"}"
+    },
+    {
+      "id": "hyphen-leading",
+      "text": "[-a]",
+      "ast": {
+        "version": "actql-regex-ast/0.1",
+        "root": {
+          "kind": "class",
+          "negated": false,
+          "items": [
+            {
+              "kind": "literal",
+              "codepoint": 45
+            },
+            {
+              "kind": "literal",
+              "codepoint": 97
+            }
+          ]
+        },
+        "capture_count": 0
+      },
+      "expected_preimage": "{\"capture_count\":0,\"root\":{\"items\":[{\"codepoint\":45,\"kind\":\"literal\"},{\"codepoint\":97,\"kind\":\"literal\"}],\"kind\":\"class\",\"negated\":false},\"version\":\"actql-regex-ast/0.1\"}",
+      "expected_cid": "sha256:56684a12b41dc9a9db364b5b676903dc60d0f5b02af9428edceb308ab3bdb0a4",
+      "expected_ast": "{\"ast_cid\":\"sha256:56684a12b41dc9a9db364b5b676903dc60d0f5b02af9428edceb308ab3bdb0a4\",\"capture_count\":0,\"root\":{\"items\":[{\"codepoint\":45,\"kind\":\"literal\"},{\"codepoint\":97,\"kind\":\"literal\"}],\"kind\":\"class\",\"negated\":false},\"version\":\"actql-regex-ast/0.1\"}"
+    },
+    {
+      "id": "hyphen-trailing",
+      "text": "[a-]",
+      "ast": {
+        "version": "actql-regex-ast/0.1",
+        "root": {
+          "kind": "class",
+          "negated": false,
+          "items": [
+            {
+              "kind": "literal",
+              "codepoint": 97
+            },
+            {
+              "kind": "literal",
+              "codepoint": 45
+            }
+          ]
+        },
+        "capture_count": 0
+      },
+      "expected_preimage": "{\"capture_count\":0,\"root\":{\"items\":[{\"codepoint\":97,\"kind\":\"literal\"},{\"codepoint\":45,\"kind\":\"literal\"}],\"kind\":\"class\",\"negated\":false},\"version\":\"actql-regex-ast/0.1\"}",
+      "expected_cid": "sha256:4190bf019766c7fb743b40739124fca8ac8d30aa18524155bcf46412dda93f16",
+      "expected_ast": "{\"ast_cid\":\"sha256:4190bf019766c7fb743b40739124fca8ac8d30aa18524155bcf46412dda93f16\",\"capture_count\":0,\"root\":{\"items\":[{\"codepoint\":97,\"kind\":\"literal\"},{\"codepoint\":45,\"kind\":\"literal\"}],\"kind\":\"class\",\"negated\":false},\"version\":\"actql-regex-ast/0.1\"}"
+    },
+    {
+      "id": "escaped-range",
+      "text": "[\\--a]",
+      "ast": {
+        "version": "actql-regex-ast/0.1",
+        "root": {
+          "kind": "class",
+          "negated": false,
+          "items": [
+            {
+              "kind": "range",
+              "start": 45,
+              "end": 97
+            }
+          ]
+        },
+        "capture_count": 0
+      },
+      "expected_preimage": "{\"capture_count\":0,\"root\":{\"items\":[{\"end\":97,\"kind\":\"range\",\"start\":45}],\"kind\":\"class\",\"negated\":false},\"version\":\"actql-regex-ast/0.1\"}",
+      "expected_cid": "sha256:e13fe808bd6c47369cd274c0838a585f9904fb42f1b71afc9d3b170b84877dbd",
+      "expected_ast": "{\"ast_cid\":\"sha256:e13fe808bd6c47369cd274c0838a585f9904fb42f1b71afc9d3b170b84877dbd\",\"capture_count\":0,\"root\":{\"items\":[{\"end\":97,\"kind\":\"range\",\"start\":45}],\"kind\":\"class\",\"negated\":false},\"version\":\"actql-regex-ast/0.1\"}"
+    },
+    {
+      "id": "class-duplicates",
+      "text": "[aaa]",
+      "ast": {
+        "version": "actql-regex-ast/0.1",
+        "root": {
+          "kind": "class",
+          "negated": false,
+          "items": [
+            {
+              "kind": "literal",
+              "codepoint": 97
+            },
+            {
+              "kind": "literal",
+              "codepoint": 97
+            },
+            {
+              "kind": "literal",
+              "codepoint": 97
+            }
+          ]
+        },
+        "capture_count": 0
+      },
+      "expected_preimage": "{\"capture_count\":0,\"root\":{\"items\":[{\"codepoint\":97,\"kind\":\"literal\"},{\"codepoint\":97,\"kind\":\"literal\"},{\"codepoint\":97,\"kind\":\"literal\"}],\"kind\":\"class\",\"negated\":false},\"version\":\"actql-regex-ast/0.1\"}",
+      "expected_cid": "sha256:48ac1c99519aebd8e42d72b90e4ff19620368e630df7f15cb06a1876ea2a2c62",
+      "expected_ast": "{\"ast_cid\":\"sha256:48ac1c99519aebd8e42d72b90e4ff19620368e630df7f15cb06a1876ea2a2c62\",\"capture_count\":0,\"root\":{\"items\":[{\"codepoint\":97,\"kind\":\"literal\"},{\"codepoint\":97,\"kind\":\"literal\"},{\"codepoint\":97,\"kind\":\"literal\"}],\"kind\":\"class\",\"negated\":false},\"version\":\"actql-regex-ast/0.1\"}"
+    },
+    {
+      "id": "class-metacharacters",
+      "text": "[.*+?(){}|$[]",
+      "ast": {
+        "version": "actql-regex-ast/0.1",
+        "root": {
+          "kind": "class",
+          "negated": false,
+          "items": [
+            {
+              "kind": "literal",
+              "codepoint": 46
+            },
+            {
+              "kind": "literal",
+              "codepoint": 42
+            },
+            {
+              "kind": "literal",
+              "codepoint": 43
+            },
+            {
+              "kind": "literal",
+              "codepoint": 63
+            },
+            {
+              "kind": "literal",
+              "codepoint": 40
+            },
+            {
+              "kind": "literal",
+              "codepoint": 41
+            },
+            {
+              "kind": "literal",
+              "codepoint": 123
+            },
+            {
+              "kind": "literal",
+              "codepoint": 125
+            },
+            {
+              "kind": "literal",
+              "codepoint": 124
+            },
+            {
+              "kind": "literal",
+              "codepoint": 36
+            },
+            {
+              "kind": "literal",
+              "codepoint": 91
+            }
+          ]
+        },
+        "capture_count": 0
+      },
+      "expected_preimage": "{\"capture_count\":0,\"root\":{\"items\":[{\"codepoint\":46,\"kind\":\"literal\"},{\"codepoint\":42,\"kind\":\"literal\"},{\"codepoint\":43,\"kind\":\"literal\"},{\"codepoint\":63,\"kind\":\"literal\"},{\"codepoint\":40,\"kind\":\"literal\"},{\"codepoint\":41,\"kind\":\"literal\"},{\"codepoint\":123,\"kind\":\"literal\"},{\"codepoint\":125,\"kind\":\"literal\"},{\"codepoint\":124,\"kind\":\"literal\"},{\"codepoint\":36,\"kind\":\"literal\"},{\"codepoint\":91,\"kind\":\"literal\"}],\"kind\":\"class\",\"negated\":false},\"version\":\"actql-regex-ast/0.1\"}",
+      "expected_cid": "sha256:9d92d60e3119de180be0644de715a774f65c16d606babb25e5ff208002c57f26",
+      "expected_ast": "{\"ast_cid\":\"sha256:9d92d60e3119de180be0644de715a774f65c16d606babb25e5ff208002c57f26\",\"capture_count\":0,\"root\":{\"items\":[{\"codepoint\":46,\"kind\":\"literal\"},{\"codepoint\":42,\"kind\":\"literal\"},{\"codepoint\":43,\"kind\":\"literal\"},{\"codepoint\":63,\"kind\":\"literal\"},{\"codepoint\":40,\"kind\":\"literal\"},{\"codepoint\":41,\"kind\":\"literal\"},{\"codepoint\":123,\"kind\":\"literal\"},{\"codepoint\":125,\"kind\":\"literal\"},{\"codepoint\":124,\"kind\":\"literal\"},{\"codepoint\":36,\"kind\":\"literal\"},{\"codepoint\":91,\"kind\":\"literal\"}],\"kind\":\"class\",\"negated\":false},\"version\":\"actql-regex-ast/0.1\"}"
+    },
+    {
+      "id": "surrogate-gap-range",
+      "text": "[퟿-]",
+      "ast": {
+        "version": "actql-regex-ast/0.1",
+        "root": {
+          "kind": "class",
+          "negated": false,
+          "items": [
+            {
+              "kind": "range",
+              "start": 55295,
+              "end": 57344
+            }
+          ]
+        },
+        "capture_count": 0
+      },
+      "expected_preimage": "{\"capture_count\":0,\"root\":{\"items\":[{\"end\":57344,\"kind\":\"range\",\"start\":55295}],\"kind\":\"class\",\"negated\":false},\"version\":\"actql-regex-ast/0.1\"}",
+      "expected_cid": "sha256:88458697c56e329ebc247aec0c4eedd50094eca3352acaaad1c8653e33f5adaa",
+      "expected_ast": "{\"ast_cid\":\"sha256:88458697c56e329ebc247aec0c4eedd50094eca3352acaaad1c8653e33f5adaa\",\"capture_count\":0,\"root\":{\"items\":[{\"end\":57344,\"kind\":\"range\",\"start\":55295}],\"kind\":\"class\",\"negated\":false},\"version\":\"actql-regex-ast/0.1\"}"
+    },
+    {
+      "id": "escape-d",
+      "text": "\\d",
+      "ast": {
+        "version": "actql-regex-ast/0.1",
+        "root": {
+          "kind": "class_escape",
+          "value": "d"
+        },
+        "capture_count": 0
+      },
+      "expected_preimage": "{\"capture_count\":0,\"root\":{\"kind\":\"class_escape\",\"value\":\"d\"},\"version\":\"actql-regex-ast/0.1\"}",
+      "expected_cid": "sha256:5d485160ffeee5dcaad74cc7ede259615f8128312f806fc0821eb047ae84935e",
+      "expected_ast": "{\"ast_cid\":\"sha256:5d485160ffeee5dcaad74cc7ede259615f8128312f806fc0821eb047ae84935e\",\"capture_count\":0,\"root\":{\"kind\":\"class_escape\",\"value\":\"d\"},\"version\":\"actql-regex-ast/0.1\"}"
+    },
+    {
+      "id": "escape-D",
+      "text": "\\D",
+      "ast": {
+        "version": "actql-regex-ast/0.1",
+        "root": {
+          "kind": "class_escape",
+          "value": "D"
+        },
+        "capture_count": 0
+      },
+      "expected_preimage": "{\"capture_count\":0,\"root\":{\"kind\":\"class_escape\",\"value\":\"D\"},\"version\":\"actql-regex-ast/0.1\"}",
+      "expected_cid": "sha256:6342744958d91e121f76b3a57e71c1a62c698a23cadac8d4bd0471e8db91f6ec",
+      "expected_ast": "{\"ast_cid\":\"sha256:6342744958d91e121f76b3a57e71c1a62c698a23cadac8d4bd0471e8db91f6ec\",\"capture_count\":0,\"root\":{\"kind\":\"class_escape\",\"value\":\"D\"},\"version\":\"actql-regex-ast/0.1\"}"
+    },
+    {
+      "id": "escape-s",
+      "text": "\\s",
+      "ast": {
+        "version": "actql-regex-ast/0.1",
+        "root": {
+          "kind": "class_escape",
+          "value": "s"
+        },
+        "capture_count": 0
+      },
+      "expected_preimage": "{\"capture_count\":0,\"root\":{\"kind\":\"class_escape\",\"value\":\"s\"},\"version\":\"actql-regex-ast/0.1\"}",
+      "expected_cid": "sha256:17b520b3963453bfaa14543804529f52676028b30ffb1c382d5a5346f9ee796b",
+      "expected_ast": "{\"ast_cid\":\"sha256:17b520b3963453bfaa14543804529f52676028b30ffb1c382d5a5346f9ee796b\",\"capture_count\":0,\"root\":{\"kind\":\"class_escape\",\"value\":\"s\"},\"version\":\"actql-regex-ast/0.1\"}"
+    },
+    {
+      "id": "escape-S",
+      "text": "\\S",
+      "ast": {
+        "version": "actql-regex-ast/0.1",
+        "root": {
+          "kind": "class_escape",
+          "value": "S"
+        },
+        "capture_count": 0
+      },
+      "expected_preimage": "{\"capture_count\":0,\"root\":{\"kind\":\"class_escape\",\"value\":\"S\"},\"version\":\"actql-regex-ast/0.1\"}",
+      "expected_cid": "sha256:78b21d2c6d4b3c9090ebc9f5c9c7b2a1261cd631b7df6a9979d17a1c6af7d672",
+      "expected_ast": "{\"ast_cid\":\"sha256:78b21d2c6d4b3c9090ebc9f5c9c7b2a1261cd631b7df6a9979d17a1c6af7d672\",\"capture_count\":0,\"root\":{\"kind\":\"class_escape\",\"value\":\"S\"},\"version\":\"actql-regex-ast/0.1\"}"
+    },
+    {
+      "id": "escape-w",
+      "text": "\\w",
+      "ast": {
+        "version": "actql-regex-ast/0.1",
+        "root": {
+          "kind": "class_escape",
+          "value": "w"
+        },
+        "capture_count": 0
+      },
+      "expected_preimage": "{\"capture_count\":0,\"root\":{\"kind\":\"class_escape\",\"value\":\"w\"},\"version\":\"actql-regex-ast/0.1\"}",
+      "expected_cid": "sha256:31866c0a808434fafcd2b946a446cfb4870e5d64780594ce028b8599d14aca5a",
+      "expected_ast": "{\"ast_cid\":\"sha256:31866c0a808434fafcd2b946a446cfb4870e5d64780594ce028b8599d14aca5a\",\"capture_count\":0,\"root\":{\"kind\":\"class_escape\",\"value\":\"w\"},\"version\":\"actql-regex-ast/0.1\"}"
+    },
+    {
+      "id": "escape-W",
+      "text": "\\W",
+      "ast": {
+        "version": "actql-regex-ast/0.1",
+        "root": {
+          "kind": "class_escape",
+          "value": "W"
+        },
+        "capture_count": 0
+      },
+      "expected_preimage": "{\"capture_count\":0,\"root\":{\"kind\":\"class_escape\",\"value\":\"W\"},\"version\":\"actql-regex-ast/0.1\"}",
+      "expected_cid": "sha256:43a90e031db4af9792d90af0eba6c14a95de45521a8cfbc167f5e27378d4edb8",
+      "expected_ast": "{\"ast_cid\":\"sha256:43a90e031db4af9792d90af0eba6c14a95de45521a8cfbc167f5e27378d4edb8\",\"capture_count\":0,\"root\":{\"kind\":\"class_escape\",\"value\":\"W\"},\"version\":\"actql-regex-ast/0.1\"}"
+    },
+    {
+      "id": "meta-92",
+      "text": "\\\\",
+      "ast": {
+        "version": "actql-regex-ast/0.1",
+        "root": {
+          "kind": "literal",
+          "codepoint": 92
+        },
+        "capture_count": 0
+      },
+      "expected_preimage": "{\"capture_count\":0,\"root\":{\"codepoint\":92,\"kind\":\"literal\"},\"version\":\"actql-regex-ast/0.1\"}",
+      "expected_cid": "sha256:38fa171eed992e459ffdbabddd215f1846d50050eeb92a8e51dbd5566fed68f4",
+      "expected_ast": "{\"ast_cid\":\"sha256:38fa171eed992e459ffdbabddd215f1846d50050eeb92a8e51dbd5566fed68f4\",\"capture_count\":0,\"root\":{\"codepoint\":92,\"kind\":\"literal\"},\"version\":\"actql-regex-ast/0.1\"}"
+    },
+    {
+      "id": "meta-46",
+      "text": "\\.",
+      "ast": {
+        "version": "actql-regex-ast/0.1",
+        "root": {
+          "kind": "literal",
+          "codepoint": 46
+        },
+        "capture_count": 0
+      },
+      "expected_preimage": "{\"capture_count\":0,\"root\":{\"codepoint\":46,\"kind\":\"literal\"},\"version\":\"actql-regex-ast/0.1\"}",
+      "expected_cid": "sha256:d97983f6422fa5beb83134b325ebda2bebfc8d56e2d53604d63b541e56eb8709",
+      "expected_ast": "{\"ast_cid\":\"sha256:d97983f6422fa5beb83134b325ebda2bebfc8d56e2d53604d63b541e56eb8709\",\"capture_count\":0,\"root\":{\"codepoint\":46,\"kind\":\"literal\"},\"version\":\"actql-regex-ast/0.1\"}"
+    },
+    {
+      "id": "meta-94",
+      "text": "\\^",
+      "ast": {
+        "version": "actql-regex-ast/0.1",
+        "root": {
+          "kind": "literal",
+          "codepoint": 94
+        },
+        "capture_count": 0
+      },
+      "expected_preimage": "{\"capture_count\":0,\"root\":{\"codepoint\":94,\"kind\":\"literal\"},\"version\":\"actql-regex-ast/0.1\"}",
+      "expected_cid": "sha256:59e59bbd739ba4806b0ebfdb3f5ce29e8e5778132870e133ab6d52eb6a75941c",
+      "expected_ast": "{\"ast_cid\":\"sha256:59e59bbd739ba4806b0ebfdb3f5ce29e8e5778132870e133ab6d52eb6a75941c\",\"capture_count\":0,\"root\":{\"codepoint\":94,\"kind\":\"literal\"},\"version\":\"actql-regex-ast/0.1\"}"
+    },
+    {
+      "id": "meta-36",
+      "text": "\\$",
+      "ast": {
+        "version": "actql-regex-ast/0.1",
+        "root": {
+          "kind": "literal",
+          "codepoint": 36
+        },
+        "capture_count": 0
+      },
+      "expected_preimage": "{\"capture_count\":0,\"root\":{\"codepoint\":36,\"kind\":\"literal\"},\"version\":\"actql-regex-ast/0.1\"}",
+      "expected_cid": "sha256:ff60106cbdc469ace84229fd6afa674d60aecfb2a6fdd42a0bfe4b4999a50247",
+      "expected_ast": "{\"ast_cid\":\"sha256:ff60106cbdc469ace84229fd6afa674d60aecfb2a6fdd42a0bfe4b4999a50247\",\"capture_count\":0,\"root\":{\"codepoint\":36,\"kind\":\"literal\"},\"version\":\"actql-regex-ast/0.1\"}"
+    },
+    {
+      "id": "meta-124",
+      "text": "\\|",
+      "ast": {
+        "version": "actql-regex-ast/0.1",
+        "root": {
+          "kind": "literal",
+          "codepoint": 124
+        },
+        "capture_count": 0
+      },
+      "expected_preimage": "{\"capture_count\":0,\"root\":{\"codepoint\":124,\"kind\":\"literal\"},\"version\":\"actql-regex-ast/0.1\"}",
+      "expected_cid": "sha256:2c4b05aa2665cef6c0a55540ffc6877b58cd31ba8a87febe82c03e6f3fbf9a95",
+      "expected_ast": "{\"ast_cid\":\"sha256:2c4b05aa2665cef6c0a55540ffc6877b58cd31ba8a87febe82c03e6f3fbf9a95\",\"capture_count\":0,\"root\":{\"codepoint\":124,\"kind\":\"literal\"},\"version\":\"actql-regex-ast/0.1\"}"
+    },
+    {
+      "id": "meta-63",
+      "text": "\\?",
+      "ast": {
+        "version": "actql-regex-ast/0.1",
+        "root": {
+          "kind": "literal",
+          "codepoint": 63
+        },
+        "capture_count": 0
+      },
+      "expected_preimage": "{\"capture_count\":0,\"root\":{\"codepoint\":63,\"kind\":\"literal\"},\"version\":\"actql-regex-ast/0.1\"}",
+      "expected_cid": "sha256:a9f793204c8c0c0bf875222b7f70df390a56c5ec1bbc278be1fef7a622a7756b",
+      "expected_ast": "{\"ast_cid\":\"sha256:a9f793204c8c0c0bf875222b7f70df390a56c5ec1bbc278be1fef7a622a7756b\",\"capture_count\":0,\"root\":{\"codepoint\":63,\"kind\":\"literal\"},\"version\":\"actql-regex-ast/0.1\"}"
+    },
+    {
+      "id": "meta-42",
+      "text": "\\*",
+      "ast": {
+        "version": "actql-regex-ast/0.1",
+        "root": {
+          "kind": "literal",
+          "codepoint": 42
+        },
+        "capture_count": 0
+      },
+      "expected_preimage": "{\"capture_count\":0,\"root\":{\"codepoint\":42,\"kind\":\"literal\"},\"version\":\"actql-regex-ast/0.1\"}",
+      "expected_cid": "sha256:7b5d34b6f3c0342631d4ac02ca22875a61d1e8163f6ac47458da5f57ef24ddd2",
+      "expected_ast": "{\"ast_cid\":\"sha256:7b5d34b6f3c0342631d4ac02ca22875a61d1e8163f6ac47458da5f57ef24ddd2\",\"capture_count\":0,\"root\":{\"codepoint\":42,\"kind\":\"literal\"},\"version\":\"actql-regex-ast/0.1\"}"
+    },
+    {
+      "id": "meta-43",
+      "text": "\\+",
+      "ast": {
+        "version": "actql-regex-ast/0.1",
+        "root": {
+          "kind": "literal",
+          "codepoint": 43
+        },
+        "capture_count": 0
+      },
+      "expected_preimage": "{\"capture_count\":0,\"root\":{\"codepoint\":43,\"kind\":\"literal\"},\"version\":\"actql-regex-ast/0.1\"}",
+      "expected_cid": "sha256:5e201eafbdeaba626794e5aa469ad4a2a5e066f0991c96757d44b7d92f634f23",
+      "expected_ast": "{\"ast_cid\":\"sha256:5e201eafbdeaba626794e5aa469ad4a2a5e066f0991c96757d44b7d92f634f23\",\"capture_count\":0,\"root\":{\"codepoint\":43,\"kind\":\"literal\"},\"version\":\"actql-regex-ast/0.1\"}"
+    },
+    {
+      "id": "meta-40",
+      "text": "\\(",
+      "ast": {
+        "version": "actql-regex-ast/0.1",
+        "root": {
+          "kind": "literal",
+          "codepoint": 40
+        },
+        "capture_count": 0
+      },
+      "expected_preimage": "{\"capture_count\":0,\"root\":{\"codepoint\":40,\"kind\":\"literal\"},\"version\":\"actql-regex-ast/0.1\"}",
+      "expected_cid": "sha256:ddca21d5143ea865f59ba3359cd96270e75f1b977bb4f995161f508070247f07",
+      "expected_ast": "{\"ast_cid\":\"sha256:ddca21d5143ea865f59ba3359cd96270e75f1b977bb4f995161f508070247f07\",\"capture_count\":0,\"root\":{\"codepoint\":40,\"kind\":\"literal\"},\"version\":\"actql-regex-ast/0.1\"}"
+    },
+    {
+      "id": "meta-41",
+      "text": "\\)",
+      "ast": {
+        "version": "actql-regex-ast/0.1",
+        "root": {
+          "kind": "literal",
+          "codepoint": 41
+        },
+        "capture_count": 0
+      },
+      "expected_preimage": "{\"capture_count\":0,\"root\":{\"codepoint\":41,\"kind\":\"literal\"},\"version\":\"actql-regex-ast/0.1\"}",
+      "expected_cid": "sha256:839f9f2e0affbd520971849de46720d62bc99d42b14506ea62fbfa733f75858b",
+      "expected_ast": "{\"ast_cid\":\"sha256:839f9f2e0affbd520971849de46720d62bc99d42b14506ea62fbfa733f75858b\",\"capture_count\":0,\"root\":{\"codepoint\":41,\"kind\":\"literal\"},\"version\":\"actql-regex-ast/0.1\"}"
+    },
+    {
+      "id": "meta-91",
+      "text": "\\[",
+      "ast": {
+        "version": "actql-regex-ast/0.1",
+        "root": {
+          "kind": "literal",
+          "codepoint": 91
+        },
+        "capture_count": 0
+      },
+      "expected_preimage": "{\"capture_count\":0,\"root\":{\"codepoint\":91,\"kind\":\"literal\"},\"version\":\"actql-regex-ast/0.1\"}",
+      "expected_cid": "sha256:d121170a573a222c4bcc9f2a6557e4e6630fcc4e9e6f3debae56bd2fd5e0f064",
+      "expected_ast": "{\"ast_cid\":\"sha256:d121170a573a222c4bcc9f2a6557e4e6630fcc4e9e6f3debae56bd2fd5e0f064\",\"capture_count\":0,\"root\":{\"codepoint\":91,\"kind\":\"literal\"},\"version\":\"actql-regex-ast/0.1\"}"
+    },
+    {
+      "id": "meta-93",
+      "text": "\\]",
+      "ast": {
+        "version": "actql-regex-ast/0.1",
+        "root": {
+          "kind": "literal",
+          "codepoint": 93
+        },
+        "capture_count": 0
+      },
+      "expected_preimage": "{\"capture_count\":0,\"root\":{\"codepoint\":93,\"kind\":\"literal\"},\"version\":\"actql-regex-ast/0.1\"}",
+      "expected_cid": "sha256:739ec8e3a88c895f3f11ed558748f757ccc68e4ace9b5c9ef1909ea4d11794bc",
+      "expected_ast": "{\"ast_cid\":\"sha256:739ec8e3a88c895f3f11ed558748f757ccc68e4ace9b5c9ef1909ea4d11794bc\",\"capture_count\":0,\"root\":{\"codepoint\":93,\"kind\":\"literal\"},\"version\":\"actql-regex-ast/0.1\"}"
+    },
+    {
+      "id": "meta-123",
+      "text": "\\{",
+      "ast": {
+        "version": "actql-regex-ast/0.1",
+        "root": {
+          "kind": "literal",
+          "codepoint": 123
+        },
+        "capture_count": 0
+      },
+      "expected_preimage": "{\"capture_count\":0,\"root\":{\"codepoint\":123,\"kind\":\"literal\"},\"version\":\"actql-regex-ast/0.1\"}",
+      "expected_cid": "sha256:36ca5f037093ef3988f2f4ce56ea4d121f903e7a2080b0d96cc5b83f2b9d5cf6",
+      "expected_ast": "{\"ast_cid\":\"sha256:36ca5f037093ef3988f2f4ce56ea4d121f903e7a2080b0d96cc5b83f2b9d5cf6\",\"capture_count\":0,\"root\":{\"codepoint\":123,\"kind\":\"literal\"},\"version\":\"actql-regex-ast/0.1\"}"
+    },
+    {
+      "id": "meta-125",
+      "text": "\\}",
+      "ast": {
+        "version": "actql-regex-ast/0.1",
+        "root": {
+          "kind": "literal",
+          "codepoint": 125
+        },
+        "capture_count": 0
+      },
+      "expected_preimage": "{\"capture_count\":0,\"root\":{\"codepoint\":125,\"kind\":\"literal\"},\"version\":\"actql-regex-ast/0.1\"}",
+      "expected_cid": "sha256:09f4ac734bdc53d316f0a5f03b15067b78c92f43e72a99a83fd01ef628c3f085",
+      "expected_ast": "{\"ast_cid\":\"sha256:09f4ac734bdc53d316f0a5f03b15067b78c92f43e72a99a83fd01ef628c3f085\",\"capture_count\":0,\"root\":{\"codepoint\":125,\"kind\":\"literal\"},\"version\":\"actql-regex-ast/0.1\"}"
+    },
+    {
+      "id": "meta-45",
+      "text": "\\-",
+      "ast": {
+        "version": "actql-regex-ast/0.1",
+        "root": {
+          "kind": "literal",
+          "codepoint": 45
+        },
+        "capture_count": 0
+      },
+      "expected_preimage": "{\"capture_count\":0,\"root\":{\"codepoint\":45,\"kind\":\"literal\"},\"version\":\"actql-regex-ast/0.1\"}",
+      "expected_cid": "sha256:e2429a626d2b2c3bb2122bb54059db56602fc41329f9c9110e0a8061d7db9102",
+      "expected_ast": "{\"ast_cid\":\"sha256:e2429a626d2b2c3bb2122bb54059db56602fc41329f9c9110e0a8061d7db9102\",\"capture_count\":0,\"root\":{\"codepoint\":45,\"kind\":\"literal\"},\"version\":\"actql-regex-ast/0.1\"}"
+    }
+  ],
+  "rejected": [
+    {
+      "id": "empty",
+      "text": "",
+      "issue": "InvalidSyntax(0)"
+    },
+    {
+      "id": "empty-group",
+      "text": "()",
+      "issue": "InvalidSyntax(1)"
+    },
+    {
+      "id": "empty-branch",
+      "text": "a|",
+      "issue": "InvalidSyntax(2)"
+    },
+    {
+      "id": "leading-branch",
+      "text": "|a",
+      "issue": "InvalidSyntax(0)"
+    },
+    {
+      "id": "unclosed",
+      "text": "(a",
+      "issue": "InvalidSyntax(0)"
+    },
+    {
+      "id": "close",
+      "text": "a)",
+      "issue": "InvalidSyntax(1)"
+    },
+    {
+      "id": "lazy",
+      "text": "a*?",
+      "issue": "InvalidSyntax(2)"
+    },
+    {
+      "id": "repeated",
+      "text": "a**",
+      "issue": "InvalidSyntax(2)"
+    },
+    {
+      "id": "anchor-repeat",
+      "text": "^*",
+      "issue": "NullableRepeat(1)"
+    },
+    {
+      "id": "nullable-capture",
+      "text": "(a?)+",
+      "issue": "NullableRepeat(4)"
+    },
+    {
+      "id": "nullable-alternative",
+      "text": "(^|a)*",
+      "issue": "NullableRepeat(5)"
+    },
+    {
+      "id": "empty-class",
+      "text": "[]",
+      "issue": "InvalidSyntax(1)"
+    },
+    {
+      "id": "unclosed-class",
+      "text": "[a",
+      "issue": "InvalidSyntax(2)"
+    },
+    {
+      "id": "bad-range",
+      "text": "[z-a]",
+      "issue": "InvalidRange(1)"
+    },
+    {
+      "id": "escape-range",
+      "text": "[\\d-a]",
+      "issue": "InvalidRange(1)"
+    },
+    {
+      "id": "cr-range",
+      "text": "[\\r-\\t]",
+      "issue": "InvalidRange(1)"
+    },
+    {
+      "id": "lookahead",
+      "text": "(?=a)",
+      "issue": "InvalidSyntax(1)"
+    },
+    {
+      "id": "backref",
+      "text": "\\1",
+      "issue": "InvalidSyntax(1)"
+    },
+    {
+      "id": "hex",
+      "text": "\\x41",
+      "issue": "InvalidSyntax(1)"
+    },
+    {
+      "id": "unicode",
+      "text": "\\u0041",
+      "issue": "InvalidSyntax(1)"
+    },
+    {
+      "id": "property",
+      "text": "\\p{L}",
+      "issue": "InvalidSyntax(1)"
+    },
+    {
+      "id": "unknown-escape",
+      "text": "\\q",
+      "issue": "InvalidSyntax(1)"
+    },
+    {
+      "id": "unfinished-escape",
+      "text": "\\",
+      "issue": "InvalidSyntax(1)"
+    },
+    {
+      "id": "leading-zero",
+      "text": "a{01}",
+      "issue": "InvalidQuantifier(2)"
+    },
+    {
+      "id": "reversed-repeat",
+      "text": "a{2,1}",
+      "issue": "InvalidQuantifier(1)"
+    },
+    {
+      "id": "missing-min",
+      "text": "a{,2}",
+      "issue": "InvalidQuantifier(2)"
+    },
+    {
+      "id": "signed",
+      "text": "a{-1}",
+      "issue": "InvalidQuantifier(2)"
+    },
+    {
+      "id": "fraction",
+      "text": "a{1.5}",
+      "issue": "InvalidQuantifier(3)"
+    },
+    {
+      "id": "unclosed-repeat",
+      "text": "a{1",
+      "issue": "InvalidQuantifier(3)"
+    },
+    {
+      "id": "inexact-repeat",
+      "text": "a{9007199254740993}",
+      "issue": "QuantifierOutOfRange(2)"
+    },
+    {
+      "id": "hyphen",
+      "text": "-",
+      "issue": "InvalidSyntax(0)"
+    },
+    {
+      "id": "nfd",
+      "text": "é",
+      "issue": "NonCanonicalText"
+    },
+    {
+      "id": "raw-cr",
+      "text": "\r",
+      "issue": "NonCanonicalText"
+    },
+    {
+      "id": "supplementary-position",
+      "text": "😀\\q",
+      "issue": "InvalidSyntax(3)"
+    }
+  ]
+}

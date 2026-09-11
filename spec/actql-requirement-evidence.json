@@ -2027,6 +2027,17 @@
       }
     },
     {
+      "requirement_id": "actql.language/text-time.regex-ast-construction",
+      "statement_sha256": "7436bb63afb5be8a45a57c58b2e3f494041f9eb0a11b03a7a008f9213d76758b",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "text-time",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.language/text-time.regex-ast-identity",
       "statement_sha256": "fceac5198ad634bd5ce4f7348385fcb2d93dbea03da1f8dc441578c42e202b05",
       "status": "pending",

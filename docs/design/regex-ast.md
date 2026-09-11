@@ -74,8 +74,9 @@ not regex parser or evaluator tests. Contract/schema/dependency drift checks and
 fixture regeneration are connected to `check:docs`; replacement ASTs retain
 their existing distinct contract and string-literal representation.
 
-Main's regex parser and static resolver must produce and consume these scalar
-nodes, then establish grammar, captures and occurrence/policy ownership.
+Main's [regex parser](regex-pattern.md) produces these scalar nodes and validates
+grammar, captures and nullable-repeat rules. The static resolver must still bind
+the admitted pattern to the exact expression occurrence and selected policy.
 Lowering/backends must declare the exact new expression/AST contract support and
 preserve the scalar meaning; the old pinned registry is not relabeled as capable.
 Until that support is implemented, executable admission rejects that path.
