@@ -211,7 +211,12 @@ matching automaton or proof that session-boundary values have been computed.
    operation, using owner-relative step references and checking law/unit/value
    and derivation. Input-dependent append, literal clamps and known unpivot/
    unnest expansion now retain checked child applications from actual same-owner
-   producer edges, preserving repeated operands and checking arithmetic. Retained
+   producer edges, preserving repeated operands and checking arithmetic.
+   As-of applications now check the existing left-row-bound law for both kinds
+   and every direction, rejecting right-side substitution and retaining both
+   data edges without treating the right scan as capacity-free. The right proof,
+   if present in the claim collection, still requires its own application.
+   Retained
    `ProducedInput` links also connect exact upstream owners through forwarding
    inputs under cumulative iterative-traversal budgets. Parameter selection
    counts now resolve through budgeted lookups retaining exact declaration,

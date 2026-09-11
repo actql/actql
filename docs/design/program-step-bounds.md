@@ -31,6 +31,7 @@ The proof must use the existing `DerivedInputs` form. Its role is
 | `take` with a literal or bound count | `actql.bound.take`, input-free clamp with the exact resolved count as maximum and value. Offset and order obligations remain on the checked operation. |
 | `top_k`, or `top_k_by` with no partition keys, with a literal or bound count | `actql.bound.top-k`, the same exact input-free clamp. Nonempty partition keys cannot use this global bound. |
 | `append` | `actql.bound.append`, checked addition of both input upper bounds, with the actual left/right witness IDs in the derivation. Repeated inputs count twice. |
+| `asof_join` | `actql.bound.asof-left`, preserve the exact left input upper bound for either kind and every direction. The right data input is not an operand of this row-count proof. |
 | `unpivot` | `actql.bound.unpivot`, multiplication by the authored column occurrence count, including repetitions. |
 | Array `unnest` with known `max_items` | `actql.bound.unnest-array-items`, multiplication by the checked expansion factor. Outer expansion of a zero-length array uses one, not zero. Unknown bounds remain unresolved. |
 
@@ -102,6 +103,17 @@ Bound-count tests cover supplied/default values, unrelated string Parameters,
 same-text foreign declaration/pipeline owners, exact lookup budgets, positive
 safe-integer boundaries, all three selection forms and a tighter input bound
 whose derivation must still retain the larger resolved maximum.
+
+As-of application follows the normative `asof-join` rule of at most one output
+per left occurrence. Sketch at `87dc7144` also uses `actql.bound.asof-left`
+with only the left row-bound witness. Both actual data edges remain on the
+checked pipeline: excluding the right bound from this arithmetic derivation
+does not discharge right-side admission, matching/tie validation, search-work
+or allocation ceilings. Tests cover both kinds, all directions, safe-integer
+upper bounds, a separately bounded right input, swapped operands, false values,
+the wrong law and an arithmetically equivalent but incorrect derivation.
+Collection coverage still requires any right-side Program proof present in the
+claim collection, even though this particular output proof does not use it.
 
 ## Application collection coverage
 

@@ -60,6 +60,7 @@ pub fn check(
 ///|
 priv enum Rule {
   One
+  Preserve
   Clamp(Int64)
   Sum
   Multiply(Int64)
@@ -72,6 +73,9 @@ fn operation_rule(
 ) -> Result[(String, Rule), Issue] {
   if step.operation is @pipeline.Append(..) {
     return Ok(("actql.bound.append", Sum))
+  }
+  if step.operation is @pipeline.AsOfJoin(..) {
+    return Ok(("actql.bound.asof-left", Preserve))
   }
   guard step.operation is @pipeline.Unary(operation) else {
     return Err(UnsupportedOperation)
@@ -138,6 +142,7 @@ pub fn check_with_inputs(
   let n = inputs.length()
   let valid_count = match rule {
     One => n == 0
+    Preserve => n == 1
     Clamp(_) => n <= 1
     Sum => n == 2
     Multiply(_) => n == 1
@@ -188,6 +193,7 @@ pub fn check_with_inputs(
   }
   let count = match rule {
     One => 1L
+    Preserve => @numeric.value(input_value(0))
     Clamp(maximum) =>
       @numeric.value(
         @numeric.clamp(
@@ -215,6 +221,7 @@ pub fn check_with_inputs(
   }
   match (rule, @wire.derivation(witness)) {
     (One, @wire.SourceValue) => ()
+    (Preserve, @wire.Preserve(input)) if input == ids[0] => ()
     (Clamp(expected), @wire.Clamp(input, maximum)) if maximum == expected &&
       input == ids.get(0) => ()
     (Sum, @wire.Add(left, right)) if left == ids[0] && right == ids[1] => ()

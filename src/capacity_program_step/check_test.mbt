@@ -134,6 +134,122 @@ fn program_claims(
 }
 
 ///|
+test "as-of output bounds retain the left application independently of right cardinality" {
+  for kind in ["left", "inner"] {
+    for direction in ["backward", "forward", "nearest"] {
+      for left_count in [1L, 3L, 9007199254740991L] {
+        let p = pipeline(
+          "[{\"take\":" +
+          left_count.to_string() +
+          ",\"as\":\"l\"},{\"take\":7,\"from\":\"rows\",\"as\":\"r\"}," +
+          "{\"from\":\"l\",\"asof_join\":{\"with\":\"r\",\"kind\":\"" +
+          kind +
+          "\",\"by\":[],\"left_time\":\"id\",\"right_time\":\"id\",\"left_id\":\"id\"," +
+          "\"direction\":\"" +
+          direction +
+          "\",\"tolerance\":1,\"select\":{\"id\":\"left.id\"}}}]",
+        )
+        let left_proof = proof(
+          "actql.bound.take",
+          left_count,
+          "{\"maximum\":" + left_count.to_string() + ",\"op\":\"clamp\"}",
+        )
+        let right_proof = proof(
+          "actql.bound.take",
+          7,
+          "{\"maximum\":7,\"op\":\"clamp\"}",
+          reference="checked-step:1",
+        )
+        let left = @capacity_program_step.check(p, 0, left_proof).unwrap()
+        let right = @capacity_program_step.check(p, 1, right_proof).unwrap()
+        let id = bound_id(left)
+        let derivation = "{\"input\":\"" + id + "\",\"op\":\"preserve\"}"
+        let claim = proof(
+          "actql.bound.asof-left",
+          left_count,
+          derivation,
+          reference="checked-step:2",
+          inputs=[id],
+        )
+        let checked = @capacity_program_step.check_with_inputs(p, 2, claim, [
+          left,
+        ]).unwrap()
+        assert_true(
+          physical_equal(
+            @capacity_program_step.input_at(checked, 0).unwrap(),
+            left,
+          ),
+        )
+        assert_eq(@capacity_program_step.input_count(checked), 1)
+        assert_eq(
+          @pipeline.input_occurrences(@pipeline.step_at(p, 2).unwrap()).map(e => {
+            e.target
+          }),
+          [Step(0), Step(1)],
+        )
+        let claims = program_claims([left_proof, right_proof, claim])
+        let applications = @capacity_program_step.check_applications(
+          claims,
+          [checked, right, left],
+          max_work=10,
+        ).unwrap()
+        assert_eq(
+          @capacity_program_step.remaining_source_count(applications),
+          0,
+        )
+        assert_true(
+          @capacity_program_step.check_with_inputs(p, 2, claim, [])
+          is Err(InputCountMismatch),
+        )
+        assert_true(
+          @capacity_program_step.check_with_inputs(p, 2, claim, [left, right])
+          is Err(InputCountMismatch),
+        )
+        assert_true(
+          @capacity_program_step.check_with_inputs(p, 2, claim, [right])
+          is Err(InputTargetMismatch(0)),
+        )
+        let false_value = proof(
+          "actql.bound.asof-left",
+          2,
+          derivation,
+          reference="checked-step:2",
+          inputs=[id],
+        )
+        assert_true(
+          @capacity_program_step.check_with_inputs(p, 2, false_value, [left])
+          is Err(ValueMismatch),
+        )
+        let wrong_derivation = proof(
+          "actql.bound.asof-left",
+          left_count,
+          "{\"factor\":1,\"input\":\"" + id + "\",\"op\":\"multiply\"}",
+          reference="checked-step:2",
+          inputs=[id],
+        )
+        assert_true(
+          @capacity_program_step.check_with_inputs(p, 2, wrong_derivation, [
+            left,
+          ])
+          is Err(InvalidDerivation),
+        )
+        let wrong_law = proof(
+          "actql.bound.join-projection",
+          left_count,
+          derivation,
+          reference="checked-step:2",
+          inputs=[id],
+        )
+        assert_true(
+          @capacity_program_step.check_with_inputs(p, 2, wrong_law, [left])
+          is Err(LawMismatch),
+        )
+      }
+    }
+  }
+}
+
+///|
 test "application collections cover unused proofs and preserve exact dependency handles" {
   let p = pipeline(
     "[{\"take\":7,\"as\":\"a\"},{\"append\":{\"with\":\"a\"}},{\"take\":3,\"from\":\"rows\"}]",
