@@ -86,11 +86,11 @@ contracts, final serialized size or any Program-level authorization.
 
 | Area | Current state | Condition for closing |
 | --- | --- | --- |
-| Four-operation wiring | Implemented preparation | Keep tests as executable lowering is connected |
+| Four-operation wiring | Atomic sequence preparation and internal driver implemented | Connect registry-admitted fragment entry |
 | AoA expression lowering | Typed scalar/conditional nodes and bounded encoding implemented | Connect roots to complete Relation nodes and evaluator |
 | Bound parameters | Owner association, expression substitution, values capture and four-operation private execution tested | Repeat vectors through admitted fragment driver |
 | External rows | Object-schema input admission and immutable capture implemented | Connect to full fragment input obligations; scoped row representation remains unsupported |
-| Map/filter/select row evaluation | Private evaluator connected; values/supplied-input/parameter chains, NULL, branches and cross-kernel budgets tested | Connect all cases through fragment driver |
+| Map/filter/select row evaluation | Internal sequence driver runs values/supplied-input/parameter chains and branch retention; component NULL cases remain tested | Move remaining component vectors through admitted fragment driver |
 | AoA fragment lowering | Values/map/filter/select step emission and expression wire implemented; pipeline envelope remains open | Bind registry contracts, roots and runtime obligations, then admit complete fragment |
 | Runtime budgets | Cumulative expression/control/logical-value limits implemented | Close temporary/live allocations and complete work accounting before exposing fragment API |
 | Ordered derive | Checked references available; executable contract pending main | Consume main's registered row-kernel extension without a substitute opcode |
@@ -527,6 +527,37 @@ Sequence-unit validation: lowering 49/49 and execution 36/36 on each target;
 matching interfaces, format, generator drift, whitespace and 867-link checks
 pass. Execution admission is still open; the 27 unused-private-code warnings
 are retained rather than disguised as a completed driver.
+
+### Execution-admission handoff audit
+
+At lowering `f78ce03`, main's `dab50b1` REL.values params contract is incorporated
+and its accepted conversion vectors pass. The selected `pipeline_registry_cid`
+still identifies the recovered base registry whose 57 signatures do not include
+`REL.values`. `target_registry_requirements.REL.values.execution_contract` is a
+requirement for a supporting registry, not proof that the old registry implements
+it. The exact preimage remains in `registry-preimages.json` and is checked by
+`scripts/lowering-registry.test.mjs`; do not relabel it or combine a new body with
+the old CID. Main at `9e60528` has no later committed replacement in the inspected
+handoff. Integration has been asked whether main will supply the supporting
+registry/pin or authorize lowering to construct it. No shared mutation is made
+while that boundary is unresolved.
+
+Existing public input APIs expose `candidate_keys`, `logical_order`,
+`input_producer` and carrier/schema information on the checked owner. The current
+capture boundary validates row values only; the internal driver's successful
+execution does not discharge key/order/provenance claims. These must be consumed
+and checked, not independently inferred or silently dropped. Whole-Program
+capacity/admission remains main's boundary per the agreed scope. Ordered derive
+still independently needs the shared executable row-kernel contract. Thus there
+is useful completed calculation below admission, but no basis yet to label the
+sequence a conformant, runnable registry-bound fragment.
+
+The admission audit reran the entire repository, not only the two new packages:
+`moon test --target js`, `wasm`, and `native` each passed 2,149/2,149 tests at
+`f78ce03` with MoonBit `0.10.12+1634b282e`. `npm run check:docs` also completed
+successfully after the audit text update. No product source or contract changed
+during those checks. This regression evidence does not establish missing
+registry support, input-claim verification or ordered-derive conformance.
 
 ## Internal sequence component driver
 
