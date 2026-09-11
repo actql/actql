@@ -36,6 +36,8 @@ fn prepare_mapping(
     | TopK
     | TopKBy
     | Lag
+    | Analytic
+    | JsonPick
     | WatermarkRows => Keep
     Derive => {
       spend(b, source, @relation.binding_count(operation))

@@ -1,5 +1,12 @@
 # Relation key declarations and evidence
 
+Row-preserving analytic and typed json_pick keep existing key components and
+aliases. Both checkers require fresh output fields and retain the original row
+values, so their newly computed columns neither replace nor establish keys.
+Analytic calculation order is still separate from output sequence evidence;
+retaining a key is not a claim that row_number or an extracted value is unique.
+The ordinary bounded unary transfer retains the original producer and debts.
+
 Exact field-copy transfer (select, rename, retained drop fields and proven
 derive copies) preserves a key's known non-null component even beneath a wider
 nullable row contract. The copied field's type information can add evidence,
