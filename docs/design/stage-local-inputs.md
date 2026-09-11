@@ -33,6 +33,29 @@ still integrate those paths and their dependencies.
 
 ## Bounds and remaining obligations
 
+`reconcile_schemas` checks a partial name-indexed set of supplied complete
+Relation schemas against the exact declarations in one `Prepared`. Names resolve
+only within that stage's local slots; unknown or repeated names fail, including
+byte-identical repetitions. Each comparison uses `local_relation_input.check_schema`
+and retains its declaration owner and stronger actual schema. Omitted slots have
+no agreement, not an inferred snapshot or an empty schema. The returned opaque
+`SchemaAssertions` keeps results in declaration order and does not retain caller
+arrays. A later failure returns no partially successful batch.
+
+The batch includes the prepared source work/nodes/text once, indexes all local
+slots, visits every supplied entry, and shares the remaining type-node/work and
+UTF-8 allowances across comparisons. Supplied selector names are charged before
+lookup. Depth bounds each type comparison; it does not replace the source depth
+check already performed during preparation. Repeated shared type objects are
+charged per use, without a cross-input budget reset.
+
+This is deliberately not `AdmittedSnapshot`: it does not verify a snapshot CID,
+Check Environment membership, source-ref mapping, materialization or Host authority.
+It does not change `input_at` or enter the source-only `attach` path as augmented
+input evidence. The later admitted snapshot boundary must retain this exact
+prepared owner and validate those external links before registering stronger
+types. In particular, equal input names in another stage are not global selectors.
+
 Preparation charges stage input enumeration and import-name indexing, then each
 local declaration's source nodes as logical work. Node and UTF-8 allowances are
 shared across all local declarations, including metadata; depth is measured from

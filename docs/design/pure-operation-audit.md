@@ -836,6 +836,11 @@ admission, resource enforcement or complete source authority.
    checked schema after recursive assignability, expected-column and newly known
    key/order-type checks. It is not snapshot source/CID/Host admission and is not
    accepted by the source-only registration path as if it were such evidence.
+   Stage-local schema reconciliation now checks partial supplied sets against
+   exact prepared declarations with shared budgets, retaining absent evidence
+   explicitly and rejecting unknown/duplicate selectors. Its opaque result is
+   still type-assertion evidence, not external snapshot admission or a stronger
+   input registration accepted by the Program assembly.
    A two-stage actual Result import tests final publication ownership, foreign
    reissued orders and exact/short cumulative budgets. Ordinary/receipt inputs,
    static discharge and complete semantic Program identity remain incomplete.

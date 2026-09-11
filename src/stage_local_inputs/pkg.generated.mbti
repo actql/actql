@@ -4,6 +4,7 @@ package "actql/actql/stage_local_inputs"
 import {
   "actql/actql/local_relation_input",
   "actql/actql/pipeline_typing",
+  "actql/actql/relation_schema",
   "actql/actql/stage_parameters",
   "moonbitlang/core/debug",
 }
@@ -24,6 +25,14 @@ pub fn entry_at(Prepared, Int) -> (String, @local_relation_input.Checked)?
 pub fn input_at(Prepared, Int) -> (String, @pipeline_typing.InputContract)?
 
 pub fn prepare(@stage_parameters.Source, Int, Limits) -> Result[Prepared, Issue]
+
+pub fn reconcile_schemas(Prepared, Array[(String, @relation_schema.Schema)], Limits) -> Result[SchemaAssertions, SchemaIssue]
+
+pub fn schema_agreement_at(SchemaAssertions, Int) -> @local_relation_input.SchemaAgreement?
+
+pub fn schema_assertion_usage(SchemaAssertions) -> Usage
+
+pub fn schema_inputs(SchemaAssertions) -> Prepared
 
 pub fn source(Prepared) -> @stage_parameters.Source
 
@@ -53,6 +62,16 @@ pub(all) struct Limits {
 }
 
 type Prepared
+
+type SchemaAssertions
+
+pub enum SchemaIssue {
+  InvalidLimits
+  BudgetExceeded
+  UnknownInput(String)
+  DuplicateInput(String)
+  Assertion(String, @local_relation_input.SchemaIssue)
+}
 
 pub(all) struct Usage {
   work : Int
