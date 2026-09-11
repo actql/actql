@@ -18,6 +18,10 @@ fn nearest_input_source(
   keys : Array[@evidence.KeySet?],
   step_keys : Array[@evidence.KeySet?],
 ) -> @vector.NearestSource {
+  let actual = carrier(target, inputs, steps)
+  if @carrier.kind(actual) != @carrier.RelationKind {
+    return CarrierSource(actual)
+  }
   match key_at(target, keys, step_keys) {
     Some(k) => KeySource(k)
     None => CarrierSource(carrier(target, inputs, steps))
@@ -32,6 +36,10 @@ fn asof_input_source(
   keys : Array[@evidence.KeySet?],
   step_keys : Array[@evidence.KeySet?],
 ) -> @join.AsOfSource {
+  let actual = carrier(target, inputs, steps)
+  if @carrier.kind(actual) != @carrier.RelationKind {
+    return CarrierSource(actual)
+  }
   match key_at(target, keys, step_keys) {
     Some(k) => KeySource(k)
     None => CarrierSource(carrier(target, inputs, steps))
@@ -49,6 +57,47 @@ fn sync_keys(
     let step = steps[keys.length()]
     let previous = step.input.bind(t => key_at(t, inputs, keys))
     let next = match (previous, step.operation) {
+      (Some(previous), Event(op)) => {
+        let t = match
+          @evidence.transfer_event_keys(previous, op, {
+            max_work: b.work,
+            max_name_bytes: b.text,
+          }) {
+          Ok(v) => v
+          Err(e) =>
+            raise Stop({
+              kind: KeyEvidence(e.kind),
+              source: step.source,
+              path: e.path.copy(),
+              span: e.span,
+              range: None,
+            })
+        }
+        b.work -= t.work
+        b.text -= t.name_bytes
+        Some(t.keys)
+      }
+      (Some(previous), Projection(op)) if @projection.operation(op) ==
+        @projection.Events => {
+        let t = match
+          @evidence.transfer_events_projection_keys(previous, op, {
+            max_work: b.work,
+            max_name_bytes: b.text,
+          }) {
+          Ok(v) => v
+          Err(e) =>
+            raise Stop({
+              kind: KeyEvidence(e.kind),
+              source: step.source,
+              path: e.path.copy(),
+              span: e.span,
+              range: None,
+            })
+        }
+        b.work -= t.work
+        b.text -= t.name_bytes
+        Some(t.keys)
+      }
       (Some(previous), Window(op)) => {
         let transfer = match
           @evidence.transfer_window_keys(previous, op, {
@@ -240,6 +289,9 @@ pub fn candidate_keys(
   value : CheckedPipeline,
   target : Target,
 ) -> @evidence.KeySet? {
+  guard carrier_at(value, target) is Some(@carrier.Relation(_)) else {
+    return None
+  }
   match target {
     Input(i) => value.keyed_inputs.get(i).bind(v => v)
     Step(i) => value.keyed_steps.get(i).bind(v => v)

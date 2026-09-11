@@ -6,6 +6,7 @@ import {
   "actql/actql/carrier_contract",
   "actql/actql/carrier_projection",
   "actql/actql/decode_core",
+  "actql/actql/event_typing",
   "actql/actql/relation_nest",
   "actql/actql/relation_schema",
   "actql/actql/relation_set",
@@ -84,6 +85,10 @@ pub fn singleton_key(KeyedRelation) -> KeySet
 pub fn time_series_keys(@time_series.CheckedSeries, TransferLimits) -> Result[KeySetTransfer, Issue]
 
 pub fn transfer_calendar_keys(KeySet, @calendar_typing.CheckedCalendar, TransferLimits) -> Result[KeySetTransfer, Issue]
+
+pub fn transfer_event_keys(KeySet, @event_typing.CheckedEvent, TransferLimits) -> Result[KeySetTransfer, Issue]
+
+pub fn transfer_events_projection_keys(KeySet, @carrier_projection.CheckedProjection, TransferLimits) -> Result[KeySetTransfer, Issue]
 
 pub fn transfer_keys(KeySet, @relation_typing.CheckedOperation, TransferLimits) -> Result[KeySetTransfer, Issue]
 

@@ -1,5 +1,16 @@
 # Event operation checking
 
+The pipeline retains existing record-key witnesses through to_events, watermark,
+session and dedupe, and the explicit events projection. It does not create an
+intrinsic ID witness from Carrier roles alone. Window transfer preserves fixed
+keys and adds a start component for sliding memberships; events projection must
+not turn that composite back into ID-only uniqueness. These internal record
+witnesses become public Relation keys only after an explicit Relation bridge.
+As-of and nearest source dispatch still follows the actual Carrier, not the
+presence of an internally carried key set. In particular, an unrelated retained
+Relation key cannot replace Events' semantic identity role. Original validation,
+binding, window and producer obligations remain prerequisites of the transfer.
+
 The event checker supports `to_events`, `watermark_events`, `dedupe_events` and
 `session`; their normative owners are the corresponding Language sections,
 including [event bridges](../spec/language.md#event-bridges). It preserves semantic ID

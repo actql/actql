@@ -26,11 +26,11 @@ pub fn transfer_window_keys(
     if limits.max_work < 0 || limits.max_name_bytes < 0 {
       fail(source, InvalidLimits)
     }
-    guard @carrier.relation_rows(@window.input(operation)) is Some(input) &&
+    guard event_or_relation_records(@window.input(operation)) is Some(input) &&
       same_records(previous.records, input) else {
       fail(source, InputContractMismatch)
     }
-    let records = @carrier.relation_rows(@window.output(operation)).unwrap()
+    let records = event_or_relation_records(@window.output(operation)).unwrap()
     let b : TransferBudget = {
       work: limits.max_work,
       text: limits.max_name_bytes,
