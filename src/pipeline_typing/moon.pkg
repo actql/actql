@@ -1,6 +1,7 @@
 supported_targets = "+js+wasm+native"
 
 import {
+  "actql/actql/capacity_arithmetic" @capacity,
   "actql/actql/order_key" @order,
   "actql/actql/text_rank_profile",
   "actql/actql/relation_evidence" @evidence,

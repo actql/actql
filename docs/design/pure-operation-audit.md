@@ -68,6 +68,8 @@ consumer audit.
    interchangeable rules. Preserve original key producers and validation debts.
 2. Define validated external evidence and resolved-capacity boundaries using
    the existing normative witness domains, governing laws and dependency checks.
+   Shared [capacity arithmetic](capacity-arithmetic.md) is implemented and used
+   by count propagation; arithmetic validation does not close this requirement.
    Do not add public proof flags, treat policy ceilings as observations, or
    expand into acquisition, an evaluator or Host dispatch.
 3. Connect contextual resolutions into a complete static checking/discharge

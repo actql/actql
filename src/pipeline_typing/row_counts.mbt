@@ -45,10 +45,14 @@ fn sum_counts(
   z : RowCount?,
 ) -> RowCount? raise Stop {
   guard a is Some(a) && z is Some(z) else { return None }
-  if a.upper > 9007199254740991L - z.upper {
+  guard @capacity.read(a.upper) is Ok(left) &&
+    @capacity.read(z.upper) is Ok(right) else {
     fail(source, RowBoundOverflow)
   }
-  Some(count(a.upper + z.upper, a.exact && z.exact))
+  match @capacity.add(left, right) {
+    Ok(total) => Some(count(@capacity.value(total), a.exact && z.exact))
+    Err(_) => fail(source, RowBoundOverflow)
+  }
 }
 
 ///|
@@ -61,10 +65,14 @@ fn product_counts(
     return Some(count(0L, true))
   }
   guard a is Some(a) && z is Some(z) else { return None }
-  if a.upper > 9007199254740991L / z.upper {
+  guard @capacity.read(a.upper) is Ok(left) &&
+    @capacity.read(z.upper) is Ok(right) else {
     fail(source, RowBoundOverflow)
   }
-  Some(count(a.upper * z.upper, a.exact && z.exact))
+  match @capacity.multiply(left, right) {
+    Ok(total) => Some(count(@capacity.value(total), a.exact && z.exact))
+    Err(_) => fail(source, RowBoundOverflow)
+  }
 }
 
 ///|

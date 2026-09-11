@@ -16,6 +16,10 @@ Author guards and Host/Contract ceilings are not recast as data cardinality.
 They require the separate enforcement and witness-resolution boundary defined
 in [resolved limits](../spec/language.md#resolved-limits).
 
+Checked addition and multiplication share the opaque nonnegative safe-integer
+domain in [capacity arithmetic](capacity-arithmetic.md). This numerical reuse
+does not upgrade a count summary into validated capacity evidence.
+
 ## Implemented transfer
 
 `graph_count` reports separate node/edge summaries; Graph steps still return

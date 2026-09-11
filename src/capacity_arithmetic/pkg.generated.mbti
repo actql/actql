@@ -1,0 +1,33 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/capacity_arithmetic"
+
+import {
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn add(Value, Value) -> Result[Value, Issue]
+
+pub fn clamp(Value?, Value) -> Value
+
+pub fn minimum(Value, Value) -> Value
+
+pub fn multiply(Value, Value) -> Result[Value, Issue]
+
+pub fn read(Int64) -> Result[Value, Issue]
+
+pub fn value(Value) -> Int64
+
+// Errors
+
+// Types and methods
+pub(all) enum Issue {
+  InvalidValue
+  Overflow
+} derive(Eq, @debug.Debug)
+
+type Value derive(Eq, @debug.Debug)
+
+// Type aliases
+
+// Traits
