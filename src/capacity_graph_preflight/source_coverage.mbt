@@ -40,6 +40,15 @@ pub fn check_source_coverage(
     if @program.application_at(program, i) is Some(app) &&
       physical_equal(@program.checked_pipeline(app), checked_pipeline(graph)) {
       let output_owner = match @program.checked_enforcement(app) {
+        // Host-only sequence limits do not depend on a Program table.
+        Some(@program.SequenceEnforcement(v)) =>
+          Some(
+            (
+              program,
+              @sequence.checked_sources(v),
+              @sequence.selected_policy(v),
+            ),
+          )
         Some(@program.JoinEnforcement(v)) =>
           Some(
             (

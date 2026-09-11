@@ -1,7 +1,11 @@
 // Independent Node canonical-JSON/SHA-256 fixtures for mixed consumers.
 
 ///|
-fn combined_sources(extra : Bool, joins? : Bool = false) -> @host.HostSources {
+fn combined_sources(
+  extra : Bool,
+  joins? : Bool = false,
+  proofs? : Array[@wire.ProgramProofClaim] = [],
+) -> @host.HostSources {
   let raw = [
     (
       "{\"dependencies\":[\"sha256:dfa8818d1752320593a6de63173a99ab23b8b17cd3786df87003aafcfbd04f63\"],\"derivation\":{\"op\":\"source\"},\"law_id\":\"actql.host.graph-input-nodes\",\"role\":\"host_ceiling\",\"source\":{\"field\":\"max_graph_input_nodes\",\"kind\":\"host_policy\",\"policy_cid\":\"sha256:dfa8818d1752320593a6de63173a99ab23b8b17cd3786df87003aafcfbd04f63\"},\"unit\":\"nodes\",\"value\":1,\"version\":\"actql-bound-witness/0.1\",\"witness_cid\":\"sha256:728fa5aab0a06fecedd20ce698143c5dc48e1a5db43d95f0aa0bf2be222840eb\"}",
@@ -75,6 +79,9 @@ fn combined_sources(extra : Bool, joins? : Bool = false) -> @host.HostSources {
       max_depth: 10,
     }).unwrap()
   })
+  for proof in proofs {
+    witnesses.push(@wire.program_proof_witness(proof))
+  }
   let mixed = @wire.check_mixed_claims(
     witnesses,
     limits.map(pair => (@utf8.encode(pair.0), pair.1)),
@@ -86,7 +93,7 @@ fn combined_sources(extra : Bool, joins? : Bool = false) -> @host.HostSources {
       max_depth: 10,
     },
   ).unwrap()
-  let claims = @wire.check_mixed_program_claims(mixed, [], {
+  let claims = @wire.check_mixed_program_claims(mixed, proofs, {
     max_witnesses: 30,
     max_references: 100,
   }).unwrap()

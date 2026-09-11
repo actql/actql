@@ -75,6 +75,14 @@ it does not make other consumer families or upstream checks optional.
 
 ## Explicit remaining boundaries
 
+The [atomic Program application resolver](program-step-bounds.md#atomic-output-bound-construction)
+can bind `actql.bound.sequence-output` to this result's output-row minimum and
+use that conditional upper bound in later steps. It retains both enforcement
+scopes but uses only output-row candidate CIDs as proof operands. In particular,
+a same-valued per-key ceiling is not a total-row bound. The resolver and combined
+coverage retain source/policy ownership and cumulative budgets; they do not
+execute either enforcement or the sequence's other pending checks.
+
 An authored `max_matches_per_key` or `max_output_rows` fails this entry with
 `UnresolvedAuthorSource` for that scope. This applies whether the guard is
 looser, equal or tighter than the Host ceiling. It is a supported-implementation

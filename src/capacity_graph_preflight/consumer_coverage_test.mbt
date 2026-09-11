@@ -2,6 +2,7 @@
 fn consumer_pipeline(
   unknown_graph : Bool,
   joins? : Bool = false,
+  tail? : String = "",
 ) -> @pipeline.CheckedPipeline {
   let text = "[{\"sequence\":{\"by\":[],\"id\":\"id\",\"time\":\"id\",\"pattern\":[{\"as\":\"a\",\"where\":\"true\"},{\"as\":\"b\",\"where\":\"true\"}],\"within\":1,\"overlap\":\"allow\",\"contiguity\":\"adjacent\"},\"from\":\"rows\"}" +
     (if joins {
@@ -9,6 +10,7 @@ fn consumer_pipeline(
     } else {
       ""
     }) +
+    tail +
     "]"
   let root = @decode.admit(
     @source.parse_json(text, {

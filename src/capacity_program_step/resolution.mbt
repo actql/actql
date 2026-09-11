@@ -1,5 +1,6 @@
 ///|
 pub(all) enum OutputEnforcement {
+  SequenceEnforcement(@sequence.SequenceLimits)
   JoinEnforcement(JoinLimit)
   ComponentsEnforcement(ComponentsLimits)
   TraversalEnforcement(TraversalLimits)
@@ -13,6 +14,7 @@ pub(all) enum ResolutionInput {
 
 ///|
 pub(all) enum ResolutionRequest {
+  SequenceApplication(Int, @wire.ProgramProofClaim, Int, Int)
   ExistingApplication(StepBound)
   DeriveApplication(
     Int,
@@ -27,6 +29,7 @@ pub(all) enum ResolutionRequest {
 
 ///|
 pub(all) enum ResolutionIssue {
+  Sequence(Int, @sequence.Issue)
   InvalidLimits
   WorkLimit
   InvalidDependency(Int, Int)
@@ -79,6 +82,37 @@ pub fn resolve_applications(
   let resolved : Array[StepBound] = []
   for position, request in requests {
     let application = match request {
+      SequenceApplication(step, proof, matches, output) => {
+        let limit = match
+          @sequence.check_host_limits(
+            pipeline,
+            step,
+            sources,
+            policy,
+            matches,
+            output,
+            max_work=max_work - work,
+          ) {
+          Ok(v) => v
+          Err(e) => return Err(Sequence(position, e))
+        }
+        work += @sequence.usage(limit)
+        let app = match
+          resolved_output(
+            pipeline,
+            step,
+            proof,
+            SequenceEnforcement(limit),
+            table,
+            max_work - work,
+          ) {
+          Ok(v) => v
+          Err(OutputWorkLimit) => return Err(WorkLimit)
+          Err(InvalidOutput) => return Err(InvalidOutputProof(position))
+        }
+        work += app.operand_work
+        app
+      }
       ExistingApplication(app) => app
       DeriveApplication(step, proof, operands, bindings) => {
         if operands.length() > max_work - work {
@@ -237,6 +271,22 @@ pub fn resolve_applications(
     }
     work += 1
     match app.enforcement {
+      Some(SequenceEnforcement(v)) => {
+        let verified = match
+          @sequence.check_host_limits(
+            @sequence.checked_pipeline(v),
+            @sequence.checked_step(v),
+            sources,
+            policy,
+            @sequence.limit_index(v, @sequence.MatchesPerKey),
+            @sequence.limit_index(v, @sequence.OutputRows),
+            max_work=max_work - work,
+          ) {
+          Ok(v) => v
+          Err(e) => return Err(Sequence(i, e))
+        }
+        work += @sequence.usage(verified)
+      }
       None => ()
       Some(JoinEnforcement(v)) => {
         let verified = match
@@ -311,6 +361,8 @@ fn resolved_output(
   max_work : Int,
 ) -> Result[StepBound, OutputIssue] {
   let (limit, law) = match enforcement {
+    SequenceEnforcement(v) =>
+      (@sequence.limit(v, @sequence.OutputRows), "actql.bound.sequence-output")
     JoinEnforcement(v) => (v.limit, "actql.bound.join-resolved-output")
     ComponentsEnforcement(v) => (v.rows, "actql.bound.components-output")
     TraversalEnforcement(v) => (v.rows, "actql.bound.traverse-output")

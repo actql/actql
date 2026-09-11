@@ -558,7 +558,17 @@ candidates for their own minima. This follows the fixed Sketch compiler's
 candidate/output separation and prevents cyclic proof construction. All three
 join families support Host-only limits when no Program candidate is available.
 
-Tests cover downstream `take`, join/components/traversal limit consumption,
+Sequence requests validate both Host-only engine-atomic limits through
+`capacity_sequence_limit`, retaining matches-per-key and output-row scopes.
+Only the output-row minimum supplies `actql.bound.sequence-output` operands;
+an equally valued matches-per-key ceiling cannot supply a row bound. The
+retained enforcement still requires both scopes at execution. Unlike join,
+components and traversal candidate applications, these Host-only limits do not
+depend on the Program application table; exact source and selected policy
+ownership is retained without inventing a table dependency. Authored guards
+remain explicitly unresolved until their semantic source identity is bound.
+
+Tests cover downstream `take`, join/components/traversal/sequence consumption,
 late candidate omission, foreign reconstructed tables, forward dependencies,
 duplicate and missing applications, and exact/short cumulative budgets. This
 is a capacity construction boundary, not the formal `CheckedProgram` boundary:

@@ -5,6 +5,7 @@ import {
   "actql/actql/capacity_graph_input",
   "actql/actql/capacity_host_witness",
   "actql/actql/capacity_policy",
+  "actql/actql/capacity_sequence_limit",
   "actql/actql/capacity_witness",
   "actql/actql/parameter_binding",
   "actql/actql/pipeline_typing",
@@ -336,6 +337,7 @@ pub(all) enum JoinLimitIssue {
 } derive(Eq, @debug.Debug)
 
 pub(all) enum OutputEnforcement {
+  SequenceEnforcement(@capacity_sequence_limit.SequenceLimits)
   JoinEnforcement(JoinLimit)
   ComponentsEnforcement(ComponentsLimits)
   TraversalEnforcement(TraversalLimits)
@@ -347,6 +349,7 @@ pub(all) enum ResolutionInput {
 }
 
 pub(all) enum ResolutionIssue {
+  Sequence(Int, @capacity_sequence_limit.Issue)
   InvalidLimits
   WorkLimit
   InvalidDependency(Int, Int)
@@ -361,6 +364,7 @@ pub(all) enum ResolutionIssue {
 }
 
 pub(all) enum ResolutionRequest {
+  SequenceApplication(Int, @capacity_witness.ProgramProofClaim, Int, Int)
   ExistingApplication(StepBound)
   DeriveApplication(Int, @capacity_witness.ProgramProofClaim, Array[ResolutionInput], CountBindings?)
   ComponentsApplication(Int, @capacity_witness.ProgramProofClaim, Int, Int)

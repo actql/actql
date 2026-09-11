@@ -1,6 +1,7 @@
 supported_targets = "+js+wasm+native"
 
 import {
+  "actql/actql/capacity_sequence_limit" @sequence,
   "actql/actql/capacity_graph_input" @graph_input,
   "actql/actql/pipeline_typing" @pipeline,
   "actql/actql/capacity_witness" @wire,
