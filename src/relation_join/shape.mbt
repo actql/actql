@@ -47,6 +47,24 @@ pub type TemporalOperand = @shape.TemporalOperand
 pub type CheckedIntervalJoin = @shape.CheckedIntervalJoin
 
 ///|
+pub fn interval_input_schema(
+  v : CheckedIntervalJoin,
+  side : @schema.Side,
+) -> @schema.Schema {
+  @shape.interval_input_schema(v, side)
+}
+
+///|
+pub fn interval_key_count(v : CheckedIntervalJoin) -> Int {
+  @shape.interval_key_count(v)
+}
+
+///|
+pub fn interval_key_at(v : CheckedIntervalJoin, index : Int) -> KeyPair? {
+  @shape.interval_key_at(v, index)
+}
+
+///|
 pub fn source(v : CheckedJoin) -> @decode.Cursor {
   @shape.source(v)
 }

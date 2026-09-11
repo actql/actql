@@ -56,6 +56,14 @@ pub fn key_field_count(KeyedRelation) -> Int
 
 pub fn key_graph_projection_producer(KeyedRelation) -> @carrier_projection.CheckedProjection?
 
+pub fn key_interval_join_dependency_at(KeyedRelation, Int) -> KeyedRelation?
+
+pub fn key_interval_join_dependency_count(KeyedRelation) -> Int
+
+pub fn key_interval_join_dependency_side(KeyedRelation, Int) -> @relation_schema.Side?
+
+pub fn key_interval_join_producer(KeyedRelation) -> @relation_join_shape.CheckedIntervalJoin?
+
 pub fn key_join_dependency_at(KeyedRelation, Int) -> KeyedRelation?
 
 pub fn key_join_dependency_count(KeyedRelation) -> Int
@@ -109,6 +117,8 @@ pub fn transfer_cross_join_keys(KeySet?, KeySet?, @relation_join_shape.CheckedCr
 pub fn transfer_event_keys(KeySet, @event_typing.CheckedEvent, TransferLimits) -> Result[KeySetTransfer, Issue]
 
 pub fn transfer_events_projection_keys(KeySet, @carrier_projection.CheckedProjection, TransferLimits) -> Result[KeySetTransfer, Issue]
+
+pub fn transfer_interval_join_keys(KeySet?, KeySet?, @relation_join_shape.CheckedIntervalJoin, TransferLimits) -> Result[KeySetTransfer, Issue]
 
 pub fn transfer_join_keys(KeySet?, KeySet?, @relation_join_shape.CheckedJoin, TransferLimits) -> Result[KeySetTransfer, Issue]
 
@@ -165,6 +175,7 @@ pub(all) enum KeyOrigin {
   WindowMembershipResult
   JoinResult
   CrossJoinResult
+  IntervalJoinResult
 } derive(Eq, @debug.Debug)
 
 pub struct KeySelection {

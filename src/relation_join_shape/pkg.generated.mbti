@@ -53,6 +53,12 @@ pub fn field_name(Budget, @decode_core.Cursor, String) -> Unit raise Stop
 
 pub fn input_schema(CheckedJoin, @relation_schema.Side) -> @relation_schema.Schema
 
+pub fn interval_input_schema(CheckedIntervalJoin, @relation_schema.Side) -> @relation_schema.Schema
+
+pub fn interval_key_at(CheckedIntervalJoin, Int) -> KeyPair?
+
+pub fn interval_key_count(CheckedIntervalJoin) -> Int
+
 pub fn interval_keys(CheckedIntervalJoin) -> Array[KeyPair]
 
 pub fn interval_kind(CheckedIntervalJoin) -> Kind

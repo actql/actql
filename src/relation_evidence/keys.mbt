@@ -55,6 +55,7 @@ pub(all) enum KeyOrigin {
   WindowMembershipResult
   JoinResult
   CrossJoinResult
+  IntervalJoinResult
 } derive(Eq, Debug)
 
 ///|
@@ -67,6 +68,10 @@ priv enum KeyProducer {
   WindowProducer(@window.CheckedWindow, KeyedRelation)
   JoinProducer(@join.CheckedJoin, Array[(@row.Side, KeyedRelation)])
   CrossJoinProducer(@join.CheckedCrossJoin, Array[(@row.Side, KeyedRelation)])
+  IntervalJoinProducer(
+    @join.CheckedIntervalJoin,
+    Array[(@row.Side, KeyedRelation)]
+  )
 }
 
 ///|

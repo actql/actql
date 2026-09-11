@@ -310,7 +310,26 @@ keyless opposite inputs, equality fields not covering a key, full-join null
 sentinels, retained parent roles, multiple projection aliases followed by drop
 and sort/take, exact work/text limits and structurally equal foreign schemas.
 
-## Cross-join output keys
+## Interval-join output keys
+
+Interval joins share ordinary join's private matched-row transfer engine, not
+its authored cardinality options. Both point-in-interval and overlap retain
+the exact input schema handles in their checked producer. Semi/anti preserve
+left keys; inner/left can preserve a left key when the equality correlation
+tuple covers a complete right candidate key, and inner can symmetrically
+preserve a right key. A temporal predicate alone does not establish that
+at-most-one condition. Inner/left can retain the complete pair of operand keys.
+Left-join right components remain nullable after transfer.
+
+`key_interval_join_producer` and indexed role-tagged dependency accessors retain
+all source witnesses and the checked temporal operation, including endpoint,
+clock, profile/order and capacity obligations where applicable. No interval is
+evaluated and no observed key or finite execution permit is created. Tests cover
+both modes and all four kinds, empty/repeated correlation tuples, asymmetric key
+availability, projection aliases followed by deletion, downstream ordering,
+exact budgets and foreign-schema rejection.
+
+## Cross-join product evidence
 
 Cross joins use the same exact-copy projection mapping. Their ordinary output
 key is the product of a complete retained left key and right key, with both

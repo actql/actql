@@ -35,17 +35,17 @@ pub fn key_join_dependency_side(key : KeyedRelation, index : Int) -> @row.Side? 
 
 ///|
 fn join_covered(
-  op : @join.CheckedJoin,
+  op : MatchedJoin,
   side : @row.Side,
   keys : KeySet?,
   b : TransferBudget,
 ) -> KeyedRelation? raise Stop {
   guard keys is Some(keys) else { return None }
-  let source = @join.source(op)
-  let n = @join.key_count(op)
+  let source = matched_source(op)
+  let n = matched_key_count(op)
   spend(b, source, n)
   let names = Array::makei(n, i => {
-    let pair = @join.key_at(op, i).unwrap()
+    let pair = matched_key_at(op, i).unwrap()
     if side == Left {
       pair.left
     } else {
@@ -67,14 +67,14 @@ fn join_covered(
 
 ///|
 fn join_mapping(
-  op : @join.CheckedJoin,
+  op : MatchedJoin,
   side : @row.Side,
   b : TransferBudget,
 ) -> KeyMapping raise Stop {
   binary_projection_mapping(
-    @join.source(op),
-    @join.output_schema(op),
-    @join.projection(op),
+    matched_source(op),
+    matched_output_schema(op),
+    matched_projection(op),
     side,
     b,
   )
@@ -148,18 +148,26 @@ fn join_mapped(
 
 ///|
 fn join_witness(
-  op : @join.CheckedJoin,
+  op : MatchedJoin,
   mapped : KeyedRelation,
   parents : Array[(@row.Side, KeyedRelation)],
   name_bytes : Int,
 ) -> KeyedRelation {
   {
     ..mapped,
-    origin: JoinResult,
-    producer: Some(JoinProducer(op, parents)),
+    origin: match op {
+      Equality(_) => JoinResult
+      Temporal(_) => IntervalJoinResult
+    },
+    producer: Some(
+      match op {
+        Equality(v) => JoinProducer(v, parents)
+        Temporal(v) => IntervalJoinProducer(v, parents)
+      },
+    ),
     declared_records: mapped.records,
     declared_fields: mapped.fields,
-    source: @join.source(op),
+    source: matched_source(op),
     usage: { fields: mapped.fields.length(), name_bytes, },
   }
 }
@@ -177,14 +185,14 @@ fn nonnull_component(
 ///|
 /// Conditional join-output keys; original producers and cardinality assertions
 /// remain validation dependencies. Every supplied input is bound by identity.
-pub fn transfer_join_keys(
+fn transfer_matched_keys(
   left : KeySet?,
   right : KeySet?,
-  op : @join.CheckedJoin,
+  op : MatchedJoin,
   limits : TransferLimits,
 ) -> Result[KeySetTransfer, Issue] {
   try {
-    let source = @join.source(op)
+    let source = matched_source(op)
     if limits.max_work < 0 || limits.max_name_bytes < 0 {
       fail(source, InvalidLimits)
     }
@@ -196,18 +204,18 @@ pub fn transfer_join_keys(
     for (side, keys) in [(@row.Left, left), (@row.Right, right)] {
       if keys is Some(keys) {
         guard @carrier.complete_schema(keys.records) is Some(schema) &&
-          physical_equal(schema, @join.input_schema(op, side)) else {
+          physical_equal(schema, matched_input_schema(op, side)) else {
           fail(source, InputContractMismatch)
         }
       }
     }
     let lcovered = join_covered(op, Left, left, b)
     let rcovered = join_covered(op, Right, right, b)
-    let assertion = @join.assertion(op)
+    let assertion = matched_assertion(op)
     let lu = lcovered is Some(_) || assertion is Some(OneToOne | OneToMany)
     let ru = rcovered is Some(_) || assertion is Some(OneToOne | ManyToOne)
-    let kind = @join.kind(op)
-    let records = @carrier.typed_rows(@join.output_schema(op))
+    let kind = matched_kind(op)
+    let records = @carrier.typed_rows(matched_output_schema(op))
     let lm = join_mapping(op, Left, b)
     let rm = join_mapping(op, Right, b)
     let ls = match left {

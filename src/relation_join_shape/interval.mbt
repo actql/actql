@@ -13,6 +13,8 @@ pub(all) enum TemporalOperand {
 ///|
 struct CheckedIntervalJoin {
   source : @decode.Cursor
+  left_schema : @schema.Schema
+  right_schema : @schema.Schema
   output : @schema.Schema
   kind : Kind
   mode : IntervalMode
@@ -207,6 +209,8 @@ pub fn check_interval(
     )
     Ok({
       source: body,
+      left_schema: left,
+      right_schema: right,
       output,
       kind,
       mode,
@@ -231,6 +235,28 @@ pub fn check_interval(
 ///|
 pub fn interval_output_schema(v : CheckedIntervalJoin) -> @schema.Schema {
   v.output
+}
+
+///|
+pub fn interval_input_schema(
+  v : CheckedIntervalJoin,
+  side : @schema.Side,
+) -> @schema.Schema {
+  if side == Left {
+    v.left_schema
+  } else {
+    v.right_schema
+  }
+}
+
+///|
+pub fn interval_key_count(v : CheckedIntervalJoin) -> Int {
+  v.keys.length()
+}
+
+///|
+pub fn interval_key_at(v : CheckedIntervalJoin, index : Int) -> KeyPair? {
+  v.keys.get(index)
 }
 
 ///|

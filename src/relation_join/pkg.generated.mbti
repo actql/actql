@@ -73,6 +73,12 @@ pub fn cross_usage(@relation_join_shape.CheckedCrossJoin) -> @relation_join_shap
 
 pub fn input_schema(@relation_join_shape.CheckedJoin, @relation_schema.Side) -> @relation_schema.Schema
 
+pub fn interval_input_schema(@relation_join_shape.CheckedIntervalJoin, @relation_schema.Side) -> @relation_schema.Schema
+
+pub fn interval_key_at(@relation_join_shape.CheckedIntervalJoin, Int) -> @relation_join_shape.KeyPair?
+
+pub fn interval_key_count(@relation_join_shape.CheckedIntervalJoin) -> Int
+
 pub fn interval_keys(@relation_join_shape.CheckedIntervalJoin) -> Array[@relation_join_shape.KeyPair]
 
 pub fn interval_kind(@relation_join_shape.CheckedIntervalJoin) -> @relation_join_shape.Kind
