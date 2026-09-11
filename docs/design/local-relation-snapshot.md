@@ -42,3 +42,11 @@ and authored assertions to the exact snapshot and prepared Program/stage owners
 under cumulative budgets. Subsequent admission must still bind the selected
 Check Environment and governing provenance/authority. The snapshot cannot be
 passed to the source-only pipeline assembly as authenticated Host evidence.
+
+`read_member` now accepts only an opaque SchemaSnapshots member of an
+integrity-checked Check Environment. It derives the expected snapshot CID from
+that member, validates the complete body and retains both in `EnvironmentSnapshot`.
+An identical body in another section is not applicable. Membership is scoped to
+the exact wire environment owner, not inferred from a caller-supplied CID string.
+Full environment/policy admission and connection to the resolved Program inputs
+are still separate requirements.

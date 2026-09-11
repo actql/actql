@@ -1,0 +1,15 @@
+supported_targets = "+js+wasm+native"
+
+import {
+  "actql/actql/source_value" @source,
+  "actql/actql/decode_core" @decode,
+  "actql/actql/canonical_value" @unicode,
+  "actql/actql/encode_core" @encode,
+  "actql/actql/sha256" @sha,
+}
+
+import {
+  "moonbitlang/core/encoding/utf8",
+} for "test"
+
+formatter(ignore: [ "vectors.generated_test.mbt" ])

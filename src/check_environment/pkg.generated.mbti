@@ -1,0 +1,75 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/check_environment"
+
+import {
+  "actql/actql/decode_core",
+  "actql/actql/encode_core",
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn cid(WireEnvironment) -> String
+
+pub fn emit(WireEnvironment, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
+
+pub fn emit_member(Member, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
+
+pub fn host_policy(WireEnvironment) -> @decode_core.Cursor
+
+pub fn member_at(WireEnvironment, Section, Int) -> Member?
+
+pub fn member_body(Member) -> @decode_core.Cursor
+
+pub fn member_cid(Member) -> String
+
+pub fn member_count(WireEnvironment, Section) -> Int
+
+pub fn member_environment(Member) -> WireEnvironment
+
+pub fn member_index(Member) -> Int
+
+pub fn member_section(Member) -> Section
+
+pub fn read(Bytes, String, Limits) -> Result[WireEnvironment, Issue]
+
+pub fn usage(WireEnvironment) -> (Int, Int, Int)
+
+// Errors
+
+// Types and methods
+pub(all) enum Issue {
+  InvalidLimits
+  BudgetExceeded
+  InvalidEnvelope
+  IdentityMismatch
+  NonCanonicalBytes
+  UnsortedEvidence(Section)
+  DuplicateSnapshot(String)
+  DuplicateContract(String)
+} derive(Eq, @debug.Debug)
+
+pub(all) struct Limits {
+  max_bytes : Int
+  max_nodes : Int
+  max_depth : Int
+  max_members : Int
+}
+
+type Member
+
+pub(all) enum Section {
+  SchemaSnapshots
+  ConnectorCapabilities
+  MappingContracts
+  SourceViews
+  CommandContracts
+  ModelTaskContracts
+  ContractRegistry
+  ConnectorCatalogs
+} derive(Eq, @debug.Debug)
+
+type WireEnvironment
+
+// Type aliases
+
+// Traits

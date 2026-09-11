@@ -2,6 +2,7 @@
 package "actql/actql/local_relation_snapshot"
 
 import {
+  "actql/actql/check_environment",
   "actql/actql/encode_core",
   "actql/actql/local_source_ref",
   "actql/actql/relation_schema",
@@ -14,9 +15,15 @@ pub fn cid(Snapshot) -> String
 
 pub fn emit(Snapshot, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
 
+pub fn environment_member(EnvironmentSnapshot) -> @check_environment.Member
+
+pub fn environment_snapshot(EnvironmentSnapshot) -> Snapshot
+
 pub fn materialization(Snapshot) -> Materialization?
 
 pub fn read(Bytes, String, Limits) -> Result[Snapshot, Issue]
+
+pub fn read_member(@check_environment.Member, Limits) -> Result[EnvironmentSnapshot, MembershipIssue]
 
 pub fn schema(Snapshot) -> @relation_schema.Schema
 
@@ -31,6 +38,8 @@ pub(all) enum Completeness {
   Complete
   Partial
 } derive(Eq, @debug.Debug)
+
+type EnvironmentSnapshot
 
 pub(all) enum Issue {
   InvalidLimits
@@ -51,6 +60,12 @@ pub struct Materialization {
   input_cid : String
   completeness : Completeness
   integration_binding_cid : String?
+}
+
+pub enum MembershipIssue {
+  WrongSection
+  InvalidSnapshot(Issue)
+  BudgetExceeded
 }
 
 type Snapshot

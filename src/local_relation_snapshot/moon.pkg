@@ -10,8 +10,6 @@ import {
   "actql/actql/local_source_ref" @reference,
   "actql/actql/encode_core" @encode,
   "actql/actql/sha256" @sha,
-}
-
-import {
+  "actql/actql/check_environment" @environment,
   "moonbitlang/core/encoding/utf8",
-} for "test"
+}

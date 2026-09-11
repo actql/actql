@@ -24,8 +24,10 @@ using that name remains hashed. `check_environment_cid` is an alias reference,
 not another self-member. Fixed independent vectors cover an empty unresolved
 environment, changed policy, nested identity-like data and a local schema body.
 Their expected preimages and complete wire text are fixed using Node, never a
-product compiler. Generated MoonBit tests verify preimage canonical hashing;
-they do not verify full environment admission or member-array ordering.
+product compiler. Generated MoonBit tests verify preimage canonical hashing
+and integrity-only wire admission. Negative wire cases cover missing/unknown
+members, wrong section shapes, duplicate selectors/contracts and array order.
+These are not full environment admission tests.
 The small Node shape test covers the explicit outer schema keyword subset only.
 
 Required implementation stages remain distinct: canonical envelope integrity;
@@ -33,6 +35,33 @@ member shape/identity and ordered section handling; exact Catalog-derived
 closure; local/Connector snapshot correspondence; selected policy/component
 validation; and binding that admitted environment to the exact Program context.
 All supplied bodies need their governing validation, including unused evidence.
-An integrity-only reader must expose a distinct type and cannot create the final
-admitted checking environment. The current local snapshot/source/type agreement
-objects are ready to be consumed there but do not yet prove membership.
+`check_environment.read` now returns a distinct opaque `WireEnvironment`, not
+the final admitted checking environment. It checks closed shape, canonical full
+bytes, root-excluded identity, all member object shapes and CID order, duplicate
+snapshot selectors and duplicate canonical Contract Envelopes. It retains every
+member with its independently recomputed full-body CID. Other component semantics
+remain unverified, including malformed policy or Catalog contents represented as
+objects. Such bodies are inspectable, not usable as admitted evidence.
+
+The canonical emitter uses explicit frames and checks existing UTF-16 key order
+instead of sorting/repairing wire data. Full wire and preimage go to hash sinks;
+the full environment is never rebuilt as a String. Parsing, owned-tree admission
+and hashing use byte/node/depth caps; the total member count is also bounded.
+Per-member hashing covers disjoint subtrees, so aggregate payload work remains
+linear rather than receiving an unbounded new allowance per selector. Returned
+usage is full canonical body size/node count and total members, not heap usage.
+
+`member_at` creates an opaque handle retaining the exact environment owner,
+section, position, cursor and full-body CID. Re-reading identical bytes creates
+a different internal owner, despite an equal content CID. Public cursors preserve
+original locations and cannot mutate the owned tree. Tests cover member bounds,
+ownership, noncanonical bytes and depth 1,000 without recursive emission.
+
+`local_relation_snapshot.read_member` validates a SchemaSnapshots member using
+its own computed CID and retains that exact Member in an `EnvironmentSnapshot`.
+The same body in another section is rejected. Only the individual bounded member
+is serialized for the existing snapshot reader; the whole environment is not.
+This proves content membership plus local snapshot shape/type integrity. It does
+not validate the rest of the environment or authenticate Host claims. The final
+Program connection must retain this membership alongside exact source/type
+agreement and the governing policy/Catalog checks, not unwrap and forget it.
