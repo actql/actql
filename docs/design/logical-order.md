@@ -1,5 +1,15 @@
 # Conditional logical order
 
+Values establishes authored list occurrence order, including empty lists and
+repeated equal rows. The implicit ordinal is not a candidate key of the exposed
+field values, and the generator retains binding and admission obligations.
+Event dedupe establishes canonical partition order under the shared dedupe rules,
+independently of arrival order. Its retained producer still requires valid event
+identities, complete top-tie resolution and successful resource checks; business
+deduplication does not repair duplicate event IDs. The explicit events bridge
+and subsequent projections retain that conditional sequence even for opaque
+payloads that cannot themselves provide a projected-field sort.
+
 `pipeline_typing.logical_order` retains a deterministic sequence established by a
 checked generator, exact ranking, ordered Graph query or partition/event operation.
 Language explicitly orders time grids by ascending time/start and ranking

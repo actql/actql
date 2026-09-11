@@ -112,8 +112,12 @@ fn derive_logical_orders(
       _ => false
     }
     let establishes = match step.operation {
-      TimeSeries(_) | Nearest(..) | Ranking(_) | TextRank(..) | AsOfJoin(..) =>
-        true
+      Values(_)
+      | TimeSeries(_)
+      | Nearest(..)
+      | Ranking(_)
+      | TextRank(..)
+      | AsOfJoin(..) => true
       GraphMatch(_) | Reach(_) | Traverse(..) | Shortest(..) => true
       Graph(op) => @graph.operation(op) == @graph.Components
       Unary(op) | WindowGroup(op) =>
@@ -121,7 +125,11 @@ fn derive_logical_orders(
           Group | Pivot | DedupeRows => true
           _ => false
         }
-      Event(op) => @event.options(op) is Session(_)
+      Event(op) =>
+        match @event.options(op) {
+          Session(_) | Dedupe(_) => true
+          _ => false
+        }
       Sequence(_) => true
       Calendar(op) => @calendar.input(op) is None
       _ => false
