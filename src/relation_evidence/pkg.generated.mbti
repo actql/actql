@@ -123,6 +123,8 @@ pub fn key_pending(KeyedRelation) -> Array[@relation_key_obligation.KeyObligatio
 
 pub fn key_producer(KeyedRelation) -> @relation_typing.CheckedOperation?
 
+pub fn key_sequence_producer(KeyedRelation) -> @relation_typing.CheckedSequence?
+
 pub fn key_set_records(KeySet) -> @carrier_contract.Knowledge
 
 pub fn key_set_usage(KeySet) -> (Int, Int)
@@ -150,6 +152,8 @@ pub fn select_covered_key(@decode_core.Cursor, KeySet, Array[@relation_schema.Fi
 pub fn select_key(@decode_core.Cursor, KeySet, KeyUse, TransferLimits) -> Result[KeySelection, Issue]
 
 pub fn select_sole_string_key(@decode_core.Cursor, KeySet, TransferLimits) -> Result[KeySelection, Issue]
+
+pub fn sequence_keys(@relation_typing.CheckedSequence, TransferLimits) -> Result[KeySetTransfer, Issue]
 
 pub fn singleton_key(KeyedRelation) -> KeySet
 
@@ -237,6 +241,7 @@ pub(all) enum KeyOrigin {
   CrossJoinResult
   IntervalJoinResult
   AsOfResult
+  SequenceResult
 } derive(Eq, @debug.Debug)
 
 pub struct KeySelection {

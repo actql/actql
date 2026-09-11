@@ -57,10 +57,12 @@ pub(all) enum KeyOrigin {
   CrossJoinResult
   IntervalJoinResult
   AsOfResult
+  SequenceResult
 } derive(Eq, Debug)
 
 ///|
 priv enum KeyProducer {
+  SequenceProducer(@relation.CheckedSequence)
   AsOfProducer(CheckedAsOf, KeyedRelation?)
   RelationProducer(@relation.CheckedOperation)
   CalendarProducer(@calendar.CheckedCalendar)

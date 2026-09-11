@@ -63,6 +63,10 @@ consumer audit.
 ## Remaining implementation and verification
 
 1. Close the remaining semantically required key transfers; the demonstrated
+   sequence gap now establishes each independent label identity for disallowed
+   overlap and retains the checked matching producer through aliases, contextual
+   sorting/take and Result publication. Allowed overlap does not gain a key.
+   The demonstrated
    as-of gap now retains projected left keys and checked identity, including
    Events identity and multiple aliases, with the actual producer obligations.
    This does not complete the cross-operation key audit. The demonstrated

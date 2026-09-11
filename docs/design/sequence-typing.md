@@ -36,7 +36,34 @@ The predicate checker is reused within `relation_typing` rather than duplicating
 its syntax, scope and diagnostic machinery in a second package. Detached pattern
 and key arrays cannot mutate the checked result. Pipeline input occurrence and
 Result output types are connected, but no match rows or automaton are evaluated.
-Candidate-key evidence for disallow matching remains conditional on validated
-identity and matching semantics; the shared proof boundary must establish it
-before consumers rely on it. Checking a predicate also does not discharge its
-profile or Host-envelope obligations.
+Checking a predicate does not discharge its profile or Host-envelope obligations.
+
+## Nonoverlapping match identity
+
+`relation_evidence.sequence_keys` establishes one conditional singleton key per
+pattern label when `overlap: disallow`. Each key retains the complete checked
+sequence as its producer, its original generated field and that field's actual
+identity contract. Keys are independent, not one composite key requiring all
+labels to survive. `overlap: allow` supplies an empty key set, never a guessed
+match-boundary key or a uniqueness claim from the grouping fields.
+
+The pipeline now transfers these keys through ordinary exact-copy aliases and
+subsequent preserving operations. Losing one alias does not lose other copies;
+losing one label's key does not remove another surviving label's key. Sort/take
+and Result publication can retain this evidence through their existing
+completion boundaries. `SequenceResult`, `key_sequence_producer` and
+`ValidateKeyProducer` keep event-value admission, global event identity,
+ascending order, matching, profile, binding and atomic capacity obligations
+attached. None is discharged merely because a candidate key was inferred.
+
+This closes an implementation omission: the normative sequence rule and fixed
+Sketch `87dc7144138edfcba108cdc59dc485ac976ba976` compiler both establish the
+individual label keys for disallowed overlap. No source acceptance, identity
+domain or machine contract changes. Original identity types remain intact;
+the reference's string-only output typing is not imported.
+
+Indexed pattern access avoids copying the predicate array. Work and generated
+field-name bytes are charged before each witness is constructed. Tests cover
+Relation and Events, both overlap and contiguity modes, independent label keys,
+alias survival, retained validation debts, exact budgets, contextual order
+consumers and Result publication.

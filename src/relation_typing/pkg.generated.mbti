@@ -153,6 +153,10 @@ pub fn sequence_overlap(CheckedSequence) -> SequenceOverlap
 
 pub fn sequence_pattern(CheckedSequence) -> Array[SequencePattern]
 
+pub fn sequence_pattern_at(CheckedSequence, Int) -> SequencePattern?
+
+pub fn sequence_pattern_count(CheckedSequence) -> Int
+
 pub fn sequence_pending_validations(CheckedSequence) -> Array[PendingValidation]
 
 pub fn sequence_per_key_guard(CheckedSequence) -> CountValue?

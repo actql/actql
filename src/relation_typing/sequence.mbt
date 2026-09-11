@@ -317,6 +317,19 @@ pub fn sequence_pattern(v : CheckedSequence) -> Array[SequencePattern] {
 }
 
 ///|
+pub fn sequence_pattern_count(v : CheckedSequence) -> Int {
+  v.pattern.length()
+}
+
+///|
+pub fn sequence_pattern_at(
+  v : CheckedSequence,
+  index : Int,
+) -> SequencePattern? {
+  v.pattern.get(index)
+}
+
+///|
 pub fn sequence_within(v : CheckedSequence) -> @temporal.Milliseconds {
   v.within
 }
