@@ -111,7 +111,9 @@ from the raw source or discarded merely to simplify the adapter. Result ordering
 and projection belong to the declared Result semantics, not extra authored steps
 or a new Program identity.
 
-The current source-bound stage Result pass does not implement this adapter.
+The [named Result port preparer](result-ports.md) now binds each definition to
+its existing publication-order resolution and explicit producer projection.
+The current source-bound stage Result pass does not implement the consumer adapter.
 The tests establish the distinction and prevent treating existing raw-producer
 support as proof of cross-stage Result-import completion; they do not execute
 publication, imports or lower the Result.

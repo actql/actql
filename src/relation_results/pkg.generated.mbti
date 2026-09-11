@@ -8,6 +8,7 @@ import {
   "actql/actql/pipeline_typing",
   "actql/actql/relation_evidence",
   "actql/actql/relation_schema",
+  "actql/actql/relation_typing",
   "actql/actql/source_span",
   "actql/actql/source_value",
   "moonbitlang/core/debug",
@@ -43,6 +44,24 @@ pub fn output_schema(ResultDefinition) -> @relation_schema.Schema
 pub fn pending_validations(ResultDefinition) -> Array[Obligation]
 
 pub fn pipeline(CheckedResults) -> @pipeline_typing.CheckedPipeline
+
+pub fn port_at(ResultPorts, Int) -> ResultPort?
+
+pub fn port_count(ResultPorts) -> Int
+
+pub fn port_order(ResultPort) -> PublicationOrder
+
+pub fn port_orders(ResultPort) -> CheckedOrders
+
+pub fn port_result(ResultPort) -> ResultDefinition
+
+pub fn port_schema(ResultPort) -> @relation_schema.Schema
+
+pub fn ports_orders(ResultPorts) -> CheckedOrders
+
+pub fn ports_usage(ResultPorts) -> Usage
+
+pub fn prepare_ports(CheckedOrders, PortLimits) -> Result[ResultPorts, PortIssue]
 
 pub fn publication_inherited_order(PublicationOrder) -> @pipeline_typing.LogicalOrder?
 
@@ -154,6 +173,21 @@ pub(all) enum OrderStrategy {
   ProjectedFields
 } derive(Eq, @debug.Debug)
 
+pub enum PortIssue {
+  InvalidLimits
+  BudgetExceeded
+  Projection(Int, @relation_typing.Issue)
+  Transfer(Int, @pipeline_typing.Issue)
+}
+
+pub(all) struct PortLimits {
+  max_results : Int
+  max_work : Int
+  max_nodes : Int
+  max_text_bytes : Int
+  max_depth : Int
+} derive(Eq, @debug.Debug)
+
 type PublicationOrder
 
 type PublicationOrders
@@ -166,6 +200,10 @@ pub struct PublicationTerm {
 }
 
 type ResultDefinition
+
+type ResultPort
+
+type ResultPorts
 
 pub(all) struct Usage {
   work : Int

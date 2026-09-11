@@ -11,6 +11,7 @@ import {
   "actql/actql/relation_schema" @schema,
   "actql/actql/pipeline_typing" @pipeline,
   "actql/actql/canonical_value" @canonical,
+  "actql/actql/relation_typing" @relation,
 }
 
 import {
