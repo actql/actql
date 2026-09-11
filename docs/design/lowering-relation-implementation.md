@@ -588,3 +588,33 @@ must precede any exposed fragment-run API. Ordered derive remains pending.
 Driver-unit validation: execution 41/41 on JS, Wasm and native; unchanged
 matching API, format/whitespace and 867 links pass. Ordinary builds report 29
 unused-private-code warnings while the admission entry remains unconnected.
+
+## Supplied input candidate-key verification
+
+The internal sequence driver now consumes the checked owner's candidate-key
+witnesses before evaluating any operation. For currently admitted non-null scalar
+key domains it verifies each complete tuple with a typed structural hash key;
+map collision resolution uses complete equality, not a concatenated string or
+digest alone. Individual component duplicates are allowed when the tuple remains
+unique. No duplicate normalization, row reordering or output pruning is introduced.
+
+Key ordinals are resolved once per witness. Ordinal slots, retained tuple atoms
+and map entries consume the operation workspace; traversal and UTF-8 text lengths
+consume the shared control budget. Successful verification releases its workspace.
+This is logical accounting, not a measured allocator/RSS or worst-case hash-table
+CPU guarantee. Failed execution returns no partial store and must not reuse the
+partially consumed budget as a fresh retry.
+
+Four independent tests cover duplicate rejection through the sequence driver,
+compound keys and input order, exact workspace/control limits with Unicode text,
+and empty input/invalid limits. Nullable generated witnesses remain explicitly
+pending rather than being silently treated as a non-null declared primary key;
+opaque reference input admission and its identity semantics also remain pending.
+Order and provenance claims are not discharged by this check. Consequently this
+does not open an admitted fragment-run API or alter the shared registry/pin.
+
+Validation: execution package 45/45 on each of JS, Wasm and native; generated
+public API is unchanged and identical across the three targets. Format,
+whitespace and 867 document links pass. Ordinary info builds have 37 warnings
+from private components not yet connected to a production entry, with zero
+errors. The full-repository suite was not rerun for this input-key change.

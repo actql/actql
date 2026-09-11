@@ -14,6 +14,7 @@ priv enum SequenceRunIssue {
   InputOwnership
   InputSet
   InputLimit
+  InputKey(Int, InputKeyIssue)
   Wiring(WiringIssue)
   Capture(Int, CaptureIssue)
   Rows(Int, RowIssue)
@@ -105,6 +106,15 @@ fn evaluate_sequence_components(
       return Err(InputLimit)
     }
     input_rows += captured.rows.length()
+    match
+      validate_captured_keys(captured, control, {
+        limit: limits.operation_entries,
+        live: 0,
+        peak: 0,
+      }) {
+      Ok(_) => ()
+      Err(e) => return Err(InputKey(i, e))
+    }
     let table = match
       table_from_capture_bounded(captured, control, {
         limit: limits.operation_entries,

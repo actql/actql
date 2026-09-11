@@ -10,9 +10,11 @@ import {
   "actql/actql/relation_schema" @schema,
   "actql/actql/pipeline_typing" @pipeline,
   "actql/actql/decode_core" @decode,
+  "actql/actql/relation_evidence" @evidence,
 }
 
 import {
   "actql/actql/source_value" @source,
   "actql/actql/parameter_binding" @parameter,
+  "actql/actql/carrier_contract" @carrier,
 } for "wbtest"
