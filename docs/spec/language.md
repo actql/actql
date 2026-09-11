@@ -7025,7 +7025,9 @@ unweighted shortest_path weight=null; absent subgraph edges=literal true.
 Normalize a single union/RRF with to a one-element list. Values retains an
 ordered array of complete rows; it never derives their order from object
 keys. Bind parameters using the common parameter contract before lowering;
-literal business objects remain data, not expression syntax. Checked output
+literal business objects remain data, not expression syntax. For values, the
+checked schema and unwrapped bound cells follow the execution contract below
+rather than retaining author-type defaults or cell operators. Checked output
 contracts supply empty collection item types and nullable outer results.
 
 The following table closes input wiring for added operations only; existing
@@ -7115,6 +7117,73 @@ only `{field: result_field}` changes; literal changes remain in the authority
 contract. The AoA effect-plan logical CID and the authority contract are both
 bound by the ActQL CID. Effect-plan execution materializes reviewable intent
 rows only and grants no write authority.
+
+<a id="rel-values-execution"></a>
+
+##### REL.values execution parameters
+
+The executable contract is `actql-rel-values-execution/0.1`, owned by
+`actql-aoa.json#/execution_contracts/REL.values`; its signature and complete
+contract CID are required by `target_registry_requirements["REL.values"]`.
+Its `params_schema` is a standalone JSON Schema resource. This is not the
+Program authoring `values` schema and is not an in-memory checked-cell enum.
+
+<!-- requirement-block: values.execution-shape -->
+REL.values parameters MUST contain exactly `schema` and `rows`, with no optional
+or unknown members: `schema` is a nonempty field-name map of complete checked
+value contracts, and `rows` is an ordered array of objects. Checked contracts
+include explicit `nullable`, object `additional_properties: false` and vector
+`element_type: f32`; recursive opaque JSON and reference domains are excluded
+by constructor eligibility, even for empty rows. Existing safe-integer limits
+on string/array extents apply. No schema inference or author-type defaulting
+occurs at this boundary.
+
+<!-- requirement-block: values.execution-binding -->
+Before constructing execution parameters, the compiler MUST resolve each
+authored cell-root Parameter hole against the selected checked bindings, and
+remove exactly one authored singleton `literal` quotation while retaining its
+payload unchanged. An ordinary literal cell passes through as data. Resolution
+does not descend into literal or supplied business values. There are no holes
+or quotation operators in the execution params grammar: every row member is
+a typed wire value, including objects whose keys are `$param` or `literal`.
+Missing bindings or incompatible declared/bound types fail before lowering;
+parameters are not evaluated or substituted by the REL.values executor.
+
+<!-- requirement-block: values.execution-admission -->
+The execution boundary MUST verify each row's exact declared field set and
+recursive value/type compliance without implicit casts, filling, normalization
+repair or rounding, before publishing any output. Nullable permits null, not
+omission. Strings and keys are well-formed NFC followed by LF canonical text;
+numbers are finite binary64 and not negative zero. Decimal is canonical
+fixed-scale JSON string text under its declared precision/scale, not a number,
+coefficient object or typed-identity projection. Date and timestamp use their
+existing canonical text, arrays are ordered wire arrays, objects are exact
+field maps, and vectors retain admitted finite numeric components without an
+extra quantization step here. Schema validation covers closed shape and checked
+type syntax; schema-to-row agreement, canonical text, numeric domains, calendar
+validity, decimal precision/scale spelling and resolved resource limits require
+semantic validation. Duplicate JSON keys are rejected before map construction.
+
+<!-- requirement-block: values.execution-observation -->
+REL.values MUST preserve the declared schema for zero rows, every row occurrence
+in list order, and duplicate rows. Object keys use canonical UTF-16 ordering
+for serialization and do not determine row order. Neither deduplication nor
+reordering is authorized by canonicalization. The internal occurrence ordinal
+is not an extra output field or evidence of unique field values. Full value
+validation and resolved row/byte/recursive-value limits precede publication;
+validation can be bounded or streamed but cannot expose a partial successful
+Relation.
+
+<!-- requirement-block: values.execution-registration -->
+A runnable Plan using REL.values MUST bind a registry entry implementing the
+signature and pinned execution contract, its checked-type dependency and the
+existing canonical JSON, typed-value and failure laws. A matching operation
+name or input/output signature alone is insufficient. A backend unable to
+preserve typed decimals, empty schema evidence, order, multiplicity or required
+validation/limits rejects executable compilation, without casts or alternate
+encodings. This target requirement does not assert that the currently pinned
+AoA registry implements the extension, authorize a Program, or discharge other
+Program and runtime obligations.
 
 <a id="plan-documents"></a>
 
@@ -8121,7 +8190,7 @@ through the pinned expression contract.
 <!-- requirement-block: machine-contracts.exact-artifacts -->
 <!-- normative-code: law -->
 ```text
-../../spec/contracts/actql-aoa.json# sha256:2eb1547021f081fa87cec8f78a8a687a1205dfaf875e50a9c55fd074238aea6a
+../../spec/contracts/actql-aoa.json# sha256:2215dbd77fd06633dabad2d68b52c68d49aa663c966acdebc860b80120f87fd3
 ../../spec/contracts/actql-bound-transfer-laws.json# sha256:014682262d00c8435f300731e823e5b267ec66b78f980c765c4fd3772c68c911
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/resource_ref sha256:f88141c15be5ac040af593008fdca7c85214fcb4ba60ea7110160b8fe8ee25ac
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/artifact_ref sha256:2143a7c6bd2e0b110822670a3cb146cddaa23bcade9de7c1ab8ed4e1ebf88a55

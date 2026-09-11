@@ -35,7 +35,9 @@ test('embedded values contracts and generator rules detect drift',()=>{
 
 test('finite and binary Relation operations require their normative registry signatures',()=>{
   const a=JSON.parse(readFileSync('spec/contracts/actql-aoa.json'));
-  assert.deepEqual(a.target_registry_requirements['REL.values'],{inputs:[],output:'relation'});
+  assert.deepEqual(a.target_registry_requirements['REL.values'].inputs,[]);
+  assert.equal(a.target_registry_requirements['REL.values'].output,'relation');
+  assert.equal(a.target_registry_requirements['REL.values'].execution_contract.pointer,'/execution_contracts/REL.values');
   for(const op of ['REL.except_rows','REL.intersect_rows','REL.cross_join']) {
     assert.deepEqual(a.target_registry_requirements[op],{inputs:['relation','relation'],output:'relation'});
   }

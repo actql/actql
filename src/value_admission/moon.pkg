@@ -12,4 +12,6 @@ import {
   "actql/actql/source_value" @source,
 } for "test"
 
-formatter(ignore: [ "corpus.generated_test.mbt" ])
+formatter(
+  ignore: [ "corpus.generated_test.mbt", "values_execution.generated_test.mbt" ],
+)

@@ -10,4 +10,9 @@ import {
   "moonbitlang/core/json",
 } for "test"
 
-formatter(ignore: [ "identity_vectors.generated_test.mbt" ])
+formatter(
+  ignore: [
+    "identity_vectors.generated_test.mbt",
+    "values_execution.generated_test.mbt",
+  ],
+)

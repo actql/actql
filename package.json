@@ -23,7 +23,7 @@
     "check:text-rank-numeric": "python3 scripts/check_text_rank_numeric.py && python3 -m unittest discover -s scripts -p test_text_rank_numeric.py",
     "check:relation-append": "node scripts/check-relation-append.mjs && node --test scripts/relation-append.test.mjs && npm run check:relation-set",
     "check:relation-set": "node scripts/set-schema.mjs && node --test scripts/set-schema.test.mjs",
-    "check:values": "node scripts/values-schema.mjs && node --test scripts/values-schema.test.mjs",
+    "check:values": "node scripts/values-schema.mjs && node scripts/values-execution-contract.mjs && node scripts/check-values-execution.mjs && node --test scripts/values-schema.test.mjs scripts/values-execution.test.mjs",
     "generate:relation-append": "node scripts/check-relation-append.mjs --write",
     "check:relation-results": "node scripts/check-relation-results.mjs && node --test scripts/relation-results.test.mjs",
     "generate:relation-results": "node scripts/check-relation-results.mjs --write",

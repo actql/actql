@@ -6064,6 +6064,61 @@
       }
     },
     {
+      "requirement_id": "actql.language/values.execution-shape",
+      "statement_sha256": "833ad16ca3191bd25f939e6e2167fe7086aae3847ee0734bff45fbee9333c999",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "rel-values-execution",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/values.execution-binding",
+      "statement_sha256": "c1c6204011de378c0cbae35faec16dd10c8093d6404050ab7af6adf13b30a125",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "rel-values-execution",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/values.execution-admission",
+      "statement_sha256": "b13ea844a59aa8b94312c4609e7f2f44fbbbde5107cd40357c6082a50079ab3b",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "rel-values-execution",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/values.execution-observation",
+      "statement_sha256": "39d70c428f45d2423c03d3c47accdfe5a9e5488ef6ced04fbc00af0a030828d0",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "rel-values-execution",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/values.execution-registration",
+      "statement_sha256": "0e9f18f323e54df5b9046002fd7477002551441a3e3fc1a7106be0b453612abd",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "rel-values-execution",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.language/plan-documents.boundary-forms-must-not-lower-to-aoa-operations",
       "statement_sha256": "ef59b4f4cc82ba3133ad3dd86075171623fb3418db69a78737e3c00bce8dd5ab",
       "status": "pending",
@@ -6373,7 +6428,7 @@
     },
     {
       "requirement_id": "actql.language/machine-contracts.exact-artifacts",
-      "statement_sha256": "dadadc3d56aa68a891204fed16897de1d4b33a47f478ad994136b275033cfda5",
+      "statement_sha256": "6b23e7b0b54c87cc8188a759ac47fea802c1898b191c0b458f9e06bb8de25327",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
