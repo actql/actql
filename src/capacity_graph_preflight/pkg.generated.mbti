@@ -16,7 +16,7 @@ pub fn check(@pipeline_typing.CheckedPipeline, @capacity_host_witness.HostSource
 
 pub fn check_complete(@pipeline_typing.CheckedPipeline, @capacity_host_witness.HostSources, @capacity_policy.Policy, Limits) -> Result[GraphInputs, Issue]
 
-pub fn check_consumer_coverage(GraphInputs, @capacity_sequence_limit.Applications, max_work~ : Int) -> Result[ConsumerCoverage, ConsumerCoverageIssue]
+pub fn check_consumer_coverage(GraphInputs, @capacity_sequence_limit.Applications, joins? : @capacity_program_step.JoinApplications?, max_work~ : Int) -> Result[ConsumerCoverage, ConsumerCoverageIssue]
 
 pub fn check_source_coverage(GraphInputs, @capacity_program_step.Applications, max_work~ : Int) -> Result[SourceCoverage, SourceCoverageIssue]
 
@@ -25,6 +25,8 @@ pub fn checked_pipeline(GraphInputs) -> @pipeline_typing.CheckedPipeline
 pub fn checked_sources(GraphInputs) -> @capacity_host_witness.HostSources
 
 pub fn consumer_coverage_graph(ConsumerCoverage) -> GraphInputs
+
+pub fn consumer_coverage_joins(ConsumerCoverage) -> @capacity_program_step.JoinApplications?
 
 pub fn consumer_coverage_sequence(ConsumerCoverage) -> @capacity_sequence_limit.Applications
 

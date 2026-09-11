@@ -412,3 +412,22 @@ redundant-proof retention, omitted candidates, wrong owners/fields/subjects,
 enforcement, authored guards and exact/short work budgets. Dynamic wire helpers
 construct integrity-valid claims, including intentionally wrong applications;
 they do not compute the expected consumer acceptance from product output.
+
+`check_join_applications` requires every local join, cross join and interval join
+to have one application, including unused branches. All entries retain the same
+pipeline, Host-source collection, Program application table and selected policy.
+Using another otherwise valid proof table for one step is rejected rather than
+letting candidate availability vary across the collection. The result owns its
+per-step index and exact mixed-limit consumption bitmap; input-array mutation
+does not change it. Duplicate entries fail, and unrelated limits remain visible.
+`check_join_complete` additionally rejects any unconsumed limit in a dedicated
+join collection. It is not completeness for other operation families.
+
+Collection work is `2 * steps + limits + 2 * applications`, checked before index
+allocation with overflow-safe subtraction. It includes all-step coverage and
+one limit consumption per registration. Tests cover the three families on
+independent branches, out-of-order applications, every omitted branch, detached
+results, foreign source/proof owners, duplicate entries and exact/short budgets.
+The [mixed consumer checker](graph-input-preflight.md) accepts this join ledger
+alongside Graph and sequence ledgers under exact shared ownership. It does not
+discard extra limits or certify upstream/source/runtime obligations.

@@ -10,11 +10,12 @@ pub(all) enum ConsumerCoverageIssue {
 } derive(Eq, Debug)
 
 ///|
-/// Complete consumption for Graph input and sequence limits in this collection.
+/// Consumption for Graph input, sequence and optional join applications.
 /// Source authority and other operation obligations remain separate.
 struct ConsumerCoverage {
   graph : GraphInputs
   sequence : @sequence.Applications
+  joins : @program.JoinApplications?
   work : Int
 }
 
@@ -22,6 +23,7 @@ struct ConsumerCoverage {
 pub fn check_consumer_coverage(
   graph : GraphInputs,
   sequence : @sequence.Applications,
+  joins? : @program.JoinApplications? = None,
   max_work~ : Int,
 ) -> Result[ConsumerCoverage, ConsumerCoverageIssue] {
   if max_work < 0 {
@@ -36,6 +38,21 @@ pub fn check_consumer_coverage(
   if @policy.cid(graph.policy) !=
     @policy.cid(@sequence.application_policy(sequence)) {
     return Err(ForeignPolicy)
+  }
+  if joins is Some(joined) {
+    if !physical_equal(
+        graph.pipeline,
+        @program.join_application_pipeline(joined),
+      ) {
+      return Err(ForeignPipeline)
+    }
+    if !physical_equal(graph.sources, @program.join_application_sources(joined)) {
+      return Err(ForeignSources)
+    }
+    if @policy.cid(graph.policy) !=
+      @policy.cid(@program.join_application_policy(joined)) {
+      return Err(ForeignPolicy)
+    }
   }
   let mixed = @wire.program_claim_mixed(@host.source_claims(graph.sources)).unwrap()
   let n = @wire.mixed_limit_count(mixed)
@@ -56,14 +73,20 @@ pub fn check_consumer_coverage(
       @wire.limit_cid(@wire.mixed_limit_at(mixed, i).unwrap()),
     )
     let sequence_consumes = @sequence.consumes_limit(sequence, i)
-    if graph_consumes && sequence_consumes {
+    let join_consumes = match joins {
+      Some(joined) => @program.join_consumes_limit(joined, i)
+      None => false
+    }
+    if (graph_consumes && sequence_consumes) ||
+      (graph_consumes && join_consumes) ||
+      (sequence_consumes && join_consumes) {
       return Err(DuplicateConsumer(i))
     }
-    if !graph_consumes && !sequence_consumes {
+    if !graph_consumes && !sequence_consumes && !join_consumes {
       return Err(UnconsumedLimit(i))
     }
   }
-  Ok({ graph, sequence, work: inputs * 2 + n, })
+  Ok({ graph, sequence, joins, work: inputs * 2 + n, })
 }
 
 ///|
@@ -81,4 +104,11 @@ pub fn consumer_coverage_sequence(
 ///|
 pub fn consumer_coverage_work(v : ConsumerCoverage) -> Int {
   v.work
+}
+
+///|
+pub fn consumer_coverage_joins(
+  v : ConsumerCoverage,
+) -> @program.JoinApplications? {
+  v.joins
 }

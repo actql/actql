@@ -87,22 +87,26 @@ Regression checks cover exact scan limits, same-content foreign collection
 owners, remaining unused limits, and a valid Contract wire claim whose source
 body has not been admitted.
 
-## Combined Graph and sequence consumer coverage
+## Combined Graph, sequence and join consumer coverage
 
 `check_consumer_coverage` combines this partial Graph result with the complete
 local sequence application table from [sequence capacity](sequence-capacity.md).
 Both must retain the exact same pipeline and Host-source collection, and select
 the same policy CID. It verifies each limit in that mixed collection has exactly
-one consumer across the two families. Graph input subjects and node/edge units
+one consumer across the supplied families. An optional complete local join
+application table from `capacity_program_step` extends the same scan to ordinary
+join, cross join and interval join output limits. It must retain the same
+pipeline, source owner and selected policy; omitted join applications cannot
+consume any limits by implication. Graph input subjects and node/edge units
 remain distinct from sequence per-key and total-output scopes.
 
 The scan costs two visits per pipeline input binding and one per mixed limit,
 checked before allocating a CID index. All indexed identities are admitted
 fixed-width CIDs. Exact budgets succeed; missing consumers and duplicate
-consumption fail atomically. The opaque result retains both original checked
+consumption fail atomically. The opaque result retains the original checked
 owners, without changing their individual partial-coverage counts.
 
-This closes mixed limit consumption for these two supported consumer families,
+This closes mixed limit consumption for these supported consumer families,
 including unused Graph inputs and local sequence branches. It is not whole
 pipeline readiness: other operations' required limits, upstream producer
 closure, author/Contract/Language sources and Host authority still need their
@@ -110,7 +114,10 @@ own checks. Source coverage is separately available and is not implied by
 limit consumption. Runtime preflight and engine-atomic enforcement are retained
 requirements, not executed by this static boundary.
 
-Independent canonical wire fixtures combine four limits in one collection.
+Independent canonical wire fixtures combine four or five limits in one collection.
 Tests cover typed and opaque Graph inputs alongside sequence, Graph-only
 collections, a valid extra limit with no consumer, same-content foreign owners,
 different policy selection and exact/short work budgets.
+Join regressions also cover omission of the optional ledger, a foreign join
+pipeline owner and an extra valid limit left unused after all three families
+have been connected.

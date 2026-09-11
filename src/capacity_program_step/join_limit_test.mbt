@@ -31,6 +31,7 @@ fn wire_text(wire : @wire.WireWitness) -> String raise {
 fn join_limit_sources(
   apps : Array[@capacity_program_step.StepBound],
   mode : Int,
+  limit_steps? : Array[Int] = [0],
 ) -> @host.HostSources raise {
   let policy = join_policy()
   let host = @host.create(
@@ -79,18 +80,22 @@ fn join_limit_sources(
     ",\"enforcement\":\"" +
     (if mode == 5 { "unit_preflight" } else { "engine_atomic" }) +
     "\""
-  let suffix = ",\"subject_ref\":\"" +
-    (if mode == 6 {
-      "join:checked-step:1:output"
-    } else {
-      "join:checked-step:0:output"
-    }) +
-    "\",\"unit\":\"rows\",\"version\":\"actql-resolved-limit/0.1\"}"
-  let id = "sha256:" + @sha.hex(@utf8.encode(prefix + suffix))
-  let bytes = @utf8.encode(
-    prefix + ",\"resolved_limit_cid\":\"" + id + "\"" + suffix,
-  )
-  let mixed = @wire.check_mixed_claims(wires, [(bytes, id)], {
+  let artifacts : Array[(Bytes, String)] = []
+  for step in limit_steps {
+    let suffix = ",\"subject_ref\":\"" +
+      (if mode == 6 {
+        "join:checked-step:1:output"
+      } else {
+        "join:checked-step:" + step.to_string() + ":output"
+      }) +
+      "\",\"unit\":\"rows\",\"version\":\"actql-resolved-limit/0.1\"}"
+    let id = "sha256:" + @sha.hex(@utf8.encode(prefix + suffix))
+    let bytes = @utf8.encode(
+      prefix + ",\"resolved_limit_cid\":\"" + id + "\"" + suffix,
+    )
+    artifacts.push((bytes, id))
+  }
+  let mixed = @wire.check_mixed_claims(wires, artifacts, {
     max_entities: 20,
     max_references: 100,
     max_bytes: 20000,

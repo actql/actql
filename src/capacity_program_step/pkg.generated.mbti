@@ -26,6 +26,10 @@ pub fn check(@pipeline_typing.CheckedPipeline, Int, @capacity_witness.ProgramPro
 
 pub fn check_applications(@capacity_witness.ProgramClaims, Array[StepBound], max_work~ : Int) -> Result[Applications, ApplicationIssue]
 
+pub fn check_join_applications(@pipeline_typing.CheckedPipeline, @capacity_host_witness.HostSources, Applications, @capacity_policy.Policy, Array[JoinLimit], max_work~ : Int) -> Result[JoinApplications, JoinCollectionIssue]
+
+pub fn check_join_complete(@pipeline_typing.CheckedPipeline, @capacity_host_witness.HostSources, Applications, @capacity_policy.Policy, Array[JoinLimit], max_work~ : Int) -> Result[JoinApplications, JoinCollectionIssue]
+
 pub fn check_join_limit(@pipeline_typing.CheckedPipeline, Int, @capacity_host_witness.HostSources, Applications, @capacity_policy.Policy, Int, max_work~ : Int) -> Result[JoinLimit, JoinLimitIssue]
 
 pub fn check_join_with_uniqueness(@pipeline_typing.CheckedPipeline, Int, @capacity_witness.ProgramProofClaim, Array[StepBound], max_input_work? : Int) -> Result[StepBound, Issue]
@@ -48,6 +52,20 @@ pub fn input_count(StepBound) -> Int
 
 pub fn input_work(StepBound) -> Int
 
+pub fn join_application_at(JoinApplications, Int) -> JoinLimit?
+
+pub fn join_application_pipeline(JoinApplications) -> @pipeline_typing.CheckedPipeline
+
+pub fn join_application_policy(JoinApplications) -> @capacity_policy.Policy
+
+pub fn join_application_program(JoinApplications) -> Applications
+
+pub fn join_application_sources(JoinApplications) -> @capacity_host_witness.HostSources
+
+pub fn join_application_work(JoinApplications) -> Int
+
+pub fn join_consumes_limit(JoinApplications, Int) -> Bool
+
 pub fn join_limit_claim(JoinLimit) -> @capacity_witness.LimitClaim
 
 pub fn join_limit_index(JoinLimit) -> Int
@@ -63,6 +81,8 @@ pub fn join_limit_sources(JoinLimit) -> @capacity_host_witness.HostSources
 pub fn join_limit_step(JoinLimit) -> Int
 
 pub fn join_limit_work(JoinLimit) -> Int
+
+pub fn join_unconsumed_limit_count(JoinApplications) -> Int
 
 pub fn operand_work(StepBound) -> Int
 
@@ -115,6 +135,23 @@ pub(all) enum Issue {
   OperandWorkLimit
   MissingJoinUniqueness
   InvalidSeriesCount(@time_series.CountIssue)
+} derive(Eq, @debug.Debug)
+
+type JoinApplications
+
+pub(all) enum JoinCollectionIssue {
+  InvalidLimits
+  WorkLimit
+  ForeignClaims
+  MissingMixedClosure
+  ForeignPipeline(Int)
+  ForeignSources(Int)
+  ForeignProgram(Int)
+  ForeignPolicy(Int)
+  DuplicateApplication(Int)
+  DuplicateConsumption(Int)
+  MissingApplication(Int)
+  UnconsumedLimits(Int)
 } derive(Eq, @debug.Debug)
 
 type JoinLimit

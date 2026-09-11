@@ -1,7 +1,7 @@
 // Independent Node canonical-JSON/SHA-256 fixtures for mixed consumers.
 
 ///|
-fn combined_sources(extra : Bool) -> @host.HostSources {
+fn combined_sources(extra : Bool, joins? : Bool = false) -> @host.HostSources {
   let raw = [
     (
       "{\"dependencies\":[\"sha256:dfa8818d1752320593a6de63173a99ab23b8b17cd3786df87003aafcfbd04f63\"],\"derivation\":{\"op\":\"source\"},\"law_id\":\"actql.host.graph-input-nodes\",\"role\":\"host_ceiling\",\"source\":{\"field\":\"max_graph_input_nodes\",\"kind\":\"host_policy\",\"policy_cid\":\"sha256:dfa8818d1752320593a6de63173a99ab23b8b17cd3786df87003aafcfbd04f63\"},\"unit\":\"nodes\",\"value\":1,\"version\":\"actql-bound-witness/0.1\",\"witness_cid\":\"sha256:728fa5aab0a06fecedd20ce698143c5dc48e1a5db43d95f0aa0bf2be222840eb\"}",
@@ -51,6 +51,20 @@ fn combined_sources(extra : Bool) -> @host.HostSources {
       (
         "{\"author_guard_binding\":\"absent\",\"breach\":\"fail\",\"candidates\":[{\"dependencies\":[\"sha256:dfa8818d1752320593a6de63173a99ab23b8b17cd3786df87003aafcfbd04f63\"],\"derivation\":{\"op\":\"source\"},\"law_id\":\"actql.host.temporal-output\",\"role\":\"host_ceiling\",\"source\":{\"field\":\"max_temporal_output_rows\",\"kind\":\"host_policy\",\"policy_cid\":\"sha256:dfa8818d1752320593a6de63173a99ab23b8b17cd3786df87003aafcfbd04f63\"},\"unit\":\"rows\",\"value\":1,\"version\":\"actql-bound-witness/0.1\",\"witness_cid\":\"sha256:3f1a4583295af001e484a445f0e59eee53fca34e5704f8e5affadb02a2cc230a\"}],\"effective_max\":1,\"enforcement\":\"engine_atomic\",\"resolved_limit_cid\":\"sha256:e2573ff46a2f8ffd7da4efd13060ec3585201ca73a32a6393428eb777091ee8f\",\"subject_ref\":\"unused:output\",\"unit\":\"rows\",\"version\":\"actql-resolved-limit/0.1\"}",
         "sha256:e2573ff46a2f8ffd7da4efd13060ec3585201ca73a32a6393428eb777091ee8f",
+      ),
+    )
+  }
+  if joins {
+    raw.push(
+      (
+        "{\"dependencies\":[\"sha256:dfa8818d1752320593a6de63173a99ab23b8b17cd3786df87003aafcfbd04f63\"],\"derivation\":{\"op\":\"source\"},\"law_id\":\"actql.host.relation-output\",\"role\":\"host_ceiling\",\"source\":{\"field\":\"max_relation_output_rows\",\"kind\":\"host_policy\",\"policy_cid\":\"sha256:dfa8818d1752320593a6de63173a99ab23b8b17cd3786df87003aafcfbd04f63\"},\"unit\":\"rows\",\"value\":1,\"version\":\"actql-bound-witness/0.1\",\"witness_cid\":\"sha256:cc804f91bfb333cce941d90ede1e71d04e829b342464a24e88f237db814f4236\"}",
+        "sha256:cc804f91bfb333cce941d90ede1e71d04e829b342464a24e88f237db814f4236",
+      ),
+    )
+    limits.push(
+      (
+        "{\"author_guard_binding\":\"absent\",\"breach\":\"fail\",\"candidates\":[{\"dependencies\":[\"sha256:dfa8818d1752320593a6de63173a99ab23b8b17cd3786df87003aafcfbd04f63\"],\"derivation\":{\"op\":\"source\"},\"law_id\":\"actql.host.relation-output\",\"role\":\"host_ceiling\",\"source\":{\"field\":\"max_relation_output_rows\",\"kind\":\"host_policy\",\"policy_cid\":\"sha256:dfa8818d1752320593a6de63173a99ab23b8b17cd3786df87003aafcfbd04f63\"},\"unit\":\"rows\",\"value\":1,\"version\":\"actql-bound-witness/0.1\",\"witness_cid\":\"sha256:cc804f91bfb333cce941d90ede1e71d04e829b342464a24e88f237db814f4236\"}],\"effective_max\":1,\"enforcement\":\"engine_atomic\",\"resolved_limit_cid\":\"sha256:4645c15e985a096554aab35c8fd57e5bf3b07acefb378fd6b2f4a08f3c8611fe\",\"subject_ref\":\"join:checked-step:1:output\",\"unit\":\"rows\",\"version\":\"actql-resolved-limit/0.1\"}",
+        "sha256:4645c15e985a096554aab35c8fd57e5bf3b07acefb378fd6b2f4a08f3c8611fe",
       ),
     )
   }

@@ -1,6 +1,15 @@
 ///|
-fn consumer_pipeline(unknown_graph : Bool) -> @pipeline.CheckedPipeline {
-  let text = "[{\"sequence\":{\"by\":[],\"id\":\"id\",\"time\":\"id\",\"pattern\":[{\"as\":\"a\",\"where\":\"true\"},{\"as\":\"b\",\"where\":\"true\"}],\"within\":1,\"overlap\":\"allow\",\"contiguity\":\"adjacent\"},\"from\":\"rows\"}]"
+fn consumer_pipeline(
+  unknown_graph : Bool,
+  joins? : Bool = false,
+) -> @pipeline.CheckedPipeline {
+  let text = "[{\"sequence\":{\"by\":[],\"id\":\"id\",\"time\":\"id\",\"pattern\":[{\"as\":\"a\",\"where\":\"true\"},{\"as\":\"b\",\"where\":\"true\"}],\"within\":1,\"overlap\":\"allow\",\"contiguity\":\"adjacent\"},\"from\":\"rows\"}" +
+    (if joins {
+      ",{\"join\":{\"with\":\"rows\",\"kind\":\"inner\",\"on\":\"id\"},\"from\":\"rows\"}"
+    } else {
+      ""
+    }) +
+    "]"
   let root = @decode.admit(
     @source.parse_json(text, {
       max_input_bytes: 4096,
@@ -40,7 +49,7 @@ fn consumer_pipeline(unknown_graph : Bool) -> @pipeline.CheckedPipeline {
     None,
     None,
     {
-      max_steps: 1,
+      max_steps: 2,
       max_work: 10000,
       max_text_bytes: 10000,
       max_nodes: 1000,
@@ -210,4 +219,100 @@ test "Graph-only collections compose with empty sequence coverage" {
     )
     is Ok(_),
   )
+}
+
+///|
+test "join consumption joins Graph and sequence without hiding omitted or unused limits" {
+  for extra in [false, true] {
+    let p = consumer_pipeline(true, joins=true)
+    let source = combined_sources(extra, joins=true)
+    let selected = policy(false)
+    let graph = @capacity_graph_preflight.check(p, source, selected, caps()).unwrap()
+    let sequence = sequence_consumers(p, source)
+    let program = @program.check_applications(
+      @host.source_claims(source),
+      [],
+      max_work=100,
+    ).unwrap()
+    let index = if extra { 5 } else { 4 }
+    let join_limit = @program.check_join_limit(
+      p,
+      1,
+      source,
+      program,
+      selected,
+      index,
+      max_work=100,
+    ).unwrap()
+    let joined = @program.check_join_applications(
+      p,
+      source,
+      program,
+      selected,
+      [join_limit],
+      max_work=100,
+    ).unwrap()
+    let result = @capacity_graph_preflight.check_consumer_coverage(
+      graph,
+      sequence,
+      joins=Some(joined),
+      max_work=if extra { 10 } else { 9 },
+    )
+    if extra {
+      assert_true(result is Err(UnconsumedLimit(4)))
+    } else {
+      let covered = result.unwrap()
+      assert_true(
+        physical_equal(
+          @capacity_graph_preflight.consumer_coverage_joins(covered).unwrap(),
+          joined,
+        ),
+      )
+      assert_eq(@capacity_graph_preflight.consumer_coverage_work(covered), 9)
+      assert_true(
+        @capacity_graph_preflight.check_consumer_coverage(
+          graph,
+          sequence,
+          max_work=9,
+        )
+        is Err(UnconsumedLimit(4)),
+      )
+      assert_true(
+        @capacity_graph_preflight.check_consumer_coverage(
+          graph,
+          sequence,
+          joins=Some(joined),
+          max_work=8,
+        )
+        is Err(WorkLimit),
+      )
+      let foreign = consumer_pipeline(true, joins=true)
+      let foreign_limit = @program.check_join_limit(
+        foreign,
+        1,
+        source,
+        program,
+        selected,
+        index,
+        max_work=100,
+      ).unwrap()
+      let foreign_joined = @program.check_join_applications(
+        foreign,
+        source,
+        program,
+        selected,
+        [foreign_limit],
+        max_work=100,
+      ).unwrap()
+      assert_true(
+        @capacity_graph_preflight.check_consumer_coverage(
+          graph,
+          sequence,
+          joins=Some(foreign_joined),
+          max_work=9,
+        )
+        is Err(ForeignPipeline),
+      )
+    }
+  }
 }

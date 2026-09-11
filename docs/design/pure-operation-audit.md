@@ -402,8 +402,14 @@ matching automaton or proof that session-boundary values have been computed.
    Join-family output limit consumers now match selected Host fields and all
    available registered local Program bounds to the exact checked join, cross
    join or interval join. Tighter Host limits cannot hide omitted proofs or
-   authored guards. Author-source identity and all-join/mixed consumer coverage
-   remain open; local limit application does not discharge execution obligations.
+   authored guards. Author-source identity remains open; local limit application
+   does not discharge execution obligations.
+   Join application collections now cover every local join-family branch with
+   one source/proof owner, reject omissions and duplicate applications, and
+   retain exact consumption indices. The mixed consumer scan now joins that
+   ledger with Graph and sequence, rejecting leftovers even after all three
+   families are supplied. Other consumers and complete upstream/source closure
+   remain required.
    Do not
    expand into acquisition, an evaluator or Host dispatch.
 3. Connect contextual resolutions into a complete static checking/discharge
