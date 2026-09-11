@@ -88,7 +88,10 @@ The checked step entry now applies the global-group, literal take/top-k, append
 and known unpivot/unnest cases above. Producer-input edges can retain applications
 across exact checked owners, with bounded iterative forwarding traversal. Plain
 external source facts and imported semantic-subject application remain
-unimplemented. Author-guard Program Definition identity
+unimplemented. Parameter selection counts now use bounded reusable lookups from
+the exact checked pipeline's complete bound collection, retaining supplied/
+default provenance. This does not establish consistency between independent
+bindings across a complete Invocation. Author-guard Program Definition identity
 and bound Invocation consistency are separate prerequisites; a fragment hash or
 an authored alias does not supply either identity. No additional law name,
 source constructor or runnable Plan is introduced by this audit.

@@ -7,6 +7,8 @@ import {
   "actql/actql/capacity_arithmetic" @numeric,
   "actql/actql/capacity_law" @law,
   "actql/actql/relation_typing" @relation,
+  "actql/actql/parameter_binding" @parameter,
+  "actql/actql/decode_scalar" @scalar,
 }
 
 import {
@@ -15,6 +17,5 @@ import {
   "actql/actql/relation_schema" @schema,
   "actql/actql/value_contract" @contract,
   "actql/actql/sha256" @sha,
-  "actql/actql/parameter_binding" @parameter,
   "moonbitlang/core/encoding/utf8",
 } for "test"

@@ -28,13 +28,13 @@ The proof must use the existing `DerivedInputs` form. Its role is
 | Actual checked operation | Required proof application |
 | --- | --- |
 | Global Group with empty grouping keys | `actql.bound.global-group`, source derivation, value one. This holds independently of the input row count, including empty input. Other internal `OneRow` rules do not inherit this law. |
-| Literal `take` | `actql.bound.take`, input-free clamp with the exact checked count as maximum and value. Offset and order obligations remain on the checked operation. |
-| Literal `top_k`, or `top_k_by` with no partition keys | `actql.bound.top-k`, the same exact input-free clamp. Nonempty partition keys cannot use this global bound. |
+| `take` with a literal or bound count | `actql.bound.take`, input-free clamp with the exact resolved count as maximum and value. Offset and order obligations remain on the checked operation. |
+| `top_k`, or `top_k_by` with no partition keys, with a literal or bound count | `actql.bound.top-k`, the same exact input-free clamp. Nonempty partition keys cannot use this global bound. |
 | `append` | `actql.bound.append`, checked addition of both input upper bounds, with the actual left/right witness IDs in the derivation. Repeated inputs count twice. |
 | `unpivot` | `actql.bound.unpivot`, multiplication by the authored column occurrence count, including repetitions. |
 | Array `unnest` with known `max_items` | `actql.bound.unnest-array-items`, multiplication by the checked expansion factor. Outer expansion of a zero-length array uses one, not zero. Unknown bounds remain unresolved. |
 
-`check_with_inputs` also accepts one input application for literal selection,
+`check_with_inputs` also accepts one input application for selection,
 clamping its bound to the exact checked count. Offset does not weaken this upper
 bound and remains an independent checked-operation obligation. `check` is the
 input-free convenience entry.
@@ -49,8 +49,22 @@ derivation operands must additionally preserve their actual left/right roles.
 Checked arithmetic rejects overflow rather than rounding or saturating. The
 result retains immutable child applications without rewalking their ancestors.
 
-Parameterized counts are explicitly unresolved here; defaults are not silently
-applied. External input proofs and Program-Definition-bound proof forms still
+Parameterized counts stay unresolved unless `check_with_inputs` receives a
+`CountBindings` from `bind_parameters`. This opaque lookup retains the exact
+checked pipeline and a complete `BoundValues` from its original declaration
+owner. One entry and its admitted ASCII name bytes are charged per bound
+Parameter before building the reusable lookup; unrelated nonnumeric Parameters
+remain valid. Defaults are applied only by the ordinary Parameter binder, never
+by the capacity checker. The referenced count must be a positive safe integer,
+even if its declaration merely admits a number. The result retains the bindings
+and their supplied/default provenance; it does not substitute the smaller
+computed bound for the derivation's actual count maximum.
+
+Binding checks are local application evidence, not whole-Invocation consistency.
+Applications and their ancestors retain their respective binding owners; the
+combined boundary must still establish compatible invocation contexts rather
+than treating equal local subjects or independently bound values as one Run.
+External input proofs and Program-Definition-bound proof forms still
 need their respective source application owners. Successful application
 retains rather than discharges order, type/data admission and runtime failures.
 Tighter available input bounds and other applicable capacity candidates must
@@ -59,7 +73,9 @@ converts a guard into a measured bound.
 
 The local check inspects one already-admitted step and at most two child
 applications in bounded constant work; oversized input arrays are rejected
-before traversal or copying. Following producer inputs is optional and uses
+before traversal or copying. A Parameter count adds one lookup in the bounded
+name table; the name is already admitted by that table's declaration owner.
+Following producer inputs is optional and uses
 `max_input_work` (default zero): one work unit per visited input link, shared
 across both operands, including repetitions. `input_work` reports consumed work
 on success. Negative limits fail; exhaustion fails without exposing a partial
@@ -82,3 +98,7 @@ Producer tests additionally cover repeated cross-owner operands, a wrong owner
 on the second operand, ordinary external inputs, exact work boundaries and a
 2,000-owner forwarding chain. Retaining a producer does not discharge its
 runtime obligations or establish whole-Program/Invocation identity.
+Bound-count tests cover supplied/default values, unrelated string Parameters,
+same-text foreign declaration/pipeline owners, exact lookup budgets, positive
+safe-integer boundaries, all three selection forms and a tighter input bound
+whose derivation must still retain the larger resolved maximum.

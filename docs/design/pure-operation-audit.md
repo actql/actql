@@ -155,7 +155,9 @@ or order evidence, capacity sources, or the remaining operation audit.
    unnest expansion now retain checked child applications from actual same-owner
    producer edges, preserving repeated operands and checking arithmetic. Retained
    `ProducedInput` links also connect exact upstream owners through forwarding
-   inputs under cumulative iterative-traversal budgets. Plain external
+   inputs under cumulative iterative-traversal budgets. Parameter selection
+   counts now resolve through budgeted lookups retaining exact declaration,
+   pipeline and bound-value owners, without implicit defaults. Plain external
    input applications, general imported semantic subjects and enclosing Program
    identity remain open; arithmetic closure or matching an
    `as` name cannot substitute for those boundaries.

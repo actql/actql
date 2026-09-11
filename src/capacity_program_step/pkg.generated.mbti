@@ -3,14 +3,21 @@ package "actql/actql/capacity_program_step"
 
 import {
   "actql/actql/capacity_witness",
+  "actql/actql/parameter_binding",
   "actql/actql/pipeline_typing",
   "moonbitlang/core/debug",
 }
 
 // Values
+pub fn bind_parameters(@pipeline_typing.CheckedPipeline, @parameter_binding.BoundValues, max_work~ : Int, max_text_bytes~ : Int) -> Result[CountBindings, Issue]
+
+pub fn binding_usage(CountBindings) -> (Int, Int)
+
 pub fn check(@pipeline_typing.CheckedPipeline, Int, @capacity_witness.ProgramProofClaim) -> Result[StepBound, Issue]
 
-pub fn check_with_inputs(@pipeline_typing.CheckedPipeline, Int, @capacity_witness.ProgramProofClaim, Array[StepBound], max_input_work? : Int) -> Result[StepBound, Issue]
+pub fn check_with_inputs(@pipeline_typing.CheckedPipeline, Int, @capacity_witness.ProgramProofClaim, Array[StepBound], max_input_work? : Int, bindings? : CountBindings?) -> Result[StepBound, Issue]
+
+pub fn checked_bindings(StepBound) -> CountBindings?
 
 pub fn checked_pipeline(StepBound) -> @pipeline_typing.CheckedPipeline
 
@@ -24,11 +31,15 @@ pub fn input_count(StepBound) -> Int
 
 pub fn input_work(StepBound) -> Int
 
+pub fn parameter_values(CountBindings) -> @parameter_binding.BoundValues
+
 pub fn subject_ref(@pipeline_typing.CheckedPipeline, Int) -> String?
 
 // Errors
 
 // Types and methods
+type CountBindings
+
 pub(all) enum Issue {
   MissingStep
   SubjectMismatch
@@ -46,6 +57,11 @@ pub(all) enum Issue {
   InvalidInputWorkLimit
   InputWorkLimit
   MissingInputProducer(Int)
+  InvalidBindingLimits
+  BindingOwnerMismatch
+  BindingWorkLimit
+  BindingTextLimit
+  InvalidBoundCount
 } derive(Eq, @debug.Debug)
 
 type StepBound

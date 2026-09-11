@@ -120,6 +120,206 @@ fn bound_id(bound : @capacity_program_step.StepBound) -> String {
 }
 
 ///|
+fn count_declarations() -> @parameter.Declarations {
+  @parameter.read_declarations(
+    Some(
+      cursor(
+        "{\"n\":{\"type\":\"number\",\"default\":7},\"unused\":{\"type\":\"string\",\"default\":\"text\"}}",
+      ),
+    ),
+    { max_parameters: 2, max_nodes: 100, max_depth: 10, max_text_bytes: 1000, },
+  ).unwrap()
+}
+
+///|
+fn count_values(
+  d : @parameter.Declarations,
+  supplied : String?,
+) -> @parameter.BoundValues raise {
+  let result = @parameter.bind(d, supplied.map(cursor), {
+    max_nodes: 100,
+    max_depth: 10,
+    max_text_bytes: 1000,
+  }).unwrap()
+  guard result is Ready(values) else { fail("complete binding expected") }
+  values
+}
+
+///|
+test "bound selection counts retain default or supplied values from the exact owner" {
+  let d = count_declarations()
+  for
+    body in [
+      "[{\"take\":{\"$param\":\"n\"}}]", "[{\"top_k\":{\"k\":{\"$param\":\"n\"},\"by\":[{\"id\":\"asc\"}]}}]",
+      "[{\"top_k_by\":{\"partition_by\":[],\"k\":{\"$param\":\"n\"},\"by\":[{\"id\":\"asc\"}]}}]",
+    ] {
+    let p = pipeline(body, parameters=Some(d))
+    let law = if body.contains("top_k") {
+      "actql.bound.top-k"
+    } else {
+      "actql.bound.take"
+    }
+    for
+      (supplied, n) in [
+        (None, 7L),
+        (Some("{\"n\":9}"), 9L),
+        (Some("{\"n\":9007199254740991}"), 9007199254740991L),
+      ] {
+      let values = count_values(d, supplied)
+      let bindings = @capacity_program_step.bind_parameters(
+        p,
+        values,
+        max_work=2,
+        max_text_bytes=7,
+      ).unwrap()
+      assert_eq(@capacity_program_step.binding_usage(bindings), (2, 7))
+      assert_true(
+        physical_equal(
+          @capacity_program_step.parameter_values(bindings),
+          values,
+        ),
+      )
+      let claim = proof(
+        law,
+        n,
+        "{\"maximum\":" + n.to_string() + ",\"op\":\"clamp\"}",
+      )
+      let checked = @capacity_program_step.check_with_inputs(
+        p,
+        0,
+        claim,
+        [],
+        bindings=Some(bindings),
+      ).unwrap()
+      assert_true(
+        physical_equal(
+          @capacity_program_step.checked_bindings(checked).unwrap(),
+          bindings,
+        ),
+      )
+      assert_true(
+        @capacity_program_step.check(p, 0, claim) is Err(UnresolvedCount),
+      )
+      assert_true(
+        @capacity_program_step.bind_parameters(
+          p,
+          values,
+          max_work=1,
+          max_text_bytes=7,
+        )
+        is Err(BindingWorkLimit),
+      )
+      assert_true(
+        @capacity_program_step.bind_parameters(
+          p,
+          values,
+          max_work=2,
+          max_text_bytes=6,
+        )
+        is Err(BindingTextLimit),
+      )
+      assert_true(
+        @capacity_program_step.bind_parameters(
+          p,
+          values,
+          max_work=-1,
+          max_text_bytes=7,
+        )
+        is Err(InvalidBindingLimits),
+      )
+      let other = pipeline(body, parameters=Some(d))
+      assert_true(
+        @capacity_program_step.check_with_inputs(
+          other,
+          0,
+          claim,
+          [],
+          bindings=Some(bindings),
+        )
+        is Err(BindingOwnerMismatch),
+      )
+    }
+    let foreign_values = count_values(count_declarations(), None)
+    assert_true(
+      @capacity_program_step.bind_parameters(
+        p,
+        foreign_values,
+        max_work=2,
+        max_text_bytes=7,
+      )
+      is Err(BindingOwnerMismatch),
+    )
+    for
+      supplied in [
+        "{\"n\":0}", "{\"n\":-1}", "{\"n\":1.5}", "{\"n\":9007199254740992}",
+      ] {
+      let bindings = @capacity_program_step.bind_parameters(
+        p,
+        count_values(d, Some(supplied)),
+        max_work=2,
+        max_text_bytes=7,
+      ).unwrap()
+      assert_true(
+        @capacity_program_step.check_with_inputs(
+          p,
+          0,
+          proof(law, 7, "{\"maximum\":7,\"op\":\"clamp\"}"),
+          [],
+          bindings=Some(bindings),
+        )
+        is Err(InvalidBoundCount),
+      )
+    }
+  }
+}
+
+///|
+test "bound counts clamp producer bounds without replacing derivation maxima" {
+  let d = count_declarations()
+  let p = pipeline(
+    "[{\"take\":3},{\"take\":{\"$param\":\"n\"}}]",
+    parameters=Some(d),
+  )
+  let bindings = @capacity_program_step.bind_parameters(
+    p,
+    count_values(d, None),
+    max_work=2,
+    max_text_bytes=7,
+  ).unwrap()
+  let input = @capacity_program_step.check(
+    p,
+    0,
+    proof("actql.bound.take", 3, "{\"maximum\":3,\"op\":\"clamp\"}"),
+  ).unwrap()
+  let id = bound_id(input)
+  for maximum in [7, 3] {
+    let claim = proof(
+      "actql.bound.take",
+      3,
+      "{\"input\":\"" +
+      id +
+      "\",\"maximum\":" +
+      maximum.to_string() +
+      ",\"op\":\"clamp\"}",
+      reference="checked-step:1",
+      inputs=[id],
+    )
+    let result = @capacity_program_step.check_with_inputs(
+      p,
+      1,
+      claim,
+      [input],
+      bindings=Some(bindings),
+    )
+    if maximum == 7 {
+      assert_true(result is Ok(_))
+    } else {
+      assert_true(result is Err(InvalidDerivation))
+    }
+  }
+}
+
+///|
 fn consume(
   producer : @pipeline.CheckedPipeline,
   target : @pipeline.Target,

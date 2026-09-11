@@ -16,6 +16,11 @@ pub(all) enum Issue {
   InvalidInputWorkLimit
   InputWorkLimit
   MissingInputProducer(Int)
+  InvalidBindingLimits
+  BindingOwnerMismatch
+  BindingWorkLimit
+  BindingTextLimit
+  InvalidBoundCount
 } derive(Eq, Debug)
 
 ///|
@@ -26,6 +31,7 @@ struct StepBound {
   proof : @wire.ProgramProofClaim
   inputs : Array[StepBound]
   input_work : Int
+  bindings : CountBindings?
 }
 
 ///|
@@ -62,6 +68,7 @@ priv enum Rule {
 ///|
 fn operation_rule(
   step : @pipeline.CheckedStep,
+  bindings : CountBindings?,
 ) -> Result[(String, Rule), Issue] {
   if step.operation is @pipeline.Append(..) {
     return Ok(("actql.bound.append", Sum))
@@ -88,7 +95,10 @@ fn operation_rule(
       ("actql.bound.top-k", count)
     _ => return Err(UnsupportedOperation)
   }
-  guard value is @relation.Literal(n) else { return Err(UnresolvedCount) }
+  let n = match resolve_count(value, bindings) {
+    Ok(n) => n
+    Err(e) => return Err(e)
+  }
   Ok((law, Clamp(n)))
 }
 
@@ -102,9 +112,13 @@ pub fn check_with_inputs(
   proof : @wire.ProgramProofClaim,
   inputs : Array[StepBound],
   max_input_work? : Int = 0,
+  bindings? : CountBindings? = None,
 ) -> Result[StepBound, Issue] {
   if max_input_work < 0 {
     return Err(InvalidInputWorkLimit)
+  }
+  if bindings is Some(bound) && !physical_equal(bound.pipeline, pipeline) {
+    return Err(BindingOwnerMismatch)
   }
   guard @pipeline.step_at(pipeline, index) is Some(step) else {
     return Err(MissingStep)
@@ -117,7 +131,7 @@ pub fn check_with_inputs(
   if @wire.program_proof_form(proof) != @wire.DerivedInputs {
     return Err(UnsupportedProofForm)
   }
-  let (law, rule) = match operation_rule(step) {
+  let (law, rule) = match operation_rule(step, bindings) {
     Ok(v) => v
     Err(e) => return Err(e)
   }
@@ -208,7 +222,7 @@ pub fn check_with_inputs(
       input == ids[0] => ()
     _ => return Err(InvalidDerivation)
   }
-  Ok({ pipeline, index, proof, inputs: inputs.copy(), input_work, })
+  Ok({ pipeline, index, proof, inputs: inputs.copy(), input_work, bindings, })
 }
 
 ///|
@@ -240,4 +254,9 @@ pub fn input_at(v : StepBound, index : Int) -> StepBound? {
 /// Producer-input links visited, cumulatively across repeated operands.
 pub fn input_work(v : StepBound) -> Int {
   v.input_work
+}
+
+///|
+pub fn checked_bindings(v : StepBound) -> CountBindings? {
+  v.bindings
 }
