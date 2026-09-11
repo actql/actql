@@ -193,6 +193,22 @@ foreign Programs and replacement evidence on a later stage.
 This closes schema-aware registration linkage, not Catalog/policy admission,
 Host authorization, receipt inputs, static discharge or semantic Program identity.
 
+`bind_capacity_policy` connects a `ReconciledContexts` to the validated capacity
+component of its exact Check Environment. It first checks environment ownership,
+then compares the component's admitted Policy CID with the policy already selected
+by stage/capacity checking. Separately admitted policy objects with the same CID
+are compatible: policy content identity is distinct from envelope membership.
+The opaque `SelectedPolicyContext` retains both, rejecting foreign environments
+even for identical bytes and different policy contents even in the same environment.
+
+The aggregate adds the component's canonical byte/node size and one binding check
+to the prior context usage. Policy nodes have their own cap and do not alter the
+previously bounded local-input node total. These are logical evidence costs, not
+heap accounting or a claim that earlier parsing work is measured instruction by
+instruction. No runtime ceiling enforcement, Host authorization or admission of
+other profile components follows from policy selection. Full environment closure
+and remaining static obligations still prevent treating this as CheckedProgram.
+
 `check_parameter_bindings` extends a context with local Parameter reference
 indexes for every contextual producer visit. It uses the exhaustive pipeline
 collector for both typed expressions and direct operands, including values

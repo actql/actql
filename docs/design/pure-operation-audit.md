@@ -840,6 +840,9 @@ admission, resource enforcement or complete source authority.
    Its all-stage context integration now retains exact registration and snapshot
    owners alongside Result wiring and bound Parameters. Host/policy admission
    and final compiler closure remain incomplete.
+   Capacity policy selection now binds the Program context to the validated
+   component of its exact wire environment and checks the admitted policy CID.
+   Other policy components, Catalog closure and Host authority remain unverified.
    Local schema assertion comparison now preserves a supplied stronger complete
    checked schema after recursive assignability, expected-column and newly known
    key/order-type checks. It is not snapshot source/CID/Host admission and is not

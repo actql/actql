@@ -12,6 +12,7 @@ fn wired_fixture() -> (
 ///|
 fn wired_inputs_fixture(
   use_snapshots : Bool,
+  profile? : String = "{}",
 ) -> (
   StageContexts,
   @stage_results.ResultWiring,
@@ -43,7 +44,7 @@ fn wired_inputs_fixture(
     max_text_bytes: 10000,
   }).unwrap()
   let declarations = @stages.declarations(source)
-  let (environment, snapshot) = snapshot_wire()
+  let (environment, snapshot) = snapshot_wire(profile~)
   let source_index = @refs.prepare(source, {
     max_work: 100000,
     max_text_bytes: 100000,

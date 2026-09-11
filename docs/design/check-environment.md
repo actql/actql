@@ -92,3 +92,6 @@ and separate environment owners are tested. The envelope contract CID changes
 because it now pins component selection/dependency; unchanged envelope bytes do
 not change their own CID. Compiler policy matching and other component admission
 remain separate work, and no Host authorization follows from this reader.
+The compiler's `bind_capacity_policy` now matches the selected admitted Policy
+CID while requiring this component's exact environment owner, and retains both.
+`capacity_usage` reports canonical component bytes/nodes for aggregate accounting.

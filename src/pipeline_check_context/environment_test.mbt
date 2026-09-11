@@ -1,11 +1,14 @@
 ///|
-fn snapshot_wire() -> (
-  @environment.WireEnvironment,
-  @snapshot.EnvironmentSnapshot,
-) {
+fn snapshot_wire(
+  profile? : String = "{}",
+) -> (@environment.WireEnvironment, @snapshot.EnvironmentSnapshot) {
   let prefix = "{\"command_contracts\":[],\"connector_capabilities\":[],\"connector_catalogs\":[],\"contract_registry\":[],"
   let suffix = "\"host_policy_profile\":{},\"mapping_contracts\":[],\"model_task_contracts\":[],\"schema_snapshots\":[{\"output_carrier\":\"relation\",\"schema\":{\"additional_properties\":false,\"fields\":{\"id\":{\"nullable\":false,\"type\":\"number\"}},\"nullable\":false,\"type\":\"object\"},\"source_ref\":\"source:local/first/a\",\"version\":\"actql-local-input-schema/0.1\"}],\"source_views\":[],\"version\":\"actql-check-environment/0.1\"}"
   // Linkage fixture, not an independent identity oracle.
+  let suffix = suffix.replace(
+    old="\"host_policy_profile\":{}",
+    new="\"host_policy_profile\":" + profile,
+  )
   let cid = "sha256:" + @sha.hex(@utf8.encode(prefix + suffix))
   let environment = @environment.read(
     @utf8.encode(prefix + "\"evidence_bundle_cid\":\"" + cid + "\"," + suffix),

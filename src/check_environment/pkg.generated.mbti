@@ -13,6 +13,8 @@ pub fn capacity_environment(Capacity) -> WireEnvironment
 
 pub fn capacity_policy(Capacity) -> @capacity_policy.Policy
 
+pub fn capacity_usage(Capacity) -> (Int, Int)
+
 pub fn cid(WireEnvironment) -> String
 
 pub fn emit(WireEnvironment, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure

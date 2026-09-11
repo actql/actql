@@ -11,6 +11,8 @@ pub(all) enum CapacityIssue {
 struct Capacity {
   environment : WireEnvironment
   policy : @policy.Policy
+  bytes : Int
+  nodes : Int
 }
 
 ///|
@@ -41,7 +43,14 @@ pub fn read_capacity(
     let bytes = @utf8.encode(@encode.finish(writer))
     let expected = "sha256:" + @sha.hex(bytes)
     match @policy.admit(bytes, expected, limits) {
-      Ok(policy) => Ok({ environment, policy, })
+      // Valid capacity bodies contain only scalar fields under one object.
+      Ok(policy) =>
+        Ok({
+          environment,
+          policy,
+          bytes: bytes.length(),
+          nodes: 1 + @decode.object_length(body).unwrap(),
+        })
       Err(@policy.BudgetExceeded) => Err(BudgetExceeded)
       Err(e) => Err(Policy(e))
     }
@@ -58,4 +67,10 @@ pub fn capacity_environment(value : Capacity) -> WireEnvironment {
 ///|
 pub fn capacity_policy(value : Capacity) -> @policy.Policy {
   value.policy
+}
+
+///|
+/// Canonical component bytes and nodes, not retained heap size.
+pub fn capacity_usage(value : Capacity) -> (Int, Int) {
+  (value.bytes, value.nodes)
 }

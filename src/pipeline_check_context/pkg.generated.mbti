@@ -4,6 +4,7 @@ package "actql/actql/pipeline_check_context"
 import {
   "actql/actql/capacity_graph_preflight",
   "actql/actql/capacity_policy",
+  "actql/actql/check_environment",
   "actql/actql/expression_typing",
   "actql/actql/parameter_binding",
   "actql/actql/parameter_references",
@@ -26,6 +27,8 @@ pub fn attach_reconciled_inputs(WiredStages, @stage_local_inputs.ProgramEnvironm
 pub fn attach_result_wiring(StageContexts, @stage_results.ResultWiring, max_work~ : Int, max_text_bytes~ : Int) -> Result[WiredStages, WiringIssue]
 
 pub fn attach_stage_contexts(@stage_parameters.BoundOperations, @stage_results.Checked, Array[BoundParameters], @capacity_policy.Policy, max_work~ : Int, max_text_bytes~ : Int) -> Result[StageContexts, StageIssue]
+
+pub fn bind_capacity_policy(ReconciledContexts, @check_environment.Capacity, max_work~ : Int, max_text_bytes~ : Int, max_policy_nodes~ : Int) -> Result[SelectedPolicyContext, SelectedPolicyIssue]
 
 pub fn bound_guards(PipelineContext) -> @pipeline_typing.BoundGuardClosure
 
@@ -67,6 +70,8 @@ pub fn parameter_visit_at(BoundParameters, Int) -> ParameterVisit?
 
 pub fn parameter_visit_count(BoundParameters) -> Int
 
+pub fn policy_context(SelectedPolicyContext) -> ReconciledContexts
+
 pub fn reconciled_local_at(ReconciledContexts, Int) -> @stage_local_inputs.ReconciledAttachment?
 
 pub fn reconciled_snapshots(ReconciledContexts) -> @stage_local_inputs.ProgramEnvironmentInputs
@@ -76,6 +81,10 @@ pub fn reconciled_usage(ReconciledContexts) -> InputUsage
 pub fn reconciled_wiring(ReconciledContexts) -> WiredStages
 
 pub fn result_wiring(WiredStages) -> @stage_results.ResultWiring
+
+pub fn selected_capacity(SelectedPolicyContext) -> @check_environment.Capacity
+
+pub fn selected_policy_usage(SelectedPolicyContext) -> SelectedPolicyUsage
 
 pub fn stage_context_at(StageContexts, Int) -> BoundParameters?
 
@@ -177,6 +186,22 @@ pub(all) enum ReconciledIssue {
   ForeignEvidence(Int)
   InconsistentUsage
   BudgetExceeded
+} derive(Eq, @debug.Debug)
+
+type SelectedPolicyContext
+
+pub(all) enum SelectedPolicyIssue {
+  InvalidLimits
+  ForeignEnvironment
+  PolicyMismatch
+  BudgetExceeded
+} derive(Eq, @debug.Debug)
+
+pub(all) struct SelectedPolicyUsage {
+  work : Int
+  text_bytes : Int
+  local_input_nodes : Int
+  policy_nodes : Int
 } derive(Eq, @debug.Debug)
 
 type StageContexts
