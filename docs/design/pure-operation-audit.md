@@ -218,7 +218,13 @@ matching automaton or proof that session-boundary values have been computed.
    if present in the claim collection, still requires its own application.
    Retained
    `ProducedInput` links also connect exact upstream owners through forwarding
-   inputs under cumulative iterative-traversal budgets. Parameter selection
+   inputs under cumulative iterative-traversal budgets.
+   Non-expanding step transport now also follows the actual input edges of
+   Relation preservation/reduction and Events/Vectors transformations back to
+   the original bound owner. Repeated paths share the same cumulative budget;
+   expansion, global aggregation and unrelated inputs cannot substitute a bound.
+   This transports conditional upper bounds, not exact counts or discharged
+   intermediate obligations. Parameter selection
    counts now resolve through budgeted lookups retaining exact declaration,
    pipeline and bound-value owners, without implicit defaults. Collection
    application coverage now rejects missing unused Program applications and

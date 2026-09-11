@@ -120,6 +120,162 @@ fn bound_id(bound : @capacity_program_step.StepBound) -> String {
 }
 
 ///|
+fn transport_case(
+  body : String,
+  last : Int,
+  field_type? : @contract.Contract = @contract.primitive(
+    NumberType,
+    nullable=false,
+  ),
+) -> Unit raise {
+  let p = pipeline(body, field_type~)
+  let first = proof("actql.bound.take", 3, "{\"maximum\":3,\"op\":\"clamp\"}")
+  let input = @capacity_program_step.check(p, 0, first).unwrap()
+  let id = bound_id(input)
+  let output_proof = proof(
+    "actql.bound.take",
+    3,
+    "{\"input\":\"" + id + "\",\"maximum\":9,\"op\":\"clamp\"}",
+    reference="checked-step:" + last.to_string(),
+    inputs=[id],
+  )
+  let links = last - 1
+  let checked = @capacity_program_step.check_with_inputs(
+    p,
+    last,
+    output_proof,
+    [input],
+    max_input_work=links,
+  ).unwrap()
+  assert_eq(@capacity_program_step.input_work(checked), links)
+  assert_true(
+    physical_equal(@capacity_program_step.input_at(checked, 0).unwrap(), input),
+  )
+  assert_true(
+    physical_equal(@capacity_program_step.checked_pipeline(checked), p),
+  )
+  assert_true(
+    @capacity_program_step.check_with_inputs(
+      p,
+      last,
+      output_proof,
+      [input],
+      max_input_work=links - 1,
+    )
+    is Err(InputWorkLimit),
+  )
+  let claims = program_claims([first, output_proof])
+  assert_true(
+    @capacity_program_step.check_applications(
+      claims,
+      [checked, input],
+      max_work=7,
+    )
+    is Ok(_),
+  )
+}
+
+///|
+test "row bounds cross non-expanding Relation operations without claiming exact counts" {
+  for
+    operation in [
+      "{\"filter\":\"TRUE\"}", "{\"filter\":\"FALSE\"}", "{\"derive\":{}}", "{\"select\":[\"id\"]}",
+      "{\"rename\":{}}", "{\"drop\":[]}", "{\"sort\":[]}", "{\"distinct\":true}",
+      "{\"distinct\":[\"id\"]}", "{\"dedupe_rows\":{\"by\":[],\"order_by\":[{\"id\":\"asc\"}]}}",
+    ] {
+    transport_case("[{\"take\":3}," + operation + ",{\"take\":9}]", 2)
+  }
+}
+
+///|
+test "row bound transport crosses Events and Vectors bridges with their original obligations" {
+  for policy in ["mark", "drop"] {
+    transport_case(
+      "[{\"take\":3},{\"to_events\":{\"id\":\"id\",\"time\":\"id\"}}," +
+      "{\"session\":{\"by\":[],\"gap\":10}},{\"watermark_events\":{\"watermark_ms\":1,\"policy\":\"" +
+      policy +
+      "\"}}," +
+      "{\"dedupe_events\":{\"by\":[\"id\"],\"order_by\":[{\"id\":\"asc\"}]}},{\"events\":true},{\"take\":9}]",
+      6,
+    )
+  }
+  transport_case(
+    "[{\"take\":3},{\"derive\":{\"key\":{\"literal\":1}}},{\"to_vectors\":{\"id\":\"key\",\"vector\":\"id\"}}," +
+    "{\"normalize_vectors\":true},{\"score_vectors\":{\"query\":[1,2],\"metric\":\"dot\"}},{\"vectors\":true},{\"take\":9}]",
+    6,
+    field_type=@contract.vector_contract(2, nullable=false).unwrap(),
+  )
+}
+
+///|
+test "row bound transport charges repeated paths and refuses expanding or unrelated producers" {
+  let p = pipeline(
+    "[{\"take\":3},{\"derive\":{},\"as\":\"kept\"},{\"append\":{\"with\":\"kept\"}}]",
+  )
+  let input = @capacity_program_step.check(
+    p,
+    0,
+    proof("actql.bound.take", 3, "{\"maximum\":3,\"op\":\"clamp\"}"),
+  ).unwrap()
+  let id = bound_id(input)
+  let sum = proof(
+    "actql.bound.append",
+    6,
+    "{\"left\":\"" + id + "\",\"op\":\"add\",\"right\":\"" + id + "\"}",
+    reference="checked-step:2",
+    inputs=[id, id],
+  )
+  let checked = @capacity_program_step.check_with_inputs(
+    p,
+    2,
+    sum,
+    [input, input],
+    max_input_work=2,
+  ).unwrap()
+  assert_eq(@capacity_program_step.input_work(checked), 2)
+  assert_true(
+    @capacity_program_step.check_with_inputs(
+      p,
+      2,
+      sum,
+      [input, input],
+      max_input_work=1,
+    )
+    is Err(InputWorkLimit),
+  )
+  for
+    middle in [
+      "{\"row_window\":{\"kind\":\"sliding\",\"time\":\"id\",\"size\":10,\"step\":1}}",
+      "{\"group\":{\"by\":[],\"aggregates\":{}}}", "{\"derive\":{},\"from\":\"rows\"}",
+    ] {
+    let other = pipeline("[{\"take\":3}," + middle + ",{\"take\":9}]")
+    let first = @capacity_program_step.check(
+      other,
+      0,
+      proof("actql.bound.take", 3, "{\"maximum\":3,\"op\":\"clamp\"}"),
+    ).unwrap()
+    let cid = bound_id(first)
+    let output_proof = proof(
+      "actql.bound.take",
+      3,
+      "{\"input\":\"" + cid + "\",\"maximum\":9,\"op\":\"clamp\"}",
+      reference="checked-step:2",
+      inputs=[cid],
+    )
+    assert_true(
+      @capacity_program_step.check_with_inputs(
+        other,
+        2,
+        output_proof,
+        [first],
+        max_input_work=100,
+      )
+      is Err(_),
+    )
+  }
+}
+
+///|
 fn program_claims(
   proofs : Array[@wire.ProgramProofClaim],
 ) -> @wire.ProgramClaims {
@@ -704,13 +860,6 @@ test "forwarded proof inputs use an iterative bounded walk" {
     0,
     proof("actql.bound.take", 7, "{\"maximum\":7,\"op\":\"clamp\"}"),
   ).unwrap()
-  let mut owner = root
-  let mut target = @pipeline.Step(0)
-  for _ in 0..<2000 {
-    owner = consume(owner, target, "[]")
-    target = @pipeline.Input(0)
-  }
-  let end = consume(owner, target, "[{\"take\":3}]")
   let id = bound_id(a)
   let claim = proof(
     "actql.bound.take",
@@ -718,24 +867,52 @@ test "forwarded proof inputs use an iterative bounded walk" {
     "{\"input\":\"" + id + "\",\"maximum\":3,\"op\":\"clamp\"}",
     inputs=[id],
   )
-  let checked = @capacity_program_step.check_with_inputs(
-    end,
-    0,
-    claim,
-    [a],
-    max_input_work=2001,
-  ).unwrap()
-  assert_eq(@capacity_program_step.input_work(checked), 2001)
-  assert_true(
-    @capacity_program_step.check_with_inputs(
+  for
+    (body, forwarded, cost) in [
+      ("[]", @pipeline.Input(0), 2001),
+      ("[{\"derive\":{}}]", @pipeline.Step(0), 4001),
+    ] {
+    let mut owner = root
+    let mut target = @pipeline.Step(0)
+    for _ in 0..<2000 {
+      owner = consume(owner, target, body)
+      target = forwarded
+    }
+    let end = consume(owner, target, "[{\"take\":3}]")
+    let checked = @capacity_program_step.check_with_inputs(
       end,
       0,
       claim,
       [a],
-      max_input_work=2000,
+      max_input_work=cost,
+    ).unwrap()
+    assert_eq(@capacity_program_step.input_work(checked), cost)
+    assert_true(
+      @capacity_program_step.check_with_inputs(
+        end,
+        0,
+        claim,
+        [a],
+        max_input_work=cost - 1,
+      )
+      is Err(InputWorkLimit),
     )
-    is Err(InputWorkLimit),
-  )
+    let foreign = @capacity_program_step.check(
+      pipeline("[{\"take\":7}]"),
+      0,
+      proof("actql.bound.take", 7, "{\"maximum\":7,\"op\":\"clamp\"}"),
+    ).unwrap()
+    assert_true(
+      @capacity_program_step.check_with_inputs(
+        end,
+        0,
+        claim,
+        [foreign],
+        max_input_work=cost,
+      )
+      is Err(InputOwnerMismatch(0)),
+    )
+  }
 }
 
 ///|

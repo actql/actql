@@ -107,8 +107,44 @@ fn operation_rule(
 }
 
 ///|
+// Reuse an upstream upper bound only through checked non-expanding operations.
+// This is not an exact-count transfer or discharge of their pending validations.
+fn forwarded_input(step : @pipeline.CheckedStep) -> @pipeline.Target? {
+  let preserves_upper = match step.operation {
+    @pipeline.Unary(op) | @pipeline.WindowGroup(op) =>
+      match @relation.row_count_rule(op) {
+        @relation.Preserve | @relation.Reduce | @relation.OneExistingRow => true
+        _ => false
+      }
+    @pipeline.Event(op) =>
+      match @event.options(op) {
+        @event.ToEvents
+        | @event.Session(_)
+        | @event.Watermark(_, _)
+        | @event.Dedupe(_) => true
+      }
+    @pipeline.Vector(op) =>
+      match @vector.operation(op) {
+        @vector.ToVectors | @vector.NormalizeVectors | @vector.ScoreVectors =>
+          true
+      }
+    @pipeline.Projection(op) =>
+      match @projection.operation(op) {
+        @projection.Events | @projection.Vectors => true
+        _ => false
+      }
+    _ => false
+  }
+  if preserves_upper {
+    step.input
+  } else {
+    None
+  }
+}
+
+///|
 /// Inputs are verified applications in actual data-input order, not CID order.
-/// Producer-input traversal requires an explicit cumulative work allowance.
+/// Input and non-expanding step traversal requires a cumulative work allowance.
 /// Imported external facts and Program identity require their separate owners.
 pub fn check_with_inputs(
   pipeline : @pipeline.CheckedPipeline,
@@ -156,22 +192,37 @@ pub fn check_with_inputs(
   for i in 0..<n {
     let mut owner = pipeline
     let mut target = edges[i].target
-    while target is @pipeline.Input(input_index) {
+    while !(physical_equal(owner, inputs[i].pipeline) &&
+          target == @pipeline.Step(inputs[i].index)) {
+      let next = match target {
+        @pipeline.Input(input_index) => {
+          if input_work >= max_input_work {
+            return Err(InputWorkLimit)
+          }
+          input_work = input_work + 1
+          guard @pipeline.input_producer(owner, input_index) is Some(producer) else {
+            return Err(MissingInputProducer(i))
+          }
+          owner = @pipeline.producer_pipeline(producer)
+          target = @pipeline.producer_target(producer)
+          continue
+        }
+        @pipeline.Step(index) => {
+          let step = @pipeline.step_at(owner, index).unwrap()
+          guard forwarded_input(step) is Some(next) else {
+            if !physical_equal(inputs[i].pipeline, owner) {
+              return Err(InputOwnerMismatch(i))
+            }
+            return Err(InputTargetMismatch(i))
+          }
+          next
+        }
+      }
       if input_work >= max_input_work {
         return Err(InputWorkLimit)
       }
       input_work = input_work + 1
-      guard @pipeline.input_producer(owner, input_index) is Some(producer) else {
-        return Err(MissingInputProducer(i))
-      }
-      owner = @pipeline.producer_pipeline(producer)
-      target = @pipeline.producer_target(producer)
-    }
-    if !physical_equal(inputs[i].pipeline, owner) {
-      return Err(InputOwnerMismatch(i))
-    }
-    if target != @pipeline.Step(inputs[i].index) {
-      return Err(InputTargetMismatch(i))
+      target = next
     }
     ids.push(@wire.cid(@wire.program_proof_witness(inputs[i].proof)))
   }
@@ -258,7 +309,7 @@ pub fn input_at(v : StepBound, index : Int) -> StepBound? {
 }
 
 ///|
-/// Producer-input links visited, cumulatively across repeated operands.
+/// Producer-input and non-expanding step links, across repeated operands.
 pub fn input_work(v : StepBound) -> Int {
   v.input_work
 }

@@ -9,6 +9,9 @@ import {
   "actql/actql/relation_typing" @relation,
   "actql/actql/parameter_binding" @parameter,
   "actql/actql/decode_scalar" @scalar,
+  "actql/actql/carrier_projection" @projection,
+  "actql/actql/event_typing" @event,
+  "actql/actql/vector_typing" @vector,
 }
 
 import {

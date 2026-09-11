@@ -41,9 +41,25 @@ bound and remains an independent checked-operation obligation. `check` is the
 input-free convenience entry.
 
 Input applications must retain the exact physical producer pipeline owner and
-match the actual producer step on each data edge. For a local step this is the
-current pipeline; for a `ProducedInput`, the check follows its retained owner and
-target through forwarding inputs. Equal source text, names or counts never
+match the actual bound-producing step reached from each data edge. For a local
+step this is the current pipeline; for a `ProducedInput`, the check follows its
+retained owner and target through forwarding inputs. A checked non-expanding
+step may transport the original upper bound without inventing a new source
+witness. Supported transports are unary `Preserve`, `Reduce` and
+`OneExistingRow` rules, including window-group reduction; Events bridge,
+session, watermark and deduplication; Vectors bridge, normalization and scoring;
+and the explicit Events/Vectors-to-Relation projections. Graph projections do
+not reinterpret row bounds as node or edge bounds. Global aggregation, expansion,
+generators, and other unsupported transfers stop the walk rather than guessing
+a path. Selection clamps retain their own application boundary.
+
+This follows Language's resolved-limit transfer rules and the same conditional
+count laws as `pipeline_typing.row_counts`. Reduction keeps a valid upper bound,
+not an exact count; it does not discard tighter available candidates. Every
+intermediate operation and both data/validation dependencies remain retained by
+the original checked pipeline. No order, uniqueness, value, profile, binding or
+runtime capacity obligation is discharged by transport. Equal source text,
+names or counts never
 substitute for that owner. Ordinary external input facts cannot be substituted
 for these owners. Proof input IDs are sorted with repetitions;
 derivation operands must additionally preserve their actual left/right roles.
@@ -72,16 +88,18 @@ Tighter available input bounds and other applicable capacity candidates must
 still participate in final resolution. This entry never creates a ceiling or
 converts a guard into a measured bound.
 
-The local check inspects one already-admitted step and at most two child
+The local rule check inspects one already-admitted step and at most two child
 applications in bounded constant work; oversized input arrays are rejected
 before traversal or copying. A Parameter count adds one lookup in the bounded
 name table; the name is already admitted by that table's declaration owner.
 Following producer inputs is optional and uses
-`max_input_work` (default zero): one work unit per visited input link, shared
-across both operands, including repetitions. `input_work` reports consumed work
+`max_input_work` (default zero): one work unit per visited producer-input link
+or transported non-expanding step, shared across both operands, including
+repetitions. `input_work` reports consumed work
 on success. Negative limits fail; exhaustion fails without exposing a partial
-application. Forwarding walks are iterative, do not copy input trees, and stop
-only at an actual producer step. A plain external input without a retained
+application. Forwarding walks are iterative, do not copy input trees, and succeed
+only at the supplied application's exact owner and producer step. A plain
+external input without a retained
 producer is explicitly rejected rather than inventing source evidence.
 Existing source/claim admission owns recursive byte/node limits;
 there is no new unbounded collection traversal. Collection-wide application and
@@ -99,6 +117,12 @@ Producer tests additionally cover repeated cross-owner operands, a wrong owner
 on the second operand, ordinary external inputs, exact work boundaries and a
 2,000-owner forwarding chain. Retaining a producer does not discharge its
 runtime obligations or establish whole-Program/Invocation identity.
+Transport tests also cover filtering to no rows without claiming an exact count,
+Relation projection/deduplication, complete Events and Vectors bridge chains,
+and rejected expanding/global-group/unrelated-input paths. The 2,000-owner walk
+is tested both with forwarding inputs alone and with a non-expanding step in
+each owner, including exact/insufficient budgets and a same-content foreign
+proof owner at the end. Repeated paths are charged independently.
 Bound-count tests cover supplied/default values, unrelated string Parameters,
 same-text foreign declaration/pipeline owners, exact lookup budgets, positive
 safe-integer boundaries, all three selection forms and a tighter input bound
