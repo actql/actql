@@ -81,6 +81,8 @@ pub fn nearest_completed_identity(NearestInput) -> @relation_evidence.KeyedRelat
 
 pub fn nearest_completed_vector(NearestInput) -> @relation_schema.FieldName?
 
+pub fn nearest_input_source(NearestInput) -> NearestSource
+
 pub fn nearest_input_usage(NearestInput) -> Usage
 
 pub fn nearest_input_vectors(NearestInput) -> @carrier_contract.Vectors?

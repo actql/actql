@@ -78,6 +78,11 @@ consumer audit.
    nest parent-key loss has been addressed. Audit windows and Carrier bridges independently: row
    preservation, repeated membership and semantic identity uniqueness are not
    interchangeable rules. Preserve original key producers and validation debts.
+   Nearest now retains its original Carrier or key collection independently of
+   completed vector roles, including explicit-ID inputs that do not select a
+   supplied key. Ranking provenance can recover both original sides without
+   reconstructing them from output fields. VecA query/candidate key transfer,
+   including producer-bound positional identities, still remains to be closed.
 2. Define validated external evidence and resolved-capacity boundaries using
    the existing normative witness domains, governing laws and dependency checks.
    Shared [capacity arithmetic](capacity-arithmetic.md) is implemented and used

@@ -69,6 +69,16 @@ output construction consume one cumulative budget; repeated declarations and
 every alias visit are accounted for even when completion proves ambiguous.
 The single-Carrier APIs remain available and cannot invent key evidence.
 
+Each checked nearest input also retains its original `NearestSource`, accessible
+through `nearest_input_source`. A Relation stays a Relation at this boundary;
+the completed Vectors interpretation is separate. A supplied key collection is
+retained even when explicit roles bypass key selection, without declaring those
+unused keys validated or selected. Existing Vectors handles and opaque inputs
+are retained unchanged. Sharing these immutable handles adds no traversal or
+per-field budget charge. Ranking producers retain both original sides through
+their checked nearest operation; output key transfer and obligation discharge
+remain separate work.
+
 ## Grouped vector pooling
 
 The source reader preserves grouping order, method and optional component/identity

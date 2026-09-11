@@ -138,6 +138,7 @@ pub(all) enum NearestSide {
 
 ///|
 struct NearestInput {
+  supplied : NearestSource
   vectors : @carrier.Vectors?
   completed_vector : @row.FieldName?
   completed_identity : @evidence.KeyedRelation?
@@ -295,6 +296,7 @@ pub fn check_nearest_source(
       _ => fail(source, WrongCarrier(@carrier.kind(input)))
     }
     Ok({
+      supplied,
       vectors,
       completed_vector,
       completed_identity,
@@ -307,6 +309,13 @@ pub fn check_nearest_source(
   } catch {
     Stop(e) => Err(e)
   }
+}
+
+///|
+/// Returns the original immutable input, before role completion. Retaining a
+/// supplied key collection does not certify its rows or select an unused key.
+pub fn nearest_input_source(c : NearestInput) -> NearestSource {
+  c.supplied
 }
 
 ///|
