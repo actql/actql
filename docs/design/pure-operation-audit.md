@@ -15,6 +15,12 @@ condition or overloaded Carrier alternative has sufficient tests. In particular,
 a passing package suite is not a substitute for the remaining schema/vector/
 consumer audit.
 
+The [acceptance evidence inventory](pure-operation-test-inventory.md) now maps
+all 48 spellings to operation/pipeline tests and schema owners. Its integrity
+gate checks exact scope coverage, real evidence paths and presence in both
+embedded Program schemas. This closes the missing navigation/index mapping,
+not the assertion-by-assertion normative review or consumer completion below.
+
 | Scoped operations | Actual checking route |
 | --- | --- |
 | values | early `values` generator branch |
