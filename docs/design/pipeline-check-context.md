@@ -208,10 +208,43 @@ Tests cover overridden invalid defaults, bound object identity, unused branches,
 repeated producer occurrences, flags, capture zero and out-of-range indices,
 nullable static values, multibyte byte ceilings and exact budget
 boundaries. Regex matching and complete profile conformance are not tested or
-claimed here. Timestamp and regex collections remain separate owner-bound
-results; the final closure must combine their incremental usage without counting
-the shared context twice and must still close other obligation kinds. No public
+claimed here. The component-specific collections remain available for focused
+checks, but the combined constructor below owns their composition. No public
 constructor lets the lowerer substitute an unrelated collection.
+
+## Combined pattern validation
+
+`check_patterns` is the main integration entry for all PatternValidation sites.
+It accepts one ExpressionValidationContext and constructs both component checks
+itself; it does not accept timestamp and regex collections from the caller.
+The opaque PatternChecks retains that same context and every resolution in the
+original inventory order, including reused producer occurrences. The returned
+PatternResolution enum exposes a read-only timestamp or regex result, not a
+constructor for the owning checked collection.
+
+The constructor first rejects any unhandled PatternValidation operation instead
+of silently omitting it. It then checks timestamps and regex/static replacement
+options, in that deterministic phase order. An error reports its component and
+original inventory index. Result ordering does not claim a different global
+first-error order across phases, nor runtime first-failure semantics.
+
+All source/work caps include the retained base context exactly once. The second
+phase receives caps reduced by the first phase's incremental cost, not by the
+entire shared context. AST bytes and JSON nodes accumulate without overlap
+because both phases construct distinct ASTs. Inventory preflight and ordered
+collection each cost one work unit per site. Subtraction before addition keeps
+all combined arithmetic within the caller's admitted caps. `max_regex_depth`
+limits the recursive regex shape; timestamp components have their fixed flat
+shape, with their costs covered by the shared AST node/byte caps. A late failure
+returns no checked prefix, even if the other pattern family already succeeded.
+
+Mixed-family tests verify site identity and order, repeated producers, exact
+aggregate accounting and one-less rejection in every cumulative dimension.
+They also demonstrate that a context with only ProfileAdmission/HostEnvelope
+sites returns zero pattern resolutions without pretending those sites were
+discharged. Host ceilings are not implementation profile claims: the remaining
+profile check must follow the conformance owner, not infer support from policy
+presence. PatternChecks is still not a CheckedProgram or an executable Plan.
 
 ## Not yet a checked Program
 

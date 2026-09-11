@@ -39,6 +39,8 @@ pub fn check(@relation_results.CheckedResults, Array[@parameter_binding.BoundVal
 
 pub fn check_parameter_bindings(PipelineContext, max_work~ : Int, max_text_bytes~ : Int) -> Result[BoundParameters, ParameterIssue]
 
+pub fn check_patterns(ExpressionValidationContext, PatternLimits) -> Result[PatternChecks, PatternIssue]
+
 pub fn check_regex_patterns(ExpressionValidationContext, RegexPatternLimits) -> Result[RegexPatternChecks, RegexPatternIssue]
 
 pub fn check_resolved_orders(@relation_results.CheckedOrders, Array[@parameter_binding.BoundValues?], Array[@capacity_graph_preflight.ApplicationCoverage], @capacity_policy.Policy, max_work~ : Int, max_text_bytes~ : Int, proof_owners? : Array[(Int, Int, Int)], input_owners? : Array[(Int, Int, Int, Int)]) -> Result[PipelineContext, Issue]
@@ -86,6 +88,16 @@ pub fn parameter_usage(BoundParameters) -> (Int, Int)
 pub fn parameter_visit_at(BoundParameters, Int) -> ParameterVisit?
 
 pub fn parameter_visit_count(BoundParameters) -> Int
+
+pub fn pattern_at(PatternChecks, Int) -> PatternResolution?
+
+pub fn pattern_context(PatternChecks) -> ExpressionValidationContext
+
+pub fn pattern_count(PatternChecks) -> Int
+
+pub fn pattern_site(PatternResolution) -> ExpressionValidationSite
+
+pub fn pattern_usage(PatternChecks) -> PatternUsage
 
 pub fn policy_context(SelectedPolicyContext) -> ReconciledContexts
 
@@ -256,6 +268,36 @@ pub struct ParameterVisit {
   collected : @pipeline_parameters.Collected
   bound : @parameter_references.BoundIndex?
 }
+
+type PatternChecks
+
+pub(all) enum PatternIssue {
+  InvalidLimits
+  BudgetExceeded
+  UnsupportedPattern(Int, String)
+  Timestamp(TimestampPatternIssue)
+  Regex(RegexPatternIssue)
+} derive(Eq, @debug.Debug)
+
+pub(all) struct PatternLimits {
+  max_work : Int
+  max_text_bytes : Int
+  max_ast_bytes : Int
+  max_ast_nodes : Int
+  max_regex_depth : Int
+} derive(Eq, @debug.Debug)
+
+pub(all) enum PatternResolution {
+  Timestamp(TimestampPatternResolution)
+  Regex(RegexPatternResolution)
+}
+
+pub(all) struct PatternUsage {
+  work : Int
+  text_bytes : Int
+  ast_bytes : Int
+  ast_nodes : Int
+} derive(Eq, @debug.Debug)
 
 type PipelineContext
 
