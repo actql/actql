@@ -18,6 +18,7 @@ fn closure_cursor(text : String) -> @decode.Cursor {
 ///|
 fn empty_capacity(
   p : @pipeline.CheckedPipeline,
+  other_policy? : Bool = false,
 ) -> @capacity_graph_preflight.ApplicationCoverage {
   let mixed = @wire.check_mixed_claims([], [], {
     max_entities: 0,
@@ -36,7 +37,7 @@ fn empty_capacity(
     max_nodes: 0,
     max_depth: 0,
   }).unwrap()
-  let selected = policy(false)
+  let selected = policy(other_policy)
   let graph = @capacity_graph_preflight.check(p, source, selected, caps()).unwrap()
   let program = @program.check_applications(claims, [], max_work=0).unwrap()
   let sequence = @sequence.check_applications(
@@ -97,6 +98,7 @@ test "capacity closure covers unused and repeated producers with exact owners an
   let checked = @capacity_graph_preflight.check_application_closure(
     orders,
     entries,
+    selected_policy=policy(false),
     max_work=cost,
   ).unwrap()
   assert_eq(@capacity_graph_preflight.application_closure_work(checked), cost)
@@ -123,6 +125,7 @@ test "capacity closure covers unused and repeated producers with exact owners an
     @capacity_graph_preflight.check_application_closure(
       orders,
       [a, b],
+      selected_policy=policy(false),
       max_work=cost,
     )
     is Err(CoverageCount(expected=3, actual=2)),
@@ -131,6 +134,7 @@ test "capacity closure covers unused and repeated producers with exact owners an
     @capacity_graph_preflight.check_application_closure(
       orders,
       [a, b, b, b],
+      selected_policy=policy(false),
       max_work=cost,
     )
     is Err(CoverageCount(expected=3, actual=4)),
@@ -139,6 +143,7 @@ test "capacity closure covers unused and repeated producers with exact owners an
     @capacity_graph_preflight.check_application_closure(
       orders,
       [a, b, b],
+      selected_policy=policy(false),
       max_work=cost - 1,
     )
     is Err(WorkLimit(2)),
@@ -147,6 +152,7 @@ test "capacity closure covers unused and repeated producers with exact owners an
     @capacity_graph_preflight.check_application_closure(
       orders,
       [a, b, b],
+      selected_policy=policy(false),
       max_work=-1,
     )
     is Err(InvalidLimits),
@@ -156,9 +162,66 @@ test "capacity closure covers unused and repeated producers with exact owners an
     @capacity_graph_preflight.check_application_closure(
       orders,
       [a, b, foreign],
+      selected_policy=policy(false),
       max_work=cost,
     )
     is Err(ForeignPipeline(2)),
+  )
+}
+
+///|
+test "capacity closure selects one policy independently of all local applications" {
+  let base = fixture_pipeline(false)
+  let root = forwarding_pipeline([
+    (
+      "a",
+      @pipeline.ProducedInput(@pipeline.produced_input(base, Input(0)).unwrap()),
+    ),
+  ])
+  let orders = @pipeline.resolve_contextual_closure(
+    root,
+    max_steps=0,
+    max_work=100,
+    max_text_bytes=100,
+  ).unwrap()
+  let a = empty_capacity(root)
+  let b = empty_capacity(base)
+  let alternate = empty_capacity(base, other_policy=true)
+  let cost = 2 +
+    @capacity_graph_preflight.application_coverage_work(a) +
+    @capacity_graph_preflight.application_coverage_work(b)
+  // The alternate policy differs only in nested depth, not any local limit.
+  // No witnesses are needed here: absent artifacts must not hide selection drift.
+  assert_true(
+    @capacity_graph_preflight.check_application_closure(
+      orders,
+      [a, alternate],
+      selected_policy=policy(false),
+      max_work=cost,
+    )
+    is Err(ForeignPolicy(1)),
+  )
+  assert_true(
+    @capacity_graph_preflight.check_application_closure(
+      orders,
+      [a, b],
+      selected_policy=policy(true),
+      max_work=cost,
+    )
+    is Err(ForeignPolicy(0)),
+  )
+  let selected = policy(false)
+  let result = @capacity_graph_preflight.check_application_closure(
+    orders,
+    [a, b],
+    selected_policy=selected,
+    max_work=cost,
+  ).unwrap()
+  assert_true(
+    physical_equal(
+      @capacity_graph_preflight.application_closure_policy(result),
+      selected,
+    ),
   )
 }
 
@@ -192,6 +255,7 @@ test "capacity closure handles long forwarding ancestry without recursion" {
   let result = @capacity_graph_preflight.check_application_closure(
     orders,
     ordered,
+    selected_policy=policy(false),
     max_work=cost,
   ).unwrap()
   assert_eq(@capacity_graph_preflight.application_closure_work(result), cost)
@@ -199,6 +263,7 @@ test "capacity closure handles long forwarding ancestry without recursion" {
     @capacity_graph_preflight.check_application_closure(
       orders,
       ordered,
+      selected_policy=policy(false),
       max_work=cost - 1,
     )
     is Err(WorkLimit(1000)),

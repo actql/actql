@@ -589,6 +589,11 @@ for Graph membership, preflight and search-resource validation.
    long forwarding chains. This closes occurrence coverage for that subset,
    not remaining source authority, unsupported consumers, Invocation binding
    consistency or the final all-obligation boundary.
+   The occurrence closure now requires one independently selected admitted Host
+   policy and checks every local policy CID against it, including empty limit
+   collections and unused producers. Equal numeric ceilings do not hide policy
+   drift. This closes selection consistency within that boundary, not Host
+   authorization or enclosing semantic identity.
    Do not
    expand into acquisition, an evaluator or Host dispatch.
 3. Connect contextual resolutions into a complete static checking/discharge

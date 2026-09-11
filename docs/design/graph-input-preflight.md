@@ -162,12 +162,26 @@ entries fail. This includes unused inputs and branches because the contextual
 closure enumerates them rather than taking a caller-selected target subset.
 Repeated producer references remain separate occurrences and are charged again.
 
+The caller supplies the selected admitted policy independently of the local
+applications. Every visit must retain that policy CID, including visits with
+empty witness/limit collections; the first application's choice is not silently
+adopted as the environment's choice. Different admitted handles for the same
+canonical policy are equivalent here, unlike pipeline ownership. The closure
+retains the explicitly selected handle through `application_closure_policy`.
+This binds this closure to one Check Environment selection, following the
+protocol's capacity-host-policy canonical-source rule. It does not authenticate
+the selecting Host or claim that arbitrary independently checked producers must
+share an environment before being submitted to this combined boundary.
+
 The capacity aggregation budget is one registration unit plus the retained local
 application work per visit, using subtraction before addition to avoid overflow.
 It does not rerun or silently reset each local budget. The returned entry array
 is detached, and a failure at a later visit returns no partial closure. Tests
 cover repeated producers, an unused second input, equal-content foreign owners,
 missing/extra entries, exact/short budgets and a 1,000-link forwarding chain.
+Policy regressions reject both a foreign upstream selection and an independently
+selected policy that disagrees with the root, even when all local limits are
+absent or numerically unaffected by the changed policy field.
 
 This establishes supported local capacity coverage across the producer graph,
 not complete source authority or all capacity consumers. Contextual resolution

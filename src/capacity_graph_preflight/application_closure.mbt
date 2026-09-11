@@ -4,6 +4,7 @@ pub(all) enum ApplicationClosureIssue {
   CoverageCount(expected~ : Int, actual~ : Int)
   WorkLimit(Int)
   ForeignPipeline(Int)
+  ForeignPolicy(Int)
 } derive(Eq, Debug)
 
 ///|
@@ -12,6 +13,7 @@ pub(all) enum ApplicationClosureIssue {
 struct ApplicationClosure {
   orders : @pipeline.ContextualClosure
   entries : Array[ApplicationCoverage]
+  policy : @policy.Policy
   work : Int
 }
 
@@ -19,6 +21,7 @@ struct ApplicationClosure {
 pub fn check_application_closure(
   orders : @pipeline.ContextualClosure,
   applications : Array[ApplicationCoverage],
+  selected_policy~ : @policy.Policy,
   max_work~ : Int,
 ) -> Result[ApplicationClosure, ApplicationClosureIssue] {
   if max_work < 0 {
@@ -44,8 +47,16 @@ pub fn check_application_closure(
     if !physical_equal(expected, app.sources.graph.pipeline) {
       return Err(ForeignPipeline(i))
     }
+    if @policy.cid(selected_policy) != @policy.cid(app.sources.graph.policy) {
+      return Err(ForeignPolicy(i))
+    }
   }
-  Ok({ orders, entries: applications.copy(), work, })
+  Ok({ orders, entries: applications.copy(), policy: selected_policy, work, })
+}
+
+///|
+pub fn application_closure_policy(v : ApplicationClosure) -> @policy.Policy {
+  v.policy
 }
 
 ///|
