@@ -5,7 +5,8 @@ import { validateRegistry, loadRegistry, renderRegistry, renderGuardLaws } from 
 
 test('registry fixes its identity, rejects missing Host entries and malformed names', () => {
   const { body, policy } = loadRegistry();
-  assert.equal(validateRegistry(body, policy), 'sha256:43121f11140ba607477398f90286872f759e0fff978562d81124a5e70d9137fd');
+  assert.equal(validateRegistry(body, policy), 'sha256:e8f2bc38c037ab19204ad4863714351140c2aea9de3a30683e868ea08fd87e40');
+  assert.ok(body.law_ids.includes('actql.bound.text-rank'));
   const family = JSON.parse(readFileSync(new URL('../spec/spec-family.json', import.meta.url), 'utf8'));
   const owner = family.documents.find(document => document.spec_id === 'actql.protocol.contracts');
   assert.deepEqual(owner.machine_contracts.filter(ref => ref.path === 'spec/contracts/actql-bound-law-registry.json'), [{

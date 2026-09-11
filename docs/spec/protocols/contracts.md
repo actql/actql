@@ -160,10 +160,18 @@ nodes or path length. These restrictions do not establish measured bounds
 before enforcement. The operation contract still determines the enforcement
 boundary; the table does not grant truncation, selection, or execution authority.
 
+The Program law `actql.bound.text-rank` identifies the lexical ranking output
+bound from [Language's text_rank](../language.md#text-rank): query count times
+the smaller of k and corpus count. A query-only upper bound may use k directly.
+These are output-row upper bounds, not exact counts or bounds on corpus scoring
+work. A corpus-dependent reduction retains the corpus count dependency in
+addition to the query dependency; a scalar factor alone is not evidence of
+the corpus size. This law is separate from the nearest output law.
+
 <!-- requirement-block: capacity-law-registry.machine-contract -->
 <!-- normative-code: law -->
 ```text
-../../../spec/contracts/actql-bound-law-registry.json# sha256:43121f11140ba607477398f90286872f759e0fff978562d81124a5e70d9137fd
+../../../spec/contracts/actql-bound-law-registry.json# sha256:e8f2bc38c037ab19204ad4863714351140c2aea9de3a30683e868ea08fd87e40
 ```
 
 <a id="capacity-host-policy"></a>

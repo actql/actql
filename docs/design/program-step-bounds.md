@@ -38,6 +38,7 @@ The proof must use the existing `DerivedInputs` form. Its role is
 | `row_window` | `actql.bound.row-window`, multiply by one for fixed windows or exact `ceil(size / step)` for sliding windows. |
 | `window_events` | `actql.bound.window-events`, the same membership factor applied to the Events input occurrence bound, with Carrier-preserving output. |
 | `nearest` | `actql.bound.nearest`, query bound times the checked `k`, or query bound times `min(candidate bound, k)` with both input applications retained. |
+| `text_rank` | `actql.bound.text-rank`, query bound times `k`, or query bound times `min(corpus bound, k)` with both actual input applications retained. Zero-score filtering does not establish an exact count. |
 | `merge_rankings` | `actql.bound.merge-rankings`, sum all ordered input upper bounds; with empty `by`, clamp that sum to `k`, or use an input-independent `k` upper bound. |
 
 `check_with_inputs` also accepts one input application for selection,
@@ -132,6 +133,25 @@ producer, complete application collection coverage, and overflow after Parameter
 binding. Candidate/query value, identity, profile, score, search-work and
 publication obligations remain on their checked operations; an output bound is
 not a search-work or memory admission certificate.
+
+Lexical ranking shares the per-query top-k arithmetic, not nearest's law ID or
+score semantics. The one-input proof addresses the query edge and multiplies
+by the exact checked k; the two-input `source` proof retains corpus then query
+applications and recomputes `query_count * min(k, corpus_count)`. Corpus-dependent
+factors cannot omit the corpus proof, even when both edges refer to the same
+producer. Full safe-integer checks include zero factors and reject overflow.
+The tokenizer/profile, corpus statistics, text/identity admission, scores and
+work/byte ceilings remain on the retained lexical operation. No exact result
+count is inferred: zero-score documents may be absent even with nonempty inputs.
+
+The existing Language text-rank rule is authoritative. Fixed Sketch `87dc7144`
+does not provide this compiler law; its nearest arithmetic supplies implementation
+material only. The new registered `actql.bound.text-rank` name identifies that
+existing lexical rule explicitly instead of reusing a nearest proof. Adding it
+changes the law-registry CID and its metadata/identity pins, not the lexical
+profile bytes or the semantics of authored text_rank. Tests cover both tokenizers,
+empty corpus/query producers, k boundaries, hidden factor dependencies, wrong
+law/owner, repeated inputs, complete application coverage and overflow.
 
 Ranking fusion's full source proof lists every input witness, including repeated
 RRF occurrences, and uses `source` derivation. The application checks the actual

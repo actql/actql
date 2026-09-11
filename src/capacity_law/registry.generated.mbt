@@ -42,6 +42,7 @@ pub fn admit(law : String) -> RegisteredLaw? {
     "actql.bound.serialize-artifact-row" => Some(RegisteredLaw(law))
     "actql.bound.shortest-path" => Some(RegisteredLaw(law))
     "actql.bound.take" => Some(RegisteredLaw(law))
+    "actql.bound.text-rank" => Some(RegisteredLaw(law))
     "actql.bound.top-k" => Some(RegisteredLaw(law))
     "actql.bound.traverse-nodes" => Some(RegisteredLaw(law))
     "actql.bound.traverse-output" => Some(RegisteredLaw(law))

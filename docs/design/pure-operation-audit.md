@@ -241,7 +241,11 @@ matching automaton or proof that session-boundary values have been computed.
    the candidate count reduces the factor. Application checks reject swapped
    operands and hidden factor dependencies, preserve zero candidate bounds and
    fail on checked multiplication overflow. Search-work and value/score/profile
-   obligations remain separate. Ranking fusion applications now include all
+   obligations remain separate. Lexical text_rank applications now apply its
+   registered output law with query-only or corpus-dependent bounds, preserving
+   both actual dependencies when the corpus reduces the factor. Score-zero
+   filtering does not create an exact-count claim; profile, corpus, numeric and
+   work/byte obligations remain. Ranking fusion applications now include all
    ordered input bounds, retaining RRF repetition and checking source/add laws.
    Global grouping clamps to k without an overflowing intermediate sum; grouped
    sums reject overflow. Indexed connections and explicit cumulative operand

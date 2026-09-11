@@ -36,6 +36,7 @@
     "actql.bound.serialize-artifact-row",
     "actql.bound.shortest-path",
     "actql.bound.take",
+    "actql.bound.text-rank",
     "actql.bound.top-k",
     "actql.bound.traverse-nodes",
     "actql.bound.traverse-output",

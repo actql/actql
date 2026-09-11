@@ -70,7 +70,7 @@ priv enum Rule {
   Clamp(Int64)
   Sum
   Multiply(Int64)
-  Nearest(Int64)
+  QueryTopK(Int64)
   Ranking(Int, Int64?)
   Join(@join.Kind)
 }
@@ -99,7 +99,7 @@ fn operation_rule(
     return Ok(
       (
         "actql.bound.nearest",
-        Nearest(
+        QueryTopK(
           @vector.nearest_k(
             @vector.nearest_pair_options(@vector.nearest_pair(checked)),
           ),
@@ -118,6 +118,16 @@ fn operation_rule(
       (
         "actql.bound.merge-rankings",
         Ranking(@vector.merged_ranking_input_count(checked), maximum),
+      ),
+    )
+  }
+  if step.operation is @pipeline.TextRank(checked~, ..) {
+    return Ok(
+      (
+        "actql.bound.text-rank",
+        QueryTopK(
+          @vector.text_rank_k(@vector.text_rank_options(checked)).to_int64(),
+        ),
       ),
     )
   }
@@ -311,7 +321,7 @@ fn check_application(
     Sum => n == 2
     Join(_) => n == 2
     Multiply(_) => n == 1
-    Nearest(_) => n == 1 || n == 2
+    QueryTopK(_) => n == 1 || n == 2
     Ranking(expected, maximum) =>
       n == expected || (n == 0 && maximum is Some(_))
   }
@@ -332,8 +342,8 @@ fn check_application(
   let mut input_work = 0
   for i in 0..<n {
     let mut owner = pipeline
-    // nearest's one-operand bound is query-side, not the primary candidates.
-    let edge = if rule is Nearest(_) && n == 1 { 1 } else { i }
+    // Per-query top-k uses the query side for its one-operand bound.
+    let edge = if rule is QueryTopK(_) && n == 1 { 1 } else { i }
     let mut target = @pipeline.input_occurrence_at(step, edge).unwrap().target
     while !(physical_equal(owner, inputs[i].pipeline) &&
           target == @pipeline.Step(inputs[i].index)) {
@@ -429,7 +439,7 @@ fn check_application(
         Ok(v) => @numeric.value(v)
         Err(_) => return Err(BoundOverflow)
       }
-    Nearest(k) => {
+    QueryTopK(k) => {
       let query = input_value(n - 1)
       let maximum = @numeric.read(k).unwrap()
       let factor = if n == 1 {
@@ -474,12 +484,12 @@ fn check_application(
     (Sum, @wire.Add(left, right)) if left == ids[0] && right == ids[1] => ()
     (Multiply(expected), @wire.Multiply(input, factor)) if factor == expected &&
       input == ids[0] => ()
-    (Nearest(expected), @wire.Multiply(input, factor)) if n == 1 &&
+    (QueryTopK(expected), @wire.Multiply(input, factor)) if n == 1 &&
       factor == expected &&
       input == ids[0] => ()
     // A candidate-dependent factor must retain that candidate proof as well.
     // Source-law validation computes the full product from both owned inputs.
-    (Nearest(_), @wire.SourceValue) if n == 2 => ()
+    (QueryTopK(_), @wire.SourceValue) if n == 2 => ()
     (Ranking(_, _), @wire.SourceValue) if n > 0 => ()
     (Ranking(_, None), @wire.Add(left, right)) if n == 2 &&
       left == ids[0] &&

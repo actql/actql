@@ -7572,7 +7572,7 @@
     },
     {
       "requirement_id": "actql.protocol.contracts/capacity-law-registry.machine-contract",
-      "statement_sha256": "f2ea9dbdbebdf7d05c583b57920a36730c4f496ca4ef3c4177bc60ca482d8f9f",
+      "statement_sha256": "57cd0b188c56d2cc95857c70c27da145acf73c52b932b005e6f8af1c15845562",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
