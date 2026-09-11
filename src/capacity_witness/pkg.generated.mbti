@@ -15,6 +15,8 @@ pub fn bind_program_proof(Bytes, WireWitness, Limits) -> Result[ProgramProofClai
 
 pub fn check_arithmetic_claims(Array[WireWitness], ClosureLimits) -> Result[ArithmeticClaims, ClosureIssue]
 
+pub fn check_program_claims(ArithmeticClaims, Array[ProgramProofClaim], ClosureLimits) -> Result[ProgramClaims, ProgramClosureIssue]
+
 pub fn cid(WireWitness) -> String
 
 pub fn claim_arithmetic(ArithmeticClaims) -> @capacity_derivation.CheckedArithmetic
@@ -34,6 +36,12 @@ pub fn derivation(WireWitness) -> Derivation
 pub fn emit(WireWitness, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
 
 pub fn law(WireWitness) -> @capacity_law.RegisteredLaw
+
+pub fn program_claim_arithmetic(ProgramClaims) -> ArithmeticClaims
+
+pub fn program_claim_proof_at(ProgramClaims, Int) -> ProgramProofClaim?
+
+pub fn program_claim_reference_count(ProgramClaims) -> Int
 
 pub fn program_proof_form(ProgramProofClaim) -> ProgramProofForm
 
@@ -91,6 +99,19 @@ pub(all) struct Limits {
   max_nodes : Int
   max_depth : Int
 }
+
+type ProgramClaims
+
+pub(all) enum ProgramClosureIssue {
+  InvalidProgramLimits
+  ProgramBudgetExceeded
+  ForeignProgramProof(Int)
+  DuplicateProgramProof(Int)
+  MissingProgramProof(Int)
+  MissingProgramInput(Int, String)
+  ProgramOperandMismatch(Int)
+  CyclicProgramInputs
+} derive(Eq, @debug.Debug)
 
 type ProgramProofClaim
 

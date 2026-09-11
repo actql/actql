@@ -108,6 +108,11 @@ consumer audit.
    It preserves repeated proof inputs but does not validate Program subjects,
    governing-law applications or the truth of source bounds. Enforced ceilings
    still require the separate resolved-limit owner.
+   Program-input closure now requires one bound proof for every Program claim,
+   resolves every proof input within the arithmetic witness collection, checks
+   operand occurrences and rejects cycles including source-proof dependencies.
+   This closes the input-reference gap, not external source bodies or semantic
+   applicability; no pipeline execution evidence is produced by this result.
    Do not add public proof flags, treat policy ceilings as observations, or
    expand into acquisition, an evaluator or Host dispatch.
 3. Connect contextual resolutions into a complete static checking/discharge

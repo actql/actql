@@ -117,3 +117,42 @@ against a particular law, or establish that the semantic operation guarantees
 the claimed bound. Those source/application obligations remain mandatory.
 Tests use independently computed proof and wire CIDs, retain repeated inputs,
 check exact budgets and reject self-consistent mismatches and altered encoding.
+
+## Program input closure
+
+`check_program_claims` combines an `ArithmeticClaims` collection with bound
+Program proof bodies. Every Program claim requires exactly one matching proof,
+including unused claims; duplicate and foreign proofs fail. Proof arrays may
+arrive in any order, but the result exposes them in the original claim order.
+Ownership is bound by the admitted witness CID, not by a caller-supplied flag.
+
+Every proof input must resolve to a witness in that same arithmetic collection.
+For non-source derivations, the inputs must match the derivation operands:
+preserve/multiply/clamp have their specified zero or one input, add retains both
+occurrences even when their CIDs match, and minimum compares its unique operand
+set while preserving the repeated proof inputs. Source proofs may depend on
+other witnesses without describing arithmetic; those edges are still resolved.
+These representation checks follow the fixed proof constructors, not an
+assumption that membership in the law registry proves operation applicability.
+
+The union of Program proof inputs and non-Program arithmetic operand edges is
+checked for cycles with an iterative traversal. Numeric source leaves therefore
+cannot hide missing inputs or cycles from this boundary. The referenced Program
+Definition and other external source bodies are not witness nodes and still
+need their respective source owners; no fictitious numeric node is substituted.
+
+The witness budget counts arithmetic claims plus supplied proof bodies. The
+reference budget includes the arithmetic collection's previous charges and every
+proof input occurrence. Both are checked before allocating indexes or graph
+edges. Results own the proof index and retain the original arithmetic collection.
+Failure is atomic; no partially linked proof collection is returned.
+
+Fixed independent fixtures cover all arithmetic forms, repeated inputs, forward
+references, both proof forms, input ownership, exact budgets, missing proofs and
+missing source inputs. Synthetic topology tests cover repeated edges, unused
+cycles and a 10,000-node chain without claiming cyclic SHA-256 preimages.
+
+`ProgramClaims` is still not runnable evidence: it establishes integrity,
+arithmetic and Program-input closure, not source truth, author/Contract/language
+authority, the actual Program subject or governing-law applicability. Complete
+source/application validation and resolved-limit enforcement remain mandatory.
