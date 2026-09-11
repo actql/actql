@@ -1,11 +1,22 @@
 ///|
 fn snapshot_for(name : String, fields : String) -> @snapshot.Snapshot {
+  snapshot_in_stage("s", name, fields)
+}
+
+///|
+fn snapshot_in_stage(
+  stage : String,
+  name : String,
+  fields : String,
+) -> @snapshot.Snapshot {
   // Linkage tests use the already independently tested snapshot reader, not an
   // independent hash oracle. Body bytes here are explicitly canonical.
   let bytes = @utf8.encode(
     "{\"output_carrier\":\"relation\",\"schema\":{\"additional_properties\":false,\"fields\":" +
     fields +
-    ",\"nullable\":false,\"type\":\"object\"},\"source_ref\":\"source:local/s/" +
+    ",\"nullable\":false,\"type\":\"object\"},\"source_ref\":\"source:local/" +
+    stage +
+    "/" +
     name +
     "\",\"version\":\"actql-local-input-schema/0.1\"}",
   )

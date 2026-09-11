@@ -92,6 +92,23 @@ Final Program assembly must check all required inputs and all supplied evidence,
 governing policy and provenance, and retain this owner when combining stages.
 This does not change source-only pipeline registration or grant Host authority.
 
+`assemble_environment` collects exactly one `EnvironmentInputs` for every stage
+of the same source and wire environment. Input array order is immaterial; the
+opaque result indexes stages in Program order and copies the caller collection.
+Every supplied SchemaSnapshots member must occur in the checked stage results;
+omitted members and repeated stages are rejected. This is the local-Relation
+assembly path: unsupported snapshot kinds cannot be silently skipped to obtain
+its coverage result. Their future dedicated readers must integrate explicitly.
+An input without a supplied snapshot is not implicitly rejected or marked
+materialized. Determining required evidence from declarations and policy remains
+the compiler's responsibility, distinct from accounting for all supplied bodies.
+
+Assembly charges prior stage costs cumulatively plus stage/member indexing and
+coverage checks, with no equal-CID cost discount. Depth is not re-traversed here;
+prior readers retain their own depth caps. Other Check Environment sections are
+not validated by this result. Catalog closure, policy/authority checks, stronger
+pipeline input registration and final lowering-ready Program assembly remain open.
+
 Preparation charges stage input enumeration and import-name indexing, then each
 local declaration's source nodes as logical work. Node and UTF-8 allowances are
 shared across all local declarations, including metadata; depth is measured from

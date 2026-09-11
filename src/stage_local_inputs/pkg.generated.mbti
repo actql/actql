@@ -13,6 +13,8 @@ import {
 }
 
 // Values
+pub fn assemble_environment(@stage_parameters.Source, @check_environment.WireEnvironment, Array[EnvironmentInputs], Limits) -> Result[ProgramEnvironmentInputs, ProgramEnvironmentIssue]
+
 pub fn attach(Prepared, @stage_parameters.CollectedStage, max_work~ : Int) -> Result[Attached, Issue]
 
 pub fn attached_inputs(Attached) -> Prepared
@@ -33,6 +35,8 @@ pub fn entry_at(Prepared, Int) -> (String, @local_relation_input.Checked)?
 
 pub fn environment_assertions(EnvironmentInputs) -> CheckedSnapshots
 
+pub fn environment_program(ProgramEnvironmentInputs) -> @stage_parameters.Source
+
 pub fn environment_snapshot_at(EnvironmentInputs, Int) -> @local_relation_snapshot.EnvironmentSnapshot?
 
 pub fn environment_usage(EnvironmentInputs) -> Usage
@@ -42,6 +46,12 @@ pub fn input_at(Prepared, Int) -> (String, @pipeline_typing.InputContract)?
 pub fn input_environment(EnvironmentInputs) -> @check_environment.WireEnvironment
 
 pub fn prepare(@stage_parameters.Source, Int, Limits) -> Result[Prepared, Issue]
+
+pub fn program_environment(ProgramEnvironmentInputs) -> @check_environment.WireEnvironment
+
+pub fn program_environment_stage(ProgramEnvironmentInputs, Int) -> EnvironmentInputs?
+
+pub fn program_environment_usage(ProgramEnvironmentInputs) -> Usage
 
 pub fn reconcile_environment(Prepared, @stage_source_refs.Index, @check_environment.WireEnvironment, Array[@local_relation_snapshot.EnvironmentSnapshot], Limits) -> Result[EnvironmentInputs, EnvironmentIssue]
 
@@ -106,6 +116,19 @@ pub(all) struct Limits {
 }
 
 type Prepared
+
+type ProgramEnvironmentInputs
+
+pub enum ProgramEnvironmentIssue {
+  InvalidLimits
+  BudgetExceeded
+  StageCountMismatch
+  ForeignProgram(Int)
+  ForeignEnvironment(Int)
+  DuplicateStage(Int)
+  DuplicateMember(Int)
+  UncheckedSnapshot(Int)
+}
 
 type SchemaAssertions
 

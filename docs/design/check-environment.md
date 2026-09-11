@@ -68,4 +68,7 @@ agreement and the governing policy/Catalog checks, not unwrap and forget it.
 `stage_local_inputs.reconcile_environment` now preserves this ownership alongside
 resolved stage inputs and schema agreements. It rejects foreign member owners,
 including separately read identical envelopes. Its selected member set may be
-partial; all-stage coverage and full component admission remain separate work.
+partial. `stage_local_inputs.assemble_environment` now requires every stage and
+every supplied snapshot to be covered under the same source/environment owners.
+This is local-Relation snapshot coverage, not admission of other sections or proof
+that all inputs have the evidence their governing policy will require.

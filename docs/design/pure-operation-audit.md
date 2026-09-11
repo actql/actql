@@ -853,7 +853,8 @@ admission, resource enforcement or complete source authority.
    optional materialization claims. Stage-local snapshot reconciliation now binds
    these bodies to their own resolved selectors and exact source/type-assertion
    owners with cumulative budgets. Selected snapshot environment membership now
-   stays attached through stage-local reconciliation. Full environment admission, provenance validation
+   stays attached through stage-local reconciliation and all-stage assembly,
+   which checks every supplied snapshot is covered. Full environment admission, provenance validation
    and augmented pipeline registration still need integration; integrity and
    schema agreement are not authority.
    The [Check Environment envelope](check-environment.md) now has a pinned
