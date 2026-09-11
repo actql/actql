@@ -12,8 +12,10 @@ to repair an unresolved higher-priority choice:
 1. Authored order retains every term, direction and null placement. An eligible
    candidate key closes ties; only missing components are appended ascending,
    nulls last. Existing aliases count as coverage of their original component.
-   No selected key leaves the authored ties unresolved in this implementation;
-   it does not authorize a replacement sort over projected fields.
+   Without an eligible key, a retained total sequence can break equal authored
+   terms under stable sorting. The strategy stays Authored, with unchanged terms
+   and a separately retained inherited witness; it does not authorize a
+   replacement sort over projected fields. Without either witness ties fail.
 2. Without authored order, inherited pipeline order is retained even if Result
    projection hides its original ordering fields.
 3. Otherwise the canonical eligible candidate key orders the input before field
@@ -49,7 +51,13 @@ original checked Results and provides only indexed read-only access, so callers
 cannot omit an inconvenient Result or splice a different pipeline into it.
 Its usage is the sum of individual resolutions, not a fresh budget per Result.
 
+Fixed Sketch `87dc7144` also uses upstream ordering for stable authored ties.
+Language now makes this case explicit, consistent with the nest and analytic
+distinction between primary keys and position completion. Sketch's additional
+projected-field fallback for explicit ties is not adopted: current Language
+reserves that fallback for omitted order. No source or identity rewriting follows.
+
 Stage/root publication admission can require this complete collection, but still
 needs to resolve execution, policy and resource dependencies. Additional
-admissible proofs for authored ties and external order witnesses remain separate
+admissible external order witnesses remain separate
 work. A complete strategy collection is not permission to publish unvalidated data.

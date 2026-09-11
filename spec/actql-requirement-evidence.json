@@ -5448,6 +5448,17 @@
       }
     },
     {
+      "requirement_id": "actql.language/results-and-delivery.authored-stable-ties",
+      "statement_sha256": "7e63645c08387c7e1f1a4efe586b2a1bd01cff854d75b6ee84655ce42d6ca42a",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "results-and-delivery",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.language/results-and-delivery.physical-input-enumeration-order-must-not-break-ties",
       "statement_sha256": "3d467b9a23a0f9eb7d3de7b01b5d0a74b1c9e4ceb9b9cfc6b34b231f2c1b9103",
       "status": "pending",

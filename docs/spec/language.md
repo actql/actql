@@ -6501,6 +6501,15 @@ Result order is resolved in this priority:
    field order, if every field is `CanonicalOrderable` ([Lexical and ordering rules](#ordering)).
 5. Otherwise reject the Result.
 
+<!-- requirement-block: results-and-delivery.authored-stable-ties -->
+For authored Result order, checking MUST first apply eligible candidate-key completion. If no
+eligible key is available, a retained total stable ordering witness MAY resolve
+ties by stable sorting: authored terms remain primary and the witness orders
+only rows equal on all those terms. This does not replace authored order with
+the inherited sequence. Without either witness, reject; projected-field fallback
+applies only when authored `order_by` is absent. Retained execution and admission
+obligations of the supporting witness still apply.
+
 <!-- requirement-block: results-and-delivery.physical-input-enumeration-order-must-not-break-ties -->
 No lower-priority rule overrides a higher-priority one. Physical
 input enumeration order MUST NOT break ties.

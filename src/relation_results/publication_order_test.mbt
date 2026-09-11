@@ -132,3 +132,68 @@ test "publication inherited order outranks key fallback but never authored order
     }
   }
 }
+
+///|
+test "authored publication order uses retained positions only for ties" {
+  let p = @pipeline.check_carriers(
+    cursor(
+      "[{\"values\":{\"schema\":{\"x\":{\"type\":\"number\",\"nullable\":false}},\"rows\":[{\"x\":2},{\"x\":1},{\"x\":1}]},\"as\":\"rows\"}]",
+    ),
+    [],
+    None,
+    None,
+    ranking_limits(),
+  ).unwrap()
+  for direction in ["asc", "desc"] {
+    let r = @relation_results.check(
+      p,
+      cursor(
+        "{\"out\":{\"from\":\"rows\",\"fields\":[\"x\"],\"order_by\":[{\"x\":\"" +
+        direction +
+        "\"}]}}",
+      ),
+      limits(),
+    ).unwrap()
+    let order = resolve(r)
+    assert_eq(@relation_results.publication_strategy(order), Authored)
+    assert_true(@relation_results.publication_key(order) is None)
+    assert_eq(@relation_results.publication_term_count(order), 1)
+    let term = @relation_results.publication_term_at(order, 0).unwrap()
+    assert_true(term.authored)
+    assert_eq(term.direction, if direction == "asc" { Asc } else { Desc })
+    assert_eq(
+      @pipeline.order_origin(
+        @relation_results.publication_inherited_order(order).unwrap(),
+      ),
+      Step(0),
+    )
+    let (work, text) = @relation_results.publication_order_usage(order)
+    assert_true(
+      @relation_results.resolve_publication_order(
+        r,
+        0,
+        max_work=work,
+        max_text_bytes=text,
+      )
+      is Ok(_),
+    )
+    assert_eq(
+      @relation_results.resolve_publication_order(
+        r,
+        0,
+        max_work=work - 1,
+        max_text_bytes=text,
+      ).unwrap_err().kind,
+      BudgetExceeded,
+    )
+    assert_eq(
+      @relation_results.resolve_publication_order(
+        r,
+        0,
+        max_work=work,
+        max_text_bytes=text - 1,
+      ).unwrap_err().kind,
+      BudgetExceeded,
+    )
+  }
+}

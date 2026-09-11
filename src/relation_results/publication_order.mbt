@@ -98,7 +98,7 @@ pub fn resolve_publication_order(
       text: max_text_bytes,
     }
     spend(b, source, 1)
-    let inherited = if definition.order is None {
+    let mut inherited = if definition.order is None {
       @pipeline.logical_order(results.pipeline, definition.target)
     } else {
       None
@@ -151,7 +151,13 @@ pub fn resolve_publication_order(
         // Authored order takes priority: never replace it with projected-field
         // fallback or inherited order when its ties remain unresolved.
         if selected is None {
-          fail(source, UnresolvedOrder)
+          inherited = @pipeline.logical_order(
+            results.pipeline,
+            definition.target,
+          )
+          if inherited is None {
+            fail(source, UnresolvedOrder)
+          }
         }
       }
       if selected is Some(key) {
@@ -179,6 +185,10 @@ pub fn resolve_publication_order(
         } else {
           CandidateKey
         }
+      } else if definition.order is Some(_) {
+        // The authored terms are primary; the retained sequence breaks ties
+        // under stable sorting, without becoming a replacement order.
+        Authored
       } else {
         spend(b, source, @schema.field_count(definition.schema))
         let projected : Map[String, @schema.Field] = Map([])
