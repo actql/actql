@@ -1,0 +1,26 @@
+{
+  "version": "actql-regex-ast-contract/0.1",
+  "ast_version": "actql-regex-ast/0.1",
+  "schema": {
+    "path": "spec/grammar/actql-regex-ast-0.1.schema.json",
+    "pointer": "",
+    "cid": "sha256:cc114653eb3db3bdf94bf233f34c0baa5f4c5bc305aeb07ed66283706054d3d9"
+  },
+  "scope": "Overrides inherited text-time regex AST representation and identity only; matching, grammar, flags and demand laws remain in force.",
+  "semantics": {
+    "scalar": "integer_0_to_1114111_excluding_55296_to_57343_assignment_not_required",
+    "literal": "closed_kind_literal_and_codepoint_one_exact_scalar",
+    "range": "closed_kind_range_and_integer_start_end_inclusive_start_le_end_over_scalar_universe",
+    "escapes": {
+      "n": 10,
+      "r": 13,
+      "t": 9
+    },
+    "normalization": "source_text_obeys_NFC_LF_before_parsing_decoded_AST_scalars_are_not_text_normalized",
+    "ordering": "retain_literal_sequence_class_item_branch_and_capture_occurrence_order",
+    "identity": "ordinary_canonical_JSON_of_complete_AST_body_excluding_only_ast_cid",
+    "compatibility": "old_string_literal_values_and_string_range_endpoints_rejected_no_silent_reinterpretation",
+    "backend": "exact_expression_contract_and_local_AST_dependency_support_required_no_legacy_registry_relabeling",
+    "semantic_checks": "range_order_capture_numbering_counts_and_quantifier_rules_require_separate_validation"
+  }
+}

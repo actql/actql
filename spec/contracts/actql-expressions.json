@@ -36216,5 +36216,10 @@
     "authority": "Effect selectors keep their restricted operand/tree admission. Pure profile evaluation grants no provider access. New node contracts require explicit capability admission; old Plan/contract CIDs retain their prior meaning.",
     "fragment_capacity": "actql.expression-fragment.capacity is an extension-local contract-ceiling law. Its source is the canonical bound request CID and exact request pointer; dependencies contain only that CID. Resolved limits retain the existing witness/limit wire shape, engine_atomic enforcement and breach fail. This contract registers the law only for fragment revalidation, not in the shared bound-law registry. Limits are sorted by request pointer and regenerated, including all aggregate max_items guards.",
     "fragment_binding": "actql-expression-fragment/0.1 self-CID excludes only fragment_cid. expression_contract_cid pins this contract. request binds source schemas, canonical source pipeline, typed parameter values and ceilings. graph has inline expression nodes at REL.derive /exprs/name, REL.where and REL.assert_all /expr, REL.groupBy /aggs/name/expr and optional /aggs/name/filter. Pointers are relative to params and RFC6901 escaped. Roots are ordered by graph step order then pointer code-unit order; each root stores source, node, checked contract and demand paths rooted at /roots/index/source. Aggregate arguments prepend their own filter-root true test. Admission recompiles request and requires exact equality of graph, root list, types and demand. Schema/self-CID alone is insufficient. Other consumers require a separately admitted binding contract; this revision does not grant them an implicit root position."
+  },
+  "regex_ast_contract": {
+    "path": "spec/contracts/actql-regex-ast.json",
+    "pointer": "",
+    "cid": "sha256:9c4e0107ad1e6a1eb374e8365c07615c74773416b0b43f9a1e02db5e551efc78"
   }
 }

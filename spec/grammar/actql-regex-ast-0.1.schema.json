@@ -28,19 +28,29 @@
     }
   },
   "$defs": {
+    "scalar": {
+      "description": "One Unicode scalar value, not a UTF-16 code unit or normalized text.",
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 1114111,
+      "not": {
+        "minimum": 55296,
+        "maximum": 57343
+      }
+    },
     "literal": {
       "type": "object",
       "additionalProperties": false,
       "required": [
         "kind",
-        "value"
+        "codepoint"
       ],
       "properties": {
         "kind": {
           "const": "literal"
         },
-        "value": {
-          "type": "string"
+        "codepoint": {
+          "$ref": "#/$defs/scalar"
         }
       }
     },
@@ -80,12 +90,10 @@
           "const": "range"
         },
         "start": {
-          "type": "string",
-          "minLength": 1
+          "$ref": "#/$defs/scalar"
         },
         "end": {
-          "type": "string",
-          "minLength": 1
+          "$ref": "#/$defs/scalar"
         }
       }
     },

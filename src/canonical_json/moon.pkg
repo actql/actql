@@ -15,5 +15,6 @@ formatter(
     "check_environment.generated_test.mbt",
     "identity_vectors.generated_test.mbt",
     "values_execution.generated_test.mbt",
+    "regex_ast_scalars.generated_test.mbt",
   ],
 )

@@ -2625,6 +2625,35 @@ and implementation-specific escapes are outside the grammar. Patterns are
 literal or invocation-parameter values, not fields; recursion and
 host-specific flags are forbidden.
 
+<!-- requirement-block: text-time.regex-ast-scalars -->
+Regex AST literal nodes MUST use the closed form `{kind: "literal", codepoint: n}`,
+where `n` is one Unicode scalar integer (`0..1114111`, excluding `55296..57343`),
+not a UTF-16 code unit or string. Assignment in the Unicode version is not
+required. Character-class range `start` and `end` use the same scalar integer
+domain, with `start <= end` and inclusive membership over the scalar universe.
+Decoded `\\n`, `\\r`, and `\\t` therefore carry 10, 13, and 9 respectively.
+Source pattern text retains its ordinary NFC/LF admission; decoded AST scalars
+are not text-normalized. Literal nodes, class items, branches and captures
+retain their prescribed occurrence order.
+
+<!-- requirement-block: text-time.regex-ast-identity -->
+The regex AST CID MUST use ordinary canonical JSON of the complete AST body,
+excluding only `ast_cid`. Numeric scalar representation preserves CR versus LF
+and range endpoints without an exception to global canonical JSON rules.
+Schema checking covers scalar domains and closed node shapes; capture numbering,
+capture counts, range ordering and quantified-expression rules remain separate
+semantic checks.
+
+<!-- requirement-block: text-time.regex-ast-contract-binding -->
+The expression contract's pinned `regex_ast_contract` MUST govern regex AST
+representation and identity in preference to the inherited text-time profile's
+older string-literal AST representation. Matching, source grammar, flags and
+demand laws otherwise remain unchanged. Old string-valued literal nodes and
+range endpoints are rejected, not silently converted or assigned the new CID.
+A backend without this exact AST dependency and expression-contract support
+cannot produce an executable Plan for it; the old registry is not relabeled as
+supporting the new representation.
+
 <!-- requirement-block: text-time.portable-regex-flags -->
 Regex flags MUST be a string containing only `m` (anchors also match
 U+000A line boundaries) and `s` (dot also matches U+000A), each at most once,
@@ -8220,7 +8249,8 @@ through the pinned expression contract.
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/canonical_value_contract sha256:02859499357530af0ae58e4f2958d1c8fa48f957b86b0a2976dad43bed99b551
 ../../spec/contracts/actql-production-profile-schemas.json#/schemas/text_time_expression sha256:a9fd34634569c0da417ca5a8770ab064ad8351bbd253c8fea1dae60c756c61c1
 ../../spec/contracts/actql-production-profile-schemas.json#/schemas/regex_replacement_ast sha256:92c3fc4fc790cdf8f985b634dfe513f85b6cd5c904bb673de7330d18f577aeed
-../../spec/contracts/actql-expressions.json# sha256:2587ba927c08a797960ef083be3cf32cef56ce478c88df2cb12bcb306ba865e1
+../../spec/contracts/actql-regex-ast.json# sha256:9c4e0107ad1e6a1eb374e8365c07615c74773416b0b43f9a1e02db5e551efc78
+../../spec/contracts/actql-expressions.json# sha256:64aea2f2763f15a1c76a1bc455c580f91f6621f9e51ed8cb21f1c15ba5ec80f5
 ../../spec/contracts/actql-expressions.json#/schemas/expression sha256:8196cef99c66248917d44d322cb21f69f9873cac768bc5bbda2e3757e8e9d66f
 ../../spec/contracts/actql-expressions.json#/schemas/expression_node sha256:eea37ee96bf6be954e46db196f7ec8101506ed4a28ecc647e8f929a512194b94
 ../../spec/contracts/actql-expressions.json#/schemas/evaluation_envelope sha256:629342d58af8fa879da391532a838788338ddc42b5f17db814d0bdf7236c195b
