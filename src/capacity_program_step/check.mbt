@@ -12,6 +12,7 @@ pub(all) enum Issue {
   InputOwnerMismatch(Int)
   InputTargetMismatch(Int)
   InputWitnessMismatch(Int)
+  InputUnitMismatch(Int)
   BoundOverflow
   InvalidInputWorkLimit
   InputWorkLimit
@@ -75,13 +76,73 @@ priv enum Rule {
   QueryTopK(Int64)
   Ranking(Int, Int64?)
   Join(@join.Kind)
+  GraphMeasure(@arithmetic.BoundUnit, @arithmetic.BoundUnit, Int, Int64)
 }
 
 ///|
 fn operation_rule(
   step : @pipeline.CheckedStep,
   bindings : CountBindings?,
+  unit : @arithmetic.BoundUnit,
 ) -> Result[(String, Rule), Issue] {
+  match step.operation {
+    @pipeline.GraphConstruction(nodes~, ..) => {
+      if unit == @arithmetic.Nodes {
+        return Ok(
+          (
+            "actql.bound.graph-nodes",
+            GraphMeasure(
+              unit,
+              @arithmetic.Rows,
+              0,
+              if nodes is Some(_) {
+                1L
+              } else {
+                2L
+              },
+            ),
+          ),
+        )
+      }
+      if unit == @arithmetic.Edges {
+        return Ok(
+          (
+            "actql.bound.graph-edges",
+            GraphMeasure(
+              unit,
+              @arithmetic.Rows,
+              if nodes is Some(_) {
+                1
+              } else {
+                0
+              },
+              1L,
+            ),
+          ),
+        )
+      }
+      return Err(LawMismatch)
+    }
+    @pipeline.Projection(op) =>
+      match @projection.operation(op) {
+        @projection.NodeRows =>
+          return Ok(
+            (
+              "actql.bound.graph-node-rows",
+              GraphMeasure(@arithmetic.Rows, @arithmetic.Nodes, 0, 1L),
+            ),
+          )
+        @projection.EdgeRows =>
+          return Ok(
+            (
+              "actql.bound.graph-edge-rows",
+              GraphMeasure(@arithmetic.Rows, @arithmetic.Edges, 0, 1L),
+            ),
+          )
+        _ => ()
+      }
+    _ => ()
+  }
   match step.operation {
     @pipeline.Values(op) =>
       return Ok(
@@ -362,7 +423,7 @@ fn check_application(
   if @wire.program_proof_form(proof) != @wire.DerivedInputs {
     return Err(UnsupportedProofForm)
   }
-  let (law, rule) = match operation_rule(step, bindings) {
+  let (law, rule) = match operation_rule(step, bindings, @wire.unit(witness)) {
     Ok(v) => v
     Err(e) => return Err(e)
   }
@@ -374,6 +435,7 @@ fn check_application(
     Sum => n == 2
     Join(_) => n == 2
     Multiply(_) => n == 1
+    GraphMeasure(_, _, _, _) => n == 1
     QueryTopK(_) => n == 1 || n == 2
     Ranking(expected, maximum) =>
       n == expected || (n == 0 && maximum is Some(_))
@@ -394,9 +456,20 @@ fn check_application(
   let ids : Array[String] = []
   let mut input_work = 0
   for i in 0..<n {
+    let expected_unit = match rule {
+      GraphMeasure(_, unit, _, _) => unit
+      _ => @arithmetic.Rows
+    }
+    if @wire.unit(@wire.program_proof_witness(inputs[i].proof)) != expected_unit {
+      return Err(InputUnitMismatch(i))
+    }
     let mut owner = pipeline
     // Per-query top-k uses the query side for its one-operand bound.
-    let edge = if rule is QueryTopK(_) && n == 1 { 1 } else { i }
+    let edge = match rule {
+      GraphMeasure(_, _, edge, _) => edge
+      QueryTopK(_) if n == 1 => 1
+      _ => i
+    }
     let mut target = @pipeline.input_occurrence_at(step, edge).unwrap().target
     while !(physical_equal(owner, inputs[i].pipeline) &&
           target == @pipeline.Step(inputs[i].index)) {
@@ -415,7 +488,12 @@ fn check_application(
         }
         @pipeline.Step(index) => {
           let step = @pipeline.step_at(owner, index).unwrap()
-          guard forwarded_input(step) is Some(next) else {
+          let forwarded = if expected_unit == @arithmetic.Rows {
+            forwarded_input(step)
+          } else {
+            None
+          }
+          guard forwarded is Some(next) else {
             if !physical_equal(inputs[i].pipeline, owner) {
               return Err(InputOwnerMismatch(i))
             }
@@ -455,9 +533,13 @@ fn check_application(
       }
     }
   }
+  let output_unit = match rule {
+    GraphMeasure(unit, _, _, _) => unit
+    _ => @arithmetic.Rows
+  }
   if @law.name(@wire.law(witness)) != law ||
     @wire.role(witness) != @arithmetic.ProvenUpperBound ||
-    @wire.unit(witness) != @arithmetic.Rows {
+    @wire.unit(witness) != output_unit {
     return Err(LawMismatch)
   }
   let input_value = fn(i) {
@@ -466,6 +548,11 @@ fn check_application(
   let count = match rule {
     One => 1L
     Constant(n) => n
+    GraphMeasure(_, _, _, factor) =>
+      match @numeric.multiply(input_value(0), @numeric.read(factor).unwrap()) {
+        Ok(v) => @numeric.value(v)
+        Err(_) => return Err(BoundOverflow)
+      }
     Preserve => @numeric.value(input_value(0))
     Clamp(maximum) =>
       @numeric.value(
@@ -532,6 +619,7 @@ fn check_application(
   match (rule, @wire.derivation(witness)) {
     (One, @wire.SourceValue) => ()
     (Constant(_), @wire.SourceValue) => ()
+    (GraphMeasure(_, _, _, _), @wire.SourceValue) => ()
     (Join(_), @wire.SourceValue) => ()
     (Preserve, @wire.Preserve(input)) if input == ids[0] => ()
     (Clamp(expected), @wire.Clamp(input, maximum)) if maximum == expected &&

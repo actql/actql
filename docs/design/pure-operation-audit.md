@@ -390,12 +390,22 @@ checks; merge evaluation and canonical binary lowering remain outside this work.
 
 `capacity_program_step/graph_union_test.mbt` checks the separate capacity boundary
 for scalar, singleton and repeated-list union and both row bridges. Conditional
-node/edge bounds propagate, but integrity-valid Program claims (including the
-same numeric bound) still fail with `UnsupportedOperation`: the ordinary row
-application checker has no Graph source/law application. Registry membership,
-source hashing and conditional counts cannot fill that gap. Graph node/edge
-source authentication and its consumer connection remain required shared work;
-this rejection test prevents claiming them complete through the list addition.
+node/edge bounds propagate, but integrity-valid union Program claims (including
+the same numeric bound) still fail with `UnsupportedOperation`. Row bridges now
+have measure-conversion applications but reject a claim without its required
+Graph dependency. Registry membership, source hashing and conditional counts
+cannot fill that gap. Union source/law validation remains required shared work;
+this rejection test prevents claiming it complete through the list addition.
+
+`capacity_program_step/graph_measure_test.mbt` separately checks explicit Graph
+construction across empty/nonempty node and edge inputs, concise endpoint
+completion, both row bridges and subsequent selection. Applications validate
+actual input roles, unit conversion, source-law arithmetic and exact dependency
+owners; same-valued foreign inputs and swapped node/edge/row measures reject.
+Collection coverage retains all node/edge applications and their row sources.
+Imported Graph measures preserve original producer ownership under exact/one-less
+traversal budgets. This closes these local conversion applications, not Graph
+union laws, preflight-to-measure admission or enclosing Program identity.
 
 ## Shared-boundary findings
 

@@ -23,7 +23,8 @@ authored names. No language syntax or existing canonical Program identity change
 ## Supported laws
 
 The proof must use the existing `DerivedInputs` form. Its role is
-`proven_upper_bound` and its unit is `rows`.
+`proven_upper_bound`. Relation applications use `rows`; Graph construction and
+row bridges explicitly validate both the output and dependency units below.
 
 | Actual checked operation | Required proof application |
 | --- | --- |
@@ -43,6 +44,28 @@ The proof must use the existing `DerivedInputs` form. Its role is
 | `nearest` | `actql.bound.nearest`, query bound times the checked `k`, or query bound times `min(candidate bound, k)` with both input applications retained. |
 | `text_rank` | `actql.bound.text-rank`, query bound times `k`, or query bound times `min(corpus bound, k)` with both actual input applications retained. Zero-score filtering does not establish an exact count. |
 | `merge_rankings` | `actql.bound.merge-rankings`, sum all ordered input upper bounds; with empty `by`, clamp that sum to `k`, or use an input-independent `k` upper bound. |
+| Explicit `graph` construction | `actql.bound.graph-nodes` converts the actual node branch's row upper bound to `nodes`; `actql.bound.graph-edges` converts the actual edge branch's row upper bound to `edges`. Each uses a source derivation with its exact input application. |
+| Concise edge-list `graph` | The same Graph laws use the actual edge input: at most two endpoint nodes per row and at most one edge per row. Checked multiplication fails on overflow. |
+| `node_rows`, `edge_rows` | `actql.bound.graph-node-rows` and `actql.bound.graph-edge-rows` convert an actual producer's respective `nodes` or `edges` bound into `rows`, using a source derivation. |
+
+Graph measure conversion is a source-law application, not a same-unit preserve
+or multiply derivation. The fixed Sketch compiler separately materializes the
+concise endpoint union (`actql.bound.graph-endpoints`) before Graph construction;
+the local checked source step retains the authored Graph operation and validates
+its composed two-endpoint upper bound without inventing lowered step identities.
+Explicit construction retains both data branches even though each measure's
+proof uses only its respective branch. Endpoint closure, graph identity and
+property admission still require their existing validations; upper bounds do
+not assert that every input occurrence survives or becomes a distinct entity.
+
+All dependency applications now require the expected measure: a Graph edge
+bound cannot act as a Relation row bound merely because its value matches.
+Row bridges require a checked Graph measure application, not the pipeline's
+conditional numeric summary. Cross-pipeline forwarding retains exact producer
+owners and charges the existing traversal budget. Non-row measures currently
+cross input forwarding only, not unchecked intermediate Graph operations.
+Union/graft/subtraction source applications, Graph preflight-to-measure linkage,
+source identity and complete consumer enforcement remain unfinished.
 
 `check_with_inputs` also accepts one input application for selection,
 clamping its bound to the exact checked count. Offset does not weaken this upper

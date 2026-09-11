@@ -139,6 +139,7 @@ pub(all) enum Issue {
   InputOwnerMismatch(Int)
   InputTargetMismatch(Int)
   InputWitnessMismatch(Int)
+  InputUnitMismatch(Int)
   BoundOverflow
   InvalidInputWorkLimit
   InputWorkLimit

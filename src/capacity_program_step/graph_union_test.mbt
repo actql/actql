@@ -40,10 +40,12 @@ test "graph union count propagation does not authenticate graph capacity claims"
           reference="checked-step:" + index.to_string(),
           unit~,
         )
-        assert_true(
-          @capacity_program_step.check(p, index, claim)
-          is Err(UnsupportedOperation),
-        )
+        let result = @capacity_program_step.check(p, index, claim)
+        if index == 2 {
+          assert_true(result is Err(UnsupportedOperation))
+        } else {
+          assert_true(result is Err(InputCountMismatch))
+        }
       }
     }
   }
