@@ -95,3 +95,21 @@ remain separate work, and no Host authorization follows from this reader.
 The compiler's `bind_capacity_policy` now matches the selected admitted Policy
 CID while requiring this component's exact environment owner, and retains both.
 `capacity_usage` reports canonical component bytes/nodes for aggregate accounting.
+
+## Text-time component selection
+
+The text-time component is `/host_policy_profile/text_time_evaluation`, matching
+Sketch `87dc7144`'s profile. Its existing expression-fragment policy schema is
+pinned by subtree CID rather than duplicated. This explicit component location
+closes a previously unspecified envelope selection boundary. The expression
+request continues to call the supplied body `text_time_policy` and its envelope
+reference `host_policy_profile_cid`; both refer to this component's full-body CID,
+not to the enclosing profile or Check Environment.
+
+`read_text_time` retains exact environment ownership and an admitted
+`text_time_policy.Policy`. Absence remains unresolved without defaults; supplied
+null, wrong shape or invalid ceilings are errors, not absence. Component byte/node
+usage is retained for aggregate accounting. Fixed independent component/envelope
+identities and malformed/limit cases distinguish outer integrity from component
+admission. Other policy components and full environment closure remain separate;
+this does not resolve expression envelopes, validate patterns or run evaluations.

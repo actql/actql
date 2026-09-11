@@ -90,6 +90,18 @@
     "authority": "shape_hash_and_membership_are_not_authorization_or_runtime_evidence"
   },
   "policy_components": {
+    "text_time_evaluation": {
+      "pointer": "/host_policy_profile/text_time_evaluation",
+      "schema": {
+        "path": "spec/contracts/actql-expressions.json",
+        "pointer": "/schemas/fragment/properties/request/properties/text_time_policy",
+        "cid": "sha256:0297fb74f0ff4e55b4ededfe5f0968a6d1f3f1231f84d7d4122f2cb7dfee077a"
+      },
+      "identity": "full_canonical_component_body_no_exclusions",
+      "absent": "unresolved_no_implicit_defaults",
+      "present": "validate_even_when_unused_null_is_not_absence",
+      "selection": "retain_exact_environment_membership_use_component_cid_for_text_time_envelopes"
+    },
     "capacity": {
       "pointer": "/host_policy_profile/capacity",
       "contract": {

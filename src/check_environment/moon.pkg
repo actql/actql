@@ -7,6 +7,7 @@ import {
   "actql/actql/encode_core" @encode,
   "actql/actql/sha256" @sha,
   "actql/actql/capacity_policy" @policy,
+  "actql/actql/text_time_policy" @text_policy,
   "moonbitlang/core/encoding/utf8",
 }
 

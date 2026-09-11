@@ -5,6 +5,7 @@ import {
   "actql/actql/capacity_policy",
   "actql/actql/decode_core",
   "actql/actql/encode_core",
+  "actql/actql/text_time_policy",
   "moonbitlang/core/debug",
 }
 
@@ -40,6 +41,14 @@ pub fn member_section(Member) -> Section
 pub fn read(Bytes, String, Limits) -> Result[WireEnvironment, Issue]
 
 pub fn read_capacity(WireEnvironment, @capacity_policy.Limits) -> Result[Capacity, CapacityIssue]
+
+pub fn read_text_time(WireEnvironment, @text_time_policy.Limits) -> Result[TextTime, TextTimeIssue]
+
+pub fn text_time_environment(TextTime) -> WireEnvironment
+
+pub fn text_time_policy(TextTime) -> @text_time_policy.Policy
+
+pub fn text_time_usage(TextTime) -> (Int, Int)
 
 pub fn usage(WireEnvironment) -> (Int, Int, Int)
 
@@ -85,6 +94,16 @@ pub(all) enum Section {
   ModelTaskContracts
   ContractRegistry
   ConnectorCatalogs
+} derive(Eq, @debug.Debug)
+
+type TextTime
+
+pub(all) enum TextTimeIssue {
+  InvalidLimits
+  MissingTextTime
+  InvalidComponent
+  BudgetExceeded
+  Policy(@text_time_policy.Issue)
 } derive(Eq, @debug.Debug)
 
 type WireEnvironment

@@ -29,6 +29,14 @@ const body = {
     authority:'shape_hash_and_membership_are_not_authorization_or_runtime_evidence',
   },
   policy_components:{
+    text_time_evaluation:{
+      pointer:'/host_policy_profile/text_time_evaluation',
+      schema:{path:'spec/contracts/actql-expressions.json',pointer:'/schemas/fragment/properties/request/properties/text_time_policy',cid:machineCid(JSON.parse(readFileSync('spec/contracts/actql-expressions.json','utf8')).schemas.fragment.properties.request.properties.text_time_policy)},
+      identity:'full_canonical_component_body_no_exclusions',
+      absent:'unresolved_no_implicit_defaults',
+      present:'validate_even_when_unused_null_is_not_absence',
+      selection:'retain_exact_environment_membership_use_component_cid_for_text_time_envelopes',
+    },
     capacity:{
       pointer:'/host_policy_profile/capacity',
       contract:{path:'spec/contracts/actql-capacity-host-policy.json',pointer:'',cid:machineCid(JSON.parse(readFileSync('spec/contracts/actql-capacity-host-policy.json','utf8')))},

@@ -304,6 +304,18 @@ the exact environment association and compares the selected policy CID against
 this validated component. This component check does not admit other profile
 members, the whole environment or Host authority.
 
+<!-- requirement-block: check-environment.text-time-component -->
+The text-time policy component, when supplied, MUST be the complete
+`actql-text-time-host-policy/0.1` body at
+`/host_policy_profile/text_time_evaluation`, conforming to the existing
+expression-fragment request `text_time_policy` schema. Absence leaves selection
+unresolved without defaults; null is not absence. Every supplied component is
+validated even when unused. Its full canonical body CID, not the aggregate
+profile or environment CID, is the `host_policy_profile_cid` in text-time
+envelopes. Compiler assembly retains its exact environment association.
+Component admission does not prove argument bounds, complete static obligations,
+enforce runtime limits or grant Host authority.
+
 <!-- requirement-block: capacity-host-policy.ceiling-provenance -->
 A policy ceiling MUST retain the exact policy CID, field name and value.
 Policy admission establishes integrity and structural validity relative to the
@@ -1027,7 +1039,7 @@ These exact schema/law references are owned here. Their identities do not includ
 <!-- requirement-block: machine-contracts.exact-artifacts -->
 <!-- normative-code: law -->
 ```text
-../../../spec/contracts/actql-check-environment.json# sha256:1bc76bd45f7b316471b8eef5831f4a16d867ad1a66529dfeec892a0a827bf056
+../../../spec/contracts/actql-check-environment.json# sha256:1b332d2cc106404b39a77c5baa947ddf1b6b8ba574a95b085fd6662ead440fb3
 ../../../spec/contracts/actql-local-relation-snapshot.json# sha256:60e8136aea733421e75fa3dcef4934c87ce98959b36f8a56da93ccfbf03d81b2
 ../../../spec/contracts/actql-local-source-reference.json# sha256:9be664306a6a91a8e5bfca53d579e6dac77baf4567eb241ceeedc3216ffe47d9
 ../../../spec/contracts/actql-protocol-schemas.json#/schemas/model_task sha256:19408a610dbc52552bff3a7f97f25a120a66688e7db4f41383c91c9298f02dd2

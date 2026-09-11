@@ -27,3 +27,8 @@ selection, envelope/argument-bound derivation and static obligation discharge
 remain separate. Actual text/date/regex evaluation and enforcement belong to the
 execution implementation; no evaluator or lowerer is added here. Successful
 admission does not authenticate the Host or grant execution permission.
+
+`check_environment.read_text_time` now reads this policy from the exact
+`host_policy_profile.text_time_evaluation` component and retains membership.
+Its selected component CID is the expression envelope's policy reference.
+The full environment remains unadmitted until other governing checks complete.
