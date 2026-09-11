@@ -6142,7 +6142,7 @@
     },
     {
       "requirement_id": "actql.language/evidence-propagation.operation-identity-stable-order-completeness",
-      "statement_sha256": "d2beca97b72c571ee5f9f95f3bf1ee7091e8ccbf9d739eece457e2bb74d1600e",
+      "statement_sha256": "9217a99f9ff2be03d2d301bc61acba1d2f85d02382227bf9269e2ec6d7c20409",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",

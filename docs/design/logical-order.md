@@ -66,6 +66,13 @@ Group (including window_group), pivot and dedupe_rows establish the canonical
 partition/index sequence specified by the evidence-propagation table. Their
 aggregate, partitioning, top-tie and resource checks remain prerequisites; this
 does not sort arbitrary aggregate payloads or use them as synthetic identities.
+The explicit empty-values pivot exception follows first index occurrence instead:
+with a nonempty index it requires ordered input and retains that dependency,
+never fabricating canonical index order. Empty index is a single global group,
+even on empty input, and needs no input-order dependency. Aggregate `first`
+still retains its independent input-order obligation in either case. The
+evidence table now records the existing reshaping exception explicitly; this
+does not change empty-axis acceptance.
 Session and sequence establish the specified canonical event/match sequence,
 retaining their TEA producers. Session keeps its input Carrier, so Events can
 carry this order before explicit Relation exposure. ToEvents, watermark labeling

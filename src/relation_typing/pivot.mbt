@@ -23,6 +23,16 @@ pub fn pivot(value : CheckedOperation) -> CheckedPivot? {
 }
 
 ///|
+/// Empty generated values with index groups enumerate first occurrences.
+/// Reads retained metadata without copying either authored axis.
+pub fn pivot_uses_first_occurrence(value : CheckedOperation) -> Bool {
+  match value.pivot {
+    Some(p) => p.values.is_empty() && !p.index.is_empty()
+    None => false
+  }
+}
+
+///|
 pub fn pivot_index(value : CheckedPivot) -> Array[KeyField] {
   value.index.copy()
 }

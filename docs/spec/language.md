@@ -7214,7 +7214,7 @@ rules. The central propagation laws are:
 | `dedupe_rows` | `by` fields | canonical key order | preserve |
 | `assert_rows.where` | preserve | preserve | preserve on success; atomic failure otherwise |
 | `assert_rows.unique_by` | preserve and add the checked non-null unique tuple | preserve | preserve on success; atomic failure otherwise |
-| `pivot` | index fields | canonical index order | preserve |
+| `pivot` | index fields | canonical index order; empty values with nonempty index uses first-occurrence order under [reshaping](#reshaping); empty index emits one global group | preserve |
 | `take` / `top_k` | preserve | requires/provides total stable order | bounded-query completeness |
 | SGA query | node/edge keys where exposed; path rows need no synthetic scalar ID | canonical graph/path order | atomic bound failure |
 | TEA session/sequence | record/session IDs; `sequence(disallow)` label IDs | canonical event/match order | atomic bound failure |

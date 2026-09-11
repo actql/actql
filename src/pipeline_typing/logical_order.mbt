@@ -130,7 +130,8 @@ fn derive_logical_orders(
       Vector(op) => @vector.operation(op) == @vector.ScoreVectors
       Unary(op) | WindowGroup(op) =>
         match @relation.operation(op) {
-          Group | Pivot | DedupeRows => true
+          Group | DedupeRows => true
+          Pivot => !@relation.pivot_uses_first_occurrence(op)
           _ => false
         }
       Event(op) =>
@@ -175,7 +176,8 @@ fn derive_logical_orders(
         }
       }
       Unary(op) if @relation.operation(op) == @relation.Unnest ||
-        @relation.operation(op) == @relation.Unpivot =>
+        @relation.operation(op) == @relation.Unpivot ||
+        @relation.pivot_uses_first_occurrence(op) =>
         match (step.input, previous) {
           (Some(input), Some(_)) => [input]
           _ => []
