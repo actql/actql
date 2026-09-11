@@ -1,0 +1,174 @@
+///|
+/// Internal evaluation values. Structured admitted values remain immutable;
+/// arithmetic does not coerce them. This package is not a Program run API.
+pub(all) enum Value {
+  Null
+  Number(Double)
+  Boolean(Bool)
+  Text(String)
+  Captured(@admitted.Value)
+}
+
+///|
+pub(all) enum ScalarIssue {
+  InvalidOperand
+  ArithmeticFailure
+  ComparisonDomainNotImplemented
+} derive(Eq, Debug)
+
+///|
+pub fn capture(value : @admitted.Value) -> Value {
+  match value {
+    @admitted.Null => Null
+    @admitted.Number(n) => Number(n)
+    @admitted.Boolean(b) => Boolean(b)
+    @admitted.Text(s) => Text(s)
+    @admitted.Date(_)
+    | @admitted.Timestamp(_)
+    | @admitted.Decimal(_)
+    | @admitted.Array(_)
+    | @admitted.Object(_)
+    | @admitted.Vector(_) => Captured(value)
+  }
+}
+
+///|
+fn finite(n : Double) -> Result[Value, ScalarIssue] {
+  if n.is_nan() || n.is_inf() {
+    Err(ArithmeticFailure)
+  } else {
+    Ok(Number(if n == 0.0 { 0.0 } else { n }))
+  }
+}
+
+///|
+pub fn unary(
+  op : @lower.UnaryOperator,
+  value : Value,
+) -> Result[Value, ScalarIssue] {
+  match op {
+    IsNull | IsUnknown => Ok(Boolean(value is Null))
+    NotNull => Ok(Boolean(!(value is Null)))
+    IsTrue => Ok(Boolean(value is Boolean(true)))
+    IsFalse => Ok(Boolean(value is Boolean(false)))
+    Not =>
+      match value {
+        Null => Ok(Null)
+        Boolean(b) => Ok(Boolean(!b))
+        Number(_) | Text(_) | Captured(_) => Err(InvalidOperand)
+      }
+    Negate =>
+      match value {
+        Null => Ok(Null)
+        Number(n) => finite(-n)
+        Boolean(_) | Text(_) | Captured(_) => Err(InvalidOperand)
+      }
+  }
+}
+
+///|
+/// No decimal rounding or JSON stringification is a numeric equality law.
+fn compare(left : Value, right : Value) -> Result[Int, ScalarIssue] {
+  match (left, right) {
+    (Number(a), Number(b)) =>
+      if a.is_nan() || b.is_nan() || a.is_inf() || b.is_inf() {
+        Err(InvalidOperand)
+      } else {
+        Ok(if a < b { -1 } else if a > b { 1 } else { 0 })
+      }
+    (Boolean(a), Boolean(b)) => Ok(if a == b { 0 } else if a { 1 } else { -1 })
+    (Text(a), Text(b)) => Ok(@canonical.compare_utf16(a, b))
+    (Captured(_), _) | (_, Captured(_)) => Err(ComparisonDomainNotImplemented)
+    _ => Err(InvalidOperand)
+  }
+}
+
+///|
+/// Arguments are already evaluated, once and in source order, by the row
+/// evaluator. Null handling here must not be used to skip either argument.
+pub fn binary(
+  op : @lower.BinaryOperator,
+  left : Value,
+  right : Value,
+) -> Result[Value, ScalarIssue] {
+  match op {
+    Add | Subtract | Multiply | Divide | Modulo => {
+      if left is Null || right is Null {
+        return Ok(Null)
+      }
+      guard left is Number(a) && right is Number(b) else {
+        return Err(InvalidOperand)
+      }
+      if a.is_nan() || a.is_inf() || b.is_nan() || b.is_inf() {
+        return Err(InvalidOperand)
+      }
+      match op {
+        Add => finite(a + b)
+        Subtract => finite(a - b)
+        Multiply => finite(a * b)
+        Divide => if b == 0.0 { Err(ArithmeticFailure) } else { finite(a / b) }
+        Modulo => if b == 0.0 { Err(ArithmeticFailure) } else { finite(a % b) }
+        Equal | NotEqual | Less | LessEqual | Greater | GreaterEqual | NullIf =>
+          Err(InvalidOperand)
+      }
+    }
+    Equal | NotEqual | Less | LessEqual | Greater | GreaterEqual | NullIf => {
+      if left is Null {
+        return Ok(Null)
+      }
+      if right is Null {
+        return Ok(if op == @lower.NullIf { left } else { Null })
+      }
+      let cmp = match compare(left, right) {
+        Ok(n) => n
+        Err(e) => return Err(e)
+      }
+      match op {
+        Equal => Ok(Boolean(cmp == 0))
+        NotEqual => Ok(Boolean(cmp != 0))
+        Less => Ok(Boolean(cmp < 0))
+        LessEqual => Ok(Boolean(cmp <= 0))
+        Greater => Ok(Boolean(cmp > 0))
+        GreaterEqual => Ok(Boolean(cmp >= 0))
+        NullIf => Ok(if cmp == 0 { Null } else { left })
+        Add | Subtract | Multiply | Divide | Modulo => Err(InvalidOperand)
+      }
+    }
+  }
+}
+
+///|
+/// Combining eager AND/OR results does not imply short-circuit evaluation.
+pub fn boolean_pair(
+  op : @lower.ManyOperator,
+  left : Value,
+  right : Value,
+) -> Result[Value, ScalarIssue] {
+  if !(left is Null || left is Boolean(_)) ||
+    !(right is Null || right is Boolean(_)) {
+    return Err(InvalidOperand)
+  }
+  match op {
+    And =>
+      Ok(
+        if left is Boolean(false) || right is Boolean(false) {
+          Boolean(false)
+        } else if left is Null || right is Null {
+          Null
+        } else {
+          Boolean(true)
+        },
+      )
+    Or =>
+      Ok(
+        if left is Boolean(true) || right is Boolean(true) {
+          Boolean(true)
+        } else if left is Null || right is Null {
+          Null
+        } else {
+          Boolean(false)
+        },
+      )
+    Coalesce => Err(InvalidOperand)
+  }
+}

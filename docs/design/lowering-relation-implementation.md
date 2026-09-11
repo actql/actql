@@ -95,6 +95,10 @@ contracts, final serialized size or any Program-level authorization.
 | Other operation handlers | Not implemented here | Add normative lowering and evaluator support, then replace coverage-status tests |
 | Product Run/publication | Outside this increment | Separate integration with main's acceptance and capacity boundaries |
 
+The ordered-derive wire/capability binding requires the
+[shared row-kernel integration unit](row-kernel-integration-request.md).
+This is not a reason to drop array-form derive from the agreed goal.
+
 Unsupported-operation tests describe implementation coverage, not permanent
 language rejection. Implemented common paths must not grow a separate restrictive
 allowlist. Evaluation failures must not expose partial results.
@@ -166,3 +170,15 @@ Theory sources inspected at fixed revisions:
 Neither theorem tree was modified or rebuilt during this review. No Lean proof
 of the MoonBit implementation is claimed. The relevant preservation properties
 guide independent execution tests, while current ActQL remains authoritative.
+
+## Scalar execution increment
+
+`execution_relation` now contains pure scalar operator implementations to be
+used by the row evaluator, not a second reference runtime. Binary64 comparison
+does not round or serialize operands. Arithmetic rejects non-finite results and
+division/modulo by zero. Primitive boolean combination follows the complete
+three-valued truth tables. Eager/lazy child evaluation and row-major failure
+ordering remain the evaluator's responsibility, not a guarantee of these
+already-evaluated-operand helpers. Captured immutable values are retained for
+pass-through; unsupported comparison domains return a distinct implementation
+gap instead of inventing stringified equality.

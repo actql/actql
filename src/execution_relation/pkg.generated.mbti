@@ -1,0 +1,38 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/execution_relation"
+
+import {
+  "actql/actql/lowering_relation",
+  "actql/actql/value_admission",
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn binary(@lowering_relation.BinaryOperator, Value, Value) -> Result[Value, ScalarIssue]
+
+pub fn boolean_pair(@lowering_relation.ManyOperator, Value, Value) -> Result[Value, ScalarIssue]
+
+pub fn capture(@value_admission.Value) -> Value
+
+pub fn unary(@lowering_relation.UnaryOperator, Value) -> Result[Value, ScalarIssue]
+
+// Errors
+
+// Types and methods
+pub(all) enum ScalarIssue {
+  InvalidOperand
+  ArithmeticFailure
+  ComparisonDomainNotImplemented
+} derive(Eq, @debug.Debug)
+
+pub(all) enum Value {
+  Null
+  Number(Double)
+  Boolean(Bool)
+  Text(String)
+  Captured(@value_admission.Value)
+}
+
+// Type aliases
+
+// Traits
