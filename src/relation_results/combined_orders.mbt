@@ -9,21 +9,22 @@ pub(all) struct OrderCheckLimits {
 ///|
 pub(all) enum OrderCheckIssue {
   PipelineOrder(@pipeline.Issue)
+  ProducerOrder(@pipeline.ProducerOrderIssue)
   ResultOrder(Issue)
 }
 
 ///|
-/// Complete contextual/publication order strategies for one checked pipeline.
+/// Contextual order strategies across producer ancestry and root publications.
 /// Conditional evidence only: capacity, binding and execution remain separate.
 struct CheckedOrders {
-  contextual : @pipeline.ContextualOrders
+  contextual : @pipeline.ContextualClosure
   publication : PublicationOrders
   work : Int
   text_bytes : Int
 }
 
 ///|
-/// Resolve every step and every named Result atomically under one budget.
+/// Resolve every producer step and every root Result atomically under one budget.
 /// The pipeline comes from results, so callers cannot pair foreign contexts.
 pub fn resolve_all_orders(
   results : CheckedResults,
@@ -41,16 +42,23 @@ pub fn resolve_all_orders(
       fail(results.source, BudgetExceeded)
     }
     let contextual = match
-      @pipeline.resolve_contextual_orders(
+      @pipeline.resolve_contextual_closure(
         results.pipeline,
         max_steps=limits.max_steps,
         max_work=limits.max_work,
         max_text_bytes=limits.max_text_bytes,
       ) {
       Ok(v) => v
-      Err(e) => return Err(PipelineOrder(e))
+      Err(e) =>
+        return Err(
+          if physical_equal(e.pipeline, results.pipeline) {
+            PipelineOrder(e.issue)
+          } else {
+            ProducerOrder(e)
+          },
+        )
     }
-    let (step_work, step_text) = @pipeline.contextual_orders_usage(contextual)
+    let (step_work, step_text) = @pipeline.contextual_closure_usage(contextual)
     let publication = match
       resolve_publication_orders(
         results,
@@ -77,6 +85,13 @@ pub fn resolve_all_orders(
 pub fn checked_contextual_orders(
   orders : CheckedOrders,
 ) -> @pipeline.ContextualOrders {
+  @pipeline.contextual_closure_root(orders.contextual)
+}
+
+///|
+pub fn checked_producer_orders(
+  orders : CheckedOrders,
+) -> @pipeline.ContextualClosure {
   orders.contextual
 }
 

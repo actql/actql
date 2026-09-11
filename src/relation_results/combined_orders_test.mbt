@@ -28,8 +28,8 @@ test "aggregate and publication order checks share their text budget" {
     max_text_bytes: 10000,
   }
   let orders = @relation_results.resolve_all_orders(results, caps).unwrap()
-  let (sw, st) = @pipeline.contextual_orders_usage(
-    @relation_results.checked_contextual_orders(orders),
+  let (sw, st) = @pipeline.contextual_closure_usage(
+    @relation_results.checked_producer_orders(orders),
   )
   let (rw, rt) = @relation_results.publication_orders_usage(
     @relation_results.checked_publication_orders(orders),
@@ -77,7 +77,9 @@ test "combined order checking shares work across all steps and all Results" {
       ),
     ),
   )
-  let (sw, st) = @pipeline.contextual_orders_usage(context)
+  let (sw, st) = @pipeline.contextual_closure_usage(
+    @relation_results.checked_producer_orders(checked),
+  )
   let (rw, rt) = @relation_results.publication_orders_usage(published)
   assert_eq(@relation_results.checked_orders_usage(checked), (sw + rw, st + rt))
   let exact = { ..caps, max_work: sw + rw, max_text_bytes: st + rt, }

@@ -120,8 +120,10 @@ consumer audit.
    intact. Imported order now uses a local input origin with an explicit
    upstream owner, preserving repeated dependencies without reinterpreting
    foreign step indices. Input consumers and Result publication are tested;
-   this is not external snapshot verification or complete validation of the
-   producer dependency graph.
+   the combined order checker now resolves all producer occurrences, including
+   unused inputs and branches, with shared step/work/text limits and original
+   owner diagnostics. This is not external snapshot verification or complete
+   non-order validation of the producer dependency graph.
    Shared [capacity arithmetic](capacity-arithmetic.md) is implemented and used
    by count propagation; arithmetic validation does not close this requirement.
    [Derivation consistency](capacity-derivation.md) checks bounded numerical

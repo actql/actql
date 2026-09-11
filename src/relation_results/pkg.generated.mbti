@@ -20,6 +20,8 @@ pub fn checked_contextual_orders(CheckedOrders) -> @pipeline_typing.ContextualOr
 
 pub fn checked_orders_usage(CheckedOrders) -> (Int, Int)
 
+pub fn checked_producer_orders(CheckedOrders) -> @pipeline_typing.ContextualClosure
+
 pub fn checked_publication_orders(CheckedOrders) -> PublicationOrders
 
 pub fn count(CheckedResults) -> Int
@@ -126,6 +128,7 @@ pub(all) enum Obligation {
 
 pub(all) enum OrderCheckIssue {
   PipelineOrder(@pipeline_typing.Issue)
+  ProducerOrder(@pipeline_typing.ProducerOrderIssue)
   ResultOrder(Issue)
 }
 

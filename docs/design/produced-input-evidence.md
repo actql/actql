@@ -69,8 +69,9 @@ publication use this boundary through the shared logical-order lookup.
 
 Window-role and typed Delta evidence still need their own cross-pipeline
 bindings; their absence is not a new language restriction.
-The final combined checker must traverse producer dependencies with shared
-budgets and reject any unresolved mandatory obligations. This handle alone
+The combined order checker now traverses all producer occurrences under shared
+budgets, including unused branches. The final all-obligation checker must still
+reject unresolved capacity and other mandatory obligations. This handle alone
 does not prove that the producer was fully discharged or actually executed.
 
 External snapshot verification, Check Environment authority, named Result

@@ -62,6 +62,16 @@ pub fn check_with_evidence(@decode_core.Cursor, Array[(String, InputContract)], 
 
 pub fn combine_relation_evidence(@decode_core.Cursor, @relation_evidence.KeySet, @relation_evidence.RankingInput) -> Result[RelationEvidence, Issue]
 
+pub fn contextual_closure_at(ContextualClosure, Int) -> ContextualOrders?
+
+pub fn contextual_closure_count(ContextualClosure) -> Int
+
+pub fn contextual_closure_root(ContextualClosure) -> ContextualOrders
+
+pub fn contextual_closure_steps(ContextualClosure) -> Int
+
+pub fn contextual_closure_usage(ContextualClosure) -> (Int, Int)
+
 pub fn contextual_orders_at(ContextualOrders, Int) -> Array[ContextualOrder]?
 
 pub fn contextual_orders_count(ContextualOrders) -> Int
@@ -164,6 +174,8 @@ pub fn producer_target(ProducedInput) -> Target
 
 pub fn ranking_evidence(CheckedPipeline, Target) -> @relation_evidence.RankingInput?
 
+pub fn resolve_contextual_closure(CheckedPipeline, max_steps~ : Int, max_work~ : Int, max_text_bytes~ : Int) -> Result[ContextualClosure, ProducerOrderIssue]
+
 pub fn resolve_contextual_orders(CheckedPipeline, max_steps~ : Int, max_work~ : Int, max_text_bytes~ : Int) -> Result[ContextualOrders, Issue]
 
 pub fn resolve_existing_input_order(CheckedPipeline, Int) -> InputOrderResolution?
@@ -257,6 +269,8 @@ pub struct CheckedStep {
 }
 
 type Connections
+
+type ContextualClosure
 
 pub enum ContextualOrder {
   InputSequence(InputOrderResolution)
@@ -380,6 +394,11 @@ pub struct NestOrderTerm {
 }
 
 type ProducedInput
+
+pub struct ProducerOrderIssue {
+  pipeline : CheckedPipeline
+  issue : Issue
+}
 
 type RelationEvidence
 
