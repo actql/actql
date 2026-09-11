@@ -2,6 +2,7 @@ supported_targets = "+js+wasm+native"
 
 import {
   "actql/actql/capacity_law" @law,
+  "actql/actql/capacity_witness" @wire,
   "actql/actql/source_value" @source,
   "actql/actql/decode_core" @decode,
   "actql/actql/sha256" @sha,

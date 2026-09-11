@@ -26,6 +26,13 @@ test "all host source witnesses admit from full canonical bytes" {
     let writer = @encode.writer(4096, 100, 4)
     @capacity_host_witness.emit(w, writer)
     let text = @encode.finish(writer)
+    let wire_claim = @wire.admit(
+      @utf8.encode(text),
+      @capacity_host_witness.cid(w),
+      { max_bytes: 4096, max_nodes: 100, max_depth: 4, },
+    ).unwrap()
+    let bound = @capacity_host_witness.admit_wire(wire_claim, p, limits()).unwrap()
+    assert_eq(@capacity_host_witness.cid(bound), @capacity_host_witness.cid(w))
     let admitted = @capacity_host_witness.admit(
       @utf8.encode(text),
       @capacity_host_witness.cid(w),
@@ -102,6 +109,15 @@ test "self-consistent forged witness identity cannot override the governing unit
   // with rows. The claimed CID is internally correct but the law mapping is not.
   let text = "{\"dependencies\":[\"sha256:dfa8818d1752320593a6de63173a99ab23b8b17cd3786df87003aafcfbd04f63\"],\"derivation\":{\"op\":\"source\"},\"law_id\":\"actql.host.aggregate-array-items\",\"role\":\"host_ceiling\",\"source\":{\"field\":\"max_aggregate_array_items\",\"kind\":\"host_policy\",\"policy_cid\":\"sha256:dfa8818d1752320593a6de63173a99ab23b8b17cd3786df87003aafcfbd04f63\"},\"unit\":\"rows\",\"value\":1,\"version\":\"actql-bound-witness/0.1\",\"witness_cid\":\"sha256:9a0e7c1509f4a60a751edb4af583db95869fb86e7f42f8c35aadc6a943b92df6\"}"
   let cid = "sha256:9a0e7c1509f4a60a751edb4af583db95869fb86e7f42f8c35aadc6a943b92df6"
+  let wire_claim = @wire.admit(@utf8.encode(text), cid, {
+    max_bytes: 4096,
+    max_nodes: 100,
+    max_depth: 4,
+  }).unwrap()
+  assert_true(
+    @capacity_host_witness.admit_wire(wire_claim, p, limits())
+    is Err(IdentityMismatch),
+  )
   assert_true(
     @capacity_host_witness.admit(@utf8.encode(text), cid, p, limits())
     is Err(IdentityMismatch),

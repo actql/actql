@@ -4,12 +4,15 @@ package "actql/actql/capacity_host_witness"
 import {
   "actql/actql/capacity_derivation",
   "actql/actql/capacity_policy",
+  "actql/actql/capacity_witness",
   "actql/actql/encode_core",
   "moonbitlang/core/debug",
 }
 
 // Values
 pub fn admit(Bytes, String, @capacity_policy.Policy, Limits) -> Result[Witness, Issue]
+
+pub fn admit_wire(@capacity_witness.WireWitness, @capacity_policy.Policy, Limits) -> Result[Witness, Issue]
 
 pub fn ceiling(Witness) -> @capacity_policy.Ceiling
 

@@ -1,0 +1,71 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/capacity_witness"
+
+import {
+  "actql/actql/capacity_derivation",
+  "actql/actql/capacity_law",
+  "actql/actql/encode_core",
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn admit(Bytes, String, Limits) -> Result[WireWitness, Issue]
+
+pub fn cid(WireWitness) -> String
+
+pub fn dependencies(WireWitness) -> Array[String]
+
+pub fn derivation(WireWitness) -> Derivation
+
+pub fn emit(WireWitness, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
+
+pub fn law(WireWitness) -> @capacity_law.RegisteredLaw
+
+pub fn role(WireWitness) -> @capacity_derivation.CandidateRole
+
+pub fn source(WireWitness) -> Source
+
+pub fn unit(WireWitness) -> @capacity_derivation.BoundUnit
+
+pub fn value(WireWitness) -> Int64
+
+// Errors
+
+// Types and methods
+pub(all) enum Derivation {
+  SourceValue
+  Preserve(String)
+  Minimum(Array[String])
+  Add(String, String)
+  Multiply(String, Int64)
+  Clamp(String?, Int64)
+  EnforcedCeiling(String)
+}
+
+pub(all) enum Issue {
+  InvalidLimits
+  BudgetExceeded
+  InvalidWitness
+  IdentityMismatch
+  NoncanonicalArtifact
+} derive(Eq, @debug.Debug)
+
+pub(all) struct Limits {
+  max_bytes : Int
+  max_nodes : Int
+  max_depth : Int
+}
+
+pub(all) enum Source {
+  Program(String, String)
+  AuthorGuard(String, String)
+  Contract(String, String)
+  LanguageLaw(String, String)
+  HostPolicy(String, String)
+} derive(Eq, @debug.Debug)
+
+type WireWitness
+
+// Type aliases
+
+// Traits

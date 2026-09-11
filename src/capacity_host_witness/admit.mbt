@@ -1,4 +1,32 @@
 ///|
+/// Bind an integrity-checked wire claim to an admitted Host policy. Wire
+/// integrity alone does not establish the field/unit/law/value application.
+pub fn admit_wire(
+  wire : @wire.WireWitness,
+  policy : @policy.Policy,
+  limits : Limits,
+) -> Result[Witness, Issue] {
+  guard @wire.source(wire) is @wire.HostPolicy(field, policy_cid) else {
+    return Err(InvalidWitness)
+  }
+  if policy_cid != @policy.cid(policy) {
+    return Err(IdentityMismatch)
+  }
+  guard @policy.ceiling(policy, field) is Some(ceiling) else {
+    return Err(UnsupportedPolicyField(field))
+  }
+  match create(ceiling, limits) {
+    Err(e) => Err(e)
+    Ok(witness) => {
+      if witness.cid != @wire.cid(wire) {
+        return Err(IdentityMismatch)
+      }
+      Ok(witness)
+    }
+  }
+}
+
+///|
 /// Admit a complete canonical Host-source wire witness against its expected
 /// preimage CID and the exact admitted source Policy. Never trusts wire fields
 /// as law, unit, numeric or dependency evidence independently of that Policy.

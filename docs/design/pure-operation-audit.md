@@ -77,8 +77,10 @@ consumer audit.
    spelling and closure are not content/source authentication. Candidate selection
    now retains all numeric candidates and computes strict author-guard binding;
    supplied roles and applicability are not authenticated by that arithmetic.
-   Canonical wire/source/law
-   verification remains open. The [closed law-name registry](capacity-law-registry.md)
+   [Common wire admission](capacity-witness-wire.md) checks closed shapes,
+   role/source pairs, declared references, canonical bytes and preimage identity;
+   it remains a claim until source/application and closure validation. Non-Host
+   source/law verification remains open. The [closed law-name registry](capacity-law-registry.md)
    now has a normative owner, pinned body and exact-membership API; individual
    law applications and non-Host sources remain unvalidated by that membership.
    The separate [operation transfer registry](bound-transfer-registry.md) now
