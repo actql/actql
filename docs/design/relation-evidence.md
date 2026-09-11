@@ -1,5 +1,17 @@
 # Relation key declarations and evidence
 
+`transfer_set_keys` preserves left candidate-key witnesses through except and
+intersect, for both ALL and DISTINCT. Language's row-set multiplicity rule
+returns unchanged left occurrences; right keys and full-row deduplication do not
+establish a missing left field key. The transfer requires the exact checked left
+schema, retains declaration/producer/alias/validation metadata, and binds the
+witnesses to the output contract under a bounded witness-copy budget. The aligned
+output schema may widen nullability or extents, while retained left key evidence
+still proves the stronger property of the surviving occurrences. This does not
+narrow the ordinary output type or validate input uniqueness at checking time.
+The fixed Sketch compiler has no matching set-operation transfer implementation;
+the current normative occurrence law is the basis of this transfer.
+
 The normative owner is [local inputs](../spec/language.md#local-inputs).
 `relation_evidence.declare_primary_key` admits an explicit primary-key assertion
 against a particular immutable Relation contract. The result owns the ordered

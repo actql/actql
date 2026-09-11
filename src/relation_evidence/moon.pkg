@@ -1,6 +1,7 @@
 supported_targets = "+js+wasm+native"
 
 import {
+  "actql/actql/relation_set" @set,
   "actql/actql/relation_nest" @nest,
   "actql/actql/carrier_projection" @projection,
   "actql/actql/time_series" @series,

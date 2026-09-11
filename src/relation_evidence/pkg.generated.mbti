@@ -8,6 +8,7 @@ import {
   "actql/actql/decode_core",
   "actql/actql/relation_nest",
   "actql/actql/relation_schema",
+  "actql/actql/relation_set",
   "actql/actql/relation_typing",
   "actql/actql/source_span",
   "actql/actql/source_value",
@@ -82,6 +83,8 @@ pub fn transfer_calendar_keys(KeySet, @calendar_typing.CheckedCalendar, Transfer
 pub fn transfer_keys(KeySet, @relation_typing.CheckedOperation, TransferLimits) -> Result[KeySetTransfer, Issue]
 
 pub fn transfer_nest_keys(KeySet, @relation_nest.CheckedNest, TransferLimits) -> Result[KeySetTransfer, Issue]
+
+pub fn transfer_set_keys(KeySet, @relation_set.CheckedSet, TransferLimits) -> Result[KeySetTransfer, Issue]
 
 pub fn transfer_unary(KeyedRelation, @relation_typing.CheckedOperation, TransferLimits) -> Result[Transfer, Issue]
 
