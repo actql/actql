@@ -81,13 +81,15 @@ consumer audit.
    Nearest now retains its original Carrier or key collection independently of
    completed vector roles, including explicit-ID inputs that do not select a
    supplied key. Ranking provenance can recover both original sides without
-   reconstructing them from output fields. VecA query/candidate key transfer,
-   including producer-bound positional identities, still remains to be closed.
+   reconstructing them from output fields. Nearest now produces its query plus
+   candidate key, retaining positional identity domains through exact aliases
+   and Result order completion. Opaque input roles do not manufacture keys, and
+   ordinary objects do not acquire comparison semantics. Ranking fusion and
+   lexical-ranking key production remain unfinished.
    The nearest checker now lives in `relation_evidence`, with shared vector
    checking support below both packages and the original `vector_typing` facade
    retained. Dependency tests enforce the direction. This removes the ownership
-   cycle for nearest key producers; it does not itself implement their transfer
-   or close ranking-fusion evidence.
+   cycle for nearest key producers; ranking-fusion evidence remains separate.
 2. Define validated external evidence and resolved-capacity boundaries using
    the existing normative witness domains, governing laws and dependency checks.
    Shared [capacity arithmetic](capacity-arithmetic.md) is implemented and used

@@ -28,7 +28,7 @@ pub fn sequence_keys(
         let before = b.text
         charge(b, source, name)
         let fields : Array[KeyField] = [
-          { name, contract: @row.lookup(output, name), },
+          plain_key_field(name, @row.lookup(output, name)),
         ]
         witnesses.push({
           origin: SequenceResult,

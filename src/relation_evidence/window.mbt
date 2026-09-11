@@ -49,7 +49,7 @@ pub fn transfer_window_keys(
           _ => fail(source, InputContractMismatch)
         }
         spend(b, source, parent.fields.length() + parent.aliases.length() + 1)
-        let field : KeyField = { name, contract, }
+        let field : KeyField = plain_key_field(name, contract)
         let fields = parent.fields.copy()
         fields.push(field)
         let aliases = parent.aliases.copy()

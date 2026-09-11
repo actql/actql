@@ -135,6 +135,8 @@ pub fn key_join_dependency_side(KeyedRelation, Int) -> @relation_schema.Side?
 
 pub fn key_join_producer(KeyedRelation) -> @relation_join_shape.CheckedJoin?
 
+pub fn key_nearest_producer(KeyedRelation) -> CheckedNearest?
+
 pub fn key_origin(KeyedRelation) -> KeyOrigin
 
 pub fn key_pending(KeyedRelation) -> Array[@relation_key_obligation.KeyObligation]
@@ -178,6 +180,8 @@ pub fn nearest_input_usage(NearestInput) -> @vector_checking.Usage
 pub fn nearest_input_vectors(NearestInput) -> @carrier_contract.Vectors?
 
 pub fn nearest_k(NearestOptions) -> Int64
+
+pub fn nearest_keys(CheckedNearest, TransferLimits) -> Result[KeySetTransfer, Issue]
 
 pub fn nearest_metric(NearestOptions) -> @vector_checking.Metric
 
@@ -293,6 +297,7 @@ pub(all) enum IssueKind {
 pub struct KeyField {
   name : @relation_schema.FieldName
   contract : @value_contract.Contract?
+  positional_identity : @carrier_contract.Vectors?
 }
 
 pub(all) enum KeyOrigin {
@@ -313,6 +318,7 @@ pub(all) enum KeyOrigin {
   AsOfResult
   SequenceResult
   GraphQueryResult
+  NearestResult
 } derive(Eq, @debug.Debug)
 
 pub struct KeySelection {

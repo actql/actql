@@ -28,7 +28,7 @@ pub fn vector_projection_keys(
         for i in 0..<n {
           let field = @carrier.vector_identity_at(vector, i).unwrap()
           charge(b, source, field.name)
-          fields.push({ name: field.name, contract: field.contract, })
+          fields.push(plain_key_field(field.name, field.contract))
         }
         witnesses.push({
           origin: VectorProjectionResult,

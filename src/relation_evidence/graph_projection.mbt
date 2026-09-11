@@ -8,7 +8,7 @@ fn graph_projection_field(
   spend(budget, source, 1)
   charge(budget, source, name)
   match @carrier.lookup(records, name) {
-    Present(field) => { name, contract: field.contract, }
+    Present(field) => plain_key_field(name, field.contract)
     _ => fail(source, InputContractMismatch)
   }
 }

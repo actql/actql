@@ -38,6 +38,16 @@ pub type KeyObligation = @key_obligation.KeyObligation
 pub struct KeyField {
   name : @row.FieldName
   contract : @contract.Contract?
+  // Producer-bound positional domain; never inferred from an object contract.
+  positional_identity : @carrier.Vectors?
+}
+
+///|
+fn plain_key_field(
+  name : @row.FieldName,
+  contract : @contract.Contract?,
+) -> KeyField {
+  { name, contract, positional_identity: None, }
 }
 
 ///|
@@ -59,10 +69,12 @@ pub(all) enum KeyOrigin {
   AsOfResult
   SequenceResult
   GraphQueryResult
+  NearestResult
 } derive(Eq, Debug)
 
 ///|
 priv enum KeyProducer {
+  NearestProducer(CheckedNearest)
   GraphQueryProducer(GraphKeyOperation)
   SequenceProducer(@relation.CheckedSequence)
   AsOfProducer(CheckedAsOf, KeyedRelation?)
@@ -172,7 +184,7 @@ pub fn declare_primary_key(
       if contract is Some(c) && (c.nullable || !@contract.key_comparable(c, c)) {
         fail(at, InvalidKeyType(name))
       }
-      fields.push({ name: field_name, contract, })
+      fields.push(plain_key_field(field_name, contract))
     }
     Ok({
       origin: InputDeclaration,

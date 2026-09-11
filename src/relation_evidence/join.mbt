@@ -114,7 +114,7 @@ fn binary_projection_mapping(
           v
         }
       }
-      entries.push({ name, contract: @row.lookup(output, name), })
+      entries.push(plain_key_field(name, @row.lookup(output, name)))
     }
   }
   Project(names)

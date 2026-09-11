@@ -101,7 +101,7 @@ pub fn graph_query_keys(
       charge(b, source, name)
       match @carrier.lookup(records, name) {
         Present(field) => {
-          let field : KeyField = { name, contract: field.contract, }
+          let field : KeyField = plain_key_field(name, field.contract)
           fields.push(field)
           aliases.push([field])
         }

@@ -71,7 +71,7 @@ pub fn advance_calendar_keys(
       Present(field) => field.contract
       _ => fail(source, InputContractMismatch)
     }
-    let fields : Array[KeyField] = [{ name, contract, }]
+    let fields : Array[KeyField] = [plain_key_field(name, contract)]
     let key : KeyedRelation = {
       origin: CalendarSeriesResult,
       producer: Some(CalendarProducer(operation)),

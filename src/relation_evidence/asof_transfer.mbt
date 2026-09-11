@@ -93,7 +93,7 @@ pub fn transfer_asof_keys(
           is Present({ contract: Some(contract), .. }) else {
           fail(source, InputContractMismatch)
         }
-        fields.push({ name, contract: Some(contract), })
+        fields.push(plain_key_field(name, Some(contract)))
       }
       let identity : KeyedRelation = {
         origin: AsOfResult,

@@ -77,7 +77,7 @@ fn prepare_mapping(
               entries
             }
           }
-          entries.push({ name: field.name, contract: Some(field.contract), })
+          entries.push(plain_key_field(field.name, Some(field.contract)))
         }
       }
       Project(mapping)
@@ -102,10 +102,7 @@ fn prepare_mapping(
             v
           }
         }
-        entries.push({
-          name: p.output,
-          contract: @row.lookup(output, p.output),
-        })
+        entries.push(plain_key_field(p.output, @row.lookup(output, p.output)))
       }
       Project(mapping)
     }
@@ -152,7 +149,7 @@ fn mapped_key(
                 (Some(input), None) => Some(input)
                 (None, result) => result
               }
-              remaining.push({ name: output.name, contract, })
+              remaining.push({ ..field, name: output.name, contract, })
             }
           }
         Forget => ()

@@ -80,6 +80,32 @@ output construction consume one cumulative budget; repeated declarations and
 every alias visit are accounted for even when completion proves ambiguous.
 The single-Carrier APIs remain available and cannot invent key evidence.
 
+`relation_evidence.nearest_keys` derives one conditional two-field key from a
+checked nearest operation when both identity domains are known. It is bound to
+that operation's exact output records, retains the producer and its original
+input sources, and does not prove that the actual inputs contain unique IDs.
+Opaque identity roles do not produce a usable key, even though the output names
+are known. The fixed Sketch `87dc7144` compiler likewise declares query_id plus
+candidate_id as the operation key; its string-only representation is not imported.
+
+For a positional composite identity, the read-only `KeyField.positional_identity`
+retains the original Vectors handle and thus the ordered component contracts.
+Only a checked producer creates this annotation. Ordinary declarations and other
+new field keys carry none. Canonical-order selection can use the annotated
+identity; scalar pooling selection cannot. This does not make arbitrary objects
+KeyComparable or AuthorOrderable. Exact-copy projections and derive slots copy
+the annotation to every surviving alias; deleting or replacing all aliases of
+one component loses the whole key. Null extension still prevents non-null key
+completion. Results retain these domains with the publication key so a later
+consumer need not guess positional order from JSON property order.
+
+Pipeline checking charges key construction to its shared work/name budget.
+Construction visits the two output roles and shares already checked component
+contracts without rescanning their trees. Key selection and alias transfer retain
+their existing cumulative budgets. Producer, profile, numerical, resource and
+input-admission obligations are not discharged by constructing or selecting a
+key. Ranking fusion and lexical-ranking key production remain separate work.
+
 Each checked nearest input also retains its original `NearestSource`, accessible
 through `nearest_input_source`. A Relation stays a Relation at this boundary;
 the completed Vectors interpretation is separate. A supplied key collection is
@@ -87,8 +113,8 @@ retained even when explicit roles bypass key selection, without declaring those
 unused keys validated or selected. Existing Vectors handles and opaque inputs
 are retained unchanged. Sharing these immutable handles adds no traversal or
 per-field budget charge. Ranking producers retain both original sides through
-their checked nearest operation; output key transfer and obligation discharge
-remain separate work.
+their checked nearest operation; obligation discharge remains separate work
+from the conditional output key transfer above.
 
 ## Grouped vector pooling
 

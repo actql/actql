@@ -59,7 +59,7 @@ fn producer_key(
     let encoded = field_key(name)
     if !seen.contains(encoded) {
       seen[encoded] = true
-      fields.push({ name, contract: @row.lookup(output, name), })
+      fields.push(plain_key_field(name, @row.lookup(output, name)))
     }
   }
   Some({

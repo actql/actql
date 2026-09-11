@@ -115,6 +115,9 @@ pub struct KeySelection {
 ///|
 fn eligible(field : KeyField, usage : KeyUse) -> Bool {
   guard field.contract is Some(c) && !c.nullable else { return false }
+  if field.positional_identity is Some(_) {
+    return usage == CanonicalOrder
+  }
   match c.shape {
     Text(_) | Number | Boolean | Decimal(..) | Date | Timestamp => true
     ResourceRef(..) | ArtifactRef(..) => usage == CanonicalOrder
