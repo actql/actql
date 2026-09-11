@@ -13,6 +13,7 @@ fn wired_fixture() -> (
 fn wired_inputs_fixture(
   use_snapshots : Bool,
   profile? : String = "{}",
+  expression? : String = "$n",
 ) -> (
   StageContexts,
   @stage_results.ResultWiring,
@@ -24,7 +25,9 @@ fn wired_inputs_fixture(
   let program = @syntax.parse(
     (
       #|{"version":"actql/0.1","id":"p","params":{"n":{"type":"number","default":1}},"stages":[{"id":"first","inputs":{"a":{"carrier":"relation","schema":{"id":{"type":"number","nullable":false}}}},"steps":[{"derive":{"x":"$n"}}],"results":{"out":{"from":"a","fields":["id"]}}},{"id":"second","inputs":{"a":{"result":{"stage":"first","result":"out"}}},"steps":[{"derive":{"x":"$n"}}],"results":{"out":{"from":"a","fields":["id"]}}}],"results":{"out":{"from":{"stage":"second","result":"out"}}}}
-    ),
+    )
+    .replace(old="\"x\":\"$n\"", new="\"x\":\"" + expression + "\"")
+    .replace(old="\"x\":\"$n\"", new="\"x\":\"" + expression + "\""),
     {
       source: { max_input_bytes: 10000, max_nodes: 1000, max_depth: 100, },
       tree: {

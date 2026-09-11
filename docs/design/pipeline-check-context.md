@@ -87,6 +87,44 @@ must bind validated resolutions to these exact occurrences and reject unresolved
 static requirements; lowering must not reinterpret this inventory as work that
 may simply be deferred to runtime.
 
+### Environment-bound expression validation sites
+
+`prepare_expression_validation` consumes the selected-capacity context after
+staged Result wiring and input/snapshot reconciliation. It reuses every stage's
+existing requirement inventory, without reparsing expressions or accepting a
+second caller-provided list. An opaque `ExpressionValidationSite` retains its
+exact context owner and stage/inventory coordinates. Its requirement supplies
+the original typed expression, node index, step and producer visit; its
+`ParameterVisit` supplies that same visit's collected references and bound index.
+The bound values are those already checked against the staged Program's single
+selected binding owner. Equal-content foreign bindings cannot be supplied to
+this entry. Site coordinates and physical ownership are process-local, not
+semantic Program or Invocation identities.
+
+The constructor admits `text_time_evaluation` from that context's exact Check
+Environment, even when no expression uses it. A malformed present component
+fails the whole construction; an absent component remains `None`, with no
+implicit defaults. Presence does not establish profile admission, validate a
+pattern, derive an output envelope or discharge any requirement. All obligation
+kinds remain in the inventory, including non-text-time profile obligations.
+An empty inventory is not a claim of whole-Program static completion. Later
+resolvers must consume these owned sites and return occurrence-bound evidence;
+this context is not a lowering-ready or executable Program.
+
+Limits include the prior selected context's work, text and policy-node usage.
+Additional work charges one component lookup, the admitted component's nodes,
+one visit per stage and one entry per retained requirement; component bytes
+and nodes accumulate into the existing budgets. A separate requirement cap
+bounds the site index before allocation. Component depth is checked during
+admission. This composition accounting does not remeasure prior parsing, bound
+total heap usage or establish runtime resource ceilings.
+
+Tests use two source-bound stages and a repeated producer with an unselected
+regex branch whose capture argument is a bound Parameter. They check all nine
+pending occurrences, exact expression/binding/environment ownership, independent
+equal-content contexts, exact/short/negative budgets, missing policy and invalid
+unused components. Pattern validation and envelope derivation remain pending.
+
 ## Not yet a checked Program
 
 `attach_stage_contexts` joins source-bound all-stage operation bindings and

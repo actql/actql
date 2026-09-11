@@ -22,10 +22,13 @@ fn capacity_profile(changed : Bool) -> String {
 ///|
 fn selected_fixture(
   changed : Bool,
+  profile? : String = capacity_profile(changed),
+  expression? : String = "$n",
 ) -> (ReconciledContexts, @environment.Capacity) {
   let (stages, wiring, _, _, locals, evidence) = wired_inputs_fixture(
     true,
-    profile=capacity_profile(changed),
+    profile~,
+    expression~,
   )
   let wired = attach_result_wiring(
     stages,
