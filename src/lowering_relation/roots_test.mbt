@@ -53,6 +53,30 @@ test "roots preserve graph order and sort escaped pointers without reordering ev
     fail("map")
   }
   assert_eq(bindings.map(b => b.0), ["/", "a", "~"])
+  // Escaped pointer ordering must carry the original checked expression with
+  // its lowered partner, not select the same numeric slot in the sorted index.
+  for (root_index, binding_index) in [(0, 1), (1, 2), (2, 0)] {
+    let original = @relation.binding_at(
+        @lowering_relation.kernel_checked(kernel),
+        binding_index,
+      ).unwrap().expression
+    assert_true(
+      physical_equal(
+        @lowering_relation.root_at(index, root_index).unwrap().typed_expression,
+        original,
+      ),
+    )
+  }
+  guard @lowering_relation.sequence_step(sequence, 3)
+    is Some(@lowering_relation.RowStep(predicate)) else {
+    fail("predicate")
+  }
+  assert_true(
+    physical_equal(
+      @lowering_relation.root_at(index, 3).unwrap().typed_expression,
+      @relation.binding_at(@lowering_relation.kernel_checked(predicate), 0).unwrap().expression,
+    ),
+  )
   assert_true(
     physical_equal(
       @lowering_relation.root_at(index, 2).unwrap().expression,

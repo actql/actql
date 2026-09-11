@@ -883,6 +883,16 @@ APIs in `41227eb` and `e836078`. The [shared handoff request](lowering-fragment-
 supersedes further development of the duplicate rule derivation below. It will
 be replaced by an adapter to main's implementation; the independent vectors stay.
 
+Adapter preparation now retains the exact `TypedExpression` on each lowered
+expression and carries it into its read-only root entry. It is the already
+obtained checked owner, not a second type check or a fresh structurally equal
+handle. Root sorting moves the lowered/typed pair together. No extra
+`relation_typing.binding_at` call is used during root enumeration, avoiding that
+accessor's defensive reference-array copy. Existing independent wire vectors
+remain unchanged; map pointer-reordering and filter tests assert exact checked
+owner identity. This prepares the shared demand API connection but does not
+substitute for its pending import.
+
 `prepare_demand` traverses the existing lowered expression objects under a
 `RootIndex`. It records each occurrence's root, parent/child ordinal and condition
 chain. A condition refers to an occurrence, not merely an equal expression or

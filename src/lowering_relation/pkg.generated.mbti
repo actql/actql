@@ -220,6 +220,7 @@ pub struct ExpressionRoot {
   step_id : String
   parameter_pointer : String
   expression : Expression
+  typed_expression : @expression_typing.TypedExpression
 }
 
 pub struct Issue {

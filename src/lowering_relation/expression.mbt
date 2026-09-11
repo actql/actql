@@ -2,6 +2,7 @@
 /// Typed in-memory representation of actql-expression-node/0.1. Source and
 /// resolved field identity are non-wire sidecars, not a new expression language.
 struct Expression {
+  typed_owner : @typing.TypedExpression
   body : ExpressionBody
   contract : @contract.Contract
   source : @decode.Cursor
@@ -532,6 +533,7 @@ fn lower_expression_measured(
             }
             budget.nodes += 1
             {
+              typed_owner: typed,
               body: TypedNull,
               contract: null_contract,
               source: body,
@@ -547,6 +549,7 @@ fn lower_expression_measured(
         other => expression_fail(cursor, ExpressionNotImplemented(other))
       }
       completed[index] = {
+        typed_owner: typed,
         body: lowered,
         contract,
         source: cursor,

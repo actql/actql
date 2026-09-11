@@ -12,6 +12,7 @@ pub struct ExpressionRoot {
   step_id : String
   parameter_pointer : String
   expression : Expression
+  typed_expression : @typing.TypedExpression
 }
 
 ///|
@@ -114,6 +115,7 @@ pub fn prepare_roots(
               step_id: sequence.owner.prepared.nodes[step_index].id,
               parameter_pointer: "/expr",
               expression: expr,
+              typed_expression: expr.typed_owner,
             })
             continue
           }
@@ -143,6 +145,7 @@ pub fn prepare_roots(
         step_id: sequence.owner.prepared.nodes[step_index].id,
         parameter_pointer: pointer,
         expression: expr,
+        typed_expression: expr.typed_owner,
       })
     }
   }
