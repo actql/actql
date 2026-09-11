@@ -7527,6 +7527,39 @@
       }
     },
     {
+      "requirement_id": "actql.protocol.contracts/capacity-host-policy.canonical-source",
+      "statement_sha256": "bb1e897e78a3927e75e8e678e4304cd6cc2d03ee6ea40b3fa447235934d41c5a",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "capacity-host-policy",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/capacity-host-policy.ceiling-provenance",
+      "statement_sha256": "4ec618cbc2106db8199f8021f6aebe80476abccda084ee89415116f24f010822",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "capacity-host-policy",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/capacity-host-policy.machine-contract",
+      "statement_sha256": "87d4b0e993668bd08513cee4717f50d68c6defda433499ab5042a93e8b5d95bf",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "capacity-host-policy",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.protocol.contracts/catalog-and-lock.a-connector-must-publish-at-least-one-sourceview-for-each",
       "statement_sha256": "cee407ec05d0e49eea18b7b10e738d641814660d710ab15c9058562be3bae778",
       "status": "pending",

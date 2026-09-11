@@ -77,6 +77,9 @@ consumer audit.
    The separate [operation transfer registry](bound-transfer-registry.md) now
    covers all 72 public spellings and is pinned by the language owner. Coverage
    classification does not replace individual witness-law/source validation.
+   [Host capacity policy admission](capacity-policy.md) now binds canonical
+   policy bodies and opaque field ceilings to an expected CID. Host authority,
+   complete witness laws and consumer enforcement are separate unfinished work.
    Do not add public proof flags, treat policy ceilings as observations, or
    expand into acquisition, an evaluator or Host dispatch.
 3. Connect contextual resolutions into a complete static checking/discharge

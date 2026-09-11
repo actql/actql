@@ -121,6 +121,35 @@ the same selector naming different contract CIDs is rejected.
 
 Runtime source evidence and drift validation are specified in [Runtime source evidence](run.md#runtime-source-evidence).
 
+<a id="capacity-host-policy"></a>
+
+### Host capacity policy evidence
+
+<!-- requirement-block: capacity-host-policy.canonical-source -->
+A Host capacity policy used as bound-witness source evidence MUST be an exact
+canonical `actql-capacity-host-policy/0.1` body conforming to the pinned
+capacity-policy contract. Its 17 named limits are required positive safe
+integers; unknown fields, missing limits, noncanonical bytes and implicit
+defaults are rejected. The Check Environment selects the expected policy CID
+independently of the supplied body. Validation checks that CID against the
+complete canonical body, without removing a field or repairing the encoding.
+
+<!-- requirement-block: capacity-host-policy.ceiling-provenance -->
+A policy ceiling MUST retain the exact policy CID, field name and value.
+Policy admission establishes integrity and structural validity relative to the
+selected CID, not Host authorization, an observed data upper bound, or completed
+enforcement. The governing witness law separately determines the field's unit,
+scope and consumer; numeric equality cannot substitute one field for another.
+Resolving and enforcing the resulting capacity remains required before a
+runnable Plan can rely on it. Policy selection and deployment remain Host
+responsibilities rather than author-level source defaults.
+
+<!-- requirement-block: capacity-host-policy.machine-contract -->
+<!-- normative-code: law -->
+```text
+../../../spec/contracts/actql-capacity-host-policy.json# sha256:95e07fe13814a339543361c46b492bb90f2e78013e402439113b62fc0113ef40
+```
+
 <a id="catalog-and-lock"></a>
 
 ### Connector Catalog and lock

@@ -1,0 +1,117 @@
+{
+  "version": "actql-capacity-host-policy-contract/0.1",
+  "schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "max_aggregate_array_items",
+      "max_artifact_bytes",
+      "max_artifact_rows",
+      "max_effect_items",
+      "max_graph_input_edges",
+      "max_graph_input_nodes",
+      "max_graph_output_rows",
+      "max_graph_paths",
+      "max_infer_items",
+      "max_model_input_tokens_per_item",
+      "max_model_request_bytes_per_item",
+      "max_model_total_duration_ms",
+      "max_nested_value_bytes",
+      "max_nested_value_depth",
+      "max_relation_output_rows",
+      "max_temporal_matches_per_key",
+      "max_temporal_output_rows",
+      "version"
+    ],
+    "properties": {
+      "max_aggregate_array_items": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 9007199254740991
+      },
+      "max_artifact_bytes": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 9007199254740991
+      },
+      "max_artifact_rows": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 9007199254740991
+      },
+      "max_effect_items": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 9007199254740991
+      },
+      "max_graph_input_edges": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 9007199254740991
+      },
+      "max_graph_input_nodes": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 9007199254740991
+      },
+      "max_graph_output_rows": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 9007199254740991
+      },
+      "max_graph_paths": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 9007199254740991
+      },
+      "max_infer_items": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 9007199254740991
+      },
+      "max_model_input_tokens_per_item": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 9007199254740991
+      },
+      "max_model_request_bytes_per_item": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 9007199254740991
+      },
+      "max_model_total_duration_ms": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 9007199254740991
+      },
+      "max_nested_value_bytes": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 9007199254740991
+      },
+      "max_nested_value_depth": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 9007199254740991
+      },
+      "max_relation_output_rows": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 9007199254740991
+      },
+      "max_temporal_matches_per_key": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 9007199254740991
+      },
+      "max_temporal_output_rows": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 9007199254740991
+      },
+      "version": {
+        "const": "actql-capacity-host-policy/0.1"
+      }
+    }
+  }
+}

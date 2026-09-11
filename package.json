@@ -55,7 +55,7 @@
     "check:nest": "node scripts/check-nest-reference.mjs",
     "generate:nest": "node scripts/check-nest-reference.mjs --write",
     "check:contracts": "node scripts/check-actql-spec-family.mjs && npm run check:aoa && npm run check:bound-transfer",
-    "check:bound-transfer": "node scripts/bound-transfer-laws.mjs && node --test scripts/bound-transfer-laws.test.mjs",
+    "check:bound-transfer": "node scripts/bound-transfer-laws.mjs && node --test scripts/bound-transfer-laws.test.mjs scripts/capacity-policy.test.mjs",
     "check:aoa": "node scripts/check-aoa-versions.mjs && node --test scripts/aoa-versions.test.mjs scripts/pure-operation-laws.test.mjs",
     "check:links": "node scripts/check-document-links.mjs",
     "check:examples": "node scripts/check-document-examples.mjs",
