@@ -139,6 +139,27 @@ pub fn order(v : CheckedNest) -> Array[OrderTerm]? {
 }
 
 ///|
+/// None denotes omitted order, not an empty authored order.
+pub fn order_count(v : CheckedNest) -> Int? {
+  v.order.map(xs => xs.length())
+}
+
+///|
+pub fn order_at(v : CheckedNest, index : Int) -> OrderTerm? {
+  v.order.bind(xs => xs.get(index))
+}
+
+///|
+pub fn projection_count(v : CheckedNest) -> Int {
+  v.projection.length()
+}
+
+///|
+pub fn projection_at(v : CheckedNest, index : Int) -> Projection? {
+  v.projection.get(index)
+}
+
+///|
 pub fn item_guard(v : CheckedNest) -> Guard? {
   v.item_limit
 }

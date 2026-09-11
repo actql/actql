@@ -34,6 +34,7 @@ pub(all) enum IssueKind {
   UnknownName(String)
   MissingCurrent
   MissingKeyEvidence
+  UnresolvedOrder
   KeyEvidence(@evidence.IssueKind)
   WrongCarrier(@carrier.Kind)
   IncompleteSchema

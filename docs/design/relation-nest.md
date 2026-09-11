@@ -23,6 +23,25 @@ sequence). No candidate key or witness is invented. `ResolveItemLimit` and
 `BindGuard` require actual bound values and capacity validation. A supplied guard
 does not become an unconditional array bound in the output type.
 
+`pipeline_typing.resolve_nest_order` supplies bounded contextual resolution of
+child order, retaining the exact checked nest and resolved child target. Omitted
+order first reuses the child's conditional sequence, then selects a canonical
+whole candidate key, then uses the complete eligible projection in its authored
+sequence. Explicit terms remain unchanged and require key completion or stable
+sorting with an existing child sequence to settle ties; projected-field fallback
+cannot rescue explicit ties. Alias coverage is qualification-aware and hidden
+identity components remain available before projection. Parent order is never
+used as child evidence. An unresolved order fails with its nest/projection source
+location and no partial result. Indexed metadata and returned terms avoid array
+copies before budget checks; work and field text use caller-supplied cumulative
+limits within each resolution, with consumed usage returned for larger callers.
+The checked operation's generic obligations remain intact: resolving order does
+not validate item limits, sibling capacities, policy, complete acquisition or
+values, nor emit a Plan. Fixed Sketch `87dc7144` uses the same priority and stable
+explicit-tie fallback in its nest compiler; newer projection syntax and typed
+opaque witnesses follow current Language rather than its legacy column objects
+and public ordering flag.
+
 `ResolveNestedEnvelope` requires Host nested byte/depth ceilings, overflow-safe
 parent-count × per-parent-limit accounting, sibling byte addition, and logical
 copies for repeated parent rows. A child-total bound only tightens expansion

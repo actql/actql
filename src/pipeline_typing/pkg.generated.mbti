@@ -11,6 +11,7 @@ import {
   "actql/actql/expression_text",
   "actql/actql/graph_contract",
   "actql/actql/graph_typing",
+  "actql/actql/order_key",
   "actql/actql/parameter_binding",
   "actql/actql/relation_append",
   "actql/actql/relation_evidence",
@@ -84,6 +85,22 @@ pub fn logical_order(CheckedPipeline, Target) -> LogicalOrder?
 
 pub fn lookup(CheckedPipeline, String) -> Target?
 
+pub fn nest_order_child(NestOrder) -> Target
+
+pub fn nest_order_consumer(NestOrder) -> CheckedStep
+
+pub fn nest_order_inherited(NestOrder) -> LogicalOrder?
+
+pub fn nest_order_key(NestOrder) -> @relation_evidence.KeyedRelation?
+
+pub fn nest_order_strategy(NestOrder) -> NestOrderStrategy
+
+pub fn nest_order_term_at(NestOrder, Int) -> NestOrderTerm?
+
+pub fn nest_order_term_count(NestOrder) -> Int
+
+pub fn nest_order_usage(NestOrder) -> (Int, Int)
+
 pub fn order_dependency_at(LogicalOrder, Int) -> Target?
 
 pub fn order_dependency_count(LogicalOrder) -> Int
@@ -107,6 +124,8 @@ pub fn parameters(CheckedPipeline) -> @parameter_binding.Declarations?
 pub fn ranking_evidence(CheckedPipeline, Target) -> @vector_typing.RankingInput?
 
 pub fn resolve_existing_input_order(CheckedPipeline, Int) -> InputOrderResolution?
+
+pub fn resolve_nest_order(CheckedPipeline, Int, max_work~ : Int, max_text_bytes~ : Int) -> Result[NestOrder, Issue]
 
 pub fn row_count(CheckedPipeline, Target) -> RowCount?
 
@@ -237,6 +256,7 @@ pub(all) enum IssueKind {
   UnknownName(String)
   MissingCurrent
   MissingKeyEvidence
+  UnresolvedOrder
   KeyEvidence(@relation_evidence.IssueKind)
   WrongCarrier(@carrier_contract.Kind)
   IncompleteSchema
@@ -281,6 +301,22 @@ pub(all) struct Limits {
 } derive(Eq, @debug.Debug)
 
 type LogicalOrder
+
+type NestOrder
+
+pub(all) enum NestOrderStrategy {
+  Authored
+  Inherited
+  CandidateKey
+  ProjectedFields
+} derive(Eq, @debug.Debug)
+
+pub struct NestOrderTerm {
+  field : @relation_schema.FieldName
+  direction : @order_key.Direction
+  nulls : @order_key.NullPlacement
+  authored : Bool
+}
 
 type RelationEvidence
 

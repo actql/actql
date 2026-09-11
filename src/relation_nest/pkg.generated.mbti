@@ -24,11 +24,19 @@ pub fn keys(CheckedNest) -> Array[KeyPair]
 
 pub fn order(CheckedNest) -> Array[OrderTerm]?
 
+pub fn order_at(CheckedNest, Int) -> OrderTerm?
+
+pub fn order_count(CheckedNest) -> Int?
+
 pub fn output_schema(CheckedNest) -> @relation_schema.Schema
 
 pub fn pending_validations(CheckedNest) -> Array[Obligation]
 
 pub fn projection(CheckedNest) -> Array[Projection]
+
+pub fn projection_at(CheckedNest, Int) -> Projection?
+
+pub fn projection_count(CheckedNest) -> Int
 
 pub fn source(CheckedNest) -> @decode_core.Cursor
 
