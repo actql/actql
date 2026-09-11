@@ -114,6 +114,11 @@ consumer audit.
    cycle for nearest and ranking key producers, with unchanged facade entry points.
 2. Define validated external evidence and resolved-capacity boundaries using
    the existing normative witness domains, governing laws and dependency checks.
+   The [source applicability audit](capacity-source-audit.md) distinguishes
+   registered names from actual source authority, records the extension-local
+   fragment law boundary, and identifies checked-operation author-guard binding
+   as the next in-scope source connection. It does not add a generic trusted
+   Contract/Program/Language witness constructor or expand into acquisition.
    [Producer-bound input evidence](produced-input-evidence.md) now retains the
    original pipeline/target and conditional record/node/edge facts through
    input forwarding. Repeated operands and existing key/ranking owners remain
