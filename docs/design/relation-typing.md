@@ -199,3 +199,21 @@ exercise those vectors on each backend and separately cover exact slot
 references, shadowing, pending obligations, ownership, cumulative budgets,
 wide schemas and deep expressions. These are type-checking tests, not runtime
 or whole-ActQL conformance evidence.
+
+## Derive evidence cardinality
+
+The existing `actql-stage-contracts.json#/schemas/derive_binding` now admits an
+empty `bindings` list only for `snapshot_map`; `ordered_array` still requires
+at least one binding. This repairs the evidence schema's mismatch with the
+already-admitted empty map, without changing source acceptance or map AoA nodes.
+Input/output contracts, limits, node identity, passthrough and failure scope
+remain required even for the no-op. An empty body does not waive input validation
+or authorize operation removal. The schema change updates its pin; it does not
+reinterpret artifacts pinned to the earlier schema.
+
+`scripts/derive-binding-schema.mjs --write` updates the conditional constraint
+and schema CID. Its tests fix both modes at zero and nonzero cardinality and
+reject missing evidence, null lists and malformed entries. These tests verify
+shape only; hashes and checked-owner correspondence require semantic admission.
+The executable ordered row-kernel and its resource-context binding remain
+separate work, not an execution capability conferred by this schema correction.

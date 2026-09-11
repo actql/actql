@@ -8340,7 +8340,7 @@ through the pinned expression contract.
 <!-- stage-contract-pins:start -->
 ```text
 ../../spec/contracts/actql-stage-contracts.json#/source sha256:b98f2467f609677c7b5bfd256892763e4772dd45fe51a494402e56f3a847cdd8
-../../spec/contracts/actql-stage-contracts.json#/schemas/derive_binding sha256:b6a35f38e753f19ffd9f4c3265ff4865f85415a3b194bdbf280115227a03ac34
+../../spec/contracts/actql-stage-contracts.json#/schemas/derive_binding sha256:d74bb697d91a2daf2c51e0d6c492f4bb35fdea5e542d606318683b1c9c5f06f9
 ../../spec/contracts/actql-stage-contracts.json#/schemas/local_dependencies sha256:22a2636742d270464988e350adc168af898987e83f620cba893efb091d9f49e8
 ../../spec/contracts/actql-stage-contracts.json#/laws/lifecycle sha256:da02951b68ca4255a25ac5b3f60288dbde2a8f7b252f518d73247c9feca09c54
 ../../spec/contracts/actql-stage-contracts.json#/laws/identity sha256:090d1c81f41bc0cbda07b62ade75d2fbd450d0a333fcf6a23d1c2483b43e213f

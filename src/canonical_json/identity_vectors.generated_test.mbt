@@ -935,12 +935,12 @@ test "contract spec/contracts/actql-stage-contracts.json#/source" {
 ///|
 test "contract spec/contracts/actql-stage-contracts.json#/schemas/derive_binding" {
   let input = @json.parse([
-    "{\"type\":\"object\",\"properties\":{\"version\":{\"const\":\"actql-derive-binding/0.1\"},\"aoa_node_cid\":{\"type\":\"string\",\"pattern\":\"^sha256:[0-9a-f]{64}$\"},\"input_contract_cid\":{\"type\":\"string\",\"pattern\":\"^sha256:[0-9a-f]{64}$\"},\"output_contract_cid\":{\"type\":\"string\",\"pattern\":\"^sha256:[0-9a-f]{64}$\"},\"mode\":{\"enum\":[\"snapshot_map\",\"ordered_array\"]},\"input_passthrough\":{\"const\":true},\"failure_scope\":{\"const\":\"row-binding-expression\"},\"limits_cid\":{\"type\":\"string\",\"pattern\":\"^sha256:[0-9a-f]{64}$\"},\"bindings\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\",\"minLength\":1},\"checked_expression_cid\":{\"type\":\"string\",\"pattern\":\"^sha256:[0-9a-f]{64}$\"},\"context_contract_cid\":{\"type\":\"string\",\"pattern\":\"^sha256:[0-9a-f]{64}$\"}},\"required\":[\"name\",\"checked_expression_cid\",\"context_contract_cid\"],\"additionalProperties\":false},\"minItems\":1},\"self_cid\":{\"type\":\"string\",\"pattern\":\"^sha256:[0-9a-f]{64}$\"}},\"required\":[\"version\",\"aoa_node_cid\",\"input_contract_cid\",\"output_contract_cid\",\"mode\",\"input_pass",
-    "through\",\"failure_scope\",\"limits_cid\",\"bindings\",\"self_cid\"],\"additionalProperties\":false}",
+    "{\"type\":\"object\",\"properties\":{\"version\":{\"const\":\"actql-derive-binding/0.1\"},\"aoa_node_cid\":{\"type\":\"string\",\"pattern\":\"^sha256:[0-9a-f]{64}$\"},\"input_contract_cid\":{\"type\":\"string\",\"pattern\":\"^sha256:[0-9a-f]{64}$\"},\"output_contract_cid\":{\"type\":\"string\",\"pattern\":\"^sha256:[0-9a-f]{64}$\"},\"mode\":{\"enum\":[\"snapshot_map\",\"ordered_array\"]},\"input_passthrough\":{\"const\":true},\"failure_scope\":{\"const\":\"row-binding-expression\"},\"limits_cid\":{\"type\":\"string\",\"pattern\":\"^sha256:[0-9a-f]{64}$\"},\"bindings\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\",\"minLength\":1},\"checked_expression_cid\":{\"type\":\"string\",\"pattern\":\"^sha256:[0-9a-f]{64}$\"},\"context_contract_cid\":{\"type\":\"string\",\"pattern\":\"^sha256:[0-9a-f]{64}$\"}},\"required\":[\"name\",\"checked_expression_cid\",\"context_contract_cid\"],\"additionalProperties\":false},\"minItems\":0},\"self_cid\":{\"type\":\"string\",\"pattern\":\"^sha256:[0-9a-f]{64}$\"}},\"required\":[\"version\",\"aoa_node_cid\",\"input_contract_cid\",\"output_contract_cid\",\"mode\",\"input_pass",
+    "through\",\"failure_scope\",\"limits_cid\",\"bindings\",\"self_cid\"],\"additionalProperties\":false,\"allOf\":[{\"if\":{\"properties\":{\"mode\":{\"const\":\"ordered_array\"}},\"required\":[\"mode\"]},\"then\":{\"properties\":{\"bindings\":{\"minItems\":1}}}}]}",
   ].join(""))
-  let value = @canonical_json.from_json(input, 60, 6, 1114)
-  assert_eq(@canonical_json.cid_value(value, 1114, 60, 6), "sha256:b6a35f38e753f19ffd9f4c3265ff4865f85415a3b194bdbf280115227a03ac34")
-  assert_eq(@canonical_json.measure_value(value, 1114, 60, 6), 1114)
+  let value = @canonical_json.from_json(input, 72, 6, 1251)
+  assert_eq(@canonical_json.cid_value(value, 1251, 72, 6), "sha256:d74bb697d91a2daf2c51e0d6c492f4bb35fdea5e542d606318683b1c9c5f06f9")
+  assert_eq(@canonical_json.measure_value(value, 1251, 72, 6), 1251)
 }
 
 ///|
