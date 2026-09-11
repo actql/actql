@@ -22,6 +22,7 @@ import {
   "actql/actql/source_value" @source,
   "actql/actql/decode_core" @decode,
   "actql/actql/relation_schema" @schema,
+  "actql/actql/relation_evidence" @evidence,
   "actql/actql/sha256" @sha,
   "moonbitlang/core/encoding/utf8",
 } for "test"

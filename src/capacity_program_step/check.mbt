@@ -24,6 +24,7 @@ pub(all) enum Issue {
   InvalidBoundMilliseconds(String)
   InvalidOperandWorkLimit
   OperandWorkLimit
+  MissingJoinUniqueness
 } derive(Eq, Debug)
 
 ///|
@@ -36,6 +37,7 @@ struct StepBound {
   input_work : Int
   operand_work : Int
   bindings : CountBindings?
+  join_evidence : @pipeline.JoinEvidence?
 }
 
 ///|
@@ -207,6 +209,44 @@ pub fn check_with_inputs(
   max_operand_work? : Int = 0,
   bindings? : CountBindings? = None,
 ) -> Result[StepBound, Issue] {
+  check_application(
+    pipeline, index, proof, inputs, max_input_work, max_operand_work, bindings, false,
+  )
+}
+
+///|
+/// Refine a join bound with the actual checked join's conditional key evidence.
+/// This retains assertions and key-producer obligations; it does not discharge them.
+pub fn check_join_with_uniqueness(
+  pipeline : @pipeline.CheckedPipeline,
+  index : Int,
+  proof : @wire.ProgramProofClaim,
+  inputs : Array[StepBound],
+  max_input_work? : Int = 0,
+) -> Result[StepBound, Issue] {
+  check_application(
+    pipeline,
+    index,
+    proof,
+    inputs,
+    max_input_work,
+    0,
+    None,
+    true,
+  )
+}
+
+///|
+fn check_application(
+  pipeline : @pipeline.CheckedPipeline,
+  index : Int,
+  proof : @wire.ProgramProofClaim,
+  inputs : Array[StepBound],
+  max_input_work : Int,
+  max_operand_work : Int,
+  bindings : CountBindings?,
+  refine_join : Bool,
+) -> Result[StepBound, Issue] {
   if max_input_work < 0 {
     return Err(InvalidInputWorkLimit)
   }
@@ -218,6 +258,15 @@ pub fn check_with_inputs(
   }
   guard @pipeline.step_at(pipeline, index) is Some(step) else {
     return Err(MissingStep)
+  }
+  let join_evidence = if refine_join {
+    guard @pipeline.join_evidence(pipeline, index) is Some(evidence) &&
+      evidence.cardinality is Some(_) else {
+      return Err(MissingJoinUniqueness)
+    }
+    Some(evidence)
+  } else {
+    None
   }
   let witness = @wire.program_proof_witness(proof)
   guard @wire.source(witness) is @wire.Program(reference, _) &&
@@ -348,7 +397,7 @@ pub fn check_with_inputs(
         Err(_) => return Err(BoundOverflow)
       }
     Join(kind) =>
-      match join_bound(kind, input_value(0), input_value(1)) {
+      match join_bound(kind, input_value(0), input_value(1), join_evidence) {
         Ok(v) => v
         Err(e) => return Err(e)
       }
@@ -424,20 +473,57 @@ pub fn check_with_inputs(
     input_work,
     operand_work,
     bindings,
+    join_evidence,
   })
 }
 
 ///|
-// A bound on successful output without assuming uniqueness or an author guard.
+// A bound on successful output, optionally conditional on retained uniqueness.
+// Author output guards never supply the cardinality calculation.
 // The full-join maximum is max(L*R, L+R): isolated occurrences and matching
 // pairs cannot independently reach their maxima in the same bipartite graph.
 fn join_bound(
   kind : @join.Kind,
   left : @numeric.Value,
   right : @numeric.Value,
+  evidence : @pipeline.JoinEvidence?,
 ) -> Result[Int64, Issue] {
   let l = @numeric.value(left)
   let r = @numeric.value(right)
+  if evidence is Some(evidence) && l != 0L && r != 0L {
+    let lu = evidence.left is Some(_) ||
+      evidence.assertion is Some(@join.OneToOne | @join.OneToMany)
+    let ru = evidence.right is Some(_) ||
+      evidence.assertion is Some(@join.OneToOne | @join.ManyToOne)
+    let tightened = match kind {
+      @join.Inner =>
+        return Ok(
+          if lu && ru {
+            if l < r {
+              l
+            } else {
+              r
+            }
+          } else if ru {
+            l
+          } else {
+            r
+          },
+        )
+      @join.Left => {
+        if ru {
+          return Ok(l)
+        }
+        @numeric.add(left, @numeric.read(r - 1L).unwrap())
+      }
+      @join.Full => @numeric.add(left, right)
+      @join.Semi | @join.Anti => return Ok(l)
+    }
+    return match tightened {
+      Ok(v) => Ok(@numeric.value(v))
+      Err(_) => Err(BoundOverflow)
+    }
+  }
   let result = match kind {
     @join.Semi => return Ok(if r == 0L { 0L } else { l })
     @join.Anti => return Ok(l)
@@ -507,4 +593,10 @@ pub fn operand_work(v : StepBound) -> Int {
 ///|
 pub fn checked_bindings(v : StepBound) -> CountBindings? {
   v.bindings
+}
+
+///|
+/// Exact checked join evidence used for refinement, including pending assertions.
+pub fn checked_join_evidence(v : StepBound) -> @pipeline.JoinEvidence? {
+  v.join_evidence
 }

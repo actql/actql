@@ -23,9 +23,13 @@ pub fn check(@pipeline_typing.CheckedPipeline, Int, @capacity_witness.ProgramPro
 
 pub fn check_applications(@capacity_witness.ProgramClaims, Array[StepBound], max_work~ : Int) -> Result[Applications, ApplicationIssue]
 
+pub fn check_join_with_uniqueness(@pipeline_typing.CheckedPipeline, Int, @capacity_witness.ProgramProofClaim, Array[StepBound], max_input_work? : Int) -> Result[StepBound, Issue]
+
 pub fn check_with_inputs(@pipeline_typing.CheckedPipeline, Int, @capacity_witness.ProgramProofClaim, Array[StepBound], max_input_work? : Int, max_operand_work? : Int, bindings? : CountBindings?) -> Result[StepBound, Issue]
 
 pub fn checked_bindings(StepBound) -> CountBindings?
+
+pub fn checked_join_evidence(StepBound) -> @pipeline_typing.JoinEvidence?
 
 pub fn checked_pipeline(StepBound) -> @pipeline_typing.CheckedPipeline
 
@@ -88,6 +92,7 @@ pub(all) enum Issue {
   InvalidBoundMilliseconds(String)
   InvalidOperandWorkLimit
   OperandWorkLimit
+  MissingJoinUniqueness
 } derive(Eq, @debug.Debug)
 
 type StepBound

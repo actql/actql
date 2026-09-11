@@ -57,6 +57,7 @@ fn join_pipeline(
   right : @pipeline.CheckedPipeline,
   family : String,
   kind : String,
+  assertion? : String? = None,
 ) -> @pipeline.CheckedPipeline {
   let body = match family {
     "cross_join" => "{\"with\":\"r\"}"
@@ -64,7 +65,15 @@ fn join_pipeline(
       "{\"with\":\"r\",\"kind\":\"" +
       kind +
       "\",\"mode\":\"point_in_interval\",\"on\":[],\"left\":{\"time\":\"id\"},\"right\":{\"start\":\"id\",\"end\":\"id\"}}"
-    _ => "{\"with\":\"r\",\"kind\":\"" + kind + "\",\"on\":\"id\"}"
+    _ =>
+      "{\"with\":\"r\",\"kind\":\"" +
+      kind +
+      "\",\"on\":\"id\"" +
+      (match assertion {
+        Some(v) => ",\"cardinality\":\"" + v + "\""
+        None => ""
+      }) +
+      "}"
   }
   @pipeline.check_with_evidence(
     cursor("[{\"from\":\"l\",\"" + family + "\":" + body + "}]"),

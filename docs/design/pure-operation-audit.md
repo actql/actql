@@ -244,9 +244,13 @@ matching automaton or proof that session-boundary values have been computed.
    ranking validation obligations are retained. Join, cross-join and interval
    applications now retain both count dependencies and recompute kind-specific
    successful-output upper bounds, including empty sides and unmatched rows.
-   They reject owner substitution and arithmetic overflow. Uniqueness-based
-   tightening and author assertions remain separate evidence obligations, not
-   consequences of these generic two-count proofs. Collection
+   They reject owner substitution and arithmetic overflow. A separate ordinary
+   join refinement entry now uses the exact retained per-side candidate keys
+   and authored cardinality, with conditional count arithmetic and empty-side
+   precedence. Its application retains the key owners and assertion separately;
+   key-producer validation and author-assertion enforcement are not discharged
+   by the count calculation. Generic two-count proofs do not implicitly acquire
+   these assumptions. Collection
    application coverage now rejects missing unused Program applications and
    substituted child handles under cumulative work limits, while retaining
    other source branches as unresolved. Graph preflight source coverage can now

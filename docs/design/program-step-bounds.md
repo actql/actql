@@ -59,8 +59,43 @@ otherwise. This computes the maximum without overflowing an unused alternative.
 These are upper bounds, not exact counts or proof of successful execution.
 Author cardinality/singleton assertions, endpoint validation, stable identities,
 search-work ceilings and output guards remain separate obligations. Stronger
-uniqueness-based candidates still require their own evidence application; this
+uniqueness-based candidates use the separate application below; this generic
 two-count form does not manufacture or discharge that evidence.
+
+### Conditional join uniqueness
+
+`check_join_with_uniqueness` uses the actual ordinary join's retained
+`pipeline_typing.JoinEvidence`, not a caller-provided cardinality flag or
+detached key. The application retains that exact evidence, exposed through
+`checked_join_evidence`, alongside both verified input count applications.
+It fails if the checked join has neither a covered candidate key nor an authored
+uniqueness assertion. Cross/interval joins do not reuse equality-key cardinality
+merely because they also have two inputs.
+
+For nonempty upper bounds, inner joins use `min(L,R)` when both sides are
+unique, `L` when only the right is unique, and `R` when only the left is unique.
+Left joins use `L` with a unique right side, otherwise `L+R-1` with a unique
+left side. Full joins use `L+R` with either unique side. Semi/anti remain bounded
+by `L`. Empty-side laws take precedence over these refinements. All arithmetic
+remains checked; a unique-side bound can succeed when the unrestricted product
+would overflow. The source proof retains both count dependencies, even where
+one count does not change the numerical result.
+
+Covered left/right key handles and the authored assertion remain distinct.
+`ValidateKeyProducer`, declared-input admission, asserted cardinality and other
+pending validations are not discharged by computing this conditional bound.
+The ordinary counts-only entry remains available and never silently acquires
+uniqueness assumptions. Application collection coverage preserves the retained
+evidence; it is not source authorization or execution readiness. General key
+source identity admission and complete consumer enforcement remain required.
+
+This follows the existing pipeline row-count rules and the normative per-side
+combination of candidate-key evidence with author assertions. Compared with
+Sketch at `87dc7144`, the unique-left outer bound is `L+R-1` rather than `L+R`
+when both sides are nonempty: a matched right occurrence necessarily replaces
+at least one unmatched left occurrence. Tests cover all assertion/kind pairs,
+generated keys on either or both sides, mixed static/asserted evidence, preserved
+key-owner handles and pending validations, empty sides and overflow.
 
 Sketch at `87dc7144` uses a `source` proof under `actql.bound.join-output`, but
 its unrestricted outer-join estimates add unmatched-row bounds to the entire
