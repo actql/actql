@@ -43,7 +43,7 @@ test "as-of supports Relation and Events with independent UTC representations" {
         let right = @carrier.relation(asof_rows(right_ts))
         for
           (kind, direction, expected) in [
-            ("left", "backward", @relation_join.Backward),
+            ("left", "backward", @relation_join.AsOfDirection::Backward),
             ("inner", "forward", Forward),
             ("left", "nearest", Nearest),
           ] {
@@ -55,6 +55,38 @@ test "as-of supports Relation and Events with independent UTC representations" {
             "\",\"tolerance\":\"1s\",\"select\":{\"id\":\"left.id\",\"value\":\"right.time\"}}",
           )
           let c = @relation_join.check_asof(body, left, right, None, limits()).unwrap()
+          let transferred = @evidence.transfer_asof_keys(None, c, {
+            max_work: 10000,
+            max_name_bytes: 10000,
+          }).unwrap()
+          let transfer_limits : @evidence.TransferLimits = {
+            max_work: transferred.work,
+            max_name_bytes: transferred.name_bytes,
+          }
+          assert_true(
+            @evidence.transfer_asof_keys(None, c, transfer_limits) is Ok(_),
+          )
+          for
+            cap in [
+              { ..transfer_limits, max_work: transfer_limits.max_work - 1, },
+              {
+                ..transfer_limits,
+                max_name_bytes: transfer_limits.max_name_bytes - 1,
+              },
+            ] {
+            assert_true(@evidence.transfer_asof_keys(None, c, cap) is Err(_))
+          }
+          let foreign = @evidence.declare_primary_key(
+            cursor("[\"id\"]"),
+            @carrier.relation(asof_rows(left_ts)),
+            { max_fields: 1, max_name_bytes: 2, },
+          ).unwrap()
+          let mismatch = @evidence.transfer_asof_keys(
+            Some(@evidence.singleton_key(foreign)),
+            c,
+            { max_work: 10000, max_name_bytes: 10000, },
+          ).unwrap_err()
+          assert_eq(mismatch.kind, InputContractMismatch)
           let original_left = @relation_join.asof_input_records(c, Left)
           assert_true(physical_equal(original_left, rows))
           assert_true(

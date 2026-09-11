@@ -15,7 +15,6 @@ import {
   "actql/actql/parameter_binding",
   "actql/actql/relation_append",
   "actql/actql/relation_evidence",
-  "actql/actql/relation_join",
   "actql/actql/relation_join_shape",
   "actql/actql/relation_nest",
   "actql/actql/relation_schema",
@@ -199,7 +198,7 @@ pub enum CheckedOperation {
   Set(right~ : Target, checked~ : @relation_set.CheckedSet)
   CrossJoin(right~ : Target, checked~ : @relation_join_shape.CheckedCrossJoin)
   IntervalJoin(right~ : Target, checked~ : @relation_join_shape.CheckedIntervalJoin)
-  AsOfJoin(right~ : Target, checked~ : @relation_join.CheckedAsOf)
+  AsOfJoin(right~ : Target, checked~ : @relation_evidence.CheckedAsOf)
   Sequence(@relation_typing.CheckedSequence)
   Values(@relation_values.CheckedValues)
   TimeSeries(@time_series.CheckedSeries)

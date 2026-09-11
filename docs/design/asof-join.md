@@ -94,8 +94,8 @@ not certify actual stable order or coverage merely from the output contract.
 open field sets and present-but-untyped fields. It is not the typed-only schema
 snapshot used to check projection. A structurally equal reconstruction is not
 the same evidence source. Indexed projection access avoids copying the entire
-alias array for each key component. This is preparation for output evidence
-transfer, not a claim that the pipeline already propagates as-of keys.
+alias array for each key component. The pipeline now transfers output keys
+through the checked as-of producer.
 
 The at-most-one match rule permits surviving left candidate keys to transfer
 for both left and inner forms. Right-only uniqueness does not follow: multiple
@@ -105,11 +105,19 @@ must not discard the others. Identity/tie/value obligations remain attached to
 the as-of producer. An explicit left identity or intrinsic Events identity needs
 its own conditional producer evidence rather than a fabricated input declaration.
 
-There is a dependency constraint to close before implementation:
-`relation_join` uses `relation_evidence` to select as-of keys, whereas evidence
-can only depend on the lower `relation_join_shape`. Adding the upper as-of type
-to the lower evidence producer enum would create a cycle. The checked as-of
-shape and key-completion ownership need separating before output transfer; a
-public unchecked projection descriptor, synthetic select producer, or dropped
-producer obligations is not an acceptable shortcut. Existing source admission
-and shared completion budgets must survive that separation.
+The as-of checker and its selected key evidence are mutually dependent, so their
+implementation now lives together in `relation_evidence`. `relation_join` keeps
+its public entry points as aliases and delegating functions. The lower
+`relation_join_shape` remains independent of evidence, and evidence does not
+import the upper facade. This keeps an actual checked producer, without an
+unchecked projection descriptor or a synthetic select operation. Source
+admission, diagnostics and shared completion budgets are unchanged by this move.
+
+`transfer_asof_keys` binds supplied keys to the original left Knowledge handle,
+retains all surviving left keys and the complete checked left identity. An
+identity covered by an existing source key does not create another redundant
+candidate. New identity witnesses point to the checked as-of operation, not a
+fabricated input declaration; inherited witnesses also retain their parent key.
+`ValidateKeyProducer` requires the original identity, tie, value and other
+obligations to be checked. Projection away from every alias of a component loses
+that key. Right-side fields alone never inherit left occurrence uniqueness.

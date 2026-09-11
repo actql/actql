@@ -27,5 +27,6 @@ test('checked join shape remains below key evidence and as-of completion', () =>
   assert.ok(!lower.has('relation_evidence'));
   assert.ok(!lower.has('relation_join'));
   assert.ok(closure('relation_join').has('relation_evidence'));
+  assert.ok(!closure('relation_evidence').has('relation_join'));
   assert.deepEqual([...closure('relation_key_obligation')], ['relation_key_obligation']);
 });

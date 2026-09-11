@@ -5,15 +5,14 @@ import {
   "actql/actql/relation_evidence" @evidence,
   "actql/actql/carrier_contract" @carrier,
   "actql/actql/temporal_window" @temporal,
-  "actql/actql/order_key" @order,
   "actql/actql/decode_core" @decode,
-  "actql/actql/value_contract" @contract,
   "actql/actql/relation_schema" @schema,
   "actql/actql/parameter_binding" @parameter,
 }
 
 import {
   "actql/actql/source_value" @source,
+  "actql/actql/value_contract" @contract,
 } for "test"
 
 formatter(ignore: [ "corpus.generated_test.mbt" ])

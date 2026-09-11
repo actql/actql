@@ -7,6 +7,7 @@ import {
   "actql/actql/carrier_projection",
   "actql/actql/decode_core",
   "actql/actql/event_typing",
+  "actql/actql/parameter_binding",
   "actql/actql/relation_join_shape",
   "actql/actql/relation_key_obligation",
   "actql/actql/relation_nest",
@@ -26,6 +27,46 @@ pub fn advance_calendar_keys(KeySet?, @calendar_typing.CheckedCalendar, Transfer
 
 pub fn advance_keys(KeySet?, @relation_typing.CheckedOperation, TransferLimits) -> Result[KeySetTransfer, Issue]
 
+pub fn asof_completed_tie_break(CheckedAsOf) -> Array[@relation_schema.FieldName]
+
+pub fn asof_direction(CheckedAsOf) -> AsOfDirection
+
+pub fn asof_identity(CheckedAsOf) -> Array[@relation_schema.FieldName]
+
+pub fn asof_input_records(CheckedAsOf, @relation_schema.Side) -> @carrier_contract.Knowledge
+
+pub fn asof_key_completion(CheckedAsOf, @relation_schema.Side) -> KeyedRelation?
+
+pub fn asof_keys(CheckedAsOf) -> Array[@relation_join_shape.KeyPair]
+
+pub fn asof_kind(CheckedAsOf) -> @relation_join_shape.Kind
+
+pub fn asof_output_schema(CheckedAsOf) -> @relation_schema.Schema
+
+pub fn asof_pending_validations(CheckedAsOf) -> Array[@relation_join_shape.Obligation]
+
+pub fn asof_projection(CheckedAsOf) -> Array[@relation_join_shape.Projection]
+
+pub fn asof_projection_at(CheckedAsOf, Int) -> @relation_join_shape.Projection?
+
+pub fn asof_projection_count(CheckedAsOf) -> Int
+
+pub fn asof_source(CheckedAsOf) -> @decode_core.Cursor
+
+pub fn asof_tie_break(CheckedAsOf) -> Array[@relation_schema.FieldName]?
+
+pub fn asof_time(CheckedAsOf, @relation_schema.Side) -> @relation_schema.FieldName
+
+pub fn asof_tolerance(CheckedAsOf) -> @temporal_window.Milliseconds
+
+pub fn asof_usage(CheckedAsOf) -> @relation_join_shape.Usage
+
+pub fn asof_uses_timestamp(CheckedAsOf, @relation_schema.Side) -> Bool
+
+pub fn check_asof(@decode_core.Cursor, @carrier_contract.Carrier, @carrier_contract.Carrier, @parameter_binding.Declarations?, @relation_join_shape.Limits) -> Result[CheckedAsOf, @relation_join_shape.Issue]
+
+pub fn check_asof_sources(@decode_core.Cursor, AsOfSource, AsOfSource, @parameter_binding.Declarations?, @relation_join_shape.Limits) -> Result[CheckedAsOf, @relation_join_shape.Issue]
+
 pub fn collect_keys(@decode_core.Cursor, @carrier_contract.Carrier, Array[KeyedRelation], KeySetLimits) -> Result[KeySet, Issue]
 
 pub fn declare_primary_key(@decode_core.Cursor, @carrier_contract.Carrier, Limits) -> Result[KeyedRelation, Issue]
@@ -39,6 +80,10 @@ pub fn graph_projection_keys(@carrier_projection.CheckedProjection, TransferLimi
 pub fn key_alias_at(KeyedRelation, Int, Int) -> KeyField?
 
 pub fn key_alias_count(KeyedRelation, Int) -> Int
+
+pub fn key_asof_parent(KeyedRelation) -> KeyedRelation?
+
+pub fn key_asof_producer(KeyedRelation) -> CheckedAsOf?
 
 pub fn key_calendar_producer(KeyedRelation) -> @calendar_typing.CheckedCalendar?
 
@@ -110,6 +155,8 @@ pub fn singleton_key(KeyedRelation) -> KeySet
 
 pub fn time_series_keys(@time_series.CheckedSeries, TransferLimits) -> Result[KeySetTransfer, Issue]
 
+pub fn transfer_asof_keys(KeySet?, CheckedAsOf, TransferLimits) -> Result[KeySetTransfer, Issue]
+
 pub fn transfer_calendar_keys(KeySet, @calendar_typing.CheckedCalendar, TransferLimits) -> Result[KeySetTransfer, Issue]
 
 pub fn transfer_cross_join_keys(KeySet?, KeySet?, @relation_join_shape.CheckedCrossJoin, TransferLimits) -> Result[KeySetTransfer, Issue]
@@ -137,6 +184,19 @@ pub fn vector_projection_keys(@carrier_projection.CheckedProjection, TransferLim
 // Errors
 
 // Types and methods
+pub(all) enum AsOfDirection {
+  Backward
+  Forward
+  Nearest
+} derive(Eq, @debug.Debug)
+
+pub(all) enum AsOfSource {
+  CarrierSource(@carrier_contract.Carrier)
+  KeySource(KeySet)
+}
+
+type CheckedAsOf
+
 pub struct Issue {
   kind : IssueKind
   path : Array[@source_value.PathSegment]
@@ -176,6 +236,7 @@ pub(all) enum KeyOrigin {
   JoinResult
   CrossJoinResult
   IntervalJoinResult
+  AsOfResult
 } derive(Eq, @debug.Debug)
 
 pub struct KeySelection {

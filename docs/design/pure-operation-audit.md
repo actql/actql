@@ -63,6 +63,9 @@ consumer audit.
 ## Remaining implementation and verification
 
 1. Close the remaining semantically required key transfers; the demonstrated
+   as-of gap now retains projected left keys and checked identity, including
+   Events identity and multiple aliases, with the actual producer obligations.
+   This does not complete the cross-operation key audit. The demonstrated
    nest parent-key loss has been addressed. Audit windows and Carrier bridges independently: row
    preservation, repeated membership and semantic identity uniqueness are not
    interchangeable rules. Preserve original key producers and validation debts.

@@ -55,6 +55,11 @@ test "as-of pipeline supplies whole retained keys on both input edges" {
     limits(),
   ).unwrap()
   let step = @pipeline_typing.step_at(p, 2).unwrap()
+  let output_keys = @pipeline_typing.candidate_keys(p, Step(2)).unwrap()
+  assert_eq(@evidence.key_witness_count(output_keys), 1)
+  let output_key = @evidence.key_witness_at(output_keys, 0).unwrap()
+  assert_eq(@evidence.key_origin(output_key), AsOfResult)
+  assert_true(@evidence.key_asof_parent(output_key) is Some(_))
   guard step.operation is AsOfJoin(checked~, ..) else { abort("as-of") }
   assert_eq(@join.asof_identity(checked), [Unqualified("saved")])
   assert_eq(@join.asof_completed_tie_break(checked), [Unqualified("id")])

@@ -1,6 +1,8 @@
 supported_targets = "+js+wasm+native"
 
 import {
+  "actql/actql/order_key" @order,
+  "actql/actql/parameter_binding" @parameter,
   "actql/actql/relation_join_shape" @join,
   "actql/actql/relation_key_obligation" @key_obligation,
   "actql/actql/event_typing" @event,

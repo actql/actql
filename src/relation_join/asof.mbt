@@ -1,126 +1,11 @@
 ///|
-pub(all) enum AsOfDirection {
-  Backward
-  Forward
-  Nearest
-} derive(Eq, Debug)
+pub type AsOfDirection = @evidence.AsOfDirection
 
 ///|
-struct CheckedAsOf {
-  left_records : @carrier.Knowledge
-  right_records : @carrier.Knowledge
-  left_key : @evidence.KeyedRelation?
-  right_key : @evidence.KeyedRelation?
-  completed_ties : Array[@schema.FieldName]
-  source : @decode.Cursor
-  output : @schema.Schema
-  kind : Kind
-  direction : AsOfDirection
-  identity : Array[@schema.FieldName]
-  left_time : @schema.FieldName
-  right_time : @schema.FieldName
-  left_timestamp : Bool
-  right_timestamp : Bool
-  tolerance : @temporal.Milliseconds
-  keys : Array[KeyPair]
-  ties : Array[@schema.FieldName]?
-  projection : Array[Projection]
-  pending : Array[Obligation]
-  usage : Usage
-}
+pub type AsOfSource = @evidence.AsOfSource
 
 ///|
-pub(all) enum AsOfSource {
-  CarrierSource(@carrier.Carrier)
-  KeySource(@evidence.KeySet)
-}
-
-///|
-fn asof_source_parts(
-  value : AsOfSource,
-) -> (@carrier.Carrier, @evidence.KeySet?) {
-  match value {
-    CarrierSource(c) => (c, None)
-    KeySource(k) => (@carrier.relation(@evidence.key_set_records(k)), Some(k))
-  }
-}
-
-///|
-fn asof_choose_key(
-  b : @shape.Budget,
-  source : @decode.Cursor,
-  keys : @evidence.KeySet?,
-) -> @evidence.KeyedRelation? raise @shape.Stop {
-  guard keys is Some(keys) else { return None }
-  let selection = match
-    @evidence.select_key(source, keys, CanonicalOrder, {
-      max_work: b.work,
-      max_name_bytes: b.text,
-    }) {
-    Ok(v) => v
-    Err(_) => @shape.fail(source, BudgetExceeded)
-  }
-  b.work -= selection.work
-  b.text -= selection.name_bytes
-  selection.key
-}
-
-///|
-fn asof_field(
-  b : @shape.Budget,
-  s : @decode.Cursor,
-  rows : @carrier.Knowledge,
-  side : @schema.Side,
-) -> (@schema.FieldName, @contract.Contract) raise @shape.Stop {
-  let name = @shape.decoded(@decode.text(s), s)
-  @shape.field_name(b, s, name)
-  let field = @schema.Unqualified(name)
-  match @carrier.lookup(rows, field) {
-    Present({ contract: Some(c), .. }) => (field, c)
-    Present(_) => @shape.fail(s, UnknownFieldType(side, name))
-    Unknown => @shape.fail(s, UnknownFieldType(side, name))
-    Absent => @shape.fail(s, UnknownField(side, name))
-  }
-}
-
-///|
-fn asof_clock(
-  c : @contract.Contract,
-  field : @schema.FieldName,
-  s : @decode.Cursor,
-  side : @schema.Side,
-) -> Bool raise @shape.Stop {
-  if c.nullable {
-    @shape.fail(s, InvalidTemporalField(side, @schema.reference_name(field)))
-  }
-  match c.shape {
-    Number => false
-    Timestamp => true
-    _ =>
-      @shape.fail(s, InvalidTemporalField(side, @schema.reference_name(field)))
-  }
-}
-
-///|
-/// Snapshot only known field types. Unknown unselected payload is not guessed.
-fn asof_known(
-  b : @shape.Budget,
-  s : @decode.Cursor,
-  rows : @carrier.Knowledge,
-) -> @schema.Schema raise @shape.Stop {
-  let fields = []
-  let n = @carrier.field_count(rows)
-  @shape.spend(b, s, n~)
-  for i in 0..<n {
-    let f = @carrier.field_at(rows, i).unwrap()
-    @shape.charge(b, s, @schema.reference_name(f.name))
-    if f.contract is Some(c) {
-      @shape.contract_preflight(b, s, c)
-      fields.push((f.name, c))
-    }
-  }
-  @shape.make_schema(b, s, fields)
-}
+pub type CheckedAsOf = @evidence.CheckedAsOf
 
 ///|
 pub fn check_asof(
@@ -130,13 +15,7 @@ pub fn check_asof(
   parameters : @parameter.Declarations?,
   limits : Limits,
 ) -> Result[CheckedAsOf, Issue] {
-  check_asof_sources(
-    body,
-    CarrierSource(left),
-    CarrierSource(right),
-    parameters,
-    limits,
-  )
+  @evidence.check_asof(body, left, right, parameters, limits)
 }
 
 ///|
@@ -147,331 +26,77 @@ pub fn check_asof_sources(
   parameters : @parameter.Declarations?,
   limits : Limits,
 ) -> Result[CheckedAsOf, Issue] {
-  try {
-    if limits.max_work < 0 ||
-      limits.max_text_bytes < 0 ||
-      limits.max_nodes < 0 ||
-      limits.max_depth < 0 {
-      @shape.fail(body, InvalidLimits)
-    }
-    let b : @shape.Budget = {
-      limits,
-      work: limits.max_work,
-      text: limits.max_text_bytes,
-      nodes: limits.max_nodes,
-    }
-    @shape.source_preflight(b, body)
-    let obj = @shape.decoded(
-      @decode.closed_object(body, [
-        "with", "kind", "by", "left_id", "left_time", "right_time", "direction",
-        "tolerance", "right_tie_break", "select",
-      ]),
-      body,
-    )
-    let with_source = @shape.decoded(@decode.required(obj, "with"), body)
-    ignore(@shape.dataflow_name(with_source))
-    let (left, left_keys) = asof_source_parts(left_source)
-    let (right, right_keys) = asof_source_parts(right_source)
-    let (left_rows, event_identity) = match left {
-      Relation(rows) => (rows, None)
-      EventValue(e) => (e.records, Some(e.identity.name))
-      _ => @shape.fail(body, WrongCarrier(@schema.Left, @carrier.kind(left)))
-    }
-    let right_rows = match right {
-      Relation(rows) => rows
-      _ =>
-        @shape.fail(
-          with_source,
-          WrongCarrier(@schema.Right, @carrier.kind(right)),
-        )
-    }
-    let left_schema = asof_known(b, body, left_rows)
-    let right_schema = asof_known(b, with_source, right_rows)
-    let ks = @shape.decoded(@decode.required(obj, "kind"), body)
-    let kind = match @shape.decoded(@decode.text(ks), ks) {
-      "left" => @shape.Left
-      "inner" => @shape.Inner
-      _ => @shape.fail(ks, InvalidBody)
-    }
-    let ds = @shape.decoded(@decode.required(obj, "direction"), body)
-    let direction = match @shape.decoded(@decode.text(ds), ds) {
-      "backward" => Backward
-      "forward" => Forward
-      "nearest" => Nearest
-      _ => @shape.fail(ds, InvalidBody)
-    }
-    let mut left_key = None
-    let identity = match @decode.lookup(obj, "left_id") {
-      Some(s) => {
-        let (f, c) = asof_field(b, s, left_rows, @schema.Left)
-        if c.nullable || !@contract.key_comparable(c, c) {
-          @shape.fail(s, InvalidLeftIdentity)
-        }
-        if event_identity is Some(expected) && expected != f {
-          @shape.fail(s, InvalidLeftIdentity)
-        }
-        [f]
-      }
-      None =>
-        match event_identity {
-          Some(f) => [f]
-          None => {
-            guard asof_choose_key(b, body, left_keys) is Some(key) else {
-              @shape.fail(body, MissingLeftIdentity)
-            }
-            left_key = Some(key)
-            let count = @evidence.key_field_count(key)
-            @shape.spend(b, body, n=count)
-            Array::makei(count, i => {
-              @evidence.key_field_at(key, i).unwrap().name
-            })
-          }
-        }
-    }
-    let ls = @shape.decoded(@decode.required(obj, "left_time"), body)
-    let rs = @shape.decoded(@decode.required(obj, "right_time"), body)
-    let (left_time, lc) = asof_field(b, ls, left_rows, @schema.Left)
-    let (right_time, rc) = asof_field(b, rs, right_rows, @schema.Right)
-    let left_timestamp = asof_clock(lc, left_time, ls, @schema.Left)
-    let right_timestamp = asof_clock(rc, right_time, rs, @schema.Right)
-    let by = @shape.decoded(@decode.required(obj, "by"), body)
-    let pairs = @shape.decoded(@decode.elements(by), by)
-    @shape.spend(b, by, n=pairs.length())
-    let keys : Array[KeyPair] = []
-    for pair in pairs {
-      let p = @shape.decoded(
-        @decode.closed_object(pair, ["left", "right"]),
-        pair,
-      )
-      let (lf, lc) = asof_field(
-        b,
-        @shape.decoded(@decode.required(p, "left"), pair),
-        left_rows,
-        @schema.Left,
-      )
-      let (rf, rc) = asof_field(
-        b,
-        @shape.decoded(@decode.required(p, "right"), pair),
-        right_rows,
-        @schema.Right,
-      )
-      if !@contract.key_comparable(lc, rc) {
-        @shape.fail(
-          pair,
-          IncomparableKeys(
-            @schema.reference_name(lf),
-            @schema.reference_name(rf),
-          ),
-        )
-      }
-      keys.push({ left: lf, right: rf, source: pair, })
-    }
-    let ties = match @decode.lookup(obj, "right_tie_break") {
-      None => None
-      Some(s) => {
-        let terms = @shape.decoded(@decode.elements(s), s)
-        @shape.spend(b, s, n=terms.length())
-        let fields = []
-        for term in terms {
-          let (f, c) = asof_field(b, term, right_rows, @schema.Right)
-          if !@order.author_orderable(c) {
-            @shape.fail(term, InvalidTieField(@schema.reference_name(f)))
-          }
-          fields.push(f)
-        }
-        Some(fields)
-      }
-    }
-    let right_key = asof_choose_key(b, with_source, right_keys)
-    let completed_ties = ties.map(fields => fields.copy()).unwrap_or([])
-    @shape.spend(b, body, n=completed_ties.length())
-    let seen : Map[String, Bool] = Map([])
-    for field in completed_ties {
-      seen[@schema.reference_name(field)] = true
-    }
-    let mut appended = false
-    if right_key is Some(key) {
-      @shape.spend(b, body, n=@evidence.key_field_count(key))
-      for i in 0..<@evidence.key_field_count(key) {
-        let field = @evidence.key_field_at(key, i).unwrap().name
-        let name = @schema.reference_name(field)
-        @shape.charge(b, body, name)
-        if !seen.contains(name) {
-          completed_ties.push(field)
-          seen[name] = true
-          appended = true
-        }
-      }
-    }
-    let ts = @shape.decoded(@decode.required(obj, "tolerance"), body)
-    let tolerance = match
-      @temporal.read_milliseconds(ts, PositiveMilliseconds, parameters, {
-        max_work: b.work,
-        max_nodes: b.nodes,
-        max_text_bytes: b.text,
-        max_depth: limits.max_depth,
-      }) {
-      Ok(v) => v
-      Err(e) =>
-        raise @shape.Stop({
-          kind: Temporal(e.kind),
-          source: ts,
-          path: e.path.copy(),
-          span: e.span,
-        })
-    }
-    let used = @temporal.milliseconds_usage(tolerance)
-    b.work -= used.work
-    b.nodes -= used.nodes
-    b.text -= used.text_bytes
-    let tolerance = @temporal.milliseconds_value(tolerance)
-    let selected = @shape.decoded(@decode.required(obj, "select"), body)
-    let (output, projection) = @shape.join_output(
-      b,
-      body,
-      Some(selected),
-      left_schema,
-      right_schema,
-      kind,
-    )
-    let pending : Array[Obligation] = [
-      ValidateAsOfValues,
-      StableIdentity(@schema.Left),
-      RejectAsOfTies,
-      ResolveAsOfOrder,
-      ResolveSearchWork,
-      ResolveOutputLimit,
-      ResolveTeaProfile,
-    ]
-    if tolerance is @temporal.Parameter(name, ..) {
-      pending.push(BindTolerance(name))
-    }
-    for (side, key) in [(@schema.Left, left_key), (@schema.Right, right_key)] {
-      if key is Some(key) {
-        for obligation in @evidence.key_pending(key) {
-          pending.push(ValidateAsOfKey(side, obligation))
-        }
-      }
-    }
-    if left_key is Some(_) {
-      pending.push(JournalAsOfKeyCompletion(@schema.Left))
-    }
-    if appended {
-      pending.push(JournalAsOfKeyCompletion(@schema.Right))
-    }
-    Ok({
-      left_records: left_rows,
-      right_records: right_rows,
-      left_key,
-      right_key,
-      completed_ties,
-      source: body,
-      output,
-      kind,
-      direction,
-      identity,
-      left_time,
-      right_time,
-      left_timestamp,
-      right_timestamp,
-      tolerance,
-      keys,
-      ties,
-      projection: projection.unwrap(),
-      pending,
-      usage: {
-        work: limits.max_work - b.work,
-        text_bytes: limits.max_text_bytes - b.text,
-        nodes: limits.max_nodes - b.nodes,
-      },
-    })
-  } catch {
-    @shape.Stop(e) => Err(e)
-  }
+  @evidence.check_asof_sources(
+    body, left_source, right_source, parameters, limits,
+  )
 }
 
 ///|
 pub fn asof_output_schema(v : CheckedAsOf) -> @schema.Schema {
-  v.output
+  @evidence.asof_output_schema(v)
 }
 
 ///|
-/// Original input knowledge, not the typed-only snapshot used for projection.
-/// Retains exact source binding and unknown/untyped field distinctions.
 pub fn asof_input_records(
   v : CheckedAsOf,
   side : @schema.Side,
 ) -> @carrier.Knowledge {
-  if side == Left {
-    v.left_records
-  } else {
-    v.right_records
-  }
+  @evidence.asof_input_records(v, side)
 }
 
 ///|
 pub fn asof_projection_count(v : CheckedAsOf) -> Int {
-  v.projection.length()
+  @evidence.asof_projection_count(v)
 }
 
 ///|
 pub fn asof_projection_at(v : CheckedAsOf, index : Int) -> Projection? {
-  v.projection.get(index)
+  @evidence.asof_projection_at(v, index)
 }
 
 ///|
 pub fn asof_kind(v : CheckedAsOf) -> Kind {
-  v.kind
+  @evidence.asof_kind(v)
 }
 
 ///|
 pub fn asof_direction(v : CheckedAsOf) -> AsOfDirection {
-  v.direction
+  @evidence.asof_direction(v)
 }
 
 ///|
 pub fn asof_identity(v : CheckedAsOf) -> Array[@schema.FieldName] {
-  v.identity.copy()
+  @evidence.asof_identity(v)
 }
 
 ///|
 pub fn asof_time(v : CheckedAsOf, side : @schema.Side) -> @schema.FieldName {
-  if side == Left {
-    v.left_time
-  } else {
-    v.right_time
-  }
+  @evidence.asof_time(v, side)
 }
 
 ///|
 pub fn asof_uses_timestamp(v : CheckedAsOf, side : @schema.Side) -> Bool {
-  if side == Left {
-    v.left_timestamp
-  } else {
-    v.right_timestamp
-  }
+  @evidence.asof_uses_timestamp(v, side)
 }
 
 ///|
 pub fn asof_tolerance(v : CheckedAsOf) -> @temporal.Milliseconds {
-  v.tolerance
+  @evidence.asof_tolerance(v)
 }
 
 ///|
 pub fn asof_keys(v : CheckedAsOf) -> Array[KeyPair] {
-  v.keys.copy()
+  @evidence.asof_keys(v)
 }
 
 ///|
 pub fn asof_tie_break(v : CheckedAsOf) -> Array[@schema.FieldName]? {
-  v.ties.map(a => a.copy())
+  @evidence.asof_tie_break(v)
 }
 
 ///|
-/// Authored terms followed by missing canonical key fields; internal Ref order
-/// is not exposed as an authored order option.
 pub fn asof_completed_tie_break(v : CheckedAsOf) -> Array[@schema.FieldName] {
-  v.completed_ties.copy()
+  @evidence.asof_completed_tie_break(v)
 }
 
 ///|
@@ -479,29 +104,25 @@ pub fn asof_key_completion(
   v : CheckedAsOf,
   side : @schema.Side,
 ) -> @evidence.KeyedRelation? {
-  if side == Left {
-    v.left_key
-  } else {
-    v.right_key
-  }
+  @evidence.asof_key_completion(v, side)
 }
 
 ///|
 pub fn asof_projection(v : CheckedAsOf) -> Array[Projection] {
-  v.projection.copy()
+  @evidence.asof_projection(v)
 }
 
 ///|
 pub fn asof_pending_validations(v : CheckedAsOf) -> Array[Obligation] {
-  v.pending.copy()
+  @evidence.asof_pending_validations(v)
 }
 
 ///|
 pub fn asof_usage(v : CheckedAsOf) -> Usage {
-  v.usage
+  @evidence.asof_usage(v)
 }
 
 ///|
 pub fn asof_source(v : CheckedAsOf) -> @decode.Cursor {
-  v.source
+  @evidence.asof_source(v)
 }
