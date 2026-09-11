@@ -16,6 +16,12 @@ import {
 // Values
 pub fn check(@pipeline_typing.CheckedPipeline, @decode_core.Cursor, Limits) -> Result[CheckedResults, Issue]
 
+pub fn checked_contextual_orders(CheckedOrders) -> @pipeline_typing.ContextualOrders
+
+pub fn checked_orders_usage(CheckedOrders) -> (Int, Int)
+
+pub fn checked_publication_orders(CheckedOrders) -> PublicationOrders
+
 pub fn count(CheckedResults) -> Int
 
 pub fn definition_source(ResultDefinition) -> @decode_core.Cursor
@@ -60,6 +66,8 @@ pub fn publication_term_at(PublicationOrder, Int) -> PublicationTerm?
 
 pub fn publication_term_count(PublicationOrder) -> Int
 
+pub fn resolve_all_orders(CheckedResults, OrderCheckLimits) -> Result[CheckedOrders, OrderCheckIssue]
+
 pub fn resolve_publication_order(CheckedResults, Int, max_work~ : Int, max_text_bytes~ : Int) -> Result[PublicationOrder, Issue]
 
 pub fn resolve_publication_orders(CheckedResults, max_results~ : Int, max_work~ : Int, max_text_bytes~ : Int) -> Result[PublicationOrders, Issue]
@@ -75,6 +83,8 @@ pub fn usage(CheckedResults) -> Usage
 // Errors
 
 // Types and methods
+type CheckedOrders
+
 type CheckedResults
 
 pub struct Issue {
@@ -113,6 +123,18 @@ pub(all) struct Limits {
 pub(all) enum Obligation {
   TotalDeterministicOrder
 } derive(Eq, @debug.Debug)
+
+pub(all) enum OrderCheckIssue {
+  PipelineOrder(@pipeline_typing.Issue)
+  ResultOrder(Issue)
+}
+
+pub(all) struct OrderCheckLimits {
+  max_steps : Int
+  max_results : Int
+  max_work : Int
+  max_text_bytes : Int
+}
 
 pub struct OrderKey {
   field : String

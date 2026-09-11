@@ -106,6 +106,9 @@ consumer audit.
    Do not add public proof flags, treat policy ceilings as observations, or
    expand into acquisition, an evaluator or Host dispatch.
 3. Connect contextual resolutions into a complete static checking/discharge
+   boundary. [Combined order checking](combined-order-checking.md) now resolves
+   all steps and named Results with one shared budget and one pipeline owner.
+   Capacity and other mandatory obligations still require the final combined
    boundary. It must not let callers omit a difficult step or local aggregate,
    reset shared budgets per resolver, or turn unresolved mandatory facts into
    execution permission. Runtime/binding obligations remain explicitly separate.
