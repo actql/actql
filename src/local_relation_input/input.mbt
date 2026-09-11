@@ -31,7 +31,14 @@ struct Checked {
   expected : Array[String]
   key : @evidence.KeyedRelation?
   order : Array[@order.Key]?
+  used : Usage
 }
+
+///|
+pub(all) struct Usage {
+  nodes : Int
+  text_bytes : Int
+} derive(Eq, Debug)
 
 ///|
 priv suberror Stop {
@@ -57,7 +64,7 @@ fn canonical_text(at : @decode.Cursor, text : String) -> Unit raise Stop {
 ///|
 // Bound the whole owned source, including annotations and all recursive types.
 // Readers below reuse these bounds; they cannot reset a per-field input allowance.
-fn preflight(source : @decode.Cursor, limits : Limits) -> Unit raise Stop {
+fn preflight(source : @decode.Cursor, limits : Limits) -> Usage raise Stop {
   let mut nodes = limits.max_nodes
   let mut text = limits.max_text_bytes
   let pending = [(source, 0)]
@@ -106,6 +113,7 @@ fn preflight(source : @decode.Cursor, limits : Limits) -> Unit raise Stop {
       _ => ()
     }
   }
+  { nodes: limits.max_nodes - nodes, text_bytes: limits.max_text_bytes - text, }
 }
 
 ///|
@@ -135,7 +143,7 @@ pub fn read(source : @decode.Cursor, limits : Limits) -> Result[Checked, Issue] 
     return Err(InvalidLimits)
   }
   try {
-    preflight(source, limits)
+    let used = preflight(source, limits)
     if @decode.view(source) is TextValue(name) {
       if name != "relation" {
         raise Stop(UnsupportedCarrier(name))
@@ -146,6 +154,7 @@ pub fn read(source : @decode.Cursor, limits : Limits) -> Result[Checked, Issue] 
         expected: [],
         key: None,
         order: None,
+        used,
       })
     }
     let body = unwrap(
@@ -275,7 +284,7 @@ pub fn read(source : @decode.Cursor, limits : Limits) -> Result[Checked, Issue] 
           Some(keys)
         }
     }
-    Ok({ source, carrier, expected, key, order, })
+    Ok({ source, carrier, expected, key, order, used, })
   } catch {
     Stop(e) => Err(e)
   }
@@ -284,6 +293,11 @@ pub fn read(source : @decode.Cursor, limits : Limits) -> Result[Checked, Issue] 
 ///|
 pub fn source(v : Checked) -> @decode.Cursor {
   v.source
+}
+
+///|
+pub fn usage(v : Checked) -> Usage {
+  v.used
 }
 
 ///|

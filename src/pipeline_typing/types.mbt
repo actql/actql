@@ -222,6 +222,7 @@ struct CheckedPipeline {
   source : @decode.Cursor
   initial_from : @decode.Cursor?
   inputs : Array[(String, @carrier.Carrier)]
+  input_contracts : Array[InputContract]
   steps : Array[CheckedStep]
   names : Map[String, Target]
   current : Target?
@@ -251,6 +252,15 @@ pub fn input_key(
   } else {
     value.keyed_inputs[index].bind(single_candidate)
   }
+}
+
+///|
+/// Original admission handle, distinct from derived Carrier/evidence views.
+pub fn input_contract_at(
+  value : CheckedPipeline,
+  index : Int,
+) -> InputContract? {
+  value.input_contracts.get(index)
 }
 
 ///|

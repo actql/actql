@@ -162,6 +162,8 @@ pub fn initial_from(CheckedPipeline) -> @decode_core.Cursor?
 
 pub fn input_at(CheckedPipeline, Int) -> (String, @carrier_contract.Carrier)?
 
+pub fn input_contract_at(CheckedPipeline, Int) -> InputContract?
+
 pub fn input_count(CheckedPipeline) -> Int
 
 pub fn input_key(CheckedPipeline, Int) -> @relation_evidence.KeyedRelation?

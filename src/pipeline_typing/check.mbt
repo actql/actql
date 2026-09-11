@@ -63,6 +63,7 @@ fn check_impl(
   keyed_inputs : Array[@evidence.KeySet?],
   ranked_inputs : Array[@vector.RankingInput?],
   produced_inputs : Array[ProducedInput?],
+  input_contracts : Array[InputContract],
 ) -> CheckedPipeline raise Stop {
   if limits.max_steps < 0 ||
     limits.max_work < 0 ||
@@ -2177,6 +2178,7 @@ fn check_impl(
   )
   {
     input_orders,
+    input_contracts,
     produced_inputs,
     logical_orders,
     lag_orders,
@@ -2275,6 +2277,7 @@ pub fn check_carriers(
       inputs.map(_ => None),
       inputs.map(_ => None),
       inputs.map(_ => None),
+      inputs.map(pair => CarrierInput(pair.1)),
     ),
   ) catch {
     Stop(issue) => Err(issue)
@@ -2343,6 +2346,7 @@ pub fn check_with_evidence(
           _ => None
         }
       }),
+      inputs.map(pair => pair.1),
     ),
   ) catch {
     Stop(issue) => Err(issue)

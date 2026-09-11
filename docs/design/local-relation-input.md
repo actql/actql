@@ -50,6 +50,12 @@ that could admit an oversized aggregate source. These caps bound source size and
 depth; they are not a CPU-operation counter, heap cap or a bound on runtime rows.
 The enclosing compiler must account for this pass within its Program budget.
 
+`usage` exposes the consumed source node and text counts. The
+[source-bound local input pass](stage-local-inputs.md) uses them to share the
+allowance across actual stage declarations and attach exact declaration owners
+to pipeline input registrations. This source-only attachment does not reconcile
+Host evidence or discharge duplicate-policy requirements.
+
 ## Reference differences and remaining integration
 
 Sketch `87dc7144:moonbit/src/syntax_decode/decode.mbt` supplies reusable structure,

@@ -823,8 +823,11 @@ admission, resource enforcement or complete source authority.
    [Local Relation input declarations](local-relation-input.md) now read explicit
    source schema, open expected-column assertions, conditional primary keys and
    duplicate-policy terms without inventing complete types or runtime proof.
-   Host assertion reconciliation, duplicate total-order resolution, source-slot
-   attachment and the other Input families remain unfinished.
+   Source-slot attachment now reads all local Relation declarations of an actual
+   stage and requires their exact Carrier/key registration owners in its checked
+   pipeline. Result/receipt imports stay separate, and unsupported local forms
+   reject rather than vanish. Host assertion reconciliation, duplicate total-order
+   resolution, final all-stage attachment and other Input families remain unfinished.
    A two-stage actual Result import tests final publication ownership, foreign
    reissued orders and exact/short cumulative budgets. Ordinary/receipt inputs,
    static discharge and complete semantic Program identity remain incomplete.

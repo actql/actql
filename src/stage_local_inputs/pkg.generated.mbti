@@ -1,0 +1,65 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/stage_local_inputs"
+
+import {
+  "actql/actql/local_relation_input",
+  "actql/actql/pipeline_typing",
+  "actql/actql/stage_parameters",
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn attach(Prepared, @stage_parameters.CollectedStage, max_work~ : Int) -> Result[Attached, Issue]
+
+pub fn attached_inputs(Attached) -> Prepared
+
+pub fn attached_stage(Attached) -> @stage_parameters.CollectedStage
+
+pub fn attached_work(Attached) -> Int
+
+pub fn count(Prepared) -> Int
+
+pub fn entry_at(Prepared, Int) -> (String, @local_relation_input.Checked)?
+
+pub fn input_at(Prepared, Int) -> (String, @pipeline_typing.InputContract)?
+
+pub fn prepare(@stage_parameters.Source, Int, Limits) -> Result[Prepared, Issue]
+
+pub fn source(Prepared) -> @stage_parameters.Source
+
+pub fn stage_index(Prepared) -> Int
+
+pub fn usage(Prepared) -> Usage
+
+// Errors
+
+// Types and methods
+type Attached
+
+pub enum Issue {
+  InvalidLimits
+  InvalidStage
+  BudgetExceeded
+  Declaration(String, @local_relation_input.Issue)
+  ForeignStage
+  ForeignInput(String)
+}
+
+pub(all) struct Limits {
+  max_work : Int
+  max_nodes : Int
+  max_depth : Int
+  max_text_bytes : Int
+}
+
+type Prepared
+
+pub(all) struct Usage {
+  work : Int
+  nodes : Int
+  text_bytes : Int
+} derive(Eq, @debug.Debug)
+
+// Type aliases
+
+// Traits

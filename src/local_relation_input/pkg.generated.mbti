@@ -8,6 +8,7 @@ import {
   "actql/actql/relation_evidence",
   "actql/actql/relation_schema",
   "actql/actql/value_contract",
+  "moonbitlang/core/debug",
 }
 
 // Values
@@ -22,6 +23,8 @@ pub fn primary_key(Checked) -> @relation_evidence.KeyedRelation?
 pub fn read(@decode_core.Cursor, Limits) -> Result[Checked, Issue]
 
 pub fn source(Checked) -> @decode_core.Cursor
+
+pub fn usage(Checked) -> Usage
 
 // Errors
 
@@ -51,6 +54,11 @@ pub(all) struct Limits {
   max_depth : Int
   max_text_bytes : Int
 }
+
+pub(all) struct Usage {
+  nodes : Int
+  text_bytes : Int
+} derive(Eq, @debug.Debug)
 
 // Type aliases
 
