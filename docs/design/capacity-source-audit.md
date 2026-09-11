@@ -70,8 +70,11 @@ names, equal counts or caller-provided numeric assertions. Preserve role-tagged
 data inputs separately from the subset of capacity witnesses used by a law.
 The [checked step application](program-step-bounds.md) now introduces an
 owner-relative `checked-step:<index>` correspondence for supported local
-input-independent proofs. It does not map arbitrary imported compiler references
-or provide an enclosing Program identity.
+proofs, including append, literal clamps and known unpivot/unnest expansion from
+verified producer-step applications. Inputs retain exact pipeline owners and
+ordered edge roles independently of sorted proof IDs. It does not map arbitrary
+imported compiler references, admit external input sources or provide an
+enclosing Program identity.
 
 | Law family | Application checks beyond arithmetic closure |
 | --- | --- |

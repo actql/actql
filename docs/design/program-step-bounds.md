@@ -1,6 +1,6 @@
 # Checked Program step bound applications
 
-`capacity_program_step` binds supported input-independent Program bound claims
+`capacity_program_step` binds supported Program bound claims
 to an actual immutable checked pipeline and step. It is an operation-law
 application boundary, not Program identity admission, source authorization or a
 runnable Plan.
@@ -22,25 +22,41 @@ authored names. No language syntax or existing canonical Program identity change
 
 ## Supported laws
 
-The proof must use the existing `DerivedInputs` form with no capacity input
-witnesses. Its role is `proven_upper_bound` and its unit is `rows`.
+The proof must use the existing `DerivedInputs` form. Its role is
+`proven_upper_bound` and its unit is `rows`.
 
 | Actual checked operation | Required proof application |
 | --- | --- |
 | Global Group with empty grouping keys | `actql.bound.global-group`, source derivation, value one. This holds independently of the input row count, including empty input. Other internal `OneRow` rules do not inherit this law. |
 | Literal `take` | `actql.bound.take`, input-free clamp with the exact checked count as maximum and value. Offset and order obligations remain on the checked operation. |
 | Literal `top_k`, or `top_k_by` with no partition keys | `actql.bound.top-k`, the same exact input-free clamp. Nonempty partition keys cannot use this global bound. |
+| `append` | `actql.bound.append`, checked addition of both input upper bounds, with the actual left/right witness IDs in the derivation. Repeated inputs count twice. |
+| `unpivot` | `actql.bound.unpivot`, multiplication by the authored column occurrence count, including repetitions. |
+| Array `unnest` with known `max_items` | `actql.bound.unnest-array-items`, multiplication by the checked expansion factor. Outer expansion of a zero-length array uses one, not zero. Unknown bounds remain unresolved. |
+
+`check_with_inputs` also accepts one input application for literal selection,
+clamping its bound to the exact checked count. Offset does not weaken this upper
+bound and remains an independent checked-operation obligation. `check` is the
+input-free convenience entry.
+
+Input applications must retain the same physical pipeline owner and match the
+actual producer step on each data edge. Ordinary external input facts cannot be
+substituted for these owners. Proof input IDs are sorted with repetitions;
+derivation operands must additionally preserve their actual left/right roles.
+Checked arithmetic rejects overflow rather than rounding or saturating. The
+result retains immutable child applications without rewalking their ancestors.
 
 Parameterized counts are explicitly unresolved here; defaults are not silently
-applied. Input-dependent proofs and Program-Definition-bound proof forms need
-their respective dependency/source application owners. Successful application
+applied. External input proofs and Program-Definition-bound proof forms still
+need their respective source application owners. Successful application
 retains rather than discharges order, type/data admission and runtime failures.
 Tighter available input bounds and other applicable capacity candidates must
 still participate in final resolution. This entry never creates a ceiling or
 converts a guard into a measured bound.
 
-The check inspects one already-admitted step and an input-free proof in bounded
-constant work. Existing source/claim admission owns recursive byte/node limits;
+The check inspects one already-admitted step and at most two child applications
+in bounded constant work; oversized input arrays are rejected before traversal
+or copying. Existing source/claim admission owns recursive byte/node limits;
 there is no new unbounded collection traversal. Collection-wide application and
 completeness remain required at the combined boundary.
 
@@ -49,3 +65,6 @@ and verify subject, operation, law, unit, value and derivation independently of
 hash correctness. SHA and wire identity correctness remain covered by their
 separate fixed-oracle suites. Owner retention, invalid indices, offset, global
 versus partitioned selection and unresolved Parameter defaults are also tested.
+Input-dependent tests cover foreign owners, swapped data roles, repeated edges,
+false arithmetic claims, overflow, repeated unpivot columns and outer unnest
+of empty arrays. These are operation-application tests, not evaluator tests.

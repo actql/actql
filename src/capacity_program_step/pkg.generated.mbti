@@ -10,11 +10,17 @@ import {
 // Values
 pub fn check(@pipeline_typing.CheckedPipeline, Int, @capacity_witness.ProgramProofClaim) -> Result[StepBound, Issue]
 
+pub fn check_with_inputs(@pipeline_typing.CheckedPipeline, Int, @capacity_witness.ProgramProofClaim, Array[StepBound]) -> Result[StepBound, Issue]
+
 pub fn checked_pipeline(StepBound) -> @pipeline_typing.CheckedPipeline
 
 pub fn checked_proof(StepBound) -> @capacity_witness.ProgramProofClaim
 
 pub fn checked_step(StepBound) -> Int
+
+pub fn input_at(StepBound, Int) -> StepBound?
+
+pub fn input_count(StepBound) -> Int
 
 pub fn subject_ref(@pipeline_typing.CheckedPipeline, Int) -> String?
 
@@ -30,6 +36,11 @@ pub(all) enum Issue {
   LawMismatch
   ValueMismatch
   InvalidDerivation
+  InputCountMismatch
+  InputOwnerMismatch(Int)
+  InputTargetMismatch(Int)
+  InputWitnessMismatch(Int)
+  BoundOverflow
 } derive(Eq, @debug.Debug)
 
 type StepBound
