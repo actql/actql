@@ -40,7 +40,16 @@ read-only values, and failure exposes no partial successful resolution. Fixed
 tests distinguish all four strategies, their precedence, hidden input keys,
 nullable/reference fallback, rejection and exact/minus-one resource bounds.
 
-This boundary resolves one named Result at a time. Stage/root publication
-admission still needs to require successful resolutions for every named Result
-and resolve execution, policy and resource dependencies. Additional admissible
-proofs for authored ties and external order witnesses remain separate work.
+`resolve_publication_orders` requires a successful strategy for every definition
+in the checked Results, in their retained definition order. It shares one work
+and name-byte budget across all resolutions and checks the Result-count ceiling
+before beginning. A failure retains the failing definition's diagnostic and
+returns no partially resolved collection. The opaque collection retains the
+original checked Results and provides only indexed read-only access, so callers
+cannot omit an inconvenient Result or splice a different pipeline into it.
+Its usage is the sum of individual resolutions, not a fresh budget per Result.
+
+Stage/root publication admission can require this complete collection, but still
+needs to resolve execution, policy and resource dependencies. Additional
+admissible proofs for authored ties and external order witnesses remain separate
+work. A complete strategy collection is not permission to publish unvalidated data.

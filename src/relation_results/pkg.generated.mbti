@@ -40,7 +40,15 @@ pub fn publication_inherited_order(PublicationOrder) -> @pipeline_typing.Logical
 
 pub fn publication_key(PublicationOrder) -> @relation_evidence.KeyedRelation?
 
+pub fn publication_order_at(PublicationOrders, Int) -> PublicationOrder?
+
 pub fn publication_order_usage(PublicationOrder) -> (Int, Int)
+
+pub fn publication_orders_count(PublicationOrders) -> Int
+
+pub fn publication_orders_results(PublicationOrders) -> CheckedResults
+
+pub fn publication_orders_usage(PublicationOrders) -> (Int, Int)
 
 pub fn publication_result_index(PublicationOrder) -> Int
 
@@ -53,6 +61,8 @@ pub fn publication_term_at(PublicationOrder, Int) -> PublicationTerm?
 pub fn publication_term_count(PublicationOrder) -> Int
 
 pub fn resolve_publication_order(CheckedResults, Int, max_work~ : Int, max_text_bytes~ : Int) -> Result[PublicationOrder, Issue]
+
+pub fn resolve_publication_orders(CheckedResults, max_results~ : Int, max_work~ : Int, max_text_bytes~ : Int) -> Result[PublicationOrders, Issue]
 
 pub fn result_at(CheckedResults, Int) -> ResultDefinition?
 
@@ -120,6 +130,8 @@ pub(all) enum OrderStrategy {
 } derive(Eq, @debug.Debug)
 
 type PublicationOrder
+
+type PublicationOrders
 
 pub struct PublicationTerm {
   field : @relation_schema.FieldName
