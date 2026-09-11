@@ -17,6 +17,8 @@ pub fn assemble_environment(@stage_parameters.Source, @check_environment.WireEnv
 
 pub fn attach(Prepared, @stage_parameters.CollectedStage, max_work~ : Int) -> Result[Attached, Issue]
 
+pub fn attach_reconciled(EnvironmentInputs, @stage_parameters.CollectedStage, max_work~ : Int) -> Result[ReconciledAttachment, Issue]
+
 pub fn attached_inputs(Attached) -> Prepared
 
 pub fn attached_stage(Attached) -> @stage_parameters.CollectedStage
@@ -34,6 +36,8 @@ pub fn count(Prepared) -> Int
 pub fn entry_at(Prepared, Int) -> (String, @local_relation_input.Checked)?
 
 pub fn environment_assertions(EnvironmentInputs) -> CheckedSnapshots
+
+pub fn environment_input_at(EnvironmentInputs, Int) -> (String, @pipeline_typing.InputContract)?
 
 pub fn environment_program(ProgramEnvironmentInputs) -> @stage_parameters.Source
 
@@ -58,6 +62,12 @@ pub fn reconcile_environment(Prepared, @stage_source_refs.Index, @check_environm
 pub fn reconcile_schemas(Prepared, Array[(String, @relation_schema.Schema)], Limits) -> Result[SchemaAssertions, SchemaIssue]
 
 pub fn reconcile_snapshots(Prepared, @stage_source_refs.Index, Array[@local_relation_snapshot.Snapshot], Limits) -> Result[CheckedSnapshots, SnapshotIssue]
+
+pub fn reconciled_inputs(ReconciledAttachment) -> EnvironmentInputs
+
+pub fn reconciled_stage(ReconciledAttachment) -> @stage_parameters.CollectedStage
+
+pub fn reconciled_work(ReconciledAttachment) -> Int
 
 pub fn schema_agreement_at(SchemaAssertions, Int) -> @local_relation_input.SchemaAgreement?
 
@@ -129,6 +139,8 @@ pub enum ProgramEnvironmentIssue {
   DuplicateMember(Int)
   UncheckedSnapshot(Int)
 }
+
+type ReconciledAttachment
 
 type SchemaAssertions
 

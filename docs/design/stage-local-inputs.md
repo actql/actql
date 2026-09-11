@@ -109,6 +109,22 @@ prior readers retain their own depth caps. Other Check Environment sections are
 not validated by this result. Catalog closure, policy/authority checks, stronger
 pipeline input registration and final lowering-ready Program assembly remain open.
 
+`environment_input_at` provides an explicit schema-aware registration path before
+pipeline checking. For each local source slot it uses the retained schema agreement
+when supplied, including its rechecked conditional primary key; otherwise it returns
+the exact original source registration without inventing a complete type. It neither
+adds snapshot materialization claims to the Carrier nor discharges key obligations.
+
+`attach_reconciled` then requires the exact Carrier/key handles actually used by
+the collected pipeline, and retains its `EnvironmentInputs` owner in a distinct
+`ReconciledAttachment`. Equal contracts, a second schema reconciliation or an old
+source-only registration cannot substitute. The source-only `attach` API is unchanged.
+Its work includes the prior environment reconciliation and stage collection plus
+registration indexing/owner checks. Snapshot node/text costs remain available through
+the retained environment inputs for Program assembly. All-stage contextual integration
+of these registrations and policy/Host admission remain separate; this is not execution
+permission or proof that snapshot claims describe acquired rows.
+
 Preparation charges stage input enumeration and import-name indexing, then each
 local declaration's source nodes as logical work. Node and UTF-8 allowances are
 shared across all local declarations, including metadata; depth is measured from

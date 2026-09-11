@@ -835,6 +835,9 @@ admission, resource enforcement or complete source authority.
    All-stage snapshot coverage now attaches to that context with exact prepared
    input owners and shared preparation accounting. Stronger snapshot types do
    not silently replace the already checked pipeline input registrations.
+   An explicit schema-aware local registration path now selects retained schema/key
+   handles before checking a pipeline and verifies their exact owners afterward.
+   Its all-stage context integration and Host/policy admission remain incomplete.
    Local schema assertion comparison now preserves a supplied stronger complete
    checked schema after recursive assignability, expected-column and newly known
    key/order-type checks. It is not snapshot source/CID/Host admission and is not
