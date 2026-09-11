@@ -41,13 +41,13 @@ pub fn check_application_coverage(
   // Limit-set completeness alone cannot prove operation coverage: the caller
   // could omit both an operation's application and its limit artifact.
   if joins is None {
-    let steps = @pipeline.step_count(graph.pipeline)
+    let steps = @pipeline.step_count(checked_pipeline(graph))
     if steps > remaining {
       return Err(WorkLimit)
     }
     remaining -= steps
     for i in 0..<steps {
-      match @pipeline.step_at(graph.pipeline, i).unwrap().operation {
+      match @pipeline.step_at(checked_pipeline(graph), i).unwrap().operation {
         @pipeline.Join(..)
         | @pipeline.CrossJoin(..)
         | @pipeline.IntervalJoin(..) => return Err(MissingJoinApplications(i))

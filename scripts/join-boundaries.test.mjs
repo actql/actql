@@ -36,3 +36,15 @@ test('checked join shape remains below key evidence and as-of completion', () =>
   assert.ok(closure('vector_typing').has('relation_evidence'));
   assert.deepEqual([...closure('relation_key_obligation')], ['relation_key_obligation']);
 });
+
+test('Graph input capacity admission remains below Program applications and consumer aggregation', () => {
+  const input = closure('capacity_graph_input');
+  assert.ok(input.has('capacity_host_witness'));
+  assert.ok(input.has('capacity_witness'));
+  for (const upper of ['capacity_program_step', 'capacity_graph_preflight', 'capacity_sequence_limit']) {
+    assert.ok(!input.has(upper), `${upper} must not enter the input admission dependency closure`);
+  }
+  const facade = closure('capacity_graph_preflight');
+  assert.ok(facade.has('capacity_graph_input'));
+  assert.ok(facade.has('capacity_program_step'));
+});

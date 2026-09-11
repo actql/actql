@@ -30,7 +30,7 @@ fn check_proof_membership(
     }
     if physical_equal(
         @program.checked_pipeline(proof),
-        entry.sources.graph.pipeline,
+        checked_pipeline(entry.sources.graph),
       ) {
       return Err(UnnecessaryProofOwner(visit, claim))
     }
@@ -53,7 +53,7 @@ fn check_proof_membership(
       if @program.application_at(entry.sources.program, claim) is Some(proof) {
         let producer = if physical_equal(
             @program.checked_pipeline(proof),
-            entry.sources.graph.pipeline,
+            checked_pipeline(entry.sources.graph),
           ) {
           visit
         } else {

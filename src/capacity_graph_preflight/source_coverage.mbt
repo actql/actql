@@ -24,7 +24,7 @@ pub fn check_source_coverage(
   if max_work < 0 {
     return Err(InvalidLimits)
   }
-  let claims = @host.source_claims(graph.sources)
+  let claims = @host.source_claims(checked_sources(graph))
   if !physical_equal(claims, @program.application_claims(program)) {
     return Err(ForeignClaims)
   }
@@ -36,7 +36,7 @@ pub fn check_source_coverage(
     return Err(WorkLimit)
   }
   for i in 0..<n {
-    if @host.source_at(graph.sources, i) is Some(_) ||
+    if @host.source_at(checked_sources(graph), i) is Some(_) ||
       @program.application_at(program, i) is Some(_) ||
       @wire.mixed_enforced_limit(mixed, i) is Some(_) {
       continue

@@ -62,10 +62,11 @@ pub fn check_application_closure(
     let expected = @pipeline.contextual_orders_pipeline(
       @pipeline.contextual_closure_at(orders, i).unwrap(),
     )
-    if !physical_equal(expected, app.sources.graph.pipeline) {
+    if !physical_equal(expected, checked_pipeline(app.sources.graph)) {
       return Err(ForeignPipeline(i))
     }
-    if @policy.cid(selected_policy) != @policy.cid(app.sources.graph.policy) {
+    if @policy.cid(selected_policy) !=
+      @policy.cid(@input.selected_policy(app.sources.graph)) {
       return Err(ForeignPolicy(i))
     }
     let bound = match

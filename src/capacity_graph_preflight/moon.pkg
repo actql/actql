@@ -1,19 +1,18 @@
 supported_targets = "+js+wasm+native"
 
 import {
+  "actql/actql/capacity_graph_input" @input,
   "actql/actql/pipeline_typing" @pipeline,
-  "actql/actql/carrier_contract" @carrier,
   "actql/actql/capacity_host_witness" @host,
   "actql/actql/capacity_policy" @policy,
   "actql/actql/capacity_witness" @wire,
   "actql/actql/capacity_program_step" @program,
   "actql/actql/capacity_sequence_limit" @sequence,
-  "actql/actql/capacity_derivation" @arithmetic,
-  "actql/actql/capacity_law" @law,
-  "actql/actql/decode_scalar" @scalar,
 }
 
 import {
+  "actql/actql/carrier_contract" @carrier,
+  "actql/actql/capacity_derivation" @arithmetic,
   "actql/actql/source_value" @source,
   "actql/actql/parameter_binding" @parameter,
   "actql/actql/value_admission" @value,

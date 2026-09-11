@@ -1,9 +1,17 @@
 # Graph input capacity binding
 
-`capacity_graph_preflight` binds Host-backed node and edge input limits to an
+`capacity_graph_input` binds Host-backed node and edge input limits to an
 immutable `pipeline_typing.CheckedPipeline` and an explicitly selected admitted
 `capacity_policy.Policy`. This is static consumer association, not execution of
 preflight or admission of measured counts.
+
+`capacity_graph_preflight` retains the existing entry points and types as a
+facade, and composes source/consumer coverage above Program applications. Input
+admission itself has no dependency on those application packages. This permits
+later application inputs to retain an admitted input owner without a dependency
+cycle; extraction alone does not make that connection or create measured counts.
+The opaque result is shared, not copied or reconstructed by the facade. Coverage
+uses indexed input-limit access and preserves the previous budget accounting.
 
 The normative owner is [Resolved limits](../spec/language.md#resolved-limits).
 The reference compiler's Graph input form uses `graph-input:<name>:nodes` and
