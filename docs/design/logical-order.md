@@ -193,7 +193,20 @@ publication-order obligation until the separate publication strategy is resolved
 Connecting other completed orders and their consumer checks, other ordered
 operations and validated external witnesses remains shared-evidence work.
 
-## Take consumption
+## Existing input-order consumers
+
+`resolve_existing_input_order` resolves prefix watermark and pivot(first) against
+their actual input edge, never their output order. Its opaque result retains
+the consumer, obligation kind, target and conditional input witness. In
+particular, pivot's canonical output partition order cannot justify selecting
+the first input value. The resolver performs constant-time indexed lookups and
+does not copy a source tree or history, infer provider order or insert a sort.
+None leaves the requirement unresolved (or indicates a non-applicable/index
+case); producer and consumer runtime obligations remain intact. Fixed watermark
+thresholds require no prefix-order witness. Take's allowed key completion and
+lag/aggregate-local calculation orders use different rules, not this resolver.
+
+## Take and selection consumption
 
 Top-k and partitioned top-k share sort's bounded candidate-key completion over
 their authored `by` terms. The resulting origin retains the selection operation,

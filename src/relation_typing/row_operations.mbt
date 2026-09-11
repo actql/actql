@@ -304,6 +304,21 @@ pub fn sort_term_count(value : CheckedOperation) -> Int {
 }
 
 ///|
+/// Existing input-sequence requirements; excludes operators that may complete
+/// or construct a different order, such as take, lag and aggregate-local sorts.
+pub fn existing_order_requirement(value : CheckedOperation) -> ValidationKind? {
+  match value.row_operation {
+    Some(Watermark(threshold=PrefixSkew(_, ..), ..)) =>
+      Some(WatermarkPrefixOrder)
+    _ =>
+      match value.pivot {
+        Some(p) if p.function is First => Some(StableInputOrder)
+        _ => None
+      }
+  }
+}
+
+///|
 pub fn sort_term_at(value : CheckedOperation, index : Int) -> OrderTerm? {
   match value.row_operation {
     Some(Sort(terms)) => terms.get(index)

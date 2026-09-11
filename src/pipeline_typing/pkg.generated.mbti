@@ -56,6 +56,14 @@ pub fn input_key(CheckedPipeline, Int) -> @relation_evidence.KeyedRelation?
 
 pub fn input_occurrences(CheckedStep) -> Array[InputOccurrence]
 
+pub fn input_order_consumer(InputOrderResolution) -> CheckedStep
+
+pub fn input_order_evidence(InputOrderResolution) -> LogicalOrder
+
+pub fn input_order_requirement(InputOrderResolution) -> @relation_typing.ValidationKind
+
+pub fn input_order_target(InputOrderResolution) -> Target
+
 pub fn inputs(CheckedPipeline) -> Array[(String, @carrier_contract.Carrier)]
 
 pub fn join_evidence(CheckedPipeline, Int) -> JoinEvidence?
@@ -85,6 +93,8 @@ pub fn output_schema(CheckedPipeline) -> @relation_schema.Schema?
 pub fn parameters(CheckedPipeline) -> @parameter_binding.Declarations?
 
 pub fn ranking_evidence(CheckedPipeline, Target) -> @vector_typing.RankingInput?
+
+pub fn resolve_existing_input_order(CheckedPipeline, Int) -> InputOrderResolution?
 
 pub fn row_count(CheckedPipeline, Target) -> RowCount?
 
@@ -185,6 +195,8 @@ pub struct InputOccurrence {
   role : InputRole
   target : Target
 }
+
+type InputOrderResolution
 
 pub(all) enum InputRole {
   Primary

@@ -69,6 +69,8 @@ pub fn check_group_with_prefix(@decode_core.Cursor, @relation_schema.Schema, Arr
 
 pub fn check_sequence(@decode_core.Cursor, @carrier_contract.Carrier, @parameter_binding.Declarations?, Limits) -> Result[CheckedSequence, Issue]
 
+pub fn existing_order_requirement(CheckedOperation) -> ValidationKind?
+
 pub fn form(CheckedOperation) -> Form
 
 pub fn group(CheckedOperation) -> CheckedGroup?
