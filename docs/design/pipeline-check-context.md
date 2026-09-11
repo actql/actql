@@ -166,6 +166,53 @@ validity of runtime inputs, argument/demand envelopes and Program readiness are
 not established by an AST. Later static closure can verify the collection's
 exact context owner before using its occurrence-bound resolutions.
 
+## Regex patterns and static options
+
+`check_regex_patterns` consumes the same opaque ExpressionValidationContext,
+not a caller-supplied pattern list or separately paired bindings. It scans the
+entire inventory and resolves `regex_match`, `regex_extract` and `regex_replace`
+PatternValidation obligations. Each opaque result retains its exact site, the
+selected TextTime policy, the admitted [pattern](regex-pattern.md), the authored
+flags (including absence versus empty), and the selected BoundParameter objects
+for pattern and capture/replacement when applicable. Equal AST CIDs across
+different contexts do not make those contexts interchangeable.
+
+Literal operands come from the checked semantic node. Parameter operands are
+looked up by name in that site's already-selected BoundValues; defaults are not
+applied again and strings containing `$` are not resolved as another parameter.
+Capture zero denotes the whole match. Other capture indices must be finite
+nonnegative integers no greater than the admitted capture count; conversion to
+an internal index happens only after that bound check. Nullable declarations do
+not permit a null static pattern/capture/replacement value. Replacement parsing
+uses the [closed replacement AST](regex-replacement.md), and every referenced
+capture must exist. Unmatched existing captures are an evaluation matter, not
+grounds to reject the pattern.
+
+The selected `max_pattern_bytes` ceiling counts actual UTF-8 bytes, not UTF-16
+units. Replacement text is bounded by the integration text budget, not by an
+invented pattern-byte limit. Output expansion and replacement-count ceilings
+remain HostEnvelope work: parsing a replacement does not establish those bounds.
+Flags have already passed typing but their closed set is checked again; their
+authored order is retained rather than silently canonicalized to another value.
+
+Usage includes the incoming context's work/text plus inventory visits, operand
+reads, binary-search comparison lengths, source UTF-16 and UTF-8 scan charges,
+flags and generated full AST nodes. Both pattern and replacement AST byte/node
+costs accumulate across all occurrences, including repeated producers. Pattern
+depth is separately bounded. All caps are checked before adding usage; a late
+error returns no partial collection. Diagnostics retain the inventory index,
+and parser errors include offsets in the resolved source string. The inventory
+site still provides the actual expression's path/span/range and binding owner.
+
+Tests cover overridden invalid defaults, bound object identity, unused branches,
+repeated producer occurrences, flags, capture zero and out-of-range indices,
+nullable static values, multibyte byte ceilings and exact budget
+boundaries. Regex matching and complete profile conformance are not tested or
+claimed here. Timestamp and regex collections remain separate owner-bound
+results; the final closure must combine their incremental usage without counting
+the shared context twice and must still close other obligation kinds. No public
+constructor lets the lowerer substitute an unrelated collection.
+
 ## Not yet a checked Program
 
 `attach_stage_contexts` joins source-bound all-stage operation bindings and

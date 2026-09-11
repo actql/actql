@@ -10,6 +10,8 @@ import {
   "actql/actql/parameter_references",
   "actql/actql/pipeline_parameters",
   "actql/actql/pipeline_typing",
+  "actql/actql/regex_pattern",
+  "actql/actql/regex_replacement",
   "actql/actql/relation_results",
   "actql/actql/stage_local_inputs",
   "actql/actql/stage_parameters",
@@ -36,6 +38,8 @@ pub fn bound_guards(PipelineContext) -> @pipeline_typing.BoundGuardClosure
 pub fn check(@relation_results.CheckedResults, Array[@parameter_binding.BoundValues?], Array[@capacity_graph_preflight.ApplicationCoverage], @capacity_policy.Policy, Limits, proof_owners? : Array[(Int, Int, Int)], input_owners? : Array[(Int, Int, Int, Int)]) -> Result[PipelineContext, Issue]
 
 pub fn check_parameter_bindings(PipelineContext, max_work~ : Int, max_text_bytes~ : Int) -> Result[BoundParameters, ParameterIssue]
+
+pub fn check_regex_patterns(ExpressionValidationContext, RegexPatternLimits) -> Result[RegexPatternChecks, RegexPatternIssue]
 
 pub fn check_resolved_orders(@relation_results.CheckedOrders, Array[@parameter_binding.BoundValues?], Array[@capacity_graph_preflight.ApplicationCoverage], @capacity_policy.Policy, max_work~ : Int, max_text_bytes~ : Int, proof_owners? : Array[(Int, Int, Int)], input_owners? : Array[(Int, Int, Int, Int)]) -> Result[PipelineContext, Issue]
 
@@ -94,6 +98,28 @@ pub fn reconciled_snapshots(ReconciledContexts) -> @stage_local_inputs.ProgramEn
 pub fn reconciled_usage(ReconciledContexts) -> InputUsage
 
 pub fn reconciled_wiring(ReconciledContexts) -> WiredStages
+
+pub fn regex_option_parameter(RegexPatternResolution) -> @parameter_binding.BoundParameter?
+
+pub fn regex_pattern_ast(RegexPatternResolution) -> @regex_pattern.Pattern
+
+pub fn regex_pattern_at(RegexPatternChecks, Int) -> RegexPatternResolution?
+
+pub fn regex_pattern_context(RegexPatternChecks) -> ExpressionValidationContext
+
+pub fn regex_pattern_count(RegexPatternChecks) -> Int
+
+pub fn regex_pattern_flags(RegexPatternResolution) -> String?
+
+pub fn regex_pattern_operation(RegexPatternResolution) -> RegexOperation
+
+pub fn regex_pattern_parameter(RegexPatternResolution) -> @parameter_binding.BoundParameter?
+
+pub fn regex_pattern_policy(RegexPatternResolution) -> @check_environment.TextTime
+
+pub fn regex_pattern_site(RegexPatternResolution) -> ExpressionValidationSite
+
+pub fn regex_pattern_usage(RegexPatternChecks) -> RegexPatternUsage
 
 pub fn result_wiring(WiredStages) -> @stage_results.ResultWiring
 
@@ -243,6 +269,44 @@ pub(all) enum ReconciledIssue {
   ForeignEvidence(Int)
   InconsistentUsage
   BudgetExceeded
+} derive(Eq, @debug.Debug)
+
+pub(all) enum RegexOperation {
+  Match
+  Extract(Int)
+  Replace(@regex_replacement.Replacement)
+}
+
+type RegexPatternChecks
+
+pub(all) enum RegexPatternIssue {
+  InvalidLimits
+  BudgetExceeded
+  MissingPolicy(Int)
+  MissingBindings(Int)
+  InvalidSite(Int)
+  InvalidArgument(Int, String)
+  PatternCeiling(Int)
+  UnknownCapture(Int)
+  Pattern(Int, @regex_pattern.Issue)
+  Replacement(Int, @regex_replacement.Issue)
+} derive(Eq, @debug.Debug)
+
+pub(all) struct RegexPatternLimits {
+  max_work : Int
+  max_text_bytes : Int
+  max_ast_bytes : Int
+  max_ast_nodes : Int
+  max_pattern_depth : Int
+} derive(Eq, @debug.Debug)
+
+type RegexPatternResolution
+
+pub(all) struct RegexPatternUsage {
+  work : Int
+  text_bytes : Int
+  ast_bytes : Int
+  ast_nodes : Int
 } derive(Eq, @debug.Debug)
 
 type SelectedPolicyContext
