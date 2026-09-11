@@ -14,6 +14,8 @@ pub fn admit(Bytes, String, @capacity_policy.Policy, Limits) -> Result[Witness, 
 
 pub fn admit_wire(@capacity_witness.WireWitness, @capacity_policy.Policy, Limits) -> Result[Witness, Issue]
 
+pub fn bind_claim_sources(@capacity_witness.ProgramClaims, Array[@capacity_policy.Policy], BindingLimits) -> Result[HostSources, BindingIssue]
+
 pub fn ceiling(Witness) -> @capacity_policy.Ceiling
 
 pub fn cid(Witness) -> String
@@ -24,11 +26,36 @@ pub fn emit(Witness, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailu
 
 pub fn law_id(Witness) -> String
 
+pub fn source_at(HostSources, Int) -> Witness?
+
+pub fn source_claims(HostSources) -> @capacity_witness.ProgramClaims
+
+pub fn source_count(HostSources) -> Int
+
+pub fn source_usage(HostSources) -> (Int, Int)
+
 pub fn unit(Witness) -> @capacity_derivation.BoundUnit
 
 // Errors
 
 // Types and methods
+pub(all) enum BindingIssue {
+  InvalidBindingLimits
+  BindingBudgetExceeded
+  DuplicatePolicy(String)
+  MissingPolicy(Int, String)
+  InvalidHostSource(Int, Issue)
+} derive(Eq, @debug.Debug)
+
+pub(all) struct BindingLimits {
+  max_entries : Int
+  max_bytes : Int
+  max_nodes : Int
+  max_depth : Int
+}
+
+type HostSources
+
 pub(all) enum Issue {
   InvalidLimits
   BudgetExceeded

@@ -159,6 +159,11 @@ consumer audit.
    cycle introduced only by a Program input edge. Consumer/source/application
    validation remains open; this does not discharge enforcement or produce
    input counts.
+   Collection-wide Host source binding now resolves every Host witness against
+   admitted policy bodies, including unused claims, and retains the original
+   Program/mixed owner. Exact field/unit/law/value/source identity is checked;
+   non-Host entries remain explicitly unvalidated. Policy selection authority
+   and consumer applicability are not supplied by this catalog lookup.
    Do not
    expand into acquisition, an evaluator or Host dispatch.
 3. Connect contextual resolutions into a complete static checking/discharge

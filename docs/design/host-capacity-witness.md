@@ -64,6 +64,32 @@ the exact enforcement target. No current pipeline input accepts this witness as
 an observed count. Other witness sources and whole-pipeline discharge remain
 required work.
 
+## Collection source binding
+
+`bind_claim_sources` accepts dependency-checked `ProgramClaims` and an explicit
+catalog of admitted Policies. It resolves every Host-source witness by policy
+CID and reconstructs its complete source witness through `admit_wire`. Missing
+policies, duplicate policy identities and any field/unit/law/value/dependency
+mismatch fail atomically, including a witness unused by the selected limit.
+Catalog order does not choose a policy; an exact CID does. Unreferenced admitted
+policies may remain in the catalog but cannot satisfy a different identity.
+
+Opaque `HostSources` retains the original Program/mixed-closure owner and an
+index of verified Host sources in witness order. Non-Host entries are `None`,
+not implicitly validated. Equal-valued fields or policies retain distinct
+Ceiling/Policy owners. Caller arrays are not retained. The entry budget counts
+all witnesses plus catalog policies; byte and node budgets accumulate complete
+Host witness artifacts, including their identity members, while depth bounds
+each artifact. Prior policy and proof-body admission budgets remain independent.
+
+This validates the Host-source branch throughout the collection, not caller
+authority to select a policy, candidate applicability to a particular consumer,
+non-Host source truth or execution enforcement. No policy ceiling becomes an
+observed row count. Tests bind all fourteen supported fields, retain mixed
+preflight ownership, reject an unused self-consistent wrong-unit witness and
+exercise missing/duplicate policies, equal-valued distinct policies and exact
+aggregate budget boundaries.
+
 ## Fixed evidence
 
 The portable corpus fixes all 14 supported field mappings, wire bytes and CIDs
