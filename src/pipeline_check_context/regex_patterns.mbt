@@ -191,15 +191,15 @@ pub fn check_regex_patterns(
         Some(v) => v
         None => raise RegexStop(MissingPolicy(i))
       }
-      let node = @typing.node_at(
-        requirement.expression,
-        requirement.obligation.node_index,
-      ).unwrap()
-      let object = regex_decoded(@decode.open_object(node.source), i)
-      let body = regex_decoded(
-        @decode.open_object(regex_decoded(@decode.required(object, op), i)),
-        i,
-      )
+      let body = match
+        @typing.node_form(
+          requirement.expression,
+          requirement.obligation.node_index,
+        ) {
+        Some(@typing.Expression(tag, body)) if tag == op => body
+        _ => raise RegexStop(InvalidSite(i))
+      }
+      let body = regex_decoded(@decode.open_object(body), i)
       let flags = match @decode.lookup(body, "flags") {
         None => None
         Some(v) => {

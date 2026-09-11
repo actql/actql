@@ -60,6 +60,7 @@ fn check_impl(
     expression,
     environment,
     annotations,
+    layout: nodes,
     profiles: names,
     pending,
     usage: {

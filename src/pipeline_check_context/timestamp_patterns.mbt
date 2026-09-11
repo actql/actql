@@ -82,12 +82,11 @@ fn timestamp_argument(
 ) -> (String, @parameter.BoundParameter?) raise TimestampStop {
   timestamp_spend(budget, 1)
   let requirement = validation_site_requirement(site)
-  let node = @typing.node_at(
-    requirement.expression,
-    requirement.obligation.node_index,
-  ).unwrap()
-  let object = timestamp_decoded(@decode.open_object(node.source), index)
-  let body = timestamp_decoded(@decode.required(object, operation), index)
+  let body = match
+    @typing.node_form(requirement.expression, requirement.obligation.node_index) {
+    Some(@typing.Expression(tag, body)) if tag == operation => body
+    _ => raise TimestampStop(InvalidSite(index))
+  }
   let body = timestamp_decoded(@decode.open_object(body), index)
   let argument = timestamp_decoded(@decode.required(body, "pattern"), index)
   let argument = timestamp_decoded(@decode.open_object(argument), index)

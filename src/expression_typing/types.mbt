@@ -74,9 +74,61 @@ struct TypedExpression {
   expression : @syntax.Expression
   environment : Environment
   annotations : Array[TypedNode]
+  layout : Array[Node]
   profiles : Array[String]
   pending : Array[Obligation]
   usage : Usage
+}
+
+///|
+/// Checked semantic form, never reconstructed from source text. Auxiliary
+/// membership and implicit-ELSE nodes are explicit, not new language operators.
+pub(all) enum NodeForm {
+  Expression(String, @decode.Cursor)
+  MembershipList(@decode.Cursor)
+  ImplicitNull
+}
+
+///|
+pub fn node_form(value : TypedExpression, index : Int) -> NodeForm? {
+  value.layout
+  .get(index)
+  .map(fn(node) {
+    match node.tag {
+      "#in_list" => MembershipList(node.body)
+      "#null" => ImplicitNull
+      tag => Expression(tag, node.body)
+    }
+  })
+}
+
+///|
+pub fn child_count(value : TypedExpression, index : Int) -> Int? {
+  value.layout.get(index).map(node => node.children.length())
+}
+
+///|
+/// Child indices are local to value, in the checker's semantic operand order.
+/// No mutable child array or internal inference state is exposed.
+pub fn child_at(value : TypedExpression, index : Int, child : Int) -> Int? {
+  match value.layout.get(index) {
+    Some(node) => node.children.get(child)
+    None => None
+  }
+}
+
+///|
+/// Only object constructor nodes have field names; each name corresponds to
+/// the child at the same ordinal. Other forms return None, not an inferred name.
+pub fn object_field_name_at(
+  value : TypedExpression,
+  index : Int,
+  field : Int,
+) -> String? {
+  match value.layout.get(index) {
+    Some(node) => node.names.get(field)
+    None => None
+  }
 }
 
 ///|

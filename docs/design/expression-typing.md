@@ -143,6 +143,38 @@ are cached, preventing repeated full scans of nested constructor results. Scope
 lookup reuses prepared maps; property lookup uses UTF-16 binary search. No mutable
 type holes escape a successful check.
 
+## Read-only semantic topology
+
+The successful TypedExpression retains the private flattened node layout used
+by inference. `node_form`, `child_count` and `child_at` expose that layout without
+reparsing source or returning mutable arrays. Node indices are local to the
+owning TypedExpression, in preorder; each child follows its parent and children
+retain semantic operand order. They are not Program/stage/expression identities.
+`node_at` continues to provide the aligned contract and original source location.
+
+NodeForm distinguishes an ordinary operation and its admitted body cursor from
+the IN literal-list container and synthetic implicit-ELSE null. These auxiliary
+forms are not new source-language opcodes. IN scalar elements and Parameter holes
+remain aligned with their MembershipElement annotations; a null literal is not
+read using a required/non-null field accessor. Cursor identity alone is not a
+replacement for this topology, since synthetic annotations may share a source
+location with a containing construct.
+
+Object constructors additionally expose `object_field_name_at` aligned with the
+same child ordinal. Other nodes have no object field names. Invalid node/child
+indices return None, including negative indices, rather than an unrelated root.
+Internal type inference state and child/name arrays remain inaccessible and
+unchanged after successful construction. The existing node/edge/work budgets
+cover the retained flattened representation; retention extends its lifetime,
+not a claim that process memory has a new byte-level ceiling.
+
+Timestamp and regex validation now read the checked operation/body from this
+view. Extent propagation and eventual lowering can use the same edges instead
+of independently reconstructing expression-child grammar. This API itself adds
+neither evaluation nor HostEnvelope evidence. Tests fix nested profile operand
+order, implicit CASE ELSE, IN values/holes, object field alignment, source owner
+consistency, invalid indices and depth-10,000 traversal.
+
 ## Verification
 
 [Fixed type vectors](../../portability/corpus/actql-expression-typing-v0.1.json)

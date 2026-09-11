@@ -14,6 +14,10 @@ pub fn check(@expression_syntax.Expression, Environment, Limits) -> Result[Typed
 
 pub fn check_argument(@expression_syntax.Expression, Environment, ArgumentDomain, Limits) -> Result[TypedExpression, Issue]
 
+pub fn child_at(TypedExpression, Int, Int) -> Int?
+
+pub fn child_count(TypedExpression, Int) -> Int?
+
 pub fn environment(TypedExpression) -> Environment
 
 pub fn expression(TypedExpression) -> @expression_syntax.Expression
@@ -21,6 +25,10 @@ pub fn expression(TypedExpression) -> @expression_syntax.Expression
 pub fn node_at(TypedExpression, Int) -> TypedNode?
 
 pub fn node_count(TypedExpression) -> Int
+
+pub fn node_form(TypedExpression, Int) -> NodeForm?
+
+pub fn object_field_name_at(TypedExpression, Int, Int) -> String?
 
 pub fn pending_validation_at(TypedExpression, Int) -> Obligation?
 
@@ -82,6 +90,12 @@ pub(all) struct Limits {
   max_work : Int
   max_text_bytes : Int
 } derive(Eq, @debug.Debug)
+
+pub(all) enum NodeForm {
+  Expression(String, @decode_core.Cursor)
+  MembershipList(@decode_core.Cursor)
+  ImplicitNull
+}
 
 pub struct Obligation {
   node_index : Int
