@@ -355,6 +355,37 @@ The tests retain global identity uniqueness, exact scoring and contiguous rank
 assignment as obligations. They do not compute scores or certify f32 numerical
 conformance, actual identity uniqueness or capacity enforcement.
 
+## Binary structural Graph acceptance audit
+
+The structural-graph property-domain and subtraction laws were compared with
+`graph_typing/structural` checking, shared dispatch and count transfer. Sketch
+`87dc7144` only checks availability/merge shape before retaining the left shape;
+the current implementation additionally joins both compatible property contracts
+as required by the current specification.
+
+`pipeline_typing/graph_structural_audit_test.mbt` adds 27 combinations of graft,
+binary union and subtraction with independently produced empty/nonempty inputs.
+Both node and edge upper bounds are checked through their respective row bridges.
+Subtraction retains the left upper bound; graft/union use the sum. Nonzero bounds
+do not become exact observed counts. Every case checks original producer owners,
+ordered operand coordinates and exact/one-less work/node/text limits.
+
+A further 24 combinations check joined nullable property domains on both node
+and edge records, canonical label union and reversed operand order through both
+bridges. Twelve field-set mismatch cases reject rather than filling a missing
+property with null. Existing structural suites separately test authored numeric
+and set strategies, endpoint-closure obligations and repeated binary operands.
+These are static type/count checks, not evaluation of merge or subtraction laws.
+
+The audit found a remaining source gap: Language's explicit
+`union_graphs.with` nonempty-list rule and `operation-binding` left-fold rule are
+not implemented. `pipeline_typing/check.mbt` resolves `with` as one target;
+`StructuralGraphBody` and `graph-schema.mjs` also still admit only the scalar
+form. This is an implementation/grammar/schema omission, not a new acceptance
+decision. The list path must retain ordered repeated operands, check every fold
+under shared budgets, propagate its joined contracts and counts, and update all
+affected consumers and schema pins. The binary audit does not close that gap.
+
 ## Shared-boundary findings
 
 | Requirement | Inspected evidence | Audit finding |
