@@ -89,12 +89,25 @@ fn derive_logical_orders(
     let preserve = match step.operation {
       Unary(op) => @relation.preserves_input_order(op)
       Calendar(op) => @calendar.input(op) is Some(_)
+      Event(op) =>
+        match @event.options(op) {
+          ToEvents | Watermark(_, _) => true
+          _ => false
+        }
+      Projection(op) => @projection.operation(op) == @projection.Events
       _ => false
     }
     let establishes = match step.operation {
       TimeSeries(_) | Nearest(..) | Ranking(_) | TextRank(..) => true
       GraphMatch(_) | Reach(_) | Traverse(..) | Shortest(..) => true
       Graph(op) => @graph.operation(op) == @graph.Components
+      Unary(op) | WindowGroup(op) =>
+        match @relation.operation(op) {
+          Group | Pivot | DedupeRows => true
+          _ => false
+        }
+      Event(op) => @event.options(op) is Session(_)
+      Sequence(_) => true
       Calendar(op) => @calendar.input(op) is None
       _ => false
     }

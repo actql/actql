@@ -1,7 +1,7 @@
 # Conditional logical order
 
 `pipeline_typing.logical_order` retains a deterministic sequence established by a
-checked time-series/Calendar-series generator, exact ranking or ordered Graph query.
+checked generator, exact ranking, ordered Graph query or partition/event operation.
 Language explicitly orders time grids by ascending time/start and ranking
 outputs by canonical query group, score and semantic identity. The opaque summary retains the originating
 step and the immediate preserving input edge; callers cannot construct one from
@@ -36,6 +36,17 @@ The Graph carrier itself, degree, and node_rows/edge_rows projection are not
 treated as ordered by this pass: the graph-rows contract explicitly says that
 projection alone does not establish row order. Additional ordering evidence or
 Result completion may still establish order for those outputs.
+
+Group (including window_group), pivot and dedupe_rows establish the canonical
+partition/index sequence specified by the evidence-propagation table. Their
+aggregate, partitioning, top-tie and resource checks remain prerequisites; this
+does not sort arbitrary aggregate payloads or use them as synthetic identities.
+Session and sequence establish the specified canonical event/match sequence,
+retaining their TEA producers. Session keeps its input Carrier, so Events can
+carry this order before explicit Relation exposure. ToEvents, watermark labeling
+or filtering, and the Events-to-Relation bridge preserve an existing sequence
+without establishing one on unordered inputs. In particular, a watermark never
+turns provider arrival order into a publication witness.
 
 Filter, derive, select, rename, drop, take, assertions, lag, watermark_rows and
 Calendar bucket preserve an existing sequence. Empty sort preserves it without

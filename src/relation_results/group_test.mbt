@@ -12,6 +12,7 @@ test "group consumes qualified fields and publishes typed aggregate results" {
     limits(),
   ).unwrap()
   let result = @relation_results.lookup(results, "out").unwrap()
+  assert_eq(@relation_results.publication_strategy(resolve(results)), Inherited)
   let total = @schema.lookup(
     @relation_results.output_schema(result),
     Unqualified("total"),

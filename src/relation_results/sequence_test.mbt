@@ -32,6 +32,7 @@ test "sequence match schema feeds Result selection without copying payload" {
     limits(),
   ).unwrap()
   let result = @relation_results.result_at(results, 0).unwrap()
+  assert_eq(@relation_results.publication_strategy(resolve(results)), Inherited)
   assert_eq(@relation_results.fields(result), ["a_id", "b_time_ms"])
   assert_eq(@relation_results.pending_validations(result), [
     TotalDeterministicOrder,

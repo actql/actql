@@ -10,6 +10,7 @@ test "pivot preserves qualified index provenance through Result projection" {
     limits(),
   ).unwrap()
   let result = @relation_results.lookup(results, "out").unwrap()
+  assert_eq(@relation_results.publication_strategy(resolve(results)), Inherited)
   let c = @schema.lookup(
     @relation_results.output_schema(result),
     Unqualified("b"),
