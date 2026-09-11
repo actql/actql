@@ -84,6 +84,10 @@ consumer audit.
    field/unit/law combinations and canonical identity while retaining the
    admitted policy. Program/Contract/author/language sources and complete
    consumer resolution remain unfinished.
+   Canonical Host-source wire admission now reconstructs the full witness from
+   the admitted policy and checks both expected CID and full byte identity;
+   even a self-consistent wrong-unit witness is rejected. This closes that
+   source branch, not the remaining mixed-source dependency closure.
    Do not add public proof flags, treat policy ceilings as observations, or
    expand into acquisition, an evaluator or Host dispatch.
 3. Connect contextual resolutions into a complete static checking/discharge

@@ -10,6 +10,8 @@ pub(all) enum Issue {
   InvalidLimits
   BudgetExceeded
   UnsupportedPolicyField(String)
+  InvalidWitness
+  IdentityMismatch
 } derive(Eq, Debug)
 
 ///|

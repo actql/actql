@@ -58,4 +58,12 @@ test('fixed host witness wire bytes and identities match an independent canonica
     assert.equal(machineCid(core), c.cid);
     assert.equal(JSON.stringify({...core, witness_cid:c.cid}), c.text);
   }
+  assert.equal(corpus.rejections.length, 1);
+  for (const c of corpus.rejections) {
+    const { witness_cid, ...core } = JSON.parse(c.text);
+    assert.equal(machineCid(core), c.cid, 'Rejection must have an internally correct CID');
+    assert.equal(witness_cid, c.cid);
+    assert.equal(c.expected_issue, 'IdentityMismatch');
+    assert.notEqual(core.unit, contract.host_witness_laws[core.source.field].unit);
+  }
 });

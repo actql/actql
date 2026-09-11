@@ -9,6 +9,8 @@ import {
 }
 
 // Values
+pub fn admit(Bytes, String, @capacity_policy.Policy, Limits) -> Result[Witness, Issue]
+
 pub fn ceiling(Witness) -> @capacity_policy.Ceiling
 
 pub fn cid(Witness) -> String
@@ -28,6 +30,8 @@ pub(all) enum Issue {
   InvalidLimits
   BudgetExceeded
   UnsupportedPolicyField(String)
+  InvalidWitness
+  IdentityMismatch
 } derive(Eq, @debug.Debug)
 
 pub(all) struct Limits {

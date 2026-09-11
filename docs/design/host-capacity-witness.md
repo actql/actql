@@ -41,6 +41,20 @@ purpose and cannot replace this table.
 
 ## Trust and downstream obligations
 
+`admit` accepts full wire bytes, an independently expected witness CID and an
+admitted Policy. It resolves the source field into that Policy and reconstructs
+the complete witness through the same closed constructor. Both the reconstructed
+preimage CID and full canonical byte identity must agree. Wire assertions about
+the value, role, unit, law, dependency list and source do not become evidence by
+being well-formed or internally content-addressed. Missing/extra fields,
+duplicate keys, unsupported quantities, alternate encodings and policy swaps
+fail without normalization repair. Byte/node/depth limits cover the full wire
+artifact; there is no global source cache or implicit policy lookup.
+
+This closes canonical admission for the Host-source witness branch relative
+to a selected admitted policy. Other witness forms still need their own source
+and derivation validation rather than being accepted by this API.
+
 A Host source witness is a validated restriction relative to the selected
 policy, not a proven data bound, Host authorization or completed enforcement.
 Consumer matching must retain field scope even when two fields have equal
@@ -59,3 +73,9 @@ targets. Tests also cover unsupported quantities, exact preimage/artifact
 budgets, retained policy provenance, equal-valued different fields, and a
 change to an unrelated policy field changing the witness's policy identity.
 These checks are not runtime enforcement conformance.
+
+Admission regressions cover all supported source fields, structural and numeric
+wire mutations, expected-CID/source-policy mismatch, dependency omission and
+repetition, encoding repair, and exact full-artifact budgets. A fixed portable
+negative has a correctly recomputed self-CID after changing its unit; rejecting
+it distinguishes governing-law validation from merely trusting a self-CID.

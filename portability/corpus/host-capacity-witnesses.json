@@ -1,5 +1,13 @@
 {
   "version": "actql-host-capacity-witness-vectors/0.1",
+  "rejections": [
+    {
+      "name": "self-consistent-wrong-unit",
+      "cid": "sha256:9a0e7c1509f4a60a751edb4af583db95869fb86e7f42f8c35aadc6a943b92df6",
+      "text": "{\"dependencies\":[\"sha256:dfa8818d1752320593a6de63173a99ab23b8b17cd3786df87003aafcfbd04f63\"],\"derivation\":{\"op\":\"source\"},\"law_id\":\"actql.host.aggregate-array-items\",\"role\":\"host_ceiling\",\"source\":{\"field\":\"max_aggregate_array_items\",\"kind\":\"host_policy\",\"policy_cid\":\"sha256:dfa8818d1752320593a6de63173a99ab23b8b17cd3786df87003aafcfbd04f63\"},\"unit\":\"rows\",\"value\":1,\"version\":\"actql-bound-witness/0.1\",\"witness_cid\":\"sha256:9a0e7c1509f4a60a751edb4af583db95869fb86e7f42f8c35aadc6a943b92df6\"}",
+      "expected_issue": "IdentityMismatch"
+    }
+  ],
   "policy": {
     "max_aggregate_array_items": 1,
     "max_artifact_bytes": 1,
