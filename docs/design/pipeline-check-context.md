@@ -246,6 +246,12 @@ discharged. Host ceilings are not implementation profile claims: the remaining
 profile check must follow the conformance owner, not infer support from policy
 presence. PatternChecks is still not a CheckedProgram or an executable Plan.
 
+The [portable text-time bounds component](text-time-bounds.md) now provides
+contract/value input extents and the twelve output formulas, retaining child
+derivations and policy ownership. It is not yet attached to these typed sites:
+the expression traversal, demand/evidence identities and sealed HostEnvelope
+construction remain required before those obligations can be discharged.
+
 ## Not yet a checked Program
 
 `attach_stage_contexts` joins source-bound all-stage operation bindings and

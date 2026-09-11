@@ -1,0 +1,85 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/text_time_bounds"
+
+import {
+  "actql/actql/regex_replacement",
+  "actql/actql/text_time_policy",
+  "actql/actql/timestamp_pattern",
+  "actql/actql/value_admission",
+  "actql/actql/value_contract",
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn derive_output(Input, Operation) -> Result[Output, Issue]
+
+pub fn from_contract(@value_contract.Contract, @text_time_policy.Policy) -> Result[Input, Issue]
+
+pub fn from_output(Output) -> Result[Input, Issue]
+
+pub fn from_value(@value_admission.CheckedValue, @text_time_policy.Policy, max_text_bytes~ : Int) -> Result[Input, Issue]
+
+pub fn input_contract(Input) -> @value_contract.Contract
+
+pub fn input_extent(Input) -> (Int64, Int64)
+
+pub fn input_origin(Input) -> Origin
+
+pub fn input_policy(Input) -> @text_time_policy.Policy
+
+pub fn input_producer(Input) -> Output?
+
+pub fn input_value(Input) -> @value_admission.CheckedValue?
+
+pub fn output_bytes(Output) -> Int64
+
+pub fn output_contract(Output) -> @value_contract.Contract
+
+pub fn output_input(Output) -> Input
+
+pub fn output_operation(Output) -> Operation
+
+pub fn output_replacements(Output) -> Int64?
+
+// Errors
+
+// Types and methods
+type Input
+
+pub(all) enum Issue {
+  InvalidLimits
+  BudgetExceeded
+  InvalidInputType
+  InputCeiling
+  OutputCeiling
+  ReplacementCeiling
+  InvalidPatternMode
+} derive(Eq, @debug.Debug)
+
+pub(all) enum Operation {
+  SplitPart
+  Substring(Double?)
+  Utf8Truncate(Double?)
+  TryNumber
+  Nfkc
+  CaseFold
+  ParseTimestamp
+  TryTimestamp
+  FormatTimestamp(@timestamp_pattern.Pattern)
+  RegexMatch
+  RegexExtract
+  RegexReplace(@regex_replacement.Replacement)
+}
+
+pub(all) enum Origin {
+  ValueContract
+  KnownValue
+  RuntimePreflight
+  DerivedOutput
+} derive(Eq, @debug.Debug)
+
+type Output
+
+// Type aliases
+
+// Traits
