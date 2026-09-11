@@ -87,3 +87,29 @@ one budget. Key declarations remain conditional on input admission and uniquenes
 validation. Unresolved first-place ties remain a failure obligation even when
 authored tie fields or conditional key completions are supplied. The checker does
 not certify actual stable order or coverage merely from the output contract.
+
+## Output key transfer boundary
+
+`asof_input_records` retains each original operand Knowledge handle, including
+open field sets and present-but-untyped fields. It is not the typed-only schema
+snapshot used to check projection. A structurally equal reconstruction is not
+the same evidence source. Indexed projection access avoids copying the entire
+alias array for each key component. This is preparation for output evidence
+transfer, not a claim that the pipeline already propagates as-of keys.
+
+The at-most-one match rule permits surviving left candidate keys to transfer
+for both left and inner forms. Right-only uniqueness does not follow: multiple
+left occurrences may select the same right row. All aliases of every surviving
+left key component must be retained; projecting away one of several aliases
+must not discard the others. Identity/tie/value obligations remain attached to
+the as-of producer. An explicit left identity or intrinsic Events identity needs
+its own conditional producer evidence rather than a fabricated input declaration.
+
+There is a dependency constraint to close before implementation:
+`relation_join` uses `relation_evidence` to select as-of keys, whereas evidence
+can only depend on the lower `relation_join_shape`. Adding the upper as-of type
+to the lower evidence producer enum would create a cycle. The checked as-of
+shape and key-completion ownership need separating before output transfer; a
+public unchecked projection descriptor, synthetic select producer, or dropped
+producer obligations is not an acceptable shortcut. Existing source admission
+and shared completion budgets must survive that separation.

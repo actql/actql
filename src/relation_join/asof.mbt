@@ -7,6 +7,8 @@ pub(all) enum AsOfDirection {
 
 ///|
 struct CheckedAsOf {
+  left_records : @carrier.Knowledge
+  right_records : @carrier.Knowledge
   left_key : @evidence.KeyedRelation?
   right_key : @evidence.KeyedRelation?
   completed_ties : Array[@schema.FieldName]
@@ -358,6 +360,8 @@ pub fn check_asof_sources(
       pending.push(JournalAsOfKeyCompletion(@schema.Right))
     }
     Ok({
+      left_records: left_rows,
+      right_records: right_rows,
       left_key,
       right_key,
       completed_ties,
@@ -389,6 +393,30 @@ pub fn check_asof_sources(
 ///|
 pub fn asof_output_schema(v : CheckedAsOf) -> @schema.Schema {
   v.output
+}
+
+///|
+/// Original input knowledge, not the typed-only snapshot used for projection.
+/// Retains exact source binding and unknown/untyped field distinctions.
+pub fn asof_input_records(
+  v : CheckedAsOf,
+  side : @schema.Side,
+) -> @carrier.Knowledge {
+  if side == Left {
+    v.left_records
+  } else {
+    v.right_records
+  }
+}
+
+///|
+pub fn asof_projection_count(v : CheckedAsOf) -> Int {
+  v.projection.length()
+}
+
+///|
+pub fn asof_projection_at(v : CheckedAsOf, index : Int) -> Projection? {
+  v.projection.get(index)
 }
 
 ///|

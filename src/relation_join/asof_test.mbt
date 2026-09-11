@@ -55,6 +55,33 @@ test "as-of supports Relation and Events with independent UTC representations" {
             "\",\"tolerance\":\"1s\",\"select\":{\"id\":\"left.id\",\"value\":\"right.time\"}}",
           )
           let c = @relation_join.check_asof(body, left, right, None, limits()).unwrap()
+          let original_left = @relation_join.asof_input_records(c, Left)
+          assert_true(physical_equal(original_left, rows))
+          assert_true(
+            physical_equal(
+              @relation_join.asof_input_records(c, Right),
+              @carrier.relation_rows(right).unwrap(),
+            ),
+          )
+          assert_true(!physical_equal(original_left, asof_rows(left_ts)))
+          assert_true(
+            @carrier.lookup(original_left, Unqualified("unknown"))
+            is Present({ contract: None, .. }),
+          )
+          assert_true(
+            @carrier.lookup(original_left, Unqualified("absent")) is Unknown,
+          )
+          assert_eq(@relation_join.asof_projection_count(c), 2)
+          let projected = @relation_join.asof_projection(c)
+          for i, field in projected {
+            let indexed = @relation_join.asof_projection_at(c, i).unwrap()
+            assert_eq(indexed.input, field.input)
+            assert_eq(indexed.output, field.output)
+          }
+          projected.clear()
+          assert_eq(@relation_join.asof_projection_count(c), 2)
+          assert_true(@relation_join.asof_projection_at(c, -1) is None)
+          assert_true(@relation_join.asof_projection_at(c, 2) is None)
           assert_eq(@relation_join.asof_direction(c), expected)
           assert_eq(@relation_join.asof_uses_timestamp(c, Left), left_ts)
           assert_eq(@relation_join.asof_uses_timestamp(c, Right), right_ts)

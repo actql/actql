@@ -19,6 +19,8 @@ pub fn asof_direction(CheckedAsOf) -> AsOfDirection
 
 pub fn asof_identity(CheckedAsOf) -> Array[@relation_schema.FieldName]
 
+pub fn asof_input_records(CheckedAsOf, @relation_schema.Side) -> @carrier_contract.Knowledge
+
 pub fn asof_key_completion(CheckedAsOf, @relation_schema.Side) -> @relation_evidence.KeyedRelation?
 
 pub fn asof_keys(CheckedAsOf) -> Array[@relation_join_shape.KeyPair]
@@ -30,6 +32,10 @@ pub fn asof_output_schema(CheckedAsOf) -> @relation_schema.Schema
 pub fn asof_pending_validations(CheckedAsOf) -> Array[@relation_join_shape.Obligation]
 
 pub fn asof_projection(CheckedAsOf) -> Array[@relation_join_shape.Projection]
+
+pub fn asof_projection_at(CheckedAsOf, Int) -> @relation_join_shape.Projection?
+
+pub fn asof_projection_count(CheckedAsOf) -> Int
 
 pub fn asof_source(CheckedAsOf) -> @decode_core.Cursor
 
