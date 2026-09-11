@@ -137,7 +137,20 @@ fn mapped_key(
             spend(b, source, mapped.length())
             for output in mapped {
               charge(b, source, output.name)
-              remaining.push(output)
+              // The mapping only admits exact copies. A wider row schema does
+              // not erase the non-null fact attached to a retained key value.
+              let contract = match (field.contract, output.contract) {
+                (Some(input), Some(result)) =>
+                  Some(
+                    @contract.with_nullability(
+                      result,
+                      input.nullable && result.nullable,
+                    ),
+                  )
+                (Some(input), None) => Some(input)
+                (None, result) => result
+              }
+              remaining.push({ name: output.name, contract, })
             }
           }
         Forget => ()

@@ -1,5 +1,14 @@
 # Relation key declarations and evidence
 
+Exact field-copy transfer (select, rename, retained drop fields and proven
+derive copies) preserves a key's known non-null component even beneath a wider
+nullable row contract. The copied field's type information can add evidence,
+but cannot erase this retained value fact. The ordinary output schema is not
+narrowed. Arbitrary expressions are not copy mappings and gain no such witness;
+original key validation obligations still apply. This distinction matters after
+set alignment, where only unchanged left occurrences survive despite a wider
+shared output type.
+
 `transfer_set_keys` preserves left candidate-key witnesses through except and
 intersect, for both ALL and DISTINCT. Language's row-set multiplicity rule
 returns unchanged left occurrences; right keys and full-row deduplication do not
