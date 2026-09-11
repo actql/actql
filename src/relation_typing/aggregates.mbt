@@ -119,6 +119,16 @@ pub fn aggregate_order(value : CheckedAggregate) -> Array[OrderTerm] {
 }
 
 ///|
+pub fn aggregate_order_count(value : CheckedAggregate) -> Int {
+  value.order.length()
+}
+
+///|
+pub fn aggregate_order_at(value : CheckedAggregate, index : Int) -> OrderTerm? {
+  value.order.get(index)
+}
+
+///|
 pub fn aggregate_item_limit(value : CheckedAggregate) -> CountValue? {
   value.item_limit
 }

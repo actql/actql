@@ -212,6 +212,23 @@ operations and validated external witnesses remains shared-evidence work.
 
 ## Existing input-order consumers
 
+`resolve_group_orders` resolves all aggregate-local orders of one group or
+window_group atomically under a shared work/text budget. It selects the input's
+eligible candidate key once, then completes each aggregate's unchanged authored
+terms independently, including alias coverage. Unordered aggregate entries have
+no local order; an unresolved ordered entry fails the entire resolution with its
+aggregate source and no partial collection. The opaque result retains the checked
+consumer and input target, with indexed aggregate witnesses and consumed usage.
+Array_agg retains Language's stronger mandatory candidate-key rule, also present
+in fixed Sketch `87dc7144`: even an ordered duplicate-valued input cannot replace
+that key. First/last/string_agg need total local order and may use an existing
+input sequence for stable authored ties when no eligible key exists. Authored
+terms remain primary. Canonical group output order is never an input witness.
+Aggregate filters, argument demand, NULL removal, distinct, numeric observations,
+item/byte limits and atomic output validation remain separate obligations; this
+resolver does not evaluate or discharge them. Analytic frame aggregate order is
+provided by the separate analytic position resolution, not this group resolver.
+
 `analytic_position_order` resolves position completion separately from authored
 peer terms and publication order. It first uses the actual input's eligible
 whole candidate key, with the same bounded alias-aware completion as sort.

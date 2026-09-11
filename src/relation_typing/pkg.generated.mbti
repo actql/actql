@@ -43,6 +43,10 @@ pub fn aggregate_name(CheckedAggregate) -> String
 
 pub fn aggregate_order(CheckedAggregate) -> Array[OrderTerm]
 
+pub fn aggregate_order_at(CheckedAggregate, Int) -> OrderTerm?
+
+pub fn aggregate_order_count(CheckedAggregate) -> Int
+
 pub fn aggregate_result(CheckedAggregate) -> @value_contract.Contract
 
 pub fn aggregate_source(CheckedAggregate) -> @decode_core.Cursor

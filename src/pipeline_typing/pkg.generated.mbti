@@ -31,6 +31,12 @@ import {
 }
 
 // Values
+pub fn aggregate_order_completion(AggregateOrder) -> SortCompletion?
+
+pub fn aggregate_order_inherited(AggregateOrder) -> LogicalOrder?
+
+pub fn aggregate_order_source(AggregateOrder) -> @relation_typing.CheckedAggregate
+
 pub fn analytic_order_completion(AnalyticPositionOrder) -> SortCompletion?
 
 pub fn analytic_order_consumer(AnalyticPositionOrder) -> CheckedStep
@@ -60,6 +66,16 @@ pub fn current(CheckedPipeline) -> Target?
 pub fn expected_delta_contract(CheckedPipeline, Target, @relation_schema.FieldName) -> @graph_contract.CheckedContract?
 
 pub fn graph_count(CheckedPipeline, Target) -> GraphCount?
+
+pub fn group_order_at(GroupOrders, Int) -> AggregateOrder?
+
+pub fn group_orders_consumer(GroupOrders) -> CheckedStep
+
+pub fn group_orders_count(GroupOrders) -> Int
+
+pub fn group_orders_input(GroupOrders) -> Target
+
+pub fn group_orders_usage(GroupOrders) -> (Int, Int)
 
 pub fn initial_from(CheckedPipeline) -> @decode_core.Cursor?
 
@@ -125,6 +141,8 @@ pub fn ranking_evidence(CheckedPipeline, Target) -> @vector_typing.RankingInput?
 
 pub fn resolve_existing_input_order(CheckedPipeline, Int) -> InputOrderResolution?
 
+pub fn resolve_group_orders(CheckedPipeline, Int, max_work~ : Int, max_text_bytes~ : Int) -> Result[GroupOrders, Issue]
+
 pub fn resolve_nest_order(CheckedPipeline, Int, max_work~ : Int, max_text_bytes~ : Int) -> Result[NestOrder, Issue]
 
 pub fn row_count(CheckedPipeline, Target) -> RowCount?
@@ -158,6 +176,8 @@ pub fn window_fields(WindowEvidence) -> (@relation_schema.FieldName, @relation_s
 // Errors
 
 // Types and methods
+type AggregateOrder
+
 type AnalyticPositionOrder
 
 pub enum CheckedOperation {
@@ -215,6 +235,8 @@ pub struct GraphCount {
   nodes : RowCount?
   edges : RowCount?
 } derive(Eq, @debug.Debug)
+
+type GroupOrders
 
 pub(all) enum InputContract {
   CarrierInput(@carrier_contract.Carrier)
