@@ -75,6 +75,31 @@ may simply be deferred to runtime.
 
 ## Not yet a checked Program
 
+`attach_stage_contexts` joins source-bound all-stage operation bindings and
+source-bound Result checking with exactly one BoundParameters context per stage
+in source order. The operation collection owner and each exact CheckedResults
+owner must agree. All retained producer visits that have supplied bindings use
+the single complete value-set owner selected for the staged operation collection;
+there is no per-stage replacement. Equivalent policy admissions are compared by
+their verified CID, while different selected policies reject. The opaque
+StageContexts retains these owners and copies only the context registration
+array. Reordering or omitting stages, a late foreign binding, or a short total
+budget exposes no partially attached result.
+
+Its work budget includes bound-operation collection/binding, Result admission,
+all supplied contextual work, one check per stage and one per producer visit.
+The operation collection retained by both the binding and Result result is
+charged once, after requiring their exact shared owner. Text counts direct
+operation text, Result-admission text and contextual text. Per-visit work in
+independently checked contexts is not deduplicated by coincidentally equal inputs.
+This is composition accounting, not a claim to bound earlier parsing or the heap.
+
+This closes the attachment of stage Result checks, selected bindings and policy;
+it does not validate ordinary/receipt input contracts, attach Result-import
+wiring, discharge static profiles or build semantic Program identities. In
+particular, source correspondence for a pipeline is not proof that its supplied
+input Carrier contracts correspond to the Program's input declarations.
+
 `check_parameter_bindings` extends a context with local Parameter reference
 indexes for every contextual producer visit. It uses the exhaustive pipeline
 collector for both typed expressions and direct operands, including values

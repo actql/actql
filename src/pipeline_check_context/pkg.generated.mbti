@@ -10,9 +10,14 @@ import {
   "actql/actql/pipeline_parameters",
   "actql/actql/pipeline_typing",
   "actql/actql/relation_results",
+  "actql/actql/stage_parameters",
+  "actql/actql/stage_results",
+  "moonbitlang/core/debug",
 }
 
 // Values
+pub fn attach_stage_contexts(@stage_parameters.BoundOperations, @stage_results.Checked, Array[BoundParameters], @capacity_policy.Policy, max_work~ : Int, max_text_bytes~ : Int) -> Result[StageContexts, StageIssue]
+
 pub fn bound_guards(PipelineContext) -> @pipeline_typing.BoundGuardClosure
 
 pub fn check(@relation_results.CheckedResults, Array[@parameter_binding.BoundValues?], Array[@capacity_graph_preflight.ApplicationCoverage], @capacity_policy.Policy, Limits, proof_owners? : Array[(Int, Int, Int)], input_owners? : Array[(Int, Int, Int, Int)]) -> Result[PipelineContext, Issue]
@@ -38,6 +43,16 @@ pub fn parameter_usage(BoundParameters) -> (Int, Int)
 pub fn parameter_visit_at(BoundParameters, Int) -> ParameterVisit?
 
 pub fn parameter_visit_count(BoundParameters) -> Int
+
+pub fn stage_context_at(StageContexts, Int) -> BoundParameters?
+
+pub fn stage_operations(StageContexts) -> @stage_parameters.BoundOperations
+
+pub fn stage_policy(StageContexts) -> @capacity_policy.Policy
+
+pub fn stage_results(StageContexts) -> @stage_results.Checked
+
+pub fn stage_usage(StageContexts) -> (Int, Int)
 
 pub fn usage(PipelineContext) -> (Int, Int)
 
@@ -86,6 +101,18 @@ pub struct ParameterVisit {
 }
 
 type PipelineContext
+
+type StageContexts
+
+pub(all) enum StageIssue {
+  InvalidLimits
+  ForeignOperations
+  StageCount
+  ForeignResults(Int)
+  ForeignBindings(Int, Int)
+  ForeignPolicy(Int)
+  BudgetExceeded(Int)
+} derive(Eq, @debug.Debug)
 
 // Type aliases
 

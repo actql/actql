@@ -802,6 +802,12 @@ admission, resource enforcement or complete source authority.
    Program-coordinate indexes, under a cap including prior collection work.
    This prevents per-stage binding substitution in that collection; joining it
    with checking contexts and the remaining non-operation slots is still required.
+   Stage-context attachment now requires the exact all-stage operation and
+   Result owners, one checked context per stage, common selected value ownership
+   through all producer visits and a common verified policy CID. Shared prior
+   operation collection is charged once, alongside Result/context costs. This
+   joins these results without certifying input/import contracts, static
+   discharge or the still-missing complete Program semantic envelope.
    [Combined order checking](combined-order-checking.md) now resolves
    all steps and named Results with one shared budget and one pipeline owner.
    Capacity and other mandatory obligations still require the final combined
