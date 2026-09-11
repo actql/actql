@@ -69,9 +69,14 @@ fn derive_logical_orders(
   steps : Array[CheckedStep],
   input_keys : Array[@evidence.KeySet?],
   step_keys : Array[@evidence.KeySet?],
-) -> (Array[LogicalOrder?], Array[SortCompletion?]) raise Stop {
+) -> (
+  Array[LogicalOrder?],
+  Array[SortCompletion?],
+  Array[AnalyticPositionOrder?],
+) raise Stop {
   let out : Array[LogicalOrder?] = []
   let lag_orders : Array[SortCompletion?] = []
+  let analytic_orders : Array[AnalyticPositionOrder?] = []
   for i in 0..<steps.length() {
     let step = steps[i]
     spend(b, step.source, 1)
@@ -110,6 +115,33 @@ fn derive_logical_orders(
         )
       _ => None
     }
+    analytic_orders.push(
+      match (step.operation, step.input) {
+        (Unary(op), Some(input)) if @relation.operation(op) ==
+          @relation.Analytic => {
+          let completion = complete_sort(
+            b,
+            op,
+            key_at(input, input_keys, step_keys),
+          )
+          if completion is Some(_) || previous is Some(_) {
+            Some({
+              consumer: step,
+              input,
+              completion,
+              retained: if completion is Some(_) {
+                None
+              } else {
+                previous
+              },
+            })
+          } else {
+            None
+          }
+        }
+        _ => None
+      },
+    )
     let preserve = match step.operation {
       Unary(op) => @relation.preserves_input_order(op)
       Calendar(op) => @calendar.input(op) is Some(_)
@@ -222,7 +254,7 @@ fn derive_logical_orders(
       },
     )
   }
-  (out, lag_orders)
+  (out, lag_orders, analytic_orders)
 }
 
 ///|

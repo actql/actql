@@ -57,6 +57,10 @@ pub fn analytic_order(CheckedAnalytic) -> Array[OrderTerm]
 
 pub fn analytic_partition(CheckedAnalytic) -> Array[KeyField]
 
+pub fn analytic_term_at(CheckedOperation, Int) -> OrderTerm?
+
+pub fn analytic_term_count(CheckedOperation) -> Int
+
 pub fn binding_at(CheckedOperation, Int) -> Binding?
 
 pub fn binding_copy_at(CheckedOperation, Int) -> CopyBinding?

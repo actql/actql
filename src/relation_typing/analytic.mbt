@@ -59,6 +59,17 @@ pub fn analytic_order(value : CheckedAnalytic) -> Array[OrderTerm] {
 }
 
 ///|
+/// Indexed authored peer terms, without position-completion identity terms.
+pub fn analytic_term_count(value : CheckedOperation) -> Int {
+  value.analytic.map(a => a.order.length()).unwrap_or(0)
+}
+
+///|
+pub fn analytic_term_at(value : CheckedOperation, index : Int) -> OrderTerm? {
+  value.analytic.bind(a => a.order.get(index))
+}
+
+///|
 pub fn analytic_frame(value : CheckedAnalytic) -> RowsFrame? {
   value.frame
 }

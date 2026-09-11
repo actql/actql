@@ -212,6 +212,23 @@ operations and validated external witnesses remains shared-evidence work.
 
 ## Existing input-order consumers
 
+`analytic_position_order` resolves position completion separately from authored
+peer terms and publication order. It first uses the actual input's eligible
+whole candidate key, with the same bounded alias-aware completion as sort.
+Otherwise it retains an existing conditional input sequence as the stable
+tie-break witness within equal authored peer keys. This is not permission to
+replace the authored order with input order. Neither strategy splits rank peer
+groups or reorders the output sequence; the consumer retains its original calls,
+partition occurrences, frame and runtime obligations. The opaque result exposes
+exactly one of key completion and retained sequence, together with its checked
+consumer and input target. Unresolved or non-applicable entries return None.
+Rank-only calls need no position witness; absence is not itself a new rejection.
+Position-sensitive calls retain their unresolved obligation when neither source
+is available. Frame demand, peer evaluation, numeric/resource validation and
+journaling are not discharged by this summary. The normative owner is
+Language's `analytic.peers`; the fixed Sketch and AoA revisions have no matching
+analytic checker/executor from which to import a position-resolution contract.
+
 Lag has a separate `lag_order_completion` entry, computed under the shared
 pipeline budget from the actual input's eligible whole candidate key. Its
 authored partition order uses the same alias-aware missing-component completion

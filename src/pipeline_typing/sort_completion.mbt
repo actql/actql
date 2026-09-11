@@ -79,8 +79,11 @@ fn complete_sort(
   let source = @relation.source(op)
   let seen : Map[String, Bool] = Map([])
   let lag = @relation.operation(op) == @relation.Lag
+  let analytic = @relation.operation(op) == @relation.Analytic
   let n = if lag {
     @relation.lag_term_count(op)
+  } else if analytic {
+    @relation.analytic_term_count(op)
   } else {
     @relation.ranking_term_count(op)
   }
@@ -88,6 +91,8 @@ fn complete_sort(
   for i in 0..<n {
     let term = (if lag {
       @relation.lag_term_at(op, i)
+    } else if analytic {
+      @relation.analytic_term_at(op, i)
     } else {
       @relation.ranking_term_at(op, i)
     }).unwrap()
