@@ -51,7 +51,10 @@ Declared key admission and duplicate normalization remain conditional. In
 particular, `first_by_order` still requires independent total-order resolution,
 the selected raw/normalized input policy and runtime validation before selection.
 This attachment neither discharges those requirements nor authorizes execution.
-It is not yet connected to the final all-stage compiler output.
+`pipeline_check_context.attach_local_inputs` now joins one such attachment per
+stage to the intermediate all-stage context and Result wiring, requiring exact
+shared CollectedStage owners and cumulative costs. This is still not the final
+lowering-ready compiler output; the obligations above remain unclosed.
 
 Tests cover keyed and unkeyed inputs, unused slots, reordered and mutated caller
 arrays, equal-looking reread declarations, dropped keys and candidate-key

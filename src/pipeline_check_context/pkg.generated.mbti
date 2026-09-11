@@ -10,12 +10,15 @@ import {
   "actql/actql/pipeline_parameters",
   "actql/actql/pipeline_typing",
   "actql/actql/relation_results",
+  "actql/actql/stage_local_inputs",
   "actql/actql/stage_parameters",
   "actql/actql/stage_results",
   "moonbitlang/core/debug",
 }
 
 // Values
+pub fn attach_local_inputs(WiredStages, Array[@stage_local_inputs.Attached], max_work~ : Int, max_text_bytes~ : Int, max_local_input_nodes~ : Int) -> Result[InputContexts, InputIssue]
+
 pub fn attach_result_wiring(StageContexts, @stage_results.ResultWiring, max_work~ : Int, max_text_bytes~ : Int) -> Result[WiredStages, WiringIssue]
 
 pub fn attach_stage_contexts(@stage_parameters.BoundOperations, @stage_results.Checked, Array[BoundParameters], @capacity_policy.Policy, max_work~ : Int, max_text_bytes~ : Int) -> Result[StageContexts, StageIssue]
@@ -39,6 +42,12 @@ pub fn expression_requirement_at(PipelineContext, Int) -> ExpressionRequirement?
 pub fn expression_requirement_count(PipelineContext) -> Int
 
 pub fn expression_requirement_work(PipelineContext) -> Int
+
+pub fn input_usage(InputContexts) -> InputUsage
+
+pub fn input_wiring(InputContexts) -> WiredStages
+
+pub fn local_inputs_at(InputContexts, Int) -> @stage_local_inputs.Attached?
 
 pub fn parameter_context(BoundParameters) -> PipelineContext
 
@@ -82,6 +91,22 @@ pub(all) enum ExpressionRequirementIssue {
   WorkLimit(Int)
   Slots(Int, @pipeline_typing.ExpressionSlotIssue)
 }
+
+type InputContexts
+
+pub(all) enum InputIssue {
+  InvalidLimits
+  StageCount
+  ForeignStage(Int)
+  InconsistentUsage
+  BudgetExceeded(Int)
+} derive(Eq, @debug.Debug)
+
+pub(all) struct InputUsage {
+  work : Int
+  text_bytes : Int
+  local_input_nodes : Int
+} derive(Eq, @debug.Debug)
 
 pub(all) enum Issue {
   InvalidIntegrationLimits

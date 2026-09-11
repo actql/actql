@@ -827,7 +827,11 @@ admission, resource enforcement or complete source authority.
    stage and requires their exact Carrier/key registration owners in its checked
    pipeline. Result/receipt imports stay separate, and unsupported local forms
    reject rather than vanish. Host assertion reconciliation, duplicate total-order
-   resolution, final all-stage attachment and other Input families remain unfinished.
+   resolution and other Input families remain unfinished. Source-only local
+   attachments now join WiredStages with exact all-stage collection owners,
+   shared-cost accounting and aggregate local source limits. A real local input
+   followed by a Result-importing stage exercises this path, without claiming
+   Host/receipt admission, static discharge or final Program readiness.
    A two-stage actual Result import tests final publication ownership, foreign
    reissued orders and exact/short cumulative budgets. Ordinary/receipt inputs,
    static discharge and complete semantic Program identity remain incomplete.

@@ -135,6 +135,27 @@ detached caller arrays. This closes Result wiring attachment, not ordinary or
 receipt input admission, static obligation discharge, semantic Program identity
 or execution permission.
 
+`attach_local_inputs` extends WiredStages with one source-only local-input
+attachment for every stage, including a stage containing only imports. Each
+attachment must retain the exact CollectedStage from the all-stage operation
+collection, not a newly collected equivalent pipeline. This connects actual
+local declaration owners with the already checked pipelines, bindings, policy
+and Result wiring. The opaque InputContexts retains detached stage registrations.
+
+Work includes WiredStages, local preparation and local attachment, plus one
+registration check per stage. Only the exact shared stage collection work is
+subtracted. Local declaration source text is added to the existing text usage;
+`max_local_input_nodes` separately bounds the aggregate local declaration nodes,
+not all earlier Program parsing or operation nodes. Exact/short bounds, missing
+or reordered stages, foreign later stages and same-source recollection are
+tested through an actual two-stage Result import. No partial result is returned.
+
+This attachment covers the source-only local Relation path. It does not certify
+Host snapshot authority or reconcile richer Host contracts, admit receipt inputs,
+close duplicate normalization's total-order requirement, discharge static
+expression obligations or construct Program semantic identity. It must not be
+used as the final lowering-ready CheckedProgram.
+
 `check_parameter_bindings` extends a context with local Parameter reference
 indexes for every contextual producer visit. It uses the exhaustive pipeline
 collector for both typed expressions and direct operands, including values

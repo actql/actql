@@ -3,10 +3,11 @@ fn wired_fixture() -> (
   StageContexts,
   @stage_results.ResultWiring,
   @stage_results.ResultWiring,
+  Array[@local_inputs.Attached],
 ) {
   let program = @syntax.parse(
     (
-      #|{"version":"actql/0.1","id":"p","params":{"n":{"type":"number","default":1}},"stages":[{"id":"first","inputs":{"a":{}},"steps":[{"derive":{"x":"$n"}}],"results":{"out":{"from":"a","fields":["id"]}}},{"id":"second","inputs":{"a":{"result":{"stage":"first","result":"out"}}},"steps":[{"derive":{"x":"$n"}}],"results":{"out":{"from":"a","fields":["id"]}}}],"results":{"out":{"from":{"stage":"second","result":"out"}}}}
+      #|{"version":"actql/0.1","id":"p","params":{"n":{"type":"number","default":1}},"stages":[{"id":"first","inputs":{"a":{"carrier":"relation","schema":{"id":{"type":"number","nullable":false}}}},"steps":[{"derive":{"x":"$n"}}],"results":{"out":{"from":"a","fields":["id"]}}},{"id":"second","inputs":{"a":{"result":{"stage":"first","result":"out"}}},"steps":[{"derive":{"x":"$n"}}],"results":{"out":{"from":"a","fields":["id"]}}}],"results":{"out":{"from":{"stage":"second","result":"out"}}}}
     ),
     {
       source: { max_input_bytes: 10000, max_nodes: 1000, max_depth: 100, },
@@ -35,20 +36,7 @@ fn wired_fixture() -> (
     is Ready(values) else {
     abort("missing default")
   }
-  let rows = @carrier.relation(
-    @carrier.typed_rows(
-      @schema.from_fields(
-        [
-          (
-            @schema.Unqualified("id"),
-            @contract.primitive(NumberType, nullable=false),
-          ),
-        ],
-        max_fields=1,
-        max_name_bytes=10,
-      ).unwrap(),
-    ),
-  )
+  let local_declarations = []
   let pipelines = []
   let results = []
   let contexts = []
@@ -76,13 +64,20 @@ fn wired_fixture() -> (
     max_depth: 100,
   }
   for i in 0..<2 {
+    let prepared = @local_inputs.prepare(source, i, {
+      max_work: 10000,
+      max_nodes: 1000,
+      max_depth: 100,
+      max_text_bytes: 10000,
+    }).unwrap()
+    local_declarations.push(prepared)
     let resolved = @stage_results.resolve_imports(source, i, ports, {
       max_work: 10000,
       max_imports: 10,
       max_text_bytes: 10000,
     }).unwrap()
     let input = if i == 0 {
-      @pipeline.CarrierInput(rows)
+      @local_inputs.input_at(prepared, 0).unwrap().1
     } else {
       @pipeline.ProducedInput(
         @stage_results.input_producer(
@@ -173,6 +168,16 @@ fn wired_fixture() -> (
     source, pipelines, collection_limits,
   ).unwrap()
   let bound = @stages.bind_operations(operations, values, max_work=100000).unwrap()
+  let local_attachments = []
+  for i in 0..<2 {
+    local_attachments.push(
+      @local_inputs.attach(
+        local_declarations[i],
+        @stages.operations_stage_at(operations, i).unwrap(),
+        max_work=100000,
+      ).unwrap(),
+    )
+  }
   let checked = @stage_results.collect_checked(operations, results, {
     max_results: 10,
     max_work: 100000,
@@ -200,12 +205,12 @@ fn wired_fixture() -> (
   ports.clear()
   imports.clear()
   contexts.clear()
-  (stages, wiring, alternative)
+  (stages, wiring, alternative, local_attachments)
 }
 
 ///|
 test "Result imports and root exports attach to exact staged publication owners" {
-  let (stages, wiring, alternative) = wired_fixture()
+  let (stages, wiring, alternative, _) = wired_fixture()
   let attached = attach_result_wiring(
     stages,
     wiring,
@@ -279,7 +284,7 @@ test "Result imports and root exports attach to exact staged publication owners"
     )
     is Err(ForeignOrders(1)),
   )
-  let (_, foreign, _) = wired_fixture()
+  let (_, foreign, _, _) = wired_fixture()
   assert_true(
     attach_result_wiring(
       stages,
