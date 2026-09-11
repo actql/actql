@@ -752,3 +752,24 @@ and bound-owner retention, unavailable output rejection, and later failure after
 a retained prefix. All existing sequence vectors use the same completion type.
 Formatting, generator freshness and whitespace checks pass. Public API is
 unchanged; these are private execution types, not an SDK expansion.
+
+## Receiving producer identity binding
+
+`bind_completed_input` matches a successful output against one receiving
+`ProducedInput`: exact checked producer pipeline, exact selected `BoundPrepared`
+and exact Input/Step target. The expected bound producer is explicit because
+`ProducedInput` retains an unbound checked pipeline, not an invocation's Parameter
+values. Matching source text or equal schema/data does not identify that binding.
+The resulting private `BoundProducerInput` preserves receiver/input/output owners.
+
+This is identity binding only. It does not install rows, waive input budgets or
+authorize a Program. The driver still refuses raw captures for produced inputs.
+Explicit checked producer projections return `ProjectionExecutionPending` until
+the projection is applied through the existing evaluator with its own accounting;
+this is not a permanent language rejection. No shared API/schema/pin is modified.
+
+Regression cases check exact matching, wrong target, foreign producer pipeline,
+wrong input, ordinary input with no producer, and a separately bound handle of
+the same checked pipeline. Execution tests pass 69/69 on each target. Existing
+Parameter tests cover binding values; this new test specifically checks owner
+identity even for an empty binding environment.
