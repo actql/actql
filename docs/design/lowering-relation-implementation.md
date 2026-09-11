@@ -207,3 +207,29 @@ remain to be connected. A bounded lowering tree is not a replacement for those
 execution limits. The four-operation fragment, registry-bound node emission,
 input/schema ownership admission, map row loop and ordered-kernel integration
 remain open. No ordered derive executable wire form or shared pin changed.
+
+## Captured values and logical value accounting
+
+`capture_values` accepts an exact bound preparation and values-node index, not
+an unrelated CheckedValues object. It reads the existing checker-owned row cells
+and already admitted Parameter values, retaining their immutable backing values.
+The result is opaque input material carrying that owner/node/schema; indexed
+access never exposes mutable row arrays. It does not discharge the values
+checker's publication-resource obligation or confer executable Plan authority.
+
+Capture enforces a row ceiling and cumulative logical value limits across the
+whole captured node. Each row contributes one object node; each nested value or
+vector component contributes one node. Root row depth is one. Text bytes include
+field names and string/date/timestamp content in UTF-8, and decimal coefficient
+text. Work is logical node count plus those text bytes. These are explicit local
+implementation counters, not replacements for pinned capacity measures, encoded
+output bytes or a complete heap-size accounting model.
+
+The meter traverses frozen arrays/objects by index with O(depth) auxiliary space,
+does not copy entire child arrays or encode strings just to count their size,
+checks capacity before retaining cells, and counts repeated logical occurrences
+even when backing storage is shared. A failed capture returns no row prefix;
+its local counters cannot contaminate a later invocation. Tests cover exact and
+one-under limits, multibyte text, nested literal opacity, defensive access and
+wrong-node/owner identity. External supplied-Relation admission and physical
+live-value accounting remain to be integrated before a fragment execution API.

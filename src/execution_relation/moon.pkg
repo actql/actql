@@ -5,6 +5,9 @@ import {
   "actql/actql/value_admission" @admitted,
   "actql/actql/canonical_value" @canonical,
   "actql/actql/relation_typing" @relation,
+  "actql/actql/decode_scalar" @scalar,
+  "actql/actql/relation_values" @values,
+  "actql/actql/relation_schema" @schema,
 }
 
 import {

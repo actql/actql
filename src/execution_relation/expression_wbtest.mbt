@@ -3,6 +3,17 @@ fn lowered(text : String) -> @lower.Expression {
   let raw = "[{\"values\":{\"schema\":{\"id\":{\"type\":\"number\",\"nullable\":false}},\"rows\":[{\"id\":1}]},\"as\":\"seed\"},{\"derive\":{\"v\":" +
     text +
     "}}]"
+  @lower.lower_expression(bound_pipeline(raw), 1, 0, {
+    max_nodes: 10000,
+    max_work: 100000,
+    max_depth: 3000,
+    max_literal_nodes: 10000,
+    max_literal_text_bytes: 100000,
+  }).unwrap()
+}
+
+///|
+fn bound_pipeline(raw : String) -> @lower.BoundPrepared {
   let tree = @decode.admit(
     @source.parse_json(
       raw,
@@ -30,19 +41,7 @@ fn lowered(text : String) -> @lower.Expression {
     max_work: 1000,
     max_identifier_bytes: 1000,
   }).unwrap()
-  let bound = @lower.bind_parameters(
-    prepared,
-    None,
-    max_parameters=0,
-    max_name_bytes=0,
-  ).unwrap()
-  @lower.lower_expression(bound, 1, 0, {
-    max_nodes: 10000,
-    max_work: 100000,
-    max_depth: 3000,
-    max_literal_nodes: 10000,
-    max_literal_text_bytes: 100000,
-  }).unwrap()
+  @lower.bind_parameters(prepared, None, max_parameters=0, max_name_bytes=0).unwrap()
 }
 
 ///|

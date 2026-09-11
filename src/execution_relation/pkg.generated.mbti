@@ -3,6 +3,7 @@ package "actql/actql/execution_relation"
 
 import {
   "actql/actql/lowering_relation",
+  "actql/actql/relation_schema",
   "actql/actql/value_admission",
   "moonbitlang/core/debug",
 }
@@ -14,11 +15,35 @@ pub fn boolean_pair(@lowering_relation.ManyOperator, Value, Value) -> Result[Val
 
 pub fn capture(@value_admission.Value) -> Value
 
+pub fn capture_values(@lowering_relation.BoundPrepared, Int, max_rows~ : Int, ValueLimits) -> Result[CapturedRows, CaptureIssue]
+
+pub fn captured_cell(CapturedRows, Int, Int) -> @value_admission.Value?
+
+pub fn captured_node(CapturedRows) -> Int
+
+pub fn captured_owner(CapturedRows) -> @lowering_relation.BoundPrepared
+
+pub fn captured_row_count(CapturedRows) -> Int
+
+pub fn captured_schema(CapturedRows) -> @relation_schema.Schema
+
+pub fn captured_usage(CapturedRows) -> ValueUsage
+
 pub fn unary(@lowering_relation.UnaryOperator, Value) -> Result[Value, ScalarIssue]
 
 // Errors
 
 // Types and methods
+pub(all) enum CaptureIssue {
+  InvalidCaptureLimits
+  CaptureLimit
+  NotValuesNode
+  MissingParameter(String)
+  InvalidCheckedRow
+} derive(Eq, @debug.Debug)
+
+type CapturedRows
+
 pub(all) enum ScalarIssue {
   InvalidOperand
   ArithmeticFailure
@@ -32,6 +57,19 @@ pub(all) enum Value {
   Text(String)
   Captured(@value_admission.Value)
 }
+
+pub(all) struct ValueLimits {
+  max_nodes : Int
+  max_text_bytes : Int
+  max_depth : Int
+  max_work : Int
+} derive(Eq, @debug.Debug)
+
+pub(all) struct ValueUsage {
+  nodes : Int
+  text_bytes : Int
+  work : Int
+} derive(Eq, @debug.Debug)
 
 // Type aliases
 
