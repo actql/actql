@@ -618,3 +618,26 @@ public API is unchanged and identical across the three targets. Format,
 whitespace and 867 document links pass. Ordinary info builds have 37 warnings
 from private components not yet connected to a production entry, with zero
 errors. The full-repository suite was not rerun for this input-key change.
+
+## Fixed values corpus through the four-operation driver
+
+`scripts/lowering-values-vectors.mjs` now also generates 18 execution tests from
+the accepted main-owned params vectors. Each uses quoted source values followed
+by empty map derive, `filter(true)` and a reversed field-list select. Assertions
+check exact field order, row order/multiplicity, nulls, nested object/array values,
+decimal coefficient/precision/scale, temporal values and vector components. Empty
+rows still preserve the selected schema. Business `$param` and `literal` keys
+remain data. Expectations are generated structurally from the fixed corpus, not
+by decoding the evaluator's own output or regenerating golden values.
+
+These tests complement nonempty derive, failure-order and actual Parameter-owner
+tests; corpus labels such as `bound-parameter` here test the already-bound value,
+not the binding mechanism. They exercise the single private sequence driver,
+not a second evaluator. They do not validate arbitrary incoming execution params
+or discharge registry support, ordering/provenance or ordered-derive obligations.
+
+Execution package: 63/63 on JS, Wasm and native. Generator freshness and format
+checks pass; this increment changes only tests, their generator and this guide.
+No runtime or public API is changed. The first generated sources omitted the
+required values alias and failed checking; the source generator now includes
+`as: seed`. No product acceptance rule was relaxed to pass the vectors.
