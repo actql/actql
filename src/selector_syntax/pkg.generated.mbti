@@ -1,0 +1,30 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/selector_syntax"
+
+import {
+  "actql/actql/decode_core",
+  "actql/actql/expression_syntax",
+}
+
+// Values
+pub fn admit(@decode_core.Cursor, @expression_syntax.Limits, max_work~ : Int) -> Result[Selector, Issue]
+
+pub fn expression(Selector) -> @expression_syntax.Expression
+
+pub fn work(Selector) -> Int
+
+// Errors
+
+// Types and methods
+pub enum Issue {
+  InvalidLimits
+  WorkLimit
+  Expression(@expression_syntax.Issue)
+  RestrictedNode(String, @expression_syntax.Location)
+}
+
+type Selector
+
+// Type aliases
+
+// Traits

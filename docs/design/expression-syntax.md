@@ -35,6 +35,11 @@ the [text mappings](../spec/language.md#expression-text), and their pinned
 [machine contract](../../spec/contracts/actql-expressions.json), including the
 row-local vector forms. This guide does not add vocabulary.
 
+The [restricted selector syntax boundary](selector-syntax.md) reuses this
+decoder for Effect where elements and then checks the smaller allowed-node
+grammar. Common decoding alone does not admit a general computation as an
+Effect selector.
+
 ## Admission and normalization
 
 Admission checks singleton tags, closed named bodies, required members, arities,

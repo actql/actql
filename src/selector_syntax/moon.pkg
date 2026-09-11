@@ -1,0 +1,11 @@
+supported_targets = "+js+wasm+native"
+
+import {
+  "actql/actql/expression_syntax" @expression,
+  "actql/actql/decode_core" @decode,
+}
+
+import {
+  "actql/actql/source_value" @source,
+  "actql/actql/encode_core" @encode,
+} for "test"
