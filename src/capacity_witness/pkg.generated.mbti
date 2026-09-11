@@ -11,7 +11,19 @@ import {
 // Values
 pub fn admit(Bytes, String, Limits) -> Result[WireWitness, Issue]
 
+pub fn check_arithmetic_claims(Array[WireWitness], ClosureLimits) -> Result[ArithmeticClaims, ClosureIssue]
+
 pub fn cid(WireWitness) -> String
+
+pub fn claim_arithmetic(ArithmeticClaims) -> @capacity_derivation.CheckedArithmetic
+
+pub fn claim_at(ArithmeticClaims, Int) -> WireWitness?
+
+pub fn claim_count(ArithmeticClaims) -> Int
+
+pub fn claim_index(ArithmeticClaims, String) -> Int?
+
+pub fn claim_reference_count(ArithmeticClaims) -> Int
 
 pub fn dependencies(WireWitness) -> Array[String]
 
@@ -32,6 +44,20 @@ pub fn value(WireWitness) -> Int64
 // Errors
 
 // Types and methods
+type ArithmeticClaims
+
+pub(all) enum ClosureIssue {
+  InvalidClosureLimits
+  ClosureBudgetExceeded
+  UnresolvedEnforcement(Int, String)
+  InvalidArithmetic(@capacity_derivation.ReferenceIssue)
+} derive(Eq, @debug.Debug)
+
+pub(all) struct ClosureLimits {
+  max_witnesses : Int
+  max_references : Int
+}
+
 pub(all) enum Derivation {
   SourceValue
   Preserve(String)

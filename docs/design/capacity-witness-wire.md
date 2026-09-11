@@ -45,7 +45,38 @@ source/derivation combinations and all units. Negative fixtures have correct
 self-CIDs but invalid shape, roles, values, dependencies or law names. All 14
 Host applications also traverse the new common-to-Host boundary.
 
-Non-Host source validation, proof/body identity, arithmetic reference closure,
+## Arithmetic closure of wire claims
+
+`check_arithmetic_claims` connects admitted wire claims to the CID-addressed
+arithmetic checker. It resolves all operand references, checks units and exact
+numeric derivations, and rejects duplicate witness identities, missing operands,
+cycles, mismatched values and overflow. All supplied claims are visited, even
+those not selected by a consumer. Wire minimum references are a canonical set;
+add's repeated operand occurrences are retained and counted twice.
+
+The shared budget counts declared dependency entries plus derivation operand
+occurrences, before allocating converted nodes or operand arrays. Input wire
+admission has its own byte/node/depth limits. The result owns its witness array,
+provides indexed identity lookup, and retains the original immutable claims and
+their sources rather than exposing just anonymous numeric leaves.
+
+`ArithmeticClaims` does not establish external source integrity, governing-law
+applicability or the exact semantic dependency set. It does not resolve external
+source CIDs through the witness map or pretend that a numeric source claim is a
+verified observation. Those requirements remain for every retained claim. An
+`enforced_ceiling` fails with `UnresolvedEnforcement(index, resolved_limit_cid)`:
+it cannot be converted into a source leaf merely because it has a valid self-CID.
+The validated resolved-limit/enforcement boundary must support that case before
+such a collection can pass. This is an implementation gap, not a language ban.
+
+Independent sealed-graph fixtures cover every arithmetic operation, forward and
+shared dependencies, repeated add operands, exact reference budgets, missing and
+duplicate witnesses and detached results. Additional valid-self-CID fixtures
+append unused numeric, unit, overflow and enforcement failures to a valid graph.
+The lower reference checker separately tests synthetic cyclic graphs and a
+10,000-node chain; these are not claimed to be real SHA-256 cyclic preimages.
+
+Non-Host source validation, proof/body identity, complete source dependency closure,
 enforced-limit dependencies, operation-specific applicability and complete
 consumer discharge remain required. `WireWitness` is intentionally not accepted
 as pipeline proof. Fixed Sketch `src/actql-bounds.ts` is reference material;
