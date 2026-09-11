@@ -52,6 +52,8 @@ The text, measurement and hash Writers share the reference/declaration emitters
 and their independent byte/node/depth limits. Defaults can appear in the output;
 this is an internal identity-preimage API, not a public explain response.
 
+The [local pipeline collector](pipeline-parameters.md) now derives operation
+slots from one checked pipeline and shares work across discovery and indexing.
 Enclosing grammar-slot selection must still cover inputs, operations, Results,
 effects and opaque binding references, preserving literal opacity. The caller
 must also bind the declaration owner to that Program, check complete usage, and

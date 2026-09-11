@@ -1,0 +1,51 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/pipeline_parameters"
+
+import {
+  "actql/actql/decode_core",
+  "actql/actql/expression_syntax",
+  "actql/actql/parameter_references",
+  "actql/actql/pipeline_typing",
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn collect(@decode_core.Cursor, @pipeline_typing.CheckedPipeline, Limits) -> Result[Collected, Issue]
+
+pub fn direct_text_bytes(Collected) -> Int
+
+pub fn expressions(Collected) -> @pipeline_typing.ExpressionSlots
+
+pub fn index(Collected) -> @parameter_references.Index
+
+pub fn operands(Collected) -> @pipeline_typing.ParameterSlots
+
+pub fn pipeline(Collected) -> @pipeline_typing.CheckedPipeline
+
+pub fn work(Collected) -> Int
+
+// Errors
+
+// Types and methods
+type Collected
+
+pub(all) enum Issue {
+  InvalidLimits
+  ForeignRoot
+  WorkLimit
+  Slots(@pipeline_typing.ExpressionSlotIssue)
+  Syntax(@expression_syntax.Issue)
+  References(@parameter_references.Issue)
+} derive(Eq, @debug.Debug)
+
+pub(all) struct Limits {
+  max_work : Int
+  max_slots : Int
+  max_references : Int
+  max_pointer_units : Int
+  max_direct_text_bytes : Int
+} derive(Eq, @debug.Debug)
+
+// Type aliases
+
+// Traits

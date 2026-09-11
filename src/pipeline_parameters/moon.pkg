@@ -1,0 +1,16 @@
+supported_targets = "+js+wasm+native"
+
+import {
+  "actql/actql/pipeline_typing" @pipeline,
+  "actql/actql/parameter_references" @references,
+  "actql/actql/parameter_binding" @parameter,
+  "actql/actql/expression_syntax" @expression,
+  "actql/actql/expression_typing" @typing,
+  "actql/actql/decode_core" @decode,
+}
+
+import {
+  "actql/actql/source_value" @source,
+  "actql/actql/value_contract" @contract,
+  "actql/actql/relation_schema" @schema,
+} for "test"
