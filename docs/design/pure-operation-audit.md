@@ -101,6 +101,33 @@ membership, gap-boundary arithmetic, reference identity comparison or stable
 session-ID generation. Those runtime laws remain separate from type/order
 checking and from the remaining TEA/window/sequence acceptance audit.
 
+## Session-to-sequence acceptance audit
+
+The sequence source/generated-output/clock requirement blocks were compared
+with `relation_typing/sequence.mbt` and the shared pipeline dispatch. Unlike
+session, sequence has an explicit numeric-only clock restriction on Events;
+Relation clocks also admit timestamp conversion. That normative distinction
+must not be removed merely because Events retain a timestamp intrinsic role.
+Explicit `id` still matches intrinsic Events identity. Both Carrier inputs
+produce a Relation, with repeated grouping references retained in the source but
+one output column per distinct group and each label ID retaining its full type.
+
+`pipeline_typing/session_sequence_audit_test.mbt` adds 48 combinations of
+string/number/decimal identity, two original clocks, both Carriers and both
+overlap/contiguity modes. It partitions explicitly on `session_id` rather than
+assuming session labels implicitly prevent cross-session matching. Timestamp
+Events explicitly select numeric `session_start_ms` for the sequence clock;
+the unchanged timestamp field is rejected at the sequence `time` source slot.
+Relation timestamp conversion remains recorded only where required.
+
+The output feeds take through contextual order resolution. Disallowed overlap
+retains two producer-backed label keys; allowed overlap acquires none. Unique
+event-identity and atomic match-limit obligations remain present. Each accepted
+case has exact work/node/text/token and one-less budget checks. Existing
+sequence tests separately cover predicate diagnostic ranges, label aliases and
+Result publication. These are static connection tests, not evaluation of the
+matching automaton or proof that session-boundary values have been computed.
+
 ## Shared-boundary findings
 
 | Requirement | Inspected evidence | Audit finding |
