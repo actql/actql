@@ -47,6 +47,9 @@ row bridges explicitly validate both the output and dependency units below.
 | Explicit `graph` construction | `actql.bound.graph-nodes` converts the actual node branch's row upper bound to `nodes`; `actql.bound.graph-edges` converts the actual edge branch's row upper bound to `edges`. Each uses a source derivation with its exact input application. |
 | Concise edge-list `graph` | The same Graph laws use the actual edge input: at most two endpoint nodes per row and at most one edge per row. Checked multiplication fails on overflow. |
 | `node_rows`, `edge_rows` | `actql.bound.graph-node-rows` and `actql.bound.graph-edge-rows` convert an actual producer's respective `nodes` or `edges` bound into `rows`, using a source derivation. |
+| `degree` | `actql.bound.graph-degree` converts the original node upper bound into an output-row upper bound, independently of edge degree or direction. |
+| `components` | `actql.bound.components-input-nodes` retains the input node bound; `actql.bound.components-nodes` converts it to an output-row bound. These are candidates, not the separately enforced `components-output` limit. |
+| `match_nodes`, `match_edges` | `actql.bound.match-nodes` / `actql.bound.match-edges` convert the respective original entity upper bound into a conservative row upper bound. Predicate evaluation and identity membership remain required. |
 | `graft_graph`, `union_graphs` | `actql.bound.graph-nodes` / `actql.bound.graph-edges` sum the same-unit bounds from every actual operand occurrence. Union lists include the current input first, then every listed reference, including repetitions. |
 | `subtract_graphs` | The same measure-specific laws retain the left input bound; subtraction cannot add entities. The right data dependency and all property/endpoint validation obligations remain on the checked operation. |
 
@@ -59,6 +62,15 @@ Explicit construction retains both data branches even though each measure's
 proof uses only its respective branch. Endpoint closure, graph identity and
 property admission still require their existing validations; upper bounds do
 not assert that every input occurrence survives or becomes a distinct entity.
+
+The match bound does not evaluate predicates or deduplicate authored identity
+selectors. It uses the original entity upper bound even for repeated IDs and
+constant predicates. The fixed reference compiler can tighten an ID-list match
+to the number of distinct IDs; that additional `match-node-ids` calculation is
+not implemented here. This conservative candidate neither changes authored
+selectors nor permits skipping their runtime validation. Components guards also
+do not replace the node-derived candidate; their resolved minimum and enforced
+output application remain separate from these source-law checks.
 
 All dependency applications now require the expected measure: a Graph edge
 bound cannot act as a Relation row bound merely because its value matches.

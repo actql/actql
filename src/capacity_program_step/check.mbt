@@ -136,6 +136,43 @@ fn operation_rule(
     return Ok((law, GraphCombine(unit, n)))
   }
   match step.operation {
+    @pipeline.Graph(op) =>
+      match @graph.operation(op) {
+        @graph.Degree =>
+          return Ok(
+            (
+              "actql.bound.graph-degree",
+              GraphMeasure(@arithmetic.Rows, @arithmetic.Nodes, 0, 1L),
+            ),
+          )
+        @graph.Components => {
+          if unit == @arithmetic.Nodes {
+            return Ok(
+              (
+                "actql.bound.components-input-nodes",
+                GraphMeasure(unit, unit, 0, 1L),
+              ),
+            )
+          }
+          return Ok(
+            (
+              "actql.bound.components-nodes",
+              GraphMeasure(@arithmetic.Rows, @arithmetic.Nodes, 0, 1L),
+            ),
+          )
+        }
+        _ => ()
+      }
+    @pipeline.GraphMatch(op) => {
+      let (law, input_unit) = if @graph.match_entity(op) == @graph.Nodes {
+        ("actql.bound.match-nodes", @arithmetic.Nodes)
+      } else {
+        ("actql.bound.match-edges", @arithmetic.Edges)
+      }
+      // A successful selection cannot exceed the original entity count.
+      // Do not mistake repeated authored selectors for extra output entities.
+      return Ok((law, GraphMeasure(@arithmetic.Rows, input_unit, 0, 1L)))
+    }
     @pipeline.GraphConstruction(nodes~, ..) => {
       if unit == @arithmetic.Nodes {
         return Ok(
