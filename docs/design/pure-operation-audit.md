@@ -241,7 +241,12 @@ matching automaton or proof that session-boundary values have been computed.
    Global grouping clamps to k without an overflowing intermediate sum; grouped
    sums reject overflow. Indexed connections and explicit cumulative operand
    budgets bound the variable-arity work before allocation. Complete input and
-   ranking validation obligations are retained. Collection
+   ranking validation obligations are retained. Join, cross-join and interval
+   applications now retain both count dependencies and recompute kind-specific
+   successful-output upper bounds, including empty sides and unmatched rows.
+   They reject owner substitution and arithmetic overflow. Uniqueness-based
+   tightening and author assertions remain separate evidence obligations, not
+   consequences of these generic two-count proofs. Collection
    application coverage now rejects missing unused Program applications and
    substituted child handles under cumulative work limits, while retaining
    other source branches as unresolved. Graph preflight source coverage can now

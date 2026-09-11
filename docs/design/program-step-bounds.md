@@ -31,6 +31,7 @@ The proof must use the existing `DerivedInputs` form. Its role is
 | `take` with a literal or bound count | `actql.bound.take`, input-free clamp with the exact resolved count as maximum and value. Offset and order obligations remain on the checked operation. |
 | `top_k`, or `top_k_by` with no partition keys, with a literal or bound count | `actql.bound.top-k`, the same exact input-free clamp. Nonempty partition keys cannot use this global bound. |
 | `append` | `actql.bound.append`, checked addition of both input upper bounds, with the actual left/right witness IDs in the derivation. Repeated inputs count twice. |
+| `join`, `cross_join`, `interval_join` | `actql.bound.join-output`, source derivation retaining both ordered input applications. Recompute the successful-output bound for the actual join kind, including unmatched outer-join occurrences. |
 | `asof_join` | `actql.bound.asof-left`, preserve the exact left input upper bound for either kind and every direction. The right data input is not an operand of this row-count proof. |
 | `unpivot` | `actql.bound.unpivot`, multiplication by the authored column occurrence count, including repetitions. |
 | Array `unnest` with known `max_items` | `actql.bound.unnest-array-items`, multiplication by the checked expansion factor. Outer expansion of a zero-length array uses one, not zero. Unknown bounds remain unresolved. |
@@ -43,6 +44,32 @@ The proof must use the existing `DerivedInputs` form. Its role is
 clamping its bound to the exact checked count. Offset does not weaken this upper
 bound and remains an independent checked-operation obligation. `check` is the
 input-free convenience entry.
+
+Join applications with operand upper bounds `L` and `R` use `L*R` for inner
+and cross joins, `L*max(1,R)` for left joins, `max(L*R,L+R)` for full joins,
+`R == 0 ? 0 : L` for semi joins, and `L` for anti joins. Interval joins use
+their admitted kind with the same occurrence semantics. The source proof lists
+both witness IDs, including repeated operands; neither operand can be hidden
+inside a literal multiplication factor. Both owner-relative data edges must
+match, even when only one numerical bound determines the result.
+
+Arithmetic is checked in the safe-integer domain. Full joins return the other
+bound when one side is empty, add when either nonempty side is one, and multiply
+otherwise. This computes the maximum without overflowing an unused alternative.
+These are upper bounds, not exact counts or proof of successful execution.
+Author cardinality/singleton assertions, endpoint validation, stable identities,
+search-work ceilings and output guards remain separate obligations. Stronger
+uniqueness-based candidates still require their own evidence application; this
+two-count form does not manufacture or discharge that evidence.
+
+Sketch at `87dc7144` uses a `source` proof under `actql.bound.join-output`, but
+its unrestricted outer-join estimates add unmatched-row bounds to the entire
+pair product. The local application uses the tighter safe formulas already
+implemented by pipeline row-count transfer: a matched occurrence cannot also
+be an unmatched occurrence. This changes neither authored semantics nor the
+wire vocabulary and does not imply imported proof bytes are interchangeable.
+Regression cases cover all admitted kinds, empty and singleton sides, ordered
+owners, repeated operands, traversal limits, false values and overflow.
 
 For `nearest`, one input application addresses the query edge, not the primary
 candidate edge. Its derivation must be multiplication by the exact checked `k`.

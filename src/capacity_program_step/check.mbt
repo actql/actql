@@ -70,6 +70,7 @@ priv enum Rule {
   Multiply(Int64)
   Nearest(Int64)
   Ranking(Int, Int64?)
+  Join(@join.Kind)
 }
 
 ///|
@@ -79,6 +80,15 @@ fn operation_rule(
 ) -> Result[(String, Rule), Issue] {
   if step.operation is @pipeline.Append(..) {
     return Ok(("actql.bound.append", Sum))
+  }
+  match step.operation {
+    @pipeline.Join(checked~, ..) =>
+      return Ok(("actql.bound.join-output", Join(@join.kind(checked))))
+    @pipeline.CrossJoin(..) =>
+      return Ok(("actql.bound.join-output", Join(@join.Inner)))
+    @pipeline.IntervalJoin(checked~, ..) =>
+      return Ok(("actql.bound.join-output", Join(@join.interval_kind(checked))))
+    _ => ()
   }
   if step.operation is @pipeline.AsOfJoin(..) {
     return Ok(("actql.bound.asof-left", Preserve))
@@ -227,6 +237,7 @@ pub fn check_with_inputs(
     Preserve => n == 1
     Clamp(_) => n <= 1
     Sum => n == 2
+    Join(_) => n == 2
     Multiply(_) => n == 1
     Nearest(_) => n == 1 || n == 2
     Ranking(expected, maximum) =>
@@ -336,6 +347,11 @@ pub fn check_with_inputs(
         Ok(v) => @numeric.value(v)
         Err(_) => return Err(BoundOverflow)
       }
+    Join(kind) =>
+      match join_bound(kind, input_value(0), input_value(1)) {
+        Ok(v) => v
+        Err(e) => return Err(e)
+      }
     Multiply(factor) =>
       match @numeric.multiply(input_value(0), @numeric.read(factor).unwrap()) {
         Ok(v) => @numeric.value(v)
@@ -379,6 +395,7 @@ pub fn check_with_inputs(
   }
   match (rule, @wire.derivation(witness)) {
     (One, @wire.SourceValue) => ()
+    (Join(_), @wire.SourceValue) => ()
     (Preserve, @wire.Preserve(input)) if input == ids[0] => ()
     (Clamp(expected), @wire.Clamp(input, maximum)) if maximum == expected &&
       input == ids.get(0) => ()
@@ -408,6 +425,46 @@ pub fn check_with_inputs(
     operand_work,
     bindings,
   })
+}
+
+///|
+// A bound on successful output without assuming uniqueness or an author guard.
+// The full-join maximum is max(L*R, L+R): isolated occurrences and matching
+// pairs cannot independently reach their maxima in the same bipartite graph.
+fn join_bound(
+  kind : @join.Kind,
+  left : @numeric.Value,
+  right : @numeric.Value,
+) -> Result[Int64, Issue] {
+  let l = @numeric.value(left)
+  let r = @numeric.value(right)
+  let result = match kind {
+    @join.Semi => return Ok(if r == 0L { 0L } else { l })
+    @join.Anti => return Ok(l)
+    @join.Inner => @numeric.multiply(left, right)
+    @join.Left =>
+      @numeric.multiply(
+        left,
+        @numeric.read(if r == 0L { 1L } else { r }).unwrap(),
+      )
+    @join.Full => {
+      if l == 0L {
+        return Ok(r)
+      }
+      if r == 0L {
+        return Ok(l)
+      }
+      if l == 1L || r == 1L {
+        @numeric.add(left, right)
+      } else {
+        @numeric.multiply(left, right)
+      }
+    }
+  }
+  match result {
+    Ok(v) => Ok(@numeric.value(v))
+    Err(_) => Err(BoundOverflow)
+  }
 }
 
 ///|

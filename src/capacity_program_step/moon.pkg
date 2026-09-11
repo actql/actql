@@ -15,6 +15,7 @@ import {
   "actql/actql/temporal_window" @window,
   "actql/actql/carrier_contract" @carrier,
   "actql/actql/value_contract" @contract,
+  "actql/actql/relation_join_shape" @join,
 }
 
 import {
