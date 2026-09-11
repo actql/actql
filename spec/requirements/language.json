@@ -2302,6 +2302,17 @@
       }
     },
     {
+      "requirement_id": "actql.language/distinct-and-dedupe.distinct-occurrence-order",
+      "statement_sha256": "5263f8b28a3ede050f984c5c9c0c86baee5a0cd771f64d26ecc19e9fe25a3486",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "distinct-and-dedupe",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.language/distinct-and-dedupe.nonempty-distinct-projection",
       "statement_sha256": "280e8748aa56687e9ad0a092f70a18d399c70f4894df6ca23386872d6482d8fa",
       "status": "pending",

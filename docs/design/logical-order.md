@@ -1,5 +1,13 @@
 # Conditional logical order
 
+Whole-row and keyed distinct retain first-occurrence order, with keyed distinct
+applying equality only after its declared projection. This explicitly follows
+the fixed AoA first-encounter implementation and the existing set-operation
+occurrence rules; it does not select unprojected representatives or sort output
+by row CID. The pass transfers existing input sequence evidence but creates none
+on unordered input. Candidate keys and any later permitted take/Result key
+completion remain separate from this preserving transfer.
+
 Pool establishes canonical grouping-key tuple order for both Relation and
 Vectors inputs. Its internal member-identity fold order and input-uniqueness,
 numeric/profile and resource obligations remain attached to the producer;

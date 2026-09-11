@@ -2967,6 +2967,15 @@ Keyed distinct projects the declared keys before applying `REL.distinct`; it
 does not retain unspecified fields. A compiler MUST NOT choose a representative
 row for unspecified fields.
 
+<!-- requirement-block: distinct-and-dedupe.distinct-occurrence-order -->
+Distinct MUST retain the first occurrence of each equal complete row in existing
+input order; keyed distinct applies this rule after the declared projection.
+It does not sort surviving rows or select values for fields omitted by that
+projection. Existing logical order is preserved, but provider arrival order
+without evidence does not become a stable-order proof through deduplication.
+This rule is independent of candidate-key propagation and does not introduce
+a non-null scalar identity for arbitrary complete rows.
+
 <!-- requirement-block: distinct-and-dedupe.nonempty-distinct-projection distinct-and-dedupe.distinct-no-empty-reinterpretation -->
 A keyed `distinct` list MUST be nonempty and contain no repeated field
 references, because it defines a projection with distinct output names.

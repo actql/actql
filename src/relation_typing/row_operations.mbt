@@ -282,6 +282,7 @@ pub fn preserves_input_order(value : CheckedOperation) -> Bool {
     | Drop
     | Take
     | AssertRows
+    | Distinct
     | Analytic
     | JsonPick
     | Lag
