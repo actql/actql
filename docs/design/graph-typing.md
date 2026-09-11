@@ -365,6 +365,13 @@ Bindings are validated and preflighted, including unused bindings, and duplicate
 fail. Ordinary matching object types alone do not create expectations. Missing
 contract resolution fails before a successful pipeline is exposed.
 
+Producer-bound pipeline inputs inherit these expectations from their selected
+target, including every retained alias. Receiver maps are copied under the
+shared budget before explicit bindings are added; additions cannot alter the
+producer, and explicit duplicates cannot replace an inherited expectation.
+The original producer and its unresolved obligations remain attached. Importing
+the same Carrier as an ordinary input does not inherit its Delta contracts.
+
 Expectation maps are private and shared across unchanged row operations; alias
 maps and derive invalidation are bounded and charged once per step. Public lookup
 returns only an opaque contract, never the mutable map. All runtime admission,

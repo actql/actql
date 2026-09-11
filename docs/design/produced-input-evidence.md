@@ -88,10 +88,28 @@ forwardings followed by Events projection and window grouping. Capturing the
 opaque handle is constant-time; consuming aliases retains the existing bounded
 transfer scans.
 
+## Delta contract ownership
+
+Produced inputs also cache the private field-to-Graph-contract expectations
+retained by the selected target. The receiver copies that map before applying
+any explicit `delta_contracts` bindings; extending a receiver cannot mutate
+the source pipeline or another receiver. Duplicate bindings, including an
+explicit binding for an inherited field, fail by the existing duplicate rule.
+
+The import charges each input visit, inherited field entry and field-name bytes,
+and preflights each inherited Graph contract. Existing alias transfer and derive
+invalidation then apply unchanged. Contract handles retain their original
+identity; ordinary equal field types cannot substitute for that owner.
+Forwarding caches the map rather than recursively walking upstream pipelines.
+
+`apply_graph_delta` consumes these expected contracts while retaining exact-base
+identity, payload admission and other pending obligations. An expectation is
+not proof that actual rows contain a valid Delta. Regressions cover application,
+multiple aliases, overwrite, duplicate bindings, isolated receiver extensions,
+shared budget boundaries and 2,000 forwarding steps.
+
 ## Remaining boundaries
 
-Typed Delta evidence still needs its own cross-pipeline binding; its absence is
-not a new language restriction.
 The combined order checker now traverses all producer occurrences under shared
 budgets, including unused branches. The final all-obligation checker must still
 reject unresolved capacity and other mandatory obligations. This handle alone

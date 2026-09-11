@@ -128,8 +128,12 @@ consumer audit.
    producer handle, including multiple aliases and Events row projection.
    Identically typed ordinary inputs remain insufficient. Overwrite and alias
    removal retain the existing invalidation rules; long forwarding chains use
-   cached lookup rather than recursive ancestry traversal. Typed Delta binding
-   and complete non-order producer validation remain unfinished.
+   cached lookup rather than recursive ancestry traversal. Typed Delta
+   expectations now also cross this boundary, retaining original Graph-contract
+   handles and isolated, budgeted receiver maps. Aliases, overwrite, duplicate
+   bindings and application obligations are covered by producer-input tests.
+   These expected contracts do not prove actual Delta admission; complete
+   non-order producer validation remains unfinished.
    Shared [capacity arithmetic](capacity-arithmetic.md) is implemented and used
    by count propagation; arithmetic validation does not close this requirement.
    [Derivation consistency](capacity-derivation.md) checks bounded numerical

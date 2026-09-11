@@ -10,6 +10,32 @@ fn empty_delta() -> DeltaEvidence {
 }
 
 ///|
+fn imported_delta(
+  b : Budget,
+  source : @decode.Cursor,
+  inputs : Array[ProducedInput?],
+) -> Array[DeltaEvidence] raise Stop {
+  spend(b, source, inputs.length())
+  inputs.map(input => {
+    let result = empty_delta()
+    if input is Some(producer) {
+      spend(b, source, producer.delta.fields.length())
+      for field, contract in producer.delta.fields {
+        charge(b, source, field)
+        carrier_preflight(
+          b,
+          source,
+          @carrier.graph_carrier(@graph_contract.graph(contract)),
+        )
+        // Explicit bindings can extend this map, never mutate the producer.
+        result.fields[field] = contract
+      }
+    }
+    result
+  })
+}
+
+///|
 fn delta_at(
   target : Target,
   inputs : Array[DeltaEvidence],

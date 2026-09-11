@@ -10,6 +10,7 @@ struct ProducedInput {
   ranking : @vector.RankingInput?
   order : LogicalOrder?
   window : WindowEvidence?
+  delta : DeltaEvidence
 }
 
 ///|
@@ -30,6 +31,7 @@ pub fn produced_input(
     ranking: ranking_evidence(pipeline, target),
     order: logical_order(pipeline, target),
     window: window_evidence_at(pipeline, target),
+    delta: delta_at(target, pipeline.delta_inputs, pipeline.delta_steps),
   })
 }
 

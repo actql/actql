@@ -134,7 +134,7 @@ fn check_impl(
   let steps : Array[CheckedStep] = []
   let ranked_steps : Array[@vector.RankingInput] = []
   let keyed_steps : Array[@evidence.KeySet?] = []
-  let delta_inputs = inputs.map(_ => empty_delta())
+  let delta_inputs = imported_delta(b, source, produced_inputs)
   let delta_steps : Array[DeltaEvidence] = []
   spend(b, source, delta_contracts.length())
   for (input_name, field, contract) in delta_contracts {
