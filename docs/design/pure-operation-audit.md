@@ -231,7 +231,12 @@ matching automaton or proof that session-boundary values have been computed.
    Relation and Events inputs and derive exact fixed/sliding membership factors.
    Duration lookup parses once under an explicit text budget; fixed unused step
    remains validated and overflow fails. Profile, time-value and endpoint checks
-   remain obligations. Collection
+   remain obligations. Nearest applications now distinguish query-only bounds
+   from candidate-dependent bounds, retaining both actual operand owners when
+   the candidate count reduces the factor. Application checks reject swapped
+   operands and hidden factor dependencies, preserve zero candidate bounds and
+   fail on checked multiplication overflow. Search-work and value/score/profile
+   obligations remain separate. Collection
    application coverage now rejects missing unused Program applications and
    substituted child handles under cumulative work limits, while retaining
    other source branches as unresolved. Graph preflight source coverage can now

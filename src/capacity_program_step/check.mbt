@@ -65,6 +65,7 @@ priv enum Rule {
   Clamp(Int64)
   Sum
   Multiply(Int64)
+  Nearest(Int64)
 }
 
 ///|
@@ -77,6 +78,18 @@ fn operation_rule(
   }
   if step.operation is @pipeline.AsOfJoin(..) {
     return Ok(("actql.bound.asof-left", Preserve))
+  }
+  if step.operation is @pipeline.Nearest(checked~, ..) {
+    return Ok(
+      (
+        "actql.bound.nearest",
+        Nearest(
+          @vector.nearest_k(
+            @vector.nearest_pair_options(@vector.nearest_pair(checked)),
+          ),
+        ),
+      ),
+    )
   }
   if step.operation is @pipeline.Window(window) {
     let law = match @window.input(window) {
@@ -193,6 +206,7 @@ pub fn check_with_inputs(
     Clamp(_) => n <= 1
     Sum => n == 2
     Multiply(_) => n == 1
+    Nearest(_) => n == 1 || n == 2
   }
   if !valid_count || @wire.program_proof_input_count(proof) != n {
     return Err(InputCountMismatch)
@@ -202,7 +216,9 @@ pub fn check_with_inputs(
   let mut input_work = 0
   for i in 0..<n {
     let mut owner = pipeline
-    let mut target = edges[i].target
+    // nearest's one-operand bound is query-side, not the primary candidates.
+    let edge = if rule is Nearest(_) && n == 1 { 1 } else { i }
+    let mut target = edges[edge].target
     while !(physical_equal(owner, inputs[i].pipeline) &&
           target == @pipeline.Step(inputs[i].index)) {
       let next = match target {
@@ -277,6 +293,19 @@ pub fn check_with_inputs(
         Ok(v) => @numeric.value(v)
         Err(_) => return Err(BoundOverflow)
       }
+    Nearest(k) => {
+      let query = input_value(n - 1)
+      let maximum = @numeric.read(k).unwrap()
+      let factor = if n == 1 {
+        maximum
+      } else {
+        @numeric.minimum(input_value(0), maximum)
+      }
+      match @numeric.multiply(query, factor) {
+        Ok(v) => @numeric.value(v)
+        Err(_) => return Err(BoundOverflow)
+      }
+    }
   }
   if @wire.value(witness) != count {
     return Err(ValueMismatch)
@@ -289,6 +318,12 @@ pub fn check_with_inputs(
     (Sum, @wire.Add(left, right)) if left == ids[0] && right == ids[1] => ()
     (Multiply(expected), @wire.Multiply(input, factor)) if factor == expected &&
       input == ids[0] => ()
+    (Nearest(expected), @wire.Multiply(input, factor)) if n == 1 &&
+      factor == expected &&
+      input == ids[0] => ()
+    // A candidate-dependent factor must retain that candidate proof as well.
+    // Source-law validation computes the full product from both owned inputs.
+    (Nearest(_), @wire.SourceValue) if n == 2 => ()
     _ => return Err(InvalidDerivation)
   }
   Ok({ pipeline, index, proof, inputs: inputs.copy(), input_work, bindings, })

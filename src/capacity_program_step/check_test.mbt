@@ -120,6 +120,169 @@ fn bound_id(bound : @capacity_program_step.StepBound) -> String {
 }
 
 ///|
+test "nearest bounds select query evidence and retain candidate-dependent factors" {
+  for candidates in [1L, 2L, 7L] {
+    for queries in [3L, 5L] {
+      for k in [1L, 3L, 8L] {
+        let p = pipeline(
+          "[{\"take\":" +
+          candidates.to_string() +
+          "},{\"derive\":{\"key\":{\"literal\":1}}},{\"to_vectors\":{\"id\":\"key\",\"vector\":\"id\"},\"as\":\"c\"}," +
+          "{\"take\":" +
+          queries.to_string() +
+          ",\"from\":\"rows\"},{\"derive\":{\"key\":{\"literal\":1}}},{\"to_vectors\":{\"id\":\"key\",\"vector\":\"id\"},\"as\":\"q\"}," +
+          "{\"nearest\":{\"queries\":\"q\",\"k\":" +
+          k.to_string() +
+          ",\"metric\":\"dot\"},\"from\":\"c\"}]",
+          field_type=@contract.vector_contract(2, nullable=false).unwrap(),
+        )
+        let cp = proof(
+          "actql.bound.take",
+          candidates,
+          "{\"maximum\":" + candidates.to_string() + ",\"op\":\"clamp\"}",
+        )
+        let qp = proof(
+          "actql.bound.take",
+          queries,
+          "{\"maximum\":" + queries.to_string() + ",\"op\":\"clamp\"}",
+          reference="checked-step:3",
+        )
+        let c = @capacity_program_step.check(p, 0, cp).unwrap()
+        let q = @capacity_program_step.check(p, 3, qp).unwrap()
+        let cid = bound_id(c)
+        let qid = bound_id(q)
+        let loose = proof(
+          "actql.bound.nearest",
+          queries * k,
+          "{\"factor\":" +
+          k.to_string() +
+          ",\"input\":\"" +
+          qid +
+          "\",\"op\":\"multiply\"}",
+          reference="checked-step:6",
+          inputs=[qid],
+        )
+        let bound = @capacity_program_step.check_with_inputs(
+          p,
+          6,
+          loose,
+          [q],
+          max_input_work=2,
+        ).unwrap()
+        assert_eq(@capacity_program_step.input_work(bound), 2)
+        assert_true(
+          @capacity_program_step.check_with_inputs(
+            p,
+            6,
+            loose,
+            [c],
+            max_input_work=2,
+          )
+          is Err(InputTargetMismatch(0)),
+        )
+        assert_true(
+          @capacity_program_step.check_with_inputs(
+            p,
+            6,
+            loose,
+            [q],
+            max_input_work=1,
+          )
+          is Err(InputWorkLimit),
+        )
+        let factor = if candidates < k { candidates } else { k }
+        let tight = proof(
+          "actql.bound.nearest",
+          queries * factor,
+          "{\"op\":\"source\"}",
+          reference="checked-step:6",
+          inputs=[cid, qid],
+        )
+        let checked = @capacity_program_step.check_with_inputs(
+          p,
+          6,
+          tight,
+          [c, q],
+          max_input_work=4,
+        ).unwrap()
+        assert_eq(@capacity_program_step.input_work(checked), 4)
+        assert_true(
+          physical_equal(
+            @capacity_program_step.input_at(checked, 0).unwrap(),
+            c,
+          ),
+        )
+        assert_true(
+          physical_equal(
+            @capacity_program_step.input_at(checked, 1).unwrap(),
+            q,
+          ),
+        )
+        assert_true(
+          @capacity_program_step.check_with_inputs(
+            p,
+            6,
+            tight,
+            [q, c],
+            max_input_work=4,
+          )
+          is Err(InputTargetMismatch(0)),
+        )
+        let claims = program_claims([cp, qp, tight])
+        assert_true(
+          @capacity_program_step.check_applications(
+            claims,
+            [checked, c, q],
+            max_work=11,
+          )
+          is Ok(_),
+        )
+        if candidates < k {
+          let missing = proof(
+            "actql.bound.nearest",
+            queries * factor,
+            "{\"factor\":" +
+            factor.to_string() +
+            ",\"input\":\"" +
+            qid +
+            "\",\"op\":\"multiply\"}",
+            reference="checked-step:6",
+            inputs=[qid],
+          )
+          assert_true(
+            @capacity_program_step.check_with_inputs(
+              p,
+              6,
+              missing,
+              [q],
+              max_input_work=2,
+            )
+            is Err(ValueMismatch),
+          )
+        }
+        let false_value = proof(
+          "actql.bound.nearest",
+          0,
+          "{\"op\":\"source\"}",
+          reference="checked-step:6",
+          inputs=[cid, qid],
+        )
+        assert_true(
+          @capacity_program_step.check_with_inputs(
+            p,
+            6,
+            false_value,
+            [c, q],
+            max_input_work=4,
+          )
+          is Err(ValueMismatch),
+        )
+      }
+    }
+  }
+}
+
+///|
 fn window_pipeline(
   kind : String,
   options : String,
@@ -147,6 +310,217 @@ fn window_pipeline(
     options +
     "}}]",
     parameters~,
+  )
+}
+
+///|
+test "self nearest retains both candidate and query proof occurrences" {
+  let p = pipeline(
+    "[{\"take\":3},{\"derive\":{\"key\":{\"literal\":1}}},{\"to_vectors\":{\"id\":\"key\",\"vector\":\"id\"},\"as\":\"v\"},{\"nearest\":{\"queries\":\"v\",\"k\":2,\"metric\":\"dot\"}}]",
+    field_type=@contract.vector_contract(2, nullable=false).unwrap(),
+  )
+  let seed = proof("actql.bound.take", 3, "{\"maximum\":3,\"op\":\"clamp\"}")
+  let input = @capacity_program_step.check(p, 0, seed).unwrap()
+  let id = bound_id(input)
+  let claim = proof(
+    "actql.bound.nearest",
+    6,
+    "{\"op\":\"source\"}",
+    reference="checked-step:3",
+    inputs=[id, id],
+  )
+  let checked = @capacity_program_step.check_with_inputs(
+    p,
+    3,
+    claim,
+    [input, input],
+    max_input_work=4,
+  ).unwrap()
+  assert_eq(@capacity_program_step.input_count(checked), 2)
+  assert_eq(@wire.program_proof_input_count(claim), 2)
+  assert_eq(@capacity_program_step.input_work(checked), 4)
+  assert_true(
+    @capacity_program_step.check_with_inputs(
+      p,
+      3,
+      claim,
+      [input, input],
+      max_input_work=3,
+    )
+    is Err(InputWorkLimit),
+  )
+  let claims = program_claims([seed, claim])
+  assert_true(
+    @capacity_program_step.check_applications(
+      claims,
+      [checked, input],
+      max_work=8,
+    )
+    is Ok(_),
+  )
+}
+
+///|
+test "nearest candidate-dependent bounds preserve empty candidates across producer owners" {
+  let vector = @contract.vector_contract(2, nullable=false).unwrap()
+  let candidates = pipeline(
+    "[{\"take\":3},{\"unnest\":{\"column\":\"id\",\"as\":\"v\"}},{\"derive\":{\"key\":{\"literal\":1}}},{\"to_vectors\":{\"id\":\"key\",\"vector\":\"v\"}}]",
+    field_type=@contract.array_contract(
+      vector,
+      nullable=false,
+      max_items=Some(0),
+    ).unwrap(),
+  )
+  let seed_proof = proof(
+    "actql.bound.take", 3, "{\"maximum\":3,\"op\":\"clamp\"}",
+  )
+  let seed = @capacity_program_step.check(candidates, 0, seed_proof).unwrap()
+  let seed_id = bound_id(seed)
+  let cp = proof(
+    "actql.bound.unnest-array-items",
+    0,
+    "{\"factor\":0,\"input\":\"" + seed_id + "\",\"op\":\"multiply\"}",
+    reference="checked-step:1",
+    inputs=[seed_id],
+  )
+  let c = @capacity_program_step.check_with_inputs(candidates, 1, cp, [seed]).unwrap()
+  let queries = pipeline(
+    "[{\"take\":2},{\"derive\":{\"key\":{\"literal\":1}}},{\"to_vectors\":{\"id\":\"key\",\"vector\":\"id\"}}]",
+    field_type=vector,
+  )
+  let qp = proof("actql.bound.take", 2, "{\"maximum\":2,\"op\":\"clamp\"}")
+  let q = @capacity_program_step.check(queries, 0, qp).unwrap()
+  let p = @pipeline.check_with_evidence(
+    cursor(
+      "[{\"nearest\":{\"queries\":\"q\",\"k\":5,\"metric\":\"dot\"},\"from\":\"c\"}]",
+    ),
+    [
+      (
+        "c",
+        @pipeline.ProducedInput(
+          @pipeline.produced_input(candidates, Step(3)).unwrap(),
+        ),
+      ),
+      (
+        "q",
+        @pipeline.ProducedInput(
+          @pipeline.produced_input(queries, Step(2)).unwrap(),
+        ),
+      ),
+    ],
+    None,
+    None,
+    {
+      max_steps: 1,
+      max_work: 10000,
+      max_text_bytes: 10000,
+      max_nodes: 10000,
+      max_tokens: 10000,
+      max_depth: 100,
+    },
+  ).unwrap()
+  let claim = proof("actql.bound.nearest", 0, "{\"op\":\"source\"}", inputs=[
+    bound_id(c),
+    bound_id(q),
+  ])
+  let checked = @capacity_program_step.check_with_inputs(
+    p,
+    0,
+    claim,
+    [c, q],
+    max_input_work=6,
+  ).unwrap()
+  assert_eq(@capacity_program_step.input_work(checked), 6)
+  assert_true(
+    @capacity_program_step.check_with_inputs(
+      p,
+      0,
+      claim,
+      [c, q],
+      max_input_work=5,
+    )
+    is Err(InputWorkLimit),
+  )
+  let claims = program_claims([seed_proof, cp, qp, claim])
+  assert_true(
+    @capacity_program_step.check_applications(
+      claims,
+      [checked, c, q, seed],
+      max_work=15,
+    )
+    is Ok(_),
+  )
+}
+
+///|
+test "nearest bound multiplication fails after Parameter binding instead of saturating" {
+  let d = @parameter.read_declarations(
+    Some(cursor("{\"n\":{\"type\":\"number\",\"default\":9007199254740991}}")),
+    { max_parameters: 1, max_nodes: 100, max_depth: 10, max_text_bytes: 1000, },
+  ).unwrap()
+  let p = pipeline(
+    "[{\"take\":{\"$param\":\"n\"}},{\"derive\":{\"key\":{\"literal\":1}}},{\"to_vectors\":{\"id\":\"key\",\"vector\":\"id\"},\"as\":\"c\"}," +
+    "{\"take\":{\"$param\":\"n\"},\"from\":\"rows\"},{\"derive\":{\"key\":{\"literal\":1}}},{\"to_vectors\":{\"id\":\"key\",\"vector\":\"id\"},\"as\":\"q\"}," +
+    "{\"nearest\":{\"queries\":\"q\",\"k\":2,\"metric\":\"dot\"},\"from\":\"c\"}]",
+    field_type=@contract.vector_contract(2, nullable=false).unwrap(),
+    parameters=Some(d),
+  )
+  let bindings = @capacity_program_step.bind_parameters(
+    p,
+    count_values(d, None),
+    max_work=1,
+    max_text_bytes=1,
+  ).unwrap()
+  let cp = proof(
+    "actql.bound.take", 9007199254740991L, "{\"maximum\":9007199254740991,\"op\":\"clamp\"}",
+  )
+  let qp = proof(
+    "actql.bound.take",
+    9007199254740991L,
+    "{\"maximum\":9007199254740991,\"op\":\"clamp\"}",
+    reference="checked-step:3",
+  )
+  let c = @capacity_program_step.check_with_inputs(
+    p,
+    0,
+    cp,
+    [],
+    bindings=Some(bindings),
+  ).unwrap()
+  let q = @capacity_program_step.check_with_inputs(
+    p,
+    3,
+    qp,
+    [],
+    bindings=Some(bindings),
+  ).unwrap()
+  let claim = proof(
+    "actql.bound.nearest",
+    1,
+    "{\"op\":\"source\"}",
+    reference="checked-step:6",
+    inputs=[bound_id(c), bound_id(q)],
+  )
+  assert_true(
+    @capacity_program_step.check_with_inputs(
+      p,
+      6,
+      claim,
+      [c, q],
+      max_input_work=4,
+    )
+    is Err(BoundOverflow),
+  )
+  let loose = proof(
+    "actql.bound.nearest",
+    1,
+    "{\"factor\":2,\"input\":\"" + bound_id(q) + "\",\"op\":\"multiply\"}",
+    reference="checked-step:6",
+    inputs=[bound_id(q)],
+  )
+  assert_true(
+    @capacity_program_step.check_with_inputs(p, 6, loose, [q], max_input_work=2)
+    is Err(BoundOverflow),
   )
 }
 

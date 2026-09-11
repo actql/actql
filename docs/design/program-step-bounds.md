@@ -36,11 +36,39 @@ The proof must use the existing `DerivedInputs` form. Its role is
 | Array `unnest` with known `max_items` | `actql.bound.unnest-array-items`, multiplication by the checked expansion factor. Outer expansion of a zero-length array uses one, not zero. Unknown bounds remain unresolved. |
 | `row_window` | `actql.bound.row-window`, multiply by one for fixed windows or exact `ceil(size / step)` for sliding windows. |
 | `window_events` | `actql.bound.window-events`, the same membership factor applied to the Events input occurrence bound, with Carrier-preserving output. |
+| `nearest` | `actql.bound.nearest`, query bound times the checked `k`, or query bound times `min(candidate bound, k)` with both input applications retained. |
 
 `check_with_inputs` also accepts one input application for selection,
 clamping its bound to the exact checked count. Offset does not weaken this upper
 bound and remains an independent checked-operation obligation. `check` is the
 input-free convenience entry.
+
+For `nearest`, one input application addresses the query edge, not the primary
+candidate edge. Its derivation must be multiplication by the exact checked `k`.
+With two applications, they follow data-input order (candidates, queries), the
+proof lists both witness IDs in canonical sorted order, and the derivation is
+`source`. Source-law application recomputes the product from both verified
+operands rather than trusting that source assertion. Zero candidates give a
+zero upper bound. Both forms use checked multiplication and fail on overflow.
+The query-only bound remains an upper bound rather than proof that candidates
+are plentiful; tighter available bounds still belong in complete resolution.
+
+Sketch at `87dc7144` uses the same `actql.bound.nearest` law and
+`min(candidate bound, k)` rule, but passes only the query witness to
+`boundMultiply`, leaving the candidate dependency implicit in its scalar factor.
+This local application boundary does not accept that missing dependency as
+evidence for a reduced factor. The existing two-input source-proof form retains
+both owners without changing the wire schema or law identifier. It also passes
+Program closure, which rejects extra undeclared arithmetic operands. Imported
+proofs need their own semantic-subject and dependency reconstruction.
+
+Nearest regression cases cover below/equal/above-k candidate bounds, both proof
+forms, swapped inputs, insufficient traversal budgets, false source assertions,
+missing factor dependencies, empty candidates imported from another checked
+producer, complete application collection coverage, and overflow after Parameter
+binding. Candidate/query value, identity, profile, score, search-work and
+publication obligations remain on their checked operations; an output bound is
+not a search-work or memory admission certificate.
 
 Input applications must retain the exact physical producer pipeline owner and
 match the actual bound-producing step reached from each data edge. For a local
