@@ -6,6 +6,8 @@ import {
   "actql/actql/capacity_policy",
   "actql/actql/expression_typing",
   "actql/actql/parameter_binding",
+  "actql/actql/parameter_references",
+  "actql/actql/pipeline_parameters",
   "actql/actql/pipeline_typing",
   "actql/actql/relation_results",
 }
@@ -14,6 +16,8 @@ import {
 pub fn bound_guards(PipelineContext) -> @pipeline_typing.BoundGuardClosure
 
 pub fn check(@relation_results.CheckedResults, Array[@parameter_binding.BoundValues?], Array[@capacity_graph_preflight.ApplicationCoverage], @capacity_policy.Policy, Limits, proof_owners? : Array[(Int, Int, Int)], input_owners? : Array[(Int, Int, Int, Int)]) -> Result[PipelineContext, Issue]
+
+pub fn check_parameter_bindings(PipelineContext, max_work~ : Int, max_text_bytes~ : Int) -> Result[BoundParameters, ParameterIssue]
 
 pub fn checked_capacity(PipelineContext) -> @capacity_graph_preflight.ApplicationClosure
 
@@ -27,11 +31,21 @@ pub fn expression_requirement_count(PipelineContext) -> Int
 
 pub fn expression_requirement_work(PipelineContext) -> Int
 
+pub fn parameter_context(BoundParameters) -> PipelineContext
+
+pub fn parameter_usage(BoundParameters) -> (Int, Int)
+
+pub fn parameter_visit_at(BoundParameters, Int) -> ParameterVisit?
+
+pub fn parameter_visit_count(BoundParameters) -> Int
+
 pub fn usage(PipelineContext) -> (Int, Int)
 
 // Errors
 
 // Types and methods
+type BoundParameters
+
 pub struct ExpressionRequirement {
   visit : Int
   step : Int
@@ -56,6 +70,19 @@ pub(all) struct Limits {
   max_results : Int
   max_work : Int
   max_text_bytes : Int
+}
+
+pub(all) enum ParameterIssue {
+  InvalidLimits
+  WorkLimit(Int)
+  Collection(Int, @pipeline_parameters.Issue)
+  MissingBindings(Int)
+  Binding(Int, @parameter_references.BindingIssue)
+}
+
+pub struct ParameterVisit {
+  collected : @pipeline_parameters.Collected
+  bound : @parameter_references.BoundIndex?
 }
 
 type PipelineContext

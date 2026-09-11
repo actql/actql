@@ -791,6 +791,12 @@ admission, resource enforcement or complete source authority.
    Repeated references and opaque literals retain their existing interpretation.
    This closes the local reference-to-value owner link, not completeness of all
    staged source slots or assembly of Program/stage/Invocation envelopes.
+   Contextual Parameter binding now collects every local operation reference
+   across producer visits and binds it using the values already owned by the
+   context's guard closure. Expression-only and values-cell holes cannot escape
+   because no guard requested their values. Cumulative work includes the earlier
+   context, and late missing bindings expose no partial success. Local source
+   coordinates remain distinct from whole staged Program collection.
    [Combined order checking](combined-order-checking.md) now resolves
    all steps and named Results with one shared budget and one pipeline owner.
    Capacity and other mandatory obligations still require the final combined

@@ -75,6 +75,31 @@ may simply be deferred to runtime.
 
 ## Not yet a checked Program
 
+`check_parameter_bindings` extends a context with local Parameter reference
+indexes for every contextual producer visit. It uses the exhaustive pipeline
+collector for both typed expressions and direct operands, including values
+cells. Values come only from the already validated guard-binding closure; there
+is no second caller-supplied binding array to mix with it. Each selected-value
+index is bound to that exact declaration owner. Missing bindings fail when a
+visit has references, including unused steps and repeated producer visits.
+An empty use set without bindings retains its collected index and no BoundIndex;
+it does not establish completeness of unrelated Program declarations.
+
+The opaque BoundParameters retains the original PipelineContext and detached
+visit storage. Local references use each retained pipeline source as pointer
+root, not a fabricated staged Program path. The enclosing Program collector
+still determines stage/root coordinates and covers inputs, Results and Effects.
+No expression evaluation, substitution, static profile discharge or persistent
+Program identity is implied by this attachment.
+
+Work/text caps include the context's previous usage. Collection charges each
+visit, its local scan/index work and newly admitted direct-operand text; binding
+charges the previously defined exact-owner selection work. Pointer storage is
+charged against work. Late failure exposes no partial bound result. Tests cover
+repeated unused producers with expression and values-cell references, exact
+binding/index owners, local paths, missing first/later visit bindings and exact
+or short cumulative budgets.
+
 This context integrates the supported order, guard-binding and capacity subset.
 It does not discharge every operation's static/profile/pattern obligation, bind
 authored guard witness identities, build staged Program/import contracts, or

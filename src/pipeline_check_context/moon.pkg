@@ -1,6 +1,8 @@
 supported_targets = "+js+wasm+native"
 
 import {
+  "actql/actql/pipeline_parameters" @parameter_slots,
+  "actql/actql/parameter_references" @references,
   "actql/actql/expression_typing" @typing,
   "actql/actql/relation_results" @results,
   "actql/actql/pipeline_typing" @pipeline,
