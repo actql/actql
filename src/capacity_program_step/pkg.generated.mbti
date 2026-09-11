@@ -26,6 +26,8 @@ pub fn check(@pipeline_typing.CheckedPipeline, Int, @capacity_witness.ProgramPro
 
 pub fn check_applications(@capacity_witness.ProgramClaims, Array[StepBound], max_work~ : Int) -> Result[Applications, ApplicationIssue]
 
+pub fn check_guard_bindings(Applications, @pipeline_typing.BoundAuthorGuards, max_work~ : Int) -> Result[GuardApplications, GuardBindingIssue]
+
 pub fn check_join_applications(@pipeline_typing.CheckedPipeline, @capacity_host_witness.HostSources, Applications, @capacity_policy.Policy, Array[JoinLimit], max_work~ : Int) -> Result[JoinApplications, JoinCollectionIssue]
 
 pub fn check_join_complete(@pipeline_typing.CheckedPipeline, @capacity_host_witness.HostSources, Applications, @capacity_policy.Policy, Array[JoinLimit], max_work~ : Int) -> Result[JoinApplications, JoinCollectionIssue]
@@ -45,6 +47,14 @@ pub fn checked_pipeline(StepBound) -> @pipeline_typing.CheckedPipeline
 pub fn checked_proof(StepBound) -> @capacity_witness.ProgramProofClaim
 
 pub fn checked_step(StepBound) -> Int
+
+pub fn guard_application_context(GuardApplications) -> @pipeline_typing.BoundAuthorGuards
+
+pub fn guard_application_count(GuardApplications) -> Int
+
+pub fn guard_application_source(GuardApplications) -> Applications
+
+pub fn guard_application_work(GuardApplications) -> Int
 
 pub fn input_at(StepBound, Int) -> StepBound?
 
@@ -107,6 +117,14 @@ pub(all) enum ApplicationIssue {
 type Applications
 
 type CountBindings
+
+type GuardApplications
+
+pub(all) enum GuardBindingIssue {
+  InvalidLimits
+  WorkLimit
+  BindingMismatch(Int)
+} derive(Eq, @debug.Debug)
 
 pub(all) enum Issue {
   MissingStep

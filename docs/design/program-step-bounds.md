@@ -431,3 +431,27 @@ results, foreign source/proof owners, duplicate entries and exact/short budgets.
 The [mixed consumer checker](graph-input-preflight.md) accepts this join ledger
 alongside Graph and sequence ledgers under exact shared ownership. It does not
 discard extra limits or certify upstream/source/runtime obligations.
+
+## Bound guard context agreement
+
+`check_guard_bindings` checks an admitted application table against one
+`pipeline_typing.BoundAuthorGuards` context. For every proof application owned
+by that exact checked pipeline, any retained `CountBindings` must hold the
+same complete `BoundValues` owner as the guard context. This prevents a count
+proof from a different binding run being combined with those bound guards.
+Equal values or equal declarations alone are not owner identity; independently
+bound equal-value collections need a separate semantic identity boundary before
+they can be interchanged. Binding-independent proofs remain valid without a
+value collection. No Parameter defaults are reapplied.
+
+The scan charges one unit for every application-table slot, including absent
+entries and foreign producer applications. Foreign producers are not certified
+by this local context: `guard_application_count` reports only matching local
+applications. The opaque result retains both original owners. Exact/short
+budgets, different values, independently bound equal values, binding-independent
+proofs and same-content foreign pipelines have regression coverage.
+
+This entry does not yet join the producer capacity closure. Each producer visit
+must eventually supply its own bound context under a shared budget; local
+agreement is not whole-Invocation consistency, enclosing semantic identity,
+author-witness source validation or execution permission.
