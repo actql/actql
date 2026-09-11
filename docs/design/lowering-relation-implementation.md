@@ -91,7 +91,7 @@ contracts, final serialized size or any Program-level authorization.
 | Bound parameters | Owner association, expression substitution and values-cell capture implemented | Add parameterized end-to-end fragment execution vectors |
 | External rows | Object-schema input admission and immutable capture implemented | Connect to full fragment input obligations; scoped row representation remains unsupported |
 | Map/filter/select row evaluation | Private evaluator connected; fixed four-operation values chain tested | Connect supplied input, branch and parameter cases through fragment driver |
-| AoA fragment lowering | Prepared kernels and expression wire only; complete Relation node emission remains open | Generate full registered nodes, validate contracts and map runtime obligations |
+| AoA fragment lowering | Complete map/filter/select step emission and expression wire implemented; values/pipeline envelope remain open | Bind registry contracts, roots and runtime obligations, then admit complete fragment |
 | Runtime budgets | Cumulative expression/control/logical-value limits implemented | Close temporary/live allocations and complete work accounting before exposing fragment API |
 | Ordered derive | Checked references available; executable contract pending main | Consume main's registered row-kernel extension without a substitute opcode |
 | Additional expression obligations | Not implemented | Discharge the specific profile/pattern/other obligation before evaluation |
@@ -320,3 +320,24 @@ operands' UTF-8 size before text comparison. Select uses pre-resolved ordinals
 without constructing a snapshot map. Exact fixed budgets cover empty-input
 setup and multibyte comparisons. These are logical work charges, not measured
 CPU instructions; physical live memory and allocation admission remain open.
+
+## Existing Relation node wire
+
+`emit_kernel_node` emits complete `id`, `in`, `op`, `params` steps, not just
+expression bodies. Map uses `params.exprs`, filter `params.expr`, and select
+`params.columns`; the existing column rename form uses `{from,to}` when needed.
+Generated IDs and input references come from the prepared checked owner. Map
+bindings retain canonical order, select retains authored order, and an empty
+map remains a node. The writer enforces whole-step bytes/nodes/depth.
+
+Reference shape inspection used AoA `dbab4fe8c1d624d81ed967f90e2abe742163f84f`,
+`packages/pipeline/src/index.ts` and `packages/rela/src/core-steps.ts`. The latter's
+nonempty-map restriction is not imported: the current ActQL no-op law wins.
+Current expression nodes use the pinned ActQL expression contract, not the
+reference adapter's historical expression type. This inspection is not evidence
+that that adapter can execute these emitted nodes without integration work.
+
+Independent full-string tests cover all three operations, branch wiring and
+exact whole-node byte limits. Registry parameter validation, expression-root
+evidence, runtime-obligation binding, values-node emission and the whole pipeline
+envelope remain open. No emitted individual node is an execution permit.
