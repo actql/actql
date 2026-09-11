@@ -20,6 +20,16 @@ pub fn bind_parameters(Prepared, @parameter_binding.BoundValues?, max_parameters
 
 pub fn bound_preparation(BoundPrepared) -> Prepared
 
+pub fn demand_condition_at(DemandIndex, Int) -> DemandCondition?
+
+pub fn demand_condition_count(DemandIndex) -> Int
+
+pub fn demand_entry_at(DemandIndex, Int) -> DemandEntry?
+
+pub fn demand_entry_count(DemandIndex) -> Int
+
+pub fn demand_roots(DemandIndex) -> RootIndex
+
 pub fn emit_expression(Expression, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
 
 pub fn emit_kernel_node(PreparedKernel, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
@@ -76,6 +86,8 @@ pub fn pipeline(Prepared) -> @pipeline_typing.CheckedPipeline
 
 pub fn prepare(@pipeline_typing.CheckedPipeline, Limits) -> Result[Prepared, Issue]
 
+pub fn prepare_demand(RootIndex, DemandLimits) -> Result[DemandIndex, DemandIssue]
+
 pub fn prepare_kernel(BoundPrepared, Int, max_bindings~ : Int, max_name_bytes~ : Int, ExpressionLimits) -> Result[PreparedKernel, KernelIssue]
 
 pub fn prepare_roots(PreparedSequence, RootLimits) -> Result[RootIndex, RootIssue]
@@ -131,6 +143,39 @@ pub(all) enum BindingIssueKind {
 } derive(Eq, @debug.Debug)
 
 type BoundPrepared
+
+pub struct DemandCondition {
+  previous : Int?
+  entry : Int
+  predicate : DemandTest
+}
+
+pub struct DemandEntry {
+  root_index : Int
+  parent : (Int, Int)?
+  expression : Expression
+  condition : Int?
+}
+
+type DemandIndex
+
+pub(all) enum DemandIssue {
+  InvalidDemandLimits
+  DemandLimit
+}
+
+pub(all) struct DemandLimits {
+  max_entries : Int
+  max_conditions : Int
+  max_pending : Int
+  max_work : Int
+}
+
+pub(all) enum DemandTest {
+  True
+  NotTrue
+  Null
+} derive(Eq, @debug.Debug)
 
 type Expression
 

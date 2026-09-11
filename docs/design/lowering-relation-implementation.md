@@ -89,7 +89,7 @@ contracts, final serialized size or any Program-level authorization.
 | Area | Current state | Condition for closing |
 | --- | --- | --- |
 | Four-operation wiring | Atomic preparation, body-hashed primitive registry selection and one internal driver implemented | Connect the sealed expression-fragment entry, not only primitive signatures |
-| AoA expression lowering | Typed nodes, inline step encoding, common evaluator and bounded root-position index implemented | Bind canonical source, demand paths and the outer expression contract |
+| AoA expression lowering | Typed nodes, inline encoding, evaluator, root index and occurrence-bound demand conditions implemented | Bind canonical source/pointer serialization and the outer expression contract |
 | Bound parameters | Owner association, expression substitution, values capture and four-operation private execution tested | Repeat vectors through admitted fragment driver |
 | External rows | Object-schema capture, key validation, exact completed producer binding and receiving projection/budgets implemented | Close inherited evidence obligations; scoped row representation remains unsupported |
 | Map/filter/select row evaluation | Internal sequence driver runs values/supplied-input/parameter chains and branch retention; component NULL cases remain tested | Move remaining component vectors through admitted fragment driver |
@@ -875,3 +875,38 @@ Wasm and native. Shared schemas/pins and execution/Host APIs are unchanged.
 The added lowering-package API matches across targets; formatting, both fixed
 vector generators and 872 local links pass. Full-repository and Linux CI tests
 were not rerun for this increment.
+
+## Occurrence-bound expression demand
+
+`prepare_demand` traverses the existing lowered expression objects under a
+`RootIndex`. It records each occurrence's root, parent/child ordinal and condition
+chain. A condition refers to an occurrence, not merely an equal expression or
+field name. The read-only result retains its owning root index. None of these
+internal integers is a CID, source pointer or new wire identifier.
+
+IF branches append the condition's `true`/`not_true` test. CASE carries earlier
+`not_true` tests before each condition and adds its own `true` test for the branch;
+ELSE retains all earlier failures, including an implicit typed-null ELSE.
+Coalesce appends earlier operand `null` tests. Eager children inherit only their
+outer conditions: AND/OR never acquire short-circuit semantics. Literal internals
+remain opaque and no condition is evaluated during preparation.
+
+The traversal is iterative, with explicit cumulative entry/condition/work limits
+and a pending-stack bound. Persistent condition links share prefixes rather than
+copying a growing list for every sibling. Each root starts a fresh condition
+frame but consumes the same budgets. Failure publishes no index and does not
+modify the prepared roots or expressions. The parent/ordinal relation preserves
+distinct source occurrences even if an expression object is shared.
+
+This implements the demand relation, not its final `demand_paths` JSON object.
+Canonical source reconstruction and `/roots/i/source/...` pointer binding remain
+to connect; no node-wire pointer is substituted for a semantic-source pointer.
+The existing evaluator remains the single computation engine. No separate
+callback or runtime reevaluation mechanism is introduced.
+
+Five independent tests cover nested IF/coalesce, CASE with implicit ELSE, eager
+boolean operators, opaque literals, root/frame isolation, occurrence positions,
+and exact/one-below budgets. Lowering tests pass 58/58 on JS, Wasm and native.
+API equality, format, both fixed-vector generators and link checks pass. The
+full-repository suite and Linux CI were not rerun for this increment; shared
+schema/pins, runtime semantics and Host/public SDK surfaces are unchanged.
