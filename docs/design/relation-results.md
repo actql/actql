@@ -82,6 +82,40 @@ an executable Plan, Result identity, delivery authorization or proof of data
 policy compliance. No key completion, evaluation, lowering, Effect checking,
 serialization, delivery or CID computation is included.
 
+## Named Results versus raw producers
+
+`pipeline_typing.produced_input(p, target)` describes the entire input or step
+output at that coordinate. It is not a named Result port. Passing a Result's
+`target` to that function retains the pre-projection Carrier and its original
+order evidence; it does not apply the Result's `fields` or publication order.
+
+`producer_boundary_test.mbt` fixes two concrete counterexamples. A five-column
+producer published as an `id`-only Result still has five columns when passed
+through the raw producer API. An authored `score desc` Result ordering is also
+absent from that raw producer. Separately, two Results with the same producer
+target and projected fields can specify opposite publication orders. Matching
+pipeline/target or schema alone cannot identify the Result port.
+
+The eventual cross-stage import adapter must therefore bind the exact checked
+Result collection and named definition, its source Program/stage, projected
+schema (including qualification), publication-order resolution and remaining
+producer obligations. Raw pipeline producer traversal remains useful for those
+dependencies, but cannot replace the Result transformation boundary. A type-only
+Carrier supplied to the consumer is likewise not evidence of that port origin.
+
+This is not permission to drop order evidence when its original sort fields are
+projected away: Language explicitly preserves a total stable ordering witness
+through such projection. Candidate-key, window-role, ranking, delta and capacity
+evidence must each follow their governing transfer rules, not be copied wholesale
+from the raw source or discarded merely to simplify the adapter. Result ordering
+and projection belong to the declared Result semantics, not extra authored steps
+or a new Program identity.
+
+The current source-bound stage Result pass does not implement this adapter.
+The tests establish the distinction and prevent treating existing raw-producer
+support as proof of cross-stage Result-import completion; they do not execute
+publication, imports or lower the Result.
+
 ## Budgets and diagnostics
 
 `max_results` bounds the map. `max_work`, `max_nodes` and `max_text_bytes` are
