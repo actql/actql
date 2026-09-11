@@ -1,5 +1,14 @@
 # Conditional logical order
 
+Graph equality and graph diff establish the trivial sequence of their specified
+single result row. The origin retains the exact two-input operation and all
+admission/identity/Delta/resource obligations. A structured Delta need not be
+sorted as a value to publish this single-row sequence. Filtering that row can
+produce the empty sequence without losing order. This is an operation-specific
+law, not a generic rule deriving order from an output count: in particular,
+take-one cannot use its own cardinality to justify selection from unordered
+input. Graph array enumeration or plain Graph projection supplies no order.
+
 Whole-row and keyed distinct retain first-occurrence order, with keyed distinct
 applying equality only after its declared projection. This explicitly follows
 the fixed AoA first-encounter implementation and the existing set-operation
