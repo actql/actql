@@ -243,7 +243,15 @@ pub fn producer_order(ProducedInput) -> LogicalOrder?
 
 pub fn producer_pipeline(ProducedInput) -> CheckedPipeline
 
+pub fn producer_projection(ProducedInput) -> @relation_typing.CheckedOperation?
+
 pub fn producer_target(ProducedInput) -> Target
+
+pub fn project_produced_input(CheckedPipeline, Target, @relation_typing.CheckedOperation, Limits) -> Result[ProducedProjection, Issue]
+
+pub fn projected_input(ProducedProjection) -> ProducedInput
+
+pub fn projected_input_usage(ProducedProjection) -> Usage
 
 pub fn ranking_evidence(CheckedPipeline, Target) -> @relation_evidence.RankingInput?
 
@@ -516,6 +524,8 @@ pub struct ParameterSlot {
 type ParameterSlots
 
 type ProducedInput
+
+type ProducedProjection
 
 pub struct ProducerOrderIssue {
   pipeline : CheckedPipeline

@@ -11,6 +11,7 @@ struct ProducedInput {
   order : LogicalOrder?
   window : WindowEvidence?
   delta : DeltaEvidence
+  projection : @relation.CheckedOperation?
 }
 
 ///|
@@ -32,6 +33,7 @@ pub fn produced_input(
     order: logical_order(pipeline, target),
     window: window_evidence_at(pipeline, target),
     delta: delta_at(target, pipeline.delta_inputs, pipeline.delta_steps),
+    projection: None,
   })
 }
 
@@ -57,4 +59,12 @@ pub fn producer_target(input : ProducedInput) -> Target {
 /// Original order in producer_pipeline's coordinates, with all producer debts.
 pub fn producer_order(input : ProducedInput) -> LogicalOrder? {
   input.order
+}
+
+///|
+/// An explicit validated projection after the original producer target.
+pub fn producer_projection(
+  input : ProducedInput,
+) -> @relation.CheckedOperation? {
+  input.projection
 }

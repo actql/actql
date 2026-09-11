@@ -108,6 +108,42 @@ not proof that actual rows contain a valid Delta. Regressions cover application,
 multiple aliases, overwrite, duplicate bindings, isolated receiver extensions,
 shared budget boundaries and 2,000 forwarding steps.
 
+## Explicit producer projection
+
+`project_produced_input` applies one admitted `Select` operation to a Relation
+producer. It requires the Select's exact input-schema handle to match the
+selected pipeline target. Invalid targets, other operation kinds, foreign
+schema owners and insufficient limits reject. This does not append an authored
+step or change the original Program source.
+
+The resulting input retains the original pipeline/target and exposes the
+additional checked operation through `producer_projection`. Its Carrier is the
+Select output, not the raw producer schema. The existing Select transfer laws
+recompute candidate-key aliases, score/ranking annotations, window roles and
+Delta field-contract expectations. Dropped fields do not leak through those
+axes. Row counts and original logical order are preserved; hiding the fields
+which originally established that order does not invalidate the order witness.
+Upstream obligations remain attached to the original owner.
+
+`projected_input_usage` reports transfer work, text and nodes under the supplied
+limits. The Select itself was previously admitted and is not parsed again.
+Transfers can share existing contracts without visiting new value nodes, so
+zero additional node usage is valid. The receiver still charges its own ordinary
+input admission. These limits are not a whole-process memory quota.
+
+This is the projection building block, not a published Result adapter: it neither
+selects a named Result nor applies its authored/publication order. Result import
+composition must still bind that exact definition, resolved order and semantic
+identity. Generic Select aliases are valid here; they do not add alias syntax
+to Result `fields`. The
+[raw-producer counterexamples](relation-results.md#named-results-versus-raw-producers)
+remain relevant to callers that omit the explicit Result boundary.
+
+Tests cover original ownership, projected columns, hidden-field order into take,
+preserved counts, candidate-key retention/loss, score aliases, multiple window
+aliases into window grouping, Delta contract aliases, exact transfer limits and
+foreign-schema/non-Select rejection.
+
 ## Remaining boundaries
 
 The combined order checker now traverses all producer occurrences under shared
