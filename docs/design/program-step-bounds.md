@@ -462,11 +462,28 @@ work budget before allocating their membership maps. The result retains both
 limit handles, their indices and all input owners. Authored output guards still
 report `UnresolvedAuthorSource` until source identity admission is connected.
 
-This local check does not yet discharge `components-output`, register components
-in the complete pipeline consumer ledger, or prove runtime enforcement. Tests
+This local check does not yet discharge `components-output` or prove runtime
+enforcement. Tests
 fix exact/short shared budgets, retained owners, missing and wrong candidates,
 wrong scope/enforcement and unresolved authored guards independently of wire
 integrity.
+
+`check_components_applications` covers every components step, including unused
+branches, and consumes both limit indices exactly once. It retains the same
+pipeline, Host sources, Program application table and selected policy as each
+local application. Other limits remain explicitly unconsumed; the standalone
+`check_components_complete` rejects those leftovers. Work is charged before
+allocation as twice the pipeline step count, the mixed-limit count, and three
+units per application (registration plus two consumed indices).
+
+The Graph preflight application-coverage boundary accepts this ledger alongside
+sequence and join ledgers. Every mixed limit must have exactly one consumer.
+When a ledger is absent, one shared step scan checks for omitted join and
+components operations, so omitting both an unused operation's applications and
+its limit artifacts cannot produce a successful coverage result. Program table
+ownership must also match the combined source coverage; equal reconstructed
+tables cannot substitute. This still does not establish external source
+authority or discharge other operation obligations.
 
 ## Join output limit consumers
 

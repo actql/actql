@@ -10,12 +10,13 @@ pub(all) enum ConsumerCoverageIssue {
 } derive(Eq, Debug)
 
 ///|
-/// Consumption for Graph input, sequence and optional join applications.
+/// Consumption for Graph input, sequence, join and components applications.
 /// Source authority and other operation obligations remain separate.
 struct ConsumerCoverage {
   graph : GraphInputs
   sequence : @sequence.Applications
   joins : @program.JoinApplications?
+  components : @program.ComponentsApplications?
   work : Int
 }
 
@@ -24,6 +25,7 @@ pub fn check_consumer_coverage(
   graph : GraphInputs,
   sequence : @sequence.Applications,
   joins? : @program.JoinApplications? = None,
+  components? : @program.ComponentsApplications? = None,
   max_work~ : Int,
 ) -> Result[ConsumerCoverage, ConsumerCoverageIssue] {
   if max_work < 0 {
@@ -63,6 +65,24 @@ pub fn check_consumer_coverage(
       return Err(ForeignPolicy)
     }
   }
+  if components is Some(apps) {
+    if !physical_equal(
+        checked_pipeline(graph),
+        @program.components_application_pipeline(apps),
+      ) {
+      return Err(ForeignPipeline)
+    }
+    if !physical_equal(
+        checked_sources(graph),
+        @program.components_application_sources(apps),
+      ) {
+      return Err(ForeignSources)
+    }
+    if @policy.cid(selected_policy(graph)) !=
+      @policy.cid(@program.components_application_policy(apps)) {
+      return Err(ForeignPolicy)
+    }
+  }
   let mixed = @wire.program_claim_mixed(
     @host.source_claims(checked_sources(graph)),
   ).unwrap()
@@ -88,16 +108,29 @@ pub fn check_consumer_coverage(
       Some(joined) => @program.join_consumes_limit(joined, i)
       None => false
     }
-    if (graph_consumes && sequence_consumes) ||
-      (graph_consumes && join_consumes) ||
-      (sequence_consumes && join_consumes) {
+    let components_consumes = match components {
+      Some(apps) => @program.components_consumes_limit(apps, i)
+      None => false
+    }
+    let count = (if graph_consumes { 1 } else { 0 }) +
+      (if sequence_consumes { 1 } else { 0 }) +
+      (if join_consumes { 1 } else { 0 }) +
+      (if components_consumes { 1 } else { 0 })
+    if count > 1 {
       return Err(DuplicateConsumer(i))
     }
-    if !graph_consumes && !sequence_consumes && !join_consumes {
+    if count == 0 {
       return Err(UnconsumedLimit(i))
     }
   }
-  Ok({ graph, sequence, joins, work: inputs * 2 + n, })
+  Ok({ graph, sequence, joins, components, work: inputs * 2 + n, })
+}
+
+///|
+pub fn consumer_coverage_components(
+  v : ConsumerCoverage,
+) -> @program.ComponentsApplications? {
+  v.components
 }
 
 ///|

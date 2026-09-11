@@ -30,7 +30,8 @@ test "combined application coverage shares source and consumer budgets and proof
       max_work=100,
     ).unwrap()
     let n = @wire.claim_count(@wire.program_claim_arithmetic(claims))
-    let work = n + (if extra { 10 } else { 9 })
+    // With no components ledger, operation coverage also scans both steps.
+    let work = n + (if extra { 10 } else { 9 }) + @pipeline.step_count(p)
     let result = @capacity_graph_preflight.check_application_coverage(
       graph,
       program,

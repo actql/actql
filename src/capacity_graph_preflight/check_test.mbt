@@ -71,6 +71,8 @@ fn sources(
   kind : Int,
   policy : @policy.Policy,
   proofs? : Array[@wire.ProgramProofClaim] = [],
+  extra_wires? : Array[@wire.WireWitness] = [],
+  extra_limits? : Array[(Bytes, String)] = [],
 ) -> @host.HostSources {
   let (w, l) = match (if kind == 8 { 0 } else { kind }) {
     0 =>
@@ -374,6 +376,12 @@ fn sources(
   }
   for proof in proofs {
     wires.push(@wire.program_proof_witness(proof))
+  }
+  for wire in extra_wires {
+    wires.push(wire)
+  }
+  for limit in extra_limits {
+    l.push(limit)
   }
   let mixed = @wire.check_mixed_claims(wires, l, {
     max_entities: 30,
