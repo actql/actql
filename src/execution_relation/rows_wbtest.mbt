@@ -161,8 +161,9 @@ test "row setup consumes work even with empty input; projection skips snapshot a
   let input = row_capture(owner)
   let empty = { ..input, rows: [], }
   // Two input names: 2 * (entry + byte), two projection entries:
-  // 2 * (entry + input-name byte + output-name byte) = ten setup units.
-  let exact = { remaining: 10, max_frames: 0, }
+  // 2 * (entry + input-name byte + output-name byte), plus two copied kernel
+  // entries = twelve setup units.
+  let exact = { remaining: 12, max_frames: 0, }
   assert_eq(
     evaluate_rows(row_kernel(owner, 1), empty, 0, exact, row_output()).unwrap().rows.length(),
     0,
@@ -173,13 +174,13 @@ test "row setup consumes work even with empty input; projection skips snapshot a
       row_kernel(owner, 1),
       empty,
       0,
-      { remaining: 9, max_frames: 0, },
+      { remaining: 11, max_frames: 0, },
       row_output(),
     )
     is Err(RowLimit),
   )
   // Two rows each require one visit and two ordinal copies; no snapshot map.
-  let full = { remaining: 16, max_frames: 0, }
+  let full = { remaining: 18, max_frames: 0, }
   assert_eq(
     evaluate_rows(row_kernel(owner, 1), input, 2, full, row_output()).unwrap().rows.length(),
     2,

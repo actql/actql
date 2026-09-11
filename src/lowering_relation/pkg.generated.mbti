@@ -32,6 +32,8 @@ pub fn expression_location(Expression) -> @expression_syntax.Location
 
 pub fn expression_source(Expression) -> @decode_core.Cursor
 
+pub fn expression_view_entries(Expression) -> Int
+
 pub fn input_id(Prepared, Int) -> String?
 
 pub fn input_ids(PreparedNode) -> Array[String]
@@ -45,6 +47,8 @@ pub fn kernel_input(PreparedKernel) -> String
 pub fn kernel_owner(PreparedKernel) -> BoundPrepared
 
 pub fn kernel_step(PreparedKernel) -> Int
+
+pub fn kernel_view_entries(PreparedKernel) -> Int
 
 pub fn lower_expression(BoundPrepared, Int, Int, ExpressionLimits) -> Result[Expression, ExpressionIssue]
 

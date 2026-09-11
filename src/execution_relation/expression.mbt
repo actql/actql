@@ -86,9 +86,11 @@ fn evaluate_expression(
     match state {
       Enter(expr) => {
         active = expr
-        // Lowering bounds the defensive-copy expression view's size;
-        // execution-side live-value accounting is
-        // still required before this kernel is connected to a fragment API.
+        // Charge before allocating the defensive-copy view. This bounds
+        // cumulative copy work, not total retained physical memory.
+        if !spend_control(budget, @lower.expression_view_entries(expr)) {
+          return Err({ kind: ControlLimit, expression: expr, })
+        }
         let body = @lower.expression_body(expr)
         let leaf = match body {
           Field(_, _) | Literal(_) | TypedNull => true

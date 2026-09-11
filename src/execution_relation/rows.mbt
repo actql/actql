@@ -86,6 +86,9 @@ fn evaluate_rows(
   if input.rows.length() > max_rows {
     return Err(RowLimit)
   }
+  if !spend_control(control, @lower.kernel_view_entries(kernel)) {
+    return Err(RowLimit)
+  }
   let kind = @lower.kernel_body(kernel)
   let output_names : Array[String] = []
   let projection : Array[Int] = []

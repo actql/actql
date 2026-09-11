@@ -53,6 +53,25 @@ fn run_expr(text : String) -> Result[Value, EvalIssue] {
 }
 
 ///|
+test "lazy coalesce charges its view copy but does not demand later children" {
+  let expr = lowered(
+    "{\"coalesce\":[{\"literal\":7},{\"divide\":[{\"literal\":1},{\"literal\":0}]}]}",
+  )
+  assert_eq(@lower.expression_view_entries(expr), 2)
+  // Four transitions to return the first child and two copied child entries.
+  assert_true(
+    evaluate_expression(expr, {}, [], { remaining: 6, max_frames: 1, }).unwrap()
+    is Number(7.0),
+  )
+  guard evaluate_expression(expr, {}, [], { remaining: 2, max_frames: 1, })
+    is Err(issue) else {
+    fail("copy preflight missing")
+  }
+  assert_eq(issue.kind, ControlLimit)
+  assert_true(physical_equal(issue.expression, expr))
+}
+
+///|
 test "text comparison charges UTF-8 size in addition to control transitions" {
   let expr = lowered(
     "{\"eq\":[{\"literal\":\"é😀\"},{\"literal\":\"é😀\"}]}",

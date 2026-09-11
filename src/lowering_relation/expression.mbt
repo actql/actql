@@ -97,6 +97,21 @@ pub fn expression_body(value : Expression) -> ExpressionBody {
 }
 
 ///|
+/// O(1), allocation-free number of entries copied by expression_body.
+pub fn expression_view_entries(value : Expression) -> Int {
+  match value.body {
+    Many(_, children) => children.length()
+    Case(clauses, _) => clauses.length()
+    Field(_, _)
+    | Literal(_)
+    | TypedNull
+    | Unary(_, _)
+    | Binary(_, _, _)
+    | Conditional(_, _, _) => 0
+  }
+}
+
+///|
 pub fn expression_contract(value : Expression) -> @contract.Contract {
   value.contract
 }

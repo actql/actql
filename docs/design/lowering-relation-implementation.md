@@ -356,3 +356,9 @@ and compare fixed results. Mixing a table from one binding with the other's
 kernel fails before evaluation. A separate nullable-input vector verifies lazy
 conditional selection and that a NULL filter predicate excludes the row. These
 close private-kernel coverage gaps, not the still-open fragment admission gate.
+
+Defensive-copy expression/kernel views now expose O(1), allocation-free entry
+counts. Execution reserves their copy work before constructing the array view,
+rather than relying only on lowering limits. A lazy coalesce test distinguishes
+copying child references from evaluating unselected children. This bounds
+cumulative view-copy work; separate peak live-memory accounting is still open.

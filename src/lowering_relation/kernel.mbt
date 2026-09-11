@@ -56,6 +56,16 @@ pub fn kernel_body(kernel : PreparedKernel) -> KernelBody {
 }
 
 ///|
+/// O(1), allocation-free number of entries copied by kernel_body.
+pub fn kernel_view_entries(kernel : PreparedKernel) -> Int {
+  match kernel.body {
+    SnapshotMap(bindings) => bindings.length()
+    Select(fields) => fields.length()
+    Filter(_) => 0
+  }
+}
+
+///|
 pub fn prepare_kernel(
   owner : BoundPrepared,
   step_index : Int,
