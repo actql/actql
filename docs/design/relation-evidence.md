@@ -274,3 +274,45 @@ transfer uses these combined facts without evaluating rows or discharging
 `ValidateCardinality` or producer/input admission obligations. Join-output key
 transfer and dependency-closed Plan serialization remain separate unfinished
 connections; this pass does not grant downstream output uniqueness by a flag.
+
+## Join evidence dependency boundary
+
+Before implementing output-key transfer, separate ordinary checked join shape
+from evidence-dependent as-of completion. The current package graph is
+`pipeline_typing -> relation_join -> relation_evidence`: `asof.mbt` retains
+`KeyedRelation` and selects complete keys, and the shared `Obligation` enum
+embeds `KeyObligation`. Adding a reverse import for ordinary join transfer would
+create a cycle even though ordinary join shape checking needs neither feature.
+
+The required split is a lower checked-join package owning the ordinary checked
+join, its closed operand/projection shape, and evidence-independent shared join
+types. The upper as-of boundary retains key selection and the original key
+obligations. `relation_evidence` can then consume the lower checked join without
+depending on its own callers. Shared implementation helpers must have a clear
+owner; do not duplicate parsers or introduce caller-supplied proof flags to avoid
+the dependency. Preserve existing diagnostic and budget behavior when moving
+the boundary. Public facade aliases may preserve names where types permit it.
+
+Transfer must bind both exact operand handles and retain the checked producer,
+all contributing key witnesses and any cardinality assertion. Projection must
+track every surviving exact-copy alias, not merely the first displayed name.
+The implementation must cover, and distinguish, these cases:
+
+- Semi/anti preserve left occurrences and their keys without needing a right
+  uniqueness proof; the right side does not donate an output key.
+- Inner/left may preserve a left key only if the right match is conditionally
+  at most one per left occurrence. Inner may symmetrically preserve a right key
+  when the left match is at most one. An authored assertion remains a required
+  validation dependency, not observed uniqueness.
+- Pair keys require complete retained components from both operands. Outer
+  null extension needs its own validity reasoning; never label all nullable
+  output components as an eligible non-null canonical-order key.
+- Projection can remove all usable keys, and subsequent joins cannot recover
+  missing components merely from identical column types or strings.
+
+This is an implementation dependency plan, not evidence that join transfer is
+finished. The next acceptance run must include all five join kinds, assertion
+and key-derived cardinality, asymmetric inputs, repeated equality pairs,
+multiple aliases followed by deletion, downstream sort/take/Result consumers,
+and work/text boundaries. Existing join cardinality/count tests remain required
+regressions. Algebra lowering and runtime validation stay separate.
