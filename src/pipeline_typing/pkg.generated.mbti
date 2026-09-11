@@ -109,6 +109,8 @@ pub fn collect_author_guards(CheckedPipeline, max_work~ : Int, max_text_bytes~ :
 
 pub fn collect_expression_slots(CheckedPipeline, max_work~ : Int, max_slots~ : Int) -> Result[ExpressionSlots, ExpressionSlotIssue]
 
+pub fn collect_parameter_slots(CheckedPipeline, max_work~ : Int, max_slots~ : Int) -> Result[ParameterSlots, ExpressionSlotIssue]
+
 pub fn combine_relation_evidence(@decode_core.Cursor, @relation_evidence.KeySet, @relation_evidence.RankingInput) -> Result[RelationEvidence, Issue]
 
 pub fn contextual_closure_at(ContextualClosure, Int) -> ContextualOrders?
@@ -224,6 +226,14 @@ pub fn order_sort_completion(LogicalOrder) -> SortCompletion?
 pub fn output_carrier(CheckedPipeline) -> @carrier_contract.Carrier?
 
 pub fn output_schema(CheckedPipeline) -> @relation_schema.Schema?
+
+pub fn parameter_slot_at(ParameterSlots, Int) -> ParameterSlot?
+
+pub fn parameter_slot_count(ParameterSlots) -> Int
+
+pub fn parameter_slots_pipeline(ParameterSlots) -> CheckedPipeline
+
+pub fn parameter_slots_work(ParameterSlots) -> Int
 
 pub fn parameters(CheckedPipeline) -> @parameter_binding.Declarations?
 
@@ -496,6 +506,14 @@ pub struct NestOrderTerm {
   nulls : @order_key.NullPlacement
   authored : Bool
 }
+
+pub struct ParameterSlot {
+  step : Int
+  name : String
+  source : @decode_core.Cursor
+}
+
+type ParameterSlots
 
 type ProducedInput
 

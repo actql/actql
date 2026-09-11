@@ -133,8 +133,11 @@ declarations and emits canonical pointers for a supplied set of expression slots
 complete slot discovery and the enclosing Program owner remain required.
 The [local pipeline expression-slot pass](pipeline-typing.md#retained-expression-slots)
 now supplies every retained typed Expression root across Relation, Sequence and
-Graph steps, including unused branches. It does not supply non-expression value
-operands or slots outside the local pipeline, so it is not full Program discovery.
+Graph steps, including unused branches. Its complementary
+[direct-operand pass](pipeline-typing.md#non-expression-parameter-slots) retains
+local count/duration/guard and CellValue Parameter positions without inspecting
+literal data. Slots outside the local pipeline and the combined work/owner
+boundary remain incomplete, so these passes are not full Program discovery.
 
 The implementation boundary therefore still needs three connected results:
 

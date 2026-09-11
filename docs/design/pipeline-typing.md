@@ -152,10 +152,46 @@ their own slots and require their own traversal.
 These slots feed the [Parameter reference index](parameter-references.md) after
 bounded occurrence discovery. The integration test retains root-source pointers
 through derive/filter checking, including an unused branch. This is not a
-complete Program reference enumeration: non-expression count/duration guards,
-CellValue operands, input requests, Results, effects and opaque binding references
-still require their grammar-specific paths. No checked schema expansion or
+complete Program reference enumeration: the complementary non-expression pass
+below handles local value operands, while input requests, Results, effects and
+opaque binding references still require their grammar-specific paths. No checked schema expansion or
 evidence-dependent operation completion becomes the authored semantic body.
+
+## Non-expression Parameter slots
+
+`collect_parameter_slots` separately enumerates currently admitted direct
+Parameter operands from every local checked step. Each immutable record retains
+the step, name and original singleton `{$param: name}` source cursor; the result
+retains the exact pipeline. The operation dispatch is exhaustive, with explicit
+non-operand cases, and does not recursively search JSON for `$param`.
+
+It covers take/count/offset and top-k counts, lag offsets, row-watermark values,
+window size/step/offset (including authored fixed-window step), session gaps,
+sequence periods and guards, time-series/calendar endpoints, applicable Graph
+counts and path guards, join/nest guards, as-of tolerance, vector query Parameters,
+aggregate fraction/item/byte options, analytic navigation/frame bounds, pivot
+fill and typed values cells. It visits only named grammar fields or checked cell
+records. Plain literal cells, wrapped literal payloads, business objects,
+annotations and general Expression children are not recursively inspected.
+Literal-only options in a checked operation do not become Parameter slots.
+
+Work counts local steps, inspected immediate fields and repeated container items
+(rows/cells, aggregate calls and frame boundaries); `max_slots` bounds retained
+Parameter occurrences. Equality is accepted and exhaustion returns no partial
+collection. It shares the slot-limit issue vocabulary with expression discovery.
+It neither resolves effective values nor discharges the operands' binding and
+execution obligations. Repeated names and semantically unused but authored
+options are preserved as separate source occurrences.
+
+These direct nodes have the same closed syntax as a structured Parameter
+Expression, so bounded common admission can connect them to the existing
+[reference index](parameter-references.md) without parsing expression text or
+interpreting surrounding data. The integration test checks their original
+locations and declaration association. Collection and any subsequent admission,
+occurrence/index passes retain independent limits until the combined Program
+boundary accounts for them together. Producer pipelines, input requests,
+Results, effects and opaque binding references still require enclosing traversal;
+the local collections alone do not certify complete Program usage.
 
 ## Conditional evidence
 
