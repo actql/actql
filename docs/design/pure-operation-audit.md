@@ -843,8 +843,11 @@ admission, resource enforcement or complete source authority.
    input registration accepted by the Program assembly.
    [Staged local source references](local-source-reference.md) now have a pinned
    canonical selector grammar and bounded codec with independent fixed vectors.
-   Actual Program resolution and snapshot body/environment admission remain
-   necessary; a parsed selector is not an authenticated input owner.
+   Source resolution now indexes one actual staged Program and resolves batches
+   to immutable source slots, preserving original diagnostics and rejecting
+   unknown/nonlocal/duplicate selectors with shared work/text budgets. Snapshot
+   body/environment admission remains necessary; a resolved source location is
+   not an authenticated input owner or a stronger pipeline registration.
    A two-stage actual Result import tests final publication ownership, foreign
    reissued orders and exact/short cumulative budgets. Ordinary/receipt inputs,
    static discharge and complete semantic Program identity remain incomplete.

@@ -1,0 +1,66 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/stage_source_refs"
+
+import {
+  "actql/actql/decode_core",
+  "actql/actql/local_source_ref",
+  "actql/actql/stage_parameters",
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn count(Resolved) -> Int
+
+pub fn declaration(ResolvedInput) -> @decode_core.Cursor
+
+pub fn entry_at(Resolved, Int) -> ResolvedInput?
+
+pub fn index_usage(Index) -> Usage
+
+pub fn input_index(ResolvedInput) -> Index
+
+pub fn input_reference(ResolvedInput) -> @local_source_ref.Reference
+
+pub fn prepare(@stage_parameters.Source, Limits) -> Result[Index, Issue]
+
+pub fn resolve(Index, Array[@local_source_ref.Reference], Limits) -> Result[Resolved, Issue]
+
+pub fn resolved_index(Resolved) -> Index
+
+pub fn resolved_usage(Resolved) -> Usage
+
+pub fn source(Index) -> @stage_parameters.Source
+
+pub fn stage_index(ResolvedInput) -> Int
+
+// Errors
+
+// Types and methods
+type Index
+
+pub(all) enum Issue {
+  InvalidLimits
+  BudgetExceeded
+  UnknownStage(String)
+  UnknownInput(String, String)
+  NonLocalInput(String, String)
+  DuplicateReference(String)
+} derive(Eq, @debug.Debug)
+
+pub(all) struct Limits {
+  max_work : Int
+  max_text_bytes : Int
+}
+
+type Resolved
+
+type ResolvedInput
+
+pub(all) struct Usage {
+  work : Int
+  text_bytes : Int
+} derive(Eq, @debug.Debug)
+
+// Type aliases
+
+// Traits

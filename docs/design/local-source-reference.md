@@ -21,10 +21,34 @@ The JSON Schema checks syntax only; the codec additionally rejects noncanonical
 text. Fixed independent cases cover stage distinction, slash/tilde ambiguity,
 Unicode, newlines, percent-like data, malformed syntax and exact byte boundaries.
 
-Next, snapshot admission must resolve the selector against the exact selected
-Program and local slot, reconcile Carrier/schema, verify Check Environment
-membership and retain that ownership through pipeline registration. Neither
-the codec nor `stage_local_inputs.reconcile_schemas` performs those checks.
+`stage_source_refs.prepare` indexes actual stage/input locations from one
+`stage_parameters.Source`. `resolve` resolves a batch of parsed selectors against
+that exact index, rejecting unknown stages/inputs, Connector declarations and
+source-admitted Result/receipt imports. Repeated selectors fail even when the
+reference handles or spelling are identical; no snapshot deduplication is inferred.
+Local Graph, Events and Vectors slots are not rejected merely because the current
+local schema reader supports only Relation. Resolution does not validate their
+declaration bodies, infer a Carrier or admit a malformed local declaration.
+
+The opaque batch and entries retain the exact index and Program source, the stage
+position as an internal navigation coordinate, and the original input cursor.
+Reference spelling still uses stage IDs, not those positions. Entries expose
+their original path/span without copying or reconstructing source locations.
+Caller reference arrays are not retained, and a late error exposes no partial
+batch. Two equivalent-looking Programs produce distinct ownership boundaries.
+
+Indexing charges stage/input enumeration, import indexing and scanned declaration
+member names before allocating their corresponding maps. UTF-8 names and work
+have shared bounds. Resolution includes the original index cost once plus every
+selector occurrence and encoded text. It performs two indexed lookups per
+selector rather than rescanning the Program per snapshot. These costs cover this
+source-location pass, not preceding source/Parameter admission or the full
+snapshot body. Later assembly can subtract shared index work only after verifying
+the exact shared index owner.
+
+Next, snapshot admission must reconcile Carrier/schema, verify Check Environment
+membership and retain the resolved ownership through pipeline registration.
+Neither this resolver nor `stage_local_inputs.reconcile_schemas` checks those links.
 The selector has no standalone Program identity or authorization meaning.
 Materialization/provenance claims require their own validation and must not be
 fabricated from a static schema snapshot. This change does not define a full

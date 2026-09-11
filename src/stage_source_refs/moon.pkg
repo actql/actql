@@ -1,0 +1,9 @@
+supported_targets = "+js+wasm+native"
+
+import {
+  "actql/actql/stage_parameters" @stages,
+  "actql/actql/stage_syntax" @syntax,
+  "actql/actql/decode_core" @decode,
+  "actql/actql/decode_scalar" @scalar,
+  "actql/actql/local_source_ref" @reference,
+}
