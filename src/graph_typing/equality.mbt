@@ -52,6 +52,8 @@ fn check_graph_pair(
   right : @carrier.Carrier,
   limits : Limits,
   allowed? : Array[String] = ["with"],
+  reference? : @decode.Cursor? = None,
+  source_scanned? : Bool = false,
 ) -> Result[CheckedEquality, Issue] {
   try {
     if limits.max_work < 0 ||
@@ -66,9 +68,14 @@ fn check_graph_pair(
       nodes: limits.max_nodes,
       text: limits.max_text_bytes,
     }
-    scan(b, source)
+    if !source_scanned {
+      scan(b, source)
+    }
     let o = decoded(@decode.closed_object(source, allowed))
-    let target = decoded(@decode.required(o, "with"))
+    let target = match reference {
+      Some(at) => at
+      None => decoded(@decode.required(o, "with"))
+    }
     let with_name = decoded(@decode.text(target))
     if with_name.is_empty() ||
       @canonical.normalize_nfc_lf(with_name) != Ok(with_name) {

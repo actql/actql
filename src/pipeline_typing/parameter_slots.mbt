@@ -216,6 +216,7 @@ pub fn collect_parameter_slots(
         | GraphDiff(..)
         | GraphApply(..)
         | GraphStructural(..)
+        | GraphUnion(_)
         | GraphMean(_)
         | GraphConstruction(..)
         | Nearest(..)

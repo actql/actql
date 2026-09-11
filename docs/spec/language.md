@@ -7666,11 +7666,14 @@ GraphBoundsBody := {max_nodes?: NonnegativeIntegerValue,
 GraphBoundsConstraints := at least one bound; diagnostic thresholds, not resource ceilings.
 GraftGraphBody := {with: InputOrStepName}
 StructuralGraphBody := {with: InputOrStepName, merge?: GraphMerge}
+UnionGraphBody := {with: InputOrStepName | [InputOrStepName, ...], merge?: GraphMerge}
 GraphMerge := {node_properties?: {AuthoredFieldName: GraphFieldStrategy}*,
   edge_properties?: {AuthoredFieldName: GraphFieldStrategy}*}
 GraphFieldStrategy := exact_equal | set_union | set_difference | number_sum
   | number_mean | number_min | number_max
-StructuralGraphConstraints := union_graphs/subtract_graphs use StructuralGraphBody;
+StructuralGraphConstraints := union_graphs uses UnionGraphBody with a nonempty list;
+  subtract_graphs uses StructuralGraphBody; union folds left in authored reference
+  order, retaining repeated references and treating scalar with as a singleton;
   empty maps are retained; strategies refer to existing properties of compatible type.
 ParamRef := { $param: ParamName }
 PositiveIntegerValue := PositiveSafeInteger | ParamRef

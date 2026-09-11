@@ -146,6 +146,7 @@ pub fn collect_expression_slots(
         | GraphDiff(..)
         | GraphApply(..)
         | GraphStructural(..)
+        | GraphUnion(_)
         | GraphMean(_)
         | GraphConstruction(..)
         | Vector(_)

@@ -42,11 +42,17 @@ test('graph bodies preserve literal options and optional positive component guar
   assert.equal(s.match_nodes.properties.ids.uniqueItems, undefined);
   assert.equal(s.match_edges.properties.types.minItems, undefined);
   assert.equal(s.match_edges.properties.types.uniqueItems, undefined);
-  for (const name of ['graphs_equal','graph_diff','graft_graph','union_graphs','subtract_graphs']) {
+  for (const name of ['graphs_equal','graph_diff','graft_graph','subtract_graphs']) {
     assert.deepEqual(s[name].required, ['with']);
     assert.equal(s[name].additionalProperties, false);
     assert.deepEqual(s[name].properties.with, {type:'string',minLength:1});
   }
+  assert.deepEqual(s.union_graphs.required, ['with']);
+  assert.equal(s.union_graphs.additionalProperties, false);
+  assert.deepEqual(s.union_graphs.properties.with, {oneOf:[
+    {type:'string',minLength:1},
+    {type:'array',minItems:1,items:{type:'string',minLength:1}},
+  ]});
   assert.equal(s.graft_graph.properties.merge, undefined);
   for (const name of ['union_graphs','subtract_graphs']) {
     const merge = s[name].properties.merge;

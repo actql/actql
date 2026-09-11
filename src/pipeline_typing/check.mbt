@@ -828,6 +828,65 @@ fn check_impl(
         Ok(c) => c
         Err(_) => fail(operation_body, InvalidBody)
       }
+      if key == "union_graphs" && @decode.array_length(at) is Some(n) {
+        if n == 0 {
+          fail(at, InvalidBody)
+        }
+        spend(b, at, n)
+        let occurrences = [{ role: Left, target: input, }]
+        let operands = []
+        for i in 0..<n {
+          let target = resolve_target(
+            b,
+            @decode.element_at(at, i).unwrap(),
+            names,
+          )
+          occurrences.push({ role: Sample(i), target, })
+          operands.push(carrier(target, inputs, steps))
+        }
+        let checked = match
+          @graph.check_union(
+            operation_body,
+            carrier(input, inputs, steps),
+            operands,
+            {
+              max_work: b.work,
+              max_nodes: b.nodes,
+              max_depth: limits.max_depth,
+              max_text_bytes: b.text,
+            },
+          ) {
+          Ok(c) => c
+          Err(e) =>
+            raise Stop({
+              kind: Graph(e.kind),
+              source: operation_body,
+              path: e.path.copy(),
+              span: e.span,
+              range: None,
+            })
+        }
+        let u = @graph.union_usage(checked)
+        b.work -= u.work
+        b.nodes -= u.nodes
+        b.text -= u.text_bytes
+        let target = Step(steps.length())
+        steps.push({
+          source: body,
+          input: Some(input),
+          binding_name,
+          metadata: meta,
+          operation: GraphUnion(checked),
+          output: @graph.union_output(checked),
+          connections: { entries: occurrences, },
+          window: None,
+        })
+        if binding_name is Some(name) {
+          names[name] = target
+        }
+        current = Some(target)
+        continue
+      }
       let right = resolve_target(b, at, names)
       let caps : @graph.Limits = {
         max_work: b.work,
@@ -2039,7 +2098,7 @@ fn check_impl(
               [{ role: Left, target: t, }, { role: Right, target: edges, }]
             None => [{ role: Primary, target: edges, }]
           }
-        Values(_) | TimeSeries(_) | GraphMean(_) => []
+        Values(_) | TimeSeries(_) | GraphMean(_) | GraphUnion(_) => []
         Calendar(_) | Pool(_) | Ranking(_) =>
           [{ role: Primary, target: input, }]
         Shortest(source_selector~, target_selector~, ..) => {

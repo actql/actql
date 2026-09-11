@@ -253,7 +253,7 @@ None of these checks is evidence of a numerical evaluator.
 
 ## Structural graph composition
 
-The three structural operations retain both input occurrences, including repeated
+Binary structural operations retain both input occurrences, including repeated
 references to one input. They require compatible complete identity/property
 domains; no missing property is repaired with null. Source bodies remain available
 without deleting empty strategy maps or deduplicating authored operations.
@@ -281,6 +281,18 @@ semantics, not its string-only identity restriction. Typed canonical equality,
 strategy execution even on equal values, finite numeric results, canonical set
 ordering, subtraction endpoint closure, policy, profile and resources remain
 explicit obligations. This checker does not execute graph composition.
+
+`check_union` additionally accepts the normative nonempty reference list. It
+retains each binary fold, starting with the current Graph and consuming each
+listed occurrence in order, without reassociation or deduplication. The source
+tree is scanned once; each fold consumes the remaining shared budget. Operand
+arrays are owned copies and indexed access does not expose mutable storage.
+The pipeline retains one authored step with ordered connections (left input,
+then each listed occurrence), each fold's obligations and the final contract.
+Node/edge upper bounds include repeated occurrences; an unknown bound prevents
+a sum claim on that axis. Scalar syntax remains supported, and subtraction and
+graft remain binary. This implements existing Language and operation-binding
+rules; it does not implement their runtime strategies or lowering.
 
 ## Graph Delta typing
 

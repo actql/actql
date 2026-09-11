@@ -59,7 +59,9 @@ export function graphSchemas() {
     match_edges: {type:'object',additionalProperties:false,required:['fields'],
       properties:{fields:projectedFields,types:{type:'array',items:field},where:predicate}},
     graft_graph: {type:'object',additionalProperties:false,required:['with'],properties:{with:field}},
-    union_graphs: structural,
+    union_graphs: {...structural,properties:{...structural.properties,
+      with:{oneOf:[field,{type:'array',minItems:1,items:field}]},
+    }},
     subtract_graphs: structuredClone(structural),
     graph: {oneOf:[
       {type:'object',additionalProperties:false,required:['nodes','edges'],properties:{

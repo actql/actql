@@ -165,6 +165,19 @@ pub fn check_structural(
   right : @carrier.Carrier,
   limits : Limits,
 ) -> Result[CheckedStructural, Issue] {
+  check_structural_impl(operation, source, left, right, limits)
+}
+
+///|
+fn check_structural_impl(
+  operation : StructuralOperation,
+  source : @decode.Cursor,
+  left : @carrier.Carrier,
+  right : @carrier.Carrier,
+  limits : Limits,
+  reference? : @decode.Cursor? = None,
+  source_scanned? : Bool = false,
+) -> Result[CheckedStructural, Issue] {
   try {
     let comparison = match
       check_graph_pair(
@@ -173,6 +186,8 @@ pub fn check_structural(
         right,
         limits,
         allowed=if operation == Graft { ["with"] } else { ["with", "merge"] },
+        reference~,
+        source_scanned~,
       ) {
       Ok(c) => c
       Err(e) => raise Stop(e)

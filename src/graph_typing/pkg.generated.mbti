@@ -69,6 +69,8 @@ pub fn check_subgraph(@decode_core.Cursor, @carrier_contract.Carrier, @carrier_c
 
 pub fn check_traverse(@decode_core.Cursor, @carrier_contract.Carrier, @carrier_contract.Carrier?, @parameter_binding.Declarations?, PredicateLimits) -> Result[CheckedTraverse, MatchIssue]
 
+pub fn check_union(@decode_core.Cursor, @carrier_contract.Carrier, Array[@carrier_contract.Carrier], Limits) -> Result[CheckedUnion, Issue]
+
 pub fn construction_edges_name(CheckedConstruction) -> String?
 
 pub fn construction_nodes_name(CheckedConstruction) -> String?
@@ -287,6 +289,20 @@ pub fn traverse_start(CheckedTraverse) -> CheckedSelector
 
 pub fn traverse_usage(CheckedTraverse) -> PredicateUsage
 
+pub fn union_count(CheckedUnion) -> Int
+
+pub fn union_fold_at(CheckedUnion, Int) -> CheckedStructural?
+
+pub fn union_input(CheckedUnion) -> @carrier_contract.Carrier
+
+pub fn union_operand_at(CheckedUnion, Int) -> @carrier_contract.Carrier?
+
+pub fn union_output(CheckedUnion) -> @carrier_contract.Carrier
+
+pub fn union_source(CheckedUnion) -> @decode_core.Cursor
+
+pub fn union_usage(CheckedUnion) -> Usage
+
 pub fn usage(CheckedGraph) -> Usage
 
 // Errors
@@ -342,6 +358,8 @@ type CheckedStructural
 type CheckedSubgraph
 
 type CheckedTraverse
+
+type CheckedUnion
 
 pub(all) enum ComponentKind {
   Weak

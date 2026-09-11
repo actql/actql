@@ -377,14 +377,15 @@ property with null. Existing structural suites separately test authored numeric
 and set strategies, endpoint-closure obligations and repeated binary operands.
 These are static type/count checks, not evaluation of merge or subtraction laws.
 
-The audit found a remaining source gap: Language's explicit
-`union_graphs.with` nonempty-list rule and `operation-binding` left-fold rule are
-not implemented. `pipeline_typing/check.mbt` resolves `with` as one target;
-`StructuralGraphBody` and `graph-schema.mjs` also still admit only the scalar
-form. This is an implementation/grammar/schema omission, not a new acceptance
-decision. The list path must retain ordered repeated operands, check every fold
-under shared budgets, propagate its joined contracts and counts, and update all
-affected consumers and schema pins. The binary audit does not close that gap.
+The audit found and prompted correction of a source omission: Language's explicit
+`union_graphs.with` nonempty-list rule and `operation-binding` left-fold rule.
+`graph_typing/union_test.mbt` and `pipeline_typing/union_list_test.mbt` now exercise
+ordered repeated operands, sequential property-bound widening, retained fold
+obligations, ownership, late-reference diagnostics and shared budget boundaries.
+The pipeline keeps one authored step and transfers node/edge count bounds to
+both row bridges. Grammar and machine schema distinguish union's nonempty list
+from binary graft/subtraction. These are static acceptance and propagation
+checks; merge evaluation and canonical binary lowering remain outside this work.
 
 ## Shared-boundary findings
 

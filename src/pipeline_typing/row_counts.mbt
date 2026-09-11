@@ -477,6 +477,33 @@ fn derive_row_counts(
     let graph_input = step.input.bind(t => graph_count_at(t, graphs))
     let graph_output = match step.operation {
       GraphMean(op) => Some(mean_graph_count(b, step, graphs, op))
+      GraphUnion(_) => {
+        spend(b, step.source, step.connections.entries.length())
+        let mut known_nodes = true
+        let mut known_edges = true
+        for entry in step.connections.entries {
+          let other = graph_count_at(entry.target, graphs)
+          if other.bind(v => v.nodes) is None {
+            known_nodes = false
+          }
+          if other.bind(v => v.edges) is None {
+            known_edges = false
+          }
+        }
+        let mut nodes = if known_nodes { Some(count(0L, true)) } else { None }
+        let mut edges = if known_edges { Some(count(0L, true)) } else { None }
+        spend(b, step.source, step.connections.entries.length())
+        for entry in step.connections.entries {
+          let other = graph_count_at(entry.target, graphs)
+          if known_nodes {
+            nodes = sum_counts(step.source, nodes, other.bind(v => v.nodes))
+          }
+          if known_edges {
+            edges = sum_counts(step.source, edges, other.bind(v => v.edges))
+          }
+        }
+        Some({ nodes: reduce_count(nodes), edges: reduce_count(edges), })
+      }
       GraphConstruction(nodes~, edges~, ..) => {
         let edges = reduce_count(count_at(edges, result))
         let nodes = match nodes {
