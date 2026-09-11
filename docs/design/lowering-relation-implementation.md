@@ -458,3 +458,19 @@ Retention-preparation validation: execution tests 34/34 on each target, matching
 unchanged public API, formatting/whitespace and 865 links pass. Ordinary builds
 now report 25 unused-private-code warnings, including the unconnected retention
 metadata. No public execution entry or runtime-conformance claim is added.
+
+Private table storage now adopts successful operation outputs in prepared step
+order. It verifies owner, producer ID and availability of every input before
+updating retained tables. Source/output overlap is charged before releasing the
+last-consumed sources; retained branch outputs remain available. Release visits
+the current input edges, not all historical tables. A four-step branch vector
+retains 12, 15, 15 and 9 structural entries after successive commits, with a
+23-entry peak. Failed adoption keeps the previous tables and step cursor intact;
+its partially spent budget is not a fresh retry budget. This is not durable
+commit or execution authorization, and tests still wire row kernels explicitly.
+Fragment-wide nested-value accounting and simultaneous computation/store
+workspace accounting remain open; this store alone is not a heap bound.
+
+Storage-unit validation: execution tests 36/36 on each target, unchanged
+matching API, format/whitespace and 865 links pass. Ordinary builds report 27
+unused-private-code warnings until the driver is connected.
