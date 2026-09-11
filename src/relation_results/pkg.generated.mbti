@@ -6,6 +6,7 @@ import {
   "actql/actql/decode_core",
   "actql/actql/order_key",
   "actql/actql/pipeline_typing",
+  "actql/actql/relation_evidence",
   "actql/actql/relation_schema",
   "actql/actql/source_span",
   "actql/actql/source_value",
@@ -35,6 +36,24 @@ pub fn pending_validations(ResultDefinition) -> Array[Obligation]
 
 pub fn pipeline(CheckedResults) -> @pipeline_typing.CheckedPipeline
 
+pub fn publication_inherited_order(PublicationOrder) -> @pipeline_typing.LogicalOrder?
+
+pub fn publication_key(PublicationOrder) -> @relation_evidence.KeyedRelation?
+
+pub fn publication_order_usage(PublicationOrder) -> (Int, Int)
+
+pub fn publication_result_index(PublicationOrder) -> Int
+
+pub fn publication_results(PublicationOrder) -> CheckedResults
+
+pub fn publication_strategy(PublicationOrder) -> OrderStrategy
+
+pub fn publication_term_at(PublicationOrder, Int) -> PublicationTerm?
+
+pub fn publication_term_count(PublicationOrder) -> Int
+
+pub fn resolve_publication_order(CheckedResults, Int, max_work~ : Int, max_text_bytes~ : Int) -> Result[PublicationOrder, Issue]
+
 pub fn result_at(CheckedResults, Int) -> ResultDefinition?
 
 pub fn source(CheckedResults) -> @decode_core.Cursor
@@ -56,6 +75,7 @@ pub struct Issue {
 }
 
 pub(all) enum IssueKind {
+  UnresolvedOrder
   InvalidLimits
   BudgetExceeded
   InvalidBody
@@ -90,6 +110,22 @@ pub struct OrderKey {
   nulls : @order_key.NullPlacement
   explicit_nulls : Bool
   source : @decode_core.Cursor
+}
+
+pub(all) enum OrderStrategy {
+  Authored
+  Inherited
+  CandidateKey
+  ProjectedFields
+} derive(Eq, @debug.Debug)
+
+type PublicationOrder
+
+pub struct PublicationTerm {
+  field : @relation_schema.FieldName
+  direction : @order_key.Direction
+  nulls : @order_key.NullPlacement
+  authored : Bool
 }
 
 type ResultDefinition

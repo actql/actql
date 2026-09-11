@@ -30,8 +30,10 @@ alias of a component already present in the authored terms covers that component
 This can produce an empty completion for an already-covered key, but it does not
 deduplicate or rewrite authored terms. Empty sort never invokes this completion.
 Reference identity ordering is internal and does not expand authored OrderKey
-types. The current selector requires complete non-null portable components;
-nullable-key completion remains unimplemented rather than silently reinterpreted.
+types. Candidate keys require complete non-null components by Language's
+definition. A nullable Graph label tuple can retain a conditional identity/
+uniqueness witness for other consumers, but is not an eligible candidate key
+for this ordering completion. This is not a missing nullable-key feature.
 
 `order_sort_completion` exposes the selected witness and indexed appended fields.
 The retained origin operation supplies the unchanged authored terms. This is
@@ -40,9 +42,9 @@ journal or executable sort has already been emitted. A sort with no selected
 key is not resolved merely because its keys type-check. Other unimplemented
 transfer rules return no summary rather than an
 invented unordered value or an unconditional success. Results still retain their
-publication-order obligation. Connecting other completed orders and their
-consumer checks, other ordered operations, validated external witnesses and Results
-publication remains shared-evidence work.
+publication-order obligation until the separate publication strategy is resolved.
+Connecting other completed orders and their consumer checks, other ordered
+operations and validated external witnesses remains shared-evidence work.
 
 ## Take consumption
 

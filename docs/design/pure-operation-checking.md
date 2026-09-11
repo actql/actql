@@ -72,6 +72,9 @@ upper bounds and unresolved execution obligations distinct.
 The [conditional logical-order pass](logical-order.md) retains ordered generator
 origins and supported preserving edges independently of candidate keys. General
 order completion, external admission and publication integration remain required.
+The [Result publication-order resolver](result-publication-order.md) now applies
+the declared priority to inherited order, eligible keys and projected-field
+fallback while retaining execution obligations and unresolved authored ties.
 Support typed, columns-only and unknown inputs where the operation's existing
 rules allow them. Unknown information is neither an empty closed schema nor
 `json`. Missing mandatory static evidence fails; only already admitted deferrals

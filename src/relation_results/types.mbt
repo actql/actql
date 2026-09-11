@@ -37,6 +37,7 @@ pub(all) enum Obligation {
 
 ///|
 pub(all) enum IssueKind {
+  UnresolvedOrder
   InvalidLimits
   BudgetExceeded
   InvalidBody
