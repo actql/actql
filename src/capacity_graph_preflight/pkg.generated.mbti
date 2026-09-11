@@ -12,6 +12,8 @@ import {
 // Values
 pub fn check(@pipeline_typing.CheckedPipeline, @capacity_host_witness.HostSources, @capacity_policy.Policy, Limits) -> Result[GraphInputs, Issue]
 
+pub fn check_complete(@pipeline_typing.CheckedPipeline, @capacity_host_witness.HostSources, @capacity_policy.Policy, Limits) -> Result[GraphInputs, Issue]
+
 pub fn checked_pipeline(GraphInputs) -> @pipeline_typing.CheckedPipeline
 
 pub fn checked_sources(GraphInputs) -> @capacity_host_witness.HostSources
@@ -19,6 +21,8 @@ pub fn checked_sources(GraphInputs) -> @capacity_host_witness.HostSources
 pub fn input_limit(GraphInputs, Int, Measure) -> @capacity_witness.LimitClaim?
 
 pub fn selected_policy(GraphInputs) -> @capacity_policy.Policy
+
+pub fn unconsumed_limit_count(GraphInputs) -> Int
 
 pub fn usage(GraphInputs) -> (Int, Int)
 
@@ -39,6 +43,7 @@ pub(all) enum Issue {
   SubjectMismatch(Int)
   UnsupportedCandidate(Int, Int)
   CandidateScopeMismatch(Int, Int)
+  UnconsumedLimits(Int)
 } derive(Eq, @debug.Debug)
 
 pub(all) struct Limits {

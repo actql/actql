@@ -44,6 +44,16 @@ application is not yet validated. Those are implementation gaps, not language
 prohibitions. Other resolved limits in the retained collection are not claimed
 consumed merely because these Graph bindings succeed.
 
+`unconsumed_limit_count` explicitly reports those remaining limits.
+`check_complete` is the collection-complete variant: it applies the same
+association checks and budgets, then rejects any remaining limit with
+`UnconsumedLimits`. Each accepted input/measure has an exact unique subject and
+duplicate measures are rejected, so the remaining count can be computed without
+a second identity scan. Mixed witness admission alone may contain valid limits
+without an enforced consumer; that is not sufficient for this complete variant.
+Use partial `check` when other consumer families will account for the remainder;
+do not interpret its success as complete limit consumption.
+
 The selected policy remains caller-selected; this layer does not authenticate
 Host authority. It neither reads a Graph nor executes a preflight, creates a
 runnable Plan, checks every other limit consumer, or discharges all pipeline

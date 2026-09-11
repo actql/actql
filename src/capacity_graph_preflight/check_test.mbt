@@ -36,10 +36,12 @@ test "Graph preflight requires mixed closure and both missing measures" {
     is Err(MissingMeasure(0, Nodes)),
   )
   assert_true(
-    @capacity_graph_preflight.check(fixture_pipeline(false), sources, p, {
-      max_work: 2,
-      max_name_bytes: 1,
-    })
+    @capacity_graph_preflight.check_complete(
+      fixture_pipeline(false),
+      sources,
+      p,
+      { max_work: 2, max_name_bytes: 1, },
+    )
     is Ok(_),
   )
 }
@@ -66,7 +68,7 @@ fn policy(other : Bool) -> @policy.Policy {
 
 ///|
 fn sources(kind : Int, policy : @policy.Policy) -> @host.HostSources {
-  let (w, l) = match kind {
+  let (w, l) = match (if kind == 8 { 0 } else { kind }) {
     0 =>
       (
         [
@@ -360,6 +362,12 @@ fn sources(kind : Int, policy : @policy.Policy) -> @host.HostSources {
       max_depth: 5,
     }).unwrap()
   })
+  // Keep the valid limits and Host sources, but no enforced consumer claims.
+  let wires = if kind == 8 {
+    wires.filter(w => @wire.role(w) == @arithmetic.HostCeiling)
+  } else {
+    wires
+  }
   let mixed = @wire.check_mixed_claims(wires, l, {
     max_entities: 30,
     max_references: 100,
@@ -450,6 +458,11 @@ test "Graph preflight binds selected policy and complete input measures" {
   for kind in [0, 1] {
     let sources = sources(kind, p)
     let bound = @capacity_graph_preflight.check(pipeline, sources, p, caps()).unwrap()
+    assert_eq(@capacity_graph_preflight.unconsumed_limit_count(bound), 0)
+    assert_true(
+      @capacity_graph_preflight.check_complete(pipeline, sources, p, caps())
+      is Ok(_),
+    )
     assert_true(
       physical_equal(
         @capacity_graph_preflight.checked_pipeline(bound),
@@ -475,7 +488,7 @@ test "Graph preflight binds selected policy and complete input measures" {
     let (work, names) = @capacity_graph_preflight.usage(bound)
     assert_eq(names, 1)
     assert_true(
-      @capacity_graph_preflight.check(pipeline, sources, p, {
+      @capacity_graph_preflight.check_complete(pipeline, sources, p, {
         max_work: work,
         max_name_bytes: names,
       })

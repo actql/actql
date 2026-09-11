@@ -23,6 +23,7 @@ pub(all) enum Issue {
   SubjectMismatch(Int)
   UnsupportedCandidate(Int, Int)
   CandidateScopeMismatch(Int, Int)
+  UnconsumedLimits(Int)
 } derive(Eq, Debug)
 
 ///|
@@ -33,6 +34,7 @@ struct GraphInputs {
   bindings : Array[(@wire.LimitClaim?, @wire.LimitClaim?)]
   work : Int
   names : Int
+  remaining : Int
 }
 
 ///|
@@ -58,6 +60,7 @@ pub fn check(
   }
   let mut work = n * 2 + count
   let mut names = 0
+  let mut consumed = 0
   let inputs : Map[String, Int] = Map([])
   let bindings : Array[(@wire.LimitClaim?, @wire.LimitClaim?)] = Array::make(
     n,
@@ -126,6 +129,7 @@ pub fn check(
     } else {
       (pair.0, Some(limit))
     }
+    consumed += 1
   }
   for i in 0..<n {
     if @carrier.kind(@pipeline.input_at(pipeline, i).unwrap().1) ==
@@ -138,7 +142,42 @@ pub fn check(
       }
     }
   }
-  Ok({ pipeline, sources, policy, bindings, work, names, })
+  // Each accepted limit has one exact input/measure subject; duplicate measures
+  // have already failed. Distinct bindings therefore consume distinct limits.
+  Ok({
+    pipeline,
+    sources,
+    policy,
+    bindings,
+    work,
+    names,
+    remaining: @wire.mixed_limit_count(mixed) - consumed,
+  })
+}
+
+///|
+/// Requires complete consumption of this collection by Graph input preflights.
+/// Does not validate other operation consumers or authorize execution.
+pub fn check_complete(
+  pipeline : @pipeline.CheckedPipeline,
+  sources : @host.HostSources,
+  policy : @policy.Policy,
+  limits : Limits,
+) -> Result[GraphInputs, Issue] {
+  match check(pipeline, sources, policy, limits) {
+    Err(e) => Err(e)
+    Ok(v) =>
+      if v.remaining == 0 {
+        Ok(v)
+      } else {
+        Err(UnconsumedLimits(v.remaining))
+      }
+  }
+}
+
+///|
+pub fn unconsumed_limit_count(v : GraphInputs) -> Int {
+  v.remaining
 }
 
 ///|

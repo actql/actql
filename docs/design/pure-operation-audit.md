@@ -226,7 +226,10 @@ consumer audit.
    and consumer applicability are not supplied by this catalog lookup.
    [Graph input preflight binding](graph-input-preflight.md) now associates
    Host-backed node/edge limits with the actual immutable pipeline inputs and
-   selected policy, including opaque and unused Graph inputs. Other consumer
+   selected policy, including opaque and unused Graph inputs. It now reports
+   unconsumed limits, and its collection-complete entry rejects valid limits
+   that have no Graph input consumer. This is complete consumption only for
+   that dedicated collection, not whole-pipeline readiness. Other consumer
    families, non-Host candidate applicability and actual enforcement remain open.
    Do not
    expand into acquisition, an evaluator or Host dispatch.
