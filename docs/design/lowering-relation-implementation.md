@@ -773,3 +773,35 @@ wrong input, ordinary input with no producer, and a separately bound handle of
 the same checked pipeline. Execution tests pass 69/69 on each target. Existing
 Parameter tests cover binding values; this new test specifically checks owner
 identity even for an empty binding environment.
+
+## Completed producer row adoption
+
+The same private driver now accepts `produced` bindings alongside raw captures.
+Each input is assigned by its exact receiving ordinal; counts, duplicate slots,
+receiver identity and selected registry identities are checked before operations.
+An input must have exactly one source. Raw captures still cannot satisfy a
+ProducedInput. Validated unprojected producer output does not round-trip through
+JSON or re-resolve column names/types. Its private immutable row storage is shared
+under a new receiving-owner table wrapper.
+
+The receiver charges all adopted rows and nested values to its own cumulative
+input budget, including names, text, depth and work. Raw and producer inputs share
+the total row limit. Retained table slots are charged on installation even when
+their backing data is shared. Input dispatch and retained producer-binding arrays
+are charged against the same metadata workspace used by wiring; completion copies
+the binding list under that budget and retains the exact successful dependency.
+Failure returns no receiving completion and neither mutates nor re-executes the
+upstream output. Explicit producer projection is still pending, not bypassed.
+
+These per-fragment logical budgets do not claim to bound the complete ancestor
+graph's physical RSS: completed dependency handles retain their parents. A future
+invocation-level retention policy must account for that graph without dropping
+the provenance needed to distinguish executions. No such Host/Run policy is
+introduced in this increment.
+
+Execution tests pass 71/71 on JS, Wasm and native. New cases cover successful
+producer-to-receiver execution, exact input budget boundaries, raw/producer mixed
+inputs, duplicate producer slots, foreign receiver rejection and immutable retry
+after receiver budget failure. Existing fixed vectors remain unchanged in meaning.
+Formatting, both generator checks and whitespace checks pass; public API remains
+unchanged. This closes unprojected component adoption, not the full fragment entry.

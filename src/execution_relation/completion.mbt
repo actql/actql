@@ -5,6 +5,7 @@ priv struct CompletedSequence {
   contracts : RegisteredRelationContracts
   sequence : @lower.PreparedSequence
   store : TableStore
+  producer_inputs : Array[BoundProducerInput]
 }
 
 ///|

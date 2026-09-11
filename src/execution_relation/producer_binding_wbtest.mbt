@@ -2,14 +2,33 @@
 fn producer_consumer(
   owner : @lower.BoundPrepared,
   target : @pipeline.Target,
+  extra_input? : Bool = false,
 ) -> @lower.BoundPrepared {
   let producer = @pipeline.produced_input(
     @lower.pipeline(@lower.bound_preparation(owner)),
     target,
   ).unwrap()
+  let inputs = [("prior", @pipeline.ProducedInput(producer))]
+  if extra_input {
+    inputs.push(
+      (
+        "plain",
+        @pipeline.CarrierInput(
+          @carrier.relation(
+            @carrier.typed_rows(
+              @pipeline.schema_at(
+                @lower.pipeline(@lower.bound_preparation(owner)),
+                target,
+              ).unwrap(),
+            ),
+          ),
+        ),
+      ),
+    )
+  }
   let p = @pipeline.check_with_evidence(
     input_cursor("[{\"select\":[\"a\"]}]"),
-    [("prior", @pipeline.ProducedInput(producer))],
+    inputs,
     None,
     Some(input_cursor("\"prior\"")),
     {

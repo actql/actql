@@ -16,8 +16,8 @@ test "completed output keeps successful owner bindings and exact target" {
     assert_true(physical_equal(output.table.owner, owner))
     assert_eq(output.target, target)
   }
-  let final = completed_output(completion, Step(2)).unwrap()
-  assert_true(final.table.rows[0][0] is Number(11.0))
+  let selected = completed_output(completion, Step(2)).unwrap()
+  assert_true(selected.table.rows[0][0] is Number(11.0))
   assert_true(completed_output(completion, Step(1)) is None)
   assert_true(completed_output(completion, Step(-1)) is None)
   assert_true(completed_output(completion, Step(3)) is None)

@@ -23,6 +23,12 @@ priv enum SequenceRunIssue {
 }
 
 ///|
+priv enum SequenceInput {
+  RawInput(CapturedRows)
+  ProducerInput(BoundProducerInput)
+}
+
+///|
 fn charge_capture_rows(input : CapturedRows, budget : ValueBudget) -> Bool {
   for row in input.rows {
     if !charge_node(budget, 1) {
@@ -52,6 +58,7 @@ fn evaluate_sequence_components(
   retained_ids : Array[String],
   limits : SequenceRunLimits,
   control : ControlBudget,
+  produced? : Array[BoundProducerInput] = [],
 ) -> Result[CompletedSequence, SequenceRunIssue] {
   if limits.max_rows < 0 ||
     limits.metadata_entries < 0 ||
@@ -71,18 +78,20 @@ fn evaluate_sequence_components(
   }
   let owner = @lower.sequence_owner(sequence)
   let pipeline = @lower.pipeline(@lower.bound_preparation(owner))
-  let wiring = match
-    prepare_wiring(owner, retained_ids, control, {
-      limit: limits.metadata_entries,
-      live: 0,
-      peak: 0,
-    }) {
+  let metadata = { limit: limits.metadata_entries, live: 0, peak: 0, }
+  let wiring = match prepare_wiring(owner, retained_ids, control, metadata) {
     Ok(v) => v
     Err(e) => return Err(Wiring(e))
   }
-  if supplied.length() != wiring.input_count {
+  if supplied.length() > wiring.input_count ||
+    produced.length() != wiring.input_count - supplied.length() {
     return Err(InputSet)
   }
+  if !reserve_slots(metadata, wiring.input_count) ||
+    !reserve_slots(metadata, produced.length()) {
+    return Err(InputLimit)
+  }
+  let inputs : Array[SequenceInput?] = Array::make(wiring.input_count, None)
   // All supplied owner/origin identities are checked before computation.
   // Input position is physical input ordinal, not an author alias.
   for i = 0; i < supplied.length(); i = i + 1 {
@@ -92,15 +101,37 @@ fn evaluate_sequence_components(
     if !physical_equal(supplied[i].owner, owner) {
       return Err(InputOwnership)
     }
-    if supplied[i].origin != SuppliedInput(i) {
+    guard supplied[i].origin is SuppliedInput(index) else {
+      return Err(InputSet)
+    }
+    if index < 0 || index >= inputs.length() || inputs[index] is Some(_) {
       return Err(InputSet)
     }
     // CapturedRows proves schema/value ownership, not that an upstream producer
     // successfully computed these exact rows. Never launder conditional producer
     // evidence through a raw capture, even when counts and keys happen to agree.
-    if @pipeline.input_producer(pipeline, i) is Some(_) {
-      return Err(InputExecutionEvidencePending(i))
+    if @pipeline.input_producer(pipeline, index) is Some(_) {
+      return Err(InputExecutionEvidencePending(index))
     }
+    inputs[index] = Some(RawInput(supplied[i]))
+  }
+  for bound in produced {
+    if !spend_control(control, 1) {
+      return Err(InputLimit)
+    }
+    if !physical_equal(bound.receiver, owner) {
+      return Err(InputOwnership)
+    }
+    let index = bound.input_index
+    if index < 0 || index >= inputs.length() || inputs[index] is Some(_) {
+      return Err(InputSet)
+    }
+    if bound.output.completion.contracts.registry_cid != contracts.registry_cid ||
+      bound.output.completion.contracts.values_contract_cid !=
+      contracts.values_contract_cid {
+      return Err(InputOwnership)
+    }
+    inputs[index] = Some(ProducerInput(bound))
   }
   let store = match
     table_store(wiring, { limit: limits.retained_entries, live: 0, peak: 0, }) {
@@ -108,30 +139,50 @@ fn evaluate_sequence_components(
     Err(e) => return Err(Store(e))
   }
   let mut input_rows = 0
-  for i = 0; i < supplied.length(); i = i + 1 {
-    let captured = supplied[i]
-    if captured.rows.length() > limits.max_rows - input_rows ||
-      !charge_capture_rows(captured, input_budget) {
-      return Err(InputLimit)
-    }
-    input_rows += captured.rows.length()
-    match
-      validate_captured_keys(captured, control, {
-        limit: limits.operation_entries,
-        live: 0,
-        peak: 0,
-      }) {
-      Ok(_) => ()
-      Err(e) => return Err(InputKey(i, e))
-    }
-    let table = match
-      table_from_capture_bounded(captured, control, {
-        limit: limits.operation_entries,
-        live: 0,
-        peak: 0,
-      }) {
-      Ok(v) => v
-      Err(e) => return Err(Rows(i, e))
+  for i = 0; i < inputs.length(); i = i + 1 {
+    guard inputs[i] is Some(input) else { return Err(InputSet) }
+    let table = match input {
+      RawInput(captured) => {
+        if captured.rows.length() > limits.max_rows - input_rows ||
+          !charge_capture_rows(captured, input_budget) {
+          return Err(InputLimit)
+        }
+        input_rows += captured.rows.length()
+        match
+          validate_captured_keys(captured, control, {
+            limit: limits.operation_entries,
+            live: 0,
+            peak: 0,
+          }) {
+          Ok(_) => ()
+          Err(e) => return Err(InputKey(i, e))
+        }
+        match
+          table_from_capture_bounded(captured, control, {
+            limit: limits.operation_entries,
+            live: 0,
+            peak: 0,
+          }) {
+          Ok(v) => v
+          Err(e) => return Err(Rows(i, e))
+        }
+      }
+      ProducerInput(bound) => {
+        let source = bound.output.table
+        if source.rows.length() > limits.max_rows - input_rows {
+          return Err(InputLimit)
+        }
+        for row in source.rows {
+          if !spend_control(control, 1) ||
+            !retain_row(row, source.names, input_budget) {
+            return Err(InputLimit)
+          }
+        }
+        input_rows += source.rows.length()
+        // Exact producer identity establishes the unprojected schema. Private
+        // immutable rows may share storage; retained slots are still charged.
+        { owner, id: wiring.ids[i], names: source.names, rows: source.rows, }
+      }
     }
     match install_table_input(store, i, table, control) {
       Ok(_) => ()
@@ -198,5 +249,8 @@ fn evaluate_sequence_components(
       Err(e) => return Err(Store(e))
     }
   }
-  Ok({ contracts, sequence, store, })
+  if !spend_control(control, produced.length()) {
+    return Err(InputLimit)
+  }
+  Ok({ contracts, sequence, store, producer_inputs: produced.copy(), })
 }
