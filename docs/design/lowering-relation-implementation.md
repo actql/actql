@@ -878,6 +878,11 @@ were not rerun for this increment.
 
 ## Occurrence-bound expression demand
 
+Integration update: main already provides typed topology and demand/source-pointer
+APIs in `41227eb` and `e836078`. The [shared handoff request](lowering-fragment-closure.md#shared-demandtopology-handoff-discovered-after-the-audit)
+supersedes further development of the duplicate rule derivation below. It will
+be replaced by an adapter to main's implementation; the independent vectors stay.
+
 `prepare_demand` traverses the existing lowered expression objects under a
 `RootIndex`. It records each occurrence's root, parent/child ordinal and condition
 chain. A condition refers to an occurrence, not merely an equal expression or

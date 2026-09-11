@@ -64,7 +64,51 @@ Lowering must not independently update shared schemas or pins. Preparation of
 root metadata and pure execution can continue while the handoff is pending;
 registration absence must not be converted into a permanent language restriction.
 
-## Input evidence audit follow-up
+## Shared demand/topology handoff discovered after the audit
+
+Before implementing semantic source pointers, inspection of main found these
+already committed APIs:
+
+- `41227eb3b788f56a9bf30a0af463514baaf37b97`: immutable typed expression topology.
+- `e836078fb3fe3447c347dad073ce37628045971f`: `derive_demands`, `demand_pointer`,
+  `demand_tests`, owning `TypedExpression` and measured usage.
+- `41971a7bfd1a2290626906ee4642ed2241c84363`: indexed pending-validation access.
+
+The shared demand implementation already derives normalized source addresses,
+shares conditional prefixes and deliberately returns no source pointer for an
+implicit CASE ELSE. Lowering must consume it rather than continue its parallel
+rule implementation in `lowering_relation/demand.mbt`. The latter is an interim
+implementation, not a second semantic authority or the final fragment path.
+Its fixed independent expectations remain useful when replacing it with a shared
+API adapter.
+
+These commits also modify `pipeline_check_context`, which does not exist at this
+lowering baseline and whose main version is over 6,000 lines. Blind cherry-picking
+them, or importing that entire context subsystem just to obtain demand paths,
+would cross the agreed integration ownership boundary. No such import was made.
+
+Requested main/integration handoff: a package-scoped commit (or explicitly
+designated dependency sequence) providing the existing `expression_typing`
+topology, indexed obligations and demand APIs, their tests and documentation,
+without requiring unrelated Program/context integration. These are existing
+implementations, not a request to redesign their semantics. Decode's exported
+`PathSegment` alias is already present in the lowering baseline.
+
+After import, lowering should:
+
+1. Retain the exact `TypedExpression` and root/binding ownership used to lower
+   each root, and associate lowered occurrences with shared typed node indices.
+2. Derive demands through the shared API with one cumulative budget across roots.
+3. Prefix its source-relative pointers with `/roots/i/source`; preserve the
+   absence of an implicit ELSE source occurrence rather than invent a pointer.
+4. Retire the duplicate conditional rules and rerun the independent IF/CASE/
+   coalesce/eager-boolean/literal/budget vectors against the adapter.
+
+This handoff is separate from outer registry registration and ordered derive.
+Do not add a temporary replacement opcode, source reparser or placeholder API
+to bypass it. Shared files and main's uncommitted work remain untouched.
+
+## Input evidence audit follow-up (details)
 
 `pipeline_typing.InputContract` accepts more than raw carrier declarations:
 candidate keys, ranking metadata, combined evidence and completed-producer
