@@ -133,7 +133,7 @@ pub fn bind(
       }
     }
     if missing.is_empty() {
-      Ok(Ready({ entries, }))
+      Ok(Ready({ declarations, entries, }))
     } else {
       Ok(NeedsBindings({ names: missing, }))
     }

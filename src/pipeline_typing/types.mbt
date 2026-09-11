@@ -52,6 +52,9 @@ pub(all) enum IssueKind {
   MissingWindowEvidence
   MissingDeltaContract
   InvalidDeltaContractBinding
+  GuardBindingOwnerMismatch
+  MissingGuardBinding(String)
+  InvalidGuardValue(String)
   UnsupportedOperation(String)
   InvalidMetadata
   ReservedMetadataKey(String)

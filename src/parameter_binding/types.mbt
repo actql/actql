@@ -52,7 +52,24 @@ pub struct BoundParameter {
 
 ///|
 struct BoundValues {
+  declarations : Declarations
   entries : Array[BoundParameter]
+}
+
+///|
+/// Exact declaration owner used to admit these bindings.
+pub fn bound_declarations(value : BoundValues) -> Declarations {
+  value.declarations
+}
+
+///|
+pub fn bound_value_count(value : BoundValues) -> Int {
+  value.entries.length()
+}
+
+///|
+pub fn bound_value_at(value : BoundValues, index : Int) -> BoundParameter? {
+  value.entries.get(index)
 }
 
 ///|

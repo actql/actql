@@ -56,6 +56,13 @@ are not typed identity inputs. `Ready` privately retains the admitted Parameter
 types alongside the values; callers cannot pair the values with another declaration
 set when computing identity.
 
+BoundValues also retains the exact Declarations owner, exposed by
+`bound_declarations` for internal composition checks. `bound_value_count` and
+`bound_value_at` provide bounded indexed access without copying the full array.
+Owner identity is not emitted or hashed and changes no Parameter identity bytes.
+Consumers such as author-guard binding can reject values admitted under a
+different declaration set before resolving usage-specific constraints.
+
 Duration validation parses `[0-9]+(ms|s|m|h|d)` with ASCII case-insensitive units,
 including leading-zero digit sequences. Exact integer conversion to milliseconds
 must be positive and no larger than 9007199254740991. No binary64 parsing,

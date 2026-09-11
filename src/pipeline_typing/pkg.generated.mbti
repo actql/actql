@@ -66,6 +66,16 @@ pub fn author_guards_pipeline(AuthorGuards) -> CheckedPipeline
 
 pub fn author_guards_usage(AuthorGuards) -> (Int, Int)
 
+pub fn bind_author_guards(AuthorGuards, @parameter_binding.BoundValues?, max_work~ : Int, max_text_bytes~ : Int) -> Result[BoundAuthorGuards, Issue]
+
+pub fn bound_guard_bindings(BoundAuthorGuards) -> @parameter_binding.BoundValues?
+
+pub fn bound_guard_occurrences(BoundAuthorGuards) -> AuthorGuards
+
+pub fn bound_guard_usage(BoundAuthorGuards) -> (Int, Int)
+
+pub fn bound_guard_value_at(BoundAuthorGuards, Int) -> Int64?
+
 pub fn candidate_key(CheckedPipeline, Target) -> @relation_evidence.KeyedRelation?
 
 pub fn candidate_keys(CheckedPipeline, Target) -> @relation_evidence.KeySet?
@@ -245,6 +255,8 @@ type AuthorGuard
 
 type AuthorGuards
 
+type BoundAuthorGuards
+
 pub enum CheckedOperation {
   Unary(@relation_typing.CheckedOperation)
   Join(right~ : Target, checked~ : @relation_join_shape.CheckedJoin)
@@ -389,6 +401,9 @@ pub(all) enum IssueKind {
   MissingWindowEvidence
   MissingDeltaContract
   InvalidDeltaContractBinding
+  GuardBindingOwnerMismatch
+  MissingGuardBinding(String)
+  InvalidGuardValue(String)
   UnsupportedOperation(String)
   InvalidMetadata
   ReservedMetadataKey(String)

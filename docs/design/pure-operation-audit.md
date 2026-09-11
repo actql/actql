@@ -121,9 +121,12 @@ consumer audit.
    Contract/Program/Language witness constructor or expand into acquisition.
    [Checked author-guard occurrences](author-guard-occurrences.md) now retain
    actual local step/aggregate owners, exact guard slots and unresolved
-   Parameter references under cumulative enumeration budgets. Binding values,
-   Program identity, governing source laws and consumer enforcement remains
-   required; enumeration is not a capacity witness.
+   Parameter references under cumulative enumeration budgets. Numeric binding
+   now checks positive safe-integer values against BoundValues from the exact
+   declaration owner and retains default/supplied provenance, with source-local
+   rejection and separate cumulative work/text costs. Program identity,
+   governing source laws and consumer enforcement remain required; bound guard
+   quantities are not capacity witnesses.
    [Producer-bound input evidence](produced-input-evidence.md) now retains the
    original pipeline/target and conditional record/node/edge facts through
    input forwarding. Repeated operands and existing key/ranking owners remain

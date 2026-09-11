@@ -43,11 +43,36 @@ producer occurrences under shared budgets, as contextual order closure already
 does. An imported guard must not be reassigned to a coincidentally numbered
 local step.
 
+## Numeric binding and declaration ownership
+
+`bind_author_guards` accepts an occurrence collection and optional opaque
+`parameter_binding.BoundValues`. BoundValues now retains the exact Declarations
+owner used by `bind`; a supplied collection must have the same owner as the
+checked pipeline, including when its guards happen to be literals. Equal names,
+equal types or byte-identical separately admitted declarations do not substitute
+for that internal owner. This prevents mixing defaults or constraints from
+another check; it does not change the language's semantic identity rules.
+
+Parameter guards must resolve to positive safe-integer numbers. Missing bindings,
+null, zero, negative, fractional and out-of-range values fail at the original
+guard cursor. Defaults are applied only by Parameter binding, never by this
+resolver. Literal-only guards may resolve without a binding collection. A
+successful result retains the original occurrences and bindings and exposes
+quantities by occurrence index, preserving repeats and supplied/default origin.
+
+The binding budget counts every supplied Parameter entry and every guard, plus
+Parameter-name bytes for the map and each guard lookup. It builds one name map
+using indexed immutable access rather than copying arrays per lookup. It does
+not scan unrelated Parameter value trees; those remain owned by their completed
+admission. A later invalid guard returns no partial collection. Enumeration and
+binding budgets are explicit separate costs for a future combined caller to
+accumulate, not implicit execution-policy limits.
+
 ## Remaining source binding
 
-This result is an authored occurrence, not a numeric bound witness, verified
-source artifact, resolved limit or permission to execute. Subsequent binding
-must verify the actual Parameter value and governing law/unit/enforcement,
+Neither an occurrence nor its bound quantity is a numeric bound witness,
+verified source artifact, resolved limit or permission to execute. Subsequent
+source/application validation must verify governing law/unit/enforcement,
 retain Program Definition identity from its owner, and include every applicable
 candidate. Missing Parameter values are not absent guards or zero. Wire identity
 and source/application verification remain separate, as recorded in the
