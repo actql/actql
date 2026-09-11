@@ -1,0 +1,50 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/text_time_policy"
+
+import {
+  "actql/actql/encode_core",
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn admit(Bytes, String, Limits) -> Result[Policy, Issue]
+
+pub fn ceiling(Policy, String) -> Ceiling?
+
+pub fn ceiling_field(Ceiling) -> String
+
+pub fn ceiling_policy(Ceiling) -> Policy
+
+pub fn ceiling_value(Ceiling) -> Int64
+
+pub fn cid(Policy) -> String
+
+pub fn emit(Policy, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
+
+// Errors
+
+// Types and methods
+type Ceiling
+
+pub(all) enum Issue {
+  InvalidLimits
+  BudgetExceeded
+  IdentityMismatch
+  InvalidJson
+  InvalidBody
+  UnsupportedVersion
+  InvalidCeiling(String)
+  NoncanonicalArtifact
+} derive(Eq, @debug.Debug)
+
+pub(all) struct Limits {
+  max_bytes : Int
+  max_nodes : Int
+  max_depth : Int
+}
+
+type Policy
+
+// Type aliases
+
+// Traits
