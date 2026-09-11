@@ -43,6 +43,33 @@ consumer audit.
 | merge_rankings | ranking-list branch |
 | text_rank | corpus/query branch with optional admitted lexical profile |
 
+## Explicit row-bridge acceptance audit
+
+The four row bridges have been traced through their normative sections,
+`carrier_projection`, pipeline dispatch and existing downstream tests. The
+fixed Sketch `87dc7144` compiler has the same four algebra bridges; its authored
+`event_rows`/`vector_rows` spellings and older physical-column assumptions are
+not imported into the current `events`/`vectors` contract.
+
+| Operation | Source/schema owner | Evidence and consumers inspected |
+| --- | --- | --- |
+| events | Language `event-bridges`; `carrier-projection-schema.mjs` requires `true` in both embedded Programs | `carrier_projection/projection_test.mbt` retains typed, untyped and open payload evidence; `pipeline_typing/projection_test.mbt`, Event membership tests and `relation_results/projection_test.mbt` cover window roles, aliases and explicit Relation publication. |
+| vectors | Language `vector-bridges`; same schema gate | Projection tests retain composite identity and dimensions without invented physical aliases. Pipeline vector projection/key tests cover lost identity components, multiple aliases and nearest; carrier count tests cover normalization/scoring/row projection. |
+| node_rows | Language `graph-rows`; `graph-schema.mjs` requires `true` | Graph projection tests retain typed identities, properties and authored aliases, reject output collisions, and retain runtime collision/admission debts for incomplete inputs. Pipeline Graph projection-key and Result Graph tests cover downstream identity use. |
+| edge_rows | Language `graph-rows`; same Graph schema gate | Tests preserve the source/destination/nullable-label tuple, distinguish missing key components from a whole identity, and reject using nullable labels as non-null order evidence. Graph projection alone does not establish logical order. |
+
+`pipeline_typing/bridge_audit_test.mbt` adds the full four-operation by
+four-Carrier by typed/opaque matrix at the shared dispatch boundary (32 cases),
+24 invalid-body cases, absent/ambiguous current rejection and explicit source
+selection. Accepted routes produce one Relation output with the original input
+edge and no invented row count. Opaque inputs do not become complete schemas.
+Each accepted matrix case has exact work/node/text and one-less budget tests;
+wrong-Carrier and invalid-body failures retain the operation's source slot.
+
+This verifies these source/Carrier/connection boundaries alongside the listed
+consumer regressions. It does not discharge runtime admission, external count
+or order evidence, capacity sources, or the remaining operation audit.
+
 ## Shared-boundary findings
 
 | Requirement | Inspected evidence | Audit finding |
