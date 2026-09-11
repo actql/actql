@@ -60,7 +60,22 @@ pub fn emit_expression(
   root : Expression,
   output : @encode.Writer,
 ) -> Unit raise @encode.EncodeFailure {
-  let pending : Array[ExpressionFrame] = [Expr(root)]
+  emit_frames([Expr(root)], output)
+}
+
+///|
+fn emit_wire_value(
+  value : @value.Value,
+  output : @encode.Writer,
+) -> Unit raise @encode.EncodeFailure {
+  emit_frames([Value(value)], output)
+}
+
+///|
+fn emit_frames(
+  pending : Array[ExpressionFrame],
+  output : @encode.Writer,
+) -> Unit raise @encode.EncodeFailure {
   while pending.pop() is Some(frame) {
     match frame {
       EndObject => @encode.end_object(output)

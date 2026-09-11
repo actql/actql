@@ -24,6 +24,10 @@ pub fn emit_expression(Expression, @encode_core.Writer) -> Unit raise @encode_co
 
 pub fn emit_kernel_node(PreparedKernel, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
 
+pub fn emit_values_node(PreparedValues, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
+
+pub fn emit_values_params(PreparedValues, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
+
 pub fn expression_body(Expression) -> ExpressionBody
 
 pub fn expression_contract(Expression) -> @value_contract.Contract
@@ -71,6 +75,8 @@ pub fn pipeline(Prepared) -> @pipeline_typing.CheckedPipeline
 pub fn prepare(@pipeline_typing.CheckedPipeline, Limits) -> Result[Prepared, Issue]
 
 pub fn prepare_kernel(BoundPrepared, Int, max_bindings~ : Int, max_name_bytes~ : Int, ExpressionLimits) -> Result[PreparedKernel, KernelIssue]
+
+pub fn prepare_values_node(BoundPrepared, Int, max_rows~ : Int, max_cells~ : Int) -> Result[PreparedValues, ValuesIssue]
 
 pub fn source(PreparedNode) -> @decode_core.Cursor
 
@@ -200,6 +206,8 @@ type PreparedKernel
 
 type PreparedNode
 
+type PreparedValues
+
 pub(all) enum UnaryOperator {
   Negate
   Not
@@ -216,6 +224,14 @@ pub(all) struct Usage {
   work : Int
   identifier_bytes : Int
 } derive(Eq, @debug.Debug)
+
+pub(all) enum ValuesIssue {
+  InvalidValuesLimits
+  MissingValuesNode
+  ValuesLimit
+  MissingValuesParameter(String)
+  InvalidValuesRow
+}
 
 // Type aliases
 

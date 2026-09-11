@@ -91,7 +91,7 @@ contracts, final serialized size or any Program-level authorization.
 | Bound parameters | Owner association, expression substitution, values capture and four-operation private execution tested | Repeat vectors through admitted fragment driver |
 | External rows | Object-schema input admission and immutable capture implemented | Connect to full fragment input obligations; scoped row representation remains unsupported |
 | Map/filter/select row evaluation | Private evaluator connected; values/supplied-input/parameter chains, NULL, branches and cross-kernel budgets tested | Connect all cases through fragment driver |
-| AoA fragment lowering | Complete map/filter/select step emission and expression wire implemented; values/pipeline envelope remain open | Bind registry contracts, roots and runtime obligations, then admit complete fragment |
+| AoA fragment lowering | Values/map/filter/select step emission and expression wire implemented; pipeline envelope remains open | Bind registry contracts, roots and runtime obligations, then admit complete fragment |
 | Runtime budgets | Cumulative expression/control/logical-value limits implemented | Close temporary/live allocations and complete work accounting before exposing fragment API |
 | Ordered derive | Checked references available; executable contract pending main | Consume main's registered row-kernel extension without a substitute opcode |
 | Additional expression obligations | Not implemented | Discharge the specific profile/pattern/other obligation before evaluation |
@@ -339,8 +339,9 @@ that that adapter can execute these emitted nodes without integration work.
 
 Independent full-string tests cover all three operations, branch wiring and
 exact whole-node byte limits. Registry parameter validation, expression-root
-evidence, runtime-obligation binding, values-node emission and the whole pipeline
-envelope remain open. No emitted individual node is an execution permit.
+evidence, runtime-obligation binding and the whole pipeline envelope remain
+open. Values-node emission is now described below. No emitted individual node
+is an execution permit.
 
 The private row tests now also run supplied-input → map → filter → select,
 check branching back to the pre-filter producer, and enforce one cumulative
@@ -349,8 +350,8 @@ which earlier table a later explicit branch consumes. These tests still wire
 the kernels explicitly, so they do not prove automatic fragment execution.
 Main/integration has accepted ownership of the missing values execution-params
 contract, as recorded in the shared-contract request. Delivery subsequently
-arrived in main `dab50b1` (incorporated as `d38d2ad`); values wire lowering and
-backend/registry admission still need to consume it. No local shape was invented.
+arrived in main `dab50b1` (incorporated as `d38d2ad`); values wire lowering now
+consumes it, while backend/registry admission remains open. No local shape was invented.
 
 Parameterized four-operation vectors now bind the same checked preparation to
 two different values, use each Parameter in both values cells and derive RHSs,
@@ -475,3 +476,31 @@ workspace accounting remain open; this store alone is not a heap bound.
 Storage-unit validation: execution tests 36/36 on each target, unchanged
 matching API, format/whitespace and 865 links pass. Ordinary builds report 27
 unused-private-code warnings until the driver is connected.
+
+## Bound values node wire
+
+`prepare_values_node` retains the exact bound owner and checked values node,
+enforces explicit row/cell ceilings, and checks that each Parameter reference
+has its admitted binding before constructing opaque emission material.
+`emit_values_params` follows main's `dab50b1` execution contract: complete checked
+field contracts and ordinary typed wire rows, preserving empty schema evidence,
+row order and duplicates. `emit_values_node` adds the generated ID, zero inputs
+and `REL.values` operation. Quotation is already removed by checking; only typed
+Parameter cells resolve bindings. Nested business keys are never interpreted.
+
+The expression and values emitters share the same iterative admitted-value wire
+writer, including exact fixed-scale decimal strings. Output limits belong to the
+bounded writer; a node is only observable after successful writer completion.
+This material is not registry/backend admission or a runnable Plan.
+
+`scripts/lowering-values-vectors.mjs` generates 18 normal vectors from main's
+fixed expected canonical params, without recomputing expected bytes from product
+output. These exercise the quoted-literal source route; a separate real Parameter
+test checks binding ownership and full node output. Author source contracts omit
+checked-only `additional_properties` and `element_type`; emission restores them
+from checked contracts. Invalid-wire admission remains a separate executor
+obligation, and these successful emission tests do not close that obligation.
+
+Validation: lowering 45/45 and execution 36/36 on JS, Wasm and native; matching
+public interfaces, formatting, generator drift, five registry/contract tests and
+867 links pass. No shared schema/pin was independently revised by lowering.
