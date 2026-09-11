@@ -59,7 +59,7 @@
     "check:aoa": "node scripts/check-aoa-versions.mjs && node --test scripts/aoa-versions.test.mjs scripts/pure-operation-laws.test.mjs scripts/pure-operation-inventory.test.mjs",
     "check:links": "node scripts/check-document-links.mjs",
     "check:examples": "node scripts/check-document-examples.mjs",
-    "test:docs": "node --test scripts/document-validation.test.mjs",
+    "test:docs": "node --test scripts/document-validation.test.mjs scripts/evidence-transfer-coverage.test.mjs",
     "generate:requirements": "node scripts/check-actql-spec-family.mjs --write",
     "check:metadata": "node scripts/update-document-metadata.mjs",
     "update:metadata": "node scripts/update-document-metadata.mjs --write && npm run generate:requirements",

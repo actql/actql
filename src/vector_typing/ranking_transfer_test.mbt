@@ -7,10 +7,21 @@ test "score evidence lookup distinguishes qualification and transfers require th
         [
           (Qualified(Left, "score"), Some(number)),
           (Unqualified("id"), Some(number)),
+          (
+            Unqualified("payload"),
+            Some(
+              @contract.object_contract(
+                [("leaf", number)],
+                nullable=false,
+                max_fields=1,
+                max_name_bytes=4,
+              ).unwrap(),
+            ),
+          ),
         ],
         field_set=Closed,
-        max_fields=2,
-        max_name_bytes=20,
+        max_fields=3,
+        max_name_bytes=40,
       ).unwrap(),
     )
   }
@@ -36,6 +47,11 @@ test "score evidence lookup distinguishes qualification and transfers require th
   let forms : Array[(@relation.Operation, String)] = [
     (Select, "[\"id\",{\"s\":\"left.score\"}]"),
     (Derive, "{\"s\":\"left.score\"}"),
+    (
+      Analytic,
+      "{\"partition_by\":[],\"order_by\":[{\"id\":\"asc\"}],\"functions\":{\"n\":{\"fn\":\"row_number\"}}}",
+    ),
+    (JsonPick, "{\"column\":\"payload\",\"path\":[\"leaf\"],\"output\":\"n\"}"),
   ]
   for (operation, body) in forms {
     let op = @relation.check(
@@ -52,7 +68,19 @@ test "score evidence lookup distinguishes qualification and transfers require th
       },
     ).unwrap()
     let c = @vector_typing.transfer_ranking_unary(input, op, limits()).unwrap()
-    let declaration = @vector_typing.ranking_score_at(c.input, Unqualified("s")).unwrap()
+    let field = if operation == @relation.Analytic ||
+      operation == @relation.JsonPick {
+      @row.Qualified(Left, "score")
+    } else {
+      @row.Unqualified("s")
+    }
+    let declaration = @vector_typing.ranking_score_at(c.input, field).unwrap()
+    assert_true(
+      physical_equal(
+        declaration,
+        @vector_typing.ranking_score_at(input, Qualified(Left, "score")).unwrap(),
+      ),
+    )
     assert_eq(
       @vector_typing.declared_score_field(declaration),
       Qualified(Left, "score"),
@@ -88,6 +116,9 @@ test "score evidence lookup distinguishes qualification and transfers require th
         { ..exact, max_work: c.usage.work - 1, },
         { ..exact, max_text_bytes: c.usage.text_bytes - 1, },
       ] {
+      if cap.max_text_bytes < 0 {
+        continue
+      }
       assert_true(
         @vector_typing.transfer_ranking_unary(input, op, cap)
         is Err({ kind: BudgetExceeded, .. }),

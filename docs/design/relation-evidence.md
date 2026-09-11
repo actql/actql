@@ -406,3 +406,27 @@ cardinality/count tests remain regressions. This does not complete the entire
 shared evidence audit: other binary operators, authenticated external facts,
 dependency-closed Plan serialization, lowering and runtime validation remain
 separate work.
+
+## Transfer coverage guard
+
+Unary key transfer, ranking annotation transfer, window-role transfer and input
+order preservation explicitly classify every `relation_typing.Operation`.
+There is no catch-all arm at these four operation dispatches: adding a variant
+requires reviewing each evidence boundary under the compiler's denied warnings.
+`scripts/evidence-transfer-coverage.test.mjs`, run by `check:docs`, additionally
+guards against reintroducing a fallback and tests missing-classification probes.
+This covers the checked unary operation enum, not every Carrier or all 72 public
+operation spellings, and is not proof of each transfer's semantic correctness.
+
+`analytic` and `json_pick` add noncolliding columns without replacing existing
+values, so they retain ranking value annotations and window roles as well as
+candidate keys. The original score declaration owner is retained. This does not
+claim rank contiguity, discharge analytic ordering obligations or manufacture
+new window evidence. Short composition tests insert these operations between a
+window producer and alias projection/removal followed by `window_group`.
+
+Shared facts remain exact-copy bindings, indexed projection mappings, row-count
+rules and input-order effects from checked operations. Evidence consumers draw
+their own conclusions; no universal `preserves_evidence` flag is introduced.
+Explicitly clearing inherited evidence at a reshape/aggregation boundary does
+not assert that no operation-specific replacement can be generated elsewhere.

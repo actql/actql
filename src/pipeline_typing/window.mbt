@@ -66,6 +66,8 @@ fn transfer_window(
     | TopK
     | TopKBy
     | Lag
+    | Analytic
+    | JsonPick
     | WatermarkRows => Some(roles)
     Derive => {
       spend(
@@ -123,7 +125,7 @@ fn transfer_window(
       }
       retained_window(starts, ends)
     }
-    _ => None
+    Unnest | Unpivot | Group | Pivot => None
   }
 }
 

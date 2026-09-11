@@ -306,7 +306,7 @@ pub fn preserves_input_order(value : CheckedOperation) -> Bool {
         Some(Sort(terms)) => terms.is_empty()
         _ => false
       }
-    _ => false
+    DedupeRows | Unnest | Unpivot | Group | Pivot | TopK | TopKBy => false
   }
 }
 

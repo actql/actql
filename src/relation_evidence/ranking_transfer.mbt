@@ -44,6 +44,8 @@ pub fn transfer_ranking_unary(
       | TopK
       | TopKBy
       | Lag
+      | Analytic
+      | JsonPick
       | WatermarkRows => ()
       Derive => {
         @checking.spend(b, source, @relation.binding_count(op))
@@ -108,7 +110,7 @@ pub fn transfer_ranking_unary(
             }
           }
         }
-      _ => {
+      Unnest | Unpivot | Group | Pivot => {
         tuples = Map([])
         scores = Map([])
       }

@@ -1,4 +1,37 @@
 ///|
+test "additive columns preserve window roles through projection and alias removal" {
+  for
+    addition in [
+      "{\"analytic\":{\"partition_by\":[],\"order_by\":[{\"window_start\":\"asc\"}],\"functions\":{\"n\":{\"fn\":\"row_number\"}}}}",
+      "{\"json_pick\":{\"column\":\"payload\",\"path\":[\"leaf\"],\"output\":\"n\"}}",
+    ] {
+    let p = @pipeline_typing.check_carriers(
+      cursor(
+        "[{\"derive\":{\"payload\":{\"object\":{\"leaf\":{\"literal\":1}}}}},{\"row_window\":{\"kind\":\"fixed\",\"time\":\"at\",\"size\":10}}," +
+        addition +
+        ",{\"select\":[{\"a\":\"window_start\"},{\"b\":\"window_start\"},\"window_end\"]},{\"drop\":[\"a\"]},{\"window_group\":{\"by\":[],\"aggregates\":{}}}]",
+      ),
+      [("rows", window_input())],
+      None,
+      None,
+      limits(),
+    ).unwrap()
+    assert_eq(
+      @pipeline_typing.window_fields(
+        @pipeline_typing.window_evidence_at(p, Step(4)).unwrap(),
+      ),
+      (Unqualified("b"), Unqualified("window_end")),
+    )
+    assert_true(
+      physical_equal(
+        @pipeline_typing.window_evidence_at(p, Step(1)).unwrap(),
+        @pipeline_typing.window_evidence_at(p, Step(2)).unwrap(),
+      ),
+    )
+  }
+}
+
+///|
 test "whole row distinct retains window evidence" {
   let p = @pipeline_typing.check_carriers(
     cursor(

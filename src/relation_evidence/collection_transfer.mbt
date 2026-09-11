@@ -106,7 +106,7 @@ fn prepare_mapping(
       }
       Project(mapping)
     }
-    _ => Forget
+    Unnest | Unpivot | Group | Pivot => Forget
   }
 }
 
