@@ -96,6 +96,31 @@ and bound Invocation consistency are separate prerequisites; a fragment hash or
 an authored alias does not supply either identity. No additional law name,
 source constructor or runnable Plan is introduced by this audit.
 
+## Sequence capacity consumer prerequisites
+
+Language's `sequence.a-breach-of-either-limit-must-fail-the-whole-operation`
+explicitly does not define a static sequence match-count proof. The checked
+`disallow` label keys prove uniqueness, not an admitted match-count capacity
+law. Likewise, an authored output guard is an independently enforced ceiling,
+not a source proof of the data's cardinality. The registered
+`actql.bound.sequence-output` name does not alone authorize an ordinary Program
+source application. `capacity_program_step/sequence_test.mbt` fixes this boundary
+on Relation and Events, both overlap modes, with and without authored guards,
+including a self-consistent claimed value of zero. Match-limit and identity
+obligations remain attached to the operation.
+
+The fixed Sketch `87dc7144` compiler resolves two separate consumers:
+`max_temporal_matches_per_key` / `matches_per_key` and
+`max_temporal_output_rows` / `rows`, both engine-atomic, with any respective
+authored guard retained. Its implementation binds the resulting maxima to
+different `TEA.sequence.match` fields. This matches the current normative
+scope distinction, despite unrelated old source restrictions in that compiler.
+The remaining static consumer connection must validate both scopes, preserve
+each guard even when the Host ceiling wins, and retain unresolved enforcement.
+Neither a row bound nor one of those limits can substitute for the other.
+Author-source identity and complete candidate applicability remain prerequisites;
+this audit does not invent a local pipeline hash as Program Definition identity.
+
 ## Extension-local capacity law
 
 The current `actql-expressions.json` contract explicitly registers
