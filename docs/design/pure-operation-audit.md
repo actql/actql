@@ -848,6 +848,10 @@ admission, resource enforcement or complete source authority.
    unknown/nonlocal/duplicate selectors with shared work/text budgets. Snapshot
    body/environment admission remains necessary; a resolved source location is
    not an authenticated input owner or a stronger pipeline registration.
+   [Local Relation snapshots](local-relation-snapshot.md) now have a pinned
+   envelope and canonical-byte integrity reader retaining checked schema and
+   optional materialization claims. Resolution/assertion/environment binding
+   and provenance validation still need integration; integrity is not authority.
    A two-stage actual Result import tests final publication ownership, foreign
    reissued orders and exact/short cumulative budgets. Ordinary/receipt inputs,
    static discharge and complete semantic Program identity remain incomplete.

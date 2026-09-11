@@ -152,6 +152,40 @@ to all local Carrier selectors, without defining their snapshot body formats.
 Schema evidence alone is not evidence that input rows already exist: static
 checking does not implicitly acquire, materialize or authorize data.
 
+<a id="local-relation-snapshot"></a>
+
+#### Local Relation schema snapshots
+
+<!-- requirement-block: check-environment.local-relation-snapshot-shape -->
+A local Relation schema snapshot MUST contain exactly the required members
+`version: "actql-local-input-schema/0.1"`, `source_ref`,
+`output_carrier: "relation"`, and `schema`, plus only the optional members
+`input_cid`, `completeness`, and `integration_binding_cid`. `schema` is a complete
+checked non-nullable object contract, including explicit `additional_properties:
+false`; empty `fields` is allowed. It is not an author-form declaration or a
+bare field map. Other local Carriers require their corresponding snapshot
+contracts; this Relation contract does not restrict their language support.
+
+<!-- requirement-block: check-environment.local-relation-snapshot-materialization -->
+`input_cid` and `completeness` MUST occur together, with completeness either
+`complete` or `partial`; `integration_binding_cid` is optional but requires that
+pair. Their absence denotes static schema evidence only, not zero rows, complete
+data or an implicitly acquired materialization. An ordinary local input need not
+have a Collection IntegrationBinding. When supplied, these identity/provenance
+claims remain bound in the snapshot and need validation against their governing
+materialization and integration contracts; schema agreement alone verifies none
+of those claims.
+
+<!-- requirement-block: check-environment.local-relation-snapshot-integrity check-environment.local-relation-snapshot-correspondence -->
+The snapshot identity MUST hash the entire canonical JSON body as UTF-8 with
+SHA-256, including all supplied optional claims; no self-CID field is part of
+that body. Admission MUST verify its exact source selector in the selected
+Program, Relation Carrier, recursive supplied-to-authored schema assignability,
+explicit input assertions and membership in the selected Check Environment.
+Canonical-byte admission rejects noncanonical bytes rather than repairing them.
+An independently recomputed content CID establishes integrity, not Host authority,
+runtime row validity, uniqueness, completeness or permission to execute.
+
 <a id="capacity-law-registry"></a>
 
 ### Capacity witness law registry
@@ -950,6 +984,7 @@ These exact schema/law references are owned here. Their identities do not includ
 <!-- requirement-block: machine-contracts.exact-artifacts -->
 <!-- normative-code: law -->
 ```text
+../../../spec/contracts/actql-local-relation-snapshot.json# sha256:60e8136aea733421e75fa3dcef4934c87ce98959b36f8a56da93ccfbf03d81b2
 ../../../spec/contracts/actql-local-source-reference.json# sha256:9be664306a6a91a8e5bfca53d579e6dac77baf4567eb241ceeedc3216ffe47d9
 ../../../spec/contracts/actql-protocol-schemas.json#/schemas/model_task sha256:19408a610dbc52552bff3a7f97f25a120a66688e7db4f41383c91c9298f02dd2
 ../../../spec/contracts/actql-consumer-capacity.json# sha256:7d59718b965451d8a19ccf7095b92777ba0cdd8c3bb71f437ab387801fe7271f

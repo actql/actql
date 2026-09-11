@@ -1,0 +1,60 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/local_relation_snapshot"
+
+import {
+  "actql/actql/encode_core",
+  "actql/actql/local_source_ref",
+  "actql/actql/relation_schema",
+  "actql/actql/value_contract",
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn cid(Snapshot) -> String
+
+pub fn emit(Snapshot, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
+
+pub fn materialization(Snapshot) -> Materialization?
+
+pub fn read(Bytes, String, Limits) -> Result[Snapshot, Issue]
+
+pub fn schema(Snapshot) -> @relation_schema.Schema
+
+pub fn source_reference(Snapshot) -> @local_source_ref.Reference
+
+pub fn usage(Snapshot) -> (Int, Int)
+
+// Errors
+
+// Types and methods
+pub(all) enum Completeness {
+  Complete
+  Partial
+} derive(Eq, @debug.Debug)
+
+pub(all) enum Issue {
+  InvalidLimits
+  BudgetExceeded
+  InvalidSnapshot
+  IdentityMismatch
+  NonCanonicalBytes
+  TypeContract(@value_contract.AdmissionError)
+} derive(Eq, @debug.Debug)
+
+pub(all) struct Limits {
+  max_bytes : Int
+  max_nodes : Int
+  max_depth : Int
+}
+
+pub struct Materialization {
+  input_cid : String
+  completeness : Completeness
+  integration_binding_cid : String?
+}
+
+type Snapshot
+
+// Type aliases
+
+// Traits

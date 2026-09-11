@@ -1,0 +1,224 @@
+{
+  "version": "actql-local-relation-snapshot-vectors/0.1",
+  "cases": [
+    {
+      "id": "static-empty",
+      "accepted": true,
+      "body": {
+        "version": "actql-local-input-schema/0.1",
+        "source_ref": "source:local/s/rows",
+        "output_carrier": "relation",
+        "schema": {
+          "type": "object",
+          "nullable": false,
+          "additional_properties": false,
+          "fields": {}
+        }
+      },
+      "canonical_json": "{\"output_carrier\":\"relation\",\"schema\":{\"additional_properties\":false,\"fields\":{},\"nullable\":false,\"type\":\"object\"},\"source_ref\":\"source:local/s/rows\",\"version\":\"actql-local-input-schema/0.1\"}",
+      "cid": "sha256:9f0114feb3b5e8e946c3efc5b89ebe6a44559f13b7ec30809a0e42d173916bec"
+    },
+    {
+      "id": "static-typed",
+      "accepted": true,
+      "body": {
+        "version": "actql-local-input-schema/0.1",
+        "source_ref": "source:local/t/rows",
+        "output_carrier": "relation",
+        "schema": {
+          "type": "object",
+          "nullable": false,
+          "additional_properties": false,
+          "fields": {
+            "id": {
+              "type": "number",
+              "nullable": false
+            },
+            "amount": {
+              "type": "decimal",
+              "precision": 38,
+              "scale": 2,
+              "nullable": true
+            }
+          }
+        }
+      },
+      "canonical_json": "{\"output_carrier\":\"relation\",\"schema\":{\"additional_properties\":false,\"fields\":{\"amount\":{\"nullable\":true,\"precision\":38,\"scale\":2,\"type\":\"decimal\"},\"id\":{\"nullable\":false,\"type\":\"number\"}},\"nullable\":false,\"type\":\"object\"},\"source_ref\":\"source:local/t/rows\",\"version\":\"actql-local-input-schema/0.1\"}",
+      "cid": "sha256:2fb01f510243b2e40d71da3f9525d1b168033e3002f311575f176334d021b7df"
+    },
+    {
+      "id": "materialized-partial",
+      "accepted": true,
+      "body": {
+        "version": "actql-local-input-schema/0.1",
+        "source_ref": "source:local/s/rows",
+        "output_carrier": "relation",
+        "schema": {
+          "type": "object",
+          "nullable": false,
+          "additional_properties": false,
+          "fields": {}
+        },
+        "input_cid": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+        "completeness": "partial"
+      },
+      "canonical_json": "{\"completeness\":\"partial\",\"input_cid\":\"sha256:0000000000000000000000000000000000000000000000000000000000000000\",\"output_carrier\":\"relation\",\"schema\":{\"additional_properties\":false,\"fields\":{},\"nullable\":false,\"type\":\"object\"},\"source_ref\":\"source:local/s/rows\",\"version\":\"actql-local-input-schema/0.1\"}",
+      "cid": "sha256:75eccb36ade047a5a13cc0c1891b419e44c5f0f3bfdef07e62a1cf069584614a"
+    },
+    {
+      "id": "integration-complete",
+      "accepted": true,
+      "body": {
+        "version": "actql-local-input-schema/0.1",
+        "source_ref": "source:local/s/rows",
+        "output_carrier": "relation",
+        "schema": {
+          "type": "object",
+          "nullable": false,
+          "additional_properties": false,
+          "fields": {}
+        },
+        "input_cid": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+        "completeness": "complete",
+        "integration_binding_cid": "sha256:1111111111111111111111111111111111111111111111111111111111111111"
+      },
+      "canonical_json": "{\"completeness\":\"complete\",\"input_cid\":\"sha256:0000000000000000000000000000000000000000000000000000000000000000\",\"integration_binding_cid\":\"sha256:1111111111111111111111111111111111111111111111111111111111111111\",\"output_carrier\":\"relation\",\"schema\":{\"additional_properties\":false,\"fields\":{},\"nullable\":false,\"type\":\"object\"},\"source_ref\":\"source:local/s/rows\",\"version\":\"actql-local-input-schema/0.1\"}",
+      "cid": "sha256:27c5c185c028287ce1626a972a5eb45220e6c9e1bfd035f32938c63fb912fc92"
+    },
+    {
+      "id": "bare-field-map",
+      "accepted": false,
+      "body": {
+        "version": "actql-local-input-schema/0.1",
+        "source_ref": "source:local/s/rows",
+        "output_carrier": "relation",
+        "schema": {}
+      },
+      "canonical_json": "{\"output_carrier\":\"relation\",\"schema\":{},\"source_ref\":\"source:local/s/rows\",\"version\":\"actql-local-input-schema/0.1\"}",
+      "cid": "sha256:7cbd6250ed6be6705454f4e286d7b89f3f4da3a2eaafb71928e7ff963e078cfa"
+    },
+    {
+      "id": "nullable-row",
+      "accepted": false,
+      "body": {
+        "version": "actql-local-input-schema/0.1",
+        "source_ref": "source:local/s/rows",
+        "output_carrier": "relation",
+        "schema": {
+          "type": "object",
+          "nullable": true,
+          "additional_properties": false,
+          "fields": {}
+        }
+      },
+      "canonical_json": "{\"output_carrier\":\"relation\",\"schema\":{\"additional_properties\":false,\"fields\":{},\"nullable\":true,\"type\":\"object\"},\"source_ref\":\"source:local/s/rows\",\"version\":\"actql-local-input-schema/0.1\"}",
+      "cid": "sha256:d678af330e7b4ae8dd385346d249037429476c509319c166d42e4059e9f2e654"
+    },
+    {
+      "id": "unknown-member",
+      "accepted": false,
+      "body": {
+        "version": "actql-local-input-schema/0.1",
+        "source_ref": "source:local/s/rows",
+        "output_carrier": "relation",
+        "schema": {
+          "type": "object",
+          "nullable": false,
+          "additional_properties": false,
+          "fields": {}
+        },
+        "input_name": "rows"
+      },
+      "canonical_json": "{\"input_name\":\"rows\",\"output_carrier\":\"relation\",\"schema\":{\"additional_properties\":false,\"fields\":{},\"nullable\":false,\"type\":\"object\"},\"source_ref\":\"source:local/s/rows\",\"version\":\"actql-local-input-schema/0.1\"}",
+      "cid": "sha256:67acbeb082159110b43a97f0ea67153f36fae95199e05473dc26c5a5e26eb2a7"
+    },
+    {
+      "id": "unpaired-completeness",
+      "accepted": false,
+      "body": {
+        "version": "actql-local-input-schema/0.1",
+        "source_ref": "source:local/s/rows",
+        "output_carrier": "relation",
+        "schema": {
+          "type": "object",
+          "nullable": false,
+          "additional_properties": false,
+          "fields": {}
+        },
+        "completeness": "complete"
+      },
+      "canonical_json": "{\"completeness\":\"complete\",\"output_carrier\":\"relation\",\"schema\":{\"additional_properties\":false,\"fields\":{},\"nullable\":false,\"type\":\"object\"},\"source_ref\":\"source:local/s/rows\",\"version\":\"actql-local-input-schema/0.1\"}",
+      "cid": "sha256:ad982960e76c34e661358eafcb1e6791321242ba8a1f938bd304abca422adbee"
+    },
+    {
+      "id": "unpaired-input",
+      "accepted": false,
+      "body": {
+        "version": "actql-local-input-schema/0.1",
+        "source_ref": "source:local/s/rows",
+        "output_carrier": "relation",
+        "schema": {
+          "type": "object",
+          "nullable": false,
+          "additional_properties": false,
+          "fields": {}
+        },
+        "input_cid": "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+      },
+      "canonical_json": "{\"input_cid\":\"sha256:0000000000000000000000000000000000000000000000000000000000000000\",\"output_carrier\":\"relation\",\"schema\":{\"additional_properties\":false,\"fields\":{},\"nullable\":false,\"type\":\"object\"},\"source_ref\":\"source:local/s/rows\",\"version\":\"actql-local-input-schema/0.1\"}",
+      "cid": "sha256:18a44818cd276520a67b2213f164d92c7083d0b92516b336ec4d0b6d5f5e785b"
+    },
+    {
+      "id": "binding-without-materialization",
+      "accepted": false,
+      "body": {
+        "version": "actql-local-input-schema/0.1",
+        "source_ref": "source:local/s/rows",
+        "output_carrier": "relation",
+        "schema": {
+          "type": "object",
+          "nullable": false,
+          "additional_properties": false,
+          "fields": {}
+        },
+        "integration_binding_cid": "sha256:1111111111111111111111111111111111111111111111111111111111111111"
+      },
+      "canonical_json": "{\"integration_binding_cid\":\"sha256:1111111111111111111111111111111111111111111111111111111111111111\",\"output_carrier\":\"relation\",\"schema\":{\"additional_properties\":false,\"fields\":{},\"nullable\":false,\"type\":\"object\"},\"source_ref\":\"source:local/s/rows\",\"version\":\"actql-local-input-schema/0.1\"}",
+      "cid": "sha256:f7227638265783442ba721e2521ad7d8a4d02b14294cc76923acc874862a1102"
+    },
+    {
+      "id": "wrong-carrier",
+      "accepted": false,
+      "body": {
+        "version": "actql-local-input-schema/0.1",
+        "source_ref": "source:local/s/rows",
+        "output_carrier": "graph",
+        "schema": {
+          "type": "object",
+          "nullable": false,
+          "additional_properties": false,
+          "fields": {}
+        }
+      },
+      "canonical_json": "{\"output_carrier\":\"graph\",\"schema\":{\"additional_properties\":false,\"fields\":{},\"nullable\":false,\"type\":\"object\"},\"source_ref\":\"source:local/s/rows\",\"version\":\"actql-local-input-schema/0.1\"}",
+      "cid": "sha256:a7dcca99fa23caf567f204f83da4250796017cda8f3f18aa0055b9cbcf9a102a"
+    },
+    {
+      "id": "legacy-selector",
+      "accepted": false,
+      "body": {
+        "version": "actql-local-input-schema/0.1",
+        "source_ref": "source:local.rows",
+        "output_carrier": "relation",
+        "schema": {
+          "type": "object",
+          "nullable": false,
+          "additional_properties": false,
+          "fields": {}
+        }
+      },
+      "canonical_json": "{\"output_carrier\":\"relation\",\"schema\":{\"additional_properties\":false,\"fields\":{},\"nullable\":false,\"type\":\"object\"},\"source_ref\":\"source:local.rows\",\"version\":\"actql-local-input-schema/0.1\"}",
+      "cid": "sha256:1d478bf6d1dfe6e565797935ee0f8c6cc0262a3be2cdf47abfbb7ad901ef5298"
+    }
+  ]
+}

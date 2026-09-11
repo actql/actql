@@ -61,7 +61,10 @@ a different environment or changed input/binding is a mismatch, not permission
 to start a different invocation. The helper does not replace current authorization.
 
 Local schema snapshots use `actql-local-input-schema/0.1` and retain the actual
-checked schema, completeness, materialization CID and IntegrationBinding CID.
+checked schema. [Local Relation snapshots](../spec/protocols/contracts.md#local-relation-snapshot)
+pair completeness with a materialization CID when a capture is claimed, retaining
+the IntegrationBinding CID when applicable; static-only schema evidence omits
+those claims without implying empty or complete data.
 Compilation checks recursive assignability to the authored declarations and
 uses the stronger schema as checking evidence without rewriting Program source.
 

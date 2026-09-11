@@ -1,0 +1,42 @@
+# Local Relation schema snapshot integrity
+
+The normative owner is [local Relation schema snapshots](../spec/protocols/contracts.md#local-relation-snapshot).
+`spec/contracts/actql-local-relation-snapshot.json` pins the envelope schema,
+checked-type/selector dependencies and semantic requirements. Extract `schema`
+as a standalone schema resource for its local `$defs` references.
+
+This closes an unspecified wire boundary rather than copying the reference's
+internal representation. Sketch `87dc7144:src/actql-collection-integration.ts`
+uses bare field maps and flat local selectors for already captured integrations.
+The staged contract uses a complete checked non-nullable object contract and
+the separately pinned staged selector. Empty fields remain a known empty schema,
+not an unknown schema. A full checked contract avoids author defaulting during
+evidence admission and reuses the existing validated type reader and emitter.
+
+Static schema evidence does not require an existing materialization. The optional
+`input_cid`/`completeness` pair retains a claimed capture; an IntegrationBinding
+CID is optional because ordinary local inputs need not arise from Collection.
+These are explicit choices extending beyond the reference's captured-only path.
+No absent claim is synthesized, and no claimed completeness becomes verified
+by schema agreement. Other Carrier snapshot bodies remain separate work.
+
+`local_relation_snapshot.read` requires canonical UTF-8 bytes and an external
+expected CID. It bounds input bytes before hashing, uses bounded nonrecursive
+JSON and checked-type admission, and reconstructs the entire body into the
+bounded hash sink. Both hashes must equal the expected identity. This rejects
+normalization repair, whitespace, alternate key/number spelling, unknown members
+and malformed types without materializing a second serialized body. Each pass
+has the supplied node/depth/byte caps; returned usage describes the canonical
+body, not total CPU work or heap usage. Callers still budget batches globally.
+
+JSON Schema checks closed shape, checked type syntax and optional-member pairing.
+Canonical bytes, Unicode, schema semantics, identity, Program correspondence and
+evidence authority remain separate checks. The fixed corpus is independently
+authored; Node fixes canonical bytes/CIDs, and MoonBit checks the expected body
+acceptance. This is not a claim of generic JSON Schema validator conformance.
+
+The opaque `Snapshot` establishes content integrity and envelope/type validity
+only. It retains unverified materialization claims without executing I/O.
+Subsequent admission must bind the resolved local source, authored assertions,
+selected Check Environment and governing provenance/authority. It cannot be
+passed to the source-only pipeline assembly as authenticated Host evidence.
