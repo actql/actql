@@ -80,6 +80,10 @@ consumer audit.
    [Host capacity policy admission](capacity-policy.md) now binds canonical
    policy bodies and opaque field ceilings to an expected CID. Host authority,
    complete witness laws and consumer enforcement are separate unfinished work.
+   [Host source witnesses](host-capacity-witness.md) now fix the supported
+   field/unit/law combinations and canonical identity while retaining the
+   admitted policy. Program/Contract/author/language sources and complete
+   consumer resolution remain unfinished.
    Do not add public proof flags, treat policy ceilings as observations, or
    expand into acquisition, an evaluator or Host dispatch.
 3. Connect contextual resolutions into a complete static checking/discharge

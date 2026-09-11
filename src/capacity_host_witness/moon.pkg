@@ -1,0 +1,12 @@
+supported_targets = "+js+wasm+native"
+
+import {
+  "actql/actql/capacity_policy" @policy,
+  "actql/actql/capacity_derivation" @derivation,
+  "actql/actql/encode_core" @encode,
+}
+
+import {
+  "moonbitlang/core/encoding/utf8",
+  "actql/actql/sha256" @sha,
+} for "test"

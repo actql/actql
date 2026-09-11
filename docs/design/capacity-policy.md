@@ -39,6 +39,10 @@ source dependency closure, exact consumer/enforcement binding, resolved limits
 and whole-pipeline discharge remain open. There is no API that turns Policy or
 Ceiling directly into a runnable Plan or a proven data bound.
 
+The [Host source witness constructor](host-capacity-witness.md) now supplies
+the closed field/unit/law mapping and canonical source-witness identity for
+supported quantities. Other source laws and consumer enforcement remain open.
+
 ## Regression coverage
 
 Tests fix an independent Node-computed policy CID and verify source retention,

@@ -1,5 +1,63 @@
 {
   "version": "actql-capacity-host-policy-contract/0.1",
+  "host_witness_laws": {
+    "max_aggregate_array_items": {
+      "unit": "array_items",
+      "law_id": "actql.host.aggregate-array-items"
+    },
+    "max_artifact_bytes": {
+      "unit": "bytes",
+      "law_id": "actql.host.artifact-bytes"
+    },
+    "max_artifact_rows": {
+      "unit": "rows",
+      "law_id": "actql.host.artifact-rows"
+    },
+    "max_effect_items": {
+      "unit": "effect_items",
+      "law_id": "actql.host.effect-items"
+    },
+    "max_graph_input_edges": {
+      "unit": "edges",
+      "law_id": "actql.host.graph-input-edges"
+    },
+    "max_graph_input_nodes": {
+      "unit": "nodes",
+      "law_id": "actql.host.graph-input-nodes"
+    },
+    "max_graph_output_rows": {
+      "unit": "rows",
+      "law_id": "actql.host.graph-output"
+    },
+    "max_graph_paths": {
+      "unit": "paths",
+      "law_id": "actql.host.graph-paths"
+    },
+    "max_infer_items": {
+      "unit": "distinct_keys",
+      "law_id": "actql.host.infer-items"
+    },
+    "max_model_request_bytes_per_item": {
+      "unit": "bytes",
+      "law_id": "actql.host.model-request-bytes"
+    },
+    "max_nested_value_bytes": {
+      "unit": "bytes",
+      "law_id": "actql.host.nested-value-bytes"
+    },
+    "max_relation_output_rows": {
+      "unit": "rows",
+      "law_id": "actql.host.relation-output"
+    },
+    "max_temporal_matches_per_key": {
+      "unit": "matches_per_key",
+      "law_id": "actql.host.temporal-matches"
+    },
+    "max_temporal_output_rows": {
+      "unit": "rows",
+      "law_id": "actql.host.temporal-output"
+    }
+  },
   "schema": {
     "type": "object",
     "additionalProperties": false,

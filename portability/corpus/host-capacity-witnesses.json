@@ -1,0 +1,123 @@
+{
+  "version": "actql-host-capacity-witness-vectors/0.1",
+  "policy": {
+    "max_aggregate_array_items": 1,
+    "max_artifact_bytes": 1,
+    "max_artifact_rows": 1,
+    "max_effect_items": 1,
+    "max_graph_input_edges": 1,
+    "max_graph_input_nodes": 1,
+    "max_graph_output_rows": 1,
+    "max_graph_paths": 1,
+    "max_infer_items": 1,
+    "max_model_input_tokens_per_item": 1,
+    "max_model_request_bytes_per_item": 1,
+    "max_model_total_duration_ms": 1,
+    "max_nested_value_bytes": 1,
+    "max_nested_value_depth": 1,
+    "max_relation_output_rows": 1,
+    "max_temporal_matches_per_key": 1,
+    "max_temporal_output_rows": 1,
+    "version": "actql-capacity-host-policy/0.1"
+  },
+  "cases": [
+    {
+      "field": "max_aggregate_array_items",
+      "unit": "array_items",
+      "law_id": "actql.host.aggregate-array-items",
+      "cid": "sha256:4c7ae8cb395c5ec84af3eb3d0cf4ff7f9a893c10485c47e99fc82318904da156",
+      "text": "{\"dependencies\":[\"sha256:dfa8818d1752320593a6de63173a99ab23b8b17cd3786df87003aafcfbd04f63\"],\"derivation\":{\"op\":\"source\"},\"law_id\":\"actql.host.aggregate-array-items\",\"role\":\"host_ceiling\",\"source\":{\"field\":\"max_aggregate_array_items\",\"kind\":\"host_policy\",\"policy_cid\":\"sha256:dfa8818d1752320593a6de63173a99ab23b8b17cd3786df87003aafcfbd04f63\"},\"unit\":\"array_items\",\"value\":1,\"version\":\"actql-bound-witness/0.1\",\"witness_cid\":\"sha256:4c7ae8cb395c5ec84af3eb3d0cf4ff7f9a893c10485c47e99fc82318904da156\"}"
+    },
+    {
+      "field": "max_artifact_bytes",
+      "unit": "bytes",
+      "law_id": "actql.host.artifact-bytes",
+      "cid": "sha256:4e239a9b0fb7df0afa291d763125f3e82ae0495f6bed6b8ed4c8dad74d38d6c1",
+      "text": "{\"dependencies\":[\"sha256:dfa8818d1752320593a6de63173a99ab23b8b17cd3786df87003aafcfbd04f63\"],\"derivation\":{\"op\":\"source\"},\"law_id\":\"actql.host.artifact-bytes\",\"role\":\"host_ceiling\",\"source\":{\"field\":\"max_artifact_bytes\",\"kind\":\"host_policy\",\"policy_cid\":\"sha256:dfa8818d1752320593a6de63173a99ab23b8b17cd3786df87003aafcfbd04f63\"},\"unit\":\"bytes\",\"value\":1,\"version\":\"actql-bound-witness/0.1\",\"witness_cid\":\"sha256:4e239a9b0fb7df0afa291d763125f3e82ae0495f6bed6b8ed4c8dad74d38d6c1\"}"
+    },
+    {
+      "field": "max_artifact_rows",
+      "unit": "rows",
+      "law_id": "actql.host.artifact-rows",
+      "cid": "sha256:0e2535b7ccbbbd1d573be32f28ad6a864d3d52563c4b766ab00ad0729462a4f5",
+      "text": "{\"dependencies\":[\"sha256:dfa8818d1752320593a6de63173a99ab23b8b17cd3786df87003aafcfbd04f63\"],\"derivation\":{\"op\":\"source\"},\"law_id\":\"actql.host.artifact-rows\",\"role\":\"host_ceiling\",\"source\":{\"field\":\"max_artifact_rows\",\"kind\":\"host_policy\",\"policy_cid\":\"sha256:dfa8818d1752320593a6de63173a99ab23b8b17cd3786df87003aafcfbd04f63\"},\"unit\":\"rows\",\"value\":1,\"version\":\"actql-bound-witness/0.1\",\"witness_cid\":\"sha256:0e2535b7ccbbbd1d573be32f28ad6a864d3d52563c4b766ab00ad0729462a4f5\"}"
+    },
+    {
+      "field": "max_effect_items",
+      "unit": "effect_items",
+      "law_id": "actql.host.effect-items",
+      "cid": "sha256:a223a89ae11d24c9be60416dd5c35be6bdb2c01aed0705b4a83089fe87574e31",
+      "text": "{\"dependencies\":[\"sha256:dfa8818d1752320593a6de63173a99ab23b8b17cd3786df87003aafcfbd04f63\"],\"derivation\":{\"op\":\"source\"},\"law_id\":\"actql.host.effect-items\",\"role\":\"host_ceiling\",\"source\":{\"field\":\"max_effect_items\",\"kind\":\"host_policy\",\"policy_cid\":\"sha256:dfa8818d1752320593a6de63173a99ab23b8b17cd3786df87003aafcfbd04f63\"},\"unit\":\"effect_items\",\"value\":1,\"version\":\"actql-bound-witness/0.1\",\"witness_cid\":\"sha256:a223a89ae11d24c9be60416dd5c35be6bdb2c01aed0705b4a83089fe87574e31\"}"
+    },
+    {
+      "field": "max_graph_input_edges",
+      "unit": "edges",
+      "law_id": "actql.host.graph-input-edges",
+      "cid": "sha256:d8f268c74bf29b8a5ed90cb9b3cbee761e214dc3533e51dccbbbba5f673c0081",
+      "text": "{\"dependencies\":[\"sha256:dfa8818d1752320593a6de63173a99ab23b8b17cd3786df87003aafcfbd04f63\"],\"derivation\":{\"op\":\"source\"},\"law_id\":\"actql.host.graph-input-edges\",\"role\":\"host_ceiling\",\"source\":{\"field\":\"max_graph_input_edges\",\"kind\":\"host_policy\",\"policy_cid\":\"sha256:dfa8818d1752320593a6de63173a99ab23b8b17cd3786df87003aafcfbd04f63\"},\"unit\":\"edges\",\"value\":1,\"version\":\"actql-bound-witness/0.1\",\"witness_cid\":\"sha256:d8f268c74bf29b8a5ed90cb9b3cbee761e214dc3533e51dccbbbba5f673c0081\"}"
+    },
+    {
+      "field": "max_graph_input_nodes",
+      "unit": "nodes",
+      "law_id": "actql.host.graph-input-nodes",
+      "cid": "sha256:728fa5aab0a06fecedd20ce698143c5dc48e1a5db43d95f0aa0bf2be222840eb",
+      "text": "{\"dependencies\":[\"sha256:dfa8818d1752320593a6de63173a99ab23b8b17cd3786df87003aafcfbd04f63\"],\"derivation\":{\"op\":\"source\"},\"law_id\":\"actql.host.graph-input-nodes\",\"role\":\"host_ceiling\",\"source\":{\"field\":\"max_graph_input_nodes\",\"kind\":\"host_policy\",\"policy_cid\":\"sha256:dfa8818d1752320593a6de63173a99ab23b8b17cd3786df87003aafcfbd04f63\"},\"unit\":\"nodes\",\"value\":1,\"version\":\"actql-bound-witness/0.1\",\"witness_cid\":\"sha256:728fa5aab0a06fecedd20ce698143c5dc48e1a5db43d95f0aa0bf2be222840eb\"}"
+    },
+    {
+      "field": "max_graph_output_rows",
+      "unit": "rows",
+      "law_id": "actql.host.graph-output",
+      "cid": "sha256:5f824a9498c4e9db05c8024e88f85fc829a962cce0a96a07672ee9587323d317",
+      "text": "{\"dependencies\":[\"sha256:dfa8818d1752320593a6de63173a99ab23b8b17cd3786df87003aafcfbd04f63\"],\"derivation\":{\"op\":\"source\"},\"law_id\":\"actql.host.graph-output\",\"role\":\"host_ceiling\",\"source\":{\"field\":\"max_graph_output_rows\",\"kind\":\"host_policy\",\"policy_cid\":\"sha256:dfa8818d1752320593a6de63173a99ab23b8b17cd3786df87003aafcfbd04f63\"},\"unit\":\"rows\",\"value\":1,\"version\":\"actql-bound-witness/0.1\",\"witness_cid\":\"sha256:5f824a9498c4e9db05c8024e88f85fc829a962cce0a96a07672ee9587323d317\"}"
+    },
+    {
+      "field": "max_graph_paths",
+      "unit": "paths",
+      "law_id": "actql.host.graph-paths",
+      "cid": "sha256:50d83be0393ba0390442d3a7e13d0b6242c18f61f4bc6d2a5ad510a132fe0663",
+      "text": "{\"dependencies\":[\"sha256:dfa8818d1752320593a6de63173a99ab23b8b17cd3786df87003aafcfbd04f63\"],\"derivation\":{\"op\":\"source\"},\"law_id\":\"actql.host.graph-paths\",\"role\":\"host_ceiling\",\"source\":{\"field\":\"max_graph_paths\",\"kind\":\"host_policy\",\"policy_cid\":\"sha256:dfa8818d1752320593a6de63173a99ab23b8b17cd3786df87003aafcfbd04f63\"},\"unit\":\"paths\",\"value\":1,\"version\":\"actql-bound-witness/0.1\",\"witness_cid\":\"sha256:50d83be0393ba0390442d3a7e13d0b6242c18f61f4bc6d2a5ad510a132fe0663\"}"
+    },
+    {
+      "field": "max_infer_items",
+      "unit": "distinct_keys",
+      "law_id": "actql.host.infer-items",
+      "cid": "sha256:f632cb199d47a451c8941ab0efc540d193d41515c95b4fbedc6a6f74d9f096cb",
+      "text": "{\"dependencies\":[\"sha256:dfa8818d1752320593a6de63173a99ab23b8b17cd3786df87003aafcfbd04f63\"],\"derivation\":{\"op\":\"source\"},\"law_id\":\"actql.host.infer-items\",\"role\":\"host_ceiling\",\"source\":{\"field\":\"max_infer_items\",\"kind\":\"host_policy\",\"policy_cid\":\"sha256:dfa8818d1752320593a6de63173a99ab23b8b17cd3786df87003aafcfbd04f63\"},\"unit\":\"distinct_keys\",\"value\":1,\"version\":\"actql-bound-witness/0.1\",\"witness_cid\":\"sha256:f632cb199d47a451c8941ab0efc540d193d41515c95b4fbedc6a6f74d9f096cb\"}"
+    },
+    {
+      "field": "max_model_request_bytes_per_item",
+      "unit": "bytes",
+      "law_id": "actql.host.model-request-bytes",
+      "cid": "sha256:d58381703b0186b1c307070cd79c5732c3939a48639e13d117c91cfdca1333de",
+      "text": "{\"dependencies\":[\"sha256:dfa8818d1752320593a6de63173a99ab23b8b17cd3786df87003aafcfbd04f63\"],\"derivation\":{\"op\":\"source\"},\"law_id\":\"actql.host.model-request-bytes\",\"role\":\"host_ceiling\",\"source\":{\"field\":\"max_model_request_bytes_per_item\",\"kind\":\"host_policy\",\"policy_cid\":\"sha256:dfa8818d1752320593a6de63173a99ab23b8b17cd3786df87003aafcfbd04f63\"},\"unit\":\"bytes\",\"value\":1,\"version\":\"actql-bound-witness/0.1\",\"witness_cid\":\"sha256:d58381703b0186b1c307070cd79c5732c3939a48639e13d117c91cfdca1333de\"}"
+    },
+    {
+      "field": "max_nested_value_bytes",
+      "unit": "bytes",
+      "law_id": "actql.host.nested-value-bytes",
+      "cid": "sha256:b829c499a1f241813e7e31dd5a884d5fee4dcdfd9fc79e89bedb6d8827220688",
+      "text": "{\"dependencies\":[\"sha256:dfa8818d1752320593a6de63173a99ab23b8b17cd3786df87003aafcfbd04f63\"],\"derivation\":{\"op\":\"source\"},\"law_id\":\"actql.host.nested-value-bytes\",\"role\":\"host_ceiling\",\"source\":{\"field\":\"max_nested_value_bytes\",\"kind\":\"host_policy\",\"policy_cid\":\"sha256:dfa8818d1752320593a6de63173a99ab23b8b17cd3786df87003aafcfbd04f63\"},\"unit\":\"bytes\",\"value\":1,\"version\":\"actql-bound-witness/0.1\",\"witness_cid\":\"sha256:b829c499a1f241813e7e31dd5a884d5fee4dcdfd9fc79e89bedb6d8827220688\"}"
+    },
+    {
+      "field": "max_relation_output_rows",
+      "unit": "rows",
+      "law_id": "actql.host.relation-output",
+      "cid": "sha256:cc804f91bfb333cce941d90ede1e71d04e829b342464a24e88f237db814f4236",
+      "text": "{\"dependencies\":[\"sha256:dfa8818d1752320593a6de63173a99ab23b8b17cd3786df87003aafcfbd04f63\"],\"derivation\":{\"op\":\"source\"},\"law_id\":\"actql.host.relation-output\",\"role\":\"host_ceiling\",\"source\":{\"field\":\"max_relation_output_rows\",\"kind\":\"host_policy\",\"policy_cid\":\"sha256:dfa8818d1752320593a6de63173a99ab23b8b17cd3786df87003aafcfbd04f63\"},\"unit\":\"rows\",\"value\":1,\"version\":\"actql-bound-witness/0.1\",\"witness_cid\":\"sha256:cc804f91bfb333cce941d90ede1e71d04e829b342464a24e88f237db814f4236\"}"
+    },
+    {
+      "field": "max_temporal_matches_per_key",
+      "unit": "matches_per_key",
+      "law_id": "actql.host.temporal-matches",
+      "cid": "sha256:1b3618e1b620afedd28431b4805864fdc6545e3b68563faafa327b8fe199c85f",
+      "text": "{\"dependencies\":[\"sha256:dfa8818d1752320593a6de63173a99ab23b8b17cd3786df87003aafcfbd04f63\"],\"derivation\":{\"op\":\"source\"},\"law_id\":\"actql.host.temporal-matches\",\"role\":\"host_ceiling\",\"source\":{\"field\":\"max_temporal_matches_per_key\",\"kind\":\"host_policy\",\"policy_cid\":\"sha256:dfa8818d1752320593a6de63173a99ab23b8b17cd3786df87003aafcfbd04f63\"},\"unit\":\"matches_per_key\",\"value\":1,\"version\":\"actql-bound-witness/0.1\",\"witness_cid\":\"sha256:1b3618e1b620afedd28431b4805864fdc6545e3b68563faafa327b8fe199c85f\"}"
+    },
+    {
+      "field": "max_temporal_output_rows",
+      "unit": "rows",
+      "law_id": "actql.host.temporal-output",
+      "cid": "sha256:3f1a4583295af001e484a445f0e59eee53fca34e5704f8e5affadb02a2cc230a",
+      "text": "{\"dependencies\":[\"sha256:dfa8818d1752320593a6de63173a99ab23b8b17cd3786df87003aafcfbd04f63\"],\"derivation\":{\"op\":\"source\"},\"law_id\":\"actql.host.temporal-output\",\"role\":\"host_ceiling\",\"source\":{\"field\":\"max_temporal_output_rows\",\"kind\":\"host_policy\",\"policy_cid\":\"sha256:dfa8818d1752320593a6de63173a99ab23b8b17cd3786df87003aafcfbd04f63\"},\"unit\":\"rows\",\"value\":1,\"version\":\"actql-bound-witness/0.1\",\"witness_cid\":\"sha256:3f1a4583295af001e484a445f0e59eee53fca34e5704f8e5affadb02a2cc230a\"}"
+    }
+  ]
+}

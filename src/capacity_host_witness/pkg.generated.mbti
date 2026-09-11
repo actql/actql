@@ -1,0 +1,43 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/capacity_host_witness"
+
+import {
+  "actql/actql/capacity_derivation",
+  "actql/actql/capacity_policy",
+  "actql/actql/encode_core",
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn ceiling(Witness) -> @capacity_policy.Ceiling
+
+pub fn cid(Witness) -> String
+
+pub fn create(@capacity_policy.Ceiling, Limits) -> Result[Witness, Issue]
+
+pub fn emit(Witness, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
+
+pub fn law_id(Witness) -> String
+
+pub fn unit(Witness) -> @capacity_derivation.BoundUnit
+
+// Errors
+
+// Types and methods
+pub(all) enum Issue {
+  InvalidLimits
+  BudgetExceeded
+  UnsupportedPolicyField(String)
+} derive(Eq, @debug.Debug)
+
+pub(all) struct Limits {
+  max_bytes : Int
+  max_nodes : Int
+  max_depth : Int
+}
+
+type Witness
+
+// Type aliases
+
+// Traits

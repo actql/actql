@@ -30,3 +30,32 @@ test('synthetic all-one policy has a fixed independent canonical identity', () =
     field === 'version' ? 'actql-capacity-host-policy/0.1' : 1]));
   assert.equal(machineCid(policy), 'sha256:dfa8818d1752320593a6de63173a99ab23b8b17cd3786df87003aafcfbd04f63');
 });
+
+test('host witness field units and laws match the closed product mapping', () => {
+  const unitNames = {Rows:'rows', DistinctKeys:'distinct_keys', EffectItems:'effect_items',
+    Bytes:'bytes', ArrayItems:'array_items', Nodes:'nodes', Edges:'edges', Paths:'paths', MatchesPerKey:'matches_per_key'};
+  const product = readFileSync(new URL('../src/capacity_host_witness/witness.mbt', import.meta.url), 'utf8');
+  const pairs = [...product.matchAll(/"(max_[a-z_]+)"\s*=>\s*Some\(\((\w+), "([^"]+)"\)\)/g)]
+    .map(([,field,unit,law_id]) => [field, { unit: unitNames[unit], law_id }]);
+  assert.equal(pairs.length, 14);
+  assert.equal(new Set(pairs.map(([field]) => field)).size, pairs.length);
+  assert.deepEqual(Object.fromEntries(pairs), contract.host_witness_laws);
+  const unsupported = contract.schema.required.filter(k => k !== 'version' && !Object.hasOwn(contract.host_witness_laws, k));
+  assert.deepEqual(unsupported.sort(), ['max_model_input_tokens_per_item', 'max_model_total_duration_ms', 'max_nested_value_depth']);
+});
+
+test('fixed host witness wire bytes and identities match an independent canonical oracle', () => {
+  const corpus = JSON.parse(readFileSync(new URL('../portability/corpus/host-capacity-witnesses.json', import.meta.url), 'utf8'));
+  assert.equal(corpus.version, 'actql-host-capacity-witness-vectors/0.1');
+  assert.deepEqual(corpus.cases.map(c => c.field).sort(), Object.keys(contract.host_witness_laws).sort());
+  const policy_cid = machineCid(corpus.policy);
+  assert.equal(new Set(corpus.cases.map(c => c.cid)).size, corpus.cases.length);
+  for (const c of corpus.cases) {
+    assert.deepEqual({unit:c.unit, law_id:c.law_id}, contract.host_witness_laws[c.field]);
+    const core = {dependencies:[policy_cid], derivation:{op:'source'}, law_id:c.law_id,
+      role:'host_ceiling', source:{field:c.field, kind:'host_policy', policy_cid},
+      unit:c.unit, value:corpus.policy[c.field], version:'actql-bound-witness/0.1'};
+    assert.equal(machineCid(core), c.cid);
+    assert.equal(JSON.stringify({...core, witness_cid:c.cid}), c.text);
+  }
+});

@@ -144,10 +144,22 @@ Resolving and enforcing the resulting capacity remains required before a
 runnable Plan can rely on it. Policy selection and deployment remain Host
 responsibilities rather than author-level source defaults.
 
+<!-- requirement-block: capacity-host-policy.host-source-witness -->
+A Host policy source witness MUST use the exact field/unit/law triple in the
+pinned `host_witness_laws` table, with role `host_ceiling`, derivation
+`{op: source}`, and source `{kind: host_policy, policy_cid, field}`. Its value
+equals that admitted policy field and its dependencies are the singleton policy
+CID. Its `witness_cid` hashes the complete canonical witness body excluding only
+the `witness_cid` member itself. The emitted wire body includes that member.
+Field scope is retained when matching a consumer: equal values and equal units
+do not make different policy fields interchangeable. Fields without a table
+entry remain policy facts for their separate consumer envelopes; they cannot
+be recast into one of the current bound-witness units.
+
 <!-- requirement-block: capacity-host-policy.machine-contract -->
 <!-- normative-code: law -->
 ```text
-../../../spec/contracts/actql-capacity-host-policy.json# sha256:95e07fe13814a339543361c46b492bb90f2e78013e402439113b62fc0113ef40
+../../../spec/contracts/actql-capacity-host-policy.json# sha256:4150c63cf455b675d428479fcbf486d17b5421901eb35f65285cf96769c250bd
 ```
 
 <a id="catalog-and-lock"></a>
