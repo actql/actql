@@ -174,7 +174,8 @@ the selecting Host or claim that arbitrary independently checked producers must
 share an environment before being submitted to this combined boundary.
 
 The capacity aggregation budget is one registration unit plus the retained local
-application work per visit, using subtraction before addition to avoid overflow.
+application work and a Program application-table scan per visit, using
+subtraction before addition to avoid overflow.
 It does not rerun or silently reset each local budget. The returned entry array
 is detached, and a failure at a later visit returns no partial closure. Tests
 cover repeated producers, an unused second input, equal-content foreign owners,
@@ -182,6 +183,22 @@ missing/extra entries, exact/short budgets and a 1,000-link forwarding chain.
 Policy regressions reject both a foreign upstream selection and an independently
 selected policy that disagrees with the root, even when all local limits are
 absent or numerically unaffected by the changed policy field.
+
+The required `bound_guards` argument must retain the exact same contextual
+closure. Every visit's Program proof table is checked against its corresponding
+bound guard context using `capacity_program_step.check_guard_bindings`; omitting
+this comparison is no longer a successful capacity-closure path. Local proofs
+that use Parameter values must retain that context's exact bound collection.
+Repeated visits are checked independently and charged again. The result retains
+the bound closure and each local comparison. Foreign producer entries in a
+local proof table remain outside that local comparison's coverage.
+
+A fixed, independently hashed take-bound fixture covers a producer referenced
+twice, including an unused second reference. Substituting a different bound
+value collection at the later visit fails atomically, as does a one-short scan
+budget. Recomputing an otherwise identical contextual closure cannot substitute
+for the bound guards' original owner. This is occurrence-local agreement, not
+proof that every proof-table producer belongs to the enclosing Program.
 
 This establishes supported local capacity coverage across the producer graph,
 not complete source authority or all capacity consumers. Contextual resolution

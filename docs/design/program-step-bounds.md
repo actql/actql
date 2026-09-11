@@ -451,7 +451,7 @@ applications. The opaque result retains both original owners. Exact/short
 budgets, different values, independently bound equal values, binding-independent
 proofs and same-content foreign pipelines have regression coverage.
 
-This entry does not yet join the producer capacity closure. Each producer visit
-must eventually supply its own bound context under a shared budget; local
-agreement is not whole-Invocation consistency, enclosing semantic identity,
+The producer capacity closure now requires these comparisons at every visit,
+using its corresponding bound context and the remaining shared scan budget.
+Local agreement is not whole-Invocation consistency, enclosing semantic identity,
 author-witness source validation or execution permission.

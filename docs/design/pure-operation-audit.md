@@ -597,8 +597,10 @@ for Graph membership, preflight and search-resource validation.
    Program application tables can now be checked against one bound guard
    context, requiring the exact retained Parameter collection for local
    binding-dependent proofs. Foreign producer entries are explicitly outside
-   that local result. Connecting this check across producer occurrences and
-   establishing enclosing Invocation identity remain unfinished.
+   that local result. The capacity occurrence closure now requires the exact
+   bound guard closure and performs each local comparison under its shared
+   budget, including repeated and unused visits. Enclosing Invocation identity
+   and membership of foreign proof-table producers remain unfinished.
    Do not
    expand into acquisition, an evaluator or Host dispatch.
 3. Connect contextual resolutions into a complete static checking/discharge

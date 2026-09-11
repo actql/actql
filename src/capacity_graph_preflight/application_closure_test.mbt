@@ -16,6 +16,18 @@ fn closure_cursor(text : String) -> @decode.Cursor {
 }
 
 ///|
+fn empty_guard_closure(
+  orders : @pipeline.ContextualClosure,
+) -> @pipeline.BoundGuardClosure {
+  @pipeline.bind_contextual_guards(
+    orders,
+    Array::make(@pipeline.contextual_closure_count(orders), None),
+    max_work=10000,
+    max_text_bytes=10000,
+  ).unwrap()
+}
+
+///|
 fn empty_capacity(
   p : @pipeline.CheckedPipeline,
   other_policy? : Bool = false,
@@ -99,6 +111,7 @@ test "capacity closure covers unused and repeated producers with exact owners an
     orders,
     entries,
     selected_policy=policy(false),
+    bound_guards=empty_guard_closure(orders),
     max_work=cost,
   ).unwrap()
   assert_eq(@capacity_graph_preflight.application_closure_work(checked), cost)
@@ -126,6 +139,7 @@ test "capacity closure covers unused and repeated producers with exact owners an
       orders,
       [a, b],
       selected_policy=policy(false),
+      bound_guards=empty_guard_closure(orders),
       max_work=cost,
     )
     is Err(CoverageCount(expected=3, actual=2)),
@@ -135,6 +149,7 @@ test "capacity closure covers unused and repeated producers with exact owners an
       orders,
       [a, b, b, b],
       selected_policy=policy(false),
+      bound_guards=empty_guard_closure(orders),
       max_work=cost,
     )
     is Err(CoverageCount(expected=3, actual=4)),
@@ -144,6 +159,7 @@ test "capacity closure covers unused and repeated producers with exact owners an
       orders,
       [a, b, b],
       selected_policy=policy(false),
+      bound_guards=empty_guard_closure(orders),
       max_work=cost - 1,
     )
     is Err(WorkLimit(2)),
@@ -153,6 +169,7 @@ test "capacity closure covers unused and repeated producers with exact owners an
       orders,
       [a, b, b],
       selected_policy=policy(false),
+      bound_guards=empty_guard_closure(orders),
       max_work=-1,
     )
     is Err(InvalidLimits),
@@ -163,6 +180,7 @@ test "capacity closure covers unused and repeated producers with exact owners an
       orders,
       [a, b, foreign],
       selected_policy=policy(false),
+      bound_guards=empty_guard_closure(orders),
       max_work=cost,
     )
     is Err(ForeignPipeline(2)),
@@ -197,6 +215,7 @@ test "capacity closure selects one policy independently of all local application
       orders,
       [a, alternate],
       selected_policy=policy(false),
+      bound_guards=empty_guard_closure(orders),
       max_work=cost,
     )
     is Err(ForeignPolicy(1)),
@@ -206,6 +225,7 @@ test "capacity closure selects one policy independently of all local application
       orders,
       [a, b],
       selected_policy=policy(true),
+      bound_guards=empty_guard_closure(orders),
       max_work=cost,
     )
     is Err(ForeignPolicy(0)),
@@ -215,6 +235,7 @@ test "capacity closure selects one policy independently of all local application
     orders,
     [a, b],
     selected_policy=selected,
+    bound_guards=empty_guard_closure(orders),
     max_work=cost,
   ).unwrap()
   assert_true(
@@ -256,6 +277,7 @@ test "capacity closure handles long forwarding ancestry without recursion" {
     orders,
     ordered,
     selected_policy=policy(false),
+    bound_guards=empty_guard_closure(orders),
     max_work=cost,
   ).unwrap()
   assert_eq(@capacity_graph_preflight.application_closure_work(result), cost)
@@ -264,6 +286,7 @@ test "capacity closure handles long forwarding ancestry without recursion" {
       orders,
       ordered,
       selected_policy=policy(false),
+      bound_guards=empty_guard_closure(orders),
       max_work=cost - 1,
     )
     is Err(WorkLimit(1000)),

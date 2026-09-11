@@ -15,6 +15,9 @@ import {
 
 import {
   "actql/actql/source_value" @source,
+  "actql/actql/parameter_binding" @parameter,
+  "actql/actql/value_admission" @value,
+  "actql/actql/relation_evidence" @evidence,
   "actql/actql/decode_core" @decode,
   "actql/actql/value_contract" @contract,
   "actql/actql/relation_schema" @schema,
