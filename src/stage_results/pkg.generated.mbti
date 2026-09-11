@@ -21,6 +21,8 @@ pub fn bind_ports(@stage_parameters.CollectedStage, @relation_results.ResultPort
 
 pub fn check(@stage_parameters.CollectedOperations, @relation_results.Limits) -> Result[Checked, Issue]
 
+pub fn collect_checked(@stage_parameters.CollectedOperations, Array[@relation_results.CheckedResults], CollectionLimits) -> Result[Checked, CollectionIssue]
+
 pub fn export_at(ResultWiring, Int) -> ResultExport?
 
 pub fn export_count(ResultWiring) -> Int
@@ -77,6 +79,21 @@ pub fn wiring_usage(ResultWiring) -> (Int, Int)
 type AttachedImports
 
 type Checked
+
+pub(all) enum CollectionIssue {
+  InvalidLimits
+  StageCountMismatch
+  ForeignPipeline(Int)
+  ForeignResults(Int)
+  BudgetExceeded(Int)
+} derive(Eq, @debug.Debug)
+
+pub(all) struct CollectionLimits {
+  max_results : Int
+  max_work : Int
+  max_nodes : Int
+  max_text_bytes : Int
+} derive(Eq, @debug.Debug)
 
 pub(all) enum ImportIssue {
   InvalidLimits

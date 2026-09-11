@@ -8,6 +8,8 @@ pub(all) struct Limits {
 
 ///|
 pub(all) enum Issue {
+  InvalidIntegrationLimits
+  PriorOrderLimit
   Expressions(ExpressionRequirementIssue)
   Orders(@results.OrderCheckIssue)
   Guards(@pipeline.ProducerOrderIssue)
@@ -51,10 +53,46 @@ pub fn check(
     Ok(v) => v
     Err(e) => return Err(Orders(e))
   }
+  check_resolved_orders(
+    orders,
+    bindings,
+    applications,
+    selected_policy,
+    max_work=limits.max_work,
+    max_text_bytes=limits.max_text_bytes,
+    proof_owners~,
+    input_owners~,
+  )
+}
+
+///|
+/// Reuse one opaque resolved-order owner for both prepared publication ports
+/// and this context. Result and producer owners are derived from that object,
+/// never supplied independently. Caps include its already consumed work/text;
+/// step and Result admission limits belong to the earlier order resolution.
+pub fn check_resolved_orders(
+  orders : @results.CheckedOrders,
+  bindings : Array[@parameter.BoundValues?],
+  applications : Array[@capacity.ApplicationCoverage],
+  selected_policy : @policy.Policy,
+  max_work~ : Int,
+  max_text_bytes~ : Int,
+  proof_owners? : Array[(Int, Int, Int)] = [],
+  input_owners? : Array[(Int, Int, Int, Int)] = [],
+) -> Result[PipelineContext, Issue] {
+  if max_work < 0 || max_text_bytes < 0 {
+    return Err(InvalidIntegrationLimits)
+  }
   let (order_work, order_text) = @results.checked_orders_usage(orders)
+  if order_work > max_work || order_text > max_text_bytes {
+    return Err(PriorOrderLimit)
+  }
+  let results = @results.publication_orders_results(
+    @results.checked_publication_orders(orders),
+  )
   let closure = @results.checked_producer_orders(orders)
   let expressions = match
-    collect_expression_requirements(closure, limits.max_work - order_work) {
+    collect_expression_requirements(closure, max_work - order_work) {
     Ok(v) => v
     Err(e) => return Err(Expressions(e))
   }
@@ -62,8 +100,8 @@ pub fn check(
     @pipeline.bind_contextual_guards(
       closure,
       bindings,
-      max_work=limits.max_work - order_work - expressions.work,
-      max_text_bytes=limits.max_text_bytes - order_text,
+      max_work=max_work - order_work - expressions.work,
+      max_text_bytes=max_text_bytes - order_text,
     ) {
     Ok(v) => v
     Err(e) => return Err(Guards(e))
@@ -77,7 +115,7 @@ pub fn check(
       bound_guards=guards,
       proof_owners~,
       input_owners~,
-      max_work=limits.max_work - order_work - expressions.work - guard_work,
+      max_work=max_work - order_work - expressions.work - guard_work,
     ) {
     Ok(v) => v
     Err(e) => return Err(Capacity(e))

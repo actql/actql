@@ -8,6 +8,20 @@ not that completed boundary and not a Check Environment artifact or CID.
 
 ## Construction and ownership
 
+`check_resolved_orders` accepts an already validated opaque CheckedOrders when
+publication ports have to be prepared before checking a consumer stage. It derives
+the CheckedResults and producer closure from that object; neither is a second
+caller argument. Guard binding and capacity validation consume exactly that
+closure, and the resulting context retains the same order owner as the ports.
+The ordinary `check` entry resolves orders first and delegates to this same path.
+Thus reuse does not bypass binding, expression inventory or capacity checks.
+
+The reuse entry's work/text limits include the order result's prior usage and
+reject negative or insufficient caps before subsequent work. Step/Result/depth
+admission bounds were applied by the earlier order/Result constructors and are
+not retroactively replaced by this integration entry. Prepared ports are still
+not an execution authorization, including when later context checking fails.
+
 The constructor starts with `relation_results.CheckedResults`; its retained
 pipeline determines the root. It resolves all contextual producer orders and
 root publication orders, collects outstanding static expression requirements,

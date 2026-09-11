@@ -1,5 +1,21 @@
 # Source-bound stage Results
 
+`collect_checked` is the incremental construction counterpart of `check`: it
+retains Results already checked while preparing producer publication ports.
+It requires exactly one registration per source stage, its exact checked pipeline
+and the exact source-arena node of that stage's authored Result map. Equal text
+or another stage's map is not interchangeable. This avoids reissuing Result
+owners after consumer stages have retained the producer ports.
+
+Aggregate work includes the retained operation collection once, a check per
+stage and each Result set's prior admission work. Result count, visited nodes
+and text also include all prior Result admissions. Depth bounds belong to those
+earlier checks, not to a new traversal here. The result copies the registration
+array and returns no partial success on a late mismatch or budget failure.
+Tests cover exact owner preservation, equal-looking foreign stage sources,
+reordered/missing registrations, detached arrays and all exact/short aggregate
+limits. This entry does not resolve publication order or validate import wiring.
+
 `stage_results.check` connects every stage's authored `results` map to its exact
 pipeline from [source-bound operation collection](stage-parameters.md).
 It derives the Result source from the retained Program, not a caller-supplied

@@ -808,6 +808,12 @@ admission, resource enforcement or complete source authority.
    operation collection is charged once, alongside Result/context costs. This
    joins these results without certifying input/import contracts, static
    discharge or the still-missing complete Program semantic envelope.
+   Incremental construction can now reuse resolved-order owners in pipeline
+   contexts and retain previously checked Results in source-bound stage
+   collections. Producer ports can therefore be prepared before consumer
+   checking without reissuing either owner for later assembly. Both reuse
+   paths validate source/closure correspondence and include prior costs; the
+   final wiring-to-context attachment remains to be completed.
    [Combined order checking](combined-order-checking.md) now resolves
    all steps and named Results with one shared budget and one pipeline owner.
    Capacity and other mandatory obligations still require the final combined

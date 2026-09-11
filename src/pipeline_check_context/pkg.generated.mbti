@@ -24,6 +24,8 @@ pub fn check(@relation_results.CheckedResults, Array[@parameter_binding.BoundVal
 
 pub fn check_parameter_bindings(PipelineContext, max_work~ : Int, max_text_bytes~ : Int) -> Result[BoundParameters, ParameterIssue]
 
+pub fn check_resolved_orders(@relation_results.CheckedOrders, Array[@parameter_binding.BoundValues?], Array[@capacity_graph_preflight.ApplicationCoverage], @capacity_policy.Policy, max_work~ : Int, max_text_bytes~ : Int, proof_owners? : Array[(Int, Int, Int)], input_owners? : Array[(Int, Int, Int, Int)]) -> Result[PipelineContext, Issue]
+
 pub fn checked_capacity(PipelineContext) -> @capacity_graph_preflight.ApplicationClosure
 
 pub fn checked_orders(PipelineContext) -> @relation_results.CheckedOrders
@@ -74,6 +76,8 @@ pub(all) enum ExpressionRequirementIssue {
 }
 
 pub(all) enum Issue {
+  InvalidIntegrationLimits
+  PriorOrderLimit
   Expressions(ExpressionRequirementIssue)
   Orders(@relation_results.OrderCheckIssue)
   Guards(@pipeline_typing.ProducerOrderIssue)
