@@ -7,6 +7,7 @@ import {
   "actql/actql/capacity_policy" @policy,
   "actql/actql/capacity_witness" @wire,
   "actql/actql/capacity_program_step" @program,
+  "actql/actql/capacity_sequence_limit" @sequence,
   "actql/actql/capacity_derivation" @arithmetic,
   "actql/actql/capacity_law" @law,
   "actql/actql/decode_scalar" @scalar,
@@ -16,5 +17,6 @@ import {
   "actql/actql/source_value" @source,
   "actql/actql/decode_core" @decode,
   "actql/actql/value_contract" @contract,
+  "actql/actql/relation_schema" @schema,
   "moonbitlang/core/encoding/utf8",
 } for "test"

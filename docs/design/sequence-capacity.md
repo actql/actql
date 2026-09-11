@@ -68,6 +68,11 @@ budgets; coverage does not rerun or reset them. Tests cover both missing branche
 out-of-order registration, foreign owners/policy, duplicate applications, exact
 and one-short budgets, detached results and unconsumed limits.
 
+The [Graph/sequence consumer coverage check](graph-input-preflight.md) combines
+this ledger with Graph input bindings from the same pipeline, policy and source
+owner. It rejects any mixed limit left unconsumed across those two families;
+it does not make other consumer families or upstream checks optional.
+
 ## Explicit remaining boundaries
 
 An authored `max_matches_per_key` or `max_output_rows` fails this entry with

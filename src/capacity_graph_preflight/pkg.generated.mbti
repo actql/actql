@@ -5,6 +5,7 @@ import {
   "actql/actql/capacity_host_witness",
   "actql/actql/capacity_policy",
   "actql/actql/capacity_program_step",
+  "actql/actql/capacity_sequence_limit",
   "actql/actql/capacity_witness",
   "actql/actql/pipeline_typing",
   "moonbitlang/core/debug",
@@ -15,11 +16,19 @@ pub fn check(@pipeline_typing.CheckedPipeline, @capacity_host_witness.HostSource
 
 pub fn check_complete(@pipeline_typing.CheckedPipeline, @capacity_host_witness.HostSources, @capacity_policy.Policy, Limits) -> Result[GraphInputs, Issue]
 
+pub fn check_consumer_coverage(GraphInputs, @capacity_sequence_limit.Applications, max_work~ : Int) -> Result[ConsumerCoverage, ConsumerCoverageIssue]
+
 pub fn check_source_coverage(GraphInputs, @capacity_program_step.Applications, max_work~ : Int) -> Result[SourceCoverage, SourceCoverageIssue]
 
 pub fn checked_pipeline(GraphInputs) -> @pipeline_typing.CheckedPipeline
 
 pub fn checked_sources(GraphInputs) -> @capacity_host_witness.HostSources
+
+pub fn consumer_coverage_graph(ConsumerCoverage) -> GraphInputs
+
+pub fn consumer_coverage_sequence(ConsumerCoverage) -> @capacity_sequence_limit.Applications
+
+pub fn consumer_coverage_work(ConsumerCoverage) -> Int
 
 pub fn input_limit(GraphInputs, Int, Measure) -> @capacity_witness.LimitClaim?
 
@@ -38,6 +47,18 @@ pub fn usage(GraphInputs) -> (Int, Int)
 // Errors
 
 // Types and methods
+type ConsumerCoverage
+
+pub(all) enum ConsumerCoverageIssue {
+  InvalidLimits
+  WorkLimit
+  ForeignPipeline
+  ForeignSources
+  ForeignPolicy
+  DuplicateConsumer(Int)
+  UnconsumedLimit(Int)
+} derive(Eq, @debug.Debug)
+
 type GraphInputs
 
 pub(all) enum Issue {

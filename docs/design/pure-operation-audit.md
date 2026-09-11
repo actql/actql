@@ -395,6 +395,10 @@ matching automaton or proof that session-boundary values have been computed.
    matching and an isolated limit-consumption ledger. Dedicated collection
    completeness rejects unused limits. Complete source identity, upstream
    coverage and mixed consumer consumption remain required.
+   Combined Graph/sequence consumer coverage now rejects unused mixed limits
+   across those two supported families, requiring exact pipeline/source owners
+   and selected policy identity. It preserves each scope's original bindings;
+   remaining operation families and upstream closure are not certified by it.
    Do not
    expand into acquisition, an evaluator or Host dispatch.
 3. Connect contextual resolutions into a complete static checking/discharge
