@@ -4,6 +4,7 @@ package "actql/actql/pipeline_check_context"
 import {
   "actql/actql/capacity_graph_preflight",
   "actql/actql/capacity_policy",
+  "actql/actql/expression_typing",
   "actql/actql/parameter_binding",
   "actql/actql/pipeline_typing",
   "actql/actql/relation_results",
@@ -20,12 +21,31 @@ pub fn checked_orders(PipelineContext) -> @relation_results.CheckedOrders
 
 pub fn checked_results(PipelineContext) -> @relation_results.CheckedResults
 
+pub fn expression_requirement_at(PipelineContext, Int) -> ExpressionRequirement?
+
+pub fn expression_requirement_count(PipelineContext) -> Int
+
+pub fn expression_requirement_work(PipelineContext) -> Int
+
 pub fn usage(PipelineContext) -> (Int, Int)
 
 // Errors
 
 // Types and methods
+pub struct ExpressionRequirement {
+  visit : Int
+  step : Int
+  expression : @expression_typing.TypedExpression
+  obligation : @expression_typing.Obligation
+}
+
+pub(all) enum ExpressionRequirementIssue {
+  WorkLimit(Int)
+  Slots(Int, @pipeline_typing.ExpressionSlotIssue)
+}
+
 pub(all) enum Issue {
+  Expressions(ExpressionRequirementIssue)
   Orders(@relation_results.OrderCheckIssue)
   Guards(@pipeline_typing.ProducerOrderIssue)
   Capacity(@capacity_graph_preflight.ApplicationClosureIssue)

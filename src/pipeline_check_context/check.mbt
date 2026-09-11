@@ -8,6 +8,7 @@ pub(all) struct Limits {
 
 ///|
 pub(all) enum Issue {
+  Expressions(ExpressionRequirementIssue)
   Orders(@results.OrderCheckIssue)
   Guards(@pipeline.ProducerOrderIssue)
   Capacity(@capacity.ApplicationClosureIssue)
@@ -21,6 +22,7 @@ struct PipelineContext {
   orders : @results.CheckedOrders
   guards : @pipeline.BoundGuardClosure
   capacity : @capacity.ApplicationClosure
+  expressions : ExpressionRequirements
   work : Int
   text : Int
 }
@@ -51,11 +53,16 @@ pub fn check(
   }
   let (order_work, order_text) = @results.checked_orders_usage(orders)
   let closure = @results.checked_producer_orders(orders)
+  let expressions = match
+    collect_expression_requirements(closure, limits.max_work - order_work) {
+    Ok(v) => v
+    Err(e) => return Err(Expressions(e))
+  }
   let guards = match
     @pipeline.bind_contextual_guards(
       closure,
       bindings,
-      max_work=limits.max_work - order_work,
+      max_work=limits.max_work - order_work - expressions.work,
       max_text_bytes=limits.max_text_bytes - order_text,
     ) {
     Ok(v) => v
@@ -70,7 +77,7 @@ pub fn check(
       bound_guards=guards,
       proof_owners~,
       input_owners~,
-      max_work=limits.max_work - order_work - guard_work,
+      max_work=limits.max_work - order_work - expressions.work - guard_work,
     ) {
     Ok(v) => v
     Err(e) => return Err(Capacity(e))
@@ -80,7 +87,11 @@ pub fn check(
     orders,
     guards,
     capacity,
-    work: order_work + guard_work + @capacity.application_closure_work(capacity),
+    expressions,
+    work: order_work +
+    expressions.work +
+    guard_work +
+    @capacity.application_closure_work(capacity),
     text: order_text + guard_text,
   })
 }

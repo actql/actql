@@ -131,6 +131,19 @@ pub fn pending_validations(value : TypedExpression) -> Array[Obligation] {
 }
 
 ///|
+pub fn pending_validation_count(value : TypedExpression) -> Int {
+  value.pending.length()
+}
+
+///|
+pub fn pending_validation_at(
+  value : TypedExpression,
+  index : Int,
+) -> Obligation? {
+  value.pending.get(index)
+}
+
+///|
 priv suberror Stop {
   Stop(@decode.Cursor, IssueKind)
 }

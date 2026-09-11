@@ -39,18 +39,19 @@ fn policy() -> @policy.Policy {
 fn pipeline(
   inputs : Array[(String, @pipeline.InputContract)],
   parameters? : @parameter.Declarations? = None,
+  steps? : String = "[]",
 ) -> @pipeline.CheckedPipeline {
   @pipeline.check_with_evidence(
-    cursor("[]"),
+    cursor(steps),
     inputs,
     parameters,
     Some(cursor("\"a\"")),
     {
-      max_steps: 0,
-      max_work: 100,
-      max_text_bytes: 100,
-      max_nodes: 100,
-      max_tokens: 100,
+      max_steps: 10,
+      max_work: 10000,
+      max_text_bytes: 10000,
+      max_nodes: 1000,
+      max_tokens: 1000,
       max_depth: 100,
     },
   ).unwrap()
@@ -60,6 +61,7 @@ fn pipeline(
 fn base(
   keyed : Bool,
   parameters? : @parameter.Declarations? = None,
+  steps? : String = "[]",
 ) -> @pipeline.CheckedPipeline {
   let rows = @carrier.relation(
     @carrier.typed_rows(
@@ -95,7 +97,7 @@ fn base(
   } else {
     @pipeline.CarrierInput(rows)
   }
-  pipeline([("a", input)], parameters~)
+  pipeline([("a", input)], parameters~, steps~)
 }
 
 ///|
@@ -264,7 +266,16 @@ test "one constructor shares order binding and capacity ownership across repeate
   let cw = @capacity.application_closure_work(
     @pipeline_check_context.checked_capacity(checked),
   )
-  assert_eq((work, text), (ow + gw + cw, ot + gt))
+  assert_eq(
+    (work, text),
+    (
+      ow +
+      @pipeline_check_context.expression_requirement_work(checked) +
+      gw +
+      cw,
+      ot + gt,
+    ),
+  )
   let exact = { ..limits(), max_work: work, max_text_bytes: text, }
   assert_true(
     @pipeline_check_context.check(

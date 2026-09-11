@@ -781,6 +781,11 @@ admission, resource enforcement or complete source authority.
    It rejects foreign or missing late producer entries without exposing partial
    results. This closes manual assembly for that subset, not staged semantic
    identity, source authority or remaining static/profile/runtime obligations.
+   The context now explicitly inventories static expression profile, pattern
+   and Host-envelope requirements across every producer visit, including unused
+   steps and unselected expression branches. Exact expression/node ownership
+   and cumulative collection work are retained. Inventory is not discharge;
+   operation-level obligations and validated resolutions remain required.
    [Combined order checking](combined-order-checking.md) now resolves
    all steps and named Results with one shared budget and one pipeline owner.
    Capacity and other mandatory obligations still require the final combined

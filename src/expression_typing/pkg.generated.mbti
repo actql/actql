@@ -22,6 +22,10 @@ pub fn node_at(TypedExpression, Int) -> TypedNode?
 
 pub fn node_count(TypedExpression) -> Int
 
+pub fn pending_validation_at(TypedExpression, Int) -> Obligation?
+
+pub fn pending_validation_count(TypedExpression) -> Int
+
 pub fn pending_validations(TypedExpression) -> Array[Obligation]
 
 pub fn required_profiles(TypedExpression) -> Array[String]
