@@ -58,6 +58,41 @@ Host evidence or discharge duplicate-policy requirements.
 
 ## Reference differences and remaining integration
 
+`check_schema` checks a supplied complete, flat checked field schema against an
+already read declaration. If the source has a complete schema, recursive
+assignability is checked from supplied to authored, including exact object field
+sets and nullability/extents. With only expected columns, all listed names must
+be present, but extra supplied fields are permitted. Qualified join-output field
+provenance cannot be reinterpreted as a local authored field map.
+
+The opaque SchemaAgreement retains the exact declaration and supplied schema;
+the returned Carrier uses that stronger schema without rewriting source. A
+declared primary key is rechecked against newly known fields/types and remains
+conditional on raw/normalized runtime admission and uniqueness. Supplied types
+also recheck first-by-order fields for existence and AuthorOrderable domains;
+they do not establish its independent total-order proof.
+
+This is assertion agreement, **not Host evidence admission**. The enclosing
+checker still must bind the snapshot's input source ref, Carrier, checked schema,
+materialization/provenance and admitted Check Environment. There is deliberately
+no registration of SchemaAgreement as a source-only stage input: an arbitrary
+matching schema is not a validated Host snapshot. No snapshot wire shape, CID
+preimage, signature or authority is invented by this helper.
+
+The comparison's Limits apply to this type phase, independently of prior source
+admission: max_nodes charges both type trees plus expected-column/key/order
+checks; max_text_bytes charges their names and reference-domain text; max_depth
+uses type-root depth zero. `schema_usage` reports these type-phase counters, not
+source-tree usage. Iterative preflight bounds both trees before common recursive
+assignability checking, and a depth-3,000 supplied type is tested. Exact/short
+caps and incompatible/qualified schemas reject without exposing partial results.
+
+This follows the existing [reference Host design](reference-host.md#collection-integration-admission)
+and Sketch `87dc7144:src/actql.ts`'s supplied-to-authored assignability direction.
+The reference's flat `source:local.<name>` snapshot mapping is not copied into a
+staged Program source-identity contract. Its actual schema is checked-form data,
+so checked-only text extents are retained; author defaulting is not rerun on it.
+
 Sketch `87dc7144:moonbit/src/syntax_decode/decode.mbt` supplies reusable structure,
 but defaults an input with only expected columns to Relation and rejects an empty
 expected-column list. Current language requirements instead require `carrier`

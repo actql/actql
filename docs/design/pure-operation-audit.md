@@ -832,6 +832,10 @@ admission, resource enforcement or complete source authority.
    shared-cost accounting and aggregate local source limits. A real local input
    followed by a Result-importing stage exercises this path, without claiming
    Host/receipt admission, static discharge or final Program readiness.
+   Local schema assertion comparison now preserves a supplied stronger complete
+   checked schema after recursive assignability, expected-column and newly known
+   key/order-type checks. It is not snapshot source/CID/Host admission and is not
+   accepted by the source-only registration path as if it were such evidence.
    A two-stage actual Result import tests final publication ownership, foreign
    reissued orders and exact/short cumulative budgets. Ordinary/receipt inputs,
    static discharge and complete semantic Program identity remain incomplete.

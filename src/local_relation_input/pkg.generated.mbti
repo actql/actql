@@ -14,6 +14,8 @@ import {
 // Values
 pub fn carrier(Checked) -> @carrier_contract.Carrier
 
+pub fn check_schema(Checked, @relation_schema.Schema, Limits) -> Result[SchemaAgreement, SchemaIssue]
+
 pub fn expected_columns(Checked) -> Array[String]
 
 pub fn first_by_order(Checked) -> Array[@order_key.Key]?
@@ -22,7 +24,17 @@ pub fn primary_key(Checked) -> @relation_evidence.KeyedRelation?
 
 pub fn read(@decode_core.Cursor, Limits) -> Result[Checked, Issue]
 
+pub fn schema_carrier(SchemaAgreement) -> @carrier_contract.Carrier
+
+pub fn schema_declaration(SchemaAgreement) -> Checked
+
+pub fn schema_primary_key(SchemaAgreement) -> @relation_evidence.KeyedRelation?
+
+pub fn schema_usage(SchemaAgreement) -> Usage
+
 pub fn source(Checked) -> @decode_core.Cursor
+
+pub fn supplied_schema(SchemaAgreement) -> @relation_schema.Schema
 
 pub fn usage(Checked) -> Usage
 
@@ -53,6 +65,18 @@ pub(all) struct Limits {
   max_nodes : Int
   max_depth : Int
   max_text_bytes : Int
+}
+
+type SchemaAgreement
+
+pub enum SchemaIssue {
+  InvalidLimits
+  NonFlatSchema
+  BudgetExceeded
+  MissingExpectedColumn(String)
+  TypeMismatch
+  PrimaryKey(@relation_evidence.Issue)
+  InvalidOrderField(String)
 }
 
 pub(all) struct Usage {
