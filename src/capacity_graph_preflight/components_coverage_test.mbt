@@ -3,6 +3,7 @@ fn component_limit_artifact(
   candidates : Array[@wire.WireWitness],
   unit : String,
   suffix : String,
+  operation? : String = "components",
 ) -> (Bytes, String) raise {
   let sorted = candidates.copy()
   sorted.sort_by((a, b) => @wire.cid(a).compare(@wire.cid(b)))
@@ -15,7 +16,9 @@ fn component_limit_artifact(
   let prefix = "{\"author_guard_binding\":\"absent\",\"breach\":\"fail\",\"candidates\":[" +
     texts.join(",") +
     "],\"effective_max\":1,\"enforcement\":\"engine_atomic\""
-  let tail = ",\"subject_ref\":\"components:checked-step:0" +
+  let tail = ",\"subject_ref\":\"" +
+    operation +
+    ":checked-step:0" +
     suffix +
     "\",\"unit\":\"" +
     unit +

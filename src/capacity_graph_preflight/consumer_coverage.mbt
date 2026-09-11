@@ -10,13 +10,14 @@ pub(all) enum ConsumerCoverageIssue {
 } derive(Eq, Debug)
 
 ///|
-/// Consumption for Graph input, sequence, join and components applications.
+/// Consumption for Graph input, sequence, join, components and traversal.
 /// Source authority and other operation obligations remain separate.
 struct ConsumerCoverage {
   graph : GraphInputs
   sequence : @sequence.Applications
   joins : @program.JoinApplications?
   components : @program.ComponentsApplications?
+  traversals : @program.TraversalApplications?
   work : Int
 }
 
@@ -26,6 +27,7 @@ pub fn check_consumer_coverage(
   sequence : @sequence.Applications,
   joins? : @program.JoinApplications? = None,
   components? : @program.ComponentsApplications? = None,
+  traversals? : @program.TraversalApplications? = None,
   max_work~ : Int,
 ) -> Result[ConsumerCoverage, ConsumerCoverageIssue] {
   if max_work < 0 {
@@ -83,6 +85,24 @@ pub fn check_consumer_coverage(
       return Err(ForeignPolicy)
     }
   }
+  if traversals is Some(apps) {
+    if !physical_equal(
+        checked_pipeline(graph),
+        @program.traversal_application_pipeline(apps),
+      ) {
+      return Err(ForeignPipeline)
+    }
+    if !physical_equal(
+        checked_sources(graph),
+        @program.traversal_application_sources(apps),
+      ) {
+      return Err(ForeignSources)
+    }
+    if @policy.cid(selected_policy(graph)) !=
+      @policy.cid(@program.traversal_application_policy(apps)) {
+      return Err(ForeignPolicy)
+    }
+  }
   let mixed = @wire.program_claim_mixed(
     @host.source_claims(checked_sources(graph)),
   ).unwrap()
@@ -112,7 +132,12 @@ pub fn check_consumer_coverage(
       Some(apps) => @program.components_consumes_limit(apps, i)
       None => false
     }
-    let count = (if graph_consumes { 1 } else { 0 }) +
+    let traversal_consumes = match traversals {
+      Some(apps) => @program.traversal_consumes_limit(apps, i)
+      None => false
+    }
+    let count = (if traversal_consumes { 1 } else { 0 }) +
+      (if graph_consumes { 1 } else { 0 }) +
       (if sequence_consumes { 1 } else { 0 }) +
       (if join_consumes { 1 } else { 0 }) +
       (if components_consumes { 1 } else { 0 })
@@ -123,7 +148,14 @@ pub fn check_consumer_coverage(
       return Err(UnconsumedLimit(i))
     }
   }
-  Ok({ graph, sequence, joins, components, work: inputs * 2 + n, })
+  Ok({ graph, sequence, joins, components, traversals, work: inputs * 2 + n, })
+}
+
+///|
+pub fn consumer_coverage_traversals(
+  v : ConsumerCoverage,
+) -> @program.TraversalApplications? {
+  v.traversals
 }
 
 ///|

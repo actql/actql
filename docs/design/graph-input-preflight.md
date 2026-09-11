@@ -106,7 +106,7 @@ Regression checks cover exact scan limits, same-content foreign collection
 owners, remaining unused limits, and a valid Contract wire claim whose source
 body has not been admitted.
 
-## Combined Graph, sequence, join and components consumer coverage
+## Combined Graph and operation consumer coverage
 
 `check_consumer_coverage` combines this partial Graph result with the complete
 local sequence application table from [sequence capacity](sequence-capacity.md).
@@ -122,6 +122,9 @@ An optional complete components table extends the scan to its input-node and
 output-row limits, under the same owner and policy checks. These local operation
 limits are separate from the input Graph's preflight limits even when their
 units and numeric ceilings coincide.
+Traversal has a separate optional ledger for its Paths search ceiling and Rows
+output ceiling, checked against the same owners and selected policy. Both
+node-emitting and path-emitting traversals require both limits.
 
 The scan costs two visits per pipeline input binding and one per mixed limit,
 checked before allocating a CID index. All indexed identities are admitted
@@ -148,17 +151,18 @@ have been connected.
 ## Combined supported application coverage
 
 `check_application_coverage` runs source coverage and mixed consumer coverage
-against the same Graph input owner. Its optional join and components ledgers must retain the
+against the same Graph input owner. Its optional join, components and traversal
+ledgers must retain the
 exact Program application table supplied to source coverage; an independently
 constructed table with the same claim collection is not interchangeable.
 This prevents candidate availability from being checked against one table while
 source completeness is certified against another.
 
 The work budget is shared: source scanning consumes one unit per witness, then
-consumer scanning receives only the remainder. When either optional ledger is
+consumer scanning receives only the remainder. When any optional ledger is
 absent, one additional scan costs one unit per local step and requires that no
 operation belonging to that absent family exists, including unused branches.
-The scan is shared when both ledgers are absent. Omitting both the application
+The scan is shared when several ledgers are absent. Omitting both the application
 and its limit artifacts therefore cannot pass this entry. An admitted family
 ledger already carries its all-step coverage. The lower-level consumer
 ledger scan remains artifact-consumption-only, not operation coverage.

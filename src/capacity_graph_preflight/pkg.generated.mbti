@@ -39,11 +39,11 @@ pub fn check(@pipeline_typing.CheckedPipeline, @capacity_host_witness.HostSource
 
 pub fn check_application_closure(@pipeline_typing.ContextualClosure, Array[ApplicationCoverage], selected_policy~ : @capacity_policy.Policy, bound_guards~ : @pipeline_typing.BoundGuardClosure, proof_owners? : Array[(Int, Int, Int)], input_owners? : Array[(Int, Int, Int, Int)], max_work~ : Int) -> Result[ApplicationClosure, ApplicationClosureIssue]
 
-pub fn check_application_coverage(@capacity_graph_input.GraphInputs, @capacity_program_step.Applications, @capacity_sequence_limit.Applications, joins? : @capacity_program_step.JoinApplications?, components? : @capacity_program_step.ComponentsApplications?, max_work~ : Int) -> Result[ApplicationCoverage, ApplicationCoverageIssue]
+pub fn check_application_coverage(@capacity_graph_input.GraphInputs, @capacity_program_step.Applications, @capacity_sequence_limit.Applications, joins? : @capacity_program_step.JoinApplications?, components? : @capacity_program_step.ComponentsApplications?, traversals? : @capacity_program_step.TraversalApplications?, max_work~ : Int) -> Result[ApplicationCoverage, ApplicationCoverageIssue]
 
 pub fn check_complete(@pipeline_typing.CheckedPipeline, @capacity_host_witness.HostSources, @capacity_policy.Policy, @capacity_graph_input.Limits) -> Result[@capacity_graph_input.GraphInputs, @capacity_graph_input.Issue]
 
-pub fn check_consumer_coverage(@capacity_graph_input.GraphInputs, @capacity_sequence_limit.Applications, joins? : @capacity_program_step.JoinApplications?, components? : @capacity_program_step.ComponentsApplications?, max_work~ : Int) -> Result[ConsumerCoverage, ConsumerCoverageIssue]
+pub fn check_consumer_coverage(@capacity_graph_input.GraphInputs, @capacity_sequence_limit.Applications, joins? : @capacity_program_step.JoinApplications?, components? : @capacity_program_step.ComponentsApplications?, traversals? : @capacity_program_step.TraversalApplications?, max_work~ : Int) -> Result[ConsumerCoverage, ConsumerCoverageIssue]
 
 pub fn check_source_coverage(@capacity_graph_input.GraphInputs, @capacity_program_step.Applications, max_work~ : Int) -> Result[SourceCoverage, SourceCoverageIssue]
 
@@ -58,6 +58,8 @@ pub fn consumer_coverage_graph(ConsumerCoverage) -> @capacity_graph_input.GraphI
 pub fn consumer_coverage_joins(ConsumerCoverage) -> @capacity_program_step.JoinApplications?
 
 pub fn consumer_coverage_sequence(ConsumerCoverage) -> @capacity_sequence_limit.Applications
+
+pub fn consumer_coverage_traversals(ConsumerCoverage) -> @capacity_program_step.TraversalApplications?
 
 pub fn consumer_coverage_work(ConsumerCoverage) -> Int
 
@@ -110,6 +112,7 @@ pub(all) enum ApplicationCoverageIssue {
   WorkLimit
   MissingJoinApplications(Int)
   MissingComponentsApplications(Int)
+  MissingTraversalApplications(Int)
   Source(SourceCoverageIssue)
   Consumer(ConsumerCoverageIssue)
 } derive(Eq, @debug.Debug)

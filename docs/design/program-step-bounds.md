@@ -462,7 +462,35 @@ These rules extend fixed Sketch `87dc7144`, whose compiler only produced the
 single-result shortest-path proof, using Language's selector and path-selection
 contracts. Neither candidate discharges Graph admission, selector membership,
 weight validation, path-search budgets, authored output guards or runtime
-enforcement. The separate traversal path/output limit consumers remain required.
+enforcement.
+
+## Traversal limit consumers
+
+`check_traversal_limits` binds both engine-atomic limits of a checked traversal:
+`traverse:checked-step:<index>:paths` uses Paths and requires the selected
+`max_graph_paths` Host witness; `traverse:checked-step:<index>` uses Rows and
+requires `max_graph_output_rows`. The path minimum admits no ordinary Program
+candidate. The output minimum additionally admits all registered local
+`actql.bound.traverse-nodes` candidates. Only node-emitting traversal can produce
+those applications; path-emitting traversal still needs its separate output
+ceiling. This follows fixed Sketch `87dc7144`'s two execution-limit fields without
+claiming an algebra adapter or runtime enforcement.
+
+Candidate applicability uses the same bounded scan as components and join,
+retaining exact pipeline, Program and source owners and a shared work budget
+across both minima. Authored output guards remain `UnresolvedAuthorSource`, not
+silently replaced by tighter Host bounds. The limit consumer does not itself
+produce the separately enforced `actql.bound.traverse-output` application.
+
+`check_traversal_applications` covers every traversal step, consumes both indices
+once, and retains explicit leftovers for other families. Its work formula is
+twice the step count plus the mixed-limit count plus three per application.
+Combined Graph application coverage accepts this ledger alongside sequence,
+join and components. An absent traversal ledger triggers the shared all-step
+scan, including unused branches, so dropping both artifacts cannot hide a
+missing check. Tests cover both emission modes, wrong units/fields/subjects,
+missing candidates and applications, duplicate registration, owner retention,
+authored guards and exact/short shared budgets.
 
 ## Components limit consumers
 

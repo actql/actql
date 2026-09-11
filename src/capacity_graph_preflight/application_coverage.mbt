@@ -5,6 +5,7 @@ pub(all) enum ApplicationCoverageIssue {
   WorkLimit
   MissingJoinApplications(Int)
   MissingComponentsApplications(Int)
+  MissingTraversalApplications(Int)
   Source(SourceCoverageIssue)
   Consumer(ConsumerCoverageIssue)
 } derive(Eq, Debug)
@@ -25,6 +26,7 @@ pub fn check_application_coverage(
   sequence : @sequence.Applications,
   joins? : @program.JoinApplications? = None,
   components? : @program.ComponentsApplications? = None,
+  traversals? : @program.TraversalApplications? = None,
   max_work~ : Int,
 ) -> Result[ApplicationCoverage, ApplicationCoverageIssue] {
   if max_work < 0 {
@@ -38,6 +40,10 @@ pub fn check_application_coverage(
     !physical_equal(program, @program.components_application_program(apps)) {
     return Err(ForeignProgram)
   }
+  if traversals is Some(apps) &&
+    !physical_equal(program, @program.traversal_application_program(apps)) {
+    return Err(ForeignProgram)
+  }
   let sources = match check_source_coverage(graph, program, max_work~) {
     Ok(v) => v
     Err(e) => return Err(Source(e))
@@ -46,7 +52,7 @@ pub fn check_application_coverage(
   // An absent ledger is valid only if the pipeline has no corresponding steps.
   // Limit-set completeness alone cannot prove operation coverage: the caller
   // could omit both an operation's application and its limit artifact.
-  if joins is None || components is None {
+  if joins is None || components is None || traversals is None {
     let steps = @pipeline.step_count(checked_pipeline(graph))
     if steps > remaining {
       return Err(WorkLimit)
@@ -64,6 +70,10 @@ pub fn check_application_coverage(
           if components is None && @graph.operation(op) == @graph.Components {
             return Err(MissingComponentsApplications(i))
           }
+        @pipeline.Traverse(..) =>
+          if traversals is None {
+            return Err(MissingTraversalApplications(i))
+          }
         _ => ()
       }
     }
@@ -74,6 +84,7 @@ pub fn check_application_coverage(
       sequence,
       joins~,
       components~,
+      traversals~,
       max_work=remaining,
     ) {
     Ok(v) => v

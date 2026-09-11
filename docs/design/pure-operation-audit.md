@@ -715,7 +715,10 @@ admission, resource enforcement or complete source authority.
    absent components ledger is rejected even when both limit artifacts are
    omitted or the operation is on an unused branch. Traversal node-pair and
    shortest-path selection bounds now have owned Program candidate applications;
-   traversal path/output limit consumers and enforced output proofs remain open.
+   Traversal path/output limit consumers now bind the selected Host fields and
+   all applicable registered node-output candidates, with an all-step ledger
+   integrated into mixed consumption. Both emission modes and unused branches
+   are covered. Enforced output proofs and author-source identity remain open.
    Combined supported application coverage now runs source and consumer scans
    under one budget and requires the exact same Program application table for
    join candidates and source completeness. Unsupported sources and late
