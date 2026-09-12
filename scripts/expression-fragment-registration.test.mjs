@@ -15,8 +15,8 @@ const canonical = v => Array.isArray(v) ? `[${v.map(canonical)}]`
     ? `{${Object.keys(v).sort().map(k => `${JSON.stringify(k)}:${canonical(v[k])}`)}}`
     : JSON.stringify(v);
 const cid = v => 'sha256:' + createHash('sha256').update(canonical(v)).digest('hex');
-const currentCid = 'sha256:23a7f1081d1a2cdab7b20e425dddce846510355ba964058e0c809350fae33816';
-const contractCid = 'sha256:3cf4269dcf6c78f77bac984a228a18b743501905821fef41fa926b055f75d2e1';
+const currentCid = 'sha256:c88b89effec8107537a1064c2b8332f20deb0a0911520aa305bbafe5f0f491f6';
+const contractCid = 'sha256:98a0237503d300beaea09b2f2e87f10dcd94a4f70e29bd2875f25d02ea9e3dc4';
 
 function resolve(body, selected, owner = aoa, expr = expressions) {
   assert.equal(cid(body), selected, 'RegistryCidMismatch');
@@ -35,11 +35,13 @@ function resolve(body, selected, owner = aoa, expr = expressions) {
   return contract;
 }
 
-test('new registration preserves the exact 58-entry historical registry', () => {
+test('extensions preserve the historical primitive signatures and values contract', () => {
   assert.equal(cid(historical), 'sha256:b97a22de3664c1dafe3bc1e6791f1f8bcfb70324a1fcc1087450fe057e0f2311');
   assert.equal(cid(registry), currentCid); assert.equal(Object.keys(registry).length, 59);
   const {[op]: added, ...rest} = registry;
-  assert.deepEqual(rest, historical); assert.ok(added);
+  const retained=structuredClone(rest);
+  delete retained['REL.derive'].execution_extensions;
+  assert.deepEqual(retained, historical); assert.ok(added);
   assert.equal(cid(resolve(registry, currentCid)), contractCid);
 });
 

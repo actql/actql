@@ -27,7 +27,14 @@
     "inputs": [
       "relation"
     ],
-    "output": "relation"
+    "output": "relation",
+    "execution_extensions": {
+      "ordered_bindings": {
+        "file": "spec/contracts/actql-aoa.json",
+        "pointer": "/execution_contracts/REL.derive.ordered",
+        "cid": "sha256:90f5a71e31aa6a60c1961b7039a87f3a2849c4a793aaba3d776a166176fc28b9"
+      }
+    }
   },
   "REL.orderByStable": {
     "inputs": [
@@ -369,7 +376,7 @@
     "execution_contract": {
       "file": "spec/contracts/actql-aoa.json",
       "pointer": "/execution_contracts/ACTQL.expression_fragment~10.1",
-      "cid": "sha256:3cf4269dcf6c78f77bac984a228a18b743501905821fef41fa926b055f75d2e1"
+      "cid": "sha256:98a0237503d300beaea09b2f2e87f10dcd94a4f70e29bd2875f25d02ea9e3dc4"
     }
   }
 }

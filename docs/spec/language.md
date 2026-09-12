@@ -2277,6 +2277,7 @@ required runtime checks remain mandatory.
 | AoA consumer | Root pointer relative to `params` |
 | --- | --- |
 | `REL.derive` | `/exprs/<escaped-output-name>` |
+| `REL.derive` ordered row-kernel alternative | `/bindings/<index>/expr` |
 | `REL.where`, `REL.assert_all` | `/expr` |
 | `REL.groupBy`, `REL.window.project` | `/aggs/<escaped-output-name>/expr` |
 | Either aggregate consumer's filter | `/aggs/<escaped-output-name>/filter`, when present |
@@ -3499,6 +3500,80 @@ row-kernel extension, not an unregistered opcode or Host row rewrite.
 Input, root, output, live-value and total-work ceilings retain their existing
 measurement scopes; slots do not reset budgets. Fusion with select must
 preserve derive's logical retained-output limits.
+
+<!-- requirement-block: derive.ordered-execution-registration -->
+Ordered derive MUST use the `REL.derive` registration's `ordered_bindings`
+execution extension, pinned at
+`actql-aoa.json#/execution_contracts/REL.derive.ordered`. The closed params are
+`{row_kernel_contract_cid, bindings, references}`. The CID selects that exact
+extension, not a new opcode; `bindings` is a nonempty authored-order array of
+closed `{name, expr}` entries using the existing machine expression nodes.
+The legacy snapshot-map `exprs` representation is unchanged. An adapter lacking
+this extension cannot interpret the alternative as legacy params.
+
+<!-- requirement-block: derive.ordered-reference-table -->
+The reference table MUST contain exactly one closed `{at, target}` entry for
+every field-node occurrence, in binding order then semantic expression preorder.
+The RFC6901 `at` pointer is relative to params and starts at `/bindings/i/expr`;
+it never traverses literal payloads. Target is exactly `{input_field: name}` or
+`{prior_slot: j}`. The field spelling and checked type agree with the target.
+For binding i, the latest earlier slot of that name takes precedence; otherwise
+the original input is selected. Missing, duplicate, reordered, extraneous,
+self or future references are invalid, even when hashes match.
+
+<!-- requirement-block: derive.ordered-evidence-closure -->
+A fragment with ordered nodes MUST carry `row_kernel_evidence` containing
+`bindings`, `contexts`, `limits` and `shapes`: each referenced body once, in
+self-CID order, with no unreferenced bodies. There is one existing
+`actql-derive-binding/0.1` record per ordered node. Its node, input/output,
+binding names and types, expression roots, contexts and limits are regenerated
+from the same checked request. With no ordered nodes this member is absent.
+Root-list serialization still follows graph order then pointer UTF-16 order;
+it does not change authored binding evaluation order.
+
+<!-- requirement-block: derive.ordered-evidence-preimages -->
+For this extension, `checked_expression_cid` MUST hash the complete corresponding
+fragment root, including its step ID, parameter pointer, source, node, checked
+contract and demand paths. `context_contract_cid` resolves an
+`actql-derive-row-context/0.1` body binding the same input contract and the exact
+prefix of prior `{name, contract}` slots. Input/output contract CIDs resolve
+`actql-derive-row-shape/0.1` bodies with known `fields`, sorted unique
+`required_fields` and boolean `additional_fields`; known fields are a subset
+of required fields. Unknown field types stay unknown. Context, shape and limit
+self-CIDs omit only `self_cid`; no diagnostic spans enter these preimages.
+Node identity includes its extension pin, never the evidence that names it.
+
+<!-- requirement-block: derive.ordered-resource-context -->
+`request.row_kernel_limits` MUST map exactly the ordered step IDs to their
+`actql-derive-row-limits/0.1` bodies. Each has nonnegative safe-integer
+`max_input_rows`, `max_value_bytes`, `max_live_value_bytes`, `max_work` and a
+self-CID. Evidence `limits_cid` resolves the exact same-step request body;
+the row/value ceilings do not exceed the enclosing request's corresponding
+ceilings and selected Host constraints remain applicable. These limits are
+declared enforcement bounds, not inferred capacity proofs. A fragment without
+ordered nodes omits this request member.
+
+<!-- requirement-block: derive.ordered-resource-measures -->
+Enforcement MUST count all input row occurrences, and measure each admitted
+input value, demanded root value and complete retained output row as canonical
+JSON UTF-8 bytes of its typed wire value. Live-value bytes sum live input,
+slot, temporary and pending-output roots; aliases count as separate logical
+roots even with shared physical storage. Release follows last use. A transfer
+of ownership does not create a second root. These are logical measures, not a
+process heap ceiling; additional backend resource limits remain separate.
+
+<!-- requirement-block: derive.ordered-work-measure -->
+Work MUST accumulate one unit per row, binding and demanded expression entry,
+plus value weight for input admission, each consumed operand, each produced
+value and the retained output. Value weight is one per scalar/container plus
+raw UTF-8 octets of string values and object keys, counting every logical
+occurrence. Caching and short-circuit scalar comparisons do not discount this
+weight; unselected lazy expressions incur no evaluation work. Logical work is
+not an instruction count. Charges precede traversal/construction, check
+arithmetic overflow, accept exact caps and never reset per row or slot.
+All required input validation precedes shadowing; failure exposes no partial
+operation output. Later projection cannot waive retained-output charges.
+
 Saved plans are rechecked under their exact admitted law; map/array conversion,
 early select or expression deletion is not an automatic meaning-preserving
 repair. Ordered derive retains the input shape; explicit select closes the
@@ -8319,7 +8394,7 @@ through the pinned expression contract.
 <!-- requirement-block: machine-contracts.exact-artifacts -->
 <!-- normative-code: law -->
 ```text
-../../spec/contracts/actql-aoa.json# sha256:855daa7797d982d3cc7a5393c8bcb04af0cb4030383d8f74292483c16bf18c1f
+../../spec/contracts/actql-aoa.json# sha256:c0e99ae8e5945ee46fe5a4462d37539874231311cd2ac462654f4a2184477a2e
 ../../spec/contracts/actql-bound-transfer-laws.json# sha256:014682262d00c8435f300731e823e5b267ec66b78f980c765c4fd3772c68c911
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/resource_ref sha256:f88141c15be5ac040af593008fdca7c85214fcb4ba60ea7110160b8fe8ee25ac
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/artifact_ref sha256:2143a7c6bd2e0b110822670a3cb146cddaa23bcade9de7c1ab8ed4e1ebf88a55
@@ -8328,12 +8403,12 @@ through the pinned expression contract.
 ../../spec/contracts/actql-production-profile-schemas.json#/schemas/text_time_expression sha256:a9fd34634569c0da417ca5a8770ab064ad8351bbd253c8fea1dae60c756c61c1
 ../../spec/contracts/actql-production-profile-schemas.json#/schemas/regex_replacement_ast sha256:92c3fc4fc790cdf8f985b634dfe513f85b6cd5c904bb673de7330d18f577aeed
 ../../spec/contracts/actql-regex-ast.json# sha256:9c4e0107ad1e6a1eb374e8365c07615c74773416b0b43f9a1e02db5e551efc78
-../../spec/contracts/actql-expressions.json# sha256:aa85f7d3bbb42d890de47dcec6f3f2993fc232df3575012a114951ee7d40dbf7
+../../spec/contracts/actql-expressions.json# sha256:fd3f2366622f90d7793917b7a00d9b1a229b3c8e52521ccf28224f541f027240
 ../../spec/contracts/actql-expressions.json#/schemas/expression sha256:8196cef99c66248917d44d322cb21f69f9873cac768bc5bbda2e3757e8e9d66f
 ../../spec/contracts/actql-expressions.json#/schemas/expression_node sha256:eea37ee96bf6be954e46db196f7ec8101506ed4a28ecc647e8f929a512194b94
 ../../spec/contracts/actql-expressions.json#/schemas/evaluation_envelope sha256:629342d58af8fa879da391532a838788338ddc42b5f17db814d0bdf7236c195b
-../../spec/contracts/actql-expressions.json#/laws sha256:2c99289dbe519369a0482f8eaadc1dee12c752f214cb5467d81c5d0579a7d317
-../../spec/contracts/actql-expressions.json#/schemas/fragment sha256:2ccb093915f713003ae0f5e31043bbdd5fc0861cb6c718b1f5430872a4be3717
+../../spec/contracts/actql-expressions.json#/laws sha256:4896a366f9069b8d2d728e3a4dd94c728ac87bc1fb9d186f1582cb6650e001e1
+../../spec/contracts/actql-expressions.json#/schemas/fragment sha256:f3a0d16713f21f6b1f132e28516028138b3ddf4d26e4901f7df18cb9813bca88
 ../../spec/contracts/actql-expressions.json#/schemas/predicate_consumer sha256:36320fcc16612a4bd0a64274fcf07526845ae91ad802afce601f4e391f5ba1de
 ```
 

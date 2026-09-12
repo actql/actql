@@ -1,0 +1,104 @@
+{
+  "version": "actql-ordered-derive-vectors/0.1",
+  "preimages": [
+    {
+      "id": "closed-input-shape",
+      "body": {"version":"actql-derive-row-shape/0.1","fields":{"x":{"type":"number","nullable":false}},"required_fields":["x"],"additional_fields":false},
+      "canonical": "{\"additional_fields\":false,\"fields\":{\"x\":{\"nullable\":false,\"type\":\"number\"}},\"required_fields\":[\"x\"],\"version\":\"actql-derive-row-shape/0.1\"}",
+      "cid": "sha256:df852841162540088655a397d2c0dc40feff2c8f2db0e50ae6e0d3891f123c46"
+    },
+    {
+      "id": "original-input-context",
+      "body": {"version":"actql-derive-row-context/0.1","input_contract_cid":"sha256:df852841162540088655a397d2c0dc40feff2c8f2db0e50ae6e0d3891f123c46","prior_slots":[]},
+      "canonical": "{\"input_contract_cid\":\"sha256:df852841162540088655a397d2c0dc40feff2c8f2db0e50ae6e0d3891f123c46\",\"prior_slots\":[],\"version\":\"actql-derive-row-context/0.1\"}",
+      "cid": "sha256:a26988f65fa526836b898b5ce809eb95dc5df60eb640cd372d5ea44c6f67b1ee"
+    },
+    {
+      "id": "shadowed-input-context",
+      "body": {"version":"actql-derive-row-context/0.1","input_contract_cid":"sha256:df852841162540088655a397d2c0dc40feff2c8f2db0e50ae6e0d3891f123c46","prior_slots":[{"name":"x","contract":{"type":"number","nullable":false}}]},
+      "canonical": "{\"input_contract_cid\":\"sha256:df852841162540088655a397d2c0dc40feff2c8f2db0e50ae6e0d3891f123c46\",\"prior_slots\":[{\"contract\":{\"nullable\":false,\"type\":\"number\"},\"name\":\"x\"}],\"version\":\"actql-derive-row-context/0.1\"}",
+      "cid": "sha256:0d514bc83501342bd0df462d2dfde82ffd072b5dcae18e8e0c613f782ce6cff9"
+    },
+    {
+      "id": "row-limits",
+      "body": {"version":"actql-derive-row-limits/0.1","max_input_rows":2,"max_value_bytes":64,"max_live_value_bytes":128,"max_work":100},
+      "canonical": "{\"max_input_rows\":2,\"max_live_value_bytes\":128,\"max_value_bytes\":64,\"max_work\":100,\"version\":\"actql-derive-row-limits/0.1\"}",
+      "cid": "sha256:efe844a0d2119cb62b7b44887ba4f8e623aff5cdb62000cfd12dddb7af41c0da"
+    }
+  ],
+  "reference_cases": [
+    {
+      "id": "input-shadow-and-prior-values",
+      "input_fields": ["amount", "extra"],
+      "bindings": [
+        {"name":"old","expr":{"op":"field","body":"amount"}},
+        {"name":"amount","expr":{"op":"add","body":[{"op":"field","body":"amount"},{"op":"literal","body":1}]}},
+        {"name":"total","expr":{"op":"add","body":[{"op":"field","body":"old"},{"op":"field","body":"amount"}]}}
+      ],
+      "references": [
+        {"at":"/bindings/0/expr","target":{"input_field":"amount"}},
+        {"at":"/bindings/1/expr/body/0","target":{"input_field":"amount"}},
+        {"at":"/bindings/2/expr/body/0","target":{"prior_slot":0}},
+        {"at":"/bindings/2/expr/body/1","target":{"prior_slot":1}}
+      ],
+      "input_rows": [{"amount":10,"extra":"kept"}],
+      "expected_rows": [{"amount":11,"extra":"kept","old":10,"total":21}]
+    },
+    {
+      "id": "repeated-reference-occurrences",
+      "input_fields": ["x"],
+      "bindings": [{"name":"sum","expr":{"op":"add","body":[{"op":"field","body":"x"},{"op":"field","body":"x"}]}}],
+      "references": [
+        {"at":"/bindings/0/expr/body/0","target":{"input_field":"x"}},
+        {"at":"/bindings/0/expr/body/1","target":{"input_field":"x"}}
+      ],
+      "input_rows": [{"x":2},{"x":2}],
+      "expected_rows": [{"x":2,"sum":4},{"x":2,"sum":4}]
+    },
+    {
+      "id": "literal-business-data-is-opaque",
+      "input_fields": [],
+      "bindings": [{"name":"payload","expr":{"op":"literal","body":{"op":"field","body":"missing","input_field":"x","prior_slot":99,"$param":"business"}}}],
+      "references": [],
+      "input_rows": [{}],
+      "expected_rows": [{"payload":{"op":"field","body":"missing","input_field":"x","prior_slot":99,"$param":"business"}}]
+    },
+    {
+      "id": "empty-input-retains-typed-bindings",
+      "input_fields": ["x"],
+      "bindings": [{"name":"copy","expr":{"op":"field","body":"x"}}],
+      "references": [{"at":"/bindings/0/expr","target":{"input_field":"x"}}],
+      "input_rows": [], "expected_rows": []
+    }
+  ],
+  "invalid_references": [
+    {"id":"missing-occurrence","base":"input-shadow-and-prior-values","mutation":"remove_last"},
+    {"id":"duplicate-occurrence","base":"input-shadow-and-prior-values","mutation":"repeat_first"},
+    {"id":"reference-order","base":"input-shadow-and-prior-values","mutation":"reverse"},
+    {"id":"self-slot","base":"input-shadow-and-prior-values","mutation":"self_slot"},
+    {"id":"future-slot","base":"input-shadow-and-prior-values","mutation":"future_slot"},
+    {"id":"shadow-bypass","base":"input-shadow-and-prior-values","mutation":"shadow_input"},
+    {"id":"literal-interior","base":"literal-business-data-is-opaque","mutation":"literal_entry"},
+    {"id":"double-target","base":"input-shadow-and-prior-values","mutation":"double_target"},
+    {"id":"nonexistent-input","base":"input-shadow-and-prior-values","mutation":"unknown_input"}
+  ],
+  "value_measures": [
+    {"id":"null","wire":null,"weight":1,"bytes":4},
+    {"id":"empty-row","wire":{},"weight":1,"bytes":2},
+    {"id":"one-field-row","wire":{"x":1},"weight":3,"bytes":7},
+    {"id":"utf8-array","wire":[1,"é"],"weight":5,"bytes":8},
+    {"id":"escaped-newline","wire":"a\n","weight":3,"bytes":5},
+    {"id":"decimal-wire","wire":"19.90","weight":6,"bytes":7},
+    {"id":"nested","wire":{"a":[true,null]},"weight":5,"bytes":17}
+  ],
+  "live_roots": [
+    {"id":"input-slot-output","roots":[{},1,{"x":1}],"bytes":10},
+    {"id":"aliases-counted","roots":[{"x":1},{"x":1}],"bytes":14}
+  ],
+  "execution_cases": [
+    {"id":"row-major-before-slot-major","input_rows":[{"a":1,"b":0},{"a":0,"b":1}],"source_bindings":[{"x":"1 / a"},{"y":"1 / b"}],"expected_failure":{"row":0,"binding":1}},
+    {"id":"discarded-rhs-still-fails","input_rows":[{}],"source_bindings":[{"discarded":"1 / 0"},{"kept":"7"}],"retained_fields":["kept"],"expected_failure":{"row":0,"binding":0}},
+    {"id":"lazy-unselected-branch","input_rows":[{}],"source_bindings":[{"x":"if(TRUE, 7, 1 / 0)"}],"expected_rows":[{"x":7}]},
+    {"id":"eager-boolean","input_rows":[{}],"source_bindings":[{"x":"FALSE AND (1 / 0 > 0)"}],"expected_failure":{"row":0,"binding":0}}
+  ]
+}
