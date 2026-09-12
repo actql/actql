@@ -80,37 +80,46 @@ nodes (including input handles), reference occurrences and work have explicit
 overflow-safe limits. Returned reference arrays are copies. A late unsupported
 operation returns an error and no partially prepared pipeline.
 
-There is deliberately no executable fragment or Plan emission yet. Preparation
-does not discharge expression obligations, parameter binding, operation-parameter
-contracts, final serialized size or any Program-level authorization.
+Preparation alone is not executable-fragment or Plan admission. The execution
+package consumes typed fragment requests, constructs complete canonical
+candidates and regenerates them before creating runtime contexts. Preparation
+does not itself discharge expression obligations, parameter binding,
+operation-parameter contracts, serialized size or Program authorization.
 
-## Remaining implementation and release conditions
+## Execution boundaries
 
-| Area | Current state | Condition for closing |
+| Area | Execution responsibility | Boundary not implied by success |
 | --- | --- | --- |
-| Four-operation wiring | Atomic preparation, body-hashed primitive registry selection and one internal driver implemented | Connect the sealed expression-fragment entry, not only primitive signatures |
-| AoA expression lowering | Typed nodes, inline encoding, evaluator, root index and occurrence-bound demand conditions implemented | Bind canonical source/pointer serialization and the outer expression contract |
-| Bound parameters | Owner association, expression substitution, values capture and four-operation private execution tested | Repeat vectors through admitted fragment driver |
-| External rows | Object-schema capture, key validation, exact completed producer binding and receiving projection/budgets implemented | Close inherited evidence obligations; scoped row representation remains unsupported |
-| Map/filter/select row evaluation | Internal sequence driver runs values/supplied-input/parameter chains and branch retention; component NULL cases remain tested | Move remaining component vectors through admitted fragment driver |
-| AoA fragment lowering | Values/map/filter/select step array and inline expression wire implemented | Bind request, roots, witnesses and outer expression-fragment registration, then admit the fragment |
-| Runtime budgets | Cumulative expression/control/logical-value limits implemented | Close temporary/live allocations and complete work accounting before exposing fragment API |
-| Ordered derive | Checked references available; executable contract pending main | Consume main's registered row-kernel extension without a substitute opcode |
-| Additional expression obligations | Not implemented | Discharge the specific profile/pattern/other obligation before evaluation |
-| Other operation handlers | Not implemented here | Add normative lowering and evaluator support, then replace coverage-status tests |
-| Product Run/publication | Outside this increment | Separate integration with main's acceptance and capacity boundaries |
+| Contract selection | Hash the selected registry and execution-contract bodies; consume the registered expression-fragment and ordered row-kernel contracts | Registry membership alone does not establish backend support |
+| Typed fragment admission | Generate request, machine graph, roots and evidence from the same checked owner; regenerate the complete candidate before runtime preparation | No arbitrary saved AoA JSON execution and no final Program Plan identity |
+| Parameters and explicit inputs | Reuse bound parameter ownership; admit supplied values and keys; distinguish exact completed producer bindings from raw captures | Computation success does not authenticate unrelated inherited metadata |
+| Four-operation execution | One driver executes values, map/ordered derive, filter and select, including unused branches and expressions | Retained output selection cannot prune required operations |
+| Ordered derive | Use registered row-kernel params, source params and complete graph-step identity; enforce authored slot order and explicit logical limits | No split into relation-wide derives or unregistered replacement opcode |
+| Runtime resources | Explicit cumulative value/control budgets, operation workspace, live table slots and per-fragment logical budgets | Runtime counters are not static capacity evidence; container-entry accounting is not a process-heap meter |
+| Internal package API | Opaque generated sequences, runtime contexts, completed outputs and producer bindings; immutable output readers and detailed typed failures | Not a stable SDK, Run protocol, Host authorization or Result publication API |
 
-This table is the current status. Increment sections below retain historical
-verification counts and describe what was established at each checkpoint, not
-the latest total. Priority is closing the existing four-operation path, its AoA
-contracts and runtime budgets, not adding more operations.
+The API and evidence flow are described in
+[ordered derive execution](ordered-derive-execution.md), including its shared
+map/filter path. Increment sections below are historical descriptions and
+verification counts, not the current capability table or release evidence.
 
-The ordered-derive wire/capability binding requires the
-[shared row-kernel integration unit](row-kernel-integration-request.md).
-This is not a reason to drop array-form derive from the agreed goal.
-The [fragment closure audit](lowering-fragment-closure.md) separates the remaining
-lowering work from shared registration/API handoffs, including the existing
-expression-fragment contract whose outer registration is not in the selected body.
+The [row-kernel integration proposal](row-kernel-integration-request.md) and
+[earlier closure audit](lowering-fragment-closure.md) record the origin of the
+shared-contract requirements. Their historical handoff requests do not override
+the selected shared contracts or mean that those registrations remain absent.
+
+### Unsupported cases and extension conditions
+
+These are implementation boundaries, not additional language prohibitions.
+
+| Case | Normative owner | Missing support and condition for extension |
+| --- | --- | --- |
+| Expressions outside the implemented typed variants | [Common expression contract](../spec/language.md#common-expression-contract) | Add the exact typed lowering and scalar semantics with independent vectors; `ExpressionNotImplemented` must not be read as invalid source |
+| Pending profile/pattern/other expression validation | Same common expression contract and its selected dependencies | Discharge the particular typed obligation and bind its evidence; do not erase `PendingValidation` to force admission |
+| Structured captured-value comparison | Pinned expression contract's comparison domains | Supply exact domain semantics and bounded comparison; `ComparisonDomainNotImplemented` distinguishes this from invalid operands |
+| Qualified/scoped supplied rows | Checked relation schema and resolved field references | Add a lossless scoped row representation; `ScopedInputNotImplemented` must not flatten qualified names |
+| Unsupported candidate-key domains or nullable witnesses | Checked candidate-key evidence | Implement the required equality/null evidence and bounded validation before removing `UnsupportedKeyDomain` or `NullableWitnessPending` |
+| Other operation handlers | [Algebra lowering](../spec/language.md#algebra-lowering) and selected operation contracts | Add normative lowering and execution rather than treating `OperationNotImplemented` as a permanent authoring restriction |
 
 Unsupported-operation tests describe implementation coverage, not permanent
 language rejection. Implemented common paths must not grow a separate restrictive

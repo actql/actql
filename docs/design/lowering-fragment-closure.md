@@ -1,5 +1,12 @@
 # Relation fragment closure audit
 
+> Historical audit of the revisions named below, not the current execution
+> architecture or a live list of missing shared contracts. The registered
+> expression fragment, ordered row-kernel and internal package entry are
+> described in [ordered derive execution](ordered-derive-execution.md).
+> Preserve the original observations as historical evidence; do not interpret
+> their then-pending registrations as absent from today's selected registry.
+
 This is an implementation handoff, not a new contract or a release approval.
 Audited lowering revision: `a02860fe55bb5a02ddbb739dffef0fce098b3eef`.
 Main inspected read-only: `7069330542308ee5c75dd2efbf092c4300bb135f`.
