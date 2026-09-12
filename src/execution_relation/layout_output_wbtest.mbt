@@ -138,24 +138,32 @@ fn append_layout_row(
   builder : LayoutColumnBuilder,
   row : Array[Value],
 ) -> Result[Unit, RowIssue] {
+  append_layout_values(builder, row)
+}
+
+///|
+fn[T : RowValues] append_layout_values(
+  builder : LayoutColumnBuilder,
+  row : T,
+) -> Result[Unit, RowIssue] {
   if builder.closed {
     return Err(InvalidRows)
   }
   if builder.count >= builder.capacity ||
-    row.length() != builder.columns.length() {
+    RowValues::value_count(row) != builder.columns.length() {
     abort_layout_columns(builder)
     return Err(InvalidRows)
   }
-  if !spend_control(builder.budget.work, row.length()) {
+  if !spend_control(builder.budget.work, RowValues::value_count(row)) {
     abort_layout_columns(builder)
     return Err(RowLimit)
   }
   let at = builder.count
-  for column = 0; column < row.length(); column = column + 1 {
+  for column = 0; column < RowValues::value_count(row); column = column + 1 {
     match builder.columns[column] {
-      Generic(values) => values[at] = row[column]
+      Generic(values) => values[at] = RowValues::value_at(row, column)
       Numeric(values, valid) =>
-        match row[column] {
+        match RowValues::value_at(row, column) {
           Number(n) => {
             values[at] = n
             valid[at] = 1
@@ -167,7 +175,7 @@ fn append_layout_row(
           }
         }
       Flags(values, valid) =>
-        match row[column] {
+        match RowValues::value_at(row, column) {
           Boolean(v) => {
             values[at] = if v { 1 } else { 0 }
             valid[at] = 1
@@ -181,7 +189,7 @@ fn append_layout_row(
     }
   }
   if builder.budget.ledger is Some(ledger) && ledger.traffic is Some(traffic) {
-    traffic.column_cell_transfers += row.length().to_int64()
+    traffic.column_cell_transfers += RowValues::value_count(row).to_int64()
   }
   builder.count += 1
   Ok(())

@@ -149,8 +149,8 @@ merely adding an arbitrary alternate-evaluator callback is insufficient.
 Any further need to change budget primitives, completion, driver, lowering or
 contracts must be reported separately before editing them.
 
-No such production edits have been made. Conditional batch execution and its
-budget-equivalence tests remain incomplete pending the scope decision. The
+At that audit checkpoint, no such production edits had been made. The approval
+and subsequent experiments are recorded below. The
 Table-specific completion/producer boundary is a second, independent finding;
 this proposed expansion does not authorize rewriting it or claiming a private
 test completion is the existing product `CompletedOutput`.
@@ -203,3 +203,84 @@ the existing public producer API with this physical output still requires the
 separate completion/admission change identified above. No such change is made.
 The inlet/consumer connection also does not close the conditional batch-kernel
 experiment, which remains a separate requirement.
+
+## Bounded typed-slot/mask experiment
+
+The approved continuation extracts shared expression events in
+`expression_events.mbt` and output-root lifetime ordering in `row_events.mbt`.
+The ordinary frame and row evaluator use these events. The test-only
+`extensibility_batch_*_wbtest.mbt` specialization consumes already checked
+expressions and does not call either `ExpressionFrame` or the ordinary row
+evaluator for supported bindings. Its supported shape is numeric/boolean
+leaves, a binary expression over leaves, and an IF whose condition and arms
+each have that shape. Arbitrary nesting and other vocabulary select the
+ordinary evaluator for the whole operation before execution. Resource failure
+is never a fallback request.
+
+Slot values are stored in typed column buffers, with a branch mask per binding
+and chunk. Execution remains row-major: a selected branch runs only for its
+lane; no unselected branch is evaluated or charged. There is no per-row input
+map or output `Array[Value]` in this specialized path. Scalar operations and
+canonical measurement still use transient `Value` scalars. This is not SIMD,
+parallel evaluation, entirely boxing-free computation, or proof that arbitrary
+expressions can be vectorized cheaply. Chunk sizes bound slot buffer retention,
+not the pending whole-operation output or all-input admission.
+
+Independent accounting for the fifteen-row two-slot fixture is 825 work and
+314 peak logical bytes. Exact caps and one-short caps are compared with the
+ordinary evaluator at widths 1/7/1000. Other fixtures cover NULL/empty input,
+unselected division failure, row-before-slot failure, failures just before and
+after a width-seven boundary, and preselected row/typed operations in one
+private producer-consumer chain. The two-row fixture separately bounds typed
+output plus temporary slot/mask bytes: 74 bytes at width 1 and 94 at widths
+7/1000, excluding its separately borrowed input. Failed allocation disposes
+temporary/output leases; logical roots return to zero. These are nominal
+buffer units, not process RSS.
+
+### Change-locality findings
+
+| Change | Boundary and remaining cost |
+| --- | --- |
+| Another physical storage layout | Existing generic readers and builders cover the earlier A/B/C experiment without typing, lowering, identity or contract changes. A new layout still needs storage ownership and budget adapters. |
+| Another bounded typed expression kernel | Specialization and target kernel are local after shared semantic-event extraction. Each new expression shape must explicitly preserve demand and lifetime; scalar arithmetic is not copied. No generic claim for arbitrary batch expressions follows. |
+| Typed output or row-selection view | Private sort and checked consumer can share buffers and row coordinates. The product completion/admission path remains Table-specific and is **not** established as locally replaceable. Changing it needs separate approval. |
+| Split input for blocking sort | Private append/end/read/dispose lifecycle works around the existing kernel. It retains the whole input and pending output. This is not streaming sort. |
+| Join/group/window, spill or parallel scheduling | These require additional state and ownership design, not only swapping storage. They remain outside implemented support. |
+
+The accumulated-cost signal is now concrete: a typed conditional kernel does
+not add new row snapshots to other kernels or modify the driver. The ordinary
+row fallback still creates temporary row arrays; adding further kernels only
+through that interface would repeat this conversion. The shared events remove
+duplication of selected accounting and root rules, not all work needed to
+support a new expression language shape.
+
+For future stateful operations, a join needs distinct left/right input-complete
+signals and ownership of retained build keys/payload while probing; group needs
+keyed accumulator state, pinned numeric laws and finalization; window needs
+partition/order/frame state. Append/end/read/dispose expresses their lifecycle
+outline but does not implement these states or prove their budget semantics.
+Any incrementally generated output stays private until the required completion
+boundary. A late failure must destroy pending output and owned state while
+leaving separately borrowed input owners intact. Spill additionally needs I/O,
+cancellation and external resource ownership, so it is not classified as a
+storage-local optimization.
+
+Product storage remains rows. No driver, public completion type, lowering,
+typing, shared wire contract or budget rule is changed by this experiment.
+
+### Verification and stopping boundary
+
+JS, Wasm and native each pass 3,350 tests with `--deny-warn`. Public API
+consistency, formatting, document validation, links (982) and metadata checks
+pass. The existing release harness smoke passes A/B/C on all three targets
+(nine invocations). Its first sandboxed attempt failed in macOS `time`/sysctl,
+not in the output assertion; the authorized unsandboxed rerun completed.
+This smoke verifies the harness and one narrow representative case, not a
+statistical before/after performance-regression bound. No new speedup claim or
+column-adoption decision is made. Linux CI remains unexecuted.
+
+The experiment stops here. General batch expression scheduling, a complete
+performance regression study, public completion migration, alternate backend
+admission and the stateful algorithms discussed above are not completed or
+silently authorized by these results. The private successful-output connection
+is deliberately not reported as product producer compatibility.
