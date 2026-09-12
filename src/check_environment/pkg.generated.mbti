@@ -20,6 +20,14 @@ pub fn admit_calendar_profile(CalendarSelection, Bytes, @calendar_profile.Limits
 
 pub fn admit_text_rank_profile(TextRankSelection, Bytes, Array[(@text_rank_profile.Dependency, Bytes)], @text_rank_profile.Limits) -> Result[SelectedTextRankProfile, @text_rank_profile.Issue]
 
+pub fn body_dependency_at(ContractBodyDependencies, Int) -> String?
+
+pub fn body_dependency_contract(ContractBodyDependencies) -> ContractEnvelope
+
+pub fn body_dependency_count(ContractBodyDependencies) -> Int
+
+pub fn body_dependency_value(ContractBodyDependencies) -> ProtocolValueContract
+
 pub fn calendar_selection_cid(CalendarSelection) -> String
 
 pub fn calendar_selection_environment(CalendarSelection) -> WireEnvironment
@@ -69,6 +77,8 @@ pub fn catalog_registry(CatalogContents) -> ContractRegistry
 pub fn catalog_usage(CatalogContents) -> (Int, Int, Int)
 
 pub fn catalog_view_at(Catalog, Int) -> Member?
+
+pub fn check_body_dependencies(ProtocolValueContracts, ContractEnvelope) -> Result[ContractBodyDependencies, BodyDependencyIssue]
 
 pub fn check_carrier_schemas(SourceReadModes, CarrierSchemaLimits) -> Result[CarrierSchemas, CarrierSchemaIssue]
 
@@ -319,6 +329,12 @@ pub fn value_contract_policies(ProtocolValueContracts) -> SourceDataPolicies
 // Errors
 
 // Types and methods
+pub(all) enum BodyDependencyIssue {
+  ForeignEnvironment
+  UnsupportedBodyGrammar(String)
+  MissingBodyAdmission
+} derive(Eq, @debug.Debug)
+
 type CalendarSelection
 
 pub(all) enum CalendarSelectionIssue {
@@ -386,6 +402,8 @@ pub(all) enum CatalogIssue {
 type CatalogReference
 
 type CatalogReferences
+
+type ContractBodyDependencies
 
 type ContractEnvelope
 

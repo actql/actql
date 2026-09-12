@@ -14,3 +14,8 @@ fn protocol_value_kind(kind : String) -> Bool {
     _ => false
   }
 }
+
+///|
+fn protocol_value_grammar_cid() -> String {
+  "sha256:02859499357530af0ae58e4f2958d1c8fa48f957b86b0a2976dad43bed99b551"
+}

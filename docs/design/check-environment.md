@@ -303,6 +303,21 @@ registry entries, including roles routed elsewhere. Counts are logical reader
 usage, not JSON byte size or a heap ceiling. Empty registries consume no contract
 budget, and a late invalid body returns no partial admitted result.
 
+`check_body_dependencies` exposes the direct governing-grammar dependency of
+an already admitted value-contract body. It retains that exact admitted type and
+Envelope, verifies the environment before dispatch, and rejects other body kinds
+as `UnsupportedBodyGrammar`, not as dependency-free contracts. Indexed access
+returns the pinned canonical value-contract grammar without copying a collection.
+That grammar has no external ContractRef positions inside its typed value bodies;
+business field names and ResourceKind/ArtifactType strings are not reference
+discovery instructions. The grammar pin is generated from the registered body
+contract, with the same exhaustive 17-kind classification check.
+
+This adapter does not seal a Unit closure. Root selection, the governing grammar's
+own semantic dependencies, the other body grammars and the Unit's operation,
+policy and incoming-interface laws still require their own interpretation. A
+caller cannot treat this direct-dependency result as the complete contract set.
+
 ## SourceView shape admission
 
 `check_source_view_shapes` retains ProtocolValueContracts and validates every
