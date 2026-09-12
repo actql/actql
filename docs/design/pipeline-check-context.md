@@ -1105,11 +1105,32 @@ need validation. A declared key is not evidence that those rows are unique.
 Malformed or duplicate input cannot be silently repaired and then presented as
 having satisfied rejection admission.
 
+`local_input_execution_count/at` exposes a bounded enforcement sequence for
+rejection admission. `RawBinding` validates the actual Carrier, selected known
+field/type evidence and expected-column assertions; it does not infer absent
+type evidence. If a primary key is declared, `PrimaryKeyComponents` then checks
+every raw row's components for presence, non-nullness and scalar/reference
+validity, and `PrimaryKeyUniqueness` checks canonical tuple equality across the
+whole binding. An unkeyed input has only the raw-binding check: no uniqueness is
+invented. Each check retains the exact input requirement as its subject.
+
+All three checks run before that local input can be used. Failure rejects the
+input, not merely the offending row, and cannot expose a partially admitted
+binding. The predecessor accessor retains the same subject and orders raw
+admission before key validity before uniqueness. These descriptors are not
+execution receipts. Classification, resource authority and budget enforcement
+remain separate requirements; this sequence alone is not complete Program
+admission. Accessors are constant-time and copy no field or key collections.
+
 `DuplicateOrderUnresolved` explicitly preserves a `first_by_order` declaration
 whose independent total-order strategy is not connected by this boundary. The
 primary key being normalized cannot supply that proof itself. This is a static
 gap, not permission to defer order selection to the backend or accept arrival
 order; the formal Program constructor cannot succeed with it unresolved.
+Its execution count is `None`, not zero, and no execution descriptor is exposed
+until an independent order strategy has been admitted. The normalization
+artifact schema records execution outcomes; it is not by itself a static proof
+of an independent raw-input order.
 Both dispositions are governed by [input duplicate normalization](../spec/language.md#input-normalization)
 and [local input admission](../spec/language.md#local-inputs), and neither admits
 observed rows, supplies normalization evidence or grants Host authority.

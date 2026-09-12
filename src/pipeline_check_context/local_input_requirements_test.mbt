@@ -58,6 +58,35 @@ test "prepared Local inputs retain raw admission requirements without assuming p
         RejectDuplicatesAdmission
       },
     )
+    if first_by_order {
+      assert_true(local_input_execution_count(input) is None)
+      assert_true(local_input_execution_at(input, 0) is None)
+    } else {
+      assert_eq(local_input_execution_count(input), Some(3))
+      let kinds : Array[LocalInputExecutionKind] = [
+        RawBinding,
+        PrimaryKeyComponents,
+        PrimaryKeyUniqueness,
+      ]
+      for i in 0..<3 {
+        let check = local_input_execution_at(input, i).unwrap()
+        assert_eq(check.kind, kinds[i])
+        assert_true(physical_equal(check.subject, input))
+        assert_eq(local_input_execution_phase(check), BeforeLocalInputUse)
+        assert_eq(local_input_execution_failure(check), RejectLocalInput)
+        let prior = local_input_execution_predecessor(check)
+        if i == 0 {
+          assert_true(prior is None)
+        } else {
+          let prior = prior.unwrap()
+          assert_eq(prior.kind, kinds[i - 1])
+          assert_true(physical_equal(prior.subject, input))
+        }
+      }
+    }
+    for index in [-2147483648, -1, 3, 2147483647] {
+      assert_true(local_input_execution_at(input, index) is None)
+    }
     // Repeating the key as the ordering term cannot supply an independent total
     // order proof. It remains unresolved, never a runtime permission to repair.
     for index in [-2147483648, -1, 1, 2147483647] {

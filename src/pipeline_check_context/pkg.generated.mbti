@@ -201,6 +201,16 @@ pub fn link_program_operation_orders(ProgramOperationRequirements, Int, Int) -> 
 
 pub fn link_program_operation_profiles(ProgramOperationCalendar, Int, Int) -> Result[ProgramOperationProfileLinks, OperationProfileLinksIssue]
 
+pub fn local_input_execution_at(LocalInputRequirement, Int) -> LocalInputExecutionCheck?
+
+pub fn local_input_execution_count(LocalInputRequirement) -> Int?
+
+pub fn local_input_execution_failure(LocalInputExecutionCheck) -> LocalInputExecutionFailure
+
+pub fn local_input_execution_phase(LocalInputExecutionCheck) -> LocalInputExecutionPhase
+
+pub fn local_input_execution_predecessor(LocalInputExecutionCheck) -> LocalInputExecutionCheck?
+
 pub fn local_inputs_at(InputContexts, Int) -> @stage_local_inputs.Attached?
 
 pub fn operation_calendar_at(ProgramOperationCalendar, Int) -> OperationCalendarResolution?
@@ -774,6 +784,25 @@ pub(all) struct Limits {
 pub(all) enum LocalInputDisposition {
   RejectDuplicatesAdmission
   DuplicateOrderUnresolved
+} derive(Eq, @debug.Debug)
+
+pub struct LocalInputExecutionCheck {
+  subject : LocalInputRequirement
+  kind : LocalInputExecutionKind
+}
+
+pub(all) enum LocalInputExecutionFailure {
+  RejectLocalInput
+} derive(Eq, @debug.Debug)
+
+pub(all) enum LocalInputExecutionKind {
+  RawBinding
+  PrimaryKeyComponents
+  PrimaryKeyUniqueness
+} derive(Eq, @debug.Debug)
+
+pub(all) enum LocalInputExecutionPhase {
+  BeforeLocalInputUse
 } derive(Eq, @debug.Debug)
 
 pub struct LocalInputRequirement {
