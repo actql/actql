@@ -20,6 +20,7 @@ priv enum SequenceRunIssue {
   Capture(Int, CaptureIssue)
   Rows(Int, RowIssue)
   Store(StoreIssue)
+  OrderedContext(Int, OrderedLimitsIssue)
 }
 
 ///|
@@ -59,6 +60,12 @@ fn evaluate_sequence_components(
   limits : SequenceRunLimits,
   control : ControlBudget,
   produced? : Array[BoundProducerInput] = [],
+  ordered? : OrderedExecution = {
+    contexts: [],
+    max_bytes: 0,
+    max_nodes: 0,
+    max_depth: 0,
+  },
 ) -> Result[CompletedSequence, SequenceRunIssue] {
   if limits.max_rows < 0 ||
     limits.metadata_entries < 0 ||
@@ -82,6 +89,11 @@ fn evaluate_sequence_components(
   let wiring = match prepare_wiring(owner, retained_ids, control, metadata) {
     Ok(v) => v
     Err(e) => return Err(Wiring(e))
+  }
+  let ordered_budgets = match
+    prepare_ordered_budgets(contracts, sequence, ordered, control, metadata) {
+    Ok(budgets) => budgets
+    Err(e) => return Err(e)
   }
   if supplied.length() > wiring.input_count ||
     produced.length() != wiring.input_count - supplied.length() {
@@ -260,6 +272,7 @@ fn evaluate_sequence_components(
             control,
             output_budget,
             { limit: limits.operation_entries, live: 0, peak: 0, },
+            ordered_budget=ordered_budgets.get(i),
           ) {
           Ok(v) => v
           Err(e) => return Err(Rows(i, e))

@@ -1,0 +1,85 @@
+///|
+/// Internal configuration, not complete fragment admission. Host representation
+/// bounds remain distinct from the logical contract caps.
+priv struct OrderedExecution {
+  contexts : Array[OrderedLimits]
+  max_bytes : Int
+  max_nodes : Int
+  max_depth : Int
+}
+
+///|
+fn prepare_ordered_budgets(
+  contracts : RegisteredRelationContracts,
+  sequence : @lower.PreparedSequence,
+  execution : OrderedExecution,
+  control : ControlBudget,
+  metadata : RowWorkspace,
+) -> Result[Map[Int, LogicalBudget], SequenceRunIssue] {
+  if execution.max_bytes < 0 ||
+    execution.max_nodes < 0 ||
+    execution.max_depth < 0 {
+    return Err(InvalidLimits)
+  }
+  if execution.contexts.length() > @lower.sequence_count(sequence) ||
+    !reserve_slots(metadata, execution.contexts.length()) {
+    return Err(InputLimit)
+  }
+  let budgets : Map[Int, LogicalBudget] = Map([])
+  for context in execution.contexts {
+    if !spend_control(control, 1) {
+      return Err(InputLimit)
+    }
+    let source = ordered_params_kernel(context.params)
+    let index = @lower.kernel_step(source)
+    guard @lower.sequence_step(sequence, index) is Some(@lower.RowStep(kernel)) else {
+      return Err(OrderedContext(index, ForeignKernel))
+    }
+    let limits = match ordered_limits_for_kernel(context, kernel) {
+      Ok(limits) => limits
+      Err(e) => return Err(OrderedContext(index, e))
+    }
+    let registry = ordered_params_registry(context.params)
+    if registry.registry_cid != contracts.registry_cid ||
+      registry.values_contract_cid != contracts.values_contract_cid ||
+      budgets.contains(index) {
+      return Err(OrderedContext(index, ForeignKernel))
+    }
+    let budget = match
+      logical_budget(
+        limits,
+        execution.max_bytes,
+        execution.max_nodes,
+        execution.max_depth,
+      ) {
+      Ok(budget) => budget
+      Err(e) => return Err(Rows(index, LogicalRows(e)))
+    }
+    budgets[index] = budget
+  }
+  // Validate the exact set before capturing inputs or evaluating any RHS.
+  for i = 0; i < @lower.sequence_count(sequence); i = i + 1 {
+    if !spend_control(control, 1) {
+      return Err(InputLimit)
+    }
+    match @lower.sequence_step(sequence, i).unwrap() {
+      @lower.ValuesStep(_) => ()
+      @lower.RowStep(kernel) => {
+        let entries = @lower.kernel_view_entries(kernel)
+        if !spend_control(control, entries) || !reserve_slots(metadata, entries) {
+          return Err(InputLimit)
+        }
+        let body = @lower.kernel_body(kernel)
+        match body {
+          @lower.OrderedBindings(_) =>
+            if !budgets.contains(i) {
+              return Err(Rows(i, MissingOrderedResourceContext))
+            }
+          @lower.SnapshotMap(_) | @lower.Filter(_) | @lower.Select(_) => ()
+        }
+        release_slots(metadata, entries)
+      }
+    }
+  }
+  Ok(budgets)
+}

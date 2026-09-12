@@ -19,9 +19,9 @@ test "ordered limits match independent shared canonical vector" {
     @encode.finish(out),
     "{\"max_input_rows\":2,\"max_live_value_bytes\":128,\"max_value_bytes\":64,\"max_work\":100,\"version\":\"actql-derive-row-limits/0.1\"}",
   )
-  let sealed = @encode.writer(1024, 16, 2)
-  emit_ordered_limits_body(limits, Some(context.cid), sealed)
-  assert_true(@encode.finish(sealed).contains("\"self_cid\":\"sha256:efe844"))
+  let document = @encode.writer(1024, 16, 2)
+  emit_ordered_limits_body(limits, Some(context.cid), document)
+  assert_true(@encode.finish(document).contains("\"self_cid\":\"sha256:efe844"))
   assert_true(
     ordered_limits_for_kernel(context, ordered_params_kernel(params)) is Ok(_),
   )
