@@ -156,6 +156,12 @@ pub fn expression_validation_usage(ExpressionValidationContext) -> SelectedPolic
 
 pub fn identify_program_sources(ProgramSourceChecks, ProgramIdentityLimits) -> Result[ProgramSourceIdentity, ProgramIdentityIssue]
 
+pub fn incoming_links_profiles(ProgramIncomingLinks) -> ProgramOperationProfileLinks
+
+pub fn incoming_links_requirements(ProgramIncomingLinks) -> ProgramIncomingRequirements
+
+pub fn incoming_links_work(ProgramIncomingLinks) -> Int
+
 pub fn input_usage(InputContexts) -> InputUsage
 
 pub fn input_wiring(InputContexts) -> WiredStages
@@ -173,6 +179,8 @@ pub fn like_pattern_site(LikePatternResolution) -> ExpressionValidationSite
 pub fn like_pattern_source(LikePatternResolution) -> String
 
 pub fn like_pattern_usage(LikePatternChecks) -> LikePatternUsage
+
+pub fn link_program_incoming(ProgramOperationProfileLinks, ProgramIncomingRequirements, IncomingLimits) -> Result[ProgramIncomingLinks, IncomingLinksIssue]
 
 pub fn link_program_operation_orders(ProgramOperationRequirements, Int, Int) -> Result[ProgramOperationOrders, OperationOrderIssue]
 
@@ -617,6 +625,12 @@ pub(all) struct IncomingLimits {
   max_requirements : Int
 } derive(Eq, @debug.Debug)
 
+pub(all) enum IncomingLinksIssue {
+  InvalidLimits
+  ForeignIdentity
+  BudgetExceeded
+} derive(Eq, @debug.Debug)
+
 pub(all) enum IncomingMilestone {
   Accepted
   Completed
@@ -977,6 +991,8 @@ pub(all) enum ProgramIdentityPhase {
   StageDefinition(Int)
   StageParameterValues(Int)
 } derive(Eq, @debug.Debug)
+
+type ProgramIncomingLinks
 
 type ProgramIncomingRequirements
 

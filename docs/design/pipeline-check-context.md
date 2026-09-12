@@ -979,6 +979,23 @@ do not copy operation bodies. This closes only these static profile associations
 it is neither backend conformance nor resource, value, identity, order or runtime
 admission. All other obligations remain available in the retained inventory.
 
+### Joining incoming and operation checks
+
+`link_program_incoming` joins the incoming-requirement inventory with the
+operation-profile chain only when both retain the exact same
+`ProgramSourceIdentity`. Matching public Definition or Parameter Values CIDs
+does not establish this in-process ownership. Reissuing a source identity
+therefore cannot substitute one branch for another, while rebuilding an incoming
+inventory from the original identity is permitted.
+
+The opaque result retains both original branches without copying their arrays.
+Its work includes both branches, counts the common identity prefix once, and
+charges the join itself. Incoming name and requirement limits remain enforced;
+subtract-before-add accounting rejects over-budget joins without integer overflow.
+This connects stage dependencies to the operation checks, but does not discharge
+incoming success/receipt requirements, issue Unit or Invocation identities,
+resolve missing resource contracts, or constitute the final `CheckedProgram`.
+
 Expression closure does not discharge operation-level obligations, bind
 authored guard witness identities, build staged Program/import contracts, or
 complete local Unit/Invocation identity projections. Source Program and stage
