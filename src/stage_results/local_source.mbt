@@ -23,6 +23,7 @@ pub enum LocalSourceIssue {
   OperationBindings(@parameters.BindingsIssue)
   ResultCollection(CollectionIssue)
   Environment(@local.PrepareEnvironmentIssue)
+  MissingPreparation
 }
 
 ///|
@@ -105,6 +106,25 @@ pub fn prepare_local_source(
     Ok(v) => v
     Err(e) => return Err(Program(e))
   }
+  finish_local_source(
+    wiring, used, values, decl_nodes, decl_text, bind_nodes, bind_text, limits,
+  )
+}
+
+///|
+fn finish_local_source(
+  wiring : ResultWiring,
+  used : LocalProgramUsage,
+  values : @binding.BoundValues,
+  decl_nodes : Int,
+  decl_text : Int,
+  bind_nodes : Int,
+  bind_text : Int,
+  limits : LocalProgramLimits,
+) -> Result[PreparedLocalSource, LocalSourceIssue] {
+  let source = wiring.source
+  let inputs = wiring.local_environment
+  let count = @parameters.stage_count(source)
   let remaining = limits.max_work - count - 1 - used.work
   if count > remaining || count > remaining - count {
     return Err(BudgetExceeded)

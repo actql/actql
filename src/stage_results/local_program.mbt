@@ -339,10 +339,19 @@ pub fn prepare_local_program(
   let (final_work, final_text) = wiring_usage(wired)
   work -= final_work - wiring_work
   text -= final_text - wiring_text
+  let preparation_usage : LocalProgramUsage = {
+    work: limits.max_work - work,
+    nodes: limits.max_nodes - nodes,
+    tokens: limits.max_tokens - tokens,
+    text_bytes: limits.max_text_bytes - text,
+    steps: limits.max_steps - steps,
+    results: limits.max_results - results,
+  }
   Ok(
     (
       {
         ..wired,
+        preparation_usage: Some(preparation_usage),
         local_inputs: if environment is None {
           Some(local_inputs)
         } else {
@@ -355,14 +364,7 @@ pub fn prepare_local_program(
           None
         },
       },
-      {
-        work: limits.max_work - work,
-        nodes: limits.max_nodes - nodes,
-        tokens: limits.max_tokens - tokens,
-        text_bytes: limits.max_text_bytes - text,
-        steps: limits.max_steps - steps,
-        results: limits.max_results - results,
-      },
+      preparation_usage,
     ),
   )
 }

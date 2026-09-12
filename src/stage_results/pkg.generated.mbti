@@ -24,6 +24,8 @@ pub fn attached_work(AttachedImports) -> Int
 
 pub fn bind_ports(@stage_parameters.CollectedStage, @relation_results.ResultPorts) -> Result[StagePorts, ImportIssue]
 
+pub fn bind_prepared_program(ResultWiring, @decode_core.Cursor?, LocalProgramLimits) -> Result[PreparedLocalSource, LocalSourceIssue]
+
 pub fn check(@stage_parameters.CollectedOperations, @relation_results.Limits) -> Result[Checked, Issue]
 
 pub fn collect_checked(@stage_parameters.CollectedOperations, Array[@relation_results.CheckedResults], CollectionLimits) -> Result[Checked, CollectionIssue]
@@ -199,6 +201,7 @@ pub enum LocalSourceIssue {
   OperationBindings(@stage_parameters.BindingsIssue)
   ResultCollection(CollectionIssue)
   Environment(@stage_local_inputs.PrepareEnvironmentIssue)
+  MissingPreparation
 }
 
 type PreparedLocalSource

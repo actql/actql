@@ -118,6 +118,20 @@ Catalog admission. The owned wrapper supplies and validates that correspondence.
 This constructs topology, not effective Parameter bindings, source requests,
 complete semantic identities, obligation closure or execution permission.
 
+`stage_results.bind_prepared_program` then binds supplied/default Parameter
+values against the declarations retained by that topology's exact Source and
+collects the original Stage operation/Result owners. It shares the same final
+assembly as Local source preparation rather than re-parsing or reissuing
+pipelines. `prepare_local_program` retains its preparation usage privately in
+the wiring; arbitrary `wire_results` output has no such provenance and cannot
+be promoted by supplying usage numbers. The binding boundary includes retained
+topology work/nodes/text, declaration admission and its own binding/collection
+costs. Depth limits the new binding pass; topology was already checked under its
+own depth limit. Earlier Catalog/SourceView registration and additional caller
+orchestration remain separately accounted phases, not hidden costs certified
+by this binder. Success is source preparation, not complete Program closure or
+permission to execute unvalidated SourceView acquisitions.
+
 The resulting `environment_input_at` registrations must be selected before
 pipeline checking: snapshot evidence can refine types and conditional keys.
 Attaching them to an already checked pipeline is not a substitute for using

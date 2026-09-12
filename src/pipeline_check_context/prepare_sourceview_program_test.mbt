@@ -47,9 +47,55 @@ test "selected SourceView registrations construct Stage pipelines and Result imp
     is Err(ForeignPartition(0)),
   )
   assert_true(physical_equal(@stage_results.wiring_source(wiring), source))
+  let bound = @stage_results.bind_prepared_program(wiring, None, limits).unwrap()
+  assert_true(physical_equal(@stage_results.local_source_source(bound), source))
+  assert_true(physical_equal(@stage_results.local_source_wiring(bound), wiring))
+  let values = @stage_results.local_source_values(bound)
+  assert_eq(@parameter.bound_value_count(values), 1)
+  assert_true(
+    physical_equal(
+      @parameter.bound_declarations(values),
+      @stages.declarations(source),
+    ),
+  )
+  let bound_usage = @stage_results.local_source_usage(bound)
+  let binding_exact = {
+    ..limits,
+    max_work: bound_usage.work,
+    max_nodes: bound_usage.nodes,
+    max_text_bytes: bound_usage.text_bytes,
+  }
+  assert_true(
+    @stage_results.bind_prepared_program(wiring, None, binding_exact) is Ok(_),
+  )
+  for
+    short in [
+      { ..binding_exact, max_work: bound_usage.work - 1, },
+      { ..binding_exact, max_nodes: bound_usage.nodes - 1, },
+      { ..binding_exact, max_text_bytes: bound_usage.text_bytes - 1, },
+    ] {
+    assert_true(
+      @stage_results.bind_prepared_program(wiring, None, short) is Err(_),
+    )
+  }
+  assert_true(
+    @stage_results.bind_prepared_program(old_wiring, None, limits)
+    is Err(MissingPreparation),
+  )
   for stage in 0..<2 {
     let collected = @stage_results.stage_port_source(
       @stage_results.wiring_stage_at(wiring, stage).unwrap(),
+    )
+    assert_true(
+      physical_equal(
+        @stages.operations_stage_at(
+          @stages.bound_operations(
+            @stage_results.local_source_operations(bound),
+          ),
+          stage,
+        ).unwrap(),
+        collected,
+      ),
     )
     assert_true(
       @sourceviews.attach_pipeline_inputs(views, collected, 1000000) is Ok(_),

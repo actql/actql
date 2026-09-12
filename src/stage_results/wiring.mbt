@@ -34,6 +34,7 @@ struct ResultWiring {
   local_inputs : Array[@local.Attached]?
   local_environment : @local.ProgramEnvironmentInputs?
   reconciled_inputs : Array[@local.ReconciledAttachment]?
+  preparation_usage : LocalProgramUsage?
 }
 
 ///|
@@ -165,6 +166,7 @@ pub fn wire_results(
     local_inputs: None,
     local_environment: None,
     reconciled_inputs: None,
+    preparation_usage: None,
   })
 }
 
