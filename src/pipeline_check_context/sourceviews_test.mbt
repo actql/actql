@@ -1,4 +1,45 @@
 ///|
+fn sourceview_policy_fixture(
+  profile : String,
+) -> (@environment.WireEnvironment, @snapshot.EnvironmentSnapshot) {
+  let (original, snapshot) = sourceview_snapshot_fixture()
+  if profile == "{}" {
+    return (original, snapshot)
+  }
+  try {
+    let writer = @encode.writer(1000000, 100000, 100)
+    @environment.emit(original, writer)
+    let body = @encode.finish(writer)
+      .replace(
+        old="\"evidence_bundle_cid\":\"" + @environment.cid(original) + "\",",
+        new="",
+      )
+      .replace(
+        old="\"host_policy_profile\":{}",
+        new="\"host_policy_profile\":" + profile,
+      )
+    let cid = "sha256:" + @sha.hex(@utf8.encode(body))
+    let wire = body.replace(
+      old="\"host_policy_profile\":",
+      new="\"evidence_bundle_cid\":\"" + cid + "\",\"host_policy_profile\":",
+    )
+    let environment = @environment.read(@utf8.encode(wire), cid, {
+      max_bytes: 1000000,
+      max_nodes: 100000,
+      max_depth: 100,
+      max_members: 1000,
+    }).unwrap()
+    let snapshot = @snapshot.read_member(
+      @environment.member_at(environment, @environment.SchemaSnapshots, 0).unwrap(),
+      { max_bytes: 100000, max_nodes: 10000, max_depth: 100, },
+    ).unwrap()
+    (environment, snapshot)
+  } catch {
+    _ => abort("SourceView policy fixture encoding")
+  }
+}
+
+///|
 fn sourceview_catalog(
   environment : @environment.WireEnvironment,
 ) -> @environment.SourceRequestContracts {

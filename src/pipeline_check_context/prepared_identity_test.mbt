@@ -71,13 +71,30 @@ fn prepared_identity_fixture(
     max_text_bytes=10000000,
     max_local_input_nodes=100000,
   ).unwrap()
+  (prepared_reconciled_identity(reconciled, environment), wiring, reconciled)
+}
+
+///|
+fn prepared_reconciled_identity(
+  reconciled : ReconciledContexts,
+  environment : @environment.WireEnvironment,
+) -> ProgramSourceIdentity {
+  let stages = wired_stage_contexts(reconciled_wiring(reconciled))
+  let bound = stage_operations(stages)
   let selected = bind_capacity_policy(
     reconciled,
-    @environment.read_capacity(environment, {
-      max_bytes: 10000,
-      max_nodes: 100,
-      max_depth: 10,
-    }).unwrap(),
+    match
+      @environment.read_capacity(environment, {
+        max_bytes: 10000,
+        max_nodes: 100,
+        max_depth: 10,
+      }) {
+      Ok(value) => value
+      Err(issue) => {
+        @debug.debug(issue)
+        abort("capacity fixture")
+      }
+    },
     max_work=10000000,
     max_text_bytes=10000000,
     max_policy_nodes=100,
@@ -122,11 +139,7 @@ fn prepared_identity_fixture(
     collect_source_bindings(preparation, 10000000, 100).unwrap(),
     10000000,
   ).unwrap()
-  (
-    identify_program_sources(sources, identity_limits()).unwrap(),
-    wiring,
-    reconciled,
-  )
+  identify_program_sources(sources, identity_limits()).unwrap()
 }
 
 ///|

@@ -165,24 +165,34 @@ visiting and collecting roots still consumes the caller's aggregate work budget.
 Repeated visits are not silently collapsed at this source-occurrence boundary.
 
 `collect_core_contracts` performs this traversal from one `ProgramSourceIdentity`.
-It retains every Stage expression root and every adopted-law occurrence across
-all producer visits, while storing each typed body once for dependency traversal.
+It retains every Stage expression root, every adopted-law occurrence across
+all producer visits, and selected SourceView contract-reference occurrences.
+Source selection is derived internally from the identity's own input context;
+the caller cannot supply a substitute Catalog or a second source inventory.
+Each selected body is interpreted through that context's existing admissions,
+including request-owned lookup facts and pushdown contracts. An unsupported body
+or unknown governing grammar rejects the entire collection with its stage,
+input and reference coordinates, even for an unused input.
 The result retains the original identity owner; shared body CIDs cannot replace
 that owner. Expression dependency edges retain their declared positions through
 the typed graph accessors, including repeated edges to one Unicode table.
 
 The work limit includes prior identity work once, plus root collection, producer,
-step and profile visits, and each unique body's outgoing edges. Independent caps
+step and profile visits, source selection and body interpretation, and each
+unique grammar body's outgoing edges. Repeated direct Catalog-reference edges
+are charged at each occurrence. Independent caps
 bound retained roots, unique bodies and traversed edges before array growth.
 Traversal is nonrecursive. Exceeding any cap returns no inventory, including
 when the failure occurs after collecting the last Stage's roots. Indexed reads
-do not copy retained arrays. The small fixed body vocabulary bounds body-sharing
-comparisons independently of the number of source occurrences.
+do not copy retained arrays. A CID index shares body storage without a quadratic
+scan of Catalog occurrences. Known expression and adopted-law targets use the
+same traversal as those reached from Catalog grammars; shared storage never
+substitutes for the retained reference roles or exact Program owner.
 Body inventory order is discovery order, not canonical contract-set order; it
 must not be hashed as the final set without the prescribed canonical sorting.
 
-This is the core expression/adopted-law contribution, not a completed local
-contract set and not a Unit identity. Declaration, Catalog, selected profile
+This is the core expression/adopted-law and selected Catalog contribution, not a
+completed local contract set and not a Unit identity. Declaration, selected profile
 data, publication and incoming-interface contributions must still be selected
 and joined under the same Program owner before the final closure is emitted.
 

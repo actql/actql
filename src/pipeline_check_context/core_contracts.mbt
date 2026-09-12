@@ -11,18 +11,24 @@ pub(all) enum CoreContractIssue {
   InvalidLimits
   BudgetExceeded
   UnsupportedExpressionContract(Int)
+  SourceInventory(SourceContractIssue)
+  CatalogBody(Int, Int, Int, @environment.BodyDependencyIssue)
+  UnknownCatalogGrammar(Int, Int, Int)
 } derive(Eq, Debug)
 
 ///|
 pub(all) enum CoreContractBody {
   ExpressionBody(@environment.ExpressionContractBody)
   AdoptedBody(@pipeline.AdoptedOperationLaw)
+  CatalogContract(String)
+  CatalogGrammarBody(@environment.CatalogGrammar)
 } derive(Eq, Debug)
 
 ///|
 pub(all) enum CoreContractSite {
   StageExpression(Int)
   OperationLaw(Int, Int, Int, Int, Int)
+  CatalogReference(Int, Int, Int)
 } derive(Eq, Debug)
 
 ///|
@@ -36,6 +42,7 @@ struct CoreContractInventory {
   identity : ProgramSourceIdentity
   roots : Array[CoreContractRoot]
   bodies : Array[CoreContractBody]
+  sources : ProgramSourceContracts
   work : Int
   edges : Int
 }
@@ -50,6 +57,7 @@ priv struct CoreContractBuilder {
   limits : CoreContractLimits
   roots : Array[CoreContractRoot]
   bodies : Array[CoreContractBody]
+  seen : Map[String, Unit]
   mut work : Int
   mut edges : Int
 }
@@ -67,13 +75,14 @@ fn core_contract_body(
   b : CoreContractBuilder,
   body : CoreContractBody,
 ) -> Unit raise CoreContractStop {
-  // The interpreted vocabulary is a fixed small set; occurrences are not
-  // compared with each other and body equality never substitutes Program owners.
-  if !b.bodies.contains(body) {
+  // Share body storage, never source occurrences or their admitted owners.
+  let cid = core_contract_cid(body)
+  if !b.seen.contains(cid) {
     if b.bodies.length() == b.limits.max_bodies {
       raise CoreContractStop(BudgetExceeded)
     }
     b.bodies.push(body)
+    b.seen.set(cid, ())
   }
 }
 
@@ -93,8 +102,9 @@ fn core_contract_root(
 
 ///|
 /// Collect expression body references and adopted operation laws from every
-/// owned Stage/producer/step. This is not the complete Unit contract closure:
-/// Catalog, declaration, profile data, publication and import roots are separate.
+/// owned Stage/producer/step and selected Catalog reference. This is not the
+/// complete Unit closure: declaration, profile data, publication and import
+/// roots are separate. Unsupported selected Catalog bodies reject collection.
 pub fn collect_core_contracts(
   identity : ProgramSourceIdentity,
   limits : CoreContractLimits,
@@ -105,18 +115,84 @@ pub fn collect_core_contracts(
     limits.max_edges < 0 {
     return Err(InvalidLimits)
   }
-  if identity.work > limits.max_work {
+  if identity.work >= limits.max_work {
     return Err(BudgetExceeded)
+  }
+  let context = identity.sources.operations.preparation.sources.capacity.context.rows.requests.inputs
+  // Only the remaining Program work may be spent on the source branch.
+  // Reserve the owner join before the branch can allocate its inventory.
+  let source_work_limit = context.usage.work +
+    (limits.max_work - identity.work - 1)
+  let requirements = match
+    collect_source_contracts(context, {
+      max_work: source_work_limit,
+      max_inputs: limits.max_work,
+      max_references: limits.max_roots,
+    }) {
+    Ok(value) => value
+    Err(issue) => return Err(SourceInventory(issue))
+  }
+  let sources = match
+    bind_program_source_contracts(identity, requirements, limits.max_work) {
+    Ok(value) => value
+    Err(issue) => return Err(SourceInventory(issue))
   }
   let b : CoreContractBuilder = {
     limits,
     roots: [],
     bodies: [],
-    work: identity.work,
+    seen: {},
+    work: sources.work,
     edges: 0,
   }
   try {
     core_contract_charge(b)
+    for stage in 0..<source_contract_stage_count(requirements) {
+      core_contract_charge(b)
+      for input in 0..<source_contract_input_count(requirements, stage).unwrap() {
+        core_contract_charge(b)
+        let selected = source_contract_input_at(requirements, stage, input).unwrap()
+        for reference in 0..<@sourceviews.selected_reference_count(selected) {
+          core_contract_charge(b)
+          let body = match
+            program_source_contract_body_at(sources, stage, input, reference) {
+            Ok(Some(body)) => body
+            Ok(None) =>
+              raise CoreContractStop(
+                CatalogBody(
+                  stage,
+                  input,
+                  reference,
+                  @environment.MissingBodyAdmission,
+                ),
+              )
+            Err(issue) =>
+              raise CoreContractStop(
+                CatalogBody(stage, input, reference, issue),
+              )
+          }
+          let cid = @environment.contract_identity(
+              @environment.catalog_body_contract(body),
+            ).2
+          core_contract_root(
+            b,
+            CatalogReference(stage, input, reference),
+            CatalogContract(cid),
+          )
+          for edge in 0..<@environment.catalog_body_dependency_count(body) {
+            core_contract_edge(b)
+            let dependency = @environment.catalog_body_dependency_at(body, edge).unwrap()
+            guard @environment.catalog_dependency_grammar(dependency)
+              is Some(grammar) else {
+              raise CoreContractStop(
+                UnknownCatalogGrammar(stage, input, reference),
+              )
+            }
+            core_contract_body(b, core_catalog_grammar(grammar))
+          }
+        }
+      }
+    }
     for stage in 0..<program_identity_stage_count(identity) {
       let source = program_identity_stage_at(identity, stage).unwrap()
       guard stage_identity_expression_body(source) is Some(root) else {
@@ -149,15 +225,21 @@ pub fn collect_core_contracts(
     while index < b.bodies.length() {
       core_contract_charge(b)
       match b.bodies[index] {
-        AdoptedBody(_) => ()
+        AdoptedBody(_) | CatalogContract(_) => ()
+        CatalogGrammarBody(body) =>
+          for edge in 0..<@environment.catalog_grammar_dependency_count(body) {
+            core_contract_edge(b)
+            core_contract_body(
+              b,
+              core_catalog_grammar(
+                @environment.catalog_grammar_dependency_at(body, edge).unwrap().target,
+              ),
+            )
+          }
         ExpressionBody(body) => {
           let count = @environment.expression_contract_dependency_count(body)
           for edge in 0..<count {
-            core_contract_charge(b)
-            if b.edges == limits.max_edges {
-              raise CoreContractStop(BudgetExceeded)
-            }
-            b.edges += 1
+            core_contract_edge(b)
             core_contract_body(
               b,
               ExpressionBody(
@@ -171,6 +253,7 @@ pub fn collect_core_contracts(
     }
     Ok({
       identity,
+      sources,
       roots: b.roots,
       bodies: b.bodies,
       work: b.work,
@@ -224,5 +307,36 @@ pub fn core_contract_cid(v : CoreContractBody) -> String {
   match v {
     ExpressionBody(body) => @environment.expression_contract_body_cid(body)
     AdoptedBody(law) => @pipeline.adopted_operation_law_cid(law)
+    CatalogContract(cid) => cid
+    CatalogGrammarBody(body) => @environment.catalog_grammar_cid(body)
   }
+}
+
+///|
+fn core_catalog_grammar(body : @environment.CatalogGrammar) -> CoreContractBody {
+  match body {
+    @environment.ExpressionGrammar(expression) => ExpressionBody(expression)
+    @environment.RelationLawBody => AdoptedBody(@pipeline.RelaPrimitive)
+    @environment.GraphLawBody => AdoptedBody(@pipeline.SgaIdentity)
+    @environment.EnvironmentBody
+    | @environment.ValueGrammarBody
+    | @environment.TextPolicyGrammarBody
+    | @environment.CapacityGrammarBody => CatalogGrammarBody(body)
+  }
+}
+
+///|
+fn core_contract_edge(b : CoreContractBuilder) -> Unit raise CoreContractStop {
+  core_contract_charge(b)
+  if b.edges == b.limits.max_edges {
+    raise CoreContractStop(BudgetExceeded)
+  }
+  b.edges += 1
+}
+
+///|
+pub fn core_contract_sources(
+  v : CoreContractInventory,
+) -> ProgramSourceContracts {
+  v.sources
 }

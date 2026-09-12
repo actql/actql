@@ -26,7 +26,7 @@ test "core contract collection preserves owned occurrences and shares dependency
   assert_eq(
     work,
     program_identity_usage(identity).0 +
-    1 +
+    7 +
     2 +
     2 * steps +
     visits +
@@ -39,6 +39,7 @@ test "core contract collection preserves owned occurrences and shares dependency
   for i in 0..<core_contract_root_count(inventory) {
     let root = core_contract_root_at(inventory, i).unwrap()
     match root.site {
+      CatalogReference(_, _, _) => abort("Local fixture has no Catalog inputs")
       StageExpression(stage) => {
         assert_eq(stage, stage_roots)
         stage_roots += 1
@@ -65,6 +66,12 @@ test "core contract collection preserves owned occurrences and shares dependency
     }
   }
   assert_eq(stage_roots, 2)
+  assert_true(
+    physical_equal(
+      program_source_contract_identity(core_contract_sources(inventory)),
+      identity,
+    ),
+  )
   assert_true(unused_roots >= 2)
   let seen : Array[String] = []
   for i in 0..<core_contract_body_count(inventory) {
@@ -79,6 +86,20 @@ test "core contract collection preserves owned occurrences and shares dependency
     max_edges: 16,
   }
   assert_true(collect_core_contracts(identity, exact) is Ok(_))
+  assert_true(
+    collect_core_contracts(identity, {
+      ..exact,
+      max_work: program_identity_usage(identity).0,
+    })
+    is Err(BudgetExceeded),
+  )
+  assert_true(
+    collect_core_contracts(identity, {
+      ..exact,
+      max_work: program_identity_usage(identity).0 + 1,
+    })
+    is Err(SourceInventory(BudgetExceeded)),
+  )
   for
     limits in [
       { ..exact, max_work: work - 1, },

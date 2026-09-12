@@ -106,6 +106,7 @@ test "repeated unused SourceView declarations retain separate input occurrences"
     true,
     remote=Some(remote),
     repeat_remote=true,
+    profile=capacity_profile(false),
   )
   let views = remote[0]
   let wired = attach_result_wiring(
@@ -147,6 +148,56 @@ test "repeated unused SourceView declarations retain separate input occurrences"
         @sourceviews.selected_reference_at(b, i).unwrap(),
       ),
     )
+  }
+  let identity = prepared_reconciled_identity(
+    context,
+    @local_inputs.program_environment(reconciled_snapshots(context)),
+  )
+  let result = collect_core_contracts(identity, {
+    max_work: 10000000,
+    max_roots: 1000,
+    max_bodies: 1000,
+    max_edges: 1000,
+  })
+  let inventory = match result {
+    Ok(value) => value
+    Err(issue) => {
+      @debug.debug(issue)
+      abort("selected Catalog collection")
+    }
+  }
+  assert_true(physical_equal(core_contract_identity(inventory), identity))
+  let count = @sourceviews.selected_reference_count(a)
+  for input in 0..<2 {
+    for reference in 0..<count {
+      let root = core_contract_root_at(inventory, input * count + reference).unwrap()
+      assert_eq(root.site, CatalogReference(0, input, reference))
+      let expected = @environment.contract_identity(
+          @environment.reference_contract(
+            @sourceviews.selected_reference_at(a, reference).unwrap(),
+          ),
+        ).2
+      assert_eq(root.body, CatalogContract(expected))
+    }
+  }
+  assert_eq(core_contract_body_count(inventory), 27)
+  let (work, edges) = core_contract_usage(inventory)
+  assert_eq(edges, 35)
+  let exact : CoreContractLimits = {
+    max_work: work,
+    max_roots: core_contract_root_count(inventory),
+    max_bodies: 27,
+    max_edges: edges,
+  }
+  assert_true(collect_core_contracts(identity, exact) is Ok(_))
+  for
+    limits in [
+      { ..exact, max_work: work - 1, },
+      { ..exact, max_roots: exact.max_roots - 1, },
+      { ..exact, max_bodies: 26, },
+      { ..exact, max_edges: edges - 1, },
+    ] {
+    assert_true(collect_core_contracts(identity, limits) is Err(_))
   }
 }
 

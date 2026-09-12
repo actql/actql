@@ -98,7 +98,7 @@ fn wired_inputs_fixture(
   }).unwrap()
   let declarations = @stages.declarations(source)
   let (environment, snapshot) = if remote is Some(_) {
-    sourceview_snapshot_fixture()
+    sourceview_policy_fixture(profile)
   } else {
     snapshot_wire(profile~)
   }

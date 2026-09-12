@@ -18,7 +18,12 @@ fn source_policy_fixture(context : ReconciledContexts) -> SourceRowContexts {
     max_pairs: 1000,
     values: { max_nodes: 10000, max_depth: 100, max_text_bytes: 100000, },
   }).unwrap()
-  check_source_row_bounds(requests, [], 1000000).unwrap()
+  let rows : Array[Array[@program.TargetRows]] = match
+    reconciled_sourceviews(context) {
+    None => []
+    Some(_) => Array::makei(@stages.stage_count(source), _ => [])
+  }
+  check_source_row_bounds(requests, rows, 1000000).unwrap()
 }
 
 ///|

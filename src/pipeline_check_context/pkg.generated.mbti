@@ -133,6 +133,8 @@ pub fn core_contract_root_at(CoreContractInventory, Int) -> CoreContractRoot?
 
 pub fn core_contract_root_count(CoreContractInventory) -> Int
 
+pub fn core_contract_sources(CoreContractInventory) -> ProgramSourceContracts
+
 pub fn core_contract_usage(CoreContractInventory) -> (Int, Int)
 
 pub fn dedupe_top_tie_law(DedupeTopTieCheck) -> String
@@ -665,6 +667,8 @@ type BoundParameters
 pub(all) enum CoreContractBody {
   ExpressionBody(@check_environment.ExpressionContractBody)
   AdoptedBody(@pipeline_typing.AdoptedOperationLaw)
+  CatalogContract(String)
+  CatalogGrammarBody(@check_environment.CatalogGrammar)
 } derive(Eq, @debug.Debug)
 
 type CoreContractInventory
@@ -673,6 +677,9 @@ pub(all) enum CoreContractIssue {
   InvalidLimits
   BudgetExceeded
   UnsupportedExpressionContract(Int)
+  SourceInventory(SourceContractIssue)
+  CatalogBody(Int, Int, Int, @check_environment.BodyDependencyIssue)
+  UnknownCatalogGrammar(Int, Int, Int)
 } derive(Eq, @debug.Debug)
 
 pub(all) struct CoreContractLimits {
@@ -690,6 +697,7 @@ pub struct CoreContractRoot {
 pub(all) enum CoreContractSite {
   StageExpression(Int)
   OperationLaw(Int, Int, Int, Int, Int)
+  CatalogReference(Int, Int, Int)
 } derive(Eq, @debug.Debug)
 
 pub struct DedupeTopTieCheck {

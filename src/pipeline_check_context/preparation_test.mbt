@@ -18,9 +18,27 @@ fn preparation_sources_fixture(
 ) -> SourceProducerContext {
   let rows = source_policy_fixture(policy_context(selected))
   let joined = bind_source_policy(rows, selected, 10000000).unwrap()
+  let locations = match reconciled_sourceviews(policy_context(selected)) {
+    None => []
+    Some(_) =>
+      Array::makei(
+        @stages.stage_count(
+          @stages.operations_source(
+            @stages.bound_operations(
+              stage_operations(
+                wired_stage_contexts(
+                  reconciled_wiring(policy_context(selected)),
+                ),
+              ),
+            ),
+          ),
+        ),
+        _ => [],
+      )
+  }
   bind_source_producers(
     check_source_capacity(joined, 10000000).unwrap(),
-    [],
+    locations,
     10000000,
   ).unwrap()
 }
