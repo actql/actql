@@ -19,12 +19,20 @@ test "nearest completes sole string identities on both sides with bounded obliga
       Unqualified("code"),
     )
     assert_true(
-      @vector_typing.nearest_pending(c).contains(
-        JournalIdentityFieldCompletion(side, Unqualified("code")),
-      ),
+      indexed_obligation_copy(
+        @vector_typing.nearest_pending(c),
+        @vector_typing.nearest_pending_count(c),
+        i => @vector_typing.nearest_pending_at(c, i),
+        (a, b) => a == b,
+      ).contains(JournalIdentityFieldCompletion(side, Unqualified("code"))),
     )
     assert_true(
-      @vector_typing.nearest_pending(c).contains(
+      indexed_obligation_copy(
+        @vector_typing.nearest_pending(c),
+        @vector_typing.nearest_pending_count(c),
+        i => @vector_typing.nearest_pending_at(c, i),
+        (a, b) => a == b,
+      ).contains(
         ValidateNearestKey(
           side,
           ValidateWholeTupleUniquenessAfterInputNormalization,

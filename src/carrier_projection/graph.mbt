@@ -8,16 +8,48 @@ pub(all) enum GraphObligation {
 
 ///|
 pub fn graph_pending(v : CheckedProjection) -> Array[GraphObligation] {
+  let out = []
+  graph_pending_each(v, item => out.push(item))
+  out
+}
+
+///|
+// One bounded enumeration rule shared by copied and indexed reads.
+fn graph_pending_each(
+  v : CheckedProjection,
+  emit : (GraphObligation) -> Unit,
+) -> Unit {
   if v.operation == NodeRows || v.operation == EdgeRows {
-    [
-      ValidateGraphRecords,
-      RejectRuntimeColumnCollisions,
-      RestoreSemanticIdentityNames,
-      ResolveGraphProjectionResources,
-    ]
-  } else {
-    []
+    emit(ValidateGraphRecords)
+    emit(RejectRuntimeColumnCollisions)
+    emit(RestoreSemanticIdentityNames)
+    emit(ResolveGraphProjectionResources)
   }
+}
+
+///|
+/// O(1), independent of input data size; no obligation array is materialized.
+pub fn graph_pending_count(v : CheckedProjection) -> Int {
+  let mut count = 0
+  graph_pending_each(v, _ => count += 1)
+  count
+}
+
+///|
+/// O(1), without copying the obligation array; invalid indices return None.
+pub fn graph_pending_at(v : CheckedProjection, index : Int) -> GraphObligation? {
+  if index < 0 {
+    return None
+  }
+  let mut count = 0
+  let mut found = None
+  graph_pending_each(v, item => {
+    if count == index {
+      found = Some(item)
+    }
+    count += 1
+  })
+  found
 }
 
 ///|

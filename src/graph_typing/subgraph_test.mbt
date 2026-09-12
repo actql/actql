@@ -12,7 +12,12 @@ test "subgraph shares selector and edge predicate budgets without weakening cont
   assert_true(@graph_typing.subgraph_output(c) is GraphValue(_))
   assert_true(@graph_typing.subgraph_edges(c) is Some(_))
   assert_true(
-    @graph_typing.subgraph_pending(c).contains(InduceSelectedEndpoints),
+    indexed_obligation_copy(
+      @graph_typing.subgraph_pending(c),
+      @graph_typing.subgraph_pending_count(c),
+      i => @graph_typing.subgraph_pending_at(c, i),
+      (a, b) => a == b,
+    ).contains(InduceSelectedEndpoints),
   )
   let u = @graph_typing.subgraph_usage(c)
   let exact = {
@@ -44,7 +49,14 @@ test "subgraph shares selector and edge predicate budgets without weakening cont
     predicate_limits(),
   ).unwrap()
   assert_true(@graph_typing.subgraph_edges(c) is None)
-  assert_true(!@graph_typing.subgraph_pending(c).contains(FilterInducedEdges))
+  assert_true(
+    !indexed_obligation_copy(
+      @graph_typing.subgraph_pending(c),
+      @graph_typing.subgraph_pending_count(c),
+      i => @graph_typing.subgraph_pending_at(c, i),
+      (a, b) => a == b,
+    ).contains(FilterInducedEdges),
+  )
   assert_true(
     @graph_typing.check_subgraph(
       cursor("{\"nodes\":{\"ids\":[2]},\"edges\":{\"literal\":1}}"),

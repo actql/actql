@@ -51,10 +51,20 @@ test "parameter queries retain binding obligations and use only declaration dime
     assert_eq(@vector_typing.query_parameter(query), Some("q"))
     assert_true(@vector_typing.query_values(query) is None)
     assert_true(
-      @vector_typing.pending_validations(checked).contains(BindQuery("q")),
+      indexed_obligation_copy(
+        @vector_typing.pending_validations(checked),
+        @vector_typing.pending_validation_count(checked),
+        i => @vector_typing.pending_validation_at(checked, i),
+        (a, b) => a == b,
+      ).contains(BindQuery("q")),
     )
     assert_true(
-      @vector_typing.pending_validations(checked).contains(MatchDimensions),
+      indexed_obligation_copy(
+        @vector_typing.pending_validations(checked),
+        @vector_typing.pending_validation_count(checked),
+        i => @vector_typing.pending_validation_at(checked, i),
+        (a, b) => a == b,
+      ).contains(MatchDimensions),
     )
   }
   for
@@ -146,7 +156,12 @@ test "normalization preserves carrier knowledge without claiming evaluated value
       @carrier.VectorsKind,
     )
     assert_true(
-      @vector_typing.pending_validations(checked).contains(NormalizeArithmetic),
+      indexed_obligation_copy(
+        @vector_typing.pending_validations(checked),
+        @vector_typing.pending_validation_count(checked),
+        i => @vector_typing.pending_validation_at(checked, i),
+        (a, b) => a == b,
+      ).contains(NormalizeArithmetic),
     )
     assert_true(@vector_typing.query(checked) is None)
     assert_true(@vector_typing.metric(checked) is None)
@@ -203,11 +218,21 @@ test "scoring preserves typed roles and partial payload knowledge and owns query
     let values = @vector_typing.query_values(query).unwrap()
     values[0] = 99.0
     assert_eq(@vector_typing.query_values(query).unwrap()[0], 1.0)
-    let pending = @vector_typing.pending_validations(checked)
+    let pending = indexed_obligation_copy(
+      @vector_typing.pending_validations(checked),
+      @vector_typing.pending_validation_count(checked),
+      i => @vector_typing.pending_validation_at(checked, i),
+      (a, b) => a == b,
+    )
     assert_true(pending.contains(ScoreOrder))
     pending.clear()
     assert_true(
-      @vector_typing.pending_validations(checked).contains(ScoreArithmetic),
+      indexed_obligation_copy(
+        @vector_typing.pending_validations(checked),
+        @vector_typing.pending_validation_count(checked),
+        i => @vector_typing.pending_validation_at(checked, i),
+        (a, b) => a == b,
+      ).contains(ScoreArithmetic),
     )
   }
 }

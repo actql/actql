@@ -60,9 +60,12 @@ test "watermark fixed and prefix sources retain distinct order requirements" {
     assert_true(field(out, "watermark_late").shape is Boolean)
     assert_true(field(out, "watermark_decision").shape is Text(_))
     assert_eq(
-      @relation_typing.pending_validations(checked).any(p => {
-        p.kind == WatermarkPrefixOrder
-      }),
+      indexed_obligation_copy(
+        @relation_typing.pending_validations(checked),
+        @relation_typing.pending_validation_count(checked),
+        i => @relation_typing.pending_validation_at(checked, i),
+        (a, b) => a.kind == b.kind && physical_equal(a.source, b.source),
+      ).any(p => p.kind == WatermarkPrefixOrder),
       prefix,
     )
     match @relation_typing.row_operation(checked).unwrap() {

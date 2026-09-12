@@ -26,6 +26,10 @@ pub fn input_schema(CheckedAppend, @relation_schema.Side) -> @relation_schema.Sc
 
 pub fn output_schema(CheckedAppend) -> @relation_schema.Schema
 
+pub fn pending_validation_at(CheckedAppend, Int) -> Obligation?
+
+pub fn pending_validation_count(CheckedAppend) -> Int
+
 pub fn pending_validations(CheckedAppend) -> Array[Obligation]
 
 pub fn source(CheckedAppend) -> @decode_core.Cursor

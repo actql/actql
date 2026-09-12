@@ -57,7 +57,14 @@ test "empty sort retains source and schema without supplying order evidence" {
     @relation_typing.row_operation(checked) is Some(Sort(terms)) &&
     terms.is_empty(),
   )
-  assert_true(@relation_typing.pending_validations(checked).is_empty())
+  assert_true(
+    indexed_obligation_copy(
+      @relation_typing.pending_validations(checked),
+      @relation_typing.pending_validation_count(checked),
+      i => @relation_typing.pending_validation_at(checked, i),
+      (a, b) => a.kind == b.kind && physical_equal(a.source, b.source),
+    ).is_empty(),
+  )
   assert_true(
     @contract.type_equal(input_row(checked), output_row(checked), 1000),
   )
@@ -94,7 +101,12 @@ test "sort retains repeated terms and exact null placement without proving total
   assert_true(!terms[0].explicit_nulls && terms[1].explicit_nulls)
   assert_eq(terms[1].field, @schema.Unqualified("id"))
   assert_eq(
-    @relation_typing.pending_validations(checked)[0].kind,
+    indexed_obligation_copy(
+      @relation_typing.pending_validations(checked),
+      @relation_typing.pending_validation_count(checked),
+      i => @relation_typing.pending_validation_at(checked, i),
+      (a, b) => a.kind == b.kind && physical_equal(a.source, b.source),
+    )[0].kind,
     SortOrderCompletion,
   )
   terms.clear()
@@ -113,7 +125,12 @@ test "take retains canonical count and offset separately without summing or bind
       is Some(Take(count=Literal(7L), offset=Literal(0L))),
     )
     assert_eq(
-      @relation_typing.pending_validations(checked)[0].kind,
+      indexed_obligation_copy(
+        @relation_typing.pending_validations(checked),
+        @relation_typing.pending_validation_count(checked),
+        i => @relation_typing.pending_validation_at(checked, i),
+        (a, b) => a.kind == b.kind && physical_equal(a.source, b.source),
+      )[0].kind,
       StableInputOrder,
     )
   }
@@ -195,7 +212,12 @@ test "take parameter declarations remain symbolic with separate bound value obli
     @relation_typing.row_operation(checked)
     is Some(Take(count=Parameter("n"), offset=Parameter("off"))),
   )
-  let pending = @relation_typing.pending_validations(checked)
+  let pending = indexed_obligation_copy(
+    @relation_typing.pending_validations(checked),
+    @relation_typing.pending_validation_count(checked),
+    i => @relation_typing.pending_validation_at(checked, i),
+    (a, b) => a.kind == b.kind && physical_equal(a.source, b.source),
+  )
   assert_eq(pending.map(p => p.kind), [
     BoundInteger(name="n", minimum=1L),
     BoundInteger(name="off", minimum=0L),
@@ -203,7 +225,15 @@ test "take parameter declarations remain symbolic with separate bound value obli
   ])
   assert_eq(@decode.cursor_path(pending[0].source), [@source.Key("count")])
   pending.clear()
-  assert_eq(@relation_typing.pending_validations(checked).length(), 3)
+  assert_eq(
+    indexed_obligation_copy(
+      @relation_typing.pending_validations(checked),
+      @relation_typing.pending_validation_count(checked),
+      i => @relation_typing.pending_validation_at(checked, i),
+      (a, b) => a.kind == b.kind && physical_equal(a.source, b.source),
+    ).length(),
+    3,
+  )
   for
     text in [
       "{\"$param\":\"n\"}", "{\"count\":{\"$param\":\"n\"},\"offset\":{\"$param\":\"n\"}}",
@@ -307,9 +337,15 @@ test "dedupe retains all rows fields and repeated keys without adding evidence" 
   assert_true(
     @contract.type_equal(input_row(checked), output_row(checked), 1000),
   )
-  assert_eq(@relation_typing.pending_validations(checked).map(p => p.kind), [
-    FailOnTopTie,
-  ])
+  assert_eq(
+    indexed_obligation_copy(
+      @relation_typing.pending_validations(checked),
+      @relation_typing.pending_validation_count(checked),
+      i => @relation_typing.pending_validation_at(checked, i),
+      (a, b) => a.kind == b.kind && physical_equal(a.source, b.source),
+    ).map(p => p.kind),
+    [FailOnTopTie],
+  )
   let by = match @relation_typing.row_operation(checked).unwrap() {
     DedupeRows(by~, ..) => by
     _ => abort("dedupe")
@@ -331,9 +367,15 @@ test "dedupe retains all rows fields and repeated keys without adding evidence" 
     @relation_typing.row_operation(global) is Some(DedupeRows(by~, ..)) &&
     by.is_empty(),
   )
-  assert_eq(@relation_typing.pending_validations(global).map(p => p.kind), [
-    FailOnTopTie,
-  ])
+  assert_eq(
+    indexed_obligation_copy(
+      @relation_typing.pending_validations(global),
+      @relation_typing.pending_validation_count(global),
+      i => @relation_typing.pending_validation_at(global, i),
+      (a, b) => a.kind == b.kind && physical_equal(a.source, b.source),
+    ).map(p => p.kind),
+    [FailOnTopTie],
+  )
 }
 
 ///|

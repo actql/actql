@@ -101,7 +101,12 @@ test "series endpoints reject noncanonical dates and defer timestamp parameter b
     Some(ds),
     limits(),
   ).unwrap()
-  let pending = @time_series.pending_validations(checked)
+  let pending = indexed_obligation_copy(
+    @time_series.pending_validations(checked),
+    @time_series.pending_validation_count(checked),
+    i => @time_series.pending_validation_at(checked, i),
+    (a, b) => a == b,
+  )
   assert_true(pending.contains(BindTimestamp("start")))
   assert_true(pending.contains(BindStep("step")))
   assert_true(pending.contains(ResolveRowBound))

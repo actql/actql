@@ -483,6 +483,21 @@ pub fn asof_pending_validations(v : CheckedAsOf) -> Array[@join.Obligation] {
 }
 
 ///|
+/// O(1), without materializing the obligation array.
+pub fn asof_pending_validation_count(v : CheckedAsOf) -> Int {
+  v.pending.length()
+}
+
+///|
+/// O(1); invalid indices return None. Retains authored obligation order.
+pub fn asof_pending_validation_at(
+  v : CheckedAsOf,
+  index : Int,
+) -> @join.Obligation? {
+  v.pending.get(index)
+}
+
+///|
 pub fn asof_usage(v : CheckedAsOf) -> @join.Usage {
   v.usage
 }

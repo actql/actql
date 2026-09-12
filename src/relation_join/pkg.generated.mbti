@@ -28,6 +28,10 @@ pub fn asof_kind(@relation_evidence.CheckedAsOf) -> @relation_join_shape.Kind
 
 pub fn asof_output_schema(@relation_evidence.CheckedAsOf) -> @relation_schema.Schema
 
+pub fn asof_pending_validation_at(@relation_evidence.CheckedAsOf, Int) -> @relation_join_shape.Obligation?
+
+pub fn asof_pending_validation_count(@relation_evidence.CheckedAsOf) -> Int
+
 pub fn asof_pending_validations(@relation_evidence.CheckedAsOf) -> Array[@relation_join_shape.Obligation]
 
 pub fn asof_projection(@relation_evidence.CheckedAsOf) -> Array[@relation_join_shape.Projection]
@@ -66,6 +70,10 @@ pub fn cross_output_guard(@relation_join_shape.CheckedCrossJoin) -> @relation_jo
 
 pub fn cross_output_schema(@relation_join_shape.CheckedCrossJoin) -> @relation_schema.Schema
 
+pub fn cross_pending_validation_at(@relation_join_shape.CheckedCrossJoin, Int) -> @relation_join_shape.Obligation?
+
+pub fn cross_pending_validation_count(@relation_join_shape.CheckedCrossJoin) -> Int
+
 pub fn cross_pending_validations(@relation_join_shape.CheckedCrossJoin) -> Array[@relation_join_shape.Obligation]
 
 pub fn cross_projection(@relation_join_shape.CheckedCrossJoin) -> Array[@relation_join_shape.Projection]?
@@ -96,6 +104,10 @@ pub fn interval_output_guard(@relation_join_shape.CheckedIntervalJoin) -> @relat
 
 pub fn interval_output_schema(@relation_join_shape.CheckedIntervalJoin) -> @relation_schema.Schema
 
+pub fn interval_pending_validation_at(@relation_join_shape.CheckedIntervalJoin, Int) -> @relation_join_shape.Obligation?
+
+pub fn interval_pending_validation_count(@relation_join_shape.CheckedIntervalJoin) -> Int
+
 pub fn interval_pending_validations(@relation_join_shape.CheckedIntervalJoin) -> Array[@relation_join_shape.Obligation]
 
 pub fn interval_projection(@relation_join_shape.CheckedIntervalJoin) -> Array[@relation_join_shape.Projection]?
@@ -119,6 +131,10 @@ pub fn null_key(@relation_join_shape.CheckedJoin) -> @relation_join_shape.NullKe
 pub fn output_guard(@relation_join_shape.CheckedJoin) -> @relation_join_shape.Guard?
 
 pub fn output_schema(@relation_join_shape.CheckedJoin) -> @relation_schema.Schema
+
+pub fn pending_validation_at(@relation_join_shape.CheckedJoin, Int) -> @relation_join_shape.Obligation?
+
+pub fn pending_validation_count(@relation_join_shape.CheckedJoin) -> Int
 
 pub fn pending_validations(@relation_join_shape.CheckedJoin) -> Array[@relation_join_shape.Obligation]
 

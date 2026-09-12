@@ -28,9 +28,12 @@ test "pivot keeps source value order separate from canonical generated columns" 
   assert_eq(@schema.field_count(@relation_typing.output_schema(v)), 5)
   assert_true(field(output_row(v), "a").nullable)
   assert_true(
-    @relation_typing.pending_validations(v).any(p => {
-      p.kind is NumericAggregateObservation
-    }),
+    indexed_obligation_copy(
+      @relation_typing.pending_validations(v),
+      @relation_typing.pending_validation_count(v),
+      i => @relation_typing.pending_validation_at(v, i),
+      (a, b) => a.kind == b.kind && physical_equal(a.source, b.source),
+    ).any(p => p.kind is NumericAggregateObservation),
   )
 }
 
@@ -51,9 +54,12 @@ test "empty pivot axes preserve validation and index-only schema" {
       },
     )
     assert_true(
-      @relation_typing.pending_validations(v).any(p => {
-        p.kind is PivotPartitioning
-      }),
+      indexed_obligation_copy(
+        @relation_typing.pending_validations(v),
+        @relation_typing.pending_validation_count(v),
+        i => @relation_typing.pending_validation_at(v, i),
+        (a, b) => a.kind == b.kind && physical_equal(a.source, b.source),
+      ).any(p => p.kind is PivotPartitioning),
     )
   }
   for
@@ -95,9 +101,12 @@ test "pivot fill is typed against the aggregate result including decimal wire va
     }
     if fn_name == "first" {
       assert_true(
-        @relation_typing.pending_validations(v).any(p => {
-          p.kind is StableInputOrder
-        }),
+        indexed_obligation_copy(
+          @relation_typing.pending_validations(v),
+          @relation_typing.pending_validation_count(v),
+          i => @relation_typing.pending_validation_at(v, i),
+          (a, b) => a.kind == b.kind && physical_equal(a.source, b.source),
+        ).any(p => p.kind is StableInputOrder),
       )
     }
   }
@@ -174,7 +183,12 @@ test "pivot fill parameters retain declaration evidence and bound validation" {
     ).unwrap()
     assert_eq(field(output_row(v), "a").nullable, name == "maybe")
     assert_true(
-      @relation_typing.pending_validations(v).any(p => p.kind is BoundFill(_)),
+      indexed_obligation_copy(
+        @relation_typing.pending_validations(v),
+        @relation_typing.pending_validation_count(v),
+        i => @relation_typing.pending_validation_at(v, i),
+        (a, b) => a.kind == b.kind && physical_equal(a.source, b.source),
+      ).any(p => p.kind is BoundFill(_)),
     )
   }
   assert_true(

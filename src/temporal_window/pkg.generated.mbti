@@ -32,6 +32,10 @@ pub fn options(CheckedWindow) -> Options
 
 pub fn output(CheckedWindow) -> @carrier_contract.Carrier
 
+pub fn pending_validation_at(CheckedWindow, Int) -> Obligation?
+
+pub fn pending_validation_count(CheckedWindow) -> Int
+
 pub fn pending_validations(CheckedWindow) -> Array[Obligation]
 
 pub fn read_milliseconds(@decode_core.Cursor, Domain, @parameter_binding.Declarations?, Limits) -> Result[CheckedMilliseconds, Issue]

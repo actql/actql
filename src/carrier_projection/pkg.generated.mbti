@@ -15,6 +15,10 @@ pub fn check(Operation, @decode_core.Cursor, @carrier_contract.Carrier, Limits) 
 
 pub fn graph_pending(CheckedProjection) -> Array[GraphObligation]
 
+pub fn graph_pending_at(CheckedProjection, Int) -> GraphObligation?
+
+pub fn graph_pending_count(CheckedProjection) -> Int
+
 pub fn input(CheckedProjection) -> @carrier_contract.Carrier
 
 pub fn operation(CheckedProjection) -> Operation

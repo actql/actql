@@ -371,23 +371,59 @@ pub fn text_rank_profile(c : CheckedTextRank) -> @text_rank_profile.Profile? {
 
 ///|
 pub fn text_rank_pending(c : CheckedTextRank) -> Array[TextRankObligation] {
-  let obligations = [
-    ValidateCompleteTextInputs,
-    ValidateGlobalStringIdentities(Corpus),
-    ValidateGlobalStringIdentities(Queries),
-    NormalizeAndTokenizeWithPinnedUnicode,
-    ResolveTokenizerAndNormalizedTextCeilings,
-    ComputeStatisticsFromAdmittedCorpusOnly,
-    EvaluatePinnedBm25AndCorrectlyRoundedLogarithm,
-    FoldTermsInCanonicalOrder,
-    RejectNonFiniteTextScores,
-    ExcludeZeroScoresAndHandleEmptyInputs,
-    OrderTextScoresAndSemanticIdentities,
-    AssignContiguousTextRanks,
-    ResolveStatisticsScoringAndOutputResources,
-  ]
+  let out = []
+  text_rank_pending_each(c, item => out.push(item))
+  out
+}
+
+///|
+// One bounded enumeration rule shared by copied and indexed reads.
+fn text_rank_pending_each(
+  c : CheckedTextRank,
+  emit : (TextRankObligation) -> Unit,
+) -> Unit {
+  emit(ValidateCompleteTextInputs)
+  emit(ValidateGlobalStringIdentities(Corpus))
+  emit(ValidateGlobalStringIdentities(Queries))
+  emit(NormalizeAndTokenizeWithPinnedUnicode)
+  emit(ResolveTokenizerAndNormalizedTextCeilings)
+  emit(ComputeStatisticsFromAdmittedCorpusOnly)
+  emit(EvaluatePinnedBm25AndCorrectlyRoundedLogarithm)
+  emit(FoldTermsInCanonicalOrder)
+  emit(RejectNonFiniteTextScores)
+  emit(ExcludeZeroScoresAndHandleEmptyInputs)
+  emit(OrderTextScoresAndSemanticIdentities)
+  emit(AssignContiguousTextRanks)
+  emit(ResolveStatisticsScoringAndOutputResources)
   if c.profile is None {
-    obligations.push(ResolveTextRankProfile)
+    emit(ResolveTextRankProfile)
   }
-  obligations
+}
+
+///|
+/// O(1), independent of input data size; no obligation array is materialized.
+pub fn text_rank_pending_count(c : CheckedTextRank) -> Int {
+  let mut count = 0
+  text_rank_pending_each(c, _ => count += 1)
+  count
+}
+
+///|
+/// O(1), without copying the obligation array; invalid indices return None.
+pub fn text_rank_pending_at(
+  c : CheckedTextRank,
+  index : Int,
+) -> TextRankObligation? {
+  if index < 0 {
+    return None
+  }
+  let mut count = 0
+  let mut found = None
+  text_rank_pending_each(c, item => {
+    if count == index {
+      found = Some(item)
+    }
+    count += 1
+  })
+  found
 }

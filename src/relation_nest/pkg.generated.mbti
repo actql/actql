@@ -30,6 +30,10 @@ pub fn order_count(CheckedNest) -> Int?
 
 pub fn output_schema(CheckedNest) -> @relation_schema.Schema
 
+pub fn pending_validation_at(CheckedNest, Int) -> Obligation?
+
+pub fn pending_validation_count(CheckedNest) -> Int
+
 pub fn pending_validations(CheckedNest) -> Array[Obligation]
 
 pub fn projection(CheckedNest) -> Array[Projection]

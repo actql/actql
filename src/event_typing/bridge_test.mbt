@@ -36,7 +36,12 @@ test "bridge validates clock roles and retains partial payload knowledge" {
         let checked = result.unwrap()
         assert_true(@event_typing.options(checked) is ToEvents)
         assert_true(@event_typing.watermark(checked) is None)
-        let pending = @event_typing.pending_validations(checked)
+        let pending = indexed_obligation_copy(
+          @event_typing.pending_validations(checked),
+          @event_typing.pending_validation_count(checked),
+          i => @event_typing.pending_validation_at(checked, i),
+          (a, b) => a == b,
+        )
         assert_eq(
           pending.contains(ConvertTimestampClock),
           kind == @contract.TimestampType,

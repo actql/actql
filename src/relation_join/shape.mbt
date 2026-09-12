@@ -125,6 +125,18 @@ pub fn pending_validations(v : CheckedJoin) -> Array[Obligation] {
 }
 
 ///|
+/// O(1), without materializing the obligation array.
+pub fn pending_validation_count(v : CheckedJoin) -> Int {
+  @shape.pending_validation_count(v)
+}
+
+///|
+/// O(1); invalid indices return None. Retains authored obligation order.
+pub fn pending_validation_at(v : CheckedJoin, index : Int) -> Obligation? {
+  @shape.pending_validation_at(v, index)
+}
+
+///|
 pub fn usage(v : CheckedJoin) -> Usage {
   @shape.usage(v)
 }
@@ -187,6 +199,21 @@ pub fn cross_output_guard(value : CheckedCrossJoin) -> Guard? {
 ///|
 pub fn cross_pending_validations(value : CheckedCrossJoin) -> Array[Obligation] {
   @shape.cross_pending_validations(value)
+}
+
+///|
+/// O(1), without materializing the obligation array.
+pub fn cross_pending_validation_count(value : CheckedCrossJoin) -> Int {
+  @shape.cross_pending_validation_count(value)
+}
+
+///|
+/// O(1); invalid indices return None. Retains authored obligation order.
+pub fn cross_pending_validation_at(
+  value : CheckedCrossJoin,
+  index : Int,
+) -> Obligation? {
+  @shape.cross_pending_validation_at(value, index)
 }
 
 ///|
@@ -258,6 +285,21 @@ pub fn interval_pending_validations(
   v : CheckedIntervalJoin,
 ) -> Array[Obligation] {
   @shape.interval_pending_validations(v)
+}
+
+///|
+/// O(1), without materializing the obligation array.
+pub fn interval_pending_validation_count(v : CheckedIntervalJoin) -> Int {
+  @shape.interval_pending_validation_count(v)
+}
+
+///|
+/// O(1); invalid indices return None. Retains authored obligation order.
+pub fn interval_pending_validation_at(
+  v : CheckedIntervalJoin,
+  index : Int,
+) -> Obligation? {
+  @shape.interval_pending_validation_at(v, index)
 }
 
 ///|

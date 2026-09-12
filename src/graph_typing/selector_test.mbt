@@ -34,10 +34,20 @@ test "graph selectors preserve Ref identity contracts from qualified Relation co
     @contract.type_equal(reference, @graph_typing.selector_identity(c), 100),
   )
   assert_true(
-    @graph_typing.selector_pending(c).contains(RevalidateSelectorReferences),
+    indexed_obligation_copy(
+      @graph_typing.selector_pending(c),
+      @graph_typing.selector_pending_count(c),
+      i => @graph_typing.selector_pending_at(c, i),
+      (a, b) => a == b,
+    ).contains(RevalidateSelectorReferences),
   )
   assert_true(
-    @graph_typing.selector_pending(c).contains(RequireSelectorMembership),
+    indexed_obligation_copy(
+      @graph_typing.selector_pending(c),
+      @graph_typing.selector_pending_count(c),
+      i => @graph_typing.selector_pending_at(c, i),
+      (a, b) => a == b,
+    ).contains(RequireSelectorMembership),
   )
   let u = @graph_typing.selector_usage(c)
   let exact = {

@@ -165,7 +165,12 @@ test "typed diff feeds apply without turning contract evidence into snapshot pro
     @graph_contract.cid(pinned_graph(@graph_typing.apply_output(checked))),
     @graph_contract.cid(expected),
   )
-  let pending = @graph_typing.apply_pending(checked)
+  let pending = indexed_obligation_copy(
+    @graph_typing.apply_pending(checked),
+    @graph_typing.apply_pending_count(checked),
+    i => @graph_typing.apply_pending_at(checked, i),
+    (a, b) => a == b,
+  )
   for
     required in [
       @graph_typing.RequireExactlyOneDeltaRow,
@@ -178,7 +183,15 @@ test "typed diff feeds apply without turning contract evidence into snapshot pro
     assert_true(pending.contains(required))
   }
   pending.clear()
-  assert_eq(@graph_typing.apply_pending(checked).length(), 14)
+  assert_eq(
+    indexed_obligation_copy(
+      @graph_typing.apply_pending(checked),
+      @graph_typing.apply_pending_count(checked),
+      i => @graph_typing.apply_pending_at(checked, i),
+      (a, b) => a == b,
+    ).length(),
+    14,
+  )
   let u = @graph_typing.apply_usage(checked)
   let exact = {
     ..limits(),

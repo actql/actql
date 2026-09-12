@@ -32,10 +32,20 @@ test "nest parameter guards remain unbound and do not create order evidence" {
       let value = result.unwrap()
       assert_eq(@relation_nest.item_guard(value), Some(Parameter(name)))
       assert_true(
-        @relation_nest.pending_validations(value).contains(BindGuard(name)),
+        indexed_obligation_copy(
+          @relation_nest.pending_validations(value),
+          @relation_nest.pending_validation_count(value),
+          i => @relation_nest.pending_validation_at(value, i),
+          (a, b) => a == b,
+        ).contains(BindGuard(name)),
       )
       assert_true(
-        @relation_nest.pending_validations(value).contains(ResolveTotalOrder),
+        indexed_obligation_copy(
+          @relation_nest.pending_validations(value),
+          @relation_nest.pending_validation_count(value),
+          i => @relation_nest.pending_validation_at(value, i),
+          (a, b) => a == b,
+        ).contains(ResolveTotalOrder),
       )
       assert_true(@relation_nest.order(value) is None)
     }

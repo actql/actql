@@ -47,10 +47,23 @@ test "graph equality joins compatible extents without evaluating equality" {
     @carrier.graph_labels(@graph_typing.equality_input(c, Left)),
     Some(["a"]),
   )
-  let pending = @graph_typing.equality_pending(c)
+  let pending = indexed_obligation_copy(
+    @graph_typing.equality_pending(c),
+    @graph_typing.equality_pending_count(c),
+    i => @graph_typing.equality_pending_at(c, i),
+    (a, b) => a == b,
+  )
   assert_true(pending.contains(CompareTypedCanonicalGraphs))
   pending.clear()
-  assert_eq(@graph_typing.equality_pending(c).length(), 4)
+  assert_eq(
+    indexed_obligation_copy(
+      @graph_typing.equality_pending(c),
+      @graph_typing.equality_pending_count(c),
+      i => @graph_typing.equality_pending_at(c, i),
+      (a, b) => a == b,
+    ).length(),
+    4,
+  )
   let u = @graph_typing.equality_usage(c)
   let exact = {
     ..limits(),

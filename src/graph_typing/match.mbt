@@ -256,22 +256,55 @@ pub fn match_types(c : CheckedMatch) -> Array[String]? {
 
 ///|
 pub fn match_pending(c : CheckedMatch) -> Array[MatchObligation] {
-  let out = [
-    AdmitMatchGraphData,
-    CanonicalMatchOrder,
-    ResolveMatchResources,
-    ResolveMatchProfile,
-  ]
+  let out = []
+  match_pending_each(c, item => out.push(item))
+  out
+}
+
+///|
+// One bounded enumeration rule shared by copied and indexed reads.
+fn match_pending_each(
+  c : CheckedMatch,
+  emit : (MatchObligation) -> Unit,
+) -> Unit {
+  emit(AdmitMatchGraphData)
+  emit(CanonicalMatchOrder)
+  emit(ResolveMatchResources)
+  emit(ResolveMatchProfile)
   if !c.ids.is_empty() {
-    out.push(ValidateSelectedIdentityMembership)
+    emit(ValidateSelectedIdentityMembership)
   }
   if c.types is Some(_) {
-    out.push(FilterSelectedEdgeTypes)
+    emit(FilterSelectedEdgeTypes)
   }
   if c.predicate is Some(_) {
-    out.push(EvaluateMatchPredicate)
+    emit(EvaluateMatchPredicate)
   }
-  out
+}
+
+///|
+/// O(1), independent of input data size; no obligation array is materialized.
+pub fn match_pending_count(c : CheckedMatch) -> Int {
+  let mut count = 0
+  match_pending_each(c, _ => count += 1)
+  count
+}
+
+///|
+/// O(1), without copying the obligation array; invalid indices return None.
+pub fn match_pending_at(c : CheckedMatch, index : Int) -> MatchObligation? {
+  if index < 0 {
+    return None
+  }
+  let mut count = 0
+  let mut found = None
+  match_pending_each(c, item => {
+    if count == index {
+      found = Some(item)
+    }
+    count += 1
+  })
+  found
 }
 
 ///|

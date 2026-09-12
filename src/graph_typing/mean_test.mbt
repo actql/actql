@@ -19,7 +19,12 @@ test "mean checks every graph and produces nullable numeric means" {
   assert_true(cost.nullable)
   assert_true(cost.shape is @contract.Number)
   assert_true(
-    @graph_typing.mean_pending(c).contains(RoundExactWeightedMeansOnce),
+    indexed_obligation_copy(
+      @graph_typing.mean_pending(c),
+      @graph_typing.mean_pending_count(c),
+      i => @graph_typing.mean_pending_at(c, i),
+      (a, b) => a == b,
+    ).contains(RoundExactWeightedMeansOnce),
   )
   inputs[0] = @carrier.unknown_carrier(GraphKind)
   assert_true(@graph_typing.mean_output(c) is @carrier.GraphValue(_))

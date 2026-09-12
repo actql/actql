@@ -45,6 +45,7 @@ struct CheckedStructural {
   output : @carrier.Carrier
   nodes : Array[PropertyStrategy]
   edges : Array[PropertyStrategy]
+  strategy_obligations : Array[StructuralObligation]
   usage : Usage
 }
 
@@ -265,12 +266,31 @@ fn check_structural_impl(
         Err(_) => fail(source, BudgetExceeded)
       }
     }
+    // Compute the at-most-two strategy families once under the check budget.
+    // Retain first occurrence order without rescanning strategies on reads.
+    spend(b, source, node_strategies.length())
+    spend(b, source, edge_strategies.length())
+    let strategy_obligations = []
+    for strategies in [node_strategies, edge_strategies] {
+      for item in strategies {
+        let obligation = match item.strategy {
+          SetUnion | SetDifference => Some(ValidateCanonicalSetOperations)
+          NumberSum | NumberMean | NumberMin | NumberMax =>
+            Some(ValidateFiniteNumericResults)
+          ExactEqual => None
+        }
+        if obligation is Some(value) && !strategy_obligations.contains(value) {
+          strategy_obligations.push(value)
+        }
+      }
+    }
     Ok({
       operation,
       comparison,
       output,
       nodes: node_strategies,
       edges: edge_strategies,
+      strategy_obligations,
       usage: {
         work: limits.max_work - b.work,
         nodes: limits.max_nodes - b.nodes,
@@ -321,37 +341,61 @@ pub fn structural_strategies(
 
 ///|
 pub fn structural_pending(c : CheckedStructural) -> Array[StructuralObligation] {
-  let obligations = [
-    AdmitGraphsUnderCommonContract,
-    CompareCompleteIdentityPayloads,
-    RejectUnspecifiedConflicts,
-    PreservePolicyDependencies,
-    ResolveStructuralResources,
-    ResolveSgaProfile,
-  ]
+  let out = []
+  structural_pending_each(c, item => out.push(item))
+  out
+}
+
+///|
+// One bounded enumeration rule shared by copied and indexed reads.
+fn structural_pending_each(
+  c : CheckedStructural,
+  emit : (StructuralObligation) -> Unit,
+) -> Unit {
+  emit(AdmitGraphsUnderCommonContract)
+  emit(CompareCompleteIdentityPayloads)
+  emit(RejectUnspecifiedConflicts)
+  emit(PreservePolicyDependencies)
+  emit(ResolveStructuralResources)
+  emit(ResolveSgaProfile)
   if c.operation == Subtract {
-    obligations.push(KeepOnlyLeftSubtractionRecords)
-    obligations.push(CloseSubtractionEndpoints)
+    emit(KeepOnlyLeftSubtractionRecords)
+    emit(CloseSubtractionEndpoints)
   } else {
-    obligations.push(KeepCompleteOneSidedUnionRecords)
+    emit(KeepCompleteOneSidedUnionRecords)
   }
   if !c.nodes.is_empty() || !c.edges.is_empty() {
-    obligations.push(ApplyEveryAuthoredStrategy)
+    emit(ApplyEveryAuthoredStrategy)
   }
-  for strategies in [c.nodes, c.edges] {
-    for s in strategies {
-      match s.strategy {
-        SetUnion | SetDifference =>
-          if !obligations.contains(ValidateCanonicalSetOperations) {
-            obligations.push(ValidateCanonicalSetOperations)
-          }
-        NumberSum | NumberMean | NumberMin | NumberMax =>
-          if !obligations.contains(ValidateFiniteNumericResults) {
-            obligations.push(ValidateFiniteNumericResults)
-          }
-        _ => ()
-      }
+  for obligation in c.strategy_obligations {
+    emit(obligation)
+  }
+}
+
+///|
+/// O(1), independent of input data size; no obligation array is materialized.
+pub fn structural_pending_count(c : CheckedStructural) -> Int {
+  let mut count = 0
+  structural_pending_each(c, _ => count += 1)
+  count
+}
+
+///|
+/// O(1), without copying the obligation array; invalid indices return None.
+pub fn structural_pending_at(
+  c : CheckedStructural,
+  index : Int,
+) -> StructuralObligation? {
+  if index < 0 {
+    return None
+  }
+  let mut count = 0
+  let mut found = None
+  structural_pending_each(c, item => {
+    if count == index {
+      found = Some(item)
     }
-  }
-  obligations
+    count += 1
+  })
+  found
 }

@@ -129,7 +129,15 @@ test "graph bridges retain typed identities properties and semantic aliases" {
         is Err({ kind: BudgetExceeded, .. }),
       )
     }
-    assert_eq(@carrier_projection.graph_pending(checked).length(), 4)
+    assert_eq(
+      indexed_obligation_copy(
+        @carrier_projection.graph_pending(checked),
+        @carrier_projection.graph_pending_count(checked),
+        i => @carrier_projection.graph_pending_at(checked, i),
+        (a, b) => a == b,
+      ).length(),
+      4,
+    )
   }
 }
 

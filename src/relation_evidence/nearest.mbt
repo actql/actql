@@ -464,44 +464,81 @@ pub fn nearest_pair_usage(c : NearestPair) -> @checking.Usage {
 
 ///|
 pub fn nearest_pair_pending(c : NearestPair) -> Array[NearestObligation] {
-  let pending = [
-    AdmitQuantizedVectorComponents,
-    ValidateBothUniqueIdentities,
-    EvaluateExactNearestScores,
-    RestoreSemanticIdentityValues,
-    OrderQueriesByIdentity,
-    OrderCandidatesByDescendingScoreThenIdentity,
-    AssignContiguousOneBasedRanks,
-    ResolveNearestResources,
-    ResolveNearestProfile,
-    PreserveSimilarityAuthorityBoundary,
-  ]
+  let out = []
+  nearest_pair_pending_each(c, item => out.push(item))
+  out
+}
+
+///|
+// One bounded enumeration rule shared by copied and indexed reads.
+fn nearest_pair_pending_each(
+  c : NearestPair,
+  emit : (NearestObligation) -> Unit,
+) -> Unit {
+  emit(AdmitQuantizedVectorComponents)
+  emit(ValidateBothUniqueIdentities)
+  emit(EvaluateExactNearestScores)
+  emit(RestoreSemanticIdentityValues)
+  emit(OrderQueriesByIdentity)
+  emit(OrderCandidatesByDescendingScoreThenIdentity)
+  emit(AssignContiguousOneBasedRanks)
+  emit(ResolveNearestResources)
+  emit(ResolveNearestProfile)
+  emit(PreserveSimilarityAuthorityBoundary)
   if c.candidates.vectors is None {
-    pending.push(ValidateNearestRoleBindings(Candidates))
+    emit(ValidateNearestRoleBindings(Candidates))
   }
   if c.queries.vectors is None {
-    pending.push(ValidateNearestRoleBindings(Queries))
+    emit(ValidateNearestRoleBindings(Queries))
   }
   if c.candidates.vectors is None || c.queries.vectors is None {
-    pending.push(MatchNearestDimensions)
+    emit(MatchNearestDimensions)
   }
   if c.candidates.completed_vector is Some(n) {
-    pending.push(JournalVectorFieldCompletion(Candidates, n))
+    emit(JournalVectorFieldCompletion(Candidates, n))
   }
   if c.queries.completed_vector is Some(n) {
-    pending.push(JournalVectorFieldCompletion(Queries, n))
+    emit(JournalVectorFieldCompletion(Queries, n))
   }
   for (side, input) in [(Candidates, c.candidates), (Queries, c.queries)] {
     if input.completed_identity is Some(key) {
-      pending.push(
+      emit(
         JournalIdentityFieldCompletion(side, key_field_at(key, 0).unwrap().name),
       )
-      for obligation in key_pending(key) {
-        pending.push(ValidateNearestKey(side, obligation))
+      for i in 0..<key_pending_count(key) {
+        let obligation = key_pending_at(key, i).unwrap()
+        emit(ValidateNearestKey(side, obligation))
       }
     }
   }
-  pending
+}
+
+///|
+/// O(1), independent of input data size; no obligation array is materialized.
+pub fn nearest_pair_pending_count(c : NearestPair) -> Int {
+  let mut count = 0
+  nearest_pair_pending_each(c, _ => count += 1)
+  count
+}
+
+///|
+/// O(1), without copying the obligation array; invalid indices return None.
+pub fn nearest_pair_pending_at(
+  c : NearestPair,
+  index : Int,
+) -> NearestObligation? {
+  if index < 0 {
+    return None
+  }
+  let mut count = 0
+  let mut found = None
+  nearest_pair_pending_each(c, item => {
+    if count == index {
+      found = Some(item)
+    }
+    count += 1
+  })
+  found
 }
 
 ///|
@@ -642,5 +679,44 @@ pub fn nearest_usage(c : CheckedNearest) -> @checking.Usage {
 
 ///|
 pub fn nearest_pending(c : CheckedNearest) -> Array[NearestObligation] {
-  nearest_pair_pending(c.pair)
+  let out = []
+  nearest_pending_each(c, item => out.push(item))
+  out
+}
+
+///|
+// One bounded enumeration rule shared by copied and indexed reads.
+fn nearest_pending_each(
+  c : CheckedNearest,
+  emit : (NearestObligation) -> Unit,
+) -> Unit {
+  nearest_pair_pending_each(c.pair, emit)
+}
+
+///|
+/// O(1), independent of input data size; no obligation array is materialized.
+pub fn nearest_pending_count(c : CheckedNearest) -> Int {
+  let mut count = 0
+  nearest_pending_each(c, _ => count += 1)
+  count
+}
+
+///|
+/// O(1), without copying the obligation array; invalid indices return None.
+pub fn nearest_pending_at(
+  c : CheckedNearest,
+  index : Int,
+) -> NearestObligation? {
+  if index < 0 {
+    return None
+  }
+  let mut count = 0
+  let mut found = None
+  nearest_pending_each(c, item => {
+    if count == index {
+      found = Some(item)
+    }
+    count += 1
+  })
+  found
 }

@@ -229,21 +229,54 @@ pub fn output(v : CheckedSeries) -> @carrier.Carrier {
 
 ///|
 pub fn pending_validations(v : CheckedSeries) -> Array[Obligation] {
-  let pending : Array[Obligation] = [
-    ValidateRange,
-    CheckedArithmetic,
-    ResolveResources,
-  ]
+  let out = []
+  pending_validations_each(v, item => out.push(item))
+  out
+}
+
+///|
+// One bounded enumeration rule shared by copied and indexed reads.
+fn pending_validations_each(
+  v : CheckedSeries,
+  emit : (Obligation) -> Unit,
+) -> Unit {
+  emit(ValidateRange)
+  emit(CheckedArithmetic)
+  emit(ResolveResources)
   if v.row_count is None {
-    pending.push(ResolveRowBound)
+    emit(ResolveRowBound)
   }
   for value in [v.start, v.end] {
     if value is Parameter(name) {
-      pending.push(BindTimestamp(name))
+      emit(BindTimestamp(name))
     }
   }
   if v.step is @temporal.Parameter(name, ..) {
-    pending.push(BindStep(name))
+    emit(BindStep(name))
   }
-  pending
+}
+
+///|
+/// O(1), independent of input data size; no obligation array is materialized.
+pub fn pending_validation_count(v : CheckedSeries) -> Int {
+  let mut count = 0
+  pending_validations_each(v, _ => count += 1)
+  count
+}
+
+///|
+/// O(1), without copying the obligation array; invalid indices return None.
+pub fn pending_validation_at(v : CheckedSeries, index : Int) -> Obligation? {
+  if index < 0 {
+    return None
+  }
+  let mut count = 0
+  let mut found = None
+  pending_validations_each(v, item => {
+    if count == index {
+      found = Some(item)
+    }
+    count += 1
+  })
+  found
 }

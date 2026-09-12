@@ -242,22 +242,55 @@ pub fn cardinality(v : CheckedCalendar) -> Cardinality {
 
 ///|
 pub fn pending_validations(v : CheckedCalendar) -> Array[Obligation] {
-  let result : Array[Obligation] = [
-    ValidateCalendarValues,
-    ValidateBoundaryDomain,
-    ResolveResources,
-  ]
+  let out = []
+  pending_validations_each(v, item => out.push(item))
+  out
+}
+
+///|
+// One bounded enumeration rule shared by copied and indexed reads.
+fn pending_validations_each(
+  v : CheckedCalendar,
+  emit : (Obligation) -> Unit,
+) -> Unit {
+  emit(ValidateCalendarValues)
+  emit(ValidateBoundaryDomain)
+  emit(ResolveResources)
   if @options.input(v.options) is Range(start~, end~) {
     let mut bound = false
     for endpoint in [start, end] {
       if endpoint is Parameter(name) {
-        result.push(BindTimestamp(name))
+        emit(BindTimestamp(name))
         bound = true
       }
     }
     if bound {
-      result.push(ValidateBoundRange)
+      emit(ValidateBoundRange)
     }
   }
-  result
+}
+
+///|
+/// O(1), independent of input data size; no obligation array is materialized.
+pub fn pending_validation_count(v : CheckedCalendar) -> Int {
+  let mut count = 0
+  pending_validations_each(v, _ => count += 1)
+  count
+}
+
+///|
+/// O(1), without copying the obligation array; invalid indices return None.
+pub fn pending_validation_at(v : CheckedCalendar, index : Int) -> Obligation? {
+  if index < 0 {
+    return None
+  }
+  let mut count = 0
+  let mut found = None
+  pending_validations_each(v, item => {
+    if count == index {
+      found = Some(item)
+    }
+    count += 1
+  })
+  found
 }

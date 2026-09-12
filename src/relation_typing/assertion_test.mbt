@@ -3,7 +3,12 @@ test "row assertions preserve nullable schemas and retain physical obligations" 
   for body in ["{\"where\":\"flag\"}", "{\"unique_by\":[\"id\"]}"] {
     let value = checked(AssertRows, body)
     assert_true(@contract.type_equal(input_row(value), output_row(value), 1000))
-    let pending = @relation_typing.pending_validations(value)
+    let pending = indexed_obligation_copy(
+      @relation_typing.pending_validations(value),
+      @relation_typing.pending_validation_count(value),
+      i => @relation_typing.pending_validation_at(value, i),
+      (a, b) => a.kind == b.kind && physical_equal(a.source, b.source),
+    )
     assert_eq(pending.length(), 2)
     assert_eq(pending[0].kind, AtomicRowAssertion)
     assert_eq(pending[1].kind, AssertionConsumption)
@@ -72,10 +77,15 @@ test "unique assertions admit nullable reference domains without narrowing or pr
   for name in ["resource", "artifact", "n"] {
     assert_true(field(output_row(value), name).nullable)
   }
-  assert_eq(@relation_typing.pending_validations(value).map(p => p.kind), [
-    AtomicRowAssertion,
-    AssertionConsumption,
-  ])
+  assert_eq(
+    indexed_obligation_copy(
+      @relation_typing.pending_validations(value),
+      @relation_typing.pending_validation_count(value),
+      i => @relation_typing.pending_validation_at(value, i),
+      (a, b) => a.kind == b.kind && physical_equal(a.source, b.source),
+    ).map(p => p.kind),
+    [AtomicRowAssertion, AssertionConsumption],
+  )
 }
 
 ///|

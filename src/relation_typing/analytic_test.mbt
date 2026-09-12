@@ -76,15 +76,21 @@ test "analytic ranking and navigation preserve input contracts and symbolic posi
   calls.clear()
   assert_eq(@relation_typing.analytic_calls(a).length(), 5)
   assert_true(
-    @relation_typing.pending_validations(v).any(p => {
-      p.kind is AnalyticPositionOrder
-    }),
+    indexed_obligation_copy(
+      @relation_typing.pending_validations(v),
+      @relation_typing.pending_validation_count(v),
+      i => @relation_typing.pending_validation_at(v, i),
+      (a, b) => a.kind == b.kind && physical_equal(a.source, b.source),
+    ).any(p => p.kind is AnalyticPositionOrder),
   )
   let ranks = checked(Analytic, analytic_body("{\"r\":{\"fn\":\"rank\"}}"))
   assert_true(
-    !@relation_typing.pending_validations(ranks).any(p => {
-      p.kind is AnalyticPositionOrder
-    }),
+    !indexed_obligation_copy(
+      @relation_typing.pending_validations(ranks),
+      @relation_typing.pending_validation_count(ranks),
+      i => @relation_typing.pending_validation_at(ranks, i),
+      (a, b) => a.kind == b.kind && physical_equal(a.source, b.source),
+    ).any(p => p.kind is AnalyticPositionOrder),
   )
 }
 
@@ -219,7 +225,12 @@ test "symbolic frames preserve numeric and cross-boundary obligations" {
     ),
   )
   let v = check_row(Analytic, cursor(body), input(), Some(params), limits()).unwrap()
-  let pending = @relation_typing.pending_validations(v)
+  let pending = indexed_obligation_copy(
+    @relation_typing.pending_validations(v),
+    @relation_typing.pending_validation_count(v),
+    i => @relation_typing.pending_validation_at(v, i),
+    (a, b) => a.kind == b.kind && physical_equal(a.source, b.source),
+  )
   assert_true(pending.any(p => p.kind is BoundFrameOrder))
   assert_true(pending.any(p => p.kind is BoundInteger(name="n", minimum=0L)))
   assert_true(pending.any(p => p.kind is BoundInteger(name="n", minimum=1L)))

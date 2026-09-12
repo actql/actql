@@ -321,23 +321,59 @@ pub fn merged_ranking_usage(value : CheckedRanking) -> @checking.Usage {
 pub fn merged_ranking_pending(
   value : CheckedRanking,
 ) -> Array[RankingObligation] {
-  let result = [
-    ValidateCompleteRankingInputs,
-    ValidateUniqueQueryCandidatePerInput,
-    EvaluateRankingPolicyWithFiniteIntermediates,
-    OrderRankingByScoreAndSemanticIdentity,
-    AssignFusedContiguousRanks,
-    ResolveRankingResources,
-    ResolveRankingProfile,
-    DeriveOutputScoreEnvelope,
-  ]
+  let out = []
+  merged_ranking_pending_each(value, item => out.push(item))
+  out
+}
+
+///|
+// One bounded enumeration rule shared by copied and indexed reads.
+fn merged_ranking_pending_each(
+  value : CheckedRanking,
+  emit : (RankingObligation) -> Unit,
+) -> Unit {
+  emit(ValidateCompleteRankingInputs)
+  emit(ValidateUniqueQueryCandidatePerInput)
+  emit(EvaluateRankingPolicyWithFiniteIntermediates)
+  emit(OrderRankingByScoreAndSemanticIdentity)
+  emit(AssignFusedContiguousRanks)
+  emit(ResolveRankingResources)
+  emit(ResolveRankingProfile)
+  emit(DeriveOutputScoreEnvelope)
   if value.options.policy == ReciprocalRank {
-    result.push(ValidatePositiveSafeContiguousRanks)
-    result.push(ApplyRankWindowAfterAdmission)
+    emit(ValidatePositiveSafeContiguousRanks)
+    emit(ApplyRankWindowAfterAdmission)
   } else {
-    result.push(AuthenticateCapturedScoreDeclarations)
-    result.push(ValidateDeclaredScoreRanges)
-    result.push(ValidateBusinessTieAgreement)
+    emit(AuthenticateCapturedScoreDeclarations)
+    emit(ValidateDeclaredScoreRanges)
+    emit(ValidateBusinessTieAgreement)
   }
-  result
+}
+
+///|
+/// O(1), independent of input data size; no obligation array is materialized.
+pub fn merged_ranking_pending_count(value : CheckedRanking) -> Int {
+  let mut count = 0
+  merged_ranking_pending_each(value, _ => count += 1)
+  count
+}
+
+///|
+/// O(1), without copying the obligation array; invalid indices return None.
+pub fn merged_ranking_pending_at(
+  value : CheckedRanking,
+  index : Int,
+) -> RankingObligation? {
+  if index < 0 {
+    return None
+  }
+  let mut count = 0
+  let mut found = None
+  merged_ranking_pending_each(value, item => {
+    if count == index {
+      found = Some(item)
+    }
+    count += 1
+  })
+  found
 }

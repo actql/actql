@@ -48,6 +48,10 @@ pub fn asof_kind(CheckedAsOf) -> @relation_join_shape.Kind
 
 pub fn asof_output_schema(CheckedAsOf) -> @relation_schema.Schema
 
+pub fn asof_pending_validation_at(CheckedAsOf, Int) -> @relation_join_shape.Obligation?
+
+pub fn asof_pending_validation_count(CheckedAsOf) -> Int
+
 pub fn asof_pending_validations(CheckedAsOf) -> Array[@relation_join_shape.Obligation]
 
 pub fn asof_projection(CheckedAsOf) -> Array[@relation_join_shape.Projection]
@@ -166,6 +170,10 @@ pub fn key_origin(KeyedRelation) -> KeyOrigin
 
 pub fn key_pending(KeyedRelation) -> Array[@relation_key_obligation.KeyObligation]
 
+pub fn key_pending_at(KeyedRelation, Int) -> @relation_key_obligation.KeyObligation?
+
+pub fn key_pending_count(KeyedRelation) -> Int
+
 pub fn key_producer(KeyedRelation) -> @relation_typing.CheckedOperation?
 
 pub fn key_ranking_producer(KeyedRelation) -> CheckedRanking?
@@ -210,6 +218,10 @@ pub fn merged_ranking_output(CheckedRanking) -> @carrier_contract.Carrier
 
 pub fn merged_ranking_pending(CheckedRanking) -> Array[RankingObligation]
 
+pub fn merged_ranking_pending_at(CheckedRanking, Int) -> RankingObligation?
+
+pub fn merged_ranking_pending_count(CheckedRanking) -> Int
+
 pub fn merged_ranking_usage(CheckedRanking) -> @vector_checking.Usage
 
 pub fn nearest_candidate_roles(NearestOptions) -> NearestRoles
@@ -242,9 +254,17 @@ pub fn nearest_pair_options(NearestPair) -> NearestOptions
 
 pub fn nearest_pair_pending(NearestPair) -> Array[NearestObligation]
 
+pub fn nearest_pair_pending_at(NearestPair, Int) -> NearestObligation?
+
+pub fn nearest_pair_pending_count(NearestPair) -> Int
+
 pub fn nearest_pair_usage(NearestPair) -> @vector_checking.Usage
 
 pub fn nearest_pending(CheckedNearest) -> Array[NearestObligation]
+
+pub fn nearest_pending_at(CheckedNearest, Int) -> NearestObligation?
+
+pub fn nearest_pending_count(CheckedNearest) -> Int
 
 pub fn nearest_query_name(NearestOptions) -> String
 
@@ -343,6 +363,10 @@ pub fn text_rank_options_usage(TextRankOptions) -> @vector_checking.Usage
 pub fn text_rank_output(CheckedTextRank) -> @carrier_contract.Carrier
 
 pub fn text_rank_pending(CheckedTextRank) -> Array[TextRankObligation]
+
+pub fn text_rank_pending_at(CheckedTextRank, Int) -> TextRankObligation?
+
+pub fn text_rank_pending_count(CheckedTextRank) -> Int
 
 pub fn text_rank_profile(CheckedTextRank) -> @text_rank_profile.Profile?
 

@@ -21,7 +21,12 @@ test "top-k keeps typed input fields and requires explicit total-order obligatio
       TopK(order~, ..) | TopKBy(order~, ..) => assert_eq(order.length(), 2)
       _ => fail("expected top-k")
     }
-    let pending = @relation_typing.pending_validations(v)
+    let pending = indexed_obligation_copy(
+      @relation_typing.pending_validations(v),
+      @relation_typing.pending_validation_count(v),
+      i => @relation_typing.pending_validation_at(v, i),
+      (a, b) => a.kind == b.kind && physical_equal(a.source, b.source),
+    )
     assert_true(pending.any(p => p.kind is SortOrderCompletion))
     assert_true(pending.any(p => p.kind is TopKSelectionEnvelope))
     assert_eq(pending.any(p => p.kind is TopKPartitioning), op is TopKBy)
@@ -105,9 +110,12 @@ test "top-k symbolic counts and partition traversal use the shared budget" {
   )
   let v = check_row(TopKBy, body, input(), Some(params), limits()).unwrap()
   assert_true(
-    @relation_typing.pending_validations(v).any(p => {
-      p.kind is BoundInteger(name="n", minimum=1L)
-    }),
+    indexed_obligation_copy(
+      @relation_typing.pending_validations(v),
+      @relation_typing.pending_validation_count(v),
+      i => @relation_typing.pending_validation_at(v, i),
+      (a, b) => a.kind == b.kind && physical_equal(a.source, b.source),
+    ).any(p => p.kind is BoundInteger(name="n", minimum=1L)),
   )
   let exact = {
     ..limits(),

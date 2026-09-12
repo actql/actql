@@ -250,22 +250,51 @@ pub fn key_usage(c : KeyedRelation) -> Usage {
 
 ///|
 pub fn key_pending(c : KeyedRelation) -> Array[KeyObligation] {
+  let out = []
+  key_pending_each(c, item => out.push(item))
+  out
+}
+
+///|
+// One bounded enumeration rule shared by copied and indexed reads.
+fn key_pending_each(c : KeyedRelation, emit : (KeyObligation) -> Unit) -> Unit {
   if c.producer is Some(VectorProjectionProducer(_)) {
-    return [
-      ValidateKeyProducer,
-      AdmitPresentNonNullComparableComponents,
-      ValidateWholeTupleUniquenessAfterInputNormalization,
-      RevalidateReferenceComponents,
-    ]
+    emit(ValidateKeyProducer)
+    emit(AdmitPresentNonNullComparableComponents)
+    emit(ValidateWholeTupleUniquenessAfterInputNormalization)
+    emit(RevalidateReferenceComponents)
+  } else if c.producer is Some(_) {
+    emit(ValidateKeyProducer)
+  } else {
+    emit(AdmitPresentNonNullComparableComponents)
+    emit(ValidateWholeTupleUniquenessAfterInputNormalization)
+    emit(RevalidateReferenceComponents)
   }
-  if c.producer is Some(_) {
-    return [ValidateKeyProducer]
+}
+
+///|
+/// O(1), independent of input data size; no obligation array is materialized.
+pub fn key_pending_count(c : KeyedRelation) -> Int {
+  let mut count = 0
+  key_pending_each(c, _ => count += 1)
+  count
+}
+
+///|
+/// O(1), without copying the obligation array; invalid indices return None.
+pub fn key_pending_at(c : KeyedRelation, index : Int) -> KeyObligation? {
+  if index < 0 {
+    return None
   }
-  [
-    AdmitPresentNonNullComparableComponents,
-    ValidateWholeTupleUniquenessAfterInputNormalization,
-    RevalidateReferenceComponents,
-  ]
+  let mut count = 0
+  let mut found = None
+  key_pending_each(c, item => {
+    if count == index {
+      found = Some(item)
+    }
+    count += 1
+  })
+  found
 }
 
 ///|

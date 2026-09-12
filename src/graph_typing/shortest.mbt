@@ -308,27 +308,63 @@ pub fn shortest_usage(c : CheckedShortest) -> PredicateUsage {
 
 ///|
 pub fn shortest_pending(c : CheckedShortest) -> Array[ShortestObligation] {
-  let out = [
-    AdmitShortestGraph,
-    RequireEndpointMembership,
-    SelectSimpleHopBoundedPaths,
-    ApplyCanonicalPathTieBreaks,
-    CanonicalShortestOutputOrder,
-    ResolveShortestResources,
-    ResolveShortestProfile,
-  ]
+  let out = []
+  shortest_pending_each(c, item => out.push(item))
+  out
+}
+
+///|
+// One bounded enumeration rule shared by copied and indexed reads.
+fn shortest_pending_each(
+  c : CheckedShortest,
+  emit : (ShortestObligation) -> Unit,
+) -> Unit {
+  emit(AdmitShortestGraph)
+  emit(RequireEndpointMembership)
+  emit(SelectSimpleHopBoundedPaths)
+  emit(ApplyCanonicalPathTieBreaks)
+  emit(CanonicalShortestOutputOrder)
+  emit(ResolveShortestResources)
+  emit(ResolveShortestProfile)
   if c.weight is Some(_) {
-    out.push(ValidateAllNonnegativeFiniteWeights)
-    out.push(FoldPathCostsWithOverrange)
-    out.push(RejectSelectedOverrangeAtomically)
+    emit(ValidateAllNonnegativeFiniteWeights)
+    emit(FoldPathCostsWithOverrange)
+    emit(RejectSelectedOverrangeAtomically)
   }
   if c.guard_rows is Some(bound) {
-    out.push(EnforceShortestOutputGuard)
+    emit(EnforceShortestOutputGuard)
     if bound is Parameter(name) {
-      out.push(BindShortestOutputGuard(name))
+      emit(BindShortestOutputGuard(name))
     }
   }
-  out
+}
+
+///|
+/// O(1), independent of input data size; no obligation array is materialized.
+pub fn shortest_pending_count(c : CheckedShortest) -> Int {
+  let mut count = 0
+  shortest_pending_each(c, _ => count += 1)
+  count
+}
+
+///|
+/// O(1), without copying the obligation array; invalid indices return None.
+pub fn shortest_pending_at(
+  c : CheckedShortest,
+  index : Int,
+) -> ShortestObligation? {
+  if index < 0 {
+    return None
+  }
+  let mut count = 0
+  let mut found = None
+  shortest_pending_each(c, item => {
+    if count == index {
+      found = Some(item)
+    }
+    count += 1
+  })
+  found
 }
 
 ///|

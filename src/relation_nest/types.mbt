@@ -170,6 +170,18 @@ pub fn pending_validations(v : CheckedNest) -> Array[Obligation] {
 }
 
 ///|
+/// O(1), without materializing the obligation array.
+pub fn pending_validation_count(v : CheckedNest) -> Int {
+  v.pending.length()
+}
+
+///|
+/// O(1); invalid indices return None. Retains authored obligation order.
+pub fn pending_validation_at(v : CheckedNest, index : Int) -> Obligation? {
+  v.pending.get(index)
+}
+
+///|
 pub fn usage(v : CheckedNest) -> Usage {
   v.usage
 }

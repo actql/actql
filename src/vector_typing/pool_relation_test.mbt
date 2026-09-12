@@ -119,7 +119,12 @@ test "Relation pooling retains input assertions and distinct member completion p
         Unqualified("number"),
       )
     }
-    let pending = @vector_typing.pool_pending(c)
+    let pending = indexed_obligation_copy(
+      @vector_typing.pool_pending(c),
+      @vector_typing.pool_pending_count(c),
+      i => @vector_typing.pool_pending_at(c, i),
+      (a, b) => a == b,
+    )
     assert_true(
       pending.contains(
         ValidateDeclaredPoolKey(

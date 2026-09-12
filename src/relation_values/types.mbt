@@ -119,6 +119,18 @@ pub fn pending_validations(v : CheckedValues) -> Array[Obligation] {
 }
 
 ///|
+/// O(1), without materializing the obligation array.
+pub fn pending_validation_count(v : CheckedValues) -> Int {
+  v.pending.length()
+}
+
+///|
+/// O(1); invalid indices return None. Retains authored obligation order.
+pub fn pending_validation_at(v : CheckedValues, index : Int) -> Obligation? {
+  v.pending.get(index)
+}
+
+///|
 priv struct Budget {
   limits : Limits
   mut work : Int

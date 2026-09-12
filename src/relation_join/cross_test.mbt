@@ -26,13 +26,21 @@ test "cross join qualifies every field without null extension or equality keys" 
   assert_eq(@schema.field_count(output), 2 * @schema.field_count(row()))
   assert_true(@relation_join.cross_projection(p) is None)
   assert_eq(@relation_join.cross_requires_one_right_row(p), false)
-  assert_eq(@relation_join.cross_pending_validations(p), [
-    ResolveProductBound,
-    ResolveOutputLimit,
-    PreserveLeftMajorProductOrder,
-    StableIdentity(@schema.Left),
-    StableIdentity(@schema.Right),
-  ])
+  assert_eq(
+    indexed_obligation_copy(
+      @relation_join.cross_pending_validations(p),
+      @relation_join.cross_pending_validation_count(p),
+      i => @relation_join.cross_pending_validation_at(p, i),
+      (a, b) => a == b,
+    ),
+    [
+      ResolveProductBound,
+      ResolveOutputLimit,
+      PreserveLeftMajorProductOrder,
+      StableIdentity(@schema.Left),
+      StableIdentity(@schema.Right),
+    ],
+  )
 }
 
 ///|
@@ -61,10 +69,23 @@ test "cross singleton assertions and aliases are retained without fabricated evi
   ])
   projection.clear()
   assert_eq(@relation_join.cross_projection(p).unwrap().length(), 3)
-  let pending = @relation_join.cross_pending_validations(p)
+  let pending = indexed_obligation_copy(
+    @relation_join.cross_pending_validations(p),
+    @relation_join.cross_pending_validation_count(p),
+    i => @relation_join.cross_pending_validation_at(p, i),
+    (a, b) => a == b,
+  )
   assert_true(pending.contains(ValidateExactlyOneRightRow))
   pending.clear()
-  assert_eq(@relation_join.cross_pending_validations(p).length(), 6)
+  assert_eq(
+    indexed_obligation_copy(
+      @relation_join.cross_pending_validations(p),
+      @relation_join.cross_pending_validation_count(p),
+      i => @relation_join.cross_pending_validation_at(p, i),
+      (a, b) => a == b,
+    ).length(),
+    6,
+  )
 }
 
 ///|
@@ -189,7 +210,12 @@ test "cross symbolic output guards preserve unresolved binding checks" {
   ).unwrap()
   assert_eq(@relation_join.cross_output_guard(p), Some(Parameter("cap")))
   assert_true(
-    @relation_join.cross_pending_validations(p).contains(BindGuard("cap")),
+    indexed_obligation_copy(
+      @relation_join.cross_pending_validations(p),
+      @relation_join.cross_pending_validation_count(p),
+      i => @relation_join.cross_pending_validation_at(p, i),
+      (a, b) => a == b,
+    ).contains(BindGuard("cap")),
   )
   for name in ["bad", "missing"] {
     assert_true(

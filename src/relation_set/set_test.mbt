@@ -76,7 +76,15 @@ test "set operations retain modes operands and joined recursive extents" {
       assert_eq(detached[0].right_index, 0)
       detached.clear()
       assert_eq(@relation_set.alignment(checked).length(), 1)
-      assert_eq(@relation_set.pending_validations(checked).length(), 6)
+      assert_eq(
+        indexed_obligation_copy(
+          @relation_set.pending_validations(checked),
+          @relation_set.pending_validation_count(checked),
+          i => @relation_set.pending_validation_at(checked, i),
+          (a, b) => a == b,
+        ).length(),
+        6,
+      )
     }
   }
 }

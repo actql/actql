@@ -38,7 +38,12 @@ test "graph matches retain typed repeated IDs and project declared fields" {
   ).unwrap()
   assert_eq(@graph_typing.match_ids(c).length(), 3)
   assert_true(
-    @graph_typing.match_pending(c).contains(ValidateSelectedIdentityMembership),
+    indexed_obligation_copy(
+      @graph_typing.match_pending(c),
+      @graph_typing.match_pending_count(c),
+      i => @graph_typing.match_pending_at(c, i),
+      (a, b) => a == b,
+    ).contains(ValidateSelectedIdentityMembership),
   )
   let ids = @graph_typing.match_ids(c)
   ids.clear()
@@ -101,7 +106,12 @@ test "edge matching retains empty and repeated type filters and typed predicates
     assert_true(@graph_typing.match_predicate(c) is Some(_))
     assert_true(@graph_typing.match_types(c) is Some(_))
     assert_true(
-      @graph_typing.match_pending(c).contains(FilterSelectedEdgeTypes),
+      indexed_obligation_copy(
+        @graph_typing.match_pending(c),
+        @graph_typing.match_pending_count(c),
+        i => @graph_typing.match_pending_at(c, i),
+        (a, b) => a == b,
+      ).contains(FilterSelectedEdgeTypes),
     )
     let rows = @carrier.relation_rows(@graph_typing.match_output(c)).unwrap()
     assert_eq(@carrier.field_count(rows), 2)

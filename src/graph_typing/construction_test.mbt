@@ -56,10 +56,20 @@ test "concise graph closes nodes from typed endpoints and retains non-role prope
     is Some({ shape: Text(_), nullable: true, }),
   )
   assert_true(
-    @graph_typing.construction_pending(c).contains(DeriveDistinctEndpointNodes),
+    indexed_obligation_copy(
+      @graph_typing.construction_pending(c),
+      @graph_typing.construction_pending_count(c),
+      i => @graph_typing.construction_pending_at(c, i),
+      (a, b) => a == b,
+    ).contains(DeriveDistinctEndpointNodes),
   )
   assert_true(
-    @graph_typing.construction_pending(c).contains(JournalLabelCompletion),
+    indexed_obligation_copy(
+      @graph_typing.construction_pending(c),
+      @graph_typing.construction_pending_count(c),
+      i => @graph_typing.construction_pending_at(c, i),
+      (a, b) => a == b,
+    ).contains(JournalLabelCompletion),
   )
   let u = @graph_typing.construction_usage(c)
   let exact = {
@@ -106,9 +116,12 @@ test "explicit branches use only selected properties and do not infer labels" {
     is Present(_),
   )
   assert_true(
-    @graph_typing.construction_pending(c).contains(
-      CloseBothEndpointsAgainstDeclaredNodes,
-    ),
+    indexed_obligation_copy(
+      @graph_typing.construction_pending(c),
+      @graph_typing.construction_pending_count(c),
+      i => @graph_typing.construction_pending_at(c, i),
+      (a, b) => a == b,
+    ).contains(CloseBothEndpointsAgainstDeclaredNodes),
   )
 }
 

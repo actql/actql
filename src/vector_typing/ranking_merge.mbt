@@ -14,4 +14,6 @@ pub using @evidence {
   merged_ranking_input_at,
   merged_ranking_usage,
   merged_ranking_pending,
+  merged_ranking_pending_count,
+  merged_ranking_pending_at,
 }

@@ -54,7 +54,12 @@ test "nearest admits both mixed Carrier directions with one shared budget" {
         is Err({ kind: BudgetExceeded, .. }),
       )
     }
-    let pending = @vector_typing.nearest_pair_pending(c)
+    let pending = indexed_obligation_copy(
+      @vector_typing.nearest_pair_pending(c),
+      @vector_typing.nearest_pair_pending_count(c),
+      i => @vector_typing.nearest_pair_pending_at(c, i),
+      (a, b) => a == b,
+    )
     assert_true(pending.contains(ValidateBothUniqueIdentities))
     assert_true(pending.contains(AssignContiguousOneBasedRanks))
     assert_eq(
@@ -95,9 +100,12 @@ test "nearest rejects known dimensions at query source without reading runtime v
       limits(),
     ).unwrap()
     assert_true(
-      @vector_typing.nearest_pair_pending(c).contains(
-        EvaluateExactNearestScores,
-      ),
+      indexed_obligation_copy(
+        @vector_typing.nearest_pair_pending(c),
+        @vector_typing.nearest_pair_pending_count(c),
+        i => @vector_typing.nearest_pair_pending_at(c, i),
+        (a, b) => a == b,
+      ).contains(EvaluateExactNearestScores),
     )
   }
 }

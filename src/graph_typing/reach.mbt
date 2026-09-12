@@ -157,15 +157,32 @@ pub fn reach_usage(c : CheckedReach) -> Usage {
 
 ///|
 pub fn reach_pending(_c : CheckedReach) -> Array[ReachObligation] {
-  [
-    AdmitReachGraph,
-    RequireReachStartMembership,
-    JournalReachExpansion,
-    BoundedMinimumDepthTraversal,
-    CanonicalReachOrder,
-    ResolveReachResources,
-    ResolveReachProfile,
-  ]
+  let out = []
+  for i in 0..<reach_pending_count(_c) {
+    out.push(reach_pending_at(_c, i).unwrap())
+  }
+  out
+}
+
+///|
+/// O(1), without materializing the obligation array.
+pub fn reach_pending_count(_c : CheckedReach) -> Int {
+  7
+}
+
+///|
+/// O(1); invalid indices return None. Retains authored obligation order.
+pub fn reach_pending_at(_c : CheckedReach, index : Int) -> ReachObligation? {
+  match index {
+    0 => Some(AdmitReachGraph)
+    1 => Some(RequireReachStartMembership)
+    2 => Some(JournalReachExpansion)
+    3 => Some(BoundedMinimumDepthTraversal)
+    4 => Some(CanonicalReachOrder)
+    5 => Some(ResolveReachResources)
+    6 => Some(ResolveReachProfile)
+    _ => None
+  }
 }
 
 ///|

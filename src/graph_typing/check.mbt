@@ -423,6 +423,18 @@ pub fn pending_validations(value : CheckedGraph) -> Array[Obligation] {
 }
 
 ///|
+/// O(1), without materializing the obligation array.
+pub fn pending_validation_count(value : CheckedGraph) -> Int {
+  value.pending.length()
+}
+
+///|
+/// O(1); invalid indices return None. Retains authored obligation order.
+pub fn pending_validation_at(value : CheckedGraph, index : Int) -> Obligation? {
+  value.pending.get(index)
+}
+
+///|
 pub fn usage(value : CheckedGraph) -> Usage {
   value.usage
 }

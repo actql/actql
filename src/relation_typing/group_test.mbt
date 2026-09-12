@@ -44,7 +44,12 @@ test "aggregate numeric parameters remain symbolic and carry bound obligations" 
     ),
     Some(ParameterFraction("n")),
   )
-  let pending = @relation_typing.pending_validations(value)
+  let pending = indexed_obligation_copy(
+    @relation_typing.pending_validations(value),
+    @relation_typing.pending_validation_count(value),
+    i => @relation_typing.pending_validation_at(value, i),
+    (a, b) => a.kind == b.kind && physical_equal(a.source, b.source),
+  )
   assert_true(pending.any(p => p.kind is BoundInteger(name="n", minimum=1L)))
   assert_true(pending.any(p => p.kind is BoundFraction("n")))
   for

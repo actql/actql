@@ -20,12 +20,20 @@ test "event dedupe retains empty and repeated partitions without inventing order
     order.clear()
     assert_eq(@event_typing.dedupe_order(spec).length(), 1)
     assert_true(
-      @event_typing.pending_validations(checked).contains(FailOnTopTie),
+      indexed_obligation_copy(
+        @event_typing.pending_validations(checked),
+        @event_typing.pending_validation_count(checked),
+        i => @event_typing.pending_validation_at(checked, i),
+        (a, b) => a == b,
+      ).contains(FailOnTopTie),
     )
     assert_true(
-      !@event_typing.pending_validations(checked).contains(
-        WatermarkClassification,
-      ),
+      !indexed_obligation_copy(
+        @event_typing.pending_validations(checked),
+        @event_typing.pending_validation_count(checked),
+        i => @event_typing.pending_validation_at(checked, i),
+        (a, b) => a == b,
+      ).contains(WatermarkClassification),
     )
     guard @event_typing.output(checked) is @carrier.EventValue(e) else {
       abort("events")

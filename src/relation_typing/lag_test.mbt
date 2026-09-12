@@ -29,9 +29,12 @@ test "lag offset defaults and nullable result retain type and pending order evid
       _ => fail("expected lag")
     }
     assert_true(
-      @relation_typing.pending_validations(checked).any(v => {
-        v.kind == LagCandidateKeyOrder
-      }),
+      indexed_obligation_copy(
+        @relation_typing.pending_validations(checked),
+        @relation_typing.pending_validation_count(checked),
+        i => @relation_typing.pending_validation_at(checked, i),
+        (a, b) => a.kind == b.kind && physical_equal(a.source, b.source),
+      ).any(v => v.kind == LagCandidateKeyOrder),
     )
     match @relation_typing.row_operation(checked).unwrap() {
       Lag(order~, ..) => assert_eq(order.length(), 1)

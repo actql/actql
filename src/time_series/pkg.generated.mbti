@@ -21,6 +21,10 @@ pub fn known_row_count(CheckedSeries) -> Int64?
 
 pub fn output(CheckedSeries) -> @carrier_contract.Carrier
 
+pub fn pending_validation_at(CheckedSeries, Int) -> Obligation?
+
+pub fn pending_validation_count(CheckedSeries) -> Int
+
 pub fn pending_validations(CheckedSeries) -> Array[Obligation]
 
 pub fn resolve_row_count(CheckedSeries, start_value? : @value_admission.CheckedValue?, end_value? : @value_admission.CheckedValue?, step_value? : Int64?) -> Result[Int64, CountIssue]

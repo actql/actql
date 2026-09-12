@@ -19,7 +19,12 @@ test "opaque vector sides preserve unknown identity contracts and deferred dimen
     is Present({ contract: Some(_), .. }),
   )
   assert_true(@carrier.complete_schema(rows) is None)
-  let pending = @vector_typing.nearest_pending(c)
+  let pending = indexed_obligation_copy(
+    @vector_typing.nearest_pending(c),
+    @vector_typing.nearest_pending_count(c),
+    i => @vector_typing.nearest_pending_at(c, i),
+    (a, b) => a == b,
+  )
   assert_true(pending.contains(MatchNearestDimensions))
   assert_true(pending.contains(ValidateNearestRoleBindings(Candidates)))
   assert_true(pending.contains(ValidateNearestRoleBindings(Queries)))
@@ -105,6 +110,11 @@ test "nearest output keeps scalar IDs and typed positional composite IDs" {
     )
   }
   assert_true(
-    @vector_typing.nearest_pending(c).contains(AssignContiguousOneBasedRanks),
+    indexed_obligation_copy(
+      @vector_typing.nearest_pending(c),
+      @vector_typing.nearest_pending_count(c),
+      i => @vector_typing.nearest_pending_at(c, i),
+      (a, b) => a == b,
+    ).contains(AssignContiguousOneBasedRanks),
   )
 }

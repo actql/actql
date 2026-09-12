@@ -23,6 +23,10 @@ pub fn operation(CheckedSet) -> Operation
 
 pub fn output_schema(CheckedSet) -> @relation_schema.Schema
 
+pub fn pending_validation_at(CheckedSet, Int) -> Obligation?
+
+pub fn pending_validation_count(CheckedSet) -> Int
+
 pub fn pending_validations(CheckedSet) -> Array[Obligation]
 
 pub fn source(CheckedSet) -> @decode_core.Cursor

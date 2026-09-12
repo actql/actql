@@ -56,9 +56,12 @@ test "interval output guard parameters retain binding obligations without defaul
         Some(Parameter("cap")),
       )
       assert_true(
-        @relation_join.interval_pending_validations(checked).contains(
-          BindGuard("cap"),
-        ),
+        indexed_obligation_copy(
+          @relation_join.interval_pending_validations(checked),
+          @relation_join.interval_pending_validation_count(checked),
+          i => @relation_join.interval_pending_validation_at(checked, i),
+          (a, b) => a == b,
+        ).contains(BindGuard("cap")),
       )
     } else {
       assert_true(result is Err(_))
@@ -148,7 +151,12 @@ test "interval join domains and kinds preserve qualified columns and null extens
             kind == Left,
           )
         }
-        let pending = @relation_join.interval_pending_validations(checked)
+        let pending = indexed_obligation_copy(
+          @relation_join.interval_pending_validations(checked),
+          @relation_join.interval_pending_validation_count(checked),
+          i => @relation_join.interval_pending_validation_at(checked, i),
+          (a, b) => a == b,
+        )
         for
           required in [
             @relation_join.Obligation::ValidateIntervalEndpoints,
@@ -161,7 +169,12 @@ test "interval join domains and kinds preserve qualified columns and null extens
         assert_eq(pending.contains(ValidateSafeIntegerClocks), !timestamp)
         pending.clear()
         assert_true(
-          !@relation_join.interval_pending_validations(checked).is_empty(),
+          !indexed_obligation_copy(
+            @relation_join.interval_pending_validations(checked),
+            @relation_join.interval_pending_validation_count(checked),
+            i => @relation_join.interval_pending_validation_at(checked, i),
+            (a, b) => a == b,
+          ).is_empty(),
         )
       }
     }

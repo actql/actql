@@ -33,6 +33,10 @@ pub fn cross_output_guard(CheckedCrossJoin) -> Guard?
 
 pub fn cross_output_schema(CheckedCrossJoin) -> @relation_schema.Schema
 
+pub fn cross_pending_validation_at(CheckedCrossJoin, Int) -> Obligation?
+
+pub fn cross_pending_validation_count(CheckedCrossJoin) -> Int
+
 pub fn cross_pending_validations(CheckedCrossJoin) -> Array[Obligation]
 
 pub fn cross_projection(CheckedCrossJoin) -> Array[Projection]?
@@ -71,6 +75,10 @@ pub fn interval_output_guard(CheckedIntervalJoin) -> Guard?
 
 pub fn interval_output_schema(CheckedIntervalJoin) -> @relation_schema.Schema
 
+pub fn interval_pending_validation_at(CheckedIntervalJoin, Int) -> Obligation?
+
+pub fn interval_pending_validation_count(CheckedIntervalJoin) -> Int
+
 pub fn interval_pending_validations(CheckedIntervalJoin) -> Array[Obligation]
 
 pub fn interval_projection(CheckedIntervalJoin) -> Array[Projection]?
@@ -98,6 +106,10 @@ pub fn null_key(CheckedJoin) -> NullKey
 pub fn output_guard(CheckedJoin) -> Guard?
 
 pub fn output_schema(CheckedJoin) -> @relation_schema.Schema
+
+pub fn pending_validation_at(CheckedJoin, Int) -> Obligation?
+
+pub fn pending_validation_count(CheckedJoin) -> Int
 
 pub fn pending_validations(CheckedJoin) -> Array[Obligation]
 

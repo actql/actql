@@ -30,7 +30,12 @@ test "sessions preserve both input carriers and typed semantic roles" {
       is Present({ contract: Some({ shape: Text(_), nullable: false, }), .. }),
     )
     assert_true(
-      @event_typing.pending_validations(checked).contains(SessionIdentity),
+      indexed_obligation_copy(
+        @event_typing.pending_validations(checked),
+        @event_typing.pending_validation_count(checked),
+        i => @event_typing.pending_validation_at(checked, i),
+        (a, b) => a == b,
+      ).contains(SessionIdentity),
     )
     let u = @event_typing.usage(checked)
     let cap = limits()
@@ -66,7 +71,12 @@ test "session gap parameters defer binding and repeated keys retain occurrence o
     limits(),
   ).unwrap()
   assert_true(
-    @event_typing.pending_validations(checked).contains(BindGap("gap")),
+    indexed_obligation_copy(
+      @event_typing.pending_validations(checked),
+      @event_typing.pending_validation_count(checked),
+      i => @event_typing.pending_validation_at(checked, i),
+      (a, b) => a == b,
+    ).contains(BindGap("gap")),
   )
   guard @event_typing.options(checked) is Session(s) else { abort("session") }
   let keys = @event_typing.session_keys(s)

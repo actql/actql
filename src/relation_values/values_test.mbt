@@ -109,9 +109,15 @@ test "values literal quoting is one level and nested parameter shapes are opaque
       }
     _ => fail("expected literal")
   }
-  assert_eq(@relation_values.pending_validations(p), [
-    ResolvePublicationResources,
-  ])
+  assert_eq(
+    indexed_obligation_copy(
+      @relation_values.pending_validations(p),
+      @relation_values.pending_validation_count(p),
+      i => @relation_values.pending_validation_at(p, i),
+      (a, b) => a == b,
+    ),
+    [ResolvePublicationResources],
+  )
   let unquoted = @relation_values.check(
     body("[{\"x\":{\"$param\":\"business\"}}]", field~),
     None,
@@ -214,11 +220,15 @@ test "whole parameter cells require declared compatible types and retain repetit
     Some(params),
     limits(),
   ).unwrap()
-  assert_eq(@relation_values.pending_validations(p), [
-    ResolvePublicationResources,
-    BindCell("n"),
-    BindCell("n"),
-  ])
+  assert_eq(
+    indexed_obligation_copy(
+      @relation_values.pending_validations(p),
+      @relation_values.pending_validation_count(p),
+      i => @relation_values.pending_validation_at(p, i),
+      (a, b) => a == b,
+    ),
+    [ResolvePublicationResources, BindCell("n"), BindCell("n")],
+  )
   assert_true(
     @relation_values.cell_at(@relation_values.row_at(p, 0).unwrap(), 0)
     is Some(Parameter("n", ..)),
@@ -266,9 +276,15 @@ test "literal reserved roots and nested business holes are not recursively expan
     None,
     limits(),
   ).unwrap()
-  assert_eq(@relation_values.pending_validations(p), [
-    ResolvePublicationResources,
-  ])
+  assert_eq(
+    indexed_obligation_copy(
+      @relation_values.pending_validations(p),
+      @relation_values.pending_validation_count(p),
+      i => @relation_values.pending_validation_at(p, i),
+      (a, b) => a == b,
+    ),
+    [ResolvePublicationResources],
+  )
 }
 
 ///|

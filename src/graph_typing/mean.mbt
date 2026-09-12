@@ -448,17 +448,34 @@ pub fn mean_usage(c : CheckedMean) -> Usage {
 
 ///|
 pub fn mean_pending(_c : CheckedMean) -> Array[MeanObligation] {
-  [
-    AdmitEveryMeanSample,
-    CompareExactRationalSupport,
-    RetainSupportedNodesBeforeEdges,
-    RequirePositiveWeightLabelAgreement,
-    ApplyEveryMeanPropertyPolicy,
-    RoundExactWeightedMeansOnce,
-    RejectNonfiniteMeanResults,
-    CanonicalMeanIdentityOrder,
-    PreserveMeanObservationAndPolicy,
-    ResolveMeanResources,
-    ResolveMeanProfile,
-  ]
+  let out = []
+  for i in 0..<mean_pending_count(_c) {
+    out.push(mean_pending_at(_c, i).unwrap())
+  }
+  out
+}
+
+///|
+/// O(1), without materializing the obligation array.
+pub fn mean_pending_count(_c : CheckedMean) -> Int {
+  11
+}
+
+///|
+/// O(1); invalid indices return None. Retains authored obligation order.
+pub fn mean_pending_at(_c : CheckedMean, index : Int) -> MeanObligation? {
+  match index {
+    0 => Some(AdmitEveryMeanSample)
+    1 => Some(CompareExactRationalSupport)
+    2 => Some(RetainSupportedNodesBeforeEdges)
+    3 => Some(RequirePositiveWeightLabelAgreement)
+    4 => Some(ApplyEveryMeanPropertyPolicy)
+    5 => Some(RoundExactWeightedMeansOnce)
+    6 => Some(RejectNonfiniteMeanResults)
+    7 => Some(CanonicalMeanIdentityOrder)
+    8 => Some(PreserveMeanObservationAndPolicy)
+    9 => Some(ResolveMeanResources)
+    10 => Some(ResolveMeanProfile)
+    _ => None
+  }
 }

@@ -304,30 +304,61 @@ pub fn pooled_usage(c : CheckedPool) -> Usage {
 
 ///|
 pub fn pool_pending(c : CheckedPool) -> Array[PoolObligation] {
-  let pending = [
-    AdmitPoolVectorComponents,
-    ValidatePoolMemberIdentityGlobally,
-    MatchPoolDimensions,
-    QuantizeBeforeAndAfterPoolFold,
-    EvaluateDeterministicPoolFold,
-    OrderPoolGroupsByIdentity,
-    ValidatePositiveSafeMemberCounts,
-    ResolvePoolResources,
-    ResolvePoolProfile,
-  ]
+  let out = []
+  pool_pending_each(c, item => out.push(item))
+  out
+}
+
+///|
+// One bounded enumeration rule shared by copied and indexed reads.
+fn pool_pending_each(c : CheckedPool, emit : (PoolObligation) -> Unit) -> Unit {
+  emit(AdmitPoolVectorComponents)
+  emit(ValidatePoolMemberIdentityGlobally)
+  emit(MatchPoolDimensions)
+  emit(QuantizeBeforeAndAfterPoolFold)
+  emit(EvaluateDeterministicPoolFold)
+  emit(OrderPoolGroupsByIdentity)
+  emit(ValidatePositiveSafeMemberCounts)
+  emit(ResolvePoolResources)
+  emit(ResolvePoolProfile)
   if c.declaration is Some(key) {
-    for obligation in @evidence.key_pending(key) {
-      pending.push(ValidateDeclaredPoolKey(obligation))
+    for i in 0..<@evidence.key_pending_count(key) {
+      let obligation = @evidence.key_pending_at(key, i).unwrap()
+      emit(ValidateDeclaredPoolKey(obligation))
     }
-    pending.push(JournalPoolMemberIdentity)
+    emit(JournalPoolMemberIdentity)
   }
   if c.encoded_member {
-    pending.push(EncodePoolMemberKeyByScalarLengths)
-    pending.push(OrderPoolMembersByEncodedIdentity)
+    emit(EncodePoolMemberKeyByScalarLengths)
+    emit(OrderPoolMembersByEncodedIdentity)
   } else {
-    pending.push(OrderPoolMembersByIdentity)
+    emit(OrderPoolMembersByIdentity)
   }
-  pending
+}
+
+///|
+/// O(1), independent of input data size; no obligation array is materialized.
+pub fn pool_pending_count(c : CheckedPool) -> Int {
+  let mut count = 0
+  pool_pending_each(c, _ => count += 1)
+  count
+}
+
+///|
+/// O(1), without copying the obligation array; invalid indices return None.
+pub fn pool_pending_at(c : CheckedPool, index : Int) -> PoolObligation? {
+  if index < 0 {
+    return None
+  }
+  let mut count = 0
+  let mut found = None
+  pool_pending_each(c, item => {
+    if count == index {
+      found = Some(item)
+    }
+    count += 1
+  })
+  found
 }
 
 ///|

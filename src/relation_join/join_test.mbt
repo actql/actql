@@ -18,9 +18,21 @@ test "guard parameters retain declarations without reading defaults or claiming 
   )
   let j = @relation_join.check(body, row(), row(), Some(declarations), limits()).unwrap()
   assert_eq(@relation_join.output_guard(j), Some(Parameter("cap")))
-  assert_true(@relation_join.pending_validations(j).contains(BindGuard("cap")))
   assert_true(
-    @relation_join.pending_validations(j).contains(ResolveOutputLimit),
+    indexed_obligation_copy(
+      @relation_join.pending_validations(j),
+      @relation_join.pending_validation_count(j),
+      i => @relation_join.pending_validation_at(j, i),
+      (a, b) => a == b,
+    ).contains(BindGuard("cap")),
+  )
+  assert_true(
+    indexed_obligation_copy(
+      @relation_join.pending_validations(j),
+      @relation_join.pending_validation_count(j),
+      i => @relation_join.pending_validation_at(j, i),
+      (a, b) => a == b,
+    ).contains(ResolveOutputLimit),
   )
   for name in ["text", "missing"] {
     let body = cursor(
@@ -44,9 +56,12 @@ test "guard parameters retain declarations without reading defaults or claiming 
     limits(),
   ).unwrap()
   assert_true(
-    @relation_join.pending_validations(nullable_guard).contains(
-      BindGuard("nullable"),
-    ),
+    indexed_obligation_copy(
+      @relation_join.pending_validations(nullable_guard),
+      @relation_join.pending_validation_count(nullable_guard),
+      i => @relation_join.pending_validation_at(nullable_guard, i),
+      (a, b) => a == b,
+    ).contains(BindGuard("nullable")),
   )
 }
 
@@ -318,7 +333,12 @@ test "assertions guards null checks and full identity remain unproven obligation
     "full",
     extra=",\"cardinality\":\"one_to_one\",\"null_key\":\"fail\",\"max_output_rows\":9007199254740991",
   )
-  let pending = @relation_join.pending_validations(j)
+  let pending = indexed_obligation_copy(
+    @relation_join.pending_validations(j),
+    @relation_join.pending_validation_count(j),
+    i => @relation_join.pending_validation_at(j, i),
+    (a, b) => a == b,
+  )
   assert_true(pending.contains(StableIdentity(@schema.Left)))
   assert_true(pending.contains(StableIdentity(@schema.Right)))
   assert_true(pending.contains(ValidateCardinality(OneToOne)))
@@ -326,7 +346,14 @@ test "assertions guards null checks and full identity remain unproven obligation
   assert_true(pending.contains(ResolveOutputLimit))
   assert_eq(@relation_join.output_guard(j), Some(Literal(9007199254740991L)))
   pending.clear()
-  assert_true(!@relation_join.pending_validations(j).is_empty())
+  assert_true(
+    !indexed_obligation_copy(
+      @relation_join.pending_validations(j),
+      @relation_join.pending_validation_count(j),
+      i => @relation_join.pending_validation_at(j, i),
+      (a, b) => a == b,
+    ).is_empty(),
+  )
   for
     extra in [
       ",\"max_output_rows\":0", ",\"max_output_rows\":1.5", ",\"max_output_rows\":9007199254740992",

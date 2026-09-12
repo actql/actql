@@ -53,7 +53,12 @@ test "traversal checks homogeneous and patterned forms under shared budgets" {
       copy.clear()
       assert_eq(@graph_typing.hop_types(hop).unwrap().length(), 2)
       assert_true(
-        @graph_typing.traverse_pending(c).contains(EnumerateSimplePaths),
+        indexed_obligation_copy(
+          @graph_typing.traverse_pending(c),
+          @graph_typing.traverse_pending_count(c),
+          i => @graph_typing.traverse_pending_at(c, i),
+          (a, b) => a == b,
+        ).contains(EnumerateSimplePaths),
       )
     }
   }

@@ -127,17 +127,28 @@ test "as-of supports Relation and Events with independent UTC representations" {
             kind == "left",
           )
           assert_true(
-            @relation_join.asof_pending_validations(c).contains(RejectAsOfTies),
+            indexed_obligation_copy(
+              @relation_join.asof_pending_validations(c),
+              @relation_join.asof_pending_validation_count(c),
+              i => @relation_join.asof_pending_validation_at(c, i),
+              (a, b) => a == b,
+            ).contains(RejectAsOfTies),
           )
           assert_true(
-            @relation_join.asof_pending_validations(c).contains(
-              ResolveSearchWork,
-            ),
+            indexed_obligation_copy(
+              @relation_join.asof_pending_validations(c),
+              @relation_join.asof_pending_validation_count(c),
+              i => @relation_join.asof_pending_validation_at(c, i),
+              (a, b) => a == b,
+            ).contains(ResolveSearchWork),
           )
           assert_true(
-            @relation_join.asof_pending_validations(c).contains(
-              ResolveAsOfOrder,
-            ),
+            indexed_obligation_copy(
+              @relation_join.asof_pending_validations(c),
+              @relation_join.asof_pending_validation_count(c),
+              i => @relation_join.asof_pending_validation_at(c, i),
+              (a, b) => a == b,
+            ).contains(ResolveAsOfOrder),
           )
         }
       }
@@ -316,7 +327,12 @@ test "as-of tolerance bindings remain symbolic and validate their declaration do
     limits(),
   ).unwrap()
   assert_true(
-    @relation_join.asof_pending_validations(c).contains(BindTolerance("tol")),
+    indexed_obligation_copy(
+      @relation_join.asof_pending_validations(c),
+      @relation_join.asof_pending_validation_count(c),
+      i => @relation_join.asof_pending_validation_at(c, i),
+      (a, b) => a == b,
+    ).contains(BindTolerance("tol")),
   )
   assert_true(
     @relation_join.asof_tolerance(c)

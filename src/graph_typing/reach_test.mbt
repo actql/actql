@@ -6,7 +6,12 @@ test "reach checks typed start and explicit direction with bounded traversal obl
   assert_eq(@graph_typing.reach_direction(c), Both)
   assert_eq(@graph_typing.reach_max_depth(c), 3.0)
   assert_true(
-    @graph_typing.reach_pending(c).contains(RequireReachStartMembership),
+    indexed_obligation_copy(
+      @graph_typing.reach_pending(c),
+      @graph_typing.reach_pending_count(c),
+      i => @graph_typing.reach_pending_at(c, i),
+      (a, b) => a == b,
+    ).contains(RequireReachStartMembership),
   )
   let rows = @carrier.relation_rows(@graph_typing.reach_output(c)).unwrap()
   assert_eq(@carrier.field_count(rows), 3)

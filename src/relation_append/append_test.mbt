@@ -109,7 +109,15 @@ test "append retains both operands empty schemas qualification and detached alig
   let result = run(empty, empty)
   assert_eq(@schema.field_count(@relation_append.output_schema(result)), 0)
   assert_true(@relation_append.alignment(result).is_empty())
-  assert_eq(@relation_append.pending_validations(result).length(), 4)
+  assert_eq(
+    indexed_obligation_copy(
+      @relation_append.pending_validations(result),
+      @relation_append.pending_validation_count(result),
+      i => @relation_append.pending_validation_at(result, i),
+      (a, b) => a == b,
+    ).length(),
+    4,
+  )
   let fields = [
     (
       @schema.Qualified(Right, "id"),

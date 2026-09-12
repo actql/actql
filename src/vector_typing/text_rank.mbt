@@ -34,4 +34,6 @@ pub using @evidence {
   text_rank_usage,
   text_rank_profile,
   text_rank_pending,
+  text_rank_pending_count,
+  text_rank_pending_at,
 }

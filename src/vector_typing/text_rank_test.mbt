@@ -63,7 +63,12 @@ test "lexical ranking retains typed string identities partial payload and explic
       @vector_typing.text_rank_bm25(@vector_typing.text_rank_options(c)),
       (1.2, 0.75),
     )
-    let pending = @vector_typing.text_rank_pending(c)
+    let pending = indexed_obligation_copy(
+      @vector_typing.text_rank_pending(c),
+      @vector_typing.text_rank_pending_count(c),
+      i => @vector_typing.text_rank_pending_at(c, i),
+      (a, b) => a == b,
+    )
     assert_true(
       pending.contains(EvaluatePinnedBm25AndCorrectlyRoundedLogarithm),
     )

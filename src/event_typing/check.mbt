@@ -214,33 +214,66 @@ pub fn usage(v : CheckedEvent) -> Usage {
 
 ///|
 pub fn pending_validations(v : CheckedEvent) -> Array[Obligation] {
-  let pending = [
-    ValidateEventValues,
-    ValidateUniqueIdentities,
-    ResolveTeaProfile,
-    ResolveEventResources,
-  ]
+  let out = []
+  pending_validations_each(v, item => out.push(item))
+  out
+}
+
+///|
+// One bounded enumeration rule shared by copied and indexed reads.
+fn pending_validations_each(
+  v : CheckedEvent,
+  emit : (Obligation) -> Unit,
+) -> Unit {
+  emit(ValidateEventValues)
+  emit(ValidateUniqueIdentities)
+  emit(ResolveTeaProfile)
+  emit(ResolveEventResources)
   if v.options is Watermark(_, _) {
-    pending.push(WatermarkClassification)
+    emit(WatermarkClassification)
   }
   if v.options is Dedupe(_) {
-    pending.push(FailOnTopTie)
+    emit(FailOnTopTie)
   }
   if v.options is Session(s) {
-    pending.push(SessionArithmetic)
-    pending.push(SessionIdentity)
+    emit(SessionArithmetic)
+    emit(SessionIdentity)
     if s.gap is @temporal.Parameter(name, ..) {
-      pending.push(BindGap(name))
+      emit(BindGap(name))
     }
     if s.timestamp {
-      pending.push(ConvertTimestampClock)
+      emit(ConvertTimestampClock)
     }
   }
   if v.output is @carrier.EventValue(e) &&
     e.clock_encoding == @carrier.UtcTimestamp {
-    if !pending.contains(ConvertTimestampClock) {
-      pending.push(ConvertTimestampClock)
+    if !(v.options is Session(s) && s.timestamp) {
+      emit(ConvertTimestampClock)
     }
   }
-  pending
+}
+
+///|
+/// O(1), independent of input data size; no obligation array is materialized.
+pub fn pending_validation_count(v : CheckedEvent) -> Int {
+  let mut count = 0
+  pending_validations_each(v, _ => count += 1)
+  count
+}
+
+///|
+/// O(1), without copying the obligation array; invalid indices return None.
+pub fn pending_validation_at(v : CheckedEvent, index : Int) -> Obligation? {
+  if index < 0 {
+    return None
+  }
+  let mut count = 0
+  let mut found = None
+  pending_validations_each(v, item => {
+    if count == index {
+      found = Some(item)
+    }
+    count += 1
+  })
+  found
 }

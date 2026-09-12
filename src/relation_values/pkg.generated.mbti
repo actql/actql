@@ -21,6 +21,10 @@ pub fn check(@decode_core.Cursor, @parameter_binding.Declarations?, Limits) -> R
 
 pub fn output_schema(CheckedValues) -> @relation_schema.Schema
 
+pub fn pending_validation_at(CheckedValues, Int) -> Obligation?
+
+pub fn pending_validation_count(CheckedValues) -> Int
+
 pub fn pending_validations(CheckedValues) -> Array[Obligation]
 
 pub fn row_at(CheckedValues, Int) -> Row?

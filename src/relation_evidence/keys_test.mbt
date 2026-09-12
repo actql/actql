@@ -47,9 +47,12 @@ test "declared keys preserve tuple order and retain conditional admission obliga
   assert_true(@relation_evidence.key_field_at(c, -1) is None)
   assert_true(@relation_evidence.key_field_at(c, 2) is None)
   assert_true(
-    @relation_evidence.key_pending(c).contains(
-      ValidateWholeTupleUniquenessAfterInputNormalization,
-    ),
+    indexed_obligation_copy(
+      @relation_evidence.key_pending(c),
+      @relation_evidence.key_pending_count(c),
+      i => @relation_evidence.key_pending_at(c, i),
+      (a, b) => a == b,
+    ).contains(ValidateWholeTupleUniquenessAfterInputNormalization),
   )
   assert_eq(@relation_evidence.key_usage(c), { fields: 2, name_bytes: 2, })
   let boundaries : Array[@relation_evidence.Limits] = [

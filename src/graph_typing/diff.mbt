@@ -228,14 +228,31 @@ pub fn diff_source(v : CheckedDiff) -> @decode.Cursor {
 
 ///|
 pub fn diff_pending(_v : CheckedDiff) -> Array[DeltaObligation] {
-  [
-    EmitDeltaVersion,
-    AdmitSnapshotsUnderCommonContract,
-    EmitGraphContractIdentity,
-    BindBaseAndTargetIdentities,
-    EmitCompleteBeforeAfterRecords,
-    SortUniqueActionIdentities,
-    ResolveDeltaResources,
-    ResolveSgaProfile,
-  ]
+  let out = []
+  for i in 0..<diff_pending_count(_v) {
+    out.push(diff_pending_at(_v, i).unwrap())
+  }
+  out
+}
+
+///|
+/// O(1), without materializing the obligation array.
+pub fn diff_pending_count(_v : CheckedDiff) -> Int {
+  8
+}
+
+///|
+/// O(1); invalid indices return None. Retains authored obligation order.
+pub fn diff_pending_at(_v : CheckedDiff, index : Int) -> DeltaObligation? {
+  match index {
+    0 => Some(EmitDeltaVersion)
+    1 => Some(AdmitSnapshotsUnderCommonContract)
+    2 => Some(EmitGraphContractIdentity)
+    3 => Some(BindBaseAndTargetIdentities)
+    4 => Some(EmitCompleteBeforeAfterRecords)
+    5 => Some(SortUniqueActionIdentities)
+    6 => Some(ResolveDeltaResources)
+    7 => Some(ResolveSgaProfile)
+    _ => None
+  }
 }

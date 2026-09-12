@@ -46,8 +46,18 @@ test "key coverage requires every component and preserves alias provenance" {
     Unqualified("b"),
   )
   assert_eq(
-    @relation_evidence.key_pending(selected),
-    @relation_evidence.key_pending(original),
+    indexed_obligation_copy(
+      @relation_evidence.key_pending(selected),
+      @relation_evidence.key_pending_count(selected),
+      i => @relation_evidence.key_pending_at(selected, i),
+      (a, b) => a == b,
+    ),
+    indexed_obligation_copy(
+      @relation_evidence.key_pending(original),
+      @relation_evidence.key_pending_count(original),
+      i => @relation_evidence.key_pending_at(original, i),
+      (a, b) => a == b,
+    ),
   )
   assert_eq(@relation_evidence.key_alias_count(projected, 0), 2)
   let exact : @relation_evidence.TransferLimits = {
@@ -90,7 +100,15 @@ test "coverage retains nullable grouping keys without granting scalar completion
     @relation_evidence.key_field_at(selected, 0).unwrap().contract.unwrap().nullable,
   )
   assert_eq(@relation_evidence.key_origin(selected), GroupResult)
-  assert_eq(@relation_evidence.key_pending(selected), [ValidateKeyProducer])
+  assert_eq(
+    indexed_obligation_copy(
+      @relation_evidence.key_pending(selected),
+      @relation_evidence.key_pending_count(selected),
+      i => @relation_evidence.key_pending_at(selected, i),
+      (a, b) => a == b,
+    ),
+    [ValidateKeyProducer],
+  )
   assert_true(
     @relation_evidence.select_key(cursor("null"), set, ScalarIdentity, caps).unwrap().key
     is None,

@@ -23,7 +23,12 @@ test "graph bounds retain zero thresholds and typed nullable identities" {
       let ty = @row.lookup(schema, Unqualified(field)).unwrap()
       assert_true(ty.shape is Number && !ty.nullable)
     }
-    let pending = @graph_typing.pending_validations(checked)
+    let pending = indexed_obligation_copy(
+      @graph_typing.pending_validations(checked),
+      @graph_typing.pending_validation_count(checked),
+      i => @graph_typing.pending_validation_at(checked, i),
+      (a, b) => a == b,
+    )
     assert_true(pending.contains(BoundsReportOrder))
     assert_false(pending.contains(EnforceOutputGuard))
     match @graph_typing.options(checked) {
@@ -87,14 +92,20 @@ test "bound parameters retain nonnegative validation and opaque ID information" 
     limits(),
   ).unwrap()
   assert_true(
-    @graph_typing.pending_validations(checked).contains(
-      BindNonnegativeCount("limit"),
-    ),
+    indexed_obligation_copy(
+      @graph_typing.pending_validations(checked),
+      @graph_typing.pending_validation_count(checked),
+      i => @graph_typing.pending_validation_at(checked, i),
+      (a, b) => a == b,
+    ).contains(BindNonnegativeCount("limit")),
   )
   assert_false(
-    @graph_typing.pending_validations(checked).contains(
-      BindPositiveCount("limit"),
-    ),
+    indexed_obligation_copy(
+      @graph_typing.pending_validations(checked),
+      @graph_typing.pending_validation_count(checked),
+      i => @graph_typing.pending_validation_at(checked, i),
+      (a, b) => a == b,
+    ).contains(BindPositiveCount("limit")),
   )
   let rows = @carrier.relation_rows(@graph_typing.output(checked)).unwrap()
   assert_eq(@carrier.field_set(rows), Closed)

@@ -191,6 +191,18 @@ pub fn pending_validations(v : CheckedJoin) -> Array[Obligation] {
 }
 
 ///|
+/// O(1), without materializing the obligation array.
+pub fn pending_validation_count(v : CheckedJoin) -> Int {
+  v.pending.length()
+}
+
+///|
+/// O(1); invalid indices return None. Retains authored obligation order.
+pub fn pending_validation_at(v : CheckedJoin, index : Int) -> Obligation? {
+  v.pending.get(index)
+}
+
+///|
 pub fn usage(v : CheckedJoin) -> Usage {
   v.usage
 }

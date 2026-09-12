@@ -378,6 +378,21 @@ pub fn construction_pending(
 }
 
 ///|
+/// O(1), without materializing the obligation array.
+pub fn construction_pending_count(c : CheckedConstruction) -> Int {
+  c.pending.length()
+}
+
+///|
+/// O(1); invalid indices return None. Retains authored obligation order.
+pub fn construction_pending_at(
+  c : CheckedConstruction,
+  index : Int,
+) -> ConstructionObligation? {
+  c.pending.get(index)
+}
+
+///|
 pub fn construction_nodes_name(c : CheckedConstruction) -> String? {
   c.nodes_name
 }

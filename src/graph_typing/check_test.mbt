@@ -72,10 +72,23 @@ test "degree and components retain semantic identity types despite unknown prope
       )
       let n = @row.lookup(schema, Unqualified("degree")).unwrap()
       assert_true(n.shape is Number && !n.nullable)
-      let pending = @graph_typing.pending_validations(checked)
+      let pending = indexed_obligation_copy(
+        @graph_typing.pending_validations(checked),
+        @graph_typing.pending_validation_count(checked),
+        i => @graph_typing.pending_validation_at(checked, i),
+        (a, b) => a == b,
+      )
       assert_eq(pending.length(), 3)
       pending.clear()
-      assert_eq(@graph_typing.pending_validations(checked).length(), 3)
+      assert_eq(
+        indexed_obligation_copy(
+          @graph_typing.pending_validations(checked),
+          @graph_typing.pending_validation_count(checked),
+          i => @graph_typing.pending_validation_at(checked, i),
+          (a, b) => a == b,
+        ).length(),
+        3,
+      )
     }
     for kind in ["weak", "strong"] {
       let checked = @graph_typing.check(
@@ -99,9 +112,12 @@ test "degree and components retain semantic identity types despite unknown prope
         )
       }
       assert_true(
-        @graph_typing.pending_validations(checked).contains(
-          ComponentIdentityOrder,
-        ),
+        indexed_obligation_copy(
+          @graph_typing.pending_validations(checked),
+          @graph_typing.pending_validation_count(checked),
+          i => @graph_typing.pending_validation_at(checked, i),
+          (a, b) => a == b,
+        ).contains(ComponentIdentityOrder),
       )
       assert_true(
         @graph_typing.options(checked)
@@ -221,12 +237,20 @@ test "component guards preserve parameter binding obligations and exact budgets"
     is ComponentOptions(Strong, max_output_rows=Some(Parameter("cap"))),
   )
   assert_true(
-    @graph_typing.pending_validations(checked).contains(
-      BindPositiveCount("cap"),
-    ),
+    indexed_obligation_copy(
+      @graph_typing.pending_validations(checked),
+      @graph_typing.pending_validation_count(checked),
+      i => @graph_typing.pending_validation_at(checked, i),
+      (a, b) => a == b,
+    ).contains(BindPositiveCount("cap")),
   )
   assert_true(
-    @graph_typing.pending_validations(checked).contains(EnforceOutputGuard),
+    indexed_obligation_copy(
+      @graph_typing.pending_validations(checked),
+      @graph_typing.pending_validation_count(checked),
+      i => @graph_typing.pending_validation_at(checked, i),
+      (a, b) => a == b,
+    ).contains(EnforceOutputGuard),
   )
   assert_eq(
     @graph_typing.check(Components, body, input, None, limits()).unwrap_err().kind,

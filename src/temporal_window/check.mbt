@@ -208,6 +208,18 @@ pub fn pending_validations(value : CheckedWindow) -> Array[Obligation] {
 }
 
 ///|
+/// O(1), without materializing the obligation array.
+pub fn pending_validation_count(value : CheckedWindow) -> Int {
+  value.pending.length()
+}
+
+///|
+/// O(1); invalid indices return None. Retains authored obligation order.
+pub fn pending_validation_at(value : CheckedWindow, index : Int) -> Obligation? {
+  value.pending.get(index)
+}
+
+///|
 pub fn check_usage(value : CheckedWindow) -> Usage {
   value.usage
 }

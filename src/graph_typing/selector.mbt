@@ -214,17 +214,53 @@ pub fn selector_usage(c : CheckedSelector) -> PredicateUsage {
 
 ///|
 pub fn selector_pending(c : CheckedSelector) -> Array[SelectorObligation] {
-  let out = [
-    AdmitSelectorIdentities,
-    DeduplicateSelectorIdentities,
-    RequireSelectorMembership,
-    ResolveSelectorResources,
-  ]
+  let out = []
+  selector_pending_each(c, item => out.push(item))
+  out
+}
+
+///|
+// One bounded enumeration rule shared by copied and indexed reads.
+fn selector_pending_each(
+  c : CheckedSelector,
+  emit : (SelectorObligation) -> Unit,
+) -> Unit {
+  emit(AdmitSelectorIdentities)
+  emit(DeduplicateSelectorIdentities)
+  emit(RequireSelectorMembership)
+  emit(ResolveSelectorResources)
   if c.form is RelationIds(..) {
-    out.push(RevalidateSelectorReferences)
+    emit(RevalidateSelectorReferences)
   }
   if c.predicate is Some(_) {
-    out.push(EvaluateSelectorPredicate)
+    emit(EvaluateSelectorPredicate)
   }
-  out
+}
+
+///|
+/// O(1), independent of input data size; no obligation array is materialized.
+pub fn selector_pending_count(c : CheckedSelector) -> Int {
+  let mut count = 0
+  selector_pending_each(c, _ => count += 1)
+  count
+}
+
+///|
+/// O(1), without copying the obligation array; invalid indices return None.
+pub fn selector_pending_at(
+  c : CheckedSelector,
+  index : Int,
+) -> SelectorObligation? {
+  if index < 0 {
+    return None
+  }
+  let mut count = 0
+  let mut found = None
+  selector_pending_each(c, item => {
+    if count == index {
+      found = Some(item)
+    }
+    count += 1
+  })
+  found
 }

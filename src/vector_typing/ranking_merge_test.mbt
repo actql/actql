@@ -51,7 +51,15 @@ test "RRF preserves input occurrences joins domains and emits only fresh ranking
   assert_eq(keys.work, 4)
   assert_eq(keys.name_bytes, 4)
   assert_true(physical_equal(@evidence.key_ranking_producer(key).unwrap(), c))
-  assert_eq(@evidence.key_pending(key), [ValidateKeyProducer])
+  assert_eq(
+    indexed_obligation_copy(
+      @evidence.key_pending(key),
+      @evidence.key_pending_count(key),
+      i => @evidence.key_pending_at(key, i),
+      (a, b) => a == b,
+    ),
+    [ValidateKeyProducer],
+  )
   assert_true(
     @evidence.merged_ranking_keys(c, { max_work: 3, max_name_bytes: 4, })
     is Err(_),
@@ -69,14 +77,20 @@ test "RRF preserves input occurrences joins domains and emits only fresh ranking
     is Present({ contract: Some({ nullable: false, shape: Number, }), .. }),
   )
   assert_true(
-    @vector_typing.merged_ranking_pending(c).contains(
-      ValidatePositiveSafeContiguousRanks,
-    ),
+    indexed_obligation_copy(
+      @vector_typing.merged_ranking_pending(c),
+      @vector_typing.merged_ranking_pending_count(c),
+      i => @vector_typing.merged_ranking_pending_at(c, i),
+      (a, b) => a == b,
+    ).contains(ValidatePositiveSafeContiguousRanks),
   )
   assert_true(
-    @vector_typing.merged_ranking_pending(c).contains(
-      ApplyRankWindowAfterAdmission,
-    ),
+    indexed_obligation_copy(
+      @vector_typing.merged_ranking_pending(c),
+      @vector_typing.merged_ranking_pending_count(c),
+      i => @vector_typing.merged_ranking_pending_at(c, i),
+      (a, b) => a == b,
+    ).contains(ApplyRankWindowAfterAdmission),
   )
   let u = @vector_typing.merged_ranking_usage(c)
   let exact = {
@@ -140,7 +154,12 @@ test "weighted score fusion requires matching input declarations without inventi
   assert_eq(@evidence.key_field_count(key), 1)
   assert_eq(@evidence.key_field_at(key, 0).unwrap().name, Unqualified("id"))
   assert_true(physical_equal(@evidence.key_ranking_producer(key).unwrap(), c))
-  let pending = @vector_typing.merged_ranking_pending(c)
+  let pending = indexed_obligation_copy(
+    @vector_typing.merged_ranking_pending(c),
+    @vector_typing.merged_ranking_pending_count(c),
+    i => @vector_typing.merged_ranking_pending_at(c, i),
+    (a, b) => a == b,
+  )
   assert_true(pending.contains(AuthenticateCapturedScoreDeclarations))
   assert_true(pending.contains(ValidateBusinessTieAgreement))
   assert_true(pending.contains(DeriveOutputScoreEnvelope))

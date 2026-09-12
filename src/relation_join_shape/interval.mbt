@@ -314,6 +314,21 @@ pub fn interval_pending_validations(
 }
 
 ///|
+/// O(1), without materializing the obligation array.
+pub fn interval_pending_validation_count(v : CheckedIntervalJoin) -> Int {
+  v.pending.length()
+}
+
+///|
+/// O(1); invalid indices return None. Retains authored obligation order.
+pub fn interval_pending_validation_at(
+  v : CheckedIntervalJoin,
+  index : Int,
+) -> Obligation? {
+  v.pending.get(index)
+}
+
+///|
 pub fn interval_usage(v : CheckedIntervalJoin) -> Usage {
   v.usage
 }

@@ -23,6 +23,10 @@ pub fn options(CheckedCalendar) -> @calendar_options.Options
 
 pub fn output(CheckedCalendar) -> @carrier_contract.Carrier
 
+pub fn pending_validation_at(CheckedCalendar, Int) -> Obligation?
+
+pub fn pending_validation_count(CheckedCalendar) -> Int
+
 pub fn pending_validations(CheckedCalendar) -> Array[Obligation]
 
 pub fn profile(CheckedCalendar) -> @calendar_profile.Profile

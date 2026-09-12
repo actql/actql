@@ -100,12 +100,29 @@ pub fn usage(v : CheckedAppend) -> Usage {
 
 ///|
 pub fn pending_validations(_v : CheckedAppend) -> Array[Obligation] {
-  [
-    ValidateInputRows,
-    PreserveLeftThenRightOrder,
-    ResolveOutputEnvelope,
-    ResolveIdentityAndCompleteness,
-  ]
+  let out = []
+  for i in 0..<pending_validation_count(_v) {
+    out.push(pending_validation_at(_v, i).unwrap())
+  }
+  out
+}
+
+///|
+/// O(1), without materializing the obligation array.
+pub fn pending_validation_count(_v : CheckedAppend) -> Int {
+  4
+}
+
+///|
+/// O(1); invalid indices return None. Retains authored obligation order.
+pub fn pending_validation_at(_v : CheckedAppend, index : Int) -> Obligation? {
+  match index {
+    0 => Some(ValidateInputRows)
+    1 => Some(PreserveLeftThenRightOrder)
+    2 => Some(ResolveOutputEnvelope)
+    3 => Some(ResolveIdentityAndCompleteness)
+    _ => None
+  }
 }
 
 ///|

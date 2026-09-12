@@ -29,9 +29,30 @@ test "literal row counts are exact across calendar and millisecond boundaries" {
       limits(),
     ).unwrap()
     assert_eq(@time_series.known_row_count(c), Some(expected))
-    assert_true(!@time_series.pending_validations(c).contains(ResolveRowBound))
-    assert_true(@time_series.pending_validations(c).contains(ResolveResources))
-    assert_true(@time_series.pending_validations(c).contains(CheckedArithmetic))
+    assert_true(
+      !indexed_obligation_copy(
+        @time_series.pending_validations(c),
+        @time_series.pending_validation_count(c),
+        i => @time_series.pending_validation_at(c, i),
+        (a, b) => a == b,
+      ).contains(ResolveRowBound),
+    )
+    assert_true(
+      indexed_obligation_copy(
+        @time_series.pending_validations(c),
+        @time_series.pending_validation_count(c),
+        i => @time_series.pending_validation_at(c, i),
+        (a, b) => a == b,
+      ).contains(ResolveResources),
+    )
+    assert_true(
+      indexed_obligation_copy(
+        @time_series.pending_validations(c),
+        @time_series.pending_validation_count(c),
+        i => @time_series.pending_validation_at(c, i),
+        (a, b) => a == b,
+      ).contains(CheckedArithmetic),
+    )
   }
 }
 
@@ -64,13 +85,30 @@ test "row counts never substitute defaults and empty intervals retain binding ob
     ).unwrap()
     assert_eq(@time_series.known_row_count(c), expected)
     assert_eq(
-      @time_series.pending_validations(c).contains(ResolveRowBound),
+      indexed_obligation_copy(
+        @time_series.pending_validations(c),
+        @time_series.pending_validation_count(c),
+        i => @time_series.pending_validation_at(c, i),
+        (a, b) => a == b,
+      ).contains(ResolveRowBound),
       expected is None,
     )
-    assert_true(@time_series.pending_validations(c).contains(ValidateRange))
+    assert_true(
+      indexed_obligation_copy(
+        @time_series.pending_validations(c),
+        @time_series.pending_validation_count(c),
+        i => @time_series.pending_validation_at(c, i),
+        (a, b) => a == b,
+      ).contains(ValidateRange),
+    )
     if step == "{\"$param\":\"step\"}" {
       assert_true(
-        @time_series.pending_validations(c).contains(BindStep("step")),
+        indexed_obligation_copy(
+          @time_series.pending_validations(c),
+          @time_series.pending_validation_count(c),
+          i => @time_series.pending_validation_at(c, i),
+          (a, b) => a == b,
+        ).contains(BindStep("step")),
       )
     }
   }

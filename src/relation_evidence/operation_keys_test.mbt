@@ -34,7 +34,15 @@ test "checked operation keys retain producer provenance instead of input asserti
     assert_eq(@relation_evidence.key_origin(produced), origin)
     assert_eq(@relation_evidence.key_field_count(produced), count)
     assert_true(@relation_evidence.key_producer(produced) is Some(_))
-    assert_eq(@relation_evidence.key_pending(produced), [ValidateKeyProducer])
+    assert_eq(
+      indexed_obligation_copy(
+        @relation_evidence.key_pending(produced),
+        @relation_evidence.key_pending_count(produced),
+        i => @relation_evidence.key_pending_at(produced, i),
+        (a, b) => a == b,
+      ),
+      [ValidateKeyProducer],
+    )
     let filtered = checked(Filter, "\"true\"", produced)
     let retained = @relation_evidence.advance_keys(
         Some(result.keys),

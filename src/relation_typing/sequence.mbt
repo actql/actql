@@ -362,8 +362,38 @@ pub fn sequence_pending_validations(
 }
 
 ///|
+/// O(1), without materializing the obligation array.
+pub fn sequence_pending_validation_count(v : CheckedSequence) -> Int {
+  v.pending.length()
+}
+
+///|
+/// O(1); invalid indices return None. Retains authored obligation order.
+pub fn sequence_pending_validation_at(
+  v : CheckedSequence,
+  index : Int,
+) -> PendingValidation? {
+  v.pending.get(index)
+}
+
+///|
 pub fn sequence_obligations(v : CheckedSequence) -> Array[SequenceObligation] {
   v.obligations.copy()
+}
+
+///|
+/// O(1), without materializing the obligation array.
+pub fn sequence_obligation_count(v : CheckedSequence) -> Int {
+  v.obligations.length()
+}
+
+///|
+/// O(1); invalid indices return None. Retains authored obligation order.
+pub fn sequence_obligation_at(
+  v : CheckedSequence,
+  index : Int,
+) -> SequenceObligation? {
+  v.obligations.get(index)
 }
 
 ///|

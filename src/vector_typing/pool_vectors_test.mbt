@@ -57,12 +57,20 @@ test "pool Vectors retains grouping values and aliases without physical ID subst
       is Present({ contract: Some({ shape: @contract.Number, .. }), .. }),
     )
     assert_true(
-      @vector_typing.pool_pending(c).contains(
-        ValidatePoolMemberIdentityGlobally,
-      ),
+      indexed_obligation_copy(
+        @vector_typing.pool_pending(c),
+        @vector_typing.pool_pending_count(c),
+        i => @vector_typing.pool_pending_at(c, i),
+        (a, b) => a == b,
+      ).contains(ValidatePoolMemberIdentityGlobally),
     )
     assert_true(
-      @vector_typing.pool_pending(c).contains(QuantizeBeforeAndAfterPoolFold),
+      indexed_obligation_copy(
+        @vector_typing.pool_pending(c),
+        @vector_typing.pool_pending_count(c),
+        i => @vector_typing.pool_pending_at(c, i),
+        (a, b) => a == b,
+      ).contains(QuantizeBeforeAndAfterPoolFold),
     )
     let u = @vector_typing.pooled_usage(c)
     let exact = {

@@ -90,7 +90,12 @@ test "typed pick retains opaque leaves and propagates nullable ancestors" {
     is Some(JsonPick(path=["inner", "leaf"], ..)),
   )
   assert_eq(
-    @relation_typing.pending_validations(result)[0].kind,
+    indexed_obligation_copy(
+      @relation_typing.pending_validations(result),
+      @relation_typing.pending_validation_count(result),
+      i => @relation_typing.pending_validation_at(result, i),
+      (a, b) => a.kind == b.kind && physical_equal(a.source, b.source),
+    )[0].kind,
     ValidateReshapeRows,
   )
   let failure = check_row(
@@ -139,10 +144,15 @@ test "unnest outer and nullable array containers have distinct element contracts
         }
         _ => fail("expected unnest")
       }
-      assert_eq(@relation_typing.pending_validations(result).map(v => v.kind), [
-        ValidateReshapeRows,
-        ExpansionEnvelope,
-      ])
+      assert_eq(
+        indexed_obligation_copy(
+          @relation_typing.pending_validations(result),
+          @relation_typing.pending_validation_count(result),
+          i => @relation_typing.pending_validation_at(result, i),
+          (a, b) => a.kind == b.kind && physical_equal(a.source, b.source),
+        ).map(v => v.kind),
+        [ValidateReshapeRows, ExpansionEnvelope],
+      )
     }
   }
   let nullable_item = schema(

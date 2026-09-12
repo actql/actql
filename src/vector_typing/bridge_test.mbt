@@ -80,9 +80,12 @@ test "explicit vector bridge preserves semantic names and non-string identities"
     is Absent,
   )
   assert_true(
-    @vector_typing.pending_validations(checked).contains(
-      ValidateUniqueIdentities,
-    ),
+    indexed_obligation_copy(
+      @vector_typing.pending_validations(checked),
+      @vector_typing.pending_validation_count(checked),
+      i => @vector_typing.pending_validation_at(checked, i),
+      (a, b) => a == b,
+    ).contains(ValidateUniqueIdentities),
   )
   let issue = @vector_typing.check(
     ToVectors,

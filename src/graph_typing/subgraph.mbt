@@ -129,16 +129,52 @@ pub fn subgraph_usage(c : CheckedSubgraph) -> PredicateUsage {
 
 ///|
 pub fn subgraph_pending(c : CheckedSubgraph) -> Array[SubgraphObligation] {
-  let out = [
-    AdmitSubgraphInput,
-    InduceSelectedEndpoints,
-    PreserveSubgraphIdentitiesAndProperties,
-    PreserveSubgraphPolicyAndScope,
-    ResolveSubgraphResources,
-    ResolveSubgraphProfile,
-  ]
-  if c.edges is Some(_) {
-    out.push(FilterInducedEdges)
-  }
+  let out = []
+  subgraph_pending_each(c, item => out.push(item))
   out
+}
+
+///|
+// One bounded enumeration rule shared by copied and indexed reads.
+fn subgraph_pending_each(
+  c : CheckedSubgraph,
+  emit : (SubgraphObligation) -> Unit,
+) -> Unit {
+  emit(AdmitSubgraphInput)
+  emit(InduceSelectedEndpoints)
+  emit(PreserveSubgraphIdentitiesAndProperties)
+  emit(PreserveSubgraphPolicyAndScope)
+  emit(ResolveSubgraphResources)
+  emit(ResolveSubgraphProfile)
+  if c.edges is Some(_) {
+    emit(FilterInducedEdges)
+  }
+}
+
+///|
+/// O(1), independent of input data size; no obligation array is materialized.
+pub fn subgraph_pending_count(c : CheckedSubgraph) -> Int {
+  let mut count = 0
+  subgraph_pending_each(c, _ => count += 1)
+  count
+}
+
+///|
+/// O(1), without copying the obligation array; invalid indices return None.
+pub fn subgraph_pending_at(
+  c : CheckedSubgraph,
+  index : Int,
+) -> SubgraphObligation? {
+  if index < 0 {
+    return None
+  }
+  let mut count = 0
+  let mut found = None
+  subgraph_pending_each(c, item => {
+    if count == index {
+      found = Some(item)
+    }
+    count += 1
+  })
+  found
 }

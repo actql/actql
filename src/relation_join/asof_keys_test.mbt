@@ -42,7 +42,12 @@ test "as-of completion preserves whole keys and authored tie repetitions" {
     @evidence.declared_key_field_at(origin, 0).unwrap().name,
     Unqualified("other"),
   )
-  let pending = @relation_join.asof_pending_validations(c)
+  let pending = indexed_obligation_copy(
+    @relation_join.asof_pending_validations(c),
+    @relation_join.asof_pending_validation_count(c),
+    i => @relation_join.asof_pending_validation_at(c, i),
+    (a, b) => a == b,
+  )
   assert_true(pending.contains(JournalAsOfKeyCompletion(Left)))
   assert_true(pending.contains(JournalAsOfKeyCompletion(Right)))
   assert_true(
@@ -103,9 +108,12 @@ test "as-of completion preserves whole keys and authored tie repetitions" {
   assert_eq(@relation_join.asof_identity(explicit), [Unqualified("other")])
   assert_true(@relation_join.asof_key_completion(explicit, Left) is None)
   assert_true(
-    !@relation_join.asof_pending_validations(explicit).contains(
-      JournalAsOfKeyCompletion(Right),
-    ),
+    !indexed_obligation_copy(
+      @relation_join.asof_pending_validations(explicit),
+      @relation_join.asof_pending_validation_count(explicit),
+      i => @relation_join.asof_pending_validation_at(explicit, i),
+      (a, b) => a == b,
+    ).contains(JournalAsOfKeyCompletion(Right)),
   )
   assert_true(@relation_join.asof_key_completion(explicit, Right) is Some(_))
 }
@@ -166,6 +174,11 @@ test "as-of internal key completion permits references without allowing authored
   ).unwrap()
   assert_true(@relation_join.asof_completed_tie_break(c).is_empty())
   assert_true(
-    @relation_join.asof_pending_validations(c).contains(RejectAsOfTies),
+    indexed_obligation_copy(
+      @relation_join.asof_pending_validations(c),
+      @relation_join.asof_pending_validation_count(c),
+      i => @relation_join.asof_pending_validation_at(c, i),
+      (a, b) => a == b,
+    ).contains(RejectAsOfTies),
   )
 }

@@ -81,12 +81,25 @@ test "delta arrays retain full record contracts including empty action sets" {
     @graph_contract.cid(@graph_typing.diff_graph_contract(reverse)),
     @graph_contract.cid(pinned),
   )
-  let pending = @graph_typing.diff_pending(c)
+  let pending = indexed_obligation_copy(
+    @graph_typing.diff_pending(c),
+    @graph_typing.diff_pending_count(c),
+    i => @graph_typing.diff_pending_at(c, i),
+    (a, b) => a == b,
+  )
   assert_true(pending.contains(BindBaseAndTargetIdentities))
   assert_true(pending.contains(EmitGraphContractIdentity))
   assert_true(pending.contains(AdmitSnapshotsUnderCommonContract))
   pending.clear()
-  assert_eq(@graph_typing.diff_pending(c).length(), 8)
+  assert_eq(
+    indexed_obligation_copy(
+      @graph_typing.diff_pending(c),
+      @graph_typing.diff_pending_count(c),
+      i => @graph_typing.diff_pending_at(c, i),
+      (a, b) => a == b,
+    ).length(),
+    8,
+  )
   let u = @graph_typing.diff_usage(c)
   let exact = {
     ..limits(),

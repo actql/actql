@@ -323,6 +323,18 @@ pub fn pending_validations(value : CheckedVector) -> Array[Obligation] {
 }
 
 ///|
+/// O(1), without materializing the obligation array.
+pub fn pending_validation_count(value : CheckedVector) -> Int {
+  value.pending.length()
+}
+
+///|
+/// O(1); invalid indices return None. Retains authored obligation order.
+pub fn pending_validation_at(value : CheckedVector, index : Int) -> Obligation? {
+  value.pending.get(index)
+}
+
+///|
 pub fn usage(value : CheckedVector) -> Usage {
   value.usage
 }

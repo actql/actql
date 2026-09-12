@@ -29,6 +29,10 @@ pub fn apply_output(CheckedApply) -> @carrier_contract.Carrier
 
 pub fn apply_pending(CheckedApply) -> Array[ApplyObligation]
 
+pub fn apply_pending_at(CheckedApply, Int) -> ApplyObligation?
+
+pub fn apply_pending_count(CheckedApply) -> Int
+
 pub fn apply_source(CheckedApply) -> @decode_core.Cursor
 
 pub fn apply_usage(CheckedApply) -> Usage
@@ -79,6 +83,10 @@ pub fn construction_output(CheckedConstruction) -> @carrier_contract.Carrier
 
 pub fn construction_pending(CheckedConstruction) -> Array[ConstructionObligation]
 
+pub fn construction_pending_at(CheckedConstruction, Int) -> ConstructionObligation?
+
+pub fn construction_pending_count(CheckedConstruction) -> Int
+
 pub fn construction_source(CheckedConstruction) -> @decode_core.Cursor
 
 pub fn construction_usage(CheckedConstruction) -> Usage
@@ -93,6 +101,10 @@ pub fn diff_output(CheckedDiff) -> @carrier_contract.Carrier
 
 pub fn diff_pending(CheckedDiff) -> Array[DeltaObligation]
 
+pub fn diff_pending_at(CheckedDiff, Int) -> DeltaObligation?
+
+pub fn diff_pending_count(CheckedDiff) -> Int
+
 pub fn diff_source(CheckedDiff) -> @decode_core.Cursor
 
 pub fn diff_usage(CheckedDiff) -> Usage
@@ -104,6 +116,10 @@ pub fn equality_input(CheckedEquality, @relation_schema.Side) -> @carrier_contra
 pub fn equality_output(CheckedEquality) -> @carrier_contract.Carrier
 
 pub fn equality_pending(CheckedEquality) -> Array[EqualityObligation]
+
+pub fn equality_pending_at(CheckedEquality, Int) -> EqualityObligation?
+
+pub fn equality_pending_count(CheckedEquality) -> Int
 
 pub fn equality_source(CheckedEquality) -> @decode_core.Cursor
 
@@ -131,6 +147,10 @@ pub fn match_output(CheckedMatch) -> @carrier_contract.Carrier
 
 pub fn match_pending(CheckedMatch) -> Array[MatchObligation]
 
+pub fn match_pending_at(CheckedMatch, Int) -> MatchObligation?
+
+pub fn match_pending_count(CheckedMatch) -> Int
+
 pub fn match_predicate(CheckedMatch) -> CheckedPredicate?
 
 pub fn match_source(CheckedMatch) -> @decode_core.Cursor
@@ -150,6 +170,10 @@ pub fn mean_options_usage(CheckedMeanOptions) -> Usage
 pub fn mean_output(CheckedMean) -> @carrier_contract.Carrier
 
 pub fn mean_pending(CheckedMean) -> Array[MeanObligation]
+
+pub fn mean_pending_at(CheckedMean, Int) -> MeanObligation?
+
+pub fn mean_pending_count(CheckedMean) -> Int
 
 pub fn mean_properties(CheckedMeanOptions, EntityKind) -> Array[MeanProperty]
 
@@ -171,6 +195,10 @@ pub fn path_output(CheckedPathContract) -> @carrier_contract.Carrier
 
 pub fn path_usage(CheckedPathContract) -> Usage
 
+pub fn pending_validation_at(CheckedGraph, Int) -> Obligation?
+
+pub fn pending_validation_count(CheckedGraph) -> Int
+
 pub fn pending_validations(CheckedGraph) -> Array[Obligation]
 
 pub fn predicate_expression(CheckedPredicate) -> @expression_typing.TypedExpression
@@ -186,6 +214,10 @@ pub fn reach_max_depth(CheckedReach) -> Double
 pub fn reach_output(CheckedReach) -> @carrier_contract.Carrier
 
 pub fn reach_pending(CheckedReach) -> Array[ReachObligation]
+
+pub fn reach_pending_at(CheckedReach, Int) -> ReachObligation?
+
+pub fn reach_pending_count(CheckedReach) -> Int
 
 pub fn reach_source(CheckedReach) -> @decode_core.Cursor
 
@@ -207,6 +239,10 @@ pub fn selector_ids(CheckedSelector) -> Array[@value_admission.CheckedValue]
 
 pub fn selector_pending(CheckedSelector) -> Array[SelectorObligation]
 
+pub fn selector_pending_at(CheckedSelector, Int) -> SelectorObligation?
+
+pub fn selector_pending_count(CheckedSelector) -> Int
+
 pub fn selector_predicate(CheckedSelector) -> CheckedPredicate?
 
 pub fn selector_source(CheckedSelector) -> @decode_core.Cursor
@@ -227,6 +263,10 @@ pub fn shortest_output_guard(CheckedShortest) -> Count?
 
 pub fn shortest_pending(CheckedShortest) -> Array[ShortestObligation]
 
+pub fn shortest_pending_at(CheckedShortest, Int) -> ShortestObligation?
+
+pub fn shortest_pending_count(CheckedShortest) -> Int
+
 pub fn shortest_selection(CheckedShortest) -> PathSelection
 
 pub fn shortest_source(CheckedShortest) -> @decode_core.Cursor
@@ -245,6 +285,10 @@ pub fn structural_output(CheckedStructural) -> @carrier_contract.Carrier
 
 pub fn structural_pending(CheckedStructural) -> Array[StructuralObligation]
 
+pub fn structural_pending_at(CheckedStructural, Int) -> StructuralObligation?
+
+pub fn structural_pending_count(CheckedStructural) -> Int
+
 pub fn structural_source(CheckedStructural) -> @decode_core.Cursor
 
 pub fn structural_strategies(CheckedStructural, @relation_schema.Side) -> Array[PropertyStrategy]
@@ -260,6 +304,10 @@ pub fn subgraph_nodes(CheckedSubgraph) -> CheckedSelector
 pub fn subgraph_output(CheckedSubgraph) -> @carrier_contract.Carrier
 
 pub fn subgraph_pending(CheckedSubgraph) -> Array[SubgraphObligation]
+
+pub fn subgraph_pending_at(CheckedSubgraph, Int) -> SubgraphObligation?
+
+pub fn subgraph_pending_count(CheckedSubgraph) -> Int
 
 pub fn subgraph_source(CheckedSubgraph) -> @decode_core.Cursor
 
@@ -282,6 +330,10 @@ pub fn traverse_output_guard(CheckedTraverse) -> Count?
 pub fn traverse_patterned(CheckedTraverse) -> Bool
 
 pub fn traverse_pending(CheckedTraverse) -> Array[TraverseObligation]
+
+pub fn traverse_pending_at(CheckedTraverse, Int) -> TraverseObligation?
+
+pub fn traverse_pending_count(CheckedTraverse) -> Int
 
 pub fn traverse_source(CheckedTraverse) -> @decode_core.Cursor
 

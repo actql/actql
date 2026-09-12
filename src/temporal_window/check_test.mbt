@@ -62,9 +62,12 @@ test "fixed steps remain explicit validated options with binding obligations" {
   )
   let checked = @temporal_window.check(body, input, Some(ds), limits()).unwrap()
   assert_true(
-    @temporal_window.pending_validations(checked).contains(
-      BindMilliseconds("stride", PositiveMilliseconds),
-    ),
+    indexed_obligation_copy(
+      @temporal_window.pending_validations(checked),
+      @temporal_window.pending_validation_count(checked),
+      i => @temporal_window.pending_validation_at(checked, i),
+      (a, b) => a == b,
+    ).contains(BindMilliseconds("stride", PositiveMilliseconds)),
   )
   assert_true(
     @temporal_window.step(@temporal_window.options(checked))
@@ -114,9 +117,22 @@ test "row windows preserve partially typed payload and prove boundary roles" {
       primitive == TimestampType,
     )
     assert_eq(@carrier.field_count(original), 3)
-    let pending = @temporal_window.pending_validations(checked)
+    let pending = indexed_obligation_copy(
+      @temporal_window.pending_validations(checked),
+      @temporal_window.pending_validation_count(checked),
+      i => @temporal_window.pending_validation_at(checked, i),
+      (a, b) => a == b,
+    )
     pending.clear()
-    assert_eq(@temporal_window.pending_validations(checked).length(), 4)
+    assert_eq(
+      indexed_obligation_copy(
+        @temporal_window.pending_validations(checked),
+        @temporal_window.pending_validation_count(checked),
+        i => @temporal_window.pending_validation_at(checked, i),
+        (a, b) => a == b,
+      ).length(),
+      4,
+    )
   }
 }
 

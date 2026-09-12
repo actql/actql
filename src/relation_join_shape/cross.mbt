@@ -154,6 +154,21 @@ pub fn cross_pending_validations(value : CheckedCrossJoin) -> Array[Obligation] 
 }
 
 ///|
+/// O(1), without materializing the obligation array.
+pub fn cross_pending_validation_count(value : CheckedCrossJoin) -> Int {
+  value.pending.length()
+}
+
+///|
+/// O(1); invalid indices return None. Retains authored obligation order.
+pub fn cross_pending_validation_at(
+  value : CheckedCrossJoin,
+  index : Int,
+) -> Obligation? {
+  value.pending.get(index)
+}
+
+///|
 pub fn cross_usage(value : CheckedCrossJoin) -> Usage {
   value.usage
 }

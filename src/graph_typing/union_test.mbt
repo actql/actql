@@ -22,9 +22,12 @@ test "long union lists retain all ordered folds under a shared budget" {
     let fold = @graph_typing.union_fold_at(c, i).unwrap()
     assert_eq(@graph_typing.structural_with_name(fold), "g")
     assert_true(
-      @graph_typing.structural_pending(fold).contains(
-        ValidateFiniteNumericResults,
-      ),
+      indexed_obligation_copy(
+        @graph_typing.structural_pending(fold),
+        @graph_typing.structural_pending_count(fold),
+        i => @graph_typing.structural_pending_at(fold, i),
+        (a, b) => a == b,
+      ).contains(ValidateFiniteNumericResults),
     )
   }
   let u = @graph_typing.union_usage(c)
@@ -66,9 +69,12 @@ test "union list retains left-fold property extents and repeated source referenc
     assert_eq(@graph_typing.structural_with_name(fold), name)
     assert_eq(@graph_typing.structural_operation(fold), Union)
     assert_true(
-      @graph_typing.structural_pending(fold).contains(
-        ApplyEveryAuthoredStrategy,
-      ),
+      indexed_obligation_copy(
+        @graph_typing.structural_pending(fold),
+        @graph_typing.structural_pending_count(fold),
+        i => @graph_typing.structural_pending_at(fold, i),
+        (a, b) => a == b,
+      ).contains(ApplyEveryAuthoredStrategy),
     )
     guard @graph_typing.structural_output(fold) is @carrier.GraphValue(g) else {
       abort("Graph")

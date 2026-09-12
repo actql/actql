@@ -41,9 +41,12 @@ test "nearest retains original keyed sources even when explicit roles bypass com
       )
     }
     assert_true(
-      @vector_typing.nearest_pending(retained).contains(
-        ValidateBothUniqueIdentities,
-      ),
+      indexed_obligation_copy(
+        @vector_typing.nearest_pending(retained),
+        @vector_typing.nearest_pending_count(retained),
+        i => @vector_typing.nearest_pending_at(retained, i),
+        (a, b) => a == b,
+      ).contains(ValidateBothUniqueIdentities),
     )
   }
 }

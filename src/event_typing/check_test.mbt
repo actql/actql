@@ -79,12 +79,20 @@ test "both policies add typed labels while retaining event roles and unknown pay
       @carrier.lookup(e.records, Unqualified("watermark_decision"))
       is Present({ contract: Some({ shape: Text(_), nullable: false, }), .. }),
     )
-    let pending = @event_typing.pending_validations(checked)
+    let pending = indexed_obligation_copy(
+      @event_typing.pending_validations(checked),
+      @event_typing.pending_validation_count(checked),
+      i => @event_typing.pending_validation_at(checked, i),
+      (a, b) => a == b,
+    )
     pending.clear()
     assert_true(
-      @event_typing.pending_validations(checked).contains(
-        WatermarkClassification,
-      ),
+      indexed_obligation_copy(
+        @event_typing.pending_validations(checked),
+        @event_typing.pending_validation_count(checked),
+        i => @event_typing.pending_validation_at(checked, i),
+        (a, b) => a == b,
+      ).contains(WatermarkClassification),
     )
   }
 }

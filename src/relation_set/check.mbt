@@ -214,12 +214,29 @@ pub fn usage(value : CheckedSet) -> Usage {
 
 ///|
 pub fn pending_validations(_value : CheckedSet) -> Array[Obligation] {
-  [
-    ValidateInputRows,
-    CompareCompleteTypedRows,
-    PreserveEarliestLeftOccurrences,
-    BoundOutputByLeftInput,
-    ResolveComparisonResources,
-    ResolveIdentityAndCompleteness,
-  ]
+  let out = []
+  for i in 0..<pending_validation_count(_value) {
+    out.push(pending_validation_at(_value, i).unwrap())
+  }
+  out
+}
+
+///|
+/// O(1), without materializing the obligation array.
+pub fn pending_validation_count(_value : CheckedSet) -> Int {
+  6
+}
+
+///|
+/// O(1); invalid indices return None. Retains authored obligation order.
+pub fn pending_validation_at(_value : CheckedSet, index : Int) -> Obligation? {
+  match index {
+    0 => Some(ValidateInputRows)
+    1 => Some(CompareCompleteTypedRows)
+    2 => Some(PreserveEarliestLeftOccurrences)
+    3 => Some(BoundOutputByLeftInput)
+    4 => Some(ResolveComparisonResources)
+    5 => Some(ResolveIdentityAndCompleteness)
+    _ => None
+  }
 }

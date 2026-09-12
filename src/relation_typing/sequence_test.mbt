@@ -61,11 +61,22 @@ test "sequence symbolic guards and duration retain binding obligations" {
   assert_eq(@relation_typing.sequence_per_key_guard(c), Some(Parameter("cap")))
   assert_eq(@relation_typing.sequence_output_guard(c), Some(Literal(7L)))
   assert_true(
-    @relation_typing.sequence_obligations(c).contains(BindWithin("duration")),
+    indexed_obligation_copy(
+      @relation_typing.sequence_obligations(c),
+      @relation_typing.sequence_obligation_count(c),
+      i => @relation_typing.sequence_obligation_at(c, i),
+      (a, b) => a == b,
+    ).contains(BindWithin("duration")),
   )
-  assert_eq(@relation_typing.sequence_pending_validations(c).map(p => p.kind), [
-    BoundInteger(name="cap", minimum=1L),
-  ])
+  assert_eq(
+    indexed_obligation_copy(
+      @relation_typing.sequence_pending_validations(c),
+      @relation_typing.sequence_pending_validation_count(c),
+      i => @relation_typing.sequence_pending_validation_at(c, i),
+      (a, b) => a.kind == b.kind && physical_equal(a.source, b.source),
+    ).map(p => p.kind),
+    [BoundInteger(name="cap", minimum=1L)],
+  )
 }
 
 ///|
@@ -118,7 +129,12 @@ test "sequence supports Relation and Events without widening timestamp Events cl
       assert_true(@relation_typing.sequence_per_key_guard(c) is None)
       assert_true(@relation_typing.sequence_output_guard(c) is None)
       assert_true(
-        @relation_typing.sequence_obligations(c).contains(AtomicMatchLimits),
+        indexed_obligation_copy(
+          @relation_typing.sequence_obligations(c),
+          @relation_typing.sequence_obligation_count(c),
+          i => @relation_typing.sequence_obligation_at(c, i),
+          (a, b) => a == b,
+        ).contains(AtomicMatchLimits),
       )
       assert_eq(@relation_typing.sequence_overlap(c), Disallow)
       assert_eq(@relation_typing.sequence_contiguity(c), Subsequence)

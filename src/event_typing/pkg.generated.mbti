@@ -32,6 +32,10 @@ pub fn options(CheckedEvent) -> Options
 
 pub fn output(CheckedEvent) -> @carrier_contract.Carrier
 
+pub fn pending_validation_at(CheckedEvent, Int) -> Obligation?
+
+pub fn pending_validation_count(CheckedEvent) -> Int
+
 pub fn pending_validations(CheckedEvent) -> Array[Obligation]
 
 pub fn policy(CheckedEvent) -> Policy?

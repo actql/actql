@@ -609,6 +609,10 @@ work cap and an independent retained-entry cap are checked before allocation,
 and the scan is linear in recorded occurrences. Empty inventories still retain
 their owner and do not manufacture execution authority.
 
+Operation-level inventories use [indexed obligation reads](operation-obligation-reads.md)
+so collection can charge retained-entry budgets before allocating arrays.
+Listing those obligations alone neither classifies nor discharges them.
+
 Expression closure does not discharge operation-level obligations, bind
 authored guard witness identities, build staged Program/import contracts, or
 complete local Unit/Invocation identity projections. Source Program and stage

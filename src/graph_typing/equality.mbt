@@ -254,10 +254,30 @@ pub fn equality_input(v : CheckedEquality, side : @row.Side) -> @carrier.Graph {
 
 ///|
 pub fn equality_pending(_v : CheckedEquality) -> Array[EqualityObligation] {
-  [
-    AdmitBothGraphs,
-    CompareTypedCanonicalGraphs,
-    ResolveComparisonResources,
-    ResolveSgaProfile,
-  ]
+  let out = []
+  for i in 0..<equality_pending_count(_v) {
+    out.push(equality_pending_at(_v, i).unwrap())
+  }
+  out
+}
+
+///|
+/// O(1), without materializing the obligation array.
+pub fn equality_pending_count(_v : CheckedEquality) -> Int {
+  4
+}
+
+///|
+/// O(1); invalid indices return None. Retains authored obligation order.
+pub fn equality_pending_at(
+  _v : CheckedEquality,
+  index : Int,
+) -> EqualityObligation? {
+  match index {
+    0 => Some(AdmitBothGraphs)
+    1 => Some(CompareTypedCanonicalGraphs)
+    2 => Some(ResolveComparisonResources)
+    3 => Some(ResolveSgaProfile)
+    _ => None
+  }
 }

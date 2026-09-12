@@ -355,27 +355,63 @@ pub fn traverse_output_guard(c : CheckedTraverse) -> Count? {
 
 ///|
 pub fn traverse_pending(c : CheckedTraverse) -> Array[TraverseObligation] {
-  let out = [
-    AdmitTraversalGraph,
-    RespectTraversalHopBounds,
-    EvaluateTraversalHopPredicates,
-    CanonicalTraversalOrder,
-    ResolveTraversalResources,
-    ResolveTraversalProfile,
-  ]
+  let out = []
+  traverse_pending_each(c, item => out.push(item))
+  out
+}
+
+///|
+// One bounded enumeration rule shared by copied and indexed reads.
+fn traverse_pending_each(
+  c : CheckedTraverse,
+  emit : (TraverseObligation) -> Unit,
+) -> Unit {
+  emit(AdmitTraversalGraph)
+  emit(RespectTraversalHopBounds)
+  emit(EvaluateTraversalHopPredicates)
+  emit(CanonicalTraversalOrder)
+  emit(ResolveTraversalResources)
+  emit(ResolveTraversalProfile)
   if c.emit == TraversedPaths {
-    out.push(EnumerateSimplePaths)
-    out.push(DeduplicateExactPaths)
+    emit(EnumerateSimplePaths)
+    emit(DeduplicateExactPaths)
   } else {
-    out.push(EmitMinimumNodeDepth)
+    emit(EmitMinimumNodeDepth)
   }
   if c.guard_rows is Some(bound) {
-    out.push(EnforceTraversalOutputGuard)
+    emit(EnforceTraversalOutputGuard)
     if bound is Parameter(name) {
-      out.push(BindTraversalOutputGuard(name))
+      emit(BindTraversalOutputGuard(name))
     }
   }
-  out
+}
+
+///|
+/// O(1), independent of input data size; no obligation array is materialized.
+pub fn traverse_pending_count(c : CheckedTraverse) -> Int {
+  let mut count = 0
+  traverse_pending_each(c, _ => count += 1)
+  count
+}
+
+///|
+/// O(1), without copying the obligation array; invalid indices return None.
+pub fn traverse_pending_at(
+  c : CheckedTraverse,
+  index : Int,
+) -> TraverseObligation? {
+  if index < 0 {
+    return None
+  }
+  let mut count = 0
+  let mut found = None
+  traverse_pending_each(c, item => {
+    if count == index {
+      found = Some(item)
+    }
+    count += 1
+  })
+  found
 }
 
 ///|

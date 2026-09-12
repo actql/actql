@@ -219,20 +219,37 @@ pub fn apply_usage(v : CheckedApply) -> Usage {
 
 ///|
 pub fn apply_pending(_v : CheckedApply) -> Array[ApplyObligation] {
-  [
-    RequireExactlyOneDeltaRow,
-    ValidateDeltaVersionAndClosedShape,
-    MatchPinnedGraphContract,
-    AdmitBaseUnderPinnedContract,
-    MatchExactBaseIdentity,
-    ValidateOrderedUniqueActions,
-    ValidateExactBeforeRecords,
-    ValidateAddRemoveUpdateExistence,
-    ApplyNodeAndEdgeChangesTogether,
-    ValidateResultEndpointsAndContract,
-    MatchExactTargetIdentity,
-    PreserveGraphPolicyDependencies,
-    ResolveApplyResources,
-    ResolveSgaProfile,
-  ]
+  let out = []
+  for i in 0..<apply_pending_count(_v) {
+    out.push(apply_pending_at(_v, i).unwrap())
+  }
+  out
+}
+
+///|
+/// O(1), without materializing the obligation array.
+pub fn apply_pending_count(_v : CheckedApply) -> Int {
+  14
+}
+
+///|
+/// O(1); invalid indices return None. Retains authored obligation order.
+pub fn apply_pending_at(_v : CheckedApply, index : Int) -> ApplyObligation? {
+  match index {
+    0 => Some(RequireExactlyOneDeltaRow)
+    1 => Some(ValidateDeltaVersionAndClosedShape)
+    2 => Some(MatchPinnedGraphContract)
+    3 => Some(AdmitBaseUnderPinnedContract)
+    4 => Some(MatchExactBaseIdentity)
+    5 => Some(ValidateOrderedUniqueActions)
+    6 => Some(ValidateExactBeforeRecords)
+    7 => Some(ValidateAddRemoveUpdateExistence)
+    8 => Some(ApplyNodeAndEdgeChangesTogether)
+    9 => Some(ValidateResultEndpointsAndContract)
+    10 => Some(MatchExactTargetIdentity)
+    11 => Some(PreserveGraphPolicyDependencies)
+    12 => Some(ResolveApplyResources)
+    13 => Some(ResolveSgaProfile)
+    _ => None
+  }
 }

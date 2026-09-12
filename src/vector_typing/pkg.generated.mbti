@@ -70,6 +70,10 @@ pub fn merged_ranking_output(@relation_evidence.CheckedRanking) -> @carrier_cont
 
 pub fn merged_ranking_pending(@relation_evidence.CheckedRanking) -> Array[@relation_evidence.RankingObligation]
 
+pub fn merged_ranking_pending_at(@relation_evidence.CheckedRanking, Int) -> @relation_evidence.RankingObligation?
+
+pub fn merged_ranking_pending_count(@relation_evidence.CheckedRanking) -> Int
+
 pub fn merged_ranking_usage(@relation_evidence.CheckedRanking) -> @vector_checking.Usage
 
 pub fn metric(CheckedVector) -> @vector_checking.Metric?
@@ -102,9 +106,17 @@ pub fn nearest_pair_options(@relation_evidence.NearestPair) -> @relation_evidenc
 
 pub fn nearest_pair_pending(@relation_evidence.NearestPair) -> Array[@relation_evidence.NearestObligation]
 
+pub fn nearest_pair_pending_at(@relation_evidence.NearestPair, Int) -> @relation_evidence.NearestObligation?
+
+pub fn nearest_pair_pending_count(@relation_evidence.NearestPair) -> Int
+
 pub fn nearest_pair_usage(@relation_evidence.NearestPair) -> @vector_checking.Usage
 
 pub fn nearest_pending(@relation_evidence.CheckedNearest) -> Array[@relation_evidence.NearestObligation]
+
+pub fn nearest_pending_at(@relation_evidence.CheckedNearest, Int) -> @relation_evidence.NearestObligation?
+
+pub fn nearest_pending_count(@relation_evidence.CheckedNearest) -> Int
 
 pub fn nearest_query_name(@relation_evidence.NearestOptions) -> String
 
@@ -117,6 +129,10 @@ pub fn nearest_usage(@relation_evidence.CheckedNearest) -> @vector_checking.Usag
 pub fn operation(CheckedVector) -> Operation
 
 pub fn output(CheckedVector) -> @carrier_contract.Carrier
+
+pub fn pending_validation_at(CheckedVector, Int) -> Obligation?
+
+pub fn pending_validation_count(CheckedVector) -> Int
 
 pub fn pending_validations(CheckedVector) -> Array[Obligation]
 
@@ -135,6 +151,10 @@ pub fn pool_options_usage(PoolOptions) -> @vector_checking.Usage
 pub fn pool_output_id(PoolOptions) -> String?
 
 pub fn pool_pending(CheckedPool) -> Array[PoolObligation]
+
+pub fn pool_pending_at(CheckedPool, Int) -> PoolObligation?
+
+pub fn pool_pending_count(CheckedPool) -> Int
 
 pub fn pool_source(PoolOptions) -> @decode_core.Cursor
 
@@ -235,6 +255,10 @@ pub fn text_rank_options_usage(@relation_evidence.TextRankOptions) -> @vector_ch
 pub fn text_rank_output(@relation_evidence.CheckedTextRank) -> @carrier_contract.Carrier
 
 pub fn text_rank_pending(@relation_evidence.CheckedTextRank) -> Array[@relation_evidence.TextRankObligation]
+
+pub fn text_rank_pending_at(@relation_evidence.CheckedTextRank, Int) -> @relation_evidence.TextRankObligation?
+
+pub fn text_rank_pending_count(@relation_evidence.CheckedTextRank) -> Int
 
 pub fn text_rank_profile(@relation_evidence.CheckedTextRank) -> @text_rank_profile.Profile?
 

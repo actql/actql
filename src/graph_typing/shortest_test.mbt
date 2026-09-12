@@ -41,14 +41,20 @@ test "shortest paths keep typed endpoints and defer all-edge weight validation" 
   assert_true(@graph_typing.shortest_endpoint(c, Left) is Single(_))
   assert_eq(@graph_typing.shortest_weight(c), Some(Unqualified("cost")))
   assert_true(
-    @graph_typing.shortest_pending(c).contains(
-      ValidateAllNonnegativeFiniteWeights,
-    ),
+    indexed_obligation_copy(
+      @graph_typing.shortest_pending(c),
+      @graph_typing.shortest_pending_count(c),
+      i => @graph_typing.shortest_pending_at(c, i),
+      (a, b) => a == b,
+    ).contains(ValidateAllNonnegativeFiniteWeights),
   )
   assert_true(
-    @graph_typing.shortest_pending(c).contains(
-      RejectSelectedOverrangeAtomically,
-    ),
+    indexed_obligation_copy(
+      @graph_typing.shortest_pending(c),
+      @graph_typing.shortest_pending_count(c),
+      i => @graph_typing.shortest_pending_at(c, i),
+      (a, b) => a == b,
+    ).contains(RejectSelectedOverrangeAtomically),
   )
   let rows = @carrier.relation_rows(@graph_typing.shortest_output(c)).unwrap()
   assert_eq(@carrier.field_count(rows), 6)
