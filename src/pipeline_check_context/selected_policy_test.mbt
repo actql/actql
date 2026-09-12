@@ -26,6 +26,7 @@ fn selected_fixture(
   expression? : String = "$n",
   steps? : String? = None,
   second_steps? : String? = None,
+  accepted? : Bool = false,
   parameters? : String = "{\"n\":{\"type\":\"number\",\"default\":1}}",
   supplied? : @decode.Cursor? = None,
 ) -> (ReconciledContexts, @environment.Capacity) {
@@ -35,6 +36,7 @@ fn selected_fixture(
     expression~,
     steps~,
     second_steps~,
+    accepted~,
     parameters~,
     supplied~,
   )

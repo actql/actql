@@ -16,6 +16,7 @@ fn wired_inputs_fixture(
   expression? : String = "$n",
   steps? : String? = None,
   second_steps? : String? = None,
+  accepted? : Bool = false,
   parameters? : String = "{\"n\":{\"type\":\"number\",\"default\":1}}",
   supplied? : @decode.Cursor? = None,
   remote? : Array[@sourceviews.PipelineInputs]? = None,
@@ -42,6 +43,14 @@ fn wired_inputs_fixture(
     .replace(
       old="\"params\":{\"n\":{\"type\":\"number\",\"default\":1}}",
       new="\"params\":" + parameters,
+    )
+    .replace(
+      old="\"id\":\"second\"",
+      new=if accepted {
+        "\"id\":\"second\",\"after\":\"accepted\""
+      } else {
+        "\"id\":\"second\""
+      },
     )
     .replace(
       old="\"steps\":[{\"derive\":{\"x\":\"$n\"}}]",

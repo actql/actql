@@ -108,6 +108,8 @@ pub fn checked_results(PipelineContext) -> @relation_results.CheckedResults
 
 pub fn close_program_expressions(ProgramSourceIdentity, Int, Int) -> Result[ProgramExpressionClosure, ExpressionClosureIssue]
 
+pub fn collect_program_incoming(ProgramSourceIdentity, IncomingLimits) -> Result[ProgramIncomingRequirements, IncomingIssue]
+
 pub fn collect_program_operation_requirements(ProgramExpressionClosure, Int, Int) -> Result[ProgramOperationRequirements, OperationRequirementsIssue]
 
 pub fn collect_source_bindings(ProgramPreparation, Int, Int) -> Result[SourceBindingRequirements, SourceBindingsIssue]
@@ -323,6 +325,18 @@ pub fn program_identity_stage_at(ProgramSourceIdentity, Int) -> StageSourceIdent
 pub fn program_identity_stage_count(ProgramSourceIdentity) -> Int
 
 pub fn program_identity_usage(ProgramSourceIdentity) -> (Int, Int, Int)
+
+pub fn program_incoming_at(ProgramIncomingRequirements, Int) -> IncomingSite?
+
+pub fn program_incoming_count(ProgramIncomingRequirements) -> Int
+
+pub fn program_incoming_identity(ProgramIncomingRequirements) -> ProgramSourceIdentity
+
+pub fn program_incoming_namespace(ProgramIncomingRequirements, Int) -> (String, String)?
+
+pub fn program_incoming_usage(ProgramIncomingRequirements) -> (Int, Int)
+
+pub fn program_incoming_wiring(ProgramIncomingRequirements) -> @stage_results.ResultWiring
 
 pub fn program_reference_stages(ProgramReferences) -> StageContexts
 
@@ -578,6 +592,37 @@ pub(all) struct ExpressionValidationLimits {
 } derive(Eq, @debug.Debug)
 
 type ExpressionValidationSite
+
+pub(all) enum IncomingIssue {
+  InvalidLimits
+  BudgetExceeded
+  InconsistentSource
+  MissingProducer(Int, String)
+  MissingResult(Int, String)
+} derive(Eq, @debug.Debug)
+
+pub(all) struct IncomingLimits {
+  max_work : Int
+  max_name_units : Int
+  max_requirements : Int
+} derive(Eq, @debug.Debug)
+
+pub(all) enum IncomingMilestone {
+  Accepted
+  Completed
+} derive(Eq, @debug.Debug)
+
+pub enum IncomingRequirement {
+  Success(IncomingMilestone, StageSourceIdentity)
+  Result(String, StageSourceIdentity, @stage_results.ResultImport)
+  Receipt(String, String, StageSourceIdentity)
+}
+
+pub struct IncomingSite {
+  stage : Int
+  consumer : StageSourceIdentity
+  requirement : IncomingRequirement
+}
 
 type InputContexts
 
@@ -905,6 +950,8 @@ pub(all) enum ProgramIdentityPhase {
   StageDefinition(Int)
   StageParameterValues(Int)
 } derive(Eq, @debug.Debug)
+
+type ProgramIncomingRequirements
 
 type ProgramOperationCalendar
 

@@ -13,6 +13,7 @@ fn timestamp_fixture(
   expression : String,
   steps? : String? = None,
   second_steps? : String? = None,
+  accepted? : Bool = false,
   parameters? : String = "{\"p\":{\"type\":\"string\",\"default\":\"yyyy-MM-dd\"}}",
   supplied? : @decode.Cursor? = None,
   profile? : String = validation_profile(
@@ -28,6 +29,7 @@ fn timestamp_fixture(
     expression~,
     steps~,
     second_steps~,
+    accepted~,
     parameters~,
     supplied~,
   )

@@ -599,6 +599,42 @@ neither is a physical-memory limit. Phase-specific failure never exposes a
 partially assembled identity set. Read-only accessors preserve the exact source
 owner and prepared Definition alongside their computed CIDs and measured usage.
 
+### Incoming local dependencies
+
+`collect_program_incoming` derives requirements from the source identity's
+already attached Result wiring, not from independently supplied edge arrays or
+claimed producer CIDs. Each site retains the consumer StageSourceIdentity.
+Success requirements retain accepted/completed and the exact earlier producer;
+Result requirements retain the exact producer identity and checked ResultImport,
+including its publication schema, ordering owner and produced input. The source
+and publication owners are compared, not the allocation identity of a replaceable
+StagePorts wrapper. Receipt requirements are explicitly unresolved effect/receipt
+associations, never fabricated Result ports.
+
+All source stages are visited. The first stage has no implicit success producer;
+later stages preserve the authored/default predecessor law. Success and Result
+dependencies on the same producer remain separate, as do repeated imports under
+different input names. Source coordinates identify diagnostic sites only. The
+namespace accessor returns the typed `(program_id, stage_id)` pair, never a
+concatenated string, parent revision CID or source index. Internal traversal is
+stage order, then success requirement and source import order; this enumeration
+is not a new canonical wire preimage or a deduplication law.
+
+Work includes the retained identity preparation, stage/import index visits and
+new requirement entries. UTF-16 name units have a separate cumulative cap,
+including names inspected during map construction and lookup. Requirements have
+one Program-wide count cap. Index sizes are checked before allocation and a late
+failure returns no partial collection. Indexed access does not copy collections.
+
+This boundary is an owned requirement inventory, not a Unit Definition or a
+success certificate. The normative local-dependency schema additionally requires
+local contract closure, import interfaces and incoming success contracts.
+Effect/completion contracts, receipt correlation/freshness and actual successful
+execution cannot be substituted by empty maps, matching types or a checked
+Result port. Final Program assembly must retain these unresolved requirements
+and connect their discharge to this exact source identity; wire identity and
+execution authority remain separate.
+
 `close_program_expressions` closes the recorded typed-expression obligation
 inventory for that same owned source identity. It exhaustively matches
 `ProfileAdmission`, `PatternValidation` and `HostEnvelope`; adding another kind

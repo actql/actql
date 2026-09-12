@@ -9,6 +9,7 @@ fn program_sources_fixture(
   expression? : String = "regex_extract($p, '(.)', $n)",
   steps? : String? = None,
   second_steps? : String? = None,
+  accepted? : Bool = false,
   parameters? : String = "{\"p\":{\"type\":\"string\",\"default\":\"é😀\"},\"n\":{\"type\":\"number\",\"default\":1}}",
 ) -> (OperationProfileChecks, ProgramReferences, SourceBindingRequirements) {
   let patterns = bound_fixture(
@@ -16,6 +17,7 @@ fn program_sources_fixture(
     supplied~,
     steps~,
     second_steps~,
+    accepted~,
     parameters~,
     profile=host_profile,
   )

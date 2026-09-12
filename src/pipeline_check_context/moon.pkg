@@ -1,6 +1,7 @@
 supported_targets = "+js+wasm+native"
 
 import {
+  "actql/actql/stage_syntax" @syntax,
   "actql/actql/calendar_profile",
   "actql/actql/text_rank_profile" @lexical,
   "actql/actql/relation_values" @values,
@@ -47,7 +48,6 @@ import {
   "actql/actql/stage_source_refs" @refs,
   "actql/actql/sha256" @sha,
   "actql/actql/source_value" @source,
-  "actql/actql/stage_syntax" @syntax,
   "actql/actql/relation_schema" @schema,
   "actql/actql/relation_evidence" @evidence,
   "actql/actql/capacity_witness" @wire,

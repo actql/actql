@@ -20,6 +20,7 @@ fn bound_fixture(
   profile? : String = bound_profile(),
   steps? : String? = None,
   second_steps? : String? = None,
+  accepted? : Bool = false,
 ) -> PatternChecks {
   check_patterns(
     regex_fixture(
@@ -29,6 +30,7 @@ fn bound_fixture(
       profile~,
       steps~,
       second_steps~,
+      accepted~,
     ),
     pattern_limits(),
   ).unwrap()

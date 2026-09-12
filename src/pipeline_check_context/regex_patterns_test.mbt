@@ -14,6 +14,7 @@ fn regex_fixture(
   expression : String,
   steps? : String? = None,
   second_steps? : String? = None,
+  accepted? : Bool = false,
   parameters? : String = "{\"p\":{\"type\":\"string\",\"default\":\"(a)\"},\"c\":{\"type\":\"number\",\"default\":1},\"r\":{\"type\":\"string\",\"default\":\"$1$$\"}}",
   supplied? : @decode.Cursor? = None,
   profile? : String = validation_profile(
@@ -30,6 +31,7 @@ fn regex_fixture(
     profile~,
     steps~,
     second_steps~,
+    accepted~,
   )
 }
 
