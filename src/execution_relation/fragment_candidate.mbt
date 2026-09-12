@@ -95,17 +95,3 @@ fn prepare_fragment_candidate(
   }
   Ok({ contract, material, artifact, })
 }
-
-///|
-fn emit_fragment_candidate(
-  candidate : FragmentCandidate,
-  limits : RegistryLimits,
-  out : @encode.Writer,
-) -> Unit raise @encode.EncodeFailure {
-  emit_fragment_candidate_body(
-    candidate.material,
-    limits,
-    Some(candidate.artifact.cid),
-    out,
-  )
-}

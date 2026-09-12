@@ -23,10 +23,36 @@ fn artifact_evidence(expr : String) -> @lower.RootEvidence {
 }
 
 ///|
+test "generated JSON codec honors explicit depth below and above the core default" {
+  for depth in [1, 8, 1025] {
+    let mut text = "null"
+    for i = 0; i < depth; i = i + 1 {
+      text = "[" + text + "]"
+    }
+    let accepted = try {
+      let _ = parse_generated_with_depth(text, depth)
+      true
+    } catch {
+      _ => false
+    }
+    assert_true(accepted)
+    let rejected = try {
+      let _ = parse_generated_with_depth(text, depth - 1)
+      false
+    } catch {
+      @json.DepthLimitExceeded => true
+      _ => false
+    }
+    assert_true(rejected)
+  }
+  assert_true(parse_generated_with_depth("null", 0) is Null)
+}
+
+///|
 test "root identity commits the complete root rather than just the machine node" {
   let evidence = artifact_evidence("{\"literal\":7}")
   let artifact = prepare_root_artifact(evidence, 10000, 1000, 100).unwrap()
-  assert_true(physical_equal(artifact.evidence, evidence))
+  assert_true(physical_equal(artifact._evidence, evidence))
   // SHA-256 of the literal fixed preimage below, independently computed.
   assert_eq(
     artifact.cid,

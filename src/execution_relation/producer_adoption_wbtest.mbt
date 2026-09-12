@@ -32,8 +32,8 @@ test "completed producer runs through receiving driver with fresh input accounti
     produced=inputs,
   ).unwrap()
   inputs.clear()
-  assert_eq(result.producer_inputs.length(), 1)
-  assert_true(physical_equal(result.producer_inputs[0], bound))
+  assert_eq(result._producer_inputs.length(), 1)
+  assert_true(physical_equal(result._producer_inputs[0], bound))
   let received = completed_output(result, Step(0)).unwrap()
   assert_eq(received.table.names, ["a"])
   assert_true(received.table.rows[0][0] is Number(1.0))

@@ -1,4 +1,19 @@
 ///|
+// Test-only complete-envelope emission; production uses admitted material.
+fn emit_fragment_candidate(
+  candidate : FragmentCandidate,
+  limits : RegistryLimits,
+  out : @encode.Writer,
+) -> Unit raise @encode.EncodeFailure {
+  emit_fragment_candidate_body(
+    candidate.material,
+    limits,
+    Some(candidate.artifact.cid),
+    out,
+  )
+}
+
+///|
 fn test_fragment_contract() -> FragmentContract raise {
   admit_fragment_contract(
     registered_relation_contracts(),

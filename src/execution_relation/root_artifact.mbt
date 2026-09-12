@@ -2,7 +2,8 @@
 /// Generated from retained checked evidence, never from supplied artifact JSON.
 /// Identity alone does not prove complete fragment admission.
 priv struct RootArtifact {
-  evidence : @lower.RootEvidence
+  // Retain the checked owner, not only its serialized identity.
+  _evidence : @lower.RootEvidence
   value : @identity.CanonicalValue
   cid : String
   bytes : Int
@@ -42,7 +43,7 @@ fn prepare_root_artifact(
     Err(issue) => return Err(issue)
   }
   Ok({
-    evidence,
+    _evidence: evidence,
     value: artifact.value,
     cid: artifact.cid,
     bytes: artifact.bytes,
@@ -67,7 +68,7 @@ fn canonicalize_generated_artifact(
   max_nodes : Int,
   max_depth : Int,
 ) -> Result[GeneratedArtifact, RootArtifactIssue] {
-  let json = @json.parse(text, max_nesting_depth=max_depth) catch {
+  let json = parse_generated_with_depth(text, max_depth) catch {
     _ => return Err(GeneratedDecodeFailure)
   }
   // UTF-16 units of strings/keys cannot exceed the already bounded UTF-8 JSON
@@ -83,4 +84,17 @@ fn canonicalize_generated_artifact(
     _ => return Err(OutputLimit)
   }
   Ok({ value, cid: "sha256:" + usage.0, bytes: usage.1, nodes: usage.2, })
+}
+
+///|
+/// Pinned core 0.10.12 exposes depth control only through this deprecated label.
+/// Omitting it silently substitutes 1024 for the caller's bounded depth, both
+/// weakening smaller limits and rejecting larger ones. Keep the exception local
+/// to this call until the shared codec provides an equivalent bounded adapter.
+#warnings("-deprecated")
+fn parse_generated_with_depth(
+  text : String,
+  max_depth : Int,
+) -> Json raise @json.ParseError {
+  @json.parse(text, max_nesting_depth=max_depth)
 }

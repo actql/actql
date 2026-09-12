@@ -67,7 +67,7 @@ test "checked fragments preserve completion evidence across producer and consume
   assert_eq(delivered.table.names, ["d"])
   assert_eq(delivered.table.rows.length(), 1)
   assert_true(delivered.table.rows[0][0] is Number(12.0))
-  assert_true(physical_equal(result.producer_inputs[0].output, output))
+  assert_true(physical_equal(result._producer_inputs[0].output, output))
   // Correct values are not a substitute for the retained completion identity.
   let raw = capture_input(
     receiver,

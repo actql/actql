@@ -315,5 +315,5 @@ fn evaluate_sequence_components(
   if !spend_control(control, produced.length()) {
     return Err(InputLimit)
   }
-  Ok({ contracts, sequence, store, producer_inputs: produced.copy(), })
+  Ok({ contracts, sequence, store, _producer_inputs: produced.copy(), })
 }
