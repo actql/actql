@@ -195,6 +195,17 @@ fn evaluate_rows_with_workspace(
     )
   }
   if @lower.kernel_take(kernel) is Some((count, offset)) {
+    let input = if @lower.order_node_id(node) is Some(id) {
+      match
+        evaluate_sort_rows(
+          kernel, input, id, max_rows, control, output, workspace,
+        ) {
+        Ok(table) => table
+        Err(e) => return Err(e)
+      }
+    } else {
+      input
+    }
     return evaluate_take_rows(
       input,
       @lower.node_id(node),

@@ -16,7 +16,10 @@ pub fn emit_kernel_node(
   @encode.string_value(out, node.id)
   @encode.key(out, "in")
   @encode.begin_array(out)
-  @encode.string_value(out, node.projection_id.unwrap_or(kernel.input_id))
+  @encode.string_value(
+    out,
+    node.order_id.unwrap_or(node.projection_id.unwrap_or(kernel.input_id)),
+  )
   @encode.end_array(out)
   @encode.key(out, "op")
   @encode.string_value(
@@ -144,6 +147,36 @@ fn emit_kernel_prefix(
   out : @encode.Writer,
 ) -> Unit raise @encode.EncodeFailure {
   let node = kernel.owner.prepared.nodes[kernel.step_index]
+  if node.order_id is Some(id) {
+    @encode.begin_object(out)
+    @encode.key(out, "id")
+    @encode.string_value(out, id)
+    @encode.key(out, "in")
+    @encode.begin_array(out)
+    @encode.string_value(out, kernel.input_id)
+    @encode.end_array(out)
+    @encode.key(out, "op")
+    @encode.string_value(out, "REL.orderByStable")
+    @encode.key(out, "params")
+    @encode.begin_object(out)
+    @encode.key(out, "by")
+    @encode.begin_array(out)
+    for i = 0; i < kernel_sort_term_count(kernel); i = i + 1 {
+      let (field, _, _) = kernel_sort_term_at(kernel, i).unwrap()
+      @encode.begin_object(out)
+      @encode.key(out, "dir")
+      @encode.string_value(out, "asc")
+      @encode.key(out, "field")
+      @encode.string_value(out, @schema.reference_name(field))
+      @encode.key(out, "nulls")
+      @encode.string_value(out, "last")
+      @encode.end_object(out)
+    }
+    @encode.end_array(out)
+    @encode.end_object(out)
+    @encode.end_object(out)
+    return
+  }
   guard node.projection_id is Some(id) else { return }
   @encode.begin_object(out)
   @encode.key(out, "id")

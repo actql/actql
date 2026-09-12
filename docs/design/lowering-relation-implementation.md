@@ -104,10 +104,15 @@ count is positive and offset is nonnegative. `REL.limit` emission includes both
 quantities. The selection kernel clamps against actual input length before
 converting to array ordinals, avoiding count-plus-offset overflow. It shares the
 driver's cumulative budgets and immutable output boundary, and never prunes
-upstream evaluation. An unresolved input order is a preparation error. The path
-requiring a new candidate-key-completed sort remains an explicit backend gap
-until that sort's checked strategy and shared contract are connected; a raw
-arrival order cannot substitute for it.
+upstream evaluation. An unresolved input order is a preparation error. When the
+checker supplies a candidate-key completion, lowering reserves an explicit
+`REL.orderByStable` prefix and wires the limit to that node. Its ascending,
+nulls-last terms come from the exact owned key, not new inference. Preparation
+bounds those terms and checks their comparison domains. Execution validates
+input key obligations before the shared stable sort, then applies offset/count;
+sort scratch, intermediate retention and selection consume the same budgets.
+A raw arrival order cannot substitute for either an admitted prior order or
+this checked completion.
 
 Whole-row `distinct` emits `REL.distinct` with empty parameters. Before execution,
 the common sequence preparation checks every input field's comparison domain,
@@ -138,7 +143,7 @@ order, without claiming their source identities or physical budgets are equal.
 | Contract selection | Hash the selected registry and execution-contract bodies; consume the registered expression-fragment and ordered row-kernel contracts | Registry membership alone does not establish backend support |
 | Typed fragment admission | Generate request, machine graph, roots and evidence from the same checked owner; regenerate the complete candidate before runtime preparation | No arbitrary saved AoA JSON execution and no final Program Plan identity |
 | Parameters and explicit inputs | Reuse bound parameter ownership; admit supplied values and keys; distinguish exact completed producer bindings from raw captures | Computation success does not authenticate unrelated inherited metadata |
-| Projection, expression and selection execution | One driver executes values, map/ordered derive, filter, select/rename/drop, resolved stable sort, distinct/dedupe_rows and take with an existing logical order, including unused branches and expressions | Retained output selection cannot prune required operations; take needing a new key-completed order remains unsupported |
+| Projection, expression and selection execution | One driver executes values, map/ordered derive, filter, select/rename/drop, resolved stable sort, distinct/dedupe_rows and take with retained order or checked key completion, including unused branches and expressions | Retained output selection cannot prune required operations or establish missing order evidence |
 | Ordered derive | Use registered row-kernel params, source params and complete graph-step identity; enforce authored slot order and explicit logical limits | No split into relation-wide derives or unregistered replacement opcode |
 | Runtime resources | Explicit cumulative value/control budgets, operation workspace, live table slots and per-fragment logical budgets | Runtime counters are not static capacity evidence; container-entry accounting is not a process-heap meter |
 | Internal package API | Opaque generated sequences, runtime contexts, completed outputs and producer bindings; immutable output readers and detailed typed failures | Not a stable SDK, Run protocol, Host authorization or Result publication API |

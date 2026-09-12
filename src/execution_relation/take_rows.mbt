@@ -17,8 +17,9 @@ fn evaluate_take_rows(
     control.remaining < 0 ||
     control.max_frames < 0 ||
     workspace.limit < 0 ||
-    workspace.live != 0 ||
-    workspace.peak != 0 {
+    workspace.live < 0 ||
+    workspace.live > workspace.limit ||
+    workspace.peak < workspace.live {
     return Err(InvalidRowLimits)
   }
   let size = input.rows.length()

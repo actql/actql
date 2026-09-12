@@ -14,6 +14,7 @@ import {
   "actql/actql/value_contract" @contract,
   "actql/actql/encode_core" @encode,
   "actql/actql/relation_schema" @schema,
+  "actql/actql/relation_evidence" @evidence,
   "actql/actql/canonical_value" @canonical,
 }
 

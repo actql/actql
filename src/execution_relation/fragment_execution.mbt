@@ -53,11 +53,11 @@ fn attach_fragment_budgets(
             if !budgets.contains(i) {
               return Err(MissingFragmentContext(i))
             }
-          @lower.Select(_) | @lower.Limit(_, _, _) => ()
-          @lower.DedupeRows | @lower.StableSort(_) => {
+          @lower.Select(_) => ()
+          @lower.DedupeRows | @lower.StableSort(_) | @lower.Limit(_, _, _) => {
             let checked = @lower.kernel_checked(kernel)
             let schema = @relation.input_schema(checked)
-            let sorting = body is @lower.StableSort(_)
+            let sorting = !(body is @lower.DedupeRows)
             let keys = if sorting {
               0
             } else {

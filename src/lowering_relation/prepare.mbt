@@ -12,6 +12,7 @@ struct Prepared {
 struct PreparedNode {
   id : String
   projection_id : String?
+  order_id : String?
   payload : Payload
   inputs : Array[String]
   source : @decode.Cursor
@@ -91,6 +92,11 @@ pub fn node_id(value : PreparedNode) -> String {
 /// Canonical keyed-distinct prefix, reserved by the same collision allocator.
 pub fn projection_node_id(value : PreparedNode) -> String? {
   value.projection_id
+}
+
+///|
+pub fn order_node_id(value : PreparedNode) -> String? {
+  value.order_id
 }
 
 ///|
@@ -287,6 +293,30 @@ pub fn prepare(
       | Dedupe(_)
       | Sort(_) => None
     }
+    let order_id = if payload is Limit(_) &&
+      @pipeline.take_order(checked, i).bind(@pipeline.order_key_completion)
+      is Some(_) {
+      if expansions >= limits.max_nodes - count - inputs ||
+        references >= limits.max_references ||
+        work >= limits.max_work {
+        return Err({ kind: BudgetExceeded, source: step.source, })
+      }
+      let prefix = "sort_" + i.to_string()
+      if used.contains(prefix) || prefix == id {
+        return Err({ kind: IdentifierCollision, source: step.source, })
+      }
+      if prefix.length() > limits.max_identifier_bytes - bytes {
+        return Err({ kind: BudgetExceeded, source: step.source, })
+      }
+      bytes += prefix.length()
+      expansions += 1
+      references += 1
+      work += 1
+      used[prefix] = true
+      Some(prefix)
+    } else {
+      None
+    }
     if used.contains(id) {
       return Err({ kind: IdentifierCollision, source: step.source, })
     }
@@ -324,6 +354,7 @@ pub fn prepare(
     nodes.push({
       id,
       projection_id,
+      order_id,
       payload,
       inputs: refs,
       source: step.source,

@@ -30,7 +30,6 @@ pub(all) enum KernelIssue {
   ExpressionFailure(ExpressionIssue)
   InvalidTakeCount
   PendingTakeOrder
-  TakeKeyCompletionNotImplemented
   PendingSortOrder
 }
 
@@ -334,8 +333,25 @@ fn prepare_kernel_measured(
         is Some(order) else {
         return Err(PendingTakeOrder)
       }
-      if @pipeline.order_key_completion(order) is Some(_) {
-        return Err(TakeKeyCompletionNotImplemented)
+      if @pipeline.order_key_completion(order) is Some(key) {
+        let count = @evidence.key_field_count(key)
+        if count > max_bindings || count > remaining.max_work {
+          return Err(KernelBudgetExceeded)
+        }
+        remaining = { ..remaining, max_work: remaining.max_work - count, }
+        for i = 0; i < count; i = i + 1 {
+          let name = @schema.reference_name(
+            @evidence.key_field_at(key, i).unwrap().name,
+          )
+          if name.length() > names_remaining {
+            return Err(KernelBudgetExceeded)
+          }
+          let bytes = @utf8.encode(name).length()
+          if bytes > names_remaining {
+            return Err(KernelBudgetExceeded)
+          }
+          names_remaining -= bytes
+        }
       }
       let bind_count = fn(
         value : @relation.CountValue,
@@ -384,7 +400,10 @@ fn prepare_kernel_measured(
     SnapshotMap(bindings) | OrderedBindings(bindings) => bindings.length()
     Filter(_) => 1
     Select(fields) => fields.length()
-    Limit(_, _, _) => 0
+    Limit(_, _, order) =>
+      @pipeline.order_key_completion(order)
+      .map(@evidence.key_field_count)
+      .unwrap_or(0)
     StableSort(resolution) =>
       @relation.sort_term_count(checked) +
       resolution
