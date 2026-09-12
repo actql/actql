@@ -17,6 +17,7 @@ import {
   "actql/actql/regex_replacement",
   "actql/actql/relation_results",
   "actql/actql/relation_typing",
+  "actql/actql/relation_values",
   "actql/actql/source_request_slots",
   "actql/actql/sourceview_resolution",
   "actql/actql/stage_local_inputs",
@@ -66,6 +67,8 @@ pub fn check_operation_profiles(ProgramPreparation, PureOperationProfiles, Int) 
 pub fn check_parameter_bindings(PipelineContext, max_work~ : Int, max_text_bytes~ : Int) -> Result[BoundParameters, ParameterIssue]
 
 pub fn check_patterns(ExpressionValidationContext, PatternLimits) -> Result[PatternChecks, PatternIssue]
+
+pub fn check_program_operation_cells(ProgramOperationQueries, Int, Int) -> Result[ProgramOperationCells, OperationCellIssue]
 
 pub fn check_program_operation_fills(ProgramOperationFrames, Int, Int) -> Result[ProgramOperationFills, OperationFillIssue]
 
@@ -166,6 +169,14 @@ pub fn like_pattern_usage(LikePatternChecks) -> LikePatternUsage
 pub fn link_program_operation_orders(ProgramOperationRequirements, Int, Int) -> Result[ProgramOperationOrders, OperationOrderIssue]
 
 pub fn local_inputs_at(InputContexts, Int) -> @stage_local_inputs.Attached?
+
+pub fn operation_cell_at(ProgramOperationCells, Int) -> OperationCellResolution?
+
+pub fn operation_cells_count(ProgramOperationCells) -> Int
+
+pub fn operation_cells_queries(ProgramOperationCells) -> ProgramOperationQueries
+
+pub fn operation_cells_work(ProgramOperationCells) -> Int
 
 pub fn operation_fill_at(ProgramOperationFills, Int) -> OperationFillResolution?
 
@@ -583,6 +594,22 @@ pub(all) struct Limits {
   max_text_bytes : Int
 }
 
+pub(all) enum OperationCellIssue {
+  InvalidLimits
+  BudgetExceeded
+  ForeignOwner(Int)
+  IncompatibleCell(Int)
+  Scalar(OperationScalarIssue)
+} derive(Eq, @debug.Debug)
+
+pub struct OperationCellResolution {
+  requirement_index : Int
+  site : OperationRequirementSite
+  values : @relation_values.CheckedValues
+  occurrence : @relation_values.BindingCell
+  parameter : @parameter_binding.BoundParameter
+}
+
 pub(all) enum OperationFillIssue {
   InvalidLimits
   BudgetExceeded
@@ -800,6 +827,8 @@ pub(all) enum ProgramIdentityPhase {
   Definition
   ParameterValues
 } derive(Eq, @debug.Debug)
+
+type ProgramOperationCells
 
 type ProgramOperationFills
 

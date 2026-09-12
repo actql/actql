@@ -1,6 +1,7 @@
 supported_targets = "+js+wasm+native"
 
 import {
+  "actql/actql/relation_values" @values,
   "actql/actql/vector_typing" @vector,
   "actql/actql/carrier_contract" @carrier,
   "actql/actql/time_series" @series,

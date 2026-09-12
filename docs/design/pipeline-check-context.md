@@ -833,6 +833,32 @@ quantization, zero-vector behavior, score calculation, identity uniqueness and
 execution resources must still be satisfied before scoring. Dimension admission
 alone is not execution permission or validation of the input corpus's data.
 
+### Finite Relation cell bindings
+
+`check_program_operation_cells` closes each `REL.values` `BindCell` occurrence
+after query admission, following [execution binding](../spec/language.md#rel-values-execution).
+The operation, indexed cell and selected Parameter all come from the same owned
+Program and producer visit. Repeated holes retain separate row/column and
+requirement positions; equal names never collapse occurrences or transfer a
+binding from an unrelated producer.
+
+Parameter admission already checked the concrete immutable value. Bounded
+assignability checks transfer that evidence to both the cell's retained
+Parameter declaration and its column contract. No second value tree, wire JSON,
+implicit cast, normalization repair or recursive `$param`/`literal` expansion
+is performed. Decimal coefficients, null and nested business values remain in
+their admitted representation. Literal quotation was resolved once by the
+source checker and does not create a Parameter binding obligation.
+
+The opaque result retains the preceding context and every resolution, including
+the exact checked operation, source cell, target contract and BoundParameter.
+Indexed cell access avoids scanning all rows for each obligation. Work includes
+name lookup, recursive type traversal and both type relations; output entry
+limits are checked before preparing a resolution. Failure exposes no partial
+success. This does not construct execution params, serialize typed values or
+discharge publication-resource obligations. Those boundaries retain their own
+contracts and checks.
+
 Expression closure does not discharge operation-level obligations, bind
 authored guard witness identities, build staged Program/import contracts, or
 complete local Unit/Invocation identity projections. Source Program and stage
