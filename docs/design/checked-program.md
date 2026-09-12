@@ -135,6 +135,25 @@ This is not a Program identity check, a Host admission or a replacement for
 cross-producer application closure. Nonordinary sources retain their separate
 coverage requirements, even when no ordinary proof is present.
 
+Optional Graph input bounds are selected from one retained `GraphInputs` owner,
+not supplied as an arbitrary list of proof successes. Its pipeline and admitted
+claim collection must be the exact owners used for preparation. Input-measure
+indexing is charged, and repeated proof operands retain their corresponding
+checked Graph input. Missing external dependencies do not become zero counts.
+
+`capacity_graph_preflight.prepare_application_coverage` runs Graph input checks,
+derived proof preparation, consumer application checks and their final coverage
+join from one pipeline, Host-source collection and selected policy. Consumer
+requests contain unchecked step/limit coordinates, not successful applications.
+Sequence, join, components and traversal ledgers all check operation coverage;
+omitting both a request and its limit cannot silently remove the obligation.
+The final join rejects unused or multiply consumed limits. Graph checks, proof
+orchestration, requests, ledger construction and coverage share one work cap;
+input-name bytes and the proof traversal/operand caps remain explicit dimensions.
+Late failure exposes no partial coverage. Source admission precedes this entry;
+Program ownership, authored-source identity, unsupported proof forms and actual
+runtime enforcement are not supplied by this orchestration.
+
 `prepare_program_checks` derives expression validation, pattern checks, text
 bounds and profile admission from the source-producer context's exact selected
 policy. It assembles these branches and checks operation profiles internally;

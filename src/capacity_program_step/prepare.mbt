@@ -10,6 +10,7 @@ pub(all) enum PreparationIssue {
   InvalidLimits
   WorkLimit
   ForeignBindings
+  ForeignGraphInputs
   UnknownSubject(Int)
   UnsupportedProof(Int)
   MissingDependency(Int, Int)
@@ -26,7 +27,8 @@ priv enum PreparationFrame {
 
 ///|
 /// Construct ordinary derived applications from admitted claims, in dependency
-/// order, without caller-supplied StepBounds. External source and enforced-proof
+/// order, without caller-supplied StepBounds. Optional Graph inputs must retain
+/// this exact pipeline and claim owner. Other external and enforced-proof
 /// applications require their separate entrances; they are never fabricated.
 /// The work cap covers orchestration and collection. Input-link traversal and
 /// operand passes have separate cumulative caps, as on individual applications.
@@ -37,6 +39,7 @@ pub fn prepare_derived_applications(
   claims : @wire.ProgramClaims,
   limits : PreparationLimits,
   bindings? : CountBindings? = None,
+  graph_inputs? : @graph_input.GraphInputs? = None,
 ) -> Result[Applications, PreparationIssue] {
   if limits.max_work < 0 ||
     limits.max_input_work < 0 ||
@@ -46,6 +49,16 @@ pub fn prepare_derived_applications(
   if bindings is Some(v) && !physical_equal(v.pipeline, pipeline) {
     return Err(ForeignBindings)
   }
+  if graph_inputs is Some(v) &&
+    (
+      !physical_equal(@graph_input.checked_pipeline(v), pipeline) ||
+      !physical_equal(
+        @host.source_claims(@graph_input.checked_sources(v)),
+        claims,
+      )
+    ) {
+    return Err(ForeignGraphInputs)
+  }
   let arithmetic = @wire.program_claim_arithmetic(claims)
   let count = @wire.claim_count(arithmetic)
   let steps = @pipeline.step_count(pipeline)
@@ -53,6 +66,25 @@ pub fn prepare_derived_applications(
     return Err(WorkLimit)
   }
   let mut work = count + steps
+  let external : Map[String, BoundInput] = Map([])
+  if graph_inputs is Some(graph) {
+    let n = @pipeline.input_count(pipeline)
+    if n > (limits.max_work - work) / 2 {
+      return Err(WorkLimit)
+    }
+    work += n * 2
+    for input in 0..<n {
+      for measure in [@graph_input.Nodes, @graph_input.Edges] {
+        if @graph_input.input_bound(graph, input, measure) is Some(bound) {
+          let cid = @wire.cid(@graph_input.bound_witness(bound))
+          if external.contains(cid) {
+            return Err(ForeignGraphInputs)
+          }
+          external[cid] = GraphInput(bound)
+        }
+      }
+    }
+  }
   let subjects : Map[String, Int] = Map([])
   for step in 0..<steps {
     subjects[subject_ref(pipeline, step).unwrap()] = step
@@ -99,11 +131,12 @@ pub fn prepare_derived_applications(
           for offset in 0..<n {
             let input = n - 1 - offset
             let cid = @wire.program_proof_input_at(proof, input).unwrap()
-            guard @wire.claim_index(arithmetic, cid) is Some(child) &&
-              @wire.program_claim_proof_at(claims, child) is Some(_) else {
+            if @wire.claim_index(arithmetic, cid) is Some(child) &&
+              @wire.program_claim_proof_at(claims, child) is Some(_) {
+              stack.push(Visit(child))
+            } else if !external.contains(cid) {
               return Err(MissingDependency(index, input))
             }
-            stack.push(Visit(child))
           }
         }
         Finish(index) => {
@@ -118,17 +151,20 @@ pub fn prepare_derived_applications(
             return Err(WorkLimit)
           }
           work += n
-          let inputs : Array[StepBound] = []
+          let inputs : Array[BoundInput] = []
           for input in 0..<n {
             let cid = @wire.program_proof_input_at(proof, input).unwrap()
-            guard @wire.claim_index(arithmetic, cid) is Some(child) &&
-              applications[child] is Some(value) else {
+            if @wire.claim_index(arithmetic, cid) is Some(child) &&
+              applications[child] is Some(value) {
+              inputs.push(StepInput(value))
+            } else if external.get(cid) is Some(value) {
+              inputs.push(value)
+            } else {
               return Err(MissingDependency(index, input))
             }
-            inputs.push(value)
           }
           let value = match
-            check_with_inputs(
+            check_with_sources(
               pipeline,
               step,
               proof,

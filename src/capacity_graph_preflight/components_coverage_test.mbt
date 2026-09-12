@@ -103,6 +103,37 @@ test "components ledger covers every step and integrates both limits with Graph 
     ],
   )
   let graph = @input.check(p, sources, policy, caps()).unwrap()
+  let preparation : @program.PreparationLimits = {
+    max_work: 1000,
+    max_input_work: 1000,
+    max_operand_work: 1000,
+  }
+  assert_true(
+    @program.prepare_derived_applications(
+      p,
+      @host.source_claims(sources),
+      preparation,
+    )
+    is Err(MissingDependency(_, _)),
+  )
+  assert_true(
+    @program.prepare_derived_applications(
+      p,
+      @host.source_claims(sources),
+      preparation,
+      graph_inputs=Some(initial_graph),
+    )
+    is Err(ForeignGraphInputs),
+  )
+  assert_true(
+    @program.prepare_derived_applications(
+      input_bound_pipeline("[]"),
+      @host.source_claims(sources),
+      preparation,
+      graph_inputs=Some(graph),
+    )
+    is Err(ForeignGraphInputs),
+  )
   let input = @program.GraphInput(@input.input_bound(graph, 0, Nodes).unwrap())
   let apps = [nodes, rows].map(proof => {
     @program.check_with_sources(p, 0, proof, [input]).unwrap()
@@ -123,6 +154,18 @@ test "components ledger covers every step and integrates both limits with Graph 
     max_work=100,
   ).unwrap()
   let list = [limit]
+  let prepared = prepared_coverage(p, sources, [
+    Components(step=0, nodes=2, output=3),
+  ])
+  let prepared_program = @capacity_graph_preflight.source_coverage_program(
+    @capacity_graph_preflight.application_coverage_sources(prepared),
+  )
+  assert_true(
+    physical_equal(
+      @program.application_claims(prepared_program),
+      @host.source_claims(sources),
+    ),
+  )
   let components = @program.check_components_applications(
     p,
     sources,

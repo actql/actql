@@ -146,6 +146,9 @@ test "traversal consumption binds separate search and output scopes including un
         _ => ()
       }
       let application = result.unwrap()
+      let _ = prepared_coverage(p, sources, [
+        Traversal(step=0, paths=2, output=3),
+      ])
       let cost = @program.traversal_limit_work(application)
       assert_true(
         @program.check_traversal_limits(

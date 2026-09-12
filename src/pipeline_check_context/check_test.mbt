@@ -130,23 +130,12 @@ fn capacity(p : @pipeline.CheckedPipeline) -> @capacity.ApplicationCoverage {
     max_nodes: 0,
     max_depth: 0,
   }).unwrap()
-  let graph = @capacity.check(p, sources, policy(), {
-    max_work: 100,
-    max_name_bytes: 100,
-  }).unwrap()
-  let program = @program.prepare_derived_applications(p, claims, {
+  @capacity.prepare_application_coverage(p, sources, policy(), [], {
     max_work: 1000,
+    max_name_bytes: 100,
     max_input_work: 1000,
     max_operand_work: 1000,
   }).unwrap()
-  let sequence = @sequence.check_applications(
-    p,
-    sources,
-    policy(),
-    [],
-    max_work=1000,
-  ).unwrap()
-  @capacity.check_application_coverage(graph, program, sequence, max_work=1000).unwrap()
 }
 
 ///|

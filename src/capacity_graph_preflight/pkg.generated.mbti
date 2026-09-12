@@ -67,6 +67,8 @@ pub fn consumer_coverage_work(ConsumerCoverage) -> Int
 
 pub fn input_limit(@capacity_graph_input.GraphInputs, Int, @capacity_graph_input.Measure) -> @capacity_witness.LimitClaim?
 
+pub fn prepare_application_coverage(@pipeline_typing.CheckedPipeline, @capacity_host_witness.HostSources, @capacity_policy.Policy, Array[ConsumerRequest], PreparationLimits, bindings? : @capacity_program_step.CountBindings?) -> Result[ApplicationCoverage, PreparationIssue]
+
 pub fn selected_policy(@capacity_graph_input.GraphInputs) -> @capacity_policy.Policy
 
 pub fn source_coverage_graph(SourceCoverage) -> @capacity_graph_input.GraphInputs
@@ -135,6 +137,36 @@ pub(all) enum ConsumerCoverageIssue {
   ForeignPolicy
   DuplicateConsumer(Int)
   UnconsumedLimit(Int)
+} derive(Eq, @debug.Debug)
+
+pub(all) enum ConsumerRequest {
+  Sequence(step~ : Int, matches~ : Int, output~ : Int)
+  Join(step~ : Int, output~ : Int)
+  Components(step~ : Int, nodes~ : Int, output~ : Int)
+  Traversal(step~ : Int, paths~ : Int, output~ : Int)
+} derive(Eq, @debug.Debug)
+
+pub(all) enum PreparationIssue {
+  InvalidLimits
+  WorkLimit
+  Graph(@capacity_graph_input.Issue)
+  Program(@capacity_program_step.PreparationIssue)
+  Sequence(Int, @capacity_sequence_limit.Issue)
+  Join(Int, @capacity_program_step.JoinLimitIssue)
+  Components(Int, @capacity_program_step.ComponentsLimitIssue)
+  Traversal(Int, @capacity_program_step.TraversalLimitIssue)
+  SequenceCollection(@capacity_sequence_limit.CollectionIssue)
+  JoinCollection(@capacity_program_step.JoinCollectionIssue)
+  ComponentsCollection(@capacity_program_step.ComponentsCollectionIssue)
+  TraversalCollection(@capacity_program_step.TraversalCollectionIssue)
+  Coverage(ApplicationCoverageIssue)
+} derive(Eq, @debug.Debug)
+
+pub(all) struct PreparationLimits {
+  max_work : Int
+  max_name_bytes : Int
+  max_input_work : Int
+  max_operand_work : Int
 } derive(Eq, @debug.Debug)
 
 type SourceCoverage
