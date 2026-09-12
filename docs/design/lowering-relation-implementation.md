@@ -975,6 +975,15 @@ execution, and cannot be requested for an independently prepared kernel even
 when its source is identical. This connects bounds to the common row evaluator,
 but is not itself evidence for input keys, ordering or producer completion.
 
+The existing sequence driver can consume the exact set of checked map/filter
+runtime contexts. Before capture or RHS evaluation it checks owner, registry,
+duplicate steps and missing contexts, then supplies their fresh budgets to the
+same row evaluator. Ordered contexts retain their separate extension checks.
+An explicitly empty set does not silently fall back to unchecked map/filter
+execution. The absent option remains only for component-level verification;
+neither option constitutes Program permission, and full input evidence and
+ordered-fragment closure remain separate integration obligations.
+
 Each expression root retains its exact typed owner. Source projection reads the
 normalized syntax of that owner; machine-node projection reads the bound lowered
 expression. A Parameter remains a reference in source while becoming a literal

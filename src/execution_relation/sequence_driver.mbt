@@ -21,6 +21,8 @@ priv enum SequenceRunIssue {
   Rows(Int, RowIssue)
   Store(StoreIssue)
   OrderedContext(Int, OrderedLimitsIssue)
+  FragmentContext(Int, FragmentRuntimeIssue)
+  MissingFragmentContext(Int)
 }
 
 ///|
@@ -60,6 +62,7 @@ fn evaluate_sequence_components(
   limits : SequenceRunLimits,
   control : ControlBudget,
   produced? : Array[BoundProducerInput] = [],
+  fragments? : Array[FragmentRuntimeContext]? = None,
   ordered? : OrderedExecution = {
     contexts: [],
     max_bytes: 0,
@@ -94,6 +97,17 @@ fn evaluate_sequence_components(
     prepare_ordered_budgets(contracts, sequence, ordered, control, metadata) {
     Ok(budgets) => budgets
     Err(e) => return Err(e)
+  }
+  match fragments {
+    Some(contexts) =>
+      match
+        attach_fragment_budgets(
+          contracts, sequence, contexts, ordered_budgets, control, metadata,
+        ) {
+        Ok(_) => ()
+        Err(issue) => return Err(issue)
+      }
+    None => () // Component-only calls do not claim fragment admission.
   }
   if supplied.length() > wiring.input_count ||
     produced.length() != wiring.input_count - supplied.length() {
