@@ -228,6 +228,8 @@ test "repeated unused SourceView declarations retain separate input occurrences"
           ),
         ).2
       assert_eq(root.body, CatalogContract(expected))
+      assert_true(stage_has_contract(inventory, 0, CatalogContract(expected)))
+      assert_false(stage_has_contract(inventory, 1, CatalogContract(expected)))
     }
   }
   assert_eq(core_contract_body_count(inventory), 31)

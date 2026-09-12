@@ -270,6 +270,21 @@ lookup or insertion. The collector retains the exact incoming inventory for
 subsequent interface construction. Selecting this grammar is not construction
 of the interface value, its producer Unit identity, or proof of Result availability.
 
+The retained inventory distinguishes the Program-wide shared body store from
+each Stage's selection. A Stage reaches only its own source roots and their
+declared dependencies. Consumer import grammar does not become a producer root;
+nor does a consumer inherit a predecessor's entire Catalog contract inventory.
+The incoming interface projection carries the required producer relationship
+separately. Equal contract bodies may be shared without merging these scopes.
+
+Dependency adjacency is retained from the validated edges, not rediscovered by
+scanning CID-shaped strings. Repeated uses share adjacency; all original root
+occurrences and edge-validation charges remain. Stage selection uses bounded
+iterative traversal with work charged before allocation or visits, and exposes
+indexed reads without array copying or re-traversal. These selections cover the
+supported root inventory only: they are not yet a completeness certificate or
+a substitute contract-set CID for the final Unit boundary.
+
 Import/interface and gate construction supplies its local semantic contract
 references. Full predecessor Program revisions, Captured Runs, receipts and
 whole manifests are not substitutes for those projections. A required projection

@@ -102,7 +102,11 @@ test "core contract collection preserves owned occurrences and shares dependency
     26 +
     23 +
     (program_incoming_usage(incoming).0 - program_identity_usage(identity).0) +
-    6,
+    6 +
+    4 +
+    core_contract_root_count(inventory) +
+    51 +
+    42,
   )
   let mut stage_roots = 0
   let mut unused_roots = 0

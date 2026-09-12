@@ -139,6 +139,12 @@ pub fn core_contract_root_count(CoreContractInventory) -> Int
 
 pub fn core_contract_sources(CoreContractInventory) -> ProgramSourceContracts
 
+pub fn core_contract_stage_body_at(CoreContractInventory, Int, Int) -> CoreContractBody?
+
+pub fn core_contract_stage_body_count(CoreContractInventory, Int) -> Int?
+
+pub fn core_contract_stage_count(CoreContractInventory) -> Int
+
 pub fn core_contract_usage(CoreContractInventory) -> (Int, Int)
 
 pub fn dedupe_top_tie_law(DedupeTopTieCheck) -> String

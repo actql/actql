@@ -58,6 +58,7 @@ struct CoreContractInventory {
   sources : ProgramSourceContracts
   profile_checks : ProgramOperationCalendar?
   incoming : ProgramIncomingRequirements
+  stages : Array[Array[CoreContractBody]]
   work : Int
   edges : Int
 }
@@ -73,8 +74,15 @@ priv struct CoreContractBuilder {
   roots : Array[CoreContractRoot]
   bodies : Array[CoreContractBody]
   seen : Map[String, Unit]
+  dependencies : Map[String, CoreContractDependencies]
   mut work : Int
   mut edges : Int
+}
+
+///|
+priv struct CoreContractDependencies {
+  targets : Array[CoreContractBody]
+  seen : Map[String, Unit]
 }
 
 ///|
@@ -118,8 +126,8 @@ fn core_contract_root(
 ///|
 /// Collect expression body references and adopted operation laws from every
 /// owned Stage/producer/step and selected Catalog reference. This is not the
-/// complete Unit closure: declaration, profile data, publication and import
-/// roots are separate. Unsupported selected Catalog bodies reject collection.
+/// complete Unit closure or interface identity. Unsupported selected Catalog
+/// bodies reject collection; the supported roots retain their Stage selection.
 pub fn collect_core_contracts(
   identity : ProgramSourceIdentity,
   limits : CoreContractLimits,
@@ -177,6 +185,7 @@ pub fn collect_core_contracts(
     roots: [],
     bodies: [],
     seen: {},
+    dependencies: {},
     work: used + (incoming.work - identity.work),
     edges: 0,
   }
@@ -233,6 +242,11 @@ pub fn collect_core_contracts(
               )
             }
             core_contract_body(b, core_catalog_grammar(grammar))
+            core_contract_dependency(
+              b,
+              CatalogContract(cid),
+              core_catalog_grammar(grammar),
+            )
           }
         }
       }
@@ -336,33 +350,33 @@ pub fn collect_core_contracts(
         CatalogGrammarBody(body) =>
           for edge in 0..<@environment.catalog_grammar_dependency_count(body) {
             core_contract_edge(b)
-            core_contract_body(
-              b,
-              core_catalog_grammar(
-                @environment.catalog_grammar_dependency_at(body, edge).unwrap().target,
-              ),
+            let target = core_catalog_grammar(
+              @environment.catalog_grammar_dependency_at(body, edge).unwrap().target,
             )
+            core_contract_body(b, target)
+            core_contract_dependency(b, b.bodies[index], target)
           }
         ExpressionBody(body) => {
           let count = @environment.expression_contract_dependency_count(body)
           for edge in 0..<count {
             core_contract_edge(b)
-            core_contract_body(
-              b,
-              ExpressionBody(
-                @environment.expression_contract_dependency_at(body, edge).unwrap().target,
-              ),
+            let target = ExpressionBody(
+              @environment.expression_contract_dependency_at(body, edge).unwrap().target,
             )
+            core_contract_body(b, target)
+            core_contract_dependency(b, b.bodies[index], target)
           }
         }
       }
       index += 1
     }
+    let stages = core_contract_stages(b, incoming, identity.stages.length())
     Ok({
       identity,
       sources,
       profile_checks,
       incoming,
+      stages,
       roots: b.roots,
       bodies: b.bodies,
       work: b.work,
