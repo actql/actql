@@ -10,6 +10,38 @@ test "Local source preparation owns declarations bindings and topology with shar
       original,
     ).unwrap()
     let source = local_source_source(prepared)
+    let bound = local_source_operations(prepared)
+    let operations = @parameters.bound_operations(bound)
+    assert_true(
+      physical_equal(@parameters.operations_source(operations), source),
+    )
+    assert_true(
+      physical_equal(
+        @references.bound_values(@parameters.bound_program_index(bound)),
+        local_source_values(prepared),
+      ),
+    )
+    let mut shared_work = 0
+    for i in 0..<@syntax.stage_count(parsed) {
+      let stage = @parameters.operations_stage_at(operations, i).unwrap()
+      assert_true(
+        physical_equal(
+          stage,
+          stage_port_source(
+            wiring_stage_at(local_source_wiring(prepared), i).unwrap(),
+          ),
+        ),
+      )
+      shared_work += @parameters.collection_work(stage)
+      assert_true(
+        physical_equal(
+          @references.bound_values(
+            @parameters.bound_stage_at(bound, i).unwrap(),
+          ),
+          local_source_values(prepared),
+        ),
+      )
+    }
     assert_true(physical_equal(@parameters.program(source), parsed))
     assert_true(
       physical_equal(wiring_source(local_source_wiring(prepared)), source),
@@ -21,6 +53,22 @@ test "Local source preparation owns declarations bindings and topology with shar
       ),
     )
     let usage = local_source_usage(prepared)
+    let (_, topology_usage) = prepare_local_program(source, original).unwrap()
+    assert_true(
+      prepare_local_source(parsed, None, max_parameters=0, {
+        ..original,
+        max_work: topology_usage.work + @syntax.stage_count(parsed) + 1,
+      })
+      is Err(BudgetExceeded),
+    )
+    assert_eq(
+      usage.work,
+      topology_usage.work +
+      2 * @syntax.stage_count(parsed) +
+      1 +
+      @parameters.bindings_usage(bound).work -
+      shared_work,
+    )
     let exact : LocalProgramLimits = {
       ..original,
       max_work: usage.work,
@@ -74,9 +122,14 @@ test "Local source preparation never treats missing or invalid Parameters as pre
   )
   let with_default = @parameters.program(
     local_program_parse(
-      text.replace(
+      text
+      .replace(
         old="\"type\":\"number\"}",
         new="\"type\":\"number\",\"default\":2}",
+      )
+      .replace(
+        old="\"steps\":[]",
+        new="\"steps\":[{\"derive\":{\"extra\":\"id + $n\"}}]",
       ),
     ),
   )
@@ -90,6 +143,19 @@ test "Local source preparation never treats missing or invalid Parameters as pre
     @parameters.declarations(local_source_source(prepared)),
   )
   let values = local_source_values(prepared)
+  let bound = local_source_operations(prepared)
+  assert_eq(
+    @references.reference_count(
+      @parameters.operations_index(@parameters.bound_operations(bound)),
+    ),
+    1,
+  )
+  assert_true(
+    physical_equal(
+      @references.bound_values(@parameters.bound_program_index(bound)),
+      values,
+    ),
+  )
   assert_eq(@binding.bound_value_count(values), 1)
   assert_eq(@binding.bound_value_at(values, 0).unwrap().name, "n")
   let (bind_nodes, bind_text) = @binding.binding_usage(

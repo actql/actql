@@ -55,6 +55,8 @@ pub fn input_producer(ResultImport) -> @pipeline_typing.ProducedInput
 
 pub fn input_stage(ResultImport) -> StagePorts
 
+pub fn local_source_operations(PreparedLocalSource) -> @stage_parameters.BoundOperations
+
 pub fn local_source_source(PreparedLocalSource) -> @stage_parameters.Source
 
 pub fn local_source_usage(PreparedLocalSource) -> LocalProgramUsage
@@ -180,6 +182,8 @@ pub enum LocalSourceIssue {
   Binding(@parameter_binding.Issue)
   NeedsBindings(@parameter_binding.MissingNames)
   Program(LocalProgramIssue)
+  Operations(@stage_parameters.OperationsIssue)
+  OperationBindings(@stage_parameters.BindingsIssue)
 }
 
 type PreparedLocalSource

@@ -14,5 +14,6 @@ import {
 
 import {
   "actql/actql/relation_schema" @schema,
+  "actql/actql/parameter_references" @references,
   "actql/actql/value_contract" @contract,
 } for "test"

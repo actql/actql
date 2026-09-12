@@ -86,6 +86,16 @@ admission algorithms. Parsing precedes this boundary. Environment, policy,
 capacity and obligation closure still follow it, so this prepared result is not
 a CheckedProgram or a claim that input data has been acquired.
 
+The same preparation binds operation references before returning. It gathers
+the exact collected Stages retained by Result ports, indexes their occurrences
+in Program coordinates, and binds both Stage and Program indexes to its own
+effective Parameter owner. Previously charged Stage-collection work is shared
+once; handle gathering, additional indexing and binding consume the remaining
+work allowance. No second declaration set, caller-provided Stage list or binding
+set can be substituted at this entrance. These remain operation-only references;
+source roles, incoming identities and other semantic inventories are not inferred
+to be empty from this index.
+
 Source-role reference preparation uses `prepare_program_references` to derive
 Stage bodies, declaration use and effective value projections from the same
 checked operations and admitted request slots. It never reconstructs substitute

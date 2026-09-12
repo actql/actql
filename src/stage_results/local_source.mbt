@@ -5,6 +5,7 @@ struct PreparedLocalSource {
   source : @parameters.Source
   values : @binding.BoundValues
   wiring : ResultWiring
+  operations : @parameters.BoundOperations
   usage : LocalProgramUsage
 }
 
@@ -16,6 +17,8 @@ pub enum LocalSourceIssue {
   Binding(@binding.Issue)
   NeedsBindings(@binding.MissingNames)
   Program(LocalProgramIssue)
+  Operations(@parameters.OperationsIssue)
+  OperationBindings(@parameters.BindingsIssue)
 }
 
 ///|
@@ -79,13 +82,47 @@ pub fn prepare_local_source(
     Ok(v) => v
     Err(e) => return Err(Program(e))
   }
+  let remaining = limits.max_work - count - 1 - used.work
+  if count > remaining {
+    return Err(BudgetExceeded)
+  }
+  let stages = []
+  let mut shared_work = 0
+  for i in 0..<count {
+    let stage = stage_port_source(wiring_stage_at(wiring, i).unwrap())
+    // These exact collection prefixes were charged by prepare_local_program.
+    shared_work += @parameters.collection_work(stage)
+    stages.push(stage)
+  }
+  let operation_cap = shared_work + remaining - count
+  let collected = match
+    @parameters.collect_prepared_operations(source, stages, {
+      max_work: operation_cap,
+      max_slots: limits.max_work,
+      max_references: limits.max_work,
+      max_pointer_units: limits.max_work,
+      max_direct_text_bytes: used.text_bytes,
+    }) {
+    Ok(v) => v
+    Err(e) => return Err(Operations(e))
+  }
+  let operations = match
+    @parameters.bind_operations(collected, values, max_work=operation_cap) {
+    Ok(v) => v
+    Err(e) => return Err(OperationBindings(e))
+  }
   Ok({
     source,
     values,
     wiring,
+    operations,
     usage: {
       ..used,
-      work: used.work + count + 1,
+      work: used.work +
+      count +
+      1 +
+      count +
+      (@parameters.bindings_usage(operations).work - shared_work),
       nodes: used.nodes + decl_nodes + bind_nodes,
       text_bytes: used.text_bytes + decl_text + bind_text,
     },
@@ -110,4 +147,12 @@ pub fn local_source_wiring(v : PreparedLocalSource) -> ResultWiring {
 ///|
 pub fn local_source_usage(v : PreparedLocalSource) -> LocalProgramUsage {
   v.usage
+}
+
+///|
+/// Operation-only references bound to this source's own effective values.
+pub fn local_source_operations(
+  v : PreparedLocalSource,
+) -> @parameters.BoundOperations {
+  v.operations
 }
