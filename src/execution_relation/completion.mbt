@@ -4,7 +4,7 @@
 struct CompletedSequence {
   contracts : RegisteredRelationContracts
   sequence : @lower.PreparedSequence
-  store : TableStore
+  store : TableStore[Table]
   // Strong ownership anchors: keep upstream completions alive with this result.
   // This retention is intentional even when no subsequent cell read needs them.
   _producer_inputs : Array[BoundProducerInput]

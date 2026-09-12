@@ -1,15 +1,15 @@
 ///|
-priv struct HeldTable {
-  table : Table
+priv struct HeldTable[T] {
+  table : T
   units : Int
 }
 
 ///|
 /// Private fragment storage, not execution admission. Only the future admitted
 /// driver may supply successfully evaluated tables. No public constructors.
-priv struct TableStore {
+priv struct TableStore[T] {
   wiring : Wiring
-  tables : Array[HeldTable?]
+  tables : Array[HeldTable[T]?]
   workspace : RowWorkspace
   mut next : Int
 }
@@ -23,10 +23,10 @@ pub(all) enum StoreIssue {
 }
 
 ///|
-fn table_store(
+fn[T] table_store(
   wiring : Wiring,
   workspace : RowWorkspace,
-) -> Result[TableStore, StoreIssue] {
+) -> Result[TableStore[T], StoreIssue] {
   if workspace.limit < 0 || workspace.live != 0 || workspace.peak != 0 {
     return Err(InvalidState)
   }
@@ -42,22 +42,24 @@ fn table_store(
 }
 
 ///|
-fn reserve_table(
-  table : Table,
-  store : TableStore,
+fn[T : RelationRows] reserve_table(
+  table : T,
+  store : TableStore[T],
   control : ControlBudget,
-) -> Result[HeldTable, StoreIssue] {
+) -> Result[HeldTable[T], StoreIssue] {
   let before = store.workspace.live
-  if !reserve_slots(store.workspace, table.names.length()) ||
-    !reserve_slots(store.workspace, table.rows.length()) {
+  let width = table.field_names().length()
+  let count = IndexedRows::row_count(table)
+  if !reserve_slots(store.workspace, width) ||
+    !reserve_slots(store.workspace, count) {
     return Err(Limit)
   }
-  for row in table.rows {
+  for row = 0; row < count; row = row + 1 {
     if !spend_control(control, 1) ||
-      !reserve_slots(store.workspace, row.length()) {
+      !reserve_slots(store.workspace, IndexedRows::row_width(table, row)) {
       return Err(Limit)
     }
-    if row.length() != table.names.length() {
+    if IndexedRows::row_width(table, row) != width {
       return Err(InvalidState)
     }
   }
@@ -65,7 +67,7 @@ fn reserve_table(
 }
 
 ///|
-fn drop_table(store : TableStore, slot : Int) -> Unit {
+fn[T] drop_table(store : TableStore[T], slot : Int) -> Unit {
   if store.tables[slot] is Some(held) {
     store.tables[slot] = None
     release_slots(store.workspace, held.units)
@@ -73,10 +75,10 @@ fn drop_table(store : TableStore, slot : Int) -> Unit {
 }
 
 ///|
-fn install_table_input(
-  store : TableStore,
+fn[T : RelationRows] install_table_input(
+  store : TableStore[T],
   slot : Int,
-  table : Table,
+  table : T,
   control : ControlBudget,
 ) -> Result[Unit, StoreIssue] {
   if store.next != 0 ||
@@ -85,13 +87,13 @@ fn install_table_input(
     store.tables[slot] is Some(_) {
     return Err(InvalidState)
   }
-  if !physical_equal(table.owner, store.wiring.owner) {
+  if !physical_equal(table.checked_owner(), store.wiring.owner) {
     return Err(OwnerMismatch)
   }
-  if !spend_control_text(control, table.id) {
+  if !spend_control_text(control, table.relation_id()) {
     return Err(Limit)
   }
-  if table.id != store.wiring.ids[slot] {
+  if table.relation_id() != store.wiring.ids[slot] {
     return Err(InvalidState)
   }
   let held = match reserve_table(table, store, control) {
@@ -107,23 +109,25 @@ fn install_table_input(
 }
 
 ///|
-fn commit_table(
-  store : TableStore,
+fn[T : RelationRows] commit_table(
+  store : TableStore[T],
   step : Int,
-  table : Table,
+  table : T,
   control : ControlBudget,
 ) -> Result[Unit, StoreIssue] {
   if step != store.next || step < 0 || step >= store.wiring.routes.length() {
     return Err(InvalidState)
   }
-  if !physical_equal(table.owner, store.wiring.owner) {
+  if !physical_equal(table.checked_owner(), store.wiring.owner) {
     return Err(OwnerMismatch)
   }
   let slot = store.wiring.input_count + step
-  if !spend_control(control, 1) || !spend_control_text(control, table.id) {
+  if !spend_control(control, 1) ||
+    !spend_control_text(control, table.relation_id()) {
     return Err(Limit)
   }
-  if table.id != store.wiring.ids[slot] || store.tables[slot] is Some(_) {
+  if table.relation_id() != store.wiring.ids[slot] ||
+    store.tables[slot] is Some(_) {
     return Err(InvalidState)
   }
   let route = store.wiring.routes[step]

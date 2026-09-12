@@ -104,7 +104,7 @@ priv struct SequenceInvocation {
   output_budget : ValueBudget
   input_rows : Int
   ordered_budgets : Map[Int, LogicalBudget]
-  store : TableStore
+  store : TableStore[Table]
 }
 
 ///|
@@ -328,72 +328,108 @@ fn run_sequence_invocation(
     store,
     ..
   } = invocation
-  let wiring = store.wiring
   let owner = @lower.sequence_owner(sequence)
   let mut input_rows = invocation.input_rows
-  for i = 0; i < @lower.sequence_count(sequence); i = i + 1 {
-    let table = match @lower.sequence_step(sequence, i).unwrap() {
-      @lower.ValuesStep(_) => {
-        let remaining = {
-          ..limits.input_values,
-          max_nodes: limits.input_values.max_nodes - input_budget.nodes,
-          max_text_bytes: limits.input_values.max_text_bytes - input_budget.text,
-          max_work: limits.input_values.max_work - input_budget.work,
-        }
-        let captured = match
-          capture_values(
-            owner,
-            i,
-            max_rows=limits.max_rows - input_rows,
-            remaining,
-          ) {
-          Ok(v) => v
-          Err(e) => return Err(Capture(i, e))
-        }
-        input_rows += captured.rows.length()
-        input_budget.nodes += captured.usage.nodes
-        input_budget.text += captured.usage.text_bytes
-        input_budget.work += captured.usage.work
-        match
-          table_from_capture_bounded(captured, control, {
-            limit: limits.operation_entries,
-            live: 0,
-            peak: 0,
-          }) {
-          Ok(v) => v
-          Err(e) => return Err(Rows(i, e))
-        }
+  let result = run_sequence_steps(
+    sequence,
+    store,
+    control,
+    fn(i) {
+      let remaining = {
+        ..limits.input_values,
+        max_nodes: limits.input_values.max_nodes - input_budget.nodes,
+        max_text_bytes: limits.input_values.max_text_bytes - input_budget.text,
+        max_work: limits.input_values.max_work - input_budget.work,
       }
+      let captured = match
+        capture_values(
+          owner,
+          i,
+          max_rows=limits.max_rows - input_rows,
+          remaining,
+        ) {
+        Ok(v) => v
+        Err(e) => return Err(Capture(i, e))
+      }
+      input_rows += captured.rows.length()
+      input_budget.nodes += captured.usage.nodes
+      input_budget.text += captured.usage.text_bytes
+      input_budget.work += captured.usage.work
+      match
+        table_from_capture_bounded(captured, control, {
+          limit: limits.operation_entries,
+          live: 0,
+          peak: 0,
+        }) {
+        Ok(v) => Ok(v)
+        Err(e) => return Err(Rows(i, e))
+      }
+    },
+    fn(i, kernel, input) {
+      match
+        evaluate_rows_with_workspace(
+          kernel,
+          input,
+          limits.max_rows,
+          control,
+          output_budget,
+          { limit: limits.operation_entries, live: 0, peak: 0, },
+          ordered_budget=ordered_budgets.get(i),
+        ) {
+        Ok(v) => Ok(v)
+        Err(e) => return Err(Rows(i, e))
+      }
+    },
+  )
+  if result is Err(issue) {
+    return Err(issue)
+  }
+  if !spend_control(control, produced.length()) {
+    return Err(InputLimit)
+  }
+  Ok({ contracts, sequence, store, _producer_inputs: produced.copy(), })
+}
+
+///|
+/// The sole ordered routing/commit loop. Physical callbacks do not choose the
+/// next operation, skip unused operations, or publish a partially filled store.
+/// Input admission and final completion evidence remain the caller's duties.
+fn[T : RelationRows] run_sequence_steps(
+  sequence : @lower.PreparedSequence,
+  store : TableStore[T],
+  control : ControlBudget,
+  import_values : (Int) -> Result[T, SequenceRunIssue],
+  evaluate : (Int, @lower.PreparedKernel, T) -> Result[T, SequenceRunIssue],
+) -> Result[Unit, SequenceRunIssue] {
+  if !physical_equal(@lower.sequence_owner(sequence), store.wiring.owner) {
+    return Err(InputOwnership)
+  }
+  if store.next != 0 ||
+    store.wiring.routes.length() != @lower.sequence_count(sequence) {
+    return Err(Store(InvalidState))
+  }
+  for i = 0; i < @lower.sequence_count(sequence); i = i + 1 {
+    let result = match @lower.sequence_step(sequence, i).unwrap() {
+      @lower.ValuesStep(_) => import_values(i)
       @lower.RowStep(kernel) => {
-        let route = wiring.routes[i]
+        let route = store.wiring.routes[i]
         if route.length() != 1 {
           return Err(InputSet)
         }
         guard store.tables[route[0]] is Some(input) else {
           return Err(InputSet)
         }
-        match
-          evaluate_rows_with_workspace(
-            kernel,
-            input.table,
-            limits.max_rows,
-            control,
-            output_budget,
-            { limit: limits.operation_entries, live: 0, peak: 0, },
-            ordered_budget=ordered_budgets.get(i),
-          ) {
-          Ok(v) => v
-          Err(e) => return Err(Rows(i, e))
-        }
+        evaluate(i, kernel, input.table)
       }
+    }
+    let table = match result {
+      Ok(value) => value
+      Err(issue) => return Err(issue)
     }
     match commit_table(store, i, table, control) {
       Ok(_) => ()
       Err(e) => return Err(Store(e))
     }
   }
-  if !spend_control(control, produced.length()) {
-    return Err(InputLimit)
-  }
-  Ok({ contracts, sequence, store, _producer_inputs: produced.copy(), })
+  Ok(())
 }
