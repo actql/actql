@@ -5,9 +5,13 @@ import {
   "actql/actql/value_contract" @value,
   "actql/actql/relation_schema" @row,
   "actql/actql/encode_core" @encode,
+  "actql/actql/decode_core" @decode,
+  "actql/actql/decode_scalar" @scalar,
+  "actql/actql/canonical_value" @unicode,
 }
 
 import {
   "actql/actql/canonical_json" @canonical,
   "moonbitlang/core/json",
+  "actql/actql/source_value" @source,
 } for "test"

@@ -3,7 +3,9 @@ package "actql/actql/graph_contract"
 
 import {
   "actql/actql/carrier_contract",
+  "actql/actql/decode_core",
   "actql/actql/encode_core",
+  "actql/actql/value_contract",
   "moonbitlang/core/debug",
 }
 
@@ -21,6 +23,8 @@ pub fn graph(CheckedContract) -> @carrier_contract.Graph
 pub fn law_cid() -> String
 
 pub fn nodes(CheckedContract) -> Int
+
+pub fn read_cursor(@decode_core.Cursor, Limits) -> Result[CheckedContract, ReadIssue]
 
 pub fn stringify(CheckedContract, Limits) -> String raise @encode_core.EncodeFailure
 
@@ -40,6 +44,16 @@ pub(all) struct Limits {
   max_nodes : Int
   max_depth : Int
 }
+
+pub(all) enum ReadIssue {
+  InvalidLimits
+  InvalidBody
+  LawMismatch
+  InvalidType(@value_contract.AdmissionError)
+  InvalidStructure
+  NonCanonicalLabels
+  BudgetExceeded
+} derive(Eq, @debug.Debug)
 
 // Type aliases
 

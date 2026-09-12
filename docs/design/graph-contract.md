@@ -27,6 +27,22 @@ or complete Delta records. The compatibility gap remains at lowering.
 
 ## Allocation and bounds
 
+`read_cursor` consumes the same closed normative body and returns the existing
+opaque CheckedContract. It reuses checked value-contract admission and Carrier
+constructors rather than inferring types from graph values. Both law members
+must match the selected SGA law. A supplied label array is already strictly
+UTF-16 sorted and unique; the reader rejects noncanonical arrays rather than
+relying on the constructor to repair them. Null and empty label domains retain
+their distinct meanings. Property maps are complete and never contain unknown
+types or provenance-qualified source fields.
+
+Reader construction shares a cumulative node/text budget across the identity,
+properties and labels; child type traversal is nonrecursive. The existing
+canonical emitter then enforces the complete body's serialized byte, node and
+depth limits. Admission of a decoded cursor does not prove that the original
+wire bytes were canonical, authenticate a Contract Envelope, or admit graph
+contents. Those boundaries retain their own checks.
+
 CID emission uses the bounded canonical hashing writer, without building a
 second contract tree, serialized String or full UTF-8 byte array. Indexed
 property/label access avoids collection copies. Nodes, container depth and
