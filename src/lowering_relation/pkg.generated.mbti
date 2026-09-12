@@ -34,6 +34,8 @@ pub fn emit_expression(Expression, @encode_core.Writer) -> Unit raise @encode_co
 
 pub fn emit_kernel_node(PreparedKernel, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
 
+pub fn emit_root_source(ExpressionRoot, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
+
 pub fn emit_sequence_steps(PreparedSequence, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
 
 pub fn emit_values_node(PreparedValues, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure

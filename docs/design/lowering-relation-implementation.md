@@ -878,6 +878,24 @@ were not rerun for this increment.
 
 ## Shared expression demand integration
 
+### Source values and machine nodes
+
+Each expression root retains its exact typed owner. Source projection reads the
+normalized syntax of that owner; machine-node projection reads the bound lowered
+expression. A Parameter remains a reference in source while becoming a literal
+in the machine node. An omitted CASE ELSE remains absent in source even when the
+checked machine expression carries a typed-null ELSE. Literal objects are data,
+not nested author instructions.
+
+Source projection streams indexed cursor children into a bounded Writer using
+one continuation per open container. It does not copy a complete sibling array,
+reparse JSON or infer expression meaning. Object enumeration is preserved by
+this projection, just as with the generic Writer's JSON adapter. Consequently
+its bytes are not themselves a canonical artifact or CID preimage: enclosing
+artifact serialization must impose canonical object ordering. Writer limits
+are cumulative across all embedded roots, and only successful finish publishes
+the completed document.
+
 Main's standalone API handoff `06742b9` is imported as `df75931`.
 The duplicate conditional-rule traversal introduced in `b3680f2` is removed.
 `prepare_demand` delegates directly to `expression_typing.derive_demands`
