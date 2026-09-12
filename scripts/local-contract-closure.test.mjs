@@ -8,6 +8,28 @@ const read = path => JSON.parse(readFileSync(new URL('../' + path, import.meta.u
 const corpus = read('portability/corpus/local-contract-closure.json');
 const registry = read('spec/contracts/actql-stage-contracts.json');
 const textTimeBase = read('spec/dependencies/actql-text-time-base.json');
+const textTimeDependencies = read('spec/dependencies/actql-text-time-base-dependencies.json');
+
+test('inherited text/time dependency edges resolve through explicit roles', () => {
+  const bodies = textTimeDependencies;
+  const edges = [
+    [textTimeBase.data_contract_cids.regex_grammar_cid, bodies.regex_grammar],
+    [textTimeBase.data_contract_cids.timestamp_pattern_grammar_cid, bodies.timestamp_pattern_grammar],
+    [textTimeBase.data_contract_cids.unicode_data_cid, bodies.unicode_semantics],
+    [bodies.regex_grammar.ast_schema_cid, bodies.regex_ast_schema],
+    [bodies.regex_grammar.replacement_ast_schema_cid, bodies.regex_replacement_ast_schema],
+    [bodies.timestamp_pattern_grammar.ast_schema_cid, bodies.timestamp_pattern_ast_schema],
+  ];
+  for (const [expected, body] of edges) {
+    assert.equal(machineCid(body), expected);
+    assert.notEqual(machineCid({...body, unexpected: true}), expected);
+  }
+  assert.equal(Object.keys(bodies).length, edges.length);
+  // This edge identifies Unicode semantics, not the underlying data table.
+  assert.notEqual(bodies.unicode_semantics.data_cid, textTimeBase.data_contract_cids.unicode_data_cid);
+  assert.equal(bodies.unicode_semantics.data_cid, textTimeBase.bound_derivation.nfkc.unicode_data_cid);
+  assert.equal(bodies.unicode_semantics.data_cid, textTimeBase.bound_derivation.case_fold.unicode_data_cid);
+});
 
 test('the inherited text/time dependency resolves to its original pinned body', () => {
   const expected = 'sha256:2d41f38bd3bf8217d9bc394b1ca2ed9dfe6695b0088cd6a489328dabdee61dcc';

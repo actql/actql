@@ -3765,3 +3765,67 @@ test "inherited text/time base profile" {
   assert_eq(@canonical_json.cid_value(value, 36878, 2479, 15), "sha256:2d41f38bd3bf8217d9bc394b1ca2ed9dfe6695b0088cd6a489328dabdee61dcc")
   assert_eq(@canonical_json.measure_value(value, 36878, 2479, 15), 36878)
 }
+
+///|
+test "inherited text/time regex_grammar" {
+  let input = @json.parse([
+    "{\"version\":\"actql-regex-grammar/0.1\",\"ebnf\":\"regex       = alternation ;\\nalternation = sequence, { \\\"|\\\", sequence } ;\\nsequence    = atom, { atom } ;\\natom        = primary, [ quantifier ] ;\\nprimary     = scalar | escape | class | group | \\\".\\\" | \\\"^\\\" | \\\"$\\\" ;\\ngroup       = \\\"(\\\", alternation, \\\")\\\" ;\\nclass       = \\\"[\\\", [ \\\"^\\\" ], class-item, { class-item }, \\\"]\\\" ;\\nclass-item  = class-scalar | class-escape | class-range | escaped-meta ;\\nclass-range = class-scalar, \\\"-\\\", class-scalar ;\\nquantifier  = \\\"?\\\" | \\\"*\\\" | \\\"+\\\" | \\\"{\\\", uint, [ \\\",\\\", [ uint ] ], \\\"}\\\" ;\\nuint        = \\\"0\\\" | nonzero-digit, { digit } ;\\nescape      = \\\"\\\\\\\\\\\", ( meta | \\\"n\\\" | \\\"r\\\" | \\\"t\\\" | \\\"d\\\" | \\\"D\\\" | \\\"s\\\" | \\\"S\\\" | \\\"w\\\" | \\\"W\\\" ) ;\\nescaped-meta = \\\"\\\\\\\\\\\", meta ;\\nmeta        = \\\"\\\\\\\\\\\" | \\\".\\\" | \\\"^\\\" | \\\"$\\\" | \\\"|\\\" | \\\"?\\\" | \\\"*\\\" | \\\"+\\\" | \\\"(\\\" | \\\")\\\" | \\\"[\\\" | \\\"]\\\" | \\\"{\\\" | \\\"}\\\" | \\\"-\\\" ;\\nscalar      = ? one Unicode scalar except regex metacharacters ? ;\\nclass-scalar = ? one Unicode scalar except",
+    " \\\"\\\\\\\\\\\", \\\"]\\\", and unescaped range \\\"-\\\" ? ;\\nclass-escape = \\\"\\\\\\\\\\\", ( \\\"d\\\" | \\\"D\\\" | \\\"s\\\" | \\\"S\\\" | \\\"w\\\" | \\\"W\\\" | \\\"n\\\" | \\\"r\\\" | \\\"t\\\" ) ;\\ndigit       = \\\"0\\\" | nonzero-digit ;\\nnonzero-digit = \\\"1\\\" | \\\"2\\\" | \\\"3\\\" | \\\"4\\\" | \\\"5\\\" | \\\"6\\\" | \\\"7\\\" | \\\"8\\\" | \\\"9\\\" ;\",\"ast_schema_cid\":\"sha256:0591812d2909558b64c931e4336970a7cfe14667ad672a33e940839a7571c0a2\",\"replacement_ast_schema_cid\":\"sha256:92c3fc4fc790cdf8f985b634dfe513f85b6cd5c904bb673de7330d18f577aeed\",\"flags\":[\"m\",\"s\"],\"matching\":\"leftmost-first\",\"empty_match_advance\":\"one-unicode-scalar\",\"scalar_universe\":\"unicode-scalar-values\",\"character_classes\":{\"d\":\"U+0030..U+0039\",\"w\":\"U+0041..U+005A,U+0061..U+007A,U+0030..U+0039,U+005F\",\"s\":\"U+0009,U+000A,U+000B,U+000C,U+000D,U+0020\",\"uppercase\":\"complement-over-unicode-scalar-universe\"},\"dot\":{\"without_s\":\"all-unicode-scalars-except-U+000A\",\"with_s\":\"all-unicode-scalars\"},\"multiline_anchors\":{\"boundary\":\"document-or-U+000A\",\"carriage_return\":\"ordinary-scalar\"},\"captures\":{\"numbering\":\"zero-whole-matc",
+    "h-one-first-group\",\"unmatched\":\"null\",\"replacement_unmatched\":\"empty-string\",\"replacement_syntax\":\"$$-literal-dollar-and-$1..$99-capture\"},\"quantified_nullable_expression\":\"rejected\",\"unsupported\":[\"lookaround\",\"backreference\",\"named-capture\",\"conditional\",\"recursion\",\"unicode-property-escape\",\"implementation-specific-escape\",\"lazy-quantifier\"]}",
+  ].join(""))
+  let value = @canonical_json.from_json(input, 37, 2, 2395)
+  assert_eq(@canonical_json.cid_value(value, 2395, 37, 2), "sha256:460873332aa4731fb4631a293e798ce089516ffc058c544253c1d5d3b9c6f6a1")
+  assert_eq(@canonical_json.measure_value(value, 2395, 37, 2), 2395)
+}
+
+///|
+test "inherited text/time timestamp_pattern_grammar" {
+  let input = @json.parse([
+    "{\"version\":\"actql-timestamp-pattern-grammar/0.1\",\"ebnf\":\"pattern = component, { component } ;\\ncomponent = \\\"yyyy\\\" | \\\"MM\\\" | \\\"dd\\\" | \\\"HH\\\" | \\\"mm\\\" | \\\"ss\\\" | \\\"SSS\\\" | literal ;\\nliteral = \\\"-\\\" | \\\"/\\\" | \\\":\\\" | \\\" \\\" | \\\".\\\" | \\\"T\\\" ;\",\"ast_schema_cid\":\"sha256:8483e1535239becdd53d31d361967e0e29a3f27234ad83d419b47535c858844c\",\"timezone\":\"UTC-only\",\"parse_full_input\":true,\"invalid_calendar_value\":\"fail\",\"calendar\":\"proleptic-gregorian\",\"year_range\":\"0000..9999\",\"implicit_locale_default\":false,\"missing_time_components\":{\"HH\":\"00\",\"mm\":\"00\",\"ss\":\"00\",\"SSS\":\"000\"}}",
+  ].join(""))
+  let value = @canonical_json.from_json(input, 15, 2, 573)
+  assert_eq(@canonical_json.cid_value(value, 573, 15, 2), "sha256:0bf21470f9609e414e597a5cdc599764677bc92e479073f9d9924fdaba88ba72")
+  assert_eq(@canonical_json.measure_value(value, 573, 15, 2), 573)
+}
+
+///|
+test "inherited text/time unicode_semantics" {
+  let input = @json.parse([
+    "{\"version\":\"unicode-scalar-semantics/16.0\",\"normalization\":\"NFC\",\"data_cid\":\"sha256:4a84a6d133b6282a5d50ba743ef8cab3fc87d4ccc91612663c5fc0d02f705dd4\",\"compatibility_normalization\":\"NFKC\",\"case_folding\":\"full-default-C-and-F-no-Turkic\",\"output\":\"NFC\",\"expansion\":{\"nfkc_max_decomposed_codepoints_per_input\":18,\"case_fold_max_decomposed_codepoints_per_input\":4}}",
+  ].join(""))
+  let value = @canonical_json.from_json(input, 10, 2, 360)
+  assert_eq(@canonical_json.cid_value(value, 360, 10, 2), "sha256:8e4b432a6b975be3876db964d8c9cf2a623b1f08b914dc6f852912cad5325332")
+  assert_eq(@canonical_json.measure_value(value, 360, 10, 2), 360)
+}
+
+///|
+test "inherited text/time regex_ast_schema" {
+  let input = @json.parse([
+    "{\"$schema\":\"https://json-schema.org/draft/2020-12/schema\",\"$id\":\"https://smooth.dev/schemas/actql-regex-ast-0.1.json\",\"title\":\"ActQL regex canonical AST\",\"description\":\"Closed host-independent regex AST. Implementations lower this AST, never host parser acceptance.\",\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"version\",\"root\",\"capture_count\",\"ast_cid\"],\"properties\":{\"version\":{\"const\":\"actql-regex-ast/0.1\"},\"root\":{\"$ref\":\"#/$defs/node\"},\"capture_count\":{\"type\":\"integer\",\"minimum\":0},\"ast_cid\":{\"type\":\"string\",\"pattern\":\"^sha256:[a-f0-9]{64}$\"}},\"$defs\":{\"literal\":{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"kind\",\"value\"],\"properties\":{\"kind\":{\"const\":\"literal\"},\"value\":{\"type\":\"string\"}}},\"class_escape\":{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"kind\",\"value\"],\"properties\":{\"kind\":{\"const\":\"class_escape\"},\"value\":{\"enum\":[\"d\",\"D\",\"s\",\"S\",\"w\",\"W\"]}}},\"range\":{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"kind\",\"start\",\"end\"],\"properties\":{\"kind\":{\"const\"",
+    ":\"range\"},\"start\":{\"type\":\"string\",\"minLength\":1},\"end\":{\"type\":\"string\",\"minLength\":1}}},\"class_item\":{\"oneOf\":[{\"$ref\":\"#/$defs/literal\"},{\"$ref\":\"#/$defs/class_escape\"},{\"$ref\":\"#/$defs/range\"}]},\"node\":{\"oneOf\":[{\"$ref\":\"#/$defs/literal\"},{\"$ref\":\"#/$defs/class_escape\"},{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"kind\"],\"properties\":{\"kind\":{\"const\":\"dot\"}}},{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"kind\",\"value\"],\"properties\":{\"kind\":{\"const\":\"anchor\"},\"value\":{\"enum\":[\"^\",\"$\"]}}},{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"kind\",\"negated\",\"items\"],\"properties\":{\"kind\":{\"const\":\"class\"},\"negated\":{\"type\":\"boolean\"},\"items\":{\"type\":\"array\",\"minItems\":1,\"items\":{\"$ref\":\"#/$defs/class_item\"}}}},{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"kind\",\"capture\",\"expression\"],\"properties\":{\"kind\":{\"const\":\"capture\"},\"capture\":{\"type\":\"integer\",\"minimum\":1},\"expression\":{\"$ref\":\"#/$defs/node\"}}},{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"ki",
+    "nd\",\"items\"],\"properties\":{\"kind\":{\"const\":\"sequence\"},\"items\":{\"type\":\"array\",\"minItems\":2,\"items\":{\"$ref\":\"#/$defs/node\"}}}},{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"kind\",\"branches\"],\"properties\":{\"kind\":{\"const\":\"alternation\"},\"branches\":{\"type\":\"array\",\"minItems\":2,\"items\":{\"$ref\":\"#/$defs/node\"}}}},{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"kind\",\"min\",\"max\",\"expression\"],\"properties\":{\"kind\":{\"const\":\"repeat\"},\"min\":{\"type\":\"integer\",\"minimum\":0},\"max\":{\"oneOf\":[{\"type\":\"integer\",\"minimum\":0},{\"type\":\"null\"}]},\"expression\":{\"$ref\":\"#/$defs/node\"}}}]}}}",
+  ].join(""))
+  let value = @canonical_json.from_json(input, 186, 9, 2647)
+  assert_eq(@canonical_json.cid_value(value, 2647, 186, 9), "sha256:0591812d2909558b64c931e4336970a7cfe14667ad672a33e940839a7571c0a2")
+  assert_eq(@canonical_json.measure_value(value, 2647, 186, 9), 2647)
+}
+
+///|
+test "inherited text/time regex_replacement_ast_schema" {
+  let input = @json.parse([
+    "{\"$schema\":\"https://json-schema.org/draft/2020-12/schema\",\"$id\":\"https://smooth.dev/schemas/actql-regex-replacement-ast-0.1.json\",\"title\":\"ActQL regex replacement canonical AST\",\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"version\",\"parts\",\"literal_utf8_bytes\",\"capture_reference_count\",\"max_capture_index\",\"ast_cid\"],\"properties\":{\"version\":{\"const\":\"actql-regex-replacement-ast/0.1\"},\"parts\":{\"type\":\"array\",\"items\":{\"oneOf\":[{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"kind\",\"value\"],\"properties\":{\"kind\":{\"const\":\"literal\"},\"value\":{\"type\":\"string\"}}},{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"kind\",\"capture\"],\"properties\":{\"kind\":{\"const\":\"capture\"},\"capture\":{\"type\":\"integer\",\"minimum\":1,\"maximum\":99}}}]}},\"literal_utf8_bytes\":{\"type\":\"integer\",\"minimum\":0},\"capture_reference_count\":{\"type\":\"integer\",\"minimum\":0},\"max_capture_index\":{\"type\":\"integer\",\"minimum\":0,\"maximum\":99},\"ast_cid\":{\"type\":\"string\",\"pattern\":\"^sha256:[a-f0-9]{64}$\"}}}",
+  ].join(""))
+  let value = @canonical_json.from_json(input, 57, 8, 996)
+  assert_eq(@canonical_json.cid_value(value, 996, 57, 8), "sha256:92c3fc4fc790cdf8f985b634dfe513f85b6cd5c904bb673de7330d18f577aeed")
+  assert_eq(@canonical_json.measure_value(value, 996, 57, 8), 996)
+}
+
+///|
+test "inherited text/time timestamp_pattern_ast_schema" {
+  let input = @json.parse([
+    "{\"$schema\":\"https://json-schema.org/draft/2020-12/schema\",\"$id\":\"https://smooth.dev/schemas/actql-timestamp-pattern-ast-0.1.json\",\"title\":\"ActQL UTC timestamp-pattern canonical AST\",\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"version\",\"mode\",\"components\",\"full_input_match\",\"timezone\",\"ast_cid\"],\"properties\":{\"version\":{\"const\":\"actql-timestamp-pattern-ast/0.1\"},\"mode\":{\"enum\":[\"parse\",\"format\"]},\"components\":{\"type\":\"array\",\"minItems\":1,\"items\":{\"oneOf\":[{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"kind\",\"value\"],\"properties\":{\"kind\":{\"const\":\"token\"},\"value\":{\"enum\":[\"yyyy\",\"MM\",\"dd\",\"HH\",\"mm\",\"ss\",\"SSS\"]}}},{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"kind\",\"value\"],\"properties\":{\"kind\":{\"const\":\"literal\"},\"value\":{\"enum\":[\"-\",\"/\",\":\",\" \",\".\",\"T\"]}}}]}},\"full_input_match\":{\"const\":true},\"timezone\":{\"const\":\"UTC\"},\"ast_cid\":{\"type\":\"string\",\"pattern\":\"^sha256:[a-f0-9]{64}$\"}}}",
+  ].join(""))
+  let value = @canonical_json.from_json(input, 67, 9, 932)
+  assert_eq(@canonical_json.cid_value(value, 932, 67, 9), "sha256:8483e1535239becdd53d31d361967e0e29a3f27234ad83d419b47535c858844c")
+  assert_eq(@canonical_json.measure_value(value, 932, 67, 9), 932)
+}

@@ -24,6 +24,27 @@ available. In particular, Unicode data and regex/timestamp grammar references
 remain distinct dependencies; their CID-shaped strings are not an invitation to
 scan arbitrary business data for dependencies.
 
+The [inherited dependency bodies](../../spec/dependencies/actql-text-time-base-dependencies.json)
+resolve the following declared edges. Each pointer identifies an independently
+hashed body, not a hash of the containing collection:
+
+| Reference in its owner | Body pointer |
+| --- | --- |
+| Base `data_contract_cids.regex_grammar_cid` | `/regex_grammar` |
+| Base `data_contract_cids.timestamp_pattern_grammar_cid` | `/timestamp_pattern_grammar` |
+| Base `data_contract_cids.unicode_data_cid` | `/unicode_semantics` |
+| Regex grammar `ast_schema_cid` | `/regex_ast_schema` |
+| Regex grammar `replacement_ast_schema_cid` | `/regex_replacement_ast_schema` |
+| Timestamp grammar `ast_schema_cid` | `/timestamp_pattern_ast_schema` |
+
+Despite the base field's name, its `unicode_data_cid` references the Unicode
+semantics descriptor. That descriptor's `data_cid` references the actual data
+table, also referenced directly by the base's NFKC and case-fold bound laws.
+These are different bodies and must not be substituted for one another.
+The inherited AST schemas are the exact pinned schemas; a newer current schema
+with similar purpose is not a substitute at those CIDs. Embedded JSON Schema
+`$ref` paths resolve within each schema's declared scope, not as Catalog IDs.
+
 ## Three different identities
 
 A contract-closure CID identifies a set of interpreted contracts. A Unit
