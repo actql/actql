@@ -1,9 +1,11 @@
 ///|
 fn prepared_identity_fixture(
   first_by_order? : Bool = false,
+  unused_operation? : Bool = false,
 ) -> (ProgramSourceIdentity, @stage_results.ResultWiring, ReconciledContexts) {
   let (stages, wiring, locals, bound, _, _) = prepared_local_context_fixture(
     first_by_order~,
+    unused_operation~,
   )
   let source = @stages.operations_source(@stages.bound_operations(bound))
   // No acquired rows or schema snapshots. The environment still undergoes

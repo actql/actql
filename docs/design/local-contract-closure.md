@@ -154,6 +154,16 @@ are selected through their own expression roots rather than inferred solely
 from an operation's output Carrier. New operation/profile variants must be
 classified by the existing exhaustive match, not a duplicate name list.
 
+Operation roots must be selected from all owned producer pipelines, not merely
+the list of resolved profile obligations. Ordinary RelA operations may require
+no such obligation and would disappear from a resolution-only inventory.
+`program_identity_producer_count` and `program_identity_producer_at` provide the
+retained per-Stage visits for this traversal, including unused authored producers.
+The existing pipeline step/profile accessors then supply the adopted-law roots.
+Reads retain exact pipeline ownership without copying arrays or rehashing;
+visiting and collecting roots still consumes the caller's aggregate work budget.
+Repeated visits are not silently collapsed at this source-occurrence boundary.
+
 Import/interface and gate construction supplies its local semantic contract
 references. Full predecessor Program revisions, Captured Runs, receipts and
 whole manifests are not substitutes for those projections. A required projection

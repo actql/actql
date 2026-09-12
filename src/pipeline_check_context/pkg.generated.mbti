@@ -393,6 +393,10 @@ pub fn program_identity_definition_cid(ProgramSourceIdentity) -> String
 
 pub fn program_identity_parameter_values_cid(ProgramSourceIdentity) -> String
 
+pub fn program_identity_producer_at(ProgramSourceIdentity, Int, Int) -> @pipeline_typing.CheckedPipeline?
+
+pub fn program_identity_producer_count(ProgramSourceIdentity, Int) -> Int?
+
 pub fn program_identity_sources(ProgramSourceIdentity) -> ProgramSourceChecks
 
 pub fn program_identity_stage_at(ProgramSourceIdentity, Int) -> StageSourceIdentity?

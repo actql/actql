@@ -245,6 +245,35 @@ pub fn program_identity_stage_at(
 }
 
 ///|
+/// All retained producer visits, not only sites with unresolved obligations or
+/// selected Results. Reads do not copy pipelines or reset preparation budgets.
+pub fn program_identity_producer_count(
+  v : ProgramSourceIdentity,
+  stage : Int,
+) -> Int? {
+  let stages = v.sources.operations.preparation.profiles.context.selected.context.wired.stages
+  stages.contexts.get(stage).map(context => context.visits.length())
+}
+
+///|
+/// Preserve the exact pipeline owner for operation and contract-root traversal.
+/// Repeated visits remain distinct coordinates even when they share a pipeline.
+pub fn program_identity_producer_at(
+  v : ProgramSourceIdentity,
+  stage : Int,
+  visit : Int,
+) -> @pipeline.CheckedPipeline? {
+  let stages = v.sources.operations.preparation.profiles.context.selected.context.wired.stages
+  stages.contexts
+  .get(stage)
+  .bind(context => {
+    context.visits
+    .get(visit)
+    .map(entry => @parameter_slots.pipeline(entry.collected))
+  })
+}
+
+///|
 pub fn stage_identity_definition(
   v : StageSourceIdentity,
 ) -> @program_refs.StageDefinition {
