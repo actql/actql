@@ -827,9 +827,15 @@ keeps its original requirement occurrence.
 Work is cumulative and reserves all component visits before scanning. Entry
 limits apply before query preparation; a later mismatch or budget failure does
 not expose a partially admitted result. This boundary preserves binary64 source
-components, including finite values not representable as finite f32. It does
-not discharge the separate VecA arithmetic/profile obligations: f32 admission,
-quantization, zero-vector behavior, score calculation, identity uniqueness and
+components but also verifies that their binary32 nearest-ties-even admission is
+finite, as required by the pinned [numeric law](../spec/language.md#vector-arithmetic).
+`operation_query_quantized_at` provides the admitted component widened exactly
+to binary64 without allocating a second array. It preserves internal signed
+zero; source components and identity preimages are not replaced by these reads.
+Underflow to a zero vector is permitted for scoring and is not a normalization
+success claim. This does not discharge the separate VecA arithmetic/profile
+obligations: input-corpus component admission, zero-vector behavior, score
+calculation, identity uniqueness and
 execution resources must still be satisfied before scoring. Dimension admission
 alone is not execution permission or validation of the input corpus's data.
 

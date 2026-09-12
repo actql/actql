@@ -67,6 +67,16 @@ pub fn operation_query_at(v : AdmittedOperationQuery, index : Int) -> Double? {
 }
 
 ///|
+/// Binary32 nearest-ties-even admission widened exactly to binary64.
+/// Source components remain separately available; internal signed zero is kept.
+pub fn operation_query_quantized_at(
+  v : AdmittedOperationQuery,
+  index : Int,
+) -> Double? {
+  operation_query_at(v, index).map(n => Float::from_double(n).to_double())
+}
+
+///|
 pub fn check_program_operation_queries(
   ranges : ProgramOperationRanges,
   max_work : Int,
@@ -148,7 +158,9 @@ pub fn check_program_operation_queries(
             return Err(InvalidComponent(i, j))
           }
           if @scalar.read_finite_number(n) is None ||
-            (n == 0.0 && 1.0 / n < 0.0) {
+            (n == 0.0 && 1.0 / n < 0.0) ||
+            @scalar.read_finite_number(Float::from_double(n).to_double())
+            is None {
             return Err(InvalidComponent(i, j))
           }
         }

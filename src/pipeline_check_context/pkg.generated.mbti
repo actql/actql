@@ -226,6 +226,8 @@ pub fn operation_query_operation(AdmittedOperationQuery) -> @vector_typing.Check
 
 pub fn operation_query_parameter(AdmittedOperationQuery) -> @parameter_binding.BoundParameter?
 
+pub fn operation_query_quantized_at(AdmittedOperationQuery, Int) -> Double?
+
 pub fn operation_query_resolution_at(ProgramOperationQueries, Int) -> OperationQueryResolution?
 
 pub fn operation_range_at(ProgramOperationRanges, Int) -> OperationRangeResolution?
