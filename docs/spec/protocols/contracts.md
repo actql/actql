@@ -341,6 +341,20 @@ It is a law contract, not a cell-admission schema or a backend registration.
 ../../../spec/contracts/actql-bound-values-law.json# sha256:0e0f9b4b6585ab7b17bafe484e82f44cd8f3acc9eec5ef9329cea200237a7971
 ```
 
+<!-- requirement-block: capacity-law-registry.relation-count-body capacity-law-registry.relation-count-machine -->
+The pinned `actql-bound-relation-laws/0.1` body governs common Relation
+row-upper-bound preservation, global-group, take/top_k, append, unpivot and
+unnest derivations. Applications MUST retain actual input occurrences, quantity
+units and source dependencies, and reject unsafe arithmetic. Its selection
+does not replace Carrier-specific laws or discharge the owning operation's
+validation, ordering, resource enforcement or runtime obligations. A law-name
+registry or transfer classification alone is not this semantic body.
+
+<!-- normative-code: law -->
+```text
+../../../spec/contracts/actql-bound-relation-laws.json# sha256:163a0d75d56310803ac755d5f4f02069f442651711209037d6e3f512954c97ab
+```
+
 <!-- requirement-block: capacity-law-registry.machine-contract -->
 <!-- normative-code: law -->
 ```text

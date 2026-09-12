@@ -826,6 +826,7 @@ pub(all) enum CoreContractBody {
   TextRankProfileData(String)
   ValuesCountLaw
   BoundTransferRules
+  RelationCountRules
 } derive(Eq, @debug.Debug)
 
 type CoreContractInventory
@@ -866,6 +867,7 @@ pub(all) enum CoreContractSite {
   IncomingRules(Int)
   OperationCountLaw(Int, Int, Int)
   OperationTransferRules(Int, Int, Int)
+  OperationRelationCountRules(Int, Int, Int)
 } derive(Eq, @debug.Debug)
 
 pub struct DedupeTopTieCheck {

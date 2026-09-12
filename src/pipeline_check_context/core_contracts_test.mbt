@@ -87,8 +87,8 @@ test "core contract collection preserves owned occurrences and shares dependency
   let incoming = core_contract_incoming(inventory)
   assert_true(physical_equal(program_incoming_identity(incoming), identity))
   assert_eq(program_incoming_count(incoming), 3)
-  assert_eq(core_contract_root_count(inventory), 17 + 3 * steps)
-  assert_eq(core_contract_body_count(inventory), 30)
+  assert_eq(core_contract_root_count(inventory), 17 + 4 * steps)
+  assert_eq(core_contract_body_count(inventory), 31)
   let (work, edges) = core_contract_usage(inventory)
   assert_eq(edges, 23)
   assert_eq(
@@ -98,14 +98,14 @@ test "core contract collection preserves owned occurrences and shares dependency
     14 +
     2 * steps +
     visits +
-    3 * steps +
-    30 +
+    4 * steps +
+    31 +
     23 +
     (program_incoming_usage(incoming).0 - program_identity_usage(identity).0) +
     6 +
     4 +
     core_contract_root_count(inventory) +
-    58 +
+    60 +
     42,
   )
   let mut stage_roots = 0
@@ -114,6 +114,8 @@ test "core contract collection preserves owned occurrences and shares dependency
   for i in 0..<core_contract_root_count(inventory) {
     let root = core_contract_root_at(inventory, i).unwrap()
     match root.site {
+      OperationRelationCountRules(_, _, _) =>
+        assert_eq(root.body, RelationCountRules)
       OperationTransferRules(stage, visit, step) => {
         assert_eq(root.body, BoundTransferRules)
         assert_true(
@@ -215,7 +217,7 @@ test "core contract collection preserves owned occurrences and shares dependency
   let exact : CoreContractLimits = {
     max_work: work,
     max_roots: core_contract_root_count(inventory),
-    max_bodies: 30,
+    max_bodies: 31,
     max_edges: 23,
   }
   assert_true(collect_core_contracts(identity, exact) is Ok(_))
@@ -237,7 +239,7 @@ test "core contract collection preserves owned occurrences and shares dependency
     limits in [
       { ..exact, max_work: work - 1, },
       { ..exact, max_roots: exact.max_roots - 1, },
-      { ..exact, max_bodies: 29, },
+      { ..exact, max_bodies: 30, },
       { ..exact, max_edges: 22, },
     ] {
     assert_true(collect_core_contracts(identity, limits) is Err(BudgetExceeded))

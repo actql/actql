@@ -4,6 +4,46 @@ import { readFileSync } from 'node:fs';
 import { machineCid } from './actql-spec-family.mjs';
 import { validateRegistry, loadRegistry, renderRegistry, renderGuardLaws } from './capacity-law-registry.mjs';
 
+test('common Relation count semantics have a registered body distinct from classification', () => {
+  const path = 'spec/contracts/actql-bound-relation-laws.json';
+  const body = JSON.parse(readFileSync(new URL(`../${path}`, import.meta.url), 'utf8'));
+  const cid = 'sha256:163a0d75d56310803ac755d5f4f02069f442651711209037d6e3f512954c97ab';
+  assert.equal(machineCid(body), cid);
+  assert.deepEqual(Object.keys(body).sort(), ['application','arithmetic','conditionality','rules','scope','unit','version']);
+  assert.equal(body.unit, 'rows');
+  assert.deepEqual(Object.keys(body.rules).sort(), ['append','global_group','preserve','take_top_k','unnest','unpivot']);
+  for (const rule of Object.values(body.rules)) {
+    for (const law of rule.law_ids ?? (rule.law_id ? [rule.law_id] : [])) assert.ok(loadRegistry().body.law_ids.includes(law));
+  }
+  const family = JSON.parse(readFileSync(new URL('../spec/spec-family.json', import.meta.url), 'utf8'));
+  const owner = family.documents.find(d => d.spec_id === 'actql.protocol.contracts');
+  assert.deepEqual(owner.machine_contracts.filter(ref => ref.path === path), [{path,pointer:'',cid,version:body.version}]);
+  const implementation = readFileSync(new URL('../src/pipeline_check_context/core_contracts.mbt', import.meta.url), 'utf8');
+  assert.ok(implementation.replace(/\s+/g, ' ').includes(`RelationCountRules => "${cid}"`));
+});
+
+test('independent common Relation count vectors preserve multiplicity and reject overflow', () => {
+  const corpus = JSON.parse(readFileSync(new URL('../portability/corpus/bound-relation.json', import.meta.url), 'utf8'));
+  assert.equal(corpus.version, 'actql-bound-relation-vectors/0.1');
+  const safe = value => { assert.ok(Number.isSafeInteger(value) && value >= 0); return BigInt(value); };
+  for (const v of corpus.cases) {
+    const inputs = v.inputs.map(safe);
+    if (v.rule === 'unnest' && v.max_items === null) { assert.equal(v.error,'Unresolved'); continue; }
+    let n;
+    switch(v.rule) {
+      case 'preserve': n = inputs[0]; break;
+      case 'global_group': n = 1n; break;
+      case 'clamp': { const k = safe(v.factor); n = inputs.length ? (inputs[0] < k ? inputs[0] : k) : k; break; }
+      case 'append': n = inputs[0] + inputs[1]; break;
+      case 'multiply': n = inputs[0] * safe(v.factor); break;
+      case 'unnest': n = inputs[0] * safe(v.outer ? Math.max(1,v.max_items) : v.max_items); break;
+      default: assert.fail(`unknown rule ${v.rule}`);
+    }
+    if(n > 9007199254740991n) assert.equal(v.error,'Overflow',v.name);
+    else { assert.equal(v.error,undefined,v.name); assert.equal(n,safe(v.expected),v.name); }
+  }
+});
+
 test('compiler selects the registered bound transfer classification body', () => {
   const path = 'spec/contracts/actql-bound-transfer-laws.json';
   const body = JSON.parse(readFileSync(new URL(`../${path}`, import.meta.url), 'utf8'));

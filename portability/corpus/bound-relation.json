@@ -1,0 +1,24 @@
+{
+  "version": "actql-bound-relation-vectors/0.1",
+  "cases": [
+    {"name":"empty preservation","rule":"preserve","inputs":[0],"expected":0},
+    {"name":"reduction upper bound","rule":"preserve","inputs":[7],"expected":7},
+    {"name":"global empty input","rule":"global_group","inputs":[0],"expected":1},
+    {"name":"global nonempty input","rule":"global_group","inputs":[99],"expected":1},
+    {"name":"independent count clamp","rule":"clamp","inputs":[],"factor":3,"expected":3},
+    {"name":"input smaller than count","rule":"clamp","inputs":[2],"factor":3,"expected":2},
+    {"name":"count smaller than input","rule":"clamp","inputs":[10],"factor":3,"expected":3},
+    {"name":"empty input clamp","rule":"clamp","inputs":[0],"factor":3,"expected":0},
+    {"name":"repeated append operand","rule":"append","inputs":[3,3],"expected":6},
+    {"name":"empty append operand","rule":"append","inputs":[0,3],"expected":3},
+    {"name":"safe addition edge","rule":"append","inputs":[9007199254740990,1],"expected":9007199254740991},
+    {"name":"unsafe addition","rule":"append","inputs":[9007199254740991,1],"error":"Overflow"},
+    {"name":"repeated unpivot columns","rule":"multiply","inputs":[3],"factor":2,"expected":6},
+    {"name":"empty expansion input","rule":"multiply","inputs":[0],"factor":2,"expected":0},
+    {"name":"unsafe multiplication","rule":"multiply","inputs":[4503599627370496],"factor":2,"error":"Overflow"},
+    {"name":"dropped empty array","rule":"unnest","inputs":[3],"max_items":0,"outer":false,"expected":0},
+    {"name":"retained empty array","rule":"unnest","inputs":[3],"max_items":0,"outer":true,"expected":3},
+    {"name":"retained bounded array","rule":"unnest","inputs":[3],"max_items":4,"outer":true,"expected":12},
+    {"name":"unknown expansion","rule":"unnest","inputs":[3],"max_items":null,"outer":false,"error":"Unresolved"}
+  ]
+}

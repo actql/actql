@@ -197,6 +197,24 @@ guards remain in the Unit body. Policy and capacity *interpretation contracts*
 remain in the contract closure. An actual contract-version change is distinct
 from a new policy value interpreted under the same contract.
 
+Common Relation transfers additionally select
+`spec/contracts/actql-bound-relation-laws.json`, pointer `""`, with CID
+`sha256:163a0d75d56310803ac755d5f4f02069f442651711209037d6e3f512954c97ab`.
+The body fixes input-bound preservation and the global-group, take/top_k,
+append, unpivot and unnest count rules, including dependency multiplicity,
+safe arithmetic and empty-input distinctions. It packages existing rules,
+not a new permission to execute an operation or replace unknown counts by zero.
+
+Every unary Relation operation, window-group, append, nest and set-operation
+occurrence selects this common interpretation body. This includes authored
+no-ops and repeated producer visits; storage is shared by body CID, not by
+source occurrence. Per-Stage selection follows the owning occurrence, and a
+Stage without such operations does not inherit another Stage's root. There are
+no external reference fields in this body; its law names do not stand for
+unresolved Catalog links. Selecting these common rules does not complete the
+quantity-specific Carrier laws for joins, Graphs, Vectors, windows, acquisition
+or publication, nor the final Unit contract closure.
+
 The existing exhaustive operation-profile classification also exposes adopted
 AoA law roots: RelA scalar/primitive laws, SGA structural/identity laws, and VecA
 numerical laws. Reads from an `OperationProfileResolution` retain the same owned
