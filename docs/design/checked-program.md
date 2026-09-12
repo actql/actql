@@ -211,9 +211,14 @@ Environment or capacity material remains an error, not a default configuration.
 The component's work/text and final policy-owner join are reserved before Stage
 construction and counted once at selection; all intervening joins share the
 remaining allowance. The component has explicit byte/node/depth caps, and Local
-input nodes retain their independent limit. This entrance starts from already
-prepared source: it does not yet account for the complete source-admission
-prefix or close source requests, Unit identities or execution obligations.
+input nodes retain their independent limit. Source preparation records the
+work/text prefix not retained by the exact operation, Result wiring and Local
+input branches; context preparation reserves and charges that prefix once.
+Thus declaration/binding admission and topology preparation are not omitted or
+charged again as whole branches. Parsing precedes this entrance, and source
+nodes/tokens/depth remain bounded by source preparation's explicit limits.
+This entrance does not close source requests, Unit identities or execution
+obligations.
 
 This order is a dependency graph, not a requirement to reconstruct earlier
 results at every phase. Private incremental assembly can retain immutable

@@ -8,6 +8,7 @@ struct PreparedLocalSource {
   operations : @parameters.BoundOperations
   results : Checked
   usage : LocalProgramUsage
+  context_prefix : (Int, Int)
 }
 
 ///|
@@ -112,6 +113,7 @@ pub fn prepare_local_source(
   let publications = []
   let mut shared_work = 0
   let mut result_work = 0
+  let mut input_join_work = 0
   for i in 0..<count {
     let port = wiring_stage_at(wiring, i).unwrap()
     let stage = stage_port_source(port)
@@ -125,6 +127,13 @@ pub fn prepare_local_source(
     )
     result_work += @results.usage(result).work
     publications.push(result)
+    if inputs is Some(registration) {
+      let attached = wiring_reconciled_input_at(wiring, i).unwrap()
+      let evidence = @local.program_environment_stage(registration, i).unwrap()
+      input_join_work += @local.reconciled_work(attached) -
+        @local.environment_usage(evidence).work -
+        @parameters.collection_work(stage)
+    }
   }
   let operation_cap = shared_work + remaining - count - count
   let collected = match
@@ -160,6 +169,24 @@ pub fn prepare_local_source(
     Ok(v) => v
     Err(e) => return Err(ResultCollection(e))
   }
+  let final_work = spent + (usage(results).work - result_prefix)
+  let final_text = used.text_bytes + decl_text + bind_text
+  let (wire_work, wire_text) = wiring_usage(wiring)
+  let environment_usage = match inputs {
+    Some(v) => @local.program_environment_usage(v)
+    None => { work: 0, nodes: 0, text_bytes: 0, }
+  }
+  // These exact immutable branches are retained and billed by Local context
+  // integration. Only the unshared preparation prefix must be added there.
+  let shared_context_work = @parameters.bindings_usage(operations).work +
+    (usage(results).work - @parameters.operations_usage(collected).work) +
+    wire_work +
+    environment_usage.work +
+    input_join_work
+  let shared_context_text = @parameters.bindings_usage(operations).direct_text_bytes +
+    usage(results).text_bytes +
+    wire_text +
+    environment_usage.text_bytes
   Ok({
     source,
     values,
@@ -168,10 +195,14 @@ pub fn prepare_local_source(
     results,
     usage: {
       ..used,
-      work: spent + (usage(results).work - result_prefix),
+      work: final_work,
       nodes: used.nodes + decl_nodes + bind_nodes,
-      text_bytes: used.text_bytes + decl_text + bind_text,
+      text_bytes: final_text,
     },
+    context_prefix: (
+      final_work - shared_context_work,
+      final_text - shared_context_text,
+    ),
   })
 }
 
@@ -193,6 +224,13 @@ pub fn local_source_wiring(v : PreparedLocalSource) -> ResultWiring {
 ///|
 pub fn local_source_usage(v : PreparedLocalSource) -> LocalProgramUsage {
   v.usage
+}
+
+///|
+/// Preparation work/text not already retained by operation collections, Result
+/// wiring and reconciled Local input branches. Parsing precedes this accounting.
+pub fn local_source_context_prefix(v : PreparedLocalSource) -> (Int, Int) {
+  v.context_prefix
 }
 
 ///|

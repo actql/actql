@@ -192,6 +192,10 @@ test "Local source preparation never treats missing or invalid Parameters as pre
   let used = local_source_usage(prepared)
   assert_eq(used.nodes, decl_nodes + bind_nodes + topology.nodes)
   assert_eq(used.text_bytes, decl_text + bind_text + topology.text_bytes)
+  let prefix = local_source_context_prefix(prepared)
+  assert_true(prefix.0 > 0 && prefix.0 <= used.work)
+  assert_true(prefix.1 >= decl_text + bind_text)
+  assert_true(prefix.1 <= used.text_bytes)
   let exact = {
     ..limits,
     max_nodes: used.nodes,

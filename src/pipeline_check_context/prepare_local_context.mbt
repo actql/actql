@@ -22,7 +22,8 @@ pub enum LocalContextIssue {
 ///|
 /// Use the Environment retained by Local source preparation for policy selection,
 /// Stage capacity construction, wiring and input correspondence. This is not
-/// full source-admission accounting, source request resolution or CheckedProgram.
+/// parsing, source request resolution or CheckedProgram. Prepared-source work
+/// and text not already retained by its joined branches are charged once.
 pub fn prepare_local_context(
   prepared : @stage_results.PreparedLocalSource,
   materials : Array[Array[CapacityMaterial]],
@@ -43,6 +44,20 @@ pub fn prepare_local_context(
     return Err(InvalidLimits)
   }
   let wiring = @stage_results.local_source_wiring(prepared)
+  let (prefix_work, prefix_text) = @stage_results.local_source_context_prefix(
+    prepared,
+  )
+  if prefix_work < 0 ||
+    prefix_text < 0 ||
+    prefix_work > caps.max_work ||
+    prefix_text > caps.max_text_bytes {
+    return Err(BudgetExceeded)
+  }
+  let caps = {
+    ..caps,
+    max_work: caps.max_work - prefix_work,
+    max_text_bytes: caps.max_text_bytes - prefix_text,
+  }
   guard @stage_results.wiring_local_environment(wiring) is Some(inputs) else {
     return Err(MissingEnvironment)
   }
@@ -103,7 +118,15 @@ pub fn prepare_local_context(
       max_text_bytes=caps.max_text_bytes,
       max_policy_nodes=limits.max_policy_nodes,
     ) {
-    Ok(v) => Ok(v)
+    Ok(v) =>
+      Ok({
+        ..v,
+        usage: {
+          ..v.usage,
+          work: v.usage.work + prefix_work,
+          text_bytes: v.usage.text_bytes + prefix_text,
+        },
+      })
     Err(e) => Err(Selection(e))
   }
 }
