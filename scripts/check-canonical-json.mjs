@@ -152,6 +152,7 @@ function fixtures() {
     ['regex_replacement_ast_schema', dependencies.regex_grammar.replacement_ast_schema_cid],
     ['timestamp_pattern_ast_schema', dependencies.timestamp_pattern_grammar.ast_schema_cid],
   ]) result.push({ id: 'inherited text/time ' + name, value: dependencies[name], cid });
+  result.push({ id: 'inherited text/time Unicode data', value: read('spec/dependencies/actql-text-time-unicode-data.json'), cid: dependencies.unicode_semantics.data_cid });
   return result;
 }
 

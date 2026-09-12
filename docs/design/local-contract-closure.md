@@ -41,6 +41,20 @@ Despite the base field's name, its `unicode_data_cid` references the Unicode
 semantics descriptor. That descriptor's `data_cid` references the actual data
 table, also referenced directly by the base's NFKC and case-fold bound laws.
 These are different bodies and must not be substituted for one another.
+The [Unicode data body](../../spec/dependencies/actql-text-time-unicode-data.json)
+at pointer `""` resolves that data edge with CID
+`sha256:4a84a6d133b6282a5d50ba743ef8cab3fc87d4ccc91612663c5fc0d02f705dd4`.
+It contains combining classes, canonical and compatibility decompositions,
+composition pairs, default full case folding and expansion bounds. It is Unicode
+16.0.0-derived data covered by the bundled
+[Unicode license](../../vendor/unicode/16.0.0/LICENSE.txt); distributions retaining
+this dependency must retain the associated copyright and permission notice.
+The `source_sha256` entries describe its original input bytes, not additional
+semantic Catalog references. This immutable dependency is distinct from the
+generated NFC implementation tables and does not itself prove normalization
+execution conformance. Its original DerivedNormalizationProps source is not part
+of the current NFC generator's vendored input set; resolving the pinned body
+does not claim independent regeneration from that absent source.
 The inherited AST schemas are the exact pinned schemas; a newer current schema
 with similar purpose is not a substitute at those CIDs. Embedded JSON Schema
 `$ref` paths resolve within each schema's declared scope, not as Catalog IDs.

@@ -10,6 +10,28 @@ const registry = read('spec/contracts/actql-stage-contracts.json');
 const textTimeBase = read('spec/dependencies/actql-text-time-base.json');
 const textTimeDependencies = read('spec/dependencies/actql-text-time-base-dependencies.json');
 
+test('inherited Unicode data resolves the semantic and bound-law dependencies', () => {
+  const data = read('spec/dependencies/actql-text-time-unicode-data.json');
+  const expected = 'sha256:4a84a6d133b6282a5d50ba743ef8cab3fc87d4ccc91612663c5fc0d02f705dd4';
+  assert.equal(machineCid(data), expected);
+  assert.equal(textTimeDependencies.unicode_semantics.data_cid, expected);
+  for (const name of ['nfkc', 'case_fold']) {
+    assert.equal(textTimeBase.bound_derivation[name].unicode_data_cid, expected);
+  }
+  assert.deepEqual(data.expansion, textTimeDependencies.unicode_semantics.expansion);
+  const manifest = read('vendor/unicode/16.0.0/manifest.json');
+  for (const name of ['UnicodeData.txt', 'CaseFolding.txt', 'NormalizationTest.txt', 'LICENSE.txt']) {
+    assert.equal(data.source_sha256[name], manifest.sha256[name]);
+  }
+  // Provenance metadata is part of the pinned body. This does not claim the
+  // non-vendored DerivedNormalizationProps input was independently regenerated.
+  assert.equal(data.source_sha256['DerivedNormalizationProps.txt'],
+    '4d4c03892dea9146d674b686e495df2d55a28d071ac474041d73518f887abddc');
+  const changed = structuredClone(data);
+  changed.ccc[0][1]++;
+  assert.notEqual(machineCid(changed), expected);
+});
+
 test('inherited text/time dependency edges resolve through explicit roles', () => {
   const bodies = textTimeDependencies;
   const edges = [
