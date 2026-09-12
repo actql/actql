@@ -1543,6 +1543,21 @@ schema. For a keyed SourceView join ([External SourceView joins](#external-joins
 of authored static request fields and Contract-defined correlation fields;
 missing fields, overlap, and extra fields are rejected.
 
+<!-- requirement-block: sourceviews.acquisition-request-classification -->
+Check MUST classify a correlated SourceView input using both its authored
+request fields and its actual consumers. Supplying every correlation request
+field selects direct acquisition, including when that resulting Relation is a
+join operand; a join reference does not remove supplied values or turn that
+request into a key-driven template. Supplying none selects keyed acquisition
+only when the input has at least one logical join-right consumer and no other
+direct operation or Result consumer. Supplying only some correlation fields,
+using an incomplete template directly, or leaving such a template without a
+join-right consumer fails Check. A SourceView without correlation uses direct
+request admission. Every non-correlated request field remains required in
+either form. Classification does not prove boundedness, response completeness,
+mode support, policy admission or the remaining join requirements, and does
+not authorize deleting an unused declaration or an authored operation.
+
 Within EffectValue, `{literal: {$param: name}}` is an immediate parameter
 hole; other literal payloads are opaque JSON, not recursively substituted.
 An explicit `create.payload` is likewise data, including `$param`-shaped objects.

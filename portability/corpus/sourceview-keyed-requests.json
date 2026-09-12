@@ -8,6 +8,8 @@
     "correlation": {"request_fields":["id"],"response_fields":["id"],"identity":["id"],"cardinality":"zero_or_many"}
   },
   "cases": [
+    {"id":"acquisition-single-key","acquisition_fixture":true,"input":{"connector":"crm/main","resource":"r"}},
+    {"id":"acquisition-tuple-key","acquisition_fixture":true,"request_fields":{"id":{"type":"number","nullable":false},"other":{"type":"number","nullable":false},"tenant":{"type":"string","nullable":true}},"output_fields":{"id":{"type":"number","nullable":false},"other":{"type":"number","nullable":false}},"correlation":{"request_fields":["id","other"],"response_fields":["id","other"],"identity":["id"],"cardinality":"zero_or_many"},"input":{"connector":"crm/main","resource":"r"}},
     {"id":"keyed-static-binding","request_fields":{"id":{"type":"number","nullable":false},"tenant":{"type":"resource_ref","nullable":false,"resource_kind":"file"}},"bindings":{"p":{"type":"resource_ref","resource_kind":"file"}},"input":{"connector":"crm/main","resource":"r","request":{"tenant":{"$binding":"p"}}},"keyed_outcome":"accepted"},
     {"id":"keyed-incompatible-binding","request_fields":{"id":{"type":"number","nullable":false},"tenant":{"type":"resource_ref","nullable":false,"resource_kind":"file"}},"bindings":{"p":{"type":"resource_ref","resource_kind":"record"}},"input":{"connector":"crm/main","resource":"r","request":{"tenant":{"$binding":"p"}}},"keyed_outcome":"IncompatibleBinding"},
     {"id":"keyed-null-static","input":{"connector":"crm/main","resource":"r","request":{"tenant":null}},"keyed_outcome":"accepted","request_outcome":"MissingField"},

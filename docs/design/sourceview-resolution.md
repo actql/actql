@@ -96,6 +96,43 @@ Program input reconciliation constructs these indices itself for every stage
 and charges them to its shared work limit. Callers cannot supply a partial list
 of consumers, and a later failure exposes no partially reconciled Program.
 
+## Acquisition request classification
+
+The normative owner is the acquisition-request-classification rule in
+[Parameters](../spec/language.md#parameters). Full correlation-field coverage
+selects a direct request, including when the result is a join operand. Zero
+coverage selects a keyed template only with at least one actual join-right
+consumer and no direct consumer. Partial coverage, a directly consumed
+incomplete template, and an unused incomplete template fail. Static non-key
+fields still undergo complete request admission. Without correlation, direct
+request admission applies even to unused declarations.
+
+This clarifies the previously unspecified classification boundary without
+changing source grammar. The fixed reference `87dc7144:src/actql.ts` instead
+treats a correlated join-right input as external even when its request is fully
+supplied, and accepts zero-coverage templates based on omissions. The selected
+rule preserves the meaning of explicitly supplied values and requires actual
+consumers to justify join-supplied values. This is a semantic check involving
+Catalog roles and Program topology, not a constraint expressible by the source
+input JSON Schema alone. Ordinary join, mode and completeness requirements
+remain applicable after classification.
+
+`check_pipeline_requests` retains exact PipelineUses and RequestParameters
+owners, invokes the selected mode/request/binding checks itself, and exposes
+only the complete stage result. Its work, type-pair, value-node and text budgets
+are shared across all inputs. Direct and keyed results retain distinct types;
+neither means execution authorization.
+
+`pipeline_check_context.check_source_requests` constructs this result for every
+stage in ReconciledContexts. It uses that Program's selected BoundValues, builds
+one shared request/binding index, and charges the exact already-retained
+resolution once. Each stage receives only the remaining budget. The resulting
+SourceRequestContexts retains the Program input assembly and source slots;
+callers cannot substitute unrelated bindings or omit an inconvenient stage.
+This closes request classification and static binding, not correlation-key
+matching, response completeness, capacity, policy, reference authority or final
+Program identity. Host bindings remain explicitly unresolved.
+
 ## Direct read-mode selection
 
 `select_direct_mode` consumes one owned ResolvedInput. An authored `scan.mode`

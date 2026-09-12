@@ -79,6 +79,11 @@ for(const c of [...corpus.cases,...keyed.cases.map(c=>({...keyed.defaults,...c})
     lines.push('', '///|',`test ${JSON.stringify('SourceView keyed request corpus: '+c.id)} {`,
       `  check_keyed_request_fixture(${JSON.stringify(canonicalText(env))}, ${JSON.stringify(env.evidence_bundle_cid)}, ${JSON.stringify(JSON.stringify(c.input))}, ${JSON.stringify(declarations)}, ${JSON.stringify(c.keyed_outcome)})`, '}');
   }
+  if(c.acquisition_fixture){
+    assert.ok(c.correlation);
+    lines.push('', '///|',`test ${JSON.stringify('SourceView acquisition corpus: '+c.id)} {`,
+      `  check_acquisition_fixture(${JSON.stringify(canonicalText(env))}, ${JSON.stringify(env.evidence_bundle_cid)}, ${c.correlation.request_fields.length})`, '}');
+  }
   if(c.request_outcome){
     const declarations=Object.entries({params:c.params,bindings:c.bindings}).filter(([,v])=>v!==undefined).map(([k,v])=>JSON.stringify(k)+':'+JSON.stringify(v)+',').join('');
     lines.push('', '///|',`test ${JSON.stringify('SourceView direct request corpus: '+c.id)} {`,

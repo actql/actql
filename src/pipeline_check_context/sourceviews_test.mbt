@@ -63,6 +63,93 @@ test "reconciled Program inputs retain SourceView registrations and the same env
     max_local_input_nodes=100000,
   ).unwrap()
   assert_true(physical_equal(reconciled_sourceviews(result).unwrap(), views))
+  let source = @stages.operations_source(
+    @stages.bound_operations(stage_operations(stages)),
+  )
+  let binding_declarations = @binding_declarations.prepare(
+    @stages.program(source),
+    { max_bindings: 100, max_work: 100000, },
+  ).unwrap()
+  let slots = @request_slots.collect(source, binding_declarations, {
+    max_work: 1000000,
+    max_slots: 1000,
+  }).unwrap()
+  let request_limits : @sourceviews.RequestLimits = {
+    max_work: 1000000,
+    max_pairs: 1000,
+    values: { max_nodes: 10000, max_depth: 100, max_text_bytes: 100000, },
+  }
+  let requests = check_source_requests(result, slots, request_limits).unwrap()
+  assert_true(physical_equal(source_request_inputs(requests), result))
+  assert_true(physical_equal(source_request_slots(requests), slots))
+  let parameters = source_request_parameters(requests).unwrap()
+  assert_true(
+    physical_equal(
+      @sourceviews.request_parameter_values(parameters),
+      @references.bound_values(
+        @stages.bound_program_index(stage_operations(stages)),
+      ),
+    ),
+  )
+  assert_eq(
+    @sourceviews.pipeline_requests_count(
+      source_request_stage(requests, 0).unwrap(),
+    ),
+    1,
+  )
+  assert_eq(
+    @sourceviews.pipeline_requests_count(
+      source_request_stage(requests, 1).unwrap(),
+    ),
+    0,
+  )
+  assert_true(
+    @sourceviews.pipeline_request_at(
+      source_request_stage(requests, 0).unwrap(),
+      0,
+    )
+    is Some(@sourceviews.Direct(_, _)),
+  )
+  assert_true(source_request_stage(requests, 2) is None)
+  let (request_work, request_pairs, request_nodes, request_text) = source_request_usage(
+    requests,
+  )
+  let exact_requests : @sourceviews.RequestLimits = {
+    max_work: request_work,
+    max_pairs: request_pairs,
+    values: {
+      ..request_limits.values,
+      max_nodes: request_nodes,
+      max_text_bytes: request_text,
+    },
+  }
+  assert_true(check_source_requests(result, slots, exact_requests) is Ok(_))
+  assert_true(
+    check_source_requests(result, slots, {
+      ..exact_requests,
+      max_work: request_work - 1,
+    })
+    is Err(_),
+  )
+  assert_true(
+    check_source_requests(result, slots, { ..exact_requests, max_work: -1, })
+    is Err(InvalidLimits),
+  )
+  let foreign_source = @stages.prepare(@stages.program(source), {
+    max_parameters: 100,
+    max_nodes: 1000,
+    max_depth: 100,
+    max_text_bytes: 10000,
+  }).unwrap()
+  let foreign_slots = @request_slots.collect(
+    foreign_source,
+    binding_declarations,
+    { max_work: 1000000, max_slots: 1000, },
+  ).unwrap()
+  assert_true(
+    check_source_requests(result, foreign_slots, request_limits)
+    is Err(ForeignSource),
+  )
   assert_true(
     physical_equal(
       @sourceviews.pipeline_environment(views),

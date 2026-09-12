@@ -14,6 +14,7 @@ import {
   "actql/actql/regex_pattern",
   "actql/actql/regex_replacement",
   "actql/actql/relation_results",
+  "actql/actql/source_request_slots",
   "actql/actql/sourceview_resolution",
   "actql/actql/stage_local_inputs",
   "actql/actql/stage_parameters",
@@ -52,6 +53,8 @@ pub fn check_patterns(ExpressionValidationContext, PatternLimits) -> Result[Patt
 pub fn check_regex_patterns(ExpressionValidationContext, RegexPatternLimits) -> Result[RegexPatternChecks, RegexPatternIssue]
 
 pub fn check_resolved_orders(@relation_results.CheckedOrders, Array[@parameter_binding.BoundValues?], Array[@capacity_graph_preflight.ApplicationCoverage], @capacity_policy.Policy, max_work~ : Int, max_text_bytes~ : Int, proof_owners? : Array[(Int, Int, Int)], input_owners? : Array[(Int, Int, Int, Int)]) -> Result[PipelineContext, Issue]
+
+pub fn check_source_requests(ReconciledContexts, @source_request_slots.Slots, @sourceview_resolution.RequestLimits) -> Result[SourceRequestContexts, SourceRequestIssue]
 
 pub fn check_text_bounds(PatternChecks, TextBoundsLimits) -> Result[TextBoundsChecks, TextBoundsIssue]
 
@@ -174,6 +177,16 @@ pub fn result_wiring(WiredStages) -> @stage_results.ResultWiring
 pub fn selected_capacity(SelectedPolicyContext) -> @check_environment.Capacity
 
 pub fn selected_policy_usage(SelectedPolicyContext) -> SelectedPolicyUsage
+
+pub fn source_request_inputs(SourceRequestContexts) -> ReconciledContexts
+
+pub fn source_request_parameters(SourceRequestContexts) -> @sourceview_resolution.RequestParameters?
+
+pub fn source_request_slots(SourceRequestContexts) -> @source_request_slots.Slots
+
+pub fn source_request_stage(SourceRequestContexts, Int) -> @sourceview_resolution.PipelineRequests?
+
+pub fn source_request_usage(SourceRequestContexts) -> (Int, Int, Int, Int)
 
 pub fn stage_context_at(StageContexts, Int) -> BoundParameters?
 
@@ -467,6 +480,18 @@ pub(all) struct SelectedPolicyUsage {
   local_input_nodes : Int
   policy_nodes : Int
 } derive(Eq, @debug.Debug)
+
+type SourceRequestContexts
+
+pub enum SourceRequestIssue {
+  InvalidLimits
+  ForeignSource
+  MissingSourceViews
+  BudgetExceeded
+  Context(@sourceview_resolution.RequestIssue)
+  Parameters(@sourceview_resolution.RequestParameterIssue)
+  Stage(Int, @sourceview_resolution.AcquisitionIssue)
+}
 
 type StageContexts
 

@@ -1422,6 +1422,17 @@
       }
     },
     {
+      "requirement_id": "actql.language/sourceviews.acquisition-request-classification",
+      "statement_sha256": "ff87a49c2e838389d33b5db202396c8d400492db3ee0d9a440a36ccba534b907",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "parameters",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.language/parameters.a-parameterized-author-guard-must-resolve-to-a-positive-safe",
       "statement_sha256": "aeb0407c7a8de57fe70d533cae392cb6ad181323cb8d4641299a883ebcdf9247",
       "status": "pending",

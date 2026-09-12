@@ -37,6 +37,8 @@ pub fn check_direct_request(RequestContext, ResolvedInput, RequestLimits) -> Res
 
 pub fn check_keyed_request(RequestContext, ResolvedInput, RequestLimits) -> Result[KeyedRequest, RequestIssue]
 
+pub fn check_pipeline_requests(PipelineUses, RequestParameters, RequestLimits) -> Result[PipelineRequests, AcquisitionIssue]
+
 pub fn checkpoint_reference(ModeCheckpoint) -> @check_environment.CatalogReference
 
 pub fn checkpoint_value_contract(ModeCheckpoint) -> @check_environment.ProtocolValueContract
@@ -125,6 +127,16 @@ pub fn pipeline_input_source(PipelineInputs, Int, Int) -> ResolvedInput?
 
 pub fn pipeline_inputs_work(PipelineInputs) -> Int
 
+pub fn pipeline_request_at(PipelineRequests, Int) -> AcquisitionRequest?
+
+pub fn pipeline_requests_count(PipelineRequests) -> Int
+
+pub fn pipeline_requests_parameters(PipelineRequests) -> RequestParameters
+
+pub fn pipeline_requests_usage(PipelineRequests) -> (Int, Int, Int, Int)
+
+pub fn pipeline_requests_uses(PipelineRequests) -> PipelineUses
+
 pub fn pipeline_resolution(PipelineInputs) -> Resolved
 
 pub fn pipeline_use_at(PipelineUses, Int, Int) -> SourceUse?
@@ -184,6 +196,23 @@ pub fn work(Resolved) -> Int
 // Errors
 
 // Types and methods
+pub enum AcquisitionIssue {
+  InvalidLimits
+  ForeignRequests
+  WorkLimit
+  PartialCorrelation(Int)
+  MissingKeyedConsumer(Int)
+  InvalidKeyedConsumer(Int, SourceUse)
+  Mode(Int, ModeIssue)
+  Request(Int, RequestIssue)
+  Binding(Int, RequestParameterIssue)
+}
+
+pub enum AcquisitionRequest {
+  Direct(DirectMode, ParameterizedRequest)
+  Keyed(KeyedMode, ParameterizedKeyedRequest)
+}
+
 type DirectMode
 
 type DirectRequest
@@ -266,6 +295,8 @@ pub(all) enum PipelineIssue {
   ForeignStage
   ForeignInput(String)
 } derive(Eq, @debug.Debug)
+
+type PipelineRequests
 
 type PipelineUses
 
