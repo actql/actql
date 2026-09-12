@@ -11,6 +11,7 @@ fn timestamp_limits() -> TimestampPatternLimits {
 ///|
 fn timestamp_fixture(
   expression : String,
+  capacity_policy? : @policy.Policy = policy(),
   steps? : String? = None,
   second_steps? : String? = None,
   accepted? : Bool = false,
@@ -25,6 +26,7 @@ fn timestamp_fixture(
 ) -> ExpressionValidationContext {
   let (context, capacity) = selected_fixture(
     false,
+    capacity_policy~,
     profile~,
     expression~,
     steps~,

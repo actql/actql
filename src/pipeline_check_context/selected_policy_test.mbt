@@ -22,6 +22,7 @@ fn capacity_profile(changed : Bool) -> String {
 ///|
 fn selected_fixture(
   changed : Bool,
+  capacity_policy? : @policy.Policy = policy(),
   profile? : String = capacity_profile(changed),
   expression? : String = "$n",
   steps? : String? = None,
@@ -32,6 +33,7 @@ fn selected_fixture(
 ) -> (ReconciledContexts, @environment.Capacity) {
   let (stages, wiring, _, _, locals, evidence) = wired_inputs_fixture(
     true,
+    capacity_policy~,
     profile~,
     expression~,
     steps~,

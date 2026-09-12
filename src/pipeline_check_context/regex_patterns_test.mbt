@@ -12,6 +12,7 @@ fn regex_limits() -> RegexPatternLimits {
 ///|
 fn regex_fixture(
   expression : String,
+  capacity_policy? : @policy.Policy = policy(),
   steps? : String? = None,
   second_steps? : String? = None,
   accepted? : Bool = false,
@@ -26,6 +27,7 @@ fn regex_fixture(
 ) -> ExpressionValidationContext {
   timestamp_fixture(
     expression,
+    capacity_policy~,
     parameters~,
     supplied~,
     profile~,

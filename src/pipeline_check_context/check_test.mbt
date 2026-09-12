@@ -133,11 +133,14 @@ fn empty_capacity_sources() -> @host.HostSources {
 }
 
 ///|
-fn capacity(p : @pipeline.CheckedPipeline) -> @capacity.ApplicationCoverage {
+fn capacity(
+  p : @pipeline.CheckedPipeline,
+  capacity_policy? : @policy.Policy = policy(),
+) -> @capacity.ApplicationCoverage {
   @capacity.prepare_application_coverage(
     p,
     empty_capacity_sources(),
-    policy(),
+    capacity_policy,
     [],
     {
       max_work: 1000,

@@ -15,6 +15,7 @@ fn bound_profile() -> String {
 ///|
 fn bound_fixture(
   expression : String,
+  capacity_policy? : @policy.Policy = policy(),
   parameters? : String = "{\"p\":{\"type\":\"string\",\"default\":\"é😀\"},\"n\":{\"type\":\"number\",\"default\":1}}",
   supplied? : @decode.Cursor? = None,
   profile? : String = bound_profile(),
@@ -25,6 +26,7 @@ fn bound_fixture(
   check_patterns(
     regex_fixture(
       expression,
+      capacity_policy~,
       parameters~,
       supplied~,
       profile~,

@@ -1,6 +1,7 @@
 ///|
 fn operation_order_fixture(
   steps : String,
+  capacity_policy? : @policy.Policy = policy(),
   supplied? : @decode.Cursor? = None,
   tea? : Bool = false,
   sga? : Bool = false,
@@ -11,6 +12,7 @@ fn operation_order_fixture(
   parameters? : String = "{\"p\":{\"type\":\"string\",\"default\":\"é😀\"},\"n\":{\"type\":\"number\",\"default\":1}}",
 ) -> ProgramOperationRequirements {
   let (operations, references, bindings) = program_sources_fixture(
+    capacity_policy~,
     steps=Some(steps),
     supplied~,
     tea~,

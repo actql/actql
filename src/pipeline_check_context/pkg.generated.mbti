@@ -117,6 +117,8 @@ pub fn check_text_bounds(PatternChecks, TextBoundsLimits) -> Result[TextBoundsCh
 
 pub fn check_timestamp_patterns(ExpressionValidationContext, TimestampPatternLimits) -> Result[TimestampPatternChecks, TimestampPatternIssue]
 
+pub fn check_values_recursive_resources(ValuesRowLimit, Int, Int, Int) -> Result[ValuesRecursiveAdmission, ValuesRecursiveIssue]
+
 pub fn check_values_wire_bound(ProgramOperationCells, Int, @capacity_witness.ProgramProofClaim, Int, Int, Int) -> Result[ValuesWireBound, ValuesWireBoundIssue]
 
 pub fn checked_capacity(PipelineContext) -> @capacity_graph_preflight.ApplicationClosure
@@ -2008,6 +2010,27 @@ pub(all) enum ValuesMeasurementIssue {
   InvalidRequirement
   ForeignOwner
   Encoding(@encode_core.EncodeFailure)
+} derive(@debug.Debug)
+
+pub struct ValuesRecursiveAdmission {
+  rows : ValuesRowLimit
+  byte_ceiling : @capacity_policy.Ceiling
+  depth_ceiling : @capacity_policy.Ceiling
+  bytes : Int
+  type_depth : Int
+  selected_fields : Int
+  work : Int
+}
+
+pub(all) enum ValuesRecursiveIssue {
+  InvalidLimits
+  BudgetExceeded
+  ForeignOwner
+  Measurement(ValuesMeasurementIssue)
+  Encoding(@encode_core.EncodeFailure)
+  MissingCeiling
+  DepthExceeded
+  BytesExceeded
 } derive(@debug.Debug)
 
 pub struct ValuesRowLimit {

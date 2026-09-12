@@ -1,5 +1,6 @@
 ///|
 fn program_sources_fixture(
+  capacity_policy? : @policy.Policy = policy(),
   supplied? : @decode.Cursor? = None,
   tea? : Bool = false,
   sga? : Bool = false,
@@ -15,6 +16,7 @@ fn program_sources_fixture(
 ) -> (OperationProfileChecks, ProgramReferences, SourceBindingRequirements) {
   let patterns = bound_fixture(
     expression,
+    capacity_policy~,
     supplied~,
     steps~,
     second_steps~,

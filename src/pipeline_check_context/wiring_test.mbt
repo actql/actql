@@ -12,6 +12,7 @@ fn wired_fixture() -> (
 ///|
 fn wired_inputs_fixture(
   use_snapshots : Bool,
+  capacity_policy? : @policy.Policy = policy(),
   profile? : String = "{}",
   expression? : String = "$n",
   steps? : String? = None,
@@ -318,6 +319,7 @@ fn wired_inputs_fixture(
           @pipeline.contextual_orders_pipeline(
             @pipeline.contextual_closure_at(closure, j).unwrap(),
           ),
+          capacity_policy~,
         ),
       )
       bindings.push(Some(values))
@@ -326,7 +328,7 @@ fn wired_inputs_fixture(
       orders,
       bindings,
       applications,
-      policy(),
+      capacity_policy,
       max_work=50000,
       max_text_bytes=50000,
     ).unwrap()
@@ -369,7 +371,7 @@ fn wired_inputs_fixture(
     bound,
     checked,
     contexts,
-    policy(),
+    capacity_policy,
     max_work=1000000,
     max_text_bytes=1000000,
   ).unwrap()

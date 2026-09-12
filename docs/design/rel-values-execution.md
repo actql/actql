@@ -134,6 +134,16 @@ compiler's nest depth calculation and fragment-wide value ceilings do not define
 this generator's contract. It does not make scalar cells subject to a nested
 byte ceiling or turn either logical measure into a heap bound.
 
+`check_values_recursive_resources` checks these scopes from the exact owner of
+the row and wire limits. It walks declared contracts with continuation frames,
+including for empty data, then measures selected cells using the shared owned
+binding resolver and canonical typed-wire emitter. The preparation-work ceiling
+is cumulative across type frames, field/row/cell visits and emitted value nodes;
+cell encoding never resets the remaining byte or node allowance. The admitted
+result retains the selected Host byte/depth ceilings, measured usage and row
+owner. It is a static resource admission, not a substitute for a canonical
+execution-limit binding or a receipt that a backend enforced it.
+
 ## Registry and backend capability
 
 `actql-aoa.json` selects the shared registry through `pipeline_registry_file`

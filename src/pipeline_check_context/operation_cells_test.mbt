@@ -3,17 +3,26 @@ fn cells_fixture(
   field : String,
   declaration : String,
   rows : String,
+  capacity_policy? : @policy.Policy = policy(),
+  schema? : String? = None,
   supplied? : @decode.Cursor? = None,
+  host_profile? : String = bound_profile(),
 ) -> ProgramOperationQueries {
   let parameters = "{\"p\":{\"type\":\"string\",\"default\":\"x\"},\"n\":" +
     declaration +
     "}"
-  let steps = "[{\"values\":{\"schema\":{\"x\":" +
-    field +
-    "},\"rows\":" +
+  let steps = "[{\"values\":{\"schema\":" +
+    schema.unwrap_or("{\"x\":" + field + "}") +
+    ",\"rows\":" +
     rows +
     "},\"as\":\"seed\"},{\"derive\":{\"p_copy\":\"$p\",\"n_copy\":\"$n\"}}]"
-  let requirements = operation_order_fixture(steps, parameters~, supplied~)
+  let requirements = operation_order_fixture(
+    steps,
+    parameters~,
+    supplied~,
+    host_profile~,
+    capacity_policy~,
+  )
   let orders = link_program_operation_orders(requirements, 10000000, 100).unwrap()
   let scalars = check_program_operation_scalars(orders, 10000000, 100).unwrap()
   let frames = check_program_operation_frames(scalars, 10000000, 100).unwrap()

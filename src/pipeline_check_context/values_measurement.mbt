@@ -49,42 +49,14 @@ pub fn measure_operation_values_rows(
       for column in 0..<width {
         let field = @schema.field_at(schema, column).unwrap()
         @encode.key(out, @schema.reference_name(field.name))
-        let value = match @values.cell_at(row, column).unwrap() {
-          @values.Literal(value, ..) => value
-          @values.Parameter(_, ..) => {
-            // Check the subtraction first: a hostile index cannot overflow the
-            // addition. The array was bounded before its construction.
-            if next_binding >= requirements.entries.length() - requirement_index {
-              return Err(ForeignOwner)
-            }
-            let position = requirement_index + next_binding
-            guard cells.by_requirement.get(position) is Some(index) else {
-              return Err(ForeignOwner)
-            }
-            let entry = cells.entries[index]
-            if !physical_equal(entry.site, requirements.entries[position]) ||
-              !physical_equal(entry.values, values) ||
-              !physical_equal(entry.site.obligations, site.obligations) ||
-              !physical_equal(entry.site.pipeline, site.pipeline) ||
-              entry.site.stage != site.stage ||
-              entry.site.producer_visit != site.producer_visit ||
-              entry.site.step != site.step ||
-              entry.site.group != site.group ||
-              entry.site.index != next_binding ||
-              entry.occurrence.row != row_index ||
-              entry.occurrence.column != column {
-              return Err(ForeignOwner)
-            }
-            guard entry.site.requirement
-              is @pipeline.ValuesRequirement(@values.BindCell(_)) else {
-              return Err(ForeignOwner)
-            }
-            // Name/type checks already belong to this exact resolved cell.
-            // Do not rescan an arbitrarily long Parameter name during emission.
-            next_binding += 1
-            entry.parameter.value
-          }
+        let (value, next) = match
+          resolved_values_cell(
+            cells, site, values, requirement_index, row, row_index, column, next_binding,
+          ) {
+          Ok(v) => v
+          Err(e) => return Err(e)
         }
+        next_binding = next
         @value.emit_wire_value(value.value, out)
       }
       @encode.end_object(out)
@@ -96,5 +68,52 @@ pub fn measure_operation_values_rows(
     Ok(@encode.finish_measurement_usage(out))
   } catch {
     error => Err(Encoding(error))
+  }
+}
+
+///|
+fn resolved_values_cell(
+  cells : ProgramOperationCells,
+  site : OperationRequirementSite,
+  values : @values.CheckedValues,
+  requirement_index : Int,
+  row : @values.Row,
+  row_index : Int,
+  column : Int,
+  next_binding : Int,
+) -> Result[(@value.CheckedValue, Int), ValuesMeasurementIssue] {
+  match @values.cell_at(row, column).unwrap() {
+    @values.Literal(value, ..) => Ok((value, next_binding))
+    @values.Parameter(_, ..) => {
+      let requirements = cells.queries.ranges.fills.frames.scalars.orders.requirements
+      if next_binding >= requirements.entries.length() - requirement_index {
+        return Err(ForeignOwner)
+      }
+      let position = requirement_index + next_binding
+      guard cells.by_requirement.get(position) is Some(index) else {
+        return Err(ForeignOwner)
+      }
+      let entry = cells.entries[index]
+      if !physical_equal(entry.site, requirements.entries[position]) ||
+        !physical_equal(entry.values, values) ||
+        !physical_equal(entry.site.obligations, site.obligations) ||
+        !physical_equal(entry.site.pipeline, site.pipeline) ||
+        entry.site.stage != site.stage ||
+        entry.site.producer_visit != site.producer_visit ||
+        entry.site.step != site.step ||
+        entry.site.group != site.group ||
+        entry.site.index != next_binding ||
+        entry.occurrence.row != row_index ||
+        entry.occurrence.column != column {
+        return Err(ForeignOwner)
+      }
+      guard entry.site.requirement
+        is @pipeline.ValuesRequirement(@values.BindCell(_)) else {
+        return Err(ForeignOwner)
+      }
+      // Name/type checks belong to this exact resolved occurrence. Do not
+      // rescan a potentially long Parameter name while measuring values.
+      Ok((entry.parameter.value, next_binding + 1))
+    }
   }
 }
