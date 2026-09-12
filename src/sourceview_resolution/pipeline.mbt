@@ -68,6 +68,27 @@ pub fn pipeline_resolution(v : PipelineInputs) -> Resolved {
 }
 
 ///|
+pub fn pipeline_environment(v : PipelineInputs) -> @environment.WireEnvironment {
+  @environment.contract_registry_environment(
+    @environment.catalog_registry(
+      @environment.reference_contents(
+        @environment.data_policy_references(
+          @environment.value_contract_policies(
+            @environment.source_view_shape_values(
+              @environment.read_mode_shapes(
+                @environment.carrier_schema_modes(
+                  @environment.source_request_carriers(v.resolved.owner.catalog),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    ),
+  )
+}
+
+///|
 pub fn pipeline_inputs_work(v : PipelineInputs) -> Int {
   v.work
 }

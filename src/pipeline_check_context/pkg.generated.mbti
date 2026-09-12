@@ -14,6 +14,7 @@ import {
   "actql/actql/regex_pattern",
   "actql/actql/regex_replacement",
   "actql/actql/relation_results",
+  "actql/actql/sourceview_resolution",
   "actql/actql/stage_local_inputs",
   "actql/actql/stage_parameters",
   "actql/actql/stage_results",
@@ -30,7 +31,7 @@ pub fn attach_local_inputs(WiredStages, Array[@stage_local_inputs.Attached], max
 
 pub fn attach_program_references(StageContexts, @program_references.ParameterValues, max_work~ : Int) -> Result[ProgramReferences, ProgramReferenceIssue]
 
-pub fn attach_reconciled_inputs(WiredStages, @stage_local_inputs.ProgramEnvironmentInputs, Array[@stage_local_inputs.ReconciledAttachment], max_work~ : Int, max_text_bytes~ : Int, max_local_input_nodes~ : Int) -> Result[ReconciledContexts, ReconciledIssue]
+pub fn attach_reconciled_inputs(WiredStages, @stage_local_inputs.ProgramEnvironmentInputs, Array[@stage_local_inputs.ReconciledAttachment], max_work~ : Int, max_text_bytes~ : Int, max_local_input_nodes~ : Int, sourceviews? : @sourceview_resolution.PipelineInputs?) -> Result[ReconciledContexts, ReconciledIssue]
 
 pub fn attach_result_wiring(StageContexts, @stage_results.ResultWiring, max_work~ : Int, max_text_bytes~ : Int) -> Result[WiredStages, WiringIssue]
 
@@ -135,6 +136,10 @@ pub fn program_reference_work(ProgramReferences) -> Int
 pub fn reconciled_local_at(ReconciledContexts, Int) -> @stage_local_inputs.ReconciledAttachment?
 
 pub fn reconciled_snapshots(ReconciledContexts) -> @stage_local_inputs.ProgramEnvironmentInputs
+
+pub fn reconciled_sourceview_stage(ReconciledContexts, Int) -> @sourceview_resolution.PipelineAttachment?
+
+pub fn reconciled_sourceviews(ReconciledContexts) -> @sourceview_resolution.PipelineInputs?
 
 pub fn reconciled_usage(ReconciledContexts) -> InputUsage
 
@@ -400,6 +405,10 @@ pub(all) enum ReconciledIssue {
   ForeignEvidence(Int)
   InconsistentUsage
   BudgetExceeded
+  MissingSourceViews(Int)
+  ForeignSourceViews(Int)
+  ForeignSourceEnvironment
+  SourceViewAttachment(Int, @sourceview_resolution.PipelineIssue)
 } derive(Eq, @debug.Debug)
 
 pub(all) enum RegexOperation {

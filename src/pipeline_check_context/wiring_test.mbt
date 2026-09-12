@@ -17,6 +17,7 @@ fn wired_inputs_fixture(
   steps? : String? = None,
   parameters? : String = "{\"n\":{\"type\":\"number\",\"default\":1}}",
   supplied? : @decode.Cursor? = None,
+  remote? : Array[@sourceviews.PipelineInputs]? = None,
 ) -> (
   StageContexts,
   @stage_results.ResultWiring,
@@ -28,6 +29,14 @@ fn wired_inputs_fixture(
   let program = @syntax.parse(
     (
       #|{"version":"actql/0.1","id":"p","params":{"n":{"type":"number","default":1}},"stages":[{"id":"first","inputs":{"a":{"carrier":"relation","schema":{"id":{"type":"number","nullable":false}}}},"steps":[{"derive":{"x":"$n"}}],"results":{"out":{"from":"a","fields":["id"]}}},{"id":"second","inputs":{"a":{"result":{"stage":"first","result":"out"}}},"steps":[{"derive":{"x":"$n"}}],"results":{"out":{"from":"a","fields":["id"]}}}],"results":{"out":{"from":{"stage":"second","result":"out"}}}}
+    )
+    .replace(
+      old="\"inputs\":{\"a\":{\"carrier\":\"relation\"",
+      new=if remote is Some(_) {
+        "\"from\":\"a\",\"inputs\":{\"remote\":{\"connector\":\"crm/main\",\"resource\":\"Opportunity\"},\"a\":{\"carrier\":\"relation\""
+      } else {
+        "\"inputs\":{\"a\":{\"carrier\":\"relation\""
+      },
     )
     .replace(
       old="\"params\":{\"n\":{\"type\":\"number\",\"default\":1}}",
@@ -68,7 +77,28 @@ fn wired_inputs_fixture(
     max_text_bytes: 10000,
   }).unwrap()
   let declarations = @stages.declarations(source)
-  let (environment, snapshot) = snapshot_wire(profile~)
+  let (environment, snapshot) = if remote is Some(_) {
+    sourceview_snapshot_fixture()
+  } else {
+    snapshot_wire(profile~)
+  }
+  let remote_inputs = match remote {
+    None => None
+    Some(out) => {
+      let inputs = @source_inputs.collect(source, {
+        max_work: 100000,
+        max_order_keys: 100,
+      }).unwrap()
+      let resolved = @sourceviews.resolve(
+        inputs,
+        sourceview_catalog(environment),
+        { max_work: 1000000, max_inputs: 100, max_views: 100, },
+      ).unwrap()
+      let prepared = @sourceviews.prepare_pipeline_inputs(resolved, 1000000).unwrap()
+      out.push(prepared)
+      Some(prepared)
+    }
+  }
   let source_index = @refs.prepare(source, {
     max_work: 100000,
     max_text_bytes: 100000,
@@ -116,12 +146,19 @@ fn wired_inputs_fixture(
     max_depth: 100,
   }
   for i in 0..<2 {
-    let prepared = @local_inputs.prepare(source, i, {
-      max_work: 10000,
-      max_nodes: 1000,
-      max_depth: 100,
-      max_text_bytes: 10000,
-    }).unwrap()
+    let prepared = @local_inputs.prepare(
+      source,
+      i,
+      {
+        max_work: 10000,
+        max_nodes: 1000,
+        max_depth: 100,
+        max_text_bytes: 10000,
+      },
+      sourceviews=remote_inputs.map(v => {
+        @sourceviews.inputs(@sourceviews.pipeline_resolution(v))
+      }),
+    ).unwrap()
     local_declarations.push(prepared)
     if use_snapshots {
       environment_inputs.push(
@@ -159,11 +196,17 @@ fn wired_inputs_fixture(
     let body = @decode.open_object(
       @syntax.stage_body(@stages.stage_at(source, i).unwrap()),
     ).unwrap()
+    let registrations = [("a", input)]
+    if remote_inputs is Some(views) {
+      for j in 0..<@sourceviews.pipeline_input_count(views, i).unwrap() {
+        registrations.push(@sourceviews.pipeline_input_at(views, i, j).unwrap())
+      }
+    }
     let pipeline = @pipeline.check_with_evidence(
       @decode.required(body, "steps").unwrap(),
-      [("a", input)],
+      registrations,
       Some(declarations),
-      None,
+      @decode.lookup(body, "from"),
       {
         max_steps: 10,
         max_work: 10000,

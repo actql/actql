@@ -431,6 +431,28 @@ owner in the Program snapshot-coverage result. It cannot combine equivalent but
 independently reconciled evidence. `ReconciledContexts` retains Result wiring,
 bindings, policy selection, snapshot coverage and detached input attachments.
 
+Its optional `sourceviews` input joins `sourceview_resolution.PipelineInputs`
+to that same boundary, rather than creating a separate Program assembly path.
+The resolved Program and wire Check Environment owners must match the local
+snapshot and stage branches exactly. Each local declaration partition must use
+the same SourceView input collection. A partition cannot silently omit its
+remote registration proof. The constructor itself attaches the selected remote
+Carriers to every exact collected stage, including unused inputs; callers cannot
+substitute arrays of assertions. Re-read equal environments, different source
+collections and same-shaped replacement Carrier registrations are rejected.
+The retained `reconciled_sourceviews` and `reconciled_sourceview_stage` accessors
+expose those checked owners to downstream policy and Program assembly.
+
+SourceView preparation is charged once at this join. Per-stage attachment work
+subtracts only that exact shared preparation and operation collection, which
+are already charged by the retained branches. The local partition's existing
+conservative source-collection costs are not discounted here. Snapshot node/text
+measures are unchanged; Catalog body admission keeps its own prior-pass bounds.
+This remains type/ownership linkage: direct versus keyed acquisition, requests,
+read modes, classification, authority and runtime obligations are not discharged
+by the presence of a Carrier. The same environment owner does not turn an
+integrity-checked Catalog into whole-Program execution authorization.
+
 Work includes the wired context, complete snapshot coverage and registration
 checks. Each attachment's shared operation collection and environment pass are
 subtracted only after both owners match. Snapshot node/text costs remain in the

@@ -24,6 +24,8 @@ import {
   "actql/actql/decode_scalar" @scalar,
   "actql/actql/text_time_policy" @text_policy,
   "actql/actql/text_time_bounds" @bounds,
+  "actql/actql/sourceview_resolution" @sourceviews,
+  "actql/actql/sourceview_input" @source_inputs,
 }
 
 import {
@@ -43,3 +45,5 @@ import {
   "actql/actql/capacity_sequence_limit" @sequence,
   "moonbitlang/core/encoding/utf8",
 } for "test"
+
+formatter(ignore: [ "sourceview_fixture.generated_test.mbt" ])

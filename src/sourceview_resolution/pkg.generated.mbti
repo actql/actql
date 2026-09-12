@@ -74,6 +74,8 @@ pub fn parameterized_request_work(ParameterizedRequest) -> Int
 
 pub fn pipeline_attachment_work(PipelineAttachment) -> Int
 
+pub fn pipeline_environment(PipelineInputs) -> @check_environment.WireEnvironment
+
 pub fn pipeline_input_at(PipelineInputs, Int, Int) -> (String, @pipeline_typing.InputContract)?
 
 pub fn pipeline_input_count(PipelineInputs, Int) -> Int?

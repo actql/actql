@@ -7,6 +7,10 @@ pub(all) enum ReconciledIssue {
   ForeignEvidence(Int)
   InconsistentUsage
   BudgetExceeded
+  MissingSourceViews(Int)
+  ForeignSourceViews(Int)
+  ForeignSourceEnvironment
+  SourceViewAttachment(Int, @sourceviews.PipelineIssue)
 } derive(Eq, Debug)
 
 ///|
@@ -15,6 +19,8 @@ struct ReconciledContexts {
   snapshots : @local_inputs.ProgramEnvironmentInputs
   locals : Array[@local_inputs.ReconciledAttachment]
   usage : InputUsage
+  sourceviews : @sourceviews.PipelineInputs?
+  remote : Array[@sourceviews.PipelineAttachment]
 }
 
 ///|
@@ -25,6 +31,7 @@ pub fn attach_reconciled_inputs(
   max_work~ : Int,
   max_text_bytes~ : Int,
   max_local_input_nodes~ : Int,
+  sourceviews? : @sourceviews.PipelineInputs? = None,
 ) -> Result[ReconciledContexts, ReconciledIssue] {
   if max_work < 0 || max_text_bytes < 0 || max_local_input_nodes < 0 {
     return Err(InvalidLimits)
@@ -49,6 +56,28 @@ pub fn attach_reconciled_inputs(
     return Err(BudgetExceeded)
   }
   let mut work = wired.work + cost.work
+  if sourceviews is Some(views) {
+    if !physical_equal(
+        @source_inputs.source(
+          @sourceviews.inputs(@sourceviews.pipeline_resolution(views)),
+        ),
+        @stages.operations_source(operations),
+      ) {
+      return Err(ForeignProgram)
+    }
+    if !physical_equal(
+        @sourceviews.pipeline_environment(views),
+        @local_inputs.program_environment(snapshots),
+      ) {
+      return Err(ForeignSourceEnvironment)
+    }
+    let added = @sourceviews.pipeline_inputs_work(views)
+    if added > max_work - work {
+      return Err(BudgetExceeded)
+    }
+    work += added
+  }
+  let remote = []
   for i in 0..<count {
     let expected = @stages.operations_stage_at(operations, i).unwrap()
     if !physical_equal(@local_inputs.reconciled_stage(locals[i]), expected) {
@@ -57,6 +86,50 @@ pub fn attach_reconciled_inputs(
     let evidence = @local_inputs.program_environment_stage(snapshots, i).unwrap()
     if !physical_equal(@local_inputs.reconciled_inputs(locals[i]), evidence) {
       return Err(ForeignEvidence(i))
+    }
+    let partition = @local_inputs.sourceview_inputs(
+      @local_inputs.snapshot_inputs(
+        @local_inputs.environment_assertions(evidence),
+      ),
+    )
+    match (partition, sourceviews) {
+      (Some(_), None) => return Err(MissingSourceViews(i))
+      (Some(inputs), Some(views)) =>
+        if !physical_equal(
+            inputs,
+            @sourceviews.inputs(@sourceviews.pipeline_resolution(views)),
+          ) {
+          return Err(ForeignSourceViews(i))
+        }
+      (None, Some(views)) =>
+        if @sourceviews.pipeline_input_count(views, i).unwrap() != 0 {
+          return Err(MissingSourceViews(i))
+        }
+      (None, None) => ()
+    }
+    if sourceviews is Some(views) {
+      let attached = match
+        @sourceviews.attach_pipeline_inputs(views, expected, max_work) {
+        Ok(v) => v
+        Err(e) => return Err(SourceViewAttachment(i, e))
+      }
+      let mut added = @sourceviews.pipeline_attachment_work(attached)
+      // These exact owners are already retained and charged above/in WiredStages.
+      for
+        shared in [
+          @sourceviews.pipeline_inputs_work(views),
+          @stages.collection_work(expected),
+        ] {
+        if shared > added {
+          return Err(InconsistentUsage)
+        }
+        added -= shared
+      }
+      if added > max_work - work {
+        return Err(BudgetExceeded)
+      }
+      work += added
+      remote.push(attached)
     }
     let mut added = @local_inputs.reconciled_work(locals[i])
     // Both immutable owners are already charged by the retained branches.
@@ -79,6 +152,8 @@ pub fn attach_reconciled_inputs(
     wired,
     snapshots,
     locals: locals.copy(),
+    sourceviews,
+    remote,
     usage: {
       work,
       text_bytes: wired.text + cost.text_bytes,
@@ -110,4 +185,19 @@ pub fn reconciled_local_at(
 ///|
 pub fn reconciled_usage(v : ReconciledContexts) -> InputUsage {
   v.usage
+}
+
+///|
+pub fn reconciled_sourceviews(
+  v : ReconciledContexts,
+) -> @sourceviews.PipelineInputs? {
+  v.sourceviews
+}
+
+///|
+pub fn reconciled_sourceview_stage(
+  v : ReconciledContexts,
+  i : Int,
+) -> @sourceviews.PipelineAttachment? {
+  v.remote.get(i)
 }

@@ -18,6 +18,8 @@ test "schema-aware registrations connect all stages and actual Result imports" {
   ).unwrap()
   assert_true(physical_equal(reconciled_wiring(result), wired))
   assert_true(physical_equal(reconciled_snapshots(result), snapshots))
+  assert_true(reconciled_sourceviews(result) is None)
+  assert_true(reconciled_sourceview_stage(result, 0) is None)
   for i in 0..<2 {
     assert_true(
       physical_equal(reconciled_local_at(result, i).unwrap(), locals[i]),
