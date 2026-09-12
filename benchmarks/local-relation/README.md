@@ -154,6 +154,13 @@ reject missing comparisons and prepared-input summaries. A performance pass neve
 sets `migration_authorized`: semantic/physical verification and migration
 remeasurement remain separate requirements.
 
+`node scripts/report-layout-comparison.mjs SUMMARY_DIRECTORY` renders all four
+audited subsets into `_build/layout-measurements/comparison-report.md`. It retains
+the source/report identities, absolute timing medians, paired intervals, RSS ratios
+and five-phase ranges. Prepared measurements are tabulated separately and cannot
+replace E2E comparisons. The generated draft is not an allocator audit or a final
+completion certificate.
+
 This calculation alone does not authorize adoption. The full mandatory matrix,
 valid timing scope, semantic gates and source provenance must be established
 separately. Apply the 20% threshold to every member of a preselected major group;
