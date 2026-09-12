@@ -92,6 +92,8 @@ pub fn prepare_demand(RootIndex, DemandLimits) -> Result[DemandIndex, DemandIssu
 
 pub fn prepare_kernel(BoundPrepared, Int, max_bindings~ : Int, max_name_bytes~ : Int, ExpressionLimits) -> Result[PreparedKernel, KernelIssue]
 
+pub fn prepare_kernel_roots(PreparedSequence, Int, RootLimits) -> Result[RootIndex, RootIssue]
+
 pub fn prepare_roots(PreparedSequence, RootLimits) -> Result[RootIndex, RootIssue]
 
 pub fn prepare_sequence(BoundPrepared, SequenceLimits) -> Result[PreparedSequence, SequenceIssue]
@@ -103,6 +105,8 @@ pub fn root_at(RootIndex, Int) -> ExpressionRoot?
 pub fn root_count(RootIndex) -> Int
 
 pub fn root_sequence(RootIndex) -> PreparedSequence
+
+pub fn root_step_range(RootIndex) -> (Int, Int)
 
 pub fn sequence_count(PreparedSequence) -> Int
 
@@ -292,6 +296,8 @@ type RootIndex
 pub(all) enum RootIssue {
   InvalidRootLimits
   RootLimit
+  InvalidStep
+  NotExpressionKernel
 }
 
 pub(all) struct RootLimits {

@@ -880,6 +880,17 @@ were not rerun for this increment.
 
 ### Source values and machine nodes
 
+The expression-fragment request is not the outer four-operation composition.
+Values and projection operations remain outside this binding. A kernel-scoped
+root index retains the original prepared sequence and half-open step range,
+including for an empty snapshot map. Root numbers are local to that index;
+original step IDs and checked expression owners do not change. This permits
+independent fragments to each use `/roots/0/source` without mixing evaluation
+frames or constructing a shortened sequence that pretends other operations did
+not exist. A single-kernel fragment is a composition strategy, not a language
+requirement to persist or execute every operation separately; compatible fusion
+still requires its own complete request and root reconstruction.
+
 Each expression root retains its exact typed owner. Source projection reads the
 normalized syntax of that owner; machine-node projection reads the bound lowered
 expression. A Parameter remains a reference in source while becoming a literal

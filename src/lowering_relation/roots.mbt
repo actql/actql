@@ -4,6 +4,8 @@
 struct RootIndex {
   sequence : PreparedSequence
   entries : Array[ExpressionRoot]
+  start_step : Int
+  end_step : Int
 }
 
 ///|
@@ -26,6 +28,8 @@ pub(all) struct RootLimits {
 pub(all) enum RootIssue {
   InvalidRootLimits
   RootLimit
+  InvalidStep
+  NotExpressionKernel
 }
 
 ///|
@@ -41,6 +45,12 @@ pub fn root_at(index : RootIndex, i : Int) -> ExpressionRoot? {
 ///|
 pub fn root_sequence(index : RootIndex) -> PreparedSequence {
   index.sequence
+}
+
+///|
+/// Half-open scope, also retained when an empty snapshot map has no roots.
+pub fn root_step_range(index : RootIndex) -> (Int, Int) {
+  (index.start_step, index.end_step)
 }
 
 ///|
@@ -86,14 +96,48 @@ pub fn prepare_roots(
   sequence : PreparedSequence,
   limits : RootLimits,
 ) -> Result[RootIndex, RootIssue] {
+  prepare_root_range(sequence, 0, sequence.steps.length(), limits)
+}
+
+///|
+/// Roots for a single expression kernel's fragment, retaining the original
+/// sequence and step identity. This does not construct a shortened sequence or
+/// imply that values/select belong inside the expression-fragment contract.
+pub fn prepare_kernel_roots(
+  sequence : PreparedSequence,
+  step_index : Int,
+  limits : RootLimits,
+) -> Result[RootIndex, RootIssue] {
+  let step = match sequence.steps.get(step_index) {
+    Some(step) => step
+    None => return Err(InvalidStep)
+  }
+  match step {
+    ValuesStep(_) => return Err(NotExpressionKernel)
+    RowStep(kernel) =>
+      match kernel.body {
+        Select(_) => return Err(NotExpressionKernel)
+        Filter(_) | SnapshotMap(_) => ()
+      }
+  }
+  prepare_root_range(sequence, step_index, step_index + 1, limits)
+}
+
+///|
+fn prepare_root_range(
+  sequence : PreparedSequence,
+  start_step : Int,
+  end_step : Int,
+  limits : RootLimits,
+) -> Result[RootIndex, RootIssue] {
   if limits.max_roots < 0 || limits.max_pointer_bytes < 0 || limits.max_work < 0 {
     return Err(InvalidRootLimits)
   }
   let mut work = limits.max_work
   let mut bytes = limits.max_pointer_bytes
   let mut sorted : Array[ExpressionRoot] = []
-  for step_index = 0
-      step_index < sequence.steps.length()
+  for step_index = start_step
+      step_index < end_step
       step_index = step_index + 1 {
     if work == 0 {
       return Err(RootLimit)
@@ -204,5 +248,5 @@ pub fn prepare_roots(
     }
     width += width
   }
-  Ok({ sequence, entries: sorted, })
+  Ok({ sequence, entries: sorted, start_step, end_step, })
 }
