@@ -40,6 +40,7 @@ fn core_contract_site_stage(
     | OperationSeriesCountRules(stage, _, _)
     | CatalogReference(stage, _, _)
     | StageSourceGrammar(stage)
+    | StageLocalInputRules(stage, _)
     | StageSemanticRules(stage, _)
     | StageEnvironmentRules(stage)
     | OperationDataProfile(stage, _, _, _) => stage

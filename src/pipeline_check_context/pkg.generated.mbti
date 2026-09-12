@@ -832,6 +832,8 @@ pub(all) enum CoreContractBody {
   GraphCountRules
   RankingCountRules
   SeriesCountRules
+  LocalSnapshotRules
+  LocalSourceReferenceRules
 } derive(Eq, @debug.Debug)
 
 type CoreContractInventory
@@ -878,6 +880,7 @@ pub(all) enum CoreContractSite {
   OperationGraphCountRules(Int, Int, Int)
   OperationRankingCountRules(Int, Int, Int)
   OperationSeriesCountRules(Int, Int, Int)
+  StageLocalInputRules(Int, Int)
 } derive(Eq, @debug.Debug)
 
 pub struct DedupeTopTieCheck {

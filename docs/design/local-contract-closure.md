@@ -166,6 +166,20 @@ analysis: unused declared inputs, unselected expression branches and authored
 no-ops remain part of the inventory. Repeated occurrences retain their sites
 and owners even when they resolve to the same contract.
 
+Each Local input declaration selects the existing
+`actql-local-relation-snapshot-contract/0.1` interpretation body at
+`spec/contracts/actql-local-relation-snapshot.json`, pointer `""`, CID
+`sha256:60e8136aea733421e75fa3dcef4934c87ce98959b36f8a56da93ccfbf03d81b2`.
+Selection includes unused declarations and does not depend on whether concrete
+materialization is already supplied. Its two declared dependencies select the
+canonical value grammar and `actql-local-source-reference/0.1`, CID
+`sha256:9be664306a6a91a8e5bfca53d579e6dac77baf4567eb241ceeedc3216ffe47d9`.
+The reference contract has no external dependencies. Internal schema references
+remain within the snapshot schema resource. Input CIDs, completeness claims and
+integration-binding CIDs are observations or evidence, not interpretation roots.
+This selection does not replace the identity of an actual interpreted row type
+or establish admission of materialized rows.
+
 For an admitted SourceView declaration, select the contract references belonging
 to that selected SourceView, not every member of its enclosing Catalog. The
 declaration's complete contract includes its advertised read-mode contracts;

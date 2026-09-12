@@ -38,6 +38,8 @@ pub(all) enum CoreContractBody {
   GraphCountRules
   RankingCountRules
   SeriesCountRules
+  LocalSnapshotRules
+  LocalSourceReferenceRules
 } derive(Eq, Debug)
 
 ///|
@@ -58,6 +60,7 @@ pub(all) enum CoreContractSite {
   OperationGraphCountRules(Int, Int, Int)
   OperationRankingCountRules(Int, Int, Int)
   OperationSeriesCountRules(Int, Int, Int)
+  StageLocalInputRules(Int, Int)
 } derive(Eq, Debug)
 
 ///|
@@ -277,6 +280,19 @@ pub fn collect_core_contracts(
         CatalogGrammarBody(@environment.EnvironmentBody),
       )
       core_contract_root(b, StageSourceGrammar(stage), ProgramSourceGrammar)
+      core_contract_charge(b)
+      let locals = @local_inputs.snapshot_inputs(
+        @local_inputs.environment_assertions(
+          @local_inputs.reconciled_inputs(context.locals[stage]),
+        ),
+      )
+      for input in 0..<@local_inputs.count(locals) {
+        core_contract_root(
+          b,
+          StageLocalInputRules(stage, input),
+          LocalSnapshotRules,
+        )
+      }
       for
         rules in [
           @environment.SourceRules,
@@ -383,6 +399,17 @@ pub fn collect_core_contracts(
         | GraphCountRules
         | RankingCountRules
         | SeriesCountRules => ()
+        LocalSourceReferenceRules => ()
+        LocalSnapshotRules =>
+          for
+            target in [
+              CatalogGrammarBody(@environment.ValueGrammarBody),
+              LocalSourceReferenceRules,
+            ] {
+            core_contract_edge(b)
+            core_contract_body(b, target)
+            core_contract_dependency(b, b.bodies[index], target)
+          }
         CatalogGrammarBody(body) =>
           for edge in 0..<@environment.catalog_grammar_dependency_count(body) {
             core_contract_edge(b)
@@ -487,6 +514,10 @@ pub fn core_contract_cid(v : CoreContractBody) -> String {
       "sha256:655fa88f2d24a15794a12abdbdc967f51517f5f92aa1316f74f6df1617fcf0c7"
     SeriesCountRules =>
       "sha256:c85b84631add903652807808fc4faa9015e59cf9bfd0fb11bf170c85139dcf05"
+    LocalSnapshotRules =>
+      "sha256:60e8136aea733421e75fa3dcef4934c87ce98959b36f8a56da93ccfbf03d81b2"
+    LocalSourceReferenceRules =>
+      "sha256:9be664306a6a91a8e5bfca53d579e6dac77baf4567eb241ceeedc3216ffe47d9"
   }
 }
 
