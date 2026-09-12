@@ -3,6 +3,7 @@
 // alternative semantic rules or a backend-specific source program.
 priv enum NumericLayoutWorkload {
   NarrowProjection
+  NullableProjection
   FullWidthAddition
   LowSelectivity
   HighSelectivity
@@ -14,14 +15,26 @@ fn numeric_layout_fixture(
   count : Int,
 ) -> (GeneratedSequence, CapturedRows) raise {
   let width = 64
+  let nullable = workload == NullableProjection
   let raw = Array::makei(count, i => {
     let id = count - i
     let mut text = "{\"id\":" +
       id.to_string() +
       ",\"k\":" +
-      ((id - 1) / 4).to_string()
+      (if nullable {
+        nullable_layout_cell(id, 1)
+      } else {
+        ((id - 1) / 4).to_string()
+      })
     for j = 2; j < width; j = j + 1 {
-      text += ",\"p" + j.to_string() + "\":" + (id + j).to_string()
+      text += ",\"p" +
+        j.to_string() +
+        "\":" +
+        (if nullable {
+          nullable_layout_cell(id, j)
+        } else {
+          (id + j).to_string()
+        })
     }
     input_cursor(text + "}")
   })
@@ -29,12 +42,38 @@ fn numeric_layout_fixture(
     input_cursor("{\"type\":\"number\",\"nullable\":false}"),
     { max_nodes: 10, max_depth: 10, max_text_bytes: 100, },
   ).unwrap()
+  let nullable_number = @contract.read_checked(
+    input_cursor("{\"type\":\"number\",\"nullable\":true}"),
+    { max_nodes: 10, max_depth: 10, max_text_bytes: 100, },
+  ).unwrap()
+  let nullable_boolean = @contract.read_checked(
+    input_cursor("{\"type\":\"boolean\",\"nullable\":true}"),
+    { max_nodes: 10, max_depth: 10, max_text_bytes: 100, },
+  ).unwrap()
   let fields = [
     (@schema.Unqualified("id"), numeric),
-    (@schema.Unqualified("k"), numeric),
+    (
+      @schema.Unqualified("k"),
+      if nullable {
+        nullable_boolean
+      } else {
+        numeric
+      },
+    ),
   ]
   for j = 2; j < width; j = j + 1 {
-    fields.push((@schema.Unqualified("p" + j.to_string()), numeric))
+    fields.push(
+      (
+        @schema.Unqualified("p" + j.to_string()),
+        if !nullable {
+          numeric
+        } else if j % 2 == 0 {
+          nullable_number
+        } else {
+          nullable_boolean
+        },
+      ),
+    )
   }
   let schema = @schema.from_fields(
     fields,
@@ -47,6 +86,11 @@ fn numeric_layout_fixture(
     { max_fields: width, max_name_bytes: 10000, },
   ).unwrap()
   let (program, expression_steps) = match workload {
+    NullableProjection =>
+      (
+        "[{\"select\":[\"id\",\"p2\"]},{\"derive\":[{\"old\":\"p2\"},{\"p2\":\"coalesce(old, 0) > 0\"}]},{\"filter\":\"id > 0\"},{\"sort\":[{\"id\":\"asc\"}]},{\"take\":10}]",
+        [1, 2],
+      )
     NarrowProjection =>
       (
         "[{\"select\":[\"id\",\"p2\"]},{\"derive\":{\"next\":\"p2 + 1\"}},{\"filter\":\"next > 0\"},{\"sort\":[{\"id\":\"asc\"}]},{\"take\":10}]",
@@ -93,10 +137,28 @@ fn numeric_layout_fixture(
       max_pointer_bytes: 10000,
       max_work: 100000,
     }).unwrap()
+    let logical : @lower.FragmentRowLimits = {
+      max_input_rows: count.to_int64(),
+      max_value_bytes: 100000L,
+      max_live_value_bytes: 10000000L,
+      max_work: 100000000L,
+    }
+    let ordered = if nullable && step == 1 {
+      Some(
+        admit_ordered_contract(
+          registered_relation_contracts(),
+          registered_ordered(),
+          registry_limits(),
+        ).unwrap(),
+      )
+    } else {
+      None
+    }
     let request = @lower.prepare_fragment_request(
       pipeline,
       count.to_int64(),
       100000L,
+      row_limits=if ordered is Some(_) { Some(logical) } else { None },
     ).unwrap()
     contexts.push(
       prepare_runtime_fragment(
@@ -104,12 +166,8 @@ fn numeric_layout_fixture(
         test_fragment_contract(),
         material_demands(),
         registry_limits(),
-        {
-          max_input_rows: count.to_int64(),
-          max_value_bytes: 100000L,
-          max_live_value_bytes: 10000000L,
-          max_work: 100000000L,
-        },
+        logical,
+        ordered~,
       ).unwrap(),
     )
   }
@@ -154,18 +212,30 @@ fn numeric_layout_limits(count : Int) -> SequenceRunLimits {
 }
 
 ///|
+fn nullable_layout_cell(id : Int, column : Int) -> String {
+  if (id + column) % 3 == 0 {
+    "null"
+  } else if column % 2 == 0 {
+    (id + column).to_string()
+  } else {
+    ((id + column) % 2 == 0).to_string()
+  }
+}
+
+///|
 fn[T : RelationRows] verify_numeric_layout_output(
   table : T,
   workload : NumericLayoutWorkload,
   count : Int,
 ) -> Unit raise {
   let rows = match workload {
-    NarrowProjection | FullWidthAddition => 10
+    NarrowProjection | NullableProjection | FullWidthAddition => 10
     LowSelectivity => count / 100
     HighSelectivity => count * 99 / 100
   }
   let (names, offsets) = match workload {
     NarrowProjection => (["id", "p2", "next"], [0, 2, 3])
+    NullableProjection => (["id", "p2", "old"], [0, 2, 2])
     FullWidthAddition => {
       let names = ["id", "k"]
       let offsets = [0, -1]
@@ -199,6 +269,18 @@ fn[T : RelationRows] verify_numeric_layout_output(
   for row = 0; row < rows; row = row + 1 {
     let id = row + 1
     for column = 0; column < names.length(); column = column + 1 {
+      if workload == NullableProjection && column != 0 {
+        let missing = (id + 2) % 3 == 0
+        let value = IndexedRows::read_cell(table, row, column)
+        if column == 1 {
+          assert_true(value is Boolean(b) && b == !missing)
+        } else if missing {
+          assert_true(value is Null)
+        } else {
+          assert_true(value is Number(n) && n == (id + 2).to_double())
+        }
+        continue
+      }
       let expected = if offsets[column] == -1 {
         (id - 1) / 4
       } else {
@@ -218,6 +300,7 @@ test "fixed numeric workload shapes share source and contracts across all layout
   for
     workload in [
       NarrowProjection,
+      NullableProjection,
       FullWidthAddition,
       LowSelectivity,
       HighSelectivity,
@@ -285,6 +368,21 @@ test "fixed numeric workload shapes share source and contracts across all layout
         workload,
         count,
       )
+      if workload == NullableProjection {
+        let storage = invocation.store.tables[slot].unwrap().table.storage
+        guard storage.body is OwnedColumnArrays(columns) else {
+          fail("owned columns")
+        }
+        if candidate == TypedColumns {
+          assert_true(columns[0].value is Some(Numeric(_, _)))
+          assert_true(columns[1].value is Some(Flags(_, _)))
+          assert_true(columns[2].value is Some(Numeric(_, _)))
+        } else {
+          for column in columns {
+            assert_true(column.value is Some(Generic(_)))
+          }
+        }
+      }
       clear_table_store(invocation.store)
       release_owned_layout_buffer(ledger, source).unwrap()
       assert_eq((ledger.slots.live, ledger.bytes.live), (0, 0))
