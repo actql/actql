@@ -1031,6 +1031,25 @@ do not copy operation bodies. This closes only these static profile associations
 it is neither backend conformance nor resource, value, identity, order or runtime
 admission. All other obligations remain available in the retained inventory.
 
+### Resolution coverage index
+
+`index_program_operation_resolutions` maps the order, scalar, frame, fill,
+range, query, cell and profile results back to their exact original requirement
+occurrences. It consumes the single owned profile chain, not independently
+supplied resolution arrays. Duplicate assignments and foreign occurrences fail
+atomically. Required slots and every resolution visit are charged before index
+allocation; construction is linear in requirements plus resolutions, and reads
+are constant-time without copying the retained proof collections.
+
+Each valid slot is explicitly `Resolved(typed resolution)` or `Unresolved`.
+An absent indexed result means only an out-of-range index. `Unresolved` does not
+mean runtime: a later coverage boundary must connect an allowed execution check
+to its subject, application, dependencies and failure behavior, or reject static
+unresolved/unsupported handling. Even zero unresolved operation occurrences do
+not close input, publication, incoming, identity or other Program obligations.
+Calendar and lexical operation-wide admissions remain owned by the retained
+chain; they do not implicitly discharge arbitrary occurrence-level requirements.
+
 ### Joining incoming and operation checks
 
 `link_program_incoming` joins the incoming-requirement inventory with the

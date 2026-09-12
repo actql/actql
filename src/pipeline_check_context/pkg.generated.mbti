@@ -166,6 +166,8 @@ pub fn incoming_links_requirements(ProgramIncomingLinks) -> ProgramIncomingRequi
 
 pub fn incoming_links_work(ProgramIncomingLinks) -> Int
 
+pub fn index_program_operation_resolutions(ProgramOperationProfileLinks, Int, Int) -> Result[ProgramOperationResolutionIndex, OperationResolutionIndexIssue]
+
 pub fn input_usage(InputContexts) -> InputUsage
 
 pub fn input_wiring(InputContexts) -> WiredStages
@@ -295,6 +297,18 @@ pub fn operation_requirements_count(ProgramOperationRequirements) -> Int
 pub fn operation_requirements_expressions(ProgramOperationRequirements) -> ProgramExpressionClosure
 
 pub fn operation_requirements_work(ProgramOperationRequirements) -> Int
+
+pub fn operation_resolution_at(ProgramOperationResolutionIndex, Int) -> OperationResolutionState?
+
+pub fn operation_resolution_count(ProgramOperationResolutionIndex) -> Int
+
+pub fn operation_resolution_profiles(ProgramOperationResolutionIndex) -> ProgramOperationProfileLinks
+
+pub fn operation_resolution_requirements(ProgramOperationResolutionIndex) -> ProgramOperationRequirements
+
+pub fn operation_resolution_unresolved_count(ProgramOperationResolutionIndex) -> Int
+
+pub fn operation_resolution_work(ProgramOperationResolutionIndex) -> Int
 
 pub fn operation_scalar_at(ProgramOperationScalars, Int) -> OperationScalarResolution?
 
@@ -902,6 +916,29 @@ pub(all) enum OperationRequirementsIssue {
   BudgetExceeded
 } derive(Eq, @debug.Debug)
 
+pub(all) enum OperationResolution {
+  Order(OperationOrderLink)
+  Scalar(OperationScalarResolution)
+  Frame(OperationFrameResolution)
+  Fill(OperationFillResolution)
+  Range(OperationRangeResolution)
+  Query(OperationQueryResolution)
+  Cell(OperationCellResolution)
+  ProfileResolution(OperationProfileResolution)
+}
+
+pub(all) enum OperationResolutionIndexIssue {
+  InvalidLimits
+  BudgetExceeded
+  ForeignOccurrence(Int)
+  DuplicateResolution(Int)
+} derive(Eq, @debug.Debug)
+
+pub(all) enum OperationResolutionState {
+  Resolved(OperationResolution)
+  Unresolved
+}
+
 pub(all) enum OperationScalarIssue {
   InvalidLimits
   BudgetExceeded
@@ -1040,6 +1077,8 @@ type ProgramOperationQueries
 type ProgramOperationRanges
 
 type ProgramOperationRequirements
+
+type ProgramOperationResolutionIndex
 
 type ProgramOperationScalars
 
