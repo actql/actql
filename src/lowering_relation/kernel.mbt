@@ -333,7 +333,7 @@ fn prepare_kernel_measured(
         is Some(order) else {
         return Err(PendingTakeOrder)
       }
-      if @pipeline.order_key_completion(order) is Some(key) {
+      if take_completion(owner.prepared.owner, step_index) is Some(key) {
         let count = @evidence.key_field_count(key)
         if count > max_bindings || count > remaining.max_work {
           return Err(KernelBudgetExceeded)
@@ -400,8 +400,8 @@ fn prepare_kernel_measured(
     SnapshotMap(bindings) | OrderedBindings(bindings) => bindings.length()
     Filter(_) => 1
     Select(fields) => fields.length()
-    Limit(_, _, order) =>
-      @pipeline.order_key_completion(order)
+    Limit(_, _, _) =>
+      take_completion(owner.prepared.owner, step_index)
       .map(@evidence.key_field_count)
       .unwrap_or(0)
     StableSort(resolution) =>

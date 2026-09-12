@@ -2,8 +2,8 @@
 /// Indexed read of the compiler-selected order, never an independent completion
 /// rule. An empty authored sort has no resolution and has zero terms.
 pub fn kernel_sort_term_count(kernel : PreparedKernel) -> Int {
-  if kernel.body is Limit(_, _, order) {
-    return @pipeline.order_key_completion(order)
+  if kernel.body is Limit(_, _, _) {
+    return take_completion(kernel.owner.prepared.owner, kernel.step_index)
       .map(@evidence.key_field_count)
       .unwrap_or(0)
   }
@@ -25,10 +25,13 @@ pub fn kernel_sort_term_at(
   kernel : PreparedKernel,
   index : Int,
 ) -> (@schema.FieldName, Bool, Bool)? {
-  if kernel.body is Limit(_, _, order) {
-    return @pipeline.order_key_completion(order).bind(key => {
-      @evidence.key_field_at(key, index).map(field => (field.name, false, false))
-    })
+  if kernel.body is Limit(_, _, _) {
+    return take_completion(kernel.owner.prepared.owner, kernel.step_index).bind(key => {
+        @evidence.key_field_at(key, index).map(field => {
+          (field.name, false, false)
+        })
+      },
+    )
   }
   guard kernel.body is StableSort(resolution) else { return None }
   if index < 0 {

@@ -96,7 +96,9 @@ fn attach_fragment_budgets(
               if !spend_control_text(control, spelling) {
                 return Err(InputLimit)
               }
-              let contract = @schema.lookup(schema, name).unwrap()
+              guard @schema.lookup(schema, name) is Some(contract) else {
+                return Err(FragmentContext(i, KernelMismatch))
+              }
               if !supported_comparison(contract, contract) {
                 return Err(UnsupportedRowComparison(i, name))
               }

@@ -114,6 +114,14 @@ sort scratch, intermediate retention and selection consume the same budgets.
 A raw arrival order cannot substitute for either an admitted prior order or
 this checked completion.
 
+Historical completion metadata is not a request to sort again. The lowerer
+resolves through the owning pipeline and requires both the current take's
+origin index and its exact checked producer before materializing a new prefix.
+Inherited or imported order needs no new keys, even after shadowing, renaming
+or projecting those fields away. Prefix reservation, term reads and preparation
+budgets share this single decision. Failed checked field lookup is a typed
+kernel mismatch, never an unchecked panic or a substitute for inherited order.
+
 Whole-row `distinct` emits `REL.distinct` with empty parameters. Before execution,
 the common sequence preparation checks every input field's comparison domain,
 including for empty input. Unsupported structural/reference comparison is a

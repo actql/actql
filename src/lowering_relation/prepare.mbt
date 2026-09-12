@@ -294,8 +294,7 @@ pub fn prepare(
       | Sort(_) => None
     }
     let order_id = if payload is Limit(_) &&
-      @pipeline.take_order(checked, i).bind(@pipeline.order_key_completion)
-      is Some(_) {
+      take_completion(checked, i) is Some(_) {
       if expansions >= limits.max_nodes - count - inputs ||
         references >= limits.max_references ||
         work >= limits.max_work {
