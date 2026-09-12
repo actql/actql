@@ -132,6 +132,17 @@ assembled preparation. The returned operation-profile checks still require
 operation resolution, semantic identities and exhaustive obligation closure;
 this entrance does not claim a lowering-ready Program.
 
+`prepare_program_sources` constructs Binding declarations and source request
+slots from the selected context's Program, then checks requests, row bounds,
+policy correspondence, lookup capacity and producer membership. The selected
+policy's nonshared work and the owner join are reserved before constructing the
+request branch; declaration work is included once through its slot inventory.
+Typed row bounds and producer coordinates remain explicit inputs and must match
+the actual keyed consumers and retained capacity owners. Empty collections are
+valid only when those inventories require none. This does not manufacture
+SourceView registrations, acquisition results or capacity claims, and it does
+not turn request checking into Host execution permission.
+
 `check_prepared_local_stages` constructs all Stage contexts from that same
 preparation and performs the final Stage-owner join internally. Gathering,
 individual checks and producer-binding verification share one integration

@@ -54,6 +54,103 @@ test "source policy joins exact owners and counts common preparation once" {
   assert_eq(source_capacity_work(capacity_context), used)
   assert_true(source_capacity_stage(capacity_context, 0) is None)
   let producers = bind_source_producers(capacity_context, [], used).unwrap()
+  let source_caps : @sourceviews.RequestLimits = {
+    max_work: used,
+    max_pairs: 1000,
+    values: { max_nodes: 10000, max_depth: 100, max_text_bytes: 100000, },
+  }
+  let prepared = prepare_program_sources(
+    policy,
+    [],
+    [],
+    source_caps,
+    max_bindings=100,
+    max_slots=1000,
+  ).unwrap()
+  assert_eq(source_producer_work(prepared), used)
+  let prepared_policy = source_capacity_context(
+    source_producer_capacity(prepared),
+  )
+  assert_true(physical_equal(source_policy_selected(prepared_policy), policy))
+  let prepared_requests = source_rows_requests(
+    source_policy_rows(prepared_policy),
+  )
+  assert_true(physical_equal(source_request_inputs(prepared_requests), context))
+  assert_true(
+    prepare_program_sources(
+      policy,
+      [],
+      [],
+      { ..source_caps, max_work: used - 1, },
+      max_bindings=100,
+      max_slots=1000,
+    )
+    is Err(_),
+  )
+  assert_true(
+    prepare_program_sources(
+      policy,
+      [[]],
+      [],
+      source_caps,
+      max_bindings=100,
+      max_slots=1000,
+    )
+    is Err(Rows(StageCountMismatch)),
+  )
+  assert_true(
+    prepare_program_sources(
+      policy,
+      [],
+      [[]],
+      source_caps,
+      max_bindings=100,
+      max_slots=1000,
+    )
+    is Err(Producers(StageCountMismatch)),
+  )
+  for
+    caps in [
+      { ..source_caps, max_work: -1, },
+      { ..source_caps, max_pairs: -1, },
+      { ..source_caps, values: { ..source_caps.values, max_nodes: -1, }, },
+      { ..source_caps, values: { ..source_caps.values, max_depth: -1, }, },
+      { ..source_caps, values: { ..source_caps.values, max_text_bytes: -1, }, },
+    ] {
+    assert_true(
+      prepare_program_sources(
+        policy,
+        [],
+        [],
+        caps,
+        max_bindings=100,
+        max_slots=1000,
+      )
+      is Err(InvalidLimits),
+    )
+  }
+  assert_true(
+    prepare_program_sources(
+      policy,
+      [],
+      [],
+      source_caps,
+      max_bindings=-1,
+      max_slots=1000,
+    )
+    is Err(InvalidLimits),
+  )
+  assert_true(
+    prepare_program_sources(
+      policy,
+      [],
+      [],
+      source_caps,
+      max_bindings=100,
+      max_slots=-1,
+    )
+    is Err(InvalidLimits),
+  )
   assert_true(
     physical_equal(source_producer_capacity(producers), capacity_context),
   )

@@ -2,6 +2,7 @@
 package "actql/actql/pipeline_check_context"
 
 import {
+  "actql/actql/binding_declarations",
   "actql/actql/calendar_typing",
   "actql/actql/capacity_graph_preflight",
   "actql/actql/capacity_policy",
@@ -445,6 +446,8 @@ pub fn prepare_program_incoming_gates(ProgramIncomingLinks, IncomingGateLimits) 
 pub fn prepare_program_references(OperationProfileChecks, @stage_source.Limits, @pipeline_parameters.Limits, @program_references.Limits, max_work~ : Int) -> Result[ProgramReferences, PreparedReferencesIssue]
 
 pub fn prepare_program_source_identity(OperationProfileChecks, SourcePreparationLimits) -> Result[ProgramSourceIdentity, SourcePreparationIssue]
+
+pub fn prepare_program_sources(SelectedPolicyContext, Array[Array[@capacity_program_step.TargetRows]], Array[Array[(Int, Int)]], @sourceview_resolution.RequestLimits, max_bindings~ : Int, max_slots~ : Int) -> Result[SourceProducerContext, PrepareSourcesIssue]
 
 pub fn program_identity_definition(ProgramSourceIdentity) -> @program_references.ProgramDefinition
 
@@ -1328,6 +1331,18 @@ pub enum PrepareChecksIssue {
   ExpressionProfiles(ExpressionProfilesIssue)
   Assembly(PreparationIssue)
   OperationProfiles(OperationProfilesIssue)
+}
+
+pub enum PrepareSourcesIssue {
+  InvalidLimits
+  BudgetExceeded
+  Declarations(@binding_declarations.Issue)
+  Slots(@source_request_slots.Issue)
+  Requests(SourceRequestIssue)
+  Rows(SourceRowsIssue)
+  Policy(SourcePolicyIssue)
+  Capacity(SourceCapacityIssue)
+  Producers(SourceProducerIssue)
 }
 
 type PreparedIncomingGate

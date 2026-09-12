@@ -16,8 +16,6 @@ fn preparation_limits() -> PreparationBudget {
 fn preparation_sources_fixture(
   selected : SelectedPolicyContext,
 ) -> SourceProducerContext {
-  let rows = source_policy_fixture(policy_context(selected))
-  let joined = bind_source_policy(rows, selected, 10000000).unwrap()
   let locations = match reconciled_sourceviews(policy_context(selected)) {
     None => []
     Some(_) =>
@@ -36,10 +34,20 @@ fn preparation_sources_fixture(
         _ => [],
       )
   }
-  bind_source_producers(
-    check_source_capacity(joined, 10000000).unwrap(),
+  // These fixtures have no keyed acquisition consumers. Other Programs must
+  // provide the actual row bounds and producer locations.
+  let rows = Array::makei(locations.length(), _ => [])
+  prepare_program_sources(
+    selected,
+    rows,
     locations,
-    10000000,
+    {
+      max_work: 10000000,
+      max_pairs: 1000,
+      values: { max_nodes: 10000, max_depth: 100, max_text_bytes: 100000, },
+    },
+    max_bindings=100,
+    max_slots=1000,
   ).unwrap()
 }
 

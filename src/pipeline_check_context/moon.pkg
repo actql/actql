@@ -1,6 +1,7 @@
 supported_targets = "+js+wasm+native"
 
 import {
+  "actql/actql/binding_declarations",
   "actql/actql/relation_schema" @schema,
   "actql/actql/local_relation_input" @local_input,
   "actql/actql/stage_syntax" @syntax,
@@ -46,7 +47,6 @@ import {
 import {
   "actql/actql/local_relation_snapshot" @snapshot,
   "moonbitlang/core/debug",
-  "actql/actql/binding_declarations",
   "actql/actql/stage_source_refs" @refs,
   "actql/actql/sha256" @sha,
   "actql/actql/source_value" @source,
