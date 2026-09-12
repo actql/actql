@@ -108,8 +108,18 @@ This selector retains the range obligation and leaves delivery/backend support
 to their explicit checks; it does not claim those selections are executable.
 
 DirectMode is not a keyed-join mode proof and does not classify a declaration's
-consumer. The external-join checker still rejects authored scan, requires a
-bounded default snapshot/changes mode and checks the keyed acquisition contract.
+consumer. `select_keyed_mode` separately rejects any authored scan and requires
+a bounded default snapshot/changes mode. Its opaque result retains the exact
+resolved input, Catalog mode and checkpoint value contract. It never selects a
+different advertised mode to make an unbounded default pass. Its reported work
+includes the scan-presence check and the shared mode/checkpoint inspection;
+successful boundary tests charge that work exactly. Changes state, range and
+runtime mode support obligations remain explicit even for a bounded mode.
+
+This result establishes only the keyed read-mode prerequisite. It neither
+classifies an input as a keyed consumer nor proves relation-valued acquisition,
+correlation coverage, response completeness, left-side bounds or request closure.
+Those checks are required separately by the external-join contract.
 Program integration must discharge those consumer-specific obligations rather
 than substitute a DirectMode as proof of keyed compatibility. Per-call work is
 separate from the retained input-resolution work and must be budgeted cumulatively

@@ -4,6 +4,8 @@ pub(all) enum ModeIssueKind {
   WorkLimit
   UndeclaredMode(@environment.SourceReadModeKind)
   UnsupportedWatch
+  AuthoredKeyedScan
+  UnboundedKeyedMode
 } derive(Eq, Debug)
 
 ///|
@@ -33,6 +35,69 @@ struct DirectMode {
   source : @decode.Cursor
   work : Int
   checkpoint : ModeCheckpoint?
+}
+
+///|
+/// A bounded default read mode, not proof of complete keyed acquisition.
+struct KeyedMode {
+  selected : DirectMode
+}
+
+///|
+/// Checks the mode requirements of a keyed SourceView consumer. Correlation,
+/// response completeness, request fields and left-side bounds are separate.
+pub fn select_keyed_mode(
+  input : ResolvedInput,
+  max_work : Int,
+) -> Result[KeyedMode, ModeIssue] {
+  let source = input.declaration.source
+  if max_work < 0 {
+    return Err({ kind: InvalidLimits, source, })
+  }
+  if max_work == 0 {
+    return Err({ kind: WorkLimit, source, })
+  }
+  if input.declaration.scan is Some(_) {
+    let cost = @decode.object_length(source).unwrap()
+    if cost > max_work - 1 {
+      return Err({ kind: WorkLimit, source, })
+    }
+    let scan = @decode.required(@decode.open_object(source).unwrap(), "scan").unwrap()
+    return Err({ kind: AuthoredKeyedScan, source: scan, })
+  }
+  let selected = match select_direct_mode(input, max_work - 1) {
+    Ok(v) => v
+    Err(e) => return Err(e)
+  }
+  if !@environment.read_mode_bounded(selected.mode) {
+    return Err({ kind: UnboundedKeyedMode, source: selected.source, })
+  }
+  Ok({ selected, })
+}
+
+///|
+pub fn keyed_mode_input(v : KeyedMode) -> ResolvedInput {
+  v.selected.input
+}
+
+///|
+pub fn keyed_mode_contract(v : KeyedMode) -> @environment.SourceReadMode {
+  v.selected.mode
+}
+
+///|
+pub fn keyed_mode_work(v : KeyedMode) -> Int {
+  v.selected.work + 1
+}
+
+///|
+pub fn keyed_mode_checkpoint(v : KeyedMode) -> ModeCheckpoint? {
+  v.selected.checkpoint
+}
+
+///|
+pub fn keyed_mode_obligations(v : KeyedMode) -> Array[ModeObligation] {
+  mode_obligations(v.selected)
 }
 
 ///|

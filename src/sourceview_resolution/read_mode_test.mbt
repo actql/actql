@@ -11,6 +11,7 @@ fn check_mode_fixture(
   let inputs = fixture_inputs(input)
   let resolved = resolve(inputs, catalog, caps()).unwrap()
   let entry = at(resolved, 0).unwrap()
+  check_keyed_mode_fixture(entry, expected, bounded)
   let result = select_direct_mode(entry, 1000)
   if expected == "watch" {
     assert_true(result is Err(e) && e.kind == UnsupportedWatch)
@@ -172,4 +173,56 @@ fn check_mode_fixture(
     @environment.source_request_carriers(foreign),
   )
   assert_true(@environment.read_mode_for(foreign_modes, item) is None)
+}
+
+///|
+fn check_keyed_mode_fixture(
+  entry : ResolvedInput,
+  expected : String,
+  bounded : Bool,
+) -> Unit raise {
+  assert_true(select_keyed_mode(entry, -1) is Err(e) && e.kind == InvalidLimits)
+  assert_true(select_keyed_mode(entry, 0) is Err(e) && e.kind == WorkLimit)
+  let result = select_keyed_mode(entry, 1000)
+  if declaration(entry).scan is Some(_) {
+    guard result is Err(e) else {
+      fail("authored scan cannot select keyed mode")
+    }
+    assert_eq(e.kind, AuthoredKeyedScan)
+    let path = @decode.cursor_path(e.source)
+    assert_eq(path[path.length() - 1], @source.Key("scan"))
+  } else if expected == "watch" {
+    assert_true(result is Err(e) && e.kind == UnsupportedWatch)
+  } else if !bounded {
+    assert_true(result is Err(e) && e.kind == UnboundedKeyedMode)
+    // A valid direct changes read is not thereby a valid keyed read.
+    assert_true(select_direct_mode(entry, 1000) is Ok(_))
+  } else {
+    let v = result.unwrap()
+    let direct = select_direct_mode(entry, 1000).unwrap()
+    assert_true(physical_equal(keyed_mode_input(v), entry))
+    assert_true(physical_equal(keyed_mode_contract(v), mode_contract(direct)))
+    assert_eq(keyed_mode_work(v), mode_work(direct) + 1)
+    assert_true(select_keyed_mode(entry, keyed_mode_work(v)) is Ok(_))
+    assert_true(
+      select_keyed_mode(entry, keyed_mode_work(v) - 1) is Err(e) &&
+      e.kind == WorkLimit,
+    )
+    assert_eq(keyed_mode_obligations(v), mode_obligations(direct))
+    match (keyed_mode_checkpoint(v), mode_checkpoint(direct)) {
+      (None, None) => ()
+      (Some(a), Some(b)) => {
+        assert_true(
+          physical_equal(checkpoint_reference(a), checkpoint_reference(b)),
+        )
+        assert_true(
+          physical_equal(
+            checkpoint_value_contract(a),
+            checkpoint_value_contract(b),
+          ),
+        )
+      }
+      _ => fail("keyed mode lost checkpoint contract")
+    }
+  }
 }

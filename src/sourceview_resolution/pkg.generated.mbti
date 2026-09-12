@@ -46,6 +46,16 @@ pub fn input_owner(ResolvedInput) -> @sourceview_input.Inputs
 
 pub fn inputs(Resolved) -> @sourceview_input.Inputs
 
+pub fn keyed_mode_checkpoint(KeyedMode) -> ModeCheckpoint?
+
+pub fn keyed_mode_contract(KeyedMode) -> @check_environment.SourceReadMode
+
+pub fn keyed_mode_input(KeyedMode) -> ResolvedInput
+
+pub fn keyed_mode_obligations(KeyedMode) -> Array[ModeObligation]
+
+pub fn keyed_mode_work(KeyedMode) -> Int
+
 pub fn mode_checkpoint(DirectMode) -> ModeCheckpoint?
 
 pub fn mode_contract(DirectMode) -> @check_environment.SourceReadMode
@@ -118,6 +128,8 @@ pub fn resolve(@sourceview_input.Inputs, @check_environment.SourceRequestContrac
 
 pub fn select_direct_mode(ResolvedInput, Int) -> Result[DirectMode, ModeIssue]
 
+pub fn select_keyed_mode(ResolvedInput, Int) -> Result[KeyedMode, ModeIssue]
+
 pub fn selected_cid(ResolvedInput) -> String
 
 pub fn selected_contract(ResolvedInput) -> @check_environment.SourceViewRequestContract
@@ -151,6 +163,8 @@ pub(all) enum IssueKind {
   Ambiguous(Array[String])
 } derive(Eq, @debug.Debug)
 
+type KeyedMode
+
 pub(all) struct Limits {
   max_work : Int
   max_inputs : Int
@@ -169,6 +183,8 @@ pub(all) enum ModeIssueKind {
   WorkLimit
   UndeclaredMode(@check_environment.SourceReadModeKind)
   UnsupportedWatch
+  AuthoredKeyedScan
+  UnboundedKeyedMode
 } derive(Eq, @debug.Debug)
 
 pub(all) enum ModeObligation {
