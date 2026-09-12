@@ -274,6 +274,23 @@ pub fn program_identity_producer_at(
 }
 
 ///|
+/// Distinguish the Stage's authored pipeline from predecessor visits retained
+/// for validation. Imported execution prerequisites are not local Unit bodies.
+pub fn program_identity_producer_is_local(
+  v : ProgramSourceIdentity,
+  stage : Int,
+  visit : Int,
+) -> Bool? {
+  let stages = v.sources.operations.preparation.profiles.context.selected.context.wired.stages
+  guard program_identity_producer_at(v, stage, visit) is Some(pipeline) else {
+    return None
+  }
+  @stage_results.stage_at(stages.results, stage).map(result => {
+    physical_equal(pipeline, @results.pipeline(result))
+  })
+}
+
+///|
 pub fn stage_identity_definition(
   v : StageSourceIdentity,
 ) -> @program_refs.StageDefinition {

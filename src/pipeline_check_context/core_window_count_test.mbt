@@ -19,6 +19,10 @@ test "window count contract follows the owning Program operation" {
   for stage in 0..<program_identity_stage_count(identity) {
     let mut owned = false
     for visit in 0..<program_identity_producer_count(identity, stage).unwrap() {
+      if program_identity_producer_is_local(identity, stage, visit) !=
+        Some(true) {
+        continue
+      }
       let pipeline = program_identity_producer_at(identity, stage, visit).unwrap()
       for step in 0..<@pipeline.step_count(pipeline) {
         let expected = @pipeline.step_at(pipeline, step).unwrap().operation

@@ -79,6 +79,10 @@ test "core contract collection preserves owned occurrences and shares dependency
     let count = program_identity_producer_count(identity, stage).unwrap()
     visits += count
     for visit in 0..<count {
+      if program_identity_producer_is_local(identity, stage, visit) !=
+        Some(true) {
+        continue
+      }
       steps += @pipeline.step_count(
         program_identity_producer_at(identity, stage, visit).unwrap(),
       )

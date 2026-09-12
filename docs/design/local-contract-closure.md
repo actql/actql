@@ -177,6 +177,16 @@ analysis: unused declared inputs, unselected expression branches and authored
 no-ops remain part of the inventory. Repeated occurrences retain their sites
 and owners even when they resolve to the same contract.
 
+Producer validation visits can include predecessor pipelines reached through
+Result imports. They remain necessary for checking execution prerequisites, but
+are not authored operation occurrences of the consumer Unit. The collector
+selects operation roots only from that Stage's source-bound pipeline, using exact
+ownership rather than equality of source text or CID. `program_identity_producer_is_local`
+exposes this distinction without copying or rescanning pipelines. Imported visits
+still consume traversal work; the producer's semantics are bound through its
+Unit Definition in the Result interface, not copied into the consumer's local
+contract set. Unused operations in the Stage's own pipeline remain selected.
+
 Each declared Relation Result selects the adopted `RelaPrimitive` manifest
 through a `StagePublicationRules(stage, result)` occurrence. Result projection
 and stable ordering use these rules even when its Stage has no authored steps.

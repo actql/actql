@@ -531,6 +531,8 @@ pub fn program_identity_producer_at(ProgramSourceIdentity, Int, Int) -> @pipelin
 
 pub fn program_identity_producer_count(ProgramSourceIdentity, Int) -> Int?
 
+pub fn program_identity_producer_is_local(ProgramSourceIdentity, Int, Int) -> Bool?
+
 pub fn program_identity_sources(ProgramSourceIdentity) -> ProgramSourceChecks
 
 pub fn program_identity_stage_at(ProgramSourceIdentity, Int) -> StageSourceIdentity?

@@ -72,7 +72,19 @@ test "TextRank contract collection requires the owned resolved data profile" {
       occurrences += 1
     }
   }
-  assert_eq(occurrences, operation_lexical_count(lexical))
+  let mut local_profiles = 0
+  for i in 0..<operation_lexical_count(lexical) {
+    let entry = operation_lexical_at(lexical, i).unwrap()
+    if program_identity_producer_is_local(
+        identity,
+        entry.stage,
+        entry.producer_visit,
+      ) ==
+      Some(true) {
+      local_profiles += 1
+    }
+  }
+  assert_eq(occurrences, local_profiles)
   assert_true(occurrences > 1)
   let exact : CoreContractLimits = {
     max_work: core_contract_usage(inventory).0,

@@ -381,6 +381,13 @@ pub fn collect_core_contracts(
       }
       for visit in 0..<program_identity_producer_count(identity, stage).unwrap() {
         core_contract_charge(b)
+        // Producer closure traversal also visits imported predecessor pipelines.
+        // Their semantics belong to the producer Unit, linked by its interface,
+        // not to this consumer's local contract set.
+        if program_identity_producer_is_local(identity, stage, visit) !=
+          Some(true) {
+          continue
+        }
         let pipeline = program_identity_producer_at(identity, stage, visit).unwrap()
         for step in 0..<@pipeline.step_count(pipeline) {
           core_contract_charge(b)

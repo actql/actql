@@ -20,6 +20,10 @@ test "Relation count contracts retain local occurrences without replacing Values
   for stage in 0..<program_identity_stage_count(identity) {
     let mut expected = false
     for visit in 0..<program_identity_producer_count(identity, stage).unwrap() {
+      if program_identity_producer_is_local(identity, stage, visit) !=
+        Some(true) {
+        continue
+      }
       let pipeline = program_identity_producer_at(identity, stage, visit).unwrap()
       for step in 0..<@pipeline.step_count(pipeline) {
         let operation = @pipeline.step_at(pipeline, step).unwrap().operation
