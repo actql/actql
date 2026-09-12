@@ -74,18 +74,33 @@ test "sequence preparation shares expression budget and exposes no partial resul
 }
 
 ///|
-test "sequence rejects pending ordered implementation after a supported prefix" {
+test "ordered preparation does not confer fragment encoding admission" {
   let owner = expression_pipeline(
     ",{\"derive\":{\"x\":\"1\"}},{\"derive\":[{\"id\":{\"literal\":2}}]}",
   )
+  let sequence = @lowering_relation.prepare_sequence(owner, sequence_limits()).unwrap()
+  assert_eq(@lowering_relation.sequence_count(sequence), 3)
   assert_true(
-    @lowering_relation.prepare_sequence(owner, sequence_limits())
-    is Err(
-      @lowering_relation.KernelFailure(
-        2,
-        @lowering_relation.NeedsRowKernelImplementation
-      )
-    ),
+    @lowering_relation.prepare_fragment_pipeline(sequence, 2, root_limits())
+    is Err(@lowering_relation.NeedsOrderedEncoding),
+  )
+  let writer = @encode.writer(100000, 10000, 100)
+  assert_true(
+    try {
+      @lowering_relation.emit_sequence_steps(sequence, writer)
+      false
+    } catch {
+      @encode.InvalidStructure => true
+      _ => false
+    },
+  )
+  assert_true(
+    try {
+      let _ = @encode.finish(writer)
+      false
+    } catch {
+      _ => true
+    },
   )
 }
 

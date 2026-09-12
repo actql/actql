@@ -5,6 +5,11 @@ pub fn emit_kernel_node(
   kernel : PreparedKernel,
   out : @encode.Writer,
 ) -> Unit raise @encode.EncodeFailure {
+  // Ordered params require their complete occurrence table and evidence path.
+  // Preparation alone must not emit an executable-looking alternative.
+  if kernel.body is OrderedBindings(_) {
+    raise @encode.InvalidStructure
+  }
   let node = kernel.owner.prepared.nodes[kernel.step_index]
   @encode.begin_object(out)
   @encode.key(out, "id")
@@ -20,11 +25,13 @@ pub fn emit_kernel_node(
       SnapshotMap(_) => "REL.derive"
       Filter(_) => "REL.where"
       Select(_) => "REL.select"
+      OrderedBindings(_) => raise @encode.InvalidStructure
     },
   )
   @encode.key(out, "params")
   @encode.begin_object(out)
   match kernel.body {
+    OrderedBindings(_) => raise @encode.InvalidStructure
     SnapshotMap(bindings) => {
       @encode.key(out, "exprs")
       @encode.begin_object(out)

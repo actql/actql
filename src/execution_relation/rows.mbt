@@ -15,6 +15,7 @@ priv enum RowIssue {
   InvalidRows
   RowLimit
   InvalidRowLimits
+  OrderedResourceAccountingPending
   Evaluation(Int, Int, EvalIssue)
 }
 
@@ -203,6 +204,8 @@ fn evaluate_row_body(
         @lower.SnapshotMap(bindings) => SnapshotMap(bindings)
         @lower.Filter(expr) => Filter(expr)
         @lower.Select(fields) => Select(fields)
+        @lower.OrderedBindings(_) =>
+          return Err(OrderedResourceAccountingPending)
       }
     CheckedProjection(checked) => Select(@relation.projection(checked))
   }

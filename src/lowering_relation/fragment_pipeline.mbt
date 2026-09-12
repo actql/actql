@@ -18,7 +18,12 @@ pub fn prepare_fragment_pipeline(
     Err(issue) => return Err(issue)
   }
   match sequence.steps[step] {
-    RowStep(kernel) => Ok({ kernel, roots, })
+    RowStep(kernel) =>
+      if kernel.body is OrderedBindings(_) {
+        Err(NeedsOrderedEncoding)
+      } else {
+        Ok({ kernel, roots, })
+      }
     ValuesStep(_) => Err(NotExpressionKernel)
   }
 }
@@ -85,11 +90,13 @@ fn emit_fragment_pipeline(
         SnapshotMap(_) => "REL.derive"
         Filter(_) => "REL.where"
         Select(_) => raise @encode.InvalidStructure
+        OrderedBindings(_) => raise @encode.InvalidStructure
       },
     )
     @encode.key(out, "params")
     @encode.begin_object(out)
     match kernel.body {
+      OrderedBindings(_) => raise @encode.InvalidStructure
       SnapshotMap(bindings) => {
         @encode.key(out, "exprs")
         @encode.begin_object(out)

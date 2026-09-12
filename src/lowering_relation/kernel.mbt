@@ -12,6 +12,7 @@ struct PreparedKernel {
 ///|
 pub enum KernelBody {
   SnapshotMap(Array[(String, Expression)])
+  OrderedBindings(Array[(String, Expression)])
   Filter(Expression)
   Select(Array[@relation.ProjectionField])
 }
@@ -22,7 +23,6 @@ pub(all) enum KernelIssue {
   InvalidKernelWiring
   KernelBudgetExceeded
   InvalidKernelLimits
-  NeedsRowKernelImplementation
   ExpressionFailure(ExpressionIssue)
 }
 
@@ -50,6 +50,7 @@ pub fn kernel_checked(kernel : PreparedKernel) -> @relation.CheckedOperation {
 pub fn kernel_body(kernel : PreparedKernel) -> KernelBody {
   match kernel.body {
     SnapshotMap(bindings) => SnapshotMap(bindings.copy())
+    OrderedBindings(bindings) => OrderedBindings(bindings.copy())
     Filter(expr) => Filter(expr)
     Select(fields) => Select(fields.copy())
   }
@@ -59,7 +60,7 @@ pub fn kernel_body(kernel : PreparedKernel) -> KernelBody {
 /// O(1), allocation-free number of entries copied by kernel_body.
 pub fn kernel_view_entries(kernel : PreparedKernel) -> Int {
   match kernel.body {
-    SnapshotMap(bindings) => bindings.length()
+    SnapshotMap(bindings) | OrderedBindings(bindings) => bindings.length()
     Select(fields) => fields.length()
     Filter(_) => 0
   }
@@ -112,8 +113,7 @@ fn prepare_kernel_measured(
   let mut remaining = limits
   let mut names_remaining = max_name_bytes
   let body = match @relation.form(checked) {
-    DeriveArray => return Err(NeedsRowKernelImplementation)
-    DeriveMap | Predicate => {
+    DeriveArray | DeriveMap | Predicate => {
       let count = @relation.binding_count(checked)
       if count > max_bindings {
         return Err(KernelBudgetExceeded)
@@ -150,11 +150,15 @@ fn prepare_kernel_measured(
           None => predicate = Some(expr)
         }
       }
-      if @relation.form(checked) == @relation.DeriveMap {
+      if @relation.form(checked) != @relation.Predicate {
         if bindings.length() != count {
           return Err(InvalidKernelWiring)
         }
-        SnapshotMap(bindings)
+        if @relation.form(checked) == @relation.DeriveArray {
+          OrderedBindings(bindings)
+        } else {
+          SnapshotMap(bindings)
+        }
       } else {
         guard count == 1 && predicate is Some(expr) else {
           return Err(InvalidKernelWiring)
@@ -190,7 +194,7 @@ fn prepare_kernel_measured(
     RowOperation | Reshape | Aggregation => return Err(MissingKernelNode)
   }
   let binding_count = match body {
-    SnapshotMap(bindings) => bindings.length()
+    SnapshotMap(bindings) | OrderedBindings(bindings) => bindings.length()
     Filter(_) => 1
     Select(fields) => fields.length()
   }

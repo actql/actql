@@ -30,6 +30,7 @@ pub(all) enum RootIssue {
   RootLimit
   InvalidStep
   NotExpressionKernel
+  NeedsOrderedEncoding
 }
 
 ///|
@@ -117,7 +118,7 @@ pub fn prepare_kernel_roots(
     RowStep(kernel) =>
       match kernel.body {
         Select(_) => return Err(NotExpressionKernel)
-        Filter(_) | SnapshotMap(_) => ()
+        Filter(_) | SnapshotMap(_) | OrderedBindings(_) => ()
       }
   }
   prepare_root_range(sequence, step_index, step_index + 1, limits)
@@ -161,6 +162,27 @@ fn prepare_root_range(
               expression: expr,
               typed_expression: expr.typed_owner,
             })
+            continue
+          }
+          OrderedBindings(bindings) => {
+            for i = 0; i < bindings.length(); i = i + 1 {
+              let pointer = "/bindings/" + i.to_string() + "/expr"
+              if sorted.length() == limits.max_roots ||
+                pointer.length() > bytes ||
+                pointer.length() >= work {
+                return Err(RootLimit)
+              }
+              bytes -= pointer.length()
+              work -= 1 + pointer.length()
+              let expr = bindings[i].1
+              sorted.push({
+                step_index,
+                step_id: sequence.owner.prepared.nodes[step_index].id,
+                parameter_pointer: pointer,
+                expression: expr,
+                typed_expression: expr.typed_owner,
+              })
+            }
             continue
           }
           SnapshotMap(bindings) => bindings

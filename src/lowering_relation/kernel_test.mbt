@@ -68,7 +68,7 @@ test "empty map remains a kernel and select keeps authored column order" {
 }
 
 ///|
-test "kernel preparation fails atomically on cumulative limits and pending ordered contract" {
+test "kernel preparation fails atomically on cumulative limits" {
   let owner = expression_pipeline(
     ",{\"derive\":{\"a\":{\"literal\":1},\"b\":{\"literal\":2}}}",
   )
@@ -114,7 +114,55 @@ test "kernel preparation fails atomically on cumulative limits and pending order
       max_name_bytes=2,
       enough,
     )
-    is Err(@lowering_relation.NeedsRowKernelImplementation),
+    is Ok(_),
+  )
+}
+
+///|
+test "ordered preparation preserves authored slots and checked shadow references" {
+  let owner = expression_pipeline(
+    ",{\"derive\":[{\"z\":\"id\"},{\"id\":\"z\"},{\"a\":\"id\"}]}",
+  )
+  let kernel = @lowering_relation.prepare_kernel(
+    owner,
+    1,
+    max_bindings=3,
+    max_name_bytes=4,
+    expression_limits(),
+  ).unwrap()
+  guard @lowering_relation.kernel_body(kernel)
+    is @lowering_relation.OrderedBindings(bindings) else {
+    fail("ordered")
+  }
+  assert_eq(bindings.map(b => b.0), ["z", "id", "a"])
+  assert_true(
+    @lowering_relation.expression_body(bindings[0].1)
+    is @lowering_relation.Field("id", @relation.InputField(_)),
+  )
+  assert_true(
+    @lowering_relation.expression_body(bindings[1].1)
+    is @lowering_relation.Field("z", @relation.PriorSlot(0)),
+  )
+  assert_true(
+    @lowering_relation.expression_body(bindings[2].1)
+    is @lowering_relation.Field("id", @relation.PriorSlot(1)),
+  )
+  bindings.clear()
+  assert_eq(@lowering_relation.kernel_view_entries(kernel), 3)
+  guard @lowering_relation.kernel_body(kernel)
+    is @lowering_relation.OrderedBindings(again) else {
+    fail("ordered")
+  }
+  assert_eq(again.length(), 3)
+  assert_true(
+    @lowering_relation.prepare_kernel(
+      owner,
+      1,
+      max_bindings=2,
+      max_name_bytes=4,
+      expression_limits(),
+    )
+    is Err(@lowering_relation.KernelBudgetExceeded),
   )
 }
 

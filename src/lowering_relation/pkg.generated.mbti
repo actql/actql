@@ -255,6 +255,7 @@ pub(all) enum IssueKind {
 
 pub enum KernelBody {
   SnapshotMap(Array[(String, Expression)])
+  OrderedBindings(Array[(String, Expression)])
   Filter(Expression)
   Select(Array[@relation_typing.ProjectionField])
 }
@@ -264,7 +265,6 @@ pub(all) enum KernelIssue {
   InvalidKernelWiring
   KernelBudgetExceeded
   InvalidKernelLimits
-  NeedsRowKernelImplementation
   ExpressionFailure(ExpressionIssue)
 }
 
@@ -310,6 +310,7 @@ pub(all) enum RootIssue {
   RootLimit
   InvalidStep
   NotExpressionKernel
+  NeedsOrderedEncoding
 }
 
 pub(all) struct RootLimits {

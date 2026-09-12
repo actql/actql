@@ -39,6 +39,19 @@ fn prepared_sequence(owner : @lower.BoundPrepared) -> @lower.PreparedSequence {
 }
 
 ///|
+test "ordered preparation cannot execute without logical row resource accounting" {
+  let result = evaluate_sequence_components(
+    registered_relation_contracts(),
+    prepared_sequence(row_owner(",{\"derive\":[{\"a\":\"b\"}]}")),
+    [],
+    ["derive_1"],
+    run_limits(),
+    { remaining: 10000, max_frames: 100, },
+  )
+  assert_true(result is Err(Rows(1, OrderedResourceAccountingPending)))
+}
+
+///|
 test "sequence driver executes all four operators and follows branch retention automatically" {
   let owner = row_owner(
     ",{\"derive\":{\"c\":\"a + 10\"},\"as\":\"augmented\"},{\"filter\":\"c > 10\"},{\"from\":\"augmented\",\"select\":[\"c\",\"b\"]}",

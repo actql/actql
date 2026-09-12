@@ -4,6 +4,57 @@ fn root_limits() -> @lowering_relation.RootLimits {
 }
 
 ///|
+test "ordered roots sort pointers while retaining authored slot ownership" {
+  let tail = StringBuilder()
+  tail.write_string(",{\"derive\":[")
+  for i in 0..<12 {
+    if i > 0 {
+      tail.write_string(",")
+    }
+    tail.write_string("{\"s" + i.to_string() + "\":\"id\"}")
+  }
+  tail.write_string("]}")
+  let sequence = @lowering_relation.prepare_sequence(
+    expression_pipeline(tail.to_string()),
+    sequence_limits(),
+  ).unwrap()
+  let roots = @lowering_relation.prepare_kernel_roots(
+    sequence,
+    1,
+    root_limits(),
+  ).unwrap()
+  guard @lowering_relation.sequence_step(sequence, 1)
+    is Some(@lowering_relation.RowStep(kernel)) else {
+    fail("kernel")
+  }
+  guard @lowering_relation.kernel_body(kernel)
+    is @lowering_relation.OrderedBindings(bindings) else {
+    fail("ordered")
+  }
+  assert_eq(bindings.map(b => b.0), [
+    "s0", "s1", "s2", "s3", "s4", "s5", "s6", "s7", "s8", "s9", "s10", "s11",
+  ])
+  for root_index, slot in [0, 1, 10, 11, 2, 3, 4, 5, 6, 7, 8, 9] {
+    let root = @lowering_relation.root_at(roots, root_index).unwrap()
+    assert_eq(root.parameter_pointer, "/bindings/" + slot.to_string() + "/expr")
+    assert_true(physical_equal(root.expression, bindings[slot].1))
+    assert_true(
+      physical_equal(
+        root.typed_expression,
+        @relation.binding_at(@lowering_relation.kernel_checked(kernel), slot).unwrap().expression,
+      ),
+    )
+  }
+  assert_true(
+    @lowering_relation.prepare_kernel_roots(sequence, 1, {
+      ..root_limits(),
+      max_roots: 11,
+    })
+    is Err(@lowering_relation.RootLimit),
+  )
+}
+
+///|
 test "root graph order is step order rather than lexical generated ID order" {
   let tail = StringBuilder()
   for i in 1..<13 {

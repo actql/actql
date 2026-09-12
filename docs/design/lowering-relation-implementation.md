@@ -276,24 +276,28 @@ cumulative limits, alias/index separation and post-capture caller mutation.
 
 ## Checked operation kernels
 
-`prepare_kernel` groups already checked map bindings, predicates and projections
+`prepare_kernel` groups already checked map/ordered bindings, predicates and projections
 with their exact bound owner, step and input ID. Expressions remain the normative
 typed expression representation. This is a non-wire preparation object, not a
 new execution language, registered AoA fragment or final Plan admission token.
-The map and projection arrays are defensively copied at access boundaries.
+The binding and projection arrays are defensively copied at access boundaries.
 
 Expression-lowering node/work/literal limits are consumed cumulatively across
 all bindings rather than reset for each RHS. Separate binding/name limits bound
 the operation container. Canonical map binding order and authored projection
 order come from the existing checked APIs; preparation does not infer either.
-Empty maps retain a real preparation object. Ordered arrays return the temporary
-`NeedsRowKernelImplementation` gap until ordered references, evidence and the
-registered logical resource measures are connected to execution. The existence
-of a shared execution contract alone is not a backend capability.
-Their individual checked expressions remain available for independent work.
+Empty maps retain a real preparation object. Ordered arrays preserve authored
+bindings and checked input-field/prior-slot targets in `OrderedBindings`.
+Their root pointers are sorted independently without changing evaluation order
+or the association with each checked expression. Preparation does not establish
+the occurrence table, evidence closure or logical resource accounting required
+for execution. Until those are connected, fragment preparation reports
+`NeedsOrderedEncoding` and the row evaluator reports
+`OrderedResourceAccountingPending`. The existence of a shared execution
+contract alone is not a backend capability.
 
 Fixed tests cover map payloads/order, retained no-op, projection order, defensive
-access, whole-operation cumulative failure and the explicit shared-contract gap.
+access, whole-operation cumulative failure and separate execution admission.
 Connecting these objects through registry-bound fragment construction and the
 row evaluator remains open; this increment alone does not authorize execution.
 
@@ -523,12 +527,13 @@ its residual budget privately so the sequence does not rewalk/reinfer expression
 
 The sequence is not an execution permit. Registry/params admission, input proofs
 and runtime obligations must still be discharged before a fragment execution
-entry exists. Ordered derive still returns the explicit pending-contract error,
-including after a supported prefix. `emit_sequence_steps` emits the normative
+entry exists. Ordered derive can be prepared after a supported prefix without
+becoming encodable or executable. `emit_sequence_steps` emits the normative
 steps array only; it does not invent a fragment envelope or final Plan identity.
 Independent tests fix the complete four-operation array and verify late failures
-from cumulative expression, binding, name, values-row/cell budgets and pending
-ordered derive. Failure exposes no partly prepared sequence.
+from cumulative expression, binding, name and values-row/cell budgets.
+Failure exposes no partly prepared sequence; an encoding failure exposes no
+complete serialized step array.
 
 Sequence-unit validation: lowering 49/49 and execution 36/36 on each target;
 matching interfaces, format, generator drift, whitespace and 867-link checks
