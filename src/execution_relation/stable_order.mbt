@@ -14,8 +14,8 @@ priv enum OrderingIssue {
 }
 
 ///|
-fn compare_row_indices(
-  table : Table,
+fn[T : IndexedRows] compare_row_indices(
+  table : T,
   a : Int,
   b : Int,
   order : Array[ColumnOrder],
@@ -25,8 +25,8 @@ fn compare_row_indices(
     if !spend_control(control, 1) {
       return Err(Limit)
     }
-    let left = table.rows[a][term.column]
-    let right = table.rows[b][term.column]
+    let left = table.read_cell(a, term.column)
+    let right = table.read_cell(b, term.column)
     if !charge_comparison_operand(control, left) ||
       !charge_comparison_operand(control, right) {
       return Err(Limit)
@@ -59,8 +59,8 @@ fn compare_row_indices(
 /// Stable bottom-up merge of row indices. Input rows are never copied/mutated.
 /// Returned indices remain charged to workspace; caller owns that lifetime.
 /// On failure only this call's workspace is released; work never rolls back.
-fn stable_order_indices(
-  table : Table,
+fn[T : IndexedRows] stable_order_indices(
+  table : T,
   order : Array[ColumnOrder],
   control : ControlBudget,
   workspace : RowWorkspace,
@@ -71,7 +71,7 @@ fn stable_order_indices(
     return Err(InvalidInput)
   }
   let baseline = workspace.live
-  let count = table.rows.length()
+  let count = table.row_count()
   let run = fn() -> Result[Array[Int], OrderingIssue] {
     if !reserve_slots(workspace, order.length()) {
       return Err(Limit)
@@ -80,15 +80,15 @@ fn stable_order_indices(
       if !spend_control(control, 1) {
         return Err(Limit)
       }
-      if term.column < 0 || term.column >= table.names.length() {
+      if term.column < 0 || term.column >= table.column_count() {
         return Err(InvalidInput)
       }
     }
-    for row in table.rows {
+    for row = 0; row < count; row = row + 1 {
       if !spend_control(control, 1) {
         return Err(Limit)
       }
-      if row.length() != table.names.length() {
+      if table.row_width(row) != table.column_count() {
         return Err(InvalidInput)
       }
     }
