@@ -56,7 +56,28 @@ struct CheckedValues {
   schema : @schema.Schema
   rows : Array[Row]
   pending : Array[Obligation]
+  binding_cells : Array[BindingCell]
   usage : Usage
+}
+
+///|
+/// A checked whole-cell Parameter occurrence, not a substituted wire value.
+pub struct BindingCell {
+  row : Int
+  column : Int
+  cell : Cell
+  target : @contract.Contract
+}
+
+///|
+/// O(1), indexed by pending-validation position, not by Parameter name.
+/// Nonbinding obligations and invalid indices return None.
+pub fn pending_binding_cell_at(v : CheckedValues, index : Int) -> BindingCell? {
+  if index <= 0 {
+    None
+  } else {
+    v.binding_cells.get(index - 1)
+  }
 }
 
 ///|

@@ -309,3 +309,76 @@ test "deep declared arrays and literals use iterative traversal" {
   }
   assert_true(value is @value.Number(1.0))
 }
+
+///|
+test "binding obligation indices retain repeated cells and distinct target contracts" {
+  let params = @parameter.read_declarations(
+    Some(cursor("{\"n\":{\"type\":\"number\",\"default\":7}}")),
+    { max_parameters: 1, max_nodes: 100, max_depth: 10, max_text_bytes: 1000, },
+  ).unwrap()
+  let s = cursor(
+    "{\"schema\":{\"z\":{\"type\":\"number\",\"nullable\":true},\"a\":{\"type\":\"number\",\"nullable\":false}},\"rows\":[{\"z\":{\"$param\":\"n\"},\"a\":1},{\"z\":{\"$param\":\"n\"},\"a\":{\"$param\":\"n\"}}]}",
+  )
+  let p = @relation_values.check(s, Some(params), limits()).unwrap()
+  assert_eq(@relation_values.pending_validation_count(p), 4)
+  for
+    (index, row, column, name, nullable) in [
+      (1, 0, 1, "z", true),
+      (2, 1, 0, "a", false),
+      (3, 1, 1, "z", true),
+    ] {
+    let occurrence = @relation_values.pending_binding_cell_at(p, index).unwrap()
+    assert_eq(occurrence.row, row)
+    assert_eq(occurrence.column, column)
+    assert_eq(occurrence.target.nullable, nullable)
+    assert_true(
+      @relation_values.pending_validation_at(p, index) is Some(BindCell("n")),
+    )
+    let original = @relation_values.cell_at(
+      @relation_values.row_at(p, row).unwrap(),
+      column,
+    ).unwrap()
+    match (occurrence.cell, original) {
+      (Parameter("n", contract~, source~), Parameter("n", source=other, ..)) => {
+        assert_false(contract.nullable)
+        assert_true(physical_equal(source, other))
+        assert_eq(@decode.cursor_path(source), [
+          Key("rows"),
+          Index(row),
+          Key(name),
+        ])
+      }
+      _ => fail("expected retained Parameter cell")
+    }
+  }
+  for index in [-2147483648, -1, 0, 4, 2147483647] {
+    assert_true(@relation_values.pending_binding_cell_at(p, index) is None)
+  }
+  let detached = @relation_values.pending_validations(p)
+  detached.clear()
+  assert_true(@relation_values.pending_binding_cell_at(p, 3) is Some(_))
+  let used = @relation_values.usage(p)
+  let exact : @relation_values.Limits = {
+    ..limits(),
+    max_work: used.work,
+    max_nodes: used.nodes,
+    max_text_bytes: used.text_bytes,
+    max_rows: 2,
+  }
+  assert_true(@relation_values.check(s, Some(params), exact) is Ok(_))
+  assert_true(
+    @relation_values.check(s, Some(params), {
+      ..exact,
+      max_work: used.work - 1,
+    })
+    is Err({ kind: BudgetExceeded, .. }),
+  )
+  for rows in ["[]", "[{\"x\":1}]"] {
+    let literals = @relation_values.check(body(rows), None, limits()).unwrap()
+    for index in [0, 1, 2] {
+      assert_true(
+        @relation_values.pending_binding_cell_at(literals, index) is None,
+      )
+    }
+  }
+}

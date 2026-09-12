@@ -21,6 +21,8 @@ pub fn check(@decode_core.Cursor, @parameter_binding.Declarations?, Limits) -> R
 
 pub fn output_schema(CheckedValues) -> @relation_schema.Schema
 
+pub fn pending_binding_cell_at(CheckedValues, Int) -> BindingCell?
+
 pub fn pending_validation_at(CheckedValues, Int) -> Obligation?
 
 pub fn pending_validation_count(CheckedValues) -> Int
@@ -40,6 +42,13 @@ pub fn usage(CheckedValues) -> Usage
 // Errors
 
 // Types and methods
+pub struct BindingCell {
+  row : Int
+  column : Int
+  cell : Cell
+  target : @value_contract.Contract
+}
+
 pub enum Cell {
   Literal(@value_admission.CheckedValue, source~ : @decode_core.Cursor)
   Parameter(String, contract~ : @value_contract.Contract, source~ : @decode_core.Cursor)

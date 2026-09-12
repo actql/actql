@@ -26,6 +26,13 @@ errors retain their exact source paths and spans.
 
 The opaque result retains the schema and every authored row occurrence in order.
 Cells are in the schema's canonical field order; returned arrays are detached.
+`pending_binding_cell_at` resolves a binding obligation directly to its row,
+canonical column index, checked cell and target contract without rescanning rows
+or copying arrays. Repeated uses of one Parameter remain separate occurrences.
+The cell retains the Parameter's declared contract, while the target is the
+column contract; neither is replaced with the other. The occurrence index is
+created under the shared work budget and does not itself discharge binding or
+publication obligations.
 An occurrence count is not proof of unique projected field values, acquisition
 completeness, a published CID or an admitted physical resource envelope.
 

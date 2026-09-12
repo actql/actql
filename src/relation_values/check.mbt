@@ -183,6 +183,7 @@ pub fn check(
     spend(b, rows_source, inputs.length())
     let rows : Array[Row] = []
     let pending : Array[Obligation] = [ResolvePublicationResources]
+    let binding_cells : Array[BindingCell] = []
     for row_source in inputs {
       let row = decoded(@decode.closed_object(row_source, names), row_source)
       let cells : Array[Cell] = []
@@ -192,7 +193,17 @@ pub fn check(
           Some(s) => s
           None => decoded(@decode.required(row, name), row_source)
         }
-        cells.push(cell(b, s, target, params, pending))
+        let checked = cell(b, s, target, params, pending)
+        if checked is Parameter(_, ..) {
+          spend(b, s, 1)
+          binding_cells.push({
+            row: rows.length(),
+            column: cells.length(),
+            cell: checked,
+            target,
+          })
+        }
+        cells.push(checked)
       }
       rows.push({ source: row_source, cells, })
     }
@@ -201,6 +212,7 @@ pub fn check(
       schema,
       rows,
       pending,
+      binding_cells,
       usage: {
         work: limits.max_work - b.work,
         nodes: limits.max_nodes - b.nodes,
