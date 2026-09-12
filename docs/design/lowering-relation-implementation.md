@@ -293,7 +293,7 @@ or the association with each checked expression. Preparation does not establish
 the occurrence table, evidence closure or logical resource accounting required
 for execution. Until those are connected, fragment preparation reports
 `NeedsOrderedEncoding` and the row evaluator reports
-`OrderedResourceAccountingPending`. The existence of a shared execution
+`MissingOrderedResourceContext` without explicit runtime limits. The existence of a shared execution
 contract alone is not a backend capability.
 
 Fixed tests cover map payloads/order, retained no-op, projection order, defensive

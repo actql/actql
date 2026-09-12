@@ -138,13 +138,7 @@ fn measure_logical_value(
   }
   let bytes = try {
     let writer = @encode.measuring_writer(max_bytes, max_nodes, max_depth)
-    match value {
-      Null => @encode.null_value(writer)
-      Number(n) => @encode.number_value(writer, n)
-      Boolean(b) => @encode.bool_value(writer, b)
-      Text(s) => @encode.string_value(writer, s)
-      Captured(v) => @lower.emit_wire_value(v, writer)
-    }
+    emit_runtime_value(value, writer)
     @encode.finish_measurement(writer)
   } catch {
     _ => return Err(WireMeasureFailure)

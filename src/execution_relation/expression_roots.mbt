@@ -56,6 +56,23 @@ fn track_expression_root(
       Err(e) => return Err(e)
     }
   }
+  register_scope_root(scope, root)
+}
+
+///|
+fn register_scope_root(
+  scope : ExpressionRoots,
+  root : LogicalRoot,
+) -> Result[ExpressionRootLease, LogicalBudgetIssue] {
+  if !physical_equal(scope.budget, root.owner) || root.released {
+    scope.budget.failed = true
+    return Err(InvalidRootLifetime)
+  }
+  if scope.free.is_empty() && scope.slots.length() >= scope.limit {
+    release_logical_root(scope.budget, root) |> ignore
+    scope.budget.failed = true
+    return Err(LiveValueLimit)
+  }
   let slot = match scope.free.pop() {
     Some(i) => {
       scope.slots[i] = Some(root)

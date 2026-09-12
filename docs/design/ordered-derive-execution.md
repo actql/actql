@@ -122,8 +122,21 @@ temporary root but does not create an extra semantic work event. A bounded,
 reusable slot pool tracks only this expression evaluation's roots, allowing
 failure cleanup without touching borrowed input or slot roots. The retained
 evaluation entry detaches its final handle for transfer to a row slot; the
-value-only entry releases it. Row-level input, slot and retained-output lifetime
-management is a separate connection and is not implied by expression success.
+value-only entry releases it.
+
+Ordered row execution uses this same evaluator and a row-operation root scope.
+It admits every input row's complete shape and logical weight before any RHS,
+then charges each row and binding entry without resetting the budget. The
+operation-start snapshot remains separate from authored slots; output shadowing
+is materialized only after all bindings succeed. Slot handles transfer from
+expression evaluation into the row scope. A complete retained-output row is
+measured before releasing its input and slot handles, and pending outputs remain
+live until the operation finishes. Failure cleans operation-owned roots and
+returns no partial table. The value-only row entry ends that operation's scope;
+it is not yet a whole-fragment artifact-delivery or evidence-admission boundary.
+The generic sequence driver must supply the correct same-step resource context
+before it can use ordered execution; runtime helper success does not synthesize
+the request's limit CID or discharge the surrounding fragment's obligations.
 
 Logical live roots may share physical storage. Conversely, logical byte limits
 do not cap physical heap overhead or algorithmic cost. Host resource controls

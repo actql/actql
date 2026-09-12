@@ -48,7 +48,7 @@ test "ordered preparation cannot execute without logical row resource accounting
     run_limits(),
     { remaining: 10000, max_frames: 100, },
   )
-  assert_true(result is Err(Rows(1, OrderedResourceAccountingPending)))
+  assert_true(result is Err(Rows(1, MissingOrderedResourceContext)))
 }
 
 ///|

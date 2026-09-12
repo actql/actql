@@ -15,7 +15,8 @@ priv enum RowIssue {
   InvalidRows
   RowLimit
   InvalidRowLimits
-  OrderedResourceAccountingPending
+  MissingOrderedResourceContext
+  LogicalRows(LogicalBudgetIssue)
   Evaluation(Int, Int, EvalIssue)
 }
 
@@ -115,6 +116,7 @@ priv enum RowBodySource {
 // Transient dispatch view only; never serialized or accepted as a fragment.
 priv enum RowBodyView {
   SnapshotMap(Array[(String, @lower.Expression)])
+  OrderedBindings(Array[(String, @lower.Expression)])
   Filter(@lower.Expression)
   Select(Array[@relation.ProjectionField])
 }
@@ -130,6 +132,7 @@ fn evaluate_rows_with_workspace(
   control : ControlBudget,
   output : ValueBudget,
   workspace : RowWorkspace,
+  ordered_budget? : LogicalBudget? = None,
 ) -> Result[Table, RowIssue] {
   if !physical_equal(@lower.kernel_owner(kernel), input.owner) {
     return Err(OwnerMismatch)
@@ -147,6 +150,7 @@ fn evaluate_rows_with_workspace(
     control,
     output,
     workspace,
+    ordered_budget~,
   )
 }
 
@@ -161,6 +165,35 @@ fn evaluate_row_body(
   control : ControlBudget,
   output : ValueBudget,
   workspace : RowWorkspace,
+  ordered_budget? : LogicalBudget? = None,
+) -> Result[Table, RowIssue] {
+  let scope = ordered_budget.map(b => {
+    (
+      { budget: b, slots: [], free: [], limit: workspace.limit, } :
+      ExpressionRoots)
+  })
+  let result = evaluate_row_body_impl(
+    body, input, output_id, max_rows, control, output, workspace, scope,
+  )
+  if scope is Some(s) {
+    if result is Err(_) {
+      s.budget.failed = true
+    }
+    cleanup_expression_roots(s)
+  }
+  result
+}
+
+///|
+fn evaluate_row_body_impl(
+  body : RowBodySource,
+  input : Table,
+  output_id : String,
+  max_rows : Int,
+  control : ControlBudget,
+  output : ValueBudget,
+  workspace : RowWorkspace,
+  scope : ExpressionRoots?,
 ) -> Result[Table, RowIssue] {
   if max_rows < 0 ||
     control.remaining < 0 ||
@@ -204,8 +237,12 @@ fn evaluate_row_body(
         @lower.SnapshotMap(bindings) => SnapshotMap(bindings)
         @lower.Filter(expr) => Filter(expr)
         @lower.Select(fields) => Select(fields)
-        @lower.OrderedBindings(_) =>
-          return Err(OrderedResourceAccountingPending)
+        @lower.OrderedBindings(bindings) =>
+          if scope is Some(_) {
+            OrderedBindings(bindings)
+          } else {
+            return Err(MissingOrderedResourceContext)
+          }
       }
     CheckedProjection(checked) => Select(@relation.projection(checked))
   }
@@ -252,7 +289,7 @@ fn evaluate_row_body(
         }
         output_names.push(name)
       }
-    SnapshotMap(bindings) => {
+    SnapshotMap(bindings) | OrderedBindings(bindings) => {
       for name in input.names {
         if !spend_control(control, 1) {
           return Err(RowLimit)
@@ -267,12 +304,42 @@ fn evaluate_row_body(
           return Err(RowLimit)
         }
         if ordinals.contains(name) {
-          return Err(InvalidRows)
+          if kind is SnapshotMap(_) {
+            return Err(InvalidRows)
+          }
+          continue
         }
         if !reserve_slots(workspace, 1) {
           return Err(RowLimit)
         }
         output_names.push(name)
+      }
+    }
+  }
+  // Complete input admission precedes all binding evaluation and shadowing.
+  let input_roots : Array[ExpressionRootLease] = []
+  if scope is Some(s) {
+    if !(kind is OrderedBindings(_)) {
+      return Err(InvalidRowLimits)
+    }
+    match admit_logical_rows(s.budget, input.rows.length().to_int64()) {
+      Ok(_) => ()
+      Err(e) => return Err(LogicalRows(e))
+    }
+    for source in input.rows {
+      if source.length() != input.names.length() {
+        return Err(InvalidRows)
+      }
+      if !reserve_slots(workspace, 1) {
+        return Err(RowLimit)
+      }
+      let root = match retain_logical_row(s.budget, input.names, source) {
+        Ok(r) => r
+        Err(e) => return Err(LogicalRows(e))
+      }
+      match register_scope_root(s, root) {
+        Ok(r) => input_roots.push(r)
+        Err(e) => return Err(LogicalRows(e))
       }
     }
   }
@@ -286,6 +353,12 @@ fn evaluate_row_body(
       return Err(RowLimit)
     }
     control.remaining -= 1
+    if scope is Some(s) {
+      match charge_logical_work(s.budget, 1L) {
+        Ok(_) => ()
+        Err(e) => return Err(LogicalRows(e))
+      }
+    }
     // One immutable operation-start snapshot; map siblings never update it.
     let snapshot : Map[String, Value] = Map([])
     if !(kind is Select(_)) {
@@ -301,6 +374,7 @@ fn evaluate_row_body(
       }
     }
     let row : Array[Value] = []
+    let slot_roots : Array[ExpressionRootLease] = []
     match kind {
       Select(_) =>
         for index in projection {
@@ -372,9 +446,84 @@ fn evaluate_row_body(
           }
         }
       }
+      OrderedBindings(bindings) => {
+        guard scope is Some(s) else {
+          return Err(MissingOrderedResourceContext)
+        }
+        let values : Array[Value] = []
+        for slot = 0; slot < bindings.length(); slot = slot + 1 {
+          match charge_logical_work(s.budget, 1L) {
+            Ok(_) => ()
+            Err(e) => return Err(LogicalRows(e))
+          }
+          if !reserve_slots(workspace, 2) {
+            return Err(RowLimit)
+          }
+          let evaluated = match
+            evaluate_expression_retained(
+              bindings[slot].1,
+              snapshot,
+              values,
+              control,
+              workspace,
+              logical_work=Some(s.budget),
+            ) {
+            Ok(v) => v
+            Err(e) => return Err(Evaluation(row_index, slot, e))
+          }
+          guard evaluated.root is Some(root) else { return Err(InvalidRows) }
+          let lease = match register_scope_root(s, root) {
+            Ok(r) => r
+            Err(e) => return Err(LogicalRows(e))
+          }
+          slot_roots.push(lease)
+          values.push(evaluated.value)
+        }
+        let by_name : Map[String, Int] = Map([])
+        for i = 0; i < bindings.length(); i = i + 1 {
+          if !reserve_slots(workspace, 1) ||
+            !spend_control_text(control, bindings[i].0) {
+            return Err(RowLimit)
+          }
+          by_name[bindings[i].0] = i
+        }
+        for name in output_names {
+          if !reserve_slots(workspace, 1) || !spend_control_text(control, name) {
+            return Err(RowLimit)
+          }
+          row.push(
+            match by_name.get(name) {
+              Some(i) => values[i]
+              None => source[ordinals[name]]
+            },
+          )
+        }
+        release_slots(workspace, values.length() + by_name.length())
+      }
     }
     if !retain_row(row, output_names, output) {
       return Err(RowLimit)
+    }
+    if scope is Some(s) {
+      let output_root = match retain_logical_row(s.budget, output_names, row) {
+        Ok(r) => r
+        Err(e) => return Err(LogicalRows(e))
+      }
+      match register_scope_root(s, output_root) {
+        Ok(_) => ()
+        Err(e) => return Err(LogicalRows(e))
+      }
+      for root in slot_roots {
+        match release_expression_root(root) {
+          Ok(_) => ()
+          Err(e) => return Err(LogicalRows(e))
+        }
+      }
+      match release_expression_root(input_roots[row_index]) {
+        Ok(_) => ()
+        Err(e) => return Err(LogicalRows(e))
+      }
+      release_slots(workspace, slot_roots.length())
     }
     if !reserve_slots(workspace, 1) {
       return Err(RowLimit)
