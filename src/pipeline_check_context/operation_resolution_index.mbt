@@ -33,6 +33,8 @@ struct ProgramOperationResolutionIndex {
   states : Array[OperationResolutionState]
   unresolved : Int
   work : Int
+  values_bytes : Int
+  values_nodes : Int
 }
 
 ///|
@@ -170,7 +172,15 @@ pub fn index_program_operation_resolutions(
       }
     }
   }
-  Ok({ profiles, requirements, states, unresolved, work, })
+  Ok({
+    profiles,
+    requirements,
+    states,
+    unresolved,
+    work,
+    values_bytes: 0,
+    values_nodes: 0,
+  })
 }
 
 ///|
@@ -211,4 +221,13 @@ pub fn operation_resolution_unresolved_count(
 ///|
 pub fn operation_resolution_work(v : ProgramOperationResolutionIndex) -> Int {
   v.work
+}
+
+///|
+/// Aggregate values payload-measurement bytes and traversal nodes; metadata
+/// artifact passes have the separate ceilings in ValuesPublicationLimits.
+pub fn operation_resolution_values_usage(
+  v : ProgramOperationResolutionIndex,
+) -> (Int, Int) {
+  (v.values_bytes, v.values_nodes)
 }

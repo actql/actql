@@ -27,6 +27,7 @@ pub struct ValuesRecursiveAdmission {
   bytes : Int
   type_depth : Int
   selected_fields : Int
+  fields : ValuesRecursiveFields
   work : Int
 }
 
@@ -66,6 +67,7 @@ pub fn check_values_recursive_resources(
   let mut work = 0
   let mut type_depth = 0
   let mut selected_fields = 0
+  let fields : Array[Int] = []
   let selected : Array[Bool] = []
   for column in 0..<width {
     if work >= max_work {
@@ -80,6 +82,7 @@ pub fn check_values_recursive_resources(
     selected.push(is_selected)
     if is_selected {
       selected_fields += 1
+      fields.push(column)
     }
     let pending : Array[ValuesTypeFrame] = [Read(field.contract, 0)]
     while pending.pop() is Some(frame) {
@@ -184,6 +187,21 @@ pub fn check_values_recursive_resources(
     bytes,
     type_depth,
     selected_fields,
+    fields: { entries: fields, },
     work,
   })
+}
+
+///|
+/// Index into the checked values output schema, without copying its fields.
+pub fn values_recursive_field_at(
+  v : ValuesRecursiveAdmission,
+  index : Int,
+) -> Int? {
+  v.fields.entries.get(index)
+}
+
+///|
+struct ValuesRecursiveFields {
+  entries : Array[Int]
 }

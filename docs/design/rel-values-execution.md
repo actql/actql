@@ -144,6 +144,24 @@ result retains the selected Host byte/depth ceilings, measured usage and row
 owner. It is a static resource admission, not a substitute for a canonical
 execution-limit binding or a receipt that a backend enforced it.
 
+`resolve_program_values_resources` closes the resource occurrences of one exact
+operation-resolution index. It internally derives row/wire limits, performs
+recursive admission and binds the selected recursive-byte Host witness into a
+canonical limit for the selected field indices. No complete-wire proof is
+relabelled as a recursive-cell proof. An already-known row excess is rejected,
+not deferred as if resource preparation succeeded. The result retains typed
+`ValuesPublication` checks with the exact occurrence, limits, fields and policy;
+their phase is before operation output and failure rejects that output.
+Operation closure accepts these as future checks, not enforcement receipts.
+
+The resolver copies its resolution index only after reserving traversal work;
+all occurrences share payload byte/node ceilings. Failure at any occurrence
+leaves the original index unchanged and exposes no partially resolved result.
+Aggregate measurement usage is readable for enclosing construction budgets.
+Metadata has per-artifact pass ceilings and the number of values constructions
+is separately capped. These are bounded preparation scopes, not a heap ceiling
+or an implicit claim of backend compatibility or complete Program identity.
+
 ## Registry and backend capability
 
 `actql-aoa.json` selects the shared registry through `pipeline_registry_file`

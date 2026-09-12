@@ -33,6 +33,8 @@ fn check_resolution_index(
         execution += 1
         assert_true(physical_equal(check.site, site))
       }
+      Execution(ValuesPublication(_)) =>
+        abort("values resources require explicit resolution")
       Resolved(v) => {
         resolved += 1
         let (position, owner, kind) = match v {
@@ -334,7 +336,7 @@ test "dedupe execution checks retain their exact occurrences without claiming ex
     guard operation_resolution_at(index, i) is Some(Execution(check)) else {
       abort("execution")
     }
-    let DedupeTopTie(tie) = check
+    guard check is DedupeTopTie(tie) else { abort("dedupe execution") }
     assert_true(physical_equal(tie.site, site))
     assert_true(
       physical_equal(

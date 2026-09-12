@@ -12,6 +12,7 @@ pub struct DedupeTopTieCheck {
 ///|
 pub(all) enum OperationExecutionCheck {
   DedupeTopTie(DedupeTopTieCheck)
+  ValuesPublication(ValuesPublicationCheck)
 }
 
 ///|
@@ -30,6 +31,7 @@ pub fn operation_execution_phase(
 ) -> ExecutionCheckPhase {
   match v {
     DedupeTopTie(_) => BeforeOperationOutput
+    ValuesPublication(_) => BeforeOperationOutput
   }
 }
 
@@ -39,6 +41,7 @@ pub fn operation_execution_failure(
 ) -> ExecutionCheckFailure {
   match v {
     DedupeTopTie(_) => RejectOperationOutput
+    ValuesPublication(_) => RejectOperationOutput
   }
 }
 

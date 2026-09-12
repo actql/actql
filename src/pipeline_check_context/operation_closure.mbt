@@ -56,6 +56,7 @@ pub fn close_program_operations(
         // its owned subject here instead of defaulting to a runtime permission.
         let site = match check {
           DedupeTopTie(v) => v.site
+          ValuesPublication(v) => v.site
         }
         if !physical_equal(site, expected) {
           return Err(ForeignOccurrence(i))
