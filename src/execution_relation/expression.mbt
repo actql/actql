@@ -32,6 +32,7 @@ priv enum EvalIssueKind {
   MissingValue
   Scalar(ScalarIssue)
   LogicalEntry(LogicalBudgetIssue)
+  LogicalValue(LogicalBudgetIssue)
 } derive(Eq, Debug)
 
 ///|
@@ -42,6 +43,7 @@ priv struct EvalIssue {
 
 ///|
 priv enum Continuation {
+  Forward(@lower.Expression)
   Unary(@lower.Expression, @lower.UnaryOperator)
   Left(@lower.Expression, @lower.BinaryOperator, @lower.Expression)
   Right(@lower.Expression, @lower.BinaryOperator, Value)
@@ -74,7 +76,30 @@ fn evaluate_expression_with_workspace(
   slots : Array[Value],
   budget : ControlBudget,
   workspace : RowWorkspace,
-  logical_entries? : LogicalBudget? = None,
+  logical_work? : LogicalBudget? = None,
+) -> Result[Value, EvalIssue] {
+  let result = evaluate_expression_impl(
+    root,
+    input,
+    slots,
+    budget,
+    workspace,
+    logical_work~,
+  )
+  if result is Err(_) && logical_work is Some(logical) {
+    logical.failed = true
+  }
+  result
+}
+
+///|
+fn evaluate_expression_impl(
+  root : @lower.Expression,
+  input : Map[String, Value],
+  slots : Array[Value],
+  budget : ControlBudget,
+  workspace : RowWorkspace,
+  logical_work? : LogicalBudget? = None,
 ) -> Result[Value, EvalIssue] {
   if budget.remaining < 0 ||
     budget.max_frames < 0 ||
@@ -86,6 +111,16 @@ fn evaluate_expression_with_workspace(
   let stack : Array[Continuation] = []
   let mut state = Enter(root)
   let mut active = root
+  fn charge_value(value : Value) -> LogicalBudgetIssue? {
+    match logical_work {
+      None => None
+      Some(logical) =>
+        match charge_logical_value(logical, value) {
+          Ok(_) => None
+          Err(issue) => Some(issue)
+        }
+    }
+  }
   while true {
     if budget.remaining == 0 {
       return Err({ kind: ControlLimit, expression: active, })
@@ -94,10 +129,8 @@ fn evaluate_expression_with_workspace(
     match state {
       Enter(expr) => {
         active = expr
-        // This hook charges demanded expression entry only. Operand/produced
-        // value roots must be connected separately before ordered execution
-        // can claim the complete row-kernel resource contract.
-        if logical_entries is Some(logical) {
+        // Live-root lifetimes are still a separate integration obligation.
+        if logical_work is Some(logical) {
           match charge_logical_work(logical, 1L) {
             Ok(_) => ()
             Err(issue) =>
@@ -172,17 +205,34 @@ fn evaluate_expression_with_workspace(
               stack.push(Case(expr, clauses, 0, otherwise))
               state = Enter(condition)
             } else {
-              release_slots(workspace, 1)
+              stack.push(Forward(expr))
               state = Enter(otherwise)
             }
         }
       }
       Return(value) => {
+        // Every Return completes one semantic expression, including selection
+        // nodes forwarded from their chosen child. Internal boolean seeds and
+        // fold accumulators do not invent extra semantic expression results.
+        if charge_value(value) is Some(issue) {
+          return Err({ kind: LogicalValue(issue), expression: active, })
+        }
         guard stack.pop() is Some(frame) else { return Ok(value) }
         match frame {
+          Forward(expr) => {
+            release_slots(workspace, 1)
+            active = expr
+            if charge_value(value) is Some(issue) {
+              return Err({ kind: LogicalValue(issue), expression: expr, })
+            }
+            state = Return(value)
+          }
           Unary(expr, op) => {
             release_slots(workspace, 1)
             active = expr
+            if charge_value(value) is Some(issue) {
+              return Err({ kind: LogicalValue(issue), expression: expr, })
+            }
             match unary(op, value) {
               Ok(v) => state = Return(v)
               Err(e) => return Err({ kind: Scalar(e), expression: expr, })
@@ -195,6 +245,11 @@ fn evaluate_expression_with_workspace(
           Right(expr, op, left) => {
             release_slots(workspace, 1)
             active = expr
+            for operand in [left, value] {
+              if charge_value(operand) is Some(issue) {
+                return Err({ kind: LogicalValue(issue), expression: expr, })
+              }
+            }
             // Bound variable-size comparison work before the comparison.
             // Values are already canonical: never normalize inside compare.
             if left is Text(a) && value is Text(b) {
@@ -209,14 +264,20 @@ fn evaluate_expression_with_workspace(
             }
           }
           Choose(expr, yes, no) => {
-            release_slots(workspace, 1)
+            if charge_value(value) is Some(issue) {
+              return Err({ kind: LogicalValue(issue), expression: expr, })
+            }
             if !(value is Null || value is Boolean(_)) {
               return Err({ kind: Scalar(InvalidOperand), expression: expr, })
             }
+            stack.push(Forward(expr))
             state = Enter(if value is Boolean(true) { yes } else { no })
           }
           Many(expr, op, children, index, previous) => {
             active = expr
+            if charge_value(value) is Some(issue) {
+              return Err({ kind: LogicalValue(issue), expression: expr, })
+            }
             let combined = match op {
               Coalesce => value
               And | Or =>
@@ -239,19 +300,22 @@ fn evaluate_expression_with_workspace(
             }
           }
           Case(expr, clauses, index, otherwise) => {
+            if charge_value(value) is Some(issue) {
+              return Err({ kind: LogicalValue(issue), expression: expr, })
+            }
             if !(value is Null || value is Boolean(_)) {
               return Err({ kind: Scalar(InvalidOperand), expression: expr, })
             }
             if value is Boolean(true) {
               release_slots(workspace, clauses.length())
-              release_slots(workspace, 1)
+              stack.push(Forward(expr))
               state = Enter(clauses[index].1)
             } else if clauses.get(index + 1) is Some((condition, _)) {
               stack.push(Case(expr, clauses, index + 1, otherwise))
               state = Enter(condition)
             } else {
               release_slots(workspace, clauses.length())
-              release_slots(workspace, 1)
+              stack.push(Forward(expr))
               state = Enter(otherwise)
             }
           }

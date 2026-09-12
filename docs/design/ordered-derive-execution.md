@@ -103,12 +103,17 @@ occurrences are admitted before evaluation; row, binding and expression-entry
 charges are separate events. These helpers must be attached to the actual
 evaluator's continuations and row lifetimes, not merely exercised by a host.
 
-The evaluator's `logical_entries` hook charges at its existing `Enter` state,
-before entering a demanded expression. Consequently lazy branches do not add
-entry work, eager boolean operands do, and reuse of the budget across calls
-does not reset it. Failures retain the checked expression at which the charge
-was refused. The hook deliberately names its narrow responsibility: it is not
-the operand/production or live-root accounting required for ordered execution.
+The evaluator's `logical_work` hook charges at its existing `Enter` state and
+at semantic operand consumption and result production. Lazy branches do not
+add work; eager boolean operands do. Selection nodes retain a forwarding
+continuation so the chosen child is consumed and the parent's result counted
+without inventing a second expression evaluation. Boolean implementation seeds
+and accumulator folds do not introduce additional semantic operands or results.
+Comparisons charge complete operand weights even if comparison itself stops
+early. Reuse across calls does not reset work, and any evaluation failure
+invalidates further use of that budget. Failures retain the checked expression
+at which the charge was refused. This work hook does not yet establish the
+live-root lifetimes required for ordered execution.
 
 Logical live roots may share physical storage. Conversely, logical byte limits
 do not cap physical heap overhead or algorithmic cost. Host resource controls
