@@ -4,7 +4,7 @@
 test "profile fixed layout sequences with independent output assertions" {
   if @env.get_env_var("ACTQL_LAYOUT_ADDITIONAL_CASE") is Some(text) {
     let mut index = -1
-    for i in 0..<13 {
+    for i in 0..<16 {
       if text == i.to_string() {
         index = i
       }

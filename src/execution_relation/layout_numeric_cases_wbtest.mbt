@@ -12,6 +12,9 @@ priv enum NumericLayoutWorkload {
   DecimalTemporal
   NestedSmallResult
   ZeroColumns
+  ConditionalFrames
+  OrderedFrames
+  LongFrames
 } derive(Eq)
 
 ///|
@@ -26,8 +29,13 @@ fn numeric_layout_fixture(
   let temporal = workload == DecimalTemporal
   let nested = workload == NestedSmallResult
   let zero = workload == ZeroColumns
+  let frames = workload == ConditionalFrames ||
+    workload == OrderedFrames ||
+    workload == LongFrames
   let width = if zero {
     0
+  } else if frames {
+    2
   } else if textual || temporal || nested {
     8
   } else {
@@ -159,6 +167,27 @@ fn numeric_layout_fixture(
     @pipeline.KeyedInput(key)
   }
   let (program, expression_steps) = match workload {
+    ConditionalFrames =>
+      (
+        "[{\"derive\":{\"x\":\"if(id % 2 = 0, CASE WHEN k >= 0 THEN id + 1 ELSE 1 / 0 END, CASE WHEN id > 0 THEN id + 2 ELSE 1 / 0 END)\"}}]",
+        [0],
+      )
+    OrderedFrames => {
+      let bindings = Array::makei(8, i => {
+        if i == 0 {
+          "{\"k\":\"id + 1\"}"
+        } else {
+          let prior = if i == 1 { "k" } else { "x" + (i - 1).to_string() }
+          "{\"x" + i.to_string() + "\":\"" + prior + " + 1\"}"
+        }
+      })
+      ("[{\"derive\":[" + bindings.join(",") + "]}]", [0])
+    }
+    LongFrames =>
+      (
+        "[{\"derive\":{\"x\":\"id" + Array::make(64, " + 1").join("") + "\"}}]",
+        [0],
+      )
     ZeroColumns => ("[{\"drop\":[]},{\"sort\":[]}]", [])
     NestedSmallResult =>
       (
@@ -209,7 +238,38 @@ fn numeric_layout_fixture(
   } else {
     (program, expression_steps)
   }
-  let owner = sort_input_owner(input_contract, program)
+  let owner = if frames {
+    // Supplementary deep-expression workloads need a larger preparation
+    // envelope than the small sort fixture. Identical on both revisions;
+    // execution limits below are unchanged.
+    let check = @pipeline.check_with_evidence(
+      input_cursor(program),
+      [("seed", input_contract)],
+      None,
+      Some(input_cursor("\"seed\"")),
+      {
+        max_steps: 100,
+        max_work: 100000,
+        max_text_bytes: 10000,
+        max_nodes: 10000,
+        max_tokens: 10000,
+        max_depth: 1000,
+      },
+    )
+    @lower.bind_parameters(
+      @lower.prepare(check.unwrap(), {
+        max_nodes: 1000,
+        max_references: 1000,
+        max_work: 100000,
+        max_identifier_bytes: 10000,
+      }).unwrap(),
+      None,
+      max_parameters=0,
+      max_name_bytes=0,
+    ).unwrap()
+  } else {
+    sort_input_owner(input_contract, program)
+  }
   let sequence = @lower.prepare_sequence(owner, {
     max_steps: 100,
     max_rows: count,
@@ -237,7 +297,7 @@ fn numeric_layout_fixture(
       max_live_value_bytes: 10000000L,
       max_work: 100000000L,
     }
-    let ordered = if nullable && step == 1 {
+    let ordered = if (nullable && step == 1) || workload == OrderedFrames {
       Some(
         admit_ordered_contract(
           registered_relation_contracts(),
@@ -254,16 +314,19 @@ fn numeric_layout_fixture(
       100000L,
       row_limits=if ordered is Some(_) { Some(logical) } else { None },
     ).unwrap()
-    contexts.push(
-      prepare_runtime_fragment(
-        request,
-        test_fragment_contract(),
-        material_demands(),
-        registry_limits(),
-        logical,
-        ordered~,
-      ).unwrap(),
+    let runtime = prepare_runtime_fragment(
+      request,
+      test_fragment_contract(),
+      material_demands(),
+      if frames {
+        { ..registry_limits(), max_body_depth: 1000, }
+      } else {
+        registry_limits()
+      },
+      logical,
+      ordered~,
     )
+    contexts.push(runtime.unwrap())
   }
   let last = @lower.sequence_count(sequence) - 1
   let id = @lower.node_id(
@@ -355,6 +418,7 @@ fn[T : RelationRows] verify_numeric_layout_output(
   count : Int,
 ) -> Unit raise {
   let rows = match workload {
+    ConditionalFrames | OrderedFrames | LongFrames => count
     ZeroColumns => count
     NestedSmallResult => 1
     NarrowProjection
@@ -367,6 +431,8 @@ fn[T : RelationRows] verify_numeric_layout_output(
     HighSelectivity => count * 99 / 100
   }
   let (names, offsets) = match workload {
+    ConditionalFrames | LongFrames => (["id", "k", "x"], [])
+    OrderedFrames => (["id", "k", "x1", "x2", "x3", "x4", "x5", "x6", "x7"], [])
     ZeroColumns => ([], [])
     NestedSmallResult => (["id", "k", "p2", "p3", "p4", "p5", "p6", "p7"], [])
     NarrowProjection => (["id", "p2", "next"], [0, 2, 3])
@@ -401,6 +467,44 @@ fn[T : RelationRows] verify_numeric_layout_output(
   }
   assert_eq(IndexedRows::row_count(table), rows)
   assert_eq(table.field_names(), names)
+  if workload == ConditionalFrames ||
+    workload == OrderedFrames ||
+    workload == LongFrames {
+    for row in 0..<count {
+      let id = count - row
+      if workload == OrderedFrames {
+        for column in 0..<9 {
+          assert_true(
+            IndexedRows::read_cell(table, row, column) is Number(n) &&
+            n == (id + column).to_double(),
+          )
+        }
+        continue
+      }
+      let delta = if workload == OrderedFrames {
+        8
+      } else if workload == LongFrames {
+        64
+      } else if id % 2 == 0 {
+        1
+      } else {
+        2
+      }
+      assert_true(
+        IndexedRows::read_cell(table, row, 0) is Number(n) &&
+        n == id.to_double(),
+      )
+      assert_true(
+        IndexedRows::read_cell(table, row, 1) is Number(n) &&
+        n == ((id - 1) / 4).to_double(),
+      )
+      assert_true(
+        IndexedRows::read_cell(table, row, 2) is Number(n) &&
+        n == (id + delta).to_double(),
+      )
+    }
+    return
+  }
   if workload == ZeroColumns {
     for row in 0..<count {
       assert_eq(IndexedRows::row_width(table, row), 0)

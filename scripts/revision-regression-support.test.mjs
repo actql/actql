@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { regressionMetric, revisionCells, revisionPairs, revisionGate } from './revision-regression-support.mjs';
+import { regressionMetric, revisionCells, supplementalRevisionCells, revisionPairs, revisionGate } from './revision-regression-support.mjs';
 
 const manifest = JSON.parse(readFileSync(new URL('../benchmarks/local-relation/columnar-experiment.json', import.meta.url)));
 test('extension for a second metric never erases an already observed regression', () => {
@@ -22,6 +22,15 @@ test('required inventory preserves both modes, all targets and A-only alternatin
   assert.deepEqual(all.slice(0, 4).map(s => s.revision), ['baseline', 'candidate', 'candidate', 'baseline']);
   assert.equal(revisionPairs(cells[0], 7, 21).length, 28);
   assert.throws(() => revisionPairs(cells[0], 0, 22));
+});
+
+test('supplemental condition ordered and long expressions add exactly eighteen paired cells', () => {
+  const cells = supplementalRevisionCells();
+  assert.equal(cells.length, 18);
+  assert.equal(new Set(cells.map(c => c.id)).size, 18);
+  assert.ok(cells.every(c => c.rows === 1000 && c.columns === 2 && c.family === 'supplemental'));
+  assert.equal(cells.flatMap(c => revisionPairs(c)).length, 252);
+  assert.equal([...revisionCells(manifest), ...cells].flatMap(c => revisionPairs(c)).length, 1904);
 });
 
 test('reproducible practical thresholds differ from small reportable regressions', () => {

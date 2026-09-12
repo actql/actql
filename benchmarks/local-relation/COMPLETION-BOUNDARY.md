@@ -23,7 +23,24 @@ The mandatory harness overlay is `layout_output_wbtest.mbt` from `820a971`
 on the baseline worktree. It adds the generic test-only output append wrapper
 used by the later trial; both sides then compile identical profiling/layout
 helpers. The baseline's product files and HEAD remain exactly `f9ac87b`.
-The runner rejects any other source modification and records the overlay hash.
+The runner rejects modifications outside the listed test overlays and records
+their hashes.
+
+The supplemental overlay also changes only the test fixtures
+`layout_numeric_cases_wbtest.mbt`, `layout_additional_profile_wbtest.mbt`, and
+`sequence_profile_wbtest.mbt`, identically on both revisions. It adds three
+1,000-row/two-number-column cases on every target in both modes: nested IF/CASE
+with unselected division failures; eight ordered slots (input shadow followed by
+seven distinct prior-slot bindings); and a left-associated chain of 64 additions.
+Existing cases and clocks are retained. The supplementary preparation envelope
+admits the deeper source/wire expression trees equally on both revisions;
+execution budgets are unchanged. Closed-form expected outputs are id+1 for even
+and id+2 for odd in the conditional case, k=id+1 and x1 through x7=id+2 through
+id+8 in the ordered case, and x=id+64 in the long case. All retain descending
+input order; conditional and long cases retain the input key column unchanged.
+These add 18 cells/252 initial samples, for 136 cells/1,904 total initial
+samples before any uncertainty extensions. This inventory is fixed before
+measuring the supplemental cases.
 
 After the regression gate permits progress, the authorized product scope is
 `completion.mbt`, `producer_binding.mbt`, completion construction and producer
@@ -104,3 +121,24 @@ verdict. The initial sandboxed attempt failed at macOS time/sysctl; the
 authorized unsandboxed retry passed. Raw smoke evidence is kept in ignored
 `_build/revision-measurements/1789253313020-91225/`. Full matrix and supplemental
 expression measurements remain pending; product completion code is unchanged.
+
+The supplemental preflight initially rejected a fixture that repeated an
+ordered output name. It was corrected to the valid input-shadow/prior-slot
+chain above. Deep source and wire trees also required an explicit larger
+preparation envelope. No product acceptance or execution rule changed.
+The corrected smoke passed all 48 invocations (both revisions, all targets,
+both modes, mandatory smoke plus all three supplementary profiles), recorded
+under `_build/revision-measurements/1789255060319-17016/`.
+
+`report-revision-comparison.mjs` independently reconstructs the complete
+136-cell matrix from raw output assertions and RSS, recomputes the seven/21
+pair decisions, and rejects missing cells, failed assertions, altered stored
+measurements, reordered revisions and unsafe raw paths. Synthetic full-matrix
+and rejection tests validate the auditor; neither they nor smoke are evidence
+of regression absence. The full comparison remains to be measured.
+
+The supplemental increment passed 18 comparison/statistics/auditor Node tests,
+279 execution-package tests on each of JS/Wasm/native with `--deny-warn`,
+format, documentation and metadata checks. These are incremental checks, not
+the final whole-repository verification required after product-boundary work.
+Linux CI has not been run.

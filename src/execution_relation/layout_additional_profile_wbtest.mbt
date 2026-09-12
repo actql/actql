@@ -24,6 +24,9 @@ fn additional_layout_case(
     10 => ("nested-small-result", SuppliedWorkload(NestedSmallResult), 1000, 8)
     11 => ("producer-branches", ProducerWorkload, 1000, 64)
     12 => ("zero-columns", SuppliedWorkload(ZeroColumns), 1000, 0)
+    13 => ("conditional-frames", SuppliedWorkload(ConditionalFrames), 1000, 2)
+    14 => ("ordered-frames", SuppliedWorkload(OrderedFrames), 1000, 2)
+    15 => ("long-frames", SuppliedWorkload(LongFrames), 1000, 2)
     _ => fail("additional layout case not connected")
   }
 }

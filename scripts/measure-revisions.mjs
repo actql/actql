@@ -1,6 +1,5 @@
 // Cross-revision A-only execution of the existing mandatory release matrix.
-// Supplemental expression profiles are a separate required report; this runner
-// does not claim completion of the whole evaluator regression investigation.
+// Supplemental expression profiles share the existing clocks and assertions.
 import { execFileSync, spawnSync } from 'node:child_process';
 import { readFileSync, writeFileSync, mkdirSync, realpathSync } from 'node:fs';
 import { createHash } from 'node:crypto';
@@ -9,7 +8,7 @@ import { fileURLToPath } from 'node:url';
 import { platform, release, arch, cpus } from 'node:os';
 import { performance } from 'node:perf_hooks';
 import { checkedSample, checkedPreparedSample, peakRssBytes } from './layout-measurement-support.mjs';
-import { regressionPolicy, revisionCells, revisionPairs, regressionMetric, revisionGate } from './revision-regression-support.mjs';
+import { regressionPolicy, revisionCells, supplementalRevisionCells, revisionPairs, regressionMetric, revisionGate } from './revision-regression-support.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const [before, after, mode] = process.argv.slice(2);
@@ -37,7 +36,8 @@ const toolchainBytes = readFileSync(resolve(root, 'toolchain.json'));
 const compiler = run(`${moonHome}/bin/moonc`, ['-v']).stdout.trim();
 if (!compiler.includes(JSON.parse(toolchainBytes).version)) throw new Error('Unpinned compiler');
 const sources = {};
-const overlayAllowlist = ['src/execution_relation/layout_output_wbtest.mbt'];
+const overlayAllowlist = ['layout_output_wbtest.mbt', 'layout_numeric_cases_wbtest.mbt',
+  'layout_additional_profile_wbtest.mbt', 'sequence_profile_wbtest.mbt'].map(f => `src/execution_relation/${f}`);
 for (const [label, path] of Object.entries(paths)) {
   const status = git(path, ['status', '--porcelain']);
   // Trimming removes the initial space on the first porcelain record only.
@@ -63,7 +63,7 @@ for (const f of fixtures) {
 const out = resolve(root, '_build/revision-measurements', `${Date.now()}-${process.pid}`);
 mkdirSync(out, { recursive: true });
 const report = {
-  status: 'running', scope: smoke ? 'cross-revision smoke only' : 'mandatory A-only historical matrix; supplemental expressions still required',
+  status: 'running', scope: smoke ? 'cross-revision smoke only' : 'mandatory and supplemental A-only historical matrix',
   whole_task_complete: false, started_at: new Date().toISOString(), sources, fixtureHashes,
   policy: regressionPolicy, manifest_sha256: hash(manifestBytes), compiler,
   runner_hashes: Object.fromEntries(['measure-revisions.mjs', 'revision-regression-support.mjs', 'layout-measurement-support.mjs', 'layout-statistics.mjs']
@@ -107,7 +107,7 @@ try {
       const command = target === 'native' ? artifact.path : target === 'js' ? process.execPath : `${moonHome}/bin/moonrun`;
       const args = target === 'native' ? [`${testFile}:0-1`] : target === 'js' ? [artifact.path, testArgs] : [artifact.path, '--test-args', testArgs];
       const sampleEnv = { ...env, ACTQL_LAYOUT_CANDIDATE: 'A',
-        [cell.family === 'additional' ? 'ACTQL_LAYOUT_ADDITIONAL_CASE' : 'ACTQL_LAYOUT_CASE']: String(cell.case_index) };
+        [cell.family === 'legacy' ? 'ACTQL_LAYOUT_CASE' : 'ACTQL_LAYOUT_ADDITIONAL_CASE']: String(cell.case_index) };
       if (cell.mode === 'prepared') sampleEnv.ACTQL_LAYOUT_PREPARED = '1';
       const started = performance.now();
       const r = run('/usr/bin/time', [platform() === 'darwin' ? '-l' : '-v', command, ...args], { cwd: paths[revision], env: sampleEnv });
@@ -128,7 +128,8 @@ try {
         : cell.mode === 'prepared' ? s.measurement.operation_us : s.measurement.end_to_end_us);
     return regressionMetric(data('baseline'), data('candidate'), metric);
   });
-  const cells = revisionCells(manifest).filter(c => !smoke || (c.family === 'legacy' && c.case_index === (c.target === 'native' ? 0 : 1)));
+  const cells = [...revisionCells(manifest), ...supplementalRevisionCells()].filter(c => !smoke ||
+    c.family === 'supplemental' || (c.family === 'legacy' && c.case_index === (c.target === 'native' ? 0 : 1)));
   for (const cell of cells) {
     measure(cell, 0, smoke ? 1 : regressionPolicy.initialPairs);
     if (smoke) continue;

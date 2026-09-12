@@ -31,6 +31,16 @@ export function revisionCells(manifest) {
         })))));
 }
 
+export function supplementalRevisionCells() {
+  return ['native', 'js', 'wasm'].flatMap(target =>
+    ['conditional-frames', 'ordered-frames', 'long-frames'].flatMap((case_id, i) =>
+      ['e2e', 'prepared'].map(mode => ({
+        id: `${target}/supplemental/${case_id}/${mode}`,
+        target, family: 'supplemental', case_index: 13 + i, case_id,
+        rows: 1000, columns: 2, same_keys: false, candidate: 'A', mode,
+      }))));
+}
+
 export function revisionPairs(cell, from = 0, until = regressionPolicy.initialPairs) {
   if (!Number.isInteger(from) || !Number.isInteger(until) || from < 0 ||
       until <= from || until > regressionPolicy.maximumPairs) {
