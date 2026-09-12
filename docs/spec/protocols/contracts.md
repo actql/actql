@@ -329,6 +329,18 @@ domain upper bound for its selected unit and profile, not a claim that all
 possible boundaries occur in the requested interval. Binding, range, profile
 and resource obligations remain distinct from these output-row bounds.
 
+<!-- requirement-block: capacity-law-registry.values-body -->
+An application of `actql.bound.values` MUST satisfy the separately pinned
+`actql-bound-values-law/0.1` body. That body fixes the row-count derivation and
+its operation ownership; the law-name registry alone is not its semantic body.
+It is a law contract, not a cell-admission schema or a backend registration.
+
+<!-- requirement-block: capacity-law-registry.values-machine-contract -->
+<!-- normative-code: law -->
+```text
+../../../spec/contracts/actql-bound-values-law.json# sha256:0e0f9b4b6585ab7b17bafe484e82f44cd8f3acc9eec5ef9329cea200237a7971
+```
+
 <!-- requirement-block: capacity-law-registry.machine-contract -->
 <!-- normative-code: law -->
 ```text

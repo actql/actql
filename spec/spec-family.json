@@ -267,6 +267,12 @@
           "version": "actql-local-source-reference/0.1"
         },
         {
+          "path": "spec/contracts/actql-bound-values-law.json",
+          "pointer": "",
+          "cid": "sha256:0e0f9b4b6585ab7b17bafe484e82f44cd8f3acc9eec5ef9329cea200237a7971",
+          "version": "actql-bound-values-law/0.1"
+        },
+        {
           "path": "spec/contracts/actql-bound-law-registry.json",
           "pointer": "",
           "cid": "sha256:45f824fa077ac7eb6fecda6e25fa954834f1854c512f99f6803ad2ab84dd899a",
@@ -977,7 +983,7 @@
         {
           "owner": "actql.protocol.contracts",
           "version": "actql/0.1",
-          "document_cid": "sha256:c5e634854ab379aa576e7c5d83b28493c016b74b0f9e78073b59dbfcec44faa5"
+          "document_cid": "sha256:6c3ada7da51e9d4e97a93d1e5efafa5f70c1841f9137c8edc4e728c714ea4535"
         },
         {
           "owner": "actql.protocol.artifacts",
@@ -1050,7 +1056,7 @@
         {
           "owner": "actql.protocol.contracts",
           "version": "actql/0.1",
-          "document_cid": "sha256:c5e634854ab379aa576e7c5d83b28493c016b74b0f9e78073b59dbfcec44faa5"
+          "document_cid": "sha256:6c3ada7da51e9d4e97a93d1e5efafa5f70c1841f9137c8edc4e728c714ea4535"
         }
       ]
     },
@@ -1186,7 +1192,7 @@
         {
           "owner": "actql.protocol.contracts",
           "version": "actql/0.1",
-          "document_cid": "sha256:c5e634854ab379aa576e7c5d83b28493c016b74b0f9e78073b59dbfcec44faa5"
+          "document_cid": "sha256:6c3ada7da51e9d4e97a93d1e5efafa5f70c1841f9137c8edc4e728c714ea4535"
         },
         {
           "owner": "actql.protocol.artifacts",
@@ -1373,7 +1379,7 @@
         {
           "owner": "actql.protocol.contracts",
           "version": "actql/0.1",
-          "document_cid": "sha256:c5e634854ab379aa576e7c5d83b28493c016b74b0f9e78073b59dbfcec44faa5"
+          "document_cid": "sha256:6c3ada7da51e9d4e97a93d1e5efafa5f70c1841f9137c8edc4e728c714ea4535"
         },
         {
           "owner": "actql.protocol.artifacts",

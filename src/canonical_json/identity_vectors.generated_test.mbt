@@ -1291,6 +1291,16 @@ test "contract spec/contracts/actql-local-source-reference.json#" {
 }
 
 ///|
+test "contract spec/contracts/actql-bound-values-law.json#" {
+  let input = @json.parse([
+    "{\"version\":\"actql-bound-values-law/0.1\",\"law_id\":\"actql.bound.values\",\"unit\":\"rows\",\"subject\":\"The output of the owning checked values operation.\",\"derivation\":\"A constant equal to the authored rows array length. Every row occurrence counts once, including identical rows; an empty array contributes zero.\",\"inputs\":\"No input-carrier count witness is required. Cell Parameter binding and literal quotation do not change the row occurrence count.\",\"application\":\"The proof must refer to this exact Program operation occurrence, use the rows unit and source derivation (op: source), and have the same value as its authored row count. Equal counts do not make different operation subjects interchangeable.\",\"conditionality\":\"The bound applies if the operation succeeds. It does not discharge schema or cell validation, Parameter binding, resource enforcement, or permission to execute or publish. Failure does not produce a partial successful output.\"}",
+  ].join(""))
+  let value = @canonical_json.from_json(input, 9, 1, 949)
+  assert_eq(@canonical_json.cid_value(value, 949, 9, 1), "sha256:0e0f9b4b6585ab7b17bafe484e82f44cd8f3acc9eec5ef9329cea200237a7971")
+  assert_eq(@canonical_json.measure_value(value, 949, 9, 1), 949)
+}
+
+///|
 test "contract spec/contracts/actql-bound-law-registry.json#" {
   let input = @json.parse([
     "{\"version\":\"actql-bound-law-registry/0.1\",\"law_ids\":[\"actql.bound.append\",\"actql.bound.array-aggregate-input\",\"actql.bound.asof-left\",\"actql.bound.calendar-series\",\"actql.bound.canonical-artifact-bytes\",\"actql.bound.components-input-nodes\",\"actql.bound.components-nodes\",\"actql.bound.components-output\",\"actql.bound.effect-scope\",\"actql.bound.global-group\",\"actql.bound.graph-degree\",\"actql.bound.graph-edge-rows\",\"actql.bound.graph-edges\",\"actql.bound.graph-endpoints\",\"actql.bound.graph-input-edges\",\"actql.bound.graph-input-nodes\",\"actql.bound.graph-node-rows\",\"actql.bound.graph-nodes\",\"actql.bound.infer-distinct-keys\",\"actql.bound.infer-output\",\"actql.bound.join-output\",\"actql.bound.join-projection\",\"actql.bound.join-resolved-output\",\"actql.bound.lookup.complete-response\",\"actql.bound.match-edges\",\"actql.bound.match-node-ids\",\"actql.bound.match-nodes\",\"actql.bound.merge-rankings\",\"actql.bound.nearest\",\"actql.bound.nest-empty-array\",\"actql.bound.reach-nodes\",\"actql.bound.row-window\",\"actql.bound.sequence-output\"",

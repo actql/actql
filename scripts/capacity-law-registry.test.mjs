@@ -1,7 +1,44 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { readFileSync } from 'node:fs';
+import { machineCid } from './actql-spec-family.mjs';
 import { validateRegistry, loadRegistry, renderRegistry, renderGuardLaws } from './capacity-law-registry.mjs';
+
+test('values count law has a separately pinned semantic body', () => {
+  const path = 'spec/contracts/actql-bound-values-law.json';
+  const body = JSON.parse(readFileSync(new URL(`../${path}`, import.meta.url), 'utf8'));
+  const cid = 'sha256:0e0f9b4b6585ab7b17bafe484e82f44cd8f3acc9eec5ef9329cea200237a7971';
+  assert.equal(machineCid(body), cid);
+  assert.equal(body.law_id, 'actql.bound.values');
+  assert.equal(body.unit, 'rows');
+  assert.ok(loadRegistry().body.law_ids.includes(body.law_id));
+  const family = JSON.parse(readFileSync(new URL('../spec/spec-family.json', import.meta.url), 'utf8'));
+  const owner = family.documents.find(document => document.spec_id === 'actql.protocol.contracts');
+  assert.deepEqual(owner.machine_contracts.filter(ref => ref.path === path), [{
+    path, pointer: '', cid, version: 'actql-bound-values-law/0.1',
+  }]);
+  assert.notEqual(machineCid(loadRegistry().body), cid);
+});
+
+test('independent values count vectors count row occurrences, not cell contents', () => {
+  const corpus = JSON.parse(readFileSync(new URL('../portability/corpus/bound-values.json', import.meta.url), 'utf8'));
+  assert.equal(corpus.version, 'actql-bound-values-vectors/0.1');
+  // This is only the authored row shape/count oracle. It does not bind or
+  // validate cells, and a known count does not authorize execution.
+  function count(rows) {
+    assert.ok(Array.isArray(rows));
+    let result = 0;
+    for (const row of rows) {
+      assert.ok(row !== null && typeof row === 'object' && !Array.isArray(row));
+      result += 1;
+    }
+    return result;
+  }
+  for (const vector of corpus.cases) {
+    assert.equal(count(vector.rows), vector.expected_rows, vector.name);
+  }
+  for (const rows of corpus.rejections) assert.throws(() => count(rows));
+});
 
 test('registry fixes its identity, rejects missing Host entries and malformed names', () => {
   const { body, policy } = loadRegistry();

@@ -1,0 +1,13 @@
+{
+  "version": "actql-bound-values-vectors/0.1",
+  "cases": [
+    {"name":"empty","rows":[],"expected_rows":0},
+    {"name":"ordinary","rows":[{"id":1},{"id":2}],"expected_rows":2},
+    {"name":"duplicates","rows":[{"id":1},{"id":1}],"expected_rows":2},
+    {"name":"reordered","rows":[{"id":2},{"id":1}],"expected_rows":2},
+    {"name":"parameter","rows":[{"id":{"$param":"n"}}],"expected_rows":1},
+    {"name":"literal-quotation","rows":[{"data":{"literal":{"$param":"business"}}}],"expected_rows":1},
+    {"name":"nested-array","rows":[{"data":[1,2,3]}],"expected_rows":1}
+  ],
+  "rejections": [null, {}, "rows", [null], [1], [[]]]
+}

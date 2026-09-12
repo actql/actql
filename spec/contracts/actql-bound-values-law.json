@@ -1,0 +1,10 @@
+{
+  "version": "actql-bound-values-law/0.1",
+  "law_id": "actql.bound.values",
+  "unit": "rows",
+  "subject": "The output of the owning checked values operation.",
+  "derivation": "A constant equal to the authored rows array length. Every row occurrence counts once, including identical rows; an empty array contributes zero.",
+  "inputs": "No input-carrier count witness is required. Cell Parameter binding and literal quotation do not change the row occurrence count.",
+  "application": "The proof must refer to this exact Program operation occurrence, use the rows unit and source derivation (op: source), and have the same value as its authored row count. Equal counts do not make different operation subjects interchangeable.",
+  "conditionality": "The bound applies if the operation succeeds. It does not discharge schema or cell validation, Parameter binding, resource enforcement, or permission to execute or publish. Failure does not produce a partial successful output."
+}
