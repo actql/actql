@@ -45,16 +45,9 @@ fn logical_budget(
   host_nodes : Int,
   host_depth : Int,
 ) -> Result[LogicalBudget, LogicalBudgetIssue] {
-  for
-    n in [
-      limits.max_input_rows,
-      limits.max_value_bytes,
-      limits.max_live_value_bytes,
-      limits.max_work,
-    ] {
-    if n < 0L || n > 9007199254740991L {
-      return Err(InvalidLogicalLimits)
-    }
+  match validate_logical_limits(limits) {
+    Err(e) => return Err(e)
+    Ok(_) => ()
   }
   if host_bytes < 0 || host_nodes < 0 || host_depth < 0 {
     return Err(InvalidLogicalLimits)
@@ -70,6 +63,24 @@ fn logical_budget(
     peak: 0L,
     failed: false,
   })
+}
+
+///|
+fn validate_logical_limits(
+  limits : LogicalLimits,
+) -> Result[Unit, LogicalBudgetIssue] {
+  for
+    n in [
+      limits.max_input_rows,
+      limits.max_value_bytes,
+      limits.max_live_value_bytes,
+      limits.max_work,
+    ] {
+    if n < 0L || n > 9007199254740991L {
+      return Err(InvalidLogicalLimits)
+    }
+  }
+  Ok(())
 }
 
 ///|
