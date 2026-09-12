@@ -172,3 +172,34 @@ Wasm and native each pass 3,339 tests with `--deny-warn`. Document and metadata
 checks pass. Linux CI and performance regression measurement are not included
 in this extraction evidence. No driver, public completion type, lowering,
 typing, contract or budget rule changed.
+
+## Typed inlet and private consumer connection
+
+`extensibility_typed_input_wbtest.mbt` supplies a restricted numeric physical
+inlet: schema order, lengths, nullable validity, finite/canonical numeric cells
+and row/control limits are checked before copying into sealed typed buffers.
+It constructs no input row matrix. The source owner and destination have
+separate nominal capacity leases: two two-row columns require 36+36 bytes
+during copying, a 71-byte cap rejects and rolls back the partial destination,
+and a 72-byte cap succeeds. Mutation of caller values after capture cannot
+change the destination. This is not arbitrary artifact or producer admission.
+
+`extensibility_consumer_wbtest.mbt` connects this inlet to the existing sort
+trial and an actual checked select consumer through `evaluate_row_body_into`.
+The private sorted view exists only after successful input completion and is
+borrowed synchronously while consuming. It is not the public `CompletedOutput`.
+Widths 1/7/1000 yield the independently fixed order
+`0,3,6,9,12,1,4,7,10,13,2,5,8,11,14`. Consumer work is independently derived
+as 75 admitted-input units + 15 row entries + 45 retained-output units = 135;
+the live-root peak is 200 input bytes + the first 7-byte output = 207.
+Both exact caps pass; 134 work or 206 live bytes fail with the corresponding
+typed error and release pending output. A fresh consumer can use the retained
+successful sort without rerunning it. Its typed output survives sort disposal.
+
+The consumer still constructs one temporary `Array[Value]` per output row in
+the common projection evaluator. It does not accumulate an intermediate row
+matrix, but this is not evidence of entirely boxing-free execution. Supporting
+the existing public producer API with this physical output still requires the
+separate completion/admission change identified above. No such change is made.
+The inlet/consumer connection also does not close the conditional batch-kernel
+experiment, which remains a separate requirement.

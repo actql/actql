@@ -226,14 +226,16 @@ fn ext_sort_cell(s : ExtSort, row : Int, column : Int) -> Value? {
 }
 
 ///|
-fn ext_sort_fixture() -> LayoutRelation {
+fn ext_sort_fixture(with_consumer? : Bool = false) -> LayoutRelation {
   let rows = Array::makei(15, i => {
     "{\"k\":" + (i % 3).to_string() + ",\"n\":" + i.to_string() + "}"
   })
   let owner = bound_pipeline(
     "[{\"values\":{\"schema\":{\"k\":{\"type\":\"number\",\"nullable\":false},\"n\":{\"type\":\"number\",\"nullable\":false}},\"rows\":[" +
     rows.join(",") +
-    "]},\"as\":\"seed\"},{\"sort\":[{\"k\":\"asc\"}]}]",
+    "]},\"as\":\"seed\"},{\"sort\":[{\"k\":\"asc\"}]}" +
+    (if with_consumer { ",{\"select\":[\"n\"]}" } else { "" }) +
+    "]",
   )
   layout_relation(
     capture_values(owner, 0, max_rows=15, run_limits().input_values).unwrap(),
