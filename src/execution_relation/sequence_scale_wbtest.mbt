@@ -1,7 +1,27 @@
 ///|
 // Closed-form expectations: unique id is N-i, rank is either 1 or N-i.
 // No reference engine or product comparator computes expected survivors.
-fn sequence_scale(count : Int, width : Int, same : Bool) -> Unit raise {
+fn sequence_scale(
+  count : Int,
+  width : Int,
+  same : Bool,
+  profile? : Bool = false,
+) -> Unit raise {
+  let total_clock = @bench.monotonic_clock_start()
+  let fixture_clock = @bench.monotonic_clock_start()
+  let raw = Array::makei(count, i => {
+    let id = count - i
+    let mut text = "{\"id\":" +
+      id.to_string() +
+      ",\"k\":" +
+      (if same { 1 } else { id }).to_string()
+    for j = 2; j < width; j = j + 1 {
+      text += ",\"p" + j.to_string() + "\":" + (id + j).to_string()
+    }
+    input_cursor(text + "}")
+  })
+  let fixture_us = @bench.monotonic_clock_end(fixture_clock)
+  let prepare_clock = @bench.monotonic_clock_start()
   let numeric = @contract.read_checked(
     input_cursor("{\"type\":\"number\",\"nullable\":false}"),
     { max_nodes: 10, max_depth: 10, max_text_bytes: 100, },
@@ -49,17 +69,8 @@ fn sequence_scale(count : Int, width : Int, same : Bool) -> Unit raise {
     1000000,
     100000,
   ).unwrap()
-  let raw = Array::makei(count, i => {
-    let id = count - i
-    let mut text = "{\"id\":" +
-      id.to_string() +
-      ",\"k\":" +
-      (if same { 1 } else { id }).to_string()
-    for j = 2; j < width; j = j + 1 {
-      text += ",\"p" + j.to_string() + "\":" + (id + j).to_string()
-    }
-    input_cursor(text + "}")
-  })
+  let prepare_us = @bench.monotonic_clock_end(prepare_clock)
+  let import_clock = @bench.monotonic_clock_start()
   let value_limits : ValueLimits = {
     max_nodes: 20000000,
     max_text_bytes: 100000000,
@@ -67,8 +78,12 @@ fn sequence_scale(count : Int, width : Int, same : Bool) -> Unit raise {
     max_work: 100000000,
   }
   let input = capture_input(owner, 0, raw, max_rows=count, value_limits).unwrap()
-  let complete = execute_generated_sequence(generated, [input], {
-    rows: {
+  let invocation = prepare_sequence_invocation(
+    generated.contracts,
+    generated.sequence,
+    [input],
+    generated.retained_ids,
+    {
       max_rows: count,
       metadata_entries: 100000,
       retained_entries: 20000000,
@@ -76,9 +91,16 @@ fn sequence_scale(count : Int, width : Int, same : Bool) -> Unit raise {
       input_values: value_limits,
       output_values: value_limits,
     },
-    max_work: 100000000,
-    max_frames: 100,
-  }).unwrap()
+    { remaining: 100000000, max_frames: 100, },
+    produced=[],
+    fragments=Some(generated.contexts),
+    ordered={ contexts: [], max_bytes: 0, max_nodes: 0, max_depth: 0, },
+  ).unwrap()
+  let import_us = @bench.monotonic_clock_end(import_clock)
+  let execute_clock = @bench.monotonic_clock_start()
+  let complete = run_sequence_invocation(invocation).unwrap()
+  let execute_us = @bench.monotonic_clock_end(execute_clock)
+  let observe_clock = @bench.monotonic_clock_start()
   let unique = completed_output(complete, Step(5)).unwrap().table
   let chosen = completed_output(complete, Step(8)).unwrap().table
   let expected = if same { 1 } else { 10 }
@@ -110,6 +132,30 @@ fn sequence_scale(count : Int, width : Int, same : Bool) -> Unit raise {
     if i != 5 && i != 8 {
       assert_true(completed_output(complete, Step(i)) is None)
     }
+  }
+  let observe_us = @bench.monotonic_clock_end(observe_clock)
+  let total_us = @bench.monotonic_clock_end(total_clock)
+  if profile {
+    let phases = [fixture_us, prepare_us, import_us, execute_us, observe_us]
+    println(
+      "{\"kind\":\"layout-sample\",\"candidate\":\"A\",\"rows\":" +
+      count.to_string() +
+      ",\"columns\":" +
+      width.to_string() +
+      ",\"same_keys\":" +
+      same.to_string() +
+      ",\"phases_us\":" +
+      phases.to_json().stringify() +
+      ",\"end_to_end_us\":" +
+      total_us.to_string() +
+      ",\"retained_slots\":" +
+      complete.store.workspace.live.to_string() +
+      ",\"peak_retained_slots\":" +
+      complete.store.workspace.peak.to_string() +
+      ",\"control_remaining\":" +
+      invocation.control.remaining.to_string() +
+      "}",
+    )
   }
 }
 

@@ -1,5 +1,42 @@
 # Local Relation sequence measurements
 
+## Release layout comparison
+
+`columnar-experiment.json` fixes the row baseline, workload groups, alternating
+candidate order, seven-sample minimum, and conditional adoption rules before
+measurement. It is experimental methodology, not a product compatibility pin.
+The debug report below does not satisfy those rules.
+
+The release harness is kept in the repository:
+
+```sh
+node scripts/measure-layouts.mjs --smoke
+```
+
+Set `MOON_HOME` to the pinned toolchain first. The smoke mode builds native, JS
+and Wasm release artifacts and directly executes the exact profiling test,
+checking both its measurement and its independent output assertions. It runs
+one warmup and one measured invocation of the narrow 100-row baseline case.
+It is **not** a layout comparison or adoption gate. Logs and smoke output stay
+in ignored `_build/layout-measurements/`; they are not committed reports.
+
+The five clocks surround fixture generation/JSON parsing, typed preparation,
+input admission/physical import, operations, and output observation. The import
+clock includes invocation-specific wiring, budget initialization and complete
+input-key validation. Operations use the same private driver called by the
+public generated-sequence API, with the same shared counters. No second semantic
+executor is used for timing. Authored `values` must remain in operation order;
+this initial profiling entry uses explicit inputs and must not be generalized by
+hoisting later `values` across earlier failures.
+
+The measured invocation's end-to-end clock encloses all five phases. A separate
+process wall clock also includes startup, warmup and test reporting, but not
+compilation. Smoke does not measure RSS. Retained-table slot counters neither
+describe allocator bytes nor include all temporary/capture storage; they must
+not be presented as process memory or complete physical accounting.
+
+## Historical debug measurements
+
 Build and measure with the repository's pinned MoonBit toolchain:
 
 ```sh

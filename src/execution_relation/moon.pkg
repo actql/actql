@@ -21,6 +21,8 @@ import {
   "actql/actql/source_value" @source,
   "actql/actql/parameter_binding" @parameter,
   "actql/actql/carrier_contract" @carrier,
+  "moonbitlang/core/bench",
+  "moonbitlang/core/env",
 } for "wbtest"
 
 import {
