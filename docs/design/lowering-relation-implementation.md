@@ -927,6 +927,16 @@ request pointer, not by CID. These generated bodies are declarations of the
 selected bounds, not applications of Program cardinality-inference laws, and
 do not by themselves admit the fragment or discharge input obligations.
 
+Fragment generation material is prepared from one opaque request. Its local
+machine graph and complete root list are derived from the request's retained
+pipeline owner; callers cannot substitute independently prepared roots or a
+different graph. Root order follows the shared index, including an empty list
+for a snapshot map that still retains its graph node. The aggregate generated
+value bytes and nodes consume one budget across request, graph and roots.
+Temporary representations have their own bounded preparation paths; this
+accounting is not a process-heap ceiling. Material preparation is atomic and
+does not itself supply the enclosing contract admission or execution permit.
+
 Each expression root retains its exact typed owner. Source projection reads the
 normalized syntax of that owner; machine-node projection reads the bound lowered
 expression. A Parameter remains a reference in source while becoming a literal

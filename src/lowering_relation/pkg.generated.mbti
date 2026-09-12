@@ -70,6 +70,8 @@ pub fn fragment_pipeline_roots(FragmentPipeline) -> RootIndex
 
 pub fn fragment_request_ceilings(FragmentRequest) -> (Int64, Int64)
 
+pub fn fragment_request_pipeline(FragmentRequest) -> FragmentPipeline
+
 pub fn input_id(Prepared, Int) -> String?
 
 pub fn input_ids(PreparedNode) -> Array[String]

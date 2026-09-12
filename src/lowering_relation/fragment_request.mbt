@@ -14,6 +14,11 @@ pub fn fragment_request_ceilings(request : FragmentRequest) -> (Int64, Int64) {
 }
 
 ///|
+pub fn fragment_request_pipeline(request : FragmentRequest) -> FragmentPipeline {
+  request.pipeline
+}
+
+///|
 pub(all) enum FragmentRequestIssue {
   InvalidRequestCeiling
 }
