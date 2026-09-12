@@ -4,6 +4,71 @@ import { readFileSync } from 'node:fs';
 import { machineCid } from './actql-spec-family.mjs';
 import { validateRegistry, loadRegistry, renderRegistry, renderGuardLaws } from './capacity-law-registry.mjs';
 
+test('operation count checker law literals have semantic bodies, not only registry membership', () => {
+  const bodies = [
+    'actql-bound-values-law', 'actql-bound-relation-laws', 'actql-bound-join-laws',
+    'actql-bound-window-laws', 'actql-bound-graph-laws', 'actql-bound-ranking-laws',
+    'actql-bound-series-laws',
+  ];
+  const covered = new Set();
+  function visit(value) {
+    if (!value || typeof value !== 'object') return;
+    if (typeof value.law_id === 'string') {
+      assert.ok(!covered.has(value.law_id), `duplicate body for ${value.law_id}`);
+      covered.add(value.law_id);
+    }
+    for (const law of value.law_ids ?? []) {
+      assert.ok(!covered.has(law), `duplicate body for ${law}`);
+      covered.add(law);
+    }
+    for (const child of Object.values(value)) visit(child);
+  }
+  for (const name of bodies) visit(JSON.parse(readFileSync(new URL(`../spec/contracts/${name}.json`, import.meta.url),'utf8')));
+  const source = readFileSync(new URL('../src/capacity_program_step/check.mbt',import.meta.url),'utf8');
+  const emitted = new Set([...source.matchAll(/"(actql\.bound\.[a-z.-]+)"/g)].map(m => m[1]));
+  assert.ok(emitted.size > 0);
+  assert.deepEqual([...covered].sort(), [...emitted].sort(), 'Update semantic bodies when adding or removing operation count laws');
+});
+
+test('ranking and series semantic bodies and independent counts are pinned', () => {
+  const family = JSON.parse(readFileSync(new URL('../spec/spec-family.json', import.meta.url), 'utf8'));
+  const implementation = readFileSync(new URL('../src/pipeline_check_context/core_contracts.mbt', import.meta.url), 'utf8').replace(/\s+/g,' ');
+  for (const [name, variant, cid] of [
+    ['ranking','RankingCountRules','sha256:655fa88f2d24a15794a12abdbdc967f51517f5f92aa1316f74f6df1617fcf0c7'],
+    ['series','SeriesCountRules','sha256:c85b84631add903652807808fc4faa9015e59cf9bfd0fb11bf170c85139dcf05'],
+  ]) {
+    const path = `spec/contracts/actql-bound-${name}-laws.json`;
+    const body = JSON.parse(readFileSync(new URL(`../${path}`, import.meta.url),'utf8'));
+    assert.equal(machineCid(body),cid);
+    for (const law of body.law_ids) assert.ok(loadRegistry().body.law_ids.includes(law));
+    assert.ok(family.documents.flatMap(d => d.machine_contracts ?? []).some(r => r.path === path && r.pointer === '' && r.cid === cid && r.version === body.version));
+    assert.ok(implementation.includes(`${variant} => "${cid}"`));
+  }
+  const corpus = JSON.parse(readFileSync(new URL('../portability/corpus/bound-ranking-series.json', import.meta.url),'utf8'));
+  assert.equal(corpus.version,'actql-bound-ranking-series-vectors/0.1');
+  const min = (a,b) => a < b ? a : b;
+  for (const v of corpus.cases) {
+    let n;
+    switch(v.rule) {
+      case 'query': n = BigInt(v.queries)*(v.candidates === null ? BigInt(v.k) : min(BigInt(v.k),BigInt(v.candidates))); break;
+      case 'merge': {
+        const sum = v.inputs.reduce((n,x) => n+BigInt(x),0n);
+        n = v.k === null ? sum : v.inputs.length ? min(BigInt(v.k),sum) : BigInt(v.k);
+        break;
+      }
+      case 'series': n = (BigInt(v.duration)+BigInt(v.step)-1n)/BigInt(v.step); break;
+      case 'calendar': {
+        const days = 9999n*365n+9999n/4n-9999n/100n+9999n/400n;
+        n = ({day:days,week:(days+6n)/7n,month:9999n*12n,quarter:9999n*4n,year:9999n})[v.unit]+2n;
+        break;
+      }
+      default: assert.fail(v.rule);
+    }
+    if(n > 9007199254740991n) assert.equal(v.error,'Overflow');
+    else { assert.equal(v.error,undefined); assert.equal(n,BigInt(v.expected)); }
+  }
+});
+
 test('Graph count body fixes quantity transfers and independent selector arithmetic', () => {
   const path = 'spec/contracts/actql-bound-graph-laws.json';
   const body = JSON.parse(readFileSync(new URL(`../${path}`, import.meta.url), 'utf8'));

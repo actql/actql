@@ -1,0 +1,9 @@
+{
+  "version": "actql-bound-series-laws/0.1",
+  "law_ids": ["actql.bound.time-series", "actql.bound.calendar-series"],
+  "time_series": "After admitting and binding UTC timestamp endpoints and a positive safe-integer millisecond step, start <= end is required. The half-open generated range has ceil((end_ms - start_ms) / step) rows; equal endpoints give zero. Use the specified proleptic Gregorian calendar, not Host timezone APIs. Compute quotient and remainder exactly without an overflowing duration + step - 1 intermediate. Empty ranges do not waive binding or step validation.",
+  "calendar_series": "Calendar-series boundaries follow the selected calendar options and pinned timezone profile. A conservative row bound for the admitted years 0001..9999 is 3652061 for day, 521725 for week, 119990 for month, 39998 for quarter and 10001 for year. These are one start per civil unit plus two edge positions, not exact output counts. Equal admitted literal endpoints permit zero. Gap, fold and coincident-boundary handling cannot add more starts than this bound.",
+  "application": "Generator bounds have no input row count dependency. Retain the actual generator occurrence, bound Parameter ownership and governing temporal or calendar profile. Concrete bound values do not replace the corresponding semantic contracts or become the local contract set. Calendar bucket preserves input count and is not a calendar-series source proof.",
+  "arithmetic": "Derived counts are exact nonnegative safe integers or conservative bounds represented as such. Reject invalid endpoints, reversed ranges, unresolved required bindings and unsafe arithmetic; never round, saturate or silently generate a prefix.",
+  "conditionality": "A count proof is conditional on successful value, option and profile validation. It does not generate rows, establish completed resource enforcement, grant execution authority or prove observed results."
+}

@@ -1,0 +1,23 @@
+{
+  "version": "actql-bound-ranking-series-vectors/0.1",
+  "cases": [
+    {"rule":"query","queries":3,"candidates":null,"k":2,"expected":6},
+    {"rule":"query","queries":3,"candidates":1,"k":2,"expected":3},
+    {"rule":"query","queries":0,"candidates":null,"k":9007199254740991,"expected":0},
+    {"rule":"query","queries":2,"candidates":null,"k":9007199254740991,"error":"Overflow"},
+    {"rule":"merge","inputs":[3,3],"k":null,"expected":6},
+    {"rule":"merge","inputs":[3,3],"k":4,"expected":4},
+    {"rule":"merge","inputs":[],"k":4,"expected":4},
+    {"rule":"merge","inputs":[9007199254740991,9007199254740991],"k":4,"expected":4},
+    {"rule":"merge","inputs":[9007199254740991,1],"k":null,"error":"Overflow"},
+    {"rule":"series","duration":0,"step":1,"expected":0},
+    {"rule":"series","duration":11,"step":3,"expected":4},
+    {"rule":"series","duration":10,"step":5,"expected":2},
+    {"rule":"series","duration":315569519999999,"step":9007199254740991,"expected":1},
+    {"rule":"calendar","unit":"day","expected":3652061},
+    {"rule":"calendar","unit":"week","expected":521725},
+    {"rule":"calendar","unit":"month","expected":119990},
+    {"rule":"calendar","unit":"quarter","expected":39998},
+    {"rule":"calendar","unit":"year","expected":10001}
+  ]
+}

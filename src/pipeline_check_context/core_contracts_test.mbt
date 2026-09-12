@@ -115,6 +115,10 @@ test "core contract collection preserves owned occurrences and shares dependency
     let root = core_contract_root_at(inventory, i).unwrap()
     match root.site {
       OperationJoinCountRules(_, _, _) => assert_eq(root.body, JoinCountRules)
+      OperationRankingCountRules(_, _, _) =>
+        assert_eq(root.body, RankingCountRules)
+      OperationSeriesCountRules(_, _, _) =>
+        assert_eq(root.body, SeriesCountRules)
       OperationGraphCountRules(_, _, _) => assert_eq(root.body, GraphCountRules)
       OperationWindowCountRules(_, _, _) =>
         assert_eq(root.body, WindowCountRules)

@@ -52,6 +52,15 @@ test "TextRank contract collection requires the owned resolved data profile" {
     if root.site is OperationDataProfile(stage, visit, step, profile) {
       assert_eq(profile, @pipeline.TextRankProfile)
       assert_eq(root.body, TextRankProfileData(text_profile_fixture_cid()))
+      let mut count_roots = 0
+      for j in 0..<core_contract_root_count(inventory) {
+        let candidate = core_contract_root_at(inventory, j).unwrap()
+        if candidate.site == OperationRankingCountRules(stage, visit, step) {
+          assert_eq(candidate.body, RankingCountRules)
+          count_roots += 1
+        }
+      }
+      assert_eq(count_roots, 1)
       guard @pipeline.step_at(
           program_identity_producer_at(identity, stage, visit).unwrap(),
           step,
@@ -119,6 +128,15 @@ test "Calendar contract roots retain the checked table at each operation" {
     let root = core_contract_root_at(inventory, i).unwrap()
     if root.site is OperationDataProfile(stage, visit, step, profile) {
       assert_eq(profile, @pipeline.CalendarProfile)
+      let mut count_roots = 0
+      for j in 0..<core_contract_root_count(inventory) {
+        let candidate = core_contract_root_at(inventory, j).unwrap()
+        if candidate.site == OperationSeriesCountRules(stage, visit, step) {
+          assert_eq(candidate.body, SeriesCountRules)
+          count_roots += 1
+        }
+      }
+      assert_eq(count_roots, 1)
       guard @pipeline.step_at(
           program_identity_producer_at(identity, stage, visit).unwrap(),
           step,

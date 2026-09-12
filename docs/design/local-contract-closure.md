@@ -243,6 +243,17 @@ operations nonexpanding. Roots retain their owning operation; the body has no
 external contract-reference fields. Graph input enforcement and concrete
 observations are separate from these transfer rules.
 
+Nearest, text-rank and ranking-merge occurrences select
+`spec/contracts/actql-bound-ranking-laws.json` at pointer `""`, CID
+`sha256:655fa88f2d24a15794a12abdbdc967f51517f5f92aa1316f74f6df1617fcf0c7`.
+Time-series and calendar operations select
+`spec/contracts/actql-bound-series-laws.json` at pointer `""`, CID
+`sha256:c85b84631add903652807808fc4faa9015e59cf9bfd0fb11bf170c85139dcf05`.
+Calendar bucket uses the body's preservation distinction, not its generator
+bound. These semantic bodies do not contain external contract-reference fields;
+selected lexical/calendar profiles and concrete bound values retain their own
+roles. Per-occurrence selection does not combine different Program owners.
+
 The existing exhaustive operation-profile classification also exposes adopted
 AoA law roots: RelA scalar/primitive laws, SGA structural/identity laws, and VecA
 numerical laws. Reads from an `OperationProfileResolution` retain the same owned

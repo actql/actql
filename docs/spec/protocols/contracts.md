@@ -392,6 +392,24 @@ completeness or discharged resource enforcement.
 ../../../spec/contracts/actql-bound-graph-laws.json# sha256:5e9a00ff401f42059f037c52babb40f8440201b3dccaffa90da297058d6adc89
 ```
 
+<!-- requirement-block: capacity-law-registry.ranking-series-body capacity-law-registry.ranking-machine capacity-law-registry.series-machine -->
+The pinned ranking and series count bodies govern query top-k, ranking merge,
+fixed-duration generators and calendar-series upper bounds. Applications MUST
+retain operand and Parameter ownership, distinguish per-query k from a global
+bound, and retain option/profile validation. Calendar conservative bounds are
+not exact generated row counts. None of these laws discharges execution authority
+or resource enforcement.
+
+<!-- normative-code: law -->
+```text
+../../../spec/contracts/actql-bound-ranking-laws.json# sha256:655fa88f2d24a15794a12abdbdc967f51517f5f92aa1316f74f6df1617fcf0c7
+```
+
+<!-- normative-code: law -->
+```text
+../../../spec/contracts/actql-bound-series-laws.json# sha256:c85b84631add903652807808fc4faa9015e59cf9bfd0fb11bf170c85139dcf05
+```
+
 <!-- requirement-block: capacity-law-registry.machine-contract -->
 <!-- normative-code: law -->
 ```text

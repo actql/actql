@@ -1,0 +1,9 @@
+{
+  "version": "actql-bound-ranking-laws/0.1",
+  "law_ids": ["actql.bound.nearest", "actql.bound.text-rank", "actql.bound.merge-rankings"],
+  "query_top_k": "For nearest and text_rank, query occurrence bound Q and positive k give output row bound Q * k. With a candidate occurrence bound C, use Q * min(C, k). The query side is the query operand, not the current candidate operand; both bindings retain actual input occurrences and producers. These bounds are conditional on successful identity and value admission, not permission to deduplicate invalid inputs.",
+  "merge_global": "When by is empty, merge_rankings has one global group and output bound k without input count proofs. With input bounds, use min(k, sum(input bounds)). Evaluate this mathematical bound without requiring an unbounded intermediate sum: reaching the cap is not safe-integer overflow or output truncation, because the operation itself specifies top-k selection.",
+  "merge_partitioned": "When by is nonempty, k is per query group and is not a global row bound. The sum of all input occurrence bounds is a conservative global bound; retain repeated operand occurrences. Unknown input bounds do not become zero, and no global k clamp is inferred.",
+  "arithmetic": "Counts and k are nonnegative safe integers with k positive. Perform required products and uncapped sums exactly and reject overflow without rounding or saturation. An applicable zero query bound gives zero output rows, but never waives input or option validation.",
+  "conditionality": "Bounds retain the selected operation, quantity, input dependencies and required ranking admission. They do not prove valid vectors, dimensions, scores, unique identities, contiguous ranks, lexical profile admission, completeness or authorization. Ranking semantics, total order and resource enforcement remain separate requirements."
+}

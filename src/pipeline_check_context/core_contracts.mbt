@@ -36,6 +36,8 @@ pub(all) enum CoreContractBody {
   JoinCountRules
   WindowCountRules
   GraphCountRules
+  RankingCountRules
+  SeriesCountRules
 } derive(Eq, Debug)
 
 ///|
@@ -54,6 +56,8 @@ pub(all) enum CoreContractSite {
   OperationJoinCountRules(Int, Int, Int)
   OperationWindowCountRules(Int, Int, Int)
   OperationGraphCountRules(Int, Int, Int)
+  OperationRankingCountRules(Int, Int, Int)
+  OperationSeriesCountRules(Int, Int, Int)
 } derive(Eq, Debug)
 
 ///|
@@ -363,6 +367,23 @@ pub fn collect_core_contracts(
               GraphCountRules,
             )
           }
+          match operation {
+            @pipeline.Nearest(..)
+            | @pipeline.Ranking(_)
+            | @pipeline.TextRank(..) =>
+              core_contract_root(
+                b,
+                OperationRankingCountRules(stage, visit, step),
+                RankingCountRules,
+              )
+            @pipeline.TimeSeries(_) | @pipeline.Calendar(_) =>
+              core_contract_root(
+                b,
+                OperationSeriesCountRules(stage, visit, step),
+                SeriesCountRules,
+              )
+            _ => ()
+          }
           for profile in 0..<@pipeline.operation_profile_count(operation) {
             core_contract_charge(b)
             let p = @pipeline.operation_profile_at(operation, profile).unwrap()
@@ -437,7 +458,9 @@ pub fn collect_core_contracts(
         | RelationCountRules
         | JoinCountRules
         | WindowCountRules
-        | GraphCountRules => ()
+        | GraphCountRules
+        | RankingCountRules
+        | SeriesCountRules => ()
         CatalogGrammarBody(body) =>
           for edge in 0..<@environment.catalog_grammar_dependency_count(body) {
             core_contract_edge(b)
@@ -538,6 +561,10 @@ pub fn core_contract_cid(v : CoreContractBody) -> String {
       "sha256:a5045688150b6b5aaf0c992b2e528ba3b5f1dd49e0db14e5673c9515af82ac3a"
     GraphCountRules =>
       "sha256:5e9a00ff401f42059f037c52babb40f8440201b3dccaffa90da297058d6adc89"
+    RankingCountRules =>
+      "sha256:655fa88f2d24a15794a12abdbdc967f51517f5f92aa1316f74f6df1617fcf0c7"
+    SeriesCountRules =>
+      "sha256:c85b84631add903652807808fc4faa9015e59cf9bfd0fb11bf170c85139dcf05"
   }
 }
 
