@@ -28,19 +28,16 @@ export function legacySchedule(manifest, target, smoke) {
 }
 
 export function additionalSchedule(manifest, target, smoke) {
-  // The producer timing is not silently counted as measured. Preserve manifest
-  // indexes even when a case is not yet connected to timing.
-  const indices = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12];
   const ids = ['numeric-project-1000', 'numeric-project-10000', 'nullable-1000',
     'nullable-10000', 'numeric-full-add', 'filter-low', 'filter-high', 'short-text',
-    'long-text', 'decimal-temporal', 'nested-small-result', 'zero-columns'];
+    'long-text', 'decimal-temporal', 'nested-small-result', 'producer-branches', 'zero-columns'];
   if (!['native', 'js', 'wasm'].includes(target)) throw new Error('Unknown target');
-  if (ids.some((id, i) => manifest.additional_cases[indices[i]]?.id !== id)) throw new Error('Unexpected additional case inventory');
+  if (manifest.additional_cases.length !== ids.length ||
+      ids.some((id, i) => manifest.additional_cases[i]?.id !== id)) throw new Error('Unexpected additional case inventory');
   // Reuse validation of the predeclared repetition and alternation rules.
   legacySchedule(manifest, target, smoke);
   const repetitions = smoke ? 1 : manifest.sampling.measured_repetitions;
-  return ids.flatMap((case_id, position) => {
-    const case_index = indices[position];
+  return ids.flatMap((case_id, case_index) => {
     const { rows, columns } = manifest.additional_cases[case_index];
     return Array.from({ length: repetitions }, (_, repeat) =>
       manifest.sampling.candidate_order_cycle[repeat % 2].map(candidate =>

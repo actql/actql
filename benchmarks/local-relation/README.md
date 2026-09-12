@@ -56,16 +56,25 @@ accounting and prepared-input repeats remain necessary. A partial report is not
 a successful run. Validate the schedule and parsing with
 `node --test scripts/layout-measurement-support.test.mjs`.
 
-The additional entry measures twelve fixed additional cases on all
+The additional entry measures all thirteen fixed additional cases on all
 three targets: `--additional-smoke` uses one pair-set per case and `--additional`
-uses seven. Neither includes producer timing or prepared-input
-repeats, so neither constitutes the full adoption matrix. Reports are separate
+uses seven. Neither includes prepared-input repeats or the legacy cases,
+so neither constitutes the full adoption matrix. Reports are separate
 from the legacy samples and retain every successful prefix if a later sample
 fails. Each sample must identify the exact case and assert that disposal is
 included. Its enclosing clock ends after the fixture/input/output-owner scope
 returns; the five phase clocks exclude cleanup, whose cost remains in that
 enclosing time. A does not implement the experimental owned-buffer ledger and
 reports those two capacity fields as null, not as zero-byte storage.
+
+For the producer case, phase 1 constructs a real completed row-backed producer
+as the identical fixture for A/B/C, including its checking and execution. Phase
+2 checks, binds and prepares the receiving branch sequence. Phase 3 performs
+the common producer-input admission and physical import; phase 4 runs both
+branches; phase 5 observes both retained results. The producer stays owned until
+the enclosing measurement scope ends. The B/C ledger includes its row-pointer
+and cell slots while destination buffers coexist; it does not pretend to count
+all nested objects or schema metadata as allocator bytes.
 
 The zero-column fixture supplies 1,000 already-empty rows and applies identity
 drop and empty sort, preserving their multiplicity. The earlier proposed

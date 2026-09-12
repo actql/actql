@@ -1,7 +1,7 @@
 ///|
 // Explicit opt-in: normal regression runs do not execute the measurement loop.
 // Each benchmark process warms and observes the same case before measuring it.
-test "profile the fixed legacy sequence with independent output assertions" {
+test "profile fixed layout sequences with independent output assertions" {
   if @env.get_env_var("ACTQL_LAYOUT_ADDITIONAL_CASE") is Some(text) {
     let mut index = -1
     for i in 0..<13 {

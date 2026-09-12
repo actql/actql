@@ -1,7 +1,9 @@
 ///|
 fn layout_producer_case(
   count : Int,
+  timings? : Array[Double]? = None,
 ) -> (GeneratedSequence, BoundProducerInput) raise {
+  let fixture_clock = @bench.monotonic_clock_start()
   let (source, input) = numeric_layout_fixture(
     NarrowProjection,
     count,
@@ -14,6 +16,10 @@ fn layout_producer_case(
   }).unwrap()
   let owner = @lower.sequence_owner(source.sequence)
   let output = completed_output(completed, Step(0)).unwrap()
+  if timings is Some(phases) {
+    phases.push(@bench.monotonic_clock_end(fixture_clock))
+  }
+  let prepare_clock = @bench.monotonic_clock_start()
   let producer = @pipeline.produced_input(
     @lower.pipeline(@lower.bound_preparation(owner)),
     @pipeline.Step(0),
@@ -71,7 +77,11 @@ fn layout_producer_case(
     100000,
     10000,
   ).unwrap()
-  (generated, bind_completed_input(receiver, 0, owner, output).unwrap())
+  let bound = bind_completed_input(receiver, 0, owner, output).unwrap()
+  if timings is Some(phases) {
+    phases.push(@bench.monotonic_clock_end(prepare_clock))
+  }
+  (generated, bound)
 }
 
 ///|

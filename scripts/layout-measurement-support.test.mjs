@@ -45,12 +45,12 @@ test('RSS keeps platform units separate and refuses missing ambiguous or invalid
   assert.throws(() => peakRssBytes('', 'win32'));
 });
 
-test('additional schedule keeps every connected fixed case and never claims missing producer timing', () => {
+test('additional schedule includes all thirteen fixed cases without dropping producer or zero-column inputs', () => {
   for (const target of ['native', 'js', 'wasm']) {
     const schedule = additionalSchedule(manifest, target, false);
-    assert.equal(schedule.length, 12 * 7 * 3);
-    assert.equal(additionalSchedule(manifest, target, true).length, 12 * 3);
-    for (const i of [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12]) {
+    assert.equal(schedule.length, 13 * 7 * 3);
+    assert.equal(additionalSchedule(manifest, target, true).length, 13 * 3);
+    for (let i = 0; i < 13; i++) {
       const expected = manifest.additional_cases[i];
       for (let repeat = 0; repeat < 7; repeat++) {
         const paired = schedule.filter(s => s.case_index === i && s.repeat === repeat);
@@ -60,7 +60,7 @@ test('additional schedule keeps every connected fixed case and never claims miss
         }
       }
     }
-    assert.ok(schedule.every(s => s.case_id !== 'producer-branches'));
+    assert.equal(schedule.filter(s => s.case_id === 'producer-branches').length, 21);
     assert.ok(schedule.filter(s => s.case_id === 'zero-columns').every(s => s.rows === 1000 && s.columns === 0));
   }
   const changed = structuredClone(manifest);

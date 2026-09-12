@@ -44,7 +44,7 @@ const run = (command, args, extra = {}) => {
 const version = run(`${moonHome}/bin/moonc`, ['-v']).stdout.trim();
 if (!version.includes(toolchain.version)) throw new Error(`Unpinned compiler: ${version}`);
 const report = {
-  scope: additional ? 'twelve fixed additional cases; producer, prepared repeats and complete accounting pending'
+  scope: additional ? 'all thirteen fixed additional cases; prepared repeats and complete accounting pending'
     : smoke ? 'three-layout-harness-smoke' : 'fixed-legacy-subset; additional cases and complete accounting pending',
   status: 'running', adoption_eligible: false, started_at: new Date().toISOString(),
   baseline_commit: manifest.row_baseline_commit,
