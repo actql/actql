@@ -662,6 +662,40 @@ than rescanning that list for each requirement. Retained-link limits are checked
 before allocation. This pass links contextual order decisions only, not the
 remaining value, capacity, profile, policy or runtime implementation obligations.
 
+### Bound scalar domains
+
+`check_program_operation_scalars` validates scalar Parameter requirements from
+the same owned operation inventory after contextual order linking. Declaration
+admission is not enough to prove an operation-specific range: a number Parameter
+can hold a fraction, an unsafe integer, or (if nullable) null.
+
+The explicit domain classification covers `BoundInteger` with its own minimum,
+`BoundFraction`, `BoundFinite` and `BoundDuration` from relational and sequence
+row validations. Counts and offsets use exact safe integers without rounding;
+zero is allowed only where the recorded minimum allows it. Fractions include
+both endpoints of [0, 1]. Fixed watermark thresholds permit negative and
+fractional finite numbers. Negative zero is rejected, not repaired. Duration
+tokens use the existing positive safe-integer millisecond parser, preserving
+the admitted original string and Parameter identity alongside the resolved
+milliseconds.
+
+Each result retains the exact requirement occurrence and admitted BoundParameter
+from that producer's selected used-value index. Lookup checks the pipeline owner,
+does not accept an independent binding set, and uses bounded binary search over
+the name-sorted index rather than copying values or repeatedly building maps.
+The shared work budget includes the preceding order links, requirement visits,
+name comparisons and complete duration scans before parsing. Resolution caps
+are checked before retaining entries. A later invalid value discards earlier
+partial success.
+
+These checks follow the literal domains in [take](../spec/language.md#take),
+[aggregates](../spec/language.md#group), and
+[relational temporal operations](../spec/language.md#relational-temporal).
+They do not evaluate row expressions, establish actual counts, or claim resource
+enforcement. Frame endpoint relationships, pivot fill compatibility, and other
+operation families' specialized bound arguments remain separate requirements;
+absence from this scalar-domain pass is not their discharge.
+
 Expression closure does not discharge operation-level obligations, bind
 authored guard witness identities, build staged Program/import contracts, or
 complete local Unit/Invocation identity projections. Source Program and stage

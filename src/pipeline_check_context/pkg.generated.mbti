@@ -64,6 +64,8 @@ pub fn check_parameter_bindings(PipelineContext, max_work~ : Int, max_text_bytes
 
 pub fn check_patterns(ExpressionValidationContext, PatternLimits) -> Result[PatternChecks, PatternIssue]
 
+pub fn check_program_operation_scalars(ProgramOperationOrders, Int, Int) -> Result[ProgramOperationScalars, OperationScalarIssue]
+
 pub fn check_regex_patterns(ExpressionValidationContext, RegexPatternLimits) -> Result[RegexPatternChecks, RegexPatternIssue]
 
 pub fn check_resolved_orders(@relation_results.CheckedOrders, Array[@parameter_binding.BoundValues?], Array[@capacity_graph_preflight.ApplicationCoverage], @capacity_policy.Policy, max_work~ : Int, max_text_bytes~ : Int, proof_owners? : Array[(Int, Int, Int)], input_owners? : Array[(Int, Int, Int, Int)]) -> Result[PipelineContext, Issue]
@@ -179,6 +181,14 @@ pub fn operation_requirements_count(ProgramOperationRequirements) -> Int
 pub fn operation_requirements_expressions(ProgramOperationRequirements) -> ProgramExpressionClosure
 
 pub fn operation_requirements_work(ProgramOperationRequirements) -> Int
+
+pub fn operation_scalar_at(ProgramOperationScalars, Int) -> OperationScalarResolution?
+
+pub fn operation_scalars_count(ProgramOperationScalars) -> Int
+
+pub fn operation_scalars_orders(ProgramOperationScalars) -> ProgramOperationOrders
+
+pub fn operation_scalars_work(ProgramOperationScalars) -> Int
 
 pub fn parameter_context(BoundParameters) -> PipelineContext
 
@@ -558,6 +568,28 @@ pub(all) enum OperationRequirementsIssue {
   BudgetExceeded
 } derive(Eq, @debug.Debug)
 
+pub(all) enum OperationScalarIssue {
+  InvalidLimits
+  BudgetExceeded
+  ForeignOwner(Int)
+  MissingBindings(Int)
+  InvalidValue(Int, @pipeline_typing.OperationScalarDemand)
+} derive(Eq, @debug.Debug)
+
+pub struct OperationScalarResolution {
+  requirement_index : Int
+  site : OperationRequirementSite
+  parameter : @parameter_binding.BoundParameter
+  value : OperationScalarValue
+}
+
+pub(all) enum OperationScalarValue {
+  Integer(Int64)
+  Fraction(Double)
+  Finite(Double)
+  DurationMilliseconds(Int64)
+} derive(Eq, @debug.Debug)
+
 pub(all) enum ParameterIssue {
   InvalidLimits
   WorkLimit(Int)
@@ -649,6 +681,8 @@ pub(all) enum ProgramIdentityPhase {
 type ProgramOperationOrders
 
 type ProgramOperationRequirements
+
+type ProgramOperationScalars
 
 type ProgramPreparation
 

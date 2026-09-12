@@ -234,6 +234,10 @@ pub fn operation_profile_count(CheckedOperation) -> Int
 
 pub fn operation_profile_id(OperationProfile) -> String
 
+pub fn operation_scalar_demand(OperationObligation) -> OperationScalarDemand?
+
+pub fn operation_scalar_name(OperationScalarDemand) -> String
+
 pub fn order_dependency_at(LogicalOrder, Int) -> Target?
 
 pub fn order_dependency_count(LogicalOrder) -> Int
@@ -678,6 +682,13 @@ pub(all) enum OperationProfile {
   VecA
   CalendarProfile
   TextRankProfile
+} derive(Eq, @debug.Debug)
+
+pub(all) enum OperationScalarDemand {
+  SafeInteger(String, minimum~ : Int64)
+  Fraction(String)
+  Finite(String)
+  Duration(String)
 } derive(Eq, @debug.Debug)
 
 pub struct ParameterSlot {

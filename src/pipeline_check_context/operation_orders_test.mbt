@@ -1,7 +1,13 @@
 ///|
-fn operation_order_fixture(steps : String) -> ProgramOperationRequirements {
+fn operation_order_fixture(
+  steps : String,
+  supplied? : @decode.Cursor? = None,
+  parameters? : String = "{\"p\":{\"type\":\"string\",\"default\":\"é😀\"},\"n\":{\"type\":\"number\",\"default\":1}}",
+) -> ProgramOperationRequirements {
   let (operations, references, bindings) = program_sources_fixture(
     steps=Some(steps),
+    supplied~,
+    parameters~,
   )
   let identity = identify_program_sources(
     bind_program_sources(operations, references, bindings, 10000000).unwrap(),
