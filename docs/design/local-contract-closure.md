@@ -140,6 +140,14 @@ coordinates while sharing body storage and traversal charges. Selecting the
 contracts does not discharge their rules: in particular it does not manufacture
 completed predecessors, runtime validation, authorization or executable support.
 
+The Stage also selects the existing registered `/schemas/local_contracts` and
+`/schemas/local_dependencies` bodies: they govern the contract-set and local
+dependency envelopes interpreted by Unit identity construction. These are schema
+body CIDs, not the as-yet-constructed envelope's identity or a substitute hash of
+the whole registry. Selecting the contract-set schema creates no self-reference
+to the concrete set CID. Their local property definitions are part of the schema
+body; CID-shaped property constraints are not dynamic contract dependencies.
+
 The same Stage inventory retains the Check Environment interpretation contract
 from its owned admission context, including for a Local Program with no Catalog
 inputs. Policy admission interprets absence as well as presence: selecting this
@@ -257,7 +265,8 @@ Host-selection match or other pending profile checks required for final closure.
 The collector derives incoming sites from the same source identity and Result
 wiring, rather than accepting a caller's list of interface CIDs. Each Result
 import selects the registered `/schemas/result_import_interface` body in
-`actql-stage-contracts.json`; each predecessor milestone selects the Stage laws.
+`actql-stage-contracts.json`; each predecessor milestone additionally selects
+`/schemas/gate_requirement`, with common Stage laws retained by its Stage roots.
 Repeated and unused imports retain separate sites, while the grammar body is
 shared. Accepted and completed milestones remain distinct in the retained site;
 choosing the same interpretation contract does not equate their gate semantics.

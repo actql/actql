@@ -87,25 +87,25 @@ test "core contract collection preserves owned occurrences and shares dependency
   let incoming = core_contract_incoming(inventory)
   assert_true(physical_equal(program_incoming_identity(incoming), identity))
   assert_eq(program_incoming_count(incoming), 3)
-  assert_eq(core_contract_root_count(inventory), 13 + 2 * steps)
-  assert_eq(core_contract_body_count(inventory), 26)
+  assert_eq(core_contract_root_count(inventory), 17 + 2 * steps)
+  assert_eq(core_contract_body_count(inventory), 29)
   let (work, edges) = core_contract_usage(inventory)
   assert_eq(edges, 23)
   assert_eq(
     work,
     program_identity_usage(identity).0 +
     7 +
-    10 +
+    14 +
     2 * steps +
     visits +
     2 * steps +
-    26 +
+    29 +
     23 +
     (program_incoming_usage(incoming).0 - program_identity_usage(identity).0) +
     6 +
     4 +
     core_contract_root_count(inventory) +
-    51 +
+    56 +
     42,
   )
   let mut stage_roots = 0
@@ -119,7 +119,7 @@ test "core contract collection preserves owned occurrences and shares dependency
         assert_eq(site.stage, 1)
         match site.requirement {
           Success(_, _) =>
-            assert_eq(root.body, StageSemantics(@environment.StageLaws))
+            assert_eq(root.body, StageSemantics(@environment.GateRequirement))
           Result(_, _, _) => {
             assert_eq(
               root.body,
@@ -140,14 +140,15 @@ test "core contract collection preserves owned occurrences and shares dependency
         assert_eq(root.body, CatalogGrammarBody(@environment.EnvironmentBody))
       }
       StageSemanticRules(stage, rules) => {
-        assert_eq(stage, semantic_roots / 2)
+        assert_eq(stage, semantic_roots / 4)
         assert_eq(
           rules,
-          if semantic_roots % 2 == 0 {
-            @environment.SourceRules
-          } else {
-            @environment.StageLaws
-          },
+          [
+            @environment.SourceRules,
+            @environment.StageLaws,
+            @environment.LocalContracts,
+            @environment.LocalDependencies,
+          ][semantic_roots % 4],
         )
         assert_eq(root.body, StageSemantics(rules))
         semantic_roots += 1
@@ -187,7 +188,7 @@ test "core contract collection preserves owned occurrences and shares dependency
     }
   }
   assert_eq(stage_roots, 2)
-  assert_eq(semantic_roots, 4)
+  assert_eq(semantic_roots, 8)
   assert_true(
     physical_equal(
       program_source_contract_identity(core_contract_sources(inventory)),
@@ -204,7 +205,7 @@ test "core contract collection preserves owned occurrences and shares dependency
   let exact : CoreContractLimits = {
     max_work: work,
     max_roots: core_contract_root_count(inventory),
-    max_bodies: 26,
+    max_bodies: 29,
     max_edges: 23,
   }
   assert_true(collect_core_contracts(identity, exact) is Ok(_))
@@ -226,7 +227,7 @@ test "core contract collection preserves owned occurrences and shares dependency
     limits in [
       { ..exact, max_work: work - 1, },
       { ..exact, max_roots: exact.max_roots - 1, },
-      { ..exact, max_bodies: 25, },
+      { ..exact, max_bodies: 28, },
       { ..exact, max_edges: 22, },
     ] {
     assert_true(collect_core_contracts(identity, limits) is Err(BudgetExceeded))
@@ -245,7 +246,7 @@ test "core contract collection preserves owned occurrences and shares dependency
     assert_true(core_contract_body_at(inventory, invalid) is None)
   }
   assert_true(core_contract_root_at(inventory, exact.max_roots) is None)
-  assert_true(core_contract_body_at(inventory, 26) is None)
+  assert_true(core_contract_body_at(inventory, 29) is None)
 }
 
 ///|
@@ -270,7 +271,7 @@ test "incoming grammar selection retains accepted and completed gate distinction
     )
     let root = core_contract_root_at(inventory, 0).unwrap()
     assert_eq(root.site, IncomingRules(0))
-    assert_eq(root.body, StageSemantics(@environment.StageLaws))
+    assert_eq(root.body, StageSemantics(@environment.GateRequirement))
     assert_eq(
       core_contract_root_at(inventory, 1).unwrap().body,
       StageSemantics(@environment.ResultImportInterface),

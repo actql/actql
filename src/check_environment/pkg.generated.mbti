@@ -835,6 +835,9 @@ pub(all) enum StageSemanticContract {
   SourceRules
   StageLaws
   ResultImportInterface
+  LocalContracts
+  LocalDependencies
+  GateRequirement
 } derive(Eq, @debug.Debug)
 
 type TextRankSelection

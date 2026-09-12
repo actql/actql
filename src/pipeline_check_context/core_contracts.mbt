@@ -194,7 +194,7 @@ pub fn collect_core_contracts(
     for index in 0..<incoming.entries.length() {
       core_contract_charge(b)
       let rules = match incoming.entries[index].requirement {
-        Success(_, _) => @environment.StageLaws
+        Success(_, _) => @environment.GateRequirement
         Result(_, _, _) => @environment.ResultImportInterface
         Receipt(_, _, _) => raise CoreContractStop(UnsupportedIncoming(index))
       }
@@ -261,7 +261,13 @@ pub fn collect_core_contracts(
         CatalogGrammarBody(@environment.EnvironmentBody),
       )
       core_contract_root(b, StageSourceGrammar(stage), ProgramSourceGrammar)
-      for rules in [@environment.SourceRules, @environment.StageLaws] {
+      for
+        rules in [
+          @environment.SourceRules,
+          @environment.StageLaws,
+          @environment.LocalContracts,
+          @environment.LocalDependencies,
+        ] {
         core_contract_root(
           b,
           StageSemanticRules(stage, rules),

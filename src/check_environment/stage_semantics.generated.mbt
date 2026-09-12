@@ -5,6 +5,9 @@ pub(all) enum StageSemanticContract {
   SourceRules
   StageLaws
   ResultImportInterface
+  LocalContracts
+  LocalDependencies
+  GateRequirement
 } derive(Eq, Debug)
 
 ///|
@@ -16,5 +19,11 @@ pub fn stage_semantic_contract_cid(body : StageSemanticContract) -> String {
       "sha256:540d06456c7ddf166f5192dd1379b853e48791ca869a54abcc428b2210097325"
     ResultImportInterface =>
       "sha256:81898e3b8eb76b16e59e0de4b38ed5d948e7752ae127b45ae432f39e0afd2431"
+    LocalContracts =>
+      "sha256:a1dcd5bf20a7d6dceedd4a298b684f439101d391063ae13bb61359bd10d30621"
+    LocalDependencies =>
+      "sha256:22a2636742d270464988e350adc168af898987e83f620cba893efb091d9f49e8"
+    GateRequirement =>
+      "sha256:7556fa58d35f66d498511ef31800cddda05bacdb1f4eba7d654010ee9994351d"
   }
 }
