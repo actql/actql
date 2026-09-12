@@ -74,8 +74,8 @@ fn import_layout_producer(
   }
   match bound.projection {
     None => Ok(adopted)
-    Some(projection) =>
-      evaluate_layout_source(
+    Some(projection) => {
+      let result = evaluate_layout_source(
         CheckedProjection(projection),
         adopted,
         id,
@@ -86,6 +86,52 @@ fn import_layout_producer(
         physical,
         None,
       )
+      release_layout_columns(adopted.storage)
+      result
+    }
+  }
+}
+
+///|
+test "producer projection releases conversion columns on success and failure" {
+  let owner = row_owner("")
+  let upstream = evaluate_sequence_components(
+    registered_relation_contracts(),
+    prepared_sequence(owner),
+    [],
+    ["values_0"],
+    run_limits(),
+    { remaining: 100000, max_frames: 100, },
+  ).unwrap()
+  let source = completed_output(upstream, Step(0)).unwrap()
+  let receiver = projected_consumer(owner, "[\"a\"]", "[{\"select\":[\"a\"]}]")
+  let bound = bind_completed_input(receiver, 0, owner, source).unwrap()
+  for fail_projection in [false, true] {
+    let ledger = layout_ledger(2, 36, 100)
+    let physical = {
+      ..layout_allocation(10000, 10000, 10000),
+      ledger: Some(ledger),
+    }
+    let result = import_layout_producer(
+      bound,
+      "input_0",
+      TypedColumns,
+      run_limits(),
+      { remaining: if fail_projection { 0 } else { 100000 }, max_frames: 100, },
+      row_output(),
+      physical,
+    )
+    if fail_projection {
+      assert_true(result is Err(_))
+    } else {
+      let output = result.unwrap()
+      assert_eq((ledger.slots.live, ledger.bytes.live), (1, 18))
+      assert_true(layout_cell(output.storage, 0, 0) is Some(Number(1)))
+      release_layout_columns(output.storage)
+    }
+    assert_eq((ledger.slots.live, ledger.bytes.live), (0, 0))
+    assert_eq(ledger.bytes.peak, 36)
+    assert_true(source.table.rows[0][0] is Number(1))
   }
 }
 
