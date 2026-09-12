@@ -120,7 +120,7 @@ fn decode(
   root : @decode.Cursor,
   limits : Limits,
   checked : Bool,
-) -> Contract raise Abort {
+) -> (Contract, Int, Int) raise Abort {
   let budget : Budget = {
     nodes: limits.max_nodes,
     scheduled: 1,
@@ -287,15 +287,19 @@ fn decode(
       }
     }
   }
-  values.pop().unwrap()
+  (
+    values.pop().unwrap(),
+    limits.max_nodes - budget.nodes,
+    limits.max_text_bytes - budget.text,
+  )
 }
 
 ///|
-fn admit(
+fn admit_usage(
   cursor : @decode.Cursor,
   limits : Limits,
   checked : Bool,
-) -> Result[Contract, AdmissionError] {
+) -> Result[(Contract, Int, Int), AdmissionError] {
   if limits.max_nodes < 0 || limits.max_depth < 0 || limits.max_text_bytes < 0 {
     return Err(InvalidLimits)
   }
@@ -310,7 +314,7 @@ pub fn read_author(
   cursor : @decode.Cursor,
   limits : Limits,
 ) -> Result[Contract, AdmissionError] {
-  admit(cursor, limits, false)
+  admit_usage(cursor, limits, false).map(v => v.0)
 }
 
 ///|
@@ -320,5 +324,15 @@ pub fn read_checked(
   cursor : @decode.Cursor,
   limits : Limits,
 ) -> Result[Contract, AdmissionError] {
-  admit(cursor, limits, true)
+  admit_usage(cursor, limits, true).map(v => v.0)
+}
+
+///|
+/// Same checked admission, also returning consumed contract nodes and UTF-8
+/// text bytes. Counts follow Limits, not serialized JSON size or heap usage.
+pub fn read_checked_usage(
+  cursor : @decode.Cursor,
+  limits : Limits,
+) -> Result[(Contract, Int, Int), AdmissionError] {
+  admit_usage(cursor, limits, true)
 }

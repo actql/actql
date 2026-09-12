@@ -93,6 +93,26 @@
     "policy": "validate_selected_profile_and_every_supplied_policy_component",
     "authority": "shape_hash_and_membership_are_not_authorization_or_runtime_evidence"
   },
+  "value_contract_bodies": {
+    "kinds": [
+      "request_schema",
+      "command_input",
+      "command_output",
+      "idempotency_key",
+      "checkpoint",
+      "lookup_request_key",
+      "lookup_batch_request",
+      "lookup_response_key"
+    ],
+    "schema": {
+      "file": "spec/contracts/actql-protocol-schemas.json",
+      "pointer": "/schemas/canonical_value_contract",
+      "cid": "sha256:02859499357530af0ae58e4f2958d1c8fa48f957b86b0a2976dad43bed99b551"
+    },
+    "admission": "all_supplied_bodies_including_unused_exact_checked_grammar_no_author_defaults_or_JSON_Schema_conversion",
+    "ownership": "retain_exact_registry_envelope_and_environment_not_only_bare_body_cid",
+    "scope": "type_declarations_only_not_value_admission_reference_authority_or_behavioral_contract_validation"
+  },
   "contract_bodies": {
     "data_policy": {
       "type": "object",

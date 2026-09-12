@@ -6,6 +6,7 @@ import {
   "actql/actql/decode_core",
   "actql/actql/encode_core",
   "actql/actql/text_time_policy",
+  "actql/actql/value_contract",
   "moonbitlang/core/debug",
 }
 
@@ -37,6 +38,8 @@ pub fn check_catalog_contents(ContractRegistry, Limits) -> Result[CatalogContent
 pub fn check_catalog_references(CatalogContents, ReferenceLimits) -> Result[CatalogReferences, ReferenceIssue]
 
 pub fn check_contract_registry(WireEnvironment, Limits) -> Result[ContractRegistry, ContractIssue]
+
+pub fn check_protocol_value_contracts(SourceDataPolicies, ValueContractLimits) -> Result[ProtocolValueContracts, ValueContractIssue]
 
 pub fn check_source_data_policies(CatalogReferences, DataPolicyLimits) -> Result[SourceDataPolicies, DataPolicyIssue]
 
@@ -88,6 +91,16 @@ pub fn member_index(Member) -> Int
 
 pub fn member_section(Member) -> Section
 
+pub fn protocol_value_at(ProtocolValueContracts, Int) -> ProtocolValueContract?
+
+pub fn protocol_value_envelope(ProtocolValueContract) -> ContractEnvelope
+
+pub fn protocol_value_for(ProtocolValueContracts, ContractEnvelope) -> ProtocolValueContract?
+
+pub fn protocol_value_type(ProtocolValueContract) -> @value_contract.Contract
+
+pub fn protocol_value_usage(ProtocolValueContracts) -> (Int, Int, Int)
+
 pub fn read(Bytes, String, Limits) -> Result[WireEnvironment, Issue]
 
 pub fn read_capacity(WireEnvironment, @capacity_policy.Limits) -> Result[Capacity, CapacityIssue]
@@ -123,6 +136,8 @@ pub fn text_time_policy(TextTime) -> @text_time_policy.Policy
 pub fn text_time_usage(TextTime) -> (Int, Int)
 
 pub fn usage(WireEnvironment) -> (Int, Int, Int)
+
+pub fn value_contract_policies(ProtocolValueContracts) -> SourceDataPolicies
 
 // Errors
 
@@ -214,6 +229,10 @@ pub(all) struct Limits {
 
 type Member
 
+type ProtocolValueContract
+
+type ProtocolValueContracts
+
 pub(all) struct ReferenceIssue {
   kind : ReferenceIssueKind
   source : @decode_core.Cursor?
@@ -258,6 +277,17 @@ pub(all) enum TextTimeIssue {
   BudgetExceeded
   Policy(@text_time_policy.Issue)
 } derive(Eq, @debug.Debug)
+
+pub(all) enum ValueContractIssue {
+  InvalidLimits
+  EnvelopeLimit
+  InvalidContract(Int, @value_contract.AdmissionError)
+} derive(Eq, @debug.Debug)
+
+pub(all) struct ValueContractLimits {
+  max_envelopes : Int
+  contracts : @value_contract.Limits
+}
 
 type WireEnvironment
 

@@ -40,6 +40,8 @@ pub fn read_author(@decode_core.Cursor, Limits) -> Result[Contract, AdmissionErr
 
 pub fn read_checked(@decode_core.Cursor, Limits) -> Result[Contract, AdmissionError]
 
+pub fn read_checked_usage(@decode_core.Cursor, Limits) -> Result[(Contract, Int, Int), AdmissionError]
+
 pub fn read_parameter_syntax(@decode_core.Cursor, Limits) -> Result[ParameterSyntax, AdmissionError]
 
 pub fn string_contract(nullable~ : Bool, min_length? : Int64?, max_codepoints? : Int64?, max_utf8_bytes? : Int64?) -> Contract?

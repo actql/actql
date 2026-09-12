@@ -49,6 +49,8 @@ fn reference_fixture(
   modes? : Int = 1,
   policy_body? : Json? = None,
   unused_policy? : Json? = None,
+  bodies? : Map[String, Json] = Map([]),
+  unused_value? : Json? = None,
 ) -> CatalogContents raise {
   let kinds = [
     "request_schema", "carrier_schema", "carrier_facts", "pushdown", "checkpoint",
@@ -71,6 +73,10 @@ fn reference_fixture(
       guard core is Object(fields) else { abort("policy fixture") }
       fields["body"] = body
     }
+    if bodies.get(kind) is Some(body) {
+      guard core is Object(fields) else { abort("value contract fixture") }
+      fields["body"] = body
+    }
     let wire = sealed_fixture(core, "cid")
     contracts.push(wire)
     guard @json.parse(wire) is Object(fields) else { abort("envelope fixture") }
@@ -89,6 +95,17 @@ fn reference_fixture(
       "{\"schema\":\"actql.contract/0.1\",\"id\":\"unused-policy\",\"kind\":\"data_policy\",\"version\":\"external\"}",
     )
     guard core is Object(fields) else { abort("unused policy fixture") }
+    fields["body"] = body
+    let wire = sealed_fixture(core, "cid")
+    guard fields["cid"] is String(identity) else { abort("identity fixture") }
+    contracts.push(wire)
+    identities[wire] = identity
+  }
+  if unused_value is Some(body) {
+    let core = @json.parse(
+      "{\"schema\":\"actql.contract/0.1\",\"id\":\"unused-value\",\"kind\":\"checkpoint\",\"version\":\"external\"}",
+    )
+    guard core is Object(fields) else { abort("unused value fixture") }
     fields["body"] = body
     let wire = sealed_fixture(core, "cid")
     guard fields["cid"] is String(identity) else { abort("identity fixture") }

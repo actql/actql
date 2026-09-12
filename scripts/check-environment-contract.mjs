@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import {readFileSync,writeFileSync} from 'node:fs';
 import {machineCid} from './actql-spec-family.mjs';
+import {valueBodyContract} from './protocol-value-contracts.mjs';
 
 export const sections = ['schema_snapshots','connector_capabilities','mapping_contracts','source_views','command_contracts','model_task_contracts','contract_registry','connector_catalogs'];
 const records = {type:'array',items:{type:'object'}};
@@ -32,6 +33,7 @@ const body = {
     policy:'validate_selected_profile_and_every_supplied_policy_component',
     authority:'shape_hash_and_membership_are_not_authorization_or_runtime_evidence',
   },
+  value_contract_bodies:valueBodyContract(JSON.parse(readFileSync('spec/contracts/actql-protocol-schemas.json','utf8'))),
   contract_bodies:{
     data_policy:{
       type:'object',additionalProperties:false,

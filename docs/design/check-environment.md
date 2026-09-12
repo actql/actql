@@ -222,6 +222,30 @@ than being treated as zero-cost completed global admission. Tests cover every
 classification, closed shape, null/missing fields, unused malformed bodies,
 cumulative limits, foreign environments and full-envelope identity.
 
+## Protocol value-contract bodies
+
+`check_protocol_value_contracts` validates the eight value-contract Envelope
+roles through the canonical checked reader, including unused entries. The role
+set matches Sketch `87dc7144:src/actql-protocol.ts`'s
+`ACTQL_VALUE_CONTRACT_KINDS` and its Catalog validation. Pinning this classification
+and the canonical checked schema makes that previously implicit routing explicit.
+The generator classifies all 17 Envelope kinds and fails when an added or removed
+kind has not been reviewed. Carrier schemas are deliberately not value contracts.
+
+The opaque result retains SourceDataPolicies and therefore the same Catalog,
+registry and environment proof chain. Each admitted type retains its Envelope;
+foreign environments cannot substitute even when bytes and CIDs match. Ref type
+declarations remain representable without asserting that any Ref value has been
+issued or admitted. Behavioral bodies and actual request/value compatibility
+still require their own checks before whole-environment admission.
+
+`read_checked_usage` exposes the existing reader's node and text charges without
+changing its acceptance rules. The registry pass applies one cumulative allowance
+across bodies; depth is limited per contract. The envelope cap bounds all scanned
+registry entries, including roles routed elsewhere. Counts are logical reader
+usage, not JSON byte size or a heap ceiling. Empty registries consume no contract
+budget, and a late invalid body returns no partial admitted result.
+
 ## Capacity component selection
 
 The normative component selector is now `/host_policy_profile/capacity`, with
