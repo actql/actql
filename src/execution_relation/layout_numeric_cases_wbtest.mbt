@@ -10,16 +10,19 @@ priv enum NumericLayoutWorkload {
   ShortText
   LongText
   DecimalTemporal
+  NestedSmallResult
 } derive(Eq)
 
 ///|
 fn numeric_layout_fixture(
   workload : NumericLayoutWorkload,
   count : Int,
+  producer_seed? : Bool = false,
 ) -> (GeneratedSequence, CapturedRows) raise {
   let textual = workload == ShortText || workload == LongText
   let temporal = workload == DecimalTemporal
-  let width = if textual || temporal { 8 } else { 64 }
+  let nested = workload == NestedSmallResult
+  let width = if textual || temporal || nested { 8 } else { 64 }
   let payload = layout_text_payload(workload)
   let nullable = workload == NullableProjection
   let raw = Array::makei(count, i => {
@@ -36,7 +39,15 @@ fn numeric_layout_fixture(
       text += ",\"p" +
         j.to_string() +
         "\":" +
-        (if temporal && j >= 2 && j <= 4 {
+        (if nested {
+          let branches = Array::makei(8, branch => {
+            let leaves = Array::makei(8, leaf => {
+              (id + j + branch * 8 + leaf).to_string()
+            })
+            "[" + leaves.join(",") + "]"
+          })
+          "[" + branches.join(",") + "]"
+        } else if temporal && j >= 2 && j <= 4 {
           "\"" + layout_temporal_cell(id, j) + "\""
         } else if textual {
           "\"" + payload + "\""
@@ -74,6 +85,12 @@ fn numeric_layout_fixture(
       max_text_bytes: 100,
     }).unwrap()
   })
+  let nested_contract = @contract.read_checked(
+    input_cursor(
+      "{\"type\":\"array\",\"nullable\":false,\"items\":{\"type\":\"array\",\"nullable\":false,\"items\":{\"type\":\"number\",\"nullable\":false}}}",
+    ),
+    { max_nodes: 20, max_depth: 10, max_text_bytes: 1000, },
+  ).unwrap()
   let fields = [
     (@schema.Unqualified("id"), numeric),
     (
@@ -89,7 +106,9 @@ fn numeric_layout_fixture(
     fields.push(
       (
         @schema.Unqualified("p" + j.to_string()),
-        if temporal && j >= 2 && j <= 4 {
+        if nested {
+          nested_contract
+        } else if temporal && j >= 2 && j <= 4 {
           temporal_contracts[j - 2]
         } else if textual {
           text_contract
@@ -114,6 +133,11 @@ fn numeric_layout_fixture(
     { max_fields: width, max_name_bytes: 10000, },
   ).unwrap()
   let (program, expression_steps) = match workload {
+    NestedSmallResult =>
+      (
+        "[{\"filter\":\"id > 0\"},{\"sort\":[{\"id\":\"asc\"}]},{\"take\":1}]",
+        [0],
+      )
     DecimalTemporal =>
       (
         "[{\"rename\":{\"id\":\"rank\"}},{\"sort\":[{\"p3\":\"asc\"},{\"p4\":\"asc\"},{\"p2\":\"asc\"}]},{\"dedupe_rows\":{\"by\":[\"k\",\"k\"],\"order_by\":[{\"rank\":\"asc\"}]}},{\"take\":10}]",
@@ -152,6 +176,11 @@ fn numeric_layout_fixture(
         [0, 1],
       )
     }
+  }
+  let (program, expression_steps) = if producer_seed {
+    ("[{\"rename\":{}}]", [])
+  } else {
+    (program, expression_steps)
   }
   let owner = sort_input_owner(@pipeline.KeyedInput(key), program)
   let sequence = @lower.prepare_sequence(owner, {
@@ -292,6 +321,7 @@ fn[T : RelationRows] verify_numeric_layout_output(
   count : Int,
 ) -> Unit raise {
   let rows = match workload {
+    NestedSmallResult => 1
     NarrowProjection
     | NullableProjection
     | FullWidthAddition
@@ -302,6 +332,7 @@ fn[T : RelationRows] verify_numeric_layout_output(
     HighSelectivity => count * 99 / 100
   }
   let (names, offsets) = match workload {
+    NestedSmallResult => (["id", "k", "p2", "p3", "p4", "p5", "p6", "p7"], [])
     NarrowProjection => (["id", "p2", "next"], [0, 2, 3])
     NullableProjection => (["id", "p2", "old"], [0, 2, 2])
     FullWidthAddition => {
@@ -334,6 +365,31 @@ fn[T : RelationRows] verify_numeric_layout_output(
   }
   assert_eq(IndexedRows::row_count(table), rows)
   assert_eq(table.field_names(), names)
+  if workload == NestedSmallResult {
+    assert_true(IndexedRows::read_cell(table, 0, 0) is Number(1))
+    assert_true(IndexedRows::read_cell(table, 0, 1) is Number(0))
+    for column = 2; column < 8; column = column + 1 {
+      guard IndexedRows::read_cell(table, 0, column)
+        is Captured(@admitted.Array(branches)) else {
+        fail("nested root")
+      }
+      assert_eq(@admitted.element_count(branches), 8)
+      for branch = 0; branch < 8; branch = branch + 1 {
+        guard @admitted.element_at(branches, branch)
+          is Some(@admitted.Array(leaves)) else {
+          fail("nested branch")
+        }
+        assert_eq(@admitted.element_count(leaves), 8)
+        for leaf = 0; leaf < 8; leaf = leaf + 1 {
+          assert_true(
+            @admitted.element_at(leaves, leaf) is Some(@admitted.Number(n)) &&
+            n == (1 + column + branch * 8 + leaf).to_double(),
+          )
+        }
+      }
+    }
+    return
+  }
   if workload == DecimalTemporal {
     assert_eq(count, 1000)
     // Independent SHA-256 of UTF-8 JSON [k,k], k=0..249, sorted by hex digest.
@@ -431,6 +487,7 @@ test "fixed numeric workload shapes share source and contracts across all layout
       ShortText,
       LongText,
       DecimalTemporal,
+      NestedSmallResult,
     ] {
     let (generated, input) = numeric_layout_fixture(workload, count)
     let rows = execute_generated_sequence(generated, [input], {
@@ -495,6 +552,20 @@ test "fixed numeric workload shapes share source and contracts across all layout
         workload,
         count,
       )
+      if workload == NestedSmallResult {
+        let storage = invocation.store.tables[slot].unwrap().table.storage
+        assert_eq(storage.count, 1)
+        guard storage.body is OwnedColumnArrays(columns) else {
+          fail("owned nested columns")
+        }
+        // One survivor still retains full backing columns, not one physical row.
+        for column = 2; column < 8; column = column + 1 {
+          guard columns[column].value is Some(Generic(buffer)) else {
+            fail("nested generic backing")
+          }
+          assert_eq(buffer.length(), count)
+        }
+      }
       if workload == NullableProjection {
         let storage = invocation.store.tables[slot].unwrap().table.storage
         guard storage.body is OwnedColumnArrays(columns) else {
