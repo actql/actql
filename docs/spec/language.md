@@ -8043,6 +8043,48 @@ UTF-8 canonical serialization of its semantic envelope. Formatting, source key
 order, and comments do not affect this identity. A source-text
 hash MAY be retained separately as provenance.
 
+<a id="result-import-interface"></a>
+
+#### Local Result import interface
+
+<!-- requirement-block: canonical-identities.result-import-interface canonical-identities.result-import-producer-definition -->
+For each declared Result import, the local `import_interface_cids` entry MUST
+identify the closed `schemas.result_import_interface` envelope registered in the
+stage contract: `{version: "actql-result-import-interface/0.1", input_name,
+producer_namespace: {program_id, node_id}, producer_unit_definition_cid,
+producer_result, value_contract_cid, availability: "stage_success", self_cid}`.
+Its self CID hashes canonical JSON of every member except `self_cid`. Names are
+source-normalized names. `input_name` is the consumer's local input name;
+`producer_result` is the producer's local Result name, not a root export alias
+or temporary dataflow name. The namespace and Unit Definition identify that exact
+producer. A Stage Definition, parent Program revision, local source handle or
+array index MUST NOT substitute for the producer Unit Definition.
+
+<!-- requirement-block: canonical-identities.result-import-interface-type canonical-identities.result-import-port-owner -->
+The `value_contract_cid` MUST resolve to the complete checked, nonnullable object
+value contract of the selected Result row schema, using the existing canonical
+value-contract encoding. This is a declared port contract, not a hash of rows,
+an observed Result artifact or a Host execution ceiling. Port ownership, field
+types and the producer definition MUST agree before constructing the interface;
+type equality alone does not prove producer identity. Unknown type evidence or
+an unresolved producer Unit Definition prevents construction. No observed value,
+Invocation, receipt, physical path or whole Catalog is added to this preimage.
+Selected contract semantics remain dependencies of the corresponding Unit;
+concrete policy and observation evidence remain execution admission material.
+
+<!-- requirement-block: canonical-identities.result-import-interface-activation canonical-identities.result-import-not-receipt -->
+Every declared Result import MUST have its own interface, including unused
+imports and distinct input names referring to the same Result. The consumer's
+interface list is ordered by normalized input name in UTF-16 code-unit order;
+source map enumeration order is not identity. A Result import requires successful
+producer computation and publication of that selected Result, independently of
+the consumer's predecessor-success gate. `after: accepted` does not waive data
+availability or required Ref availability. Zero rows retain the declared type.
+Receipt imports require their separate success-view and correlation contracts;
+they MUST NOT be encoded as this Result interface or silently omitted when their
+interpretation is unsupported. This static interface is neither proof of
+successful publication nor permission to activate the consumer.
+
 <a id="local-contract-closure"></a>
 
 ##### Local contract selection and identity
@@ -8724,6 +8766,7 @@ through the pinned expression contract.
 ../../spec/contracts/actql-stage-contracts.json#/schemas/derive_binding sha256:d74bb697d91a2daf2c51e0d6c492f4bb35fdea5e542d606318683b1c9c5f06f9
 ../../spec/contracts/actql-stage-contracts.json#/schemas/local_dependencies sha256:22a2636742d270464988e350adc168af898987e83f620cba893efb091d9f49e8
 ../../spec/contracts/actql-stage-contracts.json#/schemas/local_contracts sha256:a1dcd5bf20a7d6dceedd4a298b684f439101d391063ae13bb61359bd10d30621
+../../spec/contracts/actql-stage-contracts.json#/schemas/result_import_interface sha256:81898e3b8eb76b16e59e0de4b38ed5d948e7752ae127b45ae432f39e0afd2431
 ../../spec/contracts/actql-stage-contracts.json#/laws/lifecycle sha256:da02951b68ca4255a25ac5b3f60288dbde2a8f7b252f518d73247c9feca09c54
 ../../spec/contracts/actql-stage-contracts.json#/laws/identity sha256:090d1c81f41bc0cbda07b62ade75d2fbd450d0a333fcf6a23d1c2483b43e213f
 ../../spec/contracts/actql-stage-contracts.json#/schemas/stage_semantics sha256:c9fdde04da54089003a628cae27f01c118f59e359dff7cacdd09f6eb86c9f2e3

@@ -175,6 +175,86 @@ test "local contract set pair" {
 }
 
 ///|
+test "Result import interface base" {
+  let input = @json.parse([
+    "{\"version\":\"actql-result-import-interface/0.1\",\"input_name\":\"rows\",\"producer_namespace\":{\"program_id\":\"p\",\"node_id\":\"first\"},\"producer_unit_definition_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"producer_result\":\"out\",\"value_contract_cid\":\"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"availability\":\"stage_success\"}",
+  ].join(""))
+  let value = @canonical_json.from_json(input, 10, 2, 380)
+  assert_eq(@canonical_json.cid_value(value, 380, 10, 2), "sha256:e7300cc0f600893f4dc01cfd77fa5aa90d600e2dd48599058cd2104bf1bf7db0")
+  assert_eq(@canonical_json.measure_value(value, 380, 10, 2), 380)
+}
+
+///|
+test "Result import interface repeated-import-alias" {
+  let input = @json.parse([
+    "{\"version\":\"actql-result-import-interface/0.1\",\"input_name\":\"again\",\"producer_namespace\":{\"program_id\":\"p\",\"node_id\":\"first\"},\"producer_unit_definition_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"producer_result\":\"out\",\"value_contract_cid\":\"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"availability\":\"stage_success\"}",
+  ].join(""))
+  let value = @canonical_json.from_json(input, 10, 2, 381)
+  assert_eq(@canonical_json.cid_value(value, 381, 10, 2), "sha256:b8443848fe290cb4e08747ef841570658faf72933fa4e34d9a0d8a50d20423f0")
+  assert_eq(@canonical_json.measure_value(value, 381, 10, 2), 381)
+}
+
+///|
+test "Result import interface changed-producer" {
+  let input = @json.parse([
+    "{\"version\":\"actql-result-import-interface/0.1\",\"input_name\":\"rows\",\"producer_namespace\":{\"program_id\":\"p\",\"node_id\":\"first\"},\"producer_unit_definition_cid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"producer_result\":\"out\",\"value_contract_cid\":\"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"availability\":\"stage_success\"}",
+  ].join(""))
+  let value = @canonical_json.from_json(input, 10, 2, 380)
+  assert_eq(@canonical_json.cid_value(value, 380, 10, 2), "sha256:61b8c11fb2ca75b8612d3a9d05e9e05f2910fbc41e6e3857e103b9304a48b6a0")
+  assert_eq(@canonical_json.measure_value(value, 380, 10, 2), 380)
+}
+
+///|
+test "Result import interface changed-result" {
+  let input = @json.parse([
+    "{\"version\":\"actql-result-import-interface/0.1\",\"input_name\":\"rows\",\"producer_namespace\":{\"program_id\":\"p\",\"node_id\":\"first\"},\"producer_unit_definition_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"producer_result\":\"other\",\"value_contract_cid\":\"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"availability\":\"stage_success\"}",
+  ].join(""))
+  let value = @canonical_json.from_json(input, 10, 2, 382)
+  assert_eq(@canonical_json.cid_value(value, 382, 10, 2), "sha256:29ada30e3cebeaab247ab3332173b3e30ae12baf38ba007a9e2e03736715c043")
+  assert_eq(@canonical_json.measure_value(value, 382, 10, 2), 382)
+}
+
+///|
+test "Result import interface namespace-left" {
+  let input = @json.parse([
+    "{\"version\":\"actql-result-import-interface/0.1\",\"input_name\":\"rows\",\"producer_namespace\":{\"program_id\":\"a:b\",\"node_id\":\"c\"},\"producer_unit_definition_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"producer_result\":\"out\",\"value_contract_cid\":\"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"availability\":\"stage_success\"}",
+  ].join(""))
+  let value = @canonical_json.from_json(input, 10, 2, 378)
+  assert_eq(@canonical_json.cid_value(value, 378, 10, 2), "sha256:973384a45138f3a7772d1e74532ff4c3e79a650ff7b03117c1127703431132e0")
+  assert_eq(@canonical_json.measure_value(value, 378, 10, 2), 378)
+}
+
+///|
+test "Result import interface namespace-right" {
+  let input = @json.parse([
+    "{\"version\":\"actql-result-import-interface/0.1\",\"input_name\":\"rows\",\"producer_namespace\":{\"program_id\":\"a\",\"node_id\":\"b:c\"},\"producer_unit_definition_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"producer_result\":\"out\",\"value_contract_cid\":\"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"availability\":\"stage_success\"}",
+  ].join(""))
+  let value = @canonical_json.from_json(input, 10, 2, 378)
+  assert_eq(@canonical_json.cid_value(value, 378, 10, 2), "sha256:3f2c4133307df9c5dca2d028e90fe365b52964f9a6c50d109e763846021ea132")
+  assert_eq(@canonical_json.measure_value(value, 378, 10, 2), 378)
+}
+
+///|
+test "Result import interface changed-type" {
+  let input = @json.parse([
+    "{\"version\":\"actql-result-import-interface/0.1\",\"input_name\":\"rows\",\"producer_namespace\":{\"program_id\":\"p\",\"node_id\":\"first\"},\"producer_unit_definition_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"producer_result\":\"out\",\"value_contract_cid\":\"sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\",\"availability\":\"stage_success\"}",
+  ].join(""))
+  let value = @canonical_json.from_json(input, 10, 2, 380)
+  assert_eq(@canonical_json.cid_value(value, 380, 10, 2), "sha256:12e5fd631b03ff05fc24e94a2658afe45a9322b1760aeced7b41fa80bf45f959")
+  assert_eq(@canonical_json.measure_value(value, 380, 10, 2), 380)
+}
+
+///|
+test "contract spec/contracts/actql-stage-contracts.json#/schemas/result_import_interface" {
+  let input = @json.parse([
+    "{\"type\":\"object\",\"properties\":{\"version\":{\"const\":\"actql-result-import-interface/0.1\"},\"input_name\":{\"type\":\"string\",\"minLength\":1},\"producer_namespace\":{\"type\":\"object\",\"properties\":{\"program_id\":{\"type\":\"string\",\"minLength\":1},\"node_id\":{\"type\":\"string\",\"minLength\":1}},\"required\":[\"program_id\",\"node_id\"],\"additionalProperties\":false},\"producer_unit_definition_cid\":{\"type\":\"string\",\"pattern\":\"^sha256:[0-9a-f]{64}$\"},\"producer_result\":{\"type\":\"string\",\"minLength\":1},\"value_contract_cid\":{\"type\":\"string\",\"pattern\":\"^sha256:[0-9a-f]{64}$\"},\"availability\":{\"const\":\"stage_success\"},\"self_cid\":{\"type\":\"string\",\"pattern\":\"^sha256:[0-9a-f]{64}$\"}},\"required\":[\"version\",\"input_name\",\"producer_namespace\",\"producer_unit_definition_cid\",\"producer_result\",\"value_contract_cid\",\"availability\",\"self_cid\"],\"additionalProperties\":false}",
+  ].join(""))
+  let value = @canonical_json.from_json(input, 45, 5, 831)
+  assert_eq(@canonical_json.cid_value(value, 831, 45, 5), "sha256:81898e3b8eb76b16e59e0de4b38ed5d948e7752ae127b45ae432f39e0afd2431")
+  assert_eq(@canonical_json.measure_value(value, 831, 45, 5), 831)
+}
+
+///|
 test "contract spec/contracts/actql-stage-contracts.json#/schemas/local_contracts" {
   let input = @json.parse([
     "{\"type\":\"object\",\"properties\":{\"version\":{\"const\":\"actql-local-contracts/0.1\"},\"contracts\":{\"type\":\"array\",\"items\":{\"type\":\"string\",\"pattern\":\"^sha256:[0-9a-f]{64}$\"},\"uniqueItems\":true}},\"required\":[\"version\",\"contracts\"],\"additionalProperties\":false}",
@@ -2257,11 +2337,11 @@ test "contract spec/contracts/actql-stage-contracts.json#/reference_roles" {
   let input = @json.parse([
     "{\"local_contracts\":{\"contracts/*\":\"external:interpreted-contract\"},\"local_computation\":{\"unit_definition_cid\":\"local_dependencies\",\"used_values_cid\":\"external:typed-values\",\"local_contracts_cid\":\"local_contracts\",\"observation_cids/*\":\"external:observation\",\"policy_cid\":\"external:policy\"},\"local_manifest\":{\"unit_definition_cid\":\"local_dependencies\",\"local_invocation_cid\":\"local_computation\",\"results/*\":\"external:result-artifact\"},\"local_receipt\":{\"unit_definition_cid\":\"local_dependencies\",\"local_invocation_cid\":\"local_computation\",\"local_manifest_cid\":\"local_manifest\",\"effect_outcome_cids/*\":\"local_effect_outcome\",\"outcome_contract_cid\":\"external:outcome-contract\",\"outcome_evidence_cid\":\"external:outcome\"},\"local_effect_outcome\":{\"unit_definition_cid\":\"local_dependencies\",\"operation_contract_cid\":\"external:operation-contract\",\"correlation_contract_cid\":\"external:correlation-contract\",\"guard_contract_cid\":\"external:guard\",\"issuer_evidence_cid\":\"external:issuer\",\"scope_cid\":\"external:scope\",\"policy_cid\":\"externa",
     "l:policy\",\"items/*/item_key_cid\":\"external:typed-values\",\"items/*/input_key_cid\":\"external:typed-values\",\"items/*/request_cid\":\"external:request\",\"items/*/result_artifact_cid\":\"external:result-artifact\",\"items/*/operation_ref_cid\":\"external:operation-ref\",\"items/*/provider_evidence_cids/*\":\"external:provider-evidence\"},\"receipt_view\":{\"semantic_outcome_cid\":\"local_effect_outcome\",\"correlation_contract_cid\":\"external:correlation-contract\",\"value_contract_cid\":\"external:value-contract\",\"policy_cid\":\"external:policy\",\"availability_evidence_cid\":\"external:availability\",\"relation_artifact_cid\":\"external:result-artifact\"},\"local_dependencies\":{\"local_body_cid\":\"external:local-body\",\"used_parameter_declarations_cid\":\"external:parameter-contract\",\"local_contract_closure_cid\":\"local_contracts\",\"import_interface_cids/*\":\"external:import-interface\",\"incoming_gate_contract_cids/*\":\"gate_requirement\"},\"gate_requirement\":{\"effect_contracts/*\":\"external:operation-contract\",\"completion_contracts/*\":\"external:completion-contr",
-    "act\"},\"external:result-artifact\":{\"result_definition_cid\":\"external:result-definition\",\"invocation_cid\":\"local_computation\",\"logical_result_cid\":\"external:relation-value\",\"result_schema_cid\":\"external:value-contract\",\"ordering_evidence_cid\":\"external:order\",\"effective_data_policy_cid\":\"external:policy\",\"effective_retention_policy_cid\":\"external:retention\",\"provenance_evidence_cids/*\":\"external:observation\"},\"projection_attestation\":{\"semantic_cid\":\"semantic-root\",\"source_audit_cids/*\":\"audit:captured-or-apply-receipt\",\"membership_cid\":\"audit:membership\",\"projection_law_cid\":\"external:projection-law\",\"issuer_evidence_cid\":\"external:issuer\",\"scope_cid\":\"external:scope\",\"policy_cid\":\"external:policy\",\"authentication_evidence_cid\":\"audit:authentication\"}}",
+    "act\"},\"external:result-artifact\":{\"result_definition_cid\":\"external:result-definition\",\"invocation_cid\":\"local_computation\",\"logical_result_cid\":\"external:relation-value\",\"result_schema_cid\":\"external:value-contract\",\"ordering_evidence_cid\":\"external:order\",\"effective_data_policy_cid\":\"external:policy\",\"effective_retention_policy_cid\":\"external:retention\",\"provenance_evidence_cids/*\":\"external:observation\"},\"projection_attestation\":{\"semantic_cid\":\"semantic-root\",\"source_audit_cids/*\":\"audit:captured-or-apply-receipt\",\"membership_cid\":\"audit:membership\",\"projection_law_cid\":\"external:projection-law\",\"issuer_evidence_cid\":\"external:issuer\",\"scope_cid\":\"external:scope\",\"policy_cid\":\"external:policy\",\"authentication_evidence_cid\":\"audit:authentication\"},\"result_import_interface\":{\"producer_unit_definition_cid\":\"local_dependencies\",\"value_contract_cid\":\"external:value-contract\"}}",
   ].join(""))
-  let value = @canonical_json.from_json(input, 68, 2, 2809)
-  assert_eq(@canonical_json.cid_value(value, 2809, 68, 2), "sha256:b2422870df0ff47b9d00abf0440c14897039534a50af03f9873ebdd96f77f966")
-  assert_eq(@canonical_json.measure_value(value, 2809, 68, 2), 2809)
+  let value = @canonical_json.from_json(input, 71, 2, 2936)
+  assert_eq(@canonical_json.cid_value(value, 2936, 71, 2), "sha256:cdf38f8510473a877acebbfc669df2751be489592e907ff37ba46a738da8b9d3")
+  assert_eq(@canonical_json.measure_value(value, 2936, 71, 2), 2936)
 }
 
 ///|
@@ -2273,11 +2353,11 @@ test "contract spec/contracts/actql-stage-contracts.json#/reference_graph" {
     "e\":\"receipt_view\",\"slot\":\"semantic_outcome_cid\",\"target\":\"local_effect_outcome\",\"role\":\"semantic\"},{\"source\":\"receipt_view\",\"slot\":\"correlation_contract_cid\",\"target\":\"external:correlation-contract\",\"role\":\"semantic\"},{\"source\":\"receipt_view\",\"slot\":\"value_contract_cid\",\"target\":\"external:value-contract\",\"role\":\"semantic\"},{\"source\":\"receipt_view\",\"slot\":\"policy_cid\",\"target\":\"external:policy\",\"role\":\"semantic\"},{\"source\":\"receipt_view\",\"slot\":\"availability_evidence_cid\",\"target\":\"external:availability\",\"role\":\"semantic\"},{\"source\":\"receipt_view\",\"slot\":\"relation_artifact_cid\",\"target\":\"external:result-artifact\",\"role\":\"semantic\"},{\"source\":\"local_dependencies\",\"slot\":\"local_body_cid\",\"target\":\"external:local-body\",\"role\":\"semantic\"},{\"source\":\"local_dependencies\",\"slot\":\"used_parameter_declarations_cid\",\"target\":\"external:parameter-contract\",\"role\":\"semantic\"},{\"source\":\"local_dependencies\",\"slot\":\"local_contract_closure_cid\",\"target\":\"local_contracts\",\"role\":\"semantic\"},{\"source\":\"local_dependencies\",\"slot\"",
     ":\"import_interface_cids/*\",\"target\":\"external:import-interface\",\"role\":\"semantic\"},{\"source\":\"local_dependencies\",\"slot\":\"incoming_gate_contract_cids/*\",\"target\":\"gate_requirement\",\"role\":\"semantic\"},{\"source\":\"gate_requirement\",\"slot\":\"effect_contracts/*\",\"target\":\"external:operation-contract\",\"role\":\"semantic\"},{\"source\":\"gate_requirement\",\"slot\":\"completion_contracts/*\",\"target\":\"external:completion-contract\",\"role\":\"semantic\"},{\"source\":\"external:result-artifact\",\"slot\":\"result_definition_cid\",\"target\":\"external:result-definition\",\"role\":\"semantic\"},{\"source\":\"external:result-artifact\",\"slot\":\"invocation_cid\",\"target\":\"local_computation\",\"role\":\"semantic\"},{\"source\":\"external:result-artifact\",\"slot\":\"logical_result_cid\",\"target\":\"external:relation-value\",\"role\":\"semantic\"},{\"source\":\"external:result-artifact\",\"slot\":\"result_schema_cid\",\"target\":\"external:value-contract\",\"role\":\"semantic\"},{\"source\":\"external:result-artifact\",\"slot\":\"ordering_evidence_cid\",\"target\":\"external:order\",\"role\":\"semantic\"},{\"sou",
     "rce\":\"external:result-artifact\",\"slot\":\"effective_data_policy_cid\",\"target\":\"external:policy\",\"role\":\"semantic\"},{\"source\":\"external:result-artifact\",\"slot\":\"effective_retention_policy_cid\",\"target\":\"external:retention\",\"role\":\"semantic\"},{\"source\":\"external:result-artifact\",\"slot\":\"provenance_evidence_cids/*\",\"target\":\"external:observation\",\"role\":\"semantic\"},{\"source\":\"projection_attestation\",\"slot\":\"semantic_cid\",\"target\":\"semantic-root\",\"role\":\"authentication\"},{\"source\":\"projection_attestation\",\"slot\":\"source_audit_cids/*\",\"target\":\"audit:captured-or-apply-receipt\",\"role\":\"authentication\"},{\"source\":\"projection_attestation\",\"slot\":\"membership_cid\",\"target\":\"audit:membership\",\"role\":\"authentication\"},{\"source\":\"projection_attestation\",\"slot\":\"projection_law_cid\",\"target\":\"external:projection-law\",\"role\":\"authentication\"},{\"source\":\"projection_attestation\",\"slot\":\"issuer_evidence_cid\",\"target\":\"external:issuer\",\"role\":\"authentication\"},{\"source\":\"projection_attestation\",\"slot\":\"scope_cid\",\"target\":\"externa",
-    "l:scope\",\"role\":\"authentication\"},{\"source\":\"projection_attestation\",\"slot\":\"policy_cid\",\"target\":\"external:policy\",\"role\":\"authentication\"},{\"source\":\"projection_attestation\",\"slot\":\"authentication_evidence_cid\",\"target\":\"audit:authentication\",\"role\":\"authentication\"}]",
+    "l:scope\",\"role\":\"authentication\"},{\"source\":\"projection_attestation\",\"slot\":\"policy_cid\",\"target\":\"external:policy\",\"role\":\"authentication\"},{\"source\":\"projection_attestation\",\"slot\":\"authentication_evidence_cid\",\"target\":\"audit:authentication\",\"role\":\"authentication\"},{\"source\":\"result_import_interface\",\"slot\":\"producer_unit_definition_cid\",\"target\":\"local_dependencies\",\"role\":\"semantic\"},{\"source\":\"result_import_interface\",\"slot\":\"value_contract_cid\",\"target\":\"external:value-contract\",\"role\":\"semantic\"}]",
   ].join(""))
-  let value = @canonical_json.from_json(input, 286, 2, 6414)
-  assert_eq(@canonical_json.cid_value(value, 6414, 286, 2), "sha256:a2ac669dbbfdb7aada3dc49785597ade6220e1a1be591c4f3d10e4abbe500a00")
-  assert_eq(@canonical_json.measure_value(value, 6414, 286, 2), 6414)
+  let value = @canonical_json.from_json(input, 296, 2, 6655)
+  assert_eq(@canonical_json.cid_value(value, 6655, 296, 2), "sha256:b1ec06ac72a85bf1ee30f1a13800a8c285e33b7473fde15ef5f3c52d77a4c3c5")
+  assert_eq(@canonical_json.measure_value(value, 6655, 296, 2), 6655)
 }
 
 ///|

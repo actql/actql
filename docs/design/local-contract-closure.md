@@ -56,6 +56,30 @@ references. Full predecessor Program revisions, Captured Runs, receipts and
 whole manifests are not substitutes for those projections. A required projection
 that cannot be constructed is unresolved, not an empty dependency set.
 
+## Result import interfaces
+
+The [Result import interface](../spec/language.md#result-import-interface) binds
+the local consumer input name to the producer's typed namespace, Unit Definition,
+Result name and declared row contract. Graph `data_requirement` alone cannot
+serve this role: it names nodes and ports but does not bind the producer's local
+semantic definition. Conversely, a whole Result artifact would introduce concrete
+Invocation ancestry into a static Unit identity. The registered Result interface
+fills the existing external import-interface role; it is not another Result
+artifact family or a replacement for runtime data requirements.
+
+The canonical row contract records types; producer identity retains the authored
+Result projection and its semantic dependencies. Equal row types are not equal
+producer interfaces. Consumer input names distinguish repeated imports, while
+sorting the interface list by those names removes source object enumeration as
+an identity input. Receipt interfaces retain their separate correlation and
+completion requirements and cannot be approximated by this Result-only form.
+
+This fixes a previously external, unspecified preimage. The pinned Sketch
+reference `87dc7144138edfcba108cdc59dc485ac976ba976` exposes only the external
+import-interface reference role in `src/actql-stage-contracts.ts`; it does not
+supply a body encoding to reuse. The choice follows the language's local-approval
+identity requirements rather than a compiler's temporary ownership handles.
+
 ## Transitive dependencies
 
 For each reached contract, enumerate the contract-bearing roles prescribed by

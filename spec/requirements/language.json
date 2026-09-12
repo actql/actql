@@ -6955,6 +6955,72 @@
       }
     },
     {
+      "requirement_id": "actql.language/canonical-identities.result-import-interface",
+      "statement_sha256": "cceaf539264e864b40225d329c4938259a0faef41f6c9c8714b3835ec8773431",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "result-import-interface",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/canonical-identities.result-import-producer-definition",
+      "statement_sha256": "b2cd0435cfa4e2f4b233b6b9a6059ce0027db05111e89b8330717c6d4d22dcb7",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "result-import-interface",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/canonical-identities.result-import-interface-type",
+      "statement_sha256": "560651df121d061926569dbb7de8fd65f0a96bc313eebda7bf3da9dfe3291f0c",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "result-import-interface",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/canonical-identities.result-import-port-owner",
+      "statement_sha256": "9772c855970b4dbcfdb442895f2f6226968a5f6a613578c50207832fc79a7931",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "result-import-interface",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/canonical-identities.result-import-interface-activation",
+      "statement_sha256": "e98ace183ce1fdd19fc2f92529244e829a069400ed90c88103285bbda0cf04cd",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "result-import-interface",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/canonical-identities.result-import-not-receipt",
+      "statement_sha256": "eca9c96d1972bdfe85c2b3c7eaf4a7ed457ffa95cf167673dcaa2ba5bb44181b",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "result-import-interface",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.language/local-contract-closure.selection",
       "statement_sha256": "2423d14f3bbd3a4c84f54d278c7ec12511e6ffd0b3775214d7c6505483428727",
       "status": "pending",

@@ -110,14 +110,22 @@
     "local_contracts": {
       "type": "object",
       "properties": {
-        "version": { "const": "actql-local-contracts/0.1" },
+        "version": {
+          "const": "actql-local-contracts/0.1"
+        },
         "contracts": {
           "type": "array",
-          "items": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+          "items": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          },
           "uniqueItems": true
         }
       },
-      "required": ["version", "contracts"],
+      "required": [
+        "version",
+        "contracts"
+      ],
       "additionalProperties": false
     },
     "local_computation": {
@@ -857,11 +865,23 @@
     "stage_definition": {
       "type": "object",
       "properties": {
-        "version": { "const": "actql-stage-definition/0.1" },
-        "id": { "type": "string", "minLength": 1 },
-        "stage_semantics_cid": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" }
+        "version": {
+          "const": "actql-stage-definition/0.1"
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "stage_semantics_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
       },
-      "required": ["version", "id", "stage_semantics_cid"],
+      "required": [
+        "version",
+        "id",
+        "stage_semantics_cid"
+      ],
       "additionalProperties": false
     },
     "stage_semantics": {
@@ -3806,6 +3826,66 @@
         "self_cid"
       ],
       "additionalProperties": false
+    },
+    "result_import_interface": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "const": "actql-result-import-interface/0.1"
+        },
+        "input_name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "producer_namespace": {
+          "type": "object",
+          "properties": {
+            "program_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "node_id": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": [
+            "program_id",
+            "node_id"
+          ],
+          "additionalProperties": false
+        },
+        "producer_unit_definition_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "producer_result": {
+          "type": "string",
+          "minLength": 1
+        },
+        "value_contract_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "availability": {
+          "const": "stage_success"
+        },
+        "self_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      },
+      "required": [
+        "version",
+        "input_name",
+        "producer_namespace",
+        "producer_unit_definition_cid",
+        "producer_result",
+        "value_contract_cid",
+        "availability",
+        "self_cid"
+      ],
+      "additionalProperties": false
     }
   },
   "reference_roles": {
@@ -3885,6 +3965,10 @@
       "scope_cid": "external:scope",
       "policy_cid": "external:policy",
       "authentication_evidence_cid": "audit:authentication"
+    },
+    "result_import_interface": {
+      "producer_unit_definition_cid": "local_dependencies",
+      "value_contract_cid": "external:value-contract"
     }
   },
   "reference_graph": [
@@ -4229,6 +4313,18 @@
       "slot": "authentication_evidence_cid",
       "target": "audit:authentication",
       "role": "authentication"
+    },
+    {
+      "source": "result_import_interface",
+      "slot": "producer_unit_definition_cid",
+      "target": "local_dependencies",
+      "role": "semantic"
+    },
+    {
+      "source": "result_import_interface",
+      "slot": "value_contract_cid",
+      "target": "external:value-contract",
+      "role": "semantic"
     }
   ],
   "laws": {
@@ -4316,6 +4412,7 @@
     "commit_eligibility": "sha256:9d90efc4c81d15691e3c26d4a10a7252ff04c781a88afc387a69cdd22869d967",
     "classification_derivation": "sha256:6820601d432bcc0fb61250cd021e140446ea33e9b4a1b4c0c90c839ae0a687a6",
     "stamp_capability": "sha256:53a6aa36eb0bfd9fa6df153fff563893435d56a7d5aad7d7adbd7cf8a90dbd03",
-    "risk_facts": "sha256:df89b3058a2410355a01ecf90cf90756424fc3d7028f64ee825a60cf966961ec"
+    "risk_facts": "sha256:df89b3058a2410355a01ecf90cf90756424fc3d7028f64ee825a60cf966961ec",
+    "result_import_interface": "sha256:81898e3b8eb76b16e59e0de4b38ed5d948e7752ae127b45ae432f39e0afd2431"
   }
 }

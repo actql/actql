@@ -1,0 +1,33 @@
+{
+  "version": "actql-result-import-interface-vectors/0.1",
+  "base": {
+    "version": "actql-result-import-interface/0.1",
+    "input_name": "rows",
+    "producer_namespace": {"program_id": "p", "node_id": "first"},
+    "producer_unit_definition_cid": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "producer_result": "out",
+    "value_contract_cid": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    "availability": "stage_success"
+  },
+  "cases": [
+    {"id": "base", "changes": {}, "expected_cid": "sha256:e7300cc0f600893f4dc01cfd77fa5aa90d600e2dd48599058cd2104bf1bf7db0"},
+    {"id": "repeated-import-alias", "changes": {"input_name": "again"}, "expected_cid": "sha256:b8443848fe290cb4e08747ef841570658faf72933fa4e34d9a0d8a50d20423f0"},
+    {"id": "changed-producer", "changes": {"producer_unit_definition_cid": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"}, "expected_cid": "sha256:61b8c11fb2ca75b8612d3a9d05e9e05f2910fbc41e6e3857e103b9304a48b6a0"},
+    {"id": "changed-result", "changes": {"producer_result": "other"}, "expected_cid": "sha256:29ada30e3cebeaab247ab3332173b3e30ae12baf38ba007a9e2e03736715c043"},
+    {"id": "namespace-left", "changes": {"producer_namespace": {"program_id": "a:b", "node_id": "c"}}, "expected_cid": "sha256:973384a45138f3a7772d1e74532ff4c3e79a650ff7b03117c1127703431132e0"},
+    {"id": "namespace-right", "changes": {"producer_namespace": {"program_id": "a", "node_id": "b:c"}}, "expected_cid": "sha256:3f2c4133307df9c5dca2d028e90fe365b52964f9a6c50d109e763846021ea132"},
+    {"id": "changed-type", "changes": {"value_contract_cid": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"}, "expected_cid": "sha256:12e5fd631b03ff05fc24e94a2658afe45a9322b1760aeced7b41fa80bf45f959"}
+  ],
+  "rejections": [
+    {"id": "missing-producer", "remove": "producer_unit_definition_cid"},
+    {"id": "null-type", "changes": {"value_contract_cid": null}},
+    {"id": "empty-input", "changes": {"input_name": ""}},
+    {"id": "concatenated-namespace", "changes": {"producer_namespace": "p:first"}},
+    {"id": "namespace-extra", "changes": {"producer_namespace": {"program_id": "p", "node_id": "first", "index": 0}}},
+    {"id": "parent-revision", "changes": {"program_cid": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}},
+    {"id": "observed-rows", "changes": {"rows": []}},
+    {"id": "accepted-is-not-data-availability", "changes": {"availability": "accepted"}},
+    {"id": "receipt-is-not-result", "changes": {"version": "actql-receipt-import-interface/0.1"}},
+    {"id": "malformed-pin", "changes": {"producer_unit_definition_cid": "checked-step:0"}}
+  ]
+}
