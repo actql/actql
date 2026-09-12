@@ -54,6 +54,23 @@ accounting and prepared-input repeats remain necessary. A partial report is not
 a successful run. Validate the schedule and parsing with
 `node --test scripts/layout-measurement-support.test.mjs`.
 
+### Paired statistical method
+
+`scripts/layout-statistics.mjs` summarizes each candidate against A within the
+same case, target and metric. It uses the median of paired candidate/A ratios,
+not a ratio of averages pooled across workloads. Its percentile bootstrap uses
+10,000 resamples, xorshift32 seed `0x5eeda017`, and nearest-rank 2.5%/97.5%
+endpoints. The same sampled index selects both members of a pair. At least seven
+pairs are required; reproducibility additionally requires at least `ceil(6*n/7)`
+pairs in the stated direction and a confidence interval strictly excluding 1.
+Missing, nonpositive or nonfinite observations are rejected, never filled in.
+Test this calculation with `node --test scripts/layout-statistics.test.mjs`.
+
+This calculation alone does not authorize adoption. The full mandatory matrix,
+valid timing scope, semantic gates and source provenance must be established
+separately. Apply the 20% threshold to every member of a preselected major group;
+do not pool away a reproducible regression in any other required case or target.
+
 ## Historical debug measurements
 
 Build and measure with the repository's pinned MoonBit toolchain:
