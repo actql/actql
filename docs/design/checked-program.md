@@ -202,6 +202,19 @@ A later missing visit, invalid consumer or exhausted budget returns no Stage
 collection. This closes capacity preparation and Stage context integration, not
 the remaining source/identity/obligation checks of `CheckedProgram`.
 
+`prepare_local_context` derives its Environment from the prepared source's
+retained Local input registration and admits that Environment's capacity
+component before preparing Stage contexts. It then attaches the exact Result
+wiring and reconciled inputs and validates policy/lookup selection internally.
+No substitute Environment or separately selected policy is accepted. Missing
+Environment or capacity material remains an error, not a default configuration.
+The component's work/text and final policy-owner join are reserved before Stage
+construction and counted once at selection; all intervening joins share the
+remaining allowance. The component has explicit byte/node/depth caps, and Local
+input nodes retain their independent limit. This entrance starts from already
+prepared source: it does not yet account for the complete source-admission
+prefix or close source requests, Unit identities or execution obligations.
+
 This order is a dependency graph, not a requirement to reconstruct earlier
 results at every phase. Private incremental assembly can retain immutable
 intermediates. Public low-level helpers remain useful for focused tests, but

@@ -474,6 +474,8 @@ pub fn prepare_expression_validation(SelectedPolicyContext, ExpressionValidation
 
 pub fn prepare_incoming_gate(ProgramIncomingLinks, Int, IncomingGateLimits) -> Result[PreparedIncomingGate, IncomingGateIssue]
 
+pub fn prepare_local_context(@stage_results.PreparedLocalSource, Array[Array[CapacityMaterial]], LocalContextLimits, proof_owners? : Array[Array[(Int, Int, Int)]]?, input_owners? : Array[Array[(Int, Int, Int, Int)]]?) -> Result[SelectedPolicyContext, LocalContextIssue]
+
 pub fn prepare_local_stage_contexts(@stage_results.PreparedLocalSource, Array[Array[CapacityMaterial]], @capacity_policy.Policy, CapacityStageLimits, proof_owners? : Array[Array[(Int, Int, Int)]]?, input_owners? : Array[Array[(Int, Int, Int, Int)]]?) -> Result[StageContexts, CapacityStageIssue]
 
 pub fn prepare_program_checks(SourceProducerContext, ExpressionProfiles, PureOperationProfiles, PreparationBudget, max_policy_depth~ : Int, max_requirements~ : Int, max_regex_depth~ : Int) -> Result[OperationProfileChecks, PrepareChecksIssue]
@@ -1077,6 +1079,25 @@ pub(all) struct Limits {
   max_work : Int
   max_text_bytes : Int
 }
+
+pub enum LocalContextIssue {
+  InvalidLimits
+  MissingEnvironment
+  BudgetExceeded
+  Policy(@check_environment.CapacityIssue)
+  Stages(CapacityStageIssue)
+  Wiring(WiringIssue)
+  Inputs(PreparedLocalInputsIssue)
+  Selection(SelectedPolicyIssue)
+}
+
+pub(all) struct LocalContextLimits {
+  stages : CapacityStageLimits
+  max_policy_bytes : Int
+  max_policy_nodes : Int
+  max_policy_depth : Int
+  max_local_input_nodes : Int
+} derive(Eq, @debug.Debug)
 
 pub enum LocalInputClosureIssue {
   InvalidLimits

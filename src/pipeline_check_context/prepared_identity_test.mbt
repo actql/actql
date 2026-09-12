@@ -1,10 +1,7 @@
 ///|
-fn prepared_identity_fixture(
-  first_by_order? : Bool = false,
-  unused_operation? : Bool = false,
-  third_stage? : Bool = false,
-  environment_profile? : String = capacity_profile(false),
-) -> (ProgramSourceIdentity, @stage_results.ResultWiring, ReconciledContexts) {
+fn prepared_environment_fixture(
+  environment_profile : String,
+) -> @environment.WireEnvironment {
   // No acquired rows or schema snapshots. The environment still undergoes
   // canonical integrity and selected-policy admission. Hashing here constructs
   // fixture input; independent expectations below do not use this helper.
@@ -12,7 +9,7 @@ fn prepared_identity_fixture(
     environment_profile +
     ",\"mapping_contracts\":[],\"model_task_contracts\":[],\"schema_snapshots\":[],\"source_views\":[],\"version\":\"actql-check-environment/0.1\"}"
   let cid = "sha256:" + @sha.hex(@utf8.encode(body))
-  let environment = @environment.read(
+  @environment.read(
     @utf8.encode(
       body.replace(
         old="\"host_policy_profile\":",
@@ -22,28 +19,32 @@ fn prepared_identity_fixture(
     cid,
     { max_bytes: 10000, max_nodes: 1000, max_depth: 100, max_members: 10, },
   ).unwrap()
-  let (stages, wiring, _, _, _, _) = prepared_local_context_fixture(
+}
+
+///|
+fn prepared_identity_fixture(
+  first_by_order? : Bool = false,
+  unused_operation? : Bool = false,
+  third_stage? : Bool = false,
+  environment_profile? : String = capacity_profile(false),
+) -> (ProgramSourceIdentity, @stage_results.ResultWiring, ReconciledContexts) {
+  let environment = prepared_environment_fixture(environment_profile)
+  let prepared = prepared_local_source_fixture(
     first_by_order~,
     unused_operation~,
     third_stage~,
     environment=Some(environment),
   )
-  let wired = attach_result_wiring(
-    stages,
-    wiring,
-    max_work=10000000,
-    max_text_bytes=10000000,
+  let selected = prepare_local_context(
+    prepared,
+    capacity_materials_fixture(prepared).0,
+    local_context_limits(),
   ).unwrap()
-  let reconciled = attach_prepared_local_inputs(
-    wired,
-    max_work=10000000,
-    max_text_bytes=10000000,
-    max_local_input_nodes=100000,
-  ).unwrap()
+  let reconciled = policy_context(selected)
+  let wiring = @stage_results.local_source_wiring(prepared)
   (
-    prepared_reconciled_identity(
-      reconciled,
-      environment,
+    prepared_selected_identity(
+      selected,
       max_stages=if third_stage { 3 } else { 2 },
     ),
     wiring,
@@ -75,6 +76,14 @@ fn prepared_reconciled_identity(
     max_text_bytes=10000000,
     max_policy_nodes=100,
   ).unwrap()
+  prepared_selected_identity(selected, max_stages~)
+}
+
+///|
+fn prepared_selected_identity(
+  selected : SelectedPolicyContext,
+  max_stages? : Int = 2,
+) -> ProgramSourceIdentity {
   let producer = preparation_sources_fixture(selected)
   let operations = prepare_program_checks(
     producer,
