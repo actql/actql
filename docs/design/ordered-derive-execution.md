@@ -93,6 +93,16 @@ must be charged by a shared row-kernel budget at the input, operand, production
 and retention boundaries; computing them alone does not enforce cumulative
 work or live-root lifetimes.
 
+The runtime budget separates monotonically consumed work from releasable live
+bytes. Each retained logical root owns a budget-bound lifetime handle. Aliases
+receive separate handles; a transfer retains the original handle. Releasing
+twice or against another budget is invalid and cannot reduce a counter below
+zero. Exhaustion invalidates further charging, while cleanup of existing roots
+remains possible without restoring work or reviving execution. Input row
+occurrences are admitted before evaluation; row, binding and expression-entry
+charges are separate events. These helpers must be attached to the actual
+evaluator's continuations and row lifetimes, not merely exercised by a host.
+
 Logical live roots may share physical storage. Conversely, logical byte limits
 do not cap physical heap overhead or algorithmic cost. Host resource controls
 remain necessary. Input validation precedes shadowing, and an eventual select
