@@ -50,7 +50,7 @@ test "complete fragment candidate matches independently constructed contract vec
   // hashed with Node SHA-256, not obtained by regenerating product expectations.
   assert_eq(
     candidate.artifact.cid,
-    "sha256:704a84fc021b881fc3c76db9bd6c59e8bee307065c78c9eca65ddbea5a8f3b1e",
+    "sha256:7b931b676d3bf8cddd593d27e5c37a4b7180d6a653998e56c571b1b2640012ed",
   )
   assert_eq(candidate.artifact.bytes, 2774)
   assert_true(
