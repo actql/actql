@@ -556,6 +556,19 @@ Core claim. It neither certifies declared conformance nor discharges retained
 profile artifact, numerical, resource or runtime requirements. Backend execution
 capability is still a separate gate.
 
+`bind_program_sources` joins these operation checks with the existing complete
+Program declaration-use/Parameter-value checks and the unresolved source Binding
+inventory. All three results must share the exact preparation, stage contexts
+and request-slot owner. Re-admitting equal source bytes or equal Binding names
+does not authorize replacing the declarations used by the request checks.
+The existing `ProgramReferences` constructor already checks actual Parameter
+values and stage pipelines; its inventory rejects unused Parameter and Binding
+declarations across the whole Program, rather than each stage independently.
+The combined result retains all owners and counts shared stage/preparation work
+once. It is an opaque source-check assembly, not an issuer validator or an
+execution permit. Missing concrete Host Bindings remain visible through their
+inventory; a zero count does not establish acquisition or publication authority.
+
 It does not discharge every operation's static/profile/pattern obligation, bind
 authored guard witness identities, build staged Program/import contracts, or
 construct Program/stage/Invocation semantic projections. A formal compiler

@@ -1,0 +1,85 @@
+///|
+pub(all) enum ProgramSourcesIssue {
+  InvalidLimits
+  ForeignStages
+  ForeignRequestSlots
+  ForeignPreparation
+  BudgetExceeded
+} derive(Eq, Debug)
+
+///|
+struct ProgramSourceChecks {
+  operations : OperationProfileChecks
+  references : ProgramReferences
+  bindings : SourceBindingRequirements
+  work : Int
+}
+
+///|
+/// Bind whole-Program declaration use and selected Parameter values to the
+/// source requests and checked operations that consume them. Remaining Host
+/// Bindings are retained, not interpreted as admitted opaque references.
+pub fn bind_program_sources(
+  operations : OperationProfileChecks,
+  references : ProgramReferences,
+  bindings : SourceBindingRequirements,
+  max_work : Int,
+) -> Result[ProgramSourceChecks, ProgramSourcesIssue] {
+  if max_work < 0 {
+    return Err(InvalidLimits)
+  }
+  let preparation = operations.preparation
+  if !physical_equal(preparation, bindings.preparation) {
+    return Err(ForeignPreparation)
+  }
+  let requests = preparation.sources.capacity.context.rows.requests
+  let stages = requests.inputs.wired.stages
+  if !physical_equal(stages, references.stages) {
+    return Err(ForeignStages)
+  }
+  let inventory = @program_refs.usage_inventory(
+    @program_refs.parameter_usage(references.references),
+  )
+  // The same Program bytes do not substitute for the admitted declarations
+  // and source-role slots used by the concrete request checks.
+  if !physical_equal(requests.slots, @program_refs.requests(inventory)) {
+    return Err(ForeignRequestSlots)
+  }
+  let reference_work = references.work - stages.work
+  let binding_work = bindings.work - preparation.usage.work
+  if operations.work >= max_work ||
+    reference_work > max_work - operations.work - 1 ||
+    binding_work > max_work - operations.work - 1 - reference_work {
+    return Err(BudgetExceeded)
+  }
+  Ok({
+    operations,
+    references,
+    bindings,
+    work: operations.work + reference_work + binding_work + 1,
+  })
+}
+
+///|
+pub fn program_sources_operations(
+  v : ProgramSourceChecks,
+) -> OperationProfileChecks {
+  v.operations
+}
+
+///|
+pub fn program_sources_references(v : ProgramSourceChecks) -> ProgramReferences {
+  v.references
+}
+
+///|
+pub fn program_sources_bindings(
+  v : ProgramSourceChecks,
+) -> SourceBindingRequirements {
+  v.bindings
+}
+
+///|
+pub fn program_sources_work(v : ProgramSourceChecks) -> Int {
+  v.work
+}

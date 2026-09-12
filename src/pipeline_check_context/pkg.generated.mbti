@@ -43,6 +43,8 @@ pub fn attach_stage_contexts(@stage_parameters.BoundOperations, @stage_results.C
 
 pub fn bind_capacity_policy(ReconciledContexts, @check_environment.Capacity, max_work~ : Int, max_text_bytes~ : Int, max_policy_nodes~ : Int) -> Result[SelectedPolicyContext, SelectedPolicyIssue]
 
+pub fn bind_program_sources(OperationProfileChecks, ProgramReferences, SourceBindingRequirements, Int) -> Result[ProgramSourceChecks, ProgramSourcesIssue]
+
 pub fn bind_source_policy(SourceRowContexts, SelectedPolicyContext, Int) -> Result[SourcePolicyContext, SourcePolicyIssue]
 
 pub fn bind_source_producers(SourceCapacityContext, Array[Array[(Int, Int)]], Int) -> Result[SourceProducerContext, SourceProducerIssue]
@@ -180,6 +182,14 @@ pub fn program_reference_stages(ProgramReferences) -> StageContexts
 pub fn program_reference_values(ProgramReferences) -> @program_references.ParameterValues
 
 pub fn program_reference_work(ProgramReferences) -> Int
+
+pub fn program_sources_bindings(ProgramSourceChecks) -> SourceBindingRequirements
+
+pub fn program_sources_operations(ProgramSourceChecks) -> OperationProfileChecks
+
+pub fn program_sources_references(ProgramSourceChecks) -> ProgramReferences
+
+pub fn program_sources_work(ProgramSourceChecks) -> Int
 
 pub fn reconciled_local_at(ReconciledContexts, Int) -> @stage_local_inputs.ReconciledAttachment?
 
@@ -535,6 +545,16 @@ pub(all) enum ProgramReferenceIssue {
 } derive(Eq, @debug.Debug)
 
 type ProgramReferences
+
+type ProgramSourceChecks
+
+pub(all) enum ProgramSourcesIssue {
+  InvalidLimits
+  ForeignStages
+  ForeignRequestSlots
+  ForeignPreparation
+  BudgetExceeded
+} derive(Eq, @debug.Debug)
 
 pub(all) struct PureOperationProfiles {
   rela : Bool

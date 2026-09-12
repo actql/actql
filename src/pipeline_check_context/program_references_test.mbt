@@ -2,16 +2,22 @@
 fn reference_values_for(
   operations : @stages.CollectedOperations,
   values : @parameter.BoundValues,
+  request_slots? : @request_slots.Slots? = None,
 ) -> @program_refs.ParameterValues {
   let source = @stages.operations_source(operations)
-  let bindings = @binding_declarations.prepare(@stages.program(source), {
-    max_bindings: 100,
-    max_work: 100000,
-  }).unwrap()
-  let requests = @request_slots.collect(source, bindings, {
-    max_work: 100000,
-    max_slots: 1000,
-  }).unwrap()
+  let requests = match request_slots {
+    Some(slots) => slots
+    None => {
+      let bindings = @binding_declarations.prepare(@stages.program(source), {
+        max_bindings: 100,
+        max_work: 100000,
+      }).unwrap()
+      @request_slots.collect(source, bindings, {
+        max_work: 100000,
+        max_slots: 1000,
+      }).unwrap()
+    }
+  }
   let uses = []
   for i in 0..<@stages.stage_count(source) {
     let body = @stage_body.prepare(
