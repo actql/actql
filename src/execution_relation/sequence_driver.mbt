@@ -94,7 +94,7 @@ fn evaluate_sequence_components(
 /// Private, invocation-local state after input admission. Neither a reusable
 /// prepared plan nor successful execution evidence. All budgets are fresh per
 /// invocation; no partial output is accessible through the public API.
-priv struct SequenceInvocation {
+priv struct SequenceInvocation[T] {
   contracts : RegisteredRelationContracts
   sequence : @lower.PreparedSequence
   produced : Array[BoundProducerInput]
@@ -104,7 +104,7 @@ priv struct SequenceInvocation {
   output_budget : ValueBudget
   input_rows : Int
   ordered_budgets : Map[Int, LogicalBudget]
-  store : TableStore[Table]
+  store : TableStore[T]
 }
 
 ///|
@@ -118,7 +118,68 @@ fn prepare_sequence_invocation(
   produced~ : Array[BoundProducerInput],
   fragments~ : Array[FragmentRuntimeContext]?,
   ordered~ : OrderedExecution,
-) -> Result[SequenceInvocation, SequenceRunIssue] {
+) -> Result[SequenceInvocation[Table], SequenceRunIssue] {
+  prepare_sequence_with_importers(
+    contracts,
+    sequence,
+    supplied,
+    retained_ids,
+    limits,
+    control,
+    fn(captured) {
+      table_from_capture_bounded(captured, control, {
+        limit: limits.operation_entries,
+        live: 0,
+        peak: 0,
+      })
+    },
+    fn(bound, id, output_budget) {
+      let source = bound.output.table
+      let adopted : Table = {
+        owner: bound.receiver,
+        id,
+        names: source.names,
+        rows: source.rows,
+      }
+      match bound.projection {
+        None => Ok(adopted)
+        Some(projection) =>
+          evaluate_row_body(
+            CheckedProjection(projection),
+            adopted,
+            id,
+            limits.max_rows,
+            control,
+            output_budget,
+            { limit: limits.operation_entries, live: 0, peak: 0, },
+          )
+      }
+    },
+    produced~,
+    fragments~,
+    ordered~,
+  )
+}
+
+///|
+// Import callbacks own only physical representation. Owner/origin, evidence,
+// key validation and receiver input budgets are enforced before each callback.
+fn[T : RelationRows] prepare_sequence_with_importers(
+  contracts : RegisteredRelationContracts,
+  sequence : @lower.PreparedSequence,
+  supplied : Array[CapturedRows],
+  retained_ids : Array[String],
+  limits : SequenceRunLimits,
+  control : ControlBudget,
+  import_raw : (CapturedRows) -> Result[T, RowIssue],
+  import_producer : (BoundProducerInput, String, ValueBudget) -> Result[
+    T,
+    RowIssue,
+  ],
+  produced~ : Array[BoundProducerInput],
+  fragments~ : Array[FragmentRuntimeContext]?,
+  ordered~ : OrderedExecution,
+) -> Result[SequenceInvocation[T], SequenceRunIssue] {
   if limits.max_rows < 0 ||
     limits.metadata_entries < 0 ||
     limits.retained_entries < 0 ||
@@ -244,12 +305,7 @@ fn prepare_sequence_invocation(
           Ok(_) => ()
           Err(e) => return Err(InputKey(i, e))
         }
-        match
-          table_from_capture_bounded(captured, control, {
-            limit: limits.operation_entries,
-            live: 0,
-            peak: 0,
-          }) {
+        match import_raw(captured) {
           Ok(v) => v
           Err(e) => return Err(Rows(i, e))
         }
@@ -266,30 +322,9 @@ fn prepare_sequence_invocation(
           }
         }
         input_rows += source.rows.length()
-        // Exact producer identity establishes the unprojected schema. Private
-        // immutable rows may share storage; retained slots are still charged.
-        let adopted : Table = {
-          owner,
-          id: wiring.ids[i],
-          names: source.names,
-          rows: source.rows,
-        }
-        match bound.projection {
-          None => adopted
-          Some(projection) =>
-            match
-              evaluate_row_body(
-                CheckedProjection(projection),
-                adopted,
-                wiring.ids[i],
-                limits.max_rows,
-                control,
-                output_budget,
-                { limit: limits.operation_entries, live: 0, peak: 0, },
-              ) {
-              Ok(v) => v
-              Err(e) => return Err(Rows(i, e))
-            }
+        match import_producer(bound, wiring.ids[i], output_budget) {
+          Ok(v) => v
+          Err(e) => return Err(Rows(i, e))
         }
       }
     }
@@ -314,16 +349,54 @@ fn prepare_sequence_invocation(
 
 ///|
 fn run_sequence_invocation(
-  invocation : SequenceInvocation,
+  invocation : SequenceInvocation[Table],
 ) -> Result[CompletedSequence, SequenceRunIssue] {
+  let result = run_sequence_with_backend(
+    invocation,
+    fn(captured) {
+      table_from_capture_bounded(captured, invocation.control, {
+        limit: invocation.limits.operation_entries,
+        live: 0,
+        peak: 0,
+      })
+    },
+    fn(kernel, input, logical) {
+      evaluate_rows_with_workspace(
+        kernel,
+        input,
+        invocation.limits.max_rows,
+        invocation.control,
+        invocation.output_budget,
+        { limit: invocation.limits.operation_entries, live: 0, peak: 0, },
+        ordered_budget=logical,
+      )
+    },
+  )
+  if result is Err(issue) {
+    return Err(issue)
+  }
+  Ok({
+    contracts: invocation.contracts,
+    sequence: invocation.sequence,
+    store: invocation.store,
+    _producer_inputs: invocation.produced.copy(),
+  })
+}
+
+///|
+// Values capture, cumulative budgets, operation order and final success checks
+// are common to physical layouts. This never manufactures completion evidence.
+fn[T : RelationRows] run_sequence_with_backend(
+  invocation : SequenceInvocation[T],
+  import_values : (CapturedRows) -> Result[T, RowIssue],
+  evaluate : (@lower.PreparedKernel, T, LogicalBudget?) -> Result[T, RowIssue],
+) -> Result[Unit, SequenceRunIssue] {
   let {
-    contracts,
     sequence,
     produced,
     limits,
     control,
     input_budget,
-    output_budget,
     ordered_budgets,
     store,
     ..
@@ -355,27 +428,13 @@ fn run_sequence_invocation(
       input_budget.nodes += captured.usage.nodes
       input_budget.text += captured.usage.text_bytes
       input_budget.work += captured.usage.work
-      match
-        table_from_capture_bounded(captured, control, {
-          limit: limits.operation_entries,
-          live: 0,
-          peak: 0,
-        }) {
+      match import_values(captured) {
         Ok(v) => Ok(v)
         Err(e) => return Err(Rows(i, e))
       }
     },
     fn(i, kernel, input) {
-      match
-        evaluate_rows_with_workspace(
-          kernel,
-          input,
-          limits.max_rows,
-          control,
-          output_budget,
-          { limit: limits.operation_entries, live: 0, peak: 0, },
-          ordered_budget=ordered_budgets.get(i),
-        ) {
+      match evaluate(kernel, input, ordered_budgets.get(i)) {
         Ok(v) => Ok(v)
         Err(e) => return Err(Rows(i, e))
       }
@@ -387,7 +446,7 @@ fn run_sequence_invocation(
   if !spend_control(control, produced.length()) {
     return Err(InputLimit)
   }
-  Ok({ contracts, sequence, store, _producer_inputs: produced.copy(), })
+  Ok(())
 }
 
 ///|
