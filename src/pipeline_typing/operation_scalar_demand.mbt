@@ -5,12 +5,17 @@ pub(all) enum OperationScalarDemand {
   Fraction(String)
   Finite(String)
   Duration(String)
+  Milliseconds(String, signed~ : Bool)
 } derive(Eq, Debug)
 
 ///|
 pub fn operation_scalar_name(v : OperationScalarDemand) -> String {
   match v {
-    SafeInteger(n, ..) | Fraction(n) | Finite(n) | Duration(n) => n
+    SafeInteger(n, ..)
+    | Fraction(n)
+    | Finite(n)
+    | Duration(n)
+    | Milliseconds(n, ..) => n
   }
 }
 
@@ -51,6 +56,37 @@ pub fn operation_scalar_demand(
         | WatermarkPrefixOrder
         | WatermarkArithmetic => None
       }
+    WindowRequirement(v) =>
+      match v {
+        BindMilliseconds(name, domain) =>
+          Some(Milliseconds(name, signed=domain == @window.SignedMilliseconds))
+        ValidateTimeValues
+        | CheckedWindowArithmetic
+        | ResolveMembershipBound
+        | ResolvePublicationResources => None
+      }
+    EventRequirement(v) =>
+      match v {
+        BindGap(name) => Some(Milliseconds(name, signed=false))
+        ValidateEventValues
+        | ValidateUniqueIdentities
+        | ResolveTeaProfile
+        | ResolveEventResources
+        | WatermarkClassification
+        | ConvertTimestampClock
+        | FailOnTopTie
+        | SessionArithmetic
+        | SessionIdentity => None
+      }
+    SeriesRequirement(v) =>
+      match v {
+        BindStep(name) => Some(Milliseconds(name, signed=false))
+        BindTimestamp(_)
+        | ValidateRange
+        | CheckedArithmetic
+        | ResolveRowBound
+        | ResolveResources => None
+      }
     JoinRequirement(_)
     | AppendRequirement(_)
     | NestRequirement(_)
@@ -60,9 +96,7 @@ pub fn operation_scalar_demand(
     | AsOfRequirement(_)
     | SequenceRequirement(_)
     | ValuesRequirement(_)
-    | SeriesRequirement(_)
     | CalendarRequirement(_)
-    | WindowRequirement(_)
     | ProjectionRequirement(_)
     | GraphRequirement(_)
     | MatchRequirement(_)
@@ -81,7 +115,6 @@ pub fn operation_scalar_demand(
     | NearestRequirement(_)
     | PoolRequirement(_)
     | RankingRequirement(_)
-    | TextRankRequirement(_)
-    | EventRequirement(_) => None
+    | TextRankRequirement(_) => None
   }
 }

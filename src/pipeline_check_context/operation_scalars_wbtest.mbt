@@ -31,4 +31,20 @@ test "numeric operation domains reject rounding negative zero and nonfinite numb
     assert_true(operation_scalar_number(n, @pipeline.Finite("n")) is None)
   }
   assert_true(operation_scalar_number(1000.0, @pipeline.Duration("n")) is None)
+  for signed in [false, true] {
+    for
+      n in [
+        -0.0,
+        0.5,
+        9007199254740992.0,
+        -9007199254740992.0,
+        0.0 / 0.0,
+        1.0 / 0.0,
+        -1.0 / 0.0,
+      ] {
+      assert_true(
+        operation_scalar_number(n, @pipeline.Milliseconds("n", signed~)) is None,
+      )
+    }
+  }
 }

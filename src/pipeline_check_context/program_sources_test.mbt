@@ -1,6 +1,7 @@
 ///|
 fn program_sources_fixture(
   supplied? : @decode.Cursor? = None,
+  tea? : Bool = false,
   expression? : String = "regex_extract($p, '(.)', $n)",
   steps? : String? = None,
   parameters? : String = "{\"p\":{\"type\":\"string\",\"default\":\"é😀\"},\"n\":{\"type\":\"number\",\"default\":1}}",
@@ -21,7 +22,7 @@ fn program_sources_fixture(
   ).unwrap()
   let operations = check_operation_profiles(
     preparation,
-    { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
+    { rela: true, sga: false, tea, calendar: false, text_rank: false, },
     10000000,
   ).unwrap()
   let stages = wired_stage_contexts(reconciled_wiring(policy_context(selected)))

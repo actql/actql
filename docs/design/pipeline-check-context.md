@@ -696,6 +696,23 @@ enforcement. Frame endpoint relationships, pivot fill compatibility, and other
 operation families' specialized bound arguments remain separate requirements;
 absence from this scalar-domain pass is not their discharge.
 
+The same pass covers window `BindMilliseconds`, session `BindGap`, and time-series
+`BindStep` requirements. Window offsets use the signed safe-integer domain;
+size, step and session gaps require positive safe integers. Existing temporal
+declaration admission permits only non-null number or duration Parameters.
+For those owned bindings, duration tokens resolve to positive integer
+milliseconds and numeric values stay exact integers. A signed offset does not
+admit a negative duration token, fractional number, negative zero or overflow.
+The result retains the original binding alongside its resolved milliseconds.
+
+The [fixed-window step rule](../spec/language.md#event-windows) applies even
+though the step does not affect boundary or cardinality calculations: its bound
+value is still checked. The inventory is traversed regardless of downstream
+demand for a capacity proof, so unused temporal operations do not bypass these
+domains. Timestamp endpoints, relative range checks, window arithmetic and
+session observations remain separate obligations; resolving milliseconds does
+not imply that they have passed.
+
 ### Bound ROWS frame order
 
 `check_program_operation_frames` closes `BoundFrameOrder` after scalar admission.

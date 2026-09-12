@@ -644,6 +644,7 @@ pub(all) enum OperationScalarValue {
   Fraction(Double)
   Finite(Double)
   DurationMilliseconds(Int64)
+  Milliseconds(Int64)
 } derive(Eq, @debug.Debug)
 
 pub(all) enum ParameterIssue {

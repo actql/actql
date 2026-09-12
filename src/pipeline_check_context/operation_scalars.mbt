@@ -13,6 +13,7 @@ pub(all) enum OperationScalarValue {
   Fraction(Double)
   Finite(Double)
   DurationMilliseconds(Int64)
+  Milliseconds(Int64)
 } derive(Eq, Debug)
 
 ///|
@@ -56,6 +57,9 @@ fn operation_scalar_value(
   value : @value.Value,
   demand : @pipeline.OperationScalarDemand,
 ) -> OperationScalarValue? {
+  if demand is @pipeline.Milliseconds(_, ..) && value is @value.Text(text) {
+    return @scalar.read_duration_ms(text).map(n => Milliseconds(n))
+  }
   if demand is @pipeline.Duration(_) {
     guard value is @value.Text(text) else { return None }
     return @scalar.read_duration_ms(text).map(n => DurationMilliseconds(n))
@@ -81,6 +85,11 @@ fn operation_scalar_number(
     Fraction(_) => if n >= 0.0 && n <= 1.0 { Some(Fraction(n)) } else { None }
     Finite(_) => Some(Finite(n))
     Duration(_) => None
+    Milliseconds(_, signed~) =>
+      match @scalar.read_safe_integer(n) {
+        Some(n) if signed || n > 0L => Some(Milliseconds(n))
+        _ => None
+      }
   }
 }
 
@@ -160,7 +169,10 @@ pub fn check_program_operation_scalars(
       )
       scalar_spend(b, 1)
       // Duration syntax is scanned only after its full input cost is reserved.
-      if demand is @pipeline.Duration(_) &&
+      if (
+          demand is @pipeline.Duration(_) ||
+          demand is @pipeline.Milliseconds(_, ..)
+        ) &&
         parameter.value.value is @value.Text(text) {
         scalar_spend(b, text.length())
       }

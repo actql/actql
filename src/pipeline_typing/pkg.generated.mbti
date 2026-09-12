@@ -689,6 +689,7 @@ pub(all) enum OperationScalarDemand {
   Fraction(String)
   Finite(String)
   Duration(String)
+  Milliseconds(String, signed~ : Bool)
 } derive(Eq, @debug.Debug)
 
 pub struct ParameterSlot {
