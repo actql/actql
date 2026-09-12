@@ -11,6 +11,7 @@ The release harness is kept in the repository:
 
 ```sh
 node scripts/measure-layouts.mjs --smoke
+node scripts/measure-layouts.mjs --legacy
 ```
 
 Set `MOON_HOME` to the pinned toolchain first. The smoke mode builds native, JS
@@ -31,7 +32,8 @@ hoisting later `values` across earlier failures.
 
 The measured invocation's end-to-end clock encloses all five phases. A separate
 process wall clock also includes startup, warmup and test reporting, but not
-compilation. Smoke does not measure RSS. Retained-table slot counters neither
+compilation. Each process is wrapped in macOS time or GNU time to record its
+whole-process peak RSS, including warmup. Retained-table slot counters neither
 describe allocator bytes nor include all temporary/capture storage; they must
 not be presented as process memory or complete physical accounting.
 
@@ -41,6 +43,16 @@ observation. Disposal assertions run after the phase clocks; only the outer
 process time currently includes that cleanup. The full comparison must include
 equivalent disposal in its enclosing invocation time, add prepared-input repeats,
 complete temporary-storage accounting, and run the entire fixed sample matrix.
+
+`--legacy` runs the twelve fixed shapes on native and four fixed representative
+shapes on JS/Wasm. Each case has seven paired repeats alternating A/B/C and C/B/A,
+with a fresh process and one warmup for every candidate sample. The runner saves
+each validated sample under `_build/layout-measurements/legacy-samples.json` and
+marks completion only after the full selected schedule succeeds. This subset is
+never adoption-eligible: the thirteen additional cases, complete physical
+accounting and prepared-input repeats remain necessary. A partial report is not
+a successful run. Validate the schedule and parsing with
+`node --test scripts/layout-measurement-support.test.mjs`.
 
 ## Historical debug measurements
 

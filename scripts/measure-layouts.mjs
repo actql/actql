@@ -7,13 +7,15 @@ import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { cpus, platform, release, arch } from 'node:os';
 import { performance } from 'node:perf_hooks';
+import { legacySchedule, peakRssBytes, checkedSample } from './layout-measurement-support.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 process.chdir(root);
 const smoke = process.argv.includes('--smoke');
-if (!smoke || process.argv.some(arg => arg.startsWith('--') && arg !== '--smoke')) {
-  throw new Error('Only --smoke is enabled until the full fixed matrix and physical accounting are connected');
+if (process.argv.length !== 3 || !['--smoke', '--legacy'].includes(process.argv[2])) {
+  throw new Error('Use --smoke or --legacy; neither is the complete adoption matrix');
 }
+if (!['darwin', 'linux'].includes(platform())) throw new Error('RSS requires macOS or GNU time on Linux');
 const manifestPath = 'benchmarks/local-relation/columnar-experiment.json';
 const manifest = JSON.parse(readFileSync(manifestPath));
 const toolchain = JSON.parse(readFileSync('toolchain.json'));
@@ -23,7 +25,7 @@ const env = { ...process.env, PATH: `${moonHome}/bin:${process.env.PATH}` };
 const hash = bytes => createHash('sha256').update(bytes).digest('hex');
 const git = args => execFileSync('git', args, { encoding: 'utf8' }).trim();
 const sourceFiles = git(['ls-files', '--cached', '--others', '--exclude-standard',
-  'src', 'scripts', 'spec', 'vendor', 'moon.mod', 'toolchain.json', manifestPath]).split('\n').sort();
+  'src', 'scripts', 'spec', 'vendor', 'moon.mod', 'moon.mod.json', 'moon.lock', 'toolchain.json', manifestPath]).split('\n').sort();
 const tree = createHash('sha256');
 for (const file of sourceFiles) tree.update(file + '\0').update(readFileSync(file));
 const outputDirectory = resolve('_build/layout-measurements');
@@ -40,7 +42,8 @@ const run = (command, args, extra = {}) => {
 const version = run(`${moonHome}/bin/moonc`, ['-v']).stdout.trim();
 if (!version.includes(toolchain.version)) throw new Error(`Unpinned compiler: ${version}`);
 const report = {
-  scope: 'three-layout-harness-smoke; no statistical comparison or adoption evidence',
+  scope: smoke ? 'three-layout-harness-smoke' : 'fixed-legacy-subset; additional cases and complete accounting pending',
+  status: 'running', adoption_eligible: false, started_at: new Date().toISOString(),
   baseline_commit: manifest.row_baseline_commit,
   source_commit: git(['rev-parse', 'HEAD']),
   working_tree_status: git(['status', '--porcelain']),
@@ -49,12 +52,15 @@ const report = {
   manifest_sha256: hash(readFileSync(manifestPath)),
   toolchain, compiler: version,
   host: { platform: platform(), release: release(), arch: arch(), cpu: cpus()[0]?.model },
-  warmups: 1, measured_repetitions: 1,
+  warmups: 1, measured_repetitions: smoke ? 1 : manifest.sampling.measured_repetitions,
   process_wall_scope: 'runtime startup, warmup, measured invocation and test reporting; excludes build',
   phase_scope: 'one measured invocation; clocks report microseconds; phase 3 includes invocation input checks and physical import',
-  rss_scope: 'not measured in harness smoke; retained slots are counters, not RSS bytes',
+  rss_scope: 'whole fresh process peak including startup, warmup, measured invocation, observation and cleanup; never subtract phase peaks',
   targets: [],
 };
+const reportPath = resolve(outputDirectory, smoke ? 'harness-smoke.json' : 'legacy-samples.json');
+const save = () => writeFileSync(reportPath, JSON.stringify(report, null, 2) + '\n');
+save();
 const testArgs = JSON.stringify({ package: 'actql/actql/execution_relation',
   file_and_index: [['sequence_profile_wbtest.mbt', [{ start: 0, end: 1 }]]] });
 for (const target of ['native', 'js', 'wasm']) {
@@ -67,35 +73,23 @@ for (const target of ['native', 'js', 'wasm']) {
   const args = target === 'native' ? ['sequence_profile_wbtest.mbt:0-1']
     : target === 'js' ? [artifact, testArgs] : [artifact, '--test-args', testArgs];
   const samples = [];
-  for (const candidate of ['A', 'B', 'C']) {
-    const started = performance.now();
-    const sample = run(command, args, { env: { ...env, ACTQL_LAYOUT_CASE: '0', ACTQL_LAYOUT_CANDIDATE: candidate } });
-    const wall = performance.now() - started;
-    const events = sample.stdout.split('\n').filter(line => line.startsWith('{')).map(line => JSON.parse(line));
-    const measurements = events.filter(event => event.kind === 'layout-sample');
-    const results = events.filter(event => event.type === 'result');
-    if (measurements.length !== 1 || results.length !== 1 ||
-        results[0].file !== 'sequence_profile_wbtest.mbt' || Number(results[0].index) !== 0 || results[0].message !== '') {
-      throw new Error(`Missing measurement or independent test success: ${sample.stdout}`);
-    }
-    const measurement = measurements[0];
-    if (measurement.candidate !== candidate || measurement.rows !== 100 || measurement.columns !== 2 ||
-        !measurement.same_keys || measurement.phases_us.length !== 5 ||
-        measurement.phases_us.some(n => !Number.isFinite(n) || n < 0) ||
-        !Number.isFinite(measurement.end_to_end_us) || measurement.end_to_end_us <= 0) {
-      throw new Error(`Invalid phase measurement: ${JSON.stringify(measurement)}`);
-    }
-    if (measurement.phases_us.reduce((a, b) => a + b, 0) > measurement.end_to_end_us + 1) {
-      throw new Error('Phase clocks overlap or omit their enclosing interval');
-    }
-    samples.push({ ...measurement, process_wall_ms: wall });
-  }
   report.targets.push({ target, artifact_sha256: hash(readFileSync(artifact)),
     runtime: target === 'js' ? process.version : target === 'wasm'
-      ? run(`${moonHome}/bin/moonrun`, ['--version']).stdout.trim() : 'native',
-    samples,
-  });
-  process.stderr.write(`${target}: A/B/C release phase smoke and independent output assertions PASS\n`);
+      ? run(`${moonHome}/bin/moonrun`, ['--version']).stdout.trim() : 'native', samples });
+  for (const scheduled of legacySchedule(manifest, target, smoke)) {
+    const { candidate, case_index, repeat } = scheduled;
+    const started = performance.now();
+    const sample = run('/usr/bin/time', [platform() === 'darwin' ? '-l' : '-v', command, ...args],
+      { env: { ...env, ACTQL_LAYOUT_CASE: String(case_index), ACTQL_LAYOUT_CANDIDATE: candidate } });
+    const wall = performance.now() - started;
+    const measurement = checkedSample(sample.stdout, scheduled);
+    samples.push({ ...measurement, case_index, repeat, process_wall_ms: wall,
+      peak_rss_bytes: peakRssBytes(sample.stderr, platform()), captured_at: new Date().toISOString() });
+    save();
+    process.stderr.write(`${target} case=${case_index} repeat=${repeat} ${candidate}: PASS\n`);
+  }
 }
-writeFileSync(resolve(outputDirectory, 'harness-smoke.json'), JSON.stringify(report, null, 2) + '\n');
-process.stdout.write('Harness smoke saved under _build/layout-measurements; not adoption evidence.\n');
+report.status = 'complete';
+report.finished_at = new Date().toISOString();
+save();
+process.stdout.write('Measurements saved under _build/layout-measurements; full adoption gate remains incomplete.\n');
