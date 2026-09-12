@@ -28,6 +28,7 @@ priv struct LayoutStorage {
   count : Int
   // Already composed against physical buffers, never a chain of prior views.
   selection : Array[Int]?
+  owned_selection : LayoutOwnedBuffer[Array[Int]]?
 }
 
 ///|
@@ -113,6 +114,7 @@ fn import_layout(
       width,
       count,
       selection: None,
+      owned_selection: None,
     })
   }
   if !reserve_slots(b.slots, width) || !spend_control(b.work, width) {
@@ -175,7 +177,13 @@ fn import_layout(
       )
     }
   }
-  Ok({ body: ColumnArrays(columns), width, count, selection: None, })
+  Ok({
+    body: ColumnArrays(columns),
+    width,
+    count,
+    selection: None,
+    owned_selection: None,
+  })
 }
 
 ///|
@@ -183,7 +191,7 @@ fn layout_cell(input : LayoutStorage, row : Int, column : Int) -> Value? {
   if row < 0 || row >= input.count || column < 0 || column >= input.width {
     return None
   }
-  let at = input.selection.map(indices => indices[row]).unwrap_or(row)
+  guard layout_physical_row(input, row) is Some(at) else { return None }
   Some(
     match input.body {
       RowArrays(rows) => rows[at][column]
@@ -194,6 +202,18 @@ fn layout_cell(input : LayoutStorage, row : Int, column : Int) -> Value? {
       }
     },
   )
+}
+
+///|
+fn layout_physical_row(input : LayoutStorage, row : Int) -> Int? {
+  if input.owned_selection is Some(handle) {
+    guard handle.value is Some(indices) else { return None }
+    return indices.get(row)
+  }
+  match input.selection {
+    Some(indices) => indices.get(row)
+    None => Some(row)
+  }
 }
 
 ///|
@@ -237,6 +257,7 @@ fn select_layout_rows(
         width: input.width,
         count: indices.length(),
         selection: None,
+        owned_selection: None,
       })
     ColumnArrays(_) =>
       Ok({
@@ -247,21 +268,37 @@ fn select_layout_rows(
         ),
       })
     OwnedColumnArrays(columns) => {
+      guard b.ledger is Some(ledger) else { return Err(Shape) }
       if !reserve_slots(b.slots, columns.length()) {
         return Err(Limit)
+      }
+      for index in indices {
+        if layout_physical_row(input, index) is None {
+          return Err(Shape)
+        }
+      }
+      // Precharge the composed buffer while the old view remains live.
+      let selection = match
+        allocate_owned_layout_buffer(ledger, indices.length(), 0, fn() {
+          indices.map(i => layout_physical_row(input, i).unwrap())
+        }) {
+        Ok(value) => value
+        Err(issue) => return Err(issue)
       }
       let shared = match
         share_layout_columns(columns, Array::makei(columns.length(), i => i), b) {
         Ok(v) => v
-        Err(e) => return Err(e)
+        Err(e) => {
+          ignore(release_owned_layout_buffer(ledger, selection))
+          return Err(e)
+        }
       }
       Ok({
         ..input,
         body: OwnedColumnArrays(shared),
         count: indices.length(),
-        selection: Some(
-          indices.map(i => input.selection.map(s => s[i]).unwrap_or(i)),
-        ),
+        selection: None,
+        owned_selection: Some(selection),
       })
     }
   }
@@ -299,6 +336,7 @@ fn project_layout(
         width: ordinals.length(),
         count: input.count,
         selection: None,
+        owned_selection: None,
       })
     }
     ColumnArrays(columns) =>
@@ -307,16 +345,32 @@ fn project_layout(
         body: ColumnArrays(ordinals.map(i => columns[i])),
         width: ordinals.length(),
       })
-    OwnedColumnArrays(columns) =>
+    OwnedColumnArrays(columns) => {
+      guard b.ledger is Some(ledger) else { return Err(Shape) }
+      let selection = match input.owned_selection {
+        None => None
+        Some(handle) =>
+          match share_owned_layout_buffer(ledger, handle) {
+            Ok(shared) => Some(shared)
+            Err(issue) => return Err(issue)
+          }
+      }
       match share_layout_columns(columns, ordinals, b) {
         Ok(shared) =>
           Ok({
             ..input,
             body: OwnedColumnArrays(shared),
             width: ordinals.length(),
+            owned_selection: selection,
           })
-        Err(e) => Err(e)
+        Err(e) => {
+          if selection is Some(handle) {
+            ignore(release_owned_layout_buffer(ledger, handle))
+          }
+          Err(e)
+        }
       }
+    }
   }
 }
 

@@ -40,6 +40,7 @@ fn import_layout_producer(
       width: source.names.length(),
       count: source.rows.length(),
       selection: None,
+      owned_selection: None,
     }
   } else {
     let builder = match

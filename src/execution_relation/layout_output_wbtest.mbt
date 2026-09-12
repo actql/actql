@@ -193,7 +193,13 @@ fn finish_layout_columns(
     }
     None => ColumnArrays(builder.columns)
   }
-  Ok({ body, width, count: builder.count, selection: None, })
+  Ok({
+    body,
+    width,
+    count: builder.count,
+    selection: None,
+    owned_selection: None,
+  })
 }
 
 ///|
@@ -307,6 +313,7 @@ fn evaluate_layout_source(
             width: table.names.length(),
             count: table.rows.length(),
             selection: None,
+            owned_selection: None,
           },
         })
     }

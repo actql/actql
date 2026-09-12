@@ -264,8 +264,8 @@ test "take completion temporary releases its buffer ownership after selection" {
   assert_true(layout_cell(output.storage, 0, 0) is Some(Text("one")))
   // Dropped numeric column has no remaining temporary owner.
   assert_eq(ledger.bytes.live, 0)
-  // One selected row still holds the complete three-value text column.
-  assert_eq(ledger.slots.live, 3)
+  // One selected row retains three text values plus one occurrence index.
+  assert_eq(ledger.slots.live, 4)
   drop_table(store, 3)
   assert_eq(ledger.slots.live, 0)
 }
