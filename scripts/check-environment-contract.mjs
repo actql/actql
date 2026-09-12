@@ -32,6 +32,7 @@ const body = {
     catalog_membership:'each_reference_resolves_inside_its_own_catalog_shared_envelopes_deduplicate_only_in_derived_registry',
     policy:'validate_selected_profile_and_every_supplied_policy_component',
     authority:'shape_hash_and_membership_are_not_authorization_or_runtime_evidence',
+    source_read_modes:'unique_names_declared_default_snapshot_bounded_watch_unbounded_changes_and_watch_require_checkpoint_preserve_array_order_no_selection_authority',
   },
   value_contract_bodies:valueBodyContract(JSON.parse(readFileSync('spec/contracts/actql-protocol-schemas.json','utf8'))),
   contract_bodies:{

@@ -1311,6 +1311,16 @@ facts distinguish ordered/partition-ordered/unordered delivery, possible
 duplicates, acknowledgement, lease, reset, and replay policy. Provider receive
 order is not event-time order.
 
+<!-- requirement-block: sourceviews.read-mode-contract-coherence -->
+A SourceView's advertised read-mode names MUST be unique, and `default_mode`
+names exactly one advertised mode. A `snapshot` mode has `bounded: true`, a
+`watch` mode has `bounded: false`, and both `changes` and `watch` carry a
+checkpoint contract. A snapshot may also declare a checkpoint. A changes mode
+may advertise either boundedness; admission of its declaration is distinct from
+permission to select it for execution. Advertising watch does not make its
+selection supported in ActQL 0.1. Validation preserves supplied mode order and
+does not insert a missing default, checkpoint or boundedness declaration.
+
 Snapshot acquisition remains subject to checked ceilings and their enforcement
 boundaries ([Author guards, resolved limits, and Plan facts](#resolved-limits)).
 Consistency within and across acquisitions depends on the admitted source

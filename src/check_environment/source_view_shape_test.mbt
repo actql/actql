@@ -32,4 +32,11 @@ test "SourceView schema admission is distinct from already admitted references" 
   assert_true(physical_equal(source_view_shape_values(shapes), empty))
   assert_eq(source_view_shape_usage(shapes), (0, 0))
   assert_true(source_view_shape_at(shapes, 0) is None)
+  let modes = check_source_read_modes(shapes, 0).unwrap()
+  assert_true(physical_equal(read_mode_shapes(modes), shapes))
+  assert_eq(read_mode_usage(modes), (0, 0))
+  assert_true(read_mode_view_at(modes, 0) is None)
+  assert_true(
+    check_source_read_modes(shapes, -1) is Err(e) && e.kind == InvalidLimits,
+  )
 }

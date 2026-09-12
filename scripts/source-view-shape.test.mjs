@@ -3,6 +3,12 @@ import test from 'node:test';
 import {readFileSync} from 'node:fs';
 import {compileSourceView} from './source-view-shape.mjs';
 const schema=JSON.parse(readFileSync('spec/contracts/actql-protocol-schemas.json','utf8')).schemas.source_view;
+test('read-mode semantic dispatch covers exactly the declared schema alternatives',()=>{
+  const p=schema.properties.acquisition.properties;
+  assert.deepEqual(p.default_mode.enum,['snapshot','changes','watch']);
+  assert.deepEqual(p.modes.items.properties.mode.enum,['snapshot','changes','watch']);
+  assert.deepEqual(p.modes.items.required,['mode','bounded']);
+});
 test('complete SourceView schema compiles without dropping fields or constraints',()=>{
   const text=compileSourceView(schema);
   assert.match(text,/SVPositiveInteger/);

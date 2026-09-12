@@ -43,6 +43,8 @@ pub fn check_protocol_value_contracts(SourceDataPolicies, ValueContractLimits) -
 
 pub fn check_source_data_policies(CatalogReferences, DataPolicyLimits) -> Result[SourceDataPolicies, DataPolicyIssue]
 
+pub fn check_source_read_modes(SourceViewShapes, Int) -> Result[SourceReadModes, SourceReadModeIssue]
+
 pub fn check_source_view_shapes(ProtocolValueContracts, SourceViewShapeLimits) -> Result[SourceViewShapes, SourceViewShapeIssue]
 
 pub fn cid(WireEnvironment) -> String
@@ -72,6 +74,8 @@ pub fn data_policy_references(SourceDataPolicies) -> CatalogReferences
 pub fn data_policy_source(SourceDataPolicy) -> String
 
 pub fn data_policy_usage(SourceDataPolicies) -> (Int, Int)
+
+pub fn default_read_mode(SourceViewModes) -> SourceReadMode
 
 pub fn emit(WireEnvironment, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
 
@@ -106,6 +110,24 @@ pub fn protocol_value_usage(ProtocolValueContracts) -> (Int, Int, Int)
 pub fn read(Bytes, String, Limits) -> Result[WireEnvironment, Issue]
 
 pub fn read_capacity(WireEnvironment, @capacity_policy.Limits) -> Result[Capacity, CapacityIssue]
+
+pub fn read_mode_at(SourceViewModes, Int) -> SourceReadMode?
+
+pub fn read_mode_bounded(SourceReadMode) -> Bool
+
+pub fn read_mode_count(SourceViewModes) -> Int
+
+pub fn read_mode_kind(SourceReadMode) -> SourceReadModeKind
+
+pub fn read_mode_member(SourceViewModes) -> Member
+
+pub fn read_mode_shapes(SourceReadModes) -> SourceViewShapes
+
+pub fn read_mode_source(SourceReadMode) -> @decode_core.Cursor
+
+pub fn read_mode_usage(SourceReadModes) -> (Int, Int)
+
+pub fn read_mode_view_at(SourceReadModes, Int) -> SourceViewModes?
 
 pub fn read_text_time(WireEnvironment, @text_time_policy.Limits) -> Result[TextTime, TextTimeIssue]
 
@@ -273,6 +295,32 @@ pub(all) enum Section {
 type SourceDataPolicies
 
 type SourceDataPolicy
+
+type SourceReadMode
+
+pub(all) struct SourceReadModeIssue {
+  kind : SourceReadModeIssueKind
+  source : @decode_core.Cursor?
+}
+
+pub(all) enum SourceReadModeIssueKind {
+  InvalidLimits
+  WorkLimit
+  DuplicateMode(SourceReadModeKind)
+  UndeclaredDefault
+  InvalidBoundedness(SourceReadModeKind)
+  MissingCheckpoint(SourceReadModeKind)
+} derive(Eq, @debug.Debug)
+
+pub(all) enum SourceReadModeKind {
+  SnapshotMode
+  ChangesMode
+  WatchMode
+} derive(Eq, @debug.Debug)
+
+type SourceReadModes
+
+type SourceViewModes
 
 type SourceViewPolicy
 

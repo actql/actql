@@ -1180,6 +1180,17 @@
       }
     },
     {
+      "requirement_id": "actql.language/sourceviews.read-mode-contract-coherence",
+      "statement_sha256": "6aa64ec58fb0f21a1b55f0623e18b15b642f4a48df000c454d162cbf2890fd96",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "sourceviews",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.language/sourceviews.those-relation-operations-must-not-rewind-erase-or-otherwise-derive",
       "statement_sha256": "f0eb500832791530662f3689975ce7795607fb4b827d213781a983a057aa5f2d",
       "status": "pending",
@@ -8793,7 +8804,7 @@
     },
     {
       "requirement_id": "actql.protocol.contracts/machine-contracts.exact-artifacts",
-      "statement_sha256": "0a92c6dd9dbff2a67e4305a2af0f02778f931c3f926f44ad7f7bef583ab64865",
+      "statement_sha256": "ebda36476fe7812eae1ad628d315004f62b5ea0ece523afaafd4bbca49e3a09a",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",

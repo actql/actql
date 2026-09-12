@@ -268,6 +268,28 @@ not heap bytes. Field lookup scans a fixed generated property table, so input
 width cannot introduce quadratic lookup work. Diagnostics retain the original
 cursor; a later failure exposes no partial result.
 
+## SourceView read-mode coherence
+
+`check_source_read_modes` consumes the shape proof and retains it with every
+SourceView's mode objects and exact selected default. Mode names are unique,
+snapshot is bounded, watch is unbounded, and non-snapshot modes carry checkpoint
+contracts. This matches the validation in Sketch
+`87dc7144:src/actql-protocol.ts`; the normative paragraph makes the cross-field
+conditions explicit rather than treating schema shape as their proof.
+
+Unlike the reference constructor, this reader does not sort or repair supplied
+arrays. Supplied mode order and original cursors remain intact. Checkpoint and
+delivery reference shapes and kinds are covered by preceding proofs; this pass
+does not invent further expiration or acknowledgement constraints.
+
+Catalog advertisement and Program selection are separate: bounded or unbounded
+changes and unbounded watch can be described by a valid Catalog. A Program still
+needs the profile's supported selected mode, actual bounds and runtime evidence.
+No capacity proof follows from `bounded: true`. The mode pass charges visited
+object members and mode records cumulatively across views, and returns no partial
+result after a later failure. It does not close correlation, Carrier, Command or
+authority admission.
+
 ## Capacity component selection
 
 The normative component selector is now `/host_policy_profile/capacity`, with
