@@ -3,6 +3,7 @@ package "actql/actql/value_admission"
 
 import {
   "actql/actql/decode_core",
+  "actql/actql/encode_core",
   "actql/actql/source_span",
   "actql/actql/source_value",
   "actql/actql/value_contract",
@@ -19,6 +20,8 @@ pub fn[T] element_at(FrozenArray[T], Int) -> T?
 pub fn[T] element_count(FrozenArray[T]) -> Int
 
 pub fn[T] elements(FrozenArray[T]) -> Array[T]
+
+pub fn emit_wire_value(Value, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
 
 // Errors
 

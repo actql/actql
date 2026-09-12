@@ -34,6 +34,8 @@ pub fn finish_hash_usage(Writer) -> (String, Int, Int) raise EncodeFailure
 
 pub fn finish_measurement(Writer) -> Int raise EncodeFailure
 
+pub fn finish_measurement_usage(Writer) -> (Int, Int, Int) raise EncodeFailure
+
 pub fn hashing_writer(Int, Int, Int) -> Writer raise EncodeFailure
 
 pub fn key(Writer, String) -> Unit raise EncodeFailure

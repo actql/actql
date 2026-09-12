@@ -366,10 +366,23 @@ pub fn finish(w : Writer) -> String raise EncodeFailure {
 /// Close a complete measured value and return its exact UTF-8 byte length.
 /// A measurement cannot be promoted to EncodedDocument or read as text.
 pub fn finish_measurement(w : Writer) -> Int raise EncodeFailure {
+  finish_measurement_usage(w).0
+}
+
+///|
+/// Complete one measured value, returning (UTF-8 bytes, value nodes, peak
+/// open-container depth). No text is retained or second traversal performed.
+pub fn finish_measurement_usage(
+  w : Writer,
+) -> (Int, Int, Int) raise EncodeFailure {
   active(w)
   guard w.output is MeasureOutput else { fail(w, InvalidStructure) }
   finish_state(w)
-  w.max_bytes - w.remaining_bytes
+  (
+    w.max_bytes - w.remaining_bytes,
+    w.max_nodes - w.remaining_nodes,
+    w.peak_depth,
+  )
 }
 
 ///|

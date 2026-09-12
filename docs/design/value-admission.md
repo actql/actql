@@ -36,6 +36,22 @@ part, leading plus, exponent notation, negative zero, wrong scale and excess
 precision fail. Precision 38 needs neither binary64 nor machine-integer narrowing.
 Arithmetic, numeric equality across scales and typed decimal identity are separate.
 
+`emit_wire_value` projects an admitted value into a caller-owned `encode_core`
+writer. Text, measurement and hash sinks consume the same canonical JSON wire
+stream, without a second value tree or recursive traversal. Decimal leaves are
+fixed-scale strings, not coefficient text or the tagged Parameter identity
+projection. Business `$param` and `literal` keys remain ordinary data. The writer
+accounts for structural syntax, escaped text and repeated value occurrences;
+`finish_measurement_usage` returns exact bytes, value nodes and peak container
+depth only after successful completion. Callers can embed several values in the
+same writer so limits are not reset per cell or row.
+
+The emitter does not select Host ceilings, construct a bound witness, perform
+operation lowering or authorize publication. Its traversal frames are bounded
+by value depth; the writer also retains object-key validation state. The input
+value tree remains allocated, so avoiding a complete wire String does not imply
+constant total memory use. Decimal leaf formatting is bounded by precision 38.
+
 Dates and timestamps follow the [Language calendar rules](../spec/language.md#value-contracts):
 years 0000–9999, valid proleptic Gregorian dates, and UTC timestamps with exactly
 three fractional digits. Offset spellings, leap seconds and invalid dates fail.

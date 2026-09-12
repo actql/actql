@@ -12,6 +12,42 @@ fn measurement_fixture(w : Writer) -> Unit raise EncodeFailure {
 }
 
 ///|
+test "measurement usage retains exact nodes and embedded peak depth" {
+  let text = writer(1000, 20, 5)
+  measurement_fixture(text)
+  let document = finish_document(text)
+  let out = measuring_writer(1000, 20, 5)
+  begin_array(out)
+  emit_document(out, document)
+  emit_document(out, document)
+  end_array(out)
+  assert_eq(
+    finish_measurement_usage(out),
+    (document_bytes(document) * 2 + 3, 13, 3),
+  )
+  try finish_measurement_usage(out) catch {
+    ClosedWriter => ()
+    _ => assert_true(false)
+  } noraise {
+    _ => assert_true(false)
+  }
+  let wrong = writer(4, 1, 0)
+  null_value(wrong)
+  try finish_measurement_usage(wrong) catch {
+    InvalidStructure => ()
+    _ => assert_true(false)
+  } noraise {
+    _ => assert_true(false)
+  }
+  try finish(wrong) catch {
+    ClosedWriter => ()
+    _ => assert_true(false)
+  } noraise {
+    _ => assert_true(false)
+  }
+}
+
+///|
 test "measurement shares exact emitted byte node depth admission" {
   let emitted = writer(10000, 100, 8)
   measurement_fixture(emitted)
