@@ -841,6 +841,16 @@
       ],
       "additionalProperties": false
     },
+    "stage_definition": {
+      "type": "object",
+      "properties": {
+        "version": { "const": "actql-stage-definition/0.1" },
+        "id": { "type": "string", "minLength": 1 },
+        "stage_semantics_cid": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" }
+      },
+      "required": ["version", "id", "stage_semantics_cid"],
+      "additionalProperties": false
+    },
     "stage_semantics": {
       "type": "object",
       "properties": {

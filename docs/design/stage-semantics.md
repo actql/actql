@@ -68,3 +68,21 @@ CID share a bounded emitter. Neither preparation nor output failure exposes a
 partial identity. The handle is immutable and supports repeated bounded output.
 Definition identity is not issuer evidence, authorization, Invocation binding,
 or completion of the checked Program's static and runtime obligations.
+
+## Stage Definition
+
+The closed `schemas.stage_definition` envelope binds the authored stage ID to
+its stage semantics CID. Its three-member shape mirrors Program Definition;
+this makes the previously specified association exact without importing parent
+revision or position. The reference implementation at
+`sketch@87dc7144138edfcba108cdc59dc485ac976ba976` supplies local-unit encoders,
+not an exact Stage Definition envelope; it is not used as a replacement wire
+contract. Unit namespace and incoming contracts remain a different boundary.
+
+`prepare_stage_definition` accepts only owned StageSemantics, hashes it under
+explicit limits and obtains the ID from that same source. ID and CID cannot be
+supplied independently. Preparation reports hashed bytes/nodes; final emission
+has separate limits and shares text, measurement and hash sinks. The source
+owner is retained internally but neither owner identity nor ordinal enters the
+preimage. A renamed parent or unrelated sibling cannot change the local hash.
+This identity is not an execution permit or completed Unit extraction.

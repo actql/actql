@@ -14,3 +14,18 @@ test "stage semantics: other-stage-declarations-excluded" {
 test "stage semantics: explicit-empty-maps-and-lists" {
   assert_stage_semantics(true, 1, "{\"binding_references\":[],\"bindings\":{},\"expression_contract_cid\":\"sha256:399d4593f8212a2239a0a3e3ca552653ad711010a180207f967cf546012fc1cb\",\"local_body\":{\"effects\":{},\"from\":\"rows\",\"inputs\":{\"rows\":\"relation\"},\"results\":{\"r\":{}},\"steps\":[]},\"parameter_references\":[],\"parameters\":{},\"version\":\"actql-stage-semantics/0.1\"}", "sha256:6207cf6549b9a178003845e3bb344a085ccd197a88a8184fb9e55e995d777053")
 }
+
+///|
+test "stage definition: local-binding-and-parameter-uses" {
+  assert_stage_definition(false, 0, "a", "sha256:5a90d4ee89418f1c2fafa8110ff08017c8245a312eee166593bbf4d7545f3a6c", "{\"id\":\"a\",\"stage_semantics_cid\":\"sha256:5a90d4ee89418f1c2fafa8110ff08017c8245a312eee166593bbf4d7545f3a6c\",\"version\":\"actql-stage-definition/0.1\"}", "sha256:8ce1c2d1d1744b84487c78a95dd5ddc5146f4e991a655f4f2c0d17ab5e60b64c")
+}
+
+///|
+test "stage definition: other-stage-declarations-excluded" {
+  assert_stage_definition(false, 1, "b", "sha256:edd320b8b4c8ac3a0abff25b8fec8c858faa33ddf9acfc91d7daeefb9536badd", "{\"id\":\"b\",\"stage_semantics_cid\":\"sha256:edd320b8b4c8ac3a0abff25b8fec8c858faa33ddf9acfc91d7daeefb9536badd\",\"version\":\"actql-stage-definition/0.1\"}", "sha256:c5e94c48b48f71800e059413cd07946eb7a37a2eb8dced1e2fa2d5028fce70ab")
+}
+
+///|
+test "stage definition: explicit-empty-maps-and-lists" {
+  assert_stage_definition(true, 1, "b", "sha256:6207cf6549b9a178003845e3bb344a085ccd197a88a8184fb9e55e995d777053", "{\"id\":\"b\",\"stage_semantics_cid\":\"sha256:6207cf6549b9a178003845e3bb344a085ccd197a88a8184fb9e55e995d777053\",\"version\":\"actql-stage-definition/0.1\"}", "sha256:97f14bcddeb872803f1adc9b39316e74d85fb814821d7f44a73d4530398cc351")
+}

@@ -1037,6 +1037,16 @@ test "contract spec/contracts/actql-stage-contracts.json#/laws/identity" {
 }
 
 ///|
+test "contract spec/contracts/actql-stage-contracts.json#/schemas/stage_definition" {
+  let input = @json.parse([
+    "{\"type\":\"object\",\"properties\":{\"version\":{\"const\":\"actql-stage-definition/0.1\"},\"id\":{\"type\":\"string\",\"minLength\":1},\"stage_semantics_cid\":{\"type\":\"string\",\"pattern\":\"^sha256:[0-9a-f]{64}$\"}},\"required\":[\"version\",\"id\",\"stage_semantics_cid\"],\"additionalProperties\":false}",
+  ].join(""))
+  let value = @canonical_json.from_json(input, 16, 3, 271)
+  assert_eq(@canonical_json.cid_value(value, 271, 16, 3), "sha256:4a3827b54a953f84ae64992a8ba6ac0b0c6c55025665ae00c5af7e95fa368c79")
+  assert_eq(@canonical_json.measure_value(value, 271, 16, 3), 271)
+}
+
+///|
 test "contract spec/contracts/actql-stage-contracts.json#/schemas/stage_semantics" {
   let input = @json.parse([
     "{\"type\":\"object\",\"properties\":{\"version\":{\"const\":\"actql-stage-semantics/0.1\"},\"expression_contract_cid\":{\"type\":\"string\",\"pattern\":\"^sha256:[0-9a-f]{64}$\"},\"parameters\":{\"type\":\"object\",\"additionalProperties\":{\"type\":\"object\"}},\"parameter_references\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\",\"minLength\":1},\"path\":{\"type\":\"string\",\"minLength\":1},\"type\":{\"type\":\"object\"}},\"required\":[\"name\",\"path\",\"type\"],\"additionalProperties\":false},\"minItems\":0},\"bindings\":{\"type\":\"object\",\"additionalProperties\":{\"type\":\"object\"}},\"binding_references\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\",\"minLength\":1},\"path\":{\"type\":\"string\",\"minLength\":1},\"type\":{\"type\":\"object\"}},\"required\":[\"name\",\"path\",\"type\"],\"additionalProperties\":false},\"minItems\":0},\"local_body\":{\"type\":\"object\"}},\"required\":[\"version\",\"expression_contract_cid\",\"parameters\",\"parameter_references\",\"bindings\",\"binding_references\",\"local_body\"],\"additionalProperties\":false}",

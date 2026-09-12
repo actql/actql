@@ -27,6 +27,8 @@ pub fn emit_program_definition(ProgramDefinition, @encode_core.Writer) -> Unit r
 
 pub fn emit_program_semantics(ProgramSemantics, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
 
+pub fn emit_stage_definition(StageDefinition, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
+
 pub fn emit_stage_semantics(StageSemantics, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
 
 pub fn emit_used_bindings(Index, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
@@ -44,6 +46,8 @@ pub fn prepare(@source_request_slots.Slots, Array[@stage_source.ParameterUses], 
 pub fn prepare_program_definition(ProgramSemantics, Int, Int, Int) -> ProgramDefinition raise @encode_core.EncodeFailure
 
 pub fn prepare_program_semantics(DeclarationUsage, ProgramSemanticsLimits) -> Result[ProgramSemantics, ProgramSemanticsIssue]
+
+pub fn prepare_stage_definition(StageSemantics, Int, Int, Int) -> StageDefinition raise @encode_core.EncodeFailure
 
 pub fn program_definition_cid(ProgramDefinition, Int, Int, Int) -> String raise @encode_core.EncodeFailure
 
@@ -70,6 +74,16 @@ pub fn program_semantics_usage(ProgramSemantics) -> DeclarationUsage
 pub fn program_semantics_work(ProgramSemantics) -> Int
 
 pub fn requests(Inventory) -> @source_request_slots.Slots
+
+pub fn stage_definition_cid(StageDefinition, Int, Int, Int) -> String raise @encode_core.EncodeFailure
+
+pub fn stage_definition_hash_usage(StageDefinition) -> (Int, Int)
+
+pub fn stage_definition_id(StageDefinition) -> String
+
+pub fn stage_definition_semantics(StageDefinition) -> StageSemantics
+
+pub fn stage_definition_semantics_cid(StageDefinition) -> String
 
 pub fn stage_index(Inventory, Int) -> Index?
 
@@ -145,6 +159,8 @@ pub(all) struct ProgramSemanticsLimits {
   max_hash_nodes : Int
   max_depth : Int
 } derive(Eq, @debug.Debug)
+
+type StageDefinition
 
 type StageSemantics
 

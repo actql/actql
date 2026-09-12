@@ -7982,6 +7982,18 @@ envelopes exclude annotations. The authority-bearing definition envelope is:
 }
 ```
 
+<!-- requirement-block: canonical-identities.stage-definition-envelope -->
+The Stage Definition MUST hash exactly the closed envelope
+`{version: "actql-stage-definition/0.1", id, stage_semantics_cid}`, where id is
+the normalized authored stage ID and stage_semantics_cid identifies that same
+stage's envelope above. There is no self-CID member in this preimage. The parent
+Program ID/CID, stage position, after, annotations and concrete values are not
+additional members. Changing the stage ID changes this definition even when its
+semantics are unchanged. This envelope is registered as schemas.stage_definition
+in the stage contract registry. It is not the Unit Definition: the typed
+Program/node namespace and incoming contracts remain separate local extraction
+requirements. Computing either source identity grants no execution authority.
+
 <!-- requirement-block: canonical-identities.the-run-receipt-must-bind-all-applicable-identities-concrete-input -->
 Every self-CID is computed over the same envelope without its own CID field.
 Normalization journal and schema/capability/mapping evidence
@@ -8634,6 +8646,7 @@ through the pinned expression contract.
 ../../spec/contracts/actql-stage-contracts.json#/laws/lifecycle sha256:da02951b68ca4255a25ac5b3f60288dbde2a8f7b252f518d73247c9feca09c54
 ../../spec/contracts/actql-stage-contracts.json#/laws/identity sha256:090d1c81f41bc0cbda07b62ade75d2fbd450d0a333fcf6a23d1c2483b43e213f
 ../../spec/contracts/actql-stage-contracts.json#/schemas/stage_semantics sha256:c9fdde04da54089003a628cae27f01c118f59e359dff7cacdd09f6eb86c9f2e3
+../../spec/contracts/actql-stage-contracts.json#/schemas/stage_definition sha256:4a3827b54a953f84ae64992a8ba6ac0b0c6c55025665ae00c5af7e95fa368c79
 ../../spec/contracts/actql-stage-contracts.json#/schemas/program_semantics sha256:89152a5f20ffdf17f321f40cf21d57c691ba5c30772d0aac2545888786a98ba0
 ```
 <!-- stage-contract-pins:end -->
