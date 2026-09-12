@@ -5,6 +5,7 @@ struct FragmentRequest {
   pipeline : FragmentPipeline
   max_rows : Int64
   max_value_bytes : Int64
+  row_limits : FragmentRowLimits?
 }
 
 ///|
@@ -19,8 +20,17 @@ pub fn fragment_request_pipeline(request : FragmentRequest) -> FragmentPipeline 
 }
 
 ///|
+pub fn fragment_request_row_limits(
+  request : FragmentRequest,
+) -> FragmentRowLimits? {
+  request.row_limits
+}
+
+///|
 pub(all) enum FragmentRequestIssue {
   InvalidRequestCeiling
+  InvalidRowLimits
+  RowLimitsMismatch
 }
 
 ///|
@@ -28,6 +38,7 @@ pub fn prepare_fragment_request(
   pipeline : FragmentPipeline,
   max_rows : Int64,
   max_value_bytes : Int64,
+  row_limits? : FragmentRowLimits? = None,
 ) -> Result[FragmentRequest, FragmentRequestIssue] {
   if max_rows < 1L ||
     max_rows > 9007199254740991L ||
@@ -35,7 +46,21 @@ pub fn prepare_fragment_request(
     max_value_bytes > 9007199254740991L {
     return Err(InvalidRequestCeiling)
   }
-  Ok({ pipeline, max_rows, max_value_bytes, })
+  match (pipeline.kernel.body, row_limits) {
+    (OrderedBindings(_), Some(limits)) => {
+      if !fragment_row_limits_valid(limits) {
+        return Err(InvalidRowLimits)
+      }
+      if limits.max_input_rows > max_rows ||
+        limits.max_value_bytes > max_value_bytes {
+        return Err(InvalidRequestCeiling)
+      }
+    }
+    (OrderedBindings(_), None) => return Err(RowLimitsMismatch)
+    (_, Some(_)) => return Err(RowLimitsMismatch)
+    (_, None) => ()
+  }
+  Ok({ pipeline, max_rows, max_value_bytes, row_limits, })
 }
 
 ///|
@@ -55,14 +80,14 @@ pub fn emit_fragment_request(
   // derive a context from later operations or reinterpret literal data.
   let mut has_null = false
   match kernel.body {
-    SnapshotMap(bindings) =>
+    SnapshotMap(bindings) | OrderedBindings(bindings) =>
       for (_, expression) in bindings {
         if is_contextual_null_root(expression) {
           has_null = true
         }
       }
     Filter(_) => ()
-    OrderedBindings(_) | Select(_) => raise @encode.InvalidStructure
+    Select(_) => raise @encode.InvalidStructure
   }
   if has_null {
     @encode.key(out, "null_contexts")
@@ -70,15 +95,14 @@ pub fn emit_fragment_request(
     @encode.key(out, kernel.owner.prepared.nodes[kernel.step_index].id)
     @encode.begin_object(out)
     match kernel.body {
-      SnapshotMap(bindings) =>
+      SnapshotMap(bindings) | OrderedBindings(bindings) =>
         for (name, expression) in bindings {
           if is_contextual_null_root(expression) {
             @encode.key(out, name)
             @contract.emit_checked(expression.contract, out)
           }
         }
-      Filter(_) | OrderedBindings(_) | Select(_) =>
-        raise @encode.InvalidStructure
+      Filter(_) | Select(_) => raise @encode.InvalidStructure
     }
     @encode.end_object(out)
     @encode.end_object(out)
@@ -102,6 +126,16 @@ pub fn emit_fragment_request(
   @encode.end_object(out)
   @encode.key(out, "pipeline")
   emit_fragment_source_pipeline(request.pipeline, out)
+  if request.row_limits is Some(limits) {
+    let hashing = @encode.hashing_writer(1024, 16, 2)
+    emit_fragment_row_limits_body(limits, None, hashing)
+    let cid = "sha256:" + @encode.finish_hash(hashing)
+    @encode.key(out, "row_kernel_limits")
+    @encode.begin_object(out)
+    @encode.key(out, kernel.owner.prepared.nodes[kernel.step_index].id)
+    emit_fragment_row_limits_body(limits, Some(cid), out)
+    @encode.end_object(out)
+  }
   @encode.key(out, "source_schemas")
   @encode.begin_object(out)
   @encode.key(out, "input")

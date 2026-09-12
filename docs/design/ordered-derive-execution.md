@@ -87,6 +87,16 @@ generated artifact. The single-step evidence projection emits the binding,
 contexts, limits and shapes in their required closure order; it does not yet
 establish their enclosing request or admit a complete fragment.
 
+Ordered source requests use the same per-kernel request builder as maps and
+filters. They require explicit row limits for that exact step; non-ordered
+requests reject an extraneous row-limits member. Request and runtime share the
+same immutable quantities, safe-integer validation and canonical body emitter.
+The row/value ceilings cannot exceed the enclosing request ceilings. The request
+emits the limits self-CID under its generated step ID, while its source pipeline
+contains only authored-order bindings with normalized source expressions.
+Preparing this source request does not bypass the registered machine-node and
+evidence checks required by complete fragment construction.
+
 ## Logical resources
 
 The limits distinguish input row occurrences, individual wire value size,

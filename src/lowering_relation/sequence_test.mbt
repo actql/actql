@@ -80,9 +80,14 @@ test "ordered preparation does not confer fragment encoding admission" {
   )
   let sequence = @lowering_relation.prepare_sequence(owner, sequence_limits()).unwrap()
   assert_eq(@lowering_relation.sequence_count(sequence), 3)
+  let fragment = @lowering_relation.prepare_fragment_pipeline(
+    sequence,
+    2,
+    root_limits(),
+  ).unwrap()
   assert_true(
-    @lowering_relation.prepare_fragment_pipeline(sequence, 2, root_limits())
-    is Err(@lowering_relation.NeedsOrderedEncoding),
+    @lowering_relation.prepare_fragment_request(fragment, 10L, 1000L)
+    is Err(@lowering_relation.RowLimitsMismatch),
   )
   let writer = @encode.writer(100000, 10000, 100)
   assert_true(

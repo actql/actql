@@ -50,25 +50,7 @@ fn emit_ordered_limits_body(
   self_cid : String?,
   out : @encode.Writer,
 ) -> Unit raise @encode.EncodeFailure {
-  @encode.begin_object(out)
-  @encode.key(out, "max_input_rows")
-  @encode.number_value(out, limits.max_input_rows.to_double())
-  @encode.key(out, "max_live_value_bytes")
-  @encode.number_value(out, limits.max_live_value_bytes.to_double())
-  @encode.key(out, "max_value_bytes")
-  @encode.number_value(out, limits.max_value_bytes.to_double())
-  @encode.key(out, "max_work")
-  @encode.number_value(out, limits.max_work.to_double())
-  match self_cid {
-    Some(cid) => {
-      @encode.key(out, "self_cid")
-      @encode.string_value(out, cid)
-    }
-    None => ()
-  }
-  @encode.key(out, "version")
-  @encode.string_value(out, "actql-derive-row-limits/0.1")
-  @encode.end_object(out)
+  @lower.emit_fragment_row_limits_body(limits, self_cid, out)
 }
 
 ///|

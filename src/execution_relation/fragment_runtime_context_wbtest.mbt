@@ -5,7 +5,7 @@ test "fragment runtime bounds are explicit request-bounded owner-bound and fresh
     material_demands(),
     registry_limits(),
   ).unwrap()
-  let limits = {
+  let limits : LogicalLimits = {
     max_input_rows: 10L,
     max_value_bytes: 1000L,
     max_live_value_bytes: 10000L,

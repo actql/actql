@@ -18,12 +18,7 @@ pub fn prepare_fragment_pipeline(
     Err(issue) => return Err(issue)
   }
   match sequence.steps[step] {
-    RowStep(kernel) =>
-      if kernel.body is OrderedBindings(_) {
-        Err(NeedsOrderedEncoding)
-      } else {
-        Ok({ kernel, roots, })
-      }
+    RowStep(kernel) => Ok({ kernel, roots, })
     ValuesStep(_) => Err(NotExpressionKernel)
   }
 }
@@ -94,16 +89,27 @@ fn emit_fragment_pipeline(
     @encode.string_value(
       out,
       match kernel.body {
-        SnapshotMap(_) => "REL.derive"
+        SnapshotMap(_) | OrderedBindings(_) => "REL.derive"
         Filter(_) => "REL.where"
         Select(_) => raise @encode.InvalidStructure
-        OrderedBindings(_) => raise @encode.InvalidStructure
       },
     )
     @encode.key(out, "params")
     @encode.begin_object(out)
     match kernel.body {
-      OrderedBindings(_) => raise @encode.InvalidStructure
+      OrderedBindings(bindings) => {
+        @encode.key(out, "bindings")
+        @encode.begin_array(out)
+        for (name, expression) in bindings {
+          @encode.begin_object(out)
+          @encode.key(out, "name")
+          @encode.string_value(out, name)
+          @encode.key(out, "expr")
+          emit_expression_source(expression, out)
+          @encode.end_object(out)
+        }
+        @encode.end_array(out)
+      }
       SnapshotMap(bindings) => {
         @encode.key(out, "exprs")
         @encode.begin_object(out)

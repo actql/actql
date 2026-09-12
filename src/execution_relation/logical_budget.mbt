@@ -1,11 +1,6 @@
 ///|
 /// Runtime enforcement values, not static capacity or self-CID evidence.
-priv struct LogicalLimits {
-  max_input_rows : Int64
-  max_value_bytes : Int64
-  max_live_value_bytes : Int64
-  max_work : Int64
-}
+type LogicalLimits = @lower.FragmentRowLimits
 
 ///|
 priv struct LogicalBudget {
@@ -69,18 +64,11 @@ fn logical_budget(
 fn validate_logical_limits(
   limits : LogicalLimits,
 ) -> Result[Unit, LogicalBudgetIssue] {
-  for
-    n in [
-      limits.max_input_rows,
-      limits.max_value_bytes,
-      limits.max_live_value_bytes,
-      limits.max_work,
-    ] {
-    if n < 0L || n > 9007199254740991L {
-      return Err(InvalidLogicalLimits)
-    }
+  if @lower.fragment_row_limits_valid(limits) {
+    Ok(())
+  } else {
+    Err(InvalidLogicalLimits)
   }
-  Ok(())
 }
 
 ///|

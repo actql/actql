@@ -39,6 +39,8 @@ pub fn emit_fragment_machine_pipeline(FragmentPipeline, @encode_core.Writer) -> 
 
 pub fn emit_fragment_request(FragmentRequest, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
 
+pub fn emit_fragment_row_limits_body(FragmentRowLimits, String?, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
+
 pub fn emit_fragment_source_pipeline(FragmentPipeline, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
 
 pub fn emit_kernel_node(PreparedKernel, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
@@ -76,6 +78,10 @@ pub fn fragment_pipeline_roots(FragmentPipeline) -> RootIndex
 pub fn fragment_request_ceilings(FragmentRequest) -> (Int64, Int64)
 
 pub fn fragment_request_pipeline(FragmentRequest) -> FragmentPipeline
+
+pub fn fragment_request_row_limits(FragmentRequest) -> FragmentRowLimits?
+
+pub fn fragment_row_limits_valid(FragmentRowLimits) -> Bool
 
 pub fn input_id(Prepared, Int) -> String?
 
@@ -125,7 +131,7 @@ pub fn prepare_demand(RootIndex, DemandLimits) -> Result[DemandIndex, DemandIssu
 
 pub fn prepare_fragment_pipeline(PreparedSequence, Int, RootLimits) -> Result[FragmentPipeline, RootIssue]
 
-pub fn prepare_fragment_request(FragmentPipeline, Int64, Int64) -> Result[FragmentRequest, FragmentRequestIssue]
+pub fn prepare_fragment_request(FragmentPipeline, Int64, Int64, row_limits? : FragmentRowLimits?) -> Result[FragmentRequest, FragmentRequestIssue]
 
 pub fn prepare_kernel(BoundPrepared, Int, max_bindings~ : Int, max_name_bytes~ : Int, ExpressionLimits) -> Result[PreparedKernel, KernelIssue]
 
@@ -275,6 +281,15 @@ type FragmentRequest
 
 pub(all) enum FragmentRequestIssue {
   InvalidRequestCeiling
+  InvalidRowLimits
+  RowLimitsMismatch
+}
+
+pub(all) struct FragmentRowLimits {
+  max_input_rows : Int64
+  max_value_bytes : Int64
+  max_live_value_bytes : Int64
+  max_work : Int64
 }
 
 pub struct Issue {
