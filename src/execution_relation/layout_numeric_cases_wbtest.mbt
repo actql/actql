@@ -9,6 +9,7 @@ priv enum NumericLayoutWorkload {
   HighSelectivity
   ShortText
   LongText
+  DecimalTemporal
 } derive(Eq)
 
 ///|
@@ -17,7 +18,8 @@ fn numeric_layout_fixture(
   count : Int,
 ) -> (GeneratedSequence, CapturedRows) raise {
   let textual = workload == ShortText || workload == LongText
-  let width = if textual { 8 } else { 64 }
+  let temporal = workload == DecimalTemporal
+  let width = if textual || temporal { 8 } else { 64 }
   let payload = layout_text_payload(workload)
   let nullable = workload == NullableProjection
   let raw = Array::makei(count, i => {
@@ -34,7 +36,9 @@ fn numeric_layout_fixture(
       text += ",\"p" +
         j.to_string() +
         "\":" +
-        (if textual {
+        (if temporal && j >= 2 && j <= 4 {
+          "\"" + layout_temporal_cell(id, j) + "\""
+        } else if textual {
           "\"" + payload + "\""
         } else if nullable {
           nullable_layout_cell(id, j)
@@ -60,6 +64,16 @@ fn numeric_layout_fixture(
     input_cursor("{\"type\":\"string\",\"nullable\":false}"),
     { max_nodes: 10, max_depth: 10, max_text_bytes: 100, },
   ).unwrap()
+  let temporal_contracts = [
+    "{\"type\":\"decimal\",\"nullable\":false,\"precision\":38,\"scale\":2}", "{\"type\":\"date\",\"nullable\":false}",
+    "{\"type\":\"timestamp\",\"nullable\":false}",
+  ].map(text => {
+    @contract.read_checked(input_cursor(text), {
+      max_nodes: 10,
+      max_depth: 10,
+      max_text_bytes: 100,
+    }).unwrap()
+  })
   let fields = [
     (@schema.Unqualified("id"), numeric),
     (
@@ -75,7 +89,9 @@ fn numeric_layout_fixture(
     fields.push(
       (
         @schema.Unqualified("p" + j.to_string()),
-        if textual {
+        if temporal && j >= 2 && j <= 4 {
+          temporal_contracts[j - 2]
+        } else if textual {
           text_contract
         } else if !nullable {
           numeric
@@ -98,6 +114,11 @@ fn numeric_layout_fixture(
     { max_fields: width, max_name_bytes: 10000, },
   ).unwrap()
   let (program, expression_steps) = match workload {
+    DecimalTemporal =>
+      (
+        "[{\"rename\":{\"id\":\"rank\"}},{\"sort\":[{\"p3\":\"asc\"},{\"p4\":\"asc\"},{\"p2\":\"asc\"}]},{\"dedupe_rows\":{\"by\":[\"k\",\"k\"],\"order_by\":[{\"rank\":\"asc\"}]}},{\"take\":10}]",
+        [],
+      )
     ShortText | LongText =>
       (
         "[{\"derive\":{\"copy\":\"p2\"}},{\"sort\":[{\"k\":\"asc\"}]},{\"distinct\":[\"k\",\"copy\"]},{\"take\":10}]",
@@ -253,6 +274,18 @@ fn layout_text_payload(workload : NumericLayoutWorkload) -> String {
 }
 
 ///|
+fn layout_temporal_cell(id : Int, column : Int) -> String {
+  match column {
+    2 =>
+      "12345678901234567890123456789012345." +
+      (if id % 2 == 0 { "02" } else { "01" })
+    3 => "2026-01-" + (if id % 3 == 0 { "02" } else { "01" })
+    4 => "2026-01-01T00:00:00." + (if id % 5 == 0 { "002Z" } else { "001Z" })
+    _ => ""
+  }
+}
+
+///|
 fn[T : RelationRows] verify_numeric_layout_output(
   table : T,
   workload : NumericLayoutWorkload,
@@ -263,7 +296,8 @@ fn[T : RelationRows] verify_numeric_layout_output(
     | NullableProjection
     | FullWidthAddition
     | ShortText
-    | LongText => 10
+    | LongText
+    | DecimalTemporal => 10
     LowSelectivity => count / 100
     HighSelectivity => count * 99 / 100
   }
@@ -296,9 +330,50 @@ fn[T : RelationRows] verify_numeric_layout_output(
     }
     LowSelectivity | HighSelectivity => (["id", "next"], [0, 1])
     ShortText | LongText => (["k", "copy"], [0, 0])
+    DecimalTemporal => (["rank", "k", "p2", "p3", "p4", "p5", "p6", "p7"], [])
   }
   assert_eq(IndexedRows::row_count(table), rows)
   assert_eq(table.field_names(), names)
+  if workload == DecimalTemporal {
+    assert_eq(count, 1000)
+    // Independent SHA-256 of UTF-8 JSON [k,k], k=0..249, sorted by hex digest.
+    // Fixed outside the MoonBit comparator/encoder; preserve repeated key fields.
+    let groups = [16, 118, 85, 245, 26, 179, 141, 124, 236, 98]
+    for row = 0; row < rows; row = row + 1 {
+      let id = groups[row] * 4 + 1
+      assert_true(
+        IndexedRows::read_cell(table, row, 0) is Number(n) &&
+        n == id.to_double(),
+      )
+      assert_true(
+        IndexedRows::read_cell(table, row, 1) is Number(n) &&
+        n == groups[row].to_double(),
+      )
+      guard IndexedRows::read_cell(table, row, 2)
+        is Captured(@admitted.Decimal(d)) else {
+        fail("decimal payload")
+      }
+      assert_eq(d.coefficient, "1234567890123456789012345678901234501")
+      assert_eq(d.precision, 38)
+      assert_eq(d.scale, 2)
+      assert_true(
+        IndexedRows::read_cell(table, row, 3) is Captured(@admitted.Date(s)) &&
+        s == layout_temporal_cell(id, 3),
+      )
+      assert_true(
+        IndexedRows::read_cell(table, row, 4)
+        is Captured(@admitted.Timestamp(s)) &&
+        s == layout_temporal_cell(id, 4),
+      )
+      for column = 5; column < 8; column = column + 1 {
+        assert_true(
+          IndexedRows::read_cell(table, row, column) is Number(n) &&
+          n == (id + column).to_double(),
+        )
+      }
+    }
+    return
+  }
   if workload == ShortText || workload == LongText {
     let payload = layout_text_payload(workload)
     assert_eq(payload.length(), if workload == ShortText { 8 } else { 1024 })
@@ -355,6 +430,7 @@ test "fixed numeric workload shapes share source and contracts across all layout
       HighSelectivity,
       ShortText,
       LongText,
+      DecimalTemporal,
     ] {
     let (generated, input) = numeric_layout_fixture(workload, count)
     let rows = execute_generated_sequence(generated, [input], {

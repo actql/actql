@@ -1,8 +1,20 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import { createHash } from 'node:crypto';
 import { legacySchedule, peakRssBytes, checkedSample } from './layout-measurement-support.mjs';
 const manifest = JSON.parse(readFileSync(new URL('../benchmarks/local-relation/columnar-experiment.json', import.meta.url)));
+
+test('decimal-temporal repeated-key survivor vector has an independent SHA-256 oracle', () => {
+  // Numeric integer tuple JSON has no Unicode or decimal normalization ambiguity.
+  // This deliberately does not import the ActQL canonical encoder or comparator.
+  const groups = Array.from({ length: 250 }, (_, key) => ({
+    key, digest: createHash('sha256').update(JSON.stringify([key, key]), 'utf8').digest('hex'),
+  }));
+  groups.sort((a, b) => a.digest < b.digest ? -1 : a.digest > b.digest ? 1 : 0);
+  assert.deepEqual(groups.slice(0, 10).map(g => g.key), [16, 118, 85, 245, 26, 179, 141, 124, 236, 98]);
+  assert.equal(new Set(groups.map(g => g.digest)).size, 250);
+});
 
 test('fixed legacy schedule pairs seven fresh samples and alternates candidate order', () => {
   for (const target of ['native', 'js', 'wasm']) {
