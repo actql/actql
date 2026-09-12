@@ -273,6 +273,18 @@ nodes/tokens/depth remain bounded by source preparation's explicit limits.
 This entrance does not close source requests, Unit identities or execution
 obligations.
 
+For source preparation retaining connector declarations, `prepare_local_context`
+also accepts their original `sourceview_resolution.PipelineInputs`. Its preceding
+selection/registration work is reserved before capacity and wiring construction,
+then charged by the reconciled-input join. That join checks the same Source,
+Environment and per-Stage declaration partition and validates every type-only
+registration against the retained pipeline. Missing or same-shaped replacement
+registrations reject; Local snapshot evidence cannot stand in for SourceView
+registration. The resulting selected-policy context can feed the existing source
+request and source-identity preparation without reconstructing those owners.
+This does not itself complete those checks, certify Unit identities, discharge
+runtime obligations, or include every earlier caller orchestration cost.
+
 `prepare_local_program_context` starts from the parsed Program, supplied
 Parameter cursor, integrity-admitted Environment and explicit capacity material.
 It constructs source-owned declarations, effective bindings and Local topology,

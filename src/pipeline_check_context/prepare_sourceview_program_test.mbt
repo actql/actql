@@ -5,6 +5,7 @@ test "selected SourceView registrations construct Stage pipelines and Result imp
     true,
     remote=Some(remote),
     repeat_remote=true,
+    profile=capacity_profile(false),
   )
   let source = @stage_results.wiring_source(old_wiring)
   let catalog = @sourceviews.catalog(
@@ -51,6 +52,72 @@ test "selected SourceView registrations construct Stage pipelines and Result imp
   assert_true(physical_equal(@stage_results.local_source_source(bound), source))
   assert_true(physical_equal(@stage_results.local_source_wiring(bound), wiring))
   let values = @stage_results.local_source_values(bound)
+  let materials = capacity_materials_fixture(bound).0
+  let context_caps = local_context_limits()
+  let selected = prepare_local_context(
+    bound,
+    materials,
+    context_caps,
+    sourceviews=Some(views),
+  ).unwrap()
+  assert_true(
+    physical_equal(
+      reconciled_sourceviews(policy_context(selected)).unwrap(),
+      views,
+    ),
+  )
+  let identity = prepared_selected_identity(selected)
+  assert_eq(program_identity_stage_count(identity), 2)
+  let context_usage = selected_policy_usage(selected)
+  let context_exact = {
+    ..context_caps,
+    stages: {
+      ..context_caps.stages,
+      max_work: context_usage.work,
+      max_text_bytes: context_usage.text_bytes,
+    },
+  }
+  assert_true(
+    prepare_local_context(
+      bound,
+      materials,
+      context_exact,
+      sourceviews=Some(views),
+    )
+    is Ok(_),
+  )
+  for
+    short in [
+      {
+        ..context_exact,
+        stages: { ..context_exact.stages, max_work: context_usage.work - 1, },
+      },
+      {
+        ..context_exact,
+        stages: {
+          ..context_exact.stages,
+          max_text_bytes: context_usage.text_bytes - 1,
+        },
+      },
+    ] {
+    assert_true(
+      prepare_local_context(bound, materials, short, sourceviews=Some(views))
+      is Err(_),
+    )
+  }
+  assert_true(
+    prepare_local_context(bound, materials, context_caps)
+    is Err(Inputs(Inputs(MissingSourceViews(0)))),
+  )
+  assert_true(
+    prepare_local_context(
+      bound,
+      materials,
+      context_caps,
+      sourceviews=Some(other_views),
+    )
+    is Err(Inputs(Inputs(ForeignSourceViews(0)))),
+  )
   assert_eq(@parameter.bound_value_count(values), 1)
   assert_true(
     physical_equal(

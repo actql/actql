@@ -98,6 +98,7 @@ pub fn prepare_local_context(
   prepared : @stage_results.PreparedLocalSource,
   materials : Array[Array[CapacityMaterial]],
   limits : LocalContextLimits,
+  sourceviews? : @sourceviews.PipelineInputs? = None,
   proof_owners? : Array[Array[(Int, Int, Int)]]? = None,
   input_owners? : Array[Array[(Int, Int, Int, Int)]]? = None,
 ) -> Result[SelectedPolicyContext, LocalContextIssue] {
@@ -140,12 +141,23 @@ pub fn prepare_local_context(
   // accounts these once; all intermediate joins receive the remaining cap.
   let remaining_work = caps.max_work - nodes - 1
   let remaining_text = caps.max_text_bytes - bytes
+  let remote_work = match sourceviews {
+    Some(views) => @sourceviews.pipeline_inputs_work(views)
+    None => 0
+  }
+  if remote_work > remaining_work {
+    return Err(BudgetExceeded)
+  }
   let stages = match
     prepare_local_stage_contexts(
       prepared,
       materials,
       @environment.capacity_policy(capacity),
-      { ..caps, max_work: remaining_work, max_text_bytes: remaining_text, },
+      {
+        ..caps,
+        max_work: remaining_work - remote_work,
+        max_text_bytes: remaining_text,
+      },
       proof_owners~,
       input_owners~,
     ) {
@@ -156,7 +168,7 @@ pub fn prepare_local_context(
     attach_result_wiring(
       stages,
       wiring,
-      max_work=remaining_work,
+      max_work=remaining_work - remote_work,
       max_text_bytes=remaining_text,
     ) {
     Ok(v) => v
@@ -168,6 +180,7 @@ pub fn prepare_local_context(
       max_work=remaining_work,
       max_text_bytes=remaining_text,
       max_local_input_nodes=limits.max_local_input_nodes,
+      sourceviews~,
     ) {
     Ok(v) => v
     Err(e) => return Err(Inputs(e))

@@ -47,7 +47,7 @@ pub fn attach_environment(InputContexts, @stage_local_inputs.ProgramEnvironmentI
 
 pub fn attach_local_inputs(WiredStages, Array[@stage_local_inputs.Attached], max_work~ : Int, max_text_bytes~ : Int, max_local_input_nodes~ : Int) -> Result[InputContexts, InputIssue]
 
-pub fn attach_prepared_local_inputs(WiredStages, max_work~ : Int, max_text_bytes~ : Int, max_local_input_nodes~ : Int) -> Result[ReconciledContexts, PreparedLocalInputsIssue]
+pub fn attach_prepared_local_inputs(WiredStages, max_work~ : Int, max_text_bytes~ : Int, max_local_input_nodes~ : Int, sourceviews? : @sourceview_resolution.PipelineInputs?) -> Result[ReconciledContexts, PreparedLocalInputsIssue]
 
 pub fn attach_program_references(StageContexts, @program_references.ParameterValues, max_work~ : Int) -> Result[ProgramReferences, ProgramReferenceIssue]
 
@@ -477,7 +477,7 @@ pub fn prepare_expression_validation(SelectedPolicyContext, ExpressionValidation
 
 pub fn prepare_incoming_gate(ProgramIncomingLinks, Int, IncomingGateLimits) -> Result[PreparedIncomingGate, IncomingGateIssue]
 
-pub fn prepare_local_context(@stage_results.PreparedLocalSource, Array[Array[CapacityMaterial]], LocalContextLimits, proof_owners? : Array[Array[(Int, Int, Int)]]?, input_owners? : Array[Array[(Int, Int, Int, Int)]]?) -> Result[SelectedPolicyContext, LocalContextIssue]
+pub fn prepare_local_context(@stage_results.PreparedLocalSource, Array[Array[CapacityMaterial]], LocalContextLimits, sourceviews? : @sourceview_resolution.PipelineInputs?, proof_owners? : Array[Array[(Int, Int, Int)]]?, input_owners? : Array[Array[(Int, Int, Int, Int)]]?) -> Result[SelectedPolicyContext, LocalContextIssue]
 
 pub fn prepare_local_program_context(@stage_syntax.Program, @decode_core.Cursor?, @check_environment.WireEnvironment, Array[Array[CapacityMaterial]], @stage_results.LocalProgramLimits, LocalContextLimits, max_parameters~ : Int, proof_owners? : Array[Array[(Int, Int, Int)]]?, input_owners? : Array[Array[(Int, Int, Int, Int)]]?) -> Result[SelectedPolicyContext, LocalProgramContextIssue]
 

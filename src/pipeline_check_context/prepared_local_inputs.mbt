@@ -15,6 +15,7 @@ pub fn attach_prepared_local_inputs(
   max_work~ : Int,
   max_text_bytes~ : Int,
   max_local_input_nodes~ : Int,
+  sourceviews? : @sourceviews.PipelineInputs? = None,
 ) -> Result[ReconciledContexts, PreparedLocalInputsIssue] {
   if max_work < 0 || max_text_bytes < 0 || max_local_input_nodes < 0 {
     return Err(InvalidLimits)
@@ -48,6 +49,7 @@ pub fn attach_prepared_local_inputs(
       max_work=max_work - count,
       max_text_bytes~,
       max_local_input_nodes~,
+      sourceviews~,
     ) {
     Err(e) => Err(Inputs(e))
     Ok(v) => Ok({ ..v, usage: { ..v.usage, work: v.usage.work + count, }, })
