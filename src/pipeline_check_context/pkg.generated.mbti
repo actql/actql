@@ -119,6 +119,8 @@ pub fn checked_results(PipelineContext) -> @relation_results.CheckedResults
 
 pub fn close_program_expressions(ProgramSourceIdentity, Int, Int) -> Result[ProgramExpressionClosure, ExpressionClosureIssue]
 
+pub fn close_program_operations(ProgramOperationResolutionIndex, Int, Int) -> Result[ProgramOperationClosure, OperationClosureIssue]
+
 pub fn collect_core_contracts(ProgramSourceIdentity, CoreContractLimits, profile_checks? : ProgramOperationCalendar?) -> Result[CoreContractInventory, CoreContractIssue]
 
 pub fn collect_program_incoming(ProgramSourceIdentity, IncomingLimits) -> Result[ProgramIncomingRequirements, IncomingIssue]
@@ -292,6 +294,14 @@ pub fn operation_cells_count(ProgramOperationCells) -> Int
 pub fn operation_cells_queries(ProgramOperationCells) -> ProgramOperationQueries
 
 pub fn operation_cells_work(ProgramOperationCells) -> Int
+
+pub fn operation_closure_at(ProgramOperationClosure, Int) -> OperationDisposition?
+
+pub fn operation_closure_count(ProgramOperationClosure) -> Int
+
+pub fn operation_closure_index(ProgramOperationClosure) -> ProgramOperationResolutionIndex
+
+pub fn operation_closure_work(ProgramOperationClosure) -> Int
 
 pub fn operation_execution_failure(OperationExecutionCheck) -> ExecutionCheckFailure
 
@@ -1058,6 +1068,18 @@ pub struct OperationCellResolution {
   parameter : @parameter_binding.BoundParameter
 }
 
+pub enum OperationClosureIssue {
+  InvalidLimits
+  BudgetExceeded
+  IncompleteResolution(Int)
+  ForeignOccurrence(Int)
+}
+
+pub(all) enum OperationDisposition {
+  StaticResolution(OperationResolution)
+  ExecutionCheck(OperationExecutionCheck)
+}
+
 pub(all) enum OperationExecutionCheck {
   DedupeTopTie(DedupeTopTieCheck)
 }
@@ -1423,6 +1445,8 @@ type ProgramIncomingRequirements
 type ProgramOperationCalendar
 
 type ProgramOperationCells
+
+type ProgramOperationClosure
 
 type ProgramOperationFills
 

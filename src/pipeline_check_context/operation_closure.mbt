@@ -1,0 +1,94 @@
+///|
+pub enum OperationClosureIssue {
+  InvalidLimits
+  BudgetExceeded
+  IncompleteResolution(Int)
+  ForeignOccurrence(Int)
+}
+
+///|
+pub(all) enum OperationDisposition {
+  StaticResolution(OperationResolution)
+  ExecutionCheck(OperationExecutionCheck)
+}
+
+///|
+struct ProgramOperationClosure {
+  index : ProgramOperationResolutionIndex
+  entries : Array[OperationDisposition]
+  work : Int
+}
+
+///|
+/// Close this operation inventory, not the Program's other obligation families.
+/// Execution bindings remain mandatory future checks, never success receipts.
+pub fn close_program_operations(
+  index : ProgramOperationResolutionIndex,
+  max_work : Int,
+  max_requirements : Int,
+) -> Result[ProgramOperationClosure, OperationClosureIssue] {
+  if max_work < 0 || max_requirements < 0 {
+    return Err(InvalidLimits)
+  }
+  let count = index.requirements.entries.length()
+  if index.work >= max_work ||
+    count > max_requirements ||
+    count > max_work - index.work - 1 {
+    return Err(BudgetExceeded)
+  }
+  if index.states.length() != count {
+    return Err(IncompleteResolution(count))
+  }
+  let entries = []
+  for i in 0..<count {
+    let expected = index.requirements.entries[i]
+    let disposition = match index.states[i] {
+      Unresolved => return Err(IncompleteResolution(i))
+      Resolved(resolution) => {
+        let (position, site) = resolution_occurrence(resolution)
+        if position != i || !physical_equal(site, expected) {
+          return Err(ForeignOccurrence(i))
+        }
+        StaticResolution(resolution)
+      }
+      Execution(check) => {
+        // Exhaustive over typed execution bindings. A new variant must provide
+        // its owned subject here instead of defaulting to a runtime permission.
+        let site = match check {
+          DedupeTopTie(v) => v.site
+        }
+        if !physical_equal(site, expected) {
+          return Err(ForeignOccurrence(i))
+        }
+        ExecutionCheck(check)
+      }
+    }
+    entries.push(disposition)
+  }
+  Ok({ index, entries, work: index.work + count + 1, })
+}
+
+///|
+pub fn operation_closure_index(
+  v : ProgramOperationClosure,
+) -> ProgramOperationResolutionIndex {
+  v.index
+}
+
+///|
+pub fn operation_closure_count(v : ProgramOperationClosure) -> Int {
+  v.entries.length()
+}
+
+///|
+pub fn operation_closure_at(
+  v : ProgramOperationClosure,
+  index : Int,
+) -> OperationDisposition? {
+  v.entries.get(index)
+}
+
+///|
+pub fn operation_closure_work(v : ProgramOperationClosure) -> Int {
+  v.work
+}

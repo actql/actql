@@ -271,6 +271,17 @@ set so that a new kind in a previously irrelevant family also requires review.
 Handling remains operation-specific; there is no universal `safe` or
 `preserves_evidence` flag.
 
+`close_program_operations` closes the operation-resolution inventory by visiting
+each owned occurrence, not by accepting a zero unresolved-count assertion. It
+retains either the exact static resolution or the typed execution binding and
+rejects the first unresolved occurrence. Its opaque result has no unresolved
+disposition and exposes indexed reads without copying arrays. The prior index
+and every closing visit share the work cap. Execution bindings remain future
+checks with their original subject, phase and failure behavior; closing them
+does not assert that data passed. This covers the operation inventory only:
+input, publication, source and incoming closure remain separate obligations of
+the formal Program constructor.
+
 An execution binding retains:
 
 - the protected typed subject: input, producer output, operation occurrence,

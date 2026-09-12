@@ -126,6 +126,14 @@ test "prepared multi-stage Program reaches source identity without replacing imp
     max_resolutions: 100,
   }).unwrap()
   let requirements = operation_resolution_requirements(resolved)
+  let closure = close_program_operations(
+    resolved,
+    operation_resolution_work(resolved) +
+    operation_resolution_count(resolved) +
+    1,
+    operation_resolution_count(resolved),
+  ).unwrap()
+  assert_true(physical_equal(operation_closure_index(closure), resolved))
   let expressions = operation_requirements_expressions(requirements)
   assert_eq(expression_closure_count(expressions), 0)
   assert_true(

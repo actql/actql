@@ -20,6 +20,7 @@ fn check_resolution_index(
   assert_true(physical_equal(operation_resolution_profiles(index), profiles))
   let requirements = operation_resolution_requirements(index)
   let count = operation_requirements_count(requirements)
+  check_operation_closure(index)
   assert_eq(operation_resolution_count(index), count)
   let mut resolved = 0
   let mut execution = 0
@@ -180,6 +181,67 @@ fn check_resolution_index(
 }
 
 ///|
+fn check_operation_closure(
+  index : ProgramOperationResolutionIndex,
+) -> Unit raise {
+  let count = operation_resolution_count(index)
+  let work = operation_resolution_work(index) + count + 1
+  let mut first_unresolved = None
+  for i in 0..<count {
+    if operation_resolution_at(index, i) is Some(Unresolved) &&
+      first_unresolved is None {
+      first_unresolved = Some(i)
+    }
+  }
+  if first_unresolved is Some(position) {
+    guard close_program_operations(index, work, count)
+      is Err(IncompleteResolution(actual)) else {
+      fail("unresolved operations must not be sealed")
+    }
+    assert_eq(actual, position)
+  } else {
+    let closed = close_program_operations(index, work, count).unwrap()
+    assert_true(physical_equal(operation_closure_index(closed), index))
+    assert_eq(operation_closure_count(closed), count)
+    assert_eq(operation_closure_work(closed), work)
+    for i in 0..<count {
+      match
+        (
+          operation_resolution_at(index, i).unwrap(),
+          operation_closure_at(closed, i).unwrap(),
+        ) {
+        (Resolved(_), StaticResolution(_)) => ()
+        (Execution(DedupeTopTie(before)), ExecutionCheck(DedupeTopTie(after))) => {
+          assert_true(physical_equal(before, after))
+          assert_eq(
+            operation_execution_phase(DedupeTopTie(after)),
+            BeforeOperationOutput,
+          )
+          assert_eq(
+            operation_execution_failure(DedupeTopTie(after)),
+            RejectOperationOutput,
+          )
+        }
+        _ => fail("closure must preserve the original disposition")
+      }
+    }
+    for invalid in [-2147483648, -1, count, 2147483647] {
+      assert_true(operation_closure_at(closed, invalid) is None)
+    }
+  }
+  assert_true(
+    close_program_operations(index, work - 1, count) is Err(BudgetExceeded),
+  )
+  if count > 0 {
+    assert_true(
+      close_program_operations(index, work, count - 1) is Err(BudgetExceeded),
+    )
+  }
+  assert_true(close_program_operations(index, -1, count) is Err(InvalidLimits))
+  assert_true(close_program_operations(index, work, -1) is Err(InvalidLimits))
+}
+
+///|
 test "resolution index covers all static result families with exact occurrence ownership" {
   let seen = Array::make(8, false)
   check_resolution_index(
@@ -259,6 +321,7 @@ test "dedupe execution checks retain their exact occurrences without claiming ex
   let index = index_program_operation_resolutions(profiles, 10000000, 3).unwrap()
   assert_eq(operation_resolution_count(index), 3)
   assert_eq(operation_resolution_unresolved_count(index), 0)
+  check_operation_closure(index)
   for i in 0..<3 {
     let site = operation_requirements_at(
       operation_resolution_requirements(index),
@@ -309,6 +372,7 @@ test "unhandled resource requirements remain unresolved rather than deferred by 
     100,
   ).unwrap()
   assert_true(operation_resolution_unresolved_count(index) > 0)
+  check_operation_closure(index)
   let mut resources = 0
   for i in 0..<operation_resolution_count(index) {
     let site = operation_requirements_at(
