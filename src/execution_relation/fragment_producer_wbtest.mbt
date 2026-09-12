@@ -2,15 +2,20 @@
 test "checked fragments preserve completion evidence across producer and consumer" {
   let owner = row_owner(",{\"derive\":{\"c\":\"a + 10\"}}")
   let sequence = prepared_sequence(owner)
-  let upstream = evaluate_sequence_components(
+  let generated = prepare_generated_sequence(
     registered_relation_contracts(),
     sequence,
-    [],
+    [sequence_fragment_context(sequence, 1, 2L)],
     ["derive_1"],
-    run_limits(),
-    { remaining: 100000, max_frames: 100, },
-    fragments=Some([sequence_fragment_context(sequence, 1, 2L)]),
+    100000,
+    10000,
   ).unwrap()
+  let limits : SequenceExecutionLimits = {
+    rows: run_limits(),
+    max_work: 100000,
+    max_frames: 100,
+  }
+  let upstream = execute_generated_sequence(generated, [], limits).unwrap()
   let output = completed_output(upstream, Step(1)).unwrap()
   let producer = @pipeline.produced_input(
     @lower.pipeline(@lower.bound_preparation(owner)),
@@ -49,16 +54,15 @@ test "checked fragments preserve completion evidence across producer and consume
     sequence_fragment_context(received_sequence, 1, 2L),
   ]
   let bound = bind_completed_input(receiver, 0, owner, output).unwrap()
-  let result = evaluate_sequence_components(
+  let received = prepare_generated_sequence(
     registered_relation_contracts(),
     received_sequence,
-    [],
+    contexts,
     ["select_2"],
-    run_limits(),
-    { remaining: 100000, max_frames: 100, },
-    produced=[bound],
-    fragments=Some(contexts),
+    100000,
+    10000,
   ).unwrap()
+  let result = execute_generated_sequence(received, [], limits, produced=[bound]).unwrap()
   let delivered = completed_output(result, Step(2)).unwrap()
   assert_eq(delivered.table.names, ["d"])
   assert_eq(delivered.table.rows.length(), 1)
@@ -76,29 +80,20 @@ test "checked fragments preserve completion evidence across producer and consume
     run_limits().input_values,
   ).unwrap()
   assert_true(
-    evaluate_sequence_components(
-      registered_relation_contracts(),
-      received_sequence,
-      [raw],
-      ["select_2"],
-      run_limits(),
-      { remaining: 100000, max_frames: 100, },
-      fragments=Some(contexts),
-    )
+    execute_generated_sequence(received, [raw], limits)
     is Err(InputExecutionEvidencePending(0)),
   )
   let tight = [sequence_fragment_context(received_sequence, 0, 1L), contexts[1]]
+  let tight_received = prepare_generated_sequence(
+    registered_relation_contracts(),
+    received_sequence,
+    tight,
+    ["select_2"],
+    100000,
+    10000,
+  ).unwrap()
   assert_true(
-    evaluate_sequence_components(
-      registered_relation_contracts(),
-      received_sequence,
-      [],
-      ["select_2"],
-      run_limits(),
-      { remaining: 100000, max_frames: 100, },
-      produced=[bound],
-      fragments=Some(tight),
-    )
+    execute_generated_sequence(tight_received, [], limits, produced=[bound])
     is Err(Rows(0, LogicalRows(InputRowLimit))),
   )
   assert_eq(output.table.rows.length(), 2)

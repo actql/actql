@@ -66,15 +66,20 @@ test "checked fragment sequence accepts supplied keyed rows and bound parameters
     run_limits().input_values,
   ).unwrap()
   source.clear()
-  let result = evaluate_sequence_components(
+  let generated = prepare_generated_sequence(
     registered_relation_contracts(),
     sequence,
-    [captured],
+    contexts,
     ["select_2"],
-    run_limits(),
-    { remaining: 100000, max_frames: 100, },
-    fragments=Some(contexts),
+    100000,
+    10000,
   ).unwrap()
+  let limits : SequenceExecutionLimits = {
+    rows: run_limits(),
+    max_work: 100000,
+    max_frames: 100,
+  }
+  let result = execute_generated_sequence(generated, [captured], limits).unwrap()
   // Store slots include the supplied input before the three operation outputs.
   let table = result.store.tables[3].unwrap().table
   assert_eq(table.names, ["v", "s"])
@@ -93,16 +98,26 @@ test "checked fragment sequence accepts supplied keyed rows and bound parameters
     run_limits().input_values,
   ).unwrap()
   assert_true(
-    evaluate_sequence_components(
-      registered_relation_contracts(),
-      sequence,
-      [other_input],
-      ["select_2"],
-      run_limits(),
-      { remaining: 100000, max_frames: 100, },
-      fragments=Some(contexts),
-    )
+    execute_generated_sequence(generated, [other_input], limits)
     is Err(InputOwnership),
+  )
+  assert_true(
+    execute_generated_sequence(generated, [], limits) is Err(InputSet),
+  )
+  assert_true(
+    execute_generated_sequence(generated, [captured, captured], limits)
+    is Err(InputSet),
+  )
+  assert_true(
+    execute_generated_sequence(generated, [captured], {
+      ..limits,
+      rows: { ..limits.rows, max_rows: 1, },
+    })
+    is Err(InputLimit),
+  )
+  // Failed input admission must not consume the reusable composition's budget.
+  assert_true(
+    execute_generated_sequence(generated, [captured], limits) is Ok(_),
   )
 }
 
@@ -124,16 +139,20 @@ test "fragment admission does not replace actual supplied input key validation" 
     run_limits().input_values,
   ).unwrap()
   // Both rows would be filtered out. The input promise still has to hold.
+  let generated = prepare_generated_sequence(
+    registered_relation_contracts(),
+    sequence,
+    contexts,
+    ["select_2"],
+    100000,
+    10000,
+  ).unwrap()
   assert_true(
-    evaluate_sequence_components(
-      registered_relation_contracts(),
-      sequence,
-      [input],
-      ["select_2"],
-      run_limits(),
-      { remaining: 100000, max_frames: 100, },
-      fragments=Some(contexts),
-    )
+    execute_generated_sequence(generated, [input], {
+      rows: run_limits(),
+      max_work: 100000,
+      max_frames: 100,
+    })
     is Err(InputKey(0, DuplicateKey(_, _))),
   )
 }
