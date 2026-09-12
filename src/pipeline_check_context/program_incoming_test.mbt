@@ -96,7 +96,8 @@ test "incoming requirements join exact local identities and checked Result ports
       _ => fail("missing checked Result edge")
     }
     let (work, names) = program_incoming_usage(v)
-    assert_true(work > program_identity_usage(identity).0)
+    // Every name unit is also aggregate work, independently of the name cap.
+    assert_true(work > program_identity_usage(identity).0 + names)
     let exact : IncomingLimits = {
       max_work: work,
       max_name_units: names,

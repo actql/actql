@@ -4,6 +4,7 @@
 pub(all) enum StageSemanticContract {
   SourceRules
   StageLaws
+  ResultImportInterface
 } derive(Eq, Debug)
 
 ///|
@@ -13,5 +14,7 @@ pub fn stage_semantic_contract_cid(body : StageSemanticContract) -> String {
       "sha256:b98f2467f609677c7b5bfd256892763e4772dd45fe51a494402e56f3a847cdd8"
     StageLaws =>
       "sha256:540d06456c7ddf166f5192dd1379b853e48791ca869a54abcc428b2210097325"
+    ResultImportInterface =>
+      "sha256:81898e3b8eb76b16e59e0de4b38ed5d948e7752ae127b45ae432f39e0afd2431"
   }
 }

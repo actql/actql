@@ -254,6 +254,22 @@ as canonical-JSON contract bodies. The retained profile owns those resources.
 Collecting an operation's embedded profile alone does not waive the separate
 Host-selection match or other pending profile checks required for final closure.
 
+The collector derives incoming sites from the same source identity and Result
+wiring, rather than accepting a caller's list of interface CIDs. Each Result
+import selects the registered `/schemas/result_import_interface` body in
+`actql-stage-contracts.json`; each predecessor milestone selects the Stage laws.
+Repeated and unused imports retain separate sites, while the grammar body is
+shared. Accepted and completed milestones remain distinct in the retained site;
+choosing the same interpretation contract does not equate their gate semantics.
+Unsupported receipt interpretation rejects collection rather than using the
+Result interface grammar as a substitute.
+
+Incoming collection shares the identity prefix with the other branches. Name
+units are charged to aggregate work as well as its separate name limit, before
+lookup or insertion. The collector retains the exact incoming inventory for
+subsequent interface construction. Selecting this grammar is not construction
+of the interface value, its producer Unit identity, or proof of Result availability.
+
 Import/interface and gate construction supplies its local semantic contract
 references. Full predecessor Program revisions, Captured Runs, receipts and
 whole manifests are not substitutes for those projections. A required projection

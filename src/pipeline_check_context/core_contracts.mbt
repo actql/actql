@@ -16,6 +16,8 @@ pub(all) enum CoreContractIssue {
   UnknownCatalogGrammar(Int, Int, Int)
   UnresolvedProfileData(Int, Int, Int, @pipeline.OperationProfile)
   ForeignProfiles
+  IncomingInventory(IncomingIssue)
+  UnsupportedIncoming(Int)
 } derive(Eq, Debug)
 
 ///|
@@ -39,6 +41,7 @@ pub(all) enum CoreContractSite {
   StageSemanticRules(Int, @environment.StageSemanticContract)
   StageEnvironmentRules(Int)
   OperationDataProfile(Int, Int, Int, @pipeline.OperationProfile)
+  IncomingRules(Int)
 } derive(Eq, Debug)
 
 ///|
@@ -54,6 +57,7 @@ struct CoreContractInventory {
   bodies : Array[CoreContractBody]
   sources : ProgramSourceContracts
   profile_checks : ProgramOperationCalendar?
+  incoming : ProgramIncomingRequirements
   work : Int
   edges : Int
 }
@@ -158,16 +162,35 @@ pub fn collect_core_contracts(
     Ok(value) => value
     Err(issue) => return Err(SourceInventory(issue))
   }
+  let used = sources.work + (prefix - identity.work)
+  let incoming = match
+    collect_program_incoming(identity, {
+      max_work: identity.work + (limits.max_work - used),
+      max_name_units: limits.max_work - used,
+      max_requirements: limits.max_roots,
+    }) {
+    Ok(value) => value
+    Err(issue) => return Err(IncomingInventory(issue))
+  }
   let b : CoreContractBuilder = {
     limits,
     roots: [],
     bodies: [],
     seen: {},
-    work: sources.work + (prefix - identity.work),
+    work: used + (incoming.work - identity.work),
     edges: 0,
   }
   try {
     core_contract_charge(b)
+    for index in 0..<incoming.entries.length() {
+      core_contract_charge(b)
+      let rules = match incoming.entries[index].requirement {
+        Success(_, _) => @environment.StageLaws
+        Result(_, _, _) => @environment.ResultImportInterface
+        Receipt(_, _, _) => raise CoreContractStop(UnsupportedIncoming(index))
+      }
+      core_contract_root(b, IncomingRules(index), StageSemantics(rules))
+    }
     for stage in 0..<source_contract_stage_count(requirements) {
       core_contract_charge(b)
       for input in 0..<source_contract_input_count(requirements, stage).unwrap() {
@@ -339,6 +362,7 @@ pub fn collect_core_contracts(
       identity,
       sources,
       profile_checks,
+      incoming,
       roots: b.roots,
       bodies: b.bodies,
       work: b.work,
@@ -434,4 +458,12 @@ pub fn core_contract_profile_checks(
   v : CoreContractInventory,
 ) -> ProgramOperationCalendar? {
   v.profile_checks
+}
+
+///|
+/// Exact source-derived sites, not completed predecessors or interface identities.
+pub fn core_contract_incoming(
+  v : CoreContractInventory,
+) -> ProgramIncomingRequirements {
+  v.incoming
 }

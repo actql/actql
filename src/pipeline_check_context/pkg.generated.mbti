@@ -129,6 +129,8 @@ pub fn core_contract_cid(CoreContractBody) -> String
 
 pub fn core_contract_identity(CoreContractInventory) -> ProgramSourceIdentity
 
+pub fn core_contract_incoming(CoreContractInventory) -> ProgramIncomingRequirements
+
 pub fn core_contract_profile_checks(CoreContractInventory) -> ProgramOperationCalendar?
 
 pub fn core_contract_root_at(CoreContractInventory, Int) -> CoreContractRoot?
@@ -688,6 +690,8 @@ pub(all) enum CoreContractIssue {
   UnknownCatalogGrammar(Int, Int, Int)
   UnresolvedProfileData(Int, Int, Int, @pipeline_typing.OperationProfile)
   ForeignProfiles
+  IncomingInventory(IncomingIssue)
+  UnsupportedIncoming(Int)
 } derive(Eq, @debug.Debug)
 
 pub(all) struct CoreContractLimits {
@@ -710,6 +714,7 @@ pub(all) enum CoreContractSite {
   StageSemanticRules(Int, @check_environment.StageSemanticContract)
   StageEnvironmentRules(Int)
   OperationDataProfile(Int, Int, Int, @pipeline_typing.OperationProfile)
+  IncomingRules(Int)
 } derive(Eq, @debug.Debug)
 
 pub struct DedupeTopTieCheck {

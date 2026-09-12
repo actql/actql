@@ -834,6 +834,7 @@ type SourceViewShapes
 pub(all) enum StageSemanticContract {
   SourceRules
   StageLaws
+  ResultImportInterface
 } derive(Eq, @debug.Debug)
 
 type TextRankSelection

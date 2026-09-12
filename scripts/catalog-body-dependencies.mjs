@@ -221,7 +221,8 @@ console.log('Program source grammar scope and containing artifact pins verified.
 const stagePath = 'spec/contracts/actql-stage-contracts.json';
 const stageContracts = read(stagePath);
 const imports = read('spec/spec-family.json').documents.flatMap(d => d.machine_contracts ?? []);
-const stageSemantics = [['SourceRules', '/source'], ['StageLaws', '/laws']];
+const stageSemantics = [['SourceRules', '/source'], ['StageLaws', '/laws'],
+  ['ResultImportInterface', '/schemas/result_import_interface']];
 const semanticLines = [];
 for (const [name, pointer] of stageSemantics) {
   const body = resolvePointer(stageContracts, pointer);

@@ -69,6 +69,7 @@ fn incoming_name(b : IncomingBudget, name : String) -> Unit raise IncomingStop {
   if name.length() > b.names {
     raise IncomingStop(BudgetExceeded)
   }
+  incoming_work(b, name.length())
   b.names -= name.length()
 }
 
