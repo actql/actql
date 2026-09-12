@@ -106,8 +106,18 @@ Generated-node and binding artifacts retained alongside the graph and roots
 consume the construction allowance as well; the final candidate has its own
 bounded serialization. Fragment checking repeats this construction and compares
 the complete canonical candidate, including the evidence closure, before keeping
-regenerated material. This is integrity checking, not Program permission or the
-remaining connection to runtime input and resource enforcement.
+regenerated material. This is integrity checking, not Program permission or, by
+itself, runtime input admission and resource enforcement.
+
+The checked-fragment driver uses the same context path for maps, filters and
+ordered bindings. Ordered runtime limits cannot exceed any of the four quantities
+declared by the checked request, although explicit tighter execution limits may
+be supplied. The driver requires one context for every expression kernel before
+input capture, creates fresh counters, and feeds the sole row evaluator. In this
+mode it does not accept an additional component-level ordered configuration;
+there is no precedence rule between two competing sources of enforcement data.
+The older component-only invocation remains distinct and does not claim checked
+fragment admission. These internal paths still are not a Program/Run API.
 
 ## Logical resources
 

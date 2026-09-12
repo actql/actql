@@ -33,6 +33,14 @@ fn prepare_fragment_runtime_context(
   if limits.max_input_rows > rows || limits.max_value_bytes > bytes {
     return Err(ExceedsRequest)
   }
+  if @lower.fragment_request_row_limits(request) is Some(declared) {
+    if limits.max_input_rows > declared.max_input_rows ||
+      limits.max_value_bytes > declared.max_value_bytes ||
+      limits.max_live_value_bytes > declared.max_live_value_bytes ||
+      limits.max_work > declared.max_work {
+      return Err(ExceedsRequest)
+    }
+  }
   let roots = @lower.fragment_pipeline_roots(
     @lower.fragment_request_pipeline(request),
   )

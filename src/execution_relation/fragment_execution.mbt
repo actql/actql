@@ -1,5 +1,5 @@
 ///|
-/// Preflight the exact map/filter context set before input capture. Mutations
+/// Preflight the exact expression-kernel context set before input capture. Mutations
 /// are confined to this invocation's private budget map; failure publishes none.
 fn attach_fragment_budgets(
   contracts : RegisteredRelationContracts,
@@ -47,11 +47,13 @@ fn attach_fragment_budgets(
         let body = @lower.kernel_body(kernel)
         release_slots(metadata, entries)
         match body {
-          @lower.SnapshotMap(_) | @lower.Filter(_) =>
+          @lower.SnapshotMap(_)
+          | @lower.Filter(_)
+          | @lower.OrderedBindings(_) =>
             if !budgets.contains(i) {
               return Err(MissingFragmentContext(i))
             }
-          @lower.Select(_) | @lower.OrderedBindings(_) => ()
+          @lower.Select(_) => ()
         }
       }
     }

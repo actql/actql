@@ -23,6 +23,7 @@ priv enum SequenceRunIssue {
   OrderedContext(Int, OrderedLimitsIssue)
   FragmentContext(Int, FragmentRuntimeIssue)
   MissingFragmentContext(Int)
+  MixedExecutionConfiguration
 }
 
 ///|
@@ -93,10 +94,22 @@ fn evaluate_sequence_components(
     Ok(v) => v
     Err(e) => return Err(Wiring(e))
   }
-  let ordered_budgets = match
-    prepare_ordered_budgets(contracts, sequence, ordered, control, metadata) {
-    Ok(budgets) => budgets
-    Err(e) => return Err(e)
+  let ordered_budgets : Map[Int, LogicalBudget] = match fragments {
+    None =>
+      match
+        prepare_ordered_budgets(contracts, sequence, ordered, control, metadata) {
+        Ok(budgets) => budgets
+        Err(e) => return Err(e)
+      }
+    Some(_) => {
+      if !ordered.contexts.is_empty() ||
+        ordered.max_bytes != 0 ||
+        ordered.max_nodes != 0 ||
+        ordered.max_depth != 0 {
+        return Err(MixedExecutionConfiguration)
+      }
+      Map([])
+    }
   }
   match fragments {
     Some(contexts) =>
