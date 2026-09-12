@@ -104,6 +104,20 @@ Environment admission precede this boundary; request/Parameter validation,
 acquisition, capacity and execution obligations still follow it. A later Local
 snapshot failure returns neither registration branch.
 
+`prepare_sourceview_program` consumes that pair before constructing Stage
+pipelines and Result imports. It requires the same Source, Environment and exact
+SourceView partition in every Local Stage registration. It gathers only the
+Catalog-selected type-only inputs and verifies their exact registration owners
+against each resulting Stage before returning wiring. Equal-shaped registrations
+from a different selection cannot be mixed. SourceView preparation, gathering,
+Local topology and final correspondence checks share the work allowance, with
+only exact retained prefixes counted once. The lower-level
+`stage_results.prepare_local_program` accepts explicit SourceView registrations
+but checks only their names, completeness and type-only form; it is not itself
+Catalog admission. The owned wrapper supplies and validates that correspondence.
+This constructs topology, not effective Parameter bindings, source requests,
+complete semantic identities, obligation closure or execution permission.
+
 The resulting `environment_input_at` registrations must be selected before
 pipeline checking: snapshot evidence can refine types and conditional keys.
 Attaching them to an already checked pipeline is not a substitute for using

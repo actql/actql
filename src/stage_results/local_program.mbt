@@ -25,6 +25,9 @@ pub enum LocalProgramIssue {
   InvalidLimits
   BudgetExceeded
   ForeignEnvironmentSource
+  SourceViewStageCount
+  MissingSourceViewRegistrations(Int)
+  InvalidSourceViewRegistration(Int, String)
   UnsupportedReceipt(Int, String)
   LocalInput(Int, @local.Issue)
   Import(Int, ImportIssue)
@@ -45,6 +48,7 @@ pub fn prepare_local_program(
   source : @parameters.Source,
   limits : LocalProgramLimits,
   environment? : @local.ProgramEnvironmentInputs? = None,
+  sourceview_registrations? : Array[Array[(String, @pipeline.InputContract)]]? = None,
 ) -> Result[(ResultWiring, LocalProgramUsage), LocalProgramIssue] {
   if limits.max_stages < 0 ||
     limits.max_steps < 0 ||
@@ -57,6 +61,10 @@ pub fn prepare_local_program(
     return Err(InvalidLimits)
   }
   let count = @parameters.stage_count(source)
+  if sourceview_registrations is Some(registrations) &&
+    registrations.length() != count {
+    return Err(SourceViewStageCount)
+  }
   if count > limits.max_stages || count > limits.max_work {
     return Err(BudgetExceeded)
   }
@@ -139,10 +147,25 @@ pub fn prepare_local_program(
     text -= import_text
     let local_count = @local.count(prepared)
     let resolved_count = import_count(resolved)
-    if local_count > work || resolved_count > work - local_count {
+    let remote = match sourceview_registrations {
+      Some(registrations) => registrations[i]
+      None => []
+    }
+    let remote_count = remote.length()
+    if local_count > work ||
+      resolved_count > work - local_count ||
+      remote_count > work - local_count - resolved_count {
       return Err(BudgetExceeded)
     }
-    work -= local_count + resolved_count
+    work -= local_count + resolved_count + remote_count
+    let body = @decode.open_object(@syntax.stage_body(stage)).unwrap()
+    let authored_inputs = @decode.required(body, "inputs").unwrap()
+    if @decode.object_length(authored_inputs).unwrap() -
+      local_count -
+      resolved_count !=
+      remote_count {
+      return Err(MissingSourceViewRegistrations(i))
+    }
     let inputs = []
     for j in 0..<local_count {
       inputs.push(
@@ -158,7 +181,23 @@ pub fn prepare_local_program(
         (input_name(entry), @pipeline.ProducedInput(input_producer(entry))),
       )
     }
-    let body = @decode.open_object(@syntax.stage_body(stage)).unwrap()
+    let names : Map[String, Unit] = Map([])
+    for (name, registration) in remote {
+      if name.length() > work {
+        return Err(BudgetExceeded)
+      }
+      work -= name.length()
+      guard @local.sourceview_inputs(prepared) is Some(partition) else {
+        return Err(InvalidSourceViewRegistration(i, name))
+      }
+      if @sourceviews.input_for(partition, i, name) is None ||
+        names.contains(name) ||
+        !(registration is @pipeline.CarrierInput(_)) {
+        return Err(InvalidSourceViewRegistration(i, name))
+      }
+      names[name] = ()
+      inputs.push((name, registration))
+    }
     let pipeline = match
       @pipeline.check_with_evidence(
         @decode.required(body, "steps").unwrap(),
