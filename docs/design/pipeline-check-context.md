@@ -622,6 +622,32 @@ owner and prepared Definition alongside their computed CIDs and measured usage.
 
 ### Incoming local dependencies
 
+`collect_source_contracts` retains the selected SourceView inputs of each stage
+from the already reconciled Program context, including declarations without an
+operation consumer. Each input exposes its owned Catalog role occurrences;
+repeated declarations and repeated references remain separate. The collection
+does not scan unrelated Catalog members or copy their reference arrays. Empty
+stages remain present, and Result imports are not relabeled as SourceViews.
+
+Work includes the reconciled prefix once, one constructor visit, each stage and
+each retained input. Separate Program-wide caps bound input occurrences and the
+sum of their reference counts, including repetition. Counts are checked before
+retaining an input; failure exposes no partial result. Reference count admission
+is not a second traversal or semantic revalidation of the referenced bodies.
+
+`bind_program_source_contracts` connects this inventory to a ProgramSourceIdentity
+only through the exact reconciled context already owned by that identity. It
+subtracts that common work prefix when combining usage. Matching public CIDs or
+equal source text from a separately admitted environment do not suffice. The
+result retains both owners with constant-time indexed reads through the inventory.
+
+This is input-associated contract evidence, not the canonical local closure
+projection. All declared roles of each selected SourceView remain available;
+read-mode dependencies, imports, Mapping/Command/ModelTask, policy, capacity and
+numeric-law dependencies still require their applicable semantic selection and
+validation. Neither this inventory nor an empty SourceView set establishes a
+local contract CID, whole-lock authenticity or acquisition permission.
+
 `collect_program_incoming` derives requirements from the source identity's
 already attached Result wiring, not from independently supplied edge arrays or
 claimed producer CIDs. Each site retains the consumer StageSourceIdentity.

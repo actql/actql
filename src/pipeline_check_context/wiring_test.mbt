@@ -20,6 +20,7 @@ fn wired_inputs_fixture(
   parameters? : String = "{\"n\":{\"type\":\"number\",\"default\":1}}",
   supplied? : @decode.Cursor? = None,
   remote? : Array[@sourceviews.PipelineInputs]? = None,
+  repeat_remote? : Bool = false,
 ) -> (
   StageContexts,
   @stage_results.ResultWiring,
@@ -35,7 +36,13 @@ fn wired_inputs_fixture(
     .replace(
       old="\"inputs\":{\"a\":{\"carrier\":\"relation\"",
       new=if remote is Some(_) {
-        "\"from\":\"a\",\"inputs\":{\"remote\":{\"connector\":\"crm/main\",\"resource\":\"Opportunity\"},\"a\":{\"carrier\":\"relation\""
+        "\"from\":\"a\",\"inputs\":{\"remote\":{\"connector\":\"crm/main\",\"resource\":\"Opportunity\"}," +
+        (if repeat_remote {
+          "\"remote_again\":{\"connector\":\"crm/main\",\"resource\":\"Opportunity\"},"
+        } else {
+          ""
+        }) +
+        "\"a\":{\"carrier\":\"relation\""
       } else {
         "\"inputs\":{\"a\":{\"carrier\":\"relation\""
       },

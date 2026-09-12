@@ -50,6 +50,8 @@ pub fn attach_stage_contexts(@stage_parameters.BoundOperations, @stage_results.C
 
 pub fn bind_capacity_policy(ReconciledContexts, @check_environment.Capacity, max_work~ : Int, max_text_bytes~ : Int, max_policy_nodes~ : Int) -> Result[SelectedPolicyContext, SelectedPolicyIssue]
 
+pub fn bind_program_source_contracts(ProgramSourceIdentity, SourceContractRequirements, Int) -> Result[ProgramSourceContracts, SourceContractIssue]
+
 pub fn bind_program_sources(OperationProfileChecks, ProgramReferences, SourceBindingRequirements, Int) -> Result[ProgramSourceChecks, ProgramSourcesIssue]
 
 pub fn bind_source_policy(SourceRowContexts, SelectedPolicyContext, Int) -> Result[SourcePolicyContext, SourcePolicyIssue]
@@ -113,6 +115,8 @@ pub fn collect_program_incoming(ProgramSourceIdentity, IncomingLimits) -> Result
 pub fn collect_program_operation_requirements(ProgramExpressionClosure, Int, Int) -> Result[ProgramOperationRequirements, OperationRequirementsIssue]
 
 pub fn collect_source_bindings(ProgramPreparation, Int, Int) -> Result[SourceBindingRequirements, SourceBindingsIssue]
+
+pub fn collect_source_contracts(ReconciledContexts, SourceContractLimits) -> Result[SourceContractRequirements, SourceContractIssue]
 
 pub fn environment_inputs(EnvironmentContext) -> InputContexts
 
@@ -362,6 +366,12 @@ pub fn program_reference_values(ProgramReferences) -> @program_references.Parame
 
 pub fn program_reference_work(ProgramReferences) -> Int
 
+pub fn program_source_contract_identity(ProgramSourceContracts) -> ProgramSourceIdentity
+
+pub fn program_source_contract_requirements(ProgramSourceContracts) -> SourceContractRequirements
+
+pub fn program_source_contract_work(ProgramSourceContracts) -> Int
+
 pub fn program_sources_bindings(ProgramSourceChecks) -> SourceBindingRequirements
 
 pub fn program_sources_operations(ProgramSourceChecks) -> OperationProfileChecks
@@ -431,6 +441,16 @@ pub fn source_capacity_context(SourceCapacityContext) -> SourcePolicyContext
 pub fn source_capacity_stage(SourceCapacityContext, Int) -> @sourceview_resolution.LookupBounds?
 
 pub fn source_capacity_work(SourceCapacityContext) -> Int
+
+pub fn source_contract_context(SourceContractRequirements) -> ReconciledContexts
+
+pub fn source_contract_input_at(SourceContractRequirements, Int, Int) -> @sourceview_resolution.ResolvedInput?
+
+pub fn source_contract_input_count(SourceContractRequirements, Int) -> Int?
+
+pub fn source_contract_stage_count(SourceContractRequirements) -> Int
+
+pub fn source_contract_usage(SourceContractRequirements) -> (Int, Int, Int)
 
 pub fn source_policy_rows(SourcePolicyContext) -> SourceRowContexts
 
@@ -1037,6 +1057,8 @@ type ProgramReferences
 
 type ProgramSourceChecks
 
+type ProgramSourceContracts
+
 type ProgramSourceIdentity
 
 pub(all) enum ProgramSourcesIssue {
@@ -1147,6 +1169,20 @@ pub enum SourceCapacityIssue {
   BudgetExceeded
   Stage(Int, @sourceview_resolution.LookupBoundsIssue)
 }
+
+pub(all) enum SourceContractIssue {
+  InvalidLimits
+  BudgetExceeded
+  ForeignContext
+} derive(Eq, @debug.Debug)
+
+pub(all) struct SourceContractLimits {
+  max_work : Int
+  max_inputs : Int
+  max_references : Int
+} derive(Eq, @debug.Debug)
+
+type SourceContractRequirements
 
 type SourcePolicyContext
 

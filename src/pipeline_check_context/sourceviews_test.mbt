@@ -63,6 +63,7 @@ test "reconciled Program inputs retain SourceView registrations and the same env
     max_local_input_nodes=100000,
   ).unwrap()
   assert_true(physical_equal(reconciled_sourceviews(result).unwrap(), views))
+  check_source_contract_inventory(result, views)
   let source = @stages.operations_source(
     @stages.bound_operations(stage_operations(stages)),
   )
