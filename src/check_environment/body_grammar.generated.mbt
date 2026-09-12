@@ -4,3 +4,26 @@
 fn catalog_body_grammar_cid() -> String {
   "sha256:8d080aae1651270777521cb49534bb0b758ce3c5aecc16cc9159c74b77249204"
 }
+
+///|
+fn pushdown_relation_laws_cid() -> String {
+  "sha256:78738e358ec26e70304f7cad6b0ac10b063f9939b107b903bebac4c8fc56d5b2"
+}
+
+///|
+fn pushdown_expression_contract_cid() -> String {
+  "sha256:399d4593f8212a2239a0a3e3ca552653ad711010a180207f967cf546012fc1cb"
+}
+
+///|
+fn pushdown_operation_limit() -> Int {
+  5
+}
+
+///|
+fn pushdown_operation_name(name : String) -> Bool {
+  match name {
+    "projection" | "filter" | "order_by" | "limit" | "assert_unique_by" => true
+    _ => false
+  }
+}

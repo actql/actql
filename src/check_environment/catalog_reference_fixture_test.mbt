@@ -53,6 +53,7 @@ fn reference_fixture(
   unused_value? : Json? = None,
   unused_carrier? : Json? = None,
   unused_facts? : Json? = None,
+  unused_pushdown? : Json? = None,
   complete_view? : Bool = false,
   native_batch? : String? = None,
   carrier? : String = "relation",
@@ -113,12 +114,15 @@ fn reference_fixture(
       ("checkpoint", unused_value),
       ("carrier_schema", unused_carrier),
       ("carrier_facts", unused_facts),
+      ("pushdown", unused_pushdown),
     ] {
     if unused is Some(body) {
       let unused_id = if kind == "checkpoint" {
         "unused-value"
       } else if kind == "carrier_facts" {
         "unused-facts"
+      } else if kind == "pushdown" {
+        "unused-pushdown"
       } else {
         "unused-carrier"
       }

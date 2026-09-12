@@ -4,6 +4,7 @@ pub(all) enum CatalogBodyAdmission {
   CarrierBody(CarrierSchema)
   DataPolicyBody(SourceDataPolicy)
   LookupFactsBody(LookupFacts)
+  PushdownBody(PushdownContract)
 }
 
 ///|
@@ -12,6 +13,8 @@ pub(all) enum CatalogBodyDependencyRole {
   ValueGrammar
   GraphIdentityLaw
   GraphValueLaw
+  RelationLaws
+  ExpressionContract
 } derive(Eq, Debug)
 
 ///|
@@ -92,6 +95,26 @@ pub fn catalog_body_contract(v : CatalogBodyDependencies) -> ContractEnvelope {
 }
 
 ///|
+pub fn check_pushdown_body_dependencies(
+  contracts : PushdownContracts,
+  envelope : ContractEnvelope,
+) -> Result[CatalogBodyDependencies, BodyDependencyIssue] {
+  if !physical_equal(
+      member_environment(envelope.item),
+      contracts.shapes.values.policies.references.contents.registry.environment,
+    ) {
+    return Err(ForeignEnvironment)
+  }
+  if envelope.kind != "pushdown" {
+    return Err(UnsupportedBodyGrammar(envelope.kind))
+  }
+  match contracts.by_cid.get(envelope.cid) {
+    Some(body) => Ok({ envelope, admission: PushdownBody(body), })
+    None => Err(MissingBodyAdmission)
+  }
+}
+
+///|
 pub fn catalog_body_admission(
   v : CatalogBodyDependencies,
 ) -> CatalogBodyAdmission {
@@ -103,6 +126,10 @@ pub fn catalog_body_admission(
 pub fn catalog_body_dependency_count(v : CatalogBodyDependencies) -> Int {
   match v.admission {
     ValueBody(_) | DataPolicyBody(_) | LookupFactsBody(_) => 1
+    PushdownBody(body) =>
+      1 +
+      (if body.operations.length() > 0 { 1 } else { 0 }) +
+      (if body.operations.contains("filter") { 1 } else { 0 })
     CarrierBody(schema) =>
       match @carrier.kind(schema.carrier) {
         RelationKind | EventsKind | VectorsKind => 2
@@ -128,6 +155,16 @@ pub fn catalog_body_dependency_at(
       })
     DataPolicyBody(_) | LookupFactsBody(_) =>
       Some({ role: GoverningGrammar, cid: catalog_body_grammar_cid(), })
+    PushdownBody(_) =>
+      match index {
+        0 => Some({ role: GoverningGrammar, cid: catalog_body_grammar_cid(), })
+        1 => Some({ role: RelationLaws, cid: pushdown_relation_laws_cid(), })
+        _ =>
+          Some({
+            role: ExpressionContract,
+            cid: pushdown_expression_contract_cid(),
+          })
+      }
     CarrierBody(_) =>
       match index {
         0 => Some({ role: GoverningGrammar, cid: catalog_body_grammar_cid(), })

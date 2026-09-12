@@ -81,6 +81,28 @@ test "reconciled Program inputs retain SourceView registrations and the same env
     values: { max_nodes: 10000, max_depth: 100, max_text_bytes: 100000, },
   }
   let requests = check_source_requests(result, slots, request_limits).unwrap()
+  let pushdowns = source_request_pushdowns(requests).unwrap()
+  let selected_view = @environment.source_request_member(
+    @sourceviews.selected_contract(
+      @sourceviews.pipeline_input_source(views, 0, 0).unwrap(),
+    ),
+  )
+  let selected_pushdown = @environment.source_pushdown(pushdowns, selected_view).unwrap()
+  assert_true(
+    physical_equal(
+      @environment.reference_member(selected_pushdown.reference),
+      selected_view,
+    ),
+  )
+  assert_eq(
+    @environment.pushdown_operation_count(selected_pushdown.contract),
+    0,
+  )
+  let dependencies = @environment.check_pushdown_body_dependencies(
+    pushdowns,
+    @environment.pushdown_envelope(selected_pushdown.contract),
+  ).unwrap()
+  assert_eq(@environment.catalog_body_dependency_count(dependencies), 1)
   assert_true(physical_equal(source_request_inputs(requests), result))
   assert_true(physical_equal(source_request_slots(requests), slots))
   let parameters = source_request_parameters(requests).unwrap()

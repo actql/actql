@@ -515,6 +515,8 @@ pub fn source_request_keyed_facts(SourceRequestContexts, Int) -> @sourceview_res
 
 pub fn source_request_parameters(SourceRequestContexts) -> @sourceview_resolution.RequestParameters?
 
+pub fn source_request_pushdowns(SourceRequestContexts) -> @check_environment.PushdownContracts?
+
 pub fn source_request_slots(SourceRequestContexts) -> @source_request_slots.Slots
 
 pub fn source_request_stage(SourceRequestContexts, Int) -> @sourceview_resolution.PipelineRequests?
@@ -1338,6 +1340,7 @@ pub enum SourceRequestIssue {
   Stage(Int, @sourceview_resolution.AcquisitionIssue)
   Join(Int, @sourceview_resolution.KeyedJoinIssue)
   Facts(@check_environment.LookupCapacityIssue)
+  Pushdown(@check_environment.PushdownIssue)
   KeyedFacts(Int, @sourceview_resolution.KeyedFactsIssue)
 }
 

@@ -180,7 +180,7 @@ pub fn program_source_contract_work(v : ProgramSourceContracts) -> Int {
 }
 
 ///|
-/// Includes the lookup-facts admission from this identity's request checks.
+/// Includes lookup-facts and pushdown admissions from this identity's request checks.
 /// Component admission cannot cover other fact extensions implicitly.
 pub fn program_source_contract_body_at(
   v : ProgramSourceContracts,
@@ -199,10 +199,21 @@ pub fn program_source_contract_body_at(
     return Ok(None)
   }
   let envelope = @environment.reference_contract(selected_ref)
-  if @environment.contract_role(envelope) != "carrier_facts" {
+  let kind = @environment.contract_role(envelope)
+  if kind != "carrier_facts" && kind != "pushdown" {
     return source_contract_body_at(v.requirements, stage, input, reference)
   }
   let requests = v.identity.sources.operations.preparation.sources.capacity.context.rows.requests
+  if kind == "pushdown" {
+    guard requests.pushdowns is Some(pushdowns) else {
+      return Err(@environment.MissingBodyAdmission)
+    }
+    return match
+      @environment.check_pushdown_body_dependencies(pushdowns, envelope) {
+      Ok(body) => Ok(Some(body))
+      Err(issue) => Err(issue)
+    }
+  }
   guard requests.facts is Some(facts) else {
     return Err(@environment.MissingBodyAdmission)
   }

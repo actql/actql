@@ -649,10 +649,14 @@ never an empty dependency list. Full closure traversal must still charge referen
 visits and process the governing contracts' transitive dependencies.
 
 After binding the inventory to ProgramSourceIdentity,
-`program_source_contract_body_at` also uses the lookup-facts admission retained
-by that identity's source-request checks. No alternative facts owner is supplied
-by the caller. An admitted lookup component does not by itself admit additional
-fact semantics, and an absent admission is not an empty dependency set.
+`program_source_contract_body_at` also uses the lookup-facts and pushdown
+admissions retained by that identity's source-request checks. No alternative
+owner is supplied by the caller. Source-request checking validates advertisements
+against their selected bodies and charges that branch's incremental work against
+the shared budget. An admitted lookup component does not by itself admit
+additional fact semantics, and an absent admission is not an empty dependency set.
+Pushdown advertisement admission does not establish provider equivalence or
+permission to execute remotely.
 
 `bind_program_source_contracts` connects this inventory to a ProgramSourceIdentity
 only through the exact reconciled context already owned by that identity. It

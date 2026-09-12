@@ -348,6 +348,22 @@ to match the SourceView. Neither matching declarations nor a valid contract CID
 proves that the provider preserves eager errors, deterministic selection or other
 operation semantics. Those obligations remain at pushdown selection/execution.
 
+`check_pushdown_contracts` validates every supplied pushdown body, including
+unreferenced bodies, and every SourceView advertisement against its selected
+body. Its opaque result retains the exact SourceViewShapes owner and original
+operation order. Work, retained contracts and operation occurrences have separate
+limits; repeated SourceViews consume occurrence budget even when they share a
+body. Usage is incremental to the already admitted shape chain. A late failure
+returns no partial admission.
+
+`check_pushdown_body_dependencies` accepts only that admission's own environment
+and envelope. Empty advertisements depend on the governing Check Environment
+contract; nonempty advertisements additionally depend on the pinned Relation
+laws, and `filter` also depends on the expression contract. These pins are
+generated from the registered interpretation, not inferred from business data.
+This is direct semantic dependency evidence, not completed transitive closure or
+provider execution-equivalence evidence.
+
 `check_lookup_body_dependencies` uses the separately admitted LookupCapacities
 branch. It retains the exact facts envelope and component admission, and exposes
 the governing Check Environment contract dependency for an empty facts body or
