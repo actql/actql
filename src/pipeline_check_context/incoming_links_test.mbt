@@ -23,6 +23,7 @@ test "incoming and operation branches require the same Program admission owner" 
   }
   let incoming = collect_program_incoming(identity, generous).unwrap()
   let linked = link_program_incoming(profiles, incoming, generous).unwrap()
+  check_local_input_closure(linked)
   let input_requirement = incoming_links_local_input_at(linked, 0).unwrap()
   assert_true(@local_input.primary_key(input_requirement.declaration) is None)
   assert_eq(local_input_execution_count(input_requirement), Some(1))

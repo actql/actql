@@ -119,6 +119,8 @@ pub fn checked_results(PipelineContext) -> @relation_results.CheckedResults
 
 pub fn close_program_expressions(ProgramSourceIdentity, Int, Int) -> Result[ProgramExpressionClosure, ExpressionClosureIssue]
 
+pub fn close_program_local_inputs(ProgramIncomingLinks, max_work~ : Int, max_inputs~ : Int, max_execution_checks~ : Int) -> Result[ProgramLocalInputClosure, LocalInputClosureIssue]
+
 pub fn close_program_operations(ProgramOperationResolutionIndex, Int, Int) -> Result[ProgramOperationClosure, OperationClosureIssue]
 
 pub fn collect_core_contracts(ProgramSourceIdentity, CoreContractLimits, profile_checks? : ProgramOperationCalendar?) -> Result[CoreContractInventory, CoreContractIssue]
@@ -264,6 +266,14 @@ pub fn link_program_operation_orders(ProgramOperationRequirements, Int, Int) -> 
 pub fn link_program_operation_profiles(ProgramOperationCalendar, Int, Int) -> Result[ProgramOperationProfileLinks, OperationProfileLinksIssue]
 
 pub fn link_resolved_program_incoming(ProgramOperationResolutionIndex, ProgramIncomingRequirements, IncomingLimits) -> Result[ProgramIncomingLinks, IncomingLinksIssue]
+
+pub fn local_input_closure_at(ProgramLocalInputClosure, Int) -> LocalInputExecutionCheck?
+
+pub fn local_input_closure_count(ProgramLocalInputClosure) -> Int
+
+pub fn local_input_closure_owner(ProgramLocalInputClosure) -> ProgramIncomingLinks
+
+pub fn local_input_closure_work(ProgramLocalInputClosure) -> Int
 
 pub fn local_input_execution_at(LocalInputRequirement, Int) -> LocalInputExecutionCheck?
 
@@ -998,6 +1008,13 @@ pub(all) struct Limits {
   max_text_bytes : Int
 }
 
+pub enum LocalInputClosureIssue {
+  InvalidLimits
+  BudgetExceeded
+  UnresolvedInput(Int)
+  InvalidExecutionBinding(Int, Int)
+}
+
 pub(all) enum LocalInputDisposition {
   RejectDuplicatesAdmission
   DuplicateOrderUnresolved
@@ -1441,6 +1458,8 @@ pub enum ProgramIncomingGatesIssue {
 type ProgramIncomingLinks
 
 type ProgramIncomingRequirements
+
+type ProgramLocalInputClosure
 
 type ProgramOperationCalendar
 

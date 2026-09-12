@@ -282,6 +282,16 @@ does not assert that data passed. This covers the operation inventory only:
 input, publication, source and incoming closure remain separate obligations of
 the formal Program constructor.
 
+`close_program_local_inputs` closes every retained Local input occurrence,
+including unused declarations. It rejects unresolved duplicate-order selection
+and retains raw admission, key-component validity and key-uniqueness checks as
+applicable. The prerequisite sequence is checked against the exact same input
+subject: raw admission precedes key validation, which precedes uniqueness.
+Input visits and execution bindings consume shared work and separate collection
+limits before retention. The opaque result does not contain admitted rows and
+does not discharge SourceView, publication or incoming obligations. Its owner
+retains those other inventories rather than treating them as absent.
+
 An execution binding retains:
 
 - the protected typed subject: input, producer output, operation occurrence,
