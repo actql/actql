@@ -2,8 +2,9 @@
 fn ordered_sequence_fragment_context(
   sequence : @lower.PreparedSequence,
   work : Int64,
+  limits? : LogicalLimits? = None,
 ) -> FragmentRuntimeContext raise {
-  let context = execution_for(sequence, work).contexts[0]
+  let context = execution_for(sequence, work, limits~).contexts[0]
   let pipeline = @lower.prepare_fragment_pipeline(sequence, 1, {
     max_roots: 100,
     max_pointer_bytes: 10000,

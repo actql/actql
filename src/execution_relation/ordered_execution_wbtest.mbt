@@ -2,6 +2,7 @@
 fn execution_for(
   sequence : @lower.PreparedSequence,
   work : Int64,
+  limits? : LogicalLimits? = None,
 ) -> OrderedExecution raise {
   guard @lower.sequence_step(sequence, 1) is Some(@lower.RowStep(kernel)) else {
     fail("kernel")
@@ -20,12 +21,12 @@ fn execution_for(
   let params = prepare_ordered_params(contract, references)
   let context = prepare_ordered_limits(
     params,
-    {
+    limits.unwrap_or({
       max_input_rows: 2L,
       max_value_bytes: 31L,
       max_live_value_bytes: 78L,
       max_work: work,
-    },
+    }),
     100L,
     1000L,
   ).unwrap()
