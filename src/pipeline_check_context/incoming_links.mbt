@@ -57,6 +57,33 @@ pub fn link_program_incoming(
     Err(BudgetExceeded) => return Err(BudgetExceeded)
     Err(issue) => return Err(OperationCoverage(issue))
   }
+  link_resolved_program_incoming(resolutions, incoming, limits)
+}
+
+///|
+/// Retain the existing resolution index without re-running its checks or
+/// rebuilding its entries. Equal public identities do not establish ownership.
+pub fn link_resolved_program_incoming(
+  resolutions : ProgramOperationResolutionIndex,
+  incoming : ProgramIncomingRequirements,
+  limits : IncomingLimits,
+) -> Result[ProgramIncomingLinks, IncomingLinksIssue] {
+  if limits.max_work < 0 ||
+    limits.max_name_units < 0 ||
+    limits.max_requirements < 0 {
+    return Err(InvalidLimits)
+  }
+  let identity = resolutions.requirements.expressions.identity
+  if !physical_equal(identity, incoming.identity) {
+    return Err(ForeignIdentity)
+  }
+  let extra = incoming.work - identity.work
+  if resolutions.work >= limits.max_work ||
+    extra > limits.max_work - resolutions.work - 1 ||
+    incoming.name_units > limits.max_name_units ||
+    incoming.entries.length() > limits.max_requirements {
+    return Err(BudgetExceeded)
+  }
   let (local_inputs, local_work) = collect_local_input_requirements(
     identity.sources.operations.preparation.profiles.context.selected.context,
     limits.max_work - extra - 1 - resolutions.work,
@@ -64,7 +91,7 @@ pub fn link_program_incoming(
     Stop(issue) => return Err(issue)
   }
   Ok({
-    profiles,
+    profiles: resolutions.profiles,
     incoming,
     resolutions,
     local_inputs,

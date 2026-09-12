@@ -241,6 +241,8 @@ pub fn link_program_operation_orders(ProgramOperationRequirements, Int, Int) -> 
 
 pub fn link_program_operation_profiles(ProgramOperationCalendar, Int, Int) -> Result[ProgramOperationProfileLinks, OperationProfileLinksIssue]
 
+pub fn link_resolved_program_incoming(ProgramOperationResolutionIndex, ProgramIncomingRequirements, IncomingLimits) -> Result[ProgramIncomingLinks, IncomingLinksIssue]
+
 pub fn local_input_execution_at(LocalInputRequirement, Int) -> LocalInputExecutionCheck?
 
 pub fn local_input_execution_count(LocalInputRequirement) -> Int?

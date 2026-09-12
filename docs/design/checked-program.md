@@ -90,6 +90,15 @@ entry allowance and the same cumulative work ceiling. The index may still contai
 unresolved obligations: this orchestration is not the final validating constructor
 and does not convert unsupported static work into execution checks.
 
+Incoming integration can consume that exact index through
+`link_resolved_program_incoming`, retaining its occurrence owners and execution
+bindings without re-indexing. The identity prefix is shared once between the
+incoming and operation branches; all branch-specific work, local-input inventory
+work and the join remain charged. An equal-CID inventory from a different
+admission owner is rejected. The lower-level profile-based entrance delegates to
+the same join after indexing, so both paths have the same acceptance and budget
+semantics rather than independent integration rules.
+
 Shared work is counted once for an exact retained owner; additional branch work
 and join validation are still charged. No phase resets the Program budget.
 The final retained usage distinguishes parsing/prior admission where applicable,

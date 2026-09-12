@@ -171,11 +171,14 @@ test "prepared multi-stage Program reaches source identity without replacing imp
       ),
     )
   }
-  let expressions = close_program_expressions(identity, 10000000, 100).unwrap()
+  let resolved = resolve_program_operations(identity, {
+    max_work: 10000000,
+    max_requirements: 100,
+    max_resolutions: 100,
+  }).unwrap()
+  let requirements = operation_resolution_requirements(resolved)
+  let expressions = operation_requirements_expressions(requirements)
   assert_eq(expression_closure_count(expressions), 0)
-  let requirements = collect_program_operation_requirements(
-    expressions, 10000000, 100,
-  ).unwrap()
   assert_true(
     physical_equal(
       operation_requirements_expressions(requirements),
@@ -236,7 +239,7 @@ test "prepared multi-stage Program reaches source identity without replacing imp
   )
   // The same prepared Program now supplies both the operation coverage index
   // and incoming dependencies. No executed predecessor or receipt is invented.
-  let profiles = resolution_profiles(requirements)
+  let profiles = operation_resolution_profiles(resolved)
   let incoming_limits : IncomingLimits = {
     max_work: 10000000,
     max_name_units: 10000,
@@ -272,7 +275,10 @@ test "prepared multi-stage Program reaches source identity without replacing imp
     }
   }
   assert_eq((success, imports), (1, 2))
-  let linked = link_program_incoming(profiles, incoming, incoming_limits).unwrap()
+  let linked = link_resolved_program_incoming(
+    resolved, incoming, incoming_limits,
+  ).unwrap()
+  assert_true(physical_equal(incoming_links_resolutions(linked), resolved))
   let indexed = incoming_links_resolutions(linked)
   assert_true(
     physical_equal(operation_resolution_requirements(indexed), requirements),

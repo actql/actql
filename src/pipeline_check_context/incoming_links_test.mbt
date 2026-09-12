@@ -53,6 +53,13 @@ test "incoming and operation branches require the same Program admission owner" 
     max_requirements: program_incoming_count(incoming),
   }
   assert_true(link_program_incoming(profiles, incoming, exact) is Ok(_))
+  let retained = link_resolved_program_incoming(resolutions, incoming, exact).unwrap()
+  assert_true(physical_equal(incoming_links_resolutions(retained), resolutions))
+  assert_eq(incoming_links_work(retained), incoming_links_work(linked))
+  assert_eq(
+    incoming_links_local_input_count(retained),
+    incoming_links_local_input_count(linked),
+  )
   for
     short in [
       { ..exact, max_work: expected - 1, },
@@ -63,6 +70,10 @@ test "incoming and operation branches require the same Program admission owner" 
     assert_true(
       link_program_incoming(profiles, incoming, short) is Err(BudgetExceeded),
     )
+    assert_true(
+      link_resolved_program_incoming(resolutions, incoming, short)
+      is Err(BudgetExceeded),
+    )
   }
   for
     invalid in [
@@ -72,6 +83,10 @@ test "incoming and operation branches require the same Program admission owner" 
     ] {
     assert_true(
       link_program_incoming(profiles, incoming, invalid) is Err(InvalidLimits),
+    )
+    assert_true(
+      link_resolved_program_incoming(resolutions, incoming, invalid)
+      is Err(InvalidLimits),
     )
   }
   // Reissuing the identity from the very same source checks still creates a
@@ -91,6 +106,10 @@ test "incoming and operation branches require the same Program admission owner" 
   let foreign = collect_program_incoming(reissued, generous).unwrap()
   assert_true(
     link_program_incoming(profiles, foreign, generous) is Err(ForeignIdentity),
+  )
+  assert_true(
+    link_resolved_program_incoming(resolutions, foreign, generous)
+    is Err(ForeignIdentity),
   )
   // A fresh incoming inventory from the exact owner remains admissible.
   assert_true(
@@ -120,6 +139,8 @@ test "incoming integration retains unexecuted top-tie checks from unused operati
   let incoming = collect_program_incoming(identity, caps).unwrap()
   let linked = link_program_incoming(profiles, incoming, caps).unwrap()
   let index = incoming_links_resolutions(linked)
+  let retained = link_resolved_program_incoming(index, incoming, caps).unwrap()
+  assert_true(physical_equal(incoming_links_resolutions(retained), index))
   assert_true(
     physical_equal(operation_resolution_requirements(index), requirements),
   )
