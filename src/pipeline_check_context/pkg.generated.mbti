@@ -8,6 +8,7 @@ import {
   "actql/actql/capacity_host_witness",
   "actql/actql/capacity_policy",
   "actql/actql/capacity_program_step",
+  "actql/actql/capacity_witness",
   "actql/actql/check_environment",
   "actql/actql/decode_core",
   "actql/actql/encode_core",
@@ -115,6 +116,8 @@ pub fn check_source_row_bounds(SourceRequestContexts, Array[Array[@capacity_prog
 pub fn check_text_bounds(PatternChecks, TextBoundsLimits) -> Result[TextBoundsChecks, TextBoundsIssue]
 
 pub fn check_timestamp_patterns(ExpressionValidationContext, TimestampPatternLimits) -> Result[TimestampPatternChecks, TimestampPatternIssue]
+
+pub fn check_values_wire_bound(ProgramOperationCells, Int, @capacity_witness.ProgramProofClaim, Int, Int, Int) -> Result[ValuesWireBound, ValuesWireBoundIssue]
 
 pub fn checked_capacity(PipelineContext) -> @capacity_graph_preflight.ApplicationClosure
 
@@ -785,6 +788,8 @@ pub fn validation_site_location(ExpressionValidationSite) -> (Int, Int)
 pub fn validation_site_parameters(ExpressionValidationSite) -> ParameterVisit
 
 pub fn validation_site_requirement(ExpressionValidationSite) -> ExpressionRequirement
+
+pub fn values_wire_bound_contract(ValuesWireBound) -> String
 
 pub fn wired_stage_contexts(WiredStages) -> StageContexts
 
@@ -1997,6 +2002,24 @@ pub(all) enum ValuesMeasurementIssue {
   InvalidRequirement
   ForeignOwner
   Encoding(@encode_core.EncodeFailure)
+} derive(@debug.Debug)
+
+pub struct ValuesWireBound {
+  cells : ProgramOperationCells
+  requirement_index : Int
+  site : OperationRequirementSite
+  proof : @capacity_witness.ProgramProofClaim
+  bytes : Int
+  nodes : Int
+  depth : Int
+}
+
+pub(all) enum ValuesWireBoundIssue {
+  Measurement(ValuesMeasurementIssue)
+  SubjectMismatch
+  LawMismatch
+  InvalidProof
+  ValueMismatch
 } derive(@debug.Debug)
 
 type WiredStages

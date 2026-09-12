@@ -341,6 +341,23 @@ It is a law contract, not a cell-admission schema or a backend registration.
 ../../../spec/contracts/actql-bound-values-law.json# sha256:0e0f9b4b6585ab7b17bafe484e82f44cd8f3acc9eec5ef9329cea200237a7971
 ```
 
+<!-- requirement-block: capacity-law-registry.values-wire-body -->
+An application of `actql.bound.values-wire` MUST satisfy the separately pinned
+`actql-bound-values-wire-law/0.1` body. Its byte scope is the complete canonical
+typed `/rows` value in the execution params, after binding and quotation removal,
+not the schema, enclosing params, Artifact or physical storage. The measured
+array and each row occurrence include their structural JSON bytes. Application
+recomputes the measurement under the exact checked operation and binding owner;
+law registration and matching claimed numbers do not establish that ownership.
+The bound does not replace ceiling selection, recursive-value limits or atomic
+enforcement. It leaves the row-count law and identity projections unchanged.
+
+<!-- requirement-block: capacity-law-registry.values-wire-machine-contract -->
+<!-- normative-code: law -->
+```text
+../../../spec/contracts/actql-bound-values-wire-law.json# sha256:aa0833e19bbf9be3ccfc445e9bebc55c57ce8b8151bc143d1220da4d17a61168
+```
+
 <!-- requirement-block: capacity-law-registry.relation-count-body capacity-law-registry.relation-count-machine -->
 The pinned `actql-bound-relation-laws/0.1` body governs common Relation
 row-upper-bound preservation, global-group, take/top_k, append, unpivot and
@@ -413,7 +430,7 @@ or resource enforcement.
 <!-- requirement-block: capacity-law-registry.machine-contract -->
 <!-- normative-code: law -->
 ```text
-../../../spec/contracts/actql-bound-law-registry.json# sha256:45f824fa077ac7eb6fecda6e25fa954834f1854c512f99f6803ad2ab84dd899a
+../../../spec/contracts/actql-bound-law-registry.json# sha256:547eb382fa6e17294b3a01cc1fc8069ede225b4da17a933e0ec2c25fc9f41fe0
 ```
 
 <a id="capacity-host-policy"></a>

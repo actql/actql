@@ -51,6 +51,7 @@ pub fn admit(law : String) -> RegisteredLaw? {
     "actql.bound.unnest-array-items" => Some(RegisteredLaw(law))
     "actql.bound.unpivot" => Some(RegisteredLaw(law))
     "actql.bound.values" => Some(RegisteredLaw(law))
+    "actql.bound.values-wire" => Some(RegisteredLaw(law))
     "actql.bound.vector-rows" => Some(RegisteredLaw(law))
     "actql.bound.window-events" => Some(RegisteredLaw(law))
     "actql.contract.command-items" => Some(RegisteredLaw(law))

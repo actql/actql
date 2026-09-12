@@ -45,6 +45,7 @@
     "actql.bound.unnest-array-items",
     "actql.bound.unpivot",
     "actql.bound.values",
+    "actql.bound.values-wire",
     "actql.bound.vector-rows",
     "actql.bound.window-events",
     "actql.contract.command-items",

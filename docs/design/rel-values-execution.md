@@ -73,6 +73,17 @@ entire measured `/rows` value, without resetting at row or cell boundaries.
 The returned byte/node/depth counts do not change an operation requirement's
 resolution state and are not themselves a capacity proof or a publication limit.
 
+`check_values_wire_bound` applies the separately pinned
+`actql-bound-values-wire-law/0.1` to an integrity-admitted Program proof. It
+checks the law, byte unit, local operation subject, source derivation and empty
+input-quantity list, then recomputes `/rows` from the same owned cell resolutions.
+The applied result retains that owner and the requirement occurrence together
+with the proof and measured usage. Equal byte counts under different bindings
+may validate the same numeric claim, but their applied results keep different
+owners; a proof CID cannot substitute for that ownership. This bound still needs
+scope-correct limit selection and enforcement before publication. It cannot
+stand in for a recursive-depth ceiling or an Artifact byte bound.
+
 ## Registry and backend capability
 
 `actql-aoa.json` selects the shared registry through `pipeline_registry_file`

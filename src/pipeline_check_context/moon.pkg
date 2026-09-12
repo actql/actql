@@ -1,6 +1,8 @@
 supported_targets = "+js+wasm+native"
 
 import {
+  "actql/actql/capacity_law" @law,
+  "actql/actql/capacity_derivation" @derivation,
   "actql/actql/local_source_ref" @local_ref,
   "actql/actql/local_relation_snapshot" @snapshot,
   "actql/actql/capacity_host_witness" @host,

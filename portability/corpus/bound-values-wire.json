@@ -1,0 +1,24 @@
+{
+  "version": "actql-bound-values-wire-vectors/0.1",
+  "cases": [
+    {"name":"empty","rows":[],"bytes":2,"nodes":1,"depth":1},
+    {"name":"ordinary","rows":[{"x":1}],"bytes":9,"nodes":3,"depth":2},
+    {"name":"repeated-binding","rows":[{"x":7},{"x":1},{"x":7}],"bytes":25,"nodes":7,"depth":2},
+    {"name":"changed-binding","rows":[{"x":100},{"x":1},{"x":100}],"bytes":29,"nodes":7,"depth":2},
+    {"name":"null","rows":[{"x":null}],"bytes":12,"nodes":3,"depth":2},
+    {"name":"decimal-wire","rows":[{"x":"19.90"}],"bytes":15,"nodes":3,"depth":2},
+    {"name":"array","rows":[{"x":[1,2]}],"bytes":13,"nodes":5,"depth":3},
+    {"name":"opaque-business-data","rows":[{"x":{"literal":"$param"}}],"bytes":28,"nodes":4,"depth":3},
+    {"name":"unicode-and-escaping","rows":[{"x":"é😀\u0000\n\"\\"}],"bytes":28,"nodes":3,"depth":2}
+  ],
+  "proof": {
+    "inputs": [],
+    "law_id": "actql.bound.values-wire",
+    "semantic_ref": "checked-step:0",
+    "unit": "bytes",
+    "value": 25,
+    "version": "actql-bound-proof/0.1"
+  },
+  "proof_cid": "sha256:7c87aa9e1a77cbf8368b652fa15d7fde2ee5bf4ca280d55621c0cd71033bf22b",
+  "witness_cid": "sha256:15622500b68d7891fc269aca0d7cb37561307a912578cd88f3d2dadcc54fb56e"
+}

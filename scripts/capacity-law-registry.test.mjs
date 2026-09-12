@@ -283,6 +283,37 @@ test('values count law has a separately pinned semantic body', () => {
   assert.ok(implementation.replace(/\s+/g, ' ').includes(`ValuesCountLaw => "${cid}"`), 'stale compiler law body pin');
 });
 
+test('values wire byte law is separately owned and has independent measurement vectors', () => {
+  const path = 'spec/contracts/actql-bound-values-wire-law.json';
+  const law = JSON.parse(readFileSync(new URL(`../${path}`, import.meta.url), 'utf8'));
+  const cid = 'sha256:aa0833e19bbf9be3ccfc445e9bebc55c57ce8b8151bc143d1220da4d17a61168';
+  assert.equal(machineCid(law), cid);
+  assert.equal(law.unit, 'bytes');
+  assert.equal(law.law_id, 'actql.bound.values-wire');
+  assert.ok(loadRegistry().body.law_ids.includes(law.law_id));
+  const family = JSON.parse(readFileSync(new URL('../spec/spec-family.json', import.meta.url), 'utf8'));
+  assert.deepEqual(family.documents.find(d => d.spec_id === 'actql.protocol.contracts').machine_contracts.filter(r => r.path === path), [
+    {path, pointer:'', cid, version:law.version},
+  ]);
+  const corpus = JSON.parse(readFileSync(new URL('../portability/corpus/bound-values-wire.json', import.meta.url), 'utf8'));
+  assert.equal(corpus.version, 'actql-bound-values-wire-vectors/0.1');
+  function structure(value) {
+    if (value === null || typeof value !== 'object') return {nodes:1, depth:0};
+    const children = Object.values(value).map(structure);
+    return {nodes:1 + children.reduce((n, c) => n + c.nodes, 0), depth:1 + Math.max(0, ...children.map(c => c.depth))};
+  }
+  for (const v of corpus.cases) {
+    assert.equal(Buffer.byteLength(JSON.stringify(v.rows), 'utf8'), v.bytes, v.name);
+    assert.deepEqual(structure(v.rows), {nodes:v.nodes, depth:v.depth}, v.name);
+  }
+  assert.equal(machineCid(corpus.proof), corpus.proof_cid);
+  assert.equal(machineCid({dependencies:[corpus.proof_cid], derivation:{op:'source'},
+    law_id:law.law_id, role:'proven_upper_bound', source:{kind:'program', proof_cid:corpus.proof_cid, semantic_ref:corpus.proof.semantic_ref},
+    unit:'bytes', value:25, version:'actql-bound-witness/0.1'}), corpus.witness_cid);
+  const implementation = readFileSync(new URL('../src/pipeline_check_context/values_wire_bound.mbt', import.meta.url), 'utf8');
+  assert.ok(implementation.includes(cid), 'stale applied-law pin');
+});
+
 test('independent values count vectors count row occurrences, not cell contents', () => {
   const corpus = JSON.parse(readFileSync(new URL('../portability/corpus/bound-values.json', import.meta.url), 'utf8'));
   assert.equal(corpus.version, 'actql-bound-values-vectors/0.1');
@@ -305,7 +336,7 @@ test('independent values count vectors count row occurrences, not cell contents'
 
 test('registry fixes its identity, rejects missing Host entries and malformed names', () => {
   const { body, policy } = loadRegistry();
-  assert.equal(validateRegistry(body, policy), 'sha256:45f824fa077ac7eb6fecda6e25fa954834f1854c512f99f6803ad2ab84dd899a');
+  assert.equal(validateRegistry(body, policy), 'sha256:547eb382fa6e17294b3a01cc1fc8069ede225b4da17a933e0ec2c25fc9f41fe0');
   assert.ok(body.law_ids.includes('actql.bound.text-rank'));
   for (const name of ['values', 'time-series', 'calendar-series']) {
     assert.ok(body.law_ids.includes(`actql.bound.${name}`));
