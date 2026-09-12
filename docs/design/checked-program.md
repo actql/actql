@@ -301,6 +301,15 @@ failure still prevents activation. This closes activation-check bindings only;
 it does not construct Result-import interface identities or assert that a
 predecessor has run successfully.
 
+`close_program_publications` visits every Stage Result, not only root exports,
+and links each static publication-order obligation to the retained Result port
+and that Stage's exact integrated order context. It consumes the existing order
+decision without choosing new keys or re-inferring order. The obligation enum is
+matched exhaustively; new Result requirements need an explicit closing rule.
+Stage, Result and obligation visits share the prior Program work ceiling. This
+closes static order selection only: conditional input/key checks, output limits,
+materialization and successful publication still require their own enforcement.
+
 An execution binding retains:
 
 - the protected typed subject: input, producer output, operation occurrence,

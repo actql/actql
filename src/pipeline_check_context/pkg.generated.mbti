@@ -125,6 +125,8 @@ pub fn close_program_local_inputs(ProgramIncomingLinks, max_work~ : Int, max_inp
 
 pub fn close_program_operations(ProgramOperationResolutionIndex, Int, Int) -> Result[ProgramOperationClosure, OperationClosureIssue]
 
+pub fn close_program_publications(ProgramIncomingLinks, Int, Int) -> Result[ProgramPublicationClosure, PublicationClosureIssue]
+
 pub fn collect_core_contracts(ProgramSourceIdentity, CoreContractLimits, profile_checks? : ProgramOperationCalendar?) -> Result[CoreContractInventory, CoreContractIssue]
 
 pub fn collect_program_incoming(ProgramSourceIdentity, IncomingLimits) -> Result[ProgramIncomingRequirements, IncomingIssue]
@@ -544,6 +546,14 @@ pub fn program_sources_semantics(ProgramSourceChecks, @program_references.Progra
 pub fn program_sources_stage_semantics(ProgramSourceChecks, Int) -> @program_references.StageSemantics?
 
 pub fn program_sources_work(ProgramSourceChecks) -> Int
+
+pub fn publication_closure_at(ProgramPublicationClosure, Int) -> PublicationResolution?
+
+pub fn publication_closure_count(ProgramPublicationClosure) -> Int
+
+pub fn publication_closure_owner(ProgramPublicationClosure) -> ProgramIncomingLinks
+
+pub fn publication_closure_work(ProgramPublicationClosure) -> Int
 
 pub fn reconciled_local_at(ReconciledContexts, Int) -> @stage_local_inputs.ReconciledAttachment?
 
@@ -1526,6 +1536,8 @@ type ProgramOperationScalars
 
 type ProgramPreparation
 
+type ProgramPublicationClosure
+
 pub(all) enum ProgramReferenceIssue {
   InvalidLimits
   ForeignSource
@@ -1549,6 +1561,21 @@ pub(all) enum ProgramSourcesIssue {
   ForeignPreparation
   BudgetExceeded
 } derive(Eq, @debug.Debug)
+
+pub enum PublicationClosureIssue {
+  InvalidLimits
+  BudgetExceeded
+  ForeignOrders(Int, Int)
+  MissingStage(Int)
+}
+
+pub struct PublicationResolution {
+  stage : Int
+  result_index : Int
+  port : @relation_results.ResultPort
+  context : PipelineContext
+  obligation : @relation_results.Obligation
+}
 
 pub(all) struct PureOperationProfiles {
   rela : Bool

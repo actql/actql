@@ -12,6 +12,50 @@ test "prepared Local Program retains every activation prerequisite without obser
   }
   let incoming = collect_program_incoming(identity, limits).unwrap()
   let linked = link_program_incoming(profiles, incoming, limits).unwrap()
+  let publications = close_program_publications(linked, 10000000, 2).unwrap()
+  assert_true(physical_equal(publication_closure_owner(publications), linked))
+  assert_eq(publication_closure_count(publications), 2)
+  let publication_work = publication_closure_work(publications)
+  assert_eq(publication_work, incoming_links_work(linked) + 7)
+  assert_true(close_program_publications(linked, publication_work, 2) is Ok(_))
+  assert_true(
+    close_program_publications(linked, publication_work - 1, 2)
+    is Err(BudgetExceeded),
+  )
+  assert_true(
+    close_program_publications(linked, publication_work, 1)
+    is Err(BudgetExceeded),
+  )
+  assert_true(close_program_publications(linked, -1, 2) is Err(InvalidLimits))
+  assert_true(
+    close_program_publications(linked, publication_work, -1)
+    is Err(InvalidLimits),
+  )
+  for stage in 0..<2 {
+    let entry = publication_closure_at(publications, stage).unwrap()
+    assert_eq(entry.stage, stage)
+    assert_eq(entry.result_index, 0)
+    assert_eq(entry.obligation, @results.TotalDeterministicOrder)
+    assert_true(
+      physical_equal(
+        @results.port_orders(entry.port),
+        checked_orders(entry.context),
+      ),
+    )
+    let order = @results.port_order(entry.port)
+    assert_eq(@results.publication_result_index(order), 0)
+    assert_true(
+      physical_equal(
+        @results.publication_results(order),
+        @results.publication_orders_results(
+          @results.checked_publication_orders(checked_orders(entry.context)),
+        ),
+      ),
+    )
+  }
+  for invalid in [-2147483648, -1, 2, 2147483647] {
+    assert_true(publication_closure_at(publications, invalid) is None)
+  }
   let closed = close_program_incoming(linked, 10000000, 3).unwrap()
   assert_true(physical_equal(incoming_closure_owner(closed), linked))
   assert_eq(incoming_closure_count(closed), 3)
