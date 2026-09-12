@@ -87,6 +87,19 @@ source evidence rather than inventing a schema or capacity proof. This Local
 snapshot boundary does not admit unrelated Catalog, policy, SourceView or Host
 claims and is not the formal CheckedProgram entry.
 
+When `stage_results.prepare_local_source` receives an Environment, it constructs
+these registrations internally from its own declaration Source before preparing
+any pipeline. `prepare_local_program` then uses each reconciled input contract
+at registration, including snapshot-derived schema and conditional keys, and
+retains the corresponding `ReconciledAttachment` in its Result wiring. Producer
+ports and later imports therefore see the same evidence-backed types from the
+start. The lower-level entrance rejects registrations owned by another Source.
+Its source-only and reconciled attachment readers are distinct: a reconciled
+registration is never represented as a source-only admission. The Environment
+preparation prefix is charged once before Stage construction, with subsequent
+attachment checks charging only their nonshared work. Policy, capacity and
+publication closure still require their own later checks.
+
 This order is a dependency graph, not a requirement to reconstruct earlier
 results at every phase. Private incremental assembly can retain immutable
 intermediates. Public low-level helpers remain useful for focused tests, but

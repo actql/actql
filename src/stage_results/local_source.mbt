@@ -21,6 +21,7 @@ pub enum LocalSourceIssue {
   Operations(@parameters.OperationsIssue)
   OperationBindings(@parameters.BindingsIssue)
   ResultCollection(CollectionIssue)
+  Environment(@local.PrepareEnvironmentIssue)
 }
 
 ///|
@@ -32,6 +33,7 @@ pub fn prepare_local_source(
   supplied : @decode.Cursor?,
   max_parameters~ : Int,
   limits : LocalProgramLimits,
+  environment? : @environment.WireEnvironment? = None,
 ) -> Result[PreparedLocalSource, LocalSourceIssue] {
   if max_parameters < 0 ||
     limits.max_stages < 0 ||
@@ -74,13 +76,31 @@ pub fn prepare_local_source(
     Ready(v) => v
     NeedsBindings(missing) => return Err(NeedsBindings(missing))
   }
+  let inputs = match environment {
+    None => None
+    Some(env) =>
+      match
+        @local.prepare_environment(source, env, {
+          max_work: limits.max_work - count - 1,
+          max_nodes: limits.max_nodes - decl_nodes - bind_nodes,
+          max_text_bytes: limits.max_text_bytes - decl_text - bind_text,
+          max_depth: limits.max_depth,
+        }) {
+        Ok(v) => Some(v)
+        Err(e) => return Err(Environment(e))
+      }
+  }
   let (wiring, used) = match
-    prepare_local_program(source, {
-      ..limits,
-      max_work: limits.max_work - count - 1,
-      max_nodes: limits.max_nodes - decl_nodes - bind_nodes,
-      max_text_bytes: limits.max_text_bytes - decl_text - bind_text,
-    }) {
+    prepare_local_program(
+      source,
+      {
+        ..limits,
+        max_work: limits.max_work - count - 1,
+        max_nodes: limits.max_nodes - decl_nodes - bind_nodes,
+        max_text_bytes: limits.max_text_bytes - decl_text - bind_text,
+      },
+      environment=inputs,
+    ) {
     Ok(v) => v
     Err(e) => return Err(Program(e))
   }

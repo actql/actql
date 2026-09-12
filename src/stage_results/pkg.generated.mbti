@@ -2,6 +2,7 @@
 package "actql/actql/stage_results"
 
 import {
+  "actql/actql/check_environment",
   "actql/actql/decode_core",
   "actql/actql/parameter_binding",
   "actql/actql/pipeline_typing",
@@ -69,9 +70,9 @@ pub fn local_source_wiring(PreparedLocalSource) -> ResultWiring
 
 pub fn operations(Checked) -> @stage_parameters.CollectedOperations
 
-pub fn prepare_local_program(@stage_parameters.Source, LocalProgramLimits) -> Result[(ResultWiring, LocalProgramUsage), LocalProgramIssue]
+pub fn prepare_local_program(@stage_parameters.Source, LocalProgramLimits, environment? : @stage_local_inputs.ProgramEnvironmentInputs?) -> Result[(ResultWiring, LocalProgramUsage), LocalProgramIssue]
 
-pub fn prepare_local_source(@stage_syntax.Program, @decode_core.Cursor?, max_parameters~ : Int, LocalProgramLimits) -> Result[PreparedLocalSource, LocalSourceIssue]
+pub fn prepare_local_source(@stage_syntax.Program, @decode_core.Cursor?, max_parameters~ : Int, LocalProgramLimits, environment? : @check_environment.WireEnvironment?) -> Result[PreparedLocalSource, LocalSourceIssue]
 
 pub fn resolve_imports(@stage_parameters.Source, Int, Array[StagePorts], ImportLimits) -> Result[ResultImports, ImportIssue]
 
@@ -87,7 +88,11 @@ pub fn wire_results(@stage_parameters.Source, Array[StagePorts], Array[AttachedI
 
 pub fn wiring_imports_at(ResultWiring, Int) -> AttachedImports?
 
+pub fn wiring_local_environment(ResultWiring) -> @stage_local_inputs.ProgramEnvironmentInputs?
+
 pub fn wiring_local_input_at(ResultWiring, Int) -> @stage_local_inputs.Attached?
+
+pub fn wiring_reconciled_input_at(ResultWiring, Int) -> @stage_local_inputs.ReconciledAttachment?
 
 pub fn wiring_source(ResultWiring) -> @stage_parameters.Source
 
@@ -146,6 +151,7 @@ pub enum Issue {
 pub enum LocalProgramIssue {
   InvalidLimits
   BudgetExceeded
+  ForeignEnvironmentSource
   UnsupportedReceipt(Int, String)
   LocalInput(Int, @stage_local_inputs.Issue)
   Import(Int, ImportIssue)
@@ -187,6 +193,7 @@ pub enum LocalSourceIssue {
   Operations(@stage_parameters.OperationsIssue)
   OperationBindings(@stage_parameters.BindingsIssue)
   ResultCollection(CollectionIssue)
+  Environment(@stage_local_inputs.PrepareEnvironmentIssue)
 }
 
 type PreparedLocalSource

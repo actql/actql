@@ -32,6 +32,26 @@ struct ResultWiring {
   work : Int
   text_bytes : Int
   local_inputs : Array[@local.Attached]?
+  local_environment : @local.ProgramEnvironmentInputs?
+  reconciled_inputs : Array[@local.ReconciledAttachment]?
+}
+
+///|
+pub fn wiring_local_environment(
+  value : ResultWiring,
+) -> @local.ProgramEnvironmentInputs? {
+  value.local_environment
+}
+
+///|
+pub fn wiring_reconciled_input_at(
+  value : ResultWiring,
+  index : Int,
+) -> @local.ReconciledAttachment? {
+  match value.reconciled_inputs {
+    None => None
+    Some(inputs) => inputs.get(index)
+  }
 }
 
 ///|
@@ -143,6 +163,8 @@ pub fn wire_results(
     work: limits.max_work - work,
     text_bytes: limits.max_text_bytes - text,
     local_inputs: None,
+    local_environment: None,
+    reconciled_inputs: None,
   })
 }
 

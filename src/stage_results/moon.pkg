@@ -1,6 +1,7 @@
 supported_targets = "+js+wasm+native"
 
 import {
+  "actql/actql/check_environment" @environment,
   "actql/actql/parameter_binding" @binding,
   "actql/actql/stage_parameters" @parameters,
   "actql/actql/stage_syntax" @syntax,
@@ -14,6 +15,7 @@ import {
 
 import {
   "actql/actql/relation_schema" @schema,
+  "moonbitlang/core/encoding/utf8",
   "actql/actql/parameter_references" @references,
   "actql/actql/value_contract" @contract,
 } for "test"

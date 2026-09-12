@@ -2,6 +2,7 @@
 fn local_program_source(
   two_stages : Bool,
   bad_later? : Bool = false,
+  untyped? : Bool = false,
 ) -> @parameters.Source {
   let first =
     #|{"id":"first","inputs":{"rows":{"carrier":"relation","schema":{"id":{"type":"number","nullable":false}},"primary_key":["id"]}},"steps":[{"derive":{"extra":"id + 1"},"as":"prepared"}],"results":{"out":{"from":"prepared","fields":["id","extra"]}}}
@@ -18,7 +19,16 @@ fn local_program_source(
     "],\"results\":{\"out\":{\"from\":{\"stage\":\"" +
     (if two_stages { "second" } else { "first" }) +
     "\",\"result\":\"out\"}}}}"
-  local_program_parse(text)
+  local_program_parse(
+    if untyped {
+      text.replace(
+        old="{\"carrier\":\"relation\",\"schema\":{\"id\":{\"type\":\"number\",\"nullable\":false}},\"primary_key\":[\"id\"]}",
+        new="\"relation\"",
+      )
+    } else {
+      text
+    },
+  )
 }
 
 ///|

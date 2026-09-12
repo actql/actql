@@ -24,6 +24,7 @@ pub(all) struct LocalProgramUsage {
 pub enum LocalProgramIssue {
   InvalidLimits
   BudgetExceeded
+  ForeignEnvironmentSource
   UnsupportedReceipt(Int, String)
   LocalInput(Int, @local.Issue)
   Import(Int, ImportIssue)
@@ -43,6 +44,7 @@ pub enum LocalProgramIssue {
 pub fn prepare_local_program(
   source : @parameters.Source,
   limits : LocalProgramLimits,
+  environment? : @local.ProgramEnvironmentInputs? = None,
 ) -> Result[(ResultWiring, LocalProgramUsage), LocalProgramIssue] {
   if limits.max_stages < 0 ||
     limits.max_steps < 0 ||
@@ -64,9 +66,22 @@ pub fn prepare_local_program(
   let mut text = limits.max_text_bytes
   let mut steps = limits.max_steps
   let mut results = limits.max_results
+  if environment is Some(inputs) {
+    if !physical_equal(@local.environment_program(inputs), source) {
+      return Err(ForeignEnvironmentSource)
+    }
+    let used = @local.program_environment_usage(inputs)
+    if used.work > work || used.nodes > nodes || used.text_bytes > text {
+      return Err(BudgetExceeded)
+    }
+    work -= used.work
+    nodes -= used.nodes
+    text -= used.text_bytes
+  }
   let stages : Array[StagePorts] = []
   let imports : Array[AttachedImports] = []
   let local_inputs : Array[@local.Attached] = []
+  let reconciled_inputs : Array[@local.ReconciledAttachment] = []
   // wire_results includes these exact retained prefixes in its reported usage.
   // They have already been charged; refund only those prefixes at that boundary.
   let mut wiring_work = 0
@@ -85,17 +100,28 @@ pub fn prepare_local_program(
         @syntax.Result(..) => ()
       }
     }
-    let prepared = match
-      @local.prepare(source, i, {
-        max_work: work,
-        max_nodes: nodes,
-        max_text_bytes: text,
-        max_depth: limits.max_depth,
-      }) {
-      Err(e) => return Err(LocalInput(i, e))
-      Ok(v) => v
+    let reconciled = environment.map(inputs => {
+      @local.program_environment_stage(inputs, i).unwrap()
+    })
+    let prepared = match reconciled {
+      Some(inputs) =>
+        @local.snapshot_inputs(@local.environment_assertions(inputs))
+      None =>
+        match
+          @local.prepare(source, i, {
+            max_work: work,
+            max_nodes: nodes,
+            max_text_bytes: text,
+            max_depth: limits.max_depth,
+          }) {
+          Err(e) => return Err(LocalInput(i, e))
+          Ok(v) => v
+        }
     }
-    let local_used = @local.usage(prepared)
+    let local_used : @local.Usage = match reconciled {
+      None => @local.usage(prepared)
+      Some(_) => { work: 0, nodes: 0, text_bytes: 0, }
+    }
     work -= local_used.work
     nodes -= local_used.nodes
     text -= local_used.text_bytes
@@ -119,7 +145,12 @@ pub fn prepare_local_program(
     work -= local_count + resolved_count
     let inputs = []
     for j in 0..<local_count {
-      inputs.push(@local.input_at(prepared, j).unwrap())
+      inputs.push(
+        match reconciled {
+          None => @local.input_at(prepared, j).unwrap()
+          Some(checked) => @local.environment_input_at(checked, j).unwrap()
+        },
+      )
     }
     for j in 0..<resolved_count {
       let entry = import_at(resolved, j).unwrap()
@@ -166,19 +197,37 @@ pub fn prepare_local_program(
     let collection_work = @parameters.collection_work(collected)
     work -= collection_work
     text -= @collection.direct_text_bytes(@parameters.collection(collected))
-    let input_attachment = match
-      @local.attach(
-        prepared,
-        collected,
-        max_work=work + local_used.work + collection_work,
-      ) {
-      Err(e) => return Err(LocalInput(i, e))
-      Ok(v) => v
+    match reconciled {
+      Some(checked) => {
+        let prior = @local.environment_usage(checked).work
+        let attachment = match
+          @local.attach_reconciled(
+            checked,
+            collected,
+            max_work=work + prior + collection_work,
+          ) {
+          Ok(v) => v
+          Err(e) => return Err(LocalInput(i, e))
+        }
+        work -= @local.reconciled_work(attachment) - prior - collection_work
+        reconciled_inputs.push(attachment)
+      }
+      None => {
+        let input_attachment = match
+          @local.attach(
+            prepared,
+            collected,
+            max_work=work + local_used.work + collection_work,
+          ) {
+          Err(e) => return Err(LocalInput(i, e))
+          Ok(v) => v
+        }
+        work -= @local.attached_work(input_attachment) -
+          local_used.work -
+          collection_work
+        local_inputs.push(input_attachment)
+      }
     }
-    work -= @local.attached_work(input_attachment) -
-      local_used.work -
-      collection_work
-    local_inputs.push(input_attachment)
     let attached = match
       attach_imports(resolved, collected, max_work=work + import_work) {
       Err(e) => return Err(Import(i, e))
@@ -253,7 +302,20 @@ pub fn prepare_local_program(
   text -= final_text - wiring_text
   Ok(
     (
-      { ..wired, local_inputs: Some(local_inputs), },
+      {
+        ..wired,
+        local_inputs: if environment is None {
+          Some(local_inputs)
+        } else {
+          None
+        },
+        local_environment: environment,
+        reconciled_inputs: if environment is Some(_) {
+          Some(reconciled_inputs)
+        } else {
+          None
+        },
+      },
       {
         work: limits.max_work - work,
         nodes: limits.max_nodes - nodes,
