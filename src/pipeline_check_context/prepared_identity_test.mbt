@@ -75,23 +75,15 @@ fn prepared_reconciled_identity(
     max_text_bytes=10000000,
     max_policy_nodes=100,
   ).unwrap()
-  let validation = prepare_expression_validation(selected, validation_limits()).unwrap()
-  let patterns = check_patterns(validation, pattern_limits()).unwrap()
   let producer = preparation_sources_fixture(selected)
-  let preparation = assemble_preparation(
+  let operations = prepare_program_checks(
     producer,
-    check_text_bounds(patterns, bound_limits()).unwrap(),
-    check_expression_profiles(
-      validation,
-      { text_time: false, veca: false, },
-      10000000,
-    ).unwrap(),
-    preparation_limits(),
-  ).unwrap()
-  let operations = check_operation_profiles(
-    preparation,
+    { text_time: false, veca: false, },
     { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
-    10000000,
+    preparation_limits(),
+    max_policy_depth=validation_limits().max_policy_depth,
+    max_requirements=validation_limits().max_requirements,
+    max_regex_depth=pattern_limits().max_regex_depth,
   ).unwrap()
   let limits = source_preparation_limits()
   prepare_program_source_identity(operations, {

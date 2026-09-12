@@ -121,6 +121,17 @@ separate costs for the eventual Program-level constructor. This entrance removes
 caller selection of order and value owners, not the remaining capacity-material
 or complete Program integration requirements.
 
+`prepare_program_checks` derives expression validation, pattern checks, text
+bounds and profile admission from the source-producer context's exact selected
+policy. It assembles these branches and checks operation profiles internally;
+callers cannot substitute independent expression successes. Source-specific
+work and text costs reduce the expression allowance before its checks run, and
+the common selected-policy prefix is charged once. Pattern AST and policy/input
+admission dimensions remain independent limits. Failure exposes no partially
+assembled preparation. The returned operation-profile checks still require
+operation resolution, semantic identities and exhaustive obligation closure;
+this entrance does not claim a lowering-ready Program.
+
 `check_prepared_local_stages` constructs all Stage contexts from that same
 preparation and performs the final Stage-owner join internally. Gathering,
 individual checks and producer-binding verification share one integration

@@ -78,6 +78,84 @@ test "preparation joins exact selected owners and counts each branch once" {
   assert_eq(operation_profiles_declared(operations), declared)
   assert_eq(operation_profiles_count(operations), 3)
   let operation_work = operation_profiles_work(operations)
+  let full_budget = { ..used, work: operation_work, }
+  let prepared = prepare_program_checks(
+    sources,
+    { text_time: true, veca: false, },
+    declared,
+    full_budget,
+    max_policy_depth=100,
+    max_requirements=1000,
+    max_regex_depth=100,
+  ).unwrap()
+  let owned = operation_profiles_preparation(prepared)
+  assert_true(physical_equal(preparation_sources(owned), sources))
+  assert_true(
+    physical_equal(
+      expression_validation_selected(
+        pattern_context(text_bounds_patterns(preparation_expressions(owned))),
+      ),
+      selected,
+    ),
+  )
+  assert_true(
+    physical_equal(
+      expression_profiles_context(preparation_profiles(owned)),
+      pattern_context(text_bounds_patterns(preparation_expressions(owned))),
+    ),
+  )
+  assert_eq(preparation_usage(owned), used)
+  assert_eq(operation_profiles_work(prepared), operation_work)
+  assert_eq(
+    operation_profiles_count(prepared),
+    operation_profiles_count(operations),
+  )
+  for
+    cap in [
+      { ..full_budget, work: full_budget.work - 1, },
+      { ..full_budget, text_bytes: full_budget.text_bytes - 1, },
+      { ..full_budget, policy_nodes: full_budget.policy_nodes - 1, },
+      { ..full_budget, local_input_nodes: full_budget.local_input_nodes - 1, },
+      { ..full_budget, pattern_ast_bytes: full_budget.pattern_ast_bytes - 1, },
+      { ..full_budget, pattern_ast_nodes: full_budget.pattern_ast_nodes - 1, },
+    ] {
+    assert_true(
+      prepare_program_checks(
+        sources,
+        { text_time: true, veca: false, },
+        declared,
+        cap,
+        max_policy_depth=100,
+        max_requirements=1000,
+        max_regex_depth=100,
+      )
+      is Err(_),
+    )
+  }
+  assert_true(
+    prepare_program_checks(
+      sources,
+      { text_time: false, veca: false, },
+      declared,
+      full_budget,
+      max_policy_depth=100,
+      max_requirements=1000,
+      max_regex_depth=100,
+    )
+    is Err(ExpressionProfiles(UnsupportedProfile(_, "actql-text-time/0.1"))),
+  )
+  assert_true(
+    prepare_program_checks(
+      sources,
+      { text_time: true, veca: false, },
+      { ..declared, rela: false, },
+      full_budget,
+      max_policy_depth=100,
+      max_requirements=1000,
+      max_regex_depth=100,
+    )
+    is Err(OperationProfiles(UnsupportedProfile(0, 0, 0, @pipeline.RelA))),
+  )
   // One constructor, two stages, three visits, three (step + profile) pairs.
   assert_eq(operation_work, used.work + 12)
   assert_true(
@@ -156,7 +234,39 @@ test "preparation joins exact selected owners and counts each branch once" {
       { ..used, pattern_ast_nodes: -1, },
     ] {
     assert_true(
+      prepare_program_checks(
+        sources,
+        { text_time: true, veca: false, },
+        declared,
+        caps,
+        max_policy_depth=100,
+        max_requirements=1000,
+        max_regex_depth=100,
+      )
+      is Err(InvalidLimits),
+    )
+    assert_true(
       assemble_preparation(sources, expressions, profiles, caps)
+      is Err(InvalidLimits),
+    )
+  }
+  for
+    (depth, requirements, regex_depth) in [
+      (-1, 1000, 100),
+      (100, -1, 100),
+      (100, 1000, -1),
+      (100, 1000, 1073741823),
+    ] {
+    assert_true(
+      prepare_program_checks(
+        sources,
+        { text_time: true, veca: false, },
+        declared,
+        full_budget,
+        max_policy_depth=depth,
+        max_requirements=requirements,
+        max_regex_depth=regex_depth,
+      )
       is Err(InvalidLimits),
     )
   }

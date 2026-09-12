@@ -438,6 +438,8 @@ pub fn prepare_expression_validation(SelectedPolicyContext, ExpressionValidation
 
 pub fn prepare_incoming_gate(ProgramIncomingLinks, Int, IncomingGateLimits) -> Result[PreparedIncomingGate, IncomingGateIssue]
 
+pub fn prepare_program_checks(SourceProducerContext, ExpressionProfiles, PureOperationProfiles, PreparationBudget, max_policy_depth~ : Int, max_requirements~ : Int, max_regex_depth~ : Int) -> Result[OperationProfileChecks, PrepareChecksIssue]
+
 pub fn prepare_program_incoming_gates(ProgramIncomingLinks, IncomingGateLimits) -> Result[ProgramIncomingGates, ProgramIncomingGatesIssue]
 
 pub fn prepare_program_references(OperationProfileChecks, @stage_source.Limits, @pipeline_parameters.Limits, @program_references.Limits, max_work~ : Int) -> Result[ProgramReferences, PreparedReferencesIssue]
@@ -1316,6 +1318,17 @@ pub(all) enum PreparationIssue {
   ForeignExpressionProfiles
   BudgetExceeded
 } derive(Eq, @debug.Debug)
+
+pub enum PrepareChecksIssue {
+  InvalidLimits
+  BudgetExceeded
+  Validation(ExpressionValidationIssue)
+  Patterns(PatternIssue)
+  TextBounds(TextBoundsIssue)
+  ExpressionProfiles(ExpressionProfilesIssue)
+  Assembly(PreparationIssue)
+  OperationProfiles(OperationProfilesIssue)
+}
 
 type PreparedIncomingGate
 
