@@ -371,6 +371,23 @@ envelopes. Compiler assembly retains its exact environment association.
 Component admission does not prove argument bounds, complete static obligations,
 enforce runtime limits or grant Host authority.
 
+<!-- requirement-block: check-environment.text-rank-selection check-environment.text-rank-association -->
+The lexical text-ranking profile selection, when supplied, MUST be the closed
+object `{version: "actql-text-rank-selection/0.1", profile_bytes_cid}` at
+`/host_policy_profile/text_rank`. Both members are required; unknown members,
+null, unsupported versions and CIDs other than `sha256:` followed by 64 lowercase
+hexadecimal digits are rejected. Absence leaves the profile unresolved and
+does not select a default. Every supplied selection is validated even when
+unused. Its entire body participates in Check Environment identity; its
+`profile_bytes_cid` is the independently selected hash of the original profile
+bytes, not the selection component CID or an identity computed after repair.
+Compiler assembly MUST retain the exact environment association, compare the
+admitted lexical profile to that selected byte CID, and require verification of
+all source/vector dependency pins defined by the
+[text-ranking profile](../language.md#text-rank). A matching profile supplied for
+another environment does not establish that association. This selection does
+not prove provenance, evaluator conformance, scoring limits or execution permission.
+
 <!-- requirement-block: capacity-host-policy.ceiling-provenance -->
 A policy ceiling MUST retain the exact policy CID, field name and value.
 Policy admission establishes integrity and structural validity relative to the
@@ -1108,7 +1125,7 @@ These exact schema/law references are owned here. Their identities do not includ
 <!-- requirement-block: machine-contracts.exact-artifacts -->
 <!-- normative-code: law -->
 ```text
-../../../spec/contracts/actql-check-environment.json# sha256:2d6a18d9d3394bf92818ba0535545acfa2142393add68c19d09e0e624941e0d6
+../../../spec/contracts/actql-check-environment.json# sha256:3da90272aff2e756bb1feeb72afd901346f8eb5064a3750dfcba16fe85f5584a
 ../../../spec/contracts/actql-local-relation-snapshot.json# sha256:60e8136aea733421e75fa3dcef4934c87ce98959b36f8a56da93ccfbf03d81b2
 ../../../spec/contracts/actql-local-source-reference.json# sha256:9be664306a6a91a8e5bfca53d579e6dac77baf4567eb241ceeedc3216ffe47d9
 ../../../spec/contracts/actql-protocol-schemas.json#/schemas/model_task sha256:19408a610dbc52552bff3a7f97f25a120a66688e7db4f41383c91c9298f02dd2

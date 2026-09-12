@@ -415,3 +415,23 @@ usage is retained for aggregate accounting. Fixed independent component/envelope
 identities and malformed/limit cases distinguish outer integrity from component
 admission. Other policy components and full environment closure remain separate;
 this does not resolve expression envelopes, validate patterns or run evaluations.
+
+## Lexical profile selection
+
+The normative text-ranking law requires an independently selected profile byte
+CID but did not previously locate it in the environment envelope. The closed
+`/host_policy_profile/text_rank` component gives that selection an explicit
+versioned shape, consistent with other component selectors. It contains the
+original profile byte CID rather than a duplicate of the large profile or its
+Unicode dependencies. Dependency hashes are transitively bound by the selected
+profile; all corresponding bytes still require independent admission.
+
+`read_text_rank_selection` retains the exact wire environment and selected pin,
+with bounded work for lookup and field validation. Absence remains unresolved;
+null, malformed pins and unknown fields are errors even without a consumer.
+This reader does not accept profile bytes or mark `ResolveTextRankProfile`
+complete. Compiler assembly must compare the admitted profile against this
+selection and retain the environment association. Neither a profile support
+flag nor a caller-supplied matching CID substitutes for those checks. Existing
+envelopes without this component retain their bytes and identities; the machine
+contract identity changes to include the newly explicit selection contract.

@@ -1283,6 +1283,31 @@
     }
   },
   "policy_components": {
+    "text_rank": {
+      "pointer": "/host_policy_profile/text_rank",
+      "schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "version",
+          "profile_bytes_cid"
+        ],
+        "properties": {
+          "version": {
+            "const": "actql-text-rank-selection/0.1"
+          },
+          "profile_bytes_cid": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          }
+        }
+      },
+      "identity": "full_canonical_component_body_no_exclusions",
+      "absent": "unresolved_no_implicit_defaults",
+      "present": "validate_even_when_unused_null_is_not_absence",
+      "selection": "retain_exact_environment_membership_match_profile_original_bytes_cid_and_verify_all_profile_dependency_pins",
+      "authority": "selected_byte_integrity_not_evaluator_conformance_or_execution_permission"
+    },
     "lookup_execution": {
       "pointer": "/host_policy_profile/lookup_execution",
       "schema": {

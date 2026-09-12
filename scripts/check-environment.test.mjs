@@ -7,6 +7,27 @@ import {checkLookupExecution} from './check-lookup-execution.mjs';
 const read=p=>JSON.parse(readFileSync(p,'utf8'));
 const contract=read('spec/contracts/actql-check-environment.json');
 const corpus=read('portability/corpus/check-environment.json');
+test('lexical profile selection is closed and distinguishes selected bytes from component identity',()=>{
+  const c=contract.policy_components.text_rank;
+  assert.equal(c.pointer,'/host_policy_profile/text_rank');
+  assert.equal(c.absent,'unresolved_no_implicit_defaults');
+  assert.equal(c.present,'validate_even_when_unused_null_is_not_absence');
+  assert.equal(c.schema.additionalProperties,false);
+  assert.deepEqual(c.schema.required,['version','profile_bytes_cid']);
+  const accepts=v=>v!==null&&typeof v==='object'&&!Array.isArray(v)
+    &&Object.keys(v).length===2
+    &&v.version===c.schema.properties.version.const
+    &&typeof v.profile_bytes_cid==='string'
+    &&new RegExp(c.schema.properties.profile_bytes_cid.pattern).test(v.profile_bytes_cid);
+  const valid={version:'actql-text-rank-selection/0.1',profile_bytes_cid:'sha256:'+'a'.repeat(64)};
+  assert.equal(accepts(valid),true);
+  for(const v of [null,[],{}, {...valid,extra:true},{version:valid.version},
+    {...valid,version:'actql-text-rank-selection/1.0'},
+    ...[null,1,'sha256:'+'A'.repeat(64),'sha256:'+'a'.repeat(63),'sha256:'+'a'.repeat(65)].map(profile_bytes_cid=>({...valid,profile_bytes_cid}))])assert.equal(accepts(v),false);
+  assert.equal(c.identity,'full_canonical_component_body_no_exclusions');
+  assert.match(c.selection,/match_profile_original_bytes_cid/);
+  assert.match(c.selection,/verify_all_profile_dependency_pins/);
+});
 test('lookup Host policy has separate wire and decoded ceilings without implicit defaults',()=>{
   assert.equal(checkLookupExecution(),22);
   const c=read('portability/corpus/lookup-execution-policy.json');

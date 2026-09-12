@@ -190,6 +190,8 @@ pub fn read_mode_usage(SourceReadModes) -> (Int, Int)
 
 pub fn read_mode_view_at(SourceReadModes, Int) -> SourceViewModes?
 
+pub fn read_text_rank_selection(WireEnvironment, Int) -> Result[TextRankSelection, TextRankSelectionIssue]
+
 pub fn read_text_time(WireEnvironment, @text_time_policy.Limits) -> Result[TextTime, TextTimeIssue]
 
 pub fn reference_catalog(CatalogReference) -> Catalog
@@ -269,6 +271,12 @@ pub fn source_view_shape_at(SourceViewShapes, Int) -> Member?
 pub fn source_view_shape_usage(SourceViewShapes) -> (Int, Int)
 
 pub fn source_view_shape_values(SourceViewShapes) -> ProtocolValueContracts
+
+pub fn text_rank_selection_cid(TextRankSelection) -> String
+
+pub fn text_rank_selection_environment(TextRankSelection) -> WireEnvironment
+
+pub fn text_rank_selection_work(TextRankSelection) -> Int
 
 pub fn text_time_environment(TextTime) -> WireEnvironment
 
@@ -601,6 +609,15 @@ pub(all) struct SourceViewShapeLimits {
 }
 
 type SourceViewShapes
+
+type TextRankSelection
+
+pub(all) enum TextRankSelectionIssue {
+  InvalidLimits
+  BudgetExceeded
+  MissingSelection
+  InvalidComponent
+} derive(Eq, @debug.Debug)
 
 type TextTime
 
