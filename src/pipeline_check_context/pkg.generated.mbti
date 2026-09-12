@@ -180,6 +180,8 @@ pub fn selected_policy_usage(SelectedPolicyContext) -> SelectedPolicyUsage
 
 pub fn source_request_inputs(SourceRequestContexts) -> ReconciledContexts
 
+pub fn source_request_joins(SourceRequestContexts, Int) -> @sourceview_resolution.CheckedKeyedJoins?
+
 pub fn source_request_parameters(SourceRequestContexts) -> @sourceview_resolution.RequestParameters?
 
 pub fn source_request_slots(SourceRequestContexts) -> @source_request_slots.Slots
@@ -491,6 +493,7 @@ pub enum SourceRequestIssue {
   Context(@sourceview_resolution.RequestIssue)
   Parameters(@sourceview_resolution.RequestParameterIssue)
   Stage(Int, @sourceview_resolution.AcquisitionIssue)
+  Join(Int, @sourceview_resolution.KeyedJoinIssue)
 }
 
 type StageContexts

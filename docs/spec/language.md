@@ -6518,6 +6518,19 @@ request fields.
 Provider, Resource, SourceView, request roles, response roles, identity,
 response cardinality, and pagination MUST NOT be selected by row data.
 
+<!-- requirement-block: external-joins.repeated-key-role-binding -->
+Check MUST compare the set of authored right-side equality fields with the
+correlation response roles, rejecting missing or extra roles without rejecting
+repeated equality pairs. Request tuple components follow the Catalog's
+correlation request/response pair order. For each response role, its request
+value comes from the left field of the first authored equality pair naming
+that role. All authored equality pairs, including subsequent uses of that
+response role with another left field, remain ordinary join predicates in their
+original order. The null-request policy examines every authored left join-key
+component, not just the selected request representatives. This mapping does not
+coerce values or prove their admission to the request contracts, response
+completeness, left bounds or successful acquisition.
+
 <!-- requirement-block: external-joins.check-must-reject-a-full-join-against-a-keyed-only-sourceview -->
 `inner`, `left`, `semi`, and `anti` joins may use a complete keyed access path.
 An `anti` join may treat no response as absence only because completeness is

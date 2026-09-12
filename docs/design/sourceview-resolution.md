@@ -133,6 +133,33 @@ This closes request classification and static binding, not correlation-key
 matching, response completeness, capacity, policy, reference authority or final
 Program identity. Host bindings remain explicitly unresolved.
 
+## Keyed join role binding
+
+`check_keyed_joins` checks all keyed join-right consumers retained by
+PipelineRequests. Full joins fail at this boundary. The set of authored
+right-side equality fields must equal the selected correlation response roles;
+extra fields keep their exact pair source and missing roles identify the join.
+Each result retains the exact request, checked join, left input target and
+Catalog correlation proof. Program request checking invokes this pass itself
+for every stage under the same remaining work budget.
+
+The normative repeated-key-role-binding rule in
+[External SourceView joins](../spec/language.md#external-joins) preserves the
+general join rule admitting repeated pairs and repeated fields. Unlike
+`87dc7144:src/actql-compiler.ts`, role coverage is not a pair-count equality.
+Every authored pair retains its role index. In Catalog tuple order, each role
+also identifies its first authored pair as the request representative. This
+fixes the previously unspecified representative choice without dropping later
+predicates or changing the logical join. All authored left-key components still
+participate in null-request validation, including those not chosen as tuple
+representatives. The original checked operation retains their sources, types,
+null policy and cardinality assertion; the role map is not a replacement join.
+
+Correlation names are indexed once per input, with a bounded linear scan of
+each join's pairs and roles. The result does not prove request-value admission,
+left capacity, completeness, response identity, policy or backend support.
+Lowering cannot treat this correspondence alone as acquisition permission.
+
 ## Direct read-mode selection
 
 `select_direct_mode` consumes one owned ResolvedInput. An authored `scan.mode`

@@ -17,6 +17,7 @@ import {
   "actql/actql/pipeline_parameters" @collection,
   "actql/actql/stage_results",
   "actql/actql/relation_results" @results,
+  "actql/actql/relation_join_shape" @join,
 }
 
 import {

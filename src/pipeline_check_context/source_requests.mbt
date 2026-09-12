@@ -7,6 +7,7 @@ pub enum SourceRequestIssue {
   Context(@sourceviews.RequestIssue)
   Parameters(@sourceviews.RequestParameterIssue)
   Stage(Int, @sourceviews.AcquisitionIssue)
+  Join(Int, @sourceviews.KeyedJoinIssue)
 }
 
 ///|
@@ -15,6 +16,7 @@ struct SourceRequestContexts {
   slots : @request_slots.Slots
   parameters : @sourceviews.RequestParameters?
   stages : Array[@sourceviews.PipelineRequests]
+  joins : Array[@sourceviews.CheckedKeyedJoins]
   work : Int
   pairs : Int
   nodes : Int
@@ -49,6 +51,7 @@ pub fn check_source_requests(
   let mut nodes = 0
   let mut text = 0
   let stages = []
+  let joins = []
   let parameters = match inputs.sourceviews {
     None => {
       if @request_slots.count(slots) != 0 {
@@ -105,12 +108,27 @@ pub fn check_source_requests(
         pairs += used_pairs
         nodes += used_nodes
         text += used_text
+        let linked = match
+          @sourceviews.check_keyed_joins(checked, limits.max_work - work) {
+          Ok(v) => v
+          Err(e) => return Err(Join(i, e))
+        }
+        work += @sourceviews.keyed_joins_work(linked)
+        joins.push(linked)
         stages.push(checked)
       }
       Some(prepared)
     }
   }
-  Ok({ inputs, slots, parameters, stages, work, pairs, nodes, text, })
+  Ok({ inputs, slots, parameters, stages, joins, work, pairs, nodes, text, })
+}
+
+///|
+pub fn source_request_joins(
+  v : SourceRequestContexts,
+  i : Int,
+) -> @sourceviews.CheckedKeyedJoins? {
+  v.joins.get(i)
 }
 
 ///|

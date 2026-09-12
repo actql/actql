@@ -111,6 +111,17 @@ test "reconciled Program inputs retain SourceView registrations and the same env
     is Some(@sourceviews.Direct(_, _)),
   )
   assert_true(source_request_stage(requests, 2) is None)
+  for i in 0..<2 {
+    let joined = source_request_joins(requests, i).unwrap()
+    assert_eq(@sourceviews.keyed_join_count(joined), 0)
+    assert_true(
+      physical_equal(
+        @sourceviews.keyed_joins_requests(joined),
+        source_request_stage(requests, i).unwrap(),
+      ),
+    )
+  }
+  assert_true(source_request_joins(requests, 2) is None)
   let (request_work, request_pairs, request_nodes, request_text) = source_request_usage(
     requests,
   )

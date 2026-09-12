@@ -7,6 +7,7 @@ import {
   "actql/actql/decode_core",
   "actql/actql/parameter_binding",
   "actql/actql/pipeline_typing",
+  "actql/actql/relation_join_shape",
   "actql/actql/source_request_slots",
   "actql/actql/sourceview_input",
   "actql/actql/stage_parameters",
@@ -35,6 +36,8 @@ pub fn catalog_owner(ResolvedInput) -> @check_environment.SourceRequestContracts
 
 pub fn check_direct_request(RequestContext, ResolvedInput, RequestLimits) -> Result[DirectRequest, RequestIssue]
 
+pub fn check_keyed_joins(PipelineRequests, Int) -> Result[CheckedKeyedJoins, KeyedJoinIssue]
+
 pub fn check_keyed_request(RequestContext, ResolvedInput, RequestLimits) -> Result[KeyedRequest, RequestIssue]
 
 pub fn check_pipeline_requests(PipelineUses, RequestParameters, RequestLimits) -> Result[PipelineRequests, AcquisitionIssue]
@@ -54,6 +57,28 @@ pub fn declaration(ResolvedInput) -> @sourceview_input.Declaration
 pub fn input_owner(ResolvedInput) -> @sourceview_input.Inputs
 
 pub fn inputs(Resolved) -> @sourceview_input.Inputs
+
+pub fn keyed_join_at(CheckedKeyedJoins, Int) -> KeyedJoin?
+
+pub fn keyed_join_count(CheckedKeyedJoins) -> Int
+
+pub fn keyed_join_input(KeyedJoin) -> Int
+
+pub fn keyed_join_left(KeyedJoin) -> @pipeline_typing.Target
+
+pub fn keyed_join_operation(KeyedJoin) -> @relation_join_shape.CheckedJoin
+
+pub fn keyed_join_pair_role(KeyedJoin, Int) -> Int?
+
+pub fn keyed_join_request(KeyedJoin) -> ParameterizedKeyedRequest
+
+pub fn keyed_join_role_at(KeyedJoin, Int) -> (@check_environment.CorrelationPair, @relation_join_shape.KeyPair)?
+
+pub fn keyed_join_step(KeyedJoin) -> Int
+
+pub fn keyed_joins_requests(CheckedKeyedJoins) -> PipelineRequests
+
+pub fn keyed_joins_work(CheckedKeyedJoins) -> Int
 
 pub fn keyed_mode_checkpoint(KeyedMode) -> ModeCheckpoint?
 
@@ -213,6 +238,8 @@ pub enum AcquisitionRequest {
   Keyed(KeyedMode, ParameterizedKeyedRequest)
 }
 
+type CheckedKeyedJoins
+
 type DirectMode
 
 type DirectRequest
@@ -231,6 +258,22 @@ pub(all) enum IssueKind {
   DuplicateSelector(String)
   Unresolved
   Ambiguous(Array[String])
+} derive(Eq, @debug.Debug)
+
+type KeyedJoin
+
+pub struct KeyedJoinIssue {
+  kind : KeyedJoinIssueKind
+  source : @decode_core.Cursor?
+}
+
+pub(all) enum KeyedJoinIssueKind {
+  InvalidLimits
+  WorkLimit
+  InconsistentConsumer
+  FullJoin(Int)
+  UnknownResponseField(Int, String)
+  MissingResponseField(Int, String)
 } derive(Eq, @debug.Debug)
 
 type KeyedMode

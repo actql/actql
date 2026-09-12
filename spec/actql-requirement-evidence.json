@@ -5338,6 +5338,17 @@
       }
     },
     {
+      "requirement_id": "actql.language/external-joins.repeated-key-role-binding",
+      "statement_sha256": "7578c1919e63824d52037ef1637ceaa16cda905b2b69291dfe51d45f948031db",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "external-joins",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.language/external-joins.check-must-reject-a-full-join-against-a-keyed-only-sourceview",
       "statement_sha256": "59d5346e58331061148a2291b85e768670ef18799369d2b5d8d95d9c13e47262",
       "status": "pending",
