@@ -62,6 +62,8 @@ pub fn check_contract_registry(WireEnvironment, Limits) -> Result[ContractRegist
 
 pub fn check_lookup_capacities(CatalogReferences, LookupCapacityLimits) -> Result[LookupCapacities, LookupCapacityIssue]
 
+pub fn check_lookup_execution(WireEnvironment, LookupExecutionLimits) -> Result[LookupExecution, LookupExecutionIssue]
+
 pub fn check_protocol_value_contracts(SourceDataPolicies, ValueContractLimits) -> Result[ProtocolValueContracts, ValueContractIssue]
 
 pub fn check_source_data_policies(CatalogReferences, DataPolicyLimits) -> Result[SourceDataPolicies, DataPolicyIssue]
@@ -121,6 +123,18 @@ pub fn lookup_capacity_rows_per_key(LookupCapacity) -> Int64
 pub fn lookup_capacity_source(LookupCapacity) -> @decode_core.Cursor
 
 pub fn lookup_capacity_usage(LookupCapacities) -> (Int, Int)
+
+pub fn lookup_execution_ceiling(LookupExecutionPolicy, LookupExecutionCeiling) -> Int64
+
+pub fn lookup_execution_cid(LookupExecutionPolicy) -> String
+
+pub fn lookup_execution_environment(LookupExecution) -> WireEnvironment
+
+pub fn lookup_execution_policy(LookupExecution) -> LookupExecutionPolicy?
+
+pub fn lookup_execution_source(LookupExecutionPolicy) -> @decode_core.Cursor
+
+pub fn lookup_execution_usage(LookupExecution) -> (Int, Int)
 
 pub fn lookup_facts_at(LookupCapacities, Int) -> LookupFacts?
 
@@ -407,6 +421,36 @@ pub(all) enum LookupCompleteness {
   CompletePerRequestedKey
   HardLimitOnly
 } derive(Eq, @debug.Debug)
+
+type LookupExecution
+
+pub(all) enum LookupExecutionCeiling {
+  NetworkAttemptsPerRequest
+  RequestBytesPerAttempt
+  TotalRequestBytes
+  TotalResponseWireBytes
+  TotalResponseDecodedBytes
+  TotalDurationMs
+} derive(Eq, @debug.Debug)
+
+pub(all) struct LookupExecutionIssue {
+  kind : LookupExecutionIssueKind
+  source : @decode_core.Cursor?
+}
+
+pub(all) enum LookupExecutionIssueKind {
+  InvalidLimits
+  WorkLimit
+  InvalidComponent
+  ByteLimit
+} derive(Eq, @debug.Debug)
+
+pub(all) struct LookupExecutionLimits {
+  max_work : Int
+  max_bytes : Int
+}
+
+type LookupExecutionPolicy
 
 type LookupFacts
 

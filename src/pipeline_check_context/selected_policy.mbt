@@ -3,6 +3,7 @@ pub(all) enum SelectedPolicyIssue {
   InvalidLimits
   ForeignEnvironment
   PolicyMismatch
+  LookupExecution(@environment.LookupExecutionIssueKind)
   BudgetExceeded
 } derive(Eq, Debug)
 
@@ -18,6 +19,7 @@ pub(all) struct SelectedPolicyUsage {
 struct SelectedPolicyContext {
   context : ReconciledContexts
   capacity : @environment.Capacity
+  lookup : @environment.LookupExecution
   usage : SelectedPolicyUsage
 }
 
@@ -52,16 +54,49 @@ pub fn bind_capacity_policy(
     nodes > max_policy_nodes {
     return Err(BudgetExceeded)
   }
+  let lookup = match
+    @environment.check_lookup_execution(
+      @environment.capacity_environment(capacity),
+      {
+        max_work: max_work - before.work - nodes - 1,
+        max_bytes: max_text_bytes - before.text_bytes - bytes,
+      },
+    ) {
+    Ok(v) => v
+    Err(e) =>
+      match e.kind {
+        @environment.WorkLimit | @environment.ByteLimit =>
+          return Err(BudgetExceeded)
+        _ => return Err(LookupExecution(e.kind))
+      }
+  }
+  let (lookup_work, lookup_bytes) = @environment.lookup_execution_usage(lookup)
+  let lookup_nodes = if @environment.lookup_execution_policy(lookup) is Some(_) {
+    8
+  } else {
+    0
+  }
+  if lookup_nodes > max_policy_nodes - nodes {
+    return Err(BudgetExceeded)
+  }
   Ok({
     context,
     capacity,
+    lookup,
     usage: {
-      work: before.work + nodes + 1,
-      text_bytes: before.text_bytes + bytes,
+      work: before.work + nodes + 1 + lookup_work,
+      text_bytes: before.text_bytes + bytes + lookup_bytes,
       local_input_nodes: before.local_input_nodes,
-      policy_nodes: nodes,
+      policy_nodes: nodes + lookup_nodes,
     },
   })
+}
+
+///|
+pub fn selected_lookup_execution(
+  v : SelectedPolicyContext,
+) -> @environment.LookupExecution {
+  v.lookup
 }
 
 ///|

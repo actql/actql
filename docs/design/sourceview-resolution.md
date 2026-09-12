@@ -146,6 +146,21 @@ Existing transport-policy per-attempt compressed/decompressed bounds and
 timeouts remain authoritative and are not duplicated as new source vocabulary.
 The component is not a backend capability or authorization claim.
 
+`check_environment.check_lookup_execution` validates the optional component and
+retains both absence and the exact WireEnvironment owner. Present policy fields
+are exposed through distinct typed ceiling selectors; the response wire and
+decoded selectors cannot alias. A bounded canonical hash sink computes the full
+component CID without materializing serialized text or bytes. The pass meters
+profile-key discovery, component inspection and canonical component byte size;
+unrelated nested policy bodies remain the responsibility of their own readers.
+
+`pipeline_check_context.bind_capacity_policy` performs this check even when no
+source acquisition uses lookup. Its selected context retains that result and
+includes the component work, bytes and scalar-node count in the shared policy
+budget. Missing lookup policy remains explicit and does not prohibit unrelated
+programs or grant lookup execution. Subsequent acquisition resolution must use
+this same selected environment, not an independently supplied policy body.
+
 The external-join rules require per-key completeness and finite source capacity,
 but previously did not define their carrier-facts component grammar. The shared
 Check Environment contract defines a closed, versioned `lookup_capacity`

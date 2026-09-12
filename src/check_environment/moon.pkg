@@ -27,5 +27,6 @@ formatter(
     "source_view_shape.generated.mbt",
     "carrier_vectors.generated_test.mbt",
     "lookup_capacity.generated_test.mbt",
+    "lookup_execution.generated_test.mbt",
   ],
 )

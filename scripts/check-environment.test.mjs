@@ -3,10 +3,12 @@ import test from 'node:test';
 import {readFileSync} from 'node:fs';
 import {canonicalText,verifyIdentity} from './check-canonical-json.mjs';
 import {checkLookupCapacity} from './check-lookup-capacity.mjs';
+import {checkLookupExecution} from './check-lookup-execution.mjs';
 const read=p=>JSON.parse(readFileSync(p,'utf8'));
 const contract=read('spec/contracts/actql-check-environment.json');
 const corpus=read('portability/corpus/check-environment.json');
 test('lookup Host policy has separate wire and decoded ceilings without implicit defaults',()=>{
+  assert.equal(checkLookupExecution(),22);
   const c=read('portability/corpus/lookup-execution-policy.json');
   const component=contract.policy_components.lookup_execution;
   const s=component.schema;

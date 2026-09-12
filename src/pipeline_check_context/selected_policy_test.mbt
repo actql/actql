@@ -80,8 +80,19 @@ test "selected capacity policy binds exact environment and already admitted poli
   let (bytes, nodes) = @environment.capacity_usage(capacity)
   assert_eq(nodes, 19)
   let used = selected_policy_usage(result)
+  let lookup = selected_lookup_execution(result)
+  assert_true(@environment.lookup_execution_policy(lookup) is None)
+  assert_true(
+    physical_equal(
+      @environment.lookup_execution_environment(lookup),
+      @environment.capacity_environment(capacity),
+    ),
+  )
   assert_eq(used, {
-    work: before.work + nodes + 1,
+    work: before.work +
+    nodes +
+    1 +
+    @environment.lookup_execution_usage(lookup).0,
     text_bytes: before.text_bytes + bytes,
     local_input_nodes: before.local_input_nodes,
     policy_nodes: nodes,
@@ -145,4 +156,72 @@ test "selected capacity policy binds exact environment and already admitted poli
     )
     is Err(PolicyMismatch),
   )
+}
+
+///|
+test "selected Host policy validates lookup execution even without source acquisitions" {
+  let body = "{\"max_network_attempts_per_request\":3,\"max_request_bytes_per_attempt\":1024,\"max_total_decoded_response_bytes\":65536,\"max_total_duration_ms\":30000,\"max_total_request_bytes\":8192,\"max_total_response_bytes\":16384,\"version\":\"actql-lookup-execution-policy/0.1\"}"
+  for text in [body, "null", "{}", body.replace(old="65536", new="0")] {
+    let profile = capacity_profile(false).replace(
+      old="}}",
+      new="},\"lookup_execution\":" + text + "}",
+    )
+    let (context, capacity) = selected_fixture(false, profile~)
+    let outcome = bind_capacity_policy(
+      context,
+      capacity,
+      max_work=1000000,
+      max_text_bytes=1000000,
+      max_policy_nodes=100,
+    )
+    if text != body {
+      assert_true(
+        outcome is Err(LookupExecution(@environment.InvalidComponent)),
+      )
+      continue
+    }
+    let selected = outcome.unwrap()
+    let lookup = selected_lookup_execution(selected)
+    assert_eq(
+      @environment.lookup_execution_cid(
+        @environment.lookup_execution_policy(lookup).unwrap(),
+      ),
+      "sha256:82de374c9295b0ac8727956d9ec90ec9282c492d4d576505cf6c0b3e923fc209",
+    )
+    assert_true(
+      physical_equal(
+        @environment.lookup_execution_environment(lookup),
+        @environment.capacity_environment(capacity),
+      ),
+    )
+    let usage = selected_policy_usage(selected)
+    assert_eq(usage.policy_nodes, 27)
+    assert_true(
+      bind_capacity_policy(
+        context,
+        capacity,
+        max_work=usage.work,
+        max_text_bytes=usage.text_bytes,
+        max_policy_nodes=usage.policy_nodes,
+      )
+      is Ok(_),
+    )
+    for
+      (work, bytes, nodes) in [
+        (usage.work - 1, usage.text_bytes, usage.policy_nodes),
+        (usage.work, usage.text_bytes - 1, usage.policy_nodes),
+        (usage.work, usage.text_bytes, usage.policy_nodes - 1),
+      ] {
+      assert_true(
+        bind_capacity_policy(
+          context,
+          capacity,
+          max_work=work,
+          max_text_bytes=bytes,
+          max_policy_nodes=nodes,
+        )
+        is Err(BudgetExceeded),
+      )
+    }
+  }
 }

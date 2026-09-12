@@ -179,6 +179,8 @@ pub fn result_wiring(WiredStages) -> @stage_results.ResultWiring
 
 pub fn selected_capacity(SelectedPolicyContext) -> @check_environment.Capacity
 
+pub fn selected_lookup_execution(SelectedPolicyContext) -> @check_environment.LookupExecution
+
 pub fn selected_policy_usage(SelectedPolicyContext) -> SelectedPolicyUsage
 
 pub fn source_request_facts(SourceRequestContexts) -> @check_environment.LookupCapacities?
@@ -486,6 +488,7 @@ pub(all) enum SelectedPolicyIssue {
   InvalidLimits
   ForeignEnvironment
   PolicyMismatch
+  LookupExecution(@check_environment.LookupExecutionIssueKind)
   BudgetExceeded
 } derive(Eq, @debug.Debug)
 
