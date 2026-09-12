@@ -34,6 +34,8 @@ pub fn emit_expression(Expression, @encode_core.Writer) -> Unit raise @encode_co
 
 pub fn emit_fragment_machine_pipeline(FragmentPipeline, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
 
+pub fn emit_fragment_request(FragmentRequest, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
+
 pub fn emit_fragment_source_pipeline(FragmentPipeline, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
 
 pub fn emit_kernel_node(PreparedKernel, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
@@ -113,6 +115,8 @@ pub fn prepare(@pipeline_typing.CheckedPipeline, Limits) -> Result[Prepared, Iss
 pub fn prepare_demand(RootIndex, DemandLimits) -> Result[DemandIndex, DemandIssue]
 
 pub fn prepare_fragment_pipeline(PreparedSequence, Int, RootLimits) -> Result[FragmentPipeline, RootIssue]
+
+pub fn prepare_fragment_request(FragmentPipeline, Int64, Int64) -> Result[FragmentRequest, FragmentRequestIssue]
 
 pub fn prepare_kernel(BoundPrepared, Int, max_bindings~ : Int, max_name_bytes~ : Int, ExpressionLimits) -> Result[PreparedKernel, KernelIssue]
 
@@ -257,6 +261,12 @@ pub struct ExpressionRoot {
 }
 
 type FragmentPipeline
+
+type FragmentRequest
+
+pub(all) enum FragmentRequestIssue {
+  InvalidRequestCeiling
+}
 
 pub struct Issue {
   kind : IssueKind
