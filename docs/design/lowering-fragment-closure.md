@@ -134,43 +134,14 @@ declared metadata and actual completed producer results with identical row value
 
 ## Verification scope
 
-### Subsequent shared-contract imports: dependency closure still open
+### Contract dependency closure
 
-`0616d2b` is imported as `9bf67ab` (outer registration), and `6261c39`
-as `c1d3bde` (empty snapshot derive evidence). Conflicts in generated document
-identities were resolved by regenerating from this branch's actual specification,
-not by importing unrelated main changes. The latter's package script was composed
-with this branch's existing checks, without adding unavailable main-only tools.
-
-The selected registry now has CID
-`sha256:23a7f1081d1a2cdab7b20e425dddce846510355ba964058e0c809350fae33816`.
-Lowering's four primitive consumers use this exact body; historical 57/58-entry
-bodies and fixed hashes remain distinct. This does not admit the outer fragment.
-
-**Unresolved handoff dependency:** the imported outer contract pins the full
-expression body at
-`sha256:2587ba927c08a797960ef083be3cf32cef56ce478c88df2cb12bcb306ba865e1`,
-but the expression body on this branch hashes to
-`sha256:aa85f7d3bbb42d890de47dcec6f3f2993fc232df3575012a114951ee7d40dbf7`.
-The missing changes originate in `299be0f` (regex scalar AST contract dependency)
-and `995fdf2` (text input evidence preimages). Those commits also change shared
-checking/specification material beyond the handed-off capsule. Main/integration
-must provide the exact dependency closure, including its schema/pins/vectors,
-as an importable unit. Do not repin the outer contract to the older local body,
-invent a new registry CID, or treat registration as backend support.
-
-The new registration Node tests expose two failures from this dependency mismatch;
-`check:docs` stops at the registration contract check. The derive evidence tests
-and lowering registry tests pass. Ordered derive's executable row-kernel remains
-a separate outstanding contract, including limits identity and measurement units.
-
-After refreshing the primitive consumer's generated registry body/pin and its
-independent selected-CID assertion, JS/Wasm/native each pass 2,200/2,200. The
-initial run's single stale selected-CID assertion per target is fixed, not waived.
-API equality, changed-package format, vector freshness, 873 links, 19 examples,
-11 document tests and metadata checks pass. These results do not close the two
-registration tests above; `check:docs` remains failing. Linux CI and global
-`--deny-warn` success are not claimed.
+Registry identity commits to operation signatures and exact execution-contract
+references. Each referenced contract's complete dependency body must also match
+its pin. A primitive consumer's registry token does not certify support for all
+registered operations or replace sealed-fragment re-admission. Missing dependency
+bodies must not be repaired by repinning the registration to a different local
+contract; dependency closure and backend support are separate checks.
 
 Full-repository tests pass 2,184/2,184 on each of JS, Wasm and native at the audited
 implementation revision. The two independent registry checks and all 872 local

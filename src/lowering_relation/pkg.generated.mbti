@@ -24,6 +24,10 @@ pub fn demand_root_at(DemandIndex, Int) -> @expression_typing.DemandPaths?
 
 pub fn demand_roots(DemandIndex) -> RootIndex
 
+pub fn demand_source_pointer(DemandIndex, Int, Int, max_bytes~ : Int) -> Result[String?, DemandAddressIssue]
+
+pub fn demand_source_tests(DemandIndex, Int, Int, max_tests~ : Int, max_pointer_bytes~ : Int) -> Result[Array[SourceDemandTest], DemandAddressIssue]
+
 pub fn demand_usage(DemandIndex) -> DemandUsage
 
 pub fn emit_expression(Expression, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
@@ -139,6 +143,14 @@ pub(all) enum BindingIssueKind {
 } derive(Eq, @debug.Debug)
 
 type BoundPrepared
+
+pub(all) enum DemandAddressIssue {
+  InvalidAddressLimits
+  InvalidRoot
+  InvalidNode
+  AddressLimit
+  MissingConditionSource
+}
 
 type DemandIndex
 
@@ -300,6 +312,11 @@ pub(all) struct SequenceLimits {
   max_bindings : Int
   max_name_bytes : Int
   expressions : ExpressionLimits
+}
+
+pub struct SourceDemandTest {
+  pointer : String
+  predicate : @expression_typing.DemandTestKind
 }
 
 pub(all) enum UnaryOperator {
