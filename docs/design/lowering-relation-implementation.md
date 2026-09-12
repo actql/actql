@@ -244,6 +244,17 @@ Input rows remain unchanged. This helper does not resolve key completion or
 admit an AoA operation: its use requires the checked order strategy, validation
 of its evidence and the selected shared execution contract.
 
+Physical distinct detection uses the same scalar comparator to sort an index of
+the checked key columns, then marks the first occurrence of each equal tuple.
+Scanning those marks in input order yields survivor indices without changing
+distinct's first-occurrence order. It does not expose the index's key order or
+iterate a hash map to determine output order. Comparison is O(N log N) for fixed
+key width, with scalar lengths charged separately. Index arrays, marks and output
+indices share the bounded workspace; failures release local scratch but retain
+consumed work. Non-key structured payload does not participate in comparison.
+This helper neither projects the final schema nor admits unsupported key types;
+those remain responsibilities of checked execution preparation and row output.
+
 The nonrecursive readiness walk uses one `max_body_nodes` construction allowance
 for root queue entries, expression visits, copied child views and queued edges
 across the complete kernel. It is separate from runtime logical-work counters;
