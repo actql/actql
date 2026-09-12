@@ -8043,6 +8043,59 @@ UTF-8 canonical serialization of its semantic envelope. Formatting, source key
 order, and comments do not affect this identity. A source-text
 hash MAY be retained separately as provenance.
 
+<a id="local-contract-closure"></a>
+
+##### Local contract selection and identity
+
+<!-- requirement-block: local-contract-closure.selection -->
+The compiler MUST select the exact transitive contract dependencies of the
+complete source-owned Unit inventory. Roots include the governing contracts of
+its declarations, operations, expressions, publication, imports and incoming
+gates, including domain, guard, permission, scope and failure rules. Selection
+does not perform liveness or branch pruning: unused declared inputs, authored
+no-ops and unselected expression branches remain in the inventory. A selected
+SourceView contributes its declared contract references, including the advertised
+read-mode contracts; unrelated Catalog members do not become local dependencies.
+Whole-Catalog membership, resolution uniqueness and whole-lock integrity are
+still validated outside this projection.
+
+Dependency traversal follows contract-bearing positions specified by each
+reached contract's registered governing grammar, not arbitrary CID-looking
+strings, business data or metadata. Unknown dependencies, wrong kinds,
+conflicting pins and unsupported dependency grammars prevent closure. Finite
+reference cycles retain every reached member once only where the governing
+grammar permits those cycles; cycle prohibitions and execution-prerequisite
+acyclicity remain unchanged. Existing contract identity rules determine the
+referenced CIDs without ad hoc metadata stripping or rehashing.
+
+<!-- requirement-block: local-contract-closure.policy-phase -->
+A Unit Definition MUST distinguish policy/capacity interpretation contracts from
+concrete policy decisions, measured quantities and resolved limits. The former
+are semantic contract dependencies; the latter belong to their governing Plan
+or Invocation evidence and do not enter Unit Definition merely because Check
+consulted them. Authored guards remain part of the local body. This preserves
+the rule that changing Host policy values does not change Program Definition.
+
+<!-- requirement-block: local-contract-closure.canonical-set local-contract-closure.envelope -->
+The local contract closure CID MUST hash canonical JSON of the following whole
+envelope, registered as `schemas.local_contracts` in the stage contract registry.
+
+<!-- normative-code: envelope -->
+```text
+{version:"actql-local-contracts/0.1", contracts:[contract_cid, ...]}
+```
+
+The array contains exactly the reached contract CIDs, each once, sorted in
+ascending UTF-16 code-unit order. Its entries have the canonical lowercase
+`sha256:` form. There is no self-CID field. The empty set uses the same versioned
+envelope with an empty array; it does not assert that a particular Unit has no
+governing laws. Source locations, traversal order, reference multiplicity and
+whole environment/Catalog identities are not part of this set preimage.
+Occurrence roles and repeated uses remain in the source-bound selection evidence
+and the Unit body/interfaces. Equal contract-set CIDs alone do not establish
+equal Unit Definitions or Invocations. Schema validation of a sorted CID set
+does not establish complete dependency selection or authority.
+
 <a id="structural-grammar"></a>
 
 ## Structural grammar (normative)
@@ -8670,6 +8723,7 @@ through the pinned expression contract.
 ../../spec/contracts/actql-stage-contracts.json#/source sha256:b98f2467f609677c7b5bfd256892763e4772dd45fe51a494402e56f3a847cdd8
 ../../spec/contracts/actql-stage-contracts.json#/schemas/derive_binding sha256:d74bb697d91a2daf2c51e0d6c492f4bb35fdea5e542d606318683b1c9c5f06f9
 ../../spec/contracts/actql-stage-contracts.json#/schemas/local_dependencies sha256:22a2636742d270464988e350adc168af898987e83f620cba893efb091d9f49e8
+../../spec/contracts/actql-stage-contracts.json#/schemas/local_contracts sha256:a1dcd5bf20a7d6dceedd4a298b684f439101d391063ae13bb61359bd10d30621
 ../../spec/contracts/actql-stage-contracts.json#/laws/lifecycle sha256:da02951b68ca4255a25ac5b3f60288dbde2a8f7b252f518d73247c9feca09c54
 ../../spec/contracts/actql-stage-contracts.json#/laws/identity sha256:090d1c81f41bc0cbda07b62ade75d2fbd450d0a333fcf6a23d1c2483b43e213f
 ../../spec/contracts/actql-stage-contracts.json#/schemas/stage_semantics sha256:c9fdde04da54089003a628cae27f01c118f59e359dff7cacdd09f6eb86c9f2e3

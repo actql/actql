@@ -103,6 +103,7 @@ export function generateTests(fixtures) {
 }
 
 function fixtures() {
+  const localContracts = read('portability/corpus/local-contract-closure.json');
   const corpus = read('portability/corpus/canonical-json.json');
   assert.equal(corpus.version, 'actql-canonical-json-vectors/0.1');
   assert.ok(Array.isArray(corpus.cases) && corpus.cases.length > 0);
@@ -111,6 +112,10 @@ function fixtures() {
     assert.equal(typeof c.expected_json, 'string', 'fixed canonical bytes');
     return { id: 'canonical ' + c.id, value: c.input, cid: c.expected_cid, text: c.expected_json };
   });
+  assert.equal(localContracts.version, 'actql-local-contract-closure-vectors/0.1');
+  for (const c of localContracts.cases) {
+    result.push({id: 'local contract set ' + c.id, value: c.envelope, cid: c.expected_cid});
+  }
   const family = read('spec/spec-family.json');
   for (const owner of family.documents) {
     for (const ref of owner.machine_contracts ?? []) {

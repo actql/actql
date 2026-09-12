@@ -107,6 +107,19 @@
     "unregistered_evaluation_operation": "project"
   },
   "schemas": {
+    "local_contracts": {
+      "type": "object",
+      "properties": {
+        "version": { "const": "actql-local-contracts/0.1" },
+        "contracts": {
+          "type": "array",
+          "items": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+          "uniqueItems": true
+        }
+      },
+      "required": ["version", "contracts"],
+      "additionalProperties": false
+    },
     "local_computation": {
       "type": "object",
       "properties": {
@@ -3796,10 +3809,13 @@
     }
   },
   "reference_roles": {
+    "local_contracts": {
+      "contracts/*": "external:interpreted-contract"
+    },
     "local_computation": {
       "unit_definition_cid": "local_dependencies",
       "used_values_cid": "external:typed-values",
-      "local_contracts_cid": "external:local-contracts",
+      "local_contracts_cid": "local_contracts",
       "observation_cids/*": "external:observation",
       "policy_cid": "external:policy"
     },
@@ -3842,7 +3858,7 @@
     "local_dependencies": {
       "local_body_cid": "external:local-body",
       "used_parameter_declarations_cid": "external:parameter-contract",
-      "local_contract_closure_cid": "external:local-contracts",
+      "local_contract_closure_cid": "local_contracts",
       "import_interface_cids/*": "external:import-interface",
       "incoming_gate_contract_cids/*": "gate_requirement"
     },
@@ -3873,6 +3889,12 @@
   },
   "reference_graph": [
     {
+      "source": "local_contracts",
+      "slot": "contracts/*",
+      "target": "external:interpreted-contract",
+      "role": "semantic"
+    },
+    {
       "source": "local_computation",
       "slot": "unit_definition_cid",
       "target": "local_dependencies",
@@ -3887,7 +3909,7 @@
     {
       "source": "local_computation",
       "slot": "local_contracts_cid",
-      "target": "external:local-contracts",
+      "target": "local_contracts",
       "role": "semantic"
     },
     {
@@ -4085,7 +4107,7 @@
     {
       "source": "local_dependencies",
       "slot": "local_contract_closure_cid",
-      "target": "external:local-contracts",
+      "target": "local_contracts",
       "role": "semantic"
     },
     {
@@ -4287,6 +4309,7 @@
     "numeric_observation": "sha256:a6339065c171308f9c4fa637ce2110b75b5cbaa0a4d6d0e708ca52cef0d69688",
     "model_slot_capture": "sha256:a9d707b52b274a066a3b30d196c2b2da4144db960b5eae9695ac86e1fd3f503a",
     "behavioral_repair": "sha256:9571db73c3ba7869603bc3e9ba15054172e05a79f056348d5f74b1638e9fdc45",
+    "local_contracts": "sha256:a1dcd5bf20a7d6dceedd4a298b684f439101d391063ae13bb61359bd10d30621",
     "local_dependencies": "sha256:22a2636742d270464988e350adc168af898987e83f620cba893efb091d9f49e8",
     "recovery_link": "sha256:76a96bfbd35b3614ea8ae4cea96ec13953d164c8a8a36868d791d2fae41f7d85",
     "source_advance_claim": "sha256:cbd592cd24ee74462fadf765ccf7354ba1dc64c376c476720a82508f6d01df51",

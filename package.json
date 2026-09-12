@@ -55,7 +55,7 @@
     "generate:value-admission": "node scripts/check-value-admission.mjs --write",
     "check:value-contracts": "node scripts/check-value-contracts.mjs",
     "generate:value-contracts": "node scripts/check-value-contracts.mjs --write",
-    "check:canonical": "node scripts/check-canonical-json.mjs && node scripts/check-stage-semantics.mjs && node --test scripts/canonical-json.test.mjs",
+    "check:canonical": "node scripts/check-canonical-json.mjs && node scripts/check-stage-semantics.mjs && node --test scripts/canonical-json.test.mjs scripts/local-contract-closure.test.mjs",
     "generate:canonical": "node scripts/check-canonical-json.mjs --write",
     "check:encoding": "node scripts/check-json-encoding.mjs && node --test scripts/json-encoding.test.mjs",
     "generate:encoding": "node scripts/check-json-encoding.mjs --write",

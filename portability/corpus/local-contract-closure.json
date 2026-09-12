@@ -1,0 +1,36 @@
+{
+  "version": "actql-local-contract-closure-vectors/0.1",
+  "description": "Fixed set identities and abstract dependency-selection graphs, not admitted Catalogs or execution evidence. Graph labels denote already checked contract handles.",
+  "handles": {
+    "a": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+    "b": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+    "unused": "sha256:2222222222222222222222222222222222222222222222222222222222222222"
+  },
+  "cases": [
+    {"id":"empty","envelope":{"version":"actql-local-contracts/0.1","contracts":[]},"expected_cid":"sha256:edd4c2c78bec6f0e400283c9538413848ff4ea5fde29e50ed1135c8fc3280b5f"},
+    {"id":"single","envelope":{"version":"actql-local-contracts/0.1","contracts":["sha256:0000000000000000000000000000000000000000000000000000000000000000"]},"expected_cid":"sha256:695bf2be6d575d8d857ddd035ba7d3d2fc28ed5584b6cf30577859dcf6376553"},
+    {"id":"pair","envelope":{"version":"actql-local-contracts/0.1","contracts":["sha256:0000000000000000000000000000000000000000000000000000000000000000","sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"]},"expected_cid":"sha256:288bf236d5774b06563c3bfc8976c5920ccb4e5f6193c8cdaab25ceb12052905"}
+  ],
+  "graphs": [
+    {"id":"empty roots","roots":[],"edges":{"unused":[]},"expected":"empty"},
+    {"id":"direct","roots":["a"],"edges":{"a":[]},"expected":"single"},
+    {"id":"unrelated Catalog addition","roots":["a"],"edges":{"unused":["b"],"b":[],"a":[]},"expected":"single"},
+    {"id":"transitive","roots":["a"],"edges":{"a":["b"],"b":[]},"expected":"pair"},
+    {"id":"shared repeated references","roots":["a","a","b"],"edges":{"a":["b","b"],"b":[]},"expected":"pair"},
+    {"id":"enumeration order","roots":["b","a"],"edges":{"b":[],"a":["b"]},"expected":"pair"},
+    {"id":"permitted finite cycle","roots":["a"],"edges":{"a":["b"],"b":["a"]},"cycles":"allow","expected":"pair"},
+    {"id":"forbidden cycle","roots":["a"],"edges":{"a":["b"],"b":["a"]},"cycles":"reject","error":"cycle"},
+    {"id":"missing dependency","roots":["a"],"edges":{"a":["b"]},"error":"missing"},
+    {"id":"wrong dependency kind","roots":["a"],"edges":{"a":["b"],"b":[]},"kinds":{"b":"law"},"required_kinds":{"b":"schema"},"error":"kind"},
+    {"id":"conflicting reachable pins","roots":["a","b"],"edges":{"a":[],"b":[]},"identities":{"a":["same","0.1"],"b":["same","0.1"]},"error":"conflict"}
+  ],
+  "rejections": [
+    {"id":"missing contracts","value":{"version":"actql-local-contracts/0.1"}},
+    {"id":"wrong version","value":{"version":"actql-local-contracts/1.0","contracts":[]}},
+    {"id":"unknown field","value":{"version":"actql-local-contracts/0.1","contracts":[],"self_cid":"sha256:0000000000000000000000000000000000000000000000000000000000000000"}},
+    {"id":"not an array","value":{"version":"actql-local-contracts/0.1","contracts":{}}},
+    {"id":"invalid CID","value":{"version":"actql-local-contracts/0.1","contracts":["sha256:ABC"]}},
+    {"id":"duplicate","value":{"version":"actql-local-contracts/0.1","contracts":["sha256:0000000000000000000000000000000000000000000000000000000000000000","sha256:0000000000000000000000000000000000000000000000000000000000000000"]}},
+    {"id":"noncanonical order","value":{"version":"actql-local-contracts/0.1","contracts":["sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff","sha256:0000000000000000000000000000000000000000000000000000000000000000"]}}
+  ]
+}

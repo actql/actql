@@ -6955,6 +6955,50 @@
       }
     },
     {
+      "requirement_id": "actql.language/local-contract-closure.selection",
+      "statement_sha256": "2423d14f3bbd3a4c84f54d278c7ec12511e6ffd0b3775214d7c6505483428727",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "local-contract-closure",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/local-contract-closure.policy-phase",
+      "statement_sha256": "dd50badfd81358ea2c657191f4e5575f59a975163a6482f22b8cf2ca3435bc85",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "local-contract-closure",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/local-contract-closure.canonical-set",
+      "statement_sha256": "6fbf205e7bac9696b63f97d9a17a287db1dbc899b17cc9bd657a8359ceff912a",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "local-contract-closure",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/local-contract-closure.envelope",
+      "statement_sha256": "624dd68f52781123cf18554cc5dd9db270e0eed6dfd2c05af2cce1bb4590c7a0",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "local-contract-closure",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.language/structural-grammar.grammar",
       "statement_sha256": "ad7ff55da0c31c7ab4ba85cc8a1d66cfeb942defe792cbee3f6bf85ca55fcb0b",
       "status": "pending",

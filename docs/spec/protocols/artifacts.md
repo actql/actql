@@ -836,8 +836,8 @@ These exact schema/law references are owned here. Their identities do not includ
 ../../../spec/contracts/actql-stage-contracts.json#/schemas/local_effect_outcome sha256:8a56e3e7d5139fef571da480831e0df45c95beb96c228e737efdb12a1ef0b98d
 ../../../spec/contracts/actql-stage-contracts.json#/schemas/local_result_artifact sha256:16f69bbc38782a3ea42fafcfbbd992f9d1356a68c70dd1182cb102e269db04f1
 ../../../spec/contracts/actql-stage-contracts.json#/schemas/projection_attestation sha256:27c8c8a1215b705b6553f4db128f73c905b1c6a5f0c7d72c398e02541e7dc805
-../../../spec/contracts/actql-stage-contracts.json#/reference_roles sha256:16b40318f5e8f9b095227b483eeb121492e861b007a4b2f30a6ad98a06f7ee53
-../../../spec/contracts/actql-stage-contracts.json#/reference_graph sha256:9b8144fddd4098afbef0b753372dd3834013bd23dbf9af0664e3dccef980927b
+../../../spec/contracts/actql-stage-contracts.json#/reference_roles sha256:b2422870df0ff47b9d00abf0440c14897039534a50af03f9873ebdd96f77f966
+../../../spec/contracts/actql-stage-contracts.json#/reference_graph sha256:a2ac669dbbfdb7aada3dc49785597ade6220e1a1be591c4f3d10e4abbe500a00
 ```
 <!-- stage-contract-pins:end -->
 

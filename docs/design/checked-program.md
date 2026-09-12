@@ -127,6 +127,9 @@ because its static arithmetic or CID matches.
 
 ## Identity boundaries
 
+[Local contract closure](local-contract-closure.md) separates the selected
+contract set from source occurrence evidence and concrete execution decisions.
+
 Contract selection is defined before its canonical JSON representation. It
 includes the direct semantic dependencies and their required transitive
 dependencies, including domain, guard, permission, scope and failure rules.
