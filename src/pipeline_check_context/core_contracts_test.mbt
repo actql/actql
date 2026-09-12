@@ -19,19 +19,19 @@ test "core contract collection preserves owned occurrences and shares dependency
       )
     }
   }
-  assert_eq(core_contract_root_count(inventory), 2 + 2 * steps)
-  assert_eq(core_contract_body_count(inventory), 17)
+  assert_eq(core_contract_root_count(inventory), 4 + 2 * steps)
+  assert_eq(core_contract_body_count(inventory), 18)
   let (work, edges) = core_contract_usage(inventory)
   assert_eq(edges, 16)
   assert_eq(
     work,
     program_identity_usage(identity).0 +
     7 +
-    2 +
+    4 +
     2 * steps +
     visits +
     2 * steps +
-    17 +
+    18 +
     16,
   )
   let mut stage_roots = 0
@@ -39,6 +39,14 @@ test "core contract collection preserves owned occurrences and shares dependency
   for i in 0..<core_contract_root_count(inventory) {
     let root = core_contract_root_at(inventory, i).unwrap()
     match root.site {
+      StageSourceGrammar(stage) => {
+        assert_true(stage >= 0 && stage < 2)
+        assert_eq(root.body, ProgramSourceGrammar)
+        assert_eq(
+          core_contract_cid(root.body),
+          "sha256:a6bfc4b6c00d89f521ccee9e99e1dbbd7385675fd55478f1536f36f860b1ef0a",
+        )
+      }
       CatalogReference(_, _, _) => abort("Local fixture has no Catalog inputs")
       StageExpression(stage) => {
         assert_eq(stage, stage_roots)
@@ -82,7 +90,7 @@ test "core contract collection preserves owned occurrences and shares dependency
   let exact : CoreContractLimits = {
     max_work: work,
     max_roots: core_contract_root_count(inventory),
-    max_bodies: 17,
+    max_bodies: 18,
     max_edges: 16,
   }
   assert_true(collect_core_contracts(identity, exact) is Ok(_))
@@ -104,7 +112,7 @@ test "core contract collection preserves owned occurrences and shares dependency
     limits in [
       { ..exact, max_work: work - 1, },
       { ..exact, max_roots: exact.max_roots - 1, },
-      { ..exact, max_bodies: 16, },
+      { ..exact, max_bodies: 17, },
       { ..exact, max_edges: 15, },
     ] {
     assert_true(collect_core_contracts(identity, limits) is Err(BudgetExceeded))
@@ -123,7 +131,7 @@ test "core contract collection preserves owned occurrences and shares dependency
     assert_true(core_contract_body_at(inventory, invalid) is None)
   }
   assert_true(core_contract_root_at(inventory, exact.max_roots) is None)
-  assert_true(core_contract_body_at(inventory, 17) is None)
+  assert_true(core_contract_body_at(inventory, 18) is None)
 }
 
 ///|

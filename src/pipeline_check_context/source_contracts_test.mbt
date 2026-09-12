@@ -226,13 +226,13 @@ test "repeated unused SourceView declarations retain separate input occurrences"
       assert_eq(root.body, CatalogContract(expected))
     }
   }
-  assert_eq(core_contract_body_count(inventory), 27)
+  assert_eq(core_contract_body_count(inventory), 28)
   let (work, edges) = core_contract_usage(inventory)
   assert_eq(edges, 35)
   let exact : CoreContractLimits = {
     max_work: work,
     max_roots: core_contract_root_count(inventory),
-    max_bodies: 27,
+    max_bodies: 28,
     max_edges: edges,
   }
   assert_true(collect_core_contracts(identity, exact) is Ok(_))
@@ -240,7 +240,7 @@ test "repeated unused SourceView declarations retain separate input occurrences"
     limits in [
       { ..exact, max_work: work - 1, },
       { ..exact, max_roots: exact.max_roots - 1, },
-      { ..exact, max_bodies: 26, },
+      { ..exact, max_bodies: 27, },
       { ..exact, max_edges: edges - 1, },
     ] {
     assert_true(collect_core_contracts(identity, limits) is Err(_))

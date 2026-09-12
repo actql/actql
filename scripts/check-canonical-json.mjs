@@ -153,6 +153,11 @@ function fixtures() {
     ['timestamp_pattern_ast_schema', dependencies.timestamp_pattern_grammar.ast_schema_cid],
   ]) result.push({ id: 'inherited text/time ' + name, value: dependencies[name], cid });
   result.push({ id: 'inherited text/time Unicode data', value: read('spec/dependencies/actql-text-time-unicode-data.json'), cid: dependencies.unicode_semantics.data_cid });
+  result.push({
+    id: 'Program source grammar resource',
+    value: read('spec/contracts/actql-protocol-schemas.json').artifact_schemas.executable_plan.properties.execution_material.properties.program,
+    cid: 'sha256:a6bfc4b6c00d89f521ccee9e99e1dbbd7385675fd55478f1536f36f860b1ef0a',
+  });
   return result;
 }
 

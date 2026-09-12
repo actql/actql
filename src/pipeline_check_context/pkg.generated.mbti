@@ -669,6 +669,7 @@ pub(all) enum CoreContractBody {
   AdoptedBody(@pipeline_typing.AdoptedOperationLaw)
   CatalogContract(String)
   CatalogGrammarBody(@check_environment.CatalogGrammar)
+  ProgramSourceGrammar
 } derive(Eq, @debug.Debug)
 
 type CoreContractInventory
@@ -698,6 +699,7 @@ pub(all) enum CoreContractSite {
   StageExpression(Int)
   OperationLaw(Int, Int, Int, Int, Int)
   CatalogReference(Int, Int, Int)
+  StageSourceGrammar(Int)
 } derive(Eq, @debug.Debug)
 
 pub struct DedupeTopTieCheck {

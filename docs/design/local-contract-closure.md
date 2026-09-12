@@ -111,6 +111,24 @@ required separately. Locality of a hash does not waive those checks.
 
 ## Selecting roots
 
+The source grammar resource is the complete embedded Program schema at
+`spec/contracts/actql-protocol-schemas.json`, JSON Pointer
+`/artifact_schemas/executable_plan/properties/execution_material/properties/program`.
+The copy under `plan_document` is identical. Its independently hashed body is
+`sha256:a6bfc4b6c00d89f521ccee9e99e1dbbd7385675fd55478f1536f36f860b1ef0a`;
+this is not the CID of either containing artifact schema. The containing pins,
+copy equality and local reference resolution are verified by generation.
+
+This selection preserves the resource's `$defs` scope, including recursive
+Parameter and value contracts. Hashing only `params.additionalProperties` would
+discard required definitions. Hashing the enclosing Plan schema would instead
+include unrelated execution-envelope structure. Internal `$ref` edges are not
+external contract roots. A new external reference or nested schema resource
+requires explicit dependency handling, rather than silently treating it as a
+leaf. Each owned Stage retains a source-grammar occurrence, including stages
+without Parameters; body storage is shared. This grammar contribution does not
+replace the governing semantic laws or the required declaration/value checks.
+
 Selection includes every contract interpreted for the Unit's declarations,
 operations, expressions, publication, imports and incoming gates, including
 domain, guard, permission, scope and failure semantics. It is not a liveness
@@ -165,7 +183,7 @@ visiting and collecting roots still consumes the caller's aggregate work budget.
 Repeated visits are not silently collapsed at this source-occurrence boundary.
 
 `collect_core_contracts` performs this traversal from one `ProgramSourceIdentity`.
-It retains every Stage expression root, every adopted-law occurrence across
+It retains every Stage source-grammar and expression root, every adopted-law occurrence across
 all producer visits, and selected SourceView contract-reference occurrences.
 Source selection is derived internally from the identity's own input context;
 the caller cannot supply a substitute Catalog or a second source inventory.

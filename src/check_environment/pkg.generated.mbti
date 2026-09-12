@@ -226,6 +226,8 @@ pub fn member_index(Member) -> Int
 
 pub fn member_section(Member) -> Section
 
+pub fn program_source_grammar_cid() -> String
+
 pub fn protocol_value_at(ProtocolValueContracts, Int) -> ProtocolValueContract?
 
 pub fn protocol_value_envelope(ProtocolValueContract) -> ContractEnvelope
