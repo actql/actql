@@ -128,6 +128,15 @@ and always selects checked-fragment execution, with no component-only fallback.
 The common driver still checks input obligations on every invocation. This
 composition handle does not certify Program capacity or authorize external work.
 
+Runtime preparation consumes the lowering package's opaque typed request and
+the selected registered contracts. It constructs the complete candidate,
+regenerates it for integrity admission, and only then creates an enforcement
+context. These steps are one internal constructor; callers cannot opt out of
+admission or provide a substitute graph. Failures preserve the material,
+candidate, admission or runtime stage. The physical construction ceilings apply
+to each bounded artifact construction, not to process-wide heap usage or total
+preparation work across all calls.
+
 ## Logical resources
 
 The limits distinguish input row occurrences, individual wire value size,

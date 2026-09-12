@@ -15,23 +15,14 @@ fn ordered_sequence_fragment_context(
     1000L,
     row_limits=Some(context.limits),
   ).unwrap()
-  let material = prepare_fragment_material(
+  prepare_runtime_fragment(
     request,
+    test_fragment_contract(),
     material_demands(),
     registry_limits(),
+    context.limits,
     ordered=Some(context.params.contract),
   ).unwrap()
-  let candidate = prepare_fragment_candidate(
-    test_fragment_contract(),
-    material,
-    registry_limits(),
-  ).unwrap()
-  let checked = check_generated_fragment(
-    candidate,
-    material_demands(),
-    registry_limits(),
-  ).unwrap()
-  prepare_fragment_runtime_context(checked, context.limits, registry_limits()).unwrap()
 }
 
 ///|

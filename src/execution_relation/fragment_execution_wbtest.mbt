@@ -10,30 +10,17 @@ fn sequence_fragment_context(
     max_work: 100000,
   }).unwrap()
   let request = @lower.prepare_fragment_request(pipeline, 10L, 1000L).unwrap()
-  let material = prepare_fragment_material(
+  prepare_runtime_fragment(
     request,
-    material_demands(),
-    registry_limits(),
-  ).unwrap()
-  let candidate = prepare_fragment_candidate(
     test_fragment_contract(),
-    material,
-    registry_limits(),
-  ).unwrap()
-  let checked = check_generated_fragment(
-    candidate,
     material_demands(),
     registry_limits(),
-  ).unwrap()
-  prepare_fragment_runtime_context(
-    checked,
     {
       max_input_rows: rows,
       max_value_bytes: 1000L,
       max_live_value_bytes: 10000L,
       max_work: 100000L,
     },
-    registry_limits(),
   ).unwrap()
 }
 
