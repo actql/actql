@@ -648,6 +648,12 @@ An absent coordinate returns `None`; an uninterpreted body kind returns an error
 never an empty dependency list. Full closure traversal must still charge reference
 visits and process the governing contracts' transitive dependencies.
 
+After binding the inventory to ProgramSourceIdentity,
+`program_source_contract_body_at` also uses the lookup-facts admission retained
+by that identity's source-request checks. No alternative facts owner is supplied
+by the caller. An admitted lookup component does not by itself admit additional
+fact semantics, and an absent admission is not an empty dependency set.
+
 `bind_program_source_contracts` connects this inventory to a ProgramSourceIdentity
 only through the exact reconciled context already owned by that identity. It
 subtracts that common work prefix when combining usage. Matching public CIDs or

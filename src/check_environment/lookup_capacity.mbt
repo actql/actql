@@ -49,6 +49,7 @@ struct SourceLookupFacts {
 struct LookupCapacities {
   references : CatalogReferences
   entries : Array[LookupFacts]
+  by_cid : Map[String, LookupFacts]
   views : Map[Int, SourceLookupFacts]
   work : Int
 }
@@ -199,7 +200,7 @@ pub fn check_lookup_capacities(
         }
       }
     }
-    Ok({ references, entries, views, work: b.used, })
+    Ok({ references, entries, by_cid, views, work: b.used, })
   } catch {
     LookupCapacityStop(issue) => Err(issue)
   }

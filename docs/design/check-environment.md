@@ -334,6 +334,20 @@ contracts' own semantic dependencies, the remaining body grammars and the Unit's
 operation, policy and incoming-interface laws still require interpretation. A
 caller cannot treat a direct-dependency result as the complete contract set.
 
+`check_lookup_body_dependencies` uses the separately admitted LookupCapacities
+branch. It retains the exact facts envelope and component admission, and exposes
+the governing Check Environment contract dependency for an empty facts body or
+a body containing only the validated `lookup_capacity` component. It does not
+upgrade `hard_limit_only` to completeness or prove any observed row bound.
+
+The carrier-facts schema permits additional members, but the lookup reader does
+not interpret their semantics. Such a body remains valid component input while
+this complete-body dependency adapter returns `UnsupportedBodyGrammar`; a
+separate governing interpretation is required before claiming its full closure.
+This is not a language prohibition on additional facts, nor permission to scan
+their strings for CIDs. Missing component admission and a foreign environment
+are separate errors; checking the exact owner precedes grammar dispatch.
+
 ## SourceView shape admission
 
 `check_source_view_shapes` retains ProtocolValueContracts and validates every

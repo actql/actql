@@ -3,6 +3,7 @@ pub(all) enum CatalogBodyAdmission {
   ValueBody(ContractBodyDependencies)
   CarrierBody(CarrierSchema)
   DataPolicyBody(SourceDataPolicy)
+  LookupFactsBody(LookupFacts)
 }
 
 ///|
@@ -60,6 +61,32 @@ pub fn check_catalog_body_dependencies(
 }
 
 ///|
+/// Lookup admission covers only its known component, not arbitrary fact
+/// extensions. Refuse a complete-body interpretation if other members exist.
+pub fn check_lookup_body_dependencies(
+  facts : LookupCapacities,
+  envelope : ContractEnvelope,
+) -> Result[CatalogBodyDependencies, BodyDependencyIssue] {
+  if !physical_equal(
+      member_environment(envelope.item),
+      facts.references.contents.registry.environment,
+    ) {
+    return Err(ForeignEnvironment)
+  }
+  if envelope.kind != "carrier_facts" {
+    return Err(UnsupportedBodyGrammar(envelope.kind))
+  }
+  guard facts.by_cid.get(envelope.cid) is Some(admitted) else {
+    return Err(MissingBodyAdmission)
+  }
+  let known = if admitted.capacity is Some(_) { 1 } else { 0 }
+  if @decode.object_length(envelope.body) != Some(known) {
+    return Err(UnsupportedBodyGrammar(envelope.kind))
+  }
+  Ok({ envelope, admission: LookupFactsBody(admitted), })
+}
+
+///|
 pub fn catalog_body_contract(v : CatalogBodyDependencies) -> ContractEnvelope {
   v.envelope
 }
@@ -75,7 +102,7 @@ pub fn catalog_body_admission(
 /// Reference roles remain separate even when both Graph law CIDs are equal.
 pub fn catalog_body_dependency_count(v : CatalogBodyDependencies) -> Int {
   match v.admission {
-    ValueBody(_) | DataPolicyBody(_) => 1
+    ValueBody(_) | DataPolicyBody(_) | LookupFactsBody(_) => 1
     CarrierBody(schema) =>
       match @carrier.kind(schema.carrier) {
         RelationKind | EventsKind | VectorsKind => 2
@@ -99,7 +126,7 @@ pub fn catalog_body_dependency_at(
         role: GoverningGrammar,
         cid: body_dependency_at(value, 0).unwrap(),
       })
-    DataPolicyBody(_) =>
+    DataPolicyBody(_) | LookupFactsBody(_) =>
       Some({ role: GoverningGrammar, cid: catalog_body_grammar_cid(), })
     CarrierBody(_) =>
       match index {

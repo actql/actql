@@ -178,3 +178,36 @@ pub fn program_source_contract_requirements(
 pub fn program_source_contract_work(v : ProgramSourceContracts) -> Int {
   v.work
 }
+
+///|
+/// Includes the lookup-facts admission from this identity's request checks.
+/// Component admission cannot cover other fact extensions implicitly.
+pub fn program_source_contract_body_at(
+  v : ProgramSourceContracts,
+  stage : Int,
+  input : Int,
+  reference : Int,
+) -> Result[
+  @environment.CatalogBodyDependencies?,
+  @environment.BodyDependencyIssue,
+] {
+  guard source_contract_input_at(v.requirements, stage, input) is Some(selected) else {
+    return Ok(None)
+  }
+  guard @sourceviews.selected_reference_at(selected, reference)
+    is Some(selected_ref) else {
+    return Ok(None)
+  }
+  let envelope = @environment.reference_contract(selected_ref)
+  if @environment.contract_role(envelope) != "carrier_facts" {
+    return source_contract_body_at(v.requirements, stage, input, reference)
+  }
+  let requests = v.identity.sources.operations.preparation.sources.capacity.context.rows.requests
+  guard requests.facts is Some(facts) else {
+    return Err(@environment.MissingBodyAdmission)
+  }
+  match @environment.check_lookup_body_dependencies(facts, envelope) {
+    Ok(body) => Ok(Some(body))
+    Err(issue) => Err(issue)
+  }
+}

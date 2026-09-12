@@ -98,6 +98,8 @@ pub fn check_catalog_references(CatalogContents, ReferenceLimits) -> Result[Cata
 
 pub fn check_contract_registry(WireEnvironment, Limits) -> Result[ContractRegistry, ContractIssue]
 
+pub fn check_lookup_body_dependencies(LookupCapacities, ContractEnvelope) -> Result[CatalogBodyDependencies, BodyDependencyIssue]
+
 pub fn check_lookup_capacities(CatalogReferences, LookupCapacityLimits) -> Result[LookupCapacities, LookupCapacityIssue]
 
 pub fn check_lookup_execution(WireEnvironment, LookupExecutionLimits) -> Result[LookupExecution, LookupExecutionIssue]
@@ -397,6 +399,7 @@ pub(all) enum CatalogBodyAdmission {
   ValueBody(ContractBodyDependencies)
   CarrierBody(CarrierSchema)
   DataPolicyBody(SourceDataPolicy)
+  LookupFactsBody(LookupFacts)
 }
 
 type CatalogBodyDependencies

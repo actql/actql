@@ -403,6 +403,8 @@ pub fn program_reference_values(ProgramReferences) -> @program_references.Parame
 
 pub fn program_reference_work(ProgramReferences) -> Int
 
+pub fn program_source_contract_body_at(ProgramSourceContracts, Int, Int, Int) -> Result[@check_environment.CatalogBodyDependencies?, @check_environment.BodyDependencyIssue]
+
 pub fn program_source_contract_identity(ProgramSourceContracts) -> ProgramSourceIdentity
 
 pub fn program_source_contract_requirements(ProgramSourceContracts) -> SourceContractRequirements

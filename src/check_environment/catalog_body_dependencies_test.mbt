@@ -78,6 +78,8 @@ test "Catalog dependency dispatch retains admitted owners and rejects uninterpre
             physical_equal(catalog_body_contract(dependencies), envelope),
           )
           match catalog_body_admission(dependencies) {
+            LookupFactsBody(_) =>
+              abort("lookup admission is a separate owned branch")
             ValueBody(value) => {
               assert_true(
                 physical_equal(body_dependency_contract(value), envelope),

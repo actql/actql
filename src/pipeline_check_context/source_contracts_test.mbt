@@ -176,6 +176,9 @@ test "source contract inventories join only their original Program identity cont
     assert_eq(source_contract_input_count(requirements, i), Some(0))
   }
   let v = bind_program_source_contracts(identity, requirements, 10000000).unwrap()
+  for stage in [-2147483648, -1, 0, 1, 2, 2147483647] {
+    assert_true(program_source_contract_body_at(v, stage, 0, 0) is Ok(None))
+  }
   assert_true(physical_equal(program_source_contract_identity(v), identity))
   assert_true(
     physical_equal(program_source_contract_requirements(v), requirements),
