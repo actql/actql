@@ -53,6 +53,17 @@ test "profile fixed layout sequences with independent output assertions" {
     Some("C") => TypedColumns
     Some(_) => fail("unknown layout candidate")
   }
+  if @env.get_env_var("ACTQL_LAYOUT_PREPARED") == Some("1") {
+    profile_prepared_layout(
+      None,
+      LegacyWorkload(columns, same),
+      rows,
+      columns,
+      same,
+      candidate,
+    )
+    return
+  }
   sequence_scale(rows, columns, same, candidate~)
   sequence_scale(rows, columns, same, profile=true, candidate~)
 }

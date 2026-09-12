@@ -108,7 +108,23 @@ fn profile_prepared_additional_layout(
   candidate : LayoutCandidate,
 ) -> Unit raise {
   let (id, workload, count, width) = additional_layout_case(index)
+  profile_prepared_layout(Some(id), workload, count, width, false, candidate)
+}
+
+///|
+fn profile_prepared_layout(
+  id : String?,
+  workload : ProfiledLayoutWorkload,
+  count : Int,
+  width : Int,
+  same : Bool,
+  candidate : LayoutCandidate,
+) -> Unit raise {
   let (generated, supplied, produced) = match workload {
+    LegacyWorkload(width, same) => {
+      let (generated, input) = legacy_layout_fixture(count, width, same, [])
+      (generated, [input], [])
+    }
     SuppliedWorkload(shape) => {
       let (generated, input) = numeric_layout_fixture(shape, count)
       (generated, [input], [])
@@ -215,9 +231,12 @@ fn profile_prepared_additional_layout(
   }
   clear_table_store(initial.store)
   println(
-    "{\"kind\":\"prepared-layout-sample\",\"case_id\":\"" +
-    id +
-    "\",\"candidate\":\"" +
+    "{\"kind\":\"prepared-layout-sample\"" +
+    (match id {
+      Some(id) => ",\"case_id\":\"" + id + "\""
+      None => ""
+    }) +
+    ",\"candidate\":\"" +
     (match candidate {
       RowLayout => "A"
       ValueColumns => "B"
@@ -227,6 +246,8 @@ fn profile_prepared_additional_layout(
     count.to_string() +
     ",\"columns\":" +
     width.to_string() +
+    ",\"same_keys\":" +
+    same.to_string() +
     ",\"reused_input\":true,\"fresh_budgets\":true,\"warmup_operation_us\":" +
     times[0].to_string() +
     ",\"operation_us\":" +

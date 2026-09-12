@@ -12,11 +12,11 @@ import { legacySchedule, additionalSchedule, peakRssBytes, checkedSample, checke
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 process.chdir(root);
 const mode = process.argv[2];
-const prepared = ['--prepared', '--prepared-smoke'].includes(mode);
-const smoke = ['--smoke', '--additional-smoke', '--prepared-smoke'].includes(mode);
-const additional = prepared || ['--additional', '--additional-smoke'].includes(mode);
-if (process.argv.length !== 3 || !['--smoke', '--legacy', '--additional', '--additional-smoke', '--prepared', '--prepared-smoke'].includes(mode)) {
-  throw new Error('Use --smoke, --legacy, --additional[-smoke] or --prepared[-smoke]; none alone is the complete adoption matrix');
+const prepared = ['--prepared', '--prepared-smoke', '--prepared-legacy', '--prepared-legacy-smoke'].includes(mode);
+const smoke = ['--smoke', '--additional-smoke', '--prepared-smoke', '--prepared-legacy-smoke'].includes(mode);
+const additional = ['--prepared', '--prepared-smoke', '--additional', '--additional-smoke'].includes(mode);
+if (process.argv.length !== 3 || !['--smoke', '--legacy', '--additional', '--additional-smoke', '--prepared', '--prepared-smoke', '--prepared-legacy', '--prepared-legacy-smoke'].includes(mode)) {
+  throw new Error('Use --smoke, --legacy, --additional[-smoke], --prepared[-smoke] or --prepared-legacy[-smoke]; no subset alone authorizes adoption');
 }
 if (!['darwin', 'linux'].includes(platform())) throw new Error('RSS requires macOS or GNU time on Linux');
 const manifestPath = 'benchmarks/local-relation/columnar-experiment.json';
@@ -45,7 +45,8 @@ const run = (command, args, extra = {}) => {
 const version = run(`${moonHome}/bin/moonc`, ['-v']).stdout.trim();
 if (!version.includes(toolchain.version)) throw new Error(`Unpinned compiler: ${version}`);
 const report = {
-  scope: prepared ? 'prepared input operation repeats for all thirteen additional cases; not E2E or the full matrix'
+  scope: prepared ? (additional ? 'prepared input operation repeats for all thirteen additional cases; not E2E or the full matrix'
+    : 'prepared input operation repeats for the fixed legacy matrix; not E2E or the full matrix')
     : additional ? 'all thirteen fixed additional cases; prepared repeats and complete accounting pending'
     : smoke ? 'three-layout-harness-smoke' : 'fixed-legacy-subset; additional cases and complete accounting pending',
   status: 'running', adoption_eligible: false, started_at: new Date().toISOString(),
@@ -64,9 +65,11 @@ const report = {
   rss_scope: 'whole fresh process peak including startup, warmup, measured invocation, observation and cleanup; never subtract phase peaks',
   targets: [],
 };
-const reportPath = resolve(outputDirectory, prepared ? smoke ? 'prepared-smoke.json' : 'prepared-samples.json' : additional
+const reportPath = resolve(outputDirectory, prepared ? additional
+  ? smoke ? 'prepared-smoke.json' : 'prepared-samples.json'
+  : smoke ? 'prepared-legacy-smoke.json' : 'prepared-legacy-samples.json' : additional
   ? smoke ? 'additional-smoke.json' : 'additional-samples.json'
-  : smoke ? 'harness-smoke.json' : 'legacy-samples.json');
+  : smoke ? 'legacy-disposal-smoke.json' : 'legacy-disposal-samples.json');
 const save = () => writeFileSync(reportPath, JSON.stringify(report, null, 2) + '\n');
 save();
 const testArgs = JSON.stringify({ package: 'actql/actql/execution_relation',

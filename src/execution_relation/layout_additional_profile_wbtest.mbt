@@ -2,6 +2,7 @@
 priv enum ProfiledLayoutWorkload {
   SuppliedWorkload(NumericLayoutWorkload)
   ProducerWorkload
+  LegacyWorkload(Int, Bool)
 }
 
 ///|
@@ -37,6 +38,10 @@ fn measure_additional_layout(
 ) -> (Array[Double], Array[Int]) raise {
   let phases = []
   let (generated, supplied, produced) = match workload {
+    LegacyWorkload(width, same) => {
+      let (generated, input) = legacy_layout_fixture(count, width, same, phases)
+      (generated, [input], [])
+    }
     SuppliedWorkload(shape) => {
       let (generated, input) = numeric_layout_fixture(
         shape,
@@ -171,6 +176,8 @@ fn[T : RelationRows] observe_additional_layout(
   count : Int,
 ) -> Unit raise {
   match workload {
+    LegacyWorkload(width, same) =>
+      verify_legacy_layout_store(store, width, same)
     SuppliedWorkload(shape) =>
       verify_numeric_layout_output(
         store.tables[store.tables.length() - 1].unwrap().table,

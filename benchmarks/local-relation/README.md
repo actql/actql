@@ -16,6 +16,8 @@ node scripts/measure-layouts.mjs --additional-smoke
 node scripts/measure-layouts.mjs --additional
 node scripts/measure-layouts.mjs --prepared-smoke
 node scripts/measure-layouts.mjs --prepared
+node scripts/measure-layouts.mjs --prepared-legacy-smoke
+node scripts/measure-layouts.mjs --prepared-legacy
 ```
 
 Set `MOON_HOME` to the pinned toolchain first. The smoke mode builds native, JS
@@ -43,18 +45,17 @@ not be presented as process memory or complete physical accounting.
 
 B/C additionally report owned capture/column/selection capacity, separately from
 the legacy retained-table counter. Their source capture stays owned throughout
-observation. Disposal assertions run after the phase clocks; only the outer
-process time currently includes that cleanup. The full comparison must include
-equivalent disposal in its enclosing invocation time, add prepared-input repeats,
-complete temporary-storage accounting, and run the entire fixed sample matrix.
+observation. Disposal assertions run after the five phase clocks but before
+the enclosing invocation clock ends. This holds for both additional and legacy
+cases. Temporary-storage accounting remains distinct from process RSS.
 
 `--legacy` runs the twelve fixed shapes on native and four fixed representative
 shapes on JS/Wasm. Each case has seven paired repeats alternating A/B/C and C/B/A,
 with a fresh process and one warmup for every candidate sample. The runner saves
-each validated sample under `_build/layout-measurements/legacy-samples.json` and
+each validated sample under `_build/layout-measurements/legacy-disposal-samples.json` and
 marks completion only after the full selected schedule succeeds. This subset is
-never adoption-eligible: the thirteen additional cases, complete physical
-accounting and prepared-input repeats remain necessary. A partial report is not
+never adoption-eligible alone: the thirteen additional cases, physical-accounting
+audit and both sets of prepared-input repeats are also required. A partial report is not
 a successful run. Validate the schedule and parsing with
 `node --test scripts/layout-measurement-support.test.mjs`.
 
@@ -104,13 +105,21 @@ physical copies. Source captures and real producer completions remain alive and
 are also represented in each run's capacity floor. A's row storage is not thereby
 converted to the B/C owned-column accounting model.
 
+`--prepared-legacy[-smoke]` applies this same driver to the unchanged twelve
+legacy native cases and four JS/Wasm cases, with the same seven pairs and
+alternating candidate order. Both E2E and prepared modes share one legacy fixture
+constructor and one closed-form output observer. Raw source cursors cease to be
+needed after capture in all candidates; captured inputs and retained outputs
+remain owned through observation. The enclosing E2E clock includes all these
+scope exits. Pre-disposal historical reports are retained separately, not relabeled.
+
 The fixed producer workload has no receiver projection. This entry rejects one
 rather than caching away its required output-budget charges; that restriction is
 on the benchmark entry, not the supported execution API. Prepared reports contain
 `operation_us` and separate `warmup_operation_us`, never `end_to_end_us` or five
 phase timings. Their whole-process RSS includes the retained prepared fixture
 and cannot replace the E2E RSS observations. This additional-case report alone
-does not cover prepared legacy cases or authorize adoption.
+does not replace the separate prepared legacy report or authorize adoption.
 
 ### Paired statistical method
 

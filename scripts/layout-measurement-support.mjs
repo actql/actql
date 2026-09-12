@@ -67,7 +67,7 @@ export function checkedSample(stdout, expected) {
   }
   const m = measurements[0];
   if (['candidate', 'rows', 'columns', 'same_keys', 'case_id'].some(key => m[key] !== expected[key]) ||
-      (expected.case_id !== undefined && m.disposal_included !== true) ||
+      m.disposal_included !== true ||
       !Array.isArray(m.phases_us) || m.phases_us.length !== 5 ||
       m.phases_us.some(n => !Number.isFinite(n) || n < 0) ||
       !Number.isFinite(m.end_to_end_us) || m.end_to_end_us <= 0) throw new Error('Invalid phase measurement');
@@ -86,7 +86,7 @@ export function checkedPreparedSample(stdout, expected) {
     throw new Error('Missing prepared measurement or independent test success');
   }
   const m = measurements[0];
-  if (['candidate', 'rows', 'columns', 'case_id'].some(key => m[key] !== expected[key]) ||
+  if (['candidate', 'rows', 'columns', 'case_id', 'same_keys'].some(key => m[key] !== expected[key]) ||
       m.reused_input !== true || m.fresh_budgets !== true ||
       !Number.isFinite(m.operation_us) || m.operation_us <= 0 ||
       !Number.isFinite(m.warmup_operation_us) || m.warmup_operation_us <= 0 ||

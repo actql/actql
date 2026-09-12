@@ -6,7 +6,7 @@ import { legacySchedule, additionalSchedule, peakRssBytes, checkedSample, checke
 const manifest = JSON.parse(readFileSync(new URL('../benchmarks/local-relation/columnar-experiment.json', import.meta.url)));
 
 test('prepared samples prove reused inputs and do not masquerade as enclosing E2E', () => {
-  const expected = { candidate: 'C', rows: 1000, columns: 64, case_id: 'producer-branches' };
+  const expected = { candidate: 'C', rows: 1000, columns: 64, case_id: 'producer-branches', same_keys: false };
   const sample = { kind: 'prepared-layout-sample', ...expected,
     reused_input: true, fresh_budgets: true, warmup_operation_us: 20, operation_us: 10 };
   const success = { type: 'result', file: 'sequence_profile_wbtest.mbt', index: 0, message: '' };
@@ -14,13 +14,18 @@ test('prepared samples prove reused inputs and do not masquerade as enclosing E2
   assert.deepEqual(checkedPreparedSample(output(sample, success), expected), sample);
   for (const change of [{ reused_input: false }, { fresh_budgets: false }, { operation_us: 0 },
     { warmup_operation_us: -1 }, { end_to_end_us: 100 }, { phases_us: [] },
-    { candidate: 'A' }, { rows: 0 }, { case_id: 'zero-columns' }]) {
+    { candidate: 'A' }, { rows: 0 }, { case_id: 'zero-columns' }, { same_keys: true }]) {
     assert.throws(() => checkedPreparedSample(output({ ...sample, ...change }, success), expected));
   }
   assert.throws(() => checkedPreparedSample(output(sample), expected));
   assert.throws(() => checkedPreparedSample(output(sample, sample, success), expected));
   assert.throws(() => checkedPreparedSample(output(sample, { ...success, message: 'failed' }), expected));
   assert.throws(() => checkedSample(output(sample, success), expected));
+  const legacy = { candidate: 'B', rows: 100, columns: 2, same_keys: true };
+  const legacySample = { ...sample, ...legacy };
+  delete legacySample.case_id;
+  assert.deepEqual(checkedPreparedSample(output(legacySample, success), legacy), legacySample);
+  assert.throws(() => checkedPreparedSample(output({ ...legacySample, same_keys: false }, success), legacy));
 });
 
 test('decimal-temporal repeated-key survivor vector has an independent SHA-256 oracle', () => {
@@ -88,12 +93,12 @@ test('additional schedule includes all thirteen fixed cases without dropping pro
 
 test('sample requires exact case candidate and successful independent assertions', () => {
   const expected = { candidate: 'C', rows: 10000, columns: 64, same_keys: false };
-  const sample = { kind: 'layout-sample', ...expected, phases_us: [1, 2, 3, 4, 5], end_to_end_us: 16 };
+  const sample = { kind: 'layout-sample', ...expected, disposal_included: true, phases_us: [1, 2, 3, 4, 5], end_to_end_us: 16 };
   const success = { type: 'result', file: 'sequence_profile_wbtest.mbt', index: 0, message: '' };
   const output = (...events) => events.map(e => JSON.stringify(e)).join('\n');
   assert.deepEqual(checkedSample(output(sample, success), expected), sample);
   for (const changed of [{ candidate: 'A' }, { rows: 100 }, { same_keys: true }, { phases_us: [] },
-    { phases_us: [1, 2, 3, 4, -1] }, { end_to_end_us: 1 }]) {
+    { phases_us: [1, 2, 3, 4, -1] }, { end_to_end_us: 1 }, { disposal_included: false }]) {
     assert.throws(() => checkedSample(output({ ...sample, ...changed }, success), expected));
   }
   assert.throws(() => checkedSample(output(sample), expected));
