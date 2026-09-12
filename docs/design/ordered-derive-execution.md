@@ -47,6 +47,15 @@ separate construction limits. These are preparation limits, not the row-kernel's
 runtime logical-work evidence. Emitting an occurrence array does not establish
 the enclosing fragment's evidence closure or execution permission.
 
+The params builder consumes an admitted selected-extension body and this opaque
+occurrence index. It obtains bindings exclusively from the index's originating
+kernel, rather than accepting a second kernel or caller-authored table. The
+extension body is hashed under explicit construction limits and compared with
+the selected registry's pin. Generated consumer constants follow the shared
+registry; they do not define an independent registration. Complete params are
+still only one part of the fragment: producing them does not discharge context,
+root, limit or backend-capability obligations.
+
 The row shape, prior-slot context and limits are separate self-identified
 bodies. This is an explicit definition of their preimages, not a serialization
 of internal checker handles. Shapes retain required but untyped fields and the

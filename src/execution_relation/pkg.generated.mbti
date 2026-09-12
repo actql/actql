@@ -4,6 +4,7 @@ package "actql/actql/execution_relation"
 import {
   "actql/actql/canonical_json",
   "actql/actql/decode_core",
+  "actql/actql/encode_core",
   "actql/actql/lowering_relation",
   "actql/actql/relation_schema",
   "actql/actql/value_admission",
@@ -11,6 +12,8 @@ import {
 }
 
 // Values
+pub fn admit_ordered_contract(RegisteredRelationContracts, @canonical_json.CanonicalValue, RegistryLimits) -> Result[RegisteredOrderedContract, OrderedContractIssue]
+
 pub fn admit_relation_registry(@canonical_json.CanonicalValue, @canonical_json.CanonicalValue, RegistryLimits) -> Result[RegisteredRelationContracts, RegistryIssue]
 
 pub fn binary(@lowering_relation.BinaryOperator, Value, Value) -> Result[Value, ScalarIssue]
@@ -35,6 +38,14 @@ pub fn captured_schema(CapturedRows) -> @relation_schema.Schema
 
 pub fn captured_usage(CapturedRows) -> ValueUsage
 
+pub fn emit_ordered_params(OrderedParams, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
+
+pub fn ordered_params_kernel(OrderedParams) -> @lowering_relation.PreparedKernel
+
+pub fn ordered_params_registry(OrderedParams) -> RegisteredRelationContracts
+
+pub fn prepare_ordered_params(RegisteredOrderedContract, @lowering_relation.OrderedReferences) -> OrderedParams
+
 pub fn unary(@lowering_relation.UnaryOperator, Value) -> Result[Value, ScalarIssue]
 
 // Errors
@@ -57,6 +68,16 @@ pub(all) enum CaptureOrigin {
 } derive(Eq, @debug.Debug)
 
 type CapturedRows
+
+pub(all) enum OrderedContractIssue {
+  InvalidOrderedContractLimits
+  OrderedContractBodyLimit
+  OrderedContractMismatch
+}
+
+type OrderedParams
+
+type RegisteredOrderedContract
 
 type RegisteredRelationContracts
 

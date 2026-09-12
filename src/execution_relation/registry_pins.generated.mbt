@@ -5,3 +5,6 @@ let selected_registry_cid : String = "sha256:c88b89effec8107537a1064c2b8332f20de
 
 ///|
 let selected_values_contract_cid : String = "sha256:c95bc0d474fd6fbe62d3182bdefe6af412070f6ad2c8e102c5279d7a8b3eed17"
+
+///|
+let selected_ordered_contract_cid : String = "sha256:90f5a71e31aa6a60c1961b7039a87f3a2849c4a793aaba3d776a166176fc28b9"
