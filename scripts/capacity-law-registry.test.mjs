@@ -4,6 +4,20 @@ import { readFileSync } from 'node:fs';
 import { machineCid } from './actql-spec-family.mjs';
 import { validateRegistry, loadRegistry, renderRegistry, renderGuardLaws } from './capacity-law-registry.mjs';
 
+test('compiler selects the registered bound transfer classification body', () => {
+  const path = 'spec/contracts/actql-bound-transfer-laws.json';
+  const body = JSON.parse(readFileSync(new URL(`../${path}`, import.meta.url), 'utf8'));
+  const cid = 'sha256:014682262d00c8435f300731e823e5b267ec66b78f980c765c4fd3772c68c911';
+  assert.equal(machineCid(body), cid);
+  assert.deepEqual(Object.keys(body).sort(), ['operations', 'version']);
+  const family = JSON.parse(readFileSync(new URL('../spec/spec-family.json', import.meta.url), 'utf8'));
+  const references = family.documents.flatMap(document => document.machine_contracts ?? []).filter(ref => ref.path === path);
+  assert.ok(references.length > 0);
+  for (const ref of references) assert.deepEqual(ref, {path, pointer: '', cid, version: body.version});
+  const implementation = readFileSync(new URL('../src/pipeline_check_context/core_contracts.mbt', import.meta.url), 'utf8');
+  assert.ok(implementation.replace(/\s+/g, ' ').includes(`BoundTransferRules => "${cid}"`));
+});
+
 test('values count law has a separately pinned semantic body', () => {
   const path = 'spec/contracts/actql-bound-values-law.json';
   const body = JSON.parse(readFileSync(new URL(`../${path}`, import.meta.url), 'utf8'));

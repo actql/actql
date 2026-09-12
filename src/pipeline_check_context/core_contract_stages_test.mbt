@@ -22,8 +22,8 @@ test "Stage contract selections retain transitive dependencies without borrowing
     max_edges: 100,
   }).unwrap()
   assert_eq(core_contract_stage_count(v), 2)
-  assert_eq(core_contract_stage_body_count(v, 0), Some(27))
-  assert_eq(core_contract_stage_body_count(v, 1), Some(29))
+  assert_eq(core_contract_stage_body_count(v, 0), Some(28))
+  assert_eq(core_contract_stage_body_count(v, 1), Some(30))
   assert_false(
     stage_has_contract(v, 0, StageSemantics(@environment.GateRequirement)),
   )

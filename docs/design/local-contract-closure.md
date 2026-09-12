@@ -180,6 +180,16 @@ interpret evidence and deferred execution checks, not only result-type rules.
 An operation's quantity-specific capacity law is a semantic dependency; a
 concrete Host ceiling or measured row count is an application of that law.
 
+Every owned operation occurrence selects the existing
+`actql-bound-transfer-laws/0.1` body at
+`spec/contracts/actql-bound-transfer-laws.json`, pointer `""`, pinned as
+`sha256:014682262d00c8435f300731e823e5b267ec66b78f980c765c4fd3772c68c911`.
+This is the governing operation classification, including carrier-specific and
+explicitly unknown cases, not a proof or a replacement for quantity-specific
+law bodies. Source sites retain Stage, producer visit and step coordinates;
+shared storage does not merge those owners. The registered body has no external
+contract-reference fields. Its classification labels are not Catalog IDs.
+
 Concrete Host policy decisions, capacity observations and resolved numeric
 ceilings belong to the applicable Plan/Invocation evidence, rather than being
 inserted into Unit Definition because the checker consulted them. Authored

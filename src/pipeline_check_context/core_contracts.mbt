@@ -31,6 +31,7 @@ pub(all) enum CoreContractBody {
   CalendarProfileData(String)
   TextRankProfileData(String)
   ValuesCountLaw
+  BoundTransferRules
 } derive(Eq, Debug)
 
 ///|
@@ -44,6 +45,7 @@ pub(all) enum CoreContractSite {
   OperationDataProfile(Int, Int, Int, @pipeline.OperationProfile)
   IncomingRules(Int)
   OperationCountLaw(Int, Int, Int)
+  OperationTransferRules(Int, Int, Int)
 } derive(Eq, Debug)
 
 ///|
@@ -286,6 +288,11 @@ pub fn collect_core_contracts(
         for step in 0..<@pipeline.step_count(pipeline) {
           core_contract_charge(b)
           let operation = @pipeline.step_at(pipeline, step).unwrap().operation
+          core_contract_root(
+            b,
+            OperationTransferRules(stage, visit, step),
+            BoundTransferRules,
+          )
           if operation is @pipeline.Values(_) {
             core_contract_root(
               b,
@@ -362,7 +369,7 @@ pub fn collect_core_contracts(
         | StageSemantics(_)
         | CalendarProfileData(_)
         | TextRankProfileData(_) => ()
-        ValuesCountLaw => ()
+        ValuesCountLaw | BoundTransferRules => ()
         CatalogGrammarBody(body) =>
           for edge in 0..<@environment.catalog_grammar_dependency_count(body) {
             core_contract_edge(b)
@@ -453,6 +460,8 @@ pub fn core_contract_cid(v : CoreContractBody) -> String {
     CalendarProfileData(cid) | TextRankProfileData(cid) => cid
     ValuesCountLaw =>
       "sha256:0e0f9b4b6585ab7b17bafe484e82f44cd8f3acc9eec5ef9329cea200237a7971"
+    BoundTransferRules =>
+      "sha256:014682262d00c8435f300731e823e5b267ec66b78f980c765c4fd3772c68c911"
   }
 }
 

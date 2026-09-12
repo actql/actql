@@ -812,6 +812,7 @@ pub(all) enum CoreContractBody {
   CalendarProfileData(String)
   TextRankProfileData(String)
   ValuesCountLaw
+  BoundTransferRules
 } derive(Eq, @debug.Debug)
 
 type CoreContractInventory
@@ -851,6 +852,7 @@ pub(all) enum CoreContractSite {
   OperationDataProfile(Int, Int, Int, @pipeline_typing.OperationProfile)
   IncomingRules(Int)
   OperationCountLaw(Int, Int, Int)
+  OperationTransferRules(Int, Int, Int)
 } derive(Eq, @debug.Debug)
 
 pub struct DedupeTopTieCheck {
