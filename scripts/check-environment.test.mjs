@@ -6,6 +6,40 @@ import {checkLookupCapacity} from './check-lookup-capacity.mjs';
 const read=p=>JSON.parse(readFileSync(p,'utf8'));
 const contract=read('spec/contracts/actql-check-environment.json');
 const corpus=read('portability/corpus/check-environment.json');
+test('lookup Host policy has separate wire and decoded ceilings without implicit defaults',()=>{
+  const c=read('portability/corpus/lookup-execution-policy.json');
+  const component=contract.policy_components.lookup_execution;
+  const s=component.schema;
+  assert.equal(c.version,'actql-lookup-execution-policy-vectors/0.1');
+  assert.equal(component.pointer,'/host_policy_profile/lookup_execution');
+  assert.equal(component.absent,'unresolved_no_implicit_defaults');
+  assert.equal(component.present,'validate_even_when_unused_null_is_not_absence');
+  assert.equal(component.identity,'full_canonical_component_body_no_exclusions');
+  assert.equal(s.additionalProperties,false);
+  assert.deepEqual(s.required,['version','max_network_attempts_per_request','max_request_bytes_per_attempt','max_total_request_bytes','max_total_response_bytes','max_total_decoded_response_bytes','max_total_duration_ms']);
+  // Only the explicit closed object/scalar schema subset; not policy selection.
+  function accepts(v){
+    if(!v||typeof v!=='object'||Array.isArray(v))return false;
+    if(s.required.some(k=>!Object.hasOwn(v,k)))return false;
+    return Object.entries(v).every(([k,x])=>{
+      const p=s.properties[k];if(!p)return false;
+      if(Object.hasOwn(p,'const'))return x===p.const;
+      assert.equal(p.type,'integer');
+      return typeof x==='number'&&Number.isInteger(x)&&x>=p.minimum&&x<=p.maximum;
+    });
+  }
+  for(const v of c.cases)assert.equal(accepts({...c.base,...v.patch}),v.accepted,v.id);
+  for(const k of s.required){
+    const v={...c.base};delete v[k];assert.equal(accepts(v),false,k);
+    if(k==='version')continue;
+    assert.deepEqual(s.properties[k],{type:'integer',minimum:1,maximum:9007199254740991});
+    for(const x of [0,-1,1.5,9007199254740992,'1',null])assert.equal(accepts({...c.base,[k]:x}),false,k);
+  }
+  for(const v of [null,[],{},true,1,'lookup'])assert.equal(accepts(v),false);
+  const bytes=canonicalText(c.base);
+  verifyIdentity(c.base,c.expected_cid,c.expected_canonical);
+  assert.notEqual(canonicalText({...c.base,max_total_response_bytes:65536,max_total_decoded_response_bytes:16384}),bytes);
+});
 test('lookup capacity fixed shapes distinguish completeness from hard limits',()=>{
   assert.equal(checkLookupCapacity(),22);
   const vectors=read('portability/corpus/lookup-capacity.json');

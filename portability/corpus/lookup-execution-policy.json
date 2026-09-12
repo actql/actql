@@ -1,0 +1,27 @@
+{
+  "version": "actql-lookup-execution-policy-vectors/0.1",
+  "expected_canonical": "{\"max_network_attempts_per_request\":3,\"max_request_bytes_per_attempt\":1024,\"max_total_decoded_response_bytes\":65536,\"max_total_duration_ms\":30000,\"max_total_request_bytes\":8192,\"max_total_response_bytes\":16384,\"version\":\"actql-lookup-execution-policy/0.1\"}",
+  "expected_cid": "sha256:82de374c9295b0ac8727956d9ec90ec9282c492d4d576505cf6c0b3e923fc209",
+  "base": {
+    "version": "actql-lookup-execution-policy/0.1",
+    "max_network_attempts_per_request": 3,
+    "max_request_bytes_per_attempt": 1024,
+    "max_total_request_bytes": 8192,
+    "max_total_response_bytes": 16384,
+    "max_total_decoded_response_bytes": 65536,
+    "max_total_duration_ms": 30000
+  },
+  "cases": [
+    {"id":"separate-wire-and-decoded","patch":{},"accepted":true},
+    {"id":"decoded-less-than-wire-is-not-a-shape-error","patch":{"max_total_decoded_response_bytes":1024},"accepted":true},
+    {"id":"retry-byte-feasibility-is-separate","patch":{"max_total_request_bytes":1},"accepted":true},
+    {"id":"safe-boundary","patch":{"max_total_decoded_response_bytes":9007199254740991},"accepted":true},
+    {"id":"unsafe-boundary","patch":{"max_total_decoded_response_bytes":9007199254740992},"accepted":false},
+    {"id":"zero-attempts","patch":{"max_network_attempts_per_request":0},"accepted":false},
+    {"id":"fractional-attempts","patch":{"max_network_attempts_per_request":1.5},"accepted":false},
+    {"id":"negative-deadline","patch":{"max_total_duration_ms":-1},"accepted":false},
+    {"id":"string-limit","patch":{"max_request_bytes_per_attempt":"1024"},"accepted":false},
+    {"id":"unknown-member","patch":{"allow_partial":true},"accepted":false},
+    {"id":"unknown-version","patch":{"version":"unknown"},"accepted":false}
+  ]
+}

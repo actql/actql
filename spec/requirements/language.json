@@ -5525,6 +5525,50 @@
       }
     },
     {
+      "requirement_id": "actql.language/external-joins.lookup-host-component",
+      "statement_sha256": "0b1fbd17fc00f0bb1ce9e47b583012b3ddf55cb33e22117d6599f0a2711b0c81",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "external-joins",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/external-joins.lookup-host-invalid-component",
+      "statement_sha256": "ecdacc200b6f3de8d4f7cd5d4e17f8741a6c5dd272f0728631ce3a8fce696ed8",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "external-joins",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/external-joins.lookup-host-accounting",
+      "statement_sha256": "59b9060137d6bf997e9eae083a2ba24195049faa59ecdfd3bac009acbbd3b76d",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "external-joins",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/external-joins.lookup-host-static-fit",
+      "statement_sha256": "3f047066b5c2a34d03e9fadf2d75876886c9cee25b87105cd39417dc2d9b29a4",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "external-joins",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.language/external-joins.upstream-candidate-completeness-and-complete-response-for-requested-keys-are-separate",
       "statement_sha256": "18bc03a8515630f01915a165c9d8455ae5d95166339636a752652c66e6a50605",
       "status": "pending",

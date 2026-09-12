@@ -6621,6 +6621,43 @@ needed to prove per-key completeness.
 The remaining request, batch, page, attempt, byte, and duration limits are
 physical execution constraints and MUST NOT appear in Program source.
 
+<!-- requirement-block: external-joins.lookup-host-component external-joins.lookup-host-invalid-component -->
+The selected Check Environment's `host_policy_profile.lookup_execution`
+component MUST follow `policy_components.lookup_execution.schema` in
+`actql-check-environment.json`: a closed object with
+`version: "actql-lookup-execution-policy/0.1"` and six positive safe-integer
+ceilings: `max_network_attempts_per_request`, `max_request_bytes_per_attempt`,
+`max_total_request_bytes`, `max_total_response_bytes`,
+`max_total_decoded_response_bytes` and `max_total_duration_ms`.
+Absence leaves lookup execution unresolved without defaults. A present null or
+invalid component MUST fail component admission even when no lookup uses it.
+Its identity is the canonical CID of the entire component with no exclusions;
+admission retains its exact Check Environment membership.
+
+<!-- requirement-block: external-joins.lookup-host-accounting -->
+Lookup execution MUST enforce these ceilings against the existing
+[lookup accounting](protocols/artifacts.md#lookup-acquisition-identities) counters: request octets
+per attempt and in total, `response_wire_bytes` for `max_total_response_bytes`,
+and `response_decoded_bytes` for `max_total_decoded_response_bytes`. Neither
+response total substitutes for the other. Redirects, failed attempts, and
+conservative reservations for unresolved usage remain charged by that protocol.
+The attempt ceiling includes redirect network dispatches as well as initial
+dispatch and retries for one logical request. `max_total_duration_ms` limits
+the acquisition-wide elapsed deadline, including resumed waiting, not a sum of
+parallel attempt durations or a fresh deadline on resume.
+
+<!-- requirement-block: external-joins.lookup-host-static-fit -->
+Static capacity resolution MUST check that the SourceView's worst-case complete
+logical decoded response fits the selected decoded-response ceiling using
+checked arithmetic. This does not prove the wire extent of a compressed
+response. Selected transport plans additionally fit their own request, response,
+redirect and timeout constraints and the aggregate envelope. In particular, the
+existing HTTP network policy retains its separate compressed/decompressed
+per-request bounds; this Host component does not replace them. Declaring a
+maximum retry count grants no retry capability and does not guarantee that all
+retries fit the remaining byte or deadline budgets. Dispatch and unresolved-usage
+reservations remain subject to those budgets before further work is admitted.
+
 <!-- requirement-block: external-joins.upstream-candidate-completeness-and-complete-response-for-requested-keys-are-separate external-joins.acquisitions-with-different-input-aliases-response-policies-null-policies-or -->
 The capacity proof binds the left row bound, SourceView and carrier-facts CIDs,
 Host-policy CID, and every resolved bound. `complete` concerns one successful

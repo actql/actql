@@ -135,6 +135,17 @@ Program identity. Host bindings remain explicitly unresolved.
 
 ## Lookup capacity facts
 
+The Host `lookup_execution` component supplies the separate acquisition envelope.
+Sketch `87dc7144` reads five unversioned positive-safe-integer fields there but
+does not define a closed shared schema. The Check Environment contract now
+fixes that component and adds an explicit aggregate decoded-response ceiling.
+This follows the existing lookup accounting protocol's distinction between
+wire and decoded bytes; the reference compiler's comparison of one response
+byte cap with logical page bytes is not imported as a proof of both units.
+Existing transport-policy per-attempt compressed/decompressed bounds and
+timeouts remain authoritative and are not duplicated as new source vocabulary.
+The component is not a backend capability or authorization claim.
+
 The external-join rules require per-key completeness and finite source capacity,
 but previously did not define their carrier-facts component grammar. The shared
 Check Environment contract defines a closed, versioned `lookup_capacity`

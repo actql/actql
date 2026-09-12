@@ -65,6 +65,21 @@ const body = {
     },
   },
   policy_components:{
+    lookup_execution:{
+      pointer:'/host_policy_profile/lookup_execution',
+      schema:{
+        type:'object',additionalProperties:false,
+        required:['version','max_network_attempts_per_request','max_request_bytes_per_attempt','max_total_request_bytes','max_total_response_bytes','max_total_decoded_response_bytes','max_total_duration_ms'],
+        properties:{
+          version:{const:'actql-lookup-execution-policy/0.1'},
+          ...Object.fromEntries(['max_network_attempts_per_request','max_request_bytes_per_attempt','max_total_request_bytes','max_total_response_bytes','max_total_decoded_response_bytes','max_total_duration_ms'].map(k=>[k,{type:'integer',minimum:1,maximum:9007199254740991}])),
+        },
+      },
+      identity:'full_canonical_component_body_no_exclusions',
+      absent:'unresolved_no_implicit_defaults',
+      present:'validate_even_when_unused_null_is_not_absence',
+      selection:'retain_exact_environment_membership_no_implicit_policy_substitution',
+    },
     text_time_evaluation:{
       pointer:'/host_policy_profile/text_time_evaluation',
       schema:{path:'spec/contracts/actql-expressions.json',pointer:'/schemas/fragment/properties/request/properties/text_time_policy',cid:machineCid(JSON.parse(readFileSync('spec/contracts/actql-expressions.json','utf8')).schemas.fragment.properties.request.properties.text_time_policy)},
