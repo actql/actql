@@ -177,20 +177,35 @@ fn evaluate_layout_body(
   workspace : RowWorkspace,
   storage_budget : LayoutAllocation,
   logical : LogicalBudget?,
+  source? : RowBodySource? = None,
+  output_id_override? : String? = None,
+  maximum_rows? : Int? = None,
 ) -> Result[LayoutRelation, RowIssue] {
-  let output_id = @lower.node_id(
-    @lower.node_at(
-      @lower.bound_preparation(@lower.kernel_owner(kernel)),
-      @lower.kernel_step(kernel),
-    ).unwrap(),
-  )
+  let max_rows = match maximum_rows {
+    Some(limit) => limit
+    None => input.storage.count
+  }
+  let output_id = match output_id_override {
+    Some(id) => id
+    None =>
+      @lower.node_id(
+        @lower.node_at(
+          @lower.bound_preparation(@lower.kernel_owner(kernel)),
+          @lower.kernel_step(kernel),
+        ).unwrap(),
+      )
+  }
+  let body = match source {
+    Some(body) => body
+    None => PreparedBody(kernel)
+  }
   if input.candidate == RowLayout {
     return match
       evaluate_row_body(
-        PreparedBody(kernel),
+        body,
         input,
         output_id,
-        input.storage.count,
+        max_rows,
         control,
         output,
         workspace,
@@ -213,15 +228,16 @@ fn evaluate_layout_body(
   }
   let schema = @relation.output_schema(@lower.kernel_checked(kernel))
   let filtering = @relation.operation(@lower.kernel_checked(kernel)) ==
-    @relation.Filter
+    @relation.Filter &&
+    body is PreparedBody(_)
   let kept : Array[Int] = []
   let mut projection : Array[Int]? = None
   let mut builder : LayoutColumnBuilder? = None
   let names = match
     evaluate_row_body_into(
-      PreparedBody(kernel),
+      body,
       input,
-      input.storage.count,
+      max_rows,
       control,
       output,
       workspace,

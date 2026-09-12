@@ -138,95 +138,109 @@ fn evaluate_rows_with_workspace(
   workspace : RowWorkspace,
   ordered_budget? : LogicalBudget? = None,
 ) -> Result[Table, RowIssue] {
-  if !physical_equal(@lower.kernel_owner(kernel), input.owner) {
+  evaluate_rows_dispatch(
+    kernel,
+    input,
+    {
+      sort: fn(kernel, input, id) {
+        evaluate_sort_rows(
+          kernel, input, id, max_rows, control, output, workspace,
+        )
+      },
+      dedupe: fn(kernel, input, id) {
+        evaluate_dedupe_rows(
+          kernel, input, id, max_rows, control, output, workspace,
+        )
+      },
+      distinct: fn(input, id) {
+        evaluate_distinct_rows(input, id, max_rows, control, output, workspace)
+      },
+      take: fn(input, id, count, offset) {
+        evaluate_take_rows(
+          input, id, count, offset, max_rows, control, output, workspace,
+        )
+      },
+      body: fn(body, input, id, logical) {
+        evaluate_row_body(
+          body,
+          input,
+          id,
+          max_rows,
+          control,
+          output,
+          workspace,
+          ordered_budget=logical,
+        )
+      },
+    },
+    ordered_budget~,
+  )
+}
+
+///|
+// Physical callbacks never choose semantic prefixes or reinterpret a kernel.
+priv struct RowBackend[T] {
+  sort : (@lower.PreparedKernel, T, String) -> Result[T, RowIssue]
+  dedupe : (@lower.PreparedKernel, T, String) -> Result[T, RowIssue]
+  distinct : (T, String) -> Result[T, RowIssue]
+  take : (T, String, Int64, Int64) -> Result[T, RowIssue]
+  body : (RowBodySource, T, String, LogicalBudget?) -> Result[T, RowIssue]
+}
+
+///|
+fn[T : RelationRows] evaluate_rows_dispatch(
+  kernel : @lower.PreparedKernel,
+  input : T,
+  backend : RowBackend[T],
+  ordered_budget? : LogicalBudget? = None,
+) -> Result[T, RowIssue] {
+  if !physical_equal(@lower.kernel_owner(kernel), input.checked_owner()) {
     return Err(OwnerMismatch)
   }
-  if @lower.kernel_input(kernel) != input.id {
+  if @lower.kernel_input(kernel) != input.relation_id() {
     return Err(InputMismatch)
   }
-  let prepared = @lower.bound_preparation(input.owner)
+  let prepared = @lower.bound_preparation(input.checked_owner())
   let node = @lower.node_at(prepared, @lower.kernel_step(kernel)).unwrap()
   if @relation.operation(@lower.kernel_checked(kernel)) == @relation.Sort {
-    return evaluate_sort_rows(
-      kernel,
-      input,
-      @lower.node_id(node),
-      max_rows,
-      control,
-      output,
-      workspace,
-    )
+    return (backend.sort)(kernel, input, @lower.node_id(node))
   }
   if @relation.operation(@lower.kernel_checked(kernel)) == @relation.DedupeRows {
-    return evaluate_dedupe_rows(
-      kernel,
-      input,
-      @lower.node_id(node),
-      max_rows,
-      control,
-      output,
-      workspace,
-    )
+    return (backend.dedupe)(kernel, input, @lower.node_id(node))
   }
   if @relation.operation(@lower.kernel_checked(kernel)) == @relation.Distinct {
     let selected = match @lower.projection_node_id(node) {
       None => input
       Some(id) =>
         match
-          evaluate_row_body(
+          (backend.body)(
             CheckedProjection(@lower.kernel_checked(kernel)),
             input,
             id,
-            max_rows,
-            control,
-            output,
-            workspace,
+            None,
           ) {
           Ok(table) => table
           Err(e) => return Err(e)
         }
     }
-    return evaluate_distinct_rows(
-      selected,
-      @lower.node_id(node),
-      max_rows,
-      control,
-      output,
-      workspace,
-    )
+    return (backend.distinct)(selected, @lower.node_id(node))
   }
   if @lower.kernel_take(kernel) is Some((count, offset)) {
     let input = if @lower.order_node_id(node) is Some(id) {
-      match
-        evaluate_sort_rows(
-          kernel, input, id, max_rows, control, output, workspace,
-        ) {
+      match (backend.sort)(kernel, input, id) {
         Ok(table) => table
         Err(e) => return Err(e)
       }
     } else {
       input
     }
-    return evaluate_take_rows(
-      input,
-      @lower.node_id(node),
-      count,
-      offset,
-      max_rows,
-      control,
-      output,
-      workspace,
-    )
+    return (backend.take)(input, @lower.node_id(node), count, offset)
   }
-  evaluate_row_body(
+  (backend.body)(
     PreparedBody(kernel),
     input,
     @lower.node_id(node),
-    max_rows,
-    control,
-    output,
-    workspace,
-    ordered_budget~,
+    ordered_budget,
   )
 }
 
