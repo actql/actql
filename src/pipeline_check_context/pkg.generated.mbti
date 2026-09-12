@@ -27,7 +27,7 @@ import {
 }
 
 // Values
-pub fn assemble_preparation(SourceProducerContext, TextBoundsChecks, PreparationBudget) -> Result[ProgramPreparation, PreparationIssue]
+pub fn assemble_preparation(SourceProducerContext, TextBoundsChecks, ExpressionProfileChecks, PreparationBudget) -> Result[ProgramPreparation, PreparationIssue]
 
 pub fn attach_environment(InputContexts, @stage_local_inputs.ProgramEnvironmentInputs, max_work~ : Int, max_text_bytes~ : Int, max_local_input_nodes~ : Int) -> Result[EnvironmentContext, EnvironmentIssue]
 
@@ -50,6 +50,8 @@ pub fn bind_source_producers(SourceCapacityContext, Array[Array[(Int, Int)]], In
 pub fn bound_guards(PipelineContext) -> @pipeline_typing.BoundGuardClosure
 
 pub fn check(@relation_results.CheckedResults, Array[@parameter_binding.BoundValues?], Array[@capacity_graph_preflight.ApplicationCoverage], @capacity_policy.Policy, Limits, proof_owners? : Array[(Int, Int, Int)], input_owners? : Array[(Int, Int, Int, Int)]) -> Result[PipelineContext, Issue]
+
+pub fn check_expression_profiles(ExpressionValidationContext, ExpressionProfiles, Int) -> Result[ExpressionProfileChecks, ExpressionProfilesIssue]
 
 pub fn check_like_patterns(ExpressionValidationContext, LikePatternLimits) -> Result[LikePatternChecks, LikePatternIssue]
 
@@ -84,6 +86,16 @@ pub fn environment_inputs(EnvironmentContext) -> InputContexts
 pub fn environment_snapshots(EnvironmentContext) -> @stage_local_inputs.ProgramEnvironmentInputs
 
 pub fn environment_usage(EnvironmentContext) -> InputUsage
+
+pub fn expression_profiles_context(ExpressionProfileChecks) -> ExpressionValidationContext
+
+pub fn expression_profiles_count(ExpressionProfileChecks) -> Int
+
+pub fn expression_profiles_declared(ExpressionProfileChecks) -> ExpressionProfiles
+
+pub fn expression_profiles_diagnostic(ExpressionProfilesIssue) -> String?
+
+pub fn expression_profiles_work(ExpressionProfileChecks) -> Int
 
 pub fn expression_requirement_at(PipelineContext, Int) -> ExpressionRequirement?
 
@@ -142,6 +154,8 @@ pub fn pattern_usage(PatternChecks) -> PatternUsage
 pub fn policy_context(SelectedPolicyContext) -> ReconciledContexts
 
 pub fn preparation_expressions(ProgramPreparation) -> TextBoundsChecks
+
+pub fn preparation_profiles(ProgramPreparation) -> ExpressionProfileChecks
 
 pub fn preparation_sources(ProgramPreparation) -> SourceProducerContext
 
@@ -324,6 +338,19 @@ pub(all) enum EnvironmentIssue {
   BudgetExceeded
 } derive(Eq, @debug.Debug)
 
+type ExpressionProfileChecks
+
+pub(all) struct ExpressionProfiles {
+  text_time : Bool
+  veca : Bool
+} derive(Eq, @debug.Debug)
+
+pub(all) enum ExpressionProfilesIssue {
+  InvalidLimits
+  BudgetExceeded
+  UnsupportedProfile(Int, String)
+} derive(Eq, @debug.Debug)
+
 pub struct ExpressionRequirement {
   visit : Int
   step : Int
@@ -473,6 +500,7 @@ pub(all) struct PreparationBudget {
 pub(all) enum PreparationIssue {
   InvalidLimits
   ForeignSelectedPolicy
+  ForeignExpressionProfiles
   BudgetExceeded
 } derive(Eq, @debug.Debug)
 

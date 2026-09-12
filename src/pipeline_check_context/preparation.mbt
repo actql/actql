@@ -15,6 +15,7 @@ pub(all) struct PreparationBudget {
 pub(all) enum PreparationIssue {
   InvalidLimits
   ForeignSelectedPolicy
+  ForeignExpressionProfiles
   BudgetExceeded
 } derive(Eq, Debug)
 
@@ -23,15 +24,17 @@ pub(all) enum PreparationIssue {
 struct ProgramPreparation {
   sources : SourceProducerContext
   expressions : TextBoundsChecks
+  profiles : ExpressionProfileChecks
   usage : PreparationBudget
 }
 
 ///|
 /// Join source and expression checks at their exact common selected policy.
-/// Retains all unresolved bindings, profile checks and runtime obligations.
+/// Retains unresolved bindings, operation profile checks and runtime obligations.
 pub fn assemble_preparation(
   sources : SourceProducerContext,
   expressions : TextBoundsChecks,
+  profiles : ExpressionProfileChecks,
   limits : PreparationBudget,
 ) -> Result[ProgramPreparation, PreparationIssue] {
   if limits.work < 0 ||
@@ -45,6 +48,9 @@ pub fn assemble_preparation(
     return Err(InvalidLimits)
   }
   let validation = expressions.patterns.context
+  if !physical_equal(validation, profiles.context) {
+    return Err(ForeignExpressionProfiles)
+  }
   let selected = sources.capacity.context.policy
   if !physical_equal(selected, validation.selected) {
     return Err(ForeignSelectedPolicy)
@@ -52,9 +58,11 @@ pub fn assemble_preparation(
   // The exact shared selected-policy preparation is counted once. Each branch
   // retains monotonic usage, and subtraction precedes bounded addition.
   let extra_work = expressions.usage.work - selected.usage.work
+  let profile_work = profiles.work - validation.usage.work
   let requests = sources.capacity.context.rows.requests
   if sources.work >= limits.work ||
     extra_work > limits.work - sources.work - 1 ||
+    profile_work > limits.work - sources.work - 1 - extra_work ||
     expressions.usage.text_bytes > limits.text_bytes ||
     requests.text > limits.text_bytes - expressions.usage.text_bytes ||
     requests.nodes > limits.source_value_nodes ||
@@ -68,8 +76,9 @@ pub fn assemble_preparation(
   Ok({
     sources,
     expressions,
+    profiles,
     usage: {
-      work: sources.work + extra_work + 1,
+      work: sources.work + extra_work + profile_work + 1,
       text_bytes: expressions.usage.text_bytes + requests.text,
       source_value_nodes: requests.nodes,
       source_comparison_pairs: requests.pairs,
@@ -89,6 +98,11 @@ pub fn preparation_sources(v : ProgramPreparation) -> SourceProducerContext {
 ///|
 pub fn preparation_expressions(v : ProgramPreparation) -> TextBoundsChecks {
   v.expressions
+}
+
+///|
+pub fn preparation_profiles(v : ProgramPreparation) -> ExpressionProfileChecks {
+  v.profiles
 }
 
 ///|

@@ -506,6 +506,8 @@ or short cumulative budgets.
 This context integrates the supported order, guard-binding and capacity subset.
 `assemble_preparation` joins the source producer/application checks and expression
 pattern/extent checks through their exact common `SelectedPolicyContext`.
+Expression profile checks must additionally belong to the exact expression
+validation context; a separately checked equal Program is not interchangeable.
 Separate checks of equal Program bytes or policy CIDs do not authorize mixing
 the branches. `ProgramPreparation` is opaque and retains both checked owners;
 it does not accept a caller's list of independently attachable site proofs.
@@ -515,9 +517,24 @@ preparation plus source-request literal text. Source comparison pairs/value node
 local-input nodes, policy nodes and pattern AST bytes/nodes remain separate
 accounting dimensions, each with an inclusive cap. None is a whole-heap bound.
 The original SourceView and expression results retain all unresolved Host
-bindings, profile demands and runtime obligations. This assembly does not
+bindings, operation-level profile demands and runtime obligations. This assembly does not
 turn an empty unresolved-binding count into acquisition authority, construct
 semantic identity envelopes, or declare a lowering-ready Program.
+
+`check_expression_profiles` checks every retained `ProfileAdmission` occurrence,
+including unselected branches and repeated producer visits, against explicit
+checker declarations for the complete text-time and VecA profiles. The scope of
+this check is expression demands, not the complete module's operation inventory.
+These declarations are configuration, not a conformance certificate or a claim
+that this package implements the complete modules. They are neither the Host's
+discovery `supported_profiles` nor backend execution capabilities. Unsupported
+requirements retain their original site index and profile ID and classify as
+`ACTQL_E_PROFILE_UNSUPPORTED`, following
+[Conformance profiles](../spec/conformance.md#conformance-profiles).
+The owned result retains the exact validation context and declared selection;
+it does not discharge pattern, Host-envelope or operation-wide profile demands.
+Assembly requires this result, counts its incremental scan work once, and
+exposes it for consumers without admitting independently attachable site proofs.
 
 It does not discharge every operation's static/profile/pattern obligation, bind
 authored guard witness identities, build staged Program/import contracts, or
