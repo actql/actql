@@ -319,9 +319,6 @@ fn evaluate_row_body_impl(
   // Complete input admission precedes all binding evaluation and shadowing.
   let input_roots : Array[ExpressionRootLease] = []
   if scope is Some(s) {
-    if !(kind is OrderedBindings(_)) {
-      return Err(InvalidRowLimits)
-    }
     match admit_logical_rows(s.budget, input.rows.length().to_int64()) {
       Ok(_) => ()
       Err(e) => return Err(LogicalRows(e))
@@ -394,6 +391,7 @@ fn evaluate_row_body_impl(
             [],
             control,
             workspace,
+            logical_work=scope.map(s => s.budget),
           ) {
           Ok(v) => v
           Err(e) => return Err(Evaluation(row_index, 0, e))
@@ -410,6 +408,12 @@ fn evaluate_row_body_impl(
               row.push(v)
             }
           Boolean(false) | Null => {
+            if scope is Some(_) {
+              match release_expression_root(input_roots[row_index]) {
+                Ok(_) => ()
+                Err(e) => return Err(LogicalRows(e))
+              }
+            }
             release_slots(workspace, snapshot.length())
             continue
           }
@@ -428,19 +432,36 @@ fn evaluate_row_body_impl(
         }
         for slot = 0; slot < bindings.length(); slot = slot + 1 {
           let expr = bindings[slot].1
+          if scope is Some(s) {
+            match charge_logical_work(s.budget, 1L) {
+              Ok(_) => ()
+              Err(e) => return Err(LogicalRows(e))
+            }
+            if !reserve_slots(workspace, 1) {
+              return Err(RowLimit)
+            }
+          }
           match
-            evaluate_expression_with_workspace(
+            evaluate_expression_retained(
               expr,
               snapshot,
               [],
               control,
               workspace,
+              logical_work=scope.map(s => s.budget),
             ) {
             Ok(v) => {
+              if scope is Some(s) {
+                guard v.root is Some(root) else { return Err(InvalidRows) }
+                match register_scope_root(s, root) {
+                  Ok(lease) => slot_roots.push(lease)
+                  Err(e) => return Err(LogicalRows(e))
+                }
+              }
               if !reserve_slots(workspace, 1) {
                 return Err(RowLimit)
               }
-              row.push(v)
+              row.push(v.value)
             }
             Err(e) => return Err(Evaluation(row_index, slot, e))
           }

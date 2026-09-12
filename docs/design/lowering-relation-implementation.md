@@ -958,6 +958,14 @@ does not admit arbitrary saved JSON, reparse author source, or discharge runtime
 input/key/order/value-limit obligations. The execution boundary must still
 enforce those obligations before using the retained checked kernel.
 
+The shared row evaluator accepts logical accounting for snapshot maps and
+filters as well as ordered bindings. Map results remain leased until the
+complete output row is accounted; filter predicates use the same expression
+evaluator and release both the predicate and rejected input roots. Input
+admission precedes expression evaluation, and errors clean up all logical
+roots without publishing a partial table. This internal accounting hook does
+not yet choose request/Host limits or establish input evidence on its own.
+
 Each expression root retains its exact typed owner. Source projection reads the
 normalized syntax of that owner; machine-node projection reads the bound lowered
 expression. A Parameter remains a reference in source while becoming a literal
