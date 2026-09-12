@@ -5,8 +5,8 @@
 /// unless explicitly included in the comparison columns.
 /// Returned indices own their workspace slots. Failure releases only this call's
 /// workspace, never rolls back work, and never publishes partial survivors.
-fn distinct_indices(
-  table : Table,
+fn[T : IndexedRows] distinct_indices(
+  table : T,
   columns : Array[Int],
   control : ControlBudget,
   workspace : RowWorkspace,
@@ -31,7 +31,7 @@ fn distinct_indices(
       Ok(v) => v
       Err(e) => return Err(e)
     }
-    let count = table.rows.length()
+    let count = table.row_count()
     if !reserve_slots(workspace, count) || !spend_control(control, count) {
       return Err(Limit)
     }

@@ -8,8 +8,8 @@ priv enum DedupeIssue {
 ///|
 /// Canonical tuple identity for admitted scalar keys, including repeated fields.
 /// This is group ordering, never a representative-row tie-break.
-fn dedupe_key_identity(
-  table : Table,
+fn[T : IndexedRows] dedupe_key_identity(
+  table : T,
   row : Int,
   by : Array[ColumnOrder],
   control : ControlBudget,
@@ -19,10 +19,10 @@ fn dedupe_key_identity(
     @encode.begin_array(writer)
     for key in by {
       if !spend_control(control, 1) ||
-        !charge_comparison_operand(control, table.rows[row][key.column]) {
+        !charge_comparison_operand(control, table.read_cell(row, key.column)) {
         return Err(Ordering(Limit))
       }
-      let value = table.rows[row][key.column]
+      let value = table.read_cell(row, key.column)
       match value {
         Null | Number(_) | Boolean(_) | Text(_) =>
           emit_runtime_value(value, writer)
@@ -56,8 +56,8 @@ fn dedupe_key_identity(
 /// in canonical tuple-CID order. No hash match substitutes for key equality.
 /// All top ties are retained until canonical group ordering determines which
 /// failure comes first. No survivor index escapes on any failure.
-fn dedupe_indices(
-  table : Table,
+fn[T : IndexedRows] dedupe_indices(
+  table : T,
   by : Array[ColumnOrder],
   order : Array[ColumnOrder],
   control : ControlBudget,
@@ -132,12 +132,7 @@ fn dedupe_indices(
     if !reserve_slots(workspace, 1) {
       return Err(Ordering(Limit))
     }
-    let groups : Table = {
-      owner: table.owner,
-      id: table.id,
-      names: ["key_identity"],
-      rows: identities,
-    }
+    let groups : DedupeIdentities = { rows: identities, }
     let ordered = match
       stable_order_indices(
         groups,
@@ -182,4 +177,30 @@ fn dedupe_indices(
   }
   release_slots(workspace, workspace.live - baseline - retained)
   result
+}
+
+///|
+// Scratch keys are not a Relation and carry no fabricated checked owner.
+priv struct DedupeIdentities {
+  rows : Array[Array[Value]]
+}
+
+///|
+impl IndexedRows for DedupeIdentities with fn row_count(self) {
+  self.rows.length()
+}
+
+///|
+impl IndexedRows for DedupeIdentities with fn column_count(_self) {
+  1
+}
+
+///|
+impl IndexedRows for DedupeIdentities with fn row_width(self, row) {
+  self.rows[row].length()
+}
+
+///|
+impl IndexedRows for DedupeIdentities with fn read_cell(self, row, column) {
+  self.rows[row][column]
 }
