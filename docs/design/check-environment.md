@@ -327,6 +327,39 @@ object members and mode records cumulatively across views, and returns no partia
 result after a later failure. It does not close correlation, Carrier, Command or
 authority admission.
 
+## SourceView request and correlation types
+
+`check_source_request_contracts` consumes CarrierSchemas and resolves every
+SourceView's request reference to its already checked non-null object contract,
+including views without correlation. The input syntax binds named whole-field
+slots, so a scalar or nullable request root cannot describe that request object.
+Other value-contract roles do not inherit this root restriction.
+
+The reference Catalog constructor at Sketch `87dc7144:src/actql-protocol.ts`
+checks paired field existence and coarse type names and excludes scan
+correlation. The normative clarification keeps ordered, equal-length tuples and
+uses the existing KeyComparable relation instead of a second coarse comparator.
+For example decimal precision/scale and artifact media restrictions can differ
+without changing the equality domain. Request value admission and Ref authority
+still enforce their respective contracts; compatibility is not permission to
+coerce values or bypass either side's constraints.
+
+Record-field correlation is applicable to Relation, Events and Vectors; Graph
+does not have one unambiguous field space. Rejecting that field-based declaration
+does not forbid non-correlated Graph SourceViews or invent a node/edge flattening.
+External join selection remains more restrictive than Catalog declaration: it
+requires the specified Relation access path, completeness, bounds and policy.
+Acquisition response identity is distinct from an intrinsic event/vector ID and
+is retained as an ordered non-null comparable tuple, not inferred uniqueness.
+
+Request references are indexed once per view. Field lookups reuse immutable
+admitted schemas; role arrays and reference traversal share aggregate budgets
+across views even when they share schema envelopes. Original role cursors retain
+error positions and the opaque result retains exact Catalog/environment owners.
+No partial success escapes a later failure. Native batching transport schemas,
+provider semantics, data cardinality, completeness and uniqueness are not proved
+by this boundary and remain separate required validation.
+
 ## Capacity component selection
 
 The normative component selector is now `/host_policy_profile/capacity`, with

@@ -7,6 +7,7 @@ import {
   "actql/actql/decode_core",
   "actql/actql/encode_core",
   "actql/actql/graph_contract",
+  "actql/actql/relation_schema",
   "actql/actql/text_time_policy",
   "actql/actql/value_contract",
   "moonbitlang/core/debug",
@@ -62,6 +63,8 @@ pub fn check_protocol_value_contracts(SourceDataPolicies, ValueContractLimits) -
 pub fn check_source_data_policies(CatalogReferences, DataPolicyLimits) -> Result[SourceDataPolicies, DataPolicyIssue]
 
 pub fn check_source_read_modes(SourceViewShapes, Int) -> Result[SourceReadModes, SourceReadModeIssue]
+
+pub fn check_source_request_contracts(CarrierSchemas, SourceRequestLimits) -> Result[SourceRequestContracts, SourceRequestIssue]
 
 pub fn check_source_view_shapes(ProtocolValueContracts, SourceViewShapeLimits) -> Result[SourceViewShapes, SourceViewShapeIssue]
 
@@ -164,6 +167,34 @@ pub fn reference_usage(CatalogReferences) -> (Int, Int)
 pub fn resolve_catalog_contract(Catalog, String, String, String, String) -> Result[ContractEnvelope, CatalogIssue]
 
 pub fn resolve_contract(ContractRegistry, String, String, String, String) -> Result[ContractEnvelope, ContractIssue]
+
+pub fn source_correlation_cardinality(SourceCorrelation) -> SourceCardinality
+
+pub fn source_correlation_identity_at(SourceCorrelation, Int) -> CorrelationRole?
+
+pub fn source_correlation_identity_count(SourceCorrelation) -> Int
+
+pub fn source_correlation_pair_at(SourceCorrelation, Int) -> CorrelationPair?
+
+pub fn source_correlation_pair_count(SourceCorrelation) -> Int
+
+pub fn source_correlation_source(SourceCorrelation) -> @decode_core.Cursor
+
+pub fn source_request_at(SourceRequestContracts, Int) -> SourceViewRequestContract?
+
+pub fn source_request_carriers(SourceRequestContracts) -> CarrierSchemas
+
+pub fn source_request_correlation(SourceViewRequestContract) -> SourceCorrelation?
+
+pub fn source_request_for(SourceRequestContracts, Member) -> SourceViewRequestContract?
+
+pub fn source_request_member(SourceViewRequestContract) -> Member
+
+pub fn source_request_reference(SourceViewRequestContract) -> CatalogReference
+
+pub fn source_request_schema(SourceViewRequestContract) -> @relation_schema.Schema
+
+pub fn source_request_usage(SourceRequestContracts) -> (Int, Int, Int)
 
 pub fn source_view_carrier(CarrierSchemas, Member) -> SourceViewCarrier?
 
@@ -270,6 +301,17 @@ pub(all) enum ContractIssue {
 
 type ContractRegistry
 
+pub struct CorrelationPair {
+  request : CorrelationRole
+  response : CorrelationRole
+}
+
+pub struct CorrelationRole {
+  name : String
+  contract : @value_contract.Contract
+  source : @decode_core.Cursor
+}
+
 pub(all) enum DataClassification {
   Public
   Internal
@@ -343,6 +385,15 @@ pub(all) enum Section {
   ConnectorCatalogs
 } derive(Eq, @debug.Debug)
 
+pub(all) enum SourceCardinality {
+  ZeroOrOne
+  ZeroOrMany
+  One
+  OneOrMany
+} derive(Eq, @debug.Debug)
+
+type SourceCorrelation
+
 type SourceDataPolicies
 
 type SourceDataPolicy
@@ -371,11 +422,39 @@ pub(all) enum SourceReadModeKind {
 
 type SourceReadModes
 
+type SourceRequestContracts
+
+pub(all) struct SourceRequestIssue {
+  kind : SourceRequestIssueKind
+  source : @decode_core.Cursor?
+}
+
+pub(all) enum SourceRequestIssueKind {
+  InvalidLimits
+  WorkLimit
+  RoleLimit
+  InvalidRequestContract
+  InvalidAcquisition
+  UnsupportedResponseCarrier
+  MismatchedArity
+  UnknownRequestField(String)
+  UnknownResponseField(String)
+  IncomparableKeys
+  InvalidIdentity(String)
+} derive(Eq, @debug.Debug)
+
+pub(all) struct SourceRequestLimits {
+  max_work : Int
+  max_roles : Int
+}
+
 type SourceViewCarrier
 
 type SourceViewModes
 
 type SourceViewPolicy
+
+type SourceViewRequestContract
 
 pub(all) struct SourceViewShapeIssue {
   kind : SourceViewShapeIssueKind

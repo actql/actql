@@ -48,6 +48,12 @@ test "SourceView schema admission is distinct from already admitted references" 
   assert_eq(carrier_schema_usage(carriers), (0, 0, 0, 0))
   assert_true(physical_equal(carrier_schema_modes(carriers), modes))
   assert_true(carrier_schema_at(carriers, 0) is None)
+  let requests = check_source_request_contracts(carriers, {
+    max_work: 0,
+    max_roles: 0,
+  }).unwrap()
+  assert_eq(source_request_usage(requests), (0, 0, 0))
+  assert_true(physical_equal(source_request_carriers(requests), carriers))
   assert_true(
     check_carrier_schemas(modes, { ..carrier_limits, max_work: -1, }) is Err(e) &&
     e.kind == InvalidLimits,

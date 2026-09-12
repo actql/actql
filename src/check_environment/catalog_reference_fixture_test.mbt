@@ -54,6 +54,8 @@ fn reference_fixture(
   unused_carrier? : Json? = None,
   complete_view? : Bool = false,
   carrier? : String = "relation",
+  acquisition_kind? : String = "scan",
+  view_count? : Int = 1,
 ) -> CatalogContents raise {
   let kinds = [
     "request_schema", "carrier_schema", "carrier_facts", "pushdown", "checkpoint",
@@ -157,6 +159,10 @@ fn reference_fixture(
       old="\"@carrier\"",
       new=canonical_fixture(Json::string(carrier)),
     )
+    view_text = view_text.replace(
+      old="\"kind\":\"scan\"",
+      new="\"kind\":" + canonical_fixture(Json::string(acquisition_kind)),
+    )
     fields["view"] = @json.parse(view_text)
   }
   if !path.is_empty() {
@@ -164,18 +170,33 @@ fn reference_fixture(
   }
   guard value is Object(fields) else { abort("fixture") }
   let view = sealed_fixture(fields["view"], "contract_cid")
+  assert_true(view_count >= 1)
+  let views = [view]
+  let view_ids : Map[String, String] = Map([])
+  for i in 0..<view_count {
+    let cloned = @json.parse(view)
+    guard cloned is Object(parts) else { abort("view fixture") }
+    if i > 0 {
+      ignore(parts.remove("contract_cid"))
+      parts["view_id"] = Json::string("view-" + i.to_string())
+      views.push(sealed_fixture(cloned, "contract_cid"))
+    }
+    guard parts["contract_cid"] is String(cid) else { abort("view identity") }
+    view_ids[views[i]] = cid
+  }
+  views.sort_by((a, b) => view_ids[a].compare(view_ids[b]))
   let command = sealed_fixture(fields["command"], "contract_cid")
   let catalogs = if misplaced {
     [
-      catalog_fixture("example", [], views=[view], commands=[command]),
+      catalog_fixture("example", [], views~, commands=[command]),
       catalog_fixture("other", contracts),
     ]
   } else {
-    [catalog_fixture("example", contracts, views=[view], commands=[command])]
+    [catalog_fixture("example", contracts, views~, commands=[command])]
   }
   match
     check_catalog_contents(
-      catalog_environment(catalogs, contracts, views=[view], commands=[command]),
+      catalog_environment(catalogs, contracts, views~, commands=[command]),
       caps(),
     ) {
     Ok(v) => v

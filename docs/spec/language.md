@@ -1262,6 +1262,31 @@ The correlation contract also names request fields, response fields, and
 response identity; [External SourceView joins](#external-joins) defines their use in external joins. Join cardinality
 assertions use the distinct vocabulary and meaning in [join](#join).
 
+<!-- requirement-block: sourceviews.request-correlation-types -->
+Each SourceView's request contract MUST be a complete non-null checked object
+contract, including for views without correlation. Its fields may themselves
+be nullable; a nullable field still requires a value. A declared correlation
+uses a `search`, `fetch` or `follow` acquisition and refers to record fields of
+a Relation, Events or Vectors output. This field-based correlation grammar does
+not flatten a Graph's nodes or edges into a response record. Request and response
+field lists are nonempty, duplicate-free and have equal length. Positions pair
+in supplied order, and every pair resolves existing fields with compatible
+KeyComparable contracts. Their nullability, string extents and decimal
+precision/scale need not be identical; declaration compatibility does not bypass
+actual request-value constraints or the selected null-request policy.
+
+<!-- requirement-block: sourceviews.correlation-identity-types -->
+The declared response identity MUST be a nonempty ordered list of distinct
+existing response fields with non-null KeyComparable contracts. It may overlap
+the response key fields and need not equal an Events or Vectors intrinsic
+identity role. It is an acquisition response identity, not a replacement for
+that Carrier's semantic identity. Validation retains all supplied tuple orders
+and exact contract ownership without coercion. Non-null types alone do not prove
+identity uniqueness, response cardinality, completeness, ordering or successful
+request execution. The existing acquisition obligations still enforce those
+claims on actual responses. Native batching's transport contract and value
+validation are separate from these single-request correlation declarations.
+
 <!-- requirement-block: sourceviews.search-may-be-ranked-and-incomplete-it-must-not-be sourceviews.a-reference-to-such-a-field-must-not-trigger-an -->
 `acquisition.kind` is exactly one of `scan`, `search`, `fetch`, or `follow`.
 They mean finite collection enumeration, provider candidate search, exact
