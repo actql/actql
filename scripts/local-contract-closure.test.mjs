@@ -7,6 +7,22 @@ import {canonicalText, verifyIdentity} from './check-canonical-json.mjs';
 const read = path => JSON.parse(readFileSync(new URL('../' + path, import.meta.url), 'utf8'));
 const corpus = read('portability/corpus/local-contract-closure.json');
 const registry = read('spec/contracts/actql-stage-contracts.json');
+const textTimeBase = read('spec/dependencies/actql-text-time-base.json');
+
+test('the inherited text/time dependency resolves to its original pinned body', () => {
+  const expected = 'sha256:2d41f38bd3bf8217d9bc394b1ca2ed9dfe6695b0088cd6a489328dabdee61dcc';
+  assert.equal(read('spec/contracts/actql-expressions.json').inherited_text_time_profile_cid, expected);
+  assert.equal(machineCid(textTimeBase), expected);
+  assert.equal(Object.hasOwn(textTimeBase, 'contract_cid'), false);
+  for (const key of ['source_schema', 'evaluation_envelope_schema', 'barrier_schema']) {
+    assert.equal(machineCid(textTimeBase[key]), textTimeBase[key + '_cid']);
+  }
+  // A profile envelope including its own CID is not the inherited preimage.
+  assert.notEqual(machineCid({...textTimeBase, contract_cid: expected}), expected);
+  const changed = structuredClone(textTimeBase);
+  changed.semantics.regex_flags.push('i');
+  assert.notEqual(machineCid(changed), expected);
+});
 const schema = {
   type: 'object', properties: {
     version: {const: 'actql-local-contracts/0.1'},

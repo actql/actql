@@ -7,6 +7,23 @@ The wire shape is `schemas.local_contracts` in the stage contract registry.
 Registration of that shape and its identity vectors does not prove that a
 compiler has selected every required dependency.
 
+## Inherited expression dependency
+
+The expression contract's `inherited_text_time_profile_cid` identifies the whole
+body in [the base text/time profile](../../spec/dependencies/actql-text-time-base.json),
+at JSON Pointer `""`. Its CID is
+`sha256:2d41f38bd3bf8217d9bc394b1ca2ed9dfe6695b0088cd6a489328dabdee61dcc`.
+The preimage excludes the profile envelope's `contract_cid`; the schema CIDs
+inside the body identify its embedded schemas independently.
+
+This body is an inherited dependency, not a replacement for the current expression
+contract. Current language rules and explicit expression-contract refinements
+continue to govern acceptance. Recovering the body does not waive traversal of
+its own declared dependencies or prove that the complete expression closure is
+available. In particular, Unicode data and regex/timestamp grammar references
+remain distinct dependencies; their CID-shaped strings are not an invitation to
+scan arbitrary business data for dependencies.
+
 ## Three different identities
 
 A contract-closure CID identifies a set of interpreted contracts. A Unit
