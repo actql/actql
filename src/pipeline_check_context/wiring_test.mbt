@@ -202,7 +202,7 @@ fn wired_inputs_fixture(
         registrations.push(@sourceviews.pipeline_input_at(views, i, j).unwrap())
       }
     }
-    let pipeline = @pipeline.check_with_evidence(
+    let checked_pipeline = @pipeline.check_with_evidence(
       @decode.required(body, "steps").unwrap(),
       registrations,
       Some(declarations),
@@ -216,7 +216,14 @@ fn wired_inputs_fixture(
         max_depth: 100,
       },
       calendar_profile=Some(utc_range_profile()),
-    ).unwrap()
+    )
+    let pipeline = match checked_pipeline {
+      Ok(p) => p
+      Err(issue) => {
+        @debug.debug((issue.kind, issue.path))
+        abort("pipeline fixture")
+      }
+    }
     pipelines.push(pipeline)
     let stage = @stages.collect(source, i, pipeline, collection_limits).unwrap()
     imports.push(

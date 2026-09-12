@@ -313,6 +313,17 @@ pub fn query_values(query : Query) -> Array[Double]? {
 }
 
 ///|
+/// Literal components without copying; symbolic queries have no component array.
+pub fn query_value_count(query : Query) -> Int? {
+  query.values.map(v => v.length())
+}
+
+///|
+pub fn query_value_at(query : Query, index : Int) -> Double? {
+  query.values.bind(v => v.get(index))
+}
+
+///|
 pub fn query_dimensions(query : Query) -> Double? {
   query.dimensions
 }

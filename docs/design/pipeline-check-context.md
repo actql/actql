@@ -806,6 +806,33 @@ generate rows or calendar boundaries, derive a row count, prove TZDB coverage
 for generated boundary arithmetic, or enforce resource ceilings. Those remain
 distinct obligations of the retained operation and selected profile.
 
+### Vector query binding and dimensions
+
+`check_program_operation_queries` closes `BindQuery` and `MatchDimensions` for
+`score_vectors` after temporal range checks. It obtains the query and Vectors
+dimension from the same checked operation and looks up a symbolic query in that
+producer's owned Parameter index. Nonempty finite numeric components and exact
+dimension equality follow the [vector query contract](../spec/language.md#vector-bridges).
+An admitted array declaration without an exact length is not dimension evidence;
+empty and mismatched bound arrays fail even though Parameter admission succeeded.
+
+Literal query components have O(1) count/index access; Parameter components stay
+in the original immutable admitted array. Neither path materializes a second
+component array. The opaque admitted query offers bounded indexed reads and
+retains the checked operation and optional BoundParameter. A query's binding and
+dimension obligations share one component scan within a producer visit, but
+separate producer visits retain separate resolutions and charges. Each link
+keeps its original requirement occurrence.
+
+Work is cumulative and reserves all component visits before scanning. Entry
+limits apply before query preparation; a later mismatch or budget failure does
+not expose a partially admitted result. This boundary preserves binary64 source
+components, including finite values not representable as finite f32. It does
+not discharge the separate VecA arithmetic/profile obligations: f32 admission,
+quantization, zero-vector behavior, score calculation, identity uniqueness and
+execution resources must still be satisfied before scoring. Dimension admission
+alone is not execution permission or validation of the input corpus's data.
+
 Expression closure does not discharge operation-level obligations, bind
 authored guard witness identities, build staged Program/import contracts, or
 complete local Unit/Invocation identity projections. Source Program and stage

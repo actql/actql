@@ -172,6 +172,10 @@ pub fn query_dimensions(Query) -> Double?
 
 pub fn query_parameter(Query) -> String?
 
+pub fn query_value_at(Query, Int) -> Double?
+
+pub fn query_value_count(Query) -> Int?
+
 pub fn query_values(Query) -> Array[Double]?
 
 pub fn ranking_by(@relation_evidence.RankingOptions) -> Array[@relation_schema.FieldName]

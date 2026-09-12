@@ -26,6 +26,7 @@ import {
   "actql/actql/timestamp_pattern",
   "actql/actql/value_admission",
   "actql/actql/value_contract",
+  "actql/actql/vector_typing",
   "moonbitlang/core/debug",
 }
 
@@ -69,6 +70,8 @@ pub fn check_patterns(ExpressionValidationContext, PatternLimits) -> Result[Patt
 pub fn check_program_operation_fills(ProgramOperationFrames, Int, Int) -> Result[ProgramOperationFills, OperationFillIssue]
 
 pub fn check_program_operation_frames(ProgramOperationScalars, Int, Int) -> Result[ProgramOperationFrames, OperationFrameIssue]
+
+pub fn check_program_operation_queries(ProgramOperationRanges, Int, Int) -> Result[ProgramOperationQueries, OperationQueryIssue]
 
 pub fn check_program_operation_ranges(ProgramOperationFills, Int, Int) -> Result[ProgramOperationRanges, OperationRangeIssue]
 
@@ -197,6 +200,22 @@ pub fn operation_profiles_diagnostic(OperationProfilesIssue) -> String?
 pub fn operation_profiles_preparation(OperationProfileChecks) -> ProgramPreparation
 
 pub fn operation_profiles_work(OperationProfileChecks) -> Int
+
+pub fn operation_queries_count(ProgramOperationQueries) -> Int
+
+pub fn operation_queries_ranges(ProgramOperationQueries) -> ProgramOperationRanges
+
+pub fn operation_queries_work(ProgramOperationQueries) -> Int
+
+pub fn operation_query_at(AdmittedOperationQuery, Int) -> Double?
+
+pub fn operation_query_count(AdmittedOperationQuery) -> Int
+
+pub fn operation_query_operation(AdmittedOperationQuery) -> @vector_typing.CheckedVector
+
+pub fn operation_query_parameter(AdmittedOperationQuery) -> @parameter_binding.BoundParameter?
+
+pub fn operation_query_resolution_at(ProgramOperationQueries, Int) -> OperationQueryResolution?
 
 pub fn operation_range_at(ProgramOperationRanges, Int) -> OperationRangeResolution?
 
@@ -437,6 +456,8 @@ pub fn wired_usage(WiredStages) -> (Int, Int)
 // Errors
 
 // Types and methods
+type AdmittedOperationQuery
+
 type BoundParameters
 
 type EnvironmentContext
@@ -618,6 +639,22 @@ pub(all) enum OperationProfilesIssue {
   UnsupportedProfile(Int, Int, Int, @pipeline_typing.OperationProfile)
 } derive(Eq, @debug.Debug)
 
+pub(all) enum OperationQueryIssue {
+  InvalidLimits
+  BudgetExceeded
+  ForeignOwner(Int)
+  InvalidQuery(Int)
+  DimensionMismatch(Int, Double, Int)
+  InvalidComponent(Int, Int)
+  Scalar(OperationScalarIssue)
+} derive(Eq, @debug.Debug)
+
+pub struct OperationQueryResolution {
+  requirement_index : Int
+  site : OperationRequirementSite
+  query : AdmittedOperationQuery
+}
+
 pub(all) enum OperationRangeIssue {
   InvalidLimits
   BudgetExceeded
@@ -769,6 +806,8 @@ type ProgramOperationFills
 type ProgramOperationFrames
 
 type ProgramOperationOrders
+
+type ProgramOperationQueries
 
 type ProgramOperationRanges
 

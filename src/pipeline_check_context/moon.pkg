@@ -1,6 +1,8 @@
 supported_targets = "+js+wasm+native"
 
 import {
+  "actql/actql/vector_typing" @vector,
+  "actql/actql/carrier_contract" @carrier,
   "actql/actql/time_series" @series,
   "actql/actql/calendar_typing" @calendar,
   "actql/actql/calendar_options",
@@ -37,6 +39,7 @@ import {
 
 import {
   "actql/actql/local_relation_snapshot" @snapshot,
+  "moonbitlang/core/debug",
   "actql/actql/calendar_profile",
   "actql/actql/binding_declarations",
   "actql/actql/stage_source_refs" @refs,
@@ -45,7 +48,6 @@ import {
   "actql/actql/stage_syntax" @syntax,
   "actql/actql/relation_schema" @schema,
   "actql/actql/relation_evidence" @evidence,
-  "actql/actql/carrier_contract" @carrier,
   "actql/actql/capacity_witness" @wire,
   "actql/actql/capacity_host_witness" @host,
   "actql/actql/capacity_program_step" @program,

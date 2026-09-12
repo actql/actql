@@ -3,6 +3,7 @@ fn program_sources_fixture(
   supplied? : @decode.Cursor? = None,
   tea? : Bool = false,
   calendar? : Bool = false,
+  veca? : Bool = false,
   expression? : String = "regex_extract($p, '(.)', $n)",
   steps? : String? = None,
   parameters? : String = "{\"p\":{\"type\":\"string\",\"default\":\"é😀\"},\"n\":{\"type\":\"number\",\"default\":1}}",
@@ -14,11 +15,7 @@ fn program_sources_fixture(
   let preparation = assemble_preparation(
     producer,
     check_text_bounds(patterns, bound_limits()).unwrap(),
-    check_expression_profiles(
-      validation,
-      { text_time: true, veca: false, },
-      10000000,
-    ).unwrap(),
+    check_expression_profiles(validation, { text_time: true, veca, }, 10000000).unwrap(),
     preparation_limits(),
   ).unwrap()
   let operations = check_operation_profiles(
