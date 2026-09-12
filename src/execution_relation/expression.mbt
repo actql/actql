@@ -318,11 +318,9 @@ fn evaluate_expression_impl(
             }
             // Bound variable-size comparison work before the comparison.
             // Values are already canonical: never normalize inside compare.
-            if left is Text(a) && value is Text(b) {
-              if !spend_control_text(budget, a) ||
-                !spend_control_text(budget, b) {
-                return Err({ kind: ControlLimit, expression: expr, })
-              }
+            if !charge_comparison_operand(budget, left) ||
+              !charge_comparison_operand(budget, value) {
+              return Err({ kind: ControlLimit, expression: expr, })
             }
             match binary(op, left, value) {
               Ok(v) => {

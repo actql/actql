@@ -40,7 +40,7 @@ fn capability_limits() -> @lower.FragmentRowLimits {
 }
 
 ///|
-test "review nonnullable date comparison fails common preparation for empty and nonempty input" {
+test "review nonnullable date comparison now prepares for empty and nonempty input" {
   for rows in ["[]", "[{\"d\":\"2026-01-01\"}]"] {
     let request = capability_request(
       rows,
@@ -55,13 +55,13 @@ test "review nonnullable date comparison fails common preparation for empty and 
         registry_limits(),
         capability_limits(),
       )
-      is Err(Runtime(Capability({ kind: UnsupportedComparison(Equal), .. }))),
+      is Ok(_),
     )
   }
 }
 
 ///|
-test "unsupported comparison is rejected before rows or lazy branch selection" {
+test "date comparisons execute across empty null and populated inputs and lazy branches" {
   for rows in ["[]", "[{\"d\":\"2026-01-01\"}]", "[{\"d\":null}]"] {
     for
       expression in [
@@ -80,17 +80,26 @@ test "unsupported comparison is rejected before rows or lazy branch selection" {
         registry_limits(),
         capability_limits(),
       )
-      guard result is Err(Runtime(Capability(issue))) else {
-        fail("unsupported comparison must fail preparation")
-      }
-      assert_true(issue.kind is UnsupportedComparison(_))
-      assert_eq(issue.root.step_index, 1)
-      assert_eq(
-        @decode.text(@lower.expression_location(issue.expression).source).unwrap(),
-        expression,
+      let context = result.unwrap()
+      let roots = @lower.fragment_pipeline_roots(
+        @lower.fragment_request_pipeline(request),
       )
-      assert_true(@lower.expression_location(issue.expression).range is Some(_))
-      assert_true(@lower.expression_body(issue.expression) is Binary(_, _, _))
+      let generated = prepare_generated_sequence(
+        registered_relation_contracts(),
+        @lower.root_sequence(roots),
+        [context],
+        ["where_1"],
+        100000,
+        10000,
+      ).unwrap()
+      assert_true(
+        execute_generated_sequence(generated, [], {
+          rows: run_limits(),
+          max_work: 100000,
+          max_frames: 100,
+        })
+        is Ok(_),
+      )
     }
   }
 }
@@ -124,7 +133,7 @@ test "map and ordered kernels use the same backend readiness check" {
         capability_limits(),
         ordered=extension,
       )
-      is Err(Runtime(Capability({ kind: UnsupportedComparison(Equal), .. }))),
+      is Ok(_),
     )
   }
 }

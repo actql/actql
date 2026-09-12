@@ -22,10 +22,10 @@ fn supported_comparison(
     Number => right.shape is @contract.Number
     Boolean => right.shape is @contract.Boolean
     Text(_) => right.shape is @contract.Text(_)
-    Date
-    | Timestamp
-    | Json
-    | Decimal(..)
+    Date => right.shape is @contract.Date
+    Timestamp => right.shape is @contract.Timestamp
+    Decimal(..) => right.shape is @contract.Decimal(..)
+    Json
     | Array(_, ..)
     | Object(_)
     | Vector(..)

@@ -221,6 +221,19 @@ implementation gap. This does not restrict language typing, scalar passthrough
 or null inspection, and does not evaluate expressions during preparation.
 Division by zero remains a runtime failure only when its expression is evaluated.
 
+Comparison supports the six scalar domains: number, boolean, string, date,
+timestamp and decimal. Admitted dates and UTC millisecond timestamps have
+fixed-width canonical text whose lexical order is chronological. Decimal
+comparison uses coefficient signs, digit lengths and scales with virtual trailing
+zeros; it neither rounds through binary64 nor allocates padded coefficients.
+Different precision/scale contracts do not change numeric equality. Operand
+text/coefficient lengths are charged before comparison under the caller's shared
+control budget as well as the fragment's logical accounting. NULL handling stays
+in the expression operator or ordering operation, not the non-null comparator.
+Structural and reference comparison remain backend gaps, not invented language
+restrictions. Their admitted scalar payloads can still be retained without
+interpreting them as comparison keys.
+
 The nonrecursive readiness walk uses one `max_body_nodes` construction allowance
 for root queue entries, expression visits, copied child views and queued edges
 across the complete kernel. It is separate from runtime logical-work counters;

@@ -78,8 +78,67 @@ fn compare(left : Value, right : Value) -> Result[Int, ScalarIssue] {
       }
     (Boolean(a), Boolean(b)) => Ok(if a == b { 0 } else if a { 1 } else { -1 })
     (Text(a), Text(b)) => Ok(@canonical.compare_utf16(a, b))
+    (Captured(@admitted.Date(a)), Captured(@admitted.Date(b)))
+    | (Captured(@admitted.Timestamp(a)), Captured(@admitted.Timestamp(b))) =>
+      // Admitted fixed-width UTC wire values have chronological lexical order.
+      Ok(@canonical.compare_utf16(a, b))
+    (Captured(@admitted.Decimal(a)), Captured(@admitted.Decimal(b))) =>
+      Ok(compare_decimal(a, b))
     (Captured(_), _) | (_, Captured(_)) => Err(ComparisonDomainNotImplemented)
     _ => Err(InvalidOperand)
+  }
+}
+
+///|
+/// Exact numeric order over admitted coefficients, including differing scales.
+/// No binary64 conversion, padded strings, or bounded-integer accumulation.
+fn compare_decimal(
+  a : @admitted.DecimalValue,
+  b : @admitted.DecimalValue,
+) -> Int {
+  let ac = a.coefficient
+  let bc = b.coefficient
+  let an = ac[0] == '-'
+  let bn = bc[0] == '-'
+  if ac == "0" {
+    return if bc == "0" { 0 } else if bn { 1 } else { -1 }
+  }
+  if bc == "0" {
+    return if an { -1 } else { 1 }
+  }
+  if an != bn {
+    return if an { -1 } else { 1 }
+  }
+  let ai = if an { 1 } else { 0 }
+  let bi = if bn { 1 } else { 0 }
+  let al = ac.length() - ai
+  let bl = bc.length() - bi
+  let ae = al - a.scale
+  let be = bl - b.scale
+  let direction = if an { -1 } else { 1 }
+  if ae != be {
+    return (if ae < be { -1 } else { 1 }) * direction
+  }
+  for i = 0; i < Int::max(al, bl); i = i + 1 {
+    let x = if i < al { ac[ai + i] } else { '0' }
+    let y = if i < bl { bc[bi + i] } else { '0' }
+    if x != y {
+      return (if x < y { -1 } else { 1 }) * direction
+    }
+  }
+  0
+}
+
+///|
+/// Caller-owned control budget must cover variable-size scalar comparison work.
+/// Shared by expression evaluation and Relation ordering/equality kernels.
+fn charge_comparison_operand(budget : ControlBudget, value : Value) -> Bool {
+  match value {
+    Text(s) => spend_control_text(budget, s)
+    Captured(@admitted.Date(s)) | Captured(@admitted.Timestamp(s)) =>
+      spend_control_text(budget, s)
+    Captured(@admitted.Decimal(d)) => spend_control_text(budget, d.coefficient)
+    Null | Number(_) | Boolean(_) | Captured(_) => true
   }
 }
 
