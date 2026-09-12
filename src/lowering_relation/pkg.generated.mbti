@@ -8,6 +8,7 @@ import {
   "actql/actql/expression_typing",
   "actql/actql/parameter_binding",
   "actql/actql/pipeline_typing",
+  "actql/actql/relation_schema",
   "actql/actql/relation_typing",
   "actql/actql/relation_values",
   "actql/actql/value_admission",
@@ -65,6 +66,8 @@ pub fn expression_source(Expression) -> @decode_core.Cursor
 pub fn expression_view_entries(Expression) -> Int
 
 pub fn fragment_pipeline_input(FragmentPipeline) -> String
+
+pub fn fragment_pipeline_output_schema(FragmentPipeline) -> @relation_schema.Schema
 
 pub fn fragment_pipeline_roots(FragmentPipeline) -> RootIndex
 

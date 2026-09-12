@@ -37,6 +37,18 @@ fn registered_ordered() -> @identity.CanonicalValue raise {
 }
 
 ///|
+fn registered_fragment() -> @identity.CanonicalValue raise {
+  @identity.from_json(
+    @json.parse(
+      "{\"version\":\"actql-expression-fragment-execution/0.1\",\"operation\":\"ACTQL.expression_fragment/0.1\",\"inputs\":[\"relation\"],\"output\":\"relation\",\"dependencies\":{\"expression_contract\":{\"file\":\"spec/contracts/actql-expressions.json\",\"pointer\":\"\",\"cid\":\"sha256:fd3f2366622f90d7793917b7a00d9b1a229b3c8e52521ccf28224f541f027240\"},\"fragment_schema\":{\"file\":\"spec/contracts/actql-expressions.json\",\"pointer\":\"/schemas/fragment\",\"cid\":\"sha256:f3a0d16713f21f6b1f132e28516028138b3ddf4d26e4901f7df18cb9813bca88\"}},\"params_schema\":{\"$schema\":\"https://json-schema.org/draft/2020-12/schema\",\"$id\":\"urn:actql:expression-fragment-params:0.1\",\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"fragment\"],\"properties\":{\"fragment\":{\"$ref\":\"urn:actql:expression-fragment:0.1\"}}},\"semantics\":{\"schema_resolution\":\"resolve_fragment_schema_from_exact_pinned_dependency_without_network_lookup\",\"local_source\":\"exactly_one_request_pipeline_source_named_input\",\"admission\":\"regenerate_and_compare_sealed_fragment_under_pinned_expression_contract_before_evaluation\",\"fragment_identity\":\"hash_complete_canonical_fragment_excluding_only_root_fragment_cid\",\"retained_material\":\"retain_opcode_and_complete_fragment_in_canonical_composition\",\"inner_graph\":\"not_a_standalone_execution_artifact\",\"carrier_projection\":\"validation_witness_only_never_hashed_executed_or_used_as_type_evidence\",\"obligations\":\"enforce_fragment_input_root_output_limits_demands_and_runtime_checks\",\"backend\":\"reject_execution_without_support_for_exact_contract_and_all_used_extensions\",\"authority\":\"registration_does_not_establish_program_completion_or_execution_permission\"}}",
+    ),
+    10000,
+    100,
+    100000,
+  )
+}
+
+///|
 fn historical_body() -> @identity.CanonicalValue raise {
   @identity.from_json(
     @json.parse(

@@ -937,6 +937,17 @@ Temporary representations have their own bounded preparation paths; this
 accounting is not a process-heap ceiling. Material preparation is atomic and
 does not itself supply the enclosing contract admission or execution permit.
 
+The generated candidate closes the map/filter fragment envelope with request,
+graph, roots, limits, checked output schema and expression-contract identity.
+Its execution-contract body is hash-checked against the selected registry's
+pin. This checks registration, not an individual fragment's runtime suitability.
+The candidate hashes the entire canonical envelope without `fragment_cid`,
+then emits that identity in the complete body. The current closed-schema,
+profile-free expression kernels produce `output_open: false` and no profile
+evaluations; admitting open schemas or profile nodes requires their retained
+evidence rather than silently inheriting these projections. The candidate is
+still separate from sealed admission, backend obligations and Program permission.
+
 Each expression root retains its exact typed owner. Source projection reads the
 normalized syntax of that owner; machine-node projection reads the bound lowered
 expression. A Parameter remains a reference in source while becoming a literal

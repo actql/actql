@@ -8,3 +8,9 @@ let selected_values_contract_cid : String = "sha256:c95bc0d474fd6fbe62d3182bdefe
 
 ///|
 let selected_ordered_contract_cid : String = "sha256:90f5a71e31aa6a60c1961b7039a87f3a2849c4a793aaba3d776a166176fc28b9"
+
+///|
+let selected_fragment_contract_cid : String = "sha256:98a0237503d300beaea09b2f2e87f10dcd94a4f70e29bd2875f25d02ea9e3dc4"
+
+///|
+let selected_expression_contract_cid : String = "sha256:fd3f2366622f90d7793917b7a00d9b1a229b3c8e52521ccf28224f541f027240"
