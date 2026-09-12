@@ -91,7 +91,7 @@ fn emit_fragment_pipeline(
       match kernel.body {
         SnapshotMap(_) | OrderedBindings(_) => "REL.derive"
         Filter(_) => "REL.where"
-        Select(_) | Limit(_, _, _) | DistinctRows =>
+        Select(_) | Limit(_, _, _) | DistinctRows | DedupeRows =>
           raise @encode.InvalidStructure
       },
     )
@@ -124,7 +124,7 @@ fn emit_fragment_pipeline(
         @encode.key(out, "expr")
         emit_expression_source(expression, out)
       }
-      Select(_) | Limit(_, _, _) | DistinctRows =>
+      Select(_) | Limit(_, _, _) | DistinctRows | DedupeRows =>
         raise @encode.InvalidStructure
     }
     @encode.end_object(out)

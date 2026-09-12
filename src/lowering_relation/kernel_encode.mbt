@@ -27,6 +27,7 @@ pub fn emit_kernel_node(
       Select(_) => "REL.select"
       Limit(_, _, _) => "REL.limit"
       DistinctRows => "REL.distinct"
+      DedupeRows => "REL.dedupeRows"
       OrderedBindings(_) => raise @encode.InvalidStructure
     },
   )
@@ -34,6 +35,49 @@ pub fn emit_kernel_node(
   @encode.begin_object(out)
   match kernel.body {
     DistinctRows => ()
+    DedupeRows => {
+      @encode.key(out, "by")
+      @encode.begin_array(out)
+      for i = 0; i < @relation.dedupe_key_count(kernel.checked); i = i + 1 {
+        @encode.string_value(
+          out,
+          @schema.reference_name(
+            @relation.dedupe_key_at(kernel.checked, i).unwrap().field,
+          ),
+        )
+      }
+      @encode.end_array(out)
+      @encode.key(out, "keep")
+      @encode.string_value(out, "first")
+      @encode.key(out, "on_tie")
+      @encode.string_value(out, "fail")
+      @encode.key(out, "order_by")
+      @encode.begin_array(out)
+      for i = 0; i < @relation.dedupe_order_count(kernel.checked); i = i + 1 {
+        let term = @relation.dedupe_order_at(kernel.checked, i).unwrap()
+        @encode.begin_object(out)
+        @encode.key(out, "dir")
+        @encode.string_value(
+          out,
+          match term.direction {
+            Asc => "asc"
+            Desc => "desc"
+          },
+        )
+        @encode.key(out, "field")
+        @encode.string_value(out, @schema.reference_name(term.field))
+        @encode.key(out, "nulls")
+        @encode.string_value(
+          out,
+          match term.nulls {
+            First => "first"
+            Last => "last"
+          },
+        )
+        @encode.end_object(out)
+      }
+      @encode.end_array(out)
+    }
     OrderedBindings(_) => raise @encode.InvalidStructure
     SnapshotMap(bindings) => {
       @encode.key(out, "exprs")

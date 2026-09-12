@@ -303,6 +303,17 @@ identity strings within the shared workspace; comparisons and hashing consume
 cumulative work. It does not by itself establish source lowering or capability
 admission for `dedupe_rows`.
 
+The generated-sequence dedupe adapter retains the checked operation rather than
+copying its grouping/order arrays. Indexed counts gate cumulative preparation
+work, occurrence and name budgets before the individual entries are read. Wire
+emission preserves repeated grouping keys and authored order terms and records
+the `keep: first` / `on_tie: fail` invariants. The common runtime preparation
+checks only the actual grouping and ordering domains, independently of row
+count; unrelated structured payload remains valid. Physical ordinals are bound
+once to the owned input layout, and the index kernel shares the invocation's
+work and per-operation workspace with output retention. Top ties and identity
+collisions remain typed failures; neither exposes partial completed outputs.
+
 The nonrecursive readiness walk uses one `max_body_nodes` construction allowance
 for root queue entries, expression visits, copied child views and queued edges
 across the complete kernel. It is separate from runtime logical-work counters;

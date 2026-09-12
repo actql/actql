@@ -79,7 +79,8 @@ fn prepare_ordered_budgets(
           | @lower.Filter(_)
           | @lower.Select(_)
           | @lower.Limit(_, _, _)
-          | @lower.DistinctRows => ()
+          | @lower.DistinctRows
+          | @lower.DedupeRows => ()
         }
         release_slots(metadata, entries)
       }

@@ -267,6 +267,8 @@ pub(all) enum RowIssue {
   LogicalRows(LogicalBudgetIssue)
   Evaluation(Int, Int, EvalIssue)
   Comparison(ScalarIssue)
+  DedupeTopTie(Int, Int)
+  DedupeIdentityCollision
 }
 
 pub(all) enum RuntimeFragmentFailureStage {

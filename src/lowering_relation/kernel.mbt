@@ -17,6 +17,7 @@ pub enum KernelBody {
   Select(Array[@relation.ProjectionField])
   Limit(Int64, Int64, @pipeline.LogicalOrder)
   DistinctRows
+  DedupeRows
 }
 
 ///|
@@ -60,7 +61,8 @@ pub fn kernel_take(kernel : PreparedKernel) -> (Int64, Int64)? {
     | OrderedBindings(_)
     | Filter(_)
     | Select(_)
-    | DistinctRows => None
+    | DistinctRows
+    | DedupeRows => None
   }
 }
 
@@ -72,8 +74,12 @@ pub fn ordered_binding_at(
 ) -> (String, Expression)? {
   match kernel.body {
     OrderedBindings(bindings) => bindings.get(index)
-    SnapshotMap(_) | Filter(_) | Select(_) | Limit(_, _, _) | DistinctRows =>
-      None
+    SnapshotMap(_)
+    | Filter(_)
+    | Select(_)
+    | Limit(_, _, _)
+    | DistinctRows
+    | DedupeRows => None
   }
 }
 
@@ -86,6 +92,7 @@ pub fn kernel_body(kernel : PreparedKernel) -> KernelBody {
     Select(fields) => Select(fields.copy())
     Limit(count, offset, order) => Limit(count, offset, order)
     DistinctRows => DistinctRows
+    DedupeRows => DedupeRows
   }
 }
 
@@ -95,7 +102,7 @@ pub fn kernel_view_entries(kernel : PreparedKernel) -> Int {
   match kernel.body {
     SnapshotMap(bindings) | OrderedBindings(bindings) => bindings.length()
     Select(fields) => fields.length()
-    Filter(_) | Limit(_, _, _) | DistinctRows => 0
+    Filter(_) | Limit(_, _, _) | DistinctRows | DedupeRows => 0
   }
 }
 
@@ -137,7 +144,12 @@ fn prepare_kernel_measured(
     return Err(MissingKernelNode)
   }
   let checked = match node.payload {
-    Derive(op) | Where(op) | Select(op) | Limit(op) | Distinct(op) => op
+    Derive(op)
+    | Where(op)
+    | Select(op)
+    | Limit(op)
+    | Distinct(op)
+    | Dedupe(op) => op
     Values(_) => return Err(MissingKernelNode)
   }
   if node.inputs.length() != 1 {
@@ -229,8 +241,36 @@ fn prepare_kernel_measured(
         DistinctRows
       }
     }
-    RowOperation if @relation.row_operation(checked)
-      is Some(@relation.DistinctRows) => DistinctRows
+    RowOperation if @relation.operation(checked) == @relation.DedupeRows => {
+      let keys = @relation.dedupe_key_count(checked)
+      let terms = @relation.dedupe_order_count(checked)
+      if keys > max_bindings ||
+        terms > max_bindings - keys ||
+        keys > remaining.max_work ||
+        terms > remaining.max_work - keys {
+        return Err(KernelBudgetExceeded)
+      }
+      remaining = { ..remaining, max_work: remaining.max_work - keys - terms, }
+      for i = 0; i < keys + terms; i = i + 1 {
+        let field = if i < keys {
+          @relation.dedupe_key_at(checked, i).unwrap().field
+        } else {
+          @relation.dedupe_order_at(checked, i - keys).unwrap().field
+        }
+        let name = @schema.reference_name(field)
+        if name.length() > names_remaining {
+          return Err(KernelBudgetExceeded)
+        }
+        let bytes = @utf8.encode(name).length()
+        if bytes > names_remaining {
+          return Err(KernelBudgetExceeded)
+        }
+        names_remaining -= bytes
+      }
+      DedupeRows
+    }
+    RowOperation if @relation.operation(checked) == @relation.Distinct =>
+      DistinctRows
     RowOperation => {
       guard @relation.row_operation(checked)
         is Some(@relation.Take(count~, offset~)) else {
@@ -291,6 +331,9 @@ fn prepare_kernel_measured(
     Filter(_) => 1
     Select(fields) => fields.length()
     Limit(_, _, _) => 0
+    DedupeRows =>
+      @relation.dedupe_key_count(checked) +
+      @relation.dedupe_order_count(checked)
     DistinctRows =>
       if node.projection_id is Some(_) {
         @schema.field_count(@relation.output_schema(checked))

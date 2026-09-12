@@ -54,6 +54,43 @@ fn attach_fragment_budgets(
               return Err(MissingFragmentContext(i))
             }
           @lower.Select(_) | @lower.Limit(_, _, _) => ()
+          @lower.DedupeRows => {
+            let checked = @lower.kernel_checked(kernel)
+            let schema = @relation.input_schema(checked)
+            let keys = @relation.dedupe_key_count(checked)
+            let terms = @relation.dedupe_order_count(checked)
+            if keys > control.remaining || terms > control.remaining - keys {
+              return Err(InputLimit)
+            }
+            for j = 0; j < keys + terms; j = j + 1 {
+              if !spend_control(control, 1) {
+                return Err(InputLimit)
+              }
+              let name = if j < keys {
+                @relation.dedupe_key_at(checked, j).unwrap().field
+              } else {
+                @relation.dedupe_order_at(checked, j - keys).unwrap().field
+              }
+              // This is a checked reference lookup, not source name resolution.
+              let spelling = @schema.reference_name(name)
+              // Bound the binary-search comparisons before the shared lookup.
+              let mut width = @schema.field_count(schema)
+              while width > 0 {
+                if !spend_control(control, 1) ||
+                  !spend_control_text(control, spelling) {
+                  return Err(InputLimit)
+                }
+                width = width / 2
+              }
+              if !spend_control_text(control, spelling) {
+                return Err(InputLimit)
+              }
+              let contract = @schema.lookup(schema, name).unwrap()
+              if !supported_comparison(contract, contract) {
+                return Err(UnsupportedRowComparison(i, name))
+              }
+            }
+          }
           @lower.DistinctRows => {
             let schema = @relation.output_schema(@lower.kernel_checked(kernel))
             for j = 0; j < @schema.field_count(schema); j = j + 1 {
