@@ -53,7 +53,7 @@ fn attach_fragment_budgets(
             if !budgets.contains(i) {
               return Err(MissingFragmentContext(i))
             }
-          @lower.Select(_) => ()
+          @lower.Select(_) | @lower.Limit(_, _, _) => ()
         }
       }
     }

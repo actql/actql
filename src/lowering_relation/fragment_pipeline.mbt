@@ -91,7 +91,7 @@ fn emit_fragment_pipeline(
       match kernel.body {
         SnapshotMap(_) | OrderedBindings(_) => "REL.derive"
         Filter(_) => "REL.where"
-        Select(_) => raise @encode.InvalidStructure
+        Select(_) | Limit(_, _, _) => raise @encode.InvalidStructure
       },
     )
     @encode.key(out, "params")
@@ -123,7 +123,7 @@ fn emit_fragment_pipeline(
         @encode.key(out, "expr")
         emit_expression_source(expression, out)
       }
-      Select(_) => raise @encode.InvalidStructure
+      Select(_) | Limit(_, _, _) => raise @encode.InvalidStructure
     }
     @encode.end_object(out)
     @encode.end_object(out)

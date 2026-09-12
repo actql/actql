@@ -142,6 +142,18 @@ fn evaluate_rows_with_workspace(
   }
   let prepared = @lower.bound_preparation(input.owner)
   let node = @lower.node_at(prepared, @lower.kernel_step(kernel)).unwrap()
+  if @lower.kernel_take(kernel) is Some((count, offset)) {
+    return evaluate_take_rows(
+      input,
+      @lower.node_id(node),
+      count,
+      offset,
+      max_rows,
+      control,
+      output,
+      workspace,
+    )
+  }
   evaluate_row_body(
     PreparedBody(kernel),
     input,
@@ -237,6 +249,7 @@ fn evaluate_row_body_impl(
         @lower.SnapshotMap(bindings) => SnapshotMap(bindings)
         @lower.Filter(expr) => Filter(expr)
         @lower.Select(fields) => Select(fields)
+        @lower.Limit(_, _, _) => return Err(InvalidRows)
         @lower.OrderedBindings(bindings) =>
           if scope is Some(_) {
             OrderedBindings(bindings)

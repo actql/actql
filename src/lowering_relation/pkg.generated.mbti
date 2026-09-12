@@ -97,6 +97,8 @@ pub fn kernel_owner(PreparedKernel) -> BoundPrepared
 
 pub fn kernel_step(PreparedKernel) -> Int
 
+pub fn kernel_take(PreparedKernel) -> (Int64, Int64)?
+
 pub fn kernel_view_entries(PreparedKernel) -> Int
 
 pub fn lower_expression(BoundPrepared, Int, Int, ExpressionLimits) -> Result[Expression, ExpressionIssue]
@@ -310,6 +312,7 @@ pub enum KernelBody {
   OrderedBindings(Array[(String, Expression)])
   Filter(Expression)
   Select(Array[@relation_typing.ProjectionField])
+  Limit(Int64, Int64, @pipeline_typing.LogicalOrder)
 }
 
 pub(all) enum KernelIssue {
@@ -318,6 +321,9 @@ pub(all) enum KernelIssue {
   KernelBudgetExceeded
   InvalidKernelLimits
   ExpressionFailure(ExpressionIssue)
+  InvalidTakeCount
+  PendingTakeOrder
+  TakeKeyCompletionNotImplemented
 }
 
 pub(all) struct Limits {
@@ -358,6 +364,7 @@ pub enum Payload {
   Derive(@relation_typing.CheckedOperation)
   Where(@relation_typing.CheckedOperation)
   Select(@relation_typing.CheckedOperation)
+  Limit(@relation_typing.CheckedOperation)
 }
 
 type Prepared

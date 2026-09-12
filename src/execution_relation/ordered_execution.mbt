@@ -75,7 +75,10 @@ fn prepare_ordered_budgets(
             if !budgets.contains(i) {
               return Err(Rows(i, MissingOrderedResourceContext))
             }
-          @lower.SnapshotMap(_) | @lower.Filter(_) | @lower.Select(_) => ()
+          @lower.SnapshotMap(_)
+          | @lower.Filter(_)
+          | @lower.Select(_)
+          | @lower.Limit(_, _, _) => ()
         }
         release_slots(metadata, entries)
       }

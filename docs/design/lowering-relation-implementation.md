@@ -98,12 +98,23 @@ authoring contract for `values`. Projection selection containers are private
 or defensive copies, and the common driver applies ownership, workspace,
 cumulative value/work limits and output publication to these operations.
 
+`take` consumes the checked count/offset and the pipeline's retained logical
+order. Bound quantities are safe integers, validated before any row is evaluated;
+count is positive and offset is nonnegative. `REL.limit` emission includes both
+quantities. The selection kernel clamps against actual input length before
+converting to array ordinals, avoiding count-plus-offset overflow. It shares the
+driver's cumulative budgets and immutable output boundary, and never prunes
+upstream evaluation. An unresolved input order is a preparation error. The path
+requiring a new candidate-key-completed sort remains an explicit backend gap
+until that sort's checked strategy and shared contract are connected; a raw
+arrival order cannot substitute for it.
+
 | Area | Execution responsibility | Boundary not implied by success |
 | --- | --- | --- |
 | Contract selection | Hash the selected registry and execution-contract bodies; consume the registered expression-fragment and ordered row-kernel contracts | Registry membership alone does not establish backend support |
 | Typed fragment admission | Generate request, machine graph, roots and evidence from the same checked owner; regenerate the complete candidate before runtime preparation | No arbitrary saved AoA JSON execution and no final Program Plan identity |
 | Parameters and explicit inputs | Reuse bound parameter ownership; admit supplied values and keys; distinguish exact completed producer bindings from raw captures | Computation success does not authenticate unrelated inherited metadata |
-| Projection and expression execution | One driver executes values, map/ordered derive, filter and select/rename/drop, including unused branches and expressions | Retained output selection cannot prune required operations |
+| Projection, expression and selection execution | One driver executes values, map/ordered derive, filter, select/rename/drop and take with an existing logical order, including unused branches and expressions | Retained output selection cannot prune required operations; take needing a new key-completed order remains unsupported |
 | Ordered derive | Use registered row-kernel params, source params and complete graph-step identity; enforce authored slot order and explicit logical limits | No split into relation-wide derives or unregistered replacement opcode |
 | Runtime resources | Explicit cumulative value/control budgets, operation workspace, live table slots and per-fragment logical budgets | Runtime counters are not static capacity evidence; container-entry accounting is not a process-heap meter |
 | Internal package API | Opaque generated sequences, runtime contexts, completed outputs and producer bindings; immutable output readers and detailed typed failures | Not a stable SDK, Run protocol, Host authorization or Result publication API |

@@ -24,6 +24,7 @@ pub enum Payload {
   Derive(@relation.CheckedOperation)
   Where(@relation.CheckedOperation)
   Select(@relation.CheckedOperation)
+  Limit(@relation.CheckedOperation)
 }
 
 ///|
@@ -109,6 +110,7 @@ pub fn operation(value : PreparedNode) -> String {
     Derive(_) => "REL.derive"
     Where(_) => "REL.where"
     Select(_) => "REL.select"
+    Limit(_) => "REL.limit"
   }
 }
 
@@ -121,8 +123,8 @@ fn classify(op : @pipeline.CheckedOperation) -> Payload? {
         Derive => Some(Derive(v))
         Filter => Some(Where(v))
         Select | Rename | Drop => Some(Select(v))
+        Take => Some(Limit(v))
         Sort
-        | Take
         | Distinct
         | DedupeRows
         | JsonPick
@@ -227,6 +229,7 @@ pub fn prepare(
       Derive(_) => ("derive", 1)
       Where(_) => ("where", 1)
       Select(_) => ("select", 1)
+      Limit(_) => ("limit", 1)
     }
     let id = preferred + "_" + i.to_string()
     if used.contains(id) {

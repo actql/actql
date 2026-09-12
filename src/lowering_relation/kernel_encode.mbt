@@ -25,6 +25,7 @@ pub fn emit_kernel_node(
       SnapshotMap(_) => "REL.derive"
       Filter(_) => "REL.where"
       Select(_) => "REL.select"
+      Limit(_, _, _) => "REL.limit"
       OrderedBindings(_) => raise @encode.InvalidStructure
     },
   )
@@ -44,6 +45,12 @@ pub fn emit_kernel_node(
     Filter(expr) => {
       @encode.key(out, "expr")
       emit_expression(expr, out)
+    }
+    Limit(count, offset, _) => {
+      @encode.key(out, "count")
+      @encode.number_value(out, count.to_double())
+      @encode.key(out, "offset")
+      @encode.number_value(out, offset.to_double())
     }
     Select(fields) => {
       @encode.key(out, "columns")

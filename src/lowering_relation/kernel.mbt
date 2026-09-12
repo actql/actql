@@ -15,6 +15,7 @@ pub enum KernelBody {
   OrderedBindings(Array[(String, Expression)])
   Filter(Expression)
   Select(Array[@relation.ProjectionField])
+  Limit(Int64, Int64, @pipeline.LogicalOrder)
 }
 
 ///|
@@ -24,6 +25,9 @@ pub(all) enum KernelIssue {
   KernelBudgetExceeded
   InvalidKernelLimits
   ExpressionFailure(ExpressionIssue)
+  InvalidTakeCount
+  PendingTakeOrder
+  TakeKeyCompletionNotImplemented
 }
 
 ///|
@@ -47,6 +51,15 @@ pub fn kernel_checked(kernel : PreparedKernel) -> @relation.CheckedOperation {
 }
 
 ///|
+/// Allocation-free batch selection view; the order remains owned by preparation.
+pub fn kernel_take(kernel : PreparedKernel) -> (Int64, Int64)? {
+  match kernel.body {
+    Limit(count, offset, _) => Some((count, offset))
+    SnapshotMap(_) | OrderedBindings(_) | Filter(_) | Select(_) => None
+  }
+}
+
+///|
 /// Indexed immutable binding view, without copying the complete slot array.
 pub fn ordered_binding_at(
   kernel : PreparedKernel,
@@ -54,7 +67,7 @@ pub fn ordered_binding_at(
 ) -> (String, Expression)? {
   match kernel.body {
     OrderedBindings(bindings) => bindings.get(index)
-    SnapshotMap(_) | Filter(_) | Select(_) => None
+    SnapshotMap(_) | Filter(_) | Select(_) | Limit(_, _, _) => None
   }
 }
 
@@ -65,6 +78,7 @@ pub fn kernel_body(kernel : PreparedKernel) -> KernelBody {
     OrderedBindings(bindings) => OrderedBindings(bindings.copy())
     Filter(expr) => Filter(expr)
     Select(fields) => Select(fields.copy())
+    Limit(count, offset, order) => Limit(count, offset, order)
   }
 }
 
@@ -74,7 +88,7 @@ pub fn kernel_view_entries(kernel : PreparedKernel) -> Int {
   match kernel.body {
     SnapshotMap(bindings) | OrderedBindings(bindings) => bindings.length()
     Select(fields) => fields.length()
-    Filter(_) => 0
+    Filter(_) | Limit(_, _, _) => 0
   }
 }
 
@@ -116,7 +130,7 @@ fn prepare_kernel_measured(
     return Err(MissingKernelNode)
   }
   let checked = match node.payload {
-    Derive(op) | Where(op) | Select(op) => op
+    Derive(op) | Where(op) | Select(op) | Limit(op) => op
     Values(_) => return Err(MissingKernelNode)
   }
   if node.inputs.length() != 1 {
@@ -203,12 +217,66 @@ fn prepare_kernel_measured(
       }
       Select(fields)
     }
-    RowOperation | Reshape | Aggregation => return Err(MissingKernelNode)
+    RowOperation => {
+      guard @relation.row_operation(checked)
+        is Some(@relation.Take(count~, offset~)) else {
+        return Err(MissingKernelNode)
+      }
+      guard @pipeline.take_order(owner.prepared.owner, step_index)
+        is Some(order) else {
+        return Err(PendingTakeOrder)
+      }
+      if @pipeline.order_key_completion(order) is Some(_) {
+        return Err(TakeKeyCompletionNotImplemented)
+      }
+      let bind_count = fn(
+        value : @relation.CountValue,
+        minimum : Int64,
+      ) -> Result[Int64, KernelIssue] {
+        let n = match value {
+          Literal(n) => n
+          Parameter(name) => {
+            if name.length() > names_remaining {
+              return Err(KernelBudgetExceeded)
+            }
+            let size = @utf8.encode(name).length()
+            if size > names_remaining {
+              return Err(KernelBudgetExceeded)
+            }
+            names_remaining -= size
+            guard owner.by_name.get(name) is Some(bound) &&
+              bound.value is @value.Number(n) else {
+              return Err(InvalidTakeCount)
+            }
+            guard @scalar.read_safe_integer(n) is Some(n) else {
+              return Err(InvalidTakeCount)
+            }
+            n
+          }
+        }
+        if n < minimum || n > 9007199254740991L {
+          Err(InvalidTakeCount)
+        } else {
+          Ok(n)
+        }
+      }
+      let count = match bind_count(count, 1L) {
+        Ok(n) => n
+        Err(e) => return Err(e)
+      }
+      let offset = match bind_count(offset, 0L) {
+        Ok(n) => n
+        Err(e) => return Err(e)
+      }
+      Limit(count, offset, order)
+    }
+    Reshape | Aggregation => return Err(MissingKernelNode)
   }
   let binding_count = match body {
     SnapshotMap(bindings) | OrderedBindings(bindings) => bindings.length()
     Filter(_) => 1
     Select(fields) => fields.length()
+    Limit(_, _, _) => 0
   }
   Ok(
     (

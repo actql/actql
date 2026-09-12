@@ -86,7 +86,7 @@ pub fn prepare_sequence(
         rows -= count
         ValuesStep(prepared)
       }
-      Derive(_) | Where(_) | Select(_) => {
+      Derive(_) | Where(_) | Select(_) | Limit(_) => {
         let (kernel, remaining, used_names, used_bindings) = match
           prepare_kernel_measured(
             owner,

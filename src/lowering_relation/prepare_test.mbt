@@ -150,9 +150,9 @@ test "preparation budgets enforce exact boundaries" {
 ///|
 /// Implementation coverage test, not a language rejection requirement.
 test "unimplemented later operation never returns a partial preparation" {
-  let p = checked(",{\"select\":[\"id\"]},{\"take\":1}")
+  let p = checked(",{\"select\":[\"id\"]},{\"distinct\":true}")
   guard @lowering_relation.prepare(p, limits()) is Err(issue) else {
-    fail("take has no lowering handler yet")
+    fail("distinct has no lowering handler yet")
   }
   assert_eq(issue.kind, @lowering_relation.OperationNotImplemented)
   assert_eq(
