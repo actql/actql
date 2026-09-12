@@ -2,8 +2,26 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
-import { legacySchedule, additionalSchedule, peakRssBytes, checkedSample } from './layout-measurement-support.mjs';
+import { legacySchedule, additionalSchedule, peakRssBytes, checkedSample, checkedPreparedSample } from './layout-measurement-support.mjs';
 const manifest = JSON.parse(readFileSync(new URL('../benchmarks/local-relation/columnar-experiment.json', import.meta.url)));
+
+test('prepared samples prove reused inputs and do not masquerade as enclosing E2E', () => {
+  const expected = { candidate: 'C', rows: 1000, columns: 64, case_id: 'producer-branches' };
+  const sample = { kind: 'prepared-layout-sample', ...expected,
+    reused_input: true, fresh_budgets: true, warmup_operation_us: 20, operation_us: 10 };
+  const success = { type: 'result', file: 'sequence_profile_wbtest.mbt', index: 0, message: '' };
+  const output = (...events) => events.map(e => JSON.stringify(e)).join('\n');
+  assert.deepEqual(checkedPreparedSample(output(sample, success), expected), sample);
+  for (const change of [{ reused_input: false }, { fresh_budgets: false }, { operation_us: 0 },
+    { warmup_operation_us: -1 }, { end_to_end_us: 100 }, { phases_us: [] },
+    { candidate: 'A' }, { rows: 0 }, { case_id: 'zero-columns' }]) {
+    assert.throws(() => checkedPreparedSample(output({ ...sample, ...change }, success), expected));
+  }
+  assert.throws(() => checkedPreparedSample(output(sample), expected));
+  assert.throws(() => checkedPreparedSample(output(sample, sample, success), expected));
+  assert.throws(() => checkedPreparedSample(output(sample, { ...success, message: 'failed' }), expected));
+  assert.throws(() => checkedSample(output(sample, success), expected));
+});
 
 test('decimal-temporal repeated-key survivor vector has an independent SHA-256 oracle', () => {
   // Numeric integer tuple JSON has no Unicode or decimal normalization ambiguity.

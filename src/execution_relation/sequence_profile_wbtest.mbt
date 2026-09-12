@@ -15,6 +15,10 @@ test "profile fixed layout sequences with independent output assertions" {
       Some("C") => TypedColumns
       Some(_) => fail("unknown layout candidate")
     }
+    if @env.get_env_var("ACTQL_LAYOUT_PREPARED") == Some("1") {
+      profile_prepared_additional_layout(index, candidate)
+      return
+    }
     profile_additional_layout(index, candidate)
     profile_additional_layout(index, candidate, emit=true)
     return

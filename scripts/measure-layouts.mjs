@@ -7,15 +7,16 @@ import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { cpus, platform, release, arch } from 'node:os';
 import { performance } from 'node:perf_hooks';
-import { legacySchedule, additionalSchedule, peakRssBytes, checkedSample } from './layout-measurement-support.mjs';
+import { legacySchedule, additionalSchedule, peakRssBytes, checkedSample, checkedPreparedSample } from './layout-measurement-support.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 process.chdir(root);
 const mode = process.argv[2];
-const smoke = ['--smoke', '--additional-smoke'].includes(mode);
-const additional = ['--additional', '--additional-smoke'].includes(mode);
-if (process.argv.length !== 3 || !['--smoke', '--legacy', '--additional', '--additional-smoke'].includes(mode)) {
-  throw new Error('Use --smoke, --legacy, --additional-smoke or --additional; none is the complete adoption matrix');
+const prepared = ['--prepared', '--prepared-smoke'].includes(mode);
+const smoke = ['--smoke', '--additional-smoke', '--prepared-smoke'].includes(mode);
+const additional = prepared || ['--additional', '--additional-smoke'].includes(mode);
+if (process.argv.length !== 3 || !['--smoke', '--legacy', '--additional', '--additional-smoke', '--prepared', '--prepared-smoke'].includes(mode)) {
+  throw new Error('Use --smoke, --legacy, --additional[-smoke] or --prepared[-smoke]; none alone is the complete adoption matrix');
 }
 if (!['darwin', 'linux'].includes(platform())) throw new Error('RSS requires macOS or GNU time on Linux');
 const manifestPath = 'benchmarks/local-relation/columnar-experiment.json';
@@ -44,7 +45,8 @@ const run = (command, args, extra = {}) => {
 const version = run(`${moonHome}/bin/moonc`, ['-v']).stdout.trim();
 if (!version.includes(toolchain.version)) throw new Error(`Unpinned compiler: ${version}`);
 const report = {
-  scope: additional ? 'all thirteen fixed additional cases; prepared repeats and complete accounting pending'
+  scope: prepared ? 'prepared input operation repeats for all thirteen additional cases; not E2E or the full matrix'
+    : additional ? 'all thirteen fixed additional cases; prepared repeats and complete accounting pending'
     : smoke ? 'three-layout-harness-smoke' : 'fixed-legacy-subset; additional cases and complete accounting pending',
   status: 'running', adoption_eligible: false, started_at: new Date().toISOString(),
   baseline_commit: manifest.row_baseline_commit,
@@ -57,11 +59,12 @@ const report = {
   host: { platform: platform(), release: release(), arch: arch(), cpu: cpus()[0]?.model },
   warmups: 1, measured_repetitions: smoke ? 1 : manifest.sampling.measured_repetitions,
   process_wall_scope: 'runtime startup, warmup, measured invocation and test reporting; excludes build',
-  phase_scope: 'one measured invocation; clocks report microseconds; phase 3 includes invocation input checks and physical import',
+  phase_scope: prepared ? 'operation sequence only with reused imported buffers and fresh budgets; admission and observation excluded; never E2E'
+    : 'one measured invocation; clocks report microseconds; phase 3 includes invocation input checks and physical import',
   rss_scope: 'whole fresh process peak including startup, warmup, measured invocation, observation and cleanup; never subtract phase peaks',
   targets: [],
 };
-const reportPath = resolve(outputDirectory, additional
+const reportPath = resolve(outputDirectory, prepared ? smoke ? 'prepared-smoke.json' : 'prepared-samples.json' : additional
   ? smoke ? 'additional-smoke.json' : 'additional-samples.json'
   : smoke ? 'harness-smoke.json' : 'legacy-samples.json');
 const save = () => writeFileSync(reportPath, JSON.stringify(report, null, 2) + '\n');
@@ -87,11 +90,13 @@ for (const target of ['native', 'js', 'wasm']) {
     const sampleEnv = { ...env, ACTQL_LAYOUT_CANDIDATE: candidate };
     delete sampleEnv.ACTQL_LAYOUT_CASE;
     delete sampleEnv.ACTQL_LAYOUT_ADDITIONAL_CASE;
+    delete sampleEnv.ACTQL_LAYOUT_PREPARED;
+    if (prepared) sampleEnv.ACTQL_LAYOUT_PREPARED = '1';
     sampleEnv[additional ? 'ACTQL_LAYOUT_ADDITIONAL_CASE' : 'ACTQL_LAYOUT_CASE'] = String(case_index);
     const sample = run('/usr/bin/time', [platform() === 'darwin' ? '-l' : '-v', command, ...args],
       { env: sampleEnv });
     const wall = performance.now() - started;
-    const measurement = checkedSample(sample.stdout, scheduled);
+    const measurement = (prepared ? checkedPreparedSample : checkedSample)(sample.stdout, scheduled);
     samples.push({ ...measurement, case_index, repeat, process_wall_ms: wall,
       peak_rss_bytes: peakRssBytes(sample.stderr, platform()), captured_at: new Date().toISOString() });
     save();

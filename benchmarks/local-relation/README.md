@@ -14,6 +14,8 @@ node scripts/measure-layouts.mjs --smoke
 node scripts/measure-layouts.mjs --legacy
 node scripts/measure-layouts.mjs --additional-smoke
 node scripts/measure-layouts.mjs --additional
+node scripts/measure-layouts.mjs --prepared-smoke
+node scripts/measure-layouts.mjs --prepared
 ```
 
 Set `MOON_HOME` to the pinned toolchain first. The smoke mode builds native, JS
@@ -82,6 +84,33 @@ all-column drop followed by take is not a legal Program under the selected
 Language: dropping every field of a nonempty schema must fail during check.
 That rejection remains a separate regression; no comparison case bypasses it.
 Take continues to be exercised with valid ordering evidence in the other cases.
+
+### Reused-input operation measurements
+
+`--prepared[-smoke]` runs the same thirteen additional cases in separate
+processes from E2E measurement. Each process constructs and admits its fixture
+once, imports its physical input once, and retains that immutable input through
+one warmup and one measured invocation. Both invocations receive fresh budgets,
+run the common input ownership/key/value admission, and fully observe their
+outputs before releasing them. Logical consumption must agree between repeats.
+The clock covers only the operation sequence; repeated admission, attachment of
+existing input buffers, output observation and final disposal are outside it.
+
+A reuses its admitted row Table. B/C pin the sealed column buffers and attach
+fresh invocation handles without re-transposing or copying cells. The new
+invocation ledger reserves the full input capacity as an existing floor, while
+the pin keeps the physical buffer alive. Do not sum these ledgers to claim two
+physical copies. Source captures and real producer completions remain alive and
+are also represented in each run's capacity floor. A's row storage is not thereby
+converted to the B/C owned-column accounting model.
+
+The fixed producer workload has no receiver projection. This entry rejects one
+rather than caching away its required output-budget charges; that restriction is
+on the benchmark entry, not the supported execution API. Prepared reports contain
+`operation_us` and separate `warmup_operation_us`, never `end_to_end_us` or five
+phase timings. Their whole-process RSS includes the retained prepared fixture
+and cannot replace the E2E RSS observations. This additional-case report alone
+does not cover prepared legacy cases or authorize adoption.
 
 ### Paired statistical method
 

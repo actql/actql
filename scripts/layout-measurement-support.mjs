@@ -76,3 +76,22 @@ export function checkedSample(stdout, expected) {
   }
   return m;
 }
+
+export function checkedPreparedSample(stdout, expected) {
+  const events = stdout.split('\n').filter(line => line.startsWith('{')).map(line => JSON.parse(line));
+  const measurements = events.filter(event => event.kind === 'prepared-layout-sample');
+  const results = events.filter(event => event.type === 'result');
+  if (measurements.length !== 1 || results.length !== 1 ||
+      results[0].file !== 'sequence_profile_wbtest.mbt' || Number(results[0].index) !== 0 || results[0].message !== '') {
+    throw new Error('Missing prepared measurement or independent test success');
+  }
+  const m = measurements[0];
+  if (['candidate', 'rows', 'columns', 'case_id'].some(key => m[key] !== expected[key]) ||
+      m.reused_input !== true || m.fresh_budgets !== true ||
+      !Number.isFinite(m.operation_us) || m.operation_us <= 0 ||
+      !Number.isFinite(m.warmup_operation_us) || m.warmup_operation_us <= 0 ||
+      'end_to_end_us' in m || 'phases_us' in m) {
+    throw new Error('Invalid prepared-only measurement');
+  }
+  return m;
+}
