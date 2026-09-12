@@ -5,6 +5,9 @@ fn fixture(
   unused_parameter_name? : String = "unknown",
   empty? : Bool = false,
   annotations? : Bool = false,
+  import_mode? : Int = 0,
+  accepted? : Bool = false,
+  root_id? : String = "p",
 ) -> (@requests.Slots, Array[@body.ParameterUses]) {
   let text =
     #|{"version":"actql/0.1","id":"p","params":{"n":{"type":"number"},"m":{"type":"number"}},"bindings":{"b":{"type":"resource_ref","resource_kind":"drive.file","meta":{"note":"omit"}},"unused":{"type":"artifact_ref"}},"stages":[{"id":"a","inputs":{"rows":"relation","remote/~":{"connector":"drive/main","resource":"file","request":{"p":{"$param":"n"},"f/~":{"$binding":"b"},"again":{"$binding":"b"},"data":{"nested":{"$param":"unknown"}}}}},"from":"rows","steps":[{"take":{"$param":"m"}}],"results":{"r":{}},"effects":{"d":{"delete":{"where":["1 < $n"]}}}},{"id":"b","inputs":{"rows":"relation"},"from":"rows","steps":[{"take":{"$param":"m"}}],"results":{"r":{}}}],"results":{"out":{"from":{"stage":"b","result":"r"}}}}
@@ -30,6 +33,25 @@ fn fixture(
   } else {
     text
   }
+  let text = if import_mode == 0 {
+    text
+  } else {
+    text.replace(
+      old="\"id\":\"b\",\"inputs\":{\"rows\":\"relation\"}",
+      new="\"id\":\"b\",\"inputs\":{\"rows\":" +
+        (if import_mode == 1 {
+          "{\"result\":{\"stage\":\"a\",\"result\":\"r\"}}"
+        } else {
+          "{\"receipt\":{\"stage\":\"a\",\"effect\":\"d\"}}"
+        }) +
+        "}",
+    )
+  }
+  let text = if accepted {
+    text.replace(old="\"id\":\"b\"", new="\"id\":\"b\",\"after\":\"accepted\"")
+  } else {
+    text
+  }
   let text = if annotations {
     text
     .replace(
@@ -48,6 +70,7 @@ fn fixture(
   } else {
     text
   }
+  let text = text.replace(old="\"id\":\"p\"", new="\"id\":\"" + root_id + "\"")
   let program = @stage.parse(
     text,
     {

@@ -4,6 +4,7 @@ formatter(
   ignore: [
     "stage_expression_contract.generated.mbt",
     "stage_semantics.generated_test.mbt",
+    "program_semantics.generated_test.mbt",
   ],
 )
 

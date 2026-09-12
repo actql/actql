@@ -26,3 +26,27 @@ validation, a Stage/Unit Definition envelope, or executable Program readiness.
 Those gates remain distinct from reproducible source identity. The fixed corpus
 contains source-projection fixtures, not claims that its partial source bodies
 are executable Programs.
+
+## Program composition
+
+`prepare_program_semantics` builds the registered `schemas.program_semantics`
+envelope from that same checked declaration-use inventory. It retains stage
+order, stable stage names, normalized `initial`/`completed`/`accepted` laws,
+explicit Result/receipt imports and root exports. Imports and exports are
+emitted in UTF-16 key order. The template contains descriptors and stage CIDs,
+not a second source-body tree. Root references use decoded source pointers;
+stage-local pointers remain local to their stage envelopes.
+
+Preparation charges retained descriptor/import/export entries and name units
+in addition to existing declaration-use work. Stage hash byte and node caps
+are cumulative across stages; hash depth is bounded independently per envelope.
+No partially prepared result escapes a failed stage hash. These logical budgets
+do not measure sorting comparisons or total heap allocation. The final Program
+emitter has its own byte/node/depth limits and shares text, measurement and hash
+semantics without materializing serialized stage bodies.
+
+`program_sources_semantics` uses the exact inventory owned by source-check
+assembly. Source semantics still excludes concrete bindings, internal handles,
+the root Program ID and execution evidence. Program Definition separately binds
+the Program ID to this semantics CID; computing source semantics is not a
+substitute for that definition or the complete checked Program boundary.

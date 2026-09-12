@@ -9,6 +9,7 @@ import {
   "actql/actql/parameter_references",
   "actql/actql/source_request_slots",
   "actql/actql/stage_source",
+  "moonbitlang/core/debug",
 }
 
 // Values
@@ -21,6 +22,8 @@ pub fn binding_count(Index) -> Int
 pub fn check_declaration_usage(Inventory, max_work~ : Int) -> Result[DeclarationUsage, UsageIssue]
 
 pub fn emit_binding_references(Index, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
+
+pub fn emit_program_semantics(ProgramSemantics, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
 
 pub fn emit_stage_semantics(StageSemantics, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
 
@@ -36,9 +39,21 @@ pub fn parameters(Index) -> @parameter_references.Index
 
 pub fn prepare(@source_request_slots.Slots, Array[@stage_source.ParameterUses], Limits) -> Result[Inventory, Issue]
 
+pub fn prepare_program_semantics(DeclarationUsage, ProgramSemanticsLimits) -> Result[ProgramSemantics, ProgramSemanticsIssue]
+
 pub fn program_index(Inventory) -> Index
 
 pub fn program_parameter_values(ParameterValues) -> @parameter_references.BoundIndex
+
+pub fn program_semantics_cid(ProgramSemantics, Int, Int, Int) -> String raise @encode_core.EncodeFailure
+
+pub fn program_semantics_hash_usage(ProgramSemantics) -> (Int, Int)
+
+pub fn program_semantics_stage_cid(ProgramSemantics, Int) -> String?
+
+pub fn program_semantics_usage(ProgramSemantics) -> DeclarationUsage
+
+pub fn program_semantics_work(ProgramSemantics) -> Int
 
 pub fn requests(Inventory) -> @source_request_slots.Slots
 
@@ -98,6 +113,22 @@ pub(all) struct Limits {
 }
 
 type ParameterValues
+
+type ProgramSemantics
+
+pub enum ProgramSemanticsIssue {
+  InvalidLimits
+  BudgetExceeded
+  StageHash(Int, @encode_core.EncodeFailure)
+}
+
+pub(all) struct ProgramSemanticsLimits {
+  max_work : Int
+  max_stages : Int
+  max_hash_bytes : Int
+  max_hash_nodes : Int
+  max_depth : Int
+} derive(Eq, @debug.Debug)
 
 type StageSemantics
 

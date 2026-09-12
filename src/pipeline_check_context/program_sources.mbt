@@ -96,3 +96,16 @@ pub fn program_sources_stage_semantics(
     index,
   )
 }
+
+///|
+/// Prepare source semantics using the exact inventory bound to this assembly.
+/// This does not discharge remaining static or runtime admission obligations.
+pub fn program_sources_semantics(
+  v : ProgramSourceChecks,
+  limits : @program_refs.ProgramSemanticsLimits,
+) -> Result[@program_refs.ProgramSemantics, @program_refs.ProgramSemanticsIssue] {
+  @program_refs.prepare_program_semantics(
+    @program_refs.parameter_usage(v.references.references),
+    limits,
+  )
+}

@@ -57,6 +57,20 @@ test "Program source checks join exact owners and retain independently validated
     ),
   )
   assert_true(program_sources_stage_semantics(result, 2) is None)
+  let program = program_sources_semantics(result, {
+    max_work: 10000000,
+    max_stages: 2,
+    max_hash_bytes: 100000,
+    max_hash_nodes: 10000,
+    max_depth: 100,
+  }).unwrap()
+  assert_true(
+    physical_equal(
+      @program_refs.program_semantics_usage(program),
+      @program_refs.parameter_usage(program_reference_values(references)),
+    ),
+  )
+  assert_true(@program_refs.program_semantics_stage_cid(program, 0) is Some(_))
   let work = program_sources_work(result)
   assert_eq(
     work,
