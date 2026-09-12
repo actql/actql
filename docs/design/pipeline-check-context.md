@@ -696,6 +696,30 @@ enforcement. Frame endpoint relationships, pivot fill compatibility, and other
 operation families' specialized bound arguments remain separate requirements;
 absence from this scalar-domain pass is not their discharge.
 
+### Bound ROWS frame order
+
+`check_program_operation_frames` closes `BoundFrameOrder` after scalar admission.
+It obtains the analytic frame from the requirement's exact pipeline step and
+checks that the original frame cursor owns the requirement. Symbolic distances
+are read from that producer's existing selected Parameter bindings, never from
+an independently supplied value map. The result retains both distances, each
+bound Parameter and the original frame and requirement occurrence.
+
+For two preceding boundaries, the start distance must be at least the end
+distance; for two following boundaries it must be at most the end distance.
+Equality is valid. Distances are compared as exact integers, without converting
+to signed floating offsets. This implements the
+[analytic ROWS rule](../spec/language.md#analytic), not a new acceptance policy.
+Literal relationships and different boundary classes are already checked during
+operation admission. Identical symbolic endpoints need no separate comparison
+but still require positive safe-integer scalar admission.
+
+The cumulative work budget includes the scalar pass, inventory traversal and
+bounded name lookups. Resolution limits apply before retaining a result, and
+any later failure discards all partial results. This closes only the boundary
+relationship: frame demand, aggregate observations and runtime enforcement remain
+separate obligations. Pivot fill compatibility is also a separate requirement.
+
 Expression closure does not discharge operation-level obligations, bind
 authored guard witness identities, build staged Program/import contracts, or
 complete local Unit/Invocation identity projections. Source Program and stage

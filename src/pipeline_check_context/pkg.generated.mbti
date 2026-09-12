@@ -16,6 +16,7 @@ import {
   "actql/actql/regex_pattern",
   "actql/actql/regex_replacement",
   "actql/actql/relation_results",
+  "actql/actql/relation_typing",
   "actql/actql/source_request_slots",
   "actql/actql/sourceview_resolution",
   "actql/actql/stage_local_inputs",
@@ -63,6 +64,8 @@ pub fn check_operation_profiles(ProgramPreparation, PureOperationProfiles, Int) 
 pub fn check_parameter_bindings(PipelineContext, max_work~ : Int, max_text_bytes~ : Int) -> Result[BoundParameters, ParameterIssue]
 
 pub fn check_patterns(ExpressionValidationContext, PatternLimits) -> Result[PatternChecks, PatternIssue]
+
+pub fn check_program_operation_frames(ProgramOperationScalars, Int, Int) -> Result[ProgramOperationFrames, OperationFrameIssue]
 
 pub fn check_program_operation_scalars(ProgramOperationOrders, Int, Int) -> Result[ProgramOperationScalars, OperationScalarIssue]
 
@@ -155,6 +158,14 @@ pub fn like_pattern_usage(LikePatternChecks) -> LikePatternUsage
 pub fn link_program_operation_orders(ProgramOperationRequirements, Int, Int) -> Result[ProgramOperationOrders, OperationOrderIssue]
 
 pub fn local_inputs_at(InputContexts, Int) -> @stage_local_inputs.Attached?
+
+pub fn operation_frame_at(ProgramOperationFrames, Int) -> OperationFrameResolution?
+
+pub fn operation_frames_count(ProgramOperationFrames) -> Int
+
+pub fn operation_frames_scalars(ProgramOperationFrames) -> ProgramOperationScalars
+
+pub fn operation_frames_work(ProgramOperationFrames) -> Int
 
 pub fn operation_order_link_at(ProgramOperationOrders, Int) -> OperationOrderLink?
 
@@ -530,6 +541,24 @@ pub(all) struct Limits {
   max_text_bytes : Int
 }
 
+pub(all) enum OperationFrameIssue {
+  InvalidLimits
+  BudgetExceeded
+  ForeignOwner(Int)
+  InvalidFrame(Int)
+  Scalar(OperationScalarIssue)
+} derive(Eq, @debug.Debug)
+
+pub struct OperationFrameResolution {
+  requirement_index : Int
+  site : OperationRequirementSite
+  frame : @relation_typing.RowsFrame
+  start_distance : Int64
+  end_distance : Int64
+  start_parameter : @parameter_binding.BoundParameter?
+  end_parameter : @parameter_binding.BoundParameter?
+}
+
 pub(all) enum OperationOrderIssue {
   InvalidLimits
   BudgetExceeded
@@ -677,6 +706,8 @@ pub(all) enum ProgramIdentityPhase {
   Definition
   ParameterValues
 } derive(Eq, @debug.Debug)
+
+type ProgramOperationFrames
 
 type ProgramOperationOrders
 

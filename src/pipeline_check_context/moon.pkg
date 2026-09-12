@@ -1,6 +1,7 @@
 supported_targets = "+js+wasm+native"
 
 import {
+  "actql/actql/relation_typing" @relation,
   "actql/actql/stage_parameters" @stages,
   "actql/actql/encode_core" @encode,
   "actql/actql/program_references" @program_refs,
