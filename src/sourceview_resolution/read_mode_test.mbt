@@ -5,6 +5,7 @@ fn check_mode_fixture(
   input : String,
   expected : String,
   bounded : Bool,
+  checkpoint_cid : String,
 ) -> Unit raise {
   let catalog = fixture_catalog(wire, cid)
   let inputs = fixture_inputs(input)
@@ -33,6 +34,74 @@ fn check_mode_fixture(
     return
   }
   let selected = result.unwrap()
+  if checkpoint_cid == "" {
+    assert_true(mode_checkpoint(selected) is None)
+  } else {
+    let checkpoint = mode_checkpoint(selected).unwrap()
+    let reference = checkpoint_reference(checkpoint)
+    let contract = checkpoint_value_contract(checkpoint)
+    assert_eq(
+      @environment.contract_identity(
+        @environment.protocol_value_envelope(contract),
+      ).2,
+      checkpoint_cid,
+    )
+    assert_true(
+      physical_equal(
+        @environment.reference_contract(reference),
+        @environment.protocol_value_envelope(contract),
+      ),
+    )
+    let checkpoint_path = @decode.cursor_path(
+      @environment.reference_source(reference),
+    )
+    assert_eq(
+      checkpoint_path[checkpoint_path.length() - 1],
+      @source.Key("value_schema"),
+    )
+    assert_eq(
+      checkpoint_path[checkpoint_path.length() - 2],
+      @source.Key("checkpoint"),
+    )
+    let refs = @environment.data_policy_references(
+      @environment.value_contract_policies(
+        @environment.source_view_shape_values(
+          @environment.read_mode_shapes(
+            @environment.carrier_schema_modes(
+              @environment.source_request_carriers(catalog),
+            ),
+          ),
+        ),
+      ),
+    )
+    let foreign_refs = @environment.data_policy_references(
+      @environment.value_contract_policies(
+        @environment.source_view_shape_values(
+          @environment.read_mode_shapes(
+            @environment.carrier_schema_modes(
+              @environment.source_request_carriers(fixture_catalog(wire, cid)),
+            ),
+          ),
+        ),
+      ),
+    )
+    assert_true(
+      physical_equal(
+        @environment.catalog_reference_for_cursor(
+          refs,
+          @environment.reference_source(reference),
+        ).unwrap(),
+        reference,
+      ),
+    )
+    assert_true(
+      @environment.catalog_reference_for_cursor(
+        foreign_refs,
+        @environment.reference_source(reference),
+      )
+      is None,
+    )
+  }
   assert_true(physical_equal(mode_input(selected), entry))
   assert_eq(
     @environment.read_mode_kind(mode_contract(selected)),

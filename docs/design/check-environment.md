@@ -218,6 +218,13 @@ members, route visits, object keys and reference string units cumulatively;
 reference-count limits apply to occurrences, not unique targets. The prior
 Catalog payload budget remains a separate retained check, not reset evidence.
 
+An occurrence index supports `catalog_reference_for_cursor` without rescanning
+the reference set for each consumer. The key is an absolute arena coordinate
+and lookup first checks the exact environment's arena. Only previously admitted
+reference occurrences resolve: a surrounding object, an equal-looking business
+object or a cursor from a separately admitted environment does not. Repeated
+references to one envelope remain separate occurrences with their own sources.
+
 Fixed test locations independently enumerate all 19 roles for wrong-kind checks;
 tests also cover optional absence versus null, late errors, exact ownership,
 original diagnostic locations, cross-Catalog references, repeated mode slots and

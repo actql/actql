@@ -32,7 +32,10 @@ for(const c of corpus.cases){
     const request=contract('request_schema',{type:'object',nullable:false,additional_properties:false,fields});
     const row=contract('carrier_schema',{type:'object',nullable:false,additional_properties:false,fields:{}});
     const policy=contract('data_policy',{version:'actql-source-data-policy/0.1',source_ref:v.source_ref??`connector://crm/main/${v.resource}#${v.name}`,classification:'unknown'});
-    const modes=(v.modes??[v.watch?{mode:'watch',bounded:false}:{mode:'snapshot',bounded:true}]).map(mode=>mode.mode==='snapshot'?mode:{...mode,checkpoint:{kind:'opaque',expires:false,value_schema:contract('checkpoint',{type:'string',nullable:false})}});
+    const modes=(v.modes??[v.watch?{mode:'watch',bounded:false}:{mode:'snapshot',bounded:true}]).map(({checkpoint_type,expiration_type,...mode})=>{
+      if(mode.mode==='snapshot'&&!checkpoint_type)return mode;
+      return {...mode,checkpoint:{kind:'opaque',expires:Boolean(expiration_type),value_schema:contract('checkpoint',{type:checkpoint_type??'string',nullable:false}),...(expiration_type?{expiration_schema:contract('checkpoint',{type:expiration_type,nullable:false})}:{})}};
+    });
     views.push(seal({schema:'actql.source_view/0.1',connector_id:'crm/main',connector_version:'fixture',resource_kind:v.kind??'record',view_id:v.name,view_version:'fixture',acquisition:{kind:'scan',authority:'read_metadata',request_schema:request,modes,default_mode:v.default_mode??modes[0].mode},request_processing:{mutates_business_state:false},output:{carrier:'relation',schema:row,facts:contract('carrier_facts',{}),data_policy:policy},pushdown:{contract:contract('pushdown',{}),operations:[]}},'contract_cid'));
   }
   const catalog=seal({schema:'actql.connector_catalog/0.1',connector_id:'crm/main',connector_version:'fixture',contracts:[...contracts].sort(bySelf('cid')),source_views:[...views].sort(bySelf('contract_cid')),commands:[]},'catalog_cid');
@@ -45,8 +48,13 @@ for(const c of corpus.cases){
   assert.ok(c.error||selectedIndex>=0);
   lines.push('', '///|',`test ${JSON.stringify('SourceView resolution corpus: '+c.id)} {`,
     `  check_fixture(${JSON.stringify(canonicalText(env))}, ${JSON.stringify(env.evidence_bundle_cid)}, ${JSON.stringify(JSON.stringify(c.input))}, ${error}, ${JSON.stringify(c.selected??'')}, ${JSON.stringify(selectedIndex<0?'':views[selectedIndex].contract_cid)}, ${Boolean(c.input.view)})`, '}');
-  if(c.direct_mode)lines.push('', '///|',`test ${JSON.stringify('SourceView direct mode corpus: '+c.id)} {`,
-    `  check_mode_fixture(${JSON.stringify(canonicalText(env))}, ${JSON.stringify(env.evidence_bundle_cid)}, ${JSON.stringify(JSON.stringify(c.input))}, ${JSON.stringify(c.direct_mode)}, ${c.bounded??false})`, '}');
+  if(c.direct_mode){
+    const acquisition=views[selectedIndex].acquisition;
+    const mode=acquisition.modes.find(m=>m.mode===(c.input.scan?.mode??acquisition.default_mode));
+    const checkpoint=mode?.checkpoint?.value_schema?.cid??'';
+    lines.push('', '///|',`test ${JSON.stringify('SourceView direct mode corpus: '+c.id)} {`,
+      `  check_mode_fixture(${JSON.stringify(canonicalText(env))}, ${JSON.stringify(env.evidence_bundle_cid)}, ${JSON.stringify(JSON.stringify(c.input))}, ${JSON.stringify(c.direct_mode)}, ${c.bounded??false}, ${JSON.stringify(checkpoint)})`, '}');
+  }
 }
 const path='src/sourceview_resolution/vectors.generated_test.mbt',text=lines.join('\n')+'\n';
 if(process.argv.includes('--write'))writeFileSync(path,text);

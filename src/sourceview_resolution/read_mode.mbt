@@ -32,6 +32,13 @@ struct DirectMode {
   origin : ModeOrigin
   source : @decode.Cursor
   work : Int
+  checkpoint : ModeCheckpoint?
+}
+
+///|
+struct ModeCheckpoint {
+  reference : @environment.CatalogReference
+  value : @environment.ProtocolValueContract
 }
 
 ///|
@@ -116,12 +123,40 @@ pub fn select_direct_mode(
     if @environment.read_mode_kind(selected) == @environment.WatchMode {
       return Err({ kind: UnsupportedWatch, source: location, })
     }
+    let mode_source = @environment.read_mode_source(selected)
+    mode_charge(b, @decode.object_length(mode_source).unwrap(), mode_source)
+    let mode_object = @decode.open_object(mode_source).unwrap()
+    let checkpoint = match @decode.lookup(mode_object, "checkpoint") {
+      None => None
+      Some(body) => {
+        mode_charge(b, @decode.object_length(body).unwrap(), body)
+        let slot = @decode.required(
+          @decode.open_object(body).unwrap(),
+          "value_schema",
+        ).unwrap()
+        let values = @environment.source_view_shape_values(
+          @environment.read_mode_shapes(modes),
+        )
+        let references = @environment.data_policy_references(
+          @environment.value_contract_policies(values),
+        )
+        let reference = @environment.catalog_reference_for_cursor(
+          references, slot,
+        ).unwrap()
+        let value = @environment.protocol_value_for(
+          values,
+          @environment.reference_contract(reference),
+        ).unwrap()
+        Some({ reference, value, })
+      }
+    }
     Ok({
       input,
       mode: selected,
       origin,
       source: location,
       work: max_work - b.work,
+      checkpoint,
     })
   } catch {
     ModeStop(e) => Err(e)
@@ -151,6 +186,25 @@ pub fn mode_source(v : DirectMode) -> @decode.Cursor {
 ///|
 pub fn mode_work(v : DirectMode) -> Int {
   v.work
+}
+
+///|
+pub fn mode_checkpoint(v : DirectMode) -> ModeCheckpoint? {
+  v.checkpoint
+}
+
+///|
+pub fn checkpoint_reference(
+  v : ModeCheckpoint,
+) -> @environment.CatalogReference {
+  v.reference
+}
+
+///|
+pub fn checkpoint_value_contract(
+  v : ModeCheckpoint,
+) -> @environment.ProtocolValueContract {
+  v.value
 }
 
 ///|

@@ -15,6 +15,10 @@ pub fn catalog(Resolved) -> @check_environment.SourceRequestContracts
 
 pub fn catalog_owner(ResolvedInput) -> @check_environment.SourceRequestContracts
 
+pub fn checkpoint_reference(ModeCheckpoint) -> @check_environment.CatalogReference
+
+pub fn checkpoint_value_contract(ModeCheckpoint) -> @check_environment.ProtocolValueContract
+
 pub fn completion_rule(ResolvedInput) -> String?
 
 pub fn count(Resolved) -> Int
@@ -24,6 +28,8 @@ pub fn declaration(ResolvedInput) -> @sourceview_input.Declaration
 pub fn input_owner(ResolvedInput) -> @sourceview_input.Inputs
 
 pub fn inputs(Resolved) -> @sourceview_input.Inputs
+
+pub fn mode_checkpoint(DirectMode) -> ModeCheckpoint?
 
 pub fn mode_contract(DirectMode) -> @check_environment.SourceReadMode
 
@@ -77,6 +83,8 @@ pub(all) struct Limits {
   max_inputs : Int
   max_views : Int
 }
+
+type ModeCheckpoint
 
 pub(all) struct ModeIssue {
   kind : ModeIssueKind

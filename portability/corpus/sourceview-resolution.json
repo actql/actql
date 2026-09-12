@@ -24,6 +24,8 @@
     {"id":"default-watch-unsupported","views":[{"resource":"r","name":"v","watch":true}],"input":{"connector":"crm/main","resource":"r"},"selected":"v","direct_mode":"watch"},
     {"id":"snapshot-overrides-watch","views":[{"resource":"r","name":"v","modes":[{"mode":"watch","bounded":false},{"mode":"snapshot","bounded":true}]}],"input":{"connector":"crm/main","resource":"r","scan":{"mode":"snapshot"}},"selected":"v","direct_mode":"snapshot","bounded":true},
     {"id":"no-snapshot-fallback","views":[{"resource":"r","name":"v","modes":[{"mode":"changes","bounded":true}]}],"input":{"connector":"crm/main","resource":"r","scan":{"mode":"snapshot"}},"selected":"v","direct_mode":"undeclared_snapshot"},
-    {"id":"no-changes-fallback","views":[{"resource":"r","name":"v"}],"input":{"connector":"crm/main","resource":"r","scan":{"mode":"changes"}},"selected":"v","direct_mode":"undeclared_changes"}
+    {"id":"no-changes-fallback","views":[{"resource":"r","name":"v"}],"input":{"connector":"crm/main","resource":"r","scan":{"mode":"changes"}},"selected":"v","direct_mode":"undeclared_changes"},
+    {"id":"checkpoint-is-mode-specific","views":[{"resource":"r","name":"v","modes":[{"mode":"snapshot","bounded":true,"checkpoint_type":"string"},{"mode":"changes","bounded":true,"checkpoint_type":"number","expiration_type":"timestamp"}]}],"input":{"connector":"crm/main","resource":"r","scan":{"mode":"changes"}},"selected":"v","direct_mode":"changes","bounded":true},
+    {"id":"optional-snapshot-checkpoint","views":[{"resource":"r","name":"v","modes":[{"mode":"snapshot","bounded":true,"checkpoint_type":"string","expiration_type":"timestamp"}]}],"input":{"connector":"crm/main","resource":"r"},"selected":"v","direct_mode":"snapshot","bounded":true}
   ]
 }

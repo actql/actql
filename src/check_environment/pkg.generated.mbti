@@ -44,6 +44,8 @@ pub fn catalog_member(Catalog) -> Member
 
 pub fn catalog_reference_at(CatalogReferences, Int) -> CatalogReference?
 
+pub fn catalog_reference_for_cursor(CatalogReferences, @decode_core.Cursor) -> CatalogReference?
+
 pub fn catalog_registry(CatalogContents) -> ContractRegistry
 
 pub fn catalog_usage(CatalogContents) -> (Int, Int, Int)

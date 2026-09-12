@@ -9,6 +9,19 @@ test "every Catalog reference role retains its exact source member and target" {
     let reference = catalog_reference_at(checked, i).unwrap()
     assert_true(
       physical_equal(
+        catalog_reference_for_cursor(checked, reference_source(reference)).unwrap(),
+        reference,
+      ),
+    )
+    assert_true(
+      catalog_reference_for_cursor(
+        checked,
+        member_body(reference_member(reference)),
+      )
+      is None,
+    )
+    assert_true(
+      physical_equal(
         reference_catalog(reference),
         catalog_at(contents, 0).unwrap(),
       ),

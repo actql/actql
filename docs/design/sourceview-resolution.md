@@ -61,6 +61,15 @@ not a runtime check to be postponed. No provisional Program identity or concrete
 checkpoint is invented here. Advertised boundedness alone proves neither actual
 range admission nor capacity, consistency or completeness.
 
+The selection also retains an opaque ModeCheckpoint when the selected mode
+declares a checkpoint. Its exact `checkpoint.value_schema` reference occurrence
+and already admitted ProtocolValueContract remain paired. The lookup does not
+choose the first checkpoint envelope, another mode's contract, or an expiration
+schema. Optional snapshot checkpoints are retained without introducing a
+changes-state obligation. A changes mode always has this value contract by the
+preceding shape/coherence proof. Concrete checkpoint value admission and the
+source-state requirement envelope still belong to subsequent integration.
+
 This follows [read modes](../spec/language.md#sourceviews), not the broader
 execution limitations in `87dc7144:src/actql.ts`. That reference rejects all
 advertised unbounded changes and required acknowledgements at the same boundary.

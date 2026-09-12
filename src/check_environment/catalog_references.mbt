@@ -48,6 +48,7 @@ struct CatalogReference {
 struct CatalogReferences {
   contents : CatalogContents
   references : Array[CatalogReference]
+  by_source : Map[Int, CatalogReference]
   work : Int
 }
 
@@ -56,6 +57,7 @@ priv struct ReferenceReader {
   limits : ReferenceLimits
   mut work : Int
   references : Array[CatalogReference]
+  by_source : Map[Int, CatalogReference]
 }
 
 ///|
@@ -131,7 +133,9 @@ fn read_reference(
     Ok(v) => v
     Err(e) => ref_fail(Resolution(e), source)
   }
-  reader.references.push({ catalog, item, source, contract: entry, })
+  let reference = { catalog, item, source, contract: entry, }
+  reader.references.push(reference)
+  reader.by_source[@decode.tree_index(member_body(item), source).unwrap()] = reference
 }
 
 ///|
@@ -144,7 +148,7 @@ pub fn check_catalog_references(
   if limits.max_work < 0 || limits.max_references < 0 {
     return Err({ kind: InvalidLimits, source: None, })
   }
-  let reader = { limits, work: 0, references: [], }
+  let reader = { limits, work: 0, references: [], by_source: Map([]), }
   let routes = catalog_reference_routes()
   try {
     for catalog in contents.entries {
@@ -199,7 +203,12 @@ pub fn check_catalog_references(
         }
       }
     }
-    Ok({ contents, references: reader.references, work: reader.work, })
+    Ok({
+      contents,
+      references: reader.references,
+      by_source: reader.by_source,
+      work: reader.work,
+    })
   } catch {
     ReferenceStop(issue) => Err(issue)
   }
@@ -241,4 +250,16 @@ pub fn reference_source(v : CatalogReference) -> @decode.Cursor {
 ///|
 pub fn reference_contract(v : CatalogReference) -> ContractEnvelope {
   v.contract
+}
+
+///|
+/// Resolves only a previously admitted reference occurrence in this exact arena.
+pub fn catalog_reference_for_cursor(
+  v : CatalogReferences,
+  source : @decode.Cursor,
+) -> CatalogReference? {
+  match @decode.tree_index(v.contents.registry.environment.root, source) {
+    Some(index) => v.by_source.get(index)
+    None => None
+  }
 }
