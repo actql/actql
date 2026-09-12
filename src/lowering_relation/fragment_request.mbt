@@ -57,7 +57,7 @@ pub fn emit_fragment_request(
   match kernel.body {
     SnapshotMap(bindings) =>
       for (_, expression) in bindings {
-        if expression.body is TypedNull {
+        if is_contextual_null_root(expression) {
           has_null = true
         }
       }
@@ -72,7 +72,7 @@ pub fn emit_fragment_request(
     match kernel.body {
       SnapshotMap(bindings) =>
         for (name, expression) in bindings {
-          if expression.body is TypedNull {
+          if is_contextual_null_root(expression) {
             @encode.key(out, name)
             @contract.emit_checked(expression.contract, out)
           }
@@ -115,4 +115,13 @@ pub fn emit_fragment_request(
   @encode.end_object(out)
   @encode.end_object(out)
   @encode.end_object(out)
+}
+
+///|
+/// A NULL parameter gets its type from the parameter declaration, not from
+/// request.null_contexts. Only an authored literal root needs that context.
+fn is_contextual_null_root(expression : Expression) -> Bool {
+  expression.body is TypedNull &&
+  @typing.node_form(expression.typed_owner, 0)
+  is Some(@typing.Expression("literal", _))
 }
