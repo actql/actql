@@ -1,4 +1,50 @@
 ///|
+test "integrity-valid but uninterpreted Catalog facts cannot seal a contract inventory" {
+  let remote = []
+  let (stages, wiring, _, _, locals, evidence) = wired_inputs_fixture(
+    true,
+    remote=Some(remote),
+    uninterpreted_facts=true,
+    profile=capacity_profile(false),
+  )
+  let wired = attach_result_wiring(
+    stages,
+    wiring,
+    max_work=1000000,
+    max_text_bytes=1000000,
+  ).unwrap()
+  let context = attach_reconciled_inputs(
+    wired,
+    evidence.unwrap(),
+    locals,
+    sourceviews=Some(remote[0]),
+    max_work=1000000,
+    max_text_bytes=1000000,
+    max_local_input_nodes=100000,
+  ).unwrap()
+  let identity = prepared_reconciled_identity(
+    context,
+    @local_inputs.program_environment(reconciled_snapshots(context)),
+  )
+  let result = collect_core_contracts(identity, {
+    max_work: 10000000,
+    max_roots: 1000,
+    max_bodies: 1000,
+    max_edges: 1000,
+  })
+  guard result is Err(CatalogBody(stage, input, reference, issue)) else {
+    abort("unsupported facts were treated as a leaf")
+  }
+  assert_eq((stage, input), (0, 0))
+  assert_eq(issue, @environment.UnsupportedBodyGrammar("carrier_facts"))
+  let selected = @sourceviews.pipeline_input_source(remote[0], stage, input).unwrap()
+  let envelope = @environment.reference_contract(
+    @sourceviews.selected_reference_at(selected, reference).unwrap(),
+  )
+  assert_eq(@environment.contract_role(envelope), "carrier_facts")
+}
+
+///|
 fn check_source_contract_inventory(
   context : ReconciledContexts,
   views : @sourceviews.PipelineInputs,

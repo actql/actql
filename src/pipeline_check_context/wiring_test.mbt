@@ -21,6 +21,7 @@ fn wired_inputs_fixture(
   supplied? : @decode.Cursor? = None,
   remote? : Array[@sourceviews.PipelineInputs]? = None,
   repeat_remote? : Bool = false,
+  uninterpreted_facts? : Bool = false,
 ) -> (
   StageContexts,
   @stage_results.ResultWiring,
@@ -98,7 +99,7 @@ fn wired_inputs_fixture(
   }).unwrap()
   let declarations = @stages.declarations(source)
   let (environment, snapshot) = if remote is Some(_) {
-    sourceview_policy_fixture(profile)
+    sourceview_policy_fixture(profile, uninterpreted_facts~)
   } else {
     snapshot_wire(profile~)
   }

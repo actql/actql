@@ -1,8 +1,9 @@
 ///|
 fn sourceview_policy_fixture(
   profile : String,
+  uninterpreted_facts? : Bool = false,
 ) -> (@environment.WireEnvironment, @snapshot.EnvironmentSnapshot) {
-  let (original, snapshot) = sourceview_snapshot_fixture()
+  let (original, snapshot) = sourceview_snapshot_fixture(uninterpreted_facts~)
   if profile == "{}" {
     return (original, snapshot)
   }
