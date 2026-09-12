@@ -22,11 +22,16 @@ fn check_resolution_index(
   let count = operation_requirements_count(requirements)
   assert_eq(operation_resolution_count(index), count)
   let mut resolved = 0
+  let mut execution = 0
   for i in 0..<count {
     let state = operation_resolution_at(index, i).unwrap()
     let site = operation_requirements_at(requirements, i).unwrap()
     match state {
       Unresolved => ()
+      Execution(DedupeTopTie(check)) => {
+        execution += 1
+        assert_true(physical_equal(check.site, site))
+      }
       Resolved(v) => {
         resolved += 1
         let (position, owner, kind) = match v {
@@ -45,7 +50,10 @@ fn check_resolution_index(
       }
     }
   }
-  assert_eq(operation_resolution_unresolved_count(index), count - resolved)
+  assert_eq(
+    operation_resolution_unresolved_count(index),
+    count - resolved - execution,
+  )
   let cells = operation_lexical_cells(
     operation_calendar_lexical(operation_profile_links_calendar(profiles)),
   )
@@ -65,7 +73,10 @@ fn check_resolution_index(
     operation_profile_links_count(profiles)
   assert_eq(resolved, expected)
   let work = operation_resolution_work(index)
-  assert_eq(work, operation_profile_links_work(profiles) + 1 + count + resolved)
+  assert_eq(
+    work,
+    operation_profile_links_work(profiles) + 1 + count * 2 + resolved,
+  )
   assert_true(
     index_program_operation_resolutions(profiles, work, count) is Ok(_),
   )
@@ -163,7 +174,7 @@ test "resolution index covers all static result families with exact occurrence o
 }
 
 ///|
-test "unresolved operation occurrences are not mistaken for runtime bindings or absent slots" {
+test "dedupe execution checks retain their exact occurrences without claiming execution success" {
   let profiles = resolution_profiles(
     operation_order_fixture(
       "[{\"derive\":{\"x\":\"concat($p, to_string($n))\"}},{\"dedupe_rows\":{\"by\":[\"id\",\"id\"],\"order_by\":[{\"id\":\"asc\"}]}}]",
@@ -171,9 +182,8 @@ test "unresolved operation occurrences are not mistaken for runtime bindings or 
   )
   let index = index_program_operation_resolutions(profiles, 10000000, 3).unwrap()
   assert_eq(operation_resolution_count(index), 3)
-  assert_eq(operation_resolution_unresolved_count(index), 3)
+  assert_eq(operation_resolution_unresolved_count(index), 0)
   for i in 0..<3 {
-    assert_true(operation_resolution_at(index, i) is Some(Unresolved))
     let site = operation_requirements_at(
       operation_resolution_requirements(index),
       i,
@@ -182,6 +192,23 @@ test "unresolved operation occurrences are not mistaken for runtime bindings or 
       abort("relation")
     }
     assert_eq(p.kind, FailOnTopTie)
+    guard operation_resolution_at(index, i) is Some(Execution(check)) else {
+      abort("execution")
+    }
+    let DedupeTopTie(tie) = check
+    assert_true(physical_equal(tie.site, site))
+    assert_true(
+      physical_equal(
+        tie.step,
+        @pipeline.step_at(site.pipeline, site.step).unwrap(),
+      ),
+    )
+    assert_eq(tie.step.input, Some(tie.input))
+    assert_eq(@relation.dedupe_key_count(tie.operation), 2)
+    assert_eq(@relation.dedupe_order_count(tie.operation), 1)
+    assert_eq(dedupe_top_tie_law(tie), "aoa.rela.REL.dedupeRows.v0.1")
+    assert_eq(operation_execution_phase(check), BeforeOperationOutput)
+    assert_eq(operation_execution_failure(check), RejectOperationOutput)
   }
   let (identity, _, _) = prepared_identity_fixture()
   let expressions = close_program_expressions(identity, 10000000, 0).unwrap()
@@ -196,4 +223,52 @@ test "unresolved operation occurrences are not mistaken for runtime bindings or 
     ),
     0,
   )
+}
+
+///|
+test "unhandled resource requirements remain unresolved rather than deferred by default" {
+  let index = index_program_operation_resolutions(
+    profiles_from_ranges(query_fixture("{\"$param\":\"n\"}", "[1,2]")),
+    10000000,
+    100,
+  ).unwrap()
+  assert_true(operation_resolution_unresolved_count(index) > 0)
+  let mut resources = 0
+  for i in 0..<operation_resolution_count(index) {
+    let site = operation_requirements_at(
+      operation_resolution_requirements(index),
+      i,
+    ).unwrap()
+    if site.requirement is @pipeline.VectorRequirement(ResolveVectorResources) {
+      resources += 1
+      assert_true(operation_resolution_at(index, i) is Some(Unresolved))
+    }
+  }
+  assert_true(resources > 0)
+}
+
+///|
+test "global dedupe keeps its empty authored partition and nonempty order in execution binding" {
+  let profiles = resolution_profiles(
+    operation_order_fixture(
+      "[{\"derive\":{\"x\":\"concat($p, to_string($n))\"}},{\"dedupe_rows\":{\"by\":[],\"order_by\":[{\"id\":\"desc\"}]}}]",
+    ),
+  )
+  let index = index_program_operation_resolutions(profiles, 10000000, 3).unwrap()
+  assert_eq(operation_resolution_count(index), 3)
+  for i in 0..<3 {
+    guard operation_resolution_at(index, i)
+      is Some(Execution(DedupeTopTie(tie))) else {
+      abort("global tie check")
+    }
+    assert_eq(@relation.dedupe_key_count(tie.operation), 0)
+    assert_eq(@relation.dedupe_order_count(tie.operation), 1)
+    let order = @relation.dedupe_order_at(tie.operation, 0).unwrap()
+    assert_eq(order.direction, Desc)
+    assert_eq(order.nulls, Last)
+    assert_eq(tie.site.stage, if i == 0 { 0 } else { 1 })
+    assert_eq(tie.site.step, 1)
+    assert_eq(tie.input, @pipeline.Step(0))
+  }
+  check_resolution_index(profiles, Array::make(8, false))
 }

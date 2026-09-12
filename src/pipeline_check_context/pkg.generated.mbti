@@ -118,6 +118,8 @@ pub fn collect_source_bindings(ProgramPreparation, Int, Int) -> Result[SourceBin
 
 pub fn collect_source_contracts(ReconciledContexts, SourceContractLimits) -> Result[SourceContractRequirements, SourceContractIssue]
 
+pub fn dedupe_top_tie_law(DedupeTopTieCheck) -> String
+
 pub fn environment_inputs(EnvironmentContext) -> InputContexts
 
 pub fn environment_snapshots(EnvironmentContext) -> @stage_local_inputs.ProgramEnvironmentInputs
@@ -211,6 +213,10 @@ pub fn operation_cells_count(ProgramOperationCells) -> Int
 pub fn operation_cells_queries(ProgramOperationCells) -> ProgramOperationQueries
 
 pub fn operation_cells_work(ProgramOperationCells) -> Int
+
+pub fn operation_execution_failure(OperationExecutionCheck) -> ExecutionCheckFailure
+
+pub fn operation_execution_phase(OperationExecutionCheck) -> ExecutionCheckPhase
 
 pub fn operation_fill_at(ProgramOperationFills, Int) -> OperationFillResolution?
 
@@ -581,6 +587,13 @@ type AdmittedOperationQuery
 
 type BoundParameters
 
+pub struct DedupeTopTieCheck {
+  site : OperationRequirementSite
+  step : @pipeline_typing.CheckedStep
+  input : @pipeline_typing.Target
+  operation : @relation_typing.CheckedOperation
+}
+
 type EnvironmentContext
 
 pub(all) enum EnvironmentIssue {
@@ -589,6 +602,14 @@ pub(all) enum EnvironmentIssue {
   ForeignInputs(Int)
   InconsistentUsage
   BudgetExceeded
+} derive(Eq, @debug.Debug)
+
+pub(all) enum ExecutionCheckFailure {
+  RejectOperationOutput
+} derive(Eq, @debug.Debug)
+
+pub(all) enum ExecutionCheckPhase {
+  BeforeOperationOutput
 } derive(Eq, @debug.Debug)
 
 pub(all) enum ExpressionClosureIssue {
@@ -775,6 +796,10 @@ pub struct OperationCellResolution {
   parameter : @parameter_binding.BoundParameter
 }
 
+pub(all) enum OperationExecutionCheck {
+  DedupeTopTie(DedupeTopTieCheck)
+}
+
 pub(all) enum OperationFillIssue {
   InvalidLimits
   BudgetExceeded
@@ -936,6 +961,7 @@ pub(all) enum OperationResolutionIndexIssue {
 
 pub(all) enum OperationResolutionState {
   Resolved(OperationResolution)
+  Execution(OperationExecutionCheck)
   Unresolved
 }
 

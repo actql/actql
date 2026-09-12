@@ -1041,7 +1041,8 @@ atomically. Required slots and every resolution visit are charged before index
 allocation; construction is linear in requirements plus resolutions, and reads
 are constant-time without copying the retained proof collections.
 
-Each valid slot is explicitly `Resolved(typed resolution)` or `Unresolved`.
+Each valid slot is explicitly `Resolved(typed resolution)`,
+`Execution(typed check)` or `Unresolved`.
 An absent indexed result means only an out-of-range index. `Unresolved` does not
 mean runtime: a later coverage boundary must connect an allowed execution check
 to its subject, application, dependencies and failure behavior, or reject static
@@ -1049,6 +1050,24 @@ unresolved/unsupported handling. Even zero unresolved operation occurrences do
 not close input, publication, incoming, identity or other Program obligations.
 Calendar and lexical operation-wide admissions remain owned by the retained
 chain; they do not implicitly discharge arbitrary occurrence-level requirements.
+
+For relational `dedupe_rows`, `DedupeTopTie` connects the owned `FailOnTopTie`
+occurrence to its checked step, primary input target and exact checked operation.
+Its rule is `aoa.rela.REL.dedupeRows.v0.1`, as registered in the shared primitive
+laws and specified by [representative selection](../spec/language.md#distinct-and-dedupe).
+The check is required before operation output publication; any unresolved top
+tie rejects that operation's output under
+[operation atomicity](../spec/execution.md#capture-and-replay).
+It is not a claim that any rows have already passed.
+
+The retained operation supplies authored partition keys and order terms through
+bounded indexed readers, including repeated keys and a global empty partition
+key. No candidate-key completion, arrival order or CID tie-break is introduced.
+The input target is interpreted only in the retained pipeline and producer visit;
+its input admission and producer dependencies remain prerequisites, not proofs
+manufactured by this binding. Other families, including event deduplication,
+are not implicitly covered by matching a similarly named obligation. Backend
+support and complete Program dependency coverage remain separate checks.
 
 ### Joining incoming and operation checks
 

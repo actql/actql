@@ -14,6 +14,7 @@ pub(all) enum OperationResolution {
 /// Unresolved is not an execution check and cannot authorize deferral.
 pub(all) enum OperationResolutionState {
   Resolved(OperationResolution)
+  Execution(OperationExecutionCheck)
   Unresolved
 }
 
@@ -81,6 +82,7 @@ pub fn index_program_operation_resolutions(
   // Sequential subtraction avoids overflowing a sum of caller-bounded counts.
   for
     cost in [
+      count,
       count,
       orders.links.length(),
       scalars.entries.length(),
@@ -153,6 +155,19 @@ pub fn index_program_operation_resolutions(
   for r in profiles.entries {
     if attach(ProfileResolution(r)) is Some(e) {
       return Err(e)
+    }
+  }
+  for i in 0..<count {
+    match dedupe_execution_check(requirements.entries[i]) {
+      Err(_) => return Err(ForeignOccurrence(i))
+      Ok(None) => ()
+      Ok(Some(check)) => {
+        guard states[i] is Unresolved else {
+          return Err(DuplicateResolution(i))
+        }
+        states[i] = Execution(check)
+        unresolved -= 1
+      }
     }
   }
   Ok({ profiles, requirements, states, unresolved, work, })
