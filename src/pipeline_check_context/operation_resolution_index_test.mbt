@@ -72,6 +72,82 @@ fn check_resolution_index(
     operation_cells_count(cells) +
     operation_profile_links_count(profiles)
   assert_eq(resolved, expected)
+  let calendar = operation_profile_links_calendar(profiles)
+  let lexical = operation_calendar_lexical(calendar)
+  let identity = expression_closure_identity(
+    operation_requirements_expressions(requirements),
+  )
+  let limits : OperationResolutionLimits = {
+    max_work: operation_resolution_work(index),
+    max_requirements: count +
+    expression_closure_count(operation_requirements_expressions(requirements)),
+    max_resolutions: expected +
+    operation_calendar_count(calendar) +
+    operation_lexical_count(lexical),
+  }
+  let combined = resolve_program_operations(
+    identity,
+    limits,
+    calendar=operation_calendar_profile(calendar),
+    text_rank=operation_lexical_profile(lexical),
+  ).unwrap()
+  assert_eq(
+    operation_resolution_work(combined),
+    operation_resolution_work(index),
+  )
+  assert_eq(operation_resolution_count(combined), count)
+  assert_eq(
+    operation_resolution_unresolved_count(combined),
+    operation_resolution_unresolved_count(index),
+  )
+  assert_true(
+    physical_equal(
+      expression_closure_identity(
+        operation_requirements_expressions(
+          operation_resolution_requirements(combined),
+        ),
+      ),
+      identity,
+    ),
+  )
+  for i in 0..<count {
+    let kind = fn(v : OperationResolutionState) {
+      match v {
+        Unresolved => 0
+        Execution(_) => 1
+        Resolved(Order(_)) => 2
+        Resolved(Scalar(_)) => 3
+        Resolved(Frame(_)) => 4
+        Resolved(Fill(_)) => 5
+        Resolved(Range(_)) => 6
+        Resolved(Query(_)) => 7
+        Resolved(Cell(_)) => 8
+        Resolved(ProfileResolution(_)) => 9
+      }
+    }
+    assert_eq(
+      kind(operation_resolution_at(combined, i).unwrap()),
+      kind(operation_resolution_at(index, i).unwrap()),
+    )
+  }
+  let short = [{ ..limits, max_work: limits.max_work - 1, }]
+  if limits.max_requirements > 0 {
+    short.push({ ..limits, max_requirements: limits.max_requirements - 1, })
+  }
+  if limits.max_resolutions > 0 {
+    short.push({ ..limits, max_resolutions: limits.max_resolutions - 1, })
+  }
+  for cap in short {
+    assert_true(
+      resolve_program_operations(
+        identity,
+        cap,
+        calendar=operation_calendar_profile(calendar),
+        text_rank=operation_lexical_profile(lexical),
+      )
+      is Err(_),
+    )
+  }
   let work = operation_resolution_work(index)
   assert_eq(
     work,

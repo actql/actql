@@ -507,6 +507,8 @@ pub fn regex_pattern_site(RegexPatternResolution) -> ExpressionValidationSite
 
 pub fn regex_pattern_usage(RegexPatternChecks) -> RegexPatternUsage
 
+pub fn resolve_program_operations(ProgramSourceIdentity, OperationResolutionLimits, text_rank? : @check_environment.SelectedTextRankProfile?, calendar? : @check_environment.SelectedCalendarProfile?) -> Result[ProgramOperationResolutionIndex, ProgramOperationResolutionIssue]
+
 pub fn result_import_type_cid(ResultImportType) -> String
 
 pub fn result_import_type_contract(ResultImportType) -> @value_contract.Contract
@@ -1159,6 +1161,12 @@ pub(all) enum OperationResolutionIndexIssue {
   DuplicateResolution(Int)
 } derive(Eq, @debug.Debug)
 
+pub(all) struct OperationResolutionLimits {
+  max_work : Int
+  max_requirements : Int
+  max_resolutions : Int
+} derive(Eq, @debug.Debug)
+
 pub(all) enum OperationResolutionState {
   Resolved(OperationResolution)
   Execution(OperationExecutionCheck)
@@ -1305,6 +1313,23 @@ type ProgramOperationRanges
 type ProgramOperationRequirements
 
 type ProgramOperationResolutionIndex
+
+pub enum ProgramOperationResolutionIssue {
+  InvalidLimits
+  Expressions(ExpressionClosureIssue)
+  Inventory(OperationRequirementsIssue)
+  Orders(OperationOrderIssue)
+  Scalars(OperationScalarIssue)
+  Frames(OperationFrameIssue)
+  Fills(OperationFillIssue)
+  Ranges(OperationRangeIssue)
+  Queries(OperationQueryIssue)
+  Cells(OperationCellIssue)
+  Lexical(OperationLexicalIssue)
+  Calendar(OperationCalendarIssue)
+  Profiles(OperationProfileLinksIssue)
+  Index(OperationResolutionIndexIssue)
+}
 
 type ProgramOperationScalars
 

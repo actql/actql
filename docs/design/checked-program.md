@@ -73,6 +73,23 @@ results at every phase. Private incremental assembly can retain immutable
 intermediates. Public low-level helpers remain useful for focused tests, but
 their existence is not an alternative formal Program compilation entrance.
 
+Operation resolution is orchestrated from one retained source identity by
+`resolve_program_operations`. It constructs the expression closure and complete
+operation requirement inventory, then runs order, scalar, frame, fill, range,
+query, cell and data-profile checks before indexing their dispositions. Callers
+do not supply a separately assembled collection of successful resolutions.
+Selected profile artifacts still pass their existing exact-Environment ownership
+checks. Any phase failure returns its typed diagnostic without exposing a partial
+index.
+
+Its requirement limit covers expression and operation occurrences together.
+Its resolution limit covers the sum of specialized operation result entries,
+including the Calendar and TextRank admissions; execution bindings and unresolved
+slots are bounded by the requirement inventory. Each phase receives the remaining
+entry allowance and the same cumulative work ceiling. The index may still contain
+unresolved obligations: this orchestration is not the final validating constructor
+and does not convert unsupported static work into execution checks.
+
 Shared work is counted once for an exact retained owner; additional branch work
 and join validation are still charged. No phase resets the Program budget.
 The final retained usage distinguishes parsing/prior admission where applicable,
