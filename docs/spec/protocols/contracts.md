@@ -168,6 +168,37 @@ Validation retains the original Envelope and its exact environment membership;
 equal bare-body hashes do not substitute for role or ownership. This validates
 type declarations, not actual values, Ref issuers or execution authority.
 
+<!-- requirement-block: check-environment.carrier-schema-bodies -->
+Each supplied `carrier_schema` body MUST use exactly one of the following closed
+forms, including unused envelopes. Relation uses the non-null canonical checked
+object value contract, including `fields: {}`. Graph uses the existing
+`actql-graph-contract/0.1` structural body in [Carriers](../language.md#carriers).
+Events uses `{version: "actql-events-contract/0.1", records, id, time}`; Vectors
+uses `{version: "actql-vectors-contract/0.1", records, ids, components}`.
+`records` is a complete non-null checked object contract. All role names are
+canonical ordinary field names resolving exactly to fields in that record.
+Event `id` is non-null KeyComparable, and `time` is a non-null number or timestamp
+with the existing UTC-millisecond interpretation. Vector `ids` is a nonempty
+ordered list of distinct non-null KeyComparable fields; `components` is a
+different field with a non-null vector contract, which supplies dimensions.
+Array order is retained, not sorted or deduplicated. The Check Environment
+contract contains the shape schema; field resolution, comparability, clock and
+component types, Graph completeness and sorted labels are additional semantic
+checks. No role is inferred from a field name, observed data, primary-key facts
+or an AoA physical layout.
+
+<!-- requirement-block: check-environment.carrier-schema-correspondence -->
+A SourceView's `output.carrier` MUST match its resolved carrier-schema body.
+Admission retains the exact output reference, Contract Envelope and environment.
+The Envelope CID and bare structural body CID are different identities; no
+self-CID is added to a structural body. These declarations do not prove runtime
+value validity, event or vector identity uniqueness, graph membership, stable
+order, capacity, publisher authority or backend support. Those obligations remain
+separate. A backend unable to represent a declared semantic ID rejects execution;
+it does not stringify or replace that ID. Absence of type evidence elsewhere in
+the language is not represented by a malformed supplied schema or by a `json`
+placeholder. Empty datasets retain their declared structural contracts.
+
 <!-- requirement-block: check-environment.within-one-admitted-check-environment-every-author-visible-selector-must-resolve -->
 Within one admitted Check Environment, every author-visible selector MUST
 resolve exactly once: Connector ID, SourceView `(connector, resource, view)`,
@@ -1077,7 +1108,7 @@ These exact schema/law references are owned here. Their identities do not includ
 <!-- requirement-block: machine-contracts.exact-artifacts -->
 <!-- normative-code: law -->
 ```text
-../../../spec/contracts/actql-check-environment.json# sha256:4f66de5ec23a5291311b35057c86e4cbf8868f1e8ac92a286b5bd57bb523f0b1
+../../../spec/contracts/actql-check-environment.json# sha256:c0b8f81ba13dc26dd7b6ea1b7216c500eb019d9b6f7edcff64e0a4d03e4ffa41
 ../../../spec/contracts/actql-local-relation-snapshot.json# sha256:60e8136aea733421e75fa3dcef4934c87ce98959b36f8a56da93ccfbf03d81b2
 ../../../spec/contracts/actql-local-source-reference.json# sha256:9be664306a6a91a8e5bfca53d579e6dac77baf4567eb241ceeedc3216ffe47d9
 ../../../spec/contracts/actql-protocol-schemas.json#/schemas/model_task sha256:19408a610dbc52552bff3a7f97f25a120a66688e7db4f41383c91c9298f02dd2

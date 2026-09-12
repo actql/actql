@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import {readFileSync,writeFileSync} from 'node:fs';
 import {machineCid} from './actql-spec-family.mjs';
 import {valueBodyContract} from './protocol-value-contracts.mjs';
+import {carrierBodyContract} from './carrier-schema.mjs';
 
 export const sections = ['schema_snapshots','connector_capabilities','mapping_contracts','source_views','command_contracts','model_task_contracts','contract_registry','connector_catalogs'];
 const records = {type:'array',items:{type:'object'}};
@@ -35,6 +36,7 @@ const body = {
     source_read_modes:'unique_names_declared_default_snapshot_bounded_watch_unbounded_changes_and_watch_require_checkpoint_preserve_array_order_no_selection_authority',
   },
   value_contract_bodies:valueBodyContract(JSON.parse(readFileSync('spec/contracts/actql-protocol-schemas.json','utf8'))),
+  carrier_contract_bodies:carrierBodyContract(JSON.parse(readFileSync('spec/contracts/actql-protocol-schemas.json','utf8')),JSON.parse(readFileSync('spec/contracts/actql-aoa.json','utf8'))),
   contract_bodies:{
     data_policy:{
       type:'object',additionalProperties:false,

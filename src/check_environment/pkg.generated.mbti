@@ -3,8 +3,10 @@ package "actql/actql/check_environment"
 
 import {
   "actql/actql/capacity_policy",
+  "actql/actql/carrier_contract",
   "actql/actql/decode_core",
   "actql/actql/encode_core",
+  "actql/actql/graph_contract",
   "actql/actql/text_time_policy",
   "actql/actql/value_contract",
   "moonbitlang/core/debug",
@@ -16,6 +18,20 @@ pub fn capacity_environment(Capacity) -> WireEnvironment
 pub fn capacity_policy(Capacity) -> @capacity_policy.Policy
 
 pub fn capacity_usage(Capacity) -> (Int, Int)
+
+pub fn carrier_schema_at(CarrierSchemas, Int) -> CarrierSchema?
+
+pub fn carrier_schema_body_cid(CarrierSchema) -> String
+
+pub fn carrier_schema_envelope(CarrierSchema) -> ContractEnvelope
+
+pub fn carrier_schema_for(CarrierSchemas, ContractEnvelope) -> CarrierSchema?
+
+pub fn carrier_schema_modes(CarrierSchemas) -> SourceReadModes
+
+pub fn carrier_schema_usage(CarrierSchemas) -> (Int, Int, Int, Int)
+
+pub fn carrier_schema_value(CarrierSchema) -> @carrier_contract.Carrier
 
 pub fn catalog_at(CatalogContents, Int) -> Catalog?
 
@@ -32,6 +48,8 @@ pub fn catalog_registry(CatalogContents) -> ContractRegistry
 pub fn catalog_usage(CatalogContents) -> (Int, Int, Int)
 
 pub fn catalog_view_at(Catalog, Int) -> Member?
+
+pub fn check_carrier_schemas(SourceReadModes, CarrierSchemaLimits) -> Result[CarrierSchemas, CarrierSchemaIssue]
 
 pub fn check_catalog_contents(ContractRegistry, Limits) -> Result[CatalogContents, CatalogIssue]
 
@@ -147,6 +165,12 @@ pub fn resolve_catalog_contract(Catalog, String, String, String, String) -> Resu
 
 pub fn resolve_contract(ContractRegistry, String, String, String, String) -> Result[ContractEnvelope, ContractIssue]
 
+pub fn source_view_carrier(CarrierSchemas, Member) -> SourceViewCarrier?
+
+pub fn source_view_carrier_reference(SourceViewCarrier) -> CatalogReference
+
+pub fn source_view_carrier_schema(SourceViewCarrier) -> CarrierSchema
+
 pub fn source_view_data_policy(SourceViewPolicy) -> SourceDataPolicy
 
 pub fn source_view_policy(SourceDataPolicies, Member) -> SourceViewPolicy?
@@ -181,6 +205,33 @@ pub(all) enum CapacityIssue {
   BudgetExceeded
   Policy(@capacity_policy.Issue)
 } derive(Eq, @debug.Debug)
+
+type CarrierSchema
+
+pub(all) struct CarrierSchemaIssue {
+  kind : CarrierSchemaIssueKind
+  source : @decode_core.Cursor?
+}
+
+pub(all) enum CarrierSchemaIssueKind {
+  InvalidLimits
+  WorkLimit
+  SchemaLimit
+  BudgetExceeded
+  InvalidBody
+  InvalidType(@value_contract.AdmissionError)
+  InvalidGraph(@graph_contract.ReadIssue)
+  InvalidRole(@carrier_contract.Issue)
+  CarrierMismatch
+} derive(Eq, @debug.Debug)
+
+pub(all) struct CarrierSchemaLimits {
+  max_work : Int
+  max_schemas : Int
+  bodies : @graph_contract.Limits
+}
+
+type CarrierSchemas
 
 type Catalog
 
@@ -319,6 +370,8 @@ pub(all) enum SourceReadModeKind {
 } derive(Eq, @debug.Debug)
 
 type SourceReadModes
+
+type SourceViewCarrier
 
 type SourceViewModes
 

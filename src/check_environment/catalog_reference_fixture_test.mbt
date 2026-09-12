@@ -51,6 +51,9 @@ fn reference_fixture(
   unused_policy? : Json? = None,
   bodies? : Map[String, Json] = Map([]),
   unused_value? : Json? = None,
+  unused_carrier? : Json? = None,
+  complete_view? : Bool = false,
+  carrier? : String = "relation",
 ) -> CatalogContents raise {
   let kinds = [
     "request_schema", "carrier_schema", "carrier_facts", "pushdown", "checkpoint",
@@ -101,16 +104,31 @@ fn reference_fixture(
     contracts.push(wire)
     identities[wire] = identity
   }
-  if unused_value is Some(body) {
-    let core = @json.parse(
-      "{\"schema\":\"actql.contract/0.1\",\"id\":\"unused-value\",\"kind\":\"checkpoint\",\"version\":\"external\"}",
-    )
-    guard core is Object(fields) else { abort("unused value fixture") }
-    fields["body"] = body
-    let wire = sealed_fixture(core, "cid")
-    guard fields["cid"] is String(identity) else { abort("identity fixture") }
-    contracts.push(wire)
-    identities[wire] = identity
+  for
+    (kind, unused) in [
+      ("checkpoint", unused_value),
+      ("carrier_schema", unused_carrier),
+    ] {
+    if unused is Some(body) {
+      let unused_id = if kind == "checkpoint" {
+        "unused-value"
+      } else {
+        "unused-carrier"
+      }
+      let core = @json.parse(
+        "{\"schema\":\"actql.contract/0.1\",\"id\":\"" +
+        unused_id +
+        "\",\"kind\":\"" +
+        kind +
+        "\",\"version\":\"external\"}",
+      )
+      guard core is Object(fields) else { abort("unused value fixture") }
+      fields["body"] = body
+      let wire = sealed_fixture(core, "cid")
+      guard fields["cid"] is String(identity) else { abort("identity fixture") }
+      contracts.push(wire)
+      identities[wire] = identity
+    }
   }
   contracts.sort_by((a, b) => identities[a].compare(identities[b]))
   let mode = "{\"mode\":\"snapshot\",\"bounded\":true,\"checkpoint\":{\"value_schema\":\"@checkpoint\",\"expiration_schema\":\"@checkpoint\"},\"delivery\":{\"lease\":{\"expiration_schema\":\"@checkpoint\"}}}"
@@ -125,6 +143,22 @@ fn reference_fixture(
     }
   }
   let value = @json.parse(text)
+  if complete_view {
+    guard value is Object(fields) else { abort("fixture") }
+    let mut view_text =
+      #|{"schema":"actql.source_view/0.1","connector_id":"example","connector_version":"external-7","resource_kind":"record","view_id":"main","view_version":"external","acquisition":{"kind":"scan","authority":"read_metadata","request_schema":"@request_schema","modes":[{"mode":"snapshot","bounded":true}],"default_mode":"snapshot"},"request_processing":{"mutates_business_state":false},"output":{"carrier":"@carrier","schema":"@carrier_schema","facts":"@carrier_facts","data_policy":"@data_policy"},"pushdown":{"contract":"@pushdown","operations":[]}}
+    for kind in kinds {
+      view_text = view_text.replace(
+        old="\"@" + kind + "\"",
+        new=canonical_fixture(refs[kind]),
+      )
+    }
+    view_text = view_text.replace(
+      old="\"@carrier\"",
+      new=canonical_fixture(Json::string(carrier)),
+    )
+    fields["view"] = @json.parse(view_text)
+  }
   if !path.is_empty() {
     mutate_reference_fixture(value, path, 0, replacement)
   }

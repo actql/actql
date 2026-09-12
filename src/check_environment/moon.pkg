@@ -9,6 +9,9 @@ import {
   "actql/actql/capacity_policy" @policy,
   "actql/actql/text_time_policy" @text_policy,
   "actql/actql/value_contract",
+  "actql/actql/carrier_contract" @carrier,
+  "actql/actql/relation_schema" @row,
+  "actql/actql/graph_contract" @graph,
   "moonbitlang/core/encoding/utf8",
 }
 
@@ -22,5 +25,6 @@ formatter(
     "vectors.generated_test.mbt",
     "catalog_roles.generated.mbt",
     "source_view_shape.generated.mbt",
+    "carrier_vectors.generated_test.mbt",
   ],
 )

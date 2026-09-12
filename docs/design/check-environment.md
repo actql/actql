@@ -1,5 +1,42 @@
 # Check Environment envelope and admission boundaries
 
+## Carrier body admission
+
+Carrier schema declarations are a tagged union by existing checked-object shape
+or explicit Graph/Events/Vectors version, not a generic object interpreted by
+the consumer's requested Carrier. Relation reuses the complete non-null checked
+object contract; Graph reuses the existing structural body and selected law pins.
+The Events and Vectors wrappers fix a previously unspecified Catalog role wire
+boundary: complete records plus explicit identity/clock/component selectors.
+Their role types reuse `carrier_contract`, not a separate type algebra.
+
+Sketch `87dc7144`'s `sourceViewBundle` publishes an object contract irrespective
+of Carrier. That is sufficient for Relation but does not encode the other
+Carriers' semantic roles. AoA `dbab4fe8c1d624d81ed967f90e2abe742163f84f`'s TEA
+physical event has a string ID and numeric clock; that backend representation
+does not narrow ActQL's admitted semantic identity domain. This is an explicit
+wire clarification requiring non-Relation publishers to provide the new role
+body, not a claim that the old generic-object publisher already supplies it.
+No stringification, metric inference or generated row ID fills missing roles.
+Vector metric selection remains the consuming operation's contract, not an
+intrinsic property inferred from a vector field.
+
+`check_carrier_schemas` consumes the opaque read-mode/shape/value/policy/Catalog
+proof chain, checks every supplied carrier envelope, and associates each view
+with its exact output reference and type. Body canonical bytes and JSON node
+counts accumulate across envelopes; maximum depth bounds each body. Work bounds
+registry/reference traversal and object indexing independently. Hash measurement
+precedes typed construction, so oversized lists do not allocate a new role or
+field array first. These logical budgets are not heap ceilings. Internal typed
+objects retain source ownership; bare body CID cannot substitute for Envelope
+identity or environment membership.
+
+Graph row-conversion aliases are not invented from this structural body. Unknown
+evidence elsewhere remains unknown; a supplied complete schema is never weakened
+to a partial or JSON placeholder. This boundary does not establish data admission,
+uniqueness, order, capacity, observation mappings, effective authority or a final
+admitted Check Environment. Backend execution support is a separate check.
+
 The normative owner is [Check Environment and source evidence](../spec/protocols/contracts.md#check-environment).
 `spec/contracts/actql-check-environment.json` pins the outer schema and identity
 rules; its `schema` is a standalone resource. This is not an executable registry,

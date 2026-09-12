@@ -39,4 +39,17 @@ test "SourceView schema admission is distinct from already admitted references" 
   assert_true(
     check_source_read_modes(shapes, -1) is Err(e) && e.kind == InvalidLimits,
   )
+  let carrier_limits : CarrierSchemaLimits = {
+    max_work: 0,
+    max_schemas: 0,
+    bodies: { max_bytes: 0, max_nodes: 0, max_depth: 0, },
+  }
+  let carriers = check_carrier_schemas(modes, carrier_limits).unwrap()
+  assert_eq(carrier_schema_usage(carriers), (0, 0, 0, 0))
+  assert_true(physical_equal(carrier_schema_modes(carriers), modes))
+  assert_true(carrier_schema_at(carriers, 0) is None)
+  assert_true(
+    check_carrier_schemas(modes, { ..carrier_limits, max_work: -1, }) is Err(e) &&
+    e.kind == InvalidLimits,
+  )
 }

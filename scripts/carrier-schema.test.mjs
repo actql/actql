@@ -1,0 +1,27 @@
+import assert from 'node:assert/strict';
+import test from 'node:test';
+import {readFileSync} from 'node:fs';
+import {carrierBodyContract} from './carrier-schema.mjs';
+const read=p=>JSON.parse(readFileSync(p,'utf8'));
+const protocol=read('spec/contracts/actql-protocol-schemas.json'),aoa=read('spec/contracts/actql-aoa.json');
+const {schema}=carrierBodyContract(protocol,aoa);
+test('four disjoint Carrier bodies reuse checked value grammar without backend layouts',()=>{
+  const {$defs}=schema;
+  const {record,...types}=$defs;
+  assert.deepEqual(types,protocol.schemas.canonical_value_contract.$defs);
+  assert.equal(record.properties.nullable.const,false);
+  assert.equal(record.properties.fields.minProperties,undefined);
+  assert.equal(schema.oneOf.length,4);
+  const [,graph,events,vectors]=schema.oneOf;
+  for(const arm of [graph,events,vectors]) assert.equal(arm.additionalProperties,false);
+  assert.deepEqual(events.required,['version','records','id','time']);
+  assert.deepEqual(vectors.required,['version','records','ids','components']);
+  assert.equal(vectors.properties.ids.minItems,1);
+  assert.equal(vectors.properties.ids.uniqueItems,true);
+  assert.equal(graph.properties.identity_law_cid.const,aoa.sga_identity_law_manifest_cid);
+  assert.equal(graph.properties.value_law_cid.const,aoa.sga_identity_law_manifest_cid);
+});
+test('Carrier enum additions require an explicit body grammar decision',()=>{
+  assert.deepEqual([...protocol.schemas.source_view.properties.output.properties.carrier.enum].sort(),['events','graph','relation','vectors']);
+  assert.deepEqual(read('spec/contracts/actql-check-environment.json').carrier_contract_bodies,carrierBodyContract(protocol,aoa));
+});
