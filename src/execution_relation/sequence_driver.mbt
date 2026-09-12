@@ -72,6 +72,53 @@ fn evaluate_sequence_components(
     max_depth: 0,
   },
 ) -> Result[CompletedSequence, SequenceRunIssue] {
+  let invocation = match
+    prepare_sequence_invocation(
+      contracts,
+      sequence,
+      supplied,
+      retained_ids,
+      limits,
+      control,
+      produced~,
+      fragments~,
+      ordered~,
+    ) {
+    Ok(invocation) => invocation
+    Err(issue) => return Err(issue)
+  }
+  run_sequence_invocation(invocation)
+}
+
+///|
+/// Private, invocation-local state after input admission. Neither a reusable
+/// prepared plan nor successful execution evidence. All budgets are fresh per
+/// invocation; no partial output is accessible through the public API.
+priv struct SequenceInvocation {
+  contracts : RegisteredRelationContracts
+  sequence : @lower.PreparedSequence
+  produced : Array[BoundProducerInput]
+  limits : SequenceRunLimits
+  control : ControlBudget
+  input_budget : ValueBudget
+  output_budget : ValueBudget
+  input_rows : Int
+  ordered_budgets : Map[Int, LogicalBudget]
+  store : TableStore
+}
+
+///|
+fn prepare_sequence_invocation(
+  contracts : RegisteredRelationContracts,
+  sequence : @lower.PreparedSequence,
+  supplied : Array[CapturedRows],
+  retained_ids : Array[String],
+  limits : SequenceRunLimits,
+  control : ControlBudget,
+  produced~ : Array[BoundProducerInput],
+  fragments~ : Array[FragmentRuntimeContext]?,
+  ordered~ : OrderedExecution,
+) -> Result[SequenceInvocation, SequenceRunIssue] {
   if limits.max_rows < 0 ||
     limits.metadata_entries < 0 ||
     limits.retained_entries < 0 ||
@@ -251,6 +298,39 @@ fn evaluate_sequence_components(
       Err(e) => return Err(Store(e))
     }
   }
+  Ok({
+    contracts,
+    sequence,
+    produced,
+    limits,
+    control,
+    input_budget,
+    output_budget,
+    input_rows,
+    ordered_budgets,
+    store,
+  })
+}
+
+///|
+fn run_sequence_invocation(
+  invocation : SequenceInvocation,
+) -> Result[CompletedSequence, SequenceRunIssue] {
+  let {
+    contracts,
+    sequence,
+    produced,
+    limits,
+    control,
+    input_budget,
+    output_budget,
+    ordered_budgets,
+    store,
+    ..
+  } = invocation
+  let wiring = store.wiring
+  let owner = @lower.sequence_owner(sequence)
+  let mut input_rows = invocation.input_rows
   for i = 0; i < @lower.sequence_count(sequence); i = i + 1 {
     let table = match @lower.sequence_step(sequence, i).unwrap() {
       @lower.ValuesStep(_) => {
