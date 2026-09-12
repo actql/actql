@@ -287,7 +287,9 @@ all bindings rather than reset for each RHS. Separate binding/name limits bound
 the operation container. Canonical map binding order and authored projection
 order come from the existing checked APIs; preparation does not infer either.
 Empty maps retain a real preparation object. Ordered arrays return the temporary
-`NeedsSharedRowKernelContract` gap until main supplies the registered extension.
+`NeedsRowKernelImplementation` gap until ordered references, evidence and the
+registered logical resource measures are connected to execution. The existence
+of a shared execution contract alone is not a backend capability.
 Their individual checked expressions remain available for independent work.
 
 Fixed tests cover map payloads/order, retained no-op, projection order, defensive

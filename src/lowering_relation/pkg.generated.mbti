@@ -264,7 +264,7 @@ pub(all) enum KernelIssue {
   InvalidKernelWiring
   KernelBudgetExceeded
   InvalidKernelLimits
-  NeedsSharedRowKernelContract
+  NeedsRowKernelImplementation
   ExpressionFailure(ExpressionIssue)
 }
 

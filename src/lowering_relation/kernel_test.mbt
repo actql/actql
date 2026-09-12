@@ -114,7 +114,7 @@ test "kernel preparation fails atomically on cumulative limits and pending order
       max_name_bytes=2,
       enough,
     )
-    is Err(@lowering_relation.NeedsSharedRowKernelContract),
+    is Err(@lowering_relation.NeedsRowKernelImplementation),
   )
 }
 

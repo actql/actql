@@ -74,7 +74,7 @@ test "sequence preparation shares expression budget and exposes no partial resul
 }
 
 ///|
-test "sequence rejects pending ordered contract after a supported prefix" {
+test "sequence rejects pending ordered implementation after a supported prefix" {
   let owner = expression_pipeline(
     ",{\"derive\":{\"x\":\"1\"}},{\"derive\":[{\"id\":{\"literal\":2}}]}",
   )
@@ -83,7 +83,7 @@ test "sequence rejects pending ordered contract after a supported prefix" {
     is Err(
       @lowering_relation.KernelFailure(
         2,
-        @lowering_relation.NeedsSharedRowKernelContract
+        @lowering_relation.NeedsRowKernelImplementation
       )
     ),
   )

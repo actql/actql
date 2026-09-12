@@ -17,12 +17,17 @@ const cid = (v) => `sha256:${createHash('sha256').update(canonical(v)).digest('h
 
 test('current registry and historical preimages keep distinct identities', () => {
   assert.equal(cid(registry), contract.pipeline_registry_cid);
-  assert.equal(cid(registry), 'sha256:23a7f1081d1a2cdab7b20e425dddce846510355ba964058e0c809350fae33816');
+  assert.equal(cid(registry), 'sha256:c88b89effec8107537a1064c2b8332f20deb0a0911520aa305bbafe5f0f491f6');
+  const fragmentRegistry = JSON.parse(read('portability/fixtures/pipeline-registry-fragment.json'));
+  assert.equal(cid(fragmentRegistry), 'sha256:23a7f1081d1a2cdab7b20e425dddce846510355ba964058e0c809350fae33816');
   const valuesRegistry = JSON.parse(read('portability/fixtures/pipeline-registry-values.json'));
   assert.equal(cid(valuesRegistry), 'sha256:b97a22de3664c1dafe3bc1e6791f1f8bcfb70324a1fcc1087450fe057e0f2311');
   const {['ACTQL.expression_fragment/0.1']: fragment, ...previous} = registry;
   assert.ok(fragment);
-  assert.deepEqual(previous, valuesRegistry);
+  const primitive = structuredClone(previous);
+  assert.equal(cid(contract.execution_contracts['REL.derive.ordered']), 'sha256:90f5a71e31aa6a60c1961b7039a87f3a2849c4a793aaba3d776a166176fc28b9');
+  delete primitive['REL.derive'].execution_extensions;
+  assert.deepEqual(primitive, valuesRegistry);
   assert.equal(cid(fixtures.registry), 'sha256:00ac46baefe7fa34412ad83beb85cf1899b906e792d74fa89211a7c4972f0d5a');
   assert.equal(Object.hasOwn(fixtures.registry, 'REL.values'), false);
   const {['REL.values']: added, ...retained} = valuesRegistry;

@@ -22,7 +22,7 @@ pub(all) enum KernelIssue {
   InvalidKernelWiring
   KernelBudgetExceeded
   InvalidKernelLimits
-  NeedsSharedRowKernelContract
+  NeedsRowKernelImplementation
   ExpressionFailure(ExpressionIssue)
 }
 
@@ -112,7 +112,7 @@ fn prepare_kernel_measured(
   let mut remaining = limits
   let mut names_remaining = max_name_bytes
   let body = match @relation.form(checked) {
-    DeriveArray => return Err(NeedsSharedRowKernelContract)
+    DeriveArray => return Err(NeedsRowKernelImplementation)
     DeriveMap | Predicate => {
       let count = @relation.binding_count(checked)
       if count > max_bindings {
