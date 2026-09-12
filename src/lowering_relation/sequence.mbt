@@ -120,7 +120,10 @@ pub fn emit_sequence_steps(
   for step in value.steps {
     match step {
       ValuesStep(v) => emit_values_node(v, out)
-      RowStep(v) => emit_kernel_node(v, out)
+      RowStep(v) => {
+        emit_kernel_prefix(v, out)
+        emit_kernel_node(v, out)
+      }
     }
   }
   @encode.end_array(out)

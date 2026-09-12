@@ -55,7 +55,7 @@ fn attach_fragment_budgets(
             }
           @lower.Select(_) | @lower.Limit(_, _, _) => ()
           @lower.DistinctRows => {
-            let schema = @relation.input_schema(@lower.kernel_checked(kernel))
+            let schema = @relation.output_schema(@lower.kernel_checked(kernel))
             for j = 0; j < @schema.field_count(schema); j = j + 1 {
               if !spend_control(control, 1) {
                 return Err(InputLimit)

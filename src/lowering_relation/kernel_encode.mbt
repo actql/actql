@@ -16,7 +16,7 @@ pub fn emit_kernel_node(
   @encode.string_value(out, node.id)
   @encode.key(out, "in")
   @encode.begin_array(out)
-  @encode.string_value(out, kernel.input_id)
+  @encode.string_value(out, node.projection_id.unwrap_or(kernel.input_id))
   @encode.end_array(out)
   @encode.key(out, "op")
   @encode.string_value(
@@ -72,6 +72,35 @@ pub fn emit_kernel_node(
       @encode.end_array(out)
     }
   }
+  @encode.end_object(out)
+  @encode.end_object(out)
+}
+
+///|
+/// Canonical keyed-distinct expansion, not a physical optimization or an alias.
+fn emit_kernel_prefix(
+  kernel : PreparedKernel,
+  out : @encode.Writer,
+) -> Unit raise @encode.EncodeFailure {
+  let node = kernel.owner.prepared.nodes[kernel.step_index]
+  guard node.projection_id is Some(id) else { return }
+  @encode.begin_object(out)
+  @encode.key(out, "id")
+  @encode.string_value(out, id)
+  @encode.key(out, "in")
+  @encode.begin_array(out)
+  @encode.string_value(out, kernel.input_id)
+  @encode.end_array(out)
+  @encode.key(out, "op")
+  @encode.string_value(out, "REL.select")
+  @encode.key(out, "params")
+  @encode.begin_object(out)
+  @encode.key(out, "columns")
+  @encode.begin_array(out)
+  for field in @relation.projection(kernel.checked) {
+    @encode.string_value(out, @schema.reference_name(field.input))
+  }
+  @encode.end_array(out)
   @encode.end_object(out)
   @encode.end_object(out)
 }

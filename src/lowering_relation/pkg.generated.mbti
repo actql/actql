@@ -149,6 +149,8 @@ pub fn prepare_sequence(BoundPrepared, SequenceLimits) -> Result[PreparedSequenc
 
 pub fn prepare_values_node(BoundPrepared, Int, max_rows~ : Int, max_cells~ : Int) -> Result[PreparedValues, ValuesIssue]
 
+pub fn projection_node_id(PreparedNode) -> String?
+
 pub fn root_at(RootIndex, Int) -> ExpressionRoot?
 
 pub fn root_count(RootIndex) -> Int

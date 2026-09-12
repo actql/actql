@@ -118,8 +118,20 @@ original input carries structured payload. The common driver applies the bounded
 index algorithm, retains first occurrences and existing order, and returns only
 immutable completed outputs. Empty-schema input has one equal tuple per row;
 nonempty input collapses to one empty row and empty input remains empty. The
-author's keyed distinct form additionally requires its canonical projection
-expansion; full-row execution alone does not establish that lowering path.
+author's keyed distinct form expands to a checked `REL.select` prefix followed
+by `REL.distinct`. Both IDs are reserved by the ordinary allocator and count
+toward node/reference/identifier budgets; only the final node represents the
+authored step's downstream binding. The sequence emitter writes both nodes in
+dependency order. Emitting the final kernel node alone does not include its
+prefix dependency and is not an executable fragment.
+
+The evaluator consumes the checker's projection mapping before duplicate
+comparison, preserving its field order and excluding all unspecified payload.
+Projection and distinct share one operation workspace and cumulative work/value
+budgets; the projection's intermediate remains accounted for during duplicate
+detection. The comparison readiness check uses the projected output schema.
+Thus explicit select-then-distinct and keyed distinct have the same rows and
+order, without claiming their source identities or physical budgets are equal.
 
 | Area | Execution responsibility | Boundary not implied by success |
 | --- | --- | --- |

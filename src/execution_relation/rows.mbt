@@ -144,8 +144,25 @@ fn evaluate_rows_with_workspace(
   let prepared = @lower.bound_preparation(input.owner)
   let node = @lower.node_at(prepared, @lower.kernel_step(kernel)).unwrap()
   if @relation.operation(@lower.kernel_checked(kernel)) == @relation.Distinct {
+    let selected = match @lower.projection_node_id(node) {
+      None => input
+      Some(id) =>
+        match
+          evaluate_row_body(
+            CheckedProjection(@lower.kernel_checked(kernel)),
+            input,
+            id,
+            max_rows,
+            control,
+            output,
+            workspace,
+          ) {
+          Ok(table) => table
+          Err(e) => return Err(e)
+        }
+    }
     return evaluate_distinct_rows(
-      input,
+      selected,
       @lower.node_id(node),
       max_rows,
       control,
@@ -242,7 +259,8 @@ fn evaluate_row_body_impl(
   let view_entries = match body {
     PreparedBody(kernel) => @lower.kernel_view_entries(kernel)
     CheckedProjection(checked) => {
-      if @relation.operation(checked) != Select {
+      if @relation.operation(checked) != Select &&
+        @relation.operation(checked) != Distinct {
         return Err(InvalidRows)
       }
       @schema.field_count(@relation.output_schema(checked))

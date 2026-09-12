@@ -11,6 +11,7 @@ struct Prepared {
 ///|
 struct PreparedNode {
   id : String
+  projection_id : String?
   payload : Payload
   inputs : Array[String]
   source : @decode.Cursor
@@ -85,6 +86,12 @@ pub fn node_id(value : PreparedNode) -> String {
 }
 
 ///|
+/// Canonical keyed-distinct prefix, reserved by the same collision allocator.
+pub fn projection_node_id(value : PreparedNode) -> String? {
+  value.projection_id
+}
+
+///|
 pub fn payload(value : PreparedNode) -> Payload {
   value.payload
 }
@@ -126,12 +133,7 @@ fn classify(op : @pipeline.CheckedOperation) -> Payload? {
         Filter => Some(Where(v))
         Select | Rename | Drop => Some(Select(v))
         Take => Some(Limit(v))
-        Distinct =>
-          if @relation.row_operation(v) is Some(@relation.DistinctRows) {
-            Some(Distinct(v))
-          } else {
-            None
-          }
+        Distinct => Some(Distinct(v))
         Sort
         | DedupeRows
         | JsonPick
@@ -204,6 +206,7 @@ pub fn prepare(
   let mut work = 0
   let mut references = 0
   let mut bytes = 0
+  let mut expansions = 0
   for i = 0; i < inputs; i = i + 1 {
     if work >= limits.max_work {
       return Err({ kind: BudgetExceeded, source: root, })
@@ -240,6 +243,38 @@ pub fn prepare(
       Distinct(_) => ("distinct", 1)
     }
     let id = preferred + "_" + i.to_string()
+    let projection_id = match payload {
+      Distinct(op) => {
+        let width = @schema.field_count(@relation.output_schema(op))
+        if width > limits.max_work - work {
+          return Err({ kind: BudgetExceeded, source: step.source, })
+        }
+        work += width
+        if @relation.projection(op).is_empty() {
+          None
+        } else {
+          if expansions >= limits.max_nodes - count - inputs ||
+            references >= limits.max_references ||
+            work >= limits.max_work {
+            return Err({ kind: BudgetExceeded, source: step.source, })
+          }
+          let prefix = "select_" + i.to_string()
+          if used.contains(prefix) || prefix == id {
+            return Err({ kind: IdentifierCollision, source: step.source, })
+          }
+          if prefix.length() > limits.max_identifier_bytes - bytes {
+            return Err({ kind: BudgetExceeded, source: step.source, })
+          }
+          bytes += prefix.length()
+          expansions += 1
+          references += 1
+          work += 1
+          used[prefix] = true
+          Some(prefix)
+        }
+      }
+      Values(_) | Derive(_) | Where(_) | Select(_) | Limit(_) => None
+    }
     if used.contains(id) {
       return Err({ kind: IdentifierCollision, source: step.source, })
     }
@@ -274,12 +309,23 @@ pub fn prepare(
       refs.push(ref_)
     }
     used[id] = true
-    nodes.push({ id, payload, inputs: refs, source: step.source, })
+    nodes.push({
+      id,
+      projection_id,
+      payload,
+      inputs: refs,
+      source: step.source,
+    })
   }
   Ok({
     owner: checked,
     nodes,
     input_ids,
-    usage: { nodes: count + inputs, references, work, identifier_bytes: bytes, },
+    usage: {
+      nodes: count + inputs + expansions,
+      references,
+      work,
+      identifier_bytes: bytes,
+    },
   })
 }

@@ -150,9 +150,9 @@ test "preparation budgets enforce exact boundaries" {
 ///|
 /// Implementation coverage test, not a language rejection requirement.
 test "unimplemented later operation never returns a partial preparation" {
-  let p = checked(",{\"select\":[\"id\"]},{\"distinct\":[\"id\"]}")
+  let p = checked(",{\"select\":[\"id\"]},{\"sort\":[{\"id\":\"asc\"}]}")
   guard @lowering_relation.prepare(p, limits()) is Err(issue) else {
-    fail("keyed distinct has no expansion handler yet")
+    fail("sort has no lowering handler yet")
   }
   assert_eq(issue.kind, @lowering_relation.OperationNotImplemented)
   assert_eq(

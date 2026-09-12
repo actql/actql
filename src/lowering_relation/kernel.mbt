@@ -199,7 +199,8 @@ fn prepare_kernel_measured(
         Filter(expr)
       }
     }
-    Projection => {
+    Projection | RowOperation if @relation.form(checked) == @relation.Projection ||
+      node.projection_id is Some(_) => {
       // Projection has no indexed accessor yet. The checked schema bounds
       // its cardinality before asking for the defensive-copy projection view.
       if @schema.field_count(@relation.output_schema(checked)) > max_bindings {
@@ -222,7 +223,11 @@ fn prepare_kernel_measured(
           names_remaining -= size
         }
       }
-      Select(fields)
+      if @relation.form(checked) == @relation.Projection {
+        Select(fields)
+      } else {
+        DistinctRows
+      }
     }
     RowOperation if @relation.row_operation(checked)
       is Some(@relation.DistinctRows) => DistinctRows
@@ -279,13 +284,19 @@ fn prepare_kernel_measured(
       }
       Limit(count, offset, order)
     }
-    Reshape | Aggregation => return Err(MissingKernelNode)
+    Projection | Reshape | Aggregation => return Err(MissingKernelNode)
   }
   let binding_count = match body {
     SnapshotMap(bindings) | OrderedBindings(bindings) => bindings.length()
     Filter(_) => 1
     Select(fields) => fields.length()
-    Limit(_, _, _) | DistinctRows => 0
+    Limit(_, _, _) => 0
+    DistinctRows =>
+      if node.projection_id is Some(_) {
+        @schema.field_count(@relation.output_schema(checked))
+      } else {
+        0
+      }
   }
   Ok(
     (
