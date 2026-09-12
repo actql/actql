@@ -1,13 +1,16 @@
 ///|
 fn prepared_environment_fixture(
   environment_profile : String,
+  schema_snapshots? : String = "[]",
 ) -> @environment.WireEnvironment {
   // No acquired rows or schema snapshots. The environment still undergoes
   // canonical integrity and selected-policy admission. Hashing here constructs
   // fixture input; independent expectations below do not use this helper.
   let body = "{\"command_contracts\":[],\"connector_capabilities\":[],\"connector_catalogs\":[],\"contract_registry\":[],\"host_policy_profile\":" +
     environment_profile +
-    ",\"mapping_contracts\":[],\"model_task_contracts\":[],\"schema_snapshots\":[],\"source_views\":[],\"version\":\"actql-check-environment/0.1\"}"
+    ",\"mapping_contracts\":[],\"model_task_contracts\":[],\"schema_snapshots\":" +
+    schema_snapshots +
+    ",\"source_views\":[],\"version\":\"actql-check-environment/0.1\"}"
   let cid = "sha256:" + @sha.hex(@utf8.encode(body))
   @environment.read(
     @utf8.encode(
@@ -27,8 +30,12 @@ fn prepared_identity_fixture(
   unused_operation? : Bool = false,
   third_stage? : Bool = false,
   environment_profile? : String = capacity_profile(false),
+  schema_snapshots? : String = "[]",
 ) -> (ProgramSourceIdentity, @stage_results.ResultWiring, ReconciledContexts) {
-  let environment = prepared_environment_fixture(environment_profile)
+  let environment = prepared_environment_fixture(
+    environment_profile,
+    schema_snapshots~,
+  )
   let prepared = prepared_local_source_fixture(
     first_by_order~,
     unused_operation~,

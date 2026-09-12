@@ -116,6 +116,7 @@ test "core contract collection preserves owned occurrences and shares dependency
     match root.site {
       OperationJoinCountRules(_, _, _) => assert_eq(root.body, JoinCountRules)
       StageLocalInputRules(_, _) => assert_eq(root.body, LocalSnapshotRules)
+      StageLocalInputType(_, _) => fail("fixture has no supplied snapshots")
       OperationRankingCountRules(_, _, _) =>
         assert_eq(root.body, RankingCountRules)
       OperationSeriesCountRules(_, _, _) =>

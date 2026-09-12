@@ -193,6 +193,19 @@ source-owned registration checks before use in a Unit closure. An unknown or
 partially described source is not a schema-only snapshot and is not converted
 to an empty object contract by this API.
 
+The core inventory selects this projection from every snapshot binding in the
+exact reconciled Local registration retained by the Program context. A
+`StageLocalInputType(stage, snapshot_index)` site indexes that registration's
+snapshot bindings, not the declaration array or the Environment's global member
+array. Each projected body depends on `LocalSnapshotRules`; equal body CIDs share
+storage without merging their owned occurrences. Projection bytes and nodes are
+charged per occurrence against optional aggregate hash limits and the remaining
+work budget. Omitted hash limits use `max_work` as each cap; explicit limits can
+be tighter. `core_contract_hash_usage` reports the additional bytes and nodes.
+This connects supplied type evidence, not the complete set of effective input
+types: declared types and supplied equivalent refinements still need consistent
+selection before the inventory can certify a Unit closure.
+
 For an admitted SourceView declaration, select the contract references belonging
 to that selected SourceView, not every member of its enclosing Catalog. The
 declaration's complete contract includes its advertised read-mode contracts;

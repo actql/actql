@@ -13,6 +13,7 @@ import {
   "actql/actql/encode_core",
   "actql/actql/expression_typing",
   "actql/actql/local_relation_input",
+  "actql/actql/local_relation_snapshot",
   "actql/actql/parameter_binding",
   "actql/actql/parameter_references",
   "actql/actql/pipeline_parameters",
@@ -133,7 +134,7 @@ pub fn close_program_publications(ProgramIncomingLinks, Int, Int) -> Result[Prog
 
 pub fn close_stage_requirements(ProgramIncomingLinks, StageRequirementLimits) -> Result[StageRequirementClosure, StageRequirementIssue]
 
-pub fn collect_core_contracts(ProgramSourceIdentity, CoreContractLimits, profile_checks? : ProgramOperationCalendar?) -> Result[CoreContractInventory, CoreContractIssue]
+pub fn collect_core_contracts(ProgramSourceIdentity, CoreContractLimits, profile_checks? : ProgramOperationCalendar?, hash_limits? : @local_relation_snapshot.Limits?) -> Result[CoreContractInventory, CoreContractIssue]
 
 pub fn collect_program_incoming(ProgramSourceIdentity, IncomingLimits) -> Result[ProgramIncomingRequirements, IncomingIssue]
 
@@ -148,6 +149,8 @@ pub fn core_contract_body_at(CoreContractInventory, Int) -> CoreContractBody?
 pub fn core_contract_body_count(CoreContractInventory) -> Int
 
 pub fn core_contract_cid(CoreContractBody) -> String
+
+pub fn core_contract_hash_usage(CoreContractInventory) -> (Int, Int)
 
 pub fn core_contract_identity(CoreContractInventory) -> ProgramSourceIdentity
 
@@ -834,6 +837,7 @@ pub(all) enum CoreContractBody {
   SeriesCountRules
   LocalSnapshotRules
   LocalSourceReferenceRules
+  LocalInputType(String)
 } derive(Eq, @debug.Debug)
 
 type CoreContractInventory
@@ -849,6 +853,7 @@ pub(all) enum CoreContractIssue {
   ForeignProfiles
   IncomingInventory(IncomingIssue)
   UnsupportedIncoming(Int)
+  LocalTypeEncoding(Int, Int)
 } derive(Eq, @debug.Debug)
 
 pub(all) struct CoreContractLimits {
@@ -881,6 +886,7 @@ pub(all) enum CoreContractSite {
   OperationRankingCountRules(Int, Int, Int)
   OperationSeriesCountRules(Int, Int, Int)
   StageLocalInputRules(Int, Int)
+  StageLocalInputType(Int, Int)
 } derive(Eq, @debug.Debug)
 
 pub struct DedupeTopTieCheck {

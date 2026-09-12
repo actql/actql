@@ -1,6 +1,7 @@
 supported_targets = "+js+wasm+native"
 
 import {
+  "actql/actql/local_relation_snapshot" @snapshot,
   "actql/actql/capacity_host_witness" @host,
   "actql/actql/capacity_witness" @wire,
   "actql/actql/binding_declarations",
@@ -48,7 +49,6 @@ import {
 }
 
 import {
-  "actql/actql/local_relation_snapshot" @snapshot,
   "moonbitlang/core/debug",
   "actql/actql/stage_source_refs" @refs,
   "actql/actql/sha256" @sha,

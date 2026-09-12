@@ -18,6 +18,7 @@ pub(all) enum CoreContractIssue {
   ForeignProfiles
   IncomingInventory(IncomingIssue)
   UnsupportedIncoming(Int)
+  LocalTypeEncoding(Int, Int)
 } derive(Eq, Debug)
 
 ///|
@@ -40,6 +41,7 @@ pub(all) enum CoreContractBody {
   SeriesCountRules
   LocalSnapshotRules
   LocalSourceReferenceRules
+  LocalInputType(String)
 } derive(Eq, Debug)
 
 ///|
@@ -61,6 +63,7 @@ pub(all) enum CoreContractSite {
   OperationRankingCountRules(Int, Int, Int)
   OperationSeriesCountRules(Int, Int, Int)
   StageLocalInputRules(Int, Int)
+  StageLocalInputType(Int, Int)
 } derive(Eq, Debug)
 
 ///|
@@ -80,6 +83,8 @@ struct CoreContractInventory {
   stages : Array[Array[CoreContractBody]]
   work : Int
   edges : Int
+  hash_bytes : Int
+  hash_nodes : Int
 }
 
 ///|
@@ -96,6 +101,9 @@ priv struct CoreContractBuilder {
   dependencies : Map[String, CoreContractDependencies]
   mut work : Int
   mut edges : Int
+  hash_limits : @snapshot.Limits
+  mut hash_bytes : Int
+  mut hash_nodes : Int
 }
 
 ///|
@@ -151,11 +159,20 @@ pub fn collect_core_contracts(
   identity : ProgramSourceIdentity,
   limits : CoreContractLimits,
   profile_checks? : ProgramOperationCalendar? = None,
+  hash_limits? : @snapshot.Limits? = None,
 ) -> Result[CoreContractInventory, CoreContractIssue] {
+  let hash_limits = hash_limits.unwrap_or({
+    max_bytes: limits.max_work,
+    max_nodes: limits.max_work,
+    max_depth: limits.max_work,
+  })
   if limits.max_work < 0 ||
     limits.max_roots < 0 ||
     limits.max_bodies < 0 ||
-    limits.max_edges < 0 {
+    limits.max_edges < 0 ||
+    hash_limits.max_bytes < 0 ||
+    hash_limits.max_nodes < 0 ||
+    hash_limits.max_depth < 0 {
     return Err(InvalidLimits)
   }
   let prefix = match profile_checks {
@@ -207,6 +224,9 @@ pub fn collect_core_contracts(
     dependencies: {},
     work: used + (incoming.work - identity.work),
     edges: 0,
+    hash_limits,
+    hash_bytes: 0,
+    hash_nodes: 0,
   }
   try {
     core_contract_charge(b)
@@ -291,6 +311,19 @@ pub fn collect_core_contracts(
           b,
           StageLocalInputRules(stage, input),
           LocalSnapshotRules,
+        )
+      }
+      let snapshots = @local_inputs.environment_assertions(
+        @local_inputs.reconciled_inputs(context.locals[stage]),
+      )
+      for index in 0..<@local_inputs.snapshot_count(snapshots) {
+        core_contract_local_type(
+          b,
+          stage,
+          index,
+          @local_inputs.bound_snapshot(
+            @local_inputs.snapshot_binding_at(snapshots, index).unwrap(),
+          ),
         )
       }
       for
@@ -400,6 +433,11 @@ pub fn collect_core_contracts(
         | RankingCountRules
         | SeriesCountRules => ()
         LocalSourceReferenceRules => ()
+        LocalInputType(_) => {
+          core_contract_edge(b)
+          core_contract_body(b, LocalSnapshotRules)
+          core_contract_dependency(b, b.bodies[index], LocalSnapshotRules)
+        }
         LocalSnapshotRules =>
           for
             target in [
@@ -444,6 +482,8 @@ pub fn collect_core_contracts(
       bodies: b.bodies,
       work: b.work,
       edges: b.edges,
+      hash_bytes: b.hash_bytes,
+      hash_nodes: b.hash_nodes,
     })
   } catch {
     CoreContractStop(issue) => Err(issue)
@@ -518,7 +558,15 @@ pub fn core_contract_cid(v : CoreContractBody) -> String {
       "sha256:60e8136aea733421e75fa3dcef4934c87ce98959b36f8a56da93ccfbf03d81b2"
     LocalSourceReferenceRules =>
       "sha256:9be664306a6a91a8e5bfca53d579e6dac77baf4567eb241ceeedc3216ffe47d9"
+    LocalInputType(cid) => cid
   }
+}
+
+///|
+/// Emitted projection bytes/nodes, charged per occurrence even when CIDs match.
+/// The caller must also retain the cumulative core_contract_usage work charge.
+pub fn core_contract_hash_usage(v : CoreContractInventory) -> (Int, Int) {
+  (v.hash_bytes, v.hash_nodes)
 }
 
 ///|
