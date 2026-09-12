@@ -69,6 +69,15 @@ the node but is not embedded back into its parameters, avoiding an identity
 cycle. Registration pins the complete expression contract, including these
 evidence schemas, without making that contract recursively pin the registry.
 
+Source and graph step artifacts are projected from the same opaque ordered
+params owner. Source bindings use the retained normalized expressions, including
+Parameter references; graph bindings use the already-bound machine expressions
+and indexed references. Both rebase the fragment-local input to `input` without
+changing the original checked kernel. The graph artifact hashes the complete
+`{id, in, op, params}` step, not only its params. Construction bounds cover the
+combined retained bytes and nodes of both artifacts. These steps alone do not
+establish the enclosing request, derive-binding evidence or fragment admission.
+
 ## Logical resources
 
 The limits distinguish input row occurrences, individual wire value size,

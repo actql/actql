@@ -33,6 +33,8 @@ pub fn demand_usage(DemandIndex) -> DemandUsage
 
 pub fn emit_expression(Expression, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
 
+pub fn emit_expression_source(Expression, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
+
 pub fn emit_fragment_machine_pipeline(FragmentPipeline, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
 
 pub fn emit_fragment_request(FragmentRequest, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure

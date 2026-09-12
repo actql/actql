@@ -21,7 +21,7 @@ pub fn emit_root_source(
 }
 
 ///|
-fn emit_expression_source(
+pub fn emit_expression_source(
   expression : Expression,
   out : @encode.Writer,
 ) -> Unit raise @encode.EncodeFailure {
