@@ -78,6 +78,15 @@ changing the original checked kernel. The graph artifact hashes the complete
 combined retained bytes and nodes of both artifacts. These steps alone do not
 establish the enclosing request, derive-binding evidence or fragment admission.
 
+The binding-record builder derives the graph step from its owned links rather
+than accepting a caller-supplied node CID. It records the complete step identity,
+input/output shape identities, exact limits identity, and authored-order pairs
+of expression-root and prefix-context identities. The self-CID excludes only
+`self_cid`. A detached slot array keeps later emission consistent with the
+generated artifact. The single-step evidence projection emits the binding,
+contexts, limits and shapes in their required closure order; it does not yet
+establish their enclosing request or admit a complete fragment.
+
 ## Logical resources
 
 The limits distinguish input row occurrences, individual wire value size,
