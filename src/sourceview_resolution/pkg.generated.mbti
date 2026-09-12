@@ -6,8 +6,10 @@ import {
   "actql/actql/check_environment",
   "actql/actql/decode_core",
   "actql/actql/parameter_binding",
+  "actql/actql/pipeline_typing",
   "actql/actql/source_request_slots",
   "actql/actql/sourceview_input",
+  "actql/actql/stage_parameters",
   "actql/actql/value_admission",
   "actql/actql/value_contract",
   "moonbitlang/core/debug",
@@ -15,6 +17,12 @@ import {
 
 // Values
 pub fn at(Resolved, Int) -> ResolvedInput?
+
+pub fn attach_pipeline_inputs(PipelineInputs, @stage_parameters.CollectedStage, Int) -> Result[PipelineAttachment, PipelineIssue]
+
+pub fn attached_pipeline_inputs(PipelineAttachment) -> PipelineInputs
+
+pub fn attached_pipeline_stage(PipelineAttachment) -> @stage_parameters.CollectedStage
 
 pub fn bind_request_parameters(RequestParameters, DirectRequest, Int) -> Result[ParameterizedRequest, RequestParameterIssue]
 
@@ -63,6 +71,20 @@ pub fn parameterized_request_host_binding_count(ParameterizedRequest) -> Int
 pub fn parameterized_request_parameters(ParameterizedRequest) -> RequestParameters
 
 pub fn parameterized_request_work(ParameterizedRequest) -> Int
+
+pub fn pipeline_attachment_work(PipelineAttachment) -> Int
+
+pub fn pipeline_input_at(PipelineInputs, Int, Int) -> (String, @pipeline_typing.InputContract)?
+
+pub fn pipeline_input_count(PipelineInputs, Int) -> Int?
+
+pub fn pipeline_input_source(PipelineInputs, Int, Int) -> ResolvedInput?
+
+pub fn pipeline_inputs_work(PipelineInputs) -> Int
+
+pub fn pipeline_resolution(PipelineInputs) -> Resolved
+
+pub fn prepare_pipeline_inputs(Resolved, Int) -> Result[PipelineInputs, PipelineIssue]
 
 pub fn prepare_request_parameters(RequestContext, @parameter_binding.BoundValues, Int) -> Result[RequestParameters, RequestParameterIssue]
 
@@ -170,6 +192,17 @@ pub enum ParameterizedRequestValue {
   BoundParameter(@parameter_binding.BoundParameter)
   UnboundHostBinding(@binding_declarations.Declaration)
 }
+
+type PipelineAttachment
+
+type PipelineInputs
+
+pub(all) enum PipelineIssue {
+  InvalidLimits
+  WorkLimit
+  ForeignStage
+  ForeignInput(String)
+} derive(Eq, @debug.Debug)
 
 type RequestContext
 

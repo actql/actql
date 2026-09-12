@@ -44,12 +44,18 @@ fn fixture_catalog(
 fn fixture_inputs(
   input : String,
   declarations? : String = "",
+  stage_bodies? : String? = None,
 ) -> @inputs.Inputs {
+  let stage_bodies = stage_bodies.unwrap_or(
+    "{\"id\":\"a\",\"inputs\":{\"remote\":" +
+    input +
+    "},\"steps\":[],\"results\":{\"r\":{}}}",
+  )
   let wire = "{\"version\":\"actql/0.1\",\"id\":\"p\"," +
     declarations +
-    "\"stages\":[{\"id\":\"a\",\"inputs\":{\"remote\":" +
-    input +
-    "},\"steps\":[],\"results\":{\"r\":{}}}],\"results\":{\"out\":{\"from\":{\"stage\":\"a\",\"result\":\"r\"}}}}"
+    "\"stages\":[" +
+    stage_bodies +
+    "],\"results\":{\"out\":{\"from\":{\"stage\":\"a\",\"result\":\"r\"}}}}"
   let program = @syntax.parse(
     wire,
     {
@@ -143,6 +149,8 @@ fn check_fixture(
     e.kind == InvalidLimits,
   )
   let other = fixture_catalog(wire, cid)
+  check_pipeline_fixture(resolved, other, fixture_inputs(input))
+  check_pipeline_stages_fixture(catalog, input)
   assert_false(physical_equal(catalog_owner(entry), other))
   assert_true(
     @environment.source_request_for(

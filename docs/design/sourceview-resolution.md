@@ -36,6 +36,37 @@ binding and value validation, read-mode selection, source snapshots, authority,
 policy enforcement and runtime obligations still require their own checks.
 No lowerer, evaluator or backend adapter is implemented by this package.
 
+## Source-bound pipeline registration
+
+`prepare_pipeline_inputs` indexes the resolved inputs by stage once and retains
+each selected SourceView's exact `SourceViewCarrier` proof. `pipeline_input_at`
+returns only a `CarrierInput` using the original typed Carrier from its admitted
+Catalog schema. Relation, Graph, Events and Vectors remain distinct; event roles,
+vector identity order and component dimensions are not flattened into a Relation.
+The registration does not invent keys, ranking, order, capacities or producer
+evidence from the type contract. Carrier facts require their separate admission.
+
+`attach_pipeline_inputs` checks an exact source-owned `CollectedStage` and its
+actual original registrations. It rejects a foreign Program source, a separately
+read Catalog Carrier with equal contents, a reconstructed Carrier or another
+registration variant. Names resolve within the selected stage and caller arrays
+are not retained. The opaque attachment keeps the complete resolution and stage
+owners; handle equality here is internal correspondence, not a public identity.
+
+Preparation charges the retained resolution work, stage/input indexing and names.
+Attachment includes preparation and stage collection work, input enumeration and
+name indexing/comparison. Exact bounds succeed and failure exposes no partial
+attachment. The per-stage consumer does not scan all other stages' SourceViews.
+Repeated use conservatively retains prior-pass charges rather than discounting
+equal-looking evidence. These are logical-work limits, not runtime row budgets.
+
+This is a type-only connection before request-role classification: it neither
+selects direct versus keyed acquisition nor discharges read-mode, request,
+classification, authority, materialization or runtime obligations. Local inputs
+and stage imports retain their own attachment boundaries. The final Program
+constructor must join those owners and obligations; this attachment alone is
+not a lowering-ready or executable Program.
+
 ## Direct read-mode selection
 
 `select_direct_mode` consumes one owned ResolvedInput. An authored `scan.mode`

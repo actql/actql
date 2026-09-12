@@ -4,6 +4,7 @@ import {createHash} from 'node:crypto';
 import {canonicalText} from './check-canonical-json.mjs';
 
 const corpus=JSON.parse(readFileSync('portability/corpus/sourceview-resolution.json','utf8'));
+const carrierCases=JSON.parse(readFileSync('portability/corpus/carrier-schemas.json','utf8')).cases;
 assert.equal(corpus.version,'actql-sourceview-resolution-vectors/0.1');
 const cid=v=>'sha256:'+createHash('sha256').update(canonicalText(v),'utf8').digest('hex');
 const seal=(v,key)=>({...v,[key]:cid(v)});
@@ -31,13 +32,15 @@ for(const c of corpus.cases){
   for(const v of c.views){
     const fields=c.request_fields??(v.required_field?{id:{type:'number',nullable:false}}:{});
     const request=contract('request_schema',{type:'object',nullable:false,additional_properties:false,fields});
-    const row=contract('carrier_schema',{type:'object',nullable:false,additional_properties:false,fields:{}});
+    const output=c.output_fixture?carrierCases.find(x=>x.id===c.output_fixture):null;
+    if(c.output_fixture)assert.ok(output?.accepted);
+    const row=contract('carrier_schema',output?.body??{type:'object',nullable:false,additional_properties:false,fields:{}});
     const policy=contract('data_policy',{version:'actql-source-data-policy/0.1',source_ref:v.source_ref??`connector://crm/main/${v.resource}#${v.name}`,classification:'unknown'});
     const modes=(v.modes??[v.watch?{mode:'watch',bounded:false}:{mode:'snapshot',bounded:true}]).map(({checkpoint_type,expiration_type,...mode})=>{
       if(mode.mode==='snapshot'&&!checkpoint_type)return mode;
       return {...mode,checkpoint:{kind:'opaque',expires:Boolean(expiration_type),value_schema:contract('checkpoint',{type:checkpoint_type??'string',nullable:false}),...(expiration_type?{expiration_schema:contract('checkpoint',{type:expiration_type,nullable:false})}:{})}};
     });
-    views.push(seal({schema:'actql.source_view/0.1',connector_id:'crm/main',connector_version:'fixture',resource_kind:v.kind??'record',view_id:v.name,view_version:'fixture',acquisition:{kind:'scan',authority:'read_metadata',request_schema:request,modes,default_mode:v.default_mode??modes[0].mode},request_processing:{mutates_business_state:false},output:{carrier:'relation',schema:row,facts:contract('carrier_facts',{}),data_policy:policy},pushdown:{contract:contract('pushdown',{}),operations:[]}},'contract_cid'));
+    views.push(seal({schema:'actql.source_view/0.1',connector_id:'crm/main',connector_version:'fixture',resource_kind:v.kind??'record',view_id:v.name,view_version:'fixture',acquisition:{kind:'scan',authority:'read_metadata',request_schema:request,modes,default_mode:v.default_mode??modes[0].mode},request_processing:{mutates_business_state:false},output:{carrier:output?.carrier??'relation',schema:row,facts:contract('carrier_facts',{}),data_policy:policy},pushdown:{contract:contract('pushdown',{}),operations:[]}},'contract_cid'));
   }
   const catalog=seal({schema:'actql.connector_catalog/0.1',connector_id:'crm/main',connector_version:'fixture',contracts:[...contracts].sort(bySelf('cid')),source_views:[...views].sort(bySelf('contract_cid')),commands:[]},'catalog_cid');
   const env=seal({version:'actql-check-environment/0.1',schema_snapshots:[],connector_capabilities:[],mapping_contracts:[],source_views:[...views].sort(byBody),command_contracts:[],model_task_contracts:[],contract_registry:[...contracts].sort(byBody),connector_catalogs:[catalog],host_policy_profile:{}},'evidence_bundle_cid');

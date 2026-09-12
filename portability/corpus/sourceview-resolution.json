@@ -1,6 +1,10 @@
 {
   "version": "actql-sourceview-resolution-vectors/0.1",
   "cases": [
+    {"id":"pipeline-graph","output_fixture":"empty-graph","views":[{"resource":"r","name":"v"}],"input":{"connector":"crm/main","resource":"r"},"selected":"v"},
+    {"id":"pipeline-events-number","output_fixture":"numeric-event-id","views":[{"resource":"r","name":"v"}],"input":{"connector":"crm/main","resource":"r"},"selected":"v"},
+    {"id":"pipeline-events-reference","output_fixture":"reference-event-id","views":[{"resource":"r","name":"v"}],"input":{"connector":"crm/main","resource":"r"},"selected":"v"},
+    {"id":"pipeline-vector-tuple","output_fixture":"vector-tuple-order","views":[{"resource":"r","name":"v"}],"input":{"connector":"crm/main","resource":"r"},"selected":"v"},
     {"id":"sole-address-not-kind","views":[{"resource":"Opportunity","name":"records"}],"input":{"connector":"crm/main","resource":"Opportunity"},"selected":"records"},
     {"id":"explicit","views":[{"resource":"Opportunity","name":"records"},{"resource":"Opportunity","name":"active"}],"input":{"connector":"crm/main","resource":"Opportunity","view":"active"},"selected":"active"},
     {"id":"ambiguous","views":[{"resource":"Opportunity","name":"records"},{"resource":"Opportunity","name":"active"}],"input":{"connector":"crm/main","resource":"Opportunity"},"error":"Ambiguous","candidates":["active","records"]},
