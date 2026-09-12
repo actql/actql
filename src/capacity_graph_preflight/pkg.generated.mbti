@@ -35,6 +35,8 @@ pub fn application_coverage_sources(ApplicationCoverage) -> SourceCoverage
 
 pub fn application_coverage_work(ApplicationCoverage) -> Int
 
+pub fn bind_target_membership(ApplicationClosure, @capacity_program_step.TargetRows, Int, Int) -> Result[TargetMembership, TargetMembershipIssue]
+
 pub fn check(@pipeline_typing.CheckedPipeline, @capacity_host_witness.HostSources, @capacity_policy.Policy, @capacity_graph_input.Limits) -> Result[@capacity_graph_input.GraphInputs, @capacity_graph_input.Issue]
 
 pub fn check_application_closure(@pipeline_typing.ContextualClosure, Array[ApplicationCoverage], selected_policy~ : @capacity_policy.Policy, bound_guards~ : @pipeline_typing.BoundGuardClosure, proof_owners? : Array[(Int, Int, Int)], input_owners? : Array[(Int, Int, Int, Int)], max_work~ : Int) -> Result[ApplicationClosure, ApplicationClosureIssue]
@@ -72,6 +74,12 @@ pub fn source_coverage_graph(SourceCoverage) -> @capacity_graph_input.GraphInput
 pub fn source_coverage_program(SourceCoverage) -> @capacity_program_step.Applications
 
 pub fn source_coverage_work(SourceCoverage) -> Int
+
+pub fn target_membership_closure(TargetMembership) -> ApplicationClosure
+
+pub fn target_membership_coordinates(TargetMembership) -> (Int, Int, Int)
+
+pub fn target_membership_rows(TargetMembership) -> @capacity_program_step.TargetRows
 
 pub fn unconsumed_limit_count(@capacity_graph_input.GraphInputs) -> Int
 
@@ -137,6 +145,15 @@ pub(all) enum SourceCoverageIssue {
   WorkLimit
   UnsupportedSource(Int)
   ForeignOutputOwner(Int)
+} derive(Eq, @debug.Debug)
+
+type TargetMembership
+
+pub(all) enum TargetMembershipIssue {
+  InvalidVisit
+  InvalidClaim
+  ForeignConsumer
+  ForeignBound
 } derive(Eq, @debug.Debug)
 
 // Type aliases

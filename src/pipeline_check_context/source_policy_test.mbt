@@ -48,6 +48,22 @@ test "source policy joins exact owners and counts common preparation once" {
   assert_true(physical_equal(source_capacity_context(capacity_context), result))
   assert_eq(source_capacity_work(capacity_context), used)
   assert_true(source_capacity_stage(capacity_context, 0) is None)
+  let producers = bind_source_producers(capacity_context, [], used).unwrap()
+  assert_true(
+    physical_equal(source_producer_capacity(producers), capacity_context),
+  )
+  assert_eq(source_producer_work(producers), used)
+  assert_true(source_producer_at(producers, 0, 0) is None)
+  assert_true(
+    bind_source_producers(capacity_context, [], used - 1) is Err(BudgetExceeded),
+  )
+  assert_true(
+    bind_source_producers(capacity_context, [], -1) is Err(InvalidLimits),
+  )
+  assert_true(
+    bind_source_producers(capacity_context, [[]], used)
+    is Err(StageCountMismatch),
+  )
   assert_true(check_source_capacity(result, used - 1) is Err(BudgetExceeded))
   assert_true(check_source_capacity(result, -1) is Err(InvalidLimits))
   assert_true(bind_source_policy(rows, policy, used) is Ok(_))

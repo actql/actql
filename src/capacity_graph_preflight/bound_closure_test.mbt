@@ -222,6 +222,80 @@ test "producer capacity closure rejects substituted bindings at a later repeated
     proof_owners=registrations,
     max_work=membership_cost,
   ).unwrap()
+  let cross_bound = @program.application_at(
+    @capacity_graph_preflight.source_coverage_program(
+      @capacity_graph_preflight.application_coverage_sources(cross),
+    ),
+    0,
+  ).unwrap()
+  let target = @program.check_target_rows(root, Input(0), cross_bound, 10).unwrap()
+  let membership = @capacity_graph_preflight.bind_target_membership(
+    combined, target, 0, 0,
+  ).unwrap()
+  assert_true(
+    physical_equal(
+      @capacity_graph_preflight.target_membership_closure(membership),
+      combined,
+    ),
+  )
+  assert_true(
+    physical_equal(
+      @capacity_graph_preflight.target_membership_rows(membership),
+      target,
+    ),
+  )
+  assert_eq(
+    @capacity_graph_preflight.target_membership_coordinates(membership),
+    (0, 0, 1),
+  )
+  for visit in [-1, 3] {
+    assert_true(
+      @capacity_graph_preflight.bind_target_membership(
+        combined, target, visit, 0,
+      )
+      is Err(InvalidVisit),
+    )
+  }
+  for claim in [-1, 1] {
+    assert_true(
+      @capacity_graph_preflight.bind_target_membership(
+        combined, target, 0, claim,
+      )
+      is Err(InvalidClaim),
+    )
+  }
+  assert_true(
+    @capacity_graph_preflight.bind_target_membership(combined, target, 1, 0)
+    is Err(ForeignConsumer),
+  )
+  // Same proof bytes, owner pipeline and values do not replace an admitted application.
+  let local_bound = @program.application_at(
+    @capacity_graph_preflight.source_coverage_program(
+      @capacity_graph_preflight.application_coverage_sources(b),
+    ),
+    0,
+  ).unwrap()
+  let detached = @program.check_target_rows(root, Input(0), local_bound, 10).unwrap()
+  assert_eq(
+    @program.target_rows_value(detached),
+    @program.target_rows_value(target),
+  )
+  assert_true(
+    @capacity_graph_preflight.bind_target_membership(combined, detached, 0, 0)
+    is Err(ForeignBound),
+  )
+  let local_target = @program.check_target_rows(base, Step(0), local_bound, 10).unwrap()
+  for visit in [1, 2] {
+    let membership_at_visit = @capacity_graph_preflight.bind_target_membership(
+      combined, local_target, visit, 0,
+    ).unwrap()
+    assert_eq(
+      @capacity_graph_preflight.target_membership_coordinates(
+        membership_at_visit,
+      ),
+      (visit, 0, visit),
+    )
+  }
   assert_eq(
     @capacity_graph_preflight.application_closure_work(combined),
     membership_cost,

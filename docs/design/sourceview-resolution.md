@@ -1,5 +1,20 @@
 # SourceView resolution
 
+`bind_source_producers` connects each acquisition's retained left-row proof to
+the capacity application closure already owned by its stage's checked context.
+Caller-supplied visit/claim coordinates select candidates only; the consumer
+pipeline and exact immutable StepBound must match. The matched closure has
+already validated proof dependencies, producer ownership and bound Parameters.
+Equal CIDs or numeric limits cannot substitute another application. Repeated
+producer occurrences retain their distinct validated visit coordinates, which
+are internal handles rather than persistent semantic identities.
+
+Every classified source stage and keyed join is covered in order under the combined work limit;
+the result owns its membership arrays and retains the source capacity context.
+It accepts no alternative caller-supplied capacity closure. Runtime obligations
+remain attached to their original proof owners; membership neither executes
+them nor creates source authority or a runnable Plan.
+
 Lookup capacity resolution consumes `KeyedRowBounds` and the selected lookup
 policy from the same Check Environment. For a left row bound N, it retains N
 as the distinct-key upper bound, selects K = min(N, declared batch capability)
