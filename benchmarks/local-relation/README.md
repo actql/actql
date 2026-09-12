@@ -47,7 +47,9 @@ B/C additionally report owned capture/column/selection capacity, separately from
 the legacy retained-table counter. Their source capture stays owned throughout
 observation. Disposal assertions run after the five phase clocks but before
 the enclosing invocation clock ends. This holds for both additional and legacy
-cases. Temporary-storage accounting remains distinct from process RSS.
+cases. Temporary-storage accounting remains distinct from process RSS. See
+[physical accounting boundaries](physical-accounting.md) for units, lifetime
+tests and the limits of the capacity instruments.
 
 `--legacy` runs the twelve fixed shapes on native and four fixed representative
 shapes on JS/Wasm. Each case has seven paired repeats alternating A/B/C and C/B/A,
