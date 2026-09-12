@@ -23,6 +23,46 @@ pub fn prepare_program_sources(
   max_bindings~ : Int,
   max_slots~ : Int,
 ) -> Result[SourceProducerContext, PrepareSourcesIssue] {
+  prepare_program_sources_internal(
+    selected,
+    Some(bounds),
+    locations,
+    limits,
+    max_bindings~,
+    max_slots~,
+  )
+}
+
+///|
+/// Construct acquisition bounds from the selected Program's own capacity
+/// applications. Coordinates select candidates; all target, policy and producer
+/// checks remain mandatory. This does not admit rows or authorize acquisition.
+pub fn prepare_program_source_acquisitions(
+  selected : SelectedPolicyContext,
+  locations : Array[Array[(Int, Int)]],
+  limits : @sourceviews.RequestLimits,
+  max_bindings~ : Int,
+  max_slots~ : Int,
+) -> Result[SourceProducerContext, PrepareSourcesIssue] {
+  prepare_program_sources_internal(
+    selected,
+    None,
+    locations,
+    limits,
+    max_bindings~,
+    max_slots~,
+  )
+}
+
+///|
+fn prepare_program_sources_internal(
+  selected : SelectedPolicyContext,
+  bounds : Array[Array[@step_bounds.TargetRows]]?,
+  locations : Array[Array[(Int, Int)]],
+  limits : @sourceviews.RequestLimits,
+  max_bindings~ : Int,
+  max_slots~ : Int,
+) -> Result[SourceProducerContext, PrepareSourcesIssue] {
   if limits.max_work < 0 ||
     limits.max_pairs < 0 ||
     limits.values.max_nodes < 0 ||
@@ -64,7 +104,11 @@ pub fn prepare_program_sources(
     Ok(v) => v
     Err(e) => return Err(Requests(e))
   }
-  let rows = match check_source_row_bounds(requests, bounds, request_work) {
+  let row_result = match bounds {
+    Some(values) => check_source_row_bounds(requests, values, request_work)
+    None => prepare_source_row_bounds(requests, locations, request_work)
+  }
+  let rows = match row_result {
     Ok(v) => v
     Err(e) => return Err(Rows(e))
   }

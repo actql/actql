@@ -166,6 +166,93 @@ test "prepared keyed acquisition retains its actual producer bound" {
     max_bindings=100,
     max_slots=1000,
   ).unwrap()
+  let constructed = prepare_program_source_acquisitions(
+    selected,
+    [[(0, 0)]],
+    caps,
+    max_bindings=100,
+    max_slots=1000,
+  ).unwrap()
+  let constructed_rows = @capacity.target_membership_rows(
+    source_producer_at(constructed, 0, 0).unwrap(),
+  )
+  assert_true(
+    physical_equal(@program.target_rows_bound(constructed_rows), bound),
+  )
+  assert_true(
+    physical_equal(@program.target_rows_pipeline(constructed_rows), pipeline),
+  )
+  assert_eq(@program.target_rows_target(constructed_rows), @pipeline.Step(0))
+  assert_eq(@program.target_rows_value(constructed_rows), 1L)
+  // Construction adds one candidate selection visit; target traversal is not
+  // charged again merely because it is assembled inside the boundary.
+  assert_eq(source_producer_work(constructed), source_producer_work(result) + 1)
+  let constructed_caps = {
+    ..caps,
+    max_work: source_producer_work(constructed),
+  }
+  assert_true(
+    prepare_program_source_acquisitions(
+      selected,
+      [[(0, 0)]],
+      constructed_caps,
+      max_bindings=100,
+      max_slots=1000,
+    )
+    is Ok(_),
+  )
+  for short in [-1, 0, 1, constructed_caps.max_work - 1] {
+    assert_true(
+      prepare_program_source_acquisitions(
+        selected,
+        [[(0, 0)]],
+        { ..caps, max_work: short, },
+        max_bindings=100,
+        max_slots=1000,
+      )
+      is Err(_),
+    )
+  }
+  assert_true(
+    prepare_program_source_acquisitions(
+      selected,
+      [],
+      caps,
+      max_bindings=100,
+      max_slots=1000,
+    )
+    is Err(Rows(StageCountMismatch)),
+  )
+  assert_true(
+    prepare_program_source_acquisitions(
+      selected,
+      [[]],
+      caps,
+      max_bindings=100,
+      max_slots=1000,
+    )
+    is Err(Rows(Stage(0, CountMismatch))),
+  )
+  assert_true(
+    prepare_program_source_acquisitions(
+      selected,
+      [[(10, 0)]],
+      caps,
+      max_bindings=100,
+      max_slots=1000,
+    )
+    is Err(Rows(InvalidVisit(0, 0))),
+  )
+  assert_true(
+    prepare_program_source_acquisitions(
+      selected,
+      [[(0, 1)]],
+      caps,
+      max_bindings=100,
+      max_slots=1000,
+    )
+    is Err(Rows(InvalidClaim(0, 0))),
+  )
   let membership = source_producer_at(result, 0, 0).unwrap()
   assert_true(
     physical_equal(@capacity.target_membership_rows(membership), rows),
@@ -262,7 +349,7 @@ test "prepared keyed acquisition retains its actual producer bound" {
     is Err(Producers(Membership(0, 0, ForeignBound))),
   )
   let checks = prepare_program_checks(
-    result,
+    constructed,
     { text_time: false, veca: false, },
     { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
     preparation_limits(),

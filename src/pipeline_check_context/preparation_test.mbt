@@ -35,11 +35,9 @@ fn preparation_sources_fixture(
       )
   }
   // These fixtures have no keyed acquisition consumers. Other Programs must
-  // provide the actual row bounds and producer locations.
-  let rows = Array::makei(locations.length(), _ => [])
-  prepare_program_sources(
+  // select actual producer claims; acquisition preparation constructs bounds.
+  prepare_program_source_acquisitions(
     selected,
-    rows,
     locations,
     {
       max_work: 10000000,

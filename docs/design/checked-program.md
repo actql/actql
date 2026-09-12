@@ -229,6 +229,24 @@ valid only when those inventories require none. This does not manufacture
 SourceView registrations, acquisition results or capacity claims, and it does
 not turn request checking into Host execution permission.
 
+`prepare_program_source_acquisitions` uses that same request/policy/producer
+path but constructs the left-target bounds internally. Its only per-acquisition
+selectors are unchecked producer-visit and claim indices into the retained
+capacity closure. The classified keyed join supplies its actual left target;
+neither that target, a substitute pipeline nor an independent successful bound
+is accepted from the caller. Missing claims, unrelated targets and invalid
+producer membership fail before source preparation can succeed. Repeated
+acquisitions remain distinct even when they select the same claim.
+
+Candidate selection, target traversal and row checks share the request work
+ceiling. Traversal is charged once through the existing row-bound checker;
+construction adds its own selection visits and reserves prior traversals before
+building the next target. Final policy and producer checks retain their existing
+aggregate costs. Local-only Programs require no acquisition selectors, while
+SourceView Programs must cover every classified keyed join. This entrance
+removes caller assembly of successful target checks, not runtime acquisition,
+response validation, authority or complete CheckedProgram closure.
+
 `check_prepared_local_stages` constructs all Stage contexts from that same
 preparation and performs the final Stage-owner join internally. Gathering,
 individual checks and producer-binding verification share one integration
