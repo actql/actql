@@ -909,6 +909,15 @@ emits retained normalized syntax. Neither projection alone is an executable
 artifact: request schema/Parameter bindings, ceiling witnesses, root evidence,
 canonical identity and sealed-fragment admission remain separate obligations.
 
+The request projection retains that same owner, supplies its checked input
+schema and bound Parameter contracts/values, and carries explicit positive
+request ceilings. Its canonical identity is formed by the shared canonical
+codec, through a bounded private adapter used only for generated typed output.
+Root evidence uses that same adapter. Object enumeration differences disappear
+from identity; array order, Parameter values and request ceilings do not.
+Canonical identity does not discharge resource witnesses or sealed admission,
+and these internal adapters do not accept externally supplied artifact JSON.
+
 Each expression root retains its exact typed owner. Source projection reads the
 normalized syntax of that owner; machine-node projection reads the bound lowered
 expression. A Parameter remains a reference in source while becoming a literal

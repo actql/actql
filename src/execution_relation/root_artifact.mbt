@@ -36,6 +36,37 @@ fn prepare_root_artifact(
   } catch {
     _ => return Err(OutputLimit)
   }
+  let artifact = match
+    canonicalize_generated_artifact(text, max_bytes, max_nodes, max_depth) {
+    Ok(artifact) => artifact
+    Err(issue) => return Err(issue)
+  }
+  Ok({
+    evidence,
+    value: artifact.value,
+    cid: artifact.cid,
+    bytes: artifact.bytes,
+    nodes: artifact.nodes,
+  })
+}
+
+///|
+priv struct GeneratedArtifact {
+  value : @identity.CanonicalValue
+  cid : String
+  bytes : Int
+  nodes : Int
+}
+
+///|
+/// Private adapter for bounded output of our typed emitters only. Never an
+/// admission API for caller-supplied JSON or a replacement semantic checker.
+fn canonicalize_generated_artifact(
+  text : String,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[GeneratedArtifact, RootArtifactIssue] {
   let json = @json.parse(text, max_nesting_depth=max_depth) catch {
     _ => return Err(GeneratedDecodeFailure)
   }
@@ -51,11 +82,5 @@ fn prepare_root_artifact(
   } catch {
     _ => return Err(OutputLimit)
   }
-  Ok({
-    evidence,
-    value,
-    cid: "sha256:" + usage.0,
-    bytes: usage.1,
-    nodes: usage.2,
-  })
+  Ok({ value, cid: "sha256:" + usage.0, bytes: usage.1, nodes: usage.2, })
 }
