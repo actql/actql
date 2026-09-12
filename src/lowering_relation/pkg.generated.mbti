@@ -40,6 +40,8 @@ pub fn emit_kernel_node(PreparedKernel, @encode_core.Writer) -> Unit raise @enco
 
 pub fn emit_ordered_references(OrderedReferences, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
 
+pub fn emit_root_evidence(RootEvidence, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
+
 pub fn emit_root_source(ExpressionRoot, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
 
 pub fn emit_sequence_steps(PreparedSequence, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
@@ -115,6 +117,8 @@ pub fn prepare_kernel(BoundPrepared, Int, max_bindings~ : Int, max_name_bytes~ :
 pub fn prepare_kernel_roots(PreparedSequence, Int, RootLimits) -> Result[RootIndex, RootIssue]
 
 pub fn prepare_ordered_references(PreparedKernel, OrderedReferenceLimits) -> Result[OrderedReferences, OrderedReferenceIssue]
+
+pub fn prepare_root_evidence(DemandIndex, Int, RootEvidenceLimits) -> Result[RootEvidence, RootEvidenceIssue]
 
 pub fn prepare_roots(PreparedSequence, RootLimits) -> Result[RootIndex, RootIssue]
 
@@ -334,6 +338,21 @@ pub enum PreparedStep {
 }
 
 type PreparedValues
+
+type RootEvidence
+
+pub(all) enum RootEvidenceIssue {
+  InvalidEvidenceLimits
+  MissingEvidenceRoot
+  EvidenceLimit
+  DemandAddress(DemandAddressIssue)
+}
+
+pub(all) struct RootEvidenceLimits {
+  max_nodes : Int
+  max_tests : Int
+  max_pointer_bytes : Int
+}
 
 type RootIndex
 
