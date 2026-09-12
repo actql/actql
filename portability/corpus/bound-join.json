@@ -1,0 +1,27 @@
+{
+  "version": "actql-bound-join-vectors/0.1",
+  "cases": [
+    {"kind":"inner","left":3,"right":4,"expected":12},
+    {"kind":"inner","left":0,"right":9007199254740991,"expected":0},
+    {"kind":"left","left":3,"right":0,"expected":3},
+    {"kind":"full","left":0,"right":4,"expected":4},
+    {"kind":"full","left":3,"right":0,"expected":3},
+    {"kind":"full","left":1,"right":4,"expected":5},
+    {"kind":"full","left":3,"right":1,"expected":4},
+    {"kind":"full","left":2,"right":3,"expected":6},
+    {"kind":"semi","left":3,"right":0,"expected":0},
+    {"kind":"semi","left":3,"right":4,"expected":3},
+    {"kind":"anti","left":3,"right":0,"expected":3},
+    {"kind":"asof","left":3,"right":0,"expected":3},
+    {"kind":"inner","left":3,"right":4,"unique":"left","expected":4},
+    {"kind":"inner","left":3,"right":4,"unique":"right","expected":3},
+    {"kind":"inner","left":3,"right":4,"unique":"both","expected":3},
+    {"kind":"left","left":3,"right":4,"unique":"left","expected":6},
+    {"kind":"left","left":3,"right":4,"unique":"right","expected":3},
+    {"kind":"full","left":3,"right":4,"unique":"both","expected":7},
+    {"kind":"full","left":0,"right":4,"unique":"both","expected":4},
+    {"kind":"inner","left":9007199254740991,"right":2,"error":"Overflow"},
+    {"kind":"inner","left":9007199254740991,"right":2,"unique":"right","expected":9007199254740991},
+    {"kind":"full","left":9007199254740991,"right":1,"error":"Overflow"}
+  ]
+}

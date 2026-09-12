@@ -355,6 +355,18 @@ registry or transfer classification alone is not this semantic body.
 ../../../spec/contracts/actql-bound-relation-laws.json# sha256:163a0d75d56310803ac755d5f4f02069f442651711209037d6e3f512954c97ab
 ```
 
+<!-- requirement-block: capacity-law-registry.join-count-body capacity-law-registry.join-count-machine -->
+The pinned `actql-bound-join-laws/0.1` body defines row upper bounds for
+equality, cross, interval and as-of joins, including empty-input cases and
+conditional uniqueness refinements. Applications MUST retain actual operand
+occurrences and the validation dependencies of any refinement. These output
+bounds do not establish acquisition completeness or bound search work.
+
+<!-- normative-code: law -->
+```text
+../../../spec/contracts/actql-bound-join-laws.json# sha256:75f9c5ce5188d28a2e3b42213e0fb3a479475c06e280eb02ef7b001a355d1600
+```
+
 <!-- requirement-block: capacity-law-registry.machine-contract -->
 <!-- normative-code: law -->
 ```text

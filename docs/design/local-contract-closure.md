@@ -215,6 +215,15 @@ unresolved Catalog links. Selecting these common rules does not complete the
 quantity-specific Carrier laws for joins, Graphs, Vectors, windows, acquisition
 or publication, nor the final Unit contract closure.
 
+The join family additionally selects `spec/contracts/actql-bound-join-laws.json`
+at pointer `""`, pinned as
+`sha256:75f9c5ce5188d28a2e3b42213e0fb3a479475c06e280eb02ef7b001a355d1600`.
+Equality, cross, interval and as-of join occurrences retain their own root sites
+while sharing the body. The contract fixes empty-input bounds and conditional
+uniqueness refinements, not the truth of a cardinality assertion or acquisition
+completeness. Its law names are not external dependency edges. Concrete bounds
+and validation evidence remain applications rather than contract-set members.
+
 The existing exhaustive operation-profile classification also exposes adopted
 AoA law roots: RelA scalar/primitive laws, SGA structural/identity laws, and VecA
 numerical laws. Reads from an `OperationProfileResolution` retain the same owned

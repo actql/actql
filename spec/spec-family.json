@@ -273,6 +273,12 @@
           "version": "actql-bound-values-law/0.1"
         },
         {
+          "path": "spec/contracts/actql-bound-join-laws.json",
+          "pointer": "",
+          "cid": "sha256:75f9c5ce5188d28a2e3b42213e0fb3a479475c06e280eb02ef7b001a355d1600",
+          "version": "actql-bound-join-laws/0.1"
+        },
+        {
           "path": "spec/contracts/actql-bound-relation-laws.json",
           "pointer": "",
           "cid": "sha256:163a0d75d56310803ac755d5f4f02069f442651711209037d6e3f512954c97ab",
@@ -989,7 +995,7 @@
         {
           "owner": "actql.protocol.contracts",
           "version": "actql/0.1",
-          "document_cid": "sha256:402ee348673006a86c4621031418ed0bafc40cbdbdd3a03c3131e70843f41a4b"
+          "document_cid": "sha256:b8859b35107c52c2838a890012036344a14f68b8424cd211251522b160ea4c43"
         },
         {
           "owner": "actql.protocol.artifacts",
@@ -1062,7 +1068,7 @@
         {
           "owner": "actql.protocol.contracts",
           "version": "actql/0.1",
-          "document_cid": "sha256:402ee348673006a86c4621031418ed0bafc40cbdbdd3a03c3131e70843f41a4b"
+          "document_cid": "sha256:b8859b35107c52c2838a890012036344a14f68b8424cd211251522b160ea4c43"
         }
       ]
     },
@@ -1198,7 +1204,7 @@
         {
           "owner": "actql.protocol.contracts",
           "version": "actql/0.1",
-          "document_cid": "sha256:402ee348673006a86c4621031418ed0bafc40cbdbdd3a03c3131e70843f41a4b"
+          "document_cid": "sha256:b8859b35107c52c2838a890012036344a14f68b8424cd211251522b160ea4c43"
         },
         {
           "owner": "actql.protocol.artifacts",
@@ -1385,7 +1391,7 @@
         {
           "owner": "actql.protocol.contracts",
           "version": "actql/0.1",
-          "document_cid": "sha256:402ee348673006a86c4621031418ed0bafc40cbdbdd3a03c3131e70843f41a4b"
+          "document_cid": "sha256:b8859b35107c52c2838a890012036344a14f68b8424cd211251522b160ea4c43"
         },
         {
           "owner": "actql.protocol.artifacts",

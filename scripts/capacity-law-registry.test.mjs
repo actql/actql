@@ -4,6 +4,79 @@ import { readFileSync } from 'node:fs';
 import { machineCid } from './actql-spec-family.mjs';
 import { validateRegistry, loadRegistry, renderRegistry, renderGuardLaws } from './capacity-law-registry.mjs';
 
+test('join count body is pinned and selected by the compiler', () => {
+  const path = 'spec/contracts/actql-bound-join-laws.json';
+  const body = JSON.parse(readFileSync(new URL(`../${path}`, import.meta.url), 'utf8'));
+  const cid = 'sha256:75f9c5ce5188d28a2e3b42213e0fb3a479475c06e280eb02ef7b001a355d1600';
+  assert.equal(machineCid(body), cid);
+  for (const law of body.law_ids) assert.ok(loadRegistry().body.law_ids.includes(law));
+  const family = JSON.parse(readFileSync(new URL('../spec/spec-family.json', import.meta.url), 'utf8'));
+  const owner = family.documents.find(d => d.spec_id === 'actql.protocol.contracts');
+  assert.deepEqual(owner.machine_contracts.filter(ref => ref.path === path), [{path,pointer:'',cid,version:body.version}]);
+  const implementation = readFileSync(new URL('../src/pipeline_check_context/core_contracts.mbt', import.meta.url), 'utf8');
+  assert.ok(implementation.replace(/\s+/g, ' ').includes(`JoinCountRules => "${cid}"`));
+});
+
+test('independent join bound vectors cover outer emptiness and conditional uniqueness', () => {
+  const corpus = JSON.parse(readFileSync(new URL('../portability/corpus/bound-join.json', import.meta.url), 'utf8'));
+  assert.equal(corpus.version, 'actql-bound-join-vectors/0.1');
+  for (const v of corpus.cases) {
+    const l = BigInt(v.left), r = BigInt(v.right);
+    const lu = v.unique === 'left' || v.unique === 'both';
+    const ru = v.unique === 'right' || v.unique === 'both';
+    let n;
+    if ((lu || ru) && l > 0n && r > 0n && v.kind !== 'asof') {
+      switch (v.kind) {
+        case 'inner': n = lu && ru ? (l < r ? l : r) : ru ? l : r; break;
+        case 'left': n = ru ? l : l + r - 1n; break;
+        case 'full': n = l + r; break;
+        case 'semi': case 'anti': n = l; break;
+        default: assert.fail(v.kind);
+      }
+    } else {
+      switch (v.kind) {
+        case 'inner': n = l * r; break;
+        case 'left': n = l * (r || 1n); break;
+        case 'full': n = l === 0n ? r : r === 0n ? l : l === 1n || r === 1n ? l + r : l * r; break;
+        case 'semi': n = r === 0n ? 0n : l; break;
+        case 'anti': case 'asof': n = l; break;
+        default: assert.fail(v.kind);
+      }
+    }
+    if (n > 9007199254740991n) assert.equal(v.error, 'Overflow');
+    else { assert.equal(v.error, undefined); assert.equal(n, BigInt(v.expected)); }
+  }
+});
+
+test('join bounds dominate every small matching relation including unmatched rows', () => {
+  // Enumerate match incidence, not a product join implementation. Vertices are
+  // row occurrences, so identical values do not erase multiplicity.
+  for (let l = 0; l <= 3; l++) for (let r = 0; r <= 3; r++) {
+    for (let mask = 0; mask < 2 ** (l * r); mask++) {
+      const left = Array(l).fill(0), right = Array(r).fill(0);
+      let matches = 0;
+      for (let i = 0; i < l; i++) for (let j = 0; j < r; j++) {
+        if (mask & (1 << (i * r + j))) { left[i]++; right[j]++; matches++; }
+      }
+      const missingLeft = left.filter(n => n === 0).length;
+      const missingRight = right.filter(n => n === 0).length;
+      const actual = {inner:matches, left:matches + missingLeft,
+        full:matches + missingLeft + missingRight, semi:l - missingLeft, anti:missingLeft};
+      const bounds = {inner:l*r, left:l*Math.max(1,r),
+        full:l === 0 ? r : r === 0 ? l : l === 1 || r === 1 ? l+r : l*r,
+        semi:r === 0 ? 0 : l, anti:l};
+      for (const kind of Object.keys(actual)) assert.ok(actual[kind] <= bounds[kind]);
+      // Unique left keys mean at most one matching left occurrence per right.
+      const lu = right.every(n => n <= 1), ru = left.every(n => n <= 1);
+      if (l && r && (lu || ru)) {
+        assert.ok(actual.inner <= (lu && ru ? Math.min(l,r) : ru ? l : r));
+        assert.ok(actual.left <= (ru ? l : l+r-1));
+        assert.ok(actual.full <= l+r);
+      }
+    }
+  }
+});
+
 test('common Relation count semantics have a registered body distinct from classification', () => {
   const path = 'spec/contracts/actql-bound-relation-laws.json';
   const body = JSON.parse(readFileSync(new URL(`../${path}`, import.meta.url), 'utf8'));

@@ -364,4 +364,29 @@ test "prepared keyed acquisition retains its actual producer bound" {
     source_preparation_limits(),
   ).unwrap()
   assert_eq(program_identity_stage_count(identity), 1)
+  let contracts = collect_core_contracts(identity, {
+    max_work: 1000000,
+    max_roots: 1000,
+    max_bodies: 100,
+    max_edges: 100,
+  }).unwrap()
+  let mut join_roots = 0
+  for i in 0..<core_contract_root_count(contracts) {
+    let root = core_contract_root_at(contracts, i).unwrap()
+    if root.site is OperationJoinCountRules(stage, visit, step) {
+      assert_eq(stage, 0)
+      assert_eq(step, 1)
+      assert_true(
+        @pipeline.step_at(
+          program_identity_producer_at(identity, stage, visit).unwrap(),
+          step,
+        ).unwrap().operation
+        is @pipeline.Join(..),
+      )
+      assert_eq(root.body, JoinCountRules)
+      join_roots += 1
+    }
+  }
+  assert_true(join_roots > 0)
+  assert_true(stage_has_contract(contracts, 0, JoinCountRules))
 }
