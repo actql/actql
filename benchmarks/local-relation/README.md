@@ -146,6 +146,14 @@ command refuses pre-disposal legacy E2E reports instead of treating their clock
 as the new scope. Run its rejection tests with
 `node --test scripts/summarize-layout-report.test.mjs`.
 
+`scripts/layout-adoption.mjs` applies the fixed performance conditions to audited
+additional and legacy E2E summaries. It requires complete coverage, a consistent
+host/compiler/manifest and a qualifying metric across every member of one native
+major group. Any reproducible E2E regression blocks that candidate. Its tests also
+reject missing comparisons and prepared-input summaries. A performance pass never
+sets `migration_authorized`: semantic/physical verification and migration
+remeasurement remain separate requirements.
+
 This calculation alone does not authorize adoption. The full mandatory matrix,
 valid timing scope, semantic gates and source provenance must be established
 separately. Apply the 20% threshold to every member of a preselected major group;
