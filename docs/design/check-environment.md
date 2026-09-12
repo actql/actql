@@ -435,3 +435,14 @@ selection and retain the environment association. Neither a profile support
 flag nor a caller-supplied matching CID substitutes for those checks. Existing
 envelopes without this component retain their bytes and identities; the machine
 contract identity changes to include the newly explicit selection contract.
+
+`admit_text_rank_profile` takes that opaque selection and locally supplied
+profile/dependency bytes. It passes the selected original-byte CID directly to
+the profile reader; there is no separate caller-controlled expected CID. The
+result retains both the selection's exact environment owner and the admitted
+profile. Required dependency membership, digests, canonical profile bytes and
+supported law descriptors remain checked by the single existing reader under
+its byte/node/depth limits. Equal pins in separately issued environments do
+not merge their owners. The compiler must still check this environment against
+its own selected context and attach resolutions to each operation. This is
+selected-byte integrity, not Unicode provenance or evaluator conformance.

@@ -85,3 +85,39 @@ pub fn text_rank_selection_cid(v : TextRankSelection) -> String {
 pub fn text_rank_selection_work(v : TextRankSelection) -> Int {
   v.work
 }
+
+///|
+struct SelectedTextRankProfile {
+  selection : TextRankSelection
+  profile : @lexical.Profile
+}
+
+///|
+/// Uses the environment's selected byte pin, never a caller's substitute CID.
+/// All required dependency bytes are checked by the existing profile reader.
+pub fn admit_text_rank_profile(
+  selection : TextRankSelection,
+  bytes : Bytes,
+  dependencies : Array[(@lexical.Dependency, Bytes)],
+  limits : @lexical.Limits,
+) -> Result[SelectedTextRankProfile, @lexical.Issue] {
+  match
+    @lexical.admit(bytes, selection.profile_bytes_cid, dependencies, limits) {
+    Ok(profile) => Ok({ selection, profile, })
+    Err(issue) => Err(issue)
+  }
+}
+
+///|
+pub fn selected_text_rank_selection(
+  v : SelectedTextRankProfile,
+) -> TextRankSelection {
+  v.selection
+}
+
+///|
+pub fn selected_text_rank_profile(
+  v : SelectedTextRankProfile,
+) -> @lexical.Profile {
+  v.profile
+}

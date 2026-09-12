@@ -8,12 +8,15 @@ import {
   "actql/actql/encode_core",
   "actql/actql/graph_contract",
   "actql/actql/relation_schema",
+  "actql/actql/text_rank_profile",
   "actql/actql/text_time_policy",
   "actql/actql/value_contract",
   "moonbitlang/core/debug",
 }
 
 // Values
+pub fn admit_text_rank_profile(TextRankSelection, Bytes, Array[(@text_rank_profile.Dependency, Bytes)], @text_rank_profile.Limits) -> Result[SelectedTextRankProfile, @text_rank_profile.Issue]
+
 pub fn capacity_environment(Capacity) -> WireEnvironment
 
 pub fn capacity_policy(Capacity) -> @capacity_policy.Policy
@@ -209,6 +212,10 @@ pub fn reference_usage(CatalogReferences) -> (Int, Int)
 pub fn resolve_catalog_contract(Catalog, String, String, String, String) -> Result[ContractEnvelope, CatalogIssue]
 
 pub fn resolve_contract(ContractRegistry, String, String, String, String) -> Result[ContractEnvelope, ContractIssue]
+
+pub fn selected_text_rank_profile(SelectedTextRankProfile) -> @text_rank_profile.Profile
+
+pub fn selected_text_rank_selection(SelectedTextRankProfile) -> TextRankSelection
 
 pub fn source_batching_contract(SourceBatching, SourceBatchRole) -> ProtocolValueContract
 
@@ -506,6 +513,8 @@ pub(all) enum Section {
   ContractRegistry
   ConnectorCatalogs
 } derive(Eq, @debug.Debug)
+
+type SelectedTextRankProfile
 
 pub(all) enum SourceBatchRole {
   RequestKey

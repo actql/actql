@@ -1,6 +1,7 @@
 supported_targets = "+js+wasm+native"
 
 import {
+  "actql/actql/text_rank_profile" @lexical,
   "actql/actql/source_value" @source,
   "actql/actql/decode_core" @decode,
   "actql/actql/canonical_value" @unicode,
@@ -22,6 +23,7 @@ import {
 
 formatter(
   ignore: [
+    "text_profile.generated_test.mbt",
     "vectors.generated_test.mbt",
     "catalog_roles.generated.mbt",
     "source_view_shape.generated.mbt",

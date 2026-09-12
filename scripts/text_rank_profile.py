@@ -129,6 +129,7 @@ def moonbit_files():
         base / "laws.generated.mbt": laws,
         base / "fixture.generated_test.mbt": test,
         ROOT / "src/pipeline_typing/text_profile.generated_test.mbt": pipeline_test,
+        ROOT / "src/check_environment/text_profile.generated_test.mbt": pipeline_test.replace("@text_rank_profile", "@lexical"),
     }
 
 
