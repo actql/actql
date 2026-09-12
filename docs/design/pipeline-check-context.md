@@ -504,6 +504,21 @@ binding/index owners, local paths, missing first/later visit bindings and exact
 or short cumulative budgets.
 
 This context integrates the supported order, guard-binding and capacity subset.
+`assemble_preparation` joins the source producer/application checks and expression
+pattern/extent checks through their exact common `SelectedPolicyContext`.
+Separate checks of equal Program bytes or policy CIDs do not authorize mixing
+the branches. `ProgramPreparation` is opaque and retains both checked owners;
+it does not accept a caller's list of independently attachable site proofs.
+Combined work counts common selected-policy preparation once, adds branch-local
+work and the join, and checks sums before addition. Text includes expression
+preparation plus source-request literal text. Source comparison pairs/value nodes,
+local-input nodes, policy nodes and pattern AST bytes/nodes remain separate
+accounting dimensions, each with an inclusive cap. None is a whole-heap bound.
+The original SourceView and expression results retain all unresolved Host
+bindings, profile demands and runtime obligations. This assembly does not
+turn an empty unresolved-binding count into acquisition authority, construct
+semantic identity envelopes, or declare a lowering-ready Program.
+
 It does not discharge every operation's static/profile/pattern obligation, bind
 authored guard witness identities, build staged Program/import contracts, or
 construct Program/stage/Invocation semantic projections. A formal compiler
