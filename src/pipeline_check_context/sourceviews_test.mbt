@@ -71,6 +71,24 @@ test "reconciled Program inputs retain SourceView registrations and the same env
   )
   for i in 0..<2 {
     let attached = reconciled_sourceview_stage(result, i).unwrap()
+    let uses = reconciled_sourceview_uses(result, i).unwrap()
+    assert_true(
+      physical_equal(@sourceviews.pipeline_uses_attachment(uses), attached),
+    )
+    assert_true(
+      physical_equal(
+        @sourceviews.pipeline_uses_results(uses),
+        stage_results(stages),
+      ),
+    )
+    assert_eq(
+      @sourceviews.pipeline_use_count(uses, 0),
+      if i == 0 {
+        Some(0)
+      } else {
+        None
+      },
+    )
     assert_true(
       physical_equal(@sourceviews.attached_pipeline_inputs(attached), views),
     )
@@ -102,6 +120,9 @@ test "reconciled Program inputs retain SourceView registrations and the same env
       ) -
       @sourceviews.pipeline_inputs_work(views) -
       @stages.collection_work(stage)
+    expected_work += @sourceviews.pipeline_uses_work(
+      reconciled_sourceview_uses(result, i).unwrap(),
+    )
   }
   assert_eq(usage, {
     work: expected_work,

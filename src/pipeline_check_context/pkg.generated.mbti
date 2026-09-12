@@ -139,6 +139,8 @@ pub fn reconciled_snapshots(ReconciledContexts) -> @stage_local_inputs.ProgramEn
 
 pub fn reconciled_sourceview_stage(ReconciledContexts, Int) -> @sourceview_resolution.PipelineAttachment?
 
+pub fn reconciled_sourceview_uses(ReconciledContexts, Int) -> @sourceview_resolution.PipelineUses?
+
 pub fn reconciled_sourceviews(ReconciledContexts) -> @sourceview_resolution.PipelineInputs?
 
 pub fn reconciled_usage(ReconciledContexts) -> InputUsage
@@ -409,6 +411,7 @@ pub(all) enum ReconciledIssue {
   ForeignSourceViews(Int)
   ForeignSourceEnvironment
   SourceViewAttachment(Int, @sourceview_resolution.PipelineIssue)
+  SourceViewUses(Int, @sourceview_resolution.UseIssue)
 } derive(Eq, @debug.Debug)
 
 pub(all) enum RegexOperation {

@@ -11,6 +11,7 @@ pub(all) enum ReconciledIssue {
   ForeignSourceViews(Int)
   ForeignSourceEnvironment
   SourceViewAttachment(Int, @sourceviews.PipelineIssue)
+  SourceViewUses(Int, @sourceviews.UseIssue)
 } derive(Eq, Debug)
 
 ///|
@@ -21,6 +22,7 @@ struct ReconciledContexts {
   usage : InputUsage
   sourceviews : @sourceviews.PipelineInputs?
   remote : Array[@sourceviews.PipelineAttachment]
+  uses : Array[@sourceviews.PipelineUses]
 }
 
 ///|
@@ -78,6 +80,7 @@ pub fn attach_reconciled_inputs(
     work += added
   }
   let remote = []
+  let uses = []
   for i in 0..<count {
     let expected = @stages.operations_stage_at(operations, i).unwrap()
     if !physical_equal(@local_inputs.reconciled_stage(locals[i]), expected) {
@@ -129,6 +132,17 @@ pub fn attach_reconciled_inputs(
         return Err(BudgetExceeded)
       }
       work += added
+      let consumers = match
+        @sourceviews.collect_pipeline_uses(
+          attached,
+          wired.stages.results,
+          max_work - work,
+        ) {
+        Ok(v) => v
+        Err(e) => return Err(SourceViewUses(i, e))
+      }
+      work += @sourceviews.pipeline_uses_work(consumers)
+      uses.push(consumers)
       remote.push(attached)
     }
     let mut added = @local_inputs.reconciled_work(locals[i])
@@ -154,12 +168,21 @@ pub fn attach_reconciled_inputs(
     locals: locals.copy(),
     sourceviews,
     remote,
+    uses,
     usage: {
       work,
       text_bytes: wired.text + cost.text_bytes,
       local_input_nodes: cost.nodes,
     },
   })
+}
+
+///|
+pub fn reconciled_sourceview_uses(
+  v : ReconciledContexts,
+  stage : Int,
+) -> @sourceviews.PipelineUses? {
+  v.uses.get(stage)
 }
 
 ///|

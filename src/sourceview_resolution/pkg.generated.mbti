@@ -10,6 +10,7 @@ import {
   "actql/actql/source_request_slots",
   "actql/actql/sourceview_input",
   "actql/actql/stage_parameters",
+  "actql/actql/stage_results",
   "actql/actql/value_admission",
   "actql/actql/value_contract",
   "moonbitlang/core/debug",
@@ -35,6 +36,8 @@ pub fn check_direct_request(RequestContext, ResolvedInput, RequestLimits) -> Res
 pub fn checkpoint_reference(ModeCheckpoint) -> @check_environment.CatalogReference
 
 pub fn checkpoint_value_contract(ModeCheckpoint) -> @check_environment.ProtocolValueContract
+
+pub fn collect_pipeline_uses(PipelineAttachment, @stage_results.Checked, Int) -> Result[PipelineUses, UseIssue]
 
 pub fn completion_rule(ResolvedInput) -> String?
 
@@ -95,6 +98,16 @@ pub fn pipeline_input_source(PipelineInputs, Int, Int) -> ResolvedInput?
 pub fn pipeline_inputs_work(PipelineInputs) -> Int
 
 pub fn pipeline_resolution(PipelineInputs) -> Resolved
+
+pub fn pipeline_use_at(PipelineUses, Int, Int) -> SourceUse?
+
+pub fn pipeline_use_count(PipelineUses, Int) -> Int?
+
+pub fn pipeline_uses_attachment(PipelineUses) -> PipelineAttachment
+
+pub fn pipeline_uses_results(PipelineUses) -> @stage_results.Checked
+
+pub fn pipeline_uses_work(PipelineUses) -> Int
 
 pub fn prepare_pipeline_inputs(Resolved, Int) -> Result[PipelineInputs, PipelineIssue]
 
@@ -222,6 +235,8 @@ pub(all) enum PipelineIssue {
   ForeignInput(String)
 } derive(Eq, @debug.Debug)
 
+type PipelineUses
+
 type RequestContext
 
 pub struct RequestField {
@@ -277,6 +292,18 @@ type ResolvedInput
 pub(all) enum Selection {
   Explicit
   SoleView
+} derive(Eq, @debug.Debug)
+
+pub(all) enum SourceUse {
+  StepInput(Int, @pipeline_typing.InputRole)
+  JoinRight(Int)
+  ResultInput(Int)
+} derive(Eq, @debug.Debug)
+
+pub(all) enum UseIssue {
+  InvalidLimits
+  WorkLimit
+  ForeignResults
 } derive(Eq, @debug.Debug)
 
 // Type aliases

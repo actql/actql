@@ -67,6 +67,35 @@ and stage imports retain their own attachment boundaries. The final Program
 constructor must join those owners and obligations; this attachment alone is
 not a lowering-ready or executable Program.
 
+## Source-owned consumer positions
+
+`collect_pipeline_uses` joins an exact pipeline attachment with source-bound
+stage Results. The original `CollectedStage` must be the same object retained
+by the Results' operation collection; equal syntax or an independently repeated
+collection does not establish that ownership. The result retains both owners.
+
+Each SourceView has an indexed list of actual consumer positions: ordinary
+operation input edges with their roles, logical join right edges, and direct
+Result references. Input registration order need not match declaration order.
+Self-joins retain both occurrences. A later consumer of a produced step is not
+misreported as another direct read of the original input. Merely selecting a
+current input without consuming it adds no occurrence. Unused declarations keep
+an empty list; this does not excuse their declaration or Catalog validation.
+
+A join-right occurrence alone is not proof of keyed acquisition: a complete
+directly read Relation can also be joined. Acquisition classification must
+combine these positions with the selected Catalog correlation contract and
+validate the applicable request coverage. Missing request fields alone cannot
+establish keyed use. The index does not claim correlation, response completeness,
+capacity or execution support.
+
+The pass visits inputs, all operation edges and Results once, with charged name
+indexing and constant-time indexed access to occurrences. Its work measures this
+pass only; retained attachment and Result prerequisites keep their own usage.
+Program input reconciliation constructs these indices itself for every stage
+and charges them to its shared work limit. Callers cannot supply a partial list
+of consumers, and a later failure exposes no partially reconciled Program.
+
 ## Direct read-mode selection
 
 `select_direct_mode` consumes one owned ResolvedInput. An authored `scan.mode`

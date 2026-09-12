@@ -35,7 +35,7 @@ for(const c of corpus.cases){
     const request=contract('request_schema',{type:'object',nullable:false,additional_properties:false,fields});
     const output=c.output_fixture?carrierCases.find(x=>x.id===c.output_fixture):null;
     if(c.output_fixture)assert.ok(output?.accepted);
-    const row=contract('carrier_schema',output?.body??{type:'object',nullable:false,additional_properties:false,fields:{}});
+    const row=contract('carrier_schema',output?.body??{type:'object',nullable:false,additional_properties:false,fields:c.output_fields??{}});
     const policy=contract('data_policy',{version:'actql-source-data-policy/0.1',source_ref:v.source_ref??`connector://crm/main/${v.resource}#${v.name}`,classification:'unknown'});
     const modes=(v.modes??[v.watch?{mode:'watch',bounded:false}:{mode:'snapshot',bounded:true}]).map(({checkpoint_type,expiration_type,...mode})=>{
       if(mode.mode==='snapshot'&&!checkpoint_type)return mode;
@@ -66,6 +66,11 @@ for(const c of corpus.cases){
     const checkpoint=mode?.checkpoint?.value_schema?.cid??'';
     lines.push('', '///|',`test ${JSON.stringify('SourceView direct mode corpus: '+c.id)} {`,
       `  check_mode_fixture(${JSON.stringify(canonicalText(env))}, ${JSON.stringify(env.evidence_bundle_cid)}, ${JSON.stringify(JSON.stringify(c.input))}, ${JSON.stringify(c.direct_mode)}, ${c.bounded??false}, ${JSON.stringify(checkpoint)})`, '}');
+  }
+  if(c.pipeline_uses){
+    assert.ok(!c.error);
+    lines.push('', '///|',`test ${JSON.stringify('SourceView consumer corpus: '+c.id)} {`,
+      `  check_pipeline_uses_fixture(${JSON.stringify(canonicalText(env))}, ${JSON.stringify(env.evidence_bundle_cid)}, ${JSON.stringify(JSON.stringify(c.input))})`, '}');
   }
   if(c.request_outcome){
     const declarations=Object.entries({params:c.params,bindings:c.bindings}).filter(([,v])=>v!==undefined).map(([k,v])=>JSON.stringify(k)+':'+JSON.stringify(v)+',').join('');
