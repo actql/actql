@@ -34,9 +34,9 @@ fn lexical_host() -> String {
 }
 
 ///|
-fn lexical_artifact(
+fn operation_cells_environment(
   cells : ProgramOperationCells,
-) -> @environment.SelectedTextRankProfile {
+) -> @environment.WireEnvironment {
   let ranges = operation_queries_ranges(operation_cells_queries(cells))
   let scalars = operation_frames_scalars(
     operation_fills_frames(operation_ranges_fills(ranges)),
@@ -53,7 +53,14 @@ fn lexical_artifact(
   let selected = expression_validation_selected(
     expression_profiles_context(preparation_profiles(preparation)),
   )
-  let env = @environment.capacity_environment(selected_capacity(selected))
+  @environment.capacity_environment(selected_capacity(selected))
+}
+
+///|
+fn lexical_artifact(
+  cells : ProgramOperationCells,
+) -> @environment.SelectedTextRankProfile {
+  let env = operation_cells_environment(cells)
   let selection = @environment.read_text_rank_selection(env, 1000).unwrap()
   @environment.admit_text_rank_profile(
     selection,

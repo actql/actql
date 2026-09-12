@@ -888,6 +888,26 @@ tokenization, BM25 arithmetic, rank generation, scoring ceilings, authority and
 publication remain distinct requirements. Artifact input bytes are separately
 bounded by the profile admission API; traversal work is not a heap-size bound.
 
+### Environment-owned Calendar profiles
+
+`check_program_operation_calendar` follows lexical profile resolution and
+inspects every Calendar operation across all stages and producer visits. Its
+selected transition artifact must belong to the exact Check Environment already
+owned by the Program. Each operation's admitted table CID and external TZDB
+release must agree with that selection; an already checked operation is not
+permission to use a different table. The fixed conversion law is checked during
+artifact admission, not selected again by the lowerer.
+
+Absent selection is valid only without a Calendar consumer. A supplied selection
+without admitted bytes, malformed unused selection, foreign environment or
+operation/profile mismatch fails atomically. Resolutions retain exact checked
+operations, coordinates and the selected artifact, with cumulative traversal,
+comparison and output-entry limits. They do not replace source values, rerun
+boundary calculations, or imply that runtime range/coverage checks, row counts
+and resource enforcement have succeeded. Profile input ceilings remain separate
+from Program traversal work. The lowerer consumes these resolved associations
+instead of choosing a timezone database or trusting a profile support flag.
+
 Expression closure does not discharge operation-level obligations, bind
 authored guard witness identities, build staged Program/import contracts, or
 complete local Unit/Invocation identity projections. Source Program and stage

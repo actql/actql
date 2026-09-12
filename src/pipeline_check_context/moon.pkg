@@ -1,6 +1,7 @@
 supported_targets = "+js+wasm+native"
 
 import {
+  "actql/actql/calendar_profile",
   "actql/actql/text_rank_profile" @lexical,
   "actql/actql/relation_values" @values,
   "actql/actql/vector_typing" @vector,
@@ -42,7 +43,6 @@ import {
 import {
   "actql/actql/local_relation_snapshot" @snapshot,
   "moonbitlang/core/debug",
-  "actql/actql/calendar_profile",
   "actql/actql/binding_declarations",
   "actql/actql/stage_source_refs" @refs,
   "actql/actql/sha256" @sha,

@@ -2,6 +2,7 @@
 package "actql/actql/pipeline_check_context"
 
 import {
+  "actql/actql/calendar_typing",
   "actql/actql/capacity_graph_preflight",
   "actql/actql/capacity_policy",
   "actql/actql/capacity_program_step",
@@ -68,6 +69,8 @@ pub fn check_operation_profiles(ProgramPreparation, PureOperationProfiles, Int) 
 pub fn check_parameter_bindings(PipelineContext, max_work~ : Int, max_text_bytes~ : Int) -> Result[BoundParameters, ParameterIssue]
 
 pub fn check_patterns(ExpressionValidationContext, PatternLimits) -> Result[PatternChecks, PatternIssue]
+
+pub fn check_program_operation_calendar(ProgramOperationLexical, @check_environment.SelectedCalendarProfile?, Int, Int) -> Result[ProgramOperationCalendar, OperationCalendarIssue]
 
 pub fn check_program_operation_cells(ProgramOperationQueries, Int, Int) -> Result[ProgramOperationCells, OperationCellIssue]
 
@@ -172,6 +175,16 @@ pub fn like_pattern_usage(LikePatternChecks) -> LikePatternUsage
 pub fn link_program_operation_orders(ProgramOperationRequirements, Int, Int) -> Result[ProgramOperationOrders, OperationOrderIssue]
 
 pub fn local_inputs_at(InputContexts, Int) -> @stage_local_inputs.Attached?
+
+pub fn operation_calendar_at(ProgramOperationCalendar, Int) -> OperationCalendarResolution?
+
+pub fn operation_calendar_count(ProgramOperationCalendar) -> Int
+
+pub fn operation_calendar_lexical(ProgramOperationCalendar) -> ProgramOperationLexical
+
+pub fn operation_calendar_profile(ProgramOperationCalendar) -> @check_environment.SelectedCalendarProfile?
+
+pub fn operation_calendar_work(ProgramOperationCalendar) -> Int
 
 pub fn operation_cell_at(ProgramOperationCells, Int) -> OperationCellResolution?
 
@@ -609,6 +622,24 @@ pub(all) struct Limits {
   max_text_bytes : Int
 }
 
+pub(all) enum OperationCalendarIssue {
+  InvalidLimits
+  BudgetExceeded
+  ForeignEnvironment
+  MissingArtifact
+  Selection(@check_environment.CalendarSelectionIssue)
+  MissingProfile(Int, Int, Int)
+  ProfileMismatch(Int, Int, Int)
+} derive(Eq, @debug.Debug)
+
+pub struct OperationCalendarResolution {
+  stage : Int
+  producer_visit : Int
+  step : Int
+  operation : @calendar_typing.CheckedCalendar
+  selected : @check_environment.SelectedCalendarProfile
+}
+
 pub(all) enum OperationCellIssue {
   InvalidLimits
   BudgetExceeded
@@ -860,6 +891,8 @@ pub(all) enum ProgramIdentityPhase {
   Definition
   ParameterValues
 } derive(Eq, @debug.Debug)
+
+type ProgramOperationCalendar
 
 type ProgramOperationCells
 
