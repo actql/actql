@@ -271,6 +271,12 @@ pub fn stages(program : Program) -> Array[Stage] {
 }
 
 ///|
+/// Read the source Stage count without allocating a copy.
+pub fn stage_count(program : Program) -> Int {
+  program.stages.length()
+}
+
+///|
 pub fn imports(stage : Stage) -> Array[(String, ImportPort)] {
   stage.imports.copy()
 }

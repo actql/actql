@@ -73,6 +73,19 @@ results at every phase. Private incremental assembly can retain immutable
 intermediates. Public low-level helpers remain useful for focused tests, but
 their existence is not an alternative formal Program compilation entrance.
 
+For Local inputs and Result imports, `stage_results.prepare_local_source`
+derives the declaration owner and effective Parameters from the parsed Program
+before preparing Stage topology and Result ports. It does not accept a second
+declaration set or independently bound values. Missing bindings and invalid
+supplied values prevent preparation; a later Stage failure exposes no prepared
+source. The source Stage count is checked before copying Stage references.
+Declaration and binding admission nodes/text consume the same allowances as
+topology, with a per-traversal depth cap. Work includes topology plus Stage-copy
+and owner-assembly costs; it is not a claim to count every instruction of the
+admission algorithms. Parsing precedes this boundary. Environment, policy,
+capacity and obligation closure still follow it, so this prepared result is not
+a CheckedProgram or a claim that input data has been acquired.
+
 Source-role reference preparation uses `prepare_program_references` to derive
 Stage bodies, declaration use and effective value projections from the same
 checked operations and admitted request slots. It never reconstructs substitute

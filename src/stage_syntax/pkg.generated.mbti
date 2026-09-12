@@ -33,6 +33,8 @@ pub fn result_names(Stage) -> Array[String]
 
 pub fn stage_body(Stage) -> @decode_core.Cursor
 
+pub fn stage_count(Program) -> Int
+
 pub fn stages(Program) -> Array[Stage]
 
 // Errors

@@ -1,6 +1,7 @@
 supported_targets = "+js+wasm+native"
 
 import {
+  "actql/actql/parameter_binding" @binding,
   "actql/actql/stage_parameters" @parameters,
   "actql/actql/stage_syntax" @syntax,
   "actql/actql/pipeline_parameters" @collection,

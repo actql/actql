@@ -52,34 +52,28 @@ fn prepared_local_context_fixture(
     },
     format=Json,
   ).unwrap()
-  let source = @stages.prepare(program, {
-    max_parameters: 1,
-    max_nodes: 1000,
-    max_depth: 100,
-    max_text_bytes: 10000,
-  }).unwrap()
-  guard @parameter.bind(@stages.declarations(source), None, {
-      max_nodes: 100,
+  let prepared_source = @stage_results.prepare_local_source(
+    program,
+    None,
+    max_parameters=1,
+    {
+      max_stages: stage_count,
+      max_steps: if unused_operation {
+        3
+      } else {
+        2
+      },
+      max_results: stage_count,
+      max_work: 1000000,
+      max_nodes: 100000,
+      max_tokens: 10000,
+      max_text_bytes: 1000000,
       max_depth: 100,
-      max_text_bytes: 10000,
-    }).unwrap()
-    is Ready(values) else {
-    abort("fixture default")
-  }
-  let (wiring, _) = @stage_results.prepare_local_program(source, {
-    max_stages: stage_count,
-    max_steps: if unused_operation {
-      3
-    } else {
-      2
     },
-    max_results: stage_count,
-    max_work: 1000000,
-    max_nodes: 100000,
-    max_tokens: 10000,
-    max_text_bytes: 1000000,
-    max_depth: 100,
-  }).unwrap()
+  ).unwrap()
+  let source = @stage_results.local_source_source(prepared_source)
+  let values = @stage_results.local_source_values(prepared_source)
+  let wiring = @stage_results.local_source_wiring(prepared_source)
   let prepared = []
   let publications = []
   let locals = []

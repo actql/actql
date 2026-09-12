@@ -2,10 +2,13 @@
 package "actql/actql/stage_results"
 
 import {
+  "actql/actql/decode_core",
+  "actql/actql/parameter_binding",
   "actql/actql/pipeline_typing",
   "actql/actql/relation_results",
   "actql/actql/stage_local_inputs",
   "actql/actql/stage_parameters",
+  "actql/actql/stage_syntax",
   "moonbitlang/core/debug",
 }
 
@@ -52,9 +55,19 @@ pub fn input_producer(ResultImport) -> @pipeline_typing.ProducedInput
 
 pub fn input_stage(ResultImport) -> StagePorts
 
+pub fn local_source_source(PreparedLocalSource) -> @stage_parameters.Source
+
+pub fn local_source_usage(PreparedLocalSource) -> LocalProgramUsage
+
+pub fn local_source_values(PreparedLocalSource) -> @parameter_binding.BoundValues
+
+pub fn local_source_wiring(PreparedLocalSource) -> ResultWiring
+
 pub fn operations(Checked) -> @stage_parameters.CollectedOperations
 
 pub fn prepare_local_program(@stage_parameters.Source, LocalProgramLimits) -> Result[(ResultWiring, LocalProgramUsage), LocalProgramIssue]
+
+pub fn prepare_local_source(@stage_syntax.Program, @decode_core.Cursor?, max_parameters~ : Int, LocalProgramLimits) -> Result[PreparedLocalSource, LocalSourceIssue]
 
 pub fn resolve_imports(@stage_parameters.Source, Int, Array[StagePorts], ImportLimits) -> Result[ResultImports, ImportIssue]
 
@@ -159,6 +172,17 @@ pub(all) struct LocalProgramUsage {
   steps : Int
   results : Int
 } derive(Eq, @debug.Debug)
+
+pub enum LocalSourceIssue {
+  InvalidLimits
+  BudgetExceeded
+  Declarations(@stage_parameters.Issue)
+  Binding(@parameter_binding.Issue)
+  NeedsBindings(@parameter_binding.MissingNames)
+  Program(LocalProgramIssue)
+}
+
+type PreparedLocalSource
 
 type ResultExport
 
