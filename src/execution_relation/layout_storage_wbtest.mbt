@@ -280,6 +280,10 @@ fn select_layout_rows(
       // Precharge the composed buffer while the old view remains live.
       let selection = match
         allocate_owned_layout_buffer(ledger, indices.length(), 0, fn() {
+          if ledger.traffic is Some(traffic) {
+            traffic.selection_arrays += 1L
+            traffic.selection_index_copies += indices.length().to_int64()
+          }
           indices.map(i => layout_physical_row(input, i).unwrap())
         }) {
         Ok(value) => value

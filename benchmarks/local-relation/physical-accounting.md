@@ -65,8 +65,25 @@ creates both a values buffer and a validity buffer. A sharing operation creates
 handles but copies no cell payload. Selection composition copies row indices,
 not the retained row payload.
 
-Allocation and copy diagnostics must distinguish these events, and must remain
-separate from the timing samples. An allocator-wide count is not available from
-the existing capacity counters. Do not infer one from `work`, ledger owner counts
-or differences between RSS peaks. This limitation cannot be turned into a claimed
-memory win or used to waive the fixed end-to-end adoption conditions.
+`measure-layout-traffic.mjs` runs the fixed native/JS/Wasm cases once each with
+additional white-box counters enabled. It records data-array constructions,
+separate validity-array constructions/capacity, column cell transfers, selection
+array/index copies, and row cell/reference transfers. The row diagnostic wraps
+the existing physical callbacks and common dispatch; it does not implement a
+second sort, derive or completion strategy. Column counters are at the actual
+builder/selection construction sites. Source registration and buffer sharing do
+not increment the data-array counter. Typed NULL adoption counts as a cell
+transfer even when initialization already supplied its zero validity byte.
+
+These counters describe successful data-container paths, not failed-prefix
+traffic, heap allocations or all metadata/scratch arrays. A's body outputs include
+new row arrays, while A's sort/take/distinct/dedupe outputs allocate row-reference
+arrays and share cells. B/C report column stores separately from those row copies;
+neither is a deep-copy byte count. Constructors of empty arrays may be optimized
+by the runtime, so even an exact source-level count is not a malloc count.
+
+The diagnostic run does not emit phase/E2E timings, and its results do not replace
+the frozen performance samples. An allocator-wide count is not available from
+these instruments. Do not infer one from `work`, ledger owner counts or differences
+between RSS peaks. This limitation cannot be turned into a claimed memory win or
+used to waive the fixed end-to-end adoption conditions.

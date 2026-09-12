@@ -18,6 +18,7 @@ node scripts/measure-layouts.mjs --prepared-smoke
 node scripts/measure-layouts.mjs --prepared
 node scripts/measure-layouts.mjs --prepared-legacy-smoke
 node scripts/measure-layouts.mjs --prepared-legacy
+node scripts/measure-layout-traffic.mjs
 ```
 
 Set `MOON_HOME` to the pinned toolchain first. The smoke mode builds native, JS

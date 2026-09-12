@@ -35,6 +35,7 @@ fn measure_additional_layout(
   workload : ProfiledLayoutWorkload,
   count : Int,
   candidate : LayoutCandidate,
+  traffic? : LayoutTraffic? = None,
 ) -> (Array[Double], Array[Int]) raise {
   let phases = []
   let (generated, supplied, produced) = match workload {
@@ -60,6 +61,17 @@ fn measure_additional_layout(
   let limits = numeric_layout_limits(count)
   let control = { remaining: 100000000, max_frames: 100, }
   if candidate == RowLayout {
+    if traffic is Some(trace) {
+      let invocation = prepare_traffic_rows(
+        generated, supplied, produced, limits, control, trace,
+      ).unwrap()
+      run_traffic_rows(invocation, trace).unwrap()
+      observe_additional_layout(invocation.store, workload, count)
+      clear_table_store(invocation.store)
+      assert_true(invocation.store.tables.all(t => t is None))
+      // Diagnostic callers discard timing; do not emit fabricated phase clocks.
+      return ([], [])
+    }
     let invocation = prepare_sequence_invocation(
       generated.contracts,
       generated.sequence,
@@ -89,7 +101,7 @@ fn measure_additional_layout(
     assert_true(completed.store.tables.all(t => t is None))
     return (phases, counters)
   }
-  let ledger = layout_ledger(100000000, 100000000, 100000000)
+  let ledger = { ..layout_ledger(100000000, 100000000, 100000000), traffic, }
   let physical = {
     ..layout_allocation(100000000, 100000000, 100000000),
     ledger: Some(ledger),

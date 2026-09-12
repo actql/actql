@@ -94,6 +94,7 @@ for (const target of ['native', 'js', 'wasm']) {
     delete sampleEnv.ACTQL_LAYOUT_CASE;
     delete sampleEnv.ACTQL_LAYOUT_ADDITIONAL_CASE;
     delete sampleEnv.ACTQL_LAYOUT_PREPARED;
+    delete sampleEnv.ACTQL_LAYOUT_TRAFFIC;
     if (prepared) sampleEnv.ACTQL_LAYOUT_PREPARED = '1';
     sampleEnv[additional ? 'ACTQL_LAYOUT_ADDITIONAL_CASE' : 'ACTQL_LAYOUT_CASE'] = String(case_index);
     const sample = run('/usr/bin/time', [platform() === 'darwin' ? '-l' : '-v', command, ...args],

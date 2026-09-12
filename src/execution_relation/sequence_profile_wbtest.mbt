@@ -15,6 +15,11 @@ test "profile fixed layout sequences with independent output assertions" {
       Some("C") => TypedColumns
       Some(_) => fail("unknown layout candidate")
     }
+    if @env.get_env_var("ACTQL_LAYOUT_TRAFFIC") == Some("1") {
+      let (_, workload, count, width) = additional_layout_case(index)
+      profile_layout_traffic(workload, count, width, false, candidate)
+      return
+    }
     if @env.get_env_var("ACTQL_LAYOUT_PREPARED") == Some("1") {
       profile_prepared_additional_layout(index, candidate)
       return
@@ -52,6 +57,16 @@ test "profile fixed layout sequences with independent output assertions" {
     Some("B") => ValueColumns
     Some("C") => TypedColumns
     Some(_) => fail("unknown layout candidate")
+  }
+  if @env.get_env_var("ACTQL_LAYOUT_TRAFFIC") == Some("1") {
+    profile_layout_traffic(
+      LegacyWorkload(columns, same),
+      rows,
+      columns,
+      same,
+      candidate,
+    )
+    return
   }
   if @env.get_env_var("ACTQL_LAYOUT_PREPARED") == Some("1") {
     profile_prepared_layout(

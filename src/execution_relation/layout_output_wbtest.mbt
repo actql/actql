@@ -60,6 +60,13 @@ fn layout_column_builder(
       contract.shape is @contract.Number
     let flags = candidate == TypedColumns && contract.shape is @contract.Boolean
     let build = fn() {
+      if budget.ledger is Some(ledger) && ledger.traffic is Some(traffic) {
+        traffic.data_arrays += 1L
+        if numeric || flags {
+          traffic.validity_arrays += 1L
+          traffic.validity_capacity += capacity.to_int64()
+        }
+      }
       if numeric {
         Numeric(FixedArray::make(capacity, 0.0), FixedArray::make(capacity, 0))
       } else if flags {
@@ -172,6 +179,9 @@ fn append_layout_row(
           }
         }
     }
+  }
+  if builder.budget.ledger is Some(ledger) && ledger.traffic is Some(traffic) {
+    traffic.column_cell_transfers += row.length().to_int64()
   }
   builder.count += 1
   Ok(())
