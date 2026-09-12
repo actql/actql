@@ -98,7 +98,7 @@ fn wired_inputs_fixture(
     max_text_bytes: 10000,
   }).unwrap()
   let declarations = @stages.declarations(source)
-  let (environment, snapshot) = if remote is Some(_) {
+  let (environment, _) = if remote is Some(_) {
     sourceview_policy_fixture(profile, uninterpreted_facts~)
   } else {
     snapshot_wire(profile~)
@@ -120,16 +120,32 @@ fn wired_inputs_fixture(
       Some(prepared)
     }
   }
-  let source_index = @refs.prepare(source, {
-    max_work: 100000,
-    max_text_bytes: 100000,
-  }).unwrap()
-  let environment_inputs = []
   let local_limits : @local_inputs.Limits = {
     max_work: 100000,
     max_nodes: 10000,
     max_depth: 100,
     max_text_bytes: 100000,
+  }
+  let coverage = if use_snapshots {
+    Some(
+      @local_inputs.prepare_environment(
+        source,
+        environment,
+        local_limits,
+        sourceviews=remote_inputs.map(v => {
+          @sourceviews.inputs(@sourceviews.pipeline_resolution(v))
+        }),
+      ).unwrap(),
+    )
+  } else {
+    None
+  }
+  let environment_inputs = match coverage {
+    Some(v) =>
+      Array::makei(2, i => {
+        @local_inputs.program_environment_stage(v, i).unwrap()
+      })
+    None => []
   }
   guard @parameter.bind(declarations, supplied, {
       max_nodes: 100,
@@ -167,35 +183,26 @@ fn wired_inputs_fixture(
     max_depth: 100,
   }
   for i in 0..<2 {
-    let prepared = @local_inputs.prepare(
-      source,
-      i,
-      {
-        max_work: 10000,
-        max_nodes: 1000,
-        max_depth: 100,
-        max_text_bytes: 10000,
-      },
-      sourceviews=remote_inputs.map(v => {
-        @sourceviews.inputs(@sourceviews.pipeline_resolution(v))
-      }),
-    ).unwrap()
-    local_declarations.push(prepared)
-    if use_snapshots {
-      environment_inputs.push(
-        @local_inputs.reconcile_environment(
-          prepared,
-          source_index,
-          environment,
-          if i == 0 {
-            [snapshot]
-          } else {
-            []
-          },
-          local_limits,
-        ).unwrap(),
+    let prepared = if coverage is Some(_) {
+      @local_inputs.snapshot_inputs(
+        @local_inputs.environment_assertions(environment_inputs[i]),
       )
+    } else {
+      @local_inputs.prepare(
+        source,
+        i,
+        {
+          max_work: 10000,
+          max_nodes: 1000,
+          max_depth: 100,
+          max_text_bytes: 10000,
+        },
+        sourceviews=remote_inputs.map(v => {
+          @sourceviews.inputs(@sourceviews.pipeline_resolution(v))
+        }),
+      ).unwrap()
     }
+    local_declarations.push(prepared)
     let resolved = @stage_results.resolve_imports(source, i, ports, {
       max_work: 10000,
       max_imports: 10,
@@ -359,15 +366,6 @@ fn wired_inputs_fixture(
   ports.clear()
   imports.clear()
   contexts.clear()
-  let coverage = if use_snapshots {
-    Some(
-      @local_inputs.assemble_environment(
-        source, environment, environment_inputs, local_limits,
-      ).unwrap(),
-    )
-  } else {
-    None
-  }
   (stages, wiring, alternative, local_attachments, reconciled, coverage)
 }
 

@@ -52,7 +52,7 @@ pub fn input_environment(EnvironmentInputs) -> @check_environment.WireEnvironmen
 
 pub fn prepare(@stage_parameters.Source, Int, Limits, sourceviews? : @sourceview_input.Inputs?) -> Result[Prepared, Issue]
 
-pub fn prepare_environment(@stage_parameters.Source, @check_environment.WireEnvironment, Limits) -> Result[ProgramEnvironmentInputs, PrepareEnvironmentIssue]
+pub fn prepare_environment(@stage_parameters.Source, @check_environment.WireEnvironment, Limits, sourceviews? : @sourceview_input.Inputs?) -> Result[ProgramEnvironmentInputs, PrepareEnvironmentIssue]
 
 pub fn program_environment(ProgramEnvironmentInputs) -> @check_environment.WireEnvironment
 
@@ -140,6 +140,7 @@ pub enum PrepareEnvironmentIssue {
   Stage(Int, Issue)
   Environment(Int, EnvironmentIssue)
   Collection(ProgramEnvironmentIssue)
+  ForeignSourceViews
 }
 
 type Prepared

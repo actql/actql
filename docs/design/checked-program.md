@@ -79,6 +79,16 @@ pass-usage conventions. Member decoding and subsequent semantic reconciliation
 are distinct charged passes; prior Environment-envelope integrity admission is
 outside this boundary.
 
+For mixed inputs, this preparation accepts the SourceView declaration partition
+owned by that exact source. It forwards the partition to each Stage's Local
+admission and retains it in the resulting registrations. Connector slots are
+therefore not misread as Local Relation declarations, while a same-named Local
+slot in another Stage remains Local. An equal-shaped partition from a different
+source is rejected before snapshot admission. This partition does not resolve
+Catalog contracts or provide SourceView type, acquisition or capacity evidence;
+the separate SourceView registration/request checks remain mandatory. Supplied
+Local snapshots targeting connector slots are still rejected, not ignored.
+
 The resulting `environment_input_at` registrations must be selected before
 pipeline checking: snapshot evidence can refine types and conditional keys.
 Attaching them to an already checked pipeline is not a substitute for using

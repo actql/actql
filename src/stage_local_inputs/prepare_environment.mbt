@@ -8,22 +8,30 @@ pub enum PrepareEnvironmentIssue {
   Stage(Int, Issue)
   Environment(Int, EnvironmentIssue)
   Collection(ProgramEnvironmentIssue)
+  ForeignSourceViews
 }
 
 ///|
 /// Prepare Local registrations before pipeline construction. Every supplied
 /// schema snapshot is read and assigned to its source Stage, including unused
 /// inputs. This is not whole-Environment admission or capacity authorization.
+/// An optional SourceView declaration partition must belong to the exact source;
+/// it is retained by each Stage, not resolved or admitted as Local row data.
 pub fn prepare_environment(
   source : @stages.Source,
   environment : @environment.WireEnvironment,
   limits : Limits,
+  sourceviews? : @sourceviews.Inputs? = None,
 ) -> Result[ProgramEnvironmentInputs, PrepareEnvironmentIssue] {
   if limits.max_work < 0 ||
     limits.max_nodes < 0 ||
     limits.max_text_bytes < 0 ||
     limits.max_depth < 0 {
     return Err(InvalidLimits)
+  }
+  if sourceviews is Some(views) &&
+    !physical_equal(@sourceviews.source(views), source) {
+    return Err(ForeignSourceViews)
   }
   let count = @stages.stage_count(source)
   let members = @environment.member_count(
@@ -102,7 +110,7 @@ pub fn prepare_environment(
       max_text_bytes: text,
       max_depth: limits.max_depth,
     }
-    let prepared = match prepare(source, i, remaining) {
+    let prepared = match prepare(source, i, remaining, sourceviews~) {
       Ok(v) => v
       Err(e) => return Err(Stage(i, e))
     }
