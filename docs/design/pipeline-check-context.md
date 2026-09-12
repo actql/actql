@@ -954,6 +954,31 @@ and resource enforcement have succeeded. Profile input ceilings remain separate
 from Program traversal work. The lowerer consumes these resolved associations
 instead of choosing a timezone database or trusting a profile support flag.
 
+### Operation profile obligation links
+
+`link_program_operation_profiles` connects explicit `Resolve…Profile` demands
+to the existing owned `OperationProfileChecks`. The typed demand selector covers
+the operation-obligation families explicitly; its `None` means only that the
+requirement is not a profile demand, not that it is satisfied or belongs at
+runtime. SGA/TEA/VecA demands must also occur in the checked operation's own
+profile list. No new checker declaration or Host support flag is accepted.
+
+Text-rank additionally consumes the exact operation-level lexical resolution,
+including its selected environment-owned artifact. Stage, producer visit, step
+and operation owner must agree. The two owned collections have the same traversal
+order, so a single cursor matches lexical sites without repeated searching or
+constructing string keys; every lexical resolution must be consumed. The prior
+Calendar association remains attached even though its obligation enum has no
+separate `ResolveProfile` variant.
+
+Each resolution keeps its original requirement index/site and checker proof,
+plus the lexical association when applicable. Work covers the inherited context,
+every requirement visit and bounded profile comparisons; retained resolutions
+have one aggregate cap. Failure exposes no partial collection. Indexed reads
+do not copy operation bodies. This closes only these static profile associations:
+it is neither backend conformance nor resource, value, identity, order or runtime
+admission. All other obligations remain available in the retained inventory.
+
 Expression closure does not discharge operation-level obligations, bind
 authored guard witness identities, build staged Program/import contracts, or
 complete local Unit/Invocation identity projections. Source Program and stage

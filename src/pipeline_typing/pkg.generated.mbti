@@ -234,6 +234,8 @@ pub fn operation_profile_count(CheckedOperation) -> Int
 
 pub fn operation_profile_id(OperationProfile) -> String
 
+pub fn operation_profile_requirement(OperationObligation) -> OperationProfile?
+
 pub fn operation_scalar_demand(OperationObligation) -> OperationScalarDemand?
 
 pub fn operation_scalar_name(OperationScalarDemand) -> String

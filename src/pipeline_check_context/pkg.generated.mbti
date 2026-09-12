@@ -176,6 +176,8 @@ pub fn like_pattern_usage(LikePatternChecks) -> LikePatternUsage
 
 pub fn link_program_operation_orders(ProgramOperationRequirements, Int, Int) -> Result[ProgramOperationOrders, OperationOrderIssue]
 
+pub fn link_program_operation_profiles(ProgramOperationCalendar, Int, Int) -> Result[ProgramOperationProfileLinks, OperationProfileLinksIssue]
+
 pub fn local_inputs_at(InputContexts, Int) -> @stage_local_inputs.Attached?
 
 pub fn operation_calendar_at(ProgramOperationCalendar, Int) -> OperationCalendarResolution?
@@ -229,6 +231,14 @@ pub fn operation_orders_count(ProgramOperationOrders) -> Int
 pub fn operation_orders_requirements(ProgramOperationOrders) -> ProgramOperationRequirements
 
 pub fn operation_orders_work(ProgramOperationOrders) -> Int
+
+pub fn operation_profile_links_at(ProgramOperationProfileLinks, Int) -> OperationProfileResolution?
+
+pub fn operation_profile_links_calendar(ProgramOperationProfileLinks) -> ProgramOperationCalendar
+
+pub fn operation_profile_links_count(ProgramOperationProfileLinks) -> Int
+
+pub fn operation_profile_links_work(ProgramOperationProfileLinks) -> Int
 
 pub fn operation_profiles_count(OperationProfileChecks) -> Int
 
@@ -781,6 +791,23 @@ pub struct OperationOrderLink {
 
 type OperationProfileChecks
 
+pub(all) enum OperationProfileLinksIssue {
+  InvalidLimits
+  BudgetExceeded
+  ForeignOwner(Int)
+  MissingDemand(Int)
+  LexicalMismatch(Int)
+  UnconsumedLexical
+} derive(Eq, @debug.Debug)
+
+pub struct OperationProfileResolution {
+  requirement_index : Int
+  site : OperationRequirementSite
+  profile : @pipeline_typing.OperationProfile
+  checks : OperationProfileChecks
+  lexical : OperationLexicalResolution?
+}
+
 pub(all) enum OperationProfilesIssue {
   InvalidLimits
   BudgetExceeded
@@ -964,6 +991,8 @@ type ProgramOperationFrames
 type ProgramOperationLexical
 
 type ProgramOperationOrders
+
+type ProgramOperationProfileLinks
 
 type ProgramOperationQueries
 

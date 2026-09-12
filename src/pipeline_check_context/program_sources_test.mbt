@@ -2,6 +2,7 @@
 fn program_sources_fixture(
   supplied? : @decode.Cursor? = None,
   tea? : Bool = false,
+  sga? : Bool = false,
   calendar? : Bool = false,
   veca? : Bool = false,
   text_rank? : Bool = false,
@@ -32,7 +33,7 @@ fn program_sources_fixture(
   ).unwrap()
   let operations = check_operation_profiles(
     preparation,
-    { rela: true, sga: false, tea, calendar, text_rank, },
+    { rela: true, sga, tea, calendar, text_rank, },
     10000000,
   ).unwrap()
   let stages = wired_stage_contexts(reconciled_wiring(policy_context(selected)))
