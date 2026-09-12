@@ -11,6 +11,7 @@ priv enum NumericLayoutWorkload {
   LongText
   DecimalTemporal
   NestedSmallResult
+  ZeroColumns
 } derive(Eq)
 
 ///|
@@ -18,14 +19,26 @@ fn numeric_layout_fixture(
   workload : NumericLayoutWorkload,
   count : Int,
   producer_seed? : Bool = false,
+  timings? : Array[Double]? = None,
 ) -> (GeneratedSequence, CapturedRows) raise {
+  let fixture_clock = @bench.monotonic_clock_start()
   let textual = workload == ShortText || workload == LongText
   let temporal = workload == DecimalTemporal
   let nested = workload == NestedSmallResult
-  let width = if textual || temporal || nested { 8 } else { 64 }
+  let zero = workload == ZeroColumns
+  let width = if zero {
+    0
+  } else if textual || temporal || nested {
+    8
+  } else {
+    64
+  }
   let payload = layout_text_payload(workload)
   let nullable = workload == NullableProjection
   let raw = Array::makei(count, i => {
+    if zero {
+      return input_cursor("{}")
+    }
     let id = count - i
     let mut text = "{\"id\":" +
       id.to_string() +
@@ -59,6 +72,10 @@ fn numeric_layout_fixture(
     }
     input_cursor(text + "}")
   })
+  if timings is Some(phases) {
+    phases.push(@bench.monotonic_clock_end(fixture_clock))
+  }
+  let prepare_clock = @bench.monotonic_clock_start()
   let numeric = @contract.read_checked(
     input_cursor("{\"type\":\"number\",\"nullable\":false}"),
     { max_nodes: 10, max_depth: 10, max_text_bytes: 100, },
@@ -91,17 +108,21 @@ fn numeric_layout_fixture(
     ),
     { max_nodes: 20, max_depth: 10, max_text_bytes: 1000, },
   ).unwrap()
-  let fields = [
-    (@schema.Unqualified("id"), numeric),
-    (
-      @schema.Unqualified("k"),
-      if nullable {
-        nullable_boolean
-      } else {
-        numeric
-      },
-    ),
-  ]
+  let fields = if zero {
+    []
+  } else {
+    [
+      (@schema.Unqualified("id"), numeric),
+      (
+        @schema.Unqualified("k"),
+        if nullable {
+          nullable_boolean
+        } else {
+          numeric
+        },
+      ),
+    ]
+  }
   for j = 2; j < width; j = j + 1 {
     fields.push(
       (
@@ -127,12 +148,18 @@ fn numeric_layout_fixture(
     max_fields=width,
     max_name_bytes=10000,
   ).unwrap()
-  let key = @evidence.declare_primary_key(
-    input_cursor("[\"id\"]"),
-    @carrier.relation(@carrier.typed_rows(schema)),
-    { max_fields: width, max_name_bytes: 10000, },
-  ).unwrap()
+  let input_contract = if zero {
+    @pipeline.CarrierInput(@carrier.relation(@carrier.typed_rows(schema)))
+  } else {
+    let key = @evidence.declare_primary_key(
+      input_cursor("[\"id\"]"),
+      @carrier.relation(@carrier.typed_rows(schema)),
+      { max_fields: width, max_name_bytes: 10000, },
+    ).unwrap()
+    @pipeline.KeyedInput(key)
+  }
   let (program, expression_steps) = match workload {
+    ZeroColumns => ("[{\"drop\":[]},{\"sort\":[]}]", [])
     NestedSmallResult =>
       (
         "[{\"filter\":\"id > 0\"},{\"sort\":[{\"id\":\"asc\"}]},{\"take\":1}]",
@@ -182,7 +209,7 @@ fn numeric_layout_fixture(
   } else {
     (program, expression_steps)
   }
-  let owner = sort_input_owner(@pipeline.KeyedInput(key), program)
+  let owner = sort_input_owner(input_contract, program)
   let sequence = @lower.prepare_sequence(owner, {
     max_steps: 100,
     max_rows: count,
@@ -250,6 +277,10 @@ fn numeric_layout_fixture(
     1000000,
     100000,
   ).unwrap()
+  if timings is Some(phases) {
+    phases.push(@bench.monotonic_clock_end(prepare_clock))
+  }
+  let capture_clock = @bench.monotonic_clock_start()
   let input = capture_input(
     owner,
     0,
@@ -257,6 +288,9 @@ fn numeric_layout_fixture(
     max_rows=count,
     numeric_layout_limits(count).input_values,
   ).unwrap()
+  if timings is Some(phases) {
+    phases.push(@bench.monotonic_clock_end(capture_clock))
+  }
   (generated, input)
 }
 
@@ -321,6 +355,7 @@ fn[T : RelationRows] verify_numeric_layout_output(
   count : Int,
 ) -> Unit raise {
   let rows = match workload {
+    ZeroColumns => count
     NestedSmallResult => 1
     NarrowProjection
     | NullableProjection
@@ -332,6 +367,7 @@ fn[T : RelationRows] verify_numeric_layout_output(
     HighSelectivity => count * 99 / 100
   }
   let (names, offsets) = match workload {
+    ZeroColumns => ([], [])
     NestedSmallResult => (["id", "k", "p2", "p3", "p4", "p5", "p6", "p7"], [])
     NarrowProjection => (["id", "p2", "next"], [0, 2, 3])
     NullableProjection => (["id", "p2", "old"], [0, 2, 2])
@@ -365,6 +401,12 @@ fn[T : RelationRows] verify_numeric_layout_output(
   }
   assert_eq(IndexedRows::row_count(table), rows)
   assert_eq(table.field_names(), names)
+  if workload == ZeroColumns {
+    for row in 0..<count {
+      assert_eq(IndexedRows::row_width(table, row), 0)
+    }
+    return
+  }
   if workload == NestedSmallResult {
     assert_true(IndexedRows::read_cell(table, 0, 0) is Number(1))
     assert_true(IndexedRows::read_cell(table, 0, 1) is Number(0))
@@ -488,6 +530,7 @@ test "fixed numeric workload shapes share source and contracts across all layout
       LongText,
       DecimalTemporal,
       NestedSmallResult,
+      ZeroColumns,
     ] {
     let (generated, input) = numeric_layout_fixture(workload, count)
     let rows = execute_generated_sequence(generated, [input], {

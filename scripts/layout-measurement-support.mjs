@@ -27,6 +27,27 @@ export function legacySchedule(manifest, target, smoke) {
   return schedule;
 }
 
+export function additionalSchedule(manifest, target, smoke) {
+  // The producer timing is not silently counted as measured. Preserve manifest
+  // indexes even when a case is not yet connected to timing.
+  const indices = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12];
+  const ids = ['numeric-project-1000', 'numeric-project-10000', 'nullable-1000',
+    'nullable-10000', 'numeric-full-add', 'filter-low', 'filter-high', 'short-text',
+    'long-text', 'decimal-temporal', 'nested-small-result', 'zero-columns'];
+  if (!['native', 'js', 'wasm'].includes(target)) throw new Error('Unknown target');
+  if (ids.some((id, i) => manifest.additional_cases[indices[i]]?.id !== id)) throw new Error('Unexpected additional case inventory');
+  // Reuse validation of the predeclared repetition and alternation rules.
+  legacySchedule(manifest, target, smoke);
+  const repetitions = smoke ? 1 : manifest.sampling.measured_repetitions;
+  return ids.flatMap((case_id, position) => {
+    const case_index = indices[position];
+    const { rows, columns } = manifest.additional_cases[case_index];
+    return Array.from({ length: repetitions }, (_, repeat) =>
+      manifest.sampling.candidate_order_cycle[repeat % 2].map(candidate =>
+        ({ case_id, case_index, rows, columns, same_keys: false, repeat, candidate }))).flat();
+  });
+}
+
 export function peakRssBytes(stderr, platform) {
   const pattern = platform === 'darwin' ? /^\s*(\d+)\s+maximum resident set size\s*$/gm
     : platform === 'linux' ? /^\s*Maximum resident set size \(kbytes\):\s*(\d+)\s*$/gm
@@ -48,7 +69,8 @@ export function checkedSample(stdout, expected) {
     throw new Error('Missing measurement or independent test success');
   }
   const m = measurements[0];
-  if (['candidate', 'rows', 'columns', 'same_keys'].some(key => m[key] !== expected[key]) ||
+  if (['candidate', 'rows', 'columns', 'same_keys', 'case_id'].some(key => m[key] !== expected[key]) ||
+      (expected.case_id !== undefined && m.disposal_included !== true) ||
       !Array.isArray(m.phases_us) || m.phases_us.length !== 5 ||
       m.phases_us.some(n => !Number.isFinite(n) || n < 0) ||
       !Number.isFinite(m.end_to_end_us) || m.end_to_end_us <= 0) throw new Error('Invalid phase measurement');

@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
-import { legacySchedule, peakRssBytes, checkedSample } from './layout-measurement-support.mjs';
+import { legacySchedule, additionalSchedule, peakRssBytes, checkedSample } from './layout-measurement-support.mjs';
 const manifest = JSON.parse(readFileSync(new URL('../benchmarks/local-relation/columnar-experiment.json', import.meta.url)));
 
 test('decimal-temporal repeated-key survivor vector has an independent SHA-256 oracle', () => {
@@ -45,6 +45,29 @@ test('RSS keeps platform units separate and refuses missing ambiguous or invalid
   assert.throws(() => peakRssBytes('', 'win32'));
 });
 
+test('additional schedule keeps every connected fixed case and never claims missing producer timing', () => {
+  for (const target of ['native', 'js', 'wasm']) {
+    const schedule = additionalSchedule(manifest, target, false);
+    assert.equal(schedule.length, 12 * 7 * 3);
+    assert.equal(additionalSchedule(manifest, target, true).length, 12 * 3);
+    for (const i of [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12]) {
+      const expected = manifest.additional_cases[i];
+      for (let repeat = 0; repeat < 7; repeat++) {
+        const paired = schedule.filter(s => s.case_index === i && s.repeat === repeat);
+        assert.deepEqual(paired.map(s => s.candidate), repeat % 2 ? ['C', 'B', 'A'] : ['A', 'B', 'C']);
+        for (const sample of paired) {
+          assert.deepEqual([sample.case_id, sample.rows, sample.columns], [expected.id, expected.rows, expected.columns]);
+        }
+      }
+    }
+    assert.ok(schedule.every(s => s.case_id !== 'producer-branches'));
+    assert.ok(schedule.filter(s => s.case_id === 'zero-columns').every(s => s.rows === 1000 && s.columns === 0));
+  }
+  const changed = structuredClone(manifest);
+  changed.additional_cases.reverse();
+  assert.throws(() => additionalSchedule(changed, 'native', false));
+});
+
 test('sample requires exact case candidate and successful independent assertions', () => {
   const expected = { candidate: 'C', rows: 10000, columns: 64, same_keys: false };
   const sample = { kind: 'layout-sample', ...expected, phases_us: [1, 2, 3, 4, 5], end_to_end_us: 16 };
@@ -58,4 +81,10 @@ test('sample requires exact case candidate and successful independent assertions
   assert.throws(() => checkedSample(output(sample), expected));
   assert.throws(() => checkedSample(output(sample, success, success), expected));
   assert.throws(() => checkedSample(output(sample, { ...success, message: 'assertion failed' }), expected));
+  const additional = { ...expected, case_id: 'numeric-project-10000' };
+  assert.throws(() => checkedSample(output(sample, success), additional));
+  const measured = { ...sample, case_id: additional.case_id, disposal_included: true };
+  assert.deepEqual(checkedSample(output(measured, success), additional), measured);
+  assert.throws(() => checkedSample(output({ ...measured, disposal_included: false }, success), additional));
+  assert.throws(() => checkedSample(output(measured, success), expected));
 });

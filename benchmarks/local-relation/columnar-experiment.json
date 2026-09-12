@@ -55,7 +55,7 @@
     {"id":"decimal-temporal","rows":1000,"columns":8,"domain":"decimal, date, timestamp and number key","sequence":"rename, stable sort, dedupe repeated keys, take ten"},
     {"id":"nested-small-result","rows":1000,"columns":8,"domain":"immutable nested payload of 64 logical leaves and number key","sequence":"filter all, stable sort, take one; measure retained backing storage"},
     {"id":"producer-branches","rows":1000,"columns":64,"domain":"number","sequence":"completed producer to two alias branches; one narrow projection and one full-width derive; retain both outputs"},
-    {"id":"zero-columns","rows":1000,"columns":2,"domain":"number","sequence":"drop all fields, sort empty, take ten; preserve nonzero row count"}
+    {"id":"zero-columns","rows":1000,"columns":0,"domain":"explicit empty-schema rows","sequence":"identity drop, sort empty; preserve all one thousand zero-column rows"}
   ],
   "adoption": {
     "major_groups": ["numeric-wide", "nullable-wide"],

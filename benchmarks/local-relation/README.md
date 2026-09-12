@@ -12,6 +12,8 @@ The release harness is kept in the repository:
 ```sh
 node scripts/measure-layouts.mjs --smoke
 node scripts/measure-layouts.mjs --legacy
+node scripts/measure-layouts.mjs --additional-smoke
+node scripts/measure-layouts.mjs --additional
 ```
 
 Set `MOON_HOME` to the pinned toolchain first. The smoke mode builds native, JS
@@ -53,6 +55,24 @@ never adoption-eligible: the thirteen additional cases, complete physical
 accounting and prepared-input repeats remain necessary. A partial report is not
 a successful run. Validate the schedule and parsing with
 `node --test scripts/layout-measurement-support.test.mjs`.
+
+The additional entry measures twelve fixed additional cases on all
+three targets: `--additional-smoke` uses one pair-set per case and `--additional`
+uses seven. Neither includes producer timing or prepared-input
+repeats, so neither constitutes the full adoption matrix. Reports are separate
+from the legacy samples and retain every successful prefix if a later sample
+fails. Each sample must identify the exact case and assert that disposal is
+included. Its enclosing clock ends after the fixture/input/output-owner scope
+returns; the five phase clocks exclude cleanup, whose cost remains in that
+enclosing time. A does not implement the experimental owned-buffer ledger and
+reports those two capacity fields as null, not as zero-byte storage.
+
+The zero-column fixture supplies 1,000 already-empty rows and applies identity
+drop and empty sort, preserving their multiplicity. The earlier proposed
+all-column drop followed by take is not a legal Program under the selected
+Language: dropping every field of a nonempty schema must fail during check.
+That rejection remains a separate regression; no comparison case bypasses it.
+Take continues to be exercised with valid ordering evidence in the other cases.
 
 ### Paired statistical method
 

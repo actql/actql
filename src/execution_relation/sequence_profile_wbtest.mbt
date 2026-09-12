@@ -2,6 +2,23 @@
 // Explicit opt-in: normal regression runs do not execute the measurement loop.
 // Each benchmark process warms and observes the same case before measuring it.
 test "profile the fixed legacy sequence with independent output assertions" {
+  if @env.get_env_var("ACTQL_LAYOUT_ADDITIONAL_CASE") is Some(text) {
+    let mut index = -1
+    for i in 0..<13 {
+      if text == i.to_string() {
+        index = i
+      }
+    }
+    let candidate = match @env.get_env_var("ACTQL_LAYOUT_CANDIDATE") {
+      None | Some("A") => RowLayout
+      Some("B") => ValueColumns
+      Some("C") => TypedColumns
+      Some(_) => fail("unknown layout candidate")
+    }
+    profile_additional_layout(index, candidate)
+    profile_additional_layout(index, candidate, emit=true)
+    return
+  }
   guard @env.get_env_var("ACTQL_LAYOUT_CASE") is Some(text) else { return }
   let cases = [
     (100, 2, true),
