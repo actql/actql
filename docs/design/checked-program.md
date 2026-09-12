@@ -109,6 +109,18 @@ subsequent join share the work ceiling. Source-only wiring is not silently
 upgraded to Environment-backed admission. The resulting contexts retain the
 original registrations through source-identity and incoming-dependency checking.
 
+`check_prepared_local_stage` selects a Stage's already resolved publication
+orders and effective Parameters from its Local preparation. It constructs the
+producer-visit binding array internally, then runs the existing order/guard/
+capacity-owner checks and operation Parameter checks. Supplied capacity
+applications are still explicit and must match the selected pipelines, policy
+and producer ownership; missing applications are not filled with empty proofs.
+The Stage work cap includes its retained order prefix, binding-handle allocation
+and both checks. Source parsing and the full Local preparation prefix remain
+separate costs for the eventual Program-level constructor. This entrance removes
+caller selection of order and value owners, not the remaining capacity-material
+or complete Program integration requirements.
+
 This order is a dependency graph, not a requirement to reconstruct earlier
 results at every phase. Private incremental assembly can retain immutable
 intermediates. Public low-level helpers remain useful for focused tests, but

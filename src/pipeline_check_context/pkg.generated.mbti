@@ -76,6 +76,8 @@ pub fn check_parameter_bindings(PipelineContext, max_work~ : Int, max_text_bytes
 
 pub fn check_patterns(ExpressionValidationContext, PatternLimits) -> Result[PatternChecks, PatternIssue]
 
+pub fn check_prepared_local_stage(@stage_results.PreparedLocalSource, Int, Array[@capacity_graph_preflight.ApplicationCoverage], @capacity_policy.Policy, max_work~ : Int, max_text_bytes~ : Int, proof_owners? : Array[(Int, Int, Int)], input_owners? : Array[(Int, Int, Int, Int)]) -> Result[BoundParameters, PreparedStageIssue]
+
 pub fn check_program_operation_calendar(ProgramOperationLexical, @check_environment.SelectedCalendarProfile?, Int, Int) -> Result[ProgramOperationCalendar, OperationCalendarIssue]
 
 pub fn check_program_operation_cells(ProgramOperationQueries, Int, Int) -> Result[ProgramOperationCells, OperationCellIssue]
@@ -1332,6 +1334,14 @@ pub enum PreparedReferencesIssue {
   Usage(@program_references.UsageIssue)
   Values(@parameter_references.BindingIssue)
   Attachment(ProgramReferenceIssue)
+}
+
+pub enum PreparedStageIssue {
+  InvalidLimits
+  MissingStage
+  BudgetExceeded
+  Context(Issue)
+  Parameters(ParameterIssue)
 }
 
 type ProgramExpressionClosure

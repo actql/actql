@@ -73,7 +73,6 @@ fn prepared_local_context_fixture(
     },
     environment~,
   ).unwrap()
-  let values = @stage_results.local_source_values(prepared_source)
   let wiring = @stage_results.local_source_wiring(prepared_source)
   let locals = []
   let contexts = []
@@ -87,7 +86,6 @@ fn prepared_local_context_fixture(
     )
     let closure = @results.checked_producer_orders(orders)
     let applications = []
-    let bindings = []
     for j in 0..<@pipeline.contextual_closure_count(closure) {
       // These two scalar derives have no acquired inputs or capacity claims.
       // The existing admission fixture still runs application coverage; this
@@ -99,19 +97,13 @@ fn prepared_local_context_fixture(
           ),
         ),
       )
-      bindings.push(Some(values))
     }
-    let checked = check_resolved_orders(
-      orders,
-      bindings,
-      applications,
-      policy(),
-      max_work=1000000,
-      max_text_bytes=1000000,
-    ).unwrap()
     contexts.push(
-      check_parameter_bindings(
-        checked,
+      check_prepared_local_stage(
+        prepared_source,
+        i,
+        applications,
+        policy(),
         max_work=1000000,
         max_text_bytes=1000000,
       ).unwrap(),
