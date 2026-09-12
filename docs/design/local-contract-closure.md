@@ -190,6 +190,14 @@ law bodies. Source sites retain Stage, producer visit and step coordinates;
 shared storage does not merge those owners. The registered body has no external
 contract-reference fields. Its classification labels are not Catalog IDs.
 
+Quantity-specific root selection uses an exhaustive checked-operation dispatch,
+including an exhaustive distinction between node/edge and Events/Vectors
+projections. A named `ClassificationOnly` disposition retains the common
+transfer-classification root without adding a quantity-specific body in that
+dispatch. It is not proof that no further semantic contract is required, nor a
+successful Unit-closure disposition. Adding a checked operation requires an
+explicit selection decision; a wildcard must not silently classify it as a leaf.
+
 Concrete Host policy decisions, capacity observations and resolved numeric
 ceilings belong to the applicable Plan/Invocation evidence, rather than being
 inserted into Unit Definition because the checker consulted them. Authored
