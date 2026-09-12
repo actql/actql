@@ -76,6 +76,17 @@ pub fn unary(@lowering_relation.UnaryOperator, Value) -> Result[Value, ScalarIss
 // Errors
 
 // Types and methods
+pub struct BackendCapabilityIssue {
+  kind : BackendCapabilityIssueKind
+  root : @lowering_relation.ExpressionRoot
+  expression : @lowering_relation.Expression
+}
+
+pub(all) enum BackendCapabilityIssueKind {
+  UnsupportedComparison(@lowering_relation.BinaryOperator)
+  PreparationLimit
+}
+
 type BoundProducerInput
 
 pub(all) enum CaptureIssue {
@@ -152,6 +163,7 @@ pub(all) enum FragmentRuntimeIssue {
   ExceedsRequest
   KernelMismatch
   Logical(LogicalBudgetIssue)
+  Capability(BackendCapabilityIssue)
 }
 
 type GeneratedSequence

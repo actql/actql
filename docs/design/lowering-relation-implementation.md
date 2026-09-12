@@ -116,7 +116,7 @@ These are implementation boundaries, not additional language prohibitions.
 | --- | --- | --- |
 | Expressions outside the implemented typed variants | [Common expression contract](../spec/language.md#common-expression-contract) | Add the exact typed lowering and scalar semantics with independent vectors; `ExpressionNotImplemented` must not be read as invalid source |
 | Pending profile/pattern/other expression validation | Same common expression contract and its selected dependencies | Discharge the particular typed obligation and bind its evidence; do not erase `PendingValidation` to force admission |
-| Structured captured-value comparison | Pinned expression contract's comparison domains | Supply exact domain semantics and bounded comparison; `ComparisonDomainNotImplemented` distinguishes this from invalid operands |
+| Structured captured-value comparison | Pinned expression contract's comparison domains | Supply exact domain semantics and bounded comparison; runtime preparation rejects unsupported domains with a located capability error |
 | Qualified/scoped supplied rows | Checked relation schema and resolved field references | Add a lossless scoped row representation; `ScopedInputNotImplemented` must not flatten qualified names |
 | Unsupported candidate-key domains or nullable witnesses | Checked candidate-key evidence | Implement the required equality/null evidence and bounded validation before removing `UnsupportedKeyDomain` or `NullableWitnessPending` |
 | Other operation handlers | [Algebra lowering](../spec/language.md#algebra-lowering) and selected operation contracts | Add normative lowering and execution rather than treating `OperationNotImplemented` as a permanent authoring restriction |
@@ -202,8 +202,21 @@ division/modulo by zero. Primitive boolean combination follows the complete
 three-valued truth tables. Eager/lazy child evaluation and row-major failure
 ordering remain the evaluator's responsibility, not a guarantee of these
 already-evaluated-operand helpers. Captured immutable values are retained for
-pass-through; unsupported comparison domains return a distinct implementation
-gap instead of inventing stringified equality.
+pass-through. Checked-fragment runtime preparation examines the retained operand
+contracts for all comparison operators, including `nullif`, across every root
+and every branch. Unsupported domains produce a typed capability failure with
+the root step/parameter pointer and expression source location, before input
+rows are read. Empty input or an unselected lazy branch cannot hide a backend
+implementation gap. This does not restrict language typing, scalar passthrough
+or null inspection, and does not evaluate expressions during preparation.
+Division by zero remains a runtime failure only when its expression is evaluated.
+
+The nonrecursive readiness walk uses one `max_body_nodes` construction allowance
+for root queue entries, expression visits, copied child views and queued edges
+across the complete kernel. It is separate from runtime logical-work counters;
+exhaustion returns a located preparation-limit failure. The raw scalar helper
+retains `ComparisonDomainNotImplemented` as a defensive guard for component-level
+calls, not as the generated execution API's capability-admission mechanism.
 
 ## Expression control increment
 

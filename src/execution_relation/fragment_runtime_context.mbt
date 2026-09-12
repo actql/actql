@@ -14,6 +14,7 @@ pub(all) enum FragmentRuntimeIssue {
   ExceedsRequest
   KernelMismatch
   Logical(LogicalBudgetIssue)
+  Capability(BackendCapabilityIssue)
 }
 
 ///|
@@ -51,6 +52,10 @@ fn prepare_fragment_runtime_context(
   guard @lower.sequence_step(@lower.root_sequence(roots), start)
     is Some(@lower.RowStep(kernel)) else {
     return Err(KernelMismatch)
+  }
+  match check_backend_capabilities(roots, physical.max_body_nodes) {
+    Err(issue) => return Err(Capability(issue))
+    Ok(_) => ()
   }
   Ok({ fragment, kernel, limits, physical, })
 }
