@@ -1109,6 +1109,23 @@ This connects stage dependencies to the operation checks, but does not discharge
 incoming success/receipt requirements, issue Unit or Invocation identities,
 resolve missing resource contracts, or constitute the final `CheckedProgram`.
 
+`incoming_execution_at` reads the existing incoming inventory without allocating
+another collection. A supported occurrence retains its exact consumer, producer
+and (for data) checked Result port. All activation prerequisites apply together:
+an `accepted` success milestone does not discharge Result availability. Even an
+Effect-free predecessor must complete successful computation and preflight;
+empty Effects do not make its success vacuous. Missing observations wait for the
+predecessor, unknown outcomes wait for reconciliation, and failure, partial
+application or cancellation prevents normal downstream activation.
+
+Receipt imports and success gates whose producer has Effects remain explicit
+unresolved variants until their Effect/completion contracts are connected.
+An absent index is distinct from these variants. The Stage body scan is bounded
+by the closed Stage grammar, not by Effect count, and copies no Effect array.
+These are execution requirements, not observed outcomes or an implementation of
+Run scheduling. Incoming interface/contract identities and final exhaustive
+Program coverage remain separate prerequisites for formal construction.
+
 The incoming join also retains every local input declaration, including unused
 ones, with its exact reconciled attachment, selected registration and pipeline
 input target. Result imports and SourceViews remain in their respective owned

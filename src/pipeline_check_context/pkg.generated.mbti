@@ -163,6 +163,16 @@ pub fn expression_validation_usage(ExpressionValidationContext) -> SelectedPolic
 
 pub fn identify_program_sources(ProgramSourceChecks, ProgramIdentityLimits) -> Result[ProgramSourceIdentity, ProgramIdentityIssue]
 
+pub fn incoming_execution_at(ProgramIncomingLinks, Int) -> IncomingExecutionState?
+
+pub fn incoming_execution_failure(IncomingExecutionCheck) -> IncomingExecutionOutcome
+
+pub fn incoming_execution_missing(IncomingExecutionCheck) -> IncomingExecutionOutcome
+
+pub fn incoming_execution_phase(IncomingExecutionCheck) -> IncomingExecutionPhase
+
+pub fn incoming_execution_unknown(IncomingExecutionCheck) -> IncomingExecutionOutcome
+
 pub fn incoming_links_local_input_at(ProgramIncomingLinks, Int) -> LocalInputRequirement?
 
 pub fn incoming_links_local_input_count(ProgramIncomingLinks) -> Int
@@ -692,6 +702,32 @@ pub(all) struct ExpressionValidationLimits {
 } derive(Eq, @debug.Debug)
 
 type ExpressionValidationSite
+
+pub struct IncomingExecutionCheck {
+  site : IncomingSite
+  kind : IncomingExecutionKind
+}
+
+pub(all) enum IncomingExecutionKind {
+  StageSuccess(IncomingMilestone)
+  ResultAvailable
+} derive(Eq, @debug.Debug)
+
+pub(all) enum IncomingExecutionOutcome {
+  AwaitPredecessor
+  AwaitReconciliation
+  PreventDownstreamActivation
+} derive(Eq, @debug.Debug)
+
+pub(all) enum IncomingExecutionPhase {
+  BeforeStageActivation
+} derive(Eq, @debug.Debug)
+
+pub enum IncomingExecutionState {
+  Connected(IncomingExecutionCheck)
+  ReceiptUnresolved(IncomingSite)
+  SuccessContractsUnresolved(IncomingSite)
+}
 
 pub(all) enum IncomingIssue {
   InvalidLimits
