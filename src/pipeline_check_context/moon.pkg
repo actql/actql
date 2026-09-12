@@ -1,6 +1,7 @@
 supported_targets = "+js+wasm+native"
 
 import {
+  "moonbitlang/core/encoding/utf8" @wire_utf8,
   "actql/actql/capacity_law" @law,
   "actql/actql/capacity_derivation" @derivation,
   "actql/actql/local_source_ref" @local_ref,

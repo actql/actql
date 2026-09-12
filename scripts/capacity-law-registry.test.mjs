@@ -3,6 +3,7 @@ import { test } from 'node:test';
 import { readFileSync } from 'node:fs';
 import { machineCid } from './actql-spec-family.mjs';
 import { validateRegistry, loadRegistry, renderRegistry, renderGuardLaws } from './capacity-law-registry.mjs';
+import { valuesSchema } from './values-schema.mjs';
 
 test('operation count checker law literals have semantic bodies, not only registry membership', () => {
   const bodies = [
@@ -286,7 +287,7 @@ test('values count law has a separately pinned semantic body', () => {
 test('values wire byte law is separately owned and has independent measurement vectors', () => {
   const path = 'spec/contracts/actql-bound-values-wire-law.json';
   const law = JSON.parse(readFileSync(new URL(`../${path}`, import.meta.url), 'utf8'));
-  const cid = 'sha256:aa0833e19bbf9be3ccfc445e9bebc55c57ce8b8151bc143d1220da4d17a61168';
+  const cid = 'sha256:b36a2c0087fa668e54b50e15ffae0985bda11bf4eab06b46c1b8a91f8750e750';
   assert.equal(machineCid(law), cid);
   assert.equal(law.unit, 'bytes');
   assert.equal(law.law_id, 'actql.bound.values-wire');
@@ -307,11 +308,34 @@ test('values wire byte law is separately owned and has independent measurement v
     assert.deepEqual(structure(v.rows), {nodes:v.nodes, depth:v.depth}, v.name);
   }
   assert.equal(machineCid(corpus.proof), corpus.proof_cid);
-  assert.equal(machineCid({dependencies:[corpus.proof_cid], derivation:{op:'source'},
+  const witness = {dependencies:[corpus.proof_cid], derivation:{op:'source'},
     law_id:law.law_id, role:'proven_upper_bound', source:{kind:'program', proof_cid:corpus.proof_cid, semantic_ref:corpus.proof.semantic_ref},
-    unit:'bytes', value:25, version:'actql-bound-witness/0.1'}), corpus.witness_cid);
+    unit:'bytes', value:25, version:'actql-bound-witness/0.1'};
+  assert.equal(machineCid(witness), corpus.witness_cid);
+  const limit = {author_guard_binding:'absent', breach:'fail',
+    candidates:[{...witness,witness_cid:corpus.witness_cid}], effective_max:25,
+    enforcement:'engine_atomic', subject_ref:corpus.resolved_limit.subject_ref,
+    unit:'bytes',version:'actql-resolved-limit/0.1'};
+  assert.equal(machineCid(limit),corpus.resolved_limit.cid);
+  const full = {...limit,resolved_limit_cid:corpus.resolved_limit.cid};
+  assert.equal(Buffer.byteLength(JSON.stringify(full)),corpus.resolved_limit.bytes);
+  assert.deepEqual(structure(full),{nodes:corpus.resolved_limit.nodes,depth:corpus.resolved_limit.depth});
   const implementation = readFileSync(new URL('../src/pipeline_check_context/values_wire_bound.mbt', import.meta.url), 'utf8');
   assert.ok(implementation.includes(cid), 'stale applied-law pin');
+});
+
+test('whole values wire selection is audited against the closed Host policy fields', () => {
+  // New fields require an explicit applicability decision, not silent omission.
+  const {policy} = loadRegistry();
+  assert.deepEqual(Object.keys(policy.schema.properties).sort(), [
+    'max_aggregate_array_items','max_artifact_bytes','max_artifact_rows','max_effect_items',
+    'max_graph_input_edges','max_graph_input_nodes','max_graph_output_rows','max_graph_paths',
+    'max_infer_items','max_model_input_tokens_per_item','max_model_request_bytes_per_item',
+    'max_model_total_duration_ms','max_nested_value_bytes','max_nested_value_depth',
+    'max_relation_output_rows','max_temporal_matches_per_key','max_temporal_output_rows','version',
+  ]);
+  assert.deepEqual(Object.keys(valuesSchema().properties).sort(), ['rows','schema']);
+  assert.equal(valuesSchema().additionalProperties, false);
 });
 
 test('independent values count vectors count row occurrences, not cell contents', () => {

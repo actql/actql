@@ -20,5 +20,12 @@
     "version": "actql-bound-proof/0.1"
   },
   "proof_cid": "sha256:7c87aa9e1a77cbf8368b652fa15d7fde2ee5bf4ca280d55621c0cd71033bf22b",
-  "witness_cid": "sha256:15622500b68d7891fc269aca0d7cb37561307a912578cd88f3d2dadcc54fb56e"
+  "witness_cid": "sha256:15622500b68d7891fc269aca0d7cb37561307a912578cd88f3d2dadcc54fb56e",
+  "resolved_limit": {
+    "subject_ref": "values:checked-step:0:wire",
+    "cid": "sha256:0e8b43abe5a8df37e7afe6b1dea944021d4db74a9d17fec465fb05c7671b56c2",
+    "bytes": 784,
+    "nodes": 25,
+    "depth": 4
+  }
 }

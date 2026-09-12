@@ -84,6 +84,19 @@ owners; a proof CID cannot substitute for that ownership. This bound still needs
 scope-correct limit selection and enforcement before publication. It cannot
 stand in for a recursive-depth ceiling or an Artifact byte bound.
 
+`create_values_wire_limit` performs the pinned whole-wire candidate selection
+and constructs a canonical `actql-resolved-limit/0.1`. It retains the applied
+bound and the selected policy from that same owner. The fixed source grammar has
+no byte guard, and the fixed Host policy has no whole-`/rows` byte ceiling;
+the exact Program proof is therefore the sole applicable candidate. Its subject
+is owner-relative `values:checked-step:<index>:wire`, its breach is failure and
+its enforcement is engine-atomic. CI audits the source and policy field sets so
+a new scope-compatible ceiling cannot be silently omitted by this selection.
+Artifact and nested-value ceilings still require their own scoped checks.
+Metadata serialization is bounded independently of the measured data and does
+not materialize the payload. The returned limit is not a complete values resource
+closure, an enforcement receipt or an executable-plan authorization.
+
 ## Registry and backend capability
 
 `actql-aoa.json` selects the shared registry through `pipeline_registry_file`

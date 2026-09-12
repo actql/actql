@@ -355,7 +355,7 @@ enforcement. It leaves the row-count law and identity projections unchanged.
 <!-- requirement-block: capacity-law-registry.values-wire-machine-contract -->
 <!-- normative-code: law -->
 ```text
-../../../spec/contracts/actql-bound-values-wire-law.json# sha256:aa0833e19bbf9be3ccfc445e9bebc55c57ce8b8151bc143d1220da4d17a61168
+../../../spec/contracts/actql-bound-values-wire-law.json# sha256:b36a2c0087fa668e54b50e15ffae0985bda11bf4eab06b46c1b8a91f8750e750
 ```
 
 <!-- requirement-block: capacity-law-registry.relation-count-body capacity-law-registry.relation-count-machine -->

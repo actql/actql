@@ -175,6 +175,8 @@ pub fn core_contract_stage_count(CoreContractInventory) -> Int
 
 pub fn core_contract_usage(CoreContractInventory) -> (Int, Int)
 
+pub fn create_values_wire_limit(ValuesWireBound, @capacity_witness.LimitLimits) -> Result[ValuesWireLimit, ValuesWireLimitIssue]
+
 pub fn dedupe_top_tie_law(DedupeTopTieCheck) -> String
 
 pub fn emit_incoming_gate(PreparedIncomingGate, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
@@ -2020,6 +2022,18 @@ pub(all) enum ValuesWireBoundIssue {
   LawMismatch
   InvalidProof
   ValueMismatch
+} derive(@debug.Debug)
+
+pub struct ValuesWireLimit {
+  bound : ValuesWireBound
+  policy : @capacity_policy.Policy
+  limit : @capacity_witness.LimitClaim
+}
+
+pub(all) enum ValuesWireLimitIssue {
+  Encoding(@encode_core.EncodeFailure)
+  Arithmetic(@capacity_witness.ClosureIssue)
+  Admission(@capacity_witness.Issue)
 } derive(@debug.Debug)
 
 type WiredStages
