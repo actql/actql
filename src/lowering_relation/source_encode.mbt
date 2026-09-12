@@ -17,7 +17,15 @@ pub fn emit_root_source(
   root : ExpressionRoot,
   out : @encode.Writer,
 ) -> Unit raise @encode.EncodeFailure {
-  let source = @syntax.tree(@typing.expression(root.typed_expression))
+  emit_expression_source(root.expression, out)
+}
+
+///|
+fn emit_expression_source(
+  expression : Expression,
+  out : @encode.Writer,
+) -> Unit raise @encode.EncodeFailure {
+  let source = @syntax.tree(@typing.expression(expression.typed_owner))
   let pending : Array[SourceFrame] = [Value(source)]
   while pending.pop() is Some(frame) {
     match frame {

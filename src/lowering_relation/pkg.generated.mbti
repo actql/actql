@@ -32,6 +32,10 @@ pub fn demand_usage(DemandIndex) -> DemandUsage
 
 pub fn emit_expression(Expression, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
 
+pub fn emit_fragment_machine_pipeline(FragmentPipeline, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
+
+pub fn emit_fragment_source_pipeline(FragmentPipeline, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
+
 pub fn emit_kernel_node(PreparedKernel, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
 
 pub fn emit_root_source(ExpressionRoot, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
@@ -51,6 +55,10 @@ pub fn expression_location(Expression) -> @expression_syntax.Location
 pub fn expression_source(Expression) -> @decode_core.Cursor
 
 pub fn expression_view_entries(Expression) -> Int
+
+pub fn fragment_pipeline_input(FragmentPipeline) -> String
+
+pub fn fragment_pipeline_roots(FragmentPipeline) -> RootIndex
 
 pub fn input_id(Prepared, Int) -> String?
 
@@ -89,6 +97,8 @@ pub fn pipeline(Prepared) -> @pipeline_typing.CheckedPipeline
 pub fn prepare(@pipeline_typing.CheckedPipeline, Limits) -> Result[Prepared, Issue]
 
 pub fn prepare_demand(RootIndex, DemandLimits) -> Result[DemandIndex, DemandIssue]
+
+pub fn prepare_fragment_pipeline(PreparedSequence, Int, RootLimits) -> Result[FragmentPipeline, RootIssue]
 
 pub fn prepare_kernel(BoundPrepared, Int, max_bindings~ : Int, max_name_bytes~ : Int, ExpressionLimits) -> Result[PreparedKernel, KernelIssue]
 
@@ -227,6 +237,8 @@ pub struct ExpressionRoot {
   expression : Expression
   typed_expression : @expression_typing.TypedExpression
 }
+
+type FragmentPipeline
 
 pub struct Issue {
   kind : IssueKind

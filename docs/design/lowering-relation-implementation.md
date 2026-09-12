@@ -891,6 +891,17 @@ not exist. A single-kernel fragment is a composition strategy, not a language
 requirement to persist or execute every operation separately; compatible fusion
 still requires its own complete request and root reconstruction.
 
+Source and machine pipeline projections share one opaque kernel-fragment owner.
+Both preserve the original step ID and output target, and name the single local
+Relation source `input`. The outer upstream ID remains attached to that owner
+for composition; projection does not mutate the prepared kernel's wiring.
+Empty snapshot maps retain an actual derive node even though their root table
+is empty. The machine projection reuses the existing kernel node emitter with
+only its local input rebased. The source projection uses the same bindings but
+emits retained normalized syntax. Neither projection alone is an executable
+artifact: request schema/Parameter bindings, ceiling witnesses, root evidence,
+canonical identity and sealed-fragment admission remain separate obligations.
+
 Each expression root retains its exact typed owner. Source projection reads the
 normalized syntax of that owner; machine-node projection reads the bound lowered
 expression. A Parameter remains a reference in source while becoming a literal
