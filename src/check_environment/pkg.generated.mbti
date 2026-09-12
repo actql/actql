@@ -152,6 +152,14 @@ pub fn emit(WireEnvironment, @encode_core.Writer) -> Unit raise @encode_core.Enc
 
 pub fn emit_member(Member, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
 
+pub fn expression_contract_body(String) -> ExpressionContractBody?
+
+pub fn expression_contract_body_cid(ExpressionContractBody) -> String
+
+pub fn expression_contract_dependency_at(ExpressionContractBody, Int) -> ExpressionContractDependency?
+
+pub fn expression_contract_dependency_count(ExpressionContractBody) -> Int
+
 pub fn host_policy(WireEnvironment) -> @decode_core.Cursor
 
 pub fn inherited_text_time_cid(InheritedTextTimeContract) -> String
@@ -515,6 +523,19 @@ pub(all) enum DataPolicyIssue {
 pub(all) struct DataPolicyLimits {
   max_work : Int
   max_policies : Int
+}
+
+pub(all) enum ExpressionContractBody {
+  ExpressionRoot
+  RegexRepresentation
+  RegexRepresentationSchema
+  ConsumerCapacity
+  Inherited(InheritedTextTimeContract)
+} derive(Eq, @debug.Debug)
+
+pub struct ExpressionContractDependency {
+  pointer : String
+  target : ExpressionContractBody
 }
 
 pub(all) enum InheritedTextTimeContract {

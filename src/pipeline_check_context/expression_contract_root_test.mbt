@@ -16,6 +16,17 @@ test "each owned stage resolves its emitted expression root without a caller CID
     )
     assert_eq(root, @program_refs.stage_semantics_expression_contract(semantic))
     let inherited = stage_identity_inherited_text_time(stage).unwrap()
+    let expression_body = stage_identity_expression_body(stage).unwrap()
+    assert_eq(expression_body, @environment.ExpressionRoot)
+    assert_eq(@environment.expression_contract_body_cid(expression_body), root)
+    assert_eq(
+      @environment.expression_contract_dependency_count(expression_body),
+      3,
+    )
+    assert_eq(
+      @environment.expression_contract_dependency_at(expression_body, 0).unwrap().target,
+      @environment.Inherited(inherited),
+    )
     assert_eq(inherited, @environment.Base)
     assert_eq(
       @environment.inherited_text_time_cid(inherited),

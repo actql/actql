@@ -305,3 +305,14 @@ pub fn stage_identity_inherited_text_time(
     stage_identity_expression_contract_cid(v),
   )
 }
+
+///|
+/// Resolve declared expression body references from the owned semantic root.
+/// This does not select other Unit roots or discharge runtime obligations.
+pub fn stage_identity_expression_body(
+  v : StageSourceIdentity,
+) -> @environment.ExpressionContractBody? {
+  @environment.expression_contract_body(
+    stage_identity_expression_contract_cid(v),
+  )
+}

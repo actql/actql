@@ -80,6 +80,21 @@ merge Stage/Program owners or establish that their other requirements agree.
 These indexed reads do not emit a new preimage or change the retained work/hash
 usage. A closure traversal must still account for its own visits and allocations.
 
+`stage_identity_expression_body` connects the same Stage root to its declared
+body-reference graph: inherited text/time, current regex AST representation and
+consumer-capacity law. The regex representation in turn references its current
+AST schema. Both inherited and replacement schemas retain their own identities;
+the replacement's explicit scope, not deletion of the inherited dependency,
+determines the accepted AST representation. The EBNF path and byte hash are
+verified as a pinned byte resource, not reinterpreted as a canonical-JSON CID.
+
+The `ExpressionContractBody` graph exposes these reference sites through
+count/index access and reuses the inherited graph without copying it. It is not
+the complete Unit root inventory: selected operation/profile laws, source
+declarations, publication and incoming interfaces still contribute their own
+governing contracts. A successful lookup is neither an execution capability nor
+a consumer-capacity proof; those checks retain their own owners and obligations.
+
 ## Three different identities
 
 A contract-closure CID identifies a set of interpreted contracts. A Unit
