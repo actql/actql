@@ -92,8 +92,8 @@ fn measure_result(v : Value, b : ValueBudget) -> Bool {
 }
 
 ///|
-fn retain_row(
-  row : Array[Value],
+fn[T : RowValues] retain_row(
+  row : T,
   names : Array[String],
   output : ValueBudget,
 ) -> Bool {
@@ -101,7 +101,8 @@ fn retain_row(
     return false
   }
   for i = 0; i < names.length(); i = i + 1 {
-    if !charge_text(output, names[i]) || !measure_result(row[i], output) {
+    if !charge_text(output, names[i]) ||
+      !measure_result(row.value_at(i), output) {
       return false
     }
   }
@@ -232,9 +233,9 @@ fn evaluate_rows_with_workspace(
 ///|
 // Both authored select and the checked producer projection use this evaluator.
 // The latter is an input adaptation, not an invented authored AoA node.
-fn evaluate_row_body(
+fn[T : RelationRows] evaluate_row_body(
   body : RowBodySource,
-  input : Table,
+  input : T,
   output_id : String,
   max_rows : Int,
   control : ControlBudget,
@@ -242,13 +243,59 @@ fn evaluate_row_body(
   workspace : RowWorkspace,
   ordered_budget? : LogicalBudget? = None,
 ) -> Result[Table, RowIssue] {
+  let rows : Array[Array[Value]] = []
+  let names = match
+    evaluate_row_body_into(
+      body,
+      input,
+      max_rows,
+      control,
+      output,
+      workspace,
+      fn(row, _source, _names, _projection) {
+        rows.push(row)
+        Ok(())
+      },
+      ordered_budget~,
+    ) {
+    Ok(names) => names
+    Err(issue) => return Err(issue)
+  }
+  Ok({ owner: input.checked_owner(), id: output_id, names, rows, })
+}
+
+///|
+/// Internal sink boundary: evaluation, logical retention and failure order are
+/// fixed here. A sink only owns physical output construction. Its buffers must
+/// not be exposed until this entire operation (and its driver) succeeds.
+fn[T : RelationRows] evaluate_row_body_into(
+  body : RowBodySource,
+  input : T,
+  max_rows : Int,
+  control : ControlBudget,
+  output : ValueBudget,
+  workspace : RowWorkspace,
+  accept_row : (Array[Value], Int, Array[String], Array[Int]?) -> Result[
+    Unit,
+    RowIssue,
+  ],
+  ordered_budget? : LogicalBudget? = None,
+) -> Result[Array[String], RowIssue] {
+  if body is PreparedBody(kernel) {
+    if !physical_equal(@lower.kernel_owner(kernel), input.checked_owner()) {
+      return Err(OwnerMismatch)
+    }
+    if @lower.kernel_input(kernel) != input.relation_id() {
+      return Err(InputMismatch)
+    }
+  }
   let scope = ordered_budget.map(b => {
     (
       { budget: b, slots: [], free: [], limit: workspace.limit, } :
       ExpressionRoots)
   })
   let result = evaluate_row_body_impl(
-    body, input, output_id, max_rows, control, output, workspace, scope,
+    body, input, max_rows, control, output, workspace, scope, accept_row,
   )
   if scope is Some(s) {
     if result is Err(_) {
@@ -260,16 +307,19 @@ fn evaluate_row_body(
 }
 
 ///|
-fn evaluate_row_body_impl(
+fn[T : RelationRows] evaluate_row_body_impl(
   body : RowBodySource,
-  input : Table,
-  output_id : String,
+  input : T,
   max_rows : Int,
   control : ControlBudget,
   output : ValueBudget,
   workspace : RowWorkspace,
   scope : ExpressionRoots?,
-) -> Result[Table, RowIssue] {
+  accept_row : (Array[Value], Int, Array[String], Array[Int]?) -> Result[
+    Unit,
+    RowIssue,
+  ],
+) -> Result[Array[String], RowIssue] {
   if max_rows < 0 ||
     control.remaining < 0 ||
     control.max_frames < 0 ||
@@ -278,16 +328,18 @@ fn evaluate_row_body_impl(
     workspace.peak != 0 {
     return Err(InvalidRowLimits)
   }
+  let input_names = input.field_names()
+  let input_count = IndexedRows::row_count(input)
   // This input ceiling applies even when a filter would emit zero rows.
-  if input.rows.length() > max_rows {
+  if input_count > max_rows {
     return Err(RowLimit)
   }
-  if !reserve_slots(workspace, input.names.length()) ||
-    !reserve_slots(workspace, input.rows.length()) {
+  if !reserve_slots(workspace, input_names.length()) ||
+    !reserve_slots(workspace, input_count) {
     return Err(RowLimit)
   }
-  for row in input.rows {
-    if !reserve_slots(workspace, row.length()) {
+  for row = 0; row < input_count; row = row + 1 {
+    if !reserve_slots(workspace, IndexedRows::row_width(input, row)) {
       return Err(RowLimit)
     }
   }
@@ -329,18 +381,18 @@ fn evaluate_row_body_impl(
   let output_names : Array[String] = []
   let projection : Array[Int] = []
   let ordinals : Map[String, Int] = Map([])
-  for i = 0; i < input.names.length(); i = i + 1 {
+  for i = 0; i < input_names.length(); i = i + 1 {
     if !spend_control(control, 1) ||
-      !spend_control_text(control, input.names[i]) {
+      !spend_control_text(control, input_names[i]) {
       return Err(RowLimit)
     }
-    if ordinals.contains(input.names[i]) {
+    if ordinals.contains(input_names[i]) {
       return Err(InvalidRows)
     }
     if !reserve_slots(workspace, 1) {
       return Err(RowLimit)
     }
-    ordinals[input.names[i]] = i
+    ordinals[input_names[i]] = i
   }
   match kind {
     Select(fields) =>
@@ -360,7 +412,7 @@ fn evaluate_row_body_impl(
         projection.push(index)
       }
     Filter(_) =>
-      for name in input.names {
+      for name in input_names {
         if !spend_control(control, 1) {
           return Err(RowLimit)
         }
@@ -370,7 +422,7 @@ fn evaluate_row_body_impl(
         output_names.push(name)
       }
     SnapshotMap(bindings) | OrderedBindings(bindings) => {
-      for name in input.names {
+      for name in input_names {
         if !spend_control(control, 1) {
           return Err(RowLimit)
         }
@@ -399,18 +451,19 @@ fn evaluate_row_body_impl(
   // Complete input admission precedes all binding evaluation and shadowing.
   let input_roots : Array[ExpressionRootLease] = []
   if scope is Some(s) {
-    match admit_logical_rows(s.budget, input.rows.length().to_int64()) {
+    match admit_logical_rows(s.budget, input_count.to_int64()) {
       Ok(_) => ()
       Err(e) => return Err(LogicalRows(e))
     }
-    for source in input.rows {
-      if source.length() != input.names.length() {
+    for row = 0; row < input_count; row = row + 1 {
+      let source = IndexedRow::{ table: input, row, }
+      if RowValues::value_count(source) != input_names.length() {
         return Err(InvalidRows)
       }
       if !reserve_slots(workspace, 1) {
         return Err(RowLimit)
       }
-      let root = match retain_logical_row(s.budget, input.names, source) {
+      let root = match retain_logical_row(s.budget, input_names, source) {
         Ok(r) => r
         Err(e) => return Err(LogicalRows(e))
       }
@@ -420,10 +473,9 @@ fn evaluate_row_body_impl(
       }
     }
   }
-  let rows : Array[Array[Value]] = []
-  for row_index = 0; row_index < input.rows.length(); row_index = row_index + 1 {
-    let source = input.rows[row_index]
-    if source.length() != input.names.length() {
+  for row_index = 0; row_index < input_count; row_index = row_index + 1 {
+    let source = IndexedRow::{ table: input, row: row_index, }
+    if RowValues::value_count(source) != input_names.length() {
       return Err(InvalidRows)
     }
     if control.remaining == 0 {
@@ -439,15 +491,15 @@ fn evaluate_row_body_impl(
     // One immutable operation-start snapshot; map siblings never update it.
     let snapshot : Map[String, Value] = Map([])
     if !(kind is Select(_)) {
-      for i = 0; i < input.names.length(); i = i + 1 {
+      for i = 0; i < input_names.length(); i = i + 1 {
         if !spend_control(control, 1) ||
-          !spend_control_text(control, input.names[i]) {
+          !spend_control_text(control, input_names[i]) {
           return Err(RowLimit)
         }
         if !reserve_slots(workspace, 1) {
           return Err(RowLimit)
         }
-        snapshot[input.names[i]] = source[i]
+        snapshot[input_names[i]] = RowValues::value_at(source, i)
       }
     }
     let row : Array[Value] = []
@@ -461,7 +513,7 @@ fn evaluate_row_body_impl(
           if !reserve_slots(workspace, 1) {
             return Err(RowLimit)
           }
-          row.push(source[index])
+          row.push(RowValues::value_at(source, index))
         }
       Filter(expr) => {
         let value = match
@@ -478,14 +530,14 @@ fn evaluate_row_body_impl(
         }
         match value {
           Boolean(true) =>
-            for v in source {
+            for i = 0; i < RowValues::value_count(source); i = i + 1 {
               if !spend_control(control, 1) {
                 return Err(RowLimit)
               }
               if !reserve_slots(workspace, 1) {
                 return Err(RowLimit)
               }
-              row.push(v)
+              row.push(RowValues::value_at(source, i))
             }
           Boolean(false) | Null => {
             if scope is Some(_) {
@@ -501,14 +553,14 @@ fn evaluate_row_body_impl(
         }
       }
       SnapshotMap(bindings) => {
-        for v in source {
+        for i = 0; i < RowValues::value_count(source); i = i + 1 {
           if !spend_control(control, 1) {
             return Err(RowLimit)
           }
           if !reserve_slots(workspace, 1) {
             return Err(RowLimit)
           }
-          row.push(v)
+          row.push(RowValues::value_at(source, i))
         }
         for slot = 0; slot < bindings.length(); slot = slot + 1 {
           let expr = bindings[slot].1
@@ -595,7 +647,7 @@ fn evaluate_row_body_impl(
           row.push(
             match by_name.get(name) {
               Some(i) => values[i]
-              None => source[ordinals[name]]
+              None => RowValues::value_at(source, ordinals[name])
             },
           )
         }
@@ -629,8 +681,21 @@ fn evaluate_row_body_impl(
     if !reserve_slots(workspace, 1) {
       return Err(RowLimit)
     }
-    rows.push(row)
+    match
+      accept_row(
+        row,
+        row_index,
+        output_names,
+        if kind is Select(_) {
+          Some(projection)
+        } else {
+          None
+        },
+      ) {
+      Ok(_) => ()
+      Err(issue) => return Err(issue)
+    }
     release_slots(workspace, snapshot.length())
   }
-  Ok({ owner: input.owner, id: output_id, names: output_names, rows, })
+  Ok(output_names)
 }

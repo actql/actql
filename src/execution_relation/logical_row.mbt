@@ -15,15 +15,15 @@ fn emit_runtime_value(
 ///|
 /// Measure a complete retained row, including its object and field names.
 /// Names are already validated unique by the row layout, never reinterpreted.
-fn charge_logical_row(
+fn[T : RowValues] charge_logical_row(
   b : LogicalBudget,
   names : Array[String],
-  row : Array[Value],
+  row : T,
 ) -> Result[LogicalValueMeasure, LogicalBudgetIssue] {
   if b.failed {
     return Err(FailedLogicalBudget)
   }
-  if names.length() != row.length() || b.host_depth < 1 || b.host_nodes < 1 {
+  if names.length() != row.value_count() || b.host_depth < 1 || b.host_nodes < 1 {
     b.failed = true
     return Err(ValueMeasure(HostMeasureLimit))
   }
@@ -53,7 +53,7 @@ fn charge_logical_row(
       remaining -= key_bytes.to_int64()
       let m = match
         measure_logical_value(
-          row[i],
+          row.value_at(i),
           remaining,
           cap,
           b.host_nodes - 1,
@@ -67,7 +67,7 @@ fn charge_logical_row(
       }
       remaining -= m.weight
       @encode.key(writer, names[i])
-      emit_runtime_value(row[i], writer)
+      emit_runtime_value(row.value_at(i), writer)
     }
     @encode.end_object(writer)
     @encode.finish_measurement(writer)
@@ -83,10 +83,10 @@ fn charge_logical_row(
 }
 
 ///|
-fn retain_logical_row(
+fn[T : RowValues] retain_logical_row(
   b : LogicalBudget,
   names : Array[String],
-  row : Array[Value],
+  row : T,
 ) -> Result[LogicalRoot, LogicalBudgetIssue] {
   let m = match charge_logical_row(b, names, row) {
     Ok(m) => m

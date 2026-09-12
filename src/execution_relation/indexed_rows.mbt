@@ -28,3 +28,60 @@ impl IndexedRows for Table with fn row_width(self, row) {
 impl IndexedRows for Table with fn read_cell(self, row, column) {
   self.rows[row][column]
 }
+
+///|
+/// Checked metadata stays outside the physical buffers. This trait is private;
+/// implementing a storage reader is not evidence of whole-Program admission.
+priv trait RelationRows: IndexedRows {
+  fn checked_owner(Self) -> @lower.BoundPrepared
+  fn relation_id(Self) -> String
+  fn field_names(Self) -> Array[String]
+}
+
+///|
+impl RelationRows for Table with fn checked_owner(self) {
+  self.owner
+}
+
+///|
+impl RelationRows for Table with fn relation_id(self) {
+  self.id
+}
+
+///|
+impl RelationRows for Table with fn field_names(self) {
+  self.names
+}
+
+///|
+priv trait RowValues {
+  fn value_count(Self) -> Int
+  fn value_at(Self, Int) -> Value
+}
+
+///|
+impl RowValues for Array[Value] with fn value_count(self) {
+  self.length()
+}
+
+///|
+impl RowValues for Array[Value] with fn value_at(self, column) {
+  self[column]
+}
+
+///|
+/// A bounded coordinate, not a reconstructed row object or copied array.
+priv struct IndexedRow[T] {
+  table : T
+  row : Int
+}
+
+///|
+impl[T : IndexedRows] RowValues for IndexedRow[T] with fn value_count(self) {
+  self.table.row_width(self.row)
+}
+
+///|
+impl[T : IndexedRows] RowValues for IndexedRow[T] with fn value_at(self, column) {
+  self.table.read_cell(self.row, column)
+}
