@@ -33,6 +33,7 @@ fn evaluate_layout_kernel(
     kernel,
     input,
     {
+      release: fn(table) { release_layout_columns(table.storage) },
       sort: fn(kernel, input, id) {
         match
           evaluate_sort_selection(

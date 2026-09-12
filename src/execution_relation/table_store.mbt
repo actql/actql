@@ -11,6 +11,7 @@ priv struct TableStore[T] {
   wiring : Wiring
   tables : Array[HeldTable[T]?]
   workspace : RowWorkspace
+  release : (T) -> Unit
   mut next : Int
 }
 
@@ -26,6 +27,7 @@ pub(all) enum StoreIssue {
 fn[T] table_store(
   wiring : Wiring,
   workspace : RowWorkspace,
+  release? : (T) -> Unit = fn(_table) { () },
 ) -> Result[TableStore[T], StoreIssue] {
   if workspace.limit < 0 || workspace.live != 0 || workspace.peak != 0 {
     return Err(InvalidState)
@@ -37,6 +39,7 @@ fn[T] table_store(
     wiring,
     tables: Array::make(wiring.ids.length(), None),
     workspace,
+    release,
     next: 0,
   })
 }
@@ -70,7 +73,17 @@ fn[T : RelationRows] reserve_table(
 fn[T] drop_table(store : TableStore[T], slot : Int) -> Unit {
   if store.tables[slot] is Some(held) {
     store.tables[slot] = None
+    (store.release)(held.table)
     release_slots(store.workspace, held.units)
+  }
+}
+
+///|
+// Failure cleanup cannot depend on remaining execution work. It does not
+// restore consumed work or make a partially executed invocation resumable.
+fn[T] clear_table_store(store : TableStore[T]) -> Unit {
+  for slot = 0; slot < store.tables.length(); slot = slot + 1 {
+    drop_table(store, slot)
   }
 }
 

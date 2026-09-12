@@ -176,6 +176,7 @@ fn[T : RelationRows] prepare_sequence_with_importers(
     T,
     RowIssue,
   ],
+  release_table? : (T) -> Unit = fn(_table) { () },
   produced~ : Array[BoundProducerInput],
   fragments~ : Array[FragmentRuntimeContext]?,
   ordered~ : OrderedExecution,
@@ -282,55 +283,72 @@ fn[T : RelationRows] prepare_sequence_with_importers(
     inputs[index] = Some(ProducerInput(bound))
   }
   let store = match
-    table_store(wiring, { limit: limits.retained_entries, live: 0, peak: 0, }) {
+    table_store(
+      wiring,
+      { limit: limits.retained_entries, live: 0, peak: 0, },
+      release=release_table,
+    ) {
     Ok(v) => v
     Err(e) => return Err(Store(e))
   }
-  let mut input_rows = 0
-  for i = 0; i < inputs.length(); i = i + 1 {
-    guard inputs[i] is Some(input) else { return Err(InputSet) }
-    let table = match input {
-      RawInput(captured) => {
-        if captured.rows.length() > limits.max_rows - input_rows ||
-          !charge_capture_rows(captured, input_budget) {
-          return Err(InputLimit)
-        }
-        input_rows += captured.rows.length()
-        match
-          validate_captured_keys(captured, control, {
-            limit: limits.operation_entries,
-            live: 0,
-            peak: 0,
-          }) {
-          Ok(_) => ()
-          Err(e) => return Err(InputKey(i, e))
-        }
-        match import_raw(captured) {
-          Ok(v) => v
-          Err(e) => return Err(Rows(i, e))
-        }
-      }
-      ProducerInput(bound) => {
-        let source = bound.output.table
-        if source.rows.length() > limits.max_rows - input_rows {
-          return Err(InputLimit)
-        }
-        for row in source.rows {
-          if !spend_control(control, 1) ||
-            !retain_row(row, source.names, input_budget) {
+  let import_inputs = fn() -> Result[Int, SequenceRunIssue] {
+    let mut input_rows = 0
+    for i = 0; i < inputs.length(); i = i + 1 {
+      guard inputs[i] is Some(input) else { return Err(InputSet) }
+      let table = match input {
+        RawInput(captured) => {
+          if captured.rows.length() > limits.max_rows - input_rows ||
+            !charge_capture_rows(captured, input_budget) {
             return Err(InputLimit)
           }
+          input_rows += captured.rows.length()
+          match
+            validate_captured_keys(captured, control, {
+              limit: limits.operation_entries,
+              live: 0,
+              peak: 0,
+            }) {
+            Ok(_) => ()
+            Err(e) => return Err(InputKey(i, e))
+          }
+          match import_raw(captured) {
+            Ok(v) => v
+            Err(e) => return Err(Rows(i, e))
+          }
         }
-        input_rows += source.rows.length()
-        match import_producer(bound, wiring.ids[i], output_budget) {
-          Ok(v) => v
-          Err(e) => return Err(Rows(i, e))
+        ProducerInput(bound) => {
+          let source = bound.output.table
+          if source.rows.length() > limits.max_rows - input_rows {
+            return Err(InputLimit)
+          }
+          for row in source.rows {
+            if !spend_control(control, 1) ||
+              !retain_row(row, source.names, input_budget) {
+              return Err(InputLimit)
+            }
+          }
+          input_rows += source.rows.length()
+          match import_producer(bound, wiring.ids[i], output_budget) {
+            Ok(v) => v
+            Err(e) => return Err(Rows(i, e))
+          }
+        }
+      }
+      match install_table_input(store, i, table, control) {
+        Ok(_) => ()
+        Err(e) => {
+          (store.release)(table)
+          return Err(Store(e))
         }
       }
     }
-    match install_table_input(store, i, table, control) {
-      Ok(_) => ()
-      Err(e) => return Err(Store(e))
+    Ok(input_rows)
+  }
+  let input_rows = match import_inputs() {
+    Ok(count) => count
+    Err(issue) => {
+      clear_table_store(store)
+      return Err(issue)
     }
   }
   Ok({
@@ -441,9 +459,11 @@ fn[T : RelationRows] run_sequence_with_backend(
     },
   )
   if result is Err(issue) {
+    clear_table_store(store)
     return Err(issue)
   }
   if !spend_control(control, produced.length()) {
+    clear_table_store(store)
     return Err(InputLimit)
   }
   Ok(())
@@ -487,7 +507,10 @@ fn[T : RelationRows] run_sequence_steps(
     }
     match commit_table(store, i, table, control) {
       Ok(_) => ()
-      Err(e) => return Err(Store(e))
+      Err(e) => {
+        (store.release)(table)
+        return Err(Store(e))
+      }
     }
   }
   Ok(())

@@ -142,6 +142,7 @@ fn evaluate_rows_with_workspace(
     kernel,
     input,
     {
+      release: fn(_table) { () },
       sort: fn(kernel, input, id) {
         evaluate_sort_rows(
           kernel, input, id, max_rows, control, output, workspace,
@@ -180,6 +181,7 @@ fn evaluate_rows_with_workspace(
 ///|
 // Physical callbacks never choose semantic prefixes or reinterpret a kernel.
 priv struct RowBackend[T] {
+  release : (T) -> Unit
   sort : (@lower.PreparedKernel, T, String) -> Result[T, RowIssue]
   dedupe : (@lower.PreparedKernel, T, String) -> Result[T, RowIssue]
   distinct : (T, String) -> Result[T, RowIssue]
@@ -223,7 +225,11 @@ fn[T : RelationRows] evaluate_rows_dispatch(
           Err(e) => return Err(e)
         }
     }
-    return (backend.distinct)(selected, @lower.node_id(node))
+    let result = (backend.distinct)(selected, @lower.node_id(node))
+    if @lower.projection_node_id(node) is Some(_) {
+      (backend.release)(selected)
+    }
+    return result
   }
   if @lower.kernel_take(kernel) is Some((count, offset)) {
     let input = if @lower.order_node_id(node) is Some(id) {
@@ -234,7 +240,11 @@ fn[T : RelationRows] evaluate_rows_dispatch(
     } else {
       input
     }
-    return (backend.take)(input, @lower.node_id(node), count, offset)
+    let result = (backend.take)(input, @lower.node_id(node), count, offset)
+    if @lower.order_node_id(node) is Some(_) {
+      (backend.release)(input)
+    }
+    return result
   }
   (backend.body)(
     PreparedBody(kernel),
