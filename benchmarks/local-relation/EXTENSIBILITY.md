@@ -93,3 +93,21 @@ not a product adoption decision. Report results before product boundary repair.
 Join/group/window receive interface/scenario review only. Spill, parallel
 execution, Arrow, external backends, SDKs and Program/Run publication are not
 implemented or claimed validated.
+
+## Evidence log
+
+- Rebased baseline JS suite: 3,333 passing tests. This is baseline evidence,
+  not completion evidence for the new experiment.
+- `extensibility_sort_wbtest.mbt` introduces a private receiving/completed/disposed
+  lifecycle around the unchanged `evaluate_sort_selection`. Chunk coordinates
+  address retained typed buffers directly; there is no intermediate row matrix.
+  Three tests pass on JS, Wasm and native. Fifteen-row fixed ties cross chunk
+  width 7, with widths 1 and 1000 checked too. Shared-kernel work and workspace
+  counters agree with whole-input selection. The original input handles can be
+  released before sort while their 270 typed bytes remain retained by chunks.
+  Late row-limit and kernel-control failures clear the pending handles and
+  output, and disposal returns charged live capacity to zero.
+- This first sort trial does not yet establish independent typed input admission,
+  product completion/producer integration, conditional batch evaluation, or the
+  full budget-boundary matrix. Those remain required investigations. The sort
+  trial is blocking/in-memory: it is not streaming sort, spill or parallelism.
