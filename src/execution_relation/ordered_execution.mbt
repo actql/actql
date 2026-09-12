@@ -78,7 +78,8 @@ fn prepare_ordered_budgets(
           @lower.SnapshotMap(_)
           | @lower.Filter(_)
           | @lower.Select(_)
-          | @lower.Limit(_, _, _) => ()
+          | @lower.Limit(_, _, _)
+          | @lower.DistinctRows => ()
         }
         release_slots(metadata, entries)
       }

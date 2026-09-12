@@ -26,12 +26,14 @@ pub fn emit_kernel_node(
       Filter(_) => "REL.where"
       Select(_) => "REL.select"
       Limit(_, _, _) => "REL.limit"
+      DistinctRows => "REL.distinct"
       OrderedBindings(_) => raise @encode.InvalidStructure
     },
   )
   @encode.key(out, "params")
   @encode.begin_object(out)
   match kernel.body {
+    DistinctRows => ()
     OrderedBindings(_) => raise @encode.InvalidStructure
     SnapshotMap(bindings) => {
       @encode.key(out, "exprs")

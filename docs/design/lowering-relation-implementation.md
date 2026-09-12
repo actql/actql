@@ -109,6 +109,18 @@ requiring a new candidate-key-completed sort remains an explicit backend gap
 until that sort's checked strategy and shared contract are connected; a raw
 arrival order cannot substitute for it.
 
+Whole-row `distinct` emits `REL.distinct` with empty parameters. Before execution,
+the common sequence preparation checks every input field's comparison domain,
+including for empty input. Unsupported structural/reference comparison is a
+located backend-capability error, not a language error. Explicit projection to
+supported scalar columns before distinct can therefore execute even when the
+original input carries structured payload. The common driver applies the bounded
+index algorithm, retains first occurrences and existing order, and returns only
+immutable completed outputs. Empty-schema input has one equal tuple per row;
+nonempty input collapses to one empty row and empty input remains empty. The
+author's keyed distinct form additionally requires its canonical projection
+expansion; full-row execution alone does not establish that lowering path.
+
 | Area | Execution responsibility | Boundary not implied by success |
 | --- | --- | --- |
 | Contract selection | Hash the selected registry and execution-contract bodies; consume the registered expression-fragment and ordered row-kernel contracts | Registry membership alone does not establish backend support |

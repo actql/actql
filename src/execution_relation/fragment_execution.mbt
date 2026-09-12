@@ -54,6 +54,18 @@ fn attach_fragment_budgets(
               return Err(MissingFragmentContext(i))
             }
           @lower.Select(_) | @lower.Limit(_, _, _) => ()
+          @lower.DistinctRows => {
+            let schema = @relation.input_schema(@lower.kernel_checked(kernel))
+            for j = 0; j < @schema.field_count(schema); j = j + 1 {
+              if !spend_control(control, 1) {
+                return Err(InputLimit)
+              }
+              let field = @schema.field_at(schema, j).unwrap()
+              if !supported_comparison(field.contract, field.contract) {
+                return Err(UnsupportedRowComparison(i, field.name))
+              }
+            }
+          }
         }
       }
     }

@@ -16,6 +16,7 @@ pub enum KernelBody {
   Filter(Expression)
   Select(Array[@relation.ProjectionField])
   Limit(Int64, Int64, @pipeline.LogicalOrder)
+  DistinctRows
 }
 
 ///|
@@ -55,7 +56,11 @@ pub fn kernel_checked(kernel : PreparedKernel) -> @relation.CheckedOperation {
 pub fn kernel_take(kernel : PreparedKernel) -> (Int64, Int64)? {
   match kernel.body {
     Limit(count, offset, _) => Some((count, offset))
-    SnapshotMap(_) | OrderedBindings(_) | Filter(_) | Select(_) => None
+    SnapshotMap(_)
+    | OrderedBindings(_)
+    | Filter(_)
+    | Select(_)
+    | DistinctRows => None
   }
 }
 
@@ -67,7 +72,8 @@ pub fn ordered_binding_at(
 ) -> (String, Expression)? {
   match kernel.body {
     OrderedBindings(bindings) => bindings.get(index)
-    SnapshotMap(_) | Filter(_) | Select(_) | Limit(_, _, _) => None
+    SnapshotMap(_) | Filter(_) | Select(_) | Limit(_, _, _) | DistinctRows =>
+      None
   }
 }
 
@@ -79,6 +85,7 @@ pub fn kernel_body(kernel : PreparedKernel) -> KernelBody {
     Filter(expr) => Filter(expr)
     Select(fields) => Select(fields.copy())
     Limit(count, offset, order) => Limit(count, offset, order)
+    DistinctRows => DistinctRows
   }
 }
 
@@ -88,7 +95,7 @@ pub fn kernel_view_entries(kernel : PreparedKernel) -> Int {
   match kernel.body {
     SnapshotMap(bindings) | OrderedBindings(bindings) => bindings.length()
     Select(fields) => fields.length()
-    Filter(_) | Limit(_, _, _) => 0
+    Filter(_) | Limit(_, _, _) | DistinctRows => 0
   }
 }
 
@@ -130,7 +137,7 @@ fn prepare_kernel_measured(
     return Err(MissingKernelNode)
   }
   let checked = match node.payload {
-    Derive(op) | Where(op) | Select(op) | Limit(op) => op
+    Derive(op) | Where(op) | Select(op) | Limit(op) | Distinct(op) => op
     Values(_) => return Err(MissingKernelNode)
   }
   if node.inputs.length() != 1 {
@@ -217,6 +224,8 @@ fn prepare_kernel_measured(
       }
       Select(fields)
     }
+    RowOperation if @relation.row_operation(checked)
+      is Some(@relation.DistinctRows) => DistinctRows
     RowOperation => {
       guard @relation.row_operation(checked)
         is Some(@relation.Take(count~, offset~)) else {
@@ -276,7 +285,7 @@ fn prepare_kernel_measured(
     SnapshotMap(bindings) | OrderedBindings(bindings) => bindings.length()
     Filter(_) => 1
     Select(fields) => fields.length()
-    Limit(_, _, _) => 0
+    Limit(_, _, _) | DistinctRows => 0
   }
   Ok(
     (

@@ -313,6 +313,7 @@ pub enum KernelBody {
   Filter(Expression)
   Select(Array[@relation_typing.ProjectionField])
   Limit(Int64, Int64, @pipeline_typing.LogicalOrder)
+  DistinctRows
 }
 
 pub(all) enum KernelIssue {
@@ -365,6 +366,7 @@ pub enum Payload {
   Where(@relation_typing.CheckedOperation)
   Select(@relation_typing.CheckedOperation)
   Limit(@relation_typing.CheckedOperation)
+  Distinct(@relation_typing.CheckedOperation)
 }
 
 type Prepared

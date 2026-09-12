@@ -24,6 +24,7 @@ pub(all) enum SequenceRunIssue {
   FragmentContext(Int, FragmentRuntimeIssue)
   MissingFragmentContext(Int)
   MixedExecutionConfiguration
+  UnsupportedRowComparison(Int, @schema.FieldName)
 }
 
 ///|

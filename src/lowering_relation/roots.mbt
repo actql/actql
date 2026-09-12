@@ -117,7 +117,8 @@ pub fn prepare_kernel_roots(
     ValuesStep(_) => return Err(NotExpressionKernel)
     RowStep(kernel) =>
       match kernel.body {
-        Select(_) | Limit(_, _, _) => return Err(NotExpressionKernel)
+        Select(_) | Limit(_, _, _) | DistinctRows =>
+          return Err(NotExpressionKernel)
         Filter(_) | SnapshotMap(_) | OrderedBindings(_) => ()
       }
   }
@@ -148,7 +149,7 @@ fn prepare_root_range(
       ValuesStep(_) => continue
       RowStep(kernel) =>
         match kernel.body {
-          Select(_) | Limit(_, _, _) => continue
+          Select(_) | Limit(_, _, _) | DistinctRows => continue
           Filter(expr) => {
             if sorted.length() == limits.max_roots || bytes < 5 || work < 6 {
               return Err(RootLimit)

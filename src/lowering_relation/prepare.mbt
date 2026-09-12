@@ -25,6 +25,7 @@ pub enum Payload {
   Where(@relation.CheckedOperation)
   Select(@relation.CheckedOperation)
   Limit(@relation.CheckedOperation)
+  Distinct(@relation.CheckedOperation)
 }
 
 ///|
@@ -111,6 +112,7 @@ pub fn operation(value : PreparedNode) -> String {
     Where(_) => "REL.where"
     Select(_) => "REL.select"
     Limit(_) => "REL.limit"
+    Distinct(_) => "REL.distinct"
   }
 }
 
@@ -124,8 +126,13 @@ fn classify(op : @pipeline.CheckedOperation) -> Payload? {
         Filter => Some(Where(v))
         Select | Rename | Drop => Some(Select(v))
         Take => Some(Limit(v))
+        Distinct =>
+          if @relation.row_operation(v) is Some(@relation.DistinctRows) {
+            Some(Distinct(v))
+          } else {
+            None
+          }
         Sort
-        | Distinct
         | DedupeRows
         | JsonPick
         | Unnest
@@ -230,6 +237,7 @@ pub fn prepare(
       Where(_) => ("where", 1)
       Select(_) => ("select", 1)
       Limit(_) => ("limit", 1)
+      Distinct(_) => ("distinct", 1)
     }
     let id = preferred + "_" + i.to_string()
     if used.contains(id) {

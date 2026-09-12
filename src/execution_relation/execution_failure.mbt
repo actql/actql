@@ -36,6 +36,7 @@ pub(all) enum SequenceFailureKind {
   FragmentContext(Int)
   MissingFragmentContext(Int)
   MixedExecutionConfiguration
+  UnsupportedRowComparison(Int)
 }
 
 ///|
@@ -55,5 +56,6 @@ pub fn sequence_failure_kind(issue : SequenceRunIssue) -> SequenceFailureKind {
     FragmentContext(i, _) => FragmentContext(i)
     MissingFragmentContext(i) => MissingFragmentContext(i)
     MixedExecutionConfiguration => MixedExecutionConfiguration
+    UnsupportedRowComparison(i, _) => UnsupportedRowComparison(i)
   }
 }

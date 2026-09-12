@@ -266,6 +266,7 @@ pub(all) enum RowIssue {
   MissingOrderedResourceContext
   LogicalRows(LogicalBudgetIssue)
   Evaluation(Int, Int, EvalIssue)
+  Comparison(ScalarIssue)
 }
 
 pub(all) enum RuntimeFragmentFailureStage {
@@ -309,6 +310,7 @@ pub(all) enum SequenceFailureKind {
   FragmentContext(Int)
   MissingFragmentContext(Int)
   MixedExecutionConfiguration
+  UnsupportedRowComparison(Int)
 }
 
 pub(all) enum SequenceRunIssue {
@@ -326,6 +328,7 @@ pub(all) enum SequenceRunIssue {
   FragmentContext(Int, FragmentRuntimeIssue)
   MissingFragmentContext(Int)
   MixedExecutionConfiguration
+  UnsupportedRowComparison(Int, @relation_schema.FieldName)
 }
 
 pub(all) struct SequenceRunLimits {
