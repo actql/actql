@@ -18,6 +18,7 @@ test "mean generator preserves repeated graph samples and supports explicit brid
   let source = cursor("[{" + body + ",\"as\":\"m\"},{\"node_rows\":true}]")
   let inputs = [("g", g), ("unused", @carrier.relation(empty))]
   let p = @pipeline_typing.check_carriers(source, inputs, None, None, limits()).unwrap()
+  assert_operation_profiles(p, [[SGA], [SGA]])
   let step = @pipeline_typing.step_at(p, 0).unwrap()
   assert_true(step.input is None)
   assert_true(step.operation is GraphMean(_))

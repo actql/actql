@@ -536,6 +536,26 @@ it does not discharge pattern, Host-envelope or operation-wide profile demands.
 Assembly requires this result, counts its incremental scan work once, and
 exposes it for consumers without admitting independently attachable site proofs.
 
+`check_operation_profiles` extends that owned preparation across all staged
+producer visits, including unused branches. It consumes the exhaustive
+`pipeline_typing.operation_profile_count/at` classification without copying
+operation bodies or arrays. RelA, SGA, TEA, Calendar and text-rank declarations
+are explicit; VecA uses the already retained expression declaration rather
+than a second independent flag. Calendar requires both Calendar and TEA.
+The result retains its preparation and selection, and its inclusive work cap
+counts stage, visit, step and individual profile requirements. Failure retains
+stage/visit/step coordinates and the named unsupported profile; no partially
+admitted result escapes. Those coordinates are process-local, not identities.
+
+Profile requirements follow the normative operation definitions and
+[Conformance profiles](../spec/conformance.md#conformance-profiles), not just
+the output Carrier or AoA opcode prefix: text-rank is not RelA-only or VecA,
+while a graph-to-row projection still requires SGA. The classification covers
+the checked pure operation vocabulary, not acquisition, Effects or a complete
+Core claim. It neither certifies declared conformance nor discharges retained
+profile artifact, numerical, resource or runtime requirements. Backend execution
+capability is still a separate gate.
+
 It does not discharge every operation's static/profile/pattern obligation, bind
 authored guard witness identities, build staged Program/import contracts, or
 construct Program/stage/Invocation semantic projections. A formal compiler

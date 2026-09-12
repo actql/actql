@@ -18,6 +18,7 @@ test "text ranking resolves query occurrences and composes with reciprocal rank 
   let inputs = [("corpus", rows), ("q", rows)]
   let from = Some(cursor("\"corpus\""))
   let p = @pipeline_typing.check_carriers(source, inputs, None, from, limits()).unwrap()
+  assert_operation_profiles(p, [[TextRankProfile], [VecA]])
   let step = @pipeline_typing.step_at(p, 0).unwrap()
   assert_true(step.operation is TextRank(queries=Input(1), ..))
   let edges = @pipeline_typing.input_occurrences(step)

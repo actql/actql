@@ -212,6 +212,12 @@ pub fn nest_order_term_count(NestOrder) -> Int
 
 pub fn nest_order_usage(NestOrder) -> (Int, Int)
 
+pub fn operation_profile_at(CheckedOperation, Int) -> OperationProfile?
+
+pub fn operation_profile_count(CheckedOperation) -> Int
+
+pub fn operation_profile_id(OperationProfile) -> String
+
 pub fn order_dependency_at(LogicalOrder, Int) -> Target?
 
 pub fn order_dependency_count(LogicalOrder) -> Int
@@ -589,6 +595,15 @@ pub struct NestOrderTerm {
   nulls : @order_key.NullPlacement
   authored : Bool
 }
+
+pub(all) enum OperationProfile {
+  RelA
+  SGA
+  TEA
+  VecA
+  CalendarProfile
+  TextRankProfile
+} derive(Eq, @debug.Debug)
 
 pub struct ParameterSlot {
   step : Int

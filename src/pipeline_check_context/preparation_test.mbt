@@ -46,6 +46,44 @@ test "preparation joins exact selected owners and counts each branch once" {
   assert_true(physical_equal(preparation_expressions(combined), expressions))
   assert_true(physical_equal(preparation_profiles(combined), profiles))
   let used = preparation_usage(combined)
+  let declared : PureOperationProfiles = {
+    rela: true,
+    sga: false,
+    tea: false,
+    calendar: false,
+    text_rank: false,
+  }
+  let operations = check_operation_profiles(combined, declared, 10000000).unwrap()
+  assert_true(
+    physical_equal(operation_profiles_preparation(operations), combined),
+  )
+  assert_eq(operation_profiles_declared(operations), declared)
+  assert_eq(operation_profiles_count(operations), 3)
+  let operation_work = operation_profiles_work(operations)
+  // One constructor, two stages, three visits, three (step + profile) pairs.
+  assert_eq(operation_work, used.work + 12)
+  assert_true(
+    check_operation_profiles(combined, declared, operation_work) is Ok(_),
+  )
+  assert_true(
+    check_operation_profiles(combined, declared, operation_work - 1)
+    is Err(BudgetExceeded),
+  )
+  assert_true(
+    check_operation_profiles(combined, declared, -1) is Err(InvalidLimits),
+  )
+  assert_true(
+    check_operation_profiles(
+      combined,
+      { ..declared, rela: false, },
+      operation_work,
+    )
+    is Err(UnsupportedProfile(0, 0, 0, @pipeline.RelA)),
+  )
+  assert_eq(
+    operation_profiles_diagnostic(UnsupportedProfile(0, 0, 0, @pipeline.RelA)),
+    Some("ACTQL_E_PROFILE_UNSUPPORTED"),
+  )
   let bindings = collect_source_bindings(combined, used.work + 1, 0).unwrap()
   assert_true(physical_equal(source_bindings_preparation(bindings), combined))
   assert_eq(source_bindings_count(bindings), 0)

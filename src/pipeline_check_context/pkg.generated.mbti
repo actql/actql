@@ -55,6 +55,8 @@ pub fn check_expression_profiles(ExpressionValidationContext, ExpressionProfiles
 
 pub fn check_like_patterns(ExpressionValidationContext, LikePatternLimits) -> Result[LikePatternChecks, LikePatternIssue]
 
+pub fn check_operation_profiles(ProgramPreparation, PureOperationProfiles, Int) -> Result[OperationProfileChecks, OperationProfilesIssue]
+
 pub fn check_parameter_bindings(PipelineContext, max_work~ : Int, max_text_bytes~ : Int) -> Result[BoundParameters, ParameterIssue]
 
 pub fn check_patterns(ExpressionValidationContext, PatternLimits) -> Result[PatternChecks, PatternIssue]
@@ -132,6 +134,16 @@ pub fn like_pattern_source(LikePatternResolution) -> String
 pub fn like_pattern_usage(LikePatternChecks) -> LikePatternUsage
 
 pub fn local_inputs_at(InputContexts, Int) -> @stage_local_inputs.Attached?
+
+pub fn operation_profiles_count(OperationProfileChecks) -> Int
+
+pub fn operation_profiles_declared(OperationProfileChecks) -> PureOperationProfiles
+
+pub fn operation_profiles_diagnostic(OperationProfilesIssue) -> String?
+
+pub fn operation_profiles_preparation(OperationProfileChecks) -> ProgramPreparation
+
+pub fn operation_profiles_work(OperationProfileChecks) -> Int
 
 pub fn parameter_context(BoundParameters) -> PipelineContext
 
@@ -439,6 +451,14 @@ pub(all) struct Limits {
   max_text_bytes : Int
 }
 
+type OperationProfileChecks
+
+pub(all) enum OperationProfilesIssue {
+  InvalidLimits
+  BudgetExceeded
+  UnsupportedProfile(Int, Int, Int, @pipeline_typing.OperationProfile)
+} derive(Eq, @debug.Debug)
+
 pub(all) enum ParameterIssue {
   InvalidLimits
   WorkLimit(Int)
@@ -515,6 +535,14 @@ pub(all) enum ProgramReferenceIssue {
 } derive(Eq, @debug.Debug)
 
 type ProgramReferences
+
+pub(all) struct PureOperationProfiles {
+  rela : Bool
+  sga : Bool
+  tea : Bool
+  calendar : Bool
+  text_rank : Bool
+} derive(Eq, @debug.Debug)
 
 type ReconciledContexts
 
