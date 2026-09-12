@@ -97,22 +97,98 @@ pub fn operation_scalar_demand(
         | ResolveResources
         | ValidateBoundRange => None
       }
-    JoinRequirement(_)
-    | AppendRequirement(_)
-    | NestRequirement(_)
+    JoinRequirement(v)
+    | CrossJoinRequirement(v)
+    | IntervalJoinRequirement(v)
+    | AsOfRequirement(v) =>
+      match v {
+        BindGuard(name) => Some(SafeInteger(name, minimum=1L))
+        BindTolerance(name) => Some(Milliseconds(name, signed=false))
+        ResolveCardinality
+        | ResolveOutputLimit
+        | PreserveRowOrder
+        | StableIdentity(_)
+        | ValidateCardinality(_)
+        | RejectNullKeys
+        | ValidateExactlyOneRightRow
+        | ResolveProductBound
+        | PreserveLeftMajorProductOrder
+        | ValidateIntervalEndpoints
+        | ValidateSafeIntegerClocks
+        | ResolveSearchWork
+        | ValidateAsOfValues
+        | ResolveAsOfOrder
+        | RejectAsOfTies
+        | JournalAsOfKeyCompletion(_)
+        | ValidateAsOfKey(_, _)
+        | ResolveTeaProfile => None
+      }
+    NestRequirement(v) =>
+      match v {
+        BindGuard(name) => Some(SafeInteger(name, minimum=1L))
+        ResolveTotalOrder
+        | ResolveItemLimit
+        | ResolveNestedEnvelope
+        | ValidateOutputsBeforeConsumers
+        | PropagatePolicyAndCompleteness => None
+      }
+    SequenceRequirement(v) =>
+      match v {
+        BindWithin(name) => Some(Milliseconds(name, signed=false))
+        ValidateEventValues
+        | UniqueEventIdentity
+        | AscendingEventOrder
+        | BoundedMatchSearch
+        | AtomicMatchLimits
+        | TeaProfile => None
+      }
+    GraphRequirement(v) =>
+      match v {
+        BindPositiveCount(name) => Some(SafeInteger(name, minimum=1L))
+        BindNonnegativeCount(name) => Some(SafeInteger(name, minimum=0L))
+        ValidateGraphData
+        | ResolveSgaProfile
+        | ResolveGraphResources
+        | ComponentIdentityOrder
+        | BoundsReportOrder
+        | EnforceOutputGuard => None
+      }
+    TraverseRequirement(v) =>
+      match v {
+        BindTraversalOutputGuard(name) => Some(SafeInteger(name, minimum=1L))
+        AdmitTraversalGraph
+        | RespectTraversalHopBounds
+        | EvaluateTraversalHopPredicates
+        | EmitMinimumNodeDepth
+        | EnumerateSimplePaths
+        | DeduplicateExactPaths
+        | CanonicalTraversalOrder
+        | EnforceTraversalOutputGuard
+        | ResolveTraversalResources
+        | ResolveTraversalProfile => None
+      }
+    ShortestRequirement(v) =>
+      match v {
+        BindShortestOutputGuard(name) => Some(SafeInteger(name, minimum=1L))
+        AdmitShortestGraph
+        | RequireEndpointMembership
+        | ValidateAllNonnegativeFiniteWeights
+        | FoldPathCostsWithOverrange
+        | RejectSelectedOverrangeAtomically
+        | SelectSimpleHopBoundedPaths
+        | ApplyCanonicalPathTieBreaks
+        | CanonicalShortestOutputOrder
+        | EnforceShortestOutputGuard
+        | ResolveShortestResources
+        | ResolveShortestProfile => None
+      }
+    AppendRequirement(_)
     | SetRequirement(_)
-    | CrossJoinRequirement(_)
-    | IntervalJoinRequirement(_)
-    | AsOfRequirement(_)
-    | SequenceRequirement(_)
     | ValuesRequirement(_)
     | ProjectionRequirement(_)
-    | GraphRequirement(_)
     | MatchRequirement(_)
     | ReachRequirement(_)
     | SubgraphRequirement(_)
-    | TraverseRequirement(_)
-    | ShortestRequirement(_)
     | SelectorRequirement(_)
     | EqualityRequirement(_)
     | DiffRequirement(_)

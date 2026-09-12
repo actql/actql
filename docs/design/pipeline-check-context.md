@@ -718,6 +718,20 @@ timestamp values. A string with the same spelling is not a timestamp binding;
 no coercion or Host date parser is used. These scalar resolutions alone do not
 establish calendar-year validity or interval ordering.
 
+The scalar-domain classification also includes output guards for join,
+cross/interval/as-of join, nest, Graph operations, traversal and shortest paths.
+Their counts are positive safe integers. Graph bound-report counts retain their
+separate nonnegative domain. Sequence `within` and as-of `tolerance` use the
+positive millisecond domain shared with session gaps. Classification explicitly
+lists each family's remaining obligations so new variants require review.
+
+A valid guard value is not an enforced limit or an admitted capacity witness.
+Cardinality, item-limit resolution, output enforcement, top-tie rejection,
+membership and resource requirements remain in the same inventory. In particular,
+the existing capacity integration may reject an incomplete proof collection
+before this later scalar pass is reached; scalar admission does not weaken that
+earlier boundary or manufacture the missing proof.
+
 ### Bound ROWS frame order
 
 `check_program_operation_frames` closes `BoundFrameOrder` after scalar admission.
