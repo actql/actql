@@ -682,23 +682,16 @@ fn[T : RelationRows] evaluate_row_body_impl(
       return Err(RowLimit)
     }
     if scope is Some(s) {
-      let output_root = match retain_logical_row(s.budget, output_names, row) {
-        Ok(r) => r
-        Err(e) => return Err(LogicalRows(e))
-      }
-      match register_scope_root(s, output_root) {
+      match
+        row_event_output(
+          s,
+          output_names,
+          row,
+          slot_roots,
+          input_roots[row_index],
+        ) {
         Ok(_) => ()
-        Err(e) => return Err(LogicalRows(e))
-      }
-      for root in slot_roots {
-        match release_expression_root(root) {
-          Ok(_) => ()
-          Err(e) => return Err(LogicalRows(e))
-        }
-      }
-      match release_expression_root(input_roots[row_index]) {
-        Ok(_) => ()
-        Err(e) => return Err(LogicalRows(e))
+        Err(e) => return Err(e)
       }
       release_slots(workspace, slot_roots.length())
     }

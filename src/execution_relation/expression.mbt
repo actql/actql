@@ -268,12 +268,9 @@ fn advance_expression_frame_impl(
     Enter(expr) => {
       frame.active = expr
       // Input/slot/output row lifetimes belong to the enclosing row kernel.
-      if logical_work is Some(logical) {
-        match charge_logical_work(logical, 1L) {
-          Ok(_) => ()
-          Err(issue) =>
-            return Err({ kind: LogicalEntry(issue), expression: expr, })
-        }
+      match expression_event_entry(logical_work, expr) {
+        Ok(_) => ()
+        Err(issue) => return Err(issue)
       }
       // Ancestor views stay reserved while descendants evaluate.
       let entries = @lower.expression_view_entries(expr)
@@ -352,14 +349,10 @@ fn advance_expression_frame_impl(
       // Every Return completes one semantic expression, including selection
       // nodes forwarded from their chosen child. Internal boolean seeds and
       // fold accumulators do not invent extra semantic expression results.
-      if scope is Some(s) && frame.current_root is None {
-        match track_expression_root(s, value, true) {
-          Ok(r) => frame.current_root = Some(r)
-          Err(e) =>
-            return Err({ kind: LogicalValue(e), expression: frame.active, })
-        }
-      } else if charge_value(value) is Some(issue) {
-        return Err({ kind: LogicalValue(issue), expression: frame.active, })
+      frame.current_root = match
+        expression_event_result(scope, value, frame.current_root, frame.active) {
+        Ok(root) => root
+        Err(issue) => return Err(issue)
       }
       guard frame.stack.pop() is Some(continuation) else {
         let retained = match frame.current_root {
@@ -407,43 +400,37 @@ fn advance_expression_frame_impl(
         Right(expr, op, left, left_root) => {
           release_slots(workspace, 1)
           frame.active = expr
-          for operand in [left, value] {
-            if charge_value(operand) is Some(issue) {
-              return Err({ kind: LogicalValue(issue), expression: expr, })
-            }
+          let result = match
+            expression_event_binary(
+              logical_work,
+              budget,
+              expr,
+              op,
+              left,
+              left_root,
+              value,
+              frame.current_root,
+            ) {
+            Ok(result) => result
+            Err(issue) => return Err(issue)
           }
-          // Bound variable-size comparison work before the comparison.
-          // Values are already canonical: never normalize inside compare.
-          if !charge_comparison_operand(budget, left) ||
-            !charge_comparison_operand(budget, value) {
-            return Err({ kind: ControlLimit, expression: expr, })
-          }
-          match binary(op, left, value) {
-            Ok(v) => {
-              for r in [left_root, frame.current_root] {
-                if release(r) is Some(e) {
-                  return Err({ kind: LogicalValue(e), expression: expr, })
-                }
-              }
-              frame.current_root = None
-              frame.state = Return(v)
-            }
-            Err(e) => return Err({ kind: Scalar(e), expression: expr, })
-          }
+          frame.current_root = None
+          frame.state = Return(result)
         }
         Choose(expr, yes, no) => {
-          if charge_value(value) is Some(issue) {
-            return Err({ kind: LogicalValue(issue), expression: expr, })
-          }
-          if !(value is Null || value is Boolean(_)) {
-            return Err({ kind: Scalar(InvalidOperand), expression: expr, })
-          }
-          if release(frame.current_root) is Some(e) {
-            return Err({ kind: LogicalValue(e), expression: expr, })
+          let selected = match
+            expression_event_choice(
+              logical_work,
+              expr,
+              value,
+              frame.current_root,
+            ) {
+            Ok(selected) => selected
+            Err(issue) => return Err(issue)
           }
           frame.current_root = None
           frame.stack.push(Forward(expr))
-          frame.state = Enter(if value is Boolean(true) { yes } else { no })
+          frame.state = Enter(if selected { yes } else { no })
         }
         Many(expr, op, children, index, previous, previous_root) => {
           frame.active = expr

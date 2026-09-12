@@ -39,3 +39,25 @@ not fall back after an execution error or exhausted budget.
 Frames carry no wire identity and do not change checked expressions, semantic
 contracts, Program admission or publication. The enclosing operation retains
 failure atomicity regardless of whether its private computation is suspended.
+
+## Shared semantic events
+
+Frame transitions and a bounded alternative kernel can share entry charging,
+operand consumption, scalar binary operations, condition selection, result-root
+retention and release through package-private expression events. These events
+run before the corresponding construction or selection; they are not a replay
+of accounting after computation. Condition selection consumes and releases its
+condition before the chosen child is evaluated. Forwarding a chosen result
+preserves its root and the existing consumption charges.
+
+The enclosing row lifetime has a separate shared event: retain the complete
+output root, release produced slots, then release the input root. A physical
+output builder follows this event. Replacing the builder or typed slot storage
+does not move the logical release boundary or make pending output public.
+
+An alternative strategy must declare its complete supported operation before
+running it. Unsupported shapes select the ordinary evaluator before input
+evaluation. Neither a value error nor a resource error permits retry through
+another strategy. Typed slot storage and branch masks do not imply speculative
+or parallel evaluation: retaining canonical row/slot scheduling is a valid
+bounded implementation and avoids choosing failures after the fact.
