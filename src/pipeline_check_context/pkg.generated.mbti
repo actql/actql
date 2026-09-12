@@ -828,6 +828,7 @@ pub(all) enum CoreContractBody {
   BoundTransferRules
   RelationCountRules
   JoinCountRules
+  WindowCountRules
 } derive(Eq, @debug.Debug)
 
 type CoreContractInventory
@@ -870,6 +871,7 @@ pub(all) enum CoreContractSite {
   OperationTransferRules(Int, Int, Int)
   OperationRelationCountRules(Int, Int, Int)
   OperationJoinCountRules(Int, Int, Int)
+  OperationWindowCountRules(Int, Int, Int)
 } derive(Eq, @debug.Debug)
 
 pub struct DedupeTopTieCheck {

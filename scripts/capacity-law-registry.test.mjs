@@ -4,6 +4,46 @@ import { readFileSync } from 'node:fs';
 import { machineCid } from './actql-spec-family.mjs';
 import { validateRegistry, loadRegistry, renderRegistry, renderGuardLaws } from './capacity-law-registry.mjs';
 
+test('window count semantics and independent membership bounds are pinned', () => {
+  const path = 'spec/contracts/actql-bound-window-laws.json';
+  const body = JSON.parse(readFileSync(new URL(`../${path}`, import.meta.url), 'utf8'));
+  const cid = 'sha256:a5045688150b6b5aaf0c992b2e528ba3b5f1dd49e0db14e5673c9515af82ac3a';
+  assert.equal(machineCid(body), cid);
+  for (const law of body.law_ids) assert.ok(loadRegistry().body.law_ids.includes(law));
+  const family = JSON.parse(readFileSync(new URL('../spec/spec-family.json', import.meta.url), 'utf8'));
+  assert.ok(family.documents.flatMap(d => d.machine_contracts ?? []).some(r => r.path === path && r.pointer === '' && r.cid === cid && r.version === body.version));
+  const implementation = readFileSync(new URL('../src/pipeline_check_context/core_contracts.mbt', import.meta.url), 'utf8');
+  assert.ok(implementation.replace(/\s+/g, ' ').includes(`WindowCountRules => "${cid}"`));
+  const corpus = JSON.parse(readFileSync(new URL('../portability/corpus/bound-window.json', import.meta.url), 'utf8'));
+  assert.equal(corpus.version, 'actql-bound-window-vectors/0.1');
+  for (const v of corpus.cases) {
+    const valid = Number.isSafeInteger(v.size) && v.size > 0 && Number.isSafeInteger(v.offset)
+      && (v.step === null ? v.kind === 'fixed' : Number.isSafeInteger(v.step) && v.step > 0);
+    if (!valid) { assert.equal(v.error, 'InvalidOption'); continue; }
+    const size = BigInt(v.size), step = BigInt(v.step ?? v.size);
+    const factor = v.kind === 'fixed' ? 1n : (size + step - 1n) / step;
+    const n = BigInt(v.input) * factor;
+    if (n > 9007199254740991n) assert.equal(v.error, 'Overflow');
+    else { assert.equal(v.error, undefined); assert.equal(n, BigInt(v.expected)); }
+  }
+  // Independently enumerate closed-open memberships across negative and positive
+  // grids; the maximum must attain, and never exceed, the proposed multiplier.
+  for (let size = 1; size <= 12; size++) for (let step = 1; step <= 12; step++) {
+    for (let offset = -3; offset <= 3; offset++) {
+      let peak = 0;
+      for (let t = -24; t <= 24; t++) {
+        let count = 0;
+        for (let n = -50; n <= 50; n++) {
+          const start = offset + n * step;
+          if (start <= t && t < start + size) count++;
+        }
+        peak = Math.max(peak, count);
+      }
+      assert.equal(peak, Math.ceil(size / step));
+    }
+  }
+});
+
 test('join count body is pinned and selected by the compiler', () => {
   const path = 'spec/contracts/actql-bound-join-laws.json';
   const body = JSON.parse(readFileSync(new URL(`../${path}`, import.meta.url), 'utf8'));

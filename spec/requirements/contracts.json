@@ -377,6 +377,28 @@
       }
     },
     {
+      "requirement_id": "actql.protocol.contracts/capacity-law-registry.window-count-body",
+      "statement_sha256": "1de909f8a7ce4e41874a63353295f6169eef523d17214691afd9fe471581cb14",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "capacity-law-registry",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/capacity-law-registry.window-count-machine",
+      "statement_sha256": "abae949ae95b0d8361bf8e0d8d332e7955671e0e1c3ee3cbfa988033c907698b",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "capacity-law-registry",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.protocol.contracts/capacity-law-registry.machine-contract",
       "statement_sha256": "3eb19674a2ae4af13d47839a6647794e8a3ff2f97131633aa856660eeeed8864",
       "status": "pending",

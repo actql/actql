@@ -367,6 +367,18 @@ bounds do not establish acquisition completeness or bound search work.
 ../../../spec/contracts/actql-bound-join-laws.json# sha256:75f9c5ce5188d28a2e3b42213e0fb3a479475c06e280eb02ef7b001a355d1600
 ```
 
+<!-- requirement-block: capacity-law-registry.window-count-body capacity-law-registry.window-count-machine -->
+The pinned `actql-bound-window-laws/0.1` body governs fixed and sliding
+membership count transfers for Relation and Events windows. Applications MUST
+validate bound options, retain Carrier and input ownership, and reject unsafe
+arithmetic. Fixed windows retain explicit step validation even though their
+multiplier is one; count evidence does not establish order or acquisition completeness.
+
+<!-- normative-code: law -->
+```text
+../../../spec/contracts/actql-bound-window-laws.json# sha256:a5045688150b6b5aaf0c992b2e528ba3b5f1dd49e0db14e5673c9515af82ac3a
+```
+
 <!-- requirement-block: capacity-law-registry.machine-contract -->
 <!-- normative-code: law -->
 ```text

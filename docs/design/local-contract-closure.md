@@ -224,6 +224,15 @@ uniqueness refinements, not the truth of a cardinality assertion or acquisition
 completeness. Its law names are not external dependency edges. Concrete bounds
 and validation evidence remain applications rather than contract-set members.
 
+Window occurrences select `spec/contracts/actql-bound-window-laws.json`, pointer
+`""`, with CID
+`sha256:a5045688150b6b5aaf0c992b2e528ba3b5f1dd49e0db14e5673c9515af82ac3a`.
+The common body governs fixed/sliding multipliers for both accepted Carriers;
+the selected operation retains its actual Carrier and source occurrence. Fixed
+step validation is not erased because the multiplier is one. Concrete bound
+values and their admission dependencies are not inserted into the contract set.
+This body has no external contract-reference fields.
+
 The existing exhaustive operation-profile classification also exposes adopted
 AoA law roots: RelA scalar/primitive laws, SGA structural/identity laws, and VecA
 numerical laws. Reads from an `OperationProfileResolution` retain the same owned

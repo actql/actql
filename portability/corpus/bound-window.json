@@ -1,0 +1,17 @@
+{
+  "version": "actql-bound-window-vectors/0.1",
+  "cases": [
+    {"kind":"fixed","input":3,"size":10,"step":null,"offset":0,"expected":3},
+    {"kind":"fixed","input":3,"size":10,"step":3,"offset":-7,"expected":3},
+    {"kind":"fixed","input":0,"size":10,"step":0,"offset":0,"error":"InvalidOption"},
+    {"kind":"fixed","input":0,"size":10,"step":-1,"offset":0,"error":"InvalidOption"},
+    {"kind":"sliding","input":3,"size":10,"step":3,"offset":0,"expected":12},
+    {"kind":"sliding","input":3,"size":10,"step":5,"offset":10,"expected":6},
+    {"kind":"sliding","input":3,"size":3,"step":10,"offset":-10,"expected":3},
+    {"kind":"sliding","input":0,"size":9007199254740991,"step":1,"offset":0,"expected":0},
+    {"kind":"sliding","input":1,"size":9007199254740991,"step":9007199254740991,"offset":0,"expected":1},
+    {"kind":"sliding","input":2,"size":9007199254740991,"step":1,"offset":0,"error":"Overflow"},
+    {"kind":"sliding","input":0,"size":10,"step":null,"offset":0,"error":"InvalidOption"},
+    {"kind":"fixed","input":1,"size":0,"step":null,"offset":0,"error":"InvalidOption"}
+  ]
+}

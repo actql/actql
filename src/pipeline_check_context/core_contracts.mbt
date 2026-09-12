@@ -34,6 +34,7 @@ pub(all) enum CoreContractBody {
   BoundTransferRules
   RelationCountRules
   JoinCountRules
+  WindowCountRules
 } derive(Eq, Debug)
 
 ///|
@@ -50,6 +51,7 @@ pub(all) enum CoreContractSite {
   OperationTransferRules(Int, Int, Int)
   OperationRelationCountRules(Int, Int, Int)
   OperationJoinCountRules(Int, Int, Int)
+  OperationWindowCountRules(Int, Int, Int)
 } derive(Eq, Debug)
 
 ///|
@@ -329,6 +331,13 @@ pub fn collect_core_contracts(
               )
             _ => ()
           }
+          if operation is @pipeline.Window(_) {
+            core_contract_root(
+              b,
+              OperationWindowCountRules(stage, visit, step),
+              WindowCountRules,
+            )
+          }
           for profile in 0..<@pipeline.operation_profile_count(operation) {
             core_contract_charge(b)
             let p = @pipeline.operation_profile_at(operation, profile).unwrap()
@@ -401,7 +410,8 @@ pub fn collect_core_contracts(
         ValuesCountLaw
         | BoundTransferRules
         | RelationCountRules
-        | JoinCountRules => ()
+        | JoinCountRules
+        | WindowCountRules => ()
         CatalogGrammarBody(body) =>
           for edge in 0..<@environment.catalog_grammar_dependency_count(body) {
             core_contract_edge(b)
@@ -498,6 +508,8 @@ pub fn core_contract_cid(v : CoreContractBody) -> String {
       "sha256:163a0d75d56310803ac755d5f4f02069f442651711209037d6e3f512954c97ab"
     JoinCountRules =>
       "sha256:75f9c5ce5188d28a2e3b42213e0fb3a479475c06e280eb02ef7b001a355d1600"
+    WindowCountRules =>
+      "sha256:a5045688150b6b5aaf0c992b2e528ba3b5f1dd49e0db14e5673c9515af82ac3a"
   }
 }
 

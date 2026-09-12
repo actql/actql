@@ -1301,6 +1301,18 @@ test "contract spec/contracts/actql-bound-values-law.json#" {
 }
 
 ///|
+test "contract spec/contracts/actql-bound-window-laws.json#" {
+  let input = @json.parse([
+    "{\"version\":\"actql-bound-window-laws/0.1\",\"law_ids\":[\"actql.bound.row-window\",\"actql.bound.window-events\"],\"application\":\"row_window applies to Relation row occurrences; window_events applies to Events occurrences. Retain the checked Carrier, actual input occurrence, count dependency and governing law. Equal numeric bounds do not permit substituting another producer or Carrier.\",\"options\":\"Resolve size, any supplied step and offset under their declared millisecond domains before applying the bound. Size and supplied step are positive safe integers; offset is a signed safe integer. Duration Parameters use their admitted millisecond value. Missing bindings or invalid values remain failures even when an option does not change the multiplier.\",\"fixed\":\"The multiplier is 1. An explicit step is validated and retained but does not participate in boundaries, memberships or the bound. An omitted step is not inserted.\",\"sliding\":\"Step is required. The multiplier is ceil(size / step), computed exactly as quotient plus on",
+    "e when the remainder is nonzero. Closed-open membership and the offset grid imply at most this many memberships per input occurrence, including when step exceeds size.\",\"bound\":\"Multiply the applicable input occurrence upper bound by the multiplier using exact nonnegative safe-integer arithmetic. Reject overflow without rounding or saturation. Unknown input bounds are not zero. A zero input bound gives zero memberships but does not waive option validation.\",\"identity_and_order\":\"Offset is not reduced modulo the grid for identity. Retain authored options and Parameter dependencies. Membership occurrences preserve input logical order then ascending window start; this bound neither establishes input order nor proves ID uniqueness or window-role evidence after a later projection.\",\"conditionality\":\"The bound is conditional on operation success. Boundary arithmetic, input value validation and resource enforcement remain required. It does not prove acquisition completeness, authorize execution or permit truncation.",
+    "\"}",
+  ].join(""))
+  let value = @canonical_json.from_json(input, 12, 2, 2050)
+  assert_eq(@canonical_json.cid_value(value, 2050, 12, 2), "sha256:a5045688150b6b5aaf0c992b2e528ba3b5f1dd49e0db14e5673c9515af82ac3a")
+  assert_eq(@canonical_json.measure_value(value, 2050, 12, 2), 2050)
+}
+
+///|
 test "contract spec/contracts/actql-bound-join-laws.json#" {
   let input = @json.parse([
     "{\"version\":\"actql-bound-join-laws/0.1\",\"unit\":\"rows\",\"law_ids\":[\"actql.bound.join-output\",\"actql.bound.asof-left\"],\"inputs\":\"L and R are nonnegative safe-integer upper bounds for the actual ordered left and right input occurrences of the checked operation. Repeated producers retain separate occurrences. Unknown counts are not zero. A numeric equality does not establish producer or quantity correspondence.\",\"unrefined\":{\"inner\":\"L * R\",\"cross_join\":\"L * R; a right_rows: one assertion is not permission to discard extra rows and remains subject to validation\",\"left\":\"L * max(1, R)\",\"full\":\"R if L = 0; L if R = 0; L + R if L = 1 or R = 1; otherwise L * R\",\"semi\":\"0 if R = 0; otherwise L\",\"anti\":\"L\",\"asof\":\"L, including unmatched left rows; no right count proof is required for this output bound\"},\"unique_refinement\":{\"eligibility\":\"Use only applicable checked join-key uniqueness evidence or a retained cardinality assertion with its required validation. At least one side must be unique. Equal row types, repeated co",
