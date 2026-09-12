@@ -126,6 +126,10 @@ pub fn contextual_closure_steps(ContextualClosure) -> Int
 
 pub fn contextual_closure_usage(ContextualClosure) -> (Int, Int)
 
+pub fn contextual_order_at(ContextualOrders, Int, Int) -> ContextualOrder?
+
+pub fn contextual_order_count(ContextualOrders, Int) -> Int?
+
 pub fn contextual_orders_at(ContextualOrders, Int) -> Array[ContextualOrder]?
 
 pub fn contextual_orders_count(ContextualOrders) -> Int
@@ -221,6 +225,8 @@ pub fn operation_obligations_at(OperationObligations, Int) -> OperationObligatio
 pub fn operation_obligations_count(OperationObligations) -> Int
 
 pub fn operation_obligations_scope(OperationObligations) -> OperationObligationScope
+
+pub fn operation_order_demand(OperationObligation) -> OperationOrderDemand?
 
 pub fn operation_profile_at(CheckedOperation, Int) -> OperationProfile?
 
@@ -655,6 +661,15 @@ pub(all) enum OperationObligationScope {
 } derive(Eq, @debug.Debug)
 
 type OperationObligations
+
+pub(all) enum OperationOrderDemand {
+  CompleteOrder
+  StableSequence
+  LagKey
+  PrefixSequence
+  AnalyticPositions
+  NestedRows
+} derive(Eq, @debug.Debug)
 
 pub(all) enum OperationProfile {
   RelA

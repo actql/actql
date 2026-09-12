@@ -629,6 +629,39 @@ pipeline, obligation or identity, so a same-shaped foreign producer cannot be
 attached through this boundary. Resolution remains a subsequent obligation:
 the inventory is not a completed operation closure or an executable Program.
 
+### Contextual order links
+
+`link_program_operation_orders` consumes the owned inventory and attaches the
+existing contextual resolution to each applicable order requirement. It selects
+the original stage's producer visit and checks the exact pipeline owner before
+reading local step resolutions. It never calls a key or order resolver again,
+accepts an independent proof array, or substitutes an equal-looking producer.
+The result retains the complete inventory, including requirements outside this
+pass, and exposes the original occurrence index and resolution through indexed
+reads.
+
+The explicit demand classification separates authored sort/top-k/group-local
+completion, take or pivot's stable sequence, lag key completion, prefix watermark
+input order, analytic positions and nest's child order. Sort retains its chosen
+candidate-key or inherited-tie strategy. Group requirements share the completed
+group-order owner, which retains each individual aggregate resolution; they do
+not acquire a group-output order. Analytic peer ordering and runtime top-tie
+checks are not position completion and are not discharged by these links.
+
+The underlying contextual resolver must already have resolved all its consumers,
+including unused branches. A required strategy missing from that same step is
+an error, not a runtime fallback. Incompatible multiple strategies are not
+silently chosen. Empty sort produces no order requirement or new proof.
+Conditional key validation, inherited-witness dependencies and runtime
+enforcement remain attached to the retained resolution.
+
+The work limit includes the original inventory and a charged pass over its
+entries. A step's resolution list is indexed once into bounded strategy slots
+before linking any repeated aggregate requirements; collection is linear rather
+than rescanning that list for each requirement. Retained-link limits are checked
+before allocation. This pass links contextual order decisions only, not the
+remaining value, capacity, profile, policy or runtime implementation obligations.
+
 Expression closure does not discharge operation-level obligations, bind
 authored guard witness identities, build staged Program/import contracts, or
 complete local Unit/Invocation identity projections. Source Program and stage

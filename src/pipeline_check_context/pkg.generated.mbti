@@ -150,7 +150,17 @@ pub fn like_pattern_source(LikePatternResolution) -> String
 
 pub fn like_pattern_usage(LikePatternChecks) -> LikePatternUsage
 
+pub fn link_program_operation_orders(ProgramOperationRequirements, Int, Int) -> Result[ProgramOperationOrders, OperationOrderIssue]
+
 pub fn local_inputs_at(InputContexts, Int) -> @stage_local_inputs.Attached?
+
+pub fn operation_order_link_at(ProgramOperationOrders, Int) -> OperationOrderLink?
+
+pub fn operation_orders_count(ProgramOperationOrders) -> Int
+
+pub fn operation_orders_requirements(ProgramOperationOrders) -> ProgramOperationRequirements
+
+pub fn operation_orders_work(ProgramOperationOrders) -> Int
 
 pub fn operation_profiles_count(OperationProfileChecks) -> Int
 
@@ -510,6 +520,20 @@ pub(all) struct Limits {
   max_text_bytes : Int
 }
 
+pub(all) enum OperationOrderIssue {
+  InvalidLimits
+  BudgetExceeded
+  ForeignOwner(Int)
+  MissingResolution(Int, @pipeline_typing.OperationOrderDemand)
+  AmbiguousResolution(Int)
+} derive(Eq, @debug.Debug)
+
+pub struct OperationOrderLink {
+  requirement_index : Int
+  site : OperationRequirementSite
+  resolution : @pipeline_typing.ContextualOrder
+}
+
 type OperationProfileChecks
 
 pub(all) enum OperationProfilesIssue {
@@ -621,6 +645,8 @@ pub(all) enum ProgramIdentityPhase {
   Definition
   ParameterValues
 } derive(Eq, @debug.Debug)
+
+type ProgramOperationOrders
 
 type ProgramOperationRequirements
 

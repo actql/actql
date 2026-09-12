@@ -150,6 +150,23 @@ pub fn contextual_orders_at(
 }
 
 ///|
+/// Number of retained resolutions for a local step, without copying its array.
+/// Invalid steps return None; a valid step without an order consumer returns 0.
+pub fn contextual_order_count(v : ContextualOrders, step : Int) -> Int? {
+  v.entries.get(step).map(entries => entries.length())
+}
+
+///|
+/// O(1); preserves the resolved handle and its conditional dependencies.
+pub fn contextual_order_at(
+  v : ContextualOrders,
+  step : Int,
+  index : Int,
+) -> ContextualOrder? {
+  v.entries.get(step).bind(entries => entries.get(index))
+}
+
+///|
 pub fn contextual_orders_usage(v : ContextualOrders) -> (Int, Int) {
   (v.work, v.text)
 }
