@@ -25,6 +25,7 @@ import {
   "actql/actql/relation_typing",
   "actql/actql/relation_values",
   "actql/actql/source_request_slots",
+  "actql/actql/sourceview_input",
   "actql/actql/sourceview_resolution",
   "actql/actql/stage_local_inputs",
   "actql/actql/stage_parameters",
@@ -491,6 +492,8 @@ pub fn prepare_program_references(OperationProfileChecks, @stage_source.Limits, 
 pub fn prepare_program_source_identity(OperationProfileChecks, SourcePreparationLimits) -> Result[ProgramSourceIdentity, SourcePreparationIssue]
 
 pub fn prepare_program_sources(SelectedPolicyContext, Array[Array[@capacity_program_step.TargetRows]], Array[Array[(Int, Int)]], @sourceview_resolution.RequestLimits, max_bindings~ : Int, max_slots~ : Int) -> Result[SourceProducerContext, PrepareSourcesIssue]
+
+pub fn prepare_source_registrations(@stage_parameters.Source, @check_environment.SourceRequestContracts, @stage_local_inputs.Limits, max_inputs~ : Int, max_views~ : Int, max_order_keys~ : Int) -> Result[(@sourceview_resolution.PipelineInputs, @stage_local_inputs.ProgramEnvironmentInputs), SourceRegistrationIssue]
 
 pub fn program_identity_definition(ProgramSourceIdentity) -> @program_references.ProgramDefinition
 
@@ -1810,6 +1813,14 @@ pub enum SourceProducerIssue {
   JoinCountMismatch(Int)
   BudgetExceeded
   Membership(Int, Int, @capacity_graph_preflight.TargetMembershipIssue)
+}
+
+pub enum SourceRegistrationIssue {
+  InvalidLimits
+  Declarations(@sourceview_input.Issue)
+  Selection(@sourceview_resolution.Issue)
+  Registration(@sourceview_resolution.PipelineIssue)
+  LocalInputs(@stage_local_inputs.PrepareEnvironmentIssue)
 }
 
 type SourceRequestContexts

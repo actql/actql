@@ -89,6 +89,21 @@ Catalog contracts or provide SourceView type, acquisition or capacity evidence;
 the separate SourceView registration/request checks remain mandatory. Supplied
 Local snapshots targeting connector slots are still rejected, not ignored.
 
+`pipeline_check_context.prepare_source_registrations` constructs this partition
+from one declaration Source and an admitted Source-request Catalog. It performs
+selection and type-only SourceView registration, then derives the Environment
+from that same Catalog owner for Local snapshot preparation. No second
+Environment or caller-assembled selection is accepted. The return value is the
+existing pair of SourceView and Local registrations, whose exact owners remain
+available for later pipeline/input correspondence checks; it is not an additional
+static-closure certificate. Collection and selection are already included in
+SourceView registration usage, and Local preparation receives only the remaining
+work allowance under its existing pass-accounting conventions. Local node/text
+limits and SourceView input/view/order-key limits remain explicit. Catalog and
+Environment admission precede this boundary; request/Parameter validation,
+acquisition, capacity and execution obligations still follow it. A later Local
+snapshot failure returns neither registration branch.
+
 The resulting `environment_input_at` registrations must be selected before
 pipeline checking: snapshot evidence can refine types and conditional keys.
 Attaching them to an already checked pipeline is not a substitute for using

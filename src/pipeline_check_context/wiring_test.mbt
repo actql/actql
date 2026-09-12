@@ -103,30 +103,50 @@ fn wired_inputs_fixture(
   } else {
     snapshot_wire(profile~)
   }
-  let remote_inputs = match remote {
-    None => None
-    Some(out) => {
-      let inputs = @source_inputs.collect(source, {
-        max_work: 100000,
-        max_order_keys: 100,
-      }).unwrap()
-      let resolved = @sourceviews.resolve(
-        inputs,
-        sourceview_catalog(environment),
-        { max_work: 1000000, max_inputs: 100, max_views: 100, },
-      ).unwrap()
-      let prepared = @sourceviews.prepare_pipeline_inputs(resolved, 1000000).unwrap()
-      out.push(prepared)
-      Some(prepared)
-    }
-  }
   let local_limits : @local_inputs.Limits = {
     max_work: 100000,
     max_nodes: 10000,
     max_depth: 100,
     max_text_bytes: 100000,
   }
-  let coverage = if use_snapshots {
+  let registrations = if use_snapshots && remote is Some(_) {
+    Some(
+      prepare_source_registrations(
+        source,
+        sourceview_catalog(environment),
+        local_limits,
+        max_inputs=100,
+        max_views=100,
+        max_order_keys=100,
+      ).unwrap(),
+    )
+  } else {
+    None
+  }
+  let remote_inputs = match remote {
+    None => None
+    Some(out) =>
+      if registrations is Some((views, _)) {
+        out.push(views)
+        Some(views)
+      } else {
+        let inputs = @source_inputs.collect(source, {
+          max_work: 100000,
+          max_order_keys: 100,
+        }).unwrap()
+        let resolved = @sourceviews.resolve(
+          inputs,
+          sourceview_catalog(environment),
+          { max_work: 1000000, max_inputs: 100, max_views: 100, },
+        ).unwrap()
+        let prepared = @sourceviews.prepare_pipeline_inputs(resolved, 1000000).unwrap()
+        out.push(prepared)
+        Some(prepared)
+      }
+  }
+  let coverage = if registrations is Some((_, locals)) {
+    Some(locals)
+  } else if use_snapshots {
     Some(
       @local_inputs.prepare_environment(
         source,
