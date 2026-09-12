@@ -18,6 +18,7 @@ priv enum LayoutColumn {
 priv enum LayoutStorageBody {
   RowArrays(Array[Array[Value]])
   ColumnArrays(Array[LayoutColumn])
+  OwnedColumnArrays(Array[LayoutOwnedBuffer[LayoutColumn]])
 }
 
 ///|
@@ -51,6 +52,7 @@ impl IndexedRows for LayoutStorage with fn read_cell(self, row, column) {
 
 ///|
 priv struct LayoutAllocation {
+  ledger : LayoutLedger?
   slots : RowWorkspace
   // Nominal typed element bytes only, not allocator headers or process RSS.
   // In JS numeric storage is an ordinary numeric array, not Float64Array.
@@ -185,24 +187,32 @@ fn layout_cell(input : LayoutStorage, row : Int, column : Int) -> Value? {
   Some(
     match input.body {
       RowArrays(rows) => rows[at][column]
-      ColumnArrays(columns) =>
-        match columns[column] {
-          Generic(values) => values[at]
-          Numeric(values, valid) =>
-            if valid[at] == 0 {
-              Null
-            } else {
-              Number(values[at])
-            }
-          Flags(values, valid) =>
-            if valid[at] == 0 {
-              Null
-            } else {
-              Boolean(values[at] != 0)
-            }
-        }
+      ColumnArrays(columns) => layout_column_cell(columns[column], at)
+      OwnedColumnArrays(columns) => {
+        guard columns[column].value is Some(value) else { return None }
+        layout_column_cell(value, at)
+      }
     },
   )
+}
+
+///|
+fn layout_column_cell(column : LayoutColumn, at : Int) -> Value {
+  match column {
+    Generic(values) => values[at]
+    Numeric(values, valid) =>
+      if valid[at] == 0 {
+        Null
+      } else {
+        Number(values[at])
+      }
+    Flags(values, valid) =>
+      if valid[at] == 0 {
+        Null
+      } else {
+        Boolean(values[at] != 0)
+      }
+  }
 }
 
 ///|
@@ -236,6 +246,24 @@ fn select_layout_rows(
           indices.map(i => input.selection.map(s => s[i]).unwrap_or(i)),
         ),
       })
+    OwnedColumnArrays(columns) => {
+      if !reserve_slots(b.slots, columns.length()) {
+        return Err(Limit)
+      }
+      let shared = match
+        share_layout_columns(columns, Array::makei(columns.length(), i => i), b) {
+        Ok(v) => v
+        Err(e) => return Err(e)
+      }
+      Ok({
+        ..input,
+        body: OwnedColumnArrays(shared),
+        count: indices.length(),
+        selection: Some(
+          indices.map(i => input.selection.map(s => s[i]).unwrap_or(i)),
+        ),
+      })
+    }
   }
 }
 
@@ -279,12 +307,23 @@ fn project_layout(
         body: ColumnArrays(ordinals.map(i => columns[i])),
         width: ordinals.length(),
       })
+    OwnedColumnArrays(columns) =>
+      match share_layout_columns(columns, ordinals, b) {
+        Ok(shared) =>
+          Ok({
+            ..input,
+            body: OwnedColumnArrays(shared),
+            width: ordinals.length(),
+          })
+        Err(e) => Err(e)
+      }
   }
 }
 
 ///|
 fn layout_allocation(slots : Int, bytes : Int, work : Int) -> LayoutAllocation {
   {
+    ledger: None,
     slots: { limit: slots, live: 0, peak: 0, },
     bytes: { limit: bytes, live: 0, peak: 0, },
     work: { remaining: work, max_frames: 0, },

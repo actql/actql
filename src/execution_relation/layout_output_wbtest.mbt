@@ -2,6 +2,7 @@
 // Mutable construction is invocation-local; finish seals it before publication.
 priv struct LayoutColumnBuilder {
   columns : Array[LayoutColumn]
+  owned : Array[LayoutOwnedBuffer[LayoutColumn]]?
   capacity : Int
   mut count : Int
   mut closed : Bool
@@ -52,16 +53,77 @@ fn layout_column_builder(
       return Err(RowLimit)
     }
   }
-  let columns = contracts.map(contract => {
-    if candidate == TypedColumns && contract.shape is @contract.Number {
-      Numeric(FixedArray::make(capacity, 0.0), FixedArray::make(capacity, 0))
-    } else if candidate == TypedColumns && contract.shape is @contract.Boolean {
-      Flags(FixedArray::make(capacity, 0), FixedArray::make(capacity, 0))
-    } else {
-      Generic(FixedArray::make(capacity, Null))
+  let columns : Array[LayoutColumn] = []
+  let owned : Array[LayoutOwnedBuffer[LayoutColumn]] = []
+  for contract in contracts {
+    let numeric = candidate == TypedColumns &&
+      contract.shape is @contract.Number
+    let flags = candidate == TypedColumns && contract.shape is @contract.Boolean
+    let build = fn() {
+      if numeric {
+        Numeric(FixedArray::make(capacity, 0.0), FixedArray::make(capacity, 0))
+      } else if flags {
+        Flags(FixedArray::make(capacity, 0), FixedArray::make(capacity, 0))
+      } else {
+        Generic(FixedArray::make(capacity, Null))
+      }
     }
+    if budget.ledger is Some(ledger) {
+      let unit = if numeric { 9 } else if flags { 2 } else { 0 }
+      let allocated = if unit > 0 && capacity > 2147483647 / unit {
+        Err(LayoutStorageIssue::Limit)
+      } else {
+        allocate_owned_layout_buffer(
+          ledger,
+          if unit == 0 {
+            capacity
+          } else {
+            1
+          },
+          capacity * unit,
+          build,
+        )
+      }
+      match allocated {
+        Ok(buffer) => {
+          owned.push(buffer)
+          columns.push(buffer.value.unwrap())
+        }
+        Err(_) => {
+          for buffer in owned {
+            ignore(release_owned_layout_buffer(ledger, buffer))
+          }
+          columns.clear()
+          return Err(RowLimit)
+        }
+      }
+    } else {
+      columns.push(build())
+    }
+  }
+  Ok({
+    columns,
+    owned: if budget.ledger is Some(_) {
+      Some(owned)
+    } else {
+      None
+    },
+    capacity,
+    count: 0,
+    closed: false,
+    budget,
   })
-  Ok({ columns, capacity, count: 0, closed: false, budget, })
+}
+
+///|
+fn abort_layout_columns(builder : LayoutColumnBuilder) -> Unit {
+  builder.closed = true
+  if builder.owned is Some(buffers) {
+    for buffer in buffers {
+      ignore(release_owned_layout_buffer(buffer.lease.buffer.ledger, buffer))
+    }
+    builder.columns.clear()
+  }
 }
 
 ///|
@@ -69,14 +131,16 @@ fn append_layout_row(
   builder : LayoutColumnBuilder,
   row : Array[Value],
 ) -> Result[Unit, RowIssue] {
-  if builder.closed ||
-    builder.count >= builder.capacity ||
+  if builder.closed {
+    return Err(InvalidRows)
+  }
+  if builder.count >= builder.capacity ||
     row.length() != builder.columns.length() {
-    builder.closed = true
+    abort_layout_columns(builder)
     return Err(InvalidRows)
   }
   if !spend_control(builder.budget.work, row.length()) {
-    builder.closed = true
+    abort_layout_columns(builder)
     return Err(RowLimit)
   }
   let at = builder.count
@@ -91,7 +155,7 @@ fn append_layout_row(
           }
           Null => ()
           Boolean(_) | Text(_) | Captured(_) => {
-            builder.closed = true
+            abort_layout_columns(builder)
             return Err(InvalidRows)
           }
         }
@@ -103,7 +167,7 @@ fn append_layout_row(
           }
           Null => ()
           Number(_) | Text(_) | Captured(_) => {
-            builder.closed = true
+            abort_layout_columns(builder)
             return Err(InvalidRows)
           }
         }
@@ -121,12 +185,15 @@ fn finish_layout_columns(
     return Err(InvalidRows)
   }
   builder.closed = true
-  Ok({
-    body: ColumnArrays(builder.columns),
-    width: builder.columns.length(),
-    count: builder.count,
-    selection: None,
-  })
+  let width = builder.columns.length()
+  let body = match builder.owned {
+    Some(buffers) => {
+      builder.columns.clear()
+      OwnedColumnArrays(buffers)
+    }
+    None => ColumnArrays(builder.columns)
+  }
+  Ok({ body, width, count: builder.count, selection: None, })
 }
 
 ///|
@@ -295,7 +362,12 @@ fn evaluate_layout_source(
       ordered_budget=logical,
     ) {
     Ok(names) => names
-    Err(issue) => return Err(issue)
+    Err(issue) => {
+      if builder is Some(b) {
+        abort_layout_columns(b)
+      }
+      return Err(issue)
+    }
   }
   let storage = if projection is Some(indices) {
     match project_layout(input.storage, indices, storage_budget) {
