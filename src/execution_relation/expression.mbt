@@ -31,6 +31,7 @@ priv enum EvalIssueKind {
   WorkspaceLimit
   MissingValue
   Scalar(ScalarIssue)
+  LogicalEntry(LogicalBudgetIssue)
 } derive(Eq, Debug)
 
 ///|
@@ -73,6 +74,7 @@ fn evaluate_expression_with_workspace(
   slots : Array[Value],
   budget : ControlBudget,
   workspace : RowWorkspace,
+  logical_entries? : LogicalBudget? = None,
 ) -> Result[Value, EvalIssue] {
   if budget.remaining < 0 ||
     budget.max_frames < 0 ||
@@ -92,6 +94,16 @@ fn evaluate_expression_with_workspace(
     match state {
       Enter(expr) => {
         active = expr
+        // This hook charges demanded expression entry only. Operand/produced
+        // value roots must be connected separately before ordered execution
+        // can claim the complete row-kernel resource contract.
+        if logical_entries is Some(logical) {
+          match charge_logical_work(logical, 1L) {
+            Ok(_) => ()
+            Err(issue) =>
+              return Err({ kind: LogicalEntry(issue), expression: expr, })
+          }
+        }
         // Ancestor views stay reserved while descendants evaluate.
         let entries = @lower.expression_view_entries(expr)
         if !reserve_slots(workspace, entries) {

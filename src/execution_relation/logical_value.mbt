@@ -10,7 +10,7 @@ priv enum LogicalMeasureIssue {
   LogicalWorkLimit
   HostMeasureLimit
   WireMeasureFailure
-}
+} derive(Eq, Debug)
 
 ///|
 /// The work allowance bounds logical occurrences, not interpreter instructions.

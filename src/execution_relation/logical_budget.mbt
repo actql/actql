@@ -36,7 +36,7 @@ priv enum LogicalBudgetIssue {
   LiveValueLimit
   InvalidRootLifetime
   ValueMeasure(LogicalMeasureIssue)
-}
+} derive(Eq, Debug)
 
 ///|
 fn logical_budget(

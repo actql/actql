@@ -103,6 +103,13 @@ occurrences are admitted before evaluation; row, binding and expression-entry
 charges are separate events. These helpers must be attached to the actual
 evaluator's continuations and row lifetimes, not merely exercised by a host.
 
+The evaluator's `logical_entries` hook charges at its existing `Enter` state,
+before entering a demanded expression. Consequently lazy branches do not add
+entry work, eager boolean operands do, and reuse of the budget across calls
+does not reset it. Failures retain the checked expression at which the charge
+was refused. The hook deliberately names its narrow responsibility: it is not
+the operand/production or live-root accounting required for ordered execution.
+
 Logical live roots may share physical storage. Conversely, logical byte limits
 do not cap physical heap overhead or algorithmic cost. Host resource controls
 remain necessary. Input validation precedes shadowing, and an eventual select
