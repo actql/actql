@@ -60,6 +60,7 @@ struct SourceViewRequestContract {
   reference : CatalogReference
   schema : @row.Schema
   correlation : SourceCorrelation?
+  batching : SourceBatching?
 }
 
 ///|
@@ -257,7 +258,17 @@ pub fn check_source_request_contracts(
           Some(read_source_correlation(source, schema, records, b))
         }
       }
-      let checked = { item: view.item, reference, schema, correlation, }
+      let batching = match @decode.lookup(acquisition, "batching") {
+        None => None
+        Some(body) => Some(read_source_batching(body, values, b))
+      }
+      let checked = {
+        item: view.item,
+        reference,
+        schema,
+        correlation,
+        batching,
+      }
       views.push(checked)
       by_view[member_index(view.item)] = checked
     }
@@ -328,6 +339,13 @@ pub fn source_request_correlation(
   v : SourceViewRequestContract,
 ) -> SourceCorrelation? {
   v.correlation
+}
+
+///|
+pub fn source_request_batching(
+  v : SourceViewRequestContract,
+) -> SourceBatching? {
+  v.batching
 }
 
 ///|

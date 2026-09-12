@@ -1,5 +1,18 @@
 # SourceView resolution
 
+Native batching is retained by the checked SourceView request contract as an
+optional `SourceBatching`. It resolves the request-key, batch-request and
+response-key roles from their exact Catalog reference occurrences and retains
+each admitted value contract and envelope. Prior shape admission checks the
+closed batching body and `preserves_per_key_semantics: true`; this declaration
+is not evidence that a backend has executed per-key semantics correctly.
+Absence is distinct from malformed presence. The declared positive integral
+`max_keys_per_request` is preserved without inventing a safe-integer ceiling;
+acquisition resolution must bound the selected batch size by the proven left
+row count before conversion to the barrier's bounded integer domain.
+This admission does not infer a batch wire layout from type shapes, coerce a
+single-key request into a batch, or issue a provider request.
+
 `pipeline_check_context.bind_source_policy` joins source request/left-row
 checks and selected Host policy at the exact same `ReconciledContexts` owner.
 Equal policy CIDs or equal Program contents cannot substitute for that owner.

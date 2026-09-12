@@ -11,12 +11,14 @@ fn request_carriers(
   kind? : String = "relation",
   acquisition? : String = "fetch",
   view_count? : Int = 1,
+  native_batch? : String? = None,
 ) -> CarrierSchemas raise {
   let bodies = value_bodies("{\"type\":\"number\",\"nullable\":false}")
   bodies["request_schema"] = request
   bodies["carrier_schema"] = response
   let contents = reference_fixture(
     complete_view=true,
+    native_batch~,
     carrier=kind,
     acquisition_kind=acquisition,
     view_count~,

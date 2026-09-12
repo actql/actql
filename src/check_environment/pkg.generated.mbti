@@ -208,6 +208,14 @@ pub fn resolve_catalog_contract(Catalog, String, String, String, String) -> Resu
 
 pub fn resolve_contract(ContractRegistry, String, String, String, String) -> Result[ContractEnvelope, ContractIssue]
 
+pub fn source_batching_contract(SourceBatching, SourceBatchRole) -> ProtocolValueContract
+
+pub fn source_batching_max_keys(SourceBatching) -> Double
+
+pub fn source_batching_reference(SourceBatching, SourceBatchRole) -> CatalogReference
+
+pub fn source_batching_source(SourceBatching) -> @decode_core.Cursor
+
 pub fn source_correlation_cardinality(SourceCorrelation) -> SourceCardinality
 
 pub fn source_correlation_identity_at(SourceCorrelation, Int) -> CorrelationRole?
@@ -227,6 +235,8 @@ pub fn source_lookup_facts(LookupCapacities, Member) -> SourceLookupFacts?
 pub fn source_lookup_reference(SourceLookupFacts) -> CatalogReference
 
 pub fn source_request_at(SourceRequestContracts, Int) -> SourceViewRequestContract?
+
+pub fn source_request_batching(SourceViewRequestContract) -> SourceBatching?
 
 pub fn source_request_carriers(SourceRequestContracts) -> CarrierSchemas
 
@@ -488,6 +498,14 @@ pub(all) enum Section {
   ContractRegistry
   ConnectorCatalogs
 } derive(Eq, @debug.Debug)
+
+pub(all) enum SourceBatchRole {
+  RequestKey
+  BatchRequest
+  ResponseKey
+} derive(Eq, @debug.Debug)
+
+type SourceBatching
 
 pub(all) enum SourceCardinality {
   ZeroOrOne

@@ -54,6 +54,7 @@ fn reference_fixture(
   unused_carrier? : Json? = None,
   unused_facts? : Json? = None,
   complete_view? : Bool = false,
+  native_batch? : String? = None,
   carrier? : String = "relation",
   acquisition_kind? : String = "scan",
   view_count? : Int = 1,
@@ -153,6 +154,12 @@ fn reference_fixture(
     guard value is Object(fields) else { abort("fixture") }
     let mut view_text =
       #|{"schema":"actql.source_view/0.1","connector_id":"example","connector_version":"external-7","resource_kind":"record","view_id":"main","view_version":"external","acquisition":{"kind":"scan","authority":"read_metadata","request_schema":"@request_schema","modes":[{"mode":"snapshot","bounded":true}],"default_mode":"snapshot"},"request_processing":{"mutates_business_state":false},"output":{"carrier":"@carrier","schema":"@carrier_schema","facts":"@carrier_facts","data_policy":"@data_policy"},"pushdown":{"contract":"@pushdown","operations":[]}}
+    if native_batch is Some(batch) {
+      view_text = view_text.replace(
+        old="\"modes\":",
+        new="\"batching\":" + batch + ",\"modes\":",
+      )
+    }
     for kind in kinds {
       view_text = view_text.replace(
         old="\"@" + kind + "\"",
