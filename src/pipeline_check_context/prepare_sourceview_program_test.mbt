@@ -69,6 +69,145 @@ test "selected SourceView registrations construct Stage pipelines and Result imp
   let identity = prepared_selected_identity(selected)
   assert_eq(program_identity_stage_count(identity), 2)
   let context_usage = selected_policy_usage(selected)
+  let assembled = prepare_sourceview_context(
+    views,
+    locals,
+    None,
+    materials,
+    limits,
+    context_caps,
+  ).unwrap()
+  let assembled_usage = selected_policy_usage(assembled)
+  assert_true(assembled_usage.work > context_usage.work)
+  assert_eq(assembled_usage.text_bytes, context_usage.text_bytes)
+  assert_true(
+    physical_equal(
+      reconciled_sourceviews(policy_context(assembled)).unwrap(),
+      views,
+    ),
+  )
+  assert_true(
+    physical_equal(
+      @stage_results.wiring_source(
+        result_wiring(reconciled_wiring(policy_context(assembled))),
+      ),
+      source,
+    ),
+  )
+  let assembled_caps = {
+    ..context_caps,
+    stages: {
+      ..context_caps.stages,
+      max_work: assembled_usage.work,
+      max_text_bytes: assembled_usage.text_bytes,
+    },
+  }
+  assert_true(
+    prepare_sourceview_context(
+      views,
+      locals,
+      None,
+      materials,
+      limits,
+      assembled_caps,
+    )
+    is Ok(_),
+  )
+  for
+    short in [
+      {
+        ..assembled_caps,
+        stages: { ..assembled_caps.stages, max_work: assembled_usage.work - 1, },
+      },
+      {
+        ..assembled_caps,
+        stages: { ..assembled_caps.stages, max_work: context_usage.work, },
+      },
+      {
+        ..assembled_caps,
+        stages: {
+          ..assembled_caps.stages,
+          max_text_bytes: assembled_usage.text_bytes - 1,
+        },
+      },
+    ] {
+    assert_true(
+      prepare_sourceview_context(views, locals, None, materials, limits, short)
+      is Err(_),
+    )
+  }
+  assert_true(
+    prepare_sourceview_context(
+      other_views,
+      locals,
+      None,
+      materials,
+      limits,
+      context_caps,
+    )
+    is Err(Program(ForeignPartition(0))),
+  )
+  assert_true(
+    prepare_sourceview_context(
+      views,
+      locals,
+      None,
+      [materials[0]],
+      limits,
+      context_caps,
+    )
+    is Err(Context(Stages(StageCount))),
+  )
+  let assembled_identity = prepared_selected_identity(assembled)
+  assert_eq(program_identity_stage_count(assembled_identity), 2)
+  assert_eq(
+    program_identity_definition_cid(assembled_identity),
+    program_identity_definition_cid(identity),
+  )
+  assert_eq(
+    program_identity_parameter_values_cid(assembled_identity),
+    program_identity_parameter_values_cid(identity),
+  )
+  assert_true(
+    prepare_sourceview_context(
+      views,
+      locals,
+      Some(cursor("{\"n\":\"bad\"}")),
+      materials,
+      limits,
+      context_caps,
+    )
+    is Err(Binding(_)),
+  )
+  let last = materials[1].length() - 1
+  let saved = materials[1][last]
+  materials[1][last] = {
+    sources: saved.sources,
+    consumers: [@capacity.Join(step=0, output=0)],
+  }
+  assert_true(
+    prepare_sourceview_context(
+      views,
+      locals,
+      None,
+      materials,
+      limits,
+      context_caps,
+    )
+    is Err(Context(Stages(Capacity(1, _, Join(0, WrongOperation))))),
+  )
+  materials[1][last] = saved
+  assert_true(
+    prepare_sourceview_context(
+      views,
+      locals,
+      None,
+      materials,
+      limits,
+      context_caps,
+    )
+    is Ok(_),
+  )
   let context_exact = {
     ..context_caps,
     stages: {

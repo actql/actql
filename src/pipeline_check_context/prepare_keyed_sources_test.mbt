@@ -127,11 +127,13 @@ fn prepared_keyed_source_context() -> SelectedPolicyContext raise {
       consumers: [@capacity.Join(step=1, output=0)],
     }
   }
-  prepare_local_context(
-    prepared,
+  prepare_sourceview_context(
+    views,
+    locals,
+    None,
     materials,
+    limits,
     local_context_limits(),
-    sourceviews=Some(views),
   ).unwrap()
 }
 

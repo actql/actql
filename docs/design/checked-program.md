@@ -118,6 +118,22 @@ Catalog admission. The owned wrapper supplies and validates that correspondence.
 This constructs topology, not effective Parameter bindings, source requests,
 complete semantic identities, obligation closure or execution permission.
 
+`prepare_sourceview_context` composes that owned topology preparation, Parameter
+binding and selected-context construction. It accepts the admitted SourceView
+and Local registration pair, supplied values and raw capacity material/consumer
+coordinates, not independent wiring, bound Parameters or successful capacity
+applications. All existing partition, source, Environment, policy and producer
+checks still run. A binding failure or a later Stage failure returns no context.
+
+Topology preparation privately reports its nonshared gathering/correspondence
+cost to this composition. The binder receives the remaining source work budget;
+context construction shares the retained registration cost once and adds the
+orchestration cost once to its reported usage. Source work/text ceilings are
+also bounded by the enclosing context ceilings before preparation starts.
+Equal semantic identities do not remove the cost of these additional passes.
+Earlier Catalog admission and the remaining formal Program closure are separate;
+this context is not an execution permission or an acquired SourceView result.
+
 `stage_results.bind_prepared_program` then binds supplied/default Parameter
 values against the declarations retained by that topology's exact Source and
 collects the original Stage operation/Result owners. It shares the same final

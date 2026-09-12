@@ -21,6 +21,23 @@ pub fn prepare_sourceview_program(
   (@stage_results.ResultWiring, @stage_results.LocalProgramUsage),
   SourceViewProgramIssue,
 ] {
+  match prepare_sourceview_program_internal(views, locals, limits) {
+    Ok((wiring, usage, _)) => Ok((wiring, usage))
+    Err(e) => Err(e)
+  }
+}
+
+///|
+// Retain nonshared orchestration cost for enclosing preparation. This is
+// computed here, never supplied by a caller as a claimed accounting adjustment.
+fn prepare_sourceview_program_internal(
+  views : @sourceviews.PipelineInputs,
+  locals : @local_inputs.ProgramEnvironmentInputs,
+  limits : @stage_results.LocalProgramLimits,
+) -> Result[
+  (@stage_results.ResultWiring, @stage_results.LocalProgramUsage, Int),
+  SourceViewProgramIssue,
+] {
   if limits.max_work < 0 ||
     limits.max_text_bytes < 0 ||
     limits.max_nodes < 0 ||
@@ -97,5 +114,6 @@ pub fn prepare_sourceview_program(
     }
     remaining -= @sourceviews.pipeline_attachment_work(checked) - shared
   }
-  Ok((wiring, { ..used, work: limits.max_work - remaining, }))
+  let work = limits.max_work - remaining
+  Ok((wiring, { ..used, work, }, work - used.work - prior))
 }

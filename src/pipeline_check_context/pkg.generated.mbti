@@ -497,6 +497,8 @@ pub fn prepare_program_sources(SelectedPolicyContext, Array[Array[@capacity_prog
 
 pub fn prepare_source_registrations(@stage_parameters.Source, @check_environment.SourceRequestContracts, @stage_local_inputs.Limits, max_inputs~ : Int, max_views~ : Int, max_order_keys~ : Int) -> Result[(@sourceview_resolution.PipelineInputs, @stage_local_inputs.ProgramEnvironmentInputs), SourceRegistrationIssue]
 
+pub fn prepare_sourceview_context(@sourceview_resolution.PipelineInputs, @stage_local_inputs.ProgramEnvironmentInputs, @decode_core.Cursor?, Array[Array[CapacityMaterial]], @stage_results.LocalProgramLimits, LocalContextLimits, proof_owners? : Array[Array[(Int, Int, Int)]]?, input_owners? : Array[Array[(Int, Int, Int, Int)]]?) -> Result[SelectedPolicyContext, SourceViewContextIssue]
+
 pub fn prepare_sourceview_program(@sourceview_resolution.PipelineInputs, @stage_local_inputs.ProgramEnvironmentInputs, @stage_results.LocalProgramLimits) -> Result[(@stage_results.ResultWiring, @stage_results.LocalProgramUsage), SourceViewProgramIssue]
 
 pub fn program_identity_definition(ProgramSourceIdentity) -> @program_references.ProgramDefinition
@@ -1853,6 +1855,13 @@ pub enum SourceRowsIssue {
   InvalidVisit(Int, Int)
   InvalidClaim(Int, Int)
   Target(Int, Int, @capacity_program_step.TargetRowsIssue)
+}
+
+pub enum SourceViewContextIssue {
+  InvalidLimits
+  Program(SourceViewProgramIssue)
+  Binding(@stage_results.LocalSourceIssue)
+  Context(LocalContextIssue)
 }
 
 pub enum SourceViewProgramIssue {
