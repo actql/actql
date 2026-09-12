@@ -68,6 +68,25 @@ parallel implementations of the rules. Its dependency order is:
    and application correspondence, and seal the result atomically. There is no
    alternate constructor that skips this final check.
 
+Local schema registrations can be prepared by
+`stage_local_inputs.prepare_environment` from the declaration owner and the
+integrity-checked Environment. It admits every supplied schema snapshot, assigns
+it to its source Stage, reconciles the declaration and verifies complete member
+coverage. Unused inputs are included; unknown targets and unsupported snapshot
+forms fail rather than being omitted. Member admission, per-Stage reconciliation
+and final assembly share aggregate work/node/text ceilings under the existing
+pass-usage conventions. Member decoding and subsequent semantic reconciliation
+are distinct charged passes; prior Environment-envelope integrity admission is
+outside this boundary.
+
+The resulting `environment_input_at` registrations must be selected before
+pipeline checking: snapshot evidence can refine types and conditional keys.
+Attaching them to an already checked pipeline is not a substitute for using
+those exact registrations at construction. Absent snapshots preserve available
+source evidence rather than inventing a schema or capacity proof. This Local
+snapshot boundary does not admit unrelated Catalog, policy, SourceView or Host
+claims and is not the formal CheckedProgram entry.
+
 This order is a dependency graph, not a requirement to reconstruct earlier
 results at every phase. Private incremental assembly can retain immutable
 intermediates. Public low-level helpers remain useful for focused tests, but

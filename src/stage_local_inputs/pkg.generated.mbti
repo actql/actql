@@ -52,6 +52,8 @@ pub fn input_environment(EnvironmentInputs) -> @check_environment.WireEnvironmen
 
 pub fn prepare(@stage_parameters.Source, Int, Limits, sourceviews? : @sourceview_input.Inputs?) -> Result[Prepared, Issue]
 
+pub fn prepare_environment(@stage_parameters.Source, @check_environment.WireEnvironment, Limits) -> Result[ProgramEnvironmentInputs, PrepareEnvironmentIssue]
+
 pub fn program_environment(ProgramEnvironmentInputs) -> @check_environment.WireEnvironment
 
 pub fn program_environment_stage(ProgramEnvironmentInputs, Int) -> EnvironmentInputs?
@@ -127,6 +129,17 @@ pub(all) struct Limits {
   max_nodes : Int
   max_depth : Int
   max_text_bytes : Int
+}
+
+pub enum PrepareEnvironmentIssue {
+  InvalidLimits
+  BudgetExceeded
+  Index(@stage_source_refs.Issue)
+  Snapshot(Int, @local_relation_snapshot.MembershipIssue)
+  UnknownStage(Int, String)
+  Stage(Int, Issue)
+  Environment(Int, EnvironmentIssue)
+  Collection(ProgramEnvironmentIssue)
 }
 
 type Prepared
