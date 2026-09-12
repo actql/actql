@@ -127,6 +127,8 @@ pub fn close_program_operations(ProgramOperationResolutionIndex, Int, Int) -> Re
 
 pub fn close_program_publications(ProgramIncomingLinks, Int, Int) -> Result[ProgramPublicationClosure, PublicationClosureIssue]
 
+pub fn close_stage_requirements(ProgramIncomingLinks, StageRequirementLimits) -> Result[StageRequirementClosure, StageRequirementIssue]
+
 pub fn collect_core_contracts(ProgramSourceIdentity, CoreContractLimits, profile_checks? : ProgramOperationCalendar?) -> Result[CoreContractInventory, CoreContractIssue]
 
 pub fn collect_program_incoming(ProgramSourceIdentity, IncomingLimits) -> Result[ProgramIncomingRequirements, IncomingIssue]
@@ -696,6 +698,18 @@ pub fn stage_identity_parameter_values_cid(StageSourceIdentity) -> String
 pub fn stage_operations(StageContexts) -> @stage_parameters.BoundOperations
 
 pub fn stage_policy(StageContexts) -> @capacity_policy.Policy
+
+pub fn stage_requirement_incoming(StageRequirementClosure) -> ProgramIncomingClosure
+
+pub fn stage_requirement_inputs(StageRequirementClosure) -> ProgramLocalInputClosure
+
+pub fn stage_requirement_operations(StageRequirementClosure) -> ProgramOperationClosure
+
+pub fn stage_requirement_owner(StageRequirementClosure) -> ProgramIncomingLinks
+
+pub fn stage_requirement_publications(StageRequirementClosure) -> ProgramPublicationClosure
+
+pub fn stage_requirement_usage(StageRequirementClosure) -> (Int, Int)
 
 pub fn stage_results(StageContexts) -> @stage_results.Checked
 
@@ -1773,6 +1787,23 @@ pub(all) enum StageIssue {
   ForeignPolicy(Int)
   BudgetExceeded(Int)
 } derive(Eq, @debug.Debug)
+
+type StageRequirementClosure
+
+pub enum StageRequirementIssue {
+  InvalidLimits
+  BudgetExceeded
+  Operations(OperationClosureIssue)
+  LocalInputs(LocalInputClosureIssue)
+  Incoming(IncomingClosureIssue)
+  Publications(PublicationClosureIssue)
+}
+
+pub(all) struct StageRequirementLimits {
+  max_work : Int
+  max_requirements : Int
+  max_local_inputs : Int
+}
 
 type StageSourceIdentity
 

@@ -310,6 +310,17 @@ Stage, Result and obligation visits share the prior Program work ceiling. This
 closes static order selection only: conditional input/key checks, output limits,
 materialization and successful publication still require their own enforcement.
 
+`close_stage_requirements` runs operation, Local-input, incoming-activation and
+publication-order closure internally from a single incoming-link owner. It does
+not accept independently closed branches. Shared preparation is counted once;
+each branch receives only the remaining work and disposition allowance. The
+disposition limit covers operation entries, Local execution checks, activation
+checks and publication entries together; Local input occurrences have their own
+additional bound. Failure in any later branch returns no combined closure.
+This staged closure is a component of CheckedProgram, not its substitute:
+SourceView/Host obligations, complete semantic identities and remaining runtime
+enforcement must also be connected at the formal constructor.
+
 An execution binding retains:
 
 - the protected typed subject: input, producer output, operation occurrence,
