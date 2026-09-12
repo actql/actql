@@ -88,12 +88,22 @@ operation-parameter contracts, serialized size or Program authorization.
 
 ## Execution boundaries
 
+`select`, `rename` and `drop` share the checked projection kernel and normative
+`REL.select` encoding. The checker owns simultaneous renaming, complete-shape
+expansion, output order and duplicate-drop handling; lowering consumes that
+mapping without resolving names again. Authored empty rename/drop operations
+still receive their own generated step IDs and execute, including on an empty
+schema supplied through an admitted input. This does not relax the separate
+authoring contract for `values`. Projection selection containers are private
+or defensive copies, and the common driver applies ownership, workspace,
+cumulative value/work limits and output publication to these operations.
+
 | Area | Execution responsibility | Boundary not implied by success |
 | --- | --- | --- |
 | Contract selection | Hash the selected registry and execution-contract bodies; consume the registered expression-fragment and ordered row-kernel contracts | Registry membership alone does not establish backend support |
 | Typed fragment admission | Generate request, machine graph, roots and evidence from the same checked owner; regenerate the complete candidate before runtime preparation | No arbitrary saved AoA JSON execution and no final Program Plan identity |
 | Parameters and explicit inputs | Reuse bound parameter ownership; admit supplied values and keys; distinguish exact completed producer bindings from raw captures | Computation success does not authenticate unrelated inherited metadata |
-| Four-operation execution | One driver executes values, map/ordered derive, filter and select, including unused branches and expressions | Retained output selection cannot prune required operations |
+| Projection and expression execution | One driver executes values, map/ordered derive, filter and select/rename/drop, including unused branches and expressions | Retained output selection cannot prune required operations |
 | Ordered derive | Use registered row-kernel params, source params and complete graph-step identity; enforce authored slot order and explicit logical limits | No split into relation-wide derives or unregistered replacement opcode |
 | Runtime resources | Explicit cumulative value/control budgets, operation workspace, live table slots and per-fragment logical budgets | Runtime counters are not static capacity evidence; container-entry accounting is not a process-heap meter |
 | Internal package API | Opaque generated sequences, runtime contexts, completed outputs and producer bindings; immutable output readers and detailed typed failures | Not a stable SDK, Run protocol, Host authorization or Result publication API |

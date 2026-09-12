@@ -120,10 +120,8 @@ fn classify(op : @pipeline.CheckedOperation) -> Payload? {
       match @relation.operation(v) {
         Derive => Some(Derive(v))
         Filter => Some(Where(v))
-        Select => Some(Select(v))
-        Rename
-        | Drop
-        | Sort
+        Select | Rename | Drop => Some(Select(v))
+        Sort
         | Take
         | Distinct
         | DedupeRows
