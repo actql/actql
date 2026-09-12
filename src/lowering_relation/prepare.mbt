@@ -28,6 +28,7 @@ pub enum Payload {
   Limit(@relation.CheckedOperation)
   Distinct(@relation.CheckedOperation)
   Dedupe(@relation.CheckedOperation)
+  Sort(@relation.CheckedOperation)
 }
 
 ///|
@@ -122,6 +123,7 @@ pub fn operation(value : PreparedNode) -> String {
     Limit(_) => "REL.limit"
     Distinct(_) => "REL.distinct"
     Dedupe(_) => "REL.dedupeRows"
+    Sort(_) => "REL.orderByStable"
   }
 }
 
@@ -137,8 +139,8 @@ fn classify(op : @pipeline.CheckedOperation) -> Payload? {
         Take => Some(Limit(v))
         Distinct => Some(Distinct(v))
         DedupeRows => Some(Dedupe(v))
-        Sort
-        | JsonPick
+        Sort => Some(Sort(v))
+        JsonPick
         | Unnest
         | AssertRows
         | Unpivot
@@ -244,6 +246,7 @@ pub fn prepare(
       Limit(_) => ("limit", 1)
       Distinct(_) => ("distinct", 1)
       Dedupe(_) => ("dedupe", 1)
+      Sort(_) => ("sort", 1)
     }
     let id = preferred + "_" + i.to_string()
     let projection_id = match payload {
@@ -276,8 +279,13 @@ pub fn prepare(
           Some(prefix)
         }
       }
-      Values(_) | Derive(_) | Where(_) | Select(_) | Limit(_) | Dedupe(_) =>
-        None
+      Values(_)
+      | Derive(_)
+      | Where(_)
+      | Select(_)
+      | Limit(_)
+      | Dedupe(_)
+      | Sort(_) => None
     }
     if used.contains(id) {
       return Err({ kind: IdentifierCollision, source: step.source, })

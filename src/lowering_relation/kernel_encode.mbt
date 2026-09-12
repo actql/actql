@@ -28,6 +28,7 @@ pub fn emit_kernel_node(
       Limit(_, _, _) => "REL.limit"
       DistinctRows => "REL.distinct"
       DedupeRows => "REL.dedupeRows"
+      StableSort(_) => "REL.orderByStable"
       OrderedBindings(_) => raise @encode.InvalidStructure
     },
   )
@@ -35,6 +36,22 @@ pub fn emit_kernel_node(
   @encode.begin_object(out)
   match kernel.body {
     DistinctRows => ()
+    StableSort(_) => {
+      @encode.key(out, "by")
+      @encode.begin_array(out)
+      for i = 0; i < kernel_sort_term_count(kernel); i = i + 1 {
+        let (field, descending, nulls_first) = kernel_sort_term_at(kernel, i).unwrap()
+        @encode.begin_object(out)
+        @encode.key(out, "dir")
+        @encode.string_value(out, if descending { "desc" } else { "asc" })
+        @encode.key(out, "field")
+        @encode.string_value(out, @schema.reference_name(field))
+        @encode.key(out, "nulls")
+        @encode.string_value(out, if nulls_first { "first" } else { "last" })
+        @encode.end_object(out)
+      }
+      @encode.end_array(out)
+    }
     DedupeRows => {
       @encode.key(out, "by")
       @encode.begin_array(out)

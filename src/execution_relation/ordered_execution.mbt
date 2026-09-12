@@ -80,7 +80,8 @@ fn prepare_ordered_budgets(
           | @lower.Select(_)
           | @lower.Limit(_, _, _)
           | @lower.DistinctRows
-          | @lower.DedupeRows => ()
+          | @lower.DedupeRows
+          | @lower.StableSort(_) => ()
         }
         release_slots(metadata, entries)
       }

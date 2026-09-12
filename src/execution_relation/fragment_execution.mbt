@@ -54,11 +54,20 @@ fn attach_fragment_budgets(
               return Err(MissingFragmentContext(i))
             }
           @lower.Select(_) | @lower.Limit(_, _, _) => ()
-          @lower.DedupeRows => {
+          @lower.DedupeRows | @lower.StableSort(_) => {
             let checked = @lower.kernel_checked(kernel)
             let schema = @relation.input_schema(checked)
-            let keys = @relation.dedupe_key_count(checked)
-            let terms = @relation.dedupe_order_count(checked)
+            let sorting = body is @lower.StableSort(_)
+            let keys = if sorting {
+              0
+            } else {
+              @relation.dedupe_key_count(checked)
+            }
+            let terms = if sorting {
+              @lower.kernel_sort_term_count(kernel)
+            } else {
+              @relation.dedupe_order_count(checked)
+            }
             if keys > control.remaining || terms > control.remaining - keys {
               return Err(InputLimit)
             }
@@ -66,7 +75,9 @@ fn attach_fragment_budgets(
               if !spend_control(control, 1) {
                 return Err(InputLimit)
               }
-              let name = if j < keys {
+              let name = if sorting {
+                @lower.kernel_sort_term_at(kernel, j).unwrap().0
+              } else if j < keys {
                 @relation.dedupe_key_at(checked, j).unwrap().field
               } else {
                 @relation.dedupe_order_at(checked, j - keys).unwrap().field

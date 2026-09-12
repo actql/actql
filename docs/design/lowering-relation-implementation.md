@@ -138,7 +138,7 @@ order, without claiming their source identities or physical budgets are equal.
 | Contract selection | Hash the selected registry and execution-contract bodies; consume the registered expression-fragment and ordered row-kernel contracts | Registry membership alone does not establish backend support |
 | Typed fragment admission | Generate request, machine graph, roots and evidence from the same checked owner; regenerate the complete candidate before runtime preparation | No arbitrary saved AoA JSON execution and no final Program Plan identity |
 | Parameters and explicit inputs | Reuse bound parameter ownership; admit supplied values and keys; distinguish exact completed producer bindings from raw captures | Computation success does not authenticate unrelated inherited metadata |
-| Projection, expression and selection execution | One driver executes values, map/ordered derive, filter, select/rename/drop and take with an existing logical order, including unused branches and expressions | Retained output selection cannot prune required operations; take needing a new key-completed order remains unsupported |
+| Projection, expression and selection execution | One driver executes values, map/ordered derive, filter, select/rename/drop, resolved stable sort, distinct/dedupe_rows and take with an existing logical order, including unused branches and expressions | Retained output selection cannot prune required operations; take needing a new key-completed order remains unsupported |
 | Ordered derive | Use registered row-kernel params, source params and complete graph-step identity; enforce authored slot order and explicit logical limits | No split into relation-wide derives or unregistered replacement opcode |
 | Runtime resources | Explicit cumulative value/control budgets, operation workspace, live table slots and per-fragment logical budgets | Runtime counters are not static capacity evidence; container-entry accounting is not a process-heap meter |
 | Internal package API | Opaque generated sequences, runtime contexts, completed outputs and producer bindings; immutable output readers and detailed typed failures | Not a stable SDK, Run protocol, Host authorization or Result publication API |
@@ -278,6 +278,16 @@ is released on success and all locally owned workspace is released on failure.
 Input rows remain unchanged. This helper does not resolve key completion or
 admit an AoA operation: its use requires the checked order strategy, validation
 of its evidence and the selected shared execution contract.
+
+The sequence sort adapter consumes the owned `SortOrder`: candidate completion
+appends only the compiler-selected fields, while an existing total witness adds
+no hidden terms. The latter depends on the actual completed producer when it
+crosses an input boundary; raw rows cannot stand in for that completion. An
+unresolved nonempty sort is a preparation failure. Empty sort emits an empty
+`by` array and retains input order without manufacturing a witness or removing
+the operation. Readiness checks only the selected comparison fields, leaving
+unrelated structured payload intact. Input layout resolution, merge scratch and
+output retention share the same invocation budgets as adjacent operations.
 
 Physical distinct detection uses the same scalar comparator to sort an index of
 the checked key columns, then marks the first occurrence of each equal tuple.

@@ -95,6 +95,10 @@ pub fn kernel_input(PreparedKernel) -> String
 
 pub fn kernel_owner(PreparedKernel) -> BoundPrepared
 
+pub fn kernel_sort_term_at(PreparedKernel, Int) -> (@relation_schema.FieldName, Bool, Bool)?
+
+pub fn kernel_sort_term_count(PreparedKernel) -> Int
+
 pub fn kernel_step(PreparedKernel) -> Int
 
 pub fn kernel_take(PreparedKernel) -> (Int64, Int64)?
@@ -317,6 +321,7 @@ pub enum KernelBody {
   Limit(Int64, Int64, @pipeline_typing.LogicalOrder)
   DistinctRows
   DedupeRows
+  StableSort(@pipeline_typing.SortOrder?)
 }
 
 pub(all) enum KernelIssue {
@@ -328,6 +333,7 @@ pub(all) enum KernelIssue {
   InvalidTakeCount
   PendingTakeOrder
   TakeKeyCompletionNotImplemented
+  PendingSortOrder
 }
 
 pub(all) struct Limits {
@@ -371,6 +377,7 @@ pub enum Payload {
   Limit(@relation_typing.CheckedOperation)
   Distinct(@relation_typing.CheckedOperation)
   Dedupe(@relation_typing.CheckedOperation)
+  Sort(@relation_typing.CheckedOperation)
 }
 
 type Prepared

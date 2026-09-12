@@ -87,7 +87,7 @@ pub fn emit_fragment_request(
         }
       }
     Filter(_) => ()
-    Select(_) | Limit(_, _, _) | DistinctRows | DedupeRows =>
+    Select(_) | Limit(_, _, _) | DistinctRows | DedupeRows | StableSort(_) =>
       raise @encode.InvalidStructure
   }
   if has_null {
@@ -103,8 +103,12 @@ pub fn emit_fragment_request(
             @contract.emit_checked(expression.contract, out)
           }
         }
-      Filter(_) | Select(_) | Limit(_, _, _) | DistinctRows | DedupeRows =>
-        raise @encode.InvalidStructure
+      Filter(_)
+      | Select(_)
+      | Limit(_, _, _)
+      | DistinctRows
+      | DedupeRows
+      | StableSort(_) => raise @encode.InvalidStructure
     }
     @encode.end_object(out)
     @encode.end_object(out)

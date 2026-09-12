@@ -18,6 +18,7 @@ pub enum KernelBody {
   Limit(Int64, Int64, @pipeline.LogicalOrder)
   DistinctRows
   DedupeRows
+  StableSort(@pipeline.SortOrder?)
 }
 
 ///|
@@ -30,6 +31,7 @@ pub(all) enum KernelIssue {
   InvalidTakeCount
   PendingTakeOrder
   TakeKeyCompletionNotImplemented
+  PendingSortOrder
 }
 
 ///|
@@ -62,7 +64,8 @@ pub fn kernel_take(kernel : PreparedKernel) -> (Int64, Int64)? {
     | Filter(_)
     | Select(_)
     | DistinctRows
-    | DedupeRows => None
+    | DedupeRows
+    | StableSort(_) => None
   }
 }
 
@@ -79,7 +82,8 @@ pub fn ordered_binding_at(
     | Select(_)
     | Limit(_, _, _)
     | DistinctRows
-    | DedupeRows => None
+    | DedupeRows
+    | StableSort(_) => None
   }
 }
 
@@ -93,6 +97,7 @@ pub fn kernel_body(kernel : PreparedKernel) -> KernelBody {
     Limit(count, offset, order) => Limit(count, offset, order)
     DistinctRows => DistinctRows
     DedupeRows => DedupeRows
+    StableSort(order) => StableSort(order)
   }
 }
 
@@ -102,7 +107,7 @@ pub fn kernel_view_entries(kernel : PreparedKernel) -> Int {
   match kernel.body {
     SnapshotMap(bindings) | OrderedBindings(bindings) => bindings.length()
     Select(fields) => fields.length()
-    Filter(_) | Limit(_, _, _) | DistinctRows | DedupeRows => 0
+    Filter(_) | Limit(_, _, _) | DistinctRows | DedupeRows | StableSort(_) => 0
   }
 }
 
@@ -149,7 +154,8 @@ fn prepare_kernel_measured(
     | Select(op)
     | Limit(op)
     | Distinct(op)
-    | Dedupe(op) => op
+    | Dedupe(op)
+    | Sort(op) => op
     Values(_) => return Err(MissingKernelNode)
   }
   if node.inputs.length() != 1 {
@@ -241,6 +247,54 @@ fn prepare_kernel_measured(
         DistinctRows
       }
     }
+    RowOperation if @relation.operation(checked) == @relation.Sort => {
+      let authored = @relation.sort_term_count(checked)
+      let resolution = if authored == 0 {
+        None
+      } else {
+        guard @pipeline.sort_order(owner.prepared.owner, step_index)
+          is Some(order) else {
+          return Err(PendingSortOrder)
+        }
+        Some(order)
+      }
+      let completion = resolution.bind(order => {
+        match @pipeline.sort_order_strategy(order) {
+          CandidateKey(key) => Some(key)
+          ExistingTotal(_) => None
+        }
+      })
+      let appended = completion
+        .map(@pipeline.sort_completion_count)
+        .unwrap_or(0)
+      if authored > max_bindings ||
+        appended > max_bindings - authored ||
+        authored > remaining.max_work ||
+        appended > remaining.max_work - authored {
+        return Err(KernelBudgetExceeded)
+      }
+      remaining = {
+        ..remaining,
+        max_work: remaining.max_work - authored - appended,
+      }
+      for i = 0; i < authored + appended; i = i + 1 {
+        let field = if i < authored {
+          @relation.sort_term_at(checked, i).unwrap().field
+        } else {
+          @pipeline.sort_completion_field(completion.unwrap(), i - authored).unwrap()
+        }
+        let name = @schema.reference_name(field)
+        if name.length() > names_remaining {
+          return Err(KernelBudgetExceeded)
+        }
+        let bytes = @utf8.encode(name).length()
+        if bytes > names_remaining {
+          return Err(KernelBudgetExceeded)
+        }
+        names_remaining -= bytes
+      }
+      StableSort(resolution)
+    }
     RowOperation if @relation.operation(checked) == @relation.DedupeRows => {
       let keys = @relation.dedupe_key_count(checked)
       let terms = @relation.dedupe_order_count(checked)
@@ -331,6 +385,16 @@ fn prepare_kernel_measured(
     Filter(_) => 1
     Select(fields) => fields.length()
     Limit(_, _, _) => 0
+    StableSort(resolution) =>
+      @relation.sort_term_count(checked) +
+      resolution
+      .map(order => {
+        match @pipeline.sort_order_strategy(order) {
+          CandidateKey(key) => @pipeline.sort_completion_count(key)
+          ExistingTotal(_) => 0
+        }
+      })
+      .unwrap_or(0)
     DedupeRows =>
       @relation.dedupe_key_count(checked) +
       @relation.dedupe_order_count(checked)
