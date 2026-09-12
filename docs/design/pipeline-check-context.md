@@ -1126,6 +1126,22 @@ These are execution requirements, not observed outcomes or an implementation of
 Run scheduling. Incoming interface/contract identities and final exhaustive
 Program coverage remain separate prerequisites for formal construction.
 
+`identify_result_import_type` derives the `value_contract_cid` of a Result
+interface from that incoming occurrence's checked publication port. It reuses
+the port's immutable flat row contract and the canonical value-contract emitter,
+with explicit byte/node/depth limits and an incremental hash sink. It retains
+the incoming owner and site alongside the resulting type CID; equal type CIDs
+from different producers or admissions do not merge those owners. An absent
+index, non-Result gate, unsupported receipt and unrepresentable row contract
+remain distinct outcomes. No alternate contract is accepted from the caller.
+
+Reported hash usage is incremental. The containing assembly must subtract it from
+the shared hash budget on each occurrence, including repeated imports. Text and full
+schema arrays are not copied for this projection. The type CID alone is not an
+import-interface CID: producer Unit Definition, named port and consumer input
+still have to be included by the registered Result-interface preimage. No
+producer identity or runtime Result artifact is inferred from matching types.
+
 The incoming join also retains every local input declaration, including unused
 ones, with its exact reconciled attachment, selected registration and pipeline
 input target. Result imports and SourceViews remain in their respective owned

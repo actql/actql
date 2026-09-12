@@ -163,6 +163,8 @@ pub fn expression_validation_usage(ExpressionValidationContext) -> SelectedPolic
 
 pub fn identify_program_sources(ProgramSourceChecks, ProgramIdentityLimits) -> Result[ProgramSourceIdentity, ProgramIdentityIssue]
 
+pub fn identify_result_import_type(ProgramIncomingLinks, Int, Int, Int, Int) -> Result[ResultImportType?, ResultImportTypeIssue]
+
 pub fn incoming_execution_at(ProgramIncomingLinks, Int) -> IncomingExecutionState?
 
 pub fn incoming_execution_failure(IncomingExecutionCheck) -> IncomingExecutionOutcome
@@ -468,6 +470,16 @@ pub fn regex_pattern_policy(RegexPatternResolution) -> @check_environment.TextTi
 pub fn regex_pattern_site(RegexPatternResolution) -> ExpressionValidationSite
 
 pub fn regex_pattern_usage(RegexPatternChecks) -> RegexPatternUsage
+
+pub fn result_import_type_cid(ResultImportType) -> String
+
+pub fn result_import_type_contract(ResultImportType) -> @value_contract.Contract
+
+pub fn result_import_type_incoming(ResultImportType) -> ProgramIncomingLinks
+
+pub fn result_import_type_site(ResultImportType) -> IncomingSite
+
+pub fn result_import_type_usage(ResultImportType) -> (Int, Int)
 
 pub fn result_wiring(WiredStages) -> @stage_results.ResultWiring
 
@@ -1297,6 +1309,16 @@ pub(all) struct RegexPatternUsage {
 pub struct ResolvedExpressionRequirement {
   site : ExpressionValidationSite
   resolution : ExpressionDischarge
+}
+
+type ResultImportType
+
+pub enum ResultImportTypeIssue {
+  InvalidLimits
+  NotResult
+  UnsupportedReceipt
+  UnrepresentableRowContract
+  Hash(@encode_core.EncodeFailure)
 }
 
 type SelectedPolicyContext
