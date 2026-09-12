@@ -41,6 +41,8 @@ pub fn attach_stage_contexts(@stage_parameters.BoundOperations, @stage_results.C
 
 pub fn bind_capacity_policy(ReconciledContexts, @check_environment.Capacity, max_work~ : Int, max_text_bytes~ : Int, max_policy_nodes~ : Int) -> Result[SelectedPolicyContext, SelectedPolicyIssue]
 
+pub fn bind_source_policy(SourceRowContexts, SelectedPolicyContext, Int) -> Result[SourcePolicyContext, SourcePolicyIssue]
+
 pub fn bound_guards(PipelineContext) -> @pipeline_typing.BoundGuardClosure
 
 pub fn check(@relation_results.CheckedResults, Array[@parameter_binding.BoundValues?], Array[@capacity_graph_preflight.ApplicationCoverage], @capacity_policy.Policy, Limits, proof_owners? : Array[(Int, Int, Int)], input_owners? : Array[(Int, Int, Int, Int)]) -> Result[PipelineContext, Issue]
@@ -182,6 +184,12 @@ pub fn selected_capacity(SelectedPolicyContext) -> @check_environment.Capacity
 pub fn selected_lookup_execution(SelectedPolicyContext) -> @check_environment.LookupExecution
 
 pub fn selected_policy_usage(SelectedPolicyContext) -> SelectedPolicyUsage
+
+pub fn source_policy_rows(SourcePolicyContext) -> SourceRowContexts
+
+pub fn source_policy_selected(SourcePolicyContext) -> SelectedPolicyContext
+
+pub fn source_policy_work(SourcePolicyContext) -> Int
 
 pub fn source_request_facts(SourceRequestContexts) -> @check_environment.LookupCapacities?
 
@@ -497,6 +505,14 @@ pub(all) struct SelectedPolicyUsage {
   text_bytes : Int
   local_input_nodes : Int
   policy_nodes : Int
+} derive(Eq, @debug.Debug)
+
+type SourcePolicyContext
+
+pub(all) enum SourcePolicyIssue {
+  InvalidLimits
+  ForeignContext
+  BudgetExceeded
 } derive(Eq, @debug.Debug)
 
 type SourceRequestContexts

@@ -1,5 +1,15 @@
 # SourceView resolution
 
+`pipeline_check_context.bind_source_policy` joins source request/left-row
+checks and selected Host policy at the exact same `ReconciledContexts` owner.
+Equal policy CIDs or equal Program contents cannot substitute for that owner.
+The shared input preparation is charged once, while both branches' additional
+work and the connection itself count against the combined work limit. The
+opaque result retains both branches, including absent lookup policy and all
+producer dependencies. It does not establish acquisition bounds, transport
+support or runtime authority: subsequent capacity resolution must consume this
+connection and close those remaining obligations explicitly.
+
 `sourceview_resolution` connects one prepared Program's authored inputs to one
 typed Check Environment Catalog. The opaque result retains both exact owners,
 the original input cursor and the selected SourceView request contract. A
