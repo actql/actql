@@ -4,6 +4,7 @@ package "actql/actql/stage_results"
 import {
   "actql/actql/pipeline_typing",
   "actql/actql/relation_results",
+  "actql/actql/stage_local_inputs",
   "actql/actql/stage_parameters",
   "moonbitlang/core/debug",
 }
@@ -52,6 +53,8 @@ pub fn input_producer(ResultImport) -> @pipeline_typing.ProducedInput
 pub fn input_stage(ResultImport) -> StagePorts
 
 pub fn operations(Checked) -> @stage_parameters.CollectedOperations
+
+pub fn prepare_local_program(@stage_parameters.Source, LocalProgramLimits) -> Result[(ResultWiring, LocalProgramUsage), LocalProgramIssue]
 
 pub fn resolve_imports(@stage_parameters.Source, Int, Array[StagePorts], ImportLimits) -> Result[ResultImports, ImportIssue]
 
@@ -120,6 +123,40 @@ pub enum Issue {
   WorkLimit
   Stage(Int, @relation_results.Issue)
 }
+
+pub enum LocalProgramIssue {
+  InvalidLimits
+  BudgetExceeded
+  UnsupportedReceipt(Int, String)
+  LocalInput(Int, @stage_local_inputs.Issue)
+  Import(Int, ImportIssue)
+  Pipeline(Int, @pipeline_typing.Issue)
+  Collection(Int, @stage_parameters.Issue)
+  Results(Int, @relation_results.Issue)
+  Order(Int, @relation_results.OrderCheckIssue)
+  Ports(Int, @relation_results.PortIssue)
+  Wiring(WiringIssue)
+}
+
+pub(all) struct LocalProgramLimits {
+  max_stages : Int
+  max_steps : Int
+  max_results : Int
+  max_work : Int
+  max_nodes : Int
+  max_tokens : Int
+  max_text_bytes : Int
+  max_depth : Int
+} derive(Eq, @debug.Debug)
+
+pub(all) struct LocalProgramUsage {
+  work : Int
+  nodes : Int
+  tokens : Int
+  text_bytes : Int
+  steps : Int
+  results : Int
+} derive(Eq, @debug.Debug)
 
 type ResultExport
 

@@ -8,6 +8,7 @@ import {
   "actql/actql/decode_core" @decode,
   "actql/actql/pipeline_typing" @pipeline,
   "actql/actql/decode_scalar" @scalar,
+  "actql/actql/stage_local_inputs" @local,
 }
 
 import {

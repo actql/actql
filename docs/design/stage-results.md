@@ -1,5 +1,38 @@
 # Source-bound stage Results
 
+## Local Program preparation
+
+`prepare_local_program` builds pipelines and publication ports in source order
+from a single prepared `stage_parameters.Source`. It reads local Input contracts,
+resolves Result imports against the ports it just constructed for earlier stages,
+checks each pipeline and its source-bound operation references, resolves Result
+orders, and wires all imports and root exports. It returns the existing
+`ResultWiring` with aggregate preparation usage, not another checked wrapper.
+There is no caller-supplied bag of pipelines or publication proofs. Repeated and
+unused imports retain their exact producer ports; a failure in a later stage
+returns no partial wiring result.
+
+The allowance is shared across local declaration checks, input registration,
+pipeline checking, reference collection, Result checking, contextual order
+resolution, port preparation and final wiring. Work/text prefixes retained by
+port/import objects are counted once at the wiring boundary. Contextual order
+traversal can revisit an earlier producer for several consumers and charges that
+new traversal work; `max_steps` counts authored steps across stages, not those
+visits. Nodes, expression tokens, text and Result counts are also cumulative;
+depth is a per-traversal bound. These are the component checkers' admission
+metrics, not a CPU-time or heap quota. Parsing, declaration admission and binding
+precede or follow this subpass and are not included in its reported usage.
+
+This is the local-input/Result-import orchestration subpass of
+[Checked Program construction](checked-program.md), not the formal static seal.
+Receipt inputs require their separate admission boundary and reject explicitly
+here rather than disappearing from Result-only resolution. SourceView inputs
+likewise require Catalog/environment reconciliation rather than being interpreted
+as local declarations. Input data, effective bindings, capacity, profile artifacts,
+incoming gates, semantic identities, Effects and exhaustive obligation coverage
+are not certified by a successful wiring result. Source declaration and order
+evidence remain conditional on their associated runtime checks.
+
 `collect_checked` is the incremental construction counterpart of `check`: it
 retains Results already checked while preparing producer publication ports.
 It requires exactly one registration per source stage, its exact checked pipeline
