@@ -10,7 +10,7 @@ priv struct RootArtifact {
 }
 
 ///|
-priv enum RootArtifactIssue {
+pub(all) enum RootArtifactIssue {
   InvalidLimits
   OutputLimit
   GeneratedDecodeFailure

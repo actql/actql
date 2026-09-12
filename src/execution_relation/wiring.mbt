@@ -12,7 +12,7 @@ priv struct Wiring {
 }
 
 ///|
-priv enum WiringIssue {
+pub(all) enum WiringIssue {
   InvalidLimits
   Limit
   InvalidReference

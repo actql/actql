@@ -19,8 +19,8 @@ pub fn runtime_fragment_failure_stage(
 }
 
 ///|
-/// Input indexes and step indexes retain their distinct constructors. Detailed
-/// errors remain owned by this package, not a versioned wire diagnostic format.
+/// Convenience summary only. Input indexes and step indexes remain distinct;
+/// callers can also match the full typed error tree without losing the cause.
 pub(all) enum SequenceFailureKind {
   InvalidLimits
   InputOwnership

@@ -9,7 +9,7 @@ priv struct FragmentMaterial {
 }
 
 ///|
-priv enum FragmentMaterialIssue {
+pub(all) enum FragmentMaterialIssue {
   Artifact(RootArtifactIssue)
   Demand(@lower.DemandIssue)
   Root(@lower.RootEvidenceIssue)

@@ -25,7 +25,7 @@ fn spend_control_text(budget : ControlBudget, text : String) -> Bool {
 }
 
 ///|
-priv enum EvalIssueKind {
+pub(all) enum EvalIssueKind {
   InvalidControlLimits
   ControlLimit
   WorkspaceLimit
@@ -36,7 +36,7 @@ priv enum EvalIssueKind {
 } derive(Eq, Debug)
 
 ///|
-priv struct EvalIssue {
+pub struct EvalIssue {
   kind : EvalIssueKind
   expression : @lower.Expression
 }

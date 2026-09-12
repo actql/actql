@@ -7,7 +7,7 @@ priv struct CheckedFragment {
 }
 
 ///|
-priv enum FragmentAdmissionIssue {
+pub(all) enum FragmentAdmissionIssue {
   InvalidContract
   Integrity
   Material(FragmentMaterialIssue)

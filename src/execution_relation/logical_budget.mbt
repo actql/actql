@@ -23,7 +23,7 @@ priv struct LogicalRoot {
 }
 
 ///|
-priv enum LogicalBudgetIssue {
+pub(all) enum LogicalBudgetIssue {
   InvalidLogicalLimits
   FailedLogicalBudget
   InputRowLimit

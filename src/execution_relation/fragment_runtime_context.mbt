@@ -9,7 +9,7 @@ struct FragmentRuntimeContext {
 }
 
 ///|
-priv enum FragmentRuntimeIssue {
+pub(all) enum FragmentRuntimeIssue {
   InvalidLimits
   ExceedsRequest
   KernelMismatch

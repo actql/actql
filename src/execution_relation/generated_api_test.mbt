@@ -1,8 +1,15 @@
 ///|
-test "package consumer runs values ordered derive filter select without private constructors" {
+fn consumer_fixture(
+  total : String,
+) -> (
+  @execution_relation.GeneratedSequence,
+  @execution_relation.SequenceExecutionLimits,
+) raise {
   let syntax = @decode.admit(
     @source.parse_json(
-      "[{\"values\":{\"schema\":{\"a\":{\"type\":\"number\",\"nullable\":false}},\"rows\":[{\"a\":1},{\"a\":0}]},\"as\":\"seed\"},{\"derive\":[{\"old\":\"a\"},{\"a\":\"old + 1\"},{\"total\":\"old + a\"}]},{\"filter\":\"total > 1\"},{\"select\":[\"total\",\"a\"]}]",
+      "[{\"values\":{\"schema\":{\"a\":{\"type\":\"number\",\"nullable\":false}},\"rows\":[{\"a\":1},{\"a\":0}]},\"as\":\"seed\"},{\"derive\":[{\"old\":\"a\"},{\"a\":\"old + 1\"},{\"total\":\"" +
+      total +
+      "\"}]},{\"filter\":\"total > 1\"},{\"select\":[\"total\",\"a\"]}]",
       { max_input_bytes: 10000, max_nodes: 1000, max_depth: 100, },
     ).unwrap(),
     {
@@ -129,6 +136,12 @@ test "package consumer runs values ordered derive filter select without private 
     max_work: 100000,
     max_frames: 100,
   }
+  (generated, limits)
+}
+
+///|
+test "package consumer runs values ordered derive filter select without private constructors" {
+  let (generated, limits) = consumer_fixture("old + a")
   let completed = @execution_relation.execute_generated_sequence(
     generated,
     [],
@@ -159,4 +172,29 @@ test "package consumer runs values ordered derive filter select without private 
     fail("negative budget")
   }
   assert_true(@execution_relation.sequence_failure_kind(issue) is InvalidLimits)
+}
+
+///|
+test "package diagnostics retain row slot expression source and distinguish arithmetic from budget" {
+  let (generated, limits) = consumer_fixture("1 / 0")
+  guard @execution_relation.execute_generated_sequence(generated, [], limits)
+    is Err(Rows(1, Evaluation(0, 2, evaluation))) else {
+    fail("expected row zero slot two failure")
+  }
+  assert_true(evaluation.kind is Scalar(ArithmeticFailure))
+  assert_eq(
+    @decode.text(@lower.expression_location(evaluation.expression).source).unwrap(),
+    "1 / 0",
+  )
+  assert_true(
+    @lower.expression_location(evaluation.expression).range is Some(_),
+  )
+  guard @execution_relation.execute_generated_sequence(generated, [], {
+      ..limits,
+      max_work: 0,
+    })
+    is Err(issue) else {
+    fail("expected control budget failure")
+  }
+  assert_true(issue is Wiring(Limit))
 }

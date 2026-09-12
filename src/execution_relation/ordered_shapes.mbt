@@ -10,7 +10,7 @@ priv struct OrderedShapes {
 }
 
 ///|
-priv enum OrderedShapeIssue {
+pub(all) enum OrderedShapeIssue {
   InvalidLimits
   ShapeLimit
   InvalidPrefix

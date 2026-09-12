@@ -5,7 +5,7 @@ priv struct LogicalValueMeasure {
 }
 
 ///|
-priv enum LogicalMeasureIssue {
+pub(all) enum LogicalMeasureIssue {
   InvalidMeasureLimits
   LogicalWorkLimit
   HostMeasureLimit

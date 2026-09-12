@@ -8,7 +8,7 @@ priv struct OrderedLimits {
 }
 
 ///|
-priv enum OrderedLimitsIssue {
+pub(all) enum OrderedLimitsIssue {
   InvalidLimits
   EnclosingLimit
   ForeignKernel

@@ -9,7 +9,7 @@ priv struct Table {
 }
 
 ///|
-priv enum RowIssue {
+pub(all) enum RowIssue {
   OwnerMismatch
   InputMismatch
   InvalidRows

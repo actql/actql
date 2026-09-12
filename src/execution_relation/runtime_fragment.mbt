@@ -1,7 +1,7 @@
 ///|
 /// Failures retain their construction stage; integrity admission cannot be
 /// replaced by a caller's digest or omitted when configuring the runtime.
-enum RuntimeFragmentIssue {
+pub(all) enum RuntimeFragmentIssue {
   Material(FragmentMaterialIssue)
   Candidate(RootArtifactIssue)
   Admission(FragmentAdmissionIssue)

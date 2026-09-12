@@ -143,8 +143,11 @@ It exposes immutable limit quantities and indexed output readers, not table
 containers, mutable counters or constructors for completion evidence. A consumer
 can prepare and execute generated fragments without private access. This is not
 a stable SDK surface or a Program/Run API. Preparation failures expose their
-stage; sequence failures expose their category and relevant input/step index,
-while detailed internal errors remain retained behind the opaque failure type.
+stage; sequence failures expose their category and relevant input/step index.
+The complete typed failure tree is also readable, including resource limits,
+incomplete implementation or evidence, and row/slot/expression diagnostics.
+Expression failures retain their checked source location. Error values do not
+grant access to mutable execution state and are not a versioned wire protocol.
 
 ## Logical resources
 

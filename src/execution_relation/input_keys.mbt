@@ -11,7 +11,7 @@ priv enum KeyAtom {
 } derive(Eq, Hash)
 
 ///|
-priv enum InputKeyIssue {
+pub(all) enum InputKeyIssue {
   WrongOrigin
   MissingField
   NullKey(Int)

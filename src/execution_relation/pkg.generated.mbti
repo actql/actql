@@ -100,6 +100,29 @@ type CompletedOutput
 
 type CompletedSequence
 
+pub struct EvalIssue {
+  kind : EvalIssueKind
+  expression : @lowering_relation.Expression
+}
+
+pub(all) enum EvalIssueKind {
+  InvalidControlLimits
+  ControlLimit
+  WorkspaceLimit
+  MissingValue
+  Scalar(ScalarIssue)
+  LogicalEntry(LogicalBudgetIssue)
+  LogicalValue(LogicalBudgetIssue)
+} derive(Eq, @debug.Debug)
+
+pub(all) enum FragmentAdmissionIssue {
+  InvalidContract
+  Integrity
+  Material(FragmentMaterialIssue)
+  Artifact(RootArtifactIssue)
+  Budget
+}
+
 type FragmentContract
 
 pub(all) enum FragmentContractIssue {
@@ -108,9 +131,58 @@ pub(all) enum FragmentContractIssue {
   ContractMismatch
 }
 
+pub(all) enum FragmentMaterialIssue {
+  Artifact(RootArtifactIssue)
+  Demand(@lowering_relation.DemandIssue)
+  Root(@lowering_relation.RootEvidenceIssue)
+  Budget
+  OrderedContractRequired
+  UnexpectedOrderedContract
+  OrderedContractMismatch
+  OrderedReferences(@lowering_relation.OrderedReferenceIssue)
+  OrderedResource(OrderedLimitsIssue)
+  OrderedShape(OrderedShapeIssue)
+  OrderedLinks(OrderedLinkIssue)
+}
+
 type FragmentRuntimeContext
 
+pub(all) enum FragmentRuntimeIssue {
+  InvalidLimits
+  ExceedsRequest
+  KernelMismatch
+  Logical(LogicalBudgetIssue)
+}
+
 type GeneratedSequence
+
+pub(all) enum InputKeyIssue {
+  WrongOrigin
+  MissingField
+  NullKey(Int)
+  UnsupportedKeyDomain
+  NullableWitnessPending
+  DuplicateKey(Int, Int)
+  InvalidLimits
+  Limit
+}
+
+pub(all) enum LogicalBudgetIssue {
+  InvalidLogicalLimits
+  FailedLogicalBudget
+  InputRowLimit
+  WorkLimit
+  LiveValueLimit
+  InvalidRootLifetime
+  ValueMeasure(LogicalMeasureIssue)
+} derive(Eq, @debug.Debug)
+
+pub(all) enum LogicalMeasureIssue {
+  InvalidMeasureLimits
+  LogicalWorkLimit
+  HostMeasureLimit
+  WireMeasureFailure
+} derive(Eq, @debug.Debug)
 
 pub(all) enum OrderedContractIssue {
   InvalidOrderedContractLimits
@@ -118,7 +190,28 @@ pub(all) enum OrderedContractIssue {
   OrderedContractMismatch
 }
 
+pub(all) enum OrderedLimitsIssue {
+  InvalidLimits
+  EnclosingLimit
+  ForeignKernel
+  EncodingLimit
+} derive(Eq, @debug.Debug)
+
+pub(all) enum OrderedLinkIssue {
+  OwnerMismatch
+  RootMismatch
+  Limit
+  RootPreparation(@lowering_relation.RootEvidenceIssue)
+  RootArtifact(RootArtifactIssue)
+}
+
 type OrderedParams
+
+pub(all) enum OrderedShapeIssue {
+  InvalidLimits
+  ShapeLimit
+  InvalidPrefix
+}
 
 pub(all) enum ProducerBindingIssue {
   NotProducedInput
@@ -145,6 +238,24 @@ pub(all) struct RegistryLimits {
   max_body_depth : Int
 }
 
+pub(all) enum RootArtifactIssue {
+  InvalidLimits
+  OutputLimit
+  GeneratedDecodeFailure
+  CanonicalizationFailure
+}
+
+pub(all) enum RowIssue {
+  OwnerMismatch
+  InputMismatch
+  InvalidRows
+  RowLimit
+  InvalidRowLimits
+  MissingOrderedResourceContext
+  LogicalRows(LogicalBudgetIssue)
+  Evaluation(Int, Int, EvalIssue)
+}
+
 pub(all) enum RuntimeFragmentFailureStage {
   Material
   Candidate
@@ -152,7 +263,12 @@ pub(all) enum RuntimeFragmentFailureStage {
   Runtime
 }
 
-type RuntimeFragmentIssue
+pub(all) enum RuntimeFragmentIssue {
+  Material(FragmentMaterialIssue)
+  Candidate(RootArtifactIssue)
+  Admission(FragmentAdmissionIssue)
+  Runtime(FragmentRuntimeIssue)
+}
 
 pub(all) enum ScalarIssue {
   InvalidOperand
@@ -183,7 +299,22 @@ pub(all) enum SequenceFailureKind {
   MixedExecutionConfiguration
 }
 
-type SequenceRunIssue
+pub(all) enum SequenceRunIssue {
+  InvalidLimits
+  InputOwnership
+  InputSet
+  InputExecutionEvidencePending(Int)
+  InputLimit
+  InputKey(Int, InputKeyIssue)
+  Wiring(WiringIssue)
+  Capture(Int, CaptureIssue)
+  Rows(Int, RowIssue)
+  Store(StoreIssue)
+  OrderedContext(Int, OrderedLimitsIssue)
+  FragmentContext(Int, FragmentRuntimeIssue)
+  MissingFragmentContext(Int)
+  MixedExecutionConfiguration
+}
 
 pub(all) struct SequenceRunLimits {
   max_rows : Int
@@ -192,6 +323,13 @@ pub(all) struct SequenceRunLimits {
   operation_entries : Int
   input_values : ValueLimits
   output_values : ValueLimits
+}
+
+pub(all) enum StoreIssue {
+  InvalidState
+  OwnerMismatch
+  MissingInput
+  Limit
 }
 
 pub(all) enum Value {
@@ -214,6 +352,13 @@ pub(all) struct ValueUsage {
   text_bytes : Int
   work : Int
 } derive(Eq, @debug.Debug)
+
+pub(all) enum WiringIssue {
+  InvalidLimits
+  Limit
+  InvalidReference
+  UnknownRetainedTarget(String)
+}
 
 // Type aliases
 

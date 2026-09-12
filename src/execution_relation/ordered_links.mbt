@@ -15,7 +15,7 @@ priv struct OrderedLinks {
 }
 
 ///|
-priv enum OrderedLinkIssue {
+pub(all) enum OrderedLinkIssue {
   OwnerMismatch
   RootMismatch
   Limit

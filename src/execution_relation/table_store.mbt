@@ -15,7 +15,7 @@ priv struct TableStore {
 }
 
 ///|
-priv enum StoreIssue {
+pub(all) enum StoreIssue {
   InvalidState
   OwnerMismatch
   MissingInput

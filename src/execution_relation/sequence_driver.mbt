@@ -9,7 +9,7 @@ pub(all) struct SequenceRunLimits {
 }
 
 ///|
-enum SequenceRunIssue {
+pub(all) enum SequenceRunIssue {
   InvalidLimits
   InputOwnership
   InputSet
