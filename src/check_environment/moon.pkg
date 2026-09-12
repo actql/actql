@@ -18,5 +18,9 @@ import {
 } for "test"
 
 formatter(
-  ignore: [ "vectors.generated_test.mbt", "catalog_roles.generated.mbt" ],
+  ignore: [
+    "vectors.generated_test.mbt",
+    "catalog_roles.generated.mbt",
+    "source_view_shape.generated.mbt",
+  ],
 )

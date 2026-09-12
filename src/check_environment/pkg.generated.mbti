@@ -43,6 +43,8 @@ pub fn check_protocol_value_contracts(SourceDataPolicies, ValueContractLimits) -
 
 pub fn check_source_data_policies(CatalogReferences, DataPolicyLimits) -> Result[SourceDataPolicies, DataPolicyIssue]
 
+pub fn check_source_view_shapes(ProtocolValueContracts, SourceViewShapeLimits) -> Result[SourceViewShapes, SourceViewShapeIssue]
+
 pub fn cid(WireEnvironment) -> String
 
 pub fn contract_at(ContractRegistry, Int) -> ContractEnvelope?
@@ -128,6 +130,12 @@ pub fn source_view_data_policy(SourceViewPolicy) -> SourceDataPolicy
 pub fn source_view_policy(SourceDataPolicies, Member) -> SourceViewPolicy?
 
 pub fn source_view_policy_reference(SourceViewPolicy) -> CatalogReference
+
+pub fn source_view_shape_at(SourceViewShapes, Int) -> Member?
+
+pub fn source_view_shape_usage(SourceViewShapes) -> (Int, Int)
+
+pub fn source_view_shape_values(SourceViewShapes) -> ProtocolValueContracts
 
 pub fn text_time_environment(TextTime) -> WireEnvironment
 
@@ -267,6 +275,28 @@ type SourceDataPolicies
 type SourceDataPolicy
 
 type SourceViewPolicy
+
+pub(all) struct SourceViewShapeIssue {
+  kind : SourceViewShapeIssueKind
+  source : @decode_core.Cursor?
+}
+
+pub(all) enum SourceViewShapeIssueKind {
+  InvalidLimits
+  WorkLimit
+  ViewLimit
+  InvalidShape
+  MissingField(String)
+  UnknownField(String)
+  DuplicateItem(String)
+} derive(Eq, @debug.Debug)
+
+pub(all) struct SourceViewShapeLimits {
+  max_work : Int
+  max_views : Int
+}
+
+type SourceViewShapes
 
 type TextTime
 

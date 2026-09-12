@@ -246,6 +246,28 @@ registry entries, including roles routed elsewhere. Counts are logical reader
 usage, not JSON byte size or a heap ceiling. Empty registries consume no contract
 budget, and a late invalid body returns no partial admitted result.
 
+## SourceView shape admission
+
+`check_source_view_shapes` retains ProtocolValueContracts and validates every
+Catalog SourceView against the existing protocol schema. Its opaque result is
+shape evidence, not complete SourceView admission. Correlation/type agreement,
+read-mode coherence, Carrier bodies and authority remain distinct checks; the
+reference constructor's correlation checks depend on those body meanings.
+
+The generated rules cover the complete `schemas.source_view` resource. Generation
+rejects new or changed unsupported schema keywords rather than silently skipping
+them. This is a specialized compiler for the selected schema, not a general JSON
+Schema engine. SourceView's positive-integer fields retain the schema's domain;
+no extra safe-integer ceiling is inferred from an implementation preference.
+
+Validation uses explicit traversal frames and schedules array elements one at a
+time. Work charges node visits, array iterations, object keys and string units;
+unique string arrays also charge their indexed strings. All views share one
+budget, with a separate count cap. These measures are bounded validation work,
+not heap bytes. Field lookup scans a fixed generated property table, so input
+width cannot introduce quadratic lookup work. Diagnostics retain the original
+cursor; a later failure exposes no partial result.
+
 ## Capacity component selection
 
 The normative component selector is now `/host_policy_profile/capacity`, with
