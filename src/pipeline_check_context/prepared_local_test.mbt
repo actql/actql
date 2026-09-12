@@ -73,7 +73,6 @@ fn prepared_local_context_fixture(
   ).unwrap()
   let values = @stage_results.local_source_values(prepared_source)
   let wiring = @stage_results.local_source_wiring(prepared_source)
-  let publications = []
   let locals = []
   let contexts = []
   for i in 0..<stage_count {
@@ -81,11 +80,6 @@ fn prepared_local_context_fixture(
     locals.push(@stage_results.wiring_local_input_at(wiring, i).unwrap())
     let orders = @results.ports_orders(
       @stage_results.stage_port_publications(port),
-    )
-    publications.push(
-      @results.publication_orders_results(
-        @results.checked_publication_orders(orders),
-      ),
     )
     let closure = @results.checked_producer_orders(orders)
     let applications = []
@@ -120,13 +114,7 @@ fn prepared_local_context_fixture(
     )
   }
   let bound = @stage_results.local_source_operations(prepared_source)
-  let operations = @stages.bound_operations(bound)
-  let checked = @stage_results.collect_checked(operations, publications, {
-    max_results: stage_count,
-    max_work: 1000000,
-    max_nodes: 100000,
-    max_text_bytes: 1000000,
-  }).unwrap()
+  let checked = @stage_results.local_source_results(prepared_source)
   let stages = attach_stage_contexts(
     bound,
     checked,

@@ -12,6 +12,8 @@ test "Local source preparation owns declarations bindings and topology with shar
     let source = local_source_source(prepared)
     let bound = local_source_operations(prepared)
     let operations = @parameters.bound_operations(bound)
+    let results = local_source_results(prepared)
+    assert_true(physical_equal(@stage_results.operations(results), operations))
     assert_true(
       physical_equal(@parameters.operations_source(operations), source),
     )
@@ -33,6 +35,13 @@ test "Local source preparation owns declarations bindings and topology with shar
         ),
       )
       shared_work += @parameters.collection_work(stage)
+      let port = wiring_stage_at(local_source_wiring(prepared), i).unwrap()
+      let port_result = @results.publication_orders_results(
+        @results.checked_publication_orders(
+          @results.ports_orders(stage_port_publications(port)),
+        ),
+      )
+      assert_true(physical_equal(stage_at(results, i).unwrap(), port_result))
       assert_true(
         physical_equal(
           @references.bound_values(
@@ -64,7 +73,7 @@ test "Local source preparation owns declarations bindings and topology with shar
     assert_eq(
       usage.work,
       topology_usage.work +
-      2 * @syntax.stage_count(parsed) +
+      4 * @syntax.stage_count(parsed) +
       1 +
       @parameters.bindings_usage(bound).work -
       shared_work,
@@ -83,6 +92,13 @@ test "Local source preparation owns declarations bindings and topology with shar
         1
       },
     }
+    assert_true(
+      prepare_local_source(parsed, None, max_parameters=0, {
+        ..exact,
+        max_work: usage.work - 1,
+      })
+      is Err(ResultCollection(BudgetExceeded(_))),
+    )
     assert_true(
       prepare_local_source(parsed, None, max_parameters=0, exact) is Ok(_),
     )

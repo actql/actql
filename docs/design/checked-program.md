@@ -96,6 +96,14 @@ set can be substituted at this entrance. These remain operation-only references;
 source roles, incoming identities and other semantic inventories are not inferred
 to be empty from this index.
 
+Result collection at this entrance also reuses the exact checked Result bodies
+that produced the Stage ports. It validates their correspondence to the retained
+operation collection before returning the prepared source. Existing Result
+admission costs are shared, while handle gathering and the final owner checks
+remain charged. Failure in that final collection exposes no partial prepared
+source. This supplies consistent Result owners to later context construction;
+it does not discharge publication or execution obligations.
+
 Source-role reference preparation uses `prepare_program_references` to derive
 Stage bodies, declaration use and effective value projections from the same
 checked operations and admitted request slots. It never reconstructs substitute

@@ -6,6 +6,7 @@ struct PreparedLocalSource {
   values : @binding.BoundValues
   wiring : ResultWiring
   operations : @parameters.BoundOperations
+  results : Checked
   usage : LocalProgramUsage
 }
 
@@ -19,6 +20,7 @@ pub enum LocalSourceIssue {
   Program(LocalProgramIssue)
   Operations(@parameters.OperationsIssue)
   OperationBindings(@parameters.BindingsIssue)
+  ResultCollection(CollectionIssue)
 }
 
 ///|
@@ -83,18 +85,28 @@ pub fn prepare_local_source(
     Err(e) => return Err(Program(e))
   }
   let remaining = limits.max_work - count - 1 - used.work
-  if count > remaining {
+  if count > remaining || count > remaining - count {
     return Err(BudgetExceeded)
   }
   let stages = []
+  let publications = []
   let mut shared_work = 0
+  let mut result_work = 0
   for i in 0..<count {
-    let stage = stage_port_source(wiring_stage_at(wiring, i).unwrap())
+    let port = wiring_stage_at(wiring, i).unwrap()
+    let stage = stage_port_source(port)
     // These exact collection prefixes were charged by prepare_local_program.
     shared_work += @parameters.collection_work(stage)
     stages.push(stage)
+    let result = @results.publication_orders_results(
+      @results.checked_publication_orders(
+        @results.ports_orders(stage_port_publications(port)),
+      ),
+    )
+    result_work += @results.usage(result).work
+    publications.push(result)
   }
-  let operation_cap = shared_work + remaining - count
+  let operation_cap = shared_work + remaining - count - count
   let collected = match
     @parameters.collect_prepared_operations(source, stages, {
       max_work: operation_cap,
@@ -111,18 +123,32 @@ pub fn prepare_local_source(
     Ok(v) => v
     Err(e) => return Err(OperationBindings(e))
   }
+  let spent = used.work +
+    count +
+    1 +
+    count +
+    count +
+    (@parameters.bindings_usage(operations).work - shared_work)
+  let result_prefix = @parameters.operations_usage(collected).work + result_work
+  let results = match
+    collect_checked(collected, publications, {
+      max_results: used.results,
+      max_work: result_prefix + (limits.max_work - spent),
+      max_nodes: used.nodes,
+      max_text_bytes: used.text_bytes,
+    }) {
+    Ok(v) => v
+    Err(e) => return Err(ResultCollection(e))
+  }
   Ok({
     source,
     values,
     wiring,
     operations,
+    results,
     usage: {
       ..used,
-      work: used.work +
-      count +
-      1 +
-      count +
-      (@parameters.bindings_usage(operations).work - shared_work),
+      work: spent + (usage(results).work - result_prefix),
       nodes: used.nodes + decl_nodes + bind_nodes,
       text_bytes: used.text_bytes + decl_text + bind_text,
     },
@@ -155,4 +181,10 @@ pub fn local_source_operations(
   v : PreparedLocalSource,
 ) -> @parameters.BoundOperations {
   v.operations
+}
+
+///|
+/// Exact Result owners already used by the prepared producer ports.
+pub fn local_source_results(v : PreparedLocalSource) -> Checked {
+  v.results
 }
