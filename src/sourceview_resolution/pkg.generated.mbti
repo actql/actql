@@ -25,6 +25,8 @@ pub fn attached_pipeline_inputs(PipelineAttachment) -> PipelineInputs
 
 pub fn attached_pipeline_stage(PipelineAttachment) -> @stage_parameters.CollectedStage
 
+pub fn bind_keyed_request_parameters(RequestParameters, KeyedRequest, Int) -> Result[ParameterizedKeyedRequest, RequestParameterIssue]
+
 pub fn bind_request_parameters(RequestParameters, DirectRequest, Int) -> Result[ParameterizedRequest, RequestParameterIssue]
 
 pub fn catalog(Resolved) -> @check_environment.SourceRequestContracts
@@ -32,6 +34,8 @@ pub fn catalog(Resolved) -> @check_environment.SourceRequestContracts
 pub fn catalog_owner(ResolvedInput) -> @check_environment.SourceRequestContracts
 
 pub fn check_direct_request(RequestContext, ResolvedInput, RequestLimits) -> Result[DirectRequest, RequestIssue]
+
+pub fn check_keyed_request(RequestContext, ResolvedInput, RequestLimits) -> Result[KeyedRequest, RequestIssue]
 
 pub fn checkpoint_reference(ModeCheckpoint) -> @check_environment.CatalogReference
 
@@ -59,6 +63,18 @@ pub fn keyed_mode_obligations(KeyedMode) -> Array[ModeObligation]
 
 pub fn keyed_mode_work(KeyedMode) -> Int
 
+pub fn keyed_request_context(KeyedRequest) -> RequestContext
+
+pub fn keyed_request_correlation(KeyedRequest) -> @check_environment.SourceCorrelation
+
+pub fn keyed_request_field_at(KeyedRequest, Int) -> RequestField?
+
+pub fn keyed_request_field_count(KeyedRequest) -> Int
+
+pub fn keyed_request_input(KeyedRequest) -> ResolvedInput
+
+pub fn keyed_request_usage(KeyedRequest) -> (Int, Int, Int, Int)
+
 pub fn mode_checkpoint(DirectMode) -> ModeCheckpoint?
 
 pub fn mode_contract(DirectMode) -> @check_environment.SourceReadMode
@@ -72,6 +88,18 @@ pub fn mode_origin(DirectMode) -> ModeOrigin
 pub fn mode_source(DirectMode) -> @decode_core.Cursor
 
 pub fn mode_work(DirectMode) -> Int
+
+pub fn parameterized_keyed_request(ParameterizedKeyedRequest) -> KeyedRequest
+
+pub fn parameterized_keyed_request_field_at(ParameterizedKeyedRequest, Int) -> ParameterizedRequestField?
+
+pub fn parameterized_keyed_request_field_count(ParameterizedKeyedRequest) -> Int
+
+pub fn parameterized_keyed_request_host_binding_count(ParameterizedKeyedRequest) -> Int
+
+pub fn parameterized_keyed_request_parameters(ParameterizedKeyedRequest) -> RequestParameters
+
+pub fn parameterized_keyed_request_work(ParameterizedKeyedRequest) -> Int
 
 pub fn parameterized_request(ParameterizedRequest) -> DirectRequest
 
@@ -178,6 +206,8 @@ pub(all) enum IssueKind {
 
 type KeyedMode
 
+type KeyedRequest
+
 pub(all) struct Limits {
   max_work : Int
   max_inputs : Int
@@ -210,6 +240,8 @@ pub(all) enum ModeOrigin {
   AuthoredMode
   ContractDefault
 } derive(Eq, @debug.Debug)
+
+type ParameterizedKeyedRequest
 
 type ParameterizedRequest
 
@@ -258,6 +290,8 @@ pub(all) enum RequestIssueKind {
   PairLimit
   UnknownField(String)
   MissingField(String)
+  MissingCorrelation
+  CorrelationField(String)
   IncompatibleParameter(String)
   IncompatibleBinding(String)
   Literal(@value_admission.Issue)

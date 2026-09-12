@@ -1,0 +1,24 @@
+{
+  "version": "actql-sourceview-keyed-request-vectors/0.1",
+  "defaults": {
+    "views": [{"resource":"r","name":"v"}],
+    "selected": "v",
+    "request_fields": {"id":{"type":"number","nullable":false},"tenant":{"type":"string","nullable":true}},
+    "output_fields": {"id":{"type":"number","nullable":false}},
+    "correlation": {"request_fields":["id"],"response_fields":["id"],"identity":["id"],"cardinality":"zero_or_many"}
+  },
+  "cases": [
+    {"id":"keyed-static-binding","request_fields":{"id":{"type":"number","nullable":false},"tenant":{"type":"resource_ref","nullable":false,"resource_kind":"file"}},"bindings":{"p":{"type":"resource_ref","resource_kind":"file"}},"input":{"connector":"crm/main","resource":"r","request":{"tenant":{"$binding":"p"}}},"keyed_outcome":"accepted"},
+    {"id":"keyed-incompatible-binding","request_fields":{"id":{"type":"number","nullable":false},"tenant":{"type":"resource_ref","nullable":false,"resource_kind":"file"}},"bindings":{"p":{"type":"resource_ref","resource_kind":"record"}},"input":{"connector":"crm/main","resource":"r","request":{"tenant":{"$binding":"p"}}},"keyed_outcome":"IncompatibleBinding"},
+    {"id":"keyed-null-static","input":{"connector":"crm/main","resource":"r","request":{"tenant":null}},"keyed_outcome":"accepted","request_outcome":"MissingField"},
+    {"id":"keyed-all-correlated","request_fields":{"id":{"type":"number","nullable":false}},"input":{"connector":"crm/main","resource":"r"},"keyed_outcome":"accepted","request_outcome":"MissingField"},
+    {"id":"keyed-missing-nullable","input":{"connector":"crm/main","resource":"r"},"keyed_outcome":"MissingField"},
+    {"id":"keyed-overlap","input":{"connector":"crm/main","resource":"r","request":{"id":2,"tenant":null}},"keyed_outcome":"CorrelationField","request_outcome":"accepted"},
+    {"id":"keyed-unknown","input":{"connector":"crm/main","resource":"r","request":{"extra":true,"tenant":null}},"keyed_outcome":"UnknownField"},
+    {"id":"keyed-static-type","input":{"connector":"crm/main","resource":"r","request":{"tenant":8}},"keyed_outcome":"Literal"},
+    {"id":"keyed-static-parameter","params":{"tenant":{"type":"string","nullable":true}},"input":{"connector":"crm/main","resource":"r","request":{"tenant":{"$param":"tenant"}}},"keyed_outcome":"accepted"},
+    {"id":"keyed-incompatible-parameter","params":{"tenant":{"type":"number"}},"input":{"connector":"crm/main","resource":"r","request":{"tenant":{"$param":"tenant"}}},"keyed_outcome":"IncompatibleParameter"},
+    {"id":"keyed-no-correlation","correlation":null,"input":{"connector":"crm/main","resource":"r","request":{"tenant":null}},"keyed_outcome":"MissingCorrelation"},
+    {"id":"keyed-business-data","request_fields":{"id":{"type":"number","nullable":false},"tenant":{"type":"json","nullable":false}},"input":{"connector":"crm/main","resource":"r","request":{"tenant":{"nested":{"$param":"not-a-reference"},"literal":{"id":2}}}},"keyed_outcome":"accepted"}
+  ]
+}

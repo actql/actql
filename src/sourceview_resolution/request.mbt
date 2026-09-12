@@ -14,6 +14,8 @@ pub(all) enum RequestIssueKind {
   PairLimit
   UnknownField(String)
   MissingField(String)
+  MissingCorrelation
+  CorrelationField(String)
   IncompatibleParameter(String)
   IncompatibleBinding(String)
   Literal(@value.Issue)
@@ -49,6 +51,16 @@ pub struct RequestField {
 
 ///|
 struct DirectRequest {
+  data : RequestData
+}
+
+///|
+struct KeyedRequest {
+  data : RequestData
+}
+
+///|
+priv struct RequestData {
   context : RequestContext
   input : ResolvedInput
   fields : Array[RequestField]
@@ -56,6 +68,7 @@ struct DirectRequest {
   pairs : Int
   nodes : Int
   text : Int
+  correlation : @environment.SourceCorrelation?
 }
 
 ///|
@@ -129,6 +142,27 @@ pub fn check_direct_request(
   input : ResolvedInput,
   limits : RequestLimits,
 ) -> Result[DirectRequest, RequestIssue] {
+  check_request_body(context, input, limits, false).map(data => { data, })
+}
+
+///|
+/// Checks only the authored, non-correlated fields. The retained correlation
+/// roles still require matching join keys and complete acquisition validation.
+pub fn check_keyed_request(
+  context : RequestContext,
+  input : ResolvedInput,
+  limits : RequestLimits,
+) -> Result[KeyedRequest, RequestIssue] {
+  check_request_body(context, input, limits, true).map(data => { data, })
+}
+
+///|
+fn check_request_body(
+  context : RequestContext,
+  input : ResolvedInput,
+  limits : RequestLimits,
+  keyed : Bool,
+) -> Result[RequestData, RequestIssue] {
   let source = Some(input.declaration.source)
   if limits.max_work < 0 ||
     limits.max_pairs < 0 ||
@@ -146,9 +180,26 @@ pub fn check_direct_request(
   let mut text = limits.values.max_text_bytes
   let fields = []
   let seen : Map[String, Bool] = Map([])
+  let reserved : Map[String, Bool] = Map([])
   let schema = @environment.source_request_schema(input.selected.contract)
   try {
     request_charge(b, 1, source)
+    let correlation = if keyed {
+      let c = match
+        @environment.source_request_correlation(input.selected.contract) {
+        Some(c) => c
+        None => request_fail(MissingCorrelation, source)
+      }
+      for i in 0..<@environment.source_correlation_pair_count(c) {
+        let role = @environment.source_correlation_pair_at(c, i).unwrap().request
+        request_charge(b, 1, Some(role.source))
+        request_charge(b, role.name.length(), Some(role.source))
+        reserved[role.name] = true
+      }
+      Some(c)
+    } else {
+      None
+    }
     request_charge(b, input.declaration.input_name.length(), source)
     let slots = context.fields
       .get((input.declaration.stage_index, input.declaration.input_name))
@@ -157,6 +208,9 @@ pub fn check_direct_request(
       let at = Some(slot.source)
       request_charge(b, 1, at)
       request_charge(b, slot.field_name.length(), at)
+      if reserved.contains(slot.field_name) {
+        request_fail(CorrelationField(slot.field_name), at)
+      }
       let target = match
         @row.lookup(schema, @row.Unqualified(slot.field_name)) {
         Some(c) => c
@@ -223,7 +277,7 @@ pub fn check_direct_request(
       let name = @row.reference_name(field.name)
       request_charge(b, 1, source)
       request_charge(b, name.length(), source)
-      if !seen.contains(name) {
+      if !seen.contains(name) && !reserved.contains(name) {
         request_fail(
           MissingField(name),
           Some(input.declaration.request.unwrap_or(input.declaration.source)),
@@ -238,6 +292,7 @@ pub fn check_direct_request(
       pairs: limits.max_pairs - pairs,
       nodes: limits.values.max_nodes - nodes,
       text: limits.values.max_text_bytes - text,
+      correlation,
     })
   } catch {
     RequestStop(e) => Err(e)
@@ -261,25 +316,57 @@ pub fn request_context_work(v : RequestContext) -> Int {
 
 ///|
 pub fn request_context(v : DirectRequest) -> RequestContext {
-  v.context
+  v.data.context
 }
 
 ///|
 pub fn request_input(v : DirectRequest) -> ResolvedInput {
-  v.input
+  v.data.input
 }
 
 ///|
 pub fn request_field_count(v : DirectRequest) -> Int {
-  v.fields.length()
+  v.data.fields.length()
 }
 
 ///|
 pub fn request_field_at(v : DirectRequest, i : Int) -> RequestField? {
-  v.fields.get(i)
+  v.data.fields.get(i)
 }
 
 ///|
 pub fn request_usage(v : DirectRequest) -> (Int, Int, Int, Int) {
-  (v.work, v.pairs, v.nodes, v.text)
+  (v.data.work, v.data.pairs, v.data.nodes, v.data.text)
+}
+
+///|
+pub fn keyed_request_context(v : KeyedRequest) -> RequestContext {
+  v.data.context
+}
+
+///|
+pub fn keyed_request_input(v : KeyedRequest) -> ResolvedInput {
+  v.data.input
+}
+
+///|
+pub fn keyed_request_correlation(
+  v : KeyedRequest,
+) -> @environment.SourceCorrelation {
+  v.data.correlation.unwrap()
+}
+
+///|
+pub fn keyed_request_field_count(v : KeyedRequest) -> Int {
+  v.data.fields.length()
+}
+
+///|
+pub fn keyed_request_field_at(v : KeyedRequest, i : Int) -> RequestField? {
+  v.data.fields.get(i)
+}
+
+///|
+pub fn keyed_request_usage(v : KeyedRequest) -> (Int, Int, Int, Int) {
+  (v.data.work, v.data.pairs, v.data.nodes, v.data.text)
 }

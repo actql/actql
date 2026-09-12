@@ -37,6 +37,15 @@ struct ParameterizedRequest {
 }
 
 ///|
+struct ParameterizedKeyedRequest {
+  request : KeyedRequest
+  parameters : RequestParameters
+  fields : Array[ParameterizedRequestField]
+  work : Int
+  host_bindings : Int
+}
+
+///|
 /// Creates one reusable binding index for the exact request declaration owner.
 pub fn prepare_request_parameters(
   context : RequestContext,
@@ -75,6 +84,30 @@ pub fn bind_request_parameters(
   request : DirectRequest,
   max_work : Int,
 ) -> Result[ParameterizedRequest, RequestParameterIssue] {
+  bind_request_fields(parameters, request.data, max_work).map(result => {
+    let (fields, work, host_bindings) = result
+    { request, parameters, fields, work, host_bindings, }
+  })
+}
+
+///|
+pub fn bind_keyed_request_parameters(
+  parameters : RequestParameters,
+  request : KeyedRequest,
+  max_work : Int,
+) -> Result[ParameterizedKeyedRequest, RequestParameterIssue] {
+  bind_request_fields(parameters, request.data, max_work).map(result => {
+    let (fields, work, host_bindings) = result
+    { request, parameters, fields, work, host_bindings, }
+  })
+}
+
+///|
+fn bind_request_fields(
+  parameters : RequestParameters,
+  request : RequestData,
+  max_work : Int,
+) -> Result[(Array[ParameterizedRequestField], Int, Int), RequestParameterIssue] {
   if max_work < 0 {
     return Err(InvalidLimits)
   }
@@ -114,7 +147,48 @@ pub fn bind_request_parameters(
     }
     fields.push({ field, value, })
   }
-  Ok({ request, parameters, fields, work: max_work - remaining, host_bindings, })
+  Ok((fields, max_work - remaining, host_bindings))
+}
+
+///|
+pub fn parameterized_keyed_request(
+  v : ParameterizedKeyedRequest,
+) -> KeyedRequest {
+  v.request
+}
+
+///|
+pub fn parameterized_keyed_request_parameters(
+  v : ParameterizedKeyedRequest,
+) -> RequestParameters {
+  v.parameters
+}
+
+///|
+pub fn parameterized_keyed_request_field_count(
+  v : ParameterizedKeyedRequest,
+) -> Int {
+  v.fields.length()
+}
+
+///|
+pub fn parameterized_keyed_request_field_at(
+  v : ParameterizedKeyedRequest,
+  i : Int,
+) -> ParameterizedRequestField? {
+  v.fields.get(i)
+}
+
+///|
+pub fn parameterized_keyed_request_work(v : ParameterizedKeyedRequest) -> Int {
+  v.work
+}
+
+///|
+pub fn parameterized_keyed_request_host_binding_count(
+  v : ParameterizedKeyedRequest,
+) -> Int {
+  v.host_bindings
 }
 
 ///|

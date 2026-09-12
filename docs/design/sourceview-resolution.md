@@ -154,7 +154,31 @@ than substitute a DirectMode as proof of keyed compatibility. Per-call work is
 separate from the retained input-resolution work and must be budgeted cumulatively
 by that integration boundary.
 
-## Direct request templates
+## Direct and keyed request templates
+
+`check_keyed_request` is the separate static-request boundary for keyed
+acquisition. It requires the exact selected Catalog correlation proof and
+reserves every correlation request role. An authored occurrence of any such
+field is rejected at that field; every other declared field is required even
+when nullable. Unknown fields and incompatible literal, Parameter or Host
+Binding types are rejected by the same admission engine as direct requests.
+Nested business data remains opaque to reference substitution. The reserved
+names are indexed once under the work budget, not rescanned per authored field.
+
+The opaque `KeyedRequest` retains the original correlation proof, resolved
+input, source request context and admitted static fields. It cannot be supplied
+where a `DirectRequest` is required: the correlation fields have deliberately
+not been supplied. Direct request admission still requires those fields even
+when the selected SourceView advertises correlation. A missing correlation
+contract is not inferred from absent request fields.
+
+`bind_keyed_request_parameters` uses the same declaration-owned binding index
+as direct requests. It retains the original typed Parameter values and rules,
+leaves Host bindings explicit, and never creates values for correlation roles.
+Its result is not a complete wire request. Matching typed join keys, mode
+selection, response completeness, capacity and authority remain separate
+prerequisites. Admission and binding report their own work/value usage so the
+Program integration boundary can charge them without resetting shared limits.
 
 `prepare_requests` joins the complete source-owned slot inventory with one
 Resolved collection. It requires the same prepared stage source and retains
