@@ -1,0 +1,51 @@
+{
+  "version": "actql-stage-parameter-declaration-vectors/0.1",
+  "cases": [
+    {
+      "name": "local-use-includes-request-and-effect",
+      "stage_case": "local-binding-and-parameter-uses",
+      "expected_declarations": {"m":{"type":"number"},"n":{"type":"number"}},
+      "expected_cid": "sha256:f49c93f48877def60c5f82f04d34e4a975e1284acc844a15146870d9981d1be8"
+    },
+    {
+      "name": "sibling-only-declaration-excluded",
+      "stage_case": "other-stage-declarations-excluded",
+      "expected_declarations": {"m":{"type":"number"}},
+      "expected_cid": "sha256:a194d4fba45ad247ce3c576eecd5b3095e26360b7fed5ed000dfaded0d4ce32d"
+    },
+    {
+      "name": "empty-map-without-wrapper",
+      "stage_case": "explicit-empty-maps-and-lists",
+      "expected_declarations": {},
+      "expected_cid": "sha256:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    },
+    {
+      "name": "defaults-and-constraints-without-annotations",
+      "stage_case": "local-binding-and-parameter-uses",
+      "parameters": {"n":{"type":"number","minimum":0,"default":7,"meta":{"note":"not identity"}},"m":{"type":"number"}},
+      "expected_declarations": {"m":{"type":"number"},"n":{"default":7,"minimum":0,"type":"number"}},
+      "expected_cid": "sha256:1a10bc80bed8c6f25ee8511be9ea4382ec3956f6c4990bed6803e073cb543aeb"
+    },
+    {
+      "name": "declaration-and-member-order-independent",
+      "stage_case": "local-binding-and-parameter-uses",
+      "parameters": {"m":{"type":"number"},"n":{"default":7,"minimum":0,"type":"number","meta":{"note":"changed explanation"}}},
+      "expected_declarations": {"m":{"type":"number"},"n":{"default":7,"minimum":0,"type":"number"}},
+      "expected_cid": "sha256:1a10bc80bed8c6f25ee8511be9ea4382ec3956f6c4990bed6803e073cb543aeb"
+    },
+    {
+      "name": "changed-default-changes-declaration-identity",
+      "stage_case": "local-binding-and-parameter-uses",
+      "parameters": {"m":{"type":"number"},"n":{"type":"number","minimum":0,"default":8}},
+      "expected_declarations": {"m":{"type":"number"},"n":{"default":8,"minimum":0,"type":"number"}},
+      "expected_cid": "sha256:57a4ae7db77f0cb606e494c16e05045c5b8772cb8aebbd979aae9fabb928f47e"
+    },
+    {
+      "name": "sibling-default-and-constraint-do-not-enter-local-map",
+      "stage_case": "other-stage-declarations-excluded",
+      "parameters": {"m":{"type":"number"},"n":{"type":"number","minimum":0,"default":8}},
+      "expected_declarations": {"m":{"type":"number"}},
+      "expected_cid": "sha256:a194d4fba45ad247ce3c576eecd5b3095e26360b7fed5ed000dfaded0d4ce32d"
+    }
+  ]
+}

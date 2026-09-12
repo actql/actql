@@ -582,15 +582,25 @@ changing the Parameter identity when their canonical typed projections differ.
 This pair is not itself a new wire envelope or a local Invocation identity.
 
 The same constructor atomically prepares every stage's Definition and local
-used Parameter Values CID. Each opaque `StageSourceIdentity` retains its owned
+used Parameter Values and used Parameter declaration CIDs. Each opaque `StageSourceIdentity` retains its owned
 definition and exact local bound index; no independent stage or value set can
 be supplied. Indexed reads do not copy stage arrays. Empty local selections hash
 the explicit empty values envelope. Changing a value used only by another stage
 does not change this local value CID. This is still not a Unit Definition or
 Invocation: namespace, incoming contracts and observed inputs remain distinct.
 
+The local declaration CID hashes the stage semantics `parameters` map directly,
+using the same emitter and source-owned used-name selection. It retains defaults
+and constraints but excludes annotations, concrete values, sibling-only names
+and reference occurrences. Empty selection hashes `{}`, not the empty typed
+values envelope. The direct map is the normative external parameter-contract
+projection, not a newly invented artifact wrapper. The reference local-unit
+encoder accepts a caller-supplied declarations CID without establishing this
+projection; this boundary derives it instead. Binding declarations and the rest
+of the local contract closure are not discharged by that CID.
+
 One cumulative hash byte/node budget covers stage envelopes, Program semantics,
-Program/Stage Definitions and whole/local selected Parameter Values. Stage
+Program/Stage Definitions, local used declarations and whole/local selected Parameter Values. Stage
 semantics hashes already owned by ProgramSemantics are reused, not recomputed.
 Depth is bounded per emitted envelope.
 Inclusive work counts prior source checks once and adds only the new source

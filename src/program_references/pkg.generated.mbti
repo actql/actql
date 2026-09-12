@@ -29,6 +29,8 @@ pub fn emit_program_semantics(ProgramSemantics, @encode_core.Writer) -> Unit rai
 
 pub fn emit_stage_definition(StageDefinition, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
 
+pub fn emit_stage_parameter_declarations(StageSemantics, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
+
 pub fn emit_stage_semantics(StageSemantics, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
 
 pub fn emit_used_bindings(Index, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
@@ -90,6 +92,8 @@ pub fn stage_definition_semantics(StageDefinition) -> StageSemantics
 pub fn stage_definition_semantics_cid(StageDefinition) -> String
 
 pub fn stage_index(Inventory, Int) -> Index?
+
+pub fn stage_parameter_declarations_cid(StageSemantics, Int, Int, Int) -> String raise @encode_core.EncodeFailure
 
 pub fn stage_parameter_values(ParameterValues, Int) -> @parameter_references.BoundIndex?
 

@@ -14,6 +14,7 @@ pub(all) enum ProgramIdentityPhase {
   ParameterValues
   StageDefinition(Int)
   StageParameterValues(Int)
+  StageParameterDeclarations(Int)
 } derive(Eq, Debug)
 
 ///|
@@ -42,10 +43,12 @@ struct StageSourceIdentity {
   definition_cid : String
   values : @references.BoundIndex
   values_cid : String
+  declarations_cid : String
 }
 
 ///|
-/// Close Program/Stage Definitions and whole/local used Parameter identities.
+/// Close Program/Stage Definitions and whole/local used Parameter identities,
+/// including local annotation-free declaration maps for Unit extraction.
 /// No identity or value set is independently supplied. This is not an Invocation
 /// or the final static Program boundary; Host Bindings remain unresolved.
 pub fn identify_program_sources(
@@ -142,11 +145,28 @@ pub fn identify_program_sources(
     }
     bytes += local_parameter_hash.1
     nodes += local_parameter_hash.2
+    let declarations_hash = try {
+      let writer = @encode.hashing_writer(
+        limits.max_hash_bytes - bytes,
+        limits.max_hash_nodes - nodes,
+        limits.max_depth,
+      )
+      @program_refs.emit_stage_parameter_declarations(
+        @program_refs.stage_definition_semantics(local_definition),
+        writer,
+      )
+      @encode.finish_hash_usage(writer)
+    } catch {
+      e => return Err(Hash(StageParameterDeclarations(i), e))
+    }
+    bytes += declarations_hash.1
+    nodes += declarations_hash.2
     stages.push({
       definition: local_definition,
       definition_cid: "sha256:" + local_hash.0,
       values: local_values,
       values_cid: "sha256:" + local_parameter_hash.0,
+      declarations_cid: "sha256:" + declarations_hash.0,
     })
   }
   let parameter_hash = try {
@@ -205,7 +225,8 @@ pub fn program_identity_parameter_values_cid(
 
 ///|
 /// Inclusive source-check work and cumulative bytes/nodes of stage semantics,
-/// Program semantics, all Definitions and local/Program Parameter Values.
+/// Program semantics, all Definitions, local declarations and local/Program
+/// Parameter Values.
 pub fn program_identity_usage(v : ProgramSourceIdentity) -> (Int, Int, Int) {
   (v.work, v.hash_bytes, v.hash_nodes)
 }
@@ -245,4 +266,11 @@ pub fn stage_identity_parameter_values(
 ///|
 pub fn stage_identity_parameter_values_cid(v : StageSourceIdentity) -> String {
   v.values_cid
+}
+
+///|
+pub fn stage_identity_parameter_declarations_cid(
+  v : StageSourceIdentity,
+) -> String {
+  v.declarations_cid
 }

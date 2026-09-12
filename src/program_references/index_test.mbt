@@ -8,6 +8,7 @@ fn fixture(
   import_mode? : Int = 0,
   accepted? : Bool = false,
   root_id? : String = "p",
+  parameters? : String? = None,
 ) -> (@requests.Slots, Array[@body.ParameterUses]) {
   let text =
     #|{"version":"actql/0.1","id":"p","params":{"n":{"type":"number"},"m":{"type":"number"}},"bindings":{"b":{"type":"resource_ref","resource_kind":"drive.file","meta":{"note":"omit"}},"unused":{"type":"artifact_ref"}},"stages":[{"id":"a","inputs":{"rows":"relation","remote/~":{"connector":"drive/main","resource":"file","request":{"p":{"$param":"n"},"f/~":{"$binding":"b"},"again":{"$binding":"b"},"data":{"nested":{"$param":"unknown"}}}}},"from":"rows","steps":[{"take":{"$param":"m"}}],"results":{"r":{}},"effects":{"d":{"delete":{"where":["1 < $n"]}}}},{"id":"b","inputs":{"rows":"relation"},"from":"rows","steps":[{"take":{"$param":"m"}}],"results":{"r":{}}}],"results":{"out":{"from":{"stage":"b","result":"r"}}}}
@@ -71,6 +72,14 @@ fn fixture(
     text
   }
   let text = text.replace(old="\"id\":\"p\"", new="\"id\":\"" + root_id + "\"")
+  let text = match parameters {
+    Some(params) =>
+      text.replace(
+        old="\"params\":{\"n\":{\"type\":\"number\"},\"m\":{\"type\":\"number\"}}",
+        new="\"params\":" + params,
+      )
+    None => text
+  }
   let program = @stage.parse(
     text,
     {

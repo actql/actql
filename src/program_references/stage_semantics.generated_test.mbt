@@ -29,3 +29,38 @@ test "stage definition: other-stage-declarations-excluded" {
 test "stage definition: explicit-empty-maps-and-lists" {
   assert_stage_definition(true, 1, "b", "sha256:6207cf6549b9a178003845e3bb344a085ccd197a88a8184fb9e55e995d777053", "{\"id\":\"b\",\"stage_semantics_cid\":\"sha256:6207cf6549b9a178003845e3bb344a085ccd197a88a8184fb9e55e995d777053\",\"version\":\"actql-stage-definition/0.1\"}", "sha256:97f14bcddeb872803f1adc9b39316e74d85fb814821d7f44a73d4530398cc351")
 }
+
+///|
+test "stage declarations: local-use-includes-request-and-effect" {
+  assert_stage_declarations(false, 0, None, "{\"m\":{\"type\":\"number\"},\"n\":{\"type\":\"number\"}}", "sha256:f49c93f48877def60c5f82f04d34e4a975e1284acc844a15146870d9981d1be8")
+}
+
+///|
+test "stage declarations: sibling-only-declaration-excluded" {
+  assert_stage_declarations(false, 1, None, "{\"m\":{\"type\":\"number\"}}", "sha256:a194d4fba45ad247ce3c576eecd5b3095e26360b7fed5ed000dfaded0d4ce32d")
+}
+
+///|
+test "stage declarations: empty-map-without-wrapper" {
+  assert_stage_declarations(true, 1, None, "{}", "sha256:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a")
+}
+
+///|
+test "stage declarations: defaults-and-constraints-without-annotations" {
+  assert_stage_declarations(false, 0, Some("{\"n\":{\"type\":\"number\",\"minimum\":0,\"default\":7,\"meta\":{\"note\":\"not identity\"}},\"m\":{\"type\":\"number\"}}"), "{\"m\":{\"type\":\"number\"},\"n\":{\"default\":7,\"minimum\":0,\"type\":\"number\"}}", "sha256:1a10bc80bed8c6f25ee8511be9ea4382ec3956f6c4990bed6803e073cb543aeb")
+}
+
+///|
+test "stage declarations: declaration-and-member-order-independent" {
+  assert_stage_declarations(false, 0, Some("{\"m\":{\"type\":\"number\"},\"n\":{\"default\":7,\"minimum\":0,\"type\":\"number\",\"meta\":{\"note\":\"changed explanation\"}}}"), "{\"m\":{\"type\":\"number\"},\"n\":{\"default\":7,\"minimum\":0,\"type\":\"number\"}}", "sha256:1a10bc80bed8c6f25ee8511be9ea4382ec3956f6c4990bed6803e073cb543aeb")
+}
+
+///|
+test "stage declarations: changed-default-changes-declaration-identity" {
+  assert_stage_declarations(false, 0, Some("{\"m\":{\"type\":\"number\"},\"n\":{\"type\":\"number\",\"minimum\":0,\"default\":8}}"), "{\"m\":{\"type\":\"number\"},\"n\":{\"default\":8,\"minimum\":0,\"type\":\"number\"}}", "sha256:57a4ae7db77f0cb606e494c16e05045c5b8772cb8aebbd979aae9fabb928f47e")
+}
+
+///|
+test "stage declarations: sibling-default-and-constraint-do-not-enter-local-map" {
+  assert_stage_declarations(false, 1, Some("{\"m\":{\"type\":\"number\"},\"n\":{\"type\":\"number\",\"minimum\":0,\"default\":8}}"), "{\"m\":{\"type\":\"number\"}}", "sha256:a194d4fba45ad247ce3c576eecd5b3095e26360b7fed5ed000dfaded0d4ce32d")
+}

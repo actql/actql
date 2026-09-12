@@ -10,6 +10,8 @@ const cid = machineCid(read('spec/contracts/actql-expressions.json'));
 assert.equal(read('spec/contracts/actql-aoa.json').expression_contract_cid, cid);
 const vectors = read('portability/corpus/stage-semantics.json');
 const stageDefinitions = read('portability/corpus/stage-definition.json');
+const stageDeclarations = read('portability/corpus/stage-parameter-declarations.json');
+assert.equal(stageDeclarations.version, 'actql-stage-parameter-declaration-vectors/0.1');
 assert.equal(stageDefinitions.version, 'actql-stage-definition-vectors/0.1');
 assert.deepEqual(read('spec/contracts/actql-stage-contracts.json').schemas.stage_definition, {
   type: 'object',
@@ -80,6 +82,21 @@ for (const c of stageDefinitions.cases) {
   verifyIdentity(envelope, c.expected_cid);
   tests += `\n///|\ntest ${JSON.stringify('stage definition: ' + c.stage_case)} {\n  assert_stage_definition(${stage.empty}, ${stage.stage}, ${JSON.stringify(c.id)}, ${JSON.stringify(stage.expected_cid)}, ${JSON.stringify(canonicalText(envelope))}, ${JSON.stringify(c.expected_cid)})\n}\n`;
 }
+for (const c of stageDeclarations.cases) {
+  const matches = vectors.cases.filter(v => v.name === c.stage_case);
+  assert.equal(matches.length, 1);
+  const stage = matches[0];
+  // Fixture-specific independent selection, using the manually authored
+  // semantic corpus rather than any product discovery or emitter output.
+  const supplied = c.parameters ?? stage.envelope.parameters;
+  const projected = Object.fromEntries(Object.keys(stage.envelope.parameters).map(name => [
+    name, Object.fromEntries(Object.entries(supplied[name]).filter(([key]) => key !== 'meta')),
+  ]));
+  assert.deepEqual(projected, c.expected_declarations);
+  verifyIdentity(c.expected_declarations, c.expected_cid);
+  const params = c.parameters ? `Some(${JSON.stringify(JSON.stringify(c.parameters))})` : 'None';
+  tests += `\n///|\ntest ${JSON.stringify('stage declarations: ' + c.name)} {\n  assert_stage_declarations(${stage.empty}, ${stage.stage}, ${params}, ${JSON.stringify(canonicalText(c.expected_declarations))}, ${JSON.stringify(c.expected_cid)})\n}\n`;
+}
 for (const [path, content] of [
   ['src/program_references/stage_expression_contract.generated.mbt', pin],
   ['src/program_references/stage_semantics.generated_test.mbt', tests],
@@ -90,4 +107,4 @@ for (const [path, content] of [
   if (args[0] === '--write') writeFileSync(url, content);
   else assert.equal(readFileSync(url, 'utf8'), content, `stale generated file: ${path}`);
 }
-console.log(`${vectors.cases.length} stage and ${programs.cases.length} Program semantics, ${stageDefinitions.cases.length} Stage and ${definitions.cases.length} Program Definition identities verified; no executable conformance claim.`);
+console.log(`${vectors.cases.length} stage and ${programs.cases.length} Program semantics, ${stageDefinitions.cases.length} Stage and ${definitions.cases.length} Program Definition identities, ${stageDeclarations.cases.length} local declaration projections verified; no executable conformance claim.`);

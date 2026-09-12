@@ -169,6 +169,27 @@ test "Program source identities use the retained Program and bound values" {
     )
     let (_, value_bytes, _) = @encode.finish_hash_usage(values_writer)
     used_bytes += value_bytes
+    assert_true(
+      identify_program_sources(sources, {
+        ..limits,
+        max_hash_bytes: used_bytes,
+      })
+      is Err(Hash(StageParameterDeclarations(index), _)) &&
+      index == i,
+    )
+    let declarations_writer = @encode.hashing_writer(10000, 1000, 100)
+    @program_refs.emit_stage_parameter_declarations(
+      @program_refs.stage_definition_semantics(local_definition),
+      declarations_writer,
+    )
+    let (declarations_hash, declarations_bytes, _) = @encode.finish_hash_usage(
+      declarations_writer,
+    )
+    assert_eq(
+      stage_identity_parameter_declarations_cid(stage),
+      "sha256:" + declarations_hash,
+    )
+    used_bytes += declarations_bytes
   }
   let (other_ops, other_refs, other_bindings) = program_sources_fixture(
     supplied=Some(cursor("{\"p\":\"abc\",\"n\":1}")),
@@ -202,6 +223,15 @@ test "stage identities retain local used values without sibling parameter depend
   let v = identify_program_sources(sources, identity_limits()).unwrap()
   let a = program_identity_stage_at(v, 0).unwrap()
   let b = program_identity_stage_at(v, 1).unwrap()
+  // Independently hashed declaration maps, including defaults but no values.
+  assert_eq(
+    stage_identity_parameter_declarations_cid(a),
+    "sha256:891828526d44e474c5e0b7db0ae69451eb5c96959e6cc43352003b93bf64c055",
+  )
+  assert_eq(
+    stage_identity_parameter_declarations_cid(b),
+    "sha256:41352232db73a0a51a4056de2ab75fb181dd78e762d24c5beb3cf61c10b8c886",
+  )
   // Independent canonical UTF-8/SHA-256 expectations for {values:{p:...}}
   // and {values:{n:1}}, with version actql-parameter-values/0.1.
   assert_eq(
@@ -225,6 +255,14 @@ test "stage identities retain local used values without sibling parameter depend
   ).unwrap()
   let other_a = program_identity_stage_at(other, 0).unwrap()
   let other_b = program_identity_stage_at(other, 1).unwrap()
+  assert_eq(
+    stage_identity_parameter_declarations_cid(other_a),
+    stage_identity_parameter_declarations_cid(a),
+  )
+  assert_eq(
+    stage_identity_parameter_declarations_cid(other_b),
+    stage_identity_parameter_declarations_cid(b),
+  )
   assert_eq(
     stage_identity_parameter_values_cid(other_a),
     "sha256:9f0cd5274cf564d1a1569af59814570fad90a6fc9d73835a5b367ca4d0c92c59",
@@ -255,6 +293,10 @@ test "stage identities retain local used values without sibling parameter depend
     identity_limits(),
   ).unwrap()
   let empty_stage = program_identity_stage_at(empty, 1).unwrap()
+  assert_eq(
+    stage_identity_parameter_declarations_cid(empty_stage),
+    "sha256:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+  )
   assert_eq(
     @references.used_value_count(stage_identity_parameter_values(empty_stage)),
     0,

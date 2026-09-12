@@ -52,7 +52,7 @@ pub fn emit_stage_semantics(
   @encode.key(writer, "parameter_references")
   @parameters.emit_references(v.references.parameters, writer)
   @encode.key(writer, "parameters")
-  @parameters.emit_used_declarations(v.references.parameters, writer)
+  emit_stage_parameter_declarations(v, writer)
   @encode.key(writer, "version")
   @encode.string_value(writer, "actql-stage-semantics/0.1")
   @encode.end_object(writer)

@@ -7994,6 +7994,20 @@ in the stage contract registry. It is not the Unit Definition: the typed
 Program/node namespace and incoming contracts remain separate local extraction
 requirements. Computing either source identity grants no execution authority.
 
+<!-- requirement-block: canonical-identities.local-used-parameter-declarations -->
+For an extracted stage, `used_parameter_declarations_cid` MUST hash exactly the
+canonical JSON map in that stage semantics envelope's `parameters` member.
+The map uses the same annotation-free declaration encoding and used-name
+selection already specified above; it is not the enclosing Program's parameter
+map, a map of concrete values, or a reference-occurrence list. An empty selection
+hashes `{}`. There is no additional version, namespace or self-CID wrapper.
+Defaults and constraints remain declaration semantics, while supplied values,
+binding origin and annotations do not enter this projection. Opaque Binding
+declarations remain in the separate stage semantics `bindings` member; this
+Parameter-only CID does not discharge their local dependency requirements.
+The existing stage-semantics `parameters` schema and semantic declaration
+validation govern the map; no additional artifact family is introduced.
+
 <!-- requirement-block: canonical-identities.the-run-receipt-must-bind-all-applicable-identities-concrete-input -->
 Every self-CID is computed over the same envelope without its own CID field.
 Normalization journal and schema/capability/mapping evidence
