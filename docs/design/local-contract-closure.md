@@ -59,6 +59,17 @@ The inherited AST schemas are the exact pinned schemas; a newer current schema
 with similar purpose is not a substitute at those CIDs. Embedded JSON Schema
 `$ref` paths resolve within each schema's declared scope, not as Catalog IDs.
 
+`check_environment` exposes this fixed family through
+`InheritedTextTimeContract` and constant-time count/index dependency access.
+Each edge retains its JSON Pointer and typed target. Repeated NFKC/case-fold
+references remain separate edges even though their target is shared. Unknown
+pins do not resolve to leaf nodes. The generated graph verifies the actual
+body pins and declared reference positions before publication into product code.
+This lookup identifies globally pinned semantics, not a Program owner: selecting
+the root from an owned expression requirement and charging traversal work remain
+the responsibility of Program closure construction. It does not interpret the
+current expression contract's other dependencies or discharge any execution check.
+
 ## Three different identities
 
 A contract-closure CID identifies a set of interpreted contracts. A Unit

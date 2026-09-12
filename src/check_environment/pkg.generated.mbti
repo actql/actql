@@ -154,6 +154,14 @@ pub fn emit_member(Member, @encode_core.Writer) -> Unit raise @encode_core.Encod
 
 pub fn host_policy(WireEnvironment) -> @decode_core.Cursor
 
+pub fn inherited_text_time_cid(InheritedTextTimeContract) -> String
+
+pub fn inherited_text_time_contract(String) -> InheritedTextTimeContract?
+
+pub fn inherited_text_time_dependency_at(InheritedTextTimeContract, Int) -> InheritedTextTimeDependency?
+
+pub fn inherited_text_time_dependency_count(InheritedTextTimeContract) -> Int
+
 pub fn lookup_capacity_completeness(LookupCapacity) -> LookupCompleteness
 
 pub fn lookup_capacity_pages_per_request(LookupCapacity) -> Int64
@@ -505,6 +513,25 @@ pub(all) enum DataPolicyIssue {
 pub(all) struct DataPolicyLimits {
   max_work : Int
   max_policies : Int
+}
+
+pub(all) enum InheritedTextTimeContract {
+  Base
+  SourceSchema
+  EnvelopeSchema
+  BarrierSchema
+  RegexGrammar
+  RegexAst
+  ReplacementAst
+  TimestampGrammar
+  TimestampAst
+  UnicodeSemantics
+  UnicodeData
+} derive(Eq, @debug.Debug)
+
+pub struct InheritedTextTimeDependency {
+  pointer : String
+  target : InheritedTextTimeContract
 }
 
 pub(all) enum Issue {
