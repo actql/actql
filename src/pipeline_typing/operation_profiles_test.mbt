@@ -15,6 +15,20 @@ fn assert_operation_profiles(
         @pipeline_typing.operation_profile_at(operation, j),
         Some(expected[i][j]),
       )
+      let profile = @pipeline_typing.operation_profile_at(operation, j).unwrap()
+      let count = @pipeline_typing.operation_profile_adopted_law_count(profile)
+      let expected_count = match expected[i][j] {
+        RelA | SGA => 2
+        VecA => 1
+        TEA | CalendarProfile | TextRankProfile => 0
+      }
+      assert_eq(count, expected_count)
+      for k in 0..<count {
+        assert_true(
+          @pipeline_typing.operation_profile_adopted_law_at(profile, k)
+          is Some(_),
+        )
+      }
     }
     for j in [-1, expected[i].length(), 2147483647] {
       assert_true(@pipeline_typing.operation_profile_at(operation, j) is None)

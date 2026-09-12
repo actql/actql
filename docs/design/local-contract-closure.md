@@ -139,6 +139,21 @@ guards remain in the Unit body. Policy and capacity *interpretation contracts*
 remain in the contract closure. An actual contract-version change is distinct
 from a new policy value interpreted under the same contract.
 
+The existing exhaustive operation-profile classification also exposes adopted
+AoA law roots: RelA scalar/primitive laws, SGA structural/identity laws, and VecA
+numerical laws. Reads from an `OperationProfileResolution` retain the same owned
+site; repeated producer visits are not merged because their law CIDs match.
+The law pins are verified against the shared bodies, independently of any
+selected backend registry. Adopting a law does not establish backend support.
+
+This is deliberately an **adopted-law** inventory, not all profile dependencies.
+TEA, Calendar and TextRank have no entry in these five adopted manifests; zero
+here does not erase their ActQL rules, selected timezone/tokenizer artifacts,
+identity rules or execution checks. Likewise, scalar expression requirements
+are selected through their own expression roots rather than inferred solely
+from an operation's output Carrier. New operation/profile variants must be
+classified by the existing exhaustive match, not a duplicate name list.
+
 Import/interface and gate construction supplies its local semantic contract
 references. Full predecessor Program revisions, Captured Runs, receipts and
 whole manifests are not substitutes for those projections. A required projection

@@ -281,6 +281,10 @@ pub fn operation_orders_requirements(ProgramOperationOrders) -> ProgramOperation
 
 pub fn operation_orders_work(ProgramOperationOrders) -> Int
 
+pub fn operation_profile_adopted_law_at(OperationProfileResolution, Int) -> @pipeline_typing.AdoptedOperationLaw?
+
+pub fn operation_profile_adopted_law_count(OperationProfileResolution) -> Int
+
 pub fn operation_profile_links_at(ProgramOperationProfileLinks, Int) -> OperationProfileResolution?
 
 pub fn operation_profile_links_calendar(ProgramOperationProfileLinks) -> ProgramOperationCalendar

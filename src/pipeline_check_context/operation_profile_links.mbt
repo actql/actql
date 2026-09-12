@@ -136,3 +136,20 @@ pub fn operation_profile_links_at(
 pub fn operation_profile_links_work(v : ProgramOperationProfileLinks) -> Int {
   v.work
 }
+
+///|
+/// Additional roots for the exact resolved profile site, not backend capability
+/// or complete Unit closure. Repeated sites retain separate owners.
+pub fn operation_profile_adopted_law_count(
+  v : OperationProfileResolution,
+) -> Int {
+  @pipeline.operation_profile_adopted_law_count(v.profile)
+}
+
+///|
+pub fn operation_profile_adopted_law_at(
+  v : OperationProfileResolution,
+  index : Int,
+) -> @pipeline.AdoptedOperationLaw? {
+  @pipeline.operation_profile_adopted_law_at(v.profile, index)
+}

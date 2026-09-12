@@ -36,6 +36,8 @@ import {
 }
 
 // Values
+pub fn adopted_operation_law_cid(AdoptedOperationLaw) -> String
+
 pub fn aggregate_order_completion(AggregateOrder) -> SortCompletion?
 
 pub fn aggregate_order_inherited(AggregateOrder) -> LogicalOrder?
@@ -228,6 +230,10 @@ pub fn operation_obligations_scope(OperationObligations) -> OperationObligationS
 
 pub fn operation_order_demand(OperationObligation) -> OperationOrderDemand?
 
+pub fn operation_profile_adopted_law_at(OperationProfile, Int) -> AdoptedOperationLaw?
+
+pub fn operation_profile_adopted_law_count(OperationProfile) -> Int
+
 pub fn operation_profile_at(CheckedOperation, Int) -> OperationProfile?
 
 pub fn operation_profile_count(CheckedOperation) -> Int
@@ -373,6 +379,14 @@ pub fn window_fields(WindowEvidence) -> (@relation_schema.FieldName, @relation_s
 // Errors
 
 // Types and methods
+pub(all) enum AdoptedOperationLaw {
+  RelaScalar
+  RelaPrimitive
+  SgaStructural
+  SgaIdentity
+  VecaNumeric
+} derive(Eq, @debug.Debug)
+
 type AggregateOrder
 
 type AnalyticPositionOrder

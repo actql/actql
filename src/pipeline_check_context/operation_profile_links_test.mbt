@@ -18,6 +18,12 @@ test "VecA and TEA profile links retain checker claims without lexical artifacts
   for i in 0..<6 {
     let entry = operation_profile_links_at(vectors, i).unwrap()
     assert_eq(entry.profile, @pipeline.VecA)
+    assert_eq(operation_profile_adopted_law_count(entry), 1)
+    assert_eq(
+      operation_profile_adopted_law_at(entry, 0),
+      Some(@pipeline.VecaNumeric),
+    )
+    assert_true(operation_profile_adopted_law_at(entry, 1) is None)
     assert_true(entry.lexical is None)
     assert_eq(entry.site.step, 2 + i % 2)
   }
@@ -35,6 +41,8 @@ test "VecA and TEA profile links retain checker claims without lexical artifacts
   for i in 0..<3 {
     let entry = operation_profile_links_at(events, i).unwrap()
     assert_eq(entry.profile, @pipeline.TEA)
+    assert_eq(operation_profile_adopted_law_count(entry), 0)
+    assert_true(operation_profile_adopted_law_at(entry, 0) is None)
     assert_true(entry.lexical is None)
     assert_true(operation_profiles_declared(entry.checks).tea)
   }
@@ -57,6 +65,15 @@ test "SGA profile links retain the construction owner across repeated producer v
   for i in 0..<3 {
     let entry = operation_profile_links_at(result, i).unwrap()
     assert_eq(entry.profile, @pipeline.SGA)
+    assert_eq(operation_profile_adopted_law_count(entry), 2)
+    assert_eq(
+      operation_profile_adopted_law_at(entry, 0),
+      Some(@pipeline.SgaStructural),
+    )
+    assert_eq(
+      operation_profile_adopted_law_at(entry, 1),
+      Some(@pipeline.SgaIdentity),
+    )
     assert_true(entry.lexical is None)
     assert_true(operation_profiles_declared(entry.checks).sga)
   }
