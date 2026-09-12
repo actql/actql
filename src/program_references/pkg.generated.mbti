@@ -69,11 +69,15 @@ pub fn program_semantics_hash_usage(ProgramSemantics) -> (Int, Int)
 
 pub fn program_semantics_stage_cid(ProgramSemantics, Int) -> String?
 
+pub fn program_semantics_stage_count(ProgramSemantics) -> Int
+
 pub fn program_semantics_usage(ProgramSemantics) -> DeclarationUsage
 
 pub fn program_semantics_work(ProgramSemantics) -> Int
 
 pub fn requests(Inventory) -> @source_request_slots.Slots
+
+pub fn stage_definition_at(ProgramSemantics, Int) -> StageDefinition?
 
 pub fn stage_definition_cid(StageDefinition, Int, Int, Int) -> String raise @encode_core.EncodeFailure
 

@@ -12,6 +12,8 @@ pub(all) enum ProgramIdentityPhase {
   ProgramSemantics
   Definition
   ParameterValues
+  StageDefinition(Int)
+  StageParameterValues(Int)
 } derive(Eq, Debug)
 
 ///|
@@ -28,13 +30,22 @@ struct ProgramSourceIdentity {
   definition : @program_refs.ProgramDefinition
   definition_cid : String
   parameter_values_cid : String
+  stages : Array[StageSourceIdentity]
   work : Int
   hash_bytes : Int
   hash_nodes : Int
 }
 
 ///|
-/// Close source Definition and whole-Program used Parameter identity ownership.
+struct StageSourceIdentity {
+  definition : @program_refs.StageDefinition
+  definition_cid : String
+  values : @references.BoundIndex
+  values_cid : String
+}
+
+///|
+/// Close Program/Stage Definitions and whole/local used Parameter identities.
 /// No identity or value set is independently supplied. This is not an Invocation
 /// or the final static Program boundary; Host Bindings remain unresolved.
 pub fn identify_program_sources(
@@ -70,6 +81,11 @@ pub fn identify_program_sources(
   let (stage_bytes, stage_nodes) = @program_refs.program_semantics_hash_usage(
     semantics,
   )
+  let count = @program_refs.program_semantics_stage_count(semantics)
+  let work = prefix + @program_refs.program_semantics_work(semantics) + 1
+  if count > limits.max_work - work {
+    return Err(BudgetExceeded)
+  }
   let definition = @program_refs.prepare_program_definition(
     semantics,
     limits.max_hash_bytes - stage_bytes,
@@ -96,6 +112,43 @@ pub fn identify_program_sources(
   }
   bytes += definition_hash.1
   nodes += definition_hash.2
+  let stages = []
+  for i in 0..<count {
+    let local_definition = @program_refs.stage_definition_at(semantics, i).unwrap()
+    let local_values = @program_refs.stage_parameter_values(values, i).unwrap()
+    let local_hash = try {
+      let writer = @encode.hashing_writer(
+        limits.max_hash_bytes - bytes,
+        limits.max_hash_nodes - nodes,
+        limits.max_depth,
+      )
+      @program_refs.emit_stage_definition(local_definition, writer)
+      @encode.finish_hash_usage(writer)
+    } catch {
+      e => return Err(Hash(StageDefinition(i), e))
+    }
+    bytes += local_hash.1
+    nodes += local_hash.2
+    let local_parameter_hash = try {
+      let writer = @encode.hashing_writer(
+        limits.max_hash_bytes - bytes,
+        limits.max_hash_nodes - nodes,
+        limits.max_depth,
+      )
+      @references.emit_used_values(local_values, writer)
+      @encode.finish_hash_usage(writer)
+    } catch {
+      e => return Err(Hash(StageParameterValues(i), e))
+    }
+    bytes += local_parameter_hash.1
+    nodes += local_parameter_hash.2
+    stages.push({
+      definition: local_definition,
+      definition_cid: "sha256:" + local_hash.0,
+      values: local_values,
+      values_cid: "sha256:" + local_parameter_hash.0,
+    })
+  }
   let parameter_hash = try {
     let writer = @encode.hashing_writer(
       limits.max_hash_bytes - bytes,
@@ -117,7 +170,8 @@ pub fn identify_program_sources(
     definition,
     definition_cid: "sha256:" + definition_hash.0,
     parameter_values_cid: "sha256:" + parameter_hash.0,
-    work: prefix + @program_refs.program_semantics_work(semantics) + 1,
+    stages,
+    work: work + count,
     hash_bytes: bytes,
     hash_nodes: nodes,
   })
@@ -150,8 +204,45 @@ pub fn program_identity_parameter_values_cid(
 }
 
 ///|
-/// Inclusive source-check work and cumulative bytes/nodes of all four hash
-/// phases (stage envelopes, Program semantics, Definition, Parameter Values).
+/// Inclusive source-check work and cumulative bytes/nodes of stage semantics,
+/// Program semantics, all Definitions and local/Program Parameter Values.
 pub fn program_identity_usage(v : ProgramSourceIdentity) -> (Int, Int, Int) {
   (v.work, v.hash_bytes, v.hash_nodes)
+}
+
+///|
+pub fn program_identity_stage_count(v : ProgramSourceIdentity) -> Int {
+  v.stages.length()
+}
+
+///|
+pub fn program_identity_stage_at(
+  v : ProgramSourceIdentity,
+  index : Int,
+) -> StageSourceIdentity? {
+  v.stages.get(index)
+}
+
+///|
+pub fn stage_identity_definition(
+  v : StageSourceIdentity,
+) -> @program_refs.StageDefinition {
+  v.definition
+}
+
+///|
+pub fn stage_identity_definition_cid(v : StageSourceIdentity) -> String {
+  v.definition_cid
+}
+
+///|
+pub fn stage_identity_parameter_values(
+  v : StageSourceIdentity,
+) -> @references.BoundIndex {
+  v.values
+}
+
+///|
+pub fn stage_identity_parameter_values_cid(v : StageSourceIdentity) -> String {
+  v.values_cid
 }

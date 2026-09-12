@@ -15,6 +15,7 @@ fn wired_inputs_fixture(
   profile? : String = "{}",
   expression? : String = "$n",
   steps? : String? = None,
+  second_steps? : String? = None,
   parameters? : String = "{\"n\":{\"type\":\"number\",\"default\":1}}",
   supplied? : @decode.Cursor? = None,
   remote? : Array[@sourceviews.PipelineInputs]? = None,
@@ -44,11 +45,14 @@ fn wired_inputs_fixture(
     )
     .replace(
       old="\"steps\":[{\"derive\":{\"x\":\"$n\"}}]",
-      new="\"steps\":" + steps.unwrap_or("[{\"derive\":{\"x\":\"$n\"}}]"),
+      // A separator prevents the second replacement from selecting this slot
+      // again when the default body is textually identical to the template.
+      new="\"steps\": " + steps.unwrap_or("[{\"derive\":{\"x\":\"$n\"}}]"),
     )
     .replace(
       old="\"steps\":[{\"derive\":{\"x\":\"$n\"}}]",
-      new="\"steps\":" + steps.unwrap_or("[{\"derive\":{\"x\":\"$n\"}}]"),
+      new="\"steps\":" +
+        second_steps.unwrap_or(steps.unwrap_or("[{\"derive\":{\"x\":\"$n\"}}]")),
     )
     .replace(
       old="\"x\":\"$n\"",

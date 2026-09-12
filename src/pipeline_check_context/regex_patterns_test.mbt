@@ -13,6 +13,7 @@ fn regex_limits() -> RegexPatternLimits {
 fn regex_fixture(
   expression : String,
   steps? : String? = None,
+  second_steps? : String? = None,
   parameters? : String = "{\"p\":{\"type\":\"string\",\"default\":\"(a)\"},\"c\":{\"type\":\"number\",\"default\":1},\"r\":{\"type\":\"string\",\"default\":\"$1$$\"}}",
   supplied? : @decode.Cursor? = None,
   profile? : String = validation_profile(
@@ -22,7 +23,14 @@ fn regex_fixture(
     ),
   ),
 ) -> ExpressionValidationContext {
-  timestamp_fixture(expression, parameters~, supplied~, profile~, steps~)
+  timestamp_fixture(
+    expression,
+    parameters~,
+    supplied~,
+    profile~,
+    steps~,
+    second_steps~,
+  )
 }
 
 ///|

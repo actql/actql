@@ -39,10 +39,39 @@ fn assert_program_semantics(
   // Root ID belongs to Program Definition, not Program semantics.
   assert_eq(program_semantics_cid(renamed, 10000, 1000, 100), expected_cid)
   assert_true(physical_equal(program_semantics_usage(v), usage))
+  assert_eq(program_semantics_stage_count(v), 2)
   for i in [-1, 2, 2147483647] {
     assert_true(program_semantics_stage_cid(v, i) is None)
+    assert_true(stage_definition_at(v, i) is None)
   }
   for i in 0..<2 {
+    let d = stage_definition_at(v, i).unwrap()
+    assert_eq(stage_definition_hash_usage(d), (0, 0))
+    assert_eq(stage_definition_id(d), if i == 0 { "a" } else { "b" })
+    assert_eq(
+      stage_definition_semantics_cid(d),
+      program_semantics_stage_cid(v, i).unwrap(),
+    )
+    assert_true(
+      physical_equal(
+        stage_semantics_usage(stage_definition_semantics(d)),
+        usage,
+      ),
+    )
+    assert_eq(
+      stage_definition_cid(d, 10000, 1000, 100),
+      stage_definition_cid(
+        prepare_stage_definition(
+          stage_semantics_at(usage, i).unwrap(),
+          10000,
+          1000,
+          100,
+        ),
+        10000,
+        1000,
+        100,
+      ),
+    )
     assert_eq(
       program_semantics_stage_cid(v, i).unwrap(),
       stage_semantics_cid(

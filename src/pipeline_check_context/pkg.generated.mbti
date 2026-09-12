@@ -318,6 +318,10 @@ pub fn program_identity_parameter_values_cid(ProgramSourceIdentity) -> String
 
 pub fn program_identity_sources(ProgramSourceIdentity) -> ProgramSourceChecks
 
+pub fn program_identity_stage_at(ProgramSourceIdentity, Int) -> StageSourceIdentity?
+
+pub fn program_identity_stage_count(ProgramSourceIdentity) -> Int
+
 pub fn program_identity_usage(ProgramSourceIdentity) -> (Int, Int, Int)
 
 pub fn program_reference_stages(ProgramReferences) -> StageContexts
@@ -431,6 +435,14 @@ pub fn source_rows_stage(SourceRowContexts, Int) -> @sourceview_resolution.Keyed
 pub fn source_rows_work(SourceRowContexts) -> Int
 
 pub fn stage_context_at(StageContexts, Int) -> BoundParameters?
+
+pub fn stage_identity_definition(StageSourceIdentity) -> @program_references.StageDefinition
+
+pub fn stage_identity_definition_cid(StageSourceIdentity) -> String
+
+pub fn stage_identity_parameter_values(StageSourceIdentity) -> @parameter_references.BoundIndex
+
+pub fn stage_identity_parameter_values_cid(StageSourceIdentity) -> String
 
 pub fn stage_operations(StageContexts) -> @stage_parameters.BoundOperations
 
@@ -890,6 +902,8 @@ pub(all) enum ProgramIdentityPhase {
   ProgramSemantics
   Definition
   ParameterValues
+  StageDefinition(Int)
+  StageParameterValues(Int)
 } derive(Eq, @debug.Debug)
 
 type ProgramOperationCalendar
@@ -1090,6 +1104,8 @@ pub(all) enum StageIssue {
   ForeignPolicy(Int)
   BudgetExceeded(Int)
 } derive(Eq, @debug.Debug)
+
+type StageSourceIdentity
 
 type TextBoundResolution
 

@@ -138,6 +138,11 @@ pub fn program_semantics_stage_cid(v : ProgramSemantics, i : Int) -> String? {
 }
 
 ///|
+pub fn program_semantics_stage_count(v : ProgramSemantics) -> Int {
+  v.descriptors.length()
+}
+
+///|
 pub fn emit_program_semantics(
   v : ProgramSemantics,
   writer : @encode.Writer,

@@ -19,9 +19,17 @@ fn bound_fixture(
   supplied? : @decode.Cursor? = None,
   profile? : String = bound_profile(),
   steps? : String? = None,
+  second_steps? : String? = None,
 ) -> PatternChecks {
   check_patterns(
-    regex_fixture(expression, parameters~, supplied~, profile~, steps~),
+    regex_fixture(
+      expression,
+      parameters~,
+      supplied~,
+      profile~,
+      steps~,
+      second_steps~,
+    ),
     pattern_limits(),
   ).unwrap()
 }

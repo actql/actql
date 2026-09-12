@@ -581,10 +581,20 @@ Changing only supplied values leaves source Definition identity unchanged while
 changing the Parameter identity when their canonical typed projections differ.
 This pair is not itself a new wire envelope or a local Invocation identity.
 
+The same constructor atomically prepares every stage's Definition and local
+used Parameter Values CID. Each opaque `StageSourceIdentity` retains its owned
+definition and exact local bound index; no independent stage or value set can
+be supplied. Indexed reads do not copy stage arrays. Empty local selections hash
+the explicit empty values envelope. Changing a value used only by another stage
+does not change this local value CID. This is still not a Unit Definition or
+Invocation: namespace, incoming contracts and observed inputs remain distinct.
+
 One cumulative hash byte/node budget covers stage envelopes, Program semantics,
-Definition and selected Parameter Values. Depth is bounded per emitted envelope.
+Program/Stage Definitions and whole/local selected Parameter Values. Stage
+semantics hashes already owned by ProgramSemantics are reused, not recomputed.
+Depth is bounded per emitted envelope.
 Inclusive work counts prior source checks once and adds only the new source
-descriptor preparation; hash byte/node accounting is separate from work and
+descriptor preparation and one retained identity entry per stage; hash byte/node accounting is separate from work and
 neither is a physical-memory limit. Phase-specific failure never exposes a
 partially assembled identity set. Read-only accessors preserve the exact source
 owner and prepared Definition alongside their computed CIDs and measured usage.

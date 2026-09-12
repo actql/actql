@@ -86,3 +86,10 @@ has separate limits and shares text, measurement and hash sinks. The source
 owner is retained internally but neither owner identity nor ordinal enters the
 preimage. A renamed parent or unrelated sibling cannot change the local hash.
 This identity is not an execution permit or completed Unit extraction.
+
+`stage_definition_at` can instead use an owned ProgramSemantics descriptor.
+It reuses the exact stage hash already charged during Program preparation and
+retains a StageSemantics from that same inventory. Its newly performed hash
+usage is zero; inherited cost remains in `program_semantics_hash_usage`. This
+prevents repeated serialization when assembling all local identities. Neither
+path accepts a caller-supplied ID, CID or replacement stage owner.

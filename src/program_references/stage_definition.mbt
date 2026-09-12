@@ -7,6 +7,23 @@ struct StageDefinition {
 }
 
 ///|
+/// Reuse a stage hash already prepared under the Program's cumulative limits.
+/// This performs no new hashing; hash_usage is (0, 0), not the inherited cost.
+pub fn stage_definition_at(
+  program : ProgramSemantics,
+  index : Int,
+) -> StageDefinition? {
+  program.descriptors
+  .get(index)
+  .map(d => {
+    semantics: stage_semantics_at(program.usage, index).unwrap(),
+    cid: d.cid,
+    bytes: 0,
+    nodes: 0,
+  })
+}
+
+///|
 /// Bind the authored ID to this exact owned stage, never to a supplied CID.
 /// This source identity is not Unit extraction or executable admission.
 pub fn prepare_stage_definition(
