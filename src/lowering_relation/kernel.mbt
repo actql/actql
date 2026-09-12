@@ -47,6 +47,18 @@ pub fn kernel_checked(kernel : PreparedKernel) -> @relation.CheckedOperation {
 }
 
 ///|
+/// Indexed immutable binding view, without copying the complete slot array.
+pub fn ordered_binding_at(
+  kernel : PreparedKernel,
+  index : Int,
+) -> (String, Expression)? {
+  match kernel.body {
+    OrderedBindings(bindings) => bindings.get(index)
+    SnapshotMap(_) | Filter(_) | Select(_) => None
+  }
+}
+
+///|
 pub fn kernel_body(kernel : PreparedKernel) -> KernelBody {
   match kernel.body {
     SnapshotMap(bindings) => SnapshotMap(bindings.copy())

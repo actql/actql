@@ -13,6 +13,7 @@ import {
   "actql/actql/relation_evidence" @evidence,
   "actql/actql/canonical_json" @identity,
   "actql/actql/encode_core" @encode,
+  "actql/actql/value_contract" @contract,
   "moonbitlang/core/json",
 }
 

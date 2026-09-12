@@ -92,6 +92,8 @@ pub fn node_id(PreparedNode) -> String
 
 pub fn operation(PreparedNode) -> String
 
+pub fn ordered_binding_at(PreparedKernel, Int) -> (String, Expression)?
+
 pub fn ordered_reference_at(OrderedReferences, Int) -> OrderedReference?
 
 pub fn ordered_reference_count(OrderedReferences) -> Int
