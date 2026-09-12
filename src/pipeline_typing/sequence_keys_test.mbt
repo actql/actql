@@ -98,6 +98,7 @@ test "sequence disallow keys survive aliases for Relation and Events inputs" {
           )
         } else {
           assert_true(@pipeline_typing.candidate_key(p, Step(at + 2)) is None)
+          // Sequence still establishes occurrence order; sort uses it only for ties.
           assert_true(
             @pipeline_typing.resolve_contextual_orders(
               p,
@@ -105,7 +106,13 @@ test "sequence disallow keys survive aliases for Relation and Events inputs" {
               max_work=10000,
               max_text_bytes=10000,
             )
-            is Err(_),
+            is Ok(_),
+          )
+          assert_true(
+            @pipeline_typing.sort_order_strategy(
+              @pipeline_typing.sort_order(p, at + 3).unwrap(),
+            )
+            is ExistingTotal(_),
           )
           assert_true(
             @evidence.sequence_keys(checked, { max_work: 1, max_name_bytes: 0, })

@@ -21,7 +21,14 @@ test "generator order survives projection and empty sort without inventing field
   }
   // A stable occurrence sequence does not make constant output x a unique key.
   assert_true(@pipeline_typing.candidate_key(p, Step(2)) is None)
-  assert_true(@pipeline_typing.logical_order(p, Step(5)) is None)
+  let sorted = @pipeline_typing.logical_order(p, Step(5)).unwrap()
+  assert_eq(@pipeline_typing.order_origin(sorted), Step(5))
+  assert_eq(
+    @pipeline_typing.order_origin(
+      @pipeline_typing.order_tie_break(sorted).unwrap(),
+    ),
+    Step(0),
+  )
   let branched = @pipeline_typing.logical_order(p, Step(6)).unwrap()
   assert_eq(@pipeline_typing.order_predecessor(branched), Some(Step(0)))
   assert_eq(@pipeline_typing.order_origin(branched), Step(0))

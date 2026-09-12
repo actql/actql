@@ -2,6 +2,7 @@
 pub enum ContextualOrder {
   InputSequence(InputOrderResolution)
   KeyCompletion(SortCompletion)
+  SortSequence(SortOrder)
   TakeSequence(LogicalOrder)
   AnalyticPosition(AnalyticPositionOrder)
   Aggregates(GroupOrders)
@@ -57,7 +58,13 @@ pub fn resolve_contextual_orders(
               }
               entry.push(KeyCompletion(order))
             }
-            Sort | TopK | TopKBy if @relation.ranking_term_count(op) > 0 => {
+            Sort if @relation.sort_term_count(op) > 0 => {
+              guard sort_order(p, i) is Some(order) else {
+                fail(step.source, UnresolvedOrder)
+              }
+              entry.push(SortSequence(order))
+            }
+            TopK | TopKBy if @relation.ranking_term_count(op) > 0 => {
               guard logical_order(p, Step(i)).bind(order_sort_completion)
                 is Some(order) else {
                 fail(step.source, UnresolvedOrder)

@@ -3128,6 +3128,21 @@ this is distinct from appending candidate-key fields. Stability alone MUST NOT
 promote physical input enumeration into deterministic total-order evidence.
 The empty-sort identity and evidence rules above remain unchanged.
 
+<!-- requirement-block: sort.resolution-priority sort.retained-witness-ties sort.retained-witness-origin sort.unresolved-boundary sort.lowering-strategy -->
+For nonempty `sort`, the compiler MUST prefer eligible candidate-key completion.
+If no eligible candidate key exists but an applicable admitted total input-order
+witness exists, it MUST resolve equal explicit-key tuples using only the relative
+order established by that witness. The sorted output MUST identify this sort as
+its order producer and retain the prior witness as a tie-resolution dependency,
+not copy the prior order as if the complete input sequence were unchanged.
+Projection hiding prior order fields does not itself invalidate a retained
+occurrence-order witness. With neither strategy available, the compiler MUST
+retain the order as unresolved and reject it at a boundary requiring total order.
+The checked strategy, authored keys, completion record or exact owned prior
+witness MUST be exposed to lowering without requiring order re-inference.
+This fallback is specific to `sort`; it does not relax the separate candidate-key
+requirements of `top_k` or `top_k_by`.
+
 <a id="take"></a>
 
 #### `take`

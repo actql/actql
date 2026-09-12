@@ -5,6 +5,13 @@ test "sort completion preserves authored terms and recognizes equivalent key ali
   )
   let p = @pipeline_typing.check_carriers(source, [], None, None, limits()).unwrap()
   let order = @pipeline_typing.logical_order(p, Step(3)).unwrap()
+  assert_true(
+    @pipeline_typing.sort_order_strategy(
+      @pipeline_typing.sort_order(p, 3).unwrap(),
+    )
+    is CandidateKey(_),
+  )
+  assert_true(@pipeline_typing.order_tie_break(order) is None)
   assert_eq(@pipeline_typing.order_origin(order), Step(3))
   let completion = @pipeline_typing.order_sort_completion(order).unwrap()
   assert_eq(@pipeline_typing.sort_completion_count(completion), 1)

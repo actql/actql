@@ -1,4 +1,31 @@
 ///|
+test "Result retains the new sort producer after hidden-field tie resolution" {
+  let p = @pipeline.check(
+    cursor(
+      "[{\"time_series\":{\"start\":\"2000-01-01T00:00:00.000Z\",\"end\":\"2000-01-01T00:00:00.010Z\",\"step\":1},\"as\":\"grid\"},{\"derive\":{\"x\":{\"literal\":1}}},{\"drop\":[\"time\"]},{\"sort\":[{\"x\":\"desc\"}],\"as\":\"sorted\"},{\"take\":1,\"as\":\"taken\"}]",
+    ),
+    [],
+    None,
+    None,
+    ranking_limits(),
+  ).unwrap()
+  for name in ["sorted", "taken"] {
+    let r = @relation_results.check(
+      p,
+      cursor("{\"out\":{\"from\":\"" + name + "\",\"fields\":[\"x\"]}}"),
+      limits(),
+    ).unwrap()
+    assert_eq(@relation_results.publication_strategy(resolve(r)), Inherited)
+  }
+  let order = @pipeline.take_order(p, 4).unwrap()
+  assert_eq(@pipeline.order_origin(order), Step(3))
+  assert_eq(
+    @pipeline.order_origin(@pipeline.order_tie_break(order).unwrap()),
+    Step(0),
+  )
+}
+
+///|
 test "values occurrence order includes empty and repeated rows without inventing keys" {
   for rows in ["[]", "[{\"id\":1},{\"id\":1}]"] {
     let p = @pipeline.check(

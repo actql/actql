@@ -142,7 +142,7 @@ test "contextual orders retain every step and enforce inclusive collection budge
     3,
   )
   let first = @pipeline_typing.contextual_orders_at(r, 0).unwrap()
-  assert_true(first[0] is KeyCompletion(_))
+  assert_true(first[0] is SortSequence(_))
   first.clear()
   assert_eq(@pipeline_typing.contextual_orders_at(r, 0).unwrap().length(), 1)
   assert_true(

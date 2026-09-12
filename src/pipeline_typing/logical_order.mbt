@@ -10,6 +10,7 @@ struct LogicalOrder {
   key_order : @evidence.KeyedRelation?
   dependencies : Array[Target]
   publication : ResultPublication?
+  tie_order : LogicalOrder?
 }
 
 ///|
@@ -66,6 +67,7 @@ fn imported_orders(inputs : Array[ProducedInput?]) -> Array[LogicalOrder?] {
         key_order: None,
         dependencies: [],
         publication: None,
+        tie_order: None,
       })
     })
   })
@@ -138,6 +140,12 @@ fn derive_logical_orders(
         Step(j) => out[j]
       }
     })
+    let tie_order = match step.operation {
+      Unary(op) if @relation.operation(op) == @relation.Sort &&
+        @relation.sort_term_count(op) > 0 &&
+        completion is None => previous
+      _ => None
+    }
     let key_order = match step.operation {
       Unary(op) if @relation.operation(op) == @relation.Take && previous is None =>
         select_order_key(
@@ -221,6 +229,8 @@ fn derive_logical_orders(
       _ => false
     }
     let dependencies = match step.operation {
+      Unary(op) if @relation.operation(op) == @relation.Sort &&
+        tie_order is Some(_) => [step.input.unwrap()]
       Join(right~, checked~) => {
         let left_only = match @join.kind(checked) {
           Semi | Anti => true
@@ -280,6 +290,7 @@ fn derive_logical_orders(
           key_order,
           dependencies,
           publication: None,
+          tie_order,
         })
       } else if preserve {
         previous.map(v => { ..v, predecessor: step.input, })

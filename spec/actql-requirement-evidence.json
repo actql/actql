@@ -2500,6 +2500,61 @@
       }
     },
     {
+      "requirement_id": "actql.language/sort.resolution-priority",
+      "statement_sha256": "6870f6f05e33092133d92bfc843d2e8d2ddafb93b0bcf83606eb9eeaf00588ce",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "sort",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/sort.retained-witness-ties",
+      "statement_sha256": "8e35cde2f3c769b26dad343a4865bf8659893aea7529ddd0f299b199ae2bc4e3",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "sort",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/sort.retained-witness-origin",
+      "statement_sha256": "2431994bf32ec4084b1969bc2a784e29988706279a5521ffb75e6fe93aaf27fd",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "sort",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/sort.unresolved-boundary",
+      "statement_sha256": "e61fadef941db011ac7628acd8a244df52e6fa5121820def20eada03313389ce",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "sort",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/sort.lowering-strategy",
+      "statement_sha256": "030bbd29e16c8b577d0817cc82bdef5bef5b580e345c08839ec8bae69bca9a97",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "sort",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.language/take.the-value-must-be-a-positive-safe-integer",
       "statement_sha256": "fd1914d547d022ab422306de004fb0aadb55c2ec2f77534f545ee13a1ded94f6",
       "status": "pending",

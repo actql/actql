@@ -131,6 +131,7 @@ pub fn publish_produced_input(
       imported: None,
       predecessor: None,
       completion: None,
+      tie_order: None,
       key_order: None,
       dependencies: [],
       publication: Some(publication),

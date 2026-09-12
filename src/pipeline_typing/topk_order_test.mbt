@@ -80,5 +80,15 @@ test "top-k ranking completes keys instead of reusing unrelated input order" {
     ).unwrap()
     assert_true(@pipeline_typing.logical_order(p, Step(0)) is Some(_))
     assert_true(@pipeline_typing.logical_order(p, Step(1)) is None)
+    assert_true(@pipeline_typing.sort_order(p, 1) is None)
+    assert_eq(
+      @pipeline_typing.resolve_contextual_orders(
+        p,
+        max_steps=2,
+        max_work=2,
+        max_text_bytes=0,
+      ).unwrap_err().kind,
+      UnresolvedOrder,
+    )
   }
 }

@@ -16,6 +16,25 @@ enumeration is not such a witness. Empty authored sort adds no evidence and
 does not trigger candidate-key completion, though later consumers retain their
 own permitted completion rules.
 
+Nonempty sort resolves candidate-key completion first, then an applicable total
+input witness, otherwise remains unresolved. `sort_order` exposes an opaque,
+pipeline-owned `SortOrder` with a `CandidateKey` or `ExistingTotal` strategy;
+`SortSequence` exposes that result at the contextual-order boundary. Authored
+terms remain in the checked sort operation. A retained witness is not appended
+as a fabricated field: the new sort becomes the order origin and records its
+input dependency plus the exact prior `LogicalOrder`. `order_tie_break` exposes
+that dependency even after later order-preserving operations. A prior witness
+may survive projection that hides its original order fields; its producer and
+runtime obligations still belong to the retained owner, not to another pipeline
+with equal schema or values. Empty sorts do not create a `SortOrder`.
+
+This is a deliberate extension of the former candidate-only sort resolution,
+not an extension of top-k acceptance. At Sketch revision
+`87dc7144138edfcba108cdc59dc485ac976ba976`, `src/actql-compiler.ts` requires a
+retained candidate key for sort. ActQL's explicit stable primitive contract now
+supports the additional owned-witness strategy. TopK and TopKBy keep their
+separate candidate-key rule and do not inherit this fallback.
+
 ## Reference compatibility and proof scope
 
 This corrects a shared-law inconsistency with ActQL, not a report that reference

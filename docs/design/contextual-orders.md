@@ -8,7 +8,10 @@ detached arrays; a caller cannot construct a successful result for a subset.
 The boundary invokes existing operation-specific rules rather than treating all
 ordering requirements as interchangeable:
 
-- Nonempty sort and top-k complete candidate keys; empty sort adds no requirement.
+- Nonempty sort prefers candidate-key completion, otherwise resolves ties using
+  an applicable total input witness. `SortSequence` retains the owned strategy
+  and its new sort origin. Empty sort adds no requirement. Top-k still requires
+  candidate-key completion rather than inheriting this sort-only fallback.
 - Take requires its preselection sequence, including its permitted key completion.
 - Lag requires key completion, not just inherited input order.
 - Position-sensitive analytic calls require position completion; rank-only calls

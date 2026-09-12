@@ -230,6 +230,8 @@ pub fn order_publication(LogicalOrder) -> ResultPublication?
 
 pub fn order_sort_completion(LogicalOrder) -> SortCompletion?
 
+pub fn order_tie_break(LogicalOrder) -> LogicalOrder?
+
 pub fn output_carrier(CheckedPipeline) -> @carrier_contract.Carrier?
 
 pub fn output_schema(CheckedPipeline) -> @relation_schema.Schema?
@@ -305,6 +307,20 @@ pub fn sort_completion_count(SortCompletion) -> Int
 pub fn sort_completion_field(SortCompletion, Int) -> @relation_schema.FieldName?
 
 pub fn sort_completion_key(SortCompletion) -> @relation_evidence.KeyedRelation
+
+pub fn sort_order(CheckedPipeline, Int) -> SortOrder?
+
+pub fn sort_order_consumer(SortOrder) -> CheckedStep
+
+pub fn sort_order_evidence(SortOrder) -> LogicalOrder
+
+pub fn sort_order_input(SortOrder) -> Target
+
+pub fn sort_order_pipeline(SortOrder) -> CheckedPipeline
+
+pub fn sort_order_step(SortOrder) -> Int
+
+pub fn sort_order_strategy(SortOrder) -> SortStrategy
 
 pub fn source(CheckedPipeline) -> @decode_core.Cursor
 
@@ -398,6 +414,7 @@ type ContextualClosure
 pub enum ContextualOrder {
   InputSequence(InputOrderResolution)
   KeyCompletion(SortCompletion)
+  SortSequence(SortOrder)
   TakeSequence(LogicalOrder)
   AnalyticPosition(AnalyticPositionOrder)
   Aggregates(GroupOrders)
@@ -602,6 +619,13 @@ pub struct RowCount {
 } derive(Eq, @debug.Debug)
 
 type SortCompletion
+
+type SortOrder
+
+pub enum SortStrategy {
+  CandidateKey(SortCompletion)
+  ExistingTotal(LogicalOrder)
+}
 
 pub(all) enum Target {
   Input(Int)

@@ -141,6 +141,14 @@ definition. A nullable Graph label tuple can retain a conditional identity/
 uniqueness witness for other consumers, but is not an eligible candidate key
 for this ordering completion. This is not a missing nullable-key feature.
 
+When no eligible key exists, nonempty sort can instead use the actual input's
+retained total occurrence witness only inside equal authored-key groups. The
+sort is a new order producer, not an order-preserving transfer. It owns an input
+dependency and the prior witness exposed by `order_tie_break`; `sort_order`
+exposes this resolution or the preferred key completion to lowering. A hidden
+original order field does not destroy occurrence order. Neither strategy being
+available leaves sort unresolved. This fallback does not extend top-k or lag.
+
 Append establishes left-then-right order only when both resolved operands retain
 logical order. Its origin exposes the required operand occurrences through
 `order_dependency_count` and `order_dependency_at`, in left/right order, retaining

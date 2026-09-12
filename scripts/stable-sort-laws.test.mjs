@@ -36,7 +36,7 @@ for(const f of corpus.evidence_cases)test(f.id,()=>{
   assert.deepEqual([...f.authored_keys,...appended],f.completed_keys);
   assert.deepEqual(appended,f.completion_record);
   assert.equal(candidate?'candidate_key':f.prior_total?'retained_total':'unresolved',f.tie_strategy);
-  assert.equal(candidate,f.new_order_evidence);
+  assert.equal(!!(f.authored_keys.length&&(candidate||f.prior_total)),f.new_order_evidence);
 });
 test('shared law pin and limited proof claims match stable tie semantics',()=>{
   checkDependencies(loadDependencies());

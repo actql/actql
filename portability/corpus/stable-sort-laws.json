@@ -1,6 +1,8 @@
 {
   "version": "actql-stable-sort-vectors/0.1",
   "cases": [
+    {"id":"new-sort-reorders-prior-sequence-only-within-key-groups","rows":[{"k":2,"id":9},{"k":1,"id":8},{"k":2,"id":3},{"k":1,"id":2}],"keys":[{"field":"k","dir":"asc"}],"expected_indices":[1,3,0,2]},
+    {"id":"candidate-completion-overrides-prior-tie-order","rows":[{"k":2,"id":9},{"k":1,"id":8},{"k":2,"id":3},{"k":1,"id":2}],"keys":[{"field":"k","dir":"asc"},{"field":"id","dir":"asc"}],"expected_indices":[3,1,2,0]},
     {"id":"ties-retain-input-not-cid","rows":[{"id":"r1","k":1},{"id":"r2","k":1},{"id":"r3","k":1}],"keys":[{"field":"k","dir":"asc","nulls":"last"}],"expected_indices":[0,1,2],"cid_order_must_differ":true,"expected_value_cids":["da49284f879422bf6d622c2eed509afec4a98e8dd8dc3c9ab198f8f55bac2ada","d5f8e212339684ace9b331b3f2dca47e04094d9c4c6abb83ce197f5917d895eb","7429160a137fe83048539162e2bfd7d383f839bf5a9e35dbd4203c6502e69df3"],"expected_cid_indices":[2,1,0]},
     {"id":"explicit-key-priority","rows":[{"k":2},{"k":1},{"k":3}],"keys":[{"field":"k","dir":"asc","nulls":"last"}],"expected_indices":[1,0,2]},
     {"id":"empty-keeps-duplicates","rows":[{"k":2},{"k":1},{"k":2}],"keys":[],"expected_indices":[0,1,2]},
@@ -12,7 +14,8 @@
   ],
   "evidence_cases": [
     {"id":"candidate-completion","authored_keys":["k"],"eligible_candidate":["id"],"prior_total":false,"completed_keys":["k","id"],"completion_record":["id"],"tie_strategy":"candidate_key","new_order_evidence":true},
-    {"id":"retained-total-no-invented-key","authored_keys":["k"],"eligible_candidate":null,"prior_total":true,"completed_keys":["k"],"completion_record":[],"tie_strategy":"retained_total","new_order_evidence":false},
+    {"id":"retained-total-no-invented-key","authored_keys":["k"],"eligible_candidate":null,"prior_total":true,"completed_keys":["k"],"completion_record":[],"tie_strategy":"retained_total","new_order_evidence":true},
+    {"id":"candidate-before-prior-total","authored_keys":["k"],"eligible_candidate":["id"],"prior_total":true,"completed_keys":["k","id"],"completion_record":["id"],"tie_strategy":"candidate_key","new_order_evidence":true},
     {"id":"physical-order-unproven","authored_keys":["k"],"eligible_candidate":null,"prior_total":false,"completed_keys":["k"],"completion_record":[],"tie_strategy":"unresolved","new_order_evidence":false},
     {"id":"empty-keeps-total","authored_keys":[],"eligible_candidate":["id"],"prior_total":true,"completed_keys":[],"completion_record":[],"tie_strategy":"retained_total","new_order_evidence":false},
     {"id":"empty-cannot-prove-order","authored_keys":[],"eligible_candidate":["id"],"prior_total":false,"completed_keys":[],"completion_record":[],"tie_strategy":"unresolved","new_order_evidence":false}
