@@ -218,4 +218,71 @@ test "prepared multi-stage Program reaches source identity without replacing imp
     )
     is Err(ForeignContext),
   )
+  // The same prepared Program now supplies both the operation coverage index
+  // and incoming dependencies. No executed predecessor or receipt is invented.
+  let profiles = resolution_profiles(requirements)
+  let incoming_limits : IncomingLimits = {
+    max_work: 10000000,
+    max_name_units: 10000,
+    max_requirements: 3,
+  }
+  let incoming = collect_program_incoming(identity, incoming_limits).unwrap()
+  assert_eq(program_incoming_count(incoming), 3)
+  let first = program_identity_stage_at(identity, 0).unwrap()
+  let second = program_identity_stage_at(identity, 1).unwrap()
+  let mut success = 0
+  let mut imports = 0
+  for i in 0..<3 {
+    let site = program_incoming_at(incoming, i).unwrap()
+    assert_eq(site.stage, 1)
+    assert_true(physical_equal(site.consumer, second))
+    match site.requirement {
+      Success(Completed, producer) => {
+        success += 1
+        assert_true(physical_equal(producer, first))
+      }
+      Result(name, producer, port) => {
+        imports += 1
+        assert_true(name == "rows" || name == "again")
+        assert_true(physical_equal(producer, first))
+        assert_true(
+          physical_equal(
+            @stage_results.input_stage(port),
+            @stage_results.wiring_stage_at(wiring, 0).unwrap(),
+          ),
+        )
+      }
+      _ => fail("unexpected incoming dependency")
+    }
+  }
+  assert_eq((success, imports), (1, 2))
+  let linked = link_program_incoming(profiles, incoming, incoming_limits).unwrap()
+  let indexed = incoming_links_resolutions(linked)
+  assert_true(
+    physical_equal(operation_resolution_requirements(indexed), requirements),
+  )
+  assert_eq(operation_resolution_count(indexed), 0)
+  assert_true(physical_equal(incoming_links_requirements(linked), incoming))
+  let exact_incoming = {
+    ..incoming_limits,
+    max_work: incoming_links_work(linked),
+  }
+  assert_true(
+    link_program_incoming(profiles, incoming, exact_incoming) is Ok(_),
+  )
+  assert_true(
+    link_program_incoming(profiles, incoming, {
+      ..exact_incoming,
+      max_work: exact_incoming.max_work - 1,
+    })
+    is Err(BudgetExceeded),
+  )
+  assert_true(
+    link_program_incoming(
+      profiles,
+      collect_program_incoming(again, incoming_limits).unwrap(),
+      incoming_limits,
+    )
+    is Err(ForeignIdentity),
+  )
 }

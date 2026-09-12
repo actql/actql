@@ -166,6 +166,8 @@ pub fn incoming_links_profiles(ProgramIncomingLinks) -> ProgramOperationProfileL
 
 pub fn incoming_links_requirements(ProgramIncomingLinks) -> ProgramIncomingRequirements
 
+pub fn incoming_links_resolutions(ProgramIncomingLinks) -> ProgramOperationResolutionIndex
+
 pub fn incoming_links_work(ProgramIncomingLinks) -> Int
 
 pub fn index_program_operation_resolutions(ProgramOperationProfileLinks, Int, Int) -> Result[ProgramOperationResolutionIndex, OperationResolutionIndexIssue]
@@ -688,6 +690,7 @@ pub(all) enum IncomingLinksIssue {
   InvalidLimits
   ForeignIdentity
   BudgetExceeded
+  OperationCoverage(OperationResolutionIndexIssue)
 } derive(Eq, @debug.Debug)
 
 pub(all) enum IncomingMilestone {

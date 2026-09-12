@@ -1079,6 +1079,11 @@ therefore cannot substitute one branch for another, while rebuilding an incoming
 inventory from the original identity is permitted.
 
 The opaque result retains both original branches without copying their arrays.
+It constructs and retains the occurrence resolution index internally, including
+connected execution checks and explicit unresolved slots. It does not accept a
+substitute index from the caller. Index allocation and traversal use the same
+aggregate work budget after reserving the incoming branch's additional work;
+the incoming name and occurrence caps keep their original meaning.
 Its work includes both branches, counts the common identity prefix once, and
 charges the join itself. Incoming name and requirement limits remain enforced;
 subtract-before-add accounting rejects over-budget joins without integer overflow.

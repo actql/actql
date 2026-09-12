@@ -3,6 +3,7 @@ pub(all) enum IncomingLinksIssue {
   InvalidLimits
   ForeignIdentity
   BudgetExceeded
+  OperationCoverage(OperationResolutionIndexIssue)
 } derive(Eq, Debug)
 
 ///|
@@ -10,6 +11,7 @@ pub(all) enum IncomingLinksIssue {
 struct ProgramIncomingLinks {
   profiles : ProgramOperationProfileLinks
   incoming : ProgramIncomingRequirements
+  resolutions : ProgramOperationResolutionIndex
   work : Int
 }
 
@@ -26,7 +28,8 @@ pub fn link_program_incoming(
     limits.max_requirements < 0 {
     return Err(InvalidLimits)
   }
-  let identity = profiles.calendar.lexical.cells.queries.ranges.fills.frames.scalars.orders.requirements.expressions.identity
+  let requirements = profiles.calendar.lexical.cells.queries.ranges.fills.frames.scalars.orders.requirements
+  let identity = requirements.expressions.identity
   if !physical_equal(identity, incoming.identity) {
     return Err(ForeignIdentity)
   }
@@ -39,7 +42,20 @@ pub fn link_program_incoming(
     incoming.entries.length() > limits.max_requirements {
     return Err(BudgetExceeded)
   }
-  Ok({ profiles, incoming, work: profiles.work + extra + 1, })
+  // Reserve incoming-branch work before allocating the operation index. Its
+  // complete original inventory is bounded by the remaining aggregate work;
+  // max_requirements retains its incoming-occurrence meaning.
+  let resolutions = match
+    index_program_operation_resolutions(
+      profiles,
+      limits.max_work - extra - 1,
+      requirements.entries.length(),
+    ) {
+    Ok(v) => v
+    Err(BudgetExceeded) => return Err(BudgetExceeded)
+    Err(issue) => return Err(OperationCoverage(issue))
+  }
+  Ok({ profiles, incoming, resolutions, work: resolutions.work + extra + 1, })
 }
 
 ///|
@@ -59,4 +75,11 @@ pub fn incoming_links_requirements(
 ///|
 pub fn incoming_links_work(v : ProgramIncomingLinks) -> Int {
   v.work
+}
+
+///|
+pub fn incoming_links_resolutions(
+  v : ProgramIncomingLinks,
+) -> ProgramOperationResolutionIndex {
+  v.resolutions
 }

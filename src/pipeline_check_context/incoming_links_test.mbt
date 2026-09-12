@@ -26,7 +26,15 @@ test "incoming and operation branches require the same Program admission owner" 
   assert_true(physical_equal(incoming_links_profiles(linked), profiles))
   assert_true(physical_equal(incoming_links_requirements(linked), incoming))
   let (incoming_work, names) = program_incoming_usage(incoming)
-  let expected = operation_profile_links_work(profiles) +
+  let resolutions = incoming_links_resolutions(linked)
+  assert_true(
+    physical_equal(operation_resolution_profiles(resolutions), profiles),
+  )
+  assert_true(
+    physical_equal(operation_resolution_requirements(resolutions), requirements),
+  )
+  assert_true(operation_resolution_unresolved_count(resolutions) > 0)
+  let expected = operation_resolution_work(resolutions) +
     (incoming_work - program_identity_usage(identity).0) +
     1
   assert_eq(incoming_links_work(linked), expected)
@@ -83,5 +91,50 @@ test "incoming and operation branches require the same Program admission owner" 
       exact,
     )
     is Ok(_),
+  )
+}
+
+///|
+test "incoming integration retains unexecuted top-tie checks from unused operations" {
+  let requirements = operation_order_fixture(
+    "[{\"derive\":{\"x\":\"concat($p, to_string($n))\"}},{\"dedupe_rows\":{\"by\":[],\"order_by\":[{\"id\":\"asc\"}]}}]",
+  )
+  let profiles = resolution_profiles(requirements)
+  let identity = expression_closure_identity(
+    operation_requirements_expressions(requirements),
+  )
+  let caps : IncomingLimits = {
+    max_work: 10000000,
+    max_name_units: 10000,
+    max_requirements: 100,
+  }
+  let incoming = collect_program_incoming(identity, caps).unwrap()
+  let linked = link_program_incoming(profiles, incoming, caps).unwrap()
+  let index = incoming_links_resolutions(linked)
+  assert_true(
+    physical_equal(operation_resolution_requirements(index), requirements),
+  )
+  assert_eq(operation_resolution_count(index), 3)
+  for i in 0..<3 {
+    guard operation_resolution_at(index, i)
+      is Some(Execution(DedupeTopTie(check))) else {
+      abort("missing owned execution requirement")
+    }
+    assert_true(
+      physical_equal(
+        check.site,
+        operation_requirements_at(requirements, i).unwrap(),
+      ),
+    )
+    assert_eq(check.site.step, 1)
+  }
+  // The old branch-only allowance cannot conceal the cost of building coverage.
+  let prior = operation_profile_links_work(profiles) +
+    program_incoming_usage(incoming).0 -
+    program_identity_usage(identity).0 +
+    1
+  assert_true(
+    link_program_incoming(profiles, incoming, { ..caps, max_work: prior, })
+    is Err(BudgetExceeded),
   )
 }
