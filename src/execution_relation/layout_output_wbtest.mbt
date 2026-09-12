@@ -199,6 +199,24 @@ fn evaluate_layout_body(
     Some(body) => body
     None => PreparedBody(kernel)
   }
+  evaluate_layout_source(
+    body, input, output_id, max_rows, control, output, workspace, storage_budget,
+    logical,
+  )
+}
+
+///|
+fn evaluate_layout_source(
+  body : RowBodySource,
+  input : LayoutRelation,
+  output_id : String,
+  max_rows : Int,
+  control : ControlBudget,
+  output : ValueBudget,
+  workspace : RowWorkspace,
+  storage_budget : LayoutAllocation,
+  logical : LogicalBudget?,
+) -> Result[LayoutRelation, RowIssue] {
   if input.candidate == RowLayout {
     return match
       evaluate_row_body(
@@ -226,10 +244,12 @@ fn evaluate_layout_body(
         })
     }
   }
-  let schema = @relation.output_schema(@lower.kernel_checked(kernel))
-  let filtering = @relation.operation(@lower.kernel_checked(kernel)) ==
-    @relation.Filter &&
-    body is PreparedBody(_)
+  let checked = match body {
+    PreparedBody(kernel) => @lower.kernel_checked(kernel)
+    CheckedProjection(checked) => checked
+  }
+  let schema = @relation.output_schema(checked)
+  let filtering = @relation.operation(checked) == @relation.Filter
   let kept : Array[Int] = []
   let mut projection : Array[Int]? = None
   let mut builder : LayoutColumnBuilder? = None
