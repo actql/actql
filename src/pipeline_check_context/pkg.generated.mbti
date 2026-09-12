@@ -623,6 +623,8 @@ pub fn regex_pattern_usage(RegexPatternChecks) -> RegexPatternUsage
 
 pub fn resolve_program_operations(ProgramSourceIdentity, OperationResolutionLimits, text_rank? : @check_environment.SelectedTextRankProfile?, calendar? : @check_environment.SelectedCalendarProfile?) -> Result[ProgramOperationResolutionIndex, ProgramOperationResolutionIssue]
 
+pub fn resolve_values_row_limit(ValuesWireLimit, @capacity_witness.LimitLimits) -> Result[ValuesRowLimit, ValuesRowLimitIssue]
+
 pub fn resolve_values_wire_limit(ProgramOperationCells, Int, @capacity_witness.Limits, @capacity_witness.LimitLimits) -> Result[ValuesWireLimit, ValuesWireResolutionIssue]
 
 pub fn result_import_type_cid(ResultImportType) -> String
@@ -2006,6 +2008,25 @@ pub(all) enum ValuesMeasurementIssue {
   InvalidRequirement
   ForeignOwner
   Encoding(@encode_core.EncodeFailure)
+} derive(@debug.Debug)
+
+pub struct ValuesRowLimit {
+  wire : ValuesWireLimit
+  rows : @capacity_program_step.StepBound
+  host : @capacity_host_witness.Witness
+  limit : @capacity_witness.LimitClaim
+}
+
+pub(all) enum ValuesRowLimitIssue {
+  InvalidLimits
+  BudgetExceeded
+  InvalidOwner
+  MissingCeiling
+  Encoding(@encode_core.EncodeFailure)
+  Admission(@capacity_witness.Issue)
+  Application(@capacity_program_step.Issue)
+  Host(@capacity_host_witness.Issue)
+  Arithmetic(@capacity_witness.ClosureIssue)
 } derive(@debug.Debug)
 
 pub struct ValuesWireBound {

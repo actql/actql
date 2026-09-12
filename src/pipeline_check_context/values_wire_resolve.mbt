@@ -11,17 +11,19 @@ fn emit_values_measurement_proof(
   subject : String,
   bytes : Int,
   out : @encode.Writer,
+  law? : String = "actql.bound.values-wire",
+  unit? : String = "bytes",
 ) -> Unit raise @encode.EncodeFailure {
   @encode.begin_object(out)
   @encode.key(out, "inputs")
   @encode.begin_array(out)
   @encode.end_array(out)
   @encode.key(out, "law_id")
-  @encode.string_value(out, "actql.bound.values-wire")
+  @encode.string_value(out, law)
   @encode.key(out, "semantic_ref")
   @encode.string_value(out, subject)
   @encode.key(out, "unit")
-  @encode.string_value(out, "bytes")
+  @encode.string_value(out, unit)
   @encode.key(out, "value")
   @encode.number_value(out, bytes.to_double())
   @encode.key(out, "version")
@@ -36,6 +38,8 @@ fn emit_values_measurement_witness(
   proof_cid : String,
   witness_cid : String?,
   out : @encode.Writer,
+  law? : String = "actql.bound.values-wire",
+  unit? : String = "bytes",
 ) -> Unit raise @encode.EncodeFailure {
   @encode.begin_object(out)
   @encode.key(out, "dependencies")
@@ -48,7 +52,7 @@ fn emit_values_measurement_witness(
   @encode.string_value(out, "source")
   @encode.end_object(out)
   @encode.key(out, "law_id")
-  @encode.string_value(out, "actql.bound.values-wire")
+  @encode.string_value(out, law)
   @encode.key(out, "role")
   @encode.string_value(out, "proven_upper_bound")
   @encode.key(out, "source")
@@ -61,7 +65,7 @@ fn emit_values_measurement_witness(
   @encode.string_value(out, subject)
   @encode.end_object(out)
   @encode.key(out, "unit")
-  @encode.string_value(out, "bytes")
+  @encode.string_value(out, unit)
   @encode.key(out, "value")
   @encode.number_value(out, bytes.to_double())
   @encode.key(out, "version")

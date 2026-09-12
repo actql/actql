@@ -107,6 +107,23 @@ admission; the enclosing Program constructor must also account for aggregate
 preparation work. This path has the same byte-scope contract as externally
 supplied proofs and does not discharge row or recursive-value requirements.
 
+`resolve_values_row_limit` retains that same wire-limit owner and selects the
+row scope separately. It constructs and applies the existing
+`actql.bound.values` proof to the actual checked generator: the quantity is the
+authored row count, including repetitions and zero. Both this proof and the
+selected policy's `max_relation_output_rows` ceiling are retained as candidates,
+even when one cannot tighten the minimum. No byte, Artifact or unrelated input
+ceiling is substituted for the row ceiling. The canonical limit's owner-relative
+subject is `values:checked-step:<index>:rows`, with absent author guard, atomic
+engine enforcement and failure on breach. Metadata encoding/admission is bounded
+per pass, independently of aggregate Program preparation work.
+
+A resolved row limit is not a successful publication check: an exact count can
+exceed the selected Host ceiling. That case must fail at the enforcing boundary,
+not truncate rows or discard the tighter candidate. Empty rows select zero while
+retaining the declared schema and both candidates. Recursive-value applicability
+and enforcement are separate from both the row and complete-wire byte scopes.
+
 ## Registry and backend capability
 
 `actql-aoa.json` selects the shared registry through `pipeline_registry_file`
