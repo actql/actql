@@ -348,6 +348,23 @@ not a runtime check to be postponed. No provisional Program identity or concrete
 checkpoint is invented here. Advertised boundedness alone proves neither actual
 range admission nor capacity, consistency or completeness.
 
+The source-state requirement preimage includes the normalized authored `stage_id`
+as well as the unchanged input name and Program Definition CID. This distinguishes
+same-named inputs in different Stages without inventing an encoded name syntax.
+The complete canonical object excluding only `requirement_cid` is hashed. Schema
+validation requires a nonempty Stage ID; correspondence to the actual declaring
+Stage and canonical text validity remain semantic checks.
+
+This is an explicit extension of the flat-input preimage in Sketch
+`87dc7144138edfcba108cdc59dc485ac976ba976:src/actql-source-state.ts`, which has no
+Stage component. Reusing that preimage unchanged would merge distinct source
+slots of a staged Program. The shared embedded requirement schemas therefore
+require `stage_id`, and affected Plan schema identities change. Concrete
+checkpoint values and internal Stage indices are not substitutes. Fixed vectors
+cover Stage separation, property-order invariance and rejection of the missing
+Stage field; they do not prove that changes-range or runtime state admission is
+implemented.
+
 The selection also retains an opaque ModeCheckpoint when the selected mode
 declares a checkpoint. Its exact `checkpoint.value_schema` reference occurrence
 and already admitted ProtocolValueContract remain paired. The lookup does not

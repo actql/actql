@@ -117,6 +117,10 @@ function fixtures() {
     result.push({id: 'local contract set ' + c.id, value: c.envelope, cid: c.expected_cid});
   }
   const family = read('spec/spec-family.json');
+  const sourceStates = read('portability/corpus/source-state-requirement.json');
+  for (const c of sourceStates.cases) {
+    result.push({id: 'source state requirement ' + c.id, value: {...sourceStates.base, ...c.changes}, cid: c.expected_cid});
+  }
   const interfaces = read('portability/corpus/result-import-interface.json');
   for (const c of interfaces.cases) {
     result.push({id: 'Result import interface ' + c.id, value: {...interfaces.base, ...c.changes}, cid: c.expected_cid});

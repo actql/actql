@@ -1,0 +1,17 @@
+{
+  "version": "actql-source-state-requirement-vectors/0.1",
+  "base": {
+    "checkpoint_contract_cid": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    "initial_position": "explicit_state_required",
+    "input_name": "rows",
+    "mode": "changes",
+    "program_definition_cid": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "requirement": "required",
+    "source_view_contract_cid": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "version": "actql-source-state-requirement/0.1"
+  },
+  "cases": [
+    {"id": "first-stage", "changes": {"stage_id": "first"}, "expected_cid": "sha256:936b29016cf74b9d60f4a016aa01ae12703f89404812b8e667c05fb8d33ff830"},
+    {"id": "second-stage", "changes": {"stage_id": "second"}, "expected_cid": "sha256:c04021aec9a3e6fc025bd3097eccc1b7561345864c91d10eb73c3061fabba934"}
+  ]
+}

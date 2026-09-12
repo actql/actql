@@ -1425,10 +1425,19 @@ reuse of scan vocabulary.
 Whenever the resolved read mode is `changes`, whether explicit or supplied by
 the contract's `default_mode`, the compiler MUST produce a content-addressed
 `actql-source-state-requirement/0.1` in the checked Plan. The requirement binds
-the Program Definition, input name, SourceView Contract, mode, and checkpoint
+the Program Definition, owning `stage_id`, input name, SourceView Contract, mode, and checkpoint
 value contract. A concrete checkpoint is private Run material represented by
 an `actql-source-state-binding/0.1`; changing it changes Invocation/Run
 identity, not Program Definition identity.
+
+<!-- requirement-block: sourceviews.state-requirement-stage-identity sourceviews.state-requirement-input-name sourceviews.state-requirement-stage-separation -->
+The requirement's `stage_id` MUST be the normalized authored ID of the Stage
+that declares the input, and `input_name` MUST remain that Stage's normalized
+input name without an encoded prefix. Both fields participate in the canonical
+requirement preimage. Distinct Stages with the same input name and SourceView
+MUST NOT share a source-state requirement. `requirement_cid` hashes the complete
+canonical requirement object except `requirement_cid` itself; no concrete
+checkpoint or internal Stage index is substituted for the owning Stage ID.
 
 Changes-read state is governed by [Source-state advancement](execution.md#source-state). Local graph, vector, and event inputs
 belong to their algebra profiles independently of Connector execution support.
