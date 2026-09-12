@@ -16,5 +16,6 @@ formatter(
     "identity_vectors.generated_test.mbt",
     "values_execution.generated_test.mbt",
     "regex_ast_scalars.generated_test.mbt",
+    "text_extent_preimages.generated_test.mbt",
   ],
 )

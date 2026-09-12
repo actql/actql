@@ -1,0 +1,30 @@
+{
+  "version": "actql-text-extent-preimages/0.1",
+  "cases": [
+    {
+      "id": "extent-preimage-0",
+      "canonical": "{\"max_codepoints\":2,\"max_utf8_bytes\":8,\"nullable\":false,\"type\":\"string\"}",
+      "cid": "sha256:85a2941d561c553ee4609dee9564a1c33d1b08751fa91497c72f2f29ba4095fa"
+    },
+    {
+      "id": "extent-preimage-1",
+      "canonical": "{\"value\":\"é😀\",\"version\":\"actql-literal-text-extent/0.1\"}",
+      "cid": "sha256:5f8734970b74a7b533b4a7196402a6fe3cb2a75b1bfb5a0c6924795d12db194e"
+    },
+    {
+      "id": "extent-preimage-2",
+      "canonical": "{\"value\":null,\"version\":\"actql-literal-text-extent/0.1\"}",
+      "cid": "sha256:8c79be79b304cc0413f23347de62165c25f25b1ff121764c9fd9f97dd6e0a5a0"
+    },
+    {
+      "id": "extent-preimage-3",
+      "canonical": "{\"value\":\"2024-01-01T00:00:00.000Z\",\"version\":\"actql-literal-text-extent/0.1\"}",
+      "cid": "sha256:dc90edbdd683db74f7187496eb2c729be19b931e338174eb137ec3f9b1195ad3"
+    },
+    {
+      "id": "extent-preimage-4",
+      "canonical": "{\"contract\":{\"nullable\":false,\"type\":\"string\"},\"policy\":{\"max_input_codepoints\":100,\"max_input_utf8_bytes\":400,\"max_output_bytes\":10000,\"max_pattern_bytes\":100,\"max_replacements\":101,\"version\":\"actql-text-time-host-policy/0.1\"},\"version\":\"actql-text-time-runtime-preflight/0.1\"}",
+      "cid": "sha256:1bfa9a8b6764ad6a75193411bb814e4f6f50bd76b04bab9f5d2d5be3b1b6b35f"
+    }
+  ]
+}

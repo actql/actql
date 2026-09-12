@@ -58,26 +58,22 @@ existing source NFC/LF boundary while distinguishing an escape from a raw source
 line break. AST identity hashes the complete core with only `ast_cid` omitted,
 using ordinary canonical JSON and preserving prescribed occurrence order.
 
-## Verification and handoff
+## Identity and execution evidence
 
-[Fixed vectors](../../portability/corpus/regex-ast-scalars.json) contain 29
-schema/identity cases, including the old collision, CR/LF literals and ranges,
+[Fixed vectors](../../portability/corpus/regex-ast-scalars.json) distinguish
+schema and identity cases, including the old collision, CR/LF literals and ranges,
 sequence order/repetition, captures, scalar endpoints, unassigned characters,
 surrogates, malformed payloads and a reversed shape-valid range.
 Node checks this schema's explicit keyword subset and independently computes
 canonical bytes/CIDs from the handwritten ASTs. Its test-only interpreter is
 not a product validator or complete regex semantic checker.
 
-Generated MoonBit tests verify the sixteen accepted AST core identities on
-JS, Wasm and native using the existing canonical JSON implementation. They are
-not regex parser or evaluator tests. Contract/schema/dependency drift checks and
-fixture regeneration are connected to `check:docs`; replacement ASTs retain
-their existing distinct contract and string-literal representation.
+Canonical AST identity is separate from regex parsing and evaluation.
+Replacement ASTs retain their distinct contract and string-literal representation.
 
-Main's [regex parser](regex-pattern.md) produces these scalar nodes and validates
-grammar, captures and nullable-repeat rules. The static resolver must still bind
-the admitted pattern to the exact expression occurrence and selected policy.
-Lowering/backends must declare the exact new expression/AST contract support and
+The regex parser and static resolver must produce and consume these scalar
+nodes, then establish grammar, captures and occurrence/policy ownership.
+Execution backends must declare the exact expression/AST contract support and
 preserve the scalar meaning; the old pinned registry is not relabeled as capable.
 Until that support is implemented, executable admission rejects that path.
 The change does not authorize a Program or establish whole-profile conformance.

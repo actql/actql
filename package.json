@@ -31,7 +31,7 @@
     "generate:pipeline-typing": "node scripts/check-pipeline-typing.mjs --write",
     "check:relation-typing": "node scripts/check-relation-typing.mjs && node scripts/aggregate-schema.mjs && node scripts/pivot-schema.mjs && node scripts/analytic-schema.mjs && node scripts/top-k-schema.mjs && node --test scripts/relation-typing.test.mjs scripts/aggregate-schema.test.mjs scripts/pivot-schema.test.mjs scripts/analytic-schema.test.mjs scripts/top-k-schema.test.mjs",
     "generate:relation-typing": "node scripts/check-relation-typing.mjs --write",
-    "check:expression-typing": "node scripts/check-expression-typing.mjs && node --test scripts/expression-typing.test.mjs && npm run check:timestamp-pattern && npm run check:regex-replacement",
+    "check:expression-typing": "node scripts/check-expression-typing.mjs && node --test scripts/expression-typing.test.mjs && npm run check:timestamp-pattern && npm run check:regex-replacement && node scripts/check-text-extent-preimages.mjs",
     "check:regex-replacement": "node scripts/check-regex-replacement.mjs && npm run check:regex-ast",
     "check:regex-ast": "node scripts/regex-ast-contract.mjs && node scripts/check-regex-ast-scalars.mjs && node scripts/check-regex-pattern.mjs",
     "generate:regex-pattern": "node scripts/check-regex-pattern.mjs --write",
