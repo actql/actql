@@ -61,6 +61,8 @@ pub fn count(Resolved) -> Int
 
 pub fn declaration(ResolvedInput) -> @sourceview_input.Declaration
 
+pub fn direct_request_bindings(ParameterizedRequest, Int, Int) -> Result[RequestBindings, RequestBindingsIssue]
+
 pub fn input_owner(ResolvedInput) -> @sourceview_input.Inputs
 
 pub fn inputs(Resolved) -> @sourceview_input.Inputs
@@ -106,6 +108,8 @@ pub fn keyed_mode_input(KeyedMode) -> ResolvedInput
 pub fn keyed_mode_obligations(KeyedMode) -> Array[ModeObligation]
 
 pub fn keyed_mode_work(KeyedMode) -> Int
+
+pub fn keyed_request_bindings(ParameterizedKeyedRequest, Int, Int) -> Result[RequestBindings, RequestBindingsIssue]
 
 pub fn keyed_request_context(KeyedRequest) -> RequestContext
 
@@ -223,6 +227,16 @@ pub fn prepare_request_parameters(RequestContext, @parameter_binding.BoundValues
 
 pub fn prepare_requests(Resolved, @source_request_slots.Slots, Int) -> Result[RequestContext, RequestIssue]
 
+pub fn request_binding_at(RequestBindings, Int) -> ParameterizedRequestField?
+
+pub fn request_binding_index(RequestBindings, Int) -> Int?
+
+pub fn request_bindings_count(RequestBindings) -> Int
+
+pub fn request_bindings_request(RequestBindings) -> BindingRequest
+
+pub fn request_bindings_work(RequestBindings) -> Int
+
 pub fn request_context(DirectRequest) -> RequestContext
 
 pub fn request_context_slots(RequestContext) -> @source_request_slots.Slots
@@ -279,6 +293,11 @@ pub enum AcquisitionIssue {
 pub enum AcquisitionRequest {
   Direct(DirectMode, ParameterizedRequest)
   Keyed(KeyedMode, ParameterizedKeyedRequest)
+}
+
+pub enum BindingRequest {
+  DirectBindingRequest(ParameterizedRequest)
+  KeyedBindingRequest(ParameterizedKeyedRequest)
 }
 
 type CheckedKeyedFacts
@@ -433,6 +452,14 @@ pub(all) enum PipelineIssue {
 type PipelineRequests
 
 type PipelineUses
+
+type RequestBindings
+
+pub(all) enum RequestBindingsIssue {
+  InvalidLimits
+  WorkLimit
+  BindingLimit
+} derive(Eq, @debug.Debug)
 
 type RequestContext
 

@@ -101,6 +101,29 @@ fn check_request_parameters_fixture(
     }
   }
   assert_eq(parameterized_request_host_binding_count(bound), pending)
+  let requirements = direct_request_bindings(bound, 1000000, pending).unwrap()
+  assert_true(
+    request_bindings_request(requirements) is DirectBindingRequest(owner) &&
+    physical_equal(owner, bound),
+  )
+  check_binding_requirements(
+    requirements,
+    parameterized_request_field_count(bound),
+    pending,
+    i => parameterized_request_field_at(bound, i),
+  )
+  let work = request_bindings_work(requirements)
+  assert_true(direct_request_bindings(bound, work, pending) is Ok(_))
+  assert_true(
+    direct_request_bindings(bound, work - 1, pending) is Err(WorkLimit),
+  )
+  assert_true(direct_request_bindings(bound, -1, pending) is Err(InvalidLimits))
+  assert_true(direct_request_bindings(bound, work, -1) is Err(InvalidLimits))
+  if pending > 0 {
+    assert_true(
+      direct_request_bindings(bound, work, pending - 1) is Err(BindingLimit),
+    )
+  }
   assert_true(parameterized_request_field_at(bound, -1) is None)
   assert_true(
     parameterized_request_field_at(

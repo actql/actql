@@ -77,6 +77,8 @@ pub fn checked_orders(PipelineContext) -> @relation_results.CheckedOrders
 
 pub fn checked_results(PipelineContext) -> @relation_results.CheckedResults
 
+pub fn collect_source_bindings(ProgramPreparation, Int, Int) -> Result[SourceBindingRequirements, SourceBindingsIssue]
+
 pub fn environment_inputs(EnvironmentContext) -> InputContexts
 
 pub fn environment_snapshots(EnvironmentContext) -> @stage_local_inputs.ProgramEnvironmentInputs
@@ -196,6 +198,14 @@ pub fn selected_capacity(SelectedPolicyContext) -> @check_environment.Capacity
 pub fn selected_lookup_execution(SelectedPolicyContext) -> @check_environment.LookupExecution
 
 pub fn selected_policy_usage(SelectedPolicyContext) -> SelectedPolicyUsage
+
+pub fn source_bindings_at(SourceBindingRequirements, Int, Int) -> @sourceview_resolution.RequestBindings?
+
+pub fn source_bindings_count(SourceBindingRequirements) -> Int
+
+pub fn source_bindings_preparation(SourceBindingRequirements) -> ProgramPreparation
+
+pub fn source_bindings_work(SourceBindingRequirements) -> Int
 
 pub fn source_capacity_context(SourceCapacityContext) -> SourcePolicyContext
 
@@ -549,6 +559,14 @@ pub(all) struct SelectedPolicyUsage {
   local_input_nodes : Int
   policy_nodes : Int
 } derive(Eq, @debug.Debug)
+
+type SourceBindingRequirements
+
+pub enum SourceBindingsIssue {
+  InvalidLimits
+  BudgetExceeded
+  Request(Int, Int, @sourceview_resolution.RequestBindingsIssue)
+}
 
 type SourceCapacityContext
 

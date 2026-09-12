@@ -92,6 +92,34 @@ fn check_keyed_request_fixture(
     parameterized_keyed_request_host_binding_count(bound),
     host_bindings,
   )
+  let requirements = keyed_request_bindings(bound, 1000000, host_bindings).unwrap()
+  assert_true(
+    request_bindings_request(requirements) is KeyedBindingRequest(owner) &&
+    physical_equal(owner, bound),
+  )
+  check_binding_requirements(
+    requirements,
+    parameterized_keyed_request_field_count(bound),
+    host_bindings,
+    i => parameterized_keyed_request_field_at(bound, i),
+  )
+  let requirement_work = request_bindings_work(requirements)
+  assert_true(
+    keyed_request_bindings(bound, requirement_work, host_bindings) is Ok(_),
+  )
+  assert_true(
+    keyed_request_bindings(bound, requirement_work - 1, host_bindings)
+    is Err(WorkLimit),
+  )
+  assert_true(
+    keyed_request_bindings(bound, -1, host_bindings) is Err(InvalidLimits),
+  )
+  if host_bindings > 0 {
+    assert_true(
+      keyed_request_bindings(bound, requirement_work, host_bindings - 1)
+      is Err(BindingLimit),
+    )
+  }
   let binding_work = parameterized_keyed_request_work(bound)
   assert_true(
     bind_keyed_request_parameters(parameters, v, binding_work) is Ok(_),

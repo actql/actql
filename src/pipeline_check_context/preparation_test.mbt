@@ -39,6 +39,18 @@ test "preparation joins exact selected owners and counts each branch once" {
   assert_true(physical_equal(preparation_sources(combined), sources))
   assert_true(physical_equal(preparation_expressions(combined), expressions))
   let used = preparation_usage(combined)
+  let bindings = collect_source_bindings(combined, used.work + 1, 0).unwrap()
+  assert_true(physical_equal(source_bindings_preparation(bindings), combined))
+  assert_eq(source_bindings_count(bindings), 0)
+  assert_eq(source_bindings_work(bindings), used.work + 1)
+  assert_true(source_bindings_at(bindings, 0, 0) is None)
+  assert_true(
+    collect_source_bindings(combined, used.work, 0) is Err(BudgetExceeded),
+  )
+  assert_true(collect_source_bindings(combined, -1, 0) is Err(InvalidLimits))
+  assert_true(
+    collect_source_bindings(combined, used.work + 1, -1) is Err(InvalidLimits),
+  )
   assert_eq(
     used.work,
     source_producer_work(sources) +

@@ -469,3 +469,23 @@ typed wire handling, opaque Binding admission, source policy/authority and the
 consumer-specific acquisition contract. Even zero unresolved Host Bindings is
 not an execution permit. Program integration must add per-request binding work
 to the retained static request checks and shared preparation cost.
+
+`direct_request_bindings` and `keyed_request_bindings` enumerate remaining Host
+Binding uses from those opaque parameterized requests. The bounded result owns
+the exact request and stores only original field indices, preserving declaration,
+expected type and source-slot ownership. Repeated uses of one declaration are
+separate requirements, not separate value copies. Literal and Parameter fields
+are not interpreted as Binding uses. The retained count bounds allocation before
+scanning; work charges the inventory plus every inspected field without copying
+the field array. Issuer evidence, current usage authorization and concrete Ref
+admission remain unperformed. An empty inventory establishes only absence of
+Host Binding uses in this request, not completeness of a Program or permission
+to issue the request.
+
+`pipeline_check_context.collect_source_bindings` inventories every classified
+stage/input from the owned `ProgramPreparation`, applying one cumulative work
+and use-count limit. It retains empty request inventories as well as nonempty
+ones, so omission is not confused with a scanned request having no Binding use.
+Each lookup returns the owned request inventory; stage/input indices are local
+coordinates, not persistent identities. This is a missing-admission inventory,
+not a Host validator or a replacement for the issuer/authorization boundary.
