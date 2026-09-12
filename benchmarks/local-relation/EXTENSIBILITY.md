@@ -111,3 +111,39 @@ implemented or claimed validated.
   product completion/producer integration, conditional batch evaluation, or the
   full budget-boundary matrix. Those remain required investigations. The sort
   trial is blocking/in-memory: it is not streaming sort, spill or parallelism.
+
+## Conditional derive: edit-boundary finding
+
+The current common sink is after evaluation and accounting, not a pluggable
+evaluation strategy. `evaluate_row_body_impl` in `rows.mbt` constructs a
+`Map[String, Value]` snapshot for every non-projection row and calls
+`evaluate_expression_retained` directly for both map and ordered bindings.
+It then constructs `Array[Value]` output and invokes the physical sink.
+`evaluate_expression_impl` in `expression.mbt` owns both continuation dispatch
+and logical entry/operand/result charging. Its frame inputs are concrete
+`Map[String, Value]` and `Array[Value]`, not typed-column or masked-batch views.
+
+Consequently, the available reuse paths have different limitations:
+
+| Path | What it preserves | What it does not establish |
+| --- | --- | --- |
+| Existing column sink | Shared demand, failure and accounting | No alternate evaluation strategy; still boxes every snapshot cell |
+| Chunk loop around whole row evaluator | Existing evaluator semantics per call | Full-input admission and pending-output roots must not reset per chunk |
+| New private numeric/mask interpreter calling budget primitives | Reusable scalar arithmetic and primitive counters | Duplicates demand, continuation and root scheduling instead of sharing them |
+| Evaluate first, replay accounting later | Possible value comparison | Violates the required precharge boundary; cannot stand in for conformance |
+
+This is a concrete request to expand the frozen edit scope, not proof that
+columnar execution is impossible or a request to change language semantics.
+The minimal proposed first expansion is `rows.mbt` and `expression.mbt`, plus
+dedicated private implementation files in this package if needed, to expose a
+common evaluation/frame boundary without changing the existing row wrapper.
+The experiment must continue sharing demand, failure and root accounting;
+merely adding an arbitrary alternate-evaluator callback is insufficient.
+Any further need to change budget primitives, completion, driver, lowering or
+contracts must be reported separately before editing them.
+
+No such production edits have been made. Conditional batch execution and its
+budget-equivalence tests remain incomplete pending the scope decision. The
+Table-specific completion/producer boundary is a second, independent finding;
+this proposed expansion does not authorize rewriting it or claiming a private
+test completion is the existing product `CompletedOutput`.
