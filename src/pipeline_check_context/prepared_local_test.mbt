@@ -2,6 +2,7 @@
 fn prepared_local_context_fixture(
   first_by_order? : Bool = false,
   unused_operation? : Bool = false,
+  third_stage? : Bool = false,
 ) -> (
   StageContexts,
   @stage_results.ResultWiring,
@@ -10,9 +11,18 @@ fn prepared_local_context_fixture(
   @stage_results.Checked,
   Array[BoundParameters],
 ) {
+  let stage_count = if third_stage { 3 } else { 2 }
   let program = @syntax.parse(
     (
       #|{"version":"actql/0.1","id":"prepared","params":{"n":{"type":"number","default":2}},"stages":[{"id":"first","inputs":{"rows":{"carrier":"relation","schema":{"id":{"type":"number","nullable":false}},"primary_key":["id"]}},"steps":[{"derive":{"value":"id + $n"},"as":"derived"}],"results":{"out":{"from":"derived","fields":["id","value"]}}},{"id":"second","inputs":{"rows":{"result":{"stage":"first","result":"out"}},"again":{"result":{"stage":"first","result":"out"}}},"from":"rows","steps":[{"derive":{"next":"value + $n"},"as":"derived"}],"results":{"out":{"from":"derived","fields":["id","next"]}}}],"results":{"out":{"from":{"stage":"second","result":"out"}}}}
+    )
+    .replace(
+      old="}],\"results\":{\"out\":{\"from\":{\"stage\":\"second\",\"result\":\"out\"}}}}",
+      new=if third_stage {
+        "},{\"id\":\"third\",\"inputs\":{\"rows\":{\"result\":{\"stage\":\"second\",\"result\":\"out\"}}},\"steps\":[],\"results\":{\"out\":{\"from\":\"rows\",\"fields\":[\"id\",\"next\"]}}}],\"results\":{\"out\":{\"from\":{\"stage\":\"third\",\"result\":\"out\"}}}}"
+      } else {
+        "}],\"results\":{\"out\":{\"from\":{\"stage\":\"second\",\"result\":\"out\"}}}}"
+      },
     )
     .replace(
       old="\"steps\":[{\"derive\":{\"value\":\"id + $n\"},\"as\":\"derived\"}]",
@@ -38,7 +48,7 @@ fn prepared_local_context_fixture(
         max_string_bytes: 10000,
         max_total_string_bytes: 10000,
       },
-      max_stages: 2,
+      max_stages: stage_count,
     },
     format=Json,
   ).unwrap()
@@ -57,13 +67,13 @@ fn prepared_local_context_fixture(
     abort("fixture default")
   }
   let (wiring, _) = @stage_results.prepare_local_program(source, {
-    max_stages: 2,
+    max_stages: stage_count,
     max_steps: if unused_operation {
       3
     } else {
       2
     },
-    max_results: 2,
+    max_results: stage_count,
     max_work: 1000000,
     max_nodes: 100000,
     max_tokens: 10000,
@@ -74,7 +84,7 @@ fn prepared_local_context_fixture(
   let publications = []
   let locals = []
   let contexts = []
-  for i in 0..<2 {
+  for i in 0..<stage_count {
     let port = @stage_results.wiring_stage_at(wiring, i).unwrap()
     prepared.push(@stage_results.stage_port_source(port))
     locals.push(@stage_results.wiring_local_input_at(wiring, i).unwrap())
@@ -127,7 +137,7 @@ fn prepared_local_context_fixture(
   }).unwrap()
   let bound = @stages.bind_operations(operations, values, max_work=1000000).unwrap()
   let checked = @stage_results.collect_checked(operations, publications, {
-    max_results: 2,
+    max_results: stage_count,
     max_work: 1000000,
     max_nodes: 100000,
     max_text_bytes: 1000000,

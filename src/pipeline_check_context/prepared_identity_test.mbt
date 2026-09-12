@@ -2,11 +2,13 @@
 fn prepared_identity_fixture(
   first_by_order? : Bool = false,
   unused_operation? : Bool = false,
+  third_stage? : Bool = false,
   environment_profile? : String = capacity_profile(false),
 ) -> (ProgramSourceIdentity, @stage_results.ResultWiring, ReconciledContexts) {
   let (stages, wiring, locals, bound, _, _) = prepared_local_context_fixture(
     first_by_order~,
     unused_operation~,
+    third_stage~,
   )
   let source = @stages.operations_source(@stages.bound_operations(bound))
   // No acquired rows or schema snapshots. The environment still undergoes
@@ -72,13 +74,22 @@ fn prepared_identity_fixture(
     max_text_bytes=10000000,
     max_local_input_nodes=100000,
   ).unwrap()
-  (prepared_reconciled_identity(reconciled, environment), wiring, reconciled)
+  (
+    prepared_reconciled_identity(
+      reconciled,
+      environment,
+      max_stages=if third_stage { 3 } else { 2 },
+    ),
+    wiring,
+    reconciled,
+  )
 }
 
 ///|
 fn prepared_reconciled_identity(
   reconciled : ReconciledContexts,
   environment : @environment.WireEnvironment,
+  max_stages? : Int = 2,
 ) -> ProgramSourceIdentity {
   let selected = bind_capacity_policy(
     reconciled,
@@ -116,7 +127,11 @@ fn prepared_reconciled_identity(
     { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
     10000000,
   ).unwrap()
-  prepare_program_source_identity(operations, source_preparation_limits()).unwrap()
+  let limits = source_preparation_limits()
+  prepare_program_source_identity(operations, {
+    ..limits,
+    identity: { ..limits.identity, max_stages, },
+  }).unwrap()
 }
 
 ///|

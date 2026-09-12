@@ -122,6 +122,16 @@ integration work, emitted bytes/nodes and execution limits. Index allocation and
 iteration are bounded before retaining entries. Runtime data is not materialized
 as a whole Program-sized row tree to satisfy this constructor.
 
+`prepare_program_incoming_gates` constructs every success-gate identity from the
+retained incoming inventory atomically. Stage allocation, inventory visits and
+gate construction share the remaining work budget; canonical preimage bytes and
+nodes accumulate across gates, with depth bounded per emission. Stage-indexed
+readers retain the exact incoming sites without copying collections. Result and
+receipt requirements remain in the owner and are not discharged by this gate
+collection. Unresolved Effect contracts prevent construction rather than being
+replaced with empty maps. Gate identities specify readiness requirements, not
+observations that their producers have succeeded.
+
 ## Exhaustive obligation coverage
 
 Coverage starts from the source, expression, operation, input, publication and
