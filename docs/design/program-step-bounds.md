@@ -5,6 +5,26 @@ to an actual immutable checked pipeline and step. It is an operation-law
 application boundary, not Program identity admission, source authorization or a
 runnable Plan.
 
+## Row bounds at consumer targets
+
+`check_target_rows` binds an existing checked row producer to a concrete
+`(pipeline, target)` without constructing a new arithmetic witness. Its opaque
+result retains that owner, target and original `StepBound`, including the
+producer's pending obligations and binding provenance. Graph node or edge
+counts are not row bounds.
+
+The traversal uses the same non-expanding-operation rules as step-bound operand
+validation and follows exact producer edges across pipelines. Equal source names,
+step indices, witness CIDs or numeric bounds do not substitute for owner identity.
+Each visited target consumes work before traversal; missing producers, expanding
+paths and foreign branches cannot establish the requested relationship. A caller
+must select a valid checked bound, not a raw number or a Host policy ceiling.
+
+This is an upper bound, not an exact count or an optimized tight bound. A zero
+bound remains zero; consumers such as keyed acquisition separately enforce their
+positive-bound requirement. Enclosing application closure must still validate
+all producer dependencies and selected bindings before execution.
+
 ## Local subject convention
 
 `subject_ref` returns `checked-step:<zero-based index>` only for an existing step.

@@ -95,6 +95,15 @@ test "Graph measures bind distinct units and actual node edge inputs through row
           rows[i],
         ]).unwrap()
         graph.push(app)
+        assert_eq(
+          @capacity_program_step.check_target_rows(
+            p,
+            @pipeline.Step(2),
+            app,
+            100,
+          ).unwrap_err(),
+          @capacity_program_step.WrongUnit,
+        )
         assert_true(
           physical_equal(
             @capacity_program_step.input_at(app, 0).unwrap(),

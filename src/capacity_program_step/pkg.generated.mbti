@@ -44,6 +44,8 @@ pub fn check_join_limit(@pipeline_typing.CheckedPipeline, Int, @capacity_host_wi
 
 pub fn check_join_with_uniqueness(@pipeline_typing.CheckedPipeline, Int, @capacity_witness.ProgramProofClaim, Array[StepBound], max_input_work? : Int) -> Result[StepBound, Issue]
 
+pub fn check_target_rows(@pipeline_typing.CheckedPipeline, @pipeline_typing.Target, StepBound, Int) -> Result[TargetRows, TargetRowsIssue]
+
 pub fn check_traversal_applications(@pipeline_typing.CheckedPipeline, @capacity_host_witness.HostSources, Applications, @capacity_policy.Policy, Array[TraversalLimits], max_work~ : Int) -> Result[TraversalApplications, TraversalCollectionIssue]
 
 pub fn check_traversal_complete(@pipeline_typing.CheckedPipeline, @capacity_host_witness.HostSources, Applications, @capacity_policy.Policy, Array[TraversalLimits], max_work~ : Int) -> Result[TraversalApplications, TraversalCollectionIssue]
@@ -161,6 +163,16 @@ pub fn resolved_program(ResolvedApplications) -> Applications
 pub fn source_at(StepBound, Int) -> BoundInput?
 
 pub fn subject_ref(@pipeline_typing.CheckedPipeline, Int) -> String?
+
+pub fn target_rows_bound(TargetRows) -> StepBound
+
+pub fn target_rows_pipeline(TargetRows) -> @pipeline_typing.CheckedPipeline
+
+pub fn target_rows_target(TargetRows) -> @pipeline_typing.Target
+
+pub fn target_rows_value(TargetRows) -> Int64
+
+pub fn target_rows_work(TargetRows) -> Int
 
 pub fn traversal_application_at(TraversalApplications, Int) -> TraversalLimits?
 
@@ -375,6 +387,17 @@ pub(all) enum ResolutionRequest {
 type ResolvedApplications
 
 type StepBound
+
+type TargetRows
+
+pub(all) enum TargetRowsIssue {
+  InvalidLimits
+  InvalidTarget
+  WrongUnit
+  WorkLimit
+  MissingProducer
+  UnrelatedBound
+} derive(Eq, @debug.Debug)
 
 type TraversalApplications
 
