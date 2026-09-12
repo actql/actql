@@ -18,7 +18,8 @@ for(const c of corpus.cases){
     `  let modes = carrier_modes(@json.parse(${JSON.stringify(wire)}), ${JSON.stringify(c.carrier)})`,
     '  let result = check_carrier_schemas(modes, carrier_limits())',
     `  assert_eq(result is Ok(_), ${c.accepted})`);
-  if(c.accepted)lines.push(`  assert_eq(carrier_schema_body_cid(carrier_schema_at(result.unwrap(), 0).unwrap()), ${JSON.stringify(cid)})`);
+  if(c.accepted)lines.push(`  assert_eq(carrier_schema_body_cid(carrier_schema_at(result.unwrap(), 0).unwrap()), ${JSON.stringify(cid)})`,
+    `  assert_carrier_dependencies(result.unwrap(), ${JSON.stringify(c.carrier)})`);
   lines.push('}');
 }
 const path='src/check_environment/carrier_vectors.generated_test.mbt',text=lines.join('\n')+'\n';

@@ -313,10 +313,26 @@ business field names and ResourceKind/ArtifactType strings are not reference
 discovery instructions. The grammar pin is generated from the registered body
 contract, with the same exhaustive 17-kind classification check.
 
-This adapter does not seal a Unit closure. Root selection, the governing grammar's
-own semantic dependencies, the other body grammars and the Unit's operation,
-policy and incoming-interface laws still require their own interpretation. A
-caller cannot treat this direct-dependency result as the complete contract set.
+`check_catalog_body_dependencies` also accepts the admitted CarrierSchemas chain.
+It delegates the eight value roles to the same adapter and interprets checked
+`carrier_schema` and `data_policy` bodies through their exact retained admissions.
+Carrier and data-policy interpretation depends on the pinned Check Environment
+**contract**, which owns their grammar and semantic rules, not on the concrete
+environment envelope or its Host policy values. Carrier bodies additionally
+depend on the checked value grammar. Graph bodies retain both explicit law roles,
+identity and value, even when they select the same CID; canonical set storage can
+deduplicate the CID without erasing those reference occurrences.
+
+The adapter does not discover dependencies in field names, classification values,
+source selectors, edge labels or ResourceKind/ArtifactType strings. Its reads are
+constant-time and do not copy or rescan checked type trees. A different environment
+is rejected before kind dispatch; an uninterpreted kind is still unsupported,
+not an empty leaf. Generated pins track the interpretation contract itself.
+
+These adapters do not seal a Unit closure. Root selection, the governing
+contracts' own semantic dependencies, the remaining body grammars and the Unit's
+operation, policy and incoming-interface laws still require interpretation. A
+caller cannot treat a direct-dependency result as the complete contract set.
 
 ## SourceView shape admission
 

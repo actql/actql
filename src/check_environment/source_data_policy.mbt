@@ -38,6 +38,7 @@ struct SourceViewPolicy {
 struct SourceDataPolicies {
   references : CatalogReferences
   entries : Array[SourceDataPolicy]
+  by_cid : Map[String, SourceDataPolicy]
   views : Map[Int, SourceViewPolicy]
   work : Int
 }
@@ -129,7 +130,7 @@ pub fn check_source_data_policies(
     let policy = by_cid[reference.contract.cid]
     views[member_index(reference.item)] = { reference, policy, }
   }
-  Ok({ references, entries, views, work, })
+  Ok({ references, entries, by_cid, views, work, })
 }
 
 ///|

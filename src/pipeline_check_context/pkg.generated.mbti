@@ -479,6 +479,8 @@ pub fn source_capacity_stage(SourceCapacityContext, Int) -> @sourceview_resoluti
 
 pub fn source_capacity_work(SourceCapacityContext) -> Int
 
+pub fn source_contract_body_at(SourceContractRequirements, Int, Int, Int) -> Result[@check_environment.CatalogBodyDependencies?, @check_environment.BodyDependencyIssue]
+
 pub fn source_contract_context(SourceContractRequirements) -> ReconciledContexts
 
 pub fn source_contract_input_at(SourceContractRequirements, Int, Int) -> @sourceview_resolution.ResolvedInput?

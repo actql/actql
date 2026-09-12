@@ -128,6 +128,39 @@ pub fn source_contract_input_at(
 }
 
 ///|
+/// Interpret a selected reference through its own admitted Catalog, never a
+/// caller-supplied replacement environment. None is only an absent occurrence;
+/// an unsupported body is an error, not a dependency-free leaf.
+pub fn source_contract_body_at(
+  v : SourceContractRequirements,
+  stage : Int,
+  input : Int,
+  reference : Int,
+) -> Result[
+  @environment.CatalogBodyDependencies?,
+  @environment.BodyDependencyIssue,
+] {
+  guard source_contract_input_at(v, stage, input) is Some(selected) else {
+    return Ok(None)
+  }
+  guard @sourceviews.selected_reference_at(selected, reference)
+    is Some(selected_ref) else {
+    return Ok(None)
+  }
+  let schemas = @environment.source_request_carriers(
+    @sourceviews.catalog_owner(selected),
+  )
+  match
+    @environment.check_catalog_body_dependencies(
+      schemas,
+      @environment.reference_contract(selected_ref),
+    ) {
+    Ok(body) => Ok(Some(body))
+    Err(issue) => Err(issue)
+  }
+}
+
+///|
 pub fn program_source_contract_identity(
   v : ProgramSourceContracts,
 ) -> ProgramSourceIdentity {

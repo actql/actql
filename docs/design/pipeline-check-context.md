@@ -640,6 +640,14 @@ sum of their reference counts, including repetition. Counts are checked before
 retaining an input; failure exposes no partial result. Reference count admission
 is not a second traversal or semantic revalidation of the referenced bodies.
 
+`source_contract_body_at` interprets a selected reference using that input's own
+admitted Catalog chain. It does not accept a replacement environment. The
+constant-time read exposes the exact body admission and its direct dependencies
+for the value, Carrier and data-policy grammars supported by Check Environment.
+An absent coordinate returns `None`; an uninterpreted body kind returns an error,
+never an empty dependency list. Full closure traversal must still charge reference
+visits and process the governing contracts' transitive dependencies.
+
 `bind_program_source_contracts` connects this inventory to a ProgramSourceIdentity
 only through the exact reconciled context already owned by that identity. It
 subtracts that common work prefix when combining usage. Matching public CIDs or

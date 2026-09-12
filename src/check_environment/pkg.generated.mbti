@@ -58,6 +58,14 @@ pub fn carrier_schema_value(CarrierSchema) -> @carrier_contract.Carrier
 
 pub fn catalog_at(CatalogContents, Int) -> Catalog?
 
+pub fn catalog_body_admission(CatalogBodyDependencies) -> CatalogBodyAdmission
+
+pub fn catalog_body_contract(CatalogBodyDependencies) -> ContractEnvelope
+
+pub fn catalog_body_dependency_at(CatalogBodyDependencies, Int) -> CatalogBodyDependency?
+
+pub fn catalog_body_dependency_count(CatalogBodyDependencies) -> Int
+
 pub fn catalog_command_at(Catalog, Int) -> Member?
 
 pub fn catalog_identity(Catalog) -> (String, String, String)
@@ -81,6 +89,8 @@ pub fn catalog_view_at(Catalog, Int) -> Member?
 pub fn check_body_dependencies(ProtocolValueContracts, ContractEnvelope) -> Result[ContractBodyDependencies, BodyDependencyIssue]
 
 pub fn check_carrier_schemas(SourceReadModes, CarrierSchemaLimits) -> Result[CarrierSchemas, CarrierSchemaIssue]
+
+pub fn check_catalog_body_dependencies(CarrierSchemas, ContractEnvelope) -> Result[CatalogBodyDependencies, BodyDependencyIssue]
 
 pub fn check_catalog_contents(ContractRegistry, Limits) -> Result[CatalogContents, CatalogIssue]
 
@@ -382,6 +392,26 @@ pub(all) struct CarrierSchemaLimits {
 type CarrierSchemas
 
 type Catalog
+
+pub(all) enum CatalogBodyAdmission {
+  ValueBody(ContractBodyDependencies)
+  CarrierBody(CarrierSchema)
+  DataPolicyBody(SourceDataPolicy)
+}
+
+type CatalogBodyDependencies
+
+pub struct CatalogBodyDependency {
+  role : CatalogBodyDependencyRole
+  cid : String
+}
+
+pub(all) enum CatalogBodyDependencyRole {
+  GoverningGrammar
+  ValueGrammar
+  GraphIdentityLaw
+  GraphValueLaw
+} derive(Eq, @debug.Debug)
 
 type CatalogContents
 

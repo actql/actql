@@ -23,6 +23,28 @@ fn check_source_contract_inventory(
   let refs = @sourceviews.selected_reference_count(input)
   assert_true(refs > 0)
   for i in 0..<refs {
+    let envelope = @environment.reference_contract(
+      @sourceviews.selected_reference_at(input, i).unwrap(),
+    )
+    match source_contract_body_at(v, 0, 0, i) {
+      Ok(body) => {
+        let body = body.unwrap()
+        assert_true(
+          physical_equal(@environment.catalog_body_contract(body), envelope),
+        )
+        assert_true(@environment.catalog_body_dependency_count(body) > 0)
+      }
+      Err(issue) => {
+        let kind = @environment.contract_role(envelope)
+        assert_true(
+          [
+            "carrier_facts", "pushdown", "reconciliation", "poll", "cancel", "request_data_handling",
+            "provider_execution_capability",
+          ].contains(kind),
+        )
+        assert_eq(issue, @environment.UnsupportedBodyGrammar(kind))
+      }
+    }
     assert_true(
       physical_equal(
         @environment.reference_member(
@@ -63,13 +85,18 @@ fn check_source_contract_inventory(
     assert_true(collect_source_contracts(context, limits) is Err(InvalidLimits))
   }
   for invalid in [-2147483648, -1, 2, 2147483647] {
+    assert_true(source_contract_body_at(v, invalid, 0, 0) is Ok(None))
     assert_true(source_contract_input_count(v, invalid) is None)
     assert_true(source_contract_input_at(v, invalid, 0) is None)
   }
   for invalid in [-2147483648, -1, expected_inputs, 2147483647] {
+    assert_true(source_contract_body_at(v, 0, invalid, 0) is Ok(None))
     assert_true(source_contract_input_at(v, 0, invalid) is None)
   }
   assert_true(source_contract_input_at(v, 1, 0) is None)
+  for invalid in [-2147483648, -1, refs, 2147483647] {
+    assert_true(source_contract_body_at(v, 0, 0, invalid) is Ok(None))
+  }
 }
 
 ///|

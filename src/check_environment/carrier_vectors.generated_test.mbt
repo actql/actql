@@ -6,6 +6,7 @@ test "Carrier schema corpus: empty-relation" {
   let result = check_carrier_schemas(modes, carrier_limits())
   assert_eq(result is Ok(_), true)
   assert_eq(carrier_schema_body_cid(carrier_schema_at(result.unwrap(), 0).unwrap()), "sha256:f89257995d800e6fda8e5c4ea89ec10e01702a86253b6ef701930d4be9aac7fb")
+  assert_carrier_dependencies(result.unwrap(), "relation")
 }
 
 ///|
@@ -14,6 +15,7 @@ test "Carrier schema corpus: empty-graph" {
   let result = check_carrier_schemas(modes, carrier_limits())
   assert_eq(result is Ok(_), true)
   assert_eq(carrier_schema_body_cid(carrier_schema_at(result.unwrap(), 0).unwrap()), "sha256:2d338ba9310e353b1891ca91079d3e3fa894afb3f561d97cc444d55698e53e91")
+  assert_carrier_dependencies(result.unwrap(), "graph")
 }
 
 ///|
@@ -22,6 +24,7 @@ test "Carrier schema corpus: numeric-event-id" {
   let result = check_carrier_schemas(modes, carrier_limits())
   assert_eq(result is Ok(_), true)
   assert_eq(carrier_schema_body_cid(carrier_schema_at(result.unwrap(), 0).unwrap()), "sha256:a16d58ae57f493f67bf0b63d66b00037d7756f98bfbee17f3a1d34807baf2d82")
+  assert_carrier_dependencies(result.unwrap(), "events")
 }
 
 ///|
@@ -30,6 +33,7 @@ test "Carrier schema corpus: reference-event-id" {
   let result = check_carrier_schemas(modes, carrier_limits())
   assert_eq(result is Ok(_), true)
   assert_eq(carrier_schema_body_cid(carrier_schema_at(result.unwrap(), 0).unwrap()), "sha256:adc3f3048e558660de08f40b56b237b2508c419a095b5d547538bb0370f6d9a1")
+  assert_carrier_dependencies(result.unwrap(), "events")
 }
 
 ///|
@@ -38,6 +42,7 @@ test "Carrier schema corpus: vector-tuple-order" {
   let result = check_carrier_schemas(modes, carrier_limits())
   assert_eq(result is Ok(_), true)
   assert_eq(carrier_schema_body_cid(carrier_schema_at(result.unwrap(), 0).unwrap()), "sha256:ef12beb7f2b1a9f677b542a8a2c7345730ff0289cb5fb00210be6500b0294e09")
+  assert_carrier_dependencies(result.unwrap(), "vectors")
 }
 
 ///|
