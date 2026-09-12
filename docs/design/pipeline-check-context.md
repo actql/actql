@@ -599,6 +599,17 @@ encoder accepts a caller-supplied declarations CID without establishing this
 projection; this boundary derives it instead. Binding declarations and the rest
 of the local contract closure are not discharged by that CID.
 
+For an extracted stage, `stage_identity_local_body_cid` reuses the full stage
+semantics hash as the Unit's local body reference. Hashing only the raw
+`local_body` member would omit used Binding declarations, reference enumeration
+and the expression-contract pin. Reusing Stage Definition instead would mix in
+the separate stage name. The existing semantic envelope supplies the required
+local meaning without a new wrapper, rehash, or parent-revision dependency.
+The explicit used Parameter declaration CID is derived from that same envelope,
+so the two references cannot be independently substituted. Unit namespace,
+incoming contracts and remaining interpreted contract closure still need their
+own validation; the body reference is not a Unit Definition CID.
+
 One cumulative hash byte/node budget covers stage envelopes, Program semantics,
 Program/Stage Definitions, local used declarations and whole/local selected Parameter Values. Stage
 semantics hashes already owned by ProgramSemantics are reused, not recomputed.

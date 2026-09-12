@@ -142,6 +142,23 @@ test "Program source identities use the retained Program and bound values" {
       stage_identity_definition_cid(stage),
       @program_refs.stage_definition_cid(local_definition, 10000, 1000, 100),
     )
+    assert_eq(
+      stage_identity_local_body_cid(stage),
+      @program_refs.stage_semantics_cid(
+        @program_refs.stage_definition_semantics(local_definition),
+        10000,
+        1000,
+        100,
+      ),
+    )
+    assert_not_eq(
+      stage_identity_local_body_cid(stage),
+      stage_identity_definition_cid(stage),
+    )
+    assert_not_eq(
+      stage_identity_local_body_cid(stage),
+      program_identity_definition_cid(v),
+    )
     assert_true(
       identify_program_sources(sources, {
         ..limits,
@@ -262,6 +279,14 @@ test "stage identities retain local used values without sibling parameter depend
   assert_eq(
     stage_identity_parameter_declarations_cid(other_b),
     stage_identity_parameter_declarations_cid(b),
+  )
+  assert_eq(
+    stage_identity_local_body_cid(other_a),
+    stage_identity_local_body_cid(a),
+  )
+  assert_eq(
+    stage_identity_local_body_cid(other_b),
+    stage_identity_local_body_cid(b),
   )
   assert_eq(
     stage_identity_parameter_values_cid(other_a),

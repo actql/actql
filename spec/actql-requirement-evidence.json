@@ -6933,6 +6933,17 @@
       }
     },
     {
+      "requirement_id": "actql.language/canonical-identities.local-stage-body-reference",
+      "statement_sha256": "b353ed0b3da1cc7748cd917f3ae063829c438dbeff49d0aac5aaec8ef18d427a",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "local-approval",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.language/canonical-identities.the-run-receipt-must-bind-all-applicable-identities-concrete-input",
       "statement_sha256": "574a17ea21606b5dce1113e1327d329ee4cfd4f7525b4b2e44ddbe847460149d",
       "status": "pending",

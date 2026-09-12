@@ -7830,8 +7830,8 @@ laws remain Plan facts and do not masquerade as authoring normalization.
 
 ### Canonical identities
 
-ActQL uses distinct identities rather than overloading one CID. Stage body CIDs
-bind local IDs and local semantics without the enclosing Program CID. Program
+ActQL uses distinct identities rather than overloading one CID. Stage Definition CIDs
+bind stable stage IDs and local semantics without the enclosing Program CID. Program
 semantics bind their ordered descriptors, parameters, imports and exports;
 Program Definition adds the root ID. Node-local semantic identities never
 include the enclosing Program revision, transitively or directly. The graph
@@ -8007,6 +8007,19 @@ declarations remain in the separate stage semantics `bindings` member; this
 Parameter-only CID does not discharge their local dependency requirements.
 The existing stage-semantics `parameters` schema and semantic declaration
 validation govern the map; no additional artifact family is introduced.
+
+<!-- requirement-block: canonical-identities.local-stage-body-reference -->
+For a Unit extracted from a source stage, `local_body_cid` MUST identify that
+stage's complete `actql-stage-semantics/0.1` envelope, not only its `local_body`
+member and not its Stage Definition or the enclosing Program. This reuses the
+existing semantic envelope so that used Binding declarations, reference
+locations and the expression-contract pin remain part of the local meaning.
+The separately referenced used Parameter declaration map is the projection
+defined above, not an independently chosen declaration set. Unit namespace and
+incoming contracts remain separate members of the local dependency envelope;
+the stage semantics CID cannot replace either. This defines the
+`external:local-body` reference role for extracted source stages without adding
+another artifact family or weakening dependency/authority admission.
 
 <!-- requirement-block: canonical-identities.the-run-receipt-must-bind-all-applicable-identities-concrete-input -->
 Every self-CID is computed over the same envelope without its own CID field.

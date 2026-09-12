@@ -274,3 +274,11 @@ pub fn stage_identity_parameter_declarations_cid(
 ) -> String {
   v.declarations_cid
 }
+
+///|
+/// Unit body reference for an extracted stage: its full semantic envelope,
+/// not the raw local_body member, Stage Definition or enclosing Program.
+/// Reuses the owned hash without additional emission or allocation.
+pub fn stage_identity_local_body_cid(v : StageSourceIdentity) -> String {
+  @program_refs.stage_definition_semantics_cid(v.definition)
+}

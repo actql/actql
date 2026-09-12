@@ -472,6 +472,8 @@ pub fn stage_identity_definition(StageSourceIdentity) -> @program_references.Sta
 
 pub fn stage_identity_definition_cid(StageSourceIdentity) -> String
 
+pub fn stage_identity_local_body_cid(StageSourceIdentity) -> String
+
 pub fn stage_identity_parameter_declarations_cid(StageSourceIdentity) -> String
 
 pub fn stage_identity_parameter_values(StageSourceIdentity) -> @parameter_references.BoundIndex
