@@ -720,6 +720,30 @@ any later failure discards all partial results. This closes only the boundary
 relationship: frame demand, aggregate observations and runtime enforcement remain
 separate obligations. Pivot fill compatibility is also a separate requirement.
 
+### Bound pivot fill
+
+`check_program_operation_fills` closes `BoundFill` after frame checks. It locates
+the pivot through the exact requirement's pipeline step and checks the original
+fill cursor and Parameter name. The selected binding comes from that producer's
+owned index, not a separately supplied value or declaration map. Each resolution
+retains the original pivot, requirement, admitted BoundParameter and target type.
+
+Parameter binding already validates every value against its immutable contract.
+Bounded assignability checks confirm that this contract satisfies both the
+pivot's retained declaration contract and its result contract. This transfers
+the existing value-admission evidence without reconstructing a JSON tree,
+coercing a decimal, re-expanding nested Parameter-like data, or reapplying a
+default. Nullable values remain nullable; a missing binding is not NULL.
+The [pivot fill rule](../spec/language.md#reshaping) applies even with no generated
+columns and is independent of whether a runtime bucket actually needs fill.
+
+The cumulative work budget includes all preceding checks, index/name lookups,
+contract nodes and text comparisons. Iterative contract scans reserve child
+slots before growing the work stack; bounded type relations then charge their
+actual pair visits. Output caps are checked before retaining resolutions. There
+is no partial success on a later failure. This does not discharge partitioning,
+aggregate demand, resource envelopes or actual runtime observations.
+
 Expression closure does not discharge operation-level obligations, bind
 authored guard witness identities, build staged Program/import contracts, or
 complete local Unit/Invocation identity projections. Source Program and stage

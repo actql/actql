@@ -25,6 +25,7 @@ import {
   "actql/actql/text_time_bounds",
   "actql/actql/timestamp_pattern",
   "actql/actql/value_admission",
+  "actql/actql/value_contract",
   "moonbitlang/core/debug",
 }
 
@@ -64,6 +65,8 @@ pub fn check_operation_profiles(ProgramPreparation, PureOperationProfiles, Int) 
 pub fn check_parameter_bindings(PipelineContext, max_work~ : Int, max_text_bytes~ : Int) -> Result[BoundParameters, ParameterIssue]
 
 pub fn check_patterns(ExpressionValidationContext, PatternLimits) -> Result[PatternChecks, PatternIssue]
+
+pub fn check_program_operation_fills(ProgramOperationFrames, Int, Int) -> Result[ProgramOperationFills, OperationFillIssue]
 
 pub fn check_program_operation_frames(ProgramOperationScalars, Int, Int) -> Result[ProgramOperationFrames, OperationFrameIssue]
 
@@ -158,6 +161,14 @@ pub fn like_pattern_usage(LikePatternChecks) -> LikePatternUsage
 pub fn link_program_operation_orders(ProgramOperationRequirements, Int, Int) -> Result[ProgramOperationOrders, OperationOrderIssue]
 
 pub fn local_inputs_at(InputContexts, Int) -> @stage_local_inputs.Attached?
+
+pub fn operation_fill_at(ProgramOperationFills, Int) -> OperationFillResolution?
+
+pub fn operation_fills_count(ProgramOperationFills) -> Int
+
+pub fn operation_fills_frames(ProgramOperationFills) -> ProgramOperationFrames
+
+pub fn operation_fills_work(ProgramOperationFills) -> Int
 
 pub fn operation_frame_at(ProgramOperationFrames, Int) -> OperationFrameResolution?
 
@@ -541,6 +552,22 @@ pub(all) struct Limits {
   max_text_bytes : Int
 }
 
+pub(all) enum OperationFillIssue {
+  InvalidLimits
+  BudgetExceeded
+  ForeignOwner(Int)
+  InvalidFill(Int)
+  Scalar(OperationScalarIssue)
+} derive(Eq, @debug.Debug)
+
+pub struct OperationFillResolution {
+  requirement_index : Int
+  site : OperationRequirementSite
+  pivot : @relation_typing.CheckedPivot
+  parameter : @parameter_binding.BoundParameter
+  target : @value_contract.Contract
+}
+
 pub(all) enum OperationFrameIssue {
   InvalidLimits
   BudgetExceeded
@@ -706,6 +733,8 @@ pub(all) enum ProgramIdentityPhase {
   Definition
   ParameterValues
 } derive(Eq, @debug.Debug)
+
+type ProgramOperationFills
 
 type ProgramOperationFrames
 

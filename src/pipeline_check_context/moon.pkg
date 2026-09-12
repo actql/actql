@@ -2,6 +2,7 @@ supported_targets = "+js+wasm+native"
 
 import {
   "actql/actql/relation_typing" @relation,
+  "actql/actql/value_contract" @contract,
   "actql/actql/stage_parameters" @stages,
   "actql/actql/encode_core" @encode,
   "actql/actql/program_references" @program_refs,
@@ -38,7 +39,6 @@ import {
   "actql/actql/sha256" @sha,
   "actql/actql/source_value" @source,
   "actql/actql/stage_syntax" @syntax,
-  "actql/actql/value_contract" @contract,
   "actql/actql/relation_schema" @schema,
   "actql/actql/relation_evidence" @evidence,
   "actql/actql/carrier_contract" @carrier,
