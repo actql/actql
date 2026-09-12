@@ -2,6 +2,7 @@
 fn prepared_identity_fixture(
   first_by_order? : Bool = false,
   unused_operation? : Bool = false,
+  environment_profile? : String = capacity_profile(false),
 ) -> (ProgramSourceIdentity, @stage_results.ResultWiring, ReconciledContexts) {
   let (stages, wiring, locals, bound, _, _) = prepared_local_context_fixture(
     first_by_order~,
@@ -12,7 +13,7 @@ fn prepared_identity_fixture(
   // canonical integrity and selected-policy admission. Hashing here constructs
   // fixture input; independent expectations below do not use this helper.
   let body = "{\"command_contracts\":[],\"connector_capabilities\":[],\"connector_catalogs\":[],\"contract_registry\":[],\"host_policy_profile\":" +
-    capacity_profile(false) +
+    environment_profile +
     ",\"mapping_contracts\":[],\"model_task_contracts\":[],\"schema_snapshots\":[],\"source_views\":[],\"version\":\"actql-check-environment/0.1\"}"
   let cid = "sha256:" + @sha.hex(@utf8.encode(body))
   let environment = @environment.read(

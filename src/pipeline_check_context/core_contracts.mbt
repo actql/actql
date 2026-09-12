@@ -33,6 +33,7 @@ pub(all) enum CoreContractSite {
   CatalogReference(Int, Int, Int)
   StageSourceGrammar(Int)
   StageSemanticRules(Int, @environment.StageSemanticContract)
+  StageEnvironmentRules(Int)
 } derive(Eq, Debug)
 
 ///|
@@ -199,6 +200,13 @@ pub fn collect_core_contracts(
     }
     for stage in 0..<program_identity_stage_count(identity) {
       let source = program_identity_stage_at(identity, stage).unwrap()
+      // The retained identity already owns environment/policy admission,
+      // including absent optional components. Never select by concrete values.
+      core_contract_root(
+        b,
+        StageEnvironmentRules(stage),
+        CatalogGrammarBody(@environment.EnvironmentBody),
+      )
       core_contract_root(b, StageSourceGrammar(stage), ProgramSourceGrammar)
       for rules in [@environment.SourceRules, @environment.StageLaws] {
         core_contract_root(

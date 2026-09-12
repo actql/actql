@@ -702,6 +702,7 @@ pub(all) enum CoreContractSite {
   CatalogReference(Int, Int, Int)
   StageSourceGrammar(Int)
   StageSemanticRules(Int, @check_environment.StageSemanticContract)
+  StageEnvironmentRules(Int)
 } derive(Eq, @debug.Debug)
 
 pub struct DedupeTopTieCheck {

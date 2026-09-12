@@ -1,4 +1,69 @@
 ///|
+test "policy presence and concrete limits do not replace interpretation contracts" {
+  let lookup = "{\"max_network_attempts_per_request\":3,\"max_request_bytes_per_attempt\":1024,\"max_total_decoded_response_bytes\":65536,\"max_total_duration_ms\":30000,\"max_total_request_bytes\":8192,\"max_total_response_bytes\":16384,\"version\":\"actql-lookup-execution-policy/0.1\"}"
+  let profiles = [
+    capacity_profile(false),
+    bound_profile(),
+    capacity_profile(false).replace(
+      old="}}",
+      new="},\"lookup_execution\":" + lookup + "}",
+    ),
+    capacity_profile(false).replace(
+      old="}}",
+      new="},\"lookup_execution\":" +
+        lookup.replace(old="8192", new="4096") +
+        "}",
+    ),
+  ]
+  let (first, _, first_context) = prepared_identity_fixture()
+  let baseline = collect_core_contracts(first, {
+    max_work: 10000000,
+    max_roots: 1000,
+    max_bodies: 100,
+    max_edges: 100,
+  }).unwrap()
+  for profile in profiles {
+    let (identity, _, context) = prepared_identity_fixture(
+      environment_profile=profile,
+    )
+    let result = collect_core_contracts(identity, {
+      max_work: 10000000,
+      max_roots: 1000,
+      max_bodies: 100,
+      max_edges: 100,
+    }).unwrap()
+    assert_eq(
+      program_identity_definition_cid(identity),
+      program_identity_definition_cid(first),
+    )
+    assert_eq(
+      core_contract_root_count(result),
+      core_contract_root_count(baseline),
+    )
+    assert_eq(
+      core_contract_body_count(result),
+      core_contract_body_count(baseline),
+    )
+    for i in 0..<core_contract_body_count(result) {
+      assert_eq(
+        core_contract_body_at(result, i),
+        core_contract_body_at(baseline, i),
+      )
+    }
+    if profile != capacity_profile(false) {
+      assert_true(
+        @environment.cid(
+          @local_inputs.program_environment(reconciled_snapshots(context)),
+        ) !=
+        @environment.cid(
+          @local_inputs.program_environment(reconciled_snapshots(first_context)),
+        ),
+      )
+    }
+  }
+}
+
+///|
 test "core contract collection preserves owned occurrences and shares dependency bodies" {
   let (identity, _, _) = prepared_identity_fixture(unused_operation=true)
   let inventory = collect_core_contracts(identity, {
@@ -19,20 +84,20 @@ test "core contract collection preserves owned occurrences and shares dependency
       )
     }
   }
-  assert_eq(core_contract_root_count(inventory), 8 + 2 * steps)
-  assert_eq(core_contract_body_count(inventory), 20)
+  assert_eq(core_contract_root_count(inventory), 10 + 2 * steps)
+  assert_eq(core_contract_body_count(inventory), 25)
   let (work, edges) = core_contract_usage(inventory)
-  assert_eq(edges, 16)
+  assert_eq(edges, 23)
   assert_eq(
     work,
     program_identity_usage(identity).0 +
     7 +
-    8 +
+    10 +
     2 * steps +
     visits +
     2 * steps +
-    20 +
-    16,
+    25 +
+    23,
   )
   let mut stage_roots = 0
   let mut unused_roots = 0
@@ -40,6 +105,10 @@ test "core contract collection preserves owned occurrences and shares dependency
   for i in 0..<core_contract_root_count(inventory) {
     let root = core_contract_root_at(inventory, i).unwrap()
     match root.site {
+      StageEnvironmentRules(stage) => {
+        assert_true(stage >= 0 && stage < 2)
+        assert_eq(root.body, CatalogGrammarBody(@environment.EnvironmentBody))
+      }
       StageSemanticRules(stage, rules) => {
         assert_eq(stage, semantic_roots / 2)
         assert_eq(
@@ -105,8 +174,8 @@ test "core contract collection preserves owned occurrences and shares dependency
   let exact : CoreContractLimits = {
     max_work: work,
     max_roots: core_contract_root_count(inventory),
-    max_bodies: 20,
-    max_edges: 16,
+    max_bodies: 25,
+    max_edges: 23,
   }
   assert_true(collect_core_contracts(identity, exact) is Ok(_))
   assert_true(
@@ -127,8 +196,8 @@ test "core contract collection preserves owned occurrences and shares dependency
     limits in [
       { ..exact, max_work: work - 1, },
       { ..exact, max_roots: exact.max_roots - 1, },
-      { ..exact, max_bodies: 19, },
-      { ..exact, max_edges: 15, },
+      { ..exact, max_bodies: 24, },
+      { ..exact, max_edges: 22, },
     ] {
     assert_true(collect_core_contracts(identity, limits) is Err(BudgetExceeded))
   }
@@ -146,7 +215,7 @@ test "core contract collection preserves owned occurrences and shares dependency
     assert_true(core_contract_body_at(inventory, invalid) is None)
   }
   assert_true(core_contract_root_at(inventory, exact.max_roots) is None)
-  assert_true(core_contract_body_at(inventory, 20) is None)
+  assert_true(core_contract_body_at(inventory, 25) is None)
 }
 
 ///|

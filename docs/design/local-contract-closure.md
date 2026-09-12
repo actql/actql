@@ -140,6 +140,17 @@ coordinates while sharing body storage and traversal charges. Selecting the
 contracts does not discharge their rules: in particular it does not manufacture
 completed predecessors, runtime validation, authorization or executable support.
 
+The same Stage inventory retains the Check Environment interpretation contract
+from its owned admission context, including for a Local Program with no Catalog
+inputs. Policy admission interprets absence as well as presence: selecting this
+root only when an optional Host component happens to be present would make a
+concrete policy choice change the semantic dependency set. Its declared edges
+include capacity and text-time policy grammars; lookup execution's grammar and
+absence/selection rules are embedded in the interpretation body. Changing an
+unused component or its valid limits can change the concrete environment CID
+and check work, but not these interpretation roots. The environment envelope
+CID and concrete policy component CIDs are not substituted for the contract.
+
 Selection includes every contract interpreted for the Unit's declarations,
 operations, expressions, publication, imports and incoming gates, including
 domain, guard, permission, scope and failure semantics. It is not a liveness
@@ -194,7 +205,8 @@ visiting and collecting roots still consumes the caller's aggregate work budget.
 Repeated visits are not silently collapsed at this source-occurrence boundary.
 
 `collect_core_contracts` performs this traversal from one `ProgramSourceIdentity`.
-It retains every Stage source-grammar, semantic-rule and expression root, every adopted-law occurrence across
+It retains every Stage source-grammar, semantic-rule, environment-interpretation
+and expression root, every adopted-law occurrence across
 all producer visits, and selected SourceView contract-reference occurrences.
 Source selection is derived internally from the identity's own input context;
 the caller cannot supply a substitute Catalog or a second source inventory.
