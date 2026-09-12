@@ -121,6 +121,14 @@ separate costs for the eventual Program-level constructor. This entrance removes
 caller selection of order and value owners, not the remaining capacity-material
 or complete Program integration requirements.
 
+`check_prepared_local_stages` constructs all Stage contexts from that same
+preparation and performs the final Stage-owner join internally. Gathering,
+individual checks and producer-binding verification share one integration
+budget; it is not reset at each Stage. A later failure returns no partial
+context collection. Capacity applications and their optional owner mappings
+remain explicit, with exactly one collection per Stage. This budget does not
+replace accounting for the complete source-admission prefix.
+
 This order is a dependency graph, not a requirement to reconstruct earlier
 results at every phase. Private incremental assembly can retain immutable
 intermediates. Public low-level helpers remain useful for focused tests, but

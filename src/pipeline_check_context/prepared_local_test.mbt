@@ -75,7 +75,7 @@ fn prepared_local_context_fixture(
   ).unwrap()
   let wiring = @stage_results.local_source_wiring(prepared_source)
   let locals = []
-  let contexts = []
+  let stage_applications = []
   for i in 0..<stage_count {
     let port = @stage_results.wiring_stage_at(wiring, i).unwrap()
     if @stage_results.wiring_local_input_at(wiring, i) is Some(input) {
@@ -98,27 +98,20 @@ fn prepared_local_context_fixture(
         ),
       )
     }
-    contexts.push(
-      check_prepared_local_stage(
-        prepared_source,
-        i,
-        applications,
-        policy(),
-        max_work=1000000,
-        max_text_bytes=1000000,
-      ).unwrap(),
-    )
+    stage_applications.push(applications)
   }
   let bound = @stage_results.local_source_operations(prepared_source)
   let checked = @stage_results.local_source_results(prepared_source)
-  let stages = attach_stage_contexts(
-    bound,
-    checked,
-    contexts,
+  let stages = check_prepared_local_stages(
+    prepared_source,
+    stage_applications,
     policy(),
     max_work=10000000,
     max_text_bytes=10000000,
   ).unwrap()
+  let contexts = Array::makei(stage_count, i => {
+    stage_context_at(stages, i).unwrap()
+  })
   (stages, wiring, locals, bound, checked, contexts)
 }
 

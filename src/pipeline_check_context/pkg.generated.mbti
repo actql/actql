@@ -78,6 +78,8 @@ pub fn check_patterns(ExpressionValidationContext, PatternLimits) -> Result[Patt
 
 pub fn check_prepared_local_stage(@stage_results.PreparedLocalSource, Int, Array[@capacity_graph_preflight.ApplicationCoverage], @capacity_policy.Policy, max_work~ : Int, max_text_bytes~ : Int, proof_owners? : Array[(Int, Int, Int)], input_owners? : Array[(Int, Int, Int, Int)]) -> Result[BoundParameters, PreparedStageIssue]
 
+pub fn check_prepared_local_stages(@stage_results.PreparedLocalSource, Array[Array[@capacity_graph_preflight.ApplicationCoverage]], @capacity_policy.Policy, max_work~ : Int, max_text_bytes~ : Int, proof_owners? : Array[Array[(Int, Int, Int)]]?, input_owners? : Array[Array[(Int, Int, Int, Int)]]?) -> Result[StageContexts, PreparedStagesIssue]
+
 pub fn check_program_operation_calendar(ProgramOperationLexical, @check_environment.SelectedCalendarProfile?, Int, Int) -> Result[ProgramOperationCalendar, OperationCalendarIssue]
 
 pub fn check_program_operation_cells(ProgramOperationQueries, Int, Int) -> Result[ProgramOperationCells, OperationCellIssue]
@@ -1342,6 +1344,14 @@ pub enum PreparedStageIssue {
   BudgetExceeded
   Context(Issue)
   Parameters(ParameterIssue)
+}
+
+pub enum PreparedStagesIssue {
+  InvalidLimits
+  StageCount
+  BudgetExceeded
+  Stage(Int, PreparedStageIssue)
+  Assembly(StageIssue)
 }
 
 type ProgramExpressionClosure
