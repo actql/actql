@@ -35,6 +35,32 @@ The fixed [execution vectors](../../portability/corpus/rel-values-execution.json
 separate source conversion expectations from executable params and their
 admission outcomes. Fixture params CIDs are not Program, node or Relation CIDs.
 
+## Publication resources
+
+`ResolvePublicationResources` is a request to resolve execution limits, not an
+execution check that can be discharged by retaining the selected Host policy.
+The [resolved-limit rules](../spec/language.md#resolved-limits) require each
+runnable capacity limit to retain its measured scope, exact operation target,
+applicable candidate witnesses and enforcement boundary. A future enforcement
+check is valid only after that static selection has been made. The existing
+`actql.bound.values` proof establishes the authored row occurrence count; it
+does not establish byte size, recursive-value limits or completed enforcement.
+
+Compilation budgets, wire byte limits and physical memory budgets are separate.
+Counting raw text in an admitted value tree does not measure canonical typed
+wire bytes: decimal coefficients, escaping, field names and structural syntax
+have different representations. Artifact publication ceilings cannot be applied
+to an intermediate Relation merely because their units are also rows or bytes.
+Similarly, the nested-output scopes specified for `nest` do not implicitly
+define a whole-Relation byte scope for `values`.
+
+The Program constructor must retain an unresolved resource requirement when a
+required scope or its applicable evidence has not been selected. It must not
+substitute parser limits, a backend capture budget or a row-count proof for that
+selection. Lowering consumes the selected limits and checks whether it can
+enforce them; it does not choose their semantic scopes or complete missing
+static resource decisions.
+
 ## Registry and backend capability
 
 `actql-aoa.json` selects the shared registry through `pipeline_registry_file`
