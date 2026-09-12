@@ -966,6 +966,15 @@ admission precedes expression evaluation, and errors clean up all logical
 roots without publishing a partial table. This internal accounting hook does
 not yet choose request/Host limits or establish input evidence on its own.
 
+An immutable fragment runtime context binds explicitly supplied enforcement
+limits to the regenerated fragment and its exact checked kernel. Row and value
+ceilings cannot exceed that fragment's request; tighter supplied bounds remain
+explicit. Live/work and physical encoder limits are supplied separately, not
+inferred from static capacity facts. Fresh counters are created for each
+execution, and cannot be requested for an independently prepared kernel even
+when its source is identical. This connects bounds to the common row evaluator,
+but is not itself evidence for input keys, ordering or producer completion.
+
 Each expression root retains its exact typed owner. Source projection reads the
 normalized syntax of that owner; machine-node projection reads the bound lowered
 expression. A Parameter remains a reference in source while becoming a literal
