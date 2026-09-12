@@ -2,10 +2,12 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {readFileSync} from 'node:fs';
 import {canonicalText,verifyIdentity} from './check-canonical-json.mjs';
+import {checkLookupCapacity} from './check-lookup-capacity.mjs';
 const read=p=>JSON.parse(readFileSync(p,'utf8'));
 const contract=read('spec/contracts/actql-check-environment.json');
 const corpus=read('portability/corpus/check-environment.json');
 test('lookup capacity fixed shapes distinguish completeness from hard limits',()=>{
+  assert.equal(checkLookupCapacity(),22);
   const vectors=read('portability/corpus/lookup-capacity.json');
   const schema=contract.contract_bodies.carrier_facts.properties.lookup_capacity;
   assert.equal(vectors.version,'actql-lookup-capacity-vectors/0.1');

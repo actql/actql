@@ -60,6 +60,8 @@ pub fn check_catalog_references(CatalogContents, ReferenceLimits) -> Result[Cata
 
 pub fn check_contract_registry(WireEnvironment, Limits) -> Result[ContractRegistry, ContractIssue]
 
+pub fn check_lookup_capacities(CatalogReferences, LookupCapacityLimits) -> Result[LookupCapacities, LookupCapacityIssue]
+
 pub fn check_protocol_value_contracts(SourceDataPolicies, ValueContractLimits) -> Result[ProtocolValueContracts, ValueContractIssue]
 
 pub fn check_source_data_policies(CatalogReferences, DataPolicyLimits) -> Result[SourceDataPolicies, DataPolicyIssue]
@@ -105,6 +107,26 @@ pub fn emit(WireEnvironment, @encode_core.Writer) -> Unit raise @encode_core.Enc
 pub fn emit_member(Member, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
 
 pub fn host_policy(WireEnvironment) -> @decode_core.Cursor
+
+pub fn lookup_capacity_completeness(LookupCapacity) -> LookupCompleteness
+
+pub fn lookup_capacity_pages_per_request(LookupCapacity) -> Int64
+
+pub fn lookup_capacity_references(LookupCapacities) -> CatalogReferences
+
+pub fn lookup_capacity_response_bytes_per_page(LookupCapacity) -> Int64
+
+pub fn lookup_capacity_rows_per_key(LookupCapacity) -> Int64
+
+pub fn lookup_capacity_source(LookupCapacity) -> @decode_core.Cursor
+
+pub fn lookup_capacity_usage(LookupCapacities) -> (Int, Int)
+
+pub fn lookup_facts_at(LookupCapacities, Int) -> LookupFacts?
+
+pub fn lookup_facts_capacity(LookupFacts) -> LookupCapacity?
+
+pub fn lookup_facts_envelope(LookupFacts) -> ContractEnvelope
 
 pub fn member_at(WireEnvironment, Section, Int) -> Member?
 
@@ -183,6 +205,12 @@ pub fn source_correlation_pair_at(SourceCorrelation, Int) -> CorrelationPair?
 pub fn source_correlation_pair_count(SourceCorrelation) -> Int
 
 pub fn source_correlation_source(SourceCorrelation) -> @decode_core.Cursor
+
+pub fn source_lookup_body(SourceLookupFacts) -> LookupFacts
+
+pub fn source_lookup_facts(LookupCapacities, Member) -> SourceLookupFacts?
+
+pub fn source_lookup_reference(SourceLookupFacts) -> CatalogReference
 
 pub fn source_request_at(SourceRequestContracts, Int) -> SourceViewRequestContract?
 
@@ -354,6 +382,34 @@ pub(all) struct Limits {
   max_members : Int
 }
 
+type LookupCapacities
+
+type LookupCapacity
+
+pub(all) struct LookupCapacityIssue {
+  kind : LookupCapacityIssueKind
+  source : @decode_core.Cursor?
+}
+
+pub(all) enum LookupCapacityIssueKind {
+  InvalidLimits
+  WorkLimit
+  FactsLimit
+  InvalidBody
+} derive(Eq, @debug.Debug)
+
+pub(all) struct LookupCapacityLimits {
+  max_work : Int
+  max_facts : Int
+}
+
+pub(all) enum LookupCompleteness {
+  CompletePerRequestedKey
+  HardLimitOnly
+} derive(Eq, @debug.Debug)
+
+type LookupFacts
+
 type Member
 
 type ProtocolValueContract
@@ -401,6 +457,8 @@ type SourceCorrelation
 type SourceDataPolicies
 
 type SourceDataPolicy
+
+type SourceLookupFacts
 
 type SourceReadMode
 

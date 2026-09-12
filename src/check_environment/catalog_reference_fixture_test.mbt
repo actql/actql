@@ -52,6 +52,7 @@ fn reference_fixture(
   bodies? : Map[String, Json] = Map([]),
   unused_value? : Json? = None,
   unused_carrier? : Json? = None,
+  unused_facts? : Json? = None,
   complete_view? : Bool = false,
   carrier? : String = "relation",
   acquisition_kind? : String = "scan",
@@ -110,10 +111,13 @@ fn reference_fixture(
     (kind, unused) in [
       ("checkpoint", unused_value),
       ("carrier_schema", unused_carrier),
+      ("carrier_facts", unused_facts),
     ] {
     if unused is Some(body) {
       let unused_id = if kind == "checkpoint" {
         "unused-value"
+      } else if kind == "carrier_facts" {
+        "unused-facts"
       } else {
         "unused-carrier"
       }

@@ -157,6 +157,21 @@ admission is not Catalog authority or observed response validation. Host policy
 selection, actual left-row bounds, batching and runtime enforcement remain
 separate inputs to acquisition capacity resolution.
 
+`check_environment.check_lookup_capacities` validates every carrier-facts
+envelope in the exact Catalog reference environment, including unreferenced
+envelopes. Its opaque result retains each original envelope and links output
+facts to their same-environment SourceView member; structurally equal members
+from another environment cannot retrieve those links. Missing components stay
+`None`, distinct from an admitted `HardLimitOnly` component. Neither is proof
+of complete requested-key acquisition.
+
+The pass charges registry entries, reference occurrences, inspected object keys
+and component strings under one work budget, and separately bounds the number
+of facts envelopes. Unrelated nested facts remain opaque; their source-tree
+admission budget is owned by the preceding environment boundary. No partial
+result escapes a later malformed or over-budget envelope. Numeric bounds remain
+exact safe integers, with rows, pages and decoded bytes exposed separately.
+
 ## Keyed join role binding
 
 `check_keyed_joins` checks all keyed join-right consumers retained by
