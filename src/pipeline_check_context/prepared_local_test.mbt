@@ -3,6 +3,7 @@ fn prepared_local_context_fixture(
   first_by_order? : Bool = false,
   unused_operation? : Bool = false,
   third_stage? : Bool = false,
+  environment? : @environment.WireEnvironment? = None,
 ) -> (
   StageContexts,
   @stage_results.ResultWiring,
@@ -70,6 +71,7 @@ fn prepared_local_context_fixture(
       max_text_bytes: 1000000,
       max_depth: 100,
     },
+    environment~,
   ).unwrap()
   let values = @stage_results.local_source_values(prepared_source)
   let wiring = @stage_results.local_source_wiring(prepared_source)
@@ -77,7 +79,9 @@ fn prepared_local_context_fixture(
   let contexts = []
   for i in 0..<stage_count {
     let port = @stage_results.wiring_stage_at(wiring, i).unwrap()
-    locals.push(@stage_results.wiring_local_input_at(wiring, i).unwrap())
+    if @stage_results.wiring_local_input_at(wiring, i) is Some(input) {
+      locals.push(input)
+    }
     let orders = @results.ports_orders(
       @stage_results.stage_port_publications(port),
     )

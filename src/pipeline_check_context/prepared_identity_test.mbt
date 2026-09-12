@@ -5,12 +5,6 @@ fn prepared_identity_fixture(
   third_stage? : Bool = false,
   environment_profile? : String = capacity_profile(false),
 ) -> (ProgramSourceIdentity, @stage_results.ResultWiring, ReconciledContexts) {
-  let (stages, wiring, locals, bound, _, _) = prepared_local_context_fixture(
-    first_by_order~,
-    unused_operation~,
-    third_stage~,
-  )
-  let source = @stages.operations_source(@stages.bound_operations(bound))
   // No acquired rows or schema snapshots. The environment still undergoes
   // canonical integrity and selected-policy admission. Hashing here constructs
   // fixture input; independent expectations below do not use this helper.
@@ -28,48 +22,20 @@ fn prepared_identity_fixture(
     cid,
     { max_bytes: 10000, max_nodes: 1000, max_depth: 100, max_members: 10, },
   ).unwrap()
-  let source_index = @refs.prepare(source, {
-    max_work: 100000,
-    max_text_bytes: 100000,
-  }).unwrap()
-  let limits : @local_inputs.Limits = {
-    max_work: 1000000,
-    max_nodes: 100000,
-    max_text_bytes: 1000000,
-    max_depth: 100,
-  }
-  let inputs = []
-  let attachments = []
-  for i in 0..<locals.length() {
-    let input = @local_inputs.reconcile_environment(
-      @local_inputs.attached_inputs(locals[i]),
-      source_index,
-      environment,
-      [],
-      limits,
-    ).unwrap()
-    inputs.push(input)
-    attachments.push(
-      @local_inputs.attach_reconciled(
-        input,
-        @local_inputs.attached_stage(locals[i]),
-        max_work=1000000,
-      ).unwrap(),
-    )
-  }
-  let all_inputs = @local_inputs.assemble_environment(
-    source, environment, inputs, limits,
-  ).unwrap()
+  let (stages, wiring, _, _, _, _) = prepared_local_context_fixture(
+    first_by_order~,
+    unused_operation~,
+    third_stage~,
+    environment=Some(environment),
+  )
   let wired = attach_result_wiring(
     stages,
     wiring,
     max_work=10000000,
     max_text_bytes=10000000,
   ).unwrap()
-  let reconciled = attach_reconciled_inputs(
+  let reconciled = attach_prepared_local_inputs(
     wired,
-    all_inputs,
-    attachments,
     max_work=10000000,
     max_text_bytes=10000000,
     max_local_input_nodes=100000,

@@ -100,6 +100,15 @@ preparation prefix is charged once before Stage construction, with subsequent
 attachment checks charging only their nonshared work. Policy, capacity and
 publication closure still require their own later checks.
 
+`attach_prepared_local_inputs` consumes the Environment and reconciled Stage
+attachments retained by that Result wiring. It accepts no substitute Environment
+or caller-assembled input array, and delegates the same exact Stage/evidence
+checks as explicit reconciliation. The prior wiring and Environment costs are
+checked before allocating the Stage handle array; handle collection and the
+subsequent join share the work ceiling. Source-only wiring is not silently
+upgraded to Environment-backed admission. The resulting contexts retain the
+original registrations through source-identity and incoming-dependency checking.
+
 This order is a dependency graph, not a requirement to reconstruct earlier
 results at every phase. Private incremental assembly can retain immutable
 intermediates. Public low-level helpers remain useful for focused tests, but
