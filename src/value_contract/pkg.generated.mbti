@@ -14,6 +14,8 @@ pub fn array_contract(Contract, nullable~ : Bool, max_items? : Int64?) -> Contra
 
 pub fn assignable(Contract, Contract, Int) -> Bool raise RelationError
 
+pub fn assignable_usage(Contract, Contract, Int) -> (Bool, Int) raise RelationError
+
 pub fn decimal_contract(Int, Int, nullable~ : Bool) -> Contract?
 
 pub fn emit_checked(Contract, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure

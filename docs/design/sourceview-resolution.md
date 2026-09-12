@@ -83,3 +83,50 @@ Program integration must discharge those consumer-specific obligations rather
 than substitute a DirectMode as proof of keyed compatibility. Per-call work is
 separate from the retained input-resolution work and must be budgeted cumulatively
 by that integration boundary.
+
+## Direct request templates
+
+`prepare_requests` joins the complete source-owned slot inventory with one
+Resolved collection. It requires the same prepared stage source and retains
+both owners. Indexing by stage and input is performed once, not once per
+consumer. Its work includes both preceding passes; it does not reinterpret
+literal descendants or infer usage from missing request fields.
+
+`check_direct_request` consumes that context and an input from the exact owned
+resolution. It validates every authored field against the selected checked
+request schema and requires every declared field, including nullable fields.
+Absent request is valid only when the request field set is empty; this does not
+relax the source reader's prohibition on explicitly empty request syntax.
+Fields retain their source order, original Slot, target Contract and one of:
+
+- A literal admitted without repair by `value_admission`. Nested business
+  `$param`, `$binding` and `literal` keys are not reinterpreted.
+- An exact Parameter declaration whose value contract is assignable to the
+  request role, including recursive shape, nullability and declared extents.
+- An exact Binding declaration with the required Ref kind. ResourceKind must
+  match; an expected artifact media type requires that declared media type.
+  An unconstrained artifact target permits a more specific declared media type.
+
+Parameter and Binding variants remain unresolved values, not fabricated witness
+data. Concrete binding, Parameter rules, Ref issuer evidence, request revalidation
+and actual acquisition authority remain necessary before executable planning.
+Nullable Ref absence is a literal null, not a fabricated issued reference.
+The opaque DirectRequest cannot be built from caller-supplied field/type pairs.
+
+This uses the complete-field rule in [Parameters](../spec/language.md#parameters)
+and assignment relation in [Value contracts](../spec/language.md#value-contracts).
+`87dc7144:src/actql.ts` checks Binding kind/media similarly, but its request helper
+omits missing nullable fields and recursively interprets binding-shaped data;
+those behaviors conflict with the current explicit source rules and are not
+imported. Keyed access requires its own static/correlation-role coverage and
+consumer proof; it must not use DirectRequest to justify an incomplete keyed
+template or infer a keyed use solely from omissions.
+
+Each direct check reports work, comparison pairs, literal value nodes and literal
+UTF-8 bytes. Assignment uses the existing comparison engine with usage reporting,
+not another implementation. Values share the remaining literal budget across
+fields, and failures publish no partial DirectRequest. Literal text accounting
+includes keys inside literal objects; outer request role names consume work.
+Depth bounds each literal subtree. Enclosing request emission still needs its
+own complete output byte/node/depth bounds. Program integration must accumulate
+these per-input usages; none of these limits claims a whole-heap bound.

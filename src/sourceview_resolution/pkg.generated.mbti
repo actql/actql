@@ -2,9 +2,14 @@
 package "actql/actql/sourceview_resolution"
 
 import {
+  "actql/actql/binding_declarations",
   "actql/actql/check_environment",
   "actql/actql/decode_core",
+  "actql/actql/parameter_binding",
+  "actql/actql/source_request_slots",
   "actql/actql/sourceview_input",
+  "actql/actql/value_admission",
+  "actql/actql/value_contract",
   "moonbitlang/core/debug",
 }
 
@@ -14,6 +19,8 @@ pub fn at(Resolved, Int) -> ResolvedInput?
 pub fn catalog(Resolved) -> @check_environment.SourceRequestContracts
 
 pub fn catalog_owner(ResolvedInput) -> @check_environment.SourceRequestContracts
+
+pub fn check_direct_request(RequestContext, ResolvedInput, RequestLimits) -> Result[DirectRequest, RequestIssue]
 
 pub fn checkpoint_reference(ModeCheckpoint) -> @check_environment.CatalogReference
 
@@ -43,6 +50,24 @@ pub fn mode_source(DirectMode) -> @decode_core.Cursor
 
 pub fn mode_work(DirectMode) -> Int
 
+pub fn prepare_requests(Resolved, @source_request_slots.Slots, Int) -> Result[RequestContext, RequestIssue]
+
+pub fn request_context(DirectRequest) -> RequestContext
+
+pub fn request_context_slots(RequestContext) -> @source_request_slots.Slots
+
+pub fn request_context_source(RequestContext) -> Resolved
+
+pub fn request_context_work(RequestContext) -> Int
+
+pub fn request_field_at(DirectRequest, Int) -> RequestField?
+
+pub fn request_field_count(DirectRequest) -> Int
+
+pub fn request_input(DirectRequest) -> ResolvedInput
+
+pub fn request_usage(DirectRequest) -> (Int, Int, Int, Int)
+
 pub fn resolve(@sourceview_input.Inputs, @check_environment.SourceRequestContracts, Limits) -> Result[Resolved, Issue]
 
 pub fn select_direct_mode(ResolvedInput, Int) -> Result[DirectMode, ModeIssue]
@@ -61,6 +86,8 @@ pub fn work(Resolved) -> Int
 
 // Types and methods
 type DirectMode
+
+type DirectRequest
 
 pub(all) struct Issue {
   kind : IssueKind
@@ -108,6 +135,44 @@ pub(all) enum ModeOrigin {
   AuthoredMode
   ContractDefault
 } derive(Eq, @debug.Debug)
+
+type RequestContext
+
+pub struct RequestField {
+  slot : @source_request_slots.Slot
+  contract : @value_contract.Contract
+  value : RequestValue
+}
+
+pub struct RequestIssue {
+  kind : RequestIssueKind
+  source : @decode_core.Cursor?
+}
+
+pub(all) enum RequestIssueKind {
+  InvalidLimits
+  ForeignSource
+  ForeignInput
+  WorkLimit
+  PairLimit
+  UnknownField(String)
+  MissingField(String)
+  IncompatibleParameter(String)
+  IncompatibleBinding(String)
+  Literal(@value_admission.Issue)
+} derive(Eq, @debug.Debug)
+
+pub(all) struct RequestLimits {
+  max_work : Int
+  max_pairs : Int
+  values : @value_admission.Limits
+}
+
+pub enum RequestValue {
+  LiteralValue(@value_admission.CheckedValue)
+  ParameterValue(@parameter_binding.Declaration)
+  BindingValue(@binding_declarations.Declaration)
+}
 
 type Resolved
 

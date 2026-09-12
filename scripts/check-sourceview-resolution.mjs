@@ -15,6 +15,7 @@ const seen=new Set();
 for(const c of corpus.cases){
   assert.ok(!seen.has(c.id));seen.add(c.id);
   assert.ok(!c.error||['Ambiguous','DuplicateSelector','InvalidSourceReference','Unresolved'].includes(c.error));
+  if(c.request_outcome)assert.ok(!c.error&&['accepted','UnknownField','MissingField','Literal','IncompatibleParameter','IncompatibleBinding'].includes(c.request_outcome));
   if(c.direct_mode){
     assert.ok(!c.error);
     assert.ok(['snapshot','changes','watch','undeclared_snapshot','undeclared_changes'].includes(c.direct_mode));
@@ -28,7 +29,7 @@ for(const c of corpus.cases){
     const ref={id:v.id,version:v.version,cid:v.cid};refs.set(key,ref);return ref;
   }
   for(const v of c.views){
-    const fields=v.required_field?{id:{type:'number',nullable:false}}:{};
+    const fields=c.request_fields??(v.required_field?{id:{type:'number',nullable:false}}:{});
     const request=contract('request_schema',{type:'object',nullable:false,additional_properties:false,fields});
     const row=contract('carrier_schema',{type:'object',nullable:false,additional_properties:false,fields:{}});
     const policy=contract('data_policy',{version:'actql-source-data-policy/0.1',source_ref:v.source_ref??`connector://crm/main/${v.resource}#${v.name}`,classification:'unknown'});
@@ -54,6 +55,11 @@ for(const c of corpus.cases){
     const checkpoint=mode?.checkpoint?.value_schema?.cid??'';
     lines.push('', '///|',`test ${JSON.stringify('SourceView direct mode corpus: '+c.id)} {`,
       `  check_mode_fixture(${JSON.stringify(canonicalText(env))}, ${JSON.stringify(env.evidence_bundle_cid)}, ${JSON.stringify(JSON.stringify(c.input))}, ${JSON.stringify(c.direct_mode)}, ${c.bounded??false}, ${JSON.stringify(checkpoint)})`, '}');
+  }
+  if(c.request_outcome){
+    const declarations=Object.entries({params:c.params,bindings:c.bindings}).filter(([,v])=>v!==undefined).map(([k,v])=>JSON.stringify(k)+':'+JSON.stringify(v)+',').join('');
+    lines.push('', '///|',`test ${JSON.stringify('SourceView direct request corpus: '+c.id)} {`,
+      `  check_request_fixture(${JSON.stringify(canonicalText(env))}, ${JSON.stringify(env.evidence_bundle_cid)}, ${JSON.stringify(JSON.stringify(c.input))}, ${JSON.stringify(declarations)}, ${JSON.stringify(c.request_outcome)})`, '}');
   }
 }
 const path='src/sourceview_resolution/vectors.generated_test.mbt',text=lines.join('\n')+'\n';

@@ -5,6 +5,12 @@ import {
   "actql/actql/check_environment" @environment,
   "actql/actql/decode_core" @decode,
   "actql/actql/canonical_value" @unicode,
+  "actql/actql/source_request_slots" @slots,
+  "actql/actql/binding_declarations" @bindings,
+  "actql/actql/parameter_binding" @parameters,
+  "actql/actql/value_contract" @contract,
+  "actql/actql/value_admission" @value,
+  "actql/actql/relation_schema" @row,
 }
 
 import {

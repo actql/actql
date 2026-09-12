@@ -97,7 +97,7 @@ fn compare(
   b : Contract,
   max_pairs : Int,
   relation : Relation,
-) -> Bool raise RelationError {
+) -> (Bool, Int) raise RelationError {
   if max_pairs < 0 {
     raise InvalidRelationLimit
   }
@@ -110,7 +110,7 @@ fn compare(
     remaining -= 1
     let (a, b) = pending.pop().unwrap()
     if !compatible(a, b, relation) {
-      return false
+      return (false, max_pairs - remaining)
     }
     if child_count(a) > remaining - pending.length() {
       raise RelationLimit
@@ -120,14 +120,14 @@ fn compare(
       (Object(x), Object(y)) =>
         for i = x.values.length() - 1; i >= 0; i = i - 1 {
           if x.values[i].name != y.values[i].name {
-            return false
+            return (false, max_pairs - remaining)
           }
           pending.push((x.values[i].contract, y.values[i].contract))
         }
       _ => ()
     }
   }
-  true
+  (true, max_pairs - remaining)
 }
 
 ///|
@@ -136,7 +136,7 @@ pub fn type_equal(
   b : Contract,
   max_pairs : Int,
 ) -> Bool raise RelationError {
-  compare(a, b, max_pairs, Equal)
+  compare(a, b, max_pairs, Equal).0
 }
 
 ///|
@@ -145,6 +145,16 @@ pub fn assignable(
   expected : Contract,
   max_pairs : Int,
 ) -> Bool raise RelationError {
+  compare(actual, expected, max_pairs, Assign).0
+}
+
+///|
+/// Assignment result and consumed pair budget, including an incompatible pair.
+pub fn assignable_usage(
+  actual : Contract,
+  expected : Contract,
+  max_pairs : Int,
+) -> (Bool, Int) raise RelationError {
   compare(actual, expected, max_pairs, Assign)
 }
 

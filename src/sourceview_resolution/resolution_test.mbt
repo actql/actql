@@ -41,8 +41,13 @@ fn fixture_catalog(
 }
 
 ///|
-fn fixture_inputs(input : String) -> @inputs.Inputs {
-  let wire = "{\"version\":\"actql/0.1\",\"id\":\"p\",\"stages\":[{\"id\":\"a\",\"inputs\":{\"remote\":" +
+fn fixture_inputs(
+  input : String,
+  declarations? : String = "",
+) -> @inputs.Inputs {
+  let wire = "{\"version\":\"actql/0.1\",\"id\":\"p\"," +
+    declarations +
+    "\"stages\":[{\"id\":\"a\",\"inputs\":{\"remote\":" +
     input +
     "},\"steps\":[],\"results\":{\"r\":{}}}],\"results\":{\"out\":{\"from\":{\"stage\":\"a\",\"result\":\"r\"}}}}"
   let program = @syntax.parse(
@@ -60,7 +65,7 @@ fn fixture_inputs(input : String) -> @inputs.Inputs {
     format=Json,
   ).unwrap()
   let source = @stages.prepare(program, {
-    max_parameters: 0,
+    max_parameters: 100,
     max_nodes: 100,
     max_depth: 100,
     max_text_bytes: 1000,
