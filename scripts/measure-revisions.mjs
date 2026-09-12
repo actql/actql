@@ -8,7 +8,7 @@ import { fileURLToPath } from 'node:url';
 import { platform, release, arch, cpus } from 'node:os';
 import { performance } from 'node:perf_hooks';
 import { checkedSample, checkedPreparedSample, peakRssBytes } from './layout-measurement-support.mjs';
-import { regressionPolicy, revisionCells, supplementalRevisionCells, revisionPairs, regressionMetric, revisionGate } from './revision-regression-support.mjs';
+import { regressionPolicy, revisionCells, supplementalRevisionCells, revisionPairs, regressionMetric, revisionGate, revisionMustStop } from './revision-regression-support.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const [before, after, mode] = process.argv.slice(2);
@@ -141,10 +141,19 @@ try {
     }
     report.decisions.push({ id: cell.id, screening, metrics });
     save();
+    if (revisionMustStop(metrics)) {
+      report.status = 'stopped';
+      report.matrix_gate = 'not_evaluated';
+      report.stop_reason = `Twenty-one pairs remain inconclusive: ${cell.id}`;
+      save();
+      break;
+    }
   }
   assertSourcesUnchanged();
-  report.status = 'complete';
-  report.matrix_gate = smoke ? 'not_evaluated' : revisionGate(report.decisions);
+  if (report.status !== 'stopped') {
+    report.status = 'complete';
+    report.matrix_gate = smoke ? 'not_evaluated' : revisionGate(report.decisions);
+  }
   report.finished_at = new Date().toISOString();
   save();
   process.stdout.write(`Report: ${out}/report.json\n`);

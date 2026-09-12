@@ -142,3 +142,11 @@ The supplemental increment passed 18 comparison/statistics/auditor Node tests,
 format, documentation and metadata checks. These are incremental checks, not
 the final whole-repository verification required after product-boundary work.
 Linux CI has not been run.
+
+## Historical comparison stopped
+
+The first real comparison did not pass the gate. See
+[the stopped comparison report](REVISION-REGRESSION.md) for observed native
+regressions, the 21-pair uncertainty stop, incomplete coverage and the runner's
+automatic-stop correction. Product completion/producer implementation remains
+unstarted; the task is not complete.

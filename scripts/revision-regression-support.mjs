@@ -9,6 +9,10 @@ export const regressionPolicy = Object.freeze({
   rssRatio: 1.10,
 });
 
+export function revisionMustStop(metrics) {
+  return metrics.some(m => m.decision === 'inconclusive');
+}
+
 export function revisionGate(decisions) {
   if (!decisions.length) throw new Error('No completed cells');
   const observations = decisions.flatMap(d => [...(d.screening ?? []), ...d.metrics]);

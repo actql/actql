@@ -1,9 +1,14 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { regressionMetric, revisionCells, supplementalRevisionCells, revisionPairs, revisionGate } from './revision-regression-support.mjs';
+import { regressionMetric, revisionCells, supplementalRevisionCells, revisionPairs, revisionGate, revisionMustStop } from './revision-regression-support.mjs';
 
 const manifest = JSON.parse(readFileSync(new URL('../benchmarks/local-relation/columnar-experiment.json', import.meta.url)));
+test('inconclusive twenty-one-pair evidence stops further cell collection', () => {
+  assert.equal(revisionMustStop([{decision: 'extend'}]), false);
+  assert.equal(revisionMustStop([{decision: 'regression'}]), false);
+  assert.equal(revisionMustStop([{decision: 'within_tolerance'}, {decision: 'inconclusive'}]), true);
+});
 test('extension for a second metric never erases an already observed regression', () => {
   assert.equal(revisionGate([{ screening: [{decision: 'regression'}], metrics: [{decision: 'within_tolerance'}] }]), 'regression');
   assert.equal(revisionGate([{ metrics: [{decision: 'inconclusive'}] }]), 'inconclusive');

@@ -44,7 +44,7 @@ test('full matrix is independently reconstructed from successful raw assertions'
 });
 
 test('partial and smoke reports cannot become regression evidence', () => {
-  for (const edit of [r => { r.status = 'running'; }, r => { r.matrix_gate = 'not_evaluated'; },
+  for (const edit of [r => { r.status = 'running'; }, r => { r.status = 'stopped'; }, r => { r.matrix_gate = 'not_evaluated'; },
     r => { r.decisions.pop(); }]) {
     const f = fixture(); edit(f.report);
     assert.throws(() => auditRevisionReport(f.report, manifest, f.read));
