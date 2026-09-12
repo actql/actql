@@ -13,6 +13,7 @@ pub enum StageRequirementIssue {
   LocalInputs(LocalInputClosureIssue)
   Incoming(IncomingClosureIssue)
   Publications(PublicationClosureIssue)
+  SourceModes(SourceModeClosureIssue)
 }
 
 ///|
@@ -22,12 +23,13 @@ struct StageRequirementClosure {
   inputs : ProgramLocalInputClosure
   incoming : ProgramIncomingClosure
   publications : ProgramPublicationClosure
+  source_modes : ProgramSourceModeClosure
   work : Int
   count : Int
 }
 
 ///|
-/// Close the four staged inventories from one owner, without independently
+/// Close staged requirements and selected source modes from one owner, without independently
 /// supplied successes. SourceView/Host, semantic identities and other execution
 /// enforcement remain separate requirements of the formal Program constructor.
 pub fn close_stage_requirements(
@@ -89,12 +91,24 @@ pub fn close_stage_requirements(
   }
   work += publications.work - owner.work
   remaining -= publications.entries.length()
+  let source_modes = match
+    close_program_source_modes(
+      owner,
+      owner.work + (limits.max_work - work),
+      remaining,
+    ) {
+    Ok(v) => v
+    Err(e) => return Err(SourceModes(e))
+  }
+  work += source_modes.work - owner.work
+  remaining -= source_modes.checks.length()
   Ok({
     owner,
     operations,
     inputs,
     incoming,
     publications,
+    source_modes,
     work,
     count: limits.max_requirements - remaining,
   })
@@ -138,4 +152,11 @@ pub fn stage_requirement_publications(
 ///|
 pub fn stage_requirement_usage(v : StageRequirementClosure) -> (Int, Int) {
   (v.work, v.count)
+}
+
+///|
+pub fn stage_requirement_source_modes(
+  v : StageRequirementClosure,
+) -> ProgramSourceModeClosure {
+  v.source_modes
 }

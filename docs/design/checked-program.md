@@ -490,16 +490,35 @@ Stage, Result and obligation visits share the prior Program work ceiling. This
 closes static order selection only: conditional input/key checks, output limits,
 materialization and successful publication still require their own enforcement.
 
-`close_stage_requirements` runs operation, Local-input, incoming-activation and
-publication-order closure internally from a single incoming-link owner. It does
+`close_stage_requirements` runs operation, Local-input, incoming-activation,
+publication-order and source-mode closure internally from a single incoming-link owner. It does
 not accept independently closed branches. Shared preparation is counted once;
 each branch receives only the remaining work and disposition allowance. The
 disposition limit covers operation entries, Local execution checks, activation
-checks and publication entries together; Local input occurrences have their own
+checks, publication entries and source-mode checks together; Local input occurrences have their own
 additional bound. Failure in any later branch returns no combined closure.
 This staged closure is a component of CheckedProgram, not its substitute:
 SourceView/Host obligations, complete semantic identities and remaining runtime
 enforcement must also be connected at the formal constructor.
+
+`close_program_source_modes` visits every selected request from that same
+Program's source preparation, including unused direct inputs. It retains the
+exact Direct or Keyed request and its Stage/source-input coordinates. Those
+coordinates index the selected SourceView request array, not all Stage inputs.
+The retained support check must run before acquisition; unsupported runtime mode
+prevents the request and its output. It is not Host authorization, a successful
+read, completeness evidence or row admission.
+
+The mode-obligation classification is exhaustive. A changes range still needs
+its bounded-range resolution; `SourceStateRequirement` requires static
+construction of the normative envelope with the actual Program identity.
+Neither is converted to generic runtime support. Until those resolutions are
+connected, closure rejects them with their exact Stage/input/obligation rather
+than returning a partial success. Snapshot checkpoint metadata does not invent
+a changes-state requirement. Stage visits, request visits and mode obligations
+consume the same work cap, and support checks share the disposition limit with
+the other staged requirements. Indexed readers expose the retained checks
+without copying a request array or rerunning mode selection.
 
 An execution binding retains:
 

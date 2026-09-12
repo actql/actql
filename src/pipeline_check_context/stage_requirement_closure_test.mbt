@@ -56,7 +56,8 @@ test "staged requirement closure shares owners work and disposition limits" {
     ) +
     (local_input_closure_work(inputs) - prefix) +
     (incoming_closure_work(incoming) - prefix) +
-    (publication_closure_work(publications) - prefix),
+    (publication_closure_work(publications) - prefix) +
+    (source_mode_closure_work(stage_requirement_source_modes(closed)) - prefix),
   )
   let exact = { ..limits, max_work: work, max_requirements: count, }
   assert_true(close_stage_requirements(owner, exact) is Ok(_))

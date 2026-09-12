@@ -137,6 +137,8 @@ pub fn close_program_operations(ProgramOperationResolutionIndex, Int, Int) -> Re
 
 pub fn close_program_publications(ProgramIncomingLinks, Int, Int) -> Result[ProgramPublicationClosure, PublicationClosureIssue]
 
+pub fn close_program_source_modes(ProgramIncomingLinks, Int, Int) -> Result[ProgramSourceModeClosure, SourceModeClosureIssue]
+
 pub fn close_stage_requirements(ProgramIncomingLinks, StageRequirementLimits) -> Result[StageRequirementClosure, StageRequirementIssue]
 
 pub fn collect_core_contracts(ProgramSourceIdentity, CoreContractLimits, profile_checks? : ProgramOperationCalendar?, hash_limits? : @local_relation_snapshot.Limits?) -> Result[CoreContractInventory, CoreContractIssue]
@@ -679,6 +681,14 @@ pub fn source_contract_stage_count(SourceContractRequirements) -> Int
 
 pub fn source_contract_usage(SourceContractRequirements) -> (Int, Int, Int)
 
+pub fn source_mode_closure_at(ProgramSourceModeClosure, Int) -> SourceModeExecutionCheck?
+
+pub fn source_mode_closure_count(ProgramSourceModeClosure) -> Int
+
+pub fn source_mode_closure_owner(ProgramSourceModeClosure) -> ProgramIncomingLinks
+
+pub fn source_mode_closure_work(ProgramSourceModeClosure) -> Int
+
 pub fn source_policy_rows(SourcePolicyContext) -> SourceRowContexts
 
 pub fn source_policy_selected(SourcePolicyContext) -> SelectedPolicyContext
@@ -748,6 +758,8 @@ pub fn stage_requirement_operations(StageRequirementClosure) -> ProgramOperation
 pub fn stage_requirement_owner(StageRequirementClosure) -> ProgramIncomingLinks
 
 pub fn stage_requirement_publications(StageRequirementClosure) -> ProgramPublicationClosure
+
+pub fn stage_requirement_source_modes(StageRequirementClosure) -> ProgramSourceModeClosure
 
 pub fn stage_requirement_usage(StageRequirementClosure) -> (Int, Int)
 
@@ -1723,6 +1735,8 @@ type ProgramSourceContracts
 
 type ProgramSourceIdentity
 
+type ProgramSourceModeClosure
+
 pub(all) enum ProgramSourcesIssue {
   InvalidLimits
   ForeignStages
@@ -1871,6 +1885,18 @@ pub(all) struct SourceContractLimits {
 
 type SourceContractRequirements
 
+pub(all) enum SourceModeClosureIssue {
+  InvalidLimits
+  BudgetExceeded
+  Unresolved(Int, Int, @sourceview_resolution.ModeObligation)
+} derive(Eq, @debug.Debug)
+
+pub struct SourceModeExecutionCheck {
+  stage : Int
+  input : Int
+  request : @sourceview_resolution.AcquisitionRequest
+}
+
 type SourcePolicyContext
 
 pub(all) enum SourcePolicyIssue {
@@ -1980,6 +2006,7 @@ pub enum StageRequirementIssue {
   LocalInputs(LocalInputClosureIssue)
   Incoming(IncomingClosureIssue)
   Publications(PublicationClosureIssue)
+  SourceModes(SourceModeClosureIssue)
 }
 
 pub(all) struct StageRequirementLimits {
