@@ -20,6 +20,7 @@ priv enum OrderedShapeIssue {
 fn emit_closed_row_shape(
   schema : @schema.Schema,
   out : @encode.Writer,
+  self_cid? : String? = None,
 ) -> Unit raise @encode.EncodeFailure {
   @encode.begin_object(out)
   @encode.key(out, "additional_fields")
@@ -41,6 +42,13 @@ fn emit_closed_row_shape(
     )
   }
   @encode.end_array(out)
+  match self_cid {
+    Some(cid) => {
+      @encode.key(out, "self_cid")
+      @encode.string_value(out, cid)
+    }
+    None => ()
+  }
   @encode.key(out, "version")
   @encode.string_value(out, "actql-derive-row-shape/0.1")
   @encode.end_object(out)
@@ -89,6 +97,7 @@ fn emit_ordered_context(
   shapes : OrderedShapes,
   prefix : Int,
   out : @encode.Writer,
+  self_cid? : String? = None,
 ) -> Unit raise @encode.EncodeFailure {
   let operation = @lower.kernel_checked(ordered_params_kernel(shapes.params))
   if prefix < 0 || prefix > @relation.binding_count(operation) {
@@ -112,6 +121,13 @@ fn emit_ordered_context(
     @encode.end_object(out)
   }
   @encode.end_array(out)
+  match self_cid {
+    Some(cid) => {
+      @encode.key(out, "self_cid")
+      @encode.string_value(out, cid)
+    }
+    None => ()
+  }
   @encode.key(out, "version")
   @encode.string_value(out, "actql-derive-row-context/0.1")
   @encode.end_object(out)
