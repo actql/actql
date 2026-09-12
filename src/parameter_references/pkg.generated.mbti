@@ -34,6 +34,10 @@ pub fn pointer_units(Index) -> Int
 
 pub fn prepare_values(@parameter_binding.BoundValues, max_work~ : Int) -> Result[PreparedValues, BindingIssue]
 
+pub fn prepared_value_for(PreparedValues, @parameter_binding.Declarations, String) -> @parameter_binding.BoundParameter?
+
+pub fn prepared_values(PreparedValues) -> @parameter_binding.BoundValues
+
 pub fn prepared_work(PreparedValues) -> Int
 
 pub fn reference_at(Index, Int) -> Reference?

@@ -130,3 +130,30 @@ includes keys inside literal objects; outer request role names consume work.
 Depth bounds each literal subtree. Enclosing request emission still needs its
 own complete output byte/node/depth bounds. Program integration must accumulate
 these per-input usages; none of these limits claims a whole-heap bound.
+
+## Binding Parameter occurrences
+
+`prepare_request_parameters` binds one RequestContext to an admitted BoundValues
+set from its exact prepared Parameter declaration owner. A reusable name index
+is shared across direct requests, with preparation charged once. Separately
+parsed equal declarations or equal values do not establish ownership.
+`bind_request_parameters` then requires the exact same RequestContext and
+replaces only Parameter occurrences with their original BoundParameter handles.
+Literal handles remain unchanged, and Host Binding declarations remain explicit
+unbound entries. Repeated references share an immutable BoundParameter rather
+than copying its value tree. The result retains the request and binding owners,
+per-occurrence work, and the count of unresolved Host Binding occurrences.
+
+BoundParameter retains its ParameterType and rules, its checked value and its
+supplied/default origin. In particular, duration is not reduced to an untyped
+string by this connection. Typed value identity, consumer wire representation
+and actual source-request evidence remain distinct concerns. This pass neither
+serializes a provider request nor computes `resolved_request_cid` from raw
+Parameter spellings. It does not fabricate missing values or recompute defaults.
+
+This opaque ParameterizedRequest proves the Parameter connection, not whole
+request execution readiness. Final request construction still needs correct
+typed wire handling, opaque Binding admission, source policy/authority and the
+consumer-specific acquisition contract. Even zero unresolved Host Bindings is
+not an execution permit. Program integration must add per-request binding work
+to the retained static request checks and shared preparation cost.

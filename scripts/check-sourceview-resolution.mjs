@@ -60,6 +60,13 @@ for(const c of corpus.cases){
     const declarations=Object.entries({params:c.params,bindings:c.bindings}).filter(([,v])=>v!==undefined).map(([k,v])=>JSON.stringify(k)+':'+JSON.stringify(v)+',').join('');
     lines.push('', '///|',`test ${JSON.stringify('SourceView direct request corpus: '+c.id)} {`,
       `  check_request_fixture(${JSON.stringify(canonicalText(env))}, ${JSON.stringify(env.evidence_bundle_cid)}, ${JSON.stringify(JSON.stringify(c.input))}, ${JSON.stringify(declarations)}, ${JSON.stringify(c.request_outcome)})`, '}');
+    if(c.request_outcome==='accepted'){
+      // Fixed supplied values, not lowerer-derived expectations. Existing numeric
+      // fixtures use 7; nonnumeric Parameter cases specify values explicitly.
+      const supplied=c.parameter_values??Object.fromEntries(Object.entries(c.params??{}).map(([name,p])=>{assert.equal(p.type,'number');return [name,7];}));
+      lines.push('', '///|',`test ${JSON.stringify('SourceView request parameter corpus: '+c.id)} {`,
+        `  check_request_parameters_fixture(${JSON.stringify(canonicalText(env))}, ${JSON.stringify(env.evidence_bundle_cid)}, ${JSON.stringify(JSON.stringify(c.input))}, ${JSON.stringify(declarations)}, ${JSON.stringify(JSON.stringify(supplied))})`, '}');
+    }
   }
 }
 const path='src/sourceview_resolution/vectors.generated_test.mbt',text=lines.join('\n')+'\n';

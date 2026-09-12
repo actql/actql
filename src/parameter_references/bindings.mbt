@@ -48,6 +48,24 @@ pub fn prepared_work(value : PreparedValues) -> Int {
 }
 
 ///|
+pub fn prepared_values(value : PreparedValues) -> @parameter.BoundValues {
+  value.values
+}
+
+///|
+/// Lookup retains the admitted binding owner; it does not establish usage.
+pub fn prepared_value_for(
+  value : PreparedValues,
+  declarations : @parameter.Declarations,
+  name : String,
+) -> @parameter.BoundParameter? {
+  if !physical_equal(@parameter.bound_declarations(value.values), declarations) {
+    return None
+  }
+  value.names.get(name)
+}
+
+///|
 /// Additional projection work only; preparation is charged by the caller once.
 pub fn bind_prepared(
   index : Index,
