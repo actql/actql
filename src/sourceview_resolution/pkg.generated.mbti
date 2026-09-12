@@ -271,6 +271,10 @@ pub fn selected_contract(ResolvedInput) -> @check_environment.SourceViewRequestC
 
 pub fn selected_name(ResolvedInput) -> String
 
+pub fn selected_reference_at(ResolvedInput, Int) -> @check_environment.CatalogReference?
+
+pub fn selected_reference_count(ResolvedInput) -> Int
+
 pub fn selection(ResolvedInput) -> Selection
 
 pub fn work(Resolved) -> Int

@@ -123,6 +123,28 @@ fn check_fixture(
   )
   assert_true(physical_equal(input_owner(entry), inputs))
   assert_true(physical_equal(catalog_owner(entry), catalog))
+  let selected_member = @environment.source_request_member(
+    selected_contract(entry),
+  )
+  let reference_count = selected_reference_count(entry)
+  assert_true(reference_count > 0)
+  for i in 0..<reference_count {
+    let r = selected_reference_at(entry, i).unwrap()
+    assert_true(
+      physical_equal(@environment.reference_member(r), selected_member),
+    )
+    assert_true(
+      physical_equal(
+        @environment.member_environment(
+          @environment.contract_member(@environment.reference_contract(r)),
+        ),
+        @environment.member_environment(selected_member),
+      ),
+    )
+  }
+  for i in [-2147483648, -1, reference_count, 2147483647] {
+    assert_true(selected_reference_at(entry, i) is None)
+  }
   assert_true(physical_equal(@sourceview_resolution.inputs(resolved), inputs))
   assert_true(physical_equal(@sourceview_resolution.catalog(resolved), catalog))
   assert_eq(declaration(entry).view is Some(_), explicit)

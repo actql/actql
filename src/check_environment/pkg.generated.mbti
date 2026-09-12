@@ -56,6 +56,10 @@ pub fn catalog_identity(Catalog) -> (String, String, String)
 
 pub fn catalog_member(Catalog) -> Member
 
+pub fn catalog_member_reference_at(CatalogReferences, Member, Int) -> CatalogReference?
+
+pub fn catalog_member_reference_count(CatalogReferences, Member) -> Int?
+
 pub fn catalog_reference_at(CatalogReferences, Int) -> CatalogReference?
 
 pub fn catalog_reference_for_cursor(CatalogReferences, @decode_core.Cursor) -> CatalogReference?

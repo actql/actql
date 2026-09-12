@@ -225,6 +225,16 @@ reference occurrences resolve: a surrounding object, an equal-looking business
 object or a cursor from a separately admitted environment does not. Repeated
 references to one envelope remain separate occurrences with their own sources.
 
+The same traversal records one contiguous reference range per SourceView or
+Command member, with one additional charged index entry per member. The range
+reuses the existing occurrence array: it does not copy references or deduplicate
+targets. `catalog_member_reference_count/at` provide constant-time indexed reads
+after checking the exact environment owner and arena position. A foreign member
+with the same public CID, or a section not covered by role-reference checking,
+returns `None`; that is not a proven empty dependency set. Members obtained again
+from the same admitted environment resolve to the original occurrences. The
+range order is the existing role traversal order, not a new identity ordering law.
+
 Fixed test locations independently enumerate all 19 roles for wrong-kind checks;
 tests also cover optional absence versus null, late errors, exact ownership,
 original diagnostic locations, cross-Catalog references, repeated mode slots and

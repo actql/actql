@@ -1,5 +1,14 @@
 # SourceView resolution
 
+`selected_reference_count/at` expose the admitted role occurrences belonging to
+the exact selected SourceView. They reuse the Catalog's member-range index,
+without scanning all environment references, copying arrays, resolving names
+again or replacing the Catalog membership proof with a matching CID. Repeated
+references and their original cursors remain distinct. This exposes all declared
+roles of that SourceView, not a mode-specific projection, transitive closure,
+local Unit contract CID, or permission to execute. Semantic projection and other
+interpreted contracts remain separate consumers of these owned dependencies.
+
 `bind_source_producers` connects each acquisition's retained left-row proof to
 the capacity application closure already owned by its stage's checked context.
 Caller-supplied visit/claim coordinates select candidates only; the consumer

@@ -49,6 +49,7 @@ struct CatalogReferences {
   contents : CatalogContents
   references : Array[CatalogReference]
   by_source : Map[Int, CatalogReference]
+  by_member : Map[Int, (Int, Int)]
   work : Int
 }
 
@@ -58,6 +59,7 @@ priv struct ReferenceReader {
   mut work : Int
   references : Array[CatalogReference]
   by_source : Map[Int, CatalogReference]
+  by_member : Map[Int, (Int, Int)]
 }
 
 ///|
@@ -148,7 +150,13 @@ pub fn check_catalog_references(
   if limits.max_work < 0 || limits.max_references < 0 {
     return Err({ kind: InvalidLimits, source: None, })
   }
-  let reader = { limits, work: 0, references: [], by_source: Map([]), }
+  let reader = {
+    limits,
+    work: 0,
+    references: [],
+    by_source: Map([]),
+    by_member: Map([]),
+  }
   let routes = catalog_reference_routes()
   try {
     for catalog in contents.entries {
@@ -158,6 +166,7 @@ pub fn check_catalog_references(
         for item in items {
           let root = member_body(item)
           ref_charge(reader, 1, root)
+          let start = reader.references.length()
           for route in routes {
             let ReferenceRoute(for_view, hops, kind) = route
             if for_view != is_view {
@@ -200,6 +209,14 @@ pub fn check_catalog_references(
               }
             }
           }
+          // All routes for one item are visited together. Retain a range,
+          // not another array of references or deduplicated target CIDs.
+          ref_charge(reader, 1, root)
+          let index = @decode.tree_index(
+            contents.registry.environment.root,
+            root,
+          ).unwrap()
+          reader.by_member[index] = (start, reader.references.length() - start)
         }
       }
     }
@@ -207,6 +224,7 @@ pub fn check_catalog_references(
       contents,
       references: reader.references,
       by_source: reader.by_source,
+      by_member: reader.by_member,
       work: reader.work,
     })
   } catch {
@@ -262,4 +280,41 @@ pub fn catalog_reference_for_cursor(
     Some(index) => v.by_source.get(index)
     None => None
   }
+}
+
+///|
+fn member_reference_range(v : CatalogReferences, item : Member) -> (Int, Int)? {
+  if !physical_equal(v.contents.registry.environment, member_environment(item)) {
+    return None
+  }
+  @decode.tree_index(v.contents.registry.environment.root, member_body(item)).bind(index => {
+      v.by_member.get(index)
+    },
+  )
+}
+
+///|
+/// O(1) count for an admitted SourceView/Command item. None means the item
+/// is outside this exact reference inventory, not a proven empty dependency set.
+pub fn catalog_member_reference_count(
+  v : CatalogReferences,
+  item : Member,
+) -> Int? {
+  member_reference_range(v, item).map(range => range.1)
+}
+
+///|
+/// Retains role-occurrence order and repetitions. No copies or target relookup.
+pub fn catalog_member_reference_at(
+  v : CatalogReferences,
+  item : Member,
+  index : Int,
+) -> CatalogReference? {
+  guard member_reference_range(v, item) is Some((start, count)) else {
+    return None
+  }
+  if index < 0 || index >= count {
+    return None
+  }
+  v.references.get(start + index)
 }
