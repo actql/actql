@@ -124,6 +124,16 @@ not truncate rows or discard the tighter candidate. Empty rows select zero while
 retaining the declared schema and both candidates. Recursive-value applicability
 and enforcement are separate from both the row and complete-wire byte scopes.
 
+The [values recursive-resource scope](../spec/language.md#values) makes the
+previously unspecified scope explicit rather than importing `nest`'s child-array
+scope. It selects declared array/object/vector cells, including null occurrences,
+and sums their typed-wire bytes. The declared type supplies depth independently
+of data, so empty rows cannot bypass a deep type check. Vector contributes one
+wire-array level. This is a values-specific clarification: the reference Sketch
+compiler's nest depth calculation and fragment-wide value ceilings do not define
+this generator's contract. It does not make scalar cells subject to a nested
+byte ceiling or turn either logical measure into a heap bound.
+
 ## Registry and backend capability
 
 `actql-aoa.json` selects the shared registry through `pipeline_registry_file`

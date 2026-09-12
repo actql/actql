@@ -4241,6 +4241,27 @@ resolved row, byte and recursive-value limits apply before publication. A
 `inputs: {}` is legal when all dataflow roots are generators; top-level `from`
 is then absent. Current-input selection follows [Pipeline names and references](#pipeline-references).
 
+<!-- requirement-block: values.recursive-resource-scope -->
+For `values`, recursive-value byte usage MUST equal the sum of canonical typed-wire UTF-8
+encodings of all cells whose declared root type is array, object or vector,
+across all row occurrences. Nullable cells contribute the encoding of `null`
+when null. Siblings and repeated rows contribute separately; containers inside
+a selected cell are counted only within that cell's encoding. Row-object keys,
+row wrappers, the outer rows array and scalar-typed cells are excluded from this
+scope. The selected Host `max_nested_value_bytes` applies to this sum, separately
+from the complete `/rows` wire limit. No selected cells means zero byte usage.
+
+<!-- requirement-block: values.recursive-resource-depth -->
+The selected Host `max_nested_value_depth` MUST apply to declared cell type depth:
+scalar types have depth zero, vector has depth one, array has one plus its item
+depth, and object has one plus its maximum field depth (zero for no fields).
+Use the maximum across declared fields, without adding row or rows wrappers.
+Check this type depth even for empty rows, empty arrays and nullable values;
+those values do not remove the declared resource requirement. These scopes are
+specific to `values`, not a redefinition of `nest` or Artifact limits.
+Binding and typed-value admission precede measurement. Limit breaches fail
+before any consumer receives the Relation; no row or cell may be truncated.
+
 <a id="row-set-operations"></a>
 
 ### Row set operations: `except` and `intersect`
@@ -8742,7 +8763,7 @@ through the pinned expression contract.
 <!-- requirement-block: machine-contracts.exact-artifacts -->
 <!-- normative-code: law -->
 ```text
-../../spec/contracts/actql-aoa.json# sha256:806d9374ccaf7b21e7ba6ab6da4a28858cee6802cd23faa98b75e3da81991685
+../../spec/contracts/actql-aoa.json# sha256:b304af4f515b7f43e5c01117853c54d052bc0ca191a4bc2d2af9b5fc72c1b621
 ../../spec/contracts/actql-bound-transfer-laws.json# sha256:014682262d00c8435f300731e823e5b267ec66b78f980c765c4fd3772c68c911
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/resource_ref sha256:f88141c15be5ac040af593008fdca7c85214fcb4ba60ea7110160b8fe8ee25ac
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/artifact_ref sha256:2143a7c6bd2e0b110822670a3cb146cddaa23bcade9de7c1ab8ed4e1ebf88a55

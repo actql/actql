@@ -3644,6 +3644,28 @@
       }
     },
     {
+      "requirement_id": "actql.language/values.recursive-resource-scope",
+      "statement_sha256": "e7d47c4f68c8213ea012124a54504ee012b5ce71b3dc9f77f571de3f121e01d3",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "values",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/values.recursive-resource-depth",
+      "statement_sha256": "9770dc20c32b4c3a884fd6cf0c7fd4d43cc1dcd54dc90371dc1caa5d59864baf",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "values",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.language/row-set-operations.multiplicity",
       "statement_sha256": "b402609936daabf91dbe30f7260d4732cee6869dd75a840cb32012430443cc57",
       "status": "pending",
@@ -7088,7 +7110,7 @@
     },
     {
       "requirement_id": "actql.language/machine-contracts.exact-artifacts",
-      "statement_sha256": "0edc040cce80874f9b6bbe12b10a5351cf4016f8049e669b5963841ef6d16c26",
+      "statement_sha256": "489ab3e275b8876841dc92b4f66ba5f7ec61211277fa75f386d5d6db06f3c41a",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",

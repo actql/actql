@@ -11,6 +11,27 @@ const protocol = read('spec/contracts/actql-protocol-schemas.json');
 const corpus = read('portability/corpus/rel-values-execution.json');
 const schema = aoa.execution_contracts['REL.values'].params_schema;
 
+test('recursive resource scopes have independent fixed byte and type-depth vectors', () => {
+  const resources = aoa.execution_contracts['REL.values'].semantics.recursive_resources;
+  assert.deepEqual(resources.selected_root_types, ['array','object','vector']);
+  assert.equal(resources.host_byte_ceiling, 'max_nested_value_bytes');
+  assert.equal(resources.host_depth_ceiling, 'max_nested_value_depth');
+  const depth = t => t.type === 'array' ? 1 + depth(t.items)
+    : t.type === 'object' ? 1 + Math.max(0,...Object.values(t.fields).map(depth))
+    : t.type === 'vector' ? 1 : 0;
+  for (const c of read('portability/corpus/values-recursive-resources.json').cases) {
+    const names = Object.keys(c.schema).filter(k => ['array','object','vector'].includes(c.schema[k].type));
+    const bytes = c.rows.reduce((total,row) => total + names.reduce(
+      (n,k) => n + Buffer.byteLength(canonicalText(row[k]), 'utf8'), 0), 0);
+    const typeDepth = Math.max(0,...Object.values(c.schema).map(depth));
+    assert.equal(bytes,c.bytes,c.name); assert.equal(typeDepth,c.depth,c.name);
+    const fits = (b,d) => bytes <= b && typeDepth <= d;
+    assert.equal(fits(c.bytes,c.depth),true,c.name);
+    if(c.bytes>0) assert.equal(fits(c.bytes-1,c.depth),false,c.name);
+    if(c.depth>0) assert.equal(fits(c.bytes,c.depth-1),false,c.name);
+  }
+});
+
 // Test-only interpreter for the explicit JSON Schema keyword subset used here.
 // Unknown keywords fail loudly; this is neither a product validator nor a
 // claim of general JSON Schema implementation conformance.

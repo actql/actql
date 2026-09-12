@@ -1,0 +1,12 @@
+{
+  "version": "actql-values-recursive-resources/0.1",
+  "cases": [
+    {"name":"scalar-cells-excluded","schema":{"x":{"type":"string"}},"rows":[{"x":"large scalar"}],"bytes":0,"depth":0},
+    {"name":"repeated-array-cells","schema":{"x":{"type":"array","items":{"type":"number"}}},"rows":[{"x":[1,2]},{"x":[1,2]}],"bytes":10,"depth":1},
+    {"name":"sibling-structured-cells","schema":{"a":{"type":"array","items":{"type":"number"}},"b":{"type":"object","fields":{"x":{"type":"string"}}}},"rows":[{"a":[],"b":{"x":"é"}}],"bytes":12,"depth":1},
+    {"name":"nullable-container","schema":{"x":{"type":"array","nullable":true,"items":{"type":"number"}}},"rows":[{"x":null}],"bytes":4,"depth":1},
+    {"name":"empty-rows-retain-type-depth","schema":{"x":{"type":"array","items":{"type":"object","fields":{"a":{"type":"array","items":{"type":"number"}}}}}},"rows":[],"bytes":0,"depth":3},
+    {"name":"nested-container-counted-once","schema":{"x":{"type":"object","fields":{"a":{"type":"array","items":{"type":"number"}}}}},"rows":[{"x":{"a":[1]}}],"bytes":9,"depth":2},
+    {"name":"vector-wire-depth","schema":{"x":{"type":"vector","dimensions":2}},"rows":[{"x":[1,2]}],"bytes":5,"depth":1}
+  ]
+}

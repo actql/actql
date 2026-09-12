@@ -61,7 +61,7 @@ test('selected registration resolves the complete execution contract and checked
   const entry = resolveValues(registry);
   assert.deepEqual(entry.inputs,[]);
   assert.equal(entry.output,'relation');
-  assert.equal(entry.execution_contract.cid,'sha256:c95bc0d474fd6fbe62d3182bdefe6af412070f6ad2c8e102c5279d7a8b3eed17');
+  assert.equal(entry.execution_contract.cid,'sha256:9dec7cf1abedfb23b0af130ec5e25c7442d28c205a94cad0218b2f5982d44b44');
 });
 
 test('old selected registry cannot resolve values and a new body cannot reuse the old CID', () => {

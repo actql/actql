@@ -25,7 +25,7 @@
   "sga_structural_law_manifest_cid": "sha256:7dbf4a4b5830e66867388a34f12751691e9c90594e8e09cab754472144a65b18",
   "sga_identity_law_manifest_cid": "sha256:ab1ae472462b96ac48e56d3ce0544213cab5d422e6bb198bc9acd5e4d90e0fe4",
   "pipeline_registry_file": "spec/dependencies/aoa-pipeline-registry.json",
-  "pipeline_registry_cid": "sha256:5be4133ab14b50ece1109cb2ce7cacf52005ff1c04ef48b2aa7b88f163eba09f",
+  "pipeline_registry_cid": "sha256:e1a559f3c7555d1b08418cf2cd576cd5268d43c3da43ce1b42172772cf972117",
   "target_module_contract_cid": "sha256:ae21e53e9cd0727435f707f49efb2ffc9fa1665abda9adde0ff57312265e06e1",
   "target_registry_requirements": {
     "REL.values": {
@@ -33,7 +33,7 @@
       "output": "relation",
       "execution_contract": {
         "pointer": "/execution_contracts/REL.values",
-        "cid": "sha256:c95bc0d474fd6fbe62d3182bdefe6af412070f6ad2c8e102c5279d7a8b3eed17"
+        "cid": "sha256:9dec7cf1abedfb23b0af130ec5e25c7442d28c205a94cad0218b2f5982d44b44"
       }
     },
     "REL.except_rows": {
@@ -1169,6 +1169,30 @@
         "row_multiplicity": "retain_all_occurrences",
         "object_key_order": "canonical_utf16_order_not_row_order",
         "publication": "validate_all_rows_and_resolved_limits_before_publication",
+        "recursive_resources": {
+          "selected_root_types": [
+            "array",
+            "object",
+            "vector"
+          ],
+          "bytes": "sum_canonical_typed_wire_cell_bytes_across_all_occurrences_including_null_without_double_counting_nested_containers",
+          "byte_exclusions": [
+            "scalar_typed_cells",
+            "row_keys",
+            "row_wrappers",
+            "rows_wrapper",
+            "schema"
+          ],
+          "host_byte_ceiling": "max_nested_value_bytes",
+          "depth": "declared_cell_type_scalar_0_vector_1_array_1_plus_items_object_1_plus_max_fields",
+          "depth_excludes": [
+            "row_wrapper",
+            "rows_wrapper"
+          ],
+          "host_depth_ceiling": "max_nested_value_depth",
+          "empty_or_null": "type_depth_still_checked_zero_selected_cells_have_zero_bytes",
+          "failure": "atomic_before_any_consumer_without_truncation"
+        },
         "unsupported_backend": "reject_runnable_plan_without_exact_registered_contract_support"
       }
     },

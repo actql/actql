@@ -55,6 +55,17 @@ export function executionContract(protocol) {
       row_order: 'retain_occurrence_order', row_multiplicity: 'retain_all_occurrences',
       object_key_order: 'canonical_utf16_order_not_row_order',
       publication: 'validate_all_rows_and_resolved_limits_before_publication',
+      recursive_resources: {
+        selected_root_types: ['array', 'object', 'vector'],
+        bytes: 'sum_canonical_typed_wire_cell_bytes_across_all_occurrences_including_null_without_double_counting_nested_containers',
+        byte_exclusions: ['scalar_typed_cells', 'row_keys', 'row_wrappers', 'rows_wrapper', 'schema'],
+        host_byte_ceiling: 'max_nested_value_bytes',
+        depth: 'declared_cell_type_scalar_0_vector_1_array_1_plus_items_object_1_plus_max_fields',
+        depth_excludes: ['row_wrapper', 'rows_wrapper'],
+        host_depth_ceiling: 'max_nested_value_depth',
+        empty_or_null: 'type_depth_still_checked_zero_selected_cells_have_zero_bytes',
+        failure: 'atomic_before_any_consumer_without_truncation',
+      },
       unsupported_backend: 'reject_runnable_plan_without_exact_registered_contract_support',
     },
   };

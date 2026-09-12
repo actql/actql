@@ -15,7 +15,7 @@ const canonical = v => Array.isArray(v) ? `[${v.map(canonical)}]`
     ? `{${Object.keys(v).sort().map(k => `${JSON.stringify(k)}:${canonical(v[k])}`)}}`
     : JSON.stringify(v);
 const cid = v => 'sha256:' + createHash('sha256').update(canonical(v)).digest('hex');
-const currentCid = 'sha256:5be4133ab14b50ece1109cb2ce7cacf52005ff1c04ef48b2aa7b88f163eba09f';
+const currentCid = 'sha256:e1a559f3c7555d1b08418cf2cd576cd5268d43c3da43ce1b42172772cf972117';
 const contractCid = 'sha256:1282c3d8af052606f64be809cead104630c67a8b676050bcdc7edd4a884b9b60';
 
 function resolve(body, selected, owner = aoa, expr = expressions) {
@@ -35,12 +35,17 @@ function resolve(body, selected, owner = aoa, expr = expressions) {
   return contract;
 }
 
-test('extensions preserve the historical primitive signatures and values contract', () => {
+test('extensions preserve historical primitives except explicitly revised values resources', () => {
   assert.equal(cid(historical), 'sha256:b97a22de3664c1dafe3bc1e6791f1f8bcfb70324a1fcc1087450fe057e0f2311');
   assert.equal(cid(registry), currentCid); assert.equal(Object.keys(registry).length, 59);
   const {[op]: added, ...rest} = registry;
   const retained=structuredClone(rest);
   delete retained['REL.derive'].execution_extensions;
+  assert.equal(retained['REL.values'].execution_contract.cid,
+    cid(aoa.execution_contracts['REL.values']));
+  assert.notEqual(retained['REL.values'].execution_contract.cid,
+    historical['REL.values'].execution_contract.cid);
+  retained['REL.values'].execution_contract.cid = historical['REL.values'].execution_contract.cid;
   assert.deepEqual(retained, historical); assert.ok(added);
   assert.equal(cid(resolve(registry, currentCid)), contractCid);
 });
