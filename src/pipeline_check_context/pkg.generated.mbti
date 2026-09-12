@@ -420,6 +420,8 @@ pub fn prepare_expression_validation(SelectedPolicyContext, ExpressionValidation
 
 pub fn prepare_program_references(OperationProfileChecks, @stage_source.Limits, @pipeline_parameters.Limits, @program_references.Limits, max_work~ : Int) -> Result[ProgramReferences, PreparedReferencesIssue]
 
+pub fn prepare_program_source_identity(OperationProfileChecks, SourcePreparationLimits) -> Result[ProgramSourceIdentity, SourcePreparationIssue]
+
 pub fn program_identity_definition(ProgramSourceIdentity) -> @program_references.ProgramDefinition
 
 pub fn program_identity_definition_cid(ProgramSourceIdentity) -> String
@@ -1507,6 +1509,23 @@ pub(all) enum SourcePolicyIssue {
   ForeignContext
   BudgetExceeded
 } derive(Eq, @debug.Debug)
+
+pub enum SourcePreparationIssue {
+  InvalidLimits
+  BudgetExceeded
+  Bindings(SourceBindingsIssue)
+  References(PreparedReferencesIssue)
+  Sources(ProgramSourcesIssue)
+  Identity(ProgramIdentityIssue)
+}
+
+pub(all) struct SourcePreparationLimits {
+  body : @stage_source.Limits
+  uses : @pipeline_parameters.Limits
+  references : @program_references.Limits
+  identity : ProgramIdentityLimits
+  max_bindings : Int
+}
 
 type SourceProducerContext
 

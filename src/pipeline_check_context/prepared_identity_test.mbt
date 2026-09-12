@@ -116,14 +116,7 @@ fn prepared_reconciled_identity(
     { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
     10000000,
   ).unwrap()
-  let references = prepared_reference_branch(operations, 10000000).unwrap()
-  let sources = bind_program_sources(
-    operations,
-    references,
-    collect_source_bindings(preparation, 10000000, 100).unwrap(),
-    10000000,
-  ).unwrap()
-  identify_program_sources(sources, identity_limits()).unwrap()
+  prepare_program_source_identity(operations, source_preparation_limits()).unwrap()
 }
 
 ///|

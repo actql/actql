@@ -80,6 +80,15 @@ request slots or accepts a second effective binding set. Stage-body/use parsing
 receives the remaining aggregate work allowance; the final owner join is reserved
 before retaining the per-Stage inventories. Parser-specific caps remain explicit.
 
+`prepare_program_source_identity` composes this reference branch with source
+Binding requirements and the existing Program/Stage identity builder. Both
+branches are derived internally from the retained operation checks. It reserves
+the source-owner join and each branch's nonshared work before allocation, then
+uses the same cumulative work and hash ceilings for identity emission. No caller
+can replace the reference inventory, effective values or Binding inventory at
+this entrance. The result is still a source identity: unresolved Host Binding
+uses do not become admitted references, and no Invocation is inferred.
+
 Operation resolution is orchestrated from one retained source identity by
 `resolve_program_operations`. It constructs the expression closure and complete
 operation requirement inventory, then runs order, scalar, frame, fill, range,

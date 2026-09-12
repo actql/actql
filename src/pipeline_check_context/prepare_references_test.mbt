@@ -3,9 +3,20 @@ fn prepared_reference_branch(
   operations : OperationProfileChecks,
   max_work : Int,
 ) -> Result[ProgramReferences, PreparedReferencesIssue] {
+  let limits = source_preparation_limits()
   prepare_program_references(
     operations,
-    {
+    limits.body,
+    limits.uses,
+    limits.references,
+    max_work~,
+  )
+}
+
+///|
+fn source_preparation_limits() -> SourcePreparationLimits {
+  {
+    body: {
       max_work: 1000000,
       selectors: {
         max_nodes: 10000,
@@ -20,22 +31,23 @@ fn prepared_reference_branch(
         },
       },
     },
-    {
+    uses: {
       max_work: 1000000,
       max_slots: 1000,
       max_references: 1000,
       max_pointer_units: 100000,
       max_direct_text_bytes: 100000,
     },
-    {
+    references: {
       max_work: 4000000,
       max_slots: 1000,
       max_references: 1000,
       max_pointer_units: 1000000,
       max_request_text_bytes: 100000,
     },
-    max_work~,
-  )
+    identity: identity_limits(),
+    max_bindings: 100,
+  }
 }
 
 ///|
