@@ -36,7 +36,8 @@ test "incoming and operation branches require the same Program admission owner" 
   assert_true(operation_resolution_unresolved_count(resolutions) > 0)
   let expected = operation_resolution_work(resolutions) +
     (incoming_work - program_identity_usage(identity).0) +
-    1
+    1 +
+    4 // two stages, one local declaration and its one-unit name
   assert_eq(incoming_links_work(linked), expected)
   let exact : IncomingLimits = {
     max_work: expected,

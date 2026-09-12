@@ -1,5 +1,7 @@
 ///|
-fn prepared_local_context_fixture() -> (
+fn prepared_local_context_fixture(
+  first_by_order? : Bool = false,
+) -> (
   StageContexts,
   @stage_results.ResultWiring,
   Array[@local_inputs.Attached],
@@ -10,6 +12,13 @@ fn prepared_local_context_fixture() -> (
   let program = @syntax.parse(
     (
       #|{"version":"actql/0.1","id":"prepared","params":{"n":{"type":"number","default":2}},"stages":[{"id":"first","inputs":{"rows":{"carrier":"relation","schema":{"id":{"type":"number","nullable":false}},"primary_key":["id"]}},"steps":[{"derive":{"value":"id + $n"},"as":"derived"}],"results":{"out":{"from":"derived","fields":["id","value"]}}},{"id":"second","inputs":{"rows":{"result":{"stage":"first","result":"out"}},"again":{"result":{"stage":"first","result":"out"}}},"from":"rows","steps":[{"derive":{"next":"value + $n"},"as":"derived"}],"results":{"out":{"from":"derived","fields":["id","next"]}}}],"results":{"out":{"from":{"stage":"second","result":"out"}}}}
+    ).replace(
+      old="\"primary_key\":[\"id\"]",
+      new=if first_by_order {
+        "\"primary_key\":[\"id\"],\"duplicates\":{\"first_by_order\":{\"order_by\":[{\"id\":\"asc\"}]}}"
+      } else {
+        "\"primary_key\":[\"id\"]"
+      },
     ),
     {
       source: { max_input_bytes: 10000, max_nodes: 1000, max_depth: 100, },

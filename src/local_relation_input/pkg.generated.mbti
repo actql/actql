@@ -20,6 +20,8 @@ pub fn expected_columns(Checked) -> Array[String]
 
 pub fn first_by_order(Checked) -> Array[@order_key.Key]?
 
+pub fn has_first_by_order(Checked) -> Bool
+
 pub fn minimum_classification(Checked) -> String?
 
 pub fn primary_key(Checked) -> @relation_evidence.KeyedRelation?

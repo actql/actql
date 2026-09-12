@@ -1,6 +1,7 @@
 supported_targets = "+js+wasm+native"
 
 import {
+  "actql/actql/local_relation_input" @local_input,
   "actql/actql/stage_syntax" @syntax,
   "actql/actql/calendar_profile",
   "actql/actql/text_rank_profile" @lexical,

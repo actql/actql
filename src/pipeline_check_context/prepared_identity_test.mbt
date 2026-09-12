@@ -1,10 +1,10 @@
 ///|
-fn prepared_identity_fixture() -> (
-  ProgramSourceIdentity,
-  @stage_results.ResultWiring,
-  ReconciledContexts,
-) {
-  let (stages, wiring, locals, bound, _, _) = prepared_local_context_fixture()
+fn prepared_identity_fixture(
+  first_by_order? : Bool = false,
+) -> (ProgramSourceIdentity, @stage_results.ResultWiring, ReconciledContexts) {
+  let (stages, wiring, locals, bound, _, _) = prepared_local_context_fixture(
+    first_by_order~,
+  )
   let source = @stages.operations_source(@stages.bound_operations(bound))
   // No acquired rows or schema snapshots. The environment still undergoes
   // canonical integrity and selected-policy admission. Hashing here constructs

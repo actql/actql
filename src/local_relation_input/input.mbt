@@ -343,3 +343,9 @@ pub fn primary_key(v : Checked) -> @evidence.KeyedRelation? {
 pub fn first_by_order(v : Checked) -> Array[@order.Key]? {
   v.order.map(xs => xs.copy())
 }
+
+///|
+/// Query the authored policy without copying its order terms.
+pub fn has_first_by_order(v : Checked) -> Bool {
+  v.order is Some(_)
+}

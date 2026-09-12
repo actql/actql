@@ -1091,6 +1091,29 @@ This connects stage dependencies to the operation checks, but does not discharge
 incoming success/receipt requirements, issue Unit or Invocation identities,
 resolve missing resource contracts, or constitute the final `CheckedProgram`.
 
+The incoming join also retains every local input declaration, including unused
+ones, with its exact reconciled attachment, selected registration and pipeline
+input target. Result imports and SourceViews remain in their respective owned
+inventories; they are not reclassified as local inputs. Stage/input visits and
+name lookup work share the aggregate budget, and indexed reads do not copy input
+schemas, keys or order arrays.
+
+`RejectDuplicatesAdmission` is a requirement to admit future raw input under the
+retained declaration and selected schema: all known raw fields, nullability,
+key components, expected columns and applicable classification assertions still
+need validation. A declared key is not evidence that those rows are unique.
+Malformed or duplicate input cannot be silently repaired and then presented as
+having satisfied rejection admission.
+
+`DuplicateOrderUnresolved` explicitly preserves a `first_by_order` declaration
+whose independent total-order strategy is not connected by this boundary. The
+primary key being normalized cannot supply that proof itself. This is a static
+gap, not permission to defer order selection to the backend or accept arrival
+order; the formal Program constructor cannot succeed with it unresolved.
+Both dispositions are governed by [input duplicate normalization](../spec/language.md#input-normalization)
+and [local input admission](../spec/language.md#local-inputs), and neither admits
+observed rows, supplies normalization evidence or grants Host authority.
+
 Expression closure does not discharge operation-level obligations, bind
 authored guard witness identities, build staged Program/import contracts, or
 complete local Unit/Invocation identity projections. Source Program and stage

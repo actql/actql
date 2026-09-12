@@ -4,6 +4,7 @@ pub(all) enum IncomingLinksIssue {
   ForeignIdentity
   BudgetExceeded
   OperationCoverage(OperationResolutionIndexIssue)
+  LocalInputOwner(Int, Int)
 } derive(Eq, Debug)
 
 ///|
@@ -12,6 +13,7 @@ struct ProgramIncomingLinks {
   profiles : ProgramOperationProfileLinks
   incoming : ProgramIncomingRequirements
   resolutions : ProgramOperationResolutionIndex
+  local_inputs : Array[LocalInputRequirement]
   work : Int
 }
 
@@ -55,7 +57,19 @@ pub fn link_program_incoming(
     Err(BudgetExceeded) => return Err(BudgetExceeded)
     Err(issue) => return Err(OperationCoverage(issue))
   }
-  Ok({ profiles, incoming, resolutions, work: resolutions.work + extra + 1, })
+  let (local_inputs, local_work) = collect_local_input_requirements(
+    identity.sources.operations.preparation.profiles.context.selected.context,
+    limits.max_work - extra - 1 - resolutions.work,
+  ) catch {
+    Stop(issue) => return Err(issue)
+  }
+  Ok({
+    profiles,
+    incoming,
+    resolutions,
+    local_inputs,
+    work: resolutions.work + extra + 1 + local_work,
+  })
 }
 
 ///|
@@ -82,4 +96,17 @@ pub fn incoming_links_resolutions(
   v : ProgramIncomingLinks,
 ) -> ProgramOperationResolutionIndex {
   v.resolutions
+}
+
+///|
+pub fn incoming_links_local_input_count(v : ProgramIncomingLinks) -> Int {
+  v.local_inputs.length()
+}
+
+///|
+pub fn incoming_links_local_input_at(
+  v : ProgramIncomingLinks,
+  index : Int,
+) -> LocalInputRequirement? {
+  v.local_inputs.get(index)
 }

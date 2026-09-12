@@ -9,6 +9,7 @@ import {
   "actql/actql/check_environment",
   "actql/actql/encode_core",
   "actql/actql/expression_typing",
+  "actql/actql/local_relation_input",
   "actql/actql/parameter_binding",
   "actql/actql/parameter_references",
   "actql/actql/pipeline_parameters",
@@ -161,6 +162,10 @@ pub fn expression_validation_text_time(ExpressionValidationContext) -> @check_en
 pub fn expression_validation_usage(ExpressionValidationContext) -> SelectedPolicyUsage
 
 pub fn identify_program_sources(ProgramSourceChecks, ProgramIdentityLimits) -> Result[ProgramSourceIdentity, ProgramIdentityIssue]
+
+pub fn incoming_links_local_input_at(ProgramIncomingLinks, Int) -> LocalInputRequirement?
+
+pub fn incoming_links_local_input_count(ProgramIncomingLinks) -> Int
 
 pub fn incoming_links_profiles(ProgramIncomingLinks) -> ProgramOperationProfileLinks
 
@@ -691,6 +696,7 @@ pub(all) enum IncomingLinksIssue {
   ForeignIdentity
   BudgetExceeded
   OperationCoverage(OperationResolutionIndexIssue)
+  LocalInputOwner(Int, Int)
 } derive(Eq, @debug.Debug)
 
 pub(all) enum IncomingMilestone {
@@ -763,6 +769,23 @@ pub(all) struct Limits {
   max_results : Int
   max_work : Int
   max_text_bytes : Int
+}
+
+pub(all) enum LocalInputDisposition {
+  RejectDuplicatesAdmission
+  DuplicateOrderUnresolved
+} derive(Eq, @debug.Debug)
+
+pub struct LocalInputRequirement {
+  stage : Int
+  declaration_index : Int
+  name : String
+  pipeline : @pipeline_typing.CheckedPipeline
+  target : @pipeline_typing.Target
+  declaration : @local_relation_input.Checked
+  registration : @pipeline_typing.InputContract
+  attachment : @stage_local_inputs.ReconciledAttachment
+  disposition : LocalInputDisposition
 }
 
 pub(all) enum OperationCalendarIssue {
