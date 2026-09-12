@@ -5,6 +5,7 @@ priv struct FragmentMaterial {
   request : RequestArtifact
   graph : GeneratedArtifact
   roots : Array[RootArtifact]
+  ordered : OrderedBinding?
 }
 
 ///|
@@ -13,6 +14,13 @@ priv enum FragmentMaterialIssue {
   Demand(@lower.DemandIssue)
   Root(@lower.RootEvidenceIssue)
   Budget
+  OrderedContractRequired
+  UnexpectedOrderedContract
+  OrderedContractMismatch
+  OrderedReferences(@lower.OrderedReferenceIssue)
+  OrderedResource(OrderedLimitsIssue)
+  OrderedShape(OrderedShapeIssue)
+  OrderedLinks(OrderedLinkIssue)
 }
 
 ///|
@@ -20,6 +28,7 @@ fn prepare_fragment_material(
   request : @lower.FragmentRequest,
   demand_limits : @lower.DemandLimits,
   budget : RegistryLimits,
+  ordered? : RegisteredOrderedContract? = None,
 ) -> Result[FragmentMaterial, FragmentMaterialIssue] {
   if budget.max_body_bytes < 0 ||
     budget.max_body_nodes < 1 ||
@@ -48,9 +57,54 @@ fn prepare_fragment_material(
   }
   let mut bytes = budget.max_body_bytes - request.artifact.bytes
   let mut nodes = budget.max_body_nodes - request.artifact.nodes
+  let binding = match
+    (@lower.fragment_request_row_limits(request.request), ordered) {
+    (None, None) => None
+    (None, Some(_)) => return Err(UnexpectedOrderedContract)
+    (Some(_), None) => return Err(OrderedContractRequired)
+    (Some(limits), Some(contract)) => {
+      let remaining = {
+        ..budget,
+        max_body_bytes: bytes,
+        max_body_nodes: nodes,
+      }
+      let binding = match
+        prepare_fragment_ordered_binding(
+          request.request,
+          demands,
+          contract,
+          limits,
+          remaining,
+        ) {
+        Ok(binding) => binding
+        Err(issue) => return Err(issue)
+      }
+      // These immutable generated artifacts remain live alongside the final
+      // graph and its canonical root array. Charge them, not merely output.
+      for
+        artifact in [binding.node.source, binding.node.graph, binding.artifact] {
+        if artifact.bytes > bytes || artifact.nodes > nodes {
+          return Err(Budget)
+        }
+        bytes -= artifact.bytes
+        nodes -= artifact.nodes
+      }
+      for slot in binding.links.slots {
+        if slot.root.bytes > bytes || slot.root.nodes > nodes {
+          return Err(Budget)
+        }
+        bytes -= slot.root.bytes
+        nodes -= slot.root.nodes
+      }
+      Some(binding)
+    }
+  }
   let graph_text = try {
     let out = @encode.writer(bytes, nodes, budget.max_body_depth)
-    @lower.emit_fragment_machine_pipeline(pipeline, out)
+    match binding {
+      None => @lower.emit_fragment_machine_pipeline(pipeline, out)
+      Some(binding) => emit_ordered_machine_pipeline(binding.node, out)
+    }
     @encode.finish(out)
   } catch {
     _ => return Err(Budget)
@@ -91,7 +145,7 @@ fn prepare_fragment_material(
     nodes -= root.nodes
     roots.push(root)
   }
-  Ok({ request, graph, roots, })
+  Ok({ request, graph, roots, ordered: binding, })
 }
 
 ///|

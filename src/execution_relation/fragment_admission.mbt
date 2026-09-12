@@ -38,6 +38,9 @@ fn check_generated_fragment(
       candidate.material.request.request,
       demand_limits,
       budget,
+      ordered=candidate.material.ordered.map(binding => {
+        binding.node.params.contract
+      }),
     ) {
     Ok(material) => material
     Err(issue) => return Err(Material(issue))

@@ -52,6 +52,10 @@ fn emit_fragment_candidate_body(
   @identity.emit_value(material.request.artifact.value, out)
   @encode.key(out, "roots")
   emit_fragment_material_roots(material, out)
+  if material.ordered is Some(binding) {
+    @encode.key(out, "row_kernel_evidence")
+    emit_ordered_evidence(binding, limits.max_body_nodes, out)
+  }
   @encode.key(out, "version")
   @encode.string_value(out, "actql-expression-fragment/0.1")
   @encode.end_object(out)

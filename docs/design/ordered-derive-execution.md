@@ -97,6 +97,18 @@ contains only authored-order bindings with normalized source expressions.
 Preparing this source request does not bypass the registered machine-node and
 evidence checks required by complete fragment construction.
 
+Complete fragment construction accepts the selected registered ordered contract
+alongside that request. It regenerates occurrence references, row shapes,
+prefix contexts, limits, binding record and graph node from the request's checked
+kernel. The candidate includes `row_kernel_evidence` only for ordered kernels.
+Missing or extraneous extension selection is an explicit construction error.
+Generated-node and binding artifacts retained alongside the graph and roots
+consume the construction allowance as well; the final candidate has its own
+bounded serialization. Fragment checking repeats this construction and compares
+the complete canonical candidate, including the evidence closure, before keeping
+regenerated material. This is integrity checking, not Program permission or the
+remaining connection to runtime input and resource enforcement.
+
 ## Logical resources
 
 The limits distinguish input row occurrences, individual wire value size,
