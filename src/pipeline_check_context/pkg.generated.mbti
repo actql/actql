@@ -57,6 +57,8 @@ pub fn check_regex_patterns(ExpressionValidationContext, RegexPatternLimits) -> 
 
 pub fn check_resolved_orders(@relation_results.CheckedOrders, Array[@parameter_binding.BoundValues?], Array[@capacity_graph_preflight.ApplicationCoverage], @capacity_policy.Policy, max_work~ : Int, max_text_bytes~ : Int, proof_owners? : Array[(Int, Int, Int)], input_owners? : Array[(Int, Int, Int, Int)]) -> Result[PipelineContext, Issue]
 
+pub fn check_source_capacity(SourcePolicyContext, Int) -> Result[SourceCapacityContext, SourceCapacityIssue]
+
 pub fn check_source_requests(ReconciledContexts, @source_request_slots.Slots, @sourceview_resolution.RequestLimits) -> Result[SourceRequestContexts, SourceRequestIssue]
 
 pub fn check_source_row_bounds(SourceRequestContexts, Array[Array[@capacity_program_step.TargetRows]], Int) -> Result[SourceRowContexts, SourceRowsIssue]
@@ -184,6 +186,12 @@ pub fn selected_capacity(SelectedPolicyContext) -> @check_environment.Capacity
 pub fn selected_lookup_execution(SelectedPolicyContext) -> @check_environment.LookupExecution
 
 pub fn selected_policy_usage(SelectedPolicyContext) -> SelectedPolicyUsage
+
+pub fn source_capacity_context(SourceCapacityContext) -> SourcePolicyContext
+
+pub fn source_capacity_stage(SourceCapacityContext, Int) -> @sourceview_resolution.LookupBounds?
+
+pub fn source_capacity_work(SourceCapacityContext) -> Int
 
 pub fn source_policy_rows(SourcePolicyContext) -> SourceRowContexts
 
@@ -506,6 +514,14 @@ pub(all) struct SelectedPolicyUsage {
   local_input_nodes : Int
   policy_nodes : Int
 } derive(Eq, @debug.Debug)
+
+type SourceCapacityContext
+
+pub enum SourceCapacityIssue {
+  InvalidLimits
+  BudgetExceeded
+  Stage(Int, @sourceview_resolution.LookupBoundsIssue)
+}
 
 type SourcePolicyContext
 

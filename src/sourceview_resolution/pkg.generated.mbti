@@ -45,6 +45,8 @@ pub fn check_keyed_request(RequestContext, ResolvedInput, RequestLimits) -> Resu
 
 pub fn check_keyed_row_bounds(CheckedKeyedFacts, Array[@capacity_program_step.TargetRows], Int) -> Result[KeyedRowBounds, KeyedRowsIssue]
 
+pub fn check_lookup_bounds(KeyedRowBounds, @check_environment.LookupExecution, Int) -> Result[LookupBounds, LookupBoundsIssue]
+
 pub fn check_pipeline_requests(PipelineUses, RequestParameters, RequestLimits) -> Result[PipelineRequests, AcquisitionIssue]
 
 pub fn checkpoint_reference(ModeCheckpoint) -> @check_environment.CatalogReference
@@ -130,6 +132,16 @@ pub fn keyed_source_capacity(KeyedSourceFacts) -> @check_environment.LookupCapac
 pub fn keyed_source_facts(KeyedSourceFacts) -> @check_environment.SourceLookupFacts
 
 pub fn keyed_source_join(KeyedSourceFacts) -> KeyedJoin
+
+pub fn lookup_bounds_at(LookupBounds, Int) -> LookupCounts?
+
+pub fn lookup_bounds_count(LookupBounds) -> Int
+
+pub fn lookup_bounds_policy(LookupBounds) -> @check_environment.LookupExecution
+
+pub fn lookup_bounds_rows(LookupBounds) -> KeyedRowBounds
+
+pub fn lookup_bounds_work(LookupBounds) -> Int
 
 pub fn mode_checkpoint(DirectMode) -> ModeCheckpoint?
 
@@ -340,6 +352,30 @@ pub(all) struct Limits {
   max_inputs : Int
   max_views : Int
 }
+
+type LookupBounds
+
+pub(all) enum LookupBoundsIssue {
+  InvalidLimits
+  ForeignEnvironment
+  WorkLimit
+  MissingPolicy(Int)
+  UnrepresentableBound(Int)
+  DecodedResponseLimit(Int)
+} derive(Eq, @debug.Debug)
+
+pub struct LookupCounts {
+  input_rows : Int64
+  distinct_keys : Int64
+  keys_per_batch : Int64
+  batches : Int64
+  pages_per_batch : Int64
+  requests : Int64
+  network_attempts : Int64
+  rows_per_key : Int64
+  response_rows : Int64
+  decoded_response_bytes : Int64
+} derive(Eq, @debug.Debug)
 
 type ModeCheckpoint
 

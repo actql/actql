@@ -1,5 +1,25 @@
 # SourceView resolution
 
+Lookup capacity resolution consumes `KeyedRowBounds` and the selected lookup
+policy from the same Check Environment. For a left row bound N, it retains N
+as the distinct-key upper bound, selects K = min(N, declared batch capability)
+or K = 1 without batching, and computes ceil(N/K) batches. Logical requests are
+batches times the per-request page bound; attempts multiply requests by the
+Host attempt ceiling. Complete response rows are N times the per-key row bound,
+independent of the join's output cap. Decoded response extent is logical requests
+times the per-page decoded byte bound and must fit the decoded Host ceiling.
+These computations use the existing safe-integer capacity representation and
+reject unrepresentable products rather than rounding or clipping. A large
+declared batch capability is clamped before integer conversion.
+
+`check_source_capacity` applies this resolution to the source-policy connection
+for every classified stage under one cumulative work limit. It retains the
+original row proofs, source/facts owners and selected policy; it emits no public
+identity or executable barrier. Request and wire byte ceilings are not minimum
+actual message sizes. Transport fitting, reservations, retry capability, source
+authority, Host Binding admission and producer application closure remain
+separate requirements. No keyed acquisition means no invented lookup policy.
+
 Native batching is retained by the checked SourceView request contract as an
 optional `SourceBatching`. It resolves the request-key, batch-request and
 response-key roles from their exact Catalog reference occurrences and retains

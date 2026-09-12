@@ -44,6 +44,12 @@ test "source policy joins exact owners and counts common preparation once" {
     reconciled_usage(context).work +
     1
   assert_eq(source_policy_work(result), used)
+  let capacity_context = check_source_capacity(result, used).unwrap()
+  assert_true(physical_equal(source_capacity_context(capacity_context), result))
+  assert_eq(source_capacity_work(capacity_context), used)
+  assert_true(source_capacity_stage(capacity_context, 0) is None)
+  assert_true(check_source_capacity(result, used - 1) is Err(BudgetExceeded))
+  assert_true(check_source_capacity(result, -1) is Err(InvalidLimits))
   assert_true(bind_source_policy(rows, policy, used) is Ok(_))
   assert_true(bind_source_policy(rows, policy, used - 1) is Err(BudgetExceeded))
   assert_true(bind_source_policy(rows, policy, -1) is Err(InvalidLimits))

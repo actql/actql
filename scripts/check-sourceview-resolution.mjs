@@ -87,6 +87,28 @@ for(const c of [...corpus.cases,...keyed.cases.map(c=>({...keyed.defaults,...c})
     if(c.lookup_capacity?.completeness==='complete_per_requested_key'){
       lines.push('', '///|',`test ${JSON.stringify('SourceView bounded keyed joins: '+c.id)} {`,
         `  check_keyed_rows_fixture(${JSON.stringify(canonicalText(env))}, ${JSON.stringify(env.evidence_bundle_cid)})`, '}');
+      assert.equal(c.lookup_capacity.max_rows_per_key,2);
+      assert.equal(c.lookup_capacity.max_pages_per_request,3);
+      assert.equal(c.lookup_capacity.max_response_bytes_per_page,4096);
+      for(const [name,decoded,expected,batchCap] of [['exact',36864,1],['short',36863,2],['larger',65536,1],['native-batch',24576,1,2]]){
+        const {evidence_bundle_cid,...body}=env;
+        let bounded=seal({...body,host_policy_profile:{lookup_execution:{
+          version:'actql-lookup-execution-policy/0.1',max_network_attempts_per_request:3,
+          max_request_bytes_per_attempt:1024,max_total_request_bytes:1,
+          max_total_response_bytes:1,max_total_decoded_response_bytes:decoded,max_total_duration_ms:30000,
+        }}},'evidence_bundle_cid');
+        if(batchCap){
+          const extra=['lookup_request_key','lookup_batch_request','lookup_response_key'].map(kind=>seal({schema:'actql.contract/0.1',id:kind,version:'fixture',kind,body:{type:'number',nullable:false}},'cid'));
+          const ref=v=>({id:v.id,version:v.version,cid:v.cid});
+          const batchedViews=views.map(({contract_cid,...v})=>seal({...v,acquisition:{...v.acquisition,batching:{kind:'native_key_batch',request_key_schema:ref(extra[0]),batch_request_schema:ref(extra[1]),response_key_schema:ref(extra[2]),max_keys_per_request:batchCap,preserves_per_key_semantics:true}}},'contract_cid'));
+          const {catalog_cid,...oldCatalog}=catalog;
+          const nextCatalog=seal({...oldCatalog,contracts:[...contracts,...extra].sort(bySelf('cid')),source_views:[...batchedViews].sort(bySelf('contract_cid'))},'catalog_cid');
+          const {evidence_bundle_cid,...oldEnvironment}=bounded;
+          bounded=seal({...oldEnvironment,source_views:[...batchedViews].sort(byBody),contract_registry:[...contracts,...extra].sort(byBody),connector_catalogs:[nextCatalog]},'evidence_bundle_cid');
+        }
+        lines.push('', '///|',`test ${JSON.stringify('SourceView lookup decoded '+name+': '+c.id)} {`,
+          `  check_keyed_rows_fixture(${JSON.stringify(canonicalText(bounded))}, ${JSON.stringify(bounded.evidence_bundle_cid)}, lookup=${expected}, batch=${batchCap??1})`, '}');
+      }
     }
   }
   if(c.request_outcome){

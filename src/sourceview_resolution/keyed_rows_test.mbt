@@ -1,5 +1,10 @@
 ///|
-fn check_keyed_rows_fixture(wire : String, cid : String) -> Unit raise {
+fn check_keyed_rows_fixture(
+  wire : String,
+  cid : String,
+  lookup? : Int = 0,
+  batch? : Int = 1,
+) -> Unit raise {
   let catalog = fixture_catalog(wire, cid)
   for zero in [false, true] {
     let complete = "{\"connector\":\"crm/main\",\"resource\":\"r\",\"request\":{\"id\":1,\"tenant\":null}}"
@@ -100,6 +105,59 @@ fn check_keyed_rows_fixture(wire : String, cid : String) -> Unit raise {
       assert_true(physical_equal(keyed_rows_facts(checked), checked_facts))
       assert_true(physical_equal(keyed_rows_at(checked, 0).unwrap(), target))
       assert_true(keyed_rows_at(checked, 1) is None)
+      let policy = @environment.check_lookup_execution(
+        pipeline_environment(prepared),
+        { max_work: 100000, max_bytes: 10000, },
+      ).unwrap()
+      let result = check_lookup_bounds(checked, policy, 1)
+      if lookup == 0 {
+        assert_true(result is Err(MissingPolicy(2)))
+      } else if lookup == 2 {
+        assert_true(result is Err(DecodedResponseLimit(2)))
+      } else {
+        let resolved = result.unwrap()
+        assert_true(physical_equal(lookup_bounds_rows(resolved), checked))
+        assert_true(physical_equal(lookup_bounds_policy(resolved), policy))
+        assert_eq(lookup_bounds_work(resolved), 1)
+        assert_eq(lookup_bounds_count(resolved), 1)
+        let counts = lookup_bounds_at(resolved, 0).unwrap()
+        assert_eq(counts.input_rows, 3)
+        assert_eq(counts.distinct_keys, 3)
+        assert_eq(counts.keys_per_batch, batch.to_int64())
+        assert_eq(counts.batches, if batch == 1 { 3L } else { 2L })
+        assert_eq(counts.pages_per_batch, 3)
+        assert_eq(counts.requests, if batch == 1 { 9L } else { 6L })
+        assert_eq(counts.network_attempts, if batch == 1 { 27L } else { 18L })
+        assert_eq(counts.rows_per_key, 2)
+        assert_eq(counts.response_rows, 6)
+        assert_eq(
+          counts.decoded_response_bytes,
+          if batch == 1 {
+            36864L
+          } else {
+            24576L
+          },
+        )
+        assert_true(lookup_bounds_at(resolved, 1) is None)
+      }
+      assert_true(check_lookup_bounds(checked, policy, 0) is Err(WorkLimit))
+      assert_true(
+        check_lookup_bounds(checked, policy, -1) is Err(InvalidLimits),
+      )
+      let foreign = @environment.read(@utf8.encode(wire), cid, {
+        max_bytes: 1000000,
+        max_nodes: 100000,
+        max_depth: 100,
+        max_members: 1000,
+      }).unwrap()
+      let foreign_policy = @environment.check_lookup_execution(foreign, {
+        max_work: 100000,
+        max_bytes: 10000,
+      }).unwrap()
+      assert_true(
+        check_lookup_bounds(checked, foreign_policy, 1)
+        is Err(ForeignEnvironment),
+      )
       assert_eq(
         check_keyed_row_bounds(checked_facts, [target], 2).unwrap_err(),
         WorkLimit(0),
