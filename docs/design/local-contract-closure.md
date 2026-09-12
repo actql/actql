@@ -180,6 +180,19 @@ integration-binding CIDs are observations or evidence, not interpretation roots.
 This selection does not replace the identity of an actual interpreted row type
 or establish admission of materialized rows.
 
+`local_relation_snapshot.emit_type_projection` emits the admitted snapshot's
+schema-only shape: exactly `version`, `source_ref`, `output_carrier` and `schema`.
+It reuses `actql-local-input-schema/0.1` and the checked-type emitter, with no new
+artifact family. Unlike the complete snapshot CID, this projection excludes
+`input_cid`, `completeness` and `integration_binding_cid`. Changing those
+observations leaves the projection unchanged; changing the source slot or actual
+checked row type changes it. Text, measurement and hashing use the same bounded
+writer stream. The emitter does not reconcile a snapshot with a Program or
+prove root-selection completeness. Its source reference still needs the exact
+source-owned registration checks before use in a Unit closure. An unknown or
+partially described source is not a schema-only snapshot and is not converted
+to an empty object contract by this API.
+
 For an admitted SourceView declaration, select the contract references belonging
 to that selected SourceView, not every member of its enclosing Catalog. The
 declaration's complete contract includes its advertised read-mode contracts;
