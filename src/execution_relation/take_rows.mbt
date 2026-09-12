@@ -11,6 +11,31 @@ fn evaluate_take_rows(
   output : ValueBudget,
   workspace : RowWorkspace,
 ) -> Result[Table, RowIssue] {
+  let (start, selected) = match
+    evaluate_take_selection(
+      input, count, offset, max_rows, control, output, workspace,
+    ) {
+    Ok(v) => v
+    Err(e) => return Err(e)
+  }
+  Ok({
+    owner: input.owner,
+    id: output_id,
+    names: input.names.copy(),
+    rows: Array::makei(selected, i => input.rows[start + i]),
+  })
+}
+
+///|
+fn[T : RelationRows] evaluate_take_selection(
+  input : T,
+  count : Int64,
+  offset : Int64,
+  max_rows : Int,
+  control : ControlBudget,
+  output : ValueBudget,
+  workspace : RowWorkspace,
+) -> Result[(Int, Int), RowIssue] {
   if count < 1L ||
     offset < 0L ||
     max_rows < 0 ||
@@ -22,18 +47,20 @@ fn evaluate_take_rows(
     workspace.peak < workspace.live {
     return Err(InvalidRowLimits)
   }
-  let size = input.rows.length()
+  let size = IndexedRows::row_count(input)
+  let names = input.field_names()
   if size > max_rows ||
-    !reserve_slots(workspace, input.names.length()) ||
+    !reserve_slots(workspace, names.length()) ||
     !reserve_slots(workspace, size) {
     return Err(RowLimit)
   }
   // Charge and validate the whole admitted table, not just selected rows.
-  for row in input.rows {
-    if !spend_control(control, 1) || !reserve_slots(workspace, row.length()) {
+  for row = 0; row < size; row = row + 1 {
+    if !spend_control(control, 1) ||
+      !reserve_slots(workspace, IndexedRows::row_width(input, row)) {
       return Err(RowLimit)
     }
-    if row.length() != input.names.length() {
+    if IndexedRows::row_width(input, row) != names.length() {
       return Err(InvalidRows)
     }
   }
@@ -44,26 +71,24 @@ fn evaluate_take_rows(
   } else {
     count.to_int()
   }
-  if !reserve_slots(workspace, input.names.length()) ||
+  if !reserve_slots(workspace, names.length()) ||
     !reserve_slots(workspace, selected) ||
-    !spend_control(control, input.names.length()) {
+    !spend_control(control, names.length()) {
     return Err(RowLimit)
   }
-  for name in input.names {
+  for name in names {
     if !spend_control_text(control, name) {
       return Err(RowLimit)
     }
   }
-  let rows : Array[Array[Value]] = []
   for i = start; i < start + selected; i = i + 1 {
-    let row = input.rows[i]
+    let row = IndexedRow::{ table: input, row: i, }
     if !spend_control(control, 1) ||
-      !spend_control(control, row.length()) ||
-      !reserve_slots(workspace, row.length()) ||
-      !retain_row(row, input.names, output) {
+      !spend_control(control, RowValues::value_count(row)) ||
+      !reserve_slots(workspace, RowValues::value_count(row)) ||
+      !retain_row(row, names, output) {
       return Err(RowLimit)
     }
-    rows.push(row)
   }
-  Ok({ owner: input.owner, id: output_id, names: input.names.copy(), rows, })
+  Ok((start, selected))
 }

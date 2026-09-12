@@ -9,6 +9,27 @@ fn evaluate_distinct_rows(
   output : ValueBudget,
   workspace : RowWorkspace,
 ) -> Result[Table, RowIssue] {
+  let indices = match
+    evaluate_distinct_selection(input, max_rows, control, output, workspace) {
+    Ok(v) => v
+    Err(e) => return Err(e)
+  }
+  Ok({
+    owner: input.owner,
+    id: output_id,
+    names: input.names.copy(),
+    rows: indices.map(i => input.rows[i]),
+  })
+}
+
+///|
+fn[T : RelationRows] evaluate_distinct_selection(
+  input : T,
+  max_rows : Int,
+  control : ControlBudget,
+  output : ValueBudget,
+  workspace : RowWorkspace,
+) -> Result[Array[Int], RowIssue] {
   if max_rows < 0 ||
     control.remaining < 0 ||
     control.max_frames < 0 ||
@@ -18,17 +39,20 @@ fn evaluate_distinct_rows(
     workspace.peak < workspace.live {
     return Err(InvalidRowLimits)
   }
-  if input.rows.length() > max_rows ||
-    !reserve_slots(workspace, input.rows.length()) ||
-    !reserve_slots(workspace, input.names.length()) {
+  let count = IndexedRows::row_count(input)
+  let names = input.field_names()
+  if count > max_rows ||
+    !reserve_slots(workspace, count) ||
+    !reserve_slots(workspace, names.length()) {
     return Err(RowLimit)
   }
-  for row in input.rows {
-    if !spend_control(control, 1) || !reserve_slots(workspace, row.length()) {
+  for row = 0; row < count; row = row + 1 {
+    if !spend_control(control, 1) ||
+      !reserve_slots(workspace, IndexedRows::row_width(input, row)) {
       return Err(RowLimit)
     }
   }
-  let width = input.names.length()
+  let width = names.length()
   if !reserve_slots(workspace, width) || !spend_control(control, width) {
     return Err(RowLimit)
   }
@@ -44,21 +68,19 @@ fn evaluate_distinct_rows(
     !spend_control(control, width) {
     return Err(RowLimit)
   }
-  for name in input.names {
+  for name in names {
     if !spend_control_text(control, name) {
       return Err(RowLimit)
     }
   }
-  let rows : Array[Array[Value]] = []
   for index in indices {
-    let row = input.rows[index]
+    let row = IndexedRow::{ table: input, row: index, }
     if !spend_control(control, 1) ||
-      !spend_control(control, row.length()) ||
-      !reserve_slots(workspace, row.length()) ||
-      !retain_row(row, input.names, output) {
+      !spend_control(control, RowValues::value_count(row)) ||
+      !reserve_slots(workspace, RowValues::value_count(row)) ||
+      !retain_row(row, names, output) {
       return Err(RowLimit)
     }
-    rows.push(row)
   }
-  Ok({ owner: input.owner, id: output_id, names: input.names.copy(), rows, })
+  Ok(indices)
 }

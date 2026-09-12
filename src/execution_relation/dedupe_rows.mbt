@@ -10,6 +10,30 @@ fn evaluate_dedupe_rows(
   output : ValueBudget,
   workspace : RowWorkspace,
 ) -> Result[Table, RowIssue] {
+  let indices = match
+    evaluate_dedupe_selection(
+      kernel, input, max_rows, control, output, workspace,
+    ) {
+    Ok(v) => v
+    Err(e) => return Err(e)
+  }
+  Ok({
+    owner: input.owner,
+    id: output_id,
+    names: input.names.copy(),
+    rows: indices.map(i => input.rows[i]),
+  })
+}
+
+///|
+fn[T : RelationRows] evaluate_dedupe_selection(
+  kernel : @lower.PreparedKernel,
+  input : T,
+  max_rows : Int,
+  control : ControlBudget,
+  output : ValueBudget,
+  workspace : RowWorkspace,
+) -> Result[Array[Int], RowIssue] {
   if max_rows < 0 ||
     control.remaining < 0 ||
     control.max_frames < 0 ||
@@ -19,26 +43,27 @@ fn evaluate_dedupe_rows(
     return Err(InvalidRowLimits)
   }
   let checked = @lower.kernel_checked(kernel)
-  let width = input.names.length()
-  if input.rows.length() > max_rows ||
-    !reserve_slots(workspace, input.rows.length()) ||
+  let names = input.field_names()
+  let width = names.length()
+  let count_rows = IndexedRows::row_count(input)
+  if count_rows > max_rows ||
+    !reserve_slots(workspace, count_rows) ||
     !reserve_slots(workspace, width) ||
     !reserve_slots(workspace, width) {
     return Err(RowLimit)
   }
   let ordinals : Map[String, Int] = Map([])
   for i = 0; i < width; i = i + 1 {
-    if !spend_control(control, 1) ||
-      !spend_control_text(control, input.names[i]) {
+    if !spend_control(control, 1) || !spend_control_text(control, names[i]) {
       return Err(RowLimit)
     }
-    if ordinals.contains(input.names[i]) {
+    if ordinals.contains(names[i]) {
       return Err(InvalidRows)
     }
-    ordinals[input.names[i]] = i
+    ordinals[names[i]] = i
   }
-  for row in input.rows {
-    if row.length() != width {
+  for row = 0; row < count_rows; row = row + 1 {
+    if IndexedRows::row_width(input, row) != width {
       return Err(InvalidRows)
     }
     if !spend_control(control, 1) || !reserve_slots(workspace, width) {
@@ -91,16 +116,14 @@ fn evaluate_dedupe_rows(
     !spend_control(control, width) {
     return Err(RowLimit)
   }
-  let rows : Array[Array[Value]] = []
   for index in indices {
-    let row = input.rows[index]
+    let row = IndexedRow::{ table: input, row: index, }
     if !spend_control(control, 1) ||
       !spend_control(control, width) ||
       !reserve_slots(workspace, width) ||
-      !retain_row(row, input.names, output) {
+      !retain_row(row, names, output) {
       return Err(RowLimit)
     }
-    rows.push(row)
   }
-  Ok({ owner: input.owner, id: output_id, names: input.names.copy(), rows, })
+  Ok(indices)
 }
