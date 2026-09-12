@@ -446,3 +446,24 @@ its byte/node/depth limits. Equal pins in separately issued environments do
 not merge their owners. The compiler must still check this environment against
 its own selected context and attach resolutions to each operation. This is
 selected-byte integrity, not Unicode provenance or evaluator conformance.
+
+## Calendar artifact selection
+
+The Calendar law already requires independent selection of transition bytes,
+external TZDB release and conversion law. The closed
+`/host_policy_profile/calendar` component locates these pins explicitly using
+`actql-calendar-selection/0.1`, without adding an author-level option or changing
+the external release identifier. Its fixed conversion-law selector cannot admit
+a Host-defined interpretation. A byte CID transitively pins the full table;
+the release remains a separately checked selection, not an inferred default.
+
+`read_calendar_selection` retains the exact environment and selected pins under
+a work limit. `admit_calendar_profile` uses those pins with the existing bounded
+table reader; it accepts no separate caller-controlled expected CID or release.
+The result preserves selection ownership. Missing selection stays unresolved;
+malformed supplied components are not absence. Compiler assembly must still
+connect this owner to its Program and compare every checked Calendar operation's
+profile. This does not prove release provenance, historical table correctness,
+Calendar evaluation, runtime bounds or execution permission. Existing envelopes
+without the optional component keep their identities; dependent machine pins
+change because the selection contract is now explicit.

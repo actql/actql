@@ -1,6 +1,7 @@
 supported_targets = "+js+wasm+native"
 
 import {
+  "actql/actql/calendar_profile" @calendar,
   "actql/actql/text_rank_profile" @lexical,
   "actql/actql/source_value" @source,
   "actql/actql/decode_core" @decode,

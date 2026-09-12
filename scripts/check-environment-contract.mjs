@@ -65,6 +65,23 @@ const body = {
     },
   },
   policy_components:{
+    calendar:{
+      pointer:'/host_policy_profile/calendar',
+      schema:{type:'object',additionalProperties:false,
+        required:['version','table_bytes_cid','tzdb_version','conversion_law'],
+        properties:{
+          version:{const:'actql-calendar-selection/0.1'},
+          table_bytes_cid:{type:'string',pattern:'^sha256:[0-9a-f]{64}$'},
+          tzdb_version:{type:'string',minLength:1},
+          conversion_law:{const:'actql-calendar-boundaries/0.1'},
+        },
+      },
+      identity:'full_canonical_component_body_no_exclusions',
+      absent:'unresolved_no_implicit_defaults',
+      present:'validate_even_when_unused_null_is_not_absence',
+      selection:'retain_exact_environment_membership_match_original_table_bytes_cid_external_release_and_fixed_conversion_law',
+      authority:'selected_byte_integrity_not_IANA_provenance_or_execution_permission',
+    },
     text_rank:{
       pointer:'/host_policy_profile/text_rank',
       schema:{

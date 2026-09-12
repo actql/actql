@@ -7,6 +7,27 @@ import {checkLookupExecution} from './check-lookup-execution.mjs';
 const read=p=>JSON.parse(readFileSync(p,'utf8'));
 const contract=read('spec/contracts/actql-check-environment.json');
 const corpus=read('portability/corpus/check-environment.json');
+test('Calendar selection independently pins transition bytes release and conversion law',()=>{
+  const c=contract.policy_components.calendar,s=c.schema;
+  assert.equal(c.pointer,'/host_policy_profile/calendar');
+  assert.equal(s.additionalProperties,false);
+  assert.deepEqual(s.required,['version','table_bytes_cid','tzdb_version','conversion_law']);
+  const valid={version:'actql-calendar-selection/0.1',table_bytes_cid:'sha256:'+'a'.repeat(64),tzdb_version:'2025b',conversion_law:'actql-calendar-boundaries/0.1'};
+  function accepts(v){
+    if(!v||typeof v!=='object'||Array.isArray(v)||Object.keys(v).length!==4)return false;
+    return s.required.every(k=>{
+      const p=s.properties[k],x=v[k];
+      if(p.const)return x===p.const;
+      return typeof x==='string'&&(p.pattern?new RegExp(p.pattern).test(x):x.length>=p.minLength);
+    });
+  }
+  assert.equal(accepts(valid),true);
+  for(const k of s.required){const v={...valid};delete v[k];assert.equal(accepts(v),false);assert.equal(accepts({...valid,[k]:null}),false);}
+  for(const v of [null,[],{}, {...valid,extra:true},{...valid,tzdb_version:''},{...valid,conversion_law:'other'}, {...valid,table_bytes_cid:'sha256:'+'A'.repeat(64)}])assert.equal(accepts(v),false);
+  assert.equal(accepts({...valid,tzdb_version:'external-custom-release'}),true);
+  assert.equal(c.present,'validate_even_when_unused_null_is_not_absence');
+  assert.match(c.selection,/original_table_bytes_cid_external_release/);
+});
 test('lexical profile selection is closed and distinguishes selected bytes from component identity',()=>{
   const c=contract.policy_components.text_rank;
   assert.equal(c.pointer,'/host_policy_profile/text_rank');

@@ -388,6 +388,22 @@ all source/vector dependency pins defined by the
 another environment does not establish that association. This selection does
 not prove provenance, evaluator conformance, scoring limits or execution permission.
 
+<!-- requirement-block: check-environment.calendar-selection check-environment.calendar-association -->
+The Calendar selection, when supplied, MUST be the closed object
+`{version: "actql-calendar-selection/0.1", table_bytes_cid, tzdb_version,
+conversion_law: "actql-calendar-boundaries/0.1"}` at
+`/host_policy_profile/calendar`. All four members are required. Unknown fields,
+null, unsupported versions/laws, empty external release names and CIDs other
+than `sha256:` followed by 64 lowercase hexadecimal digits are rejected.
+Absence leaves Calendar selection unresolved without defaults; every supplied
+selection is validated even when unused. Its entire body participates in
+Check Environment identity. Compiler assembly MUST retain that exact environment
+association and compare the admitted transition table to both the independently
+selected original-byte CID and external `tzdb_version`, under the fixed
+[Calendar conversion law](../language.md#calendar). The external release name
+is not rewritten to an ActQL-owned version. Selection does not prove IANA
+provenance, boundary evaluation, resource enforcement or execution permission.
+
 <!-- requirement-block: capacity-host-policy.ceiling-provenance -->
 A policy ceiling MUST retain the exact policy CID, field name and value.
 Policy admission establishes integrity and structural validity relative to the
@@ -1125,7 +1141,7 @@ These exact schema/law references are owned here. Their identities do not includ
 <!-- requirement-block: machine-contracts.exact-artifacts -->
 <!-- normative-code: law -->
 ```text
-../../../spec/contracts/actql-check-environment.json# sha256:3da90272aff2e756bb1feeb72afd901346f8eb5064a3750dfcba16fe85f5584a
+../../../spec/contracts/actql-check-environment.json# sha256:6bca30b2accfefbf71036b8f67d005bfc9f2bb83df93b0f977b1d58eeda6bc09
 ../../../spec/contracts/actql-local-relation-snapshot.json# sha256:60e8136aea733421e75fa3dcef4934c87ce98959b36f8a56da93ccfbf03d81b2
 ../../../spec/contracts/actql-local-source-reference.json# sha256:9be664306a6a91a8e5bfca53d579e6dac77baf4567eb241ceeedc3216ffe47d9
 ../../../spec/contracts/actql-protocol-schemas.json#/schemas/model_task sha256:19408a610dbc52552bff3a7f97f25a120a66688e7db4f41383c91c9298f02dd2
