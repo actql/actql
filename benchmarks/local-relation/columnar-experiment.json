@@ -1,0 +1,88 @@
+{
+  "purpose": "Pre-registered Local Relation layout comparison; not a product compatibility contract",
+  "required_correctness_commit": "1a60db0",
+  "row_baseline_commit": "6f2601473d3fa96d542019cbb6afa78ef1bdd528",
+  "candidates": {
+    "A": "Corrected row arrays; unchanged scalar and row-index algorithms",
+    "B": "Per-column immutable Value buffers with bounded row selections",
+    "C": "Typed numeric/boolean buffers plus NULL state; immutable Value fallback for other domains"
+  },
+  "sampling": {
+    "build_mode": "release",
+    "measured_repetitions": 7,
+    "warmup_runs_per_process": 1,
+    "fresh_process_per_sample": true,
+    "candidate_order_cycle": [["A", "B", "C"], ["C", "B", "A"]],
+    "same_case_and_repeat_are_paired": true,
+    "native": "all cases",
+    "js_and_wasm": "all additional cases and the four legacy 100/10000 x 2/64 all-different cases",
+    "optional_cases": "100000-row numeric narrow/wide only after the full mandatory matrix, never a substitute"
+  },
+  "phases": [
+    "fixture generation and JSON parsing",
+    "checking, binding, lowering and execution preparation",
+    "input admission and physical import",
+    "operation sequence execution",
+    "complete retained-output observation and independent assertions"
+  ],
+  "timing_rules": {
+    "end_to_end": "All five phases with equivalent source/input ownership and release points; record outer process wall time separately",
+    "prepared_input": "Repeat phase 4 with already admitted/imported input and fresh logical and physical budgets; never relabel as end-to-end",
+    "warmup": "Execute the same candidate and case once, fully observe, and release references before the measured invocation; report warmup separately",
+    "rss": "Whole-process peak, including warmup and retained fixtures; not an operation's RSS delta",
+    "storage": "Report live/peak container slots, typed buffer bytes, NULL storage, copied cells and allocations separately; count shared buffers once physically, logical occurrences per contract",
+    "conversion": "Count input capture plus destination buffers while both are alive, including transient selections",
+    "oracle": "Closed-form fixture expectations plus A/B/C semantic comparison; never derive expected output only from the tested comparator"
+  },
+  "legacy_matrix": {
+    "rows": [100, 1000, 10000],
+    "columns": [2, 64],
+    "keys": ["all-equal", "all-different"],
+    "sequence": "Existing sequence_scale: rename, identity drop, stable sort, projected distinct/take and branched dedupe/sort/take",
+    "retained": ["both terminal outputs"],
+    "expected": "Existing closed-form unique IDs and selected payload; twelve cases preserved"
+  },
+  "additional_cases": [
+    {"id":"numeric-project-1000","rows":1000,"columns":64,"domain":"number","sequence":"select two fields, derive map, filter all, stable sort, take ten","major_group":"numeric-wide"},
+    {"id":"numeric-project-10000","rows":10000,"columns":64,"domain":"number","sequence":"select two fields, derive map, filter all, stable sort, take ten","major_group":"numeric-wide"},
+    {"id":"nullable-1000","rows":1000,"columns":64,"domain":"nullable number and boolean; every third numeric cell NULL","sequence":"select two fields, ordered type-changing shadow, filter all, stable sort, take ten","major_group":"nullable-wide"},
+    {"id":"nullable-10000","rows":10000,"columns":64,"domain":"nullable number and boolean; every third numeric cell NULL","sequence":"select two fields, ordered type-changing shadow, filter all, stable sort, take ten","major_group":"nullable-wide"},
+    {"id":"numeric-full-add","rows":10000,"columns":64,"domain":"number","sequence":"derive two additional fields, retain all columns, stable sort partial ties, take ten"},
+    {"id":"filter-low","rows":10000,"columns":64,"domain":"number","sequence":"derive map, filter retains one percent, stable sort, select two fields"},
+    {"id":"filter-high","rows":10000,"columns":64,"domain":"number","sequence":"derive map, filter retains ninety-nine percent, stable sort, select two fields"},
+    {"id":"short-text","rows":1000,"columns":8,"domain":"8-unit text including canonically admitted Unicode; number key","sequence":"derive map, stable sort partial ties, projected distinct, take ten"},
+    {"id":"long-text","rows":1000,"columns":8,"domain":"1024-unit text including canonically admitted Unicode; number key","sequence":"derive map, stable sort partial ties, projected distinct, take ten"},
+    {"id":"decimal-temporal","rows":1000,"columns":8,"domain":"decimal, date, timestamp and number key","sequence":"rename, stable sort, dedupe repeated keys, take ten"},
+    {"id":"nested-small-result","rows":1000,"columns":8,"domain":"immutable nested payload of 64 logical leaves and number key","sequence":"filter all, stable sort, take one; measure retained backing storage"},
+    {"id":"producer-branches","rows":1000,"columns":64,"domain":"number","sequence":"completed producer to two alias branches; one narrow projection and one full-width derive; retain both outputs"},
+    {"id":"zero-columns","rows":1000,"columns":2,"domain":"number","sequence":"drop all fields, sort empty, take ten; preserve nonzero row count"}
+  ],
+  "adoption": {
+    "major_groups": ["numeric-wide", "nullable-wide"],
+    "required_improvement_fraction": 0.2,
+    "improvement": "At least one preselected major group improves end-to-end time or whole-process peak RSS by at least 20 percent in every member on native, with paired reproducibility; report other metrics without treating incomparable slot counts as bytes",
+    "reproducibility": "At least 6 of 7 paired samples agree in direction and the deterministic paired-bootstrap 95 percent interval excludes no change; publish all samples and interval method",
+    "regression": "Any reproducible end-to-end slowdown in another mandatory case or target prevents automatic adoption, even if memory improves; no averaging it away",
+    "uncertainty": "Missing, noisy, mixed or semantically incomparable evidence means hold; retain rows",
+    "cross_target": "No native-only rollout or backend-specific engine introduced automatically",
+    "migration": "A clear prototype win only authorizes full scoped migration and remeasurement, not a completion claim"
+  },
+  "semantic_gate": [
+    "row-major map snapshot and ordered slot evaluation, first failure and lazy branches",
+    "NULL, decimal and temporal equality/order, stable ties and explicit compiler completion",
+    "empty input, zero-column nonempty relation, duplicate occurrences and identity operations",
+    "shadow, rename, removed key, repeated take and imported producer order",
+    "Parameter and producer ownership, independent successful output retention",
+    "budget exactly at limit and one beyond, including conversion double retention and view composition",
+    "late and unused operation failure, atomic result publication, fresh-budget repeat after failure",
+    "same wire bytes, canonical identity and logical budgets in A/B/C"
+  ],
+  "evidence": [
+    "corrected baseline commit and experimental source commit",
+    "working-tree state and source/script/manifest/fixture hashes",
+    "pinned toolchain, build flags and executable hash for each target",
+    "host, runtime version, execution order and every raw sample",
+    "three-target tests with warnings denied, API, format, docs and metadata",
+    "Linux CI explicitly reported independently of local native execution"
+  ]
+}
