@@ -8,6 +8,8 @@ pub enum SourceRequestIssue {
   Parameters(@sourceviews.RequestParameterIssue)
   Stage(Int, @sourceviews.AcquisitionIssue)
   Join(Int, @sourceviews.KeyedJoinIssue)
+  Facts(@environment.LookupCapacityIssue)
+  KeyedFacts(Int, @sourceviews.KeyedFactsIssue)
 }
 
 ///|
@@ -17,6 +19,8 @@ struct SourceRequestContexts {
   parameters : @sourceviews.RequestParameters?
   stages : Array[@sourceviews.PipelineRequests]
   joins : Array[@sourceviews.CheckedKeyedJoins]
+  facts : @environment.LookupCapacities?
+  keyed_facts : Array[@sourceviews.CheckedKeyedFacts]
   work : Int
   pairs : Int
   nodes : Int
@@ -52,6 +56,8 @@ pub fn check_source_requests(
   let mut text = 0
   let stages = []
   let joins = []
+  let mut facts = None
+  let keyed_facts = []
   let parameters = match inputs.sourceviews {
     None => {
       if @request_slots.count(slots) != 0 {
@@ -87,6 +93,19 @@ pub fn check_source_requests(
         return Err(BudgetExceeded)
       }
       work += added
+      let checked_facts = match
+        @environment.check_lookup_capacities(
+          @sourceviews.pipeline_catalog_references(views),
+          {
+            max_work: limits.max_work - work,
+            max_facts: limits.max_work - work,
+          },
+        ) {
+        Ok(v) => v
+        Err(e) => return Err(Facts(e))
+      }
+      work += @environment.lookup_capacity_usage(checked_facts).0
+      facts = Some(checked_facts)
       for i in 0..<inputs.uses.length() {
         let checked = match
           @sourceviews.check_pipeline_requests(inputs.uses[i], prepared, {
@@ -114,13 +133,51 @@ pub fn check_source_requests(
           Err(e) => return Err(Join(i, e))
         }
         work += @sourceviews.keyed_joins_work(linked)
+        let owned_facts = match
+          @sourceviews.check_keyed_facts(
+            linked,
+            checked_facts,
+            limits.max_work - work,
+          ) {
+          Ok(v) => v
+          Err(e) => return Err(KeyedFacts(i, e))
+        }
+        work += @sourceviews.keyed_facts_work(owned_facts)
+        keyed_facts.push(owned_facts)
         joins.push(linked)
         stages.push(checked)
       }
       Some(prepared)
     }
   }
-  Ok({ inputs, slots, parameters, stages, joins, work, pairs, nodes, text, })
+  Ok({
+    inputs,
+    slots,
+    parameters,
+    stages,
+    joins,
+    facts,
+    keyed_facts,
+    work,
+    pairs,
+    nodes,
+    text,
+  })
+}
+
+///|
+pub fn source_request_facts(
+  v : SourceRequestContexts,
+) -> @environment.LookupCapacities? {
+  v.facts
+}
+
+///|
+pub fn source_request_keyed_facts(
+  v : SourceRequestContexts,
+  i : Int,
+) -> @sourceviews.CheckedKeyedFacts? {
+  v.keyed_facts.get(i)
 }
 
 ///|

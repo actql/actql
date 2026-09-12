@@ -114,6 +114,15 @@ test "reconciled Program inputs retain SourceView registrations and the same env
   for i in 0..<2 {
     let joined = source_request_joins(requests, i).unwrap()
     assert_eq(@sourceviews.keyed_join_count(joined), 0)
+    let facts = source_request_keyed_facts(requests, i).unwrap()
+    assert_eq(@sourceviews.keyed_facts_count(facts), 0)
+    assert_true(physical_equal(@sourceviews.keyed_facts_joins(facts), joined))
+    assert_true(
+      physical_equal(
+        @sourceviews.keyed_facts_owner(facts),
+        source_request_facts(requests).unwrap(),
+      ),
+    )
     assert_true(
       physical_equal(
         @sourceviews.keyed_joins_requests(joined),

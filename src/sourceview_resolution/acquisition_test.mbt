@@ -3,6 +3,7 @@ fn check_acquisition_fixture(
   wire : String,
   cid : String,
   arity : Int,
+  capacity_kind : Int,
 ) -> Unit raise {
   let catalog = fixture_catalog(wire, cid)
   for variant in 0..<12 {
@@ -151,6 +152,90 @@ fn check_acquisition_fixture(
           )
           let is_keyed = variant == 0 || variant >= 8
           assert_eq(keyed_join_count(joined), if is_keyed { 1 } else { 0 })
+          let facts = @environment.check_lookup_capacities(
+            pipeline_catalog_references(prepared),
+            { max_work: 1000000, max_facts: 100, },
+          ).unwrap()
+          let facts_result = check_keyed_facts(joined, facts, 100)
+          if is_keyed && capacity_kind < 1 {
+            assert_eq(
+              facts_result.unwrap_err(),
+              if capacity_kind < 0 {
+                MissingCapacity(0)
+              } else {
+                IncompleteResponse(0)
+              },
+            )
+          } else {
+            let matched = facts_result.unwrap()
+            assert_true(physical_equal(keyed_facts_joins(matched), joined))
+            assert_true(physical_equal(keyed_facts_owner(matched), facts))
+            assert_eq(keyed_facts_count(matched), if is_keyed { 1 } else { 0 })
+            assert_true(
+              check_keyed_facts(joined, facts, keyed_facts_work(matched))
+              is Ok(_),
+            )
+            if is_keyed {
+              let entry = keyed_facts_at(matched, 0).unwrap()
+              assert_true(
+                physical_equal(
+                  keyed_source_join(entry),
+                  keyed_join_at(joined, 0).unwrap(),
+                ),
+              )
+              assert_eq(
+                @environment.lookup_capacity_rows_per_key(
+                  keyed_source_capacity(entry),
+                ),
+                2L,
+              )
+              assert_eq(
+                @environment.lookup_capacity_pages_per_request(
+                  keyed_source_capacity(entry),
+                ),
+                3L,
+              )
+              assert_eq(
+                @environment.lookup_capacity_response_bytes_per_page(
+                  keyed_source_capacity(entry),
+                ),
+                4096L,
+              )
+              assert_true(
+                physical_equal(
+                  @environment.lookup_facts_capacity(
+                    @environment.source_lookup_body(keyed_source_facts(entry)),
+                  ).unwrap(),
+                  keyed_source_capacity(entry),
+                ),
+              )
+              assert_eq(
+                check_keyed_facts(joined, facts, 0).unwrap_err(),
+                WorkLimit,
+              )
+            }
+            assert_true(
+              keyed_facts_at(matched, keyed_facts_count(matched)) is None,
+            )
+          }
+          assert_eq(
+            check_keyed_facts(joined, facts, -1).unwrap_err(),
+            InvalidLimits,
+          )
+          let other_resolved = resolve(
+            source_inputs,
+            fixture_catalog(wire, cid),
+            caps(),
+          ).unwrap()
+          let other_inputs = prepare_pipeline_inputs(other_resolved, 10000000).unwrap()
+          let other_facts = @environment.check_lookup_capacities(
+            pipeline_catalog_references(other_inputs),
+            { max_work: 1000000, max_facts: 100, },
+          ).unwrap()
+          assert_eq(
+            check_keyed_facts(joined, other_facts, 100).unwrap_err(),
+            ForeignFacts,
+          )
           if is_keyed {
             let linked = keyed_join_at(joined, 0).unwrap()
             assert_eq(keyed_join_input(linked), 1)

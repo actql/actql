@@ -36,6 +36,8 @@ pub fn catalog_owner(ResolvedInput) -> @check_environment.SourceRequestContracts
 
 pub fn check_direct_request(RequestContext, ResolvedInput, RequestLimits) -> Result[DirectRequest, RequestIssue]
 
+pub fn check_keyed_facts(CheckedKeyedJoins, @check_environment.LookupCapacities, Int) -> Result[CheckedKeyedFacts, KeyedFactsIssue]
+
 pub fn check_keyed_joins(PipelineRequests, Int) -> Result[CheckedKeyedJoins, KeyedJoinIssue]
 
 pub fn check_keyed_request(RequestContext, ResolvedInput, RequestLimits) -> Result[KeyedRequest, RequestIssue]
@@ -57,6 +59,16 @@ pub fn declaration(ResolvedInput) -> @sourceview_input.Declaration
 pub fn input_owner(ResolvedInput) -> @sourceview_input.Inputs
 
 pub fn inputs(Resolved) -> @sourceview_input.Inputs
+
+pub fn keyed_facts_at(CheckedKeyedFacts, Int) -> KeyedSourceFacts?
+
+pub fn keyed_facts_count(CheckedKeyedFacts) -> Int
+
+pub fn keyed_facts_joins(CheckedKeyedFacts) -> CheckedKeyedJoins
+
+pub fn keyed_facts_owner(CheckedKeyedFacts) -> @check_environment.LookupCapacities
+
+pub fn keyed_facts_work(CheckedKeyedFacts) -> Int
 
 pub fn keyed_join_at(CheckedKeyedJoins, Int) -> KeyedJoin?
 
@@ -102,6 +114,12 @@ pub fn keyed_request_input(KeyedRequest) -> ResolvedInput
 
 pub fn keyed_request_usage(KeyedRequest) -> (Int, Int, Int, Int)
 
+pub fn keyed_source_capacity(KeyedSourceFacts) -> @check_environment.LookupCapacity
+
+pub fn keyed_source_facts(KeyedSourceFacts) -> @check_environment.SourceLookupFacts
+
+pub fn keyed_source_join(KeyedSourceFacts) -> KeyedJoin
+
 pub fn mode_checkpoint(DirectMode) -> ModeCheckpoint?
 
 pub fn mode_contract(DirectMode) -> @check_environment.SourceReadMode
@@ -141,6 +159,8 @@ pub fn parameterized_request_parameters(ParameterizedRequest) -> RequestParamete
 pub fn parameterized_request_work(ParameterizedRequest) -> Int
 
 pub fn pipeline_attachment_work(PipelineAttachment) -> Int
+
+pub fn pipeline_catalog_references(PipelineInputs) -> @check_environment.CatalogReferences
 
 pub fn pipeline_environment(PipelineInputs) -> @check_environment.WireEnvironment
 
@@ -238,6 +258,8 @@ pub enum AcquisitionRequest {
   Keyed(KeyedMode, ParameterizedKeyedRequest)
 }
 
+type CheckedKeyedFacts
+
 type CheckedKeyedJoins
 
 type DirectMode
@@ -260,6 +282,15 @@ pub(all) enum IssueKind {
   Ambiguous(Array[String])
 } derive(Eq, @debug.Debug)
 
+pub(all) enum KeyedFactsIssue {
+  InvalidLimits
+  ForeignFacts
+  WorkLimit
+  MissingFacts(Int)
+  MissingCapacity(Int)
+  IncompleteResponse(Int)
+} derive(Eq, @debug.Debug)
+
 type KeyedJoin
 
 pub struct KeyedJoinIssue {
@@ -279,6 +310,8 @@ pub(all) enum KeyedJoinIssueKind {
 type KeyedMode
 
 type KeyedRequest
+
+type KeyedSourceFacts
 
 pub(all) struct Limits {
   max_work : Int

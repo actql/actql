@@ -178,9 +178,13 @@ pub fn selected_capacity(SelectedPolicyContext) -> @check_environment.Capacity
 
 pub fn selected_policy_usage(SelectedPolicyContext) -> SelectedPolicyUsage
 
+pub fn source_request_facts(SourceRequestContexts) -> @check_environment.LookupCapacities?
+
 pub fn source_request_inputs(SourceRequestContexts) -> ReconciledContexts
 
 pub fn source_request_joins(SourceRequestContexts, Int) -> @sourceview_resolution.CheckedKeyedJoins?
+
+pub fn source_request_keyed_facts(SourceRequestContexts, Int) -> @sourceview_resolution.CheckedKeyedFacts?
 
 pub fn source_request_parameters(SourceRequestContexts) -> @sourceview_resolution.RequestParameters?
 
@@ -494,6 +498,8 @@ pub enum SourceRequestIssue {
   Parameters(@sourceview_resolution.RequestParameterIssue)
   Stage(Int, @sourceview_resolution.AcquisitionIssue)
   Join(Int, @sourceview_resolution.KeyedJoinIssue)
+  Facts(@check_environment.LookupCapacityIssue)
+  KeyedFacts(Int, @sourceview_resolution.KeyedFactsIssue)
 }
 
 type StageContexts

@@ -24,6 +24,7 @@ for(const c of [...corpus.cases,...keyed.cases.map(c=>({...keyed.defaults,...c})
     assert.ok(['snapshot','changes','watch','undeclared_snapshot','undeclared_changes'].includes(c.direct_mode));
   }
   const contracts=[],views=[],refs=new Map();
+  const factsBody=c.lookup_capacity?{lookup_capacity:c.lookup_capacity}:{};
   function contract(kind,body){
     const key=kind+canonicalText(body);
     if(refs.has(key))return refs.get(key);
@@ -42,7 +43,7 @@ for(const c of [...corpus.cases,...keyed.cases.map(c=>({...keyed.defaults,...c})
       if(mode.mode==='snapshot'&&!checkpoint_type)return mode;
       return {...mode,checkpoint:{kind:'opaque',expires:Boolean(expiration_type),value_schema:contract('checkpoint',{type:checkpoint_type??'string',nullable:false}),...(expiration_type?{expiration_schema:contract('checkpoint',{type:expiration_type,nullable:false})}:{})}};
     });
-    views.push(seal({schema:'actql.source_view/0.1',connector_id:'crm/main',connector_version:'fixture',resource_kind:v.kind??'record',view_id:v.name,view_version:'fixture',acquisition:{kind:c.correlation?'fetch':'scan',authority:'read_metadata',request_schema:request,modes,default_mode:v.default_mode??modes[0].mode,...(c.correlation?{correlation:c.correlation}:{})},request_processing:{mutates_business_state:false},output:{carrier:output?.carrier??'relation',schema:row,facts:contract('carrier_facts',{}),data_policy:policy},pushdown:{contract:contract('pushdown',{}),operations:[]}},'contract_cid'));
+    views.push(seal({schema:'actql.source_view/0.1',connector_id:'crm/main',connector_version:'fixture',resource_kind:v.kind??'record',view_id:v.name,view_version:'fixture',acquisition:{kind:c.correlation?'fetch':'scan',authority:'read_metadata',request_schema:request,modes,default_mode:v.default_mode??modes[0].mode,...(c.correlation?{correlation:c.correlation}:{})},request_processing:{mutates_business_state:false},output:{carrier:output?.carrier??'relation',schema:row,facts:contract('carrier_facts',factsBody),data_policy:policy},pushdown:{contract:contract('pushdown',{}),operations:[]}},'contract_cid'));
   }
   const catalog=seal({schema:'actql.connector_catalog/0.1',connector_id:'crm/main',connector_version:'fixture',contracts:[...contracts].sort(bySelf('cid')),source_views:[...views].sort(bySelf('contract_cid')),commands:[]},'catalog_cid');
   const env=seal({version:'actql-check-environment/0.1',schema_snapshots:[],connector_capabilities:[],mapping_contracts:[],source_views:[...views].sort(byBody),command_contracts:[],model_task_contracts:[],contract_registry:[...contracts].sort(byBody),connector_catalogs:[catalog],host_policy_profile:{}},'evidence_bundle_cid');
@@ -82,7 +83,7 @@ for(const c of [...corpus.cases,...keyed.cases.map(c=>({...keyed.defaults,...c})
   if(c.acquisition_fixture){
     assert.ok(c.correlation);
     lines.push('', '///|',`test ${JSON.stringify('SourceView acquisition corpus: '+c.id)} {`,
-      `  check_acquisition_fixture(${JSON.stringify(canonicalText(env))}, ${JSON.stringify(env.evidence_bundle_cid)}, ${c.correlation.request_fields.length})`, '}');
+      `  check_acquisition_fixture(${JSON.stringify(canonicalText(env))}, ${JSON.stringify(env.evidence_bundle_cid)}, ${c.correlation.request_fields.length}, ${c.lookup_capacity?(c.lookup_capacity.completeness==='complete_per_requested_key'?1:0):-1})`, '}');
   }
   if(c.request_outcome){
     const declarations=Object.entries({params:c.params,bindings:c.bindings}).filter(([,v])=>v!==undefined).map(([k,v])=>JSON.stringify(k)+':'+JSON.stringify(v)+',').join('');

@@ -172,6 +172,21 @@ admission budget is owned by the preceding environment boundary. No partial
 result escapes a later malformed or over-budget envelope. Numeric bounds remain
 exact safe integers, with rows, pages and decoded bytes exposed separately.
 
+`check_keyed_facts` attaches those declarations to every actual checked keyed
+join, using the selected input's original SourceView member. It requires the
+same Catalog reference proof as the pipeline inputs, not merely equal CIDs or
+equal numeric bounds. The opaque result retains the checked join, facts owner,
+same-Catalog reference and admitted capacity together. Missing capacity and
+`HardLimitOnly` reject keyed acquisition; neither changes the acceptance of a
+complete direct request that happens to be a join operand.
+
+The Program source-request boundary validates all facts once, under its shared
+remaining work budget, then retains each stage's joined facts. A failure in a
+later stage cannot expose a partially accepted Program context. This connection
+does not yet establish the actual left producer's row bound, Host transport
+envelope or response validation; these must join the same ownership closure
+before executable acquisition can be claimed.
+
 ## Keyed join role binding
 
 `check_keyed_joins` checks all keyed join-right consumers retained by
