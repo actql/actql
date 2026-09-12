@@ -43,6 +43,7 @@ fn core_contract_site_stage(
     | StageLocalInputRules(stage, _)
     | StageLocalInputType(stage, _)
     | StageCanonicalIdentityRules(stage)
+    | StagePublicationRules(stage, _)
     | StageSemanticRules(stage, _)
     | StageEnvironmentRules(stage)
     | OperationDataProfile(stage, _, _, _) => stage

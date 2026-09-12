@@ -87,7 +87,7 @@ test "core contract collection preserves owned occurrences and shares dependency
   let incoming = core_contract_incoming(inventory)
   assert_true(physical_equal(program_incoming_identity(incoming), identity))
   assert_eq(program_incoming_count(incoming), 3)
-  assert_eq(core_contract_root_count(inventory), 21 + 4 * steps)
+  assert_eq(core_contract_root_count(inventory), 23 + 4 * steps)
   assert_eq(core_contract_body_count(inventory), 35)
   let (work, edges) = core_contract_usage(inventory)
   assert_eq(edges, 26)
@@ -96,6 +96,7 @@ test "core contract collection preserves owned occurrences and shares dependency
     program_identity_usage(identity).0 +
     7 +
     20 +
+    2 +
     247 +
     2 * steps +
     visits +
@@ -119,6 +120,8 @@ test "core contract collection preserves owned occurrences and shares dependency
       StageLocalInputRules(_, _) => assert_eq(root.body, LocalSnapshotRules)
       StageCanonicalIdentityRules(_) =>
         assert_eq(root.body, CanonicalIdentityRules)
+      StagePublicationRules(_, _) =>
+        assert_eq(root.body, AdoptedBody(@pipeline.RelaPrimitive))
       StageLocalInputType(stage, input) => {
         assert_eq((stage, input), (0, 0))
         assert_true(root.body is LocalInputType(_))

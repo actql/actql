@@ -66,6 +66,7 @@ pub(all) enum CoreContractSite {
   StageLocalInputRules(Int, Int)
   StageLocalInputType(Int, Int)
   StageCanonicalIdentityRules(Int)
+  StagePublicationRules(Int, Int)
 } derive(Eq, Debug)
 
 ///|
@@ -362,6 +363,18 @@ pub fn collect_core_contracts(
         raise CoreContractStop(UnsupportedExpressionContract(stage))
       }
       core_contract_root(b, StageExpression(stage), ExpressionBody(root))
+      let publication = @stage_results.stage_port_publications(
+        @stage_results.wiring_stage_at(incoming.wiring, stage).unwrap(),
+      )
+      for result_index in 0..<@results.port_count(publication) {
+        // Result projection and stable ordering interpret the adopted primitive
+        // rules even when this Stage contains no authored operation.
+        core_contract_root(
+          b,
+          StagePublicationRules(stage, result_index),
+          AdoptedBody(@pipeline.RelaPrimitive),
+        )
+      }
       for visit in 0..<program_identity_producer_count(identity, stage).unwrap() {
         core_contract_charge(b)
         let pipeline = program_identity_producer_at(identity, stage, visit).unwrap()

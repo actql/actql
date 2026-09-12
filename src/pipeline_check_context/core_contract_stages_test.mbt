@@ -13,6 +13,31 @@ fn stage_has_contract(
 }
 
 ///|
+test "publication retains primitive interpretation roots for a Stage without steps" {
+  let (identity, _, _) = prepared_identity_fixture(third_stage=true)
+  let inventory = collect_core_contracts(identity, {
+    max_work: 10000000,
+    max_roots: 1000,
+    max_bodies: 100,
+    max_edges: 100,
+  }).unwrap()
+  let mut publications = 0
+  for i in 0..<core_contract_root_count(inventory) {
+    let root = core_contract_root_at(inventory, i).unwrap()
+    if root.site is StagePublicationRules(stage, index) {
+      assert_eq(index, 0)
+      assert_true(stage >= 0 && stage < 3)
+      assert_eq(root.body, AdoptedBody(@pipeline.RelaPrimitive))
+      publications += 1
+    }
+  }
+  assert_eq(publications, 3)
+  assert_true(
+    stage_has_contract(inventory, 2, AdoptedBody(@pipeline.RelaPrimitive)),
+  )
+}
+
+///|
 test "Stage contract selections retain transitive dependencies without borrowing consumer imports" {
   let (identity, _, _) = prepared_identity_fixture()
   let v = collect_core_contracts(identity, {

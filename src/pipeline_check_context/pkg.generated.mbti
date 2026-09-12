@@ -889,6 +889,7 @@ pub(all) enum CoreContractSite {
   StageLocalInputRules(Int, Int)
   StageLocalInputType(Int, Int)
   StageCanonicalIdentityRules(Int)
+  StagePublicationRules(Int, Int)
 } derive(Eq, @debug.Debug)
 
 pub struct DedupeTopTieCheck {

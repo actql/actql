@@ -177,6 +177,16 @@ analysis: unused declared inputs, unselected expression branches and authored
 no-ops remain part of the inventory. Repeated occurrences retain their sites
 and owners even when they resolve to the same contract.
 
+Each declared Relation Result selects the adopted `RelaPrimitive` manifest
+through a `StagePublicationRules(stage, result)` occurrence. Result projection
+and stable ordering use these rules even when its Stage has no authored steps.
+The registered manifest remains the dependency unit; this does not invent a
+per-operator CID or include an unrelated Stage's operation inventory. Common
+Stage laws still govern availability and failure, and the value grammar governs
+row types. Selecting the primitive rules neither proves total order from physical
+enumeration nor discharges runtime publication checks. Backend implementation
+and proof status remain those explicitly recorded in the adopted manifest.
+
 Each Local input declaration selects the existing
 `actql-local-relation-snapshot-contract/0.1` interpretation body at
 `spec/contracts/actql-local-relation-snapshot.json`, pointer `""`, CID
