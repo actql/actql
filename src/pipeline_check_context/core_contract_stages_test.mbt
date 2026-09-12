@@ -22,8 +22,8 @@ test "Stage contract selections retain transitive dependencies without borrowing
     max_edges: 100,
   }).unwrap()
   assert_eq(core_contract_stage_count(v), 2)
-  assert_eq(core_contract_stage_body_count(v, 0), Some(32))
-  assert_eq(core_contract_stage_body_count(v, 1), Some(31))
+  assert_eq(core_contract_stage_body_count(v, 0), Some(33))
+  assert_eq(core_contract_stage_body_count(v, 1), Some(32))
   assert_true(stage_has_contract(v, 0, LocalSnapshotRules))
   assert_true(stage_has_contract(v, 0, LocalSourceReferenceRules))
   assert_false(stage_has_contract(v, 1, LocalSnapshotRules))
@@ -41,6 +41,7 @@ test "Stage contract selections retain transitive dependencies without borrowing
     stage_has_contract(v, 1, StageSemantics(@environment.ResultImportInterface)),
   )
   for stage in 0..<2 {
+    assert_true(stage_has_contract(v, stage, CanonicalIdentityRules))
     for
       (body, cid) in [
         (

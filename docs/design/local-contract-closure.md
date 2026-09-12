@@ -111,6 +111,17 @@ required separately. Locality of a hash does not waive those checks.
 
 ## Selecting roots
 
+Every Stage selects the adopted `aoa-kernel-laws/0.1` manifest at
+`spec/dependencies/aoa-kernel-laws.json`, pointer `""`, CID
+`sha256:5a79d6cb9b012d0c3871c72e496eec7183948ac81d8ebff91b4f7ee6a59ae19d`.
+Canonical source and contract identities depend on these rules even for an
+empty computation, independently of operation profiles. `StageCanonicalIdentityRules`
+retains each Stage occurrence while the manifest body is shared. This is the
+existing adopted manifest, not a newly inferred dependency or a proof that its
+law definitions and execution conformance are complete. It declares no external
+body references; selecting it does not substitute for the Unicode and expression
+dependencies or the concrete canonical encoding rules.
+
 The source grammar resource is the complete embedded Program schema at
 `spec/contracts/actql-protocol-schemas.json`, JSON Pointer
 `/artifact_schemas/executable_plan/properties/execution_material/properties/program`.

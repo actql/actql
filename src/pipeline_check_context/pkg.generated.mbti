@@ -838,6 +838,7 @@ pub(all) enum CoreContractBody {
   LocalSnapshotRules
   LocalSourceReferenceRules
   LocalInputType(String)
+  CanonicalIdentityRules
 } derive(Eq, @debug.Debug)
 
 type CoreContractInventory
@@ -887,6 +888,7 @@ pub(all) enum CoreContractSite {
   OperationSeriesCountRules(Int, Int, Int)
   StageLocalInputRules(Int, Int)
   StageLocalInputType(Int, Int)
+  StageCanonicalIdentityRules(Int)
 } derive(Eq, @debug.Debug)
 
 pub struct DedupeTopTieCheck {

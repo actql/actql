@@ -1,7 +1,18 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { createHash } from 'node:crypto';
+import { readFileSync } from 'node:fs';
 import { canonicalText, generateTests, resolvePointer, verifyIdentity } from './check-canonical-json.mjs';
+
+test('Stage canonical identity dependency matches the adopted kernel manifest', () => {
+  const body = JSON.parse(readFileSync('spec/dependencies/aoa-kernel-laws.json', 'utf8'));
+  const adopted = JSON.parse(readFileSync('spec/contracts/actql-aoa.json', 'utf8'));
+  assert.equal(body.manifest_version, adopted.kernel_law_manifest);
+  const cid = 'sha256:' + createHash('sha256').update(canonicalText(body)).digest('hex');
+  assert.equal(cid, adopted.kernel_law_manifest_cid);
+  const source = readFileSync('src/pipeline_check_context/core_contracts.mbt', 'utf8').replace(/\s+/g, ' ');
+  assert.ok(source.includes(`CanonicalIdentityRules => "${cid}"`));
+});
 
 test('canonical reference normalizes text, sorts UTF16 keys and rejects collisions', () => {
   assert.equal(canonicalText({ '\ue000': 1, '😀': 2, a: 'e\u0301\r\n' }), '{"a":"é\\n","😀":2,"":1}');

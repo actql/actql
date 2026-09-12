@@ -42,6 +42,7 @@ pub(all) enum CoreContractBody {
   LocalSnapshotRules
   LocalSourceReferenceRules
   LocalInputType(String)
+  CanonicalIdentityRules
 } derive(Eq, Debug)
 
 ///|
@@ -64,6 +65,7 @@ pub(all) enum CoreContractSite {
   OperationSeriesCountRules(Int, Int, Int)
   StageLocalInputRules(Int, Int)
   StageLocalInputType(Int, Int)
+  StageCanonicalIdentityRules(Int)
 } derive(Eq, Debug)
 
 ///|
@@ -300,6 +302,11 @@ pub fn collect_core_contracts(
         CatalogGrammarBody(@environment.EnvironmentBody),
       )
       core_contract_root(b, StageSourceGrammar(stage), ProgramSourceGrammar)
+      core_contract_root(
+        b,
+        StageCanonicalIdentityRules(stage),
+        CanonicalIdentityRules,
+      )
       core_contract_charge(b)
       let locals = @local_inputs.snapshot_inputs(
         @local_inputs.environment_assertions(
@@ -444,7 +451,7 @@ pub fn collect_core_contracts(
         | GraphCountRules
         | RankingCountRules
         | SeriesCountRules => ()
-        LocalSourceReferenceRules => ()
+        LocalSourceReferenceRules | CanonicalIdentityRules => ()
         LocalInputType(_) => {
           core_contract_edge(b)
           core_contract_body(b, LocalSnapshotRules)
@@ -571,6 +578,8 @@ pub fn core_contract_cid(v : CoreContractBody) -> String {
     LocalSourceReferenceRules =>
       "sha256:9be664306a6a91a8e5bfca53d579e6dac77baf4567eb241ceeedc3216ffe47d9"
     LocalInputType(cid) => cid
+    CanonicalIdentityRules =>
+      "sha256:5a79d6cb9b012d0c3871c72e496eec7183948ac81d8ebff91b4f7ee6a59ae19d"
   }
 }
 
