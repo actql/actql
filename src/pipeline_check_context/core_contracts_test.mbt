@@ -105,6 +105,8 @@ test "core contract collection preserves owned occurrences and shares dependency
   for i in 0..<core_contract_root_count(inventory) {
     let root = core_contract_root_at(inventory, i).unwrap()
     match root.site {
+      OperationDataProfile(_, _, _, _) =>
+        abort("Local fixture has no data profile")
       StageEnvironmentRules(stage) => {
         assert_true(stage >= 0 && stage < 2)
         assert_eq(root.body, CatalogGrammarBody(@environment.EnvironmentBody))

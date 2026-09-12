@@ -237,6 +237,23 @@ completed local contract set and not a Unit identity. Declaration, selected prof
 data, publication and incoming-interface contributions must still be selected
 and joined under the same Program owner before the final closure is emitted.
 
+Calendar and TextRank operations additionally contribute the exact admitted data
+profile that determines their semantics. Calendar retains the checked transition
+table; TextRank can retain a profile directly or consume the existing owned
+profile-link checks when the operation initially deferred selection. An enabled
+profile flag is not a substitute for that data. Missing TextRank data rejects
+collection, and profile checks from an equal-content but different Program reject
+before their results can be reused. The retained checks share their prior work
+with the identity prefix rather than counting it twice.
+
+Each operation occurrence retains its stage/producer/step coordinates, while an
+identical profile body is stored once. These profiles have already passed their
+closed canonical-body admission. TextRank's embedded laws and exact byte-resource
+pins are validated there; raw Unicode/vector file hashes are not reinterpreted
+as canonical-JSON contract bodies. The retained profile owns those resources.
+Collecting an operation's embedded profile alone does not waive the separate
+Host-selection match or other pending profile checks required for final closure.
+
 Import/interface and gate construction supplies its local semantic contract
 references. Full predecessor Program revisions, Captured Runs, receipts and
 whole manifests are not substitutes for those projections. A required projection

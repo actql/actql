@@ -14,6 +14,8 @@ pub(all) enum CoreContractIssue {
   SourceInventory(SourceContractIssue)
   CatalogBody(Int, Int, Int, @environment.BodyDependencyIssue)
   UnknownCatalogGrammar(Int, Int, Int)
+  UnresolvedProfileData(Int, Int, Int, @pipeline.OperationProfile)
+  ForeignProfiles
 } derive(Eq, Debug)
 
 ///|
@@ -24,6 +26,8 @@ pub(all) enum CoreContractBody {
   CatalogGrammarBody(@environment.CatalogGrammar)
   ProgramSourceGrammar
   StageSemantics(@environment.StageSemanticContract)
+  CalendarProfileData(String)
+  TextRankProfileData(String)
 } derive(Eq, Debug)
 
 ///|
@@ -34,6 +38,7 @@ pub(all) enum CoreContractSite {
   StageSourceGrammar(Int)
   StageSemanticRules(Int, @environment.StageSemanticContract)
   StageEnvironmentRules(Int)
+  OperationDataProfile(Int, Int, Int, @pipeline.OperationProfile)
 } derive(Eq, Debug)
 
 ///|
@@ -48,6 +53,7 @@ struct CoreContractInventory {
   roots : Array[CoreContractRoot]
   bodies : Array[CoreContractBody]
   sources : ProgramSourceContracts
+  profile_checks : ProgramOperationCalendar?
   work : Int
   edges : Int
 }
@@ -113,6 +119,7 @@ fn core_contract_root(
 pub fn collect_core_contracts(
   identity : ProgramSourceIdentity,
   limits : CoreContractLimits,
+  profile_checks? : ProgramOperationCalendar? = None,
 ) -> Result[CoreContractInventory, CoreContractIssue] {
   if limits.max_work < 0 ||
     limits.max_roots < 0 ||
@@ -120,14 +127,23 @@ pub fn collect_core_contracts(
     limits.max_edges < 0 {
     return Err(InvalidLimits)
   }
-  if identity.work >= limits.max_work {
+  let prefix = match profile_checks {
+    None => identity.work
+    Some(checks) => {
+      let owner = checks.lexical.cells.queries.ranges.fills.frames.scalars.orders.requirements.expressions.identity
+      if !physical_equal(owner, identity) {
+        return Err(ForeignProfiles)
+      }
+      checks.work
+    }
+  }
+  if prefix >= limits.max_work {
     return Err(BudgetExceeded)
   }
   let context = identity.sources.operations.preparation.sources.capacity.context.rows.requests.inputs
   // Only the remaining Program work may be spent on the source branch.
   // Reserve the owner join before the branch can allocate its inventory.
-  let source_work_limit = context.usage.work +
-    (limits.max_work - identity.work - 1)
+  let source_work_limit = context.usage.work + (limits.max_work - prefix - 1)
   let requirements = match
     collect_source_contracts(context, {
       max_work: source_work_limit,
@@ -147,7 +163,7 @@ pub fn collect_core_contracts(
     roots: [],
     bodies: [],
     seen: {},
-    work: sources.work,
+    work: sources.work + (prefix - identity.work),
     edges: 0,
   }
   try {
@@ -228,6 +244,49 @@ pub fn collect_core_contracts(
           for profile in 0..<@pipeline.operation_profile_count(operation) {
             core_contract_charge(b)
             let p = @pipeline.operation_profile_at(operation, profile).unwrap()
+            let data = match p {
+              @pipeline.CalendarProfile => {
+                guard operation is @pipeline.Calendar(calendar) else {
+                  raise CoreContractStop(
+                    UnresolvedProfileData(stage, visit, step, p),
+                  )
+                }
+                Some(
+                  CalendarProfileData(
+                    @calendar_profile.cid(@calendar.profile(calendar)),
+                  ),
+                )
+              }
+              @pipeline.TextRankProfile => {
+                guard operation is @pipeline.TextRank(checked=text_rank, ..) else {
+                  raise CoreContractStop(
+                    UnresolvedProfileData(stage, visit, step, p),
+                  )
+                }
+                let selected = match profile_checks {
+                  Some(checks) =>
+                    checks.lexical.profile.map(v => {
+                      @environment.selected_text_rank_profile(v)
+                    })
+                  None => @vector.text_rank_profile(text_rank)
+                }
+                guard selected is Some(selected) else {
+                  raise CoreContractStop(
+                    UnresolvedProfileData(stage, visit, step, p),
+                  )
+                }
+                Some(TextRankProfileData(@lexical.cid(selected)))
+              }
+              @pipeline.RelA | @pipeline.SGA | @pipeline.TEA | @pipeline.VecA =>
+                None
+            }
+            if data is Some(body) {
+              core_contract_root(
+                b,
+                OperationDataProfile(stage, visit, step, p),
+                body,
+              )
+            }
             for law in 0..<@pipeline.operation_profile_adopted_law_count(p) {
               core_contract_root(
                 b,
@@ -248,7 +307,9 @@ pub fn collect_core_contracts(
         AdoptedBody(_)
         | CatalogContract(_)
         | ProgramSourceGrammar
-        | StageSemantics(_) => ()
+        | StageSemantics(_)
+        | CalendarProfileData(_)
+        | TextRankProfileData(_) => ()
         CatalogGrammarBody(body) =>
           for edge in 0..<@environment.catalog_grammar_dependency_count(body) {
             core_contract_edge(b)
@@ -277,6 +338,7 @@ pub fn collect_core_contracts(
     Ok({
       identity,
       sources,
+      profile_checks,
       roots: b.roots,
       bodies: b.bodies,
       work: b.work,
@@ -334,6 +396,7 @@ pub fn core_contract_cid(v : CoreContractBody) -> String {
     CatalogGrammarBody(body) => @environment.catalog_grammar_cid(body)
     ProgramSourceGrammar => @environment.program_source_grammar_cid()
     StageSemantics(rules) => @environment.stage_semantic_contract_cid(rules)
+    CalendarProfileData(cid) | TextRankProfileData(cid) => cid
   }
 }
 
@@ -364,4 +427,11 @@ pub fn core_contract_sources(
   v : CoreContractInventory,
 ) -> ProgramSourceContracts {
   v.sources
+}
+
+///|
+pub fn core_contract_profile_checks(
+  v : CoreContractInventory,
+) -> ProgramOperationCalendar? {
+  v.profile_checks
 }

@@ -111,7 +111,7 @@ pub fn checked_results(PipelineContext) -> @relation_results.CheckedResults
 
 pub fn close_program_expressions(ProgramSourceIdentity, Int, Int) -> Result[ProgramExpressionClosure, ExpressionClosureIssue]
 
-pub fn collect_core_contracts(ProgramSourceIdentity, CoreContractLimits) -> Result[CoreContractInventory, CoreContractIssue]
+pub fn collect_core_contracts(ProgramSourceIdentity, CoreContractLimits, profile_checks? : ProgramOperationCalendar?) -> Result[CoreContractInventory, CoreContractIssue]
 
 pub fn collect_program_incoming(ProgramSourceIdentity, IncomingLimits) -> Result[ProgramIncomingRequirements, IncomingIssue]
 
@@ -128,6 +128,8 @@ pub fn core_contract_body_count(CoreContractInventory) -> Int
 pub fn core_contract_cid(CoreContractBody) -> String
 
 pub fn core_contract_identity(CoreContractInventory) -> ProgramSourceIdentity
+
+pub fn core_contract_profile_checks(CoreContractInventory) -> ProgramOperationCalendar?
 
 pub fn core_contract_root_at(CoreContractInventory, Int) -> CoreContractRoot?
 
@@ -671,6 +673,8 @@ pub(all) enum CoreContractBody {
   CatalogGrammarBody(@check_environment.CatalogGrammar)
   ProgramSourceGrammar
   StageSemantics(@check_environment.StageSemanticContract)
+  CalendarProfileData(String)
+  TextRankProfileData(String)
 } derive(Eq, @debug.Debug)
 
 type CoreContractInventory
@@ -682,6 +686,8 @@ pub(all) enum CoreContractIssue {
   SourceInventory(SourceContractIssue)
   CatalogBody(Int, Int, Int, @check_environment.BodyDependencyIssue)
   UnknownCatalogGrammar(Int, Int, Int)
+  UnresolvedProfileData(Int, Int, Int, @pipeline_typing.OperationProfile)
+  ForeignProfiles
 } derive(Eq, @debug.Debug)
 
 pub(all) struct CoreContractLimits {
@@ -703,6 +709,7 @@ pub(all) enum CoreContractSite {
   StageSourceGrammar(Int)
   StageSemanticRules(Int, @check_environment.StageSemanticContract)
   StageEnvironmentRules(Int)
+  OperationDataProfile(Int, Int, Int, @pipeline_typing.OperationProfile)
 } derive(Eq, @debug.Debug)
 
 pub struct DedupeTopTieCheck {
