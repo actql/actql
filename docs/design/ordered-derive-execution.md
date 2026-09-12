@@ -55,7 +55,6 @@ the selected registry's pin. Generated consumer constants follow the shared
 registry; they do not define an independent registration. Complete params are
 still only one part of the fragment: producing them does not discharge context,
 root, limit or backend-capability obligations.
-
 The row shape, prior-slot context and limits are separate self-identified
 bodies. This is an explicit definition of their preimages, not a serialization
 of internal checker handles. Shapes retain required but untyped fields and the
@@ -148,7 +147,6 @@ The complete typed failure tree is also readable, including resource limits,
 incomplete implementation or evidence, and row/slot/expression diagnostics.
 Expression failures retain their checked source location. Error values do not
 grant access to mutable execution state and are not a versioned wire protocol.
-
 ## Logical resources
 
 The limits distinguish input row occurrences, individual wire value size,
@@ -217,7 +215,6 @@ it is not yet a whole-fragment artifact-delivery or evidence-admission boundary.
 The generic sequence driver must supply the correct same-step resource context
 before it can use ordered execution; runtime helper success does not synthesize
 the request's limit CID or discharge the surrounding fragment's obligations.
-
 Logical live roots may share physical storage. Conversely, logical byte limits
 do not cap physical heap overhead or algorithmic cost. Host resource controls
 remain necessary. Input validation precedes shadowing, and an eventual select
