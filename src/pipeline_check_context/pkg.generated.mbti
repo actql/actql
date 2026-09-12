@@ -84,6 +84,8 @@ pub fn checked_orders(PipelineContext) -> @relation_results.CheckedOrders
 
 pub fn checked_results(PipelineContext) -> @relation_results.CheckedResults
 
+pub fn close_program_expressions(ProgramSourceIdentity, Int, Int) -> Result[ProgramExpressionClosure, ExpressionClosureIssue]
+
 pub fn collect_source_bindings(ProgramPreparation, Int, Int) -> Result[SourceBindingRequirements, SourceBindingsIssue]
 
 pub fn environment_inputs(EnvironmentContext) -> InputContexts
@@ -91,6 +93,14 @@ pub fn environment_inputs(EnvironmentContext) -> InputContexts
 pub fn environment_snapshots(EnvironmentContext) -> @stage_local_inputs.ProgramEnvironmentInputs
 
 pub fn environment_usage(EnvironmentContext) -> InputUsage
+
+pub fn expression_closure_at(ProgramExpressionClosure, Int) -> ResolvedExpressionRequirement?
+
+pub fn expression_closure_count(ProgramExpressionClosure) -> Int
+
+pub fn expression_closure_identity(ProgramExpressionClosure) -> ProgramSourceIdentity
+
+pub fn expression_closure_work(ProgramExpressionClosure) -> Int
 
 pub fn expression_profiles_context(ExpressionProfileChecks) -> ExpressionValidationContext
 
@@ -377,6 +387,18 @@ pub(all) enum EnvironmentIssue {
   BudgetExceeded
 } derive(Eq, @debug.Debug)
 
+pub(all) enum ExpressionClosureIssue {
+  InvalidLimits
+  BudgetExceeded
+  IncompleteResolution(Int)
+} derive(Eq, @debug.Debug)
+
+pub(all) enum ExpressionDischarge {
+  Profile(String)
+  Pattern(PatternResolution)
+  Envelope(TextBoundResolution)
+}
+
 type ExpressionProfileChecks
 
 pub(all) struct ExpressionProfiles {
@@ -551,6 +573,8 @@ pub(all) enum PreparationIssue {
   BudgetExceeded
 } derive(Eq, @debug.Debug)
 
+type ProgramExpressionClosure
+
 pub enum ProgramIdentityIssue {
   InvalidLimits
   BudgetExceeded
@@ -658,6 +682,11 @@ pub(all) struct RegexPatternUsage {
   ast_bytes : Int
   ast_nodes : Int
 } derive(Eq, @debug.Debug)
+
+pub struct ResolvedExpressionRequirement {
+  site : ExpressionValidationSite
+  resolution : ExpressionDischarge
+}
 
 type SelectedPolicyContext
 

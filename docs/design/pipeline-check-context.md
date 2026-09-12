@@ -589,7 +589,27 @@ neither is a physical-memory limit. Phase-specific failure never exposes a
 partially assembled identity set. Read-only accessors preserve the exact source
 owner and prepared Definition alongside their computed CIDs and measured usage.
 
-It does not discharge every operation's static/profile/pattern obligation, bind
+`close_program_expressions` closes the recorded typed-expression obligation
+inventory for that same owned source identity. It exhaustively matches
+`ProfileAdmission`, `PatternValidation` and `HostEnvelope`; adding another kind
+requires updating this boundary rather than silently skipping it. Every pattern
+and output-envelope resolution must refer to the exact context and occurrence,
+including repeated producer visits and unselected branches. Counts must cover
+the full prepared resolution collections, so neither missing entries nor extra
+unconsumed results count as completion. Profile requirements consume the
+preparation's already checked complete-profile declaration, not a new flag or
+a certificate of backend conformance.
+
+The opaque closure retains the source identity and exposes each requirement's
+original site and its existing resolution through indexed reads. A lowerer need
+not rejoin separate arrays or rediscover which producer/bound Parameters/policy
+the result belongs to. Output bounds retain their original demand and policy
+dependencies; they do not claim that runtime enforcement has run. One inclusive
+work cap and an independent retained-entry cap are checked before allocation,
+and the scan is linear in recorded occurrences. Empty inventories still retain
+their owner and do not manufacture execution authority.
+
+Expression closure does not discharge operation-level obligations, bind
 authored guard witness identities, build staged Program/import contracts, or
 complete local Unit/Invocation identity projections. Source Program and stage
 semantics are provided by the owned identity projection, not evidence that those
