@@ -1,0 +1,60 @@
+{
+  "version": "actql-stage-semantics-vectors/0.1",
+  "description": "Independent envelope expectations for the program_references source-projection fixtures, not executable Program fixtures.",
+  "cases": [
+    {
+      "name": "local-binding-and-parameter-uses",
+      "empty": false,
+      "stage": 0,
+      "expected_cid": "sha256:5a90d4ee89418f1c2fafa8110ff08017c8245a312eee166593bbf4d7545f3a6c",
+      "envelope": {
+        "version": "actql-stage-semantics/0.1",
+        "expression_contract_cid": "sha256:399d4593f8212a2239a0a3e3ca552653ad711010a180207f967cf546012fc1cb",
+        "parameters": {"m": {"type": "number"}, "n": {"type": "number"}},
+        "parameter_references": [
+          {"name": "n", "path": "/effects/d/delete/where/0/lt/1", "type": {"type": "number"}},
+          {"name": "n", "path": "/inputs/remote~1~0/request/p", "type": {"type": "number"}},
+          {"name": "m", "path": "/steps/0/take", "type": {"type": "number"}}
+        ],
+        "bindings": {"b": {"resource_kind": "drive.file", "type": "resource_ref"}},
+        "binding_references": [
+          {"name": "b", "path": "/inputs/remote~1~0/request/again", "type": {"resource_kind": "drive.file", "type": "resource_ref"}},
+          {"name": "b", "path": "/inputs/remote~1~0/request/f~1~0", "type": {"resource_kind": "drive.file", "type": "resource_ref"}}
+        ],
+        "local_body": {
+          "effects": {"d": {"delete": {"where": [{"lt": [{"literal": 1}, {"$param": "n"}]}]}}},
+          "from": "rows",
+          "inputs": {"rows": "relation", "remote/~": {"connector": "drive/main", "resource": "file", "request": {"p": {"$param": "n"}, "f/~": {"$binding": "b"}, "again": {"$binding": "b"}, "data": {"nested": {"$param": "unknown"}}}}},
+          "steps": [{"take": {"$param": "m"}}],
+          "results": {"r": {}}
+        }
+      }
+    },
+    {
+      "name": "other-stage-declarations-excluded",
+      "empty": false,
+      "stage": 1,
+      "expected_cid": "sha256:edd320b8b4c8ac3a0abff25b8fec8c858faa33ddf9acfc91d7daeefb9536badd",
+      "envelope": {
+        "version": "actql-stage-semantics/0.1",
+        "expression_contract_cid": "sha256:399d4593f8212a2239a0a3e3ca552653ad711010a180207f967cf546012fc1cb",
+        "parameters": {"m": {"type": "number"}},
+        "parameter_references": [{"name": "m", "path": "/steps/0/take", "type": {"type": "number"}}],
+        "bindings": {}, "binding_references": [],
+        "local_body": {"effects": {}, "from": "rows", "inputs": {"rows": "relation"}, "steps": [{"take": {"$param": "m"}}], "results": {"r": {}}}
+      }
+    },
+    {
+      "name": "explicit-empty-maps-and-lists",
+      "empty": true,
+      "stage": 1,
+      "expected_cid": "sha256:6207cf6549b9a178003845e3bb344a085ccd197a88a8184fb9e55e995d777053",
+      "envelope": {
+        "version": "actql-stage-semantics/0.1",
+        "expression_contract_cid": "sha256:399d4593f8212a2239a0a3e3ca552653ad711010a180207f967cf546012fc1cb",
+        "parameters": {}, "parameter_references": [], "bindings": {}, "binding_references": [],
+        "local_body": {"effects": {}, "from": "rows", "inputs": {"rows": "relation"}, "steps": [], "results": {"r": {}}}
+      }
+    }
+  ]
+}

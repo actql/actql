@@ -83,3 +83,16 @@ pub fn program_sources_bindings(
 pub fn program_sources_work(v : ProgramSourceChecks) -> Int {
   v.work
 }
+
+///|
+/// Unbound semantics from this assembly's exact source inventory. Stage/Unit
+/// definition envelopes, execution readiness and issuer admission remain separate.
+pub fn program_sources_stage_semantics(
+  v : ProgramSourceChecks,
+  index : Int,
+) -> @program_refs.StageSemantics? {
+  @program_refs.stage_semantics_at(
+    @program_refs.parameter_usage(v.references.references),
+    index,
+  )
+}

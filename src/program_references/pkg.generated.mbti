@@ -22,6 +22,8 @@ pub fn check_declaration_usage(Inventory, max_work~ : Int) -> Result[Declaration
 
 pub fn emit_binding_references(Index, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
 
+pub fn emit_stage_semantics(StageSemantics, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
+
 pub fn emit_used_bindings(Index, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
 
 pub fn parameter_usage(ParameterValues) -> DeclarationUsage
@@ -43,6 +45,14 @@ pub fn requests(Inventory) -> @source_request_slots.Slots
 pub fn stage_index(Inventory, Int) -> Index?
 
 pub fn stage_parameter_values(ParameterValues, Int) -> @parameter_references.BoundIndex?
+
+pub fn stage_semantics_at(DeclarationUsage, Int) -> StageSemantics?
+
+pub fn stage_semantics_cid(StageSemantics, Int, Int, Int) -> String raise @encode_core.EncodeFailure
+
+pub fn stage_semantics_index(StageSemantics) -> Int
+
+pub fn stage_semantics_usage(StageSemantics) -> DeclarationUsage
 
 pub fn stage_uses(Inventory, Int) -> @stage_source.ParameterUses?
 
@@ -88,6 +98,8 @@ pub(all) struct Limits {
 }
 
 type ParameterValues
+
+type StageSemantics
 
 pub enum UsageIssue {
   InvalidLimits

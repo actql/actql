@@ -568,6 +568,9 @@ The combined result retains all owners and counts shared stage/preparation work
 once. It is an opaque source-check assembly, not an issuer validator or an
 execution permit. Missing concrete Host Bindings remain visible through their
 inventory; a zero count does not establish acquisition or publication authority.
+Its stage semantics accessor selects the same owned source projection for the
+[normative stage envelope](stage-semantics.md), without using internal handles
+as persistent identity or admitting a different source inventory.
 
 It does not discharge every operation's static/profile/pattern obligation, bind
 authored guard witness identities, build staged Program/import contracts, or

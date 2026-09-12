@@ -189,6 +189,8 @@ pub fn program_sources_operations(ProgramSourceChecks) -> OperationProfileChecks
 
 pub fn program_sources_references(ProgramSourceChecks) -> ProgramReferences
 
+pub fn program_sources_stage_semantics(ProgramSourceChecks, Int) -> @program_references.StageSemantics?
+
 pub fn program_sources_work(ProgramSourceChecks) -> Int
 
 pub fn reconciled_local_at(ReconciledContexts, Int) -> @stage_local_inputs.ReconciledAttachment?

@@ -49,6 +49,14 @@ test "Program source checks join exact owners and retain independently validated
   assert_true(physical_equal(program_sources_operations(result), operations))
   assert_true(physical_equal(program_sources_references(result), references))
   assert_true(physical_equal(program_sources_bindings(result), bindings))
+  let semantics = program_sources_stage_semantics(result, 0).unwrap()
+  assert_true(
+    physical_equal(
+      @program_refs.stage_semantics_usage(semantics),
+      @program_refs.parameter_usage(program_reference_values(references)),
+    ),
+  )
+  assert_true(program_sources_stage_semantics(result, 2) is None)
   let work = program_sources_work(result)
   assert_eq(
     work,

@@ -1,5 +1,12 @@
 supported_targets = "+js+wasm+native"
 
+formatter(
+  ignore: [
+    "stage_expression_contract.generated.mbt",
+    "stage_semantics.generated_test.mbt",
+  ],
+)
+
 import {
   "actql/actql/source_request_slots" @requests,
   "actql/actql/stage_source" @body,
