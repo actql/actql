@@ -374,6 +374,25 @@ The law body has no declared dependency edges. Its selection does not validate
 a count proof, bind cells or certify execution, and does not stand in for other
 capacity laws. The law-name registry is not substituted for a semantic body.
 
+The same occurrence selects the existing `actql-bound-values-wire-law/0.1`
+body at `spec/contracts/actql-bound-values-wire-law.json`, pointer `""`, CID
+`sha256:b36a2c0087fa668e54b50e15ffae0985bda11bf4eab06b46c1b8a91f8750e750`,
+and the `REL.values` execution contract at `spec/contracts/actql-aoa.json`,
+pointer `/execution_contracts/REL.values`, CID
+`sha256:9dec7cf1abedfb23b0af130ec5e25c7442d28c205a94cad0218b2f5982d44b44`.
+They govern the wire measurement and typed-cell/publication interpretation used
+by the values resource checks. These are semantic bodies, not the selected
+pipeline registry, concrete limits, bound rows or backend capability evidence.
+`OperationValuesWireLaw` and `OperationValuesExecutionRules` retain the exact
+Stage/producer/step occurrence, including empty rows and unused producers.
+The execution body's declared canonical-value-contract edge reaches the existing
+value grammar and its transitive dependencies. The wire-law body declares no
+external reference fields; its prose law names are not scanned as edges.
+Body-pin and dependency-shape checks prevent either body from silently changing
+while the compiler keeps its old selection. Stages without values do not inherit
+these roots from another Stage. Selecting these contracts does not claim that a
+backend implements them or discharge the bound execution obligations.
+
 The work limit includes prior identity work once, plus root collection, producer,
 step and profile visits, source selection and body interpretation, and each
 unique grammar body's outgoing edges. Repeated direct Catalog-reference edges

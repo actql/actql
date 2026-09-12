@@ -164,7 +164,10 @@ test "core contract collection preserves owned occurrences and shares dependency
           Receipt(_, _, _) => abort("fixture has no Receipt")
         }
       }
-      OperationDataProfile(_, _, _, _) | OperationCountLaw(_, _, _) =>
+      OperationDataProfile(_, _, _, _)
+      | OperationCountLaw(_, _, _)
+      | OperationValuesWireLaw(_, _, _)
+      | OperationValuesExecutionRules(_, _, _) =>
         abort("Local fixture has no data profile")
       StageEnvironmentRules(stage) => {
         assert_true(stage >= 0 && stage < 2)

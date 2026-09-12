@@ -11,6 +11,30 @@ const protocol = read('spec/contracts/actql-protocol-schemas.json');
 const corpus = read('portability/corpus/rel-values-execution.json');
 const schema = aoa.execution_contracts['REL.values'].params_schema;
 
+test('compiler selects exact values execution and wire interpretation bodies', () => {
+  const implementation = readFileSync('src/pipeline_check_context/core_contracts.mbt', 'utf8').replace(/\s+/g, ' ');
+  const execution = aoa.execution_contracts['REL.values'];
+  const executionCid = 'sha256:9dec7cf1abedfb23b0af130ec5e25c7442d28c205a94cad0218b2f5982d44b44';
+  const wire = read('spec/contracts/actql-bound-values-wire-law.json');
+  const wireCid = 'sha256:b36a2c0087fa668e54b50e15ffae0985bda11bf4eab06b46c1b8a91f8750e750';
+  verifyIdentity(execution, executionCid);
+  verifyIdentity(wire, wireCid);
+  assert.ok(implementation.includes(`ValuesExecutionRules => "${executionCid}"`));
+  assert.ok(implementation.includes(`ValuesWireLaw => "${wireCid}"`));
+  // The collector must not silently treat a new declared dependency as a leaf.
+  assert.deepEqual(execution.dependencies, {
+    canonical_value_contract: {
+      path: 'spec/contracts/actql-protocol-schemas.json',
+      pointer: '/schemas/canonical_value_contract',
+      cid: 'sha256:02859499357530af0ae58e4f2958d1c8fa48f957b86b0a2976dad43bed99b551',
+    },
+  });
+  verifyIdentity(protocol.schemas.canonical_value_contract,
+    execution.dependencies.canonical_value_contract.cid);
+  assert.ok(implementation.includes('core_contract_dependency(b, ValuesExecutionRules, target)'));
+  assert.equal(Object.hasOwn(wire, 'dependencies'), false);
+});
+
 test('recursive resource scopes have independent fixed byte and type-depth vectors', () => {
   const resources = aoa.execution_contracts['REL.values'].semantics.recursive_resources;
   assert.deepEqual(resources.selected_root_types, ['array','object','vector']);

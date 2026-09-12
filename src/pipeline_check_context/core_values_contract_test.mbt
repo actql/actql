@@ -28,6 +28,21 @@ test "values count bodies retain occurrence ownership and share only body storag
         is @pipeline.Values(_),
       )
       occurrences += 1
+      let mut wire_roots = 0
+      let mut execution_roots = 0
+      for j in 0..<core_contract_root_count(inventory) {
+        let sibling = core_contract_root_at(inventory, j).unwrap()
+        if sibling.site == OperationValuesWireLaw(stage, visit, step) {
+          assert_eq(sibling.body, ValuesWireLaw)
+          wire_roots += 1
+        }
+        if sibling.site == OperationValuesExecutionRules(stage, visit, step) {
+          assert_eq(sibling.body, ValuesExecutionRules)
+          execution_roots += 1
+        }
+      }
+      assert_eq(wire_roots, 1)
+      assert_eq(execution_roots, 1)
     }
   }
   assert_true(occurrences > 1)
@@ -52,6 +67,17 @@ test "values count bodies retain occurrence ownership and share only body storag
       }
     }
     assert_eq(stage_has_contract(inventory, stage, ValuesCountLaw), owns)
+    assert_eq(stage_has_contract(inventory, stage, ValuesWireLaw), owns)
+    assert_eq(stage_has_contract(inventory, stage, ValuesExecutionRules), owns)
+    if owns {
+      assert_true(
+        stage_has_contract(
+          inventory,
+          stage,
+          CatalogGrammarBody(@environment.ValueGrammarBody),
+        ),
+      )
+    }
   }
   let exact : CoreContractLimits = {
     max_work: core_contract_usage(inventory).0,
@@ -82,5 +108,7 @@ test "values count bodies retain occurrence ownership and share only body storag
   let absent = collect_core_contracts(without, limits).unwrap()
   for stage in 0..<core_contract_stage_count(absent) {
     assert_false(stage_has_contract(absent, stage, ValuesCountLaw))
+    assert_false(stage_has_contract(absent, stage, ValuesWireLaw))
+    assert_false(stage_has_contract(absent, stage, ValuesExecutionRules))
   }
 }

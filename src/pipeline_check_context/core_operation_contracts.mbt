@@ -68,7 +68,19 @@ fn core_operation_count_root(
   step : Int,
 ) -> Unit raise CoreContractStop {
   let (site, body) = match operation_count_contract(operation) {
-    Values => (OperationCountLaw(stage, visit, step), ValuesCountLaw)
+    Values => {
+      core_contract_root(
+        b,
+        OperationValuesWireLaw(stage, visit, step),
+        ValuesWireLaw,
+      )
+      core_contract_root(
+        b,
+        OperationValuesExecutionRules(stage, visit, step),
+        ValuesExecutionRules,
+      )
+      (OperationCountLaw(stage, visit, step), ValuesCountLaw)
+    }
     Relation =>
       (OperationRelationCountRules(stage, visit, step), RelationCountRules)
     Join => (OperationJoinCountRules(stage, visit, step), JoinCountRules)

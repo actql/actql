@@ -32,6 +32,8 @@ pub(all) enum CoreContractBody {
   CalendarProfileData(String)
   TextRankProfileData(String)
   ValuesCountLaw
+  ValuesWireLaw
+  ValuesExecutionRules
   BoundTransferRules
   RelationCountRules
   JoinCountRules
@@ -56,6 +58,8 @@ pub(all) enum CoreContractSite {
   OperationDataProfile(Int, Int, Int, @pipeline.OperationProfile)
   IncomingRules(Int)
   OperationCountLaw(Int, Int, Int)
+  OperationValuesWireLaw(Int, Int, Int)
+  OperationValuesExecutionRules(Int, Int, Int)
   OperationTransferRules(Int, Int, Int)
   OperationRelationCountRules(Int, Int, Int)
   OperationJoinCountRules(Int, Int, Int)
@@ -457,6 +461,7 @@ pub fn collect_core_contracts(
         | CalendarProfileData(_)
         | TextRankProfileData(_) => ()
         ValuesCountLaw
+        | ValuesWireLaw
         | BoundTransferRules
         | RelationCountRules
         | JoinCountRules
@@ -465,6 +470,12 @@ pub fn collect_core_contracts(
         | RankingCountRules
         | SeriesCountRules => ()
         LocalSourceReferenceRules | CanonicalIdentityRules => ()
+        ValuesExecutionRules => {
+          let target = CatalogGrammarBody(@environment.ValueGrammarBody)
+          core_contract_edge(b)
+          core_contract_body(b, target)
+          core_contract_dependency(b, ValuesExecutionRules, target)
+        }
         LocalInputType(_) => {
           core_contract_edge(b)
           core_contract_body(b, LocalSnapshotRules)
@@ -572,6 +583,10 @@ pub fn core_contract_cid(v : CoreContractBody) -> String {
     CalendarProfileData(cid) | TextRankProfileData(cid) => cid
     ValuesCountLaw =>
       "sha256:0e0f9b4b6585ab7b17bafe484e82f44cd8f3acc9eec5ef9329cea200237a7971"
+    ValuesWireLaw =>
+      "sha256:b36a2c0087fa668e54b50e15ffae0985bda11bf4eab06b46c1b8a91f8750e750"
+    ValuesExecutionRules =>
+      "sha256:9dec7cf1abedfb23b0af130ec5e25c7442d28c205a94cad0218b2f5982d44b44"
     BoundTransferRules =>
       "sha256:014682262d00c8435f300731e823e5b267ec66b78f980c765c4fd3772c68c911"
     RelationCountRules =>

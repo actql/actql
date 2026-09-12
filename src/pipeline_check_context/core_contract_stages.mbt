@@ -31,6 +31,8 @@ fn core_contract_site_stage(
     StageExpression(stage)
     | OperationLaw(stage, _, _, _, _)
     | OperationCountLaw(stage, _, _)
+    | OperationValuesWireLaw(stage, _, _)
+    | OperationValuesExecutionRules(stage, _, _)
     | OperationTransferRules(stage, _, _)
     | OperationRelationCountRules(stage, _, _)
     | OperationJoinCountRules(stage, _, _)
