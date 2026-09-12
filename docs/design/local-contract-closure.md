@@ -164,6 +164,28 @@ Reads retain exact pipeline ownership without copying arrays or rehashing;
 visiting and collecting roots still consumes the caller's aggregate work budget.
 Repeated visits are not silently collapsed at this source-occurrence boundary.
 
+`collect_core_contracts` performs this traversal from one `ProgramSourceIdentity`.
+It retains every Stage expression root and every adopted-law occurrence across
+all producer visits, while storing each typed body once for dependency traversal.
+The result retains the original identity owner; shared body CIDs cannot replace
+that owner. Expression dependency edges retain their declared positions through
+the typed graph accessors, including repeated edges to one Unicode table.
+
+The work limit includes prior identity work once, plus root collection, producer,
+step and profile visits, and each unique body's outgoing edges. Independent caps
+bound retained roots, unique bodies and traversed edges before array growth.
+Traversal is nonrecursive. Exceeding any cap returns no inventory, including
+when the failure occurs after collecting the last Stage's roots. Indexed reads
+do not copy retained arrays. The small fixed body vocabulary bounds body-sharing
+comparisons independently of the number of source occurrences.
+Body inventory order is discovery order, not canonical contract-set order; it
+must not be hashed as the final set without the prescribed canonical sorting.
+
+This is the core expression/adopted-law contribution, not a completed local
+contract set and not a Unit identity. Declaration, Catalog, selected profile
+data, publication and incoming-interface contributions must still be selected
+and joined under the same Program owner before the final closure is emitted.
+
 Import/interface and gate construction supplies its local semantic contract
 references. Full predecessor Program revisions, Captured Runs, receipts and
 whole manifests are not substitutes for those projections. A required projection

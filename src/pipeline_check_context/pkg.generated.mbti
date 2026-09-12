@@ -111,6 +111,8 @@ pub fn checked_results(PipelineContext) -> @relation_results.CheckedResults
 
 pub fn close_program_expressions(ProgramSourceIdentity, Int, Int) -> Result[ProgramExpressionClosure, ExpressionClosureIssue]
 
+pub fn collect_core_contracts(ProgramSourceIdentity, CoreContractLimits) -> Result[CoreContractInventory, CoreContractIssue]
+
 pub fn collect_program_incoming(ProgramSourceIdentity, IncomingLimits) -> Result[ProgramIncomingRequirements, IncomingIssue]
 
 pub fn collect_program_operation_requirements(ProgramExpressionClosure, Int, Int) -> Result[ProgramOperationRequirements, OperationRequirementsIssue]
@@ -118,6 +120,20 @@ pub fn collect_program_operation_requirements(ProgramExpressionClosure, Int, Int
 pub fn collect_source_bindings(ProgramPreparation, Int, Int) -> Result[SourceBindingRequirements, SourceBindingsIssue]
 
 pub fn collect_source_contracts(ReconciledContexts, SourceContractLimits) -> Result[SourceContractRequirements, SourceContractIssue]
+
+pub fn core_contract_body_at(CoreContractInventory, Int) -> CoreContractBody?
+
+pub fn core_contract_body_count(CoreContractInventory) -> Int
+
+pub fn core_contract_cid(CoreContractBody) -> String
+
+pub fn core_contract_identity(CoreContractInventory) -> ProgramSourceIdentity
+
+pub fn core_contract_root_at(CoreContractInventory, Int) -> CoreContractRoot?
+
+pub fn core_contract_root_count(CoreContractInventory) -> Int
+
+pub fn core_contract_usage(CoreContractInventory) -> (Int, Int)
 
 pub fn dedupe_top_tie_law(DedupeTopTieCheck) -> String
 
@@ -645,6 +661,36 @@ pub fn wired_usage(WiredStages) -> (Int, Int)
 type AdmittedOperationQuery
 
 type BoundParameters
+
+pub(all) enum CoreContractBody {
+  ExpressionBody(@check_environment.ExpressionContractBody)
+  AdoptedBody(@pipeline_typing.AdoptedOperationLaw)
+} derive(Eq, @debug.Debug)
+
+type CoreContractInventory
+
+pub(all) enum CoreContractIssue {
+  InvalidLimits
+  BudgetExceeded
+  UnsupportedExpressionContract(Int)
+} derive(Eq, @debug.Debug)
+
+pub(all) struct CoreContractLimits {
+  max_work : Int
+  max_roots : Int
+  max_bodies : Int
+  max_edges : Int
+} derive(Eq, @debug.Debug)
+
+pub struct CoreContractRoot {
+  site : CoreContractSite
+  body : CoreContractBody
+}
+
+pub(all) enum CoreContractSite {
+  StageExpression(Int)
+  OperationLaw(Int, Int, Int, Int, Int)
+} derive(Eq, @debug.Debug)
 
 pub struct DedupeTopTieCheck {
   site : OperationRequirementSite
