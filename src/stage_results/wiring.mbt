@@ -31,6 +31,7 @@ struct ResultWiring {
   exports : Array[ResultExport]
   work : Int
   text_bytes : Int
+  local_inputs : Array[@local.Attached]?
 }
 
 ///|
@@ -141,7 +142,21 @@ pub fn wire_results(
     exports: retained_exports,
     work: limits.max_work - work,
     text_bytes: limits.max_text_bytes - text,
+    local_inputs: None,
   })
+}
+
+///|
+/// Source-only local Input attachments retained by prepare_local_program.
+/// Generic Result-only wiring has no such proof, even when its schemas match.
+pub fn wiring_local_input_at(
+  value : ResultWiring,
+  index : Int,
+) -> @local.Attached? {
+  match value.local_inputs {
+    None => None
+    Some(entries) => entries.get(index)
+  }
 }
 
 ///|

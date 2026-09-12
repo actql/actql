@@ -90,3 +90,68 @@ test "all-stage collection rejects missing repeated and reordered registrations"
     assert_true(collect_operations(s, [a, b], limit) is Err(InvalidLimits))
   }
 }
+
+///|
+test "prepared operation collection retains stage owners without re-admitting references" {
+  let source = prepared(parsed())
+  let pipelines = [
+    checked(source, 0, Some(declarations(source))),
+    checked(source, 1, Some(declarations(source))),
+  ]
+  let original = collect_operations(source, pipelines, caps()).unwrap()
+  let stages = [
+    operations_stage_at(original, 0).unwrap(),
+    operations_stage_at(original, 1).unwrap(),
+  ]
+  let used = operations_usage(original)
+  let exact : @collection.Limits = {
+    max_work: used.work,
+    max_slots: used.slots,
+    max_references: used.references,
+    max_pointer_units: used.pointer_units,
+    max_direct_text_bytes: used.direct_text_bytes,
+  }
+  let collected = collect_prepared_operations(source, stages, exact).unwrap()
+  assert_eq(operations_usage(collected), used)
+  for i in 0..<2 {
+    assert_true(
+      physical_equal(operations_stage_at(collected, i).unwrap(), stages[i]),
+    )
+    assert_eq(
+      @references.reference_at(operations_index(collected), i).unwrap().path,
+      @references.reference_at(operations_index(original), i).unwrap().path,
+    )
+  }
+  for
+    cap in [
+      { ..exact, max_work: used.work - 1, },
+      { ..exact, max_slots: used.slots - 1, },
+      { ..exact, max_references: used.references - 1, },
+      { ..exact, max_pointer_units: used.pointer_units - 1, },
+      { ..exact, max_direct_text_bytes: used.direct_text_bytes - 1, },
+    ] {
+    assert_true(collect_prepared_operations(source, stages, cap) is Err(_))
+  }
+  assert_true(
+    collect_prepared_operations(source, [stages[0]], caps())
+    is Err(PipelineCountMismatch),
+  )
+  assert_true(
+    collect_prepared_operations(source, [stages[1], stages[0]], caps())
+    is Err(ForeignStage(0)),
+  )
+  assert_true(
+    collect_prepared_operations(source, [stages[0], stages[0]], caps())
+    is Err(ForeignStage(1)),
+  )
+  assert_true(
+    collect_prepared_operations(prepared(parsed()), stages, caps())
+    is Err(ForeignStage(0)),
+  )
+  assert_true(
+    collect_prepared_operations(source, stages, { ..exact, max_work: -1, })
+    is Err(InvalidLimits),
+  )
+  stages.clear()
+  assert_true(operations_stage_at(collected, 1) is Some(_))
+}

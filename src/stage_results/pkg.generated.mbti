@@ -70,6 +70,8 @@ pub fn wire_results(@stage_parameters.Source, Array[StagePorts], Array[AttachedI
 
 pub fn wiring_imports_at(ResultWiring, Int) -> AttachedImports?
 
+pub fn wiring_local_input_at(ResultWiring, Int) -> @stage_local_inputs.Attached?
+
 pub fn wiring_source(ResultWiring) -> @stage_parameters.Source
 
 pub fn wiring_stage_at(ResultWiring, Int) -> StagePorts?

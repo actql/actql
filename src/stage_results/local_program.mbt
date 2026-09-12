@@ -66,6 +66,7 @@ pub fn prepare_local_program(
   let mut results = limits.max_results
   let stages : Array[StagePorts] = []
   let imports : Array[AttachedImports] = []
+  let local_inputs : Array[@local.Attached] = []
   // wire_results includes these exact retained prefixes in its reported usage.
   // They have already been charged; refund only those prefixes at that boundary.
   let mut wiring_work = 0
@@ -162,8 +163,22 @@ pub fn prepare_local_program(
       Err(e) => return Err(Collection(i, e))
       Ok(v) => v
     }
-    work -= @parameters.collection_work(collected)
+    let collection_work = @parameters.collection_work(collected)
+    work -= collection_work
     text -= @collection.direct_text_bytes(@parameters.collection(collected))
+    let input_attachment = match
+      @local.attach(
+        prepared,
+        collected,
+        max_work=work + local_used.work + collection_work,
+      ) {
+      Err(e) => return Err(LocalInput(i, e))
+      Ok(v) => v
+    }
+    work -= @local.attached_work(input_attachment) -
+      local_used.work -
+      collection_work
+    local_inputs.push(input_attachment)
     let attached = match
       attach_imports(resolved, collected, max_work=work + import_work) {
       Err(e) => return Err(Import(i, e))
@@ -238,7 +253,7 @@ pub fn prepare_local_program(
   text -= final_text - wiring_text
   Ok(
     (
-      wired,
+      { ..wired, local_inputs: Some(local_inputs), },
       {
         work: limits.max_work - work,
         nodes: limits.max_nodes - nodes,

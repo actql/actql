@@ -2,6 +2,7 @@
 pub(all) enum OperationsIssue {
   InvalidLimits
   PipelineCountMismatch
+  ForeignStage(Int)
   WorkLimit
   Stage(Int, Issue)
   References(@references.Issue)
@@ -32,6 +33,39 @@ pub fn collect_operations(
   pipelines : Array[@pipeline.CheckedPipeline],
   limits : @collection.Limits,
 ) -> Result[CollectedOperations, OperationsIssue] {
+  assemble_operations(source, pipelines.length(), limits, (i, remaining) => {
+    match collect(source, i, pipelines[i], remaining) {
+      Err(e) => Err(Stage(i, e))
+      Ok(v) => Ok(v)
+    }
+  })
+}
+
+///|
+/// Preserve the exact source-bound stages already used for producer ports and
+/// input evidence. Prior collection costs remain part of the aggregate budget.
+pub fn collect_prepared_operations(
+  source : Source,
+  stages : Array[CollectedStage],
+  limits : @collection.Limits,
+) -> Result[CollectedOperations, OperationsIssue] {
+  assemble_operations(source, stages.length(), limits, (i, _) => {
+    let value = stages[i]
+    if !physical_equal(value.source, source) || value.stage_index != i {
+      Err(ForeignStage(i))
+    } else {
+      Ok(value)
+    }
+  })
+}
+
+///|
+fn assemble_operations(
+  source : Source,
+  count : Int,
+  limits : @collection.Limits,
+  prepare : (Int, @collection.Limits) -> Result[CollectedStage, OperationsIssue],
+) -> Result[CollectedOperations, OperationsIssue] {
   if limits.max_work < 0 ||
     limits.max_slots < 0 ||
     limits.max_references < 0 ||
@@ -39,19 +73,19 @@ pub fn collect_operations(
     limits.max_direct_text_bytes < 0 {
     return Err(InvalidLimits)
   }
-  if pipelines.length() != stage_count(source) {
+  if count != stage_count(source) {
     return Err(PipelineCountMismatch)
   }
   let mut remaining = limits
   let stages : Array[CollectedStage] = []
   let slots : Array[@expression.ParameterOccurrences] = []
-  for i in 0..<pipelines.length() {
+  for i in 0..<count {
     if remaining.max_work == 0 {
       return Err(WorkLimit)
     }
     remaining = { ..remaining, max_work: remaining.max_work - 1, }
-    let result = match collect(source, i, pipelines[i], remaining) {
-      Err(e) => return Err(Stage(i, e))
+    let result = match prepare(i, remaining) {
+      Err(e) => return Err(e)
       Ok(v) => v
     }
     let local_collection = collection(result)
@@ -60,6 +94,14 @@ pub fn collect_operations(
         @collection.expressions(local_collection),
       ) +
       @pipeline.parameter_slot_count(@collection.operands(local_collection))
+    if collection_work(result) > remaining.max_work ||
+      slot_count > remaining.max_slots ||
+      @references.reference_count(local_index) > remaining.max_references ||
+      @references.pointer_units(local_index) > remaining.max_pointer_units ||
+      @collection.direct_text_bytes(local_collection) >
+      remaining.max_direct_text_bytes {
+      return Err(WorkLimit)
+    }
     remaining = {
       max_work: remaining.max_work - collection_work(result),
       max_slots: remaining.max_slots - slot_count,

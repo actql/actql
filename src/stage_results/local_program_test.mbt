@@ -200,3 +200,69 @@ test "local Program preparation does not skip unused invalid local declarations"
     is Err(LocalInput(0, _)),
   )
 }
+
+///|
+test "local Program wiring retains input proofs and the same stages in whole-Program collection" {
+  let source = local_program_source(true)
+  let (wired, _) = prepare_local_program(source, local_program_limits()).unwrap()
+  let stages = []
+  for i in 0..<2 {
+    let stage = stage_port_source(wiring_stage_at(wired, i).unwrap())
+    let attachment = wiring_local_input_at(wired, i).unwrap()
+    assert_true(physical_equal(@local.attached_stage(attachment), stage))
+    let inputs = @local.attached_inputs(attachment)
+    assert_true(physical_equal(@local.source(inputs), source))
+    assert_eq(@local.stage_index(inputs), i)
+    assert_eq(@local.count(inputs), if i == 0 { 1 } else { 0 })
+    stages.push(stage)
+  }
+  let operations = @parameters.collect_prepared_operations(source, stages, {
+    max_work: 1000000,
+    max_slots: 100,
+    max_references: 100,
+    max_pointer_units: 100000,
+    max_direct_text_bytes: 100000,
+  }).unwrap()
+  for i in 0..<2 {
+    assert_true(
+      physical_equal(
+        @parameters.operations_stage_at(operations, i).unwrap(),
+        @local.attached_stage(wiring_local_input_at(wired, i).unwrap()),
+      ),
+    )
+  }
+  let publications = []
+  for i in 0..<2 {
+    publications.push(
+      @results.publication_orders_results(
+        @results.checked_publication_orders(
+          @results.ports_orders(
+            stage_port_publications(wiring_stage_at(wired, i).unwrap()),
+          ),
+        ),
+      ),
+    )
+  }
+  let all_results = collect_checked(operations, publications, {
+    max_results: 2,
+    max_work: 1000000,
+    max_nodes: 100000,
+    max_text_bytes: 100000,
+  }).unwrap()
+  for i in 0..<2 {
+    assert_true(
+      physical_equal(stage_at(all_results, i).unwrap(), publications[i]),
+    )
+  }
+  stages.clear()
+  assert_true(wiring_local_input_at(wired, -1) is None)
+  assert_true(wiring_local_input_at(wired, 2) is None)
+  let (generic_source, generic_stages, generic_imports) = wiring_fixture()
+  let generic = wire_results(
+    generic_source,
+    generic_stages,
+    generic_imports,
+    wiring_limits(),
+  ).unwrap()
+  assert_true(wiring_local_input_at(generic, 0) is None)
+}

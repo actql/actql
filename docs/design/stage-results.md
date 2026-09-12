@@ -12,6 +12,14 @@ There is no caller-supplied bag of pipelines or publication proofs. Repeated and
 unused imports retain their exact producer ports; a failure in a later stage
 returns no partial wiring result.
 
+`wiring_local_input_at` retains the source-only local Input attachment for each
+prepared stage, including stages with no local inputs. Its Stage is the same
+owner retained by the publication ports and passed to
+`stage_parameters.collect_prepared_operations`. Re-reading an equal declaration
+is not a substitute for that input owner. Generic `wire_results` does not create
+these attachments and its accessor returns no proof. Neither kind of wiring
+upgrades a source assertion into observed input data or Host authority.
+
 The allowance is shared across local declaration checks, input registration,
 pipeline checking, reference collection, Result checking, contextual order
 resolution, port preparation and final wiring. Work/text prefixes retained by

@@ -53,6 +53,16 @@ order. Missing, repeated, foreign or reordered registrations reject. It calls
 the source-bound collector for each stage with the remaining work, slot,
 reference, pointer and direct-text allowances, never a reset per-stage budget.
 
+`collect_prepared_operations` uses the same aggregate indexing path but retains
+already collected stages, including the exact owners used by producer ports and
+input attachments. It requires the same source owner and the correct stage index
+at every position; equal-looking foreign stages cannot substitute. All prior
+collection costs are admitted against the aggregate limits before gathering
+occurrences, and only the Program-coordinate index is newly built. This allows
+dependency-ordered Program preparation to attach the existing Result checks
+without reissuing either Stage or Result owners. The retained stage array is
+independent of the caller's registration array.
+
 The result retains each local index and one combined index in Program coordinates.
 For example, equal local `/steps/0/take` positions in two stages become distinct
 `/stages/0/steps/0/take` and `/stages/1/steps/0/take` pointers. The combined index
