@@ -4,11 +4,19 @@ fn program_sources_fixture(
   tea? : Bool = false,
   calendar? : Bool = false,
   veca? : Bool = false,
+  text_rank? : Bool = false,
+  host_profile? : String = bound_profile(),
   expression? : String = "regex_extract($p, '(.)', $n)",
   steps? : String? = None,
   parameters? : String = "{\"p\":{\"type\":\"string\",\"default\":\"é😀\"},\"n\":{\"type\":\"number\",\"default\":1}}",
 ) -> (OperationProfileChecks, ProgramReferences, SourceBindingRequirements) {
-  let patterns = bound_fixture(expression, supplied~, steps~, parameters~)
+  let patterns = bound_fixture(
+    expression,
+    supplied~,
+    steps~,
+    parameters~,
+    profile=host_profile,
+  )
   let validation = pattern_context(patterns)
   let selected = expression_validation_selected(validation)
   let producer = preparation_sources_fixture(selected)
@@ -20,7 +28,7 @@ fn program_sources_fixture(
   ).unwrap()
   let operations = check_operation_profiles(
     preparation,
-    { rela: true, sga: false, tea, calendar, text_rank: false, },
+    { rela: true, sga: false, tea, calendar, text_rank, },
     10000000,
   ).unwrap()
   let stages = wired_stage_contexts(reconciled_wiring(policy_context(selected)))

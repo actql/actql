@@ -15,6 +15,7 @@ import {
   "actql/actql/program_references",
   "actql/actql/regex_pattern",
   "actql/actql/regex_replacement",
+  "actql/actql/relation_evidence",
   "actql/actql/relation_results",
   "actql/actql/relation_typing",
   "actql/actql/relation_values",
@@ -73,6 +74,8 @@ pub fn check_program_operation_cells(ProgramOperationQueries, Int, Int) -> Resul
 pub fn check_program_operation_fills(ProgramOperationFrames, Int, Int) -> Result[ProgramOperationFills, OperationFillIssue]
 
 pub fn check_program_operation_frames(ProgramOperationScalars, Int, Int) -> Result[ProgramOperationFrames, OperationFrameIssue]
+
+pub fn check_program_operation_lexical(ProgramOperationCells, @check_environment.SelectedTextRankProfile?, Int, Int) -> Result[ProgramOperationLexical, OperationLexicalIssue]
 
 pub fn check_program_operation_queries(ProgramOperationRanges, Int, Int) -> Result[ProgramOperationQueries, OperationQueryIssue]
 
@@ -193,6 +196,16 @@ pub fn operation_frames_count(ProgramOperationFrames) -> Int
 pub fn operation_frames_scalars(ProgramOperationFrames) -> ProgramOperationScalars
 
 pub fn operation_frames_work(ProgramOperationFrames) -> Int
+
+pub fn operation_lexical_at(ProgramOperationLexical, Int) -> OperationLexicalResolution?
+
+pub fn operation_lexical_cells(ProgramOperationLexical) -> ProgramOperationCells
+
+pub fn operation_lexical_count(ProgramOperationLexical) -> Int
+
+pub fn operation_lexical_profile(ProgramOperationLexical) -> @check_environment.SelectedTextRankProfile?
+
+pub fn operation_lexical_work(ProgramOperationLexical) -> Int
 
 pub fn operation_order_link_at(ProgramOperationOrders, Int) -> OperationOrderLink?
 
@@ -646,6 +659,24 @@ pub struct OperationFrameResolution {
   end_parameter : @parameter_binding.BoundParameter?
 }
 
+pub(all) enum OperationLexicalIssue {
+  InvalidLimits
+  BudgetExceeded
+  ForeignEnvironment
+  MissingArtifact
+  Selection(@check_environment.TextRankSelectionIssue)
+  MissingProfile(Int, Int, Int)
+  ProfileMismatch(Int, Int, Int)
+} derive(Eq, @debug.Debug)
+
+pub struct OperationLexicalResolution {
+  stage : Int
+  producer_visit : Int
+  step : Int
+  operation : @relation_evidence.CheckedTextRank
+  selected : @check_environment.SelectedTextRankProfile
+}
+
 pub(all) enum OperationOrderIssue {
   InvalidLimits
   BudgetExceeded
@@ -835,6 +866,8 @@ type ProgramOperationCells
 type ProgramOperationFills
 
 type ProgramOperationFrames
+
+type ProgramOperationLexical
 
 type ProgramOperationOrders
 

@@ -865,6 +865,29 @@ success. This does not construct execution params, serialize typed values or
 discharge publication-resource obligations. Those boundaries retain their own
 contracts and checks.
 
+### Environment-owned lexical profiles
+
+`check_program_operation_lexical` connects finite-cell checking to the selected
+lexical artifact. The supplied `SelectedTextRankProfile` must retain the exact
+Check Environment already selected by this Program, not merely an equal CID.
+An absent artifact never bypasses validation of a supplied selection component;
+malformed selections and selected-but-missing artifacts fail even when unused.
+Absence of both remains valid for Programs without a lexical consumer.
+
+Every step in every stage/producer visit is inspected, including unpublished
+branches. Each `text_rank` receives a resolution retaining its checked operation,
+coordinates and selected artifact. If the operation already holds a profile,
+its CID must match the independently selected artifact; otherwise the retained
+resolution supplies the missing association without mutating the operation.
+Lowering consumes this association rather than selecting or inferring a profile.
+Work accumulates over preceding checks, selection validation and all visits;
+entry limits apply before retaining resolutions, with no partial success.
+
+This closes lexical profile selection only. Complete input admission,
+tokenization, BM25 arithmetic, rank generation, scoring ceilings, authority and
+publication remain distinct requirements. Artifact input bytes are separately
+bounded by the profile admission API; traversal work is not a heap-size bound.
+
 Expression closure does not discharge operation-level obligations, bind
 authored guard witness identities, build staged Program/import contracts, or
 complete local Unit/Invocation identity projections. Source Program and stage

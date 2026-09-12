@@ -1,6 +1,7 @@
 supported_targets = "+js+wasm+native"
 
 import {
+  "actql/actql/text_rank_profile" @lexical,
   "actql/actql/relation_values" @values,
   "actql/actql/vector_typing" @vector,
   "actql/actql/carrier_contract" @carrier,
@@ -56,4 +57,9 @@ import {
   "moonbitlang/core/encoding/utf8",
 } for "test"
 
-formatter(ignore: [ "sourceview_fixture.generated_test.mbt" ])
+formatter(
+  ignore: [
+    "sourceview_fixture.generated_test.mbt",
+    "text_profile.generated_test.mbt",
+  ],
+)

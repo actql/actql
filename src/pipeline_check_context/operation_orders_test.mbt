@@ -5,6 +5,8 @@ fn operation_order_fixture(
   tea? : Bool = false,
   calendar? : Bool = false,
   veca? : Bool = false,
+  text_rank? : Bool = false,
+  host_profile? : String = bound_profile(),
   parameters? : String = "{\"p\":{\"type\":\"string\",\"default\":\"é😀\"},\"n\":{\"type\":\"number\",\"default\":1}}",
 ) -> ProgramOperationRequirements {
   let (operations, references, bindings) = program_sources_fixture(
@@ -13,6 +15,8 @@ fn operation_order_fixture(
     tea~,
     calendar~,
     veca~,
+    text_rank~,
+    host_profile~,
     parameters~,
   )
   let identity = identify_program_sources(
