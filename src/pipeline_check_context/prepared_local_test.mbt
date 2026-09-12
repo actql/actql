@@ -1,5 +1,6 @@
 ///|
 fn local_source_program_fixture(
+  unknown_input? : Bool = false,
   first_by_order? : Bool = false,
   unused_operation? : Bool = false,
   third_stage? : Bool = false,
@@ -8,6 +9,14 @@ fn local_source_program_fixture(
   @syntax.parse(
     (
       #|{"version":"actql/0.1","id":"prepared","params":{"n":{"type":"number","default":2}},"stages":[{"id":"first","inputs":{"rows":{"carrier":"relation","schema":{"id":{"type":"number","nullable":false}},"primary_key":["id"]}},"steps":[{"derive":{"value":"id + $n"},"as":"derived"}],"results":{"out":{"from":"derived","fields":["id","value"]}}},{"id":"second","inputs":{"rows":{"result":{"stage":"first","result":"out"}},"again":{"result":{"stage":"first","result":"out"}}},"from":"rows","steps":[{"derive":{"next":"value + $n"},"as":"derived"}],"results":{"out":{"from":"derived","fields":["id","next"]}}}],"results":{"out":{"from":{"stage":"second","result":"out"}}}}
+    )
+    .replace(
+      old="\"inputs\":{\"rows\":{\"carrier\":\"relation\"",
+      new=if unknown_input {
+        "\"from\":\"rows\",\"inputs\":{\"unused\":{\"carrier\":\"relation\",\"expected_columns\":[\"id\"]},\"rows\":{\"carrier\":\"relation\""
+      } else {
+        "\"inputs\":{\"rows\":{\"carrier\":\"relation\""
+      },
     )
     .replace(
       old="}],\"results\":{\"out\":{\"from\":{\"stage\":\"second\",\"result\":\"out\"}}}}",
@@ -49,6 +58,7 @@ fn local_source_program_fixture(
 
 ///|
 fn prepared_local_source_fixture(
+  unknown_input? : Bool = false,
   first_by_order? : Bool = false,
   unused_operation? : Bool = false,
   third_stage? : Bool = false,
@@ -56,6 +66,7 @@ fn prepared_local_source_fixture(
 ) -> @stage_results.PreparedLocalSource {
   let stage_count = if third_stage { 3 } else { 2 }
   let program = local_source_program_fixture(
+    unknown_input~,
     first_by_order~,
     unused_operation~,
     third_stage~,

@@ -1,5 +1,5 @@
 ///|
-test "Local snapshot roots retain source scope and exclude materialization" {
+test "effective Local type roots are independent of equivalent snapshot evidence" {
   let body = "{\"output_carrier\":\"relation\",\"schema\":{\"additional_properties\":false,\"fields\":{\"id\":{\"nullable\":false,\"type\":\"number\"}},\"nullable\":false,\"type\":\"object\"},\"source_ref\":\"source:local/first/rows\",\"version\":\"actql-local-input-schema/0.1\"}"
   // Independent Node crypto digest and explicit JSON structural counts.
   let expected : CoreContractBody = LocalInputType(
@@ -16,6 +16,13 @@ test "Local snapshot roots retain source scope and exclude materialization" {
     max_nodes: 12,
     max_depth: 4,
   }
+  let (source_identity, _, _) = prepared_identity_fixture()
+  let declared = collect_core_contracts(
+    source_identity,
+    caps,
+    hash_limits=Some(exact),
+  ).unwrap()
+  assert_eq(core_contract_hash_usage(declared), (234, 12))
   for
     prefix in [
       "",
@@ -35,6 +42,14 @@ test "Local snapshot roots retain source scope and exclude materialization" {
       is Err(BudgetExceeded),
     )
     let v = collect_core_contracts(identity, caps, hash_limits=Some(exact)).unwrap()
+    assert_eq(core_contract_root_count(v), core_contract_root_count(declared))
+    assert_eq(core_contract_body_count(v), core_contract_body_count(declared))
+    for i in 0..<core_contract_root_count(v) {
+      let actual = core_contract_root_at(v, i).unwrap()
+      let expected = core_contract_root_at(declared, i).unwrap()
+      assert_eq(actual.site, expected.site)
+      assert_eq(actual.body, expected.body)
+    }
     assert_true(physical_equal(core_contract_identity(v), identity))
     assert_eq(core_contract_hash_usage(v), (234, 12))
     assert_true(stage_has_contract(v, 0, expected))
@@ -75,6 +90,72 @@ test "Local snapshot roots retain source scope and exclude materialization" {
         { ..caps, max_work: work - 1, },
         hash_limits=Some(exact),
       )
+      is Err(BudgetExceeded),
+    )
+  }
+}
+
+///|
+test "unused columns-only Local inputs retain interpretation without a fabricated row type" {
+  let (identity, _, _) = prepared_identity_fixture(unknown_input=true)
+  let v = collect_core_contracts(identity, {
+    max_work: 10000000,
+    max_roots: 1000,
+    max_bodies: 100,
+    max_edges: 100,
+  }).unwrap()
+  let mut inputs = 0
+  let mut typed = 0
+  for i in 0..<core_contract_root_count(v) {
+    let root = core_contract_root_at(v, i).unwrap()
+    match root.site {
+      StageLocalInputRules(stage, _) => {
+        assert_eq(stage, 0)
+        inputs += 1
+      }
+      StageLocalInputType(stage, _) => {
+        assert_eq(stage, 0)
+        assert_eq(
+          core_contract_cid(root.body),
+          "sha256:ac3a6b9102dd5201e9a69b6a64f42066be6e64eef99cec7ee584e647bf5c9c1a",
+        )
+        typed += 1
+      }
+      _ => ()
+    }
+  }
+  assert_eq(inputs, 2)
+  assert_eq(typed, 1)
+  assert_eq(core_contract_hash_usage(v), (234, 12))
+}
+
+///|
+test "a supplied complete schema refines an unused columns-only input under its own name" {
+  let (identity, _, _) = prepared_identity_fixture(
+    unknown_input=true,
+    schema_snapshots="[{\"output_carrier\":\"relation\",\"schema\":{\"additional_properties\":false,\"fields\":{\"id\":{\"nullable\":false,\"type\":\"number\"}},\"nullable\":false,\"type\":\"object\"},\"source_ref\":\"source:local/first/unused\",\"version\":\"actql-local-input-schema/0.1\"}]",
+  )
+  let caps : CoreContractLimits = {
+    max_work: 10000000,
+    max_roots: 1000,
+    max_bodies: 100,
+    max_edges: 100,
+  }
+  let exact : @snapshot.Limits = {
+    max_bytes: 470,
+    max_nodes: 24,
+    max_depth: 4,
+  }
+  let v = collect_core_contracts(identity, caps, hash_limits=Some(exact)).unwrap()
+  let expected : CoreContractBody = LocalInputType(
+    "sha256:2169ba2009575b4b9144a119c2546939aaf9a179e9b63019b7e2b325110edeea",
+  )
+  assert_true(stage_has_contract(v, 0, expected))
+  assert_false(stage_has_contract(v, 1, expected))
+  assert_eq(core_contract_hash_usage(v), (470, 24))
+  for short in [{ ..exact, max_bytes: 469, }, { ..exact, max_nodes: 23, }] {
+    assert_true(
+      collect_core_contracts(identity, caps, hash_limits=Some(short))
       is Err(BudgetExceeded),
     )
   }

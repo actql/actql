@@ -22,7 +22,7 @@ test "Stage contract selections retain transitive dependencies without borrowing
     max_edges: 100,
   }).unwrap()
   assert_eq(core_contract_stage_count(v), 2)
-  assert_eq(core_contract_stage_body_count(v, 0), Some(31))
+  assert_eq(core_contract_stage_body_count(v, 0), Some(32))
   assert_eq(core_contract_stage_body_count(v, 1), Some(31))
   assert_true(stage_has_contract(v, 0, LocalSnapshotRules))
   assert_true(stage_has_contract(v, 0, LocalSourceReferenceRules))

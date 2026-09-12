@@ -306,24 +306,36 @@ pub fn collect_core_contracts(
           @local_inputs.reconciled_inputs(context.locals[stage]),
         ),
       )
+      let assertions = @local_inputs.snapshot_assertions(
+        @local_inputs.environment_assertions(
+          @local_inputs.reconciled_inputs(context.locals[stage]),
+        ),
+      )
       for input in 0..<@local_inputs.count(locals) {
         core_contract_root(
           b,
           StageLocalInputRules(stage, input),
           LocalSnapshotRules,
         )
-      }
-      let snapshots = @local_inputs.environment_assertions(
-        @local_inputs.reconciled_inputs(context.locals[stage]),
-      )
-      for index in 0..<@local_inputs.snapshot_count(snapshots) {
+        let (name, declaration) = @local_inputs.entry_at(locals, input).unwrap()
+        let schema = match
+          @local_inputs.schema_agreement_at(assertions, input) {
+          Some(agreement) => Some(@local_input.supplied_schema(agreement))
+          None =>
+            @carrier.complete_schema(
+              @carrier.relation_rows(@local_input.carrier(declaration)).unwrap(),
+            )
+        }
+        // A partial declaration remains represented by its source body. Never
+        // manufacture a complete empty object or a json type for unknown fields.
+        guard schema is Some(schema) else { continue }
         core_contract_local_type(
           b,
           stage,
-          index,
-          @local_inputs.bound_snapshot(
-            @local_inputs.snapshot_binding_at(snapshots, index).unwrap(),
-          ),
+          input,
+          @stages.stage_at(@local_inputs.source(locals), stage).unwrap().id,
+          name,
+          @schema.as_object(schema).unwrap(),
         )
       }
       for

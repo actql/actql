@@ -3,12 +3,24 @@ fn core_contract_local_type(
   b : CoreContractBuilder,
   stage : Int,
   index : Int,
-  snapshot : @snapshot.Snapshot,
+  stage_name : String,
+  input_name : String,
+  contract : @contract.Contract,
 ) -> Unit raise CoreContractStop {
   core_contract_charge(b)
   let remaining = b.limits.max_work - b.work
   let bytes = b.hash_limits.max_bytes - b.hash_bytes
   let nodes = b.hash_limits.max_nodes - b.hash_nodes
+  let reference = match
+    @local_ref.create(
+      stage_name,
+      input_name,
+      max_bytes=if bytes < remaining { bytes } else { remaining },
+    ) {
+    Ok(v) => @local_ref.stringify(v)
+    Err(@local_ref.LimitExceeded) => raise CoreContractStop(BudgetExceeded)
+    Err(_) => raise CoreContractStop(LocalTypeEncoding(stage, index))
+  }
   let (cid, size, count) = try {
     let writer = @encode.hashing_writer(
       if bytes < remaining {
@@ -23,7 +35,16 @@ fn core_contract_local_type(
       },
       b.hash_limits.max_depth,
     )
-    @snapshot.emit_type_projection(snapshot, writer)
+    @encode.begin_object(writer)
+    @encode.key(writer, "output_carrier")
+    @encode.string_value(writer, "relation")
+    @encode.key(writer, "schema")
+    @contract.emit_checked(contract, writer)
+    @encode.key(writer, "source_ref")
+    @encode.string_value(writer, reference)
+    @encode.key(writer, "version")
+    @encode.string_value(writer, "actql-local-input-schema/0.1")
+    @encode.end_object(writer)
     @encode.finish_hash_usage(writer)
   } catch {
     @encode.OutputLimit => raise CoreContractStop(BudgetExceeded)

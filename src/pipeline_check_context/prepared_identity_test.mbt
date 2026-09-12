@@ -26,6 +26,7 @@ fn prepared_environment_fixture(
 
 ///|
 fn prepared_identity_fixture(
+  unknown_input? : Bool = false,
   first_by_order? : Bool = false,
   unused_operation? : Bool = false,
   third_stage? : Bool = false,
@@ -37,6 +38,7 @@ fn prepared_identity_fixture(
     schema_snapshots~,
   )
   let prepared = prepared_local_source_fixture(
+    unknown_input~,
     first_by_order~,
     unused_operation~,
     third_stage~,

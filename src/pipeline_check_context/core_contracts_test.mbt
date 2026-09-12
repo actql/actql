@@ -87,26 +87,27 @@ test "core contract collection preserves owned occurrences and shares dependency
   let incoming = core_contract_incoming(inventory)
   assert_true(physical_equal(program_incoming_identity(incoming), identity))
   assert_eq(program_incoming_count(incoming), 3)
-  assert_eq(core_contract_root_count(inventory), 18 + 4 * steps)
-  assert_eq(core_contract_body_count(inventory), 33)
+  assert_eq(core_contract_root_count(inventory), 19 + 4 * steps)
+  assert_eq(core_contract_body_count(inventory), 34)
   let (work, edges) = core_contract_usage(inventory)
-  assert_eq(edges, 25)
+  assert_eq(edges, 26)
   assert_eq(
     work,
     program_identity_usage(identity).0 +
     7 +
-    17 +
+    18 +
+    247 +
     2 * steps +
     visits +
     4 * steps +
-    33 +
-    25 +
+    34 +
+    26 +
     (program_incoming_usage(incoming).0 - program_identity_usage(identity).0) +
     6 +
     4 +
     core_contract_root_count(inventory) +
-    62 +
-    44,
+    63 +
+    45,
   )
   let mut stage_roots = 0
   let mut unused_roots = 0
@@ -116,7 +117,10 @@ test "core contract collection preserves owned occurrences and shares dependency
     match root.site {
       OperationJoinCountRules(_, _, _) => assert_eq(root.body, JoinCountRules)
       StageLocalInputRules(_, _) => assert_eq(root.body, LocalSnapshotRules)
-      StageLocalInputType(_, _) => fail("fixture has no supplied snapshots")
+      StageLocalInputType(stage, input) => {
+        assert_eq((stage, input), (0, 0))
+        assert_true(root.body is LocalInputType(_))
+      }
       OperationRankingCountRules(_, _, _) =>
         assert_eq(root.body, RankingCountRules)
       OperationSeriesCountRules(_, _, _) =>
@@ -227,8 +231,8 @@ test "core contract collection preserves owned occurrences and shares dependency
   let exact : CoreContractLimits = {
     max_work: work,
     max_roots: core_contract_root_count(inventory),
-    max_bodies: 33,
-    max_edges: 25,
+    max_bodies: 34,
+    max_edges: 26,
   }
   assert_true(collect_core_contracts(identity, exact) is Ok(_))
   assert_true(
@@ -249,8 +253,8 @@ test "core contract collection preserves owned occurrences and shares dependency
     limits in [
       { ..exact, max_work: work - 1, },
       { ..exact, max_roots: exact.max_roots - 1, },
-      { ..exact, max_bodies: 32, },
-      { ..exact, max_edges: 24, },
+      { ..exact, max_bodies: 33, },
+      { ..exact, max_edges: 25, },
     ] {
     assert_true(collect_core_contracts(identity, limits) is Err(BudgetExceeded))
   }

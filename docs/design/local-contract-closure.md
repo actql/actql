@@ -193,18 +193,22 @@ source-owned registration checks before use in a Unit closure. An unknown or
 partially described source is not a schema-only snapshot and is not converted
 to an empty object contract by this API.
 
-The core inventory selects this projection from every snapshot binding in the
-exact reconciled Local registration retained by the Program context. A
-`StageLocalInputType(stage, snapshot_index)` site indexes that registration's
-snapshot bindings, not the declaration array or the Environment's global member
-array. Each projected body depends on `LocalSnapshotRules`; equal body CIDs share
+The core inventory selects the effective complete row type of every Local input
+from the exact reconciled registration retained by the Program context. A supplied
+schema agreement takes precedence; otherwise the declared complete schema is used.
+Both use the same schema-only shape, so an equivalent supplied schema does not add
+a different contract root. A `StageLocalInputType(stage, input_index)` site indexes
+that registration's Local declarations, not snapshot order or the Environment's
+global member array. The source reference is constructed from the owned Stage ID
+and input name. Each projected body depends on `LocalSnapshotRules`; equal body CIDs share
 storage without merging their owned occurrences. Projection bytes and nodes are
 charged per occurrence against optional aggregate hash limits and the remaining
 work budget. Omitted hash limits use `max_work` as each cap; explicit limits can
 be tighter. `core_contract_hash_usage` reports the additional bytes and nodes.
-This connects supplied type evidence, not the complete set of effective input
-types: declared types and supplied equivalent refinements still need consistent
-selection before the inventory can certify a Unit closure.
+Columns-only and unknown declarations without a supplied complete schema retain
+their source-body meaning and interpretation root, but emit no fabricated
+complete row contract. Unused inputs follow the same rules. This effective-type
+selection does not by itself certify the other roles of a complete Unit closure.
 
 For an admitted SourceView declaration, select the contract references belonging
 to that selected SourceView, not every member of its enclosing Catalog. The
