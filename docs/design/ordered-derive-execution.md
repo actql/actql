@@ -36,6 +36,17 @@ shadowing inspectable without turning expression-shaped literal business data
 into executable references. Root metadata remains canonically pointer-sorted;
 that order is not the order of binding evaluation.
 
+The lowerer's occurrence index retains its originating checked kernel. It walks
+the typed machine expression rather than parsing emitted JSON or resolving
+names again. CASE visits conditions and their results before the fallback,
+regardless of the wire object's key order; lazy branches still contribute their
+static field occurrences. Literal payloads never contribute occurrences.
+Continuation frames bound traversal storage independently of expression width.
+Reference count, retained pointer bytes and cumulative traversal work have
+separate construction limits. These are preparation limits, not the row-kernel's
+runtime logical-work evidence. Emitting an occurrence array does not establish
+the enclosing fragment's evidence closure or execution permission.
+
 The row shape, prior-slot context and limits are separate self-identified
 bodies. This is an explicit definition of their preimages, not a serialization
 of internal checker handles. Shapes retain required but untyped fields and the

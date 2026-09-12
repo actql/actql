@@ -38,6 +38,8 @@ pub fn emit_fragment_source_pipeline(FragmentPipeline, @encode_core.Writer) -> U
 
 pub fn emit_kernel_node(PreparedKernel, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
 
+pub fn emit_ordered_references(OrderedReferences, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
+
 pub fn emit_root_source(ExpressionRoot, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
 
 pub fn emit_sequence_steps(PreparedSequence, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
@@ -86,6 +88,12 @@ pub fn node_id(PreparedNode) -> String
 
 pub fn operation(PreparedNode) -> String
 
+pub fn ordered_reference_at(OrderedReferences, Int) -> OrderedReference?
+
+pub fn ordered_reference_count(OrderedReferences) -> Int
+
+pub fn ordered_reference_kernel(OrderedReferences) -> PreparedKernel
+
 pub fn parameter_bindings(BoundPrepared) -> @parameter_binding.BoundValues?
 
 pub fn parameter_value(BoundPrepared, String) -> @value_admission.CheckedValue?
@@ -103,6 +111,8 @@ pub fn prepare_fragment_pipeline(PreparedSequence, Int, RootLimits) -> Result[Fr
 pub fn prepare_kernel(BoundPrepared, Int, max_bindings~ : Int, max_name_bytes~ : Int, ExpressionLimits) -> Result[PreparedKernel, KernelIssue]
 
 pub fn prepare_kernel_roots(PreparedSequence, Int, RootLimits) -> Result[RootIndex, RootIssue]
+
+pub fn prepare_ordered_references(PreparedKernel, OrderedReferenceLimits) -> Result[OrderedReferences, OrderedReferenceIssue]
 
 pub fn prepare_roots(PreparedSequence, RootLimits) -> Result[RootIndex, RootIssue]
 
@@ -280,6 +290,26 @@ pub(all) enum ManyOperator {
   Or
   Coalesce
 } derive(Eq, @debug.Debug)
+
+pub struct OrderedReference {
+  at : String
+  target : @relation_typing.ReferenceTarget
+}
+
+pub(all) enum OrderedReferenceIssue {
+  NotOrderedKernel
+  InvalidReferenceLimits
+  ReferenceLimit
+}
+
+pub(all) struct OrderedReferenceLimits {
+  max_references : Int
+  max_pointer_bytes : Int
+  max_work : Int
+  max_frames : Int
+}
+
+type OrderedReferences
 
 pub enum Payload {
   Values(@relation_values.CheckedValues)
