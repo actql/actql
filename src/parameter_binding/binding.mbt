@@ -12,12 +12,13 @@ pub fn read_declarations(
   }
   try {
     let entries : Array[Declaration] = []
+    let budget : Budget = {
+      nodes: limits.max_nodes,
+      text: limits.max_text_bytes,
+      depth: limits.max_depth,
+    }
     if root is Some(root) {
-      preflight(root, {
-        nodes: limits.max_nodes,
-        text: limits.max_text_bytes,
-        depth: limits.max_depth,
-      })
+      preflight(root, budget)
       let object = decoded(@decode.open_object(root))
       let names = decoded(@decode.object_field_names(root))
       if names.is_empty() {
@@ -75,7 +76,13 @@ pub fn read_declarations(
         })
       }
     }
-    Ok({ entries, })
+    Ok({
+      entries,
+      usage: (
+        limits.max_nodes - budget.nodes,
+        limits.max_text_bytes - budget.text,
+      ),
+    })
   } catch {
     Abort(issue) => Err(issue)
   }
@@ -133,10 +140,14 @@ pub fn bind(
         }
       }
     }
+    let usage = (
+      limits.max_nodes - budget.nodes,
+      limits.max_text_bytes - budget.text,
+    )
     if missing.is_empty() {
-      Ok(Ready({ declarations, entries, }))
+      Ok(Ready({ declarations, entries, usage, }))
     } else {
-      Ok(NeedsBindings({ names: missing, }))
+      Ok(NeedsBindings({ names: missing, usage, }))
     }
   } catch {
     Abort(issue) => Err(issue)

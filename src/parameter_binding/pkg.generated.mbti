@@ -14,6 +14,8 @@ import {
 // Values
 pub fn bind(Declarations, @decode_core.Cursor?, @value_admission.Limits) -> Result[BindingResult, Issue]
 
+pub fn binding_usage(BindingResult) -> (Int, Int)
+
 pub fn bound_declarations(BoundValues) -> Declarations
 
 pub fn bound_parameter_type(BoundParameter) -> @value_contract.ParameterType
@@ -27,6 +29,8 @@ pub fn bound_values(BoundValues) -> Array[BoundParameter]
 pub fn declaration_at(Declarations, Int) -> Declaration?
 
 pub fn declaration_count(Declarations) -> Int
+
+pub fn declaration_usage(Declarations) -> (Int, Int)
 
 pub fn declarations(Declarations) -> Array[Declaration]
 

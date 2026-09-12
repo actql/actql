@@ -11,6 +11,14 @@ pub struct Declaration {
 ///|
 struct Declarations {
   entries : Array[Declaration]
+  usage : (Int, Int)
+}
+
+///|
+/// Source preflight nodes and UTF-8 text bytes (keys, defaults and metadata
+/// included). This is admission accounting, not CPU work or serialized size.
+pub fn declaration_usage(value : Declarations) -> (Int, Int) {
+  value.usage
 }
 
 ///|
@@ -55,6 +63,7 @@ pub struct BoundParameter {
 struct BoundValues {
   declarations : Declarations
   entries : Array[BoundParameter]
+  usage : (Int, Int)
 }
 
 ///|
@@ -93,6 +102,19 @@ pub enum BindingResult {
 ///|
 struct MissingNames {
   names : Array[String]
+  usage : (Int, Int)
+}
+
+///|
+/// Selected-value preflight nodes and UTF-8 text bytes, including selected
+/// parameter names. Defaults are charged too; absent values are not. The
+/// supplied outer map is not a value node. NeedsBindings retains spent usage
+/// without exposing a partially ready value set.
+pub fn binding_usage(value : BindingResult) -> (Int, Int) {
+  match value {
+    Ready(values) => values.usage
+    NeedsBindings(missing) => missing.usage
+  }
 }
 
 ///|

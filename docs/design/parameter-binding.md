@@ -150,6 +150,16 @@ are bounded by the admitted declaration set. Default and supplied values consume
 the same allowance. Each selected root has independent root depth zero, with the
 same depth ceiling. No partial result escapes on budget failure.
 
+`declaration_usage` reports the existing source-tree preflight node and UTF-8
+text-byte charges, including declaration keys, defaults and metadata.
+`binding_usage` reports the selected-value preflight charges, including selected
+Parameter names and reused defaults, for both Ready and NeedsBindings. Missing
+values cost no value nodes; the supplied outer map is not itself a selected
+value. NeedsBindings exposes no partially ready values. These counts let the
+Program constructor subtract admission usage from an aggregate allowance before
+the next phase without changing the established acceptance rules. They are not
+CPU-work measurements, serialized lengths, heap bounds or new identity members.
+
 Traversals are iterative, child frontiers reserve node budget, and maps are
 opened once per collection rather than per field. Exact boundaries pass, negative
 limits fail, and budgets are input/work limits rather than total-heap guarantees.
