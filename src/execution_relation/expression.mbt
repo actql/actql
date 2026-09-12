@@ -117,8 +117,90 @@ fn evaluate_expression_retained(
   if result is Err(_) && logical_work is Some(logical) {
     logical.failed = true
   }
-  if scope is Some(s) {
-    cleanup_expression_roots(s)
+  // Frames close their temporary roots on success/failure. Invalid frame
+  // construction has not created any roots; detached results belong to callers.
+  result
+}
+
+///|
+/// A resumable semantic frame. Advancing is not permission to reorder logical
+/// rows/slots: the caller still owns that schedule. Input and slot values are
+/// borrowed for the frame lifetime; the expression scope owns temporary roots.
+priv struct ExpressionFrame {
+  root : @lower.Expression
+  input : Map[String, Value]
+  slots : Array[Value]
+  budget : ControlBudget
+  workspace : RowWorkspace
+  scope : ExpressionRoots?
+  stack : Array[Continuation]
+  mut state : Evaluation
+  mut active : @lower.Expression
+  mut current_root : ExpressionRootLease?
+  mut closed : Bool
+}
+
+///|
+fn expression_frame(
+  root : @lower.Expression,
+  input : Map[String, Value],
+  slots : Array[Value],
+  budget : ControlBudget,
+  workspace : RowWorkspace,
+  scope : ExpressionRoots?,
+) -> Result[ExpressionFrame, EvalIssue] {
+  if budget.remaining < 0 ||
+    budget.max_frames < 0 ||
+    workspace.limit < 0 ||
+    workspace.live < 0 ||
+    workspace.live > workspace.limit {
+    return Err({ kind: InvalidControlLimits, expression: root, })
+  }
+  Ok({
+    root,
+    input,
+    slots,
+    budget,
+    workspace,
+    scope,
+    stack: [],
+    state: Enter(root),
+    active: root,
+    current_root: None,
+    closed: false,
+  })
+}
+
+///|
+/// Cancellation releases temporary roots, without refunding cumulative work or
+/// releasing caller-owned input/slot roots. Successful result roots are detached.
+fn close_expression_frame(frame : ExpressionFrame) -> Unit {
+  if frame.scope is Some(scope) {
+    cleanup_expression_roots(scope)
+  }
+  frame.stack.clear()
+  frame.current_root = None
+  frame.state = Return(Null)
+  frame.closed = true
+}
+
+///|
+fn advance_expression_frame(
+  frame : ExpressionFrame,
+) -> Result[EvaluatedValue?, EvalIssue] {
+  if frame.closed {
+    return Err({ kind: InvalidControlLimits, expression: frame.root, })
+  }
+  let result = advance_expression_frame_impl(frame)
+  match result {
+    Err(_) => {
+      if frame.scope is Some(scope) {
+        scope.budget.failed = true
+      }
+      close_expression_frame(frame)
+    }
+    Ok(Some(_)) => close_expression_frame(frame)
+    Ok(None) => ()
   }
   result
 }
@@ -132,18 +214,32 @@ fn evaluate_expression_impl(
   workspace : RowWorkspace,
   scope : ExpressionRoots?,
 ) -> Result[EvaluatedValue, EvalIssue] {
-  let logical_work = scope.map(s => s.budget)
-  if budget.remaining < 0 ||
-    budget.max_frames < 0 ||
-    workspace.limit < 0 ||
-    workspace.live < 0 ||
-    workspace.live > workspace.limit {
-    return Err({ kind: InvalidControlLimits, expression: root, })
+  let frame = match
+    expression_frame(root, input, slots, budget, workspace, scope) {
+    Ok(frame) => frame
+    Err(issue) => return Err(issue)
   }
-  let stack : Array[Continuation] = []
-  let mut state = Enter(root)
-  let mut active = root
-  let mut current_root : ExpressionRootLease? = None
+  while true {
+    match advance_expression_frame(frame) {
+      Ok(None) => ()
+      Ok(Some(value)) => return Ok(value)
+      Err(issue) => return Err(issue)
+    }
+  } nobreak {
+    Err({ kind: ControlLimit, expression: root, })
+  }
+}
+
+///|
+fn advance_expression_frame_impl(
+  frame : ExpressionFrame,
+) -> Result[EvaluatedValue?, EvalIssue] {
+  let input = frame.input
+  let slots = frame.slots
+  let budget = frame.budget
+  let workspace = frame.workspace
+  let scope = frame.scope
+  let logical_work = scope.map(s => s.budget)
   fn release(root : ExpressionRootLease?) -> LogicalBudgetIssue? {
     match root {
       None => None
@@ -164,271 +260,269 @@ fn evaluate_expression_impl(
         }
     }
   }
-  while true {
-    if budget.remaining == 0 {
-      return Err({ kind: ControlLimit, expression: active, })
-    }
-    budget.remaining = budget.remaining - 1
-    match state {
-      Enter(expr) => {
-        active = expr
-        // Input/slot/output row lifetimes belong to the enclosing row kernel.
-        if logical_work is Some(logical) {
-          match charge_logical_work(logical, 1L) {
-            Ok(_) => ()
-            Err(issue) =>
-              return Err({ kind: LogicalEntry(issue), expression: expr, })
-          }
-        }
-        // Ancestor views stay reserved while descendants evaluate.
-        let entries = @lower.expression_view_entries(expr)
-        if !reserve_slots(workspace, entries) {
-          return Err({ kind: WorkspaceLimit, expression: expr, })
-        }
-        if !spend_control(budget, entries) {
-          return Err({ kind: ControlLimit, expression: expr, })
-        }
-        let body = @lower.expression_body(expr)
-        let leaf = match body {
-          Field(_, _) | Literal(_) | TypedNull => true
-          Unary(_, _)
-          | Binary(_, _, _)
-          | Many(_, _)
-          | Conditional(_, _, _)
-          | Case(_, _) => false
-        }
-        if !leaf && stack.length() >= budget.max_frames {
-          return Err({ kind: ControlLimit, expression: expr, })
-        }
-        if !leaf && !reserve_slots(workspace, 1) {
-          return Err({ kind: WorkspaceLimit, expression: expr, })
-        }
-        match body {
-          Field(name, target) => {
-            if !spend_control_text(budget, name) {
-              return Err({ kind: ControlLimit, expression: expr, })
-            }
-            let value = match target {
-              @relation.InputField(_) => input.get(name)
-              @relation.PriorSlot(i) => slots.get(i)
-            }
-            guard value is Some(value) else {
-              return Err({ kind: MissingValue, expression: expr, })
-            }
-            state = Return(value)
-          }
-          Literal(value) => state = Return(capture(value.value))
-          TypedNull => state = Return(Null)
-          Unary(op, child) => {
-            stack.push(Unary(expr, op))
-            state = Enter(child)
-          }
-          Binary(op, left, right) => {
-            stack.push(Left(expr, op, right))
-            state = Enter(left)
-          }
-          Conditional(condition, yes, no) => {
-            stack.push(Choose(expr, yes, no))
-            state = Enter(condition)
-          }
-          Many(op, children) => {
-            guard children.get(0) is Some(first) else {
-              return Err({ kind: Scalar(InvalidOperand), expression: expr, })
-            }
-            let initial = match op {
-              And => Boolean(true)
-              Or => Boolean(false)
-              Coalesce => Null
-            }
-            stack.push(Many(expr, op, children, 0, initial, None))
-            state = Enter(first)
-          }
-          Case(clauses, otherwise) =>
-            if clauses.get(0) is Some((condition, _)) {
-              stack.push(Case(expr, clauses, 0, otherwise))
-              state = Enter(condition)
-            } else {
-              stack.push(Forward(expr))
-              state = Enter(otherwise)
-            }
+  if budget.remaining == 0 {
+    return Err({ kind: ControlLimit, expression: frame.active, })
+  }
+  budget.remaining = budget.remaining - 1
+  match frame.state {
+    Enter(expr) => {
+      frame.active = expr
+      // Input/slot/output row lifetimes belong to the enclosing row kernel.
+      if logical_work is Some(logical) {
+        match charge_logical_work(logical, 1L) {
+          Ok(_) => ()
+          Err(issue) =>
+            return Err({ kind: LogicalEntry(issue), expression: expr, })
         }
       }
-      Return(value) => {
-        // Every Return completes one semantic expression, including selection
-        // nodes forwarded from their chosen child. Internal boolean seeds and
-        // fold accumulators do not invent extra semantic expression results.
-        if scope is Some(s) && current_root is None {
-          match track_expression_root(s, value, true) {
-            Ok(r) => current_root = Some(r)
-            Err(e) => return Err({ kind: LogicalValue(e), expression: active, })
+      // Ancestor views stay reserved while descendants evaluate.
+      let entries = @lower.expression_view_entries(expr)
+      if !reserve_slots(workspace, entries) {
+        return Err({ kind: WorkspaceLimit, expression: expr, })
+      }
+      if !spend_control(budget, entries) {
+        return Err({ kind: ControlLimit, expression: expr, })
+      }
+      let body = @lower.expression_body(expr)
+      let leaf = match body {
+        Field(_, _) | Literal(_) | TypedNull => true
+        Unary(_, _)
+        | Binary(_, _, _)
+        | Many(_, _)
+        | Conditional(_, _, _)
+        | Case(_, _) => false
+      }
+      if !leaf && frame.stack.length() >= budget.max_frames {
+        return Err({ kind: ControlLimit, expression: expr, })
+      }
+      if !leaf && !reserve_slots(workspace, 1) {
+        return Err({ kind: WorkspaceLimit, expression: expr, })
+      }
+      match body {
+        Field(name, target) => {
+          if !spend_control_text(budget, name) {
+            return Err({ kind: ControlLimit, expression: expr, })
           }
-        } else if charge_value(value) is Some(issue) {
-          return Err({ kind: LogicalValue(issue), expression: active, })
+          let value = match target {
+            @relation.InputField(_) => input.get(name)
+            @relation.PriorSlot(i) => slots.get(i)
+          }
+          guard value is Some(value) else {
+            return Err({ kind: MissingValue, expression: expr, })
+          }
+          frame.state = Return(value)
         }
-        guard stack.pop() is Some(frame) else {
-          let retained = match current_root {
-            None => None
-            Some(r) =>
-              match detach_expression_root(r) {
-                Ok(root) => Some(root)
-                Err(e) =>
-                  return Err({ kind: LogicalValue(e), expression: active, })
-              }
-          }
-          return Ok({ value, root: retained, })
+        Literal(value) => frame.state = Return(capture(value.value))
+        TypedNull => frame.state = Return(Null)
+        Unary(op, child) => {
+          frame.stack.push(Unary(expr, op))
+          frame.state = Enter(child)
         }
-        match frame {
-          Forward(expr) => {
-            release_slots(workspace, 1)
-            active = expr
-            if charge_value(value) is Some(issue) {
-              return Err({ kind: LogicalValue(issue), expression: expr, })
-            }
-            state = Return(value)
+        Binary(op, left, right) => {
+          frame.stack.push(Left(expr, op, right))
+          frame.state = Enter(left)
+        }
+        Conditional(condition, yes, no) => {
+          frame.stack.push(Choose(expr, yes, no))
+          frame.state = Enter(condition)
+        }
+        Many(op, children) => {
+          guard children.get(0) is Some(first) else {
+            return Err({ kind: Scalar(InvalidOperand), expression: expr, })
           }
-          Unary(expr, op) => {
-            release_slots(workspace, 1)
-            active = expr
-            if charge_value(value) is Some(issue) {
-              return Err({ kind: LogicalValue(issue), expression: expr, })
-            }
-            match unary(op, value) {
-              Ok(v) => {
-                if release(current_root) is Some(e) {
-                  return Err({ kind: LogicalValue(e), expression: expr, })
-                }
-                current_root = None
-                state = Return(v)
-              }
-              Err(e) => return Err({ kind: Scalar(e), expression: expr, })
-            }
+          let initial = match op {
+            And => Boolean(true)
+            Or => Boolean(false)
+            Coalesce => Null
           }
-          Left(expr, op, right) => {
-            stack.push(Right(expr, op, value, current_root))
-            current_root = None
-            state = Enter(right)
+          frame.stack.push(Many(expr, op, children, 0, initial, None))
+          frame.state = Enter(first)
+        }
+        Case(clauses, otherwise) =>
+          if clauses.get(0) is Some((condition, _)) {
+            frame.stack.push(Case(expr, clauses, 0, otherwise))
+            frame.state = Enter(condition)
+          } else {
+            frame.stack.push(Forward(expr))
+            frame.state = Enter(otherwise)
           }
-          Right(expr, op, left, left_root) => {
-            release_slots(workspace, 1)
-            active = expr
-            for operand in [left, value] {
-              if charge_value(operand) is Some(issue) {
-                return Err({ kind: LogicalValue(issue), expression: expr, })
-              }
+      }
+    }
+    Return(value) => {
+      // Every Return completes one semantic expression, including selection
+      // nodes forwarded from their chosen child. Internal boolean seeds and
+      // fold accumulators do not invent extra semantic expression results.
+      if scope is Some(s) && frame.current_root is None {
+        match track_expression_root(s, value, true) {
+          Ok(r) => frame.current_root = Some(r)
+          Err(e) =>
+            return Err({ kind: LogicalValue(e), expression: frame.active, })
+        }
+      } else if charge_value(value) is Some(issue) {
+        return Err({ kind: LogicalValue(issue), expression: frame.active, })
+      }
+      guard frame.stack.pop() is Some(continuation) else {
+        let retained = match frame.current_root {
+          None => None
+          Some(r) =>
+            match detach_expression_root(r) {
+              Ok(root) => Some(root)
+              Err(e) =>
+                return Err({ kind: LogicalValue(e), expression: frame.active, })
             }
-            // Bound variable-size comparison work before the comparison.
-            // Values are already canonical: never normalize inside compare.
-            if !charge_comparison_operand(budget, left) ||
-              !charge_comparison_operand(budget, value) {
-              return Err({ kind: ControlLimit, expression: expr, })
-            }
-            match binary(op, left, value) {
-              Ok(v) => {
-                for r in [left_root, current_root] {
-                  if release(r) is Some(e) {
-                    return Err({ kind: LogicalValue(e), expression: expr, })
-                  }
-                }
-                current_root = None
-                state = Return(v)
-              }
-              Err(e) => return Err({ kind: Scalar(e), expression: expr, })
-            }
+        }
+        return Ok(Some({ value, root: retained, }))
+      }
+      match continuation {
+        Forward(expr) => {
+          release_slots(workspace, 1)
+          frame.active = expr
+          if charge_value(value) is Some(issue) {
+            return Err({ kind: LogicalValue(issue), expression: expr, })
           }
-          Choose(expr, yes, no) => {
-            if charge_value(value) is Some(issue) {
-              return Err({ kind: LogicalValue(issue), expression: expr, })
-            }
-            if !(value is Null || value is Boolean(_)) {
-              return Err({ kind: Scalar(InvalidOperand), expression: expr, })
-            }
-            if release(current_root) is Some(e) {
-              return Err({ kind: LogicalValue(e), expression: expr, })
-            }
-            current_root = None
-            stack.push(Forward(expr))
-            state = Enter(if value is Boolean(true) { yes } else { no })
+          frame.state = Return(value)
+        }
+        Unary(expr, op) => {
+          release_slots(workspace, 1)
+          frame.active = expr
+          if charge_value(value) is Some(issue) {
+            return Err({ kind: LogicalValue(issue), expression: expr, })
           }
-          Many(expr, op, children, index, previous, previous_root) => {
-            active = expr
-            if charge_value(value) is Some(issue) {
-              return Err({ kind: LogicalValue(issue), expression: expr, })
-            }
-            let combined = match op {
-              Coalesce => value
-              And | Or =>
-                match boolean_pair(op, previous, value) {
-                  Ok(v) => v
-                  Err(e) => return Err({ kind: Scalar(e), expression: expr, })
-                }
-            }
-            if release(previous_root) is Some(e) {
-              return Err({ kind: LogicalValue(e), expression: expr, })
-            }
-            if op == @lower.Coalesce && !(combined is Null) {
-              release_slots(workspace, children.length())
-              release_slots(workspace, 1)
-              state = Return(combined)
-            } else if children.get(index + 1) is Some(next) {
-              if release(current_root) is Some(e) {
+          match unary(op, value) {
+            Ok(v) => {
+              if release(frame.current_root) is Some(e) {
                 return Err({ kind: LogicalValue(e), expression: expr, })
               }
-              current_root = None
-              let accumulator = if op != @lower.Coalesce && scope is Some(s) {
-                match track_expression_root(s, combined, false) {
-                  Ok(r) => Some(r)
-                  Err(e) =>
-                    return Err({ kind: LogicalValue(e), expression: expr, })
-                }
-              } else {
-                None
-              }
-              stack.push(
-                Many(expr, op, children, index + 1, combined, accumulator),
-              )
-              state = Enter(next)
-            } else {
-              release_slots(workspace, children.length())
-              release_slots(workspace, 1)
-              // Coalesce can transfer its final null root unchanged; boolean
-              // reduction can change wire size and produces a fresh result.
-              if op != @lower.Coalesce {
-                if release(current_root) is Some(e) {
-                  return Err({ kind: LogicalValue(e), expression: expr, })
-                }
-                current_root = None
-              }
-              state = Return(combined)
+              frame.current_root = None
+              frame.state = Return(v)
             }
+            Err(e) => return Err({ kind: Scalar(e), expression: expr, })
           }
-          Case(expr, clauses, index, otherwise) => {
-            if charge_value(value) is Some(issue) {
+        }
+        Left(expr, op, right) => {
+          frame.stack.push(Right(expr, op, value, frame.current_root))
+          frame.current_root = None
+          frame.state = Enter(right)
+        }
+        Right(expr, op, left, left_root) => {
+          release_slots(workspace, 1)
+          frame.active = expr
+          for operand in [left, value] {
+            if charge_value(operand) is Some(issue) {
               return Err({ kind: LogicalValue(issue), expression: expr, })
             }
-            if !(value is Null || value is Boolean(_)) {
-              return Err({ kind: Scalar(InvalidOperand), expression: expr, })
+          }
+          // Bound variable-size comparison work before the comparison.
+          // Values are already canonical: never normalize inside compare.
+          if !charge_comparison_operand(budget, left) ||
+            !charge_comparison_operand(budget, value) {
+            return Err({ kind: ControlLimit, expression: expr, })
+          }
+          match binary(op, left, value) {
+            Ok(v) => {
+              for r in [left_root, frame.current_root] {
+                if release(r) is Some(e) {
+                  return Err({ kind: LogicalValue(e), expression: expr, })
+                }
+              }
+              frame.current_root = None
+              frame.state = Return(v)
             }
-            if release(current_root) is Some(e) {
+            Err(e) => return Err({ kind: Scalar(e), expression: expr, })
+          }
+        }
+        Choose(expr, yes, no) => {
+          if charge_value(value) is Some(issue) {
+            return Err({ kind: LogicalValue(issue), expression: expr, })
+          }
+          if !(value is Null || value is Boolean(_)) {
+            return Err({ kind: Scalar(InvalidOperand), expression: expr, })
+          }
+          if release(frame.current_root) is Some(e) {
+            return Err({ kind: LogicalValue(e), expression: expr, })
+          }
+          frame.current_root = None
+          frame.stack.push(Forward(expr))
+          frame.state = Enter(if value is Boolean(true) { yes } else { no })
+        }
+        Many(expr, op, children, index, previous, previous_root) => {
+          frame.active = expr
+          if charge_value(value) is Some(issue) {
+            return Err({ kind: LogicalValue(issue), expression: expr, })
+          }
+          let combined = match op {
+            Coalesce => value
+            And | Or =>
+              match boolean_pair(op, previous, value) {
+                Ok(v) => v
+                Err(e) => return Err({ kind: Scalar(e), expression: expr, })
+              }
+          }
+          if release(previous_root) is Some(e) {
+            return Err({ kind: LogicalValue(e), expression: expr, })
+          }
+          if op == @lower.Coalesce && !(combined is Null) {
+            release_slots(workspace, children.length())
+            release_slots(workspace, 1)
+            frame.state = Return(combined)
+          } else if children.get(index + 1) is Some(next) {
+            if release(frame.current_root) is Some(e) {
               return Err({ kind: LogicalValue(e), expression: expr, })
             }
-            current_root = None
-            if value is Boolean(true) {
-              release_slots(workspace, clauses.length())
-              stack.push(Forward(expr))
-              state = Enter(clauses[index].1)
-            } else if clauses.get(index + 1) is Some((condition, _)) {
-              stack.push(Case(expr, clauses, index + 1, otherwise))
-              state = Enter(condition)
+            frame.current_root = None
+            let accumulator = if op != @lower.Coalesce && scope is Some(s) {
+              match track_expression_root(s, combined, false) {
+                Ok(r) => Some(r)
+                Err(e) =>
+                  return Err({ kind: LogicalValue(e), expression: expr, })
+              }
             } else {
-              release_slots(workspace, clauses.length())
-              stack.push(Forward(expr))
-              state = Enter(otherwise)
+              None
             }
+            frame.stack.push(
+              Many(expr, op, children, index + 1, combined, accumulator),
+            )
+            frame.state = Enter(next)
+          } else {
+            release_slots(workspace, children.length())
+            release_slots(workspace, 1)
+            // Coalesce can transfer its final null root unchanged; boolean
+            // reduction can change wire size and produces a fresh result.
+            if op != @lower.Coalesce {
+              if release(frame.current_root) is Some(e) {
+                return Err({ kind: LogicalValue(e), expression: expr, })
+              }
+              frame.current_root = None
+            }
+            frame.state = Return(combined)
+          }
+        }
+        Case(expr, clauses, index, otherwise) => {
+          if charge_value(value) is Some(issue) {
+            return Err({ kind: LogicalValue(issue), expression: expr, })
+          }
+          if !(value is Null || value is Boolean(_)) {
+            return Err({ kind: Scalar(InvalidOperand), expression: expr, })
+          }
+          if release(frame.current_root) is Some(e) {
+            return Err({ kind: LogicalValue(e), expression: expr, })
+          }
+          frame.current_root = None
+          if value is Boolean(true) {
+            release_slots(workspace, clauses.length())
+            frame.stack.push(Forward(expr))
+            frame.state = Enter(clauses[index].1)
+          } else if clauses.get(index + 1) is Some((condition, _)) {
+            frame.stack.push(Case(expr, clauses, index + 1, otherwise))
+            frame.state = Enter(condition)
+          } else {
+            release_slots(workspace, clauses.length())
+            frame.stack.push(Forward(expr))
+            frame.state = Enter(otherwise)
           }
         }
       }
     }
-  } nobreak {
-    Err({ kind: ControlLimit, expression: active, })
   }
+  Ok(None)
 }

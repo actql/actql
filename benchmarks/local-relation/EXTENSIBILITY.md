@@ -26,6 +26,13 @@ step. Private completion experiments are not product execution evidence.
 
 ## Historical footprint audit
 
+The subsequent scope approval permits `rows.mbt`, `expression.mbt` and necessary
+private implementation/test files in this package. Boundary extraction must be
+verified and committed independently before the typed-batch trial. Driver,
+public completion types, lowering, typing, shared contracts and budget rules
+remain excluded. The initial no-product-edit rule above records the original
+boundary, not the scope after this explicit approval.
+
 Including `700e1a5`, the range `700e1a5^..7d84d96` changes 13 product files,
 758 added and 335 removed lines, all in `execution_relation`. The range excluding
 the first commit is 12 files and 1,043 changed lines. The 1,093-line footprint
@@ -147,3 +154,21 @@ budget-equivalence tests remain incomplete pending the scope decision. The
 Table-specific completion/producer boundary is a second, independent finding;
 this proposed expansion does not authorize rewriting it or claiming a private
 test completion is the existing product `CompletedOutput`.
+
+## Approved frame extraction evidence
+
+After scope approval, the first product extraction is confined to
+`expression.mbt`. The existing synchronous evaluator now drains the same
+resumable frame transitions. Entry/operand/result charges, continuation choices
+and root operations stay in that single implementation. A terminal frame cannot
+advance again, and cancellation closes temporary roots without refunding work
+or freeing borrowed inputs. This extraction is not itself typed-batch support.
+
+`expression_frame_wbtest.mbt` adds three tests: independent lazy/arithmetic work
+vectors with quantum 1/7/1000 and exact/one-short caps; cancellation with a live
+left operand and a separately owned root; and value-vs-budget failures plus
+terminal result-root transfer. Together with existing regression tests, JS,
+Wasm and native each pass 3,339 tests with `--deny-warn`. Document and metadata
+checks pass. Linux CI and performance regression measurement are not included
+in this extraction evidence. No driver, public completion type, lowering,
+typing, contract or budget rule changed.
