@@ -613,6 +613,22 @@ Operation-level inventories use [indexed obligation reads](operation-obligation-
 so collection can charge retained-entry budgets before allocating arrays.
 Listing those obligations alone neither classifies nor discharges them.
 
+`collect_program_operation_requirements` starts from the owned expression
+closure and visits every stage, producer visit and local step, including unused
+operations. Its opaque inventory keeps that closure and each entry's exact
+checked pipeline, local group and typed requirement. Group scopes distinguish
+Graph union folds and nested selectors rather than merging their obligations.
+Repeated visits remain distinct even when they share the same pipeline owner.
+Coordinates are local ownership coordinates, never semantic identity preimages.
+
+Collection shares the upstream work total and charges stages, visits, steps,
+groups and retained entries. Both work and entry caps are checked before entry
+allocation; empty groups and inventories still incur traversal work. Failure
+does not expose a partial inventory. The factory accepts no separately supplied
+pipeline, obligation or identity, so a same-shaped foreign producer cannot be
+attached through this boundary. Resolution remains a subsequent obligation:
+the inventory is not a completed operation closure or an executable Program.
+
 Expression closure does not discharge operation-level obligations, bind
 authored guard witness identities, build staged Program/import contracts, or
 complete local Unit/Invocation identity projections. Source Program and stage

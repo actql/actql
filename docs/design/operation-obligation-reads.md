@@ -27,4 +27,22 @@ was listed, or treat runtime value/identity validation as already executed.
 Graph union retains ordered checked binary folds: consumers visit each fold's
 structural obligations rather than inventing a flattened, unbudgeted array.
 The owning Program/producer and resolved static or runtime implementation
-responsibility must still be attached by the integration boundary.
+responsibility are separate integration concerns.
+
+## Pipeline groups
+
+`operation_obligation_group_count/at` exhaustively dispatches the checked
+pipeline vocabulary into opaque groups. Each group exposes typed count/index
+reads and a local scope. Sequence retains both its row validations and sequence
+semantics. Graph union exposes each ordered binary fold, including repeated
+operands. Subgraph and traversal retain their node/start selector groups;
+shortest-path selection retains source and target selector groups independently.
+Single endpoints do not acquire selector obligations. A body group can be empty.
+
+Group count and access do not flatten an arbitrary number of folds. A collector
+charges each group before reading its size, then charges its entries before
+retaining them. The group preserves the original checked owner; wrapping an
+obligation does not alter its source handles, parameter names or dependencies.
+Expression obligations inside predicates remain the expression collector's
+responsibility. These groups do not duplicate embedded key requirements as
+independently attachable proofs.

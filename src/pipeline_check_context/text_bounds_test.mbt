@@ -18,9 +18,10 @@ fn bound_fixture(
   parameters? : String = "{\"p\":{\"type\":\"string\",\"default\":\"é😀\"},\"n\":{\"type\":\"number\",\"default\":1}}",
   supplied? : @decode.Cursor? = None,
   profile? : String = bound_profile(),
+  steps? : String? = None,
 ) -> PatternChecks {
   check_patterns(
-    regex_fixture(expression, parameters~, supplied~, profile~),
+    regex_fixture(expression, parameters~, supplied~, profile~, steps~),
     pattern_limits(),
   ).unwrap()
 }

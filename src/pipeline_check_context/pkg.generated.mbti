@@ -86,6 +86,8 @@ pub fn checked_results(PipelineContext) -> @relation_results.CheckedResults
 
 pub fn close_program_expressions(ProgramSourceIdentity, Int, Int) -> Result[ProgramExpressionClosure, ExpressionClosureIssue]
 
+pub fn collect_program_operation_requirements(ProgramExpressionClosure, Int, Int) -> Result[ProgramOperationRequirements, OperationRequirementsIssue]
+
 pub fn collect_source_bindings(ProgramPreparation, Int, Int) -> Result[SourceBindingRequirements, SourceBindingsIssue]
 
 pub fn environment_inputs(EnvironmentContext) -> InputContexts
@@ -159,6 +161,14 @@ pub fn operation_profiles_diagnostic(OperationProfilesIssue) -> String?
 pub fn operation_profiles_preparation(OperationProfileChecks) -> ProgramPreparation
 
 pub fn operation_profiles_work(OperationProfileChecks) -> Int
+
+pub fn operation_requirements_at(ProgramOperationRequirements, Int) -> OperationRequirementSite?
+
+pub fn operation_requirements_count(ProgramOperationRequirements) -> Int
+
+pub fn operation_requirements_expressions(ProgramOperationRequirements) -> ProgramExpressionClosure
+
+pub fn operation_requirements_work(ProgramOperationRequirements) -> Int
 
 pub fn parameter_context(BoundParameters) -> PipelineContext
 
@@ -508,6 +518,22 @@ pub(all) enum OperationProfilesIssue {
   UnsupportedProfile(Int, Int, Int, @pipeline_typing.OperationProfile)
 } derive(Eq, @debug.Debug)
 
+pub struct OperationRequirementSite {
+  stage : Int
+  producer_visit : Int
+  step : Int
+  group : Int
+  index : Int
+  pipeline : @pipeline_typing.CheckedPipeline
+  obligations : @pipeline_typing.OperationObligations
+  requirement : @pipeline_typing.OperationObligation
+}
+
+pub(all) enum OperationRequirementsIssue {
+  InvalidLimits
+  BudgetExceeded
+} derive(Eq, @debug.Debug)
+
 pub(all) enum ParameterIssue {
   InvalidLimits
   WorkLimit(Int)
@@ -595,6 +621,8 @@ pub(all) enum ProgramIdentityPhase {
   Definition
   ParameterValues
 } derive(Eq, @debug.Debug)
+
+type ProgramOperationRequirements
 
 type ProgramPreparation
 

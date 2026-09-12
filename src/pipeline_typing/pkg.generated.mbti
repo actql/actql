@@ -212,6 +212,16 @@ pub fn nest_order_term_count(NestOrder) -> Int
 
 pub fn nest_order_usage(NestOrder) -> (Int, Int)
 
+pub fn operation_obligation_group_at(CheckedOperation, Int) -> OperationObligations?
+
+pub fn operation_obligation_group_count(CheckedOperation) -> Int
+
+pub fn operation_obligations_at(OperationObligations, Int) -> OperationObligation?
+
+pub fn operation_obligations_count(OperationObligations) -> Int
+
+pub fn operation_obligations_scope(OperationObligations) -> OperationObligationScope
+
 pub fn operation_profile_at(CheckedOperation, Int) -> OperationProfile?
 
 pub fn operation_profile_count(CheckedOperation) -> Int
@@ -595,6 +605,56 @@ pub struct NestOrderTerm {
   nulls : @order_key.NullPlacement
   authored : Bool
 }
+
+pub(all) enum OperationObligation {
+  RelationRequirement(@relation_typing.PendingValidation)
+  JoinRequirement(@relation_join_shape.Obligation)
+  AppendRequirement(@relation_append.Obligation)
+  NestRequirement(@relation_nest.Obligation)
+  SetRequirement(@relation_set.Obligation)
+  CrossJoinRequirement(@relation_join_shape.Obligation)
+  IntervalJoinRequirement(@relation_join_shape.Obligation)
+  AsOfRequirement(@relation_join_shape.Obligation)
+  SequenceRowsRequirement(@relation_typing.PendingValidation)
+  SequenceRequirement(@relation_typing.SequenceObligation)
+  ValuesRequirement(@relation_values.Obligation)
+  SeriesRequirement(@time_series.Obligation)
+  CalendarRequirement(@calendar_typing.Obligation)
+  WindowRequirement(@temporal_window.Obligation)
+  ProjectionRequirement(@carrier_projection.GraphObligation)
+  GraphRequirement(@graph_typing.Obligation)
+  MatchRequirement(@graph_typing.MatchObligation)
+  ReachRequirement(@graph_typing.ReachObligation)
+  SubgraphRequirement(@graph_typing.SubgraphObligation)
+  TraverseRequirement(@graph_typing.TraverseObligation)
+  ShortestRequirement(@graph_typing.ShortestObligation)
+  SelectorRequirement(@graph_typing.SelectorObligation)
+  EqualityRequirement(@graph_typing.EqualityObligation)
+  DiffRequirement(@graph_typing.DeltaObligation)
+  ApplyRequirement(@graph_typing.ApplyObligation)
+  StructuralRequirement(@graph_typing.StructuralObligation)
+  MeanRequirement(@graph_typing.MeanObligation)
+  ConstructionRequirement(@graph_typing.ConstructionObligation)
+  VectorRequirement(@vector_typing.Obligation)
+  NearestRequirement(@relation_evidence.NearestObligation)
+  PoolRequirement(@vector_typing.PoolObligation)
+  RankingRequirement(@relation_evidence.RankingObligation)
+  TextRankRequirement(@relation_evidence.TextRankObligation)
+  EventRequirement(@event_typing.Obligation)
+}
+
+pub(all) enum OperationObligationScope {
+  Body
+  SequenceRows
+  SequenceSemantics
+  UnionFold(Int)
+  NodeSelector
+  StartSelector
+  SourceSelector
+  TargetSelector
+} derive(Eq, @debug.Debug)
+
+type OperationObligations
 
 pub(all) enum OperationProfile {
   RelA

@@ -11,6 +11,7 @@ fn timestamp_limits() -> TimestampPatternLimits {
 ///|
 fn timestamp_fixture(
   expression : String,
+  steps? : String? = None,
   parameters? : String = "{\"p\":{\"type\":\"string\",\"default\":\"yyyy-MM-dd\"}}",
   supplied? : @decode.Cursor? = None,
   profile? : String = validation_profile(
@@ -24,6 +25,7 @@ fn timestamp_fixture(
     false,
     profile~,
     expression~,
+    steps~,
     parameters~,
     supplied~,
   )
