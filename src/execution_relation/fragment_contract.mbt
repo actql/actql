@@ -1,19 +1,19 @@
 ///|
 /// Registered execution contract, not admission of a particular fragment.
-priv struct FragmentContract {
+struct FragmentContract {
   relations : RegisteredRelationContracts
   cid : String
 }
 
 ///|
-priv enum FragmentContractIssue {
+pub(all) enum FragmentContractIssue {
   InvalidLimits
   BodyLimit
   ContractMismatch
 }
 
 ///|
-fn admit_fragment_contract(
+pub fn admit_fragment_contract(
   relations : RegisteredRelationContracts,
   body : @identity.CanonicalValue,
   limits : RegistryLimits,

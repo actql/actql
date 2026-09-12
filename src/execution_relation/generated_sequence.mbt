@@ -1,7 +1,7 @@
 ///|
 /// Owned internal composition of generated, checked fragments. This is not a
 /// Program permission token or an entry for externally supplied AoA JSON.
-priv struct GeneratedSequence {
+struct GeneratedSequence {
   contracts : RegisteredRelationContracts
   sequence : @lower.PreparedSequence
   contexts : Array[FragmentRuntimeContext]
@@ -10,14 +10,14 @@ priv struct GeneratedSequence {
 
 ///|
 /// Immutable quantities, never counters shared between invocations.
-priv struct SequenceExecutionLimits {
+pub(all) struct SequenceExecutionLimits {
   rows : SequenceRunLimits
   max_work : Int
   max_frames : Int
 }
 
 ///|
-fn prepare_generated_sequence(
+pub fn prepare_generated_sequence(
   contracts : RegisteredRelationContracts,
   sequence : @lower.PreparedSequence,
   contexts : Array[FragmentRuntimeContext],
@@ -67,7 +67,7 @@ fn prepare_generated_sequence(
 ///|
 /// There is deliberately no component-mode switch and no separate ordered
 /// configuration. Input obligations remain checked by the sole sequence driver.
-fn execute_generated_sequence(
+pub fn execute_generated_sequence(
   generated : GeneratedSequence,
   supplied : Array[CapturedRows],
   limits : SequenceExecutionLimits,

@@ -1,7 +1,7 @@
 ///|
 /// Explicit enforcement configuration for a checked fragment. Immutable and
 /// reusable; every execution obtains fresh counters. Not an input-proof token.
-priv struct FragmentRuntimeContext {
+struct FragmentRuntimeContext {
   fragment : CheckedFragment
   kernel : @lower.PreparedKernel
   limits : LogicalLimits

@@ -1,7 +1,7 @@
 ///|
 /// Failures retain their construction stage; integrity admission cannot be
 /// replaced by a caller's digest or omitted when configuring the runtime.
-priv enum RuntimeFragmentIssue {
+enum RuntimeFragmentIssue {
   Material(FragmentMaterialIssue)
   Candidate(RootArtifactIssue)
   Admission(FragmentAdmissionIssue)
@@ -12,12 +12,12 @@ priv enum RuntimeFragmentIssue {
 /// Consumes a typed lowering request, not source JSON or a supplied AoA graph.
 /// Each bounded construction has its own physical ceiling; these ceilings are
 /// not a claim to measure the process heap or cumulative preparation work.
-fn prepare_runtime_fragment(
+pub fn prepare_runtime_fragment(
   request : @lower.FragmentRequest,
   contract : FragmentContract,
   demands : @lower.DemandLimits,
   physical : RegistryLimits,
-  logical : LogicalLimits,
+  logical : @lower.FragmentRowLimits,
   ordered? : RegisteredOrderedContract? = None,
 ) -> Result[FragmentRuntimeContext, RuntimeFragmentIssue] {
   let material = match

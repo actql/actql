@@ -1,7 +1,7 @@
 ///|
 /// Exact completed producer selection and its checked input projection.
 /// Binding does not discharge receiving input resource accounting.
-priv struct BoundProducerInput {
+struct BoundProducerInput {
   receiver : @lower.BoundPrepared
   input_index : Int
   output : CompletedOutput
@@ -9,7 +9,7 @@ priv struct BoundProducerInput {
 }
 
 ///|
-priv enum ProducerBindingIssue {
+pub(all) enum ProducerBindingIssue {
   NotProducedInput
   ProducerOwnerMismatch
   ProducerBindingMismatch
@@ -21,7 +21,7 @@ priv enum ProducerBindingIssue {
 /// ProducedInput retains a CheckedPipeline, which alone cannot distinguish two
 /// invocations using different Parameter bindings. Never infer the invocation
 /// from matching schema, rows, source text or the unbound pipeline identity.
-fn bind_completed_input(
+pub fn bind_completed_input(
   receiver : @lower.BoundPrepared,
   input_index : Int,
   expected_producer : @lower.BoundPrepared,

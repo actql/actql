@@ -1,5 +1,5 @@
 ///|
-priv struct SequenceRunLimits {
+pub(all) struct SequenceRunLimits {
   max_rows : Int
   metadata_entries : Int
   retained_entries : Int
@@ -9,7 +9,7 @@ priv struct SequenceRunLimits {
 }
 
 ///|
-priv enum SequenceRunIssue {
+enum SequenceRunIssue {
   InvalidLimits
   InputOwnership
   InputSet

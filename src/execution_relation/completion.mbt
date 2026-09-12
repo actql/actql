@@ -1,7 +1,7 @@
 ///|
 /// Created only after every prepared operation succeeds. This is component
 /// execution evidence, not whole-Program admission or publication evidence.
-priv struct CompletedSequence {
+struct CompletedSequence {
   contracts : RegisteredRelationContracts
   sequence : @lower.PreparedSequence
   store : TableStore
@@ -11,14 +11,14 @@ priv struct CompletedSequence {
 ///|
 /// The parent preserves the exact checked owner and Parameter bindings; a raw
 /// TableStore or caller-supplied rows cannot construct a successful output.
-priv struct CompletedOutput {
+struct CompletedOutput {
   completion : CompletedSequence
   target : @pipeline.Target
   table : Table
 }
 
 ///|
-fn completed_output(
+pub fn completed_output(
   completion : CompletedSequence,
   target : @pipeline.Target,
 ) -> CompletedOutput? {
@@ -39,4 +39,33 @@ fn completed_output(
   }
   guard store.tables[slot] is Some(held) else { return None }
   Some({ completion, target, table: held.table, })
+}
+
+///|
+pub fn completed_row_count(output : CompletedOutput) -> Int {
+  output.table.rows.length()
+}
+
+///|
+pub fn completed_column_count(output : CompletedOutput) -> Int {
+  output.table.names.length()
+}
+
+///|
+pub fn completed_column_name(output : CompletedOutput, column : Int) -> String? {
+  output.table.names.get(column)
+}
+
+///|
+/// Scalars and admitted nested values are immutable. No row/container accessor
+/// exposes the retained table or permits alteration of producer evidence.
+pub fn completed_cell(
+  output : CompletedOutput,
+  row : Int,
+  column : Int,
+) -> Value? {
+  match output.table.rows.get(row) {
+    Some(values) => values.get(column)
+    None => None
+  }
 }

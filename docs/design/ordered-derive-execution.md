@@ -137,6 +137,15 @@ candidate, admission or runtime stage. The physical construction ceilings apply
 to each bounded artifact construction, not to process-wide heap usage or total
 preparation work across all calls.
 
+The repository-internal package surface exposes opaque registered contracts,
+runtime contexts, generated sequences, completed outputs and producer bindings.
+It exposes immutable limit quantities and indexed output readers, not table
+containers, mutable counters or constructors for completion evidence. A consumer
+can prepare and execute generated fragments without private access. This is not
+a stable SDK surface or a Program/Run API. Preparation failures expose their
+stage; sequence failures expose their category and relevant input/step index,
+while detailed internal errors remain retained behind the opaque failure type.
+
 ## Logical resources
 
 The limits distinguish input row occurrences, individual wire value size,

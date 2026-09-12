@@ -6,17 +6,22 @@ import {
   "actql/actql/decode_core",
   "actql/actql/encode_core",
   "actql/actql/lowering_relation",
+  "actql/actql/pipeline_typing",
   "actql/actql/relation_schema",
   "actql/actql/value_admission",
   "moonbitlang/core/debug",
 }
 
 // Values
+pub fn admit_fragment_contract(RegisteredRelationContracts, @canonical_json.CanonicalValue, RegistryLimits) -> Result[FragmentContract, FragmentContractIssue]
+
 pub fn admit_ordered_contract(RegisteredRelationContracts, @canonical_json.CanonicalValue, RegistryLimits) -> Result[RegisteredOrderedContract, OrderedContractIssue]
 
 pub fn admit_relation_registry(@canonical_json.CanonicalValue, @canonical_json.CanonicalValue, RegistryLimits) -> Result[RegisteredRelationContracts, RegistryIssue]
 
 pub fn binary(@lowering_relation.BinaryOperator, Value, Value) -> Result[Value, ScalarIssue]
+
+pub fn bind_completed_input(@lowering_relation.BoundPrepared, Int, @lowering_relation.BoundPrepared, CompletedOutput) -> Result[BoundProducerInput, ProducerBindingIssue]
 
 pub fn boolean_pair(@lowering_relation.ManyOperator, Value, Value) -> Result[Value, ScalarIssue]
 
@@ -38,19 +43,41 @@ pub fn captured_schema(CapturedRows) -> @relation_schema.Schema
 
 pub fn captured_usage(CapturedRows) -> ValueUsage
 
+pub fn completed_cell(CompletedOutput, Int, Int) -> Value?
+
+pub fn completed_column_count(CompletedOutput) -> Int
+
+pub fn completed_column_name(CompletedOutput, Int) -> String?
+
+pub fn completed_output(CompletedSequence, @pipeline_typing.Target) -> CompletedOutput?
+
+pub fn completed_row_count(CompletedOutput) -> Int
+
 pub fn emit_ordered_params(OrderedParams, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
+
+pub fn execute_generated_sequence(GeneratedSequence, Array[CapturedRows], SequenceExecutionLimits, produced? : Array[BoundProducerInput]) -> Result[CompletedSequence, SequenceRunIssue]
 
 pub fn ordered_params_kernel(OrderedParams) -> @lowering_relation.PreparedKernel
 
 pub fn ordered_params_registry(OrderedParams) -> RegisteredRelationContracts
 
+pub fn prepare_generated_sequence(RegisteredRelationContracts, @lowering_relation.PreparedSequence, Array[FragmentRuntimeContext], Array[String], Int, Int) -> Result[GeneratedSequence, SequenceRunIssue]
+
 pub fn prepare_ordered_params(RegisteredOrderedContract, @lowering_relation.OrderedReferences) -> OrderedParams
+
+pub fn prepare_runtime_fragment(@lowering_relation.FragmentRequest, FragmentContract, @lowering_relation.DemandLimits, RegistryLimits, @lowering_relation.FragmentRowLimits, ordered? : RegisteredOrderedContract?) -> Result[FragmentRuntimeContext, RuntimeFragmentIssue]
+
+pub fn runtime_fragment_failure_stage(RuntimeFragmentIssue) -> RuntimeFragmentFailureStage
+
+pub fn sequence_failure_kind(SequenceRunIssue) -> SequenceFailureKind
 
 pub fn unary(@lowering_relation.UnaryOperator, Value) -> Result[Value, ScalarIssue]
 
 // Errors
 
 // Types and methods
+type BoundProducerInput
+
 pub(all) enum CaptureIssue {
   InvalidCaptureLimits
   CaptureLimit
@@ -69,6 +96,22 @@ pub(all) enum CaptureOrigin {
 
 type CapturedRows
 
+type CompletedOutput
+
+type CompletedSequence
+
+type FragmentContract
+
+pub(all) enum FragmentContractIssue {
+  InvalidLimits
+  BodyLimit
+  ContractMismatch
+}
+
+type FragmentRuntimeContext
+
+type GeneratedSequence
+
 pub(all) enum OrderedContractIssue {
   InvalidOrderedContractLimits
   OrderedContractBodyLimit
@@ -76,6 +119,13 @@ pub(all) enum OrderedContractIssue {
 }
 
 type OrderedParams
+
+pub(all) enum ProducerBindingIssue {
+  NotProducedInput
+  ProducerOwnerMismatch
+  ProducerBindingMismatch
+  ProducerTargetMismatch
+}
 
 type RegisteredOrderedContract
 
@@ -95,11 +145,54 @@ pub(all) struct RegistryLimits {
   max_body_depth : Int
 }
 
+pub(all) enum RuntimeFragmentFailureStage {
+  Material
+  Candidate
+  Admission
+  Runtime
+}
+
+type RuntimeFragmentIssue
+
 pub(all) enum ScalarIssue {
   InvalidOperand
   ArithmeticFailure
   ComparisonDomainNotImplemented
 } derive(Eq, @debug.Debug)
+
+pub(all) struct SequenceExecutionLimits {
+  rows : SequenceRunLimits
+  max_work : Int
+  max_frames : Int
+}
+
+pub(all) enum SequenceFailureKind {
+  InvalidLimits
+  InputOwnership
+  InputSet
+  InputEvidencePending(Int)
+  InputLimit
+  InputKey(Int)
+  Wiring
+  Capture(Int)
+  Rows(Int)
+  Store
+  OrderedContext(Int)
+  FragmentContext(Int)
+  MissingFragmentContext(Int)
+  MixedExecutionConfiguration
+}
+
+type SequenceRunIssue
+
+pub(all) struct SequenceRunLimits {
+  max_rows : Int
+  metadata_entries : Int
+  retained_entries : Int
+  operation_entries : Int
+  input_values : ValueLimits
+  output_values : ValueLimits
+}
 
 pub(all) enum Value {
   Null
