@@ -290,6 +290,19 @@ consumed work. Non-key structured payload does not participate in comparison.
 This helper neither projects the final schema nor admits unsupported key types;
 those remain responsibilities of checked execution preparation and row output.
 
+The physical dedupe index groups homogeneous admitted scalar columns by full
+comparison, not by hash equality. It orders candidates using only authored terms
+and remembers first-place ties, including ties between identical rows. Lower-ranked
+ties do not disqualify a unique first candidate. Empty grouping keys form one
+partition, but empty input never synthesizes a row. Canonical identities hash the
+ordered wire tuple, retaining repeated grouping fields, and determine group output
+order only. A duplicate identity between already distinct groups is rejected,
+not merged. Group failures are selected in that same identity order. The index
+returns no partial survivors and keeps its sort scratch, metadata and fixed-size
+identity strings within the shared workspace; comparisons and hashing consume
+cumulative work. It does not by itself establish source lowering or capability
+admission for `dedupe_rows`.
+
 The nonrecursive readiness walk uses one `max_body_nodes` construction allowance
 for root queue entries, expression visits, copied child views and queued edges
 across the complete kernel. It is separate from runtime logical-work counters;
