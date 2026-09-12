@@ -5,6 +5,49 @@ import {canonicalText,verifyIdentity} from './check-canonical-json.mjs';
 const read=p=>JSON.parse(readFileSync(p,'utf8'));
 const contract=read('spec/contracts/actql-check-environment.json');
 const corpus=read('portability/corpus/check-environment.json');
+test('lookup capacity fixed shapes distinguish completeness from hard limits',()=>{
+  const vectors=read('portability/corpus/lookup-capacity.json');
+  const schema=contract.contract_bodies.carrier_facts.properties.lookup_capacity;
+  assert.equal(vectors.version,'actql-lookup-capacity-vectors/0.1');
+  assert.equal(contract.contract_bodies.carrier_facts.additionalProperties,true);
+  assert.equal(schema.additionalProperties,false);
+  assert.deepEqual(schema.required,['version','completeness','max_rows_per_key','max_pages_per_request','max_response_bytes_per_page']);
+  // Interpreter only for this closed scalar schema subset, not evidence admission.
+  function accepts(v){
+    if(!v||typeof v!=='object'||Array.isArray(v))return false;
+    if(schema.required.some(k=>!Object.hasOwn(v,k)))return false;
+    return Object.entries(v).every(([k,x])=>{
+      const p=schema.properties[k];if(!p)return false;
+      if(Object.hasOwn(p,'const'))return x===p.const;
+      if(p.enum)return p.enum.includes(x);
+      assert.equal(p.type,'integer');
+      return typeof x==='number'&&Number.isInteger(x)&&x>=p.minimum&&x<=p.maximum;
+    });
+  }
+  for(const c of vectors.cases){
+    const v={...vectors.base,...c.patch};
+    assert.equal(accepts(v),c.accepted,c.id);
+    if(c.accepted)assert.equal(v.completeness==='complete_per_requested_key',c.supports_completeness,c.id);
+  }
+  for(const key of schema.required){
+    const v={...vectors.base};delete v[key];assert.equal(accepts(v),false,key);
+  }
+  for(const v of [null,[],{},true,1,'complete'])assert.equal(accepts(v),false);
+  const factsAccept=v=>v!==null&&typeof v==='object'&&!Array.isArray(v)
+    &&(!Object.hasOwn(v,'lookup_capacity')||accepts(v.lookup_capacity));
+  for(const v of [{},{completeness:'complete'},{future_facts:{x:1}}]){
+    assert.equal(factsAccept(v),true);
+    assert.equal(Object.hasOwn(v,'lookup_capacity'),false);
+  }
+  assert.equal(factsAccept({lookup_capacity:null}),false);
+  assert.equal(factsAccept({lookup_capacity:vectors.base,completeness:'unrelated'}),true);
+  for(const key of ['max_rows_per_key','max_pages_per_request','max_response_bytes_per_page']){
+    assert.deepEqual(schema.properties[key],{type:'integer',minimum:1,maximum:9007199254740991});
+    for(const value of [0,-1,0.5,9007199254740992,null,'1']){
+      assert.equal(accepts({...vectors.base,[key]:value}),false,key);
+    }
+  }
+});
 test('source data policy body is closed and retains unknown classification',()=>{
   assert.deepEqual(contract.contract_bodies.data_policy,{
     type:'object',additionalProperties:false,

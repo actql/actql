@@ -5283,6 +5283,72 @@
       }
     },
     {
+      "requirement_id": "actql.language/external-joins.lookup-capacity-bounds",
+      "statement_sha256": "02ff7b1fd2b984f238ecdb90ba3dd4f8c057bd3023aa6b44a36559f631578b1b",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "external-joins",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/external-joins.lookup-capacity-invalid-components",
+      "statement_sha256": "af30518cdcedaaecee5b6533f8b1abf6fd59820909990b8a92f616a85373a135",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "external-joins",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/external-joins.lookup-capacity-decoded-body-limit",
+      "statement_sha256": "b49d66b09b39946ab14ccfd35c12263fe1cd17da6e98d77f52af0b86ed88fee8",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "external-joins",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/external-joins.lookup-capacity-transport-limit",
+      "statement_sha256": "cef0e497675f52eef6093033a744e6c17ac0686c950218ab382c4c1678bba5a8",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "external-joins",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/external-joins.lookup-capacity-ownership",
+      "statement_sha256": "a369cbdf521f3e83d386caf98c522915181b5739aed061a14ab6d9f48cfb31eb",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "external-joins",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/external-joins.lookup-capacity-completeness-scope",
+      "statement_sha256": "2a91f5c499ceff25167b7f937e31d963f05aa6797f7e061470def8cb1b3685e3",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "external-joins",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.language/external-joins.static-request-fields-outside-the-correlation-roles-must-be-supplied",
       "statement_sha256": "df504b567d07c8a8f52f2a4bd849b4e0db2d00504a883129d51f223272e8ac52",
       "status": "pending",

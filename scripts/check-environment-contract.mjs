@@ -40,6 +40,20 @@ const body = {
   value_contract_bodies:valueBodyContract(JSON.parse(readFileSync('spec/contracts/actql-protocol-schemas.json','utf8'))),
   carrier_contract_bodies:carrierBodyContract(JSON.parse(readFileSync('spec/contracts/actql-protocol-schemas.json','utf8')),JSON.parse(readFileSync('spec/contracts/actql-aoa.json','utf8'))),
   contract_bodies:{
+    carrier_facts:{
+      type:'object',additionalProperties:true,
+      properties:{
+        lookup_capacity:{
+          type:'object',additionalProperties:false,
+          required:['version','completeness','max_rows_per_key','max_pages_per_request','max_response_bytes_per_page'],
+          properties:{
+            version:{const:'actql-lookup-capacity/0.1'},
+            completeness:{enum:['complete_per_requested_key','hard_limit_only']},
+            ...Object.fromEntries(['max_rows_per_key','max_pages_per_request','max_response_bytes_per_page'].map(k=>[k,{type:'integer',minimum:1,maximum:9007199254740991}])),
+          },
+        },
+      },
+    },
     data_policy:{
       type:'object',additionalProperties:false,
       required:['version','source_ref','classification'],

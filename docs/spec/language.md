@@ -6506,6 +6506,44 @@ not a legal implementation of join semantics and fails with
 `ACTQL_E_EXTERNAL_JOIN_COMPLETENESS_UNPROVEN`. Check MUST NOT require the author
 to repeat a transport limit as `max_items`.
 
+<!-- requirement-block: external-joins.lookup-capacity-bounds external-joins.lookup-capacity-invalid-components -->
+The selected SourceView's `output.facts` Contract Envelope of kind
+`carrier_facts` carries an optional `body.lookup_capacity` component. Its
+closed schema is `contract_bodies.carrier_facts.properties.lookup_capacity` in
+`actql-check-environment.json`. When present, all five members are required:
+`version: "actql-lookup-capacity/0.1"`, `completeness`, `max_rows_per_key`,
+`max_pages_per_request` and `max_response_bytes_per_page`. The three bounds
+MUST be positive safe integers. `completeness` is exactly
+`complete_per_requested_key` or `hard_limit_only`; only the former can support
+a keyed join's completeness obligation. Missing capacity remains unknown;
+null, malformed components and unknown component members MUST be rejected,
+including on unused views. Other carrier-facts members are not prohibited by
+this component schema and do not gain evidence meaning from passing it.
+
+<!-- requirement-block: external-joins.lookup-capacity-decoded-body-limit external-joins.lookup-capacity-transport-limit -->
+`max_rows_per_key` bounds the complete logical response for one distinct
+requested correlation tuple across all pages, before the ordinary join.
+`max_pages_per_request` bounds successful logical response pages for one
+request tuple or one native batch; retries are not additional logical pages.
+`max_response_bytes_per_page` bounds response-body octets after content
+decoding for each such page, including the response envelope, not canonical
+row bytes, headers or compressed transport octets. Host decoded-body limits
+MUST accommodate this worst-case logical response. Separate transport and
+attempt limits MUST cover retries, redirects and failed responses; this page
+bound alone is not evidence for their wire-byte extent. Capacity does not
+change response cardinality or permit truncating a complete response.
+
+<!-- requirement-block: external-joins.lookup-capacity-ownership external-joins.lookup-capacity-completeness-scope -->
+Capacity admission MUST retain the selected SourceView, its exact facts
+reference and the containing Contract Envelope CID. The component has no
+independent self-CID and is covered by that envelope's existing preimage.
+An equal bound from another source is not interchangeable evidence. Neither
+shape validation nor a declaration of completeness proves Catalog authority,
+actual response completeness, identity uniqueness or successful enforcement.
+A generic root `completeness: "complete"` claim MUST NOT be promoted to
+`complete_per_requested_key`. Runtime acquisition retains its required
+response validation and atomic failure obligations.
+
 <!-- requirement-block: external-joins.static-request-fields-outside-the-correlation-roles-must-be-supplied external-joins.static-request-fields-outside-the-correlation-roles-must-be-supplied.second external-joins.correlation-request-fields-must-not-be-supplied-there-because-the external-joins.together-the-join-keys-and-static-request-fields-must-consume external-joins.provider-resource-sourceview-request-roles-response-roles-identity-response-cardinality -->
 The SourceView owns relation schema, candidate keys, correlation
 request/response roles, response identity, per-key completeness, response

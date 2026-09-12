@@ -133,6 +133,30 @@ This closes request classification and static binding, not correlation-key
 matching, response completeness, capacity, policy, reference authority or final
 Program identity. Host bindings remain explicitly unresolved.
 
+## Lookup capacity facts
+
+The external-join rules require per-key completeness and finite source capacity,
+but previously did not define their carrier-facts component grammar. The shared
+Check Environment contract defines a closed, versioned `lookup_capacity`
+component while leaving unrelated facts members to their own contracts.
+Absence is unknown, not a zero bound or an implicit completeness guarantee.
+
+Sketch `87dc7144` (`src/actql-compiler.ts`) reads an unversioned capacity object
+and the generic root `completeness: "complete"`. The new component deliberately
+does not promote that root claim: upstream candidate completeness and response
+completeness for requested keys are separate evidence axes. Its byte unit is
+explicitly decoded response-body octets. Logical-page capacity cannot prove
+compressed transport, retry or failed-attempt wire-byte bounds. This clarifies
+previously unspecified units rather than claiming the reference already made
+that distinction. Legacy facts require explicit publication under the new body
+contract, not repair during admission.
+
+The containing facts envelope owns the claim; a future capacity application
+must retain the selected SourceView and its same-Catalog reference. Component
+admission is not Catalog authority or observed response validation. Host policy
+selection, actual left-row bounds, batching and runtime enforcement remain
+separate inputs to acquisition capacity resolution.
+
 ## Keyed join role binding
 
 `check_keyed_joins` checks all keyed join-right consumers retained by

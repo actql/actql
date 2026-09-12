@@ -1,0 +1,23 @@
+{
+  "version": "actql-lookup-capacity-vectors/0.1",
+  "base": {
+    "version": "actql-lookup-capacity/0.1",
+    "completeness": "complete_per_requested_key",
+    "max_rows_per_key": 2,
+    "max_pages_per_request": 3,
+    "max_response_bytes_per_page": 4096
+  },
+  "cases": [
+    {"id":"complete", "patch":{}, "accepted":true, "supports_completeness":true},
+    {"id":"truncating", "patch":{"completeness":"hard_limit_only"}, "accepted":true, "supports_completeness":false},
+    {"id":"generic-complete", "patch":{"completeness":"complete"}, "accepted":false},
+    {"id":"zero", "patch":{"max_rows_per_key":0}, "accepted":false},
+    {"id":"negative", "patch":{"max_pages_per_request":-1}, "accepted":false},
+    {"id":"fraction", "patch":{"max_response_bytes_per_page":1.5}, "accepted":false},
+    {"id":"safe-boundary", "patch":{"max_rows_per_key":9007199254740991}, "accepted":true, "supports_completeness":true},
+    {"id":"unsafe-boundary", "patch":{"max_rows_per_key":9007199254740992}, "accepted":false},
+    {"id":"string-bound", "patch":{"max_rows_per_key":"2"}, "accepted":false},
+    {"id":"unknown-field", "patch":{"max_items":1}, "accepted":false},
+    {"id":"wrong-version", "patch":{"version":"actql-lookup-capacity/1.0"}, "accepted":false}
+  ]
+}
