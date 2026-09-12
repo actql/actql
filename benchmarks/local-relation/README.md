@@ -133,6 +133,17 @@ pairs in the stated direction and a confidence interval strictly excluding 1.
 Missing, nonpositive or nonfinite observations are rejected, never filled in.
 Test this calculation with `node --test scripts/layout-statistics.test.mjs`.
 
+`scripts/summarize-layout-report.mjs MODE REPORT.json` verifies the completed
+seven-pair schedule, source tree and runner against the report's own commit,
+manifest, executable identities and timing scope before applying this method.
+`MODE` is `additional`, `legacy`, `prepared` or `prepared-legacy`. Derived summaries
+stay under `_build/layout-measurements`; the source report hash is retained.
+Five-phase summaries include median/min/max for A and each compared candidate.
+Even an accepted report is one subset, never an adoption authorization. The
+command refuses pre-disposal legacy E2E reports instead of treating their clock
+as the new scope. Run its rejection tests with
+`node --test scripts/summarize-layout-report.test.mjs`.
+
 This calculation alone does not authorize adoption. The full mandatory matrix,
 valid timing scope, semantic gates and source provenance must be established
 separately. Apply the 20% threshold to every member of a preselected major group;
