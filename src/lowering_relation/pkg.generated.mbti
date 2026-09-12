@@ -48,6 +48,8 @@ pub fn emit_values_node(PreparedValues, @encode_core.Writer) -> Unit raise @enco
 
 pub fn emit_values_params(PreparedValues, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
 
+pub fn emit_wire_value(@value_admission.Value, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
+
 pub fn expression_body(Expression) -> ExpressionBody
 
 pub fn expression_contract(Expression) -> @value_contract.Contract

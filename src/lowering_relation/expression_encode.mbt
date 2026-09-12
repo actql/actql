@@ -64,7 +64,9 @@ pub fn emit_expression(
 }
 
 ///|
-fn emit_wire_value(
+/// Typed wire projection shared by values lowering and runtime measurement.
+/// Does not create a canonical identity or re-admit caller-provided values.
+pub fn emit_wire_value(
   value : @value.Value,
   output : @encode.Writer,
 ) -> Unit raise @encode.EncodeFailure {

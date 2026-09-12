@@ -82,6 +82,17 @@ octets, so escaping overhead is not mistaken for semantic work. Caching does
 not reduce logical charges. Lazy branches retain their existing demand rules;
 an unselected branch is not evaluated or charged as evaluated work.
 
+Value measurement uses the same typed wire projection as lowering with a
+measurement-only writer, avoiding a JSON output buffer. Logical weight is
+counted separately: decimal weight includes the fixed-scale wire string, and
+string/key weight counts raw UTF-8 rather than JSON escapes. Every occurrence
+is measured even when backing storage is shared. The allowance uses checked
+Int64 arithmetic within the contract's safe-integer range; host node/depth and
+writer limits independently bound the measuring machinery. Per-value measures
+must be charged by a shared row-kernel budget at the input, operand, production
+and retention boundaries; computing them alone does not enforce cumulative
+work or live-root lifetimes.
+
 Logical live roots may share physical storage. Conversely, logical byte limits
 do not cap physical heap overhead or algorithmic cost. Host resource controls
 remain necessary. Input validation precedes shadowing, and an eventual select
