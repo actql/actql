@@ -112,7 +112,7 @@ fn results(p : @pipeline.CheckedPipeline) -> @results.CheckedResults {
 }
 
 ///|
-fn capacity(p : @pipeline.CheckedPipeline) -> @capacity.ApplicationCoverage {
+fn empty_capacity_sources() -> @host.HostSources {
   let mixed = @wire.check_mixed_claims([], [], {
     max_entities: 0,
     max_references: 0,
@@ -124,18 +124,28 @@ fn capacity(p : @pipeline.CheckedPipeline) -> @capacity.ApplicationCoverage {
     max_witnesses: 0,
     max_references: 0,
   }).unwrap()
-  let sources = @host.bind_claim_sources(claims, [], {
+  @host.bind_claim_sources(claims, [], {
     max_entries: 0,
     max_bytes: 0,
     max_nodes: 0,
     max_depth: 0,
   }).unwrap()
-  @capacity.prepare_application_coverage(p, sources, policy(), [], {
-    max_work: 1000,
-    max_name_bytes: 100,
-    max_input_work: 1000,
-    max_operand_work: 1000,
-  }).unwrap()
+}
+
+///|
+fn capacity(p : @pipeline.CheckedPipeline) -> @capacity.ApplicationCoverage {
+  @capacity.prepare_application_coverage(
+    p,
+    empty_capacity_sources(),
+    policy(),
+    [],
+    {
+      max_work: 1000,
+      max_name_bytes: 100,
+      max_input_work: 1000,
+      max_operand_work: 1000,
+    },
+  ).unwrap()
 }
 
 ///|

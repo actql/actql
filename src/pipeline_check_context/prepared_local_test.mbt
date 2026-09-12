@@ -1,17 +1,10 @@
 ///|
-fn prepared_local_context_fixture(
+fn prepared_local_source_fixture(
   first_by_order? : Bool = false,
   unused_operation? : Bool = false,
   third_stage? : Bool = false,
   environment? : @environment.WireEnvironment? = None,
-) -> (
-  StageContexts,
-  @stage_results.ResultWiring,
-  Array[@local_inputs.Attached],
-  @stages.BoundOperations,
-  @stage_results.Checked,
-  Array[BoundParameters],
-) {
+) -> @stage_results.PreparedLocalSource {
   let stage_count = if third_stage { 3 } else { 2 }
   let program = @syntax.parse(
     (
@@ -53,7 +46,7 @@ fn prepared_local_context_fixture(
     },
     format=Json,
   ).unwrap()
-  let prepared_source = @stage_results.prepare_local_source(
+  @stage_results.prepare_local_source(
     program,
     None,
     max_parameters=1,
@@ -73,9 +66,32 @@ fn prepared_local_context_fixture(
     },
     environment~,
   ).unwrap()
+}
+
+///|
+fn prepared_local_context_fixture(
+  first_by_order? : Bool = false,
+  unused_operation? : Bool = false,
+  third_stage? : Bool = false,
+  environment? : @environment.WireEnvironment? = None,
+) -> (
+  StageContexts,
+  @stage_results.ResultWiring,
+  Array[@local_inputs.Attached],
+  @stages.BoundOperations,
+  @stage_results.Checked,
+  Array[BoundParameters],
+) {
+  let stage_count = if third_stage { 3 } else { 2 }
+  let prepared_source = prepared_local_source_fixture(
+    first_by_order~,
+    unused_operation~,
+    third_stage~,
+    environment~,
+  )
   let wiring = @stage_results.local_source_wiring(prepared_source)
   let locals = []
-  let stage_applications = []
+  let stage_materials = []
   for i in 0..<stage_count {
     let port = @stage_results.wiring_stage_at(wiring, i).unwrap()
     if @stage_results.wiring_local_input_at(wiring, i) is Some(input) {
@@ -85,29 +101,31 @@ fn prepared_local_context_fixture(
       @stage_results.stage_port_publications(port),
     )
     let closure = @results.checked_producer_orders(orders)
-    let applications = []
-    for j in 0..<@pipeline.contextual_closure_count(closure) {
+    let materials = []
+    for _ in 0..<@pipeline.contextual_closure_count(closure) {
       // These two scalar derives have no acquired inputs or capacity claims.
       // The existing admission fixture still runs application coverage; this
       // is not a generic empty-proof default for other operations.
-      applications.push(
-        capacity(
-          @pipeline.contextual_orders_pipeline(
-            @pipeline.contextual_closure_at(closure, j).unwrap(),
-          ),
-        ),
-      )
+      materials.push(CapacityMaterial::{
+        sources: empty_capacity_sources(),
+        consumers: [],
+      })
     }
-    stage_applications.push(applications)
+    stage_materials.push(materials)
   }
   let bound = @stage_results.local_source_operations(prepared_source)
   let checked = @stage_results.local_source_results(prepared_source)
-  let stages = check_prepared_local_stages(
+  let stages = prepare_local_stage_contexts(
     prepared_source,
-    stage_applications,
+    stage_materials,
     policy(),
-    max_work=10000000,
-    max_text_bytes=10000000,
+    {
+      max_work: 10000000,
+      max_text_bytes: 10000000,
+      max_name_bytes: 1000000,
+      max_input_work: 1000000,
+      max_operand_work: 1000000,
+    },
   ).unwrap()
   let contexts = Array::makei(stage_count, i => {
     stage_context_at(stages, i).unwrap()

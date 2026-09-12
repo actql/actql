@@ -1,6 +1,8 @@
 supported_targets = "+js+wasm+native"
 
 import {
+  "actql/actql/capacity_host_witness" @host,
+  "actql/actql/capacity_witness" @wire,
   "actql/actql/binding_declarations",
   "actql/actql/relation_schema" @schema,
   "actql/actql/local_relation_input" @local_input,
@@ -51,8 +53,6 @@ import {
   "actql/actql/sha256" @sha,
   "actql/actql/source_value" @source,
   "actql/actql/relation_evidence" @evidence,
-  "actql/actql/capacity_witness" @wire,
-  "actql/actql/capacity_host_witness" @host,
   "actql/actql/capacity_program_step" @program,
   "moonbitlang/core/encoding/utf8",
 } for "test"

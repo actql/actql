@@ -184,6 +184,24 @@ context collection. Capacity applications and their optional owner mappings
 remain explicit, with exactly one collection per Stage. This budget does not
 replace accounting for the complete source-admission prefix.
 
+`prepare_local_stage_contexts` selects each contextual pipeline and its effective
+Parameter bindings from that same Local preparation, prepares capacity coverage
+from explicit Host-source material and unchecked consumer coordinates, and calls
+the Stage integration boundary internally. Material counts must match every
+Stage and producer visit, including unused visits; absent material is not an
+empty-proof default. The entrance accepts neither substitute pipelines nor
+independent successful capacity applications. Cross-producer owner coordinates
+still undergo the existing final owner checks.
+
+Work and text budgets are shared across all Stages. Capacity coverage work is
+counted once through its retained context; material visits, binding preparation
+and usage reads add their own cost. Input-name bytes consume both their separate
+cap and the text allowance, and proof input/operand work is cumulative across
+producer visits. Prior wire and Host-source admission is outside this entrance.
+A later missing visit, invalid consumer or exhausted budget returns no Stage
+collection. This closes capacity preparation and Stage context integration, not
+the remaining source/identity/obligation checks of `CheckedProgram`.
+
 This order is a dependency graph, not a requirement to reconstruct earlier
 results at every phase. Private incremental assembly can retain immutable
 intermediates. Public low-level helpers remain useful for focused tests, but

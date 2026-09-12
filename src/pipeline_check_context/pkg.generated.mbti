@@ -5,6 +5,7 @@ import {
   "actql/actql/binding_declarations",
   "actql/actql/calendar_typing",
   "actql/actql/capacity_graph_preflight",
+  "actql/actql/capacity_host_witness",
   "actql/actql/capacity_policy",
   "actql/actql/capacity_program_step",
   "actql/actql/check_environment",
@@ -473,6 +474,8 @@ pub fn prepare_expression_validation(SelectedPolicyContext, ExpressionValidation
 
 pub fn prepare_incoming_gate(ProgramIncomingLinks, Int, IncomingGateLimits) -> Result[PreparedIncomingGate, IncomingGateIssue]
 
+pub fn prepare_local_stage_contexts(@stage_results.PreparedLocalSource, Array[Array[CapacityMaterial]], @capacity_policy.Policy, CapacityStageLimits, proof_owners? : Array[Array[(Int, Int, Int)]]?, input_owners? : Array[Array[(Int, Int, Int, Int)]]?) -> Result[StageContexts, CapacityStageIssue]
+
 pub fn prepare_program_checks(SourceProducerContext, ExpressionProfiles, PureOperationProfiles, PreparationBudget, max_policy_depth~ : Int, max_requirements~ : Int, max_regex_depth~ : Int) -> Result[OperationProfileChecks, PrepareChecksIssue]
 
 pub fn prepare_program_incoming_gates(ProgramIncomingLinks, IncomingGateLimits) -> Result[ProgramIncomingGates, ProgramIncomingGatesIssue]
@@ -773,6 +776,29 @@ pub fn wired_usage(WiredStages) -> (Int, Int)
 type AdmittedOperationQuery
 
 type BoundParameters
+
+pub(all) struct CapacityMaterial {
+  sources : @capacity_host_witness.HostSources
+  consumers : Array[@capacity_graph_preflight.ConsumerRequest]
+}
+
+pub enum CapacityStageIssue {
+  InvalidLimits
+  StageCount
+  VisitCount(Int)
+  BudgetExceeded
+  Bindings(Int, Int, @capacity_program_step.Issue)
+  Capacity(Int, Int, @capacity_graph_preflight.PreparationIssue)
+  Stages(PreparedStagesIssue)
+}
+
+pub(all) struct CapacityStageLimits {
+  max_work : Int
+  max_text_bytes : Int
+  max_name_bytes : Int
+  max_input_work : Int
+  max_operand_work : Int
+} derive(Eq, @debug.Debug)
 
 pub(all) enum CoreContractBody {
   ExpressionBody(@check_environment.ExpressionContractBody)
