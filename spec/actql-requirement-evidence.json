@@ -8627,6 +8627,50 @@
       }
     },
     {
+      "requirement_id": "actql.protocol.contracts/source-pushdown-contract.body",
+      "statement_sha256": "7402a596af36383b8fdf8f6ca34690ae18fe683357e584bf14d9504599a78ba0",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "source-pushdown-contract",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/source-pushdown-contract.agreement",
+      "statement_sha256": "e5239a33fd20f2319bf7ec5d15163658acacec8f2c257a3fa0df78b6531f2051",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "source-pushdown-contract",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/source-pushdown-contract.preservation",
+      "statement_sha256": "1e841fb514088f46691d06dd7ce7e430ff715487d6253b6a0c64554b90cfe52a",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "source-pushdown-contract",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/source-pushdown-contract.dependencies",
+      "statement_sha256": "5c3ddb93396998e8925f2e939be001d1a43d1d7774391593a08832ad852388e4",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "source-pushdown-contract",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.protocol.contracts/connector-manifest.unknown-keys-must-fail-before-a-connector-is-instantiated",
       "statement_sha256": "7d6c0d61a5d97b10b3a28c2bc06481dc7d5af4975cfe13e7441b394abdf14378",
       "status": "pending",
@@ -9233,7 +9277,7 @@
     },
     {
       "requirement_id": "actql.protocol.contracts/machine-contracts.exact-artifacts",
-      "statement_sha256": "6cd5f38844f77f01e4cb34041125ce99b6b5d08abe8ee235f25d5bbb97ca92ba",
+      "statement_sha256": "4cd6406b31b50e7c375eb6607b67b9e4a226dfd969ad5982053bf20e4a5f1e0f",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",

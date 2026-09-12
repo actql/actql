@@ -505,6 +505,44 @@ not a reconstructed summary.
 
 The shared Host Discovery protocol is defined in [Host Discovery protocol](discovery.md#discovery).
 
+<a id="source-pushdown-contract"></a>
+
+#### SourceView pushdown contract
+
+<!-- requirement-block: source-pushdown-contract.body -->
+The core pushdown body is either the empty object `{}`, denoting no pushdown
+operations, or exactly `{version: "actql-source-view-pushdown/0.1", carrier,
+operations}`. The versioned body's `carrier` is `relation`, `graph`, `events` or
+`vectors`. Its `operations` is a duplicate-free array drawn from `projection`,
+`filter`, `order_by`, `limit` and `assert_unique_by`; non-Relation bodies have
+an empty array. Other body versions or vocabularies require a separately
+registered interpretation and MUST NOT be silently treated as this contract.
+
+<!-- requirement-block: source-pushdown-contract.agreement -->
+Every SourceView referencing this body MUST declare the same operation set, and
+the same Carrier when the body names one. An empty body requires an empty
+SourceView operation list. Array order is not capability precedence; neither
+array is reordered, deduplicated or replaced for identity computation. The
+complete Contract Envelope and SourceView keep their existing preimage rules.
+
+<!-- requirement-block: source-pushdown-contract.preservation -->
+Advertisement is not evidence of implementation, semantic equivalence or
+execution authority. A selected pushdown MUST preserve the operation's values,
+types, null behavior, multiplicity, required ordering, eager evaluation and
+failure behavior, and applicable bounds. A residual predicate is evaluated with
+the same canonical semantics or rejected. In particular, advertising `limit`
+does not establish a deterministic selection order, and advertising `filter`
+does not permit suppressing an eagerly evaluated failure.
+
+<!-- requirement-block: source-pushdown-contract.dependencies -->
+The interpreted body depends on its governing Check Environment contract;
+nonempty operation lists additionally depend on the pinned RelA primitive laws,
+and `filter` additionally depends on the pinned expression contract. Those pins
+are recorded in `pushdown_contract_bodies.semantic_dependencies` of the Check
+Environment machine contract. This body grammar has no ContractRef positions.
+These direct dependencies do not replace transitive closure or provider
+equivalence checks, which MUST be validated at their respective boundaries.
+
 <a id="connector-manifest"></a>
 
 ### Connector manifest and authorization boundary
@@ -1141,7 +1179,7 @@ These exact schema/law references are owned here. Their identities do not includ
 <!-- requirement-block: machine-contracts.exact-artifacts -->
 <!-- normative-code: law -->
 ```text
-../../../spec/contracts/actql-check-environment.json# sha256:6bca30b2accfefbf71036b8f67d005bfc9f2bb83df93b0f977b1d58eeda6bc09
+../../../spec/contracts/actql-check-environment.json# sha256:8d080aae1651270777521cb49534bb0b758ce3c5aecc16cc9159c74b77249204
 ../../../spec/contracts/actql-local-relation-snapshot.json# sha256:60e8136aea733421e75fa3dcef4934c87ce98959b36f8a56da93ccfbf03d81b2
 ../../../spec/contracts/actql-local-source-reference.json# sha256:9be664306a6a91a8e5bfca53d579e6dac77baf4567eb241ceeedc3216ffe47d9
 ../../../spec/contracts/actql-protocol-schemas.json#/schemas/model_task sha256:19408a610dbc52552bff3a7f97f25a120a66688e7db4f41383c91c9298f02dd2

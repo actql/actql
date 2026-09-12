@@ -1,0 +1,21 @@
+{
+  "version": "actql-pushdown-contract-vectors/0.1",
+  "cases": [
+    {"id":"empty", "body":{}, "carrier":"relation", "operations":[], "accepted":true, "expected_body_cid":"sha256:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"},
+    {"id":"relation", "body":{"version":"actql-source-view-pushdown/0.1","carrier":"relation","operations":["projection","filter"]}, "carrier":"relation", "operations":["filter","projection"], "accepted":true, "expected_body_cid":"sha256:e199ba0913833706b326b1fa7868f7b64e6f72e5e83eaaa50aa42920b8ee547f"},
+    {"id":"body-order-retained", "body":{"version":"actql-source-view-pushdown/0.1","carrier":"relation","operations":["filter","projection"]}, "carrier":"relation", "operations":["projection","filter"], "accepted":true, "expected_body_cid":"sha256:c8677f3a8965d1fb51d0605eebbaecc585bc1dbd73bf17f6a1ab7b46ef1f2a75"},
+    {"id":"graph-empty", "body":{"version":"actql-source-view-pushdown/0.1","carrier":"graph","operations":[]}, "carrier":"graph", "operations":[], "accepted":true, "expected_body_cid":"sha256:a22413231eb2002b093e07d8c533917d3a268a8a58b1338cdb009b427031587c"},
+    {"id":"all-relation-operations", "body":{"version":"actql-source-view-pushdown/0.1","carrier":"relation","operations":["projection","filter","order_by","limit","assert_unique_by"]}, "carrier":"relation", "operations":["assert_unique_by","limit","order_by","filter","projection"], "accepted":true, "expected_body_cid":"sha256:e2211b7c0d2404d7b2efe88aecaf041268f1705ffbff78f92414fc2cd90268f4"},
+    {"id":"empty-contradiction", "body":{}, "carrier":"relation", "operations":["filter"], "accepted":false},
+    {"id":"carrier-mismatch", "body":{"version":"actql-source-view-pushdown/0.1","carrier":"relation","operations":[]}, "carrier":"events", "operations":[], "accepted":false},
+    {"id":"nonrelation-operation", "body":{"version":"actql-source-view-pushdown/0.1","carrier":"vectors","operations":["filter"]}, "carrier":"vectors", "operations":["filter"], "accepted":false},
+    {"id":"operation-mismatch", "body":{"version":"actql-source-view-pushdown/0.1","carrier":"relation","operations":["filter"]}, "carrier":"relation", "operations":["projection"], "accepted":false},
+    {"id":"duplicate-body-operation", "body":{"version":"actql-source-view-pushdown/0.1","carrier":"relation","operations":["filter","filter"]}, "carrier":"relation", "operations":["filter"], "accepted":false},
+    {"id":"duplicate-source-operation", "body":{"version":"actql-source-view-pushdown/0.1","carrier":"relation","operations":["filter"]}, "carrier":"relation", "operations":["filter","filter"], "accepted":false},
+    {"id":"unknown-operation", "body":{"version":"actql-source-view-pushdown/0.1","carrier":"relation","operations":["invented"]}, "carrier":"relation", "operations":["invented"], "accepted":false},
+    {"id":"unknown-member", "body":{"version":"actql-source-view-pushdown/0.1","carrier":"relation","operations":[],"extra":true}, "carrier":"relation", "operations":[], "accepted":false},
+    {"id":"unknown-version", "body":{"version":"provider-owned","carrier":"relation","operations":[]}, "carrier":"relation", "operations":[], "accepted":false},
+    {"id":"null-body", "body":null, "carrier":"relation", "operations":[], "accepted":false},
+    {"id":"missing-operations", "body":{"version":"actql-source-view-pushdown/0.1","carrier":"relation"}, "carrier":"relation", "operations":[], "accepted":false}
+  ]
+}

@@ -334,6 +334,20 @@ contracts' own semantic dependencies, the remaining body grammars and the Unit's
 operation, policy and incoming-interface laws still require interpretation. A
 caller cannot treat a direct-dependency result as the complete contract set.
 
+The [SourceView pushdown contract](../spec/protocols/contracts.md#source-pushdown-contract)
+separates advertisement from execution equivalence. Its versioned body follows
+the producer in `sketch@87dc7144138edfcba108cdc59dc485ac976ba976`,
+`src/connectors/local-kernel.ts`; the empty body used in its fixtures explicitly
+denotes no advertised operations. This is a registered core interpretation, not
+a claim that other provider contracts must use this vocabulary. A different
+body grammar requires its own registered interpretation.
+
+Operation lists agree as sets, while their original order remains part of each
+existing preimage. This avoids changing identities by silently sorting the body
+to match the SourceView. Neither matching declarations nor a valid contract CID
+proves that the provider preserves eager errors, deterministic selection or other
+operation semantics. Those obligations remain at pushdown selection/execution.
+
 `check_lookup_body_dependencies` uses the separately admitted LookupCapacities
 branch. It retains the exact facts envelope and component admission, and exposes
 the governing Check Environment contract dependency for an empty facts body or
