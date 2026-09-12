@@ -12,6 +12,8 @@ import {
 // Values
 pub fn admit(@value_contract.Contract, @decode_core.Cursor, Limits) -> Result[CheckedValue, Issue]
 
+pub fn admit_usage(@value_contract.Contract, @decode_core.Cursor, Limits) -> Result[(CheckedValue, Int, Int), Issue]
+
 pub fn[T] element_at(FrozenArray[T], Int) -> T?
 
 pub fn[T] element_count(FrozenArray[T]) -> Int

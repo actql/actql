@@ -172,7 +172,7 @@ test "shared subtrees and nested references do not bypass traversal" {
   let c = contract(
     "{\"type\":\"array\",\"nullable\":false,\"items\":{\"type\":\"artifact_ref\",\"nullable\":true}}",
   )
-  match @value_admission.admit(c, owned(parsed("[null]")), limits()) {
+  match @value_admission.admit(c, owned(parsed("[{}]")), limits()) {
     Err(
       @value_admission.ValueIssue(
         @value_admission.UnsupportedReference,
@@ -471,13 +471,19 @@ test "vector shape admission preserves binary64 rather than scoring quantization
 }
 
 ///|
-test "reference values are unsupported even when nullable or structurally plausible" {
+test "non-null reference values require issuer evidence even under nullable contracts" {
   for
     spec in [
       "{\"type\":\"resource_ref\",\"nullable\":true,\"resource_kind\":\"record\"}",
       "{\"type\":\"artifact_ref\",\"nullable\":true}",
     ] {
-    for input in ["null", "{}", "{\"identity_cid\":\"sha256:abc\"}"] {
+    assert_eq(
+      outcome(
+        @value_admission.admit(contract(spec), owned(parsed("null")), limits()),
+      ),
+      "accepted",
+    )
+    for input in ["{}", "{\"identity_cid\":\"sha256:abc\"}"] {
       assert_eq(
         outcome(
           @value_admission.admit(contract(spec), owned(parsed(input)), limits()),

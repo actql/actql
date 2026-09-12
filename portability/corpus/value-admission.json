@@ -32,6 +32,11 @@
     {"id":"vector-retained-binary64","contract":{"type":"vector","nullable":false,"dimensions":3},"value":[0.1,1e300,-1e-300],"expected":"accepted"},
     {"id":"vector-dimension","contract":{"type":"vector","nullable":false,"dimensions":2},"value":[1],"expected":"VectorDimension"},
     {"id":"resource-not-issued","contract":{"type":"resource_ref","nullable":false,"resource_kind":"record"},"value":{},"expected":"UnsupportedReference"},
-    {"id":"artifact-not-issued","contract":{"type":"artifact_ref","nullable":false},"value":{},"expected":"UnsupportedReference"}
+    {"id":"artifact-not-issued","contract":{"type":"artifact_ref","nullable":false},"value":{},"expected":"UnsupportedReference"},
+    {"id":"nullable-resource-absence","contract":{"type":"resource_ref","nullable":true,"resource_kind":"record"},"value":null,"expected":"accepted"},
+    {"id":"nullable-artifact-absence","contract":{"type":"artifact_ref","nullable":true},"value":null,"expected":"accepted"},
+    {"id":"nonnull-resource-absence","contract":{"type":"resource_ref","nullable":false,"resource_kind":"record"},"value":null,"expected":"UnexpectedNull"},
+    {"id":"nonnull-artifact-absence","contract":{"type":"artifact_ref","nullable":false},"value":null,"expected":"UnexpectedNull"},
+    {"id":"nullable-ref-items","contract":{"type":"array","nullable":false,"items":{"type":"artifact_ref","nullable":true}},"value":[null,null],"expected":"accepted"}
   ]
 }

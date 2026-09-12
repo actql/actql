@@ -239,3 +239,38 @@ test "value admission corpus: artifact-not-issued" {
   let result = @value_admission.admit(c, owned(parsed("{}")), limits())
   assert_eq(outcome(result), "UnsupportedReference")
 }
+
+///|
+test "value admission corpus: nullable-resource-absence" {
+  let c = contract("{\"type\":\"resource_ref\",\"nullable\":true,\"resource_kind\":\"record\"}")
+  let result = @value_admission.admit(c, owned(parsed("null")), limits())
+  assert_eq(outcome(result), "accepted")
+}
+
+///|
+test "value admission corpus: nullable-artifact-absence" {
+  let c = contract("{\"type\":\"artifact_ref\",\"nullable\":true}")
+  let result = @value_admission.admit(c, owned(parsed("null")), limits())
+  assert_eq(outcome(result), "accepted")
+}
+
+///|
+test "value admission corpus: nonnull-resource-absence" {
+  let c = contract("{\"type\":\"resource_ref\",\"nullable\":false,\"resource_kind\":\"record\"}")
+  let result = @value_admission.admit(c, owned(parsed("null")), limits())
+  assert_eq(outcome(result), "UnexpectedNull")
+}
+
+///|
+test "value admission corpus: nonnull-artifact-absence" {
+  let c = contract("{\"type\":\"artifact_ref\",\"nullable\":false}")
+  let result = @value_admission.admit(c, owned(parsed("null")), limits())
+  assert_eq(outcome(result), "UnexpectedNull")
+}
+
+///|
+test "value admission corpus: nullable-ref-items" {
+  let c = contract("{\"type\":\"array\",\"nullable\":false,\"items\":{\"type\":\"artifact_ref\",\"nullable\":true}}")
+  let result = @value_admission.admit(c, owned(parsed("[null,null]")), limits())
+  assert_eq(outcome(result), "accepted")
+}

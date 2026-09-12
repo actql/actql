@@ -52,14 +52,25 @@ and operation-specific numerical restrictions belong to those consumers after
 their normative dependencies are resolved. Do not infer scoring readiness from a
 checked vector, or add an exact-f32-representability restriction here.
 
-A visited `resource_ref` or `artifact_ref` contract returns
-`UnsupportedReference`, including when its input is null and the contract is
-nullable. This is an implementation scope restriction, not a language prohibition.
+A non-null value under a `resource_ref` or `artifact_ref` contract returns
+`UnsupportedReference`. This is an implementation scope restriction, not a language prohibition.
+Null follows the ordinary nullability rule even under a Ref contract: nullable
+accepts the absence and non-nullable rejects it as `UnexpectedNull`. This also
+applies inside arrays and objects. Accepting absence does not issue a reference
+or make a structurally plausible non-null authored object authoritative.
 An empty array with a Ref item contract contains no visited Ref values and may
 pass. Reference envelope/CID validation, issuer evidence and current usage
 authorization require a separate boundary; authored JSON cannot establish them.
 
 ## Budgets, diagnostics and ownership
+
+`admit_usage` returns the same checked value plus consumed node and UTF-8 text
+counts. `admit` delegates to that path and discards only the counters. Consumers
+validating separate request fields can subtract actual usage from a shared
+allowance instead of resetting limits or walking the values again to measure
+them. Depth remains a per-value container bound. Failures return neither a
+partial value nor success counters; a caller must not publish a partially
+admitted aggregate after one field fails.
 
 - `max_nodes` counts every value occurrence, including the root and vector
   components; object keys are not nodes. Shared subtrees count per occurrence.

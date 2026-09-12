@@ -133,14 +133,6 @@ fn run(
         values.push(Object({ values: entries, }))
       }
       Read(cursor, expected, parent_depth) => {
-        // Ref acceptance needs a separate issuer/authority boundary, including
-        // nullable Ref contracts. Do not turn authored objects into references.
-        if expected
-          is Some(
-            { shape: @contract.ResourceRef(_) | @contract.ArtifactRef(_), .. }
-          ) {
-          fail(cursor, UnsupportedReference)
-        }
         if @decode.is_null(cursor) {
           if expected is Some(c) && !c.nullable {
             fail(cursor, UnexpectedNull)
@@ -290,6 +282,22 @@ pub fn admit(
   cursor : @decode.Cursor,
   limits : Limits,
 ) -> Result[CheckedValue, Issue] {
+  match admit_usage(contract, cursor, limits) {
+    Ok((value, _, _)) => Ok(value)
+    Err(issue) => Err(issue)
+  }
+}
+
+///|
+/// Returns the admitted value, visited value nodes, and charged UTF-8 text bytes
+/// (including object keys). Callers can share a budget across separate values.
+/// Depth is checked per value, not a cumulative counter. No partial usage or
+/// admitted value is returned after failure.
+pub fn admit_usage(
+  contract : @contract.Contract,
+  cursor : @decode.Cursor,
+  limits : Limits,
+) -> Result[(CheckedValue, Int, Int), Issue] {
   if limits.max_nodes < 0 || limits.max_depth < 0 || limits.max_text_bytes < 0 {
     return Err(
       ValueIssue(
@@ -300,12 +308,19 @@ pub fn admit(
     )
   }
   try {
-    let value = run(cursor, contract, {
+    let budget = {
       nodes: limits.max_nodes,
       text: limits.max_text_bytes,
       max_depth: limits.max_depth,
-    })
-    Ok({ contract, value, })
+    }
+    let value = run(cursor, contract, budget)
+    Ok(
+      (
+        { contract, value, },
+        limits.max_nodes - budget.nodes,
+        limits.max_text_bytes - budget.text,
+      ),
+    )
   } catch {
     Abort(issue) => Err(issue)
   }
