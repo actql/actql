@@ -3,12 +3,14 @@ fn operation_order_fixture(
   steps : String,
   supplied? : @decode.Cursor? = None,
   tea? : Bool = false,
+  calendar? : Bool = false,
   parameters? : String = "{\"p\":{\"type\":\"string\",\"default\":\"é😀\"},\"n\":{\"type\":\"number\",\"default\":1}}",
 ) -> ProgramOperationRequirements {
   let (operations, references, bindings) = program_sources_fixture(
     steps=Some(steps),
     supplied~,
     tea~,
+    calendar~,
     parameters~,
   )
   let identity = identify_program_sources(

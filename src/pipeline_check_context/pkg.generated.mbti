@@ -70,6 +70,8 @@ pub fn check_program_operation_fills(ProgramOperationFrames, Int, Int) -> Result
 
 pub fn check_program_operation_frames(ProgramOperationScalars, Int, Int) -> Result[ProgramOperationFrames, OperationFrameIssue]
 
+pub fn check_program_operation_ranges(ProgramOperationFills, Int, Int) -> Result[ProgramOperationRanges, OperationRangeIssue]
+
 pub fn check_program_operation_scalars(ProgramOperationOrders, Int, Int) -> Result[ProgramOperationScalars, OperationScalarIssue]
 
 pub fn check_regex_patterns(ExpressionValidationContext, RegexPatternLimits) -> Result[RegexPatternChecks, RegexPatternIssue]
@@ -195,6 +197,14 @@ pub fn operation_profiles_diagnostic(OperationProfilesIssue) -> String?
 pub fn operation_profiles_preparation(OperationProfileChecks) -> ProgramPreparation
 
 pub fn operation_profiles_work(OperationProfileChecks) -> Int
+
+pub fn operation_range_at(ProgramOperationRanges, Int) -> OperationRangeResolution?
+
+pub fn operation_ranges_count(ProgramOperationRanges) -> Int
+
+pub fn operation_ranges_fills(ProgramOperationRanges) -> ProgramOperationFills
+
+pub fn operation_ranges_work(ProgramOperationRanges) -> Int
 
 pub fn operation_requirements_at(ProgramOperationRequirements, Int) -> OperationRequirementSite?
 
@@ -608,6 +618,24 @@ pub(all) enum OperationProfilesIssue {
   UnsupportedProfile(Int, Int, Int, @pipeline_typing.OperationProfile)
 } derive(Eq, @debug.Debug)
 
+pub(all) enum OperationRangeIssue {
+  InvalidLimits
+  BudgetExceeded
+  ForeignOwner(Int)
+  InvalidCalendarYear(Int)
+  ReversedRange(Int)
+  Scalar(OperationScalarIssue)
+} derive(Eq, @debug.Debug)
+
+pub struct OperationRangeResolution {
+  requirement_index : Int
+  site : OperationRequirementSite
+  start : String
+  end : String
+  start_parameter : @parameter_binding.BoundParameter?
+  end_parameter : @parameter_binding.BoundParameter?
+}
+
 pub struct OperationRequirementSite {
   stage : Int
   producer_visit : Int
@@ -645,6 +673,7 @@ pub(all) enum OperationScalarValue {
   Finite(Double)
   DurationMilliseconds(Int64)
   Milliseconds(Int64)
+  Timestamp(String)
 } derive(Eq, @debug.Debug)
 
 pub(all) enum ParameterIssue {
@@ -740,6 +769,8 @@ type ProgramOperationFills
 type ProgramOperationFrames
 
 type ProgramOperationOrders
+
+type ProgramOperationRanges
 
 type ProgramOperationRequirements
 

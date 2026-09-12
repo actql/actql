@@ -713,6 +713,11 @@ domains. Timestamp endpoints, relative range checks, window arithmetic and
 session observations remain separate obligations; resolving milliseconds does
 not imply that they have passed.
 
+Series and Calendar `BindTimestamp` requirements retain only already-admitted
+timestamp values. A string with the same spelling is not a timestamp binding;
+no coercion or Host date parser is used. These scalar resolutions alone do not
+establish calendar-year validity or interval ordering.
+
 ### Bound ROWS frame order
 
 `check_program_operation_frames` closes `BoundFrameOrder` after scalar admission.
@@ -760,6 +765,32 @@ slots before growing the work stack; bounded type relations then charge their
 actual pair visits. Output caps are checked before retaining resolutions. There
 is no partial success on a later failure. This does not discharge partitioning,
 aggregate demand, resource envelopes or actual runtime observations.
+
+### Bound temporal ranges
+
+`check_program_operation_ranges` links time-series `ValidateRange` and Calendar
+`ValidateBoundRange` to their exact pipeline operations after fill checks. Both
+endpoints come from the checked operation: literals keep their prior admission
+evidence, and Parameters are obtained from the same producer's selected binding
+index. The result retains each endpoint, optional BoundParameter and original
+requirement occurrence. Independently supplied endpoint or proof arrays cannot
+construct this result.
+
+Canonical fixed-width UTC timestamps sort lexicographically in chronological
+order. The check therefore compares the admitted strings directly, without
+floating timestamp arithmetic or host timezone conversion. Reversed intervals
+fail and equal endpoints are valid empty intervals. The
+[Calendar domain](../spec/language.md#calendar) excludes year 0000, including
+bound endpoints of an empty interval; the ordinary
+[time-series domain](../spec/language.md#time-series) retains it. Parameter
+declaration admission alone does not establish this Calendar-specific domain.
+
+Work is cumulative through all preceding checks and includes inventory visits,
+endpoint lookups and bounded string comparisons. Resolution limits apply before
+retaining results; any later error discards partial success. This pass does not
+generate rows or calendar boundaries, derive a row count, prove TZDB coverage
+for generated boundary arithmetic, or enforce resource ceilings. Those remain
+distinct obligations of the retained operation and selected profile.
 
 Expression closure does not discharge operation-level obligations, bind
 authored guard witness identities, build staged Program/import contracts, or

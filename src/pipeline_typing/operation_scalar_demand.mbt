@@ -6,6 +6,7 @@ pub(all) enum OperationScalarDemand {
   Finite(String)
   Duration(String)
   Milliseconds(String, signed~ : Bool)
+  Timestamp(String)
 } derive(Eq, Debug)
 
 ///|
@@ -16,6 +17,7 @@ pub fn operation_scalar_name(v : OperationScalarDemand) -> String {
     | Finite(n)
     | Duration(n)
     | Milliseconds(n, ..) => n
+    Timestamp(n) => n
   }
 }
 
@@ -81,11 +83,19 @@ pub fn operation_scalar_demand(
     SeriesRequirement(v) =>
       match v {
         BindStep(name) => Some(Milliseconds(name, signed=false))
-        BindTimestamp(_)
-        | ValidateRange
+        BindTimestamp(name) => Some(Timestamp(name))
+        ValidateRange
         | CheckedArithmetic
         | ResolveRowBound
         | ResolveResources => None
+      }
+    CalendarRequirement(v) =>
+      match v {
+        BindTimestamp(name) => Some(Timestamp(name))
+        ValidateCalendarValues
+        | ValidateBoundaryDomain
+        | ResolveResources
+        | ValidateBoundRange => None
       }
     JoinRequirement(_)
     | AppendRequirement(_)
@@ -96,7 +106,6 @@ pub fn operation_scalar_demand(
     | AsOfRequirement(_)
     | SequenceRequirement(_)
     | ValuesRequirement(_)
-    | CalendarRequirement(_)
     | ProjectionRequirement(_)
     | GraphRequirement(_)
     | MatchRequirement(_)

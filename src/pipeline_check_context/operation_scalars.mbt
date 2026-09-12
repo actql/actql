@@ -14,6 +14,7 @@ pub(all) enum OperationScalarValue {
   Finite(Double)
   DurationMilliseconds(Int64)
   Milliseconds(Int64)
+  Timestamp(String)
 } derive(Eq, Debug)
 
 ///|
@@ -57,6 +58,10 @@ fn operation_scalar_value(
   value : @value.Value,
   demand : @pipeline.OperationScalarDemand,
 ) -> OperationScalarValue? {
+  if demand is @pipeline.Timestamp(_) {
+    guard value is @value.Timestamp(text) else { return None }
+    return Some(Timestamp(text))
+  }
   if demand is @pipeline.Milliseconds(_, ..) && value is @value.Text(text) {
     return @scalar.read_duration_ms(text).map(n => Milliseconds(n))
   }
@@ -85,6 +90,7 @@ fn operation_scalar_number(
     Fraction(_) => if n >= 0.0 && n <= 1.0 { Some(Fraction(n)) } else { None }
     Finite(_) => Some(Finite(n))
     Duration(_) => None
+    Timestamp(_) => None
     Milliseconds(_, signed~) =>
       match @scalar.read_safe_integer(n) {
         Some(n) if signed || n > 0L => Some(Milliseconds(n))

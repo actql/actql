@@ -215,6 +215,7 @@ fn wired_inputs_fixture(
         max_tokens: 1000,
         max_depth: 100,
       },
+      calendar_profile=Some(utc_range_profile()),
     ).unwrap()
     pipelines.push(pipeline)
     let stage = @stages.collect(source, i, pipeline, collection_limits).unwrap()

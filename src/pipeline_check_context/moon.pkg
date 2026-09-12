@@ -1,6 +1,9 @@
 supported_targets = "+js+wasm+native"
 
 import {
+  "actql/actql/time_series" @series,
+  "actql/actql/calendar_typing" @calendar,
+  "actql/actql/calendar_options",
   "actql/actql/relation_typing" @relation,
   "actql/actql/value_contract" @contract,
   "actql/actql/stage_parameters" @stages,
@@ -34,6 +37,7 @@ import {
 
 import {
   "actql/actql/local_relation_snapshot" @snapshot,
+  "actql/actql/calendar_profile",
   "actql/actql/binding_declarations",
   "actql/actql/stage_source_refs" @refs,
   "actql/actql/sha256" @sha,
