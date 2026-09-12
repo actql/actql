@@ -8,6 +8,12 @@ struct FragmentRequest {
 }
 
 ///|
+/// Declared request ceilings from this owner, not inferred cardinalities.
+pub fn fragment_request_ceilings(request : FragmentRequest) -> (Int64, Int64) {
+  (request.max_rows, request.max_value_bytes)
+}
+
+///|
 pub(all) enum FragmentRequestIssue {
   InvalidRequestCeiling
 }

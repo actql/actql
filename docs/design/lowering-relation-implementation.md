@@ -918,6 +918,15 @@ from identity; array order, Parameter values and request ceilings do not.
 Canonical identity does not discharge resource witnesses or sealed admission,
 and these internal adapters do not accept externally supplied artifact JSON.
 
+The local request's row and value-byte ceilings are projected into the
+expression fragment's registered `contract_ceiling` witness form. Each witness
+binds the complete canonical request CID as its sole dependency and its exact
+request pointer as the source field. Resolved limits retain that pointer and
+use `engine_atomic` enforcement with `fail` on breach. They are sorted by
+request pointer, not by CID. These generated bodies are declarations of the
+selected bounds, not applications of Program cardinality-inference laws, and
+do not by themselves admit the fragment or discharge input obligations.
+
 Each expression root retains its exact typed owner. Source projection reads the
 normalized syntax of that owner; machine-node projection reads the bound lowered
 expression. A Parameter remains a reference in source while becoming a literal
