@@ -61,6 +61,18 @@ selection. Lowering consumes the selected limits and checks whether it can
 enforce them; it does not choose their semantic scopes or complete missing
 static resource decisions.
 
+`pipeline_check_context.measure_operation_values_rows` measures the execution
+params' `/rows` value from an owned cell-resolution chain. It includes the outer
+array, each row object, field names and typed wire cells; schema and the enclosing
+params object are excluded. Empty rows therefore measure two bytes, one node and
+one container level. Each Parameter occurrence resolves through its exact
+requirement index, with the same producer, operation and cell coordinates, rather
+than a caller-supplied value map. The index is built with cell resolution, so
+measurement does not scan all bindings again for each cell. Limits apply to the
+entire measured `/rows` value, without resetting at row or cell boundaries.
+The returned byte/node/depth counts do not change an operation requirement's
+resolution state and are not themselves a capacity proof or a publication limit.
+
 ## Registry and backend capability
 
 `actql-aoa.json` selects the shared registry through `pipeline_registry_file`

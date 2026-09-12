@@ -20,6 +20,7 @@ pub struct OperationCellResolution {
 struct ProgramOperationCells {
   queries : ProgramOperationQueries
   entries : Array[OperationCellResolution]
+  by_requirement : Map[Int, Int]
   work : Int
 }
 
@@ -41,6 +42,7 @@ pub fn check_program_operation_cells(
   let requirements = queries.ranges.fills.frames.scalars.orders.requirements
   let stages = requirements.expressions.identity.sources.operations.preparation.profiles.context.selected.context.wired.stages
   let entries : Array[OperationCellResolution] = []
+  let by_requirement : Map[Int, Int] = Map([])
   try {
     for i in 0..<requirements.entries.length() {
       scalar_spend(b, 1)
@@ -103,6 +105,7 @@ pub fn check_program_operation_cells(
       if !declared_ok || !target_ok {
         return Err(IncompatibleCell(i))
       }
+      by_requirement[i] = entries.length()
       entries.push({
         requirement_index: i,
         site,
@@ -111,7 +114,7 @@ pub fn check_program_operation_cells(
         parameter,
       })
     }
-    Ok({ queries, entries, work: max_work - b.remaining, })
+    Ok({ queries, entries, by_requirement, work: max_work - b.remaining, })
   } catch {
     OperationScalarStop(BudgetExceeded) => Err(BudgetExceeded)
     OperationScalarStop(issue) => Err(Scalar(issue))

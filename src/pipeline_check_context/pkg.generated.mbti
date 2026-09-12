@@ -308,6 +308,8 @@ pub fn local_input_execution_predecessor(LocalInputExecutionCheck) -> LocalInput
 
 pub fn local_inputs_at(InputContexts, Int) -> @stage_local_inputs.Attached?
 
+pub fn measure_operation_values_rows(ProgramOperationCells, Int, Int, Int, Int) -> Result[(Int, Int, Int), ValuesMeasurementIssue]
+
 pub fn operation_calendar_at(ProgramOperationCalendar, Int) -> OperationCalendarResolution?
 
 pub fn operation_calendar_count(ProgramOperationCalendar) -> Int
@@ -1990,6 +1992,12 @@ pub(all) struct TimestampPatternUsage {
   ast_bytes : Int
   ast_nodes : Int
 } derive(Eq, @debug.Debug)
+
+pub(all) enum ValuesMeasurementIssue {
+  InvalidRequirement
+  ForeignOwner
+  Encoding(@encode_core.EncodeFailure)
+} derive(@debug.Debug)
 
 type WiredStages
 
