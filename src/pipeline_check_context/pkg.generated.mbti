@@ -26,6 +26,7 @@ import {
   "actql/actql/stage_local_inputs",
   "actql/actql/stage_parameters",
   "actql/actql/stage_results",
+  "actql/actql/stage_source",
   "actql/actql/text_time_bounds",
   "actql/actql/timestamp_pattern",
   "actql/actql/value_admission",
@@ -416,6 +417,8 @@ pub fn preparation_sources(ProgramPreparation) -> SourceProducerContext
 pub fn preparation_usage(ProgramPreparation) -> PreparationBudget
 
 pub fn prepare_expression_validation(SelectedPolicyContext, ExpressionValidationLimits) -> Result[ExpressionValidationContext, ExpressionValidationIssue]
+
+pub fn prepare_program_references(OperationProfileChecks, @stage_source.Limits, @pipeline_parameters.Limits, @program_references.Limits, max_work~ : Int) -> Result[ProgramReferences, PreparedReferencesIssue]
 
 pub fn program_identity_definition(ProgramSourceIdentity) -> @program_references.ProgramDefinition
 
@@ -1263,6 +1266,17 @@ pub(all) enum PreparationIssue {
   ForeignExpressionProfiles
   BudgetExceeded
 } derive(Eq, @debug.Debug)
+
+pub enum PreparedReferencesIssue {
+  InvalidLimits
+  BudgetExceeded
+  Body(Int, @stage_source.Issue)
+  Uses(Int, @stage_source.ParameterIssue)
+  Inventory(@program_references.Issue)
+  Usage(@program_references.UsageIssue)
+  Values(@parameter_references.BindingIssue)
+  Attachment(ProgramReferenceIssue)
+}
 
 type ProgramExpressionClosure
 

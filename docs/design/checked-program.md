@@ -73,6 +73,13 @@ results at every phase. Private incremental assembly can retain immutable
 intermediates. Public low-level helpers remain useful for focused tests, but
 their existence is not an alternative formal Program compilation entrance.
 
+Source-role reference preparation uses `prepare_program_references` to derive
+Stage bodies, declaration use and effective value projections from the same
+checked operations and admitted request slots. It never reconstructs substitute
+request slots or accepts a second effective binding set. Stage-body/use parsing
+receives the remaining aggregate work allowance; the final owner join is reserved
+before retaining the per-Stage inventories. Parser-specific caps remain explicit.
+
 Operation resolution is orchestrated from one retained source identity by
 `resolve_program_operations`. It constructs the expression closure and complete
 operation requirement inventory, then runs order, scalar, frame, fill, range,

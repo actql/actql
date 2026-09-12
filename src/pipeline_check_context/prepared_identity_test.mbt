@@ -80,8 +80,6 @@ fn prepared_reconciled_identity(
   reconciled : ReconciledContexts,
   environment : @environment.WireEnvironment,
 ) -> ProgramSourceIdentity {
-  let stages = wired_stage_contexts(reconciled_wiring(reconciled))
-  let bound = stage_operations(stages)
   let selected = bind_capacity_policy(
     reconciled,
     match
@@ -118,22 +116,7 @@ fn prepared_reconciled_identity(
     { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
     10000000,
   ).unwrap()
-  let slots = source_request_slots(
-    source_rows_requests(
-      source_policy_rows(
-        source_capacity_context(source_producer_capacity(producer)),
-      ),
-    ),
-  )
-  let references = attach_program_references(
-    stages,
-    reference_values_for(
-      @stages.bound_operations(bound),
-      @references.bound_values(@stages.bound_program_index(bound)),
-      request_slots=Some(slots),
-    ),
-    max_work=10000000,
-  ).unwrap()
+  let references = prepared_reference_branch(operations, 10000000).unwrap()
   let sources = bind_program_sources(
     operations,
     references,
