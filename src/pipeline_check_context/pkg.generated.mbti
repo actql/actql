@@ -289,6 +289,8 @@ pub fn like_pattern_usage(LikePatternChecks) -> LikePatternUsage
 
 pub fn link_program_incoming(ProgramOperationProfileLinks, ProgramIncomingRequirements, IncomingLimits) -> Result[ProgramIncomingLinks, IncomingLinksIssue]
 
+pub fn link_program_join_requirements(ProgramOperationResolutionIndex, Int, Int) -> Result[ProgramOperationResolutionIndex, JoinRequirementIssue]
+
 pub fn link_program_operation_orders(ProgramOperationRequirements, Int, Int) -> Result[ProgramOperationOrders, OperationOrderIssue]
 
 pub fn link_program_operation_profiles(ProgramOperationCalendar, Int, Int) -> Result[ProgramOperationProfileLinks, OperationProfileLinksIssue]
@@ -1110,6 +1112,36 @@ pub(all) enum Issue {
   Capacity(@capacity_graph_preflight.ApplicationClosureIssue)
 }
 
+pub struct JoinCardinalitySelection {
+  requirement_index : Int
+  site : OperationRequirementSite
+  evidence : @pipeline_typing.JoinEvidence
+}
+
+pub struct JoinOutputCheck {
+  site : OperationRequirementSite
+  capacity : @capacity_graph_preflight.ApplicationClosure
+  limit : @capacity_program_step.JoinLimit
+}
+
+pub(all) enum JoinRequirementIssue {
+  InvalidLimits
+  BudgetExceeded
+  ForeignOccurrence(Int)
+  MissingEvidence(Int)
+  MissingCapacity(Int)
+} derive(Eq, @debug.Debug)
+
+pub struct JoinRowOrderCheck {
+  site : OperationRequirementSite
+  step : @pipeline_typing.CheckedStep
+  left : @pipeline_typing.Target
+  right : @pipeline_typing.Target
+  left_order : @pipeline_typing.LogicalOrder?
+  right_order : @pipeline_typing.LogicalOrder?
+  output_order : @pipeline_typing.LogicalOrder?
+}
+
 type LikePatternChecks
 
 pub(all) enum LikePatternIssue {
@@ -1257,6 +1289,8 @@ pub(all) enum OperationDisposition {
 pub(all) enum OperationExecutionCheck {
   DedupeTopTie(DedupeTopTieCheck)
   ValuesPublication(ValuesPublicationCheck)
+  JoinOutputLimit(JoinOutputCheck)
+  JoinRowOrder(JoinRowOrderCheck)
 }
 
 pub(all) enum OperationFillIssue {
@@ -1409,6 +1443,7 @@ pub(all) enum OperationResolution {
   Query(OperationQueryResolution)
   Cell(OperationCellResolution)
   ProfileResolution(OperationProfileResolution)
+  JoinCardinality(JoinCardinalitySelection)
 }
 
 pub(all) enum OperationResolutionIndexIssue {

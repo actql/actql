@@ -67,6 +67,27 @@ not implemented; retaining a mapping does not establish a key.
 
 ## Bounds, diagnostics and verification
 
+### Program requirement binding
+
+`link_program_join_requirements` consumes the owning pipeline's cached
+cardinality selection and the exact producer visit's capacity application.
+An unproven cardinality remains unproven; a finite output limit is not a
+uniqueness proof. An authored cardinality assertion and null-key rejection
+remain separate obligations.
+
+`JoinOutputLimit` retains the selected limit, policy and capacity dependency.
+`JoinRowOrder` retains the checked join, both operand targets and their optional
+logical-order witnesses, together with the already-derived output witness.
+It requires execution to preserve the join-kind-specific occurrence order
+before accepting output. It does not manufacture total order from physical
+enumeration, and does not require a total witness merely to retain occurrence
+order. Later order-dependent consumers still require their own valid evidence.
+
+Both execution bindings are future obligations, not backend support or execution
+receipts. Linking charges the copied inventory and scan against cumulative work,
+bounds the number of links, and leaves the original inventory unchanged on
+failure. Closing the inventory still rejects every unrelated unresolved entry.
+
 Source traversal is iterative and consumes work, text and nodes for the entire
 body, including fields later rejected. Full operand and Parameter contracts
 are preflighted before output projection. Contract depth counts edges from the

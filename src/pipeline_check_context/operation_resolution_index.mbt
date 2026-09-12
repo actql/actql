@@ -8,6 +8,7 @@ pub(all) enum OperationResolution {
   Query(OperationQueryResolution)
   Cell(OperationCellResolution)
   ProfileResolution(OperationProfileResolution)
+  JoinCardinality(JoinCardinalitySelection)
 }
 
 ///|
@@ -50,6 +51,7 @@ fn resolution_occurrence(
     Query(r) => (r.requirement_index, r.site)
     Cell(r) => (r.requirement_index, r.site)
     ProfileResolution(r) => (r.requirement_index, r.site)
+    JoinCardinality(r) => (r.requirement_index, r.site)
   }
 }
 

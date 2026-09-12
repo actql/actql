@@ -57,6 +57,8 @@ pub fn close_program_operations(
         let site = match check {
           DedupeTopTie(v) => v.site
           ValuesPublication(v) => v.site
+          JoinOutputLimit(v) => v.site
+          JoinRowOrder(v) => v.site
         }
         if !physical_equal(site, expected) {
           return Err(ForeignOccurrence(i))

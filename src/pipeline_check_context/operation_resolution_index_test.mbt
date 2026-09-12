@@ -35,6 +35,10 @@ fn check_resolution_index(
       }
       Execution(ValuesPublication(_)) =>
         abort("values resources require explicit resolution")
+      Execution(JoinOutputLimit(_)) =>
+        abort("join limits require explicit linking")
+      Execution(JoinRowOrder(_)) =>
+        abort("join order requires explicit linking")
       Resolved(v) => {
         resolved += 1
         let (position, owner, kind) = match v {
@@ -46,6 +50,8 @@ fn check_resolution_index(
           Query(r) => (r.requirement_index, r.site, 5)
           Cell(r) => (r.requirement_index, r.site, 6)
           ProfileResolution(r) => (r.requirement_index, r.site, 7)
+          JoinCardinality(_) =>
+            abort("join cardinality requires explicit linking")
         }
         seen[kind] = true
         assert_eq(position, i)
@@ -126,6 +132,7 @@ fn check_resolution_index(
         Resolved(Query(_)) => 7
         Resolved(Cell(_)) => 8
         Resolved(ProfileResolution(_)) => 9
+        Resolved(JoinCardinality(_)) => 10
       }
     }
     assert_eq(
