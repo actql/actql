@@ -13,6 +13,7 @@ import {
   "actql/actql/stage_source_refs" @refs,
   "actql/actql/local_source_ref" @source_ref,
   "actql/actql/check_environment" @environment,
+  "actql/actql/sourceview_input" @sourceviews,
 }
 
 import {

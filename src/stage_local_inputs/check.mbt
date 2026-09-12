@@ -14,6 +14,7 @@ pub enum Issue {
   Declaration(String, @local_input.Issue)
   ForeignStage
   ForeignInput(String)
+  ForeignSourceViews
 }
 
 ///|
@@ -29,6 +30,7 @@ struct Prepared {
   stage : Int
   entries : Array[(String, @local_input.Checked)]
   usage : Usage
+  sourceviews : @sourceviews.Inputs?
 }
 
 ///|
@@ -40,11 +42,13 @@ struct Attached {
 
 ///|
 /// Read actual local Relation slots; Result/receipt imports belong to their
-/// separate source-bound passes. Unsupported local/Connector forms reject here.
+/// separate source-bound passes. Connector slots may be partitioned only by a
+/// validated SourceView collection owned by this exact Program source.
 pub fn prepare(
   source : @stages.Source,
   stage_index : Int,
   limits : Limits,
+  sourceviews? : @sourceviews.Inputs? = None,
 ) -> Result[Prepared, Issue] {
   if limits.max_work < 0 ||
     limits.max_nodes < 0 ||
@@ -61,6 +65,15 @@ pub fn prepare(
   let count = @decode.object_length(inputs).unwrap()
   let imports = @syntax.import_count(stage)
   let mut work = limits.max_work
+  if sourceviews is Some(views) {
+    if !physical_equal(source, @sourceviews.source(views)) {
+      return Err(ForeignSourceViews)
+    }
+    if @sourceviews.work(views) > work {
+      return Err(BudgetExceeded)
+    }
+    work -= @sourceviews.work(views)
+  }
   if count > work {
     return Err(BudgetExceeded)
   }
@@ -81,6 +94,15 @@ pub fn prepare(
     let (name, at) = @decode.field_at(inputs, i).unwrap()
     if imported.contains(name) {
       continue
+    }
+    if sourceviews is Some(views) {
+      if name.length() > work {
+        return Err(BudgetExceeded)
+      }
+      work -= name.length()
+      if @sourceviews.input_for(views, stage_index, name) is Some(_) {
+        continue
+      }
     }
     let value = match
       @local_input.read(at, {
@@ -105,12 +127,20 @@ pub fn prepare(
     source,
     stage: stage_index,
     entries,
+    sourceviews,
     usage: {
       work: limits.max_work - work,
       nodes: limits.max_nodes - nodes,
       text_bytes: limits.max_text_bytes - text,
     },
   })
+}
+
+///|
+/// Retained source-only partition proof; this does not admit Catalog contracts,
+/// requests, modes or execution authority for the omitted Connector slots.
+pub fn sourceview_inputs(v : Prepared) -> @sourceviews.Inputs? {
+  v.sourceviews
 }
 
 ///|

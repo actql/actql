@@ -7,6 +7,7 @@ import {
   "actql/actql/local_relation_snapshot",
   "actql/actql/pipeline_typing",
   "actql/actql/relation_schema",
+  "actql/actql/sourceview_input",
   "actql/actql/stage_parameters",
   "actql/actql/stage_source_refs",
   "moonbitlang/core/debug",
@@ -49,7 +50,7 @@ pub fn input_at(Prepared, Int) -> (String, @pipeline_typing.InputContract)?
 
 pub fn input_environment(EnvironmentInputs) -> @check_environment.WireEnvironment
 
-pub fn prepare(@stage_parameters.Source, Int, Limits) -> Result[Prepared, Issue]
+pub fn prepare(@stage_parameters.Source, Int, Limits, sourceviews? : @sourceview_input.Inputs?) -> Result[Prepared, Issue]
 
 pub fn program_environment(ProgramEnvironmentInputs) -> @check_environment.WireEnvironment
 
@@ -89,6 +90,8 @@ pub fn snapshot_usage(CheckedSnapshots) -> Usage
 
 pub fn source(Prepared) -> @stage_parameters.Source
 
+pub fn sourceview_inputs(Prepared) -> @sourceview_input.Inputs?
+
 pub fn stage_index(Prepared) -> Int
 
 pub fn usage(Prepared) -> Usage
@@ -116,6 +119,7 @@ pub enum Issue {
   Declaration(String, @local_relation_input.Issue)
   ForeignStage
   ForeignInput(String)
+  ForeignSourceViews
 }
 
 pub(all) struct Limits {

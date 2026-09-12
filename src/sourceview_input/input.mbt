@@ -39,6 +39,7 @@ pub struct Declaration {
 struct Inputs {
   source : @stages.Source
   entries : Array[Declaration]
+  by_name : Map[(Int, String), Declaration]
   work : Int
 }
 
@@ -227,6 +228,7 @@ pub fn collect(
   let b : Budget = { work: limits.max_work, orders: limits.max_order_keys, }
   try {
     let entries = []
+    let by_name : Map[(Int, String), Declaration] = Map([])
     spend(b, @stages.stage_count(source))
     for s in 0..<@stages.stage_count(source) {
       let stage = @stages.stage_at(source, s).unwrap()
@@ -242,12 +244,14 @@ pub fn collect(
           let object = decoded(@decode.open_object(at))
           if @decode.lookup(object, "connector") is Some(_) ||
             @decode.lookup(object, "resource") is Some(_) {
-            entries.push(read_input(at, s, name, b))
+            let declaration = read_input(at, s, name, b)
+            entries.push(declaration)
+            by_name[(s, name)] = declaration
           }
         }
       }
     }
-    Ok({ source, entries, work: limits.max_work - b.work, })
+    Ok({ source, entries, by_name, work: limits.max_work - b.work, })
   } catch {
     Stop(e) => Err(e)
   }
@@ -266,6 +270,12 @@ pub fn count(v : Inputs) -> Int {
 ///|
 pub fn at(v : Inputs, i : Int) -> Declaration? {
   v.entries.get(i)
+}
+
+///|
+/// Indexed source-owned lookup; equal names in other stages are distinct slots.
+pub fn input_for(v : Inputs, stage_index : Int, name : String) -> Declaration? {
+  v.by_name.get((stage_index, name))
 }
 
 ///|

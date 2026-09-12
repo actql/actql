@@ -1,12 +1,33 @@
 # Source-bound local Relation inputs
 
 `stage_local_inputs.prepare` reads the actual input slots of one stage retained
-by `stage_parameters.Source`. Every non-import slot is passed to the local
+by `stage_parameters.Source`. By default every non-import slot is passed to the local
 Relation declaration reader; unsupported Carrier or Connector declarations fail
 explicitly rather than disappearing from coverage. Source-admitted Result and
 receipt imports are excluded from this local pass and remain obligations of
-their own import checkers. Successful preparation is not evidence that those
-imports were resolved or that another stage was checked.
+their own import checkers. The optional `sourceviews` argument partitions out
+Connector slots using an admitted `sourceview_input.Inputs` collection from the
+exact same `stage_parameters.Source`. The collection is retained and exposed by
+`sourceview_inputs`; a same-text reread is not the same owner. Partitioning is
+stage-scoped, so a Connector name in one stage cannot hide a local declaration
+with the same name in another. Without this argument, Connector forms continue
+to fail in the local-only path. Malformed Connector declarations cannot produce
+the required collection.
+
+This partition implements the distinct local and Connector forms in the
+[SourceView contract](../spec/language.md#sourceviews); it does not treat
+Connector-owned schemas as local assertions. It does not resolve views, admit
+requests, register remote pipeline inputs or discharge remote obligations.
+The local pass charges the retained collection's prior work once per call,
+and name lookup work for the selected stage's non-import inputs. The SourceView
+collection indexes `(stage, name)` once; local preparation does not scan all
+remote declarations again for each stage. Prior-pass work accounting is
+conservative when several stages share a collection; no cost is deducted merely
+because their contents match. Local node/text budgets still describe only the
+local declaration reader, while the SourceView pass retains its own bounds.
+
+Successful preparation is not evidence that imports were resolved or that
+another stage was checked.
 
 The opaque result retains each name and declaration owner, including unused
 local inputs. `input_at` supplies either the exact declared KeyedInput or the

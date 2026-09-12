@@ -17,6 +17,8 @@ pub fn count(Inputs) -> Int
 
 pub fn first_by_order(Declaration) -> Array[@order_key.Key]?
 
+pub fn input_for(Inputs, Int, String) -> Declaration?
+
 pub fn source(Inputs) -> @stage_parameters.Source
 
 pub fn work(Inputs) -> Int
