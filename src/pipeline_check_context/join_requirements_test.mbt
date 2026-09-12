@@ -1,7 +1,9 @@
 ///|
-fn join_resolution_fixture() -> ProgramOperationResolutionIndex raise {
+fn join_resolution_fixture(
+  changes? : Bool = false,
+) -> ProgramOperationResolutionIndex raise {
   let sources = prepare_program_source_acquisitions(
-    prepared_keyed_source_context(),
+    prepared_keyed_source_context(changes~),
     [[(0, 0)]],
     {
       max_work: 10000000,

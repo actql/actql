@@ -1378,6 +1378,17 @@
       }
     },
     {
+      "requirement_id": "actql.language/sourceviews.changes-explicit-initial-state",
+      "statement_sha256": "43aafc336d440f90b429f92bb7450439b8f1b9b98791281adf7bec5434c370dc",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "sourceviews",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.language/parameters.decimal-declarations-must-specify-literal-precision-and-scale-under",
       "statement_sha256": "020412a716c80f09488fec736b12a125517ab30380b37c1f553d01ea3efc279d",
       "status": "pending",

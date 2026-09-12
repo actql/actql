@@ -1439,6 +1439,13 @@ MUST NOT share a source-state requirement. `requirement_cid` hashes the complete
 canonical requirement object except `requirement_cid` itself; no concrete
 checkpoint or internal Stage index is substituted for the owning Stage ID.
 
+<!-- requirement-block: sourceviews.changes-explicit-initial-state -->
+For resolved `changes` inputs, the compiler MUST emit `requirement: required`
+and `initial_position: explicit_state_required`. ActQL 0.1 does not infer an
+initial checkpoint from missing Run state or from the fact that the Contract
+advertises a bounded mode. The checkpoint value is admitted separately against
+the exact selected mode's checkpoint value contract before acquisition.
+
 Changes-read state is governed by [Source-state advancement](execution.md#source-state). Local graph, vector, and event inputs
 belong to their algebra profiles independently of Connector execution support.
 

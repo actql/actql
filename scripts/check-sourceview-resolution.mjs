@@ -164,6 +164,14 @@ const unsupportedFixture = seal({...environmentBody,
 assert.notEqual(unsupportedFixture.evidence_bundle_cid, integrationFixture.evidence_bundle_cid);
 const integrationPath='src/pipeline_check_context/sourceview_fixture.generated_test.mbt';
 assert.ok(keyedIntegrationFixture);
+// Independent changes selection: reseal every enclosing Catalog/Environment body.
+const changesCheckpoint=seal({schema:'actql.contract/0.1',id:'changes-checkpoint',version:'fixture',kind:'checkpoint',body:{type:'number',nullable:false}},'cid');
+const changesContracts=[...keyedIntegrationFixture.contract_registry,changesCheckpoint];
+const changesViews=keyedIntegrationFixture.source_views.map(({contract_cid,...view})=>seal({...view,acquisition:{...view.acquisition,default_mode:'changes',modes:[{mode:'changes',bounded:true,checkpoint:{kind:'opaque',expires:false,value_schema:{id:changesCheckpoint.id,version:changesCheckpoint.version,cid:changesCheckpoint.cid}}}]}},'contract_cid'));
+const changesCatalogs=keyedIntegrationFixture.connector_catalogs.map(({catalog_cid,...catalog})=>seal({...catalog,contracts:[...changesContracts].sort(bySelf('cid')),source_views:[...changesViews].sort(bySelf('contract_cid'))},'catalog_cid'));
+const {evidence_bundle_cid: snapshotKeyedCid,...changesEnvironmentBody}=keyedIntegrationFixture;
+const changesIntegrationFixture=seal({...changesEnvironmentBody,contract_registry:[...changesContracts].sort(byBody),source_views:[...changesViews].sort(byBody),connector_catalogs:changesCatalogs},'evidence_bundle_cid');
+assert.notEqual(changesIntegrationFixture.evidence_bundle_cid,snapshotKeyedCid);
 const keyedProof={version:'actql-bound-proof/0.1',semantic_ref:'checked-step:0',law_id:'actql.bound.values',unit:'rows',value:1,inputs:[]};
 const keyedWitness=seal({version:'actql-bound-witness/0.1',role:'proven_upper_bound',unit:'rows',value:1,law_id:'actql.bound.values',source:{kind:'program',proof_cid:cid(keyedProof),semantic_ref:'checked-step:0'},dependencies:[cid(keyedProof)],derivation:{op:'source'}},'witness_cid');
 const integrationText=[
@@ -179,9 +187,14 @@ const integrationText=[
   '  (environment, snapshot)',
   '}', '',
   '///|',
-  'fn keyed_sourceview_environment() -> @environment.WireEnvironment {',
+  'fn keyed_sourceview_environment(changes? : Bool = false) -> @environment.WireEnvironment {',
+  '  if changes {',
+  `    return @environment.read(@utf8.encode(${JSON.stringify(canonicalText(changesIntegrationFixture))}), ${JSON.stringify(changesIntegrationFixture.evidence_bundle_cid)}, {max_bytes:1000000,max_nodes:100000,max_depth:100,max_members:1000}).unwrap()`,
+  '  }',
   `  @environment.read(@utf8.encode(${JSON.stringify(canonicalText(keyedIntegrationFixture))}), ${JSON.stringify(keyedIntegrationFixture.evidence_bundle_cid)}, {max_bytes:1000000,max_nodes:100000,max_depth:100,max_members:1000}).unwrap()`,
   '}', '',
+  '///|',
+  `fn changes_sourceview_pins() -> (String, String) { (${JSON.stringify(changesViews[0].contract_cid)}, ${JSON.stringify(changesCheckpoint.cid)}) }`, '',
   '///|',
   'fn keyed_sourceview_claim() -> @wire.ProgramProofClaim {',
   '  let limits : @wire.Limits = {max_bytes:10000,max_nodes:1000,max_depth:30}',

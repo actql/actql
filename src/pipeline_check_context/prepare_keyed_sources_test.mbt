@@ -1,6 +1,8 @@
 ///|
-fn prepared_keyed_source_context() -> SelectedPolicyContext raise {
-  let original = keyed_sourceview_environment()
+fn prepared_keyed_source_context(
+  changes? : Bool = false,
+) -> SelectedPolicyContext raise {
+  let original = keyed_sourceview_environment(changes~)
   let writer = @encode.writer(1000000, 100000, 100)
   @environment.emit(original, writer)
   let profile = capacity_profile(false)

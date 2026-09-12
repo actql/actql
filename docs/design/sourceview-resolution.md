@@ -348,6 +348,22 @@ not a runtime check to be postponed. No provisional Program identity or concrete
 checkpoint is invented here. Advertised boundedness alone proves neither actual
 range admission nor capacity, consistency or completeness.
 
+`prepare_source_state_requirement` constructs the static requirement from an
+owned Program source identity and its selected acquisition request. The request
+index addresses that Stage's SourceView requests, not all authored inputs.
+Snapshot mode returns no requirement. Changes mode retains the exact selected
+checkpoint contract envelope CID, not merely its value-schema body hash, and
+hashes the normative preimage under explicit byte, node and depth limits.
+
+Changes requirements use `required` and `explicit_state_required`: neither the
+authoring language nor the selected checkpoint contract defines an inferred
+initial checkpoint. This preserves the reference compiler's explicit-state
+choice while applying it to default-mode selections as well. Concrete state is
+admitted at the Run boundary; building this requirement does not discharge the
+separate bounded-range obligation or authorize acquisition. Process-local owner
+references prevent mixing selections, whereas the requirement CID depends only
+on its normative semantic fields.
+
 The source-state requirement preimage includes the normalized authored `stage_id`
 as well as the unchanged input name and Program Definition CID. This distinguishes
 same-named inputs in different Stages without inventing an encoded name syntax.
