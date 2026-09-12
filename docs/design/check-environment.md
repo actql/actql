@@ -322,6 +322,11 @@ arrays. Supplied mode order and original cursors remain intact. Checkpoint and
 delivery reference shapes and kinds are covered by preceding proofs; this pass
 does not invent further expiration or acknowledgement constraints.
 
+`read_mode_for` provides indexed lookup by the exact SourceView member. It checks
+environment ownership and section before using the member index; an equal CID
+in another environment is not interchangeable. Program-specific direct selection
+is described in [SourceView resolution](sourceview-resolution.md#direct-read-mode-selection).
+
 Catalog advertisement and Program selection are separate: bounded or unbounded
 changes and unbounded watch can be described by a valid Catalog. A Program still
 needs the profile's supported selected mode, actual bounds and runtime evidence.

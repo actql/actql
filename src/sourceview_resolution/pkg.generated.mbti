@@ -25,7 +25,21 @@ pub fn input_owner(ResolvedInput) -> @sourceview_input.Inputs
 
 pub fn inputs(Resolved) -> @sourceview_input.Inputs
 
+pub fn mode_contract(DirectMode) -> @check_environment.SourceReadMode
+
+pub fn mode_input(DirectMode) -> ResolvedInput
+
+pub fn mode_obligations(DirectMode) -> Array[ModeObligation]
+
+pub fn mode_origin(DirectMode) -> ModeOrigin
+
+pub fn mode_source(DirectMode) -> @decode_core.Cursor
+
+pub fn mode_work(DirectMode) -> Int
+
 pub fn resolve(@sourceview_input.Inputs, @check_environment.SourceRequestContracts, Limits) -> Result[Resolved, Issue]
+
+pub fn select_direct_mode(ResolvedInput, Int) -> Result[DirectMode, ModeIssue]
 
 pub fn selected_cid(ResolvedInput) -> String
 
@@ -40,6 +54,8 @@ pub fn work(Resolved) -> Int
 // Errors
 
 // Types and methods
+type DirectMode
+
 pub(all) struct Issue {
   kind : IssueKind
   source : @decode_core.Cursor?
@@ -61,6 +77,29 @@ pub(all) struct Limits {
   max_inputs : Int
   max_views : Int
 }
+
+pub(all) struct ModeIssue {
+  kind : ModeIssueKind
+  source : @decode_core.Cursor
+}
+
+pub(all) enum ModeIssueKind {
+  InvalidLimits
+  WorkLimit
+  UndeclaredMode(@check_environment.SourceReadModeKind)
+  UnsupportedWatch
+} derive(Eq, @debug.Debug)
+
+pub(all) enum ModeObligation {
+  RuntimeModeSupport
+  BoundedChangesRange
+  SourceStateRequirement
+} derive(Eq, @debug.Debug)
+
+pub(all) enum ModeOrigin {
+  AuthoredMode
+  ContractDefault
+} derive(Eq, @debug.Debug)
 
 type Resolved
 

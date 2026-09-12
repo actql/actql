@@ -138,6 +138,8 @@ pub fn read_mode_bounded(SourceReadMode) -> Bool
 
 pub fn read_mode_count(SourceViewModes) -> Int
 
+pub fn read_mode_for(SourceReadModes, Member) -> SourceViewModes?
+
 pub fn read_mode_kind(SourceReadMode) -> SourceReadModeKind
 
 pub fn read_mode_member(SourceViewModes) -> Member

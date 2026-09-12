@@ -39,6 +39,7 @@ struct SourceViewModes {
 struct SourceReadModes {
   shapes : SourceViewShapes
   views : Array[SourceViewModes]
+  by_view : Map[Int, SourceViewModes]
   work : Int
 }
 
@@ -140,6 +141,7 @@ pub fn check_source_read_modes(
   }
   let budget = { remaining: max_work, }
   let views = []
+  let by_view : Map[Int, SourceViewModes] = Map([])
   try {
     for item in shapes.views {
       let root = member_body(item)
@@ -149,9 +151,11 @@ pub fn check_source_read_modes(
         @decode.required(obj, "acquisition").unwrap(),
         budget,
       )
-      views.push({ item, modes, default_mode, })
+      let view = { item, modes, default_mode, }
+      views.push(view)
+      by_view[member_index(item)] = view
     }
-    Ok({ shapes, views, work: max_work - budget.remaining, })
+    Ok({ shapes, views, by_view, work: max_work - budget.remaining, })
   } catch {
     ReadModeStop(e) => Err(e)
   }
@@ -170,6 +174,18 @@ pub fn read_mode_usage(v : SourceReadModes) -> (Int, Int) {
 ///|
 pub fn read_mode_view_at(v : SourceReadModes, i : Int) -> SourceViewModes? {
   v.views.get(i)
+}
+
+///|
+pub fn read_mode_for(v : SourceReadModes, item : Member) -> SourceViewModes? {
+  if member_section(item) != SourceViews ||
+    !physical_equal(
+      member_environment(item),
+      v.shapes.values.policies.references.contents.registry.environment,
+    ) {
+    return None
+  }
+  v.by_view.get(member_index(item))
 }
 
 ///|

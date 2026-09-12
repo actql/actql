@@ -16,6 +16,14 @@
     {"id":"no-request-or-mode-filter","views":[{"resource":"Opportunity","name":"records"},{"resource":"Opportunity","name":"watch","watch":true,"required_field":true}],"input":{"connector":"crm/main","resource":"Opportunity","scan":{"mode":"snapshot"}},"error":"Ambiguous","candidates":["records","watch"]},
     {"id":"utf16-candidates","views":[{"resource":"Opportunity","name":""},{"resource":"Opportunity","name":"𐀀"},{"resource":"Opportunity","name":"a"}],"input":{"connector":"crm/main","resource":"Opportunity"},"error":"Ambiguous","candidates":["a","𐀀",""]},
     {"id":"normalized-source","views":[{"resource":"é","name":"records"}],"input":{"connector":"crm/main","resource":"é"},"selected":"records"},
-    {"id":"literal-resource-components","views":[{"resource":"a/%2F#b","name":"records"}],"input":{"connector":"crm/main","resource":"a/%2F#b"},"selected":"records"}
+    {"id":"literal-resource-components","views":[{"resource":"a/%2F#b","name":"records"}],"input":{"connector":"crm/main","resource":"a/%2F#b"},"selected":"records"},
+    {"id":"default-snapshot","views":[{"resource":"r","name":"v"}],"input":{"connector":"crm/main","resource":"r"},"selected":"v","direct_mode":"snapshot","bounded":true},
+    {"id":"authored-snapshot","views":[{"resource":"r","name":"v","modes":[{"mode":"changes","bounded":false},{"mode":"snapshot","bounded":true}]}],"input":{"connector":"crm/main","resource":"r","scan":{"mode":"snapshot"}},"selected":"v","direct_mode":"snapshot","bounded":true},
+    {"id":"default-changes","views":[{"resource":"r","name":"v","modes":[{"mode":"snapshot","bounded":true},{"mode":"changes","bounded":true}],"default_mode":"changes"}],"input":{"connector":"crm/main","resource":"r"},"selected":"v","direct_mode":"changes","bounded":true},
+    {"id":"changes-range-remains-unproven","views":[{"resource":"r","name":"v","modes":[{"mode":"changes","bounded":false}]}],"input":{"connector":"crm/main","resource":"r","scan":{"mode":"changes"}},"selected":"v","direct_mode":"changes","bounded":false},
+    {"id":"default-watch-unsupported","views":[{"resource":"r","name":"v","watch":true}],"input":{"connector":"crm/main","resource":"r"},"selected":"v","direct_mode":"watch"},
+    {"id":"snapshot-overrides-watch","views":[{"resource":"r","name":"v","modes":[{"mode":"watch","bounded":false},{"mode":"snapshot","bounded":true}]}],"input":{"connector":"crm/main","resource":"r","scan":{"mode":"snapshot"}},"selected":"v","direct_mode":"snapshot","bounded":true},
+    {"id":"no-snapshot-fallback","views":[{"resource":"r","name":"v","modes":[{"mode":"changes","bounded":true}]}],"input":{"connector":"crm/main","resource":"r","scan":{"mode":"snapshot"}},"selected":"v","direct_mode":"undeclared_snapshot"},
+    {"id":"no-changes-fallback","views":[{"resource":"r","name":"v"}],"input":{"connector":"crm/main","resource":"r","scan":{"mode":"changes"}},"selected":"v","direct_mode":"undeclared_changes"}
   ]
 }
