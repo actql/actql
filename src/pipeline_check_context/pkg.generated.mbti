@@ -6,6 +6,7 @@ import {
   "actql/actql/capacity_policy",
   "actql/actql/capacity_program_step",
   "actql/actql/check_environment",
+  "actql/actql/encode_core",
   "actql/actql/expression_typing",
   "actql/actql/parameter_binding",
   "actql/actql/parameter_references",
@@ -117,6 +118,8 @@ pub fn expression_validation_text_time(ExpressionValidationContext) -> @check_en
 
 pub fn expression_validation_usage(ExpressionValidationContext) -> SelectedPolicyUsage
 
+pub fn identify_program_sources(ProgramSourceChecks, ProgramIdentityLimits) -> Result[ProgramSourceIdentity, ProgramIdentityIssue]
+
 pub fn input_usage(InputContexts) -> InputUsage
 
 pub fn input_wiring(InputContexts) -> WiredStages
@@ -176,6 +179,16 @@ pub fn preparation_sources(ProgramPreparation) -> SourceProducerContext
 pub fn preparation_usage(ProgramPreparation) -> PreparationBudget
 
 pub fn prepare_expression_validation(SelectedPolicyContext, ExpressionValidationLimits) -> Result[ExpressionValidationContext, ExpressionValidationIssue]
+
+pub fn program_identity_definition(ProgramSourceIdentity) -> @program_references.ProgramDefinition
+
+pub fn program_identity_definition_cid(ProgramSourceIdentity) -> String
+
+pub fn program_identity_parameter_values_cid(ProgramSourceIdentity) -> String
+
+pub fn program_identity_sources(ProgramSourceIdentity) -> ProgramSourceChecks
+
+pub fn program_identity_usage(ProgramSourceIdentity) -> (Int, Int, Int)
 
 pub fn program_reference_stages(ProgramReferences) -> StageContexts
 
@@ -538,6 +551,27 @@ pub(all) enum PreparationIssue {
   BudgetExceeded
 } derive(Eq, @debug.Debug)
 
+pub enum ProgramIdentityIssue {
+  InvalidLimits
+  BudgetExceeded
+  SourceSemantics(@program_references.ProgramSemanticsIssue)
+  Hash(ProgramIdentityPhase, @encode_core.EncodeFailure)
+}
+
+pub(all) struct ProgramIdentityLimits {
+  max_work : Int
+  max_stages : Int
+  max_hash_bytes : Int
+  max_hash_nodes : Int
+  max_depth : Int
+} derive(Eq, @debug.Debug)
+
+pub(all) enum ProgramIdentityPhase {
+  ProgramSemantics
+  Definition
+  ParameterValues
+} derive(Eq, @debug.Debug)
+
 type ProgramPreparation
 
 pub(all) enum ProgramReferenceIssue {
@@ -551,6 +585,8 @@ pub(all) enum ProgramReferenceIssue {
 type ProgramReferences
 
 type ProgramSourceChecks
+
+type ProgramSourceIdentity
 
 pub(all) enum ProgramSourcesIssue {
   InvalidLimits

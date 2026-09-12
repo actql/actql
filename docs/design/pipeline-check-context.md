@@ -572,9 +572,28 @@ Its stage semantics accessor selects the same owned source projection for the
 [normative stage envelope](stage-semantics.md), without using internal handles
 as persistent identity or admitting a different source inventory.
 
+`identify_program_sources` derives the Program Definition and whole-Program
+used Parameter Values identities directly from this assembly. Callers cannot
+provide a replacement source projection, Parameter set or claimed CID. The
+retained Definition points back to the same declaration-use inventory; selected
+Parameter values come from the already owner-checked `ProgramReferences`.
+Changing only supplied values leaves source Definition identity unchanged while
+changing the Parameter identity when their canonical typed projections differ.
+This pair is not itself a new wire envelope or a local Invocation identity.
+
+One cumulative hash byte/node budget covers stage envelopes, Program semantics,
+Definition and selected Parameter Values. Depth is bounded per emitted envelope.
+Inclusive work counts prior source checks once and adds only the new source
+descriptor preparation; hash byte/node accounting is separate from work and
+neither is a physical-memory limit. Phase-specific failure never exposes a
+partially assembled identity set. Read-only accessors preserve the exact source
+owner and prepared Definition alongside their computed CIDs and measured usage.
+
 It does not discharge every operation's static/profile/pattern obligation, bind
 authored guard witness identities, build staged Program/import contracts, or
-construct Program/stage/Invocation semantic projections. A formal compiler
+complete local Unit/Invocation identity projections. Source Program and stage
+semantics are provided by the owned identity projection, not evidence that those
+other checks passed. A formal compiler
 entry must still close those requirements before lowering. Internal ownership
 and producer coordinates are not persistent identities.
 

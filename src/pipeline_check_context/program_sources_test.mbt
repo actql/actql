@@ -1,10 +1,8 @@
 ///|
-fn program_sources_fixture() -> (
-  OperationProfileChecks,
-  ProgramReferences,
-  SourceBindingRequirements,
-) {
-  let patterns = bound_fixture("regex_extract($p, '(.)', $n)")
+fn program_sources_fixture(
+  supplied? : @decode.Cursor? = None,
+) -> (OperationProfileChecks, ProgramReferences, SourceBindingRequirements) {
+  let patterns = bound_fixture("regex_extract($p, '(.)', $n)", supplied~)
   let validation = pattern_context(patterns)
   let selected = expression_validation_selected(validation)
   let producer = preparation_sources_fixture(selected)
