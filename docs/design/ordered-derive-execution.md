@@ -119,6 +119,15 @@ there is no precedence rule between two competing sources of enforcement data.
 The older component-only invocation remains distinct and does not claim checked
 fragment admission. These internal paths still are not a Program/Run API.
 
+An internal generated-sequence handle owns the prepared sequence, its complete
+checked context set and the selected retained outputs. Construction checks
+ownership and wiring with explicit work and metadata bounds before publishing
+the handle, and copies the caller's context and selection containers. Invocation
+takes immutable limit quantities and supplied inputs; it creates fresh counters
+and always selects checked-fragment execution, with no component-only fallback.
+The common driver still checks input obligations on every invocation. This
+composition handle does not certify Program capacity or authorize external work.
+
 ## Logical resources
 
 The limits distinguish input row occurrences, individual wire value size,
