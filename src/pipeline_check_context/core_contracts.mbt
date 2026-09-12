@@ -23,6 +23,7 @@ pub(all) enum CoreContractBody {
   CatalogContract(String)
   CatalogGrammarBody(@environment.CatalogGrammar)
   ProgramSourceGrammar
+  StageSemantics(@environment.StageSemanticContract)
 } derive(Eq, Debug)
 
 ///|
@@ -31,6 +32,7 @@ pub(all) enum CoreContractSite {
   OperationLaw(Int, Int, Int, Int, Int)
   CatalogReference(Int, Int, Int)
   StageSourceGrammar(Int)
+  StageSemanticRules(Int, @environment.StageSemanticContract)
 } derive(Eq, Debug)
 
 ///|
@@ -198,6 +200,13 @@ pub fn collect_core_contracts(
     for stage in 0..<program_identity_stage_count(identity) {
       let source = program_identity_stage_at(identity, stage).unwrap()
       core_contract_root(b, StageSourceGrammar(stage), ProgramSourceGrammar)
+      for rules in [@environment.SourceRules, @environment.StageLaws] {
+        core_contract_root(
+          b,
+          StageSemanticRules(stage, rules),
+          StageSemantics(rules),
+        )
+      }
       guard stage_identity_expression_body(source) is Some(root) else {
         raise CoreContractStop(UnsupportedExpressionContract(stage))
       }
@@ -228,7 +237,10 @@ pub fn collect_core_contracts(
     while index < b.bodies.length() {
       core_contract_charge(b)
       match b.bodies[index] {
-        AdoptedBody(_) | CatalogContract(_) | ProgramSourceGrammar => ()
+        AdoptedBody(_)
+        | CatalogContract(_)
+        | ProgramSourceGrammar
+        | StageSemantics(_) => ()
         CatalogGrammarBody(body) =>
           for edge in 0..<@environment.catalog_grammar_dependency_count(body) {
             core_contract_edge(b)
@@ -313,6 +325,7 @@ pub fn core_contract_cid(v : CoreContractBody) -> String {
     CatalogContract(cid) => cid
     CatalogGrammarBody(body) => @environment.catalog_grammar_cid(body)
     ProgramSourceGrammar => @environment.program_source_grammar_cid()
+    StageSemantics(rules) => @environment.stage_semantic_contract_cid(rules)
   }
 }
 

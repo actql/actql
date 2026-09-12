@@ -670,6 +670,7 @@ pub(all) enum CoreContractBody {
   CatalogContract(String)
   CatalogGrammarBody(@check_environment.CatalogGrammar)
   ProgramSourceGrammar
+  StageSemantics(@check_environment.StageSemanticContract)
 } derive(Eq, @debug.Debug)
 
 type CoreContractInventory
@@ -700,6 +701,7 @@ pub(all) enum CoreContractSite {
   OperationLaw(Int, Int, Int, Int, Int)
   CatalogReference(Int, Int, Int)
   StageSourceGrammar(Int)
+  StageSemanticRules(Int, @check_environment.StageSemanticContract)
 } derive(Eq, @debug.Debug)
 
 pub struct DedupeTopTieCheck {

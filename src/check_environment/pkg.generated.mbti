@@ -370,6 +370,8 @@ pub fn source_view_shape_usage(SourceViewShapes) -> (Int, Int)
 
 pub fn source_view_shape_values(SourceViewShapes) -> ProtocolValueContracts
 
+pub fn stage_semantic_contract_cid(StageSemanticContract) -> String
+
 pub fn text_rank_selection_cid(TextRankSelection) -> String
 
 pub fn text_rank_selection_environment(TextRankSelection) -> WireEnvironment
@@ -828,6 +830,11 @@ pub(all) struct SourceViewShapeLimits {
 }
 
 type SourceViewShapes
+
+pub(all) enum StageSemanticContract {
+  SourceRules
+  StageLaws
+} derive(Eq, @debug.Debug)
 
 type TextRankSelection
 

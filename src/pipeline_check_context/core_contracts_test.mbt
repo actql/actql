@@ -19,26 +19,40 @@ test "core contract collection preserves owned occurrences and shares dependency
       )
     }
   }
-  assert_eq(core_contract_root_count(inventory), 4 + 2 * steps)
-  assert_eq(core_contract_body_count(inventory), 18)
+  assert_eq(core_contract_root_count(inventory), 8 + 2 * steps)
+  assert_eq(core_contract_body_count(inventory), 20)
   let (work, edges) = core_contract_usage(inventory)
   assert_eq(edges, 16)
   assert_eq(
     work,
     program_identity_usage(identity).0 +
     7 +
-    4 +
+    8 +
     2 * steps +
     visits +
     2 * steps +
-    18 +
+    20 +
     16,
   )
   let mut stage_roots = 0
   let mut unused_roots = 0
+  let mut semantic_roots = 0
   for i in 0..<core_contract_root_count(inventory) {
     let root = core_contract_root_at(inventory, i).unwrap()
     match root.site {
+      StageSemanticRules(stage, rules) => {
+        assert_eq(stage, semantic_roots / 2)
+        assert_eq(
+          rules,
+          if semantic_roots % 2 == 0 {
+            @environment.SourceRules
+          } else {
+            @environment.StageLaws
+          },
+        )
+        assert_eq(root.body, StageSemantics(rules))
+        semantic_roots += 1
+      }
       StageSourceGrammar(stage) => {
         assert_true(stage >= 0 && stage < 2)
         assert_eq(root.body, ProgramSourceGrammar)
@@ -74,6 +88,7 @@ test "core contract collection preserves owned occurrences and shares dependency
     }
   }
   assert_eq(stage_roots, 2)
+  assert_eq(semantic_roots, 4)
   assert_true(
     physical_equal(
       program_source_contract_identity(core_contract_sources(inventory)),
@@ -90,7 +105,7 @@ test "core contract collection preserves owned occurrences and shares dependency
   let exact : CoreContractLimits = {
     max_work: work,
     max_roots: core_contract_root_count(inventory),
-    max_bodies: 18,
+    max_bodies: 20,
     max_edges: 16,
   }
   assert_true(collect_core_contracts(identity, exact) is Ok(_))
@@ -112,7 +127,7 @@ test "core contract collection preserves owned occurrences and shares dependency
     limits in [
       { ..exact, max_work: work - 1, },
       { ..exact, max_roots: exact.max_roots - 1, },
-      { ..exact, max_bodies: 17, },
+      { ..exact, max_bodies: 19, },
       { ..exact, max_edges: 15, },
     ] {
     assert_true(collect_core_contracts(identity, limits) is Err(BudgetExceeded))
@@ -131,7 +146,7 @@ test "core contract collection preserves owned occurrences and shares dependency
     assert_true(core_contract_body_at(inventory, invalid) is None)
   }
   assert_true(core_contract_root_at(inventory, exact.max_roots) is None)
-  assert_true(core_contract_body_at(inventory, 18) is None)
+  assert_true(core_contract_body_at(inventory, 20) is None)
 }
 
 ///|

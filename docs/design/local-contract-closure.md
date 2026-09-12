@@ -129,6 +129,17 @@ leaf. Each owned Stage retains a source-grammar occurrence, including stages
 without Parameters; body storage is shared. This grammar contribution does not
 replace the governing semantic laws or the required declaration/value checks.
 
+Each owned Stage also selects the registered `actql-stage-contracts.json`
+`/source` and `/laws` bodies. Their existing spec-family pins identify,
+respectively, source/declaration/binding rules and common lifecycle, identity,
+admission and failure rules. These are the registered semantic contract units,
+not a new hash of the whole Stage schema registry or concrete activation data.
+Generation checks those exact registered pointers and pins; existing independent
+identity vectors verify their bodies. Repeated Stage uses retain their own
+coordinates while sharing body storage and traversal charges. Selecting the
+contracts does not discharge their rules: in particular it does not manufacture
+completed predecessors, runtime validation, authorization or executable support.
+
 Selection includes every contract interpreted for the Unit's declarations,
 operations, expressions, publication, imports and incoming gates, including
 domain, guard, permission, scope and failure semantics. It is not a liveness
@@ -183,7 +194,7 @@ visiting and collecting roots still consumes the caller's aggregate work budget.
 Repeated visits are not silently collapsed at this source-occurrence boundary.
 
 `collect_core_contracts` performs this traversal from one `ProgramSourceIdentity`.
-It retains every Stage source-grammar and expression root, every adopted-law occurrence across
+It retains every Stage source-grammar, semantic-rule and expression root, every adopted-law occurrence across
 all producer visits, and selected SourceView contract-reference occurrences.
 Source selection is derived internally from the identity's own input context;
 the caller cannot supply a substitute Catalog or a second source inventory.
