@@ -1,0 +1,221 @@
+///|
+fn prepared_identity_fixture() -> (
+  ProgramSourceIdentity,
+  @stage_results.ResultWiring,
+  ReconciledContexts,
+) {
+  let (stages, wiring, locals, bound, _, _) = prepared_local_context_fixture()
+  let source = @stages.operations_source(@stages.bound_operations(bound))
+  // No acquired rows or schema snapshots. The environment still undergoes
+  // canonical integrity and selected-policy admission. Hashing here constructs
+  // fixture input; independent expectations below do not use this helper.
+  let body = "{\"command_contracts\":[],\"connector_capabilities\":[],\"connector_catalogs\":[],\"contract_registry\":[],\"host_policy_profile\":" +
+    capacity_profile(false) +
+    ",\"mapping_contracts\":[],\"model_task_contracts\":[],\"schema_snapshots\":[],\"source_views\":[],\"version\":\"actql-check-environment/0.1\"}"
+  let cid = "sha256:" + @sha.hex(@utf8.encode(body))
+  let environment = @environment.read(
+    @utf8.encode(
+      body.replace(
+        old="\"host_policy_profile\":",
+        new="\"evidence_bundle_cid\":\"" + cid + "\",\"host_policy_profile\":",
+      ),
+    ),
+    cid,
+    { max_bytes: 10000, max_nodes: 1000, max_depth: 100, max_members: 10, },
+  ).unwrap()
+  let source_index = @refs.prepare(source, {
+    max_work: 100000,
+    max_text_bytes: 100000,
+  }).unwrap()
+  let limits : @local_inputs.Limits = {
+    max_work: 1000000,
+    max_nodes: 100000,
+    max_text_bytes: 1000000,
+    max_depth: 100,
+  }
+  let inputs = []
+  let attachments = []
+  for i in 0..<locals.length() {
+    let input = @local_inputs.reconcile_environment(
+      @local_inputs.attached_inputs(locals[i]),
+      source_index,
+      environment,
+      [],
+      limits,
+    ).unwrap()
+    inputs.push(input)
+    attachments.push(
+      @local_inputs.attach_reconciled(
+        input,
+        @local_inputs.attached_stage(locals[i]),
+        max_work=1000000,
+      ).unwrap(),
+    )
+  }
+  let all_inputs = @local_inputs.assemble_environment(
+    source, environment, inputs, limits,
+  ).unwrap()
+  let wired = attach_result_wiring(
+    stages,
+    wiring,
+    max_work=10000000,
+    max_text_bytes=10000000,
+  ).unwrap()
+  let reconciled = attach_reconciled_inputs(
+    wired,
+    all_inputs,
+    attachments,
+    max_work=10000000,
+    max_text_bytes=10000000,
+    max_local_input_nodes=100000,
+  ).unwrap()
+  let selected = bind_capacity_policy(
+    reconciled,
+    @environment.read_capacity(environment, {
+      max_bytes: 10000,
+      max_nodes: 100,
+      max_depth: 10,
+    }).unwrap(),
+    max_work=10000000,
+    max_text_bytes=10000000,
+    max_policy_nodes=100,
+  ).unwrap()
+  let validation = prepare_expression_validation(selected, validation_limits()).unwrap()
+  let patterns = check_patterns(validation, pattern_limits()).unwrap()
+  let producer = preparation_sources_fixture(selected)
+  let preparation = assemble_preparation(
+    producer,
+    check_text_bounds(patterns, bound_limits()).unwrap(),
+    check_expression_profiles(
+      validation,
+      { text_time: false, veca: false, },
+      10000000,
+    ).unwrap(),
+    preparation_limits(),
+  ).unwrap()
+  let operations = check_operation_profiles(
+    preparation,
+    { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
+    10000000,
+  ).unwrap()
+  let slots = source_request_slots(
+    source_rows_requests(
+      source_policy_rows(
+        source_capacity_context(source_producer_capacity(producer)),
+      ),
+    ),
+  )
+  let references = attach_program_references(
+    stages,
+    reference_values_for(
+      @stages.bound_operations(bound),
+      @references.bound_values(@stages.bound_program_index(bound)),
+      request_slots=Some(slots),
+    ),
+    max_work=10000000,
+  ).unwrap()
+  let sources = bind_program_sources(
+    operations,
+    references,
+    collect_source_bindings(preparation, 10000000, 100).unwrap(),
+    10000000,
+  ).unwrap()
+  (
+    identify_program_sources(sources, identity_limits()).unwrap(),
+    wiring,
+    reconciled,
+  )
+}
+
+///|
+test "prepared multi-stage Program reaches source identity without replacing imported producers" {
+  let (identity, wiring, context) = prepared_identity_fixture()
+  let sources = program_identity_sources(identity)
+  let references = program_sources_references(sources)
+  let stages = program_reference_stages(references)
+  let operations = @stages.bound_operations(stage_operations(stages))
+  assert_eq(program_identity_stage_count(identity), 2)
+  // Independently computed SHA-256 of canonical UTF-8:
+  // {"values":{"n":2},"version":"actql-parameter-values/0.1"}
+  let expected_values = "sha256:1304688593f0f3e9917621856ffd73242e3c000fa8696f1a49e19db361d74436"
+  assert_eq(program_identity_parameter_values_cid(identity), expected_values)
+  for i in 0..<2 {
+    assert_eq(
+      stage_identity_parameter_values_cid(
+        program_identity_stage_at(identity, i).unwrap(),
+      ),
+      expected_values,
+    )
+    assert_true(
+      physical_equal(
+        @stages.operations_stage_at(operations, i).unwrap(),
+        @stage_results.stage_port_source(
+          @stage_results.wiring_stage_at(wiring, i).unwrap(),
+        ),
+      ),
+    )
+  }
+  let expressions = close_program_expressions(identity, 10000000, 100).unwrap()
+  assert_eq(expression_closure_count(expressions), 0)
+  let requirements = collect_program_operation_requirements(
+    expressions, 10000000, 100,
+  ).unwrap()
+  assert_true(
+    physical_equal(
+      operation_requirements_expressions(requirements),
+      expressions,
+    ),
+  )
+  // Identity is stable across reconstruction, ownership is deliberately not.
+  let (again, _, other_context) = prepared_identity_fixture()
+  assert_eq(
+    program_identity_definition_cid(identity),
+    program_identity_definition_cid(again),
+  )
+  assert_false(
+    physical_equal(
+      program_identity_sources(identity),
+      program_identity_sources(again),
+    ),
+  )
+  let (work, bytes, nodes) = program_identity_usage(identity)
+  let exact = {
+    ..identity_limits(),
+    max_work: work,
+    max_hash_bytes: bytes,
+    max_hash_nodes: nodes,
+  }
+  assert_true(identify_program_sources(sources, exact) is Ok(_))
+  assert_true(
+    identify_program_sources(sources, { ..exact, max_work: work - 1, })
+    is Err(BudgetExceeded),
+  )
+  // No SourceViews is not no semantic dependencies: both stages and the
+  // repeated Result imports remain owned, and require their separate laws.
+  let caps : SourceContractLimits = {
+    max_work: 10000000,
+    max_inputs: 0,
+    max_references: 0,
+  }
+  let contracts = collect_source_contracts(context, caps).unwrap()
+  assert_eq(source_contract_stage_count(contracts), 2)
+  assert_eq(source_contract_input_count(contracts, 0), Some(0))
+  assert_eq(source_contract_input_count(contracts, 1), Some(0))
+  let selected_contracts = bind_program_source_contracts(
+    identity, contracts, 10000000,
+  ).unwrap()
+  assert_true(
+    physical_equal(
+      program_source_contract_identity(selected_contracts),
+      identity,
+    ),
+  )
+  assert_true(
+    bind_program_source_contracts(
+      identity,
+      collect_source_contracts(other_context, caps).unwrap(),
+      10000000,
+    )
+    is Err(ForeignContext),
+  )
+}
