@@ -112,8 +112,18 @@ and accumulator folds do not introduce additional semantic operands or results.
 Comparisons charge complete operand weights even if comparison itself stops
 early. Reuse across calls does not reset work, and any evaluation failure
 invalidates further use of that budget. Failures retain the checked expression
-at which the charge was refused. This work hook does not yet establish the
-live-root lifetimes required for ordered execution.
+at which the charge was refused.
+
+Expression continuations also retain their live operand handles. A left binary
+operand remains live during right-side evaluation; a condition is released
+before evaluating its selected branch. Forwarding a selected value transfers
+the existing root without adding an alias. Boolean accumulator storage has a
+temporary root but does not create an extra semantic work event. A bounded,
+reusable slot pool tracks only this expression evaluation's roots, allowing
+failure cleanup without touching borrowed input or slot roots. The retained
+evaluation entry detaches its final handle for transfer to a row slot; the
+value-only entry releases it. Row-level input, slot and retained-output lifetime
+management is a separate connection and is not implied by expression success.
 
 Logical live roots may share physical storage. Conversely, logical byte limits
 do not cap physical heap overhead or algorithmic cost. Host resource controls

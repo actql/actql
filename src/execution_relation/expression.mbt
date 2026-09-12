@@ -46,14 +46,15 @@ priv enum Continuation {
   Forward(@lower.Expression)
   Unary(@lower.Expression, @lower.UnaryOperator)
   Left(@lower.Expression, @lower.BinaryOperator, @lower.Expression)
-  Right(@lower.Expression, @lower.BinaryOperator, Value)
+  Right(@lower.Expression, @lower.BinaryOperator, Value, ExpressionRootLease?)
   Choose(@lower.Expression, @lower.Expression, @lower.Expression)
   Many(
     @lower.Expression,
     @lower.ManyOperator,
     Array[@lower.Expression],
     Int,
-    Value
+    Value,
+    ExpressionRootLease?
   )
   Case(
     @lower.Expression,
@@ -78,16 +79,46 @@ fn evaluate_expression_with_workspace(
   workspace : RowWorkspace,
   logical_work? : LogicalBudget? = None,
 ) -> Result[Value, EvalIssue] {
+  match
+    evaluate_expression_retained(
+      root,
+      input,
+      slots,
+      budget,
+      workspace,
+      logical_work~,
+    ) {
+    Err(e) => Err(e)
+    Ok(result) => {
+      if result.root is Some(lease) {
+        match release_logical_root(lease.owner, lease) {
+          Ok(_) => ()
+          Err(e) => return Err({ kind: LogicalValue(e), expression: root, })
+        }
+      }
+      Ok(result.value)
+    }
+  }
+}
+
+///|
+fn evaluate_expression_retained(
+  root : @lower.Expression,
+  input : Map[String, Value],
+  slots : Array[Value],
+  budget : ControlBudget,
+  workspace : RowWorkspace,
+  logical_work? : LogicalBudget? = None,
+) -> Result[EvaluatedValue, EvalIssue] {
+  let scope = logical_work.map(b => expression_roots(b, budget.max_frames))
   let result = evaluate_expression_impl(
-    root,
-    input,
-    slots,
-    budget,
-    workspace,
-    logical_work~,
+    root, input, slots, budget, workspace, scope,
   )
   if result is Err(_) && logical_work is Some(logical) {
     logical.failed = true
+  }
+  if scope is Some(s) {
+    cleanup_expression_roots(s)
   }
   result
 }
@@ -99,8 +130,9 @@ fn evaluate_expression_impl(
   slots : Array[Value],
   budget : ControlBudget,
   workspace : RowWorkspace,
-  logical_work? : LogicalBudget? = None,
-) -> Result[Value, EvalIssue] {
+  scope : ExpressionRoots?,
+) -> Result[EvaluatedValue, EvalIssue] {
+  let logical_work = scope.map(s => s.budget)
   if budget.remaining < 0 ||
     budget.max_frames < 0 ||
     workspace.limit < 0 ||
@@ -111,6 +143,17 @@ fn evaluate_expression_impl(
   let stack : Array[Continuation] = []
   let mut state = Enter(root)
   let mut active = root
+  let mut current_root : ExpressionRootLease? = None
+  fn release(root : ExpressionRootLease?) -> LogicalBudgetIssue? {
+    match root {
+      None => None
+      Some(r) =>
+        match release_expression_root(r) {
+          Ok(_) => None
+          Err(e) => Some(e)
+        }
+    }
+  }
   fn charge_value(value : Value) -> LogicalBudgetIssue? {
     match logical_work {
       None => None
@@ -129,7 +172,7 @@ fn evaluate_expression_impl(
     match state {
       Enter(expr) => {
         active = expr
-        // Live-root lifetimes are still a separate integration obligation.
+        // Input/slot/output row lifetimes belong to the enclosing row kernel.
         if logical_work is Some(logical) {
           match charge_logical_work(logical, 1L) {
             Ok(_) => ()
@@ -197,7 +240,7 @@ fn evaluate_expression_impl(
               Or => Boolean(false)
               Coalesce => Null
             }
-            stack.push(Many(expr, op, children, 0, initial))
+            stack.push(Many(expr, op, children, 0, initial, None))
             state = Enter(first)
           }
           Case(clauses, otherwise) =>
@@ -214,10 +257,26 @@ fn evaluate_expression_impl(
         // Every Return completes one semantic expression, including selection
         // nodes forwarded from their chosen child. Internal boolean seeds and
         // fold accumulators do not invent extra semantic expression results.
-        if charge_value(value) is Some(issue) {
+        if scope is Some(s) && current_root is None {
+          match track_expression_root(s, value, true) {
+            Ok(r) => current_root = Some(r)
+            Err(e) => return Err({ kind: LogicalValue(e), expression: active, })
+          }
+        } else if charge_value(value) is Some(issue) {
           return Err({ kind: LogicalValue(issue), expression: active, })
         }
-        guard stack.pop() is Some(frame) else { return Ok(value) }
+        guard stack.pop() is Some(frame) else {
+          let retained = match current_root {
+            None => None
+            Some(r) =>
+              match detach_expression_root(r) {
+                Ok(root) => Some(root)
+                Err(e) =>
+                  return Err({ kind: LogicalValue(e), expression: active, })
+              }
+          }
+          return Ok({ value, root: retained, })
+        }
         match frame {
           Forward(expr) => {
             release_slots(workspace, 1)
@@ -234,15 +293,22 @@ fn evaluate_expression_impl(
               return Err({ kind: LogicalValue(issue), expression: expr, })
             }
             match unary(op, value) {
-              Ok(v) => state = Return(v)
+              Ok(v) => {
+                if release(current_root) is Some(e) {
+                  return Err({ kind: LogicalValue(e), expression: expr, })
+                }
+                current_root = None
+                state = Return(v)
+              }
               Err(e) => return Err({ kind: Scalar(e), expression: expr, })
             }
           }
           Left(expr, op, right) => {
-            stack.push(Right(expr, op, value))
+            stack.push(Right(expr, op, value, current_root))
+            current_root = None
             state = Enter(right)
           }
-          Right(expr, op, left) => {
+          Right(expr, op, left, left_root) => {
             release_slots(workspace, 1)
             active = expr
             for operand in [left, value] {
@@ -259,7 +325,15 @@ fn evaluate_expression_impl(
               }
             }
             match binary(op, left, value) {
-              Ok(v) => state = Return(v)
+              Ok(v) => {
+                for r in [left_root, current_root] {
+                  if release(r) is Some(e) {
+                    return Err({ kind: LogicalValue(e), expression: expr, })
+                  }
+                }
+                current_root = None
+                state = Return(v)
+              }
               Err(e) => return Err({ kind: Scalar(e), expression: expr, })
             }
           }
@@ -270,10 +344,14 @@ fn evaluate_expression_impl(
             if !(value is Null || value is Boolean(_)) {
               return Err({ kind: Scalar(InvalidOperand), expression: expr, })
             }
+            if release(current_root) is Some(e) {
+              return Err({ kind: LogicalValue(e), expression: expr, })
+            }
+            current_root = None
             stack.push(Forward(expr))
             state = Enter(if value is Boolean(true) { yes } else { no })
           }
-          Many(expr, op, children, index, previous) => {
+          Many(expr, op, children, index, previous, previous_root) => {
             active = expr
             if charge_value(value) is Some(issue) {
               return Err({ kind: LogicalValue(issue), expression: expr, })
@@ -286,16 +364,42 @@ fn evaluate_expression_impl(
                   Err(e) => return Err({ kind: Scalar(e), expression: expr, })
                 }
             }
+            if release(previous_root) is Some(e) {
+              return Err({ kind: LogicalValue(e), expression: expr, })
+            }
             if op == @lower.Coalesce && !(combined is Null) {
               release_slots(workspace, children.length())
               release_slots(workspace, 1)
               state = Return(combined)
             } else if children.get(index + 1) is Some(next) {
-              stack.push(Many(expr, op, children, index + 1, combined))
+              if release(current_root) is Some(e) {
+                return Err({ kind: LogicalValue(e), expression: expr, })
+              }
+              current_root = None
+              let accumulator = if op != @lower.Coalesce && scope is Some(s) {
+                match track_expression_root(s, combined, false) {
+                  Ok(r) => Some(r)
+                  Err(e) =>
+                    return Err({ kind: LogicalValue(e), expression: expr, })
+                }
+              } else {
+                None
+              }
+              stack.push(
+                Many(expr, op, children, index + 1, combined, accumulator),
+              )
               state = Enter(next)
             } else {
               release_slots(workspace, children.length())
               release_slots(workspace, 1)
+              // Coalesce can transfer its final null root unchanged; boolean
+              // reduction can change wire size and produces a fresh result.
+              if op != @lower.Coalesce {
+                if release(current_root) is Some(e) {
+                  return Err({ kind: LogicalValue(e), expression: expr, })
+                }
+                current_root = None
+              }
               state = Return(combined)
             }
           }
@@ -306,6 +410,10 @@ fn evaluate_expression_impl(
             if !(value is Null || value is Boolean(_)) {
               return Err({ kind: Scalar(InvalidOperand), expression: expr, })
             }
+            if release(current_root) is Some(e) {
+              return Err({ kind: LogicalValue(e), expression: expr, })
+            }
+            current_root = None
             if value is Boolean(true) {
               release_slots(workspace, clauses.length())
               stack.push(Forward(expr))

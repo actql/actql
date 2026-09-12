@@ -148,7 +148,18 @@ fn retain_logical_value(
     Err(e) => return Err(e)
   }
   let bytes = m.wire_bytes.to_int64()
-  if bytes > b.limits.max_live_value_bytes - b.live {
+  reserve_logical_bytes(b, bytes)
+}
+
+///|
+fn reserve_logical_bytes(
+  b : LogicalBudget,
+  bytes : Int64,
+) -> Result[LogicalRoot, LogicalBudgetIssue] {
+  if b.failed {
+    return Err(FailedLogicalBudget)
+  }
+  if bytes < 0L || bytes > b.limits.max_live_value_bytes - b.live {
     b.failed = true
     return Err(LiveValueLimit)
   }
