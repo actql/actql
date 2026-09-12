@@ -122,6 +122,11 @@ constructible only through validation; a public aggregate of checker results or
 `validated: true` does not satisfy this boundary. `CheckedProgram` is a
 descriptive name here, not an already implemented API.
 
+The [Checked Program construction contract](checked-program.md) fixes the entry,
+success conditions, exhaustive obligation coverage and lowering reads. Integration
+proceeds through small complete Programs under that contract; additional partial
+checked types are not a substitute for exercising the final entrance.
+
 Static unresolved requirements must prevent successful construction. Runtime
 obligations remain explicit, with their protected target, application location
 and required dependencies attached. Actual uniqueness, observed row counts,

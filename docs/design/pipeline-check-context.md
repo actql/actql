@@ -6,6 +6,11 @@ a main-side building block for the
 [pre-lowering Program boundary](pure-operation-checking.md#main-and-lowering-ownership),
 not that completed boundary and not a Check Environment artifact or CID.
 
+The target orchestration and sealing conditions are defined in
+[Checked Program construction](checked-program.md). The components below feed
+that single validating entrance; callers do not assemble the formal result by
+choosing an arbitrary subset of these helpers.
+
 ## Construction and ownership
 
 `check_resolved_orders` accepts an already validated opaque CheckedOrders when
