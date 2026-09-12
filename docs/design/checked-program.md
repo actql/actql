@@ -292,6 +292,15 @@ limits before retention. The opaque result does not contain admitted rows and
 does not discharge SourceView, publication or incoming obligations. Its owner
 retains those other inventories rather than treating them as absent.
 
+`close_program_incoming` retains every connected Stage-activation check in source
+occurrence order, including repeated Result imports. Unresolved receipt or
+producer-success contracts prevent closure. Producer Stage-field scans are
+charged per success occurrence as well as the inventory visits. Missing or
+uncertain observations still require waiting or reconciliation, and predecessor
+failure still prevents activation. This closes activation-check bindings only;
+it does not construct Result-import interface identities or assert that a
+predecessor has run successfully.
+
 An execution binding retains:
 
 - the protected typed subject: input, producer output, operation occurrence,

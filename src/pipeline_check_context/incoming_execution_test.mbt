@@ -12,6 +12,18 @@ test "prepared Local Program retains every activation prerequisite without obser
   }
   let incoming = collect_program_incoming(identity, limits).unwrap()
   let linked = link_program_incoming(profiles, incoming, limits).unwrap()
+  let closed = close_program_incoming(linked, 10000000, 3).unwrap()
+  assert_true(physical_equal(incoming_closure_owner(closed), linked))
+  assert_eq(incoming_closure_count(closed), 3)
+  let work = incoming_closure_work(closed)
+  assert_true(work > incoming_links_work(linked) + 4)
+  assert_true(close_program_incoming(linked, work, 3) is Ok(_))
+  assert_true(
+    close_program_incoming(linked, work - 1, 3) is Err(BudgetExceeded),
+  )
+  assert_true(close_program_incoming(linked, work, 2) is Err(BudgetExceeded))
+  assert_true(close_program_incoming(linked, -1, 3) is Err(InvalidLimits))
+  assert_true(close_program_incoming(linked, work, -1) is Err(InvalidLimits))
   assert_eq(program_incoming_count(incoming), 3)
   for i in 0..<3 {
     guard incoming_execution_at(linked, i) is Some(Connected(check)) else {
@@ -20,6 +32,9 @@ test "prepared Local Program retains every activation prerequisite without obser
     assert_true(
       physical_equal(check.site, program_incoming_at(incoming, i).unwrap()),
     )
+    let retained = incoming_closure_at(closed, i).unwrap()
+    assert_true(physical_equal(retained.site, check.site))
+    assert_eq(retained.kind, check.kind)
     assert_true(
       physical_equal(
         check.site.consumer,
@@ -49,6 +64,7 @@ test "prepared Local Program retains every activation prerequisite without obser
   assert_false(physical_equal(a.site, b.site))
   for invalid in [-2147483648, -1, 3, 2147483647] {
     assert_true(incoming_execution_at(linked, invalid) is None)
+    assert_true(incoming_closure_at(closed, invalid) is None)
   }
 }
 
@@ -70,6 +86,8 @@ test "accepted gate does not erase independently required Result availability" {
     }
     let incoming = collect_program_incoming(identity, limits).unwrap()
     let linked = link_program_incoming(profiles, incoming, limits).unwrap()
+    let closed = close_program_incoming(linked, 10000000, 2).unwrap()
+    assert_eq(incoming_closure_count(closed), 2)
     guard incoming_execution_at(linked, 0) is Some(Connected(gate)) else {
       fail("gate")
     }

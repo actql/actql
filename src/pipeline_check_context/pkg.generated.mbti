@@ -119,6 +119,8 @@ pub fn checked_results(PipelineContext) -> @relation_results.CheckedResults
 
 pub fn close_program_expressions(ProgramSourceIdentity, Int, Int) -> Result[ProgramExpressionClosure, ExpressionClosureIssue]
 
+pub fn close_program_incoming(ProgramIncomingLinks, Int, Int) -> Result[ProgramIncomingClosure, IncomingClosureIssue]
+
 pub fn close_program_local_inputs(ProgramIncomingLinks, max_work~ : Int, max_inputs~ : Int, max_execution_checks~ : Int) -> Result[ProgramLocalInputClosure, LocalInputClosureIssue]
 
 pub fn close_program_operations(ProgramOperationResolutionIndex, Int, Int) -> Result[ProgramOperationClosure, OperationClosureIssue]
@@ -208,6 +210,14 @@ pub fn expression_validation_usage(ExpressionValidationContext) -> SelectedPolic
 pub fn identify_program_sources(ProgramSourceChecks, ProgramIdentityLimits) -> Result[ProgramSourceIdentity, ProgramIdentityIssue]
 
 pub fn identify_result_import_type(ProgramIncomingLinks, Int, Int, Int, Int) -> Result[ResultImportType?, ResultImportTypeIssue]
+
+pub fn incoming_closure_at(ProgramIncomingClosure, Int) -> IncomingExecutionCheck?
+
+pub fn incoming_closure_count(ProgramIncomingClosure) -> Int
+
+pub fn incoming_closure_owner(ProgramIncomingClosure) -> ProgramIncomingLinks
+
+pub fn incoming_closure_work(ProgramIncomingClosure) -> Int
 
 pub fn incoming_execution_at(ProgramIncomingLinks, Int) -> IncomingExecutionState?
 
@@ -872,6 +882,14 @@ pub(all) struct ExpressionValidationLimits {
 
 type ExpressionValidationSite
 
+pub enum IncomingClosureIssue {
+  InvalidLimits
+  BudgetExceeded
+  UnresolvedReceipt(Int)
+  UnresolvedSuccessContracts(Int)
+  InvalidOccurrence(Int)
+}
+
 pub struct IncomingExecutionCheck {
   site : IncomingSite
   kind : IncomingExecutionKind
@@ -1446,6 +1464,8 @@ pub(all) enum ProgramIdentityPhase {
   StageParameterValues(Int)
   StageParameterDeclarations(Int)
 } derive(Eq, @debug.Debug)
+
+type ProgramIncomingClosure
 
 type ProgramIncomingGates
 
