@@ -42,6 +42,17 @@ for (const {import_mode: mode, accepted, expected_cid} of programs.cases) {
   verifyIdentity(envelope, expected_cid);
   programTests += `\n///|\ntest "program semantics: ${mode} ${accepted}" {\n  assert_program_semantics(${mode}, ${accepted}, ${JSON.stringify(canonicalText(envelope))}, ${JSON.stringify(expected_cid)})\n}\n`;
 }
+const definitions = read('portability/corpus/program-definition.json');
+assert.equal(definitions.version, 'actql-program-definition-vectors/0.1');
+let definitionTests = header;
+for (const c of definitions.cases) {
+  const matches = programs.cases.filter(p => p.import_mode === c.import_mode && p.accepted === c.accepted);
+  assert.equal(matches.length, 1);
+  const semanticsCid = matches[0].expected_cid;
+  const envelope = {version: 'actql-program-definition/0.1', id: c.id, program_semantics_cid: semanticsCid};
+  verifyIdentity(envelope, c.expected_cid);
+  definitionTests += `\n///|\ntest ${JSON.stringify(`program definition: ${c.import_mode} ${c.accepted} ${c.id}`)} {\n  assert_program_definition(${c.import_mode}, ${c.accepted}, ${JSON.stringify(c.id)}, ${JSON.stringify(semanticsCid)}, ${JSON.stringify(canonicalText(envelope))}, ${JSON.stringify(c.expected_cid)})\n}\n`;
+}
 for (const c of vectors.cases) {
   assert.equal(c.envelope.expression_contract_cid, cid, 'stale vector expression pin');
   assert.equal(c.envelope.version, 'actql-stage-semantics/0.1');
@@ -53,9 +64,10 @@ for (const [path, content] of [
   ['src/program_references/stage_expression_contract.generated.mbt', pin],
   ['src/program_references/stage_semantics.generated_test.mbt', tests],
   ['src/program_references/program_semantics.generated_test.mbt', programTests],
+  ['src/program_references/program_definition.generated_test.mbt', definitionTests],
 ]) {
   const url = new URL('../' + path, import.meta.url);
   if (args[0] === '--write') writeFileSync(url, content);
   else assert.equal(readFileSync(url, 'utf8'), content, `stale generated file: ${path}`);
 }
-console.log(`${vectors.cases.length} stage and ${programs.cases.length} Program semantics identities verified; no executable conformance claim.`);
+console.log(`${vectors.cases.length} stage, ${programs.cases.length} Program semantics and ${definitions.cases.length} Definition identities verified; no executable conformance claim.`);

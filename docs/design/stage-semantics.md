@@ -50,3 +50,21 @@ assembly. Source semantics still excludes concrete bindings, internal handles,
 the root Program ID and execution evidence. Program Definition separately binds
 the Program ID to this semantics CID; computing source semantics is not a
 substitute for that definition or the complete checked Program boundary.
+
+## Program Definition
+
+`prepare_program_definition` hashes the owned Program semantics and retains it
+with the resulting CID. Its constructor accepts neither a replacement Program
+ID nor a caller-provided semantics CID. The ID comes from the same admitted
+source inventory; equal source bytes from another owner cannot be substituted
+into the retained preparation. The exact normative envelope is
+`{version: "actql-program-definition/0.1", id, program_semantics_cid}`.
+Renaming the Program changes this Definition without changing source semantics.
+
+Preparation reports the logical bytes and nodes hashed for Program semantics,
+separately from stage hashes and final Definition output. Callers can account
+for these phases without repeating serialization. Final text, measurement and
+CID share a bounded emitter. Neither preparation nor output failure exposes a
+partial identity. The handle is immutable and supports repeated bounded output.
+Definition identity is not issuer evidence, authorization, Invocation binding,
+or completion of the checked Program's static and runtime obligations.
