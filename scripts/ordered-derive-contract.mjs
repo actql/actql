@@ -11,6 +11,14 @@ const closed = properties => ({type:'object', additionalProperties:false,
 const array = items => ({type:'array', items});
 export const executionKey = 'REL.derive.ordered';
 export const executionPointer = '/execution_contracts/REL.derive.ordered';
+export const sourceParams = () => ({
+  $id:'urn:actql:ordered-derive-source-params:0.1',
+  ...closed({bindings:{...array(closed({name,expr:{$ref:'urn:actql:expression:0.1'}})),minItems:1}}),
+});
+const deriveStepConstraint = params => ({
+  if:{properties:{op:{const:'REL.derive'}},required:['op']},
+  then:{properties:{params}},
+});
 
 export function rowKernelSchemas(protocol) {
   const valueContract = protocol.schemas.canonical_value_contract;
@@ -43,10 +51,15 @@ export function rowKernelSchemas(protocol) {
       references:array(closed({at:{type:'string', pattern:'^/bindings/(0|[1-9][0-9]*)/expr(?:/.*)?$'},
         target:{oneOf:[closed({input_field:name}),closed({prior_slot:index})]}}))}),
   };
-  return {params, context, limits, shape};
+  const node_preimage = {
+    $id:'urn:actql:ordered-derive-node-preimage:0.1',
+    ...closed({id:name,in:{...array(name),minItems:1,maxItems:1},op:{const:'REL.derive'},
+      params:{$ref:params.$id}}),
+  };
+  return {params, source_params:sourceParams(), node_preimage, context, limits, shape};
 }
 
-export const orderedBindingLaw = 'Ordered REL.derive uses the registered row-kernel parameter alternative, with roots at /bindings/i/expr. Bindings remain in authored order; root-list serialization still uses graph-step order then pointer UTF-16 order and does not determine evaluation order. Every field node has exactly one occurrence reference to an input field or earlier slot; literal payloads are opaque. row_kernel_evidence is required exactly when ordered nodes occur, containing their derive bindings and exactly the referenced row contexts and row limits, each once in self-CID order. Regeneration checks complete evidence, same-node/input/type ownership, exact prior-slot prefixes, limits and all self-CIDs. No root or evidence is invented for an absent node. The row-kernel contract is selected through the containing registry, not recursively pinned by this expression contract.';
+export const orderedBindingLaw = 'Ordered REL.derive uses the registered row-kernel parameter alternative, with roots at /bindings/i/expr. Bindings remain in authored order; root-list serialization still uses graph-step order then pointer UTF-16 order and does not determine evaluation order. Every field node has exactly one occurrence reference to an input field or earlier slot; literal payloads are opaque. row_kernel_evidence is required exactly when ordered nodes occur, containing their derive bindings and exactly the referenced row contexts and row limits, each once in self-CID order. Regeneration checks complete evidence, same-node/input/type ownership, exact prior-slot prefixes, limits and all self-CIDs. No root or evidence is invented for an absent node. The row-kernel contract is selected through the containing registry, not recursively pinned by this expression contract. Ordered request.pipeline step params contain exactly bindings of name and canonical source expr; parameter references remain source syntax. They contain no references, extension pin, machine nodes or evidence. Graph params contain the selected extension pin, lowered bindings and regenerated references. derive_binding.aoa_node_cid hashes the complete corresponding graph.steps entry {id,in,op,params}, with no wrapper, field omission or evidence. Step and input names are the canonical fragment graph names, not process-local handles.';
 
 export function executionContract(expressions, stages, protocol) {
   const schemas = rowKernelSchemas(protocol);
@@ -56,6 +69,7 @@ export function executionContract(expressions, stages, protocol) {
     dependencies:{
       expression_contract:{file:'spec/contracts/actql-expressions.json',pointer:'',cid:machineCid(expressions)},
       expression_node:{file:'spec/contracts/actql-expressions.json',pointer:'/schemas/expression_node',cid:machineCid(expressions.schemas.expression_node)},
+      source_expression:{file:'spec/contracts/actql-expressions.json',pointer:'/schemas/expression',cid:machineCid(expressions.schemas.expression)},
       derive_binding:{file:'spec/contracts/actql-stage-contracts.json',pointer:'/schemas/derive_binding',cid:machineCid(stages.schemas.derive_binding)},
       value_contract:{file:'spec/contracts/actql-protocol-schemas.json',pointer:'/schemas/canonical_value_contract',cid:machineCid(protocol.schemas.canonical_value_contract)},
     },
@@ -63,6 +77,9 @@ export function executionContract(expressions, stages, protocol) {
     semantics:{
       dispatch:'exact_registered_extension_cid_and_closed_ordered_params_no_legacy_fallback',
       legacy:'snapshot_map_exprs_node_representation_unchanged',
+      source_params:'exactly_bindings_name_and_canonical_source_expr_preserve_parameter_references_no_reference_table_extension_pin_machine_nodes_or_evidence',
+      source_binding:'request_pipeline_and_graph_preserve_exact_step_ids_input_edges_and_binding_names_order_replace_only_expression_payloads_and_add_registered_pin_and_regenerated_references',
+      node_identity:'canonical_CID_of_complete_corresponding_graph_steps_entry_id_in_op_params_no_wrapper_or_omissions_includes_extension_pin_references_and_lowered_expressions_excludes_external_evidence',
       names:'canonical_AuthoredFieldName_unique_in_authored_binding_order',
       references:'binding_order_then_expression_semantic_preorder_exact_field_occurrences_no_literal_traversal',
       targets:'latest_prior_slot_with_same_name_else_original_input_never_self_or_future',
@@ -98,7 +115,7 @@ export function executionContract(expressions, stages, protocol) {
 // Exported preparation is deliberately separate from registration. The complete
 // contract/vector checks must precede selecting this capability in a registry.
 export function prepareExpressionEvidence(expressions, stages, protocol) {
-  const {context, limits, shape} = rowKernelSchemas(protocol);
+  const {context, limits, shape, params} = rowKernelSchemas(protocol);
   expressions.laws.ordered_derive_binding = orderedBindingLaw;
   expressions.schemas.fragment.properties.row_kernel_evidence = closed({
     bindings:array(structuredClone(stages.schemas.derive_binding)),
@@ -107,6 +124,15 @@ export function prepareExpressionEvidence(expressions, stages, protocol) {
   expressions.schemas.fragment.properties.request.properties.row_kernel_limits = {
     type:'object',additionalProperties:structuredClone(limits),
   };
+  const fragment=expressions.schemas.fragment.properties;
+  fragment.request.properties.pipeline.properties.steps.items.allOf=[deriveStepConstraint({oneOf:[
+    closed({exprs:{type:'object',additionalProperties:{$ref:expressions.schemas.expression.$id}}}),
+    sourceParams(),
+  ]})];
+  fragment.graph.properties.steps.items.allOf=[deriveStepConstraint({oneOf:[
+    closed({exprs:{type:'object',additionalProperties:{$ref:expressions.schemas.expression_node.$id}}}),
+    structuredClone(params),
+  ]})];
   return expressions;
 }
 

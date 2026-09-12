@@ -16,7 +16,7 @@
     "implicit_stringification": false,
     "implicit_cid_substitution": false
   },
-  "expression_contract_cid": "sha256:fd3f2366622f90d7793917b7a00d9b1a229b3c8e52521ccf28224f541f027240",
+  "expression_contract_cid": "sha256:399d4593f8212a2239a0a3e3ca552653ad711010a180207f967cf546012fc1cb",
   "pipeline_law_manifest": "aoa-pipeline-laws/0.1",
   "pipeline_law_manifest_cid": "sha256:587ab651a11c93172b597234f849d732319f61490fbb59d3d8841436e1e842dc",
   "rela_scalar_law_manifest_cid": "sha256:a866ed224e15da7e25b45d4e166b25b6bd6749a31bd7dfacb185391ad3f80122",
@@ -25,7 +25,7 @@
   "sga_structural_law_manifest_cid": "sha256:7dbf4a4b5830e66867388a34f12751691e9c90594e8e09cab754472144a65b18",
   "sga_identity_law_manifest_cid": "sha256:ab1ae472462b96ac48e56d3ce0544213cab5d422e6bb198bc9acd5e4d90e0fe4",
   "pipeline_registry_file": "spec/dependencies/aoa-pipeline-registry.json",
-  "pipeline_registry_cid": "sha256:c88b89effec8107537a1064c2b8332f20deb0a0911520aa305bbafe5f0f491f6",
+  "pipeline_registry_cid": "sha256:5be4133ab14b50ece1109cb2ce7cacf52005ff1c04ef48b2aa7b88f163eba09f",
   "target_module_contract_cid": "sha256:ae21e53e9cd0727435f707f49efb2ffc9fa1665abda9adde0ff57312265e06e1",
   "target_registry_requirements": {
     "REL.values": {
@@ -176,7 +176,7 @@
       "output": "relation",
       "execution_contract": {
         "pointer": "/execution_contracts/ACTQL.expression_fragment~10.1",
-        "cid": "sha256:98a0237503d300beaea09b2f2e87f10dcd94a4f70e29bd2875f25d02ea9e3dc4"
+        "cid": "sha256:1282c3d8af052606f64be809cead104630c67a8b676050bcdc7edd4a884b9b60"
       }
     },
     "REL.derive": {
@@ -188,7 +188,7 @@
         "ordered_bindings": {
           "file": "spec/contracts/actql-aoa.json",
           "pointer": "/execution_contracts/REL.derive.ordered",
-          "cid": "sha256:90f5a71e31aa6a60c1961b7039a87f3a2849c4a793aaba3d776a166176fc28b9"
+          "cid": "sha256:5c42162fa5adc40007f7e4630fa30e835c0dce20f74785be074f4490aff522de"
         }
       }
     }
@@ -1183,12 +1183,12 @@
         "expression_contract": {
           "file": "spec/contracts/actql-expressions.json",
           "pointer": "",
-          "cid": "sha256:fd3f2366622f90d7793917b7a00d9b1a229b3c8e52521ccf28224f541f027240"
+          "cid": "sha256:399d4593f8212a2239a0a3e3ca552653ad711010a180207f967cf546012fc1cb"
         },
         "fragment_schema": {
           "file": "spec/contracts/actql-expressions.json",
           "pointer": "/schemas/fragment",
-          "cid": "sha256:f3a0d16713f21f6b1f132e28516028138b3ddf4d26e4901f7df18cb9813bca88"
+          "cid": "sha256:4d42600c1b3d42d660f2eb14a84342988c17646110f8995f80bf4dc4344ce3d4"
         }
       },
       "params_schema": {
@@ -1230,12 +1230,17 @@
         "expression_contract": {
           "file": "spec/contracts/actql-expressions.json",
           "pointer": "",
-          "cid": "sha256:fd3f2366622f90d7793917b7a00d9b1a229b3c8e52521ccf28224f541f027240"
+          "cid": "sha256:399d4593f8212a2239a0a3e3ca552653ad711010a180207f967cf546012fc1cb"
         },
         "expression_node": {
           "file": "spec/contracts/actql-expressions.json",
           "pointer": "/schemas/expression_node",
           "cid": "sha256:eea37ee96bf6be954e46db196f7ec8101506ed4a28ecc647e8f929a512194b94"
+        },
+        "source_expression": {
+          "file": "spec/contracts/actql-expressions.json",
+          "pointer": "/schemas/expression",
+          "cid": "sha256:8196cef99c66248917d44d322cb21f69f9873cac768bc5bbda2e3757e8e9d66f"
         },
         "derive_binding": {
           "file": "spec/contracts/actql-stage-contracts.json",
@@ -1332,6 +1337,69 @@
                   }
                 }
               }
+            }
+          }
+        },
+        "source_params": {
+          "$id": "urn:actql:ordered-derive-source-params:0.1",
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "bindings"
+          ],
+          "properties": {
+            "bindings": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "name",
+                  "expr"
+                ],
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "expr": {
+                    "$ref": "urn:actql:expression:0.1"
+                  }
+                }
+              },
+              "minItems": 1
+            }
+          }
+        },
+        "node_preimage": {
+          "$id": "urn:actql:ordered-derive-node-preimage:0.1",
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "id",
+            "in",
+            "op",
+            "params"
+          ],
+          "properties": {
+            "id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "in": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              },
+              "minItems": 1,
+              "maxItems": 1
+            },
+            "op": {
+              "const": "REL.derive"
+            },
+            "params": {
+              "$ref": "urn:actql:ordered-derive-params:0.1"
             }
           }
         },
@@ -3318,6 +3386,9 @@
       "semantics": {
         "dispatch": "exact_registered_extension_cid_and_closed_ordered_params_no_legacy_fallback",
         "legacy": "snapshot_map_exprs_node_representation_unchanged",
+        "source_params": "exactly_bindings_name_and_canonical_source_expr_preserve_parameter_references_no_reference_table_extension_pin_machine_nodes_or_evidence",
+        "source_binding": "request_pipeline_and_graph_preserve_exact_step_ids_input_edges_and_binding_names_order_replace_only_expression_payloads_and_add_registered_pin_and_regenerated_references",
+        "node_identity": "canonical_CID_of_complete_corresponding_graph_steps_entry_id_in_op_params_no_wrapper_or_omissions_includes_extension_pin_references_and_lowered_expressions_excludes_external_evidence",
         "names": "canonical_AuthoredFieldName_unique_in_authored_binding_order",
         "references": "binding_order_then_expression_semantic_preorder_exact_field_occurrences_no_literal_traversal",
         "targets": "latest_prior_slot_with_same_name_else_original_input_never_self_or_future",

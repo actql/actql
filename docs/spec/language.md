@@ -3575,6 +3575,20 @@ For binding i, the latest earlier slot of that name takes precedence; otherwise
 the original input is selected. Missing, duplicate, reordered, extraneous,
 self or future references are invalid, even when hashes match.
 
+<!-- requirement-block: derive.ordered-fragment-source -->
+In `fragment.request.pipeline`, an ordered `REL.derive` step MUST have exactly
+`{id, in, op, params}`, with `params` exactly `{bindings: [{name, expr}, ...]}`.
+The nonempty bindings retain authored order and unique canonical names; each
+`expr` is the canonical normalized source Expression, not a machine expression
+node. Parameter references remain source syntax, with checked bindings retained
+in `request.parameters`; literal payloads remain opaque. Source params contain
+no reference table, extension pin, contexts, limits or derive evidence. The
+legacy map alternative remains exactly `{exprs: {name: Expression, ...}}`.
+Request and graph preserve the same canonical step IDs, input edges and binding
+names/order. Regeneration lowers the RHSs, adds the selected registry extension
+CID and derives the machine reference table, rather than trusting those as
+source assertions. Each root's `source` equals its corresponding source RHS.
+
 <!-- requirement-block: derive.ordered-evidence-closure -->
 A fragment with ordered nodes MUST carry `row_kernel_evidence` containing
 `bindings`, `contexts`, `limits` and `shapes`: each referenced body once, in
@@ -3596,6 +3610,23 @@ prefix of prior `{name, contract}` slots. Input/output contract CIDs resolve
 of required fields. Unknown field types stay unknown. Context, shape and limit
 self-CIDs omit only `self_cid`; no diagnostic spans enter these preimages.
 Node identity includes its extension pin, never the evidence that names it.
+
+<!-- requirement-block: derive.ordered-node-preimage -->
+For ordered derive, `derive_binding.aoa_node_cid` MUST be the canonical JSON CID
+of the complete corresponding `fragment.graph.steps[i]` object, exactly
+`{id, in, op, params}`, without a wrapper, domain field or omitted member.
+`op` is `REL.derive`, `in` is the one-element ordered input-edge array, and
+`params` is the complete machine alternative defined above, including
+`row_kernel_contract_cid`, ordered lowered bindings and the full reference table.
+This is not the source request step, params alone, a scalar expression node,
+the whole pipeline, a sort-validation projection or a resolved step augmented
+with `input_sorts`/`output_sort`. The actual canonical fragment graph names are
+included; process-local handles are not substitutes. The derive evidence,
+contexts, shapes, limits and their self-CIDs remain outside the step. Changing
+the step ID, input edge, extension pin, bindings or references changes this
+preimage; changing only external evidence does not. Fragment identity still
+binds the complete evidence. Node identity proves neither type correctness nor
+ownership; admission regenerates the same-request graph and evidence together.
 
 <!-- requirement-block: derive.ordered-resource-context -->
 `request.row_kernel_limits` MUST map exactly the ordered step IDs to their
@@ -8448,7 +8479,7 @@ through the pinned expression contract.
 <!-- requirement-block: machine-contracts.exact-artifacts -->
 <!-- normative-code: law -->
 ```text
-../../spec/contracts/actql-aoa.json# sha256:c0e99ae8e5945ee46fe5a4462d37539874231311cd2ac462654f4a2184477a2e
+../../spec/contracts/actql-aoa.json# sha256:4c2563627747906055138385fa4dfe20396a9938df621c1280608749602bd024
 ../../spec/contracts/actql-bound-transfer-laws.json# sha256:014682262d00c8435f300731e823e5b267ec66b78f980c765c4fd3772c68c911
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/resource_ref sha256:f88141c15be5ac040af593008fdca7c85214fcb4ba60ea7110160b8fe8ee25ac
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/artifact_ref sha256:2143a7c6bd2e0b110822670a3cb146cddaa23bcade9de7c1ab8ed4e1ebf88a55
@@ -8457,12 +8488,12 @@ through the pinned expression contract.
 ../../spec/contracts/actql-production-profile-schemas.json#/schemas/text_time_expression sha256:a9fd34634569c0da417ca5a8770ab064ad8351bbd253c8fea1dae60c756c61c1
 ../../spec/contracts/actql-production-profile-schemas.json#/schemas/regex_replacement_ast sha256:92c3fc4fc790cdf8f985b634dfe513f85b6cd5c904bb673de7330d18f577aeed
 ../../spec/contracts/actql-regex-ast.json# sha256:9c4e0107ad1e6a1eb374e8365c07615c74773416b0b43f9a1e02db5e551efc78
-../../spec/contracts/actql-expressions.json# sha256:fd3f2366622f90d7793917b7a00d9b1a229b3c8e52521ccf28224f541f027240
+../../spec/contracts/actql-expressions.json# sha256:399d4593f8212a2239a0a3e3ca552653ad711010a180207f967cf546012fc1cb
 ../../spec/contracts/actql-expressions.json#/schemas/expression sha256:8196cef99c66248917d44d322cb21f69f9873cac768bc5bbda2e3757e8e9d66f
 ../../spec/contracts/actql-expressions.json#/schemas/expression_node sha256:eea37ee96bf6be954e46db196f7ec8101506ed4a28ecc647e8f929a512194b94
 ../../spec/contracts/actql-expressions.json#/schemas/evaluation_envelope sha256:629342d58af8fa879da391532a838788338ddc42b5f17db814d0bdf7236c195b
-../../spec/contracts/actql-expressions.json#/laws sha256:4896a366f9069b8d2d728e3a4dd94c728ac87bc1fb9d186f1582cb6650e001e1
-../../spec/contracts/actql-expressions.json#/schemas/fragment sha256:f3a0d16713f21f6b1f132e28516028138b3ddf4d26e4901f7df18cb9813bca88
+../../spec/contracts/actql-expressions.json#/laws sha256:aed67e22149a672dcff44b7f4f55823ac1b20c300c6962952d9d693c85032ea9
+../../spec/contracts/actql-expressions.json#/schemas/fragment sha256:4d42600c1b3d42d660f2eb14a84342988c17646110f8995f80bf4dc4344ce3d4
 ../../spec/contracts/actql-expressions.json#/schemas/predicate_consumer sha256:36320fcc16612a4bd0a64274fcf07526845ae91ad802afce601f4e391f5ba1de
 ```
 

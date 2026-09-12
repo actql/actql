@@ -27,3 +27,17 @@ test "ordered derive row-limits" {
   assert_eq(@canonical_json.stringify_value(value, 100000, 1000, 100), "{\"max_input_rows\":2,\"max_live_value_bytes\":128,\"max_value_bytes\":64,\"max_work\":100,\"version\":\"actql-derive-row-limits/0.1\"}")
   assert_eq(@canonical_json.cid_value(value, 100000, 1000, 100), "sha256:efe844a0d2119cb62b7b44887ba4f8e623aff5cdb62000cfd12dddb7af41c0da")
 }
+
+///|
+test "ordered derive source_step" {
+  let value = @canonical_json.from_json(@json.parse("{\"id\":\"derive\",\"in\":[\"input\"],\"op\":\"REL.derive\",\"params\":{\"bindings\":[{\"expr\":{\"add\":[{\"field\":\"amount\"},{\"$param\":\"delta\"}]},\"name\":\"amount\"},{\"expr\":{\"field\":\"amount\"},\"name\":\"copy\"}]}}"), 1000, 100, 100000)
+  assert_eq(@canonical_json.stringify_value(value, 100000, 1000, 100), "{\"id\":\"derive\",\"in\":[\"input\"],\"op\":\"REL.derive\",\"params\":{\"bindings\":[{\"expr\":{\"add\":[{\"field\":\"amount\"},{\"$param\":\"delta\"}]},\"name\":\"amount\"},{\"expr\":{\"field\":\"amount\"},\"name\":\"copy\"}]}}")
+  assert_eq(@canonical_json.cid_value(value, 100000, 1000, 100), "sha256:e39d10ef6f96f4e7dd9790d9e050d73e471fd60bb2ca7b3a2764110081a1e281")
+}
+
+///|
+test "ordered derive graph_step" {
+  let value = @canonical_json.from_json(@json.parse("{\"id\":\"derive\",\"in\":[\"input\"],\"op\":\"REL.derive\",\"params\":{\"bindings\":[{\"expr\":{\"body\":[{\"body\":\"amount\",\"op\":\"field\"},{\"body\":1,\"op\":\"literal\"}],\"op\":\"add\"},\"name\":\"amount\"},{\"expr\":{\"body\":\"amount\",\"op\":\"field\"},\"name\":\"copy\"}],\"references\":[{\"at\":\"/bindings/0/expr/body/0\",\"target\":{\"input_field\":\"amount\"}},{\"at\":\"/bindings/1/expr\",\"target\":{\"prior_slot\":0}}],\"row_kernel_contract_cid\":\"sha256:5c42162fa5adc40007f7e4630fa30e835c0dce20f74785be074f4490aff522de\"}}"), 1000, 100, 100000)
+  assert_eq(@canonical_json.stringify_value(value, 100000, 1000, 100), "{\"id\":\"derive\",\"in\":[\"input\"],\"op\":\"REL.derive\",\"params\":{\"bindings\":[{\"expr\":{\"body\":[{\"body\":\"amount\",\"op\":\"field\"},{\"body\":1,\"op\":\"literal\"}],\"op\":\"add\"},\"name\":\"amount\"},{\"expr\":{\"body\":\"amount\",\"op\":\"field\"},\"name\":\"copy\"}],\"references\":[{\"at\":\"/bindings/0/expr/body/0\",\"target\":{\"input_field\":\"amount\"}},{\"at\":\"/bindings/1/expr\",\"target\":{\"prior_slot\":0}}],\"row_kernel_contract_cid\":\"sha256:5c42162fa5adc40007f7e4630fa30e835c0dce20f74785be074f4490aff522de\"}}")
+  assert_eq(@canonical_json.cid_value(value, 100000, 1000, 100), "sha256:eb85b4efa2b74d96a6a3284a165537788618bee9c3a9d3c38d7a88d0e3c5aa63")
+}

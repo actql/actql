@@ -9,6 +9,27 @@ execute this alternative.
 
 ## References and identity
 
+The source request and machine graph have different params. Ordered source
+params are exactly `{bindings: [{name, expr}]}` with normalized source
+Expressions, including unresolved source Parameter references whose values are
+retained in `request.parameters`. Only the graph params add
+`row_kernel_contract_cid` and `references` and replace RHSs with lowered nodes.
+The contract schemas expose these as `schemas.source_params` and `schemas.params`.
+This follows the existing snapshot-map fragment boundary in Sketch `87dc7144`
+(`src/actql-expression-fragment-v2.ts`): source RHSs are normalized separately
+from lowered graph RHSs. That revision has no ordered alternative. Ordered
+source layout is an explicit shared-contract decision, not an imported format.
+
+`derive_binding.aoa_node_cid` hashes the complete lowered graph step
+`{id, in, op, params}`. `schemas.node_preimage` fixes the shape; the normative
+derive section fixes canonicalization and the absence of wrappers/omissions.
+This selects the concrete AoA pipeline step representation (also used in AoA
+`dbab4fe8c1d624d81ed967f90e2abe742163f84f`), not a separate scalar node identity.
+It binds the actual graph input edge and step ID as well as the ordered params.
+Those are canonical fragment names, not the compiler's process-local handles.
+The previous extension contract specified pin inclusion and evidence exclusion
+but left this exact preimage and source params ambiguous; both are now explicit.
+
 Bindings retain authored order. Each field occurrence identifies either the
 original input or a preceding binding slot. An explicit occurrence table makes
 shadowing inspectable without turning expression-shaped literal business data
@@ -53,6 +74,13 @@ exclusive input-field/prior-slot reference alternatives. Semantic admission
 must additionally regenerate exact references, verify checked types and prefix
 ownership, resolve all self-CIDs, and bind limits to the request and selected
 Host policy. Neither shape validation nor a matching hash proves these facts.
+
+`portability/corpus/ordered-derive-fragment.json` pairs a canonical source step
+with its fixed lowered graph step, selected extension pin and
+`expected_aoa_node_cid`. It is a binding/preimage vector, not an executable
+fragment without the remaining checked roots, context, limits and shape evidence.
+Its bytes and digests are fixed independently of a product lowerer; tests also
+distinguish params-only, source-step, wrapper and whole-pipeline hashes.
 
 The fixed corpus separates reference tables, identity preimages, resource
 measurements and expected execution outcomes. Checking the first three does
