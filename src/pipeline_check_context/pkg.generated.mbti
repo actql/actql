@@ -4,6 +4,7 @@ package "actql/actql/pipeline_check_context"
 import {
   "actql/actql/capacity_graph_preflight",
   "actql/actql/capacity_policy",
+  "actql/actql/capacity_program_step",
   "actql/actql/check_environment",
   "actql/actql/expression_typing",
   "actql/actql/parameter_binding",
@@ -55,6 +56,8 @@ pub fn check_regex_patterns(ExpressionValidationContext, RegexPatternLimits) -> 
 pub fn check_resolved_orders(@relation_results.CheckedOrders, Array[@parameter_binding.BoundValues?], Array[@capacity_graph_preflight.ApplicationCoverage], @capacity_policy.Policy, max_work~ : Int, max_text_bytes~ : Int, proof_owners? : Array[(Int, Int, Int)], input_owners? : Array[(Int, Int, Int, Int)]) -> Result[PipelineContext, Issue]
 
 pub fn check_source_requests(ReconciledContexts, @source_request_slots.Slots, @sourceview_resolution.RequestLimits) -> Result[SourceRequestContexts, SourceRequestIssue]
+
+pub fn check_source_row_bounds(SourceRequestContexts, Array[Array[@capacity_program_step.TargetRows]], Int) -> Result[SourceRowContexts, SourceRowsIssue]
 
 pub fn check_text_bounds(PatternChecks, TextBoundsLimits) -> Result[TextBoundsChecks, TextBoundsIssue]
 
@@ -193,6 +196,12 @@ pub fn source_request_slots(SourceRequestContexts) -> @source_request_slots.Slot
 pub fn source_request_stage(SourceRequestContexts, Int) -> @sourceview_resolution.PipelineRequests?
 
 pub fn source_request_usage(SourceRequestContexts) -> (Int, Int, Int, Int)
+
+pub fn source_rows_requests(SourceRowContexts) -> SourceRequestContexts
+
+pub fn source_rows_stage(SourceRowContexts, Int) -> @sourceview_resolution.KeyedRowBounds?
+
+pub fn source_rows_work(SourceRowContexts) -> Int
 
 pub fn stage_context_at(StageContexts, Int) -> BoundParameters?
 
@@ -500,6 +509,15 @@ pub enum SourceRequestIssue {
   Join(Int, @sourceview_resolution.KeyedJoinIssue)
   Facts(@check_environment.LookupCapacityIssue)
   KeyedFacts(Int, @sourceview_resolution.KeyedFactsIssue)
+}
+
+type SourceRowContexts
+
+pub enum SourceRowsIssue {
+  InvalidLimits
+  StageCountMismatch
+  BudgetExceeded
+  Stage(Int, @sourceview_resolution.KeyedRowsIssue)
 }
 
 type StageContexts

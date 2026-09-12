@@ -3,6 +3,7 @@ supported_targets = "+js+wasm+native"
 import {
   "actql/actql/sourceview_input" @inputs,
   "actql/actql/check_environment" @environment,
+  "actql/actql/capacity_program_step" @capacity,
   "actql/actql/decode_core" @decode,
   "actql/actql/canonical_value" @unicode,
   "actql/actql/source_request_slots" @slots,
@@ -24,6 +25,7 @@ import {
   "actql/actql/stage_syntax" @syntax,
   "actql/actql/source_value" @source,
   "actql/actql/carrier_contract" @carrier,
+  "actql/actql/capacity_witness" @witness,
   "moonbitlang/core/encoding/utf8",
 } for "test"
 

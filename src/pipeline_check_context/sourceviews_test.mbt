@@ -143,6 +143,31 @@ test "reconciled Program inputs retain SourceView registrations and the same env
       max_text_bytes: request_text,
     },
   }
+  let row_inputs : Array[Array[@program.TargetRows]] = [[], []]
+  let rows = check_source_row_bounds(requests, row_inputs, request_work + 2).unwrap()
+  row_inputs.clear()
+  assert_true(physical_equal(source_rows_requests(rows), requests))
+  assert_eq(source_rows_work(rows), request_work + 2)
+  for i in 0..<2 {
+    assert_true(
+      physical_equal(
+        @sourceviews.keyed_rows_facts(source_rows_stage(rows, i).unwrap()),
+        source_request_keyed_facts(requests, i).unwrap(),
+      ),
+    )
+  }
+  assert_true(source_rows_stage(rows, 2) is None)
+  assert_true(
+    check_source_row_bounds(requests, [[], []], request_work + 1)
+    is Err(BudgetExceeded),
+  )
+  assert_true(
+    check_source_row_bounds(requests, [[]], request_work + 2)
+    is Err(StageCountMismatch),
+  )
+  assert_true(
+    check_source_row_bounds(requests, [[], []], -1) is Err(InvalidLimits),
+  )
   assert_true(check_source_requests(result, slots, exact_requests) is Ok(_))
   assert_true(
     check_source_requests(result, slots, {

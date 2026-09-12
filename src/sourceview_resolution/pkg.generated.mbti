@@ -3,6 +3,7 @@ package "actql/actql/sourceview_resolution"
 
 import {
   "actql/actql/binding_declarations",
+  "actql/actql/capacity_program_step",
   "actql/actql/check_environment",
   "actql/actql/decode_core",
   "actql/actql/parameter_binding",
@@ -41,6 +42,8 @@ pub fn check_keyed_facts(CheckedKeyedJoins, @check_environment.LookupCapacities,
 pub fn check_keyed_joins(PipelineRequests, Int) -> Result[CheckedKeyedJoins, KeyedJoinIssue]
 
 pub fn check_keyed_request(RequestContext, ResolvedInput, RequestLimits) -> Result[KeyedRequest, RequestIssue]
+
+pub fn check_keyed_row_bounds(CheckedKeyedFacts, Array[@capacity_program_step.TargetRows], Int) -> Result[KeyedRowBounds, KeyedRowsIssue]
 
 pub fn check_pipeline_requests(PipelineUses, RequestParameters, RequestLimits) -> Result[PipelineRequests, AcquisitionIssue]
 
@@ -113,6 +116,14 @@ pub fn keyed_request_field_count(KeyedRequest) -> Int
 pub fn keyed_request_input(KeyedRequest) -> ResolvedInput
 
 pub fn keyed_request_usage(KeyedRequest) -> (Int, Int, Int, Int)
+
+pub fn keyed_rows_at(KeyedRowBounds, Int) -> @capacity_program_step.TargetRows?
+
+pub fn keyed_rows_count(KeyedRowBounds) -> Int
+
+pub fn keyed_rows_facts(KeyedRowBounds) -> CheckedKeyedFacts
+
+pub fn keyed_rows_work(KeyedRowBounds) -> Int
 
 pub fn keyed_source_capacity(KeyedSourceFacts) -> @check_environment.LookupCapacity
 
@@ -310,6 +321,17 @@ pub(all) enum KeyedJoinIssueKind {
 type KeyedMode
 
 type KeyedRequest
+
+type KeyedRowBounds
+
+pub(all) enum KeyedRowsIssue {
+  InvalidLimits
+  CountMismatch
+  WorkLimit(Int)
+  ForeignPipeline(Int)
+  WrongTarget(Int)
+  NonPositiveBound(Int)
+} derive(Eq, @debug.Debug)
 
 type KeyedSourceFacts
 

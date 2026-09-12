@@ -84,6 +84,10 @@ for(const c of [...corpus.cases,...keyed.cases.map(c=>({...keyed.defaults,...c})
     assert.ok(c.correlation);
     lines.push('', '///|',`test ${JSON.stringify('SourceView acquisition corpus: '+c.id)} {`,
       `  check_acquisition_fixture(${JSON.stringify(canonicalText(env))}, ${JSON.stringify(env.evidence_bundle_cid)}, ${c.correlation.request_fields.length}, ${c.lookup_capacity?(c.lookup_capacity.completeness==='complete_per_requested_key'?1:0):-1})`, '}');
+    if(c.lookup_capacity?.completeness==='complete_per_requested_key'){
+      lines.push('', '///|',`test ${JSON.stringify('SourceView bounded keyed joins: '+c.id)} {`,
+        `  check_keyed_rows_fixture(${JSON.stringify(canonicalText(env))}, ${JSON.stringify(env.evidence_bundle_cid)})`, '}');
+    }
   }
   if(c.request_outcome){
     const declarations=Object.entries({params:c.params,bindings:c.bindings}).filter(([,v])=>v!==undefined).map(([k,v])=>JSON.stringify(k)+':'+JSON.stringify(v)+',').join('');
@@ -97,6 +101,17 @@ for(const c of [...corpus.cases,...keyed.cases.map(c=>({...keyed.defaults,...c})
         `  check_request_parameters_fixture(${JSON.stringify(canonicalText(env))}, ${JSON.stringify(env.evidence_bundle_cid)}, ${JSON.stringify(JSON.stringify(c.input))}, ${JSON.stringify(declarations)}, ${JSON.stringify(JSON.stringify(supplied))})`, '}');
     }
   }
+}
+for(const value of [0,3]){
+  const law=value===0?'actql.bound.values':'actql.bound.take';
+  const proof={version:'actql-bound-proof/0.1',semantic_ref:'checked-step:0',law_id:law,unit:'rows',value,inputs:[]};
+  const witness=seal({version:'actql-bound-witness/0.1',role:'proven_upper_bound',unit:'rows',value,law_id:law,
+    source:{kind:'program',proof_cid:cid(proof),semantic_ref:'checked-step:0'},dependencies:[cid(proof)],
+    derivation:value===0?{op:'source'}:{op:'clamp',maximum:3}},'witness_cid');
+  lines.push('', '///|',`fn keyed_rows_proof_${value}() -> @witness.ProgramProofClaim {`,
+    '  let limits : @witness.Limits = {max_bytes:10000,max_nodes:1000,max_depth:30}',
+    `  let wire = @witness.admit(@utf8.encode(${JSON.stringify(canonicalText(witness))}), ${JSON.stringify(witness.witness_cid)}, limits).unwrap()`,
+    `  @witness.bind_program_proof(@utf8.encode(${JSON.stringify(canonicalText(proof))}), wire, limits).unwrap()`, '}');
 }
 const path='src/sourceview_resolution/vectors.generated_test.mbt',text=lines.join('\n')+'\n';
 if(process.argv.includes('--write'))writeFileSync(path,text);

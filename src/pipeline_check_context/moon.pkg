@@ -13,6 +13,7 @@ import {
   "actql/actql/relation_results" @results,
   "actql/actql/pipeline_typing" @pipeline,
   "actql/actql/capacity_graph_preflight" @capacity,
+  "actql/actql/capacity_program_step" @step_bounds,
   "actql/actql/capacity_policy" @policy,
   "actql/actql/parameter_binding" @parameter,
   "actql/actql/check_environment" @environment,

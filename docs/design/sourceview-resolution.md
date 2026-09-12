@@ -187,6 +187,22 @@ does not yet establish the actual left producer's row bound, Host transport
 envelope or response validation; these must join the same ownership closure
 before executable acquisition can be claimed.
 
+`check_keyed_row_bounds` requires a positive row bound for the exact left target
+of every checked keyed join, in checked-join order. It accepts only opaque
+`capacity_program_step.TargetRows` values, not numeric assertions. Equal counts
+on another target or an independently checked pipeline are rejected. The result
+copies the supplied array and retains the original row proof and keyed facts.
+Traversal work is charged per bound occurrence in addition to correspondence
+checks; reusing a bound does not make its logical validation cost disappear.
+
+`pipeline_check_context.check_source_row_bounds` covers every classified stage
+and retains the exact `SourceRequestContexts`. It includes preceding request
+work and all left-target traversal work in one budget, with no partial result
+on late failure. These are source acquisition prerequisites, not a substitute
+for the existing whole-producer capacity/application closure. Host request,
+attempt, transport, decoded-body and duration envelopes remain separate from
+this positive logical row bound.
+
 ## Keyed join role binding
 
 `check_keyed_joins` checks all keyed join-right consumers retained by
