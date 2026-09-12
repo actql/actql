@@ -3117,6 +3117,17 @@ the completion. This does not invent a business field: it reuses proven
 identity evidence. Without a retained candidate key, the compiler MUST NOT
 invent a tie-break.
 
+<!-- requirement-block: sort.primitive-stable-ties sort.compiler-completed-keys sort.stability-not-order-proof -->
+`REL.orderByStable` MUST compare the supplied keys in their declared priority
+and preserve input-relative order for rows equal on all keys, without adding
+`valueCID` or any other implicit tie-break. The compiler MUST pass completed
+explicit keys and their completion record to lowering; the primitive does not
+perform candidate-key inference. An existing admitted total-order witness can
+justify stable tie resolution where the consuming operation's rules permit it;
+this is distinct from appending candidate-key fields. Stability alone MUST NOT
+promote physical input enumeration into deterministic total-order evidence.
+The empty-sort identity and evidence rules above remain unchanged.
+
 <a id="take"></a>
 
 #### `take`
@@ -8582,7 +8593,7 @@ through the pinned expression contract.
 <!-- requirement-block: machine-contracts.exact-artifacts -->
 <!-- normative-code: law -->
 ```text
-../../spec/contracts/actql-aoa.json# sha256:4c2563627747906055138385fa4dfe20396a9938df621c1280608749602bd024
+../../spec/contracts/actql-aoa.json# sha256:806d9374ccaf7b21e7ba6ab6da4a28858cee6802cd23faa98b75e3da81991685
 ../../spec/contracts/actql-bound-transfer-laws.json# sha256:014682262d00c8435f300731e823e5b267ec66b78f980c765c4fd3772c68c911
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/resource_ref sha256:f88141c15be5ac040af593008fdca7c85214fcb4ba60ea7110160b8fe8ee25ac
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/artifact_ref sha256:2143a7c6bd2e0b110822670a3cb146cddaa23bcade9de7c1ab8ed4e1ebf88a55

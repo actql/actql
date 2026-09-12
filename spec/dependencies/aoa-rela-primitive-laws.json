@@ -56,16 +56,34 @@
     "REL.orderByStable": {
       "law_id": "aoa.rela.REL.orderByStable.v0.1",
       "deterministic": true,
-      "ordering_law": "declared keys are compared first; valueCID breaks remaining ties",
+      "ordering_law": "compare all explicitly supplied keys in their declared priority; rows equal on all keys retain their relative input order; no implicit valueCID or other tie-break key",
       "null_law": "null placement is explicit per key and defaults to last",
-      "proof_status": "theorem-root-linked",
-      "theorem_root": "AoaMechanized.RelA.OrderByStable",
+      "empty_keys_law": "empty keys preserve the exact input sequence, values and multiplicity",
+      "compiler_boundary": "candidate-key completion and its record belong to the compiler; the primitive receives completed explicit keys and does not infer keys or order evidence",
+      "evidence_law": "stability preserves an admitted input order but physical enumeration alone does not prove deterministic total order; empty sort preserves existing evidence and creates none",
+      "proof_status": "specification-only",
       "required_theorems": [
-        "length_preservation_law"
+        "length_preservation_law",
+        "declared_key_order_law",
+        "stable_tie_order_law"
       ],
-      "conformance_cases": [
-        "packages/rela/test/order-runtime-contract.spec.ts"
-      ]
+      "fixed_vectors": "portability/corpus/stable-sort-laws.json",
+      "reference_evidence": {
+        "runtime": {
+          "repository": "aoa",
+          "revision": "dbab4fe8c1d624d81ed967f90e2abe742163f84f",
+          "implementation": "packages/rela/src/exec-js.ts",
+          "tests": "packages/rela/test/order-runtime-contract.spec.ts",
+          "status": "incompatible_valueCID_tie_break_not_conformance_evidence"
+        },
+        "lean": {
+          "repository": "aoa-mechanized",
+          "revision": "26139fa908b49d14509aa0c211ecea25b8efb119",
+          "file": "AoaMechanized/RelA/OrderByStable.lean",
+          "theorem": "AoaMechanized.RelA.OrderByStable.length_preservation_law",
+          "scope": "length only for an identity-function model; no key-order or runtime stability proof"
+        }
+      }
     },
     "REL.unnest": {
       "law_id": "aoa.rela.REL.unnest.v0.1",
