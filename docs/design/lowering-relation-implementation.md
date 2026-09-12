@@ -948,6 +948,16 @@ evaluations; admitting open schemas or profile nodes requires their retained
 evidence rather than silently inheriting these projections. The candidate is
 still separate from sealed admission, backend obligations and Program permission.
 
+Generated-fragment checking rebuilds request material and the complete candidate
+from its retained checked request. It compares both the canonical stored body
+and the material used by the emitter with the rebuilt body, in addition to the
+claimed CID and selected contracts. A correctly hashed unrelated graph or root
+cannot replace part of that request. Successful checking retains regenerated
+material rather than preparation arrays owned by the caller. This typed check
+does not admit arbitrary saved JSON, reparse author source, or discharge runtime
+input/key/order/value-limit obligations. The execution boundary must still
+enforce those obligations before using the retained checked kernel.
+
 Each expression root retains its exact typed owner. Source projection reads the
 normalized syntax of that owner; machine-node projection reads the bound lowered
 expression. A Parameter remains a reference in source while becoming a literal
