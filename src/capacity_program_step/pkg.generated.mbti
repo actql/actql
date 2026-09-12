@@ -150,6 +150,8 @@ pub fn operand_work(StepBound) -> Int
 
 pub fn parameter_values(CountBindings) -> @parameter_binding.BoundValues
 
+pub fn prepare_derived_applications(@pipeline_typing.CheckedPipeline, @capacity_witness.ProgramClaims, PreparationLimits, bindings? : CountBindings?) -> Result[Applications, PreparationIssue]
+
 pub fn remaining_source_count(Applications) -> Int
 
 pub fn resolution_work(ResolvedApplications) -> Int
@@ -354,6 +356,24 @@ pub(all) enum OutputEnforcement {
   ComponentsEnforcement(ComponentsLimits)
   TraversalEnforcement(TraversalLimits)
 }
+
+pub(all) enum PreparationIssue {
+  InvalidLimits
+  WorkLimit
+  ForeignBindings
+  UnknownSubject(Int)
+  UnsupportedProof(Int)
+  MissingDependency(Int, Int)
+  CyclicDependency(Int)
+  Application(Int, Issue)
+  Collection(ApplicationIssue)
+} derive(Eq, @debug.Debug)
+
+pub(all) struct PreparationLimits {
+  max_work : Int
+  max_input_work : Int
+  max_operand_work : Int
+} derive(Eq, @debug.Debug)
 
 pub(all) enum ResolutionInput {
   ExistingInput(BoundInput)

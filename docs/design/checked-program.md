@@ -121,6 +121,20 @@ separate costs for the eventual Program-level constructor. This entrance removes
 caller selection of order and value owners, not the remaining capacity-material
 or complete Program integration requirements.
 
+`capacity_program_step.prepare_derived_applications` constructs ordinary
+derived applications from admitted claims rather than requiring a caller to
+assemble their successful `StepBound` dependencies. It resolves internal subject
+references against one exact pipeline and walks proof inputs nonrecursively in
+dependency order. Repeated input occurrences reuse the same checked dependency,
+without deduplicating operands. Unknown subjects, unavailable external inputs,
+unsupported proof forms or invalid applications fail the entire preparation.
+The existing law/application checker still decides units, input correspondence,
+arithmetic and bound values. Orchestration/collection work, input-link traversal
+and operand passes have separate cumulative limits; none resets for each proof.
+This is not a Program identity check, a Host admission or a replacement for
+cross-producer application closure. Nonordinary sources retain their separate
+coverage requirements, even when no ordinary proof is present.
+
 `prepare_program_checks` derives expression validation, pattern checks, text
 bounds and profile admission from the source-producer context's exact selected
 policy. It assembles these branches and checks operation profiles internally;

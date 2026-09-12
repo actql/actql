@@ -134,7 +134,11 @@ fn capacity(p : @pipeline.CheckedPipeline) -> @capacity.ApplicationCoverage {
     max_work: 100,
     max_name_bytes: 100,
   }).unwrap()
-  let program = @program.check_applications(claims, [], max_work=0).unwrap()
+  let program = @program.prepare_derived_applications(p, claims, {
+    max_work: 1000,
+    max_input_work: 1000,
+    max_operand_work: 1000,
+  }).unwrap()
   let sequence = @sequence.check_applications(
     p,
     sources,
