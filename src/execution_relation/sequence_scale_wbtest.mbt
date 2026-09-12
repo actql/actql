@@ -6,6 +6,7 @@ fn sequence_scale(
   width : Int,
   same : Bool,
   profile? : Bool = false,
+  candidate? : LayoutCandidate = RowLayout,
 ) -> Unit raise {
   let total_clock = @bench.monotonic_clock_start()
   let fixture_clock = @bench.monotonic_clock_start()
@@ -78,6 +79,13 @@ fn sequence_scale(
     max_work: 100000000,
   }
   let input = capture_input(owner, 0, raw, max_rows=count, value_limits).unwrap()
+  if candidate != RowLayout {
+    profile_column_sequence(
+      generated, input, candidate, count, width, same, value_limits, total_clock,
+      import_clock, fixture_us, prepare_us, profile,
+    )
+    return
+  }
   let invocation = prepare_sequence_invocation(
     generated.contracts,
     generated.sequence,

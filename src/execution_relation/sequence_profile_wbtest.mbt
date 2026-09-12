@@ -26,6 +26,12 @@ test "profile the fixed legacy sequence with independent output assertions" {
   guard cases.get(index) is Some((rows, columns, same)) else {
     fail("unknown layout measurement case")
   }
-  sequence_scale(rows, columns, same)
-  sequence_scale(rows, columns, same, profile=true)
+  let candidate = match @env.get_env_var("ACTQL_LAYOUT_CANDIDATE") {
+    None | Some("A") => RowLayout
+    Some("B") => ValueColumns
+    Some("C") => TypedColumns
+    Some(_) => fail("unknown layout candidate")
+  }
+  sequence_scale(rows, columns, same, candidate~)
+  sequence_scale(rows, columns, same, profile=true, candidate~)
 }

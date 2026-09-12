@@ -16,8 +16,8 @@ node scripts/measure-layouts.mjs --smoke
 Set `MOON_HOME` to the pinned toolchain first. The smoke mode builds native, JS
 and Wasm release artifacts and directly executes the exact profiling test,
 checking both its measurement and its independent output assertions. It runs
-one warmup and one measured invocation of the narrow 100-row baseline case.
-It is **not** a layout comparison or adoption gate. Logs and smoke output stay
+one warmup and one measured invocation of the narrow 100-row case for each of
+A, B and C. It is **not** a statistical layout comparison or adoption gate. Logs and smoke output stay
 in ignored `_build/layout-measurements/`; they are not committed reports.
 
 The five clocks surround fixture generation/JSON parsing, typed preparation,
@@ -34,6 +34,13 @@ process wall clock also includes startup, warmup and test reporting, but not
 compilation. Smoke does not measure RSS. Retained-table slot counters neither
 describe allocator bytes nor include all temporary/capture storage; they must
 not be presented as process memory or complete physical accounting.
+
+B/C additionally report owned capture/column/selection capacity, separately from
+the legacy retained-table counter. Their source capture stays owned throughout
+observation. Disposal assertions run after the phase clocks; only the outer
+process time currently includes that cleanup. The full comparison must include
+equivalent disposal in its enclosing invocation time, add prepared-input repeats,
+complete temporary-storage accounting, and run the entire fixed sample matrix.
 
 ## Historical debug measurements
 
