@@ -19,7 +19,7 @@ test "Catalog headers are closed and required even without consumers" {
 }
 
 ///|
-test "different SourceView versions cannot share one author-visible selector" {
+test "Catalog integrity defers SourceView selector uniqueness to resource resolution" {
   let a = view_fixture("example", "main")
   let b = view_fixture("example", "main", version="external-2")
   // Prefixes are identical through contract_cid, so lexical order here is
@@ -31,7 +31,5 @@ test "different SourceView versions cannot share one author-visible selector" {
     [],
     views~,
   )
-  assert_true(
-    check_catalog_contents(registry, caps()) is Err(DuplicateSelector("main")),
-  )
+  assert_true(check_catalog_contents(registry, caps()) is Ok(_))
 }

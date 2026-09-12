@@ -150,7 +150,10 @@ closed shapes, cumulative limits, exact ownership and depth 1,000.
 `check_catalog_contents` consumes the exact checked ContractRegistry and returns
 opaque CatalogContents. It checks closed Catalog headers, root-excluded Catalog
 self-CIDs, unique Connector selectors, SourceView/Command self-CIDs and Connector
-ownership, unique view triples and globally unique Command IDs. It matches each
+ownership and globally unique Command IDs. Full SourceView selector uniqueness
+requires the concrete Resource address from the admitted data policy and is
+checked by [SourceView resolution](sourceview-resolution.md), not by treating
+`resource_kind` as that address. It matches each
 embedded body to an exact full-body-CID member of the same environment, and
 requires all three derived sections to be covered exactly. Only shared Contract
 Envelopes are deduplicated across Catalogs; each Catalog retains its own contract
@@ -171,7 +174,7 @@ Limits count full Catalog bytes/nodes cumulatively, including repeated embedded
 envelopes, and Catalog plus direct member occurrences. Each derived section is
 also bounded by the member cap before indexing. Depth is bounded per Catalog;
 the disjoint member hashing passes have the same cap, not an unbounded reset.
-Indices are built once and tuple selectors preserve exact components. Payload
+Indices are built once and selectors preserve exact components. Payload
 accounting does not claim a heap bound. Tests cover empty Catalogs, an independent
 fixed self-CID, repeated/shared contracts, unsorted contents, stale inner bodies,
 extra/missing derived entries, ownership, selectors and cumulative limits.

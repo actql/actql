@@ -1,0 +1,21 @@
+{
+  "version": "actql-sourceview-resolution-vectors/0.1",
+  "cases": [
+    {"id":"sole-address-not-kind","views":[{"resource":"Opportunity","name":"records"}],"input":{"connector":"crm/main","resource":"Opportunity"},"selected":"records"},
+    {"id":"explicit","views":[{"resource":"Opportunity","name":"records"},{"resource":"Opportunity","name":"active"}],"input":{"connector":"crm/main","resource":"Opportunity","view":"active"},"selected":"active"},
+    {"id":"ambiguous","views":[{"resource":"Opportunity","name":"records"},{"resource":"Opportunity","name":"active"}],"input":{"connector":"crm/main","resource":"Opportunity"},"error":"Ambiguous","candidates":["active","records"]},
+    {"id":"other-resource-same-kind-view","views":[{"resource":"Opportunity","name":"records"},{"resource":"Account","name":"records"}],"input":{"connector":"crm/main","resource":"Account"},"selected":"records"},
+    {"id":"kind-is-not-address","views":[{"resource":"Opportunity","name":"records"}],"input":{"connector":"crm/main","resource":"record"},"error":"Unresolved"},
+    {"id":"explicit-no-fallback","views":[{"resource":"Opportunity","name":"active"}],"input":{"connector":"crm/main","resource":"Opportunity","view":"records"},"error":"Unresolved"},
+    {"id":"instance-not-implementation","views":[{"resource":"Opportunity","name":"records"}],"input":{"connector":"crm","resource":"Opportunity"},"error":"Unresolved"},
+    {"id":"no-uri-selector-repair","views":[{"resource":"Opportunity","name":"records"}],"input":{"connector":"connector://crm/main/","resource":"/Opportunity"},"error":"Unresolved"},
+    {"id":"no-view","views":[],"input":{"connector":"crm/main","resource":"Opportunity"},"error":"Unresolved"},
+    {"id":"duplicate-selector-different-kind","views":[{"resource":"Opportunity","name":"records"},{"resource":"Opportunity","name":"records","kind":"other"}],"input":{"connector":"crm/main","resource":"Unused"},"error":"DuplicateSelector","name":"records"},
+    {"id":"invalid-unused-policy-address","views":[{"resource":"Opportunity","name":"records","source_ref":"connector://other/Opportunity#records"}],"input":{"connector":"crm/main","resource":"Unused"},"error":"InvalidSourceReference"},
+    {"id":"wrong-view-suffix","views":[{"resource":"Opportunity","name":"records","source_ref":"connector://crm/main/Opportunity#active"}],"input":{"connector":"crm/main","resource":"Opportunity"},"error":"InvalidSourceReference"},
+    {"id":"no-request-or-mode-filter","views":[{"resource":"Opportunity","name":"records"},{"resource":"Opportunity","name":"watch","watch":true,"required_field":true}],"input":{"connector":"crm/main","resource":"Opportunity","scan":{"mode":"snapshot"}},"error":"Ambiguous","candidates":["records","watch"]},
+    {"id":"utf16-candidates","views":[{"resource":"Opportunity","name":""},{"resource":"Opportunity","name":"𐀀"},{"resource":"Opportunity","name":"a"}],"input":{"connector":"crm/main","resource":"Opportunity"},"error":"Ambiguous","candidates":["a","𐀀",""]},
+    {"id":"normalized-source","views":[{"resource":"é","name":"records"}],"input":{"connector":"crm/main","resource":"é"},"selected":"records"},
+    {"id":"literal-resource-components","views":[{"resource":"a/%2F#b","name":"records"}],"input":{"connector":"crm/main","resource":"a/%2F#b"},"selected":"records"}
+  ]
+}

@@ -1158,6 +1158,25 @@ downstream expressions. An explicitly selected SourceView MUST match the full
 Check does not synthesize a SourceView, implicitly select `records`, or fall back
 across Resources. Catalog publication is governed by [Connector Catalog and lock](protocols/contracts.md#catalog-and-lock).
 
+<!-- requirement-block: sourceviews.concrete-resource-selector -->
+SourceView resolution MUST bind the concrete Resource using its admitted output
+data-policy `source_ref`, exactly `"connector://" + connector_id + "/" + resource
++ "#" + view_id`, with nonempty `resource`; `resource_kind` is a type, not that
+address. This is literal string construction, not URL parsing: the known
+`connector_id` prefix and `view_id` suffix delimit the Resource. Percent escapes,
+slashes and fragment characters inside the Resource remain literal. Authored
+selectors use their source-normalized strings exactly, with no URI-prefix
+removal, slash trimming, percent decoding or case folding. Different Resources
+may expose the same kind and view name.
+
+<!-- requirement-block: sourceviews.catalog-selector-uniqueness -->
+Before resolving inputs, Check MUST reject every supplied SourceView whose
+policy source reference does not have that exact prefix, nonempty Resource and
+suffix, and reject duplicate `(connector_id, resource, view_id)` selectors,
+even across different kinds or versions and even when unused. This check follows
+policy-reference admission; Catalog integrity alone does not establish Resource
+selector uniqueness. Ambiguous candidate names are reported in UTF-16 order.
+
 <!-- requirement-block: sourceviews.the-resolved-plan-must-identify-the-sourceview-and-bind-its sourceviews.a-catalog-change-requires-rechecking-against-the-new-catalog-it -->
 The resolved Plan MUST identify the SourceView and bind its contract CID. A Catalog
 change requires rechecking against the new Catalog; it MUST NOT retarget a

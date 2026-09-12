@@ -894,6 +894,28 @@
       }
     },
     {
+      "requirement_id": "actql.language/sourceviews.concrete-resource-selector",
+      "statement_sha256": "f96edc9c568189a34daa4c27bf0159a37e0419fa38328186c3756ed64f5cca7f",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "sourceviews",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/sourceviews.catalog-selector-uniqueness",
+      "statement_sha256": "cfd85ccdc310a7e83dc1ce3d69280aea2cdafe5bbd4cacc6dfc1dfc999e3579b",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "sourceviews",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.language/sourceviews.the-resolved-plan-must-identify-the-sourceview-and-bind-its",
       "statement_sha256": "85961e093912ca56107b1950a17b907d45612a43231068f90977e3946ab752bc",
       "status": "pending",
@@ -8848,7 +8870,7 @@
     },
     {
       "requirement_id": "actql.protocol.contracts/machine-contracts.exact-artifacts",
-      "statement_sha256": "3ca39990ef72b109b7d4dce56cf4a252984b2ed81e35734bd7885ea0e1685476",
+      "statement_sha256": "2c2e58e67d5001eff809ea4473943aeb62286e1e1e260e17192866e41f5c7690",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",

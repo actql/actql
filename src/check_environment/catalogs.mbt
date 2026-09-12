@@ -75,8 +75,9 @@ fn catalog_hash(
 }
 
 ///|
-/// Integrity, ownership, selectors and exact derived membership only. SourceView
-/// and Command shape/semantics and their role references still require admission.
+/// Integrity, ownership, Connector/Command selectors and exact derived membership.
+/// SourceView selectors require policy-aware Resource resolution; body semantics
+/// and role references still require admission.
 pub fn check_catalog_contents(
   registry : ContractRegistry,
   limits : Limits,
@@ -111,7 +112,6 @@ pub fn check_catalog_contents(
   }
   let used : Array[Map[String, Bool]] = [Map([]), Map([]), Map([])]
   let connectors : Map[String, Bool] = Map([])
-  let views_seen : Map[(String, String, String), Bool] = Map([])
   let commands_seen : Map[String, Bool] = Map([])
   let entries = []
   let mut bytes = 0
@@ -208,14 +208,11 @@ pub fn check_catalog_contents(
               if catalog_string(obj, "connector_version", i) != version {
                 raise CatalogStop(OwnershipMismatch(i))
               }
-              let resource = catalog_string(obj, "resource_kind", i)
-              let view = catalog_string(obj, "view_id", i)
+              ignore(catalog_string(obj, "resource_kind", i))
+              ignore(catalog_string(obj, "view_id", i))
               ignore(catalog_string(obj, "view_version", i))
-              let key = (connector, resource, view)
-              if views_seen.contains(key) {
-                raise CatalogStop(DuplicateSelector(view))
-              }
-              views_seen[key] = true
+              // ResourceKind is not a Resource address. Full selector uniqueness
+              // requires the admitted output data-policy source reference.
               views.push(matched)
             } else {
               if catalog_string(obj, "schema", i) !=

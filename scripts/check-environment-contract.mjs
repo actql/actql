@@ -35,6 +35,7 @@ const body = {
     authority:'shape_hash_and_membership_are_not_authorization_or_runtime_evidence',
     source_read_modes:'unique_names_declared_default_snapshot_bounded_watch_unbounded_changes_and_watch_require_checkpoint_preserve_array_order_no_selection_authority',
     source_requests:'nonnull_checked_object_request_all_views_correlation_non_scan_record_carriers_ordered_equal_arity_KeyComparable_pairs_nonnull_comparable_identity_tuple_no_data_or_batch_transport_proof',
+    source_selectors:'exact_connector_policy_source_ref_connector_prefix_nonempty_literal_resource_view_suffix_not_resource_kind_validate_all_then_unique_full_selector_no_URI_repair_sole_view_over_all_candidates_UTF16_diagnostics',
   },
   value_contract_bodies:valueBodyContract(JSON.parse(readFileSync('spec/contracts/actql-protocol-schemas.json','utf8'))),
   carrier_contract_bodies:carrierBodyContract(JSON.parse(readFileSync('spec/contracts/actql-protocol-schemas.json','utf8')),JSON.parse(readFileSync('spec/contracts/actql-aoa.json','utf8'))),

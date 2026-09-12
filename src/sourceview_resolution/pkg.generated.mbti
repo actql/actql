@@ -1,0 +1,76 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/sourceview_resolution"
+
+import {
+  "actql/actql/check_environment",
+  "actql/actql/decode_core",
+  "actql/actql/sourceview_input",
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn at(Resolved, Int) -> ResolvedInput?
+
+pub fn catalog(Resolved) -> @check_environment.SourceRequestContracts
+
+pub fn catalog_owner(ResolvedInput) -> @check_environment.SourceRequestContracts
+
+pub fn completion_rule(ResolvedInput) -> String?
+
+pub fn count(Resolved) -> Int
+
+pub fn declaration(ResolvedInput) -> @sourceview_input.Declaration
+
+pub fn input_owner(ResolvedInput) -> @sourceview_input.Inputs
+
+pub fn inputs(Resolved) -> @sourceview_input.Inputs
+
+pub fn resolve(@sourceview_input.Inputs, @check_environment.SourceRequestContracts, Limits) -> Result[Resolved, Issue]
+
+pub fn selected_cid(ResolvedInput) -> String
+
+pub fn selected_contract(ResolvedInput) -> @check_environment.SourceViewRequestContract
+
+pub fn selected_name(ResolvedInput) -> String
+
+pub fn selection(ResolvedInput) -> Selection
+
+pub fn work(Resolved) -> Int
+
+// Errors
+
+// Types and methods
+pub(all) struct Issue {
+  kind : IssueKind
+  source : @decode_core.Cursor?
+}
+
+pub(all) enum IssueKind {
+  InvalidLimits
+  WorkLimit
+  InputLimit
+  ViewLimit
+  InvalidSourceReference
+  DuplicateSelector(String)
+  Unresolved
+  Ambiguous(Array[String])
+} derive(Eq, @debug.Debug)
+
+pub(all) struct Limits {
+  max_work : Int
+  max_inputs : Int
+  max_views : Int
+}
+
+type Resolved
+
+type ResolvedInput
+
+pub(all) enum Selection {
+  Explicit
+  SoleView
+} derive(Eq, @debug.Debug)
+
+// Type aliases
+
+// Traits
