@@ -7,6 +7,8 @@ priv enum NumericLayoutWorkload {
   FullWidthAddition
   LowSelectivity
   HighSelectivity
+  ShortText
+  LongText
 } derive(Eq)
 
 ///|
@@ -14,7 +16,9 @@ fn numeric_layout_fixture(
   workload : NumericLayoutWorkload,
   count : Int,
 ) -> (GeneratedSequence, CapturedRows) raise {
-  let width = 64
+  let textual = workload == ShortText || workload == LongText
+  let width = if textual { 8 } else { 64 }
+  let payload = layout_text_payload(workload)
   let nullable = workload == NullableProjection
   let raw = Array::makei(count, i => {
     let id = count - i
@@ -30,7 +34,9 @@ fn numeric_layout_fixture(
       text += ",\"p" +
         j.to_string() +
         "\":" +
-        (if nullable {
+        (if textual {
+          "\"" + payload + "\""
+        } else if nullable {
           nullable_layout_cell(id, j)
         } else {
           (id + j).to_string()
@@ -50,6 +56,10 @@ fn numeric_layout_fixture(
     input_cursor("{\"type\":\"boolean\",\"nullable\":true}"),
     { max_nodes: 10, max_depth: 10, max_text_bytes: 100, },
   ).unwrap()
+  let text_contract = @contract.read_checked(
+    input_cursor("{\"type\":\"string\",\"nullable\":false}"),
+    { max_nodes: 10, max_depth: 10, max_text_bytes: 100, },
+  ).unwrap()
   let fields = [
     (@schema.Unqualified("id"), numeric),
     (
@@ -65,7 +75,9 @@ fn numeric_layout_fixture(
     fields.push(
       (
         @schema.Unqualified("p" + j.to_string()),
-        if !nullable {
+        if textual {
+          text_contract
+        } else if !nullable {
           numeric
         } else if j % 2 == 0 {
           nullable_number
@@ -86,6 +98,11 @@ fn numeric_layout_fixture(
     { max_fields: width, max_name_bytes: 10000, },
   ).unwrap()
   let (program, expression_steps) = match workload {
+    ShortText | LongText =>
+      (
+        "[{\"derive\":{\"copy\":\"p2\"}},{\"sort\":[{\"k\":\"asc\"}]},{\"distinct\":[\"k\",\"copy\"]},{\"take\":10}]",
+        [0],
+      )
     NullableProjection =>
       (
         "[{\"select\":[\"id\",\"p2\"]},{\"derive\":[{\"old\":\"p2\"},{\"p2\":\"coalesce(old, 0) > 0\"}]},{\"filter\":\"id > 0\"},{\"sort\":[{\"id\":\"asc\"}]},{\"take\":10}]",
@@ -223,13 +240,30 @@ fn nullable_layout_cell(id : Int, column : Int) -> String {
 }
 
 ///|
+fn layout_text_payload(workload : NumericLayoutWorkload) -> String {
+  if workload != ShortText && workload != LongText {
+    return ""
+  }
+  let size = if workload == ShortText { 8 } else { 1024 }
+  let mut text = "é"
+  for _i = 1; _i < size; _i = _i + 1 {
+    text += "x"
+  }
+  text
+}
+
+///|
 fn[T : RelationRows] verify_numeric_layout_output(
   table : T,
   workload : NumericLayoutWorkload,
   count : Int,
 ) -> Unit raise {
   let rows = match workload {
-    NarrowProjection | NullableProjection | FullWidthAddition => 10
+    NarrowProjection
+    | NullableProjection
+    | FullWidthAddition
+    | ShortText
+    | LongText => 10
     LowSelectivity => count / 100
     HighSelectivity => count * 99 / 100
   }
@@ -261,9 +295,24 @@ fn[T : RelationRows] verify_numeric_layout_output(
       (names, offsets)
     }
     LowSelectivity | HighSelectivity => (["id", "next"], [0, 1])
+    ShortText | LongText => (["k", "copy"], [0, 0])
   }
   assert_eq(IndexedRows::row_count(table), rows)
   assert_eq(table.field_names(), names)
+  if workload == ShortText || workload == LongText {
+    let payload = layout_text_payload(workload)
+    assert_eq(payload.length(), if workload == ShortText { 8 } else { 1024 })
+    for row = 0; row < rows; row = row + 1 {
+      assert_true(
+        IndexedRows::read_cell(table, row, 0) is Number(n) &&
+        n == row.to_double(),
+      )
+      assert_true(
+        IndexedRows::read_cell(table, row, 1) is Text(s) && s == payload,
+      )
+    }
+    return
+  }
   // Closed-form source values and survivors; no tested comparator or sort
   // output is used to generate the expectations.
   for row = 0; row < rows; row = row + 1 {
@@ -304,6 +353,8 @@ test "fixed numeric workload shapes share source and contracts across all layout
       FullWidthAddition,
       LowSelectivity,
       HighSelectivity,
+      ShortText,
+      LongText,
     ] {
     let (generated, input) = numeric_layout_fixture(workload, count)
     let rows = execute_generated_sequence(generated, [input], {
