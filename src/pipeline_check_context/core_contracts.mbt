@@ -35,6 +35,7 @@ pub(all) enum CoreContractBody {
   RelationCountRules
   JoinCountRules
   WindowCountRules
+  GraphCountRules
 } derive(Eq, Debug)
 
 ///|
@@ -52,6 +53,7 @@ pub(all) enum CoreContractSite {
   OperationRelationCountRules(Int, Int, Int)
   OperationJoinCountRules(Int, Int, Int)
   OperationWindowCountRules(Int, Int, Int)
+  OperationGraphCountRules(Int, Int, Int)
 } derive(Eq, Debug)
 
 ///|
@@ -338,6 +340,29 @@ pub fn collect_core_contracts(
               WindowCountRules,
             )
           }
+          let graph_count = match operation {
+            @pipeline.Graph(_)
+            | @pipeline.GraphMatch(_)
+            | @pipeline.Subgraph(..)
+            | @pipeline.Traverse(..)
+            | @pipeline.Shortest(..)
+            | @pipeline.GraphStructural(..)
+            | @pipeline.GraphUnion(_)
+            | @pipeline.GraphConstruction(..) => true
+            @pipeline.Projection(v) =>
+              match @projection.operation(v) {
+                @projection.NodeRows | @projection.EdgeRows => true
+                _ => false
+              }
+            _ => false
+          }
+          if graph_count {
+            core_contract_root(
+              b,
+              OperationGraphCountRules(stage, visit, step),
+              GraphCountRules,
+            )
+          }
           for profile in 0..<@pipeline.operation_profile_count(operation) {
             core_contract_charge(b)
             let p = @pipeline.operation_profile_at(operation, profile).unwrap()
@@ -411,7 +436,8 @@ pub fn collect_core_contracts(
         | BoundTransferRules
         | RelationCountRules
         | JoinCountRules
-        | WindowCountRules => ()
+        | WindowCountRules
+        | GraphCountRules => ()
         CatalogGrammarBody(body) =>
           for edge in 0..<@environment.catalog_grammar_dependency_count(body) {
             core_contract_edge(b)
@@ -510,6 +536,8 @@ pub fn core_contract_cid(v : CoreContractBody) -> String {
       "sha256:75f9c5ce5188d28a2e3b42213e0fb3a479475c06e280eb02ef7b001a355d1600"
     WindowCountRules =>
       "sha256:a5045688150b6b5aaf0c992b2e528ba3b5f1dd49e0db14e5673c9515af82ac3a"
+    GraphCountRules =>
+      "sha256:5e9a00ff401f42059f037c52babb40f8440201b3dccaffa90da297058d6adc89"
   }
 }
 

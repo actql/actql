@@ -379,6 +379,19 @@ multiplier is one; count evidence does not establish order or acquisition comple
 ../../../spec/contracts/actql-bound-window-laws.json# sha256:a5045688150b6b5aaf0c992b2e528ba3b5f1dd49e0db14e5673c9515af82ac3a
 ```
 
+<!-- requirement-block: capacity-law-registry.graph-count-body capacity-law-registry.graph-count-machine -->
+The pinned `actql-bound-graph-laws/0.1` body governs Graph extent construction,
+combination, preservation and conversion to Relation row bounds, including
+node traversal and shortest-path selection. Applications MUST retain quantity,
+actual input and selector dependencies and reject unsafe arithmetic. Node
+emission bounds do not establish path-emission bounds, observed graph sizes,
+completeness or discharged resource enforcement.
+
+<!-- normative-code: law -->
+```text
+../../../spec/contracts/actql-bound-graph-laws.json# sha256:5e9a00ff401f42059f037c52babb40f8440201b3dccaffa90da297058d6adc89
+```
+
 <!-- requirement-block: capacity-law-registry.machine-contract -->
 <!-- normative-code: law -->
 ```text

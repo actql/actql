@@ -273,6 +273,12 @@
           "version": "actql-bound-values-law/0.1"
         },
         {
+          "path": "spec/contracts/actql-bound-graph-laws.json",
+          "pointer": "",
+          "cid": "sha256:5e9a00ff401f42059f037c52babb40f8440201b3dccaffa90da297058d6adc89",
+          "version": "actql-bound-graph-laws/0.1"
+        },
+        {
           "path": "spec/contracts/actql-bound-window-laws.json",
           "pointer": "",
           "cid": "sha256:a5045688150b6b5aaf0c992b2e528ba3b5f1dd49e0db14e5673c9515af82ac3a",
@@ -1001,7 +1007,7 @@
         {
           "owner": "actql.protocol.contracts",
           "version": "actql/0.1",
-          "document_cid": "sha256:ae9a4eb659c71d8791c001d84764b9c8bd1fefab42bb762c43686e71b9c32536"
+          "document_cid": "sha256:c1ac2fb47cdb7677b4617c5125e6541f631f8bc8d0d747240ce86c240f856480"
         },
         {
           "owner": "actql.protocol.artifacts",
@@ -1074,7 +1080,7 @@
         {
           "owner": "actql.protocol.contracts",
           "version": "actql/0.1",
-          "document_cid": "sha256:ae9a4eb659c71d8791c001d84764b9c8bd1fefab42bb762c43686e71b9c32536"
+          "document_cid": "sha256:c1ac2fb47cdb7677b4617c5125e6541f631f8bc8d0d747240ce86c240f856480"
         }
       ]
     },
@@ -1210,7 +1216,7 @@
         {
           "owner": "actql.protocol.contracts",
           "version": "actql/0.1",
-          "document_cid": "sha256:ae9a4eb659c71d8791c001d84764b9c8bd1fefab42bb762c43686e71b9c32536"
+          "document_cid": "sha256:c1ac2fb47cdb7677b4617c5125e6541f631f8bc8d0d747240ce86c240f856480"
         },
         {
           "owner": "actql.protocol.artifacts",
@@ -1397,7 +1403,7 @@
         {
           "owner": "actql.protocol.contracts",
           "version": "actql/0.1",
-          "document_cid": "sha256:ae9a4eb659c71d8791c001d84764b9c8bd1fefab42bb762c43686e71b9c32536"
+          "document_cid": "sha256:c1ac2fb47cdb7677b4617c5125e6541f631f8bc8d0d747240ce86c240f856480"
         },
         {
           "owner": "actql.protocol.artifacts",

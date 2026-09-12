@@ -233,6 +233,16 @@ step validation is not erased because the multiplier is one. Concrete bound
 values and their admission dependencies are not inserted into the contract set.
 This body has no external contract-reference fields.
 
+Graph construction, structural combination, normalization/bounds, subgraph,
+matching, node/edge projection, components/degree and traversal/shortest
+occurrences select `spec/contracts/actql-bound-graph-laws.json`, pointer `""`,
+pinned as `sha256:5e9a00ff401f42059f037c52babb40f8440201b3dccaffa90da297058d6adc89`.
+This body fixes quantity-specific conditional transfers and selector extents;
+it does not treat path enumeration as node emission or make arbitrary Graph
+operations nonexpanding. Roots retain their owning operation; the body has no
+external contract-reference fields. Graph input enforcement and concrete
+observations are separate from these transfer rules.
+
 The existing exhaustive operation-profile classification also exposes adopted
 AoA law roots: RelA scalar/primitive laws, SGA structural/identity laws, and VecA
 numerical laws. Reads from an `OperationProfileResolution` retain the same owned

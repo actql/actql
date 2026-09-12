@@ -35,6 +35,7 @@ fn core_contract_site_stage(
     | OperationRelationCountRules(stage, _, _)
     | OperationJoinCountRules(stage, _, _)
     | OperationWindowCountRules(stage, _, _)
+    | OperationGraphCountRules(stage, _, _)
     | CatalogReference(stage, _, _)
     | StageSourceGrammar(stage)
     | StageSemanticRules(stage, _)

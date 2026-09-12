@@ -4,6 +4,35 @@ import { readFileSync } from 'node:fs';
 import { machineCid } from './actql-spec-family.mjs';
 import { validateRegistry, loadRegistry, renderRegistry, renderGuardLaws } from './capacity-law-registry.mjs';
 
+test('Graph count body fixes quantity transfers and independent selector arithmetic', () => {
+  const path = 'spec/contracts/actql-bound-graph-laws.json';
+  const body = JSON.parse(readFileSync(new URL(`../${path}`, import.meta.url), 'utf8'));
+  const cid = 'sha256:5e9a00ff401f42059f037c52babb40f8440201b3dccaffa90da297058d6adc89';
+  assert.equal(machineCid(body), cid);
+  for (const law of body.law_ids) assert.ok(loadRegistry().body.law_ids.includes(law));
+  const family = JSON.parse(readFileSync(new URL('../spec/spec-family.json', import.meta.url), 'utf8'));
+  assert.ok(family.documents.flatMap(d => d.machine_contracts ?? []).some(r => r.path === path && r.pointer === '' && r.cid === cid && r.version === body.version));
+  const implementation = readFileSync(new URL('../src/pipeline_check_context/core_contracts.mbt', import.meta.url), 'utf8');
+  assert.ok(implementation.replace(/\s+/g, ' ').includes(`GraphCountRules => "${cid}"`));
+  const corpus = JSON.parse(readFileSync(new URL('../portability/corpus/bound-graph.json', import.meta.url), 'utf8'));
+  assert.equal(corpus.version, 'actql-bound-graph-vectors/0.1');
+  for (const v of corpus.cases) {
+    const [a,b] = v.inputs.map(BigInt);
+    let n;
+    switch (v.rule) {
+      case 'endpoints': n = 2n*a; break;
+      case 'preserve': case 'nearest_per_source': n = a; break;
+      case 'sum': n = v.inputs.reduce((n,x) => n+BigInt(x),0n); break;
+      case 'traverse': n = (a < b ? a : b)*b; break;
+      case 'each_pair': n = a*b; break;
+      case 'nearest_pair': n = 1n; break;
+      default: assert.fail(v.rule);
+    }
+    if (n > 9007199254740991n) assert.equal(v.error,'Overflow');
+    else { assert.equal(v.error,undefined); assert.equal(n,BigInt(v.expected)); }
+  }
+});
+
 test('window count semantics and independent membership bounds are pinned', () => {
   const path = 'spec/contracts/actql-bound-window-laws.json';
   const body = JSON.parse(readFileSync(new URL(`../${path}`, import.meta.url), 'utf8'));
