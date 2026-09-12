@@ -91,6 +91,12 @@ This is logical work accounting, not a physical heap or instruction limit.
 No row arrays are materialized. Iterative traversal supports deep unused contracts,
 and field/parameter maps are reused across lists instead of rebuilt per key.
 Immutable schemas are shared; exposed detail arrays cannot mutate checked state.
+`dedupe_key_count/at` and `dedupe_order_count/at` read the retained key/order
+arrays in constant time without copying them, so preparation can inspect counts
+before allocating under its own budget. They preserve repeated occurrences and
+source positions, returning zero/None for other operations and None for invalid
+indices. The existing detached `row_operation` view and ranking-only accessors
+retain their previous behavior.
 Failures retain path/span and expose no partial operation or fabricated text range.
 
 The [fixed Relation corpus](../../portability/corpus/actql-relation-typing-v0.1.json)

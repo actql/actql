@@ -363,6 +363,42 @@ pub fn ranking_term_at(value : CheckedOperation, index : Int) -> OrderTerm? {
 }
 
 ///|
+/// O(1); repeated authored keys remain distinct occurrences. Non-dedupe returns 0.
+pub fn dedupe_key_count(value : CheckedOperation) -> Int {
+  match value.row_operation {
+    Some(DedupeRows(by~, ..)) => by.length()
+    _ => 0
+  }
+}
+
+///|
+/// O(1), without copying the key array; invalid indices/non-dedupe return None.
+pub fn dedupe_key_at(value : CheckedOperation, index : Int) -> KeyField? {
+  match value.row_operation {
+    Some(DedupeRows(by~, ..)) => by.get(index)
+    _ => None
+  }
+}
+
+///|
+/// O(1); authored order terms, not ranking completion. Non-dedupe returns 0.
+pub fn dedupe_order_count(value : CheckedOperation) -> Int {
+  match value.row_operation {
+    Some(DedupeRows(order~, ..)) => order.length()
+    _ => 0
+  }
+}
+
+///|
+/// O(1), without copying the order array; invalid indices/non-dedupe return None.
+pub fn dedupe_order_at(value : CheckedOperation, index : Int) -> OrderTerm? {
+  match value.row_operation {
+    Some(DedupeRows(order~, ..)) => order.get(index)
+    _ => None
+  }
+}
+
+///|
 pub fn lag_term_count(value : CheckedOperation) -> Int {
   match value.row_operation {
     Some(Lag(order=terms, ..)) => terms.length()

@@ -81,6 +81,14 @@ pub fn check_group_with_prefix(@decode_core.Cursor, @relation_schema.Schema, Arr
 
 pub fn check_sequence(@decode_core.Cursor, @carrier_contract.Carrier, @parameter_binding.Declarations?, Limits) -> Result[CheckedSequence, Issue]
 
+pub fn dedupe_key_at(CheckedOperation, Int) -> KeyField?
+
+pub fn dedupe_key_count(CheckedOperation) -> Int
+
+pub fn dedupe_order_at(CheckedOperation, Int) -> OrderTerm?
+
+pub fn dedupe_order_count(CheckedOperation) -> Int
+
 pub fn existing_order_requirement(CheckedOperation) -> ValidationKind?
 
 pub fn form(CheckedOperation) -> Form
