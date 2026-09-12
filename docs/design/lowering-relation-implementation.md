@@ -231,8 +231,18 @@ text/coefficient lengths are charged before comparison under the caller's shared
 control budget as well as the fragment's logical accounting. NULL handling stays
 in the expression operator or ordering operation, not the non-null comparator.
 Structural and reference comparison remain backend gaps, not invented language
-restrictions. Their admitted scalar payloads can still be retained without
-interpreting them as comparison keys.
+restrictions. Admitted structural values can still pass through without being
+interpreted as comparison keys; reference admission has its own boundary.
+
+The physical stable-order helper merges row indices bottom-up with two bounded
+index arrays, using pre-resolved column ordinals. Equal terms select the left
+input occurrence; null placement is independent of direction, and no row CID is
+consulted. Copied indices, comparisons and variable-size scalar operands charge
+shared work. The returned index array retains its workspace charge, while scratch
+is released on success and all locally owned workspace is released on failure.
+Input rows remain unchanged. This helper does not resolve key completion or
+admit an AoA operation: its use requires the checked order strategy, validation
+of its evidence and the selected shared execution contract.
 
 The nonrecursive readiness walk uses one `max_body_nodes` construction allowance
 for root queue entries, expression visits, copied child views and queued edges
