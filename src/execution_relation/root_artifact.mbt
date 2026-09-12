@@ -5,6 +5,8 @@ priv struct RootArtifact {
   evidence : @lower.RootEvidence
   value : @identity.CanonicalValue
   cid : String
+  bytes : Int
+  nodes : Int
 }
 
 ///|
@@ -42,8 +44,18 @@ fn prepare_root_artifact(
   let value = @identity.from_json(json, max_nodes, max_depth, max_bytes) catch {
     _ => return Err(CanonicalizationFailure)
   }
-  let cid = @identity.cid_value(value, max_bytes, max_nodes, max_depth) catch {
+  let usage = try {
+    let out = @encode.hashing_writer(max_bytes, max_nodes, max_depth)
+    @identity.emit_value(value, out)
+    @encode.finish_hash_usage(out)
+  } catch {
     _ => return Err(OutputLimit)
   }
-  Ok({ evidence, value, cid, })
+  Ok({
+    evidence,
+    value,
+    cid: "sha256:" + usage.0,
+    bytes: usage.1,
+    nodes: usage.2,
+  })
 }
