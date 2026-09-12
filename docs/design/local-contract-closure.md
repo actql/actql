@@ -226,6 +226,14 @@ The result retains the original identity owner; shared body CIDs cannot replace
 that owner. Expression dependency edges retain their declared positions through
 the typed graph accessors, including repeated edges to one Unicode table.
 
+Each `values` occurrence also selects the pinned `actql-bound-values-law/0.1`
+semantic body, including empty rows and repeated producer visits. The root
+retains Stage, producer and step coordinates; only body storage is shared by
+CID. A Stage without such a root does not inherit it from another Stage.
+The law body has no declared dependency edges. Its selection does not validate
+a count proof, bind cells or certify execution, and does not stand in for other
+capacity laws. The law-name registry is not substituted for a semantic body.
+
 The work limit includes prior identity work once, plus root collection, producer,
 step and profile visits, source selection and body interpretation, and each
 unique grammar body's outgoing edges. Repeated direct Catalog-reference edges

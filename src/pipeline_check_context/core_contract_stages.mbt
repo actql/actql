@@ -30,6 +30,7 @@ fn core_contract_site_stage(
   match site {
     StageExpression(stage)
     | OperationLaw(stage, _, _, _, _)
+    | OperationCountLaw(stage, _, _)
     | CatalogReference(stage, _, _)
     | StageSourceGrammar(stage)
     | StageSemanticRules(stage, _)

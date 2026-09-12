@@ -783,6 +783,7 @@ pub(all) enum CoreContractBody {
   StageSemantics(@check_environment.StageSemanticContract)
   CalendarProfileData(String)
   TextRankProfileData(String)
+  ValuesCountLaw
 } derive(Eq, @debug.Debug)
 
 type CoreContractInventory
@@ -821,6 +822,7 @@ pub(all) enum CoreContractSite {
   StageEnvironmentRules(Int)
   OperationDataProfile(Int, Int, Int, @pipeline_typing.OperationProfile)
   IncomingRules(Int)
+  OperationCountLaw(Int, Int, Int)
 } derive(Eq, @debug.Debug)
 
 pub struct DedupeTopTieCheck {

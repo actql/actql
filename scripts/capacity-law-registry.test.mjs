@@ -18,6 +18,8 @@ test('values count law has a separately pinned semantic body', () => {
     path, pointer: '', cid, version: 'actql-bound-values-law/0.1',
   }]);
   assert.notEqual(machineCid(loadRegistry().body), cid);
+  const implementation = readFileSync(new URL('../src/pipeline_check_context/core_contracts.mbt', import.meta.url), 'utf8');
+  assert.ok(implementation.replace(/\s+/g, ' ').includes(`ValuesCountLaw => "${cid}"`), 'stale compiler law body pin');
 });
 
 test('independent values count vectors count row occurrences, not cell contents', () => {

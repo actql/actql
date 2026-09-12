@@ -30,6 +30,7 @@ pub(all) enum CoreContractBody {
   StageSemantics(@environment.StageSemanticContract)
   CalendarProfileData(String)
   TextRankProfileData(String)
+  ValuesCountLaw
 } derive(Eq, Debug)
 
 ///|
@@ -42,6 +43,7 @@ pub(all) enum CoreContractSite {
   StageEnvironmentRules(Int)
   OperationDataProfile(Int, Int, Int, @pipeline.OperationProfile)
   IncomingRules(Int)
+  OperationCountLaw(Int, Int, Int)
 } derive(Eq, Debug)
 
 ///|
@@ -284,6 +286,13 @@ pub fn collect_core_contracts(
         for step in 0..<@pipeline.step_count(pipeline) {
           core_contract_charge(b)
           let operation = @pipeline.step_at(pipeline, step).unwrap().operation
+          if operation is @pipeline.Values(_) {
+            core_contract_root(
+              b,
+              OperationCountLaw(stage, visit, step),
+              ValuesCountLaw,
+            )
+          }
           for profile in 0..<@pipeline.operation_profile_count(operation) {
             core_contract_charge(b)
             let p = @pipeline.operation_profile_at(operation, profile).unwrap()
@@ -353,6 +362,7 @@ pub fn collect_core_contracts(
         | StageSemantics(_)
         | CalendarProfileData(_)
         | TextRankProfileData(_) => ()
+        ValuesCountLaw => ()
         CatalogGrammarBody(body) =>
           for edge in 0..<@environment.catalog_grammar_dependency_count(body) {
             core_contract_edge(b)
@@ -441,6 +451,8 @@ pub fn core_contract_cid(v : CoreContractBody) -> String {
     ProgramSourceGrammar => @environment.program_source_grammar_cid()
     StageSemantics(rules) => @environment.stage_semantic_contract_cid(rules)
     CalendarProfileData(cid) | TextRankProfileData(cid) => cid
+    ValuesCountLaw =>
+      "sha256:0e0f9b4b6585ab7b17bafe484e82f44cd8f3acc9eec5ef9329cea200237a7971"
   }
 }
 
