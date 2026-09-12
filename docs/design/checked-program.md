@@ -220,6 +220,18 @@ nodes/tokens/depth remain bounded by source preparation's explicit limits.
 This entrance does not close source requests, Unit identities or execution
 obligations.
 
+`prepare_local_program_context` starts from the parsed Program, supplied
+Parameter cursor, integrity-admitted Environment and explicit capacity material.
+It constructs source-owned declarations, effective bindings and Local topology,
+then invokes the context preparation above. Source preparation receives at most
+the total context work/text allowance; its own stage/step/result/node/token/depth
+and work/text caps remain additional limits. The aggregate charges source and
+context work once through the retained prefix accounting, not two independent
+budget resets. Failure in a later Stage returns no selected context. This is an
+input-to-context preparation entrance, not the formal `CheckedProgram`
+constructor: source requests, Unit identities, full static closure and runtime
+obligation binding still follow it, and parsing/Host material admission precede it.
+
 This order is a dependency graph, not a requirement to reconstruct earlier
 results at every phase. Private incremental assembly can retain immutable
 intermediates. Public low-level helpers remain useful for focused tests, but

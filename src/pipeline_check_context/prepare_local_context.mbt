@@ -20,6 +20,76 @@ pub enum LocalContextIssue {
 }
 
 ///|
+pub enum LocalProgramContextIssue {
+  InvalidLimits
+  Source(@stage_results.LocalSourceIssue)
+  Context(LocalContextIssue)
+}
+
+///|
+/// Prepare source-owned Parameters and topology before joining Local contexts.
+/// Materials are admitted Host claims and unchecked consumer coordinates, not
+/// caller-assembled successful checks. This is not a complete CheckedProgram.
+pub fn prepare_local_program_context(
+  program : @syntax.Program,
+  supplied : @decode.Cursor?,
+  environment : @environment.WireEnvironment,
+  materials : Array[Array[CapacityMaterial]],
+  source_limits : @stage_results.LocalProgramLimits,
+  limits : LocalContextLimits,
+  max_parameters~ : Int,
+  proof_owners? : Array[Array[(Int, Int, Int)]]? = None,
+  input_owners? : Array[Array[(Int, Int, Int, Int)]]? = None,
+) -> Result[SelectedPolicyContext, LocalProgramContextIssue] {
+  if !local_context_limits_valid(limits) {
+    return Err(InvalidLimits)
+  }
+  let prepared = match
+    @stage_results.prepare_local_source(
+      program,
+      supplied,
+      max_parameters~,
+      {
+        ..source_limits,
+        max_work: Int::min(source_limits.max_work, limits.stages.max_work),
+        max_text_bytes: Int::min(
+          source_limits.max_text_bytes,
+          limits.stages.max_text_bytes,
+        ),
+      },
+      environment=Some(environment),
+    ) {
+    Ok(v) => v
+    Err(e) => return Err(Source(e))
+  }
+  match
+    prepare_local_context(
+      prepared,
+      materials,
+      limits,
+      proof_owners~,
+      input_owners~,
+    ) {
+    Ok(v) => Ok(v)
+    Err(e) => Err(Context(e))
+  }
+}
+
+///|
+fn local_context_limits_valid(limits : LocalContextLimits) -> Bool {
+  let caps = limits.stages
+  caps.max_work >= 0 &&
+  caps.max_text_bytes >= 0 &&
+  caps.max_name_bytes >= 0 &&
+  caps.max_input_work >= 0 &&
+  caps.max_operand_work >= 0 &&
+  limits.max_policy_bytes >= 0 &&
+  limits.max_policy_nodes >= 0 &&
+  limits.max_policy_depth >= 0 &&
+  limits.max_local_input_nodes >= 0
+}
+
+///|
 /// Use the Environment retained by Local source preparation for policy selection,
 /// Stage capacity construction, wiring and input correspondence. This is not
 /// parsing, source request resolution or CheckedProgram. Prepared-source work
@@ -32,15 +102,7 @@ pub fn prepare_local_context(
   input_owners? : Array[Array[(Int, Int, Int, Int)]]? = None,
 ) -> Result[SelectedPolicyContext, LocalContextIssue] {
   let caps = limits.stages
-  if caps.max_work < 0 ||
-    caps.max_text_bytes < 0 ||
-    caps.max_name_bytes < 0 ||
-    caps.max_input_work < 0 ||
-    caps.max_operand_work < 0 ||
-    limits.max_policy_bytes < 0 ||
-    limits.max_policy_nodes < 0 ||
-    limits.max_policy_depth < 0 ||
-    limits.max_local_input_nodes < 0 {
+  if !local_context_limits_valid(limits) {
     return Err(InvalidLimits)
   }
   let wiring = @stage_results.local_source_wiring(prepared)

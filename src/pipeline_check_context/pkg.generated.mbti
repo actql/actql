@@ -9,6 +9,7 @@ import {
   "actql/actql/capacity_policy",
   "actql/actql/capacity_program_step",
   "actql/actql/check_environment",
+  "actql/actql/decode_core",
   "actql/actql/encode_core",
   "actql/actql/expression_typing",
   "actql/actql/local_relation_input",
@@ -29,6 +30,7 @@ import {
   "actql/actql/stage_parameters",
   "actql/actql/stage_results",
   "actql/actql/stage_source",
+  "actql/actql/stage_syntax",
   "actql/actql/text_time_bounds",
   "actql/actql/timestamp_pattern",
   "actql/actql/value_admission",
@@ -475,6 +477,8 @@ pub fn prepare_expression_validation(SelectedPolicyContext, ExpressionValidation
 pub fn prepare_incoming_gate(ProgramIncomingLinks, Int, IncomingGateLimits) -> Result[PreparedIncomingGate, IncomingGateIssue]
 
 pub fn prepare_local_context(@stage_results.PreparedLocalSource, Array[Array[CapacityMaterial]], LocalContextLimits, proof_owners? : Array[Array[(Int, Int, Int)]]?, input_owners? : Array[Array[(Int, Int, Int, Int)]]?) -> Result[SelectedPolicyContext, LocalContextIssue]
+
+pub fn prepare_local_program_context(@stage_syntax.Program, @decode_core.Cursor?, @check_environment.WireEnvironment, Array[Array[CapacityMaterial]], @stage_results.LocalProgramLimits, LocalContextLimits, max_parameters~ : Int, proof_owners? : Array[Array[(Int, Int, Int)]]?, input_owners? : Array[Array[(Int, Int, Int, Int)]]?) -> Result[SelectedPolicyContext, LocalProgramContextIssue]
 
 pub fn prepare_local_stage_contexts(@stage_results.PreparedLocalSource, Array[Array[CapacityMaterial]], @capacity_policy.Policy, CapacityStageLimits, proof_owners? : Array[Array[(Int, Int, Int)]]?, input_owners? : Array[Array[(Int, Int, Int, Int)]]?) -> Result[StageContexts, CapacityStageIssue]
 
@@ -1142,6 +1146,12 @@ pub struct LocalInputRequirement {
   registration : @pipeline_typing.InputContract
   attachment : @stage_local_inputs.ReconciledAttachment
   disposition : LocalInputDisposition
+}
+
+pub enum LocalProgramContextIssue {
+  InvalidLimits
+  Source(@stage_results.LocalSourceIssue)
+  Context(LocalContextIssue)
 }
 
 pub(all) enum OperationCalendarIssue {
