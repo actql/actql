@@ -4177,3 +4177,23 @@ test "Program source grammar resource" {
   assert_eq(@canonical_json.cid_value(value, 176386, 13846, 20), "sha256:a6bfc4b6c00d89f521ccee9e99e1dbbd7385675fd55478f1536f36f860b1ef0a")
   assert_eq(@canonical_json.measure_value(value, 176386, 13846, 20), 176386)
 }
+
+///|
+test "incoming gate empty-effects-accepted" {
+  let input = @json.parse([
+    "{\"completion_contracts\":{},\"completion_nodes\":{},\"effect_contracts\":{},\"effect_nodes\":{},\"empty_items\":\"require-successful-computation-and-preflight\",\"milestone\":\"accepted\",\"producer_node_id\":\"first\",\"version\":\"actql-graph-success-requirement/0.1\"}",
+  ].join(""))
+  let value = @canonical_json.from_json(input, 9, 2, 248)
+  assert_eq(@canonical_json.cid_value(value, 248, 9, 2), "sha256:3038b33d39a9cedfbaf3b4f85d42beb1b4c52a6214cfdcf0bad82dedad6b62cd")
+  assert_eq(@canonical_json.measure_value(value, 248, 9, 2), 248)
+}
+
+///|
+test "incoming gate empty-effects-completed" {
+  let input = @json.parse([
+    "{\"completion_contracts\":{},\"completion_nodes\":{},\"effect_contracts\":{},\"effect_nodes\":{},\"empty_items\":\"require-successful-computation-and-preflight\",\"milestone\":\"completed\",\"producer_node_id\":\"first\",\"version\":\"actql-graph-success-requirement/0.1\"}",
+  ].join(""))
+  let value = @canonical_json.from_json(input, 9, 2, 249)
+  assert_eq(@canonical_json.cid_value(value, 249, 9, 2), "sha256:85a0b8224d380e8e7072f4ab9bfdf3634ce9e39f5e9823d186f93e690d638891")
+  assert_eq(@canonical_json.measure_value(value, 249, 9, 2), 249)
+}

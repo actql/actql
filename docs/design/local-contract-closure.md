@@ -279,6 +279,22 @@ lookup or insertion. The collector retains the exact incoming inventory for
 subsequent interface construction. Selecting this grammar is not construction
 of the interface value, its producer Unit identity, or proof of Result availability.
 
+For a predecessor with no Effect declarations, `prepare_incoming_gate` constructs
+the registered `gate_requirement` envelope from the owned incoming success check.
+Its four Effect/completion maps are empty because the source check established
+that no such contracts require interpretation, not because missing contracts
+default to empty. An unresolved success-contract check prevents construction.
+The milestone and producer node name come from the retained source identities.
+`empty_items` still requires successful computation and preflight; neither
+milestone nor empty maps imply observed success or permission to activate.
+
+The gate self CID hashes the canonical whole envelope except `self_cid`. The
+bounded preimage and full-envelope emitters share the same field encoding; the
+hash path does not materialize a complete String. Hash bytes/nodes and aggregate
+work are retained separately. Equal gate CIDs do not make distinct Program
+admission owners interchangeable. Nonempty Effect contracts and Receipt gates
+remain separate unsupported interpretation paths, not this empty-Effect form.
+
 The retained inventory distinguishes the Program-wide shared body store from
 each Stage's selection. A Stage reaches only its own source roots and their
 declared dependencies. Consumer import grammar does not become a producer root;

@@ -158,6 +158,18 @@ function fixtures() {
     value: read('spec/contracts/actql-protocol-schemas.json').artifact_schemas.executable_plan.properties.execution_material.properties.program,
     cid: 'sha256:a6bfc4b6c00d89f521ccee9e99e1dbbd7385675fd55478f1536f36f860b1ef0a',
   });
+  const gateSchema = read('spec/contracts/actql-stage-contracts.json').schemas.gate_requirement;
+  for (const item of read('portability/corpus/incoming-gates.json').cases) {
+    assert.deepEqual([...Object.keys(item.preimage), 'self_cid'].sort(), [...gateSchema.required].sort());
+    assert.equal(item.preimage.version, gateSchema.properties.version.const);
+    assert.equal(item.preimage.empty_items, gateSchema.properties.empty_items.const);
+    assert.ok(gateSchema.properties.milestone.enum.includes(item.preimage.milestone));
+    assert.ok(item.preimage.producer_node_id.length >= gateSchema.properties.producer_node_id.minLength);
+    for (const key of ['completion_contracts', 'completion_nodes', 'effect_contracts', 'effect_nodes']) {
+      assert.deepEqual(item.preimage[key], {}); // This corpus covers empty-Effect gates only.
+    }
+    result.push({id: 'incoming gate ' + item.id, value: item.preimage, cid: item.expected_cid});
+  }
   return result;
 }
 

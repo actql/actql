@@ -150,6 +150,10 @@ pub fn core_contract_usage(CoreContractInventory) -> (Int, Int)
 
 pub fn dedupe_top_tie_law(DedupeTopTieCheck) -> String
 
+pub fn emit_incoming_gate(PreparedIncomingGate, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
+
+pub fn emit_incoming_gate_preimage(PreparedIncomingGate, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
+
 pub fn environment_inputs(EnvironmentContext) -> InputContexts
 
 pub fn environment_snapshots(EnvironmentContext) -> @stage_local_inputs.ProgramEnvironmentInputs
@@ -203,6 +207,14 @@ pub fn incoming_execution_missing(IncomingExecutionCheck) -> IncomingExecutionOu
 pub fn incoming_execution_phase(IncomingExecutionCheck) -> IncomingExecutionPhase
 
 pub fn incoming_execution_unknown(IncomingExecutionCheck) -> IncomingExecutionOutcome
+
+pub fn incoming_gate_check(PreparedIncomingGate) -> IncomingExecutionCheck
+
+pub fn incoming_gate_cid(PreparedIncomingGate) -> String
+
+pub fn incoming_gate_owner(PreparedIncomingGate) -> ProgramIncomingLinks
+
+pub fn incoming_gate_usage(PreparedIncomingGate) -> (Int, Int, Int)
 
 pub fn incoming_links_local_input_at(ProgramIncomingLinks, Int) -> LocalInputRequirement?
 
@@ -417,6 +429,8 @@ pub fn preparation_sources(ProgramPreparation) -> SourceProducerContext
 pub fn preparation_usage(ProgramPreparation) -> PreparationBudget
 
 pub fn prepare_expression_validation(SelectedPolicyContext, ExpressionValidationLimits) -> Result[ExpressionValidationContext, ExpressionValidationIssue]
+
+pub fn prepare_incoming_gate(ProgramIncomingLinks, Int, IncomingGateLimits) -> Result[PreparedIncomingGate, IncomingGateIssue]
 
 pub fn prepare_program_references(OperationProfileChecks, @stage_source.Limits, @pipeline_parameters.Limits, @program_references.Limits, max_work~ : Int) -> Result[ProgramReferences, PreparedReferencesIssue]
 
@@ -840,6 +854,22 @@ pub enum IncomingExecutionState {
   ReceiptUnresolved(IncomingSite)
   SuccessContractsUnresolved(IncomingSite)
 }
+
+pub enum IncomingGateIssue {
+  InvalidLimits
+  BudgetExceeded
+  MissingSite
+  NotSuccessGate
+  UnresolvedContracts
+  Hash(@encode_core.EncodeFailure)
+}
+
+pub(all) struct IncomingGateLimits {
+  max_work : Int
+  max_bytes : Int
+  max_nodes : Int
+  max_depth : Int
+} derive(Eq, @debug.Debug)
 
 pub(all) enum IncomingIssue {
   InvalidLimits
@@ -1268,6 +1298,8 @@ pub(all) enum PreparationIssue {
   ForeignExpressionProfiles
   BudgetExceeded
 } derive(Eq, @debug.Debug)
+
+type PreparedIncomingGate
 
 pub enum PreparedReferencesIssue {
   InvalidLimits

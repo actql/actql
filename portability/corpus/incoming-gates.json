@@ -1,0 +1,33 @@
+{
+  "version": "actql-incoming-gate-corpus/0.1",
+  "cases": [
+    {
+      "id": "empty-effects-accepted",
+      "preimage": {
+        "completion_contracts": {},
+        "completion_nodes": {},
+        "effect_contracts": {},
+        "effect_nodes": {},
+        "empty_items": "require-successful-computation-and-preflight",
+        "milestone": "accepted",
+        "producer_node_id": "first",
+        "version": "actql-graph-success-requirement/0.1"
+      },
+      "expected_cid": "sha256:3038b33d39a9cedfbaf3b4f85d42beb1b4c52a6214cfdcf0bad82dedad6b62cd"
+    },
+    {
+      "id": "empty-effects-completed",
+      "preimage": {
+        "completion_contracts": {},
+        "completion_nodes": {},
+        "effect_contracts": {},
+        "effect_nodes": {},
+        "empty_items": "require-successful-computation-and-preflight",
+        "milestone": "completed",
+        "producer_node_id": "first",
+        "version": "actql-graph-success-requirement/0.1"
+      },
+      "expected_cid": "sha256:85a0b8224d380e8e7072f4ab9bfdf3634ce9e39f5e9823d186f93e690d638891"
+    }
+  ]
+}
