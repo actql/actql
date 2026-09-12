@@ -97,6 +97,16 @@ Metadata serialization is bounded independently of the measured data and does
 not materialize the payload. The returned limit is not a complete values resource
 closure, an enforcement receipt or an executable-plan authorization.
 
+Program construction can use `resolve_values_wire_limit` to derive the proof,
+witness and selected limit from the owned cell resolutions instead of requiring
+a caller to manufacture those intermediate claims. The payload is measured
+once under its traversal budget; proof and limit metadata use separate bounded
+encodings and the normal integrity admission. The resulting bound retains the
+exact resource occurrence and bindings. Metadata budgets apply per encoding and
+admission; the enclosing Program constructor must also account for aggregate
+preparation work. This path has the same byte-scope contract as externally
+supplied proofs and does not discharge row or recursive-value requirements.
+
 ## Registry and backend capability
 
 `actql-aoa.json` selects the shared registry through `pipeline_registry_file`

@@ -623,6 +623,8 @@ pub fn regex_pattern_usage(RegexPatternChecks) -> RegexPatternUsage
 
 pub fn resolve_program_operations(ProgramSourceIdentity, OperationResolutionLimits, text_rank? : @check_environment.SelectedTextRankProfile?, calendar? : @check_environment.SelectedCalendarProfile?) -> Result[ProgramOperationResolutionIndex, ProgramOperationResolutionIssue]
 
+pub fn resolve_values_wire_limit(ProgramOperationCells, Int, @capacity_witness.Limits, @capacity_witness.LimitLimits) -> Result[ValuesWireLimit, ValuesWireResolutionIssue]
+
 pub fn result_import_type_cid(ResultImportType) -> String
 
 pub fn result_import_type_contract(ResultImportType) -> @value_contract.Contract
@@ -2034,6 +2036,13 @@ pub(all) enum ValuesWireLimitIssue {
   Encoding(@encode_core.EncodeFailure)
   Arithmetic(@capacity_witness.ClosureIssue)
   Admission(@capacity_witness.Issue)
+} derive(@debug.Debug)
+
+pub(all) enum ValuesWireResolutionIssue {
+  Measurement(ValuesMeasurementIssue)
+  Encoding(@encode_core.EncodeFailure)
+  Proof(@capacity_witness.Issue)
+  Limit(ValuesWireLimitIssue)
 } derive(@debug.Debug)
 
 type WiredStages
