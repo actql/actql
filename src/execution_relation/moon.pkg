@@ -13,11 +13,11 @@ import {
   "actql/actql/relation_evidence" @evidence,
   "actql/actql/canonical_json" @identity,
   "actql/actql/encode_core" @encode,
+  "moonbitlang/core/json",
 }
 
 import {
   "actql/actql/source_value" @source,
   "actql/actql/parameter_binding" @parameter,
   "actql/actql/carrier_contract" @carrier,
-  "moonbitlang/core/json",
 } for "wbtest"
