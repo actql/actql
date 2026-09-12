@@ -29,6 +29,10 @@ fn assert_stage_semantics(
   )
   assert_true(physical_equal(stage_semantics_usage(value), usage))
   assert_eq(stage_semantics_index(value), index)
+  assert_eq(
+    stage_semantics_expression_contract(value),
+    "sha256:399d4593f8212a2239a0a3e3ca552653ad711010a180207f967cf546012fc1cb",
+  )
   for invalid in [-1, 2, 2147483647] {
     assert_true(stage_semantics_at(usage, invalid) is None)
   }

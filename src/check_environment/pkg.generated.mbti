@@ -162,6 +162,8 @@ pub fn inherited_text_time_dependency_at(InheritedTextTimeContract, Int) -> Inhe
 
 pub fn inherited_text_time_dependency_count(InheritedTextTimeContract) -> Int
 
+pub fn inherited_text_time_for_expression(String) -> InheritedTextTimeContract?
+
 pub fn lookup_capacity_completeness(LookupCapacity) -> LookupCompleteness
 
 pub fn lookup_capacity_pages_per_request(LookupCapacity) -> Int64

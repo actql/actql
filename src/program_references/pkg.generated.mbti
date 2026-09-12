@@ -101,6 +101,8 @@ pub fn stage_semantics_at(DeclarationUsage, Int) -> StageSemantics?
 
 pub fn stage_semantics_cid(StageSemantics, Int, Int, Int) -> String raise @encode_core.EncodeFailure
 
+pub fn stage_semantics_expression_contract(StageSemantics) -> String
+
 pub fn stage_semantics_index(StageSemantics) -> Int
 
 pub fn stage_semantics_usage(StageSemantics) -> DeclarationUsage

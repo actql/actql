@@ -36,6 +36,13 @@ pub fn stage_semantics_index(v : StageSemantics) -> Int {
 }
 
 ///|
+/// Governing expression contract of this semantic envelope, even when its local
+/// body contains no general expression. This is not a liveness-based selection.
+pub fn stage_semantics_expression_contract(_v : StageSemantics) -> String {
+  stage_expression_contract_cid
+}
+
+///|
 pub fn emit_stage_semantics(
   v : StageSemantics,
   writer : @encode.Writer,
@@ -46,7 +53,7 @@ pub fn emit_stage_semantics(
   @encode.key(writer, "bindings")
   emit_used_bindings(v.references, writer)
   @encode.key(writer, "expression_contract_cid")
-  @encode.string_value(writer, stage_expression_contract_cid)
+  @encode.string_value(writer, stage_semantics_expression_contract(v))
   @encode.key(writer, "local_body")
   @body.emit(v.body, writer)
   @encode.key(writer, "parameter_references")

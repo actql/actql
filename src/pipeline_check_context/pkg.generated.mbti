@@ -557,6 +557,10 @@ pub fn stage_identity_definition(StageSourceIdentity) -> @program_references.Sta
 
 pub fn stage_identity_definition_cid(StageSourceIdentity) -> String
 
+pub fn stage_identity_expression_contract_cid(StageSourceIdentity) -> String
+
+pub fn stage_identity_inherited_text_time(StageSourceIdentity) -> @check_environment.InheritedTextTimeContract?
+
 pub fn stage_identity_local_body_cid(StageSourceIdentity) -> String
 
 pub fn stage_identity_parameter_declarations_cid(StageSourceIdentity) -> String

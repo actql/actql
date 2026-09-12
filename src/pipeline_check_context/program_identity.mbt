@@ -282,3 +282,26 @@ pub fn stage_identity_parameter_declarations_cid(
 pub fn stage_identity_local_body_cid(v : StageSourceIdentity) -> String {
   @program_refs.stage_definition_semantics_cid(v.definition)
 }
+
+///|
+/// Read the exact governing root emitted in this stage's semantic preimage.
+/// No second declaration, replacement CID or independent checker result is used.
+pub fn stage_identity_expression_contract_cid(
+  v : StageSourceIdentity,
+) -> String {
+  @program_refs.stage_semantics_expression_contract(
+    @program_refs.stage_definition_semantics(v.definition),
+  )
+}
+
+///|
+/// Resolve only the inherited text/time edge of the owned expression root.
+/// None denotes unsupported contract interpretation, never an empty closure.
+/// Other expression dependencies and whole-Unit selection remain separate.
+pub fn stage_identity_inherited_text_time(
+  v : StageSourceIdentity,
+) -> @environment.InheritedTextTimeContract? {
+  @environment.inherited_text_time_for_expression(
+    stage_identity_expression_contract_cid(v),
+  )
+}

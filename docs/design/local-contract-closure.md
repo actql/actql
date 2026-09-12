@@ -70,6 +70,16 @@ the root from an owned expression requirement and charging traversal work remain
 the responsibility of Program closure construction. It does not interpret the
 current expression contract's other dependencies or discharge any execution check.
 
+For a prepared Program, `stage_identity_expression_contract_cid` reads this root
+from the same owned Stage semantics used by identity emission. It is present for
+every Stage, including an empty local computation; expression liveness does not
+remove the governing interpretation contract. `stage_identity_inherited_text_time`
+resolves the inherited edge from that root without accepting a replacement CID.
+An unsupported root remains unresolved. Equal globally pinned contracts do not
+merge Stage/Program owners or establish that their other requirements agree.
+These indexed reads do not emit a new preimage or change the retained work/hash
+usage. A closure traversal must still account for its own visits and allocations.
+
 ## Three different identities
 
 A contract-closure CID identifies a set of interpreted contracts. A Unit
