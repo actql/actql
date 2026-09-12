@@ -25,6 +25,7 @@ import {
 formatter(
   ignore: [
     "inherited_text_time.generated.mbt",
+    "catalog_grammar.generated.mbt",
     "text_profile.generated_test.mbt",
     "vectors.generated_test.mbt",
     "catalog_roles.generated.mbt",

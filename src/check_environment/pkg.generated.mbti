@@ -68,6 +68,14 @@ pub fn catalog_body_dependency_count(CatalogBodyDependencies) -> Int
 
 pub fn catalog_command_at(Catalog, Int) -> Member?
 
+pub fn catalog_dependency_grammar(CatalogBodyDependency) -> CatalogGrammar?
+
+pub fn catalog_grammar_cid(CatalogGrammar) -> String
+
+pub fn catalog_grammar_dependency_at(CatalogGrammar, Int) -> CatalogGrammarDependency?
+
+pub fn catalog_grammar_dependency_count(CatalogGrammar) -> Int
+
 pub fn catalog_identity(Catalog) -> (String, String, String)
 
 pub fn catalog_member(Catalog) -> Member
@@ -458,6 +466,21 @@ pub(all) enum CatalogBodyDependencyRole {
 } derive(Eq, @debug.Debug)
 
 type CatalogContents
+
+pub(all) enum CatalogGrammar {
+  EnvironmentBody
+  ValueGrammarBody
+  GraphLawBody
+  RelationLawBody
+  ExpressionGrammar(ExpressionContractBody)
+  TextPolicyGrammarBody
+  CapacityGrammarBody
+} derive(Eq, @debug.Debug)
+
+pub struct CatalogGrammarDependency {
+  pointer : String
+  target : CatalogGrammar
+}
 
 pub(all) enum CatalogIssue {
   InvalidLimits

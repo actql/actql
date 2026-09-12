@@ -74,6 +74,11 @@ test "Catalog dependency dispatch retains admitted owners and rejects uninterpre
         }
         Ok(dependencies) => {
           accepted += 1
+          for j in 0..<catalog_body_dependency_count(dependencies) {
+            let dependency = catalog_body_dependency_at(dependencies, j).unwrap()
+            let grammar = catalog_dependency_grammar(dependency).unwrap()
+            assert_eq(catalog_grammar_cid(grammar), dependency.cid)
+          }
           assert_true(
             physical_equal(catalog_body_contract(dependencies), envelope),
           )

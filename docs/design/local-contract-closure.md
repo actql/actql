@@ -240,6 +240,17 @@ In particular, this rule does not permit cyclic execution prerequisites. Local
 recursive schema references are interpreted by their schema contract and do not
 automatically create additional external contract nodes.
 
+Catalog interpretation dependencies use declared JSON Pointer positions, not a
+scan for CID-looking strings. The Check Environment interpretation body refers
+to the value grammar, Graph laws, pushdown laws and expression grammar, and the
+text-time and capacity policy grammars. These are contracts describing policy
+values, not selected Host policy values or the enclosing Catalog's identity.
+Graph identity and value roles remain separate edges even when they share a
+body. A value-contract body's governing grammar is the canonical value grammar;
+other admitted Catalog shapes can instead use the Check Environment grammar.
+Resolution checks both the declared role and its exact pin. Unknown or
+mismatched dependencies are unresolved, never silently treated as leaves.
+
 ## Canonical set representation
 
 The selected closure is represented by:
