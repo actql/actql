@@ -73,6 +73,10 @@ pub fn native_demand_matches(NativeDemandMeasurement, NativeReceiving) -> Bool
 
 pub fn native_demand_usage(NativeDemandMeasurement) -> NativeDemandUsage
 
+pub fn native_output_rows(NativeOutputRows) -> @execution_relation.AdmittedOutputRows?
+
+pub fn native_output_rows_match(NativeOutputRows, NativeReceiving) -> Bool
+
 pub fn native_query_owner(NativeQuery) -> @lowering_relation.BoundPrepared
 
 pub fn native_query_parameter(NativeQuery) -> PhysicalParameter
@@ -139,6 +143,8 @@ pub fn prepare_scan_validation_receiver(NativeScan, Array[(String, PhysicalType)
 
 pub fn prepare_value_mapping(PhysicalType, @value_contract.Contract) -> Result[ValueMapping, ValueIssue]
 
+pub fn retain_native_output_rows(NativeReceiving, Int, @execution_relation.ValueLimits) -> Result[NativeOutputRows, NativeOutputRetentionIssue]
+
 // Errors
 
 // Types and methods
@@ -181,6 +187,13 @@ pub(all) struct NativeDemandUsage {
   physical_bytes : Int
   physical_nodes : Int
 }
+
+pub(all) enum NativeOutputRetentionIssue {
+  InvalidState
+  Retention(@execution_relation.CaptureIssue)
+} derive(Eq, @debug.Debug)
+
+type NativeOutputRows
 
 type NativeQuery
 

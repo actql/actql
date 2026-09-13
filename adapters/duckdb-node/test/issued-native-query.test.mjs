@@ -148,10 +148,16 @@ test('real native SQL and public CheckedProgram produce independently checked tw
         JSON.parse(moon.issuedNativeIds(inspect.fixture)), scan, selected);
       assert.equal(moon.issuedNativeDocument(inspect.fixture), canonical(expected));
       assert.equal(moon.issuedNativeVerify(inspect.fixture), true);
+      if (name !== 'empty') {
+        assert.equal(moon.issuedNativeMaterialize(inspect.fixture, 1), 'null');
+        assert.equal(moon.issuedNativeVerify(inspect.fixture), true);
+      }
+      assert.equal(moon.issuedNativeMaterialize(inspect.fixture, 100), canonical(selected));
       assert.equal(inspect.nativeQueries, 1);
       assert.equal(inspect.completions, 1);
       captured.close();
       assert.equal(moon.issuedNativeVerify(inspect.fixture), false);
+      assert.equal(moon.issuedNativeMaterialize(inspect.fixture, 100), 'null');
       const options = [{ artifactBytes: 0 }, { early: true },
         ...['validation_scan', 'native_result'].map(cancelRole => ({ cancelRole, cancel: new AbortController() }))];
       if (name !== 'empty') options.push({ outputRows: 0 });

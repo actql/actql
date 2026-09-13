@@ -93,6 +93,8 @@ pub fn issued_native_finish(IssuedNativeFixture) -> Bool
 
 pub fn issued_native_ids(IssuedNativeFixture) -> String
 
+pub fn issued_native_materialize(IssuedNativeFixture, Int) -> String
+
 pub fn issued_native_metadata(IssuedNativeFixture, Int, String, String) -> Bool
 
 pub fn issued_native_observation(IssuedNativeFixture) -> @query_planning.DuckDBNativeObservation

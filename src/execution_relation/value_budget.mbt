@@ -21,6 +21,7 @@ pub(all) enum CaptureIssue {
   MissingParameter(String)
   InvalidCheckedRow
   NotRelationInput
+  NotRelationOutput
   ScopedInputNotImplemented
   InputValue(Int, @admitted.Issue)
   ClosedCapture

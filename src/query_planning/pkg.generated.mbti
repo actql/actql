@@ -124,6 +124,8 @@ pub fn duckdb_native_observation_document(DuckDBNativeObservation) -> @encode_co
 
 pub fn duckdb_native_observation_usage(DuckDBNativeObservation) -> (Int, Int)
 
+pub fn duckdb_native_output_rows(DuckDBNativeOutput) -> Result[@execution_relation.AdmittedOutputRows, DuckDBEvidenceIssue]
+
 pub fn duckdb_native_preparation_scan(DuckDBNativePreparation) -> @duckdb_adapter.NativeScan
 
 pub fn duckdb_native_receipt_at(DuckDBNativeRecords, Int) -> (@encode_core.EncodedDocument, String)?
@@ -167,6 +169,8 @@ pub fn issue_duckdb_native_records(DuckDBNativeAttempt, Int, QueryMaterialLimits
 pub fn issue_mock_query_records(MockQueryAttempt, QueryMaterialLimits) -> Result[MockQueryRecords, MockEvidenceIssue]
 
 pub fn local_fixed_compute_candidate(CapabilityRegistration, FixedComputeRequest, @execution_relation.GeneratedSequence, Array[@physical_cost.SerialEstimateLine], QueryQuantities, Int) -> Result[PreparedCompute[@execution_relation.GeneratedSequence], FixedComputeIssue]
+
+pub fn materialize_duckdb_native_output(DuckDBNativeIssuer, DuckDBNativeAttempt, DuckDBNativeObservation, Int, @execution_relation.ValueLimits) -> Result[DuckDBNativeOutput, DuckDBEvidenceIssue]
 
 pub fn measure_duckdb_native_attempt(DuckDBNativeAttempt, @execution_relation.FixedInputGuardMeasureLimits, @execution_relation.RowWireLimits, Int, Int) -> Result[DuckDBNativeMeasurement, DuckDBNativeAttemptIssue]
 
@@ -385,6 +389,7 @@ pub(all) enum DuckDBEvidenceIssue {
   ForeignObservation
   Consumer(@execution_relation.ProducerBindingIssue)
   NativeAttempt(DuckDBNativeAttemptIssue)
+  NativeOutput(@duckdb_adapter.NativeOutputRetentionIssue)
 }
 
 type DuckDBNativeAttempt
@@ -422,6 +427,8 @@ type DuckDBNativeIssuer
 type DuckDBNativeMeasurement
 
 type DuckDBNativeObservation
+
+type DuckDBNativeOutput
 
 type DuckDBNativePreparation
 

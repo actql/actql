@@ -260,6 +260,15 @@ failures; the fixed fixture only supplies its test configuration. The separate
 low-level operations remain useful for boundary conformance. Neither path accepts
 a caller-supplied success boolean as a replacement for the issuer's live verifier.
 
+For bounded row materialization after successful native capture, use
+`materialize_duckdb_native_output` and `duckdb_native_output_rows`. They retain and
+recheck the exact live observation, share immutable admitted values, and charge
+new row containers under explicit conversion limits. Conversion failure leaves
+the source observation available for retry with fresh limits; it does not rerun
+SQL. The resulting `AdmittedOutputRows` is provisional engine material, **not**
+`CompletedOutput` or a producer binding. This operation does not close the pending
+native completion/consumer connection described above.
+
 `authorizeLocalDatabase` is called by explicit trusted Host setup, not by a
 Program resource decoder. The opaque grant authorizes a path to a trusted local
 file. It is not a snapshot identity or a malicious-file sandbox.

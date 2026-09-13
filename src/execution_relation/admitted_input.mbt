@@ -4,11 +4,17 @@
 struct AdmittedInput {
   owner : @lower.BoundPrepared
   input_index : Int
+  buffer : AdmittedRowBuffer
+}
+
+///|
+priv struct AdmittedRowBuffer {
   schema : @schema.Schema
   max_rows : Int
   budget : ValueBudget
   rows : Array[Array[@admitted.Value]]
   mut open : Bool
+  mut reading : Bool
 }
 
 ///|
@@ -34,12 +40,21 @@ pub fn prepare_admitted_input(
   if @schema.as_object(schema) is None {
     return Err(ScopedInputNotImplemented)
   }
-  Ok({ owner, input_index, schema, max_rows, budget, rows: [], open: true, })
+  Ok({
+    owner,
+    input_index,
+    buffer: { schema, max_rows, budget, rows: [], open: true, reading: false, },
+  })
 }
 
 ///|
 /// Cancel only an open import; never clear storage already handed to a capture.
 pub fn cancel_admitted_input(input : AdmittedInput) -> Bool {
+  cancel_admitted_buffer(input.buffer)
+}
+
+///|
+fn cancel_admitted_buffer(input : AdmittedRowBuffer) -> Bool {
   if !input.open {
     return false
   }
@@ -53,23 +68,45 @@ pub fn append_admitted_input(
   input : AdmittedInput,
   supplied : Array[@admitted.CheckedValue],
 ) -> Result[Unit, CaptureIssue] {
-  if !input.open {
+  append_admitted_buffer(input.buffer, supplied)
+}
+
+///|
+fn append_admitted_buffer(
+  input : AdmittedRowBuffer,
+  supplied : Array[@admitted.CheckedValue],
+) -> Result[Unit, CaptureIssue] {
+  append_admitted_buffer_cells(input, supplied.length(), column => {
+    supplied.get(column)
+  })
+}
+
+///|
+fn append_admitted_buffer_cells(
+  input : AdmittedRowBuffer,
+  width : Int,
+  read : (Int) -> @admitted.CheckedValue?,
+) -> Result[Unit, CaptureIssue] {
+  if !input.open || input.reading {
     return Err(ClosedCapture)
   }
-  let result = append_admitted_row(input, supplied)
+  input.reading = true
+  let result = append_admitted_row(input, width, read)
+  input.reading = false
   if result is Err(_) {
-    cancel_admitted_input(input) |> ignore
+    cancel_admitted_buffer(input) |> ignore
   }
   result
 }
 
 ///|
 fn append_admitted_row(
-  input : AdmittedInput,
-  supplied : Array[@admitted.CheckedValue],
+  input : AdmittedRowBuffer,
+  supplied_width : Int,
+  read : (Int) -> @admitted.CheckedValue?,
 ) -> Result[Unit, CaptureIssue] {
   let width = @schema.field_count(input.schema)
-  if supplied.length() != width {
+  if supplied_width != width {
     return Err(InvalidCheckedRow)
   }
   let budget = input.budget
@@ -81,7 +118,10 @@ fn append_admitted_row(
   let row = []
   for column in 0..<width {
     let field = @schema.field_at(input.schema, column).unwrap()
-    let checked = supplied[column]
+    guard read(column) is Some(checked) else { return Err(InvalidCheckedRow) }
+    if !input.open {
+      return Err(ClosedCapture)
+    }
     // No re-admission or equality/CID-based substitution. The producer must
     // use the exact schema contracts of this preparation when admitting cells.
     if !physical_equal(field.contract, checked.contract) {
@@ -103,19 +143,20 @@ fn append_admitted_row(
 pub fn finish_admitted_input(
   input : AdmittedInput,
 ) -> Result[CapturedRows, CaptureIssue] {
-  if !input.open {
+  let buffer = input.buffer
+  if !buffer.open || buffer.reading {
     return Err(ClosedCapture)
   }
-  input.open = false
+  buffer.open = false
   Ok({
     owner: input.owner,
     origin: SuppliedInput(input.input_index),
-    schema: input.schema,
-    rows: input.rows,
+    schema: buffer.schema,
+    rows: buffer.rows,
     usage: {
-      nodes: input.budget.nodes,
-      text_bytes: input.budget.text,
-      work: input.budget.work,
+      nodes: buffer.budget.nodes,
+      text_bytes: buffer.budget.text,
+      work: buffer.budget.work,
     },
   })
 }

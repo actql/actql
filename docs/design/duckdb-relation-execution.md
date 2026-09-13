@@ -464,6 +464,23 @@ ordinary producer/consumer boundary requires a separate validated completion pat
 the observation document or CID alone cannot supply it. Portable issuer tests do
 not replace real Node bridge conformance.
 
+`materialize_duckdb_native_output` obtains data only from the exact receiver
+retained by a verified live observation. It does not accept replacement rows,
+content identities or a caller-supplied success verifier. The returned handle
+retains the issuer, attempt and observation; reading its material rechecks those
+relationships and rejects revoked provenance.
+
+For a row consumer, this explicit conversion creates bounded row containers while
+sharing already-admitted immutable values. It neither decodes values nor evaluates
+the predicate again. `AdmittedOutputRows` records the exact checked target and
+uses the same value accounting as fixed-input retention, including capacity
+checks before cell reads. It is deliberately neither `CapturedRows` nor
+`CompletedOutput`: importing valid values does not establish execution success.
+A failed conversion releases its provisional containers but preserves the
+successful source observation. Retrying uses fresh conversion allowances and
+never reopens the source. This conversion allowance does not discount receipt,
+capture or subsequent consumer charges.
+
 The [acquisition resource-scope contract](../../spec/contracts/actql-query-resource-scopes.json)
 separates common acquisition guards from selected fragment bounds. This native
 scan/filter/select implementation does not select the Local residual fragment

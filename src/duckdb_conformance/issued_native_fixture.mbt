@@ -267,6 +267,57 @@ pub fn issued_native_verify(value : IssuedNativeFixture) -> Bool {
 }
 
 ///|
+// Diagnostic row material only. This does not fabricate engine completion.
+#export_name("issuedNativeMaterialize")
+pub fn issued_native_materialize(
+  value : IssuedNativeFixture,
+  max_rows : Int,
+) -> String {
+  guard value.observation is Some(observation) else { return "null" }
+  guard @planning.materialize_duckdb_native_output(
+      value.issuer,
+      value.attempt,
+      observation,
+      max_rows,
+      {
+        max_nodes: 10000,
+        max_text_bytes: 100000,
+        max_depth: 100,
+        max_work: 1000000,
+      },
+    )
+    is Ok(output) else {
+    return "null"
+  }
+  guard @planning.duckdb_native_output_rows(output) is Ok(rows) else {
+    return "null"
+  }
+  try {
+    let writer = @encode.writer(1000000, 10000, 100)
+    let schema = @execution.admitted_output_schema(rows)
+    @encode.begin_array(writer)
+    for row in 0..<@execution.admitted_output_row_count(rows) {
+      @encode.begin_object(writer)
+      for column in 0..<@schema.field_count(schema) {
+        @encode.key(
+          writer,
+          @schema.reference_name(@schema.field_at(schema, column).unwrap().name),
+        )
+        @admitted.emit_wire_value(
+          @execution.admitted_output_cell(rows, row, column).unwrap(),
+          writer,
+        )
+      }
+      @encode.end_object(writer)
+    }
+    @encode.end_array(writer)
+    @encode.finish(writer)
+  } catch {
+    _ => "null"
+  }
+}
+
+///|
 #export_name("issuedNativeAbort")
 pub fn issued_native_abort(value : IssuedNativeFixture) -> Unit {
   @planning.abort_duckdb_native_attempt(value.attempt)
