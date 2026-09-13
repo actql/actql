@@ -67,5 +67,12 @@ jobs:
           toolchain="$GITHUB_WORKSPACE/.toolchains/moonbit-$(node -p "require('./toolchain.json').version")"
           echo "MOON_HOME=$toolchain" >> "$GITHUB_ENV"
           echo "$toolchain/bin" >> "$GITHUB_PATH"
+      - name: Record Linux verification revision and environment
+        run: |
+          git rev-parse HEAD
+          uname -a
+          node --version
+          moon version --all
+          npm ls --prefix adapters/duckdb-node @duckdb/node-api
       - name: Check real DuckDB transport and owned resources
         run: npm test --prefix adapters/duckdb-node

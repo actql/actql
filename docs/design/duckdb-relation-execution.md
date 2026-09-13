@@ -64,6 +64,15 @@ Native DuckDB is not included as an eligible mixed candidate merely because
 its preliminary compiler/root checks passed. General capability registration
 and fixed-input Compute selection are separate integration requirements.
 
+`AcquisitionBinding` is a transitional binding for the two connected
+implementations, not the permanent extension mechanism. Common registration
+must own binding identity, applicability, logical obligations, work inventory and
+estimates while keeping provider payloads in the registered implementation.
+Adding a provider must not require new semantic branches in the common planner.
+Typed work enums may remain provider-local. Start obligation coverage with the
+existing source-validation/filter/select occurrences; completion coverage and
+auxiliary physical work are not substitutes for these logical duties.
+
 The Host-private `DuckDBBroadAttempt` sequences metadata admission, receipt
 admission/retention, transport settlement and guarded Local residual execution.
 Sealing the receipt does not enable the residual: the trusted Node coordinator
@@ -217,6 +226,40 @@ internal engine work, or represented only by the selected output. This path uses
 the separate [two-receipt profile](../spec/execution.md#query-two-receipt), not an
 extension of the single-receipt observation shape. A single broad receipt reused
 for validation and residual continues to fit the original profile.
+
+This two-receipt implementation does not reduce Host row transfer: it receives
+the full validation scan plus the native result. Candidate estimates and actual
+accounting must include both receipts, validation/conversion work, retained
+material and cleanup; projected result size alone is not the cost. Whether total
+elapsed time is better or worse also depends on computation and is not established
+by this transfer fact. The baseline is a conformance path, not a speedup claim.
+
+Provider-internal full validation is already permitted by the query-acquisition
+and Host-adapter contracts when supported by verifiable execution evidence.
+Avoiding the exported validation scan is therefore first an implementation/evidence
+question, not automatically a new SourceView type-guarantee semantic feature.
+Any internal implementation must close the following correspondence before use:
+
+| Obligation | Potential DB evidence | Additional ActQL check/evidence |
+| --- | --- | --- |
+| Declared fields and nullability | Real-table catalog, stored types, applicable constraints | Exact SourceView mapping and every nullable/nonnullable contract; no coercion hiding invalid input |
+| Exact scalar values | Storage type and relevant enforced constraints | Integer-to-binary64 exactness, DECIMAL precision/scale, finite numeric/temporal values, timestamp precision and timezone rules, text admission |
+| Value-byte guards | Not established by schema or `NOT NULL` | Pinned canonical typed-value encoding and demanded-root byte rules, including escaping and nonselected scan columns |
+| Full extent before predicate | Validation over the bound source extent | Validation plan cannot skip filter-excluded rows or unused known columns; failure demand remains preserved |
+| Same read view and completion | Same owned read transaction | Live provenance for exact requirement/task/attempt/session, validation completion, result and retention; SQL success or a boolean alone is insufficient |
+
+The single-receipt trusted-issuer route can represent internally validated native
+output; the two-receipt route describes actual row receipts and must not be reused
+for summary-only validation results. A concrete internal validator must first
+demonstrate equivalence to the baseline using independent invalid-value, precision,
+byte-boundary and ownership fixtures. Only an identified evidence-contract gap is
+sent to main; the baseline implementation remains the immediate priority.
+
+`coverage.complete: true` stays the closed completed-observation constant. It is
+emitted only after the required source-validation/filter/select records and live
+ownership checks succeed. Candidate obligation coverage is a different concept.
+The logical duty is source validation; an extra scan/transfer is physical work
+used to discharge it, not a reason to discard or relabel its receipt provenance.
 
 The validation receipt contains all known scan fields and rows; MoonBit admission
 must finish before the native query runs. The native receipt contains the complete

@@ -5,12 +5,46 @@ internal building block, not a Program SQL API or a standalone ActQL Host.
 The [execution boundary](../../docs/design/duckdb-relation-execution.md) separates
 MoonBit semantic matching and validation from Node native resource management.
 
+Native predicates currently support the restricted numeric/boolean comparison
+subset, not string predicates. A supported string expression may instead use
+the separately selected broad acquisition plus Local residual; unsupported native
+execution is not silently retried after failure.
+
+File compatibility is evaluated by opening the authorized file read-only with
+the pinned Neo build. The current connection fixtures create and reopen files
+with that build; they do not establish a cross-release storage compatibility
+matrix. DuckDB's [storage documentation](https://duckdb.org/docs/current/internals/storage)
+distinguishes engine releases from selected storage versions and enabled features.
+An incompatible file must fail explicitly; this adapter never automatically
+converts, upgrades or rewrites the source database.
+
+Ordering is limited to the supported single real-table scan with `SELECT` and
+`WHERE` in one consistent read view. `preserve_insertion_order=true` alone is
+not a universal deterministic-order guarantee. The applicable
+[DuckDB order-preservation rules](https://duckdb.org/docs/current/sql/dialect/order_preservation)
+do not extend that claim to joins or grouping. Relative row order and duplicates
+must survive chunking; no ActQL total-order witness is created and
+`source_order_cid` remains null.
+
+The native two-receipt baseline transfers the entire validation scan plus the
+selected result. It is not a transfer-saving optimization, and total execution
+time superiority or inferiority has not been established. Both receipts,
+validation, conversion and retention belong in candidate costs.
+
 Install and exercise the real database transport:
 
 ```sh
 npm ci --prefix adapters/duckdb-node --ignore-scripts
 npm test --prefix adapters/duckdb-node
 ```
+
+The Linux workflow installs pinned MoonBit and Neo, records the revision and
+runtime environment, then executes these tests. A workflow definition is not a
+successful run. Report GitHub Actions runs and local Linux-container runs
+separately, with revision/environment and observed outcomes. The first integrated
+real-backend increment requires an actual Linux verification run; no push is
+required if a local Linux environment is used. An uninspected Actions history
+does not establish that the workflow has never run.
 
 The repository's pinned MoonBit must be installed with `moon` on PATH and
 `MOON_HOME` set for the generated-SQL conformance test. That test runs the

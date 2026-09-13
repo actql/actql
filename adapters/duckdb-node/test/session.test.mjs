@@ -22,6 +22,41 @@ async function rows(session, sql, parameters = []) {
 }
 const hasCode = code => error => error.code === code;
 
+test('single-table filtering and projection preserve duplicate relative order across chunks', async () => {
+  const root = fileURLToPath(new URL('../../../_build/duckdb-fixtures/', import.meta.url));
+  await mkdir(root, { recursive: true });
+  const dir = await mkdtemp(join(root, 'order-'));
+  const path = join(dir, 'input.duckdb');
+  const pattern = [[3, 0], [1, null], [2, 7], [3, 0]];
+  const expected = Array.from({ length: 5000 }, (_, i) => pattern[i % 4]);
+  try {
+    const db = await DuckDBInstance.create(path);
+    const connection = await db.connect();
+    try {
+      await connection.run('CREATE TABLE records(id INTEGER, amount INTEGER)');
+      await connection.run(`INSERT INTO records VALUES ${expected.map(([id, amount]) => `(${id},${amount ?? 'NULL'})`).join(',')}`);
+    } finally { connection.closeSync(); db.closeSync(); }
+    const result = await withSourceDatabase(await authorizeLocalDatabase(path), limits, async session => {
+      let scanChunks = 0;
+      let nativeChunks = 0;
+      const scan = [];
+      const selected = [];
+      await session.command('SELECT id, amount FROM records', [], chunk => {
+        scanChunks++;
+        for (let r = 0; r < chunk.rowCount; r++) scan.push(chunk.columns.map(column => column[r]));
+      });
+      await session.command('SELECT id FROM records WHERE CAST(id AS DOUBLE) > 1', [], chunk => {
+        nativeChunks++; selected.push(...chunk.columns[0]);
+      });
+      assert(scanChunks > 1); assert(nativeChunks > 1);
+      return { scan, selected };
+    });
+    assert.deepEqual(result.value.scan, expected.map(row => row.map(value => value === null ? null : String(value))));
+    assert.deepEqual(result.value.selected, expected.filter(([id]) => id > 1).map(([id]) => String(id)));
+    assert.equal(result.usage.rows, 8750); // Both actual receipts, not just selected rows.
+  } finally { await rm(dir, { recursive: true, force: true }); }
+});
+
 test('exact physical scalar transport and prepared import preserve payloads', async () => {
   const output = await withComputeDatabase(limits, async session => {
     const chunks = [];
