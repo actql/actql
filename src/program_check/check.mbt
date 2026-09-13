@@ -47,6 +47,8 @@ fn check_supported_source(
               | "drop"
               | "sort"
               | "take"
+              | "distinct"
+              | "dedupe_rows"
               | "values" => ()
               _ => raise UnitBuildFailure::UnsupportedStaticPath(step)
             }

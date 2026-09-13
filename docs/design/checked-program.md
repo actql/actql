@@ -38,11 +38,15 @@ separate protocol results, not successful CheckedPrograms with weaker guarantees
 
 The entry has an explicit implementation-domain check, separate from the
 language grammar. Its Local and Result-import domain accepts `values`, `derive`,
-`filter`, `select`, `rename`, `drop`, `sort` and `take`, including empty operation
+`filter`, `select`, `rename`, `drop`, `sort`, `take`, `distinct` and `dedupe_rows`, including empty operation
 sequences. Sort/take use the existing owned order-resolution closure and preserve
 their distinct strategies and preconditions; accepting them does not synthesize
 an order from physical enumeration. Result publication can target their explicit
 `as` output, including a pipeline consuming an earlier Stage's Result.
+Representative selection retains its exact input and operation-bound top-tie
+execution check. Repeated grouping keys and the empty global key list keep their
+existing meanings; neither constitutes proof that the selected representative
+is unique in actual data.
 Other operation paths, opaque Binding declarations and nonempty Effects are
 reported as unsupported rather than made executable through missing evidence.
 Selected SourceViews additionally require acquisition closure: shared Catalog
