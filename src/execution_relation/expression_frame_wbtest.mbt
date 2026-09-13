@@ -5,18 +5,20 @@ fn resume_test_expression(
   source : String,
   logical : LogicalBudget,
   quantum : Int,
+  drain? : Bool = false,
+  max_control? : Int = 10000,
 ) -> Result[EvaluatedValue, EvalIssue] {
   let frame = expression_frame(
     lowered(source),
     Map([]),
     [],
-    { remaining: 10000, max_frames: 100, },
+    { remaining: max_control, max_frames: 100, },
     { limit: 10000, live: 0, peak: 0, },
     Some(expression_roots(logical, 100)),
   ).unwrap()
   while true {
     for _i in 0..<quantum {
-      match advance_expression_frame(frame) {
+      match advance_expression_frame(frame, drain~) {
         Ok(None) => ()
         Ok(Some(value)) => return Ok(value)
         Err(issue) => return Err(issue)
@@ -25,6 +27,87 @@ fn resume_test_expression(
   } nobreak {
     Err({ kind: ControlLimit, expression: frame.root, })
   }
+}
+
+///|
+test "drained transitions preserve stepped failures and budget boundaries" {
+  for
+    source in [
+      "\"if(TRUE, 7, 1 / 0)\"", "\"coalesce(NULL, 7, 1 / 0)\"", "\"FALSE AND (1 / 0 > 0)\"",
+      "\"CASE WHEN FALSE THEN 1 / 0 WHEN TRUE THEN 7 ELSE 1 / 0 END\"", "\"1 + (2 + 3)\"",
+    ] {
+    for n in 0..<32 {
+      for (work, control) in [(n.to_int64(), 1000), (1000L, n)] {
+        let a = test_logical_budget(work, 100L)
+        let b = test_logical_budget(work, 100L)
+        let stepped = resume_test_expression(source, a, 1, max_control=control)
+        let drained = resume_test_expression(
+          source,
+          b,
+          1,
+          drain=true,
+          max_control=control,
+        )
+        match (stepped, drained) {
+          (Ok(x), Ok(y)) => {
+            match (x.value, y.value) {
+              (Number(x), Number(y)) => assert_eq(x, y)
+              (Boolean(x), Boolean(y)) => assert_eq(x, y)
+              (Null, Null) => ()
+              _ => fail("different successful values")
+            }
+            release_logical_root(a, x.root.unwrap()).unwrap()
+            release_logical_root(b, y.root.unwrap()).unwrap()
+          }
+          (Err(x), Err(y)) => {
+            assert_eq(x.kind, y.kind)
+            assert_eq(
+              @lower.expression_location(x.expression).range,
+              @lower.expression_location(y.expression).range,
+            )
+          }
+          _ => fail("draining changed success versus failure")
+        }
+        assert_eq(
+          (a.work, a.live, a.peak, a.failed),
+          (b.work, b.live, b.peak, b.failed),
+        )
+        assert_eq(a.live, 0L)
+      }
+    }
+  }
+}
+
+///|
+test "drain after suspension detaches one result and preserves borrowed roots" {
+  let b = test_logical_budget(100L, 100L)
+  let borrowed = retain_logical_value(b, Number(9)).unwrap()
+  let frame = expression_frame(
+    lowered("\"1 + (2 + 3)\""),
+    Map([]),
+    [],
+    { remaining: 10000, max_frames: 100, },
+    { limit: 10000, live: 0, peak: 0, },
+    Some(expression_roots(b, 100)),
+  ).unwrap()
+  for _ in 0..<3 {
+    assert_true(advance_expression_frame(frame) is Ok(None))
+  }
+  let result = advance_expression_frame(frame, drain=true).unwrap().unwrap()
+  assert_true(result.value is Number(n) && n == 6)
+  assert_false(borrowed.released)
+  assert_true(frame.closed)
+  let work = b.work
+  assert_true(
+    advance_expression_frame(frame, drain=true)
+    is Err({ kind: InvalidControlLimits, .. }),
+  )
+  close_expression_frame(frame)
+  assert_eq(b.work, work)
+  release_logical_root(b, result.root.unwrap()).unwrap()
+  assert_false(borrowed.released)
+  release_logical_root(b, borrowed).unwrap()
+  assert_eq(b.live, 0L)
 }
 
 ///|

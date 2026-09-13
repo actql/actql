@@ -75,11 +75,13 @@ fn expression_event_binary(
   right : Value,
   right_root : ExpressionRootLease?,
 ) -> Result[Value, EvalIssue] {
-  for value in [left, right] {
-    match expression_event_consume(logical, value, expr) {
-      Err(issue) => return Err(issue)
-      Ok(_) => ()
-    }
+  match expression_event_consume(logical, left, expr) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  match expression_event_consume(logical, right, expr) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
   }
   if !charge_comparison_operand(control, left) ||
     !charge_comparison_operand(control, right) {
@@ -89,11 +91,13 @@ fn expression_event_binary(
     Err(issue) => return Err({ kind: Scalar(issue), expression: expr, })
     Ok(value) => value
   }
-  for root in [left_root, right_root] {
-    match expression_event_release(root, expr) {
-      Err(issue) => return Err(issue)
-      Ok(_) => ()
-    }
+  match expression_event_release(left_root, expr) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  match expression_event_release(right_root, expr) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
   }
   Ok(value)
 }

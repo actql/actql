@@ -7,6 +7,13 @@ Advancing it performs the same entry, operand, result and lifetime actions as
 the synchronous expression evaluator. The synchronous wrapper advances the
 frame until completion; it does not define a second evaluator.
 
+The ordinary synchronous path drains that same transition loop within one
+call. A suspended caller takes one transition per call. Draining does not defer
+charges until the end: each transition checks control, logical work and root
+lifetimes in the same order before advancing. Both modes share terminal result
+detachment and cleanup. Binary events consume the left then right operand and
+release left then right roots without requiring temporary iteration arrays.
+
 Suspension is not completion and is not permission to reorder logical rows,
 bindings or expression children. The enclosing Relation operation still owns
 that ordering and complete-input admission. A different evaluator must also

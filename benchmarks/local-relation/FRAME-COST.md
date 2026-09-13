@@ -32,3 +32,21 @@ cost against the pre-extraction baseline. No second tuning pass is implicit.
 Validate the whole three-target tests/checks with warnings denied, API,
 format, documents and metadata after the product change. Report and stop
 for the user's decision on remaining cost versus the retained boundary.
+
+## One selected improvement pass
+
+Attribution completed 224 invocations per comparison. Frame extraction raised
+prepared paired medians roughly 7–9% on native and 8–10% on JS. Event extraction
+had workload-dependent cost: native expression-heavy cases rose about 8–13%;
+JS was smaller in some cases. These are incremental observations, not exact
+additive causal percentages; host variation and generated-code changes remain.
+
+Edit `expression.mbt` to let the synchronous caller drain the existing transition
+loop within one call, retaining the single-step entry and the same events and
+terminal cleanup. Edit `expression_events.mbt` to consume two operands and
+release their two roots directly in the original order, without constructing
+two-element temporary arrays. This retains one semantic implementation and
+does not flatten lazy branches or reorder accounting. Add frame tests that
+compare stepped/drained execution at each small logical/control budget,
+including terminal reuse and borrowed-root lifetime. No other tuning pass
+is included in this authorization.
