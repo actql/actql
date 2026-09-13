@@ -99,10 +99,22 @@ test "formal top k retains count binding order completion and partition semantic
             guard link.resolution is @pipeline.KeyCompletion(completion) else {
               fail("top k did not retain candidate-key completion")
             }
-            assert_eq(@pipeline.sort_completion_count(completion), 1)
-            assert_true(
-              @pipeline.sort_completion_field(completion, 0)
-              is Some(Unqualified("id")),
+            let fixed = partition == Some("[\"id\",\"id\"]")
+            assert_eq(
+              @pipeline.sort_completion_count(completion),
+              if fixed {
+                0
+              } else {
+                1
+              },
+            )
+            assert_eq(
+              @pipeline.sort_completion_field(completion, 0),
+              if fixed {
+                None
+              } else {
+                Some(Unqualified("id"))
+              },
             )
             orders += 1
           }

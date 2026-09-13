@@ -87,10 +87,22 @@ test "formal lag closes navigation order binding and nullable output" {
             guard link.resolution is @pipeline.KeyCompletion(completion) else {
               fail("wrong lag order strategy")
             }
-            assert_eq(@pipeline.sort_completion_count(completion), 1)
-            assert_true(
-              @pipeline.sort_completion_field(completion, 0)
-              is Some(Unqualified("id")),
+            let fixed = partition != "[]"
+            assert_eq(
+              @pipeline.sort_completion_count(completion),
+              if fixed {
+                0
+              } else {
+                1
+              },
+            )
+            assert_eq(
+              @pipeline.sort_completion_field(completion, 0),
+              if fixed {
+                None
+              } else {
+                Some(Unqualified("id"))
+              },
             )
             order += 1
           }

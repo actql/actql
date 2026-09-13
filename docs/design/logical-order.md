@@ -217,6 +217,15 @@ ID uniqueness. No evaluator is implemented or certified by this pass.
 
 `order_sort_completion` exposes the selected witness and indexed appended fields.
 The retained origin operation supplies the unchanged authored terms. This is
+an appended-term API, not a complete global ordering list. For `top_k_by`, read
+`top_k_partition_count/at` on that same origin for the canonical ascending
+partition prefix, then `ranking_term_count/at` for authored within-partition
+terms, followed by the completion terms. Partition order and repetitions remain
+unchanged on the operation. Completion treats a partition field or its exact
+alias as a fixed key component inside that partition; it does not append it
+again. Candidate-key selection and its validation obligations are unchanged.
+Lag and analytic use the same fixed-component coverage only for positional
+selection, not for their output sequence or analytic peer definitions. This is
 information for later Plan construction and journaling, not a claim that a
 journal or executable sort has already been emitted. A sort with no selected
 key is not resolved merely because its keys type-check. Other unimplemented

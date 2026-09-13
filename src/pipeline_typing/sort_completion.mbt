@@ -79,6 +79,13 @@ fn complete_sort(
   let source = @relation.source(op)
   let lag = @relation.operation(op) == @relation.Lag
   let analytic = @relation.operation(op) == @relation.Analytic
+  let partition_count = if lag {
+    @relation.lag_partition_count(op)
+  } else if analytic {
+    @relation.analytic_partition_count(@relation.analytic(op).unwrap())
+  } else {
+    @relation.top_k_partition_count(op)
+  }
   let n = if lag {
     @relation.lag_term_count(op)
   } else if analytic {
@@ -87,15 +94,31 @@ fn complete_sort(
     @relation.ranking_term_count(op)
   }
   Some(
-    complete_key_order(b, source, key, n, i => {
-      if lag {
-        @relation.lag_term_at(op, i)
-      } else if analytic {
-        @relation.analytic_term_at(op, i)
-      } else {
-        @relation.ranking_term_at(op, i)
-      }
-    }),
+    complete_key_order(
+      b,
+      source,
+      key,
+      n,
+      i => {
+        if lag {
+          @relation.lag_term_at(op, i)
+        } else if analytic {
+          @relation.analytic_term_at(op, i)
+        } else {
+          @relation.ranking_term_at(op, i)
+        }
+      },
+      partition_count~,
+      partition_at=i => {
+        if lag {
+          @relation.lag_partition_at(op, i)
+        } else if analytic {
+          @relation.analytic_partition_at(@relation.analytic(op).unwrap(), i)
+        } else {
+          @relation.top_k_partition_at(op, i)
+        }
+      },
+    ),
   )
 }
 
@@ -106,8 +129,18 @@ fn complete_key_order(
   key : @evidence.KeyedRelation,
   n : Int,
   term_at : (Int) -> @relation.OrderTerm?,
+  partition_count? : Int = 0,
+  partition_at? : (Int) -> @relation.KeyField? = _ => None,
 ) -> SortCompletion raise Stop {
   let seen : Map[String, Bool] = Map([])
+  // Partition terms are fixed within this comparison scope, not extra output
+  // ordering terms. Keep their authored order/duplicates on the operation.
+  spend(b, source, partition_count)
+  for i in 0..<partition_count {
+    let field = partition_at(i).unwrap()
+    charge(b, source, @schema.reference_name(field.field))
+    seen[order_field_key(field.field)] = true
+  }
   spend(b, source, n)
   for i in 0..<n {
     let term = term_at(i).unwrap()
