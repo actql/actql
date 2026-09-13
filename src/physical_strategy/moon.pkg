@@ -8,4 +8,7 @@ import {
   "actql/actql/lowering_relation" @lower,
   "actql/actql/parameter_references" @parameters,
   "actql/actql/parameter_binding" @binding,
+  "actql/actql/query_planning" @planning,
+  "actql/actql/execution_relation" @execution,
+  "actql/actql/relation_typing" @relation,
 }

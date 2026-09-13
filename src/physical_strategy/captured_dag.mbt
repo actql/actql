@@ -1,0 +1,263 @@
+///|
+/// Host-private serial execution state. Task success is not Program publication.
+/// The supplied acquisition has already completed; this object only borrows it.
+struct CapturedDAG {
+  graph : CheckedDAG
+  source : @planning.CapturedInputSource
+  completed : Array[@execution.CompletedSequence?]
+  inputs : Array[@execution.ProducerRead?]
+  mut stopped : Bool
+  mut failure : (Int, RunIssue)?
+}
+
+///|
+pub(all) enum RunIssue {
+  UnsupportedGraph
+  ForeignCapture
+  NotReady
+  Stopped
+  ForeignCandidate
+  MissingOutput
+  Capture(@planning.CapturedSourceIssue)
+  Binding(@execution.ProducerBindingIssue)
+  Read(@execution.ProducerReadIssue)
+  Compute(@planning.FixedComputeIssue)
+}
+
+///|
+/// Initial profile: one captured acquisition at unit zero and exactly one
+/// checked data input for every remaining task. No fresh reads are synthesized.
+pub fn open_captured_dag(
+  graph : CheckedDAG,
+  source : @planning.CapturedInputSource,
+) -> Result[CapturedDAG, RunIssue] {
+  let count = graph.owners.length()
+  if count == 0 {
+    return Err(UnsupportedGraph)
+  }
+  if !@planning.captured_source_matches(
+      source,
+      @checked.source_identity(graph.program),
+      graph.owners[0],
+    ) {
+    return Err(ForeignCapture)
+  }
+  let seen = Array::make(count, false)
+  for edge in graph.data {
+    if edge.consumer == 0 || seen[edge.consumer] || edge.input != 0 {
+      return Err(UnsupportedGraph)
+    }
+    seen[edge.consumer] = true
+  }
+  for index in 1..<count {
+    let pipeline = @lower.pipeline(
+      @lower.bound_preparation(graph.owners[index]),
+    )
+    if !seen[index] ||
+      @pipeline.input_count(pipeline) != 1 ||
+      @pipeline.step_count(pipeline) != 2 {
+      return Err(UnsupportedGraph)
+    }
+    let first = @pipeline.step_at(pipeline, 0).unwrap()
+    let second = @pipeline.step_at(pipeline, 1).unwrap()
+    guard first.operation is @pipeline.Unary(filter) &&
+      second.operation is @pipeline.Unary(select) &&
+      @relation.operation(filter) == @relation.Filter &&
+      @relation.operation(select) == @relation.Select &&
+      first.input == Some(@pipeline.Input(0)) &&
+      second.input == Some(@pipeline.Step(0)) else {
+      return Err(UnsupportedGraph)
+    }
+  }
+  Ok({
+    graph,
+    source,
+    completed: Array::make(count, None),
+    inputs: Array::make(count, None),
+    stopped: false,
+    failure: None,
+  })
+}
+
+///|
+fn task_done(run : CapturedDAG, index : Int) -> Bool {
+  index == 0 || run.completed[index] is Some(_)
+}
+
+///|
+pub fn next_captured_task(run : CapturedDAG) -> Int? {
+  if run.stopped {
+    return None
+  }
+  for index in 1..<run.graph.owners.length() {
+    if task_done(run, index) {
+      continue
+    }
+    let mut ready = true
+    for edge in run.graph.data {
+      if edge.consumer == index && !task_done(run, edge.producer) {
+        ready = false
+      }
+    }
+    for edge in run.graph.control {
+      if edge.consumer == index && !task_done(run, edge.predecessor) {
+        ready = false
+      }
+    }
+    if ready {
+      return Some(index)
+    }
+  }
+  None
+}
+
+///|
+/// Bind only a completed, exact predecessor output. The source's live condition
+/// remains attached to pending reads; successful downstream output is independent.
+pub fn captured_task_input(
+  run : CapturedDAG,
+  task : Int,
+  max_entries : Int,
+  max_name_bytes : Int,
+) -> Result[@execution.ProducerRead, RunIssue] {
+  if run.stopped {
+    return Err(Stopped)
+  }
+  if next_captured_task(run) != Some(task) {
+    return Err(NotReady)
+  }
+  if run.inputs[task] is Some(read) {
+    if !@execution.producer_read_available(read) {
+      let issue = RunIssue::Read(@execution.ProducerUnavailable)
+      fail_captured_task(run, task, issue)
+      return Err(issue)
+    }
+    return Ok(read)
+  }
+  let mut selected : DataEdge? = None
+  for edge in run.graph.data {
+    if edge.consumer == task {
+      selected = Some(edge)
+      break
+    }
+  }
+  let edge = selected.unwrap()
+  let receiver = run.graph.owners[task]
+  let bound = if edge.producer == 0 {
+    match @planning.bind_captured_source(run.source, receiver, edge.input) {
+      Ok(bound) => bound
+      Err(issue) => {
+        fail_captured_task(run, task, Capture(issue))
+        return Err(Capture(issue))
+      }
+    }
+  } else {
+    let completed = run.completed[edge.producer].unwrap()
+    guard @execution.completed_output(completed, edge.target) is Some(output) else {
+      fail_captured_task(run, task, MissingOutput)
+      return Err(MissingOutput)
+    }
+    match
+      @execution.bind_completed_input(
+        receiver,
+        edge.input,
+        run.graph.owners[edge.producer],
+        output,
+      ) {
+      Ok(bound) => bound
+      Err(issue) => {
+        fail_captured_task(run, task, Binding(issue))
+        return Err(Binding(issue))
+      }
+    }
+  }
+  match
+    @execution.prepare_producer_read(
+      receiver, bound, max_entries, max_name_bytes,
+    ) {
+    Ok(read) => {
+      run.inputs[task] = Some(read)
+      Ok(read)
+    }
+    Err(issue) => {
+      fail_captured_task(run, task, Read(issue))
+      Err(Read(issue))
+    }
+  }
+}
+
+///|
+/// No callback can inject arbitrary CompletedOutput as a task success.
+/// Choice, request and generated sequence are verified before existing execution.
+pub fn execute_captured_local_task(
+  run : CapturedDAG,
+  task : Int,
+  choice : @planning.FixedComputeChoice,
+  prepared : @planning.PreparedCompute[@execution.GeneratedSequence],
+  limits : @execution.SequenceExecutionLimits,
+  measurement : @execution.FixedInputGuardMeasureLimits,
+) -> Result[Unit, RunIssue] {
+  if run.stopped {
+    return Err(Stopped)
+  }
+  if next_captured_task(run) != Some(task) {
+    return Err(NotReady)
+  }
+  let request = @planning.fixed_compute_candidate_request(
+    @planning.prepared_compute_candidate(prepared),
+  )
+  guard run.inputs[task] is Some(read) &&
+    physical_equal(read, @planning.fixed_compute_request_input(request)) else {
+    return Err(ForeignCandidate)
+  }
+  match
+    @planning.execute_local_fixed_compute(
+      choice,
+      prepared,
+      limits,
+      measurement~,
+    ) {
+    Ok(completed) => {
+      run.completed[task] = Some(completed)
+      run.inputs[task] = None
+      Ok(())
+    }
+    Err(issue) => {
+      fail_captured_task(run, task, Compute(issue))
+      Err(Compute(issue))
+    }
+  }
+}
+
+///|
+/// Internal completed calculation only, not authority to publish a failed Program.
+pub fn captured_task_result(
+  run : CapturedDAG,
+  task : Int,
+) -> @execution.CompletedSequence? {
+  run.completed.get(task).bind(value => value)
+}
+
+///|
+/// Stops new work without revoking independent successful calculation results or
+/// closing the caller-owned capture. In-flight asynchronous cleanup is separate.
+pub fn stop_captured_dag(run : CapturedDAG) -> Unit {
+  run.stopped = true
+  for index in 0..<run.inputs.length() {
+    run.inputs[index] = None
+  }
+}
+
+///|
+fn fail_captured_task(run : CapturedDAG, task : Int, issue : RunIssue) -> Unit {
+  if run.failure is None {
+    run.failure = Some((task, issue))
+  }
+  stop_captured_dag(run)
+}
+
+///|
+/// First primary failure is retained even when later cleanup requests stop again.
+pub fn captured_dag_failure(run : CapturedDAG) -> (Int, RunIssue)? {
+  run.failure
+}

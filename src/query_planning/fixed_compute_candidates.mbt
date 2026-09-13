@@ -133,6 +133,14 @@ pub fn fixed_compute_candidate_duration(
 }
 
 ///|
+/// Returns the exact owned request; never reconstructs it from equal content.
+pub fn fixed_compute_candidate_request(
+  candidate : FixedComputeCandidate,
+) -> FixedComputeRequest {
+  candidate.request
+}
+
+///|
 pub fn fixed_compute_candidate_quantities(
   candidate : FixedComputeCandidate,
 ) -> QueryQuantities {

@@ -56,6 +56,10 @@ pub fn bind_captured_duckdb_broad_input(DuckDBQueryIssuer, DuckDBBroadAttempt, D
 
 pub fn bind_captured_query_input(MockQueryIssuer, MockQueryAttempt, MockQueryObservation, @lowering_relation.BoundPrepared, Int, @lowering_relation.BoundPrepared) -> Result[@execution_relation.BoundProducerInput, MockEvidenceIssue]
 
+pub fn bind_captured_source(CapturedInputSource, @lowering_relation.BoundPrepared, Int) -> Result[@execution_relation.BoundProducerInput, CapturedSourceIssue]
+
+pub fn broad_captured_source(DuckDBQueryIssuer, DuckDBBroadAttempt, DuckDBBroadObservation) -> Result[CapturedInputSource, CapturedSourceIssue]
+
 pub fn cancel_mock_query(MockQueryAttempt) -> Bool
 
 pub fn capability_description(CapabilityRegistration) -> CapabilityDescription
@@ -69,6 +73,12 @@ pub fn capture_duckdb_broad_query(DuckDBQueryIssuer, DuckDBBroadAttempt, DuckDBB
 pub fn capture_duckdb_native_query(DuckDBNativeIssuer, DuckDBNativeAttempt, DuckDBNativeRecords, QueryEvidenceLimits) -> Result[DuckDBNativeObservation, DuckDBEvidenceIssue]
 
 pub fn capture_mock_query(MockQueryIssuer, MockQueryAttempt, MockQueryRecords, QueryEvidenceLimits) -> Result[MockQueryObservation, MockEvidenceIssue]
+
+pub fn captured_source_available(CapturedInputSource) -> Bool
+
+pub fn captured_source_matches(CapturedInputSource, @pipeline_check_context.ProgramSourceIdentity, @lowering_relation.BoundPrepared) -> Bool
+
+pub fn captured_source_row_count(CapturedInputSource) -> Int?
 
 pub fn choose_acquisition_candidate(CapabilityRegistry, QueryRequirement, Array[AcquisitionCandidate], Array[Int]?, Int) -> Result[AcquisitionSelection, QueryPlanningIssue]
 
@@ -172,6 +182,8 @@ pub fn fixed_compute_candidate_duration(FixedComputeCandidate) -> @physical_cost
 
 pub fn fixed_compute_candidate_quantities(FixedComputeCandidate) -> QueryQuantities
 
+pub fn fixed_compute_candidate_request(FixedComputeCandidate) -> FixedComputeRequest
+
 pub fn[T] fixed_compute_choice_payload(FixedComputeChoice, PreparedCompute[T]) -> T?
 
 pub fn fixed_compute_choice_reason(FixedComputeChoice) -> @physical_cost.CostChoice
@@ -195,6 +207,8 @@ pub fn measure_duckdb_native_attempt(DuckDBNativeAttempt, @execution_relation.Fi
 pub fn mock_acquisition_candidate(CapabilityRegistration, QueryRequirement, QueryOffer) -> Result[PreparedAcquisition[QueryOffer], QueryPlanningIssue]
 
 pub fn mock_acquisition_strategy(AcquisitionChoice, PreparedAcquisition[QueryOffer]) -> QueryStrategy?
+
+pub fn mock_captured_source(MockQueryIssuer, MockQueryAttempt, MockQueryObservation) -> Result[CapturedInputSource, CapturedSourceIssue]
 
 pub fn mock_query_attempt_identity(MockQueryAttempt) -> (String, String)?
 
@@ -223,6 +237,8 @@ pub fn mock_query_strategy(MockQueryComputation) -> QueryStrategy
 pub fn mock_retention_row_cids(MockQueryRetention) -> (String, String)
 
 pub fn mock_retention_usage(MockQueryRetention) -> (Int, Int, Int)
+
+pub fn native_captured_source(DuckDBNativeOutput, Int, Int) -> Result[CapturedInputSource, CapturedSourceIssue]
 
 pub fn offer_mock_query(@execution_query.QuerySequence, QueryRealization, Array[@physical_cost.SerialEstimateLine], QueryQuantities, Int) -> Result[QueryOffer, QueryPlanningIssue]
 
@@ -365,6 +381,14 @@ pub(all) enum CapabilityRegistrationIssue {
 }
 
 type CapabilityRegistry
+
+type CapturedInputSource
+
+pub(all) enum CapturedSourceIssue {
+  Unavailable
+  Binding(@execution_relation.ProducerBindingIssue)
+  NativeCompletion(@execution_relation.TrustedOutputIssue)
+}
 
 type DuckDBBroadAttempt
 

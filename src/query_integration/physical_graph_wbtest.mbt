@@ -67,3 +67,159 @@ test "physical DAG reads checked data and control edges separately" {
     is Err(ForeignPipeline(1)),
   )
 }
+
+///|
+fn captured_graph_fixture() -> (
+  @strategy.CapturedDAG,
+  @planning.MockQueryIssuer,
+) raise {
+  let program = query_checked_program_fixture(dag=true)
+  let sequence = query_checked_sequence(program)
+  let owners = physical_graph_owners(program)
+  owners[0] = @query.query_sequence_owner(sequence)
+  let graph = @strategy.prepare_checked_dag(program, owners, 4, 1000).unwrap()
+  let requirement = @planning.prepare_query_requirement(
+    @planning.prepare_query_material(sequence, query_material_limits()).unwrap(),
+    @program_check.source_identity(program),
+    { max_rows: 10, max_value_bytes: 100, },
+    query_material_limits(),
+  ).unwrap()
+  let (query_body, evidence_body) = query_evidence_test_bodies()
+  let contracts = @planning.admit_query_evidence_contracts(
+    query_body,
+    evidence_body,
+    query_capture_limits(),
+  ).unwrap()
+  let issuer = @planning.prepare_mock_query_issuer(
+    contracts, requirement, "dag-test", 100,
+  ).unwrap()
+  let attempt = query_issuer_attempt(issuer, sequence, @planning.NativeQuery)
+  query_issuer_run(attempt)
+  let records = @planning.issue_mock_query_records(
+    attempt,
+    query_material_limits(),
+  ).unwrap()
+  let observation = @planning.capture_mock_query(
+    issuer,
+    attempt,
+    records,
+    query_capture_limits(),
+  ).unwrap()
+  let source = @planning.mock_captured_source(issuer, attempt, observation).unwrap()
+  (@strategy.open_captured_dag(graph, source).unwrap(), issuer)
+}
+
+///|
+fn captured_graph_local(
+  run : @strategy.CapturedDAG,
+  task : Int,
+  limits? : @execution.SequenceExecutionLimits = compute_test_limits(),
+) -> Result[Unit, @strategy.RunIssue] raise {
+  let input = @strategy.captured_task_input(run, task, 100, 10000).unwrap()
+  let request = @planning.prepare_fixed_compute_request(input, {
+    contract_cid: "sha256:7d59718b965451d8a19ccf7095b92777ba0cdd8c3bb71f437ab387801fe7271f",
+    max_rows: 100,
+    max_value_bytes: 10000,
+    common_fragment: None,
+  }).unwrap()
+  let registry = @planning.prepare_capability_registry(
+    [{ name: "local", acquisition: false, fixed_compute: true, }],
+    1,
+    100,
+  ).unwrap()
+  let prepared = @planning.local_fixed_compute_candidate(
+    @planning.capability_registration_at(registry, 0).unwrap(),
+    request,
+    query_generated(@execution.producer_read_receiver(input)),
+    [{ work_slots: [0, 1, 2, 3, 4], milliseconds: Some(5L), }],
+    { transfer_bytes: Some(0L), retained_bytes: None, money_units: None, },
+    100,
+  ).unwrap()
+  guard @planning.choose_fixed_compute_candidate(
+      registry,
+      request,
+      [@planning.prepared_compute_candidate(prepared)],
+      None,
+      100,
+    ).unwrap()
+    is Proposed(choice) else {
+    abort("local candidate")
+  }
+  @strategy.execute_captured_local_task(run, task, choice, prepared, limits, {
+    max_work: 10000,
+    max_bytes: 10000,
+    max_nodes: 10000,
+    max_depth: 100,
+  })
+}
+
+///|
+test "captured checked DAG runs shared X A B C in checked control order" {
+  let (run, issuer) = captured_graph_fixture()
+  assert_eq(@strategy.next_captured_task(run), Some(1))
+  assert_true(
+    @strategy.captured_task_input(run, 2, 100, 10000) is Err(NotReady),
+  )
+  captured_graph_local(run, 1).unwrap()
+  assert_eq(@strategy.next_captured_task(run), Some(2))
+  captured_graph_local(run, 2).unwrap()
+  // C consumes completed A, not the now closed original acquisition.
+  @planning.close_mock_query_issuer(issuer)
+  captured_graph_local(run, 3).unwrap()
+  assert_true(@strategy.next_captured_task(run) is None)
+  for (task, expected) in [(1, [3.0]), (2, [3.0, 2.0]), (3, [3.0])] {
+    let output = @execution.completed_output(
+      @strategy.captured_task_result(run, task).unwrap(),
+      Step(1),
+    ).unwrap()
+    assert_eq(@execution.completed_row_count(output), expected.length())
+    for i, value in expected {
+      assert_true(
+        @execution.completed_cell(output, i, 0) is Some(Number(actual)) &&
+        actual == value,
+      )
+    }
+  }
+}
+
+///|
+test "captured DAG cancellation stops new branches but keeps independent completed tasks" {
+  let (run, issuer) = captured_graph_fixture()
+  captured_graph_local(run, 1).unwrap()
+  let pending = @strategy.captured_task_input(run, 2, 100, 10000).unwrap()
+  @planning.close_mock_query_issuer(issuer)
+  assert_false(@execution.producer_read_available(pending))
+  assert_true(
+    @strategy.captured_task_input(run, 2, 100, 10000)
+    is Err(Read(ProducerUnavailable)),
+  )
+  @strategy.stop_captured_dag(run)
+  assert_true(@strategy.captured_task_input(run, 2, 100, 10000) is Err(Stopped))
+  assert_true(@strategy.next_captured_task(run) is None)
+  let output = @execution.completed_output(
+    @strategy.captured_task_result(run, 1).unwrap(),
+    Step(1),
+  ).unwrap()
+  assert_eq(@execution.completed_row_count(output), 1)
+  assert_true(@strategy.captured_task_result(run, 2) is None)
+}
+
+///|
+test "captured DAG latches execution failure without revoking previous task success" {
+  let (run, _issuer) = captured_graph_fixture()
+  captured_graph_local(run, 1).unwrap()
+  assert_true(
+    captured_graph_local(run, 2, limits={
+      ..compute_test_limits(),
+      max_work: 0,
+    })
+    is Err(Compute(_)),
+  )
+  assert_true(@strategy.next_captured_task(run) is None)
+  assert_true(@strategy.captured_task_input(run, 3, 100, 10000) is Err(Stopped))
+  assert_true(@strategy.captured_task_result(run, 1) is Some(_))
+  assert_true(@strategy.captured_task_result(run, 2) is None)
+  assert_true(@strategy.captured_dag_failure(run) is Some((2, Compute(_))))
+  @strategy.stop_captured_dag(run)
+  assert_true(@strategy.captured_dag_failure(run) is Some((2, Compute(_))))
+}

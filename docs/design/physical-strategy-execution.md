@@ -15,6 +15,22 @@ when B has no data dependency on A. A task failure prevents further starts;
 successful independently completed computations are not retroactively revoked.
 Internal success records are not partial successful Program publication.
 
+`CapturedInputSource` encapsulates an already captured mock, broad or native
+observation. It exposes binding and live metadata, not a raw pre-capture output.
+Its bindings compose the original output's live condition with the exact
+issuer/attempt/observation check. `CapturedDAG` checks that this source belongs
+to the same checked Program and bound acquisition as its root. Completed local
+tasks are recorded only by invoking the selected existing Compute implementation;
+callers cannot inject arbitrary completed outputs as task success. A candidate
+must refer to the exact ProducerRead prepared for that task, not equal rows.
+
+The captured-input serial runner is an incremental internal implementation.
+Its Local task path does not yet provide the integrated DuckDB execution,
+whole-strategy comparison, physical-ledger enforcement or asynchronous cleanup
+described below. Those mechanisms must be connected before it is presented as
+the complete physical strategy Host. Checked topology validation alone is not
+validation of all runtime Stage obligations or a Program success issuer.
+
 ## Transfer and execution ownership
 
 Local fixed inputs and DuckDB's per-Compute temporary database use completed

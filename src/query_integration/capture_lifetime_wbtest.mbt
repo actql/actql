@@ -108,18 +108,12 @@ test "captured broad bindings retain issuer and exact transport liveness" {
     ).unwrap()
     let owner = @query.query_sequence_owner(f.sequence)
     let receiver = typed_receiver(owner, "[{\"select\":[\"id\"]}]")
+    let shared = @planning.broad_captured_source(f.issuer, attempt, observation).unwrap()
+    assert_eq(@planning.captured_source_row_count(shared), Some(2))
     assert_capture_input_lifetime(
       receiver,
       fn() {
-        match
-          @planning.bind_captured_duckdb_broad_input(
-            f.issuer,
-            attempt,
-            observation,
-            receiver,
-            0,
-            owner,
-          ) {
+        match @planning.bind_captured_source(shared, receiver, 0) {
           Ok(bound) => Some(bound)
           Err(_) => None
         }
@@ -160,13 +154,12 @@ test "captured mock bindings retain issuer liveness for both realizations" {
       records,
       query_capture_limits(),
     ).unwrap()
+    let shared = @planning.mock_captured_source(issuer, attempt, observation).unwrap()
+    assert_eq(@planning.captured_source_row_count(shared), Some(2))
     assert_capture_input_lifetime(
       receiver,
       fn() {
-        match
-          @planning.bind_captured_query_input(
-            issuer, attempt, observation, receiver, 0, owner,
-          ) {
+        match @planning.bind_captured_source(shared, receiver, 0) {
           Ok(bound) => Some(bound)
           Err(_) => None
         }
@@ -201,7 +194,7 @@ test "captured native bindings obey the same issuer and transport lifetime cases
       100,
       { max_nodes: 1000, max_text_bytes: 1000, max_depth: 10, max_work: 10000, },
     ).unwrap()
-    let output = @planning.complete_duckdb_native_output(material, 100, 10000).unwrap()
+    let shared = @planning.native_captured_source(material, 100, 10000).unwrap()
     let owner = @execution.admitted_output_owner(
       @planning.duckdb_native_output_rows(material).unwrap(),
     )
@@ -209,7 +202,7 @@ test "captured native bindings obey the same issuer and transport lifetime cases
     assert_capture_input_lifetime(
       receiver,
       fn() {
-        match @execution.bind_completed_input(receiver, 0, owner, output) {
+        match @planning.bind_captured_source(shared, receiver, 0) {
           Ok(bound) => Some(bound)
           Err(_) => None
         }
