@@ -120,6 +120,17 @@ The minimum is enforced atomically before output consumption; it does not assert
 that the input or output has been observed. Publication-resource obligations
 remain separate, and re-linking an already resolved occurrence is rejected.
 
+Persistent window proof conversion uses the owning Unit operation subject and
+reidentifies the complete input proof graph first. A window witness uses the
+rows unit and an explicit multiply derivation referencing that converted input;
+its proof body, witness dependencies and self-CID are rebuilt together. This
+differs from the source-form array-items witness used by aggregate inputs, even
+when the numeric values are equal. The reader accepts only the exact closed
+Program's window requirement and candidate membership, not caller-provided Unit
+CIDs. Encoding a proof alone does not establish the window's source ownership
+or supply a new Program construction path. Failed conversion does not expose a
+partial proof or consume the caller's identity budget.
+
 ## Lag
 
 `lag` reuses the Relation field, partition, OrderKey and positive safe-integer

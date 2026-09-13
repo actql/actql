@@ -7,10 +7,54 @@ fn array_input_claim(
   law : String,
   remaining : IdentityBudget,
 ) -> @wire.ProgramProofClaim raise UnitBuildFailure {
+  single_input_claim(input, subject, law, None, remaining)
+}
+
+///|
+// The caller supplies a checked window's owned Unit subject and resolved factor.
+// This encoder does not establish that a window occurs at an arbitrary subject.
+fn window_input_claim(
+  input : ReidentifiedStep,
+  subject : String,
+  law : String,
+  factor : Int64,
+  remaining : IdentityBudget,
+) -> @wire.ProgramProofClaim raise UnitBuildFailure {
+  if (law != "actql.bound.row-window" && law != "actql.bound.window-events") ||
+    factor <= 0L ||
+    factor > 9007199254740991L {
+    raise ForeignOwner
+  }
+  let budget = IdentityBudget::{ ..remaining, }
+  let proof = single_input_claim(input, subject, law, Some(factor), budget)
+  remaining.work = budget.work
+  remaining.bytes = budget.bytes
+  remaining.nodes = budget.nodes
+  proof
+}
+
+///|
+fn single_input_claim(
+  input : ReidentifiedStep,
+  subject : String,
+  law : String,
+  factor : Int64?,
+  remaining : IdentityBudget,
+) -> @wire.ProgramProofClaim raise UnitBuildFailure {
   let input_witness = @wire.program_proof_witness(input.proof)
   guard @wire.unit(input_witness) is Rows else { raise ForeignOwner }
   let input_cid = @wire.cid(input_witness)
-  let value = @wire.value(input_witness)
+  let input_value = @wire.value(input_witness)
+  let value = match factor {
+    None => input_value
+    Some(n) => {
+      if input_value > 9007199254740991L / n {
+        raise ForeignOwner
+      }
+      input_value * n
+    }
+  }
+  let unit = if factor is Some(_) { "rows" } else { "array_items" }
   let emit_proof = fn(w : @encode.Writer) -> Unit raise UnitBuildFailure {
     try {
       @encode.begin_object(w)
@@ -23,7 +67,7 @@ fn array_input_claim(
       @encode.key(w, "semantic_ref")
       @encode.string_value(w, subject)
       @encode.key(w, "unit")
-      @encode.string_value(w, "array_items")
+      @encode.string_value(w, unit)
       @encode.key(w, "value")
       @encode.number_value(w, value.to_double())
       @encode.key(w, "version")
@@ -53,8 +97,21 @@ fn array_input_claim(
       @encode.end_array(w)
       @encode.key(w, "derivation")
       @encode.begin_object(w)
+      if factor is Some(n) {
+        @encode.key(w, "factor")
+        @encode.number_value(w, n.to_double())
+        @encode.key(w, "input")
+        @encode.string_value(w, input_cid)
+      }
       @encode.key(w, "op")
-      @encode.string_value(w, "source")
+      @encode.string_value(
+        w,
+        if factor is Some(_) {
+          "multiply"
+        } else {
+          "source"
+        },
+      )
       @encode.end_object(w)
       @encode.key(w, "law_id")
       @encode.string_value(w, law)
@@ -70,7 +127,7 @@ fn array_input_claim(
       @encode.string_value(w, subject)
       @encode.end_object(w)
       @encode.key(w, "unit")
-      @encode.string_value(w, "array_items")
+      @encode.string_value(w, unit)
       @encode.key(w, "value")
       @encode.number_value(w, value.to_double())
       @encode.key(w, "version")
