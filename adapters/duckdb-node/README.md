@@ -12,6 +12,21 @@ npm ci --prefix adapters/duckdb-node --ignore-scripts
 npm test --prefix adapters/duckdb-node
 ```
 
+The repository's pinned MoonBit must be installed with `moon` on PATH and
+`MOON_HOME` set for the generated-SQL conformance test. That test runs the
+MoonBit completed-capture fixture, imports its exact generated parameters into
+an isolated real DuckDB database, executes the generated filter/select SQL and
+checks independently fixed output. The small fixture is serialized for testing;
+the trusted `runFixedCompute` port reads one parameter row at a time. Its import
+row/cell limits are separate from session transfer limits and logical guards.
+The port must be backed by the exact MoonBit `FixedCompute` preparation, not
+Program-supplied SQL or a deserialized claim of completed input.
+
+This connection test does not yet turn the native result into MoonBit completed
+output or issue acquisition capture evidence. Its result chunks remain
+provisional until both the transport cleanup and the receiving semantic checks
+have succeeded.
+
 Tests create their own files under ignored `_build/duckdb-fixtures`, exercise
 exact scalar transport, existing-file read-only access, isolated Compute,
 cumulative transfer bounds, native memory exhaustion, cancellation and cross-process file locks. They

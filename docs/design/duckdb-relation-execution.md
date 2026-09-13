@@ -60,6 +60,14 @@ import work and receiving logical checks remain separately required. A zero-colu
 Relation is currently ineligible for this DuckDB table representation rather than
 being silently converted into a different schema or row count.
 
+`FixedCompute` prepares the import and filter/select query together from the same
+owned producer view and table name. Callers cannot pair an independently compiled
+query with a different receiver through its constructor. The trusted Node port
+executes creation, row-wise parameter import and the query in one fresh Compute
+transaction. Import row/cell ceilings are checked before allocation and commands;
+parameter construction is bounded by the current row, not the full Relation.
+Native chunks are provisional receiving data, not completed engine output.
+
 ## Type transport and native expression support
 
 Physical transport and expression support are separate decisions. The transport

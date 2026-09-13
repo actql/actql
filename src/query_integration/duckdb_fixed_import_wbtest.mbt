@@ -1,9 +1,12 @@
 ///|
-fn duckdb_captured_input() -> @execution.ProducerRead raise {
+fn duckdb_captured_input(
+  filter? : String = "id > 0",
+) -> @execution.ProducerRead raise {
   let (issuer, sequence) = query_issuer_fixture()
   let owner = @query.query_sequence_owner(sequence)
   let receiver = typed_receiver(
-    owner, "[{\"filter\":\"id > 0\"},{\"select\":[\"id\"]}]",
+    owner,
+    "[{\"filter\":\"" + filter + "\"},{\"select\":[\"id\"]}]",
   )
   let attempt = query_issuer_attempt(
     issuer,

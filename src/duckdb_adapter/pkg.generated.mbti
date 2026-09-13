@@ -20,6 +20,10 @@ pub fn decode_physical_type(@decode_core.Cursor) -> Result[PhysicalType, ValueIs
 
 pub fn emit_physical_parameter(PhysicalParameter, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
 
+pub fn fixed_compute_import(FixedCompute) -> FixedImport
+
+pub fn fixed_compute_query(FixedCompute) -> NativeQuery
+
 pub fn fixed_import_column_count(FixedImport) -> Int
 
 pub fn fixed_import_create_sql(FixedImport) -> String
@@ -36,6 +40,8 @@ pub fn native_query_parameter(NativeQuery) -> PhysicalParameter
 
 pub fn native_query_sql(NativeQuery) -> String
 
+pub fn prepare_fixed_compute(@execution_relation.ProducerRead, String, NativeQueryLimits) -> Result[FixedCompute, NativeQueryIssue]
+
 pub fn prepare_fixed_import(@execution_relation.ProducerRead, String, Int, Int) -> Result[FixedImport, NativeQueryIssue]
 
 pub fn prepare_physical_parameter(@value_admission.CheckedValue) -> Result[PhysicalParameter, ValueIssue]
@@ -47,6 +53,8 @@ pub fn prepare_value_mapping(PhysicalType, @value_contract.Contract) -> Result[V
 // Errors
 
 // Types and methods
+type FixedCompute
+
 type FixedImport
 
 type NativeQuery

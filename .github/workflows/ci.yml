@@ -61,5 +61,11 @@ jobs:
           cache-dependency-path: adapters/duckdb-node/package-lock.json
       - name: Install exact DuckDB transport dependencies
         run: npm ci --prefix adapters/duckdb-node --ignore-scripts
+      - name: Install pinned MoonBit for generated SQL conformance
+        run: |
+          node scripts/setup-moonbit.mjs
+          toolchain="$GITHUB_WORKSPACE/.toolchains/moonbit-$(node -p "require('./toolchain.json').version")"
+          echo "MOON_HOME=$toolchain" >> "$GITHUB_ENV"
+          echo "$toolchain/bin" >> "$GITHUB_PATH"
       - name: Check real DuckDB transport and owned resources
         run: npm test --prefix adapters/duckdb-node
