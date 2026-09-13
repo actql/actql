@@ -18,5 +18,6 @@ formatter(
     "regex_ast_scalars.generated_test.mbt",
     "text_extent_preimages.generated_test.mbt",
     "ordered_derive_preimages.generated_test.mbt",
+    "query_acquisition.generated_test.mbt",
   ],
 )

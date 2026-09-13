@@ -1,0 +1,37 @@
+{
+  "version": "actql-query-acquisition-vectors/0.1",
+  "source_order": "fixture_declared_a_b_c",
+  "fields": {
+    "id": {"type": "string", "nullable": false},
+    "status": {"type": "string", "nullable": false},
+    "amount": {"type": "number", "nullable": false}
+  },
+  "rows": [
+    {"id": "a", "status": "open", "amount": 10},
+    {"id": "b", "status": "closed", "amount": 20},
+    {"id": "c", "status": "open", "amount": 30}
+  ],
+  "expected_output": [{"id": "a"}, {"id": "c"}],
+  "expected_consumer": [{"id": "c"}],
+  "cases": [
+    {"id": "native", "strategy": "native", "received_rows": 2, "received_fields": ["id"], "outcome": "complete"},
+    {"id": "broad", "strategy": "broad", "received_rows": 3, "received_fields": ["amount", "id", "status"], "outcome": "complete"},
+    {"id": "native-invalid-unused-field", "strategy": "native", "mutation": "invalid_unused", "outcome": "SourceAdmission"},
+    {"id": "broad-invalid-unused-field", "strategy": "broad", "mutation": "invalid_unused", "outcome": "SourceAdmission"},
+    {"id": "native-demanded-division", "strategy": "native", "mutation": "division_by_zero", "outcome": "ExpressionFailure"},
+    {"id": "broad-demanded-division", "strategy": "broad", "mutation": "division_by_zero", "outcome": "ExpressionFailure"},
+    {"id": "logical-two-physical-three", "strategy": "broad", "physical_rows": 2, "outcome": "PhysicalBudget"},
+    {"id": "logical-one", "strategy": "broad", "logical_rows": 1, "outcome": "LogicalGuard"},
+    {"id": "missing-residual", "strategy": "broad", "mutation": "missing_residual", "outcome": "IncompleteCoverage"},
+    {"id": "proposal-is-not-completion", "strategy": "native", "mutation": "proposal_only", "outcome": "UnverifiedEvidence"},
+    {"id": "foreign-owner", "strategy": "broad", "mutation": "foreign_owner", "outcome": "ForeignObservation"},
+    {"id": "foreign-parameter", "strategy": "broad", "mutation": "foreign_parameter", "outcome": "ForeignObservation"},
+    {"id": "foreign-request", "strategy": "broad", "mutation": "foreign_request", "outcome": "ForeignObservation"},
+    {"id": "foreign-snapshot", "strategy": "broad", "mutation": "foreign_snapshot", "outcome": "ForeignObservation"},
+    {"id": "no-snapshot-feature", "strategy": "broad", "mutation": "without_snapshot", "outcome": "complete"},
+    {"id": "fresh-consumer-read", "strategy": "broad", "mutation": "fresh_consumer", "outcome": "FreshRead"},
+    {"id": "acquisition-cancel", "strategy": "broad", "mutation": "acquisition_cancel", "outcome": "Cancelled"},
+    {"id": "capture-failure", "strategy": "broad", "mutation": "capture_failure", "outcome": "CaptureFailure"},
+    {"id": "consumer-failure", "strategy": "broad", "mutation": "consumer_failure", "outcome": "ConsumerFailure", "retained_observation": true}
+  ]
+}

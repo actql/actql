@@ -225,12 +225,127 @@ CID, schema, non-negative row count, completeness, effective policy, and
 provenance. They MUST NOT embed Result row payloads. Serialization-contract and
 byte identities are bound only by the delivery receipt in [Result delivery](protocols/artifacts.md#result-delivery).
 
-<!-- requirement-block: capture-and-replay.it-must-not-substitute-a-fresh-acquisition-during-same-observation-replay stage-execution.product-2e6789533bf2 stage-execution.product-ae166d3d086d numeric-observation.product-1821bc23c5d0 -->
+<!-- requirement-block: capture-and-replay.it-must-not-substitute-a-fresh-acquisition-during-same-observation-replay -->
 Raw network access remains Connector- or admitted task-host-only. Model and
 other typed external acquisition may incur cost and data egress, but neither grants
 business-state mutation authority. The runtime captures each response before
 downstream computation. It MUST NOT substitute a fresh acquisition during
 same-Observation replay or Effect apply.
+
+<a id="query-acquisition"></a>
+
+### Query-shaped acquisition
+
+The initial query-acquisition profile covers an exclusive finite Relation scan,
+one checked filter and one checked select, with no intervening semantic barrier.
+Its input is the selected SourceView request; its single completed output port is
+the select result. A source or filter output with another consumer is outside
+this profile. Other shapes, changes feeds and checkpoints have no derivation
+rule in this profile. Finite snapshot read mode does not imply snapshot isolation
+or require a provider snapshot token.
+
+<!-- requirement-block: query-acquisition.derivation -->
+The compiler MUST derive this boundary from the checked graph, selected source
+contracts and effective Parameter bindings, independently of backend registration,
+price or placement; retain the exact filter and select occurrences and their
+obligations; and place capture after both operations and before consumers.
+
+<!-- requirement-block: query-acquisition.admission -->
+Every realization MUST validate all known fields and their declared types and
+nullability throughout the selected scan before applying its filter, including
+fields not used by the query and rows excluded by the filter; preserve the checked
+expression demand and every demanded failure without evaluating undemanded
+expressions; and reject a native realization unable to implement these checks.
+The selected scan means the extent of the bound source request, not all data in
+the connector. This profile makes full admission explicit across pushdown. A
+provider may perform it internally with verifiable execution evidence; reducing
+Host receipt to projected rows is not evidence that it happened. Residual work
+cannot restore failures or rows already suppressed by an incompatible provider.
+
+<!-- requirement-block: query-acquisition.limits -->
+Execution MUST enforce the requirement's logical output-row guard on the complete
+select result, its value-byte guard on admitted records and demanded expression
+roots, and all separately selected consumer-capacity limits at their own scopes;
+enforce physical receipt and retention budgets against actual usage, not result
+size; and publish no successful capture on any admission, evaluation, limit,
+coverage, capture or cancellation failure.
+Input admission precedes predicate evaluation; capture follows complete logical
+evaluation and validation. Physical budget exhaustion can stop receipt earlier.
+There is no requirement to continue an exhausted physical attempt to discover a
+later semantic error or to choose the same diagnostic across physical candidates.
+Successful retained upstream observations survive a downstream failure; failure
+does not authorize a replacement read.
+
+The closed machine contract is
+<!-- machine-import: ../../spec/contracts/actql-query-acquisition.json# sha256:5d16ec481363ad551b5dd4068d6f781575f49706826bebe2c43e21e168a80303 -->
+<!-- machine-import: ../../spec/contracts/actql-query-acquisition.json#/schemas/requirement sha256:b6506c5d7b23c83c1ddc311b3c7d6766a6f3f5e2de92747e1d03f949e5df1dc1 -->
+<!-- machine-import: ../../spec/contracts/actql-query-acquisition.json#/schemas/completed_observation sha256:ec44c31bc821c4e1a1f3eafa7e519cd1d4fc9ba9458149aaa3577b6053934715 -->
+[`actql-query-acquisition.json`](../../spec/contracts/actql-query-acquisition.json):
+`/schemas/requirement` and `/schemas/completed_observation`. Its root CID is
+`sha256:5d16ec481363ad551b5dd4068d6f781575f49706826bebe2c43e21e168a80303`.
+All listed properties are required, unknown properties are rejected, and explicit
+null is used only where the schema permits it. JSON Schema checks shape, not
+graph ownership, actual execution, admission, budget use or evidence authenticity.
+
+The requirement's exact preimage is its entire schema-conforming object, with no
+self-CID field. `owner` contains the Program source CID and authored stage and
+input names. Occurrences are stage-relative RFC 6901 pointers into the actual
+`steps` array. `filter.expression_cid` hashes the normalized structured expression,
+without evaluating it; `select.fields` retains authored projection order and
+input/output names. Input/output contract CIDs hash the complete checked field
+maps. `source_contract_cid` is the selected SourceView contract CID, not the whole
+Catalog CID. `request` contains resolved typed wire request values: only authored
+Parameter slots are substituted; business `$param` and `literal` members are
+never reinterpreted. `parameter_values_cid` uses the existing typed parameter-value
+projection for exactly the union of request and filter Parameter names, including
+defaulted values once, excluding unused declarations and origin metadata.
+`source_validation.fields` lists every known input field once in UTF-16 order.
+`source_order_cid` names applicable source order evidence, or is null; a physical
+enumeration order is not automatically logical order evidence.
+
+<!-- requirement-block: query-acquisition.binding -->
+Completion admission MUST match the exact requirement CID, source reference,
+source contract, owner and Parameter identity; recompute `resolved_request_cid`
+from the requirement's request object; verify the actual access and complete
+coverage evidence against that request and its snapshot conditions; and verify
+that output rows conform to the required output contract and query semantics.
+`snapshot` is null when no snapshot evidence applies; otherwise its contract and
+token are verified according to the selected source contract. Changing a required
+snapshot, owner or binding is not justified by an equal result. The access scope
+is the CID of exactly `{version:"actql-query-access-scope/0.1", requirement_cid,
+received_rows_cid, received_fields}`. Its rows CID hashes the complete ordered
+array of received typed wire rows, before residual operations; its field names
+are unique and UTF-16 sorted. Optional provider scope is source-contract-defined,
+separate from receipt, and is null when no such evidence is available. Coverage
+scope is the CID of exactly `{version:"actql-query-scan-scope/0.1", source_ref,
+source_contract_cid, resolved_request_cid}`. It identifies the selected scan,
+which can differ from Host receipt. Evidence CIDs reference verified execution
+records for source validation, filter and select, each bound to the exact
+requirement and actual acquisition attempt under the admitted Host/source
+evidence contract; a proposal, boolean claim or
+valid self-hash alone is insufficient. A weak prefilter leaves the checked filter
+as residual work before capture.
+
+The completed-observation preimage is its entire schema-conforming object, also
+without a self-CID. Its CID is the capture identity for this process-retention
+profile. `output.rows_cid` hashes the ordered array of typed wire row objects;
+object key order is canonicalized, row order and repeated rows are retained.
+`output.contract_cid` equals the requirement's output contract CID. Decimal uses
+the canonical fixed-scale string under that contract, not a JSON number. Every
+CID here uses SHA-256 of canonical JSON UTF-8. No future observation or Invocation
+CID occurs in the static requirement. Equal rows do not imply equal observations:
+actual access, coverage and snapshot evidence remain in the completed preimage.
+This is not a new Invocation preimage; existing Invocation rules retain the exact
+completed observations rather than substituting result CIDs.
+
+<!-- requirement-block: query-acquisition.retention -->
+A process-retained observation MUST be complete and immutable before a fixed-input
+consumer receives it; bind that consumer to the retained output of the exact
+observation rather than a source selector; reject a fresh read as a substitute;
+and never claim that process retention satisfies durable Run, recovery, checkpoint
+or numeric-observation capture requirements.
+Losing the process loses this retention guarantee. Runtime evidence verification
+and backend execution support are separate from static derivation and registration.
 
 <a id="stage-execution"></a>
 
@@ -247,6 +362,7 @@ not a separate ProgramRun/StageExecution state machine. Graph activation,
 shared context, commit scopes and recovery ownership use the pinned narrow
 graph law; this owner retains single-Run admission and execution.
 
+<!-- requirement-block: stage-execution.product-2e6789533bf2 stage-execution.product-ae166d3d086d -->
 Each activated unit MUST verify its concrete local parameter/import projection,
 contract closure, producer authority, policy, limits and current authorization.
 Graph-wide static checking does not waive this admission. Preflight failure
@@ -273,6 +389,7 @@ not implicit success, automatic compensation or unrestricted cursor movement.
 
 ### Numeric observation capture
 
+<!-- requirement-block: numeric-observation.product-1821bc23c5d0 -->
 The closed binary64 sum/avg boundary in Language applies equally to local and
 remote placement. Its adopted values MUST be durably captured before consumers
 or Effect Preview. Replay reads the exact observation and issues no aggregate

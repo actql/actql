@@ -19,6 +19,7 @@ import {
   "actql/actql/stage_results",
   "actql/actql/relation_results" @results,
   "actql/actql/relation_join_shape" @join,
+  "actql/actql/relation_typing" @relation,
 }
 
 import {

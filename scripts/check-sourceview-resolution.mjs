@@ -74,6 +74,8 @@ for(const c of [...corpus.cases,...keyed.cases.map(c=>({...keyed.defaults,...c})
     assert.ok(!c.error);
     lines.push('', '///|',`test ${JSON.stringify('SourceView consumer corpus: '+c.id)} {`,
       `  check_pipeline_uses_fixture(${JSON.stringify(canonicalText(env))}, ${JSON.stringify(env.evidence_bundle_cid)}, ${JSON.stringify(JSON.stringify(c.input))})`, '}');
+    lines.push('///|', `test "query acquisition boundary ${c.id}" {`,
+      `  check_query_acquisition_fixture(${JSON.stringify(canonicalText(env))}, ${JSON.stringify(env.evidence_bundle_cid)}, ${JSON.stringify(JSON.stringify(c.input))})`, '}');
   }
   if(c.keyed_outcome){
     assert.ok(!c.error&&['accepted','MissingCorrelation','CorrelationField','UnknownField','MissingField','Literal','IncompatibleParameter','IncompatibleBinding'].includes(c.keyed_outcome));

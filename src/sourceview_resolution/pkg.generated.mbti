@@ -9,6 +9,7 @@ import {
   "actql/actql/parameter_binding",
   "actql/actql/pipeline_typing",
   "actql/actql/relation_join_shape",
+  "actql/actql/relation_typing",
   "actql/actql/source_request_slots",
   "actql/actql/sourceview_input",
   "actql/actql/stage_parameters",
@@ -60,6 +61,8 @@ pub fn completion_rule(ResolvedInput) -> String?
 pub fn count(Resolved) -> Int
 
 pub fn declaration(ResolvedInput) -> @sourceview_input.Declaration
+
+pub fn derive_query_acquisition(PipelineRequests, Int, Int) -> Result[QueryAcquisition, QueryAcquisitionIssue]
 
 pub fn direct_request_bindings(ParameterizedRequest, Int, Int) -> Result[RequestBindings, RequestBindingsIssue]
 
@@ -226,6 +229,30 @@ pub fn prepare_pipeline_inputs(Resolved, Int) -> Result[PipelineInputs, Pipeline
 pub fn prepare_request_parameters(RequestContext, @parameter_binding.BoundValues, Int) -> Result[RequestParameters, RequestParameterIssue]
 
 pub fn prepare_requests(Resolved, @source_request_slots.Slots, Int) -> Result[RequestContext, RequestIssue]
+
+pub fn query_acquisition_capture(QueryAcquisition) -> @pipeline_typing.Target
+
+pub fn query_acquisition_contract_cid() -> String
+
+pub fn query_acquisition_filter(QueryAcquisition) -> @relation_typing.CheckedOperation
+
+pub fn query_acquisition_filter_index(QueryAcquisition) -> Int
+
+pub fn query_acquisition_input(QueryAcquisition) -> @pipeline_typing.Target
+
+pub fn query_acquisition_owner(QueryAcquisition) -> PipelineRequests
+
+pub fn query_acquisition_pipeline(QueryAcquisition) -> @pipeline_typing.CheckedPipeline
+
+pub fn query_acquisition_requirement_at(QueryAcquisition, Int) -> QueryAcquisitionRequirement?
+
+pub fn query_acquisition_requirement_count(QueryAcquisition) -> Int
+
+pub fn query_acquisition_select(QueryAcquisition) -> @relation_typing.CheckedOperation
+
+pub fn query_acquisition_source_index(QueryAcquisition) -> Int
+
+pub fn query_acquisition_work(QueryAcquisition) -> Int
 
 pub fn request_binding_at(RequestBindings, Int) -> ParameterizedRequestField?
 
@@ -456,6 +483,26 @@ pub(all) enum PipelineIssue {
 type PipelineRequests
 
 type PipelineUses
+
+type QueryAcquisition
+
+pub(all) enum QueryAcquisitionIssue {
+  InvalidLimits
+  WorkLimit
+  UnsupportedShape
+  UnboundRequest
+} derive(Eq, @debug.Debug)
+
+pub(all) enum QueryAcquisitionRequirement {
+  SourceAuthorityAndPolicy
+  WholeScanAdmission
+  CheckedExpressionDemand
+  OutputContract
+  LogicalLimits
+  PhysicalLimits
+  CompleteSourceCoverage
+  ImmutableProcessCapture
+} derive(Eq, @debug.Debug)
 
 type RequestBindings
 

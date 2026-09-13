@@ -157,6 +157,61 @@
       }
     },
     {
+      "requirement_id": "actql.execution/query-acquisition.derivation",
+      "statement_sha256": "64b3208cf1b97ec0b6c6992a97f44eebb1a62e81e4e4b2fb1a0bd0d71ed1225c",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "query-acquisition",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.execution/query-acquisition.admission",
+      "statement_sha256": "d3cf8eb66c5c81e742f744e64a5f1020420fdd0ce979ae6eff510fd96028d400",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "query-acquisition",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.execution/query-acquisition.limits",
+      "statement_sha256": "32c6c30a2438a0f763e1731de06e74d9700d590b77348d73f046d025e2721afc",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "query-acquisition",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.execution/query-acquisition.binding",
+      "statement_sha256": "4de5abd4e51494720f9e8ce41f07df7d5b2b5398810fe60abf87b86fa88941ee",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "query-acquisition",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.execution/query-acquisition.retention",
+      "statement_sha256": "f14cc03083c9b1f503ce9d12a63316dd515790dcfb90a41c8d15ac99339f50a8",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "query-acquisition",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.execution/stage-execution.product-2e6789533bf2",
       "statement_sha256": "a074cb52e088a49ad482c296874f15cb8298967e160a49ec7345cc16f00a51de",
       "status": "pending",
