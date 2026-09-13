@@ -16,6 +16,27 @@ function canonical(value) {
 }
 const cid = (value) => `sha256:${createHash('sha256').update(JSON.stringify(canonical(value))).digest('hex')}`;
 
+test('ordinary group subjects distinguish calls, steps and measurement scopes', () => {
+  const corpus = read('../portability/corpus/group-limit-subjects.json');
+  const subjects = new Set();
+  for (const v of corpus.cases) {
+    const token = v.aggregate_name.replaceAll('~', '~0').replaceAll('/', '~1');
+    const actual = `unit:${v.unit_definition_cid}#/steps/${v.step}/group/aggregates/${token}/${v.scope}`;
+    assert.equal(actual, v.expected_subject);
+    assert.ok(!subjects.has(actual));
+    subjects.add(actual);
+    assert.notEqual(actual, actual.replace(v.unit_definition_cid, 'sha256:' + '1'.repeat(64)));
+    const proof = {version:'actql-bound-proof/0.1', semantic_ref:actual,
+      law_id:'actql.bound.array-aggregate-input', unit:'array_items', value:3,
+      inputs:['sha256:' + '2'.repeat(64)]};
+    // A new scope requires a new proof identity, even with the same numerical bound.
+    if (v.scope === 'items') {
+      assert.equal(cid(proof), v.expected_proof_cid);
+      assert.notEqual(cid(proof), cid({...proof, semantic_ref:actual.replace(/items$/, 'bytes')}));
+    }
+  }
+});
+
 test('Graph input preflight has Unit-scoped limit and enforced witness identities', () => {
   const corpus = read('../portability/corpus/unit-graph-input-proofs.json');
   for (const vector of corpus.cases) {

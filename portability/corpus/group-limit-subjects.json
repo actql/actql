@@ -1,0 +1,50 @@
+{
+  "version": "actql-group-limit-subject-vectors/0.1",
+  "description": "Synthetic Unit namespaces, not admitted Unit definitions or executable proofs.",
+  "cases": [
+    {
+      "id": "plain",
+      "unit_definition_cid": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+      "step": 0,
+      "aggregate_name": "items",
+      "scope": "items",
+      "expected_subject": "unit:sha256:0000000000000000000000000000000000000000000000000000000000000000#/steps/0/group/aggregates/items/items",
+      "expected_proof_cid": "sha256:acd6e3a05ac6642cd6061f0771579dc48bf78311e28597c87f3a71937356a8c0"
+    },
+    {
+      "id": "escaped",
+      "unit_definition_cid": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+      "step": 0,
+      "aggregate_name": "a~/b",
+      "scope": "items",
+      "expected_subject": "unit:sha256:0000000000000000000000000000000000000000000000000000000000000000#/steps/0/group/aggregates/a~0~1b/items",
+      "expected_proof_cid": "sha256:6d9da01d47372fef1ceea9913af5ce4c28ac2278b401abff296cf62a89a89410"
+    },
+    {
+      "id": "sibling",
+      "unit_definition_cid": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+      "step": 0,
+      "aggregate_name": "other",
+      "scope": "items",
+      "expected_subject": "unit:sha256:0000000000000000000000000000000000000000000000000000000000000000#/steps/0/group/aggregates/other/items",
+      "expected_proof_cid": "sha256:c0a713e27ee3ca20512b92c5b77262d7e30e859729c164821141732fcf0150e2"
+    },
+    {
+      "id": "later-step",
+      "unit_definition_cid": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+      "step": 1,
+      "aggregate_name": "items",
+      "scope": "items",
+      "expected_subject": "unit:sha256:0000000000000000000000000000000000000000000000000000000000000000#/steps/1/group/aggregates/items/items",
+      "expected_proof_cid": "sha256:8ff418a059b554d223eb113b3a13c7bc9f5c1066c0b4c45f6f845382b4adcb6f"
+    },
+    {
+      "id": "string",
+      "unit_definition_cid": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+      "step": 0,
+      "aggregate_name": "items",
+      "scope": "bytes",
+      "expected_subject": "unit:sha256:0000000000000000000000000000000000000000000000000000000000000000#/steps/0/group/aggregates/items/bytes"
+    }
+  ]
+}

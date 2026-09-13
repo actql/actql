@@ -7979,6 +7979,34 @@ retain their producer Unit reference rather than acquiring the consumer's
 namespace. This conversion preserves law, quantity, value and all prerequisite
 checks; it does not establish runtime truth or backend support.
 
+<!-- requirement-block: resolved-limits.unit-group-aggregate-subject resolved-limits.unit-group-aggregate-correspondence resolved-limits.unit-group-aggregate-scope-isolation -->
+An ordinary `group` aggregate's persistent resolved limit MUST use
+`unit:<unit_definition_cid>#/steps/<ordinal>/group/aggregates/<name_token>/<scope>`
+as its `subject_ref`. The ordinal identifies the actual authored step in the
+owning Unit, and `name_token` is its canonical aggregate output name escaped
+as one JSON Pointer token (`~` to `~0`, then `/` to `~1`). Scope `items` applies
+only to `array_agg` with quantity `array_items`; scope `bytes` applies only to
+`string_agg` with quantity `bytes`, measuring the specified UTF-8 result. The
+scope is not an array of all groups, the input row list, or artifact wire bytes.
+Validation MUST bind the limit to that exact checked call, effective Parameter
+bindings, selected policy and applicable input proofs. Equal maxima, input
+types or expression bodies do not permit substituting another occurrence.
+This reference does not authorize truncation or replace atomic enforcement.
+Window groups, pivot and analytic calls retain their separate surrounding scopes;
+they MUST NOT masquerade as an ordinary group occurrence.
+
+<!-- requirement-block: resolved-limits.unit-array-aggregate-input-proof resolved-limits.unit-array-aggregate-input-dependencies resolved-limits.unit-array-aggregate-input-reidentification resolved-limits.unit-array-aggregate-input-no-relabeling -->
+An `actql.bound.array-aggregate-input` proof MUST use the same `items` reference
+as its `semantic_ref`, quantity `array_items`, and the complete canonical proof
+preimage defined above. Its input is the persistent witness for an applicable
+upper bound on that group's actual input rows, and its value equals that bound.
+Filter, NULL exclusion and distinct cannot increase the contributed item count.
+The proof bounds each group's array, not the number of groups or total retained
+array items across groups. It MUST preserve the input proof's dependencies and
+required checks. Conversion MUST rebuild dependent identities; a `rows` witness
+MUST NOT be relabeled as an `array_items` witness. This proof does not establish
+observed counts or discharge the aggregate's order and value-admission obligations.
+
 <!-- requirement-block: resolved-limits.unit-graph-input-subject resolved-limits.unit-graph-input-enforced-proof -->
 A persistent Graph input preflight limit MUST use
 `unit:<unit_definition_cid>#/inputs/<input_name_token>/<measure>` as its

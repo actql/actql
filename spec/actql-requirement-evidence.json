@@ -7043,6 +7043,83 @@
       }
     },
     {
+      "requirement_id": "actql.language/resolved-limits.unit-group-aggregate-subject",
+      "statement_sha256": "33f878f898f709e4896793cd3cf1636ea0afbf700870d371d092f465f399030d",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "resolved-limits",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/resolved-limits.unit-group-aggregate-correspondence",
+      "statement_sha256": "4a4fb7c42ec0dbb3baa2cf9ded178a72e7a46d3e5bda2f926d6dcb3f635c7137",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "resolved-limits",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/resolved-limits.unit-group-aggregate-scope-isolation",
+      "statement_sha256": "fa8a2f7ad3d867947bc3cebe5f38573d5b10a5a9a898e788e5f45adf45465b5f",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "resolved-limits",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/resolved-limits.unit-array-aggregate-input-proof",
+      "statement_sha256": "8d47bae17801fd709b734121de7bed06f3cdeb64ee60068bbb324e590676049c",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "resolved-limits",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/resolved-limits.unit-array-aggregate-input-dependencies",
+      "statement_sha256": "05fa31440f78f8c9c0173ced95bf6650b9b49b255c90ecfa09576ad6258f06a0",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "resolved-limits",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/resolved-limits.unit-array-aggregate-input-reidentification",
+      "statement_sha256": "158885c5cae79925fe51af270aff49cb389f691f02c3470c7b52d73ac99da327",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "resolved-limits",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/resolved-limits.unit-array-aggregate-input-no-relabeling",
+      "statement_sha256": "ea8846224b2342a6efc9a2c9970818649728792287df7c6649f260492787d98c",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "resolved-limits",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.language/resolved-limits.unit-graph-input-subject",
       "statement_sha256": "1c7ecb523d39cdb5987464a9d1ef434dac86ce0c0bd8e0f475fd319171c4c64c",
       "status": "pending",

@@ -105,6 +105,16 @@ because another group with only exact scalar calls succeeds.
 
 ## Reference compatibility
 
+Persistent ordinary-group limits use the Unit/step/aggregate-name/scoped
+references defined in [resolved limits](../spec/language.md#resolved-limits).
+This fixes a formerly unspecified subscope, distinct from an operation's whole
+output. Sketch at `87dc7144` uses `array_agg:<Program path>.<name>` for limits
+and the containing Program path for input-bound proofs. Those strings are not
+portable Unit identities and cannot be copied into the persistent representation.
+The scoped form distinguishes sibling aggregates and item/byte quantities even
+when their numeric limits coincide. Generic witness schemas remain unchanged;
+semantic admission must verify the referenced call and its dependencies.
+
 The fixed Sketch implementation supplies the original seven signatures but
 not the complete ordered/statistical vocabulary. Its shorthand aggregate forms
 are not the closed authored grammar. Some reference paths impose a shared
