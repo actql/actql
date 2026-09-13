@@ -35,6 +35,7 @@ pub(all) enum FixedComputeIssue {
   Cost(@cost.CostIssue)
   Compilation(@duckdb.NativeQueryIssue)
   Execution(@execution.SequenceRunIssue)
+  Guard(@execution.FixedInputGuardIssue)
 }
 
 ///|

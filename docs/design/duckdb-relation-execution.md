@@ -105,6 +105,12 @@ Local preparation must have that exact consumer owner; the Local execution
 operation delegates to the existing producer admission and sequence driver with
 no supplied source inputs, preserving fragment limits and failure atomicity.
 Each retry obtains a new execution budget without changing its completed input.
+Local execution additionally enforces the request's common capacity using the
+engine's fixed-producer guard operation. A separate physical measurement ledger
+spans all input top-level values, root-ceiling preparation and final output
+values. Root constraints are applied within the existing evaluator, not by
+replaying expressions. The producer remains immutable and uses ordinary receiving
+admission; measurement does not replace that admission or discount fragment work.
 
 DuckDB preparation compiles an isolated temporary-table import and restricted
 filter/select for the same retained input. The common comparison includes setup,

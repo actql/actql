@@ -29,13 +29,33 @@ pub fn execute_local_fixed_compute(
   choice : FixedComputeChoice,
   prepared : PreparedCompute[@execution.GeneratedSequence],
   limits : @execution.SequenceExecutionLimits,
+  measurement~ : @execution.FixedInputGuardMeasureLimits,
 ) -> Result[@execution.CompletedSequence, FixedComputeIssue] {
   guard fixed_compute_choice_payload(choice, prepared) is Some(sequence) else {
     return Err(NotSelected)
   }
-  @execution.execute_fixed_producer_input(
+  let request = prepared.candidate.request
+  let pipeline = @lower.pipeline(
+    @lower.bound_preparation(@execution.producer_read_receiver(request.input)),
+  )
+  let count = @pipeline.step_count(pipeline)
+  let target : @pipeline.Target = if count == 0 {
+    Input(0)
+  } else {
+    Step(count - 1)
+  }
+  @execution.execute_fixed_producer_guarded(
     sequence,
-    prepared.candidate.request.input,
+    request.input,
+    target,
     limits,
-  ).map_err(issue => Execution(issue))
+    max_rows=request.capacity.max_rows,
+    max_value_bytes=request.capacity.max_value_bytes,
+    measurement,
+  ).map_err(issue => {
+    match issue {
+      Execution(failure) => FixedComputeIssue::Execution(failure)
+      _ => Guard(issue)
+    }
+  })
 }

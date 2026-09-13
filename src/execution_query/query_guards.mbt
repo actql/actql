@@ -88,6 +88,9 @@ pub fn execute_query_receipt_guarded(
           InvalidLayout => InvalidLayout
           Execution(issue) => Execution(QuerySequenceIssue::Execution(issue))
           OutputRows => OutputRows
+          // Acquisition does not apply the fixed-Compute input-row ceiling.
+          // This variant cannot be emitted by execute_fixed_input_guarded.
+          InputRows => InvalidLayout
           MissingOutput => MissingOutput
         },
       )

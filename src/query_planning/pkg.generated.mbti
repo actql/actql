@@ -148,7 +148,7 @@ pub fn execute_duckdb_broad_attempt(DuckDBBroadAttempt, @execution_relation.Sequ
 
 pub fn execute_duckdb_broad_residual(DuckDBQueryPreparation, @execution_relation.CapturedRows, @execution_relation.SequenceExecutionLimits, @execution_query.QueryGuardMeasureLimits) -> Result[(@execution_relation.CompletedSequence, (Int, Int, Int)), @execution_query.QueryGuardIssue]
 
-pub fn execute_local_fixed_compute(FixedComputeChoice, PreparedCompute[@execution_relation.GeneratedSequence], @execution_relation.SequenceExecutionLimits) -> Result[@execution_relation.CompletedSequence, FixedComputeIssue]
+pub fn execute_local_fixed_compute(FixedComputeChoice, PreparedCompute[@execution_relation.GeneratedSequence], @execution_relation.SequenceExecutionLimits, measurement~ : @execution_relation.FixedInputGuardMeasureLimits) -> Result[@execution_relation.CompletedSequence, FixedComputeIssue]
 
 pub fn execute_mock_query(MockQueryAttempt, MockQueryLimits, guard_measure? : @execution_query.QueryGuardMeasureLimits?) -> Result[MockQueryComputation, MockQueryIssue]
 
@@ -496,6 +496,7 @@ pub(all) enum FixedComputeIssue {
   Cost(@physical_cost.CostIssue)
   Compilation(@duckdb_adapter.NativeQueryIssue)
   Execution(@execution_relation.SequenceRunIssue)
+  Guard(@execution_relation.FixedInputGuardIssue)
 }
 
 type FixedComputeRequest

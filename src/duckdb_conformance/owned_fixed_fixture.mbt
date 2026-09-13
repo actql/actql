@@ -253,6 +253,7 @@ pub fn owned_fixed_local_cid(value : OwnedFixedFixture) -> String {
       value.local_choice,
       value.local_binding,
       issued_execution_limits(100),
+      measurement=issued_native_measure_limits(),
     )
     is Ok(completed) else {
     return "null"

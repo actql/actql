@@ -83,6 +83,8 @@ pub fn emit_ordered_params(OrderedParams, @encode_core.Writer) -> Unit raise @en
 
 pub fn execute_fixed_input_guarded(GeneratedSequence, CapturedRows, @pipeline_typing.Target, SequenceExecutionLimits, max_output_rows~ : Int, max_value_bytes~ : Int, record_values? : Bool, FixedInputGuardMeasureLimits) -> Result[(CompletedSequence, (Int, Int, Int)), FixedInputGuardIssue]
 
+pub fn execute_fixed_producer_guarded(GeneratedSequence, ProducerRead, @pipeline_typing.Target, SequenceExecutionLimits, max_rows~ : Int, max_value_bytes~ : Int, FixedInputGuardMeasureLimits) -> Result[CompletedSequence, FixedInputGuardIssue]
+
 pub fn execute_fixed_producer_input(GeneratedSequence, ProducerRead, SequenceExecutionLimits) -> Result[CompletedSequence, SequenceRunIssue]
 
 pub fn execute_generated_sequence(GeneratedSequence, Array[CapturedRows], SequenceExecutionLimits, produced? : Array[BoundProducerInput]) -> Result[CompletedSequence, SequenceRunIssue]
@@ -225,6 +227,7 @@ pub(all) enum FixedInputGuardIssue {
   ValueBytes(FixedInputGuardPhase, Int, Int)
   InvalidLayout
   Execution(SequenceRunIssue)
+  InputRows
   OutputRows
   MissingOutput
 }

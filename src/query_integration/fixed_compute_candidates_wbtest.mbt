@@ -100,6 +100,73 @@ test "registered fixed Compute candidates keep the same capture and Local execut
     100,
   ).unwrap()
   let local_candidate = @planning.prepared_compute_candidate(local_binding)
+  for ceiling in [0, 4, 5] {
+    let guarded_request = @planning.prepare_fixed_compute_request(input, {
+      ..capacity,
+      max_value_bytes: ceiling,
+    }).unwrap()
+    let guarded = @planning.local_fixed_compute_candidate(
+      local_registration, guarded_request, generated, local_estimate, quantities,
+      100,
+    ).unwrap()
+    guard @planning.choose_fixed_compute_candidate(
+        registry,
+        guarded_request,
+        [@planning.prepared_compute_candidate(guarded)],
+        None,
+        100,
+      ).unwrap()
+      is Proposed(guarded_choice) else {
+      abort("guarded Local")
+    }
+    let run = @planning.execute_local_fixed_compute(
+      guarded_choice,
+      guarded,
+      compute_test_limits(),
+      measurement={
+        max_work: 10000,
+        max_bytes: 3,
+        max_nodes: 3,
+        max_depth: 100,
+      },
+    )
+    match ceiling {
+      0 => assert_true(run is Err(Guard(ValueBytes(InputValues, 0, 0))))
+      4 => assert_true(run is Err(Execution(_))) // false root needs five bytes
+      _ => {
+        assert_true(run is Ok(_))
+        // The same ledger spans input and output, with no reset at execution.
+        assert_true(
+          @planning.execute_local_fixed_compute(
+            guarded_choice,
+            guarded,
+            compute_test_limits(),
+            measurement={
+              max_work: 10000,
+              max_bytes: 2,
+              max_nodes: 3,
+              max_depth: 100,
+            },
+          )
+          is Err(Guard(Measurement(Output, 0, 0, _))),
+        )
+        assert_true(
+          @planning.execute_local_fixed_compute(
+            guarded_choice,
+            guarded,
+            compute_test_limits(),
+            measurement={
+              max_work: 10000,
+              max_bytes: 3,
+              max_nodes: 2,
+              max_depth: 100,
+            },
+          )
+          is Err(Guard(Measurement(Output, 0, 0, _))),
+        )
+      }
+    }
+  }
   let duckdb_candidate = @planning.prepared_compute_candidate(duckdb_binding)
   guard @planning.choose_fixed_compute_candidate(
       registry,
@@ -118,10 +185,17 @@ test "registered fixed Compute candidates keep the same capture and Local execut
     @planning.fixed_compute_choice_payload(choice, duckdb_binding) is None,
   )
   assert_true(
-    @planning.execute_local_fixed_compute(choice, local_binding, {
-      ..compute_test_limits(),
-      rows: { ..run_limits(), max_rows: 0, },
-    })
+    @planning.execute_local_fixed_compute(
+      choice,
+      local_binding,
+      { ..compute_test_limits(), rows: { ..run_limits(), max_rows: 0, }, },
+      measurement={
+        max_work: 10000,
+        max_bytes: 100000,
+        max_nodes: 10000,
+        max_depth: 100,
+      },
+    )
     is Err(Execution(_)),
   )
   // Receiving failure does not consume the retained upstream or reset its identity.
@@ -130,6 +204,12 @@ test "registered fixed Compute candidates keep the same capture and Local execut
       choice,
       local_binding,
       compute_test_limits(),
+      measurement={
+        max_work: 10000,
+        max_bytes: 100000,
+        max_nodes: 10000,
+        max_depth: 100,
+      },
     ).unwrap()
     let output = @execution.completed_output(completed, @pipeline.Step(1)).unwrap()
     assert_eq(@execution.completed_row_count(output), 1)
@@ -173,6 +253,12 @@ test "registered fixed Compute candidates keep the same capture and Local execut
       native_choice,
       local_binding,
       compute_test_limits(),
+      measurement={
+        max_work: 10000,
+        max_bytes: 100000,
+        max_nodes: 10000,
+        max_depth: 100,
+      },
     )
     is Err(NotSelected),
   )
@@ -245,6 +331,12 @@ test "registered fixed Compute candidates keep the same capture and Local execut
       choice,
       local_binding,
       compute_test_limits(),
+      measurement={
+        max_work: 10000,
+        max_bytes: 100000,
+        max_nodes: 10000,
+        max_depth: 100,
+      },
     )
     is Err(NotSelected),
   )

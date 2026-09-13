@@ -141,6 +141,10 @@ An input row overflow fails even if the planned filter would remove every row.
 Native candidates reject a selected common fragment until exact fragment
 accounting is supported; they do not reinterpret it as Local-only.
 This preparation is not itself a proof that all value/root guards have run.
+`execute_local_fixed_compute` requires a separate `measurement` budget and
+enforces common input/output value limits and demanded root ceilings through
+the existing evaluator. Its measurement budget is cumulative across input and
+output; retries supply a fresh budget without resetting the retained input.
 `local_fixed_compute_candidate` and
 `duckdb_fixed_compute_candidate` use Compute-enabled registrations from the same
 registry, and `choose_fixed_compute_candidate` compares their complete inventories.

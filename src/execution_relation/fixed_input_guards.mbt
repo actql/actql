@@ -23,6 +23,7 @@ pub(all) enum FixedInputGuardIssue {
   ValueBytes(FixedInputGuardPhase, Int, Int)
   InvalidLayout
   Execution(SequenceRunIssue)
+  InputRows
   OutputRows
   MissingOutput
 }
@@ -33,6 +34,30 @@ priv struct FixedInputGuardBudget {
   mut bytes : Int
   mut nodes : Int
   depth : Int
+}
+
+///|
+fn constrain_guard_roots(
+  original : GeneratedSequence,
+  ceiling : Int,
+  all_roots : Bool,
+  budget : FixedInputGuardBudget,
+) -> Result[GeneratedSequence, FixedInputGuardIssue] {
+  if original.contexts.length() > budget.work {
+    return Err(MeasurementWork)
+  }
+  budget.work -= original.contexts.length()
+  let contexts = original.contexts.map(context => {
+    ..context,
+    all_expression_roots: context.all_expression_roots || all_roots,
+    root_result_bytes: Some(
+      match context.root_result_bytes {
+        Some(prior) => Int64::min(prior, ceiling.to_int64())
+        None => ceiling.to_int64()
+      },
+    ),
+  })
+  Ok(GeneratedSequence::{ ..original, contexts, })
 }
 
 ///|
@@ -186,21 +211,11 @@ pub fn execute_fixed_input_guarded(
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
-  if original.contexts.length() > budget.work {
-    return Err(MeasurementWork)
+  let generated = match
+    constrain_guard_roots(original, max_value_bytes, record_values, budget) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
   }
-  budget.work -= original.contexts.length()
-  let contexts = original.contexts.map(context => {
-    ..context,
-    all_expression_roots: context.all_expression_roots || record_values,
-    root_result_bytes: Some(
-      match context.root_result_bytes {
-        Some(prior) => Int64::min(prior, max_value_bytes.to_int64())
-        None => max_value_bytes.to_int64()
-      },
-    ),
-  })
-  let generated = GeneratedSequence::{ ..original, contexts, }
   let completed = match
     execute_generated_sequence(generated, [input], execution) {
     Ok(value) => value
