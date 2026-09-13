@@ -233,3 +233,81 @@ checkpoint, not completion: broader typed-path NULL/empty-schema, ownership,
 late-failure, lifetime and resource-boundary regressions remain, followed by the
 single authorized post-boundary diagnostic. Historical performance evidence
 and its failed/uncertain gate status are unchanged.
+
+## Final boundary audit
+
+The authorized completion/producer increment is complete. Product changes are
+in `853ded0`, with the typed product connection in `43408be` and boundary
+regressions in `90f8361`, `111ca2c` and `81105aa` (immutable-buffer test).
+The earlier checkpoints above are historical, not outstanding work.
+
+The limited typed derive enters the actual successful driver constructor,
+`CompletedSequence` / `CompletedOutput`, `bind_completed_input`, product
+producer admission, checked select and stable sort, and product completion.
+Numeric buffers remain numeric through that supported connection. Ordinary
+row inputs still use the default row path. Non-projection expression consumers
+use the existing bounded row-output builder, selected before execution, without
+retrying failures through another representation.
+
+Evidence is concentrated in these execution-package whitebox tests:
+
+- `completed_connection_wbtest.mbt`: widths 1/7/1000, product ownership and
+  connection, projected buffers and stable selection, fresh consumer budgets.
+- `completed_empty_wbtest.mbt`: nullable/all-NULL data, empty input, duplicate
+  rows, column order, and lawful zero-column/nonzero-row explicit input.
+- `completed_parameter_wbtest.mbt`: real Parameter bindings, wrong target,
+  producer failure and output-budget rejection before successful completion.
+- `completed_failure_wbtest.mbt`: later-row failure without a completion,
+  bounded row conversion, sibling consumer independence and upstream reuse.
+- `completed_budget_wbtest.mbt`: independently fixed cumulative input/output,
+  retention and operation limits, each one below the successful frontier;
+  adversarial mutation of original input and transient builder buffers after
+  sealing cannot alter either product output or its downstream consumer.
+- `completed_storage_wbtest.mbt`: full backing-capacity accounting through a
+  smaller selection and explicit private row-only test views.
+
+The public API remains opaque and unchanged; no public disposal or mutable
+buffer access was introduced. Upstream completion anchors preserve ownership
+after user handles leave scope. Completion/storage/admission contain no
+`ExpressionFrame` or stop/resume dependency. Typing, lowering and shared
+contracts/pins were not changed by this increment.
+
+The single authorized diagnostic is recorded in
+[Post-boundary diagnostic](COMPLETION-PERFORMANCE.md). Its measured candidate is
+`2e913f2`; subsequent changes are tests and reports, not product implementation.
+All 224 samples and the independent audit completed. Possible regression
+growth and uncertainty remain; this is not a performance gate pass. There was
+no further optimization, rollback or repeated comparison. The accepted
+`f025ce4` record and old baselines remain intact. Comparison revisions share
+the frozen main base `7b655eb`; main's independent ongoing work was not changed.
+
+### Remaining limits and future change cost
+
+The alternative derive kernel is test-only and supports a limited expression
+set. The product alternate storage is numeric/validity buffers, not arbitrary
+typed columns. Projection may create a temporary single row; this is not a
+boxing-free or generally vectorized engine. Sealing copies typed buffers under
+limits rather than promising zero-copy input.
+
+Another storage representation needs its private reader/metadata adapter,
+capacity reservation and representation dispatch; a specialized output kernel
+needs its bounded builder/selection adapter. Success ownership and producer
+checks do not need a new evidence model for those changes. This is the initial
+shared boundary, not a proof that arbitrary future kernels require no changes.
+Broader scheduling, join/group/window, spill and parallel execution remain
+separate work. Arrow, SDKs and Program/Run/Host/publication remain outside scope.
+
+Physical capacity is conservatively counted per retained handle, separately
+from logical occurrences and process RSS. Sharing does not discount logical
+input validation or charging, and reference release is not an immediate-GC
+guarantee. The default storage remains rows. No further expansion is authorized
+by this report.
+
+### Final verification
+
+Whole-repository `moon check` and `moon test` passed on JS, Wasm and native
+with `--deny-warn`: 3,378 tests per target. Tracked public interfaces match
+across targets; format, values-vector freshness, documentation and metadata
+checks passed. The revision-overlay/statistics/auditor tests passed (14 tests).
+No Linux CI was run. No push or merge was performed. Local measurement
+worktrees and raw artifacts remain ignored and are not part of the commits.
