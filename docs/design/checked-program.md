@@ -223,8 +223,15 @@ Literal duplicate identities and empty inputs do not discharge runtime admission
 Invalid bound gaps prevent the complete Program result, including when an earlier
 Stage was otherwise valid. Static success does not attest unique event IDs,
 successful session assignment, output usage or backend resource enforcement.
-Event windows and sequence operations still require their own formal closure;
-admitting these operations does not enable unrelated temporal paths.
+Fixed and sliding Event windows use the same owned membership-limit and
+publication closure as Relation windows, with the temporal output ceiling.
+Their persistent limits identify the actual producer Unit/window occurrence;
+input proof graphs are retained through Event conversion and Result imports.
+The explicit `events` projection preserves membership roles and conditional
+keys. Dropping a sliding start component loses the composite key and window
+role, not the retained occurrence order or the original producer's checks.
+Sequence operations still require their own formal closure; admitting these
+operations does not enable unrelated temporal paths.
 
 Interval join closes endpoint admission, clock admission and occurrence order
 separately from output capacity and search work. Its bounded-search path requires

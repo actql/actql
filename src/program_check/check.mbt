@@ -69,6 +69,7 @@ fn check_supported_source(
               | "unpivot"
               | "analytic"
               | "row_window"
+              | "window_events"
               | "window_group"
               | "watermark_rows"
               | "append"
