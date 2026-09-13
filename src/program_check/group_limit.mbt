@@ -142,6 +142,7 @@ fn assemble_aggregate_limit_claim(
   maximum : Int64,
   unit : String,
   budget : IdentityBudget,
+  preserve_candidate_occurrences? : Bool = false,
 ) -> @wire.LimitClaim raise UnitBuildFailure {
   let max_depth = budget.depth
   identity_sort(candidates, budget)
@@ -200,7 +201,7 @@ fn assemble_aggregate_limit_claim(
       @encode.begin_array(w)
       let mut previous = ""
       for (key, witness) in candidates {
-        if key != previous {
+        if preserve_candidate_occurrences || key != previous {
           @wire.emit(witness, w)
           previous = key
         }

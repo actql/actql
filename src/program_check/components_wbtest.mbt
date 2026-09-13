@@ -140,6 +140,23 @@ test "formal components close their selected capacity through Result imports" {
         let program = programs[0]
         identities.push(unit_definition_cid(program, 0).unwrap())
         assert_eq(unit_count(program), 2)
+        assert_eq(unit_components_limit_count(program, 0), Some(1))
+        assert_eq(unit_components_limit_count(program, 1), Some(0))
+        assert_eq(unit_components_limit_count(program, -1), None)
+        let persistent = unit_components_limit_at(program, 0, 0).unwrap()
+        for
+          (scope, suffix) in [
+            (@step_bounds.InputNodes, "nodes"),
+            (OutputRows, "output"),
+          ] {
+          assert_eq(
+            @wire.limit_subject(components_limit_claim(persistent, scope)),
+            "unit:" +
+            unit_definition_cid(program, 0).unwrap() +
+            "#/steps/3/components/" +
+            suffix,
+          )
+        }
         let operations = @context.stage_requirement_operations(
           requirements(program),
         )

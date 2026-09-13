@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
+import {componentLimitModel} from './components-limit-model.mjs';
 
 const read = (path) => JSON.parse(readFileSync(new URL(path, import.meta.url), 'utf8'));
 const vectors = read('../portability/corpus/publication-limit-subjects.json');
@@ -15,6 +16,34 @@ function canonical(value) {
   return value;
 }
 const cid = (value) => `sha256:${createHash('sha256').update(JSON.stringify(canonical(value))).digest('hex')}`;
+
+test('components limits rebuild Unit candidates while retaining Host identity and repetitions', () => {
+  const corpus = read('../portability/corpus/components-limit-subjects.json');
+  for (const v of corpus.cases) {
+    const policy = Object.fromEntries(policyContract.schema.required.filter(k=>k!=='version').map(k=>[k,1000]));
+    Object.assign(policy, {version:'actql-capacity-host-policy/0.1', max_graph_construction_input_rows:1000,
+      max_graph_construction_nodes:1000, max_graph_construction_edges:1000, max_graph_output_rows:v.cap});
+    const {limits,...actual} = componentLimitModel(policy,v.unit,v.rows);
+    const {unit,rows,cap,...expected} = v;
+    assert.deepEqual(actual,expected);
+    assert.equal(limits[0].effective_max, rows);
+    assert.equal(limits[1].effective_max, Math.min(rows,cap));
+    assert.notEqual(actual.limit_cids[0], actual.limit_cids[1]);
+    for(const limit of limits) {
+      assert.notEqual(cid({...limit,subject_ref:'components:checked-step:3'}),cid(limit));
+      assert.notEqual(cid({...limit,enforcement:'unit_preflight'}),cid(limit));
+    }
+    const repeated = componentLimitModel(policy,unit,rows,true);
+    assert.equal(repeated.host_cid,actual.host_cid);
+    assert.equal(repeated.limits[1].effective_max,limits[1].effective_max);
+    assert.equal(repeated.limits[1].candidates.length,3);
+    assert.notEqual(repeated.limit_cids[1],actual.limit_cids[1]);
+    const foreign = componentLimitModel(policy,'sha256:'+'2'.repeat(64),rows);
+    assert.equal(foreign.host_cid,actual.host_cid);
+    assert.notEqual(foreign.limit_cids[0],actual.limit_cids[0]);
+    assert.notEqual(foreign.witness_cids[1],actual.witness_cids[1]);
+  }
+});
 
 test('aggregate author guards use local Definition identities and canonical occurrence locators', () => {
   const corpus = read('../portability/corpus/group-guard-witnesses.json');

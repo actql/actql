@@ -101,6 +101,18 @@ component identity ordering and other execution budgets remain independent.
 An absent capacity application leaves resource resolution incomplete; it is not
 an exemption or a request for the lowerer to infer replacement bounds.
 
+`CheckedProgram` retains a `ComponentsLimit` for each local component operation.
+Its count/index readers return the stored result; they do not redo capacity
+selection or proof traversal. Imported prerequisite visits refer to the original
+producer's Unit. The two canonical claims use the `/components/nodes` and
+`/components/output` Unit-operation subscopes, independently of internal claim
+indices. Candidate proof graphs are reidentified through the existing bounded
+Unit conversion, while Host witnesses keep their identity. Repeated candidate
+occurrences survive sorting by the converted CID; a duplicate does not strengthen
+the minimum. The indexed proof reader retains the converted dependency graphs
+alongside the original selected checks. These canonical claims remain conditional
+execution requirements, not observed Graph counts or execution permission.
+
 The reference implementation's string ID outputs and mandatory resolved graph
 bounds are not authoring rules: typed semantic IDs and optional authored guards
 follow the current Language specification. Backend ID encoding and resolved

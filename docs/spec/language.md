@@ -8113,6 +8113,27 @@ retain their producer Unit reference rather than acquiring the consumer's
 namespace. This conversion preserves law, quantity, value and all prerequisite
 checks; it does not establish runtime truth or backend support.
 
+<!-- requirement-block: resolved-limits.unit-components-subject resolved-limits.unit-components-candidates resolved-limits.unit-components-dependencies -->
+A components operation's persistent resolved limits MUST use
+`unit:<unit_definition_cid>#/steps/<ordinal>/components/nodes` for quantity
+`nodes`, and the same prefix ending in `/components/output` for quantity `rows`.
+Both identify the actual authored operation in its producer Unit and retain
+engine-atomic enforcement. Input-node capacity is not an output-row ceiling,
+and neither limit proves that Graph data admission or component computation has
+completed. The atomic output gate does not permit delaying input-node enforcement
+until after the component algorithm.
+
+Conversion MUST preserve every admitted candidate occurrence, its law, quantity,
+value, prerequisites and selected policy. Program candidates and their dependency
+graphs MUST be rebuilt using the Unit operation proof references above; imported
+dependencies keep their producer Unit. Unchanged Host witnesses keep their CIDs.
+Sort the converted candidate occurrences by their new witness CIDs, without
+deduplication, and rebuild both resolved-limit CIDs from their complete canonical
+bodies without self CIDs. Preserve the effective minima and author-guard status;
+conversion does not add, remove or waive an authored guard. The two limits remain
+outside Unit Definition identity. Equal ordinals or maxima do not make different
+Units or measurement scopes interchangeable.
+
 <!-- requirement-block: resolved-limits.unit-sequence-subject resolved-limits.unit-sequence-correspondence -->
 A sequence's persistent resolved limits MUST use
 `unit:<unit_definition_cid>#/steps/<ordinal>/sequence/matches-per-key` for
