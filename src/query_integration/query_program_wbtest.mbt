@@ -5,7 +5,7 @@
 fn query_program_fixture(
   id? : String = "p",
   supplied? : String = "{\"minimum\":1}",
-) -> (@context.ProgramSourceIdentity, QuerySequence) raise {
+) -> (@context.ProgramSourceIdentity, @query.QuerySequence) raise {
   let text = "{\"version\":\"actql/0.1\",\"id\":\"" +
     id +
     "\",\"params\":{\"minimum\":{\"type\":\"number\",\"nullable\":false}},\"stages\":[{\"id\":\"a\",\"inputs\":{\"remote\":{\"connector\":\"crm/main\",\"resource\":\"r\"}},\"steps\":[{\"filter\":\"id > $minimum\",\"as\":\"filtered\"},{\"select\":[\"id\"],\"as\":\"captured\"}],\"results\":{\"r\":{\"from\":\"captured\",\"fields\":[\"id\"]}}}],\"results\":{\"out\":{\"from\":{\"stage\":\"a\",\"result\":\"r\"}}}}"
@@ -187,7 +187,7 @@ fn query_program_fixture(
   ).unwrap()
   (
     identity,
-    prepare_query_sequence(query, query_generated(bound), 10000).unwrap(),
+    @query.prepare_query_sequence(query, query_generated(bound), 10000).unwrap(),
   )
 }
 

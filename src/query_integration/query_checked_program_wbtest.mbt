@@ -94,7 +94,7 @@ test "query Program reaches the public main checked entry" {
 ///|
 fn query_checked_sequence(
   checked : @program_check.CheckedProgram,
-) -> QuerySequence raise {
+) -> @query.QuerySequence raise {
   let identity = @program_check.source_identity(checked)
   let requests = @context.program_identity_stage_requests(identity, 0).unwrap()
   let query = @acquisition.derive_query_acquisition(requests, 0, 1000000).unwrap()
@@ -122,7 +122,7 @@ fn query_checked_sequence(
     max_parameters=100,
     max_name_bytes=10000,
   ).unwrap()
-  prepare_query_sequence(query, query_generated(bound), 10000).unwrap()
+  @query.prepare_query_sequence(query, query_generated(bound), 10000).unwrap()
 }
 
 ///|
@@ -151,7 +151,7 @@ test "public CheckedProgram feeds both query strategies capture and checked cons
   let issuer = @planning.prepare_mock_query_issuer(
     contracts, requirement, "checked-program-test", 100,
   ).unwrap()
-  let owner = @lower.sequence_owner(sequence.generated.sequence)
+  let owner = @query.query_sequence_owner(sequence)
   let receiver = typed_receiver(owner, "[{\"select\":[\"id\"]}]")
   for route in [@planning.NativeQuery, @planning.BroadWithResidual] {
     let attempt = query_issuer_attempt(issuer, sequence, route)
@@ -169,19 +169,19 @@ test "public CheckedProgram feeds both query strategies capture and checked cons
     let input = @planning.bind_captured_query_input(
       issuer, attempt, observation, receiver, 0, owner,
     ).unwrap()
-    let consumer = prepare_local_compute_attempt(
+    let consumer = @execution.prepare_local_compute_attempt(
       compute_test_sequence(receiver),
       [input],
       3,
     ).unwrap()
-    let complete = execute_local_compute_attempt(
+    let complete = @execution.execute_local_compute_attempt(
       consumer,
       compute_test_limits(),
     ).unwrap()
-    let output = completed_output(complete, Step(0)).unwrap()
-    assert_eq(completed_row_count(output), 2)
-    assert_true(completed_cell(output, 0, 0) is Some(Number(3)))
-    assert_true(completed_cell(output, 1, 0) is Some(Number(2)))
+    let output = @execution.completed_output(complete, Step(0)).unwrap()
+    assert_eq(@execution.completed_row_count(output), 2)
+    assert_true(@execution.completed_cell(output, 0, 0) is Some(Number(3)))
+    assert_true(@execution.completed_cell(output, 1, 0) is Some(Number(2)))
     assert_eq(@program_check.unit_definition_cid(checked, 0).unwrap(), unit_cid)
     assert_eq(@planning.query_requirement_cid(requirement), requirement_cid)
   }

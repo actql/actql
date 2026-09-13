@@ -6,7 +6,7 @@ fn query_capture_limits() -> @planning.QueryEvidenceLimits {
 ///|
 test "native and residual captures feed the ordinary completed-input consumer" {
   let (issuer, sequence) = query_issuer_fixture()
-  let owner = @lower.sequence_owner(sequence.generated.sequence)
+  let owner = @query.query_sequence_owner(sequence)
   let receiver = typed_receiver(owner, "[{\"select\":[\"id\"]}]")
   let generated = compute_test_sequence(receiver)
   let mut prior : String? = None
@@ -98,27 +98,35 @@ test "native and residual captures feed the ordinary completed-input consumer" {
     let bound = @planning.bind_captured_query_input(
       issuer, attempt, observation, receiver, 0, owner,
     ).unwrap()
-    let failure = prepare_local_compute_attempt(generated, [bound], 3).unwrap()
+    let failure = @execution.prepare_local_compute_attempt(
+      generated,
+      [bound],
+      3,
+    ).unwrap()
     let limits = compute_test_limits()
     assert_true(
-      execute_local_compute_attempt(failure, {
+      @execution.execute_local_compute_attempt(failure, {
         ..limits,
         rows: { ..limits.rows, max_rows: 1, },
       })
       is Err(Execution(_)),
     )
-    assert_true(local_compute_result(failure) is Err(Execution(_)))
+    assert_true(@execution.local_compute_result(failure) is Err(Execution(_)))
     // A consumer failure does not invalidate the completed observation or cause
     // a replacement read. Rebind and run with a fresh receiving budget.
     let again = @planning.bind_captured_query_input(
       issuer, attempt, observation, receiver, 0, owner,
     ).unwrap()
-    let success = prepare_local_compute_attempt(generated, [again], 3).unwrap()
-    let result = execute_local_compute_attempt(success, limits).unwrap()
-    let output = completed_output(result, Step(0)).unwrap()
-    assert_eq(completed_row_count(output), 2)
-    assert_true(completed_cell(output, 0, 0) is Some(Number(3)))
-    assert_true(completed_cell(output, 1, 0) is Some(Number(2)))
+    let success = @execution.prepare_local_compute_attempt(
+      generated,
+      [again],
+      3,
+    ).unwrap()
+    let result = @execution.execute_local_compute_attempt(success, limits).unwrap()
+    let output = @execution.completed_output(result, Step(0)).unwrap()
+    assert_eq(@execution.completed_row_count(output), 2)
+    assert_true(@execution.completed_cell(output, 0, 0) is Some(Number(3)))
+    assert_true(@execution.completed_cell(output, 1, 0) is Some(Number(2)))
     assert_eq(@planning.mock_query_observation_cid(observation), cid)
   }
 }
@@ -126,7 +134,7 @@ test "native and residual captures feed the ordinary completed-input consumer" {
 ///|
 test "capture binds exact attempt target and Parameter owner before consumer admission" {
   let (issuer, sequence) = query_issuer_fixture()
-  let owner = @lower.sequence_owner(sequence.generated.sequence)
+  let owner = @query.query_sequence_owner(sequence)
   let first = query_issuer_attempt(issuer, sequence, @planning.NativeQuery)
   let second = query_issuer_attempt(issuer, sequence, @planning.NativeQuery)
   query_issuer_run(first)
@@ -179,7 +187,7 @@ test "capture binds exact attempt target and Parameter owner before consumer adm
     is Err(Consumer(ProducerTargetMismatch)),
   )
   let (_, foreign_sequence) = query_program_fixture(supplied="{\"minimum\":2}")
-  let foreign_owner = @lower.sequence_owner(foreign_sequence.generated.sequence)
+  let foreign_owner = @query.query_sequence_owner(foreign_sequence)
   assert_true(
     @planning.bind_captured_query_input(
       issuer, first, observed, receiver, 0, foreign_owner,

@@ -135,9 +135,9 @@ fn query_sequence_fixture(
 fn query_generated(
   owner : @lower.BoundPrepared,
   retained? : Array[String] = ["select_1"],
-) -> GeneratedSequence raise {
+) -> @execution.GeneratedSequence raise {
   let sequence = prepared_sequence(owner)
-  prepare_generated_sequence(
+  @execution.prepare_generated_sequence(
     registered_relation_contracts(),
     sequence,
     [sequence_fragment_context(sequence, 0, 10L)],
@@ -151,27 +151,31 @@ fn query_generated(
 test "retained query scan is immutable owned input, not completion evidence" {
   let (query, owner) = query_sequence_fixture()
   let generated = query_generated(owner)
-  let prepared = prepare_query_sequence(query, generated, 10000).unwrap()
+  let prepared = @query.prepare_query_sequence(query, generated, 10000).unwrap()
   let rows = [input_cursor("{\"id\":3}"), input_cursor("{\"id\":1}")]
-  let receipt = admit_query_receipt(
+  let receipt = @query.admit_query_receipt(
     prepared,
     rows,
     2,
     run_limits().input_values,
   ).unwrap()
   rows.clear()
-  let scan = query_receipt_rows(receipt)
-  assert_eq(captured_row_count(scan), 2)
+  let scan = @query.query_receipt_rows(receipt)
+  assert_eq(@execution.captured_row_count(scan), 2)
   // Even the discarded row stays available to the trusted full-scan verifier.
-  assert_true(captured_cell(scan, 1, 0) is Some(@admitted.Number(1)))
-  assert_true(physical_equal(captured_owner(scan), owner))
-  let other_preparation = prepare_query_sequence(query, generated, 10000).unwrap()
+  assert_true(@execution.captured_cell(scan, 1, 0) is Some(@admitted.Number(1)))
+  assert_true(physical_equal(@execution.captured_owner(scan), owner))
+  let other_preparation = @query.prepare_query_sequence(query, generated, 10000).unwrap()
   assert_true(
-    execute_query_receipt(other_preparation, receipt, compute_test_limits())
+    @query.execute_query_receipt(
+      other_preparation,
+      receipt,
+      compute_test_limits(),
+    )
     is Err(ForeignReceipt),
   )
   assert_true(
-    execute_query_receipt(prepared, receipt, {
+    @query.execute_query_receipt(prepared, receipt, {
       ..compute_test_limits(),
       max_work: 0,
     })
@@ -179,31 +183,50 @@ test "retained query scan is immutable owned input, not completion evidence" {
   )
   // Failed execution does not consume input or grant a budget credit on retry.
   for _ in 0..<2 {
-    let result = execute_query_receipt(prepared, receipt, compute_test_limits()).unwrap()
-    let output = completed_output(result, Step(1)).unwrap()
-    assert_eq(completed_row_count(output), 1)
-    assert_true(completed_cell(output, 0, 0) is Some(Number(3)))
-    assert_eq(captured_row_count(scan), 2)
+    let result = @query.execute_query_receipt(
+      prepared,
+      receipt,
+      compute_test_limits(),
+    ).unwrap()
+    let output = @execution.completed_output(result, Step(1)).unwrap()
+    assert_eq(@execution.completed_row_count(output), 1)
+    assert_true(@execution.completed_cell(output, 0, 0) is Some(Number(3)))
+    assert_eq(@execution.captured_row_count(scan), 2)
   }
 }
 
 ///|
 test "retained query scan admission preserves full-scan failure and row bounds" {
   let (query, owner) = query_sequence_fixture(filter="1 / (id - id) > 0")
-  let prepared = prepare_query_sequence(query, query_generated(owner), 10000).unwrap()
+  let prepared = @query.prepare_query_sequence(
+    query,
+    query_generated(owner),
+    10000,
+  ).unwrap()
   let rows = [input_cursor("{\"id\":3}"), input_cursor("{\"id\":\"bad\"}")]
   assert_true(
-    admit_query_receipt(prepared, rows, 2, run_limits().input_values)
+    @query.admit_query_receipt(prepared, rows, 2, run_limits().input_values)
     is Err(ReceiptAdmission(InputValue(1, _))),
   )
   assert_true(
-    admit_query_receipt(prepared, rows, 1, run_limits().input_values)
+    @query.admit_query_receipt(prepared, rows, 1, run_limits().input_values)
     is Err(ReceiptAdmission(CaptureLimit)),
   )
-  let empty = admit_query_receipt(prepared, [], 0, run_limits().input_values).unwrap()
-  let completed = execute_query_receipt(prepared, empty, compute_test_limits()).unwrap()
+  let empty = @query.admit_query_receipt(
+    prepared,
+    [],
+    0,
+    run_limits().input_values,
+  ).unwrap()
+  let completed = @query.execute_query_receipt(
+    prepared,
+    empty,
+    compute_test_limits(),
+  ).unwrap()
   assert_eq(
-    completed_row_count(completed_output(completed, Step(1)).unwrap()),
+    @execution.completed_row_count(
+      @execution.completed_output(completed, Step(1)).unwrap(),
+    ),
     0,
   )
 }
@@ -212,11 +235,13 @@ test "retained query scan admission preserves full-scan failure and row bounds" 
 test "shared acquisition binds the exact checked graph and parameters" {
   let (query, owner) = query_sequence_fixture()
   let generated = query_generated(owner)
-  let prepared = prepare_query_sequence(query, generated, 10000).unwrap()
-  assert_true(physical_equal(prepared.query, query))
+  let prepared = @query.prepare_query_sequence(query, generated, 10000).unwrap()
+  assert_true(
+    physical_equal(@query.query_sequence_requirement(prepared), query),
+  )
   let (_, foreign) = query_sequence_fixture()
   assert_true(
-    prepare_query_sequence(query, query_generated(foreign), 10000)
+    @query.prepare_query_sequence(query, query_generated(foreign), 10000)
     is Err(ForeignPipeline),
   )
   let bindings = @acquisition.request_parameter_values(
@@ -237,7 +262,7 @@ test "shared acquisition binds the exact checked graph and parameters" {
     max_name_bytes=10000,
   ).unwrap()
   assert_true(
-    prepare_query_sequence(query, query_generated(rebound), 10000)
+    @query.prepare_query_sequence(query, query_generated(rebound), 10000)
     is Err(ForeignParameters),
   )
 }
@@ -247,14 +272,16 @@ test "query preparation is bounded and never captures before select or runs cons
   let (query, owner) = query_sequence_fixture()
   let generated = query_generated(owner)
   assert_true(
-    prepare_query_sequence(query, generated, -1) is Err(InvalidLimits),
+    @query.prepare_query_sequence(query, generated, -1) is Err(InvalidLimits),
   )
-  assert_true(prepare_query_sequence(query, generated, 0) is Err(Limit))
+  assert_true(@query.prepare_query_sequence(query, generated, 0) is Err(Limit))
   let exact = 1 + 2 * "select_1".length()
-  assert_true(prepare_query_sequence(query, generated, exact) is Ok(_))
-  assert_true(prepare_query_sequence(query, generated, exact - 1) is Err(Limit))
+  assert_true(@query.prepare_query_sequence(query, generated, exact) is Ok(_))
   assert_true(
-    prepare_query_sequence(
+    @query.prepare_query_sequence(query, generated, exact - 1) is Err(Limit),
+  )
+  assert_true(
+    @query.prepare_query_sequence(
       query,
       query_generated(owner, retained=["where_0"]),
       10000,
@@ -262,7 +289,7 @@ test "query preparation is bounded and never captures before select or runs cons
     is Err(CaptureNotRetained),
   )
   assert_true(
-    prepare_query_sequence(
+    @query.prepare_query_sequence(
       query,
       query_generated(owner, retained=["where_0", "select_1"]),
       10000,
@@ -273,7 +300,7 @@ test "query preparation is bounded and never captures before select or runs cons
     extra=",{\"select\":[\"id\"]}",
   )
   assert_true(
-    prepare_query_sequence(longer, query_generated(longer_owner), 10000)
+    @query.prepare_query_sequence(longer, query_generated(longer_owner), 10000)
     is Err(UnsupportedExecutionShape),
   )
 }
@@ -281,27 +308,31 @@ test "query preparation is bounded and never captures before select or runs cons
 ///|
 test "broad receipt validates all rows before residual and retains reusable completed output" {
   let (query, owner) = query_sequence_fixture()
-  let prepared = prepare_query_sequence(query, query_generated(owner), 10000).unwrap()
+  let prepared = @query.prepare_query_sequence(
+    query,
+    query_generated(owner),
+    10000,
+  ).unwrap()
   let rows = [
     input_cursor("{\"id\":3}"),
     input_cursor("{\"id\":1}"),
     input_cursor("{\"id\":2}"),
   ]
   for _ in 0..<2 {
-    let result = evaluate_query_receipt(
+    let result = @query.evaluate_query_receipt(
       prepared,
       rows,
       3,
       run_limits().input_values,
       compute_test_limits(),
     ).unwrap()
-    let output = completed_output(result, Step(1)).unwrap()
-    assert_eq(completed_row_count(output), 2)
-    assert_true(completed_cell(output, 0, 0) is Some(Number(3)))
-    assert_true(completed_cell(output, 1, 0) is Some(Number(2)))
+    let output = @execution.completed_output(result, Step(1)).unwrap()
+    assert_eq(@execution.completed_row_count(output), 2)
+    assert_true(@execution.completed_cell(output, 0, 0) is Some(Number(3)))
+    assert_true(@execution.completed_cell(output, 1, 0) is Some(Number(2)))
   }
   assert_true(
-    evaluate_query_receipt(
+    @query.evaluate_query_receipt(
       prepared,
       rows,
       2,
@@ -310,25 +341,30 @@ test "broad receipt validates all rows before residual and retains reusable comp
     )
     is Err(ReceiptAdmission(CaptureLimit)),
   )
-  let empty = evaluate_query_receipt(
+  let empty = @query.evaluate_query_receipt(
     prepared,
     [],
     0,
     run_limits().input_values,
     compute_test_limits(),
   ).unwrap()
-  assert_eq(completed_row_count(completed_output(empty, Step(1)).unwrap()), 0)
+  assert_eq(
+    @execution.completed_row_count(
+      @execution.completed_output(empty, Step(1)).unwrap(),
+    ),
+    0,
+  )
   let (failing_query, failing_owner) = query_sequence_fixture(
     filter="1 / (id - id) > 0",
   )
-  let failing = prepare_query_sequence(
+  let failing = @query.prepare_query_sequence(
     failing_query,
     query_generated(failing_owner),
     10000,
   ).unwrap()
   // Whole-scan admission precedes even an earlier row's expression failure.
   assert_true(
-    evaluate_query_receipt(
+    @query.evaluate_query_receipt(
       failing,
       [rows[0], input_cursor("{\"id\":\"invalid\"}")],
       3,
@@ -338,7 +374,7 @@ test "broad receipt validates all rows before residual and retains reusable comp
     is Err(ReceiptAdmission(InputValue(1, _))),
   )
   assert_true(
-    evaluate_query_receipt(
+    @query.evaluate_query_receipt(
       failing,
       rows,
       3,
@@ -352,42 +388,49 @@ test "broad receipt validates all rows before residual and retains reusable comp
 ///|
 test "query residual completion uses the product producer boundary without claiming observation capture" {
   let (query, owner) = query_sequence_fixture()
-  let prepared = prepare_query_sequence(query, query_generated(owner), 10000).unwrap()
+  let prepared = @query.prepare_query_sequence(
+    query,
+    query_generated(owner),
+    10000,
+  ).unwrap()
   let rows = [
     input_cursor("{\"id\":3}"),
     input_cursor("{\"id\":1}"),
     input_cursor("{\"id\":2}"),
   ]
-  let completed = evaluate_query_receipt(
+  let completed = @query.evaluate_query_receipt(
     prepared,
     rows,
     3,
     run_limits().input_values,
     compute_test_limits(),
   ).unwrap()
-  let output = completed_output(completed, Step(1)).unwrap()
+  let output = @execution.completed_output(completed, Step(1)).unwrap()
   rows.clear()
   let receiver = typed_receiver(
     owner, "[{\"filter\":\"id < 3\"},{\"select\":[\"id\"]}]",
   )
-  let bound = bind_completed_input(receiver, 0, owner, output).unwrap()
+  let bound = @execution.bind_completed_input(receiver, 0, owner, output).unwrap()
   let generated = query_generated(receiver)
-  let failed = prepare_local_compute_attempt(generated, [bound], 3).unwrap()
+  let failed = @execution.prepare_local_compute_attempt(generated, [bound], 3).unwrap()
   assert_true(
-    execute_local_compute_attempt(failed, {
+    @execution.execute_local_compute_attempt(failed, {
       ..compute_test_limits(),
       max_work: 0,
     })
     is Err(Execution(_)),
   )
-  assert_true(local_compute_result(failed) is Err(Execution(_)))
+  assert_true(@execution.local_compute_result(failed) is Err(Execution(_)))
   for _ in 0..<2 {
-    let next = prepare_local_compute_attempt(generated, [bound], 3).unwrap()
-    let success = execute_local_compute_attempt(next, compute_test_limits()).unwrap()
-    let result = completed_output(success, Step(1)).unwrap()
-    assert_eq(completed_row_count(result), 1)
-    assert_true(completed_cell(result, 0, 0) is Some(Number(2)))
+    let next = @execution.prepare_local_compute_attempt(generated, [bound], 3).unwrap()
+    let success = @execution.execute_local_compute_attempt(
+      next,
+      compute_test_limits(),
+    ).unwrap()
+    let result = @execution.completed_output(success, Step(1)).unwrap()
+    assert_eq(@execution.completed_row_count(result), 1)
+    assert_true(@execution.completed_cell(result, 0, 0) is Some(Number(2)))
   }
-  assert_eq(completed_row_count(output), 2)
-  assert_true(completed_cell(output, 0, 0) is Some(Number(3)))
+  assert_eq(@execution.completed_row_count(output), 2)
+  assert_true(@execution.completed_cell(output, 0, 0) is Some(Number(3)))
 }

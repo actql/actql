@@ -153,7 +153,7 @@ fn mock_record_payload(
 ) -> Result[QueryRecordPayload, MockEvidenceIssue] {
   let requirement = retained._requirement
   let computation = retained.computation
-  let query = @execution.query_sequence_requirement(requirement.material.owner)
+  let query = @query.query_sequence_requirement(requirement.material.owner)
   let native = computation.strategy.offer.realization == NativeQuery
   let target = if native {
     @acquisition.query_acquisition_capture(query)
@@ -349,9 +349,9 @@ pub fn verify_mock_query_records(
     return Err(ForeignRecords)
   }
   if !physical_equal(issuer.requirement, records.retention._requirement) ||
-    !@execution.row_wire_matches_receipt(
+    !@execution.row_wire_matches_captured(
       records.retention.scan,
-      records.retention.computation._scan,
+      @query.query_receipt_rows(records.retention.computation._scan),
     ) ||
     !@execution.row_wire_matches_output(
       records.retention.output,

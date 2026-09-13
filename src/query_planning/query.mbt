@@ -40,7 +40,7 @@ pub(all) struct QueryQuantities {
 /// Immutable planning data. All shared requirements remain pending: a cost
 /// choice is not authority, execution evidence, capture or a runnable Plan.
 struct QueryOffer {
-  owner : @execution.QuerySequence
+  owner : @query.QuerySequence
   realization : QueryRealization
   duration : @cost.DurationEstimate
   quantities : QueryQuantities
@@ -108,7 +108,7 @@ fn valid_quantity(value : Int64?) -> Bool {
 /// Estimates can bundle disjoint work, but cannot omit known residual/capture/
 /// retention costs and still claim a complete estimate. Missing costs are unknown.
 pub fn offer_mock_query(
-  owner : @execution.QuerySequence,
+  owner : @query.QuerySequence,
   realization : QueryRealization,
   estimates : Array[@cost.SerialEstimateLine],
   quantities : QueryQuantities,
@@ -133,7 +133,7 @@ pub fn offer_mock_query(
 /// Candidate indices and Host priority are physical addresses only. The exact
 /// same prepared query owns every offer, irrespective of cost/registration order.
 pub fn choose_query_strategy(
-  owner : @execution.QuerySequence,
+  owner : @query.QuerySequence,
   offers : Array[QueryOffer],
   host_priority : Array[Int]?,
   max_entries : Int,
@@ -191,7 +191,7 @@ pub fn query_strategy_choice(v : QueryStrategy) -> @cost.CostChoice {
 }
 
 ///|
-pub fn query_strategy_owner(v : QueryStrategy) -> @execution.QuerySequence {
+pub fn query_strategy_owner(v : QueryStrategy) -> @query.QuerySequence {
   v.offer.owner
 }
 
@@ -212,7 +212,7 @@ pub fn query_strategy_task_at(_v : QueryStrategy, index : Int) -> QueryTask? {
 ///|
 pub fn query_strategy_pending_count(v : QueryStrategy) -> Int {
   @acquisition.query_acquisition_requirement_count(
-    @execution.query_sequence_requirement(v.offer.owner),
+    @query.query_sequence_requirement(v.offer.owner),
   )
 }
 
@@ -222,7 +222,7 @@ pub fn query_strategy_pending_at(
   index : Int,
 ) -> @acquisition.QueryAcquisitionRequirement? {
   @acquisition.query_acquisition_requirement_at(
-    @execution.query_sequence_requirement(v.offer.owner),
+    @query.query_sequence_requirement(v.offer.owner),
     index,
   )
 }

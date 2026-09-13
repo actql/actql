@@ -16,7 +16,7 @@ Use `program_identity_stage_requests(identity, stage_index)` to obtain the
 Program's existing owned requests for shared derivation; do not reconstruct
 equal requests as a substitute for their owner.
 
-1. Obtain `execution_relation.QuerySequence` from the shared query derivation and
+1. Obtain `execution_query.QuerySequence` from the shared query derivation and
    matching checked/lowered preparation. See [local usage](local-compute-usage.md).
 2. Call `offer_mock_query` with `NativeQuery` or `BroadWithResidual`. Obtain cost
    slot meanings with `query_work_count` and `query_work_at`.
@@ -37,6 +37,10 @@ reports `NotComputed` before execution and retains typed failures afterward.
 `cancel_mock_query` can withdraw an unstarted or awaiting-capture attempt. Use a
 new attempt for a retry; it does not implicitly reread or choose another route.
 
+Query adapter functions and types below belong to `execution_query`; candidate,
+attempt and capture functions belong to `query_planning`. The engine's former
+query API locations are removed rather than retained as forwarding wrappers.
+
 For integrations needing full-scan material after computation,
 `admit_query_receipt` returns an immutable, preparation-owned `QueryReceipt` and
 `execute_query_receipt` runs it with a fresh computation budget. The convenience
@@ -45,10 +49,11 @@ only immutable admitted material, not capture evidence; passing the receipt to
 a different preparation is rejected. The mock retains the complete admitted
 scan even on the native route, so receipt savings do not imply retention savings.
 
-`identify_query_receipt_rows` and `identify_completed_rows` compute canonical
-ordered-row CIDs directly from immutable material under `RowWireLimits`.
+Use `execution_relation.identify_captured_rows(query_receipt_rows(receipt), limits)`
+or `execution_relation.identify_completed_rows(output, limits)` to compute canonical
+ordered-row CIDs directly from immutable material under engine `RowWireLimits`.
 `row_wire_usage` returns canonical wire bytes, value nodes and row count.
-`row_wire_matches_receipt` / `row_wire_matches_output` check the exact retained
+`row_wire_matches_captured` / `row_wire_matches_output` check the exact retained
 handle, not just equal content. These APIs support capture verification but do
 not themselves issue records or authorize capture. A bytes/node/depth/order
 limit failure returns no identity and does not consume the retained input.
@@ -101,7 +106,7 @@ its `program_check.source_identity`. Derive the query from that identity's owned
 stage requests, lower the same pipeline and bind its exact Parameter values.
 Pass this identity to `prepare_query_requirement`; do not substitute a separately
 checked equal Program. The executable source-checkout example is
-`src/execution_relation/query_checked_program_wbtest.mbt`. It exercises both mock
+`src/query_integration/query_checked_program_wbtest.mbt`. It exercises both mock
 routes through capture and the existing consumer. Main's static source execution
 inventory is retained; real Host authorization and Program/Run execution are not
 implemented by the mock setup.
@@ -114,12 +119,16 @@ failure after execution starts fails that attempt and provides no successful
 computation/capture. The older unbound mock constructor remains a diagnostic
 computation path; it is not proof that a canonical requirement was enforced.
 
-The lower-level `execute_query_receipt_guarded` accepts retained scan material,
+The adapter's `execution_query.execute_query_receipt_guarded` accepts retained scan material,
 the existing computation limits, explicit output-row/per-value guards and
 physical measurement limits. It returns a completed computation plus physical
 measurement usage `(work, bytes, nodes)`. These counters span input and output;
 they do not reset per row. This operation adds no source access, authority or
 capture evidence and preserves the same reusable preparation and immutable input.
+It delegates measurement, demanded-root ceilings and execution to the engine's
+`execute_fixed_input_guarded`; mutable ledgers, storage and contexts are not
+package APIs. `query_sequence_owner` supplies the exact lowering owner when
+constructing a checked downstream consumer, without inspecting private fields.
 
 After requirement-bound computation, `retain_mock_query(attempt, limits)` checks
 actual receipt and full-scan-plus-output wire quantities under

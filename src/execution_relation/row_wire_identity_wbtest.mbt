@@ -10,27 +10,40 @@ fn row_wire_limits() -> RowWireLimits {
 }
 
 ///|
-test "query receipt and result hashes retain different actual scopes and owners" {
-  let (query, owner) = query_sequence_fixture()
-  let prepared = prepare_query_sequence(query, query_generated(owner), 10000).unwrap()
-  let receipt = admit_query_receipt(
-    prepared,
+test "fixed input and result hashes retain different contents and owners" {
+  let owner = wire_input_owner()
+  let sequence = prepared_sequence(owner)
+  let prepared = prepare_generated_sequence(
+    registered_relation_contracts(),
+    sequence,
+    [sequence_fragment_context(sequence, 0, 10L)],
+    ["select_1"],
+    100000,
+    10000,
+  ).unwrap()
+  let receipt = capture_input(
+    owner,
+    0,
     [
       input_cursor("{\"id\":3}"),
       input_cursor("{\"id\":1}"),
       input_cursor("{\"id\":2}"),
     ],
-    3,
+    max_rows=3,
     run_limits().input_values,
   ).unwrap()
-  let before = identify_query_receipt_rows(receipt, row_wire_limits()).unwrap()
+  let before = identify_captured_rows(receipt, row_wire_limits()).unwrap()
   // Independent SHA-256 of the literal canonical [{id:3},{id:1},{id:2}].
   assert_eq(
     row_wire_cid(before),
     "sha256:77e98e23cd26d76b7d4549460e2d627af92fbdabe8de4cb20c0106d26470d26d",
   )
   assert_eq(row_wire_usage(before), (28, 7, 3))
-  let result = execute_query_receipt(prepared, receipt, compute_test_limits()).unwrap()
+  let result = execute_generated_sequence(
+    prepared,
+    [receipt],
+    compute_test_limits(),
+  ).unwrap()
   let output = completed_output(result, Step(1)).unwrap()
   let after = identify_completed_rows(output, row_wire_limits()).unwrap()
   assert_eq(
@@ -38,11 +51,15 @@ test "query receipt and result hashes retain different actual scopes and owners"
     "sha256:b578d4eb7cd3e1c8e66fd5758a9c5a98dc05739e4c6fa282fc372aec70930e18",
   )
   assert_eq(row_wire_usage(after), (19, 5, 2))
-  assert_true(row_wire_matches_receipt(before, receipt))
+  assert_true(row_wire_matches_captured(before, receipt))
   assert_true(row_wire_matches_output(after, output))
-  assert_false(row_wire_matches_receipt(after, receipt))
+  assert_false(row_wire_matches_captured(after, receipt))
   assert_false(row_wire_matches_output(before, output))
-  let again = execute_query_receipt(prepared, receipt, compute_test_limits()).unwrap()
+  let again = execute_generated_sequence(
+    prepared,
+    [receipt],
+    compute_test_limits(),
+  ).unwrap()
   let other_output = completed_output(again, Step(1)).unwrap()
   assert_eq(
     row_wire_cid(
@@ -77,17 +94,11 @@ test "query receipt and result hashes retain different actual scopes and owners"
     is Err(OrderLimit),
   )
   assert_true(
-    identify_query_receipt_rows(receipt, {
-      ..row_wire_limits(),
-      max_order_work: 1,
-    })
+    identify_captured_rows(receipt, { ..row_wire_limits(), max_order_work: 1, })
     is Err(OrderLimit),
   )
   assert_true(
-    identify_query_receipt_rows(receipt, {
-      ..row_wire_limits(),
-      max_order_work: 2,
-    })
+    identify_captured_rows(receipt, { ..row_wire_limits(), max_order_work: 2, })
     is Ok(_),
   )
   assert_true(
@@ -227,4 +238,40 @@ test "typed wire uses exact decimals UTF16 keys and opaque nested business data"
     hash_row_wire(table, table.names, { ..row_wire_limits(), max_bytes: 79, })
     is Err(Encoding(_)),
   )
+}
+
+///|
+fn wire_input_owner() -> @lower.BoundPrepared {
+  let source = bound_pipeline(
+    "[{\"values\":{\"schema\":{\"id\":{\"type\":\"number\",\"nullable\":false}},\"rows\":[]},\"as\":\"seed\"}]",
+  )
+  let schema = @pipeline.schema_at(
+    @lower.pipeline(@lower.bound_preparation(source)),
+    Step(0),
+  ).unwrap()
+  let pipeline = @pipeline.check(
+    input_cursor("[{\"filter\":\"id > 1\"},{\"select\":[\"id\"]}]"),
+    [("rows", schema)],
+    None,
+    None,
+    {
+      max_steps: 100,
+      max_work: 10000,
+      max_text_bytes: 10000,
+      max_nodes: 1000,
+      max_tokens: 1000,
+      max_depth: 100,
+    },
+  ).unwrap()
+  @lower.bind_parameters(
+    @lower.prepare(pipeline, {
+      max_nodes: 100,
+      max_references: 100,
+      max_work: 10000,
+      max_identifier_bytes: 10000,
+    }).unwrap(),
+    None,
+    max_parameters=0,
+    max_name_bytes=0,
+  ).unwrap()
 }

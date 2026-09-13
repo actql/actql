@@ -5,6 +5,7 @@ import {
   "actql/actql/canonical_json",
   "actql/actql/decode_core",
   "actql/actql/encode_core",
+  "actql/actql/execution_query",
   "actql/actql/execution_relation",
   "actql/actql/lowering_relation",
   "actql/actql/physical_cost",
@@ -22,11 +23,11 @@ pub fn cancel_mock_query(MockQueryAttempt) -> Bool
 
 pub fn capture_mock_query(MockQueryIssuer, MockQueryAttempt, MockQueryRecords, QueryEvidenceLimits) -> Result[MockQueryObservation, MockEvidenceIssue]
 
-pub fn choose_query_strategy(@execution_relation.QuerySequence, Array[QueryOffer], Array[Int]?, Int) -> Result[QuerySelection, QueryPlanningIssue]
+pub fn choose_query_strategy(@execution_query.QuerySequence, Array[QueryOffer], Array[Int]?, Int) -> Result[QuerySelection, QueryPlanningIssue]
 
 pub fn close_mock_query_issuer(MockQueryIssuer) -> Unit
 
-pub fn execute_mock_query(MockQueryAttempt, MockQueryLimits, guard_measure? : @execution_relation.QueryGuardMeasureLimits?) -> Result[MockQueryComputation, MockQueryIssue]
+pub fn execute_mock_query(MockQueryAttempt, MockQueryLimits, guard_measure? : @execution_query.QueryGuardMeasureLimits?) -> Result[MockQueryComputation, MockQueryIssue]
 
 pub fn issue_mock_query_records(MockQueryAttempt, QueryMaterialLimits) -> Result[MockQueryRecords, MockEvidenceIssue]
 
@@ -58,7 +59,7 @@ pub fn mock_retention_row_cids(MockQueryRetention) -> (String, String)
 
 pub fn mock_retention_usage(MockQueryRetention) -> (Int, Int, Int)
 
-pub fn offer_mock_query(@execution_relation.QuerySequence, QueryRealization, Array[@physical_cost.SerialEstimateLine], QueryQuantities, Int) -> Result[QueryOffer, QueryPlanningIssue]
+pub fn offer_mock_query(@execution_query.QuerySequence, QueryRealization, Array[@physical_cost.SerialEstimateLine], QueryQuantities, Int) -> Result[QueryOffer, QueryPlanningIssue]
 
 pub fn prepare_issued_mock_query_attempt(MockQueryIssuer, QueryStrategy, Array[@decode_core.Cursor], Int) -> Result[MockQueryAttempt, MockEvidenceIssue]
 
@@ -66,7 +67,7 @@ pub fn prepare_mock_query_attempt(QueryStrategy, Array[@decode_core.Cursor], Int
 
 pub fn prepare_mock_query_issuer(QueryEvidenceContracts, QueryRequirement, String, Int) -> Result[MockQueryIssuer, MockEvidenceIssue]
 
-pub fn prepare_query_material(@execution_relation.QuerySequence, QueryMaterialLimits) -> Result[QueryMaterial, QueryMaterialIssue]
+pub fn prepare_query_material(@execution_query.QuerySequence, QueryMaterialLimits) -> Result[QueryMaterial, QueryMaterialIssue]
 
 pub fn prepare_query_requirement(QueryMaterial, @pipeline_check_context.ProgramSourceIdentity, QueryLogicalGuards, QueryMaterialLimits) -> Result[QueryRequirement, QueryRequirementIssue]
 
@@ -76,7 +77,7 @@ pub fn query_evidence_contract_usage(QueryEvidenceContracts) -> (Int, Int)
 
 pub fn query_material_cids(QueryMaterial) -> (String, String, String)
 
-pub fn query_material_owner(QueryMaterial) -> @execution_relation.QuerySequence
+pub fn query_material_owner(QueryMaterial) -> @execution_query.QuerySequence
 
 pub fn query_material_request(QueryMaterial) -> @encode_core.EncodedDocument
 
@@ -110,7 +111,7 @@ pub fn query_strategy_choice(QueryStrategy) -> @physical_cost.CostChoice
 
 pub fn query_strategy_offer(QueryStrategy) -> QueryOffer
 
-pub fn query_strategy_owner(QueryStrategy) -> @execution_relation.QuerySequence
+pub fn query_strategy_owner(QueryStrategy) -> @execution_query.QuerySequence
 
 pub fn query_strategy_pending_at(QueryStrategy, Int) -> @sourceview_resolution.QueryAcquisitionRequirement?
 
@@ -158,14 +159,14 @@ pub(all) enum MockQueryIssue {
   PreparationLimit
   ReceiptRowsLimit
   ReceiptCellsLimit
-  Local(@execution_relation.QuerySequenceIssue)
+  Local(@execution_query.QuerySequenceIssue)
   MissingCaptureOutput
   AlreadyStarted
   NotComputed
   Cancelled
   ForeignRequirement
   GuardLimitsRequired
-  Guard(@execution_relation.QueryGuardIssue)
+  Guard(@execution_query.QueryGuardIssue)
   Retention(MockRetentionIssue)
   Evidence(MockEvidenceIssue)
 }

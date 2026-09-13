@@ -20,7 +20,7 @@ pub(all) enum RowWireIssue {
 
 ///|
 priv enum RowWireOwner {
-  Receipt(QueryReceipt)
+  CapturedSource(CapturedRows)
   Output(CompletedOutput)
 }
 
@@ -36,28 +36,28 @@ struct RowWireIdentity {
 }
 
 ///|
-priv struct ReceiptWireRows {
-  receipt : QueryReceipt
+priv struct CapturedWireRows {
+  rows : CapturedRows
 }
 
 ///|
-impl IndexedRows for ReceiptWireRows with fn row_count(self) {
-  captured_row_count(self.receipt.rows)
+impl IndexedRows for CapturedWireRows with fn row_count(self) {
+  captured_row_count(self.rows)
 }
 
 ///|
-impl IndexedRows for ReceiptWireRows with fn column_count(self) {
-  @schema.field_count(self.receipt.rows.schema)
+impl IndexedRows for CapturedWireRows with fn column_count(self) {
+  @schema.field_count(self.rows.schema)
 }
 
 ///|
-impl IndexedRows for ReceiptWireRows with fn row_width(self, row) {
-  self.receipt.rows.rows[row].length()
+impl IndexedRows for CapturedWireRows with fn row_width(self, row) {
+  self.rows.rows[row].length()
 }
 
 ///|
-impl IndexedRows for ReceiptWireRows with fn read_cell(self, row, column) {
-  capture(self.receipt.rows.rows[row][column])
+impl IndexedRows for CapturedWireRows with fn read_cell(self, row, column) {
+  capture(self.rows.rows[row][column])
 }
 
 ///|
@@ -142,32 +142,30 @@ fn[T : IndexedRows] hash_row_wire(
 }
 
 ///|
-pub fn identify_query_receipt_rows(
-  receipt : QueryReceipt,
+pub fn identify_captured_rows(
+  rows : CapturedRows,
   limits : RowWireLimits,
 ) -> Result[RowWireIdentity, RowWireIssue] {
   if !row_wire_valid_limits(limits) {
     return Err(InvalidLimits)
   }
-  let width = @schema.field_count(receipt.rows.schema)
-  // The receipt adapter's name list also has a pre-allocation bound.
+  let width = @schema.field_count(rows.schema)
+  // The captured input adapter's name list also has a pre-allocation bound.
   if width > limits.max_columns || width > limits.max_order_work {
     return Err(OrderLimit)
   }
   let names = Array::makei(width, i => {
-    @schema.reference_name(
-      @schema.field_at(receipt.rows.schema, i).unwrap().name,
-    )
+    @schema.reference_name(@schema.field_at(rows.schema, i).unwrap().name)
   })
-  hash_row_wire({ receipt, }, names, {
+  hash_row_wire(CapturedWireRows::{ rows, }, names, {
     ..limits,
     max_order_work: limits.max_order_work - width,
   }).map(value => {
-    owner: Receipt(receipt),
+    owner: CapturedSource(rows),
     cid: value.0,
     bytes: value.1,
     nodes: value.2,
-    rows: captured_row_count(receipt.rows),
+    rows: captured_row_count(rows),
   })
 }
 
@@ -197,12 +195,12 @@ pub fn row_wire_usage(value : RowWireIdentity) -> (Int, Int, Int) {
 }
 
 ///|
-pub fn row_wire_matches_receipt(
+pub fn row_wire_matches_captured(
   value : RowWireIdentity,
-  receipt : QueryReceipt,
+  rows : CapturedRows,
 ) -> Bool {
   match value.owner {
-    Receipt(owner) => physical_equal(owner, receipt)
+    CapturedSource(owner) => physical_equal(owner, rows)
     Output(_) => false
   }
 }
@@ -214,6 +212,6 @@ pub fn row_wire_matches_output(
 ) -> Bool {
   match value.owner {
     Output(owner) => physical_equal(owner, output)
-    Receipt(_) => false
+    CapturedSource(_) => false
   }
 }

@@ -30,7 +30,11 @@ test "query material resolves only request slots and unions request and filter P
       "{\"payload\":{\"literal\":{\"literal\":{\"a\":1},\"$param\":\"business\"}},\"threshold\":{\"$param\":\"minimum\"}}",
     ] {
     let (query, owner) = query_sequence_fixture(request~, catalog=Some(catalog))
-    let sequence = prepare_query_sequence(query, query_generated(owner), 10000).unwrap()
+    let sequence = @query.prepare_query_sequence(
+      query,
+      query_generated(owner),
+      10000,
+    ).unwrap()
     let limits = {
       ..query_material_limits(),
       max_parameters: 1,
@@ -65,7 +69,11 @@ test "query material resolves only request slots and unions request and filter P
 ///|
 test "query material retains its checked owner and exact unevaluated filter and used values" {
   let (query, owner) = query_sequence_fixture()
-  let sequence = prepare_query_sequence(query, query_generated(owner), 10000).unwrap()
+  let sequence = @query.prepare_query_sequence(
+    query,
+    query_generated(owner),
+    10000,
+  ).unwrap()
   let limits = query_material_limits()
   let material = @planning.prepare_query_material(sequence, limits).unwrap()
   assert_true(
@@ -146,7 +154,11 @@ test "query material excludes unused Parameters and binding origin but includes 
       parameters=declarations,
       supplied~,
     )
-    let sequence = prepare_query_sequence(query, query_generated(owner), 10000).unwrap()
+    let sequence = @query.prepare_query_sequence(
+      query,
+      query_generated(owner),
+      10000,
+    ).unwrap()
     let material = @planning.prepare_query_material(
       sequence,
       query_material_limits(),
@@ -161,7 +173,11 @@ test "query material excludes unused Parameters and binding origin but includes 
     parameters=declarations,
     supplied="{\"minimum\":2}",
   )
-  let sequence = prepare_query_sequence(query, query_generated(owner), 10000).unwrap()
+  let sequence = @query.prepare_query_sequence(
+    query,
+    query_generated(owner),
+    10000,
+  ).unwrap()
   let material = @planning.prepare_query_material(
     sequence,
     query_material_limits(),

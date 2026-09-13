@@ -4,7 +4,7 @@
 /// authority, actual receipt evidence and capture still belong to its caller.
 struct QuerySequence {
   query : @acquisition.QueryAcquisition
-  generated : GeneratedSequence
+  generated : @execution.GeneratedSequence
 }
 
 ///|
@@ -12,7 +12,7 @@ struct QuerySequence {
 /// retained input material, not source authority or acquisition completion.
 struct QueryReceipt {
   owner : QuerySequence
-  rows : CapturedRows
+  rows : @execution.CapturedRows
 }
 
 ///|
@@ -24,8 +24,8 @@ pub(all) enum QuerySequenceIssue {
   ForeignReceipt
   UnsupportedExecutionShape
   CaptureNotRetained
-  ReceiptAdmission(CaptureIssue)
-  Execution(SequenceRunIssue)
+  ReceiptAdmission(@execution.CaptureIssue)
+  Execution(@execution.SequenceRunIssue)
 }
 
 ///|
@@ -35,17 +35,18 @@ pub(all) enum QuerySequenceIssue {
 /// slice, not deleting steps or rebuilding a different CheckedPipeline here.
 pub fn prepare_query_sequence(
   query : @acquisition.QueryAcquisition,
-  generated : GeneratedSequence,
+  generated : @execution.GeneratedSequence,
   max_work : Int,
 ) -> Result[QuerySequence, QuerySequenceIssue] {
   if max_work < 0 {
     return Err(InvalidLimits)
   }
-  let control = { remaining: max_work, max_frames: 0, }
-  if !spend_control(control, 1) {
+  let mut remaining = max_work
+  if remaining < 1 {
     return Err(Limit)
   }
-  let owner = @lower.sequence_owner(generated.sequence)
+  remaining -= 1
+  let owner = @execution.generated_sequence_owner(generated)
   let prepared = @lower.bound_preparation(owner)
   let pipeline = @lower.pipeline(prepared)
   if !physical_equal(pipeline, @acquisition.query_acquisition_pipeline(query)) {
@@ -78,14 +79,16 @@ pub fn prepare_query_sequence(
   }
   // Only the capture output may be retained by this narrow residual adapter.
   // In particular, do not expose the unfiltered receipt or a pre-capture result.
-  if generated.retained_ids.length() != 1 {
+  if @execution.generated_retained_count(generated) != 1 {
     return Err(CaptureNotRetained)
   }
   let expected = @lower.node_id(node)
-  let retained = generated.retained_ids[0]
-  if !spend_control_text(control, expected) ||
-    !spend_control_text(control, retained) {
-    return Err(Limit)
+  let retained = @execution.generated_retained_at(generated, 0).unwrap()
+  for text in [expected, retained] {
+    match @scalar.admit_utf8_length(text, remaining) {
+      Ok(bytes) => remaining -= bytes
+      Err(_) => return Err(Limit)
+    }
   }
   if expected != retained {
     return Err(CaptureNotRetained)
@@ -102,9 +105,9 @@ pub fn evaluate_query_receipt(
   prepared : QuerySequence,
   rows : Array[@decode.Cursor],
   max_received_rows : Int,
-  admission : ValueLimits,
-  execution : SequenceExecutionLimits,
-) -> Result[CompletedSequence, QuerySequenceIssue] {
+  admission : @execution.ValueLimits,
+  execution : @execution.SequenceExecutionLimits,
+) -> Result[@execution.CompletedSequence, QuerySequenceIssue] {
   let receipt = match
     admit_query_receipt(prepared, rows, max_received_rows, admission) {
     Ok(value) => value
@@ -120,11 +123,11 @@ pub fn admit_query_receipt(
   prepared : QuerySequence,
   rows : Array[@decode.Cursor],
   max_received_rows : Int,
-  admission : ValueLimits,
+  admission : @execution.ValueLimits,
 ) -> Result[QueryReceipt, QuerySequenceIssue] {
   let captured = match
-    capture_input(
-      @lower.sequence_owner(prepared.generated.sequence),
+    @execution.capture_input(
+      @execution.generated_sequence_owner(prepared.generated),
       0,
       rows,
       max_rows=max_received_rows,
@@ -142,13 +145,17 @@ pub fn admit_query_receipt(
 pub fn execute_query_receipt(
   prepared : QuerySequence,
   receipt : QueryReceipt,
-  execution : SequenceExecutionLimits,
-) -> Result[CompletedSequence, QuerySequenceIssue] {
+  execution : @execution.SequenceExecutionLimits,
+) -> Result[@execution.CompletedSequence, QuerySequenceIssue] {
   if !physical_equal(prepared, receipt.owner) {
     return Err(ForeignReceipt)
   }
   match
-    execute_generated_sequence(prepared.generated, [receipt.rows], execution) {
+    @execution.execute_generated_sequence(
+      prepared.generated,
+      [receipt.rows],
+      execution,
+    ) {
     Ok(value) => Ok(value)
     Err(issue) => Err(Execution(issue))
   }
@@ -157,7 +164,7 @@ pub fn execute_query_receipt(
 ///|
 /// Immutable, owned material for bounded access hashing by the Host. This does
 /// not expose a completion handle or permit a caller to issue execution records.
-pub fn query_receipt_rows(receipt : QueryReceipt) -> CapturedRows {
+pub fn query_receipt_rows(receipt : QueryReceipt) -> @execution.CapturedRows {
   receipt.rows
 }
 
@@ -166,4 +173,10 @@ pub fn query_sequence_requirement(
   prepared : QuerySequence,
 ) -> @acquisition.QueryAcquisition {
   prepared.query
+}
+
+///|
+/// Exact preparation owner, never reconstructed from equal graph content.
+pub fn query_sequence_owner(prepared : QuerySequence) -> @lower.BoundPrepared {
+  @execution.generated_sequence_owner(prepared.generated)
 }

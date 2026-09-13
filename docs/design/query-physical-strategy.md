@@ -1,6 +1,6 @@
 # Initial query physical strategy
 
-`query_planning` consumes the owned local query preparation described by
+`query_planning` consumes `execution_query`'s owned local query preparation described by
 [query residual execution](query-residual-execution.md). It neither derives a
 canonical acquisition nor introduces a semantic Run, Invocation, approval or
 commit scope. Its `QueryStrategy` is a Host-private proposal for the same query.
@@ -130,7 +130,7 @@ accessor. This intermediate is not a `completed_observation`, issuer record,
 authority decision or capture success. Receipt cells are physical quantities,
 not canonical wire bytes or the acquisition's logical row/value guards.
 
-Full-scan admission and query execution share an opaque `QueryReceipt`, owned by
+Full-scan admission and query execution share an opaque `execution_query.QueryReceipt`, owned by
 the exact query preparation. Keeping this immutable material allows a verifier
 to inspect even native rows and columns not received by the Host without a
 second admission or reevaluation. Reusing it still runs the driver's input
@@ -147,7 +147,8 @@ values use the shared nonrecursive wire emitter; decimals remain fixed-scale
 strings. Hash output is bounded by wire bytes, value nodes and container depth;
 column metadata and comparison work have separate preparation bounds.
 
-`RowWireIdentity` keeps its exact immutable receipt or completion owner. Matching
+The engine's `RowWireIdentity` keeps its exact immutable `CapturedRows` or
+`CompletedOutput` owner, without depending on query receipt types. Matching
 its CID does not imply matching that owner, an observation attempt or authorized
 issuer. Its byte count includes the complete ordered JSON array and is suitable
 for this profile's receipt-wire accounting, not allocator capacity or RSS. It

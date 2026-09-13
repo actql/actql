@@ -30,7 +30,11 @@ by this adapter. See [design](design/local-compute-attempt.md).
 
 ## Acquisition-internal residual building block
 
-For a broad, already received scan, `prepare_query_sequence(query, generated,
+The acquisition adapter belongs to `execution_query`, not the fixed-input
+`execution_relation` engine. Import that package for query preparation and receipt
+APIs; there are no compatibility exports at the former engine locations.
+
+For a broad, already received scan, `execution_query.prepare_query_sequence(query, generated,
 max_work)` associates main's `sourceview_resolution.QueryAcquisition` with the
 exact lowered pipeline and Parameter bindings. The supported sequence has one
 input, a filter and a select; retain only the select node ID. A larger checked

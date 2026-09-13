@@ -70,7 +70,7 @@ pub fn prepare_query_requirement(
   if limits.max_work < 1 {
     return Err(WorkLimit)
   }
-  let query = @execution.query_sequence_requirement(material.owner)
+  let query = @query.query_sequence_requirement(material.owner)
   let requests = @acquisition.query_acquisition_owner(query)
   guard @acquisition.pipeline_request_at(
       requests,

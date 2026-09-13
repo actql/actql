@@ -1,5 +1,5 @@
 ///|
-fn query_issuer_fixture() -> (@planning.MockQueryIssuer, QuerySequence) raise {
+fn query_issuer_fixture() -> (@planning.MockQueryIssuer, @query.QuerySequence) raise {
   let (program, sequence) = query_program_fixture()
   let requirement = @planning.prepare_query_requirement(
     @planning.prepare_query_material(sequence, query_material_limits()).unwrap(),
@@ -22,7 +22,7 @@ fn query_issuer_fixture() -> (@planning.MockQueryIssuer, QuerySequence) raise {
 ///|
 fn query_issuer_attempt(
   issuer : @planning.MockQueryIssuer,
-  sequence : QuerySequence,
+  sequence : @query.QuerySequence,
   route : @planning.QueryRealization,
 ) -> @planning.MockQueryAttempt {
   @planning.prepare_issued_mock_query_attempt(

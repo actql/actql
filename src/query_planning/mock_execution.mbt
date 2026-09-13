@@ -27,7 +27,7 @@ struct MockQueryComputation {
   strategy : QueryStrategy
   // Preserve full-scan provenance even when the native receipt is projected.
   // Kept private: this alone never authorizes process-evidence issuance.
-  _scan : @execution.QueryReceipt
+  _scan : @query.QueryReceipt
   output : @execution.CompletedOutput
   source_rows : Int
   received_rows : Int
@@ -40,14 +40,14 @@ pub(all) enum MockQueryIssue {
   PreparationLimit
   ReceiptRowsLimit
   ReceiptCellsLimit
-  Local(@execution.QuerySequenceIssue)
+  Local(@query.QuerySequenceIssue)
   MissingCaptureOutput
   AlreadyStarted
   NotComputed
   Cancelled
   ForeignRequirement
   GuardLimitsRequired
-  Guard(@execution.QueryGuardIssue)
+  Guard(@query.QueryGuardIssue)
   Retention(MockRetentionIssue)
   Evidence(MockEvidenceIssue)
 }
@@ -127,14 +127,14 @@ fn compute_mock_query(
   strategy : QueryStrategy,
   source : Array[@decode.Cursor],
   limits : MockQueryLimits,
-  guards : (QueryLogicalGuards, @execution.QueryGuardMeasureLimits)?,
+  guards : (QueryLogicalGuards, @query.QueryGuardMeasureLimits)?,
 ) -> Result[MockQueryComputation, MockQueryIssue] {
   if limits.source_rows < 0 ||
     limits.received_rows < 0 ||
     limits.received_cells < 0 {
     return Err(InvalidLimits)
   }
-  let query = @execution.query_sequence_requirement(strategy.offer.owner)
+  let query = @query.query_sequence_requirement(strategy.offer.owner)
   guard @pipeline.schema_at(
       @acquisition.query_acquisition_pipeline(query),
       @acquisition.query_acquisition_input(query),
@@ -156,7 +156,7 @@ fn compute_mock_query(
   // BroadWithResidual executes it locally, after broad receipt. There is no
   // separate mock predicate interpreter or weak-prefilter completion claim.
   let scan = match
-    @execution.admit_query_receipt(
+    @query.admit_query_receipt(
       strategy.offer.owner,
       source,
       limits.source_rows,
@@ -168,7 +168,7 @@ fn compute_mock_query(
   let completed = match guards {
     Some((ceilings, physical)) =>
       match
-        @execution.execute_query_receipt_guarded(
+        @query.execute_query_receipt_guarded(
           strategy.offer.owner,
           scan,
           limits.computation,
@@ -181,7 +181,7 @@ fn compute_mock_query(
       }
     None =>
       match
-        @execution.execute_query_receipt(
+        @query.execute_query_receipt(
           strategy.offer.owner,
           scan,
           limits.computation,
@@ -225,7 +225,7 @@ fn compute_mock_query(
 pub fn execute_mock_query(
   attempt : MockQueryAttempt,
   limits : MockQueryLimits,
-  guard_measure? : @execution.QueryGuardMeasureLimits? = None,
+  guard_measure? : @query.QueryGuardMeasureLimits? = None,
 ) -> Result[MockQueryComputation, MockQueryIssue] {
   match attempt.state {
     Pending(strategy, source) => {

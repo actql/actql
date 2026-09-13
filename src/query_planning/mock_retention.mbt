@@ -44,8 +44,8 @@ fn retain_mock_computation(
   // evaluation or constructing a row JSON matrix. Share bytes/nodes across both
   // artifacts; column-order/depth allowances apply to each artifact separately.
   let scan = match
-    @execution.identify_query_receipt_rows(
-      computation._scan,
+    @execution.identify_captured_rows(
+      @query.query_receipt_rows(computation._scan),
       limits.measurement,
     ) {
     Ok(value) => value

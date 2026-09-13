@@ -3,7 +3,7 @@ import {readFileSync} from 'node:fs';
 
 // Fixture copies carry full shared bodies into filesystem-free target tests.
 // Pins and record expectations are independently fixed, never generated here.
-for (const path of ['src/query_planning/evidence_bodies_wbtest.mbt', 'src/execution_relation/query_evidence_bodies_wbtest.mbt']) {
+for (const path of ['src/query_planning/evidence_bodies_wbtest.mbt', 'src/query_integration/query_evidence_bodies_wbtest.mbt']) {
   const text = readFileSync(path, 'utf8');
   for (const [index, name] of ['actql-query-acquisition', 'actql-query-process-evidence'].entries()) {
     const match = text.match(new RegExp(`let body${index} = @json\\.parse\\(\\s*("(?:[^"\\\\]|\\\\.)*")\\s*,?\\s*\\)`));

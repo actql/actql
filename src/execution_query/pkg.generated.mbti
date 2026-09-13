@@ -1,0 +1,74 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/execution_query"
+
+import {
+  "actql/actql/decode_core",
+  "actql/actql/encode_core",
+  "actql/actql/execution_relation",
+  "actql/actql/lowering_relation",
+  "actql/actql/sourceview_resolution",
+}
+
+// Values
+pub fn admit_query_receipt(QuerySequence, Array[@decode_core.Cursor], Int, @execution_relation.ValueLimits) -> Result[QueryReceipt, QuerySequenceIssue]
+
+pub fn evaluate_query_receipt(QuerySequence, Array[@decode_core.Cursor], Int, @execution_relation.ValueLimits, @execution_relation.SequenceExecutionLimits) -> Result[@execution_relation.CompletedSequence, QuerySequenceIssue]
+
+pub fn execute_query_receipt(QuerySequence, QueryReceipt, @execution_relation.SequenceExecutionLimits) -> Result[@execution_relation.CompletedSequence, QuerySequenceIssue]
+
+pub fn execute_query_receipt_guarded(QuerySequence, QueryReceipt, @execution_relation.SequenceExecutionLimits, max_output_rows~ : Int, max_value_bytes~ : Int, QueryGuardMeasureLimits) -> Result[(@execution_relation.CompletedSequence, (Int, Int, Int)), QueryGuardIssue]
+
+pub fn prepare_query_sequence(@sourceview_resolution.QueryAcquisition, @execution_relation.GeneratedSequence, Int) -> Result[QuerySequence, QuerySequenceIssue]
+
+pub fn query_receipt_rows(QueryReceipt) -> @execution_relation.CapturedRows
+
+pub fn query_sequence_owner(QuerySequence) -> @lowering_relation.BoundPrepared
+
+pub fn query_sequence_requirement(QuerySequence) -> @sourceview_resolution.QueryAcquisition
+
+// Errors
+
+// Types and methods
+pub(all) enum QueryGuardIssue {
+  InvalidLimits
+  ForeignReceipt
+  MeasurementWork
+  Measurement(QueryGuardPhase, Int, Int, @encode_core.EncodeFailure)
+  ValueBytes(QueryGuardPhase, Int, Int)
+  InvalidLayout
+  Execution(QuerySequenceIssue)
+  OutputRows
+  MissingOutput
+}
+
+pub(all) struct QueryGuardMeasureLimits {
+  max_work : Int
+  max_bytes : Int
+  max_nodes : Int
+  max_depth : Int
+}
+
+pub(all) enum QueryGuardPhase {
+  Scan
+  Output
+}
+
+type QueryReceipt
+
+type QuerySequence
+
+pub(all) enum QuerySequenceIssue {
+  InvalidLimits
+  Limit
+  ForeignPipeline
+  ForeignParameters
+  ForeignReceipt
+  UnsupportedExecutionShape
+  CaptureNotRetained
+  ReceiptAdmission(@execution_relation.CaptureIssue)
+  Execution(@execution_relation.SequenceRunIssue)
+}
+
+// Type aliases
+
+// Traits

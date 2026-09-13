@@ -1,7 +1,7 @@
 ///|
-fn strategy_test_owner() -> QuerySequence raise {
+fn strategy_test_owner() -> @query.QuerySequence raise {
   let (query, owner) = query_sequence_fixture()
-  prepare_query_sequence(query, query_generated(owner), 10000).unwrap()
+  @query.prepare_query_sequence(query, query_generated(owner), 10000).unwrap()
 }
 
 ///|
@@ -13,7 +13,7 @@ fn strategy_estimates(
 
 ///|
 fn strategy_offer(
-  owner : QuerySequence,
+  owner : @query.QuerySequence,
   route : @planning.QueryRealization,
   values : Array[Int64?],
 ) -> @planning.QueryOffer {
@@ -28,7 +28,7 @@ fn strategy_offer(
 
 ///|
 fn strategy_for(
-  owner : QuerySequence,
+  owner : @query.QuerySequence,
   route : @planning.QueryRealization,
 ) -> @planning.QueryStrategy {
   let offer = strategy_offer(owner, route, [])
@@ -99,7 +99,11 @@ test "selected mock realization executes native before receipt and broad residua
 ///|
 test "native mock never hides full-source admission failure and attempts do not fallback" {
   let (query, bound) = query_sequence_fixture(filter="1 / (id - id) > 0")
-  let owner = prepare_query_sequence(query, query_generated(bound), 10000).unwrap()
+  let owner = @query.prepare_query_sequence(
+    query,
+    query_generated(bound),
+    10000,
+  ).unwrap()
   let source = [
     input_cursor("{\"id\":3}"),
     input_cursor("{\"id\":\"invalid\"}"),
@@ -221,8 +225,10 @@ test "query candidates include transfer residual capture and retention without c
   assert_true(physical_equal(@planning.query_strategy_owner(strategy), owner))
   assert_true(
     physical_equal(
-      query_sequence_requirement(@planning.query_strategy_owner(strategy)),
-      owner.query,
+      @query.query_sequence_requirement(
+        @planning.query_strategy_owner(strategy),
+      ),
+      @query.query_sequence_requirement(owner),
     ),
   )
   assert_eq(@planning.query_strategy_task_count(strategy), 2)

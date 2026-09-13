@@ -3,7 +3,7 @@
 /// a complete requirement/Plan: Program identity and logical guard selection
 /// must be connected separately, without a placeholder requirement CID.
 struct QueryMaterial {
-  owner : @execution.QuerySequence
+  owner : @query.QuerySequence
   request : @encode.EncodedDocument
   request_cid : String
   filter_cid : String
@@ -94,7 +94,7 @@ fn material_hash(
 /// Substitution follows only the checked request field's binding tag. The
 /// complete selected Parameter map uses the shared typed value emitter.
 pub fn prepare_query_material(
-  owner : @execution.QuerySequence,
+  owner : @query.QuerySequence,
   limits : QueryMaterialLimits,
 ) -> Result[QueryMaterial, QueryMaterialIssue] {
   if limits.max_work < 0 ||
@@ -113,7 +113,7 @@ pub fn prepare_query_material(
   }
   try {
     material_spend(budget, 1)
-    let query = @execution.query_sequence_requirement(owner)
+    let query = @query.query_sequence_requirement(owner)
     guard @acquisition.pipeline_request_at(
         @acquisition.query_acquisition_owner(query),
         @acquisition.query_acquisition_source_index(query),
@@ -282,7 +282,7 @@ pub fn prepare_query_material(
 }
 
 ///|
-pub fn query_material_owner(value : QueryMaterial) -> @execution.QuerySequence {
+pub fn query_material_owner(value : QueryMaterial) -> @query.QuerySequence {
   value.owner
 }
 

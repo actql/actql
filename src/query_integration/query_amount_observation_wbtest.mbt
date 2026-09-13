@@ -2,7 +2,11 @@
 fn query_amount_setup(
   nullable : Bool,
   ceiling? : Int = 100,
-) -> (QuerySequence, @planning.QueryRequirement, @planning.MockQueryIssuer) raise {
+) -> (
+  @query.QuerySequence,
+  @planning.QueryRequirement,
+  @planning.MockQueryIssuer,
+) raise {
   let checked = query_checked_program_fixture(
     catalog=Some(
       if nullable {
@@ -45,7 +49,7 @@ fn query_observation_member(
 ///|
 test "unused amount changes broad access but not native receipt or consumer output" {
   let (sequence, requirement, issuer) = query_amount_setup(true)
-  let owner = @lower.sequence_owner(sequence.generated.sequence)
+  let owner = @query.query_sequence_owner(sequence)
   let receiver = typed_receiver(owner, "[{\"select\":[\"id\"]}]")
   let selected = "[{\"id\":3},{\"id\":3},{\"id\":2}]"
   let sources = [
@@ -139,19 +143,22 @@ test "unused amount changes broad access but not native receipt or consumer outp
       let input = @planning.bind_captured_query_input(
         issuer, attempt, observation, receiver, 0, owner,
       ).unwrap()
-      let consumer = prepare_local_compute_attempt(
+      let consumer = @execution.prepare_local_compute_attempt(
         compute_test_sequence(receiver),
         [input],
         3,
       ).unwrap()
-      let output = completed_output(
-        execute_local_compute_attempt(consumer, compute_test_limits()).unwrap(),
+      let output = @execution.completed_output(
+        @execution.execute_local_compute_attempt(
+          consumer,
+          compute_test_limits(),
+        ).unwrap(),
         Step(0),
       ).unwrap()
-      assert_eq(completed_row_count(output), 3)
+      assert_eq(@execution.completed_row_count(output), 3)
       assert_eq(
-        row_wire_cid(
-          identify_completed_rows(output, row_wire_limits()).unwrap(),
+        @execution.row_wire_cid(
+          @execution.identify_completed_rows(output, row_wire_limits()).unwrap(),
         ),
         query_material_expected(selected),
       )

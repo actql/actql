@@ -146,7 +146,7 @@ fn query_observation_oracle_cases(nullable : Bool) -> Unit raise {
   let issuer = @planning.prepare_mock_query_issuer(
     contracts, requirement, "oracle-process", 100,
   ).unwrap()
-  let owner = @lower.sequence_owner(sequence.generated.sequence)
+  let owner = @query.query_sequence_owner(sequence)
   let receiver = typed_receiver(owner, "[{\"select\":[\"id\"]}]")
   let cases = [
     (
@@ -234,20 +234,20 @@ fn query_observation_oracle_cases(nullable : Bool) -> Unit raise {
       let input = @planning.bind_captured_query_input(
         issuer, attempt, observation, receiver, 0, owner,
       ).unwrap()
-      let consumer = prepare_local_compute_attempt(
+      let consumer = @execution.prepare_local_compute_attempt(
         compute_test_sequence(receiver),
         [input],
         3, // One inventory entry, membership entry and owned input handle.
       ).unwrap()
-      let complete = execute_local_compute_attempt(
+      let complete = @execution.execute_local_compute_attempt(
         consumer,
         compute_test_limits(),
       ).unwrap()
-      let output = completed_output(complete, Step(0)).unwrap()
-      assert_eq(completed_row_count(output), after)
+      let output = @execution.completed_output(complete, Step(0)).unwrap()
+      assert_eq(@execution.completed_row_count(output), after)
       assert_eq(
-        row_wire_cid(
-          identify_completed_rows(output, row_wire_limits()).unwrap(),
+        @execution.row_wire_cid(
+          @execution.identify_completed_rows(output, row_wire_limits()).unwrap(),
         ),
         query_material_expected(selected),
       )

@@ -1,7 +1,7 @@
 # Query Acquisition residual execution
 
 The shared [query acquisition contract](query-acquisition.md) owns the semantic
-scan/filter/select boundary. The local `execution_relation.QuerySequence` binds
+scan/filter/select boundary. The local `execution_query.QuerySequence` binds
 that opaque derivation to an already admitted `GeneratedSequence`; it does not
 derive another canonical query or Plan.
 
@@ -37,3 +37,49 @@ This boundary uses the ordinary completed-output and producer-input APIs. It
 adds no private alternative completion, suspension protocol or public Connector
 SPI, and performs no I/O. It must not be presented as an Acquisition entry point
 or permission to execute a Program.
+
+## Dependency and ownership boundary
+
+The dependency direction is:
+
+```text
+query_planning → execution_query → execution_relation → lowering_relation
+                       ↓
+              sourceview_resolution
+```
+
+`execution_query` resolves the acquisition's input/capture ports and checks the
+exact checked pipeline, Parameter bindings and retained target. It owns
+`QuerySequence`, `QueryReceipt`, and query diagnostic translation. No compatibility
+facade lives in the row engine: package/API locations may change without changing
+semantic contracts, wire forms, identities or failure precedence.
+
+`execution_relation` knows only fixed admitted input, checked computation and
+completion. Its read-only `generated_sequence_owner`, `generated_retained_count`
+and `generated_retained_at` expose the exact retained owner and bounded metadata,
+not mutable context or storage. The query adapter's `query_sequence_owner` returns
+that same owner; it does not reconstruct an equivalent preparation.
+
+`execute_fixed_input_guarded` is a synchronous single-fixed-input operation, not
+a generic acquisition executor. It measures all input values, charges context
+constraints before allocating their copies, tightens demanded-root byte ceilings,
+executes the existing driver, checks the selected retained output's row ceiling,
+and measures its values. One private ledger spans these phases. It cannot export
+partial success or a mutable ledger. Context tightening uses the smaller existing
+and requested ceilings; the original preparation remains reusable. No guard
+reevaluates an expression, and the driver's original input accounting still runs.
+Query ownership rejection precedes that operation, after invalid-limit checks;
+query error translation preserves phase, row, column and nested failure kind.
+
+Canonical logical row hashing also stays in `execution_relation`.
+`identify_captured_rows` retains the exact `CapturedRows` handle, while
+`identify_completed_rows` retains `CompletedOutput`. Query receipts retain those
+same inputs; the upper verifier combines exact input/output identity matches with
+its existing live issuer, attempt and record-set checks. A matching row CID is
+never a substitute for those relationships. Passing handles across the package
+boundary adds no row copies, re-admission or additional measurement traversal.
+
+Query E2E fixtures live in the test-only `query_integration` package. They use
+public checked construction and opaque execution APIs through capture and the
+consumer. Layout, measurement-ledger, expression and completion whitebox tests
+stay with the engine. Integration fixtures grant no test-only production authority.

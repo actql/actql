@@ -1,5 +1,5 @@
 ///|
-test "query measurement preserves selected NULL values and failure frontiers across layouts" {
+test "fixed input measurement preserves selected NULL values and failure frontiers across layouts" {
   let owner = row_owner("")
   let row = RowTable({
     owner,
@@ -23,48 +23,73 @@ test "query measurement preserves selected NULL values and failure frontiers acr
     ],
   })
   for table in [row, typed] {
-    for phase in [QueryGuardPhase::Scan, Output] {
-      let exact : QueryGuardBudget = { work: 6, bytes: 6, nodes: 3, depth: 0, }
-      assert_true(measure_query_values(table, 4, phase, exact) is Ok(_))
+    for phase in [FixedInputGuardPhase::InputValues, Output] {
+      let exact : FixedInputGuardBudget = {
+        work: 6,
+        bytes: 6,
+        nodes: 3,
+        depth: 0,
+      }
+      assert_true(measure_input_values(table, 4, phase, exact) is Ok(_))
       assert_eq((exact.work, exact.bytes, exact.nodes), (0, 0, 0))
 
-      let work : QueryGuardBudget = { work: 5, bytes: 6, nodes: 3, depth: 0, }
+      let work : FixedInputGuardBudget = {
+        work: 5,
+        bytes: 6,
+        nodes: 3,
+        depth: 0,
+      }
       assert_true(
-        measure_query_values(table, 4, phase, work) is Err(MeasurementWork),
+        measure_input_values(table, 4, phase, work) is Err(MeasurementWork),
       )
       assert_eq((work.work, work.bytes, work.nodes), (0, 1, 1))
 
-      let bytes : QueryGuardBudget = { work: 6, bytes: 5, nodes: 3, depth: 0, }
+      let bytes : FixedInputGuardBudget = {
+        work: 6,
+        bytes: 5,
+        nodes: 3,
+        depth: 0,
+      }
       assert_true(
-        measure_query_values(table, 4, phase, bytes)
+        measure_input_values(table, 4, phase, bytes)
         is Err(Measurement(_, 2, 0, _)),
       )
       assert_eq((bytes.work, bytes.bytes, bytes.nodes), (0, 0, 1))
 
-      let nodes : QueryGuardBudget = { work: 6, bytes: 6, nodes: 2, depth: 0, }
+      let nodes : FixedInputGuardBudget = {
+        work: 6,
+        bytes: 6,
+        nodes: 2,
+        depth: 0,
+      }
       assert_true(
-        measure_query_values(table, 4, phase, nodes)
+        measure_input_values(table, 4, phase, nodes)
         is Err(Measurement(_, 2, 0, _)),
       )
       assert_eq((nodes.work, nodes.bytes, nodes.nodes), (0, 1, 0))
 
-      let ceiling : QueryGuardBudget = {
+      let ceiling : FixedInputGuardBudget = {
         work: 6,
         bytes: 6,
         nodes: 3,
         depth: 0,
       }
       assert_true(
-        measure_query_values(table, 3, phase, ceiling)
+        measure_input_values(table, 3, phase, ceiling)
         is Err(ValueBytes(_, 1, 0)),
       )
       assert_eq((ceiling.work, ceiling.bytes, ceiling.nodes), (2, 1, 1))
     }
-    // Scan and output share a ledger rather than resetting at a representation
+    // Input and output share a ledger rather than resetting at a representation
     // or phase boundary. Independently: 2 * (6 work, 6 bytes, 3 scalar nodes).
-    let shared : QueryGuardBudget = { work: 12, bytes: 12, nodes: 6, depth: 0, }
-    assert_true(measure_query_values(table, 4, Scan, shared) is Ok(_))
-    assert_true(measure_query_values(table, 4, Output, shared) is Ok(_))
+    let shared : FixedInputGuardBudget = {
+      work: 12,
+      bytes: 12,
+      nodes: 6,
+      depth: 0,
+    }
+    assert_true(measure_input_values(table, 4, InputValues, shared) is Ok(_))
+    assert_true(measure_input_values(table, 4, Output, shared) is Ok(_))
     assert_eq((shared.work, shared.bytes, shared.nodes), (0, 0, 0))
   }
 }

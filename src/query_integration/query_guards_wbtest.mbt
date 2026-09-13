@@ -1,5 +1,5 @@
 ///|
-fn query_guard_physical() -> QueryGuardMeasureLimits {
+fn query_guard_physical() -> @query.QueryGuardMeasureLimits {
   { max_work: 10000, max_bytes: 100000, max_nodes: 10000, max_depth: 100, }
 }
 
@@ -8,14 +8,18 @@ test "query root guard does not demand a lazy failing branch or cap a whole row 
   let (query, bound) = query_sequence_fixture(
     filter="if(id > 0, true, 1 / (id - id) > 0)",
   )
-  let sequence = prepare_query_sequence(query, query_generated(bound), 10000).unwrap()
-  let receipt = admit_query_receipt(
+  let sequence = @query.prepare_query_sequence(
+    query,
+    query_generated(bound),
+    10000,
+  ).unwrap()
+  let receipt = @query.admit_query_receipt(
     sequence,
     [input_cursor("{\"id\":1}")],
     1,
     run_limits().input_values,
   ).unwrap()
-  let (completed, _) = execute_query_receipt_guarded(
+  let (completed, _) = @query.execute_query_receipt_guarded(
     sequence,
     receipt,
     compute_test_limits(),
@@ -24,11 +28,13 @@ test "query root guard does not demand a lazy failing branch or cap a whole row 
     query_guard_physical(),
   ).unwrap()
   assert_eq(
-    completed_row_count(completed_output(completed, @pipeline.Step(1)).unwrap()),
+    @execution.completed_row_count(
+      @execution.completed_output(completed, @pipeline.Step(1)).unwrap(),
+    ),
     1,
   )
   assert_true(
-    execute_query_receipt_guarded(
+    @query.execute_query_receipt_guarded(
       sequence,
       receipt,
       compute_test_limits(),
@@ -56,15 +62,19 @@ test "query root guard does not demand a lazy failing branch or cap a whole row 
 ///|
 test "query guards measure complete scan before demanded failure and preserve reusable preparation" {
   let (query, bound) = query_sequence_fixture(filter="1 / (id - id) > 0")
-  let sequence = prepare_query_sequence(query, query_generated(bound), 10000).unwrap()
-  let receipt = admit_query_receipt(
+  let sequence = @query.prepare_query_sequence(
+    query,
+    query_generated(bound),
+    10000,
+  ).unwrap()
+  let receipt = @query.admit_query_receipt(
     sequence,
     [input_cursor("{\"id\":1}"), input_cursor("{\"id\":123456}")],
     2,
     run_limits().input_values,
   ).unwrap()
   assert_true(
-    execute_query_receipt_guarded(
+    @query.execute_query_receipt_guarded(
       sequence,
       receipt,
       compute_test_limits(),
@@ -77,7 +87,7 @@ test "query guards measure complete scan before demanded failure and preserve re
   // Raising the value ceiling exposes the demanded expression failure, before
   // the output-row ceiling. Neither failed run changes the checked preparation.
   assert_true(
-    execute_query_receipt_guarded(
+    @query.execute_query_receipt_guarded(
       sequence,
       receipt,
       compute_test_limits(),
@@ -92,7 +102,7 @@ test "query guards measure complete scan before demanded failure and preserve re
 ///|
 test "query guard byte ceiling applies to predicate roots without changing demand" {
   let sequence = strategy_test_owner()
-  let receipt = admit_query_receipt(
+  let receipt = @query.admit_query_receipt(
     sequence,
     [input_cursor("{\"id\":1}")],
     1,
@@ -101,7 +111,7 @@ test "query guard byte ceiling applies to predicate roots without changing deman
   // The input number is one byte, but false is five. No output row is needed
   // for the demanded predicate root to enforce its own value ceiling.
   assert_true(
-    execute_query_receipt_guarded(
+    @query.execute_query_receipt_guarded(
       sequence,
       receipt,
       compute_test_limits(),
@@ -111,7 +121,7 @@ test "query guard byte ceiling applies to predicate roots without changing deman
     )
     is Err(Execution(Execution(Rows(_, _)))),
   )
-  let (completed, _) = execute_query_receipt_guarded(
+  let (completed, _) = @query.execute_query_receipt_guarded(
     sequence,
     receipt,
     compute_test_limits(),
@@ -120,12 +130,19 @@ test "query guard byte ceiling applies to predicate roots without changing deman
     query_guard_physical(),
   ).unwrap()
   assert_eq(
-    completed_row_count(completed_output(completed, @pipeline.Step(1)).unwrap()),
+    @execution.completed_row_count(
+      @execution.completed_output(completed, @pipeline.Step(1)).unwrap(),
+    ),
     0,
   )
-  let empty = admit_query_receipt(sequence, [], 0, run_limits().input_values).unwrap()
+  let empty = @query.admit_query_receipt(
+    sequence,
+    [],
+    0,
+    run_limits().input_values,
+  ).unwrap()
   assert_true(
-    execute_query_receipt_guarded(
+    @query.execute_query_receipt_guarded(
       sequence,
       empty,
       compute_test_limits(),
@@ -140,7 +157,7 @@ test "query guard byte ceiling applies to predicate roots without changing deman
 ///|
 test "query guard measurement shares physical counters across scan and output" {
   let sequence = strategy_test_owner()
-  let receipt = admit_query_receipt(
+  let receipt = @query.admit_query_receipt(
     sequence,
     [
       input_cursor("{\"id\":3}"),
@@ -151,7 +168,7 @@ test "query guard measurement shares physical counters across scan and output" {
     run_limits().input_values,
   ).unwrap()
   let limits = query_guard_physical()
-  let (completed, usage) = execute_query_receipt_guarded(
+  let (completed, usage) = @query.execute_query_receipt_guarded(
     sequence,
     receipt,
     compute_test_limits(),
@@ -161,8 +178,8 @@ test "query guard measurement shares physical counters across scan and output" {
   ).unwrap()
   assert_eq(usage, (11, 5, 5)) // five rows + five cells + one context copy
   assert_true(
-    completed_cell(
-      completed_output(completed, @pipeline.Step(1)).unwrap(),
+    @execution.completed_cell(
+      @execution.completed_output(completed, @pipeline.Step(1)).unwrap(),
       0,
       0,
     )
@@ -170,7 +187,7 @@ test "query guard measurement shares physical counters across scan and output" {
   )
   let exact = { ..limits, max_work: 11, max_bytes: 5, max_nodes: 5, }
   assert_true(
-    execute_query_receipt_guarded(
+    @query.execute_query_receipt_guarded(
       sequence,
       receipt,
       compute_test_limits(),
@@ -181,7 +198,7 @@ test "query guard measurement shares physical counters across scan and output" {
     is Ok(_),
   )
   assert_true(
-    execute_query_receipt_guarded(
+    @query.execute_query_receipt_guarded(
       sequence,
       receipt,
       compute_test_limits(),
@@ -192,7 +209,7 @@ test "query guard measurement shares physical counters across scan and output" {
     is Err(MeasurementWork),
   )
   assert_true(
-    execute_query_receipt_guarded(
+    @query.execute_query_receipt_guarded(
       sequence,
       receipt,
       compute_test_limits(),
@@ -203,7 +220,7 @@ test "query guard measurement shares physical counters across scan and output" {
     is Err(Measurement(Output, 1, 0, _)),
   )
   assert_true(
-    execute_query_receipt_guarded(
+    @query.execute_query_receipt_guarded(
       sequence,
       receipt,
       compute_test_limits(),
@@ -214,7 +231,7 @@ test "query guard measurement shares physical counters across scan and output" {
     is Err(Measurement(Output, 1, 0, _)),
   )
   assert_true(
-    execute_query_receipt_guarded(
+    @query.execute_query_receipt_guarded(
       sequence,
       receipt,
       compute_test_limits(),
@@ -226,7 +243,7 @@ test "query guard measurement shares physical counters across scan and output" {
   )
   let other = strategy_test_owner()
   assert_true(
-    execute_query_receipt_guarded(
+    @query.execute_query_receipt_guarded(
       other,
       receipt,
       compute_test_limits(),

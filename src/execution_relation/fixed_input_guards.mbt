@@ -1,7 +1,7 @@
 ///|
-/// Physical measurement limits, separate from the acquisition's logical guards
+/// Physical measurement limits, separate from the caller's logical guards
 /// and the evaluator's existing logical work/live-root budgets.
-pub(all) struct QueryGuardMeasureLimits {
+pub(all) struct FixedInputGuardMeasureLimits {
   max_work : Int
   max_bytes : Int
   max_nodes : Int
@@ -9,26 +9,26 @@ pub(all) struct QueryGuardMeasureLimits {
 }
 
 ///|
-pub(all) enum QueryGuardPhase {
-  Scan
+pub(all) enum FixedInputGuardPhase {
+  InputValues
   Output
 }
 
 ///|
-pub(all) enum QueryGuardIssue {
+pub(all) enum FixedInputGuardIssue {
   InvalidLimits
-  ForeignReceipt
+  ForeignInput
   MeasurementWork
-  Measurement(QueryGuardPhase, Int, Int, @encode.EncodeFailure)
-  ValueBytes(QueryGuardPhase, Int, Int)
+  Measurement(FixedInputGuardPhase, Int, Int, @encode.EncodeFailure)
+  ValueBytes(FixedInputGuardPhase, Int, Int)
   InvalidLayout
-  Execution(QuerySequenceIssue)
+  Execution(SequenceRunIssue)
   OutputRows
   MissingOutput
 }
 
 ///|
-priv struct QueryGuardBudget {
+priv struct FixedInputGuardBudget {
   mut work : Int
   mut bytes : Int
   mut nodes : Int
@@ -36,12 +36,12 @@ priv struct QueryGuardBudget {
 }
 
 ///|
-fn[T : IndexedRows] measure_query_values(
+fn[T : IndexedRows] measure_input_values(
   rows : T,
   ceiling : Int,
-  phase : QueryGuardPhase,
-  budget : QueryGuardBudget,
-) -> Result[Unit, QueryGuardIssue] {
+  phase : FixedInputGuardPhase,
+  budget : FixedInputGuardBudget,
+) -> Result[Unit, FixedInputGuardIssue] {
   for row in 0..<rows.row_count() {
     if budget.work <= 0 {
       return Err(MeasurementWork)
@@ -77,18 +77,20 @@ fn[T : IndexedRows] measure_query_values(
 }
 
 ///|
-/// Enforce all known scan values before evaluating any filter, then the complete
-/// select output. Existing fragment budgets retain their row/live/work rules;
+/// Enforce every fixed input value before execution, then the retained output.
+/// Existing fragment budgets retain their row/live/work rules;
 /// an additional root-only ceiling applies without changing checked identities.
-/// Success is still a computation, not an acquisition capture or issuer record.
-pub fn execute_query_receipt_guarded(
-  prepared : QuerySequence,
-  receipt : QueryReceipt,
+/// The private ledger spans input, context constraints and output. No mutable
+/// context or storage escapes, and no expression is evaluated for measurement.
+pub fn execute_fixed_input_guarded(
+  original : GeneratedSequence,
+  input : CapturedRows,
+  target : @pipeline.Target,
   execution : SequenceExecutionLimits,
   max_output_rows~ : Int,
   max_value_bytes~ : Int,
-  physical : QueryGuardMeasureLimits,
-) -> Result[(CompletedSequence, (Int, Int, Int)), QueryGuardIssue] {
+  physical : FixedInputGuardMeasureLimits,
+) -> Result[(CompletedSequence, (Int, Int, Int)), FixedInputGuardIssue] {
   if max_output_rows < 0 ||
     max_value_bytes < 0 ||
     physical.max_work < 0 ||
@@ -97,26 +99,25 @@ pub fn execute_query_receipt_guarded(
     physical.max_depth < 0 {
     return Err(InvalidLimits)
   }
-  if !physical_equal(prepared, receipt.owner) {
-    return Err(ForeignReceipt)
+  if !physical_equal(generated_sequence_owner(original), captured_owner(input)) {
+    return Err(ForeignInput)
   }
-  let budget : QueryGuardBudget = {
+  let budget : FixedInputGuardBudget = {
     work: physical.max_work,
     bytes: physical.max_bytes,
     nodes: physical.max_nodes,
     depth: physical.max_depth,
   }
   match
-    measure_query_values(
-      ReceiptWireRows::{ receipt, },
+    measure_input_values(
+      CapturedWireRows::{ rows: input, },
       max_value_bytes,
-      Scan,
+      InputValues,
       budget,
     ) {
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
-  let original = prepared.generated
   if original.contexts.length() > budget.work {
     return Err(MeasurementWork)
   }
@@ -132,21 +133,17 @@ pub fn execute_query_receipt_guarded(
   })
   let generated = GeneratedSequence::{ ..original, contexts, }
   let completed = match
-    execute_generated_sequence(generated, [receipt.rows], execution) {
+    execute_generated_sequence(generated, [input], execution) {
     Ok(value) => value
-    Err(issue) => return Err(Execution(QuerySequenceIssue::Execution(issue)))
+    Err(issue) => return Err(Execution(issue))
   }
-  guard completed_output(
-      completed,
-      @acquisition.query_acquisition_capture(prepared.query),
-    )
-    is Some(output) else {
+  guard completed_output(completed, target) is Some(output) else {
     return Err(MissingOutput)
   }
   if completed_row_count(output) > max_output_rows {
     return Err(OutputRows)
   }
-  match measure_query_values(output.table, max_value_bytes, Output, budget) {
+  match measure_input_values(output.table, max_value_bytes, Output, budget) {
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }

@@ -84,3 +84,29 @@ pub fn execute_generated_sequence(
     fragments=Some(generated.contexts),
   )
 }
+
+///|
+/// Read-only access to the exact owner of this prepared execution.
+pub fn generated_sequence_owner(
+  generated : GeneratedSequence,
+) -> @lower.BoundPrepared {
+  @lower.sequence_owner(generated.sequence)
+}
+
+///|
+pub fn generated_retained_count(generated : GeneratedSequence) -> Int {
+  generated.retained_ids.length()
+}
+
+///|
+/// Bounded, non-copying inspection; never exposes the retained array.
+pub fn generated_retained_at(
+  generated : GeneratedSequence,
+  index : Int,
+) -> String? {
+  if index < 0 || index >= generated.retained_ids.length() {
+    None
+  } else {
+    Some(generated.retained_ids[index])
+  }
+}
