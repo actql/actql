@@ -12,6 +12,7 @@ pub struct DedupeTopTieCheck {
 ///|
 pub(all) enum OperationExecutionCheck {
   IntervalExecution(IntervalExecutionCheck)
+  IntervalSearch(IntervalSearchCheck)
   WatermarkExecution(WatermarkExecutionCheck)
   WindowMembershipLimit(WindowMembershipLimit)
   WindowExecution(WindowExecutionCheck)
@@ -51,6 +52,7 @@ pub fn operation_execution_phase(
   v : OperationExecutionCheck,
 ) -> ExecutionCheckPhase {
   match v {
+    IntervalSearch(_) => BeforeOperationInputUse
     IntervalExecution(v) =>
       match v.rule {
         AdmitAllIntervalEndpoints | AdmitSafeIntegerClocks =>
@@ -113,6 +115,7 @@ pub fn operation_execution_failure(
 ) -> ExecutionCheckFailure {
   match v {
     IntervalExecution(_) => RejectOperationOutput
+    IntervalSearch(_) => RejectOperationOutput
     WatermarkExecution(_) => RejectOperationOutput
     WindowMembershipLimit(_) => RejectOperationOutput
     WindowExecution(_) => RejectOperationOutput

@@ -157,6 +157,8 @@ pub fn close_stage_requirements(ProgramIncomingLinks, StageRequirementLimits) ->
 
 pub fn collect_core_contracts(ProgramSourceIdentity, CoreContractLimits, profile_checks? : ProgramOperationCalendar?, hash_limits? : @local_relation_snapshot.Limits?, numeric_slots? : ProgramNumericSlots?, analytic_numeric_slots? : ProgramAnalyticNumericSlots?) -> Result[CoreContractInventory, CoreContractIssue]
 
+pub fn collect_interval_search_bounds(ProgramOperationResolutionIndex, Int, Int, Int) -> Result[IntervalSearchBounds, IntervalSearchLimitIssue]
+
 pub fn collect_program_incoming(ProgramSourceIdentity, IncomingLimits) -> Result[ProgramIncomingRequirements, IncomingIssue]
 
 pub fn collect_program_operation_requirements(ProgramExpressionClosure, Int, Int) -> Result[ProgramOperationRequirements, OperationRequirementsIssue]
@@ -333,6 +335,20 @@ pub fn input_usage(InputContexts) -> InputUsage
 
 pub fn input_wiring(InputContexts) -> WiredStages
 
+pub fn interval_search_bound_candidate_at(IntervalSearchBounds, Int, Int) -> @capacity_graph_preflight.TargetMembership?
+
+pub fn interval_search_bound_candidate_count(IntervalSearchBounds, Int) -> Int
+
+pub fn interval_search_bound_closure(IntervalSearchBounds) -> @capacity_graph_preflight.ApplicationClosure
+
+pub fn interval_search_bound_owner(IntervalSearchBounds) -> ProgramOperationResolutionIndex
+
+pub fn interval_search_bound_product(IntervalSearchBounds) -> @capacity_program_step.IntervalSearchProduct?
+
+pub fn interval_search_bound_requirement(IntervalSearchBounds) -> Int
+
+pub fn interval_search_bound_work(IntervalSearchBounds) -> Int
+
 pub fn like_pattern_at(LikePatternChecks, Int) -> LikePatternResolution?
 
 pub fn like_pattern_context(LikePatternChecks) -> ExpressionValidationContext
@@ -358,6 +374,8 @@ pub fn link_program_group_array_limits(ProgramOperationResolutionIndex, Int, Int
 pub fn link_program_group_string_limits(ProgramOperationResolutionIndex, Int, Int, Int) -> Result[ProgramOperationResolutionIndex, GroupStringLimitIssue]
 
 pub fn link_program_incoming(ProgramOperationProfileLinks, ProgramIncomingRequirements, IncomingLimits) -> Result[ProgramIncomingLinks, IncomingLinksIssue]
+
+pub fn link_program_interval_search_limits(ProgramOperationResolutionIndex, Int, Int, Int) -> Result[ProgramOperationResolutionIndex, IntervalSearchLimitIssue]
 
 pub fn link_program_join_requirements(ProgramOperationResolutionIndex, Int, Int) -> Result[ProgramOperationResolutionIndex, JoinRequirementIssue]
 
@@ -1443,6 +1461,29 @@ pub(all) enum IntervalExecutionRule {
   PreserveIntervalOccurrenceOrder
 } derive(Eq, @debug.Debug)
 
+type IntervalSearchBounds
+
+pub struct IntervalSearchCheck {
+  site : OperationRequirementSite
+  bounds : IntervalSearchBounds
+  product : @capacity_program_step.IntervalSearchProduct
+  rule : IntervalSearchRule
+}
+
+pub enum IntervalSearchLimitIssue {
+  InvalidLimits
+  InvalidRequirement
+  ForeignEvidence
+  BudgetExceeded
+  MissingSearchBound
+  Overflow
+}
+
+pub(all) enum IntervalSearchRule {
+  CheckOperandProduct
+  EnforceSingleVisitSearch
+} derive(Eq, @debug.Debug)
+
 pub(all) enum Issue {
   InvalidIntegrationLimits
   PriorOrderLimit
@@ -1688,6 +1729,7 @@ pub(all) enum OperationDisposition {
 
 pub(all) enum OperationExecutionCheck {
   IntervalExecution(IntervalExecutionCheck)
+  IntervalSearch(IntervalSearchCheck)
   WatermarkExecution(WatermarkExecutionCheck)
   WindowMembershipLimit(WindowMembershipLimit)
   WindowExecution(WindowExecutionCheck)

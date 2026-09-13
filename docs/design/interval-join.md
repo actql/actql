@@ -52,6 +52,23 @@ other operand is known empty. Missing and overflowing products leave the
 fallback unavailable. Application-closure membership, producer obligations and
 single-visit realization conformance are separate checks; this numeric product
 alone is not a completed search resolution or an execution permit.
+
+`collect_interval_search_bounds` checks those associations against the owning
+Program's capacity closure. It visits the complete sparse claim table, charges
+rejected associations, and retains original claim/producer coordinates on both
+sides. It retains all applicable candidates but selects each side's minimum
+before multiplication, without expanding combinations of proof alternatives.
+The same producer in both roles remains two input occurrences.
+
+`link_program_interval_search_limits` consumes that owned selection to connect
+operand-product and search-enforcement obligations together. A missing bound
+cannot be replaced with a Host output-row ceiling; failure returns no partially
+updated index. The search execution check requires a single-visit realization
+and atomic pair-visit enforcement, not a claim that matching or input admission
+has already occurred. Output limits and endpoint checks remain separate.
+Process-local memberships are not persistent Unit subjects or backend
+conformance evidence; those boundaries must consume the original dependencies,
+not infer ownership from matching numeric limits.
 Left-major/right-minor ordering remains an obligation, not a fabricated order
 certificate. The output contract does not establish candidate-key identity,
 external absence, coverage or authorization to execute. Existing window roles

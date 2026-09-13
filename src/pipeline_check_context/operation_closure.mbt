@@ -56,6 +56,7 @@ pub fn close_program_operations(
         // its owned subject here instead of defaulting to a runtime permission.
         let site = match check {
           IntervalExecution(v) => v.site
+          IntervalSearch(v) => v.site
           WatermarkExecution(v) => v.site
           WindowMembershipLimit(v) => v.site
           AnalyticExecution(v) => v.site

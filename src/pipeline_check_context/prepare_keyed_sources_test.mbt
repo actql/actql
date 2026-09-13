@@ -9,6 +9,8 @@ fn prepared_keyed_source_context(
   window_events? : Bool = false,
   window_from? : String = "seed",
   temporal_rows? : Int = 1,
+  interval_kind? : String? = None,
+  interval_with? : String = "seed",
 ) -> SelectedPolicyContext raise {
   let original = keyed_sourceview_environment(changes~)
   let writer = @encode.writer(1000000, 100000, 100)
@@ -56,7 +58,21 @@ fn prepared_keyed_source_context(
   let text =
     #|{"version":"actql/0.1","id":"keyed","stages":[{"id":"s","inputs":{"remote":{"connector":"crm/main","resource":"r","request":{"tenant":null}}},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":false}},"rows":[{"id":1}]},"as":"seed"},{"join":{"left":"seed","with":"remote","on":"id","kind":"left","select":{"id":"left.id"}}}],"results":{"out":{"from":"seed","fields":["id"]}}}],"results":{"out":{"from":{"stage":"s","result":"out"}}}}
   let program = @syntax.parse(
-    if window_body is Some(window_body) {
+    if interval_kind is Some(kind) {
+      text
+      .replace(
+        old="\"select\":{\"id\":\"left.id\"}}}",
+        new="\"select\":{\"id\":\"left.id\"}},\"as\":\"joined\"}",
+      )
+      .replace(
+        old="}],\"results\":{\"out\":{\"from\":\"seed\"",
+        new="},{\"from\":\"seed\",\"interval_join\":{\"with\":\"" +
+          interval_with +
+          "\",\"kind\":\"" +
+          kind +
+          "\",\"mode\":\"point_in_interval\",\"on\":[],\"left\":{\"time\":\"id\"},\"right\":{\"start\":\"id\",\"end\":\"id\"}}}],\"results\":{\"out\":{\"from\":\"seed\"",
+      )
+    } else if window_body is Some(window_body) {
       text
       .replace(
         old="\"select\":{\"id\":\"left.id\"}}}",
@@ -144,13 +160,26 @@ fn prepared_keyed_source_context(
     old="\"subject_ref\":",
     new="\"resolved_limit_cid\":\"" + limit_cid + "\",\"subject_ref\":",
   )
+  let resolved_limits = [(@utf8.encode(limit_text), limit_cid)]
+  if interval_kind is Some(_) {
+    let second_body = limit_body.replace(
+      old="join:checked-step:1:output",
+      new="join:checked-step:2:output",
+    )
+    let second_cid = "sha256:" + @sha.hex(@utf8.encode(second_body))
+    let second_text = second_body.replace(
+      old="\"subject_ref\":",
+      new="\"resolved_limit_cid\":\"" + second_cid + "\",\"subject_ref\":",
+    )
+    resolved_limits.push((@utf8.encode(second_text), second_cid))
+  }
   let arithmetic = @wire.check_mixed_claims(
     if host_first {
       [host_wire, @wire.program_proof_witness(proof)]
     } else {
       [@wire.program_proof_witness(proof), host_wire]
     },
-    [(@utf8.encode(limit_text), limit_cid)],
+    resolved_limits,
     {
       max_entities: 100,
       max_references: 100,
@@ -173,7 +202,11 @@ fn prepared_keyed_source_context(
   for i in 0..<materials[0].length() {
     materials[0][i] = {
       sources,
-      consumers: [@capacity.Join(step=1, output=0)],
+      consumers: if interval_kind is Some(_) {
+        [@capacity.Join(step=1, output=0), @capacity.Join(step=2, output=1)]
+      } else {
+        [@capacity.Join(step=1, output=0)]
+      },
     }
   }
   prepare_sourceview_context(
