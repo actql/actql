@@ -118,3 +118,12 @@ The selection record shares the historical `GroupArrayLimit` reader surface and
 retains an explicit analytic input-law identifier. Ordinary group selectors
 reject analytic occurrences. No observation, position witness or persistent
 proof conversion is implied by selection; those remain distinct boundaries.
+
+The owned analytic input-proof reader separately rebuilds an applicable row
+proof and its dependencies against the producer Unit, then applies the analytic
+array-input law to the per-frame subject. The row witness retains its rows unit;
+the new witness has array-items units and names that row witness as its input.
+Proof encoding is shared with ordinary group arrays, but ownership, call lookup,
+subject and law selection remain operation-specific. A conversion budget failure
+returns no partial proof. This reader does not by itself assemble the complete
+persistent resolved limit or establish runtime frame contents.

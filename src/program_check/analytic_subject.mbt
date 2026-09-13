@@ -36,6 +36,14 @@ pub fn analytic_aggregate_subject(
   max_work : Int,
 ) -> String raise UnitBuildFailure {
   let budget = IdentityBudget::{ work: max_work, bytes: 0, nodes: 0, depth: 0, }
+  analytic_aggregate_subject_with_budget(source, budget)
+}
+
+///|
+fn analytic_aggregate_subject_with_budget(
+  source : AnalyticAggregateSource,
+  budget : IdentityBudget,
+) -> String raise UnitBuildFailure {
   for _ in 0..<4 {
     identity_charge(budget, source.call.name.length())
   }

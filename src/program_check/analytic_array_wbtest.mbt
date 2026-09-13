@@ -13,6 +13,81 @@ test "formal analytic arrays select an admitted input row proof" {
     extra_step_budget=6,
   )
   let closure = @context.stage_requirement_operations(requirements(programs[0]))
+  let converted = unit_analytic_input_proof(
+    programs[0],
+    1,
+    2,
+    0,
+    0,
+    max_work=100000000,
+    max_bytes=10000000,
+    max_nodes=1000000,
+    max_depth=100,
+  )
+  let source = analytic_input_proof_source(converted)
+  let subject = analytic_aggregate_subject(source, 1000)
+  assert_eq(
+    subject,
+    "unit:" +
+    unit_definition_cid(programs[0], 1).unwrap() +
+    "#/steps/2/analytic/functions/items/items",
+  )
+  let input = @wire.program_proof_witness(
+    analytic_input_proof_input(converted).proof,
+  )
+  let proof = analytic_input_proof_claim(converted)
+  let witness = @wire.program_proof_witness(proof)
+  assert_eq(@wire.value(witness), 1L)
+  assert_true(@wire.unit(input) is Rows)
+  assert_true(@wire.unit(witness) is ArrayItems)
+  let preimage = "{\"inputs\":[\"" +
+    @wire.cid(input) +
+    "\"],\"law_id\":\"actql.bound.analytic-array-input\",\"semantic_ref\":\"" +
+    subject +
+    "\",\"unit\":\"array_items\",\"value\":1,\"version\":\"actql-bound-proof/0.1\"}"
+  guard @wire.source(witness) is Program(semantic_ref, proof_cid) else {
+    fail("not Program proof")
+  }
+  assert_eq(semantic_ref, subject)
+  assert_eq(proof_cid, "sha256:" + @sha.hex(@utf8.encode(preimage)))
+  assert_eq(@wire.program_proof_input_count(proof), 1)
+  assert_eq(@wire.program_proof_input_at(proof, 0), Some(@wire.cid(input)))
+  for candidate in [-1, 1] {
+    try {
+      let _ = unit_analytic_input_proof(
+        programs[0],
+        1,
+        2,
+        0,
+        candidate,
+        max_work=100000000,
+        max_bytes=10000000,
+        max_nodes=1000000,
+        max_depth=100,
+      )
+      fail("invalid candidate admitted")
+    } catch {
+      ForeignOwner => ()
+      e => raise e
+    }
+  }
+  try {
+    let _ = unit_analytic_input_proof(
+      programs[0],
+      1,
+      2,
+      0,
+      0,
+      max_work=0,
+      max_bytes=10000000,
+      max_nodes=1000000,
+      max_depth=100,
+    )
+    fail("unbudgeted proof conversion")
+  } catch {
+    UnitBuildFailure::BudgetExceeded => ()
+    e => raise e
+  }
   let mut found = false
   for i in 0..<@context.operation_closure_count(closure) {
     guard @context.operation_closure_at(closure, i)

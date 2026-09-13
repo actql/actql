@@ -25,6 +25,14 @@ import {
 // Values
 pub fn analytic_aggregate_subject(AnalyticAggregateSource, Int) -> String raise UnitBuildFailure
 
+pub fn analytic_input_proof_claim(AnalyticInputProof) -> @capacity_witness.ProgramProofClaim
+
+pub fn analytic_input_proof_input(AnalyticInputProof) -> ReidentifiedStep
+
+pub fn analytic_input_proof_membership(AnalyticInputProof) -> @capacity_graph_preflight.TargetMembership
+
+pub fn analytic_input_proof_source(AnalyticInputProof) -> AnalyticAggregateSource
+
 pub fn check(@stage_syntax.Program, @check_environment.WireEnvironment, @decode_core.Cursor?, Array[Array[@pipeline_check_context.CapacityMaterial]], @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, SourceLimits, max_work~ : Int, max_bytes~ : Int, max_nodes~ : Int, max_depth~ : Int, numeric_profile? : @numeric_reduction.Profile?) -> CheckedProgram raise LocalConstructionFailure
 
 pub fn contract_inventory(CheckedProgram) -> @pipeline_check_context.CoreContractInventory
@@ -203,6 +211,8 @@ pub fn source_identity(CheckedProgram) -> @pipeline_check_context.ProgramSourceI
 
 pub fn unit_analytic_aggregate_source_at(CheckedProgram, Int, Int, Int) -> AnalyticAggregateSource?
 
+pub fn unit_analytic_input_proof(CheckedProgram, Int, Int, Int, Int, max_work~ : Int, max_bytes~ : Int, max_nodes~ : Int, max_depth~ : Int) -> AnalyticInputProof raise UnitBuildFailure
+
 pub fn unit_contract_at(CheckedProgram, Int, Int) -> (String, @pipeline_check_context.CoreContractBody)?
 
 pub fn unit_contract_count(CheckedProgram, Int) -> Int?
@@ -330,6 +340,8 @@ pub struct AnalyticAggregateSource {
   call : @relation_typing.AnalyticCall
   scope : String
 }
+
+type AnalyticInputProof
 
 pub struct BuiltResultInterface {
   input_name : String
