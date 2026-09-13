@@ -50,3 +50,10 @@ does not flatten lazy branches or reorder accounting. Add frame tests that
 compare stepped/drained execution at each small logical/control budget,
 including terminal reuse and borrowed-root lifetime. No other tuning pass
 is included in this authorization.
+
+## Result
+
+The bounded pass and correctness checks are complete. See
+[the one-pass results](FRAME-COST-RESULTS.md) for all representative cells,
+residual absolute cost, uncertainty, retained boundaries and the next decision.
+This is not full performance acceptance or completion/producer implementation.
