@@ -7848,7 +7848,7 @@ coverage alone establishes neither a governing witness-law application nor the
 validity of its source evidence. Unknown inputs or unresolved factors are not
 zero, and none of these classifications waives validation or enforcement.
 
-<!-- requirement-block: resolved-limits.it-must-not-issue-a-runnable-plan-whose-finite-capacity local-approval.product-54ee89eaf54b local-approval.product-6e21b62c13b1 -->
+<!-- requirement-block: resolved-limits.it-must-not-issue-a-runnable-plan-whose-finite-capacity -->
 Resolved limits, fixed language laws, and pinned Contract facts belong to the
 content-addressed `actql-plan-fact-manifest/0.1`, not the Normalization Journal.
 Changing Host policy leaves Program Definition identity unchanged but changes
@@ -7863,6 +7863,23 @@ equal the resolved maximum, rejects missing or duplicate bindings, and rejects
 resolved limits that are not consumed by executable semantics. Fixed language
 laws remain Plan facts and do not masquerade as authoring normalization.
 
+<!-- requirement-block: resolved-limits.result-publication-subject resolved-limits.result-publication-correspondence resolved-limits.result-publication-semantic-owner -->
+A Result publication limit MUST identify its protected subject as
+`unit:<unit_definition_cid>#/results/<result_name_token>/<scope>`, where
+`unit_definition_cid` is the owning Unit Definition CID, `result_name_token`
+is the canonical Result name escaped as one JSON Pointer token (`~` becomes
+`~0`, then `/` becomes `~1`), and `scope` is `rows` or `bytes`. These scopes
+distinguish the published Result row list from the artifact-byte measurement
+specified by the governing limit law; the reference does not redefine that
+law's byte representation. It is not a file path or an observed Result CID.
+Validation MUST bind it to that Unit's actual Result port and the corresponding
+measurement scope; a matching numeric limit or a valid self-CID is insufficient.
+Internal stage/step indices and the enclosing Program revision MUST NOT replace
+the Unit identity in this reference. This subject convention does not replace
+candidate selection, proof application, canonical limit validation or atomic
+failure on breach, and publication limits do not enter Unit Definition identity.
+
+<!-- requirement-block: local-approval.product-54ee89eaf54b local-approval.product-6e21b62c13b1 -->
 <a id="canonical-identities"></a>
 
 ### Canonical identities

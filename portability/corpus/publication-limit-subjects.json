@@ -1,0 +1,20 @@
+{
+  "version": "actql-publication-limit-subject-vectors/0.1",
+  "description": "Synthetic Unit namespaces for canonical metadata vectors; not admitted Unit definitions or runtime receipts.",
+  "unit_definition_cid": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+  "host_policy_all_limits": 1000,
+  "expected_policy_cid": "sha256:38a92017de0e3e13901d328ab622696708aab0563dd980b04bfc9a2b6c451853",
+  "expected_host_witness_cid": "sha256:0be26207531164e3664cb1fa31b605f564607a01ac043f29acaa3c86e67a5568",
+  "cases": [
+    {
+      "result_name": "out",
+      "token": "out",
+      "expected_limit_cid": "sha256:c785ac84b1c38e53fb7607dd9eb3ec3781c2662f9e32a4c03c4f9bcfc4eb763e"
+    },
+    {
+      "result_name": "a~/b",
+      "token": "a~0~1b",
+      "expected_limit_cid": "sha256:796daafbb5a95c7481d4814edc29f6175405a2d0a3c094a337cf236e868bf5e6"
+    }
+  ]
+}

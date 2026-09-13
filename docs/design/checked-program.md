@@ -512,6 +512,15 @@ canonical resolved-limit emission against the final protected semantic subject;
 it is not itself that wire artifact or permission to publish. The selected Host
 value is execution-policy information, not part of Unit Definition identity.
 
+Publication limit subjects follow the Unit-scoped Result pointer in
+[resolved limits](../spec/language.md#resolved-limits). This makes the subject
+stable under unrelated enclosing-Program revisions and keeps it distinct from
+an observation or an internal producer-visit index. Escaping the Result name as
+one JSON Pointer token preserves arbitrary authored names without ambiguous
+path segments. The general resolved-limit schema admits a subject string;
+matching that string to the actual Unit, Result port and quantity is a semantic
+application check, not something a self-CID or JSON Schema alone proves.
+
 `close_stage_requirements` runs operation, Local-input, incoming-activation,
 publication-order and source-mode closure internally from a single incoming-link owner. It does
 not accept independently closed branches. Shared preparation is counted once;
