@@ -77,7 +77,7 @@ JS-only fixed test fixture using public checked entrances. It calls the portable
 as Neo. It rejects discarded invalid scan values, nullability violations,
 lossy integers and views before native filtering, and covers empty results.
 The fixture exports no completion constructor or evidence issuer; it is not a
-general Host entry point. Receiving applies explicit per-value canonical byte
+general Host entry point. Receiving applies explicit per-record canonical byte
 and native output-row ceilings with a cumulative physical measurement budget
 across both receipts. Expression demand/root and logical evaluation budgets,
 completion and capture still require their product integration. The original lifecycle-double test remains

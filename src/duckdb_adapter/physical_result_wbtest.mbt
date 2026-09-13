@@ -39,8 +39,9 @@ fn result_limits() -> PhysicalResultLimits {
 }
 
 ///|
-test "native value guard counts canonical escaping not raw transport text" {
-  for ceiling in [4, 5] {
+test "native record guard counts keys and canonical escaping not raw transport text" {
+  // {"id":1,"label":"a\n"} occupies 22 canonical UTF-8 bytes.
+  for ceiling in [21, 22] {
     let result = prepare_physical_result(
       result_schema(),
       [("id", Float64), ("label", Varchar)],
@@ -50,20 +51,16 @@ test "native value guard counts canonical escaping not raw transport text" {
     let budget : NativeValueBudget = {
       guards: { max_value_bytes: ceiling, max_output_rows: 1, },
       work: 2,
-      bytes: 6,
-      nodes: 2,
-      depth: 0,
+      bytes: 22,
+      nodes: 3,
+      depth: 1,
     }
     let accepted = admit_physical_chunk(result, 1, [
       result_cursor("[\"3ff0000000000000\"]"),
       result_cursor("[\"a\\n\"]"),
     ]).unwrap()
-    measure_native_value(budget, physical_batch_cell(accepted, 0, 0).unwrap()).unwrap()
-    let measured = measure_native_value(
-      budget,
-      physical_batch_cell(accepted, 0, 1).unwrap(),
-    )
-    if ceiling == 5 {
+    let measured = measure_native_record(budget, accepted, 0)
+    if ceiling == 22 {
       assert_true(measured is Ok(_))
     } else {
       assert_true(measured is Err(ValueBytes))

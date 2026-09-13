@@ -167,9 +167,9 @@ test('real Node callbacks use MoonBit admission before native filtering, includi
     await assert.rejects(runBroadAcquisition(validGrant, exhausted.port, limits), /MoonBit rejected broad/);
     assert.equal(moon.broadIdentity(exhausted.state), 'null');
     for (const [valueBytes, outputRows, nodes, nativeStarted] of [
-      [3, 100, 1000, false], // Discarded row's unused NULL needs four canonical bytes.
+      [21, 100, 1000, false], // Discarded row's record with unused NULL needs 22 bytes.
       [10000, 1, 1000, true], // Two native rows exceed the logical output ceiling.
-      [10000, 100, 6, true], // Scan consumes every measurement node; native has none left.
+      [10000, 100, 9, true], // Three records + six scalars consume all measurement nodes.
     ]) {
       const received = portFor(moon, moon.createGuarded(valueBytes, outputRows, nodes));
       await assert.rejects(runNativeAcquisition(validGrant, received.port, limits), /MoonBit rejected finish/);

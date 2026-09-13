@@ -1,23 +1,23 @@
 ///|
 test "native value measurement spans receipts with exact physical and logical bounds" {
-  // Scan: two (null, 2) rows = 10 canonical value bytes, four nodes,
-  // six row/cell work units. Native: two 2 rows = 2 bytes, two nodes,
-  // four work units. These are value sums, not receipt JSON byte lengths.
+  // Scan: two {amount:null,id:2} records = 44 bytes, six nodes,
+  // six row/cell work units. Native: two {id:2} records = 16 bytes,
+  // four nodes and four work units. Receipt array framing is separate.
   for
     (work, bytes, nodes, output_rows, expected) in [
-      (10, 12, 6, 2, "success"),
-      (9, 12, 6, 2, "work"),
-      (10, 11, 6, 2, "bytes"),
-      (10, 12, 5, 2, "nodes"),
-      (10, 12, 4, 2, "zero remaining nodes"),
-      (10, 12, 6, 1, "rows"),
+      (10, 60, 10, 2, "success"),
+      (9, 60, 10, 2, "work"),
+      (10, 59, 10, 2, "bytes"),
+      (10, 60, 9, 2, "nodes"),
+      (10, 60, 6, 2, "zero remaining nodes"),
+      (10, 60, 10, 1, "rows"),
     ] {
     let value = native_receiving_fixture(
       work~,
       bytes~,
       nodes~,
       output_rows~,
-      value_bytes=4,
+      value_bytes=22,
     )
     receiving_metadata(value)
     let scan = receiving_validation(value)
@@ -39,18 +39,18 @@ test "native value measurement spans receipts with exact physical and logical bo
         assert_true(@duckdb.native_receiving_has_both(value))
       }
       "work" =>
-        assert_true(result is Err(Guard(NativeResult, 1, 0, MeasurementWork)))
+        assert_true(result is Err(Guard(NativeResult, 1, -1, MeasurementWork)))
       "rows" =>
         assert_true(result is Err(Guard(NativeResult, 1, -1, OutputRows)))
       "zero remaining nodes" =>
         assert_true(
           result
-          is Err(Guard(NativeResult, 0, 0, Measurement(@encode.OutputLimit))),
+          is Err(Guard(NativeResult, 0, -1, Measurement(@encode.OutputLimit))),
         )
       _ =>
         assert_true(
           result
-          is Err(Guard(NativeResult, 1, 0, Measurement(@encode.OutputLimit))),
+          is Err(Guard(NativeResult, 1, -1, Measurement(@encode.OutputLimit))),
         )
     }
     if expected != "success" {
@@ -64,7 +64,7 @@ test "native value measurement spans receipts with exact physical and logical bo
 
 ///|
 test "native scan value guard includes unused nullable column before native SQL" {
-  let value = native_receiving_fixture(value_bytes=3)
+  let value = native_receiving_fixture(value_bytes=21)
   receiving_metadata(value)
   let scan = receiving_validation(value)
   @duckdb.accept_native_receipt_chunk(value, scan, 1, [
@@ -73,7 +73,7 @@ test "native scan value guard includes unused nullable column before native SQL"
   ]).unwrap()
   assert_true(
     @duckdb.finish_native_receipt(value, scan)
-    is Err(Guard(ValidationScan, 0, 0, ValueBytes)),
+    is Err(Guard(ValidationScan, 0, -1, ValueBytes)),
   )
   assert_true(@duckdb.finish_native_receipt(value, scan) is Err(InvalidState))
   assert_true(
@@ -87,7 +87,7 @@ test "native scan value guard includes unused nullable column before native SQL"
 ///|
 test "native scan guard failure is independent of transport chunk width" {
   for width in [1, 7, 1000] {
-    let value = native_receiving_fixture(value_bytes=3)
+    let value = native_receiving_fixture(value_bytes=19)
     receiving_metadata(value)
     let scan = receiving_validation(value)
     let mut start = 0
@@ -114,7 +114,7 @@ test "native scan guard failure is independent of transport chunk width" {
     }
     assert_true(
       @duckdb.finish_native_receipt(value, scan)
-      is Err(Guard(ValidationScan, 7, 0, ValueBytes)),
+      is Err(Guard(ValidationScan, 7, -1, ValueBytes)),
     )
     assert_false(@duckdb.native_receiving_has_both(value))
   }
@@ -142,7 +142,7 @@ test "native guard preparation rejects negative limits but zero is exhaustion no
   ]).unwrap()
   assert_true(
     @duckdb.finish_native_receipt(value, port)
-    is Err(Guard(ValidationScan, 0, 0, Measurement(@encode.OutputLimit))),
+    is Err(Guard(ValidationScan, 0, -1, Measurement(@encode.OutputLimit))),
   )
   let empty = native_receiving_fixture(
     work=0,

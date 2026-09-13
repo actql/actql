@@ -66,6 +66,7 @@ pub fn execute_query_receipt_guarded(
       execution,
       max_output_rows~,
       max_value_bytes~,
+      record_values=true,
       {
         max_work: physical.max_work,
         max_bytes: physical.max_bytes,

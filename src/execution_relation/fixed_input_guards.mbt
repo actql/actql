@@ -77,6 +77,54 @@ fn[T : IndexedRows] measure_input_values(
 }
 
 ///|
+// Measure the complete record without constructing a row object or re-reading
+// cells. Field order cannot change its byte length; hashing still uses canonical
+// column order. The shared writer accounts for keys, punctuation and the root.
+fn[T : IndexedRows] measure_input_records(
+  rows : T,
+  name_at : (Int) -> String,
+  ceiling : Int,
+  phase : FixedInputGuardPhase,
+  budget : FixedInputGuardBudget,
+) -> Result[Unit, FixedInputGuardIssue] {
+  for row in 0..<rows.row_count() {
+    if budget.work <= 0 {
+      return Err(MeasurementWork)
+    }
+    budget.work -= 1
+    if rows.row_width(row) != rows.column_count() {
+      return Err(InvalidLayout)
+    }
+    let usage = try {
+      let writer = @encode.measuring_writer(
+        budget.bytes,
+        budget.nodes,
+        budget.depth,
+      )
+      @encode.begin_object(writer)
+      for column in 0..<rows.column_count() {
+        if budget.work <= 0 {
+          return Err(MeasurementWork)
+        }
+        budget.work -= 1
+        @encode.key(writer, name_at(column))
+        emit_runtime_value(rows.read_cell(row, column), writer)
+      }
+      @encode.end_object(writer)
+      @encode.finish_measurement_usage(writer)
+    } catch {
+      issue => return Err(Measurement(phase, row, -1, issue))
+    }
+    budget.bytes -= usage.0
+    budget.nodes -= usage.1
+    if usage.0 > ceiling {
+      return Err(ValueBytes(phase, row, -1))
+    }
+  }
+  Ok(())
+}
+
+///|
 /// Enforce every fixed input value before execution, then the retained output.
 /// Existing fragment budgets retain their row/live/work rules;
 /// an additional root-only ceiling applies without changing checked identities.
@@ -84,6 +132,8 @@ fn[T : IndexedRows] measure_input_values(
 /// context or storage escapes, and no expression is evaluated for measurement.
 /// The target must be retained; an unavailable output returns MissingOutput
 /// after successful sequence execution, without exposing a completed result.
+/// record_values selects complete record measurement in place of per-cell
+/// measurement; expression-root ceilings and selected fragment limits are unchanged.
 pub fn execute_fixed_input_guarded(
   original : GeneratedSequence,
   input : CapturedRows,
@@ -91,6 +141,7 @@ pub fn execute_fixed_input_guarded(
   execution : SequenceExecutionLimits,
   max_output_rows~ : Int,
   max_value_bytes~ : Int,
+  record_values? : Bool = false,
   physical : FixedInputGuardMeasureLimits,
 ) -> Result[(CompletedSequence, (Int, Int, Int)), FixedInputGuardIssue] {
   if max_output_rows < 0 ||
@@ -110,13 +161,27 @@ pub fn execute_fixed_input_guarded(
     nodes: physical.max_nodes,
     depth: physical.max_depth,
   }
-  match
+  let measured = if record_values {
+    measure_input_records(
+      CapturedWireRows::{ rows: input, },
+      column => {
+        @schema.reference_name(
+          @schema.field_at(input.schema, column).unwrap().name,
+        )
+      },
+      max_value_bytes,
+      InputValues,
+      budget,
+    )
+  } else {
     measure_input_values(
       CapturedWireRows::{ rows: input, },
       max_value_bytes,
       InputValues,
       budget,
-    ) {
+    )
+  }
+  match measured {
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
@@ -145,7 +210,19 @@ pub fn execute_fixed_input_guarded(
   if completed_row_count(output) > max_output_rows {
     return Err(OutputRows)
   }
-  match measure_input_values(output.table, max_value_bytes, Output, budget) {
+  let measured_output = if record_values {
+    let names = RelationRows::field_names(output.table)
+    measure_input_records(
+      output.table,
+      column => names[column],
+      max_value_bytes,
+      Output,
+      budget,
+    )
+  } else {
+    measure_input_values(output.table, max_value_bytes, Output, budget)
+  }
+  match measured_output {
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }

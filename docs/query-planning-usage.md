@@ -124,7 +124,7 @@ computation/capture. The older unbound mock constructor remains a diagnostic
 computation path; it is not proof that a canonical requirement was enforced.
 
 The adapter's `execution_query.execute_query_receipt_guarded` accepts retained scan material,
-the existing computation limits, explicit output-row/per-value guards and
+the existing computation limits, explicit output-row/per-record guards and
 physical measurement limits. It returns a completed computation plus physical
 measurement usage `(work, bytes, nodes)`. These counters span input and output;
 they do not reset per row. This operation adds no source access, authority or
@@ -133,6 +133,15 @@ It delegates measurement, demanded-root ceilings and execution to the engine's
 `execute_fixed_input_guarded`; mutable ledgers, storage and contexts are not
 package APIs. `query_sequence_owner` supplies the exact lowering owner when
 constructing a checked downstream consumer, without inspecting private fields.
+
+The query adapter selects `record_values=true`: scan and output ceilings include
+field names, escaped UTF-8, punctuation and the record root, not just each cell.
+It uses the same typed-wire emitter without constructing another row object or
+re-admitting values. Record-level size/encoding diagnostics use column `-1`;
+source value-admission errors still identify their field. The measurement ledger
+counts complete records (including container nodes), while receipt array framing
+and retention hashing have separate ledgers. The engine's default per-cell mode
+and the demanded expression-root ceiling remain unchanged for other consumers.
 
 For an adapter that already admitted scalar cells under the exact prepared input
 field contracts, `execution_relation.prepare_admitted_input` and

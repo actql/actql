@@ -106,6 +106,7 @@ pub fn broad_residual(
       },
       max_output_rows=output_rows,
       max_value_bytes=1000,
+      record_values=true,
       { max_work: 10000, max_bytes: 100000, max_nodes: 10000, max_depth: 100, },
     )
     guard result is Ok((completed, _)) else { return "null" }

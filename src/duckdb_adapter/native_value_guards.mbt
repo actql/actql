@@ -24,21 +24,38 @@ priv struct NativeValueBudget {
 }
 
 ///|
-fn measure_native_value(
+// Exact record byte length includes typed cells, field-name escaping and
+// punctuation. Schema order suffices for length; receipt hashing independently
+// uses canonical column order. No row object or second admission is needed.
+fn measure_native_record(
   budget : NativeValueBudget,
-  value : @admitted.CheckedValue,
+  batch : PhysicalBatch,
+  row : Int,
 ) -> Result[Unit, NativeValueIssue] {
-  if budget.work == 0 {
-    return Err(MeasurementWork)
-  }
-  budget.work -= 1
   let usage = try {
     let writer = @encode.measuring_writer(
       budget.bytes,
       budget.nodes,
       budget.depth,
     )
-    @admitted.emit_wire_value(value.value, writer)
+    @encode.begin_object(writer)
+    for column in 0..<batch.owner.mappings.length() {
+      if budget.work == 0 {
+        return Err(MeasurementWork)
+      }
+      budget.work -= 1
+      @encode.key(
+        writer,
+        @schema.reference_name(
+          @schema.field_at(batch.owner.schema, column).unwrap().name,
+        ),
+      )
+      @admitted.emit_wire_value(
+        physical_batch_cell(batch, row, column).unwrap().value,
+        writer,
+      )
+    }
+    @encode.end_object(writer)
     @encode.finish_measurement_usage(writer)
   } catch {
     issue => return Err(Measurement(issue))
@@ -74,15 +91,9 @@ fn measure_native_receipt(
         return Err(Guard(port.role, global_row, -1, MeasurementWork))
       }
       budget.work -= 1
-      for column in 0..<port.result.mappings.length() {
-        match
-          measure_native_value(
-            budget,
-            physical_batch_cell(batch, row, column).unwrap(),
-          ) {
-          Ok(_) => ()
-          Err(issue) => return Err(Guard(port.role, global_row, column, issue))
-        }
+      match measure_native_record(budget, batch, row) {
+        Ok(_) => ()
+        Err(issue) => return Err(Guard(port.role, global_row, -1, issue))
       }
       global_row += 1
     }

@@ -4,7 +4,7 @@ fn query_guard_physical() -> @query.QueryGuardMeasureLimits {
 }
 
 ///|
-test "query root guard does not demand a lazy failing branch or cap a whole row as one cell" {
+test "query record guard includes field names and preserves lazy branch demand" {
   let (query, bound) = query_sequence_fixture(
     filter="if(id > 0, true, 1 / (id - id) > 0)",
   )
@@ -24,7 +24,7 @@ test "query root guard does not demand a lazy failing branch or cap a whole row 
     receipt,
     compute_test_limits(),
     max_output_rows=1,
-    max_value_bytes=4,
+    max_value_bytes=8,
     query_guard_physical(),
   ).unwrap()
   assert_eq(
@@ -39,23 +39,10 @@ test "query root guard does not demand a lazy failing branch or cap a whole row 
       receipt,
       compute_test_limits(),
       max_output_rows=1,
-      max_value_bytes=3,
+      max_value_bytes=7,
       query_guard_physical(),
     )
-    is Err(
-      Execution(
-        Execution(
-          Rows(
-            0,
-            Evaluation(
-              0,
-              0,
-              { kind: LogicalValue(ValueMeasure(WireMeasureFailure)), .. }
-            )
-          )
-        )
-      )
-    ),
+    is Err(ValueBytes(Scan, 0, -1)),
   )
 }
 
@@ -79,10 +66,10 @@ test "query guards measure complete scan before demanded failure and preserve re
       receipt,
       compute_test_limits(),
       max_output_rows=0,
-      max_value_bytes=5,
+      max_value_bytes=12,
       query_guard_physical(),
     )
-    is Err(ValueBytes(Scan, 1, 0)),
+    is Err(ValueBytes(Scan, 1, -1)),
   )
   // Raising the value ceiling exposes the demanded expression failure, before
   // the output-row ceiling. Neither failed run changes the checked preparation.
@@ -92,7 +79,7 @@ test "query guards measure complete scan before demanded failure and preserve re
       receipt,
       compute_test_limits(),
       max_output_rows=0,
-      max_value_bytes=10,
+      max_value_bytes=13,
       query_guard_physical(),
     )
     is Err(Execution(Execution(Rows(_, _)))),
@@ -100,7 +87,7 @@ test "query guards measure complete scan before demanded failure and preserve re
 }
 
 ///|
-test "query guard byte ceiling applies to predicate roots without changing demand" {
+test "query record guard precedes false predicate and empty input has no record" {
   let sequence = strategy_test_owner()
   let receipt = @query.admit_query_receipt(
     sequence,
@@ -108,25 +95,25 @@ test "query guard byte ceiling applies to predicate roots without changing deman
     1,
     run_limits().input_values,
   ).unwrap()
-  // The input number is one byte, but false is five. No output row is needed
-  // for the demanded predicate root to enforce its own value ceiling.
+  // The record is eight bytes although its only scalar is one byte. It must
+  // pass before the false predicate; no output does not waive scan validation.
   assert_true(
     @query.execute_query_receipt_guarded(
       sequence,
       receipt,
       compute_test_limits(),
       max_output_rows=0,
-      max_value_bytes=4,
+      max_value_bytes=7,
       query_guard_physical(),
     )
-    is Err(Execution(Execution(Rows(_, _)))),
+    is Err(ValueBytes(Scan, 0, -1)),
   )
   let (completed, _) = @query.execute_query_receipt_guarded(
     sequence,
     receipt,
     compute_test_limits(),
     max_output_rows=0,
-    max_value_bytes=5,
+    max_value_bytes=8,
     query_guard_physical(),
   ).unwrap()
   assert_eq(
@@ -173,10 +160,10 @@ test "query guard measurement shares physical counters across scan and output" {
     receipt,
     compute_test_limits(),
     max_output_rows=2,
-    max_value_bytes=5,
+    max_value_bytes=8,
     limits,
   ).unwrap()
-  assert_eq(usage, (11, 5, 5)) // five rows + five cells + one context copy
+  assert_eq(usage, (11, 40, 10)) // five rows + five cells + one context copy
   assert_true(
     @execution.completed_cell(
       @execution.completed_output(completed, @pipeline.Step(1)).unwrap(),
@@ -185,14 +172,14 @@ test "query guard measurement shares physical counters across scan and output" {
     )
     is Some(Number(3)),
   )
-  let exact = { ..limits, max_work: 11, max_bytes: 5, max_nodes: 5, }
+  let exact = { ..limits, max_work: 11, max_bytes: 40, max_nodes: 10, }
   assert_true(
     @query.execute_query_receipt_guarded(
       sequence,
       receipt,
       compute_test_limits(),
       max_output_rows=2,
-      max_value_bytes=5,
+      max_value_bytes=8,
       exact,
     )
     is Ok(_),
@@ -203,7 +190,7 @@ test "query guard measurement shares physical counters across scan and output" {
       receipt,
       compute_test_limits(),
       max_output_rows=2,
-      max_value_bytes=5,
+      max_value_bytes=8,
       { ..exact, max_work: 10, },
     )
     is Err(MeasurementWork),
@@ -214,10 +201,10 @@ test "query guard measurement shares physical counters across scan and output" {
       receipt,
       compute_test_limits(),
       max_output_rows=2,
-      max_value_bytes=5,
-      { ..exact, max_bytes: 4, },
+      max_value_bytes=8,
+      { ..exact, max_bytes: 39, },
     )
-    is Err(Measurement(Output, 1, 0, _)),
+    is Err(Measurement(Output, 1, -1, _)),
   )
   assert_true(
     @query.execute_query_receipt_guarded(
@@ -225,10 +212,10 @@ test "query guard measurement shares physical counters across scan and output" {
       receipt,
       compute_test_limits(),
       max_output_rows=2,
-      max_value_bytes=5,
-      { ..exact, max_nodes: 4, },
+      max_value_bytes=8,
+      { ..exact, max_nodes: 9, },
     )
-    is Err(Measurement(Output, 1, 0, _)),
+    is Err(Measurement(Output, 1, -1, _)),
   )
   assert_true(
     @query.execute_query_receipt_guarded(
@@ -236,7 +223,7 @@ test "query guard measurement shares physical counters across scan and output" {
       receipt,
       compute_test_limits(),
       max_output_rows=1,
-      max_value_bytes=5,
+      max_value_bytes=8,
       exact,
     )
     is Err(OutputRows),
@@ -248,7 +235,7 @@ test "query guard measurement shares physical counters across scan and output" {
       receipt,
       compute_test_limits(),
       max_output_rows=2,
-      max_value_bytes=5,
+      max_value_bytes=8,
       exact,
     )
     is Err(ForeignReceipt),
@@ -265,7 +252,7 @@ test "both mock realizations enforce their exact requirement before capture" {
   let requirement = @planning.prepare_query_requirement(
     material,
     program,
-    { max_rows: 1, max_value_bytes: 5, },
+    { max_rows: 1, max_value_bytes: 8, },
     query_material_limits(),
   ).unwrap()
   let rows = [input_cursor("{\"id\":3}"), input_cursor("{\"id\":2}")]

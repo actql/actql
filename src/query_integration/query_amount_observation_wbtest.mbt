@@ -188,7 +188,7 @@ test "filtered-out unused amount still requires type nullability and value guard
         guard_measure=Some(query_guard_physical()),
       )
       if guard_failure {
-        assert_true(result is Err(Guard(ValueBytes(Scan, 0, 0))))
+        assert_true(result is Err(Guard(ValueBytes(Scan, 0, -1))))
       } else {
         assert_true(result is Err(Local(ReceiptAdmission(_))))
       }
