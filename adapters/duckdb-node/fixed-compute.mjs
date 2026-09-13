@@ -2,7 +2,24 @@
 // accept Program SQL, discharge logical guards, or issue completed output.
 import { DuckDBTransportError, withComputeDatabase } from './session.mjs';
 
+const attempted = new WeakSet();
+const completed = new WeakMap();
+
+// The trusted bridge creates a fresh port/receiver for each attempt. Its
+// immutable completed input may be reused through another port and fresh budget.
 export async function runFixedCompute(port, limits, importLimits, consume, signal) {
+  if (attempted.has(port)) throw new DuckDBTransportError('AttemptAlreadyStarted');
+  attempted.add(port);
+  let ownedSession;
+  const result = await executeFixedCompute(port, limits, importLimits, consume, signal,
+    session => { ownedSession = session; });
+  // Register only after all native commands, transaction settlement and cleanup.
+  // This anchors the actual closed session; it grants no source-read capability.
+  completed.set(result, { port, consume, session: ownedSession });
+  return result;
+}
+
+async function executeFixedCompute(port, limits, importLimits, consume, signal, retainSession) {
   const rows = port.rowCount();
   const columns = port.columnCount();
   for (const value of [rows, columns, importLimits.maxRows, importLimits.maxCells]) {
@@ -14,6 +31,7 @@ export async function runFixedCompute(port, limits, importLimits, consume, signa
   }
   if (rows > Math.floor(importLimits.maxCells / columns)) throw new DuckDBTransportError('ImportCells');
   return withComputeDatabase(limits, async session => {
+    retainSession(session);
     const discard = () => {};
     await session.command(port.createSql(), [], discard);
     const insert = port.insertSql();
@@ -28,4 +46,16 @@ export async function runFixedCompute(port, limits, importLimits, consume, signa
     const fields = await session.command(port.querySql(), port.queryParameters(), consume);
     return Object.freeze({ fields, importedRows: rows, importedCells: rows * columns });
   }, signal);
+}
+
+// Transport provenance only. The MoonBit completion issuer must independently
+// check the exact fixed input, semantics, guards, output and retained evidence.
+export function matchesFixedCompute(result, port, consume) {
+  const owned = completed.get(result);
+  return owned !== undefined && owned.port === port && owned.consume === consume
+    && owned.session !== undefined;
+}
+
+export function releaseFixedCompute(result) {
+  completed.delete(result);
 }

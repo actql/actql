@@ -41,9 +41,9 @@ npm test --prefix adapters/duckdb-node
 The Linux workflow installs pinned MoonBit and Neo, records the revision and
 runtime environment, then executes these tests. A workflow definition is not a
 successful run. Report GitHub Actions runs and local Linux-container runs
-separately, with revision/environment and observed outcomes. The first integrated
-real-backend increment requires an actual Linux verification run; no push is
-required if a local Linux environment is used. An uninspected Actions history
+separately, with revision/environment and observed outcomes. Claiming Linux
+compatibility requires an actual verification run; defining the CI job alone is
+not that evidence. No push is required if a local Linux environment is used. An uninspected Actions history
 does not establish that the workflow has never run.
 
 The repository's pinned MoonBit must be installed with `moon` on PATH and
@@ -222,6 +222,15 @@ resource-pressure fixture uses a native hash aggregation only to exhaust memory;
 it does not add ActQL aggregate execution support.
 
 ## Private protocol
+
+`runFixedCompute` uses a fresh attempt port for each invocation. It records
+transport provenance only after the isolated Compute transaction and cleanup
+succeed. The trusted bridge can check it with
+`matchesFixedCompute(result, exactPort, exactReceiver)` and revoke it with
+`releaseFixedCompute(result)`. A copied result, replacement receiver or another
+port cannot pass. Failed/cancelled ports cannot restart; retry the immutable
+completed input with a new port and fresh budgets. These checks do not issue an
+ActQL completion or waive the pending semantic/guard/retention verification.
 
 On the MoonBit side, `duckdb_native_candidate` uses the common acquisition
 comparison with eleven disjoint work slots (`duckdb_native_work_at`), including

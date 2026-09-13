@@ -221,6 +221,18 @@ transaction. Import row/cell ceilings are checked before allocation and commands
 parameter construction is bounded by the current row, not the full Relation.
 Native chunks are provisional receiving data, not completed engine output.
 
+Fixed Compute transport records the exact attempt port, receiving callback and
+actual closed Compute session only after command execution, transaction settlement
+and cleanup succeed. A port is one-shot, including after admission failure or
+cancellation. Reusing the immutable completed input requires a new attempt port
+and fresh budgets, not reviving the previous attempt. Copied result objects,
+another port, or a replacement receiver do not establish that relationship.
+Explicit release revokes this transport relationship without invalidating another
+successful attempt. This record is not semantic completion evidence: the trusted
+MoonBit completion bridge must additionally bind the selected realization, exact
+fixed input, guards, retained output and successful checks. No source grant or
+source connection is part of the Compute record.
+
 ## Type transport and native expression support
 
 Physical transport and expression support are separate decisions. The transport
