@@ -81,6 +81,17 @@ witnesses and execution enforcement must be connected separately. String-byte
 aggregation and nested result-value envelopes are distinct scopes, not aliases
 for this array-item limit.
 
+`link_program_group_array_limits` attaches the selection to each ordinary
+`array_agg` envelope as `GroupExecution.EnforceArrayItems`. The execution check
+retains the exact requirement, input, call and original resolution owner. It
+counts items after null exclusion and distinct, and requires failure without
+publishing a partial Relation or truncating the array. Selection is not evidence
+that this check has run. Work, links and candidate storage are cumulative across
+calls; failure does not expose a partially linked index. Other aggregate
+envelopes and numeric observations remain unresolved. This process-owned binding
+does not replace persistent resolved-limit emission or open the formal Program
+entry to otherwise unsupported groups.
+
 ## Reference compatibility
 
 The fixed Sketch implementation supplies the original seven signatures but

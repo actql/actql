@@ -37,6 +37,7 @@ test "group execution retains partition and per-call demand without discharging 
           RejectOperationOutput,
         )
         match check.rule {
+          EnforceArrayItems(_) => fail("array limits require explicit linking")
           PartitionGroups => {
             assert_eq(pending.kind, @relation.GroupPartitioning)
             assert_eq(@relation.group_keys(check.group).length(), 2)

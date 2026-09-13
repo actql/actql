@@ -2,6 +2,7 @@
 pub enum GroupExecutionRule {
   PartitionGroups
   EvaluateAggregate(@relation.CheckedAggregate)
+  EnforceArrayItems(GroupArrayLimit)
 }
 
 ///|

@@ -315,6 +315,8 @@ pub fn like_pattern_source(LikePatternResolution) -> String
 
 pub fn like_pattern_usage(LikePatternChecks) -> LikePatternUsage
 
+pub fn link_program_group_array_limits(ProgramOperationResolutionIndex, Int, Int, Int) -> Result[ProgramOperationResolutionIndex, GroupArrayLimitIssue]
+
 pub fn link_program_incoming(ProgramOperationProfileLinks, ProgramIncomingRequirements, IncomingLimits) -> Result[ProgramIncomingLinks, IncomingLinksIssue]
 
 pub fn link_program_join_requirements(ProgramOperationResolutionIndex, Int, Int) -> Result[ProgramOperationResolutionIndex, JoinRequirementIssue]
@@ -1154,6 +1156,7 @@ pub struct GroupExecutionCheck {
 pub enum GroupExecutionRule {
   PartitionGroups
   EvaluateAggregate(@relation_typing.CheckedAggregate)
+  EnforceArrayItems(GroupArrayLimit)
 }
 
 pub enum IncomingClosureIssue {
