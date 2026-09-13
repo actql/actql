@@ -181,9 +181,19 @@ MoonBit settlement/residual/retention/issuance/capture operations synchronously,
 and `bindInput` uses the captured-input API. It performs no new source access.
 The returned handle exposes the opaque observation, `bindInput` and idempotent
 `close`; a failed consumer does not close it. The factory and these callbacks
-must not come from Program data. The current Node coordinator test uses a
-lifecycle double for the semantic bridge; full same-process MoonBit issuer
-connection still needs its own real-provider conformance test.
+must not come from Program data.
+
+`test/issued-broad-query.test.mjs` connects real DuckDB to the actual MoonBit
+issuer in one process through the fixed `duckdb_conformance` fixture. It starts
+at public `program_check.check`, selects the registered broad candidate, and
+checks records and the complete observation against independently composed
+expectations. It covers empty input, nullable unused columns, duplicate/order
+preservation, rejected non-finite unused values, premature issuance, cancellation,
+output/artifact exhaustion, and consumer retry after the source file changes.
+The fixture is not a general Host entry point. Native two-receipt capture and
+DuckDB Compute product completion are separate integration requirements; this
+broad-path test does not establish them. The smaller coordinator lifecycle-double
+test remains useful for isolated transport cleanup checks.
 
 Tests create their own files under ignored `_build/duckdb-fixtures`, exercise
 exact scalar transport, existing-file read-only access, isolated Compute,
