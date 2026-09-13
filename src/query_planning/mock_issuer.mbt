@@ -38,6 +38,9 @@ pub(all) enum MockEvidenceIssue {
   WorkLimit
   Encoding(@encode.EncodeFailure)
   ForeignRecords
+  AlreadyCaptured
+  ForeignObservation
+  Consumer(@execution.ProducerBindingIssue)
 }
 
 ///|
@@ -328,8 +331,12 @@ pub fn verify_mock_query_records(
     physical_equal(records.authority, expected) else {
     return Err(UnauthorizedAttempt)
   }
-  guard attempt.state is EvidenceIssued(actual) &&
-    physical_equal(actual, records) else {
+  let actual = match attempt.state {
+    EvidenceIssued(value) => Some(value)
+    Captured(value) => Some(value.records)
+    _ => None
+  }
+  guard actual is Some(actual) && physical_equal(actual, records) else {
     return Err(ForeignRecords)
   }
   if !physical_equal(issuer.requirement, records.retention._requirement) ||

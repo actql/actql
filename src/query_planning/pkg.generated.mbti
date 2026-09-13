@@ -6,6 +6,7 @@ import {
   "actql/actql/decode_core",
   "actql/actql/encode_core",
   "actql/actql/execution_relation",
+  "actql/actql/lowering_relation",
   "actql/actql/physical_cost",
   "actql/actql/pipeline_check_context",
   "actql/actql/sourceview_resolution",
@@ -15,7 +16,11 @@ import {
 // Values
 pub fn admit_query_evidence_contracts(@canonical_json.CanonicalValue, @canonical_json.CanonicalValue, QueryEvidenceLimits) -> Result[QueryEvidenceContracts, QueryEvidenceContractIssue]
 
+pub fn bind_captured_query_input(MockQueryIssuer, MockQueryAttempt, MockQueryObservation, @lowering_relation.BoundPrepared, Int, @lowering_relation.BoundPrepared) -> Result[@execution_relation.BoundProducerInput, MockEvidenceIssue]
+
 pub fn cancel_mock_query(MockQueryAttempt) -> Bool
+
+pub fn capture_mock_query(MockQueryIssuer, MockQueryAttempt, MockQueryRecords, QueryEvidenceLimits) -> Result[MockQueryObservation, MockEvidenceIssue]
 
 pub fn choose_query_strategy(@execution_relation.QuerySequence, Array[QueryOffer], Array[Int]?, Int) -> Result[QuerySelection, QueryPlanningIssue]
 
@@ -26,6 +31,12 @@ pub fn execute_mock_query(MockQueryAttempt, MockQueryLimits, guard_measure? : @e
 pub fn issue_mock_query_records(MockQueryAttempt, QueryMaterialLimits) -> Result[MockQueryRecords, MockEvidenceIssue]
 
 pub fn mock_query_computation(MockQueryAttempt) -> Result[MockQueryComputation, MockQueryIssue]
+
+pub fn mock_query_observation_cid(MockQueryObservation) -> String
+
+pub fn mock_query_observation_document(MockQueryObservation) -> @encode_core.EncodedDocument
+
+pub fn mock_query_observation_usage(MockQueryObservation) -> (Int, Int)
 
 pub fn mock_query_output_rows(MockQueryComputation) -> Int
 
@@ -131,6 +142,9 @@ pub(all) enum MockEvidenceIssue {
   WorkLimit
   Encoding(@encode_core.EncodeFailure)
   ForeignRecords
+  AlreadyCaptured
+  ForeignObservation
+  Consumer(@execution_relation.ProducerBindingIssue)
 }
 
 type MockQueryAttempt
@@ -163,6 +177,8 @@ pub(all) struct MockQueryLimits {
   source_admission : @execution_relation.ValueLimits
   computation : @execution_relation.SequenceExecutionLimits
 }
+
+type MockQueryObservation
 
 type MockQueryRecords
 

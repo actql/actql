@@ -14,6 +14,7 @@ priv enum MockQueryState {
   AwaitingCapture(MockQueryComputation)
   Retained(MockQueryRetention)
   EvidenceIssued(MockQueryRecords)
+  Captured(MockQueryObservation)
   Failed(MockQueryIssue)
   Cancelled
 }
@@ -264,6 +265,7 @@ pub fn mock_query_computation(
     AwaitingCapture(value) => Ok(value)
     Retained(value) => Ok(value.computation)
     EvidenceIssued(value) => Ok(value.retention.computation)
+    Captured(value) => Ok(value.records.retention.computation)
     Failed(issue) => Err(issue)
     Cancelled => Err(Cancelled)
     Pending(_, _) | Computing => Err(NotComputed)

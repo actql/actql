@@ -1,9 +1,10 @@
 # Query strategy experiment
 
 The source-checkout `query_planning` package compares and computes the two initial
-mock query realizations. It can issue process-local mock execution records, but
-does not dispatch a real Connector, publish a captured result or construct a
-runnable Program/Plan.
+mock query realizations. It issues process-local mock records, captures a complete
+observation and binds its immutable output to a checked local consumer. It does
+not dispatch a real Connector, publicly publish a Result or construct a runnable
+Program/Plan.
 
 1. Obtain `execution_relation.QuerySequence` from the shared query derivation and
    matching checked/lowered preparation. See [local usage](local-compute-usage.md).
@@ -48,8 +49,8 @@ priority. Offer estimation separately budgets its work inventory, line count and
 slot references before traversing them. Missing retention or other work makes
 the estimate unknown. Duplicate transfer coverage is rejected.
 
-The pending observation capture stage must consume verified process evidence
-before this experiment can return a completed acquisition to a consumer. Input
+Observation capture consumes verified process evidence before this experiment
+can return a completed acquisition to a consumer. Input
 relative order is not total-order evidence; this profile requires null source
 order CID. Existing performance regressions remain accepted development debt,
 not a passed performance gate. No performance improvement is claimed here.
@@ -112,7 +113,7 @@ This transition is one-shot and precedes capture. A retention-limit failure fail
 the attempt; cancelled, unbound or already-retained attempts cannot reenter it.
 No output handle is exposed, and retaining this opaque value does not authorize
 capture after the attempt is cancelled. Live issuer verification and final
-consumer admission remain separate requirements.
+consumer admission remain separate steps.
 
 For live mock records, the trusted Host first calls `prepare_mock_query_issuer`
 with the admitted contracts, exact requirement and a fresh process nonce (bounded
@@ -128,4 +129,20 @@ serialized/hashed bytes and nodes including scope hashes. All three are issued
 atomically. Use `verify_mock_query_records` with the expected Host issuer and
 attempt, not values taken from record JSON. Foreign attempts, cancellation and
 `close_mock_query_issuer` invalidate this pre-capture verification. There is no
-record deserialization authority or completed consumer input API at this stage.
+record deserialization authority at this stage.
+
+Call `capture_mock_query(issuer, attempt, records, limits)` to construct the
+completed process observation. These artifact byte/node limits include previous
+scope/record work as well as request-CID verification and observation encoding
+and hashing. Read the immutable document, CID and cumulative usage with
+`mock_query_observation_document`, `mock_query_observation_cid` and
+`mock_query_observation_usage`. A second capture is rejected; successful capture
+is no longer cancellable as pending acquisition.
+
+Use `bind_captured_query_input` with that exact issuer/attempt/observation, the
+checked receiver/input index and expected bound producer. The returned existing
+`BoundProducerInput` feeds `prepare_local_compute_attempt`; its ordinary driver
+enforces receiver projection, ownership and resource limits. A failed consumer
+may be retried with a fresh compute attempt and budget using the same capture,
+without another source read. Hold the observation for its process-local evidence
+lifetime. No durable capture, Run admission or public Result publication is implied.

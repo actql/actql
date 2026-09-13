@@ -460,7 +460,8 @@ design also reaches browser, edge, and managed runtimes.
   synchronous execution using completed producer inputs, plus a shared-query
   residual adapter (not acquisition completion)
 - [Query strategy experiment](docs/query-planning-usage.md) — pure two-candidate
-  comparison and local mock computation; observation capture remains separate
+  comparison, guarded mock acquisition, process-local evidence/capture and
+  completed-input consumer binding; not real-provider or Program/Run admission
 
 ## Status
 

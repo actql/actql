@@ -173,7 +173,26 @@ issuer, the exact issued-set handle installed on that task, and its retained
 scan/output ownership. Equal wire or CID does not substitute for live provenance.
 Closing the issuer or cancelling before capture prevents verification. Successful
 record issuance still does not construct a completed observation or expose a
-consumer output; observation capture is the next distinct admission boundary.
+consumer output; `capture_mock_query` is the distinct admission boundary.
+
+Capture verifies the expected live issuer/task/record set, recomputes the resolved
+request identity and emits the complete shared observation preimage. The three
+role CIDs, actual access, scan coverage, snapshot, exact Program Definition owner,
+Parameters and retained output stay bound together. Artifact budgets include
+scope/record serialization and hashing, request verification and observation
+serialization/hashing cumulatively. Any construction failure exposes no successful
+observation and invalidates that attempt's pre-capture records.
+
+Only `bind_captured_query_input` releases an existing `BoundProducerInput`, after
+checking the exact captured handle on the expected task. It delegates producer
+owner, Parameter binding, target and projection checks to `bind_completed_input`;
+the ordinary sequence driver still performs receiving admission and accounting.
+No source selector, row conversion or second predicate evaluation is introduced.
+Successful capture cannot be cancelled as unfinished acquisition. Downstream
+failure does not revoke it or authorize a reread; fresh consumer budgets may reuse
+the same completed input. Closing the issuer prevents new capture/input bindings,
+not the use of already admitted immutable producer inputs. The Host retains the
+observation for its process-local evidence lifetime; no durable replay is promised.
 
 Verifier interpretation starts with `admit_query_evidence_contracts`: both the
 complete Acquisition contract and the complete process-evidence contract must
