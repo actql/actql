@@ -47,6 +47,18 @@ clock/identity validation and tie selection remain separate checks. Persistent
 Unit rebinding and the formal Program constructor must consume these results
 before this path is a complete lowering input.
 
+The persistent limit is defined by `actql-asof-search.json#/schemas/limit`.
+Its canonical preimage includes the owning Unit/source ordinal, this search
+contract's CID, separate sorted unique sets of applicable left and right Program
+row-witness CIDs, the exact maximum and the single-visit/atomic enforcement
+conditions. Reidentification precedes reference selection: proof bodies and
+their witness wrappers have different CIDs, and the arrays reference wrappers.
+Neither process-local claim indices nor output-row caps are wire substitutes.
+This is an additional persistent contract, not a change to as-of matching.
+Adding it changes the search contract pin and dependent local contract identities.
+Shape validation alone does not admit ownership, arithmetic, dependencies or
+completed enforcement; those checks remain required separately.
+
 ## Decisions and evidence
 
 The existing contract fixes left/inner, three directions, positive tolerance,

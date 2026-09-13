@@ -1,0 +1,193 @@
+{
+  "version": "actql-asof-search-wire-vectors/0.1",
+  "proofs": [
+    {
+      "body": {
+        "inputs": [],
+        "law_id": "actql.bound.values",
+        "semantic_ref": "unit:sha256:2222222222222222222222222222222222222222222222222222222222222222#/steps/0",
+        "unit": "rows",
+        "value": 2,
+        "version": "actql-bound-proof/0.1"
+      },
+      "canonical": "{\"inputs\":[],\"law_id\":\"actql.bound.values\",\"semantic_ref\":\"unit:sha256:2222222222222222222222222222222222222222222222222222222222222222#/steps/0\",\"unit\":\"rows\",\"value\":2,\"version\":\"actql-bound-proof/0.1\"}",
+      "cid": "sha256:ed79233b5d4a63ee99e69ca4e42318bb702ea04b3b7cfff92f5e8ce43be7498e",
+      "witness": {
+        "dependencies": [
+          "sha256:ed79233b5d4a63ee99e69ca4e42318bb702ea04b3b7cfff92f5e8ce43be7498e"
+        ],
+        "derivation": {
+          "op": "source"
+        },
+        "law_id": "actql.bound.values",
+        "role": "proven_upper_bound",
+        "source": {
+          "kind": "program",
+          "proof_cid": "sha256:ed79233b5d4a63ee99e69ca4e42318bb702ea04b3b7cfff92f5e8ce43be7498e",
+          "semantic_ref": "unit:sha256:2222222222222222222222222222222222222222222222222222222222222222#/steps/0"
+        },
+        "unit": "rows",
+        "value": 2,
+        "version": "actql-bound-witness/0.1"
+      },
+      "witness_cid": "sha256:d9b8354c7814eddf8fd6b22e899d9100e38506abbabe65eed6f5110d5f9fd82e"
+    },
+    {
+      "body": {
+        "inputs": [],
+        "law_id": "actql.bound.values",
+        "semantic_ref": "unit:sha256:3333333333333333333333333333333333333333333333333333333333333333#/steps/0",
+        "unit": "rows",
+        "value": 3,
+        "version": "actql-bound-proof/0.1"
+      },
+      "canonical": "{\"inputs\":[],\"law_id\":\"actql.bound.values\",\"semantic_ref\":\"unit:sha256:3333333333333333333333333333333333333333333333333333333333333333#/steps/0\",\"unit\":\"rows\",\"value\":3,\"version\":\"actql-bound-proof/0.1\"}",
+      "cid": "sha256:d9c8b0eb0fa86d43d1e04149319f1fd5da1b09d1a445ba3f298f2d437e906067",
+      "witness": {
+        "dependencies": [
+          "sha256:d9c8b0eb0fa86d43d1e04149319f1fd5da1b09d1a445ba3f298f2d437e906067"
+        ],
+        "derivation": {
+          "op": "source"
+        },
+        "law_id": "actql.bound.values",
+        "role": "proven_upper_bound",
+        "source": {
+          "kind": "program",
+          "proof_cid": "sha256:d9c8b0eb0fa86d43d1e04149319f1fd5da1b09d1a445ba3f298f2d437e906067",
+          "semantic_ref": "unit:sha256:3333333333333333333333333333333333333333333333333333333333333333#/steps/0"
+        },
+        "unit": "rows",
+        "value": 3,
+        "version": "actql-bound-witness/0.1"
+      },
+      "witness_cid": "sha256:d6b1ed513de2d9d8bb98243938ce2972591bc2147057c38abd6e3c4a28f1497b"
+    },
+    {
+      "body": {
+        "inputs": [],
+        "law_id": "actql.bound.values",
+        "semantic_ref": "unit:sha256:4444444444444444444444444444444444444444444444444444444444444444#/steps/0",
+        "unit": "rows",
+        "value": 0,
+        "version": "actql-bound-proof/0.1"
+      },
+      "canonical": "{\"inputs\":[],\"law_id\":\"actql.bound.values\",\"semantic_ref\":\"unit:sha256:4444444444444444444444444444444444444444444444444444444444444444#/steps/0\",\"unit\":\"rows\",\"value\":0,\"version\":\"actql-bound-proof/0.1\"}",
+      "cid": "sha256:6b7fd0dd209f9060d8aa18ea7a6b55eb2233a13f5a3cae2e0bfb08a1b69f47eb",
+      "witness": {
+        "dependencies": [
+          "sha256:6b7fd0dd209f9060d8aa18ea7a6b55eb2233a13f5a3cae2e0bfb08a1b69f47eb"
+        ],
+        "derivation": {
+          "op": "source"
+        },
+        "law_id": "actql.bound.values",
+        "role": "proven_upper_bound",
+        "source": {
+          "kind": "program",
+          "proof_cid": "sha256:6b7fd0dd209f9060d8aa18ea7a6b55eb2233a13f5a3cae2e0bfb08a1b69f47eb",
+          "semantic_ref": "unit:sha256:4444444444444444444444444444444444444444444444444444444444444444#/steps/0"
+        },
+        "unit": "rows",
+        "value": 0,
+        "version": "actql-bound-witness/0.1"
+      },
+      "witness_cid": "sha256:80d77897dea56ed21794800e8375fdb24f8fa485fec0cf3f54580b7e922b2397"
+    }
+  ],
+  "limits": [
+    {
+      "body": {
+        "condition": "single_visit",
+        "enforcement": "engine_atomic",
+        "left_bounds": [
+          "sha256:d9b8354c7814eddf8fd6b22e899d9100e38506abbabe65eed6f5110d5f9fd82e"
+        ],
+        "maximum": 6,
+        "right_bounds": [
+          "sha256:d6b1ed513de2d9d8bb98243938ce2972591bc2147057c38abd6e3c4a28f1497b"
+        ],
+        "search_contract_cid": "sha256:f6638f0527a537a66cb1bfee82c1d01ae9fb3756356fd6360b514c092f56d3f4",
+        "subject_ref": "unit:sha256:0000000000000000000000000000000000000000000000000000000000000000#/steps/0",
+        "unit": "pair_visits",
+        "version": "actql-asof-search-limit/0.1"
+      },
+      "canonical": "{\"condition\":\"single_visit\",\"enforcement\":\"engine_atomic\",\"left_bounds\":[\"sha256:d9b8354c7814eddf8fd6b22e899d9100e38506abbabe65eed6f5110d5f9fd82e\"],\"maximum\":6,\"right_bounds\":[\"sha256:d6b1ed513de2d9d8bb98243938ce2972591bc2147057c38abd6e3c4a28f1497b\"],\"search_contract_cid\":\"sha256:f6638f0527a537a66cb1bfee82c1d01ae9fb3756356fd6360b514c092f56d3f4\",\"subject_ref\":\"unit:sha256:0000000000000000000000000000000000000000000000000000000000000000#/steps/0\",\"unit\":\"pair_visits\",\"version\":\"actql-asof-search-limit/0.1\"}",
+      "cid": "sha256:1f1a563f7cb48930f7ba22583893a293f767dc4f22e6984b67b68eedd14e3d03"
+    },
+    {
+      "body": {
+        "condition": "single_visit",
+        "enforcement": "engine_atomic",
+        "left_bounds": [
+          "sha256:d9b8354c7814eddf8fd6b22e899d9100e38506abbabe65eed6f5110d5f9fd82e"
+        ],
+        "maximum": 6,
+        "right_bounds": [
+          "sha256:d6b1ed513de2d9d8bb98243938ce2972591bc2147057c38abd6e3c4a28f1497b"
+        ],
+        "search_contract_cid": "sha256:f6638f0527a537a66cb1bfee82c1d01ae9fb3756356fd6360b514c092f56d3f4",
+        "subject_ref": "unit:sha256:1111111111111111111111111111111111111111111111111111111111111111#/steps/0",
+        "unit": "pair_visits",
+        "version": "actql-asof-search-limit/0.1"
+      },
+      "canonical": "{\"condition\":\"single_visit\",\"enforcement\":\"engine_atomic\",\"left_bounds\":[\"sha256:d9b8354c7814eddf8fd6b22e899d9100e38506abbabe65eed6f5110d5f9fd82e\"],\"maximum\":6,\"right_bounds\":[\"sha256:d6b1ed513de2d9d8bb98243938ce2972591bc2147057c38abd6e3c4a28f1497b\"],\"search_contract_cid\":\"sha256:f6638f0527a537a66cb1bfee82c1d01ae9fb3756356fd6360b514c092f56d3f4\",\"subject_ref\":\"unit:sha256:1111111111111111111111111111111111111111111111111111111111111111#/steps/0\",\"unit\":\"pair_visits\",\"version\":\"actql-asof-search-limit/0.1\"}",
+      "cid": "sha256:6811e724f34cff03d2f1738e752ceec7899169974eb8616236b6fa24479f592d"
+    },
+    {
+      "body": {
+        "condition": "single_visit",
+        "enforcement": "engine_atomic",
+        "left_bounds": [
+          "sha256:d9b8354c7814eddf8fd6b22e899d9100e38506abbabe65eed6f5110d5f9fd82e"
+        ],
+        "maximum": 6,
+        "right_bounds": [
+          "sha256:d6b1ed513de2d9d8bb98243938ce2972591bc2147057c38abd6e3c4a28f1497b"
+        ],
+        "search_contract_cid": "sha256:f6638f0527a537a66cb1bfee82c1d01ae9fb3756356fd6360b514c092f56d3f4",
+        "subject_ref": "unit:sha256:0000000000000000000000000000000000000000000000000000000000000000#/steps/1",
+        "unit": "pair_visits",
+        "version": "actql-asof-search-limit/0.1"
+      },
+      "canonical": "{\"condition\":\"single_visit\",\"enforcement\":\"engine_atomic\",\"left_bounds\":[\"sha256:d9b8354c7814eddf8fd6b22e899d9100e38506abbabe65eed6f5110d5f9fd82e\"],\"maximum\":6,\"right_bounds\":[\"sha256:d6b1ed513de2d9d8bb98243938ce2972591bc2147057c38abd6e3c4a28f1497b\"],\"search_contract_cid\":\"sha256:f6638f0527a537a66cb1bfee82c1d01ae9fb3756356fd6360b514c092f56d3f4\",\"subject_ref\":\"unit:sha256:0000000000000000000000000000000000000000000000000000000000000000#/steps/1\",\"unit\":\"pair_visits\",\"version\":\"actql-asof-search-limit/0.1\"}",
+      "cid": "sha256:5c1d90f19bb22d05dae3cd249c00fe9fc5388c6cc9a53b0a834519d8a1d32e23"
+    },
+    {
+      "body": {
+        "condition": "single_visit",
+        "enforcement": "engine_atomic",
+        "left_bounds": [
+          "sha256:d6b1ed513de2d9d8bb98243938ce2972591bc2147057c38abd6e3c4a28f1497b"
+        ],
+        "maximum": 6,
+        "right_bounds": [
+          "sha256:d9b8354c7814eddf8fd6b22e899d9100e38506abbabe65eed6f5110d5f9fd82e"
+        ],
+        "search_contract_cid": "sha256:f6638f0527a537a66cb1bfee82c1d01ae9fb3756356fd6360b514c092f56d3f4",
+        "subject_ref": "unit:sha256:0000000000000000000000000000000000000000000000000000000000000000#/steps/0",
+        "unit": "pair_visits",
+        "version": "actql-asof-search-limit/0.1"
+      },
+      "canonical": "{\"condition\":\"single_visit\",\"enforcement\":\"engine_atomic\",\"left_bounds\":[\"sha256:d6b1ed513de2d9d8bb98243938ce2972591bc2147057c38abd6e3c4a28f1497b\"],\"maximum\":6,\"right_bounds\":[\"sha256:d9b8354c7814eddf8fd6b22e899d9100e38506abbabe65eed6f5110d5f9fd82e\"],\"search_contract_cid\":\"sha256:f6638f0527a537a66cb1bfee82c1d01ae9fb3756356fd6360b514c092f56d3f4\",\"subject_ref\":\"unit:sha256:0000000000000000000000000000000000000000000000000000000000000000#/steps/0\",\"unit\":\"pair_visits\",\"version\":\"actql-asof-search-limit/0.1\"}",
+      "cid": "sha256:e66a40840928f87551cd463de0133b81cecb89d3590f034f20fe1aa30994708b"
+    },
+    {
+      "body": {
+        "condition": "single_visit",
+        "enforcement": "engine_atomic",
+        "left_bounds": [
+          "sha256:80d77897dea56ed21794800e8375fdb24f8fa485fec0cf3f54580b7e922b2397"
+        ],
+        "maximum": 0,
+        "right_bounds": [],
+        "search_contract_cid": "sha256:f6638f0527a537a66cb1bfee82c1d01ae9fb3756356fd6360b514c092f56d3f4",
+        "subject_ref": "unit:sha256:0000000000000000000000000000000000000000000000000000000000000000#/steps/0",
+        "unit": "pair_visits",
+        "version": "actql-asof-search-limit/0.1"
+      },
+      "canonical": "{\"condition\":\"single_visit\",\"enforcement\":\"engine_atomic\",\"left_bounds\":[\"sha256:80d77897dea56ed21794800e8375fdb24f8fa485fec0cf3f54580b7e922b2397\"],\"maximum\":0,\"right_bounds\":[],\"search_contract_cid\":\"sha256:f6638f0527a537a66cb1bfee82c1d01ae9fb3756356fd6360b514c092f56d3f4\",\"subject_ref\":\"unit:sha256:0000000000000000000000000000000000000000000000000000000000000000#/steps/0\",\"unit\":\"pair_visits\",\"version\":\"actql-asof-search-limit/0.1\"}",
+      "cid": "sha256:01543028b8ea6d6b81d887d84971b3c4ee9ddd2daf284cc4da6b793cbd9bc3d7"
+    }
+  ]
+}

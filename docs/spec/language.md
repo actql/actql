@@ -4999,8 +4999,26 @@ output or an in-tolerance candidate does not discharge these requirements.
 <!-- requirement-block: asof-join.search-machine -->
 <!-- normative-code: law -->
 ```text
-../../spec/contracts/actql-asof-search.json# sha256:1d7fba7118fe71311cd8272b5c002bb5761088911c5adcad3fb4fb729ce5a096
+../../spec/contracts/actql-asof-search.json# sha256:f6638f0527a537a66cb1bfee82c1d01ae9fb3756356fd6360b514c092f56d3f4
 ```
+
+<!-- requirement-block: asof-join.search-limit-schema -->
+<!-- normative-code: envelope -->
+```text
+../../spec/contracts/actql-asof-search.json#/schemas/limit sha256:22b4ebc943770dde101f2f1e6cf70d2627dbc5f70eadbb7f49fc59e8f07651ec
+```
+
+<!-- requirement-block: asof-join.search-identity asof-join.search-witness-references asof-join.search-reference-exclusions -->
+A persistent as-of search limit MUST use the complete canonical body without a
+self CID, with subject `unit:<Unit Definition CID>#/steps/<source ordinal>`.
+Its separate left and right arrays MUST retain the sorted unique CIDs of all
+applicable reidentified Program row witnesses. Rebuild producer subjects and
+dependent proof/witness CIDs before taking these references. Internal claim
+indices, observations and output limits MUST NOT replace them. The admitted
+search contract CID, exact operand correspondence, effective binding and product
+arithmetic require semantic validation beyond the closed schema. A proved zero
+permits an empty opposite set; otherwise both sets are required. This identity
+does not attest completed single-visit enforcement or authorize execution.
 
 <a id="sequence"></a>
 

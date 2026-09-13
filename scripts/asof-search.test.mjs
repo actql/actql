@@ -2,9 +2,10 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {test} from 'node:test';
 import {machineCid} from './actql-spec-family.mjs';
+import './asof-search-wire.test.mjs';
 const read = path => JSON.parse(readFileSync(path, 'utf8'));
 const path = 'spec/contracts/actql-asof-search.json';
-const cid = 'sha256:1d7fba7118fe71311cd8272b5c002bb5761088911c5adcad3fb4fb729ce5a096';
+const cid = 'sha256:f6638f0527a537a66cb1bfee82c1d01ae9fb3756356fd6360b514c092f56d3f4';
 test('asof search has an operation-specific pin distinct from row and interval laws', () => {
   const contract = read(path);
   assert.equal(machineCid(contract), cid);
@@ -12,7 +13,10 @@ test('asof search has an operation-specific pin distinct from row and interval l
   assert.notEqual(cid, machineCid(read('spec/contracts/actql-interval-search.json')));
   assert.equal(read('spec/contracts/actql-bound-join-laws.json').unit, 'rows');
   const language = read('spec/spec-family.json').documents.find(d => d.spec_id === 'actql.language');
-  assert.deepEqual(language.machine_contracts.filter(r => r.path === path), [{path,pointer:'',cid,version:contract.version}]);
+  assert.deepEqual(language.machine_contracts.filter(r => r.path === path), [
+    {path,pointer:'',cid,version:contract.version},
+    {path,pointer:'/schemas/limit',cid:'sha256:22b4ebc943770dde101f2f1e6cf70d2627dbc5f70eadbb7f49fc59e8f07651ec',version:contract.version},
+  ]);
   assert.ok(readFileSync('src/pipeline_check_context/core_contracts.mbt','utf8').replace(/\s+/g,' ').includes(`AsOfSearchRules => "${cid}"`));
 });
 test('asof visit ceilings count rejected pairs independently of ties and selected output', () => {

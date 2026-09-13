@@ -7,5 +7,67 @@
   "ownership": "Retain the exact checked as-of operation, both ordered operand occurrences, effective Parameter binding, original producer contexts and all applicable operand-bound dependencies. Foreign proofs, equal numeric values, output limits and observations do not substitute for these associations.",
   "enforcement": "Select the finite ceiling before matching. Permit equality and fail atomically on the next pair visit without exposing partial successful output. A strategy revisiting pairs must account for those visits under another admitted bound; it cannot claim this fallback. Choosing a strategy is not proof that execution satisfied it.",
   "separation": "Validate both inputs' clocks and all required identities even with zero pair visits or no match. Checked distance arithmetic, best-candidate and tie comparison, sorting or indexing, received bytes, retained candidates and output allocation retain their own validation and physical resource budgets. These costs are not bounded by pair_visits. This contract neither requires materializing candidate arrays nor permits changing nearest ties, tie-break completion, output order or failure rules.",
-  "authority": "This is a search-measurement and applicability contract, not a row-count law, backend conformance attestation, observed count or execution permit. It adds no authored option, hidden default or implicit truncation. It does not replace output-capacity or complete-input validation requirements. Interval and as-of search contracts have distinct identities despite sharing product arithmetic."
+  "authority": "This is a search-measurement and applicability contract, not a row-count law, backend conformance attestation, observed count or execution permit. It adds no authored option, hidden default or implicit truncation. It does not replace output-capacity or complete-input validation requirements. Interval and as-of search contracts have distinct identities despite sharing product arithmetic.",
+  "persistent_limit": "Hash the complete canonical limit body without a self CID. subject_ref identifies the owning as-of operation as unit:<Unit Definition CID>#/steps/<authored source ordinal>. search_contract_cid equals this admitted contract's CID. Each operand array is the sorted unique set of all applicable reidentified Program row-witness CIDs for that operand, not internal indices or output-row witnesses. Sharing a witness across left and right does not merge operand roles. Proof graphs and their source correspondence require separate admission against that checked Unit and its effective binding. Rebuild producer subjects and dependent CIDs before selecting these references. maximum equals the product of each side's minimum; one proved zero permits an empty opposite set, otherwise both sets are required. Host ceilings and observations are not candidates for this fallback. The schema checks shape, not ownership, arithmetic, dependency availability, single-visit conformance or actual enforcement. This limit supplements rather than changes generic resolved row/byte limits.",
+  "schemas": {
+    "limit": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "subject_ref",
+        "search_contract_cid",
+        "unit",
+        "maximum",
+        "left_bounds",
+        "right_bounds",
+        "condition",
+        "enforcement"
+      ],
+      "properties": {
+        "version": {
+          "const": "actql-asof-search-limit/0.1"
+        },
+        "subject_ref": {
+          "type": "string",
+          "pattern": "^unit:sha256:[0-9a-f]{64}#/steps/(0|[1-9][0-9]*)$"
+        },
+        "search_contract_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "unit": {
+          "const": "pair_visits"
+        },
+        "maximum": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "left_bounds": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          }
+        },
+        "right_bounds": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          }
+        },
+        "condition": {
+          "const": "single_visit"
+        },
+        "enforcement": {
+          "const": "engine_atomic"
+        }
+      }
+    }
+  }
 }
