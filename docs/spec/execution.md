@@ -366,7 +366,7 @@ and backend execution support are separate from static derivation and registrati
 
 #### Process-retained query evidence
 
-<!-- machine-import: ../../spec/contracts/actql-query-process-evidence.json# sha256:f407203d3799dc51c2bc8cee460111ee6ebe44fb55c1c515d8d94190813b62a4 -->
+<!-- machine-import: ../../spec/contracts/actql-query-process-evidence.json# sha256:5cbd39d6847336c5961e222b083ca1395ab68be466ac69cadfbf7021cf617b89 -->
 <!-- machine-import: ../../spec/contracts/actql-query-process-evidence.json#/schemas/record sha256:758c9c4f1942890e73462776f3230400e7076c146af8eb3f7e39602715c7427e -->
 The initial process-evidence profile specializes the acquisition contract without
 changing its requirement or observation shapes. Its closed record schema is
@@ -435,6 +435,73 @@ admitted source attestation path; this profile does not invent one. Neither a
 coverage boolean nor a native candidate's promise supplies the missing provenance.
 Snapshot applicability still follows the source contract, and null remains valid
 when no snapshot evidence applies. No universal snapshot facility is introduced.
+
+<!-- requirement-block: query-process-evidence.host-adapter -->
+A Host-local source adapter using this profile MUST be independently authorized
+by the Host for the selected source and read extent, execute the required full
+scan validation under the selected value contracts, and own live provenance
+linking that validation and native query to the same requirement, attempt and
+consistent source read view. This specializes the existing trusted-issuer route;
+it does not exempt an external provider from source-attestation admission.
+Running a driver inside the Host, read-only access, SQL success, a validation
+boolean or a content hash alone establishes none of these facts. The adapter
+ensures that filtering, projection, casts or engine coercions do not suppress
+invalid source values before mandatory validation, and that native expression
+semantics and failures match the checked operations. Otherwise native execution
+is unsupported, even when the selected output would be well typed.
+
+<!-- requirement-block: query-process-evidence.read-view-ownership -->
+The issuer and capture verifier MUST retain and check the owned read-view binding
+for validation and query, including the actual session/transaction lifetime when
+that is the adapter's consistency mechanism, rather than trusting submitted
+identifiers or identical rows. A same-connection read transaction is one possible
+mechanism, not itself evidence of contract conformance. Validation from another
+attempt, session or transaction cannot be attached to this attempt under that
+mechanism. Private completion handles bind the successful scan, query output and
+immutable retention to the owned task; failure, cancellation or loss of consistency
+before retention prevents issuance of all three records. Session/transaction
+handles stay private and do not add wire fields or replace source snapshot
+identity. An applicable snapshot is verified under its source contract; a local
+path, file modification time or connection identifier is not a substitute token.
+No snapshot token is synthesized when none applies.
+
+<!-- requirement-block: query-process-evidence.access-accounting -->
+The Host MUST distinguish source-engine internal scanning, typed-row receipt by
+the Host from that engine, and retained output storage. Internal validation that
+does not export scanned rows is not Host row receipt, but retains its full-scan
+provenance and remains subject to applicable engine/work budgets. Rows exported
+to Host code for validation count as actual receipt even when used only for
+validation or later discarded. Query rows exported separately are a separate
+receipt; copies and repeated consumers of an already received batch do not count
+that same transfer again, although their allocations and retention consume the
+applicable memory budgets. Control metadata is not invented as typed data rows
+and remains subject to its applicable physical budget. `received_bytes` retains
+the acquisition contract's canonical typed-wire measurement, not database pages,
+compressed transport size or heap size. Equal numerical counts cannot exchange
+these scopes, and final selected output size cannot replace actual receipt.
+
+<!-- requirement-block: query-process-evidence.single-receipt -->
+The existing single `actual_access` scope MUST describe one complete logical
+received row sequence and its field set, including ordinary transport batches
+of that same sequence; it cannot hide additional validation reads or encode
+independent query results by concatenation, union or deduplication. Internal full
+validation followed by one native projected receipt fits this scope. A single
+full receipt reused for Host-side validation and residual filter/select also
+fits, with the broad received scope and separate selected output. Exporting a
+validation scan and independently exporting a native query result requires a
+separately admitted multiple-access contract, which this initial profile does not
+define. Such an execution cannot issue a completed observation under this profile;
+its private resource ledger still charges both receipts. An opaque provider scope
+CID does not cure the missing Host-access representation. The requirement and
+record schemas, record preimages and original access-scope preimage are unchanged.
+
+<!-- requirement-block: query-process-evidence.validation-failure -->
+Mandatory scan validation MUST reject an invalid known field even in a row that
+the query filter excludes. A fixture may fix a validation scan traversal to
+identify its first encountered failure; that fixture does not establish a shared
+representative diagnostic across different physical traversals or a logical total
+order. Physical budget exhaustion can stop validation earlier under the existing
+failure rules. Validation ordering never supplies missing source-order evidence.
 
 <a id="stage-execution"></a>
 

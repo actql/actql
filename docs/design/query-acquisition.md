@@ -77,3 +77,20 @@ profile uses null, preserving input-relative order without manufacturing a total
 order witness. Non-null order requirements need a different supported evidence
 profile. Native execution still needs full selected-scan validation provenance;
 receiving fewer rows or fields is not a reason to omit their required checks.
+
+An authorized Host-local adapter may own that validation inside its source engine,
+provided it also owns the consistency and execution provenance linking validation
+to the query and retention. The shared contract defines that relationship, not a
+database-specific connection API. A read-only transaction can implement the read
+view; its identity remains private and is not a source snapshot token. Merely
+placing an external-provider driver in the Host does not establish this trust.
+
+The initial wire records describe one logical Host receipt. Internal engine
+validation plus a native result receipt fits. Exporting the full scan once and
+reusing it for residual evaluation fits with broad access. Exporting both a
+validation scan and a separate native result does not: it needs a multiple-access
+contract before capture, not concatenation or a receipt that hides one read.
+Resource accounting still distinguishes both transfers from engine scanning and
+retention. This clarifies the existing scope without changing record preimages
+or introducing database-specific fields; the strengthened interpretation has its
+own updated process-evidence contract pin.

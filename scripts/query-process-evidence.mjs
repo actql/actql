@@ -31,6 +31,11 @@ export const contract = {
     native:'authorized_source_execution_covers_full_selected_scan_not_only_host_received_rows_or_columns',
     source_order:'null_only_in_this_profile_relative_order_is_not_total_order_evidence',
     lifetime:'same_process_no_deserialization_rehydration_or_durable_capture',
+    host_adapter:'host_authorized_execution_with_owned_consistent_read_view_full_scan_validation_and_query_not_driver_location_or_sql_success',
+    read_view:'private_task_session_transaction_binding_not_snapshot_token_no_cross_attempt_or_read_view_substitution',
+    access_accounting:'engine_internal_scan_host_row_receipt_and_retention_are_distinct_auxiliary_row_receipts_are_not_hidden_or_double_counted',
+    receipt_scope:'one_logical_received_sequence_only_independent_validation_and_query_receipts_require_an_additional_admitted_contract',
+    scan_failure:'invalid_excluded_rows_still_fail_no_global_diagnostic_order_or_total_order_from_validation_traversal',
   },
 };
 const path='spec/contracts/actql-query-process-evidence.json';

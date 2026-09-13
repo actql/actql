@@ -1,0 +1,15 @@
+{
+  "version": "actql-query-local-adapter-vectors/0.1",
+  "validation_traversal": "listed scan order, amount then id; not a logical order witness",
+  "invalid_scan": [{"id": 0, "amount": "invalid"}, {"id": 2, "amount": 20}],
+  "valid_scan": [{"id": 0, "amount": 10}, {"id": 2, "amount": 20}],
+  "filter": "id > 1",
+  "select": ["id"],
+  "expected_output": [{"id": 2}],
+  "invalid_scan_failure": {"row": 0, "field": "amount"},
+  "cases": [
+    {"strategy": "internal-validation", "capture": true, "engine_validation_rows": 2, "engine_query_rows": 2, "receipt_rows": [1], "receipt_fields": [["id"]], "retained_rows": 1},
+    {"strategy": "single-broad-receipt", "capture": true, "engine_validation_rows": 0, "engine_query_rows": 0, "receipt_rows": [2], "receipt_fields": [["amount", "id"]], "retained_rows": 1},
+    {"strategy": "export-validation-and-native", "capture": false, "engine_validation_rows": 0, "engine_query_rows": 2, "receipt_rows": [2, 1], "receipt_fields": [["amount", "id"], ["id"]], "retained_rows": 1, "issue": "MultipleAccessContractRequired"}
+  ]
+}
