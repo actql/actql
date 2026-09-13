@@ -38,7 +38,7 @@ separate protocol results, not successful CheckedPrograms with weaker guarantees
 
 The entry has an explicit implementation-domain check, separate from the
 language grammar. Its Local and Result-import domain accepts `values`, `derive`,
-`filter`, `select`, `rename`, `drop`, `sort`, `take`, `distinct` and `dedupe_rows`, including empty operation
+`filter`, `select`, `rename`, `drop`, `sort`, `take`, `distinct`, `dedupe_rows` and `append`, including empty operation
 sequences. Sort/take use the existing owned order-resolution closure and preserve
 their distinct strategies and preconditions; accepting them does not synthesize
 an order from physical enumeration. Result publication can target their explicit
@@ -453,9 +453,21 @@ Both retain the exact checked operation and left/right operand occurrences,
 including when both operands refer to the same producer. Input admission runs
 before using the rows; ordered concatenation is checked before exposing output.
 The latter retains any input logical-order witnesses without converting physical
-enumeration into a total-order proof. Neither binding resolves an output envelope
-or identity/completeness requirement: those require their own disposition before
-the operation inventory can close.
+enumeration into a total-order proof. A separate output-envelope disposition
+retains the exact selected policy's `max_relation_output_rows` ceiling and rejects
+the whole operation output on excess; it is not an observed count, a truncation
+request or a heap-memory bound. The same policy remains available for input value
+resource admission. Artifact publication has its own independently scoped limits.
+
+Identity/completeness has its own disposition over both exact input occurrences.
+Output completeness is complete only if both inputs are complete, and both input
+provenances remain dependencies even if their fields are hidden. The output's
+ordered logical values determine its value identity; neither input's value CID
+is copied as the append output CID. Global row uniqueness is available only from
+the pipeline's existing disjoint-discriminator/candidate-key evidence, never from
+concatenation alone. This binding does not supply missing identity evidence to a
+consumer that requires it. All four dispositions precede successful append output
+use; input admission additionally precedes use of the input rows.
 
 Source acquisition has distinct Host-combination and response-admission
 dispositions. The former applies before provider access: the Host checks the

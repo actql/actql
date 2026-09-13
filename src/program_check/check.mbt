@@ -49,6 +49,7 @@ fn check_supported_source(
               | "take"
               | "distinct"
               | "dedupe_rows"
+              | "append"
               | "values" => ()
               _ => raise UnitBuildFailure::UnsupportedStaticPath(step)
             }

@@ -860,6 +860,7 @@ pub struct AppendRowsCheck {
   right : @pipeline_typing.Target
   operation : @relation_append.CheckedAppend
   rule : AppendRowsRule
+  policy : @capacity_policy.Policy
   left_order : @pipeline_typing.LogicalOrder?
   right_order : @pipeline_typing.LogicalOrder?
 }
@@ -867,7 +868,9 @@ pub struct AppendRowsCheck {
 pub(all) enum AppendRowsRule {
   AdmitBothInputs
   PreserveLeftThenRight
-} derive(Eq, @debug.Debug)
+  RetainIdentityAndCompleteness
+  EnforceOutputEnvelope(@capacity_policy.Ceiling)
+}
 
 type BoundParameters
 

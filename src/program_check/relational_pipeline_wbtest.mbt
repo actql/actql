@@ -1,8 +1,9 @@
 ///|
-test "formal check closes distinct and representative selection" {
+test "formal check closes distinct representative selection and append" {
   for
     operation in [
-      "\"distinct\":true", "\"distinct\":[\"id\",\"value\"]", "\"dedupe_rows\":{\"by\":[\"id\",\"id\"],\"order_by\":[{\"value\":\"desc\"}]}",
+      "\"append\":{\"with\":\"again\"}", "\"distinct\":true", "\"distinct\":[\"id\",\"value\"]",
+      "\"dedupe_rows\":{\"by\":[\"id\",\"id\"],\"order_by\":[{\"value\":\"desc\"}]}",
       "\"dedupe_rows\":{\"by\":[],\"order_by\":[{\"value\":\"desc\"}]}",
     ] {
     let checked : Array[CheckedProgram] = []
@@ -26,7 +27,16 @@ test "formal check closes distinct and representative selection" {
     )
     let closure = @context.stage_requirement_operations(requirements(program))
     let mut tie_checks = 0
+    let mut append_checks = 0
     for i in 0..<@context.operation_closure_count(closure) {
+      if @context.operation_closure_at(closure, i)
+        is Some(ExecutionCheck(AppendRows(check))) {
+        assert_eq(check.site.stage, 1)
+        assert_true(physical_equal(check.site.pipeline, pipeline))
+        assert_eq(check.left, @pipeline.Input(0))
+        assert_eq(check.right, @pipeline.Input(1))
+        append_checks += 1
+      }
       if @context.operation_closure_at(closure, i)
         is Some(ExecutionCheck(DedupeTopTie(check))) {
         assert_eq(check.site.stage, 1)
@@ -39,6 +49,14 @@ test "formal check closes distinct and representative selection" {
       tie_checks,
       if operation.has_prefix("\"dedupe_rows\"") {
         1
+      } else {
+        0
+      },
+    )
+    assert_eq(
+      append_checks,
+      if operation.has_prefix("\"append\"") {
+        4
       } else {
         0
       },

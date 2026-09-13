@@ -2,7 +2,9 @@
 pub(all) enum AppendRowsRule {
   AdmitBothInputs
   PreserveLeftThenRight
-} derive(Eq, Debug)
+  RetainIdentityAndCompleteness
+  EnforceOutputEnvelope(@policy.Ceiling)
+}
 
 ///|
 /// Exact operand occurrences, not a proof that either input has been acquired
@@ -14,6 +16,7 @@ pub struct AppendRowsCheck {
   right : @pipeline.Target
   operation : @append.CheckedAppend
   rule : AppendRowsRule
+  policy : @policy.Policy
   left_order : @pipeline.LogicalOrder?
   right_order : @pipeline.LogicalOrder?
 }
@@ -21,11 +24,20 @@ pub struct AppendRowsCheck {
 ///|
 fn append_execution_check(
   site : OperationRequirementSite,
+  policy : @policy.Policy,
 ) -> Result[OperationExecutionCheck?, OperationResolutionIndexIssue] {
   let rule = match site.requirement {
     @pipeline.AppendRequirement(ValidateInputRows) => AdmitBothInputs
     @pipeline.AppendRequirement(PreserveLeftThenRightOrder) =>
       PreserveLeftThenRight
+    @pipeline.AppendRequirement(ResolveIdentityAndCompleteness) =>
+      RetainIdentityAndCompleteness
+    @pipeline.AppendRequirement(ResolveOutputEnvelope) => {
+      guard @policy.ceiling(policy, "max_relation_output_rows") is Some(ceiling) else {
+        return Err(ForeignOccurrence(site.step))
+      }
+      EnforceOutputEnvelope(ceiling)
+    }
     _ => return Ok(None)
   }
   guard @pipeline.step_at(site.pipeline, site.step) is Some(step) &&
@@ -54,6 +66,7 @@ fn append_execution_check(
         right,
         operation,
         rule,
+        policy,
         left_order: @pipeline.logical_order(site.pipeline, left),
         right_order: @pipeline.logical_order(site.pipeline, right),
       }),

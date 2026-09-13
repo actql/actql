@@ -41,7 +41,9 @@ pub fn operation_execution_phase(
     AppendRows(v) =>
       match v.rule {
         AdmitBothInputs => BeforeOperationInputUse
-        PreserveLeftThenRight => BeforeOperationOutput
+        PreserveLeftThenRight
+        | RetainIdentityAndCompleteness
+        | EnforceOutputEnvelope(_) => BeforeOperationOutput
       }
   }
 }

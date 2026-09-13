@@ -163,7 +163,23 @@ pub fn index_program_operation_resolutions(
   }
   for i in 0..<count {
     let candidate = match dedupe_execution_check(requirements.entries[i]) {
-      Ok(None) => append_execution_check(requirements.entries[i])
+      Ok(None) => {
+        let site = requirements.entries[i]
+        let stages = requirements.expressions.identity.sources.operations.preparation.profiles.context.selected.context.wired.stages
+        let stage = stages.contexts[site.stage]
+        if !physical_equal(
+            @parameter_slots.pipeline(
+              stage.visits[site.producer_visit].collected,
+            ),
+            site.pipeline,
+          ) {
+          return Err(ForeignOccurrence(i))
+        }
+        append_execution_check(
+          site,
+          @capacity.application_closure_policy(stage.context.capacity),
+        )
+      }
       other => other
     }
     match candidate {
