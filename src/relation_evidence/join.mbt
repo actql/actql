@@ -262,7 +262,14 @@ fn transfer_matched_keys(
         }
       }
     }
-    if kind == Inner || kind == Left || kind == Full {
+    // Equality joins have a closed inference table. A stronger cardinality
+    // conclusion selects the independent side keys, not an additional product.
+    // Temporal correlation has its own retained-pair rule.
+    let composite = match op {
+      Equality(_) => kind == Inner && !lu && !ru
+      Temporal(_) => kind == Inner || kind == Left || kind == Full
+    }
+    if composite {
       for (lp, l) in mapped_left {
         for (rp, r) in mapped_right {
           spend(b, source, 1)

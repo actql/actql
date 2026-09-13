@@ -1,5 +1,5 @@
 ///|
-test "join keys retain operand provenance and exact outer nullability" {
+test "join keys follow the closed cardinality table and retain operand provenance" {
   let row = schema()
   let carrier = @carrier.relation(@carrier.typed_rows(row))
   let key = @evidence.declare_primary_key(cursor("[\"id\"]"), carrier, {
@@ -23,9 +23,11 @@ test "join keys retain operand provenance and exact outer nullability" {
     ).unwrap()
     let keys = @pipeline_typing.candidate_keys(p, Step(0)).unwrap()
     let expected = if kind == "inner" {
-      3
-    } else if kind == "left" {
       2
+    } else if kind == "left" {
+      1
+    } else if kind == "full" {
+      0
     } else {
       1
     }
@@ -46,20 +48,10 @@ test "join keys retain operand provenance and exact outer nullability" {
         )
       }
       assert_true(@evidence.key_join_dependency_at(result, -1) is None)
-      if @evidence.key_field_count(result) == 2 {
-        assert_eq(
-          @evidence.key_join_dependency_side(result, 0),
-          Some(@schema.Left),
-        )
-        assert_eq(
-          @evidence.key_join_dependency_side(result, 1),
-          Some(@schema.Right),
-        )
-        let a = @evidence.key_field_at(result, 0).unwrap().contract.unwrap()
-        let b = @evidence.key_field_at(result, 1).unwrap().contract.unwrap()
-        assert_eq(a.nullable, kind == "full")
-        assert_eq(b.nullable, kind == "left" || kind == "full")
-      }
+      assert_eq(@evidence.key_field_count(result), 1)
+      assert_false(
+        @evidence.key_field_at(result, 0).unwrap().contract.unwrap().nullable,
+      )
     }
   }
 }
@@ -89,9 +81,9 @@ test "full join does not conflate nullable input keys with missing-side sentinel
       if kind == "full" {
         0
       } else if kind == "left" {
-        2
+        1
       } else {
-        3
+        2
       },
     )
   }

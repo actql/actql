@@ -292,12 +292,14 @@ retain left witnesses; inner/left retain left keys when right coverage or an
 authored assertion requires at most one match, and inner symmetrically retains
 right keys. A coverage witness is retained even if its columns are not projected.
 
-Inner/left/full also combine surviving left and right tuples. Full joins require
-a known non-null component in each original key to distinguish an unmatched
-side from a real all-null tuple; otherwise this pair witness is not produced.
-Null-extended output components remain nullable and cannot silently become
-non-null canonical-order evidence. This does not reject the join itself or
-claim that every possible full-join proof is implemented.
+Ordinary inner joins combine surviving left and right tuples only when neither
+equality tuple is proven unique. This requires actual candidate keys on both
+inputs; lack of equality-key coverage does not mean lack of input identity.
+Left joins infer no key without right uniqueness, and full joins infer no output
+key. These are the language's closed inference rules, not a later eligibility
+filter on extra nullable witnesses. Temporal correlation retains a separate
+pair-identity rule and is not assigned ordinary cardinality semantics merely
+because its implementation shares the mapping helpers.
 
 Every resulting `JoinResult` retains the checked join and role-tagged parent
 witnesses. Self-joins do not erase Left/Right roles merely because the same
