@@ -4041,7 +4041,29 @@
     },
     {
       "requirement_id": "actql.language/interval-join.search-machine",
-      "statement_sha256": "bdc0c3d89f27c1087dd8581c0e5f5fa129209bc1f67e1a6bf09955d63ba582d8",
+      "statement_sha256": "4789a9d2e5ac0009ed19e9954d030ad2faf5b5218fd20f2b2b44526c562ec8fb",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "interval-join",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/interval-join.persistent-search-limit",
+      "statement_sha256": "8674cc22e2ed6ba112fbb6a05cc67c514918852078d99751c7ad7a747ada5836",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "interval-join",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/interval-join.persistent-search-schema",
+      "statement_sha256": "df36292cbd4e841434ca4744464cd3f44b4a1d0032eb090e1a06a2f2036278fa",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",

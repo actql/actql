@@ -69,6 +69,13 @@ has already occurred. Output limits and endpoint checks remain separate.
 Process-local memberships are not persistent Unit subjects or backend
 conformance evidence; those boundaries must consume the original dependencies,
 not infer ownership from matching numeric limits.
+The persistent search limit uses its own `pair_visits` envelope, rather than
+mislabeling a generic resolved row limit. Each side's proof references form a
+canonical set; repeated traversal of the same evidence does not perturb the
+identity, while sharing an input across sides does not erase either role.
+The subject names the consuming Unit operation, and its proof graphs continue
+to name their producing Units. The envelope has no self CID, process handle or
+future observation. Schema admission alone cannot verify this correspondence.
 Left-major/right-minor ordering remains an obligation, not a fabricated order
 certificate. The output contract does not establish candidate-key identity,
 external absence, coverage or authorization to execute. Existing window roles

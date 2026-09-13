@@ -2,10 +2,11 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {test} from 'node:test';
 import {machineCid} from './actql-spec-family.mjs';
+import './interval-search-wire.test.mjs';
 
 const read = path => JSON.parse(readFileSync(new URL(`../${path}`, import.meta.url), 'utf8'));
 const path = 'spec/contracts/actql-interval-search.json';
-const cid = 'sha256:ddf71c5ff428fd68916dc20602d9b1b38c34d871a99db756ae3c5d301522f6ba';
+const cid = 'sha256:4a41fc2f6967ceecd95fcd2ae1f5accc722af3090a6db6a1405d8091a8bae3c3';
 const vectors = read('portability/corpus/interval-search.json');
 
 test('interval search has its own pinned quantity, not the join output row law', () => {
@@ -16,6 +17,7 @@ test('interval search has its own pinned quantity, not the join output row law',
   const language = read('spec/spec-family.json').documents.find(d => d.spec_id === 'actql.language');
   assert.deepEqual(language.machine_contracts.filter(r => r.path === path), [
     {path, pointer: '', cid, version: body.version},
+    {path, pointer: '/schemas/limit', cid: machineCid(body.schemas.limit), version: body.version},
   ]);
   const source = readFileSync(new URL('../src/pipeline_check_context/core_contracts.mbt', import.meta.url), 'utf8');
   assert.ok(source.replace(/\s+/g, ' ').includes(`IntervalSearchRules => "${cid}"`));

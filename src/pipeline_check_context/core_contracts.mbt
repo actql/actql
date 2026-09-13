@@ -803,7 +803,7 @@ pub fn core_contract_cid(v : CoreContractBody) -> String {
     JoinCountRules =>
       "sha256:75f9c5ce5188d28a2e3b42213e0fb3a479475c06e280eb02ef7b001a355d1600"
     IntervalSearchRules =>
-      "sha256:ddf71c5ff428fd68916dc20602d9b1b38c34d871a99db756ae3c5d301522f6ba"
+      "sha256:4a41fc2f6967ceecd95fcd2ae1f5accc722af3090a6db6a1405d8091a8bae3c3"
     WindowCountRules =>
       "sha256:a5045688150b6b5aaf0c992b2e528ba3b5f1dd49e0db14e5673c9515af82ac3a"
     GraphCountRules =>

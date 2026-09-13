@@ -4749,7 +4749,28 @@ assert that a particular backend satisfies the fallback's conditions.
 <!-- requirement-block: interval-join.search-machine -->
 <!-- normative-code: law -->
 ```text
-../../spec/contracts/actql-interval-search.json# sha256:ddf71c5ff428fd68916dc20602d9b1b38c34d871a99db756ae3c5d301522f6ba
+../../spec/contracts/actql-interval-search.json# sha256:4a41fc2f6967ceecd95fcd2ae1f5accc722af3090a6db6a1405d8091a8bae3c3
+```
+
+<!-- requirement-block: interval-join.persistent-search-limit -->
+A persistent product-fallback limit MUST use the closed
+`actql-interval-search-limit/0.1` body below. Its CID hashes the whole canonical
+body without a self CID; its subject is the owning interval operation's
+`unit:<Unit Definition CID>#/steps/<authored ordinal>`. The separate left/right
+arrays contain sorted unique applicable Program row-witness CIDs, after
+producer subjects and all dependent identities have been rebuilt. Admission
+checks those proofs, their exact operand correspondence and effective binding,
+and recomputes the product of the two minima; one proved zero permits an empty
+opposite set. Equal numeric bounds do not substitute for these dependencies.
+`search_contract_cid` identifies the pinned search contract, not an arbitrary
+same-shape schema. Internal handles, observed counts and backend proposals do
+not enter this preimage. Shape and digest alone establish neither applicability
+nor execution; the single-visit condition and atomic enforcement remain required.
+
+<!-- requirement-block: interval-join.persistent-search-schema -->
+<!-- normative-code: envelope -->
+```text
+../../spec/contracts/actql-interval-search.json#/schemas/limit sha256:88d201eeb401828d32ed3a07172c6d406f48dae726071d01ac7de3a0ed281ded
 ```
 
 <a id="calendar"></a>
