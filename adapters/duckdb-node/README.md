@@ -56,8 +56,9 @@ row/cell limits are separate from session transfer limits and logical guards.
 The port must be backed by the exact MoonBit `FixedCompute` preparation, not
 Program-supplied SQL or a deserialized claim of completed input.
 
-This connection test does not yet turn the native result into MoonBit completed
-output or issue acquisition capture evidence. Its result chunks remain
+This low-level connection test does not turn the native result into MoonBit
+completed output or issue acquisition capture evidence. Standard Host tests
+separately cover those product boundaries. The transport's result chunks remain
 provisional until both the transport cleanup and the receiving semantic checks
 have succeeded.
 
@@ -114,7 +115,9 @@ existing canonical requirement and Host-selected schema/table names. Its broad
 scan feeds the receiver above; `execute_duckdb_broad_residual` applies the guards
 from that exact requirement rather than accepting replacement logical limits.
 The native preparation accessor reports compiler/root-ceiling compatibility
-only; it is not yet a validated runnable offer or source-access authorization.
+only; by itself it is neither a validated runnable offer nor source-access
+authorization. Candidate validation, Host authorization before access and
+settled execution evidence before publication remain separate requirements.
 
 `prepare_capability_registry` creates bounded, owned Host registrations. Pass
 an acquisition-enabled registration to `mock_acquisition_candidate` or
