@@ -143,6 +143,38 @@ test "priority is explicit complete and cannot inject a candidate" {
 }
 
 ///|
+test "complete ties use Host priority without overriding lower costs" {
+  assert_eq(
+    choose_serial(
+      [Complete(9L), Complete(4L), Complete(4L)],
+      Some([0, 2, 1]),
+      6,
+    ),
+    Ok(EstimatedFastest(2, 4L)),
+  )
+  assert_eq(
+    choose_serial(
+      [Complete(4L), Complete(9L), Complete(4L)],
+      Some([1, 0, 2]),
+      6,
+    ),
+    Ok(EstimatedFastest(0, 4L)),
+  )
+  assert_eq(
+    choose_serial([Complete(0L), Complete(0L)], Some([1, 0]), 4),
+    Ok(EstimatedFastest(1, 0L)),
+  )
+  assert_eq(
+    choose_serial(
+      [Complete(9223372036854775807L), Complete(9223372036854775807L)],
+      Some([1, 0]),
+      4,
+    ),
+    Ok(EstimatedFastest(1, 9223372036854775807L)),
+  )
+}
+
+///|
 test "empty work zero and exact maximum have defined meanings" {
   assert_eq(assess_serial(0, [], 0), Ok(Complete(0L)))
   assert_eq(choose_serial([], Some([]), 0), Ok(NoCandidates))

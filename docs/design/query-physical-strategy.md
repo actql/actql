@@ -6,6 +6,20 @@ canonical acquisition nor introduces a semantic Run, Invocation, approval or
 commit scope. Its `QueryStrategy` is a Host-private proposal for the same query.
 It is not a public Connector SPI or runnable Plan.
 
+Package-public functions enable repository-internal composition across MoonBit
+packages; they are not a stable provider extension API. The reusable boundaries
+are owned checked requirements, pure candidate comparison, completed-input
+handoff and validation before capture. `MockQueryIssuer`, `MockQueryAttempt`,
+their issuance/lifecycle helpers and the two `QueryRealization` variants model
+only the trusted finite in-process source. New providers or shared/grouped
+acquisitions must not treat these mock constructors as a general Connector SPI.
+
+The fixed work inventory is cost accounting, not a general coverage proof.
+Discharged obligations, auxiliary work and remaining obligations need a separate
+shared coverage contract before a general offer/validator interface can be fixed.
+Adding another realization enum is not a substitute for that contract or for
+canonical derivation of additional acquisition shapes.
+
 Two mock realizations implement the checked finite scan/filter/select shape:
 
 - Native query evaluates complete source admission, filter and select inside the
@@ -92,7 +106,9 @@ unknown. They do not become zero or silently remove a residual/capture stage.
 Transfer bytes, retained bytes and money stay separate from duration and from
 each other. No estimate is a hard resource bound or preservation proof.
 
-The common cost helper ranks complete estimates by latency. If any estimate is
+The common cost helper ranks complete estimates by latency and applies supplied
+Host priority within an exact tie (enumeration order only when none is supplied).
+If any estimate is
 unknown, an explicit complete Host-priority ordering is required to propose a
 candidate; otherwise selection defers. Offers from a different prepared query are
 rejected before comparison. Candidate order, price and route never modify the
@@ -147,6 +163,12 @@ bytes/nodes are cumulative across those two artifacts; column-order and depth
 limits apply separately to each. These explicit wire quantities supplement source
 admission and driver container limits, not replace them with a claim about heap
 capacity or RSS. No estimate is used to pass retention admission.
+
+Both finite mock realizations retain the same full scan plus selected output.
+Their actual receipt quantities differ, but this model does not demonstrate a
+ranking change caused by different physical retention strategies. Synthetic
+retention estimates test accounting and comparison only; they do not establish
+that an external native provider can avoid retaining full-scan validation material.
 
 Retention failure fails the owning attempt. Successful retention still precedes
 evidence issuance and capture; it exposes usage and row CIDs, not consumer data.

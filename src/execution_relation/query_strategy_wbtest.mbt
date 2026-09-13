@@ -162,6 +162,33 @@ test "mock preparation owns its source container and cancellation does not poiso
 }
 
 ///|
+test "equal query estimates follow fixed Host preference across enumeration changes" {
+  let owner = strategy_test_owner()
+  let native = strategy_offer(owner, NativeQuery, Array::make(6, Some(7L)))
+  let broad = strategy_offer(owner, BroadWithResidual, Array::make(7, Some(6L)))
+  for (offers, order) in [([native, broad], [1, 0]), ([broad, native], [0, 1])] {
+    let selected = @planning.choose_query_strategy(
+      owner,
+      offers,
+      Some(order),
+      6,
+    ).unwrap()
+    guard selected is @planning.Proposed(strategy) else { fail("tied choice") }
+    assert_eq(
+      @planning.query_offer_realization(
+        @planning.query_strategy_offer(strategy),
+      ),
+      @planning.BroadWithResidual,
+    )
+    assert_true(physical_equal(@planning.query_strategy_owner(strategy), owner))
+    assert_true(
+      @planning.query_strategy_choice(strategy)
+      is @cost.EstimatedFastest(_, 42L),
+    )
+  }
+}
+
+///|
 test "query candidates include transfer residual capture and retention without changing meaning" {
   let owner = strategy_test_owner()
   let native = strategy_offer(owner, NativeQuery, [

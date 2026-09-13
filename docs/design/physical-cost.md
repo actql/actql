@@ -26,7 +26,9 @@ does not establish either. Money, bytes and capacity are not converted into
 milliseconds or added to the latency score.
 
 Among complete estimates, selection minimizes estimated latency; exact ties
-retain enumeration order. If any candidate has an unknown estimate, the helper
+use the supplied Host priority, or enumeration order when priority is absent.
+Host priority never overrides a strictly lower complete estimate.
+If any candidate has an unknown estimate, the helper
 does not claim a global fastest candidate. A supplied Host priority, expressed
 as a complete permutation of this candidate list, selects a candidate with an
 explicit `HostPreferred` result. Without it selection is `Deferred`. Priority
@@ -40,6 +42,12 @@ Host configuration is not silently ignored. It performs no I/O or implicit
 statistics acquisition. An invalid estimate can be retained as a diagnostic
 and treated as unknown by the integrating planner, without removing a valid
 capability merely because its estimate was malformed.
+
+A complete permutation is intentional: the fastest tied subset need not include
+the first preferred candidate. Selection consults the ordering within that
+subset, while unknown totals use its first entry without a fastest claim. The
+caller maps a fixed Host preference to candidate positions; registration order
+alone is not a stable Host preference.
 
 ## Boundedness and limits of the helper
 

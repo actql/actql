@@ -100,7 +100,8 @@ pub fn assess_serial(
 /// and retention. Even Complete(0) is only a supplied estimate.
 /// If any estimate is unknown, no global fastest claim is possible: use a
 /// supplied complete permutation of candidate positions, or defer.
-/// Equal complete estimates retain candidate enumeration order.
+/// Equal complete estimates use Host priority when supplied; otherwise they
+/// retain candidate enumeration order. A full ordering can rank any tied subset.
 /// No I/O, acquisition, fallback execution, or resource reservation occurs here.
 pub fn choose_serial(
   estimates : Array[DurationEstimate],
@@ -157,6 +158,13 @@ pub fn choose_serial(
       None => Ok(Deferred)
     }
   } else {
+    if host_priority is Some(order) {
+      for index in order {
+        if estimates[index] == Complete(duration) {
+          return Ok(EstimatedFastest(index, duration))
+        }
+      }
+    }
     Ok(EstimatedFastest(best, duration))
   }
 }
