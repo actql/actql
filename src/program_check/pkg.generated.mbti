@@ -97,6 +97,8 @@ pub fn group_string_limit_source(GroupStringLimit) -> GroupAggregateSource
 
 pub fn incoming_gates(CheckedProgram) -> @pipeline_check_context.ProgramIncomingGates
 
+pub fn numeric_slot_for_requirement(CheckedProgram, Int) -> GroupNumericSlot?
+
 pub fn proof_application(ReidentifiedStep) -> @capacity_program_step.StepBound
 
 pub fn proof_claim(ReidentifiedStep) -> @capacity_witness.ProgramProofClaim

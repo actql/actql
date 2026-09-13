@@ -122,6 +122,13 @@ their demands are the same objects held by the operation closure. Hashing uses
 the shared bounded emitter and commits resource usage only after all slots
 succeed. The obligation still requires durable capture before consumers and
 does not claim backend support or completed execution.
+`numeric_slot_for_requirement` resolves an operation-closure occurrence directly
+to its producer-owned persistent slot. Imported visits retain the producer Unit
+identity and return that same slot object rather than constructing consumer
+copies. Construction verifies all occurrence mappings before exposing the index;
+internal source coordinates only accelerate lookup and never enter the slot
+preimage. Reads are O(1), and non-numeric or out-of-range occurrences return no
+slot.
 An extracted aggregate guard uses the owning Unit Definition as its witness
 dependency, keeping unrelated stages and whole-Program observations outside the
 local limit identity. Its source path is a canonical locator in the authored

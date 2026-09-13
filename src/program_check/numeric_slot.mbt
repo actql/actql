@@ -6,6 +6,12 @@ struct GroupNumericSlot {
 }
 
 ///|
+priv struct NumericSlotIdentities {
+  units : Array[Array[GroupNumericSlot]]
+  occurrences : Array[GroupNumericSlot?]
+}
+
+///|
 pub fn group_numeric_slot_operation(
   v : GroupNumericSlot,
 ) -> UnitOperationSource {
@@ -55,11 +61,17 @@ fn prepare_program_numeric_slot_identities(
   units : Array[BuiltUnit],
   requirements : @context.StageRequirementClosure,
   budget : IdentityBudget,
-) -> Array[Array[GroupNumericSlot]] raise UnitBuildFailure {
+) -> NumericSlotIdentities raise UnitBuildFailure {
   let remaining = IdentityBudget::{ ..budget, }
   identity_charge(remaining, units.length())
   let result = Array::makei(units.length(), _ => [])
   let closure = @context.stage_requirement_operations(requirements)
+  let count = @context.operation_closure_count(closure)
+  identity_charge(remaining, count)
+  let occurrences = Array::make(count, None)
+  let by_source : Map[(Int, Int, String), GroupNumericSlot] = Map([])
+  guard units.get(0) is Some(first) else { raise ForeignOwner }
+  let root = @pipeline.source(first.pipeline)
   let seen : Map[(Int, Int, String), Bool] = Map([])
   for index in 0..<@context.operation_closure_count(closure) {
     identity_charge(remaining, 1)
@@ -92,12 +104,44 @@ fn prepare_program_numeric_slot_identities(
     }
     let cid = identity_finish(remaining, writer)
     identity_charge(remaining, 1)
-    result[check.site.stage].push({ operation, slot, cid, })
+    let retained = GroupNumericSlot::{ operation, slot, cid, }
+    guard @decode.tree_index(root, @pipeline.source(check.site.pipeline))
+      is Some(coordinate) else {
+      raise ForeignOwner
+    }
+    let source_key = (coordinate, check.site.step, name)
+    if by_source.contains(source_key) {
+      raise ForeignOwner
+    }
+    by_source[source_key] = retained
+    result[check.site.stage].push(retained)
+  }
+  // Resolve every imported visit to the producer's already-built slot. Arena
+  // coordinates are lookup aids only; exact checked owners are still verified.
+  for index in 0..<count {
+    identity_charge(remaining, 1)
+    guard @context.operation_closure_at(closure, index)
+      is Some(ExecutionCheck(GroupExecution(check))) &&
+      check.rule is CaptureNumericObservation(slot) else {
+      continue
+    }
+    let name = @relation.aggregate_name(slot.call)
+    identity_charge(remaining, name.length())
+    guard @decode.tree_index(root, @pipeline.source(check.site.pipeline))
+      is Some(coordinate) &&
+      by_source.get((coordinate, check.site.step, name)) is Some(retained) &&
+      slot.requirement_index == index &&
+      physical_equal(retained.slot.step, slot.step) &&
+      physical_equal(retained.slot.call, slot.call) &&
+      physical_equal(retained.slot.profile, slot.profile) else {
+      raise ForeignOwner
+    }
+    occurrences[index] = Some(retained)
   }
   budget.work = remaining.work
   budget.bytes = remaining.bytes
   budget.nodes = remaining.nodes
-  result
+  { units: result, occurrences, }
 }
 
 ///|
@@ -105,7 +149,7 @@ pub fn unit_group_numeric_slot_count(
   program : CheckedProgram,
   stage : Int,
 ) -> Int? {
-  program.numeric_slots.get(stage).map(v => v.length())
+  program.numeric_slots.units.get(stage).map(v => v.length())
 }
 
 ///|
@@ -114,5 +158,15 @@ pub fn unit_group_numeric_slot_at(
   stage : Int,
   index : Int,
 ) -> GroupNumericSlot? {
-  program.numeric_slots.get(stage).bind(v => v.get(index))
+  program.numeric_slots.units.get(stage).bind(v => v.get(index))
+}
+
+///|
+/// Read the producer-owned slot for a requirement in this Program's operation
+/// closure, including an imported visit. Non-numeric and invalid indices return None.
+pub fn numeric_slot_for_requirement(
+  program : CheckedProgram,
+  index : Int,
+) -> GroupNumericSlot? {
+  program.numeric_slots.occurrences.get(index).bind(v => v)
 }

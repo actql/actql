@@ -14,6 +14,8 @@ fn local_construction_fixture(
   host_limit? : Int = 1000,
   string_limit? : Int? = None,
   producer_expression? : String = "id + 1",
+  producer_suffix? : String = "",
+  producer_result_from? : String = "derived",
   second_steps? : String = "[]",
   second_result_from? : String = "rows",
   extra_step_budget? : Int = 0,
@@ -73,6 +75,14 @@ fn local_construction_fixture(
     .replace(
       old="id + 1",
       new=if parameters { "id + $n" } else { producer_expression },
+    )
+    .replace(
+      old="\"as\":\"derived\"}],\"results\":{\"out\":{\"from\":\"derived\"",
+      new="\"as\":\"derived\"}" +
+        producer_suffix +
+        "],\"results\":{\"out\":{\"from\":\"" +
+        producer_result_from +
+        "\"",
     )
     .replace(
       old="}],\"results\":{\"out\":{\"from\":{\"stage\":\"first\",\"result\":\"out\"}}}}",

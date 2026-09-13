@@ -7,7 +7,7 @@ struct CheckedProgram {
   units : Array[BuiltUnit]
   group_limits : Array[Array[GroupLimit]]
   group_string_limits : Array[Array[GroupStringLimit]]
-  numeric_slots : Array[Array[GroupNumericSlot]]
+  numeric_slots : NumericSlotIdentities
 }
 
 ///|
