@@ -88,6 +88,10 @@ pub fn publication_policy_edge_at(PublicationSourcePolicy, Int) -> PublicationPo
 
 pub fn publication_policy_edge_count(PublicationSourcePolicy) -> Int
 
+pub fn publication_policy_generator_at(PublicationSourcePolicy, Int) -> PublicationPolicyGenerator?
+
+pub fn publication_policy_generator_count(PublicationSourcePolicy) -> Int
+
 pub fn publication_policy_import_at(PublicationSourcePolicy, Int) -> PublicationPolicyImport?
 
 pub fn publication_policy_import_count(PublicationSourcePolicy) -> Int
@@ -288,6 +292,11 @@ pub enum PublicationPhase {
 pub struct PublicationPolicyEdge {
   step : Int
   occurrence : @pipeline_typing.InputOccurrence
+}
+
+pub struct PublicationPolicyGenerator {
+  step : Int
+  operation : @pipeline_typing.CheckedOperation
 }
 
 pub struct PublicationPolicyImport {

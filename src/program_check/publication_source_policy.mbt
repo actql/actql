@@ -13,6 +13,28 @@ pub struct PublicationSourcePolicy {
   priv sources : Array[SourceExecution]
   priv imports : Array[PublicationPolicyImport]
   priv edges : Array[PublicationPolicyEdge]
+  priv generators : Array[PublicationPolicyGenerator]
+}
+
+///|
+pub struct PublicationPolicyGenerator {
+  step : Int
+  operation : @pipeline.CheckedOperation
+}
+
+///|
+pub fn publication_policy_generator_count(
+  value : PublicationSourcePolicy,
+) -> Int {
+  value.generators.length()
+}
+
+///|
+pub fn publication_policy_generator_at(
+  value : PublicationSourcePolicy,
+  index : Int,
+) -> PublicationPolicyGenerator? {
+  value.generators.get(index)
 }
 
 ///|
@@ -145,6 +167,7 @@ fn prepare_publication_source_policy(
   let edges : Array[PublicationPolicyEdge] = []
   let predicates : Array[PublicationPolicyPredicate] = []
   let slices : Array[PublicationPolicySlice] = []
+  let generators : Array[PublicationPolicyGenerator] = []
   let mut unknown = false
   while pending.pop() is Some(target) {
     identity_charge(budget, 1)
@@ -156,6 +179,12 @@ fn prepare_publication_source_policy(
         visited_steps[index] = true
         let step = @pipeline.step_at(unit.pipeline, index).unwrap()
         let expected = match step.operation {
+          @pipeline.Values(_) => {
+            identity_charge(budget, 1)
+            generators.push({ step: index, operation: step.operation, })
+            unknown = true
+            0
+          }
           @pipeline.Unary(operation) => {
             match @relation.operation(operation) {
               Select | Rename | Drop | Sort | Distinct | DedupeRows => ()
@@ -332,6 +361,7 @@ fn prepare_publication_source_policy(
     sources,
     imports,
     edges,
+    generators,
   }
   |> Some
 }

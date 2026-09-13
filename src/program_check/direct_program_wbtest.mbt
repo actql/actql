@@ -11,6 +11,8 @@ fn checked_direct_program_fixture(
   duplicates? : String = "distinct",
   join_kind? : String = "",
   join_capacity? : Bool = true,
+  generated_rows? : String = "",
+  mix_generated? : Bool = false,
 ) -> CheckedProgram raise {
   let original_text =
     #|{"version":"actql/0.1","id":"direct","stages":[{"id":"s","inputs":{"remote":{"connector":"crm/main","resource":"r","request":{"id":1,"tenant":null}}},"steps":[{"distinct":["id"],"as":"selected"}],"results":{"out":{"from":"selected","fields":["id"]}}}],"results":{"out":{"from":{"stage":"s","result":"out"}}}}
@@ -19,7 +21,19 @@ fn checked_direct_program_fixture(
     new="\"" + input_name + "\"",
   )
   let program = @syntax.parse(
-    if join_kind != "" {
+    if generated_rows != "" {
+      text.replace(
+        old="\"steps\":[",
+        new="\"steps\":[{\"values\":{\"schema\":{\"id\":{\"type\":\"number\",\"nullable\":false}},\"rows\":" +
+          generated_rows +
+          "},\"as\":\"authored\"}," +
+          (if mix_generated {
+            "{\"from\":\"remote\",\"distinct\":[\"id\"],\"as\":\"remote_rows\"},{\"from\":\"authored\",\"append\":{\"with\":\"remote_rows\"}},"
+          } else {
+            ""
+          }),
+      )
+    } else if join_kind != "" {
       text
       .replace(
         old="\"inputs\":{\"remote\":",
@@ -170,12 +184,72 @@ fn checked_direct_program_fixture(
     },
     { text_time: false, veca: false, },
     { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
-    source_limits_fixture(if join_kind != "" { 4 } else { 2 }),
+    source_limits_fixture(if join_kind != "" || mix_generated { 4 } else { 2 }),
     max_work=100000000,
     max_bytes=10000000,
     max_nodes=1000000,
     max_depth=100,
   )
+}
+
+///|
+test "values policy preserves authored provenance without attributing unused sources" {
+  for rows in ["[]", "[{\"id\":1}]"] {
+    for mixed in [false, true] {
+      let program = checked_direct_program_fixture(
+        generated_rows=rows,
+        mix_generated=mixed,
+      )
+      let policy = publication_source_policy(
+        unit_publication_at(program, 0, 0).unwrap(),
+      ).unwrap()
+      assert_eq(
+        publication_policy_source_count(policy),
+        if mixed {
+          1
+        } else {
+          0
+        },
+      )
+      assert_eq(publication_policy_generator_count(policy), 1)
+      let generator = publication_policy_generator_at(policy, 0).unwrap()
+      assert_eq(generator.step, 0)
+      assert_true(generator.operation is @pipeline.Values(_))
+      guard generator.operation is @pipeline.Values(value) else {
+        fail("missing values origin")
+      }
+      guard @pipeline.step_at(program.units[0].pipeline, 0).unwrap().operation
+        is @pipeline.Values(original) else {
+        fail("missing owned values")
+      }
+      assert_true(physical_equal(value, original))
+      assert_eq(publication_policy_classification(policy), @environment.Unknown)
+      assert_true(policy.unknown_provenance)
+      assert_eq(source_execution_count(program), 5)
+      if !mixed {
+        let writer = @encode.writer(10000, 100, 10)
+        emit_publication_source_policy(policy, writer)
+        assert_eq(
+          @encode.finish(writer),
+          "{\"classification\":\"unknown\",\"source_data_policy_cids\":[],\"source_response_policy_cids\":[],\"unknown_provenance\":true,\"version\":\"actql-effective-data-policy/0.1\"}",
+        )
+        assert_true(policy.prerequisite is None)
+      }
+      let closure = @context.stage_requirement_operations(requirements(program))
+      let mut publications = 0
+      for i in 0..<@context.operation_closure_count(closure) {
+        if @context.operation_closure_at(closure, i)
+          is Some(ExecutionCheck(ValuesPublication(check))) {
+          assert_eq(check.site.step, 0)
+          assert_true(
+            physical_equal(check.site.pipeline, program.units[0].pipeline),
+          )
+          publications += 1
+        }
+      }
+      assert_eq(publications, 1)
+    }
+  }
 }
 
 ///|

@@ -118,6 +118,15 @@ typed checks; policy traversal cannot supply missing capacity material. An alias
 projection does not erase the other input's contribution to matching or product
 selection. All selected acquisition prerequisites remain readable separately.
 
+Values is a zero-input provenance origin, not a read of the previous current
+relation. Indexed generator readers retain its exact checked operation and step.
+Authored values, including an empty relation, have no policy attestation solely
+from type admission, so their provenance remains unknown. An unused SourceView
+does not supply their policy. When values participates in append or another
+supported binary operation, this unknown contribution is retained alongside the
+actual source policy references. Existing values admission, wire/recursive-size
+and publication checks remain separate obligations of the same checked producer.
+
 Filter transfer additionally retains each exact checked predicate and its step
 coordinate. All value leaves participate in provenance, including branches that
 evaluation may skip: field references inherit the selected input's provenance,
