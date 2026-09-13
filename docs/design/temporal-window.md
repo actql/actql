@@ -228,6 +228,21 @@ timestamp conversion and finite threshold arithmetic still require completion
 before execution/publication. This implementation performs no row filtering and
 does not claim to execute watermark decisions.
 
+The formal Program constructor retains `WatermarkExecution` checks for time
+admission before input use and threshold application before operation output.
+Both identify the checked operation, input edge, time field and drop/mark policy.
+Fixed thresholds retain their finite value and optional owned Parameter
+resolution, without imposing input order. Prefix thresholds retain positive
+integer milliseconds, any owned numeric/duration resolution, and the exact
+`WatermarkPrefixOrder` link from the same operation inventory. That order may
+come from an earlier sort or an imported Result's established sequence; a
+candidate key alone does not authorize choosing a new traversal for the prefix.
+The executor must apply the inclusive running-maximum law, reject invalid time
+or non-finite arithmetic, and emit the generated fields according to the late
+policy. Empty input produces no threshold observation. Static construction does
+not assert any of these row-level checks passed. Missing bindings or order
+remain construction failures, and each requirement scan consumes shared work.
+
 Already-windowed external input admission and complete temporal-family integration
 remain to be connected. Successful pipeline window checking does not imply
 completion of those boundaries.

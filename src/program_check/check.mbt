@@ -68,6 +68,7 @@ fn check_supported_source(
               | "analytic"
               | "row_window"
               | "window_group"
+              | "watermark_rows"
               | "append"
               | "except"
               | "intersect"

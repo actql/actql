@@ -28,6 +28,10 @@ fn check_resolution_index(
     let state = operation_resolution_at(index, i).unwrap()
     let site = operation_requirements_at(requirements, i).unwrap()
     match state {
+      Execution(WatermarkExecution(check)) => {
+        execution += 1
+        assert_true(physical_equal(check.site, site))
+      }
       Execution(WindowMembershipLimit(check)) => {
         execution += 1
         assert_true(physical_equal(check.site, site))

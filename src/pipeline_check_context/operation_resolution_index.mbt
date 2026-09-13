@@ -180,6 +180,14 @@ pub fn index_program_operation_resolutions(
       max_work - work,
     )
     work += window_work
+    let (watermark_candidate, watermark_work) = watermark_execution_check(
+      requirements.entries[i],
+      i,
+      requirements,
+      states,
+      max_work - work,
+    )
+    work += watermark_work
     let candidate = match dedupe_execution_check(requirements.entries[i]) {
       Ok(None) => {
         let site = requirements.entries[i]
@@ -218,7 +226,12 @@ pub fn index_program_operation_resolutions(
                                           Ok(None) =>
                                             match
                                               analytic_execution_check(site) {
-                                              Ok(None) => window_candidate
+                                              Ok(None) =>
+                                                match window_candidate {
+                                                  Ok(None) =>
+                                                    watermark_candidate
+                                                  other => other
+                                                }
                                               other => other
                                             }
                                           other => other

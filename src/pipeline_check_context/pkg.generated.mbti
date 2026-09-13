@@ -1666,6 +1666,7 @@ pub(all) enum OperationDisposition {
 }
 
 pub(all) enum OperationExecutionCheck {
+  WatermarkExecution(WatermarkExecutionCheck)
   WindowMembershipLimit(WindowMembershipLimit)
   WindowExecution(WindowExecutionCheck)
   AnalyticExecution(AnalyticExecutionCheck)
@@ -2672,6 +2673,27 @@ pub(all) enum ValuesWireResolutionIssue {
   Proof(@capacity_witness.Issue)
   Limit(ValuesWireLimitIssue)
 } derive(@debug.Debug)
+
+pub struct WatermarkExecutionCheck {
+  site : OperationRequirementSite
+  step : @pipeline_typing.CheckedStep
+  input : @pipeline_typing.Target
+  operation : @relation_typing.CheckedOperation
+  time : @relation_typing.KeyField
+  timestamp : Bool
+  late_policy : @relation_typing.LatePolicy
+  rule : WatermarkExecutionRule
+}
+
+pub enum WatermarkExecutionRule {
+  AdmitWatermarkTime
+  ApplyWatermark(WatermarkThreshold)
+}
+
+pub enum WatermarkThreshold {
+  FixedWatermark(Double, OperationScalarResolution?)
+  PrefixWatermark(Int64, OperationScalarResolution?, OperationOrderLink)
+}
 
 pub struct WindowExecutionCheck {
   site : OperationRequirementSite
