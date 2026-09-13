@@ -142,6 +142,9 @@ test('real Node callbacks use MoonBit admission before native filtering, includi
         await run;
         assert.equal(moon.ready(received.state), true, name);
         assert(received.events.includes('native'));
+        assert.deepEqual(JSON.parse(moon.demandUsage(received.state)), name === 'empty'
+          ? [0, 0, 0, 0, 0, 0, null]
+          : [3, 3, 2, 1, 0, 13, 1]);
         // Fixed canonical row preimages, not reconstructed from returned values.
         const preimages = name === 'empty' ? ['[]', '[]'] : [
           '[{"amount":30,"id":3},{"amount":null,"id":1},{"amount":20,"id":2}]',

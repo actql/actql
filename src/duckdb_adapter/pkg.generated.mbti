@@ -65,6 +65,12 @@ pub fn fixed_import_parameter(FixedImport, Int, Int) -> Result[PhysicalParameter
 
 pub fn identify_native_receipts(NativeReceiving, @execution_relation.RowWireLimits, Int, Int) -> Result[NativeReceiptIdentities, NativeReceiptIdentityIssue]
 
+pub fn measure_native_demand(NativeReceiving, @execution_relation.FixedInputGuardMeasureLimits) -> Result[NativeDemandMeasurement, NativeDemandIssue]
+
+pub fn native_demand_matches(NativeDemandMeasurement, NativeReceiving) -> Bool
+
+pub fn native_demand_usage(NativeDemandMeasurement) -> NativeDemandUsage
+
 pub fn native_query_owner(NativeQuery) -> @lowering_relation.BoundPrepared
 
 pub fn native_query_parameter(NativeQuery) -> PhysicalParameter
@@ -147,6 +153,30 @@ type BroadTable
 type FixedCompute
 
 type FixedImport
+
+pub(all) enum NativeDemandIssue {
+  InvalidState
+  InvalidLimits
+  InvalidLayout
+  InvalidResultCount
+  Operand(Int, Bool, NativeValueIssue)
+  Predicate(NativeValueIssue)
+}
+
+type NativeDemandMeasurement
+
+pub(all) struct NativeDemandUsage {
+  rows : Int
+  field_bytes : Int64
+  rhs_bytes : Int?
+  true_rows : Int
+  false_rows : Int
+  null_rows : Int
+  predicate_bytes : Int64
+  physical_work : Int
+  physical_bytes : Int
+  physical_nodes : Int
+}
 
 type NativeQuery
 

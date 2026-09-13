@@ -79,8 +79,13 @@ lossy integers and views before native filtering, and covers empty results.
 The fixture exports no completion constructor or evidence issuer; it is not a
 general Host entry point. Receiving applies explicit per-record canonical byte
 and native output-row ceilings with a cumulative physical measurement budget
-across both receipts. Expression demand/root and logical evaluation budgets,
-completion and capture still require their product integration. The original lifecycle-double test remains
+across both receipts. `measure_native_demand` then measures retained operands
+under an explicit additional physical budget. For the restricted eager
+comparison it obtains exact true/false/NULL counts from operand nullness and SQL
+output counts, without Local predicate replay. The returned measurement must
+match the exact live receiver; it is not a substitute for SQL/read-view evidence.
+Selected fragment/consumer contracts, product completion and capture still
+require their product integration. The original lifecycle-double test remains
 useful for injecting receiver failures independently of semantic validation.
 
 The receiving fixture also hashes the retained validation/native row sequences

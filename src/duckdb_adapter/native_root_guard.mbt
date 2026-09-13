@@ -6,7 +6,8 @@ pub(all) enum NativeRootGuardIssue {
 
 ///|
 /// A static eligibility witness for this exact compiled comparison. It proves
-/// only the demanded root byte ceiling, not scan admission, execution, work,
+/// only the final predicate byte ceiling, not demanded operand measurements,
+/// scan admission, execution, work,
 /// lifetime, source authority or completion. No row is evaluated to create it.
 struct NativeRootGuard {
   query : NativeQuery

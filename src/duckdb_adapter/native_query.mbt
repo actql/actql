@@ -24,6 +24,7 @@ struct NativeQuery {
   owner : @lower.BoundPrepared
   sql : String
   parameter : PhysicalParameter
+  predicate_field : String
   database_schema : String
   table : String
 }
@@ -229,6 +230,7 @@ pub fn compile_native_filter_select(
       owner,
       sql: output.builder.to_string(),
       parameter,
+      predicate_field: name,
       database_schema,
       table,
     })

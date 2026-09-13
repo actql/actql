@@ -36,6 +36,8 @@ pub fn create() -> @duckdb_adapter.NativeReceiving
 
 pub fn create_guarded(Int, Int, Int) -> @duckdb_adapter.NativeReceiving
 
+pub fn demand_usage(@duckdb_adapter.NativeReceiving) -> String
+
 pub fn finish(@duckdb_adapter.NativeReceiving, @duckdb_adapter.NativeReceiptPort) -> Bool
 
 pub fn metadata(@duckdb_adapter.NativeReceiving, Int, String, String) -> Bool

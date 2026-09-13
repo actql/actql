@@ -369,8 +369,21 @@ admission nor work/live-root limits, provenance, retention or completion, and it
 is not an execution record. Generic receiving readiness alone does not imply
 that this native eligibility check has been applied by a planner.
 This final-result bound is not complete evidence for demanded operand values.
-Native issuance must additionally enforce their exact byte measures, including
-the owned literal or Parameter RHS, under the same acquisition ceiling.
+`measure_native_demand` measures the retained predicate field and the owned
+literal/Parameter RHS under the same acquisition ceiling. It measures that
+immutable RHS once at first demand; the recorded row count represents its
+logical multiplicity. Empty input has no operand or predicate demand. A separate
+explicit physical measurement budget accounts for this additional work without
+borrowing or resetting receipt, fragment or consumer budgets.
+
+For the admitted single eager number comparison or boolean equality, NULL result
+occurrences follow operand nullness, true occurrences equal SQL output rows and
+false occurrences are the remainder. The measurement records their exact byte
+totals without evaluating the comparison again. Impossible counts are rejected.
+The result retains the exact receiving owner and is invalidated by cancellation
+or failure. This algebraic measurement is not provider execution attestation:
+issuance must also establish that the owned SQL ran on the owned read view,
+that retained receipts correspond to it, and that all other guards succeeded.
 
 Cancellation request, the caller ceasing to wait, confirmed query termination
 and resource cleanup are distinct states. Cancelled or failed attempts cannot

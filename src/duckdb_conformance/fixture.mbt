@@ -2,6 +2,45 @@
 // It exports no completion constructor, issuer, arbitrary owner or storage access.
 
 ///|
+#export_name("demandUsage")
+pub fn demand_usage(value : @duckdb.NativeReceiving) -> String {
+  let measured = match
+    @duckdb.measure_native_demand(value, {
+      max_work: 1000,
+      max_bytes: 10000,
+      max_nodes: 1000,
+      max_depth: 10,
+    }) {
+    Ok(value) => value
+    Err(_) => return "null"
+  }
+  let usage = @duckdb.native_demand_usage(measured)
+  try {
+    let writer = @encode.writer(1000, 100, 4)
+    @encode.begin_array(writer)
+    for
+      number in [
+        usage.rows.to_int64(),
+        usage.field_bytes,
+        usage.true_rows.to_int64(),
+        usage.false_rows.to_int64(),
+        usage.null_rows.to_int64(),
+        usage.predicate_bytes,
+      ] {
+      @encode.number_value(writer, number.to_double())
+    }
+    match usage.rhs_bytes {
+      Some(bytes) => @encode.number_value(writer, bytes.to_double())
+      None => @encode.null_value(writer)
+    }
+    @encode.end_array(writer)
+    @encode.finish(writer)
+  } catch {
+    _ => abort("fixture demand usage")
+  }
+}
+
+///|
 #export_name("receiptIdentities")
 pub fn receipt_identities(value : @duckdb.NativeReceiving) -> String {
   let receipts = match

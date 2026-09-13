@@ -7,6 +7,7 @@ struct NativeScan {
   sql : String
   input_schema : @schema.Schema
   output_schema : @schema.Schema
+  predicate_column : Int
 }
 
 ///|
@@ -36,7 +37,18 @@ pub fn prepare_native_scan(
     Ok(sql) => sql
     Err(issue) => return Err(issue)
   }
-  Ok({ query, sql, input_schema, output_schema, })
+  let mut predicate_column = -1
+  for i in 0..<@schema.field_count(input_schema) {
+    if @schema.field_at(input_schema, i).unwrap().name ==
+      @schema.Unqualified(query.predicate_field) {
+      predicate_column = i
+      break
+    }
+  }
+  if predicate_column < 0 {
+    return Err(UnsupportedField)
+  }
+  Ok({ query, sql, input_schema, output_schema, predicate_column, })
 }
 
 ///|
