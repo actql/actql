@@ -253,6 +253,13 @@ conformance bridge supplies settlement provenance to that same issuer. The
 standard product Host entry and native producer/consumer product completion path
 remain required. The document/CID is not an alternative success constructor.
 
+After transport settlement, the bridge calls
+`complete_duckdb_native_capture(issuer, attempt, limits)`. This product operation
+performs the measurement/retention/issuance/capture sequence and preserves typed
+failures; the fixed fixture only supplies its test configuration. The separate
+low-level operations remain useful for boundary conformance. Neither path accepts
+a caller-supplied success boolean as a replacement for the issuer's live verifier.
+
 `authorizeLocalDatabase` is called by explicit trusted Host setup, not by a
 Program resource decoder. The opaque grant authorizes a path to a trusted local
 file. It is not a snapshot identity or a malicious-file sandbox.

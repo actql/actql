@@ -438,6 +438,17 @@ no writer resets the shared allowance. Failure discards pending authority state.
 After capture, cancellation of pending work cannot discard the observation;
 explicit issuer or transport-provenance revocation remains effective.
 
+The Host orchestration operation `complete_duckdb_native_capture` keeps settlement,
+exact measurement, retention validation, record issuance and capture in MoonBit.
+It accepts a live issuer/attempt and separate Host-selected physical/material
+allowances, not a replacement transport verifier or common guard. Foreign issuer
+requests are rejected before mutating the rightful attempt. An unverified or
+failed completion becomes terminal; a duplicate call cannot invalidate an already
+captured observation. Existing low-level stages remain available for independent
+boundary tests. Host bridges should use the orchestration operation rather than
+implement their own semantic stage sequence in Node or a fixed conformance setup.
+This operation creates an acquisition observation, not an engine CompletedOutput.
+
 The native observation retains immutable native receipt data without constructing
 a row-engine completion from caller-supplied rows. Bridging that data into the
 ordinary producer/consumer boundary requires a separate validated completion path;

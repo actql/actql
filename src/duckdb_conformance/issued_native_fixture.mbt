@@ -205,42 +205,28 @@ pub fn issued_native_complete(
   value : IssuedNativeFixture,
   artifact_bytes : Int,
 ) -> Bool {
-  guard @planning.settle_duckdb_native_transport(value.attempt) is Ok(_) else {
-    return false
-  }
-  guard @planning.measure_duckdb_native_attempt(
-      value.attempt,
-      issued_native_measure_limits(),
-      {
+  guard @planning.complete_duckdb_native_capture(value.issuer, value.attempt, {
+      demand: issued_native_measure_limits(),
+      receipts: {
         max_columns: 10,
         max_order_work: 10000,
         max_bytes: 100000,
         max_nodes: 10000,
         max_depth: 100,
       },
-      100,
-      100000,
-    )
-    is Ok(_) else {
-    return false
-  }
-  guard @planning.issue_duckdb_native_records(value.attempt, 100000, {
-      max_work: 1000000,
-      max_fields: 100,
-      max_parameters: 100,
-      max_bytes: 1000000,
-      max_nodes: 100000,
-      max_depth: 100,
+      max_received_rows: 100,
+      max_received_bytes: 100000,
+      max_retained_wire_bytes: 100000,
+      records: {
+        max_work: 1000000,
+        max_fields: 100,
+        max_parameters: 100,
+        max_bytes: 1000000,
+        max_nodes: 100000,
+        max_depth: 100,
+      },
+      capture: { max_bytes: artifact_bytes, max_nodes: 100000, max_depth: 100, },
     })
-    is Ok(records) else {
-    return false
-  }
-  guard @planning.capture_duckdb_native_query(
-      value.issuer,
-      value.attempt,
-      records,
-      { max_bytes: artifact_bytes, max_nodes: 100000, max_depth: 100, },
-    )
     is Ok(observation) else {
     return false
   }

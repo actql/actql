@@ -80,6 +80,8 @@ pub fn close_duckdb_query_issuer(DuckDBQueryIssuer) -> Unit
 
 pub fn close_mock_query_issuer(MockQueryIssuer) -> Unit
 
+pub fn complete_duckdb_native_capture(DuckDBNativeIssuer, DuckDBNativeAttempt, DuckDBNativeCompletionLimits) -> Result[DuckDBNativeObservation, DuckDBEvidenceIssue]
+
 pub fn duckdb_broad_attempt_identity(DuckDBBroadAttempt) -> (String, String)?
 
 pub fn duckdb_broad_attempt_output(DuckDBBroadAttempt) -> @execution_relation.CompletedOutput?
@@ -398,6 +400,16 @@ pub(all) enum DuckDBNativeAttemptIssue {
 pub(all) enum DuckDBNativeCandidateIssue {
   Unsupported(DuckDBNativeIssue)
   Planning(QueryPlanningIssue)
+}
+
+pub(all) struct DuckDBNativeCompletionLimits {
+  demand : @execution_relation.FixedInputGuardMeasureLimits
+  receipts : @execution_relation.RowWireLimits
+  max_received_rows : Int
+  max_received_bytes : Int
+  max_retained_wire_bytes : Int
+  records : QueryMaterialLimits
+  capture : QueryEvidenceLimits
 }
 
 pub(all) enum DuckDBNativeIssue {
