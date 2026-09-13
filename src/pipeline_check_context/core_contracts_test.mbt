@@ -169,6 +169,7 @@ test "core contract collection preserves owned occurrences and shares dependency
         }
       }
       OperationDataProfile(_, _, _, _)
+      | StageSourceResponsePolicyRules(_, _)
       | OperationCountLaw(_, _, _)
       | OperationValuesWireLaw(_, _, _)
       | OperationValuesExecutionRules(_, _, _) =>

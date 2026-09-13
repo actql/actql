@@ -18,6 +18,8 @@ export const contract={version:'actql-source-response-policy-contract/0.1',
 const path='spec/contracts/actql-source-response-policy.json';
 if(process.argv.includes('--write')) writeFileSync(path,JSON.stringify(contract,null,2)+'\n');
 assert.deepEqual(JSON.parse(readFileSync(path,'utf8')),contract);
+assert.ok(readFileSync('src/pipeline_check_context/core_contracts.mbt','utf8').includes(machineCid(contract)),
+  'response-policy interpretation pin is stale');
 if(process.argv.includes('--print-pin')) console.log(machineCid(contract),machineCid(contract.schemas.policy));
 // Independent inputs and expected classifications, never product emitter output.
 const vectors=[];

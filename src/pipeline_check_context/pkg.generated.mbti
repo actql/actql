@@ -927,6 +927,7 @@ pub(all) enum CoreContractBody {
   LocalSourceReferenceRules
   LocalInputType(String)
   CanonicalIdentityRules
+  SourceResponsePolicyRules
 } derive(Eq, @debug.Debug)
 
 type CoreContractInventory
@@ -980,6 +981,7 @@ pub(all) enum CoreContractSite {
   StageLocalInputType(Int, Int)
   StageCanonicalIdentityRules(Int)
   StagePublicationRules(Int, Int)
+  StageSourceResponsePolicyRules(Int, Int)
 } derive(Eq, @debug.Debug)
 
 pub struct CrossJoinIdentityCheck {

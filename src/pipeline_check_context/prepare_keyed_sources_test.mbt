@@ -400,4 +400,15 @@ test "prepared keyed acquisition retains its actual producer bound" {
   }
   assert_true(join_roots > 0)
   assert_true(stage_has_contract(contracts, 0, JoinCountRules))
+  assert_true(stage_has_contract(contracts, 0, SourceResponsePolicyRules))
+  let mut response_roots = 0
+  for i in 0..<core_contract_root_count(contracts) {
+    let root = core_contract_root_at(contracts, i).unwrap()
+    if root.site is StageSourceResponsePolicyRules(stage, input) {
+      assert_eq((stage, input), (0, 0))
+      assert_eq(root.body, SourceResponsePolicyRules)
+      response_roots += 1
+    }
+  }
+  assert_eq(response_roots, 1)
 }

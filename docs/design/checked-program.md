@@ -653,6 +653,11 @@ The response-only identity now has a bounded emitter,
 source reference, selected view and authoritative policy CIDs, authored minimum
 and resulting classification. It is not an identity of request provenance or
 permission. The surrounding acquisition already binds the named input.
+The stage-local contract inventory selects `SourceResponsePolicyRules` for each
+selected SourceView occurrence, including unused inputs that are still admitted.
+Shared bodies are deduplicated without dropping their source sites. Local-only
+stages do not acquire this root from another stage's Catalog entries or producer
+traversal. This pins interpretation, not the concrete policy value or observation.
 
 This explicitly fixes a previously unspecified preimage. Sketch's
 `87dc7144138edfcba108cdc59dc485ac976ba976:src/actql-compiler.ts` uses an alias
