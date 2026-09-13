@@ -569,6 +569,26 @@ handling before a SourceView Program can pass the final construction boundary.
 In particular, retaining these two dispositions is not a complete acquisition
 closure and must not be used to remove an unresolved-source rejection alone.
 
+Every selected request also carries `AcquisitionResources`, including direct and
+unused SourceViews. It depends on that same request's Host-combination check and
+applies before and throughout acquisition. Carrier-response admission depends on
+it, as does keyed-request dispatch. The Host selects and installs the applicable
+physical acquisition envelope before access, accounts for actual receipt and
+retention rather than just logical output, and atomically rejects acquisition on
+exhaustion. The requirement does not supply numerical limits, choose a transport,
+or establish that enforcement has run. The selected implementation must provide
+the applicable finite limits and their accounting/enforcement; a backend unable
+to realize them cannot produce an executable plan. Compiler work budgets and
+logical output bounds are not substitutes for this physical contract.
+
+For query acquisition this preserves the receipt-versus-output distinction in
+[Query acquisition](../spec/execution.md#query-acquisition). Keyed joins additionally
+retain their existing request/byte/attempt/cost/duration envelope and correlation
+checks; the generic requirement neither erases nor duplicates their logical count
+evidence. Mode, authority, egress and persistent resource references remain
+separate integration conditions, so adding this binding alone does not open the
+formal SourceView entrance.
+
 For each keyed join occurrence, request-value admission retains the original
 join and its correlation-role mapping: it validates all authored left-key
 components under the selected null-request policy and admits the representative

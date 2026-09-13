@@ -7,16 +7,25 @@ test "source Host and response bindings retain one exact request and ordered pre
     depth: 100,
   }
   let (identity, _, _, _, units) = remote_construction_fixture(budget)
-  assert_eq(units[0].source_execution.length(), 5)
+  assert_eq(units[0].source_execution.length(), 6)
   assert_true(
     physical_equal(units[0].source_execution[0].subject.owner, identity),
   )
-  let exact = IdentityBudget::{ work: 9, bytes: 0, nodes: 0, depth: 0, }
+  let exact = IdentityBudget::{ work: 10, bytes: 0, nodes: 0, depth: 0, }
   let checks = prepare_source_execution(identity, exact)
   assert_eq(exact.work, 0)
-  assert_eq(checks.length(), 5)
+  assert_eq(checks.length(), 6)
   let host = checks[0]
-  let response = checks[1]
+  let resources = checks[1]
+  let response = checks[2]
+  assert_true(resources.kind is AcquisitionResources)
+  assert_true(resources.phase is BeforeAndDuringAcquisition)
+  assert_true(resources.failure is FailAcquisitionAtomically)
+  assert_true(physical_equal(resources.subject, host.subject))
+  assert_true(physical_equal(resources.prerequisites[0], host))
+  assert_eq(resources.prerequisites.length(), 1)
+  assert_eq(response.prerequisites.length(), 2)
+  assert_true(physical_equal(response.prerequisites[1], resources))
   assert_true(host.kind is HostCombination)
   assert_true(host.phase is BeforeProviderAccess)
   assert_true(host.failure is PreventProviderAccess)
@@ -35,9 +44,9 @@ test "source Host and response bindings retain one exact request and ordered pre
   assert_true(
     physical_equal(host.subject.source, @sourceviews.keyed_mode_input(mode)),
   )
-  guard checks[2].kind is KeyedRequest(request_binding) &&
-    checks[3].kind is KeyedResources(resource_binding) &&
-    checks[4].kind is KeyedResponse(response_binding) else {
+  guard checks[3].kind is KeyedRequest(request_binding) &&
+    checks[4].kind is KeyedResources(resource_binding) &&
+    checks[5].kind is KeyedResponse(response_binding) else {
     fail("keyed acquisition obligations were omitted")
   }
   assert_true(physical_equal(request_binding, resource_binding))
@@ -63,16 +72,18 @@ test "source Host and response bindings retain one exact request and ordered pre
       ).unwrap(),
     ),
   )
-  assert_true(checks[2].phase is BeforeProviderAccess)
-  assert_true(checks[3].phase is BeforeAndDuringAcquisition)
-  assert_true(checks[4].phase is BeforeSourceOutputUse)
-  assert_true(checks[3].failure is FailAcquisitionAtomically)
+  assert_true(checks[3].phase is BeforeProviderAccess)
+  assert_true(checks[4].phase is BeforeAndDuringAcquisition)
+  assert_true(checks[5].phase is BeforeSourceOutputUse)
   assert_true(checks[4].failure is FailAcquisitionAtomically)
-  assert_true(physical_equal(checks[2].prerequisites[0], host))
-  assert_true(physical_equal(checks[3].prerequisites[0], checks[2]))
-  assert_eq(checks[4].prerequisites.length(), 2)
+  assert_true(checks[5].failure is FailAcquisitionAtomically)
+  assert_true(physical_equal(checks[3].prerequisites[0], host))
+  assert_eq(checks[3].prerequisites.length(), 2)
+  assert_true(physical_equal(checks[3].prerequisites[1], resources))
   assert_true(physical_equal(checks[4].prerequisites[0], checks[3]))
-  assert_true(physical_equal(checks[4].prerequisites[1], response))
+  assert_eq(checks[5].prerequisites.length(), 2)
+  assert_true(physical_equal(checks[5].prerequisites[0], checks[4]))
+  assert_true(physical_equal(checks[5].prerequisites[1], response))
   let policy = host.subject.response_policy
   assert_true(physical_equal(policy.source, host.subject.source))
   assert_true(policy.minimum is None)
@@ -83,14 +94,14 @@ test "source Host and response bindings retain one exact request and ordered pre
     )
     is @environment.Unknown,
   )
-  let short = IdentityBudget::{ work: 8, bytes: 0, nodes: 0, depth: 0, }
+  let short = IdentityBudget::{ work: 9, bytes: 0, nodes: 0, depth: 0, }
   try prepare_source_execution(identity, short) catch {
     UnitBuildFailure::BudgetExceeded => ()
     error => raise error
   } noraise {
     _ => fail("partial source checks escaped")
   }
-  assert_eq(short.work, 8)
+  assert_eq(short.work, 9)
 }
 
 ///|

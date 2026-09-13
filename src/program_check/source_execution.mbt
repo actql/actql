@@ -3,6 +3,7 @@
 // combination does not establish validity of the returned Carrier values.
 pub enum SourceExecutionKind {
   HostCombination
+  AcquisitionResources
   CarrierResponse
   KeyedRequest(KeyedExecution)
   KeyedResources(KeyedExecution)
@@ -87,9 +88,12 @@ fn prepare_source_execution(
     }
     let count = @sourceviews.pipeline_requests_count(selected)
     identity_charge(remaining, count)
-    let admissions : Map[Int, (SourceExecution, SourceExecution)] = Map([])
+    let admissions : Map[
+      Int,
+      (SourceExecution, SourceExecution, SourceExecution),
+    ] = Map([])
     for input in 0..<count {
-      identity_charge(remaining, 3)
+      identity_charge(remaining, 4)
       let request = @sourceviews.pipeline_request_at(selected, input).unwrap()
       let source = match request {
         @sourceviews.Direct(mode, _) => @sourceviews.mode_input(mode)
@@ -111,15 +115,23 @@ fn prepare_source_execution(
         prerequisites: [],
       }
       result.push(host)
+      let resources = SourceExecution::{
+        subject,
+        kind: AcquisitionResources,
+        phase: BeforeAndDuringAcquisition,
+        failure: FailAcquisitionAtomically,
+        prerequisites: [host],
+      }
+      result.push(resources)
       let response = SourceExecution::{
         subject,
         kind: CarrierResponse,
         phase: BeforeSourceOutputUse,
         failure: RejectSourceOutput,
-        prerequisites: [host],
+        prerequisites: [host, resources],
       }
       result.push(response)
-      admissions[input] = (host, response)
+      admissions[input] = (host, resources, response)
     }
     guard @context.source_request_joins(requests, stage) is Some(joins) &&
       @context.source_capacity_stage(
@@ -138,7 +150,7 @@ fn prepare_source_execution(
       identity_charge(remaining, 3)
       let join = @sourceviews.keyed_join_at(joins, index).unwrap()
       guard admissions.get(@sourceviews.keyed_join_input(join))
-        is Some((host, response)) &&
+        is Some((host, acquisition_resources, response)) &&
         @context.source_producer_at(producer, stage, index) is Some(membership) else {
         raise ForeignOwner
       }
@@ -160,7 +172,7 @@ fn prepare_source_execution(
         kind: KeyedRequest(binding),
         phase: BeforeProviderAccess,
         failure: PreventProviderAccess,
-        prerequisites: [host],
+        prerequisites: [host, acquisition_resources],
       }
       let resources = SourceExecution::{
         subject: host.subject,
