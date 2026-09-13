@@ -745,6 +745,16 @@ This is a new explicit identity decision: Sketch's alias-origin array is not par
 of this policy identity. Aliases and input dependencies remain in the subject's
 own identity. An empty set is unknown rather than an implicit public grant.
 
+`EffectivePolicy` materializes only the selected policy-reference set, not row
+data. Its private constructor accepts already selected, owned request/response
+contributors; checked graph traversal remains responsible for choosing them.
+It copies the contributor sequence, combines classifications, and sorts and
+deduplicates source and response CIDs under the shared work budget. Duplicate
+references do not remove contributor occurrences. Public indexed readers expose
+the retained contributors, and the bounded emitter uses the same canonical
+preimage for singleton and multiple-reference sets. A publication retains this
+effective object separately from its acquisition and import dependencies.
+
 For direct acquisitions, `DirectSourcePolicy` retains the exact parameterized
 request and selected response policy. Construction verifies their shared input
 owner. Static request admission currently supplies values and their literal,

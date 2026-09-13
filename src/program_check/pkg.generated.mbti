@@ -26,7 +26,15 @@ pub fn check(@stage_syntax.Program, @check_environment.WireEnvironment, @decode_
 
 pub fn contract_inventory(CheckedProgram) -> @pipeline_check_context.CoreContractInventory
 
+pub fn effective_policy_classification(EffectivePolicy) -> @check_environment.DataClassification
+
+pub fn effective_policy_occurrence_at(EffectivePolicy, Int) -> DirectSourcePolicy?
+
+pub fn effective_policy_occurrence_count(EffectivePolicy) -> Int
+
 pub fn emit_direct_source_policy(DirectSourcePolicy, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
+
+pub fn emit_effective_policy(EffectivePolicy, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
 
 pub fn emit_publication_source_policy(PublicationSourcePolicy, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
 
@@ -241,6 +249,8 @@ pub struct DirectSourcePolicy {
   unknown_provenance : Bool
 }
 
+type EffectivePolicy
+
 type ExpressionExecution
 
 pub struct KeyedExecution {
@@ -278,6 +288,7 @@ pub struct PublicationPolicySlice {
 
 pub struct PublicationSourcePolicy {
   policy : DirectSourcePolicy
+  effective : EffectivePolicy
   cid : String
   prerequisite : SourceExecution
   target : @pipeline_typing.Target

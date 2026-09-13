@@ -2,6 +2,7 @@
 pub struct PublicationSourcePolicy {
   // Acquisition provenance before predicate contributions, not the final policy.
   policy : DirectSourcePolicy
+  effective : EffectivePolicy
   cid : String
   prerequisite : SourceExecution
   target : @pipeline.Target
@@ -36,11 +37,7 @@ pub fn publication_policy_slice_at(
 pub fn publication_policy_classification(
   value : PublicationSourcePolicy,
 ) -> @environment.DataClassification {
-  if value.unknown_provenance {
-    @environment.Unknown
-  } else {
-    value.policy.classification
-  }
+  effective_policy_classification(value.effective)
 }
 
 ///|
@@ -70,7 +67,7 @@ pub fn emit_publication_source_policy(
   value : PublicationSourcePolicy,
   writer : @encode.Writer,
 ) -> Unit raise @encode.EncodeFailure {
-  emit_source_policy(value.policy, value.unknown_provenance, writer)
+  emit_effective_policy(value.effective, writer)
 }
 
 ///|
@@ -154,14 +151,20 @@ fn prepare_publication_source_policy(
           }
           if check.kind is CarrierResponse {
             guard subject.direct_policy is Some(policy) else { return None }
-            let writer = identity_writer(budget)
             let unknown_provenance = unknown || policy.unknown_provenance
-            emit_source_policy(policy, unknown_provenance, writer) catch {
+            let effective = prepare_effective_policy(
+              [policy],
+              unknown_provenance,
+              budget,
+            )
+            let writer = identity_writer(budget)
+            emit_effective_policy(effective, writer) catch {
               e => raise Encoding(e)
             }
             let cid = identity_finish(budget, writer)
             return Some({
               policy,
+              effective,
               cid,
               prerequisite: check,
               target: original,
@@ -207,13 +210,19 @@ fn prepare_publication_source_policy(
               }
               guard output.source_policy is Some(parent) else { return None }
               let unknown_provenance = unknown || parent.unknown_provenance
+              let effective = prepare_effective_policy(
+                parent.effective.occurrences,
+                unknown_provenance,
+                budget,
+              )
               let writer = identity_writer(budget)
-              emit_source_policy(parent.policy, unknown_provenance, writer) catch {
+              emit_effective_policy(effective, writer) catch {
                 e => raise Encoding(e)
               }
               let cid = identity_finish(budget, writer)
               return Some({
                 policy: parent.policy,
+                effective,
                 cid,
                 prerequisite: parent.prerequisite,
                 target: original,
