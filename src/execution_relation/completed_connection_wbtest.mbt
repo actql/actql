@@ -5,19 +5,31 @@ fn test_typed_completion(
   generated : GeneratedSequence,
   width : Int,
 ) -> CompletedSequence {
-  let limits = run_limits()
+  try_typed_completion(generated, width, run_limits()).unwrap()
+}
+
+///|
+fn try_typed_completion(
+  generated : GeneratedSequence,
+  width : Int,
+  limits : SequenceRunLimits,
+) -> Result[CompletedSequence, SequenceRunIssue] {
   let control = { remaining: 1000000, max_frames: 100, }
-  let invocation = prepare_physical_sequence(
-    generated.contracts,
-    generated.sequence,
-    [],
-    generated.retained_ids,
-    limits,
-    control,
-    [],
-    Some(generated.contexts),
-    { contexts: [], max_bytes: 0, max_nodes: 0, max_depth: 0, },
-  ).unwrap()
+  let invocation = match
+    prepare_physical_sequence(
+      generated.contracts,
+      generated.sequence,
+      [],
+      generated.retained_ids,
+      limits,
+      control,
+      [],
+      Some(generated.contexts),
+      { contexts: [], max_bytes: 0, max_nodes: 0, max_depth: 0, },
+    ) {
+    Ok(invocation) => invocation
+    Err(issue) => return Err(issue)
+  }
   run_completed_sequence_backend(
     invocation,
     captured => {
@@ -28,6 +40,17 @@ fn test_typed_completion(
       }).map(table => RowTable(table))
     },
     fn(kernel, input, logical) {
+      if @relation.operation(@lower.kernel_checked(kernel)) != Derive {
+        return evaluate_completed_rows(
+          kernel,
+          input,
+          limits.max_rows,
+          control,
+          invocation.output_budget,
+          { limit: limits.operation_entries, live: 0, peak: 0, },
+          logical,
+        )
+      }
       guard input is RowTable(table) else { return Err(InvalidRows) }
       let slots = { limit: limits.operation_entries, live: 0, peak: 0, }
       let plan = match ext_prepare_batch(kernel, control, slots) {
@@ -123,7 +146,7 @@ fn test_typed_completion(
       copied
     },
     store => PhysicalStore(store),
-  ).unwrap()
+  )
 }
 
 ///|
