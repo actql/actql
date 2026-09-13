@@ -1,0 +1,9 @@
+{
+  "version": "actql-unit-operation-proof-vectors/0.1",
+  "description": "Synthetic Unit namespaces for proof preimages, not admitted Unit definitions or runtime facts.",
+  "cases": [
+    { "unit_tail": "0", "ordinal": 0, "proof_cid": "sha256:dd40942a43692c6f7eee9c68d18fbb6eafd73bca1d5c1564ea4df9909d03ccd3", "witness_cid": "sha256:8aa21a53557ce5864441724f2088a6757e8883e5a2fac0d9cb23a340a5088720" },
+    { "unit_tail": "1", "ordinal": 0, "proof_cid": "sha256:5ed51c6f07392adf74450eecd56f62688d51baccdd65bfd6fedf14ac7b7d7ebd", "witness_cid": "sha256:b22740ac9dbca8125e6600a5c92a689be1357382e493598dd3a58ae4077c6e37" },
+    { "unit_tail": "0", "ordinal": 1, "proof_cid": "sha256:129008f3a023e85cce6143b993149c4d9d4d00c6757d7f3d9c3842ae3931cbeb", "witness_cid": "sha256:845e37594ca10354c286904a47591ce717e7064d7be578e89a9ad486e2ba95da" }
+  ]
+}

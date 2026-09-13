@@ -7879,6 +7879,33 @@ the Unit identity in this reference. This subject convention does not replace
 candidate selection, proof application, canonical limit validation or atomic
 failure on breach, and publication limits do not enter Unit Definition identity.
 
+<!-- requirement-block: resolved-limits.unit-operation-proof-source resolved-limits.unit-operation-proof-preimage resolved-limits.unit-operation-proof-reidentification -->
+A persistent Program upper-bound proof for an authored Unit operation's output
+MUST use `unit:<unit_definition_cid>#/steps/<ordinal>` as its `semantic_ref`,
+where `ordinal` is the canonical nonnegative decimal array index in that Unit's
+source `steps`, verified against the actual checked source occurrence. It is
+not a producer traversal index, generated backend node ID or unscoped internal
+handle. The proof's law and quantity identify the governed output-bound rule;
+this convention does not redefine expression, field or barrier subscopes.
+
+The proof preimage MUST be the complete canonical object with exactly
+`version: "actql-bound-proof/0.1"`, `semantic_ref`, `law_id`, `unit`, `value`
+and `inputs`, where `inputs` contains the persistent input-witness CIDs in
+canonical sorted order while retaining repeated operand occurrences. The
+owning Unit Definition excludes concrete capacity proofs and limits, so this
+reference does not introduce an identity cycle. Effective bindings and actual
+input correspondence remain separately validated conditions of the proof;
+numeric agreement does not discharge them.
+
+Conversion from checked internal evidence MUST rebuild the proof CID, witness
+source, dependency set and derivation references, and every dependent witness
+and resolved-limit CID, using the verified source mapping and converted input
+evidence. Changing a reference string while retaining an old CID is invalid.
+Unchanged Host/Contract evidence retains its own identity. Cross-Unit operands
+retain their producer Unit reference rather than acquiring the consumer's
+namespace. This conversion preserves law, quantity, value and all prerequisite
+checks; it does not establish runtime truth or backend support.
+
 <!-- requirement-block: local-approval.product-54ee89eaf54b local-approval.product-6e21b62c13b1 -->
 <a id="canonical-identities"></a>
 

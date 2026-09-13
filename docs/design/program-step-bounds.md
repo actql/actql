@@ -34,6 +34,22 @@ result retains the exact pipeline and index as well as its proof. A naked
 reference string is not the resulting evidence and cannot replace that owner.
 Two owners may use the same local spelling without being the same Program.
 
+Persistent authored-operation output proofs use the Unit-scoped source reference
+and exact preimage defined in [resolved limits](../spec/language.md#resolved-limits).
+The ordinal is a verified position in the owning source `steps`, not the ordinal
+of a producer-validation visit. Unit Definition binds the local semantics and
+excludes capacity evidence, avoiding a self-reference. A consumer retains an
+imported proof's producer namespace rather than relabeling it as a local step.
+
+The Sketch reference at `87dc7144138edfcba108cdc59dc485ac976ba976` contains both
+Program-definition/dependency and derived-input proof forms. It does not define
+this local Unit mapping. The selected persistent output form uses `inputs` and
+the Unit-scoped reference to preserve local identity rather than introduce the
+whole Program revision as a dependency. Input multiplicity remains in the proof
+array; the witness dependency set remains unique. Rebuilding identities does
+not replace operation/source correspondence or runtime prerequisites, and the
+internal checking API continues to use its retained owner-relative handles.
+
 The fixed Sketch compiler also uses generated references, but does not promise
 this spelling. Existing proof bytes cannot be relabeled without changing their
 preimage identity. General semantic-graph import/mapping and Program Definition

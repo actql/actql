@@ -16,6 +16,31 @@ function canonical(value) {
 }
 const cid = (value) => `sha256:${createHash('sha256').update(JSON.stringify(canonical(value))).digest('hex')}`;
 
+test('operation output proofs retain their Unit namespace and source ordinal', () => {
+  const corpus = read('../portability/corpus/unit-operation-proofs.json');
+  const identities = new Set();
+  for (const vector of corpus.cases) {
+    const semantic_ref = `unit:sha256:${'0'.repeat(63)}${vector.unit_tail}#/steps/${vector.ordinal}`;
+    const proof = {
+      version: 'actql-bound-proof/0.1', semantic_ref, law_id: 'actql.bound.values',
+      unit: 'rows', value: 1, inputs: [],
+    };
+    assert.equal(cid(proof), vector.proof_cid);
+    const witness = {
+      version: 'actql-bound-witness/0.1', unit: 'rows', value: 1,
+      role: 'proven_upper_bound', law_id: proof.law_id,
+      source: { kind: 'program', semantic_ref, proof_cid: cid(proof) },
+      derivation: { op: 'source' }, dependencies: [cid(proof)],
+    };
+    assert.equal(cid(witness), vector.witness_cid);
+    identities.add(cid(witness));
+    assert.notEqual(cid({ ...proof, semantic_ref: `checked-step:${vector.ordinal}` }), cid(proof));
+    assert.notEqual(cid({ ...proof, inputs: [vector.witness_cid, vector.witness_cid] }),
+      cid({ ...proof, inputs: [vector.witness_cid] }));
+  }
+  assert.equal(identities.size, corpus.cases.length);
+});
+
 test('publication subjects and Host-only resolved-limit identities are fixed independently', () => {
   const policy = Object.fromEntries(policyContract.schema.required
     .filter((key) => key !== 'version').map((key) => [key, vectors.host_policy_all_limits]));
