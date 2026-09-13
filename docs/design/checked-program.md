@@ -39,7 +39,7 @@ separate protocol results, not successful CheckedPrograms with weaker guarantees
 The entry has an explicit implementation-domain check, separate from the
 language grammar. Its Local and Result-import domain accepts `values`, `derive`,
 `filter`, `assert_rows`, `group`, `select`, `rename`, `drop`, `sort`, `take`,
-`distinct`, `dedupe_rows`, `top_k`, `top_k_by`, `append`, `join`, `cross_join`,
+`distinct`, `dedupe_rows`, `top_k`, `top_k_by`, `lag`, `append`, `join`, `cross_join`,
 `except` and `intersect`, including empty operation
 sequences. Sort/take use the existing owned order-resolution closure and preserve
 their distinct strategies and preconditions; accepting them does not synthesize
@@ -69,6 +69,17 @@ the entire output on failure. Neither is a uniqueness or row-capacity proof,
 nor a substitute for the separately retained completed order. Indexed count,
 partition and order readers avoid copying authored arrays before preparation
 budgets are checked.
+`LagExecution` binds the exact input, source field, fresh output name, offset
+and selected capacity policy. It requires one output row per admitted input
+occurrence, preserving original fields and input enumeration; within the
+resolved total partition order, the added value is the field at the preceding
+offset or null when no such occurrence exists. The nullable output contract and
+applicable policy resource limits must hold before output, with no partial
+publication on failure. Partition and order readers retain repeated references
+without copying arrays. Offset Parameters and candidate-key completion remain
+separate owned static resolutions; arrival order, valueCID tie-breaks and a
+typed order list cannot replace them. Canonical binding inserts an omitted
+offset of one; this does not rewrite the source-stage identity projection.
 Ordinary group operations must close partition, per-call demand, result-contract,
 order and any resource/observation requirements before this entry succeeds.
 Exact count/min/max and decimal sum can use their typed output checks; this

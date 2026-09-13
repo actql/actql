@@ -103,6 +103,12 @@ pub fn group_keys(CheckedGroup) -> Array[KeyField]
 
 pub fn input_schema(CheckedOperation) -> @relation_schema.Schema
 
+pub fn lag_navigation(CheckedOperation) -> (KeyField, String, CountValue)?
+
+pub fn lag_partition_at(CheckedOperation, Int) -> KeyField?
+
+pub fn lag_partition_count(CheckedOperation) -> Int
+
 pub fn lag_term_at(CheckedOperation, Int) -> OrderTerm?
 
 pub fn lag_term_count(CheckedOperation) -> Int

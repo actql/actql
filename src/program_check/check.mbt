@@ -56,6 +56,7 @@ fn check_supported_source(
               | "dedupe_rows"
               | "top_k"
               | "top_k_by"
+              | "lag"
               | "append"
               | "except"
               | "intersect"

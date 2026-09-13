@@ -431,6 +431,33 @@ pub fn lag_term_count(value : CheckedOperation) -> Int {
 }
 
 ///|
+/// Scalar navigation parameters; no partition or order array is copied.
+pub fn lag_navigation(
+  value : CheckedOperation,
+) -> (KeyField, String, CountValue)? {
+  match value.row_operation {
+    Some(Lag(field~, output~, offset~, ..)) => Some((field, output, offset))
+    _ => None
+  }
+}
+
+///|
+pub fn lag_partition_count(value : CheckedOperation) -> Int {
+  match value.row_operation {
+    Some(Lag(partition~, ..)) => partition.length()
+    _ => 0
+  }
+}
+
+///|
+pub fn lag_partition_at(value : CheckedOperation, index : Int) -> KeyField? {
+  match value.row_operation {
+    Some(Lag(partition~, ..)) => partition.get(index)
+    _ => None
+  }
+}
+
+///|
 pub fn lag_term_at(value : CheckedOperation, index : Int) -> OrderTerm? {
   match value.row_operation {
     Some(Lag(order=terms, ..)) => terms.get(index)

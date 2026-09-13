@@ -1379,6 +1379,17 @@ pub struct JoinRowOrderCheck {
   output_order : @pipeline_typing.LogicalOrder?
 }
 
+pub struct LagExecutionCheck {
+  site : OperationRequirementSite
+  step : @pipeline_typing.CheckedStep
+  input : @pipeline_typing.Target
+  operation : @relation_typing.CheckedOperation
+  field : @relation_typing.KeyField
+  output : String
+  offset : @relation_typing.CountValue
+  policy : @capacity_policy.Policy
+}
+
 type LikePatternChecks
 
 pub(all) enum LikePatternIssue {
@@ -1541,6 +1552,7 @@ pub(all) enum OperationDisposition {
 }
 
 pub(all) enum OperationExecutionCheck {
+  LagExecution(LagExecutionCheck)
   TopKExecution(TopKExecutionCheck)
   GroupExecution(GroupExecutionCheck)
   RowAssertion(RowAssertionCheck)
