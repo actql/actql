@@ -212,6 +212,20 @@ operation closure, omits a genuinely absent guard and creates the canonical
 author-guard witness. Parameter syntax is not reparsed or defaulted by this reader.
 This individual witness reader covers ordinary array aggregates. String guards
 are retained in the string limit's admitted candidate collection.
+Event bridges, watermarking, business deduplication and sessions are admitted
+through the same source-driven formal constructor, with explicit `events`
+projection before a Relation Result. Session also retains its Relation-input
+form. These paths retain owned value/identity/clock checks, selected TEA profile,
+output-capacity enforcement and session gap resolutions where applicable.
+The operation closure carries them across Result imports with the same Unit and
+pipeline owners; callers do not assemble a separately checked Event result.
+Literal duplicate identities and empty inputs do not discharge runtime admission.
+Invalid bound gaps prevent the complete Program result, including when an earlier
+Stage was otherwise valid. Static success does not attest unique event IDs,
+successful session assignment, output usage or backend resource enforcement.
+Event windows and sequence operations still require their own formal closure;
+admitting these operations does not enable unrelated temporal paths.
+
 Interval join closes endpoint admission, clock admission and occurrence order
 separately from output capacity and search work. Its bounded-search path requires
 owned operand row bounds and the single-visit-per-pair realization condition;

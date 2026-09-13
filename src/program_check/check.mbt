@@ -78,6 +78,11 @@ fn check_supported_source(
               | "cross_join"
               | "interval_join"
               | "asof_join"
+              | "to_events"
+              | "watermark_events"
+              | "dedupe_events"
+              | "session"
+              | "events"
               | "values" => ()
               _ => raise UnitBuildFailure::UnsupportedStaticPath(step)
             }
