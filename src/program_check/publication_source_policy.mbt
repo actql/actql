@@ -1,15 +1,69 @@
 ///|
 pub struct PublicationSourcePolicy {
   // Acquisition provenance before predicate contributions, not the final policy.
-  policy : DirectSourcePolicy
+  policy : DirectSourcePolicy?
   effective : EffectivePolicy
   cid : String
-  prerequisite : SourceExecution
+  prerequisite : SourceExecution?
   target : @pipeline.Target
   unknown_provenance : Bool
   imported_publication : PublicationExecution?
   priv predicates : Array[PublicationPolicyPredicate]
   priv slices : Array[PublicationPolicySlice]
+  priv sources : Array[SourceExecution]
+  priv imports : Array[PublicationPolicyImport]
+  priv edges : Array[PublicationPolicyEdge]
+}
+
+///|
+pub struct PublicationPolicyEdge {
+  step : Int
+  occurrence : @pipeline.InputOccurrence
+}
+
+///|
+pub struct PublicationPolicyImport {
+  input : Int
+  publication : PublicationExecution
+}
+
+///|
+pub fn publication_policy_source_count(value : PublicationSourcePolicy) -> Int {
+  value.sources.length()
+}
+
+///|
+pub fn publication_policy_source_at(
+  value : PublicationSourcePolicy,
+  index : Int,
+) -> SourceExecution? {
+  value.sources.get(index)
+}
+
+///|
+pub fn publication_policy_import_count(value : PublicationSourcePolicy) -> Int {
+  value.imports.length()
+}
+
+///|
+pub fn publication_policy_import_at(
+  value : PublicationSourcePolicy,
+  index : Int,
+) -> PublicationPolicyImport? {
+  value.imports.get(index)
+}
+
+///|
+pub fn publication_policy_edge_count(value : PublicationSourcePolicy) -> Int {
+  value.edges.length()
+}
+
+///|
+pub fn publication_policy_edge_at(
+  value : PublicationSourcePolicy,
+  index : Int,
+) -> PublicationPolicyEdge? {
+  value.edges.get(index)
 }
 
 ///|
@@ -71,8 +125,7 @@ pub fn emit_publication_source_policy(
 }
 
 ///|
-// Follow checked edges, never the Program's entire input set. This initial
-// transfer preserves a single source and retains predicate contributions.
+// Visit checked vertices once; retain all input edges without expanding paths.
 fn prepare_publication_source_policy(
   unit : BuiltUnit,
   publication : @context.PublicationResolution,
@@ -83,97 +136,99 @@ fn prepare_publication_source_policy(
     return None
   }
   let original = @publication.target(@publication.port_result(publication.port))
-  let mut target = original
+  let pending = [original]
+  let visited_steps : Map[Int, Bool] = Map([])
+  let visited_inputs : Map[Int, Bool] = Map([])
+  let source_ids : Map[String, Bool] = Map([])
+  let sources : Array[SourceExecution] = []
+  let imports : Array[PublicationPolicyImport] = []
+  let edges : Array[PublicationPolicyEdge] = []
   let predicates : Array[PublicationPolicyPredicate] = []
   let slices : Array[PublicationPolicySlice] = []
   let mut unknown = false
-  while true {
+  while pending.pop() is Some(target) {
     identity_charge(budget, 1)
     match target {
       @pipeline.Step(index) => {
+        if visited_steps.contains(index) {
+          continue
+        }
+        visited_steps[index] = true
         let step = @pipeline.step_at(unit.pipeline, index).unwrap()
-        guard step.operation is @pipeline.Unary(operation) else { return None }
-        match @relation.operation(operation) {
-          Select | Rename | Drop | Sort | Distinct | DedupeRows => ()
-          Take => {
-            identity_charge(budget, 2)
-            guard @relation.row_operation(operation)
-              is Some(@relation.Take(count~, offset~)) else {
-              raise ForeignOwner
-            }
-            // Count admission proves its numeric domain, not a classification.
-            // Keep the exact checked operation and both selection controls;
-            // order and bound resolution remain owned by the existing closure.
-            unknown = true
-            slices.push({ step: index, operation, count, offset, })
-          }
-          Filter =>
-            for binding in 0..<@relation.binding_count(operation) {
-              identity_charge(budget, 1)
-              let expression = @relation.binding_expression_at(
-                operation, binding,
-              ).unwrap()
-              let mut predicate_unknown = false
-              for node in 0..<@typing.node_count(expression) {
-                identity_charge(budget, 1)
-                // Field leaves are owned by this single input. Other value
-                // leaves carry no authoritative policy attestation; retain
-                // every occurrence through the exact checked expression.
-                if @typing.child_count(expression, node) == Some(0) {
-                  match @typing.node_form(expression, node).unwrap() {
-                    Expression("field" | "join_field", _) => ()
-                    _ => predicate_unknown = true
-                  }
+        let expected = match step.operation {
+          @pipeline.Unary(operation) => {
+            match @relation.operation(operation) {
+              Select | Rename | Drop | Sort | Distinct | DedupeRows => ()
+              Take => {
+                identity_charge(budget, 2)
+                guard @relation.row_operation(operation)
+                  is Some(@relation.Take(count~, offset~)) else {
+                  raise ForeignOwner
                 }
+                unknown = true
+                slices.push({ step: index, operation, count, offset, })
               }
-              unknown = unknown || predicate_unknown
-              predicates.push({
-                step: index,
-                expression,
-                unknown_provenance: predicate_unknown,
-              })
+              Filter =>
+                for binding in 0..<@relation.binding_count(operation) {
+                  identity_charge(budget, 1)
+                  let expression = @relation.binding_expression_at(
+                    operation, binding,
+                  ).unwrap()
+                  let mut missing = false
+                  for node in 0..<@typing.node_count(expression) {
+                    identity_charge(budget, 1)
+                    if @typing.child_count(expression, node) == Some(0) {
+                      match @typing.node_form(expression, node).unwrap() {
+                        Expression("field" | "join_field", _) => ()
+                        _ => missing = true
+                      }
+                    }
+                  }
+                  unknown = unknown || missing
+                  predicates.push({
+                    step: index,
+                    expression,
+                    unknown_provenance: missing,
+                  })
+                }
+              _ => return None
             }
+            1
+          }
+          @pipeline.Append(..) => 2
           _ => return None
         }
-        guard @pipeline.input_occurrence_count(step) == 1 else {
+        guard @pipeline.input_occurrence_count(step) == expected else {
           raise ForeignOwner
         }
-        target = @pipeline.input_occurrence_at(step, 0).unwrap().target
+        for index_in in 0..<expected {
+          identity_charge(budget, 1)
+          let occurrence = @pipeline.input_occurrence_at(step, index_in).unwrap()
+          edges.push({ step: index, occurrence, })
+          pending.push(occurrence.target)
+        }
       }
       @pipeline.Input(index) => {
+        if visited_inputs.contains(index) {
+          continue
+        }
+        visited_inputs[index] = true
         let (name, _) = @pipeline.input_at(unit.pipeline, index).unwrap()
+        let mut found = false
         for check in unit.source_execution {
           identity_charge(budget, 1)
           let subject = check.subject
-          if subject.stage != publication.stage ||
-            @sourceviews.declaration(subject.source).input_name != name {
-            continue
+          if subject.stage == publication.stage &&
+            @sourceviews.declaration(subject.source).input_name == name &&
+            check.kind is CarrierResponse {
+            guard subject.direct_policy is Some(_) else { return None }
+            retain_policy_source(check, source_ids, sources, budget)
+            found = true
+            break
           }
-          if check.kind is CarrierResponse {
-            guard subject.direct_policy is Some(policy) else { return None }
-            let unknown_provenance = unknown || policy.unknown_provenance
-            let effective = prepare_effective_policy(
-              [policy],
-              unknown_provenance,
-              budget,
-            )
-            let writer = identity_writer(budget)
-            emit_effective_policy(effective, writer) catch {
-              e => raise Encoding(e)
-            }
-            let cid = identity_finish(budget, writer)
-            return Some({
-              policy,
-              effective,
-              cid,
-              prerequisite: check,
-              target: original,
-              unknown_provenance,
-              imported_publication: None,
-              predicates,
-              slices,
-            })
-          }
+        }
+        if found {
+          continue
         }
         for interface in unit.interfaces {
           identity_charge(budget, 1)
@@ -209,39 +264,85 @@ fn prepare_publication_source_policy(
                 continue
               }
               guard output.source_policy is Some(parent) else { return None }
-              let unknown_provenance = unknown || parent.unknown_provenance
-              let effective = prepare_effective_policy(
-                parent.effective.occurrences,
-                unknown_provenance,
-                budget,
-              )
-              let writer = identity_writer(budget)
-              emit_effective_policy(effective, writer) catch {
-                e => raise Encoding(e)
+              imports.push({ input: index, publication: output, })
+              unknown = unknown || parent.unknown_provenance
+              for check in parent.sources {
+                retain_policy_source(check, source_ids, sources, budget)
               }
-              let cid = identity_finish(budget, writer)
-              return Some({
-                policy: parent.policy,
-                effective,
-                cid,
-                prerequisite: parent.prerequisite,
-                target: original,
-                unknown_provenance,
-                imported_publication: Some(output),
-                predicates,
-                slices,
-              })
+              found = true
+              break
             }
-            return None
+            if !found {
+              return None
+            }
+            break
           }
-          raise ForeignOwner
+          if !found {
+            raise ForeignOwner
+          }
+          break
         }
-        // Local provenance is not repaired by assigning another input's policy.
-        return None
+        if !found {
+          return None
+        }
       }
     }
-  } nobreak {
-    raise ForeignOwner
+  }
+  let occurrences : Array[DirectSourcePolicy] = []
+  for source in sources {
+    identity_charge(budget, 1)
+    occurrences.push(source.subject.direct_policy.unwrap())
+  }
+  let effective = prepare_effective_policy(occurrences, unknown, budget)
+  let writer = identity_writer(budget)
+  emit_effective_policy(effective, writer) catch {
+    e => raise Encoding(e)
+  }
+  let cid = identity_finish(budget, writer)
+  {
+    policy: if sources.length() == 1 {
+      Some(occurrences[0])
+    } else {
+      None
+    },
+    prerequisite: if sources.length() == 1 {
+      Some(sources[0])
+    } else {
+      None
+    },
+    imported_publication: if imports.length() == 1 {
+      Some(imports[0].publication)
+    } else {
+      None
+    },
+    effective,
+    cid,
+    target: original,
+    unknown_provenance: effective.unknown_provenance,
+    predicates,
+    slices,
+    sources,
+    imports,
+    edges,
+  }
+  |> Some
+}
+
+///|
+fn retain_policy_source(
+  check : SourceExecution,
+  seen : Map[String, Bool],
+  sources : Array[SourceExecution],
+  budget : IdentityBudget,
+) -> Unit raise UnitBuildFailure {
+  identity_charge(budget, 1)
+  let key = check.subject.stage.to_string() +
+    ":" +
+    check.subject.input.to_string()
+  identity_charge(budget, key.length())
+  if !seen.contains(key) {
+    seen[key] = true
+    sources.push(check)
   }
 }
 

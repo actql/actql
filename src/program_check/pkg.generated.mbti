@@ -84,6 +84,14 @@ pub fn publication_phase(PublicationExecution) -> PublicationPhase
 
 pub fn publication_policy_classification(PublicationSourcePolicy) -> @check_environment.DataClassification
 
+pub fn publication_policy_edge_at(PublicationSourcePolicy, Int) -> PublicationPolicyEdge?
+
+pub fn publication_policy_edge_count(PublicationSourcePolicy) -> Int
+
+pub fn publication_policy_import_at(PublicationSourcePolicy, Int) -> PublicationPolicyImport?
+
+pub fn publication_policy_import_count(PublicationSourcePolicy) -> Int
+
 pub fn publication_policy_predicate_at(PublicationSourcePolicy, Int) -> PublicationPolicyPredicate?
 
 pub fn publication_policy_predicate_count(PublicationSourcePolicy) -> Int
@@ -91,6 +99,10 @@ pub fn publication_policy_predicate_count(PublicationSourcePolicy) -> Int
 pub fn publication_policy_slice_at(PublicationSourcePolicy, Int) -> PublicationPolicySlice?
 
 pub fn publication_policy_slice_count(PublicationSourcePolicy) -> Int
+
+pub fn publication_policy_source_at(PublicationSourcePolicy, Int) -> SourceExecution?
+
+pub fn publication_policy_source_count(PublicationSourcePolicy) -> Int
 
 pub fn publication_proof_at(PublicationExecution, Int) -> ReidentifiedStep?
 
@@ -273,6 +285,16 @@ pub enum PublicationPhase {
   BeforeResultPublication
 }
 
+pub struct PublicationPolicyEdge {
+  step : Int
+  occurrence : @pipeline_typing.InputOccurrence
+}
+
+pub struct PublicationPolicyImport {
+  input : Int
+  publication : PublicationExecution
+}
+
 pub struct PublicationPolicyPredicate {
   step : Int
   expression : @expression_typing.TypedExpression
@@ -287,10 +309,10 @@ pub struct PublicationPolicySlice {
 }
 
 pub struct PublicationSourcePolicy {
-  policy : DirectSourcePolicy
+  policy : DirectSourcePolicy?
   effective : EffectivePolicy
   cid : String
-  prerequisite : SourceExecution
+  prerequisite : SourceExecution?
   target : @pipeline_typing.Target
   unknown_provenance : Bool
   imported_publication : PublicationExecution?

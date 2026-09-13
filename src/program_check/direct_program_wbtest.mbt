@@ -5,11 +5,24 @@ fn checked_direct_program_fixture(
   filter? : String = "",
   take? : String = "",
   imported? : Bool = false,
+  append? : String = "",
 ) -> CheckedProgram raise {
   let text =
     #|{"version":"actql/0.1","id":"direct","stages":[{"id":"s","inputs":{"remote":{"connector":"crm/main","resource":"r","request":{"id":1,"tenant":null}}},"steps":[{"distinct":["id"],"as":"selected"}],"results":{"out":{"from":"selected","fields":["id"]}}}],"results":{"out":{"from":{"stage":"s","result":"out"}}}}
   let program = @syntax.parse(
-    if imported {
+    if append != "" {
+      text
+      .replace(
+        old="\"inputs\":{\"remote\":",
+        new="\"inputs\":{\"right\":{\"connector\":\"crm/main\",\"resource\":\"r\",\"request\":{\"id\":2,\"tenant\":null},\"minimum_classification\":\"confidential\"},\"unused\":{\"connector\":\"crm/main\",\"resource\":\"r\",\"request\":{\"id\":3,\"tenant\":null},\"minimum_classification\":\"restricted\"},\"remote\":",
+      )
+      .replace(
+        old="\"steps\":[",
+        new="\"steps\":[{\"from\":\"remote\",\"append\":{\"with\":\"" +
+          append +
+          "\"}},",
+      )
+    } else if imported {
       text.replace(
         old="}],\"results\":{\"out\":{\"from\":{\"stage\":\"s\",\"result\":\"out\"}}}}",
         new="},{\"id\":\"consumer\",\"inputs\":{\"imported\":{\"result\":{\"stage\":\"s\",\"result\":\"out\"}}},\"steps\":[],\"results\":{\"out\":{\"from\":\"imported\",\"fields\":[\"id\"]}}}],\"results\":{\"out\":{\"from\":{\"stage\":\"consumer\",\"result\":\"out\"}}}}",
@@ -115,6 +128,55 @@ fn checked_direct_program_fixture(
 }
 
 ///|
+test "source append policy follows both checked edges but excludes unused acquisitions" {
+  for right in ["right", "remote"] {
+    let program = checked_direct_program_fixture(append=right)
+    let policy = publication_source_policy(
+      unit_publication_at(program, 0, 0).unwrap(),
+    ).unwrap()
+    assert_eq(source_execution_count(program), 15)
+    assert_eq(
+      publication_policy_source_count(policy),
+      if right == "right" {
+        2
+      } else {
+        1
+      },
+    )
+    assert_eq(
+      effective_policy_occurrence_count(policy.effective),
+      if right == "right" {
+        2
+      } else {
+        1
+      },
+    )
+    assert_eq(publication_policy_edge_count(policy), 3)
+    let mut append_edges = 0
+    for index in 0..<publication_policy_edge_count(policy) {
+      let edge = publication_policy_edge_at(policy, index).unwrap()
+      if edge.step == 0 {
+        append_edges += 1
+      }
+    }
+    assert_eq(append_edges, 2)
+    for index in 0..<publication_policy_source_count(policy) {
+      let source = publication_policy_source_at(policy, index).unwrap()
+      let name = @sourceviews.declaration(
+          source_execution_subject(source).source,
+        ).input_name
+      assert_true(name == "remote" || (right == "right" && name == "right"))
+      assert_true(source_execution_kind(source) is CarrierResponse)
+    }
+    assert_eq(policy.policy is None, right == "right")
+    assert_eq(policy.prerequisite is None, right == "right")
+    let writer = @encode.hashing_writer(10000, 100, 10)
+    emit_publication_source_policy(policy, writer)
+    assert_eq("sha256:" + @encode.finish_hash(writer), policy.cid)
+  }
+}
+
+///|
 test "SourceView Result import retains the producer publication policy owner" {
   let program = checked_direct_program_fixture(imported=true)
   assert_eq(unit_count(program), 2)
@@ -124,10 +186,19 @@ test "SourceView Result import retains the producer publication policy owner" {
   ).unwrap()
   let original = publication_source_policy(producer).unwrap()
   assert_true(physical_equal(consumer.imported_publication.unwrap(), producer))
-  assert_true(physical_equal(consumer.prerequisite, original.prerequisite))
+  assert_true(
+    physical_equal(
+      consumer.prerequisite.unwrap(),
+      original.prerequisite.unwrap(),
+    ),
+  )
   assert_eq(consumer.cid, original.cid)
   assert_eq(consumer.target, @pipeline.Input(0))
-  assert_eq(source_execution_subject(consumer.prerequisite).stage, 0)
+  assert_eq(source_execution_subject(consumer.prerequisite.unwrap()).stage, 0)
+  assert_eq(publication_policy_import_count(consumer), 1)
+  let imported = publication_policy_import_at(consumer, 0).unwrap()
+  assert_eq(imported.input, 0)
+  assert_true(physical_equal(imported.publication, producer))
 }
 
 ///|
@@ -276,7 +347,9 @@ test "filter publication retains its checked predicate and policy occurrence" {
       policy.cid,
     )
     assert_true(policy.unknown_provenance)
-    assert_true(source_execution_kind(policy.prerequisite) is CarrierResponse)
+    assert_true(
+      source_execution_kind(policy.prerequisite.unwrap()) is CarrierResponse,
+    )
   }
 }
 
@@ -330,15 +403,21 @@ test "publication policy follows the selected input rather than unused source po
   let published = publication_source_policy(
     unit_publication_at(program, 0, 0).unwrap(),
   ).unwrap()
-  let selected = source_execution_subject(published.prerequisite)
+  let selected = source_execution_subject(published.prerequisite.unwrap())
   assert_eq(published.cid, baseline_policy.cid)
-  assert_eq(published.policy.response_cid, baseline_policy.policy.response_cid)
+  assert_eq(
+    published.policy.unwrap().response_cid,
+    baseline_policy.policy.unwrap().response_cid,
+  )
   // Equal policy identities do not make independently checked owners equal.
   assert_false(
-    physical_equal(published.prerequisite, baseline_policy.prerequisite),
+    physical_equal(
+      published.prerequisite.unwrap(),
+      baseline_policy.prerequisite.unwrap(),
+    ),
   )
   assert_eq(@sourceviews.declaration(selected.source).input_name, "remote")
-  assert_true(published.policy.response.minimum is None)
+  assert_true(published.policy.unwrap().response.minimum is None)
   let mut unused = 0
   for i in 0..<source_execution_count(program) {
     let check = source_execution_at(program, i).unwrap()
@@ -346,7 +425,9 @@ test "publication policy follows the selected input rather than unused source po
     if @sourceviews.declaration(subject.source).input_name == "unused" {
       unused += 1
       assert_true(subject.response_policy.minimum is Some("restricted"))
-      assert_true(subject.response_policy_cid != published.policy.response_cid)
+      assert_true(
+        subject.response_policy_cid != published.policy.unwrap().response_cid,
+      )
       assert_false(physical_equal(subject, selected))
     }
   }
@@ -364,14 +445,16 @@ test "direct SourceView closes through the public check entry" {
   let publication = unit_publication_at(program, 0, 0).unwrap()
   let policy = publication_source_policy(publication).unwrap()
   assert_eq(policy.target, @pipeline.Step(0))
-  assert_true(source_execution_kind(policy.prerequisite) is CarrierResponse)
+  assert_true(
+    source_execution_kind(policy.prerequisite.unwrap()) is CarrierResponse,
+  )
   let writer = @encode.hashing_writer(10000, 100, 10)
-  emit_direct_source_policy(policy.policy, writer)
+  emit_direct_source_policy(policy.policy.unwrap(), writer)
   assert_eq(policy.cid, "sha256:" + @encode.finish_hash(writer))
   assert_true(
     physical_equal(
-      policy.policy,
-      source_execution_subject(policy.prerequisite).direct_policy.unwrap(),
+      policy.policy.unwrap(),
+      source_execution_subject(policy.prerequisite.unwrap()).direct_policy.unwrap(),
     ),
   )
   for index in 0..<source_execution_count(program) {

@@ -92,7 +92,18 @@ introducing new values or mixing inputs. It selects the exact direct source by
 stage and input name, not every Program input. The publication retains the
 effective policy object and CID, original target and the Carrier-response check
 as its execution prerequisite. Lowering reads that binding rather than walking
-the graph again to select policies.
+the graph again to select policies. The singular acquisition `policy` and
+`prerequisite` fields are present only when exactly one acquisition contributes;
+multi-source consumers use `publication_policy_source_count/at` instead.
+
+Append follows both checked input occurrences. The policy traversal visits each
+checked vertex once and retains each input edge with its role and target through
+`publication_policy_edge_count/at`. Repeated operands therefore retain two edges
+without expanding every path through shared subgraphs. Selected acquisition
+subjects are unique by their owned Stage/input coordinates; this does not remove
+the separate edge occurrences. Unused acquisitions keep their mandatory checks
+but do not enter this publication's effective policy set. The iterative worklist,
+source selection and policy union all consume the shared preparation budget.
 
 Filter transfer additionally retains each exact checked predicate and its step
 coordinate. All value leaves participate in provenance, including branches that
@@ -119,7 +130,9 @@ bound, or grant publication permission: the existing operation/order/capacity
 closures must still succeed. Both control positions consume preparation work.
 
 Result imports retain the producer's completed publication through
-`imported_publication`. Resolution follows the admitted import interface and
+`publication_policy_import_count/at`, including the consumer input coordinate.
+`imported_publication` is a convenience only for exactly one import.
+Resolution follows the admitted import interface and
 requires the exact producer Stage, Program owner, Unit identity and Result port;
 equal CIDs alone cannot substitute another checked producer. Publication
 construction proceeds in Stage order and only completed earlier publications
@@ -130,7 +143,8 @@ immutable dependency graph, not a copied or flattened lineage. All searches and
 policy emission consume the same preparation budget; a later failure exposes no
 partial CheckedProgram.
 
-Other transfer paths, including computed values and mixed-source composition,
+Other transfer paths, including computed values and mixed-source operations
+other than append,
 still require their own composition rules. A SourceView-containing
 Program with an unclosed publication policy fails `UnclosedPublicationPolicy`;
 the missing result is not replaced with an empty policy or a whole-input union.
