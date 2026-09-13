@@ -1,6 +1,10 @@
 {
   "version": "actql-sourceview-resolution-vectors/0.1",
   "cases": [
+    {"id":"snapshot-checkpoint-explicit","views":[{"resource":"r","name":"v","modes":[{"mode":"snapshot","bounded":true,"checkpoint_type":"string"}]}],"output_fields":{"id":{"type":"number","nullable":false}},"input":{"connector":"crm/main","resource":"r","scan":{"mode":"snapshot"}},"selected":"v","direct_mode":"snapshot","bounded":true,"query_acquisition":false},
+    {"id":"snapshot-checkpoint-default","views":[{"resource":"r","name":"v","modes":[{"mode":"snapshot","bounded":true,"checkpoint_type":"string"}]}],"output_fields":{"id":{"type":"number","nullable":false}},"input":{"connector":"crm/main","resource":"r"},"selected":"v","direct_mode":"snapshot","bounded":true,"query_acquisition":false},
+    {"id":"snapshot-other-mode-checkpoint","views":[{"resource":"r","name":"v","modes":[{"mode":"snapshot","bounded":true},{"mode":"changes","bounded":true,"checkpoint_type":"string"}]}],"output_fields":{"id":{"type":"number","nullable":false}},"input":{"connector":"crm/main","resource":"r"},"selected":"v","direct_mode":"snapshot","bounded":true,"query_acquisition":true},
+    {"id":"snapshot-without-checkpoint","views":[{"resource":"r","name":"v","modes":[{"mode":"snapshot","bounded":true}]}],"output_fields":{"id":{"type":"number","nullable":false}},"input":{"connector":"crm/main","resource":"r","scan":{"mode":"snapshot"}},"selected":"v","direct_mode":"snapshot","bounded":true,"query_acquisition":true},
     {"id":"pipeline-consumers","pipeline_uses":true,"output_fields":{"id":{"type":"number","nullable":false}},"views":[{"resource":"r","name":"v"}],"input":{"connector":"crm/main","resource":"r"},"selected":"v"},
     {"id":"pipeline-graph","output_fixture":"empty-graph","views":[{"resource":"r","name":"v"}],"input":{"connector":"crm/main","resource":"r"},"selected":"v"},
     {"id":"pipeline-events-number","output_fixture":"numeric-event-id","views":[{"resource":"r","name":"v"}],"input":{"connector":"crm/main","resource":"r"},"selected":"v"},

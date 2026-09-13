@@ -13,6 +13,9 @@ checked filter/select operations and completed output target. Existing operation
 readers expose expression demand and pending obligations; these are not discharged
 by derivation. Source mode, authority, policy, capacity and runtime support remain
 requirements. Unbound Host request bindings are outside this initial entry.
+The selected mode must be snapshot without a checkpoint contract, whether
+selected explicitly or by default. A checkpoint on an unselected mode does not
+prevent derivation. This check does not require a provider snapshot token.
 
 The API accepts no backend, price or placement. Physical candidates implement
 the same unit. A native candidate has to preserve admission and demanded failures,

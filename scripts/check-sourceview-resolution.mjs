@@ -77,6 +77,11 @@ for(const c of [...corpus.cases,...keyed.cases.map(c=>({...keyed.defaults,...c})
     lines.push('///|', `test "query acquisition boundary ${c.id}" {`,
       `  check_query_acquisition_fixture(${JSON.stringify(canonicalText(env))}, ${JSON.stringify(env.evidence_bundle_cid)}, ${JSON.stringify(JSON.stringify(c.input))})`, '}');
   }
+  if(c.query_acquisition !== undefined){
+    assert.equal(typeof c.query_acquisition, 'boolean');
+    lines.push('///|', `test "query acquisition selected mode ${c.id}" {`,
+      `  check_query_acquisition_fixture(${JSON.stringify(canonicalText(env))}, ${JSON.stringify(env.evidence_bundle_cid)}, ${JSON.stringify(JSON.stringify(c.input))}, supported=${c.query_acquisition})`, '}');
+  }
   if(c.keyed_outcome){
     assert.ok(!c.error&&['accepted','MissingCorrelation','CorrelationField','UnknownField','MissingField','Literal','IncompatibleParameter','IncompatibleBinding'].includes(c.keyed_outcome));
     const declarations=Object.entries({params:c.params,bindings:c.bindings}).filter(([,v])=>v!==undefined).map(([k,v])=>JSON.stringify(k)+':'+JSON.stringify(v)+',').join('');

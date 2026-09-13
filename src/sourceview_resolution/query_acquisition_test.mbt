@@ -3,6 +3,7 @@ fn check_query_acquisition_fixture(
   wire : String,
   cid : String,
   input : String,
+  supported? : Bool = true,
 ) -> Unit raise {
   let catalog = fixture_catalog(wire, cid)
   for variant in 0..<5 {
@@ -64,7 +65,7 @@ fn check_query_acquisition_fixture(
     ).unwrap()
     let requests = check_pipeline_requests(uses, parameters, request_caps()).unwrap()
     let result = derive_query_acquisition(requests, 0, 1000000)
-    if variant == 1 || variant == 2 || variant == 3 {
+    if !supported || variant == 1 || variant == 2 || variant == 3 {
       assert_true(result is Err(UnsupportedShape))
     } else {
       let v = result.unwrap()

@@ -44,7 +44,8 @@ pub fn derive_query_acquisition(
   // A finite snapshot read mode is not a requirement for snapshot isolation or
   // a provider snapshot token. Changes/checkpoint semantics are outside scope.
   if @environment.read_mode_kind(mode_contract(mode)) !=
-    @environment.SnapshotMode {
+    @environment.SnapshotMode ||
+    mode_checkpoint(mode) is Some(_) {
     return Err(UnsupportedShape)
   }
   if request.host_bindings != 0 {
