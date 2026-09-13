@@ -231,9 +231,16 @@ pub fn index_program_operation_resolutions(
                                                   Ok(None) =>
                                                     match watermark_candidate {
                                                       Ok(None) =>
-                                                        interval_execution_check(
-                                                          site,
-                                                        )
+                                                        match
+                                                          interval_execution_check(
+                                                            site,
+                                                          ) {
+                                                          Ok(None) =>
+                                                            asof_execution_check(
+                                                              site,
+                                                            )
+                                                          other => other
+                                                        }
                                                       other => other
                                                     }
                                                   other => other

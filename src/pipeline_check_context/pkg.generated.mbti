@@ -1050,6 +1050,27 @@ pub(all) enum AppendRowsRule {
   EnforceOutputEnvelope(@capacity_policy.Ceiling)
 }
 
+pub struct AsOfExecutionCheck {
+  site : OperationRequirementSite
+  step : @pipeline_typing.CheckedStep
+  left : @pipeline_typing.Target
+  right : @pipeline_typing.Target
+  operation : @relation_evidence.CheckedAsOf
+  left_time : @relation_schema.FieldName
+  right_time : @relation_schema.FieldName
+  left_timestamp : Bool
+  right_timestamp : Bool
+  output_order : @pipeline_typing.LogicalOrder
+  rule : AsOfExecutionRule
+}
+
+pub(all) enum AsOfExecutionRule {
+  AdmitAsOfClocksAndDistances
+  ValidateAsOfLeftIdentity
+  SelectAsOfMatch
+  OrderAsOfOutput
+} derive(Eq, @debug.Debug)
+
 pub struct AssertionConsumptionLink {
   requirement_index : Int
   site : OperationRequirementSite
@@ -1728,6 +1749,7 @@ pub(all) enum OperationDisposition {
 }
 
 pub(all) enum OperationExecutionCheck {
+  AsOfExecution(AsOfExecutionCheck)
   IntervalExecution(IntervalExecutionCheck)
   IntervalSearch(IntervalSearchCheck)
   WatermarkExecution(WatermarkExecutionCheck)

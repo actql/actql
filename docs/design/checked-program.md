@@ -234,6 +234,20 @@ cannot substitute for either. Repeated visits remain individually charged and
 retain their memberships. The existing `bind_target_membership` construction boundary
 continues to require the consumer and claim table at the same visit.
 
+As-of execution bindings retain both exact operand targets, independently typed
+comparison clocks and the original checked operation. Clock admission includes
+rows without a key match; every performed distance calculation uses checked
+millisecond arithmetic before its result can be used. This is not a requirement
+to materialize all pairs. Left-identity admission validates the entire retained
+identity tuple, not just its type or first component. Selection applies the
+declared direction and tolerance, complete correlation keys and the retained
+completed tie-break. Unresolved first-place ties reject the whole output rather
+than falling back to physical order. Output order is the as-of operation's new
+ascending `(left time, left identity)` order, not either operand's input order.
+These bindings do not discharge tolerance Parameters, selected-profile or search
+and allocation requirements, or key-completion dependencies. The formal entry
+does not admit an as-of Program solely because these execution bindings exist.
+
 Join consumes the existing cardinality selection, ordered-occurrence execution
 check and exact selected-policy capacity application. All five join kinds
 can close when their requirements are supplied. Authored cardinality and
