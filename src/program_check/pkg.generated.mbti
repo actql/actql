@@ -100,6 +100,10 @@ pub fn publication_policy_generator_at(PublicationSourcePolicy, Int) -> Publicat
 
 pub fn publication_policy_generator_count(PublicationSourcePolicy) -> Int
 
+pub fn publication_policy_group_at(PublicationSourcePolicy, Int) -> PublicationPolicyGroup?
+
+pub fn publication_policy_group_count(PublicationSourcePolicy) -> Int
+
 pub fn publication_policy_import_at(PublicationSourcePolicy, Int) -> PublicationPolicyImport?
 
 pub fn publication_policy_import_count(PublicationSourcePolicy) -> Int
@@ -320,6 +324,13 @@ pub struct PublicationPolicyEdge {
 pub struct PublicationPolicyGenerator {
   step : Int
   operation : @pipeline_typing.CheckedOperation
+}
+
+pub struct PublicationPolicyGroup {
+  step : Int
+  operation : @relation_typing.CheckedOperation
+  group : @relation_typing.CheckedGroup
+  unknown_provenance : Bool
 }
 
 pub struct PublicationPolicyImport {

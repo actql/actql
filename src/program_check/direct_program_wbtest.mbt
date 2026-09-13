@@ -16,6 +16,7 @@ fn checked_direct_program_fixture(
   mix_local? : Bool = false,
   derive_body? : String = "",
   assertion_body? : String = "",
+  group_body? : String = "",
 ) -> CheckedProgram raise {
   let original_text =
     #|{"version":"actql/0.1","id":"direct","stages":[{"id":"s","inputs":{"remote":{"connector":"crm/main","resource":"r","request":{"id":1,"tenant":null}}},"steps":[{"distinct":["id"],"as":"selected"}],"results":{"out":{"from":"selected","fields":["id"]}}}],"results":{"out":{"from":{"stage":"s","result":"out"}}}}
@@ -94,6 +95,11 @@ fn checked_direct_program_fixture(
       text.replace(
         old="}],\"results\":{\"out\":{\"from\":{\"stage\":\"s\",\"result\":\"out\"}}}}",
         new="},{\"id\":\"consumer\",\"inputs\":{\"imported\":{\"result\":{\"stage\":\"s\",\"result\":\"out\"}}},\"steps\":[],\"results\":{\"out\":{\"from\":\"imported\",\"fields\":[\"id\"]}}}],\"results\":{\"out\":{\"from\":{\"stage\":\"consumer\",\"result\":\"out\"}}}}",
+      )
+    } else if group_body != "" {
+      text.replace(
+        old="\"steps\":[",
+        new="\"steps\":[{\"group\":" + group_body + "},",
       )
     } else if assertion_body != "" {
       text.replace(
@@ -745,6 +751,12 @@ test "filter and exact-copy derive policy transfer charge their complete travers
       ),
       checked_direct_program_fixture(
         derive_body="[{\"x\":\"id + 1\"},{\"y\":\"x + $threshold\"}]",
+      ),
+      checked_direct_program_fixture(
+        group_body="{\"by\":[\"id\"],\"aggregates\":{\"n\":{\"fn\":\"count\",\"expr\":\"1\",\"filter\":\"FALSE\"}}}",
+      ),
+      checked_direct_program_fixture(
+        group_body="{\"by\":[\"id\"],\"aggregates\":{}}",
       ),
     ] {
     let unit = program.units[0]

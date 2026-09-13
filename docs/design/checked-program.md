@@ -53,7 +53,12 @@ Exact count/min/max and decimal sum can use their typed output checks; this
 does not discharge floating sum/avg capture, statistical laws, or unconnected
 collection limits. A later Stage with any such unresolved requirement rejects
 the whole construction. Group-derived publication policy for acquired sources
-is a separate required boundary, not inferred from successful Local grouping.
+retains the input policy and the exact checked group occurrence. Group keys and
+field-only arguments inherit that input provenance, including row-count and
+empty-global results. Expression leaves without policy attestations and authored
+aggregate value options contribute unknown provenance; they are not made public
+by a false filter or a later projection hiding the aggregate column. This is
+relation-level publication policy, not field-level Effect policy or declassification.
 Join consumes the existing cardinality selection, ordered-occurrence execution
 check and exact selected-policy capacity application. All five join kinds
 can close when their requirements are supplied. Authored cardinality and

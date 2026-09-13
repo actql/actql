@@ -17,6 +17,28 @@ pub struct PublicationSourcePolicy {
   priv locals : Array[@context.LocalInputExecutionCheck]
   priv copies : Array[PublicationPolicyCopies]
   priv derivations : Array[PublicationPolicyDerivation]
+  priv groups : Array[PublicationPolicyGroup]
+}
+
+///|
+pub struct PublicationPolicyGroup {
+  step : Int
+  operation : @relation.CheckedOperation
+  group : @relation.CheckedGroup
+  unknown_provenance : Bool
+}
+
+///|
+pub fn publication_policy_group_count(value : PublicationSourcePolicy) -> Int {
+  value.groups.length()
+}
+
+///|
+pub fn publication_policy_group_at(
+  value : PublicationSourcePolicy,
+  index : Int,
+) -> PublicationPolicyGroup? {
+  value.groups.get(index)
 }
 
 ///|
@@ -230,6 +252,7 @@ fn prepare_publication_source_policy(
   let locals : Array[@context.LocalInputExecutionCheck] = []
   let copies : Array[PublicationPolicyCopies] = []
   let derivations : Array[PublicationPolicyDerivation] = []
+  let groups : Array[PublicationPolicyGroup] = []
   let mut unknown = false
   while pending.pop() is Some(target) {
     identity_charge(budget, 1)
@@ -250,6 +273,45 @@ fn prepare_publication_source_policy(
           @pipeline.Unary(operation) => {
             match @relation.operation(operation) {
               Select | Rename | Drop | Sort | Distinct | DedupeRows => ()
+              Group => {
+                guard @relation.group(operation) is Some(group) else {
+                  raise ForeignOwner
+                }
+                let mut missing = false
+                for binding in 0..<@relation.binding_count(operation) {
+                  identity_charge(budget, 1)
+                  let expression = @relation.binding_expression_at(
+                    operation, binding,
+                  ).unwrap()
+                  for node in 0..<@typing.node_count(expression) {
+                    identity_charge(budget, 1)
+                    if @typing.child_count(expression, node) == Some(0) {
+                      match @typing.node_form(expression, node).unwrap() {
+                        Expression("field" | "join_field", _) => ()
+                        _ => missing = true
+                      }
+                    }
+                  }
+                }
+                for call in 0..<@relation.aggregate_count(group) {
+                  identity_charge(budget, 1)
+                  let aggregate = @relation.aggregate_at(group, call).unwrap()
+                  if @relation.aggregate_delimiter(aggregate) is Some(_) ||
+                    @relation.aggregate_fraction(aggregate) is Some(_) ||
+                    @relation.aggregate_item_limit(aggregate) is Some(_) ||
+                    @relation.aggregate_byte_limit(aggregate) is Some(_) {
+                    missing = true
+                  }
+                }
+                identity_charge(budget, 1)
+                groups.push({
+                  step: index,
+                  operation,
+                  group,
+                  unknown_provenance: missing,
+                })
+                unknown = unknown || missing
+              }
               Derive => {
                 let mut all_copies = true
                 let mut missing = false
@@ -473,6 +535,7 @@ fn prepare_publication_source_policy(
     locals,
     copies,
     derivations,
+    groups,
   }
   |> Some
 }
