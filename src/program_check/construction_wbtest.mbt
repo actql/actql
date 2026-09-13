@@ -26,6 +26,7 @@ fn local_construction_fixture(
   last_effects? : String? = None,
   registry_entries? : String = "[]",
   catalog_entries? : String = "[]",
+  snapshot_entries? : String = "[]",
   generated_rows? : String? = None,
   local_schema? : String? = None,
   local_primary_key? : Bool = true,
@@ -199,6 +200,10 @@ fn local_construction_fixture(
   let body = body.replace(
     old="\"connector_catalogs\":[]",
     new="\"connector_catalogs\":" + catalog_entries,
+  )
+  let body = body.replace(
+    old="\"schema_snapshots\":[]",
+    new="\"schema_snapshots\":" + snapshot_entries,
   )
   let cid = "sha256:" + @sha.hex(@utf8.encode(body))
   let environment = @environment.read(

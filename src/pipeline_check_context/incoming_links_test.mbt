@@ -25,6 +25,7 @@ test "incoming and operation branches require the same Program admission owner" 
   let linked = link_program_incoming(profiles, incoming, generous).unwrap()
   check_local_input_closure(linked)
   let input_requirement = incoming_links_local_input_at(linked, 0).unwrap()
+  assert_true(input_requirement.snapshot is Some(_))
   assert_true(@local_input.primary_key(input_requirement.declaration) is None)
   assert_eq(local_input_execution_count(input_requirement), Some(1))
   let raw = local_input_execution_at(input_requirement, 0).unwrap()
@@ -46,7 +47,8 @@ test "incoming and operation branches require the same Program admission owner" 
   let expected = operation_resolution_work(resolutions) +
     (incoming_work - program_identity_usage(identity).0) +
     1 +
-    4 // two stages, one local declaration and its one-unit name
+    4 + // two stages, one local declaration and its one-unit name
+    2 // one selected snapshot and its one-unit input name
   assert_eq(incoming_links_work(linked), expected)
   let exact : IncomingLimits = {
     max_work: expected,

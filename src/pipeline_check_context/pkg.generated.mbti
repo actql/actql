@@ -1592,6 +1592,7 @@ pub struct LocalInputRequirement {
   declaration : @local_relation_input.Checked
   registration : @pipeline_typing.InputContract
   attachment : @stage_local_inputs.ReconciledAttachment
+  snapshot : @local_relation_snapshot.EnvironmentSnapshot?
   disposition : LocalInputDisposition
 }
 

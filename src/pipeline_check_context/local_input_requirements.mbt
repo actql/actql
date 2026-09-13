@@ -18,6 +18,7 @@ pub struct LocalInputRequirement {
   declaration : @local_input.Checked
   registration : @pipeline.InputContract
   attachment : @local_inputs.ReconciledAttachment
+  snapshot : @snapshot.EnvironmentSnapshot?
   disposition : LocalInputDisposition
 }
 
@@ -42,6 +43,31 @@ fn collect_local_input_requirements(
     let collected = @local_inputs.reconciled_stage(attachment)
     let pipeline = @parameter_slots.pipeline(@stages.collection(collected))
     let inputs = @local_inputs.reconciled_inputs(attachment)
+    let snapshots = @local_inputs.environment_assertions(inputs)
+    let snapshot_count = @local_inputs.snapshot_count(snapshots)
+    if snapshot_count > remaining {
+      raise Stop(BudgetExceeded)
+    }
+    remaining -= snapshot_count
+    let selected_snapshots : Map[String, @snapshot.EnvironmentSnapshot] = Map([])
+    for i in 0..<snapshot_count {
+      let binding = @local_inputs.snapshot_binding_at(snapshots, i).unwrap()
+      let resolved = @local_inputs.bound_input(binding)
+      let name = @local_ref.input_name(@refs.input_reference(resolved))
+      if name.length() > remaining {
+        raise Stop(BudgetExceeded)
+      }
+      remaining -= name.length()
+      guard @refs.stage_index(resolved) == stage &&
+        @local_inputs.environment_snapshot_at(inputs, i) is Some(entry) &&
+        physical_equal(
+          @local_inputs.bound_snapshot(binding),
+          @snapshot.environment_snapshot(entry),
+        ) else {
+        raise Stop(LocalInputOwner(stage, i))
+      }
+      selected_snapshots[name] = entry
+    }
     let prepared = @local_inputs.snapshot_inputs(
       @local_inputs.environment_assertions(inputs),
     )
@@ -74,6 +100,7 @@ fn collect_local_input_requirements(
         declaration,
         registration,
         attachment,
+        snapshot: selected_snapshots.get(name),
         disposition: if @local_input.has_first_by_order(declaration) {
           DuplicateOrderUnresolved
         } else {

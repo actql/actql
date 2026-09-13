@@ -56,11 +56,11 @@ import {
   "actql/actql/text_time_bounds" @bounds,
   "actql/actql/sourceview_resolution" @sourceviews,
   "actql/actql/sourceview_input" @source_inputs,
+  "actql/actql/stage_source_refs" @refs,
 }
 
 import {
   "moonbitlang/core/debug",
-  "actql/actql/stage_source_refs" @refs,
   "actql/actql/sha256" @sha,
   "actql/actql/source_value" @source,
   "actql/actql/relation_evidence" @evidence,

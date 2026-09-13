@@ -43,10 +43,12 @@ output extent does not satisfy the larger source extent.
 Existing Local snapshot materialization, Query Acquisition capture coverage,
 lookup response coverage and operation execution checks retain their current
 owners and validation responsibilities. No alternative wire proof, completion
-flag or duplicate runtime checker is introduced here. Joining this static view
-to selected source contracts, admitted observations and persistent Unit subjects
-belongs to Program closure. Until that join is validated, the view cannot be
-used to claim observed completeness, authorize publication, or discharge
+flag or duplicate runtime checker is introduced here. Program closure binds
+selected source contracts, required enforcement and persistent Unit subjects
+statically. Admission of observations remains at the existing runtime boundary,
+before the dependent use or publication, not a prerequisite that static check
+must execute acquisition. The static view cannot by itself claim observed
+completeness, authorize publication, or discharge
 `RetainIdentityAndCompleteness` on its own. Unknown and partial observations
 remain unknown and partial even when their row count is below a selected cap.
 
@@ -62,6 +64,15 @@ The selected checks keep their original execution phase, prerequisites and
 failure behavior. This closes static input ownership, not observation coverage
 admission: a selected snapshot declaration or response contract is not evidence
 that acquisition completed successfully.
+
+Local input subjects retain their exact optional EnvironmentSnapshot, selected
+by resolved stage/input reference rather than array position. Snapshot absence
+and schema-only snapshots carry no materialization claim. A supplied complete
+or partial claim stays attached to its input CID and environment member; neither
+schema agreement nor successful static construction discharges it. It remains
+available through Result-import dependencies after a bounded selection, without
+being promoted to whole-source completeness. These observation claims are not
+included in the Unit's static type projection or meaning identity.
 
 This boundary preserves the existing semantic rules. In particular, atomic
 bound failure remains failure, not successful truncation, and source coverage
