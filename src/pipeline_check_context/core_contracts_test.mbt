@@ -123,6 +123,7 @@ test "core contract collection preserves owned occurrences and shares dependency
       OperationJoinCountRules(_, _, _) => assert_eq(root.body, JoinCountRules)
       OperationIntervalSearchRules(_, _, _) =>
         assert_eq(root.body, IntervalSearchRules)
+      OperationAsOfSearchRules(_, _, _) => assert_eq(root.body, AsOfSearchRules)
       StageLocalInputRules(_, _) => assert_eq(root.body, LocalSnapshotRules)
       StageCanonicalIdentityRules(_) =>
         assert_eq(root.body, CanonicalIdentityRules)

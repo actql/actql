@@ -4981,6 +4981,27 @@ not to unobserved external coverage. None of these static contracts authorizes
 execution before the remaining value, identity, tie and resource obligations are
 discharged.
 
+<!-- requirement-block: asof-join.search-bound -->
+As-of search MUST select a finite ceiling independently of the output-row bound.
+One `pair_visits` unit examines an ordered captured left/right occurrence pair
+for correlation, direction or tolerance eligibility, including rejected pairs.
+A realization examining each pair at most once MAY use the exact product of
+applicable operand row upper bounds; re-examinations count again and require
+another admitted bound. This fallback applies to both kinds and all directions.
+A proved zero operand permits zero visits even if the other bound is unknown,
+but does not waive either input's mandatory validation. Supplied bounds must be
+validated; missing or overflowing products leave the fallback unavailable rather
+than imposing a language prohibition. Equality with the chosen ceiling succeeds;
+exceeding it fails atomically. Candidate comparison, tie resolution, sorting,
+indexing, bytes and retained memory require separate physical budgets. A small
+output or an in-tolerance candidate does not discharge these requirements.
+
+<!-- requirement-block: asof-join.search-machine -->
+<!-- normative-code: law -->
+```text
+../../spec/contracts/actql-asof-search.json# sha256:1d7fba7118fe71311cd8272b5c002bb5761088911c5adcad3fb4fb729ce5a096
+```
+
 <a id="sequence"></a>
 
 #### `sequence`

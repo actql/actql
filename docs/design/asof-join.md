@@ -5,6 +5,21 @@ record closes source and evidence boundaries for Relation and Events alternative
 `relation_join.check_asof` implements typed operand admission for both alternatives;
 it does not implement matching or an evaluator.
 
+## Search measurement boundary
+
+The search contract measures captured left/right occurrence-pair visits, not
+output rows. For a realization visiting each pair at most once, the exact product
+of applicable operand row bounds is a fallback ceiling. Repeated visits require
+another admitted bound. Even a zero product retains both inputs' validation
+obligations. Candidate comparison, sorting and retained memory need separate
+physical budgets; the pair ceiling does not certify those resources.
+
+This specifies the previously unresolved search quantity without changing
+matching, tie selection or source syntax. Its operation-specific contract is a
+direct local dependency alongside the separate output-row law, so selecting it
+changes the as-of local contract closure identity. Contract selection alone is
+not an applied limit or backend conformance evidence.
+
 ## Decisions and evidence
 
 The existing contract fixes left/inner, three directions, positive tolerance,

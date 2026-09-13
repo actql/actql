@@ -91,6 +91,13 @@ fn core_operation_count_root(
           IntervalSearchRules,
         )
       }
+      if operation is @pipeline.AsOfJoin(..) {
+        core_contract_root(
+          b,
+          OperationAsOfSearchRules(stage, visit, step),
+          AsOfSearchRules,
+        )
+      }
       (OperationJoinCountRules(stage, visit, step), JoinCountRules)
     }
     Window => (OperationWindowCountRules(stage, visit, step), WindowCountRules)

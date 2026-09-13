@@ -3,6 +3,7 @@ import {readFileSync} from 'node:fs';
 import {test} from 'node:test';
 import {machineCid} from './actql-spec-family.mjs';
 import './interval-search-wire.test.mjs';
+import './asof-search.test.mjs';
 
 const read = path => JSON.parse(readFileSync(new URL(`../${path}`, import.meta.url), 'utf8'));
 const path = 'spec/contracts/actql-interval-search.json';

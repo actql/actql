@@ -4227,6 +4227,28 @@
       }
     },
     {
+      "requirement_id": "actql.language/asof-join.search-bound",
+      "statement_sha256": "95a8010dc2b93bf4d70d94b9e6cf73978249e2e1827355cfc7685f519c1d4e56",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "asof-join",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/asof-join.search-machine",
+      "statement_sha256": "7beedd01f3f1576defaff68dcd6a1dc264599d06afc29657ac01960472e422d5",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "asof-join",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.language/sequence.source-contract",
       "statement_sha256": "afb92983ee4efe022d40f71c92d5760726ca5a217213f5a596f5194a6bacfa75",
       "status": "pending",

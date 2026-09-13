@@ -1,0 +1,10 @@
+{
+  "version": "actql-asof-search-vectors/0.1",
+  "traces": [
+    {"name":"backward rejects every candidate but still visits them","direction":"backward","left":1,"right":3,"visits":[[0,0],[0,1],[0,2]],"eligible":[],"limit":3,"single_visit":true,"within_limit":true},
+    {"name":"nearest tie does not erase inspected candidates","direction":"nearest","left":1,"right":2,"visits":[[0,0],[0,1]],"eligible":[[0,0],[0,1]],"limit":2,"single_visit":true,"within_limit":true},
+    {"name":"forward revisits violate product applicability even within a loose ceiling","direction":"forward","left":1,"right":1,"visits":[[0,0],[0,0]],"eligible":[[0,0]],"limit":3,"single_visit":false,"within_limit":true},
+    {"name":"one above ceiling fails despite a single selected row","direction":"nearest","left":1,"right":3,"visits":[[0,0],[0,1],[0,2]],"eligible":[[0,1]],"limit":2,"single_visit":true,"within_limit":false},
+    {"name":"empty left makes no visits without waiving right admission","direction":"backward","left":0,"right":3,"visits":[],"eligible":[],"limit":0,"single_visit":true,"within_limit":true}
+  ]
+}

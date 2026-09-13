@@ -37,6 +37,7 @@ fn core_contract_site_stage(
     | OperationRelationCountRules(stage, _, _)
     | OperationJoinCountRules(stage, _, _)
     | OperationIntervalSearchRules(stage, _, _)
+    | OperationAsOfSearchRules(stage, _, _)
     | OperationWindowCountRules(stage, _, _)
     | OperationGraphCountRules(stage, _, _)
     | OperationRankingCountRules(stage, _, _)
