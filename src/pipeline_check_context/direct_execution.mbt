@@ -76,5 +76,9 @@ fn direct_execution_candidate(
     Ok(None) => ()
     other => return other
   }
-  graph_construction_execution_check(site, policy)
+  match graph_construction_execution_check(site, policy) {
+    Ok(None) => ()
+    other => return other
+  }
+  graph_execution_check(site)
 }

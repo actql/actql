@@ -46,6 +46,27 @@ Normalization requires `true` and preserves the structural Graph contract,
 including partial property knowledge, semantic identity type and labels.
 It does not assert that untrusted data has already been normalized.
 
+`GraphExecutionCheck` binds common Graph-data admission and operation-specific
+ordering to the retained `CheckedGraph`, its Primary input and its exact
+requirement occurrence. It consumes checked options through the existing reader
+rather than reconstructing the source body.
+
+| Requirement | Execution rule | Boundary and interpretation |
+| --- | --- | --- |
+| ValidateGraphData | AdmitGraphData | Before input use; validate Graph data under its retained identity/property evidence without inventing absent type information. |
+| ComponentIdentityOrder | OrderComponentIdentities | Before output; choose the canonically least semantic node identity as component identity and emit component identity then node identity order. |
+| BoundsReportOrder | OrderBoundsReport | Before output; emit node-count, edge-count, then degree violations in canonical semantic node-identity order. Zero thresholds remain valid diagnostic conditions. |
+
+These rules follow the Graph component and structural-report semantics in the
+Language specification. Admission or execution failure rejects operation output,
+but a reported `graph_bounds` violation is not itself an execution failure.
+Source enumeration is not an alternative order witness. Profile selection,
+Parameter range validation, output guards and resource resolution stay separate;
+an unresolved one still prevents complete closure. The five-case
+`graph_execution_wbtest.mbt` test covers all four operation kinds, both component
+kinds, an authored guard, zero report thresholds, unknown property evidence and
+invalid occurrences. Binding these checks is not runtime conformance.
+
 Degree requires a literal `in`, `out` or `both` direction. It produces exactly
 `node` with the semantic graph ID type and non-null `degree: number`.
 Components requires literal `weak` or `strong` and produces `node_id`,

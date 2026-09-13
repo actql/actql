@@ -1444,6 +1444,20 @@ pub(all) enum GraphConstructionRule {
   EnforceConstructionEnvelope
 } derive(Eq, @debug.Debug)
 
+pub struct GraphExecutionCheck {
+  site : OperationRequirementSite
+  step : @pipeline_typing.CheckedStep
+  input : @pipeline_typing.Target
+  operation : @graph_typing.CheckedGraph
+  rule : GraphExecutionRule
+}
+
+pub(all) enum GraphExecutionRule {
+  AdmitGraphData
+  OrderComponentIdentities
+  OrderBoundsReport
+} derive(Eq, @debug.Debug)
+
 pub struct GraphProjectionCheck {
   site : OperationRequirementSite
   step : @pipeline_typing.CheckedStep
@@ -1898,6 +1912,7 @@ pub(all) enum OperationDisposition {
 }
 
 pub(all) enum OperationExecutionCheck {
+  GraphExecution(GraphExecutionCheck)
   GraphConstructionExecution(GraphConstructionCheck)
   GraphProjection(GraphProjectionCheck)
   GraphProjectionOutput(GraphProjectionEnvelope)
