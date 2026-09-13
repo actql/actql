@@ -4,9 +4,11 @@
 pub enum SourceExecutionKind {
   HostCombination
   ReadAuthorization
+  RequestEgress
   AcquisitionResources
   CarrierResponse
   KeyedRequest(KeyedExecution)
+  KeyedEgress(KeyedExecution)
   KeyedResources(KeyedExecution)
   KeyedResponse(KeyedExecution)
 }
@@ -95,7 +97,7 @@ fn prepare_source_execution(
       (SourceExecution, SourceExecution, SourceExecution),
     ] = Map([])
     for input in 0..<count {
-      identity_charge(remaining, 5)
+      identity_charge(remaining, 6)
       let request = @sourceviews.pipeline_request_at(selected, input).unwrap()
       let source = match request {
         @sourceviews.Direct(mode, _) => @sourceviews.mode_input(mode)
@@ -126,12 +128,20 @@ fn prepare_source_execution(
         prerequisites: [host],
       }
       result.push(authorization)
+      let egress = SourceExecution::{
+        subject,
+        kind: RequestEgress,
+        phase: BeforeProviderAccess,
+        failure: PreventProviderAccess,
+        prerequisites: [authorization],
+      }
+      result.push(egress)
       let resources = SourceExecution::{
         subject,
         kind: AcquisitionResources,
         phase: BeforeAndDuringAcquisition,
         failure: FailAcquisitionAtomically,
-        prerequisites: [host, authorization],
+        prerequisites: [host, authorization, egress],
       }
       result.push(resources)
       let response = SourceExecution::{
@@ -158,7 +168,7 @@ fn prepare_source_execution(
     }
     identity_charge(remaining, joins_count)
     for index in 0..<joins_count {
-      identity_charge(remaining, 3)
+      identity_charge(remaining, 4)
       let join = @sourceviews.keyed_join_at(joins, index).unwrap()
       guard admissions.get(@sourceviews.keyed_join_input(join))
         is Some((host, acquisition_resources, response)) &&
@@ -185,14 +195,22 @@ fn prepare_source_execution(
         failure: PreventProviderAccess,
         prerequisites: [host, acquisition_resources],
       }
+      let keyed_egress = SourceExecution::{
+        subject: host.subject,
+        kind: KeyedEgress(binding),
+        phase: BeforeProviderAccess,
+        failure: PreventProviderAccess,
+        prerequisites: [request_check],
+      }
       let resources = SourceExecution::{
         subject: host.subject,
         kind: KeyedResources(binding),
         phase: BeforeAndDuringAcquisition,
         failure: FailAcquisitionAtomically,
-        prerequisites: [request_check],
+        prerequisites: [request_check, keyed_egress],
       }
       result.push(request_check)
+      result.push(keyed_egress)
       result.push(resources)
       result.push({
         subject: host.subject,

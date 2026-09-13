@@ -580,6 +580,26 @@ Ref provenance, provider/account boundaries and combined request egress policy
 still require their own validation; read permission does not establish them.
 This is a retained runtime obligation, not a compile-time authorization result.
 
+`RequestEgress` retains the selected request's static field occurrences without
+copying their arrays or reinterpreting literal business data. Indexed readers
+expose the already checked literal or bound Parameter; unresolved Host bindings
+remain explicitly represented, not replaced with a null value. `KeyedEgress`
+additionally retains the exact keyed join, producer membership and correlation
+mapping after request-value admission. Its input-dependent values are checked
+before their dispatch, not fabricated during compilation. The associated
+resource check depends on egress, and response use depends on those resource
+checks. Each failure prevents provider access.
+
+The indexed egress axes are sensitivity, completeness, MIME, bytes, availability,
+provider-account boundary, region and current Host policy, matching
+[External SourceView joins](../spec/language.md#external-joins). An axis that is
+inapplicable to a particular value is handled under its selected contract; it
+does not impose a MIME requirement on an ordinary number. These requirements do
+not manufacture provenance or an effective policy CID. Combining request-input
+and response provenance into the bound policy remains a static prerequisite of
+formal SourceView integration. The presence of these runtime dispositions alone
+cannot turn that missing static material into an accepted `CheckedProgram`.
+
 Every selected request also carries `AcquisitionResources`, including direct and
 unused SourceViews. It depends on that same request's Host-combination check and
 applies before and throughout acquisition. Carrier-response admission depends on

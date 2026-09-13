@@ -76,6 +76,14 @@ pub fn publication_selection(PublicationExecution) -> @pipeline_check_context.Pu
 
 pub fn requirements(CheckedProgram) -> @pipeline_check_context.StageRequirementClosure
 
+pub fn source_egress_axis_at(SourceExecution, Int) -> SourceEgressAxis?
+
+pub fn source_egress_axis_count(SourceExecution) -> Int
+
+pub fn source_egress_field_at(SourceExecution, Int) -> @sourceview_resolution.ParameterizedRequestField?
+
+pub fn source_egress_field_count(SourceExecution) -> Int
+
 pub fn source_execution_at(CheckedProgram, Int) -> SourceExecution?
 
 pub fn source_execution_count(CheckedProgram) -> Int
@@ -230,6 +238,17 @@ type ReidentifiedGraphInput
 
 type ReidentifiedStep
 
+pub(all) enum SourceEgressAxis {
+  Sensitivity
+  Completeness
+  Mime
+  Bytes
+  Availability
+  ProviderAccountBoundary
+  Region
+  CurrentHostPolicy
+} derive(Eq, @debug.Debug)
+
 type SourceExecution
 
 pub enum SourceExecutionFailure {
@@ -241,9 +260,11 @@ pub enum SourceExecutionFailure {
 pub enum SourceExecutionKind {
   HostCombination
   ReadAuthorization
+  RequestEgress
   AcquisitionResources
   CarrierResponse
   KeyedRequest(KeyedExecution)
+  KeyedEgress(KeyedExecution)
   KeyedResources(KeyedExecution)
   KeyedResponse(KeyedExecution)
 }
