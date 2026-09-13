@@ -129,23 +129,6 @@ struct MockQueryRecords {
 }
 
 ///|
-fn mock_record_document(
-  budget : QueryMaterialBudget,
-  emit : (@encode.Writer) -> Unit raise @encode.EncodeFailure,
-) -> (@encode.EncodedDocument, String) raise @encode.EncodeFailure {
-  let writer = @encode.writer(budget.bytes / 2, budget.nodes / 2, budget.depth)
-  emit(writer)
-  let document = @encode.finish_document(writer)
-  let before = budget.nodes
-  let cid = material_hash(budget, writer => {
-    @encode.emit_document(writer, document)
-  })
-  budget.bytes -= @encode.document_bytes(document)
-  budget.nodes -= before - budget.nodes
-  (document, cid)
-}
-
-///|
 fn mock_record_payload(
   retained : MockQueryRetention,
   limits : QueryMaterialLimits,
@@ -167,83 +150,25 @@ fn mock_record_payload(
     is Some(schema) else {
     return Err(InvalidRetainedLayout)
   }
-  let count = @schema.field_count(schema)
-  if count > limits.max_fields {
-    return Err(FieldLimit)
-  }
-  if count > budget.work {
-    return Err(WorkLimit)
-  }
-  budget.work -= count
-  let fields : Array[String] = []
-  for i in 0..<count {
-    let name = @schema.reference_name(@schema.field_at(schema, i).unwrap().name)
-    if name.length() > budget.work {
-      return Err(WorkLimit)
+  query_record_payload(
+    requirement,
+    if native {
+      retained.output
+    } else {
+      retained.scan
+    },
+    retained.output,
+    schema,
+    limits,
+    budget,
+  ).map_err(issue => {
+    match issue {
+      InvalidRetainedLayout => InvalidRetainedLayout
+      FieldLimit => FieldLimit
+      WorkLimit => WorkLimit
+      Encoding(issue) => Encoding(issue)
     }
-    budget.work -= name.length()
-    if i > 0 {
-      let previous = fields[i - 1]
-      if previous.length() > budget.work {
-        return Err(WorkLimit)
-      }
-      budget.work -= previous.length()
-      if @canonical.compare_utf16(previous, name) >= 0 {
-        return Err(InvalidRetainedLayout)
-      }
-    }
-    fields.push(name)
-  }
-  try {
-    let received = if native { retained.output } else { retained.scan }
-    let access = material_hash(budget, writer => {
-      @encode.begin_object(writer)
-      @encode.key(writer, "received_fields")
-      @encode.begin_array(writer)
-      for field in fields {
-        @encode.string_value(writer, field)
-      }
-      @encode.end_array(writer)
-      @encode.key(writer, "received_rows_cid")
-      @encode.string_value(writer, @execution.row_wire_cid(received))
-      @encode.key(writer, "requirement_cid")
-      @encode.string_value(writer, requirement.cid)
-      @encode.key(writer, "version")
-      @encode.string_value(writer, "actql-query-access-scope/0.1")
-      @encode.end_object(writer)
-    })
-    let scope = material_hash(budget, writer => {
-      @encode.begin_object(writer)
-      @encode.key(writer, "resolved_request_cid")
-      @encode.string_value(writer, requirement.material.request_cid)
-      @encode.key(writer, "source_contract_cid")
-      @encode.string_value(writer, requirement.source_contract_cid)
-      @encode.key(writer, "source_ref")
-      @encode.string_value(writer, requirement.source_ref)
-      @encode.key(writer, "version")
-      @encode.string_value(writer, "actql-query-scan-scope/0.1")
-      @encode.end_object(writer)
-    })
-    Ok({
-      requirement_cid: requirement.cid,
-      snapshot: None,
-      scan_scope_cid: scope,
-      access: {
-        scope_cid: access,
-        provider_scope_cid: None,
-        received_rows: computation.received_rows,
-        received_fields: fields,
-        received_bytes: retained.received_bytes,
-      },
-      output: {
-        contract_cid: requirement.output_contract_cid,
-        rows_cid: @execution.row_wire_cid(retained.output),
-        row_count: @execution.completed_row_count(computation.output),
-      },
-    })
-  } catch {
-    issue => Err(Encoding(issue))
-  }
+  })
 }
 
 ///|
@@ -273,7 +198,7 @@ fn build_mock_records(
   let cids : Array[String] = []
   try {
     for role in [SourceValidation, Filter, Select] {
-      let (document, cid) = mock_record_document(budget, writer => {
+      let (document, cid) = query_record_document(budget, writer => {
         emit_query_record(
           payload,
           authority.issuer.name,

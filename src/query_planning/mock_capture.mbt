@@ -106,7 +106,7 @@ pub fn capture_mock_query(
       attempt.state = Failed(Evidence(ForeignRecords))
       return Err(ForeignRecords)
     }
-    let (document, cid) = mock_record_document(budget, writer => {
+    let (document, cid) = query_record_document(budget, writer => {
       emit_mock_observation(records, writer)
     })
     let value = {

@@ -304,6 +304,13 @@ capture authority. Cancellation or failure is terminal. These are adapter
 integration obligations: availability of the shared profile does not establish
 real-backend execution conformance.
 
+Canonical record material construction is shared independently of issuance.
+It consumes already measured immutable row identities and the bound requirement,
+preserving cumulative encoding budgets and the existing wire preimages. This
+private serializer cannot establish a read view, authorize an attempt or issue a
+record. Provider-specific issuers must verify those live relationships before
+using it; reusing serialization does not reuse a mock issuer's authority.
+
 ## Lifetime, limits and publication
 
 For the restricted compiled comparison, a static root-byte witness can establish
