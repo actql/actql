@@ -50,6 +50,20 @@ pub fn emit_source_response_policy(
 }
 
 ///|
+fn combine_classification(
+  left : @environment.DataClassification,
+  right : @environment.DataClassification,
+) -> @environment.DataClassification {
+  match (left, right) {
+    (Unknown, _) | (_, Unknown) => Unknown
+    (Restricted, _) | (_, Restricted) => Restricted
+    (Confidential, _) | (_, Confidential) => Confidential
+    (Internal, _) | (_, Internal) => Internal
+    (Public, Public) => Public
+  }
+}
+
+///|
 fn source_classification(
   base : @environment.DataClassification,
   minimum : String?,
@@ -62,14 +76,7 @@ fn source_classification(
     Some("restricted") => @environment.Restricted
     Some(_) => raise ForeignOwner
   }
-  match (base, requested) {
-    (Unknown, _) => Unknown
-    (Restricted, _) | (_, Restricted) => Restricted
-    (Confidential, _) | (_, Confidential) => Confidential
-    (Internal, _) | (_, Internal) => Internal
-    (Public, Public) => Public
-    (_, Unknown) => raise ForeignOwner
-  }
+  combine_classification(base, requested)
 }
 
 ///|

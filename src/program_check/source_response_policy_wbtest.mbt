@@ -31,3 +31,28 @@ test "authored minimum strengthens known classification without replacing unknow
     _ => fail("unadmitted authored classification accepted")
   }
 }
+
+///|
+test "policy classification composition is order independent and preserves unknown" {
+  let classes = [
+    @environment.Public,
+    @environment.Internal,
+    @environment.Confidential,
+    @environment.Restricted,
+    @environment.Unknown,
+  ]
+  for i, a in classes {
+    assert_eq(combine_classification(a, a), a)
+    for j, b in classes {
+      let expected = classes[if i > j { i } else { j }]
+      assert_eq(combine_classification(a, b), expected)
+      assert_eq(combine_classification(a, b), combine_classification(b, a))
+      for c in classes {
+        assert_eq(
+          combine_classification(combine_classification(a, b), c),
+          combine_classification(a, combine_classification(b, c)),
+        )
+      }
+    }
+  }
+}

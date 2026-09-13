@@ -6777,6 +6777,21 @@ retargeting a request, substituting another named input, or skipping current
 egress admission. Shape admission alone does not establish the selected-reference
 correspondence or the classification calculation.
 
+<!-- requirement-block: external-joins.request-policy-provenance -->
+Request policy composition MUST retain the contributing value provenance and
+its admitted policy references separately from the response policy; preserve
+`unknown` when any required contributing classification is unknown; and otherwise
+take the maximum known classification independent of traversal or operand order.
+Being an authored literal, a scalar Parameter, a defaulted value or a successfully
+admitted typed value is not by itself evidence of a public or internal classification.
+Missing provenance is not repaired by assigning a default classification or by
+attributing the value to every input in the Program. An unknown classification
+does not by itself invalidate ordinary algebra; it does not confer permission to
+dispatch either. Egress still requires admission under the applicable destination
+data-handling contract and current Host policy, including the existing rejection
+of unknown classification for model egress. This classification calculation does
+not supply missing provenance or define a substitute effective-policy preimage.
+
 <!-- requirement-block: external-joins.when-the-sourceview-contract-admits-response-projection-the-compiler-must -->
 When the SourceView contract admits response projection, the compiler MUST bind
 the observed response field set as the union of right-side fields published by
