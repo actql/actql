@@ -1,0 +1,10 @@
+{
+  "description": "Finite numeric-ID graphs; diagnostic thresholds are not execution ceilings. Required producer checks are assumed separately, not discharged by this model.",
+  "cases": [
+    {"name":"empty", "nodes":[], "edges":[], "bounds":{"max_nodes":0,"max_edges":0,"max_degree":0}, "degree_rows":0, "report_rows":0, "guards":[[1,true,true]]},
+    {"name":"one edge", "nodes":[1,2], "edges":[[1,2]], "bounds":{"max_nodes":0,"max_edges":0,"max_degree":0}, "degree_rows":2, "report_rows":4, "guards":[[1,false,false],[2,true,false],[3,true,false],[4,true,true]]},
+    {"name":"equal thresholds", "nodes":[1,2], "edges":[[1,2]], "bounds":{"max_nodes":2,"max_edges":1,"max_degree":1}, "degree_rows":2, "report_rows":0, "guards":[[1,false,true],[2,true,true]]},
+    {"name":"self loop counts twice", "nodes":[1], "edges":[[1,1]], "bounds":{"max_degree":1}, "degree_rows":1, "report_rows":1, "guards":[[1,true,true]]},
+    {"name":"node diagnostic only", "nodes":[1,2,3], "edges":[], "bounds":{"max_nodes":1}, "degree_rows":3, "report_rows":1, "guards":[[1,false,true],[3,true,true]]}
+  ]
+}

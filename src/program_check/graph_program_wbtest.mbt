@@ -1,81 +1,114 @@
 ///|
-test "formal Graph operations reject missing resource closure at the owning step" {
-  for
-    body in [
-      "{\"normalize_graph\":true}", "{\"degree\":{\"direction\":\"both\"}}", "{\"components\":{\"kind\":\"weak\"}}",
-      "{\"components\":{\"kind\":\"strong\"}}", "{\"graph_bounds\":{\"max_nodes\":0}}",
-    ] {
-    let programs : Array[CheckedProgram] = []
-    let suffix = if body == "{\"normalize_graph\":true}" {
-      "," +
-      body +
-      ",{\"node_rows\":true},{\"derive\":{\"value\":\"id\"},\"as\":\"projected\"}"
-    } else {
-      "," +
-      body +
-      ",{\"select\":[{\"id\":\"" +
-      (if body == "{\"degree\":{\"direction\":\"both\"}}" {
-        "node"
+test "formal common Graph resources close without waiving component capacity" {
+  for empty in [true, false] {
+    for
+      body in [
+        "{\"normalize_graph\":true}", "{\"degree\":{\"direction\":\"both\"}}", "{\"components\":{\"kind\":\"weak\"}}",
+        "{\"components\":{\"kind\":\"strong\"}}", "{\"graph_bounds\":{\"max_nodes\":0}}",
+      ] {
+      let programs : Array[CheckedProgram] = []
+      let component = body.contains("components")
+      let suffix = if body == "{\"normalize_graph\":true}" {
+        "," +
+        body +
+        ",{\"node_rows\":true},{\"derive\":{\"value\":\"id\"},\"as\":\"projected\"}"
       } else {
-        "node_id"
-      }) +
-      "\"},{\"value\":\"" +
-      (if body == "{\"degree\":{\"direction\":\"both\"}}" {
-        "degree"
-      } else if body == "{\"graph_bounds\":{\"max_nodes\":0}}" {
-        "actual"
-      } else {
-        "component_size"
-      }) +
-      "\"}],\"as\":\"projected\"}"
-    }
-    try
-      local_construction_fixture(
-        { work: 100000000, bytes: 10000000, nodes: 1000000, depth: 100, },
-        through_check=true,
-        checked_results=programs,
-        sga=true,
-        graph_construction_limit=Some(1000),
-        generated_rows=Some("[{\"id\":1}]"),
-        producer_suffix=",{\"graph\":{\"source\":\"id\",\"target\":\"value\"}}" +
-          suffix,
-        producer_result_from="projected",
-        extra_step_budget=4,
-      )
-    catch {
-      Closure(UnresolvedOperation(site)) => {
-        assert_true(
-          site.requirement is @pipeline.GraphRequirement(ResolveGraphResources),
-        )
-        assert_eq(site.stage, 0)
-        assert_eq(site.step, 3)
+        "," +
+        body +
+        ",{\"select\":[{\"id\":\"" +
+        (if body == "{\"degree\":{\"direction\":\"both\"}}" {
+          "node"
+        } else {
+          "node_id"
+        }) +
+        "\"},{\"value\":\"" +
+        (if body == "{\"degree\":{\"direction\":\"both\"}}" {
+          "degree"
+        } else if body == "{\"graph_bounds\":{\"max_nodes\":0}}" {
+          "actual"
+        } else {
+          "component_size"
+        }) +
+        "\"}],\"as\":\"projected\"}"
       }
-      Source(
-        SourceView(
-          Context(
-            Stages(
-              Capacity(
-                stage,
-                visit,
-                ComponentsCollection(MissingApplication(step))
+      try
+        local_construction_fixture(
+          { work: 100000000, bytes: 10000000, nodes: 1000000, depth: 100, },
+          through_check=true,
+          checked_results=programs,
+          sga=true,
+          graph_construction_limit=Some(1000),
+          graph_input_limit=Some(1),
+          graph_output_limit=Some(1),
+          generated_rows=Some(if empty { "[]" } else { "[{\"id\":1}]" }),
+          producer_suffix=",{\"graph\":{\"source\":\"id\",\"target\":\"value\"}}" +
+            suffix,
+          producer_result_from="projected",
+          extra_step_budget=4,
+        )
+      catch {
+        Source(
+          SourceView(
+            Context(
+              Stages(
+                Capacity(
+                  stage,
+                  visit,
+                  ComponentsCollection(MissingApplication(step))
+                )
               )
             )
           )
-        )
-      ) => {
-        assert_true(
-          body == "{\"components\":{\"kind\":\"weak\"}}" ||
-          body == "{\"components\":{\"kind\":\"strong\"}}",
-        )
-        assert_eq(stage, 0)
-        assert_eq(visit, 0)
-        assert_eq(step, 3)
+        ) => {
+          assert_true(
+            body == "{\"components\":{\"kind\":\"weak\"}}" ||
+            body == "{\"components\":{\"kind\":\"strong\"}}",
+          )
+          assert_eq(stage, 0)
+          assert_eq(visit, 0)
+          assert_eq(step, 3)
+        }
+        other => raise other
+      } noraise {
+        _ => assert_false(component)
       }
-      other => raise other
-    } noraise {
-      _ => fail("unresolved Graph resources must not produce a CheckedProgram")
+      assert_eq(programs.length(), if component { 0 } else { 1 })
+      if !component {
+        let operations = @context.stage_requirement_operations(
+          requirements(programs[0]),
+        )
+        let mut found = 0
+        for i in 0..<@context.operation_closure_count(operations) {
+          if @context.operation_closure_at(operations, i)
+            is Some(ExecutionCheck(GraphResources(check))) {
+            found += 1
+            assert_eq(check.site.step, 3)
+            assert_eq(check.input, @pipeline.Step(2))
+            assert_true(
+              physical_equal(
+                check.site.pipeline,
+                unit_pipeline(programs[0], 0).unwrap(),
+              ),
+            )
+            match check.scope {
+              PreserveGraph => assert_true(body.contains("normalize_graph"))
+              RelationRows(limit) => {
+                assert_false(body.contains("normalize_graph"))
+                assert_eq(
+                  @policy.ceiling_field(limit),
+                  "max_relation_output_rows",
+                )
+                assert_eq(@policy.ceiling_value(limit), 1000L)
+                assert_true(
+                  physical_equal(@policy.ceiling_policy(limit), check.policy),
+                )
+              }
+            }
+          }
+        }
+        assert_eq(found, 1)
+      }
     }
-    assert_eq(programs.length(), 0)
   }
 }
 

@@ -67,6 +67,22 @@ an unresolved one still prevents complete closure. The five-case
 kinds, an authored guard, zero report thresholds, unknown property evidence and
 invalid occurrences. Binding these checks is not runtime conformance.
 
+`GraphResourcesCheck` binds normalization, degree and bounds-report resource
+scope to the exact Primary input and admitted policy. `PreserveGraph` adds no
+Relation-output ceiling. `RelationRows` retains the selected
+`max_relation_output_rows` ceiling, not the components/traversal row ceiling.
+Graph producer admission and capacity remain prerequisites through the existing
+producer closure; this binding neither rechecks external-input ceilings on
+internal Graphs nor fabricates observed counts. Bounds thresholds still only
+select diagnostic rows, which may themselves exceed the Relation output cap.
+
+This explicitly fixes the resource association left unspecified by these
+operations' generic pending requirement. The fixed reference compiler emits
+no extra Graph count parameters for these three operations; that absence is not
+an exemption from selected consumer or backend budgets. Components retains its
+separate node/output limit consumer. Whole-Program closure rejects a missing
+producer check before these bindings can represent a prepared Program.
+
 Degree requires a literal `in`, `out` or `both` direction. It produces exactly
 `node` with the semantic graph ID type and non-null `degree: number`.
 Components requires literal `weak` or `strong` and produces `node_id`,

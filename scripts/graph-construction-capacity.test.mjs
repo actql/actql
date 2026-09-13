@@ -5,6 +5,26 @@ import {machineCid} from './actql-spec-family.mjs';
 
 const corpus=JSON.parse(readFileSync('portability/corpus/graph-construction-capacity.json','utf8'));
 const fields=['max_graph_construction_input_rows','max_graph_construction_nodes','max_graph_construction_edges'];
+test('structural Graph output ceilings remain separate from diagnostic thresholds',()=>{
+  const vectors=JSON.parse(readFileSync('portability/corpus/graph-structural-resources.json','utf8'));
+  for(const v of vectors.cases) {
+    const {nodes,edges,bounds}=v;
+    const degrees=nodes.map(id=>edges.reduce((n,[s,t])=>n+Number(s===id)+Number(t===id),0));
+    const reports=Number(bounds.max_nodes!==undefined && nodes.length>bounds.max_nodes)
+      +Number(bounds.max_edges!==undefined && edges.length>bounds.max_edges)
+      +degrees.filter(n=>bounds.max_degree!==undefined && n>bounds.max_degree).length;
+    assert.equal(nodes.length,v.degree_rows,v.name);
+    assert.equal(reports,v.report_rows,v.name);
+    for(const [cap,degreeAccepted,reportAccepted] of v.guards) {
+      // External preflight and component/traversal ceilings are not this scope.
+      for(const unrelated of [1,1000]) {
+        const policy={max_relation_output_rows:cap,max_graph_input_nodes:unrelated,max_graph_output_rows:unrelated};
+        assert.equal(nodes.length<=policy.max_relation_output_rows,degreeAccepted,v.name);
+        assert.equal(reports<=policy.max_relation_output_rows,reportAccepted,v.name);
+      }
+    }
+  }
+});
 test('construction scopes count input occurrences separately from completed entities',()=>{
   for(const c of corpus.cases) {
     // Independent finite numeric-ID model, not the product constructor/lowerer.

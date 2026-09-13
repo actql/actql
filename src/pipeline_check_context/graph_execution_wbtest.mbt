@@ -51,6 +51,49 @@ test "Graph data and order bindings preserve their exact operation without closi
         obligations: group,
         requirement: @pipeline.operation_obligations_at(group, index).unwrap(),
       }
+      if site.requirement is @pipeline.GraphRequirement(ResolveGraphResources) {
+        let policy = sequence_limit_policy(false)
+        if @graph.operation(operation) == @graph.Components {
+          assert_true(graph_resources_check(site, policy) is Ok(None))
+        } else {
+          guard graph_resources_check(site, policy)
+            is Ok(Some(GraphResources(check))) else {
+            fail("Graph resource binding")
+          }
+          assert_true(physical_equal(check.site, site))
+          assert_true(physical_equal(check.operation, operation))
+          assert_true(physical_equal(check.policy, policy))
+          assert_eq(check.input, @pipeline.Input(0))
+          match check.scope {
+            PreserveGraph =>
+              assert_true(@graph.operation(operation) == @graph.NormalizeGraph)
+            RelationRows(limit) => {
+              assert_true(@graph.operation(operation) != @graph.NormalizeGraph)
+              assert_eq(
+                @policy.ceiling_field(limit),
+                "max_relation_output_rows",
+              )
+              assert_true(physical_equal(@policy.ceiling_policy(limit), policy))
+            }
+          }
+          assert_true(
+            graph_resources_check({ ..site, index: 99, }, policy)
+            is Err(ForeignOccurrence(0)),
+          )
+          assert_true(
+            graph_resources_check({ ..site, step: 99, }, policy)
+            is Err(ForeignOccurrence(99)),
+          )
+          assert_eq(
+            operation_execution_phase(GraphResources(check)),
+            BeforeOperationOutput,
+          )
+          assert_eq(
+            operation_execution_failure(GraphResources(check)),
+            RejectOperationOutput,
+          )
+        }
+      }
       match graph_execution_check(site).unwrap() {
         Some(GraphExecution(check)) => {
           assert_true(physical_equal(check.site, site))

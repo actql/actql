@@ -1487,6 +1487,20 @@ pub(all) enum GraphProjectionRule {
   RestoreIdentityNames
 } derive(Eq, @debug.Debug)
 
+pub(all) enum GraphResourceScope {
+  PreserveGraph
+  RelationRows(@capacity_policy.Ceiling)
+}
+
+pub struct GraphResourcesCheck {
+  site : OperationRequirementSite
+  step : @pipeline_typing.CheckedStep
+  input : @pipeline_typing.Target
+  operation : @graph_typing.CheckedGraph
+  policy : @capacity_policy.Policy
+  scope : GraphResourceScope
+}
+
 type GroupArrayLimit
 
 pub enum GroupArrayLimitIssue {
@@ -1918,6 +1932,7 @@ pub(all) enum OperationDisposition {
 }
 
 pub(all) enum OperationExecutionCheck {
+  GraphResources(GraphResourcesCheck)
   ComponentsLimits(ComponentsLimitsCheck)
   GraphExecution(GraphExecutionCheck)
   GraphConstructionExecution(GraphConstructionCheck)

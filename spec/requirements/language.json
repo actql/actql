@@ -4744,6 +4744,28 @@
       }
     },
     {
+      "requirement_id": "actql.language/structural-graphs.resource-scopes",
+      "statement_sha256": "c4b28fe41d53e61a77ab3a6a92f43057d6897c612c20bf0c1a87a1cda7fe7f57",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "structural-graphs",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/structural-graphs.relation-output-capacity",
+      "statement_sha256": "1bc378705ac4f20b2045e56b8b387d92d8e0494c70e6a535b0cf6272a67ac784",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "structural-graphs",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.language/structural-graphs.bounds-report",
       "statement_sha256": "02af2d7a5143aca10378cd9ab9fb639acc8fb4b822c85e1f762badf29a728b07",
       "status": "pending",

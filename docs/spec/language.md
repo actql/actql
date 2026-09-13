@@ -5599,6 +5599,21 @@ one non-negative `max_nodes`, `max_edges`, or `max_degree` and lowers to
 `SGA.bounds_check`. Delta application uses only [apply_graph_delta](#graph-equality-and-delta);
 the compiler MUST NOT synthesize an application from prose or untyped data.
 
+<!-- requirement-block: structural-graphs.resource-scopes structural-graphs.relation-output-capacity -->
+`normalize_graph`, `degree` and `graph_bounds` MUST retain the admission and
+resource prerequisites of their actual Graph producer. They do not reapply
+external Graph-input preflight ceilings to an internally produced Graph or
+invent an additional node/edge limit from diagnostic thresholds. Normalization
+adds no Relation-row limit. The Relation outputs of `degree` and `graph_bounds`
+MUST select and inclusively enforce `max_relation_output_rows` from the admitted
+Host capacity policy before exposing output. These are Relation-output scopes,
+not the component/traversal `max_graph_output_rows` scope. Empty output uses zero
+rows; an unknown static count or conservative bound above the selected ceiling
+is not an observed breach. Excess fails atomically without a partial Relation.
+Input validation, producer enforcement, selected consumer capacity, physical
+work, byte, retention and cancellation contracts remain independently required;
+this association neither waives them nor proves that they have run.
+
 <!-- requirement-block: structural-graphs.bounds-report -->
 `graph_bounds` MUST return a Relation with exactly `kind: string`,
 `node_id: nullable semantic graph ID`, `actual: number`, and `max: number`.

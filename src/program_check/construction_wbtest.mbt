@@ -43,6 +43,7 @@ fn local_construction_fixture(
   graph_construction_limit? : Int? = None,
   components_capacity_rows? : Int? = None,
   graph_output_limit? : Int? = None,
+  graph_input_limit? : Int? = None,
   calendar? : Bool = false,
   calendar_material? : Bool = true,
   text_policy? : Bool = false,
@@ -196,6 +197,8 @@ fn local_construction_fixture(
         graph_construction_limit.unwrap()
       } else if n == "max_graph_output_rows" {
         graph_output_limit.unwrap_or(host_limit)
+      } else if n == "max_graph_input_nodes" || n == "max_graph_input_edges" {
+        graph_input_limit.unwrap_or(host_limit)
       } else if n == "max_nested_value_bytes" {
         nested_bytes.unwrap_or(host_limit)
       } else if n == "max_nested_value_depth" {
