@@ -58,6 +58,8 @@ fn check_supported_source(
               | "top_k_by"
               | "lag"
               | "json_pick"
+              | "unnest"
+              | "unpivot"
               | "append"
               | "except"
               | "intersect"

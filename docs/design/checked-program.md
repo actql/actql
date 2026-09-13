@@ -39,7 +39,8 @@ separate protocol results, not successful CheckedPrograms with weaker guarantees
 The entry has an explicit implementation-domain check, separate from the
 language grammar. Its Local and Result-import domain accepts `values`, `derive`,
 `filter`, `assert_rows`, `group`, `select`, `rename`, `drop`, `sort`, `take`,
-`distinct`, `dedupe_rows`, `top_k`, `top_k_by`, `lag`, `json_pick`, `append`, `join`, `cross_join`,
+`distinct`, `dedupe_rows`, `top_k`, `top_k_by`, `lag`, `json_pick`, `unnest`, `unpivot`,
+`append`, `join`, `cross_join`,
 `except` and `intersect`, including empty operation
 sequences. Sort/take use the existing owned order-resolution closure and preserve
 their distinct strategies and preconditions; accepting them does not synthesize
@@ -93,6 +94,29 @@ the operation output atomically. Indexed path readers do not copy the path array
 The formal entry accepts the closed-object paths supported by the existing type
 checker; traversal through opaque json still requires a separately supported
 shape-evidence boundary and is not admitted by this runtime check alone.
+`ExpansionExecution` keeps occurrence generation and output-envelope enforcement
+as separate owned requirements for `unnest` and `unpivot`. Each binds the exact
+input edge, checked operation and selected policy. Unpivot emits one row per
+authored column occurrence, including repeats, in input-row then column order;
+indexed column and keep readers avoid copying those arrays. Unnest retains the
+parent fields and array element order. A null or empty array emits no row unless
+outer is enabled, in which case it emits exactly one synthetic row with null
+element and exposed index. Nonempty arrays retain null elements and their real
+indices. An absent or incorrectly typed input field is an admission failure,
+not an empty array. These rules also preserve the declared output type for empty
+input; they do not construct rows for an empty input Relation.
+
+The expansion envelope counts every emitted occurrence against the selected
+`max_relation_output_rows`, with nested-value limits retained in the same policy.
+An array item bound is per parent, not a proof of the total output count. An
+unknown item bound therefore retains runtime enforcement rather than causing
+static rejection; a bound larger than a Host ceiling does not authorize truncation
+or imply that the actual input exceeds it. Exceeding a limit rejects the entire
+operation output. Capacity proofs remain separately validated. Input-relative
+emission order does not create a total-order witness: order-dependent consumers
+still require the existing order-resolution closure and its producer dependencies.
+The reference adapter's absence of outer expansion support is an execution
+compatibility gap, not a restriction on this checked contract.
 Ordinary group operations must close partition, per-call demand, result-contract,
 order and any resource/observation requirements before this entry succeeds.
 Exact count/min/max and decimal sum can use their typed output checks; this

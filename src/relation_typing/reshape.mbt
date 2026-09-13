@@ -47,6 +47,47 @@ pub fn json_pick_source(
 }
 
 ///|
+pub fn unpivot_columns_count(value : CheckedOperation) -> Int {
+  match value.reshape {
+    Some(Unpivot(columns~, ..)) => columns.length()
+    _ => 0
+  }
+}
+
+///|
+pub fn unpivot_column_at(value : CheckedOperation, index : Int) -> KeyField? {
+  match value.reshape {
+    Some(Unpivot(columns~, ..)) => columns.get(index)
+    _ => None
+  }
+}
+
+///|
+pub fn unpivot_keep_count(value : CheckedOperation) -> Int {
+  match value.reshape {
+    Some(Unpivot(keep~, ..)) => keep.length()
+    _ => 0
+  }
+}
+
+///|
+pub fn unpivot_keep_at(value : CheckedOperation, index : Int) -> KeyField? {
+  match value.reshape {
+    Some(Unpivot(keep~, ..)) => keep.get(index)
+    _ => None
+  }
+}
+
+///|
+pub fn unpivot_outputs(value : CheckedOperation) -> (String, String)? {
+  match value.reshape {
+    Some(Unpivot(name_column~, value_column~, ..)) =>
+      Some((name_column, value_column))
+    _ => None
+  }
+}
+
+///|
 pub fn json_pick_path_count(value : CheckedOperation) -> Int {
   match value.reshape {
     Some(JsonPick(path~, ..)) => path.length()

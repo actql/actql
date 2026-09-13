@@ -1114,6 +1114,21 @@ pub(all) enum ExecutionCheckPhase {
   BeforeOperationOutput
 } derive(Eq, @debug.Debug)
 
+pub struct ExpansionExecutionCheck {
+  site : OperationRequirementSite
+  step : @pipeline_typing.CheckedStep
+  input : @pipeline_typing.Target
+  operation : @relation_typing.CheckedOperation
+  policy : @capacity_policy.Policy
+  rule : ExpansionExecutionRule
+}
+
+pub enum ExpansionExecutionRule {
+  EmitUnpivotOccurrences
+  EmitArrayOccurrences
+  EnforceOutputEnvelope(@capacity_policy.Ceiling)
+}
+
 pub(all) enum ExpressionClosureIssue {
   InvalidLimits
   BudgetExceeded
@@ -1560,6 +1575,7 @@ pub(all) enum OperationDisposition {
 }
 
 pub(all) enum OperationExecutionCheck {
+  ExpansionExecution(ExpansionExecutionCheck)
   JsonPickExecution(JsonPickExecutionCheck)
   LagExecution(LagExecutionCheck)
   TopKExecution(TopKExecutionCheck)

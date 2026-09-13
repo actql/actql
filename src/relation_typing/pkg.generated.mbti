@@ -227,6 +227,16 @@ pub fn top_k_partition_at(CheckedOperation, Int) -> KeyField?
 
 pub fn top_k_partition_count(CheckedOperation) -> Int
 
+pub fn unpivot_column_at(CheckedOperation, Int) -> KeyField?
+
+pub fn unpivot_columns_count(CheckedOperation) -> Int
+
+pub fn unpivot_keep_at(CheckedOperation, Int) -> KeyField?
+
+pub fn unpivot_keep_count(CheckedOperation) -> Int
+
+pub fn unpivot_outputs(CheckedOperation) -> (String, String)?
+
 pub fn work_used(CheckedOperation) -> Int
 
 // Errors

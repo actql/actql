@@ -198,7 +198,11 @@ pub fn index_program_operation_resolutions(
                           Ok(None) =>
                             match lag_execution_check(site, policy) {
                               Ok(None) =>
-                                json_pick_execution_check(site, policy)
+                                match json_pick_execution_check(site, policy) {
+                                  Ok(None) =>
+                                    expansion_execution_check(site, policy)
+                                  other => other
+                                }
                               other => other
                             }
                           other => other
