@@ -60,6 +60,38 @@ test('ordinary group subjects distinguish calls, steps and measurement scopes', 
   }
 });
 
+test('analytic call bounds distinguish each frame from total memberships and group identity', () => {
+  const v=read('../portability/corpus/analytic-limit-subjects.json');
+  const token=v.name.replaceAll('~','~0').replaceAll('/','~1');
+  const subject=`unit:${v.unit_definition_cid}#/steps/${v.step}/analytic/functions/${token}/items`;
+  assert.equal(subject,v.subject);
+  assert.equal(`$.steps[${v.step}].analytic.functions[${JSON.stringify(v.name)}].max_items`,v.author_path);
+  const proof={version:'actql-bound-proof/0.1',semantic_ref:subject,
+    law_id:'actql.bound.analytic-array-input',unit:'array_items',value:v.bound,inputs:[v.input]};
+  assert.equal(cid(proof),v.proof_cid);
+  for(const changed of [
+    {...proof,law_id:'actql.bound.array-aggregate-input'},
+    {...proof,semantic_ref:subject.replace('/analytic/functions/','/group/aggregates/')},
+    {...proof,semantic_ref:subject.replace('/steps/1/','/steps/2/')},
+    {...proof,semantic_ref:subject.replace('/items','/bytes')},
+    {...proof,semantic_ref:subject.replace(v.unit_definition_cid,'sha256:'+'c'.repeat(64))},
+    {...proof,inputs:['sha256:'+'c'.repeat(64)]},
+  ]) assert.notEqual(cid(changed),v.proof_cid);
+  assert.equal(v.frames.reduce((n,f)=>n+f.length,0),v.memberships);
+  assert.equal(Math.max(...v.frames.map(f=>f.length)),v.max_frame_items);
+  assert.ok(v.memberships>v.bound);
+  for(const frame of v.frames) {
+    assert.equal(new Set(frame).size,frame.length);
+    assert.ok(frame.every(i=>i>=0&&i<v.bound));
+    for(const include of [()=>true,()=>false,i=>i%2===0])
+      assert.ok(frame.filter(include).length<=v.bound);
+  }
+  assert.equal(Math.min(v.bound,2,10),2);
+  assert.equal(Math.min(0,2,10),0);
+  const registry=read('../spec/contracts/actql-bound-law-registry.json');
+  assert.ok(registry.law_ids.includes(proof.law_id));
+});
+
 test('Graph input preflight has Unit-scoped limit and enforced witness identities', () => {
   const corpus = read('../portability/corpus/unit-graph-input-proofs.json');
   for (const vector of corpus.cases) {

@@ -450,7 +450,7 @@ or resource enforcement.
 <!-- requirement-block: capacity-law-registry.machine-contract -->
 <!-- normative-code: law -->
 ```text
-../../../spec/contracts/actql-bound-law-registry.json# sha256:d85879b465d4dc1391511df6c48d2a5c130ed5bbaf2853bd6274a24a4bb113e6
+../../../spec/contracts/actql-bound-law-registry.json# sha256:d072cef2a9a5db8d52a7eaa4de4dc9240690ca03ab6900e8bdd949d138a799b4
 ```
 
 <a id="capacity-host-policy"></a>

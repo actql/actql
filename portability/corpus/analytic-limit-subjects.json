@@ -1,0 +1,13 @@
+{
+  "unit_definition_cid":"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "step":1,
+  "name":"x/y~z",
+  "subject":"unit:sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa#/steps/1/analytic/functions/x~1y~0z/items",
+  "input":"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  "bound":3,
+  "proof_cid":"sha256:7fcb529e3fc99f7b0ae1fc860306420528b87e0e043ba5b1c800f687f2ed344d",
+  "author_path":"$.steps[1].analytic.functions[\"x/y~z\"].max_items",
+  "frames":[[0,1],[0,1,2],[1,2]],
+  "memberships":7,
+  "max_frame_items":3
+}

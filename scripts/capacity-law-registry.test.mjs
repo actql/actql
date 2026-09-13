@@ -364,7 +364,7 @@ test('independent values count vectors count row occurrences, not cell contents'
 
 test('registry fixes its identity, rejects missing Host entries and malformed names', () => {
   const { body, policy } = loadRegistry();
-  assert.equal(validateRegistry(body, policy), 'sha256:d85879b465d4dc1391511df6c48d2a5c130ed5bbaf2853bd6274a24a4bb113e6');
+  assert.equal(validateRegistry(body, policy), 'sha256:d072cef2a9a5db8d52a7eaa4de4dc9240690ca03ab6900e8bdd949d138a799b4');
   assert.ok(body.law_ids.includes('actql.bound.text-rank'));
   for (const name of ['values', 'time-series', 'calendar-series']) {
     assert.ok(body.law_ids.includes(`actql.bound.${name}`));

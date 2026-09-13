@@ -8007,6 +8007,50 @@ required checks. Conversion MUST rebuild dependent identities; a `rows` witness
 MUST NOT be relabeled as an `array_items` witness. This proof does not establish
 observed counts or discharge the aggregate's order and value-admission obligations.
 
+<!-- requirement-block: resolved-limits.unit-analytic-aggregate-subject -->
+An analytic aggregate's persistent resolved limit MUST use
+`unit:<unit_definition_cid>#/steps/<ordinal>/analytic/functions/<name_token>/<scope>`
+as its `subject_ref`, binding the actual producer Unit, authored step ordinal and
+canonical call name escaped as one JSON Pointer token. Scope `items` is the
+`array_items` limit on each `array_agg` frame result; scope `bytes` is the raw
+UTF-8 payload limit on each non-null `string_agg` frame result. This reference
+names a universally enforced per-frame call limit, not one future output-row
+observation, the total across frames, or the analytic row-array wire budget.
+Equal maxima do not permit substituting another call, Unit, policy or bound
+Parameter selection. Imported limits keep the original producer Unit.
+
+<!-- requirement-block: resolved-limits.unit-analytic-array-input -->
+An `actql.bound.analytic-array-input` proof MUST bind that exact `items`
+reference as `semantic_ref`, quantity `array_items`, and the complete canonical
+bound-proof preimage. Its sole input is a persistent applicable upper-bound
+witness on this analytic operation's actual input rows, and its value equals
+that bound. Each partition is a subset of input occurrences, a ROWS frame is
+a subset of its partition, and filter, NULL exclusion and distinct cannot
+increase contributors. Thus the proof bounds each frame's array even when frames
+overlap; it does not bound the sum of frame memberships or retained array items.
+It preserves input dependencies and prerequisite checks and grants no observed
+count, position-order witness or completed value admission. A rows witness is
+not relabeled as array_items, and the ordinary group input law is not used.
+
+<!-- requirement-block: resolved-limits.unit-analytic-array-conversion -->
+Conversion MUST rebuild the analytic proof, witness, dependencies and resolved
+limit CIDs from the verified Unit/step/call mapping and converted input witness,
+preserving unchanged Host/Contract identities. The proof body remains exactly
+`{version, semantic_ref, law_id, unit, value, inputs}` under the existing canonical
+bound-proof rules. Independent Host or author item ceilings remain separate
+candidates; all applicable candidates participate in minimum selection.
+Enforcement rejects excess atomically without truncation. Registration of the law
+does not establish correct application, runtime truth or backend support.
+
+<!-- requirement-block: resolved-limits.unit-analytic-author-guard -->
+An analytic call's author-guard witness MUST bind the owning Unit Definition
+and exact local path `$.steps[n].analytic.functions[<json-name>].max_items` or
+`.max_bytes`, retaining its effective bound value and existing
+`actql.guard.array-aggregate` or `actql.guard.string-aggregate` law respectively.
+`json-name` is the canonical call name encoded as a JSON string, not a JSON
+Pointer token. Omission supplies no author guard. The minimum applies per frame
+result; delimiter bytes follow string aggregation's existing output rule.
+
 <!-- requirement-block: resolved-limits.unit-graph-input-subject resolved-limits.unit-graph-input-enforced-proof -->
 A persistent Graph input preflight limit MUST use
 `unit:<unit_definition_cid>#/inputs/<input_name_token>/<measure>` as its

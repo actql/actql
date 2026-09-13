@@ -7120,6 +7120,50 @@
       }
     },
     {
+      "requirement_id": "actql.language/resolved-limits.unit-analytic-aggregate-subject",
+      "statement_sha256": "0a17f2b88be71191fab93af75c9276a61128e36c126037f680868445e6c18c74",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "resolved-limits",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/resolved-limits.unit-analytic-array-input",
+      "statement_sha256": "e6df8d9fb65a4e64545cf1b3825d1c716b4d7955e47b31fd2c4500b462274c0c",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "resolved-limits",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/resolved-limits.unit-analytic-array-conversion",
+      "statement_sha256": "a64a2e46639e303b7fdfb3acc6b93476f2c759cfc484942d19bf4d5ca52e9901",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "resolved-limits",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/resolved-limits.unit-analytic-author-guard",
+      "statement_sha256": "e8f03d197dfee0da6b7b0a352fcf889df8bb98b9a2c6b4d7c7e061458c89b448",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "resolved-limits",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.language/resolved-limits.unit-graph-input-subject",
       "statement_sha256": "1c7ecb523d39cdb5987464a9d1ef434dac86ce0c0bd8e0f475fd319171c4c64c",
       "status": "pending",

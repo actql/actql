@@ -98,3 +98,12 @@ API name but contains the exact call and resolution-index owner, not a group
 partition or input-size proof. Ordinary group and analytic selectors validate
 their own operation kind; shared Host/author selection does not transfer evidence
 between those kinds. Repeated producer visits and inventory scans remain charged.
+
+Persistent collection scopes use the producer Unit's authored analytic step and
+escaped function name under `/analytic/functions/`, never `/group/aggregates/`.
+They name a per-frame bound applying to every result, not a future frame
+observation. Input-row evidence uses the distinct analytic array-input law:
+each frame is a subset of a partition of input occurrences. Overlapping frames
+can have a larger total membership count, so that law does not bound total work
+or retained arrays. The subject reader exposes ownership without treating law
+registration, a subject string or its hash as proof application or execution.

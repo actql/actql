@@ -7,6 +7,7 @@ struct RegisteredLaw(String)
 /// Registry membership only, not source integrity or valid law application.
 pub fn admit(law : String) -> RegisteredLaw? {
   match law {
+    "actql.bound.analytic-array-input" => Some(RegisteredLaw(law))
     "actql.bound.append" => Some(RegisteredLaw(law))
     "actql.bound.array-aggregate-input" => Some(RegisteredLaw(law))
     "actql.bound.asof-left" => Some(RegisteredLaw(law))

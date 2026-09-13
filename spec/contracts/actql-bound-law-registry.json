@@ -1,6 +1,7 @@
 {
   "version": "actql-bound-law-registry/0.1",
   "law_ids": [
+    "actql.bound.analytic-array-input",
     "actql.bound.append",
     "actql.bound.array-aggregate-input",
     "actql.bound.asof-left",
