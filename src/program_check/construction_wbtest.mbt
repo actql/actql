@@ -35,6 +35,8 @@ fn local_construction_fixture(
   nested_depth? : Int? = None,
   text_time? : Bool = false,
   tea? : Bool = false,
+  calendar? : Bool = false,
+  calendar_material? : Bool = true,
   text_policy? : Bool = false,
   generated_proofs? : Array[@wire.ProgramProofClaim] = [],
   generated_proof_stage? : Int = 1,
@@ -190,6 +192,14 @@ fn local_construction_fixture(
       ""
     }) +
     "}"
+  let profile = if calendar {
+    profile.replace(
+      old="\"capacity\":",
+      new="\"calendar\":{\"conversion_law\":\"actql-calendar-boundaries/0.1\",\"table_bytes_cid\":\"sha256:9f3724c9d9d160476ee7abf5d8eaa0701bbd5c17f900154496bb8615bf20f4ca\",\"tzdb_version\":\"test-fixture\",\"version\":\"actql-calendar-selection/0.1\"},\"capacity\":",
+    )
+  } else {
+    profile
+  }
   let body = "{\"command_contracts\":[],\"connector_capabilities\":[],\"connector_catalogs\":[],\"contract_registry\":[],\"host_policy_profile\":" +
     profile +
     ",\"mapping_contracts\":[],\"model_task_contracts\":[],\"schema_snapshots\":[],\"source_views\":[],\"version\":\"actql-check-environment/0.1\"}"
@@ -217,6 +227,25 @@ fn local_construction_fixture(
     cid,
     { max_bytes: 10000, max_nodes: 1000, max_depth: 100, max_members: 10, },
   ).unwrap()
+  let selected_calendar = if calendar && calendar_material {
+    Some(
+      @environment.admit_calendar_profile(
+        @environment.read_calendar_selection(environment, 1000).unwrap(),
+        @utf8.encode(
+          "{\"conversion_law\":\"actql-calendar-boundaries/0.1\",\"coverage_end_ms\":253402300800000,\"coverage_start_ms\":-62135596800000,\"tzdb_version\":\"test-fixture\",\"version\":\"actql-tzdb-table/0.1\",\"zones\":{\"UTC\":{\"initial_offset_seconds\":0,\"transitions\":[]}}}",
+        ),
+        {
+          max_bytes: 1000,
+          max_nodes: 100,
+          max_depth: 8,
+          max_zones: 1,
+          max_transitions: 0,
+        },
+      ).unwrap(),
+    )
+  } else {
+    None
+  }
   let mixed = @wire.check_mixed_claims([], [], {
     max_entities: 0,
     max_references: 0,
@@ -305,7 +334,7 @@ fn local_construction_fixture(
       supplied,
       materials,
       { text_time, veca: false, },
-      { rela: true, sga: false, tea, calendar: false, text_rank: false, },
+      { rela: true, sga: false, tea, calendar, text_rank: false, },
       source_limits_fixture(
         stage_count +
         extra_step_budget +
@@ -316,6 +345,7 @@ fn local_construction_fixture(
       max_nodes=budget.nodes,
       max_depth=budget.depth,
       numeric_profile~,
+      calendar=selected_calendar,
     )
     checked_results.push(value)
     return (
@@ -339,11 +369,12 @@ fn local_construction_fixture(
     },
     materials,
     { text_time, veca: false, },
-    { rela: true, sga: false, tea, calendar: false, text_rank: false, },
+    { rela: true, sga: false, tea, calendar, text_rank: false, },
     source_limits_fixture(
       stage_count + (if generated_rows is Some(_) { 1 } else { 0 }),
     ),
     budget,
+    calendar=selected_calendar,
   )
 }
 

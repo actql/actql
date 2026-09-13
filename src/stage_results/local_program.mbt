@@ -49,6 +49,7 @@ pub fn prepare_local_program(
   limits : LocalProgramLimits,
   environment? : @local.ProgramEnvironmentInputs? = None,
   sourceview_registrations? : Array[Array[(String, @pipeline.InputContract)]]? = None,
+  calendar_profile? : @calendar_profile.Profile? = None,
 ) -> Result[(ResultWiring, LocalProgramUsage), LocalProgramIssue] {
   if limits.max_stages < 0 ||
     limits.max_steps < 0 ||
@@ -212,6 +213,7 @@ pub fn prepare_local_program(
           max_text_bytes: text,
           max_depth: limits.max_depth,
         },
+        calendar_profile~,
       ) {
       Err(e) => return Err(Pipeline(i, e))
       Ok(v) => v

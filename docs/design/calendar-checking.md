@@ -80,8 +80,16 @@ output; a row ceiling is not timezone validation, a memory bound or a license to
 truncate. The profile and range bindings do not compute bucket boundaries,
 establish an exact series count or attest observed coverage. Backend support for
 the selected artifact and these checks remains a separate execution obligation.
-These owned checks are components of Program closure, not by themselves a formal
-Calendar Program admission entry.
+The formal `program_check.check` entry accepts an Environment-owned selected
+Calendar artifact through its optional `calendar` argument. Registration topology
+rejects a selection from another Environment before preparing any Stage pipeline.
+The same admitted profile is passed to every Calendar operation; Result imports
+retain their original producer rather than rebuilding a calendar-compatible row
+type. Selection verification work is included in the shared topology budget.
+Operation closure independently checks the same selection and retains it in the
+execution requirements. A profile declaration without the artifact is insufficient,
+including for an empty UTC series. This closes source-driven Calendar construction,
+not backend timezone evaluation or successful resource enforcement.
 
 `calendar_profile.admit` accepts raw bytes and independently selected byte
 CID/release pins. It checks the original hash before parsing, admits the closed

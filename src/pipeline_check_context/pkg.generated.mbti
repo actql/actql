@@ -640,9 +640,9 @@ pub fn prepare_source_registrations(@stage_parameters.Source, @check_environment
 
 pub fn prepare_source_state_requirement(ProgramSourceIdentity, Int, Int, @local_relation_snapshot.Limits) -> Result[SourceStateRequirement?, SourceStateIssue]
 
-pub fn prepare_sourceview_context(@sourceview_resolution.PipelineInputs, @stage_local_inputs.ProgramEnvironmentInputs, @decode_core.Cursor?, Array[Array[CapacityMaterial]], @stage_results.LocalProgramLimits, LocalContextLimits, proof_owners? : Array[Array[(Int, Int, Int)]]?, input_owners? : Array[Array[(Int, Int, Int, Int)]]?) -> Result[SelectedPolicyContext, SourceViewContextIssue]
+pub fn prepare_sourceview_context(@sourceview_resolution.PipelineInputs, @stage_local_inputs.ProgramEnvironmentInputs, @decode_core.Cursor?, Array[Array[CapacityMaterial]], @stage_results.LocalProgramLimits, LocalContextLimits, proof_owners? : Array[Array[(Int, Int, Int)]]?, input_owners? : Array[Array[(Int, Int, Int, Int)]]?, calendar? : @check_environment.SelectedCalendarProfile?) -> Result[SelectedPolicyContext, SourceViewContextIssue]
 
-pub fn prepare_sourceview_program(@sourceview_resolution.PipelineInputs, @stage_local_inputs.ProgramEnvironmentInputs, @stage_results.LocalProgramLimits) -> Result[(@stage_results.ResultWiring, @stage_results.LocalProgramUsage), SourceViewProgramIssue]
+pub fn prepare_sourceview_program(@sourceview_resolution.PipelineInputs, @stage_local_inputs.ProgramEnvironmentInputs, @stage_results.LocalProgramLimits, calendar? : @check_environment.SelectedCalendarProfile?) -> Result[(@stage_results.ResultWiring, @stage_results.LocalProgramUsage), SourceViewProgramIssue]
 
 pub fn program_identity_definition(ProgramSourceIdentity) -> @program_references.ProgramDefinition
 
@@ -2655,6 +2655,7 @@ pub enum SourceViewContextIssue {
 pub enum SourceViewProgramIssue {
   InvalidLimits
   ForeignEnvironment
+  ForeignCalendarEnvironment
   ForeignSource
   ForeignPartition(Int)
   BudgetExceeded

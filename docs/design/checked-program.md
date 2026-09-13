@@ -244,6 +244,13 @@ hide or alias `time` without changing the producer of the count. Empty intervals
 do not waive Parameter validation, and a wrong count rejects the whole Program.
 This boundary neither materializes the grid nor attests successful generation.
 
+Calendar series and bucket use the optional Environment-selected `calendar`
+artifact at the same formal entry. Topology verifies its Environment owner before
+passing the profile to each Stage, including producers retained by Result imports.
+Closure retains that selection for value/boundary checks and the selected Relation
+output ceiling. Missing artifacts fail even for empty UTC ranges; admitting the
+artifact does not evaluate a timezone boundary or prove an exact series count.
+
 Interval join closes endpoint admission, clock admission and occurrence order
 separately from output capacity and search work. Its bounded-search path requires
 owned operand row bounds and the single-visit-per-pair realization condition;

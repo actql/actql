@@ -2,6 +2,7 @@
 package "actql/actql/stage_results"
 
 import {
+  "actql/actql/calendar_profile",
   "actql/actql/check_environment",
   "actql/actql/decode_core",
   "actql/actql/parameter_binding",
@@ -74,9 +75,9 @@ pub fn local_source_wiring(PreparedLocalSource) -> ResultWiring
 
 pub fn operations(Checked) -> @stage_parameters.CollectedOperations
 
-pub fn prepare_local_program(@stage_parameters.Source, LocalProgramLimits, environment? : @stage_local_inputs.ProgramEnvironmentInputs?, sourceview_registrations? : Array[Array[(String, @pipeline_typing.InputContract)]]?) -> Result[(ResultWiring, LocalProgramUsage), LocalProgramIssue]
+pub fn prepare_local_program(@stage_parameters.Source, LocalProgramLimits, environment? : @stage_local_inputs.ProgramEnvironmentInputs?, sourceview_registrations? : Array[Array[(String, @pipeline_typing.InputContract)]]?, calendar_profile? : @calendar_profile.Profile?) -> Result[(ResultWiring, LocalProgramUsage), LocalProgramIssue]
 
-pub fn prepare_local_source(@stage_syntax.Program, @decode_core.Cursor?, max_parameters~ : Int, LocalProgramLimits, environment? : @check_environment.WireEnvironment?) -> Result[PreparedLocalSource, LocalSourceIssue]
+pub fn prepare_local_source(@stage_syntax.Program, @decode_core.Cursor?, max_parameters~ : Int, LocalProgramLimits, environment? : @check_environment.WireEnvironment?, calendar_profile? : @calendar_profile.Profile?) -> Result[PreparedLocalSource, LocalSourceIssue]
 
 pub fn resolve_imports(@stage_parameters.Source, Int, Array[StagePorts], ImportLimits) -> Result[ResultImports, ImportIssue]
 

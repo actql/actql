@@ -20,6 +20,7 @@ fn construct_local(
   limits : SourceLimits,
   budget : IdentityBudget,
   numeric_profile? : @numeric.Profile? = None,
+  calendar? : @environment.SelectedCalendarProfile? = None,
 ) -> (
   @context.ProgramSourceIdentity,
   @context.StageRequirementClosure,
@@ -106,8 +107,15 @@ fn construct_local(
     },
   }
   let identity = prepare_catalog_source(
-    program, supplied, catalog, material, locations, expression_profiles, operation_profiles,
+    program,
+    supplied,
+    catalog,
+    material,
+    locations,
+    expression_profiles,
+    operation_profiles,
     limits,
+    calendar~,
   ) catch {
     e => raise Source(e)
   }
@@ -124,6 +132,7 @@ fn construct_local(
     identity,
     remaining,
     numeric_profile~,
+    calendar~,
   ) catch {
     e => raise Closure(e)
   }

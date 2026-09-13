@@ -1,6 +1,7 @@
 supported_targets = "+js+wasm+native"
 
 import {
+  "actql/actql/calendar_profile",
   "actql/actql/check_environment" @environment,
   "actql/actql/parameter_binding" @binding,
   "actql/actql/stage_parameters" @parameters,
@@ -16,6 +17,7 @@ import {
 
 import {
   "actql/actql/relation_schema" @schema,
+  "actql/actql/calendar_typing" @calendar,
   "moonbitlang/core/encoding/utf8",
   "actql/actql/parameter_references" @references,
   "actql/actql/value_contract" @contract,

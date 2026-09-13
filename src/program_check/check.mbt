@@ -71,6 +71,8 @@ fn check_supported_source(
               | "row_window"
               | "window_events"
               | "time_series"
+              | "calendar_series"
+              | "calendar_bucket"
               | "window_group"
               | "watermark_rows"
               | "append"
@@ -114,6 +116,7 @@ pub fn check(
   max_nodes~ : Int,
   max_depth~ : Int,
   numeric_profile? : @numeric.Profile? = None,
+  calendar? : @environment.SelectedCalendarProfile? = None,
 ) -> CheckedProgram raise LocalConstructionFailure {
   if max_work < 0 || max_bytes < 0 || max_nodes < 0 || max_depth < 0 {
     raise InvalidLimits
@@ -135,6 +138,7 @@ pub fn check(
     limits,
     budget,
     numeric_profile~,
+    calendar~,
   )
   audit_source_execution(contracts, units[0].source_execution, budget) catch {
     error => raise Units(error)

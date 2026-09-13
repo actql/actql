@@ -28,6 +28,7 @@ fn prepare_owned_closure(
   identity : @context.ProgramSourceIdentity,
   budget : IdentityBudget,
   numeric_profile? : @numeric.Profile? = None,
+  calendar? : @environment.SelectedCalendarProfile? = None,
 ) -> (
   @context.StageRequirementClosure,
   @context.ProgramIncomingGates,
@@ -42,11 +43,15 @@ fn prepare_owned_closure(
   }
   let ceiling = budget.work
   let initial_resolutions = match
-    @context.resolve_program_operations(identity, {
-      max_work: ceiling,
-      max_requirements: ceiling - prefix,
-      max_resolutions: ceiling - prefix,
-    }) {
+    @context.resolve_program_operations(
+      identity,
+      {
+        max_work: ceiling,
+        max_requirements: ceiling - prefix,
+        max_resolutions: ceiling - prefix,
+      },
+      calendar~,
+    ) {
     Ok(v) => v
     Err(e) => raise Operations(e)
   }

@@ -2,6 +2,7 @@
 pub enum SourceViewProgramIssue {
   InvalidLimits
   ForeignEnvironment
+  ForeignCalendarEnvironment
   ForeignSource
   ForeignPartition(Int)
   BudgetExceeded
@@ -17,11 +18,12 @@ pub fn prepare_sourceview_program(
   views : @sourceviews.PipelineInputs,
   locals : @local_inputs.ProgramEnvironmentInputs,
   limits : @stage_results.LocalProgramLimits,
+  calendar? : @environment.SelectedCalendarProfile? = None,
 ) -> Result[
   (@stage_results.ResultWiring, @stage_results.LocalProgramUsage),
   SourceViewProgramIssue,
 ] {
-  match prepare_sourceview_program_internal(views, locals, limits) {
+  match prepare_sourceview_program_internal(views, locals, limits, calendar~) {
     Ok((wiring, usage, _)) => Ok((wiring, usage))
     Err(e) => Err(e)
   }
@@ -34,6 +36,7 @@ fn prepare_sourceview_program_internal(
   views : @sourceviews.PipelineInputs,
   locals : @local_inputs.ProgramEnvironmentInputs,
   limits : @stage_results.LocalProgramLimits,
+  calendar? : @environment.SelectedCalendarProfile? = None,
 ) -> Result[
   (@stage_results.ResultWiring, @stage_results.LocalProgramUsage, Int),
   SourceViewProgramIssue,
@@ -63,10 +66,25 @@ fn prepare_sourceview_program_internal(
   let partition = @sourceviews.inputs(@sourceviews.pipeline_resolution(views))
   let count = @stages.stage_count(source)
   let prior = @sourceviews.pipeline_inputs_work(views)
-  if prior > limits.max_work || count > (limits.max_work - prior) / 2 {
+  let calendar_work = match calendar {
+    None => 0
+    Some(profile) => {
+      let selection = @environment.selected_calendar_selection(profile)
+      if !physical_equal(
+          @environment.calendar_selection_environment(selection),
+          @sourceviews.pipeline_environment(views),
+        ) {
+        return Err(ForeignCalendarEnvironment)
+      }
+      @environment.calendar_selection_work(selection)
+    }
+  }
+  if prior > limits.max_work ||
+    calendar_work > limits.max_work - prior ||
+    count > (limits.max_work - prior - calendar_work) / 2 {
     return Err(BudgetExceeded)
   }
-  let mut extra = prior + count * 2
+  let mut extra = prior + calendar_work + count * 2
   let registrations : Array[Array[(String, @pipeline.InputContract)]] = []
   for stage in 0..<count {
     let admitted = @local_inputs.program_environment_stage(locals, stage).unwrap()
@@ -95,6 +113,7 @@ fn prepare_sourceview_program_internal(
       { ..limits, max_work: limits.max_work - extra, },
       environment=Some(locals),
       sourceview_registrations=Some(registrations),
+      calendar_profile=calendar.map(@environment.selected_calendar_profile),
     ) {
     Ok(v) => v
     Err(e) => return Err(Program(e))

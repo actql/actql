@@ -36,6 +36,7 @@ pub fn prepare_local_source(
   max_parameters~ : Int,
   limits : LocalProgramLimits,
   environment? : @environment.WireEnvironment? = None,
+  calendar_profile? : @calendar_profile.Profile? = None,
 ) -> Result[PreparedLocalSource, LocalSourceIssue] {
   if max_parameters < 0 ||
     limits.max_stages < 0 ||
@@ -102,6 +103,7 @@ pub fn prepare_local_source(
         max_text_bytes: limits.max_text_bytes - decl_text - bind_text,
       },
       environment=inputs,
+      calendar_profile~,
     ) {
     Ok(v) => v
     Err(e) => return Err(Program(e))

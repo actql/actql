@@ -20,6 +20,7 @@ pub fn prepare_sourceview_context(
   limits : LocalContextLimits,
   proof_owners? : Array[Array[(Int, Int, Int)]]? = None,
   input_owners? : Array[Array[(Int, Int, Int, Int)]]? = None,
+  calendar? : @environment.SelectedCalendarProfile? = None,
 ) -> Result[SelectedPolicyContext, SourceViewContextIssue] {
   if !local_context_limits_valid(limits) {
     return Err(InvalidLimits)
@@ -33,7 +34,7 @@ pub fn prepare_sourceview_context(
     ),
   }
   let (wiring, _, extra) = match
-    prepare_sourceview_program_internal(views, locals, source_limits) {
+    prepare_sourceview_program_internal(views, locals, source_limits, calendar~) {
     Ok(v) => v
     Err(e) => return Err(Program(e))
   }
