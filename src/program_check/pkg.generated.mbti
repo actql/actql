@@ -84,6 +84,10 @@ pub fn publication_phase(PublicationExecution) -> PublicationPhase
 
 pub fn publication_policy_classification(PublicationSourcePolicy) -> @check_environment.DataClassification
 
+pub fn publication_policy_copy_at(PublicationSourcePolicy, Int) -> PublicationPolicyCopies?
+
+pub fn publication_policy_copy_count(PublicationSourcePolicy) -> Int
+
 pub fn publication_policy_edge_at(PublicationSourcePolicy, Int) -> PublicationPolicyEdge?
 
 pub fn publication_policy_edge_count(PublicationSourcePolicy) -> Int
@@ -291,6 +295,11 @@ pub enum PublicationFailure {
 
 pub enum PublicationPhase {
   BeforeResultPublication
+}
+
+pub struct PublicationPolicyCopies {
+  step : Int
+  operation : @relation_typing.CheckedOperation
 }
 
 pub struct PublicationPolicyEdge {

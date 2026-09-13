@@ -15,6 +15,7 @@ fn checked_direct_program_fixture(
   mix_generated? : Bool = false,
   local_input? : Bool = false,
   mix_local? : Bool = false,
+  derive_body? : String = "",
 ) -> CheckedProgram raise {
   let original_text =
     #|{"version":"actql/0.1","id":"direct","stages":[{"id":"s","inputs":{"remote":{"connector":"crm/main","resource":"r","request":{"id":1,"tenant":null}}},"steps":[{"distinct":["id"],"as":"selected"}],"results":{"out":{"from":"selected","fields":["id"]}}}],"results":{"out":{"from":{"stage":"s","result":"out"}}}}
@@ -94,10 +95,15 @@ fn checked_direct_program_fixture(
         old="}],\"results\":{\"out\":{\"from\":{\"stage\":\"s\",\"result\":\"out\"}}}}",
         new="},{\"id\":\"consumer\",\"inputs\":{\"imported\":{\"result\":{\"stage\":\"s\",\"result\":\"out\"}}},\"steps\":[],\"results\":{\"out\":{\"from\":\"imported\",\"fields\":[\"id\"]}}}],\"results\":{\"out\":{\"from\":{\"stage\":\"consumer\",\"result\":\"out\"}}}}",
       )
+    } else if derive_body != "" {
+      text.replace(
+        old="\"steps\":[",
+        new="\"steps\":[{\"derive\":" + derive_body + "},",
+      )
     } else if extra_derive {
       text.replace(
         old="\"steps\":[",
-        new="\"steps\":[{\"derive\":{\"x\":\"id\"}},",
+        new="\"steps\":[{\"derive\":{\"x\":\"id + 1\"}},",
       )
     } else if take != "" {
       let sliced = text.replace(
@@ -722,41 +728,100 @@ test "filter publication retains its checked predicate and policy occurrence" {
 }
 
 ///|
-test "filter policy transfer charges predicates and nodes before completing publication" {
-  let program = checked_direct_program_fixture(filter="\"id > $threshold\"")
-  let unit = program.units[0]
-  let publication = @context.publication_row_limit_result(
-    unit.publication_rows[0],
-  )
-  let initial = 100000
-  let measured = IdentityBudget::{
-    work: initial,
-    bytes: initial,
-    nodes: initial,
-    depth: 100,
+test "filter and exact-copy derive policy transfer charge their complete traversal" {
+  for
+    program in [
+      checked_direct_program_fixture(filter="\"id > $threshold\""),
+      checked_direct_program_fixture(
+        derive_body="[{\"x\":\"id\"},{\"y\":\"x\"}]",
+      ),
+    ] {
+    let unit = program.units[0]
+    let publication = @context.publication_row_limit_result(
+      unit.publication_rows[0],
+    )
+    let initial = 100000
+    let measured = IdentityBudget::{
+      work: initial,
+      bytes: initial,
+      nodes: initial,
+      depth: 100,
+    }
+    let expected = prepare_publication_source_policy(
+      unit, publication, measured,
+    ).unwrap()
+    let used = initial - measured.work
+    let exact = IdentityBudget::{
+      work: used,
+      bytes: initial,
+      nodes: initial,
+      depth: 100,
+    }
+    let actual = prepare_publication_source_policy(unit, publication, exact).unwrap()
+    assert_eq(actual.cid, expected.cid)
+    assert_eq(exact.work, 0)
+    let short = IdentityBudget::{
+      work: used - 1,
+      bytes: initial,
+      nodes: initial,
+      depth: 100,
+    }
+    try prepare_publication_source_policy(unit, publication, short) catch {
+      BudgetExceeded | Encoding(_) => ()
+      error => raise error
+    } noraise {
+      _ => fail("partial policy escaped preparation budget")
+    }
   }
-  let expected = prepare_publication_source_policy(unit, publication, measured).unwrap()
-  let used = initial - measured.work
-  let exact = IdentityBudget::{
-    work: used,
-    bytes: initial,
-    nodes: initial,
-    depth: 100,
-  }
-  let actual = prepare_publication_source_policy(unit, publication, exact).unwrap()
-  assert_eq(actual.cid, expected.cid)
-  assert_eq(exact.work, 0)
-  let short = IdentityBudget::{
-    work: used - 1,
-    bytes: initial,
-    nodes: initial,
-    depth: 100,
-  }
-  try prepare_publication_source_policy(unit, publication, short) catch {
-    BudgetExceeded | Encoding(_) => ()
-    error => raise error
-  } noraise {
-    _ => fail("partial policy escaped preparation budget")
+}
+
+///|
+test "empty and exact-copy derives retain owned publication policy mappings" {
+  let baseline = checked_direct_program_fixture()
+  let expected = publication_source_policy(
+    unit_publication_at(baseline, 0, 0).unwrap(),
+  ).unwrap()
+  for
+    body in [
+      "{}", "{\"x\":\"id\"}", "[{\"id\":\"id\"}]", "[{\"x\":\"id\"},{\"y\":\"x\"}]",
+    ] {
+    let program = checked_direct_program_fixture(derive_body=body)
+    let policy = publication_source_policy(
+      unit_publication_at(program, 0, 0).unwrap(),
+    ).unwrap()
+    assert_eq(policy.cid, expected.cid)
+    assert_eq(publication_policy_source_count(policy), 1)
+    assert_eq(publication_policy_copy_count(policy), 1)
+    let copy = publication_policy_copy_at(policy, 0).unwrap()
+    assert_eq(copy.step, 0)
+    guard @pipeline.step_at(program.units[0].pipeline, 0).unwrap().operation
+      is @pipeline.Unary(operation) else {
+      fail("missing owned derive")
+    }
+    assert_true(physical_equal(copy.operation, operation))
+    assert_eq(
+      @relation.binding_count(copy.operation),
+      if body == "{}" {
+        0
+      } else if body == "[{\"x\":\"id\"},{\"y\":\"x\"}]" {
+        2
+      } else {
+        1
+      },
+    )
+    for i in 0..<@relation.binding_count(copy.operation) {
+      assert_true(
+        @relation.binding_copy_at(copy.operation, i).unwrap().input is Some(_),
+      )
+    }
+    if @relation.binding_count(copy.operation) == 2 {
+      assert_eq(
+        @relation.binding_copy_at(copy.operation, 1).unwrap().input,
+        Some(@relation.PriorSlot(0)),
+      )
+    }
+    assert_true(publication_policy_copy_at(policy, -1) is None)
+    assert_true(publication_policy_copy_at(policy, 1) is None)
   }
 }
 

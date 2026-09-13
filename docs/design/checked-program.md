@@ -174,6 +174,15 @@ immutable dependency graph, not a copied or flattened lineage. All searches and
 policy emission consume the same preparation budget; a later failure exposes no
 partial CheckedProgram.
 
+Empty derive maps and derives consisting entirely of exact whole-field copies
+preserve the contributing policy set. Indexed `publication_policy_copy_count/at`
+readers retain the checked operation and its step, so lowering can read output
+names and snapshot versus prior-slot reference targets without reconstructing
+lineage. Each binding consumes preparation work. Overwriting a field with its
+exact value is still a copy; arithmetic, literal and other computed expressions
+are not accepted by this transfer rule merely because they share an input type.
+The empty map retains its operation occurrence without inventing a contribution.
+
 Other transfer paths, including computed values and mixed-source operations
 other than append, except, intersect, join and cross join,
 still require their own composition rules. A SourceView-containing

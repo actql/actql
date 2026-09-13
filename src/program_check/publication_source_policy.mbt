@@ -15,6 +15,26 @@ pub struct PublicationSourcePolicy {
   priv edges : Array[PublicationPolicyEdge]
   priv generators : Array[PublicationPolicyGenerator]
   priv locals : Array[@context.LocalInputExecutionCheck]
+  priv copies : Array[PublicationPolicyCopies]
+}
+
+///|
+pub struct PublicationPolicyCopies {
+  step : Int
+  operation : @relation.CheckedOperation
+}
+
+///|
+pub fn publication_policy_copy_count(value : PublicationSourcePolicy) -> Int {
+  value.copies.length()
+}
+
+///|
+pub fn publication_policy_copy_at(
+  value : PublicationSourcePolicy,
+  index : Int,
+) -> PublicationPolicyCopies? {
+  value.copies.get(index)
 }
 
 ///|
@@ -185,6 +205,7 @@ fn prepare_publication_source_policy(
   let slices : Array[PublicationPolicySlice] = []
   let generators : Array[PublicationPolicyGenerator] = []
   let locals : Array[@context.LocalInputExecutionCheck] = []
+  let copies : Array[PublicationPolicyCopies] = []
   let mut unknown = false
   while pending.pop() is Some(target) {
     identity_charge(budget, 1)
@@ -205,6 +226,17 @@ fn prepare_publication_source_policy(
           @pipeline.Unary(operation) => {
             match @relation.operation(operation) {
               Select | Rename | Drop | Sort | Distinct | DedupeRows => ()
+              Derive => {
+                for binding in 0..<@relation.binding_count(operation) {
+                  identity_charge(budget, 1)
+                  guard @relation.binding_copy_at(operation, binding)
+                    is Some(copy) &&
+                    copy.input is Some(_) else {
+                    return None
+                  }
+                }
+                copies.push({ step: index, operation, })
+              }
               Take => {
                 identity_charge(budget, 2)
                 guard @relation.row_operation(operation)
@@ -394,6 +426,7 @@ fn prepare_publication_source_policy(
     edges,
     generators,
     locals,
+    copies,
   }
   |> Some
 }
