@@ -106,7 +106,13 @@ fn prepare_mapping(
       }
       Project(mapping)
     }
-    Unnest | Unpivot | Group | Pivot => Forget
+    Unnest =>
+      match @relation.reshape(operation) {
+        Some(Unnest(outer=false, index=Some(_), ..)) => Keep
+        Some(Unnest(outer=true, max_items=Some(n), ..)) if n <= 1L => Keep
+        _ => Forget
+      }
+    Unpivot | Group | Pivot => Forget
   }
 }
 
@@ -195,7 +201,13 @@ pub fn transfer_keys(
     let witnesses : Array[KeyedRelation] = []
     for key in previous.witnesses {
       if mapped_key(key, mapping, records, source, b) is Some(next) {
-        witnesses.push(next)
+        witnesses.push(
+          if @relation.operation(operation) == @relation.Unnest {
+            unnest_key(operation, key, next, b)
+          } else {
+            next
+          },
+        )
       }
     }
     let work = limits.max_work - b.work

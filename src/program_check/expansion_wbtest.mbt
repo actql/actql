@@ -112,7 +112,8 @@ test "formal unpivot closes occurrence and envelope checks without dropping repe
 ///|
 test "formal unnest preserves outer nullability and optional array bounds" {
   for outer in [false, true] {
-    for bound in ["", ",\"max_items\":0", ",\"max_items\":3"] {
+    for
+      bound in ["", ",\"max_items\":0", ",\"max_items\":1", ",\"max_items\":3"] {
       let checked : Array[CheckedProgram] = []
       let _ = local_construction_fixture(
         { work: 10000000, bytes: 1000000, nodes: 100000, depth: 100, },
@@ -131,6 +132,43 @@ test "formal unnest preserves outer nullability and optional array bounds" {
         extra_step_budget=3,
       )
       let program = checked[0]
+      let pipeline = unit_pipeline(program, 0).unwrap()
+      let expanded_keys = @pipeline.candidate_keys(pipeline, Step(2)).unwrap()
+      let singleton = outer &&
+        (bound == ",\"max_items\":0" || bound == ",\"max_items\":1")
+      assert_eq(
+        @evidence.key_witness_count(expanded_keys),
+        if !outer || singleton {
+          1
+        } else {
+          0
+        },
+      )
+      if !outer || singleton {
+        let key = @evidence.key_witness_at(expanded_keys, 0).unwrap()
+        assert_eq(@evidence.key_origin(key), UnnestResult)
+        assert_true(@evidence.key_unnest_input(key) is Some(_))
+        assert_true(@evidence.key_pending(key).contains(ValidateKeyProducer))
+      }
+      // The publication removes the index, so only the independent outer
+      // singleton proof can survive into the next stage.
+      let imported = @pipeline.candidate_keys(
+        unit_pipeline(program, 1).unwrap(),
+        Input(0),
+      ).unwrap()
+      assert_eq(
+        @evidence.key_witness_count(imported),
+        if singleton {
+          1
+        } else {
+          0
+        },
+      )
+      if singleton {
+        let key = @evidence.key_witness_at(imported, 0).unwrap()
+        assert_eq(@evidence.key_origin(key), UnnestResult)
+        assert_true(@evidence.key_unnest_input(key) is Some(_))
+      }
       let closure = @context.stage_requirement_operations(requirements(program))
       let mut emitted = 0
       let mut envelopes = 0
@@ -162,6 +200,8 @@ test "formal unnest preserves outer nullability and optional array bounds" {
             None
           } else if bound == ",\"max_items\":0" {
             Some(0L)
+          } else if bound == ",\"max_items\":1" {
+            Some(1L)
           } else {
             Some(3L)
           },

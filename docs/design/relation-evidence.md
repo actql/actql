@@ -1,5 +1,21 @@
 # Relation key declarations and evidence
 
+Unnest generates conditional occurrence keys from each complete input witness.
+Non-outer expansion requires a retained public index and extends the parent key
+with that non-null index; element equality, null elements and repeated elements
+do not identify occurrences. Outer expansion does not use its nullable index as
+a key. An independently admitted array bound of at most one instead permits
+outer expansion to retain the parent tuple, including its synthetic empty/null
+row. Without these conditions no inherited key is asserted.
+
+`UnnestResult` retains the checked operation and the exact parent witness through
+`key_producer` and `key_unnest_input`. Producer validation includes occurrence
+semantics and the input's type/bound admission; parent uniqueness and reference
+validation remain dependencies, not observed facts. Independent parent keys are
+transferred independently. Subsequent exact aliases keep this dependency, and
+losing every alias of any component removes that witness. Shared transfer work
+and text budgets include generated components and copies.
+
 Relation window transfer distinguishes fixed labels from sliding memberships.
 Fixed windows retain the original witnesses. Sliding windows retain each whole
 input key plus the generated start boundary: each successful input occurrence

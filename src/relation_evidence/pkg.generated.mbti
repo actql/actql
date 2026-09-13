@@ -192,6 +192,8 @@ pub fn key_text_rank_producer(KeyedRelation) -> CheckedTextRank?
 
 pub fn key_time_series_producer(KeyedRelation) -> @time_series.CheckedSeries?
 
+pub fn key_unnest_input(KeyedRelation) -> KeyedRelation?
+
 pub fn key_usage(KeyedRelation) -> Usage
 
 pub fn key_vector_projection_producer(KeyedRelation) -> @carrier_projection.CheckedProjection?
@@ -481,6 +483,7 @@ pub(all) enum KeyOrigin {
   VectorProjectionResult
   GraphProjectionResult
   WindowMembershipResult
+  UnnestResult
   JoinResult
   CrossJoinResult
   IntervalJoinResult
