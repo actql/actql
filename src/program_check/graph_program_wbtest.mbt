@@ -1,5 +1,5 @@
 ///|
-test "formal common Graph resources close without waiving component capacity" {
+test "formal common Graph resources retain producer ownership through Result imports" {
   for empty in [true, false] {
     for
       body in [
@@ -36,6 +36,7 @@ test "formal common Graph resources close without waiving component capacity" {
           { work: 100000000, bytes: 10000000, nodes: 1000000, depth: 100, },
           through_check=true,
           checked_results=programs,
+          second_stage=true,
           sga=true,
           graph_construction_limit=Some(1000),
           graph_input_limit=Some(1),
@@ -74,22 +75,31 @@ test "formal common Graph resources close without waiving component capacity" {
       }
       assert_eq(programs.length(), if component { 0 } else { 1 })
       if !component {
+        assert_eq(unit_count(programs[0]), 2)
+        assert_true(unit_publication_at(programs[0], 0, 0) is Some(_))
+        assert_true(unit_publication_at(programs[0], 1, 0) is Some(_))
+        let producer = unit_pipeline(programs[0], 0).unwrap()
+        let producer_step = @pipeline.step_at(producer, 3).unwrap()
         let operations = @context.stage_requirement_operations(
           requirements(programs[0]),
         )
         let mut found = 0
+        let mut root_visits = 0
+        let mut imported = 0
         for i in 0..<@context.operation_closure_count(operations) {
           if @context.operation_closure_at(operations, i)
             is Some(ExecutionCheck(GraphResources(check))) {
             found += 1
             assert_eq(check.site.step, 3)
             assert_eq(check.input, @pipeline.Step(2))
-            assert_true(
-              physical_equal(
-                check.site.pipeline,
-                unit_pipeline(programs[0], 0).unwrap(),
-              ),
-            )
+            assert_true(physical_equal(check.step, producer_step))
+            if check.site.stage == 0 {
+              root_visits += 1
+            } else {
+              assert_eq(check.site.stage, 1)
+              imported += 1
+            }
+            assert_true(physical_equal(check.site.pipeline, producer))
             match check.scope {
               PreserveGraph => assert_true(body.contains("normalize_graph"))
               RelationRows(limit) => {
@@ -106,7 +116,11 @@ test "formal common Graph resources close without waiving component capacity" {
             }
           }
         }
-        assert_eq(found, 1)
+        // The consumer imports two Results from the same producer. Both visits
+        // retain that producer's operation rather than rebinding it locally.
+        assert_eq(found, 3)
+        assert_eq(root_visits, 1)
+        assert_eq(imported, 2)
       }
     }
   }
