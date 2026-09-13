@@ -21,6 +21,18 @@ values, all interval inequalities, and atomic validation before any matching
 remain explicit execution obligations, including unmatched input rows. No row
 is materialized or matched during static checking.
 
+`IntervalExecutionCheck` binds endpoint and safe-integer-clock admission to both
+checked input occurrences before either is used for matching. The temporal roles
+and domain come from the checked operation; a numeric field type alone does not
+discharge value admission. Timestamp inputs omit only the numeric clock check,
+not whole-input endpoint validation. The occurrence-order check retains the
+pipeline's existing output-order witness and its producer dependencies rather
+than constructing a new one. Semi/anti therefore do not acquire a right-side
+order requirement from this link. Missing total-order evidence remains unknown.
+These links are not matching results or completeness evidence and do not close
+product, output or search-work resource obligations. Those obligations must close
+separately before the formal Program constructor admits this operation.
+
 Output ceilings and search-work ceilings are separate obligations, with checked
 operand product bounds as fallback. Output guards retain literal or Parameter
 form; defaults are not bindings and a guard is not proof of available resources.

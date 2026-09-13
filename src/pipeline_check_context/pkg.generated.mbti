@@ -1422,6 +1422,25 @@ pub(all) struct InputUsage {
   local_input_nodes : Int
 } derive(Eq, @debug.Debug)
 
+pub struct IntervalExecutionCheck {
+  site : OperationRequirementSite
+  step : @pipeline_typing.CheckedStep
+  left : @pipeline_typing.Target
+  right : @pipeline_typing.Target
+  operation : @relation_join_shape.CheckedIntervalJoin
+  left_time : @relation_join_shape.TemporalOperand
+  right_time : @relation_join_shape.TemporalOperand
+  timestamp : Bool
+  output_order : @pipeline_typing.LogicalOrder?
+  rule : IntervalExecutionRule
+}
+
+pub(all) enum IntervalExecutionRule {
+  AdmitAllIntervalEndpoints
+  AdmitSafeIntegerClocks
+  PreserveIntervalOccurrenceOrder
+} derive(Eq, @debug.Debug)
+
 pub(all) enum Issue {
   InvalidIntegrationLimits
   PriorOrderLimit
@@ -1666,6 +1685,7 @@ pub(all) enum OperationDisposition {
 }
 
 pub(all) enum OperationExecutionCheck {
+  IntervalExecution(IntervalExecutionCheck)
   WatermarkExecution(WatermarkExecutionCheck)
   WindowMembershipLimit(WindowMembershipLimit)
   WindowExecution(WindowExecutionCheck)

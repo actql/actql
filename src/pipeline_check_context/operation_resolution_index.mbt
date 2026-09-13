@@ -229,7 +229,13 @@ pub fn index_program_operation_resolutions(
                                               Ok(None) =>
                                                 match window_candidate {
                                                   Ok(None) =>
-                                                    watermark_candidate
+                                                    match watermark_candidate {
+                                                      Ok(None) =>
+                                                        interval_execution_check(
+                                                          site,
+                                                        )
+                                                      other => other
+                                                    }
                                                   other => other
                                                 }
                                               other => other
