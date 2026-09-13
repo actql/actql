@@ -170,6 +170,14 @@ pub fn index_program_operation_resolutions(
       pending.kind is @relation.AssertionConsumption {
       needs_consumption = true
     }
+    let (window_candidate, window_work) = window_execution_check(
+      requirements.entries[i],
+      i,
+      requirements,
+      states,
+      max_work - work,
+    )
+    work += window_work
     let candidate = match dedupe_execution_check(requirements.entries[i]) {
       Ok(None) => {
         let site = requirements.entries[i]
@@ -208,8 +216,7 @@ pub fn index_program_operation_resolutions(
                                           Ok(None) =>
                                             match
                                               analytic_execution_check(site) {
-                                              Ok(None) =>
-                                                window_execution_check(site)
+                                              Ok(None) => window_candidate
                                               other => other
                                             }
                                           other => other
@@ -234,6 +241,7 @@ pub fn index_program_operation_resolutions(
       other => other
     }
     match candidate {
+      Err(BudgetExceeded) => return Err(BudgetExceeded)
       Err(_) => return Err(ForeignOccurrence(i))
       Ok(None) => ()
       Ok(Some(check)) => {

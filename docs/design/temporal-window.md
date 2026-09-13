@@ -89,6 +89,16 @@ open until their own owned static/resource integration succeeds. In particular,
 adding these records alone cannot produce a completed Program or prove any
 observed membership count.
 
+Membership assignment carries the resolved size, optional step and signed offset,
+with the original scalar resolutions from the same requirement group and producer
+visit. Duration spelling remains on the retained bound value; an absent fixed
+step remains absent. The maximum memberships per input occurrence is one for
+fixed windows and the exact integer ceiling of size divided by step for sliding
+windows. This factor does not by itself establish an input or output cardinality
+bound. The bounded resolution pass charges option and scalar-slot lookups before
+returning a complete index; consumers do not rebind Parameters or infer options
+from source text.
+
 ## Lag
 
 `lag` reuses the Relation field, partition, OrderKey and positive safe-integer

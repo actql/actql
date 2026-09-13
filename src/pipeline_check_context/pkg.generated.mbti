@@ -2658,7 +2658,17 @@ pub struct WindowExecutionCheck {
 
 pub enum WindowExecutionRule {
   AdmitTimeValues
-  AssignMemberships
+  AssignMemberships(WindowMembershipOptions)
+}
+
+pub struct WindowMembershipOptions {
+  size : Int64
+  step : Int64?
+  offset : Int64
+  maximum_per_input : Int64
+  size_resolution : OperationScalarResolution?
+  step_resolution : OperationScalarResolution?
+  offset_resolution : OperationScalarResolution?
 }
 
 type WiredStages

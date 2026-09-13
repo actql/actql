@@ -51,7 +51,7 @@ pub fn operation_execution_phase(
     WindowExecution(v) =>
       match v.rule {
         AdmitTimeValues => BeforeOperationInputUse
-        AssignMemberships => BeforeOperationOutput
+        AssignMemberships(_) => BeforeOperationOutput
       }
     AnalyticExecution(_) => BeforeOperationOutput
     AnalyticEnvelope(_) => BeforeOperationOutput
