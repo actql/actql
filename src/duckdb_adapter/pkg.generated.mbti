@@ -6,13 +6,18 @@ import {
   "actql/actql/encode_core",
   "actql/actql/execution_relation",
   "actql/actql/lowering_relation",
+  "actql/actql/relation_schema",
   "actql/actql/value_admission",
   "actql/actql/value_contract",
   "moonbitlang/core/debug",
 }
 
 // Values
+pub fn admit_physical_chunk(PhysicalResult, Int, Array[@decode_core.Cursor]) -> Result[PhysicalBatch, PhysicalResultIssue]
+
 pub fn admit_physical_value(ValueMapping, @decode_core.Cursor, @value_admission.Limits) -> Result[@value_admission.CheckedValue, ValueIssue]
+
+pub fn cancel_physical_result(PhysicalResult) -> Unit
 
 pub fn compile_native_filter_select(@lowering_relation.BoundPrepared, String, String, NativeQueryLimits) -> Result[NativeQuery, NativeQueryIssue]
 
@@ -40,11 +45,23 @@ pub fn native_query_parameter(NativeQuery) -> PhysicalParameter
 
 pub fn native_query_sql(NativeQuery) -> String
 
+pub fn physical_batch_cell(PhysicalBatch, Int, Int) -> @value_admission.CheckedValue?
+
+pub fn physical_batch_owner(PhysicalBatch) -> PhysicalResult
+
+pub fn physical_batch_rows(PhysicalBatch) -> Int
+
+pub fn physical_result_schema(PhysicalResult) -> @relation_schema.Schema
+
+pub fn physical_result_usage(PhysicalResult) -> (Int, Int, Int, Int)
+
 pub fn prepare_fixed_compute(@execution_relation.ProducerRead, String, NativeQueryLimits) -> Result[FixedCompute, NativeQueryIssue]
 
 pub fn prepare_fixed_import(@execution_relation.ProducerRead, String, Int, Int) -> Result[FixedImport, NativeQueryIssue]
 
 pub fn prepare_physical_parameter(@value_admission.CheckedValue) -> Result[PhysicalParameter, ValueIssue]
+
+pub fn prepare_physical_result(@relation_schema.Schema, Array[(String, PhysicalType)], PhysicalResultLimits, Int) -> Result[PhysicalResult, PhysicalResultIssue]
 
 pub fn prepare_producer_parameter(@execution_relation.ProducerRead, Int, Int) -> Result[PhysicalParameter, ValueIssue]
 
@@ -76,7 +93,30 @@ pub(all) struct NativeQueryLimits {
   expressions : @lowering_relation.ExpressionLimits
 }
 
+type PhysicalBatch
+
 type PhysicalParameter
+
+type PhysicalResult
+
+pub(all) enum PhysicalResultIssue {
+  InvalidLimits
+  MetadataLimit
+  SchemaMismatch
+  ShapeMismatch
+  RowLimit
+  CellLimit
+  Terminal
+  FieldType(Int, ValueIssue)
+  Cell(Int, Int, ValueIssue)
+}
+
+pub(all) struct PhysicalResultLimits {
+  max_rows : Int
+  max_cells : Int
+  max_nodes : Int
+  max_text_bytes : Int
+}
 
 pub(all) enum PhysicalType {
   Boolean

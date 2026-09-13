@@ -108,6 +108,19 @@ admission; transport support for DECIMAL or timestamps does not grant native
 comparison support. Unsupported expressions require a separately offered Local
 residual, not a mid-execution fallback.
 
+Physical result admission prepares a field-to-schema mapping before reading any
+rows, so empty and all-NULL results do not bypass type eligibility. Each decoded
+column chunk must have the prepared width and declared row count. Scalar checks
+run in logical schema order within each row, independently of transport column
+order, and use the existing physical conversion and shared value admission once.
+Value-node and text usage accumulate across chunks; row/cell ceilings preflight
+batch construction. A failed or cancelled receiver is terminal. Accepted batches
+retain their exact receiver, but remain provisional: this handle validates values
+only and cannot attest SQL semantics, source consistency or successful capture.
+Its scalar/transport budgets do not replace row-container, logical guard, retained
+storage or native work accounting. The Host must bind the receiver to the exact
+statement/attempt and its fixed metadata rather than reuse it for another query.
+
 The single-receipt process-evidence profile represents a single logical received row
 sequence. A full scan exported to MoonBit for validation and a separately exported
 native query result are two actual receipts. They cannot be combined, hidden as

@@ -194,6 +194,15 @@ pub fn admit_physical_value(
   payload : @decode.Cursor,
   limits : @admitted.Limits,
 ) -> Result[@admitted.CheckedValue, ValueIssue] {
+  admit_physical_usage(mapping, payload, limits).map(result => result.0)
+}
+
+///|
+fn admit_physical_usage(
+  mapping : ValueMapping,
+  payload : @decode.Cursor,
+  limits : @admitted.Limits,
+) -> Result[(@admitted.CheckedValue, Int, Int), ValueIssue] {
   if limits.max_nodes < 0 || limits.max_depth < 0 || limits.max_text_bytes < 0 {
     return Err(InvalidLimits)
   }
@@ -201,7 +210,7 @@ pub fn admit_physical_value(
     @decode.is_null(payload) ||
     mapping.physical == Boolean ||
     mapping.physical == Varchar {
-    return @admitted.admit(mapping.contract, payload, limits).map_err(issue => {
+    return @admitted.admit_usage(mapping.contract, payload, limits).map_err(issue => {
       Admission(issue)
     })
   }
@@ -283,7 +292,7 @@ pub fn admit_physical_value(
     Ok(value) => value
     Err(issue) => return Err(Decode(issue))
   }
-  @admitted.admit(mapping.contract, converted, limits).map_err(issue => {
+  @admitted.admit_usage(mapping.contract, converted, limits).map_err(issue => {
     Admission(issue)
   })
 }
