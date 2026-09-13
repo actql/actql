@@ -266,11 +266,14 @@ and binds the single-visit product ceiling to `ResolveSearchWork`. It preserves
 original claim indices and producer visits through sparse proof tables; missing
 operand evidence does not become a Host output cap. The resulting `AsOfSearch`
 check requires enforcement before input use and atomic output rejection on
-failure. This link is not completed backend conformance or a persistent Unit
-limit; those boundaries must still consume its retained evidence.
+failure. The formal constructor reidentifies its evidence and exposes the owning
+Unit limit through `unit_asof_search_limit_count/at`, retaining imported producer
+graphs and separate left/right witness references. Neither the link nor its
+persistent limit is completed backend conformance.
 Tolerance Parameter admission, selected-profile validation and physical allocation
-requirements remain separate. The formal entry
-does not admit an as-of Program solely because these execution bindings exist.
+requirements remain separate. The formal entry admits an as-of Program only
+after the enclosing operation, input, publication, contract and identity closures
+have succeeded, not solely because these execution bindings exist.
 
 Join consumes the existing cardinality selection, ordered-occurrence execution
 check and exact selected-policy capacity application. All five join kinds

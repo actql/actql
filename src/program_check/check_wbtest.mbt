@@ -145,7 +145,12 @@ test "check constructs Local and two-stage Result-import Programs from source" {
 
 ///|
 test "check rejects unsupported or malformed later steps without a partial result" {
-  for steps in ["[{\"asof_join\":{}}]", "[null]"] {
+  for
+    (steps, source_error) in [
+      ("[{\"asof_join\":{}}]", true),
+      ("[{\"sequence\":{}}]", false),
+      ("[null]", false),
+    ] {
     let budget = IdentityBudget::{
       work: 10000000,
       bytes: 1000000,
@@ -162,7 +167,8 @@ test "check rejects unsupported or malformed later steps without a partial resul
     catch {
       LocalConstructionFailure::Units(
         UnitBuildFailure::UnsupportedStaticPath(_)
-      ) => ()
+      ) => assert_false(source_error)
+      LocalConstructionFailure::Source(_) => assert_true(source_error)
       e => raise e
     } noraise {
       _ => fail("unsupported check path returned success")

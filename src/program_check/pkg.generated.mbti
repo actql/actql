@@ -57,6 +57,16 @@ pub fn analytic_string_limit_selection(AnalyticStringLimit) -> @pipeline_check_c
 
 pub fn analytic_string_limit_source(AnalyticStringLimit) -> AnalyticAggregateSource
 
+pub fn asof_search_limit_cid(AsOfSearchLimit) -> String
+
+pub fn asof_search_limit_proof_at(AsOfSearchLimit, Int, Int) -> ReidentifiedStep?
+
+pub fn asof_search_limit_proof_count(AsOfSearchLimit, Int) -> Int
+
+pub fn asof_search_limit_selection(AsOfSearchLimit) -> @pipeline_check_context.AsOfSearchCheck
+
+pub fn asof_search_limit_source(AsOfSearchLimit) -> UnitOperationSource
+
 pub fn check(@stage_syntax.Program, @check_environment.WireEnvironment, @decode_core.Cursor?, Array[Array[@pipeline_check_context.CapacityMaterial]], @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, SourceLimits, max_work~ : Int, max_bytes~ : Int, max_nodes~ : Int, max_depth~ : Int, numeric_profile? : @numeric_reduction.Profile?) -> CheckedProgram raise LocalConstructionFailure
 
 pub fn contract_inventory(CheckedProgram) -> @pipeline_check_context.CoreContractInventory
@@ -68,6 +78,8 @@ pub fn effective_policy_occurrence_at(EffectivePolicy, Int) -> DirectSourcePolic
 pub fn effective_policy_occurrence_count(EffectivePolicy) -> Int
 
 pub fn emit_analytic_numeric_slot(AnalyticNumericSlot, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
+
+pub fn emit_asof_search_limit(AsOfSearchLimit, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
 
 pub fn emit_direct_source_policy(DirectSourcePolicy, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
 
@@ -265,6 +277,10 @@ pub fn unit_analytic_string_limit_at(CheckedProgram, Int, Int) -> AnalyticString
 
 pub fn unit_analytic_string_limit_count(CheckedProgram, Int) -> Int?
 
+pub fn unit_asof_search_limit_at(CheckedProgram, Int, Int) -> AsOfSearchLimit?
+
+pub fn unit_asof_search_limit_count(CheckedProgram, Int) -> Int?
+
 pub fn unit_completeness_requirement(CheckedProgram, Int, @pipeline_typing.Target) -> UnitCompletenessRequirement?
 
 pub fn unit_contract_at(CheckedProgram, Int, Int) -> (String, @pipeline_check_context.CoreContractBody)?
@@ -353,6 +369,7 @@ pub suberror ConstructionFailure {
   Values(@pipeline_check_context.ValuesPublicationIssue)
   Joins(@pipeline_check_context.JoinRequirementIssue)
   IntervalSearch(@pipeline_check_context.IntervalSearchLimitIssue)
+  AsOfSearch(@pipeline_check_context.AsOfSearchLimitIssue)
   WindowLimits(@pipeline_check_context.WindowMembershipBoundIssue)
   GroupLimits(@pipeline_check_context.GroupArrayLimitIssue)
   GroupStringLimits(@pipeline_check_context.GroupStringLimitIssue)
@@ -434,6 +451,8 @@ type AnalyticLimit
 type AnalyticNumericSlot
 
 type AnalyticStringLimit
+
+type AsOfSearchLimit
 
 pub struct BuiltResultInterface {
   input_name : String

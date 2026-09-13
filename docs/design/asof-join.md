@@ -44,8 +44,8 @@ evidence and arithmetic overflow cannot be replaced with a Host output ceiling.
 The input resolution index is immutable, a failed call returns no partial result,
 and an already linked requirement cannot be silently rebound. Output limits,
 clock/identity validation and tie selection remain separate checks. Persistent
-Unit rebinding and the formal Program constructor must consume these results
-before this path is a complete lowering input.
+Unit rebinding and the formal Program constructor consume these results
+before exposing the completed lowering input.
 
 The persistent limit is defined by `actql-asof-search.json#/schemas/limit`.
 Its canonical preimage includes the owning Unit/source ordinal, this search
@@ -58,6 +58,17 @@ This is an additional persistent contract, not a change to as-of matching.
 Adding it changes the search contract pin and dependent local contract identities.
 Shape validation alone does not admit ownership, arithmetic, dependencies or
 completed enforcement; those checks remain required separately.
+
+The formal constructor retains per-Unit search limits through
+`unit_asof_search_limit_count/at`. Each limit exposes its owning source, original
+selection and reidentified proof graphs. Imported memberships retain the producer
+Unit's source ordinal; the limit itself belongs to the consumer Unit. Canonical
+reference arrays deduplicate equal witness CIDs independently on each side,
+while all original admitted memberships' graphs remain available. Rebuilding is
+atomic over the identity budget, including dependency rehashing and serialization.
+The constructor rejects missing search evidence before returning a CheckedProgram.
+This completes the static binding, not execution, observed completeness, resource
+enforcement or backend support.
 
 ## Decisions and evidence
 
