@@ -38,6 +38,7 @@ priv struct BuiltUnit {
   expressions : @context.ProgramExpressionClosure
   expression_execution : Array[ExpressionExecution]
   source_execution : Array[SourceExecution]
+  local_inputs : @context.ProgramLocalInputClosure
   contracts : Array[(String, @context.CoreContractBody)]
   imports : Array[String]
   interfaces : Array[BuiltResultInterface]
@@ -355,6 +356,7 @@ fn build_units(
       expressions,
       expression_execution,
       source_execution,
+      local_inputs: @context.stage_requirement_inputs(requirements),
       contracts: selected,
       imports,
       interfaces,

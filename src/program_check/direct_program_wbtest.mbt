@@ -13,6 +13,8 @@ fn checked_direct_program_fixture(
   join_capacity? : Bool = true,
   generated_rows? : String = "",
   mix_generated? : Bool = false,
+  local_input? : Bool = false,
+  mix_local? : Bool = false,
 ) -> CheckedProgram raise {
   let original_text =
     #|{"version":"actql/0.1","id":"direct","stages":[{"id":"s","inputs":{"remote":{"connector":"crm/main","resource":"r","request":{"id":1,"tenant":null}}},"steps":[{"distinct":["id"],"as":"selected"}],"results":{"out":{"from":"selected","fields":["id"]}}}],"results":{"out":{"from":{"stage":"s","result":"out"}}}}
@@ -21,7 +23,23 @@ fn checked_direct_program_fixture(
     new="\"" + input_name + "\"",
   )
   let program = @syntax.parse(
-    if generated_rows != "" {
+    if local_input {
+      let local_text = text.replace(
+        old="\"inputs\":{\"remote\":",
+        new="\"inputs\":{\"local\":{\"carrier\":\"relation\",\"schema\":{\"id\":{\"type\":\"number\",\"nullable\":false}},\"primary_key\":[\"id\"]},\"remote\":",
+      )
+      if mix_local {
+        local_text.replace(
+          old="\"steps\":[",
+          new="\"steps\":[{\"from\":\"remote\",\"distinct\":[\"id\"],\"as\":\"remote_rows\"},{\"from\":\"local\",\"append\":{\"with\":\"remote_rows\"}},",
+        )
+      } else {
+        local_text.replace(
+          old="{\"distinct\":",
+          new="{\"from\":\"local\",\"distinct\":",
+        )
+      }
+    } else if generated_rows != "" {
       text.replace(
         old="\"steps\":[",
         new="\"steps\":[{\"values\":{\"schema\":{\"id\":{\"type\":\"number\",\"nullable\":false}},\"rows\":" +
@@ -184,11 +202,81 @@ fn checked_direct_program_fixture(
     },
     { text_time: false, veca: false, },
     { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
-    source_limits_fixture(if join_kind != "" || mix_generated { 4 } else { 2 }),
+    source_limits_fixture(
+      if join_kind != "" || mix_generated || mix_local {
+        4
+      } else {
+        2
+      },
+    ),
     max_work=100000000,
     max_bytes=10000000,
     max_nodes=1000000,
     max_depth=100,
+  )
+}
+
+///|
+test "Local publication policy retains exact admission without borrowing an unused SourceView" {
+  for mixed in [false, true] {
+    let program = checked_direct_program_fixture(
+      local_input=true,
+      mix_local=mixed,
+    )
+    let policy = publication_source_policy(
+      unit_publication_at(program, 0, 0).unwrap(),
+    ).unwrap()
+    assert_eq(
+      publication_policy_source_count(policy),
+      if mixed {
+        1
+      } else {
+        0
+      },
+    )
+    assert_eq(publication_policy_local_check_count(policy), 3)
+    assert_eq(publication_policy_classification(policy), @environment.Unknown)
+    let closure = @context.stage_requirement_inputs(requirements(program))
+    for i in 0..<publication_policy_local_check_count(policy) {
+      let check = publication_policy_local_check_at(policy, i).unwrap()
+      assert_true(
+        physical_equal(
+          check,
+          @context.local_input_closure_at(closure, i).unwrap(),
+        ),
+      )
+      assert_eq(check.subject.name, "local")
+      assert_true(
+        physical_equal(check.subject.pipeline, program.units[0].pipeline),
+      )
+      assert_eq(
+        @context.local_input_execution_phase(check),
+        BeforeLocalInputUse,
+      )
+      assert_eq(@context.local_input_execution_failure(check), RejectLocalInput)
+    }
+    assert_eq(source_execution_count(program), 5)
+    assert_eq(policy.prerequisite is None, !mixed)
+  }
+}
+
+///|
+test "Local policy selection does not accept another Program's admission closure" {
+  let program = checked_direct_program_fixture(local_input=true)
+  let other = checked_direct_program_fixture(local_input=true)
+  let unit = program.units[0]
+  let foreign = { ..unit, local_inputs: other.units[0].local_inputs, }
+  let publication = @context.publication_row_limit_result(
+    unit.publication_rows[0],
+  )
+  assert_true(
+    prepare_publication_source_policy(foreign, publication, {
+      work: 100000,
+      bytes: 100000,
+      nodes: 100000,
+      depth: 100,
+    })
+    is None,
   )
 }
 

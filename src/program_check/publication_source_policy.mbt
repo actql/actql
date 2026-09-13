@@ -14,6 +14,22 @@ pub struct PublicationSourcePolicy {
   priv imports : Array[PublicationPolicyImport]
   priv edges : Array[PublicationPolicyEdge]
   priv generators : Array[PublicationPolicyGenerator]
+  priv locals : Array[@context.LocalInputExecutionCheck]
+}
+
+///|
+pub fn publication_policy_local_check_count(
+  value : PublicationSourcePolicy,
+) -> Int {
+  value.locals.length()
+}
+
+///|
+pub fn publication_policy_local_check_at(
+  value : PublicationSourcePolicy,
+  index : Int,
+) -> @context.LocalInputExecutionCheck? {
+  value.locals.get(index)
 }
 
 ///|
@@ -168,6 +184,7 @@ fn prepare_publication_source_policy(
   let predicates : Array[PublicationPolicyPredicate] = []
   let slices : Array[PublicationPolicySlice] = []
   let generators : Array[PublicationPolicyGenerator] = []
+  let locals : Array[@context.LocalInputExecutionCheck] = []
   let mut unknown = false
   while pending.pop() is Some(target) {
     identity_charge(budget, 1)
@@ -320,6 +337,20 @@ fn prepare_publication_source_policy(
           break
         }
         if !found {
+          for i in 0..<@context.local_input_closure_count(unit.local_inputs) {
+            identity_charge(budget, 1)
+            let check = @context.local_input_closure_at(unit.local_inputs, i).unwrap()
+            let subject = check.subject
+            if subject.stage == publication.stage &&
+              subject.target == target &&
+              physical_equal(subject.pipeline, unit.pipeline) {
+              locals.push(check)
+              found = true
+              unknown = true
+            }
+          }
+        }
+        if !found {
           return None
         }
       }
@@ -362,6 +393,7 @@ fn prepare_publication_source_policy(
     imports,
     edges,
     generators,
+    locals,
   }
   |> Some
 }

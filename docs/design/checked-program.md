@@ -127,6 +127,15 @@ supported binary operation, this unknown contribution is retained alongside the
 actual source policy references. Existing values admission, wire/recursive-size
 and publication checks remain separate obligations of the same checked producer.
 
+For a selected Local input, indexed local-check readers retain the existing raw
+binding and primary-key execution checks. Selection requires the same Stage,
+input target and physical checked pipeline; matching names or equal policy CIDs
+are insufficient. Static Local admission does not supply an authoritative data
+classification, so its contribution remains unknown rather than inheriting a
+nearby SourceView's policy. Mixed Local/SourceView publication retains both the
+Local admission dependencies and the actual acquisition dependencies. Source
+snapshots and observed rows are not inserted into the policy preimage.
+
 Filter transfer additionally retains each exact checked predicate and its step
 coordinate. All value leaves participate in provenance, including branches that
 evaluation may skip: field references inherit the selected input's provenance,

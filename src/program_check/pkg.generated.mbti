@@ -96,6 +96,10 @@ pub fn publication_policy_import_at(PublicationSourcePolicy, Int) -> Publication
 
 pub fn publication_policy_import_count(PublicationSourcePolicy) -> Int
 
+pub fn publication_policy_local_check_at(PublicationSourcePolicy, Int) -> @pipeline_check_context.LocalInputExecutionCheck?
+
+pub fn publication_policy_local_check_count(PublicationSourcePolicy) -> Int
+
 pub fn publication_policy_predicate_at(PublicationSourcePolicy, Int) -> PublicationPolicyPredicate?
 
 pub fn publication_policy_predicate_count(PublicationSourcePolicy) -> Int
