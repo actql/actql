@@ -127,12 +127,40 @@ fn prepare_owned_closure(
         Err(e) => raise NumericSlots(e)
       }
   }
-  let resolutions = match numeric_slots {
+  let group_resolutions = match numeric_slots {
     None => string_resolutions
     Some(slots) =>
       match
         @context.link_program_numeric_slots(
           string_resolutions,
+          slots,
+          ceiling,
+          ceiling - prefix,
+        ) {
+        Ok(v) => v
+        Err(e) => raise NumericSlots(e)
+      }
+  }
+  let analytic_numeric_slots = match numeric_profile {
+    None => None
+    Some(profile) =>
+      match
+        @context.prepare_program_analytic_numeric_slots(
+          @context.operation_resolution_requirements(group_resolutions),
+          profile,
+          ceiling,
+          ceiling - prefix,
+        ) {
+        Ok(v) => Some(v)
+        Err(e) => raise NumericSlots(e)
+      }
+  }
+  let resolutions = match analytic_numeric_slots {
+    None => group_resolutions
+    Some(slots) =>
+      match
+        @context.link_program_analytic_numeric_slots(
+          group_resolutions,
           slots,
           ceiling,
           ceiling - prefix,
@@ -205,7 +233,7 @@ fn prepare_owned_closure(
     @context.operation_resolution_profiles(resolutions),
   )
   let profile_work = @context.operation_calendar_work(profiles)
-  let contract_prefix = match numeric_slots {
+  let mut contract_prefix = match numeric_slots {
     None => profile_work
     Some(slots) => {
       let shared = @context.operation_requirements_work(
@@ -214,6 +242,13 @@ fn prepare_owned_closure(
       Int::max(profile_work, shared) +
       (@context.numeric_slots_work(slots) - shared)
     }
+  }
+  if analytic_numeric_slots is Some(slots) {
+    let shared = @context.operation_requirements_work(
+      @context.analytic_numeric_slots_requirements(slots),
+    )
+    contract_prefix = Int::max(contract_prefix, shared) +
+      (@context.analytic_numeric_slots_work(slots) - shared)
   }
   let contracts = match
     @context.collect_core_contracts(
@@ -226,6 +261,7 @@ fn prepare_owned_closure(
       },
       profile_checks=Some(profiles),
       numeric_slots~,
+      analytic_numeric_slots~,
       hash_limits=Some({
         max_bytes: budget.bytes - values_bytes - gate_bytes,
         max_nodes: budget.nodes - values_nodes - gate_nodes,

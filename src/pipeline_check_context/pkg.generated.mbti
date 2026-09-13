@@ -154,7 +154,7 @@ pub fn close_program_source_modes(ProgramIncomingLinks, Int, Int) -> Result[Prog
 
 pub fn close_stage_requirements(ProgramIncomingLinks, StageRequirementLimits) -> Result[StageRequirementClosure, StageRequirementIssue]
 
-pub fn collect_core_contracts(ProgramSourceIdentity, CoreContractLimits, profile_checks? : ProgramOperationCalendar?, hash_limits? : @local_relation_snapshot.Limits?, numeric_slots? : ProgramNumericSlots?) -> Result[CoreContractInventory, CoreContractIssue]
+pub fn collect_core_contracts(ProgramSourceIdentity, CoreContractLimits, profile_checks? : ProgramOperationCalendar?, hash_limits? : @local_relation_snapshot.Limits?, numeric_slots? : ProgramNumericSlots?, analytic_numeric_slots? : ProgramAnalyticNumericSlots?) -> Result[CoreContractInventory, CoreContractIssue]
 
 pub fn collect_program_incoming(ProgramSourceIdentity, IncomingLimits) -> Result[ProgramIncomingRequirements, IncomingIssue]
 
@@ -163,6 +163,8 @@ pub fn collect_program_operation_requirements(ProgramExpressionClosure, Int, Int
 pub fn collect_source_bindings(ProgramPreparation, Int, Int) -> Result[SourceBindingRequirements, SourceBindingsIssue]
 
 pub fn collect_source_contracts(ReconciledContexts, SourceContractLimits) -> Result[SourceContractRequirements, SourceContractIssue]
+
+pub fn core_contract_analytic_numeric_slots(CoreContractInventory) -> ProgramAnalyticNumericSlots?
 
 pub fn core_contract_body_at(CoreContractInventory, Int) -> CoreContractBody?
 

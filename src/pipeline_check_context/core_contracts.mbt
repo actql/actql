@@ -95,6 +95,7 @@ struct CoreContractInventory {
   sources : ProgramSourceContracts
   profile_checks : ProgramOperationCalendar?
   numeric_slots : ProgramNumericSlots?
+  analytic_numeric_slots : ProgramAnalyticNumericSlots?
   incoming : ProgramIncomingRequirements
   stages : Array[Array[CoreContractBody]]
   work : Int
@@ -177,6 +178,7 @@ pub fn collect_core_contracts(
   profile_checks? : ProgramOperationCalendar? = None,
   hash_limits? : @snapshot.Limits? = None,
   numeric_slots? : ProgramNumericSlots? = None,
+  analytic_numeric_slots? : ProgramAnalyticNumericSlots? = None,
 ) -> Result[CoreContractInventory, CoreContractIssue] {
   let hash_limits = hash_limits.unwrap_or({
     max_bytes: limits.max_work,
@@ -203,6 +205,17 @@ pub fn collect_core_contracts(
     }
   }
   if numeric_slots is Some(slots) {
+    if !physical_equal(slots.requirements.expressions.identity, identity) {
+      return Err(ForeignNumericSlots)
+    }
+    let base = Int::max(prefix, slots.requirements.work)
+    let extra = slots.work - slots.requirements.work
+    if base > limits.max_work || extra > limits.max_work - base {
+      return Err(BudgetExceeded)
+    }
+    prefix = base + extra
+  }
+  if analytic_numeric_slots is Some(slots) {
     if !physical_equal(slots.requirements.expressions.identity, identity) {
       return Err(ForeignNumericSlots)
     }
@@ -307,6 +320,64 @@ pub fn collect_core_contracts(
           slot_rules,
         )
         let slot_schema = NumericReductionBody(numeric_slot_schema_cid())
+        core_contract_edge(b)
+        core_contract_body(b, slot_schema)
+        core_contract_dependency(b, slot_rules, slot_schema)
+      }
+    }
+    if analytic_numeric_slots is Some(slots) {
+      for slot in slots.entries {
+        core_contract_charge(b)
+        let site = slot.site
+        if program_identity_producer_is_local(
+            identity,
+            site.stage,
+            site.producer_visit,
+          ) !=
+          Some(true) {
+          continue
+        }
+        let root = NumericReductionBody(@numeric.cid(slot.profile))
+        core_contract_root(
+          b,
+          NumericAggregateProfile(
+            site.stage,
+            site.producer_visit,
+            site.step,
+            site.index,
+          ),
+          root,
+        )
+        for i in 0..<@numeric.member_count(slot.profile) {
+          let reduction = NumericReductionBody(
+            @numeric.member_cid_at(slot.profile, i).unwrap(),
+          )
+          core_contract_edge(b)
+          core_contract_body(b, reduction)
+          core_contract_dependency(b, root, reduction)
+        }
+        let observation = NumericReductionBody(
+          @numeric.observation_schema_cid(slot.profile),
+        )
+        core_contract_edge(b)
+        core_contract_body(b, observation)
+        core_contract_dependency(b, root, observation)
+        let slot_rules = NumericReductionBody(
+          analytic_numeric_slot_contract_cid(),
+        )
+        core_contract_root(
+          b,
+          NumericAggregateSlotRules(
+            site.stage,
+            site.producer_visit,
+            site.step,
+            site.index,
+          ),
+          slot_rules,
+        )
+        let slot_schema = NumericReductionBody(
+          analytic_numeric_slot_schema_cid(),
+        )
         core_contract_edge(b)
         core_contract_body(b, slot_schema)
         core_contract_dependency(b, slot_rules, slot_schema)
@@ -624,6 +695,7 @@ pub fn collect_core_contracts(
       sources,
       profile_checks,
       numeric_slots,
+      analytic_numeric_slots,
       incoming,
       stages,
       roots: b.roots,
@@ -643,6 +715,13 @@ pub fn core_contract_identity(
   v : CoreContractInventory,
 ) -> ProgramSourceIdentity {
   v.identity
+}
+
+///|
+pub fn core_contract_analytic_numeric_slots(
+  v : CoreContractInventory,
+) -> ProgramAnalyticNumericSlots? {
+  v.analytic_numeric_slots
 }
 
 ///|

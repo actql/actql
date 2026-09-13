@@ -43,6 +43,14 @@ pub fn analytic_limit_selection(AnalyticLimit) -> @pipeline_check_context.GroupA
 
 pub fn analytic_limit_source(AnalyticLimit) -> AnalyticAggregateSource
 
+pub fn analytic_numeric_slot_cid(AnalyticNumericSlot) -> String
+
+pub fn analytic_numeric_slot_demand(AnalyticNumericSlot) -> @pipeline_check_context.AnalyticNumericSlot
+
+pub fn analytic_numeric_slot_for_requirement(CheckedProgram, Int) -> AnalyticNumericSlot?
+
+pub fn analytic_numeric_slot_operation(AnalyticNumericSlot) -> UnitOperationSource
+
 pub fn analytic_string_limit_claim(AnalyticStringLimit) -> @capacity_witness.LimitClaim
 
 pub fn analytic_string_limit_selection(AnalyticStringLimit) -> @pipeline_check_context.GroupStringLimit
@@ -58,6 +66,8 @@ pub fn effective_policy_classification(EffectivePolicy) -> @check_environment.Da
 pub fn effective_policy_occurrence_at(EffectivePolicy, Int) -> DirectSourcePolicy?
 
 pub fn effective_policy_occurrence_count(EffectivePolicy) -> Int
+
+pub fn emit_analytic_numeric_slot(AnalyticNumericSlot, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
 
 pub fn emit_direct_source_policy(DirectSourcePolicy, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
 
@@ -235,6 +245,10 @@ pub fn unit_analytic_limit_at(CheckedProgram, Int, Int) -> AnalyticLimit?
 
 pub fn unit_analytic_limit_count(CheckedProgram, Int) -> Int?
 
+pub fn unit_analytic_numeric_slot_at(CheckedProgram, Int, Int) -> AnalyticNumericSlot?
+
+pub fn unit_analytic_numeric_slot_count(CheckedProgram, Int) -> Int?
+
 pub fn unit_analytic_string_limit_at(CheckedProgram, Int, Int) -> AnalyticStringLimit?
 
 pub fn unit_analytic_string_limit_count(CheckedProgram, Int) -> Int?
@@ -370,6 +384,8 @@ pub struct AnalyticAggregateSource {
 type AnalyticInputProof
 
 type AnalyticLimit
+
+type AnalyticNumericSlot
 
 type AnalyticStringLimit
 

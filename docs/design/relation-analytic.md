@@ -165,3 +165,13 @@ occurrence; a foreign inventory or repeated link is rejected. The resulting
 execution obligation precedes operation output and rejects publication of that
 output on failure. Neither preparing nor linking this obligation certifies a
 future observation or supplies the persistent slot's local contract closure.
+
+The formal check entry collects ordinary-group and analytic numeric slots
+separately from the same owned requirement inventory and admitted profile.
+Each collection contributes its own slot contract and schema only to the
+owning Unit, with the profile's member and observation dependencies. Unit
+construction then emits analytic slot identities and maps every imported
+occurrence to its producer's retained slot. A consumer that also performs an
+ordinary group selects the group contract locally, not the imported analytic
+contract. Missing profile or other unresolved requirements still prevent
+CheckedProgram construction; retaining a slot never asserts completed capture.

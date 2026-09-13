@@ -33,4 +33,8 @@ export const contract={
 const path='spec/contracts/actql-analytic-numeric-slot.json';
 if(process.argv.includes('--write'))writeFileSync(path,JSON.stringify(contract,null,2)+'\n');
 assert.deepEqual(JSON.parse(readFileSync(path,'utf8')),contract);
+const pins=`// Generated analytic numeric slot pins.\n\n///|\nfn analytic_numeric_slot_contract_cid() -> String {\n  ${JSON.stringify(cid(contract))}\n}\n\n///|\nfn analytic_numeric_slot_schema_cid() -> String {\n  ${JSON.stringify(cid(contract.schemas.analytic_slot))}\n}\n`;
+const pinsPath='src/pipeline_check_context/analytic_numeric_slot_pins.generated.mbt';
+if(process.argv.includes('--write'))writeFileSync(pinsPath,pins);
+assert.equal(readFileSync(pinsPath,'utf8'),pins);
 if(process.argv.includes('--print-pins'))console.log(JSON.stringify({root:cid(contract),analytic_slot:cid(contract.schemas.analytic_slot)}));

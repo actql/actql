@@ -48,6 +48,11 @@ pub fn prepare_program_numeric_slots(
       pending.kind is @relation.NumericAggregateObservation else {
       continue
     }
+    if @pipeline.step_at(site.pipeline, site.step) is Some(step) &&
+      step.operation is @pipeline.Unary(operation) &&
+      @relation.analytic(operation) is Some(_) {
+      continue
+    }
     guard @pipeline.step_at(site.pipeline, site.step) is Some(step) &&
       step.operation is @pipeline.Unary(operation) &&
       @relation.operation(operation) == @relation.Group &&

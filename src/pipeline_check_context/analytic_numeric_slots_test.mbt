@@ -104,8 +104,10 @@ test "analytic numeric templates retain exact frame calls without closing observ
   )
   assert_true(analytic_numeric_slot_at(slots, -1) is None)
   assert_true(analytic_numeric_slot_at(slots, 6) is None)
-  assert_true(
-    prepare_program_numeric_slots(requirements, profile, work, 6)
-    is Err(UnsupportedOccurrence(_)),
+  assert_eq(
+    numeric_slot_count(
+      prepare_program_numeric_slots(requirements, profile, work, 6).unwrap(),
+    ),
+    0,
   )
 }
