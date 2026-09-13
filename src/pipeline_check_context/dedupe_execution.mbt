@@ -18,6 +18,7 @@ pub(all) enum OperationExecutionCheck {
   JoinInputValidation(JoinInputValidationCheck)
   JoinIdentity(JoinIdentityCheck)
   AppendRows(AppendRowsCheck)
+  SetRows(SetRowsCheck)
 }
 
 ///|
@@ -49,6 +50,14 @@ pub fn operation_execution_phase(
         | RetainIdentityAndCompleteness
         | EnforceOutputEnvelope(_) => BeforeOperationOutput
       }
+    SetRows(v) =>
+      match v.rule {
+        AdmitBothInputs => BeforeOperationInputUse
+        CompareCompleteTypedRows
+        | PreserveEarliestLeftOccurrences
+        | BoundOutputByLeftInput
+        | RetainIdentityAndCompleteness => BeforeOperationOutput
+      }
   }
 }
 
@@ -64,6 +73,7 @@ pub fn operation_execution_failure(
     JoinInputValidation(_) => RejectOperationOutput
     JoinIdentity(_) => RejectOperationOutput
     AppendRows(_) => RejectOperationOutput
+    SetRows(_) => RejectOperationOutput
   }
 }
 

@@ -175,10 +175,13 @@ pub fn index_program_operation_resolutions(
           ) {
           return Err(ForeignOccurrence(i))
         }
-        append_execution_check(
-          site,
-          @capacity.application_closure_policy(stage.context.capacity),
+        let policy = @capacity.application_closure_policy(
+          stage.context.capacity,
         )
+        match append_execution_check(site, policy) {
+          Ok(None) => set_execution_check(site, policy)
+          other => other
+        }
       }
       other => other
     }

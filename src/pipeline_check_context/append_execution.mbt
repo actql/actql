@@ -26,7 +26,7 @@ fn append_execution_check(
   site : OperationRequirementSite,
   policy : @policy.Policy,
 ) -> Result[OperationExecutionCheck?, OperationResolutionIndexIssue] {
-  let rule = match site.requirement {
+  let rule : AppendRowsRule = match site.requirement {
     @pipeline.AppendRequirement(ValidateInputRows) => AdmitBothInputs
     @pipeline.AppendRequirement(PreserveLeftThenRightOrder) =>
       PreserveLeftThenRight

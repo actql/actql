@@ -491,6 +491,22 @@ concatenation alone. This binding does not supply missing identity evidence to a
 consumer that requires it. All four dispositions precede successful append output
 use; input admission additionally precedes use of the input rows.
 
+Complete-row set operations retain separate input-admission, typed comparison,
+earliest-left-occurrence, left-relative output-bound and identity/completeness
+dispositions over both operand occurrences. Equality is the existing typed-row
+law, not arbitrary serialized-byte or precision-tagged decimal hash equality.
+The checked operation retains `except` versus `intersect` and `all` versus
+`distinct`; these determine the multiplicity calculation without deduplicating
+the authored input edges. The left logical-order witness remains a dependency.
+An output count no greater than the actual left count is not a bound on the
+comparison working set. Right-side absence stays scoped to that captured input;
+neither missing rows nor distinctness promote observation completeness.
+
+`ResolveComparisonResources` remains unresolved until comparison, hash-table and
+byte limits have their own concrete disposition. The selected policy and row
+semantics cannot substitute for that resource closure. Consequently these
+bindings alone do not admit set operations through the formal Program entry.
+
 Source acquisition has distinct Host-combination and response-admission
 dispositions. The former applies before provider access: the Host checks the
 selected acquisition kind, authority, observation and Carrier combination and

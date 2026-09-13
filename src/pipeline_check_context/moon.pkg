@@ -23,6 +23,7 @@ import {
   "actql/actql/calendar_options",
   "actql/actql/relation_typing" @relation,
   "actql/actql/relation_append" @append,
+  "actql/actql/relation_set" @set,
   "actql/actql/relation_join" @join,
   "actql/actql/relation_evidence" @evidence,
   "actql/actql/value_contract" @contract,

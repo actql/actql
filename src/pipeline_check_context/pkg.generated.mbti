@@ -27,6 +27,7 @@ import {
   "actql/actql/relation_join_shape",
   "actql/actql/relation_results",
   "actql/actql/relation_schema",
+  "actql/actql/relation_set",
   "actql/actql/relation_typing",
   "actql/actql/relation_values",
   "actql/actql/source_request_slots",
@@ -1380,6 +1381,7 @@ pub(all) enum OperationExecutionCheck {
   JoinInputValidation(JoinInputValidationCheck)
   JoinIdentity(JoinIdentityCheck)
   AppendRows(AppendRowsCheck)
+  SetRows(SetRowsCheck)
 }
 
 pub(all) enum OperationFillIssue {
@@ -1942,6 +1944,25 @@ pub(all) struct SelectedPolicyUsage {
   text_bytes : Int
   local_input_nodes : Int
   policy_nodes : Int
+} derive(Eq, @debug.Debug)
+
+pub struct SetRowsCheck {
+  site : OperationRequirementSite
+  step : @pipeline_typing.CheckedStep
+  left : @pipeline_typing.Target
+  right : @pipeline_typing.Target
+  operation : @relation_set.CheckedSet
+  rule : SetRowsRule
+  policy : @capacity_policy.Policy
+  left_order : @pipeline_typing.LogicalOrder?
+}
+
+pub(all) enum SetRowsRule {
+  AdmitBothInputs
+  CompareCompleteTypedRows
+  PreserveEarliestLeftOccurrences
+  BoundOutputByLeftInput
+  RetainIdentityAndCompleteness
 } derive(Eq, @debug.Debug)
 
 type SourceBindingRequirements

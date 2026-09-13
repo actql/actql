@@ -37,6 +37,10 @@ fn check_resolution_index(
         execution += 1
         assert_true(physical_equal(check.site, site))
       }
+      Execution(SetRows(check)) => {
+        execution += 1
+        assert_true(physical_equal(check.site, site))
+      }
       Execution(ValuesPublication(_)) =>
         abort("values resources require explicit resolution")
       Execution(JoinOutputLimit(_)) =>

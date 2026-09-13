@@ -62,6 +62,7 @@ pub fn close_program_operations(
           JoinInputValidation(v) => v.site
           JoinIdentity(v) => v.site
           AppendRows(v) => v.site
+          SetRows(v) => v.site
         }
         if !physical_equal(site, expected) {
           return Err(ForeignOccurrence(i))
