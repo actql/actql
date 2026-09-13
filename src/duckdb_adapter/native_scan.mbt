@@ -67,6 +67,26 @@ pub fn native_scan_sql(scan : NativeScan) -> String {
 }
 
 ///|
+/// Catalog-only verification command; it does not export source rows.
+pub fn native_scan_metadata_sql(_scan : NativeScan) -> String {
+  "SELECT table_type FROM information_schema.tables WHERE table_schema = ? AND table_name = ?"
+}
+
+///|
+pub fn native_scan_metadata_parameter(
+  scan : NativeScan,
+  index : Int,
+) -> PhysicalParameter? {
+  let value = match index {
+    0 => scan.query.database_schema
+    1 => scan.query.table
+    _ => return None
+  }
+  // Physical catalog names are Host identifiers, not ActQL scalar literals.
+  Some({ id: "VARCHAR", decimal: None, value: ScalarText(value), })
+}
+
+///|
 pub fn prepare_scan_validation_receiver(
   scan : NativeScan,
   fields : Array[(String, PhysicalType)],

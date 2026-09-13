@@ -50,6 +50,17 @@ than independently supplied schema claims. Preparing these commands does not
 prove that the physical address is a declared real table: Host permission,
 catalog/schema checks and read-view ownership remain execution obligations.
 
+The Node native-read orchestration runs a catalog-only metadata command, the full
+validation scan and the native query within one source session. It waits for the
+MoonBit-facing validation callbacks to finish before dispatching the native
+command. Empty receipts still call schema preparation. Both row receipts receive
+the same unique private read-view discriminator; this object has no connection
+methods and is not a snapshot token. Reusing the same port to restart an attempt
+is rejected. Any failure, including cleanup failure after the callback returns,
+notifies the receiver's abort path. Transport deltas for each receipt exclude
+catalog metadata while the cumulative session ledger includes it. These deltas
+remain physical frame metrics, not canonical typed-wire receipt measurements.
+
 Metadata verification, full known-scan validation and the result query use the
 same connection and read transaction. A path or modification time is not a
 snapshot identity. Capture retains immutable completed data; a downstream retry

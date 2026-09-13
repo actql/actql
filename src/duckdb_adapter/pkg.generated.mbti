@@ -45,6 +45,10 @@ pub fn native_query_parameter(NativeQuery) -> PhysicalParameter
 
 pub fn native_query_sql(NativeQuery) -> String
 
+pub fn native_scan_metadata_parameter(NativeScan, Int) -> PhysicalParameter?
+
+pub fn native_scan_metadata_sql(NativeScan) -> String
+
 pub fn native_scan_query(NativeScan) -> NativeQuery
 
 pub fn native_scan_sql(NativeScan) -> String

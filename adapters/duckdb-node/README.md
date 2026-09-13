@@ -27,6 +27,16 @@ output or issue acquisition capture evidence. Its result chunks remain
 provisional until both the transport cleanup and the receiving semantic checks
 have succeeded.
 
+`runNativeAcquisition` sequences catalog metadata, validation scan and native
+query on the same read-only transaction. Its port must supply MoonBit-generated
+commands and perform the actual metadata, value and guard checks. A failed or
+cancelled run aborts provisional receivers and cannot restart the same port.
+The real native-read test uses generated SQL with a lifecycle test double for
+these receiving callbacks; it verifies sequencing, two separate transport
+measurements, empty receipts and cleanup, not full MoonBit admission or evidence
+issuance. Integrating those callbacks and the two-receipt capture verifier remains
+required for end-to-end acquisition conformance.
+
 Tests create their own files under ignored `_build/duckdb-fixtures`, exercise
 exact scalar transport, existing-file read-only access, isolated Compute,
 cumulative transfer bounds, native memory exhaustion, cancellation and cross-process file locks. They
