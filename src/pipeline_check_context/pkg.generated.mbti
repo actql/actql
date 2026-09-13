@@ -923,6 +923,20 @@ pub fn wired_usage(WiredStages) -> (Int, Int)
 // Types and methods
 type AdmittedOperationQuery
 
+pub struct AnalyticEnvelopeCheck {
+  site : OperationRequirementSite
+  step : @pipeline_typing.CheckedStep
+  input : @pipeline_typing.Target
+  operation : @relation_typing.CheckedOperation
+  analytic : @relation_typing.CheckedAnalytic
+  policy : @capacity_policy.Policy
+  input_wire_bytes : @capacity_policy.Ceiling
+  output_wire_bytes : @capacity_policy.Ceiling
+  partition_wire_bytes : @capacity_policy.Ceiling
+  frame_memberships : @capacity_policy.Ceiling
+  output_rows : @capacity_policy.Ceiling
+}
+
 pub struct AppendRowsCheck {
   site : OperationRequirementSite
   step : @pipeline_typing.CheckedStep
@@ -1575,6 +1589,7 @@ pub(all) enum OperationDisposition {
 }
 
 pub(all) enum OperationExecutionCheck {
+  AnalyticEnvelope(AnalyticEnvelopeCheck)
   ExpansionExecution(ExpansionExecutionCheck)
   JsonPickExecution(JsonPickExecutionCheck)
   LagExecution(LagExecutionCheck)

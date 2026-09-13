@@ -45,3 +45,13 @@ The fixed reference snapshot has no equivalent authored analytic checker.
 This implementation follows the normative frame and demand rules rather than
 manufacturing a macro from unrelated grouping or sorting adapters. AoA lowering,
 captured values, execution and conformance remain separate work.
+
+The Program resolution index binds an analytic envelope to its exact producer
+step, primary input and selected capacity policy. Its typed ceilings distinguish
+input/output row-array wire bytes, per-partition wire bytes, frame memberships
+and output rows. An absent selected scope leaves the envelope unresolved; no
+default bound or zero-usage proof is constructed. Each imported visit keeps the
+original operation and its owning policy. These checks reject operation output
+on excess, but do not resolve call demand, peer/position ordering, aggregate
+result contracts or numeric observations. Logical wire size does not replace
+Host admission of physical partition storage and caches.

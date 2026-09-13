@@ -200,7 +200,12 @@ pub fn index_program_operation_resolutions(
                               Ok(None) =>
                                 match json_pick_execution_check(site, policy) {
                                   Ok(None) =>
-                                    expansion_execution_check(site, policy)
+                                    match
+                                      expansion_execution_check(site, policy) {
+                                      Ok(None) =>
+                                        analytic_envelope_check(site, policy)
+                                      other => other
+                                    }
                                   other => other
                                 }
                               other => other
