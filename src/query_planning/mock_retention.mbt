@@ -37,66 +37,37 @@ fn retain_mock_computation(
   computation : MockQueryComputation,
   limits : MockRetentionLimits,
 ) -> Result[MockQueryRetention, MockRetentionIssue] {
-  if limits.received_wire_bytes < 0 || limits.retained_wire_bytes < 0 {
-    return Err(InvalidLimits)
-  }
-  // Hashing scans the exact immutable material without re-admission, expression
-  // evaluation or constructing a row JSON matrix. Share bytes/nodes across both
-  // artifacts; column-order/depth allowances apply to each artifact separately.
-  let scan = match
-    @execution.identify_captured_rows(
+  let measured = match
+    measure_query_retention(
       @query.query_receipt_rows(computation._scan),
-      limits.measurement,
+      computation.output,
+      computation.strategy.offer.realization == BroadWithResidual,
+      {
+        received_wire_bytes: limits.received_wire_bytes,
+        retained_wire_bytes: limits.retained_wire_bytes,
+        measurement: limits.measurement,
+      },
     ) {
     Ok(value) => value
-    Err(issue) => return Err(ScanIdentity(issue))
-  }
-  let scan_usage = @execution.row_wire_usage(scan)
-  if scan_usage.0 > limits.retained_wire_bytes {
-    return Err(RetainedBytes)
-  }
-  if computation.strategy.offer.realization == BroadWithResidual &&
-    scan_usage.0 > limits.received_wire_bytes {
-    return Err(ReceiptBytes)
-  }
-  // A valid measurement allowance may be exactly exhausted by the scan.
-  // Every output array (even empty) needs a node; this is resource exhaustion,
-  // not a malformed caller-supplied RowWireLimits configuration.
-  if scan_usage.1 == limits.measurement.max_nodes {
-    return Err(
-      OutputIdentity(@execution.RowWireIssue::Encoding(@encode.OutputLimit)),
-    )
-  }
-  let output = match
-    @execution.identify_completed_rows(computation.output, {
-      ..limits.measurement,
-      max_bytes: limits.measurement.max_bytes - scan_usage.0,
-      max_nodes: limits.measurement.max_nodes - scan_usage.1,
-    }) {
-    Ok(value) => value
-    Err(issue) => return Err(OutputIdentity(issue))
-  }
-  let output_usage = @execution.row_wire_usage(output)
-  // No overflow and no discount for sharing: both retained representations are
-  // required. Native receipt savings do not remove the issuer's full scan.
-  if output_usage.0 > limits.retained_wire_bytes - scan_usage.0 {
-    return Err(RetainedBytes)
-  }
-  let received_bytes = match computation.strategy.offer.realization {
-    NativeQuery => output_usage.0
-    BroadWithResidual => scan_usage.0
-  }
-  if received_bytes > limits.received_wire_bytes {
-    return Err(ReceiptBytes)
+    Err(issue) =>
+      return Err(
+        match issue {
+          InvalidLimits => InvalidLimits
+          ScanIdentity(issue) => ScanIdentity(issue)
+          OutputIdentity(issue) => OutputIdentity(issue)
+          ReceiptBytes => ReceiptBytes
+          RetainedBytes => RetainedBytes
+        },
+      )
   }
   Ok({
     _requirement: requirement,
     computation,
-    scan,
-    output,
-    received_bytes,
-    retained_bytes: scan_usage.0 + output_usage.0,
-    measured_nodes: scan_usage.1 + output_usage.1,
+    scan: measured.scan,
+    output: measured.output,
+    received_bytes: measured.received_bytes,
+    retained_bytes: measured.retained_bytes,
+    measured_nodes: measured.measured_nodes,
   })
 }
 

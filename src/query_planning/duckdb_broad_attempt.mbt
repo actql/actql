@@ -4,6 +4,7 @@ pub(all) enum DuckDBBroadAttemptIssue {
   Metadata(@duckdb.SourceTableIssue)
   Receiving(@duckdb.BroadReceivingIssue)
   Residual(@query.QueryGuardIssue)
+  Retention(QueryRetentionIssue)
 }
 
 ///|
@@ -14,6 +15,7 @@ priv enum DuckDBBroadState {
   AwaitingCleanup(@execution.CapturedRows)
   Ready(@execution.CapturedRows)
   Completed(DuckDBBroadCompletion)
+  Retained(DuckDBBroadRetention)
   Failed
 }
 
@@ -173,7 +175,11 @@ pub fn execute_duckdb_broad_attempt(
 pub fn duckdb_broad_attempt_output(
   attempt : DuckDBBroadAttempt,
 ) -> @execution.CompletedOutput? {
-  guard attempt.state is Completed(completed) else { return None }
+  let completed = match attempt.state {
+    Completed(value) => value
+    Retained(value) => value.completion
+    _ => return None
+  }
   @execution.completed_output(
     completed.sequence,
     @acquisition.query_acquisition_capture(

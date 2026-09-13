@@ -52,6 +52,12 @@ pub fn duckdb_broad_attempt_output(DuckDBBroadAttempt) -> @execution_relation.Co
 
 pub fn duckdb_broad_candidate(DuckDBQueryPreparation, Array[@physical_cost.SerialEstimateLine], QueryQuantities, Int) -> Result[AcquisitionCandidate, QueryPlanningIssue]
 
+pub fn duckdb_broad_retention_cids(DuckDBBroadRetention) -> (String, String)
+
+pub fn duckdb_broad_retention_matches(DuckDBBroadRetention, DuckDBBroadAttempt) -> Bool
+
+pub fn duckdb_broad_retention_usage(DuckDBBroadRetention) -> (Int, Int, Int)
+
 pub fn duckdb_broad_work_at(Int) -> DuckDBBroadWork?
 
 pub fn duckdb_query_broad_scan(DuckDBQueryPreparation) -> @duckdb_adapter.BroadScan
@@ -170,6 +176,8 @@ pub fn query_work_at(QueryRealization, Int) -> QueryWork?
 
 pub fn query_work_count(QueryRealization) -> Int
 
+pub fn retain_duckdb_broad_attempt(DuckDBBroadAttempt, QueryRetentionLimits) -> Result[DuckDBBroadRetention, DuckDBBroadAttemptIssue]
+
 pub fn retain_mock_query(MockQueryAttempt, MockRetentionLimits) -> Result[MockQueryRetention, MockRetentionIssue]
 
 pub fn settle_duckdb_broad_transport(DuckDBBroadAttempt) -> Result[Unit, DuckDBBroadAttemptIssue]
@@ -201,7 +209,10 @@ pub(all) enum DuckDBBroadAttemptIssue {
   Metadata(@duckdb_adapter.SourceTableIssue)
   Receiving(@duckdb_adapter.BroadReceivingIssue)
   Residual(@execution_query.QueryGuardIssue)
+  Retention(QueryRetentionIssue)
 }
+
+type DuckDBBroadRetention
 
 pub(all) enum DuckDBBroadWork {
   SessionAndCatalog
@@ -365,6 +376,20 @@ pub(all) enum QueryRequirementIssue {
   FieldLimit
   WorkLimit
   Encoding(@encode_core.EncodeFailure)
+}
+
+pub(all) enum QueryRetentionIssue {
+  InvalidLimits
+  ScanIdentity(@execution_relation.RowWireIssue)
+  OutputIdentity(@execution_relation.RowWireIssue)
+  ReceiptBytes
+  RetainedBytes
+}
+
+pub(all) struct QueryRetentionLimits {
+  received_wire_bytes : Int
+  retained_wire_bytes : Int
+  measurement : @execution_relation.RowWireLimits
 }
 
 pub enum QuerySelection {

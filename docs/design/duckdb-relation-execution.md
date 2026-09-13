@@ -84,6 +84,17 @@ The resulting computation retains both full scan and output for subsequent
 issuer verification; this lifecycle does not itself issue observation evidence
 or authenticate a serializable claim that transport cleanup succeeded.
 
+After guarded broad computation, retention hashes the exact admitted scan and
+completed output with the same bounded row-wire accounting used by mock. The
+measurement byte/node budget spans both artifacts; an exactly exhausted scan
+node allowance is output resource exhaustion, not invalid initial limits.
+Receipt limits count the broad scan once, while retention counts both scan and
+output without a sharing discount. A receipt limit already known to fail is
+checked before output measurement. No values are readmitted or expressions
+reevaluated for these hashes. The retained handle is valid only while the exact
+owning attempt holds it; cancellation or failure invalidates that association.
+Digest strings remain diagnostic data, not portable evidence or capture permits.
+
 ## Source and fixed-input isolation
 
 The Host supplies an explicitly authorized trusted local database binding.

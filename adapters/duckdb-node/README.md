@@ -125,6 +125,13 @@ successfully, not from its `finishReceipt` callback. On transport or cleanup
 failure it aborts the attempt. The lifecycle is one-shot and does not issue
 capture evidence; it must not be exposed as an untrusted cleanup-attestation API.
 
+`retain_duckdb_broad_attempt` then measures and retains the exact scan and
+completed output under a shared canonical byte/node allowance. Its usage reports
+received wire bytes, retained wire bytes and measured nodes, not allocator usage
+or transport-frame size. `duckdb_broad_retention_matches` requires the exact live
+attempt association; a digest or cancelled attempt cannot stand in for it.
+Evidence issuance and observation capture still follow this retention boundary.
+
 Tests create their own files under ignored `_build/duckdb-fixtures`, exercise
 exact scalar transport, existing-file read-only access, isolated Compute,
 cumulative transfer bounds, native memory exhaustion, cancellation and cross-process file locks. They
