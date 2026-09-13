@@ -195,6 +195,17 @@ Typed failure results use the pinned compiler's JS ABI inside this private
 facade only; this ABI is not a published cross-version Connector contract.
 This restricts the standard entry, not arbitrary malicious code in the Host TCB.
 
+`BroadHostConfiguration` and `BroadHostRun` provide the corresponding broad
+assembly using the existing one-receipt attempt state machine. The standard
+`runBroadHostQuery` installs its private settled verifier and shares the bounded
+physical transport decoding with native. It does not duplicate source validation
+or evaluate the residual in Node. `complete_duckdb_broad_capture` verifies exact
+live authority before state changes and sequences settlement, residual/guards,
+retention, record issuance and capture. A failure aborts the unfinished attempt;
+duplicate completion preserves an existing capture. Binding derives the expected
+producer from the owned requirement and uses the existing captured-input API.
+No additional full row copy or admission is introduced by Host assembly.
+
 The Host supplies an explicitly authorized trusted local database binding.
 Program Resource/SourceView descriptions alone grant no filesystem authority.
 Only declared real tables are in scope; views, user SQL, extension loading and

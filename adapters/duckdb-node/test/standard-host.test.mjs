@@ -8,7 +8,7 @@ import { join } from 'node:path';
 import { createHash } from 'node:crypto';
 import { DuckDBInstance } from '@duckdb/node-api';
 import { authorizeLocalDatabase } from '../session.mjs';
-import { runNativeHostQuery } from '../host.mjs';
+import { runNativeHostQuery, runBroadHostQuery } from '../host.mjs';
 
 const root = fileURLToPath(new URL('../../..', import.meta.url));
 const limits = { maxRows: 100, maxCells: 1000, maxTransportBytes: 100000,
@@ -16,7 +16,7 @@ const limits = { maxRows: 100, maxCells: 1000, maxTransportBytes: 100000,
   memoryBytes: 128 * 1024 * 1024, threads: 1 };
 const hash = value => `sha256:${createHash('sha256').update(JSON.stringify(value)).digest('hex')}`;
 
-test('standard Node Host owns verifier and product runtime through real capture and consumer', async () => {
+test('standard native and broad Node Hosts own verification through real capture and consumer', async () => {
   const exec = promisify(execFile);
   await exec('moon', ['build', '--target', 'js', '--release', 'src/duckdb_host_node'], { cwd: root });
   await exec('moon', ['build', '--target', 'js', '--release', 'src/duckdb_conformance'], { cwd: root });
@@ -47,37 +47,54 @@ test('standard Node Host owns verifier and product runtime through real capture 
           ? "INSERT INTO records VALUES (3,30),(1,'Infinity'::DOUBLE)"
           : 'INSERT INTO records VALUES (3,30),(1,NULL),(2,20),(3,30)');
       } finally { connection.closeSync(); db.closeSync(); }
-      const prepared = fixture.issuedNativeCreate(...args, 100, () => false);
-      const setup = fixture.issuedNativeConfiguration(prepared);
-      fixture.issuedNativeClose(prepared); // unused test issuer is not the product issuer
       const grant = await authorizeLocalDatabase(path);
-      if (kind === 'invalid-unused') {
-        await assert.rejects(runNativeHostQuery(grant, setup, limits), error => {
-          assert.equal(error.code, 'MoonBitHostFailure');
-          assert(error.cause); // Preserve the typed admission failure, not a JS ABI error.
-          return true;
-        });
-        continue;
+      for (const strategy of ['native', 'broad']) {
+        const native = strategy === 'native';
+        const create = count => native ? fixture.issuedNativeCreate(...args, count, () => true)
+          : fixture.issuedBroadCreate(...args.slice(0, -1), count, () => true);
+        const configure = native ? fixture.issuedNativeConfiguration : fixture.issuedBroadConfiguration;
+        const close = native ? fixture.issuedNativeClose : fixture.issuedBroadClose;
+        const execute = native ? runNativeHostQuery : runBroadHostQuery;
+        const prepared = create(100);
+        const setup = configure(prepared);
+        close(prepared); // unused test issuer is not the product issuer
+        if (kind === 'invalid-unused') {
+          await assert.rejects(execute(grant, setup, limits), error => {
+            assert.equal(error.code, 'MoonBitHostFailure');
+            assert(error.cause); // Preserve the typed admission failure, not a JS ABI error.
+            return true;
+          });
+          continue;
+        }
+        const captured = await execute(grant, setup, limits);
+        const expected = kind === 'empty' ? [] : [{ id: 3 }, { id: 2 }, { id: 3 }];
+        const observation = JSON.parse(captured.document());
+        assert.equal(observation.output.rows_cid, hash(expected));
+        assert.equal(observation.output.row_count, expected.length);
+        const materialize = () => native ? captured.output()
+          : captured.bindInput(fixture.issuedBroadConsumer(prepared), 0);
+        const consume = native ? fixture.issuedNativeConsumeOutput : fixture.issuedBroadConsumeInput;
+        const output = materialize();
+        if (expected.length) assert.equal(consume(prepared, output, 0), 'null');
+        assert.equal(consume(prepared, output, 100), hash(expected));
+        const foreign = create(100);
+        assert.equal(consume(foreign, output, 100), 'null');
+        if (!native) assert.throws(() => captured.bindInput(fixture.issuedBroadConsumer(foreign), 0),
+          { code: 'MoonBitHostFailure' });
+        close(foreign);
+        assert.equal(consume(prepared, materialize(), 100), hash(expected));
+        captured.close();
+        assert.throws(materialize, { code: 'IssuerClosed' });
+        if (native) assert.equal(consume(prepared, output, 100), 'null');
+        const cancelled = new AbortController();
+        cancelled.abort();
+        await assert.rejects(execute(grant, setup, limits, cancelled.signal));
+        await assert.rejects(execute({}, setup, limits));
+        const limited = create(0);
+        if (expected.length) await assert.rejects(execute(grant,
+          configure(limited), limits), { code: 'MoonBitHostFailure' });
+        close(limited);
       }
-      const captured = await runNativeHostQuery(grant, setup, limits);
-      const expected = kind === 'empty' ? [] : [{ id: 3 }, { id: 2 }, { id: 3 }];
-      const observation = JSON.parse(captured.document());
-      assert.equal(observation.output.rows_cid, hash(expected));
-      assert.equal(observation.output.row_count, expected.length);
-      const output = captured.output();
-      if (expected.length) assert.equal(fixture.issuedNativeConsumeOutput(prepared, output, 0), 'null');
-      assert.equal(fixture.issuedNativeConsumeOutput(prepared, output, 100), hash(expected));
-      captured.close();
-      assert.throws(() => captured.output(), { code: 'IssuerClosed' });
-      assert.equal(fixture.issuedNativeConsumeOutput(prepared, output, 100), 'null');
-      const cancelled = new AbortController();
-      cancelled.abort();
-      await assert.rejects(runNativeHostQuery(grant, setup, limits, cancelled.signal));
-      await assert.rejects(runNativeHostQuery({}, setup, limits));
-      const limited = fixture.issuedNativeCreate(...args, 0, () => true);
-      if (expected.length) await assert.rejects(runNativeHostQuery(grant,
-        fixture.issuedNativeConfiguration(limited), limits), { code: 'MoonBitHostFailure' });
-      fixture.issuedNativeClose(limited);
     }
   } finally { await rm(directory, { recursive: true, force: true }); }
 });

@@ -2,6 +2,7 @@
 // Fixed test Program, real public checks and execution. No private completion,
 // fabricated records, source permission or arbitrary Plan constructor.
 struct IssuedBroadFixture {
+  configuration : @dbhost.BroadHostConfiguration
   issuer : @planning.DuckDBQueryIssuer
   attempt : @planning.DuckDBBroadAttempt
   requirement : @planning.QueryRequirement
@@ -239,6 +240,35 @@ pub fn issued_broad_create(
       consumer_owner, registry_json, values_json, fragment_json, false,
     )
     {
+      configuration: @dbhost.configure_broad_host(
+        evidence,
+        requirement,
+        choice,
+        candidate,
+        {
+          physical: {
+            max_rows: 100,
+            max_cells: 1000,
+            max_nodes: 1000,
+            max_text_bytes: 10000,
+          },
+          metadata_work: 10000,
+          retention: {
+            max_nodes: 10000,
+            max_text_bytes: 10000,
+            max_depth: 100,
+            max_work: 100000,
+          },
+          completion: issued_broad_completion_limits(1000000),
+          transport: {
+            max_bytes: 100000,
+            max_nodes: 10000,
+            max_columns: 10,
+            max_rows: 100,
+            max_text_bytes: 100000,
+          },
+        },
+      ),
       issuer,
       attempt,
       requirement,
@@ -368,18 +398,31 @@ pub fn issued_broad_complete(
   value : IssuedBroadFixture,
   artifact_bytes : Int,
 ) -> Bool {
-  guard @planning.settle_duckdb_broad_transport(value.attempt) is Ok(_) else {
-    return false
-  }
-  guard @planning.execute_duckdb_broad_attempt(
+  guard @planning.complete_duckdb_broad_capture(
+      value.issuer,
       value.attempt,
-      issued_execution_limits(100),
-      { max_work: 10000, max_bytes: 100000, max_nodes: 10000, max_depth: 100, },
+      issued_broad_completion_limits(artifact_bytes),
     )
-    is Ok(_) else {
+    is Ok(observation) else {
     return false
   }
-  guard @planning.retain_duckdb_broad_attempt(value.attempt, {
+  value.observation = Some(observation)
+  true
+}
+
+///|
+fn issued_broad_completion_limits(
+  artifact_bytes : Int,
+) -> @planning.DuckDBBroadCompletionLimits {
+  {
+    execution: issued_execution_limits(100),
+    guards: {
+      max_work: 10000,
+      max_bytes: 100000,
+      max_nodes: 10000,
+      max_depth: 100,
+    },
+    retention: {
       received_wire_bytes: 100000,
       retained_wire_bytes: 100000,
       measurement: {
@@ -389,32 +432,63 @@ pub fn issued_broad_complete(
         max_nodes: 10000,
         max_depth: 100,
       },
-    })
-    is Ok(_) else {
-    return false
-  }
-  guard @planning.issue_duckdb_broad_records(value.attempt, {
+    },
+    records: {
       max_work: 1000000,
       max_fields: 100,
       max_parameters: 100,
       max_bytes: 1000000,
       max_nodes: 100000,
       max_depth: 100,
-    })
-    is Ok(records) else {
-    return false
+    },
+    capture: { max_bytes: artifact_bytes, max_nodes: 100000, max_depth: 100, },
   }
-  guard @planning.capture_duckdb_broad_query(
-      value.issuer,
-      value.attempt,
-      records,
-      { max_bytes: artifact_bytes, max_nodes: 100000, max_depth: 100, },
+}
+
+///|
+#export_name("issuedBroadConfiguration")
+pub fn issued_broad_configuration(
+  value : IssuedBroadFixture,
+) -> @dbhost.BroadHostConfiguration {
+  value.configuration
+}
+
+///|
+#export_name("issuedBroadConsumer")
+pub fn issued_broad_consumer(
+  value : IssuedBroadFixture,
+) -> @lower.BoundPrepared {
+  @execution.generated_sequence_owner(value.consumer)
+}
+
+///|
+#export_name("issuedBroadConsumeInput")
+pub fn issued_broad_consume_input(
+  value : IssuedBroadFixture,
+  bound : @execution.BoundProducerInput,
+  rows : Int,
+) -> String {
+  guard @execution.execute_generated_sequence(
+      value.consumer,
+      [],
+      issued_execution_limits(rows),
+      produced=[bound],
     )
-    is Ok(observation) else {
-    return false
+    is Ok(completed) else {
+    return "null"
   }
-  value.observation = Some(observation)
-  true
+  let output = @execution.completed_output(completed, Step(0)).unwrap()
+  guard @execution.identify_completed_rows(output, {
+      max_columns: 10,
+      max_order_work: 10000,
+      max_bytes: 100000,
+      max_nodes: 10000,
+      max_depth: 100,
+    })
+    is Ok(identity) else {
+    return "null"
+  }
+  @execution.row_wire_cid(identity)
 }
 
 ///|

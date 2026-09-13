@@ -10,21 +10,45 @@ import {
 }
 
 // Values
+pub fn abort_broad_host(BroadHostRun) -> Unit
+
 pub fn abort_native_host(NativeHostRun) -> Unit
+
+pub fn accept_broad_host_chunk(BroadHostRun, Int, Array[@decode_core.Cursor]) -> Result[Unit, BroadHostIssue]
 
 pub fn accept_native_host_chunk(NativeHostRun, Int, Array[@decode_core.Cursor]) -> Result[Unit, NativeHostIssue]
 
+pub fn begin_broad_host_receipt(BroadHostRun, Array[(String, @duckdb_adapter.PhysicalType)]) -> Result[Unit, BroadHostIssue]
+
 pub fn begin_native_host_receipt(NativeHostRun, @duckdb_adapter.NativeReceiptRole, Array[(String, @duckdb_adapter.PhysicalType)]) -> Result[Unit, NativeHostIssue]
+
+pub fn bind_broad_host_input(BroadHostRun, @query_planning.DuckDBBroadObservation, @lowering_relation.BoundPrepared, Int) -> Result[@execution_relation.BoundProducerInput, BroadHostIssue]
 
 pub fn bind_native_host_input(NativeHostRun, @query_planning.DuckDBNativeObservation, @lowering_relation.BoundPrepared, Int, Int, @execution_relation.ValueLimits, Int, Int) -> Result[@execution_relation.BoundProducerInput, NativeHostIssue]
 
+pub fn broad_host_attempt(BroadHostRun) -> @query_planning.DuckDBBroadAttempt
+
+pub fn broad_host_metadata(BroadHostRun, Int, Array[(String, @duckdb_adapter.PhysicalType)], Array[@decode_core.Cursor]) -> Result[Unit, BroadHostIssue]
+
+pub fn broad_host_scan(BroadHostRun) -> @duckdb_adapter.BroadScan
+
+pub fn close_broad_host(BroadHostRun) -> Unit
+
 pub fn close_native_host(NativeHostRun) -> Unit
+
+pub fn complete_broad_host(BroadHostRun) -> Result[@query_planning.DuckDBBroadObservation, BroadHostIssue]
 
 pub fn complete_native_host(NativeHostRun, @query_planning.DuckDBNativeCompletionLimits) -> Result[@query_planning.DuckDBNativeObservation, NativeHostIssue]
 
+pub fn configure_broad_host(@query_planning.QueryEvidenceContracts, @query_planning.QueryRequirement, @query_planning.AcquisitionChoice, @query_planning.PreparedAcquisition[@query_planning.DuckDBQueryPreparation], BroadHostLimits) -> BroadHostConfiguration
+
 pub fn configure_native_host(@query_planning.QueryTwoReceiptContract, @query_planning.QueryRequirement, @query_planning.AcquisitionChoice, @query_planning.PreparedAcquisition[@query_planning.DuckDBNativePreparation], NativeHostLimits) -> NativeHostConfiguration
 
+pub fn configured_broad_host_limits(BroadHostConfiguration) -> BroadHostLimits
+
 pub fn configured_native_host_limits(NativeHostConfiguration) -> NativeHostLimits
+
+pub fn finish_broad_host_receipt(BroadHostRun) -> Result[Unit, BroadHostIssue]
 
 pub fn finish_native_host_receipt(NativeHostRun) -> Result[Unit, NativeHostIssue]
 
@@ -36,6 +60,8 @@ pub fn native_host_output(NativeHostRun, @query_planning.DuckDBNativeObservation
 
 pub fn native_host_scan(NativeHostRun) -> @duckdb_adapter.NativeScan
 
+pub fn start_configured_broad_host(BroadHostConfiguration, String, (@query_planning.DuckDBBroadAttempt) -> Bool) -> Result[BroadHostRun, BroadHostIssue]
+
 pub fn start_configured_native_host(NativeHostConfiguration, String, (@query_planning.DuckDBNativeAttempt) -> Bool) -> Result[NativeHostRun, NativeHostIssue]
 
 pub fn start_native_host(@query_planning.QueryTwoReceiptContract, @query_planning.QueryRequirement, @query_planning.AcquisitionChoice, @query_planning.PreparedAcquisition[@query_planning.DuckDBNativePreparation], String, Int, @duckdb_adapter.PhysicalResultLimits, Int, @execution_relation.FixedInputGuardMeasureLimits, (@query_planning.DuckDBNativeAttempt) -> Bool) -> Result[NativeHostRun, NativeHostIssue]
@@ -45,6 +71,24 @@ pub fn verify_native_host(NativeHostRun, @query_planning.DuckDBNativeObservation
 // Errors
 
 // Types and methods
+type BroadHostConfiguration
+
+pub(all) enum BroadHostIssue {
+  InvalidState
+  Evidence(@query_planning.DuckDBEvidenceIssue)
+  Attempt(@query_planning.DuckDBBroadAttemptIssue)
+}
+
+pub(all) struct BroadHostLimits {
+  physical : @duckdb_adapter.PhysicalResultLimits
+  metadata_work : Int
+  retention : @execution_relation.ValueLimits
+  completion : @query_planning.DuckDBBroadCompletionLimits
+  transport : @duckdb_adapter.TransportColumnLimits
+}
+
+type BroadHostRun
+
 type NativeHostConfiguration
 
 pub(all) enum NativeHostIssue {

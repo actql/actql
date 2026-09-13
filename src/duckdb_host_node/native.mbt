@@ -6,8 +6,9 @@ struct NativeNodeRun {
 }
 
 ///|
-pub(all) suberror NativeNodeFailure {
+pub(all) suberror NodeHostFailure {
   Host(@host.NativeHostIssue)
+  Broad(@host.BroadHostIssue)
   Transport(@duckdb.TransportColumnIssue)
   Descriptor(@duckdb.ValueIssue)
   InvalidFields
@@ -22,7 +23,7 @@ pub fn native_host_open(
   setup : @host.NativeHostConfiguration,
   nonce : String,
   verify : (@planning.DuckDBNativeAttempt) -> Bool,
-) -> NativeNodeRun raise NativeNodeFailure {
+) -> NativeNodeRun raise NodeHostFailure {
   match @host.start_configured_native_host(setup, nonce, verify) {
     Ok(host) => { host, limits: @host.configured_native_host_limits(setup), }
     Err(issue) => raise Host(issue)
@@ -42,7 +43,7 @@ pub fn native_host_attempt(
 pub fn native_host_sql(
   run : NativeNodeRun,
   kind : Int,
-) -> String raise NativeNodeFailure {
+) -> String raise NodeHostFailure {
   let scan = @host.native_host_scan(run.host)
   match kind {
     0 => @duckdb.native_scan_metadata_sql(scan)
@@ -57,7 +58,7 @@ pub fn native_host_sql(
 pub fn native_host_parameter(
   run : NativeNodeRun,
   index : Int,
-) -> String raise NativeNodeFailure {
+) -> String raise NodeHostFailure {
   let scan = @host.native_host_scan(run.host)
   let parameter = if index == 2 {
     @duckdb.native_query_parameter(@duckdb.native_scan_query(scan))
@@ -79,10 +80,10 @@ pub fn native_host_parameter(
 
 ///|
 fn chunk_columns(
-  run : NativeNodeRun,
+  limits : @duckdb.TransportColumnLimits,
   text : String,
-) -> Array[@decode.Cursor] raise NativeNodeFailure {
-  match @duckdb.decode_transport_columns(text, run.limits.transport) {
+) -> Array[@decode.Cursor] raise NodeHostFailure {
+  match @duckdb.decode_transport_columns(text, limits) {
     Ok(value) => value
     Err(issue) => raise Transport(issue)
   }
@@ -90,14 +91,11 @@ fn chunk_columns(
 
 ///|
 fn transport_fields(
-  run : NativeNodeRun,
+  limits : @duckdb.TransportColumnLimits,
   text : String,
-) -> Array[(String, @duckdb.PhysicalType)] raise NativeNodeFailure {
+) -> Array[(String, @duckdb.PhysicalType)] raise NodeHostFailure {
   let records = match
-    @duckdb.decode_transport_columns(text, {
-      ..run.limits.transport,
-      max_rows: 4,
-    }) {
+    @duckdb.decode_transport_columns(text, { ..limits, max_rows: 4, }) {
     Ok(value) => value
     Err(issue) => raise Transport(issue)
   }
@@ -147,8 +145,8 @@ fn transport_fields(
       @decode.admit({ value: Object(members), span, }, {
         max_nodes: 8,
         max_depth: 2,
-        max_string_bytes: run.limits.transport.max_text_bytes,
-        max_total_string_bytes: run.limits.transport.max_text_bytes,
+        max_string_bytes: limits.max_text_bytes,
+        max_total_string_bytes: limits.max_text_bytes,
       }) {
       Ok(value) => value
       Err(_) => raise InvalidFields
@@ -169,13 +167,13 @@ pub fn native_host_metadata(
   rows : Int,
   fields : String,
   data : String,
-) -> Unit raise NativeNodeFailure {
+) -> Unit raise NodeHostFailure {
   match
     @host.native_host_metadata(
       run.host,
       rows,
-      transport_fields(run, fields),
-      chunk_columns(run, data),
+      transport_fields(run.limits.transport, fields),
+      chunk_columns(run.limits.transport, data),
     ) {
     Ok(_) => ()
     Err(issue) => raise Host(issue)
@@ -188,7 +186,7 @@ pub fn native_host_begin(
   run : NativeNodeRun,
   native : Bool,
   fields : String,
-) -> Unit raise NativeNodeFailure {
+) -> Unit raise NodeHostFailure {
   match
     @host.begin_native_host_receipt(
       run.host,
@@ -197,7 +195,7 @@ pub fn native_host_begin(
       } else {
         @duckdb.ValidationScan
       },
-      transport_fields(run, fields),
+      transport_fields(run.limits.transport, fields),
     ) {
     Ok(_) => ()
     Err(issue) => raise Host(issue)
@@ -210,9 +208,13 @@ pub fn native_host_accept(
   run : NativeNodeRun,
   rows : Int,
   data : String,
-) -> Unit raise NativeNodeFailure {
+) -> Unit raise NodeHostFailure {
   match
-    @host.accept_native_host_chunk(run.host, rows, chunk_columns(run, data)) {
+    @host.accept_native_host_chunk(
+      run.host,
+      rows,
+      chunk_columns(run.limits.transport, data),
+    ) {
     Ok(_) => ()
     Err(issue) => raise Host(issue)
   }
@@ -220,7 +222,7 @@ pub fn native_host_accept(
 
 ///|
 #export_name("nativeHostFinish")
-pub fn native_host_finish(run : NativeNodeRun) -> Unit raise NativeNodeFailure {
+pub fn native_host_finish(run : NativeNodeRun) -> Unit raise NodeHostFailure {
   match @host.finish_native_host_receipt(run.host) {
     Ok(_) => ()
     Err(issue) => raise Host(issue)
@@ -231,7 +233,7 @@ pub fn native_host_finish(run : NativeNodeRun) -> Unit raise NativeNodeFailure {
 #export_name("nativeHostComplete")
 pub fn native_host_complete(
   run : NativeNodeRun,
-) -> @planning.DuckDBNativeObservation raise NativeNodeFailure {
+) -> @planning.DuckDBNativeObservation raise NodeHostFailure {
   match @host.complete_native_host(run.host, run.limits.completion) {
     Ok(value) => value
     Err(issue) => raise Host(issue)
@@ -243,7 +245,7 @@ pub fn native_host_complete(
 pub fn native_host_output(
   run : NativeNodeRun,
   observation : @planning.DuckDBNativeObservation,
-) -> @execution.CompletedOutput raise NativeNodeFailure {
+) -> @execution.CompletedOutput raise NodeHostFailure {
   let limits = run.limits
   let retained = match
     @host.native_host_output(

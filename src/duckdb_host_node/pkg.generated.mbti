@@ -6,39 +6,67 @@ import {
   "actql/actql/duckdb_host",
   "actql/actql/encode_core",
   "actql/actql/execution_relation",
+  "actql/actql/lowering_relation",
   "actql/actql/query_planning",
 }
 
 // Values
+pub fn broad_host_abort(BroadNodeRun) -> Unit
+
+pub fn broad_host_accept(BroadNodeRun, Int, String) -> Unit raise NodeHostFailure
+
+pub fn broad_host_attempt(BroadNodeRun) -> @query_planning.DuckDBBroadAttempt
+
+pub fn broad_host_begin(BroadNodeRun, String) -> Unit raise NodeHostFailure
+
+pub fn broad_host_bind(BroadNodeRun, @query_planning.DuckDBBroadObservation, @lowering_relation.BoundPrepared, Int) -> @execution_relation.BoundProducerInput raise NodeHostFailure
+
+pub fn broad_host_close(BroadNodeRun) -> Unit
+
+pub fn broad_host_complete(BroadNodeRun) -> @query_planning.DuckDBBroadObservation raise NodeHostFailure
+
+pub fn broad_host_document(@query_planning.DuckDBBroadObservation) -> String
+
+pub fn broad_host_finish(BroadNodeRun) -> Unit raise NodeHostFailure
+
+pub fn broad_host_metadata(BroadNodeRun, Int, String, String) -> Unit raise NodeHostFailure
+
+pub fn broad_host_open(@duckdb_host.BroadHostConfiguration, String, (@query_planning.DuckDBBroadAttempt) -> Bool) -> BroadNodeRun raise NodeHostFailure
+
+pub fn broad_host_parameter(BroadNodeRun, Int) -> String raise NodeHostFailure
+
+pub fn broad_host_sql(BroadNodeRun, Bool) -> String
+
 pub fn native_host_abort(NativeNodeRun) -> Unit
 
-pub fn native_host_accept(NativeNodeRun, Int, String) -> Unit raise NativeNodeFailure
+pub fn native_host_accept(NativeNodeRun, Int, String) -> Unit raise NodeHostFailure
 
 pub fn native_host_attempt(NativeNodeRun) -> @query_planning.DuckDBNativeAttempt
 
-pub fn native_host_begin(NativeNodeRun, Bool, String) -> Unit raise NativeNodeFailure
+pub fn native_host_begin(NativeNodeRun, Bool, String) -> Unit raise NodeHostFailure
 
 pub fn native_host_close(NativeNodeRun) -> Unit
 
-pub fn native_host_complete(NativeNodeRun) -> @query_planning.DuckDBNativeObservation raise NativeNodeFailure
+pub fn native_host_complete(NativeNodeRun) -> @query_planning.DuckDBNativeObservation raise NodeHostFailure
 
 pub fn native_host_document(@query_planning.DuckDBNativeObservation) -> String
 
-pub fn native_host_finish(NativeNodeRun) -> Unit raise NativeNodeFailure
+pub fn native_host_finish(NativeNodeRun) -> Unit raise NodeHostFailure
 
-pub fn native_host_metadata(NativeNodeRun, Int, String, String) -> Unit raise NativeNodeFailure
+pub fn native_host_metadata(NativeNodeRun, Int, String, String) -> Unit raise NodeHostFailure
 
-pub fn native_host_open(@duckdb_host.NativeHostConfiguration, String, (@query_planning.DuckDBNativeAttempt) -> Bool) -> NativeNodeRun raise NativeNodeFailure
+pub fn native_host_open(@duckdb_host.NativeHostConfiguration, String, (@query_planning.DuckDBNativeAttempt) -> Bool) -> NativeNodeRun raise NodeHostFailure
 
-pub fn native_host_output(NativeNodeRun, @query_planning.DuckDBNativeObservation) -> @execution_relation.CompletedOutput raise NativeNodeFailure
+pub fn native_host_output(NativeNodeRun, @query_planning.DuckDBNativeObservation) -> @execution_relation.CompletedOutput raise NodeHostFailure
 
-pub fn native_host_parameter(NativeNodeRun, Int) -> String raise NativeNodeFailure
+pub fn native_host_parameter(NativeNodeRun, Int) -> String raise NodeHostFailure
 
-pub fn native_host_sql(NativeNodeRun, Int) -> String raise NativeNodeFailure
+pub fn native_host_sql(NativeNodeRun, Int) -> String raise NodeHostFailure
 
 // Errors
-pub(all) suberror NativeNodeFailure {
+pub(all) suberror NodeHostFailure {
   Host(@duckdb_host.NativeHostIssue)
+  Broad(@duckdb_host.BroadHostIssue)
   Transport(@duckdb_adapter.TransportColumnIssue)
   Descriptor(@duckdb_adapter.ValueIssue)
   InvalidFields
@@ -48,6 +76,8 @@ pub(all) suberror NativeNodeFailure {
 }
 
 // Types and methods
+type BroadNodeRun
+
 type NativeNodeRun
 
 // Type aliases

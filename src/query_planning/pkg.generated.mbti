@@ -80,6 +80,8 @@ pub fn close_duckdb_query_issuer(DuckDBQueryIssuer) -> Unit
 
 pub fn close_mock_query_issuer(MockQueryIssuer) -> Unit
 
+pub fn complete_duckdb_broad_capture(DuckDBQueryIssuer, DuckDBBroadAttempt, DuckDBBroadCompletionLimits) -> Result[DuckDBBroadObservation, DuckDBEvidenceIssue]
+
 pub fn complete_duckdb_native_capture(DuckDBNativeIssuer, DuckDBNativeAttempt, DuckDBNativeCompletionLimits) -> Result[DuckDBNativeObservation, DuckDBEvidenceIssue]
 
 pub fn complete_duckdb_native_output(DuckDBNativeOutput, Int, Int) -> Result[@execution_relation.CompletedOutput, @execution_relation.TrustedOutputIssue]
@@ -356,6 +358,14 @@ pub(all) enum DuckDBBroadAttemptIssue {
   Retention(QueryRetentionIssue)
 }
 
+pub(all) struct DuckDBBroadCompletionLimits {
+  execution : @execution_relation.SequenceExecutionLimits
+  guards : @execution_query.QueryGuardMeasureLimits
+  retention : QueryRetentionLimits
+  records : QueryMaterialLimits
+  capture : QueryEvidenceLimits
+}
+
 type DuckDBBroadObservation
 
 type DuckDBBroadRecords
@@ -391,6 +401,7 @@ pub(all) enum DuckDBEvidenceIssue {
   ForeignObservation
   Consumer(@execution_relation.ProducerBindingIssue)
   NativeAttempt(DuckDBNativeAttemptIssue)
+  BroadAttempt(DuckDBBroadAttemptIssue)
   NativeOutput(@duckdb_adapter.NativeOutputRetentionIssue)
 }
 

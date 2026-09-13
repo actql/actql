@@ -183,9 +183,9 @@ The returned handle exposes the opaque observation, `bindInput` and idempotent
 `close`; a failed consumer does not close it. The factory and these callbacks
 must not come from Program data.
 
-This is a low-level trusted assembly API, not yet the standard product Host
-entry. That entry must install the verifier through its own trusted bridge and
-must not accept a verifier/factory override from Program data or ordinary
+This is a low-level trusted assembly API, not the standard product Host
+entry. `runBroadHostQuery` installs the verifier through its own trusted bridge
+and takes no verifier/factory override from Program data or ordinary
 Connector registration. Product examples and CLI code must not import the fixed
 `duckdb_conformance` exports or test catalogs. The conformance package exercises
 the implementation; it is not the application's runtime configuration.
@@ -295,11 +295,11 @@ checks final consumer CIDs against independently specified rows.
 The engine's `prepare_trusted_output_port` is a trusted-runtime installation API,
 not a safe public Connector or Program extension point. Do not expose it from an
 untrusted Host interface; use the provider-specific bridge that fixes verification
-internally. The native standard assembly below has no conformance dependency;
-the broad standard assembly and fixed-Compute product completion remain separate
-integration requirements.
+internally. Both standard acquisition assemblies below have no conformance
+dependency. Fixed-Compute product completion remains a separate integration
+requirement.
 
-### Standard native Host entry
+### Standard acquisition Host entries
 
 With the pinned MoonBit toolchain on `PATH`, run
 `npm run build:host --prefix adapters/duckdb-node`. Trusted MoonBit application
@@ -332,6 +332,23 @@ new producer admission, including use of a previously obtained output handle;
 consumer failure alone leaves the capture live. Each `output()` call performs
 bounded materialization under the configured limits, without another source read.
 Typed MoonBit failures are retained as the `cause` of `MoonBitHostFailure`.
+
+For a selected broad candidate, application preparation instead uses
+`@duckdb_host.configure_broad_host` with `BroadHostLimits`. Call
+`runBroadHostQuery(grant, ownedBroadConfiguration, transportLimits, signal)` from
+the same `host.mjs`. Its returned `bindInput(ownedConsumerPreparation, inputIndex)`
+uses the existing captured-input binding directly. The expected producer is
+derived from the owned requirement, not supplied separately by the caller.
+Pass that bound input to the existing checked consumer; do not re-admit or copy
+the captured rows in Node. Both entries expose `document()` and `close()`.
+
+The broad Host invokes `complete_duckdb_broad_capture` only after actual source
+settlement. That operation validates exact issuer/attempt and transport ownership,
+then runs Local residual, common guards, retention, record emission and capture.
+An incomplete or failed attempt cannot be retried with larger limits. Duplicate
+completion does not revoke an already successful capture. Unlike native, broad
+selects the Local execution limits and pays for that residual; neither entry
+waives the requirement-owned acquisition guards.
 
 `authorizeLocalDatabase` is called by explicit trusted Host setup, not by a
 Program resource decoder. The opaque grant authorizes a path to a trusted local

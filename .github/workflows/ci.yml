@@ -76,5 +76,5 @@ jobs:
           npm ls --prefix adapters/duckdb-node @duckdb/node-api
       - name: Check real DuckDB transport and owned resources
         run: npm test --prefix adapters/duckdb-node
-      - name: Build fixture-independent native Host entry
+      - name: Build fixture-independent acquisition Host entries
         run: npm run build:host --prefix adapters/duckdb-node

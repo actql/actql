@@ -39,6 +39,7 @@ pub(all) enum DuckDBEvidenceIssue {
   ForeignObservation
   Consumer(@execution.ProducerBindingIssue)
   NativeAttempt(DuckDBNativeAttemptIssue)
+  BroadAttempt(DuckDBBroadAttemptIssue)
   NativeOutput(@duckdb.NativeOutputRetentionIssue)
 }
 
