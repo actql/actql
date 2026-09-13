@@ -155,6 +155,18 @@ CIDs. Encoding a proof alone does not establish the window's source ownership
 or supply a new Program construction path. Failed conversion does not expose a
 partial proof or consume the caller's identity budget.
 
+Formal `program_check.check` admits Relation `row_window` only after constructing
+all owned membership limits. Each retained `WindowLimit` uses the owning Unit's
+operation subject, the selected Host ceiling and every applicable reidentified
+Program candidate. The existing resolved-limit encoder verifies the minimum and
+dependency graph; a missing input proof remains absent rather than being derived
+from a Host ceiling. Imported visits reuse the producer's limit instead of
+minting a second consumer-owned subject. Indexed `unit_window_limit_count/at`
+readers return the constructed objects without recomputation. Time admission,
+checked arithmetic, membership emission and atomic enforcement remain execution
+obligations, not completed observations. Events conversion and the rest of the
+temporal family still require their separate formal integration.
+
 ## Lag
 
 `lag` reuses the Relation field, partition, OrderKey and positive safe-integer

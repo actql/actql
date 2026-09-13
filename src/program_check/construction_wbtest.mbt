@@ -37,6 +37,7 @@ fn local_construction_fixture(
   tea? : Bool = false,
   text_policy? : Bool = false,
   generated_proofs? : Array[@wire.ProgramProofClaim] = [],
+  generated_proof_stage? : Int = 1,
 ) -> (
   @context.ProgramSourceIdentity,
   @context.StageRequirementClosure,
@@ -278,7 +279,9 @@ fn local_construction_fixture(
         }
       } else {
         @context.CapacityMaterial::{
-          sources: if stage == 1 && visit == 0 && !generated_proofs.is_empty() {
+          sources: if stage == generated_proof_stage &&
+            visit == 0 &&
+            !generated_proofs.is_empty() {
             generated_sources
           } else {
             sources

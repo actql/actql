@@ -307,6 +307,10 @@ pub fn unit_result_import_count(CheckedProgram, Int) -> Int?
 
 pub fn unit_window_input_proof(CheckedProgram, Int, Int, Int, max_work~ : Int, max_bytes~ : Int, max_nodes~ : Int, max_depth~ : Int) -> WindowInputProof raise UnitBuildFailure
 
+pub fn unit_window_limit_at(CheckedProgram, Int, Int) -> WindowLimit?
+
+pub fn unit_window_limit_count(CheckedProgram, Int) -> Int?
+
 pub fn window_input_proof_claim(WindowInputProof) -> @capacity_witness.ProgramProofClaim
 
 pub fn window_input_proof_input(WindowInputProof) -> ReidentifiedStep
@@ -314,6 +318,16 @@ pub fn window_input_proof_input(WindowInputProof) -> ReidentifiedStep
 pub fn window_input_proof_membership(WindowInputProof) -> @capacity_graph_preflight.TargetMembership
 
 pub fn window_input_proof_source(WindowInputProof) -> UnitOperationSource
+
+pub fn window_limit_claim(WindowLimit) -> @capacity_witness.LimitClaim
+
+pub fn window_limit_proof_at(WindowLimit, Int) -> WindowInputProof?
+
+pub fn window_limit_proof_count(WindowLimit) -> Int
+
+pub fn window_limit_selection(WindowLimit) -> @pipeline_check_context.WindowMembershipLimit
+
+pub fn window_limit_source(WindowLimit) -> UnitOperationSource
 
 // Errors
 pub suberror ConstructionFailure {
@@ -624,6 +638,8 @@ pub struct UnitOperationSource {
 }
 
 type WindowInputProof
+
+type WindowLimit
 
 // Type aliases
 

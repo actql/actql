@@ -1,5 +1,6 @@
 ///|
 struct CheckedProgram {
+  window_limits : Array[Array[WindowLimit]]
   input_completeness : Array[Array[InputCompletenessRequirement]]
   identity : @context.ProgramSourceIdentity
   requirements : @context.StageRequirementClosure
@@ -65,6 +66,7 @@ fn check_supported_source(
               | "unnest"
               | "unpivot"
               | "analytic"
+              | "row_window"
               | "append"
               | "except"
               | "intersect"
@@ -142,6 +144,9 @@ pub fn check(
   let group_limits = prepare_program_group_limits(units, requirements, budget) catch {
     error => raise Units(error)
   }
+  let window_limits = prepare_program_window_limits(units, requirements, budget) catch {
+    error => raise Units(error)
+  }
   let analytic_limits = prepare_program_analytic_limits(
     units, requirements, budget,
   ) catch {
@@ -168,6 +173,7 @@ pub fn check(
     error => raise Units(error)
   }
   {
+    window_limits,
     input_completeness,
     identity,
     requirements,

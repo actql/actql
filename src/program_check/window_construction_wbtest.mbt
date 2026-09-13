@@ -4,16 +4,29 @@ test "owned window construction retains membership and Result publication requir
     kind in [
       "\"kind\":\"fixed\",\"size\":10", "\"kind\":\"sliding\",\"size\":10,\"step\":3",
     ] {
+    let checked : Array[CheckedProgram] = []
     let (_, requirements, gates, _, units) = local_construction_fixture(
       { work: 10000000, bytes: 1000000, nodes: 100000, depth: 100, },
       second_stage=true,
       tea=true,
+      through_check=true,
+      checked_results=checked,
       second_steps="[{\"row_window\":{\"time\":\"id\"," +
         kind +
         "},\"as\":\"selected\"}]",
       second_result_from="selected",
     )
     assert_eq(units.length(), 2)
+    assert_eq(checked.length(), 1)
+    assert_eq(unit_window_limit_count(checked[0], 0), Some(0))
+    assert_eq(unit_window_limit_count(checked[0], 1), Some(1))
+    let limit = unit_window_limit_at(checked[0], 1, 0).unwrap()
+    assert_eq(window_limit_proof_count(limit), 0)
+    assert_eq(window_limit_selection(limit).maximum, 1000L)
+    assert_eq(
+      window_limit_source(limit).unit_definition_cid,
+      units[1].definition_cid,
+    )
     let operations = @context.stage_requirement_operations(requirements)
     let publications = @context.stage_requirement_publications(requirements)
     let mut found = 0
@@ -96,7 +109,7 @@ test "owned window construction retains membership and Result publication requir
       ).unwrap().requirement
       is @pipeline.WindowRequirement(ResolveMembershipBound),
     )
-    let (_, _, _, foreign_contracts, _) = local_construction_fixture(
+    let (_, _, _, foreign_contracts, foreign_units) = local_construction_fixture(
       { work: 10000000, bytes: 1000000, nodes: 100000, depth: 100, },
       second_stage=true,
       tea=true,
@@ -104,6 +117,26 @@ test "owned window construction retains membership and Result publication requir
         kind +
         "},\"as\":\"selected\"}]",
       second_result_from="selected",
+    )
+    let mismatch_budget = IdentityBudget::{
+      work: 10000000,
+      bytes: 1000000,
+      nodes: 100000,
+      depth: 100,
+    }
+    try
+      prepare_program_window_limits(
+        foreign_units, requirements, mismatch_budget,
+      )
+    catch {
+      UnitBuildFailure::ForeignOwner => ()
+      _ => fail("expected a window requirement owner mismatch")
+    } noraise {
+      _ => fail("foreign Units must not silently skip window limits")
+    }
+    assert_eq(
+      (mismatch_budget.work, mismatch_budget.bytes, mismatch_budget.nodes),
+      (10000000, 1000000, 100000),
     )
     try
       build_units(foreign_contracts, requirements, gates, {
