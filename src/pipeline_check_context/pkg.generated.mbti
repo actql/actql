@@ -43,6 +43,7 @@ import {
   "actql/actql/stage_syntax",
   "actql/actql/temporal_window",
   "actql/actql/text_time_bounds",
+  "actql/actql/time_series",
   "actql/actql/timestamp_pattern",
   "actql/actql/value_admission",
   "actql/actql/value_contract",
@@ -1825,6 +1826,7 @@ pub(all) enum OperationDisposition {
 }
 
 pub(all) enum OperationExecutionCheck {
+  SeriesExecution(SeriesExecutionCheck)
   EventEnvelope(EventOutputEnvelope)
   SessionExecution(SessionExecutionCheck)
   EventExecution(EventExecutionCheck)
@@ -2429,6 +2431,25 @@ pub(all) struct SelectedPolicyUsage {
   text_bytes : Int
   local_input_nodes : Int
   policy_nodes : Int
+} derive(Eq, @debug.Debug)
+
+pub struct SeriesExecutionCheck {
+  site : OperationRequirementSite
+  step : @pipeline_typing.CheckedStep
+  series : @time_series.CheckedSeries
+  range : OperationRangeResolution
+  step_ms : Int64
+  step_resolution : OperationScalarResolution?
+  row_count : Int64
+  policy : @capacity_policy.Policy
+  ceiling : @capacity_policy.Ceiling
+  rule : SeriesExecutionRule
+}
+
+pub(all) enum SeriesExecutionRule {
+  GenerateTimeGrid
+  EnforceSeriesRowCount
+  EnforceSeriesOutputEnvelope
 } derive(Eq, @debug.Debug)
 
 pub struct SessionExecutionCheck {

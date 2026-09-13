@@ -24,10 +24,24 @@ fn check_resolution_index(
   assert_eq(operation_resolution_count(index), count)
   let mut resolved = 0
   let mut execution = 0
+  let mut execution_work = 0
   for i in 0..<count {
     let state = operation_resolution_at(index, i).unwrap()
     let site = operation_requirements_at(requirements, i).unwrap()
     match state {
+      Execution(SeriesExecution(check)) => {
+        execution += 1
+        assert_true(physical_equal(check.site, site))
+        execution_work += @pipeline.operation_obligations_count(
+            site.obligations,
+          ) +
+          check.range.start.length() +
+          check.range.end.length() +
+          1
+        if check.step_resolution is Some(scalar) {
+          execution_work += scalar.parameter.name.length() * 2
+        }
+      }
       Execution(EventEnvelope(check)) => {
         execution += 1
         assert_true(physical_equal(check.site, site))
@@ -257,7 +271,11 @@ fn check_resolution_index(
   let work = operation_resolution_work(index)
   assert_eq(
     work,
-    operation_profile_links_work(profiles) + 1 + count * 2 + resolved,
+    operation_profile_links_work(profiles) +
+    1 +
+    count * 2 +
+    resolved +
+    execution_work,
   )
   assert_true(
     index_program_operation_resolutions(profiles, work, count) is Ok(_),
@@ -315,7 +333,8 @@ fn check_operation_closure(
           operation_resolution_at(index, i).unwrap(),
           operation_closure_at(closed, i).unwrap(),
         ) {
-        (Resolved(_), StaticResolution(_)) => ()
+        (Resolved(before), StaticResolution(after)) =>
+          assert_true(physical_equal(before, after))
         (Execution(DedupeTopTie(before)), ExecutionCheck(DedupeTopTie(after))) => {
           assert_true(physical_equal(before, after))
           assert_eq(
@@ -327,6 +346,8 @@ fn check_operation_closure(
             RejectOperationOutput,
           )
         }
+        (Execution(before), ExecutionCheck(after)) =>
+          assert_true(physical_equal(before, after))
         _ => fail("closure must preserve the original disposition")
       }
     }
