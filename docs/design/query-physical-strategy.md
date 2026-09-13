@@ -214,6 +214,23 @@ Closing the issuer or cancelling before capture prevents verification. Successfu
 record issuance still does not construct a completed observation or expose a
 consumer output; `capture_mock_query` is the distinct admission boundary.
 
+The serialized record and observation do not include the validated full-scan
+content CID or row count. `scan_scope_cid` identifies the selected request/source
+scope, not its row contents; `actual_access.scope_cid` commits to the received
+rows CID and fields. Native receipt covers the selected output, while broad
+receipt covers the full scan. The mock binds validated scan contents through the
+exact privately retained input identity and live issued-set/attempt ownership,
+not through a portable proof in those serialized fields. An external provider
+needs an admitted full-scan provenance/attestation path before native capture;
+adding a scan CID alone would not prove that its mandatory checks ran.
+
+Observation `coverage.complete` is the closed schema constant `true`, emitted
+only after capture verifies the three issued role records. It is not a candidate
+boolean accepted as proof, nor a general discharged/remaining obligation model.
+General offer coverage and completed-observation admission are distinct contracts;
+introducing occurrence-level coverage requires a separately agreed shared design,
+not replacing the current constant to repair this process-local verifier.
+
 Capture verifies the expected live issuer/task/record set, recomputes the resolved
 request identity and emits the complete shared observation preimage. The three
 role CIDs, actual access, scan coverage, snapshot, exact Program Definition owner,

@@ -29,6 +29,10 @@ equal requests as a substitute for their owner.
    source cursors and a preparation entry bound. Call `execute_mock_query` once
    with separate source, receipt and local computation limits.
 
+`execution_query.prepare_query_sequence` charges `max_work` one entry unit,
+then the UTF-8 byte lengths of both the expected and retained node IDs before
+comparing them. This is physical preparation accounting, not expression work.
+
 The native route computes before receiving selected rows; the broad route applies
 receipt limits before the local residual. Both validate the entire supplied source
 under the shared checked semantics. A successful `MockQueryComputation` exposes

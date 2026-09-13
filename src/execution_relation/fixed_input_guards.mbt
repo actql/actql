@@ -82,6 +82,8 @@ fn[T : IndexedRows] measure_input_values(
 /// an additional root-only ceiling applies without changing checked identities.
 /// The private ledger spans input, context constraints and output. No mutable
 /// context or storage escapes, and no expression is evaluated for measurement.
+/// The target must be retained; an unavailable output returns MissingOutput
+/// after successful sequence execution, without exposing a completed result.
 pub fn execute_fixed_input_guarded(
   original : GeneratedSequence,
   input : CapturedRows,
