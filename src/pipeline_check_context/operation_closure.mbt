@@ -61,6 +61,7 @@ pub fn close_program_operations(
           AsOfSearch(v) => v.site
           SessionExecution(v) => v.site
           SeriesExecution(v) => v.site
+          CalendarExecution(v) => v.site
           EventEnvelope(v) => v.site
           EventExecution(v) => v.site
           WatermarkExecution(v) => v.site

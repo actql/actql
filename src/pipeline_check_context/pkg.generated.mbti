@@ -1129,6 +1129,23 @@ pub struct AssertionConsumptionLink {
 
 type BoundParameters
 
+pub struct CalendarExecutionCheck {
+  site : OperationRequirementSite
+  step : @pipeline_typing.CheckedStep
+  operation : @calendar_typing.CheckedCalendar
+  selection : OperationCalendarResolution
+  range : OperationRangeResolution?
+  policy : @capacity_policy.Policy
+  ceiling : @capacity_policy.Ceiling
+  rule : CalendarExecutionRule
+}
+
+pub(all) enum CalendarExecutionRule {
+  AdmitCalendarValues
+  ValidateCalendarBoundaries
+  EnforceCalendarOutputEnvelope
+} derive(Eq, @debug.Debug)
+
 pub(all) struct CapacityMaterial {
   sources : @capacity_host_witness.HostSources
   consumers : Array[@capacity_graph_preflight.ConsumerRequest]
@@ -1826,6 +1843,7 @@ pub(all) enum OperationDisposition {
 }
 
 pub(all) enum OperationExecutionCheck {
+  CalendarExecution(CalendarExecutionCheck)
   SeriesExecution(SeriesExecutionCheck)
   EventEnvelope(EventOutputEnvelope)
   SessionExecution(SessionExecutionCheck)

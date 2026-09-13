@@ -168,6 +168,19 @@ pub fn index_program_operation_resolutions(
     }
   }
   let mut needs_consumption = false
+  let calendar_selections : Map[(Int, Int, Int), OperationCalendarResolution] = Map([],
+  )
+  if profiles.calendar.entries.length() > max_work - work {
+    return Err(BudgetExceeded)
+  }
+  work += profiles.calendar.entries.length()
+  for selection in profiles.calendar.entries {
+    let key = (selection.stage, selection.producer_visit, selection.step)
+    if calendar_selections.contains(key) {
+      return Err(ForeignOccurrence(0))
+    }
+    calendar_selections[key] = selection
+  }
   for i in 0..<count {
     match asof_key_completion(requirements.entries[i], i) {
       Ok(Some(completion)) =>
@@ -327,6 +340,27 @@ pub fn index_program_operation_resolutions(
         )
         work += series_work
         series_candidate
+      }
+      other => other
+    }
+    let candidate = match candidate {
+      Ok(None) => {
+        let site = requirements.entries[i]
+        let stages = requirements.expressions.identity.sources.operations.preparation.profiles.context.selected.context.wired.stages
+        let policy = @capacity.application_closure_policy(
+          stages.contexts[site.stage].context.capacity,
+        )
+        let (result, used) = calendar_execution_check(
+          site,
+          i,
+          requirements.entries,
+          states,
+          calendar_selections.get((site.stage, site.producer_visit, site.step)),
+          policy,
+          max_work - work,
+        )
+        work += used
+        result
       }
       other => other
     }

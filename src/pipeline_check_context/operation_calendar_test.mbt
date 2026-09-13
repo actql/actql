@@ -19,10 +19,25 @@ fn program_calendar_host(release? : String = "test-fixture") -> String {
 }
 
 ///|
-fn calendar_program(host : String) -> ProgramOperationLexical {
+fn calendar_program(
+  host : String,
+  bound? : Bool = false,
+) -> ProgramOperationLexical {
   let steps = "[{\"calendar_series\":{\"start\":\"2000-01-01T00:00:00.000Z\",\"end\":\"2000-01-02T00:00:00.000Z\",\"unit\":\"day\",\"timezone\":\"UTC\"},\"as\":\"days\"},{\"calendar_bucket\":{\"time\":\"start\",\"into\":\"bucket\",\"unit\":\"month\",\"timezone\":\"UTC\"}},{\"derive\":{\"p_copy\":\"$p\",\"n_copy\":\"$n\"}}]"
   let requirements = operation_order_fixture(
-    steps,
+    if bound {
+      steps.replace(
+        old="\"end\":\"2000-01-02T00:00:00.000Z\"",
+        new="\"end\":{\"$param\":\"n\"}",
+      )
+    } else {
+      steps
+    },
+    parameters=if bound {
+      "{\"p\":{\"type\":\"string\",\"default\":\"x\"},\"n\":{\"type\":\"timestamp\",\"default\":\"2000-01-02T00:00:00.000Z\"}}"
+    } else {
+      "{\"p\":{\"type\":\"string\",\"default\":\"é😀\"},\"n\":{\"type\":\"number\",\"default\":1}}"
+    },
     calendar=true,
     tea=true,
     host_profile=host,

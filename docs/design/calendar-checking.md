@@ -66,6 +66,23 @@ order and row-count facts remain separate from the candidate-key witness.
 
 ## Semantic artifact boundary
 
+The Program requirement index binds Calendar value admission, boundary-domain
+validation and output-envelope enforcement to the original checked operation and
+the Environment-selected artifact. Selection lookup is indexed by Stage, producer
+visit and step, not repeated for each obligation. A bound series range retains its
+original occurrence-specific resolution; equal text from another occurrence is
+not a substitute. Literal ranges remain in the checked options.
+
+Bucket value admission precedes use of its input. Generated series values and
+boundary-domain checks must succeed before operation output, as must enforcement
+of the selected `max_relation_output_rows` ceiling. Failure rejects operation
+output; a row ceiling is not timezone validation, a memory bound or a license to
+truncate. The profile and range bindings do not compute bucket boundaries,
+establish an exact series count or attest observed coverage. Backend support for
+the selected artifact and these checks remains a separate execution obligation.
+These owned checks are components of Program closure, not by themselves a formal
+Calendar Program admission entry.
+
 `calendar_profile.admit` accepts raw bytes and independently selected byte
 CID/release pins. It checks the original hash before parsing, admits the closed
 table format defined in the Calendar profile, and hashes canonical re-emission

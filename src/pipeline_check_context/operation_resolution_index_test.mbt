@@ -24,11 +24,20 @@ fn check_resolution_index(
   assert_eq(operation_resolution_count(index), count)
   let mut resolved = 0
   let mut execution = 0
-  let mut execution_work = 0
+  let mut execution_work = operation_calendar_count(
+    operation_profile_links_calendar(profiles),
+  )
   for i in 0..<count {
     let state = operation_resolution_at(index, i).unwrap()
     let site = operation_requirements_at(requirements, i).unwrap()
     match state {
+      Execution(CalendarExecution(check)) => {
+        execution += 1
+        assert_true(physical_equal(check.site, site))
+        execution_work += @pipeline.operation_obligations_count(
+          site.obligations,
+        )
+      }
       Execution(SeriesExecution(check)) => {
         execution += 1
         assert_true(physical_equal(check.site, site))
