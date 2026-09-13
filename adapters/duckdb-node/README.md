@@ -197,10 +197,21 @@ checks records and the complete observation against independently composed
 expectations. It covers empty input, nullable unused columns, duplicate/order
 preservation, rejected non-finite unused values, premature issuance, cancellation,
 output/artifact exhaustion, and consumer retry after the source file changes.
-The fixture is not a general Host entry point. Native two-receipt capture and
-DuckDB Compute product completion are separate integration requirements; this
-broad-path test does not establish them. The smaller coordinator lifecycle-double
-test remains useful for isolated transport cleanup checks.
+The fixture is not a general Host entry point. DuckDB Compute product completion
+is a separate integration requirement; this broad-path test does not establish
+it. The smaller coordinator lifecycle-double test remains useful for isolated
+transport cleanup checks.
+
+`runNativeQuery` uses the same private settlement/cleanup mechanism but requires
+both validation and native receipts to retain the exact issued attempt. The
+real `test/issued-native-query.test.mjs` connects the public CheckedProgram and
+selected native attempt to SQL, admission, measurement, issuance and capture.
+Its independent observation oracle includes the two distinct receipt CIDs and
+all three record CIDs. No Local predicate replay is used. It covers empty input,
+NULL in an unused column, duplicate relative order, invalid discarded values,
+output/artifact exhaustion, cancellation after either receipt and issuer release.
+Native engine completion/producer/consumer integration remains required; this
+fixture deliberately has no substitute consumer or fabricated completion handle.
 
 Tests create their own files under ignored `_build/duckdb-fixtures`, exercise
 exact scalar transport, existing-file read-only access, isolated Compute,
@@ -228,8 +239,9 @@ The portable native issuer starts with `admit_query_two_receipt_contract` and
 three records atomically. `capture_duckdb_native_query` creates the separate
 two-receipt observation; `verify_duckdb_native_observation` requires its live
 issuer, exact attempt and issued-set handles. Portable tests compare all preimages
-and aggregate artifact boundaries against independent expectations. Real Node
-bridge integration and the native producer/consumer product completion path
+and aggregate artifact boundaries against independent expectations. The real Node
+conformance bridge supplies settlement provenance to that same issuer. The
+standard product Host entry and native producer/consumer product completion path
 remain required. The document/CID is not an alternative success constructor.
 
 `authorizeLocalDatabase` is called by explicit trusted Host setup, not by a

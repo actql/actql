@@ -116,6 +116,73 @@ fn issued_fixture_consumer(
 }
 
 ///|
+fn issued_fixture_preparation(
+  environment_json : String,
+  environment_cid : String,
+  registry_json : String,
+  values_json : String,
+  fragment_json : String,
+  output_rows : Int,
+) -> (@planning.DuckDBQueryPreparation, @lower.BoundPrepared) raise {
+  let checked = issued_fixture_checked(environment_json, environment_cid)
+  let identity = @program_check.source_identity(checked)
+  let requests = @context.program_identity_stage_requests(identity, 0).unwrap()
+  let acquisition = @acquisition.derive_query_acquisition(requests, 0, 1000000).unwrap()
+  let pipeline = @acquisition.query_acquisition_pipeline(acquisition)
+  let prepared = @lower.prepare(pipeline, {
+    max_nodes: 100,
+    max_references: 100,
+    max_work: 100000,
+    max_identifier_bytes: 10000,
+  }).unwrap()
+  let params = @acquisition.request_parameter_values(
+    @acquisition.pipeline_requests_parameters(requests),
+  )
+  let owner = @lower.bind_parameters(
+    prepared,
+    Some(params),
+    max_parameters=100,
+    max_name_bytes=10000,
+  ).unwrap()
+  let generated = fixture_generated(
+    owner, registry_json, values_json, fragment_json, true,
+  )
+  let sequence = @query.prepare_query_sequence(acquisition, generated, 10000).unwrap()
+  let material : @planning.QueryMaterialLimits = {
+    max_work: 1000000,
+    max_fields: 100,
+    max_parameters: 100,
+    max_bytes: 1000000,
+    max_nodes: 100000,
+    max_depth: 100,
+  }
+  let requirement = @planning.prepare_query_requirement(
+    @planning.prepare_query_material(sequence, material).unwrap(),
+    identity,
+    { max_rows: output_rows, max_value_bytes: 100, },
+    material,
+  ).unwrap()
+  let preparation = @planning.prepare_duckdb_query(
+    requirement,
+    "main",
+    "records",
+    10,
+    {
+      max_entries: 100,
+      max_sql_bytes: 10000,
+      expressions: {
+        max_nodes: 1000,
+        max_work: 10000,
+        max_depth: 100,
+        max_literal_nodes: 1000,
+        max_literal_text_bytes: 10000,
+      },
+    },
+  ).unwrap()
+  (preparation, owner)
+}
+
+///|
 #export_name("issuedBroadCreate")
 pub fn issued_broad_create(
   environment_json : String,
@@ -129,63 +196,11 @@ pub fn issued_broad_create(
   verify : (@planning.DuckDBBroadAttempt) -> Bool,
 ) -> IssuedBroadFixture {
   try {
-    let checked = issued_fixture_checked(environment_json, environment_cid)
-    let identity = @program_check.source_identity(checked)
-    let requests = @context.program_identity_stage_requests(identity, 0).unwrap()
-    let acquisition = @acquisition.derive_query_acquisition(
-      requests, 0, 1000000,
-    ).unwrap()
-    let pipeline = @acquisition.query_acquisition_pipeline(acquisition)
-    let prepared = @lower.prepare(pipeline, {
-      max_nodes: 100,
-      max_references: 100,
-      max_work: 100000,
-      max_identifier_bytes: 10000,
-    }).unwrap()
-    let params = @acquisition.request_parameter_values(
-      @acquisition.pipeline_requests_parameters(requests),
+    let (preparation, owner) = issued_fixture_preparation(
+      environment_json, environment_cid, registry_json, values_json, fragment_json,
+      output_rows,
     )
-    let owner = @lower.bind_parameters(
-      prepared,
-      Some(params),
-      max_parameters=100,
-      max_name_bytes=10000,
-    ).unwrap()
-    let generated = fixture_generated(
-      owner, registry_json, values_json, fragment_json, true,
-    )
-    let sequence = @query.prepare_query_sequence(acquisition, generated, 10000).unwrap()
-    let material : @planning.QueryMaterialLimits = {
-      max_work: 1000000,
-      max_fields: 100,
-      max_parameters: 100,
-      max_bytes: 1000000,
-      max_nodes: 100000,
-      max_depth: 100,
-    }
-    let requirement = @planning.prepare_query_requirement(
-      @planning.prepare_query_material(sequence, material).unwrap(),
-      identity,
-      { max_rows: output_rows, max_value_bytes: 100, },
-      material,
-    ).unwrap()
-    let preparation = @planning.prepare_duckdb_query(
-      requirement,
-      "main",
-      "records",
-      10,
-      {
-        max_entries: 100,
-        max_sql_bytes: 10000,
-        expressions: {
-          max_nodes: 1000,
-          max_work: 10000,
-          max_depth: 100,
-          max_literal_nodes: 1000,
-          max_literal_text_bytes: 10000,
-        },
-      },
-    ).unwrap()
+    let requirement = @planning.duckdb_query_requirement(preparation)
     let registry = @planning.prepare_capability_registry(
       [{ name: "duckdb", acquisition: true, fixed_compute: true, }],
       1,

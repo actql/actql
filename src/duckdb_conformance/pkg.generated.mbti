@@ -73,6 +73,38 @@ pub fn issued_broad_requirement(IssuedBroadFixture) -> String
 
 pub fn issued_broad_sql(IssuedBroadFixture, Bool) -> String
 
+pub fn issued_native_abort(IssuedNativeFixture) -> Unit
+
+pub fn issued_native_accept(IssuedNativeFixture, Int, String) -> Bool
+
+pub fn issued_native_attempt(IssuedNativeFixture) -> @query_planning.DuckDBNativeAttempt
+
+pub fn issued_native_begin(IssuedNativeFixture, Bool, String) -> Bool
+
+pub fn issued_native_close(IssuedNativeFixture) -> Unit
+
+pub fn issued_native_complete(IssuedNativeFixture, Int) -> Bool
+
+pub fn issued_native_create(String, String, String, String, String, String, String, String, Int, (@query_planning.DuckDBNativeAttempt) -> Bool) -> IssuedNativeFixture
+
+pub fn issued_native_document(IssuedNativeFixture) -> String
+
+pub fn issued_native_finish(IssuedNativeFixture) -> Bool
+
+pub fn issued_native_ids(IssuedNativeFixture) -> String
+
+pub fn issued_native_metadata(IssuedNativeFixture, Int, String, String) -> Bool
+
+pub fn issued_native_observation(IssuedNativeFixture) -> @query_planning.DuckDBNativeObservation
+
+pub fn issued_native_parameter(IssuedNativeFixture, Int) -> String
+
+pub fn issued_native_requirement(IssuedNativeFixture) -> String
+
+pub fn issued_native_sql(IssuedNativeFixture, Int) -> String
+
+pub fn issued_native_verify(IssuedNativeFixture) -> Bool
+
 pub fn metadata(@duckdb_adapter.NativeReceiving, Int, String, String) -> Bool
 
 pub fn parameter(@duckdb_adapter.NativeReceiving, Int, Int) -> String
@@ -89,6 +121,8 @@ pub fn sql(@duckdb_adapter.NativeReceiving, Int) -> String
 type BroadFixture
 
 type IssuedBroadFixture
+
+type IssuedNativeFixture
 
 // Type aliases
 
