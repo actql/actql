@@ -4,24 +4,73 @@
 struct PhysicalParameter {
   id : String
   decimal : (Int, Int)?
-  value : @admitted.Value?
+  value : ParameterValue
+}
+
+///|
+priv enum ParameterValue {
+  Admitted(@admitted.Value)
+  ScalarNumber(Double)
+  ScalarBoolean(Bool)
+  ScalarText(String)
+  Null
+}
+
+///|
+fn parameter_type(
+  contract : @contract.Contract,
+) -> Result[(String, (Int, Int)?), ValueIssue] {
+  match contract.shape {
+    @contract.Boolean => Ok(("BOOLEAN", None))
+    @contract.Text(_) => Ok(("VARCHAR", None))
+    @contract.Number => Ok(("DOUBLE", None))
+    @contract.Date => Ok(("DATE", None))
+    @contract.Timestamp => Ok(("TIMESTAMP_TZ", None))
+    @contract.Decimal(precision~, scale~) =>
+      Ok(("DECIMAL", Some((precision, scale))))
+    _ => Err(UnsupportedType)
+  }
 }
 
 ///|
 pub fn prepare_physical_parameter(
   checked : @admitted.CheckedValue,
 ) -> Result[PhysicalParameter, ValueIssue] {
-  let (id, decimal) = match checked.contract.shape {
-    @contract.Boolean => ("BOOLEAN", None)
-    @contract.Text(_) => ("VARCHAR", None)
-    @contract.Number => ("DOUBLE", None)
-    @contract.Date => ("DATE", None)
-    @contract.Timestamp => ("TIMESTAMP_TZ", None)
-    @contract.Decimal(precision~, scale~) =>
-      ("DECIMAL", Some((precision, scale)))
-    _ => return Err(UnsupportedType)
+  let (id, decimal) = match parameter_type(checked.contract) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
   }
-  Ok({ id, decimal, value: Some(checked.value), })
+  Ok({ id, decimal, value: Admitted(checked.value), })
+}
+
+///|
+/// Read one exact receiving cell from a bound immutable producer. This does not
+/// repeat admission or grant receiving execution/guard credits. The caller must
+/// account for import and transport independently of the producer's completion.
+pub fn prepare_producer_parameter(
+  input : @execution.ProducerRead,
+  row : Int,
+  column : Int,
+) -> Result[PhysicalParameter, ValueIssue] {
+  guard @schema.field_at(@execution.producer_read_schema(input), column)
+    is Some(field) else {
+    return Err(OutOfRange)
+  }
+  let (id, decimal) = match parameter_type(field.contract) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  guard @execution.producer_read_cell(input, row, column) is Some(cell) else {
+    return Err(OutOfRange)
+  }
+  let value = match cell {
+    @execution.Null => Null
+    @execution.Number(value) => ScalarNumber(value)
+    @execution.Boolean(value) => ScalarBoolean(value)
+    @execution.Text(value) => ScalarText(value)
+    @execution.Captured(value) => Admitted(value)
+  }
+  Ok({ id, decimal, value, })
 }
 
 ///|
@@ -108,8 +157,11 @@ pub fn emit_physical_parameter(
   @encode.end_object(output)
   @encode.key(output, "value")
   match parameter.value {
-    None => @encode.null_value(output)
-    Some(value) =>
+    Null => @encode.null_value(output)
+    ScalarNumber(value) => @encode.string_value(output, double_bits_text(value))
+    ScalarBoolean(value) => @encode.bool_value(output, value)
+    ScalarText(value) => @encode.string_value(output, value)
+    Admitted(value) =>
       match value {
         @admitted.Null => @encode.null_value(output)
         @admitted.Boolean(value) => @encode.bool_value(output, value)

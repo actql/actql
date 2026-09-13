@@ -169,7 +169,7 @@ pub fn compile_native_filter_select(
             "BOOLEAN"
           },
           decimal: None,
-          value: Some(value.value),
+          value: Admitted(value.value),
         }
       } else {
         match prepare_physical_parameter(value) {
@@ -186,7 +186,7 @@ pub fn compile_native_filter_select(
           "BOOLEAN"
         },
         decimal: None,
-        value: None,
+        value: Null,
       }
     _ => return Err(UnsupportedPredicate)
   }

@@ -4,6 +4,7 @@ package "actql/actql/duckdb_adapter"
 import {
   "actql/actql/decode_core",
   "actql/actql/encode_core",
+  "actql/actql/execution_relation",
   "actql/actql/lowering_relation",
   "actql/actql/value_admission",
   "actql/actql/value_contract",
@@ -19,19 +20,35 @@ pub fn decode_physical_type(@decode_core.Cursor) -> Result[PhysicalType, ValueIs
 
 pub fn emit_physical_parameter(PhysicalParameter, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
 
+pub fn fixed_import_column_count(FixedImport) -> Int
+
+pub fn fixed_import_create_sql(FixedImport) -> String
+
+pub fn fixed_import_input(FixedImport) -> @execution_relation.ProducerRead
+
+pub fn fixed_import_insert_sql(FixedImport) -> String
+
+pub fn fixed_import_parameter(FixedImport, Int, Int) -> Result[PhysicalParameter, ValueIssue]
+
 pub fn native_query_owner(NativeQuery) -> @lowering_relation.BoundPrepared
 
 pub fn native_query_parameter(NativeQuery) -> PhysicalParameter
 
 pub fn native_query_sql(NativeQuery) -> String
 
+pub fn prepare_fixed_import(@execution_relation.ProducerRead, String, Int, Int) -> Result[FixedImport, NativeQueryIssue]
+
 pub fn prepare_physical_parameter(@value_admission.CheckedValue) -> Result[PhysicalParameter, ValueIssue]
+
+pub fn prepare_producer_parameter(@execution_relation.ProducerRead, Int, Int) -> Result[PhysicalParameter, ValueIssue]
 
 pub fn prepare_value_mapping(PhysicalType, @value_contract.Contract) -> Result[ValueMapping, ValueIssue]
 
 // Errors
 
 // Types and methods
+type FixedImport
+
 type NativeQuery
 
 pub(all) enum NativeQueryIssue {

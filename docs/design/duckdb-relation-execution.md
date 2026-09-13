@@ -50,6 +50,16 @@ Compute uses a separate Host-owned database with only completed fixed inputs
 imported into it. It cannot receive the source connection. Temporary resources
 belong to an attempt and must not mutate the original database.
 
+Fixed import preparation consumes the engine's opaque bound producer read view.
+It generates quoted CREATE/INSERT statements from the receiving schema, preserving
+nullability and exact scalar types; values remain separately bound parameters.
+SQL construction has one cumulative byte ceiling for both statements. The view
+retains its upstream completion and supplies one receiving cell at a time without
+reconstructing a whole row or repeating value admission. Transport construction,
+import work and receiving logical checks remain separately required. A zero-column
+Relation is currently ineligible for this DuckDB table representation rather than
+being silently converted into a different schema or row count.
+
 ## Type transport and native expression support
 
 Physical transport and expression support are separate decisions. The transport

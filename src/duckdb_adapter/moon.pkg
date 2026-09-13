@@ -7,6 +7,7 @@ import {
   "actql/actql/value_admission" @admitted,
   "actql/actql/encode_core" @encode,
   "actql/actql/lowering_relation" @lower,
+  "actql/actql/execution_relation" @execution,
   "actql/actql/pipeline_typing" @pipeline,
   "actql/actql/relation_typing" @relation,
   "actql/actql/relation_schema" @schema,
