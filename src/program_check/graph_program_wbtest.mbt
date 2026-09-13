@@ -1,4 +1,85 @@
 ///|
+test "formal Graph operations reject missing resource closure at the owning step" {
+  for
+    body in [
+      "{\"normalize_graph\":true}", "{\"degree\":{\"direction\":\"both\"}}", "{\"components\":{\"kind\":\"weak\"}}",
+      "{\"components\":{\"kind\":\"strong\"}}", "{\"graph_bounds\":{\"max_nodes\":0}}",
+    ] {
+    let programs : Array[CheckedProgram] = []
+    let suffix = if body == "{\"normalize_graph\":true}" {
+      "," +
+      body +
+      ",{\"node_rows\":true},{\"derive\":{\"value\":\"id\"},\"as\":\"projected\"}"
+    } else {
+      "," +
+      body +
+      ",{\"select\":[{\"id\":\"" +
+      (if body == "{\"degree\":{\"direction\":\"both\"}}" {
+        "node"
+      } else {
+        "node_id"
+      }) +
+      "\"},{\"value\":\"" +
+      (if body == "{\"degree\":{\"direction\":\"both\"}}" {
+        "degree"
+      } else if body == "{\"graph_bounds\":{\"max_nodes\":0}}" {
+        "actual"
+      } else {
+        "component_size"
+      }) +
+      "\"}],\"as\":\"projected\"}"
+    }
+    try
+      local_construction_fixture(
+        { work: 100000000, bytes: 10000000, nodes: 1000000, depth: 100, },
+        through_check=true,
+        checked_results=programs,
+        sga=true,
+        graph_construction_limit=Some(1000),
+        generated_rows=Some("[{\"id\":1}]"),
+        producer_suffix=",{\"graph\":{\"source\":\"id\",\"target\":\"value\"}}" +
+          suffix,
+        producer_result_from="projected",
+        extra_step_budget=4,
+      )
+    catch {
+      Closure(UnresolvedOperation(site)) => {
+        assert_true(
+          site.requirement is @pipeline.GraphRequirement(ResolveGraphResources),
+        )
+        assert_eq(site.stage, 0)
+        assert_eq(site.step, 3)
+      }
+      Source(
+        SourceView(
+          Context(
+            Stages(
+              Capacity(
+                stage,
+                visit,
+                ComponentsCollection(MissingApplication(step))
+              )
+            )
+          )
+        )
+      ) => {
+        assert_true(
+          body == "{\"components\":{\"kind\":\"weak\"}}" ||
+          body == "{\"components\":{\"kind\":\"strong\"}}",
+        )
+        assert_eq(stage, 0)
+        assert_eq(visit, 0)
+        assert_eq(step, 3)
+      }
+      other => raise other
+    } noraise {
+      _ => fail("unresolved Graph resources must not produce a CheckedProgram")
+    }
+    assert_eq(programs.length(), 0)
+  }
+}
+
+///|
 test "formal Graph construction reaches owned closure without exposing partial success" {
   for empty in [true, false] {
     let programs : Array[CheckedProgram] = []

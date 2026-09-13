@@ -90,6 +90,10 @@ fn check_supported_source(
               | "sequence"
               | "events"
               | "graph"
+              | "normalize_graph"
+              | "degree"
+              | "components"
+              | "graph_bounds"
               | "node_rows"
               | "edge_rows"
               | "values" => ()
