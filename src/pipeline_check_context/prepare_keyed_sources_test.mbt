@@ -2,6 +2,7 @@
 fn prepared_keyed_source_context(
   changes? : Bool = false,
   artifact_rows? : Int = 1,
+  host_first? : Bool = false,
 ) -> SelectedPolicyContext raise {
   let original = keyed_sourceview_environment(changes~)
   let writer = @encode.writer(1000000, 100000, 100)
@@ -106,7 +107,11 @@ fn prepared_keyed_source_context(
     new="\"resolved_limit_cid\":\"" + limit_cid + "\",\"subject_ref\":",
   )
   let arithmetic = @wire.check_mixed_claims(
-    [@wire.program_proof_witness(proof), host_wire],
+    if host_first {
+      [host_wire, @wire.program_proof_witness(proof)]
+    } else {
+      [@wire.program_proof_witness(proof), host_wire]
+    },
     [(@utf8.encode(limit_text), limit_cid)],
     {
       max_entities: 100,

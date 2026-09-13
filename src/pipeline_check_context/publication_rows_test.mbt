@@ -115,3 +115,48 @@ test "publication without a Program row bound retains an owned Host restriction"
     )
   }
 }
+
+///|
+test "publication scans sparse claims without renumbering proof membership" {
+  for artifact_rows in [1, 2] {
+    for host_first in [false, true] {
+      let index = join_resolution_fixture(artifact_rows~, host_first~)
+      let identity = expression_closure_identity(
+        operation_requirements_expressions(
+          operation_resolution_requirements(index),
+        ),
+      )
+      let limits : IncomingLimits = {
+        max_work: 10000000,
+        max_name_units: 10000,
+        max_requirements: 100,
+      }
+      let owner = link_resolved_program_incoming(
+        index,
+        collect_program_incoming(identity, limits).unwrap(),
+        limits,
+      ).unwrap()
+      let closed = close_program_publications(owner, 10000000, 100).unwrap()
+      assert_eq(publication_row_candidate_count(closed), 1)
+      let candidate = publication_row_candidate_at(closed, 0).unwrap()
+      let claim = if host_first { 1 } else { 0 }
+      assert_eq(
+        @capacity.target_membership_coordinates(candidate.membership),
+        (0, claim, 0),
+      )
+      let closure = @capacity.target_membership_closure(candidate.membership)
+      let rows = @capacity.target_membership_rows(candidate.membership)
+      assert_true(
+        @capacity.bind_target_membership(closure, rows, 0, 1 - claim) is Err(_),
+      )
+      let work = publication_closure_work(closed)
+      let selected = select_publication_row_limit(closed, 0, work + 2, 2).unwrap()
+      assert_eq(publication_row_limit_maximum(selected), 1L)
+      assert_eq(publication_row_limit_program_count(selected), 1)
+      assert_true(close_program_publications(owner, work, 2) is Ok(_))
+      assert_true(
+        close_program_publications(owner, work - 1, 2) is Err(BudgetExceeded),
+      )
+    }
+  }
+}

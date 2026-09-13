@@ -124,14 +124,20 @@ pub fn close_program_publications(
         continue
       }
       let applications = @capacity.source_coverage_program(source)
-      let mut claim = 0
-      while true {
+      // Applications retain arithmetic claim indices; non-Program sources
+      // occupy valid empty slots, not a sentinel terminating the collection.
+      let slot_count = @wire.claim_count(
+        @wire.program_claim_arithmetic(
+          @step_bounds.application_claims(applications),
+        ),
+      )
+      for claim in 0..<slot_count {
         if work == max_work {
           return Err(BudgetExceeded)
         }
         work += 1
         guard @step_bounds.application_at(applications, claim) is Some(bound) else {
-          break
+          continue
         }
         let (result, used) = @step_bounds.check_target_rows_usage(
           pipeline,
@@ -168,7 +174,6 @@ pub fn close_program_publications(
               RowTarget(publication.stage, publication.result_index, e),
             )
         }
-        claim += 1
       }
     }
     row_ranges.push((first_row, rows.length() - first_row))
