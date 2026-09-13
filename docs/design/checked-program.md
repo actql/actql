@@ -38,7 +38,7 @@ separate protocol results, not successful CheckedPrograms with weaker guarantees
 
 The entry has an explicit implementation-domain check, separate from the
 language grammar. Its Local and Result-import domain accepts `values`, `derive`,
-`filter`, `select`, `rename`, `drop`, `sort`, `take`, `distinct`, `dedupe_rows`, `append`, `join`, `cross_join`, `except` and `intersect`, including empty operation
+`filter`, `assert_rows`, `select`, `rename`, `drop`, `sort`, `take`, `distinct`, `dedupe_rows`, `append`, `join`, `cross_join`, `except` and `intersect`, including empty operation
 sequences. Sort/take use the existing owned order-resolution closure and preserve
 their distinct strategies and preconditions; accepting them does not synthesize
 an order from physical enumeration. Result publication can target their explicit
@@ -74,9 +74,14 @@ reported as unsupported rather than made executable through missing evidence.
 The operation index can retain a typed atomic `RowAssertion` check, binding the
 exact assertion operation and input before its output may be used. This is not
 a successful uniqueness proof. Assertion consumption remains a separate static
-planning requirement: an unresolved consumption entry prevents operation closure
-and is not converted into permission to check reachability at runtime. The formal
-entry does not admit assertions until that static condition is connected.
+planning requirement. An iterative traversal from the exact Stage's declared
+Results follows all checked input edges and records reachable steps. Each static
+consumption resolution retains those owned Results and its precise requirement;
+imported producer visits resolve against their original pipeline. Referencing an
+assertion only from another unused step does not consume it. Unreachable assertions
+remain unresolved and prevent closure, never deferred to runtime. Root, target,
+edge and requirement visits all consume the shared preparation budget. This
+Result-based path does not substitute for the separate nonempty-Effect boundary.
 Selected SourceViews additionally require acquisition closure: shared Catalog
 registration or mode support alone cannot pass the final source-execution audit.
 Direct requests with fully bound static values now pass that audit only when

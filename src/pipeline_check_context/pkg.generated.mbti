@@ -879,6 +879,12 @@ pub(all) enum AppendRowsRule {
   EnforceOutputEnvelope(@capacity_policy.Ceiling)
 }
 
+pub struct AssertionConsumptionLink {
+  requirement_index : Int
+  site : OperationRequirementSite
+  results : @relation_results.CheckedResults
+}
+
 type BoundParameters
 
 pub(all) struct CapacityMaterial {
@@ -1575,6 +1581,7 @@ pub(all) enum OperationResolution {
   Cell(OperationCellResolution)
   ProfileResolution(OperationProfileResolution)
   JoinCardinality(JoinCardinalitySelection)
+  AssertionConsumption(AssertionConsumptionLink)
 }
 
 pub(all) enum OperationResolutionIndexIssue {

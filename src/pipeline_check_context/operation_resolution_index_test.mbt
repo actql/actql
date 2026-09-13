@@ -72,6 +72,8 @@ fn check_resolution_index(
           ProfileResolution(r) => (r.requirement_index, r.site, 7)
           JoinCardinality(_) =>
             abort("join cardinality requires explicit linking")
+          AssertionConsumption(_) =>
+            abort("assertion consumption has dedicated tests")
         }
         seen[kind] = true
         assert_eq(position, i)
@@ -142,6 +144,7 @@ fn check_resolution_index(
   for i in 0..<count {
     let kind = fn(v : OperationResolutionState) {
       match v {
+        Resolved(AssertionConsumption(_)) => 11
         Unresolved => 0
         Execution(_) => 1
         Resolved(Order(_)) => 2

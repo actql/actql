@@ -9,6 +9,7 @@ pub(all) enum OperationResolution {
   Cell(OperationCellResolution)
   ProfileResolution(OperationProfileResolution)
   JoinCardinality(JoinCardinalitySelection)
+  AssertionConsumption(AssertionConsumptionLink)
 }
 
 ///|
@@ -52,6 +53,7 @@ fn resolution_occurrence(
     Cell(r) => (r.requirement_index, r.site)
     ProfileResolution(r) => (r.requirement_index, r.site)
     JoinCardinality(r) => (r.requirement_index, r.site)
+    AssertionConsumption(r) => (r.requirement_index, r.site)
   }
 }
 
@@ -161,7 +163,13 @@ pub fn index_program_operation_resolutions(
       return Err(e)
     }
   }
+  let mut needs_consumption = false
   for i in 0..<count {
+    if requirements.entries[i].requirement
+      is @pipeline.RelationRequirement(pending) &&
+      pending.kind is @relation.AssertionConsumption {
+      needs_consumption = true
+    }
     let candidate = match dedupe_execution_check(requirements.entries[i]) {
       Ok(None) => {
         let site = requirements.entries[i]
@@ -198,6 +206,19 @@ pub fn index_program_operation_resolutions(
         }
         states[i] = Execution(check)
         unresolved -= 1
+      }
+    }
+  }
+  if needs_consumption {
+    let (links, used) = match
+      assertion_consumption_links(requirements, max_work - work) {
+      Ok(value) => value
+      Err(error) => return Err(error)
+    }
+    work += used
+    for link in links {
+      if attach(AssertionConsumption(link)) is Some(error) {
+        return Err(error)
       }
     }
   }

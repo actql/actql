@@ -53,6 +53,15 @@ test "atomic assertions retain owned execution checks without deferring static c
     }
     assert_true(atomic_checks > 0)
     assert_eq(atomic_checks, consumption)
+    let work = operation_resolution_work(index)
+    assert_true(work > 0)
+    assert_true(
+      index_program_operation_resolutions(profiles, work, 100) is Ok(_),
+    )
+    assert_true(
+      index_program_operation_resolutions(profiles, work - 1, 100)
+      is Err(BudgetExceeded),
+    )
     assert_true(
       close_program_operations(index, 10000000, 100)
       is Err(IncompleteResolution(_)),

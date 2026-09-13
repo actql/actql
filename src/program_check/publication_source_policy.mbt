@@ -291,7 +291,7 @@ fn prepare_publication_source_policy(
                 unknown = true
                 slices.push({ step: index, operation, count, offset, })
               }
-              Filter =>
+              Filter | AssertRows =>
                 for binding in 0..<@relation.binding_count(operation) {
                   identity_charge(budget, 1)
                   let expression = @relation.binding_expression_at(

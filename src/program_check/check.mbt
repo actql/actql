@@ -42,6 +42,7 @@ fn check_supported_source(
               | "meta"
               | "derive"
               | "filter"
+              | "assert_rows"
               | "select"
               | "rename"
               | "drop"
