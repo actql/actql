@@ -41,6 +41,12 @@ let fields : Array[String] = [
 ]
 
 ///|
+let optional_fields : Array[String] = [
+  "max_aggregate_string_bytes", "max_analytic_frame_memberships", "max_analytic_input_wire_bytes",
+  "max_analytic_output_wire_bytes", "max_analytic_partition_wire_bytes",
+]
+
+///|
 priv suberror Stop {
   Stop(Issue)
 }
@@ -96,7 +102,9 @@ pub fn admit(
       Err(_) => raise Stop(BudgetExceeded)
     }
     let names = fields.copy()
-    names.push("max_aggregate_string_bytes")
+    for field in optional_fields {
+      names.push(field)
+    }
     names.push("version")
     let object = decoded(@decode.closed_object(cursor, names))
     if decoded(@decode.text(decoded(@decode.required(object, "version")))) !=
@@ -115,15 +123,16 @@ pub fn admit(
       }
       values[field] = value
     }
-    if @decode.lookup(object, "max_aggregate_string_bytes") is Some(source) {
+    for field in optional_fields {
+      guard @decode.lookup(object, field) is Some(source) else { continue }
       let value = match @decode.safe_integer(source) {
         Ok(n) => n
-        Err(_) => raise Stop(InvalidCeiling("max_aggregate_string_bytes"))
+        Err(_) => raise Stop(InvalidCeiling(field))
       }
       if value <= 0L {
-        raise Stop(InvalidCeiling("max_aggregate_string_bytes"))
+        raise Stop(InvalidCeiling(field))
       }
-      values["max_aggregate_string_bytes"] = value
+      values[field] = value
     }
     let policy : Policy = { cid, values, }
     let canonical = canonical_hash(policy, limits) catch {
@@ -152,11 +161,14 @@ fn canonical_hash(
   for name in fields {
     @encode.key(w, name)
     @encode.number_value(w, p.values.get(name).unwrap().to_double())
-    // The optional string ceiling sorts immediately after the array ceiling.
-    if name == "max_aggregate_array_items" &&
-      p.values.get("max_aggregate_string_bytes") is Some(value) {
-      @encode.key(w, "max_aggregate_string_bytes")
-      @encode.number_value(w, value.to_double())
+    // All optional fields sort between the array and artifact ceilings.
+    if name == "max_aggregate_array_items" {
+      for field in optional_fields {
+        if p.values.get(field) is Some(value) {
+          @encode.key(w, field)
+          @encode.number_value(w, value.to_double())
+        }
+      }
     }
   }
   @encode.key(w, "version")

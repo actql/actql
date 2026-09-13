@@ -96,6 +96,18 @@
         "minimum": 1,
         "maximum": 9007199254740991
       },
+      "max_analytic_frame_memberships": {
+        "type": "integer", "minimum": 1, "maximum": 9007199254740991
+      },
+      "max_analytic_input_wire_bytes": {
+        "type": "integer", "minimum": 1, "maximum": 9007199254740991
+      },
+      "max_analytic_output_wire_bytes": {
+        "type": "integer", "minimum": 1, "maximum": 9007199254740991
+      },
+      "max_analytic_partition_wire_bytes": {
+        "type": "integer", "minimum": 1, "maximum": 9007199254740991
+      },
       "max_artifact_bytes": {
         "type": "integer",
         "minimum": 1,

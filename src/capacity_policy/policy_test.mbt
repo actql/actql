@@ -116,6 +116,45 @@ test "policy and ceilings retain an independently pinned canonical source" {
 }
 
 ///|
+test "analytic scope ceilings are optional independently validated and canonically retained" {
+  let prefix = "\"max_aggregate_array_items\":1,"
+  let base = read(fixture()).unwrap()
+  for
+    field in [
+      "max_analytic_frame_memberships", "max_analytic_input_wire_bytes", "max_analytic_output_wire_bytes",
+      "max_analytic_partition_wire_bytes",
+    ] {
+    assert_true(@capacity_policy.ceiling(base, field) is None)
+    for value in ["1", "9007199254740991"] {
+      let p = read(mutate(prefix, prefix + "\"" + field + "\":" + value + ",")).unwrap()
+      let c = @capacity_policy.ceiling(p, field).unwrap()
+      assert_true(physical_equal(@capacity_policy.ceiling_policy(c), p))
+      assert_eq(
+        @capacity_policy.ceiling_value(c),
+        if value == "1" {
+          1L
+        } else {
+          9007199254740991L
+        },
+      )
+      assert_true(@capacity_policy.cid(p) != @capacity_policy.cid(base))
+    }
+    for
+      value in ["null", "0", "-1", "1.5", "9007199254740992", "false", "\"7\""] {
+      assert_true(
+        read(mutate(prefix, prefix + "\"" + field + "\":" + value + ","))
+        is Err(InvalidCeiling(actual)) &&
+        actual == field,
+      )
+    }
+    assert_true(
+      read(mutate(prefix, prefix + "\"" + field + "\":1.0,"))
+      is Err(NoncanonicalArtifact),
+    )
+  }
+}
+
+///|
 test "policy fields are closed required positive safe integers" {
   for bad in ["0", "-1", "1.5", "9007199254740992", "\"1\"", "false"] {
     assert_true(

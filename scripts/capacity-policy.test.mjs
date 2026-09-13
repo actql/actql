@@ -5,24 +5,28 @@ import { machineCid } from './actql-spec-family.mjs';
 
 const contract = JSON.parse(readFileSync(new URL('../spec/contracts/actql-capacity-host-policy.json', import.meta.url), 'utf8'));
 const source = readFileSync(new URL('../src/capacity_policy/policy.mbt', import.meta.url), 'utf8');
+const optional = ['max_aggregate_string_bytes','max_analytic_frame_memberships','max_analytic_input_wire_bytes','max_analytic_output_wire_bytes','max_analytic_partition_wire_bytes'];
 
 test('capacity policy schema and admitted field set are identical and closed', () => {
   assert.equal(contract.version, 'actql-capacity-host-policy-contract/0.1');
   const { schema } = contract;
   assert.equal(schema.type, 'object');
   assert.equal(schema.additionalProperties, false);
-  assert.deepEqual([...schema.required, 'max_aggregate_string_bytes'].sort(), Object.keys(schema.properties).sort());
+  assert.deepEqual([...schema.required, ...optional].sort(), Object.keys(schema.properties).sort());
   const fields = schema.required.filter(k => k !== 'version');
   assert.equal(fields.length, 17);
   assert.equal(new Set(fields).size, fields.length);
   assert.deepEqual(schema.properties.version, { const: 'actql-capacity-host-policy/0.1' });
-  for (const field of [...fields, 'max_aggregate_string_bytes']) assert.deepEqual(schema.properties[field], {
+  for (const field of [...fields, ...optional]) assert.deepEqual(schema.properties[field], {
     type: 'integer', minimum: 1, maximum: Number.MAX_SAFE_INTEGER,
   });
   const body = source.match(/let fields : Array\[String\] = \[([\s\S]*?)\]/)?.[1];
   assert.ok(body, 'Missing closed product field inventory');
   const product = [...body.matchAll(/"([a-z_]+)"/g)].map(m => m[1]);
   assert.deepEqual(product, [...fields].sort(), 'Product field inventory or canonical order drift');
+  const optionalBody = source.match(/let optional_fields : Array\[String\] = \[([\s\S]*?)\]/)?.[1];
+  assert.ok(optionalBody, 'Missing optional policy field inventory');
+  assert.deepEqual([...optionalBody.matchAll(/"([a-z_]+)"/g)].map(m=>m[1]), optional);
 });
 
 test('synthetic all-one policy has a fixed independent canonical identity', () => {

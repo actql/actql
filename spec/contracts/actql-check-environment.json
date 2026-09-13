@@ -1502,7 +1502,7 @@
       "contract": {
         "path": "spec/contracts/actql-capacity-host-policy.json",
         "pointer": "",
-        "cid": "sha256:a992c2ca75745ccc1334235185368429603612e38c3ab2efeee915afa3686b0c"
+        "cid": "sha256:5ac2ae95561103ad947ffdc5077c783963869247d3a45f697698b2af5ede6129"
       },
       "identity": "full_canonical_component_body_no_exclusions",
       "absent": "unresolved_no_implicit_defaults",

@@ -480,6 +480,44 @@ author-guard and proven bounds; actual excess fails rather than truncates the
 aggregate. A null aggregate output has no string payload to charge under this
 scope; its enclosing wire encoding remains subject to the separate wire budget.
 
+<!-- requirement-block: capacity-host-policy.analytic-scopes capacity-host-policy.analytic-wire-scopes -->
+The optional `max_analytic_input_wire_bytes`, `max_analytic_output_wire_bytes`,
+`max_analytic_partition_wire_bytes` and `max_analytic_frame_memberships` limits
+MUST, when present, be positive safe integers. Absence supplies neither a bound
+nor a default, and explicit null is invalid. All supplied fields participate in
+the policy CID and are validated even when unused. These scopes refine the
+analytic resource requirements without changing authored syntax:
+
+| Field | Scope of one analytic operation invocation |
+| --- | --- |
+| `max_analytic_input_wire_bytes` | Canonical typed-wire JSON array of all admitted input-row occurrences, including array delimiters, commas, keys and retained fields. |
+| `max_analytic_output_wire_bytes` | Canonical typed-wire JSON array of all output-row occurrences, including original and generated fields. |
+| `max_analytic_partition_wire_bytes` | The same input-row encoding, separately for each partition; not the sum of partitions and not a measurement of physical heap storage. |
+| `max_analytic_frame_memberships` | Sum over each frame call and output row of the number of source-row occurrences in its clipped inclusive ROWS frame, before that call's filter, null exclusion or distinct. Navigation contributes one for an in-partition selected row and zero otherwise; ranking contributes zero. |
+
+Typed-wire encoding uses the declared value contracts, including decimal fixed-scale
+strings, not typed-identity tags or binary64 conversion. The empty input/output
+array costs two bytes; empty input creates no partitions or frame memberships.
+Repeated partition references do not duplicate partitions or memberships. Repeated
+rows and separate calls are separate occurrences. This defines logical resource
+accounting and does not require materializing the arrays.
+
+<!-- requirement-block: capacity-host-policy.analytic-enforcement -->
+Analytic resource resolution MUST bind every selected limit to the exact
+operation, input, Parameter bindings and policy. Memberships accumulate across
+all calls and partitions; shared storage, cached expression results and optimized
+prefix reductions do not reduce this logical count. Every scope is inclusive at
+its limit. An excess or unrepresentable count fails the operation atomically;
+neither frame clipping beyond the declared ROWS interval, row truncation nor
+silently dropping calls is permitted. These limits are not evidence of actual
+usage, total order, successful evaluation or backend support. They do not map
+to a generic rows/bytes bound witness without an admitted scope-specific law.
+The separate output-row ceiling and nested-value constraints still apply.
+Physical partition storage, caches, sorting buffers and retained copies require
+Host resource admission and enforcement in addition to the logical wire limits;
+no canonical byte count claims to bound total memory. Unresolved static resource
+selection cannot be replaced by a generic permission to check resources later.
+
 <!-- requirement-block: capacity-host-policy.environment-component -->
 The capacity policy component, when supplied, MUST be the complete body at
 `/host_policy_profile/capacity` in the Check Environment. Its selected CID is
@@ -561,7 +599,7 @@ be recast into one of the current bound-witness units.
 <!-- requirement-block: capacity-host-policy.machine-contract -->
 <!-- normative-code: law -->
 ```text
-../../../spec/contracts/actql-capacity-host-policy.json# sha256:a992c2ca75745ccc1334235185368429603612e38c3ab2efeee915afa3686b0c
+../../../spec/contracts/actql-capacity-host-policy.json# sha256:5ac2ae95561103ad947ffdc5077c783963869247d3a45f697698b2af5ede6129
 ```
 
 <a id="catalog-and-lock"></a>
@@ -1311,7 +1349,7 @@ These exact schema/law references are owned here. Their identities do not includ
 <!-- requirement-block: machine-contracts.exact-artifacts -->
 <!-- normative-code: law -->
 ```text
-../../../spec/contracts/actql-check-environment.json# sha256:981daa579c0955701903fdd0f4adeef6b2f74df033c239ee6fee642d104d407f
+../../../spec/contracts/actql-check-environment.json# sha256:b5de23234efa33561441701a7079c5fdf68e041fee7435fd503fb212a4133602
 ../../../spec/contracts/actql-local-relation-snapshot.json# sha256:60e8136aea733421e75fa3dcef4934c87ce98959b36f8a56da93ccfbf03d81b2
 ../../../spec/contracts/actql-local-source-reference.json# sha256:9be664306a6a91a8e5bfca53d579e6dac77baf4567eb241ceeedc3216ffe47d9
 ../../../spec/contracts/actql-protocol-schemas.json#/schemas/model_task sha256:19408a610dbc52552bff3a7f97f25a120a66688e7db4f41383c91c9298f02dd2
