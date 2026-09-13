@@ -55,8 +55,9 @@ pub fn operation_execution_phase(
   match v {
     AsOfExecution(v) =>
       match v.rule {
-        AdmitAsOfClocksAndDistances | ValidateAsOfLeftIdentity =>
-          BeforeOperationInputUse
+        AdmitAsOfClocksAndDistances
+        | ValidateAsOfLeftIdentity
+        | ValidateAsOfKey(_, _) => BeforeOperationInputUse
         SelectAsOfMatch | OrderAsOfOutput => BeforeOperationOutput
       }
     IntervalSearch(_) => BeforeOperationInputUse

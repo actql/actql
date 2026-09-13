@@ -1,5 +1,6 @@
 ///|
 pub(all) enum OperationResolution {
+  AsOfCompletion(AsOfKeyCompletion)
   WindowPublication(WindowPublicationResources)
   Order(OperationOrderLink)
   Scalar(OperationScalarResolution)
@@ -45,6 +46,7 @@ fn resolution_occurrence(
   v : OperationResolution,
 ) -> (Int, OperationRequirementSite) {
   match v {
+    AsOfCompletion(r) => (r.requirement_index, r.site)
     WindowPublication(r) => (r.requirement_index, r.site)
     Order(r) => (r.requirement_index, r.site)
     Scalar(r) => (r.requirement_index, r.site)
@@ -167,6 +169,14 @@ pub fn index_program_operation_resolutions(
   }
   let mut needs_consumption = false
   for i in 0..<count {
+    match asof_key_completion(requirements.entries[i], i) {
+      Ok(Some(completion)) =>
+        if attach(AsOfCompletion(completion)) is Some(error) {
+          return Err(error)
+        }
+      Ok(None) => ()
+      Err(error) => return Err(error)
+    }
     if requirements.entries[i].requirement
       is @pipeline.RelationRequirement(pending) &&
       pending.kind is @relation.AssertionConsumption {

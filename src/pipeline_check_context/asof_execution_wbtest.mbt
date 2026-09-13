@@ -124,8 +124,9 @@ test "asof execution retains clocks identity selection and generated order indep
                 assert_eq(
                   operation_execution_phase(AsOfExecution(check)),
                   match check.rule {
-                    AdmitAsOfClocksAndDistances | ValidateAsOfLeftIdentity =>
-                      BeforeOperationInputUse
+                    AdmitAsOfClocksAndDistances
+                    | ValidateAsOfLeftIdentity
+                    | ValidateAsOfKey(_, _) => BeforeOperationInputUse
                     SelectAsOfMatch | OrderAsOfOutput => BeforeOperationOutput
                   },
                 )

@@ -244,8 +244,17 @@ declared direction and tolerance, complete correlation keys and the retained
 completed tie-break. Unresolved first-place ties reject the whole output rather
 than falling back to physical order. Output order is the as-of operation's new
 ascending `(left time, left identity)` order, not either operand's input order.
+Key completion is a static `AsOfCompletion` selection tied to its exact operation
+and input side. It retains the selected conditional key and the checked
+operation's original and completed tuples for compiler journaling, without
+reselecting a key or removing repeated authored terms. Each `ValidateAsOfKey`
+execution binding separately retains that same key and its specific producer,
+component, uniqueness or reference-validation obligation. An authored tie-break
+that already covers the selected key adds no completion record but still retains
+the selected key's validation obligations. A single explicitly selected left
+identity is validated as declared; a retained composite identity is not truncated.
 These bindings do not discharge tolerance Parameters, selected-profile or search
-and allocation requirements, or key-completion dependencies. The formal entry
+and allocation requirements. The formal entry
 does not admit an as-of Program solely because these execution bindings exist.
 
 Join consumes the existing cardinality selection, ordered-occurrence execution

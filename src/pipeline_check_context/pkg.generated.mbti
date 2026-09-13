@@ -26,6 +26,7 @@ import {
   "actql/actql/relation_append",
   "actql/actql/relation_evidence",
   "actql/actql/relation_join_shape",
+  "actql/actql/relation_key_obligation",
   "actql/actql/relation_results",
   "actql/actql/relation_schema",
   "actql/actql/relation_set",
@@ -1061,6 +1062,7 @@ pub struct AsOfExecutionCheck {
   left_timestamp : Bool
   right_timestamp : Bool
   output_order : @pipeline_typing.LogicalOrder
+  key : @relation_evidence.KeyedRelation?
   rule : AsOfExecutionRule
 }
 
@@ -1069,7 +1071,18 @@ pub(all) enum AsOfExecutionRule {
   ValidateAsOfLeftIdentity
   SelectAsOfMatch
   OrderAsOfOutput
+  ValidateAsOfKey(@relation_schema.Side, @relation_key_obligation.KeyObligation)
 } derive(Eq, @debug.Debug)
+
+pub struct AsOfKeyCompletion {
+  requirement_index : Int
+  site : OperationRequirementSite
+  step : @pipeline_typing.CheckedStep
+  operation : @relation_evidence.CheckedAsOf
+  side : @relation_schema.Side
+  input : @pipeline_typing.Target
+  key : @relation_evidence.KeyedRelation
+}
 
 pub struct AssertionConsumptionLink {
   requirement_index : Int
@@ -1917,6 +1930,7 @@ pub(all) enum OperationRequirementsIssue {
 } derive(Eq, @debug.Debug)
 
 pub(all) enum OperationResolution {
+  AsOfCompletion(AsOfKeyCompletion)
   WindowPublication(WindowPublicationResources)
   Order(OperationOrderLink)
   Scalar(OperationScalarResolution)

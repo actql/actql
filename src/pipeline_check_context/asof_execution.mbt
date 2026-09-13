@@ -4,6 +4,7 @@ pub(all) enum AsOfExecutionRule {
   ValidateAsOfLeftIdentity
   SelectAsOfMatch
   OrderAsOfOutput
+  ValidateAsOfKey(@schema.Side, @evidence.KeyObligation)
 } derive(Eq, Debug)
 
 ///|
@@ -20,6 +21,7 @@ pub struct AsOfExecutionCheck {
   left_timestamp : Bool
   right_timestamp : Bool
   output_order : @pipeline.LogicalOrder
+  key : @evidence.KeyedRelation?
   rule : AsOfExecutionRule
 }
 
@@ -35,6 +37,7 @@ fn asof_execution_check(
     StableIdentity(@schema.Left) => ValidateAsOfLeftIdentity
     RejectAsOfTies => SelectAsOfMatch
     ResolveAsOfOrder => OrderAsOfOutput
+    ValidateAsOfKey(side, obligation) => ValidateAsOfKey(side, obligation)
     _ => return Ok(None)
   }
   guard @pipeline.step_at(site.pipeline, site.step) is Some(step) &&
@@ -48,6 +51,15 @@ fn asof_execution_check(
     return Err(ForeignOccurrence(site.step))
   }
   let l = @pipeline.input_occurrence_at(step, 0).unwrap()
+  let key = match rule {
+    ValidateAsOfKey(side, _) => {
+      guard @join.asof_key_completion(operation, side) is Some(key) else {
+        return Err(ForeignOccurrence(site.step))
+      }
+      Some(key)
+    }
+    _ => None
+  }
   let r = @pipeline.input_occurrence_at(step, 1).unwrap()
   if l.role != @pipeline.Left ||
     l.target != left ||
@@ -68,6 +80,7 @@ fn asof_execution_check(
         left_timestamp: @join.asof_uses_timestamp(operation, @schema.Left),
         right_timestamp: @join.asof_uses_timestamp(operation, @schema.Right),
         output_order,
+        key,
         rule,
       }),
     ),
