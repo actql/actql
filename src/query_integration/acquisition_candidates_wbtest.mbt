@@ -1,5 +1,16 @@
 ///|
 test "common acquisition comparison preserves provider binding and unknown costs" {
+  let registry = @planning.prepare_capability_registry(
+    [
+      { name: "mock", acquisition: true, fixed_compute: false, },
+      { name: "duckdb", acquisition: true, fixed_compute: true, },
+      { name: "local", acquisition: false, fixed_compute: true, },
+    ],
+    3,
+    15,
+  ).unwrap()
+  let mock_registration = @planning.capability_registration_at(registry, 0).unwrap()
+  let duckdb_registration = @planning.capability_registration_at(registry, 1).unwrap()
   let checked = query_checked_program_fixture()
   let sequence = query_checked_sequence(checked)
   let material = @planning.prepare_query_material(
@@ -31,22 +42,30 @@ test "common acquisition comparison preserves provider binding and unknown costs
     quantities,
     100,
   ).unwrap()
-  let mock = @planning.mock_acquisition_candidate(requirement, mock_offer).unwrap()
-  let broad = @planning.duckdb_broad_candidate(
+  let mock_binding = @planning.mock_acquisition_candidate(
+    mock_registration, requirement, mock_offer,
+  ).unwrap()
+  let mock = @planning.prepared_acquisition_candidate(mock_binding)
+  let broad_binding = @planning.duckdb_broad_candidate(
+    duckdb_registration,
     prepared,
     [{ work_slots: [0, 1, 2, 3, 4, 5, 6, 7], milliseconds: Some(10L), }],
     quantities,
     100,
   ).unwrap()
-  let unknown = @planning.duckdb_broad_candidate(
+  let broad = @planning.prepared_acquisition_candidate(broad_binding)
+  let unknown_binding = @planning.duckdb_broad_candidate(
+    duckdb_registration,
     prepared,
     [{ work_slots: [0, 1, 2, 3, 4, 5, 6], milliseconds: Some(1L), }],
     quantities,
     100,
   ).unwrap()
+  let unknown = @planning.prepared_acquisition_candidate(unknown_binding)
   assert_true(@planning.acquisition_candidate_duration(unknown) is Unknown)
   assert_true(
     @planning.choose_acquisition_candidate(
+      registry,
       requirement,
       [mock, unknown],
       None,
@@ -56,6 +75,7 @@ test "common acquisition comparison preserves provider binding and unknown costs
   )
   assert_true(
     @planning.duckdb_broad_candidate(
+      duckdb_registration,
       prepared,
       [
         { work_slots: [0, 1, 2, 3, 4, 5, 6, 7], milliseconds: Some(10L), },
@@ -68,6 +88,7 @@ test "common acquisition comparison preserves provider binding and unknown costs
   )
   for candidates in [[mock, broad], [broad, mock]] {
     let selected = @planning.choose_acquisition_candidate(
+      registry,
       requirement,
       candidates,
       None,
@@ -75,10 +96,16 @@ test "common acquisition comparison preserves provider binding and unknown costs
     ).unwrap()
     guard selected is Proposed(choice) else { abort("expected cost proposal") }
     let candidate = @planning.acquisition_choice_candidate(choice)
-    guard @planning.acquisition_candidate_binding(candidate)
-      is DuckDBBroad(selected) else {
-      abort("expected DuckDB broad binding")
-    }
+    assert_true(
+      physical_equal(
+        @planning.acquisition_candidate_registration(candidate),
+        duckdb_registration,
+      ),
+    )
+    let selected = @planning.acquisition_choice_payload(choice, broad_binding).unwrap()
+    assert_true(
+      @planning.acquisition_choice_payload(choice, mock_binding) is None,
+    )
     assert_true(physical_equal(selected, prepared))
     let input = @execution.capture_input(
       @query.query_sequence_owner(sequence),
@@ -102,13 +129,16 @@ test "common acquisition comparison preserves provider binding and unknown costs
     assert_true(@execution.completed_cell(output, 0, 0) is Some(Number(3)))
     assert_true(@execution.completed_cell(output, 1, 0) is Some(Number(2)))
   }
-  let equal = @planning.duckdb_broad_candidate(
+  let equal_binding = @planning.duckdb_broad_candidate(
+    duckdb_registration,
     prepared,
     [{ work_slots: [0, 1, 2, 3, 4, 5, 6, 7], milliseconds: Some(20L), }],
     quantities,
     100,
   ).unwrap()
+  let equal = @planning.prepared_acquisition_candidate(equal_binding)
   guard @planning.choose_acquisition_candidate(
+      registry,
       requirement,
       [mock, equal],
       Some([1, 0]),
@@ -118,10 +148,32 @@ test "common acquisition comparison preserves provider binding and unknown costs
     abort("expected tie proposal")
   }
   assert_true(
-    @planning.acquisition_candidate_binding(
-      @planning.acquisition_choice_candidate(choice),
+    @planning.acquisition_choice_payload(choice, equal_binding) is Some(_),
+  )
+  assert_true(
+    @planning.acquisition_choice_payload(choice, broad_binding) is None,
+  )
+  let foreign_registry = @planning.prepare_capability_registry(
+    [{ name: "duckdb", acquisition: true, fixed_compute: true, }],
+    1,
+    6,
+  ).unwrap()
+  assert_true(
+    @planning.choose_acquisition_candidate(
+      foreign_registry,
+      requirement,
+      [broad],
+      None,
+      100,
     )
-    is DuckDBBroad(_),
+    is Err(ForeignCapability(0)),
+  )
+  let local_registration = @planning.capability_registration_at(registry, 2).unwrap()
+  assert_true(
+    @planning.mock_acquisition_candidate(
+      local_registration, requirement, mock_offer,
+    )
+    is Err(AcquisitionUnsupported),
   )
   let duplicate = @planning.prepare_query_requirement(
     material,
@@ -134,7 +186,63 @@ test "common acquisition comparison preserves provider binding and unknown costs
     @planning.query_requirement_cid(requirement),
   )
   assert_true(
-    @planning.choose_acquisition_candidate(duplicate, [broad], None, 100)
+    @planning.choose_acquisition_candidate(
+      registry,
+      duplicate,
+      [broad],
+      None,
+      100,
+    )
     is Err(ForeignQuery(0)),
+  )
+  guard @planning.choose_acquisition_candidate(
+      registry,
+      requirement,
+      [mock, equal],
+      Some([0, 1]),
+      100,
+    ).unwrap()
+    is Proposed(mock_choice) else {
+    abort("expected mock tie choice")
+  }
+  let strategy = @planning.mock_acquisition_strategy(mock_choice, mock_binding).unwrap()
+  assert_true(
+    @planning.acquisition_choice_payload(mock_choice, equal_binding) is None,
+  )
+  let attempt = @planning.prepare_requirement_mock_query_attempt(
+    requirement,
+    strategy,
+    [
+      input_cursor("{\"id\":3}"),
+      input_cursor("{\"id\":1}"),
+      input_cursor("{\"id\":2}"),
+    ],
+    3,
+  ).unwrap()
+  let computed = @planning.execute_mock_query(
+    attempt,
+    mock_strategy_limits(),
+    guard_measure=Some(query_guard_physical()),
+  ).unwrap()
+  assert_eq(@planning.mock_query_output_rows(computed), 2)
+  @planning.close_capability_registry(registry)
+  assert_true(
+    @planning.acquisition_choice_payload(choice, equal_binding) is None,
+  )
+  assert_true(
+    @planning.mock_acquisition_candidate(
+      mock_registration, requirement, mock_offer,
+    )
+    is Err(CapabilityClosed),
+  )
+  assert_true(
+    @planning.choose_acquisition_candidate(
+      registry,
+      requirement,
+      [broad],
+      None,
+      100,
+    )
+    is Err(ForeignCapability(0)),
   )
 }

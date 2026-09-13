@@ -52,6 +52,9 @@ pub(all) enum QueryPlanningIssue {
   PlanningLimit
   NegativeQuantity
   ForeignQuery(Int)
+  ForeignCapability(Int)
+  AcquisitionUnsupported
+  CapabilityClosed
   Cost(@cost.CostIssue)
 }
 

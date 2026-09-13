@@ -111,12 +111,24 @@ from that exact requirement rather than accepting replacement logical limits.
 The native preparation accessor reports compiler/root-ceiling compatibility
 only; it is not yet a validated runnable offer or source-access authorization.
 
-`mock_acquisition_candidate` and `duckdb_broad_candidate` can enter the same
-`choose_acquisition_candidate` cost comparison. The DuckDB factory requires
+`prepare_capability_registry` creates bounded, owned Host registrations. Pass
+an acquisition-enabled registration to `mock_acquisition_candidate` or
+`duckdb_broad_candidate`, then pass `prepared_acquisition_candidate(prepared)`
+to the same `choose_acquisition_candidate(registry, requirement, ...)` comparison.
+Only the matching `PreparedAcquisition[T]` can recover the selected typed payload
+through `acquisition_choice_payload`; there is no common Mock/DuckDB enum.
+`mock_acquisition_strategy` enters the existing mock driver without re-ranking.
+The DuckDB factory requires
 eight disjoint work scopes exposed by `duckdb_broad_work_at`; missing estimates
 remain unknown. The proposed choice retains its provider binding for Host
 dispatch. This comparison does not perform I/O, issue capture evidence, or
 retry a failed native query as a broad scan.
+
+Registry names are diagnostic, not source authority or semantic identity. An
+equal declaration in another registry is rejected. Fixed-input Compute can be
+declared on the same module, but its candidate/dispatch integration is not implied
+by that declaration. Closing a registry blocks new proposals/recovery without
+releasing completed upstream observations.
 
 The private `DuckDBBroadAttempt` API orders metadata, chunk admission, receipt
 sealing, transport settlement and guarded residual execution. A Host coordinator

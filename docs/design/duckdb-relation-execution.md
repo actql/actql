@@ -61,14 +61,26 @@ Unknown estimates defer without explicit Host preference, and complete ties
 honor that preference. A proposal retains the exact provider preparation for
 subsequent Host dispatch; it is neither execution evidence nor authority.
 Native DuckDB is not included as an eligible mixed candidate merely because
-its preliminary compiler/root checks passed. General capability registration
-and fixed-input Compute selection are separate integration requirements.
+its preliminary compiler/root checks passed. Fixed-input Compute selection and
+general applicability/obligation coverage remain separate integration requirements.
 
-`AcquisitionBinding` is a transitional binding for the two connected
-implementations, not the permanent extension mechanism. Common registration
-must own binding identity, applicability, logical obligations, work inventory and
-estimates while keeping provider payloads in the registered implementation.
-Adding a provider must not require new semantic branches in the common planner.
+`CapabilityRegistry` owns immutable module descriptions and exact registration
+handles. A module may declare Acquisition and fixed-input Compute independently;
+the latter declaration cannot be used to construct an acquisition candidate.
+Registration is bounded pure Host setup, not source permission or evidence.
+Another registry with identical names and descriptions is a different owner.
+Closing a registry disables future proposals and typed dispatch recovery; it
+does not cancel running work or invalidate already completed observations.
+
+The common candidate contains a registration, exact requirement and cost, not
+a backend enumeration or type-erased provider payload. `PreparedAcquisition[T]`
+keeps the provider's typed payload alongside that exact candidate. After common
+selection, only its matching preparation recovers the payload for Host dispatch.
+Mock and DuckDB factories validate their own bindings and work inventories; the
+mock adapter preserves the common selection reason without a second comparison.
+The common planner does not acquire a new branch when a provider is added.
+Registration alone does not complete applicability, logical obligations or
+execution evidence, and no generic executor is introduced by this boundary.
 Typed work enums may remain provider-local. Start obligation coverage with the
 existing source-validation/filter/select occurrences; completion coverage and
 auxiliary physical work are not substitutes for these logical duties.

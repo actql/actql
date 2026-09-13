@@ -1,15 +1,15 @@
 ///|
-/// Realization binding for Host dispatch, not a new semantic acquisition kind.
-/// The common comparison code never branches on this payload.
-pub enum AcquisitionBinding {
-  Mock(QueryOffer)
-  DuckDBBroad(DuckDBQueryPreparation)
+/// Typed provider payload retained outside the common comparison interface.
+/// Only this exact preparation can resolve a proposed choice to its payload.
+struct PreparedAcquisition[T] {
+  candidate : AcquisitionCandidate
+  payload : T
 }
 
 ///|
 struct AcquisitionCandidate {
   requirement : QueryRequirement
-  binding : AcquisitionBinding
+  registration : CapabilityRegistration
   duration : @cost.DurationEstimate
   quantities : QueryQuantities
 }
@@ -28,71 +28,45 @@ pub enum AcquisitionSelection {
 }
 
 ///|
-pub fn mock_acquisition_candidate(
+fn[T] bind_acquisition_candidate(
+  registration : CapabilityRegistration,
   requirement : QueryRequirement,
-  offer : QueryOffer,
-) -> Result[AcquisitionCandidate, QueryPlanningIssue] {
-  if !physical_equal(requirement.material.owner, offer.owner) {
-    return Err(ForeignQuery(0))
+  payload : T,
+  duration : @cost.DurationEstimate,
+  quantities : QueryQuantities,
+) -> Result[PreparedAcquisition[T], QueryPlanningIssue] {
+  if !registration.owner.live {
+    return Err(CapabilityClosed)
+  }
+  if !registration.description.acquisition {
+    return Err(AcquisitionUnsupported)
   }
   Ok({
-    requirement,
-    binding: Mock(offer),
-    duration: offer.duration,
-    quantities: offer.quantities,
+    candidate: { requirement, registration, duration, quantities, },
+    payload,
   })
 }
 
 ///|
-/// Disjoint serial scopes for broad acquisition; setup includes catalog and
-/// read-transaction work. The SQL scan, receipt transport and Local residual
-/// must not hide one another's costs. Missing estimates remain unknown.
-pub(all) enum DuckDBBroadWork {
-  SessionAndCatalog
-  SourceScan
-  ReceiptTransfer
-  ReceiptConversion
-  LocalResidual
-  ObservationCapture
-  Retention
-  Cleanup
-} derive(Eq, Debug)
-
-///|
-pub fn duckdb_broad_work_at(index : Int) -> DuckDBBroadWork? {
-  match index {
-    0 => Some(SessionAndCatalog)
-    1 => Some(SourceScan)
-    2 => Some(ReceiptTransfer)
-    3 => Some(ReceiptConversion)
-    4 => Some(LocalResidual)
-    5 => Some(ObservationCapture)
-    6 => Some(Retention)
-    7 => Some(Cleanup)
-    _ => None
-  }
+pub fn[T] prepared_acquisition_candidate(
+  prepared : PreparedAcquisition[T],
+) -> AcquisitionCandidate {
+  prepared.candidate
 }
 
 ///|
-pub fn duckdb_broad_candidate(
-  prepared : DuckDBQueryPreparation,
-  estimates : Array[@cost.SerialEstimateLine],
-  quantities : QueryQuantities,
-  max_entries : Int,
-) -> Result[AcquisitionCandidate, QueryPlanningIssue] {
-  if !valid_quantity(quantities.transfer_bytes) ||
-    !valid_quantity(quantities.retained_bytes) ||
-    !valid_quantity(quantities.money_units) {
-    return Err(NegativeQuantity)
+/// Typed dispatch recovery, not I/O authority. Equal payloads or registrations
+/// cannot substitute for the exact candidate selected by the common planner.
+pub fn[T] acquisition_choice_payload(
+  choice : AcquisitionChoice,
+  prepared : PreparedAcquisition[T],
+) -> T? {
+  if prepared.candidate.registration.owner.live &&
+    physical_equal(choice.candidate, prepared.candidate) {
+    Some(prepared.payload)
+  } else {
+    None
   }
-  @cost.assess_serial(8, estimates, max_entries)
-  .map_err(issue => Cost(issue))
-  .map(duration => {
-    requirement: prepared.requirement,
-    binding: DuckDBBroad(prepared),
-    duration,
-    quantities,
-  })
 }
 
 ///|
@@ -100,6 +74,7 @@ pub fn duckdb_broad_candidate(
 /// remain pending. No I/O or fallback is performed. All candidates belong to
 /// the exact same requirement, not just an equal canonical CID.
 pub fn choose_acquisition_candidate(
+  registry : CapabilityRegistry,
   requirement : QueryRequirement,
   candidates : Array[AcquisitionCandidate],
   host_priority : Array[Int]?,
@@ -115,6 +90,9 @@ pub fn choose_acquisition_candidate(
   for i in 0..<candidates.length() {
     if !physical_equal(candidates[i].requirement, requirement) {
       return Err(ForeignQuery(i))
+    }
+    if !capability_registration_matches(candidates[i].registration, registry) {
+      return Err(ForeignCapability(i))
     }
     durations.push(candidates[i].duration)
   }
@@ -149,10 +127,10 @@ pub fn acquisition_choice_reason(
 }
 
 ///|
-pub fn acquisition_candidate_binding(
+pub fn acquisition_candidate_registration(
   candidate : AcquisitionCandidate,
-) -> AcquisitionBinding {
-  candidate.binding
+) -> CapabilityRegistration {
+  candidate.registration
 }
 
 ///|
