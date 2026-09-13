@@ -33,6 +33,7 @@ fn local_construction_fixture(
   nested_bytes? : Int? = None,
   nested_depth? : Int? = None,
   text_time? : Bool = false,
+  tea? : Bool = false,
   text_policy? : Bool = false,
   generated_proofs? : Array[@wire.ProgramProofClaim] = [],
 ) -> (
@@ -289,7 +290,7 @@ fn local_construction_fixture(
       supplied,
       materials,
       { text_time, veca: false, },
-      { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
+      { rela: true, sga: false, tea, calendar: false, text_rank: false, },
       source_limits_fixture(
         stage_count +
         extra_step_budget +
@@ -323,7 +324,7 @@ fn local_construction_fixture(
     },
     materials,
     { text_time, veca: false, },
-    { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
+    { rela: true, sga: false, tea, calendar: false, text_rank: false, },
     source_limits_fixture(
       stage_count + (if generated_rows is Some(_) { 1 } else { 0 }),
     ),

@@ -318,6 +318,7 @@ pub suberror ConstructionFailure {
   Operations(@pipeline_check_context.ProgramOperationResolutionIssue)
   Values(@pipeline_check_context.ValuesPublicationIssue)
   Joins(@pipeline_check_context.JoinRequirementIssue)
+  WindowLimits(@pipeline_check_context.WindowMembershipBoundIssue)
   GroupLimits(@pipeline_check_context.GroupArrayLimitIssue)
   GroupStringLimits(@pipeline_check_context.GroupStringLimitIssue)
   NumericSlots(@pipeline_check_context.NumericSlotsIssue)
