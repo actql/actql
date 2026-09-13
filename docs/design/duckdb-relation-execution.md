@@ -87,7 +87,19 @@ auxiliary physical work are not substitutes for these logical duties.
 
 Fixed-input Compute uses the same module registrations but a distinct owned
 `FixedComputeRequest` and candidate type. The request retains one `ProducerRead`
-for its exactly bound consumer. It has no source selector, connection, arbitrary
+for its exactly bound consumer, together with the exact pinned
+`actql-consumer-capacity/0.1` CID and the Host-selected common row/value ceilings.
+These limits apply to input and output independently; input rows cannot be
+discounted because a filter will discard them. Value ceilings are per top-level
+value, not per whole record. Binding the request is not proof of completed value
+measurement or root enforcement.
+
+An explicitly common fragment is retained by exact preparation identity. Local
+must use that same preparation; equivalent reconstructed content is not enough.
+The current DuckDB profile rejects such a selection before candidate comparison
+because it cannot yet guarantee exact fragment work/live accounting. A fragment
+chosen only inside a Local candidate does not become common retroactively.
+The request has no source selector, connection, arbitrary
 rows or content-CID reconstruction route, and does not create a canonical Plan.
 Local preparation must have that exact consumer owner; the Local execution
 operation delegates to the existing producer admission and sequence driver with

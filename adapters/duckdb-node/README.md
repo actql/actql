@@ -133,8 +133,15 @@ Registry names are diagnostic, not source authority or semantic identity. An
 equal declaration in another registry is rejected. Closing a registry blocks new proposals/recovery without
 releasing completed upstream observations.
 
-For a completed input, `prepare_fixed_compute_request(ProducerRead)` binds the
-exact receiving owner. `local_fixed_compute_candidate` and
+For a completed input, `prepare_fixed_compute_request(ProducerRead, capacity)`
+binds the exact receiving owner and an explicit `FixedComputeCapacity`: the
+pinned consumer-capacity CID, common `max_rows`/`max_value_bytes`, and an optional
+exact common fragment preparation. No implicit unlimited default is supplied.
+An input row overflow fails even if the planned filter would remove every row.
+Native candidates reject a selected common fragment until exact fragment
+accounting is supported; they do not reinterpret it as Local-only.
+This preparation is not itself a proof that all value/root guards have run.
+`local_fixed_compute_candidate` and
 `duckdb_fixed_compute_candidate` use Compute-enabled registrations from the same
 registry, and `choose_fixed_compute_candidate` compares their complete inventories.
 `execute_local_fixed_compute` runs the selected Local preparation through ordinary

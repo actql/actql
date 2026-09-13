@@ -164,6 +164,8 @@ pub fn[T] fixed_compute_choice_payload(FixedComputeChoice, PreparedCompute[T]) -
 
 pub fn fixed_compute_choice_reason(FixedComputeChoice) -> @physical_cost.CostChoice
 
+pub fn fixed_compute_request_capacity(FixedComputeRequest) -> FixedComputeCapacity
+
 pub fn fixed_compute_request_input(FixedComputeRequest) -> @execution_relation.ProducerRead
 
 pub fn issue_duckdb_broad_records(DuckDBBroadAttempt, QueryMaterialLimits) -> Result[DuckDBBroadRecords, DuckDBEvidenceIssue]
@@ -224,7 +226,7 @@ pub fn prepare_duckdb_query(QueryRequirement, String, String, Int, @duckdb_adapt
 
 pub fn prepare_duckdb_query_issuer(QueryEvidenceContracts, QueryRequirement, String, Int, (DuckDBBroadAttempt) -> Bool) -> Result[DuckDBQueryIssuer, DuckDBEvidenceIssue]
 
-pub fn prepare_fixed_compute_request(@execution_relation.ProducerRead) -> Result[FixedComputeRequest, FixedComputeIssue]
+pub fn prepare_fixed_compute_request(@execution_relation.ProducerRead, FixedComputeCapacity) -> Result[FixedComputeRequest, FixedComputeIssue]
 
 pub fn prepare_issued_duckdb_broad_attempt(DuckDBQueryIssuer, AcquisitionChoice, PreparedAcquisition[DuckDBQueryPreparation]) -> Result[DuckDBBroadAttempt, DuckDBEvidenceIssue]
 
@@ -467,6 +469,13 @@ type DuckDBQueryPreparation
 
 type FixedComputeCandidate
 
+pub(all) struct FixedComputeCapacity {
+  contract_cid : String
+  max_rows : Int
+  max_value_bytes : Int
+  common_fragment : @execution_relation.GeneratedSequence?
+}
+
 type FixedComputeChoice
 
 pub(all) enum FixedComputeIssue {
@@ -479,6 +488,9 @@ pub(all) enum FixedComputeIssue {
   ComputeUnsupported
   NotSelected
   InvalidLimits
+  CapacityContract
+  CommonInputRows
+  CommonFragmentUnsupported
   PlanningLimit
   NegativeQuantity
   Cost(@physical_cost.CostIssue)

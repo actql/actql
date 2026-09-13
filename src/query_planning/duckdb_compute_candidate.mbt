@@ -11,6 +11,12 @@ pub fn duckdb_fixed_compute_candidate(
   quantities : QueryQuantities,
   max_entries : Int,
 ) -> Result[PreparedCompute[@duckdb.FixedCompute], FixedComputeIssue] {
+  // No exact fragment work/live accounting is implemented by this native
+  // profile. Reject before compilation/comparison; never relabel a common
+  // contract as Local-only or substitute DuckDB memory/time measurements.
+  if request.capacity.common_fragment is Some(_) {
+    return Err(CommonFragmentUnsupported)
+  }
   let compiled = match
     @duckdb.prepare_fixed_compute(request.input, table, compilation) {
     Err(issue) => return Err(Compilation(issue))

@@ -28,7 +28,12 @@ pub fn owned_fixed_create(
     )
     let bound = @execution.bind_completed_input(receiver, 0, owner, output).unwrap()
     let read = @execution.prepare_producer_read(receiver, bound, 100, 10000).unwrap()
-    let request = @planning.prepare_fixed_compute_request(read).unwrap()
+    let request = @planning.prepare_fixed_compute_request(read, {
+      contract_cid: "sha256:7d59718b965451d8a19ccf7095b92777ba0cdd8c3bb71f437ab387801fe7271f",
+      max_rows: 100,
+      max_value_bytes: 10000,
+      common_fragment: None,
+    }).unwrap()
     let registry = @planning.prepare_capability_registry(
       [
         { name: "local", acquisition: false, fixed_compute: true, },

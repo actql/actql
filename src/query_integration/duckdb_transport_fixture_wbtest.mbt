@@ -12,7 +12,12 @@ test "registered DuckDB transport command fixture from completed capture" {
     2,
     11,
   ).unwrap()
-  let request = @planning.prepare_fixed_compute_request(input).unwrap()
+  let request = @planning.prepare_fixed_compute_request(input, {
+    contract_cid: "sha256:7d59718b965451d8a19ccf7095b92777ba0cdd8c3bb71f437ab387801fe7271f",
+    max_rows: 100,
+    max_value_bytes: 10000,
+    common_fragment: None,
+  }).unwrap()
   let quantities : @planning.QueryQuantities = {
     transfer_bytes: None,
     retained_bytes: None,

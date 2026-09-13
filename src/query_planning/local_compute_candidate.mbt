@@ -9,6 +9,10 @@ pub fn local_fixed_compute_candidate(
   quantities : QueryQuantities,
   max_entries : Int,
 ) -> Result[PreparedCompute[@execution.GeneratedSequence], FixedComputeIssue] {
+  if request.capacity.common_fragment is Some(common) &&
+    !physical_equal(common, sequence) {
+    return Err(ForeignPreparation)
+  }
   if !physical_equal(
       @execution.generated_sequence_owner(sequence),
       @execution.producer_read_receiver(request.input),
