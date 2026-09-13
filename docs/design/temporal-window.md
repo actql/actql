@@ -77,6 +77,16 @@ Named aggregate rules,
 type derivation and pending validation obligations are the same as for `group`.
 The embedded schema reuses the exact group body generator.
 
+Window grouping shares `GroupExecutionCheck` for partitioning, aggregate demand,
+scalar result validation and statistical laws, while retaining the actual
+`WindowGroup` checked step. Its group keys already contain the verified boundary
+prefix exactly once. Consumers must use that retained operation and key list,
+not reconstruct a prefix from field names or reinterpret it as an ordinary group.
+The formal entry accepts these paths only when all aggregate requirements close.
+Collection-result resource scopes and binary64 observation slots still need
+window-specific persistent integration: they remain unresolved rather than
+borrowing an ordinary group's resource subject or numeric slot identity.
+
 The operation-resolution boundary retains a `WindowExecutionCheck` for time
 admission and a separate one for membership assignment. Both identify the exact
 window, primary input edge and requirement occurrence. Time admission precedes

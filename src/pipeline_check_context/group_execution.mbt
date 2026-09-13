@@ -44,9 +44,13 @@ fn group_execution_check(
   guard @pipeline.step_at(site.pipeline, site.step) is Some(step) else {
     return Err(ForeignOccurrence(site.step))
   }
-  // Window groups, pivots and analytic calls have separate execution boundaries.
-  guard step.operation is @pipeline.Unary(operation) &&
-    @relation.operation(operation) == @relation.Group else {
+  // Window grouping already owns its checked boundary prefix. Keep the actual
+  // step kind so consumers cannot reinterpret it as an ordinary group.
+  let operation = match step.operation {
+    @pipeline.Unary(op) | @pipeline.WindowGroup(op) => op
+    _ => return Ok(None)
+  }
+  guard @relation.operation(operation) == @relation.Group else {
     return Ok(None)
   }
   guard @relation.group(operation) is Some(group) && step.input is Some(input) else {

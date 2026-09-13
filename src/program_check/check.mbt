@@ -67,6 +67,7 @@ fn check_supported_source(
               | "unpivot"
               | "analytic"
               | "row_window"
+              | "window_group"
               | "append"
               | "except"
               | "intersect"
