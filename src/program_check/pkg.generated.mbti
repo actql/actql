@@ -253,6 +253,8 @@ pub fn unit_analytic_string_limit_at(CheckedProgram, Int, Int) -> AnalyticString
 
 pub fn unit_analytic_string_limit_count(CheckedProgram, Int) -> Int?
 
+pub fn unit_completeness_requirement(CheckedProgram, Int, @pipeline_typing.Target) -> UnitCompletenessRequirement?
+
 pub fn unit_contract_at(CheckedProgram, Int, Int) -> (String, @pipeline_check_context.CoreContractBody)?
 
 pub fn unit_contract_count(CheckedProgram, Int) -> Int?
@@ -593,6 +595,11 @@ pub struct SourceResponsePolicy {
   authoritative : @check_environment.SourceViewPolicy
   minimum : String?
   classification : @check_environment.DataClassification
+}
+
+pub struct UnitCompletenessRequirement {
+  unit_definition_cid : String
+  requirement : @pipeline_typing.CompletenessRequirement
 }
 
 pub struct UnitOperationSource {

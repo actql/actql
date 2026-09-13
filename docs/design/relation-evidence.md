@@ -501,13 +501,15 @@ separate work.
 
 ## Transfer coverage guard
 
-Unary key transfer, literal-domain transfer, ranking annotation transfer,
-window-role transfer and input order preservation explicitly classify every
+Unary key transfer, literal-domain transfer, completeness scope classification,
+ranking annotation transfer, window-role transfer and input order preservation
+explicitly classify every
 `relation_typing.Operation`.
-There is no catch-all arm at these five operation dispatches: adding a variant
+There is no catch-all arm at these six operation dispatches: adding a variant
 requires reviewing each evidence boundary under the compiler's denied warnings.
 `scripts/evidence-transfer-coverage.test.mjs`, run by `check:docs`, additionally
 guards against reintroducing a fallback and tests missing-classification probes.
+Scoped coverage requirements are described in [Completeness requirements](completeness.md).
 This covers the checked unary operation enum, not every Carrier or all 72 public
 operation spellings, and is not proof of each transfer's semantic correctness.
 

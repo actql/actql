@@ -116,6 +116,20 @@ pub fn collect_parameter_slots(CheckedPipeline, max_work~ : Int, max_slots~ : In
 
 pub fn combine_relation_evidence(@decode_core.Cursor, @relation_evidence.KeySet, @relation_evidence.RankingInput) -> Result[RelationEvidence, Issue]
 
+pub fn completeness_belongs_to(CompletenessRequirement, CheckedPipeline, Target) -> Bool
+
+pub fn completeness_dependency_at(CompletenessRequirement, Int) -> CompletenessDependency?
+
+pub fn completeness_dependency_count(CompletenessRequirement) -> Int
+
+pub fn completeness_pipeline(CompletenessRequirement) -> CheckedPipeline
+
+pub fn completeness_requirement(CheckedPipeline, Target) -> CompletenessRequirement?
+
+pub fn completeness_scope(CompletenessRequirement) -> CompletenessScope
+
+pub fn completeness_target(CompletenessRequirement) -> Target
+
 pub fn contextual_closure_at(ContextualClosure, Int) -> ContextualOrders?
 
 pub fn contextual_closure_count(ContextualClosure) -> Int
@@ -452,6 +466,26 @@ pub struct CheckedStep {
   connections : Connections
   window : WindowEvidence?
 }
+
+pub struct CompletenessDependency {
+  role : CompletenessDependencyRole
+  requirement : CompletenessRequirement
+  projection : @relation_typing.CheckedOperation?
+}
+
+pub(all) enum CompletenessDependencyRole {
+  Operand(InputRole)
+  ImportedProducer
+} derive(Eq, @debug.Debug)
+
+type CompletenessRequirement
+
+pub(all) enum CompletenessScope {
+  InputExtent
+  OperationResult
+  BoundedQuery
+  WindowResult
+} derive(Eq, @debug.Debug)
 
 type Connections
 

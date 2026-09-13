@@ -8,6 +8,7 @@ const variants = read('src/relation_typing/types.mbt')
 const consumers = [
   ['keys', 'src/relation_evidence/collection_transfer.mbt', 'match @relation.operation(operation) {'],
   ['literal domains', 'src/relation_evidence/literal_domains.mbt', 'match @relation.operation(op) {'],
+  ['completeness scopes', 'src/pipeline_typing/completeness.mbt', 'match @relation.operation(op) {'],
   ['ranking annotations', 'src/relation_evidence/ranking_transfer.mbt', 'match @relation.operation(op) {'],
   ['window roles', 'src/pipeline_typing/window.mbt', 'match @relation.operation(op) {'],
   ['input order', 'src/relation_typing/row_operations.mbt', 'pub fn preserves_input_order'],
