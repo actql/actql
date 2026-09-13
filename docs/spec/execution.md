@@ -277,18 +277,33 @@ Successful retained upstream observations survive a downstream failure; failure
 does not authorize a replacement read.
 
 The closed machine contract is
-<!-- machine-import: ../../spec/contracts/actql-query-acquisition.json# sha256:5d16ec481363ad551b5dd4068d6f781575f49706826bebe2c43e21e168a80303 -->
+<!-- machine-import: ../../spec/contracts/actql-query-acquisition.json# sha256:4bb69dfaade0a15952fe23a8202a9475ff450c9f0fab93f9dd5cef1b82045ab1 -->
 <!-- machine-import: ../../spec/contracts/actql-query-acquisition.json#/schemas/requirement sha256:b6506c5d7b23c83c1ddc311b3c7d6766a6f3f5e2de92747e1d03f949e5df1dc1 -->
 <!-- machine-import: ../../spec/contracts/actql-query-acquisition.json#/schemas/completed_observation sha256:ec44c31bc821c4e1a1f3eafa7e519cd1d4fc9ba9458149aaa3577b6053934715 -->
 [`actql-query-acquisition.json`](../../spec/contracts/actql-query-acquisition.json):
 `/schemas/requirement` and `/schemas/completed_observation`. Its root CID is
-`sha256:5d16ec481363ad551b5dd4068d6f781575f49706826bebe2c43e21e168a80303`.
+`sha256:4bb69dfaade0a15952fe23a8202a9475ff450c9f0fab93f9dd5cef1b82045ab1`.
 All listed properties are required, unknown properties are rejected, and explicit
 null is used only where the schema permits it. JSON Schema checks shape, not
 graph ownership, actual execution, admission, budget use or evidence authenticity.
 
+<!-- requirement-block: query-acquisition.program-owner-definition -->
+`owner.program_source_cid` MUST be the authority-bearing Program Definition CID
+defined in [Canonical identities](language.md#canonical-identities), not the
+Program semantics CID or a source-text hash. Its exact preimage is
+`{version: "actql-program-definition/0.1", id, program_semantics_cid}`:
+`id` is the normalized authored root Program ID, and `program_semantics_cid`
+hashes that same Program's canonical unbound `actql-program-semantics/0.1`
+envelope. Hash the whole definition object as canonical JSON UTF-8 with SHA-256;
+there is no self-CID member. The semantic envelope excludes the root ID while
+retaining the ordered stage descriptors and exports prescribed by that section.
+Thus changing the root ID without changing semantics changes this owner.
+Bound values, Check Environment, observations and physical attempt identifiers
+do not enter the Definition preimage; their separate acquisition bindings remain
+required. The owner in the completed observation must match the requirement.
+
 The requirement's exact preimage is its entire schema-conforming object, with no
-self-CID field. `owner` contains the Program source CID and authored stage and
+self-CID field. `owner` contains the Program Definition CID and authored stage and
 input names. Occurrences are stage-relative RFC 6901 pointers into the actual
 `steps` array. `filter.expression_cid` hashes the normalized structured expression,
 without evaluating it; `select.fields` retains authored projection order and
@@ -351,7 +366,7 @@ and backend execution support are separate from static derivation and registrati
 
 #### Process-retained query evidence
 
-<!-- machine-import: ../../spec/contracts/actql-query-process-evidence.json# sha256:fad105d74ec20ac8f223f1252d5cc7726585dab15b51b1d934c920c8c3a692cd -->
+<!-- machine-import: ../../spec/contracts/actql-query-process-evidence.json# sha256:f407203d3799dc51c2bc8cee460111ee6ebe44fb55c1c515d8d94190813b62a4 -->
 <!-- machine-import: ../../spec/contracts/actql-query-process-evidence.json#/schemas/record sha256:758c9c4f1942890e73462776f3230400e7076c146af8eb3f7e39602715c7427e -->
 The initial process-evidence profile specializes the acquisition contract without
 changing its requirement or observation shapes. Its closed record schema is

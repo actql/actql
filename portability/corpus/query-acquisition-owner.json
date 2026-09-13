@@ -1,0 +1,114 @@
+{
+  "stage_semantics": {
+    "version": "actql-stage-semantics/0.1",
+    "expression_contract_cid": "sha256:399d4593f8212a2239a0a3e3ca552653ad711010a180207f967cf546012fc1cb",
+    "parameters": {
+      "wanted": {
+        "type": "string"
+      }
+    },
+    "parameter_references": [
+      {
+        "name": "wanted",
+        "path": "/steps/0/filter/eq/1",
+        "type": {
+          "type": "string"
+        }
+      }
+    ],
+    "bindings": {},
+    "binding_references": [],
+    "local_body": {
+      "inputs": {
+        "records": {
+          "connector": "fixture",
+          "resource": "records",
+          "view": "scan",
+          "request": {
+            "tenant": "fixture"
+          }
+        }
+      },
+      "steps": [
+        {
+          "filter": {
+            "eq": [
+              {
+                "field": "status"
+              },
+              {
+                "$param": "wanted"
+              }
+            ]
+          }
+        },
+        {
+          "select": [
+            "id"
+          ],
+          "as": "selected"
+        }
+      ],
+      "results": {
+        "out": {
+          "from": "selected",
+          "fields": [
+            "id"
+          ]
+        }
+      },
+      "effects": {}
+    }
+  },
+  "program_semantics": {
+    "version": "actql-program-semantics/0.1",
+    "actql_version": "actql/0.1",
+    "expression_contract_cid": "sha256:399d4593f8212a2239a0a3e3ca552653ad711010a180207f967cf546012fc1cb",
+    "parameters": {
+      "wanted": {
+        "type": "string"
+      }
+    },
+    "parameter_references": [
+      {
+        "name": "wanted",
+        "path": "/stages/0/steps/0/filter/eq/1",
+        "type": {
+          "type": "string"
+        }
+      }
+    ],
+    "bindings": {},
+    "binding_references": [],
+    "program_template": {
+      "stages": [
+        {
+          "id": "first",
+          "stage_semantics_cid": "sha256:c88b14f50011976276b1d0b178bdfd8ef7d8c1912a598833e2703820c5fbdeef",
+          "after": "initial",
+          "imports": {}
+        }
+      ],
+      "exports": {
+        "out": {
+          "from": {
+            "stage": "first",
+            "result": "out"
+          }
+        }
+      }
+    }
+  },
+  "program_semantics_cid": "sha256:63d6859752a7f8bb93a0ea79b5ef035f3c5aa2c69d9b8460b6ccb9c036102794",
+  "program_definition": {
+    "version": "actql-program-definition/0.1",
+    "id": "query.fixture",
+    "program_semantics_cid": "sha256:63d6859752a7f8bb93a0ea79b5ef035f3c5aa2c69d9b8460b6ccb9c036102794"
+  },
+  "program_definition_cid": "sha256:454c2a3248075a21bc05b0287a704bea3e733c08bd5bbec8135708327e1cfc68",
+  "owner": {
+    "program_source_cid": "sha256:454c2a3248075a21bc05b0287a704bea3e733c08bd5bbec8135708327e1cfc68",
+    "stage": "first",
+    "input": "records"
+  }
+}

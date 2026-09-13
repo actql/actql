@@ -9,7 +9,36 @@ const read = p => JSON.parse(readFileSync(p, 'utf8'));
 const corpus = read('portability/corpus/query-acquisition.json');
 const cid = machineCid;
 const label = s => cid({fixture: s});
-const owner = {program_source_cid: label('program'), stage: 'first', input: 'records'};
+// Independently authored source projections, not product compiler output.
+const expressionPin=read('spec/contracts/actql-aoa.json').expression_contract_cid;
+const parameterType={type:'string'};
+const stageSemantics={version:'actql-stage-semantics/0.1',expression_contract_cid:expressionPin,
+  parameters:{wanted:parameterType},parameter_references:[{name:'wanted',path:'/steps/0/filter/eq/1',type:parameterType}],
+  bindings:{},binding_references:[],local_body:{
+    inputs:{records:{connector:'fixture',resource:'records',view:'scan',request:{tenant:'fixture'}}},
+    steps:[{filter:{eq:[{field:'status'},{$param:'wanted'}]}},{select:['id'],as:'selected'}],
+    results:{out:{from:'selected',fields:['id']}},effects:{}}};
+const programSemantics={version:'actql-program-semantics/0.1',actql_version:'actql/0.1',
+  expression_contract_cid:expressionPin,parameters:{wanted:parameterType},
+  parameter_references:[{name:'wanted',path:'/stages/0/steps/0/filter/eq/1',type:parameterType}],
+  bindings:{},binding_references:[],program_template:{
+    stages:[{id:'first',stage_semantics_cid:cid(stageSemantics),after:'initial',imports:{}}],
+    exports:{out:{from:{stage:'first',result:'out'}}}}};
+const programDefinition={version:'actql-program-definition/0.1',id:'query.fixture',program_semantics_cid:cid(programSemantics)};
+const owner = {program_source_cid: cid(programDefinition), stage: 'first', input: 'records'};
+const ownerFixture={stage_semantics:stageSemantics,program_semantics:programSemantics,
+  program_semantics_cid:cid(programSemantics),program_definition:programDefinition,
+  program_definition_cid:cid(programDefinition),owner};
+const ownerPath='portability/corpus/query-acquisition-owner.json';
+if(process.argv.includes('--write')) writeFileSync(ownerPath,JSON.stringify(ownerFixture,null,2)+'\n');
+test('query owner selects Program Definition rather than semantics',()=>{
+  assert.deepEqual(read(ownerPath),ownerFixture);
+  assert.notEqual(owner.program_source_cid,cid(programSemantics));
+  const verify=candidate=>assert.equal(candidate.program_source_cid,cid(programDefinition));
+  verify(owner);
+  assert.throws(()=>verify({...owner,program_source_cid:cid(programSemantics)}));
+  assert.throws(()=>verify({...owner,program_source_cid:cid({...programDefinition,id:'other'})}));
+});
 const parameters = {version: 'actql-parameter-values/0.1', values: {wanted: 'open'}};
 const requirement = {
   version: 'actql-query-acquisition/0.1', owner, source_ref: 'connector://fixture/records#scan',
@@ -153,7 +182,8 @@ for (const c of corpus.cases) test(c.id, () => {
 });
 
 const vectors = [requirement, observation('native'), observation('broad'),scanScope,
-  accessScope('native',corpus.expected_output),accessScope('broad',corpus.rows)].map(body => ({body,cid:cid(body)}));
+  accessScope('native',corpus.expected_output),accessScope('broad',corpus.rows),
+  stageSemantics,programSemantics,programDefinition].map(body => ({body,cid:cid(body)}));
 const vectorPath = 'portability/corpus/query-acquisition-identities.json';
 // Independent canonical JSON oracle; never reads product output.
 if (process.argv.includes('--write')) writeFileSync(vectorPath,JSON.stringify(vectors,null,2)+'\n');

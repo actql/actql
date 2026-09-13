@@ -21,8 +21,13 @@ inside the unit, before capture. The semantic contract is owned by
 [Execution](../spec/execution.md#query-acquisition), with closed wire schemas in
 [the acquisition contract](../../spec/contracts/actql-query-acquisition.json).
 
-The requirement is static. Its owner uses source identity and authored stage/input
-locations, not an object address, internal target index or future Invocation CID.
+The requirement is static. Its `owner.program_source_cid` uses the authority-bearing
+Program Definition, read through `program_identity_definition_cid`, together with
+authored stage/input locations. It is not the root-ID-free Program semantics CID,
+an object address, internal target index or future Invocation CID. This resolves
+the earlier ambiguous phrase “Program source CID”; the Definition and semantics
+preimages themselves are unchanged. A consumer that previously substituted the
+semantics CID must change its owner and dependent acquisition identities.
 In-process handles enforce ownership separately. Completion evidence binds the
 requirement to the actual access and retained output; its CID cannot authenticate
 the facts it claims. The Host must verify execution evidence before admitting it.

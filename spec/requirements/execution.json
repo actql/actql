@@ -190,6 +190,17 @@
       }
     },
     {
+      "requirement_id": "actql.execution/query-acquisition.program-owner-definition",
+      "statement_sha256": "a700ed3dc19a7ff44333b3bbcbb3da194df23d94a7ea9fcb12c7219af6212126",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "query-acquisition",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.execution/query-acquisition.binding",
       "statement_sha256": "4de5abd4e51494720f9e8ce41f07df7d5b2b5398810fe60abf87b86fa88941ee",
       "status": "pending",

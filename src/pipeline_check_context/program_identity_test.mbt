@@ -28,6 +28,10 @@ test "Program source identities use the retained Program and bound values" {
     assert_true(program_identity_stage_at(v, invalid) is None)
   }
   let semantics = @program_refs.program_definition_semantics(definition)
+  assert_true(
+    program_identity_definition_cid(v) !=
+    @program_refs.program_semantics_cid(semantics, 100000, 10000, 100),
+  )
   let usage = @program_refs.parameter_usage(
     program_reference_values(references),
   )

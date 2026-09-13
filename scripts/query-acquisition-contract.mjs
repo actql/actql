@@ -46,6 +46,7 @@ export const contract = {
     }),
   },
   semantics: {
+    owner: 'program_source_cid_is_authority_bearing_program_definition_cid_not_program_semantics_or_source_text_hash',
     derivation: 'checked_exclusive_scan_filter_select_without_backend_cost_or_placement',
     capture: 'completed_select_output_before_any_consumer',
     identity: 'sha256_of_canonical_json_utf8_entire_body_no_self_cid',
