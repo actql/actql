@@ -161,6 +161,21 @@ profile has no effect on exact decimal/count lanes or the separate statistical
 laws. Slot ownership, policy and contributor validation remain separate checks;
 checking a member CID alone cannot discharge them.
 
+`numeric_reduction.admit` verifies a caller-selected, supported profile pin
+against its complete canonical bytes under an input-byte budget. Since this
+profile is a fixed body, digest equality checks every member and selection rule
+without allocating or retaining a decoded tree. A different self-consistent
+body is unsupported; pretty-printed or mutated bytes do not match the pinned
+canonical body. Pin generation and fixtures are checked against the registered
+machine contract. This is bounded contract integrity, not provider provenance.
+
+`select` requires an explicit member CID and returns an opaque reduction tied
+to that exact admitted profile object. Equal profile CIDs do not replace this
+process-local ownership link. Indexed member readers return only the two pinned
+choices; neither a profile CID nor an algorithm label is a member CID. These
+readers do not perform arithmetic, validate an observation, or establish an
+attempt, a slot, authorization or durable retention.
+
 ## Reference compatibility
 
 Persistent ordinary-group limits use the Unit/step/aggregate-name/scoped

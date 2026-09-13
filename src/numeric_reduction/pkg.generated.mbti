@@ -1,0 +1,49 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/numeric_reduction"
+
+import {
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn admit(Bytes, String, Int) -> Result[Profile, Issue]
+
+pub fn admitted_bytes(Profile) -> Int
+
+pub fn algorithm(Reduction) -> Algorithm
+
+pub fn cid(Profile) -> String
+
+pub fn member_cid_at(Profile, Int) -> String?
+
+pub fn member_count(Profile) -> Int
+
+pub fn reduction_cid(Reduction) -> String
+
+pub fn reduction_profile(Reduction) -> Profile
+
+pub fn select(Profile, String) -> Result[Reduction, Issue]
+
+// Errors
+
+// Types and methods
+pub(all) enum Algorithm {
+  LeftFold
+  AdjacentPairs
+} derive(Eq, @debug.Debug)
+
+pub(all) enum Issue {
+  InvalidLimits
+  BudgetExceeded
+  IdentityMismatch
+  UnsupportedProfile
+  UnknownMember
+} derive(Eq, @debug.Debug)
+
+type Profile
+
+type Reduction
+
+// Type aliases
+
+// Traits

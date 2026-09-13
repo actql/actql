@@ -1,0 +1,11 @@
+supported_targets = "+js+wasm+native"
+
+import {
+  "actql/actql/sha256" @sha,
+}
+
+import {
+  "moonbitlang/core/encoding/utf8",
+} for "test"
+
+formatter(ignore: [ "pins.generated.mbt", "fixture.generated_test.mbt" ])
