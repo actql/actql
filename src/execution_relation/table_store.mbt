@@ -12,7 +12,7 @@ priv struct TableStore[T] {
   tables : Array[HeldTable[T]?]
   workspace : RowWorkspace
   release : (T) -> Unit
-  reserve_storage : (T, RowWorkspace, ControlBudget) -> Bool
+  reserve_storage : ((T, RowWorkspace, ControlBudget) -> Bool)?
   mut next : Int
 }
 
@@ -29,9 +29,7 @@ fn[T] table_store(
   wiring : Wiring,
   workspace : RowWorkspace,
   release? : (T) -> Unit = fn(_table) { () },
-  reserve_storage? : (T, RowWorkspace, ControlBudget) -> Bool = fn(_, _, _) {
-    true
-  },
+  reserve_storage? : ((T, RowWorkspace, ControlBudget) -> Bool)? = None,
 ) -> Result[TableStore[T], StoreIssue] {
   if workspace.limit < 0 || workspace.live != 0 || workspace.peak != 0 {
     return Err(InvalidState)
@@ -56,8 +54,10 @@ fn[T : RelationRows] reserve_table(
   control : ControlBudget,
 ) -> Result[HeldTable[T], StoreIssue] {
   let before = store.workspace.live
-  if !(store.reserve_storage)(table, store.workspace, control) {
-    return Err(Limit)
+  if store.reserve_storage is Some(reserve) {
+    if !reserve(table, store.workspace, control) {
+      return Err(Limit)
+    }
   }
   let width = table.field_names().length()
   let count = IndexedRows::row_count(table)

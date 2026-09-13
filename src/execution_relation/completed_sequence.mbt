@@ -45,7 +45,7 @@ fn prepare_physical_sequence(
           )
       }
     },
-    reserve_storage=reserve_completed_storage,
+    reserve_storage=Some(reserve_completed_storage),
     produced~,
     fragments~,
     ordered~,

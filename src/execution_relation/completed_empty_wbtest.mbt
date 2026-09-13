@@ -97,7 +97,7 @@ test "zero-column typed input crosses product completion and producer no-ops" {
       )
     },
     fn(_, _, _) { Err(InvalidRows) },
-    reserve_storage=reserve_completed_storage,
+    reserve_storage=Some(reserve_completed_storage),
     produced=[],
     fragments=Some(generated.contexts),
     ordered={ contexts: [], max_bytes: 0, max_nodes: 0, max_depth: 0, },

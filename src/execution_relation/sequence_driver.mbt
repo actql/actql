@@ -188,9 +188,7 @@ fn[T : RelationRows] prepare_sequence_with_importers(
     RowIssue,
   ],
   release_table? : (T) -> Unit = fn(_table) { () },
-  reserve_storage? : (T, RowWorkspace, ControlBudget) -> Bool = fn(_, _, _) {
-    true
-  },
+  reserve_storage? : ((T, RowWorkspace, ControlBudget) -> Bool)? = None,
   produced~ : Array[BoundProducerInput],
   fragments~ : Array[FragmentRuntimeContext]?,
   ordered~ : OrderedExecution,
