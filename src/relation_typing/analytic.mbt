@@ -40,6 +40,7 @@ struct CheckedAnalytic {
   order : Array[OrderTerm]
   frame : RowsFrame?
   calls : Array[AnalyticCall]
+  validation_calls : Map[Int, Int]
 }
 
 ///|
@@ -50,6 +51,24 @@ pub fn analytic(value : CheckedOperation) -> CheckedAnalytic? {
 ///|
 pub fn analytic_partition(value : CheckedAnalytic) -> Array[KeyField] {
   value.partition.copy()
+}
+
+///|
+pub fn analytic_partition_count(value : CheckedAnalytic) -> Int {
+  value.partition.length()
+}
+
+///|
+pub fn analytic_partition_at(value : CheckedAnalytic, index : Int) -> KeyField? {
+  value.partition.get(index)
+}
+
+///|
+pub fn analytic_call_for_validation(
+  value : CheckedAnalytic,
+  index : Int,
+) -> AnalyticCall? {
+  value.validation_calls.get(index).bind(i => value.calls.get(i))
 }
 
 ///|
@@ -217,10 +236,12 @@ fn check_analytic(
     fields.push((f.name, f.contract))
   }
   let calls : Array[AnalyticCall] = []
+  let validation_calls : Map[Int, Int] = Map([])
   let mut has_frame_call = false
   let mut needs_position = false
   for name in names {
     let s = @decode.lookup(funcs, name).unwrap()
+    let validation_start = pending.length()
     field_name(b, s, name)
     if visible.contains(name) {
       fail(s, InputCollision(name))
@@ -303,6 +324,10 @@ fn check_analytic(
       }
     }
     fields.push((@schema.Unqualified(name), result))
+    spend(b, s, count=pending.length() - validation_start)
+    for index in validation_start..<pending.length() {
+      validation_calls[index] = calls.length()
+    }
     calls.push({ name, source: s, function, result, })
   }
   if has_frame_call != (frame is Some(_)) {
@@ -314,5 +339,5 @@ fn check_analytic(
   }
   pending.push({ kind: AnalyticFrameDemand, source: body, })
   pending.push({ kind: AnalyticEnvelope, source: body, })
-  ({ partition, order, frame, calls, }, fields)
+  ({ partition, order, frame, calls, validation_calls, }, fields)
 }

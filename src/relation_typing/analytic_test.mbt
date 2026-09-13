@@ -16,6 +16,66 @@ fn current_frame() -> String {
 }
 
 ///|
+test "analytic pending indices retain exact call owners without confusing frame obligations" {
+  let operation = checked(
+    Analytic,
+    analytic_body(
+      "{\"z\":{\"fn\":\"sum\",\"expr\":\"amount\"},\"r\":{\"fn\":\"rank\"},\"a\":{\"fn\":\"sum\",\"expr\":\"amount\",\"filter\":\"flag\"}}",
+      frame=Some(current_frame()),
+    ),
+  )
+  let analytic = @relation_typing.analytic(operation).unwrap()
+  assert_eq(@relation_typing.analytic_partition_count(analytic), 2)
+  for i in 0..<2 {
+    assert_true(
+      @relation_typing.analytic_partition_at(analytic, i).unwrap().field
+      is Unqualified("id"),
+    )
+  }
+  assert_true(@relation_typing.analytic_partition_at(analytic, -1) is None)
+  assert_true(@relation_typing.analytic_partition_at(analytic, 2) is None)
+  let detached = @relation_typing.analytic_partition(analytic)
+  detached.clear()
+  assert_eq(@relation_typing.analytic_partition_count(analytic), 2)
+  let count = @relation_typing.pending_validation_count(operation)
+  let mut first = 0
+  let mut last = 0
+  for i in 0..<count {
+    let pending = @relation_typing.pending_validation_at(operation, i).unwrap()
+    let owner = @relation_typing.analytic_call_for_validation(analytic, i)
+    match pending.kind {
+      AggregateDemand | AggregateEnvelope | NumericAggregateObservation => {
+        let owner = owner.unwrap()
+        let ordinal = if owner.name == "a" {
+          first += 1
+          0
+        } else {
+          last += 1
+          2
+        }
+        assert_true(
+          physical_equal(
+            owner,
+            @relation_typing.analytic_call_at(analytic, ordinal).unwrap(),
+          ),
+        )
+        assert_true(physical_equal(owner.source, pending.source))
+        assert_true(owner.function is Aggregate(_))
+      }
+      _ => assert_true(owner is None)
+    }
+  }
+  assert_eq(first, 3)
+  assert_eq(last, 3)
+  assert_true(
+    @relation_typing.analytic_call_for_validation(analytic, -1) is None,
+  )
+  assert_true(
+    @relation_typing.analytic_call_for_validation(analytic, count) is None,
+  )
+}
+
+///|
 test "analytic selection retains existing structured and reference domains" {
   let row = schema(
     "{\"id\":{\"type\":\"string\",\"nullable\":false},\"amount\":{\"type\":\"number\",\"nullable\":false},\"r\":{\"type\":\"resource_ref\",\"resource_kind\":\"file\",\"nullable\":false},\"obj\":{\"type\":\"object\",\"nullable\":false,\"fields\":{\"a\":{\"type\":\"number\",\"nullable\":true}}}}",

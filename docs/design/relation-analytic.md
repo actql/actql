@@ -20,6 +20,14 @@ membership, failure-order and capacity obligations. Group aggregate filters
 and arguments remain independent retained bindings, with common numeric
 observation and statistical-law obligations. No argument is evaluated here.
 
+Call-local pending-validation indices map to their original checked calls through
+an owned index. `analytic_call_for_validation` reads that association without
+rescanning function arrays or matching equivalent expression text. Frame- and
+operation-wide obligations have no call owner. Index construction shares the
+type checker's work budget. Indexed partition readers retain repeated references
+without copying arrays. These readers neither discharge obligations nor select
+resource limits or numeric reduction observations.
+
 Literal frame offsets are compared as exact safe integers. Known class
 inversions fail immediately even when an offset is symbolic. Bound numeric
 validation is retained separately from unresolved `BoundFrameOrder` checks.
