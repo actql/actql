@@ -40,7 +40,7 @@ fn emit_group_guard_witness(
     source.operation,
     @relation.aggregate_name(source.call),
     source.scope,
-    "group.aggregates",
+    group_collection(source) + ".aggregates",
     value,
     budget,
   )

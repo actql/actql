@@ -7076,6 +7076,17 @@
       }
     },
     {
+      "requirement_id": "actql.language/resolved-limits.unit-window-group-aggregate-subject",
+      "statement_sha256": "a070ca9310e8a014eeeec463938b9f84156fb264ff07673af0439fda56f26aa7",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "resolved-limits",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.language/resolved-limits.unit-array-aggregate-input-proof",
       "statement_sha256": "8d47bae17801fd709b734121de7bed06f3cdeb64ee60068bbb324e590676049c",
       "status": "pending",

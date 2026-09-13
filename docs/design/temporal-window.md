@@ -83,9 +83,15 @@ scalar result validation and statistical laws, while retaining the actual
 prefix exactly once. Consumers must use that retained operation and key list,
 not reconstruct a prefix from field names or reinterpret it as an ordinary group.
 The formal entry accepts these paths only when all aggregate requirements close.
-Collection-result resource scopes and binary64 observation slots still need
-window-specific persistent integration: they remain unresolved rather than
-borrowing an ordinary group's resource subject or numeric slot identity.
+Array-result resource scopes use the shared item-limit selection and input-proof
+machinery with the normative `window_group/aggregates/<name>/items` subject and
+`window_group.aggregates` authored guard path. Their limits bound each group,
+including its boundary prefix, not all windows' retained contents. The
+`unit_group_limit_count/at` readers retain the actual operation source, so ordinary
+and window calls remain distinguishable without copying their evidence.
+String-result resource scopes and binary64 observation slots still need
+window-specific persistent integration; they cannot borrow an ordinary group's
+resource subject or numeric slot identity.
 
 The operation-resolution boundary retains a `WindowExecutionCheck` for time
 admission and a separate one for membership assignment. Both identify the exact

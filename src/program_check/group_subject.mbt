@@ -1,5 +1,5 @@
 ///|
-/// An owned ordinary-group resource scope, not an admitted limit or proof.
+/// An owned group resource scope, retaining ordinary versus window grouping.
 pub struct GroupAggregateSource {
   operation : UnitOperationSource
   call : @relation.CheckedAggregate
@@ -14,9 +14,14 @@ fn unit_group_aggregate_source(
   aggregate : Int,
 ) -> GroupAggregateSource? {
   guard unit_operation_source(unit, pipeline, step) is Some(location) &&
-    @pipeline.step_at(pipeline, step) is Some(checked) &&
-    checked.operation is @pipeline.Unary(operation) &&
-    @relation.operation(operation) == @relation.Group &&
+    @pipeline.step_at(pipeline, step) is Some(checked) else {
+    return None
+  }
+  let operation = match checked.operation {
+    @pipeline.Unary(op) | @pipeline.WindowGroup(op) => op
+    _ => return None
+  }
+  guard @relation.operation(operation) == @relation.Group &&
     @relation.group(operation) is Some(group) &&
     @relation.aggregate_at(group, aggregate) is Some(call) else {
     return None
@@ -65,5 +70,30 @@ fn group_aggregate_subject_with_budget(
   identity_charge(budget, 32)
   let prefix = unit_operation_subject(source.operation, budget)
   let token = name.replace(old="~", new="~0").replace(old="/", new="~1")
-  prefix + "/group/aggregates/" + token + "/" + source.scope
+  prefix +
+  "/" +
+  group_collection(source) +
+  "/aggregates/" +
+  token +
+  "/" +
+  source.scope
+}
+
+///|
+fn group_collection(
+  source : GroupAggregateSource,
+) -> String raise UnitBuildFailure {
+  guard @pipeline.step_at(
+      source.operation.pipeline,
+      source.operation.source_ordinal,
+    )
+    is Some(step) else {
+    raise ForeignOwner
+  }
+  match step.operation {
+    @pipeline.Unary(op) if @relation.operation(op) == @relation.Group => "group"
+    @pipeline.WindowGroup(op) if @relation.operation(op) == @relation.Group =>
+      "window_group"
+    _ => raise ForeignOwner
+  }
 }

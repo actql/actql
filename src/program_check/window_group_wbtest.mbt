@@ -84,12 +84,8 @@ test "formal window grouping retains boundary roles and its distinct execution o
 }
 
 ///|
-test "window aggregate resource and numeric scopes cannot masquerade as ordinary groups" {
-  for
-    aggregate in [
-      "{\"fn\":\"array_agg\",\"field\":\"id\",\"order_by\":[{\"id\":\"asc\"}],\"max_items\":2}",
-      "{\"fn\":\"sum\",\"field\":\"id\"}",
-    ] {
+test "window numeric scopes cannot masquerade as ordinary groups" {
+  for aggregate in ["{\"fn\":\"sum\",\"field\":\"id\"}"] {
     let checked : Array[CheckedProgram] = []
     try
       local_construction_fixture(
@@ -111,11 +107,7 @@ test "window aggregate resource and numeric scopes cannot masquerade as ordinary
         guard site.requirement is @pipeline.RelationRequirement(pending) else {
           fail("expected the window aggregate requirement")
         }
-        if aggregate.contains("array_agg") {
-          assert_true(pending.kind is @relation.AggregateEnvelope)
-        } else {
-          assert_true(pending.kind is @relation.NumericAggregateObservation)
-        }
+        assert_true(pending.kind is @relation.NumericAggregateObservation)
       }
       error => raise error
     } noraise {

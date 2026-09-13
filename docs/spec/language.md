@@ -8010,6 +8010,23 @@ This reference does not authorize truncation or replace atomic enforcement.
 Window groups, pivot and analytic calls retain their separate surrounding scopes;
 they MUST NOT masquerade as an ordinary group occurrence.
 
+<!-- requirement-block: resolved-limits.unit-window-group-aggregate-subject -->
+A `window_group` aggregate's persistent resolved limit MUST instead use
+`unit:<unit_definition_cid>#/steps/<ordinal>/window_group/aggregates/<name_token>/<scope>`.
+The name escaping, `items`/`array_items` and `bytes`/`bytes` measurement rules,
+exact checked-call correspondence, effective bindings, policy and atomic failure
+requirements are the same as for ordinary group aggregates. The call's group
+includes its checked window-boundary prefix exactly once. Its limit applies to
+one aggregate result per such group, not to the number of windows, the whole
+input, or all groups' retained contents. Authored guard fields use
+`window_group.aggregates[<JSON-string-name>].max_items` or `.max_bytes` under
+the owning operation reference, never the ordinary `group.aggregates` field.
+An `actql.bound.array-aggregate-input` proof for this call uses this window-group
+`items` subject, bounding contributing items by the actual input membership rows;
+pre-window row counts require the applicable membership expansion first.
+The ordinary group and window-group namespaces are not interchangeable even
+when input schemas, aggregate expressions or selected maxima agree.
+
 <!-- requirement-block: resolved-limits.unit-array-aggregate-input-proof resolved-limits.unit-array-aggregate-input-dependencies resolved-limits.unit-array-aggregate-input-reidentification resolved-limits.unit-array-aggregate-input-no-relabeling -->
 An `actql.bound.array-aggregate-input` proof MUST use the same `items` reference
 as its `semantic_ref`, quantity `array_items`, and the complete canonical proof
