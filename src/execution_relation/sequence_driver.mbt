@@ -318,16 +318,15 @@ fn[T : RelationRows] prepare_sequence_with_importers(
         }
         ProducerInput(bound) => {
           let source = bound.output.table
-          if source.rows.length() > limits.max_rows - input_rows {
+          if !charge_completed_rows(
+              source,
+              limits.max_rows - input_rows,
+              control,
+              input_budget,
+            ) {
             return Err(InputLimit)
           }
-          for row in source.rows {
-            if !spend_control(control, 1) ||
-              !retain_row(row, source.names, input_budget) {
-              return Err(InputLimit)
-            }
-          }
-          input_rows += source.rows.length()
+          input_rows += IndexedRows::row_count(source)
           match import_producer(bound, wiring.ids[i], output_budget) {
             Ok(v) => v
             Err(e) => return Err(Rows(i, e))
