@@ -86,19 +86,19 @@ fn measure_legacy_layout(
   let complete = run_sequence_invocation(invocation).unwrap()
   let execute_us = @bench.monotonic_clock_end(execute_clock)
   let observe_clock = @bench.monotonic_clock_start()
-  verify_legacy_layout_store(complete.store, width, same)
+  verify_legacy_layout_store(test_row_store(complete), width, same)
   let observe_us = @bench.monotonic_clock_end(observe_clock)
   let counters = [
-    complete.store.workspace.live,
-    complete.store.workspace.peak,
+    test_row_store(complete).workspace.live,
+    test_row_store(complete).workspace.peak,
     invocation.control.remaining,
     0,
     0,
     0,
     0,
   ]
-  clear_table_store(complete.store)
-  assert_true(complete.store.tables.all(table => table is None))
+  clear_table_store(test_row_store(complete))
+  assert_true(test_row_store(complete).tables.all(table => table is None))
   ([fixture_us, prepare_us, import_us, execute_us, observe_us], counters)
 }
 

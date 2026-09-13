@@ -38,14 +38,16 @@ test "keyed distinct matches explicit projection and never returns omitted paylo
     )
     for _i = 0; _i < 2; _i = _i + 1 {
       let complete = execute_generated_sequence(generated, [], limits).unwrap()
-      let table = completed_output(complete, Step(distinct_step)).unwrap().table
+      let table = test_row_output(
+        completed_output(complete, Step(distinct_step)).unwrap(),
+      )
       assert_eq(table.names, ["k"])
       assert_eq(table.rows.length(), 3)
       assert_true(table.rows[0][0] is Number(2.0))
       assert_true(table.rows[1][0] is Number(1.0))
       assert_true(table.rows[2][0] is Null)
       assert_true(
-        completed_output(complete, Step(take_step)).unwrap().table.rows[0][0]
+        test_row_output(completed_output(complete, Step(take_step)).unwrap()).rows[0][0]
         is Number(1.0),
       )
     }
@@ -72,7 +74,7 @@ test "keyed distinct follows authored projection order after shadow and rename" 
     max_work: 100000,
     max_frames: 100,
   }).unwrap()
-  let table = completed_output(complete, Step(3)).unwrap().table
+  let table = test_row_output(completed_output(complete, Step(3)).unwrap())
   assert_eq(table.names, ["b", "x"])
   assert_true(table.rows[0][0] is Number(0.0))
   assert_true(table.rows[0][1] is Number(11.0))

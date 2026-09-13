@@ -10,7 +10,7 @@ fn import_layout_producer(
   output : ValueBudget,
   physical : LayoutAllocation,
 ) -> Result[LayoutRelation, RowIssue] {
-  let source = bound.output.table
+  let source = test_row_output(bound.output)
   let producer = @lower.pipeline(
     @lower.bound_preparation(
       @lower.sequence_owner(bound.output.completion.sequence),
@@ -131,7 +131,7 @@ test "producer projection releases conversion columns on success and failure" {
     }
     assert_eq((ledger.slots.live, ledger.bytes.live), (0, 0))
     assert_eq(ledger.bytes.peak, 36)
-    assert_true(source.table.rows[0][0] is Number(1))
+    assert_true(test_row_output(source).rows[0][0] is Number(1))
   }
 }
 
@@ -179,7 +179,7 @@ test "producer conversion accounts source coexistence and rejects receiver limit
     } else {
       assert_true(result is Err(RowLimit))
     }
-    assert_true(source.table.rows[0][0] is Number(1))
+    assert_true(test_row_output(source).rows[0][0] is Number(1))
   }
   let calls : Array[Int] = []
   let limits = {
@@ -292,9 +292,9 @@ test "producer layout import uses the checked projection and keeps its success o
         assert_true(layout_cell(table.storage, 0, 1) is Some(Number(1)))
         assert_true(layout_cell(table.storage, 1, 0) is Some(Number(1)))
       }
-      assert_eq(source.table.names, ["a", "b"])
-      assert_true(source.table.rows[0][0] is Number(1))
-      assert_true(physical_equal(source.table.owner, owner))
+      assert_eq(test_row_output(source).names, ["a", "b"])
+      assert_true(test_row_output(source).rows[0][0] is Number(1))
+      assert_true(physical_equal(test_row_output(source).owner, owner))
     }
   }
 }

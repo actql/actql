@@ -13,11 +13,11 @@ test "completed output keeps successful owner bindings and exact target" {
   for target in [@pipeline.Step(0), @pipeline.Step(2)] {
     let output = completed_output(completion, target).unwrap()
     assert_true(physical_equal(output.completion.sequence, sequence))
-    assert_true(physical_equal(output.table.owner, owner))
+    assert_true(physical_equal(test_row_output(output).owner, owner))
     assert_eq(output.target, target)
   }
   let selected = completed_output(completion, Step(2)).unwrap()
-  assert_true(selected.table.rows[0][0] is Number(11.0))
+  assert_true(test_row_output(selected).rows[0][0] is Number(11.0))
   assert_true(completed_output(completion, Step(1)) is None)
   assert_true(completed_output(completion, Step(-1)) is None)
   assert_true(completed_output(completion, Step(3)) is None)

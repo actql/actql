@@ -18,16 +18,16 @@ test "checked fragments preserve branch input and retained output independently 
     { remaining: 100000, max_frames: 100, },
     fragments=Some(contexts),
   ).unwrap()
-  let filtered = completed_output(result, Step(2)).unwrap().table
-  let projected = completed_output(result, Step(3)).unwrap().table
+  let filtered = test_row_output(completed_output(result, Step(2)).unwrap())
+  let projected = test_row_output(completed_output(result, Step(3)).unwrap())
   assert_eq(filtered.rows.length(), 1)
   assert_eq(projected.names, ["c", "b"])
   assert_eq(projected.rows.length(), 2)
   assert_true(projected.rows[0][0] is Number(11.0))
   assert_true(projected.rows[1][0] is Number(10.0))
   assert_true(projected.rows[1][1] is Number(1.0))
-  assert_true(result.store.tables[0] is None)
-  assert_true(result.store.tables[1] is None)
+  assert_true(test_row_store(result).tables[0] is None)
+  assert_true(test_row_store(result).tables[1] is None)
 }
 
 ///|
@@ -91,7 +91,9 @@ test "checked fragments enforce cumulative output accounting across all four ope
     run({ ..exact, output_values: { ..exact.output_values, max_nodes: 8, }, })
     is Err(Rows(3, RowLimit)),
   )
-  let output = completed_output(run(exact).unwrap(), Step(3)).unwrap().table
+  let output = test_row_output(
+    completed_output(run(exact).unwrap(), Step(3)).unwrap(),
+  )
   assert_eq(output.names, ["v", "id"])
   assert_eq(output.rows.length(), 1)
   assert_true(output.rows[0][0] is Number(6.0))

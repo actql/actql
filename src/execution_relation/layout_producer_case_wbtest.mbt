@@ -147,8 +147,8 @@ test "fixed producer workload retains both narrow and full width branches" {
     produced=[bound],
   ).unwrap()
   verify_layout_producer_case(
-    completed_output(completed, Step(0)).unwrap().table,
-    completed_output(completed, Step(1)).unwrap().table,
+    test_row_output(completed_output(completed, Step(0)).unwrap()),
+    test_row_output(completed_output(completed, Step(1)).unwrap()),
     count,
   )
   for candidate in [ValueColumns, TypedColumns] {
@@ -203,7 +203,7 @@ test "fixed producer workload retains both narrow and full width branches" {
     clear_table_store(invocation.store)
     assert_eq((ledger.slots.live, ledger.bytes.live), (0, 0))
     // Output cleanup must not invalidate the independently owned producer result.
-    assert_eq(bound.output.table.rows.length(), count)
-    assert_true(bound.output.table.rows[0][0] is Number(1000))
+    assert_eq(test_row_output(bound.output).rows.length(), count)
+    assert_true(test_row_output(bound.output).rows[0][0] is Number(1000))
   }
 }

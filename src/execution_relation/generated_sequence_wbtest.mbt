@@ -31,7 +31,7 @@ test "generated composition owns its selection and contexts and reuses no counte
   )
   for _i = 0; _i < 2; _i = _i + 1 {
     let completed = execute_generated_sequence(generated, [], limits).unwrap()
-    let output = completed_output(completed, Step(3)).unwrap().table
+    let output = test_row_output(completed_output(completed, Step(3)).unwrap())
     assert_eq(output.names, ["total", "a"])
     assert_eq(output.rows.length(), 1)
     assert_true(output.rows[0][0] is Number(3.0))
@@ -94,6 +94,6 @@ test "generated composition rejects incomplete and foreign fragments before exec
     max_work: 100000,
     max_frames: 100,
   }).unwrap()
-  let output = completed_output(completed, Step(1)).unwrap().table
+  let output = test_row_output(completed_output(completed, Step(1)).unwrap())
   assert_eq(output.rows.length(), 2)
 }

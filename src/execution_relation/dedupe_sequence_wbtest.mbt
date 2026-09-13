@@ -41,12 +41,12 @@ test "dedupe runs through the owned driver retaining payload and canonical group
   )
   for _i in 0..<2 {
     let complete = execute_generated_sequence(generated, [], limits).unwrap()
-    let table = completed_output(complete, Step(1)).unwrap().table
+    let table = test_row_output(completed_output(complete, Step(1)).unwrap())
     assert_eq(table.rows.length(), 2)
     // Fixed SHA-256 ordering: [2] precedes [1], independent of input order.
     assert_true(table.rows[0][0] is Number(2))
     assert_true(table.rows[1][0] is Number(1))
-    let selected = completed_output(complete, Step(2)).unwrap().table
+    let selected = test_row_output(completed_output(complete, Step(2)).unwrap())
     assert_eq(selected.names, ["rank", "payload"])
     assert_true(selected.rows[0][0] is Number(3))
     assert_true(selected.rows[1][0] is Number(4))
@@ -78,7 +78,7 @@ test "global dedupe handles empty input and rejects only first-place ties" {
       max_frames: 100,
     }).unwrap()
     assert_eq(
-      completed_output(complete, Step(1)).unwrap().table.rows.length(),
+      test_row_output(completed_output(complete, Step(1)).unwrap()).rows.length(),
       expected,
     )
   }

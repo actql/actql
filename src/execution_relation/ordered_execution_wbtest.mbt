@@ -61,14 +61,14 @@ test "single sequence driver enforces ordered limits through values filter selec
     Err(Rows(i, _)) => fail("rows \{i}")
     Err(_) => fail("other")
   }
-  let table = completed.store.tables[3].unwrap().table
+  let table = test_row_store(completed).tables[3].unwrap().table
   assert_eq(table.names, ["total", "a"])
   assert_eq(table.rows.length(), 1)
   assert_true(table.rows[0][0] is Number(3.0))
   assert_true(table.rows[0][1] is Number(2.0))
-  assert_true(completed.store.tables[0] is None)
-  assert_true(completed.store.tables[1] is None)
-  assert_true(completed.store.tables[2] is None)
+  assert_true(test_row_store(completed).tables[0] is None)
+  assert_true(test_row_store(completed).tables[1] is None)
+  assert_true(test_row_store(completed).tables[2] is None)
   // Same immutable configuration creates fresh enforcement state per execution.
   assert_true(run(execution) is Ok(_))
   assert_true(run(execution_for(sequence, 83L)) is Err(Rows(1, _)))

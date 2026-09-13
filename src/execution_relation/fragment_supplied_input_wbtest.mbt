@@ -81,7 +81,7 @@ test "checked fragment sequence accepts supplied keyed rows and bound parameters
   }
   let result = execute_generated_sequence(generated, [captured], limits).unwrap()
   // Store slots include the supplied input before the three operation outputs.
-  let table = result.store.tables[3].unwrap().table
+  let table = test_row_store(result).tables[3].unwrap().table
   assert_eq(table.names, ["v", "s"])
   assert_eq(table.rows.length(), 1)
   assert_true(table.rows[0][0] is Number(13.0))

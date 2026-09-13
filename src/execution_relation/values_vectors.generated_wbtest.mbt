@@ -13,8 +13,8 @@ test "values four-operation execution: ordinary" {
     run_limits(),
     { remaining: 100000, max_frames: 100, },
   ).unwrap()
-  assert_eq(result.store.next, 4)
-  let table = result.store.tables[3].unwrap().table
+  assert_eq(test_row_store(result).next, 4)
+  let table = test_row_store(result).tables[3].unwrap().table
   assert_eq(table.names, ["x"])
   assert_eq(table.rows.length(), 2)
   assert_eq(table.rows[0].length(), 1)
@@ -36,8 +36,8 @@ test "values four-operation execution: empty" {
     run_limits(),
     { remaining: 100000, max_frames: 100, },
   ).unwrap()
-  assert_eq(result.store.next, 4)
-  let table = result.store.tables[3].unwrap().table
+  assert_eq(test_row_store(result).next, 4)
+  let table = test_row_store(result).tables[3].unwrap().table
   assert_eq(table.names, ["x"])
   assert_eq(table.rows.length(), 0)
 }
@@ -55,8 +55,8 @@ test "values four-operation execution: repeated" {
     run_limits(),
     { remaining: 100000, max_frames: 100, },
   ).unwrap()
-  assert_eq(result.store.next, 4)
-  let table = result.store.tables[3].unwrap().table
+  assert_eq(test_row_store(result).next, 4)
+  let table = test_row_store(result).tables[3].unwrap().table
   assert_eq(table.names, ["x"])
   assert_eq(table.rows.length(), 2)
   assert_eq(table.rows[0].length(), 1)
@@ -78,8 +78,8 @@ test "values four-operation execution: reversed" {
     run_limits(),
     { remaining: 100000, max_frames: 100, },
   ).unwrap()
-  assert_eq(result.store.next, 4)
-  let table = result.store.tables[3].unwrap().table
+  assert_eq(test_row_store(result).next, 4)
+  let table = test_row_store(result).tables[3].unwrap().table
   assert_eq(table.names, ["x"])
   assert_eq(table.rows.length(), 2)
   assert_eq(table.rows[0].length(), 1)
@@ -101,8 +101,8 @@ test "values four-operation execution: key-order-a" {
     run_limits(),
     { remaining: 100000, max_frames: 100, },
   ).unwrap()
-  assert_eq(result.store.next, 4)
-  let table = result.store.tables[3].unwrap().table
+  assert_eq(test_row_store(result).next, 4)
+  let table = test_row_store(result).tables[3].unwrap().table
   assert_eq(table.names, ["x", "s"])
   assert_eq(table.rows.length(), 1)
   assert_eq(table.rows[0].length(), 2)
@@ -123,8 +123,8 @@ test "values four-operation execution: key-order-b" {
     run_limits(),
     { remaining: 100000, max_frames: 100, },
   ).unwrap()
-  assert_eq(result.store.next, 4)
-  let table = result.store.tables[3].unwrap().table
+  assert_eq(test_row_store(result).next, 4)
+  let table = test_row_store(result).tables[3].unwrap().table
   assert_eq(table.names, ["x", "s"])
   assert_eq(table.rows.length(), 1)
   assert_eq(table.rows[0].length(), 2)
@@ -145,8 +145,8 @@ test "values four-operation execution: nullable" {
     run_limits(),
     { remaining: 100000, max_frames: 100, },
   ).unwrap()
-  assert_eq(result.store.next, 4)
-  let table = result.store.tables[3].unwrap().table
+  assert_eq(test_row_store(result).next, 4)
+  let table = test_row_store(result).tables[3].unwrap().table
   assert_eq(table.names, ["x"])
   assert_eq(table.rows.length(), 1)
   assert_eq(table.rows[0].length(), 1)
@@ -166,8 +166,8 @@ test "values four-operation execution: bound-parameter" {
     run_limits(),
     { remaining: 100000, max_frames: 100, },
   ).unwrap()
-  assert_eq(result.store.next, 4)
-  let table = result.store.tables[3].unwrap().table
+  assert_eq(test_row_store(result).next, 4)
+  let table = test_row_store(result).tables[3].unwrap().table
   assert_eq(table.names, ["x"])
   assert_eq(table.rows.length(), 1)
   assert_eq(table.rows[0].length(), 1)
@@ -187,8 +187,8 @@ test "values four-operation execution: quoted-scalar" {
     run_limits(),
     { remaining: 100000, max_frames: 100, },
   ).unwrap()
-  assert_eq(result.store.next, 4)
-  let table = result.store.tables[3].unwrap().table
+  assert_eq(test_row_store(result).next, 4)
+  let table = test_row_store(result).tables[3].unwrap().table
   assert_eq(table.names, ["x"])
   assert_eq(table.rows.length(), 1)
   assert_eq(table.rows[0].length(), 1)
@@ -208,8 +208,8 @@ test "values four-operation execution: plain-scalar" {
     run_limits(),
     { remaining: 100000, max_frames: 100, },
   ).unwrap()
-  assert_eq(result.store.next, 4)
-  let table = result.store.tables[3].unwrap().table
+  assert_eq(test_row_store(result).next, 4)
+  let table = test_row_store(result).tables[3].unwrap().table
   assert_eq(table.names, ["x"])
   assert_eq(table.rows.length(), 1)
   assert_eq(table.rows[0].length(), 1)
@@ -229,8 +229,8 @@ test "values four-operation execution: quoted-business-hole" {
     run_limits(),
     { remaining: 100000, max_frames: 100, },
   ).unwrap()
-  assert_eq(result.store.next, 4)
-  let table = result.store.tables[3].unwrap().table
+  assert_eq(test_row_store(result).next, 4)
+  let table = test_row_store(result).tables[3].unwrap().table
   assert_eq(table.names, ["x"])
   assert_eq(table.rows.length(), 1)
   assert_eq(table.rows[0].length(), 1)
@@ -255,8 +255,8 @@ test "values four-operation execution: quoted-business-literal" {
     run_limits(),
     { remaining: 100000, max_frames: 100, },
   ).unwrap()
-  assert_eq(result.store.next, 4)
-  let table = result.store.tables[3].unwrap().table
+  assert_eq(test_row_store(result).next, 4)
+  let table = test_row_store(result).tables[3].unwrap().table
   assert_eq(table.names, ["x"])
   assert_eq(table.rows.length(), 1)
   assert_eq(table.rows[0].length(), 1)
@@ -281,8 +281,8 @@ test "values four-operation execution: supplied-business-hole" {
     run_limits(),
     { remaining: 100000, max_frames: 100, },
   ).unwrap()
-  assert_eq(result.store.next, 4)
-  let table = result.store.tables[3].unwrap().table
+  assert_eq(test_row_store(result).next, 4)
+  let table = test_row_store(result).tables[3].unwrap().table
   assert_eq(table.names, ["x"])
   assert_eq(table.rows.length(), 1)
   assert_eq(table.rows[0].length(), 1)
@@ -307,8 +307,8 @@ test "values four-operation execution: nested-business" {
     run_limits(),
     { remaining: 100000, max_frames: 100, },
   ).unwrap()
-  assert_eq(result.store.next, 4)
-  let table = result.store.tables[3].unwrap().table
+  assert_eq(test_row_store(result).next, 4)
+  let table = test_row_store(result).tables[3].unwrap().table
   assert_eq(table.names, ["x"])
   assert_eq(table.rows.length(), 1)
   assert_eq(table.rows[0].length(), 1)
@@ -339,8 +339,8 @@ test "values four-operation execution: decimal" {
     run_limits(),
     { remaining: 100000, max_frames: 100, },
   ).unwrap()
-  assert_eq(result.store.next, 4)
-  let table = result.store.tables[3].unwrap().table
+  assert_eq(test_row_store(result).next, 4)
+  let table = test_row_store(result).tables[3].unwrap().table
   assert_eq(table.names, ["x"])
   assert_eq(table.rows.length(), 1)
   assert_eq(table.rows[0].length(), 1)
@@ -364,8 +364,8 @@ test "values four-operation execution: decimal-precision-38" {
     run_limits(),
     { remaining: 100000, max_frames: 100, },
   ).unwrap()
-  assert_eq(result.store.next, 4)
-  let table = result.store.tables[3].unwrap().table
+  assert_eq(test_row_store(result).next, 4)
+  let table = test_row_store(result).tables[3].unwrap().table
   assert_eq(table.names, ["x"])
   assert_eq(table.rows.length(), 1)
   assert_eq(table.rows[0].length(), 1)
@@ -389,8 +389,8 @@ test "values four-operation execution: array-object" {
     run_limits(),
     { remaining: 100000, max_frames: 100, },
   ).unwrap()
-  assert_eq(result.store.next, 4)
-  let table = result.store.tables[3].unwrap().table
+  assert_eq(test_row_store(result).next, 4)
+  let table = test_row_store(result).tables[3].unwrap().table
   assert_eq(table.names, ["x"])
   assert_eq(table.rows.length(), 2)
   assert_eq(table.rows[0].length(), 1)
@@ -422,8 +422,8 @@ test "values four-operation execution: temporal-vector" {
     run_limits(),
     { remaining: 100000, max_frames: 100, },
   ).unwrap()
-  assert_eq(result.store.next, 4)
-  let table = result.store.tables[3].unwrap().table
+  assert_eq(test_row_store(result).next, 4)
+  let table = test_row_store(result).tables[3].unwrap().table
   assert_eq(table.names, ["v", "t", "d"])
   assert_eq(table.rows.length(), 1)
   assert_eq(table.rows[0].length(), 3)

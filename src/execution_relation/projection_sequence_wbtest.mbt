@@ -29,11 +29,11 @@ test "rename swaps simultaneously and drop/select consume checked projections" {
   )
   for _i = 0; _i < 2; _i = _i + 1 {
     let completed = execute_generated_sequence(generated, [], limits).unwrap()
-    let renamed = completed_output(completed, Step(2)).unwrap().table
+    let renamed = test_row_output(completed_output(completed, Step(2)).unwrap())
     assert_eq(renamed.names, ["b", "a"])
     assert_true(renamed.rows[0][0] is Number(11.0))
     assert_true(renamed.rows[0][1] is Number(0.0))
-    let output = completed_output(completed, Step(5)).unwrap().table
+    let output = test_row_output(completed_output(completed, Step(5)).unwrap())
     assert_eq(output.names, ["b"])
     assert_eq(output.rows.length(), 1)
     assert_true(output.rows[0][0] is Number(11.0))
@@ -92,7 +92,9 @@ test "empty projection operations preserve empty schemas and their authored node
       max_frames: 100,
     }).unwrap()
     for step in [0, 1] {
-      let table = completed_output(completed, Step(step)).unwrap().table
+      let table = test_row_output(
+        completed_output(completed, Step(step)).unwrap(),
+      )
       assert_eq(table.names.length(), 0)
       assert_eq(table.rows.length(), count)
     }
@@ -120,8 +122,12 @@ test "rename branch retains its original input" {
     max_work: 100000,
     max_frames: 100,
   }).unwrap()
-  assert_eq(completed_output(completed, Step(1)).unwrap().table.names, [
-    "x", "b",
-  ])
-  assert_eq(completed_output(completed, Step(2)).unwrap().table.names, ["a"])
+  assert_eq(
+    test_row_output(completed_output(completed, Step(1)).unwrap()).names,
+    ["x", "b"],
+  )
+  assert_eq(
+    test_row_output(completed_output(completed, Step(2)).unwrap()).names,
+    ["a"],
+  )
 }

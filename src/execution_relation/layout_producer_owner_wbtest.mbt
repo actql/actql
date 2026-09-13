@@ -6,13 +6,14 @@ fn retain_layout_producer_output(
   output : CompletedOutput,
   ledger : LayoutLedger,
 ) -> Result[LayoutOwnedBuffer[CompletedOutput], LayoutStorageIssue] {
-  for held in output.completion.store.tables {
-    if held is Some(table) && !physical_equal(table.table, output.table) {
+  for held in test_row_store(output.completion).tables {
+    if held is Some(table) &&
+      !physical_equal(table.table, test_row_output(output)) {
       return Err(Shape)
     }
   }
-  let rows = output.table.rows
-  let width = output.table.names.length()
+  let rows = test_row_output(output).rows
+  let width = test_row_output(output).names.length()
   let available = ledger.slots.limit - ledger.slots.live
   if rows.length() > available {
     return Err(Limit)
@@ -65,6 +66,6 @@ test "producer source and destination must both fit and release independently" {
     release_owned_layout_buffer(ledger, source).unwrap()
     assert_true(source.value is None)
     assert_eq((ledger.slots.live, ledger.bytes.live), (0, 0))
-    assert_true(bound.output.table.rows[0][0] is Number(4))
+    assert_true(test_row_output(bound.output).rows[0][0] is Number(4))
   }
 }

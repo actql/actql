@@ -66,7 +66,7 @@ test "null parameters retain declaration typing without inventing literal null c
   ).unwrap()
   let output = completed_output(result, Step(1)).unwrap()
   assert_true(
-    output.table.rows[0][1] is Null ||
-    output.table.rows[0][1] is Captured(@admitted.Null),
+    test_row_output(output).rows[0][1] is Null ||
+    test_row_output(output).rows[0][1] is Captured(@admitted.Null),
   )
 }

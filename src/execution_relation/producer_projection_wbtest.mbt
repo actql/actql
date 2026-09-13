@@ -84,7 +84,7 @@ test "empty completed projection retains checked column order and charges layout
     { remaining: 10000, max_frames: 100, },
     produced=[bound],
   ).unwrap()
-  let table = completed_output(result, Step(0)).unwrap().table
+  let table = test_row_output(completed_output(result, Step(0)).unwrap())
   assert_eq(table.names, ["b", "renamed"])
   assert_eq(table.rows.length(), 0)
   assert_true(
@@ -127,7 +127,7 @@ test "completed producer projection reorders aliases and preserves upstream rows
     produced=[bound],
   ).unwrap()
   for target in [@pipeline.Input(0), @pipeline.Step(0)] {
-    let table = completed_output(result, target).unwrap().table
+    let table = test_row_output(completed_output(result, target).unwrap())
     assert_eq(table.names, ["renamed", "a"])
     assert_true(table.rows[0][0] is Number(0.0))
     assert_true(table.rows[0][1] is Number(1.0))
@@ -135,9 +135,9 @@ test "completed producer projection reorders aliases and preserves upstream rows
     assert_true(table.rows[1][1] is Number(0.0))
     assert_true(physical_equal(table.owner, receiver))
   }
-  assert_eq(output.table.names, ["a", "b"])
-  assert_true(output.table.rows[0][0] is Number(1.0))
-  assert_true(physical_equal(output.table.owner, owner))
+  assert_eq(test_row_output(output).names, ["a", "b"])
+  assert_true(test_row_output(output).rows[0][0] is Number(1.0))
+  assert_true(physical_equal(test_row_output(output).owner, owner))
 }
 
 ///|

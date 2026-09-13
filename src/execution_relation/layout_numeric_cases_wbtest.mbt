@@ -644,7 +644,7 @@ test "fixed numeric workload shapes share source and contracts across all layout
     }).unwrap()
     let slot = @lower.sequence_count(generated.sequence)
     verify_numeric_layout_output(
-      rows.store.tables[slot].unwrap().table,
+      test_row_store(rows).tables[slot].unwrap().table,
       workload,
       count,
     )

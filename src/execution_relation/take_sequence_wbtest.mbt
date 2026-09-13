@@ -27,7 +27,7 @@ test "take uses proven input order and safe offset without skipping upstream" {
     )
     for _i = 0; _i < 2; _i = _i + 1 {
       let completed = execute_generated_sequence(generated, [], limits).unwrap()
-      let table = completed_output(completed, Step(2)).unwrap().table
+      let table = test_row_output(completed_output(completed, Step(2)).unwrap())
       assert_eq(table.names, ["x", "b"])
       assert_eq(table.rows.length(), expected)
       if offset == 1L {
@@ -174,11 +174,11 @@ test "take retains independent selected branch outputs" {
     max_frames: 100,
   }).unwrap()
   assert_true(
-    completed_output(completed, Step(1)).unwrap().table.rows[0][0]
+    test_row_output(completed_output(completed, Step(1)).unwrap()).rows[0][0]
     is Number(1.0),
   )
   assert_true(
-    completed_output(completed, Step(2)).unwrap().table.rows[0][0]
+    test_row_output(completed_output(completed, Step(2)).unwrap()).rows[0][0]
     is Number(0.0),
   )
 }

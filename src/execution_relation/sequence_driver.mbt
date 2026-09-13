@@ -72,6 +72,15 @@ fn evaluate_sequence_components(
     max_depth: 0,
   },
 ) -> Result[CompletedSequence, SequenceRunIssue] {
+  // Bounded representation selection, before execution and never as recovery
+  // from a failed row invocation. Oversized metadata follows normal admission.
+  if produced.length() <= limits.metadata_entries &&
+    produced.any(bound => bound.output.table is NumberTable(_)) {
+    return evaluate_physical_sequence(
+      contracts, sequence, supplied, retained_ids, limits, control, produced, fragments,
+      ordered,
+    )
+  }
   let invocation = match
     prepare_sequence_invocation(
       contracts,
@@ -134,7 +143,9 @@ fn prepare_sequence_invocation(
       })
     },
     fn(bound, id, output_budget) {
-      let source = bound.output.table
+      guard bound.output.table is RowTable(source) else {
+        return Err(InvalidRows)
+      }
       let adopted : Table = {
         owner: bound.receiver,
         id,
@@ -177,6 +188,9 @@ fn[T : RelationRows] prepare_sequence_with_importers(
     RowIssue,
   ],
   release_table? : (T) -> Unit = fn(_table) { () },
+  reserve_storage? : (T, RowWorkspace, ControlBudget) -> Bool = fn(_, _, _) {
+    true
+  },
   produced~ : Array[BoundProducerInput],
   fragments~ : Array[FragmentRuntimeContext]?,
   ordered~ : OrderedExecution,
@@ -287,6 +301,7 @@ fn[T : RelationRows] prepare_sequence_with_importers(
       wiring,
       { limit: limits.retained_entries, live: 0, peak: 0, },
       release=release_table,
+      reserve_storage~,
     ) {
     Ok(v) => v
     Err(e) => return Err(Store(e))
@@ -368,7 +383,7 @@ fn[T : RelationRows] prepare_sequence_with_importers(
 fn run_sequence_invocation(
   invocation : SequenceInvocation[Table],
 ) -> Result[CompletedSequence, SequenceRunIssue] {
-  let result = run_sequence_with_backend(
+  run_completed_sequence_backend(
     invocation,
     fn(captured) {
       table_from_capture_bounded(captured, invocation.control, {
@@ -388,14 +403,27 @@ fn run_sequence_invocation(
         ordered_budget=logical,
       )
     },
+    store => RowStore(store),
   )
+}
+
+///|
+// The only success constructor: physical wrapping cannot bypass the ordered
+// driver, cleanup or final cumulative-budget check.
+fn[T : RelationRows] run_completed_sequence_backend(
+  invocation : SequenceInvocation[T],
+  import_values : (CapturedRows) -> Result[T, RowIssue],
+  evaluate : (@lower.PreparedKernel, T, LogicalBudget?) -> Result[T, RowIssue],
+  wrap : (TableStore[T]) -> CompletedStore,
+) -> Result[CompletedSequence, SequenceRunIssue] {
+  let result = run_sequence_with_backend(invocation, import_values, evaluate)
   if result is Err(issue) {
     return Err(issue)
   }
   Ok({
     contracts: invocation.contracts,
     sequence: invocation.sequence,
-    store: invocation.store,
+    store: wrap(invocation.store),
     _producer_inputs: invocation.produced.copy(),
   })
 }

@@ -64,11 +64,11 @@ test "sequence driver executes all four operators and follows branch retention a
     run_limits(),
     { remaining: 10000, max_frames: 100, },
   ).unwrap()
-  assert_eq(result.store.next, 4)
-  assert_true(result.store.tables[0] is None)
-  assert_true(result.store.tables[1] is None)
-  assert_true(result.store.tables[2] is None)
-  let table = result.store.tables[3].unwrap().table
+  assert_eq(test_row_store(result).next, 4)
+  assert_true(test_row_store(result).tables[0] is None)
+  assert_true(test_row_store(result).tables[1] is None)
+  assert_true(test_row_store(result).tables[2] is None)
+  let table = test_row_store(result).tables[3].unwrap().table
   assert_eq(table.names, ["c", "b"])
   assert_eq(table.rows.length(), 2)
   assert_true(table.rows[0][0] is Number(11.0))
@@ -111,8 +111,8 @@ test "sequence driver supplied input uses the same path and rejects foreign capt
     run_limits(),
     { remaining: 10000, max_frames: 100, },
   ).unwrap()
-  assert_eq(result.store.tables[1].unwrap().table.names, ["s", "n"])
-  assert_true(result.store.tables[0] is None)
+  assert_eq(test_row_store(result).tables[1].unwrap().table.names, ["s", "n"])
+  assert_true(test_row_store(result).tables[0] is None)
   assert_true(
     evaluate_sequence_components(
       registered_relation_contracts(),
@@ -165,7 +165,7 @@ test "sequence driver carries bound parameters and cumulative output limits thro
       exact,
       { remaining: 10000, max_frames: 100, },
     ).unwrap()
-    let table = result.store.tables[3].unwrap().table
+    let table = test_row_store(result).tables[3].unwrap().table
     assert_eq(table.names, ["v", "id"])
     assert_eq(table.rows.length(), 1)
     assert_true(table.rows[0][0] is Number(v) && v == expected)
@@ -201,8 +201,10 @@ test "sequence driver input ceiling includes all values nodes even when earlier 
     { ..run_limits(), max_rows: 3, },
     { remaining: 10000, max_frames: 100, },
   ).unwrap()
-  assert_true(result.store.tables[0] is None)
-  assert_true(result.store.tables[1].unwrap().table.rows[0][0] is Number(3.0))
+  assert_true(test_row_store(result).tables[0] is None)
+  assert_true(
+    test_row_store(result).tables[1].unwrap().table.rows[0][0] is Number(3.0),
+  )
   assert_true(
     evaluate_sequence_components(
       registered_relation_contracts(),

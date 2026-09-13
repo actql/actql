@@ -91,17 +91,17 @@ fn measure_additional_layout(
     let completed = run_sequence_invocation(invocation).unwrap()
     phases.push(@bench.monotonic_clock_end(execute_clock))
     let observe_clock = @bench.monotonic_clock_start()
-    observe_additional_layout(completed.store, workload, count)
+    observe_additional_layout(test_row_store(completed), workload, count)
     phases.push(@bench.monotonic_clock_end(observe_clock))
     let counters = [
-      completed.store.workspace.live,
-      completed.store.workspace.peak,
+      test_row_store(completed).workspace.live,
+      test_row_store(completed).workspace.peak,
       control.remaining,
       0,
       0,
     ]
-    clear_table_store(completed.store)
-    assert_true(completed.store.tables.all(t => t is None))
+    clear_table_store(test_row_store(completed))
+    assert_true(test_row_store(completed).tables.all(t => t is None))
     return (phases, counters)
   }
   let ledger = { ..layout_ledger(100000000, 100000000, 100000000), traffic, }

@@ -64,9 +64,9 @@ test "checked fragments preserve completion evidence across producer and consume
   ).unwrap()
   let result = execute_generated_sequence(received, [], limits, produced=[bound]).unwrap()
   let delivered = completed_output(result, Step(2)).unwrap()
-  assert_eq(delivered.table.names, ["d"])
-  assert_eq(delivered.table.rows.length(), 1)
-  assert_true(delivered.table.rows[0][0] is Number(12.0))
+  assert_eq(test_row_output(delivered).names, ["d"])
+  assert_eq(test_row_output(delivered).rows.length(), 1)
+  assert_true(test_row_output(delivered).rows[0][0] is Number(12.0))
   assert_true(physical_equal(result._producer_inputs[0].output, output))
   // Correct values are not a substitute for the retained completion identity.
   let raw = capture_input(
@@ -96,6 +96,6 @@ test "checked fragments preserve completion evidence across producer and consume
     execute_generated_sequence(tight_received, [], limits, produced=[bound])
     is Err(Rows(0, LogicalRows(InputRowLimit))),
   )
-  assert_eq(output.table.rows.length(), 2)
-  assert_true(output.table.rows[0][2] is Number(11.0))
+  assert_eq(test_row_output(output).rows.length(), 2)
+  assert_true(test_row_output(output).rows[0][2] is Number(11.0))
 }

@@ -35,10 +35,10 @@ test "completed producer runs through receiving driver with fresh input accounti
   assert_eq(result._producer_inputs.length(), 1)
   assert_true(physical_equal(result._producer_inputs[0], bound))
   let received = completed_output(result, Step(0)).unwrap()
-  assert_eq(received.table.names, ["a"])
-  assert_true(received.table.rows[0][0] is Number(1.0))
-  assert_true(received.table.rows[1][0] is Number(0.0))
-  assert_true(physical_equal(received.table.owner, receiver))
+  assert_eq(test_row_output(received).names, ["a"])
+  assert_true(test_row_output(received).rows[0][0] is Number(1.0))
+  assert_true(test_row_output(received).rows[1][0] is Number(0.0))
+  assert_true(physical_equal(test_row_output(received).owner, receiver))
   for
     limited in [
       { ..exact, max_rows: 1, },
@@ -60,8 +60,8 @@ test "completed producer runs through receiving driver with fresh input accounti
       is Err(InputLimit),
     )
   }
-  assert_eq(output.table.names, ["a", "b"])
-  assert_true(output.table.rows[0][1] is Number(0.0))
+  assert_eq(test_row_output(output).names, ["a", "b"])
+  assert_true(test_row_output(output).rows[0][1] is Number(0.0))
   // A failure does not consume, alter or re-execute the upstream result.
   assert_true(
     evaluate_sequence_components(
@@ -125,10 +125,12 @@ test "raw and completed inputs share ordinal dispatch and cumulative budgets" {
     produced=[bound],
   ).unwrap()
   assert_true(
-    completed_output(result, Input(1)).unwrap().table.rows[0][0] is Number(9.0),
+    test_row_output(completed_output(result, Input(1)).unwrap()).rows[0][0]
+    is Number(9.0),
   )
   assert_true(
-    completed_output(result, Step(0)).unwrap().table.rows[0][0] is Number(1.0),
+    test_row_output(completed_output(result, Step(0)).unwrap()).rows[0][0]
+    is Number(1.0),
   )
   assert_true(
     evaluate_sequence_components(

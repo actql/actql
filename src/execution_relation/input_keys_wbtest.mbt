@@ -86,7 +86,7 @@ test "compound key preserves duplicates of individual fields and supplied order"
     run_limits(),
     { remaining: 10000, max_frames: 100, },
   ).unwrap()
-  let table = result.store.tables[1].unwrap().table
+  let table = test_row_store(result).tables[1].unwrap().table
   assert_eq(table.rows.length(), 3)
   assert_true(table.rows[0][1] is Number(1.0))
   assert_true(table.rows[2][1] is Number(2.0))

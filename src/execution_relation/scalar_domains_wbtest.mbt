@@ -111,7 +111,7 @@ test "decimal comparison runs through checked map filter and immutable completio
     max_work: 100000,
     max_frames: 100,
   }).unwrap()
-  let table = completed_output(result, Step(3)).unwrap().table
+  let table = test_row_output(completed_output(result, Step(3)).unwrap())
   assert_eq(table.names, ["a", "b"])
   assert_eq(table.rows.length(), 1)
   guard table.rows[0][0] is Captured(@admitted.Decimal(a)) else {

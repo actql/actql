@@ -42,7 +42,10 @@ test "input import seam preserves the single driver budgets ownership and order"
     assert_true(split_control.remaining < 100000)
     let split = run_sequence_invocation(invocation).unwrap()
     assert_eq(split_control.remaining, direct_control.remaining)
-    assert_eq(split.store.workspace.peak, direct.store.workspace.peak)
+    assert_eq(
+      test_row_store(split).workspace.peak,
+      test_row_store(direct).workspace.peak,
+    )
     let a = completed_output(direct, Step(2)).unwrap()
     let b = completed_output(split, Step(2)).unwrap()
     assert_eq(completed_row_count(a), 1)

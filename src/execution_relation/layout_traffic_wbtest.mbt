@@ -142,7 +142,7 @@ fn prepare_traffic_rows(
       )
     },
     fn(bound, id, output_budget) {
-      let source = bound.output.table
+      let source = test_row_output(bound.output)
       let adopted : Table = {
         owner: bound.receiver,
         id,

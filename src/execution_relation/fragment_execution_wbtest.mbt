@@ -42,7 +42,7 @@ test "checked map and filter fragments drive the existing four-operation sequenc
     { remaining: 100000, max_frames: 100, },
     fragments=Some([map, filter]),
   ).unwrap()
-  let output = result.store.tables[3].unwrap().table
+  let output = test_row_store(result).tables[3].unwrap().table
   assert_eq(output.names, ["c", "b"])
   assert_eq(output.rows.length(), 1)
   assert_true(output.rows[0][0] is Number(11.0))

@@ -36,7 +36,7 @@ test "sort retains hidden prior order across projection and exposes no CID tie b
   }
   for _i in 0..<2 {
     let complete = execute_generated_sequence(generated, [], limits).unwrap()
-    let table = completed_output(complete, Step(3)).unwrap().table
+    let table = test_row_output(completed_output(complete, Step(3)).unwrap())
     assert_eq(table.names, ["k", "payload"])
     assert_true(table.rows[0][0] is Number(1))
     assert_true(table.rows[2][0] is Null)
@@ -44,7 +44,7 @@ test "sort retains hidden prior order across projection and exposes no CID tie b
       fail("payload")
     }
     assert_true(@admitted.element_at(values, 0) is Some(@admitted.Number(10)))
-    guard completed_output(complete, Step(4)).unwrap().table.rows[0][1]
+    guard test_row_output(completed_output(complete, Step(4)).unwrap()).rows[0][1]
       is Captured(@admitted.Array(chosen)) else {
       fail("chosen")
     }
@@ -74,7 +74,7 @@ test "sort obeys explicit null placement independently of direction and retains 
       max_work: 100000,
       max_frames: 100,
     }).unwrap()
-    let table = completed_output(result, Step(1)).unwrap().table
+    let table = test_row_output(completed_output(result, Step(1)).unwrap())
     for i in 0..<3 {
       assert_true(table.rows[i][0] is Number(n) && n == expected[i].to_double())
     }
@@ -161,7 +161,8 @@ test "sort keeps an imported total witness only from its actual completed produc
     binding,
   ]).unwrap()
   assert_true(
-    completed_output(result, Step(1)).unwrap().table.rows[0][0] is Number(3),
+    test_row_output(completed_output(result, Step(1)).unwrap()).rows[0][0]
+    is Number(3),
   )
   let raw = capture_input(
     receiver,
@@ -218,7 +219,8 @@ test "sort executes each supported scalar domain using the shared comparator" {
       max_frames: 100,
     }).unwrap()
     assert_true(
-      completed_output(complete, Step(1)).unwrap().table.rows[0][0] is Number(1),
+      test_row_output(completed_output(complete, Step(1)).unwrap()).rows[0][0]
+      is Number(1),
     )
   }
 }
@@ -334,7 +336,7 @@ test "sort candidate completion uses checked keys and validates actual uniquenes
       assert_true(result is Err(InputKey(0, _)))
     } else {
       assert_true(
-        completed_output(result.unwrap(), Step(1)).unwrap().table.rows[0][0]
+        test_row_output(completed_output(result.unwrap(), Step(1)).unwrap()).rows[0][0]
         is Number(1),
       )
     }

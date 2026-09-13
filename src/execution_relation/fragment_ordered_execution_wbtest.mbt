@@ -47,7 +47,9 @@ test "checked ordered fragment supplies its own limits through the common four-o
       fragments=Some([context, filter]),
     )
   }
-  let output = completed_output(run(ordered).unwrap(), Step(3)).unwrap().table
+  let output = test_row_output(
+    completed_output(run(ordered).unwrap(), Step(3)).unwrap(),
+  )
   assert_eq(output.names, ["total", "a"])
   assert_eq(output.rows.length(), 1)
   assert_true(output.rows[0][0] is Number(3.0))

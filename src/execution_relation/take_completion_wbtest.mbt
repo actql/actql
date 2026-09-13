@@ -62,7 +62,7 @@ test "take emits its owned key completion before limit and applies offset after 
     ).unwrap()
     for _i = 0; _i < 2; _i = _i + 1 {
       let done = execute_generated_sequence(generated, [input], limits).unwrap()
-      let result = completed_output(done, Step(0)).unwrap().table
+      let result = test_row_output(completed_output(done, Step(0)).unwrap())
       if empty {
         assert_eq(result.rows.length(), 0)
       } else {

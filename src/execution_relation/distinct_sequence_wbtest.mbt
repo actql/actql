@@ -23,14 +23,14 @@ test "whole-row distinct preserves first occurrence and feeds take in the same d
   )
   for _i = 0; _i < 2; _i = _i + 1 {
     let complete = execute_generated_sequence(generated, [], limits).unwrap()
-    let distinct = completed_output(complete, Step(2)).unwrap().table
+    let distinct = test_row_output(completed_output(complete, Step(2)).unwrap())
     assert_eq(distinct.names, ["x"])
     assert_eq(distinct.rows.length(), 3)
     assert_true(distinct.rows[0][0] is Number(2.0))
     assert_true(distinct.rows[1][0] is Number(1.0))
     assert_true(distinct.rows[2][0] is Null)
     assert_true(
-      completed_output(complete, Step(3)).unwrap().table.rows[0][0]
+      test_row_output(completed_output(complete, Step(3)).unwrap()).rows[0][0]
       is Number(1.0),
     )
   }
@@ -64,9 +64,10 @@ test "distinct comparison readiness depends on selected schema not row count" {
           max_work: 100000,
           max_frames: 100,
         }).unwrap()
-        assert_eq(completed_output(complete, Step(step)).unwrap().table.names, [
-          "k",
-        ])
+        assert_eq(
+          test_row_output(completed_output(complete, Step(step)).unwrap()).names,
+          ["k"],
+        )
       } else {
         assert_true(result is Err(UnsupportedRowComparison(1, _)))
       }
@@ -123,7 +124,7 @@ test "empty-schema distinct collapses identical empty tuples but preserves empty
       max_work: 100000,
       max_frames: 100,
     }).unwrap()
-    let table = completed_output(complete, Step(0)).unwrap().table
+    let table = test_row_output(completed_output(complete, Step(0)).unwrap())
     assert_eq(table.names, [])
     assert_eq(table.rows.length(), if count == 0 { 0 } else { 1 })
   }
