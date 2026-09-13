@@ -11,6 +11,7 @@ priv enum MockQueryState {
   Pending(QueryStrategy, Array[@decode.Cursor])
   Computing
   AwaitingCapture(MockQueryComputation)
+  Retained(MockQueryRetention)
   Failed(MockQueryIssue)
   Cancelled
 }
@@ -44,6 +45,7 @@ pub(all) enum MockQueryIssue {
   ForeignRequirement
   GuardLimitsRequired
   Guard(@execution.QueryGuardIssue)
+  Retention(MockRetentionIssue)
 }
 
 ///|
@@ -247,6 +249,7 @@ pub fn mock_query_computation(
 ) -> Result[MockQueryComputation, MockQueryIssue] {
   match attempt.state {
     AwaitingCapture(value) => Ok(value)
+    Retained(value) => Ok(value.computation)
     Failed(issue) => Err(issue)
     Cancelled => Err(Cancelled)
     Pending(_, _) | Computing => Err(NotComputed)
@@ -258,7 +261,7 @@ pub fn mock_query_computation(
 /// this attempt's owned references. Other owners' source/preparation stay valid.
 pub fn cancel_mock_query(attempt : MockQueryAttempt) -> Bool {
   match attempt.state {
-    Pending(_, _) | AwaitingCapture(_) => {
+    Pending(_, _) | AwaitingCapture(_) | Retained(_) => {
       attempt.state = Cancelled
       true
     }

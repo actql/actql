@@ -1,6 +1,7 @@
 ///|
 // Public main construction APIs; not a fabricated CheckedProgram or private
-// main test constructor. Source execution remains outside CheckedProgram check.
+// main test constructor. This fixture assembles source identity through public
+// components; it does not invoke the final CheckedProgram entry.
 fn query_program_fixture(
   id? : String = "p",
   supplied? : String = "{\"minimum\":1}",

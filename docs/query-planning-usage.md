@@ -99,3 +99,17 @@ physical measurement limits. It returns a completed computation plus physical
 measurement usage `(work, bytes, nodes)`. These counters span input and output;
 they do not reset per row. This operation adds no source access, authority or
 capture evidence and preserves the same reusable preparation and immutable input.
+
+After requirement-bound computation, `retain_mock_query(attempt, limits)` checks
+actual receipt and full-scan-plus-output wire quantities under
+`MockRetentionLimits`. Its measurement bytes/nodes span both hashes; column-order
+and depth allowances apply per artifact. Read `(received_wire_bytes,
+retained_wire_bytes, measured_nodes)` with `mock_retention_usage`, or scan/output
+row CIDs with `mock_retention_row_cids`. These are not allocator bytes, RSS or
+logical-budget discounts; existing source/driver limits still apply.
+
+This transition is one-shot and precedes capture. A retention-limit failure fails
+the attempt; cancelled, unbound or already-retained attempts cannot reenter it.
+No output handle is exposed, and retaining this opaque value does not authorize
+capture after the attempt is cancelled. Live issuer verification and final
+consumer admission remain separate requirements.

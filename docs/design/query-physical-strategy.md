@@ -129,6 +129,21 @@ does not replace per-record/per-root logical limits or physical retention
 admission. Failed hashing returns no usable identity and leaves retained data
 available for a separately budgeted retry.
 
+`retain_mock_query` applies this measurement to the exact live, requirement-bound
+attempt after computation. It retains both full-scan and output identities,
+checks actual receipt wire bytes according to the selected route, and bounds the
+sum of retained scan and output wire bytes without a sharing discount. Hashing
+bytes/nodes are cumulative across those two artifacts; column-order and depth
+limits apply separately to each. These explicit wire quantities supplement source
+admission and driver container limits, not replace them with a claim about heap
+capacity or RSS. No estimate is used to pass retention admission.
+
+Retention failure fails the owning attempt. Successful retention still precedes
+evidence issuance and capture; it exposes usage and row CIDs, not consumer data.
+Cancelling this state withdraws the attempt even if another caller holds the
+opaque retention handle. Retaining equal data or serialized CIDs cannot restore
+the task or create an authorized issuer.
+
 An attempt is one-shot. Failure never changes the selected route or rereads a
 source. Cancellation is supported before computation and at the computation/capture
 boundary, not during the synchronous evaluator. Cancelling an attempt discards its
