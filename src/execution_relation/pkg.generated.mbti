@@ -8,6 +8,7 @@ import {
   "actql/actql/lowering_relation",
   "actql/actql/pipeline_typing",
   "actql/actql/relation_schema",
+  "actql/actql/sourceview_resolution",
   "actql/actql/value_admission",
   "moonbitlang/core/debug",
 }
@@ -57,6 +58,8 @@ pub fn completed_row_count(CompletedOutput) -> Int
 
 pub fn emit_ordered_params(OrderedParams, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
 
+pub fn evaluate_query_receipt(QuerySequence, Array[@decode_core.Cursor], Int, ValueLimits, SequenceExecutionLimits) -> Result[CompletedSequence, QuerySequenceIssue]
+
 pub fn execute_generated_sequence(GeneratedSequence, Array[CapturedRows], SequenceExecutionLimits, produced? : Array[BoundProducerInput]) -> Result[CompletedSequence, SequenceRunIssue]
 
 pub fn execute_local_compute_attempt(LocalComputeAttempt, SequenceExecutionLimits) -> Result[CompletedSequence, LocalComputeIssue]
@@ -73,7 +76,11 @@ pub fn prepare_local_compute_attempt(GeneratedSequence, Array[BoundProducerInput
 
 pub fn prepare_ordered_params(RegisteredOrderedContract, @lowering_relation.OrderedReferences) -> OrderedParams
 
+pub fn prepare_query_sequence(@sourceview_resolution.QueryAcquisition, GeneratedSequence, Int) -> Result[QuerySequence, QuerySequenceIssue]
+
 pub fn prepare_runtime_fragment(@lowering_relation.FragmentRequest, FragmentContract, @lowering_relation.DemandLimits, RegistryLimits, @lowering_relation.FragmentRowLimits, ordered? : RegisteredOrderedContract?) -> Result[FragmentRuntimeContext, RuntimeFragmentIssue]
+
+pub fn query_sequence_requirement(QuerySequence) -> @sourceview_resolution.QueryAcquisition
 
 pub fn runtime_fragment_failure_stage(RuntimeFragmentIssue) -> RuntimeFragmentFailureStage
 
@@ -253,6 +260,19 @@ pub(all) enum ProducerBindingIssue {
   ProducerOwnerMismatch
   ProducerBindingMismatch
   ProducerTargetMismatch
+}
+
+type QuerySequence
+
+pub(all) enum QuerySequenceIssue {
+  InvalidLimits
+  Limit
+  ForeignPipeline
+  ForeignParameters
+  UnsupportedExecutionShape
+  CaptureNotRetained
+  ReceiptAdmission(CaptureIssue)
+  Execution(SequenceRunIssue)
 }
 
 type RegisteredOrderedContract

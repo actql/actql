@@ -27,3 +27,23 @@ This is an internal integration building block, not a public Connector SPI or
 CLI execution mode. Raw input, fresh source reads, asynchronous/in-flight
 cancellation, durable capture and formal Program/Plan admission are not supplied
 by this adapter. See [design](design/local-compute-attempt.md).
+
+## Acquisition-internal residual building block
+
+For a broad, already received scan, `prepare_query_sequence(query, generated,
+max_work)` associates main's `sourceview_resolution.QueryAcquisition` with the
+exact lowered pipeline and Parameter bindings. The supported sequence has one
+input, a filter and a select; retain only the select node ID. A larger checked
+pipeline is rejected rather than running its consumers before capture.
+
+`evaluate_query_receipt(prepared, rows, max_received_rows, admission, execution)`
+validates the entire receipt and runs that existing sequence. It returns either
+a typed `ReceiptAdmission`/`Execution` failure or the usual `CompletedSequence`.
+`query_sequence_requirement` returns the unchanged shared derivation. Fresh
+execution budgets can reuse the immutable preparation.
+
+This is **not acquisition completion**: callers still need verified source
+coverage, authority, snapshot/access evidence, canonical logical guards and
+observation capture before exposing an acquired input. The adapter supplies none
+of those claims and cannot verify a native provider by seeing only its filtered
+rows. See [residual boundary](design/query-residual-execution.md).

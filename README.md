@@ -457,7 +457,8 @@ design also reaches browser, edge, and managed runtimes.
 - [Physical cost helper](docs/physical-cost-usage.md) — source-checkout MoonBit
   estimate composition and selection; not a Connector execution or Plan API
 - [Local Compute attempts](docs/local-compute-usage.md) — source-checkout
-  synchronous execution using completed producer inputs
+  synchronous execution using completed producer inputs, plus a shared-query
+  residual adapter (not acquisition completion)
 
 ## Status
 
