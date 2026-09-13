@@ -121,6 +121,16 @@ input, output material and ceilings, not equivalent rows or CIDs. It proves only
 input/output capacity: predicate demand, transport provenance and successful
 execution remain separate conditions for trusted completion.
 
+The restricted DuckDB fixed-input comparison shares operand and root accounting
+with Acquisition's native comparison. It reads the exact retained input field,
+measures the bound RHS only upon first demand, and derives true/false/NULL counts
+from the received result count and operand nullness, without executing the
+predicate in Local. Empty input has no RHS or root demand. The measurement owns
+the exact compiled query, live receipt and byte ceiling. Result-count consistency
+is not execution attestation; completion must separately verify that the trusted
+transport actually ran that query against that fixed input. Measurement failure
+revokes its own receipt, never a foreign query's receipt or successful upstream.
+
 DuckDB preparation compiles an isolated temporary-table import and restricted
 filter/select for the same retained input. The common comparison includes setup,
 import/export, conversion, computation, retention and cleanup scopes. Selection

@@ -85,7 +85,10 @@ test "completed capture prepares exact isolated Compute import without source ac
 }
 
 ///|
-fn duckdb_fixed_values(source : String) -> @execution.ProducerRead raise {
+fn duckdb_fixed_values(
+  source : String,
+  steps? : String = "[{\"select\":[\"x\"]}]",
+) -> @execution.ProducerRead raise {
   let pipeline = @pipeline.check(input_cursor(source), [], None, None, {
     max_steps: 10,
     max_work: 100000,
@@ -110,7 +113,7 @@ fn duckdb_fixed_values(source : String) -> @execution.ProducerRead raise {
     [],
     compute_test_limits(),
   ).unwrap()
-  let receiver = typed_receiver(owner, "[{\"select\":[\"x\"]}]", target=Step(0))
+  let receiver = typed_receiver(owner, steps, target=Step(0))
   let output = @execution.completed_output(complete, Step(0)).unwrap()
   let bound = @execution.bind_completed_input(receiver, 0, owner, output).unwrap()
   @execution.prepare_producer_read(receiver, bound, 100, 1000).unwrap()

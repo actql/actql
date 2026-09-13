@@ -55,6 +55,10 @@ pub fn finish_fixed_compute_receiving(FixedComputeReceiving) -> Result[FixedComp
 
 pub fn finish_native_receipt(NativeReceiving, NativeReceiptPort) -> Result[Unit, NativeReceivingIssue]
 
+pub fn fixed_compute_demand_matches(FixedComputeDemand, FixedCompute, FixedComputeReceipt, Int) -> Bool
+
+pub fn fixed_compute_demand_usage(FixedComputeDemand) -> NativeDemandUsage
+
 pub fn fixed_compute_import(FixedCompute) -> FixedImport
 
 pub fn fixed_compute_query(FixedCompute) -> NativeQuery
@@ -74,6 +78,8 @@ pub fn fixed_import_insert_sql(FixedImport) -> String
 pub fn fixed_import_parameter(FixedImport, Int, Int) -> Result[PhysicalParameter, ValueIssue]
 
 pub fn identify_native_receipts(NativeReceiving, @execution_relation.RowWireLimits, Int, Int) -> Result[NativeReceiptIdentities, NativeReceiptIdentityIssue]
+
+pub fn measure_fixed_compute_demand(FixedCompute, FixedComputeReceipt, Int, @execution_relation.FixedInputGuardMeasureLimits) -> Result[FixedComputeDemand, NativeDemandIssue]
 
 pub fn measure_native_demand(NativeReceiving, @execution_relation.FixedInputGuardMeasureLimits) -> Result[NativeDemandMeasurement, NativeDemandIssue]
 
@@ -173,6 +179,8 @@ type BroadScan
 type BroadTable
 
 type FixedCompute
+
+type FixedComputeDemand
 
 type FixedComputeReceipt
 

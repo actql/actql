@@ -7,6 +7,7 @@ struct OwnedFixedFixture {
   local_choice : @planning.FixedComputeChoice
   measurement : @execution.FixedProducerMeasurement
   mut measured : @execution.FixedProducerMeasuredOutput?
+  mut demand : @duckdb.FixedComputeDemand?
   mut receiving : @duckdb.FixedComputeReceiving?
   mut receipt : @duckdb.FixedComputeReceipt?
 }
@@ -113,6 +114,7 @@ pub fn owned_fixed_create(
         issued_native_measure_limits(),
       ).unwrap(),
       measured: None,
+      demand: None,
       receiving: None,
       receipt: None,
     }
@@ -225,6 +227,16 @@ pub fn owned_fixed_finish(value : OwnedFixedFixture) -> Bool {
   guard value.receiving is Some(receiving) else { return false }
   match @duckdb.finish_fixed_compute_receiving(receiving) {
     Ok(receipt) => {
+      match
+        @duckdb.measure_fixed_compute_demand(
+          value.compute,
+          receipt,
+          10000,
+          issued_native_measure_limits(),
+        ) {
+        Ok(demand) => value.demand = Some(demand)
+        Err(_) => return false
+      }
       guard @duckdb.fixed_compute_receipt_rows(receipt) is Some(rows) else {
         return false
       }
@@ -247,6 +259,10 @@ pub fn owned_fixed_finish(value : OwnedFixedFixture) -> Bool {
 #export_name("ownedFixedRows")
 pub fn owned_fixed_rows(value : OwnedFixedFixture) -> String {
   guard value.receipt is Some(receipt) else { return "null" }
+  guard value.demand is Some(demand) &&
+    @duckdb.fixed_compute_demand_matches(demand, value.compute, receipt, 10000) else {
+    return "null"
+  }
   guard @duckdb.fixed_compute_receipt_rows(receipt) is Some(rows) else {
     return "null"
   }
@@ -311,4 +327,5 @@ pub fn owned_fixed_abort(value : OwnedFixedFixture) -> Unit {
   }
   value.receipt = None
   value.measured = None
+  value.demand = None
 }

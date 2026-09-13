@@ -33,9 +33,83 @@ struct NativeDemandMeasurement {
 }
 
 ///|
+priv struct ComparisonDemand {
+  mut rows : Int
+  mut field_bytes : Int64
+  mut rhs_bytes : Int?
+  mut null_rows : Int
+}
+
+///|
+fn accumulate_comparison_demand(
+  state : ComparisonDemand,
+  budget : NativeValueBudget,
+  value : ParameterValue,
+  rhs : ParameterValue,
+) -> Result[Unit, NativeDemandIssue] {
+  let bytes = match measure_demand_scalar(budget, value) {
+    Ok(bytes) => bytes
+    Err(issue) => return Err(Operand(state.rows, false, issue))
+  }
+  state.field_bytes += bytes.to_int64()
+  if state.rhs_bytes is None {
+    state.rhs_bytes = Some(
+      match measure_demand_scalar(budget, rhs) {
+        Ok(bytes) => bytes
+        Err(issue) => return Err(Operand(state.rows, true, issue))
+      },
+    )
+  }
+  if value is Null ||
+    value is Admitted(@admitted.Null) ||
+    rhs is Null ||
+    rhs is Admitted(@admitted.Null) {
+    state.null_rows += 1
+  }
+  state.rows += 1
+  Ok(())
+}
+
+///|
+fn finish_comparison_demand(
+  state : ComparisonDemand,
+  true_rows : Int,
+  budget : NativeValueBudget,
+  physical : @execution.FixedInputGuardMeasureLimits,
+) -> Result[NativeDemandUsage, NativeDemandIssue] {
+  if true_rows < 0 || true_rows > state.rows - state.null_rows {
+    return Err(InvalidResultCount)
+  }
+  let false_rows = state.rows - state.null_rows - true_rows
+  let max_predicate_bytes = if false_rows > 0 {
+    5
+  } else if state.rows > 0 {
+    4
+  } else {
+    0
+  }
+  if max_predicate_bytes > budget.guards.max_value_bytes {
+    return Err(Predicate(ValueBytes))
+  }
+  Ok({
+    rows: state.rows,
+    field_bytes: state.field_bytes,
+    rhs_bytes: state.rhs_bytes,
+    true_rows,
+    false_rows,
+    null_rows: state.null_rows,
+    predicate_bytes: (true_rows.to_int64() + state.null_rows.to_int64()) * 4L +
+    false_rows.to_int64() * 5L,
+    physical_work: physical.max_work - budget.work,
+    physical_bytes: physical.max_bytes - budget.bytes,
+    physical_nodes: physical.max_nodes - budget.nodes,
+  })
+}
+
+///|
 fn measure_demand_scalar(
   budget : NativeValueBudget,
-  value : @admitted.Value?,
+  value : ParameterValue,
 ) -> Result[Int, NativeValueIssue] {
   if budget.work == 0 {
     return Err(MeasurementWork)
@@ -48,8 +122,11 @@ fn measure_demand_scalar(
       budget.depth,
     )
     match value {
-      Some(value) => @admitted.emit_wire_value(value, writer)
-      None => @encode.null_value(writer)
+      Admitted(value) => @admitted.emit_wire_value(value, writer)
+      Null => @encode.null_value(writer)
+      ScalarNumber(value) => @encode.number_value(writer, value)
+      ScalarBoolean(value) => @encode.bool_value(writer, value)
+      ScalarText(value) => @encode.string_value(writer, value)
     }
     @encode.finish_measurement_usage(writer)
   } catch {
@@ -99,8 +176,8 @@ fn measure_native_demand_impl(
   let query = receiving.scan.query
   let column = receiving.scan.predicate_column
   let rhs = match query.parameter.value {
-    Admitted(value) => Some(value)
-    Null => None
+    Admitted(value) => Admitted(value)
+    Null => Null
     _ => return Err(InvalidLayout)
   }
   let budget : NativeValueBudget = {
@@ -110,71 +187,30 @@ fn measure_native_demand_impl(
     nodes: physical.max_nodes,
     depth: physical.max_depth,
   }
-  let mut row = 0
-  let mut field_bytes = 0L
-  let mut rhs_bytes = None
-  let mut null_rows = 0
+  let state : ComparisonDemand = {
+    rows: 0,
+    field_bytes: 0L,
+    rhs_bytes: None,
+    null_rows: 0,
+  }
   for batch in receiving.validation_batches {
     for offset in 0..<batch.rows {
       guard physical_batch_cell(batch, offset, column) is Some(cell) else {
         return Err(InvalidLayout)
       }
-      let bytes = match measure_demand_scalar(budget, Some(cell.value)) {
-        Ok(bytes) => bytes
-        Err(issue) => return Err(Operand(row, false, issue))
+      match
+        accumulate_comparison_demand(state, budget, Admitted(cell.value), rhs) {
+        Ok(_) => ()
+        Err(issue) => return Err(issue)
       }
-      field_bytes += bytes.to_int64()
-      // The bound immutable value is identical for every demanded occurrence.
-      // Measure once at first demand, not during preparation or on empty input.
-      if rhs_bytes is None {
-        rhs_bytes = Some(
-          match measure_demand_scalar(budget, rhs) {
-            Ok(bytes) => bytes
-            Err(issue) => return Err(Operand(row, true, issue))
-          },
-        )
-      }
-      if cell.value is @admitted.Null ||
-        rhs is None ||
-        rhs is Some(@admitted.Null) {
-        null_rows += 1
-      }
-      row += 1
     }
   }
-  if row != validation.rows {
+  if state.rows != validation.rows {
     return Err(InvalidLayout)
   }
-  if native.rows > row - null_rows {
-    return Err(InvalidResultCount)
-  }
-  let true_rows = native.rows
-  let false_rows = row - null_rows - true_rows
-  let max_predicate_bytes = if false_rows > 0 {
-    5
-  } else if row > 0 {
-    4
-  } else {
-    0
-  }
-  if max_predicate_bytes > budget.guards.max_value_bytes {
-    return Err(Predicate(ValueBytes))
-  }
-  Ok({
+  finish_comparison_demand(state, native.rows, budget, physical).map(usage => NativeDemandMeasurement::{
     owner: receiving,
-    usage: {
-      rows: row,
-      field_bytes,
-      rhs_bytes,
-      true_rows,
-      false_rows,
-      null_rows,
-      predicate_bytes: (true_rows.to_int64() + null_rows.to_int64()) * 4L +
-      false_rows.to_int64() * 5L,
-      physical_work: physical.max_work - budget.work,
-      physical_bytes: physical.max_bytes - budget.bytes,
-      physical_nodes: physical.max_nodes - budget.nodes,
-    },
+    usage,
   })
 }
 

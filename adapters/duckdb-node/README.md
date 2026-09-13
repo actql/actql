@@ -172,8 +172,11 @@ revocation. It uses the shared physical decoder and `FixedComputeReceiving` for
 actual returned chunks. The owned-input fixture measures complete input values
 before import and output values after receipt settlement using the same bounded
 engine measurement session. Exact owner/target/limits and one-use finishing are
-checked without re-evaluating the predicate. The sealed receipt is still provisional, not a
-`CompletedOutput`: selected consumer-capacity enforcement and trusted Compute
+checked without re-evaluating the predicate. The fixture also applies shared native demand measurement:
+retained operands and the received result count determine predicate root bytes,
+with no RHS demand for empty input. Neither measurement alone grants execution
+success. The sealed receipt is still provisional, not a
+`CompletedOutput`: product integration of the selected capacity and trusted Compute
 completion remain required. This fixture-backed driver is conformance code, not
 the final standard Compute Host entry. Acquisition budget exemptions must not be
 reused to waive a fixed consumer's selected contract.
