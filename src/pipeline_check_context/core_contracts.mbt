@@ -46,6 +46,7 @@ pub(all) enum CoreContractBody {
   LocalInputType(String)
   CanonicalIdentityRules
   SourceResponsePolicyRules
+  EffectiveDataPolicyRules
 } derive(Eq, Debug)
 
 ///|
@@ -73,6 +74,7 @@ pub(all) enum CoreContractSite {
   StageCanonicalIdentityRules(Int)
   StagePublicationRules(Int, Int)
   StageSourceResponsePolicyRules(Int, Int)
+  StageEffectiveDataPolicyRules(Int, Int)
 } derive(Eq, Debug)
 
 ///|
@@ -257,6 +259,11 @@ pub fn collect_core_contracts(
           b,
           StageSourceResponsePolicyRules(stage, input),
           SourceResponsePolicyRules,
+        )
+        core_contract_root(
+          b,
+          StageEffectiveDataPolicyRules(stage, input),
+          EffectiveDataPolicyRules,
         )
         for reference in 0..<@sourceviews.selected_reference_count(selected) {
           core_contract_charge(b)
@@ -486,6 +493,15 @@ pub fn collect_core_contracts(
         LocalSourceReferenceRules
         | CanonicalIdentityRules
         | SourceResponsePolicyRules => ()
+        EffectiveDataPolicyRules => {
+          core_contract_edge(b)
+          core_contract_body(b, SourceResponsePolicyRules)
+          core_contract_dependency(
+            b,
+            EffectiveDataPolicyRules,
+            SourceResponsePolicyRules,
+          )
+        }
         ValuesExecutionRules => {
           let target = CatalogGrammarBody(@environment.ValueGrammarBody)
           core_contract_edge(b)
@@ -624,6 +640,8 @@ pub fn core_contract_cid(v : CoreContractBody) -> String {
     LocalInputType(cid) => cid
     CanonicalIdentityRules =>
       "sha256:5a79d6cb9b012d0c3871c72e496eec7183948ac81d8ebff91b4f7ee6a59ae19d"
+    EffectiveDataPolicyRules =>
+      "sha256:93dd2547ab54c61374ed35f397af0195be23555f63a383310323d909c489f5ff"
     SourceResponsePolicyRules =>
       "sha256:742e76bb6cca5ce4d6ce225b6dc2ce153defb4a5a4e1dcd44d68699308110cfc"
   }

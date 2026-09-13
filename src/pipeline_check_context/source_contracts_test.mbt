@@ -218,14 +218,20 @@ test "repeated unused SourceView declarations retain separate input occurrences"
   for input in 0..<2 {
     let policy = core_contract_root_at(
       inventory,
-      incoming_count + input * (count + 1),
+      incoming_count + input * (count + 2),
     ).unwrap()
     assert_eq(policy.site, StageSourceResponsePolicyRules(0, input))
     assert_eq(policy.body, SourceResponsePolicyRules)
+    let effective = core_contract_root_at(
+      inventory,
+      incoming_count + input * (count + 2) + 1,
+    ).unwrap()
+    assert_eq(effective.site, StageEffectiveDataPolicyRules(0, input))
+    assert_eq(effective.body, EffectiveDataPolicyRules)
     for reference in 0..<count {
       let root = core_contract_root_at(
         inventory,
-        incoming_count + input * (count + 1) + 1 + reference,
+        incoming_count + input * (count + 2) + 2 + reference,
       ).unwrap()
       assert_eq(root.site, CatalogReference(0, input, reference))
       let expected = @environment.contract_identity(
@@ -240,13 +246,15 @@ test "repeated unused SourceView declarations retain separate input occurrences"
   }
   assert_true(stage_has_contract(inventory, 0, SourceResponsePolicyRules))
   assert_false(stage_has_contract(inventory, 1, SourceResponsePolicyRules))
-  assert_eq(core_contract_body_count(inventory), 41)
+  assert_true(stage_has_contract(inventory, 0, EffectiveDataPolicyRules))
+  assert_false(stage_has_contract(inventory, 1, EffectiveDataPolicyRules))
+  assert_eq(core_contract_body_count(inventory), 42)
   let (work, edges) = core_contract_usage(inventory)
-  assert_eq(edges, 38)
+  assert_eq(edges, 39)
   let exact : CoreContractLimits = {
     max_work: work,
     max_roots: core_contract_root_count(inventory),
-    max_bodies: 41,
+    max_bodies: 42,
     max_edges: edges,
   }
   assert_true(collect_core_contracts(identity, exact) is Ok(_))
@@ -254,7 +262,7 @@ test "repeated unused SourceView declarations retain separate input occurrences"
     limits in [
       { ..exact, max_work: work - 1, },
       { ..exact, max_roots: exact.max_roots - 1, },
-      { ..exact, max_bodies: 40, },
+      { ..exact, max_bodies: 41, },
       { ..exact, max_edges: edges - 1, },
     ] {
     assert_true(collect_core_contracts(identity, limits) is Err(_))

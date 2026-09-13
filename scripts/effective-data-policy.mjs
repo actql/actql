@@ -88,4 +88,6 @@ for(const v of vectors) moon.push('///|',`test "effective policy ${v.name}" {`,
 const path='src/canonical_json/effective_policy.generated_test.mbt';
 if(process.argv.includes('--write')) writeFileSync(path,moon.join('\n'));
 assert.equal(readFileSync(path,'utf8'),moon.join('\n'));
+assert.ok(readFileSync('src/pipeline_check_context/core_contracts.mbt','utf8').includes(machineCid(contract)),
+  'effective-policy interpretation pin is stale');
 console.log(machineCid(contract),machineCid(contract.schemas.policy));

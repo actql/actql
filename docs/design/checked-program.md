@@ -697,6 +697,14 @@ producer's contributing policies must also be selected. Retaining a direct-polic
 object does not establish runtime egress admission, Ref authority or completion
 of the remaining SourceView construction conditions.
 
+Each selected SourceView occurrence contributes `EffectiveDataPolicyRules` to
+its owning stage's contract inventory, including admitted but unused inputs.
+The contract's dependency on `SourceResponsePolicyRules` is an explicit closure
+edge. Repeated occurrences share contract bodies without dropping their sites;
+Local-only stages and unrelated Catalog entries do not inherit these roots.
+This selects interpretation contracts, not a concrete policy value or an egress
+permission, and does not claim keyed provenance composition is complete.
+
 Coverage starts from the source, expression, operation, input, publication and
 incoming-dependency inventories, not from the list of successful resolutions.
 Each owned occurrence has exactly one disposition:

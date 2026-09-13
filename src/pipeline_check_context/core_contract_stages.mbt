@@ -47,6 +47,7 @@ fn core_contract_site_stage(
     | StageCanonicalIdentityRules(stage)
     | StagePublicationRules(stage, _)
     | StageSourceResponsePolicyRules(stage, _)
+    | StageEffectiveDataPolicyRules(stage, _)
     | StageSemanticRules(stage, _)
     | StageEnvironmentRules(stage)
     | OperationDataProfile(stage, _, _, _) => stage

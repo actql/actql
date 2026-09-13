@@ -67,6 +67,7 @@ test "Stage contract selections retain transitive dependencies without borrowing
   )
   for stage in 0..<2 {
     assert_false(stage_has_contract(v, stage, SourceResponsePolicyRules))
+    assert_false(stage_has_contract(v, stage, EffectiveDataPolicyRules))
     assert_true(stage_has_contract(v, stage, CanonicalIdentityRules))
     for
       (body, cid) in [
