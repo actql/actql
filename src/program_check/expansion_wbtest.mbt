@@ -14,6 +14,23 @@ test "formal unpivot closes occurrence and envelope checks without dropping repe
       extra_step_budget=2,
     )
     let program = checked[0]
+    let keys = @pipeline.candidate_keys(
+      unit_pipeline(program, 0).unwrap(),
+      Step(2),
+    ).unwrap()
+    assert_eq(
+      @evidence.key_witness_count(keys),
+      if columns == "[\"value\"]" {
+        1
+      } else {
+        0
+      },
+    )
+    if columns == "[\"value\"]" {
+      let key = @evidence.key_witness_at(keys, 0).unwrap()
+      assert_eq(@evidence.key_origin(key), UnpivotResult)
+      assert_true(@evidence.key_unpivot_input(key) is Some(_))
+    }
     let closure = @context.stage_requirement_operations(requirements(program))
     let mut emitted = 0
     let mut envelopes = 0
@@ -107,6 +124,36 @@ test "formal unpivot closes occurrence and envelope checks without dropping repe
       is Err(BudgetExceeded),
     )
   }
+}
+
+///|
+test "formal unpivot imports a retained parent and generated label key" {
+  let checked : Array[CheckedProgram] = []
+  let _ = local_construction_fixture(
+    { work: 10000000, bytes: 1000000, nodes: 100000, depth: 100, },
+    second_stage=true,
+    through_check=true,
+    checked_results=checked,
+    producer_suffix=",{\"unpivot\":{\"columns\":[\"value\"],\"keep\":[\"id\"],\"name_column\":\"value\",\"value_column\":\"sample\"},\"as\":\"expanded\"}",
+    producer_result_from="expanded",
+    extra_step_budget=1,
+    second_steps="[{\"take\":1,\"as\":\"chosen\"}]",
+    second_result_from="chosen",
+  )
+  let program = checked[0]
+  let imported = @pipeline.candidate_keys(
+    unit_pipeline(program, 1).unwrap(),
+    Input(0),
+  ).unwrap()
+  assert_eq(@evidence.key_witness_count(imported), 1)
+  let witness = @evidence.key_witness_at(imported, 0).unwrap()
+  assert_eq(@evidence.key_origin(witness), UnpivotResult)
+  assert_eq(@evidence.key_field_count(witness), 2)
+  assert_true(@evidence.key_unpivot_input(witness) is Some(_))
+  assert_true(@evidence.key_pending(witness).contains(ValidateKeyProducer))
+  assert_true(
+    @pipeline.take_order(unit_pipeline(program, 1).unwrap(), 0) is Some(_),
+  )
 }
 
 ///|

@@ -3911,6 +3911,16 @@ column occurrence, in input-row then column order, retaining null values. Expans
 bounds count repeated columns; repeating a source column does not establish
 uniqueness of the input candidate key combined with the name column.
 
+When every component of an input candidate key is retained by `keep` and the
+generated name labels are distinct, the output retains that key extended with
+`name_column`. Each label is the canonical field reference text, including
+`left.` or `right.` qualification when present. The witness depends on the input
+key validation and the checked one-occurrence-per-column expansion. A generated
+column does not count as retention of an unkept input field with the same name.
+Dropping every alias of a component loses this witness; null values in the value
+column and empty input do not invalidate it. Repeated columns remain admitted
+but do not generate this composite witness.
+
 <!-- requirement-block: reshaping.json-pick-output-is-an-authored-field-name reshaping.json-pick-output-must-not-collide -->
 `json_pick` preserves every existing field and adds `output`; its output name
 MUST be an authored field name and MUST NOT collide with an existing field.

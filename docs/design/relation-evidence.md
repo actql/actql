@@ -1,5 +1,18 @@
 # Relation key declarations and evidence
 
+Unpivot prepares one exact `keep` projection, then extends each surviving parent
+key with the generated name column. The checked source references and their
+canonical output labels must both be distinct. Repeated columns remain valid
+input but generate no composite key; a generated column whose name matches an
+unkept input is not a copy of that input. `UnpivotResult` exposes the checked
+operation and immutable parent through `key_producer` and `key_unpivot_input`.
+Its producer obligation includes the one-occurrence-per-column rule and the
+original parent admission. Mapping, labels, witnesses and added components share
+the transfer budget; no array of expression trees or alias product is built.
+This is evidence derivable from the normative expansion rule, now explicit in
+the reshaping owner; it does not alter row values or authored identities. The
+fixed Sketch compiler omits this candidate-key transfer.
+
 Unnest generates conditional occurrence keys from each complete input witness.
 Non-outer expansion requires a retained public index and extends the parent key
 with that non-null index; element equality, null elements and repeated elements

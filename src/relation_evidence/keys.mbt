@@ -64,6 +64,7 @@ pub(all) enum KeyOrigin {
   GraphProjectionResult
   WindowMembershipResult
   UnnestResult
+  UnpivotResult
   JoinResult
   CrossJoinResult
   IntervalJoinResult
@@ -92,6 +93,7 @@ priv enum KeyProducer {
   GraphProjectionProducer(@projection.CheckedProjection)
   WindowProducer(@window.CheckedWindow, KeyedRelation)
   UnnestProducer(@relation.CheckedOperation, KeyedRelation)
+  UnpivotProducer(@relation.CheckedOperation, KeyedRelation)
   JoinProducer(@join.CheckedJoin, Array[(@row.Side, KeyedRelation)])
   CrossJoinProducer(@join.CheckedCrossJoin, Array[(@row.Side, KeyedRelation)])
   IntervalJoinProducer(
@@ -307,7 +309,9 @@ pub fn key_origin(c : KeyedRelation) -> KeyOrigin {
 ///|
 pub fn key_producer(c : KeyedRelation) -> @relation.CheckedOperation? {
   match c.producer {
-    Some(RelationProducer(op)) | Some(UnnestProducer(op, _)) => Some(op)
+    Some(RelationProducer(op))
+    | Some(UnnestProducer(op, _))
+    | Some(UnpivotProducer(op, _)) => Some(op)
     _ => None
   }
 }

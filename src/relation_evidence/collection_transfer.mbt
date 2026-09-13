@@ -112,7 +112,8 @@ fn prepare_mapping(
         Some(Unnest(outer=true, max_items=Some(n), ..)) if n <= 1L => Keep
         _ => Forget
       }
-    Unpivot | Group | Pivot => Forget
+    Unpivot => unpivot_mapping(operation, b)
+    Group | Pivot => Forget
   }
 }
 
@@ -204,6 +205,8 @@ pub fn transfer_keys(
         witnesses.push(
           if @relation.operation(operation) == @relation.Unnest {
             unnest_key(operation, key, next, b)
+          } else if @relation.operation(operation) == @relation.Unpivot {
+            unpivot_key(operation, key, next, b)
           } else {
             next
           },
