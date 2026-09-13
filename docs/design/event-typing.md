@@ -72,3 +72,19 @@ elsewhere; repeated keys remain authored occurrences. Both are explicit language
 decisions beyond the reference compiler's nonempty restriction. Time arithmetic,
 stable session identity construction, binding and execution bounds remain
 obligations, not a claim that session assignment has executed.
+
+## Owned execution requirements
+
+The Program operation resolution index binds value admission, semantic identity
+uniqueness and timestamp-clock conversion to the exact checked Event operation,
+its original input occurrence and source obligation. These checks run before
+input use; empty inputs and literal data do not waive them. Conversion retains
+the authored payload field and its type rather than replacing it with the clock.
+
+Watermark classification and dedupe representative selection are separately
+bound before output. They retain the original threshold/policy and repeated
+partition/order terms, respectively. Failure rejects the operation output; a
+successful static binding neither attests unique IDs nor repairs duplicates.
+Resources, selected profile, session gap binding, session arithmetic and session
+identity are not discharged by these checks. Their separate resolutions remain
+necessary before the formal Program constructor can return this path.

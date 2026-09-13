@@ -246,9 +246,16 @@ pub fn index_program_operation_resolutions(
                                                             site,
                                                           ) {
                                                           Ok(None) =>
-                                                            asof_execution_check(
-                                                              site,
-                                                            )
+                                                            match
+                                                              asof_execution_check(
+                                                                site,
+                                                              ) {
+                                                              Ok(None) =>
+                                                                event_execution_check(
+                                                                  site,
+                                                                )
+                                                              other => other
+                                                            }
                                                           other => other
                                                         }
                                                       other => other

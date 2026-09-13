@@ -59,6 +59,7 @@ pub fn close_program_operations(
           IntervalExecution(v) => v.site
           IntervalSearch(v) => v.site
           AsOfSearch(v) => v.site
+          EventExecution(v) => v.site
           WatermarkExecution(v) => v.site
           WindowMembershipLimit(v) => v.site
           AnalyticExecution(v) => v.site

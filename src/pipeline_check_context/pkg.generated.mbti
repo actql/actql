@@ -12,6 +12,7 @@ import {
   "actql/actql/check_environment",
   "actql/actql/decode_core",
   "actql/actql/encode_core",
+  "actql/actql/event_typing",
   "actql/actql/expression_typing",
   "actql/actql/local_relation_input",
   "actql/actql/local_relation_snapshot",
@@ -1286,6 +1287,22 @@ pub(all) enum EnvironmentIssue {
   BudgetExceeded
 } derive(Eq, @debug.Debug)
 
+pub struct EventExecutionCheck {
+  site : OperationRequirementSite
+  step : @pipeline_typing.CheckedStep
+  input : @pipeline_typing.Target
+  operation : @event_typing.CheckedEvent
+  rule : EventExecutionRule
+}
+
+pub(all) enum EventExecutionRule {
+  AdmitEventValues
+  ValidateEventIdentities
+  ConvertEventClock
+  ClassifyEventWatermark
+  SelectEventRepresentative
+} derive(Eq, @debug.Debug)
+
 pub(all) enum ExecutionCheckFailure {
   RejectOperationOutput
 } derive(Eq, @debug.Debug)
@@ -1799,6 +1816,7 @@ pub(all) enum OperationDisposition {
 }
 
 pub(all) enum OperationExecutionCheck {
+  EventExecution(EventExecutionCheck)
   AsOfExecution(AsOfExecutionCheck)
   AsOfSearch(AsOfSearchCheck)
   IntervalExecution(IntervalExecutionCheck)
