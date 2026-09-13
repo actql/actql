@@ -11,6 +11,7 @@ pub struct DedupeTopTieCheck {
 
 ///|
 pub(all) enum OperationExecutionCheck {
+  GraphConstructionExecution(GraphConstructionCheck)
   GraphProjection(GraphProjectionCheck)
   GraphProjectionOutput(GraphProjectionEnvelope)
   SequenceMatch(SequenceMatchCheck)
@@ -64,6 +65,16 @@ pub fn operation_execution_phase(
   v : OperationExecutionCheck,
 ) -> ExecutionCheckPhase {
   match v {
+    GraphConstructionExecution(v) =>
+      match v.rule {
+        AdmitInputRows => BeforeOperationInputUse
+        CloseDeclaredEndpoints
+        | DeriveEndpointNodes
+        | JournalEndpoints
+        | JournalLabels
+        | CollapseEqualPayloads
+        | RejectPayloadConflicts => BeforeOperationOutput
+      }
     GraphProjectionOutput(_) => BeforeOperationOutput
     GraphProjection(v) =>
       match v.rule {
@@ -159,7 +170,9 @@ pub fn operation_execution_failure(
   v : OperationExecutionCheck,
 ) -> ExecutionCheckFailure {
   match v {
-    GraphProjection(_) | GraphProjectionOutput(_) => RejectOperationOutput
+    GraphProjection(_)
+    | GraphProjectionOutput(_)
+    | GraphConstructionExecution(_) => RejectOperationOutput
     AsOfExecution(_) => RejectOperationOutput
     IntervalExecution(_) => RejectOperationOutput
     IntervalSearch(_) => RejectOperationOutput

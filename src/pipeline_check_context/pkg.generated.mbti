@@ -16,6 +16,7 @@ import {
   "actql/actql/encode_core",
   "actql/actql/event_typing",
   "actql/actql/expression_typing",
+  "actql/actql/graph_typing",
   "actql/actql/local_relation_input",
   "actql/actql/local_relation_snapshot",
   "actql/actql/numeric_reduction",
@@ -1415,6 +1416,25 @@ pub(all) struct ExpressionValidationLimits {
 
 type ExpressionValidationSite
 
+pub struct GraphConstructionCheck {
+  site : OperationRequirementSite
+  step : @pipeline_typing.CheckedStep
+  nodes : @pipeline_typing.Target?
+  edges : @pipeline_typing.Target
+  operation : @graph_typing.CheckedConstruction
+  rule : GraphConstructionRule
+}
+
+pub(all) enum GraphConstructionRule {
+  AdmitInputRows
+  CloseDeclaredEndpoints
+  DeriveEndpointNodes
+  JournalEndpoints
+  JournalLabels
+  CollapseEqualPayloads
+  RejectPayloadConflicts
+} derive(Eq, @debug.Debug)
+
 pub struct GraphProjectionCheck {
   site : OperationRequirementSite
   step : @pipeline_typing.CheckedStep
@@ -1869,6 +1889,7 @@ pub(all) enum OperationDisposition {
 }
 
 pub(all) enum OperationExecutionCheck {
+  GraphConstructionExecution(GraphConstructionCheck)
   GraphProjection(GraphProjectionCheck)
   GraphProjectionOutput(GraphProjectionEnvelope)
   SequenceMatch(SequenceMatchCheck)

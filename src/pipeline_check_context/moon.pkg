@@ -6,6 +6,7 @@ import {
 
 import {
   "actql/actql/capacity_sequence_limit" @sequence_limits,
+  "actql/actql/graph_typing" @graph,
   "actql/actql/temporal_window" @window,
   "actql/actql/event_typing" @event,
   "actql/actql/numeric_reduction" @numeric,

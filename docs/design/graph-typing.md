@@ -473,3 +473,32 @@ distinct obligations. The checker performs no joins or graph construction on
 actual rows. Source admission, identity-domain alignment, selected-field inspection
 and retained names share budgets; pre-admitted property children are shared rather
 than recursively copied. Pipeline preflight still checks supplied Carrier contracts.
+
+`GraphConstructionCheck` retains the construction, exact requirement occurrence
+and its ordered input targets. The ordinary indexed input-occurrence reader on
+the retained step exposes Left/Right for explicit nodes/edges and Primary for
+the concise edge input. Equal targets do not merge the two explicit roles.
+No additional dependency array or reconstruction of the source is needed to
+recover the checked input topology.
+
+| Requirement | Execution rule | Required behavior |
+| --- | --- | --- |
+| Input row admission | AdmitInputRows | Admit the selected input rows and their identity/property values before input use; static type agreement is not observed validity. |
+| Explicit endpoint closure | CloseDeclaredEndpoints | Retain edges only when both endpoints belong to the declared node universe; do not create missing nodes. |
+| Concise endpoint completion | DeriveEndpointNodes | Derive the distinct union of endpoint identities with no undeclared node properties. |
+| Endpoint completion record | JournalEndpoints | Retain the completion associated with this exact construction and source form. |
+| Implicit label completion record | JournalLabels | Record the selected conventional label role; an explicit label does not create this implicit completion. |
+| Equal identity/payload declarations | CollapseEqualPayloads | Collapse only declarations with equal complete canonical payloads under the fixed node/edge identity rules. |
+| Conflicting identity/payload declarations | RejectPayloadConflicts | Reject identity-equal declarations with unequal payloads rather than select a representative. |
+
+These rules follow the Graph-construction requirements above. Completion,
+collapse and conflict handling are required before exposing construction output;
+failure rejects that output. The bindings are future execution requirements,
+not observed graph uniqueness, total order or completed execution evidence.
+Resource resolution and SGA profile selection remain separate requirements and
+cannot be discharged by these rules.
+
+`graph_construction_execution_wbtest.mbt` covers explicit distinct/repeated inputs,
+concise construction, implicit versus explicit label selection, exact retained
+handles, invalid occurrences and execution phase/failure classification. This is
+a connection test, not runtime graph-construction conformance.
