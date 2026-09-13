@@ -8,6 +8,7 @@ import {
   "actql/actql/capacity_host_witness",
   "actql/actql/capacity_policy",
   "actql/actql/capacity_program_step",
+  "actql/actql/capacity_sequence_limit",
   "actql/actql/capacity_witness",
   "actql/actql/check_environment",
   "actql/actql/decode_core",
@@ -1844,6 +1845,7 @@ pub(all) enum OperationDisposition {
 
 pub(all) enum OperationExecutionCheck {
   SequenceMatch(SequenceMatchCheck)
+  SequenceLimits(SequenceLimitsCheck)
   SequenceExecution(SequenceExecutionCheck)
   CalendarExecution(CalendarExecutionCheck)
   SeriesExecution(SeriesExecutionCheck)
@@ -2466,6 +2468,12 @@ pub(all) enum SequenceExecutionRule {
   ValidateSequenceIdentities
   OrderSequenceEvents
 } derive(Eq, @debug.Debug)
+
+pub struct SequenceLimitsCheck {
+  site : OperationRequirementSite
+  step : @pipeline_typing.CheckedStep
+  limits : @capacity_sequence_limit.SequenceLimits
+}
 
 pub struct SequenceMatchCheck {
   site : OperationRequirementSite

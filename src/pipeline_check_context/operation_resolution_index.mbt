@@ -382,6 +382,11 @@ pub fn index_program_operation_resolutions(
       }
       other => other
     }
+    let candidate = match candidate {
+      Ok(None) =>
+        sequence_limits_candidate(requirements, requirements.entries[i])
+      other => other
+    }
     match candidate {
       Err(BudgetExceeded) => return Err(BudgetExceeded)
       Err(_) => return Err(ForeignOccurrence(i))

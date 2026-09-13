@@ -67,6 +67,15 @@ match-count limit. Physical search resources and backend algorithm support remai
 separate. Matching and both limit scopes must succeed before any match output;
 within binding alone cannot authorize partial output or bypass an authored guard.
 
+`SequenceLimitsCheck` retains the original per-key and total-output limit claims
+from the selected producer's capacity coverage. These are separate quantity
+scopes, enforced atomically before exposing any match output. A per-key ceiling
+is not a total-row bound; successful static binding does not observe a count or
+execute either check. Resolution uses the owning Stage and producer visit, not
+a search for an equal limit elsewhere. Missing coverage cannot discharge the
+requirement. The capacity consumer's explicit rejection of unbound authored
+guards remains in effect until their source and binding are connected.
+
 ## Nonoverlapping match identity
 
 `relation_evidence.sequence_keys` establishes one conditional singleton key per

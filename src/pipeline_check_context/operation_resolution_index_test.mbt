@@ -41,6 +41,10 @@ fn check_resolution_index(
             scalar.parameter.name.length() * 2
         }
       }
+      Execution(SequenceLimits(check)) => {
+        execution += 1
+        assert_true(physical_equal(check.site, site))
+      }
       Execution(SequenceExecution(check)) => {
         execution += 1
         assert_true(physical_equal(check.site, site))

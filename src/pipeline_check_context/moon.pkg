@@ -5,6 +5,7 @@ import {
 } for "wbtest"
 
 import {
+  "actql/actql/capacity_sequence_limit" @sequence_limits,
   "actql/actql/temporal_window" @window,
   "actql/actql/event_typing" @event,
   "actql/actql/numeric_reduction" @numeric,
