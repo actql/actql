@@ -83,6 +83,73 @@ test "native captured output converts without replay and preserves success acros
     work: 8,
   })
   let other = native_issuer_fixture()
+  let completed = @planning.complete_duckdb_native_output(output, 100, 10000).unwrap()
+  let owner = @execution.admitted_output_owner(rows)
+  let generated = @query.query_generated_sequence(
+    @planning.query_material_owner(
+      @planning.query_requirement_material(f.requirement),
+    ),
+  )
+  assert_true(
+    @planning.complete_duckdb_native_output(output, 0, 10000) is Err(Limit),
+  )
+  assert_true(
+    @planning.complete_duckdb_native_output(output, 100, 0) is Err(Limit),
+  )
+  assert_true(
+    @planning.complete_duckdb_native_output(output, -1, 10000)
+    is Err(InvalidLimits),
+  )
+  let unavailable = @execution.prepare_trusted_output_port(
+    generated,
+    @pipeline.Step(1),
+    100,
+    10000,
+    (_ : Unit) => None,
+  ).unwrap()
+  assert_true(
+    @execution.complete_trusted_output(unavailable, ()) is Err(Unverified),
+  )
+  let foreign_generated = @query.query_generated_sequence(
+    @planning.query_material_owner(
+      @planning.query_requirement_material(other.requirement),
+    ),
+  )
+  // Even trusted verifier wiring cannot substitute a content-equal preparation
+  // for the exact owner of the retained material.
+  let foreign_port = @execution.prepare_trusted_output_port(
+    foreign_generated,
+    @pipeline.Step(1),
+    100,
+    10000,
+    (_ : Unit) => Some(rows),
+  ).unwrap()
+  assert_true(
+    @execution.complete_trusted_output(foreign_port, ()) is Err(ForeignOutput),
+  )
+  assert_true(
+    @execution.prepare_trusted_output_port(
+      generated,
+      @pipeline.Step(0),
+      100,
+      10000,
+      (_ : Unit) => Some(rows),
+    )
+    is Err(InvalidTarget),
+  )
+  let receiver = typed_receiver(owner, "[{\"select\":[\"id\"]}]")
+  let bound = @execution.bind_completed_input(receiver, 0, owner, completed).unwrap()
+  let consumer = compute_test_sequence(receiver)
+  let result = @execution.execute_generated_sequence(
+    consumer,
+    [],
+    compute_test_limits(),
+    produced=[bound],
+  ).unwrap()
+  let downstream = @execution.completed_output(result, @pipeline.Step(0)).unwrap()
+  assert_eq(@execution.completed_row_count(downstream), 2)
+  assert_true(@execution.completed_cell(downstream, 0, 0) is Some(Number(3)))
+  assert_true(@execution.completed_cell(downstream, 1, 0) is Some(Number(2)))
   assert_true(
     @planning.materialize_duckdb_native_output(
       other.issuer,
@@ -95,4 +162,20 @@ test "native captured output converts without replay and preserves success acros
   )
   @planning.close_duckdb_native_issuer(f.issuer)
   assert_true(@planning.duckdb_native_output_rows(output) is Err(IssuerClosed))
+  assert_true(
+    @planning.complete_duckdb_native_output(output, 100, 10000)
+    is Err(Unverified),
+  )
+  assert_true(
+    @execution.bind_completed_input(receiver, 0, owner, completed)
+    is Err(ProducerUnavailable),
+  )
+  assert_true(
+    @execution.execute_generated_sequence(consumer, [], compute_test_limits(), produced=[
+      bound,
+    ])
+    is Err(InputOwnership),
+  )
+  // A finished downstream computation owns its result independently.
+  assert_true(@execution.completed_cell(downstream, 0, 0) is Some(Number(3)))
 }

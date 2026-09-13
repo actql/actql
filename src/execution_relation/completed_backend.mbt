@@ -115,6 +115,15 @@ fn completed_selection(
   workspace : RowWorkspace,
 ) -> Result[CompletedTable, RowIssue] {
   match input {
+    AdmittedTable(table) =>
+      Ok(
+        AdmittedTable({
+          ..table,
+          id,
+          names: table.names.copy(),
+          rows: indices.map(i => table.rows[i]),
+        }),
+      )
     RowTable(table) =>
       Ok(
         RowTable({

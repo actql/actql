@@ -9,6 +9,34 @@ struct DuckDBNativeOutput {
 }
 
 ///|
+/// Fixed provider bridge: installs its own live observation verifier. Callers
+/// cannot supply another verifier or replacement output material.
+pub fn complete_duckdb_native_output(
+  output : DuckDBNativeOutput,
+  max_entries : Int,
+  max_name_bytes : Int,
+) -> Result[@execution.CompletedOutput, @execution.TrustedOutputIssue] {
+  let query = output.attempt.preparation.requirement.material.owner
+  let port = match
+    @execution.prepare_trusted_output_port(
+      @query.query_generated_sequence(query),
+      @pipeline.Step(1),
+      max_entries,
+      max_name_bytes,
+      value => {
+        match duckdb_native_output_rows(value) {
+          Ok(rows) => Some(rows)
+          Err(_) => None
+        }
+      },
+    ) {
+    Ok(port) => port
+    Err(issue) => return Err(issue)
+  }
+  @execution.complete_trusted_output(port, output)
+}
+
+///|
 /// Separate bounded conversion for a row consumer. Failure preserves the source
 /// observation; retry requires fresh conversion allowances, never a source read.
 pub fn materialize_duckdb_native_output(

@@ -81,6 +81,8 @@ pub fn issued_native_attempt(IssuedNativeFixture) -> @query_planning.DuckDBNativ
 
 pub fn issued_native_begin(IssuedNativeFixture, Bool, String) -> Bool
 
+pub fn issued_native_bind(IssuedNativeFixture, @query_planning.DuckDBNativeObservation, Int) -> String
+
 pub fn issued_native_close(IssuedNativeFixture) -> Unit
 
 pub fn issued_native_complete(IssuedNativeFixture, Int) -> Bool

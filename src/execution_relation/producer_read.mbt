@@ -14,6 +14,7 @@ pub(all) enum ProducerReadIssue {
   Limit
   ForeignReceiver
   InvalidProjection
+  ProducerUnavailable
 }
 
 ///|
@@ -23,6 +24,9 @@ pub fn prepare_producer_read(
   max_entries : Int,
   max_name_bytes : Int,
 ) -> Result[ProducerRead, ProducerReadIssue] {
+  if !completion_is_live(bound.output.completion) {
+    return Err(ProducerUnavailable)
+  }
   if max_entries < 0 || max_name_bytes < 0 {
     return Err(InvalidLimits)
   }

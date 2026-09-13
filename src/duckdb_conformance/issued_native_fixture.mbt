@@ -5,6 +5,8 @@ struct IssuedNativeFixture {
   attempt : @planning.DuckDBNativeAttempt
   scan : @duckdb.NativeScan
   requirement : @planning.QueryRequirement
+  owner : @lower.BoundPrepared
+  consumer : @execution.GeneratedSequence
   mut port : @duckdb.NativeReceiptPort?
   mut observation : @planning.DuckDBNativeObservation?
 }
@@ -24,7 +26,7 @@ pub fn issued_native_create(
   verify : (@planning.DuckDBNativeAttempt) -> Bool,
 ) -> IssuedNativeFixture {
   try {
-    let (preparation, _) = issued_fixture_preparation(
+    let (preparation, owner) = issued_fixture_preparation(
       environment_json, environment_cid, registry_json, values_json, fragment_json,
       output_rows,
     )
@@ -86,6 +88,14 @@ pub fn issued_native_create(
       issuer,
       attempt,
       requirement,
+      owner,
+      consumer: fixture_generated(
+        issued_fixture_consumer(owner),
+        registry_json,
+        values_json,
+        fragment_json,
+        false,
+      ),
       scan: @planning.duckdb_native_preparation_scan(
         @planning.duckdb_native_attempt_preparation(attempt),
       ),
@@ -94,6 +104,66 @@ pub fn issued_native_create(
     }
   } catch {
     _ => abort("fixed checked native setup")
+  }
+}
+
+///|
+#export_name("issuedNativeBind")
+pub fn issued_native_bind(
+  value : IssuedNativeFixture,
+  observation : @planning.DuckDBNativeObservation,
+  rows : Int,
+) -> String {
+  guard @planning.materialize_duckdb_native_output(
+      value.issuer,
+      value.attempt,
+      observation,
+      100,
+      {
+        max_nodes: 10000,
+        max_text_bytes: 100000,
+        max_depth: 100,
+        max_work: 1000000,
+      },
+    )
+    is Ok(retained) else {
+    return "null"
+  }
+  guard @planning.complete_duckdb_native_output(retained, 100, 10000)
+    is Ok(output) else {
+    return "null"
+  }
+  guard @execution.bind_completed_input(
+      @execution.generated_sequence_owner(value.consumer),
+      0,
+      value.owner,
+      output,
+    )
+    is Ok(bound) else {
+    return "null"
+  }
+  guard @execution.execute_generated_sequence(
+      value.consumer,
+      [],
+      issued_execution_limits(rows),
+      produced=[bound],
+    )
+    is Ok(completed) else {
+    return "null"
+  }
+  guard @execution.completed_output(completed, Step(0)) is Some(result) else {
+    return "null"
+  }
+  match
+    @execution.identify_completed_rows(result, {
+      max_columns: 10,
+      max_order_work: 10000,
+      max_bytes: 100000,
+      max_nodes: 10000,
+      max_depth: 100,
+    }) {
+    Ok(identity) => @execution.row_wire_cid(identity)
+    Err(_) => "null"
   }
 }
 

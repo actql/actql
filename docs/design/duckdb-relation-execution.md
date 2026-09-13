@@ -459,10 +459,11 @@ implement their own semantic stage sequence in Node or a fixed conformance setup
 This operation creates an acquisition observation, not an engine CompletedOutput.
 
 The native observation retains immutable native receipt data without constructing
-a row-engine completion from caller-supplied rows. Bridging that data into the
-ordinary producer/consumer boundary requires a separate validated completion path;
-the observation document or CID alone cannot supply it. Portable issuer tests do
-not replace real Node bridge conformance.
+a row-engine completion from caller-supplied rows. The separate
+`complete_duckdb_native_output` bridge installs an exact live-observation verifier
+and connects retained data to the ordinary producer/consumer boundary. The
+observation document or CID alone cannot supply it. Portable issuer tests do not
+replace real Node bridge conformance.
 
 `materialize_duckdb_native_output` obtains data only from the exact receiver
 retained by a verified live observation. It does not accept replacement rows,
@@ -480,6 +481,33 @@ A failed conversion releases its provisional containers but preserves the
 successful source observation. Retrying uses fresh conversion allowances and
 never reopens the source. This conversion allowance does not discount receipt,
 capture or subsequent consumer charges.
+
+### Trusted external completion boundary
+
+The row engine does not import acquisition or provider contracts.
+`TrustedOutputPort` is low-level **trusted Host wiring**, not an ordinary
+Connector registration surface. Its installer chooses a synchronous, pure
+verifier that returns exact immutable retained material for live execution proof.
+Installing an arbitrary verifier grants trusted-runtime authority; the low-level
+API does not claim to make malicious Host code safe. Program inputs, JSON/CIDs
+and ordinary Connector registrations must not supply that verifier.
+
+The DuckDB bridge installs its verifier internally, without a caller override.
+The engine independently checks exact bound owner, final target, schema and
+retained-output selection. It publishes only the final retained target, not
+unmaterialized intermediate steps. It keeps the verifier, proof and material
+alive together and rechecks them on producer binding, producer-read preparation
+and receiving execution admission. Revocation after binding therefore prevents
+starting a new consumer. An already successful consumer retains its immutable
+result independently; revoking upstream authority does not retroactively erase it.
+
+Imported admitted values use a private completed-storage adapter, sharing the
+already charged row containers without a second full conversion or admission.
+Ordinary producer accounting and receiving execution remain mandatory. Projection
+and row selection use the existing physical execution path and its budgets;
+expression continuations are not part of the completion boundary. A standard
+product Host assembly must restrict trusted wiring exports independently of the
+fixture-based conformance setup.
 
 The [acquisition resource-scope contract](../../spec/contracts/actql-query-resource-scopes.json)
 separates common acquisition guards from selected fragment bounds. This native

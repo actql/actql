@@ -1,6 +1,7 @@
 ///|
-/// Created only after every prepared operation succeeds. This is component
-/// execution evidence, not whole-Program admission or publication evidence.
+/// Created after local execution succeeds, or after an installed trusted Host
+/// verifier accepts an external realization of the retained final target.
+/// This is component evidence, not whole-Program admission/publication evidence.
 struct CompletedSequence {
   contracts : RegisteredRelationContracts
   sequence : @lower.PreparedSequence
@@ -8,6 +9,7 @@ struct CompletedSequence {
   // Strong ownership anchors: keep upstream completions alive with this result.
   // This retention is intentional even when no subsequent cell read needs them.
   _producer_inputs : Array[BoundProducerInput]
+  live : (() -> Bool)?
 }
 
 ///|
@@ -24,6 +26,9 @@ pub fn completed_output(
   completion : CompletedSequence,
   target : @pipeline.Target,
 ) -> CompletedOutput? {
+  if !completion_is_live(completion) {
+    return None
+  }
   let store = completion.store
   let slot = match target {
     Input(i) => {

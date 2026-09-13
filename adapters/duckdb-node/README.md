@@ -210,8 +210,10 @@ Its independent observation oracle includes the two distinct receipt CIDs and
 all three record CIDs. No Local predicate replay is used. It covers empty input,
 NULL in an unused column, duplicate relative order, invalid discarded values,
 output/artifact exhaustion, cancellation after either receipt and issuer release.
-Native engine completion/producer/consumer integration remains required; this
-fixture deliberately has no substitute consumer or fabricated completion handle.
+It also bridges the owned native output into the engine's real completion and
+producer binding, then executes a checked consumer. Independent expected rows
+determine the final content CID; consumer-budget failure permits retry from the
+same successful capture without rerunning source SQL.
 
 Tests create their own files under ignored `_build/duckdb-fixtures`, exercise
 exact scalar transport, existing-file read-only access, isolated Compute,
@@ -250,8 +252,9 @@ two-receipt observation; `verify_duckdb_native_observation` requires its live
 issuer, exact attempt and issued-set handles. Portable tests compare all preimages
 and aggregate artifact boundaries against independent expectations. The real Node
 conformance bridge supplies settlement provenance to that same issuer. The
-standard product Host entry and native producer/consumer product completion path
-remain required. The document/CID is not an alternative success constructor.
+standard product Host entry remains required. The native producer/consumer bridge
+uses `complete_duckdb_native_output` with an internally installed verifier. The
+document/CID is not an alternative success constructor.
 
 After transport settlement, the bridge calls
 `complete_duckdb_native_capture(issuer, attempt, limits)`. This product operation
@@ -266,8 +269,19 @@ recheck the exact live observation, share immutable admitted values, and charge
 new row containers under explicit conversion limits. Conversion failure leaves
 the source observation available for retry with fresh limits; it does not rerun
 SQL. The resulting `AdmittedOutputRows` is provisional engine material, **not**
-`CompletedOutput` or a producer binding. This operation does not close the pending
-native completion/consumer connection described above.
+`CompletedOutput` or a producer binding. Pass its owned `DuckDBNativeOutput` handle
+to `complete_duckdb_native_output`, then use ordinary `bind_completed_input` and
+consumer execution with fresh budgets. This second operation validates live
+provenance and exact preparation ownership; no replacement verifier or rows are
+accepted. A revoked source rejects new consumer admission, while consumer failure
+does not destroy a successful source capture. The real native conformance case
+checks final consumer CIDs against independently specified rows.
+
+The engine's `prepare_trusted_output_port` is a trusted-runtime installation API,
+not a safe public Connector or Program extension point. Do not expose it from an
+untrusted Host interface; use the provider-specific bridge that fixes verification
+internally. Product Host assembly independent of conformance fixtures is still a
+separate requirement.
 
 `authorizeLocalDatabase` is called by explicit trusted Host setup, not by a
 Program resource decoder. The opaque grant authorizes a path to a trusted local

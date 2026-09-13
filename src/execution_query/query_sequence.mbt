@@ -8,6 +8,14 @@ struct QuerySequence {
 }
 
 ///|
+/// Exact owned execution preparation; no mutable contexts or storage escape.
+pub fn query_generated_sequence(
+  prepared : QuerySequence,
+) -> @execution.GeneratedSequence {
+  prepared.generated
+}
+
+///|
 /// Full selected-scan admission, bound to exactly one prepared query. This is
 /// retained input material, not source authority or acquisition completion.
 struct QueryReceipt {

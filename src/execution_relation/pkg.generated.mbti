@@ -67,6 +67,8 @@ pub fn captured_schema(CapturedRows) -> @relation_schema.Schema
 
 pub fn captured_usage(CapturedRows) -> ValueUsage
 
+pub fn[P] complete_trusted_output(TrustedOutputPort[P], P) -> Result[CompletedOutput, TrustedOutputIssue]
+
 pub fn completed_cell(CompletedOutput, Int, Int) -> Value?
 
 pub fn completed_column_count(CompletedOutput) -> Int
@@ -122,6 +124,8 @@ pub fn prepare_producer_read(@lowering_relation.BoundPrepared, BoundProducerInpu
 pub fn prepare_row_wire_order(Array[String], Int, Int) -> Result[RowWireOrder, RowWireIssue]
 
 pub fn prepare_runtime_fragment(@lowering_relation.FragmentRequest, FragmentContract, @lowering_relation.DemandLimits, RegistryLimits, @lowering_relation.FragmentRowLimits, ordered? : RegisteredOrderedContract?) -> Result[FragmentRuntimeContext, RuntimeFragmentIssue]
+
+pub fn[P] prepare_trusted_output_port(GeneratedSequence, @pipeline_typing.Target, Int, Int, (P) -> AdmittedOutputRows?) -> Result[TrustedOutputPort[P], TrustedOutputIssue]
 
 pub fn producer_read_cell(ProducerRead, Int, Int) -> Value?
 
@@ -354,6 +358,7 @@ pub(all) enum ProducerBindingIssue {
   ProducerOwnerMismatch
   ProducerBindingMismatch
   ProducerTargetMismatch
+  ProducerUnavailable
 }
 
 type ProducerRead
@@ -363,6 +368,7 @@ pub(all) enum ProducerReadIssue {
   Limit
   ForeignReceiver
   InvalidProjection
+  ProducerUnavailable
 }
 
 type RegisteredOrderedContract
@@ -500,6 +506,17 @@ pub(all) enum StoreIssue {
   MissingInput
   Limit
 }
+
+pub(all) enum TrustedOutputIssue {
+  InvalidLimits
+  Limit
+  InvalidTarget
+  NotRetained
+  Unverified
+  ForeignOutput
+} derive(Eq, @debug.Debug)
+
+type TrustedOutputPort[P]
 
 pub(all) enum Value {
   Null

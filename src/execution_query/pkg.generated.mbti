@@ -22,6 +22,8 @@ pub fn execute_query_receipt_guarded(QuerySequence, QueryReceipt, @execution_rel
 
 pub fn prepare_query_sequence(@sourceview_resolution.QueryAcquisition, @execution_relation.GeneratedSequence, Int) -> Result[QuerySequence, QuerySequenceIssue]
 
+pub fn query_generated_sequence(QuerySequence) -> @execution_relation.GeneratedSequence
+
 pub fn query_receipt_rows(QueryReceipt) -> @execution_relation.CapturedRows
 
 pub fn query_sequence_owner(QuerySequence) -> @lowering_relation.BoundPrepared

@@ -82,6 +82,8 @@ pub fn close_mock_query_issuer(MockQueryIssuer) -> Unit
 
 pub fn complete_duckdb_native_capture(DuckDBNativeIssuer, DuckDBNativeAttempt, DuckDBNativeCompletionLimits) -> Result[DuckDBNativeObservation, DuckDBEvidenceIssue]
 
+pub fn complete_duckdb_native_output(DuckDBNativeOutput, Int, Int) -> Result[@execution_relation.CompletedOutput, @execution_relation.TrustedOutputIssue]
+
 pub fn duckdb_broad_attempt_identity(DuckDBBroadAttempt) -> (String, String)?
 
 pub fn duckdb_broad_attempt_output(DuckDBBroadAttempt) -> @execution_relation.CompletedOutput?

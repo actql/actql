@@ -95,8 +95,7 @@ function realBridge(moon, configuration, options, inspect) {
         accepted(moon.issuedNativeComplete(fixture, options.artifactBytes ?? 1000000), 'complete');
         return moon.issuedNativeObservation(fixture);
       },
-      // This increment verifies real capture, not engine completion/consumer.
-      bindInput() { throw new Error('native consumer connection not implemented'); },
+      bindInput(observation, rows) { return moon.issuedNativeBind(fixture, observation, rows); },
       abort() { moon.issuedNativeAbort(fixture); },
       close() { moon.issuedNativeClose(fixture); },
     };
@@ -153,6 +152,11 @@ test('real native SQL and public CheckedProgram produce independently checked tw
         assert.equal(moon.issuedNativeVerify(inspect.fixture), true);
       }
       assert.equal(moon.issuedNativeMaterialize(inspect.fixture, 100), canonical(selected));
+      if (selected.length) {
+        assert.equal(captured.bindInput(0), 'null');
+        assert.equal(moon.issuedNativeVerify(inspect.fixture), true);
+      }
+      assert.equal(captured.bindInput(100), hash(selected));
       assert.equal(inspect.nativeQueries, 1);
       assert.equal(inspect.completions, 1);
       captured.close();

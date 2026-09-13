@@ -75,7 +75,12 @@ fn evaluate_sequence_components(
   // Bounded representation selection, before execution and never as recovery
   // from a failed row invocation. Oversized metadata follows normal admission.
   if produced.length() <= limits.metadata_entries &&
-    produced.any(bound => bound.output.table is NumberTable(_)) {
+    produced.any(bound => {
+      match bound.output.table {
+        RowTable(_) => false
+        NumberTable(_) | AdmittedTable(_) => true
+      }
+    }) {
     return evaluate_physical_sequence(
       contracts, sequence, supplied, retained_ids, limits, control, produced, fragments,
       ordered,
@@ -277,6 +282,9 @@ fn[T : RelationRows] prepare_sequence_with_importers(
     inputs[index] = Some(RawInput(supplied[i]))
   }
   for bound in produced {
+    if !completion_is_live(bound.output.completion) {
+      return Err(InputOwnership)
+    }
     if !spend_control(control, 1) {
       return Err(InputLimit)
     }
@@ -423,6 +431,7 @@ fn[T : RelationRows] run_completed_sequence_backend(
     sequence: invocation.sequence,
     store: wrap(invocation.store),
     _producer_inputs: invocation.produced.copy(),
+    live: None,
   })
 }
 

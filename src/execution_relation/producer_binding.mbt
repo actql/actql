@@ -14,6 +14,7 @@ pub(all) enum ProducerBindingIssue {
   ProducerOwnerMismatch
   ProducerBindingMismatch
   ProducerTargetMismatch
+  ProducerUnavailable
 }
 
 ///|
@@ -27,6 +28,9 @@ pub fn bind_completed_input(
   expected_producer : @lower.BoundPrepared,
   output : CompletedOutput,
 ) -> Result[BoundProducerInput, ProducerBindingIssue] {
+  if !completion_is_live(output.completion) {
+    return Err(ProducerUnavailable)
+  }
   let pipeline = @lower.pipeline(@lower.bound_preparation(receiver))
   guard @pipeline.input_producer(pipeline, input_index) is Some(producer) else {
     return Err(NotProducedInput)

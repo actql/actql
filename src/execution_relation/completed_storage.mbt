@@ -18,9 +18,18 @@ priv struct CompletedNumbers {
 }
 
 ///|
+priv struct CompletedAdmitted {
+  owner : @lower.BoundPrepared
+  id : String
+  names : Array[String]
+  rows : Array[Array[@admitted.Value]]
+}
+
+///|
 priv enum CompletedTable {
   RowTable(Table)
   NumberTable(CompletedNumbers)
+  AdmittedTable(CompletedAdmitted)
 }
 
 ///|
@@ -28,6 +37,7 @@ impl IndexedRows for CompletedTable with fn row_count(self) {
   match self {
     RowTable(table) => table.rows.length()
     NumberTable(table) => table.count
+    AdmittedTable(table) => table.rows.length()
   }
 }
 
@@ -36,6 +46,7 @@ impl IndexedRows for CompletedTable with fn column_count(self) {
   match self {
     RowTable(table) => table.names.length()
     NumberTable(table) => table.names.length()
+    AdmittedTable(table) => table.names.length()
   }
 }
 
@@ -44,6 +55,7 @@ impl IndexedRows for CompletedTable with fn row_width(self, row) {
   match self {
     RowTable(table) => table.rows[row].length()
     NumberTable(table) => table.names.length()
+    AdmittedTable(table) => table.names.length()
   }
 }
 
@@ -51,6 +63,7 @@ impl IndexedRows for CompletedTable with fn row_width(self, row) {
 impl IndexedRows for CompletedTable with fn read_cell(self, row, column) {
   match self {
     RowTable(table) => table.rows[row][column]
+    AdmittedTable(table) => capture(table.rows[row][column])
     NumberTable(table) => {
       let index = match table.selection {
         Some(indices) => indices[row]
@@ -71,6 +84,7 @@ impl RelationRows for CompletedTable with fn checked_owner(self) {
   match self {
     RowTable(table) => table.owner
     NumberTable(table) => table.owner
+    AdmittedTable(table) => table.owner
   }
 }
 
@@ -79,6 +93,7 @@ impl RelationRows for CompletedTable with fn relation_id(self) {
   match self {
     RowTable(table) => table.id
     NumberTable(table) => table.id
+    AdmittedTable(table) => table.id
   }
 }
 
@@ -87,6 +102,7 @@ impl RelationRows for CompletedTable with fn field_names(self) {
   match self {
     RowTable(table) => table.names
     NumberTable(table) => table.names
+    AdmittedTable(table) => table.names
   }
 }
 
@@ -94,6 +110,7 @@ impl RelationRows for CompletedTable with fn field_names(self) {
 priv enum CompletedStore {
   RowStore(TableStore[Table])
   PhysicalStore(TableStore[CompletedTable])
+  ImportedStore(Int, @pipeline.Target, CompletedTable)
 }
 
 ///|
@@ -101,6 +118,7 @@ fn CompletedStore::input_count(self : CompletedStore) -> Int {
   match self {
     RowStore(store) => store.wiring.input_count
     PhysicalStore(store) => store.wiring.input_count
+    ImportedStore(count, _, _) => count
   }
 }
 
@@ -112,6 +130,11 @@ fn CompletedStore::table_at(
   match self {
     RowStore(store) => store.tables[slot].map(held => RowTable(held.table))
     PhysicalStore(store) => store.tables[slot].map(held => held.table)
+    ImportedStore(count, target, table) =>
+      match target {
+        Step(index) => if slot == count + index { Some(table) } else { None }
+        Input(_) => None
+      }
   }
 }
 
@@ -125,7 +148,7 @@ fn reserve_completed_storage(
   control : ControlBudget,
 ) -> Bool {
   match table {
-    RowTable(_) => true
+    RowTable(_) | AdmittedTable(_) => true
     NumberTable(table) => {
       if !reserve_slots(workspace, table.columns.length()) {
         return false
