@@ -5,6 +5,9 @@ fn prepared_keyed_source_context(
   host_first? : Bool = false,
   array_group? : Bool = false,
   aggregate_items? : Int = 1,
+  window_body? : String? = None,
+  window_events? : Bool = false,
+  window_from? : String = "seed",
 ) -> SelectedPolicyContext raise {
   let original = keyed_sourceview_environment(changes~)
   let writer = @encode.writer(1000000, 100000, 100)
@@ -48,7 +51,23 @@ fn prepared_keyed_source_context(
   let text =
     #|{"version":"actql/0.1","id":"keyed","stages":[{"id":"s","inputs":{"remote":{"connector":"crm/main","resource":"r","request":{"tenant":null}}},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":false}},"rows":[{"id":1}]},"as":"seed"},{"join":{"left":"seed","with":"remote","on":"id","kind":"left","select":{"id":"left.id"}}}],"results":{"out":{"from":"seed","fields":["id"]}}}],"results":{"out":{"from":{"stage":"s","result":"out"}}}}
   let program = @syntax.parse(
-    if array_group {
+    if window_body is Some(window_body) {
+      text
+      .replace(
+        old="\"select\":{\"id\":\"left.id\"}}}",
+        new="\"select\":{\"id\":\"left.id\"}},\"as\":\"joined\"}",
+      )
+      .replace(
+        old="}],\"results\":{\"out\":{\"from\":\"seed\"",
+        new=(if window_events {
+            "},{\"from\":\"seed\",\"to_events\":{\"id\":\"id\",\"time\":\"id\"}},{\"window_events\":{"
+          } else {
+            "},{\"from\":\"" + window_from + "\",\"row_window\":{"
+          }) +
+          window_body +
+          "}}],\"results\":{\"out\":{\"from\":\"seed\"",
+      )
+    } else if array_group {
       text.replace(
         old="}],\"results\":{\"out\":{\"from\":\"seed\"",
         new="},{\"from\":\"seed\",\"assert_rows\":{\"unique_by\":[\"id\"]}},{\"group\":{\"by\":[],\"aggregates\":{\"items\":{\"fn\":\"array_agg\",\"field\":\"id\",\"order_by\":[{\"id\":\"asc\"}],\"max_items\":3}}}}],\"results\":{\"out\":{\"from\":\"seed\"",

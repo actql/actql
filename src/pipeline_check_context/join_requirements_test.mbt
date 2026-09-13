@@ -5,6 +5,9 @@ fn join_resolution_fixture(
   host_first? : Bool = false,
   array_group? : Bool = false,
   aggregate_items? : Int = 1,
+  window_body? : String? = None,
+  window_events? : Bool = false,
+  window_from? : String = "seed",
 ) -> ProgramOperationResolutionIndex raise {
   let sources = prepare_program_source_acquisitions(
     prepared_keyed_source_context(
@@ -13,6 +16,9 @@ fn join_resolution_fixture(
       host_first~,
       array_group~,
       aggregate_items~,
+      window_body~,
+      window_events~,
+      window_from~,
     ),
     [[(0, if host_first { 1 } else { 0 })]],
     {
@@ -26,7 +32,13 @@ fn join_resolution_fixture(
   let operations = prepare_program_checks(
     sources,
     { text_time: false, veca: false, },
-    { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
+    {
+      rela: true,
+      sga: false,
+      tea: window_body is Some(_),
+      calendar: false,
+      text_rank: false,
+    },
     preparation_limits(),
     max_policy_depth=100,
     max_requirements=1000,

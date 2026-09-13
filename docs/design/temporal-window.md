@@ -99,6 +99,18 @@ bound. The bounded resolution pass charges option and scalar-slot lookups before
 returning a complete index; consumers do not rebind Parameters or infer options
 from source text.
 
+`collect_window_membership_bounds` selects applicable input Program proofs from
+the same capacity closure and retains their original visit/claim/producer
+memberships. It applies the exact per-input factor under the row-window or
+window-events law, with safe-integer multiplication and no saturation. Sparse
+Host slots and inapplicable proofs are charged and skipped, not treated as an
+end marker. The retained minimum is conditional on all producer and operation
+checks; absent input evidence stays unknown. Host enforcement ceilings are not
+input observations and are not multiplied into these Program candidates.
+Collection does not discharge the membership or publication-resource requirement:
+the consumer still needs the selected enforcement boundary and persistent proof
+construction before a completed Program can expose these bounds to lowering.
+
 ## Lag
 
 `lag` reuses the Relation field, partition, OrderKey and positive safe-integer
