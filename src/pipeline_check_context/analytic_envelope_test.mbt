@@ -80,7 +80,11 @@ test "analytic envelope binds distinct policy scopes through imported producer v
         continue
       }
       if pending.kind is @relation.AnalyticFrameDemand {
-        assert_true(operation_resolution_at(index, i) is Some(Unresolved))
+        guard operation_resolution_at(index, i)
+          is Some(Execution(AnalyticExecution(check))) else {
+          fail("missing analytic demand")
+        }
+        assert_true(check.rule is EvaluateCallDemands)
         demands += 1
       }
       guard pending.kind is @relation.AnalyticEnvelope else { continue }

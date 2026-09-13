@@ -55,3 +55,20 @@ original operation and its owning policy. These checks reject operation output
 on excess, but do not resolve call demand, peer/position ordering, aggregate
 result contracts or numeric observations. Logical wire size does not replace
 Host admission of physical partition storage and caches.
+
+Analytic execution requirements retain authored peer partitioning separately
+from completed position order. Call-demand enforcement preserves the shared
+partition/source-position/output-name failure order: filter precedes argument,
+each demanded source row is evaluated once per call, and frames reuse that
+result. Navigation and first/last value demand only referenced rows. Evaluation
+enforces each call's result contract, including safe-integer ranking and typed
+NULL for out-of-partition navigation or empty first/last frames. Neither
+this obligation nor peer partitioning discharges a missing position witness.
+
+Aggregate demand, scalar result-contract checks and statistical laws bind the
+exact analytic call using its original validation index, including imported
+producer visits. Array/string frame bounds and binary64 frame observations
+require separate selection; ordinary group limits or numeric slots cannot be
+substituted. These obligations do not evaluate expressions during checking or
+prove that future rows satisfy them. Analytic internal order does not replace
+input publication order or create new candidate-key evidence.

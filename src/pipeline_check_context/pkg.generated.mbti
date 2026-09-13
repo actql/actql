@@ -937,6 +937,23 @@ pub struct AnalyticEnvelopeCheck {
   output_rows : @capacity_policy.Ceiling
 }
 
+pub struct AnalyticExecutionCheck {
+  site : OperationRequirementSite
+  step : @pipeline_typing.CheckedStep
+  input : @pipeline_typing.Target
+  operation : @relation_typing.CheckedOperation
+  analytic : @relation_typing.CheckedAnalytic
+  rule : AnalyticExecutionRule
+}
+
+pub enum AnalyticExecutionRule {
+  PartitionAuthoredPeers
+  EvaluateCallDemands
+  EvaluateAggregate(@relation_typing.AnalyticCall)
+  ValidateResultContract(@relation_typing.AnalyticCall)
+  EnforceStatisticalLaw(@relation_typing.AnalyticCall, StatisticalLaw)
+}
+
 pub struct AppendRowsCheck {
   site : OperationRequirementSite
   step : @pipeline_typing.CheckedStep
@@ -1589,6 +1606,7 @@ pub(all) enum OperationDisposition {
 }
 
 pub(all) enum OperationExecutionCheck {
+  AnalyticExecution(AnalyticExecutionCheck)
   AnalyticEnvelope(AnalyticEnvelopeCheck)
   ExpansionExecution(ExpansionExecutionCheck)
   JsonPickExecution(JsonPickExecutionCheck)

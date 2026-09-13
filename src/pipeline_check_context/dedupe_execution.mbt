@@ -11,6 +11,7 @@ pub struct DedupeTopTieCheck {
 
 ///|
 pub(all) enum OperationExecutionCheck {
+  AnalyticExecution(AnalyticExecutionCheck)
   AnalyticEnvelope(AnalyticEnvelopeCheck)
   ExpansionExecution(ExpansionExecutionCheck)
   JsonPickExecution(JsonPickExecutionCheck)
@@ -46,6 +47,7 @@ pub fn operation_execution_phase(
   v : OperationExecutionCheck,
 ) -> ExecutionCheckPhase {
   match v {
+    AnalyticExecution(_) => BeforeOperationOutput
     AnalyticEnvelope(_) => BeforeOperationOutput
     ExpansionExecution(_) => BeforeOperationOutput
     JsonPickExecution(_) => BeforeOperationOutput
@@ -89,6 +91,7 @@ pub fn operation_execution_failure(
   v : OperationExecutionCheck,
 ) -> ExecutionCheckFailure {
   match v {
+    AnalyticExecution(_) => RejectOperationOutput
     AnalyticEnvelope(_) => RejectOperationOutput
     ExpansionExecution(_) => RejectOperationOutput
     JsonPickExecution(_) => RejectOperationOutput
