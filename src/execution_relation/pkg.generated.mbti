@@ -85,7 +85,17 @@ pub fn prepare_local_compute_attempt(GeneratedSequence, Array[BoundProducerInput
 
 pub fn prepare_ordered_params(RegisteredOrderedContract, @lowering_relation.OrderedReferences) -> OrderedParams
 
+pub fn prepare_producer_read(@lowering_relation.BoundPrepared, BoundProducerInput, Int, Int) -> Result[ProducerRead, ProducerReadIssue]
+
 pub fn prepare_runtime_fragment(@lowering_relation.FragmentRequest, FragmentContract, @lowering_relation.DemandLimits, RegistryLimits, @lowering_relation.FragmentRowLimits, ordered? : RegisteredOrderedContract?) -> Result[FragmentRuntimeContext, RuntimeFragmentIssue]
+
+pub fn producer_read_cell(ProducerRead, Int, Int) -> Value?
+
+pub fn producer_read_receiver(ProducerRead) -> @lowering_relation.BoundPrepared
+
+pub fn producer_read_row_count(ProducerRead) -> Int
+
+pub fn producer_read_schema(ProducerRead) -> @relation_schema.Schema
 
 pub fn row_wire_cid(RowWireIdentity) -> String
 
@@ -297,6 +307,15 @@ pub(all) enum ProducerBindingIssue {
   ProducerOwnerMismatch
   ProducerBindingMismatch
   ProducerTargetMismatch
+}
+
+type ProducerRead
+
+pub(all) enum ProducerReadIssue {
+  InvalidLimits
+  Limit
+  ForeignReceiver
+  InvalidProjection
 }
 
 type RegisteredOrderedContract

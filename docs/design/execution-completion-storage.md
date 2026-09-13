@@ -45,6 +45,15 @@ retention and values; there is no speculative conversion followed by fallback.
 
 ## Lifetime and resource accounting
 
+An opaque `ProducerRead` can expose the immutable receiving schema and cells of
+an exactly bound completed producer to a physical input adapter. Preparation
+checks the receiver by reference identity, resolves the already checked input
+projection to retained source columns, and bounds column/name traversal before
+building the index map. It retains the bound upstream output and does not copy
+rows, reconstruct ownership, or expose mutable storage. Such a view is not
+receiving admission, a successful Compute, or a logical accounting credit;
+execution and transfer still enforce their own applicable budgets.
+
 Temporary numeric buffers and index copies are reserved before allocation and
 charged to operation work. Common table reservations remain in force. Mixed
 stores additionally reserve the full numeric/validity backing capacity and
