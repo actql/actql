@@ -15,6 +15,7 @@ import {
   "actql/actql/expression_typing",
   "actql/actql/local_relation_input",
   "actql/actql/local_relation_snapshot",
+  "actql/actql/numeric_reduction",
   "actql/actql/parameter_binding",
   "actql/actql/parameter_references",
   "actql/actql/pipeline_parameters",
@@ -145,7 +146,7 @@ pub fn close_program_source_modes(ProgramIncomingLinks, Int, Int) -> Result[Prog
 
 pub fn close_stage_requirements(ProgramIncomingLinks, StageRequirementLimits) -> Result[StageRequirementClosure, StageRequirementIssue]
 
-pub fn collect_core_contracts(ProgramSourceIdentity, CoreContractLimits, profile_checks? : ProgramOperationCalendar?, hash_limits? : @local_relation_snapshot.Limits?) -> Result[CoreContractInventory, CoreContractIssue]
+pub fn collect_core_contracts(ProgramSourceIdentity, CoreContractLimits, profile_checks? : ProgramOperationCalendar?, hash_limits? : @local_relation_snapshot.Limits?, numeric_slots? : ProgramNumericSlots?) -> Result[CoreContractInventory, CoreContractIssue]
 
 pub fn collect_program_incoming(ProgramSourceIdentity, IncomingLimits) -> Result[ProgramIncomingRequirements, IncomingIssue]
 
@@ -166,6 +167,8 @@ pub fn core_contract_hash_usage(CoreContractInventory) -> (Int, Int)
 pub fn core_contract_identity(CoreContractInventory) -> ProgramSourceIdentity
 
 pub fn core_contract_incoming(CoreContractInventory) -> ProgramIncomingRequirements
+
+pub fn core_contract_numeric_slots(CoreContractInventory) -> ProgramNumericSlots?
 
 pub fn core_contract_profile_checks(CoreContractInventory) -> ProgramOperationCalendar?
 
@@ -367,6 +370,14 @@ pub fn local_inputs_at(InputContexts, Int) -> @stage_local_inputs.Attached?
 
 pub fn measure_operation_values_rows(ProgramOperationCells, Int, Int, Int, Int) -> Result[(Int, Int, Int), ValuesMeasurementIssue]
 
+pub fn numeric_slot_at(ProgramNumericSlots, Int) -> NumericSlot?
+
+pub fn numeric_slot_count(ProgramNumericSlots) -> Int
+
+pub fn numeric_slots_requirements(ProgramNumericSlots) -> ProgramOperationRequirements
+
+pub fn numeric_slots_work(ProgramNumericSlots) -> Int
+
 pub fn operation_calendar_at(ProgramOperationCalendar, Int) -> OperationCalendarResolution?
 
 pub fn operation_calendar_count(ProgramOperationCalendar) -> Int
@@ -550,6 +561,8 @@ pub fn prepare_local_stage_contexts(@stage_results.PreparedLocalSource, Array[Ar
 pub fn prepare_program_checks(SourceProducerContext, ExpressionProfiles, PureOperationProfiles, PreparationBudget, max_policy_depth~ : Int, max_requirements~ : Int, max_regex_depth~ : Int) -> Result[OperationProfileChecks, PrepareChecksIssue]
 
 pub fn prepare_program_incoming_gates(ProgramIncomingLinks, IncomingGateLimits) -> Result[ProgramIncomingGates, ProgramIncomingGatesIssue]
+
+pub fn prepare_program_numeric_slots(ProgramOperationRequirements, @numeric_reduction.Profile, Int, Int) -> Result[ProgramNumericSlots, NumericSlotsIssue]
 
 pub fn prepare_program_references(OperationProfileChecks, @stage_source.Limits, @pipeline_parameters.Limits, @program_references.Limits, max_work~ : Int) -> Result[ProgramReferences, PreparedReferencesIssue]
 
@@ -967,6 +980,7 @@ pub(all) enum CoreContractBody {
   StageSemantics(@check_environment.StageSemanticContract)
   CalendarProfileData(String)
   TextRankProfileData(String)
+  NumericReductionBody(String)
   ValuesCountLaw
   ValuesWireLaw
   ValuesExecutionRules
@@ -996,6 +1010,7 @@ pub(all) enum CoreContractIssue {
   UnknownCatalogGrammar(Int, Int, Int)
   UnresolvedProfileData(Int, Int, Int, @pipeline_typing.OperationProfile)
   ForeignProfiles
+  ForeignNumericSlots
   IncomingInventory(IncomingIssue)
   UnsupportedIncoming(Int)
   LocalTypeEncoding(Int, Int)
@@ -1032,6 +1047,7 @@ pub(all) enum CoreContractSite {
   OperationGraphCountRules(Int, Int, Int)
   OperationRankingCountRules(Int, Int, Int)
   OperationSeriesCountRules(Int, Int, Int)
+  NumericAggregateProfile(Int, Int, Int, Int)
   StageLocalInputRules(Int, Int)
   StageLocalInputType(Int, Int)
   StageCanonicalIdentityRules(Int)
@@ -1457,6 +1473,22 @@ pub enum LocalProgramContextIssue {
   Context(LocalContextIssue)
 }
 
+pub struct NumericSlot {
+  site : OperationRequirementSite
+  step : @pipeline_typing.CheckedStep
+  input : @pipeline_typing.Target
+  group : @relation_typing.CheckedGroup
+  call : @relation_typing.CheckedAggregate
+  profile : @numeric_reduction.Profile
+}
+
+pub(all) enum NumericSlotsIssue {
+  InvalidLimits
+  BudgetExceeded
+  UnsupportedOccurrence(Int)
+  ForeignOccurrence(Int)
+} derive(Eq, @debug.Debug)
+
 pub(all) enum OperationCalendarIssue {
   InvalidLimits
   BudgetExceeded
@@ -1881,6 +1913,8 @@ type ProgramIncomingLinks
 type ProgramIncomingRequirements
 
 type ProgramLocalInputClosure
+
+type ProgramNumericSlots
 
 type ProgramOperationCalendar
 

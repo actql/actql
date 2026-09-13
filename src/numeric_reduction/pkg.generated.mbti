@@ -18,6 +18,8 @@ pub fn member_cid_at(Profile, Int) -> String?
 
 pub fn member_count(Profile) -> Int
 
+pub fn observation_schema_cid(Profile) -> String
+
 pub fn reduction_cid(Reduction) -> String
 
 pub fn reduction_profile(Reduction) -> Profile

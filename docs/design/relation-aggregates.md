@@ -176,6 +176,23 @@ choices; neither a profile CID nor an algorithm label is a member CID. These
 readers do not perform arithmetic, validate an observation, or establish an
 attempt, a slot, authorization or durable retention.
 
+`prepare_program_numeric_slots` binds an explicitly admitted profile to each
+ordinary-group floating sum/avg requirement, retaining the exact requirement,
+input edge, group and aggregate call. It scans every owned producer visit under
+cumulative work and slot caps, including unused calls and false filters. Other
+aggregate forms have distinct slot contexts and are rejected by this preparer
+until those contexts are supported. The original requirements remain unresolved:
+this inventory does not supply a persistent slot CID or completed capture.
+
+`collect_core_contracts` can consume that inventory only under the same Program
+identity owner. Each local aggregate contributes the profile and its declared
+member and observation-schema dependencies; imported producer visits do not
+become consumer-local roots. Shared bodies are deduplicated while source uses
+remain distinct, and the inventory retains the exact numeric-slot owner.
+Contract collection therefore does not require choosing a future execution
+algorithm or hashing future response bytes. Absence of an inventory supplies no
+numeric contract by default and does not close a floating observation obligation.
+
 ## Reference compatibility
 
 Persistent ordinary-group limits use the Unit/step/aggregate-name/scoped

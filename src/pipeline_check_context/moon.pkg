@@ -1,6 +1,7 @@
 supported_targets = "+js+wasm+native"
 
 import {
+  "actql/actql/numeric_reduction" @numeric,
   "moonbitlang/core/encoding/utf8" @wire_utf8,
   "actql/actql/capacity_law" @law,
   "actql/actql/capacity_derivation" @derivation,
@@ -71,5 +72,6 @@ formatter(
     "local_body_identity.generated_test.mbt",
     "sourceview_fixture.generated_test.mbt",
     "text_profile.generated_test.mbt",
+    "numeric_profile.generated_test.mbt",
   ],
 )

@@ -16,6 +16,7 @@ pub(all) enum CoreContractIssue {
   UnknownCatalogGrammar(Int, Int, Int)
   UnresolvedProfileData(Int, Int, Int, @pipeline.OperationProfile)
   ForeignProfiles
+  ForeignNumericSlots
   IncomingInventory(IncomingIssue)
   UnsupportedIncoming(Int)
   LocalTypeEncoding(Int, Int)
@@ -31,6 +32,7 @@ pub(all) enum CoreContractBody {
   StageSemantics(@environment.StageSemanticContract)
   CalendarProfileData(String)
   TextRankProfileData(String)
+  NumericReductionBody(String)
   ValuesCountLaw
   ValuesWireLaw
   ValuesExecutionRules
@@ -69,6 +71,7 @@ pub(all) enum CoreContractSite {
   OperationGraphCountRules(Int, Int, Int)
   OperationRankingCountRules(Int, Int, Int)
   OperationSeriesCountRules(Int, Int, Int)
+  NumericAggregateProfile(Int, Int, Int, Int)
   StageLocalInputRules(Int, Int)
   StageLocalInputType(Int, Int)
   StageCanonicalIdentityRules(Int)
@@ -90,6 +93,7 @@ struct CoreContractInventory {
   bodies : Array[CoreContractBody]
   sources : ProgramSourceContracts
   profile_checks : ProgramOperationCalendar?
+  numeric_slots : ProgramNumericSlots?
   incoming : ProgramIncomingRequirements
   stages : Array[Array[CoreContractBody]]
   work : Int
@@ -171,6 +175,7 @@ pub fn collect_core_contracts(
   limits : CoreContractLimits,
   profile_checks? : ProgramOperationCalendar? = None,
   hash_limits? : @snapshot.Limits? = None,
+  numeric_slots? : ProgramNumericSlots? = None,
 ) -> Result[CoreContractInventory, CoreContractIssue] {
   let hash_limits = hash_limits.unwrap_or({
     max_bytes: limits.max_work,
@@ -186,7 +191,7 @@ pub fn collect_core_contracts(
     hash_limits.max_depth < 0 {
     return Err(InvalidLimits)
   }
-  let prefix = match profile_checks {
+  let mut prefix = match profile_checks {
     None => identity.work
     Some(checks) => {
       let owner = checks.lexical.cells.queries.ranges.fills.frames.scalars.orders.requirements.expressions.identity
@@ -195,6 +200,17 @@ pub fn collect_core_contracts(
       }
       checks.work
     }
+  }
+  if numeric_slots is Some(slots) {
+    if !physical_equal(slots.requirements.expressions.identity, identity) {
+      return Err(ForeignNumericSlots)
+    }
+    let base = Int::max(prefix, slots.requirements.work)
+    let extra = slots.work - slots.requirements.work
+    if base > limits.max_work || extra > limits.max_work - base {
+      return Err(BudgetExceeded)
+    }
+    prefix = base + extra
   }
   if prefix >= limits.max_work {
     return Err(BudgetExceeded)
@@ -241,6 +257,45 @@ pub fn collect_core_contracts(
   }
   try {
     core_contract_charge(b)
+    if numeric_slots is Some(slots) {
+      for slot in slots.entries {
+        core_contract_charge(b)
+        let site = slot.site
+        if program_identity_producer_is_local(
+            identity,
+            site.stage,
+            site.producer_visit,
+          ) !=
+          Some(true) {
+          continue
+        }
+        let root = NumericReductionBody(@numeric.cid(slot.profile))
+        core_contract_root(
+          b,
+          NumericAggregateProfile(
+            site.stage,
+            site.producer_visit,
+            site.step,
+            site.index,
+          ),
+          root,
+        )
+        for i in 0..<@numeric.member_count(slot.profile) {
+          let reduction = NumericReductionBody(
+            @numeric.member_cid_at(slot.profile, i).unwrap(),
+          )
+          core_contract_edge(b)
+          core_contract_body(b, reduction)
+          core_contract_dependency(b, root, reduction)
+        }
+        let observation = NumericReductionBody(
+          @numeric.observation_schema_cid(slot.profile),
+        )
+        core_contract_edge(b)
+        core_contract_body(b, observation)
+        core_contract_dependency(b, root, observation)
+      }
+    }
     for index in 0..<incoming.entries.length() {
       core_contract_charge(b)
       let rules = match incoming.entries[index].requirement {
@@ -481,6 +536,7 @@ pub fn collect_core_contracts(
         | StageSemantics(_)
         | CalendarProfileData(_)
         | TextRankProfileData(_) => ()
+        NumericReductionBody(_) => ()
         ValuesCountLaw
         | ValuesWireLaw
         | BoundTransferRules
@@ -551,6 +607,7 @@ pub fn collect_core_contracts(
       identity,
       sources,
       profile_checks,
+      numeric_slots,
       incoming,
       stages,
       roots: b.roots,
@@ -570,6 +627,13 @@ pub fn core_contract_identity(
   v : CoreContractInventory,
 ) -> ProgramSourceIdentity {
   v.identity
+}
+
+///|
+pub fn core_contract_numeric_slots(
+  v : CoreContractInventory,
+) -> ProgramNumericSlots? {
+  v.numeric_slots
 }
 
 ///|
@@ -612,7 +676,9 @@ pub fn core_contract_cid(v : CoreContractBody) -> String {
     CatalogGrammarBody(body) => @environment.catalog_grammar_cid(body)
     ProgramSourceGrammar => @environment.program_source_grammar_cid()
     StageSemantics(rules) => @environment.stage_semantic_contract_cid(rules)
-    CalendarProfileData(cid) | TextRankProfileData(cid) => cid
+    CalendarProfileData(cid)
+    | TextRankProfileData(cid)
+    | NumericReductionBody(cid) => cid
     ValuesCountLaw =>
       "sha256:0e0f9b4b6585ab7b17bafe484e82f44cd8f3acc9eec5ef9329cea200237a7971"
     ValuesWireLaw =>
