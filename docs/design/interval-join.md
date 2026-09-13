@@ -44,6 +44,14 @@ cost. Alternative strategies need applicable bounds of their own; failure to
 derive a product is not a new language rejection rule. An empty product does
 not remove validation of the other operand. The search contract is selected
 only for interval operations and does not change equality-join row laws.
+`check_interval_search_product` attaches the fallback to the exact checked
+left/right targets using admitted `TargetRows` associations. It keeps both
+original proofs and imported producer chains rather than converting the product
+to a rows witness. Supplied foreign associations are rejected even when the
+other operand is known empty. Missing and overflowing products leave the
+fallback unavailable. Application-closure membership, producer obligations and
+single-visit realization conformance are separate checks; this numeric product
+alone is not a completed search resolution or an execution permit.
 Left-major/right-minor ordering remains an obligation, not a fabricated order
 certificate. The output contract does not establish candidate-key identity,
 external absence, coverage or authorization to execute. Existing window roles

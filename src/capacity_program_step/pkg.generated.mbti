@@ -36,6 +36,8 @@ pub fn check_components_limits(@pipeline_typing.CheckedPipeline, Int, @capacity_
 
 pub fn check_guard_bindings(Applications, @pipeline_typing.BoundAuthorGuards, max_work~ : Int) -> Result[GuardApplications, GuardBindingIssue]
 
+pub fn check_interval_search_product(@pipeline_typing.CheckedPipeline, Int, TargetRows?, TargetRows?, Int) -> Result[IntervalSearchProduct, IntervalSearchIssue]
+
 pub fn check_join_applications(@pipeline_typing.CheckedPipeline, @capacity_host_witness.HostSources, Applications, @capacity_policy.Policy, Array[JoinLimit], max_work~ : Int) -> Result[JoinApplications, JoinCollectionIssue]
 
 pub fn check_join_complete(@pipeline_typing.CheckedPipeline, @capacity_host_witness.HostSources, Applications, @capacity_policy.Policy, Array[JoinLimit], max_work~ : Int) -> Result[JoinApplications, JoinCollectionIssue]
@@ -115,6 +117,18 @@ pub fn input_at(StepBound, Int) -> StepBound?
 pub fn input_count(StepBound) -> Int
 
 pub fn input_work(StepBound) -> Int
+
+pub fn interval_search_bound_at(IntervalSearchProduct, Int) -> TargetRows?
+
+pub fn interval_search_input_at(IntervalSearchProduct, Int) -> @pipeline_typing.Target?
+
+pub fn interval_search_pipeline(IntervalSearchProduct) -> @pipeline_typing.CheckedPipeline
+
+pub fn interval_search_step(IntervalSearchProduct) -> Int
+
+pub fn interval_search_upper(IntervalSearchProduct) -> Int64
+
+pub fn interval_search_work(IntervalSearchProduct) -> Int
 
 pub fn join_application_at(JoinApplications, Int) -> JoinLimit?
 
@@ -285,6 +299,17 @@ pub(all) enum GuardBindingIssue {
   WorkLimit
   BindingMismatch(Int)
 } derive(Eq, @debug.Debug)
+
+pub(all) enum IntervalSearchIssue {
+  InvalidLimits
+  WorkLimit
+  InvalidOperation
+  ForeignOperand(Int)
+  MissingOperandBound
+  Overflow
+} derive(Eq, @debug.Debug)
+
+type IntervalSearchProduct
 
 pub(all) enum Issue {
   MissingStep
