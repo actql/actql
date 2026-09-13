@@ -39,6 +39,7 @@ import {
   "actql/actql/stage_results",
   "actql/actql/stage_source",
   "actql/actql/stage_syntax",
+  "actql/actql/temporal_window",
   "actql/actql/text_time_bounds",
   "actql/actql/timestamp_pattern",
   "actql/actql/value_admission",
@@ -1642,6 +1643,7 @@ pub(all) enum OperationDisposition {
 }
 
 pub(all) enum OperationExecutionCheck {
+  WindowExecution(WindowExecutionCheck)
   AnalyticExecution(AnalyticExecutionCheck)
   AnalyticEnvelope(AnalyticEnvelopeCheck)
   ExpansionExecution(ExpansionExecutionCheck)
@@ -2645,6 +2647,19 @@ pub(all) enum ValuesWireResolutionIssue {
   Proof(@capacity_witness.Issue)
   Limit(ValuesWireLimitIssue)
 } derive(@debug.Debug)
+
+pub struct WindowExecutionCheck {
+  site : OperationRequirementSite
+  step : @pipeline_typing.CheckedStep
+  input : @pipeline_typing.Target
+  window : @temporal_window.CheckedWindow
+  rule : WindowExecutionRule
+}
+
+pub enum WindowExecutionRule {
+  AdmitTimeValues
+  AssignMemberships
+}
 
 type WiredStages
 

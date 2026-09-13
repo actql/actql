@@ -206,7 +206,12 @@ pub fn index_program_operation_resolutions(
                                         match
                                           analytic_envelope_check(site, policy) {
                                           Ok(None) =>
-                                            analytic_execution_check(site)
+                                            match
+                                              analytic_execution_check(site) {
+                                              Ok(None) =>
+                                                window_execution_check(site)
+                                              other => other
+                                            }
                                           other => other
                                         }
                                       other => other

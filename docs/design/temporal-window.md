@@ -70,6 +70,25 @@ Named aggregate rules,
 type derivation and pending validation obligations are the same as for `group`.
 The embedded schema reuses the exact group body generator.
 
+The operation-resolution boundary retains a `WindowExecutionCheck` for time
+admission and a separate one for membership assignment. Both identify the exact
+window, primary input edge and requirement occurrence. Time admission precedes
+input use and validates the declared time domain, including the existing UTC
+epoch conversion for timestamps; invalid values are not silently dropped.
+Membership assignment applies the closed-open intervals and checked arithmetic:
+fixed starts use offset plus integer multiples of size, sliding starts use
+offset plus integer multiples of step. Emission follows input occurrences then
+ascending membership starts, retaining row multiplicity and existing Carrier.
+It does not globally sort or establish a total-order witness. Arithmetic failure
+rejects the entire operation output, without wrap, saturation or partial output.
+
+An explicit fixed step still has its own millisecond binding validation even
+though it is not used in membership arithmetic. These execution records do not
+resolve `ResolveMembershipBound` or `ResolvePublicationResources`; those remain
+open until their own owned static/resource integration succeeds. In particular,
+adding these records alone cannot produce a completed Program or prove any
+observed membership count.
+
 ## Lag
 
 `lag` reuses the Relation field, partition, OrderKey and positive safe-integer

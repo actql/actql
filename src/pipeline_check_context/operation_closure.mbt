@@ -56,6 +56,7 @@ pub fn close_program_operations(
         // its owned subject here instead of defaulting to a runtime permission.
         let site = match check {
           AnalyticExecution(v) => v.site
+          WindowExecution(v) => v.site
           AnalyticEnvelope(v) => v.site
           ExpansionExecution(v) => v.site
           JsonPickExecution(v) => v.site

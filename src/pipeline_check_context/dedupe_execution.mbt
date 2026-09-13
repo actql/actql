@@ -11,6 +11,7 @@ pub struct DedupeTopTieCheck {
 
 ///|
 pub(all) enum OperationExecutionCheck {
+  WindowExecution(WindowExecutionCheck)
   AnalyticExecution(AnalyticExecutionCheck)
   AnalyticEnvelope(AnalyticEnvelopeCheck)
   ExpansionExecution(ExpansionExecutionCheck)
@@ -47,6 +48,11 @@ pub fn operation_execution_phase(
   v : OperationExecutionCheck,
 ) -> ExecutionCheckPhase {
   match v {
+    WindowExecution(v) =>
+      match v.rule {
+        AdmitTimeValues => BeforeOperationInputUse
+        AssignMemberships => BeforeOperationOutput
+      }
     AnalyticExecution(_) => BeforeOperationOutput
     AnalyticEnvelope(_) => BeforeOperationOutput
     ExpansionExecution(_) => BeforeOperationOutput
@@ -91,6 +97,7 @@ pub fn operation_execution_failure(
   v : OperationExecutionCheck,
 ) -> ExecutionCheckFailure {
   match v {
+    WindowExecution(_) => RejectOperationOutput
     AnalyticExecution(_) => RejectOperationOutput
     AnalyticEnvelope(_) => RejectOperationOutput
     ExpansionExecution(_) => RejectOperationOutput
