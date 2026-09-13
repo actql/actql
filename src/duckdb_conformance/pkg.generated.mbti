@@ -3,6 +3,8 @@ package "actql/actql/duckdb_conformance"
 
 import {
   "actql/actql/duckdb_adapter",
+  "actql/actql/duckdb_host",
+  "actql/actql/execution_relation",
   "actql/actql/query_planning",
 }
 
@@ -86,6 +88,10 @@ pub fn issued_native_bind(IssuedNativeFixture, @query_planning.DuckDBNativeObser
 pub fn issued_native_close(IssuedNativeFixture) -> Unit
 
 pub fn issued_native_complete(IssuedNativeFixture, Int) -> Bool
+
+pub fn issued_native_configuration(IssuedNativeFixture) -> @duckdb_host.NativeHostConfiguration
+
+pub fn issued_native_consume_output(IssuedNativeFixture, @execution_relation.CompletedOutput, Int) -> String
 
 pub fn issued_native_create(String, String, String, String, String, String, String, String, Int, (@query_planning.DuckDBNativeAttempt) -> Bool) -> IssuedNativeFixture
 

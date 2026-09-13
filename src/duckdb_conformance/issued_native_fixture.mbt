@@ -2,6 +2,7 @@
 // Fixed public-checker conformance setup, not a product Host entry.
 struct IssuedNativeFixture {
   host : @dbhost.NativeHostRun
+  configuration : @dbhost.NativeHostConfiguration
   attempt : @planning.DuckDBNativeAttempt
   scan : @duckdb.NativeScan
   requirement : @planning.QueryRequirement
@@ -86,6 +87,60 @@ pub fn issued_native_create(
     let attempt = @dbhost.native_host_attempt(host)
     {
       host,
+      configuration: @dbhost.configure_native_host(
+        contract,
+        requirement,
+        choice,
+        candidate,
+        {
+          physical: {
+            max_rows: 100,
+            max_cells: 1000,
+            max_nodes: 1000,
+            max_text_bytes: 10000,
+          },
+          metadata_work: 10000,
+          measurement: issued_native_measure_limits(),
+          completion: {
+            demand: issued_native_measure_limits(),
+            receipts: {
+              max_columns: 10,
+              max_order_work: 10000,
+              max_bytes: 100000,
+              max_nodes: 10000,
+              max_depth: 100,
+            },
+            max_received_rows: 100,
+            max_received_bytes: 100000,
+            max_retained_wire_bytes: 100000,
+            records: {
+              max_work: 1000000,
+              max_fields: 100,
+              max_parameters: 100,
+              max_bytes: 1000000,
+              max_nodes: 100000,
+              max_depth: 100,
+            },
+            capture: { max_bytes: 1000000, max_nodes: 100000, max_depth: 100, },
+          },
+          retention: {
+            max_nodes: 10000,
+            max_text_bytes: 100000,
+            max_depth: 100,
+            max_work: 1000000,
+          },
+          output_rows: 100,
+          output_entries: 100,
+          output_name_bytes: 10000,
+          transport: {
+            max_bytes: 100000,
+            max_nodes: 10000,
+            max_columns: 10,
+            max_rows: 100,
+            max_text_bytes: 100000,
+          },
+        },
+      ),
       attempt,
       requirement,
       consumer: fixture_generated(
@@ -102,6 +157,56 @@ pub fn issued_native_create(
     }
   } catch {
     _ => abort("fixed checked native setup")
+  }
+}
+
+///|
+// Test setup only: product Node code never imports this module.
+#export_name("issuedNativeConfiguration")
+pub fn issued_native_configuration(
+  value : IssuedNativeFixture,
+) -> @dbhost.NativeHostConfiguration {
+  value.configuration
+}
+
+///|
+#export_name("issuedNativeConsumeOutput")
+pub fn issued_native_consume_output(
+  value : IssuedNativeFixture,
+  output : @execution.CompletedOutput,
+  max_rows : Int,
+) -> String {
+  guard @execution.bind_completed_input(
+      @execution.generated_sequence_owner(value.consumer),
+      0,
+      @duckdb.native_query_owner(@duckdb.native_scan_query(value.scan)),
+      output,
+    )
+    is Ok(bound) else {
+    return "null"
+  }
+  guard @execution.execute_generated_sequence(
+      value.consumer,
+      [],
+      issued_execution_limits(max_rows),
+      produced=[bound],
+    )
+    is Ok(completed) else {
+    return "null"
+  }
+  guard @execution.completed_output(completed, Step(0)) is Some(result) else {
+    return "null"
+  }
+  match
+    @execution.identify_completed_rows(result, {
+      max_columns: 10,
+      max_order_work: 10000,
+      max_bytes: 100000,
+      max_nodes: 10000,
+      max_depth: 100,
+    }) {
+    Ok(identity) => @execution.row_wire_cid(identity)
+    Err(_) => "null"
   }
 }
 

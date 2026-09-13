@@ -1,0 +1,55 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/duckdb_host_node"
+
+import {
+  "actql/actql/duckdb_adapter",
+  "actql/actql/duckdb_host",
+  "actql/actql/encode_core",
+  "actql/actql/execution_relation",
+  "actql/actql/query_planning",
+}
+
+// Values
+pub fn native_host_abort(NativeNodeRun) -> Unit
+
+pub fn native_host_accept(NativeNodeRun, Int, String) -> Unit raise NativeNodeFailure
+
+pub fn native_host_attempt(NativeNodeRun) -> @query_planning.DuckDBNativeAttempt
+
+pub fn native_host_begin(NativeNodeRun, Bool, String) -> Unit raise NativeNodeFailure
+
+pub fn native_host_close(NativeNodeRun) -> Unit
+
+pub fn native_host_complete(NativeNodeRun) -> @query_planning.DuckDBNativeObservation raise NativeNodeFailure
+
+pub fn native_host_document(@query_planning.DuckDBNativeObservation) -> String
+
+pub fn native_host_finish(NativeNodeRun) -> Unit raise NativeNodeFailure
+
+pub fn native_host_metadata(NativeNodeRun, Int, String, String) -> Unit raise NativeNodeFailure
+
+pub fn native_host_open(@duckdb_host.NativeHostConfiguration, String, (@query_planning.DuckDBNativeAttempt) -> Bool) -> NativeNodeRun raise NativeNodeFailure
+
+pub fn native_host_output(NativeNodeRun, @query_planning.DuckDBNativeObservation) -> @execution_relation.CompletedOutput raise NativeNodeFailure
+
+pub fn native_host_parameter(NativeNodeRun, Int) -> String raise NativeNodeFailure
+
+pub fn native_host_sql(NativeNodeRun, Int) -> String raise NativeNodeFailure
+
+// Errors
+pub(all) suberror NativeNodeFailure {
+  Host(@duckdb_host.NativeHostIssue)
+  Transport(@duckdb_adapter.TransportColumnIssue)
+  Descriptor(@duckdb_adapter.ValueIssue)
+  InvalidFields
+  InvalidCommand
+  Encoding(@encode_core.EncodeFailure)
+  Completion(@execution_relation.TrustedOutputIssue)
+}
+
+// Types and methods
+type NativeNodeRun
+
+// Type aliases
+
+// Traits

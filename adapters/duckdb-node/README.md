@@ -209,8 +209,8 @@ selected native attempt to SQL, admission, measurement, issuance and capture.
 Its fixed setup calls the reusable MoonBit `duckdb_host` operations for receipt
 management, completion and consumer binding; the Host package has no fixture or
 catalog dependency. The low-level `start_native_host` verifier parameter remains
-trusted runtime wiring, not a Program/Connector option or a substitute for the
-pending standard Node entry that installs verification internally.
+trusted runtime wiring, not a Program/Connector option. The standard native Node
+entry described below installs verification internally.
 Its independent observation oracle includes the two distinct receipt CIDs and
 all three record CIDs. No Local predicate replay is used. It covers empty input,
 NULL in an unused column, duplicate relative order, invalid discarded values,
@@ -267,7 +267,7 @@ two-receipt observation; `verify_duckdb_native_observation` requires its live
 issuer, exact attempt and issued-set handles. Portable tests compare all preimages
 and aggregate artifact boundaries against independent expectations. The real Node
 conformance bridge supplies settlement provenance to that same issuer. The
-standard product Host entry remains required. The native producer/consumer bridge
+standard native Host entry uses that same issuer. The native producer/consumer bridge
 uses `complete_duckdb_native_output` with an internally installed verifier. The
 document/CID is not an alternative success constructor.
 
@@ -295,8 +295,43 @@ checks final consumer CIDs against independently specified rows.
 The engine's `prepare_trusted_output_port` is a trusted-runtime installation API,
 not a safe public Connector or Program extension point. Do not expose it from an
 untrusted Host interface; use the provider-specific bridge that fixes verification
-internally. Product Host assembly independent of conformance fixtures is still a
-separate requirement.
+internally. The native standard assembly below has no conformance dependency;
+the broad standard assembly and fixed-Compute product completion remain separate
+integration requirements.
+
+### Standard native Host entry
+
+With the pinned MoonBit toolchain on `PATH`, run
+`npm run build:host --prefix adapters/duckdb-node`. Trusted MoonBit application
+preparation uses `@duckdb_host.configure_native_host` with its exact requirement,
+selected native candidate, admitted two-receipt contract and explicit limits.
+Pass that opaque configuration to the Node entry; do not serialize it or import
+fixed conformance setup into an application:
+
+```js
+import { authorizeLocalDatabase } from './session.mjs';
+import { runNativeHostQuery } from './host.mjs';
+
+const grant = await authorizeLocalDatabase(authorizedAbsolutePath);
+const capture = await runNativeHostQuery(grant, ownedConfiguration, transportLimits, signal);
+try {
+  const completed = capture.output();
+  // Pass completed to ordinary MoonBit producer binding / checked consumer.
+  useCompletedInput(completed);
+} finally {
+  capture.close();
+}
+```
+
+This source-checkout entry imports a fixed release build of `duckdb_host_node`.
+It takes no factory, verifier, SQL, or runtime-module override. Configuration and
+consumer application code must use the same pinned MoonBit build; this is not a
+stable serialized ABI or a complete Program/Run Host. `document()` exposes the
+completed observation document, not independent replay authority. Close revokes
+new producer admission, including use of a previously obtained output handle;
+consumer failure alone leaves the capture live. Each `output()` call performs
+bounded materialization under the configured limits, without another source read.
+Typed MoonBit failures are retained as the `cause` of `MoonBitHostFailure`.
 
 `authorizeLocalDatabase` is called by explicit trusted Host setup, not by a
 Program resource decoder. The opaque grant authorizes a path to a trusted local

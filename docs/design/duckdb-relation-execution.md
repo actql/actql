@@ -184,10 +184,16 @@ Close is idempotent and revokes further use, whereas aborting unfinished work do
 not retroactively erase an already completed capture.
 
 The low-level Host startup takes a trusted transport verifier for runtime wiring.
-This is not the final Node-facing safety boundary: the standard Node assembly
-must install its private verifier and must not expose replacement through normal
-Program or Connector inputs. Keeping this startup separate from conformance
-fixtures does not by itself prove that the Node assembly is misuse-proof.
+The standard `adapters/duckdb-node/host.mjs` native entry installs that verifier
+privately through the settled transport coordinator. Its configuration retains
+already-owned preparation and limits, without verifier or SQL callbacks. It loads
+the fixed `duckdb_host_node` product module, not a caller-selected runtime or
+conformance fixture. Neither ordinary Connector registration nor Program inputs
+can replace this wiring. The JS facade decodes raw transport frames using the
+adapter's bounded physical decoders; type interpretation remains in MoonBit.
+Typed failure results use the pinned compiler's JS ABI inside this private
+facade only; this ABI is not a published cross-version Connector contract.
+This restricts the standard entry, not arbitrary malicious code in the Host TCB.
 
 The Host supplies an explicitly authorized trusted local database binding.
 Program Resource/SourceView descriptions alone grant no filesystem authority.
