@@ -1,4 +1,41 @@
 ///|
+test "live producer binding only narrows original liveness and shares storage" {
+  let owner = row_owner("")
+  let completion = evaluate_sequence_components(
+    registered_relation_contracts(),
+    prepared_sequence(owner),
+    [],
+    ["values_0"],
+    run_limits(),
+    { remaining: 10000, max_frames: 100, },
+  ).unwrap()
+  let source = completed_output(completion, Step(0)).unwrap()
+  let receiver = producer_consumer(owner, Step(0))
+  let original_live = Ref(true)
+  let additional_live = Ref(true)
+  let output : CompletedOutput = {
+    ..source,
+    completion: { ..completion, live: Some(fn() { original_live.val }), },
+  }
+  let bound = bind_live_completed_input(receiver, 0, owner, output, fn() {
+    additional_live.val
+  }).unwrap()
+  assert_true(physical_equal(bound.output.table, source.table))
+  assert_true(physical_equal(bound.output.completion.store, completion.store))
+  assert_true(completion_is_live(bound.output.completion))
+  additional_live.val = false
+  assert_false(completion_is_live(bound.output.completion))
+  assert_true(completion_is_live(output.completion))
+  additional_live.val = true
+  original_live.val = false
+  assert_false(completion_is_live(bound.output.completion))
+  assert_true(
+    bind_live_completed_input(receiver, 0, owner, output, fn() { true })
+    is Err(ProducerUnavailable),
+  )
+}
+
+///|
 fn producer_consumer(
   owner : @lower.BoundPrepared,
   target : @pipeline.Target,

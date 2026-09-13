@@ -56,7 +56,7 @@ test "broad attempt cannot run residual before transport settlement" {
   }
   let early = broad_attempt_fixture()
   broad_attempt_receive(early)
-  assert_true(@planning.duckdb_broad_attempt_output(early) is None)
+  assert_true(@planning.duckdb_broad_attempt_row_count(early) is None)
   assert_true(
     @planning.execute_duckdb_broad_attempt(
       early,
@@ -68,20 +68,17 @@ test "broad attempt cannot run residual before transport settlement" {
   assert_true(
     @planning.settle_duckdb_broad_transport(early) is Err(InvalidState),
   )
-  assert_true(@planning.duckdb_broad_attempt_output(early) is None)
+  assert_true(@planning.duckdb_broad_attempt_row_count(early) is None)
   let success = broad_attempt_fixture()
   broad_attempt_receive(success)
   @planning.settle_duckdb_broad_transport(success).unwrap()
-  assert_true(@planning.duckdb_broad_attempt_output(success) is None)
+  assert_true(@planning.duckdb_broad_attempt_row_count(success) is None)
   @planning.execute_duckdb_broad_attempt(
     success,
     compute_test_limits(),
     measurement,
   ).unwrap()
-  let output = @planning.duckdb_broad_attempt_output(success).unwrap()
-  assert_eq(@execution.completed_row_count(output), 2)
-  assert_true(@execution.completed_cell(output, 0, 0) is Some(Number(3)))
-  assert_true(@execution.completed_cell(output, 1, 0) is Some(Number(2)))
+  assert_eq(@planning.duckdb_broad_attempt_row_count(success), Some(2))
   let failure = broad_attempt_fixture(max_rows=1)
   broad_attempt_receive(failure)
   @planning.settle_duckdb_broad_transport(failure).unwrap()
@@ -93,7 +90,7 @@ test "broad attempt cannot run residual before transport settlement" {
     )
     is Err(Residual(OutputRows)),
   )
-  assert_true(@planning.duckdb_broad_attempt_output(failure) is None)
+  assert_true(@planning.duckdb_broad_attempt_row_count(failure) is None)
   assert_true(
     @planning.execute_duckdb_broad_attempt(
       failure,
@@ -112,7 +109,7 @@ test "cancelled or invalid broad attempts cannot be revived by metadata or settl
       broad_attempt_receive(attempt)
     }
     @planning.abort_duckdb_broad_attempt(attempt)
-    assert_true(@planning.duckdb_broad_attempt_output(attempt) is None)
+    assert_true(@planning.duckdb_broad_attempt_row_count(attempt) is None)
     assert_true(
       @planning.settle_duckdb_broad_transport(attempt) is Err(InvalidState),
     )

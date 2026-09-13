@@ -96,7 +96,7 @@ pub fn complete_duckdb_native_output(DuckDBNativeOutput, Int, Int) -> Result[@ex
 
 pub fn duckdb_broad_attempt_identity(DuckDBBroadAttempt) -> (String, String)?
 
-pub fn duckdb_broad_attempt_output(DuckDBBroadAttempt) -> @execution_relation.CompletedOutput?
+pub fn duckdb_broad_attempt_row_count(DuckDBBroadAttempt) -> Int?
 
 pub fn duckdb_broad_candidate(CapabilityRegistration, DuckDBQueryPreparation, Array[@physical_cost.SerialEstimateLine], QueryQuantities, Int) -> Result[PreparedAcquisition[DuckDBQueryPreparation], QueryPlanningIssue]
 

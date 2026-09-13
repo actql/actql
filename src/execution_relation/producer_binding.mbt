@@ -57,3 +57,27 @@ pub fn bind_completed_input(
     projection: @pipeline.producer_projection(producer),
   })
 }
+
+///|
+/// Add a live admission condition to an existing successful output. This only
+/// narrows authority: the original completion must remain live as well. The
+/// predicate is synchronous and side-effect-free, installed by the owning
+/// integration (never inferred from a serialized claim). No data is copied or
+/// re-admitted. Already completed consumers keep their independent results.
+pub fn bind_live_completed_input(
+  receiver : @lower.BoundPrepared,
+  input_index : Int,
+  expected_producer : @lower.BoundPrepared,
+  output : CompletedOutput,
+  live : () -> Bool,
+) -> Result[BoundProducerInput, ProducerBindingIssue] {
+  let original = output.completion
+  let constrained : CompletedSequence = {
+    ..original,
+    live: Some(fn() { completion_is_live(original) && live() }),
+  }
+  bind_completed_input(receiver, input_index, expected_producer, {
+    ..output,
+    completion: constrained,
+  })
+}

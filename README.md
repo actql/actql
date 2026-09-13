@@ -463,6 +463,10 @@ design also reaches browser, edge, and managed runtimes.
 - [Query strategy experiment](docs/query-planning-usage.md) — pure two-candidate
   comparison, guarded mock acquisition, process-local evidence/capture and
   completed-input consumer binding; not real-provider or Program/Run admission
+- [Real DuckDB Host](adapters/duckdb-node/README.md) — source-checkout Node/Neo
+  acquisition with native SQL or Local residual, process-local capture, and
+  isolated fixed-input Compute; limited filter/select profile, not durable
+  Program/Run execution or remote replay
 
 ## Status
 

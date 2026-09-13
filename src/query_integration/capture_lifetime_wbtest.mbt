@@ -1,0 +1,227 @@
+///|
+// Common acceptance cases for observation-bound producer inputs. No backend
+// can substitute bind-time verification for execution-time liveness.
+fn assert_capture_input_lifetime(
+  receiver : @lower.BoundPrepared,
+  bind : () -> @execution.BoundProducerInput?,
+  revoke : () -> Unit,
+  before_binding? : Bool = false,
+) -> Unit raise {
+  if before_binding {
+    revoke()
+    assert_true(bind() is None)
+    return
+  }
+  let bound = bind().unwrap()
+  let read = @execution.prepare_producer_read(receiver, bound, 100, 10000).unwrap()
+  let imported = @duckdb.prepare_fixed_import(read, "owned", 100, 10000).unwrap()
+  let generated = compute_test_sequence(receiver)
+  let pending = @execution.prepare_local_compute_attempt(generated, [bound], 3).unwrap()
+  let completed = @execution.execute_generated_sequence(
+    generated,
+    [],
+    compute_test_limits(),
+    produced=[bound],
+  ).unwrap()
+  let output = @execution.completed_output(completed, Step(0)).unwrap()
+  assert_eq(@execution.completed_row_count(output), 2)
+  revoke()
+  assert_true(bind() is None)
+  assert_true(
+    @execution.prepare_producer_read(receiver, bound, 100, 10000) is Err(_),
+  )
+  assert_false(@execution.producer_read_available(read))
+  assert_true(
+    @duckdb.prepare_fixed_import(read, "new", 100, 10000)
+    is Err(InputUnavailable),
+  )
+  assert_true(
+    @duckdb.fixed_import_parameter(imported, 0, 0) is Err(InputUnavailable),
+  )
+  assert_true(
+    @execution.execute_local_compute_attempt(pending, compute_test_limits())
+    is Err(Execution(InputOwnership)),
+  )
+  let fresh = @execution.prepare_local_compute_attempt(generated, [bound], 3).unwrap()
+  assert_true(
+    @execution.execute_local_compute_attempt(fresh, compute_test_limits())
+    is Err(Execution(InputOwnership)),
+  )
+  // Finished downstream results are independent, including new consumers of them.
+  let next = typed_receiver(receiver, "[{\"select\":[\"id\"]}]", target=Step(0))
+  let next_bound = @execution.bind_completed_input(next, 0, receiver, output).unwrap()
+  assert_true(
+    @execution.execute_generated_sequence(
+      compute_test_sequence(next),
+      [],
+      compute_test_limits(),
+      produced=[next_bound],
+    )
+    is Ok(_),
+  )
+}
+
+///|
+test "broad pre-capture diagnostics carry no consumer handle and disappear on abort" {
+  let f = broad_issuer_fixture()
+  let attempt = broad_issued_attempt(f)
+  broad_issued_run(f, attempt)
+  assert_eq(@planning.duckdb_broad_attempt_row_count(attempt), Some(2))
+  let records = @planning.issue_duckdb_broad_records(
+    attempt,
+    query_material_limits(),
+  ).unwrap()
+  assert_eq(@planning.duckdb_broad_attempt_row_count(attempt), Some(2))
+  @planning.abort_duckdb_broad_attempt(attempt)
+  assert_true(@planning.duckdb_broad_attempt_row_count(attempt) is None)
+  assert_true(
+    @planning.capture_duckdb_broad_query(
+      f.issuer,
+      attempt,
+      records,
+      query_capture_limits(),
+    )
+    is Err(_),
+  )
+}
+
+///|
+test "captured broad bindings retain issuer and exact transport liveness" {
+  for
+    (close_issuer, before_binding) in [
+      (true, true),
+      (true, false),
+      (false, false),
+    ] {
+    let f = broad_issuer_fixture()
+    let attempt = broad_issued_attempt(f)
+    broad_issued_run(f, attempt)
+    let records = @planning.issue_duckdb_broad_records(
+      attempt,
+      query_material_limits(),
+    ).unwrap()
+    let observation = @planning.capture_duckdb_broad_query(
+      f.issuer,
+      attempt,
+      records,
+      query_capture_limits(),
+    ).unwrap()
+    let owner = @query.query_sequence_owner(f.sequence)
+    let receiver = typed_receiver(owner, "[{\"select\":[\"id\"]}]")
+    assert_capture_input_lifetime(
+      receiver,
+      fn() {
+        match
+          @planning.bind_captured_duckdb_broad_input(
+            f.issuer,
+            attempt,
+            observation,
+            receiver,
+            0,
+            owner,
+          ) {
+          Ok(bound) => Some(bound)
+          Err(_) => None
+        }
+      },
+      fn() {
+        if close_issuer {
+          @planning.close_duckdb_query_issuer(f.issuer)
+        } else {
+          f.transport.clear()
+        }
+      },
+      before_binding~,
+    )
+  }
+}
+
+///|
+test "captured mock bindings retain issuer liveness for both realizations" {
+  for
+    (strategy, before_binding) in [
+      (@planning.NativeQuery, true),
+      (@planning.NativeQuery, false),
+      (@planning.BroadWithResidual, true),
+      (@planning.BroadWithResidual, false),
+    ] {
+    let (issuer, sequence) = query_issuer_fixture()
+    let owner = @query.query_sequence_owner(sequence)
+    let receiver = typed_receiver(owner, "[{\"select\":[\"id\"]}]")
+    let attempt = query_issuer_attempt(issuer, sequence, strategy)
+    query_issuer_run(attempt)
+    let records = @planning.issue_mock_query_records(
+      attempt,
+      query_material_limits(),
+    ).unwrap()
+    let observation = @planning.capture_mock_query(
+      issuer,
+      attempt,
+      records,
+      query_capture_limits(),
+    ).unwrap()
+    assert_capture_input_lifetime(
+      receiver,
+      fn() {
+        match
+          @planning.bind_captured_query_input(
+            issuer, attempt, observation, receiver, 0, owner,
+          ) {
+          Ok(bound) => Some(bound)
+          Err(_) => None
+        }
+      },
+      fn() { @planning.close_mock_query_issuer(issuer) },
+      before_binding~,
+    )
+  }
+}
+
+///|
+test "captured native bindings obey the same issuer and transport lifetime cases" {
+  for
+    (close_issuer, before_binding) in [
+      (true, true),
+      (true, false),
+      (false, false),
+    ] {
+    let f = native_issuer_fixture()
+    let attempt = native_issued_attempt(f)
+    native_attempt_receive_fixture(attempt)
+    f.transport.push(attempt)
+    let observation = @planning.complete_duckdb_native_capture(
+      f.issuer,
+      attempt,
+      native_completion_limits(),
+    ).unwrap()
+    let material = @planning.materialize_duckdb_native_output(
+      f.issuer,
+      attempt,
+      observation,
+      100,
+      { max_nodes: 1000, max_text_bytes: 1000, max_depth: 10, max_work: 10000, },
+    ).unwrap()
+    let output = @planning.complete_duckdb_native_output(material, 100, 10000).unwrap()
+    let owner = @execution.admitted_output_owner(
+      @planning.duckdb_native_output_rows(material).unwrap(),
+    )
+    let receiver = typed_receiver(owner, "[{\"select\":[\"id\"]}]")
+    assert_capture_input_lifetime(
+      receiver,
+      fn() {
+        match @execution.bind_completed_input(receiver, 0, owner, output) {
+          Ok(bound) => Some(bound)
+          Err(_) => None
+        }
+      },
+      fn() {
+        if close_issuer {
+          @planning.close_duckdb_native_issuer(f.issuer)
+        } else {
+          f.transport.clear()
+        }
+      },
+      before_binding~,
+    )
+  }
+}

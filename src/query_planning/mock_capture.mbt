@@ -110,10 +110,15 @@ pub fn bind_captured_query_input(
   guard attempt.state is Captured(actual) && physical_equal(actual, observation) else {
     return Err(ForeignObservation)
   }
-  @execution.bind_completed_input(
+  @execution.bind_live_completed_input(
     receiver,
     input_index,
     expected_producer,
     observation.records.retention.computation.output,
+    fn() {
+      verify_mock_query_records(issuer, attempt, observation.records) is Ok(_) &&
+      attempt.state is Captured(actual) &&
+      physical_equal(actual, observation)
+    },
   ).map_err(issue => Consumer(issue))
 }

@@ -432,6 +432,11 @@ uses the existing captured-input binding directly. The expected producer is
 derived from the owned requirement, not supplied separately by the caller.
 Pass that bound input to the existing checked consumer; do not re-admit or copy
 the captured rows in Node. Both entries expose `document()` and `close()`.
+Closing either capture invalidates new execution even through an input already
+bound before close, including a previously prepared ProducerRead or Compute
+import. It does not revoke a consumer result completed before close. The broad
+attempt's public `duckdb_broad_attempt_row_count` is diagnostic only: raw residual
+CompletedOutput access before capture is not public.
 
 The broad Host invokes `complete_duckdb_broad_capture` only after actual source
 settlement. That operation validates exact issuer/attempt and transport ownership,

@@ -12,7 +12,11 @@ export async function exerciseOwnedFixedTransport(moon, producer, output, contra
   const setup = moon.ownedFixedConfiguration(configured);
   const hostLimits = { maxRows: 100, maxCells: 1000 };
   const expectedCid = hash(expectedIds.map(id => ({ id })));
-  const actual = await runFixedHostCompute(setup, limits, hostLimits);
+  const forbidden = () => assert.fail('fixed Host used caller replacement');
+  const actual = await runFixedHostCompute(setup, { ...limits,
+    verifier: forbidden, verify: forbidden, sql: forbidden,
+    runtime: { computeHostOpen: forbidden },
+  }, hostLimits);
   const actualOutput = actual.output();
   assert.equal(moon.ownedFixedConsumeOutput(configured, actualOutput), expectedCid);
   assert.equal(actual.usage.statements, actual.importedRows + 2);

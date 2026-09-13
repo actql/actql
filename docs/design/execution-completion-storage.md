@@ -20,6 +20,15 @@ Logical input charging reads every row before projection, regardless of buffer
 sharing. The adopted physical view has receiver-owned metadata while its
 completion anchor retains the actual producer and original buffers.
 
+An integration can narrow a successful output's future admission through
+`bind_live_completed_input`. This shares the original storage and metadata and
+combines the original completion predicate with an additional synchronous live
+condition. It cannot create success from rows or replace the original condition.
+Observation adapters install exact issuer/attempt/observation verification here.
+An existing binding or producer read does not freeze that condition: new read
+preparation, import and consumer execution still check it. Independently
+completed consumers retain their own successful results after upstream revocation.
+
 Row storage remains the default. A typed producer selects the mixed-storage
 adapter before execution. This is representation dispatch, not error recovery:
 neither exhausted budgets nor expression failures retry a different strategy.

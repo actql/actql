@@ -178,9 +178,8 @@ pub fn execute_duckdb_broad_attempt(
 }
 
 ///|
-/// No pre-cleanup or failed input/result is exposed. This computation is not an
-/// acquisition observation; the trusted issuer must still retain and verify it.
-pub fn duckdb_broad_attempt_output(
+/// Internal residual result only; never expose pre-capture execution authority.
+fn duckdb_broad_attempt_output(
   attempt : DuckDBBroadAttempt,
 ) -> @execution.CompletedOutput? {
   let completed = match attempt.state {
@@ -198,4 +197,10 @@ pub fn duckdb_broad_attempt_output(
       ),
     ),
   )
+}
+
+///|
+/// Diagnostic count only, not a consumer-admissible completion or observation.
+pub fn duckdb_broad_attempt_row_count(attempt : DuckDBBroadAttempt) -> Int? {
+  duckdb_broad_attempt_output(attempt).map(@execution.completed_row_count)
 }

@@ -22,6 +22,14 @@ test('standard native and broad Node Hosts own verification through real capture
   await exec('moon', ['build', '--target', 'js', '--release', 'src/duckdb_host_node'], { cwd: root });
   await exec('moon', ['build', '--target', 'js', '--release', 'src/duckdb_conformance'], { cwd: root });
   const fixture = await import(pathToFileURL(join(root, '_build/js/release/build/duckdb_conformance/duckdb_conformance.js')));
+  const publicApi = await readFile(join(root, 'src/query_planning/pkg.generated.mbti'), 'utf8');
+  assert.doesNotMatch(publicApi, /pub fn duckdb_broad_attempt_output\(/);
+  assert.match(publicApi, /pub fn duckdb_broad_attempt_row_count\(/);
+  // Caller-controlled transport options cannot install semantic verification,
+  // replacement SQL or another MoonBit runtime into either standard entry.
+  const forbidden = () => assert.fail('standard Host used caller replacement');
+  const suppliedLimits = { ...limits, verifier: forbidden, verify: forbidden,
+    runtime: { nativeHostOpen: forbidden, broadHostOpen: forbidden }, sql: forbidden };
   // Independent fixed setup stays in conformance. The product entry loads only
   // duckdb_host_node and cannot receive these test functions as its verifier.
   const catalogs = await readFile(join(root, 'src/query_integration/query_amount_catalog_wbtest.mbt'), 'utf8');
@@ -67,7 +75,7 @@ test('standard native and broad Node Hosts own verification through real capture
           });
           continue;
         }
-        const captured = await execute(grant, setup, limits);
+        const captured = await execute(grant, setup, suppliedLimits);
         const expected = kind === 'empty' ? [] : [{ id: 3 }, { id: 2 }, { id: 3 }];
         const observation = JSON.parse(captured.document());
         assert.equal(observation.output.rows_cid, hash(expected));
@@ -99,7 +107,7 @@ test('standard native and broad Node Hosts own verification through real capture
         captured.close();
         assertFixedUnavailable?.();
         assert.throws(materialize, { code: 'IssuerClosed' });
-        if (native) assert.equal(consume(prepared, output, 100), 'null');
+        assert.equal(consume(prepared, output, 100), 'null');
         const cancelled = new AbortController();
         cancelled.abort();
         await assert.rejects(execute(grant, setup, limits, cancelled.signal));

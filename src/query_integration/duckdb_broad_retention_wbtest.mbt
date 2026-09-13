@@ -43,7 +43,7 @@ test "DuckDB broad retention shares exact receipt and output measurement boundar
       )
       @planning.abort_duckdb_broad_attempt(attempt)
       assert_false(@planning.duckdb_broad_retention_matches(retained, attempt))
-      assert_true(@planning.duckdb_broad_attempt_output(attempt) is None)
+      assert_true(@planning.duckdb_broad_attempt_row_count(attempt) is None)
     } else {
       if nodes == 0 {
         assert_true(result is Err(Retention(ScanIdentity(InvalidLimits))))
@@ -52,7 +52,7 @@ test "DuckDB broad retention shares exact receipt and output measurement boundar
           result is Err(Retention(OutputIdentity(Encoding(OutputLimit)))),
         )
       }
-      assert_true(@planning.duckdb_broad_attempt_output(attempt) is None)
+      assert_true(@planning.duckdb_broad_attempt_row_count(attempt) is None)
       assert_true(
         @planning.retain_duckdb_broad_attempt(attempt, exact)
         is Err(InvalidState),
@@ -71,7 +71,7 @@ test "DuckDB broad retention shares exact receipt and output measurement boundar
       assert_true(
         result is Err(Retention(OutputIdentity(Encoding(OutputLimit)))),
       )
-      assert_true(@planning.duckdb_broad_attempt_output(attempt) is None)
+      assert_true(@planning.duckdb_broad_attempt_row_count(attempt) is None)
     }
   }
   let too_small = completed_broad_attempt()

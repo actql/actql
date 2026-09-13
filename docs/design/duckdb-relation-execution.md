@@ -213,7 +213,15 @@ MoonBit implementation; it must not expose a per-call verifier override. Fixed
 of that product entry or its execution examples. A boolean returned by the exact
 live-provenance verifier is distinct from accepting a caller's success boolean.
 
-Only serial reservation is shared between mock and DuckDB issuers. Backend
+Broad and mock capture bindings retain exact issuer/attempt/observation liveness
+through the engine's constrained-completion binding. They share completed data
+without re-admission or full-row copying. Revocation is checked again when a
+bound input or ProducerRead is used, not only when it is first created. Completed
+downstream computations remain independent. Broad residual completion before
+capture is package-private; the public diagnostic exposes only row count, not
+a consumer-admissible CompletedOutput.
+
+Issuer state machines share serial reservation, not their receipt state. Backend
 issuer namespaces, per-issuer attempt counters, live authority and retained
 receipt types stay distinct. Reservation checks exhaustion before incrementing
 and never reuses a consumed number. Shared serialization and allocation do not

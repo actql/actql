@@ -215,6 +215,10 @@ enforces receiver projection, ownership and resource limits. A failed consumer
 may be retried with a fresh compute attempt and budget using the same capture,
 without another source read. Hold the observation for its process-local evidence
 lifetime. No durable capture, Run admission or public Result publication is implied.
+The binding retains the exact observation's live verification. Closing the issuer
+also prevents new execution through previously created bindings or ProducerRead
+handles; merely holding either handle does not extend permission. A consumer
+that completed before revocation keeps its independent result.
 
 ### Representation and conformance scope
 
