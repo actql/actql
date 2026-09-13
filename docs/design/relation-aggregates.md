@@ -95,7 +95,8 @@ for this array-item limit.
 retains the exact requirement, input, call and original resolution owner. It
 counts items after null exclusion and distinct, and requires failure without
 publishing a partial Relation or truncating the array. Selection is not evidence
-that this check has run. Work, links and candidate storage are cumulative across
+that this check has run. The retained call's item contract and recursive value
+construction constraints must also hold before publication. Work, links and candidate storage are cumulative across
 calls; failure does not expose a partially linked index. Other aggregate
 envelopes and numeric observations remain unresolved. This process-owned binding
 does not replace persistent resolved-limit emission. The formal Program entry

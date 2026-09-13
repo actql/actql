@@ -5,6 +5,7 @@ pub suberror ConstructionFailure {
   Operations(@context.ProgramOperationResolutionIssue)
   Values(@context.ValuesPublicationIssue)
   Joins(@context.JoinRequirementIssue)
+  GroupLimits(@context.GroupArrayLimitIssue)
   Incoming(@context.IncomingIssue)
   Links(@context.IncomingLinksIssue)
   Requirements(@context.StageRequirementIssue)
@@ -60,7 +61,7 @@ fn prepare_owned_closure(
     Ok(v) => v
     Err(e) => raise Values(e)
   }
-  let resolutions = match
+  let join_resolutions = match
     @context.link_program_join_requirements(
       values_resolutions,
       ceiling,
@@ -68,6 +69,16 @@ fn prepare_owned_closure(
     ) {
     Ok(v) => v
     Err(e) => raise Joins(e)
+  }
+  let resolutions = match
+    @context.link_program_group_array_limits(
+      join_resolutions,
+      ceiling,
+      ceiling - prefix,
+      ceiling - prefix,
+    ) {
+    Ok(v) => v
+    Err(e) => raise GroupLimits(e)
   }
   let resolution_work = @context.operation_resolution_work(resolutions)
   let (values_bytes, values_nodes) = @context.operation_resolution_values_usage(

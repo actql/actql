@@ -60,6 +60,8 @@ pub fn graph_proof_limit(ReidentifiedGraphInput) -> @capacity_witness.LimitClaim
 
 pub fn graph_proof_witness(ReidentifiedGraphInput) -> @capacity_witness.WireWitness
 
+pub fn group_aggregate_subject(GroupAggregateSource, Int) -> String raise UnitBuildFailure
+
 pub fn incoming_gates(CheckedProgram) -> @pipeline_check_context.ProgramIncomingGates
 
 pub fn proof_application(ReidentifiedStep) -> @capacity_program_step.StepBound
@@ -176,6 +178,8 @@ pub fn unit_gate_cid_at(CheckedProgram, Int, Int) -> String?
 
 pub fn unit_gate_cid_count(CheckedProgram, Int) -> Int?
 
+pub fn unit_group_aggregate_source_at(CheckedProgram, Int, Int, Int) -> GroupAggregateSource?
+
 pub fn unit_import_cid_at(CheckedProgram, Int, Int) -> String?
 
 pub fn unit_import_cid_count(CheckedProgram, Int) -> Int?
@@ -197,6 +201,7 @@ pub suberror ConstructionFailure {
   Operations(@pipeline_check_context.ProgramOperationResolutionIssue)
   Values(@pipeline_check_context.ValuesPublicationIssue)
   Joins(@pipeline_check_context.JoinRequirementIssue)
+  GroupLimits(@pipeline_check_context.GroupArrayLimitIssue)
   Incoming(@pipeline_check_context.IncomingIssue)
   Links(@pipeline_check_context.IncomingLinksIssue)
   Requirements(@pipeline_check_context.StageRequirementIssue)
@@ -284,6 +289,12 @@ pub struct DirectSourcePolicy {
 type EffectivePolicy
 
 type ExpressionExecution
+
+pub struct GroupAggregateSource {
+  operation : UnitOperationSource
+  call : @relation_typing.CheckedAggregate
+  scope : String
+}
 
 pub struct KeyedExecution {
   owner : @pipeline_check_context.SourceProducerContext

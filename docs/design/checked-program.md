@@ -59,6 +59,16 @@ empty-global results. Expression leaves without policy attestations and authored
 aggregate value options contribute unknown provenance; they are not made public
 by a false filter or a later projection hiding the aggregate column. This is
 relation-level publication policy, not field-level Effect policy or declassification.
+The constructor also links ordinary array-aggregate item limits from the same
+operation-resolution owner and shared work/candidate budget. The resulting
+execution check retains the selected Host ceiling, guard and applicable input
+proof memberships; it is not a record of measured arrays or completed enforcement.
+`unit_group_aggregate_source_at` reads a checked ordinary-group resource scope
+by Unit, source step and aggregate index. Its opaque construction retains the
+actual call, and `group_aggregate_subject` renders the normative escaped-name
+reference under an explicit work bound. Callers cannot supply substitute names,
+scope strings or Unit CIDs. This location is not itself a wire proof: persistent
+witness/limit reconstruction and backend enforcement remain separate requirements.
 Join consumes the existing cardinality selection, ordered-occurrence execution
 check and exact selected-policy capacity application. All five join kinds
 can close when their requirements are supplied. Authored cardinality and
