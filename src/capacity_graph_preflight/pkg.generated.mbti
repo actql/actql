@@ -35,6 +35,8 @@ pub fn application_coverage_sources(ApplicationCoverage) -> SourceCoverage
 
 pub fn application_coverage_work(ApplicationCoverage) -> Int
 
+pub fn bind_producer_target_membership(ApplicationClosure, @capacity_program_step.TargetRows, Int, Int, Int) -> Result[TargetMembership, TargetMembershipIssue]
+
 pub fn bind_target_membership(ApplicationClosure, @capacity_program_step.TargetRows, Int, Int) -> Result[TargetMembership, TargetMembershipIssue]
 
 pub fn check(@pipeline_typing.CheckedPipeline, @capacity_host_witness.HostSources, @capacity_policy.Policy, @capacity_graph_input.Limits) -> Result[@capacity_graph_input.GraphInputs, @capacity_graph_input.Issue]
@@ -78,6 +80,8 @@ pub fn source_coverage_program(SourceCoverage) -> @capacity_program_step.Applica
 pub fn source_coverage_work(SourceCoverage) -> Int
 
 pub fn target_membership_closure(TargetMembership) -> ApplicationClosure
+
+pub fn target_membership_consumer_visit(TargetMembership) -> Int
 
 pub fn target_membership_coordinates(TargetMembership) -> (Int, Int, Int)
 

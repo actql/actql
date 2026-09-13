@@ -228,3 +228,87 @@ test "formal interval refuses missing search proof without returning partial Pro
   assert_true(rejected)
   assert_eq(results.length(), 0)
 }
+
+///|
+test "imported interval search retains producer Unit proofs without consumer copies" {
+  for kind in ["inner", "left", "semi", "anti"] {
+    let output : Array[CheckedProgram] = []
+    let steps = "[{\"interval_join\":{\"with\":\"again\",\"kind\":\"" +
+      kind +
+      "\",\"mode\":\"point_in_interval\",\"on\":[],\"left\":{\"time\":\"id\"},\"right\":{\"start\":\"id\",\"end\":\"value\"},\"select\":{\"id\":\"left.id\",\"value\":\"left.value\"}},\"as\":\"selected\"}]"
+    ignore(
+      local_construction_fixture(
+        { work: 10000000, bytes: 1000000, nodes: 100000, depth: 100, },
+        through_check=true,
+        checked_results=output,
+        second_stage=true,
+        tea=true,
+        generated_rows=Some("[{\"id\":1}]"),
+        generated_proofs=[keyed_sourceview_claim()],
+        generated_proof_stage=0,
+        second_steps=steps,
+        second_result_from="selected",
+        second_join_capacity=true,
+        second_join_step=0,
+        extra_step_budget=1,
+      ),
+    )
+    let p = output[0]
+    let limit = unit_interval_search_limit_at(p, 1, 0).unwrap()
+    assert_eq(
+      limit.source.unit_definition_cid,
+      unit_definition_cid(p, 1).unwrap(),
+    )
+    assert_eq(@step_bounds.interval_search_upper(limit.selected.product), 1L)
+    let writer = @encode.writer(100000, 10000, 100)
+    emit_interval_search_limit(limit, writer)
+    let text = @encode.finish(writer)
+    assert_false(text.contains("checked-step:"))
+    for side in 0..<2 {
+      assert_eq(interval_search_limit_proof_count(limit, side), 2)
+      for index in 0..<2 {
+        let proof = interval_search_limit_proof_at(limit, side, index).unwrap()
+        assert_eq(
+          proof_source(proof).unit_definition_cid,
+          unit_definition_cid(p, 0).unwrap(),
+        )
+        assert_eq(proof_source(proof).source_ordinal, 0)
+        assert_true(
+          text.contains(
+            @wire.cid(@wire.program_proof_witness(proof_claim(proof))),
+          ),
+        )
+        let membership = @context.interval_search_bound_candidate_at(
+          limit.selected.bounds,
+          side,
+          index,
+        ).unwrap()
+        assert_eq(@capacity.target_membership_consumer_visit(membership), 0)
+        assert_eq(
+          @capacity.target_membership_coordinates(membership),
+          (index + 1, 0, index + 1),
+        )
+      }
+    }
+    assert_eq(limit.left_refs.length(), 1)
+    assert_eq(limit.right_refs.length(), 1)
+    assert_eq(limit.left_refs, limit.right_refs)
+    let owner = @context.interval_search_bound_owner(limit.selected.bounds)
+    let requirement = @context.interval_search_bound_requirement(
+      limit.selected.bounds,
+    )
+    let work = @context.interval_search_bound_work(limit.selected.bounds)
+    assert_true(
+      @context.collect_interval_search_bounds(owner, requirement, work, 4)
+      is Ok(_),
+    )
+    assert_true(
+      @context.collect_interval_search_bounds(owner, requirement, work - 1, 4)
+      is Err(@context.BudgetExceeded),
+    )
+    assert_true(
+      @context.collect_interval_search_bounds(owner, requirement, work, 3)
+      is Err(@context.BudgetExceeded),
+    )
+  }
+}

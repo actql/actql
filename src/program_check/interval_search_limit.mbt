@@ -126,6 +126,8 @@ fn assemble_interval_search_limit(
           @capacity.target_membership_closure(membership),
           @context.interval_search_bound_closure(selected.bounds),
         ) &&
+        @capacity.target_membership_consumer_visit(membership) ==
+        selected.site.producer_visit &&
         physical_equal(@step_bounds.target_rows_pipeline(rows), source.pipeline) &&
         @step_bounds.interval_search_input_at(product, side) ==
         Some(@step_bounds.target_rows_target(rows)) else {

@@ -225,10 +225,14 @@ available through indexed readers. Separate identities are retained for the
 consumer operation and each producing operation; internal step handles are not
 serialized as persistent subjects. Construction rejects foreign or duplicate Unit
 owners and commits its budget only after the complete limit succeeds.
-Automatic search-bound collection currently requires memberships admitted for
-the consuming pipeline. A producer proof available only under another pipeline's
-capacity entry is not silently adopted across an import; that path remains
-unresolved until the checked membership connection is supplied.
+Search-bound collection considers all admitted claim tables in the same capacity
+closure, including imported producers. `bind_producer_target_membership` retains
+the consumer visit separately from the claim-table visit, original claim index
+and admitted proof-owner visit. It requires the exact checked target-to-producer
+association and the original admitted bound object; matching bytes, schema or CID
+cannot substitute for either. Repeated visits remain individually charged and
+retain their memberships. The existing `bind_target_membership` construction boundary
+continues to require the consumer and claim table at the same visit.
 
 Join consumes the existing cardinality selection, ordered-occurrence execution
 check and exact selected-policy capacity application. All five join kinds

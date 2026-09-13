@@ -276,6 +276,57 @@ test "producer capacity closure rejects substituted bindings at a later repeated
     0,
   ).unwrap()
   let detached = @program.check_target_rows(root, Input(0), local_bound, 10).unwrap()
+  for proof_visit in [1, 2] {
+    let imported = @capacity_graph_preflight.bind_producer_target_membership(
+      combined, detached, 0, proof_visit, 0,
+    ).unwrap()
+    assert_eq(
+      @capacity_graph_preflight.target_membership_consumer_visit(imported),
+      0,
+    )
+    assert_eq(
+      @capacity_graph_preflight.target_membership_coordinates(imported),
+      (proof_visit, 0, proof_visit),
+    )
+    assert_true(
+      physical_equal(
+        @capacity_graph_preflight.target_membership_rows(imported),
+        detached,
+      ),
+    )
+  }
+  for invalid in [-1, 3] {
+    assert_true(
+      @capacity_graph_preflight.bind_producer_target_membership(
+        combined, detached, invalid, 1, 0,
+      )
+      is Err(InvalidVisit),
+    )
+    assert_true(
+      @capacity_graph_preflight.bind_producer_target_membership(
+        combined, detached, 0, invalid, 0,
+      )
+      is Err(InvalidVisit),
+    )
+  }
+  assert_true(
+    @capacity_graph_preflight.bind_producer_target_membership(
+      combined, detached, 1, 1, 0,
+    )
+    is Err(ForeignConsumer),
+  )
+  assert_true(
+    @capacity_graph_preflight.bind_producer_target_membership(
+      combined, target, 0, 1, 0,
+    )
+    is Err(ForeignBound),
+  )
+  assert_true(
+    @capacity_graph_preflight.bind_producer_target_membership(
+      combined, detached, 0, 1, 1,
+    )
+    is Err(InvalidClaim),
+  )
   assert_eq(
     @program.target_rows_value(detached),
     @program.target_rows_value(target),

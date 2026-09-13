@@ -284,8 +284,10 @@ fn local_construction_fixture(
         }
       } else {
         @context.CapacityMaterial::{
-          sources: if stage == generated_proof_stage &&
-            visit == 0 &&
+          sources: if (
+              (stage == generated_proof_stage && visit == 0) ||
+              (stage == 1 && visit > 0 && generated_proof_stage == 0)
+            ) &&
             !generated_proofs.is_empty() {
             generated_sources
           } else {

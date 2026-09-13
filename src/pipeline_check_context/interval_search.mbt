@@ -60,12 +60,6 @@ pub fn collect_interval_search_bounds(
     let source = @capacity.application_coverage_sources(
       @capacity.application_closure_at(closure, visit).unwrap(),
     )
-    if !physical_equal(
-        site.pipeline,
-        @capacity.checked_pipeline(@capacity.source_coverage_graph(source)),
-      ) {
-      continue
-    }
     let applications = @capacity.source_coverage_program(source)
     let arithmetic = @wire.program_claim_arithmetic(
       @step_bounds.application_claims(applications),
@@ -94,7 +88,13 @@ pub fn collect_interval_search_bounds(
               return Err(BudgetExceeded)
             }
             let membership = match
-              @capacity.bind_target_membership(closure, rows, visit, claim) {
+              @capacity.bind_producer_target_membership(
+                closure,
+                rows,
+                site.producer_visit,
+                visit,
+                claim,
+              ) {
               Ok(v) => v
               Err(_) => return Err(ForeignEvidence)
             }
