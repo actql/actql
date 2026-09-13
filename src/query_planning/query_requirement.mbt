@@ -81,22 +81,10 @@ pub fn prepare_query_requirement(
   }
   let selected = @acquisition.mode_input(mode)
   let declaration = @acquisition.declaration(selected)
-  let contexts = @context.source_rows_requests(
-    @context.source_policy_rows(
-      @context.source_capacity_context(
-        @context.source_producer_capacity(
-          @context.preparation_sources(
-            @context.source_bindings_preparation(
-              @context.program_sources_bindings(
-                @context.program_identity_sources(program),
-              ),
-            ),
-          ),
-        ),
-      ),
-    ),
-  )
-  guard @context.source_request_stage(contexts, declaration.stage_index)
+  guard @context.program_identity_stage_requests(
+      program,
+      declaration.stage_index,
+    )
     is Some(expected) &&
     physical_equal(expected, requests) else {
     return Err(ForeignProgram)

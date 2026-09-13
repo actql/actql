@@ -96,23 +96,7 @@ fn query_checked_sequence(
   checked : @program_check.CheckedProgram,
 ) -> QuerySequence raise {
   let identity = @program_check.source_identity(checked)
-  let producer = @context.preparation_sources(
-    @context.source_bindings_preparation(
-      @context.program_sources_bindings(
-        @context.program_identity_sources(identity),
-      ),
-    ),
-  )
-  let requests = @context.source_request_stage(
-    @context.source_rows_requests(
-      @context.source_policy_rows(
-        @context.source_capacity_context(
-          @context.source_producer_capacity(producer),
-        ),
-      ),
-    ),
-    0,
-  ).unwrap()
+  let requests = @context.program_identity_stage_requests(identity, 0).unwrap()
   let query = @acquisition.derive_query_acquisition(requests, 0, 1000000).unwrap()
   assert_true(
     physical_equal(

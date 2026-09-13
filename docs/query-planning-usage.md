@@ -6,6 +6,16 @@ observation and binds its immutable output to a checked local consumer. It does
 not dispatch a real Connector, publicly publish a Result or construct a runnable
 Program/Plan.
 
+The initial derivation accepts only a checkpoint-free selected snapshot mode.
+A checkpoint on that mode returns `UnsupportedShape`, whether the mode was
+selected explicitly or by default. A checkpoint on an unselected mode does not
+exclude an otherwise supported snapshot. This experiment does not retain or
+advance checkpoints.
+
+Use `program_identity_stage_requests(identity, stage_index)` to obtain the
+Program's existing owned requests for shared derivation; do not reconstruct
+equal requests as a substitute for their owner.
+
 1. Obtain `execution_relation.QuerySequence` from the shared query derivation and
    matching checked/lowered preparation. See [local usage](local-compute-usage.md).
 2. Call `offer_mock_query` with `NativeQuery` or `BroadWithResidual`. Obtain cost
