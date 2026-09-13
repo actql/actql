@@ -6,6 +6,7 @@ fn sequence_fixture_proof(
   value : Int,
   inputs : Array[String],
   derivation : String,
+  unit? : String = "rows",
 ) -> @wire.ProgramProofClaim {
   let inputs = inputs.copy()
   inputs.sort()
@@ -17,7 +18,9 @@ fn sequence_fixture_proof(
     law +
     "\",\"semantic_ref\":\"" +
     subject +
-    "\",\"unit\":\"rows\",\"value\":" +
+    "\",\"unit\":\"" +
+    unit +
+    "\",\"value\":" +
     value.to_string() +
     ",\"version\":\"actql-bound-proof/0.1\"}"
   let proof_cid = "sha256:" + @sha.hex(@utf8.encode(body))
@@ -41,7 +44,9 @@ fn sequence_fixture_proof(
     proof_cid +
     "\",\"semantic_ref\":\"" +
     subject +
-    "\"},\"unit\":\"rows\",\"value\":" +
+    "\"},\"unit\":\"" +
+    unit +
+    "\",\"value\":" +
     value.to_string() +
     ",\"version\":\"actql-bound-witness/0.1\""
   let cid = "sha256:" + @sha.hex(@utf8.encode(raw + "}"))

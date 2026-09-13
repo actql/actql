@@ -41,6 +41,8 @@ fn local_construction_fixture(
   tea? : Bool = false,
   sga? : Bool = false,
   graph_construction_limit? : Int? = None,
+  components_capacity_rows? : Int? = None,
+  graph_output_limit? : Int? = None,
   calendar? : Bool = false,
   calendar_material? : Bool = true,
   text_policy? : Bool = false,
@@ -192,6 +194,8 @@ fn local_construction_fixture(
         analytic_limit.unwrap()
       } else if n.contains("max_graph_construction_") {
         graph_construction_limit.unwrap()
+      } else if n == "max_graph_output_rows" {
+        graph_output_limit.unwrap_or(host_limit)
       } else if n == "max_nested_value_bytes" {
         nested_bytes.unwrap_or(host_limit)
       } else if n == "max_nested_value_depth" {
@@ -332,12 +336,23 @@ fn local_construction_fixture(
   } else {
     None
   }
+  let components_sources = components_capacity_rows.map(rows => {
+    local_components_capacity_fixture(environment, rows) catch {
+      _ => abort("invalid components test material")
+    }
+  })
   let materials = Array::makei(stage_count, stage => {
     // Known fixture topology: first has one visit; second imports first twice
     // plus its own pipeline. Do not pre-check the Program to construct inputs
     // to the entry being tested, which would hide its rejection behavior.
     Array::makei(if stage == 1 { 3 } else { 1 }, visit => {
-      if (
+      if (stage == 0 || (stage == 1 && visit > 0)) &&
+        components_sources is Some(sources) {
+        @context.CapacityMaterial::{
+          sources,
+          consumers: [@capacity.Components(step=3, nodes=0, output=1)],
+        }
+      } else if (
           (stage == sequence_capacity_stage && visit == 0) ||
           (stage == 1 && visit > 0 && sequence_capacity_stage == 0)
         ) &&
