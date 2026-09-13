@@ -112,6 +112,15 @@ values. Root constraints are applied within the existing evaluator, not by
 replaying expressions. The producer remains immutable and uses ordinary receiving
 admission; measurement does not replace that admission or discount fragment work.
 
+For execution outside the row evaluator, `FixedProducerMeasurement` performs the
+same complete input value checks before execution and retains the remaining
+physical budget until provisional output arrives. Finishing consumes the session
+once, verifies the exact receiving owner, target and schema, and measures output
+values using the remaining budget. Its measured-output handle matches the exact
+input, output material and ceilings, not equivalent rows or CIDs. It proves only
+input/output capacity: predicate demand, transport provenance and successful
+execution remain separate conditions for trusted completion.
+
 DuckDB preparation compiles an isolated temporary-table import and restricted
 filter/select for the same retained input. The common comparison includes setup,
 import/export, conversion, computation, retention and cleanup scopes. Selection

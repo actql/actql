@@ -5,6 +5,8 @@ struct OwnedFixedFixture {
   compute : @duckdb.FixedCompute
   local_binding : @planning.PreparedCompute[@execution.GeneratedSequence]
   local_choice : @planning.FixedComputeChoice
+  measurement : @execution.FixedProducerMeasurement
+  mut measured : @execution.FixedProducerMeasuredOutput?
   mut receiving : @duckdb.FixedComputeReceiving?
   mut receipt : @duckdb.FixedComputeReceipt?
 }
@@ -103,6 +105,14 @@ pub fn owned_fixed_create(
       compute: @planning.fixed_compute_choice_payload(choice, native).unwrap(),
       local_binding,
       local_choice,
+      measurement: @execution.prepare_fixed_producer_measurement(
+        read,
+        @pipeline.Step(1),
+        max_rows=100,
+        max_value_bytes=10000,
+        issued_native_measure_limits(),
+      ).unwrap(),
+      measured: None,
       receiving: None,
       receipt: None,
     }
@@ -215,6 +225,17 @@ pub fn owned_fixed_finish(value : OwnedFixedFixture) -> Bool {
   guard value.receiving is Some(receiving) else { return false }
   match @duckdb.finish_fixed_compute_receiving(receiving) {
     Ok(receipt) => {
+      guard @duckdb.fixed_compute_receipt_rows(receipt) is Some(rows) else {
+        return false
+      }
+      match
+        @execution.finish_fixed_producer_measurement(value.measurement, rows) {
+        Ok(measured) => value.measured = Some(measured)
+        Err(_) => {
+          @duckdb.abort_fixed_compute_receiving(receiving)
+          return false
+        }
+      }
       value.receipt = Some(receipt)
       true
     }
@@ -227,6 +248,16 @@ pub fn owned_fixed_finish(value : OwnedFixedFixture) -> Bool {
 pub fn owned_fixed_rows(value : OwnedFixedFixture) -> String {
   guard value.receipt is Some(receipt) else { return "null" }
   guard @duckdb.fixed_compute_receipt_rows(receipt) is Some(rows) else {
+    return "null"
+  }
+  guard value.measured is Some(measured) &&
+    @execution.fixed_producer_measurement_matches(
+      measured,
+      @duckdb.fixed_import_input(@duckdb.fixed_compute_import(value.compute)),
+      rows,
+      100,
+      10000,
+    ) else {
     return "null"
   }
   try {
@@ -279,4 +310,5 @@ pub fn owned_fixed_abort(value : OwnedFixedFixture) -> Unit {
     @duckdb.abort_fixed_compute_receiving(receiving)
   }
   value.receipt = None
+  value.measured = None
 }

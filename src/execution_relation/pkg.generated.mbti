@@ -95,6 +95,12 @@ pub fn finish_admitted_input(AdmittedInput) -> Result[CapturedRows, CaptureIssue
 
 pub fn finish_admitted_output(AdmittedOutput) -> Result[AdmittedOutputRows, CaptureIssue]
 
+pub fn finish_fixed_producer_measurement(FixedProducerMeasurement, AdmittedOutputRows) -> Result[FixedProducerMeasuredOutput, FixedInputGuardIssue]
+
+pub fn fixed_producer_measurement_matches(FixedProducerMeasuredOutput, ProducerRead, AdmittedOutputRows, Int, Int) -> Bool
+
+pub fn fixed_producer_measurement_usage(FixedProducerMeasuredOutput) -> (Int, Int, Int)
+
 pub fn generated_retained_at(GeneratedSequence, Int) -> String?
 
 pub fn generated_retained_count(GeneratedSequence) -> Int
@@ -114,6 +120,8 @@ pub fn ordered_params_registry(OrderedParams) -> RegisteredRelationContracts
 pub fn prepare_admitted_input(@lowering_relation.BoundPrepared, Int, Int, ValueLimits) -> Result[AdmittedInput, CaptureIssue]
 
 pub fn prepare_admitted_output(@lowering_relation.BoundPrepared, @pipeline_typing.Target, Int, ValueLimits) -> Result[AdmittedOutput, CaptureIssue]
+
+pub fn prepare_fixed_producer_measurement(ProducerRead, @pipeline_typing.Target, max_rows~ : Int, max_value_bytes~ : Int, FixedInputGuardMeasureLimits) -> Result[FixedProducerMeasurement, FixedInputGuardIssue]
 
 pub fn prepare_generated_sequence(RegisteredRelationContracts, @lowering_relation.PreparedSequence, Array[FragmentRuntimeContext], Array[String], Int, Int) -> Result[GeneratedSequence, SequenceRunIssue]
 
@@ -243,6 +251,10 @@ pub(all) enum FixedInputGuardPhase {
   InputValues
   Output
 }
+
+type FixedProducerMeasuredOutput
+
+type FixedProducerMeasurement
 
 pub(all) enum FragmentAdmissionIssue {
   InvalidContract

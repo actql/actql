@@ -169,7 +169,10 @@ this test verifies that import/residual work does not need a fresh source read.
 The owned-input test exercises empty results, duplicates, receiver capacity
 exhaustion, cancellation, repeat execution under fresh limits and upstream
 revocation. It uses the shared physical decoder and `FixedComputeReceiving` for
-actual returned chunks. The sealed receipt is still provisional, not a
+actual returned chunks. The owned-input fixture measures complete input values
+before import and output values after receipt settlement using the same bounded
+engine measurement session. Exact owner/target/limits and one-use finishing are
+checked without re-evaluating the predicate. The sealed receipt is still provisional, not a
 `CompletedOutput`: selected consumer-capacity enforcement and trusted Compute
 completion remain required. This fixture-backed driver is conformance code, not
 the final standard Compute Host entry. Acquisition budget exemptions must not be

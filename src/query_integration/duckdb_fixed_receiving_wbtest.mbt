@@ -31,6 +31,72 @@ test "fixed Compute receiving seals exact owned output without granting executio
   let receipt = @duckdb.finish_fixed_compute_receiving(receiving).unwrap()
   assert_true(@duckdb.fixed_compute_receipt_matches(receipt, receiving))
   let rows = @duckdb.fixed_compute_receipt_rows(receipt).unwrap()
+  let measure_limits : @execution.FixedInputGuardMeasureLimits = {
+    max_work: 8,
+    max_bytes: 4,
+    max_nodes: 4,
+    max_depth: 10,
+  }
+  let measuring = @execution.prepare_fixed_producer_measurement(
+    input,
+    @pipeline.Step(1),
+    max_rows=2,
+    max_value_bytes=1,
+    measure_limits,
+  ).unwrap()
+  let measured = @execution.finish_fixed_producer_measurement(measuring, rows).unwrap()
+  assert_eq(@execution.fixed_producer_measurement_usage(measured), (8, 4, 4))
+  assert_true(
+    @execution.fixed_producer_measurement_matches(measured, input, rows, 2, 1),
+  )
+  assert_false(
+    @execution.fixed_producer_measurement_matches(measured, input, rows, 2, 2),
+  )
+  assert_false(
+    @execution.fixed_producer_measurement_matches(
+      measured,
+      duckdb_captured_input(),
+      rows,
+      2,
+      1,
+    ),
+  )
+  assert_true(
+    @execution.finish_fixed_producer_measurement(measuring, rows)
+    is Err(ForeignInput),
+  )
+  for
+    physical_measurement in [
+      { ..measure_limits, max_work: 7, },
+      { ..measure_limits, max_bytes: 3, },
+      { ..measure_limits, max_nodes: 3, },
+    ] {
+    let short = @execution.prepare_fixed_producer_measurement(
+      input,
+      @pipeline.Step(1),
+      max_rows=2,
+      max_value_bytes=1,
+      physical_measurement,
+    ).unwrap()
+    assert_true(
+      @execution.finish_fixed_producer_measurement(short, rows) is Err(_),
+    )
+    assert_true(
+      @execution.finish_fixed_producer_measurement(short, rows)
+      is Err(ForeignInput),
+    )
+  }
+  let foreign_measurement = @execution.prepare_fixed_producer_measurement(
+    duckdb_captured_input(),
+    @pipeline.Step(1),
+    max_rows=2,
+    max_value_bytes=1,
+    measure_limits,
+  ).unwrap()
+  assert_true(
+    @execution.finish_fixed_producer_measurement(foreign_measurement, rows)
+    is Err(ForeignInput),
+  )
   assert_true(
     physical_equal(
       @execution.admitted_output_owner(rows),
