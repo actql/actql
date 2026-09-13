@@ -6752,6 +6752,31 @@ provider access, runtime MUST recheck sensitivity, completeness, MIME, bytes,
 availability, provider-account boundary, region, and current Host policy
 against the bound egress requirements. Failure performs zero provider calls.
 
+<!-- machine-import: ../../spec/contracts/actql-source-response-policy.json# sha256:742e76bb6cca5ce4d6ce225b6dc2ce153defb4a5a4e1dcd44d68699308110cfc -->
+<!-- machine-import: ../../spec/contracts/actql-source-response-policy.json#/schemas/policy sha256:6cea5889d4757f3154f7aac560d11743f50d34a276ecc0bed2bc4dd3b82b8827 -->
+<!-- requirement-block: external-joins.response-policy-identity -->
+The effective response policy MUST use the closed preimage in
+[`actql-source-response-policy.json`](../../spec/contracts/actql-source-response-policy.json)
+`/schemas/policy`: `{version:"actql-source-response-policy/0.1", source_ref,
+source_view_contract_cid, source_data_policy_cid, minimum_classification,
+classification}`. `source_ref` is the selected concrete SourceView's admitted
+data-policy source reference; both contract CIDs identify that exact selected
+SourceView and its authoritative data-policy Contract Envelope. The minimum is
+the authored input minimum or null when absent. Authoritative `unknown` remains
+unknown; otherwise classification is the maximum in
+`public < internal < confidential < restricted`, with absence preserving the
+authoritative classification. The CID hashes the entire canonical JSON UTF-8
+preimage using SHA-256, without a self-CID field.
+This same response-policy projection applies to direct SourceView acquisition.
+Input aliases are bound by the surrounding acquisition identity rather than
+added here. Request-input provenance is combined separately for the barrier
+output and egress requirements; it is not part of this response-only policy.
+Observations, snapshot tokens, permissions, Host ceilings and the whole Catalog
+are not response-policy preimage fields. Equal policy identities do not authorize
+retargeting a request, substituting another named input, or skipping current
+egress admission. Shape admission alone does not establish the selected-reference
+correspondence or the classification calculation.
+
 <!-- requirement-block: external-joins.when-the-sourceview-contract-admits-response-projection-the-compiler-must -->
 When the SourceView contract admits response projection, the compiler MUST bind
 the observed response field set as the union of right-side fields published by

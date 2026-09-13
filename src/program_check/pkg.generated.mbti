@@ -24,6 +24,8 @@ pub fn check(@stage_syntax.Program, @check_environment.WireEnvironment, @decode_
 
 pub fn contract_inventory(CheckedProgram) -> @pipeline_check_context.CoreContractInventory
 
+pub fn emit_source_response_policy(SourceResponsePolicy, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
+
 pub fn expression_bound_at(CheckedProgram, Int) -> @pipeline_check_context.TextBoundResolution?
 
 pub fn expression_bound_count(CheckedProgram) -> Int

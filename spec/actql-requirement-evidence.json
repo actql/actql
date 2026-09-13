@@ -5789,6 +5789,17 @@
       }
     },
     {
+      "requirement_id": "actql.language/external-joins.response-policy-identity",
+      "statement_sha256": "1640437e0727168e919da643b30ce2b474d5672d7ba4d338ade977ba4bbfcd30",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "external-joins",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.language/external-joins.when-the-sourceview-contract-admits-response-projection-the-compiler-must",
       "statement_sha256": "4c65cc88d1d002e62e35baa9da6255da4086ca939ac28cc78de0e2acafd44d1a",
       "status": "pending",

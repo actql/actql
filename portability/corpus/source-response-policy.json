@@ -1,0 +1,302 @@
+[
+  {
+    "authoritative": "public",
+    "body": {
+      "version": "actql-source-response-policy/0.1",
+      "source_ref": "connector://fixture/records#scan",
+      "source_view_contract_cid": "sha256:169d568eba35d5cd9faf65c3e97ebfd3ef91a28aedf9087d7799c489071c1f45",
+      "source_data_policy_cid": "sha256:0bdd7f3c85088276b47dd58135382663173fec9c40e606df2789ea01a913e167",
+      "minimum_classification": null,
+      "classification": "public"
+    },
+    "cid": "sha256:47b6af8a3acb079fcf0c3874b23421bda00a865f5057a23ec52b5e4d9c5bac72"
+  },
+  {
+    "authoritative": "public",
+    "body": {
+      "version": "actql-source-response-policy/0.1",
+      "source_ref": "connector://fixture/records#scan",
+      "source_view_contract_cid": "sha256:169d568eba35d5cd9faf65c3e97ebfd3ef91a28aedf9087d7799c489071c1f45",
+      "source_data_policy_cid": "sha256:0bdd7f3c85088276b47dd58135382663173fec9c40e606df2789ea01a913e167",
+      "minimum_classification": "public",
+      "classification": "public"
+    },
+    "cid": "sha256:aae8003bd629776113f4bc05e07d1163c9c0aa2373967b83812df170df745806"
+  },
+  {
+    "authoritative": "public",
+    "body": {
+      "version": "actql-source-response-policy/0.1",
+      "source_ref": "connector://fixture/records#scan",
+      "source_view_contract_cid": "sha256:169d568eba35d5cd9faf65c3e97ebfd3ef91a28aedf9087d7799c489071c1f45",
+      "source_data_policy_cid": "sha256:0bdd7f3c85088276b47dd58135382663173fec9c40e606df2789ea01a913e167",
+      "minimum_classification": "internal",
+      "classification": "internal"
+    },
+    "cid": "sha256:6a37f10fcfc479c03de01d5a25556437f361ab7ac205879d7fd2156be253e5db"
+  },
+  {
+    "authoritative": "public",
+    "body": {
+      "version": "actql-source-response-policy/0.1",
+      "source_ref": "connector://fixture/records#scan",
+      "source_view_contract_cid": "sha256:169d568eba35d5cd9faf65c3e97ebfd3ef91a28aedf9087d7799c489071c1f45",
+      "source_data_policy_cid": "sha256:0bdd7f3c85088276b47dd58135382663173fec9c40e606df2789ea01a913e167",
+      "minimum_classification": "confidential",
+      "classification": "confidential"
+    },
+    "cid": "sha256:0d43d0fdc993a5b64914ff40908f822ec442e1ee244574211939db8dac094451"
+  },
+  {
+    "authoritative": "public",
+    "body": {
+      "version": "actql-source-response-policy/0.1",
+      "source_ref": "connector://fixture/records#scan",
+      "source_view_contract_cid": "sha256:169d568eba35d5cd9faf65c3e97ebfd3ef91a28aedf9087d7799c489071c1f45",
+      "source_data_policy_cid": "sha256:0bdd7f3c85088276b47dd58135382663173fec9c40e606df2789ea01a913e167",
+      "minimum_classification": "restricted",
+      "classification": "restricted"
+    },
+    "cid": "sha256:e464a3e472764978d98f7677b379a1215f40f335ddee0624011dda140229aaa2"
+  },
+  {
+    "authoritative": "internal",
+    "body": {
+      "version": "actql-source-response-policy/0.1",
+      "source_ref": "connector://fixture/records#scan",
+      "source_view_contract_cid": "sha256:169d568eba35d5cd9faf65c3e97ebfd3ef91a28aedf9087d7799c489071c1f45",
+      "source_data_policy_cid": "sha256:ced940bc1b58ecde4b098d3a5b92769aa5307ade8d676b632bb1aa0b10243bed",
+      "minimum_classification": null,
+      "classification": "internal"
+    },
+    "cid": "sha256:7f0db00c804af55cff56b065d02843e1230c433ab84360c6f795e53f4e2f92d8"
+  },
+  {
+    "authoritative": "internal",
+    "body": {
+      "version": "actql-source-response-policy/0.1",
+      "source_ref": "connector://fixture/records#scan",
+      "source_view_contract_cid": "sha256:169d568eba35d5cd9faf65c3e97ebfd3ef91a28aedf9087d7799c489071c1f45",
+      "source_data_policy_cid": "sha256:ced940bc1b58ecde4b098d3a5b92769aa5307ade8d676b632bb1aa0b10243bed",
+      "minimum_classification": "public",
+      "classification": "internal"
+    },
+    "cid": "sha256:251de63d9948c1bf5567d9a791366036dd21689ecc6abd796c7adbafd754de54"
+  },
+  {
+    "authoritative": "internal",
+    "body": {
+      "version": "actql-source-response-policy/0.1",
+      "source_ref": "connector://fixture/records#scan",
+      "source_view_contract_cid": "sha256:169d568eba35d5cd9faf65c3e97ebfd3ef91a28aedf9087d7799c489071c1f45",
+      "source_data_policy_cid": "sha256:ced940bc1b58ecde4b098d3a5b92769aa5307ade8d676b632bb1aa0b10243bed",
+      "minimum_classification": "internal",
+      "classification": "internal"
+    },
+    "cid": "sha256:d0ea957e8b3c348993f9ed59e927376d274e0e9c59b9d59a401a1bcb8044a3f2"
+  },
+  {
+    "authoritative": "internal",
+    "body": {
+      "version": "actql-source-response-policy/0.1",
+      "source_ref": "connector://fixture/records#scan",
+      "source_view_contract_cid": "sha256:169d568eba35d5cd9faf65c3e97ebfd3ef91a28aedf9087d7799c489071c1f45",
+      "source_data_policy_cid": "sha256:ced940bc1b58ecde4b098d3a5b92769aa5307ade8d676b632bb1aa0b10243bed",
+      "minimum_classification": "confidential",
+      "classification": "confidential"
+    },
+    "cid": "sha256:98b9970dcefbc484fd8722310ecce40a65163ecb544cdcb6261487586e1892e9"
+  },
+  {
+    "authoritative": "internal",
+    "body": {
+      "version": "actql-source-response-policy/0.1",
+      "source_ref": "connector://fixture/records#scan",
+      "source_view_contract_cid": "sha256:169d568eba35d5cd9faf65c3e97ebfd3ef91a28aedf9087d7799c489071c1f45",
+      "source_data_policy_cid": "sha256:ced940bc1b58ecde4b098d3a5b92769aa5307ade8d676b632bb1aa0b10243bed",
+      "minimum_classification": "restricted",
+      "classification": "restricted"
+    },
+    "cid": "sha256:92246ebb8703b18353e675178f86ff6a0d61d3751a192a2914c49b0d86ea2cec"
+  },
+  {
+    "authoritative": "confidential",
+    "body": {
+      "version": "actql-source-response-policy/0.1",
+      "source_ref": "connector://fixture/records#scan",
+      "source_view_contract_cid": "sha256:169d568eba35d5cd9faf65c3e97ebfd3ef91a28aedf9087d7799c489071c1f45",
+      "source_data_policy_cid": "sha256:c85e480445856cce40e6d31ce6eae795aaecbb12eee6224a57328edae73eac95",
+      "minimum_classification": null,
+      "classification": "confidential"
+    },
+    "cid": "sha256:acaaf1b0311f75b198a7a900acd27fa4c66e5a388954579f8ec237ba977dfdad"
+  },
+  {
+    "authoritative": "confidential",
+    "body": {
+      "version": "actql-source-response-policy/0.1",
+      "source_ref": "connector://fixture/records#scan",
+      "source_view_contract_cid": "sha256:169d568eba35d5cd9faf65c3e97ebfd3ef91a28aedf9087d7799c489071c1f45",
+      "source_data_policy_cid": "sha256:c85e480445856cce40e6d31ce6eae795aaecbb12eee6224a57328edae73eac95",
+      "minimum_classification": "public",
+      "classification": "confidential"
+    },
+    "cid": "sha256:3aa1f659148cdddccc3572c0e9141dfd535e17abc9a0f395ff2186e38e841ec9"
+  },
+  {
+    "authoritative": "confidential",
+    "body": {
+      "version": "actql-source-response-policy/0.1",
+      "source_ref": "connector://fixture/records#scan",
+      "source_view_contract_cid": "sha256:169d568eba35d5cd9faf65c3e97ebfd3ef91a28aedf9087d7799c489071c1f45",
+      "source_data_policy_cid": "sha256:c85e480445856cce40e6d31ce6eae795aaecbb12eee6224a57328edae73eac95",
+      "minimum_classification": "internal",
+      "classification": "confidential"
+    },
+    "cid": "sha256:fac40955776939238fb6ba3b545fa3f96e498ef60c9e55679326a32e2b2f672a"
+  },
+  {
+    "authoritative": "confidential",
+    "body": {
+      "version": "actql-source-response-policy/0.1",
+      "source_ref": "connector://fixture/records#scan",
+      "source_view_contract_cid": "sha256:169d568eba35d5cd9faf65c3e97ebfd3ef91a28aedf9087d7799c489071c1f45",
+      "source_data_policy_cid": "sha256:c85e480445856cce40e6d31ce6eae795aaecbb12eee6224a57328edae73eac95",
+      "minimum_classification": "confidential",
+      "classification": "confidential"
+    },
+    "cid": "sha256:2de2ba17967a902191dfee266ed2a2b635d52124ac44deda81db68005832a6b7"
+  },
+  {
+    "authoritative": "confidential",
+    "body": {
+      "version": "actql-source-response-policy/0.1",
+      "source_ref": "connector://fixture/records#scan",
+      "source_view_contract_cid": "sha256:169d568eba35d5cd9faf65c3e97ebfd3ef91a28aedf9087d7799c489071c1f45",
+      "source_data_policy_cid": "sha256:c85e480445856cce40e6d31ce6eae795aaecbb12eee6224a57328edae73eac95",
+      "minimum_classification": "restricted",
+      "classification": "restricted"
+    },
+    "cid": "sha256:71ae16e65fd899af4ebe31e94ab2706bc65092fc7cb00385dc2ef7420a45698c"
+  },
+  {
+    "authoritative": "restricted",
+    "body": {
+      "version": "actql-source-response-policy/0.1",
+      "source_ref": "connector://fixture/records#scan",
+      "source_view_contract_cid": "sha256:169d568eba35d5cd9faf65c3e97ebfd3ef91a28aedf9087d7799c489071c1f45",
+      "source_data_policy_cid": "sha256:f745e4d288f8282c2d25a41869f617af6507bfc293c3caa865ba2cc8cd8762ed",
+      "minimum_classification": null,
+      "classification": "restricted"
+    },
+    "cid": "sha256:bb7765173ca211a87c71986184bb1dce4bf42cf9b20c3a04861156509403f517"
+  },
+  {
+    "authoritative": "restricted",
+    "body": {
+      "version": "actql-source-response-policy/0.1",
+      "source_ref": "connector://fixture/records#scan",
+      "source_view_contract_cid": "sha256:169d568eba35d5cd9faf65c3e97ebfd3ef91a28aedf9087d7799c489071c1f45",
+      "source_data_policy_cid": "sha256:f745e4d288f8282c2d25a41869f617af6507bfc293c3caa865ba2cc8cd8762ed",
+      "minimum_classification": "public",
+      "classification": "restricted"
+    },
+    "cid": "sha256:b06eac02bf0a27198d28cbc8be95e729462a1c46053f54f07dfbd4004e5f61c6"
+  },
+  {
+    "authoritative": "restricted",
+    "body": {
+      "version": "actql-source-response-policy/0.1",
+      "source_ref": "connector://fixture/records#scan",
+      "source_view_contract_cid": "sha256:169d568eba35d5cd9faf65c3e97ebfd3ef91a28aedf9087d7799c489071c1f45",
+      "source_data_policy_cid": "sha256:f745e4d288f8282c2d25a41869f617af6507bfc293c3caa865ba2cc8cd8762ed",
+      "minimum_classification": "internal",
+      "classification": "restricted"
+    },
+    "cid": "sha256:26f57131dacfe815e83037bba72d11b2e9dcf1050c5814fa5c2fd5977e5ba3c6"
+  },
+  {
+    "authoritative": "restricted",
+    "body": {
+      "version": "actql-source-response-policy/0.1",
+      "source_ref": "connector://fixture/records#scan",
+      "source_view_contract_cid": "sha256:169d568eba35d5cd9faf65c3e97ebfd3ef91a28aedf9087d7799c489071c1f45",
+      "source_data_policy_cid": "sha256:f745e4d288f8282c2d25a41869f617af6507bfc293c3caa865ba2cc8cd8762ed",
+      "minimum_classification": "confidential",
+      "classification": "restricted"
+    },
+    "cid": "sha256:a3f8b73707bb02b0306c42034be93e2492aa98bb1855bae16992d26ce8a840c4"
+  },
+  {
+    "authoritative": "restricted",
+    "body": {
+      "version": "actql-source-response-policy/0.1",
+      "source_ref": "connector://fixture/records#scan",
+      "source_view_contract_cid": "sha256:169d568eba35d5cd9faf65c3e97ebfd3ef91a28aedf9087d7799c489071c1f45",
+      "source_data_policy_cid": "sha256:f745e4d288f8282c2d25a41869f617af6507bfc293c3caa865ba2cc8cd8762ed",
+      "minimum_classification": "restricted",
+      "classification": "restricted"
+    },
+    "cid": "sha256:4c1c0021f69042eb1c9e1e90b3cc90159ab5283b499e732b7a145718a6071573"
+  },
+  {
+    "authoritative": "unknown",
+    "body": {
+      "version": "actql-source-response-policy/0.1",
+      "source_ref": "connector://fixture/records#scan",
+      "source_view_contract_cid": "sha256:169d568eba35d5cd9faf65c3e97ebfd3ef91a28aedf9087d7799c489071c1f45",
+      "source_data_policy_cid": "sha256:b067d62ba2c6eab89cba679472a853153d1b0d997a9142e2225c6df44decb784",
+      "minimum_classification": null,
+      "classification": "unknown"
+    },
+    "cid": "sha256:40c616434a9e1d097b9012f5e53c4990279607007ea68926fd04742229ff6297"
+  },
+  {
+    "authoritative": "unknown",
+    "body": {
+      "version": "actql-source-response-policy/0.1",
+      "source_ref": "connector://fixture/records#scan",
+      "source_view_contract_cid": "sha256:169d568eba35d5cd9faf65c3e97ebfd3ef91a28aedf9087d7799c489071c1f45",
+      "source_data_policy_cid": "sha256:b067d62ba2c6eab89cba679472a853153d1b0d997a9142e2225c6df44decb784",
+      "minimum_classification": "public",
+      "classification": "unknown"
+    },
+    "cid": "sha256:1523e4f7e7675685c8f2739b4d4535ee51eea02e03ba7731b71c40ec0f632e45"
+  },
+  {
+    "authoritative": "unknown",
+    "body": {
+      "version": "actql-source-response-policy/0.1",
+      "source_ref": "connector://fixture/records#scan",
+      "source_view_contract_cid": "sha256:169d568eba35d5cd9faf65c3e97ebfd3ef91a28aedf9087d7799c489071c1f45",
+      "source_data_policy_cid": "sha256:b067d62ba2c6eab89cba679472a853153d1b0d997a9142e2225c6df44decb784",
+      "minimum_classification": "internal",
+      "classification": "unknown"
+    },
+    "cid": "sha256:35af4c395769cd49a54624c9b9dc9bdb0f0608390d280b0304e5abbc94e50256"
+  },
+  {
+    "authoritative": "unknown",
+    "body": {
+      "version": "actql-source-response-policy/0.1",
+      "source_ref": "connector://fixture/records#scan",
+      "source_view_contract_cid": "sha256:169d568eba35d5cd9faf65c3e97ebfd3ef91a28aedf9087d7799c489071c1f45",
+      "source_data_policy_cid": "sha256:b067d62ba2c6eab89cba679472a853153d1b0d997a9142e2225c6df44decb784",
+      "minimum_classification": "confidential",
+      "classification": "unknown"
+    },
+    "cid": "sha256:cb46bd0cb545d7c6ac6cb0d07792ffcbe484cc4bf905bcf9c9d66884f36ec050"
+  },
+  {
+    "authoritative": "unknown",
+    "body": {
+      "version": "actql-source-response-policy/0.1",
+      "source_ref": "connector://fixture/records#scan",
+      "source_view_contract_cid": "sha256:169d568eba35d5cd9faf65c3e97ebfd3ef91a28aedf9087d7799c489071c1f45",
+      "source_data_policy_cid": "sha256:b067d62ba2c6eab89cba679472a853153d1b0d997a9142e2225c6df44decb784",
+      "minimum_classification": "restricted",
+      "classification": "unknown"
+    },
+    "cid": "sha256:7a529226c3361293b34785bf3ae0af20b60a8469b896cd7d4e5eb5379c6b2522"
+  }
+]

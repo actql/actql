@@ -647,6 +647,21 @@ fallback is not needed here: SourceView policy admission requires the exact
 referenced Envelope. Classification selection does not invent an effective
 policy CID, combine request-input provenance, or authorize egress.
 
+The response-only identity now has a bounded emitter,
+`emit_source_response_policy`, for text, measurement or hashing sinks. Its
+[normative preimage](../spec/language.md#external-joins) binds the concrete
+source reference, selected view and authoritative policy CIDs, authored minimum
+and resulting classification. It is not an identity of request provenance or
+permission. The surrounding acquisition already binds the named input.
+
+This explicitly fixes a previously unspecified preimage. Sketch's
+`87dc7144138edfcba108cdc59dc485ac976ba976:src/actql-compiler.ts` uses an alias
+effective-policy CID and a fallback origin set in its response projection. That
+shape is not imported: its fallback can conflate unknown provenance with all
+authored inputs, and its ResourceKind-derived source reference differs from the
+current concrete Resource selector contract. Response policy and request-policy
+composition remain separate; no observation data is inserted to fill that gap.
+
 Coverage starts from the source, expression, operation, input, publication and
 incoming-dependency inventories, not from the list of successful resolutions.
 Each owned occurrence has exactly one disposition:

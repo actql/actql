@@ -10,6 +10,46 @@ pub struct SourceResponsePolicy {
 }
 
 ///|
+/// Canonical response-policy preimage. Request provenance and egress permission
+/// are separate; this does not hash the Check Environment or observations.
+pub fn emit_source_response_policy(
+  value : SourceResponsePolicy,
+  writer : @encode.Writer,
+) -> Unit raise @encode.EncodeFailure {
+  let policy = @environment.source_view_data_policy(value.authoritative)
+  let envelope = @environment.data_policy_envelope(policy)
+  @encode.begin_object(writer)
+  @encode.key(writer, "classification")
+  @encode.string_value(
+    writer,
+    match value.classification {
+      Public => "public"
+      Internal => "internal"
+      Confidential => "confidential"
+      Restricted => "restricted"
+      Unknown => "unknown"
+    },
+  )
+  @encode.key(writer, "minimum_classification")
+  match value.minimum {
+    Some(text) => @encode.string_value(writer, text)
+    None => @encode.null_value(writer)
+  }
+  @encode.key(writer, "source_data_policy_cid")
+  @encode.string_value(
+    writer,
+    @environment.member_cid(@environment.contract_member(envelope)),
+  )
+  @encode.key(writer, "source_ref")
+  @encode.string_value(writer, @environment.data_policy_source(policy))
+  @encode.key(writer, "source_view_contract_cid")
+  @encode.string_value(writer, @sourceviews.selected_cid(value.source))
+  @encode.key(writer, "version")
+  @encode.string_value(writer, "actql-source-response-policy/0.1")
+  @encode.end_object(writer)
+}
+
+///|
 fn source_classification(
   base : @environment.DataClassification,
   minimum : String?,

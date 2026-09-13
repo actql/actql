@@ -265,6 +265,27 @@ test "Result import interface changed-type" {
 }
 
 ///|
+test "contract spec/contracts/actql-source-response-policy.json#" {
+  let input = @json.parse([
+    "{\"version\":\"actql-source-response-policy-contract/0.1\",\"schemas\":{\"policy\":{\"$schema\":\"https://json-schema.org/draft/2020-12/schema\",\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"version\",\"source_ref\",\"source_view_contract_cid\",\"source_data_policy_cid\",\"minimum_classification\",\"classification\"],\"properties\":{\"version\":{\"const\":\"actql-source-response-policy/0.1\"},\"source_ref\":{\"type\":\"string\",\"minLength\":1},\"source_view_contract_cid\":{\"type\":\"string\",\"pattern\":\"^sha256:[0-9a-f]{64}$\"},\"source_data_policy_cid\":{\"type\":\"string\",\"pattern\":\"^sha256:[0-9a-f]{64}$\"},\"minimum_classification\":{\"anyOf\":[{\"enum\":[\"public\",\"internal\",\"confidential\",\"restricted\"]},{\"type\":\"null\"}]},\"classification\":{\"enum\":[\"public\",\"internal\",\"confidential\",\"restricted\",\"unknown\"]}}}},\"semantics\":{\"identity\":\"entire_policy_canonical_json_utf8_sha256_no_self_cid\",\"classification\":\"authoritative_unknown_stays_unknown_otherwise_max_authoritative_and_authored_minimum\",\"source\":\"exact_selected_sourceview_and_its_admitted_data_poli",
+    "cy_reference\",\"exclusions\":\"no_request_input_provenance_observation_host_permission_or_capacity\",\"authority\":\"policy_identity_is_not_egress_or_execution_permission\"}}",
+  ].join(""))
+  let value = @canonical_json.from_json(input, 49, 8, 1190)
+  assert_eq(@canonical_json.cid_value(value, 1190, 49, 8), "sha256:742e76bb6cca5ce4d6ce225b6dc2ce153defb4a5a4e1dcd44d68699308110cfc")
+  assert_eq(@canonical_json.measure_value(value, 1190, 49, 8), 1190)
+}
+
+///|
+test "contract spec/contracts/actql-source-response-policy.json#/schemas/policy" {
+  let input = @json.parse([
+    "{\"$schema\":\"https://json-schema.org/draft/2020-12/schema\",\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"version\",\"source_ref\",\"source_view_contract_cid\",\"source_data_policy_cid\",\"minimum_classification\",\"classification\"],\"properties\":{\"version\":{\"const\":\"actql-source-response-policy/0.1\"},\"source_ref\":{\"type\":\"string\",\"minLength\":1},\"source_view_contract_cid\":{\"type\":\"string\",\"pattern\":\"^sha256:[0-9a-f]{64}$\"},\"source_data_policy_cid\":{\"type\":\"string\",\"pattern\":\"^sha256:[0-9a-f]{64}$\"},\"minimum_classification\":{\"anyOf\":[{\"enum\":[\"public\",\"internal\",\"confidential\",\"restricted\"]},{\"type\":\"null\"}]},\"classification\":{\"enum\":[\"public\",\"internal\",\"confidential\",\"restricted\",\"unknown\"]}}}",
+  ].join(""))
+  let value = @canonical_json.from_json(input, 40, 6, 702)
+  assert_eq(@canonical_json.cid_value(value, 702, 40, 6), "sha256:6cea5889d4757f3154f7aac560d11743f50d34a276ecc0bed2bc4dd3b82b8827")
+  assert_eq(@canonical_json.measure_value(value, 702, 40, 6), 702)
+}
+
+///|
 test "contract spec/contracts/actql-stage-contracts.json#/schemas/result_import_interface" {
   let input = @json.parse([
     "{\"type\":\"object\",\"properties\":{\"version\":{\"const\":\"actql-result-import-interface/0.1\"},\"input_name\":{\"type\":\"string\",\"minLength\":1},\"producer_namespace\":{\"type\":\"object\",\"properties\":{\"program_id\":{\"type\":\"string\",\"minLength\":1},\"node_id\":{\"type\":\"string\",\"minLength\":1}},\"required\":[\"program_id\",\"node_id\"],\"additionalProperties\":false},\"producer_unit_definition_cid\":{\"type\":\"string\",\"pattern\":\"^sha256:[0-9a-f]{64}$\"},\"producer_result\":{\"type\":\"string\",\"minLength\":1},\"value_contract_cid\":{\"type\":\"string\",\"pattern\":\"^sha256:[0-9a-f]{64}$\"},\"availability\":{\"const\":\"stage_success\"},\"self_cid\":{\"type\":\"string\",\"pattern\":\"^sha256:[0-9a-f]{64}$\"}},\"required\":[\"version\",\"input_name\",\"producer_namespace\",\"producer_unit_definition_cid\",\"producer_result\",\"value_contract_cid\",\"availability\",\"self_cid\"],\"additionalProperties\":false}",
