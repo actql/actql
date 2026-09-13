@@ -413,6 +413,30 @@ Projection is connected to the ordinary pipeline and Relation consumers, without
 inventing order/uniqueness/resource proofs. Lowering must implement these admitted
 typed rows rather than copy a string-only or property-dropping reference shape.
 
+`GraphProjectionCheck` binds the exact checked projection, input edge and
+requirement occurrence. Its interpretation follows the two Graph-row requirement
+blocks, without interpreting a future check as completed Graph admission:
+
+| Rule | Required behavior | Execution boundary |
+| --- | --- | --- |
+| AdmitGraphRecords | Validate the input Graph against its retained identity and property contracts; partial static knowledge does not waive runtime admission. | Before input use |
+| RejectColumnCollisions | Reject collisions among distinct bridge roles, source aliases and properties, including collisions not decidable from an open field set. | Before output |
+| RestoreIdentityNames | Emit the fixed bridge roles and known source aliases with the retained types and values; absent edge labels are explicit null and no display-label property is invented. | Before output |
+
+Failure rejects the operation output without partial publication. These bindings
+do not preserve an arbitrary Graph enumeration as Relation order or establish
+completeness, observed uniqueness or a resource bound. Candidate-key derivation
+remains conditional on its original Graph producer obligations, and completeness
+retains the projected operation-result scope and input dependency.
+`ResolveGraphProjectionResources` is separate and cannot be discharged by any
+of these three rules. The combined closure rejects it until its selected resource
+contract is connected; adding these bindings alone does not admit a Graph Program
+through the formal entry.
+
+`graph_projection_execution_wbtest.mbt` fixes node/edge and closed/open-property
+branches, exact retained handles, invalid occurrences, execution phases and the
+unresolved resource case. This map is not a runtime conformance certificate.
+
 ## Graph construction
 
 `check_construction` supports explicit named branches and the concise edge-list

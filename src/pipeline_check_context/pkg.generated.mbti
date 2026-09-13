@@ -10,6 +10,7 @@ import {
   "actql/actql/capacity_program_step",
   "actql/actql/capacity_sequence_limit",
   "actql/actql/capacity_witness",
+  "actql/actql/carrier_projection",
   "actql/actql/check_environment",
   "actql/actql/decode_core",
   "actql/actql/encode_core",
@@ -1414,6 +1415,20 @@ pub(all) struct ExpressionValidationLimits {
 
 type ExpressionValidationSite
 
+pub struct GraphProjectionCheck {
+  site : OperationRequirementSite
+  step : @pipeline_typing.CheckedStep
+  input : @pipeline_typing.Target
+  operation : @carrier_projection.CheckedProjection
+  rule : GraphProjectionRule
+}
+
+pub(all) enum GraphProjectionRule {
+  AdmitGraphRecords
+  RejectColumnCollisions
+  RestoreIdentityNames
+} derive(Eq, @debug.Debug)
+
 type GroupArrayLimit
 
 pub enum GroupArrayLimitIssue {
@@ -1845,6 +1860,7 @@ pub(all) enum OperationDisposition {
 }
 
 pub(all) enum OperationExecutionCheck {
+  GraphProjection(GraphProjectionCheck)
   SequenceMatch(SequenceMatchCheck)
   SequenceLimits(SequenceLimitsCheck)
   SequenceExecution(SequenceExecutionCheck)
