@@ -13,9 +13,15 @@ import {
 }
 
 // Values
+pub fn abort_broad_receiving(BroadReceiving) -> Unit
+
 pub fn abort_native_receiving(NativeReceiving) -> Unit
 
+pub fn accept_broad_chunk(BroadReceiving, Int, Array[@decode_core.Cursor]) -> Result[Unit, BroadReceivingIssue]
+
 pub fn accept_native_receipt_chunk(NativeReceiving, NativeReceiptPort, Int, Array[@decode_core.Cursor]) -> Result[Unit, NativeReceivingIssue]
+
+pub fn admit_broad_table(BroadScan, Int, Array[(String, PhysicalType)], Array[@decode_core.Cursor]) -> Result[BroadTable, SourceTableIssue]
 
 pub fn admit_native_table_metadata(NativeReceiving, Int, Array[(String, PhysicalType)], Array[@decode_core.Cursor]) -> Result[Unit, NativeReceivingIssue]
 
@@ -25,6 +31,12 @@ pub fn admit_physical_value(ValueMapping, @decode_core.Cursor, @value_admission.
 
 pub fn begin_native_receipt(NativeReceiving, NativeReceiptRole, Array[(String, PhysicalType)]) -> Result[NativeReceiptPort, NativeReceivingIssue]
 
+pub fn broad_scan_metadata_parameter(BroadScan, Int) -> PhysicalParameter?
+
+pub fn broad_scan_metadata_sql(BroadScan) -> String
+
+pub fn broad_scan_sql(BroadScan) -> String
+
 pub fn cancel_physical_result(PhysicalResult) -> Unit
 
 pub fn compile_native_filter_select(@lowering_relation.BoundPrepared, String, String, NativeQueryLimits) -> Result[NativeQuery, NativeQueryIssue]
@@ -32,6 +44,8 @@ pub fn compile_native_filter_select(@lowering_relation.BoundPrepared, String, St
 pub fn decode_physical_type(@decode_core.Cursor) -> Result[PhysicalType, ValueIssue]
 
 pub fn emit_physical_parameter(PhysicalParameter, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
+
+pub fn finish_broad_receiving(BroadReceiving) -> Result[@execution_relation.CapturedRows, BroadReceivingIssue]
 
 pub fn finish_native_receipt(NativeReceiving, NativeReceiptPort) -> Result[Unit, NativeReceivingIssue]
 
@@ -89,6 +103,10 @@ pub fn physical_result_schema(PhysicalResult) -> @relation_schema.Schema
 
 pub fn physical_result_usage(PhysicalResult) -> (Int, Int, Int, Int)
 
+pub fn prepare_broad_receiving(BroadTable, Array[(String, PhysicalType)], PhysicalResultLimits, Int, @execution_relation.ValueLimits) -> Result[BroadReceiving, BroadReceivingIssue]
+
+pub fn prepare_broad_scan(@lowering_relation.BoundPrepared, Int, String, String, Int, Int) -> Result[BroadScan, NativeQueryIssue]
+
 pub fn prepare_fixed_compute(@execution_relation.ProducerRead, String, NativeQueryLimits) -> Result[FixedCompute, NativeQueryIssue]
 
 pub fn prepare_fixed_import(@execution_relation.ProducerRead, String, Int, Int) -> Result[FixedImport, NativeQueryIssue]
@@ -114,6 +132,18 @@ pub fn prepare_value_mapping(PhysicalType, @value_contract.Contract) -> Result[V
 // Errors
 
 // Types and methods
+type BroadReceiving
+
+pub(all) enum BroadReceivingIssue {
+  InvalidState
+  Values(PhysicalResultIssue)
+  Retention(@execution_relation.CaptureIssue)
+}
+
+type BroadScan
+
+type BroadTable
+
 type FixedCompute
 
 type FixedImport
@@ -223,6 +253,11 @@ pub(all) enum PhysicalType {
   TimestampTZ
   NaiveTimestamp
 } derive(Eq, @debug.Debug)
+
+pub(all) enum SourceTableIssue {
+  InvalidMetadata
+  NotBaseTable
+}
 
 pub(all) enum ValueIssue {
   InvalidLimits

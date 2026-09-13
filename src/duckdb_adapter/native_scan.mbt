@@ -25,7 +25,32 @@ pub fn prepare_native_scan(
   guard @pipeline.schema_at(pipeline, Step(1)) is Some(output_schema) else {
     return Err(UnsupportedShape)
   }
-  let count = @schema.field_count(input_schema)
+  let sql = match
+    compile_scan_sql(
+      input_schema,
+      query.database_schema,
+      query.table,
+      max_columns,
+      max_sql_bytes,
+    ) {
+    Ok(sql) => sql
+    Err(issue) => return Err(issue)
+  }
+  Ok({ query, sql, input_schema, output_schema, })
+}
+
+///|
+fn compile_scan_sql(
+  schema : @schema.Schema,
+  database_schema : String,
+  table : String,
+  max_columns : Int,
+  max_sql_bytes : Int,
+) -> Result[String, NativeQueryIssue] {
+  if max_columns < 0 || max_sql_bytes < 0 {
+    return Err(InvalidLimits)
+  }
+  let count = @schema.field_count(schema)
   if count > max_columns {
     return Err(Limit)
   }
@@ -36,7 +61,7 @@ pub fn prepare_native_scan(
   try {
     sql_text(output, "SELECT ")
     for i in 0..<count {
-      let field = @schema.field_at(input_schema, i).unwrap()
+      let field = @schema.field_at(schema, i).unwrap()
       guard field.name is @schema.Unqualified(name) else {
         return Err(UnsupportedField)
       }
@@ -46,10 +71,10 @@ pub fn prepare_native_scan(
       sql_identifier(output, name)
     }
     sql_text(output, " FROM ")
-    sql_identifier(output, query.database_schema)
+    sql_identifier(output, database_schema)
     sql_text(output, ".")
-    sql_identifier(output, query.table)
-    Ok({ query, sql: output.builder.to_string(), input_schema, output_schema, })
+    sql_identifier(output, table)
+    Ok(output.builder.to_string())
   } catch {
     TextLimit => Err(Limit)
     BadIdentifier => Err(InvalidIdentifier)
@@ -69,7 +94,7 @@ pub fn native_scan_sql(scan : NativeScan) -> String {
 ///|
 /// Catalog-only verification command; it does not export source rows.
 pub fn native_scan_metadata_sql(_scan : NativeScan) -> String {
-  "SELECT table_type FROM information_schema.tables WHERE table_schema = ? AND table_name = ?"
+  source_table_metadata_sql()
 }
 
 ///|

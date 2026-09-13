@@ -54,6 +54,17 @@ in MoonBit and compares them with fixed independent canonical preimages. Receipt
 bytes count typed row JSON, not transport frames. These owned digests are not
 process-evidence records and do not grant capture authority.
 
+`runBroadAcquisition` executes catalog metadata and the complete known-column
+scan in one read-only transaction. Its MoonBit `BroadReceiving` port admits
+physical cells once and retains their immutable payloads through the engine's
+bounded `AdmittedInput` builder. The sealed `CapturedRows` is input material,
+not a successful observation: transport cleanup, guarded Local residual and
+capture verification must still succeed. The portable integration test passes
+this input through the existing query receipt and Local filter/select completion
+path, including an expression unsupported by the native predicate compiler.
+The real Node test covers broad receiving and independent row identity, not yet
+that entire residual/capture/consumer path in one Host execution.
+
 Tests create their own files under ignored `_build/duckdb-fixtures`, exercise
 exact scalar transport, existing-file read-only access, isolated Compute,
 cumulative transfer bounds, native memory exhaustion, cancellation and cross-process file locks. They

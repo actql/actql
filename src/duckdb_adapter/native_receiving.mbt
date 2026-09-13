@@ -113,15 +113,11 @@ pub fn admit_native_table_metadata(
     return Err(InvalidState)
   }
   value.phase = Failed
-  if row_count != 1 ||
-    fields.length() != 1 ||
-    columns.length() != 1 ||
-    fields[0] != ("table_type", Varchar) ||
-    @decode.array_length(columns[0]) != Some(1) {
-    return Err(InvalidMetadata)
+  match validate_source_table_metadata(row_count, fields, columns) {
+    Ok(_) => ()
+    Err(InvalidMetadata) => return Err(InvalidMetadata)
+    Err(NotBaseTable) => return Err(NotBaseTable)
   }
-  let cell = @decode.element_at(columns[0], 0).unwrap()
-  guard @decode.text(cell) is Ok("BASE TABLE") else { return Err(NotBaseTable) }
   value.phase = ReadyValidation
   Ok(())
 }

@@ -9,6 +9,7 @@ import { createHash } from 'node:crypto';
 import { DuckDBInstance } from '@duckdb/node-api';
 import { authorizeLocalDatabase } from '../session.mjs';
 import { runNativeAcquisition } from '../native-acquisition.mjs';
+import { runBroadAcquisition } from '../broad-acquisition.mjs';
 
 const root = fileURLToPath(new URL('../../..', import.meta.url));
 const limits = { maxRows: 100, maxCells: 1000, maxTransportBytes: 100000,
@@ -54,6 +55,34 @@ function portFor(moon, state = moon.create()) {
   return { state, port, events };
 }
 
+function broadPortFor(moon, nodes = 9) {
+  const state = moon.broadCreate(nodes);
+  let readView;
+  let metadataRows = 0;
+  const metadataColumns = [[]];
+  const owns = view => { if (readView) assert.equal(view, readView); else readView = view; };
+  const accepted = value => { if (!value) throw new Error('MoonBit rejected broad receipt'); };
+  return { state, port: {
+    metadataSql: () => moon.broadSql(state, true),
+    metadataParameters: () => [0, 1].map(index => JSON.parse(moon.broadParameter(state, index))),
+    acceptMetadata(chunk, view) {
+      owns(view); metadataRows += chunk.rowCount;
+      metadataColumns[0].push(...chunk.columns[0]);
+    },
+    finishMetadata(fields, view) {
+      owns(view); accepted(moon.broadMetadata(state, metadataRows, JSON.stringify(fields), JSON.stringify(metadataColumns)));
+    },
+    scanSql: () => moon.broadSql(state, false),
+    beginReceipt(fields, view) { owns(view); accepted(moon.broadBegin(state, JSON.stringify(fields))); },
+    acceptChunk(chunk, view) {
+      owns(view); assert.equal(moon.broadIdentity(state), 'null');
+      accepted(moon.broadAccept(state, chunk.rowCount, JSON.stringify(chunk.columns)));
+    },
+    finishReceipt(view) { owns(view); accepted(moon.broadFinish(state)); return state; },
+    abort(_error, view) { owns(view); moon.broadCancel(state); },
+  } };
+}
+
 test('real Node callbacks use MoonBit admission before native filtering, including discarded invalid values', async () => {
   await promisify(execFile)('moon', ['build', '--target', 'js', 'src/duckdb_conformance'], { cwd: root });
   const moon = await import(pathToFileURL(join(root, '_build/js/debug/build/duckdb_conformance/duckdb_conformance.js')));
@@ -75,6 +104,18 @@ test('real Node callbacks use MoonBit admission before native filtering, includi
       const connection = await db.connect();
       try { await connection.run(schema); if (insert) await connection.run(insert); }
       finally { connection.closeSync(); db.closeSync(); }
+      const broad = broadPortFor(moon);
+      const broadRun = runBroadAcquisition(await authorizeLocalDatabase(path), broad.port, limits);
+      if (succeeds) {
+        const result = await broadRun;
+        assert.equal(result.value.accepted === broad.state, true);
+        const preimage = name === 'empty' ? '[]' : '[{"amount":30,"id":3},{"amount":null,"id":1},{"amount":20,"id":2}]';
+        assert.equal(moon.broadIdentity(broad.state), `sha256:${createHash('sha256').update(preimage).digest('hex')}`);
+      } else {
+        await assert.rejects(broadRun, /MoonBit rejected broad/);
+        assert.equal(moon.broadIdentity(broad.state), 'null');
+      }
+      await assert.rejects(runBroadAcquisition(await authorizeLocalDatabase(path), broad.port, limits), /AttemptAlreadyStarted/);
       const received = portFor(moon);
       const run = runNativeAcquisition(await authorizeLocalDatabase(path), received.port, limits);
       if (succeeds) {
@@ -102,6 +143,9 @@ test('real Node callbacks use MoonBit admission before native filtering, includi
       }
     }
     const validGrant = await authorizeLocalDatabase(join(directory, 'valid.duckdb'));
+    const exhausted = broadPortFor(moon, 8);
+    await assert.rejects(runBroadAcquisition(validGrant, exhausted.port, limits), /MoonBit rejected broad/);
+    assert.equal(moon.broadIdentity(exhausted.state), 'null');
     for (const [valueBytes, outputRows, nodes, nativeStarted] of [
       [3, 100, 1000, false], // Discarded row's unused NULL needs four canonical bytes.
       [10000, 1, 1000, true], // Two native rows exceed the logical output ceiling.

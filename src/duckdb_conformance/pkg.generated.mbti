@@ -10,6 +10,24 @@ pub fn accept(@duckdb_adapter.NativeReceiving, @duckdb_adapter.NativeReceiptPort
 
 pub fn begin(@duckdb_adapter.NativeReceiving, Int, String) -> @duckdb_adapter.NativeReceiptPort
 
+pub fn broad_accept(BroadFixture, Int, String) -> Bool
+
+pub fn broad_begin(BroadFixture, String) -> Bool
+
+pub fn broad_cancel(BroadFixture) -> Unit
+
+pub fn broad_create(Int) -> BroadFixture
+
+pub fn broad_finish(BroadFixture) -> Bool
+
+pub fn broad_identity(BroadFixture) -> String
+
+pub fn broad_metadata(BroadFixture, Int, String, String) -> Bool
+
+pub fn broad_parameter(BroadFixture, Int) -> String
+
+pub fn broad_sql(BroadFixture, Bool) -> String
+
 pub fn cancel(@duckdb_adapter.NativeReceiving) -> Unit
 
 pub fn create() -> @duckdb_adapter.NativeReceiving
@@ -31,6 +49,7 @@ pub fn sql(@duckdb_adapter.NativeReceiving, Int) -> String
 // Errors
 
 // Types and methods
+type BroadFixture
 
 // Type aliases
 
