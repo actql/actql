@@ -13,6 +13,8 @@ fn local_construction_fixture(
   host_limit? : Int = 1000,
   producer_expression? : String = "id + 1",
   second_steps? : String = "[]",
+  second_result_from? : String = "rows",
+  extra_step_budget? : Int = 0,
   root_extra? : String = "",
   last_effects? : String? = None,
   registry_entries? : String = "[]",
@@ -72,7 +74,9 @@ fn local_construction_fixture(
       new=if second_stage {
         "},{\"id\":\"second\",\"inputs\":{\"rows\":{\"result\":{\"stage\":\"first\",\"result\":\"out\"}},\"again\":{\"result\":{\"stage\":\"first\",\"result\":\"out\"}}},\"from\":\"rows\",\"steps\":" +
         second_steps +
-        ",\"results\":{\"out\":{\"from\":\"rows\",\"fields\":[\"id\",\"value\"]}}}],\"results\":{\"out\":{\"from\":{\"stage\":\"second\",\"result\":\"out\"}}}}"
+        ",\"results\":{\"out\":{\"from\":\"" +
+        second_result_from +
+        "\",\"fields\":[\"id\",\"value\"]}}}],\"results\":{\"out\":{\"from\":{\"stage\":\"second\",\"result\":\"out\"}}}}"
       } else {
         "}],\"results\":{\"out\":{\"from\":{\"stage\":\"first\",\"result\":\"out\"}}}}"
       },
@@ -197,7 +201,9 @@ fn local_construction_fixture(
       { text_time, veca: false, },
       { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
       source_limits_fixture(
-        stage_count + (if generated_rows is Some(_) { 1 } else { 0 }),
+        stage_count +
+        extra_step_budget +
+        (if generated_rows is Some(_) { 1 } else { 0 }),
       ),
       max_work=budget.work,
       max_bytes=budget.bytes,

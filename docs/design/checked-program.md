@@ -38,7 +38,11 @@ separate protocol results, not successful CheckedPrograms with weaker guarantees
 
 The entry has an explicit implementation-domain check, separate from the
 language grammar. Its Local and Result-import domain accepts `values`, `derive`,
-`filter`, `select`, `rename` and `drop`, including empty operation sequences.
+`filter`, `select`, `rename`, `drop`, `sort` and `take`, including empty operation
+sequences. Sort/take use the existing owned order-resolution closure and preserve
+their distinct strategies and preconditions; accepting them does not synthesize
+an order from physical enumeration. Result publication can target their explicit
+`as` output, including a pipeline consuming an earlier Stage's Result.
 Other operation paths, opaque Binding declarations and nonempty Effects are
 reported as unsupported rather than made executable through missing evidence.
 Selected SourceViews additionally require acquisition closure: shared Catalog

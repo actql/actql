@@ -145,7 +145,7 @@ test "check constructs Local and two-stage Result-import Programs from source" {
 
 ///|
 test "check rejects unsupported or malformed later steps without a partial result" {
-  for steps in ["[{\"sort\":[]}]", "[null]"] {
+  for steps in ["[{\"watermark_rows\":{}}]", "[null]"] {
     let budget = IdentityBudget::{
       work: 10000000,
       bytes: 1000000,

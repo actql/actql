@@ -45,6 +45,8 @@ fn check_supported_source(
               | "select"
               | "rename"
               | "drop"
+              | "sort"
+              | "take"
               | "values" => ()
               _ => raise UnitBuildFailure::UnsupportedStaticPath(step)
             }
