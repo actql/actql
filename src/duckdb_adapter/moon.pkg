@@ -13,4 +13,5 @@ import {
   "actql/actql/relation_schema" @schema,
   "actql/actql/decode_scalar" @scalar,
   "moonbitlang/core/bigint",
+  "moonbitlang/core/json",
 }

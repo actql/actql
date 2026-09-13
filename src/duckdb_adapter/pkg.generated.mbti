@@ -43,6 +43,8 @@ pub fn compile_native_filter_select(@lowering_relation.BoundPrepared, String, St
 
 pub fn decode_physical_type(@decode_core.Cursor) -> Result[PhysicalType, ValueIssue]
 
+pub fn decode_transport_columns(String, TransportColumnLimits) -> Result[Array[@decode_core.Cursor], TransportColumnIssue]
+
 pub fn emit_physical_parameter(PhysicalParameter, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
 
 pub fn finish_broad_receiving(BroadReceiving) -> Result[@execution_relation.CapturedRows, BroadReceivingIssue]
@@ -289,6 +291,27 @@ pub(all) enum PhysicalType {
 pub(all) enum SourceTableIssue {
   InvalidMetadata
   NotBaseTable
+}
+
+pub(all) enum TransportColumnIssue {
+  InvalidLimits
+  InputLimit
+  NodeLimit
+  ColumnLimit
+  RowLimit
+  TextLimit
+  InvalidShape
+  InvalidJson
+  InvalidUnicode
+  Decode(@decode_core.Issue)
+} derive(Eq, @debug.Debug)
+
+pub(all) struct TransportColumnLimits {
+  max_bytes : Int
+  max_nodes : Int
+  max_columns : Int
+  max_rows : Int
+  max_text_bytes : Int
 }
 
 pub(all) enum ValueIssue {

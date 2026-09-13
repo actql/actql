@@ -281,6 +281,11 @@ Values use primitive physical payloads: signed decimal integer strings, decimal
 coefficient strings, raw date/timestamp ticks and hexadecimal floating-point bits.
 Naive timestamps remain distinct from instants. MoonBit performs type matching
 and shared value admission; Node must not normalize strings or round values.
+The MoonBit `decode_transport_columns` API decodes raw column JSON with bounded
+bytes/nodes/columns/rows, preserves decomposed Unicode and CRLF, and returns typed
+errors for malformed frames. It is a per-frame transport check, not a replacement
+for cumulative receiving limits or value admission. The conformance wrappers now
+use this same decoder; only their fixed test setup unwraps failures.
 The MoonBit `duckdb_adapter` also emits exact prepared parameters from admitted
 scalar values for fixed-input import.
 

@@ -222,34 +222,14 @@ fn fields(text : String) -> Array[(String, @duckdb.PhysicalType)] {
 
 ///|
 fn columns(text : String) -> Array[@decode.Cursor] {
-  // Raw physical strings MUST NOT pass through the authoring JSON normalizer.
-  // This fixed test bridge accepts only shallow scalar arrays and has a hard
-  // pre-parse bound; production transport already has its own byte/cell bounds.
-  if text.length() > 100000 {
-    abort("fixture payload limit")
-  }
-  let json = @json.parse(text) catch { _ => abort("fixture JSON") }
-  guard json is Array(columns) else { abort("fixture columns") }
-  let span = @decode.cursor_span(cursor("null"))
-  columns.map(column => {
-    guard column is Array(values) else { abort("fixture column") }
-    let nodes = values.map(value => {
-      let value : @source.Value = match value {
-        Null => Null
-        True => Bool(true)
-        False => Bool(false)
-        String(text) => String(text)
-        _ => abort("physical scalar payload")
-      }
-      @source.Node::{ value, span, }
-    })
-    @decode.admit({ value: Array(nodes), span, }, {
-      max_nodes: 10000,
-      max_depth: 1,
-      max_string_bytes: 100000,
-      max_total_string_bytes: 100000,
-    }).unwrap()
-  })
+  // Only the fixed fixture unwraps. Product Host callers retain the typed issue.
+  @duckdb.decode_transport_columns(text, {
+    max_bytes: 100000,
+    max_nodes: 10000,
+    max_columns: 100,
+    max_rows: 10000,
+    max_text_bytes: 100000,
+  }).unwrap()
 }
 
 ///|

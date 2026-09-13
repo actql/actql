@@ -221,6 +221,15 @@ transaction. Import row/cell ceilings are checked before allocation and commands
 parameter construction is bounded by the current row, not the full Relation.
 Native chunks are provisional receiving data, not completed engine output.
 
+Raw column JSON enters through `decode_transport_columns`, not the authoring
+parser's NFC/LF normalization. A nonrecursive preflight limits input UTF-8 bytes,
+JSON nodes, columns, rows per column and nesting before JSON allocation. Only
+arrays of null/boolean/string physical payloads are accepted; numbers cannot be
+implicitly rounded by JSON decoding. Decoded UTF-8 text has a cumulative frame
+ceiling. Malformed input produces typed transport issues, not a process abort.
+These per-frame decoder limits are distinct from cumulative receipt/session
+limits and typed value admission; a successful decode is not a validated receipt.
+
 Fixed Compute transport records the exact attempt port, receiving callback and
 actual closed Compute session only after command execution, transaction settlement
 and cleanup succeed. A port is one-shot, including after admission failure or
