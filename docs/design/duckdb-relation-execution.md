@@ -61,8 +61,8 @@ Unknown estimates defer without explicit Host preference, and complete ties
 honor that preference. A proposal retains the exact provider preparation for
 subsequent Host dispatch; it is neither execution evidence nor authority.
 Native DuckDB is not included as an eligible mixed candidate merely because
-its preliminary compiler/root checks passed. Fixed-input Compute selection and
-general applicability/obligation coverage remain separate integration requirements.
+its preliminary compiler/root checks passed. General applicability/obligation
+coverage remains a separate integration requirement.
 
 `CapabilityRegistry` owns immutable module descriptions and exact registration
 handles. A module may declare Acquisition and fixed-input Compute independently;
@@ -84,6 +84,23 @@ execution evidence, and no generic executor is introduced by this boundary.
 Typed work enums may remain provider-local. Start obligation coverage with the
 existing source-validation/filter/select occurrences; completion coverage and
 auxiliary physical work are not substitutes for these logical duties.
+
+Fixed-input Compute uses the same module registrations but a distinct owned
+`FixedComputeRequest` and candidate type. The request retains one `ProducerRead`
+for its exactly bound consumer. It has no source selector, connection, arbitrary
+rows or content-CID reconstruction route, and does not create a canonical Plan.
+Local preparation must have that exact consumer owner; the Local execution
+operation delegates to the existing producer admission and sequence driver with
+no supplied source inputs, preserving fragment limits and failure atomicity.
+Each retry obtains a new execution budget without changing its completed input.
+
+DuckDB preparation compiles an isolated temporary-table import and restricted
+filter/select for the same retained input. The common comparison includes setup,
+import/export, conversion, computation, retention and cleanup scopes. Selection
+recovers only the matching typed preparation; native receiving, selected consumer
+contract enforcement and opaque product completion are still separate duties.
+Returning rows from DuckDB is not a substitute for those duties, and the
+acquisition resource-scope clarification is not a blanket waiver for Compute.
 
 The Host-private `DuckDBBroadAttempt` sequences metadata admission, receipt
 admission/retention, transport settlement and guarded Local residual execution.

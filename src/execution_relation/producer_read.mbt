@@ -125,3 +125,17 @@ pub fn producer_read_cell(
   guard value.columns.get(column) is Some(source) else { return None }
   completed_cell(value.bound.output, row, source)
 }
+
+///|
+/// Execute an owned completed input through ordinary producer admission. No
+/// source lookup, row materialization or accounting exemption is introduced.
+pub fn execute_fixed_producer_input(
+  sequence : GeneratedSequence,
+  input : ProducerRead,
+  limits : SequenceExecutionLimits,
+) -> Result[CompletedSequence, SequenceRunIssue] {
+  if !physical_equal(generated_sequence_owner(sequence), input.bound.receiver) {
+    return Err(InputOwnership)
+  }
+  execute_generated_sequence(sequence, [], limits, produced=[input.bound])
+}

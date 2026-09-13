@@ -101,7 +101,7 @@ pub fn choose_acquisition_candidate(
     host_priority,
     max_entries - candidates.length(),
   )
-  .map_err(issue => Cost(issue))
+  .map_err(issue => QueryPlanningIssue::Cost(issue))
   .map(reason => {
     match reason {
       NoCandidates => NoCandidates

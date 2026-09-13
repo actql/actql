@@ -39,7 +39,7 @@ pub fn prepare_duckdb_query(
   }
   let native = match
     @duckdb.compile_native_filter_select(owner, database_schema, table, limits) {
-    Err(issue) => Err(Compilation(issue))
+    Err(issue) => Err(DuckDBNativeIssue::Compilation(issue))
     Ok(query) =>
       match
         @duckdb.prepare_native_root_guard(

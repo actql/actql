@@ -125,10 +125,25 @@ dispatch. This comparison does not perform I/O, issue capture evidence, or
 retry a failed native query as a broad scan.
 
 Registry names are diagnostic, not source authority or semantic identity. An
-equal declaration in another registry is rejected. Fixed-input Compute can be
-declared on the same module, but its candidate/dispatch integration is not implied
-by that declaration. Closing a registry blocks new proposals/recovery without
+equal declaration in another registry is rejected. Closing a registry blocks new proposals/recovery without
 releasing completed upstream observations.
+
+For a completed input, `prepare_fixed_compute_request(ProducerRead)` binds the
+exact receiving owner. `local_fixed_compute_candidate` and
+`duckdb_fixed_compute_candidate` use Compute-enabled registrations from the same
+registry, and `choose_fixed_compute_candidate` compares their complete inventories.
+`execute_local_fixed_compute` runs the selected Local preparation through ordinary
+producer admission. `fixed_compute_choice_payload` recovers the selected typed
+DuckDB import/query preparation for the isolated Node Compute transport.
+
+Local cost slots 0–4 are preparation, input admission, computation, output
+retention and cleanup. DuckDB slots 0–7 are session/table setup, import transfer,
+import conversion, native computation, result transfer, result conversion,
+retention and cleanup. Missing slots remain unknown; none of these estimates
+is a hard limit or evidence that selected consumer contracts were enforced.
+The real fixed-Compute fixture uses this comparison before SQL execution, with
+independent expected rows. It still serializes a tiny test input: native result
+admission into product completion is not demonstrated by transport success alone.
 
 The private `DuckDBBroadAttempt` API orders metadata, chunk admission, receipt
 sealing, transport settlement and guarded residual execution. A Host coordinator

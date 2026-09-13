@@ -52,6 +52,8 @@ pub fn capture_mock_query(MockQueryIssuer, MockQueryAttempt, MockQueryRecords, Q
 
 pub fn choose_acquisition_candidate(CapabilityRegistry, QueryRequirement, Array[AcquisitionCandidate], Array[Int]?, Int) -> Result[AcquisitionSelection, QueryPlanningIssue]
 
+pub fn choose_fixed_compute_candidate(CapabilityRegistry, FixedComputeRequest, Array[FixedComputeCandidate], Array[Int]?, Int) -> Result[FixedComputeSelection, FixedComputeIssue]
+
 pub fn choose_query_strategy(@execution_query.QuerySequence, Array[QueryOffer], Array[Int]?, Int) -> Result[QuerySelection, QueryPlanningIssue]
 
 pub fn close_capability_registry(CapabilityRegistry) -> Unit
@@ -70,6 +72,8 @@ pub fn duckdb_broad_retention_usage(DuckDBBroadRetention) -> (Int, Int, Int)
 
 pub fn duckdb_broad_work_at(Int) -> DuckDBBroadWork?
 
+pub fn duckdb_fixed_compute_candidate(CapabilityRegistration, FixedComputeRequest, String, @duckdb_adapter.NativeQueryLimits, Array[@physical_cost.SerialEstimateLine], QueryQuantities, Int) -> Result[PreparedCompute[@duckdb_adapter.FixedCompute], FixedComputeIssue]
+
 pub fn duckdb_query_broad_scan(DuckDBQueryPreparation) -> @duckdb_adapter.BroadScan
 
 pub fn duckdb_query_native_preparation(DuckDBQueryPreparation) -> Result[(@duckdb_adapter.NativeScan, @duckdb_adapter.NativeRootGuard), DuckDBNativeIssue]
@@ -80,11 +84,25 @@ pub fn execute_duckdb_broad_attempt(DuckDBBroadAttempt, @execution_relation.Sequ
 
 pub fn execute_duckdb_broad_residual(DuckDBQueryPreparation, @execution_relation.CapturedRows, @execution_relation.SequenceExecutionLimits, @execution_query.QueryGuardMeasureLimits) -> Result[(@execution_relation.CompletedSequence, (Int, Int, Int)), @execution_query.QueryGuardIssue]
 
+pub fn execute_local_fixed_compute(FixedComputeChoice, PreparedCompute[@execution_relation.GeneratedSequence], @execution_relation.SequenceExecutionLimits) -> Result[@execution_relation.CompletedSequence, FixedComputeIssue]
+
 pub fn execute_mock_query(MockQueryAttempt, MockQueryLimits, guard_measure? : @execution_query.QueryGuardMeasureLimits?) -> Result[MockQueryComputation, MockQueryIssue]
 
 pub fn finish_duckdb_broad_receipt(DuckDBBroadAttempt) -> Result[Unit, DuckDBBroadAttemptIssue]
 
+pub fn fixed_compute_candidate_duration(FixedComputeCandidate) -> @physical_cost.DurationEstimate
+
+pub fn fixed_compute_candidate_quantities(FixedComputeCandidate) -> QueryQuantities
+
+pub fn[T] fixed_compute_choice_payload(FixedComputeChoice, PreparedCompute[T]) -> T?
+
+pub fn fixed_compute_choice_reason(FixedComputeChoice) -> @physical_cost.CostChoice
+
+pub fn fixed_compute_request_input(FixedComputeRequest) -> @execution_relation.ProducerRead
+
 pub fn issue_mock_query_records(MockQueryAttempt, QueryMaterialLimits) -> Result[MockQueryRecords, MockEvidenceIssue]
+
+pub fn local_fixed_compute_candidate(CapabilityRegistration, FixedComputeRequest, @execution_relation.GeneratedSequence, Array[@physical_cost.SerialEstimateLine], QueryQuantities, Int) -> Result[PreparedCompute[@execution_relation.GeneratedSequence], FixedComputeIssue]
 
 pub fn mock_acquisition_candidate(CapabilityRegistration, QueryRequirement, QueryOffer) -> Result[PreparedAcquisition[QueryOffer], QueryPlanningIssue]
 
@@ -126,6 +144,8 @@ pub fn prepare_duckdb_broad_attempt(DuckDBQueryPreparation) -> DuckDBBroadAttemp
 
 pub fn prepare_duckdb_query(QueryRequirement, String, String, Int, @duckdb_adapter.NativeQueryLimits) -> Result[DuckDBQueryPreparation, @duckdb_adapter.NativeQueryIssue]
 
+pub fn prepare_fixed_compute_request(@execution_relation.ProducerRead) -> Result[FixedComputeRequest, FixedComputeIssue]
+
 pub fn prepare_issued_mock_query_attempt(MockQueryIssuer, QueryStrategy, Array[@decode_core.Cursor], Int) -> Result[MockQueryAttempt, MockEvidenceIssue]
 
 pub fn prepare_mock_query_attempt(QueryStrategy, Array[@decode_core.Cursor], Int) -> Result[MockQueryAttempt, MockQueryIssue]
@@ -139,6 +159,8 @@ pub fn prepare_query_requirement(QueryMaterial, @pipeline_check_context.ProgramS
 pub fn prepare_requirement_mock_query_attempt(QueryRequirement, QueryStrategy, Array[@decode_core.Cursor], Int) -> Result[MockQueryAttempt, MockQueryIssue]
 
 pub fn[T] prepared_acquisition_candidate(PreparedAcquisition[T]) -> AcquisitionCandidate
+
+pub fn[T] prepared_compute_candidate(PreparedCompute[T]) -> FixedComputeCandidate
 
 pub fn query_evidence_contract_usage(QueryEvidenceContracts) -> (Int, Int)
 
@@ -262,6 +284,34 @@ pub(all) enum DuckDBNativeIssue {
 
 type DuckDBQueryPreparation
 
+type FixedComputeCandidate
+
+type FixedComputeChoice
+
+pub(all) enum FixedComputeIssue {
+  UnsupportedInputShape
+  ForeignPreparation
+  ForeignRequest(Int)
+  ForeignCapability(Int)
+  CapabilityClosed
+  ComputeUnsupported
+  NotSelected
+  InvalidLimits
+  PlanningLimit
+  NegativeQuantity
+  Cost(@physical_cost.CostIssue)
+  Compilation(@duckdb_adapter.NativeQueryIssue)
+  Execution(@execution_relation.SequenceRunIssue)
+}
+
+type FixedComputeRequest
+
+pub enum FixedComputeSelection {
+  Proposed(FixedComputeChoice)
+  Deferred
+  NoCandidates
+}
+
 pub(all) enum MockEvidenceIssue {
   InvalidLimits
   IdentifierLimit
@@ -334,6 +384,8 @@ pub(all) struct MockRetentionLimits {
 }
 
 type PreparedAcquisition[T]
+
+type PreparedCompute[T]
 
 pub(all) enum QueryEvidenceContractIssue {
   InvalidLimits
