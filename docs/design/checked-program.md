@@ -93,6 +93,14 @@ stages and calls. A later failure exposes no partially completed Program.
 `unit_group_limit_count` and `unit_group_limit_at` read the retained results
 without copying or hashing again. Imported producer visits do not create a
 consumer-owned duplicate; the producer Unit retains its own aggregate scope.
+Ordinary statistical groups retain a typed deterministic-law execution check
+for percentile interpolation, population/sample variance and population/sample
+standard deviation. It binds the exact aggregate and its demand to the input,
+and requires the normative value ordering, binary64 operation sequence,
+insufficient-count result and failure on non-finite intermediates before output.
+It does not permit reassociation or substitute a numeric observation. False
+filters do not erase this contract. Binary64 sum/avg still require their distinct
+contract-admitted observation boundary and remain unresolved without that connection.
 An extracted aggregate guard uses the owning Unit Definition as its witness
 dependency, keeping unrelated stages and whole-Program observations outside the
 local limit identity. Its source path is a canonical locator in the authored

@@ -1158,6 +1158,7 @@ pub enum GroupExecutionRule {
   EvaluateAggregate(@relation_typing.CheckedAggregate)
   ValidateResultContract(@relation_typing.CheckedAggregate)
   EnforceArrayItems(GroupArrayLimit)
+  EnforceStatisticalLaw(@relation_typing.CheckedAggregate, StatisticalLaw)
 }
 
 pub enum IncomingClosureIssue {
@@ -2264,6 +2265,14 @@ pub(all) struct StageRequirementLimits {
 }
 
 type StageSourceIdentity
+
+pub enum StatisticalLaw {
+  PercentileInterpolation
+  PopulationVariance
+  SampleVariance
+  PopulationStandardDeviation
+  SampleStandardDeviation
+}
 
 type TextBoundResolution
 

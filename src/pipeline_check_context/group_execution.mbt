@@ -1,9 +1,19 @@
 ///|
+pub enum StatisticalLaw {
+  PercentileInterpolation
+  PopulationVariance
+  SampleVariance
+  PopulationStandardDeviation
+  SampleStandardDeviation
+}
+
+///|
 pub enum GroupExecutionRule {
   PartitionGroups
   EvaluateAggregate(@relation.CheckedAggregate)
   ValidateResultContract(@relation.CheckedAggregate)
   EnforceArrayItems(GroupArrayLimit)
+  EnforceStatisticalLaw(@relation.CheckedAggregate, StatisticalLaw)
 }
 
 ///|
@@ -25,7 +35,8 @@ fn group_execution_check(
   }
   guard pending.kind is @relation.GroupPartitioning ||
     pending.kind is @relation.AggregateDemand ||
-    pending.kind is @relation.AggregateEnvelope else {
+    pending.kind is @relation.AggregateEnvelope ||
+    pending.kind is @relation.StatisticalAggregateLaw else {
     return Ok(None)
   }
   guard @pipeline.step_at(site.pipeline, site.step) is Some(step) else {
@@ -59,7 +70,17 @@ fn group_execution_check(
     guard @relation.aggregate_for_validation(group, site.index) is Some(call) else {
       return Err(ForeignOccurrence(site.step))
     }
-    if pending.kind is @relation.AggregateEnvelope {
+    if pending.kind is @relation.StatisticalAggregateLaw {
+      let law = match @relation.aggregate_function(call) {
+        PercentileCont => PercentileInterpolation
+        VarPop => PopulationVariance
+        VarSamp => SampleVariance
+        StddevPop => PopulationStandardDeviation
+        StddevSamp => SampleStandardDeviation
+        _ => return Err(ForeignOccurrence(site.step))
+      }
+      EnforceStatisticalLaw(call, law)
+    } else if pending.kind is @relation.AggregateEnvelope {
       // Collection-producing aggregates need separately selected resource
       // limits. Other calls retain their exact output contract, including
       // decimal precision and inherited bounds on selected values.
