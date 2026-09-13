@@ -87,6 +87,20 @@ and count validation remain obligations. Graph data admission, SGA profile,
 resource resolution and component identity ordering are also explicit pending
 checks, not proof objects or permission to execute/publish.
 
+`ComponentsLimitsCheck` consumes the retained components capacity application
+from the same producer visit. Its input-node and output-row claims remain
+separate, including their candidate dependencies, units, subjects and selected
+policy. The binding does not reconstruct minima or turn an equal-valued foreign
+pipeline's claims into applicable evidence. The existing capacity consumer
+remains responsible for candidate completeness and authored-guard support.
+
+The execution binding has an atomic output gate: no operation output is exposed
+unless both selected limits are enforced. This does not defer input-node
+enforcement until after running the component algorithm. Graph-data admission,
+component identity ordering and other execution budgets remain independent.
+An absent capacity application leaves resource resolution incomplete; it is not
+an exemption or a request for the lowerer to infer replacement bounds.
+
 The reference implementation's string ID outputs and mandatory resolved graph
 bounds are not authoring rules: typed semantic IDs and optional authored guards
 follow the current Language specification. Backend ID encoding and resolved

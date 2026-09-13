@@ -1173,6 +1173,12 @@ pub(all) struct CapacityStageLimits {
   max_operand_work : Int
 } derive(Eq, @debug.Debug)
 
+pub struct ComponentsLimitsCheck {
+  site : OperationRequirementSite
+  step : @pipeline_typing.CheckedStep
+  limits : @capacity_program_step.ComponentsLimits
+}
+
 pub(all) enum CoreContractBody {
   ExpressionBody(@check_environment.ExpressionContractBody)
   AdoptedBody(@pipeline_typing.AdoptedOperationLaw)
@@ -1912,6 +1918,7 @@ pub(all) enum OperationDisposition {
 }
 
 pub(all) enum OperationExecutionCheck {
+  ComponentsLimits(ComponentsLimitsCheck)
   GraphExecution(GraphExecutionCheck)
   GraphConstructionExecution(GraphConstructionCheck)
   GraphProjection(GraphProjectionCheck)

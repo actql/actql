@@ -2,6 +2,7 @@ supported_targets = "+js+wasm+native"
 
 import {
   "actql/actql/source_value" @source,
+  "actql/actql/sha256" @fixture_sha,
 } for "wbtest"
 
 import {
