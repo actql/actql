@@ -2,6 +2,13 @@
 fn duckdb_captured_input(
   filter? : String = "id > 0",
 ) -> @execution.ProducerRead raise {
+  duckdb_captured_input_lifetime(filter~).0
+}
+
+///|
+fn duckdb_captured_input_lifetime(
+  filter? : String = "id > 0",
+) -> (@execution.ProducerRead, () -> Unit) raise {
   let (issuer, sequence) = query_issuer_fixture()
   let owner = @query.query_sequence_owner(sequence)
   let receiver = typed_receiver(
@@ -27,7 +34,10 @@ fn duckdb_captured_input(
   let bound = @planning.bind_captured_query_input(
     issuer, attempt, observation, receiver, 0, owner,
   ).unwrap()
-  @execution.prepare_producer_read(receiver, bound, 100, 1000).unwrap()
+  (
+    @execution.prepare_producer_read(receiver, bound, 100, 1000).unwrap(),
+    fn() { @planning.close_mock_query_issuer(issuer) },
+  )
 }
 
 ///|

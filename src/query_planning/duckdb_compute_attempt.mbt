@@ -36,6 +36,9 @@ struct DuckDBComputeAttempt {
   mut measured : @execution.FixedProducerMeasuredOutput?
   mut demand : @duckdb.FixedComputeDemand?
   mut completed : Bool
+  // Sealed only after the trusted completion port accepts the exact rows.
+  // Retention belongs to this Compute, not to its input's future availability.
+  mut completed_rows : @execution.AdmittedOutputRows?
   mut live : Bool
 }
 
@@ -92,6 +95,7 @@ pub fn start_duckdb_compute_attempt(
     measured: None,
     demand: None,
     completed: false,
+    completed_rows: None,
     live: true,
   })
 }
@@ -175,6 +179,16 @@ pub fn finish_duckdb_compute_result(
 fn verified_compute_rows(
   value : DuckDBComputeAttempt,
 ) -> @execution.AdmittedOutputRows? {
+  if value.completed {
+    // Keep this attempt's own transport/retention revocation live. Receipt,
+    // demand and input measurement were sealed at successful completion;
+    // rechecking them here would incorrectly re-admit a now-closed upstream.
+    return if value.live && (value.transport_matches)(value) {
+      value.completed_rows
+    } else {
+      None
+    }
+  }
   guard value.live &&
     (value.transport_matches)(value) &&
     value.receiving is Some(receiving) &&
@@ -248,8 +262,12 @@ fn complete_duckdb_compute_impl(
       Err(issue) => return Err(Guard(issue))
     },
   )
+  guard verified_compute_rows(value) is Some(rows) else {
+    return Err(Completion(Unverified))
+  }
   match @execution.complete_trusted_output(value.port, value) {
     Ok(output) => {
+      value.completed_rows = Some(rows)
       value.completed = true
       Ok(output)
     }
@@ -268,6 +286,7 @@ pub fn abort_duckdb_compute_attempt(value : DuckDBComputeAttempt) -> Unit {
 ///|
 pub fn close_duckdb_compute_attempt(value : DuckDBComputeAttempt) -> Unit {
   value.live = false
+  value.completed_rows = None
   if value.receiving is Some(receiving) {
     @duckdb.abort_fixed_compute_receiving(receiving)
   }

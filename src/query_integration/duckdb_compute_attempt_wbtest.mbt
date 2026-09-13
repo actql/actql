@@ -4,6 +4,74 @@ struct FixedComputeTestTransport {
 }
 
 ///|
+test "DuckDB Compute seals independent output only after live upstream validation" {
+  for close_before_completion in [true, false] {
+    let (input, close_upstream) = duckdb_captured_input_lifetime(
+      filter="id > 2",
+    )
+    let transport : FixedComputeTestTransport = { settled: None, }
+    let (attempt, _) = fixed_compute_attempt_fixture(
+      transport,
+      fixed_compute_attempt_limits(),
+      supplied_input=Some(input),
+    )
+    fixed_compute_attempt_receive(attempt)
+    transport.settled = Some(attempt)
+    if close_before_completion {
+      close_upstream()
+      assert_true(@planning.complete_duckdb_compute_attempt(attempt) is Err(_))
+      assert_true(
+        @planning.complete_duckdb_compute_attempt(attempt) is Err(InvalidState),
+      )
+      continue
+    }
+    let output = @planning.complete_duckdb_compute_attempt(attempt).unwrap()
+    let owner = @execution.producer_read_receiver(input)
+    let receiver = typed_receiver(owner, "[{\"select\":[\"id\"]}]")
+    let bound = @execution.bind_completed_input(receiver, 0, owner, output).unwrap()
+    close_upstream()
+    assert_false(@execution.producer_read_available(input))
+    assert_true(
+      @execution.bind_completed_input(receiver, 0, owner, output) is Ok(_),
+    )
+    let completed = @execution.execute_generated_sequence(
+      compute_test_sequence(receiver),
+      [],
+      compute_test_limits(),
+      produced=[bound],
+    ).unwrap()
+    let downstream = @execution.completed_output(completed, Step(0)).unwrap()
+    // Its own transport revocation remains effective after sealing.
+    transport.settled = None
+    assert_true(
+      @execution.bind_completed_input(receiver, 0, owner, output) is Err(_),
+    )
+    transport.settled = Some(attempt)
+    @planning.close_duckdb_compute_attempt(attempt)
+    assert_true(
+      @execution.bind_completed_input(receiver, 0, owner, output) is Err(_),
+    )
+    let next = typed_receiver(
+      receiver,
+      "[{\"select\":[\"id\"]}]",
+      target=Step(0),
+    )
+    let retained = @execution.bind_completed_input(
+      next, 0, receiver, downstream,
+    ).unwrap()
+    assert_true(
+      @execution.execute_generated_sequence(
+        compute_test_sequence(next),
+        [],
+        compute_test_limits(),
+        produced=[retained],
+      )
+      is Ok(_),
+    )
+  }
+}
+
+///|
 fn fixed_compute_attempt_limits() -> @planning.DuckDBComputeLimits {
   {
     values: { max_work: 100, max_bytes: 100, max_nodes: 100, max_depth: 10, },
@@ -31,8 +99,12 @@ fn fixed_compute_attempt_fixture(
   transport : FixedComputeTestTransport,
   limits : @planning.DuckDBComputeLimits,
   ceiling? : Int = 5,
+  supplied_input? : @execution.ProducerRead? = None,
 ) -> (@planning.DuckDBComputeAttempt, @execution.ProducerRead) raise {
-  let input = duckdb_captured_input(filter="id > 2")
+  let input = match supplied_input {
+    Some(input) => input
+    None => duckdb_captured_input(filter="id > 2")
+  }
   let request = @planning.prepare_fixed_compute_request(input, {
     contract_cid: "sha256:7d59718b965451d8a19ccf7095b92777ba0cdd8c3bb71f437ab387801fe7271f",
     max_rows: 2,

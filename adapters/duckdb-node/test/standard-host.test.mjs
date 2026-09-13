@@ -8,7 +8,7 @@ import { join } from 'node:path';
 import { createHash } from 'node:crypto';
 import { DuckDBInstance } from '@duckdb/node-api';
 import { authorizeLocalDatabase } from '../session.mjs';
-import { runNativeHostQuery, runBroadHostQuery } from '../host.mjs';
+import { runNativeHostQuery, runBroadHostQuery, runFixedHostCompute } from '../host.mjs';
 import { exerciseOwnedFixedTransport } from './owned-fixed-transport.mjs';
 
 const root = fileURLToPath(new URL('../../..', import.meta.url));
@@ -104,6 +104,20 @@ test('standard native and broad Node Hosts own verification through real capture
           { code: 'MoonBitHostFailure' });
         close(foreign);
         assert.equal(consume(prepared, materialize(), 100), hash(expected));
+        if (native) {
+          const fixed = fixture.ownedFixedCreate(prepared, output, ...contracts);
+          const setup = fixture.ownedFixedConfiguration(fixed);
+          const result = await runFixedHostCompute(setup, limits, { maxRows: 100, maxCells: 1000 });
+          const fixedOutput = result.output();
+          const expectedFixed = hash(kind === 'empty' ? [] : [{ id: 3 }, { id: 3 }]);
+          try {
+            assert.equal(fixture.ownedFixedConsumeOutput(fixed, fixedOutput), expectedFixed);
+            captured.close();
+            assert.equal(fixture.ownedFixedConsumeOutput(fixed, fixedOutput), expectedFixed);
+            await assert.rejects(runFixedHostCompute(setup, limits, { maxRows: 100, maxCells: 1000 }));
+          } finally { result.close(); }
+          assert.equal(fixture.ownedFixedConsumeOutput(fixed, fixedOutput), 'null');
+        }
         captured.close();
         assertFixedUnavailable?.();
         assert.throws(materialize, { code: 'IssuerClosed' });

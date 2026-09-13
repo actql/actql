@@ -373,6 +373,16 @@ MoonBit completion bridge must additionally bind the selected realization, exact
 fixed input, guards, retained output and successful checks. No source grant or
 source connection is part of the Compute record.
 
+Successful fixed Compute seals its exact admitted output only after demand,
+receipt, input/output guards, ownership and trusted completion-port verification
+succeed. Before that transition, upstream availability is mandatory. Afterwards,
+output verification uses the sealed rows and this Compute's own live transport
+and retention, not the upstream input's current availability. Closing an upstream
+capture cannot revoke independently completed Compute results; closing the
+Compute itself still prevents new downstream admission. Already completed
+downstream results keep their independent lifetime. Sealing shares the retained
+rows without copying or re-admission and cannot be supplied by a caller boolean.
+
 ## Type transport and native expression support
 
 Physical transport and expression support are separate decisions. The transport

@@ -438,6 +438,11 @@ import. It does not revoke a consumer result completed before close. The broad
 attempt's public `duckdb_broad_attempt_row_count` is diagnostic only: raw residual
 CompletedOutput access before capture is not public.
 
+This independence also applies to successful DuckDB fixed Compute: after
+`runFixedHostCompute` completes, closing its upstream capture does not invalidate
+the still-open Compute result. Closing that result itself blocks new consumers.
+Upstream closure before Compute completion still prevents successful publication.
+
 The broad Host invokes `complete_duckdb_broad_capture` only after actual source
 settlement. That operation validates exact issuer/attempt and transport ownership,
 then runs Local residual, common guards, retention, record emission and capture.
