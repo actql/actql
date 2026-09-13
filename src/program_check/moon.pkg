@@ -25,6 +25,7 @@ import {
 
 import {
   "actql/actql/carrier_contract" @carrier,
+  "actql/actql/relation_join" @join,
   "actql/actql/relation_schema" @schema,
   "actql/actql/value_contract" @contract,
   "actql/actql/source_value" @source,

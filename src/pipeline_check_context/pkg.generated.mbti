@@ -24,6 +24,7 @@ import {
   "actql/actql/regex_replacement",
   "actql/actql/relation_append",
   "actql/actql/relation_evidence",
+  "actql/actql/relation_join_shape",
   "actql/actql/relation_results",
   "actql/actql/relation_typing",
   "actql/actql/relation_values",
@@ -1179,6 +1180,20 @@ pub struct JoinCardinalitySelection {
   evidence : @pipeline_typing.JoinEvidence
 }
 
+pub struct JoinInputValidationCheck {
+  site : OperationRequirementSite
+  step : @pipeline_typing.CheckedStep
+  left : @pipeline_typing.Target
+  right : @pipeline_typing.Target
+  operation : @relation_join_shape.CheckedJoin
+  rule : JoinInputValidationRule
+}
+
+pub(all) enum JoinInputValidationRule {
+  AssertCardinality(@relation_join_shape.Cardinality)
+  RejectNullKeyComponents
+} derive(Eq, @debug.Debug)
+
 pub struct JoinOutputCheck {
   site : OperationRequirementSite
   capacity : @capacity_graph_preflight.ApplicationClosure
@@ -1352,6 +1367,7 @@ pub(all) enum OperationExecutionCheck {
   ValuesPublication(ValuesPublicationCheck)
   JoinOutputLimit(JoinOutputCheck)
   JoinRowOrder(JoinRowOrderCheck)
+  JoinInputValidation(JoinInputValidationCheck)
   AppendRows(AppendRowsCheck)
 }
 

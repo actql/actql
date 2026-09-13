@@ -28,6 +28,24 @@ pub struct JoinRowOrderCheck {
 }
 
 ///|
+pub(all) enum JoinInputValidationRule {
+  AssertCardinality(@join.Cardinality)
+  RejectNullKeyComponents
+} derive(Eq, Debug)
+
+///|
+/// Validate the exact authored key tuples on the indicated inputs. This is a
+/// runtime obligation, never an observation that those rows have passed.
+pub struct JoinInputValidationCheck {
+  site : OperationRequirementSite
+  step : @pipeline.CheckedStep
+  left : @pipeline.Target
+  right : @pipeline.Target
+  operation : @join.CheckedJoin
+  rule : JoinInputValidationRule
+}
+
+///|
 pub(all) enum JoinRequirementIssue {
   InvalidLimits
   BudgetExceeded
@@ -39,7 +57,8 @@ pub(all) enum JoinRequirementIssue {
 ///|
 /// Consume cached evidence and the selected producer's capacity applications.
 /// Does not recompute keys, interpret unproven cardinality as many-to-many, or
-/// discharge authored uniqueness or null-key requirements. Row-order preservation
+/// mark authored uniqueness or null-key assertions as already validated. Their
+/// exact input checks remain execution obligations. Row-order preservation
 /// is a future execution obligation, not a new total-order witness.
 pub fn link_program_join_requirements(
   index : ProgramOperationResolutionIndex,
@@ -62,6 +81,8 @@ pub fn link_program_join_requirements(
     let kind = match site.requirement {
       @pipeline.JoinRequirement(ResolveCardinality) => 0
       @pipeline.JoinRequirement(PreserveRowOrder) => 2
+      @pipeline.JoinRequirement(ValidateCardinality(_))
+      | @pipeline.JoinRequirement(RejectNullKeys) => 3
       @pipeline.JoinRequirement(ResolveOutputLimit)
       | @pipeline.CrossJoinRequirement(ResolveOutputLimit)
       | @pipeline.IntervalJoinRequirement(ResolveOutputLimit) => 1
@@ -108,6 +129,41 @@ pub fn link_program_join_requirements(
             @pipeline.Step(site.step),
           ),
         }),
+      )
+    } else if kind == 3 {
+      guard @pipeline.step_at(site.pipeline, site.step) is Some(step) &&
+        step.operation is @pipeline.Join(right~, checked=operation) &&
+        step.input is Some(left) else {
+        return Err(ForeignOccurrence(i))
+      }
+      if @pipeline.input_occurrence_count(step) != 2 {
+        return Err(ForeignOccurrence(i))
+      }
+      let l = @pipeline.input_occurrence_at(step, 0).unwrap()
+      let r = @pipeline.input_occurrence_at(step, 1).unwrap()
+      if l.target != left ||
+        l.role != @pipeline.Left ||
+        r.target != right ||
+        r.role != @pipeline.Right {
+        return Err(ForeignOccurrence(i))
+      }
+      let rule = match site.requirement {
+        @pipeline.JoinRequirement(ValidateCardinality(assertion)) => {
+          if @join.assertion(operation) != Some(assertion) {
+            return Err(ForeignOccurrence(i))
+          }
+          AssertCardinality(assertion)
+        }
+        @pipeline.JoinRequirement(RejectNullKeys) => {
+          if @join.null_key(operation) != @join.NullKey::Fail {
+            return Err(ForeignOccurrence(i))
+          }
+          RejectNullKeyComponents
+        }
+        _ => return Err(ForeignOccurrence(i))
+      }
+      states[i] = Execution(
+        JoinInputValidation({ site, step, left, right, operation, rule, }),
       )
     } else {
       let capacity = stage.context.capacity

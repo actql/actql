@@ -49,10 +49,15 @@ existing meanings; neither constitutes proof that the selected representative
 is unique in actual data.
 Join consumes the existing cardinality selection, ordered-occurrence execution
 check and exact selected-policy capacity application. Inner, left, semi and anti
-joins can close when these requirements are supplied. Full-join stable identity,
-authored cardinality assertions and null-key rejection still require their own
-resolutions; the entry does not convert these unresolved obligations to generic
-runtime checks. Missing capacity likewise prevents construction. Result outputs
+joins can close when these requirements are supplied. Authored cardinality and
+null-key assertions retain separate checks over the exact left/right operands
+and authored key tuples, before input use. Cardinality validates both sides,
+right only or left only for one-to-one, many-to-one or one-to-many respectively;
+null-key failure applies to either input. Static key evidence does not remove an
+authored assertion, and repeated pairs do not create additional rows. Violation
+rejects the whole join output. Full-join stable identity still requires its own
+resolution, not a generic runtime check. Missing capacity likewise prevents
+construction. Result outputs
 remain subject to the existing flat-name publication and order requirements.
 Other operation paths, opaque Binding declarations and nonempty Effects are
 reported as unsupported rather than made executable through missing evidence.

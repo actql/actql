@@ -43,6 +43,8 @@ fn check_resolution_index(
         abort("join limits require explicit linking")
       Execution(JoinRowOrder(_)) =>
         abort("join order requires explicit linking")
+      Execution(JoinInputValidation(_)) =>
+        abort("join input validation requires explicit linking")
       Resolved(v) => {
         resolved += 1
         let (position, owner, kind) = match v {
