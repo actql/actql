@@ -67,6 +67,22 @@ external source authority, a snapshot or successful observation capture. Its
 retained capacity must be included in capture's physical retention checks;
 reduced native receipt is not reduced full-scan retention in this mock.
 
+The canonical rows identity is computed directly from retained input or completed
+storage, not by rerunning a predicate or building a JSON row matrix. A bounded
+column permutation emits object keys in canonical UTF-16 order while preserving
+row order, duplicates, projection layout and zero-column row counts. Nested typed
+values use the shared nonrecursive wire emitter; decimals remain fixed-scale
+strings. Hash output is bounded by wire bytes, value nodes and container depth;
+column metadata and comparison work have separate preparation bounds.
+
+`RowWireIdentity` keeps its exact immutable receipt or completion owner. Matching
+its CID does not imply matching that owner, an observation attempt or authorized
+issuer. Its byte count includes the complete ordered JSON array and is suitable
+for this profile's receipt-wire accounting, not allocator capacity or RSS. It
+does not replace per-record/per-root logical limits or physical retention
+admission. Failed hashing returns no usable identity and leaves retained data
+available for a separately budgeted retry.
+
 An attempt is one-shot. Failure never changes the selected route or rereads a
 source. Cancellation is supported before computation and at the computation/capture
 boundary, not during the synchronous evaluator. Cancelling an attempt discards its

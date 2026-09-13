@@ -33,6 +33,14 @@ only immutable admitted material, not capture evidence; passing the receipt to
 a different preparation is rejected. The mock retains the complete admitted
 scan even on the native route, so receipt savings do not imply retention savings.
 
+`identify_query_receipt_rows` and `identify_completed_rows` compute canonical
+ordered-row CIDs directly from immutable material under `RowWireLimits`.
+`row_wire_usage` returns canonical wire bytes, value nodes and row count.
+`row_wire_matches_receipt` / `row_wire_matches_output` check the exact retained
+handle, not just equal content. These APIs support capture verification but do
+not themselves issue records or authorize capture. A bytes/node/depth/order
+limit failure returns no identity and does not consume the retained input.
+
 Selection needs one candidate entry plus the common helper's duration/preference
 entries: two offers require four entries without priority and six with a two-item
 priority. Offer estimation separately budgets its work inventory, line count and

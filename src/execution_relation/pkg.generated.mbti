@@ -68,6 +68,10 @@ pub fn execute_local_compute_attempt(LocalComputeAttempt, SequenceExecutionLimit
 
 pub fn execute_query_receipt(QuerySequence, QueryReceipt, SequenceExecutionLimits) -> Result[CompletedSequence, QuerySequenceIssue]
 
+pub fn identify_completed_rows(CompletedOutput, RowWireLimits) -> Result[RowWireIdentity, RowWireIssue]
+
+pub fn identify_query_receipt_rows(QueryReceipt, RowWireLimits) -> Result[RowWireIdentity, RowWireIssue]
+
 pub fn local_compute_result(LocalComputeAttempt) -> Result[CompletedSequence, LocalComputeIssue]
 
 pub fn ordered_params_kernel(OrderedParams) -> @lowering_relation.PreparedKernel
@@ -87,6 +91,14 @@ pub fn prepare_runtime_fragment(@lowering_relation.FragmentRequest, FragmentCont
 pub fn query_receipt_rows(QueryReceipt) -> CapturedRows
 
 pub fn query_sequence_requirement(QuerySequence) -> @sourceview_resolution.QueryAcquisition
+
+pub fn row_wire_cid(RowWireIdentity) -> String
+
+pub fn row_wire_matches_output(RowWireIdentity, CompletedOutput) -> Bool
+
+pub fn row_wire_matches_receipt(RowWireIdentity, QueryReceipt) -> Bool
+
+pub fn row_wire_usage(RowWireIdentity) -> (Int, Int, Int)
 
 pub fn runtime_fragment_failure_stage(RuntimeFragmentIssue) -> RuntimeFragmentFailureStage
 
@@ -321,6 +333,23 @@ pub(all) enum RowIssue {
   Comparison(ScalarIssue)
   DedupeTopTie(Int, Int)
   DedupeIdentityCollision
+}
+
+type RowWireIdentity
+
+pub(all) enum RowWireIssue {
+  InvalidLimits
+  OrderLimit
+  InvalidLayout
+  Encoding(@encode_core.EncodeFailure)
+}
+
+pub(all) struct RowWireLimits {
+  max_columns : Int
+  max_order_work : Int
+  max_bytes : Int
+  max_nodes : Int
+  max_depth : Int
 }
 
 pub(all) enum RuntimeFragmentFailureStage {
