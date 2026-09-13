@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { auditRevisionReport, renderRevisionReport } from './report-revision-comparison.mjs';
-import { revisionCells, supplementalRevisionCells, revisionPairs, regressionMetric } from './revision-regression-support.mjs';
+import { auditRevisionReport, auditDiagnosticReport, renderRevisionReport } from './report-revision-comparison.mjs';
+import { revisionCells, supplementalRevisionCells, diagnosticRevisionCells, revisionPairs, regressionMetric } from './revision-regression-support.mjs';
 
 const manifest = JSON.parse(readFileSync(new URL('../benchmarks/local-relation/columnar-experiment.json', import.meta.url)));
 function fixture() {
@@ -41,6 +41,19 @@ test('full matrix is independently reconstructed from successful raw assertions'
   assert.equal(decisions.length, 136);
   assert.equal(f.report.samples.length, 1904);
   assert.match(renderRevisionReport(f.report, decisions), /1904 measured processes/);
+});
+
+test('diagnostic evidence requires its exact subset and cannot pass the full gate', () => {
+  const f = fixture();
+  const ids = new Set(diagnosticRevisionCells(manifest).map(c => c.id));
+  f.report.scope = 'bounded representative diagnostic; not full-matrix gate';
+  f.report.matrix_gate = 'not_evaluated';
+  f.report.samples = f.report.samples.filter(s => ids.has(s.id));
+  f.report.decisions = f.report.decisions.filter(d => ids.has(d.id));
+  assert.equal(auditDiagnosticReport(f.report, manifest, f.read).length, 16);
+  assert.throws(() => auditRevisionReport(f.report, manifest, f.read));
+  f.report.decisions.pop();
+  assert.throws(() => auditDiagnosticReport(f.report, manifest, f.read));
 });
 
 test('partial and smoke reports cannot become regression evidence', () => {

@@ -4,12 +4,22 @@ import { readFileSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { checkedSample, checkedPreparedSample, peakRssBytes } from './layout-measurement-support.mjs';
-import { revisionCells, supplementalRevisionCells, revisionPairs, regressionMetric, revisionGate } from './revision-regression-support.mjs';
+import { revisionCells, supplementalRevisionCells, diagnosticRevisionCells, revisionPairs, regressionMetric, revisionGate } from './revision-regression-support.mjs';
 
 export function auditRevisionReport(report, manifest, readRaw) {
   assert.equal(report.status, 'complete', 'A partial run is not a completed comparison');
   assert.notEqual(report.matrix_gate, 'not_evaluated', 'Smoke is not regression evidence');
-  const cells = [...revisionCells(manifest), ...supplementalRevisionCells()];
+  return auditCells(report, [...revisionCells(manifest), ...supplementalRevisionCells()], readRaw, false);
+}
+
+export function auditDiagnosticReport(report, manifest, readRaw) {
+  assert.equal(report.status, 'complete');
+  assert.equal(report.scope, 'bounded representative diagnostic; not full-matrix gate');
+  assert.equal(report.matrix_gate, 'not_evaluated');
+  return auditCells(report, diagnosticRevisionCells(manifest), readRaw, true);
+}
+
+function auditCells(report, cells, readRaw, diagnostic) {
   assert.equal(report.decisions.length, cells.length, 'Full required case matrix');
   const recomputed = [];
   let offset = 0;
@@ -36,13 +46,13 @@ export function auditRevisionReport(report, manifest, readRaw) {
       return regressionMetric(values('baseline'), values('candidate'), metric);
     });
     const screening = summarize(7);
-    assert.equal(pairs, screening.some(m => m.decision === 'extend') ? 21 : 7, 'No discretionary repeat selection');
+    assert.equal(pairs, !diagnostic && screening.some(m => m.decision === 'extend') ? 21 : 7, 'No discretionary repeat selection');
     const metrics = pairs === 7 ? screening : summarize(21);
     assert.deepEqual(decision, { id: cell.id, screening, metrics });
     recomputed.push(decision);
   }
   assert.equal(offset, report.samples.length, 'No hidden extra samples');
-  assert.equal(report.matrix_gate, revisionGate(recomputed));
+  assert.equal(report.matrix_gate, diagnostic ? 'not_evaluated' : revisionGate(recomputed));
   return recomputed;
 }
 
@@ -66,6 +76,7 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
   const report = JSON.parse(readFileSync(path));
   const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
   const manifest = JSON.parse(readFileSync(resolve(root, 'benchmarks/local-relation/columnar-experiment.json')));
-  const decisions = auditRevisionReport(report, manifest, f => readFileSync(resolve(dirname(path), f), 'utf8'));
+  const audit = report.scope === 'bounded representative diagnostic; not full-matrix gate' ? auditDiagnosticReport : auditRevisionReport;
+  const decisions = audit(report, manifest, f => readFileSync(resolve(dirname(path), f), 'utf8'));
   process.stdout.write(renderRevisionReport(report, decisions));
 }
