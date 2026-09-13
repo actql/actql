@@ -1,6 +1,9 @@
 supported_targets = "+js+wasm+native"
 
+formatter(ignore: [ "numeric_profile.generated_wbtest.mbt" ])
+
 import {
+  "actql/actql/numeric_reduction" @numeric,
   "actql/actql/encode_core" @encode,
   "actql/actql/pipeline_check_context" @context,
   "actql/actql/stage_results" @results,

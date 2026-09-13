@@ -9,6 +9,7 @@ fn local_construction_fixture(
   supplied? : @decode.Cursor? = None,
   through_catalog? : Bool = false,
   through_check? : Bool = false,
+  numeric_profile? : @numeric.Profile? = None,
   checked_results? : Array[CheckedProgram] = [],
   host_limit? : Int = 1000,
   string_limit? : Int? = None,
@@ -262,6 +263,7 @@ fn local_construction_fixture(
       max_bytes=budget.bytes,
       max_nodes=budget.nodes,
       max_depth=budget.depth,
+      numeric_profile~,
     )
     checked_results.push(value)
     return (

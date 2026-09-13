@@ -7,6 +7,7 @@ struct CheckedProgram {
   units : Array[BuiltUnit]
   group_limits : Array[Array[GroupLimit]]
   group_string_limits : Array[Array[GroupStringLimit]]
+  numeric_slots : Array[Array[GroupNumericSlot]]
 }
 
 ///|
@@ -86,6 +87,7 @@ pub fn check(
   max_bytes~ : Int,
   max_nodes~ : Int,
   max_depth~ : Int,
+  numeric_profile? : @numeric.Profile? = None,
 ) -> CheckedProgram raise LocalConstructionFailure {
   if max_work < 0 || max_bytes < 0 || max_nodes < 0 || max_depth < 0 {
     raise InvalidLimits
@@ -106,6 +108,7 @@ pub fn check(
     operation_profiles,
     limits,
     budget,
+    numeric_profile~,
   )
   audit_source_execution(contracts, units[0].source_execution, budget) catch {
     error => raise Units(error)
@@ -130,6 +133,11 @@ pub fn check(
   ) catch {
     error => raise Units(error)
   }
+  let numeric_slots = prepare_program_numeric_slot_identities(
+    units, requirements, budget,
+  ) catch {
+    error => raise Units(error)
+  }
   {
     identity,
     requirements,
@@ -138,6 +146,7 @@ pub fn check(
     units,
     group_limits,
     group_string_limits,
+    numeric_slots,
   }
 }
 

@@ -19,6 +19,7 @@ fn construct_local(
   operation_profiles : @context.PureOperationProfiles,
   limits : SourceLimits,
   budget : IdentityBudget,
+  numeric_profile? : @numeric.Profile? = None,
 ) -> (
   @context.ProgramSourceIdentity,
   @context.StageRequirementClosure,
@@ -120,7 +121,9 @@ fn construct_local(
   // Closure accounts for the source work prefix once; hashes are incremental
   // here and must instead receive only the remaining bytes/nodes.
   let (requirements, gates, contracts) = prepare_owned_closure(
-    identity, remaining,
+    identity,
+    remaining,
+    numeric_profile~,
   ) catch {
     e => raise Closure(e)
   }

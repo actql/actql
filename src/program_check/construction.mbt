@@ -7,6 +7,7 @@ pub suberror ConstructionFailure {
   Joins(@context.JoinRequirementIssue)
   GroupLimits(@context.GroupArrayLimitIssue)
   GroupStringLimits(@context.GroupStringLimitIssue)
+  NumericSlots(@context.NumericSlotsIssue)
   Incoming(@context.IncomingIssue)
   Links(@context.IncomingLinksIssue)
   Requirements(@context.StageRequirementIssue)
@@ -23,6 +24,7 @@ pub suberror ConstructionFailure {
 fn prepare_owned_closure(
   identity : @context.ProgramSourceIdentity,
   budget : IdentityBudget,
+  numeric_profile? : @numeric.Profile? = None,
 ) -> (
   @context.StageRequirementClosure,
   @context.ProgramIncomingGates,
@@ -81,7 +83,7 @@ fn prepare_owned_closure(
     Ok(v) => v
     Err(e) => raise GroupLimits(e)
   }
-  let resolutions = match
+  let string_resolutions = match
     @context.link_program_group_string_limits(
       array_resolutions,
       ceiling,
@@ -90,6 +92,34 @@ fn prepare_owned_closure(
     ) {
     Ok(v) => v
     Err(e) => raise GroupStringLimits(e)
+  }
+  let numeric_slots = match numeric_profile {
+    None => None
+    Some(profile) =>
+      match
+        @context.prepare_program_numeric_slots(
+          @context.operation_resolution_requirements(string_resolutions),
+          profile,
+          ceiling,
+          ceiling - prefix,
+        ) {
+        Ok(v) => Some(v)
+        Err(e) => raise NumericSlots(e)
+      }
+  }
+  let resolutions = match numeric_slots {
+    None => string_resolutions
+    Some(slots) =>
+      match
+        @context.link_program_numeric_slots(
+          string_resolutions,
+          slots,
+          ceiling,
+          ceiling - prefix,
+        ) {
+        Ok(v) => v
+        Err(e) => raise NumericSlots(e)
+      }
   }
   let resolution_work = @context.operation_resolution_work(resolutions)
   let (values_bytes, values_nodes) = @context.operation_resolution_values_usage(
@@ -155,16 +185,27 @@ fn prepare_owned_closure(
     @context.operation_resolution_profiles(resolutions),
   )
   let profile_work = @context.operation_calendar_work(profiles)
+  let contract_prefix = match numeric_slots {
+    None => profile_work
+    Some(slots) => {
+      let shared = @context.operation_requirements_work(
+        @context.numeric_slots_requirements(slots),
+      )
+      Int::max(profile_work, shared) +
+      (@context.numeric_slots_work(slots) - shared)
+    }
+  }
   let contracts = match
     @context.collect_core_contracts(
       identity,
       {
-        max_work: profile_work + (ceiling - used),
+        max_work: contract_prefix + (ceiling - used),
         max_roots: ceiling - used,
         max_bodies: ceiling - used,
         max_edges: ceiling - used,
       },
       profile_checks=Some(profiles),
+      numeric_slots~,
       hash_limits=Some({
         max_bytes: budget.bytes - values_bytes - gate_bytes,
         max_nodes: budget.nodes - values_nodes - gate_nodes,
@@ -180,7 +221,7 @@ fn prepare_owned_closure(
   )
   // Commit aggregate usage only after every branch succeeds. Each branch counts
   // its shared owner internally; only its nonshared suffix is charged here.
-  budget.work = ceiling - used - (contract_work - profile_work)
+  budget.work = ceiling - used - (contract_work - contract_prefix)
   budget.bytes -= values_bytes + gate_bytes + contract_bytes
   budget.nodes -= values_nodes + gate_nodes + contract_nodes
   (requirements, gates, contracts)
