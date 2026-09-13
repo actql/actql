@@ -60,6 +60,7 @@ fn check_supported_source(
               | "json_pick"
               | "unnest"
               | "unpivot"
+              | "analytic"
               | "append"
               | "except"
               | "intersect"

@@ -13,6 +13,7 @@ fn local_construction_fixture(
   checked_results? : Array[CheckedProgram] = [],
   host_limit? : Int = 1000,
   string_limit? : Int? = None,
+  analytic_limit? : Int? = None,
   producer_expression? : String = "id + 1",
   producer_suffix? : String = "",
   producer_result_from? : String = "derived",
@@ -27,6 +28,7 @@ fn local_construction_fixture(
   catalog_entries? : String = "[]",
   generated_rows? : String? = None,
   local_schema? : String? = None,
+  local_primary_key? : Bool = true,
   generated_schema? : String = "{\"id\":{\"type\":\"number\",\"nullable\":false}}",
   nested_bytes? : Int? = None,
   nested_depth? : Int? = None,
@@ -80,6 +82,10 @@ fn local_construction_fixture(
           "{\"id\":{\"type\":\"number\",\"nullable\":false}}",
         ) +
         ",\"primary_key\":[\"id\"]",
+    )
+    .replace(
+      old=",\"primary_key\":[\"id\"]",
+      new=if local_primary_key { ",\"primary_key\":[\"id\"]" } else { "" },
     )
     .replace(
       old="id + 1",
@@ -145,6 +151,15 @@ fn local_construction_fixture(
     "max_model_total_duration_ms", "max_nested_value_bytes", "max_nested_value_depth",
     "max_relation_output_rows", "max_temporal_matches_per_key", "max_temporal_output_rows",
   ]
+  if analytic_limit is Some(_) {
+    for
+      name in [
+        "max_analytic_partition_wire_bytes", "max_analytic_output_wire_bytes", "max_analytic_input_wire_bytes",
+        "max_analytic_frame_memberships",
+      ] {
+      names.insert(1, name)
+    }
+  }
   if string_limit is Some(_) {
     names.insert(1, "max_aggregate_string_bytes")
   }
@@ -153,6 +168,8 @@ fn local_construction_fixture(
     .map(n => {
       let value = if n == "max_aggregate_string_bytes" {
         string_limit.unwrap()
+      } else if n.contains("max_analytic_") {
+        analytic_limit.unwrap()
       } else if n == "max_nested_value_bytes" {
         nested_bytes.unwrap_or(host_limit)
       } else if n == "max_nested_value_depth" {

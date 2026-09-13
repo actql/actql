@@ -39,7 +39,7 @@ separate protocol results, not successful CheckedPrograms with weaker guarantees
 The entry has an explicit implementation-domain check, separate from the
 language grammar. Its Local and Result-import domain accepts `values`, `derive`,
 `filter`, `assert_rows`, `group`, `select`, `rename`, `drop`, `sort`, `take`,
-`distinct`, `dedupe_rows`, `top_k`, `top_k_by`, `lag`, `json_pick`, `unnest`, `unpivot`,
+`distinct`, `dedupe_rows`, `top_k`, `top_k_by`, `lag`, `json_pick`, `unnest`, `unpivot`, `analytic`,
 `append`, `join`, `cross_join`,
 `except` and `intersect`, including empty operation
 sequences. Sort/take use the existing owned order-resolution closure and preserve

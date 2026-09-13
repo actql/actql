@@ -72,3 +72,12 @@ require separate selection; ordinary group limits or numeric slots cannot be
 substituted. These obligations do not evaluate expressions during checking or
 prove that future rows satisfy them. Analytic internal order does not replace
 input publication order or create new candidate-key evidence.
+
+The formal Program entry accepts analytic operations only through the same
+complete requirement closure as other operations. Ranking, navigation, frame
+selection and scalar aggregates can close with their selected resource policy
+and required position evidence. Missing resource selection, collection bounds
+or numeric-frame observation bindings keep construction incomplete; an earlier
+successful Stage is not returned as a partial CheckedProgram. Result imports
+carry the original analytic producer's checks and contracts, not newly inferred
+consumer-local equivalents. This boundary does not claim an executing backend.
