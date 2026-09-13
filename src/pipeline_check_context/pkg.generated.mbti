@@ -1843,6 +1843,7 @@ pub(all) enum OperationDisposition {
 }
 
 pub(all) enum OperationExecutionCheck {
+  SequenceMatch(SequenceMatchCheck)
   SequenceExecution(SequenceExecutionCheck)
   CalendarExecution(CalendarExecutionCheck)
   SeriesExecution(SeriesExecutionCheck)
@@ -2465,6 +2466,15 @@ pub(all) enum SequenceExecutionRule {
   ValidateSequenceIdentities
   OrderSequenceEvents
 } derive(Eq, @debug.Debug)
+
+pub struct SequenceMatchCheck {
+  site : OperationRequirementSite
+  step : @pipeline_typing.CheckedStep
+  input : @pipeline_typing.Target
+  operation : @relation_typing.CheckedSequence
+  within_ms : Int64
+  within_resolution : OperationScalarResolution?
+}
 
 pub struct SeriesExecutionCheck {
   site : OperationRequirementSite

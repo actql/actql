@@ -368,6 +368,20 @@ pub fn index_program_operation_resolutions(
       Ok(None) => sequence_execution_check(requirements.entries[i])
       other => other
     }
+    let candidate = match candidate {
+      Ok(None) => {
+        let (result, used) = sequence_match_check(
+          requirements.entries[i],
+          i,
+          requirements.entries,
+          states,
+          max_work - work,
+        )
+        work += used
+        result
+      }
+      other => other
+    }
     match candidate {
       Err(BudgetExceeded) => return Err(BudgetExceeded)
       Err(_) => return Err(ForeignOccurrence(i))

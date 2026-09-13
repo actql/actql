@@ -53,6 +53,20 @@ Bounded matching, within binding, predicate checks and both atomic match-limit
 scopes remain separate. Input-duty binding alone cannot close those requirements
 or enable the formal sequence Program entry.
 
+`SequenceMatchCheck` separately binds the normative matching semantics to the
+same checked operation and positive `within` value. A Parameter retains its
+original scalar resolution and occurrence; an equal value from a different
+Stage, producer or requirement cannot replace it. Literal values are already
+admitted by operation checking. The bounded scan of the operation's requirement
+group and Parameter names consumes shared work, without copying predicates.
+
+This is a future requirement to select strictly increasing event indices under
+the inclusive time bound and the authored overlap/contiguity rules. It is not an
+executed matcher, an estimate of search work or a substitute for either atomic
+match-count limit. Physical search resources and backend algorithm support remain
+separate. Matching and both limit scopes must succeed before any match output;
+within binding alone cannot authorize partial output or bypass an authored guard.
+
 ## Nonoverlapping match identity
 
 `relation_evidence.sequence_keys` establishes one conditional singleton key per

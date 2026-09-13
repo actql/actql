@@ -63,6 +63,7 @@ pub fn close_program_operations(
           SeriesExecution(v) => v.site
           CalendarExecution(v) => v.site
           SequenceExecution(v) => v.site
+          SequenceMatch(v) => v.site
           EventEnvelope(v) => v.site
           EventExecution(v) => v.site
           WatermarkExecution(v) => v.site

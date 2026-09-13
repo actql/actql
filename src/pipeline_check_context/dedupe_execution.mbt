@@ -11,6 +11,7 @@ pub struct DedupeTopTieCheck {
 
 ///|
 pub(all) enum OperationExecutionCheck {
+  SequenceMatch(SequenceMatchCheck)
   SequenceExecution(SequenceExecutionCheck)
   CalendarExecution(CalendarExecutionCheck)
   SeriesExecution(SeriesExecutionCheck)
@@ -60,6 +61,7 @@ pub fn operation_execution_phase(
   v : OperationExecutionCheck,
 ) -> ExecutionCheckPhase {
   match v {
+    SequenceMatch(_) => BeforeOperationOutput
     SequenceExecution(_) => BeforeOperationInputUse
     CalendarExecution(v) =>
       if v.rule == AdmitCalendarValues && v.step.input is Some(_) {
@@ -151,6 +153,7 @@ pub fn operation_execution_failure(
     IntervalExecution(_) => RejectOperationOutput
     IntervalSearch(_) => RejectOperationOutput
     SessionExecution(_) => RejectOperationOutput
+    SequenceMatch(_) => RejectOperationOutput
     SequenceExecution(_) => RejectOperationOutput
     CalendarExecution(_) => RejectOperationOutput
     SeriesExecution(_) => RejectOperationOutput

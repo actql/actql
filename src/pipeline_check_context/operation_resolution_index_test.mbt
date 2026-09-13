@@ -31,6 +31,16 @@ fn check_resolution_index(
     let state = operation_resolution_at(index, i).unwrap()
     let site = operation_requirements_at(requirements, i).unwrap()
     match state {
+      Execution(SequenceMatch(check)) => {
+        execution += 1
+        assert_true(physical_equal(check.site, site))
+        if check.within_resolution is Some(scalar) {
+          execution_work += @pipeline.operation_obligations_count(
+              site.obligations,
+            ) +
+            scalar.parameter.name.length() * 2
+        }
+      }
       Execution(SequenceExecution(check)) => {
         execution += 1
         assert_true(physical_equal(check.site, site))
