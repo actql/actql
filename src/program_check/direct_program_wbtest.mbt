@@ -1,6 +1,7 @@
 ///|
 fn checked_direct_program_fixture(
   extra_derive? : Bool = false,
+  unused_source? : Bool = false,
 ) -> CheckedProgram raise {
   let text =
     #|{"version":"actql/0.1","id":"direct","stages":[{"id":"s","inputs":{"remote":{"connector":"crm/main","resource":"r","request":{"id":1,"tenant":null}}},"steps":[{"distinct":["id"],"as":"selected"}],"results":{"out":{"from":"selected","fields":["id"]}}}],"results":{"out":{"from":{"stage":"s","result":"out"}}}}
@@ -10,6 +11,13 @@ fn checked_direct_program_fixture(
         old="\"steps\":[",
         new="\"steps\":[{\"derive\":{\"x\":\"id\"}},",
       )
+    } else if unused_source {
+      text
+      .replace(
+        old="\"inputs\":{\"remote\":",
+        new="\"inputs\":{\"unused\":{\"connector\":\"crm/main\",\"resource\":\"r\",\"request\":{\"id\":2,\"tenant\":null},\"minimum_classification\":\"restricted\"},\"remote\":",
+      )
+      .replace(old="{\"distinct\":", new="{\"from\":\"remote\",\"distinct\":")
     } else {
       text
     },
@@ -58,6 +66,42 @@ fn checked_direct_program_fixture(
     max_nodes=1000000,
     max_depth=100,
   )
+}
+
+///|
+test "publication policy follows the selected input rather than unused source policies" {
+  let baseline = checked_direct_program_fixture()
+  let baseline_policy = publication_source_policy(
+    unit_publication_at(baseline, 0, 0).unwrap(),
+  ).unwrap()
+  let program = checked_direct_program_fixture(unused_source=true)
+  assert_eq(source_execution_count(program), 10)
+  let published = publication_source_policy(
+    unit_publication_at(program, 0, 0).unwrap(),
+  ).unwrap()
+  let selected = source_execution_subject(published.prerequisite)
+  assert_eq(published.cid, baseline_policy.cid)
+  assert_eq(published.policy.response_cid, baseline_policy.policy.response_cid)
+  // Equal policy identities do not make independently checked owners equal.
+  assert_false(
+    physical_equal(published.prerequisite, baseline_policy.prerequisite),
+  )
+  assert_eq(@sourceviews.declaration(selected.source).input_name, "remote")
+  assert_true(published.policy.response.minimum is None)
+  let mut unused = 0
+  for i in 0..<source_execution_count(program) {
+    let check = source_execution_at(program, i).unwrap()
+    let subject = source_execution_subject(check)
+    if @sourceviews.declaration(subject.source).input_name == "unused" {
+      unused += 1
+      assert_true(subject.response_policy.minimum is Some("restricted"))
+      assert_true(subject.response_policy_cid != published.policy.response_cid)
+      assert_false(physical_equal(subject, selected))
+    }
+  }
+  // Unused acquisition still has every mandatory check, but does not enter the
+  // selected Result's effective policy or its response-admission prerequisite.
+  assert_eq(unused, 5)
 }
 
 ///|
