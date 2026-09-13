@@ -34,6 +34,31 @@ guards/fractions, binary64 sum/avg observations and statistical arithmetic laws
 remain explicit obligations. Literal guards are not proven output bounds.
 Execution, capture, Host admission and AoA lowering are outside this checker.
 
+## Program execution bindings
+
+The operation-resolution index binds `GroupPartitioning` and `AggregateDemand`
+to typed `GroupExecutionCheck` records for ordinary group operations. Each
+record retains the precise requirement, checked step, input edge and checked
+group. Aggregate demand additionally retains the exact call through its
+operation-local validation index, without searching names or source paths.
+
+`PartitionGroups` requires typed key equality, first-occurrence output keys,
+canonical ascending group order and the specified empty global group. It is
+not evidence of observed groups or a static cardinality proof.
+`EvaluateAggregate` applies the normative per-call sequence: filter, argument
+only for true rows, null exclusion, applicable canonical distinct, then fold
+in that call's resolved order. Calls retain their own filter and argument
+binding indices and canonical name order; no sibling's demand or order is
+substituted. A false filter does not cause static deletion of its argument.
+Failure rejects the operation output rather than publishing partial groups.
+
+These records do not resolve aggregate envelopes, per-call order, bound guards,
+numeric observation capture or statistical-law obligations. Those requirements
+still need their own exact bindings before full closure. Window groups, pivot
+and analytic operations have different surrounding requirements and do not
+inherit ordinary-group execution support through their shared call grammar.
+The formal Program entry remains separate from this operation-level closure.
+
 ## Reference compatibility
 
 The fixed Sketch implementation supplies the original seven signatures but

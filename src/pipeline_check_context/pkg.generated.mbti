@@ -1105,6 +1105,20 @@ pub(all) struct ExpressionValidationLimits {
 
 type ExpressionValidationSite
 
+pub struct GroupExecutionCheck {
+  site : OperationRequirementSite
+  step : @pipeline_typing.CheckedStep
+  input : @pipeline_typing.Target
+  operation : @relation_typing.CheckedOperation
+  group : @relation_typing.CheckedGroup
+  rule : GroupExecutionRule
+}
+
+pub enum GroupExecutionRule {
+  PartitionGroups
+  EvaluateAggregate(@relation_typing.CheckedAggregate)
+}
+
 pub enum IncomingClosureIssue {
   InvalidLimits
   BudgetExceeded
@@ -1417,6 +1431,7 @@ pub(all) enum OperationDisposition {
 }
 
 pub(all) enum OperationExecutionCheck {
+  GroupExecution(GroupExecutionCheck)
   RowAssertion(RowAssertionCheck)
   DedupeTopTie(DedupeTopTieCheck)
   ValuesPublication(ValuesPublicationCheck)

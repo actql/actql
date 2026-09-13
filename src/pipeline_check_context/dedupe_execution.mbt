@@ -11,6 +11,7 @@ pub struct DedupeTopTieCheck {
 
 ///|
 pub(all) enum OperationExecutionCheck {
+  GroupExecution(GroupExecutionCheck)
   RowAssertion(RowAssertionCheck)
   DedupeTopTie(DedupeTopTieCheck)
   ValuesPublication(ValuesPublicationCheck)
@@ -40,6 +41,7 @@ pub fn operation_execution_phase(
   v : OperationExecutionCheck,
 ) -> ExecutionCheckPhase {
   match v {
+    GroupExecution(_) => BeforeOperationOutput
     RowAssertion(_) => BeforeOperationOutput
     DedupeTopTie(_) => BeforeOperationOutput
     ValuesPublication(_) => BeforeOperationOutput
@@ -77,6 +79,7 @@ pub fn operation_execution_failure(
   v : OperationExecutionCheck,
 ) -> ExecutionCheckFailure {
   match v {
+    GroupExecution(_) => RejectOperationOutput
     RowAssertion(_) => RejectOperationOutput
     DedupeTopTie(_) => RejectOperationOutput
     ValuesPublication(_) => RejectOperationOutput
