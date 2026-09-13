@@ -1,8 +1,11 @@
 # Local Relation physical storage
 
-Local Relation execution retains immutable row tables as its product storage.
-Columnar Value buffers and typed numeric/boolean buffers are experimental physical
-representations, not language types or public backend-selection options.
+Local Relation execution retains immutable row tables as its default storage.
+Private numeric-column completion adapters can preserve typed producer output;
+the broader Value-column and numeric/boolean layouts remain experiments, not
+language types or public backend-selection options. The
+[completion boundary](execution-completion-storage.md) separates success
+ownership from physical representation.
 
 The checked pipeline, owned ordering evidence, shared AoA fragment and logical
 resource contracts determine meaning. A physical representation must not alter
@@ -29,5 +32,5 @@ an isolated transposition or allocation result. It must not create permanent dua
 product engines merely to improve a selected benchmark.
 
 Measurements and verification records belong in
-[the comparison evidence](../../benchmarks/local-relation/DECISION.md), separate
+[the integrated report](../../benchmarks/local-relation/REPORT.md), separate
 from these architectural boundaries.

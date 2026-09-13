@@ -1,5 +1,9 @@
 # Execution extensibility experiment boundary
 
+> Historical snapshot, not current status or authorization. Start with the
+> [integrated report](../REPORT.md). Past stops and pending approvals below
+> describe only the stage at which this document was written.
+
 This experiment tests change locality, not column-storage adoption. The product
 row implementation remains selected. Timing is supporting evidence, not the
 previous twenty-percent adoption gate.

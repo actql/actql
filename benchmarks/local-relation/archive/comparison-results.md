@@ -1,5 +1,9 @@
 # Local Relation layout comparison
 
+> Historical snapshot, not current status or authorization. Start with the
+> [integrated report](../REPORT.md). Past stops and pending approvals below
+> describe only the stage at which this document was written.
+
 ## Performance decision
 
 - B: **hold_rows**. No complete preselected native major group reaches a reproducible 20% improvement; Reproducible E2E regressions in the mandatory matrix. Regressions: 25.

@@ -1,5 +1,9 @@
 # Bounded frame/event cost investigation
 
+> Historical snapshot, not current status or authorization. Start with the
+> [integrated report](../REPORT.md). Past stops and pending approvals below
+> describe only the stage at which this document was written.
+
 ## Authorized experiment
 
 Following the stopped historical run, the user authorized representative

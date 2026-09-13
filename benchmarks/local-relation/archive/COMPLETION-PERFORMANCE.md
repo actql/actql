@@ -1,5 +1,9 @@
 # Post-boundary diagnostic
 
+> Historical snapshot, not current status or authorization. Start with the
+> [integrated report](../REPORT.md). Past stops and pending approvals below
+> describe only the stage at which this document was written.
+
 One authorized diagnostic is complete: `bafdc88` versus `2e913f2`, four
 1,000-row workloads, native/JS, E2E/prepared, seven alternating pairs per cell.
 All 224 measured processes passed their output assertions; the independent

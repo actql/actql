@@ -1,5 +1,38 @@
 # Local Relation sequence measurements
 
+Start with the [integrated report](REPORT.md) for the current conclusion,
+evidence inventory and remaining limitations. This file documents reproduction,
+not the current implementation's completion status. Earlier reports are
+historical snapshots under `archive/`; their old stops are not active blockers.
+
+## Fixed revision diagnostics
+
+Use `scripts/measure-revisions.mjs BASELINE_WORKTREE CANDIDATE_WORKTREE --diagnostic`
+with the pinned `MOON_HOME`, release artifacts and separate worktrees under an
+ignored workspace directory. The subset fixes four 1,000-row workloads,
+native/JS, E2E/prepared and seven alternating pairs per cell (224 processes).
+Do not run other builds/tests concurrently with samples. On macOS, the time/RSS
+wrapper needs permission for its sysctl query. `--diagnostic` is not the full
+matrix gate and does not extend uncertain cells.
+
+Use the report's recorded historical revisions, not current HEAD, to reproduce
+a historical comparison. Shared profile fixtures must be byte-identical on both
+sides; the old row completion accepts only the exact baseline-only view shim
+defined in `scripts/revision-profile-overlay.mjs`. Apply fixture-only changes
+and record them; never overlay product code or alter a measured baseline.
+
+```sh
+node scripts/measure-revisions.mjs BASELINE_WORKTREE CANDIDATE_WORKTREE --diagnostic
+node scripts/report-revision-comparison.mjs _build/revision-measurements/RUN/report.json
+node --test scripts/revision-profile-overlay.test.mjs scripts/revision-regression-support.test.mjs scripts/report-revision-comparison.test.mjs
+```
+
+Machine-readable [selected evidence](evidence/README.md) preserves results and
+source hashes in Git. It is not a replacement for raw-output audit. The raw
+reports, stdout/stderr and binaries still live locally under ignored `_build/`;
+do not delete them without a separately verified backup. No external artifact
+upload has been made.
+
 ## Release layout comparison
 
 `columnar-experiment.json` fixes the row baseline, workload groups, alternating

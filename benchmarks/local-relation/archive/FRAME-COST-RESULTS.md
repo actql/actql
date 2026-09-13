@@ -1,5 +1,9 @@
 # Frame/event cost: one-pass results
 
+> Historical snapshot, not current status or authorization. Start with the
+> [integrated report](../REPORT.md). Past stops and pending approvals below
+> describe only the stage at which this document was written.
+
 ## Outcome
 
 One bounded improvement pass is complete; full performance acceptance is **not** claimed. Keep the current candidate available for review, without automatically moving into completion/producer changes or another tuning pass.

@@ -1,5 +1,9 @@
 # Completion boundary work and regression protocol
 
+> Historical snapshot, not current status or authorization. Start with the
+> [integrated report](../REPORT.md). Past stops and pending approvals below
+> describe only the stage at which this document was written.
+
 ## Fixed starting point and edit scope
 
 The implementation starts at `7c033f8`, replayed on main `7b655eb`.

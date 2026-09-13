@@ -1,5 +1,9 @@
 # Decision: retain row storage
 
+> Historical snapshot, not current status or authorization. Start with the
+> [integrated report](../REPORT.md). Past stops and pending approvals below
+> describe only the stage at which this document was written.
+
 The fixed performance gate rejects automatic adoption of both experimental
 layouts. Keep A (row arrays) as the product implementation. B (Value columns)
 and C (typed numeric/boolean columns with validity buffers and Value fallback)
@@ -10,8 +14,8 @@ remain private white-box comparison code, not selectable product backends.
 - [Complete comparisons](comparison-results.md): every mandatory E2E/prepared
   case, paired intervals, five-phase ranges, recorded capacity and construction
   diagnostics. No favorable-case subset replaces the fixed matrix.
-- [Method and reproduction](README.md), [pre-registered matrix](columnar-experiment.json)
-  and [physical accounting boundaries](physical-accounting.md).
+- [Method and reproduction](../README.md), [pre-registered matrix](../columnar-experiment.json)
+  and [physical accounting boundaries](../physical-accounting.md).
 - 2,478 validated timing samples: 819 additional E2E, 420 legacy E2E, 819
   additional prepared-input and 420 legacy prepared-input. Each condition has
   seven alternating paired repetitions on the specified target matrix.

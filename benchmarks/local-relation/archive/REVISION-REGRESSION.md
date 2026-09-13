@@ -1,5 +1,9 @@
 # Historical row execution comparison: stopped
 
+> Historical snapshot, not current status or authorization. Start with the
+> [integrated report](../REPORT.md). Past stops and pending approvals below
+> describe only the stage at which this document was written.
+
 The performance gate did **not** pass. No completion/producer product edits
 were made. This is an incomplete historical comparison, not full-matrix or
 final implementation verification.

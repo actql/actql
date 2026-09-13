@@ -1,5 +1,9 @@
 # One-pass ordinary-path recovery
 
+> Historical snapshot, not current status or authorization. Start with the
+> [integrated report](../REPORT.md). Past stops and pending approvals below
+> describe only the stage at which this document was written.
+
 The user accepted the completion boundary and authorized one performance
 recovery pass, without changing thresholds, workloads, measurement conditions
 or the evaluator architecture. No second optimization pass follows these results.
