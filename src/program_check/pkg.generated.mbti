@@ -164,6 +164,10 @@ pub fn proof_application(ReidentifiedStep) -> @capacity_program_step.StepBound
 
 pub fn proof_claim(ReidentifiedStep) -> @capacity_witness.ProgramProofClaim
 
+pub fn proof_external_input_at(ReidentifiedStep, Int) -> @capacity_witness.WireWitness?
+
+pub fn proof_external_input_count(ReidentifiedStep) -> Int
+
 pub fn proof_graph_input_at(ReidentifiedStep, Int) -> ReidentifiedGraphInput?
 
 pub fn proof_graph_input_count(ReidentifiedStep) -> Int

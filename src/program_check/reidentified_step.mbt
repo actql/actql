@@ -5,6 +5,7 @@ struct ReidentifiedStep {
   proof : @wire.ProgramProofClaim
   inputs : Array[ReidentifiedStep]
   graph_inputs : Array[ReidentifiedGraphInput]
+  external_inputs : Array[@wire.WireWitness]
 }
 
 ///|
@@ -121,6 +122,8 @@ fn reidentify_step(
   identity_charge(remaining, graph_inputs.length())
   let mapping : Map[String, String] = Map([])
   let identities : Array[String] = []
+  let original_inputs : Array[String] = []
+  let external_inputs : Array[@wire.WireWitness] = []
   let mut step_index = 0
   let mut graph_index = 0
   for i in 0..<@step_bounds.input_count(bound) {
@@ -158,6 +161,58 @@ fn reidentify_step(
     }
     mapping[old] = new
     identities.push(new)
+    original_inputs.push(old)
+  }
+  if @step_bounds.checked_enforcement(bound)
+    is Some(SequenceEnforcement(selection)) {
+    if !physical_equal(@sequence.checked_pipeline(selection), location.pipeline) ||
+      @sequence.checked_step(selection) != location.source_ordinal ||
+      @sequence.guard_value(selection, MatchesPerKey) is Some(_) ||
+      @sequence.guard_value(selection, OutputRows) is Some(_) {
+      raise UnconvertedProofInput
+    }
+    let limit = @sequence.host_limit(selection, OutputRows)
+    let minimum = @wire.limit_minimum(limit)
+    let count = @derivation.minimum_candidate_count(minimum)
+    identity_charge(remaining, count)
+    for i in 0..<count {
+      let node = @derivation.minimum_candidate_at(minimum, i).unwrap().node
+      let witness = @wire.claim_at(@wire.limit_claims(limit), node).unwrap()
+      // Only the selected Sequence Host leaves are already persistent. Other
+      // external sources need their own validated conversion, never CID fallback.
+      guard @wire.source(witness) is @wire.HostPolicy(_, _) else {
+        raise UnconvertedProofInput
+      }
+      let cid = @wire.cid(witness)
+      identity_charge(remaining, cid.length())
+      if mapping.get(cid) is Some(previous) && previous != cid {
+        raise AmbiguousProofInput
+      }
+      mapping[cid] = cid
+      original_inputs.push(cid)
+      identities.push(cid)
+      external_inputs.push(witness)
+    }
+  }
+  let original_proof = @step_bounds.checked_proof(bound)
+  let count = @wire.program_proof_input_count(original_proof)
+  if count != original_inputs.length() {
+    raise UnconvertedProofInput
+  }
+  identity_charge(remaining, count)
+  let occurrences : Map[String, Int] = Map([])
+  for cid in original_inputs {
+    identity_charge(remaining, cid.length())
+    occurrences[cid] = occurrences.get(cid).unwrap_or(0) + 1
+  }
+  for i in 0..<count {
+    let cid = @wire.program_proof_input_at(original_proof, i).unwrap()
+    identity_charge(remaining, cid.length())
+    let n = occurrences.get(cid).unwrap_or(0)
+    if n == 0 {
+      raise UnconvertedProofInput
+    }
+    occurrences[cid] = n - 1
   }
   let proof_hash = identity_writer(remaining)
   emit_unit_output_proof(location, bound, identities, proof_hash, remaining)
@@ -251,6 +306,7 @@ fn reidentify_step(
     proof,
     inputs: inputs.copy(),
     graph_inputs: graph_inputs.copy(),
+    external_inputs,
   }
   budget.work = remaining.work
   budget.bytes = remaining.bytes

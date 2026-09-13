@@ -250,6 +250,16 @@ subjects and authored candidates determine each limit CID; Host witness identiti
 are unchanged. Guarded sequence output-proof construction remains a separate
 unsupported path until its candidate dependencies are connected; an enforced
 limit is not by itself a proven row count.
+For the Host-only output-proof path, Unit conversion preserves every selected
+Host operand occurrence without changing its CID. The original Sequence
+application remains the authority for that association; arbitrary external CIDs
+are not accepted as a conversion fallback. The converter checks that its Step,
+Graph and supported external input occurrences cover the original proof's entire
+input multiset before emitting a new proof. Indexed external-input readers retain
+the original witnesses, and dependency collection includes each witness once
+without erasing repeated proof operands. Per-key ceilings do not become output
+row operands. This conversion does not itself add a proof to the formal compiler's
+capacity preparation or establish runtime enforcement.
 This entry does not run a matcher or establish backend
 support, and does not enable unrelated temporal paths.
 

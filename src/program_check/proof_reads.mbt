@@ -57,6 +57,21 @@ pub fn proof_graph_input_at(
 }
 
 ///|
+/// Persistent external source occurrences retained by the checked application.
+/// These are dependencies, not new Host authorization or runtime evidence.
+pub fn proof_external_input_count(value : ReidentifiedStep) -> Int {
+  value.external_inputs.length()
+}
+
+///|
+pub fn proof_external_input_at(
+  value : ReidentifiedStep,
+  index : Int,
+) -> @wire.WireWitness? {
+  value.external_inputs.get(index)
+}
+
+///|
 pub fn graph_proof_application(
   value : ReidentifiedGraphInput,
 ) -> @graph_input.InputBound {

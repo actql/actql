@@ -38,6 +38,15 @@ fn publication_proof_claims(
     seen[cid] = true
     identity_charge(budget, 1)
     claims.push(witness)
+    identity_charge(budget, proof.external_inputs.length())
+    for dependency in proof.external_inputs {
+      let key = @wire.cid(dependency)
+      identity_charge(budget, key.length())
+      if !seen.contains(key) {
+        seen[key] = true
+        claims.push(dependency)
+      }
+    }
     identity_charge(budget, proof.graph_inputs.length())
     for input in proof.graph_inputs {
       let limit_cid = @wire.limit_cid(input.limit)
