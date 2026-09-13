@@ -97,7 +97,54 @@ test "graph row projection binds validation and restoration without discharging 
               is Ok(Some(GraphProjection(_))),
             )
           }
-          None => assert_eq(index, 3)
+          None => {
+            assert_eq(index, 3)
+            let policy = sequence_limit_policy(false)
+            guard direct_execution_candidate(site, policy, Ok(None), Ok(None))
+              is Ok(Some(GraphProjectionOutput(check))) else {
+              fail("missing projection envelope")
+            }
+            assert_true(physical_equal(check.site, site))
+            assert_true(physical_equal(check.step, step))
+            assert_true(physical_equal(check.operation, operation))
+            assert_true(physical_equal(check.policy, policy))
+            assert_true(
+              physical_equal(@policy.ceiling_policy(check.output_rows), policy),
+            )
+            assert_eq(
+              @policy.ceiling_field(check.output_rows),
+              "max_relation_output_rows",
+            )
+            assert_eq(check.input, @pipeline.Input(0))
+            assert_eq(
+              operation_execution_phase(GraphProjectionOutput(check)),
+              BeforeOperationOutput,
+            )
+            assert_eq(
+              operation_execution_failure(GraphProjectionOutput(check)),
+              RejectOperationOutput,
+            )
+            assert_true(
+              graph_projection_envelope_check({ ..site, index: 0, }, policy)
+              is Err(ForeignOccurrence(0)),
+            )
+            assert_true(
+              graph_projection_envelope_check({ ..site, step: 99, }, policy)
+              is Err(ForeignOccurrence(99)),
+            )
+            let other_policy = sequence_limit_policy(false)
+            guard graph_projection_envelope_check(site, other_policy)
+              is Ok(Some(GraphProjectionOutput(other))) else {
+              fail("missing other policy")
+            }
+            assert_false(physical_equal(check.policy, other.policy))
+            assert_true(
+              physical_equal(
+                @policy.ceiling_policy(other.output_rows),
+                other_policy,
+              ),
+            )
+          }
           _ => fail("wrong execution rule")
         }
       }

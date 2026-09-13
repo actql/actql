@@ -68,5 +68,9 @@ fn direct_execution_candidate(
     Ok(None) => ()
     other => return other
   }
-  graph_projection_execution_check(site)
+  match graph_projection_execution_check(site) {
+    Ok(None) => ()
+    other => return other
+  }
+  graph_projection_envelope_check(site, policy)
 }

@@ -428,14 +428,21 @@ do not preserve an arbitrary Graph enumeration as Relation order or establish
 completeness, observed uniqueness or a resource bound. Candidate-key derivation
 remains conditional on its original Graph producer obligations, and completeness
 retains the projected operation-result scope and input dependency.
-`ResolveGraphProjectionResources` is separate and cannot be discharged by any
-of these three rules. The combined closure rejects it until its selected resource
-contract is connected; adding these bindings alone does not admit a Graph Program
-through the formal entry.
+`ResolveGraphProjectionResources` is separate from those three rules.
+`GraphProjectionEnvelope` binds the selected policy's `max_relation_output_rows`
+to the exact projection and input occurrence. This explicitly selects the
+Relation output scope rather than the Graph-query output scope; the former
+brief bridge rule did not specify this policy mapping. The choice follows the
+output Carrier, without treating input nodes/edges bounds as output rows.
+The output ceiling is enforced before output exposure (equality is allowed).
+Unknown counts are not static failures. Input Graph preflight, value admission,
+physical budgets and retained-copy budgets remain independent. This binding is
+not a successful runtime measurement or permission to skip another requirement.
 
 `graph_projection_execution_wbtest.mbt` fixes node/edge and closed/open-property
 branches, exact retained handles, invalid occurrences, execution phases and the
-unresolved resource case. This map is not a runtime conformance certificate.
+separate resource binding with the exact selected policy. This map is not a
+runtime conformance certificate.
 
 ## Graph construction
 

@@ -5298,6 +5298,18 @@ string or json. Runtime graph admission rejects collisions that cannot be ruled
 out from partial evidence. Projection alone does not prove row order, unique
 keys, successful data admission or bounded execution.
 
+<!-- requirement-block: graph-rows.output-enforcement -->
+Graph row projection MUST enforce the selected Host
+`max_relation_output_rows` on its produced Relation, accepting counts equal to
+the ceiling and rejecting excess before exposing the operation output. This
+selects the Relation output scope, not `max_graph_output_rows`. Graph input
+nodes/edges admission and their selected preflight limits remain separate.
+An unknown static count, or an upper bound above the ceiling, is not evidence
+that the actual output exceeds it; enforcement remains an execution obligation.
+This ceiling supplies neither an observed count nor order, completeness or a
+bound on value bytes, retained copies or backend memory. Other applicable
+value and physical resource contracts remain in force.
+
 <a id="degree"></a>
 
 #### `degree`

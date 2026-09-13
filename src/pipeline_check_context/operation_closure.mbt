@@ -56,6 +56,7 @@ pub fn close_program_operations(
         // its owned subject here instead of defaulting to a runtime permission.
         let site = match check {
           GraphProjection(v) => v.site
+          GraphProjectionOutput(v) => v.site
           AsOfExecution(v) => v.site
           IntervalExecution(v) => v.site
           IntervalSearch(v) => v.site

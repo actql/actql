@@ -4546,6 +4546,17 @@
       }
     },
     {
+      "requirement_id": "actql.language/graph-rows.output-enforcement",
+      "statement_sha256": "44ca2cf06d365f9d7b67d4da77aec56396e3fc279f479a047d6ff083dabfc47d",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "graph-rows",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.language/degree.direction-is-required-and-must-be-in-out-or-both",
       "statement_sha256": "a363e5ea93baf8df8292ef6626699912eceb0cbacbd9ed6e0ff9c3fb371a631e",
       "status": "pending",

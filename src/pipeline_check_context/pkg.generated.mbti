@@ -1423,6 +1423,15 @@ pub struct GraphProjectionCheck {
   rule : GraphProjectionRule
 }
 
+pub struct GraphProjectionEnvelope {
+  site : OperationRequirementSite
+  step : @pipeline_typing.CheckedStep
+  input : @pipeline_typing.Target
+  operation : @carrier_projection.CheckedProjection
+  policy : @capacity_policy.Policy
+  output_rows : @capacity_policy.Ceiling
+}
+
 pub(all) enum GraphProjectionRule {
   AdmitGraphRecords
   RejectColumnCollisions
@@ -1861,6 +1870,7 @@ pub(all) enum OperationDisposition {
 
 pub(all) enum OperationExecutionCheck {
   GraphProjection(GraphProjectionCheck)
+  GraphProjectionOutput(GraphProjectionEnvelope)
   SequenceMatch(SequenceMatchCheck)
   SequenceLimits(SequenceLimitsCheck)
   SequenceExecution(SequenceExecutionCheck)
