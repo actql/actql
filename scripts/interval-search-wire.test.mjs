@@ -13,14 +13,20 @@ const subject = (digit, step = 0) => `unit:sha256:${digit.repeat(64)}#/steps/${s
 const proof = (digit, value) => ({inputs: [], law_id: 'actql.bound.values',
   semantic_ref: subject(digit), unit: 'rows', value, version: 'actql-bound-proof/0.1'});
 const bodies = [proof('2', 2), proof('3', 3), proof('4', 0)];
-const proofs = bodies.map(body => ({body, canonical: JSON.stringify(body), cid: hash(JSON.stringify(body))}));
+const proofs = bodies.map(body => {
+  const canonical = JSON.stringify(body), cid = hash(canonical);
+  const witness = {dependencies: [cid], derivation: {op: 'source'}, law_id: body.law_id,
+    role: 'proven_upper_bound', source: {kind: 'program', proof_cid: cid, semantic_ref: body.semantic_ref},
+    unit: 'rows', value: body.value, version: 'actql-bound-witness/0.1'};
+  return {body, canonical, cid, witness, witness_cid: hash(JSON.stringify(witness))};
+});
 const base = {condition: 'single_visit', enforcement: 'engine_atomic',
-  left_bounds: [proofs[0].cid], maximum: 6, right_bounds: [proofs[1].cid],
+  left_bounds: [proofs[0].witness_cid], maximum: 6, right_bounds: [proofs[1].witness_cid],
   search_contract_cid: pin, subject_ref: subject('0'), unit: 'pair_visits',
   version: 'actql-interval-search-limit/0.1'};
 const limits = [base, {...base, subject_ref: subject('1')}, {...base, subject_ref: subject('0', 1)},
   {...base, left_bounds: base.right_bounds, right_bounds: base.left_bounds},
-  {...base, left_bounds: [proofs[2].cid], maximum: 0, right_bounds: []}];
+  {...base, left_bounds: [proofs[2].witness_cid], maximum: 0, right_bounds: []}];
 const expected = {version: 'actql-interval-search-wire-vectors/0.1', proofs,
   limits: limits.map(body => ({body, canonical: JSON.stringify(body), cid: hash(JSON.stringify(body))}))};
 const path = 'portability/corpus/interval-search-wire.json';
@@ -45,7 +51,7 @@ function admitted(v, owner, leftSources, rightSources) {
     if (refs.some((x, i) => i && refs[i - 1] >= x)) return false;
     const values = [];
     for (const ref of refs) {
-      const p = proofs.find(p => p.cid === ref);
+      const p = proofs.find(p => p.witness_cid === ref);
       if (!p || p.body.unit !== 'rows' || !sources.includes(p.body.semantic_ref)) return false;
       values.push(BigInt(p.body.value));
     }
@@ -67,6 +73,10 @@ test('persistent search preimages separate consumers, ordinals and operand roles
     assert(!v.canonical.includes('checked-step:'));
   }
   for (const v of limits) assert(shape(v));
+  for (const p of proofs) {
+    assert.equal(machineCid(p.witness), p.witness_cid);
+    assert.notEqual(p.cid, p.witness_cid);
+  }
 });
 
 test('shape rejects foreign domains, missing fields and process-only additions', () => {
@@ -76,7 +86,7 @@ test('shape rejects foreign domains, missing fields and process-only additions',
   assert(!shape({...base, unit: 'rows'}));
   assert(!shape({...base, condition: 'unconditional'}));
   assert(!shape({...base, subject_ref: 'checked-step:0'}));
-  assert(!shape({...base, left_bounds: [proofs[0].cid, proofs[0].cid]}));
+  assert(!shape({...base, left_bounds: [proofs[0].witness_cid, proofs[0].witness_cid]}));
 });
 
 test('shape alone does not establish the pin, owner, proof correspondence or arithmetic', () => {
@@ -84,7 +94,7 @@ test('shape alone does not establish the pin, owner, proof correspondence or ari
   assert(check(base));
   for (const change of [{maximum: 5}, {search_contract_cid: 'sha256:' + 'f'.repeat(64)},
     {subject_ref: subject('1')}, {left_bounds: base.right_bounds}, {right_bounds: []},
-    {left_bounds: ['sha256:' + 'a'.repeat(64)]}]) {
+    {left_bounds: ['sha256:' + 'a'.repeat(64)]}, {left_bounds: [proofs[0].cid]}]) {
     const v = {...base, ...change}; assert(shape(v)); assert(!check(v));
   }
   assert(admitted(limits[4], subject('0'), [subject('4')], []));
