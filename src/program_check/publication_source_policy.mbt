@@ -195,7 +195,10 @@ fn prepare_publication_source_policy(
             }
             1
           }
-          @pipeline.Append(..) | @pipeline.Set(..) => 2
+          @pipeline.Append(..)
+          | @pipeline.Set(..)
+          | @pipeline.Join(..)
+          | @pipeline.CrossJoin(..) => 2
           _ => return None
         }
         guard @pipeline.input_occurrence_count(step) == expected else {

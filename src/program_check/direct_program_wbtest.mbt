@@ -9,6 +9,8 @@ fn checked_direct_program_fixture(
   input_name? : String = "remote",
   set_operation? : String = "",
   duplicates? : String = "distinct",
+  join_kind? : String = "",
+  join_capacity? : Bool = true,
 ) -> CheckedProgram raise {
   let original_text =
     #|{"version":"actql/0.1","id":"direct","stages":[{"id":"s","inputs":{"remote":{"connector":"crm/main","resource":"r","request":{"id":1,"tenant":null}}},"steps":[{"distinct":["id"],"as":"selected"}],"results":{"out":{"from":"selected","fields":["id"]}}}],"results":{"out":{"from":{"stage":"s","result":"out"}}}}
@@ -17,7 +19,25 @@ fn checked_direct_program_fixture(
     new="\"" + input_name + "\"",
   )
   let program = @syntax.parse(
-    if append != "" {
+    if join_kind != "" {
+      text
+      .replace(
+        old="\"inputs\":{\"remote\":",
+        new="\"inputs\":{\"right\":{\"connector\":\"crm/main\",\"resource\":\"r\",\"request\":{\"id\":2,\"tenant\":null},\"minimum_classification\":\"confidential\"},\"remote\":",
+      )
+      .replace(
+        old="\"steps\":[",
+        new="\"steps\":[{\"from\":\"remote\",\"distinct\":[\"id\"],\"as\":\"left_rows\"},{\"from\":\"right\",\"distinct\":[\"id\"],\"as\":\"right_rows\"},{\"from\":\"left_rows\",\"" +
+          (if join_kind == "cross" { "cross_join" } else { "join" }) +
+          "\":{\"with\":\"right_rows\"" +
+          (if join_kind == "cross" {
+            ""
+          } else {
+            ",\"kind\":\"" + join_kind + "\",\"on\":\"id\""
+          }) +
+          ",\"select\":{\"id\":\"left.id\"}}},",
+      )
+    } else if append != "" {
       text
       .replace(
         old="\"inputs\":{\"remote\":",
@@ -117,6 +137,11 @@ fn checked_direct_program_fixture(
     max_nodes: 0,
     max_depth: 0,
   }).unwrap()
+  let sources = if join_kind != "" && join_capacity {
+    local_join_capacity_fixture(environment, 1, 2)
+  } else {
+    sources
+  }
   check(
     program,
     environment,
@@ -130,16 +155,83 @@ fn checked_direct_program_fixture(
         ],
       ]
     } else {
-      [[@context.CapacityMaterial::{ sources, consumers: [], }]]
+      [
+        [
+          @context.CapacityMaterial::{
+            sources,
+            consumers: if join_kind != "" && join_capacity {
+              [@capacity.Join(step=2, output=0)]
+            } else {
+              []
+            },
+          },
+        ],
+      ]
     },
     { text_time: false, veca: false, },
     { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
-    source_limits_fixture(2),
+    source_limits_fixture(if join_kind != "" { 4 } else { 2 }),
     max_work=100000000,
     max_bytes=10000000,
     max_nodes=1000000,
     max_depth=100,
   )
+}
+
+///|
+test "source joins retain both input policies through flat publication" {
+  for kind in ["inner", "left", "full", "semi", "anti", "cross"] {
+    let program = checked_direct_program_fixture(join_kind=kind)
+    let policy = publication_source_policy(
+      unit_publication_at(program, 0, 0).unwrap(),
+    ).unwrap()
+    assert_eq(publication_policy_source_count(policy), 2)
+    assert_eq(publication_policy_edge_count(policy), 5)
+    assert_true(policy.policy is None)
+    assert_true(policy.prerequisite is None)
+    let closure = @context.stage_requirement_operations(requirements(program))
+    let mut limits = 0
+    for i in 0..<@context.operation_closure_count(closure) {
+      match @context.operation_closure_at(closure, i) {
+        Some(ExecutionCheck(JoinOutputLimit(check))) => {
+          assert_eq(check.site.step, 2)
+          assert_true(
+            physical_equal(
+              @step_bounds.join_limit_pipeline(check.limit),
+              program.units[0].pipeline,
+            ),
+          )
+          limits += 1
+        }
+        Some(ExecutionCheck(CrossJoinRows(check))) if check.rule
+          is CheckProductArithmetic => {
+          assert_eq(check.site.step, 2)
+          assert_true(
+            physical_equal(
+              @step_bounds.join_limit_pipeline(check.output_limit),
+              program.units[0].pipeline,
+            ),
+          )
+          limits += 1
+        }
+        _ => ()
+      }
+    }
+    // Cross join additionally retains the product-arithmetic execution binding.
+    assert_eq(limits, if kind == "cross" { 2 } else { 1 })
+    try
+      checked_direct_program_fixture(join_kind=kind, join_capacity=false)
+    catch {
+      Source(
+        SourceView(
+          Context(Stages(Capacity(0, 0, JoinCollection(MissingApplication(2)))))
+        )
+      ) => ()
+      e => raise e
+    } noraise {
+      _ => fail("policy transfer bypassed join capacity closure")
+    }
+  }
 }
 
 ///|

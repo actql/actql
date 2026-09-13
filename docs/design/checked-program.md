@@ -111,6 +111,13 @@ values come from the left. Their complete-row comparison and physical-resource
 execution checks remain attached to the same checked operation. Policy transfer
 neither removes these checks nor turns the right operand into an unused input.
 
+Join and cross join use the same two-edge provenance traversal, including the
+right-side contribution for semi/anti membership. Join kind, flat output naming,
+input identity and row-limit closure remain the responsibility of their existing
+typed checks; policy traversal cannot supply missing capacity material. An alias
+projection does not erase the other input's contribution to matching or product
+selection. All selected acquisition prerequisites remain readable separately.
+
 Filter transfer additionally retains each exact checked predicate and its step
 coordinate. All value leaves participate in provenance, including branches that
 evaluation may skip: field references inherit the selected input's provenance,
@@ -150,7 +157,7 @@ policy emission consume the same preparation budget; a later failure exposes no
 partial CheckedProgram.
 
 Other transfer paths, including computed values and mixed-source operations
-other than append, except and intersect,
+other than append, except, intersect, join and cross join,
 still require their own composition rules. A SourceView-containing
 Program with an unclosed publication policy fails `UnclosedPublicationPolicy`;
 the missing result is not replaced with an empty policy or a whole-input union.
