@@ -285,6 +285,20 @@ pub fn index_program_operation_resolutions(
       }
       other => other
     }
+    let candidate = match candidate {
+      Ok(None) => {
+        let (session_candidate, session_work) = session_execution_check(
+          requirements.entries[i],
+          i,
+          requirements.entries,
+          states,
+          max_work - work,
+        )
+        work += session_work
+        session_candidate
+      }
+      other => other
+    }
     match candidate {
       Err(BudgetExceeded) => return Err(BudgetExceeded)
       Err(_) => return Err(ForeignOccurrence(i))

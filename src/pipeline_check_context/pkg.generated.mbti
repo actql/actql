@@ -1816,6 +1816,7 @@ pub(all) enum OperationDisposition {
 }
 
 pub(all) enum OperationExecutionCheck {
+  SessionExecution(SessionExecutionCheck)
   EventExecution(EventExecutionCheck)
   AsOfExecution(AsOfExecutionCheck)
   AsOfSearch(AsOfSearchCheck)
@@ -2418,6 +2419,21 @@ pub(all) struct SelectedPolicyUsage {
   text_bytes : Int
   local_input_nodes : Int
   policy_nodes : Int
+} derive(Eq, @debug.Debug)
+
+pub struct SessionExecutionCheck {
+  site : OperationRequirementSite
+  step : @pipeline_typing.CheckedStep
+  input : @pipeline_typing.Target
+  operation : @event_typing.CheckedEvent
+  gap_ms : Int64
+  gap_resolution : OperationScalarResolution?
+  rule : SessionExecutionRule
+}
+
+pub(all) enum SessionExecutionRule {
+  AssignSessionBoundaries
+  DeriveSessionIdentity
 } derive(Eq, @debug.Debug)
 
 pub(all) enum SetComparisonResource {

@@ -85,6 +85,19 @@ Watermark classification and dedupe representative selection are separately
 bound before output. They retain the original threshold/policy and repeated
 partition/order terms, respectively. Failure rejects the operation output; a
 successful static binding neither attests unique IDs nor repairs duplicates.
-Resources, selected profile, session gap binding, session arithmetic and session
-identity are not discharged by these checks. Their separate resolutions remain
-necessary before the formal Program constructor can return this path.
+Session boundary assignment and stable identity construction have separate
+owned output checks. Both retain the positive millisecond gap and, for a
+Parameter, the original scalar resolution from that exact stage, producer visit
+and operation. Equivalent duration spellings resolve to the same milliseconds
+without replacing their source or binding ownership. A different occurrence's
+equal value cannot substitute for the selected binding. Searching the owned
+requirement group consumes the shared work budget, including nonmatching slots.
+
+The checks retain the operation's partition references and semantic identity/time
+roles. Boundary assignment uses the strict gap comparison and exclusive end
+specified by `session`; identity construction uses the key tuple, start and first
+event identity. They do not attest assignment, deduplicate event IDs, or promote
+a shared session label to a unique record key. Value/clock admission and duplicate
+identity validation remain prerequisites before input use; failure of either
+session check rejects output. Resource and profile resolution remain independent,
+and these bindings cannot waive either requirement.
