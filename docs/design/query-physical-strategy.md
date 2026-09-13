@@ -67,6 +67,16 @@ This public main source-identity assembly is not the final `CheckedProgram`
 source-execution closure. It does not authorize a source, construct a canonical
 Plan, issue process evidence or claim a successful observation.
 
+The same requirement entry also consumes the identity returned by the public
+`program_check.source_identity` of a `CheckedProgram`. Query derivation and
+lowering must use that exact checked Program's stage pipeline and bound values;
+rebuilding an equal Program Definition does not transfer ownership. The checked
+Unit identity and acquisition requirement remain independent of the chosen mock
+route. The main entry retains source Host-combination, authorization, request
+egress, resource and response obligations: static construction does not mark
+these runtime checks successful. Trusted finite mock setup is not their real
+Host/provider implementation or a canonical Plan/Run execution permission.
+
 The physical proposal has `RealizeQuery` followed by `CaptureObservation`.
 The edge requires complete query output; it does not permit task-to-task
 streaming. Broad receipt and local residual are internal work in the first task,

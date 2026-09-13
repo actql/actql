@@ -86,6 +86,16 @@ values. They are requirements to enforce, not completed runtime checks.
 Program source identity, requirement construction and final Program/Plan execution
 permission remain distinct; no capture or consumer input is released by this API.
 
+When starting from a Program, use main's public `program_check.check` and obtain
+its `program_check.source_identity`. Derive the query from that identity's owned
+stage requests, lower the same pipeline and bind its exact Parameter values.
+Pass this identity to `prepare_query_requirement`; do not substitute a separately
+checked equal Program. The executable source-checkout example is
+`src/execution_relation/query_checked_program_wbtest.mbt`. It exercises both mock
+routes through capture and the existing consumer. Main's static source execution
+inventory is retained; real Host authorization and Program/Run execution are not
+implemented by the mock setup.
+
 For requirement-bound computation, use `prepare_requirement_mock_query_attempt`
 with a strategy owned by the requirement's exact query preparation. Pass
 `guard_measure=Some(QueryGuardMeasureLimits)` to `execute_mock_query`.
