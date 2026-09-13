@@ -8,6 +8,7 @@ fn join_resolution_fixture(
   window_body? : String? = None,
   window_events? : Bool = false,
   window_from? : String = "seed",
+  temporal_rows? : Int = 1,
 ) -> ProgramOperationResolutionIndex raise {
   let sources = prepare_program_source_acquisitions(
     prepared_keyed_source_context(
@@ -19,6 +20,7 @@ fn join_resolution_fixture(
       window_body~,
       window_events~,
       window_from~,
+      temporal_rows~,
     ),
     [[(0, if host_first { 1 } else { 0 })]],
     {

@@ -7,7 +7,7 @@
     "node": ">=22"
   },
   "scripts": {
-    "check:windows": "node scripts/window-schema.mjs && node --test scripts/window-schema.test.mjs",
+    "check:windows": "node scripts/window-schema.mjs && node --test scripts/window-schema.test.mjs scripts/window-capacity.test.mjs",
     "check:carrier-projections": "node scripts/carrier-projection-schema.mjs && node --test scripts/carrier-projection-schema.test.mjs",
     "check:graph": "node scripts/graph-schema.mjs && node --test scripts/graph-schema.test.mjs",
     "check:relation-nest": "node scripts/nest-schema.mjs && node scripts/check-relation-nest.mjs && node --test scripts/relation-nest.test.mjs",

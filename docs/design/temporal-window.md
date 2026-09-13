@@ -111,6 +111,15 @@ Collection does not discharge the membership or publication-resource requirement
 the consumer still needs the selected enforcement boundary and persistent proof
 construction before a completed Program can expose these bounds to lowering.
 
+`link_program_window_membership_limits` binds the Host output ceiling to each
+membership requirement and retains every Program candidate. Relation windows use
+the relation-output scope; Events windows use temporal-output. This explicitly
+selects the window consumer mapping, rather than importing an implicit reference
+compiler default. The existing policy wire fields and identities are unchanged.
+The minimum is enforced atomically before output consumption; it does not assert
+that the input or output has been observed. Publication-resource obligations
+remain separate, and re-linking an already resolved occurrence is rejected.
+
 ## Lag
 
 `lag` reuses the Relation field, partition, OrderKey and positive safe-integer

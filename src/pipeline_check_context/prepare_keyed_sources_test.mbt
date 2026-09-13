@@ -8,11 +8,16 @@ fn prepared_keyed_source_context(
   window_body? : String? = None,
   window_events? : Bool = false,
   window_from? : String = "seed",
+  temporal_rows? : Int = 1,
 ) -> SelectedPolicyContext raise {
   let original = keyed_sourceview_environment(changes~)
   let writer = @encode.writer(1000000, 100000, 100)
   @environment.emit(original, writer)
   let profile = capacity_profile(false)
+    .replace(
+      old="\"max_temporal_output_rows\":1",
+      new="\"max_temporal_output_rows\":" + temporal_rows.to_string(),
+    )
     .replace(
       old="\"max_artifact_rows\":1",
       new="\"max_artifact_rows\":" + artifact_rows.to_string(),

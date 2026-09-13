@@ -1,0 +1,12 @@
+{
+  "version": "actql-window-capacity-vectors/0.1",
+  "cases": [
+    {"name":"empty-proven", "carrier":"relation", "kind":"fixed", "size":10,"step":3,"times":[],"input_bound":0,"relation_host":1,"events_host":7,"factor":1,"program_bound":0,"maximum":0,"memberships":0,"accepted":true},
+    {"name":"fixed-exact", "carrier":"relation", "kind":"fixed", "size":10,"step":3,"times":[0,2],"input_bound":2,"relation_host":2,"events_host":1,"factor":1,"program_bound":2,"maximum":2,"memberships":2,"accepted":true},
+    {"name":"repeated-at-cap", "carrier":"relation", "kind":"sliding", "size":10,"step":3,"times":[2,2],"input_bound":2,"relation_host":6,"events_host":1,"factor":4,"program_bound":8,"maximum":6,"memberships":6,"accepted":true},
+    {"name":"repeated-over-cap", "carrier":"relation", "kind":"sliding", "size":10,"step":3,"times":[2,2],"input_bound":2,"relation_host":5,"events_host":100,"factor":4,"program_bound":8,"maximum":5,"memberships":6,"accepted":false},
+    {"name":"events-scope", "carrier":"events", "kind":"sliding", "size":10,"step":3,"times":[0,2],"input_bound":2,"relation_host":1,"events_host":7,"factor":4,"program_bound":8,"maximum":7,"memberships":7,"accepted":true},
+    {"name":"unknown-input", "carrier":"events", "kind":"sliding", "size":10,"step":3,"times":[0,2],"input_bound":null,"relation_host":1,"events_host":7,"factor":4,"program_bound":null,"maximum":7,"memberships":7,"accepted":true},
+    {"name":"program-tighter", "carrier":"events", "kind":"sliding", "size":10,"step":3,"times":[0,2],"input_bound":2,"relation_host":1,"events_host":100,"factor":4,"program_bound":8,"maximum":8,"memberships":7,"accepted":true}
+  ]
+}

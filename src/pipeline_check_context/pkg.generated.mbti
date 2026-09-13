@@ -367,6 +367,8 @@ pub fn link_program_operation_orders(ProgramOperationRequirements, Int, Int) -> 
 
 pub fn link_program_operation_profiles(ProgramOperationCalendar, Int, Int) -> Result[ProgramOperationProfileLinks, OperationProfileLinksIssue]
 
+pub fn link_program_window_membership_limits(ProgramOperationResolutionIndex, Int, Int, Int) -> Result[ProgramOperationResolutionIndex, WindowMembershipBoundIssue]
+
 pub fn link_resolved_program_incoming(ProgramOperationResolutionIndex, ProgramIncomingRequirements, IncomingLimits) -> Result[ProgramIncomingLinks, IncomingLinksIssue]
 
 pub fn local_input_closure_at(ProgramLocalInputClosure, Int) -> LocalInputExecutionCheck?
@@ -1663,6 +1665,7 @@ pub(all) enum OperationDisposition {
 }
 
 pub(all) enum OperationExecutionCheck {
+  WindowMembershipLimit(WindowMembershipLimit)
   WindowExecution(WindowExecutionCheck)
   AnalyticExecution(AnalyticExecutionCheck)
   AnalyticEnvelope(AnalyticEnvelopeCheck)
@@ -2694,6 +2697,14 @@ type WindowMembershipBounds
 
 pub struct WindowMembershipCandidate {
   input : @capacity_graph_preflight.TargetMembership
+  maximum : Int64
+}
+
+pub struct WindowMembershipLimit {
+  site : OperationRequirementSite
+  bounds : WindowMembershipBounds
+  policy : @capacity_policy.Policy
+  host : @capacity_policy.Ceiling
   maximum : Int64
 }
 

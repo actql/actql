@@ -518,6 +518,21 @@ Host resource admission and enforcement in addition to the logical wire limits;
 no canonical byte count claims to bound total memory. Unresolved static resource
 selection cannot be replaced by a generic permission to check resources later.
 
+<!-- requirement-block: capacity-host-policy.window-membership-scope -->
+Window membership enforcement MUST use `max_relation_output_rows` for
+`row_window` and `max_temporal_output_rows` for `window_events`. The quantity is
+the total emitted row/event membership occurrences of that operation, including
+repetitions, not distinct windows, IDs, per-key counts or input rows. Select the
+minimum of the applicable Host ceiling and available Program membership bounds
+under the pinned window law, retaining all applicable dependencies. Unknown input
+cardinality is not zero and does not disable the Host output ceiling. Zero proven
+output remains zero even though Host ceilings are positive. Option validation is
+not waived on empty input. Excess fails the whole operation before its output is
+consumed, without truncation. The selected ceiling is an enforcement obligation,
+not observed usage, input completeness, execution permission or a physical memory
+limit. Nested-value, final publication rows/bytes and Host physical-resource
+checks remain independently applicable; this selection does not discharge them.
+
 <!-- requirement-block: capacity-host-policy.environment-component -->
 The capacity policy component, when supplied, MUST be the complete body at
 `/host_policy_profile/capacity` in the Check Environment. Its selected CID is
