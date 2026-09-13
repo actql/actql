@@ -8,6 +8,7 @@ import { join } from 'node:path';
 import { DuckDBInstance } from '@duckdb/node-api';
 import { authorizeLocalDatabase } from '../session.mjs';
 import { runNativeAcquisition } from '../native-acquisition.mjs';
+import { matchesSourceAcquisition, releaseSourceAcquisition } from '../source-acquisition.mjs';
 
 const root = fileURLToPath(new URL('../../..', import.meta.url));
 const limits = Object.freeze({ maxRows: 100, maxCells: 1000, maxTransportBytes: 100000,
@@ -75,6 +76,11 @@ test('generated native acquisition awaits validation on the same read view and c
     const grant = await authorizeLocalDatabase(path);
     const good = receiver(commands);
     const result = await runNativeAcquisition(grant, good.port, limits);
+    assert.equal(matchesSourceAcquisition(result, grant, good.port, result.value.readView), true);
+    assert.equal(matchesSourceAcquisition({ ...result }, grant, good.port, result.value.readView), false);
+    assert.equal(matchesSourceAcquisition(result, await authorizeLocalDatabase(path), good.port, result.value.readView), false);
+    assert.equal(matchesSourceAcquisition(result, grant, { ...good.port }, result.value.readView), false);
+    assert.equal(matchesSourceAcquisition(result, grant, good.port, Object.freeze({})), false);
     assert.deepEqual(good.received.validation_scan[0].columns, [
       ['403e000000000000', null, '4034000000000000'],
       ['4008000000000000', '3ff0000000000000', '4000000000000000'],
@@ -104,6 +110,12 @@ test('generated native acquisition awaits validation on the same read view and c
     // A new attempt/read view can retry after all prior native resources close.
     const retry = await runNativeAcquisition(grant, receiver(commands).port, limits);
     assert.notEqual(retry.value.readView, result.value.readView);
+    assert.equal(matchesSourceAcquisition(result, grant, good.port, retry.value.readView), false);
+    // Failed/cancelled sibling attempts do not consume successful provenance.
+    assert.equal(matchesSourceAcquisition(result, grant, good.port, result.value.readView), true);
+    releaseSourceAcquisition(result);
+    assert.equal(matchesSourceAcquisition(result, grant, good.port, result.value.readView), false);
+    releaseSourceAcquisition(result);
     const emptyPath = join(directory, 'empty.duckdb');
     const emptyDB = await DuckDBInstance.create(emptyPath);
     const emptyConnection = await emptyDB.connect();

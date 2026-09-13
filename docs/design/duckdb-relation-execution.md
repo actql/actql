@@ -313,6 +313,16 @@ using it; reusing serialization does not reuse a mock issuer's authority.
 
 ## Lifetime, limits and publication
 
+The [acquisition resource-scope contract](../../spec/contracts/actql-query-resource-scopes.json)
+separates common acquisition guards from selected fragment bounds. This native
+scan/filter/select implementation does not select the Local residual fragment
+contract and does not synthesize ordered-derive `row_kernel_limits`. It must
+still enforce the exact acquisition output-row and per-record typed-wire guards,
+full admission and checked demand. Per-cell measurement alone does not establish
+the whole input-record ceiling. Local residual and downstream consumer fragments retain
+their own unmodified limits. A Local-only fragment exhaustion need not prevent
+native success; neither path can waive an explicitly selected common contract.
+
 For the restricted compiled comparison, a static root-byte witness can establish
 the demanded-root guard without evaluating input rows: Boolean/NULL results need
 at most five canonical bytes, or four when the exact bound RHS is NULL. A smaller
@@ -330,6 +340,15 @@ reused. Managed row, transfer and retention limits are enforced independently of
 logical guards and cost estimates. DuckDB's memory setting is not a hard bound
 on total process RSS. Process isolation, forced-stop deadlines and durable
 crash recovery are outside this initial increment.
+
+The Node source-acquisition lifecycle retains an opaque completion relationship
+between the exact Host file grant, one-shot port, read-view discriminator and
+actual closed session. That relationship becomes available only after successful
+command settlement and cleanup, and explicit release invalidates it. Copied
+results or equal paths cannot reproduce it. This is transport provenance for
+the trusted Host coordinator, not source snapshot identity or an ActQL record;
+the MoonBit issuer must separately verify semantic guards, ownership and retained
+scan/output. A consumer failure does not implicitly release this upstream proof.
 
 Cross-task inputs are completed inputs only. Buffers and partial query chunks
 are internal data, not publishable successful observations. Preparation,

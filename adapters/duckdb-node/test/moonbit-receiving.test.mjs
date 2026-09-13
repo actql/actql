@@ -10,6 +10,7 @@ import { DuckDBInstance } from '@duckdb/node-api';
 import { authorizeLocalDatabase } from '../session.mjs';
 import { runNativeAcquisition } from '../native-acquisition.mjs';
 import { runBroadAcquisition } from '../broad-acquisition.mjs';
+import { matchesSourceAcquisition, releaseSourceAcquisition } from '../source-acquisition.mjs';
 
 const root = fileURLToPath(new URL('../../..', import.meta.url));
 const limits = { maxRows: 100, maxCells: 1000, maxTransportBytes: 100000,
@@ -111,9 +112,12 @@ test('real Node callbacks use MoonBit admission before native filtering, includi
       try { await connection.run(schema); if (insert) await connection.run(insert); }
       finally { connection.closeSync(); db.closeSync(); }
       const broad = broadPortFor(moon);
-      const broadRun = runBroadAcquisition(await authorizeLocalDatabase(path), broad.port, limits);
+      const broadGrant = await authorizeLocalDatabase(path);
+      const broadRun = runBroadAcquisition(broadGrant, broad.port, limits);
+      assert.equal(matchesSourceAcquisition(broadRun, broadGrant, broad.port, undefined), false);
       if (succeeds) {
         const result = await broadRun;
+        assert.equal(matchesSourceAcquisition(result, broadGrant, broad.port, result.value.readView), true);
         assert.equal(result.value.accepted === broad.state, true);
         const preimage = name === 'empty' ? '[]' : '[{"amount":30,"id":3},{"amount":null,"id":1},{"amount":20,"id":2}]';
         assert.equal(moon.broadIdentity(broad.state), `sha256:${createHash('sha256').update(preimage).digest('hex')}`);
@@ -124,6 +128,9 @@ test('real Node callbacks use MoonBit admission before native filtering, includi
         for (let retry = 0; retry < 2; retry++) {
           assert.equal(moon.broadResidual(broad.state, ...residualContracts, 100), outputCid);
         }
+        assert.equal(matchesSourceAcquisition(result, broadGrant, broad.port, result.value.readView), true);
+        releaseSourceAcquisition(result);
+        assert.equal(matchesSourceAcquisition(result, broadGrant, broad.port, result.value.readView), false);
       } else {
         await assert.rejects(broadRun, /MoonBit rejected broad/);
         assert.equal(moon.broadIdentity(broad.state), 'null');

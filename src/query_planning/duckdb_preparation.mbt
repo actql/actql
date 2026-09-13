@@ -78,8 +78,10 @@ pub fn duckdb_query_broad_scan(
 
 ///|
 /// Compiler/root compatibility only. This is not a runnable offer: native
-/// logical work/live-root applicability, Host authority, read-view validation,
-/// physical limits and completion evidence remain separate admission duties.
+/// acquisition guards, Host authority, read-view validation, physical limits
+/// and completion evidence remain separate admission duties. A Local-only
+/// fragment's limits are not inherited by this native acquisition realization;
+/// explicitly selected common contracts still cannot be waived.
 pub fn duckdb_query_native_preparation(
   value : DuckDBQueryPreparation,
 ) -> Result[(@duckdb.NativeScan, @duckdb.NativeRootGuard), DuckDBNativeIssue] {
