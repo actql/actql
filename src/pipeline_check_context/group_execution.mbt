@@ -13,6 +13,7 @@ pub enum GroupExecutionRule {
   EvaluateAggregate(@relation.CheckedAggregate)
   ValidateResultContract(@relation.CheckedAggregate)
   EnforceArrayItems(GroupArrayLimit)
+  EnforceStringBytes(GroupStringLimit)
   EnforceStatisticalLaw(@relation.CheckedAggregate, StatisticalLaw)
 }
 

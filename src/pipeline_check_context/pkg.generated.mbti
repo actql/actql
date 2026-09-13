@@ -333,6 +333,8 @@ pub fn like_pattern_usage(LikePatternChecks) -> LikePatternUsage
 
 pub fn link_program_group_array_limits(ProgramOperationResolutionIndex, Int, Int, Int) -> Result[ProgramOperationResolutionIndex, GroupArrayLimitIssue]
 
+pub fn link_program_group_string_limits(ProgramOperationResolutionIndex, Int, Int, Int) -> Result[ProgramOperationResolutionIndex, GroupStringLimitIssue]
+
 pub fn link_program_incoming(ProgramOperationProfileLinks, ProgramIncomingRequirements, IncomingLimits) -> Result[ProgramIncomingLinks, IncomingLinksIssue]
 
 pub fn link_program_join_requirements(ProgramOperationResolutionIndex, Int, Int) -> Result[ProgramOperationResolutionIndex, JoinRequirementIssue]
@@ -1176,6 +1178,7 @@ pub enum GroupExecutionRule {
   EvaluateAggregate(@relation_typing.CheckedAggregate)
   ValidateResultContract(@relation_typing.CheckedAggregate)
   EnforceArrayItems(GroupArrayLimit)
+  EnforceStringBytes(GroupStringLimit)
   EnforceStatisticalLaw(@relation_typing.CheckedAggregate, StatisticalLaw)
 }
 

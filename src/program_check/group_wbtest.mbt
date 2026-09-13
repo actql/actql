@@ -30,6 +30,7 @@ test "formal check closes exact groups after Result import" {
         EvaluateAggregate(_) => demand += 1
         ValidateResultContract(_) => result_contract += 1
         EnforceArrayItems(_) => fail("unexpected array envelope")
+        EnforceStringBytes(_) => fail("unexpected string envelope")
         EnforceStatisticalLaw(_, _) => fail("unexpected statistical fold")
       }
     }

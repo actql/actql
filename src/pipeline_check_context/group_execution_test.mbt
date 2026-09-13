@@ -38,6 +38,8 @@ test "group execution binds result contracts without discharging numeric observa
         )
         match check.rule {
           EnforceArrayItems(_) => fail("array limits require explicit linking")
+          EnforceStringBytes(_) =>
+            fail("string limits require explicit linking")
           EnforceStatisticalLaw(_, _) => fail("unexpected statistical fold")
           ValidateResultContract(call) => {
             assert_eq(pending.kind, @relation.AggregateEnvelope)

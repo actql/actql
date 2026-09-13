@@ -124,7 +124,17 @@ are a separate law application, not an implicit numeric conversion here.
 Work includes the prior resolution index and all inspected scalar entries;
 candidate capacity counts both Host and guard even when their values coincide.
 
-This API only selects the Host/author ceiling scope. It leaves the original
+`link_program_group_string_limits` binds these selections to
+`EnforceStringBytes` execution checks for their exact ordinary group input and
+aggregate occurrence. Enforcement precedes operation output and rejects output
+on failure rather than truncating the string. It preserves the selection owner
+and Parameter resolution. The immutable resolution index is returned only after
+every matching occurrence succeeds; inventory copying, unrelated slots and all
+selected candidates consume cumulative budgets. Linking an already resolved
+occurrence is rejected. This execution obligation does not itself construct a
+persistent Unit limit or certify backend enforcement.
+
+The selector alone only selects the Host/author ceiling scope. It leaves the original
 envelope unresolved and neither emits a persistent Unit limit nor installs
 runtime enforcement. Those connections are required before the formal Program
 constructor can admit the aggregate; a selected number alone cannot close it.
