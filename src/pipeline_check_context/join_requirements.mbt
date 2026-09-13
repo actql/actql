@@ -103,7 +103,8 @@ pub fn link_program_join_requirements(
       | @pipeline.CrossJoinRequirement(ValidateExactlyOneRightRow) => 5
       @pipeline.JoinRequirement(ResolveOutputLimit)
       | @pipeline.CrossJoinRequirement(ResolveOutputLimit)
-      | @pipeline.IntervalJoinRequirement(ResolveOutputLimit) => 1
+      | @pipeline.IntervalJoinRequirement(ResolveOutputLimit)
+      | @pipeline.AsOfRequirement(ResolveOutputLimit) => 1
       _ => continue
     }
     if links == max_links {

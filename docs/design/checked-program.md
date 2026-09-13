@@ -253,6 +253,14 @@ component, uniqueness or reference-validation obligation. An authored tie-break
 that already covers the selected key adds no completion record but still retains
 the selected key's validation obligations. A single explicitly selected left
 identity is validated as declared; a retained composite identity is not truncated.
+As-of output capacity uses the existing join-family limit boundary and the
+selected `max_relation_output_rows` ceiling, since the output is a Relation.
+Every applicable registered Program bound is included in that minimum. The
+`actql.bound.asof-left` proof depends only on the exact left operand; a right
+bound or a left/right product cannot replace it. A missing application is
+rejected even on an unused as-of branch. Host-only output enforcement remains
+valid when no applicable Program bound is registered, but proves no search-work
+bound and does not remove either input's validation requirements.
 These bindings do not discharge tolerance Parameters, selected-profile or search
 and allocation requirements. The formal entry
 does not admit an as-of Program solely because these execution bindings exist.

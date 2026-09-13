@@ -6,6 +6,80 @@ fn join_branches() -> @pipeline.CheckedPipeline {
 }
 
 ///|
+test "asof output limits cover the operation without proving search resources" {
+  for kind in ["inner", "left"] {
+    let (left, _) = join_operand(2)
+    let (right, _) = join_operand(3)
+    let p = join_pipeline(left, right, "asof_join", kind)
+    let sources = join_limit_sources([], 1)
+    let program = @capacity_program_step.check_applications(
+      @host.source_claims(sources),
+      [],
+      max_work=2,
+    ).unwrap()
+    let policy = join_policy()
+    assert_true(
+      @capacity_program_step.check_join_applications(
+        p,
+        sources,
+        program,
+        policy,
+        [],
+        max_work=5,
+      )
+      is Err(MissingApplication(0)),
+    )
+    let limit = @capacity_program_step.check_join_limit(
+      p,
+      0,
+      sources,
+      program,
+      policy,
+      0,
+      max_work=2,
+    ).unwrap()
+    let apps = @capacity_program_step.check_join_complete(
+      p,
+      sources,
+      program,
+      policy,
+      [limit],
+      max_work=5,
+    ).unwrap()
+    assert_true(
+      physical_equal(
+        @capacity_program_step.join_application_at(apps, 0).unwrap(),
+        limit,
+      ),
+    )
+    assert_eq(@capacity_program_step.join_application_work(apps), 5)
+    assert_true(
+      @capacity_program_step.check_join_complete(
+        p,
+        sources,
+        program,
+        policy,
+        [limit],
+        max_work=4,
+      )
+      is Err(WorkLimit),
+    )
+    let group = @pipeline.operation_obligation_group_at(
+      @pipeline.step_at(p, 0).unwrap().operation,
+      0,
+    ).unwrap()
+    let mut search = false
+    for i in 0..<@pipeline.operation_obligations_count(group) {
+      if @pipeline.operation_obligations_at(group, i)
+        is Some(AsOfRequirement(ResolveSearchWork)) {
+        search = true
+      }
+    }
+    assert_true(search)
+  }
+}
+
+///|
 test "join collection covers every family and unused branch under a shared budget" {
   let p = join_branches()
   let source = join_limit_sources([], 1, limit_steps=[0, 1, 2])

@@ -121,7 +121,7 @@ fn join_limit_sources(
 
 ///|
 test "join output consumers require applicable Host and all available Program candidates" {
-  for family in ["join", "cross_join", "interval_join"] {
+  for family in ["join", "cross_join", "interval_join", "asof_join"] {
     let (left, lb) = join_operand(2)
     let (right, rb) = join_operand(3)
     let p = join_pipeline(left, right, family, "inner")
@@ -143,15 +143,28 @@ test "join output consumers require applicable Host and all available Program ca
       )
       is Ok(_),
     )
-    let claim = proof("actql.bound.join-output", 6, "{\"op\":\"source\"}", inputs=[
-      bound_id(lb),
-      bound_id(rb),
-    ])
+    let claim = if family == "asof_join" {
+      proof(
+        "actql.bound.asof-left",
+        2,
+        "{\"input\":\"" + bound_id(lb) + "\",\"op\":\"preserve\"}",
+        inputs=[bound_id(lb)],
+      )
+    } else {
+      proof("actql.bound.join-output", 6, "{\"op\":\"source\"}", inputs=[
+        bound_id(lb),
+        bound_id(rb),
+      ])
+    }
     let app = @capacity_program_step.check_with_inputs(
       p,
       0,
       claim,
-      [lb, rb],
+      if family == "asof_join" {
+        [lb]
+      } else {
+        [lb, rb]
+      },
       max_input_work=2,
     ).unwrap()
     let apps = [lb, rb, app]
@@ -279,7 +292,7 @@ test "join output consumers require applicable Host and all available Program ca
               "\"with\":\"rows\",\"kind\":\"inner\",\"mode\":\"point_in_interval\",\"on\":[],\"left\":{\"time\":\"id\"},\"right\":{\"start\":\"id\",\"end\":\"id\"}"
             _ => "\"with\":\"rows\",\"kind\":\"inner\",\"on\":\"id\""
           }
-          for guard_value in [1, 100] {
+          for guard_value in (if family == "asof_join" { [] } else { [1, 100] }) {
             let guarded = pipeline(
               "[{\"" +
               family +

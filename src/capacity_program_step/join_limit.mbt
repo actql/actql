@@ -53,6 +53,7 @@ pub fn check_join_limit(
       @join.cross_output_guard(checked) is Some(_)
     @pipeline.IntervalJoin(checked~, ..) =>
       @join.interval_output_guard(checked) is Some(_)
+    @pipeline.AsOfJoin(..) => false
     _ => return Err(WrongOperation)
   }
   if authored {

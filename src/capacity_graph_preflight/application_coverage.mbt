@@ -62,7 +62,8 @@ pub fn check_application_coverage(
       match @pipeline.step_at(checked_pipeline(graph), i).unwrap().operation {
         @pipeline.Join(..)
         | @pipeline.CrossJoin(..)
-        | @pipeline.IntervalJoin(..) =>
+        | @pipeline.IntervalJoin(..)
+        | @pipeline.AsOfJoin(..) =>
           if joins is None {
             return Err(MissingJoinApplications(i))
           }

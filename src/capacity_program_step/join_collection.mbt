@@ -83,7 +83,8 @@ pub fn check_join_applications(
     let required = match @pipeline.step_at(pipeline, i).unwrap().operation {
       @pipeline.Join(..)
       | @pipeline.CrossJoin(..)
-      | @pipeline.IntervalJoin(..) => true
+      | @pipeline.IntervalJoin(..)
+      | @pipeline.AsOfJoin(..) => true
       _ => false
     }
     if required && entries[i] is None {
