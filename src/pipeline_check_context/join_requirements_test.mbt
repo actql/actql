@@ -3,9 +3,17 @@ fn join_resolution_fixture(
   changes? : Bool = false,
   artifact_rows? : Int = 1,
   host_first? : Bool = false,
+  array_group? : Bool = false,
+  aggregate_items? : Int = 1,
 ) -> ProgramOperationResolutionIndex raise {
   let sources = prepare_program_source_acquisitions(
-    prepared_keyed_source_context(changes~, artifact_rows~, host_first~),
+    prepared_keyed_source_context(
+      changes~,
+      artifact_rows~,
+      host_first~,
+      array_group~,
+      aggregate_items~,
+    ),
     [[(0, if host_first { 1 } else { 0 })]],
     {
       max_work: 10000000,

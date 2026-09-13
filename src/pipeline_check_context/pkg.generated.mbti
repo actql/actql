@@ -231,6 +231,28 @@ pub fn expression_validation_text_time(ExpressionValidationContext) -> @check_en
 
 pub fn expression_validation_usage(ExpressionValidationContext) -> SelectedPolicyUsage
 
+pub fn group_array_limit_call(GroupArrayLimit) -> @relation_typing.CheckedAggregate
+
+pub fn group_array_limit_candidate_at(GroupArrayLimit, Int) -> @capacity_graph_preflight.TargetMembership?
+
+pub fn group_array_limit_candidate_count(GroupArrayLimit) -> Int
+
+pub fn group_array_limit_guard(GroupArrayLimit) -> Int64?
+
+pub fn group_array_limit_guard_resolution(GroupArrayLimit) -> OperationScalarResolution?
+
+pub fn group_array_limit_host(GroupArrayLimit) -> @capacity_policy.Ceiling
+
+pub fn group_array_limit_input_law(GroupArrayLimit) -> String
+
+pub fn group_array_limit_maximum(GroupArrayLimit) -> Int64
+
+pub fn group_array_limit_owner(GroupArrayLimit) -> ProgramOperationResolutionIndex
+
+pub fn group_array_limit_requirement(GroupArrayLimit) -> Int
+
+pub fn group_array_limit_work(GroupArrayLimit) -> Int
+
 pub fn identify_program_sources(ProgramSourceChecks, ProgramIdentityLimits) -> Result[ProgramSourceIdentity, ProgramIdentityIssue]
 
 pub fn identify_result_import_type(ProgramIncomingLinks, Int, Int, Int, Int) -> Result[ResultImportType?, ResultImportTypeIssue]
@@ -675,6 +697,8 @@ pub fn result_import_type_usage(ResultImportType) -> (Int, Int)
 
 pub fn result_wiring(WiredStages) -> @stage_results.ResultWiring
 
+pub fn select_group_array_limit(ProgramOperationResolutionIndex, Int, Int, Int) -> Result[GroupArrayLimit, GroupArrayLimitIssue]
+
 pub fn select_publication_row_limit(ProgramPublicationClosure, Int, Int, Int) -> Result[PublicationRowLimit, PublicationRowLimitIssue]
 
 pub fn selected_capacity(SelectedPolicyContext) -> @check_environment.Capacity
@@ -1104,6 +1128,17 @@ pub(all) struct ExpressionValidationLimits {
 } derive(Eq, @debug.Debug)
 
 type ExpressionValidationSite
+
+type GroupArrayLimit
+
+pub enum GroupArrayLimitIssue {
+  InvalidLimits
+  InvalidRequirement
+  UnresolvedGuard
+  MissingHostCeiling
+  BudgetExceeded
+  ForeignEvidence
+}
 
 pub struct GroupExecutionCheck {
   site : OperationRequirementSite

@@ -3,14 +3,21 @@ fn prepared_keyed_source_context(
   changes? : Bool = false,
   artifact_rows? : Int = 1,
   host_first? : Bool = false,
+  array_group? : Bool = false,
+  aggregate_items? : Int = 1,
 ) -> SelectedPolicyContext raise {
   let original = keyed_sourceview_environment(changes~)
   let writer = @encode.writer(1000000, 100000, 100)
   @environment.emit(original, writer)
-  let profile = capacity_profile(false).replace(
-    old="\"max_artifact_rows\":1",
-    new="\"max_artifact_rows\":" + artifact_rows.to_string(),
-  )
+  let profile = capacity_profile(false)
+    .replace(
+      old="\"max_artifact_rows\":1",
+      new="\"max_artifact_rows\":" + artifact_rows.to_string(),
+    )
+    .replace(
+      old="\"max_aggregate_array_items\":1",
+      new="\"max_aggregate_array_items\":" + aggregate_items.to_string(),
+    )
   let body = @encode.finish(writer)
     .replace(
       old="\"evidence_bundle_cid\":\"" + @environment.cid(original) + "\",",
@@ -41,7 +48,14 @@ fn prepared_keyed_source_context(
   let text =
     #|{"version":"actql/0.1","id":"keyed","stages":[{"id":"s","inputs":{"remote":{"connector":"crm/main","resource":"r","request":{"tenant":null}}},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":false}},"rows":[{"id":1}]},"as":"seed"},{"join":{"left":"seed","with":"remote","on":"id","kind":"left","select":{"id":"left.id"}}}],"results":{"out":{"from":"seed","fields":["id"]}}}],"results":{"out":{"from":{"stage":"s","result":"out"}}}}
   let program = @syntax.parse(
-    text,
+    if array_group {
+      text.replace(
+        old="}],\"results\":{\"out\":{\"from\":\"seed\"",
+        new="},{\"from\":\"seed\",\"assert_rows\":{\"unique_by\":[\"id\"]}},{\"group\":{\"by\":[],\"aggregates\":{\"items\":{\"fn\":\"array_agg\",\"field\":\"id\",\"order_by\":[{\"id\":\"asc\"}],\"max_items\":3}}}}],\"results\":{\"out\":{\"from\":\"seed\"",
+      )
+    } else {
+      text
+    },
     {
       source: { max_input_bytes: 10000, max_nodes: 1000, max_depth: 100, },
       tree: {

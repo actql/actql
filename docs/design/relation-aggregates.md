@@ -59,6 +59,28 @@ and analytic operations have different surrounding requirements and do not
 inherit ordinary-group execution support through their shared call grammar.
 The formal Program entry remains separate from this operation-level closure.
 
+`select_group_array_limit` selects an ordinary `array_agg` envelope from an
+owned operation-resolution index. It retains the exact call, selected Host
+aggregate-array ceiling, authored guard and any matching bound-Parameter
+resolution. It scans every applicable Program input-row proof, retaining its
+producer/claim membership. Input rows bound per-group array items under
+`actql.bound.array-aggregate-input`: filtering, null exclusion and distinct
+cannot increase the number of contributed items. This does not reinterpret a
+row witness itself as an array-item witness.
+
+Selection takes the minimum of all available candidates and preserves their
+origins even when the Host ceiling is already smaller. Sparse claim slots do
+not terminate traversal or renumber proof references. All slot visits, rejected
+proof checks and Parameter-name comparisons consume work; candidate admission
+is bounded before retention. Guard binding uses the exact Stage and producer
+visit, not a similarly named Parameter from another context.
+
+The result is static selection material, not a serialized resolved-limit claim
+or a discharged `AggregateEnvelope`. Persistent scope references, reconstructed
+witnesses and execution enforcement must be connected separately. String-byte
+aggregation and nested result-value envelopes are distinct scopes, not aliases
+for this array-item limit.
+
 ## Reference compatibility
 
 The fixed Sketch implementation supplies the original seven signatures but
