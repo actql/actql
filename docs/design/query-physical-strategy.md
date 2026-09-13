@@ -21,6 +21,18 @@ route. The source computation budget and receipt budget are separate.
 
 ## Tasks and accounting scopes
 
+Static `QueryMaterial` retains the exact query preparation, the canonical resolved
+request, normalized unevaluated filter identity, and the shared typed identity of
+Parameters used by request or filter. Only checked Parameter slots substitute
+values; nested business `$param` and `literal` members remain data. Repeated uses
+select a value once, including defaults but excluding unused declarations and
+binding-origin metadata. Bounded preparation covers name selection, canonical
+field order, serialization and hashing before retained artifacts are returned.
+This material is not a complete canonical acquisition requirement: the owned
+Program Definition, source and schema contracts, projection, and selected logical
+guards must also be connected. It is neither an observation nor permission to
+issue process evidence.
+
 The physical proposal has `RealizeQuery` followed by `CaptureObservation`.
 The edge requires complete query output; it does not permit task-to-task
 streaming. Broad receipt and local residual are internal work in the first task,

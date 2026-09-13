@@ -9,6 +9,12 @@ import {
   "actql/actql/pipeline_typing" @pipeline,
   "actql/actql/canonical_json" @identity,
   "actql/actql/encode_core" @encode,
+  "actql/actql/relation_typing" @relation,
+  "actql/actql/expression_typing" @typing,
+  "actql/actql/expression_syntax" @expression,
+  "actql/actql/parameter_binding" @parameter,
+  "actql/actql/value_admission" @admitted,
+  "actql/actql/canonical_value" @canonical,
 }
 
 import {

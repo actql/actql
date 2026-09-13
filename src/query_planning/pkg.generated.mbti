@@ -4,6 +4,7 @@ package "actql/actql/query_planning"
 import {
   "actql/actql/canonical_json",
   "actql/actql/decode_core",
+  "actql/actql/encode_core",
   "actql/actql/execution_relation",
   "actql/actql/physical_cost",
   "actql/actql/sourceview_resolution",
@@ -35,7 +36,17 @@ pub fn offer_mock_query(@execution_relation.QuerySequence, QueryRealization, Arr
 
 pub fn prepare_mock_query_attempt(QueryStrategy, Array[@decode_core.Cursor], Int) -> Result[MockQueryAttempt, MockQueryIssue]
 
+pub fn prepare_query_material(@execution_relation.QuerySequence, QueryMaterialLimits) -> Result[QueryMaterial, QueryMaterialIssue]
+
 pub fn query_evidence_contract_usage(QueryEvidenceContracts) -> (Int, Int)
+
+pub fn query_material_cids(QueryMaterial) -> (String, String, String)
+
+pub fn query_material_owner(QueryMaterial) -> @execution_relation.QuerySequence
+
+pub fn query_material_request(QueryMaterial) -> @encode_core.EncodedDocument
+
+pub fn query_material_usage(QueryMaterial) -> (Int, Int, Int)
 
 pub fn query_offer_duration(QueryOffer) -> @physical_cost.DurationEstimate
 
@@ -99,6 +110,28 @@ pub(all) enum QueryEvidenceContractIssue {
 type QueryEvidenceContracts
 
 pub(all) struct QueryEvidenceLimits {
+  max_bytes : Int
+  max_nodes : Int
+  max_depth : Int
+}
+
+type QueryMaterial
+
+pub(all) enum QueryMaterialIssue {
+  InvalidLimits
+  WorkLimit
+  FieldLimit
+  ParameterLimit
+  InvalidQuery
+  UnboundRequest
+  MissingParameter(String)
+  Encoding(@encode_core.EncodeFailure)
+}
+
+pub(all) struct QueryMaterialLimits {
+  max_work : Int
+  max_fields : Int
+  max_parameters : Int
   max_bytes : Int
   max_nodes : Int
   max_depth : Int

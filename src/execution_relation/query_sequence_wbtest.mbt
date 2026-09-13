@@ -2,8 +2,16 @@
 fn query_sequence_fixture(
   filter? : String = "id > $minimum",
   extra? : String = "",
+  parameters? : String = "{\"minimum\":{\"type\":\"number\",\"nullable\":false}}",
+  supplied? : String = "{\"minimum\":1}",
+  request? : String = "",
+  catalog? : @environment.SourceRequestContracts? = None,
 ) -> (@acquisition.QueryAcquisition, @lower.BoundPrepared) {
-  let wire = "{\"version\":\"actql/0.1\",\"id\":\"p\",\"params\":{\"minimum\":{\"type\":\"number\",\"nullable\":false}},\"stages\":[{\"id\":\"a\",\"inputs\":{\"remote\":{\"connector\":\"crm/main\",\"resource\":\"r\"}},\"steps\":[{\"filter\":\"" +
+  let wire = "{\"version\":\"actql/0.1\",\"id\":\"p\",\"params\":" +
+    parameters +
+    ",\"stages\":[{\"id\":\"a\",\"inputs\":{\"remote\":{\"connector\":\"crm/main\",\"resource\":\"r\"" +
+    (if request == "" { "" } else { ",\"request\":" + request }) +
+    "}},\"steps\":[{\"filter\":\"" +
     filter +
     "\",\"as\":\"filtered\"},{\"select\":[\"id\"],\"as\":\"captured\"}" +
     extra +
@@ -32,7 +40,11 @@ fn query_sequence_fixture(
     max_work: 1000000,
     max_order_keys: 100,
   }).unwrap()
-  let resolved = @acquisition.resolve(inputs, query_catalog_fixture(), {
+  let catalog = match catalog {
+    Some(value) => value
+    None => query_catalog_fixture()
+  }
+  let resolved = @acquisition.resolve(inputs, catalog, {
     max_work: 1000000,
     max_inputs: 100,
     max_views: 100,
@@ -91,7 +103,7 @@ fn query_sequence_fixture(
   }
   let bound = @parameter.bind(
     @stages.declarations(source),
-    Some(input_cursor("{\"minimum\":1}")),
+    Some(input_cursor(supplied)),
     limits,
   ).unwrap()
   guard bound is @parameter.Ready(values) else { abort("fixture bindings") }

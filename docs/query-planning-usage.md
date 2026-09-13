@@ -63,3 +63,12 @@ a product issuance API. `check:docs` also verifies that the filesystem-free test
 copies match the current complete shared contract bodies.
 
 See [design](design/query-physical-strategy.md) for ownership, scope and limitations.
+
+`prepare_query_material` builds the resolved request and request/filter/used-value
+CIDs from that same `QuerySequence`, under `QueryMaterialLimits`. Read them with
+`query_material_request`, `query_material_cids`, and `query_material_usage` (work,
+encoded/hashed bytes, nodes). Request encoding and hashing both consume the
+aggregate allowance. The owner remains available through `query_material_owner`.
+These are static requirement components, not a complete requirement, Program
+identity, capture record or observation. Preparing them performs no source I/O
+and does not evaluate the predicate.
