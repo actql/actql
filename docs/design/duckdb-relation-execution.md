@@ -33,6 +33,23 @@ and cleanup. Neither Neo classes nor connections cross the common MoonBit port.
 Node is an implementation choice for this adapter, not a mandatory runtime or
 distribution decision for the final Local Host.
 
+### Canonical requirement binding
+
+`query_planning.prepare_duckdb_query` retains the exact `QueryRequirement` and
+derives provider scan/native preparations from its owned query sequence. SQL
+generation and comparison rules remain in `duckdb_adapter`; this connection
+does not rederive a canonical acquisition or grant access to a database path.
+The separately selected broad residual consumes the requirement's output-row
+and value-byte guards through the existing query execution boundary. Equivalent
+requirement CIDs do not authorize exchanging input from a different owner.
+
+Native compilation and the static root-byte witness are preliminary eligibility
+checks, not a runnable strategy or a complete obligation discharge. Logical
+work/live-root applicability, Host authorization, read-view and full-scan
+validation, physical budgets, retention and capture evidence are separate
+requirements. An unavailable native preparation does not invalidate a supported
+broad residual, and execution failure never silently selects that residual.
+
 ## Source and fixed-input isolation
 
 The Host supplies an explicitly authorized trusted local database binding.

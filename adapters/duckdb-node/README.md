@@ -70,6 +70,13 @@ are admitted against its pins, not implicitly upgraded to a newer registry.
 This is still a fixed conformance entry, not the complete acquisition evidence,
 capture and subsequent consumer path in a production Host.
 
+For owned query integration, `query_planning.prepare_duckdb_query` takes an
+existing canonical requirement and Host-selected schema/table names. Its broad
+scan feeds the receiver above; `execute_duckdb_broad_residual` applies the guards
+from that exact requirement rather than accepting replacement logical limits.
+The native preparation accessor reports compiler/root-ceiling compatibility
+only; it is not yet a validated runnable offer or source-access authorization.
+
 Tests create their own files under ignored `_build/duckdb-fixtures`, exercise
 exact scalar transport, existing-file read-only access, isolated Compute,
 cumulative transfer bounds, native memory exhaustion, cancellation and cross-process file locks. They

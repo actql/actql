@@ -4,6 +4,7 @@ package "actql/actql/query_planning"
 import {
   "actql/actql/canonical_json",
   "actql/actql/decode_core",
+  "actql/actql/duckdb_adapter",
   "actql/actql/encode_core",
   "actql/actql/execution_query",
   "actql/actql/execution_relation",
@@ -26,6 +27,14 @@ pub fn capture_mock_query(MockQueryIssuer, MockQueryAttempt, MockQueryRecords, Q
 pub fn choose_query_strategy(@execution_query.QuerySequence, Array[QueryOffer], Array[Int]?, Int) -> Result[QuerySelection, QueryPlanningIssue]
 
 pub fn close_mock_query_issuer(MockQueryIssuer) -> Unit
+
+pub fn duckdb_query_broad_scan(DuckDBQueryPreparation) -> @duckdb_adapter.BroadScan
+
+pub fn duckdb_query_native_preparation(DuckDBQueryPreparation) -> Result[(@duckdb_adapter.NativeScan, @duckdb_adapter.NativeRootGuard), DuckDBNativeIssue]
+
+pub fn duckdb_query_requirement(DuckDBQueryPreparation) -> QueryRequirement
+
+pub fn execute_duckdb_broad_residual(DuckDBQueryPreparation, @execution_relation.CapturedRows, @execution_relation.SequenceExecutionLimits, @execution_query.QueryGuardMeasureLimits) -> Result[(@execution_relation.CompletedSequence, (Int, Int, Int)), @execution_query.QueryGuardIssue]
 
 pub fn execute_mock_query(MockQueryAttempt, MockQueryLimits, guard_measure? : @execution_query.QueryGuardMeasureLimits?) -> Result[MockQueryComputation, MockQueryIssue]
 
@@ -60,6 +69,8 @@ pub fn mock_retention_row_cids(MockQueryRetention) -> (String, String)
 pub fn mock_retention_usage(MockQueryRetention) -> (Int, Int, Int)
 
 pub fn offer_mock_query(@execution_query.QuerySequence, QueryRealization, Array[@physical_cost.SerialEstimateLine], QueryQuantities, Int) -> Result[QueryOffer, QueryPlanningIssue]
+
+pub fn prepare_duckdb_query(QueryRequirement, String, String, Int, @duckdb_adapter.NativeQueryLimits) -> Result[DuckDBQueryPreparation, @duckdb_adapter.NativeQueryIssue]
 
 pub fn prepare_issued_mock_query_attempt(MockQueryIssuer, QueryStrategy, Array[@decode_core.Cursor], Int) -> Result[MockQueryAttempt, MockEvidenceIssue]
 
@@ -132,6 +143,13 @@ pub fn verify_mock_query_records(MockQueryIssuer, MockQueryAttempt, MockQueryRec
 // Errors
 
 // Types and methods
+pub(all) enum DuckDBNativeIssue {
+  Compilation(@duckdb_adapter.NativeQueryIssue)
+  RootGuard(@duckdb_adapter.NativeRootGuardIssue)
+}
+
+type DuckDBQueryPreparation
+
 pub(all) enum MockEvidenceIssue {
   InvalidLimits
   IdentifierLimit
