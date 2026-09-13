@@ -1541,6 +1541,7 @@ pub(all) enum OperationDisposition {
 }
 
 pub(all) enum OperationExecutionCheck {
+  TopKExecution(TopKExecutionCheck)
   GroupExecution(GroupExecutionCheck)
   RowAssertion(RowAssertionCheck)
   DedupeTopTie(DedupeTopTieCheck)
@@ -2405,6 +2406,22 @@ pub(all) struct TimestampPatternUsage {
   ast_bytes : Int
   ast_nodes : Int
 } derive(Eq, @debug.Debug)
+
+pub struct TopKExecutionCheck {
+  site : OperationRequirementSite
+  step : @pipeline_typing.CheckedStep
+  input : @pipeline_typing.Target
+  operation : @relation_typing.CheckedOperation
+  count : @relation_typing.CountValue
+  policy : @capacity_policy.Policy
+  output_ceiling : @capacity_policy.Ceiling
+  rule : TopKExecutionRule
+}
+
+pub enum TopKExecutionRule {
+  SelectOrderedPrefix
+  PartitionByCanonicalKeys
+}
 
 pub(all) enum ValuesMeasurementIssue {
   InvalidRequirement

@@ -29,6 +29,10 @@ fn check_resolution_index(
     let site = operation_requirements_at(requirements, i).unwrap()
     match state {
       Unresolved => ()
+      Execution(TopKExecution(check)) => {
+        execution += 1
+        assert_true(physical_equal(check.site, site))
+      }
       Execution(GroupExecution(check)) => {
         execution += 1
         assert_true(physical_equal(check.site, site))

@@ -54,6 +54,8 @@ fn check_supported_source(
               | "take"
               | "distinct"
               | "dedupe_rows"
+              | "top_k"
+              | "top_k_by"
               | "append"
               | "except"
               | "intersect"

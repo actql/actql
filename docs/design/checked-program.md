@@ -38,7 +38,9 @@ separate protocol results, not successful CheckedPrograms with weaker guarantees
 
 The entry has an explicit implementation-domain check, separate from the
 language grammar. Its Local and Result-import domain accepts `values`, `derive`,
-`filter`, `assert_rows`, `group`, `select`, `rename`, `drop`, `sort`, `take`, `distinct`, `dedupe_rows`, `append`, `join`, `cross_join`, `except` and `intersect`, including empty operation
+`filter`, `assert_rows`, `group`, `select`, `rename`, `drop`, `sort`, `take`,
+`distinct`, `dedupe_rows`, `top_k`, `top_k_by`, `append`, `join`, `cross_join`,
+`except` and `intersect`, including empty operation
 sequences. Sort/take use the existing owned order-resolution closure and preserve
 their distinct strategies and preconditions; accepting them does not synthesize
 an order from physical enumeration. Result publication can target their explicit
@@ -47,6 +49,26 @@ Representative selection retains its exact input and operation-bound top-tie
 execution check. Repeated grouping keys and the empty global key list keep their
 existing meanings; neither constitutes proof that the selected representative
 is unique in actual data.
+`top_k` and `top_k_by` retain candidate-key completion rather than borrowing the
+nonempty-sort fallback to an existing total sequence. Their exact Parameter
+counts must resolve under the same operation inventory before closure succeeds.
+`TopKExecution.SelectOrderedPrefix` requires exactly the first min(k, input row
+count) rows in the resolved total order, independently in each partition for
+`top_k_by`. Selected row values and multiplicity are preserved.
+The check also retains the same selected capacity policy and its
+`max_relation_output_rows` ceiling. Execution enforces that ceiling over the
+whole selected Relation (not separately per partition); exceeding it fails
+atomically rather than reducing k or dropping partitions. A large k alone is
+not rejected when the actual selected output fits. Physical selection resources
+and complete input admission remain mandatory rather than being waived by k.
+`PartitionByCanonicalKeys` retains authored partition references, including
+repetitions, groups by their equality semantics and orders partitions by
+canonical ascending keys. Empty keys describe one partition of existing rows;
+empty input produces no row. Both checks precede operation output and reject
+the entire output on failure. Neither is a uniqueness or row-capacity proof,
+nor a substitute for the separately retained completed order. Indexed count,
+partition and order readers avoid copying authored arrays before preparation
+budgets are checked.
 Ordinary group operations must close partition, per-call demand, result-contract,
 order and any resource/observation requirements before this entry succeeds.
 Exact count/min/max and decimal sum can use their typed output checks; this

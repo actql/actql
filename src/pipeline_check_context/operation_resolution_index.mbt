@@ -191,7 +191,11 @@ pub fn index_program_operation_resolutions(
             match set_execution_check(site, policy) {
               Ok(None) =>
                 match assertion_execution_check(site) {
-                  Ok(None) => group_execution_check(site)
+                  Ok(None) =>
+                    match group_execution_check(site) {
+                      Ok(None) => top_k_execution_check(site, policy)
+                      other => other
+                    }
                   other => other
                 }
               other => other

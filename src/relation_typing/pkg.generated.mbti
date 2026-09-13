@@ -209,6 +209,12 @@ pub fn text_bytes_used(CheckedOperation) -> Int
 
 pub fn tokens_used(CheckedOperation) -> Int
 
+pub fn top_k_count(CheckedOperation) -> CountValue?
+
+pub fn top_k_partition_at(CheckedOperation, Int) -> KeyField?
+
+pub fn top_k_partition_count(CheckedOperation) -> Int
+
 pub fn work_used(CheckedOperation) -> Int
 
 // Errors

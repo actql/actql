@@ -353,6 +353,30 @@ pub fn ranking_term_count(value : CheckedOperation) -> Int {
 }
 
 ///|
+pub fn top_k_count(value : CheckedOperation) -> CountValue? {
+  match value.row_operation {
+    Some(TopK(count~, ..)) | Some(TopKBy(count~, ..)) => Some(count)
+    _ => None
+  }
+}
+
+///|
+pub fn top_k_partition_count(value : CheckedOperation) -> Int {
+  match value.row_operation {
+    Some(TopKBy(partition~, ..)) => partition.length()
+    _ => 0
+  }
+}
+
+///|
+pub fn top_k_partition_at(value : CheckedOperation, index : Int) -> KeyField? {
+  match value.row_operation {
+    Some(TopKBy(partition~, ..)) => partition.get(index)
+    _ => None
+  }
+}
+
+///|
 pub fn ranking_term_at(value : CheckedOperation, index : Int) -> OrderTerm? {
   match value.row_operation {
     Some(Sort(terms))
