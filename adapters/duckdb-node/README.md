@@ -77,6 +77,13 @@ from that exact requirement rather than accepting replacement logical limits.
 The native preparation accessor reports compiler/root-ceiling compatibility
 only; it is not yet a validated runnable offer or source-access authorization.
 
+`mock_acquisition_candidate` and `duckdb_broad_candidate` can enter the same
+`choose_acquisition_candidate` cost comparison. The DuckDB factory requires
+eight disjoint work scopes exposed by `duckdb_broad_work_at`; missing estimates
+remain unknown. The proposed choice retains its provider binding for Host
+dispatch. This comparison does not perform I/O, issue capture evidence, or
+retry a failed native query as a broad scan.
+
 Tests create their own files under ignored `_build/duckdb-fixtures`, exercise
 exact scalar transport, existing-file read-only access, isolated Compute,
 cumulative transfer bounds, native memory exhaustion, cancellation and cross-process file locks. They

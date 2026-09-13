@@ -16,6 +16,16 @@ import {
 }
 
 // Values
+pub fn acquisition_candidate_binding(AcquisitionCandidate) -> AcquisitionBinding
+
+pub fn acquisition_candidate_duration(AcquisitionCandidate) -> @physical_cost.DurationEstimate
+
+pub fn acquisition_candidate_quantities(AcquisitionCandidate) -> QueryQuantities
+
+pub fn acquisition_choice_candidate(AcquisitionChoice) -> AcquisitionCandidate
+
+pub fn acquisition_choice_reason(AcquisitionChoice) -> @physical_cost.CostChoice
+
 pub fn admit_query_evidence_contracts(@canonical_json.CanonicalValue, @canonical_json.CanonicalValue, QueryEvidenceLimits) -> Result[QueryEvidenceContracts, QueryEvidenceContractIssue]
 
 pub fn bind_captured_query_input(MockQueryIssuer, MockQueryAttempt, MockQueryObservation, @lowering_relation.BoundPrepared, Int, @lowering_relation.BoundPrepared) -> Result[@execution_relation.BoundProducerInput, MockEvidenceIssue]
@@ -24,9 +34,15 @@ pub fn cancel_mock_query(MockQueryAttempt) -> Bool
 
 pub fn capture_mock_query(MockQueryIssuer, MockQueryAttempt, MockQueryRecords, QueryEvidenceLimits) -> Result[MockQueryObservation, MockEvidenceIssue]
 
+pub fn choose_acquisition_candidate(QueryRequirement, Array[AcquisitionCandidate], Array[Int]?, Int) -> Result[AcquisitionSelection, QueryPlanningIssue]
+
 pub fn choose_query_strategy(@execution_query.QuerySequence, Array[QueryOffer], Array[Int]?, Int) -> Result[QuerySelection, QueryPlanningIssue]
 
 pub fn close_mock_query_issuer(MockQueryIssuer) -> Unit
+
+pub fn duckdb_broad_candidate(DuckDBQueryPreparation, Array[@physical_cost.SerialEstimateLine], QueryQuantities, Int) -> Result[AcquisitionCandidate, QueryPlanningIssue]
+
+pub fn duckdb_broad_work_at(Int) -> DuckDBBroadWork?
 
 pub fn duckdb_query_broad_scan(DuckDBQueryPreparation) -> @duckdb_adapter.BroadScan
 
@@ -39,6 +55,8 @@ pub fn execute_duckdb_broad_residual(DuckDBQueryPreparation, @execution_relation
 pub fn execute_mock_query(MockQueryAttempt, MockQueryLimits, guard_measure? : @execution_query.QueryGuardMeasureLimits?) -> Result[MockQueryComputation, MockQueryIssue]
 
 pub fn issue_mock_query_records(MockQueryAttempt, QueryMaterialLimits) -> Result[MockQueryRecords, MockEvidenceIssue]
+
+pub fn mock_acquisition_candidate(QueryRequirement, QueryOffer) -> Result[AcquisitionCandidate, QueryPlanningIssue]
 
 pub fn mock_query_attempt_identity(MockQueryAttempt) -> (String, String)?
 
@@ -143,6 +161,32 @@ pub fn verify_mock_query_records(MockQueryIssuer, MockQueryAttempt, MockQueryRec
 // Errors
 
 // Types and methods
+pub enum AcquisitionBinding {
+  Mock(QueryOffer)
+  DuckDBBroad(DuckDBQueryPreparation)
+}
+
+type AcquisitionCandidate
+
+type AcquisitionChoice
+
+pub enum AcquisitionSelection {
+  Proposed(AcquisitionChoice)
+  Deferred
+  NoCandidates
+}
+
+pub(all) enum DuckDBBroadWork {
+  SessionAndCatalog
+  SourceScan
+  ReceiptTransfer
+  ReceiptConversion
+  LocalResidual
+  ObservationCapture
+  Retention
+  Cleanup
+} derive(Eq, @debug.Debug)
+
 pub(all) enum DuckDBNativeIssue {
   Compilation(@duckdb_adapter.NativeQueryIssue)
   RootGuard(@duckdb_adapter.NativeRootGuardIssue)

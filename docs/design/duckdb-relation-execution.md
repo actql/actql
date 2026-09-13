@@ -50,6 +50,20 @@ validation, physical budgets, retention and capture evidence are separate
 requirements. An unavailable native preparation does not invalidate a supported
 broad residual, and execution failure never silently selects that residual.
 
+The initial mixed acquisition comparison retains a provider binding alongside
+each exact requirement. `choose_acquisition_candidate` compares only common
+duration estimates, without inspecting that binding. Mock and DuckDB-broad
+factories establish their own work inventories; DuckDB-broad includes session
+and catalog setup, source scan, receipt transfer/conversion, Local residual,
+capture, retention and cleanup. Bundles and their component estimates cannot
+both charge the same slot; a missing scope produces an unknown estimate.
+Unknown estimates defer without explicit Host preference, and complete ties
+honor that preference. A proposal retains the exact provider preparation for
+subsequent Host dispatch; it is neither execution evidence nor authority.
+Native DuckDB is not included as an eligible mixed candidate merely because
+its preliminary compiler/root checks passed. General capability registration
+and fixed-input Compute selection are separate integration requirements.
+
 ## Source and fixed-input isolation
 
 The Host supplies an explicitly authorized trusted local database binding.
