@@ -155,3 +155,13 @@ partition, output occurrence, position evidence and contributor demand. This
 keeps future frame contents out of Unit identity and distinguishes duplicate
 output occurrences even when their frames have equal values. The static slot
 does not replace the required durable numeric capture barrier.
+
+Analytic numeric demand has a distinct typed slot retaining both the checked
+analytic operation and exact frame call, together with its underlying aggregate,
+input edge, requirement occurrence and admitted profile. Preparation inspects
+the binary64 sum/avg obligation without evaluating filters or selecting an
+algorithm. Linking requires the same owned requirement inventory and an open
+occurrence; a foreign inventory or repeated link is rejected. The resulting
+execution obligation precedes operation output and rejects publication of that
+output on failure. Neither preparing nor linking this obligation certifies a
+future observation or supplies the persistent slot's local contract closure.

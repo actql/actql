@@ -48,6 +48,14 @@ import {
 }
 
 // Values
+pub fn analytic_numeric_slot_at(ProgramAnalyticNumericSlots, Int) -> AnalyticNumericSlot?
+
+pub fn analytic_numeric_slot_count(ProgramAnalyticNumericSlots) -> Int
+
+pub fn analytic_numeric_slots_requirements(ProgramAnalyticNumericSlots) -> ProgramOperationRequirements
+
+pub fn analytic_numeric_slots_work(ProgramAnalyticNumericSlots) -> Int
+
 pub fn assemble_preparation(SourceProducerContext, TextBoundsChecks, ExpressionProfileChecks, PreparationBudget) -> Result[ProgramPreparation, PreparationIssue]
 
 pub fn attach_environment(InputContexts, @stage_local_inputs.ProgramEnvironmentInputs, max_work~ : Int, max_text_bytes~ : Int, max_local_input_nodes~ : Int) -> Result[EnvironmentContext, EnvironmentIssue]
@@ -336,6 +344,8 @@ pub fn like_pattern_usage(LikePatternChecks) -> LikePatternUsage
 
 pub fn link_program_analytic_array_limits(ProgramOperationResolutionIndex, Int, Int, Int) -> Result[ProgramOperationResolutionIndex, GroupArrayLimitIssue]
 
+pub fn link_program_analytic_numeric_slots(ProgramOperationResolutionIndex, ProgramAnalyticNumericSlots, Int, Int) -> Result[ProgramOperationResolutionIndex, NumericSlotsIssue]
+
 pub fn link_program_analytic_string_limits(ProgramOperationResolutionIndex, Int, Int, Int) -> Result[ProgramOperationResolutionIndex, GroupStringLimitIssue]
 
 pub fn link_program_group_array_limits(ProgramOperationResolutionIndex, Int, Int, Int) -> Result[ProgramOperationResolutionIndex, GroupArrayLimitIssue]
@@ -563,6 +573,8 @@ pub fn prepare_local_context(@stage_results.PreparedLocalSource, Array[Array[Cap
 pub fn prepare_local_program_context(@stage_syntax.Program, @decode_core.Cursor?, @check_environment.WireEnvironment, Array[Array[CapacityMaterial]], @stage_results.LocalProgramLimits, LocalContextLimits, max_parameters~ : Int, proof_owners? : Array[Array[(Int, Int, Int)]]?, input_owners? : Array[Array[(Int, Int, Int, Int)]]?) -> Result[SelectedPolicyContext, LocalProgramContextIssue]
 
 pub fn prepare_local_stage_contexts(@stage_results.PreparedLocalSource, Array[Array[CapacityMaterial]], @capacity_policy.Policy, CapacityStageLimits, proof_owners? : Array[Array[(Int, Int, Int)]]?, input_owners? : Array[Array[(Int, Int, Int, Int)]]?) -> Result[StageContexts, CapacityStageIssue]
+
+pub fn prepare_program_analytic_numeric_slots(ProgramOperationRequirements, @numeric_reduction.Profile, Int, Int) -> Result[ProgramAnalyticNumericSlots, NumericSlotsIssue]
 
 pub fn prepare_program_checks(SourceProducerContext, ExpressionProfiles, PureOperationProfiles, PreparationBudget, max_policy_depth~ : Int, max_requirements~ : Int, max_regex_depth~ : Int) -> Result[OperationProfileChecks, PrepareChecksIssue]
 
@@ -962,6 +974,18 @@ pub enum AnalyticExecutionRule {
   EnforceStatisticalLaw(@relation_typing.AnalyticCall, StatisticalLaw)
   EnforceStringBytes(@relation_typing.AnalyticCall, GroupStringLimit)
   EnforceArrayItems(@relation_typing.AnalyticCall, GroupArrayLimit)
+  CaptureNumericObservation(AnalyticNumericSlot)
+}
+
+pub struct AnalyticNumericSlot {
+  requirement_index : Int
+  site : OperationRequirementSite
+  step : @pipeline_typing.CheckedStep
+  input : @pipeline_typing.Target
+  analytic : @relation_typing.CheckedAnalytic
+  frame_call : @relation_typing.AnalyticCall
+  call : @relation_typing.CheckedAggregate
+  profile : @numeric_reduction.Profile
 }
 
 pub struct AppendRowsCheck {
@@ -1957,6 +1981,8 @@ pub enum PreparedStagesIssue {
   Stage(Int, PreparedStageIssue)
   Assembly(StageIssue)
 }
+
+type ProgramAnalyticNumericSlots
 
 type ProgramExpressionClosure
 

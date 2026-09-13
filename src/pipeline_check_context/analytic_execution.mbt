@@ -7,6 +7,7 @@ pub enum AnalyticExecutionRule {
   EnforceStatisticalLaw(@relation.AnalyticCall, StatisticalLaw)
   EnforceStringBytes(@relation.AnalyticCall, GroupStringLimit)
   EnforceArrayItems(@relation.AnalyticCall, GroupArrayLimit)
+  CaptureNumericObservation(AnalyticNumericSlot)
 }
 
 ///|
