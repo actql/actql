@@ -127,6 +127,23 @@ The minimum is enforced atomically before output consumption; it does not assert
 that the input or output has been observed. Publication-resource obligations
 remain separate, and re-linking an already resolved occurrence is rejected.
 
+Stage requirement closure connects each remaining window publication requirement
+to the same owner's `ProgramPublicationClosure` and its exact membership-limit
+enforcement. The retained `WindowPublicationResources` is a static connection:
+it does not claim successful serialization, resource enforcement or observation.
+Result row and byte selection and enforcement remain at the publication boundary.
+In particular, an artifact byte ceiling is not applied to a hidden intermediate
+window output merely because a later Result depends on it. Window membership
+ceilings still apply independently before operation output consumption.
+
+The connection retains the original producer visit and requirement group. A
+missing membership enforcement cannot be replaced by an unrelated bound. Closing
+the requirements allocates a new resolution index without modifying the incoming
+owner, and charges failed closure visits, connection work and publication scans
+to one budget. The publication inventory is reused, not rescanned or charged
+twice. This connection does not independently enable a new formal-check path;
+persistent limit assembly and full semantic coverage remain required there.
+
 Persistent window proof conversion uses the owning Unit operation subject and
 reidentifies the complete input proof graph first. A window witness uses the
 rows unit and an explicit multiply derivation referencing that converted input;

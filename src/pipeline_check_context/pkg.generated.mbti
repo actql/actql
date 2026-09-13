@@ -1830,6 +1830,7 @@ pub(all) enum OperationRequirementsIssue {
 } derive(Eq, @debug.Debug)
 
 pub(all) enum OperationResolution {
+  WindowPublication(WindowPublicationResources)
   Order(OperationOrderLink)
   Scalar(OperationScalarResolution)
   Frame(OperationFrameResolution)
@@ -2717,6 +2718,13 @@ pub struct WindowMembershipOptions {
   size_resolution : OperationScalarResolution?
   step_resolution : OperationScalarResolution?
   offset_resolution : OperationScalarResolution?
+}
+
+pub struct WindowPublicationResources {
+  requirement_index : Int
+  site : OperationRequirementSite
+  membership : WindowMembershipLimit
+  publications : ProgramPublicationClosure
 }
 
 type WiredStages

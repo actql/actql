@@ -46,6 +46,7 @@ pub fn close_stage_requirements(
   }
   let mut work = owner.work + 1
   let mut remaining = limits.max_requirements
+  let mut prepared_publications : ProgramPublicationClosure? = None
   let operations = match
     close_program_operations(
       owner.resolutions,
@@ -53,6 +54,47 @@ pub fn close_stage_requirements(
       remaining,
     ) {
     Ok(v) => v
+    Err(IncompleteResolution(i)) if owner.resolutions.requirements.entries.get(
+        i,
+      )
+      is Some(site) &&
+      site.requirement
+      is @pipeline.WindowRequirement(@window.ResolvePublicationResources) => {
+      // The unsuccessful closure reserved its full visit budget. Do not reset
+      // that cost when connecting publication requirements and retrying.
+      work += owner.resolutions.requirements.entries.length() + 1
+      let publications = match
+        close_program_publications(
+          owner,
+          owner.work + (limits.max_work - work),
+          remaining,
+        ) {
+        Ok(v) => v
+        Err(e) => return Err(Publications(e))
+      }
+      work += publications.work - owner.work
+      remaining -= publications.entries.length() + publications.rows.length()
+      prepared_publications = Some(publications)
+      let linked = match
+        link_window_publication_resources(
+          owner.resolutions,
+          publications,
+          owner.resolutions.work + (limits.max_work - work),
+        ) {
+        Ok(v) => v
+        Err(e) => return Err(Operations(e))
+      }
+      // The index delta is charged below along with the successful closure.
+      match
+        close_program_operations(
+          linked,
+          owner.resolutions.work + (limits.max_work - work),
+          remaining,
+        ) {
+        Ok(v) => v
+        Err(e) => return Err(Operations(e))
+      }
+    }
     Err(e) => return Err(Operations(e))
   }
   work += operations.work - owner.resolutions.work
@@ -80,17 +122,23 @@ pub fn close_stage_requirements(
   }
   work += incoming.work - owner.work
   remaining -= incoming.checks.length()
-  let publications = match
-    close_program_publications(
-      owner,
-      owner.work + (limits.max_work - work),
-      remaining,
-    ) {
-    Ok(v) => v
-    Err(e) => return Err(Publications(e))
+  let publications = match prepared_publications {
+    Some(v) => v
+    None => {
+      let v = match
+        close_program_publications(
+          owner,
+          owner.work + (limits.max_work - work),
+          remaining,
+        ) {
+        Ok(v) => v
+        Err(e) => return Err(Publications(e))
+      }
+      work += v.work - owner.work
+      remaining -= v.entries.length() + v.rows.length()
+      v
+    }
   }
-  work += publications.work - owner.work
-  remaining -= publications.entries.length() + publications.rows.length()
   let source_modes = match
     close_program_source_modes(
       owner,

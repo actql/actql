@@ -98,6 +98,8 @@ fn check_resolution_index(
       Resolved(v) => {
         resolved += 1
         let (position, owner, kind) = match v {
+          WindowPublication(_) =>
+            abort("window publication requires owned Stage closure")
           Order(r) => (r.requirement_index, r.site, 0)
           Scalar(r) => (r.requirement_index, r.site, 1)
           Frame(r) => (r.requirement_index, r.site, 2)
@@ -180,6 +182,7 @@ fn check_resolution_index(
   for i in 0..<count {
     let kind = fn(v : OperationResolutionState) {
       match v {
+        Resolved(WindowPublication(_)) => 12
         Resolved(AssertionConsumption(_)) => 11
         Unresolved => 0
         Execution(_) => 1

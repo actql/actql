@@ -1,5 +1,6 @@
 ///|
 pub(all) enum OperationResolution {
+  WindowPublication(WindowPublicationResources)
   Order(OperationOrderLink)
   Scalar(OperationScalarResolution)
   Frame(OperationFrameResolution)
@@ -44,6 +45,7 @@ fn resolution_occurrence(
   v : OperationResolution,
 ) -> (Int, OperationRequirementSite) {
   match v {
+    WindowPublication(r) => (r.requirement_index, r.site)
     Order(r) => (r.requirement_index, r.site)
     Scalar(r) => (r.requirement_index, r.site)
     Frame(r) => (r.requirement_index, r.site)
