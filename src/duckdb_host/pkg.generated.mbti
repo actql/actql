@@ -42,9 +42,13 @@ pub fn complete_native_host(NativeHostRun, @query_planning.DuckDBNativeCompletio
 
 pub fn configure_broad_host(@query_planning.QueryEvidenceContracts, @query_planning.QueryRequirement, @query_planning.AcquisitionChoice, @query_planning.PreparedAcquisition[@query_planning.DuckDBQueryPreparation], BroadHostLimits) -> BroadHostConfiguration
 
+pub fn configure_compute_host(@query_planning.FixedComputeChoice, @query_planning.PreparedCompute[@duckdb_adapter.FixedCompute], @execution_relation.GeneratedSequence, @query_planning.DuckDBComputeLimits, @duckdb_adapter.TransportColumnLimits) -> ComputeHostConfiguration
+
 pub fn configure_native_host(@query_planning.QueryTwoReceiptContract, @query_planning.QueryRequirement, @query_planning.AcquisitionChoice, @query_planning.PreparedAcquisition[@query_planning.DuckDBNativePreparation], NativeHostLimits) -> NativeHostConfiguration
 
 pub fn configured_broad_host_limits(BroadHostConfiguration) -> BroadHostLimits
+
+pub fn configured_compute_transport(ComputeHostConfiguration) -> @duckdb_adapter.TransportColumnLimits
 
 pub fn configured_native_host_limits(NativeHostConfiguration) -> NativeHostLimits
 
@@ -61,6 +65,8 @@ pub fn native_host_output(NativeHostRun, @query_planning.DuckDBNativeObservation
 pub fn native_host_scan(NativeHostRun) -> @duckdb_adapter.NativeScan
 
 pub fn start_configured_broad_host(BroadHostConfiguration, String, (@query_planning.DuckDBBroadAttempt) -> Bool) -> Result[BroadHostRun, BroadHostIssue]
+
+pub fn start_configured_compute_host(ComputeHostConfiguration, (@query_planning.DuckDBComputeAttempt) -> Bool) -> Result[@query_planning.DuckDBComputeAttempt, @query_planning.DuckDBComputeIssue]
 
 pub fn start_configured_native_host(NativeHostConfiguration, String, (@query_planning.DuckDBNativeAttempt) -> Bool) -> Result[NativeHostRun, NativeHostIssue]
 
@@ -88,6 +94,8 @@ pub(all) struct BroadHostLimits {
 }
 
 type BroadHostRun
+
+type ComputeHostConfiguration
 
 type NativeHostConfiguration
 

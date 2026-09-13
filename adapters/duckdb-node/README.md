@@ -176,8 +176,8 @@ checked without re-evaluating the predicate. The fixture also applies shared nat
 retained operands and the received result count determine predicate root bytes,
 with no RHS demand for empty input. Neither measurement alone grants execution
 success. The sealed receipt is still provisional, not a
-`CompletedOutput`: product integration of the selected capacity and trusted Compute
-completion remain required. This fixture-backed driver is conformance code, not
+`CompletedOutput`: the low-level transport driver does not itself grant trusted
+completion. This fixture-backed driver is conformance code, not
 the final standard Compute Host entry. Acquisition budget exemptions must not be
 reused to waive a fixed consumer's selected contract.
 
@@ -186,8 +186,32 @@ input measurement, result receipt, trusted settlement verification, demand and
 output guards, and the actual engine `CompletedOutput`. Portable integration
 tests bind that output to an ordinary checked consumer and cover failure and
 revocation. The low-level verifier argument is trusted Host wiring. The standard
-Node Compute entry still needs to install its settled-transport verifier and
-use this coordinator; the fixture path above does not establish that integration.
+`runFixedHostCompute` entry uses this coordinator and installs the verifier
+internally. The real owned-capture test exercises this product entry in addition
+to the low-level diagnostic, while the source DB file is unavailable.
+
+After `npm run build:host`, trusted application preparation supplies an opaque
+`ComputeHostConfiguration` from `configure_compute_host`, containing the selected
+candidate, exact consumer preparation, common capacity and physical allowances:
+
+```js
+import { runFixedHostCompute } from './host.mjs';
+const result = await runFixedHostCompute(setup, sessionLimits, importLimits, signal);
+try {
+  const completed = result.output(); // bind with the ordinary checked producer API
+  // result.usage, result.importedRows and result.importedCells describe transport.
+} finally {
+  result.close();
+}
+```
+
+No source grant/connection, SQL callback, alternate runtime or verifier can be
+passed to this entry. It imports only the owned completed input into a separate
+memory DB. Completion requires actual settled port/callback/session provenance,
+input/output capacity, demand measurement and retained output. Close revokes new
+use of that output; independent consumers that already completed remain valid.
+The setup may be reused for a fresh attempt and budget, not a restarted old
+transport. This is source-checkout local Compute, not durable Run execution.
 
 The scalar import transport fixture also starts with real engine-completed
 values and the product import adapter, then checks exact real DuckDB round-trips
@@ -351,8 +375,8 @@ checks final consumer CIDs against independently specified rows.
 The engine's `prepare_trusted_output_port` is a trusted-runtime installation API,
 not a safe public Connector or Program extension point. Do not expose it from an
 untrusted Host interface; use the provider-specific bridge that fixes verification
-internally. Both standard acquisition assemblies below have no conformance
-dependency. Fixed-Compute product completion remains a separate integration
+internally. Standard acquisition and fixed-Compute assemblies have no conformance
+dependency. Fixed-Compute uses the same trusted engine boundary with its own
 requirement.
 
 ### Standard acquisition Host entries

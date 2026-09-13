@@ -5,6 +5,8 @@ struct OwnedFixedFixture {
   compute : @duckdb.FixedCompute
   local_binding : @planning.PreparedCompute[@execution.GeneratedSequence]
   local_choice : @planning.FixedComputeChoice
+  configuration : @dbhost.ComputeHostConfiguration
+  consumer : @execution.GeneratedSequence
   measurement : @execution.FixedProducerMeasurement
   mut measured : @execution.FixedProducerMeasuredOutput?
   mut demand : @duckdb.FixedComputeDemand?
@@ -106,6 +108,44 @@ pub fn owned_fixed_create(
       compute: @planning.fixed_compute_choice_payload(choice, native).unwrap(),
       local_binding,
       local_choice,
+      configuration: @dbhost.configure_compute_host(
+        choice,
+        native,
+        @planning.fixed_compute_choice_payload(local_choice, local_binding).unwrap(),
+        {
+          values: issued_native_measure_limits(),
+          demand: issued_native_measure_limits(),
+          physical: {
+            max_rows: 100,
+            max_cells: 1000,
+            max_nodes: 1000,
+            max_text_bytes: 10000,
+          },
+          retention: {
+            max_nodes: 10000,
+            max_text_bytes: 10000,
+            max_depth: 100,
+            max_work: 100000,
+          },
+          metadata_work: 10000,
+          completion_entries: 100,
+          completion_name_bytes: 10000,
+        },
+        {
+          max_bytes: 100000,
+          max_nodes: 10000,
+          max_columns: 10,
+          max_rows: 100,
+          max_text_bytes: 100000,
+        },
+      ),
+      consumer: fixture_generated(
+        issued_fixture_consumer(receiver),
+        registry_json,
+        values_json,
+        fragment_json,
+        false,
+      ),
       measurement: @execution.prepare_fixed_producer_measurement(
         read,
         @pipeline.Step(1),
@@ -120,6 +160,58 @@ pub fn owned_fixed_create(
     }
   } catch {
     _ => abort("owned fixed conformance setup")
+  }
+}
+
+///|
+#export_name("ownedFixedConfiguration")
+pub fn owned_fixed_configuration(
+  value : OwnedFixedFixture,
+) -> @dbhost.ComputeHostConfiguration {
+  value.configuration
+}
+
+///|
+#export_name("ownedFixedConsumeOutput")
+pub fn owned_fixed_consume_output(
+  value : OwnedFixedFixture,
+  output : @execution.CompletedOutput,
+) -> String {
+  let owner = @duckdb.native_query_owner(
+    @duckdb.fixed_compute_query(value.compute),
+  )
+  guard @execution.bind_completed_input(
+      @execution.generated_sequence_owner(value.consumer),
+      0,
+      owner,
+      output,
+    )
+    is Ok(bound) else {
+    return "null"
+  }
+  guard @execution.execute_generated_sequence(
+      value.consumer,
+      [],
+      issued_execution_limits(100),
+      produced=[bound],
+    )
+    is Ok(completed) else {
+    return "null"
+  }
+  guard @execution.completed_output(completed, @pipeline.Step(0))
+    is Some(result) else {
+    return "null"
+  }
+  match
+    @execution.identify_completed_rows(result, {
+      max_columns: 10,
+      max_order_work: 10000,
+      max_bytes: 100000,
+      max_nodes: 10000,
+      max_depth: 100,
+    }) {
+    Ok(identity) => @execution.row_wire_cid(identity)
+    Err(_) => "null"
   }
 }
 

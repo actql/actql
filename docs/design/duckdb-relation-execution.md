@@ -102,6 +102,16 @@ invalidates its live provenance and blocks new consumer execution. A downstream
 result that already completed remains independent. The attempt stores a success
 flag rather than its own completed output, avoiding a completion/attempt cycle.
 
+The standard Node fixed-Compute assembly accepts only an opaque configured
+candidate and transport/import allowances. Its trusted bridge loads the fixed
+product MoonBit runtime and privately installs the exact settled attempt/port/
+receiver/session verifier. It supplies no source grant or connection to the
+isolated memory DB. SQL generation, physical parameter encoding, result admission,
+capacity, demand and completion remain MoonBit responsibilities. No conformance
+catalog, test export, alternate runtime or user verifier enters this assembly.
+The returned output is the actual engine completion; public output access after
+close is rejected, and retained handles fail subsequent producer admission.
+
 Fixed-input Compute uses the same module registrations but a distinct owned
 `FixedComputeRequest` and candidate type. The request retains one `ProducerRead`
 for its exactly bound consumer, together with the exact pinned

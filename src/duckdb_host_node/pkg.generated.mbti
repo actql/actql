@@ -37,6 +37,28 @@ pub fn broad_host_parameter(BroadNodeRun, Int) -> String raise NodeHostFailure
 
 pub fn broad_host_sql(BroadNodeRun, Bool) -> String
 
+pub fn compute_host_abort(ComputeNodeRun) -> Unit
+
+pub fn compute_host_accept(ComputeNodeRun, Int, String) -> Unit raise NodeHostFailure
+
+pub fn compute_host_attempt(ComputeNodeRun) -> @query_planning.DuckDBComputeAttempt
+
+pub fn compute_host_begin(ComputeNodeRun, String) -> Unit raise NodeHostFailure
+
+pub fn compute_host_close(ComputeNodeRun) -> Unit
+
+pub fn compute_host_complete(ComputeNodeRun) -> @execution_relation.CompletedOutput raise NodeHostFailure
+
+pub fn compute_host_count(ComputeNodeRun, Bool) -> Int
+
+pub fn compute_host_finish(ComputeNodeRun) -> Unit raise NodeHostFailure
+
+pub fn compute_host_open(@duckdb_host.ComputeHostConfiguration, (@query_planning.DuckDBComputeAttempt) -> Bool) -> ComputeNodeRun raise NodeHostFailure
+
+pub fn compute_host_parameter(ComputeNodeRun, Int, Int, Bool) -> String raise NodeHostFailure
+
+pub fn compute_host_sql(ComputeNodeRun, Int) -> String raise NodeHostFailure
+
 pub fn native_host_abort(NativeNodeRun) -> Unit
 
 pub fn native_host_accept(NativeNodeRun, Int, String) -> Unit raise NodeHostFailure
@@ -67,6 +89,8 @@ pub fn native_host_sql(NativeNodeRun, Int) -> String raise NodeHostFailure
 pub(all) suberror NodeHostFailure {
   Host(@duckdb_host.NativeHostIssue)
   Broad(@duckdb_host.BroadHostIssue)
+  Compute(@query_planning.DuckDBComputeIssue)
+  ComputeParameter(@duckdb_adapter.ValueIssue)
   Transport(@duckdb_adapter.TransportColumnIssue)
   Descriptor(@duckdb_adapter.ValueIssue)
   InvalidFields
@@ -77,6 +101,8 @@ pub(all) suberror NodeHostFailure {
 
 // Types and methods
 type BroadNodeRun
+
+type ComputeNodeRun
 
 type NativeNodeRun
 

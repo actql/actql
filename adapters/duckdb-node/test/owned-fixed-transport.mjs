@@ -2,11 +2,38 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { runFixedCompute, matchesFixedCompute, releaseFixedCompute } from '../fixed-compute.mjs';
+import { runFixedHostCompute } from '../host.mjs';
 
 const hash = value => `sha256:${createHash('sha256').update(JSON.stringify(value)).digest('hex')}`;
 
 export async function exerciseOwnedFixedTransport(moon, producer, output, contracts, limits, expectedIds) {
   const create = () => moon.ownedFixedCreate(producer, output, ...contracts);
+  const configured = create();
+  const setup = moon.ownedFixedConfiguration(configured);
+  const hostLimits = { maxRows: 100, maxCells: 1000 };
+  const expectedCid = hash(expectedIds.map(id => ({ id })));
+  const actual = await runFixedHostCompute(setup, limits, hostLimits);
+  const actualOutput = actual.output();
+  assert.equal(moon.ownedFixedConsumeOutput(configured, actualOutput), expectedCid);
+  assert.equal(actual.usage.statements, actual.importedRows + 2);
+  const foreign = create();
+  assert.equal(moon.ownedFixedConsumeOutput(foreign, actualOutput), 'null');
+  const again = await runFixedHostCompute(setup, limits, hostLimits);
+  actual.close();
+  actual.close();
+  assert.throws(() => actual.output(), { code: 'ReleasedCompute' });
+  assert.equal(moon.ownedFixedConsumeOutput(configured, actualOutput), 'null');
+  assert.equal(moon.ownedFixedConsumeOutput(configured, again.output()), expectedCid);
+  again.close();
+  if (moon.ownedFixedRowCount(configured) > 0) {
+    await assert.rejects(runFixedHostCompute(setup, limits, { maxRows: 0, maxCells: 1000 }), { code: 'ImportRows' });
+  }
+  const cancelled = new AbortController();
+  cancelled.abort();
+  await assert.rejects(runFixedHostCompute(setup, limits, hostLimits, cancelled.signal));
+  const retried = await runFixedHostCompute(setup, limits, hostLimits);
+  assert.equal(moon.ownedFixedConsumeOutput(configured, retried.output()), expectedCid);
+  retried.close();
   const accepted = value => { if (!value) throw new Error('OwnedFixedReceiverRejected'); };
   async function receive(maxRows, signal, onChunk) {
     const fixed = create();

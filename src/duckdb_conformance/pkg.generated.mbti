@@ -132,6 +132,10 @@ pub fn owned_fixed_begin(OwnedFixedFixture, String, Int) -> Bool
 
 pub fn owned_fixed_column_count(OwnedFixedFixture) -> Int
 
+pub fn owned_fixed_configuration(OwnedFixedFixture) -> @duckdb_host.ComputeHostConfiguration
+
+pub fn owned_fixed_consume_output(OwnedFixedFixture, @execution_relation.CompletedOutput) -> String
+
 pub fn owned_fixed_create(IssuedNativeFixture, @execution_relation.CompletedOutput, String, String, String) -> OwnedFixedFixture
 
 pub fn owned_fixed_finish(OwnedFixedFixture) -> Bool

@@ -9,6 +9,8 @@ struct NativeNodeRun {
 pub(all) suberror NodeHostFailure {
   Host(@host.NativeHostIssue)
   Broad(@host.BroadHostIssue)
+  Compute(@planning.DuckDBComputeIssue)
+  ComputeParameter(@duckdb.ValueIssue)
   Transport(@duckdb.TransportColumnIssue)
   Descriptor(@duckdb.ValueIssue)
   InvalidFields

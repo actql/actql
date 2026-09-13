@@ -3,11 +3,70 @@
 import { randomUUID } from 'node:crypto';
 import { runNativeQuery } from './native-query.mjs';
 import { runBroadQuery } from './broad-query.mjs';
+import { runFixedCompute, matchesFixedCompute, releaseFixedCompute } from './fixed-compute.mjs';
 import { DuckDBTransportError } from './session.mjs';
 
 const runtimeUrl = new URL('../../_build/js/release/build/duckdb_host_node/duckdb_host_node.js', import.meta.url);
 let runtime;
 const loadRuntime = () => runtime ??= import(runtimeUrl.href);
+
+// No source grant or connection enters Compute. The fixed product runtime
+// supplies the selected SQL and exact owned input; verifier wiring stays here.
+export async function runFixedHostCompute(setup, limits, importLimits, signal) {
+  const moon = await loadRuntime();
+  let result, port, consume, attempt;
+  const verify = current => current === attempt && matchesFixedCompute(result, port, consume);
+  const run = checked(moon.computeHostOpen(setup, verify));
+  attempt = moon.computeHostAttempt(run);
+  let began = false;
+  const begin = fields => {
+    if (!began) {
+      checked(moon.computeHostBegin(run, fieldsFrame(fields)));
+      began = true;
+    }
+  };
+  port = Object.freeze({
+    rowCount: () => rows(moon.computeHostCount(run, false)),
+    columnCount: () => rows(moon.computeHostCount(run, true)),
+    createSql: () => checked(moon.computeHostSql(run, 0)),
+    insertSql: () => checked(moon.computeHostSql(run, 1)),
+    parameter: (row, column) => JSON.parse(checked(moon.computeHostParameter(run, row, column, false))),
+    querySql: () => checked(moon.computeHostSql(run, 2)),
+    queryParameters: () => [JSON.parse(checked(moon.computeHostParameter(run, 0, 0, true)))],
+  });
+  consume = chunk => {
+    begin(chunk.fields);
+    checked(moon.computeHostAccept(run, rows(chunk.rowCount), JSON.stringify(chunk.columns)));
+  };
+  try {
+    result = await runFixedCompute(port, limits, importLimits, consume, signal);
+    if (signal?.aborted) throw new DuckDBTransportError('Cancelled');
+    begin(result.value.fields); // empty input still has checked output metadata
+    checked(moon.computeHostFinish(run));
+    const output = checked(moon.computeHostComplete(run));
+    let closed = false;
+    return Object.freeze({
+      usage: result.usage,
+      importedRows: result.value.importedRows,
+      importedCells: result.value.importedCells,
+      output() {
+        if (closed) throw new DuckDBTransportError('ReleasedCompute');
+        return output;
+      },
+      close() {
+        if (closed) return;
+        closed = true;
+        moon.computeHostClose(run);
+        releaseFixedCompute(result);
+      },
+    });
+  } catch (error) {
+    moon.computeHostAbort(run);
+    moon.computeHostClose(run);
+    if (result !== undefined) releaseFixedCompute(result);
+    throw error;
+  }
+}
 
 // The pinned MoonBit JS compiler exports typed `raise` as Result, not a JS
 // throw. Keep its generated ABI here, outside semantic/provenance verification.
