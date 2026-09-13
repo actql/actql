@@ -136,6 +136,67 @@ fn query_generated(
 }
 
 ///|
+test "retained query scan is immutable owned input, not completion evidence" {
+  let (query, owner) = query_sequence_fixture()
+  let generated = query_generated(owner)
+  let prepared = prepare_query_sequence(query, generated, 10000).unwrap()
+  let rows = [input_cursor("{\"id\":3}"), input_cursor("{\"id\":1}")]
+  let receipt = admit_query_receipt(
+    prepared,
+    rows,
+    2,
+    run_limits().input_values,
+  ).unwrap()
+  rows.clear()
+  let scan = query_receipt_rows(receipt)
+  assert_eq(captured_row_count(scan), 2)
+  // Even the discarded row stays available to the trusted full-scan verifier.
+  assert_true(captured_cell(scan, 1, 0) is Some(@admitted.Number(1)))
+  assert_true(physical_equal(captured_owner(scan), owner))
+  let other_preparation = prepare_query_sequence(query, generated, 10000).unwrap()
+  assert_true(
+    execute_query_receipt(other_preparation, receipt, compute_test_limits())
+    is Err(ForeignReceipt),
+  )
+  assert_true(
+    execute_query_receipt(prepared, receipt, {
+      ..compute_test_limits(),
+      max_work: 0,
+    })
+    is Err(Execution(_)),
+  )
+  // Failed execution does not consume input or grant a budget credit on retry.
+  for _ in 0..<2 {
+    let result = execute_query_receipt(prepared, receipt, compute_test_limits()).unwrap()
+    let output = completed_output(result, Step(1)).unwrap()
+    assert_eq(completed_row_count(output), 1)
+    assert_true(completed_cell(output, 0, 0) is Some(Number(3)))
+    assert_eq(captured_row_count(scan), 2)
+  }
+}
+
+///|
+test "retained query scan admission preserves full-scan failure and row bounds" {
+  let (query, owner) = query_sequence_fixture(filter="1 / (id - id) > 0")
+  let prepared = prepare_query_sequence(query, query_generated(owner), 10000).unwrap()
+  let rows = [input_cursor("{\"id\":3}"), input_cursor("{\"id\":\"bad\"}")]
+  assert_true(
+    admit_query_receipt(prepared, rows, 2, run_limits().input_values)
+    is Err(ReceiptAdmission(InputValue(1, _))),
+  )
+  assert_true(
+    admit_query_receipt(prepared, rows, 1, run_limits().input_values)
+    is Err(ReceiptAdmission(CaptureLimit)),
+  )
+  let empty = admit_query_receipt(prepared, [], 0, run_limits().input_values).unwrap()
+  let completed = execute_query_receipt(prepared, empty, compute_test_limits()).unwrap()
+  assert_eq(
+    completed_row_count(completed_output(completed, Step(1)).unwrap()),
+    0,
+  )
+}
+
+///|
 test "shared acquisition binds the exact checked graph and parameters" {
   let (query, owner) = query_sequence_fixture()
   let generated = query_generated(owner)

@@ -18,6 +18,8 @@ pub fn admit_fragment_contract(RegisteredRelationContracts, @canonical_json.Cano
 
 pub fn admit_ordered_contract(RegisteredRelationContracts, @canonical_json.CanonicalValue, RegistryLimits) -> Result[RegisteredOrderedContract, OrderedContractIssue]
 
+pub fn admit_query_receipt(QuerySequence, Array[@decode_core.Cursor], Int, ValueLimits) -> Result[QueryReceipt, QuerySequenceIssue]
+
 pub fn admit_relation_registry(@canonical_json.CanonicalValue, @canonical_json.CanonicalValue, RegistryLimits) -> Result[RegisteredRelationContracts, RegistryIssue]
 
 pub fn binary(@lowering_relation.BinaryOperator, Value, Value) -> Result[Value, ScalarIssue]
@@ -64,6 +66,8 @@ pub fn execute_generated_sequence(GeneratedSequence, Array[CapturedRows], Sequen
 
 pub fn execute_local_compute_attempt(LocalComputeAttempt, SequenceExecutionLimits) -> Result[CompletedSequence, LocalComputeIssue]
 
+pub fn execute_query_receipt(QuerySequence, QueryReceipt, SequenceExecutionLimits) -> Result[CompletedSequence, QuerySequenceIssue]
+
 pub fn local_compute_result(LocalComputeAttempt) -> Result[CompletedSequence, LocalComputeIssue]
 
 pub fn ordered_params_kernel(OrderedParams) -> @lowering_relation.PreparedKernel
@@ -79,6 +83,8 @@ pub fn prepare_ordered_params(RegisteredOrderedContract, @lowering_relation.Orde
 pub fn prepare_query_sequence(@sourceview_resolution.QueryAcquisition, GeneratedSequence, Int) -> Result[QuerySequence, QuerySequenceIssue]
 
 pub fn prepare_runtime_fragment(@lowering_relation.FragmentRequest, FragmentContract, @lowering_relation.DemandLimits, RegistryLimits, @lowering_relation.FragmentRowLimits, ordered? : RegisteredOrderedContract?) -> Result[FragmentRuntimeContext, RuntimeFragmentIssue]
+
+pub fn query_receipt_rows(QueryReceipt) -> CapturedRows
 
 pub fn query_sequence_requirement(QuerySequence) -> @sourceview_resolution.QueryAcquisition
 
@@ -262,6 +268,8 @@ pub(all) enum ProducerBindingIssue {
   ProducerTargetMismatch
 }
 
+type QueryReceipt
+
 type QuerySequence
 
 pub(all) enum QuerySequenceIssue {
@@ -269,6 +277,7 @@ pub(all) enum QuerySequenceIssue {
   Limit
   ForeignPipeline
   ForeignParameters
+  ForeignReceipt
   UnsupportedExecutionShape
   CaptureNotRetained
   ReceiptAdmission(CaptureIssue)

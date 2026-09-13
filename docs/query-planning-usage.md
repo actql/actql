@@ -25,6 +25,14 @@ reports `NotComputed` before execution and retains typed failures afterward.
 `cancel_mock_query` can withdraw an unstarted or awaiting-capture attempt. Use a
 new attempt for a retry; it does not implicitly reread or choose another route.
 
+For integrations needing full-scan material after computation,
+`admit_query_receipt` returns an immutable, preparation-owned `QueryReceipt` and
+`execute_query_receipt` runs it with a fresh computation budget. The convenience
+`evaluate_query_receipt` composes these operations. `query_receipt_rows` exposes
+only immutable admitted material, not capture evidence; passing the receipt to
+a different preparation is rejected. The mock retains the complete admitted
+scan even on the native route, so receipt savings do not imply retention savings.
+
 Selection needs one candidate entry plus the common helper's duration/preference
 entries: two offers require four entries without priority and six with a two-item
 priority. Offer estimation separately budgets its work inventory, line count and

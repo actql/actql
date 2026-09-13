@@ -51,11 +51,21 @@ finite source is an execution fixture, not proof that an external SaaS/DB source
 was observed. Both routes use the ordinary local execution and immutable completed
 output implementation. Input failures and expression failures remain typed.
 
-`MockQueryComputation` retains completed local output privately, with actual source
+`MockQueryComputation` retains the admitted full scan and completed local output
+privately, with actual source
 and received row/column counts. There is deliberately no public consumer-output
 accessor. This intermediate is not a `completed_observation`, issuer record,
 authority decision or capture success. Receipt cells are physical quantities,
 not canonical wire bytes or the acquisition's logical row/value guards.
+
+Full-scan admission and query execution share an opaque `QueryReceipt`, owned by
+the exact query preparation. Keeping this immutable material allows a verifier
+to inspect even native rows and columns not received by the Host without a
+second admission or reevaluation. Reusing it still runs the driver's input
+checks and accounting with a fresh execution budget. It does not establish
+external source authority, a snapshot or successful observation capture. Its
+retained capacity must be included in capture's physical retention checks;
+reduced native receipt is not reduced full-scan retention in this mock.
 
 An attempt is one-shot. Failure never changes the selected route or rereads a
 source. Cancellation is supported before computation and at the computation/capture

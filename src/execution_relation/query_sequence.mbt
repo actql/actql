@@ -8,11 +8,20 @@ struct QuerySequence {
 }
 
 ///|
+/// Full selected-scan admission, bound to exactly one prepared query. This is
+/// retained input material, not source authority or acquisition completion.
+struct QueryReceipt {
+  owner : QuerySequence
+  rows : CapturedRows
+}
+
+///|
 pub(all) enum QuerySequenceIssue {
   InvalidLimits
   Limit
   ForeignPipeline
   ForeignParameters
+  ForeignReceipt
   UnsupportedExecutionShape
   CaptureNotRetained
   ReceiptAdmission(CaptureIssue)
@@ -96,6 +105,23 @@ pub fn evaluate_query_receipt(
   admission : ValueLimits,
   execution : SequenceExecutionLimits,
 ) -> Result[CompletedSequence, QuerySequenceIssue] {
+  let receipt = match
+    admit_query_receipt(prepared, rows, max_received_rows, admission) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  execute_query_receipt(prepared, receipt, execution)
+}
+
+///|
+/// Admit once and retain the immutable full scan, including rows and columns
+/// that a native realization will not transmit. No filter runs on this path.
+pub fn admit_query_receipt(
+  prepared : QuerySequence,
+  rows : Array[@decode.Cursor],
+  max_received_rows : Int,
+  admission : ValueLimits,
+) -> Result[QueryReceipt, QuerySequenceIssue] {
   let captured = match
     capture_input(
       @lower.sequence_owner(prepared.generated.sequence),
@@ -107,10 +133,32 @@ pub fn evaluate_query_receipt(
     Ok(value) => value
     Err(issue) => return Err(ReceiptAdmission(issue))
   }
-  match execute_generated_sequence(prepared.generated, [captured], execution) {
+  Ok({ owner: prepared, rows: captured, })
+}
+
+///|
+/// Reuse admitted material with a fresh execution budget. The driver still
+/// performs its normal input accounting and checks; admission is not a credit.
+pub fn execute_query_receipt(
+  prepared : QuerySequence,
+  receipt : QueryReceipt,
+  execution : SequenceExecutionLimits,
+) -> Result[CompletedSequence, QuerySequenceIssue] {
+  if !physical_equal(prepared, receipt.owner) {
+    return Err(ForeignReceipt)
+  }
+  match
+    execute_generated_sequence(prepared.generated, [receipt.rows], execution) {
     Ok(value) => Ok(value)
     Err(issue) => Err(Execution(issue))
   }
+}
+
+///|
+/// Immutable, owned material for bounded access hashing by the Host. This does
+/// not expose a completion handle or permit a caller to issue execution records.
+pub fn query_receipt_rows(receipt : QueryReceipt) -> CapturedRows {
+  receipt.rows
 }
 
 ///|

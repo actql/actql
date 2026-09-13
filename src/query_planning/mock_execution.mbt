@@ -20,6 +20,9 @@ priv enum MockQueryState {
 /// fixed-input consumer can use this acquisition result.
 struct MockQueryComputation {
   strategy : QueryStrategy
+  // Preserve full-scan provenance even when the native receipt is projected.
+  // Kept private: this alone never authorizes process-evidence issuance.
+  _scan : @execution.QueryReceipt
   output : @execution.CompletedOutput
   source_rows : Int
   received_rows : Int
@@ -112,12 +115,20 @@ fn compute_mock_query(
   // admission. Native executes this inside the mock source, before receipt;
   // BroadWithResidual executes it locally, after broad receipt. There is no
   // separate mock predicate interpreter or weak-prefilter completion claim.
-  let completed = match
-    @execution.evaluate_query_receipt(
+  let scan = match
+    @execution.admit_query_receipt(
       strategy.offer.owner,
       source,
       limits.source_rows,
       limits.source_admission,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Local(issue))
+  }
+  let completed = match
+    @execution.execute_query_receipt(
+      strategy.offer.owner,
+      scan,
       limits.computation,
     ) {
     Ok(value) => value
@@ -144,6 +155,7 @@ fn compute_mock_query(
   }
   Ok({
     strategy,
+    _scan: scan,
     output,
     source_rows: source.length(),
     received_rows,
