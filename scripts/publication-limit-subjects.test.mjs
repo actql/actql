@@ -16,6 +16,29 @@ function canonical(value) {
 }
 const cid = (value) => `sha256:${createHash('sha256').update(JSON.stringify(canonical(value))).digest('hex')}`;
 
+test('aggregate author guards use local Definition identities and canonical occurrence locators', () => {
+  const corpus = read('../portability/corpus/group-guard-witnesses.json');
+  const ids = new Set();
+  for (const v of corpus.cases) {
+    const path = `$.steps[${v.step}].group.aggregates[${JSON.stringify(v.name)}].${v.scope === 'items' ? 'max_items' : 'max_bytes'}`;
+    assert.equal(path, v.path);
+    const body = {
+      version: 'actql-bound-witness/0.1', dependencies: [corpus.unit_definition_cid],
+      derivation: {op: 'source'}, role: 'author_guard',
+      law_id: `actql.guard.${v.scope === 'items' ? 'array' : 'string'}-aggregate`,
+      source: {kind: 'author_guard', program_definition_cid: corpus.unit_definition_cid, source_path: path},
+      unit: v.scope === 'items' ? 'array_items' : 'bytes', value: v.value,
+    };
+    assert.equal(cid(body), v.cid);
+    assert.ok(!ids.has(v.cid));
+    ids.add(v.cid);
+    const other = 'sha256:' + '1'.repeat(64);
+    assert.notEqual(cid({...body, dependencies: [other], source: {...body.source, program_definition_cid: other}}), v.cid);
+    assert.notEqual(cid({...body, source: {...body.source, source_path: path.replace('$.steps', '$.stages[0].steps')}}), v.cid);
+    assert.notEqual(cid({...body, value: v.value + 1}), v.cid);
+  }
+});
+
 test('ordinary group subjects distinguish calls, steps and measurement scopes', () => {
   const corpus = read('../portability/corpus/group-limit-subjects.json');
   const subjects = new Set();

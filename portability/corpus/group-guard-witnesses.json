@@ -1,0 +1,11 @@
+{
+  "version": "actql-group-guard-vectors/0.1",
+  "description": "Synthetic Unit namespace for independently fixed witness preimages, not an admitted Unit or runtime evidence.",
+  "unit_definition_cid": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+  "cases": [
+    {"name":"items","step":0,"value":2,"scope":"items","path":"$.steps[0].group.aggregates[\"items\"].max_items","cid":"sha256:ca0dad20b0eff03aa05a4b7a4817f29820ffe63bd06ff0305849efa1997b59b7"},
+    {"name":"a\"/\n","step":1,"value":3,"scope":"items","path":"$.steps[1].group.aggregates[\"a\\\"/\\n\"].max_items","cid":"sha256:56b232eec660ab3be0afe2f914d47584de90b4f610cff9f0c561ece590bc335b"},
+    {"name":"items","step":0,"value":3,"scope":"items","path":"$.steps[0].group.aggregates[\"items\"].max_items","cid":"sha256:93064c7fc0ddc012eb75a184d8b92231364ea5f64d29f71826e068856ac6cc0d"},
+    {"name":"text","step":0,"value":2,"scope":"bytes","path":"$.steps[0].group.aggregates[\"text\"].max_bytes","cid":"sha256:c7e7c741b1459e04674b80c4a0141e44aacdfd8ae67d04a460bbdebd24e8f9d4"}
+  ]
+}

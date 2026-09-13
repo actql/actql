@@ -301,6 +301,26 @@ witness reader. Repeated occurrences and currently non-binding guards remain
 distinct. A matching unit or number does not allow one occurrence to govern
 another consumer.
 
+<!-- requirement-block: capacity-law-registry.unit-guard-owner capacity-law-registry.unit-group-guard-path capacity-law-registry.unit-group-guard-binding -->
+For a guard in an extracted Unit's executable facts, the owning Definition
+MUST be that Unit Definition: `source.program_definition_cid` and the sole
+dependency contain its CID, not the enclosing Program Definition or semantics
+CID. The path addresses the normalized authored Unit body, not the Definition
+envelope or a lowered graph. For an ordinary group aggregate it MUST be exactly
+`$.steps[n].group.aggregates[Q].max_items` for `array_agg`, or the same path ending
+in `.max_bytes` for `string_agg`. Here `n` is the zero-based authored step ordinal
+in canonical unsigned decimal, and `Q` is the canonical JSON string encoding
+of the actual normalized aggregate output name, including its double quotes.
+No dot-name abbreviation, alternative quoting or whitespace is inserted.
+This is a single occurrence locator, not an evaluated JSONPath query.
+Validation MUST bind the occurrence and its effective value to the same Unit,
+Parameter bindings and selected limit; equality of CIDs or numeric values alone
+does not establish process-local ownership. A Parameter-bound guard retains the
+authored Parameter occurrence while its witness value is the effective positive
+integer. Changing unrelated stages or Host policy does not change this guard
+witness; changing its owning Unit, occurrence or bound value does. The enclosing
+Program's membership evidence authenticates the Unit separately.
+
 The join-output law applies separately to `join`, `cross_join` and
 `interval_join` output guards; the owning occurrence determines the operation
 and protected output. The nested-array-items law restricts each matched

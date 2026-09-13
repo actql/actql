@@ -311,6 +311,39 @@
       }
     },
     {
+      "requirement_id": "actql.protocol.contracts/capacity-law-registry.unit-guard-owner",
+      "statement_sha256": "4a98a2814cbca7c1b6a47567567aa0967fcad4639fc1121ed6c4086cb052177d",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "capacity-law-registry",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/capacity-law-registry.unit-group-guard-path",
+      "statement_sha256": "a00e304824eafa75f158bc986a8320e8b49d307289cb6b465041b4eeceb40811",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "capacity-law-registry",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/capacity-law-registry.unit-group-guard-binding",
+      "statement_sha256": "3df679b5d7c49403ea02e4c2968f50e9622e4e4eed806ff8bd9be95b185d807d",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "capacity-law-registry",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.protocol.contracts/capacity-law-registry.values-body",
       "statement_sha256": "805c267cc299d4fa5253afaf544be780be04a524b1e287a71262d44426393eeb",
       "status": "pending",
