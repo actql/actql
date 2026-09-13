@@ -94,6 +94,21 @@ effective policy object and CID, original target and the Carrier-response check
 as its execution prerequisite. Lowering reads that binding rather than walking
 the graph again to select policies.
 
+Filter transfer additionally retains each exact checked predicate and its step
+coordinate. All value leaves participate in provenance, including branches that
+evaluation may skip: field references inherit the selected input's provenance,
+while literals, Parameters and other value leaves without an admitted policy
+attestation retain unknown provenance. This does not evaluate a predicate or
+infer a public classification from successful type admission. Predicate readers
+are indexed and preserve occurrences even when their effective policy CIDs are
+equal. Each predicate and node consumes the shared preparation work budget.
+The publication emitter combines that unknown flag with the direct acquisition
+policy while retaining its authoritative source and response references.
+`publication_policy_classification` reads the combined classification; the
+retained `policy` member is the acquisition's original provenance, before the
+predicate contributions. `emit_publication_source_policy` emits the combined
+preimage corresponding to the publication's CID.
+
 Other transfer paths, including computed values, mixed sources and imported
 provenance, still require their own composition rules. A SourceView-containing
 Program with an unclosed publication policy fails `UnclosedPublicationPolicy`;

@@ -2,6 +2,7 @@
 fn checked_direct_program_fixture(
   extra_derive? : Bool = false,
   unused_source? : Bool = false,
+  filter? : String = "",
 ) -> CheckedProgram raise {
   let text =
     #|{"version":"actql/0.1","id":"direct","stages":[{"id":"s","inputs":{"remote":{"connector":"crm/main","resource":"r","request":{"id":1,"tenant":null}}},"steps":[{"distinct":["id"],"as":"selected"}],"results":{"out":{"from":"selected","fields":["id"]}}}],"results":{"out":{"from":{"stage":"s","result":"out"}}}}
@@ -11,6 +12,19 @@ fn checked_direct_program_fixture(
         old="\"steps\":[",
         new="\"steps\":[{\"derive\":{\"x\":\"id\"}},",
       )
+    } else if filter != "" {
+      let filtered = text.replace(
+        old="\"steps\":[",
+        new="\"steps\":[{\"filter\":" + filter + "},",
+      )
+      if filter.contains("$threshold") {
+        filtered.replace(
+          old="\"stages\":",
+          new="\"params\":{\"threshold\":{\"type\":\"number\",\"default\":0}},\"stages\":",
+        )
+      } else {
+        filtered
+      }
     } else if unused_source {
       text
       .replace(
@@ -66,6 +80,80 @@ fn checked_direct_program_fixture(
     max_nodes=1000000,
     max_depth=100,
   )
+}
+
+///|
+test "filter publication retains its checked predicate and policy occurrence" {
+  for predicate in ["\"id = id\"", "\"id > 0\"", "\"id > $threshold\""] {
+    let program = checked_direct_program_fixture(filter=predicate)
+    let policy = publication_source_policy(
+      unit_publication_at(program, 0, 0).unwrap(),
+    ).unwrap()
+    assert_eq(publication_policy_predicate_count(policy), 1)
+    let occurrence = publication_policy_predicate_at(policy, 0).unwrap()
+    assert_eq(occurrence.step, 0)
+    guard @pipeline.step_at(program.units[0].pipeline, 0).unwrap().operation
+      is @pipeline.Unary(operation) else {
+      fail("expected filter")
+    }
+    assert_true(
+      physical_equal(
+        occurrence.expression,
+        @relation.binding_expression_at(operation, 0).unwrap(),
+      ),
+    )
+    assert_eq(occurrence.unknown_provenance, predicate != "\"id = id\"")
+    assert_eq(@typing.node_count(occurrence.expression), 3)
+    assert_true(publication_policy_predicate_at(policy, -1) is None)
+    assert_true(publication_policy_predicate_at(policy, 1) is None)
+    let writer = @encode.writer(10000, 100, 10)
+    emit_publication_source_policy(policy, writer)
+    assert_eq(
+      "sha256:" + @sha.text_hex(@encode.finish(writer)).unwrap(),
+      policy.cid,
+    )
+    assert_true(policy.unknown_provenance)
+    assert_true(source_execution_kind(policy.prerequisite) is CarrierResponse)
+  }
+}
+
+///|
+test "filter policy transfer charges predicates and nodes before completing publication" {
+  let program = checked_direct_program_fixture(filter="\"id > $threshold\"")
+  let unit = program.units[0]
+  let publication = @context.publication_row_limit_result(
+    unit.publication_rows[0],
+  )
+  let initial = 100000
+  let measured = IdentityBudget::{
+    work: initial,
+    bytes: initial,
+    nodes: initial,
+    depth: 100,
+  }
+  let expected = prepare_publication_source_policy(unit, publication, measured).unwrap()
+  let used = initial - measured.work
+  let exact = IdentityBudget::{
+    work: used,
+    bytes: initial,
+    nodes: initial,
+    depth: 100,
+  }
+  let actual = prepare_publication_source_policy(unit, publication, exact).unwrap()
+  assert_eq(actual.cid, expected.cid)
+  assert_eq(exact.work, 0)
+  let short = IdentityBudget::{
+    work: used - 1,
+    bytes: initial,
+    nodes: initial,
+    depth: 100,
+  }
+  try prepare_publication_source_policy(unit, publication, short) catch {
+    BudgetExceeded | Encoding(_) => ()
+    error => raise error
+  } noraise {
+    _ => fail("partial policy escaped preparation budget")
+  }
 }
 
 ///|

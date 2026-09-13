@@ -171,6 +171,15 @@ pub fn binding_count(value : CheckedOperation) -> Int {
 }
 
 ///|
+/// Read the owned expression without copying its reference array.
+pub fn binding_expression_at(
+  value : CheckedOperation,
+  index : Int,
+) -> @typing.TypedExpression? {
+  value.bindings.get(index).map(b => b.expression)
+}
+
+///|
 pub struct CopyBinding {
   output : String?
   input : ReferenceTarget?

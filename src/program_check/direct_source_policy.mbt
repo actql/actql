@@ -46,11 +46,25 @@ pub fn emit_direct_source_policy(
   value : DirectSourcePolicy,
   writer : @encode.Writer,
 ) -> Unit raise @encode.EncodeFailure {
+  emit_source_policy(value, value.unknown_provenance, writer)
+}
+
+///|
+fn emit_source_policy(
+  value : DirectSourcePolicy,
+  unknown_provenance : Bool,
+  writer : @encode.Writer,
+) -> Unit raise @encode.EncodeFailure {
   @encode.begin_object(writer)
   @encode.key(writer, "classification")
   @encode.string_value(
     writer,
-    match value.classification {
+    match
+      (if unknown_provenance {
+        @environment.Unknown
+      } else {
+        value.classification
+      }) {
       Public => "public"
       Internal => "internal"
       Confidential => "confidential"
@@ -74,7 +88,7 @@ pub fn emit_direct_source_policy(
   @encode.string_value(writer, value.response_cid)
   @encode.end_array(writer)
   @encode.key(writer, "unknown_provenance")
-  @encode.bool_value(writer, value.unknown_provenance)
+  @encode.bool_value(writer, unknown_provenance)
   @encode.key(writer, "version")
   @encode.string_value(writer, "actql-effective-data-policy/0.1")
   @encode.end_object(writer)

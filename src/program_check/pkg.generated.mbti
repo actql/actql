@@ -10,6 +10,7 @@ import {
   "actql/actql/check_environment",
   "actql/actql/decode_core",
   "actql/actql/encode_core",
+  "actql/actql/expression_typing",
   "actql/actql/pipeline_check_context",
   "actql/actql/pipeline_typing",
   "actql/actql/sourceview_resolution",
@@ -25,6 +26,8 @@ pub fn check(@stage_syntax.Program, @check_environment.WireEnvironment, @decode_
 pub fn contract_inventory(CheckedProgram) -> @pipeline_check_context.CoreContractInventory
 
 pub fn emit_direct_source_policy(DirectSourcePolicy, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
+
+pub fn emit_publication_source_policy(PublicationSourcePolicy, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
 
 pub fn emit_source_response_policy(SourceResponsePolicy, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
 
@@ -69,6 +72,12 @@ pub fn publication_bytes(PublicationExecution) -> @capacity_witness.LimitClaim
 pub fn publication_failure(PublicationExecution) -> PublicationFailure
 
 pub fn publication_phase(PublicationExecution) -> PublicationPhase
+
+pub fn publication_policy_classification(PublicationSourcePolicy) -> @check_environment.DataClassification
+
+pub fn publication_policy_predicate_at(PublicationSourcePolicy, Int) -> PublicationPolicyPredicate?
+
+pub fn publication_policy_predicate_count(PublicationSourcePolicy) -> Int
 
 pub fn publication_proof_at(PublicationExecution, Int) -> ReidentifiedStep?
 
@@ -249,11 +258,19 @@ pub enum PublicationPhase {
   BeforeResultPublication
 }
 
+pub struct PublicationPolicyPredicate {
+  step : Int
+  expression : @expression_typing.TypedExpression
+  unknown_provenance : Bool
+}
+
 pub struct PublicationSourcePolicy {
   policy : DirectSourcePolicy
   cid : String
   prerequisite : SourceExecution
   target : @pipeline_typing.Target
+  unknown_provenance : Bool
+  // private fields
 }
 
 type ReidentifiedGraphInput

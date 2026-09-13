@@ -75,6 +75,8 @@ pub fn binding_copy_at(CheckedOperation, Int) -> CopyBinding?
 
 pub fn binding_count(CheckedOperation) -> Int
 
+pub fn binding_expression_at(CheckedOperation, Int) -> @expression_typing.TypedExpression?
+
 pub fn check(Operation, @decode_core.Cursor, @relation_schema.Schema, @parameter_binding.Declarations?, Limits) -> Result[CheckedOperation, Issue]
 
 pub fn check_group_with_prefix(@decode_core.Cursor, @relation_schema.Schema, Array[@relation_schema.FieldName], @parameter_binding.Declarations?, Limits) -> Result[CheckedOperation, Issue]
