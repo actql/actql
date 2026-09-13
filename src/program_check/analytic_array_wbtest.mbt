@@ -13,6 +13,72 @@ test "formal analytic arrays select an admitted input row proof" {
     extra_step_budget=6,
   )
   let closure = @context.stage_requirement_operations(requirements(programs[0]))
+  assert_eq(unit_analytic_limit_count(programs[0], 0), Some(0))
+  assert_eq(unit_analytic_limit_count(programs[0], 1), Some(1))
+  let assembled = unit_analytic_limit_at(programs[0], 1, 0).unwrap()
+  assert_true(analytic_limit_proof_count(assembled) > 0)
+  let writer = @encode.writer(100000, 10000, 100)
+  @wire.emit_limit(analytic_limit_claim(assembled), writer)
+  let encoded_limit = @encode.finish(writer)
+  assert_true(encoded_limit.contains("\"effective_max\":1,"))
+  assert_true(
+    encoded_limit.contains("\"author_guard_binding\":\"currently_non_binding\""),
+  )
+  assert_false(encoded_limit.contains("checked-step:"))
+  let budget = IdentityBudget::{
+    work: 100000000,
+    bytes: 10000000,
+    nodes: 1000000,
+    depth: 100,
+  }
+  let before = IdentityBudget::{ ..budget, }
+  let _ = prepare_program_analytic_limits(
+    programs[0].units,
+    requirements(programs[0]),
+    budget,
+  )
+  let used = (
+    before.work - budget.work,
+    before.bytes - budget.bytes,
+    before.nodes - budget.nodes,
+  )
+  let exact = IdentityBudget::{
+    work: used.0,
+    bytes: used.1,
+    nodes: used.2,
+    depth: 100,
+  }
+  let repeated = prepare_program_analytic_limits(
+    programs[0].units,
+    requirements(programs[0]),
+    exact,
+  )
+  assert_eq((exact.work, exact.bytes, exact.nodes), (0, 0, 0))
+  assert_eq(
+    @wire.limit_cid(analytic_limit_claim(repeated[1][0])),
+    @wire.limit_cid(analytic_limit_claim(assembled)),
+  )
+  for
+    short in [
+      IdentityBudget::{ ..before, work: used.0 - 1, },
+      IdentityBudget::{ ..before, bytes: used.1 - 1, },
+      IdentityBudget::{ ..before, nodes: used.2 - 1, },
+    ] {
+    let prior = (short.work, short.bytes, short.nodes)
+    try
+      prepare_program_analytic_limits(
+        programs[0].units,
+        requirements(programs[0]),
+        short,
+      )
+    catch {
+      UnitBuildFailure::BudgetExceeded | Encoding(_) | PublicationHost(_) => ()
+      e => raise e
+    } noraise {
+      _ => fail("partial analytic limit closure")
+    }
+    assert_eq((short.work, short.bytes, short.nodes), prior)
+  }
   let converted = unit_analytic_input_proof(
     programs[0],
     1,
@@ -132,6 +198,29 @@ test "formal analytic arrays bind host and author guards per frame through impor
       )
       assert_eq(checked.length(), 1)
       let program = checked[0]
+      assert_eq(unit_analytic_limit_count(program, 0), Some(1))
+      // Imports use the producer's restriction, not a second consumer identity.
+      assert_eq(unit_analytic_limit_count(program, 1), Some(0))
+      let assembled = unit_analytic_limit_at(program, 0, 0).unwrap()
+      assert_eq(analytic_limit_proof_count(assembled), 0)
+      assert_true(unit_analytic_limit_at(program, 0, -1) is None)
+      assert_true(unit_analytic_limit_at(program, 0, 1) is None)
+      let writer = @encode.writer(100000, 10000, 100)
+      @wire.emit_limit(analytic_limit_claim(assembled), writer)
+      let encoded_limit = @encode.finish(writer)
+      assert_true(
+        encoded_limit.contains("#/steps/2/analytic/functions/items/items"),
+      )
+      assert_false(encoded_limit.contains("checked-step:"))
+      assert_eq(encoded_limit.contains("author_guard\""), guard_text != "")
+      if guard_text != "" {
+        assert_true(
+          encoded_limit.contains(".analytic.functions[\\\"items\\\"].max_items"),
+        )
+        assert_true(
+          encoded_limit.contains("\"author_guard_binding\":\"binding\""),
+        )
+      }
       let source = unit_analytic_aggregate_source_at(program, 0, 2, 0).unwrap()
       assert_eq(source.scope, "items")
       assert_eq(

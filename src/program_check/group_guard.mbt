@@ -36,18 +36,33 @@ fn emit_group_guard_witness(
   value : Int64,
   budget : IdentityBudget,
 ) -> @wire.WireWitness raise UnitBuildFailure {
+  emit_aggregate_guard_witness(
+    source.operation,
+    @relation.aggregate_name(source.call),
+    source.scope,
+    "group.aggregates",
+    value,
+    budget,
+  )
+}
+
+///|
+fn emit_aggregate_guard_witness(
+  operation : UnitOperationSource,
+  call_name : String,
+  scope : String,
+  collection : String,
+  value : Int64,
+  budget : IdentityBudget,
+) -> @wire.WireWitness raise UnitBuildFailure {
   let remaining = IdentityBudget::{ ..budget, }
-  let field = match source.scope {
+  let field = match scope {
     "items" => "max_items"
     "bytes" => "max_bytes"
     _ => raise ForeignOwner
   }
   let encoded_name = publication_metadata(
-    w => {
-      @encode.string_value(w, @relation.aggregate_name(source.call)) catch {
-        e => raise Encoding(e)
-      }
-    },
+    w => @encode.string_value(w, call_name) catch { e => raise Encoding(e) },
     remaining,
   )
   identity_charge(remaining, encoded_name.length())
@@ -55,12 +70,14 @@ fn emit_group_guard_witness(
   identity_charge(remaining, name.length())
   identity_charge(remaining, 64)
   let path = "$.steps[" +
-    source.operation.source_ordinal.to_string() +
-    "].group.aggregates[" +
+    operation.source_ordinal.to_string() +
+    "]." +
+    collection +
+    "[" +
     name +
     "]." +
     field
-  let definition = source.operation.unit_definition_cid
+  let definition = operation.unit_definition_cid
   let emit = fn(
     w : @encode.Writer,
     cid : String?,
@@ -79,7 +96,7 @@ fn emit_group_guard_witness(
       @encode.key(w, "law_id")
       @encode.string_value(
         w,
-        if source.scope == "items" {
+        if scope == "items" {
           "actql.guard.array-aggregate"
         } else {
           "actql.guard.string-aggregate"
@@ -99,7 +116,7 @@ fn emit_group_guard_witness(
       @encode.key(w, "unit")
       @encode.string_value(
         w,
-        if source.scope == "items" {
+        if scope == "items" {
           "array_items"
         } else {
           "bytes"

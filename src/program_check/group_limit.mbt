@@ -126,6 +126,23 @@ fn assemble_group_limit_claim(
   unit : String,
   budget : IdentityBudget,
 ) -> @wire.LimitClaim raise UnitBuildFailure {
+  let subject = group_aggregate_subject_with_budget(source, budget)
+  assemble_aggregate_limit_claim(
+    subject, candidates, inputs, guard_value, non_author, maximum, unit, budget,
+  )
+}
+
+///|
+fn assemble_aggregate_limit_claim(
+  subject : String,
+  candidates : Array[(String, @wire.WireWitness)],
+  inputs : Array[ReidentifiedStep],
+  guard_value : Int64?,
+  non_author : Int64?,
+  maximum : Int64,
+  unit : String,
+  budget : IdentityBudget,
+) -> @wire.LimitClaim raise UnitBuildFailure {
   let max_depth = budget.depth
   identity_sort(candidates, budget)
   let input_limits : Array[(Bytes, String)] = []
@@ -159,7 +176,6 @@ fn assemble_group_limit_claim(
   identity_charge(budget, references)
   identity_charge(budget, bytes)
   identity_charge(budget, nodes)
-  let subject = group_aggregate_subject_with_budget(source, budget)
   let binding = match guard_value {
     None => "absent"
     Some(value) =>

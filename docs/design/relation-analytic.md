@@ -127,3 +127,13 @@ Proof encoding is shared with ordinary group arrays, but ownership, call lookup,
 subject and law selection remain operation-specific. A conversion budget failure
 returns no partial proof. This reader does not by itself assemble the complete
 persistent resolved limit or establish runtime frame contents.
+
+CheckedProgram construction assembles each producer's complete analytic array
+limit before returning. It combines the unchanged Host witness, the Unit-bound
+authored guard when present, and rebuilt applicable input proofs. The canonical
+resolved limit retains all distinct candidates, their prerequisite claims,
+the selected minimum and atomic failure semantics. Imported visits refer to the
+producer's restriction rather than creating a consumer-owned copy. Read-only
+count/index access exposes the assembled limits without repeating selection or
+proof conversion. This is static preparation, not evidence that frame evaluation
+or runtime enforcement has occurred.
