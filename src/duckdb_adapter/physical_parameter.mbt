@@ -52,6 +52,9 @@ pub fn prepare_producer_parameter(
   row : Int,
   column : Int,
 ) -> Result[PhysicalParameter, ValueIssue] {
+  if !@execution.producer_read_available(input) {
+    return Err(InputUnavailable)
+  }
   guard @schema.field_at(@execution.producer_read_schema(input), column)
     is Some(field) else {
     return Err(OutOfRange)

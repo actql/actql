@@ -8,6 +8,7 @@ struct FixedComputeRequest {
 ///|
 pub(all) enum FixedComputeIssue {
   UnsupportedInputShape
+  InputUnavailable
   ForeignPreparation
   ForeignRequest(Int)
   ForeignCapability(Int)
@@ -26,6 +27,9 @@ pub(all) enum FixedComputeIssue {
 pub fn prepare_fixed_compute_request(
   input : @execution.ProducerRead,
 ) -> Result[FixedComputeRequest, FixedComputeIssue] {
+  if !@execution.producer_read_available(input) {
+    return Err(InputUnavailable)
+  }
   let owner = @execution.producer_read_receiver(input)
   if @pipeline.input_count(@lower.pipeline(@lower.bound_preparation(owner))) !=
     1 {

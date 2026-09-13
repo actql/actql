@@ -20,6 +20,7 @@ struct ValueMapping {
 
 ///|
 pub(all) enum ValueIssue {
+  InputUnavailable
   InvalidLimits
   UnsupportedType
   TypeMismatch

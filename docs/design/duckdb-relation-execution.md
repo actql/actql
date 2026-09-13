@@ -221,6 +221,27 @@ transaction. Import row/cell ceilings are checked before allocation and commands
 parameter construction is bounded by the current row, not the full Relation.
 Native chunks are provisional receiving data, not completed engine output.
 
+`FixedComputeReceiving` binds result metadata and all chunks to the exact compiled
+`FixedCompute`. The receiver validates the final checked schema, counts cumulative
+physical values, and retains immutable admitted cells under a separate row/value
+allowance. Filter/select cannot produce more occurrences than its fixed input;
+that bound is checked before chunk admission. It is necessary but is not semantic
+attestation. No source address or acquisition receipt is accepted here.
+
+Sealing returns an opaque `FixedComputeReceipt` and releases the receiver's
+provisional builder reference. Its rows remain provisional material, not engine
+completion. Failures and cancellation are terminal and clear open retention;
+revocation invalidates receipt access without changing the successful upstream
+input. Import preparation, parameter reads, receiving and sealing recheck that
+the bound producer remains available. A producer view retained before external
+issuer revocation cannot silently authorize a later Compute import.
+
+The completed-input Compute resource contract is selected independently of source
+acquisition. The acquisition-specific native exemption must not be reused to
+discard an explicitly selected consumer fragment contract. Physical result
+admission and retention do not resolve that contract selection or replace exact
+consumer guard enforcement.
+
 Raw column JSON enters through `decode_transport_columns`, not the authoring
 parser's NFC/LF normalization. A nonrecursive preflight limits input UTF-8 bytes,
 JSON nodes, columns, rows per column and nesting before JSON allocation. Only

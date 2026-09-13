@@ -15,6 +15,8 @@ import {
 // Values
 pub fn abort_broad_receiving(BroadReceiving) -> Unit
 
+pub fn abort_fixed_compute_receiving(FixedComputeReceiving) -> Unit
+
 pub fn abort_native_receiving(NativeReceiving) -> Unit
 
 pub fn accept_broad_chunk(BroadReceiving, Int, Array[@decode_core.Cursor]) -> Result[Unit, BroadReceivingIssue]
@@ -49,11 +51,17 @@ pub fn emit_physical_parameter(PhysicalParameter, @encode_core.Writer) -> Unit r
 
 pub fn finish_broad_receiving(BroadReceiving) -> Result[@execution_relation.CapturedRows, BroadReceivingIssue]
 
+pub fn finish_fixed_compute_receiving(FixedComputeReceiving) -> Result[FixedComputeReceipt, FixedComputeReceivingIssue]
+
 pub fn finish_native_receipt(NativeReceiving, NativeReceiptPort) -> Result[Unit, NativeReceivingIssue]
 
 pub fn fixed_compute_import(FixedCompute) -> FixedImport
 
 pub fn fixed_compute_query(FixedCompute) -> NativeQuery
+
+pub fn fixed_compute_receipt_matches(FixedComputeReceipt, FixedComputeReceiving) -> Bool
+
+pub fn fixed_compute_receipt_rows(FixedComputeReceipt) -> @execution_relation.AdmittedOutputRows?
 
 pub fn fixed_import_column_count(FixedImport) -> Int
 
@@ -123,6 +131,8 @@ pub fn prepare_broad_scan(@lowering_relation.BoundPrepared, Int, String, String,
 
 pub fn prepare_fixed_compute(@execution_relation.ProducerRead, String, NativeQueryLimits) -> Result[FixedCompute, NativeQueryIssue]
 
+pub fn prepare_fixed_compute_receiving(FixedCompute, Array[(String, PhysicalType)], PhysicalResultLimits, @execution_relation.ValueLimits, Int) -> Result[FixedComputeReceiving, FixedComputeReceivingIssue]
+
 pub fn prepare_fixed_import(@execution_relation.ProducerRead, String, Int, Int) -> Result[FixedImport, NativeQueryIssue]
 
 pub fn prepare_native_receiving(NativeScan, PhysicalResultLimits, Int, NativeValueGuards, @execution_relation.FixedInputGuardMeasureLimits) -> Result[NativeReceiving, NativeReceivingIssue]
@@ -143,6 +153,8 @@ pub fn prepare_scan_validation_receiver(NativeScan, Array[(String, PhysicalType)
 
 pub fn prepare_value_mapping(PhysicalType, @value_contract.Contract) -> Result[ValueMapping, ValueIssue]
 
+pub fn receive_fixed_compute_chunk(FixedComputeReceiving, Int, Array[@decode_core.Cursor]) -> Result[Unit, FixedComputeReceivingIssue]
+
 pub fn retain_native_output_rows(NativeReceiving, Int, @execution_relation.ValueLimits) -> Result[NativeOutputRows, NativeOutputRetentionIssue]
 
 // Errors
@@ -161,6 +173,18 @@ type BroadScan
 type BroadTable
 
 type FixedCompute
+
+type FixedComputeReceipt
+
+type FixedComputeReceiving
+
+pub(all) enum FixedComputeReceivingIssue {
+  InputUnavailable
+  InvalidState
+  InvalidShape
+  Physical(PhysicalResultIssue)
+  Retention(@execution_relation.CaptureIssue)
+}
 
 type FixedImport
 
@@ -199,6 +223,7 @@ type NativeQuery
 
 pub(all) enum NativeQueryIssue {
   InvalidLimits
+  InputUnavailable
   Limit
   UnsupportedShape
   UnsupportedPredicate
@@ -328,6 +353,7 @@ pub(all) struct TransportColumnLimits {
 }
 
 pub(all) enum ValueIssue {
+  InputUnavailable
   InvalidLimits
   UnsupportedType
   TypeMismatch

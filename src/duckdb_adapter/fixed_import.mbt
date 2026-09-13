@@ -16,6 +16,9 @@ pub fn prepare_fixed_import(
   max_columns : Int,
   max_sql_bytes : Int,
 ) -> Result[FixedImport, NativeQueryIssue] {
+  if !@execution.producer_read_available(input) {
+    return Err(InputUnavailable)
+  }
   if max_columns < 0 || max_sql_bytes < 0 {
     return Err(InvalidLimits)
   }

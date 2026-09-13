@@ -234,6 +234,16 @@ port cannot pass. Failed/cancelled ports cannot restart; retry the immutable
 completed input with a new port and fresh budgets. These checks do not issue an
 ActQL completion or waive the pending semantic/guard/retention verification.
 
+`prepare_fixed_compute_receiving`, `receive_fixed_compute_chunk` and
+`finish_fixed_compute_receiving` provide the MoonBit result-admission boundary
+for the exact compiled fixed-input plan. Metadata, cumulative physical limits and
+separate retention limits are checked; sealed `FixedComputeReceipt` data is still
+not successful Compute evidence. `abort_fixed_compute_receiving` invalidates that
+receipt without revoking its upstream input. A source issuer revoked after a
+producer view was created prevents new import/receiving operations, even though
+the old immutable values may still be held in memory. Selected consumer capacity
+enforcement and trusted completion remain separate from successful reception.
+
 On the MoonBit side, `duckdb_native_candidate` uses the common acquisition
 comparison with eleven disjoint work slots (`duckdb_native_work_at`), including
 both actual row transfers. `prepare_duckdb_native_attempt` accepts only the exact

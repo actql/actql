@@ -1,6 +1,7 @@
 ///|
 pub(all) enum NativeQueryIssue {
   InvalidLimits
+  InputUnavailable
   Limit
   UnsupportedShape
   UnsupportedPredicate

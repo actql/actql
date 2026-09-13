@@ -111,6 +111,13 @@ pub fn producer_read_receiver(value : ProducerRead) -> @lower.BoundPrepared {
 }
 
 ///|
+/// Recheck external completion provenance before a new import/execution starts.
+/// Immutable cell access alone is not permission to start another computation.
+pub fn producer_read_available(value : ProducerRead) -> Bool {
+  completion_is_live(value.bound.output.completion)
+}
+
+///|
 pub fn producer_read_schema(value : ProducerRead) -> @schema.Schema {
   value.schema
 }

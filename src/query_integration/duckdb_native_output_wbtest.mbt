@@ -160,7 +160,70 @@ test "native captured output converts without replay and preserves success acros
     )
     is Err(_),
   )
+  let compute_owner = typed_receiver(
+    owner, "[{\"filter\":\"id > 0\"},{\"select\":[\"id\"]}]",
+  )
+  let compute_bound = @execution.bind_completed_input(
+    compute_owner, 0, owner, completed,
+  ).unwrap()
+  let compute_input = @execution.prepare_producer_read(
+    compute_owner, compute_bound, 100, 1000,
+  ).unwrap()
+  let compute_plan = @duckdb.prepare_fixed_compute(
+    compute_input,
+    "owned",
+    native_compile_limits(),
+  ).unwrap()
+  let physical : @duckdb.PhysicalResultLimits = {
+    max_rows: 2,
+    max_cells: 2,
+    max_nodes: 2,
+    max_text_bytes: 0,
+  }
+  let receiving = @duckdb.prepare_fixed_compute_receiving(
+    compute_plan,
+    [("id", @duckdb.Float64)],
+    physical,
+    exact,
+    100,
+  ).unwrap()
+  @duckdb.receive_fixed_compute_chunk(receiving, 1, [
+    input_cursor("[\"4008000000000000\"]"),
+  ]).unwrap()
   @planning.close_duckdb_native_issuer(f.issuer)
+  assert_false(@execution.producer_read_available(compute_input))
+  assert_true(
+    @duckdb.finish_fixed_compute_receiving(receiving) is Err(InputUnavailable),
+  )
+  assert_true(
+    @duckdb.finish_fixed_compute_receiving(receiving) is Err(InvalidState),
+  )
+  assert_true(
+    @duckdb.prepare_fixed_compute_receiving(
+      compute_plan,
+      [("id", @duckdb.Float64)],
+      physical,
+      exact,
+      100,
+    )
+    is Err(InputUnavailable),
+  )
+  assert_true(
+    @duckdb.prepare_fixed_import(compute_input, "owned", 100, 1000)
+    is Err(InputUnavailable),
+  )
+  assert_true(
+    @duckdb.fixed_import_parameter(
+      @duckdb.fixed_compute_import(compute_plan),
+      0,
+      0,
+    )
+    is Err(InputUnavailable),
+  )
+  assert_true(
+    @planning.prepare_fixed_compute_request(compute_input)
+    is Err(InputUnavailable),
+  )
   assert_true(@planning.duckdb_native_output_rows(output) is Err(IssuerClosed))
   assert_true(
     @planning.complete_duckdb_native_output(output, 100, 10000)
