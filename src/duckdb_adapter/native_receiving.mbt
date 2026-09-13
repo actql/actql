@@ -12,6 +12,7 @@ pub(all) enum NativeReceivingIssue {
   NotBaseTable
   InvalidMetadata
   Values(PhysicalResultIssue)
+  Guard(NativeReceiptRole, Int, Int, NativeValueIssue)
 }
 
 ///|
@@ -32,6 +33,7 @@ struct NativeReceiving {
   scan : NativeScan
   limits : PhysicalResultLimits
   metadata_work : Int
+  measurement : NativeValueBudget
   mut phase : ReceivingPhase
   mut validation : PhysicalResult?
   mut native : PhysicalResult?
@@ -51,18 +53,33 @@ pub fn prepare_native_receiving(
   scan : NativeScan,
   limits : PhysicalResultLimits,
   max_metadata_work : Int,
+  guards : NativeValueGuards,
+  measurement : @execution.FixedInputGuardMeasureLimits,
 ) -> Result[NativeReceiving, NativeReceivingIssue] {
   if limits.max_rows < 0 ||
     limits.max_cells < 0 ||
     limits.max_nodes < 0 ||
     limits.max_text_bytes < 0 ||
-    max_metadata_work < 0 {
+    max_metadata_work < 0 ||
+    guards.max_value_bytes < 0 ||
+    guards.max_output_rows < 0 ||
+    measurement.max_work < 0 ||
+    measurement.max_bytes < 0 ||
+    measurement.max_nodes < 0 ||
+    measurement.max_depth < 0 {
     return Err(InvalidLimits)
   }
   Ok({
     scan,
     limits,
     metadata_work: max_metadata_work,
+    measurement: {
+      guards,
+      work: measurement.max_work,
+      bytes: measurement.max_bytes,
+      nodes: measurement.max_nodes,
+      depth: measurement.max_depth,
+    },
     phase: Metadata,
     validation: None,
     native: None,
@@ -222,6 +239,13 @@ pub fn finish_native_receipt(
   match check_receipt_port(value, port) {
     Ok(_) => ()
     Err(issue) => return Err(issue)
+  }
+  match measure_native_receipt(value, port) {
+    Ok(_) => ()
+    Err(issue) => {
+      abort_native_receiving(value)
+      return Err(issue)
+    }
   }
   cancel_physical_result(port.result)
   value.phase = match port.role {

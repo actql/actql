@@ -1,5 +1,12 @@
 ///|
-fn native_receiving_fixture(max_rows? : Int = 10) -> @duckdb.NativeReceiving {
+fn native_receiving_fixture(
+  max_rows? : Int = 10,
+  value_bytes? : Int = 1000,
+  output_rows? : Int = 100,
+  work? : Int = 1000,
+  bytes? : Int = 10000,
+  nodes? : Int = 1000,
+) -> @duckdb.NativeReceiving {
   let (_, owner) = query_sequence_fixture(
     catalog=Some(query_amount_nullable_catalog()),
   )
@@ -14,6 +21,8 @@ fn native_receiving_fixture(max_rows? : Int = 10) -> @duckdb.NativeReceiving {
     scan,
     { max_rows, max_cells: 100, max_nodes: 100, max_text_bytes: 1000, },
     1000,
+    { max_value_bytes: value_bytes, max_output_rows: output_rows, },
+    { max_work: work, max_bytes: bytes, max_nodes: nodes, max_depth: 10, },
   ).unwrap()
 }
 

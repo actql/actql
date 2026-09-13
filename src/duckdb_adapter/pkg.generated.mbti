@@ -81,7 +81,7 @@ pub fn prepare_fixed_compute(@execution_relation.ProducerRead, String, NativeQue
 
 pub fn prepare_fixed_import(@execution_relation.ProducerRead, String, Int, Int) -> Result[FixedImport, NativeQueryIssue]
 
-pub fn prepare_native_receiving(NativeScan, PhysicalResultLimits, Int) -> Result[NativeReceiving, NativeReceivingIssue]
+pub fn prepare_native_receiving(NativeScan, PhysicalResultLimits, Int, NativeValueGuards, @execution_relation.FixedInputGuardMeasureLimits) -> Result[NativeReceiving, NativeReceivingIssue]
 
 pub fn prepare_native_scan(NativeQuery, Int, Int) -> Result[NativeScan, NativeQueryIssue]
 
@@ -139,9 +139,22 @@ pub(all) enum NativeReceivingIssue {
   NotBaseTable
   InvalidMetadata
   Values(PhysicalResultIssue)
+  Guard(NativeReceiptRole, Int, Int, NativeValueIssue)
 }
 
 type NativeScan
+
+pub(all) struct NativeValueGuards {
+  max_value_bytes : Int
+  max_output_rows : Int
+}
+
+pub(all) enum NativeValueIssue {
+  MeasurementWork
+  Measurement(@encode_core.EncodeFailure)
+  ValueBytes
+  OutputRows
+}
 
 type PhysicalBatch
 

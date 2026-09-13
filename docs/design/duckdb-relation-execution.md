@@ -151,6 +151,23 @@ retained batches. Empty chunks do not accumulate retained batch roots. The
 `has_both` readiness query describes this provisional state only: it is not an
 evidence record, authority, native semantic proof or engine completion constructor.
 
+Native receiving requires explicit value-byte and output-row ceilings. Each
+admitted scalar is measured by the shared canonical wire emitter at receipt
+finish, after full receipt admission and before enabling the next phase. This
+matches the Local fixed-input admission-before-guard boundary; a later admission
+failure is not hidden by an earlier value guard. Retained values are read without
+copying, re-admission or predicate evaluation. The ledger spans both receipts:
+one work unit per logical row and cell, plus bounded emitted bytes, nodes and
+depth. Zero remaining nodes is measurement exhaustion, not invalid initial
+configuration. Value ceilings include NULL and fields unused by filter/select;
+native output-row ceilings do not restrict validation scan cardinality.
+Failures identify receipt-relative global row and schema column (`-1` for a
+row-level check), and abort both provisional receivers. These checks do not
+evaluate a predicate again. They also do not discharge demanded expression-root
+ceilings, evaluator logical work/live-root obligations, canonical whole-receipt
+measurement, or completion/capture checks. Chunk admission and physical capacity
+checks remain distinct from the per-value logical guard.
+
 The single-receipt process-evidence profile represents a single logical received row
 sequence. A full scan exported to MoonBit for validation and a separately exported
 native query result are two actual receipts. They cannot be combined, hidden as

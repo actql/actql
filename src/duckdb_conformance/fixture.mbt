@@ -21,6 +21,16 @@ fn cursor(text : String) -> @decode.Cursor {
 ///|
 #export_name("create")
 pub fn create() -> @duckdb.NativeReceiving {
+  create_guarded(10000, 100, 1000)
+}
+
+///|
+#export_name("createGuarded")
+pub fn create_guarded(
+  value_bytes : Int,
+  output_rows : Int,
+  nodes : Int,
+) -> @duckdb.NativeReceiving {
   let schema = @schema.from_fields(
     [
       (
@@ -75,6 +85,8 @@ pub fn create() -> @duckdb.NativeReceiving {
     @duckdb.prepare_native_scan(query, 2, 1000).unwrap(),
     { max_rows: 100, max_cells: 200, max_nodes: 200, max_text_bytes: 10000, },
     1000,
+    { max_value_bytes: value_bytes, max_output_rows: output_rows, },
+    { max_work: 10000, max_bytes: 100000, max_nodes: nodes, max_depth: 10, },
   ).unwrap()
 }
 

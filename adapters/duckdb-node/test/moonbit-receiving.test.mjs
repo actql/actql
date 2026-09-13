@@ -14,8 +14,7 @@ const limits = { maxRows: 100, maxCells: 1000, maxTransportBytes: 100000,
   maxSqlBytes: 10000, maxParameters: 10, maxColumns: 10,
   memoryBytes: 128 * 1024 * 1024, threads: 1 };
 
-function portFor(moon) {
-  const state = moon.create();
+function portFor(moon, state = moon.create()) {
   const ports = new Map();
   const events = [];
   let readView;
@@ -87,6 +86,18 @@ test('real Node callbacks use MoonBit admission before native filtering, includi
         assert(!received.events.includes('native'), name);
         assert.equal(received.events.at(-1), 'abort');
       }
+    }
+    const validGrant = await authorizeLocalDatabase(join(directory, 'valid.duckdb'));
+    for (const [valueBytes, outputRows, nodes, nativeStarted] of [
+      [3, 100, 1000, false], // Discarded row's unused NULL needs four canonical bytes.
+      [10000, 1, 1000, true], // Two native rows exceed the logical output ceiling.
+      [10000, 100, 6, true], // Scan consumes every measurement node; native has none left.
+    ]) {
+      const received = portFor(moon, moon.createGuarded(valueBytes, outputRows, nodes));
+      await assert.rejects(runNativeAcquisition(validGrant, received.port, limits), /MoonBit rejected finish/);
+      assert.equal(received.events.includes('native'), nativeStarted);
+      assert.equal(received.events.at(-1), 'abort');
+      assert.equal(moon.ready(received.state), false);
     }
   } finally { await rm(directory, { recursive: true, force: true }); }
 });
