@@ -160,3 +160,19 @@ enforces receiver projection, ownership and resource limits. A failed consumer
 may be retried with a fresh compute attempt and budget using the same capture,
 without another source read. Hold the observation for its process-local evidence
 lifetime. No durable capture, Run admission or public Result publication is implied.
+
+### Representation and conformance scope
+
+The supplied finite mock source and its execution use the default row path.
+There is no mock option that promises an end-to-end columnar acquisition.
+The shared value guard and canonical row hash operate on the existing layout
+reader, including typed numeric columns and selection views. Repeated selected
+rows count repeatedly; NULL and work/byte/node failure frontiers do not depend
+on whether those values came from row storage or a typed view. Typed completion
+and receiver projection use the existing completed-input boundary.
+
+The independent observation oracle exercises both mock routes through the public
+CheckedProgram entry, capture and a checked consumer with empty, filtered-out,
+duplicate and nullable input. It checks complete observation content and the
+three record identities, not just final rows. This is mock conformance evidence,
+not external-provider attestation or proof of a general vectorized executor.
