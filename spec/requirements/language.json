@@ -5811,6 +5811,39 @@
       }
     },
     {
+      "requirement_id": "actql.language/external-joins.effective-policy-preimage",
+      "statement_sha256": "5fcb8ac6017d1a18d336877c7c6ad625e5957bc64f12f8561a7dd9f364c58d5d",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "external-joins",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/external-joins.effective-policy-classification",
+      "statement_sha256": "6c2f3bb5db9c8ef6c7ed0d77c749b90459530012060a7e96187c0aaca00e2012",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "external-joins",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/external-joins.effective-policy-correspondence",
+      "statement_sha256": "71c2e167f7af910c98a6aa9ac28bc7cd0867edbe1f9d831ed239e71f3e1b8069",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "external-joins",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.language/external-joins.when-the-sourceview-contract-admits-response-projection-the-compiler-must",
       "statement_sha256": "4c65cc88d1d002e62e35baa9da6255da4086ca939ac28cc78de0e2acafd44d1a",
       "status": "pending",

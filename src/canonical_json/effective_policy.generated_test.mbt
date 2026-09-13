@@ -1,0 +1,85 @@
+// Generated from independent effective-policy preimages; do not edit.
+
+///|
+test "effective policy empty" {
+  let input = @json.parse(
+    "{\"classification\":\"unknown\",\"source_data_policy_cids\":[],\"source_response_policy_cids\":[],\"unknown_provenance\":false,\"version\":\"actql-effective-data-policy/0.1\"}",
+  )
+  let value = @canonical_json.from_json(input, 10000, 100, 100000)
+  assert_eq(
+    @canonical_json.cid_value(value, 100000, 10000, 100),
+    "sha256:c85fc550a861f767d757f1a578443e4ca62ffbcce149f8803f0fedd5da64d6bc",
+  )
+}
+
+///|
+test "effective policy unknown-literal" {
+  let input = @json.parse(
+    "{\"classification\":\"unknown\",\"source_data_policy_cids\":[],\"source_response_policy_cids\":[],\"unknown_provenance\":true,\"version\":\"actql-effective-data-policy/0.1\"}",
+  )
+  let value = @canonical_json.from_json(input, 10000, 100, 100000)
+  assert_eq(
+    @canonical_json.cid_value(value, 100000, 10000, 100),
+    "sha256:470e10d347bfe887c4a91d9f616b01b3e1aba211a2fd2ba20ebf63d136543563",
+  )
+}
+
+///|
+test "effective policy known" {
+  let input = @json.parse(
+    "{\"classification\":\"confidential\",\"source_data_policy_cids\":[\"sha256:5d0e2dddbcc1334cc513465b73f41cdedd35a30f22932e1cc70e2a3e8ed5f344\",\"sha256:991bcbcefb603947033965f7ede2172501b16b210f1d7af4d0ca050135400452\",\"sha256:e2f274b419278791adef402fac3e75fb7b98b2bd14decc8bff7fe3f67916db7e\"],\"source_response_policy_cids\":[],\"unknown_provenance\":false,\"version\":\"actql-effective-data-policy/0.1\"}",
+  )
+  let value = @canonical_json.from_json(input, 10000, 100, 100000)
+  assert_eq(
+    @canonical_json.cid_value(value, 100000, 10000, 100),
+    "sha256:f577b308a413a99fe35ec1d1fc9591d172ed0ab221a460542d01f4159dd47677",
+  )
+}
+
+///|
+test "effective policy unknown-retains-known" {
+  let input = @json.parse(
+    "{\"classification\":\"unknown\",\"source_data_policy_cids\":[\"sha256:7e8b443f72c64888ff19910f3f5a7f02338741049bfd43b24c132255fcdc947f\",\"sha256:991bcbcefb603947033965f7ede2172501b16b210f1d7af4d0ca050135400452\"],\"source_response_policy_cids\":[],\"unknown_provenance\":false,\"version\":\"actql-effective-data-policy/0.1\"}",
+  )
+  let value = @canonical_json.from_json(input, 10000, 100, 100000)
+  assert_eq(
+    @canonical_json.cid_value(value, 100000, 10000, 100),
+    "sha256:d550d45f4c10d7ec411decd3abd09bb30fe264b8d0c0e4ace4c2bf406089d6b4",
+  )
+}
+
+///|
+test "effective policy missing-retains-known" {
+  let input = @json.parse(
+    "{\"classification\":\"unknown\",\"source_data_policy_cids\":[\"sha256:991bcbcefb603947033965f7ede2172501b16b210f1d7af4d0ca050135400452\"],\"source_response_policy_cids\":[],\"unknown_provenance\":true,\"version\":\"actql-effective-data-policy/0.1\"}",
+  )
+  let value = @canonical_json.from_json(input, 10000, 100, 100000)
+  assert_eq(
+    @canonical_json.cid_value(value, 100000, 10000, 100),
+    "sha256:7bdadb4cdd769a32ea80dac3dca8284928f7628f10c9be59f4cfc42b00e9fffe",
+  )
+}
+
+///|
+test "effective policy response-minimum" {
+  let input = @json.parse(
+    "{\"classification\":\"internal\",\"source_data_policy_cids\":[\"sha256:5d0e2dddbcc1334cc513465b73f41cdedd35a30f22932e1cc70e2a3e8ed5f344\"],\"source_response_policy_cids\":[\"sha256:e793b7a471ab6ecc60acadf4adbf3bd1c9e6fc452cda4ec0ddbf024904fe9f8d\"],\"unknown_provenance\":false,\"version\":\"actql-effective-data-policy/0.1\"}",
+  )
+  let value = @canonical_json.from_json(input, 10000, 100, 100000)
+  assert_eq(
+    @canonical_json.cid_value(value, 100000, 10000, 100),
+    "sha256:9baa551948040ab48fa77d5188c21683b6a5d5c6be86811f54a5480a005671cd",
+  )
+}
+
+///|
+test "effective policy repeated-reference" {
+  let input = @json.parse(
+    "{\"classification\":\"confidential\",\"source_data_policy_cids\":[\"sha256:5d0e2dddbcc1334cc513465b73f41cdedd35a30f22932e1cc70e2a3e8ed5f344\",\"sha256:991bcbcefb603947033965f7ede2172501b16b210f1d7af4d0ca050135400452\"],\"source_response_policy_cids\":[],\"unknown_provenance\":false,\"version\":\"actql-effective-data-policy/0.1\"}",
+  )
+  let value = @canonical_json.from_json(input, 10000, 100, 100000)
+  assert_eq(
+    @canonical_json.cid_value(value, 100000, 10000, 100),
+    "sha256:e89ab3c01cdfef4224370abae04dbe4b807c128844fc379f3584ce4cdcea33a3",
+  )
+}

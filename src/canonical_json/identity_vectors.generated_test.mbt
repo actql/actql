@@ -265,6 +265,27 @@ test "Result import interface changed-type" {
 }
 
 ///|
+test "contract spec/contracts/actql-effective-data-policy.json#" {
+  let input = @json.parse([
+    "{\"version\":\"actql-effective-data-policy-contract/0.1\",\"dependencies\":{\"source_response_policy\":\"sha256:742e76bb6cca5ce4d6ce225b6dc2ce153defb4a5a4e1dcd44d68699308110cfc\"},\"schemas\":{\"policy\":{\"$schema\":\"https://json-schema.org/draft/2020-12/schema\",\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"version\",\"classification\",\"source_data_policy_cids\",\"source_response_policy_cids\",\"unknown_provenance\"],\"properties\":{\"version\":{\"const\":\"actql-effective-data-policy/0.1\"},\"classification\":{\"enum\":[\"public\",\"internal\",\"confidential\",\"restricted\",\"unknown\"]},\"source_data_policy_cids\":{\"type\":\"array\",\"uniqueItems\":true,\"items\":{\"type\":\"string\",\"pattern\":\"^sha256:[0-9a-f]{64}$\"}},\"source_response_policy_cids\":{\"type\":\"array\",\"uniqueItems\":true,\"items\":{\"type\":\"string\",\"pattern\":\"^sha256:[0-9a-f]{64}$\"}},\"unknown_provenance\":{\"type\":\"boolean\"}}}},\"semantics\":{\"identity\":\"entire_policy_canonical_json_utf8_sha256_no_exclusions\",\"references\":\"sorted_unique_full_cids_of_exact_admitted_contributing_policies_not_catalo",
+    "g_superset\",\"classification\":\"unknown_if_missing_provenance_or_unknown_contributor_or_empty_otherwise_max\",\"provenance\":\"retain_value_occurrences_and_policy_correspondence_separately_no_owner_or_observation_in_policy\",\"authority\":\"shape_and_hash_do_not_prove_selection_authority_or_egress_permission\"}}",
+  ].join(""))
+  let value = @canonical_json.from_json(input, 45, 6, 1326)
+  assert_eq(@canonical_json.cid_value(value, 1326, 45, 6), "sha256:93dd2547ab54c61374ed35f397af0195be23555f63a383310323d909c489f5ff")
+  assert_eq(@canonical_json.measure_value(value, 1326, 45, 6), 1326)
+}
+
+///|
+test "contract spec/contracts/actql-effective-data-policy.json#/schemas/policy" {
+  let input = @json.parse([
+    "{\"$schema\":\"https://json-schema.org/draft/2020-12/schema\",\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"version\",\"classification\",\"source_data_policy_cids\",\"source_response_policy_cids\",\"unknown_provenance\"],\"properties\":{\"version\":{\"const\":\"actql-effective-data-policy/0.1\"},\"classification\":{\"enum\":[\"public\",\"internal\",\"confidential\",\"restricted\",\"unknown\"]},\"source_data_policy_cids\":{\"type\":\"array\",\"uniqueItems\":true,\"items\":{\"type\":\"string\",\"pattern\":\"^sha256:[0-9a-f]{64}$\"}},\"source_response_policy_cids\":{\"type\":\"array\",\"uniqueItems\":true,\"items\":{\"type\":\"string\",\"pattern\":\"^sha256:[0-9a-f]{64}$\"}},\"unknown_provenance\":{\"type\":\"boolean\"}}}",
+  ].join(""))
+  let value = @canonical_json.from_json(input, 34, 4, 663)
+  assert_eq(@canonical_json.cid_value(value, 663, 34, 4), "sha256:529c2309545304d5436bfcaac9f5c878e8137df6d7030494b33920a6e6b6cb02")
+  assert_eq(@canonical_json.measure_value(value, 663, 34, 4), 663)
+}
+
+///|
 test "contract spec/contracts/actql-source-response-policy.json#" {
   let input = @json.parse([
     "{\"version\":\"actql-source-response-policy-contract/0.1\",\"schemas\":{\"policy\":{\"$schema\":\"https://json-schema.org/draft/2020-12/schema\",\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"version\",\"source_ref\",\"source_view_contract_cid\",\"source_data_policy_cid\",\"minimum_classification\",\"classification\"],\"properties\":{\"version\":{\"const\":\"actql-source-response-policy/0.1\"},\"source_ref\":{\"type\":\"string\",\"minLength\":1},\"source_view_contract_cid\":{\"type\":\"string\",\"pattern\":\"^sha256:[0-9a-f]{64}$\"},\"source_data_policy_cid\":{\"type\":\"string\",\"pattern\":\"^sha256:[0-9a-f]{64}$\"},\"minimum_classification\":{\"anyOf\":[{\"enum\":[\"public\",\"internal\",\"confidential\",\"restricted\"]},{\"type\":\"null\"}]},\"classification\":{\"enum\":[\"public\",\"internal\",\"confidential\",\"restricted\",\"unknown\"]}}}},\"semantics\":{\"identity\":\"entire_policy_canonical_json_utf8_sha256_no_self_cid\",\"classification\":\"authoritative_unknown_stays_unknown_otherwise_max_authoritative_and_authored_minimum\",\"source\":\"exact_selected_sourceview_and_its_admitted_data_poli",

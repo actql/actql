@@ -6792,6 +6792,39 @@ data-handling contract and current Host policy, including the existing rejection
 of unknown classification for model egress. This classification calculation does
 not supply missing provenance or define a substitute effective-policy preimage.
 
+<!-- machine-import: ../../spec/contracts/actql-effective-data-policy.json# sha256:93dd2547ab54c61374ed35f397af0195be23555f63a383310323d909c489f5ff -->
+<!-- machine-import: ../../spec/contracts/actql-effective-data-policy.json#/schemas/policy sha256:529c2309545304d5436bfcaac9f5c878e8137df6d7030494b33920a6e6b6cb02 -->
+<!-- requirement-block: external-joins.effective-policy-preimage -->
+An effective data policy MUST use the closed preimage in
+`actql-effective-data-policy.json` at `/schemas/policy`, hashing the entire
+canonical JSON UTF-8 object without exclusions. Its two reference arrays contain
+ascending, unique full CIDs of the contributing admitted source data-policy
+Contract Envelopes and response-policy objects respectively. A response reference
+also requires its exact authoritative source data-policy reference in the source
+array. Every reference must resolve to the policy actually selected for a
+contributing value; unrelated Catalog entries are not contributors.
+
+<!-- requirement-block: external-joins.effective-policy-classification -->
+`unknown_provenance` MUST be true if any contributing value lacks admitted policy
+provenance. Classification is `unknown` if that flag is true, any contributing
+policy is unknown, or both reference sets are empty; otherwise it is the maximum
+classification of all referenced policies. Known references remain present even
+when the result is unknown. No public classification is inferred for an empty
+set. A declaration minimum remains represented by the response-policy reference,
+not by modifying the authoritative data-policy Envelope.
+
+<!-- requirement-block: external-joins.effective-policy-correspondence -->
+Policy-set deduplication MUST NOT discard the separate correspondence from each
+contributing value occurrence to its policy references or missing provenance.
+This preimage identifies the effective policy, not the value, Program, request,
+observation or permission. Those subjects bind the policy CID through their own
+contracts. Their owner handles, source ordinals, actual data, snapshot tokens and
+the whole Check Environment are not added to this preimage. Equal policy CIDs do
+not establish equal requests or permit exchanging provenance between owners.
+Schema admission checks shape; reference authority, exact contribution selection,
+array ordering, response-to-source correspondence and classification calculation
+require semantic verification before the policy can be used.
+
 <!-- requirement-block: external-joins.when-the-sourceview-contract-admits-response-projection-the-compiler-must -->
 When the SourceView contract admits response projection, the compiler MUST bind
 the observed response field set as the union of right-side fields published by

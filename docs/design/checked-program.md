@@ -672,6 +672,16 @@ authored inputs, and its ResourceKind-derived source reference differs from the
 current concrete Resource selector contract. Response policy and request-policy
 composition remain separate; no observation data is inserted to fill that gap.
 
+The effective-policy preimage identifies a policy set rather than a value's
+lineage. It retains source Envelope CIDs, strengthened response-policy CIDs and
+an explicit unknown-provenance flag. The value-occurrence correspondence remains
+owned by the checking context; equal policy sets do not permit replacing that
+context. Repeated uses of one policy do not change its restrictions, so the
+reference sets are sorted and deduplicated without deduplicating value occurrences.
+This is a new explicit identity decision: Sketch's alias-origin array is not part
+of this policy identity. Aliases and input dependencies remain in the subject's
+own identity. An empty set is unknown rather than an implicit public grant.
+
 Coverage starts from the source, expression, operation, input, publication and
 incoming-dependency inventories, not from the list of successful resolutions.
 Each owned occurrence has exactly one disposition:
