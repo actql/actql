@@ -40,7 +40,7 @@ The entry has an explicit implementation-domain check, separate from the
 language grammar. Its Local and Result-import domain accepts `values`, `derive`,
 `filter`, `assert_rows`, `group`, `select`, `rename`, `drop`, `sort`, `take`,
 `distinct`, `dedupe_rows`, `top_k`, `top_k_by`, `lag`, `json_pick`, `unnest`, `unpivot`, `analytic`, `row_window`, `window_group`, `watermark_rows`,
-`append`, `join`, `cross_join`,
+`append`, `join`, `cross_join`, `interval_join`,
 `except` and `intersect`, including empty operation
 sequences. Sort/take use the existing owned order-resolution closure and preserve
 their distinct strategies and preconditions; accepting them does not synthesize
@@ -212,6 +212,24 @@ operation closure, omits a genuinely absent guard and creates the canonical
 author-guard witness. Parameter syntax is not reparsed or defaulted by this reader.
 This individual witness reader covers ordinary array aggregates. String guards
 are retained in the string limit's admitted candidate collection.
+Interval join closes endpoint admission, clock admission and occurrence order
+separately from output capacity and search work. Its bounded-search path requires
+owned operand row bounds and the single-visit-per-pair realization condition;
+an output-row Host ceiling cannot substitute for those search bounds. Missing
+search evidence prevents construction rather than creating a runtime exemption.
+`unit_interval_search_limit_count/at` exposes the retained consumer-Unit limit,
+its selection and its rebuilt producer proof graphs. The canonical limit refers
+to rebuilt row-witness CIDs, not their inner Program-proof CIDs. References are
+sorted and deduplicated per operand while the admitted proof associations remain
+available through indexed readers. Separate identities are retained for the
+consumer operation and each producing operation; internal step handles are not
+serialized as persistent subjects. Construction rejects foreign or duplicate Unit
+owners and commits its budget only after the complete limit succeeds.
+Automatic search-bound collection currently requires memberships admitted for
+the consuming pipeline. A producer proof available only under another pipeline's
+capacity entry is not silently adopted across an import; that path remains
+unresolved until the checked membership connection is supplied.
+
 Join consumes the existing cardinality selection, ordered-occurrence execution
 check and exact selected-policy capacity application. All five join kinds
 can close when their requirements are supplied. Authored cardinality and

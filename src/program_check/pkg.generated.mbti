@@ -75,6 +75,8 @@ pub fn emit_effective_policy(EffectivePolicy, @encode_core.Writer) -> Unit raise
 
 pub fn emit_group_numeric_slot(GroupNumericSlot, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
 
+pub fn emit_interval_search_limit(IntervalSearchLimit, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
+
 pub fn emit_publication_source_policy(PublicationSourcePolicy, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
 
 pub fn emit_source_response_policy(SourceResponsePolicy, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
@@ -132,6 +134,16 @@ pub fn group_string_limit_selection(GroupStringLimit) -> @pipeline_check_context
 pub fn group_string_limit_source(GroupStringLimit) -> GroupAggregateSource
 
 pub fn incoming_gates(CheckedProgram) -> @pipeline_check_context.ProgramIncomingGates
+
+pub fn interval_search_limit_cid(IntervalSearchLimit) -> String
+
+pub fn interval_search_limit_proof_at(IntervalSearchLimit, Int, Int) -> ReidentifiedStep?
+
+pub fn interval_search_limit_proof_count(IntervalSearchLimit, Int) -> Int
+
+pub fn interval_search_limit_selection(IntervalSearchLimit) -> @pipeline_check_context.IntervalSearchCheck
+
+pub fn interval_search_limit_source(IntervalSearchLimit) -> UnitOperationSource
 
 pub fn numeric_slot_for_requirement(CheckedProgram, Int) -> GroupNumericSlot?
 
@@ -295,6 +307,10 @@ pub fn unit_import_cid_count(CheckedProgram, Int) -> Int?
 
 pub fn unit_input_completeness(CheckedProgram, Int, Int) -> InputCompletenessRequirement?
 
+pub fn unit_interval_search_limit_at(CheckedProgram, Int, Int) -> IntervalSearchLimit?
+
+pub fn unit_interval_search_limit_count(CheckedProgram, Int) -> Int?
+
 pub fn unit_pipeline(CheckedProgram, Int) -> @pipeline_typing.CheckedPipeline?
 
 pub fn unit_publication_at(CheckedProgram, Int, Int) -> PublicationExecution?
@@ -336,6 +352,7 @@ pub suberror ConstructionFailure {
   Operations(@pipeline_check_context.ProgramOperationResolutionIssue)
   Values(@pipeline_check_context.ValuesPublicationIssue)
   Joins(@pipeline_check_context.JoinRequirementIssue)
+  IntervalSearch(@pipeline_check_context.IntervalSearchLimitIssue)
   WindowLimits(@pipeline_check_context.WindowMembershipBoundIssue)
   GroupLimits(@pipeline_check_context.GroupArrayLimitIssue)
   GroupStringLimits(@pipeline_check_context.GroupStringLimitIssue)
@@ -466,6 +483,8 @@ pub struct InputCompletenessRequirement {
   unit : UnitCompletenessRequirement
   binding : InputCompletenessBinding
 }
+
+type IntervalSearchLimit
 
 pub struct KeyedExecution {
   owner : @pipeline_check_context.SourceProducerContext

@@ -5,6 +5,7 @@ fn local_join_capacity_fixture(
   environment : @environment.WireEnvironment,
   maximum : Int,
   step : Int,
+  proofs? : Array[@wire.ProgramProofClaim] = [],
 ) -> @host.HostSources raise @encode.EncodeFailure {
   let policy = @environment.capacity_policy(
     @environment.read_capacity(environment, {
@@ -37,14 +38,18 @@ fn local_join_capacity_fixture(
     old="\"subject_ref\":",
     new="\"resolved_limit_cid\":\"" + cid + "\",\"subject_ref\":",
   )
-  let mixed = @wire.check_mixed_claims([witness], [(@utf8.encode(text), cid)], {
+  let witnesses = [witness]
+  for proof in proofs {
+    witnesses.push(@wire.program_proof_witness(proof))
+  }
+  let mixed = @wire.check_mixed_claims(witnesses, [(@utf8.encode(text), cid)], {
     max_entities: 10,
     max_references: 20,
     max_bytes: 10000,
     max_nodes: 1000,
     max_depth: 30,
   }).unwrap()
-  let claims = @wire.check_mixed_program_claims(mixed, [], {
+  let claims = @wire.check_mixed_program_claims(mixed, proofs, {
     max_witnesses: 10,
     max_references: 20,
   }).unwrap()

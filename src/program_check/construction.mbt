@@ -5,6 +5,7 @@ pub suberror ConstructionFailure {
   Operations(@context.ProgramOperationResolutionIssue)
   Values(@context.ValuesPublicationIssue)
   Joins(@context.JoinRequirementIssue)
+  IntervalSearch(@context.IntervalSearchLimitIssue)
   WindowLimits(@context.WindowMembershipBoundIssue)
   GroupLimits(@context.GroupArrayLimitIssue)
   GroupStringLimits(@context.GroupStringLimitIssue)
@@ -74,9 +75,19 @@ fn prepare_owned_closure(
     Ok(v) => v
     Err(e) => raise Joins(e)
   }
+  let interval_resolutions = match
+    @context.link_program_interval_search_limits(
+      join_resolutions,
+      ceiling,
+      ceiling - prefix,
+      ceiling - prefix,
+    ) {
+    Ok(v) => v
+    Err(e) => raise IntervalSearch(e)
+  }
   let window_resolutions = match
     @context.link_program_window_membership_limits(
-      join_resolutions,
+      interval_resolutions,
       ceiling,
       ceiling - prefix,
       ceiling - prefix,

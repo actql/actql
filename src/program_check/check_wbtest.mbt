@@ -145,7 +145,7 @@ test "check constructs Local and two-stage Result-import Programs from source" {
 
 ///|
 test "check rejects unsupported or malformed later steps without a partial result" {
-  for steps in ["[{\"interval_join\":{}}]", "[null]"] {
+  for steps in ["[{\"asof_join\":{}}]", "[null]"] {
     let budget = IdentityBudget::{
       work: 10000000,
       bytes: 1000000,

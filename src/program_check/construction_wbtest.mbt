@@ -258,7 +258,12 @@ fn local_construction_fixture(
   }).unwrap()
   let join_sources = if second_join_capacity {
     Some(
-      local_join_capacity_fixture(environment, host_limit, second_join_step) catch {
+      local_join_capacity_fixture(
+        environment,
+        host_limit,
+        second_join_step,
+        proofs=if generated_proof_stage == 1 { generated_proofs } else { [] },
+      ) catch {
         _ => abort("invalid join test material")
       },
     )

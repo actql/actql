@@ -1,5 +1,6 @@
 ///|
 struct CheckedProgram {
+  interval_search_limits : Array[Array[IntervalSearchLimit]]
   window_limits : Array[Array[WindowLimit]]
   input_completeness : Array[Array[InputCompletenessRequirement]]
   identity : @context.ProgramSourceIdentity
@@ -74,6 +75,7 @@ fn check_supported_source(
               | "intersect"
               | "join"
               | "cross_join"
+              | "interval_join"
               | "values" => ()
               _ => raise UnitBuildFailure::UnsupportedStaticPath(step)
             }
@@ -149,6 +151,11 @@ pub fn check(
   let window_limits = prepare_program_window_limits(units, requirements, budget) catch {
     error => raise Units(error)
   }
+  let interval_search_limits = prepare_program_interval_search_limits(
+    units, requirements, budget,
+  ) catch {
+    error => raise Units(error)
+  }
   let analytic_limits = prepare_program_analytic_limits(
     units, requirements, budget,
   ) catch {
@@ -175,6 +182,7 @@ pub fn check(
     error => raise Units(error)
   }
   {
+    interval_search_limits,
     window_limits,
     input_completeness,
     identity,
