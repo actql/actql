@@ -21,24 +21,31 @@ test('publication subjects and Host-only resolved-limit identities are fixed ind
     .filter((key) => key !== 'version').map((key) => [key, vectors.host_policy_all_limits]));
   policy.version = 'actql-capacity-host-policy/0.1';
   assert.equal(cid(policy), vectors.expected_policy_cid);
-  const witness = {
-    dependencies: [cid(policy)], derivation: { op: 'source' },
-    law_id: 'actql.host.artifact-rows', role: 'host_ceiling',
-    source: { field: 'max_artifact_rows', kind: 'host_policy', policy_cid: cid(policy) },
-    unit: 'rows', value: 1000, version: 'actql-bound-witness/0.1',
-  };
-  assert.equal(cid(witness), vectors.expected_host_witness_cid);
-  witness.witness_cid = cid(witness);
-  for (const vector of vectors.cases) {
-    const token = vector.result_name.replaceAll('~', '~0').replaceAll('/', '~1');
-    assert.equal(token, vector.token);
-    const body = {
-      author_guard_binding: 'absent', breach: 'fail', candidates: [witness],
-      effective_max: 1000, enforcement: 'engine_atomic',
-      subject_ref: `unit:${vectors.unit_definition_cid}#/results/${token}/rows`,
-      unit: 'rows', version: 'actql-resolved-limit/0.1',
+  for (const [unit, cases, expectedWitness] of [
+    ['rows', vectors.cases, vectors.expected_host_witness_cid],
+    ['bytes', vectors.byte_cases, vectors.expected_byte_host_witness_cid],
+  ]) {
+    const witness = {
+      dependencies: [cid(policy)], derivation: { op: 'source' },
+      law_id: `actql.host.artifact-${unit}`, role: 'host_ceiling',
+      source: { field: `max_artifact_${unit}`, kind: 'host_policy', policy_cid: cid(policy) },
+      unit, value: 1000, version: 'actql-bound-witness/0.1',
     };
-    assert.equal(cid(body), vector.expected_limit_cid);
-    assert.notEqual(cid({ ...body, subject_ref: body.subject_ref.replace('/rows', '/bytes') }), cid(body));
+    assert.equal(cid(witness), expectedWitness);
+    witness.witness_cid = cid(witness);
+    for (const vector of cases) {
+      const token = vector.result_name.replaceAll('~', '~0').replaceAll('/', '~1');
+      assert.equal(token, vector.token);
+      const body = {
+        author_guard_binding: 'absent', breach: 'fail', candidates: [witness],
+        effective_max: 1000, enforcement: 'engine_atomic',
+        subject_ref: `unit:${vectors.unit_definition_cid}#/results/${token}/${unit}`,
+        unit, version: 'actql-resolved-limit/0.1',
+      };
+      assert.equal(cid(body), vector.expected_limit_cid);
+      const other = unit === 'rows' ? 'bytes' : 'rows';
+      assert.notEqual(cid({ ...body, subject_ref: `unit:${vectors.unit_definition_cid}#/results/${token}/${other}` }), cid(body));
+      assert.notEqual(cid({ ...body, unit: other }), cid(body));
+    }
   }
 });

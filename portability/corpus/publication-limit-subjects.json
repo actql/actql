@@ -5,6 +5,7 @@
   "host_policy_all_limits": 1000,
   "expected_policy_cid": "sha256:38a92017de0e3e13901d328ab622696708aab0563dd980b04bfc9a2b6c451853",
   "expected_host_witness_cid": "sha256:0be26207531164e3664cb1fa31b605f564607a01ac043f29acaa3c86e67a5568",
+  "expected_byte_host_witness_cid": "sha256:3a07652ee33146c7b02a65f3166fba9eb657b9f7e53fc043e10a382cd45a1d2c",
   "cases": [
     {
       "result_name": "out",
@@ -15,6 +16,18 @@
       "result_name": "a~/b",
       "token": "a~0~1b",
       "expected_limit_cid": "sha256:796daafbb5a95c7481d4814edc29f6175405a2d0a3c094a337cf236e868bf5e6"
+    }
+  ],
+  "byte_cases": [
+    {
+      "result_name": "out",
+      "token": "out",
+      "expected_limit_cid": "sha256:e4357512393c07e59a621fc789d223a820f3fdb11de224b41d4cbfec1de9a444"
+    },
+    {
+      "result_name": "a~/b",
+      "token": "a~0~1b",
+      "expected_limit_cid": "sha256:6315846f9e38c4133aa3c00f265bcc9bb0a13028316f6461e6c727a06d063d95"
     }
   ]
 }
