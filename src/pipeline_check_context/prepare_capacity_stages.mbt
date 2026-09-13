@@ -22,6 +22,7 @@ pub enum CapacityStageIssue {
   VisitCount(Int)
   BudgetExceeded
   Bindings(Int, Int, @step_bounds.Issue)
+  Guards(Int, Int, @pipeline.Issue)
   Capacity(Int, Int, @capacity.PreparationIssue)
   Stages(PreparedStagesIssue)
 }
@@ -126,6 +127,53 @@ pub fn prepare_local_stage_contexts(
       } else {
         None
       }
+      if material.consumers.length() >
+        limits.max_work - base_work - extra_work - coverage_work {
+        return Err(BudgetExceeded)
+      }
+      extra_work += material.consumers.length()
+      let mut needs_guards = false
+      for request in material.consumers {
+        if request is @capacity.Sequence(step~, ..) &&
+          @pipeline.step_at(pipeline, step) is Some(checked) &&
+          checked.operation is @pipeline.Sequence(operation) &&
+          (
+            @relation.sequence_per_key_guard(operation) is Some(_) ||
+            @relation.sequence_output_guard(operation) is Some(_)
+          ) {
+          needs_guards = true
+        }
+      }
+      let guards = if needs_guards {
+        let occurrences = match
+          @pipeline.collect_author_guards(
+            pipeline,
+            max_work=limits.max_work - base_work - extra_work - coverage_work,
+            max_text_bytes=limits.max_text_bytes - base_text - extra_text,
+          ) {
+          Ok(v) => v
+          Err(e) => return Err(Guards(stage, visit, e))
+        }
+        let used = @pipeline.author_guards_usage(occurrences)
+        extra_work += used.0
+        extra_text += used.1
+        let bound = match
+          @pipeline.bind_author_guards(
+            occurrences,
+            bindings.map(v => @step_bounds.parameter_values(v)),
+            max_work=limits.max_work - base_work - extra_work - coverage_work,
+            max_text_bytes=limits.max_text_bytes - base_text - extra_text,
+          ) {
+          Ok(v) => v
+          Err(e) => return Err(Guards(stage, visit, e))
+        }
+        let used = @pipeline.bound_guard_usage(bound)
+        extra_work += used.0
+        extra_text += used.1
+        Some(bound)
+      } else {
+        None
+      }
       let name_cap = Int::min(
         limits.max_name_bytes - names,
         limits.max_text_bytes - base_text - extra_text,
@@ -143,6 +191,7 @@ pub fn prepare_local_stage_contexts(
             max_operand_work: limits.max_operand_work - operand_work,
           },
           bindings~,
+          guards~,
         ) {
         Ok(v) => v
         Err(e) => return Err(Capacity(stage, visit, e))

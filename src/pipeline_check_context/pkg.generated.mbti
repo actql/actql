@@ -1158,6 +1158,7 @@ pub enum CapacityStageIssue {
   VisitCount(Int)
   BudgetExceeded
   Bindings(Int, Int, @capacity_program_step.Issue)
+  Guards(Int, Int, @pipeline_typing.Issue)
   Capacity(Int, Int, @capacity_graph_preflight.PreparationIssue)
   Stages(PreparedStagesIssue)
 }

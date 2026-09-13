@@ -204,10 +204,9 @@ test "formal sequence closes temporal input matching and atomic limits through a
 
 ///|
 test "formal sequence limit imports retain the producer Unit instead of the consumer namespace" {
-  let steps = sequence_test_steps(false, "disallow", "adjacent", "").replace(
-    old="{\"$param\":\"n\"}",
-    new="1",
-  )
+  let steps = sequence_test_steps(
+    false, "disallow", "adjacent", ",\"max_output_rows\":2",
+  ).replace(old="{\"$param\":\"n\"}", new="1")
   let checked : Array[CheckedProgram] = []
   let _ = local_construction_fixture(
     { work: 10000000, bytes: 1000000, nodes: 100000, depth: 100, },
@@ -240,6 +239,19 @@ test "formal sequence limit imports retain the producer Unit instead of the cons
     "#/steps/1/sequence/output",
   )
   let closure = @context.stage_requirement_operations(requirements(program))
+  let output = sequence_limit_claim(limit, @sequence.OutputRows)
+  let mut authored = 0
+  for i in 0..<@derivation.minimum_candidate_count(@wire.limit_minimum(output)) {
+    let node = @derivation.minimum_candidate_at(@wire.limit_minimum(output), i).unwrap().node
+    let witness = @wire.claim_at(@wire.limit_claims(output), node).unwrap()
+    if @wire.source(witness) is @wire.AuthorGuard(path, owner) {
+      authored += 1
+      assert_eq(path, "$.steps[1].sequence.max_output_rows")
+      assert_eq(owner, unit_definition_cid(program, 0).unwrap())
+      assert_true(owner != unit_definition_cid(program, 1).unwrap())
+    }
+  }
+  assert_eq(authored, 1)
   let mut visits = 0
   for i in 0..<@context.operation_closure_count(closure) {
     if @context.operation_closure_at(closure, i)
@@ -254,8 +266,8 @@ test "formal sequence limit imports retain the producer Unit instead of the cons
 }
 
 ///|
-test "formal sequence rejects missing coverage and unbound authored limits without partial Programs" {
-  for guard_text in ["", ",\"max_matches_per_key\":1", ",\"max_output_rows\":1"] {
+test "formal sequence rejects missing coverage without partial Programs" {
+  for guard_text in [""] {
     let checked : Array[CheckedProgram] = []
     try
       local_construction_fixture(
@@ -286,6 +298,93 @@ test "formal sequence rejects missing coverage and unbound authored limits witho
       _ => fail("unresolved limits escaped")
     }
     assert_eq(checked.length(), 0)
+  }
+}
+
+///|
+test "formal sequence closes literal and Parameter guards into producer Unit limits" {
+  for empty in [false, true] {
+    for
+      (token, expected) in [
+        ("1", 1L),
+        ("1000", 1000L),
+        ("1001", 1001L),
+        ("{\"$param\":\"n\"}", 1L),
+      ] {
+      let checked : Array[CheckedProgram] = []
+      let _ = local_construction_fixture(
+        { work: 10000000, bytes: 1000000, nodes: 100000, depth: 100, },
+        through_check=true,
+        checked_results=checked,
+        second_stage=true,
+        parameters=true,
+        tea=true,
+        second_sequence_capacity=true,
+        generated_rows=if empty { Some("[]") } else { None },
+        second_steps=sequence_test_steps(
+          false,
+          "allow",
+          "subsequence",
+          ",\"max_matches_per_key\":" + token + ",\"max_output_rows\":" + token,
+        ),
+        second_result_from="selected",
+        extra_step_budget=2,
+      )
+      assert_eq(checked.length(), 1)
+      let program = checked[0]
+      let selection = unit_sequence_limit_at(program, 1, 0).unwrap()
+      let owner = unit_definition_cid(program, 1).unwrap()
+      for
+        (scope, field, host) in [
+          (@sequence.MatchesPerKey, "max_matches_per_key", 1000L),
+          (OutputRows, "max_output_rows", 1000L),
+        ] {
+        let claim = sequence_limit_claim(selection, scope)
+        let minimum = @wire.limit_minimum(claim)
+        assert_eq(
+          @derivation.minimum_value(minimum),
+          Int64::min(expected, host),
+        )
+        assert_eq(@derivation.minimum_candidate_count(minimum), 2)
+        let first = @derivation.minimum_candidate_at(minimum, 0).unwrap()
+        let guard_index = if @wire.source(
+            @wire.claim_at(@wire.limit_claims(claim), first.node).unwrap(),
+          )
+          is @wire.AuthorGuard(_, _) {
+          0
+        } else {
+          1
+        }
+        let candidate = @derivation.minimum_candidate_at(minimum, guard_index).unwrap()
+        let witness = @wire.claim_at(@wire.limit_claims(claim), candidate.node).unwrap()
+        assert_eq(@wire.value(witness), expected)
+        assert_eq(
+          @wire.source(witness),
+          @wire.AuthorGuard("$.steps[0].sequence." + field, owner),
+        )
+        let original = @sequence.host_limit(
+          sequence_limit_selection(selection).limits,
+          scope,
+        )
+        let original_node = @derivation.minimum_candidate_at(
+            @wire.limit_minimum(original),
+            0,
+          ).unwrap().node
+        let retained_node = @derivation.minimum_candidate_at(
+            minimum,
+            1 - guard_index,
+          ).unwrap().node
+        assert_eq(
+          @wire.cid(
+            @wire.claim_at(@wire.limit_claims(claim), retained_node).unwrap(),
+          ),
+          @wire.cid(
+            @wire.claim_at(@wire.limit_claims(original), original_node).unwrap(),
+          ),
+        )
+        assert_true(@wire.limit_cid(claim) != @wire.limit_cid(original))
+      }
+    }
   }
 }
 

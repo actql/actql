@@ -31,38 +31,90 @@ pub fn sequence_limit_claim(
 }
 
 ///|
-// Only Host-only claims admitted by the owned sequence consumer reach this
-// conversion. Host witness bodies and repeated candidate occurrences survive.
+// Preserve original Host occurrences and insert the Unit guard in CID order.
 fn reidentify_sequence_limit(
   original : @wire.LimitClaim,
   subject : String,
   unit : String,
   budget : IdentityBudget,
+  guard_witness? : @wire.WireWitness? = None,
 ) -> @wire.LimitClaim raise UnitBuildFailure {
-  let arithmetic = @wire.limit_claims(original)
+  let original_arithmetic = @wire.limit_claims(original)
   let minimum = @wire.limit_minimum(original)
   let count = @derivation.minimum_candidate_count(minimum)
+  let arithmetic = match guard_witness {
+    None => original_arithmetic
+    Some(witness) => {
+      identity_charge(budget, count + 1)
+      let witnesses : Array[@wire.WireWitness] = []
+      let seen : Map[String, Bool] = Map([])
+      for i in 0..<count {
+        let node = @derivation.minimum_candidate_at(minimum, i).unwrap().node
+        let candidate = @wire.claim_at(original_arithmetic, node).unwrap()
+        let cid = @wire.cid(candidate)
+        identity_charge(budget, cid.length())
+        if !seen.contains(cid) {
+          seen[cid] = true
+          witnesses.push(candidate)
+        }
+      }
+      witnesses.push(witness)
+      let claims = @wire.check_arithmetic_claims(witnesses, {
+        max_witnesses: witnesses.length(),
+        max_references: budget.work,
+      })
+      match claims {
+        Ok(v) => {
+          identity_charge(budget, @wire.claim_reference_count(v))
+          v
+        }
+        Err(ClosureBudgetExceeded) => raise BudgetExceeded
+        Err(_) => raise ForeignOwner
+      }
+    }
+  }
+  let host_max = @derivation.minimum_value(minimum)
+  let guard_max = guard_witness.map(v => @wire.value(v))
+  let maximum = guard_max.map(v => Int64::min(v, host_max)).unwrap_or(host_max)
+  let binding = match guard_max {
+    None => "absent"
+    Some(v) => if v < host_max { "binding" } else { "currently_non_binding" }
+  }
   identity_charge(budget, subject.length())
   let emit = fn(
     w : @encode.Writer,
     cid : String?,
   ) -> Unit raise UnitBuildFailure {
-    identity_charge(budget, count)
+    identity_charge(
+      budget,
+      count + (if guard_witness is Some(_) { 1 } else { 0 }),
+    )
     try {
       @encode.begin_object(w)
       @encode.key(w, "author_guard_binding")
-      @encode.string_value(w, "absent")
+      @encode.string_value(w, binding)
       @encode.key(w, "breach")
       @encode.string_value(w, "fail")
       @encode.key(w, "candidates")
       @encode.begin_array(w)
+      let mut inserted = false
       for i in 0..<count {
         let candidate = @derivation.minimum_candidate_at(minimum, i).unwrap()
-        @wire.emit(@wire.claim_at(arithmetic, candidate.node).unwrap(), w)
+        let host = @wire.claim_at(original_arithmetic, candidate.node).unwrap()
+        if guard_witness is Some(authored) &&
+          !inserted &&
+          @wire.cid(authored) < @wire.cid(host) {
+          @wire.emit(authored, w)
+          inserted = true
+        }
+        @wire.emit(host, w)
+      }
+      if guard_witness is Some(witness) && !inserted {
+        @wire.emit(witness, w)
       }
       @encode.end_array(w)
       @encode.key(w, "effective_max")
-      @encode.number_value(w, @derivation.minimum_value(minimum).to_double())
+      @encode.number_value(w, maximum.to_double())
       @encode.key(w, "enforcement")
       @encode.string_value(w, "engine_atomic")
       if cid is Some(cid) {
@@ -90,7 +142,7 @@ fn reidentify_sequence_limit(
       max_bytes: bytes.length(),
       max_nodes: bytes.length(),
       max_depth: budget.depth,
-      max_candidates: count,
+      max_candidates: count + (if guard_witness is Some(_) { 1 } else { 0 }),
     }) {
     Ok(value) => value
     Err(e) => raise PublicationWire(e)
@@ -129,12 +181,6 @@ fn prepare_program_sequence_limits(
       continue
     }
     let site = selected.site
-    if @sequence.guard_value(selected.limits, MatchesPerKey) is Some(_) ||
-      @sequence.guard_value(selected.limits, OutputRows) is Some(_) {
-      // Guard selection is not its persistent source witness. Never serialize
-      // a selected authored restriction as an absent guard.
-      raise UnconvertedProofInput
-    }
     guard units.get(site.stage) is Some(unit) else { raise ForeignOwner }
     if !physical_equal(unit.pipeline, site.pipeline) {
       continue
@@ -158,12 +204,24 @@ fn prepare_program_sequence_limits(
       subject + "matches-per-key",
       "matches_per_key",
       remaining,
+      guard_witness=sequence_guard_witness(
+        source,
+        selected.limits,
+        MatchesPerKey,
+        remaining,
+      ),
     )
     let output = reidentify_sequence_limit(
       @sequence.limit(selected.limits, OutputRows),
       subject + "output",
       "rows",
       remaining,
+      guard_witness=sequence_guard_witness(
+        source,
+        selected.limits,
+        OutputRows,
+        remaining,
+      ),
     )
     identity_charge(remaining, 1)
     result[site.stage].push({ source, selected, matches, output, })
@@ -172,6 +230,38 @@ fn prepare_program_sequence_limits(
   budget.bytes = remaining.bytes
   budget.nodes = remaining.nodes
   result
+}
+
+///|
+fn sequence_guard_witness(
+  source : UnitOperationSource,
+  selected : @sequence.SequenceLimits,
+  scope : @sequence.Scope,
+  budget : IdentityBudget,
+) -> @wire.WireWitness? raise UnitBuildFailure {
+  guard @sequence.guard_value(selected, scope) is Some(value) else {
+    return None
+  }
+  let (field, law, unit) = match scope {
+    MatchesPerKey =>
+      ("max_matches_per_key", "actql.guard.sequence-matches", "matches_per_key")
+    OutputRows => ("max_output_rows", "actql.guard.sequence-output", "rows")
+  }
+  let path = "$.steps[" +
+    source.source_ordinal.to_string() +
+    "].sequence." +
+    field
+  identity_charge(budget, path.length())
+  Some(
+    emit_unit_guard_witness(
+      source.unit_definition_cid,
+      path,
+      law,
+      unit,
+      value,
+      budget,
+    ),
+  )
 }
 
 ///|

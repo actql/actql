@@ -230,7 +230,7 @@ input proof graphs are retained through Event conversion and Result imports.
 The explicit `events` projection preserves membership roles and conditional
 keys. Dropping a sliding start component loses the composite key and window
 role, not the retained occurrence order or the original producer's checks.
-Sequence operations with Host-only match limits enter through the same formal
+Sequence operations with Host ceilings and optional authored match limits enter through the same formal
 constructor, including Relation and Events inputs and Result imports. Their
 closure retains value/identity admission, ascending event ordering, original
 `within` binding, authored matching semantics and both atomic limit claims from
@@ -238,13 +238,18 @@ the same producer's coverage. Neither empty input nor static success discharges
 those execution duties. Missing limit coverage and invalid bound `within` values
 prevent the entire result, including when an earlier Stage was valid.
 
-Authored sequence limits remain an explicit unsupported static path until their
-source occurrence, binding and effective minimum are connected; a Host-only
-claim cannot replace them. The constructor converts both Host-only limit claims
+The constructor binds literal and Parameter-authored sequence limits from the
+same producer pipeline and effective values. It converts both limit claims
 to their actual Unit/step/sequence scope and retains the original owned selection.
+Authored witnesses refer to that Unit Definition and exact sequence field path;
+they join the unchanged Host candidate occurrences in canonical CID order.
+Equal and looser restrictions remain present as currently non-binding guards.
 Indexed sequence-limit readers expose these rebuilt claims, not the process-local
-subjects. Candidate occurrences, quantities and maxima remain unchanged, while
-the new subjects give each limit a new CID; Host witness identities are unchanged.
+subjects. Quantities and guard-inclusive minima are preserved, while the new
+subjects and authored candidates determine each limit CID; Host witness identities
+are unchanged. Guarded sequence output-proof construction remains a separate
+unsupported path until its candidate dependencies are connected; an enforced
+limit is not by itself a proven row count.
 This entry does not run a matcher or establish backend
 support, and does not enable unrelated temporal paths.
 

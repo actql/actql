@@ -8087,6 +8087,18 @@ interchangeable. Imported prerequisites retain their original producer Unit.
 These references assert neither completed matching nor permission to publish
 partial results after either limit is exceeded.
 
+<!-- requirement-block: resolved-limits.unit-sequence-authored-candidates resolved-limits.unit-sequence-nonbinding-guard resolved-limits.unit-sequence-guard-correspondence -->
+When construction starts from an admitted Host-only sequence limit and a
+separately bound authored restriction, it MUST retain the Host candidate
+occurrences in their original relative order and insert the owning Unit's authored
+guard witness in canonical witness-CID order. The effective maximum is the minimum of all these candidates. A guard
+below the Host minimum is `binding`; an equal or larger guard is
+`currently_non_binding` and MUST still be retained. Omission stays `absent` and
+does not synthesize a guard. The scope-specific guard law, authored source path,
+Unit Definition and effective Parameter binding MUST correspond to the same
+checked sequence. Recompute the limit CID from this complete candidate body;
+the original Host-only limit is not the final claim when a guard is present.
+
 <!-- requirement-block: resolved-limits.unit-group-aggregate-subject resolved-limits.unit-group-aggregate-correspondence resolved-limits.unit-group-aggregate-scope-isolation -->
 An ordinary `group` aggregate's persistent resolved limit MUST use
 `unit:<unit_definition_cid>#/steps/<ordinal>/group/aggregates/<name_token>/<scope>`

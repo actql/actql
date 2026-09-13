@@ -321,6 +321,16 @@ integer. Changing unrelated stages or Host policy does not change this guard
 witness; changing its owning Unit, occurrence or bound value does. The enclosing
 Program's membership evidence authenticates the Unit separately.
 
+<!-- requirement-block: capacity-law-registry.unit-sequence-guard-path -->
+For a sequence guard, the source path MUST be exactly
+`$.steps[n].sequence.max_matches_per_key` or
+`$.steps[n].sequence.max_output_rows`, using the same authored ordinal and Unit
+Definition owner convention. The respective laws are
+`actql.guard.sequence-matches` with quantity `matches_per_key` and
+`actql.guard.sequence-output` with quantity `rows`. Each witness contains the
+effective positive integer bound, retains its authored occurrence even for a
+Parameter value, and is an enforcement restriction, not an observed count.
+
 The join-output law applies separately to `join`, `cross_join` and
 `interval_join` output guards; the owning occurrence determines the operation
 and protected output. The nested-array-items law restricts each matched

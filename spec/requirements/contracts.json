@@ -344,6 +344,17 @@
       }
     },
     {
+      "requirement_id": "actql.protocol.contracts/capacity-law-registry.unit-sequence-guard-path",
+      "statement_sha256": "86a7856e8fb6e0cd6a82e23f5676ef404c5bfa103489e3122ce1e327f0241e09",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "capacity-law-registry",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.protocol.contracts/capacity-law-registry.values-body",
       "statement_sha256": "805c267cc299d4fa5253afaf544be780be04a524b1e287a71262d44426393eeb",
       "status": "pending",

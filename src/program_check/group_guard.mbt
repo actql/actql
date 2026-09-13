@@ -77,7 +77,38 @@ fn emit_aggregate_guard_witness(
     name +
     "]." +
     field
-  let definition = operation.unit_definition_cid
+  let witness = emit_unit_guard_witness(
+    operation.unit_definition_cid,
+    path,
+    if scope == "items" {
+      "actql.guard.array-aggregate"
+    } else {
+      "actql.guard.string-aggregate"
+    },
+    if scope == "items" {
+      "array_items"
+    } else {
+      "bytes"
+    },
+    value,
+    remaining,
+  )
+  budget.work = remaining.work
+  budget.bytes = remaining.bytes
+  budget.nodes = remaining.nodes
+  witness
+}
+
+///|
+fn emit_unit_guard_witness(
+  definition : String,
+  path : String,
+  law : String,
+  unit : String,
+  value : Int64,
+  budget : IdentityBudget,
+) -> @wire.WireWitness raise UnitBuildFailure {
+  let remaining = IdentityBudget::{ ..budget, }
   let emit = fn(
     w : @encode.Writer,
     cid : String?,
@@ -94,14 +125,7 @@ fn emit_aggregate_guard_witness(
       @encode.string_value(w, "source")
       @encode.end_object(w)
       @encode.key(w, "law_id")
-      @encode.string_value(
-        w,
-        if scope == "items" {
-          "actql.guard.array-aggregate"
-        } else {
-          "actql.guard.string-aggregate"
-        },
-      )
+      @encode.string_value(w, law)
       @encode.key(w, "role")
       @encode.string_value(w, "author_guard")
       @encode.key(w, "source")
@@ -114,14 +138,7 @@ fn emit_aggregate_guard_witness(
       @encode.string_value(w, path)
       @encode.end_object(w)
       @encode.key(w, "unit")
-      @encode.string_value(
-        w,
-        if scope == "items" {
-          "array_items"
-        } else {
-          "bytes"
-        },
-      )
+      @encode.string_value(w, unit)
       @encode.key(w, "value")
       @encode.number_value(w, value.to_double())
       @encode.key(w, "version")

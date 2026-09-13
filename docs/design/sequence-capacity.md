@@ -1,7 +1,8 @@
 # Sequence capacity consumer binding
 
 `capacity_sequence_limit.check_host_limits` associates both sequence limit
-scopes with one actual checked pipeline step. It handles the Host-only branch;
+scopes with one actual checked pipeline step. It handles Host candidates and
+separately owned authored restrictions;
 it is not complete source admission, whole-pipeline checking, an observed match
 count, runtime enforcement, or permission to execute.
 
@@ -97,12 +98,14 @@ provided, requires the same immutable Parameter values. Sequence selection and
 all other preparation work share the existing cumulative work cap. Guard
 collection and binding are prior charged preparation, not repeated here.
 
-This selection does not construct an authored wire witness or assert its Unit
-identity. Until that conversion is connected, persistent sequence serialization
-and the wire-candidate output-proof resolver reject guarded selections rather
-than omit their restrictions. The formal preparation entry still uses the
-Host-only path. The bound-selection entry is not a substitute for those remaining
-source and final-minimum checks.
+Selection alone does not construct an authored wire witness or assert its Unit
+identity. Formal Program construction binds the producer's guards during capacity
+preparation and converts them after the Unit Definition is known. Each scope's
+final claim retains Host occurrences and inserts its Unit-owned guard in CID order;
+the minimum and binding status include both, including equal or looser guards.
+The wire-candidate output-proof resolver still rejects guarded selections until
+those authored candidate dependencies can be connected to the proof. It must
+not substitute the Host-only minimum or omit the authored source.
 
 The [atomic Program application resolver](program-step-bounds.md#atomic-output-bound-construction)
 can bind `actql.bound.sequence-output` to this result's output-row minimum and
@@ -112,7 +115,8 @@ a same-valued per-key ceiling is not a total-row bound. The resolver and combine
 coverage retain source/policy ownership and cumulative budgets; they do not
 execute either enforcement or the sequence's other pending checks.
 
-An authored `max_matches_per_key` or `max_output_rows` fails this entry with
+An authored `max_matches_per_key` or `max_output_rows` fails the Host-only
+output-proof resolver entry with
 `UnresolvedAuthorSource` for that scope. This applies whether the guard is
 looser, equal or tighter than the Host ceiling. It is a supported-implementation
 boundary, not a language restriction: the guard cannot be omitted until its
