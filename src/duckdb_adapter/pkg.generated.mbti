@@ -81,6 +81,8 @@ pub fn native_receipt_digest(NativeReceiptIdentities, NativeReceiptRole) -> (Str
 
 pub fn native_receipt_field(NativeReceiptIdentities, NativeReceiptRole, Int) -> String?
 
+pub fn native_receipt_field_count(NativeReceiptIdentities, NativeReceiptRole) -> Int
+
 pub fn native_receipts_match(NativeReceiptIdentities, NativeReceiving) -> Bool
 
 pub fn native_receiving_has_both(NativeReceiving) -> Bool

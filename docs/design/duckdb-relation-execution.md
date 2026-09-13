@@ -409,6 +409,29 @@ or a new validation-summary contract is not a prerequisite. Avoiding full-scan
 transfer is a separate internal-validation improvement, not a completion gate
 for the two-receipt path.
 
+`DuckDBNativeIssuer` admits the complete two-receipt contract with its already
+admitted acquisition and process-evidence dependencies under one contract budget.
+It binds the exact selected native preparation before metadata access and reserves
+an attempt-local read-view discriminator. The discriminator is not a snapshot CID
+or self-authenticating token: the trusted bridge must verify its association with
+the actual two-receipt execution and settled read transaction.
+
+Issuance verifies that live association, exact owned measurements and the combined
+retention ceiling, then atomically serializes two receipts and three records.
+The two row transfers remain separately identified and counted even when their
+contents happen to coincide. Capture uses the separate two-receipt observation
+version and requires the exact issued-set handle. Artifact bytes/nodes include
+both receipts, all three records, their hashes, the capture and request rehash;
+no writer resets the shared allowance. Failure discards pending authority state.
+After capture, cancellation of pending work cannot discard the observation;
+explicit issuer or transport-provenance revocation remains effective.
+
+The native observation retains immutable native receipt data without constructing
+a row-engine completion from caller-supplied rows. Bridging that data into the
+ordinary producer/consumer boundary requires a separate validated completion path;
+the observation document or CID alone cannot supply it. Portable issuer tests do
+not replace real Node bridge conformance.
+
 The [acquisition resource-scope contract](../../spec/contracts/actql-query-resource-scopes.json)
 separates common acquisition guards from selected fragment bounds. This native
 scan/filter/select implementation does not select the Local residual fragment

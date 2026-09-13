@@ -194,3 +194,11 @@ pub fn native_receipt_field(
   }
   @execution.row_wire_order_column(digest.order, index).map(pair => pair.0)
 }
+
+///|
+pub fn native_receipt_field_count(
+  receipts : NativeReceiptIdentities,
+  role : NativeReceiptRole,
+) -> Int {
+  receipt_digest(receipts, role).columns
+}

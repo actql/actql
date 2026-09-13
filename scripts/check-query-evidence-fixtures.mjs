@@ -13,4 +13,12 @@ for (const path of ['src/query_planning/evidence_bodies_wbtest.mbt', 'src/query_
     assert.deepEqual(fixture, current, `${name} fixture in ${path} must match the complete shared body`);
   }
 }
+{
+  const path = 'src/query_integration/query_two_receipt_body_wbtest.mbt';
+  const text = readFileSync(path, 'utf8');
+  const match = text.match(/@json\.parse\(\s*("(?:[^"\\]|\\.)*")\s*,?\s*\)/);
+  assert.ok(match, `Missing two-receipt body fixture in ${path}`);
+  assert.deepEqual(JSON.parse(JSON.parse(match[1])),
+    JSON.parse(readFileSync('spec/contracts/actql-query-two-receipt.json', 'utf8')));
+}
 console.log('Query evidence fixture bodies match the shared contracts.');

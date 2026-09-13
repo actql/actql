@@ -77,18 +77,7 @@ fn query_record_payload(
       @encode.string_value(writer, "actql-query-access-scope/0.1")
       @encode.end_object(writer)
     })
-    let scope = material_hash(budget, writer => {
-      @encode.begin_object(writer)
-      @encode.key(writer, "resolved_request_cid")
-      @encode.string_value(writer, requirement.material.request_cid)
-      @encode.key(writer, "source_contract_cid")
-      @encode.string_value(writer, requirement.source_contract_cid)
-      @encode.key(writer, "source_ref")
-      @encode.string_value(writer, requirement.source_ref)
-      @encode.key(writer, "version")
-      @encode.string_value(writer, "actql-query-scan-scope/0.1")
-      @encode.end_object(writer)
-    })
+    let scope = query_scan_scope(requirement, budget)
     Ok({
       requirement_cid: requirement.cid,
       snapshot: None,
@@ -109,4 +98,23 @@ fn query_record_payload(
   } catch {
     issue => Err(Encoding(issue))
   }
+}
+
+///|
+fn query_scan_scope(
+  requirement : QueryRequirement,
+  budget : QueryMaterialBudget,
+) -> String raise @encode.EncodeFailure {
+  material_hash(budget, writer => {
+    @encode.begin_object(writer)
+    @encode.key(writer, "resolved_request_cid")
+    @encode.string_value(writer, requirement.material.request_cid)
+    @encode.key(writer, "source_contract_cid")
+    @encode.string_value(writer, requirement.source_contract_cid)
+    @encode.key(writer, "source_ref")
+    @encode.string_value(writer, requirement.source_ref)
+    @encode.key(writer, "version")
+    @encode.string_value(writer, "actql-query-scan-scope/0.1")
+    @encode.end_object(writer)
+  })
 }

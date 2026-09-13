@@ -12,6 +12,8 @@ priv enum DuckDBNativeState {
   Receiving
   Settled
   Measured(DuckDBNativeMeasurement)
+  EvidenceIssued(DuckDBNativeRecords)
+  Captured(DuckDBNativeObservation)
   Failed
 }
 
@@ -21,6 +23,7 @@ priv enum DuckDBNativeState {
 /// This lifecycle cannot manufacture execution records or engine completion.
 struct DuckDBNativeAttempt {
   preparation : DuckDBNativePreparation
+  authority : DuckDBNativeAuthority?
   receiver : @duckdb.NativeReceiving
   mut state : DuckDBNativeState
 }
@@ -61,7 +64,7 @@ pub fn prepare_duckdb_native_attempt(
     measurement,
   )
   .map_err(issue => DuckDBNativeAttemptIssue::Receiving(issue))
-  .map(receiver => { preparation, receiver, state: Receiving, })
+  .map(receiver => { preparation, authority: None, receiver, state: Receiving, })
 }
 
 ///|
@@ -73,6 +76,9 @@ pub fn duckdb_native_attempt_preparation(
 
 ///|
 pub fn abort_duckdb_native_attempt(attempt : DuckDBNativeAttempt) -> Unit {
+  if attempt.state is Captured(_) {
+    return
+  }
   @duckdb.abort_native_receiving(attempt.receiver)
   attempt.state = Failed
 }
@@ -201,7 +207,12 @@ pub fn duckdb_native_measurement_matches(
   measurement : DuckDBNativeMeasurement,
   attempt : DuckDBNativeAttempt,
 ) -> Bool {
-  guard attempt.state is Measured(issued) else { return false }
+  let issued = match attempt.state {
+    Measured(value) => value
+    EvidenceIssued(value) => value.measurement
+    Captured(value) => value.records.measurement
+    _ => return false
+  }
   physical_equal(measurement.attempt, attempt) &&
   physical_equal(issued, measurement) &&
   @duckdb.native_demand_matches(measurement.demand, attempt.receiver) &&

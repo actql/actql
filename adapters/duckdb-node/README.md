@@ -219,8 +219,18 @@ selected typed candidate and binds its common acquisition guards. Its metadata,
 receipt and measurement operations preserve the receiver's full-scan checks and
 one-shot failure semantics. `measure_duckdb_native_attempt` requires settled
 transport and produces owned diagnostic measurements, not execution records or a
-captured observation. Native issuer/capture and product completion integration
-remain required; this API must not be used as an alternative success constructor.
+captured observation.
+
+The portable native issuer starts with `admit_query_two_receipt_contract` and
+`prepare_duckdb_native_issuer`, then binds authority before access through
+`prepare_issued_duckdb_native_attempt`. After exact live transport verification,
+`issue_duckdb_native_records` checks retention and emits both receipts and all
+three records atomically. `capture_duckdb_native_query` creates the separate
+two-receipt observation; `verify_duckdb_native_observation` requires its live
+issuer, exact attempt and issued-set handles. Portable tests compare all preimages
+and aggregate artifact boundaries against independent expectations. Real Node
+bridge integration and the native producer/consumer product completion path
+remain required. The document/CID is not an alternative success constructor.
 
 `authorizeLocalDatabase` is called by explicit trusted Host setup, not by a
 Program resource decoder. The opaque grant authorizes a path to a trusted local
