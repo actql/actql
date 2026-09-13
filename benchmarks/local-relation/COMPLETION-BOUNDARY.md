@@ -205,3 +205,31 @@ nor demands improvement. Do not extend uncertain cells, repeat the comparison,
 or tune the evaluator. Report any apparent increase and stop for the user's
 decision after completing the authorized correctness checks. Wasm performance
 and the full performance matrix remain outside this diagnostic.
+
+## Product connection checkpoint
+
+`853ded0` separates the private completion store from row-only storage, retains
+the default row path and centralizes successful completion after the same
+ordered driver. Numeric projection and index adapters reuse the existing body
+and selection kernels. Full numeric backing capacity is conservatively charged
+even through a small selection. The additional private files are
+`completed_storage.mbt`, `completed_backend.mbt` and `completed_sequence.mbt`;
+producer logical charging was extracted earlier into `completed_rows.mbt`.
+No expression-frame dependency, typing, lowering or shared contract changed.
+
+`43408be` connects the existing limited typed derive trial to real fragment/input
+admission and product completion, then real producer binding/admission, checked
+select, stable sort and product completion. Widths 1/7/1000 preserve independently
+fixed output values. The completed and downstream tables remain numeric-column
+representations; sort shares projected buffers. This is not a private completion
+type, a full row-matrix conversion or a general vectorized evaluator. The trial
+now uses the invocation's output-value budget instead of its former fresh
+test-only budget. It seals output by a bounded typed-buffer copy, not zero-copy.
+
+At this checkpoint, whole JS/Wasm/native checks and tests with warnings denied
+passed, 3,370 tests per target. API, format, fixed values-vector freshness,
+documents and metadata passed. Linux CI was not run. This is an intermediate
+checkpoint, not completion: broader typed-path NULL/empty-schema, ownership,
+late-failure, lifetime and resource-boundary regressions remain, followed by the
+single authorized post-boundary diagnostic. Historical performance evidence
+and its failed/uncertain gate status are unchanged.
