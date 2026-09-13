@@ -7967,6 +7967,50 @@
       }
     },
     {
+      "requirement_id": "actql.execution/numeric-observation.analytic-slot-preimage",
+      "statement_sha256": "e34a0307b91563ee8dbd7c71e68b8477f12eddad77b4958c93f2b407067d85fc",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "numeric-observation",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.execution/numeric-observation.analytic-slot-owner",
+      "statement_sha256": "b60b975d0b5012b405b60b8bc1a7c0903e33e4479954e8f92d3866cf58984673",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "numeric-observation",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.execution/numeric-observation.analytic-slot-imports",
+      "statement_sha256": "2c7a6b70c00b4246112dc536c9e8f127666f0558436fcede8ec172f80a39721c",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "numeric-observation",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.execution/numeric-observation.analytic-slot-frame-binding",
+      "statement_sha256": "c0b00094cee2d557e125d5a9409dc7f357637db9138d092052fbde095ae6a5b3",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "numeric-observation",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.execution/numeric-observation.group-slot-owner",
       "statement_sha256": "c77bc8d8ea5fd323cc2491ecce7c5e934f92220cc1748df07d93080da1059d68",
       "status": "pending",

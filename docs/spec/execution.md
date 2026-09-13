@@ -809,8 +809,47 @@ position in the aggregate map and not an escaped path. The Unit Definition
 already binds the operation's semantics, effective used Parameters and local
 contracts. The profile CID identifies the explicitly admitted profile, not a
 member selected for a future attempt. This fixes the previously unspecified
-ordinary-group slot preimage; window_group, pivot and analytic require their
-own context-specific slot definitions.
+ordinary-group slot preimage; window_group and pivot require their own
+context-specific slot definitions. Analytic calls use the separate definition
+below, not the ordinary-group domain.
+
+<!-- machine-import: ../../spec/contracts/actql-analytic-numeric-slot.json# sha256:6d88bdc63c0a7eb77ee1dc976003fcec1ace74ca46ce61af5a956d2e89b30a43 -->
+<!-- machine-import: ../../spec/contracts/actql-analytic-numeric-slot.json#/schemas/analytic_slot sha256:89b1d3c4450466f1ebf758c876ca8209787490cdf852b7e16c1b4ec41a862ae6 -->
+
+<!-- requirement-block: numeric-observation.analytic-slot-preimage -->
+For an analytic binary64 sum/avg, the static slot CID MUST hash the entire
+canonical JSON object `{version: "actql-analytic-numeric-slot/0.1",
+unit_definition_cid, source_ordinal, output_name, reduction_profile_cid}`.
+It identifies the call template, not a future output frame. The ordinal is
+the producer Unit's authored step ordinal; the name is the exact canonical
+authored output name, not a call-array index or escaped path. The Unit already
+binds the partition, authored order, frame, expressions and effective used
+Parameters. This fixes the previously unspecified analytic slot preimage in a
+separate domain, without changing the ordinary-group preimage.
+
+<!-- requirement-block: numeric-observation.analytic-slot-owner -->
+Admission MUST verify the same checked Program, owning Stage, pipeline, step,
+binary64 sum/avg call and admitted reduction profile. The slot contract and
+schema, selected profile and declared dependencies belong to that Unit's local
+contract closure.
+
+<!-- requirement-block: numeric-observation.analytic-slot-imports -->
+Imports retain the producer slot; they MUST NOT rebase it to
+the consumer. The static preimage excludes future input artifacts, partition
+keys, output positions, members, contributor values, counts, adopted values,
+selected algorithm members, attempts, Invocation, placement and costs. The Unit
+does not include the derived slot CID. Shape and self-hash do not prove ownership.
+
+<!-- requirement-block: numeric-observation.analytic-slot-frame-binding -->
+Execution MUST bind each frame observation to the static slot, exact input,
+partition and output-row occurrence, completed position evidence and actual
+contributor demand. Equal frame values or contributor sequences do not alone
+identify output occurrences, including repeated rows and empty frames. Frame
+position determines demand, not a prescribed floating-point summation order.
+The existing reduction-profile admission, attempt binding and durable capture
+barrier before consumers remain mandatory. A static slot supplies neither a
+future observation identity nor evidence of completed capture; this contract
+does not substitute process-local retention for that barrier.
 
 <!-- requirement-block: numeric-observation.group-slot-owner -->
 Slot admission MUST verify the same checked Program, owning Stage, local

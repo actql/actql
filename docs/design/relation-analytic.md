@@ -146,3 +146,12 @@ and mandatory analytic output-wire envelope still apply. Count/index readers
 expose the retained string limits without rebuilding them. Imported uses do not
 acquire separate consumer-owned limits, and shared construction budgets cover
 the whole inventory with no partial result on failure.
+
+Binary64 sum/avg use an analytic-specific static numeric slot domain. A slot
+names the producer Unit, authored step, exact output name and selected reduction
+profile; it is a call template shared by that call's runtime frames, not a
+completed observation. Runtime binding separately identifies the input,
+partition, output occurrence, position evidence and contributor demand. This
+keeps future frame contents out of Unit identity and distinguishes duplicate
+output occurrences even when their frames have equal values. The static slot
+does not replace the required durable numeric capture barrier.
