@@ -706,6 +706,10 @@ Ordinary dependent proofs continue through the dependency-ordered constructor.
 Both request passes are charged, and the Sequence operand pass shares the
 ordinary proofs' cumulative operand budget. Authored Sequence output candidates
 remain unsupported in this proof path rather than being replaced by Host bounds.
+An authored matches-per-key restriction does not prevent using a Host-backed
+output-row proof. It remains bound to the same producer and effective Parameter
+values and is emitted as its own Unit limit; its value cannot be substituted for
+an output-row candidate or used to lower the published row bound.
 Sequence, join, components and traversal ledgers all check operation coverage;
 omitting both a request and its limit cannot silently remove the obligation.
 The final join rejects unused or multiply consumed limits. Graph checks, proof

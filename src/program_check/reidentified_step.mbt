@@ -167,7 +167,6 @@ fn reidentify_step(
     is Some(SequenceEnforcement(selection)) {
     if !physical_equal(@sequence.checked_pipeline(selection), location.pipeline) ||
       @sequence.checked_step(selection) != location.source_ordinal ||
-      @sequence.guard_value(selection, MatchesPerKey) is Some(_) ||
       @sequence.guard_value(selection, OutputRows) is Some(_) {
       raise UnconvertedProofInput
     }

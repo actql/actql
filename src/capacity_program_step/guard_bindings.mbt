@@ -42,6 +42,15 @@ pub fn check_guard_bindings(
           return Err(BindingMismatch(i))
         }
       }
+      if app.enforcement is Some(SequenceEnforcement(selection)) &&
+        @sequence.bound_guards(selection) is Some(bound) {
+        match (@pipeline.bound_guard_bindings(bound), expected) {
+          (None, None) => ()
+          (Some(actual), Some(expected)) if physical_equal(actual, expected) =>
+            ()
+          _ => return Err(BindingMismatch(i))
+        }
+      }
     }
   }
   Ok({ applications, guards, local_count, work: n, })

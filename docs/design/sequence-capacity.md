@@ -1,6 +1,6 @@
 # Sequence capacity consumer binding
 
-`capacity_sequence_limit.check_host_limits` associates both sequence limit
+`capacity_sequence_limit` associates both sequence limit
 scopes with one actual checked pipeline step. It handles Host candidates and
 separately owned authored restrictions;
 it is not complete source admission, whole-pipeline checking, an observed match
@@ -90,6 +90,10 @@ same producer visit's bound guards; independently collected occurrences from
 the same pipeline and same bound-values owner are valid, while re-binding equal
 values does not establish ownership. Selection work includes every inspected
 guard occurrence, including other steps, before both candidate scopes.
+Program proof binding checks also inspect the retained Sequence enforcement's
+guard binding, even though a Host-only output proof has no count-expression
+binding of its own. A binding-free reconstruction of an equal literal guard
+does not replace a selection tied to effective Parameter values.
 
 Combined capacity preparation accepts these already collected and bound guards
 through `prepare_application_coverage(..., guards=Some(...))`. It checks the
@@ -103,9 +107,13 @@ identity. Formal Program construction binds the producer's guards during capacit
 preparation and converts them after the Unit Definition is known. Each scope's
 final claim retains Host occurrences and inserts its Unit-owned guard in CID order;
 the minimum and binding status include both, including equal or looser guards.
-The wire-candidate output-proof resolver still rejects guarded selections until
-those authored candidate dependencies can be connected to the proof. It must
-not substitute the Host-only minimum or omit the authored source.
+The wire-candidate output-proof resolver still rejects authored output-row
+restrictions until those candidate dependencies can be connected to the proof.
+It must not substitute the Host-only minimum or omit that authored source.
+A matches-per-key guard is independent: the bound-selection preparation path
+retains it as an enforcement obligation while accepting the output-row proof.
+Its Unit guard is emitted in the matches-per-key limit, not added to the rows
+proof's operands.
 
 The [atomic Program application resolver](program-step-bounds.md#atomic-output-bound-construction)
 can bind `actql.bound.sequence-output` to this result's output-row minimum and
@@ -120,9 +128,24 @@ output-proof resolver entry with
 `UnresolvedAuthorSource` for that scope. This applies whether the guard is
 looser, equal or tighter than the Host ceiling. It is a supported-implementation
 boundary, not a language restriction: the guard cannot be omitted until its
-Program Definition identity, exact occurrence and resolved value are bound.
+Unit Definition identity, exact occurrence and resolved value are bound.
 An unrequested author candidate or any other unsupported candidate source also
 fails instead of being trusted based on its self-CID.
+
+The scope distinction follows the two independent quantities in
+[Sequence](../spec/language.md#sequence) and the
+[capacity law registry](../spec/protocols/contracts.md#capacity-law-registry).
+It does not change Sequence's key, order or completeness transfer rules.
+
+| Bound selection | Output-row proof | Retained execution obligation | Regression boundary |
+| --- | --- | --- | --- |
+| Host-only scopes | Uses the selected output-row Host candidates | Both atomic scopes | Formal empty/nonempty input through Result publication |
+| Authored matches-per-key only | Same output-row candidates; never substitutes the per-key quantity | Unit-bound per-key guard and output Host ceiling | Literal and Parameter guard of 1 leave the output proof at Host 1000 |
+| Authored output rows | Requires its own authored candidate; Host-only proof is rejected | No partial completed Program on failure | Tighter output guard cannot be omitted from proof inputs |
+
+These branches are asserted in
+`src/program_check/sequence_publication_wbtest.mbt`; the table is a semantic
+navigation index, not an additional proof or a claim of runtime enforcement.
 
 Host policy selection remains a Check Environment responsibility. The caller
 must still validate every step/producer, applicable source, available candidate
