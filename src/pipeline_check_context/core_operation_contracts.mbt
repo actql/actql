@@ -83,7 +83,16 @@ fn core_operation_count_root(
     }
     Relation =>
       (OperationRelationCountRules(stage, visit, step), RelationCountRules)
-    Join => (OperationJoinCountRules(stage, visit, step), JoinCountRules)
+    Join => {
+      if operation is @pipeline.IntervalJoin(..) {
+        core_contract_root(
+          b,
+          OperationIntervalSearchRules(stage, visit, step),
+          IntervalSearchRules,
+        )
+      }
+      (OperationJoinCountRules(stage, visit, step), JoinCountRules)
+    }
     Window => (OperationWindowCountRules(stage, visit, step), WindowCountRules)
     Graph => (OperationGraphCountRules(stage, visit, step), GraphCountRules)
     Ranking =>

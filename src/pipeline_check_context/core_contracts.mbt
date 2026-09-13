@@ -39,6 +39,7 @@ pub(all) enum CoreContractBody {
   BoundTransferRules
   RelationCountRules
   JoinCountRules
+  IntervalSearchRules
   WindowCountRules
   GraphCountRules
   RankingCountRules
@@ -67,6 +68,7 @@ pub(all) enum CoreContractSite {
   OperationTransferRules(Int, Int, Int)
   OperationRelationCountRules(Int, Int, Int)
   OperationJoinCountRules(Int, Int, Int)
+  OperationIntervalSearchRules(Int, Int, Int)
   OperationWindowCountRules(Int, Int, Int)
   OperationGraphCountRules(Int, Int, Int)
   OperationRankingCountRules(Int, Int, Int)
@@ -642,6 +644,7 @@ pub fn collect_core_contracts(
         | BoundTransferRules
         | RelationCountRules
         | JoinCountRules
+        | IntervalSearchRules
         | WindowCountRules
         | GraphCountRules
         | RankingCountRules
@@ -799,6 +802,8 @@ pub fn core_contract_cid(v : CoreContractBody) -> String {
       "sha256:163a0d75d56310803ac755d5f4f02069f442651711209037d6e3f512954c97ab"
     JoinCountRules =>
       "sha256:75f9c5ce5188d28a2e3b42213e0fb3a479475c06e280eb02ef7b001a355d1600"
+    IntervalSearchRules =>
+      "sha256:ddf71c5ff428fd68916dc20602d9b1b38c34d871a99db756ae3c5d301522f6ba"
     WindowCountRules =>
       "sha256:a5045688150b6b5aaf0c992b2e528ba3b5f1dd49e0db14e5673c9515af82ac3a"
     GraphCountRules =>

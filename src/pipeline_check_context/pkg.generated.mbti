@@ -1079,6 +1079,7 @@ pub(all) enum CoreContractBody {
   BoundTransferRules
   RelationCountRules
   JoinCountRules
+  IntervalSearchRules
   WindowCountRules
   GraphCountRules
   RankingCountRules
@@ -1135,6 +1136,7 @@ pub(all) enum CoreContractSite {
   OperationTransferRules(Int, Int, Int)
   OperationRelationCountRules(Int, Int, Int)
   OperationJoinCountRules(Int, Int, Int)
+  OperationIntervalSearchRules(Int, Int, Int)
   OperationWindowCountRules(Int, Int, Int)
   OperationGraphCountRules(Int, Int, Int)
   OperationRankingCountRules(Int, Int, Int)

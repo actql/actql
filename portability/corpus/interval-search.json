@@ -1,0 +1,19 @@
+{
+  "version": "actql-interval-search-vectors/0.1",
+  "bounds": [
+    {"left": 0, "right": null, "expected": 0},
+    {"left": null, "right": 0, "expected": 0},
+    {"left": null, "right": 3, "expected": null},
+    {"left": 2, "right": 3, "expected": 6},
+    {"left": 9007199254740991, "right": 1, "expected": 9007199254740991},
+    {"left": 9007199254740991, "right": 2, "error": "Overflow"},
+    {"left": 0, "right": -1, "error": "InvalidValue"}
+  ],
+  "traces": [
+    {"name": "nonmatching-pairs-still-cost", "left": 2, "right": 2, "limit": 4, "visits": [[0,0],[0,1],[1,0],[1,1]], "matches": [], "single_visit_trace": true, "within_ceiling": true},
+    {"name": "same-trace-one-short", "left": 2, "right": 2, "limit": 3, "visits": [[0,0],[0,1],[1,0],[1,1]], "matches": [], "single_visit_trace": true, "within_ceiling": false},
+    {"name": "duplicate-values-remain-occurrences", "left": 2, "right": 1, "limit": 2, "visits": [[0,0],[1,0]], "matches": [[0,0],[1,0]], "single_visit_trace": true, "within_ceiling": true},
+    {"name": "revisit-does-not-fit-product-strategy", "left": 1, "right": 1, "limit": 2, "visits": [[0,0],[0,0]], "matches": [], "single_visit_trace": false, "within_ceiling": true},
+    {"name": "empty-search-not-endpoint-admission", "left": 0, "right": 2, "limit": 0, "visits": [], "matches": [], "single_visit_trace": true, "within_ceiling": true}
+  ]
+}

@@ -4029,6 +4029,28 @@
       }
     },
     {
+      "requirement_id": "actql.language/interval-join.search-scope",
+      "statement_sha256": "b946743cf1a19a2e19950e012e16a5571840e5d934bb5b36b2cc97a18622e6a1",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "interval-join",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/interval-join.search-machine",
+      "statement_sha256": "bdc0c3d89f27c1087dd8581c0e5f5fa129209bc1f67e1a6bf09955d63ba582d8",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "interval-join",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.language/calendar.source-admission",
       "statement_sha256": "7d43967125c92e9f832e8f8b64557c43bdf3937d0295865d6d69ce523d2ece11",
       "status": "pending",

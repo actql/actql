@@ -68,6 +68,27 @@ test "interval endpoint and order links retain exact inputs without closing reso
             },
           ).unwrap()
           let step = @pipeline.step_at(pipeline, 1).unwrap()
+          let contracts : CoreContractBuilder = {
+            limits: { max_work: 2, max_roots: 2, max_bodies: 2, max_edges: 0, },
+            roots: [],
+            bodies: [],
+            seen: {},
+            dependencies: {},
+            work: 0,
+            edges: 0,
+            hash_limits: { max_bytes: 0, max_nodes: 0, max_depth: 0, },
+            hash_bytes: 0,
+            hash_nodes: 0,
+          }
+          core_operation_count_root(contracts, step.operation, 2, 3, 1)
+          assert_eq(contracts.work, 2)
+          assert_eq(contracts.roots.length(), 2)
+          assert_eq(
+            contracts.roots[0].site,
+            OperationIntervalSearchRules(2, 3, 1),
+          )
+          assert_eq(contracts.roots[0].body, IntervalSearchRules)
+          assert_eq(contracts.roots[1].body, JoinCountRules)
           let obligations = @pipeline.operation_obligation_group_at(
             step.operation,
             0,

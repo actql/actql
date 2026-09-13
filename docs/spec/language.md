@@ -4734,6 +4734,24 @@ the captured right Relation; an external absence assertion requires sufficient
 per-key and interval coverage. This operation is local computation, not a
 complete external-join acquisition path or permission to run arbitrary theta joins.
 
+<!-- requirement-block: interval-join.search-scope -->
+The search ceiling MUST measure ordered left/right row-occurrence pair visits,
+including visits that fail the equality or temporal predicate and repeated
+visits to the same pair. The product fallback applies only to a realization
+that examines each pair at most once; semi/anti output bounds and output guards
+do not reduce it. Missing or overflowing operand products leave this fallback
+unavailable, rather than prohibiting another admitted finite bound. A known
+zero operand bound yields zero search visits, not exemption from whole-input
+validation. Endpoint admission, index construction, ordering and memory retain
+their separate physical budgets. This fixes the search quantity; it does not
+assert that a particular backend satisfies the fallback's conditions.
+
+<!-- requirement-block: interval-join.search-machine -->
+<!-- normative-code: law -->
+```text
+../../spec/contracts/actql-interval-search.json# sha256:ddf71c5ff428fd68916dc20602d9b1b38c34d871a99db756ae3c5d301522f6ba
+```
+
 <a id="calendar"></a>
 
 #### Calendar profile

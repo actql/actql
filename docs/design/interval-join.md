@@ -36,6 +36,14 @@ separately before the formal Program constructor admits this operation.
 Output ceilings and search-work ceilings are separate obligations, with checked
 operand product bounds as fallback. Output guards retain literal or Parameter
 form; defaults are not bindings and a guard is not proof of available resources.
+The search quantity is ordered row-occurrence pair visits, not output rows or
+generic processor work. This is an explicit refinement of the previously
+unspecified search metric. It makes the product fallback meaningful without
+pretending it bounds preparation, repeated pair examinations or value-comparison
+cost. Alternative strategies need applicable bounds of their own; failure to
+derive a product is not a new language rejection rule. An empty product does
+not remove validation of the other operand. The search contract is selected
+only for interval operations and does not change equality-join row laws.
 Left-major/right-minor ordering remains an obligation, not a fabricated order
 certificate. The output contract does not establish candidate-key identity,
 external absence, coverage or authorization to execute. Existing window roles
