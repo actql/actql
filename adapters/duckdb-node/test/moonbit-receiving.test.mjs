@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { promisify } from 'node:util';
 import { execFile } from 'node:child_process';
-import { mkdir, mkdtemp, rm } from 'node:fs/promises';
+import { mkdir, mkdtemp, rm, readFile } from 'node:fs/promises';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { join } from 'node:path';
 import { createHash } from 'node:crypto';
@@ -86,6 +86,12 @@ function broadPortFor(moon, nodes = 9) {
 test('real Node callbacks use MoonBit admission before native filtering, including discarded invalid values', async () => {
   await promisify(execFile)('moon', ['build', '--target', 'js', 'src/duckdb_conformance'], { cwd: root });
   const moon = await import(pathToFileURL(join(root, '_build/js/debug/build/duckdb_conformance/duckdb_conformance.js')));
+  // Reuse the engine's adopted fixed contract fixture, not an unadmitted newer
+  // registry or expected values derived from execution output.
+  const fixture = await readFile(join(root, 'src/query_integration/pinned_engine_contracts_wbtest.mbt'), 'utf8');
+  const residualContracts = [...fixture.matchAll(/@json\.parse\(\s*("(?:[^"\\]|\\.)*")/g)]
+    .map(match => JSON.parse(match[1]));
+  assert.equal(residualContracts.length, 3);
   const base = join(root, '_build/duckdb-fixtures');
   await mkdir(base, { recursive: true });
   const directory = await mkdtemp(join(base, 'moon-receiving-'));
@@ -111,6 +117,13 @@ test('real Node callbacks use MoonBit admission before native filtering, includi
         assert.equal(result.value.accepted === broad.state, true);
         const preimage = name === 'empty' ? '[]' : '[{"amount":30,"id":3},{"amount":null,"id":1},{"amount":20,"id":2}]';
         assert.equal(moon.broadIdentity(broad.state), `sha256:${createHash('sha256').update(preimage).digest('hex')}`);
+        const outputPreimage = name === 'empty' ? '[]' : '[{"id":3},{"id":2}]';
+        const outputCid = `sha256:${createHash('sha256').update(outputPreimage).digest('hex')}`;
+        if (name !== 'empty') assert.equal(moon.broadResidual(broad.state, ...residualContracts, 1), 'null');
+        // A failed residual cannot publish output or consume the retained input.
+        for (let retry = 0; retry < 2; retry++) {
+          assert.equal(moon.broadResidual(broad.state, ...residualContracts, 100), outputCid);
+        }
       } else {
         await assert.rejects(broadRun, /MoonBit rejected broad/);
         assert.equal(moon.broadIdentity(broad.state), 'null');

@@ -62,8 +62,13 @@ not a successful observation: transport cleanup, guarded Local residual and
 capture verification must still succeed. The portable integration test passes
 this input through the existing query receipt and Local filter/select completion
 path, including an expression unsupported by the native predicate compiler.
-The real Node test covers broad receiving and independent row identity, not yet
-that entire residual/capture/consumer path in one Host execution.
+The real Node test also runs the retained broad input through the existing
+guarded Local filter/select driver and checks the completed output CID against
+a fixed preimage. It verifies retry with fresh execution limits after an output
+guard failure. Contract bodies come from the engine's adopted fixed fixture and
+are admitted against its pins, not implicitly upgraded to a newer registry.
+This is still a fixed conformance entry, not the complete acquisition evidence,
+capture and subsequent consumer path in a production Host.
 
 Tests create their own files under ignored `_build/duckdb-fixtures`, exercise
 exact scalar transport, existing-file read-only access, isolated Compute,

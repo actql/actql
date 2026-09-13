@@ -26,6 +26,8 @@ pub fn broad_metadata(BroadFixture, Int, String, String) -> Bool
 
 pub fn broad_parameter(BroadFixture, Int) -> String
 
+pub fn broad_residual(BroadFixture, String, String, String, Int) -> String
+
 pub fn broad_sql(BroadFixture, Bool) -> String
 
 pub fn cancel(@duckdb_adapter.NativeReceiving) -> Unit

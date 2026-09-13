@@ -4,6 +4,7 @@ supported_targets = "js"
 pkgtype(kind: "foreign_library")
 
 import {
+  "actql/actql/canonical_json" @identity,
   "actql/actql/execution_relation" @execution,
   "actql/actql/duckdb_adapter" @duckdb,
   "actql/actql/lowering_relation" @lower,
