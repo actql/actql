@@ -1,5 +1,5 @@
 ///|
-test "set semantics retain operands and leave comparison resources unresolved" {
+test "set semantics retain operands and mandatory physical resource requirements" {
   for op in ["except", "intersect"] {
     for duplicates in ["all", "distinct"] {
       let requirements = operation_order_fixture(
@@ -11,7 +11,7 @@ test "set semantics retain operands and leave comparison resources unresolved" {
       )
       let profiles = resolution_profiles(requirements)
       let index = index_program_operation_resolutions(profiles, 10000000, 1000).unwrap()
-      let counts = Array::make(5, 0)
+      let counts = Array::make(6, 0)
       let mut resources = 0
       for i in 0..<operation_resolution_count(index) {
         let site = operation_requirements_at(requirements, i).unwrap()
@@ -46,11 +46,12 @@ test "set semantics retain operands and leave comparison resources unresolved" {
               PreserveEarliestLeftOccurrences => 2
               BoundOutputByLeftInput => 3
               RetainIdentityAndCompleteness => 4
+              RequireComparisonResources => 5
             }
             counts[n] += 1
             assert_eq(
               operation_execution_phase(SetRows(check)),
-              if n == 0 {
+              if n == 0 || n == 5 {
                 BeforeOperationInputUse
               } else {
                 BeforeOperationOutput
@@ -65,9 +66,10 @@ test "set semantics retain operands and leave comparison resources unresolved" {
           _ => ()
         }
       }
-      assert_true(resources > 0)
+      assert_eq(resources, 0)
+      assert_true(counts[0] > 0)
       for n in counts {
-        assert_eq(n, resources)
+        assert_eq(n, counts[0])
       }
       let work = operation_resolution_work(index)
       assert_true(

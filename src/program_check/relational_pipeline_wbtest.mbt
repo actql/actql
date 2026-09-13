@@ -3,6 +3,8 @@ test "formal check closes distinct representative selection append and join" {
   for
     operation in [
       "\"append\":{\"with\":\"again\"}", "\"distinct\":true", "\"distinct\":[\"id\",\"value\"]",
+      "\"except\":{\"with\":\"again\",\"duplicates\":\"all\"}", "\"except\":{\"with\":\"again\",\"duplicates\":\"distinct\"}",
+      "\"intersect\":{\"with\":\"again\",\"duplicates\":\"all\"}", "\"intersect\":{\"with\":\"again\",\"duplicates\":\"distinct\"}",
       "\"join\":{\"with\":\"again\",\"kind\":\"inner\",\"on\":\"id\",\"select\":{\"id\":\"left.id\",\"value\":\"left.value\"}}",
       "\"join\":{\"with\":\"again\",\"kind\":\"left\",\"on\":\"id\",\"select\":{\"id\":\"left.id\",\"value\":\"left.value\"}}",
       "\"join\":{\"with\":\"again\",\"kind\":\"full\",\"on\":\"value\",\"select\":{\"id\":\"left.id\",\"value\":\"left.value\"}}",
@@ -36,7 +38,31 @@ test "formal check closes distinct representative selection append and join" {
     let mut append_checks = 0
     let mut join_limits = 0
     let mut join_identities = 0
+    let mut set_resources = 0
     for i in 0..<@context.operation_closure_count(closure) {
+      if @context.operation_closure_at(closure, i)
+        is Some(ExecutionCheck(SetRows(check))) &&
+        check.rule is RequireComparisonResources {
+        assert_eq(check.site.stage, 1)
+        assert_true(physical_equal(check.site.pipeline, pipeline))
+        assert_eq(check.left, @pipeline.Input(0))
+        assert_eq(check.right, @pipeline.Input(1))
+        assert_eq(@context.set_resource_requirement_count(check), 3)
+        assert_eq(
+          @context.set_resource_requirement_at(check, 0),
+          Some(ComparisonWork),
+        )
+        assert_eq(
+          @context.set_resource_requirement_at(check, 1),
+          Some(RetainedComparisonState),
+        )
+        assert_eq(
+          @context.set_resource_requirement_at(check, 2),
+          Some(InputAndTemporaryBytes),
+        )
+        assert_true(@context.set_resource_requirement_at(check, 3) is None)
+        set_resources += 1
+      }
       if @context.operation_closure_at(closure, i)
         is Some(ExecutionCheck(JoinIdentity(check))) {
         assert_eq(check.site.stage, 1)
@@ -100,6 +126,15 @@ test "formal check closes distinct representative selection append and join" {
       },
     )
     assert_eq(join_limits, if operation.has_prefix("\"join\"") { 1 } else { 0 })
+    assert_eq(
+      set_resources,
+      if operation.has_prefix("\"except\"") ||
+        operation.has_prefix("\"intersect\"") {
+        1
+      } else {
+        0
+      },
+    )
     assert_eq(
       join_identities,
       if operation.contains("\"full\"") {

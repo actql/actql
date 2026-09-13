@@ -52,7 +52,7 @@ pub fn operation_execution_phase(
       }
     SetRows(v) =>
       match v.rule {
-        AdmitBothInputs => BeforeOperationInputUse
+        AdmitBothInputs | RequireComparisonResources => BeforeOperationInputUse
         CompareCompleteTypedRows
         | PreserveEarliestLeftOccurrences
         | BoundOutputByLeftInput

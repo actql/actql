@@ -683,6 +683,10 @@ pub fn selected_lookup_execution(SelectedPolicyContext) -> @check_environment.Lo
 
 pub fn selected_policy_usage(SelectedPolicyContext) -> SelectedPolicyUsage
 
+pub fn set_resource_requirement_at(SetRowsCheck, Int) -> SetComparisonResource?
+
+pub fn set_resource_requirement_count(SetRowsCheck) -> Int
+
 pub fn source_bindings_at(SourceBindingRequirements, Int, Int) -> @sourceview_resolution.RequestBindings?
 
 pub fn source_bindings_count(SourceBindingRequirements) -> Int
@@ -1946,6 +1950,12 @@ pub(all) struct SelectedPolicyUsage {
   policy_nodes : Int
 } derive(Eq, @debug.Debug)
 
+pub(all) enum SetComparisonResource {
+  ComparisonWork
+  RetainedComparisonState
+  InputAndTemporaryBytes
+} derive(Eq, @debug.Debug)
+
 pub struct SetRowsCheck {
   site : OperationRequirementSite
   step : @pipeline_typing.CheckedStep
@@ -1963,6 +1973,7 @@ pub(all) enum SetRowsRule {
   PreserveEarliestLeftOccurrences
   BoundOutputByLeftInput
   RetainIdentityAndCompleteness
+  RequireComparisonResources
 } derive(Eq, @debug.Debug)
 
 type SourceBindingRequirements

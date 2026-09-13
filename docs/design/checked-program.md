@@ -38,7 +38,7 @@ separate protocol results, not successful CheckedPrograms with weaker guarantees
 
 The entry has an explicit implementation-domain check, separate from the
 language grammar. Its Local and Result-import domain accepts `values`, `derive`,
-`filter`, `select`, `rename`, `drop`, `sort`, `take`, `distinct`, `dedupe_rows`, `append` and `join`, including empty operation
+`filter`, `select`, `rename`, `drop`, `sort`, `take`, `distinct`, `dedupe_rows`, `append`, `join`, `except` and `intersect`, including empty operation
 sequences. Sort/take use the existing owned order-resolution closure and preserve
 their distinct strategies and preconditions; accepting them does not synthesize
 an order from physical enumeration. Result publication can target their explicit
@@ -502,10 +502,33 @@ An output count no greater than the actual left count is not a bound on the
 comparison working set. Right-side absence stays scoped to that captured input;
 neither missing rows nor distinctness promote observation completeness.
 
-`ResolveComparisonResources` remains unresolved until comparison, hash-table and
-byte limits have their own concrete disposition. The selected policy and row
-semantics cannot substitute for that resource closure. Consequently these
-bindings alone do not admit set operations through the formal Program entry.
+`ResolveComparisonResources` binds a mandatory physical-realization requirement
+to the exact operation, operands and selected Host policy. Its indexed categories
+are comparison work, retained comparison state, and input/temporary byte usage.
+These are not compiler check budgets or alternative semantic output bounds.
+Lowering must select a resource contract covering all three with finite limits,
+defined accounting and enforcement; the execution owner validates the same
+operation and policy binding before input use. Allocation, spill and comparison
+are bounded before exceeding those limits. Breach, cancellation or unavailable
+enforcement rejects the whole operation output. A backend incapable of expressing
+or enforcing a category cannot produce an executable Plan for this requirement.
+
+This is intentionally a physical-realization obligation rather than a new
+algorithm-independent Host-policy counter: hash joins, sorted scans and external
+engines need different state accounting. A no-spill implementation does not need
+temporary disk allocation, but still accounts for received and retained bytes.
+The static constructor retains the mandatory categories, not a claim that a
+physical contract was selected or installed. Lowering may not discharge them from
+the left row bound, canonical value byte size, a generic `validated` flag, or the
+presence of this binding. Its Plan must retain the selected resource contract and
+its ownership separately from source/Unit meaning identity.
+
+This follows the physical-operator resource boundary in smooth-cloud
+`55b83448a` (`packages/data-plane-contract/src/validate.ts` and
+`containers/data-plane/src/duckdb/executor.ts`): required memory/staging/temporary
+limits are checked against the selected operator and passed to the engine.
+That implementation is evidence for the separation, not execution conformance
+for ActQL's typed equality or set multiplicity rules.
 
 Source acquisition has distinct Host-combination and response-admission
 dispositions. The former applies before provider access: the Host checks the
