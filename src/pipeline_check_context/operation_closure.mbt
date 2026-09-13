@@ -55,6 +55,7 @@ pub fn close_program_operations(
         // Exhaustive over typed execution bindings. A new variant must provide
         // its owned subject here instead of defaulting to a runtime permission.
         let site = match check {
+          RowAssertion(v) => v.site
           DedupeTopTie(v) => v.site
           ValuesPublication(v) => v.site
           JoinOutputLimit(v) => v.site

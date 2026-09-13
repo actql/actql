@@ -1411,6 +1411,7 @@ pub(all) enum OperationDisposition {
 }
 
 pub(all) enum OperationExecutionCheck {
+  RowAssertion(RowAssertionCheck)
   DedupeTopTie(DedupeTopTieCheck)
   ValuesPublication(ValuesPublicationCheck)
   JoinOutputLimit(JoinOutputCheck)
@@ -1966,6 +1967,13 @@ pub enum ResultImportTypeIssue {
   UnsupportedReceipt
   UnrepresentableRowContract
   Hash(@encode_core.EncodeFailure)
+}
+
+pub struct RowAssertionCheck {
+  site : OperationRequirementSite
+  step : @pipeline_typing.CheckedStep
+  input : @pipeline_typing.Target
+  operation : @relation_typing.CheckedOperation
 }
 
 type SelectedPolicyContext

@@ -179,7 +179,11 @@ pub fn index_program_operation_resolutions(
           stage.context.capacity,
         )
         match append_execution_check(site, policy) {
-          Ok(None) => set_execution_check(site, policy)
+          Ok(None) =>
+            match set_execution_check(site, policy) {
+              Ok(None) => assertion_execution_check(site)
+              other => other
+            }
           other => other
         }
       }

@@ -71,6 +71,12 @@ unused full joins. Missing capacity likewise prevents construction. Result outpu
 remain subject to the existing flat-name publication and order requirements.
 Other operation paths, opaque Binding declarations and nonempty Effects are
 reported as unsupported rather than made executable through missing evidence.
+The operation index can retain a typed atomic `RowAssertion` check, binding the
+exact assertion operation and input before its output may be used. This is not
+a successful uniqueness proof. Assertion consumption remains a separate static
+planning requirement: an unresolved consumption entry prevents operation closure
+and is not converted into permission to check reachability at runtime. The formal
+entry does not admit assertions until that static condition is connected.
 Selected SourceViews additionally require acquisition closure: shared Catalog
 registration or mode support alone cannot pass the final source-execution audit.
 Direct requests with fully bound static values now pass that audit only when
