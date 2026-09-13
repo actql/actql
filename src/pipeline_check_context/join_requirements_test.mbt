@@ -11,6 +11,8 @@ fn join_resolution_fixture(
   temporal_rows? : Int = 1,
   interval_kind? : String? = None,
   interval_with? : String = "seed",
+  asof_kind? : String? = None,
+  asof_direction? : String = "nearest",
 ) -> ProgramOperationResolutionIndex raise {
   let sources = prepare_program_source_acquisitions(
     prepared_keyed_source_context(
@@ -25,6 +27,8 @@ fn join_resolution_fixture(
       temporal_rows~,
       interval_kind~,
       interval_with~,
+      asof_kind~,
+      asof_direction~,
     ),
     [[(0, if host_first { 1 } else { 0 })]],
     {
@@ -41,7 +45,9 @@ fn join_resolution_fixture(
     {
       rela: true,
       sga: false,
-      tea: window_body is Some(_) || interval_kind is Some(_),
+      tea: window_body is Some(_) ||
+      interval_kind is Some(_) ||
+      asof_kind is Some(_),
       calendar: false,
       text_rank: false,
     },

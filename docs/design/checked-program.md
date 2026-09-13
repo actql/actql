@@ -261,8 +261,15 @@ bound or a left/right product cannot replace it. A missing application is
 rejected even on an unused as-of branch. Host-only output enforcement remains
 valid when no applicable Program bound is registered, but proves no search-work
 bound and does not remove either input's validation requirements.
-These bindings do not discharge tolerance Parameters, selected-profile or search
-and allocation requirements. The formal entry
+`link_program_asof_search_limits` separately collects owned operand memberships
+and binds the single-visit product ceiling to `ResolveSearchWork`. It preserves
+original claim indices and producer visits through sparse proof tables; missing
+operand evidence does not become a Host output cap. The resulting `AsOfSearch`
+check requires enforcement before input use and atomic output rejection on
+failure. This link is not completed backend conformance or a persistent Unit
+limit; those boundaries must still consume its retained evidence.
+Tolerance Parameter admission, selected-profile validation and physical allocation
+requirements remain separate. The formal entry
 does not admit an as-of Program solely because these execution bindings exist.
 
 Join consumes the existing cardinality selection, ordered-occurrence execution

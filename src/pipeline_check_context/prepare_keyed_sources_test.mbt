@@ -11,6 +11,8 @@ fn prepared_keyed_source_context(
   temporal_rows? : Int = 1,
   interval_kind? : String? = None,
   interval_with? : String = "seed",
+  asof_kind? : String? = None,
+  asof_direction? : String = "nearest",
 ) -> SelectedPolicyContext raise {
   let original = keyed_sourceview_environment(changes~)
   let writer = @encode.writer(1000000, 100000, 100)
@@ -71,6 +73,22 @@ fn prepared_keyed_source_context(
           "\",\"kind\":\"" +
           kind +
           "\",\"mode\":\"point_in_interval\",\"on\":[],\"left\":{\"time\":\"id\"},\"right\":{\"start\":\"id\",\"end\":\"id\"}}}],\"results\":{\"out\":{\"from\":\"seed\"",
+      )
+    } else if asof_kind is Some(kind) {
+      text
+      .replace(
+        old="\"select\":{\"id\":\"left.id\"}}}",
+        new="\"select\":{\"id\":\"left.id\"}},\"as\":\"joined\"}",
+      )
+      .replace(
+        old="}],\"results\":{\"out\":{\"from\":\"seed\"",
+        new="},{\"from\":\"seed\",\"asof_join\":{\"with\":\"" +
+          interval_with +
+          "\",\"kind\":\"" +
+          kind +
+          "\",\"by\":[],\"left_id\":\"id\",\"left_time\":\"id\",\"right_time\":\"id\",\"direction\":\"" +
+          asof_direction +
+          "\",\"tolerance\":1,\"select\":{\"id\":\"left.id\"}}}],\"results\":{\"out\":{\"from\":\"seed\"",
       )
     } else if window_body is Some(window_body) {
       text
@@ -161,7 +179,7 @@ fn prepared_keyed_source_context(
     new="\"resolved_limit_cid\":\"" + limit_cid + "\",\"subject_ref\":",
   )
   let resolved_limits = [(@utf8.encode(limit_text), limit_cid)]
-  if interval_kind is Some(_) {
+  if interval_kind is Some(_) || asof_kind is Some(_) {
     let second_body = limit_body.replace(
       old="join:checked-step:1:output",
       new="join:checked-step:2:output",
@@ -202,7 +220,7 @@ fn prepared_keyed_source_context(
   for i in 0..<materials[0].length() {
     materials[0][i] = {
       sources,
-      consumers: if interval_kind is Some(_) {
+      consumers: if interval_kind is Some(_) || asof_kind is Some(_) {
         [@capacity.Join(step=1, output=0), @capacity.Join(step=2, output=1)]
       } else {
         [@capacity.Join(step=1, output=0)]

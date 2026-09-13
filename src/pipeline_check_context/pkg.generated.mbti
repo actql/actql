@@ -58,6 +58,20 @@ pub fn analytic_numeric_slots_requirements(ProgramAnalyticNumericSlots) -> Progr
 
 pub fn analytic_numeric_slots_work(ProgramAnalyticNumericSlots) -> Int
 
+pub fn asof_search_bound_candidate_at(AsOfSearchBounds, Int, Int) -> @capacity_graph_preflight.TargetMembership?
+
+pub fn asof_search_bound_candidate_count(AsOfSearchBounds, Int) -> Int
+
+pub fn asof_search_bound_closure(AsOfSearchBounds) -> @capacity_graph_preflight.ApplicationClosure
+
+pub fn asof_search_bound_owner(AsOfSearchBounds) -> ProgramOperationResolutionIndex
+
+pub fn asof_search_bound_product(AsOfSearchBounds) -> @capacity_program_step.AsOfSearchProduct?
+
+pub fn asof_search_bound_requirement(AsOfSearchBounds) -> Int
+
+pub fn asof_search_bound_work(AsOfSearchBounds) -> Int
+
 pub fn assemble_preparation(SourceProducerContext, TextBoundsChecks, ExpressionProfileChecks, PreparationBudget) -> Result[ProgramPreparation, PreparationIssue]
 
 pub fn attach_environment(InputContexts, @stage_local_inputs.ProgramEnvironmentInputs, max_work~ : Int, max_text_bytes~ : Int, max_local_input_nodes~ : Int) -> Result[EnvironmentContext, EnvironmentIssue]
@@ -155,6 +169,8 @@ pub fn close_program_publications(ProgramIncomingLinks, Int, Int) -> Result[Prog
 pub fn close_program_source_modes(ProgramIncomingLinks, Int, Int) -> Result[ProgramSourceModeClosure, SourceModeClosureIssue]
 
 pub fn close_stage_requirements(ProgramIncomingLinks, StageRequirementLimits) -> Result[StageRequirementClosure, StageRequirementIssue]
+
+pub fn collect_asof_search_bounds(ProgramOperationResolutionIndex, Int, Int, Int) -> Result[AsOfSearchBounds, AsOfSearchLimitIssue]
 
 pub fn collect_core_contracts(ProgramSourceIdentity, CoreContractLimits, profile_checks? : ProgramOperationCalendar?, hash_limits? : @local_relation_snapshot.Limits?, numeric_slots? : ProgramNumericSlots?, analytic_numeric_slots? : ProgramAnalyticNumericSlots?) -> Result[CoreContractInventory, CoreContractIssue]
 
@@ -369,6 +385,8 @@ pub fn link_program_analytic_array_limits(ProgramOperationResolutionIndex, Int, 
 pub fn link_program_analytic_numeric_slots(ProgramOperationResolutionIndex, ProgramAnalyticNumericSlots, Int, Int) -> Result[ProgramOperationResolutionIndex, NumericSlotsIssue]
 
 pub fn link_program_analytic_string_limits(ProgramOperationResolutionIndex, Int, Int, Int) -> Result[ProgramOperationResolutionIndex, GroupStringLimitIssue]
+
+pub fn link_program_asof_search_limits(ProgramOperationResolutionIndex, Int, Int, Int) -> Result[ProgramOperationResolutionIndex, AsOfSearchLimitIssue]
 
 pub fn link_program_group_array_limits(ProgramOperationResolutionIndex, Int, Int, Int) -> Result[ProgramOperationResolutionIndex, GroupArrayLimitIssue]
 
@@ -1084,6 +1102,23 @@ pub struct AsOfKeyCompletion {
   key : @relation_evidence.KeyedRelation
 }
 
+type AsOfSearchBounds
+
+pub struct AsOfSearchCheck {
+  site : OperationRequirementSite
+  bounds : AsOfSearchBounds
+  product : @capacity_program_step.AsOfSearchProduct
+}
+
+pub enum AsOfSearchLimitIssue {
+  InvalidLimits
+  InvalidRequirement
+  ForeignEvidence
+  BudgetExceeded
+  MissingSearchBound
+  Overflow
+}
+
 pub struct AssertionConsumptionLink {
   requirement_index : Int
   site : OperationRequirementSite
@@ -1765,6 +1800,7 @@ pub(all) enum OperationDisposition {
 
 pub(all) enum OperationExecutionCheck {
   AsOfExecution(AsOfExecutionCheck)
+  AsOfSearch(AsOfSearchCheck)
   IntervalExecution(IntervalExecutionCheck)
   IntervalSearch(IntervalSearchCheck)
   WatermarkExecution(WatermarkExecutionCheck)

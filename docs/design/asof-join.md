@@ -30,6 +30,23 @@ with interval search, while the opaque products and operation admission remain
 distinct. Application-closure membership, producer obligations and actual
 single-visit conformance still require their own validation boundaries.
 
+`collect_asof_search_bounds` scans the owning Program application closure for
+both operand occurrences. It retains each applicable membership with its original
+claim index and producer visit, including proofs after Host-only slots, and
+selects only the minimum value per side for product arithmetic. The scan and
+rejected applicability checks share a work budget; candidate alternatives are
+not expanded into a Cartesian product. Its indexed readers expose the retained
+memberships without reconstructing their owners.
+
+`link_program_asof_search_limits` binds the product to the exact unresolved
+search requirement as a future single-visit enforcement check. Missing operand
+evidence and arithmetic overflow cannot be replaced with a Host output ceiling.
+The input resolution index is immutable, a failed call returns no partial result,
+and an already linked requirement cannot be silently rebound. Output limits,
+clock/identity validation and tie selection remain separate checks. Persistent
+Unit rebinding and the formal Program constructor must consume these results
+before this path is a complete lowering input.
+
 ## Decisions and evidence
 
 The existing contract fixes left/inner, three directions, positive tolerance,
