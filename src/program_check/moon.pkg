@@ -11,6 +11,7 @@ import {
   "actql/actql/check_environment" @environment,
   "actql/actql/decode_core" @decode,
   "actql/actql/sourceview_resolution" @sourceviews,
+  "actql/actql/relation_typing" @relation,
   "actql/actql/stage_parameters" @stages,
   "actql/actql/capacity_program_step" @step_bounds,
   "actql/actql/capacity_graph_preflight" @capacity,

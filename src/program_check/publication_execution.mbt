@@ -17,6 +17,7 @@ struct PublicationExecution {
   rows : @wire.LimitClaim
   bytes : @wire.LimitClaim
   proofs : Array[ReidentifiedStep]
+  source_policy : PublicationSourcePolicy?
   phase : PublicationPhase
   failure : PublicationFailure
 }
@@ -63,6 +64,9 @@ fn prepare_publication_execution(
     proofs=Some(proofs),
   )
   let bytes = prepare_publication_bytes(unit, index, remaining)
+  let source_policy = prepare_publication_source_policy(
+    unit, publication, remaining,
+  )
   budget.work = remaining.work
   budget.bytes = remaining.bytes
   budget.nodes = remaining.nodes
@@ -71,6 +75,7 @@ fn prepare_publication_execution(
     rows,
     bytes,
     proofs,
+    source_policy,
     phase: BeforeResultPublication,
     failure: PreventResultPublication,
   }

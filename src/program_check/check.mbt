@@ -67,7 +67,7 @@ fn check_supported_source(
 }
 
 ///|
-/// Check the supported Local/Result-import integration domain from source and
+/// Check the supported Local/direct-SourceView/Result-import domain from source and
 /// admission material. Runtime checks are retained; success does not authorize
 /// execution. Other static paths currently fail explicitly.
 pub fn check(
@@ -103,19 +103,30 @@ pub fn check(
     limits,
     budget,
   )
-  audit_source_execution(contracts, budget) catch {
+  audit_source_execution(contracts, units[0].source_execution, budget) catch {
     error => raise Units(error)
+  }
+  if !units[0].source_execution.is_empty() {
+    for stage, unit in units {
+      for index, publication in unit.publications {
+        identity_charge(budget, 1) catch {
+          error => raise Units(error)
+        }
+        if publication.source_policy is None {
+          raise Units(UnclosedPublicationPolicy(stage, index))
+        }
+      }
+    }
   }
   { identity, requirements, gates, contracts, units, }
 }
 
 ///|
-// Registration is shared with the Catalog path even for the Local entry.
-// Mode support alone does not bind authorization, acquisition and response
-// admission. Until their execution closure is connected, selected SourceViews
-// cannot escape through an otherwise supported operation sequence.
+// Close every selected source, not merely the list of successful bindings.
+// Mode closure and all operation/publication closures have already succeeded.
 fn audit_source_execution(
   inventory : @context.CoreContractInventory,
+  checks : Array[SourceExecution],
   budget : IdentityBudget,
 ) -> Unit raise UnitBuildFailure {
   let requirements = @context.program_source_contract_requirements(
@@ -123,11 +134,92 @@ fn audit_source_execution(
   )
   let stages = @context.source_contract_stage_count(requirements)
   identity_charge(budget, stages)
+  let mut offset = 0
   for stage in 0..<stages {
     let count = @context.source_contract_input_count(requirements, stage).unwrap()
-    if count > 0 {
-      raise UnclosedSourceExecution(stage, 0)
+    for input in 0..<count {
+      identity_charge(budget, 1)
+      guard checks.get(offset) is Some(first) else {
+        raise UnclosedSourceExecution(stage, input)
+      }
+      let subject = first.subject
+      guard physical_equal(
+          subject.owner,
+          @context.core_contract_identity(inventory),
+        ) &&
+        subject.stage == stage &&
+        subject.input == input &&
+        physical_equal(
+          subject.source,
+          @context.source_contract_input_at(requirements, stage, input).unwrap(),
+        ) else {
+        raise ForeignOwner
+      }
+      guard subject.request is @sourceviews.Direct(mode, request) &&
+        subject.direct_policy is Some(policy) else {
+        raise UnclosedSourceExecution(stage, input)
+      }
+      guard physical_equal(@sourceviews.mode_input(mode), subject.source) &&
+        physical_equal(policy.request, request) &&
+        physical_equal(policy.response, subject.response_policy) &&
+        policy.response_cid == subject.response_policy_cid else {
+        raise ForeignOwner
+      }
+      for field in 0..<@sourceviews.parameterized_request_field_count(request) {
+        identity_charge(budget, 1)
+        if @sourceviews.parameterized_request_field_at(request, field).unwrap().value
+          is @sourceviews.UnboundHostBinding(_) {
+          raise UnclosedSourceExecution(stage, input)
+        }
+      }
+      for index in 0..<5 {
+        identity_charge(budget, 1)
+        guard checks.get(offset + index) is Some(check) else {
+          raise UnclosedSourceExecution(stage, input)
+        }
+        guard physical_equal(check.subject, subject) else { raise ForeignOwner }
+        let valid = match (index, check.kind, check.phase, check.failure) {
+          (0, HostCombination, BeforeProviderAccess, PreventProviderAccess)
+          | (1, ReadAuthorization, BeforeProviderAccess, PreventProviderAccess)
+          | (2, RequestEgress, BeforeProviderAccess, PreventProviderAccess)
+          | (
+            3,
+            AcquisitionResources,
+            BeforeAndDuringAcquisition,
+            FailAcquisitionAtomically,
+          )
+          | (4, CarrierResponse, BeforeSourceOutputUse, RejectSourceOutput) =>
+            true
+          _ => false
+        }
+        if !valid {
+          raise UnclosedSourceExecution(stage, input)
+        }
+        let expected = match index {
+          0 => []
+          1 => [0]
+          2 => [1]
+          3 => [0, 1, 2]
+          _ => [0, 3]
+        }
+        if check.prerequisites.length() != expected.length() {
+          raise UnclosedSourceExecution(stage, input)
+        }
+        for dependency, prior in expected {
+          identity_charge(budget, 1)
+          guard physical_equal(
+            check.prerequisites[dependency],
+            checks[offset + prior],
+          ) else {
+            raise ForeignOwner
+          }
+        }
+      }
+      offset += 5
     }
+  }
+  if offset != checks.length() {
+    raise ForeignOwner
   }
 }
 

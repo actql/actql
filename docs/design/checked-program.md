@@ -73,6 +73,33 @@ Other operation paths, opaque Binding declarations and nonempty Effects are
 reported as unsupported rather than made executable through missing evidence.
 Selected SourceViews additionally require acquisition closure: shared Catalog
 registration or mode support alone cannot pass the final source-execution audit.
+Direct requests with fully bound static values now pass that audit only when
+every selected input has the exact owned Host-combination, read-authorization,
+request-egress, acquisition-resource and Carrier-response execution checks.
+Their phases, atomic failure behavior and prerequisite edges are checked against
+the source inventory, including unused inputs. The direct policy must refer to
+the same bound request and selected response policy. Unknown classification is
+retained for current runtime egress admission, never interpreted as permission.
+Keyed provenance composition and unbound Host request values remain unsupported
+by this final audit; changes/checkpoint obligations still require their separate
+static mode closure. Successful checking neither performs acquisition nor claims
+that a backend can implement the required enforcement.
+
+SourceView-backed publication also closes its policy provenance. The current
+transfer follows the Result's checked target backwards through select, rename,
+drop, sort, distinct and dedupe, which retain source value provenance without
+introducing new values or mixing inputs. It selects the exact direct source by
+stage and input name, not every Program input. The publication retains the
+effective policy object and CID, original target and the Carrier-response check
+as its execution prerequisite. Lowering reads that binding rather than walking
+the graph again to select policies.
+
+Other transfer paths, including computed values, mixed sources and imported
+provenance, still require their own composition rules. A SourceView-containing
+Program with an unclosed publication policy fails `UnclosedPublicationPolicy`;
+the missing result is not replaced with an empty policy or a whole-input union.
+These are bounded implementation conditions, not restrictions on those authored
+operations. Local-only Programs retain their existing construction path.
 These implementation limits do not redefine the full construction contract or
 the language's accepted operations. Extending the entry requires connecting the
 corresponding semantic dependencies and execution obligations, not just adding

@@ -208,7 +208,7 @@ test "source Host and response bindings retain one exact request and ordered pre
 }
 
 ///|
-test "source execution audit rejects selected SourceViews and bounds Local inventory traversal" {
+test "source execution audit rejects keyed acquisition and bounds Local inventory traversal" {
   let local_budget = IdentityBudget::{
     work: 10000000,
     bytes: 1000000,
@@ -220,10 +220,10 @@ test "source execution audit rejects selected SourceViews and bounds Local inven
     second_stage=true,
   )
   let exact = IdentityBudget::{ work: 2, bytes: 0, nodes: 0, depth: 0, }
-  audit_source_execution(local_inventory, exact)
+  audit_source_execution(local_inventory, [], exact)
   assert_eq(exact.work, 0)
   let short = IdentityBudget::{ work: 1, bytes: 0, nodes: 0, depth: 0, }
-  try audit_source_execution(local_inventory, short) catch {
+  try audit_source_execution(local_inventory, [], short) catch {
     UnitBuildFailure::BudgetExceeded => ()
     error => raise error
   } noraise {
@@ -236,8 +236,16 @@ test "source execution audit rejects selected SourceViews and bounds Local inven
     nodes: 1000000,
     depth: 100,
   }
-  let (_, _, _, remote, _) = remote_construction_fixture(remote_budget)
-  try audit_source_execution(remote, remote_budget) catch {
+  let (_, _, _, remote, remote_units) = remote_construction_fixture(
+    remote_budget,
+  )
+  try
+    audit_source_execution(
+      remote,
+      remote_units[0].source_execution,
+      remote_budget,
+    )
+  catch {
     UnitBuildFailure::UnclosedSourceExecution(0, 0) => ()
     error => raise error
   } noraise {

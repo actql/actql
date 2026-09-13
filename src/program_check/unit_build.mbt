@@ -17,6 +17,7 @@ pub suberror UnitBuildFailure {
   PublicationMixed(@wire.MixedIssue)
   UnsupportedStaticPath(@decode.Cursor)
   UnclosedSourceExecution(Int, Int)
+  UnclosedPublicationPolicy(Int, Int)
 }
 
 ///|

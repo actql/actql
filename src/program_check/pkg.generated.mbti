@@ -78,6 +78,8 @@ pub fn publication_rows(PublicationExecution) -> @capacity_witness.LimitClaim
 
 pub fn publication_selection(PublicationExecution) -> @pipeline_check_context.PublicationRowLimit
 
+pub fn publication_source_policy(PublicationExecution) -> PublicationSourcePolicy?
+
 pub fn requirements(CheckedProgram) -> @pipeline_check_context.StageRequirementClosure
 
 pub fn source_egress_axis_at(SourceExecution, Int) -> SourceEgressAxis?
@@ -201,6 +203,7 @@ pub suberror UnitBuildFailure {
   PublicationMixed(@capacity_witness.MixedIssue)
   UnsupportedStaticPath(@decode_core.Cursor)
   UnclosedSourceExecution(Int, Int)
+  UnclosedPublicationPolicy(Int, Int)
 }
 
 // Types and methods
@@ -244,6 +247,13 @@ pub enum PublicationFailure {
 
 pub enum PublicationPhase {
   BeforeResultPublication
+}
+
+pub struct PublicationSourcePolicy {
+  policy : DirectSourcePolicy
+  cid : String
+  prerequisite : SourceExecution
+  target : @pipeline_typing.Target
 }
 
 type ReidentifiedGraphInput
