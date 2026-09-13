@@ -502,3 +502,11 @@ cannot be discharged by these rules.
 concise construction, implicit versus explicit label selection, exact retained
 handles, invalid occurrences and execution phase/failure classification. This is
 a connection test, not runtime graph-construction conformance.
+
+The source-driven Program entry routes `graph`, `node_rows` and `edge_rows`
+through the same owned requirement closure as other operations. Routing is not
+a claim that construction resources have been resolved: an unbound construction
+resource requirement rejects the complete Program at its exact operation site,
+including for empty `values` input. No partial `CheckedProgram` is returned.
+External Graph-input preflight ceilings do not automatically define the resource
+contract of constructing a new Graph from Relation operands.

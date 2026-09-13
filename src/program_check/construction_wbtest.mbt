@@ -39,6 +39,7 @@ fn local_construction_fixture(
   nested_depth? : Int? = None,
   text_time? : Bool = false,
   tea? : Bool = false,
+  sga? : Bool = false,
   calendar? : Bool = false,
   calendar_material? : Bool = true,
   text_policy? : Bool = false,
@@ -363,7 +364,7 @@ fn local_construction_fixture(
       supplied,
       materials,
       { text_time, veca: false, },
-      { rela: true, sga: false, tea, calendar, text_rank: false, },
+      { rela: true, sga, tea, calendar, text_rank: false, },
       source_limits_fixture(
         stage_count +
         extra_step_budget +
@@ -398,7 +399,7 @@ fn local_construction_fixture(
     },
     materials,
     { text_time, veca: false, },
-    { rela: true, sga: false, tea, calendar, text_rank: false, },
+    { rela: true, sga, tea, calendar, text_rank: false, },
     source_limits_fixture(
       stage_count + (if generated_rows is Some(_) { 1 } else { 0 }),
     ),

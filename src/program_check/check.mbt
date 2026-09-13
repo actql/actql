@@ -89,6 +89,9 @@ fn check_supported_source(
               | "session"
               | "sequence"
               | "events"
+              | "graph"
+              | "node_rows"
+              | "edge_rows"
               | "values" => ()
               _ => raise UnitBuildFailure::UnsupportedStaticPath(step)
             }
