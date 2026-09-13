@@ -1,0 +1,57 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/duckdb_adapter"
+
+import {
+  "actql/actql/decode_core",
+  "actql/actql/encode_core",
+  "actql/actql/value_admission",
+  "actql/actql/value_contract",
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn admit_physical_value(ValueMapping, @decode_core.Cursor, @value_admission.Limits) -> Result[@value_admission.CheckedValue, ValueIssue]
+
+pub fn decode_physical_type(@decode_core.Cursor) -> Result[PhysicalType, ValueIssue]
+
+pub fn emit_physical_parameter(PhysicalParameter, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
+
+pub fn prepare_physical_parameter(@value_admission.CheckedValue) -> Result[PhysicalParameter, ValueIssue]
+
+pub fn prepare_value_mapping(PhysicalType, @value_contract.Contract) -> Result[ValueMapping, ValueIssue]
+
+// Errors
+
+// Types and methods
+type PhysicalParameter
+
+pub(all) enum PhysicalType {
+  Boolean
+  Varchar
+  Integer(bits~ : Int, signed~ : Bool)
+  Float32
+  Float64
+  Decimal(precision~ : Int, scale~ : Int)
+  Date
+  TimestampTZ
+  NaiveTimestamp
+} derive(Eq, @debug.Debug)
+
+pub(all) enum ValueIssue {
+  InvalidLimits
+  UnsupportedType
+  TypeMismatch
+  InvalidPhysicalValue
+  LossyInteger
+  LossyTimestamp
+  ImplicitTimezone
+  OutOfRange
+  Decode(@decode_core.Issue)
+  Admission(@value_admission.Issue)
+} derive(Eq, @debug.Debug)
+
+type ValueMapping
+
+// Type aliases
+
+// Traits
