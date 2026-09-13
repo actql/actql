@@ -9,6 +9,7 @@ import { platform, release, arch, cpus } from 'node:os';
 import { performance } from 'node:perf_hooks';
 import { checkedSample, checkedPreparedSample, peakRssBytes } from './layout-measurement-support.mjs';
 import { regressionPolicy, revisionCells, supplementalRevisionCells, diagnosticRevisionCells, revisionPairs, regressionMetric, revisionGate, revisionMustStop } from './revision-regression-support.mjs';
+import { checkedProfileOverlay } from './revision-profile-overlay.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const [before, after, mode] = process.argv.slice(2);
@@ -37,24 +38,24 @@ const toolchainBytes = readFileSync(resolve(root, 'toolchain.json'));
 const compiler = run(`${moonHome}/bin/moonc`, ['-v']).stdout.trim();
 if (!compiler.includes(JSON.parse(toolchainBytes).version)) throw new Error('Unpinned compiler');
 const sources = {};
-const overlayAllowlist = ['layout_output_wbtest.mbt', 'layout_numeric_cases_wbtest.mbt',
-  'layout_additional_profile_wbtest.mbt', 'sequence_profile_wbtest.mbt'].map(f => `src/execution_relation/${f}`);
+const fixtures = git(paths.baseline, ['ls-files', 'src/execution_relation']).split('\n')
+  .filter(f => /\/(layout_.*_wbtest|sequence_(profile|scale)_wbtest)\.mbt$/.test(f));
 for (const [label, path] of Object.entries(paths)) {
   const status = git(path, ['status', '--porcelain']);
   // Trimming removes the initial space on the first porcelain record only.
   const changed = git(path, ['diff', '--name-only', 'HEAD']).split('\n').filter(Boolean);
-  const untracked = git(path, ['ls-files', '--others', '--exclude-standard']);
-  if (untracked || changed.some(f => !overlayAllowlist.includes(f))) throw new Error(`${label}: unauthorized source overlay`);
+  const untracked = git(path, ['ls-files', '--others', '--exclude-standard']).split('\n').filter(Boolean);
+  const overlay = checkedProfileOverlay({ label, changed, untracked, fixtures,
+    read: f => readFileSync(resolve(path, f), 'utf8') });
   if (!readFileSync(resolve(path, manifestFile)).equals(manifestBytes) ||
       !readFileSync(resolve(path, 'toolchain.json')).equals(toolchainBytes)) throw new Error(`${label}: matrix/toolchain mismatch`);
   sources[label] = { path, commit: git(path, ['rev-parse', 'HEAD']), tree: git(path, ['rev-parse', 'HEAD^{tree}']),
-    status, overlay: Object.fromEntries(changed.map(f => [f, hash(readFileSync(resolve(path, f)))])) };
+    status, overlay: Object.fromEntries(overlay.map(f => [f, hash(readFileSync(resolve(path, f)))])) };
 }
 if (sources.baseline.commit === sources.candidate.commit) throw new Error('Comparison requires different revisions');
 // Both sides must use identical fixtures and profiling infrastructure. Only
-// product source may differ in this historical mandatory-matrix comparison.
-const fixtures = git(paths.baseline, ['ls-files', 'src/execution_relation']).split('\n')
-  .filter(f => /\/(layout_.*_wbtest|sequence_(profile|scale)_wbtest)\.mbt$/.test(f));
+// product source may differ, apart from the exact baseline-only field-reading
+// shim checked above. All shared clocks, fixtures and assertions remain equal.
 const fixtureHashes = {};
 for (const f of fixtures) {
   const bytes = readFileSync(resolve(paths.baseline, f));
@@ -67,7 +68,7 @@ const report = {
   status: 'running', scope: diagnostic ? 'bounded representative diagnostic; not full-matrix gate' : smoke ? 'cross-revision smoke only' : 'mandatory and supplemental A-only historical matrix',
   whole_task_complete: false, started_at: new Date().toISOString(), sources, fixtureHashes,
   policy: regressionPolicy, manifest_sha256: hash(manifestBytes), compiler,
-  runner_hashes: Object.fromEntries(['measure-revisions.mjs', 'revision-regression-support.mjs', 'layout-measurement-support.mjs', 'layout-statistics.mjs']
+  runner_hashes: Object.fromEntries(['measure-revisions.mjs', 'revision-profile-overlay.mjs', 'revision-regression-support.mjs', 'layout-measurement-support.mjs', 'layout-statistics.mjs']
     .map(f => [f, hash(readFileSync(resolve(root, 'scripts', f)))])),
   host: { platform: platform(), release: release(), arch: arch(), cpu: cpus()[0]?.model, node: process.version },
   units: { time: 'microseconds', rss: 'whole-process peak bytes including warmup/observation/cleanup', build: 'excluded' },
