@@ -206,6 +206,11 @@ transport cleanup checks.
 both validation and native receipts to retain the exact issued attempt. The
 real `test/issued-native-query.test.mjs` connects the public CheckedProgram and
 selected native attempt to SQL, admission, measurement, issuance and capture.
+Its fixed setup calls the reusable MoonBit `duckdb_host` operations for receipt
+management, completion and consumer binding; the Host package has no fixture or
+catalog dependency. The low-level `start_native_host` verifier parameter remains
+trusted runtime wiring, not a Program/Connector option or a substitute for the
+pending standard Node entry that installs verification internally.
 Its independent observation oracle includes the two distinct receipt CIDs and
 all three record CIDs. No Local predicate replay is used. It covers empty input,
 NULL in an unused column, duplicate relative order, invalid discarded values,

@@ -1,13 +1,11 @@
 ///|
 // Fixed public-checker conformance setup, not a product Host entry.
 struct IssuedNativeFixture {
-  issuer : @planning.DuckDBNativeIssuer
+  host : @dbhost.NativeHostRun
   attempt : @planning.DuckDBNativeAttempt
   scan : @duckdb.NativeScan
   requirement : @planning.QueryRequirement
-  owner : @lower.BoundPrepared
   consumer : @execution.GeneratedSequence
-  mut port : @duckdb.NativeReceiptPort?
   mut observation : @planning.DuckDBNativeObservation?
 }
 
@@ -68,13 +66,13 @@ pub fn issued_native_create(
       fixture_contract(two_receipt_json),
       { max_bytes: 100000, max_nodes: 10000, max_depth: 100, },
     ).unwrap()
-    let issuer = @planning.prepare_duckdb_native_issuer(
-      contract, requirement, "real-node-native-fixture", 100, verify,
-    ).unwrap()
-    let attempt = @planning.prepare_issued_duckdb_native_attempt(
-      issuer,
+    let host = @dbhost.start_native_host(
+      contract,
+      requirement,
       choice,
       candidate,
+      "real-node-native-fixture",
+      100,
       {
         max_rows: 100,
         max_cells: 1000,
@@ -83,12 +81,13 @@ pub fn issued_native_create(
       },
       10000,
       issued_native_measure_limits(),
+      verify,
     ).unwrap()
+    let attempt = @dbhost.native_host_attempt(host)
     {
-      issuer,
+      host,
       attempt,
       requirement,
-      owner,
       consumer: fixture_generated(
         issued_fixture_consumer(owner),
         registry_json,
@@ -99,7 +98,6 @@ pub fn issued_native_create(
       scan: @planning.duckdb_native_preparation_scan(
         @planning.duckdb_native_attempt_preparation(attempt),
       ),
-      port: None,
       observation: None,
     }
   } catch {
@@ -114,10 +112,11 @@ pub fn issued_native_bind(
   observation : @planning.DuckDBNativeObservation,
   rows : Int,
 ) -> String {
-  guard @planning.materialize_duckdb_native_output(
-      value.issuer,
-      value.attempt,
+  guard @dbhost.bind_native_host_input(
+      value.host,
       observation,
+      @execution.generated_sequence_owner(value.consumer),
+      0,
       100,
       {
         max_nodes: 10000,
@@ -125,19 +124,8 @@ pub fn issued_native_bind(
         max_depth: 100,
         max_work: 1000000,
       },
-    )
-    is Ok(retained) else {
-    return "null"
-  }
-  guard @planning.complete_duckdb_native_output(retained, 100, 10000)
-    is Ok(output) else {
-    return "null"
-  }
-  guard @execution.bind_completed_input(
-      @execution.generated_sequence_owner(value.consumer),
-      0,
-      value.owner,
-      output,
+      100,
+      10000,
     )
     is Ok(bound) else {
     return "null"
@@ -218,12 +206,7 @@ pub fn issued_native_metadata(
   names : String,
   data : String,
 ) -> Bool {
-  @planning.admit_duckdb_native_metadata(
-    value.attempt,
-    rows,
-    fields(names),
-    columns(data),
-  )
+  @dbhost.native_host_metadata(value.host, rows, fields(names), columns(data))
   is Ok(_)
 }
 
@@ -239,14 +222,7 @@ pub fn issued_native_begin(
   } else {
     ValidationScan
   }
-  match
-    @planning.begin_duckdb_native_receipt(value.attempt, role, fields(names)) {
-    Ok(port) => {
-      value.port = Some(port)
-      true
-    }
-    Err(_) => false
-  }
+  @dbhost.begin_native_host_receipt(value.host, role, fields(names)) is Ok(_)
 }
 
 ///|
@@ -256,17 +232,13 @@ pub fn issued_native_accept(
   rows : Int,
   data : String,
 ) -> Bool {
-  guard value.port is Some(port) else { return false }
-  @planning.accept_duckdb_native_chunk(value.attempt, port, rows, columns(data))
-  is Ok(_)
+  @dbhost.accept_native_host_chunk(value.host, rows, columns(data)) is Ok(_)
 }
 
 ///|
 #export_name("issuedNativeFinish")
 pub fn issued_native_finish(value : IssuedNativeFixture) -> Bool {
-  guard value.port is Some(port) else { return false }
-  value.port = None
-  @planning.finish_duckdb_native_receipt(value.attempt, port) is Ok(_)
+  @dbhost.finish_native_host_receipt(value.host) is Ok(_)
 }
 
 ///|
@@ -275,7 +247,7 @@ pub fn issued_native_complete(
   value : IssuedNativeFixture,
   artifact_bytes : Int,
 ) -> Bool {
-  guard @planning.complete_duckdb_native_capture(value.issuer, value.attempt, {
+  guard @dbhost.complete_native_host(value.host, {
       demand: issued_native_measure_limits(),
       receipts: {
         max_columns: 10,
@@ -328,12 +300,7 @@ pub fn issued_native_document(value : IssuedNativeFixture) -> String {
 #export_name("issuedNativeVerify")
 pub fn issued_native_verify(value : IssuedNativeFixture) -> Bool {
   guard value.observation is Some(observation) else { return false }
-  @planning.verify_duckdb_native_observation(
-    value.issuer,
-    value.attempt,
-    observation,
-  )
-  is Ok(_)
+  @dbhost.verify_native_host(value.host, observation)
 }
 
 ///|
@@ -344,18 +311,12 @@ pub fn issued_native_materialize(
   max_rows : Int,
 ) -> String {
   guard value.observation is Some(observation) else { return "null" }
-  guard @planning.materialize_duckdb_native_output(
-      value.issuer,
-      value.attempt,
-      observation,
-      max_rows,
-      {
-        max_nodes: 10000,
-        max_text_bytes: 100000,
-        max_depth: 100,
-        max_work: 1000000,
-      },
-    )
+  guard @dbhost.native_host_output(value.host, observation, max_rows, {
+      max_nodes: 10000,
+      max_text_bytes: 100000,
+      max_depth: 100,
+      max_work: 1000000,
+    })
     is Ok(output) else {
     return "null"
   }
@@ -390,13 +351,13 @@ pub fn issued_native_materialize(
 ///|
 #export_name("issuedNativeAbort")
 pub fn issued_native_abort(value : IssuedNativeFixture) -> Unit {
-  @planning.abort_duckdb_native_attempt(value.attempt)
+  @dbhost.abort_native_host(value.host)
 }
 
 ///|
 #export_name("issuedNativeClose")
 pub fn issued_native_close(value : IssuedNativeFixture) -> Unit {
-  @planning.close_duckdb_native_issuer(value.issuer)
+  @dbhost.close_native_host(value.host)
 }
 
 ///|

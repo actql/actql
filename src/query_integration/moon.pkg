@@ -3,6 +3,7 @@ supported_targets = "+js+wasm+native"
 import {
   "actql/actql/lowering_relation" @lower,
   "actql/actql/duckdb_adapter" @duckdb,
+  "actql/actql/duckdb_host" @dbhost,
   "actql/actql/relation_schema" @schema,
   "actql/actql/value_admission" @admitted,
   "actql/actql/pipeline_typing" @pipeline,

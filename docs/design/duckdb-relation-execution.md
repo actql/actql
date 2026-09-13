@@ -168,6 +168,27 @@ Digest strings remain diagnostic data, not portable evidence or capture permits.
 
 ## Source and fixed-input isolation
 
+`duckdb_host` owns reusable native Host orchestration above `query_planning` and
+the DuckDB adapter. It accepts existing owned requirements, selected candidates,
+admitted evidence contracts and explicit resource limits. It does not construct a
+fixed Program/catalog, import conformance code, or derive another semantic Plan.
+The conformance package supplies independent setup and expectations and invokes
+this same Host orchestration for real Node execution.
+
+`NativeHostRun` retains the exact issuer, attempt, compiled scan and active receipt
+port. Receipt replacement, unfinished completion and unverified transport fail;
+startup failure closes the newly allocated issuer. Consumer binding derives the
+expected producer owner from the retained compiled query, not a caller-supplied
+CID. Conversion/consumer rejection preserves an already successful observation.
+Close is idempotent and revokes further use, whereas aborting unfinished work does
+not retroactively erase an already completed capture.
+
+The low-level Host startup takes a trusted transport verifier for runtime wiring.
+This is not the final Node-facing safety boundary: the standard Node assembly
+must install its private verifier and must not expose replacement through normal
+Program or Connector inputs. Keeping this startup separate from conformance
+fixtures does not by itself prove that the Node assembly is misuse-proof.
+
 The Host supplies an explicitly authorized trusted local database binding.
 Program Resource/SourceView descriptions alone grant no filesystem authority.
 Only declared real tables are in scope; views, user SQL, extension loading and
