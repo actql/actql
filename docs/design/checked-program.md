@@ -1346,6 +1346,14 @@ Paths/spans and embedded-expression ranges remain available for diagnostics.
 Returned collections cannot mutate the sealed result, and large arrays are not
 copied before the caller can apply its preparation budget.
 
+Analytic limits and their input proofs are retained during construction. Normal
+consumers use `unit_analytic_limit_count/at` followed by
+`analytic_limit_proof_count/at`; these reads neither search the requirement
+closure nor reconstruct the proof graph. `unit_analytic_array_limit` and
+`unit_analytic_input_proof` are explicit bounded reconstruction paths for
+revalidation under fresh conversion limits, not prerequisites for reading a
+completed Program. Their public ownership checks remain in force.
+
 Lowering consumes these decisions without re-resolving names, re-inferring keys
 or order, choosing substitute policy or combining independently supplied checker
 results. It verifies that its selected registry/backend can represent every

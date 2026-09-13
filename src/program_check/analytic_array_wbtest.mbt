@@ -91,6 +91,22 @@ test "formal analytic arrays select an admitted input row proof" {
     max_depth=100,
   )
   let source = analytic_input_proof_source(converted)
+  let retained = analytic_limit_proof_at(assembled, 0).unwrap()
+  assert_true(
+    physical_equal(retained, analytic_limit_proof_at(assembled, 0).unwrap()),
+  )
+  assert_eq(
+    @wire.cid(@wire.program_proof_witness(analytic_input_proof_claim(retained))),
+    @wire.cid(
+      @wire.program_proof_witness(analytic_input_proof_claim(converted)),
+    ),
+  )
+  assert_true(
+    physical_equal(
+      analytic_input_proof_membership(retained),
+      analytic_input_proof_membership(converted),
+    ),
+  )
   let subject = analytic_aggregate_subject(source, 1000)
   assert_eq(
     subject,

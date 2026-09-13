@@ -27,6 +27,7 @@ pub fn analytic_limit_proof_count(v : AnalyticLimit) -> Int {
 }
 
 ///|
+/// Reads the retained owned proof without reconstruction or a proof-graph walk.
 pub fn analytic_limit_proof_at(
   v : AnalyticLimit,
   index : Int,
@@ -36,6 +37,7 @@ pub fn analytic_limit_proof_at(
 
 ///|
 /// Reconstruct one owned limit; this is neither runtime enforcement nor a Plan.
+/// Use unit_analytic_limit_at for normal reads of a completed CheckedProgram.
 pub fn unit_analytic_array_limit(
   program : CheckedProgram,
   stage : Int,

@@ -33,6 +33,8 @@ pub fn analytic_input_proof_claim(
 }
 
 ///|
+/// Rebuilds one proof under fresh conversion limits for bounded revalidation.
+/// Normal consumers read the retained proof with analytic_limit_proof_at instead.
 pub fn unit_analytic_input_proof(
   program : CheckedProgram,
   stage : Int,

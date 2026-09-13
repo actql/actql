@@ -1,4 +1,27 @@
 ///|
+fn key_result(
+  b : Budget,
+  source : @decode.Cursor,
+  result : Result[@evidence.KeySetTransfer, @evidence.Issue],
+) -> @evidence.KeySet raise Stop {
+  match result {
+    Ok(value) => {
+      b.work -= value.work
+      b.text -= value.name_bytes
+      value.keys
+    }
+    Err(e) =>
+      raise Stop({
+        kind: KeyEvidence(e.kind),
+        source,
+        path: e.path.copy(),
+        span: e.span,
+        range: None,
+      })
+  }
+}
+
+///|
 fn key_at(
   target : Target,
   inputs : Array[@evidence.KeySet?],
@@ -104,418 +127,238 @@ fn sync_keys(
       _ => None
     }
     let next = match (previous, step.operation) {
-      (previous, Append(right~, checked~)) => {
-        let transfer = match
-          @evidence.append_keys(
-            previous,
-            key_at(right, inputs, keys),
-            previous_literals,
-            literal_at(right, literal_inputs, literal_steps),
-            checked,
-            { max_work: b.work, max_name_bytes: b.text, },
-          ) {
-          Ok(v) => v
-          Err(e) =>
-            raise Stop({
-              kind: KeyEvidence(e.kind),
-              source: step.source,
-              path: e.path.copy(),
-              span: e.span,
-              range: None,
-            })
-        }
-        b.work -= transfer.work
-        b.text -= transfer.name_bytes
-        Some(transfer.keys)
-      }
-      (_, Ranking(checked)) => {
-        let transfer = match
-          @evidence.merged_ranking_keys(checked, {
-            max_work: b.work,
-            max_name_bytes: b.text,
-          }) {
-          Ok(v) => v
-          Err(e) =>
-            raise Stop({
-              kind: KeyEvidence(e.kind),
-              source: step.source,
-              path: e.path.copy(),
-              span: e.span,
-              range: None,
-            })
-        }
-        b.work -= transfer.work
-        b.text -= transfer.name_bytes
-        Some(transfer.keys)
-      }
-      (_, TextRank(checked~, ..)) => {
-        let transfer = match
-          @evidence.text_rank_keys(checked, {
-            max_work: b.work,
-            max_name_bytes: b.text,
-          }) {
-          Ok(v) => v
-          Err(e) =>
-            raise Stop({
-              kind: KeyEvidence(e.kind),
-              source: step.source,
-              path: e.path.copy(),
-              span: e.span,
-              range: None,
-            })
-        }
-        b.work -= transfer.work
-        b.text -= transfer.name_bytes
-        Some(transfer.keys)
-      }
-      (_, Nearest(checked~, ..)) => {
-        let transfer = match
-          @evidence.nearest_keys(checked, {
-            max_work: b.work,
-            max_name_bytes: b.text,
-          }) {
-          Ok(v) => v
-          Err(e) =>
-            raise Stop({
-              kind: KeyEvidence(e.kind),
-              source: step.source,
-              path: e.path.copy(),
-              span: e.span,
-              range: None,
-            })
-        }
-        b.work -= transfer.work
-        b.text -= transfer.name_bytes
-        Some(transfer.keys)
-      }
-      (_, op) if graph_key_operation(op) is Some(operation) => {
-        let transfer = match
-          @evidence.graph_query_keys(operation, {
-            max_work: b.work,
-            max_name_bytes: b.text,
-          }) {
-          Ok(v) => v
-          Err(e) =>
-            raise Stop({
-              kind: KeyEvidence(e.kind),
-              source: step.source,
-              path: e.path.copy(),
-              span: e.span,
-              range: None,
-            })
-        }
-        b.work -= transfer.work
-        b.text -= transfer.name_bytes
-        Some(transfer.keys)
-      }
-      (_, Sequence(operation)) => {
-        let transfer = match
-          @evidence.sequence_keys(operation, {
-            max_work: b.work,
-            max_name_bytes: b.text,
-          }) {
-          Ok(v) => v
-          Err(e) =>
-            raise Stop({
-              kind: KeyEvidence(e.kind),
-              source: step.source,
-              path: e.path.copy(),
-              span: e.span,
-              range: None,
-            })
-        }
-        b.work -= transfer.work
-        b.text -= transfer.name_bytes
-        Some(transfer.keys)
-      }
-      (previous, AsOfJoin(checked~, ..)) => {
-        let transfer = match
-          @evidence.transfer_asof_keys(previous, checked, {
-            max_work: b.work,
-            max_name_bytes: b.text,
-          }) {
-          Ok(v) => v
-          Err(e) =>
-            raise Stop({
-              kind: KeyEvidence(e.kind),
-              source: step.source,
-              path: e.path.copy(),
-              span: e.span,
-              range: None,
-            })
-        }
-        b.work -= transfer.work
-        b.text -= transfer.name_bytes
-        Some(transfer.keys)
-      }
-      (previous, IntervalJoin(right~, checked~)) => {
-        let transfer = match
-          @evidence.transfer_interval_join_keys(
-            previous,
-            key_at(right, inputs, keys),
-            checked,
-            { max_work: b.work, max_name_bytes: b.text, },
-          ) {
-          Ok(v) => v
-          Err(e) =>
-            raise Stop({
-              kind: KeyEvidence(e.kind),
-              source: step.source,
-              path: e.path.copy(),
-              span: e.span,
-              range: None,
-            })
-        }
-        b.work -= transfer.work
-        b.text -= transfer.name_bytes
-        Some(transfer.keys)
-      }
-      (previous, CrossJoin(right~, checked~)) => {
-        let transfer = match
-          @evidence.transfer_cross_join_keys(
-            previous,
-            key_at(right, inputs, keys),
-            checked,
-            { max_work: b.work, max_name_bytes: b.text, },
-          ) {
-          Ok(v) => v
-          Err(e) =>
-            raise Stop({
-              kind: KeyEvidence(e.kind),
-              source: step.source,
-              path: e.path.copy(),
-              span: e.span,
-              range: None,
-            })
-        }
-        b.work -= transfer.work
-        b.text -= transfer.name_bytes
-        Some(transfer.keys)
-      }
-      (previous, Join(right~, checked~)) => {
-        let transfer = match
-          @evidence.transfer_join_keys(
-            previous,
-            key_at(right, inputs, keys),
-            checked,
-            { max_work: b.work, max_name_bytes: b.text, },
-          ) {
-          Ok(v) => v
-          Err(e) =>
-            raise Stop({
-              kind: KeyEvidence(e.kind),
-              source: step.source,
-              path: e.path.copy(),
-              span: e.span,
-              range: None,
-            })
-        }
-        b.work -= transfer.work
-        b.text -= transfer.name_bytes
-        Some(transfer.keys)
-      }
-      (previous, Event(op)) => {
-        let t = match
-          @evidence.advance_event_keys(previous, op, {
-            max_work: b.work,
-            max_name_bytes: b.text,
-          }) {
-          Ok(v) => v
-          Err(e) =>
-            raise Stop({
-              kind: KeyEvidence(e.kind),
-              source: step.source,
-              path: e.path.copy(),
-              span: e.span,
-              range: None,
-            })
-        }
-        b.work -= t.work
-        b.text -= t.name_bytes
-        Some(t.keys)
-      }
+      (previous, Append(right~, checked~)) =>
+        Some(
+          key_result(
+            b,
+            step.source,
+            @evidence.append_keys(
+              previous,
+              key_at(right, inputs, keys),
+              previous_literals,
+              literal_at(right, literal_inputs, literal_steps),
+              checked,
+              { max_work: b.work, max_name_bytes: b.text, },
+            ),
+          ),
+        )
+      (_, Ranking(checked)) =>
+        Some(
+          key_result(
+            b,
+            step.source,
+            @evidence.merged_ranking_keys(checked, {
+              max_work: b.work,
+              max_name_bytes: b.text,
+            }),
+          ),
+        )
+      (_, TextRank(checked~, ..)) =>
+        Some(
+          key_result(
+            b,
+            step.source,
+            @evidence.text_rank_keys(checked, {
+              max_work: b.work,
+              max_name_bytes: b.text,
+            }),
+          ),
+        )
+      (_, Nearest(checked~, ..)) =>
+        Some(
+          key_result(
+            b,
+            step.source,
+            @evidence.nearest_keys(checked, {
+              max_work: b.work,
+              max_name_bytes: b.text,
+            }),
+          ),
+        )
+      (_, op) if graph_key_operation(op) is Some(operation) =>
+        Some(
+          key_result(
+            b,
+            step.source,
+            @evidence.graph_query_keys(operation, {
+              max_work: b.work,
+              max_name_bytes: b.text,
+            }),
+          ),
+        )
+      (_, Sequence(operation)) =>
+        Some(
+          key_result(
+            b,
+            step.source,
+            @evidence.sequence_keys(operation, {
+              max_work: b.work,
+              max_name_bytes: b.text,
+            }),
+          ),
+        )
+      (previous, AsOfJoin(checked~, ..)) =>
+        Some(
+          key_result(
+            b,
+            step.source,
+            @evidence.transfer_asof_keys(previous, checked, {
+              max_work: b.work,
+              max_name_bytes: b.text,
+            }),
+          ),
+        )
+      (previous, IntervalJoin(right~, checked~)) =>
+        Some(
+          key_result(
+            b,
+            step.source,
+            @evidence.transfer_interval_join_keys(
+              previous,
+              key_at(right, inputs, keys),
+              checked,
+              { max_work: b.work, max_name_bytes: b.text, },
+            ),
+          ),
+        )
+      (previous, CrossJoin(right~, checked~)) =>
+        Some(
+          key_result(
+            b,
+            step.source,
+            @evidence.transfer_cross_join_keys(
+              previous,
+              key_at(right, inputs, keys),
+              checked,
+              { max_work: b.work, max_name_bytes: b.text, },
+            ),
+          ),
+        )
+      (previous, Join(right~, checked~)) =>
+        Some(
+          key_result(
+            b,
+            step.source,
+            @evidence.transfer_join_keys(
+              previous,
+              key_at(right, inputs, keys),
+              checked,
+              { max_work: b.work, max_name_bytes: b.text, },
+            ),
+          ),
+        )
+      (previous, Event(op)) =>
+        Some(
+          key_result(
+            b,
+            step.source,
+            @evidence.advance_event_keys(previous, op, {
+              max_work: b.work,
+              max_name_bytes: b.text,
+            }),
+          ),
+        )
       (Some(previous), Projection(op)) if @projection.operation(op) ==
-        @projection.Events => {
-        let t = match
-          @evidence.transfer_events_projection_keys(previous, op, {
-            max_work: b.work,
-            max_name_bytes: b.text,
-          }) {
-          Ok(v) => v
-          Err(e) =>
-            raise Stop({
-              kind: KeyEvidence(e.kind),
-              source: step.source,
-              path: e.path.copy(),
-              span: e.span,
-              range: None,
-            })
-        }
-        b.work -= t.work
-        b.text -= t.name_bytes
-        Some(t.keys)
-      }
-      (Some(previous), Window(op)) => {
-        let transfer = match
-          @evidence.transfer_window_keys(previous, op, {
-            max_work: b.work,
-            max_name_bytes: b.text,
-          }) {
-          Ok(v) => v
-          Err(e) =>
-            raise Stop({
-              kind: KeyEvidence(e.kind),
-              source: step.source,
-              path: e.path.copy(),
-              span: e.span,
-              range: None,
-            })
-        }
-        b.work -= transfer.work
-        b.text -= transfer.name_bytes
-        Some(transfer.keys)
-      }
-      (previous, Set(checked~, ..)) => {
-        let transfer = match
-          @evidence.advance_set_keys(previous, checked, {
-            max_work: b.work,
-            max_name_bytes: b.text,
-          }) {
-          Ok(v) => v
-          Err(e) =>
-            raise Stop({
-              kind: KeyEvidence(e.kind),
-              source: step.source,
-              path: e.path.copy(),
-              span: e.span,
-              range: None,
-            })
-        }
-        b.work -= transfer.work
-        b.text -= transfer.name_bytes
-        Some(transfer.keys)
-      }
-      (Some(previous), Nest(checked~, ..)) => {
-        let transfer = match
-          @evidence.transfer_nest_keys(previous, checked, {
-            max_work: b.work,
-            max_name_bytes: b.text,
-          }) {
-          Ok(v) => v
-          Err(e) =>
-            raise Stop({
-              kind: KeyEvidence(e.kind),
-              source: step.source,
-              path: e.path.copy(),
-              span: e.span,
-              range: None,
-            })
-        }
-        b.work -= transfer.work
-        b.text -= transfer.name_bytes
-        Some(transfer.keys)
-      }
+        @projection.Events =>
+        Some(
+          key_result(
+            b,
+            step.source,
+            @evidence.transfer_events_projection_keys(previous, op, {
+              max_work: b.work,
+              max_name_bytes: b.text,
+            }),
+          ),
+        )
+      (Some(previous), Window(op)) =>
+        Some(
+          key_result(
+            b,
+            step.source,
+            @evidence.transfer_window_keys(previous, op, {
+              max_work: b.work,
+              max_name_bytes: b.text,
+            }),
+          ),
+        )
+      (previous, Set(checked~, ..)) =>
+        Some(
+          key_result(
+            b,
+            step.source,
+            @evidence.advance_set_keys(previous, checked, {
+              max_work: b.work,
+              max_name_bytes: b.text,
+            }),
+          ),
+        )
+      (Some(previous), Nest(checked~, ..)) =>
+        Some(
+          key_result(
+            b,
+            step.source,
+            @evidence.transfer_nest_keys(previous, checked, {
+              max_work: b.work,
+              max_name_bytes: b.text,
+            }),
+          ),
+        )
       (_, Projection(op)) if @projection.operation(op) == @projection.NodeRows ||
-        @projection.operation(op) == @projection.EdgeRows => {
-        let transfer = match
-          @evidence.graph_projection_keys(op, {
-            max_work: b.work,
-            max_name_bytes: b.text,
-          }) {
-          Ok(v) => v
-          Err(e) =>
-            raise Stop({
-              kind: KeyEvidence(e.kind),
-              source: step.source,
-              path: e.path.copy(),
-              span: e.span,
-              range: None,
-            })
-        }
-        b.work -= transfer.work
-        b.text -= transfer.name_bytes
-        Some(transfer.keys)
-      }
-      (_, Projection(op)) if @projection.operation(op) == @projection.Vectors => {
-        let transfer = match
-          @evidence.vector_projection_keys(op, {
-            max_work: b.work,
-            max_name_bytes: b.text,
-          }) {
-          Ok(v) => v
-          Err(e) =>
-            raise Stop({
-              kind: KeyEvidence(e.kind),
-              source: step.source,
-              path: e.path.copy(),
-              span: e.span,
-              range: None,
-            })
-        }
-        b.work -= transfer.work
-        b.text -= transfer.name_bytes
-        Some(transfer.keys)
-      }
-      (_, TimeSeries(op)) => {
-        let transfer = match
-          @evidence.time_series_keys(op, {
-            max_work: b.work,
-            max_name_bytes: b.text,
-          }) {
-          Ok(v) => v
-          Err(e) =>
-            raise Stop({
-              kind: KeyEvidence(e.kind),
-              source: step.source,
-              path: e.path.copy(),
-              span: e.span,
-              range: None,
-            })
-        }
-        b.work -= transfer.work
-        b.text -= transfer.name_bytes
-        Some(transfer.keys)
-      }
-      (previous, Calendar(op)) => {
-        let transfer = match
-          @evidence.advance_calendar_keys(previous, op, {
-            max_work: b.work,
-            max_name_bytes: b.text,
-          }) {
-          Ok(v) => v
-          Err(e) =>
-            raise Stop({
-              kind: KeyEvidence(e.kind),
-              source: step.source,
-              path: e.path.copy(),
-              span: e.span,
-              range: None,
-            })
-        }
-        b.work -= transfer.work
-        b.text -= transfer.name_bytes
-        Some(transfer.keys)
-      }
-      (previous, Unary(op) | WindowGroup(op)) => {
-        let transfer = match
-          @evidence.advance_keys(previous, op, {
-            max_work: b.work,
-            max_name_bytes: b.text,
-          }) {
-          Ok(v) => v
-          Err(e) =>
-            raise Stop({
-              kind: KeyEvidence(e.kind),
-              source: step.source,
-              path: e.path.copy(),
-              span: e.span,
-              range: None,
-            })
-        }
-        b.work -= transfer.work
-        b.text -= transfer.name_bytes
-        Some(transfer.keys)
-      }
+        @projection.operation(op) == @projection.EdgeRows =>
+        Some(
+          key_result(
+            b,
+            step.source,
+            @evidence.graph_projection_keys(op, {
+              max_work: b.work,
+              max_name_bytes: b.text,
+            }),
+          ),
+        )
+      (_, Projection(op)) if @projection.operation(op) == @projection.Vectors =>
+        Some(
+          key_result(
+            b,
+            step.source,
+            @evidence.vector_projection_keys(op, {
+              max_work: b.work,
+              max_name_bytes: b.text,
+            }),
+          ),
+        )
+      (_, TimeSeries(op)) =>
+        Some(
+          key_result(
+            b,
+            step.source,
+            @evidence.time_series_keys(op, {
+              max_work: b.work,
+              max_name_bytes: b.text,
+            }),
+          ),
+        )
+      (previous, Calendar(op)) =>
+        Some(
+          key_result(
+            b,
+            step.source,
+            @evidence.advance_calendar_keys(previous, op, {
+              max_work: b.work,
+              max_name_bytes: b.text,
+            }),
+          ),
+        )
+      (previous, Unary(op) | WindowGroup(op)) =>
+        Some(
+          key_result(
+            b,
+            step.source,
+            @evidence.advance_keys(previous, op, {
+              max_work: b.work,
+              max_name_bytes: b.text,
+            }),
+          ),
+        )
       _ => None
     }
     keys.push(next)
