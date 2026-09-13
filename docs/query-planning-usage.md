@@ -132,6 +132,10 @@ Use `prepare_issued_mock_query_attempt` instead of adding authority after execut
 Issuer/attempt suffixes are allocated internally, never by an offer. This is
 trusted mock setup, not real provider authorization.
 
+`mock_query_attempt_identity` exposes the allocated issuer/attempt names for
+diagnostics before execution. These names are not authority, completed evidence,
+or a prediction of the output CID; capture still requires the live opaque handles.
+
 Run guarded computation and retention as above, then `issue_mock_query_records`.
 `mock_query_record_at` exposes diagnostic document/CID pairs for indices
 0/1/2 (source validation/filter/select); `mock_query_record_usage` reports aggregate

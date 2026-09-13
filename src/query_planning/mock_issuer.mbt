@@ -106,6 +106,15 @@ pub fn close_mock_query_issuer(issuer : MockQueryIssuer) -> Unit {
 }
 
 ///|
+/// Host diagnostic identities allocated before execution, not authority tokens
+/// or future content CIDs. No reader can attach them to a different task.
+pub fn mock_query_attempt_identity(
+  attempt : MockQueryAttempt,
+) -> (String, String)? {
+  attempt.authority.map(authority => (authority.issuer.name, authority.number))
+}
+
+///|
 /// Three records issued atomically, still before observation capture. Private
 /// arrays/documents are immutable to callers; verification also requires the
 /// exact live task and its issued-set handle, never CID lookup alone.

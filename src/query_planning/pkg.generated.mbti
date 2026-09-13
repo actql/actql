@@ -30,6 +30,8 @@ pub fn execute_mock_query(MockQueryAttempt, MockQueryLimits, guard_measure? : @e
 
 pub fn issue_mock_query_records(MockQueryAttempt, QueryMaterialLimits) -> Result[MockQueryRecords, MockEvidenceIssue]
 
+pub fn mock_query_attempt_identity(MockQueryAttempt) -> (String, String)?
+
 pub fn mock_query_computation(MockQueryAttempt) -> Result[MockQueryComputation, MockQueryIssue]
 
 pub fn mock_query_observation_cid(MockQueryObservation) -> String

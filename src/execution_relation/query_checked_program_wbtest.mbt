@@ -1,5 +1,7 @@
 ///|
-fn query_checked_program_fixture() -> @program_check.CheckedProgram raise {
+fn query_checked_program_fixture(
+  nullable? : Bool = false,
+) -> @program_check.CheckedProgram raise {
   let text =
     #|{"version":"actql/0.1","id":"p","params":{"minimum":{"type":"number","nullable":false}},"stages":[{"id":"a","inputs":{"remote":{"connector":"crm/main","resource":"r"}},"steps":[{"filter":"id > $minimum","as":"filtered"},{"select":["id"],"as":"captured"}],"results":{"r":{"from":"captured","fields":["id"]}}}],"results":{"out":{"from":{"stage":"a","result":"r"}}}}
   let program = @syntax.parse(
@@ -20,7 +22,13 @@ fn query_checked_program_fixture() -> @program_check.CheckedProgram raise {
     @environment.source_view_shape_values(
       @environment.read_mode_shapes(
         @environment.carrier_schema_modes(
-          @environment.source_request_carriers(query_program_catalog_fixture()),
+          @environment.source_request_carriers(
+            if nullable {
+              query_nullable_catalog_fixture()
+            } else {
+              query_program_catalog_fixture()
+            },
+          ),
         ),
       ),
     ),
