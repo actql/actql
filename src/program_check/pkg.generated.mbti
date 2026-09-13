@@ -13,6 +13,7 @@ import {
   "actql/actql/expression_typing",
   "actql/actql/pipeline_check_context",
   "actql/actql/pipeline_typing",
+  "actql/actql/relation_typing",
   "actql/actql/sourceview_resolution",
   "actql/actql/stage_parameters",
   "actql/actql/stage_results",
@@ -78,6 +79,10 @@ pub fn publication_policy_classification(PublicationSourcePolicy) -> @check_envi
 pub fn publication_policy_predicate_at(PublicationSourcePolicy, Int) -> PublicationPolicyPredicate?
 
 pub fn publication_policy_predicate_count(PublicationSourcePolicy) -> Int
+
+pub fn publication_policy_slice_at(PublicationSourcePolicy, Int) -> PublicationPolicySlice?
+
+pub fn publication_policy_slice_count(PublicationSourcePolicy) -> Int
 
 pub fn publication_proof_at(PublicationExecution, Int) -> ReidentifiedStep?
 
@@ -262,6 +267,13 @@ pub struct PublicationPolicyPredicate {
   step : Int
   expression : @expression_typing.TypedExpression
   unknown_provenance : Bool
+}
+
+pub struct PublicationPolicySlice {
+  step : Int
+  operation : @relation_typing.CheckedOperation
+  count : @relation_typing.CountValue
+  offset : @relation_typing.CountValue
 }
 
 pub struct PublicationSourcePolicy {

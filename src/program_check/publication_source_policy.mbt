@@ -7,6 +7,28 @@ pub struct PublicationSourcePolicy {
   target : @pipeline.Target
   unknown_provenance : Bool
   priv predicates : Array[PublicationPolicyPredicate]
+  priv slices : Array[PublicationPolicySlice]
+}
+
+///|
+pub struct PublicationPolicySlice {
+  step : Int
+  operation : @relation.CheckedOperation
+  count : @relation.CountValue
+  offset : @relation.CountValue
+}
+
+///|
+pub fn publication_policy_slice_count(value : PublicationSourcePolicy) -> Int {
+  value.slices.length()
+}
+
+///|
+pub fn publication_policy_slice_at(
+  value : PublicationSourcePolicy,
+  index : Int,
+) -> PublicationPolicySlice? {
+  value.slices.get(index)
 }
 
 ///|
@@ -64,6 +86,7 @@ fn prepare_publication_source_policy(
   let original = @publication.target(@publication.port_result(publication.port))
   let mut target = original
   let predicates : Array[PublicationPolicyPredicate] = []
+  let slices : Array[PublicationPolicySlice] = []
   let mut unknown = false
   while true {
     identity_charge(budget, 1)
@@ -73,6 +96,18 @@ fn prepare_publication_source_policy(
         guard step.operation is @pipeline.Unary(operation) else { return None }
         match @relation.operation(operation) {
           Select | Rename | Drop | Sort | Distinct | DedupeRows => ()
+          Take => {
+            identity_charge(budget, 2)
+            guard @relation.row_operation(operation)
+              is Some(@relation.Take(count~, offset~)) else {
+              raise ForeignOwner
+            }
+            // Count admission proves its numeric domain, not a classification.
+            // Keep the exact checked operation and both selection controls;
+            // order and bound resolution remain owned by the existing closure.
+            unknown = true
+            slices.push({ step: index, operation, count, offset, })
+          }
           Filter =>
             for binding in 0..<@relation.binding_count(operation) {
               identity_charge(budget, 1)
@@ -130,6 +165,7 @@ fn prepare_publication_source_policy(
               target: original,
               unknown_provenance,
               predicates,
+              slices,
             })
           }
         }

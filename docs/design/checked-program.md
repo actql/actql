@@ -109,6 +109,15 @@ retained `policy` member is the acquisition's original provenance, before the
 predicate contributions. `emit_publication_source_policy` emits the combined
 preimage corresponding to the publication's CID.
 
+Take transfer retains its exact checked operation, count and offset through
+indexed slice readers. Selection-control admission does not attest a data
+classification, so those controls preserve unknown provenance rather than
+acquiring the input's classification. The operation retains literal versus
+Parameter identity and the owning Program supplies the corresponding bound
+values. This transfer does not resolve or strengthen order, infer a capacity
+bound, or grant publication permission: the existing operation/order/capacity
+closures must still succeed. Both control positions consume preparation work.
+
 Other transfer paths, including computed values, mixed sources and imported
 provenance, still require their own composition rules. A SourceView-containing
 Program with an unclosed publication policy fails `UnclosedPublicationPolicy`;

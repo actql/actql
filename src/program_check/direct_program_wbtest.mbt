@@ -3,6 +3,7 @@ fn checked_direct_program_fixture(
   extra_derive? : Bool = false,
   unused_source? : Bool = false,
   filter? : String = "",
+  take? : String = "",
 ) -> CheckedProgram raise {
   let text =
     #|{"version":"actql/0.1","id":"direct","stages":[{"id":"s","inputs":{"remote":{"connector":"crm/main","resource":"r","request":{"id":1,"tenant":null}}},"steps":[{"distinct":["id"],"as":"selected"}],"results":{"out":{"from":"selected","fields":["id"]}}}],"results":{"out":{"from":{"stage":"s","result":"out"}}}}
@@ -12,6 +13,21 @@ fn checked_direct_program_fixture(
         old="\"steps\":[",
         new="\"steps\":[{\"derive\":{\"x\":\"id\"}},",
       )
+    } else if take != "" {
+      let sliced = text.replace(
+        old="\"as\":\"selected\"}",
+        new="\"as\":\"before_take\"},{\"take\":" +
+          take +
+          ",\"as\":\"selected\"}",
+      )
+      if take.contains("$param") {
+        sliced.replace(
+          old="\"stages\":",
+          new="\"params\":{\"limit\":{\"type\":\"number\",\"default\":1}},\"stages\":",
+        )
+      } else {
+        sliced
+      }
     } else if filter != "" {
       let filtered = text.replace(
         old="\"steps\":[",
@@ -80,6 +96,56 @@ fn checked_direct_program_fixture(
     max_nodes=1000000,
     max_depth=100,
   )
+}
+
+///|
+test "direct SourceView take retains selection controls and owned policy" {
+  for count in ["1", "{\"$param\":\"limit\"}", "{\"count\":1,\"offset\":2}"] {
+    let program = checked_direct_program_fixture(take=count)
+    let policy = publication_source_policy(
+      unit_publication_at(program, 0, 0).unwrap(),
+    ).unwrap()
+    assert_eq(publication_policy_slice_count(policy), 1)
+    let slice = publication_policy_slice_at(policy, 0).unwrap()
+    assert_eq(slice.step, 1)
+    assert_eq(
+      slice.offset,
+      @relation.Literal(if count.contains("offset") { 2L } else { 0L }),
+    )
+    assert_eq(
+      slice.count,
+      if count.contains("$param") {
+        @relation.Parameter("limit")
+      } else {
+        @relation.Literal(1L)
+      },
+    )
+    guard @pipeline.step_at(program.units[0].pipeline, 1).unwrap().operation
+      is @pipeline.Unary(operation) else {
+      fail("expected take")
+    }
+    assert_true(physical_equal(slice.operation, operation))
+    let closure = @context.stage_requirement_operations(requirements(program))
+    let mut order_found = false
+    for index in 0..<@context.operation_closure_count(closure) {
+      if @context.operation_closure_at(closure, index)
+        is Some(StaticResolution(Order(link))) &&
+        link.site.stage == 0 &&
+        link.site.step == 1 {
+        assert_true(
+          physical_equal(link.site.pipeline, program.units[0].pipeline),
+        )
+        order_found = true
+      }
+    }
+    assert_true(order_found)
+    assert_true(publication_policy_slice_at(policy, -1) is None)
+    assert_true(publication_policy_slice_at(policy, 1) is None)
+    assert_eq(publication_policy_classification(policy), @environment.Unknown)
+    let writer = @encode.hashing_writer(10000, 100, 10)
+    emit_publication_source_policy(policy, writer)
+    assert_eq("sha256:" + @encode.finish_hash(writer), policy.cid)
+  }
 }
 
 ///|
