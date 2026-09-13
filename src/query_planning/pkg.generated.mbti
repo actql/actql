@@ -38,6 +38,8 @@ pub fn admit_query_evidence_contracts(@canonical_json.CanonicalValue, @canonical
 
 pub fn begin_duckdb_broad_receipt(DuckDBBroadAttempt, Array[(String, @duckdb_adapter.PhysicalType)], @duckdb_adapter.PhysicalResultLimits, Int, @execution_relation.ValueLimits) -> Result[Unit, DuckDBBroadAttemptIssue]
 
+pub fn bind_captured_duckdb_broad_input(DuckDBQueryIssuer, DuckDBBroadAttempt, DuckDBBroadObservation, @lowering_relation.BoundPrepared, Int, @lowering_relation.BoundPrepared) -> Result[@execution_relation.BoundProducerInput, DuckDBEvidenceIssue]
+
 pub fn bind_captured_query_input(MockQueryIssuer, MockQueryAttempt, MockQueryObservation, @lowering_relation.BoundPrepared, Int, @lowering_relation.BoundPrepared) -> Result[@execution_relation.BoundProducerInput, MockEvidenceIssue]
 
 pub fn cancel_mock_query(MockQueryAttempt) -> Bool
@@ -47,6 +49,8 @@ pub fn capability_description(CapabilityRegistration) -> CapabilityDescription
 pub fn capability_registration_at(CapabilityRegistry, Int) -> CapabilityRegistration?
 
 pub fn capability_registration_matches(CapabilityRegistration, CapabilityRegistry) -> Bool
+
+pub fn capture_duckdb_broad_query(DuckDBQueryIssuer, DuckDBBroadAttempt, DuckDBBroadRecords, QueryEvidenceLimits) -> Result[DuckDBBroadObservation, DuckDBEvidenceIssue]
 
 pub fn capture_mock_query(MockQueryIssuer, MockQueryAttempt, MockQueryRecords, QueryEvidenceLimits) -> Result[MockQueryObservation, MockEvidenceIssue]
 
@@ -58,11 +62,23 @@ pub fn choose_query_strategy(@execution_query.QuerySequence, Array[QueryOffer], 
 
 pub fn close_capability_registry(CapabilityRegistry) -> Unit
 
+pub fn close_duckdb_query_issuer(DuckDBQueryIssuer) -> Unit
+
 pub fn close_mock_query_issuer(MockQueryIssuer) -> Unit
+
+pub fn duckdb_broad_attempt_identity(DuckDBBroadAttempt) -> (String, String)?
 
 pub fn duckdb_broad_attempt_output(DuckDBBroadAttempt) -> @execution_relation.CompletedOutput?
 
 pub fn duckdb_broad_candidate(CapabilityRegistration, DuckDBQueryPreparation, Array[@physical_cost.SerialEstimateLine], QueryQuantities, Int) -> Result[PreparedAcquisition[DuckDBQueryPreparation], QueryPlanningIssue]
+
+pub fn duckdb_broad_observation_cid(DuckDBBroadObservation) -> String
+
+pub fn duckdb_broad_observation_document(DuckDBBroadObservation) -> @encode_core.EncodedDocument
+
+pub fn duckdb_broad_observation_usage(DuckDBBroadObservation) -> (Int, Int)
+
+pub fn duckdb_broad_record_at(DuckDBBroadRecords, Int) -> (@encode_core.EncodedDocument, String)?
 
 pub fn duckdb_broad_retention_cids(DuckDBBroadRetention) -> (String, String)
 
@@ -99,6 +115,8 @@ pub fn[T] fixed_compute_choice_payload(FixedComputeChoice, PreparedCompute[T]) -
 pub fn fixed_compute_choice_reason(FixedComputeChoice) -> @physical_cost.CostChoice
 
 pub fn fixed_compute_request_input(FixedComputeRequest) -> @execution_relation.ProducerRead
+
+pub fn issue_duckdb_broad_records(DuckDBBroadAttempt, QueryMaterialLimits) -> Result[DuckDBBroadRecords, DuckDBEvidenceIssue]
 
 pub fn issue_mock_query_records(MockQueryAttempt, QueryMaterialLimits) -> Result[MockQueryRecords, MockEvidenceIssue]
 
@@ -144,7 +162,11 @@ pub fn prepare_duckdb_broad_attempt(DuckDBQueryPreparation) -> DuckDBBroadAttemp
 
 pub fn prepare_duckdb_query(QueryRequirement, String, String, Int, @duckdb_adapter.NativeQueryLimits) -> Result[DuckDBQueryPreparation, @duckdb_adapter.NativeQueryIssue]
 
+pub fn prepare_duckdb_query_issuer(QueryEvidenceContracts, QueryRequirement, String, Int, (DuckDBBroadAttempt) -> Bool) -> Result[DuckDBQueryIssuer, DuckDBEvidenceIssue]
+
 pub fn prepare_fixed_compute_request(@execution_relation.ProducerRead) -> Result[FixedComputeRequest, FixedComputeIssue]
+
+pub fn prepare_issued_duckdb_broad_attempt(DuckDBQueryIssuer, AcquisitionChoice, PreparedAcquisition[DuckDBQueryPreparation]) -> Result[DuckDBBroadAttempt, DuckDBEvidenceIssue]
 
 pub fn prepare_issued_mock_query_attempt(MockQueryIssuer, QueryStrategy, Array[@decode_core.Cursor], Int) -> Result[MockQueryAttempt, MockEvidenceIssue]
 
@@ -220,6 +242,8 @@ pub fn retain_mock_query(MockQueryAttempt, MockRetentionLimits) -> Result[MockQu
 
 pub fn settle_duckdb_broad_transport(DuckDBBroadAttempt) -> Result[Unit, DuckDBBroadAttemptIssue]
 
+pub fn verify_duckdb_broad_records(DuckDBQueryIssuer, DuckDBBroadAttempt, DuckDBBroadRecords) -> Result[Unit, DuckDBEvidenceIssue]
+
 pub fn verify_mock_query_records(MockQueryIssuer, MockQueryAttempt, MockQueryRecords) -> Result[Unit, MockEvidenceIssue]
 
 // Errors
@@ -264,6 +288,10 @@ pub(all) enum DuckDBBroadAttemptIssue {
   Retention(QueryRetentionIssue)
 }
 
+type DuckDBBroadObservation
+
+type DuckDBBroadRecords
+
 type DuckDBBroadRetention
 
 pub(all) enum DuckDBBroadWork {
@@ -277,10 +305,31 @@ pub(all) enum DuckDBBroadWork {
   Cleanup
 } derive(Eq, @debug.Debug)
 
+pub(all) enum DuckDBEvidenceIssue {
+  InvalidLimits
+  IdentifierLimit
+  IdentifierExhausted
+  IssuerClosed
+  NotSelected
+  UnauthorizedAttempt
+  UnverifiedTransport
+  NotRetained
+  InvalidRetainedLayout
+  FieldLimit
+  WorkLimit
+  Encoding(@encode_core.EncodeFailure)
+  ForeignRecords
+  AlreadyCaptured
+  ForeignObservation
+  Consumer(@execution_relation.ProducerBindingIssue)
+}
+
 pub(all) enum DuckDBNativeIssue {
   Compilation(@duckdb_adapter.NativeQueryIssue)
   RootGuard(@duckdb_adapter.NativeRootGuardIssue)
 }
+
+type DuckDBQueryIssuer
 
 type DuckDBQueryPreparation
 

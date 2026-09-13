@@ -36,7 +36,12 @@ pub fn duckdb_broad_retention_matches(
   retained : DuckDBBroadRetention,
   attempt : DuckDBBroadAttempt,
 ) -> Bool {
-  guard attempt.state is Retained(current) else { return false }
+  let current = match attempt.state {
+    Retained(value) => value
+    EvidenceIssued(value) => value.retention
+    Captured(value) => value.records.retention
+    _ => return false
+  }
   physical_equal(current, retained) &&
   physical_equal(retained.preparation, attempt.preparation) &&
   @execution.row_wire_matches_captured(

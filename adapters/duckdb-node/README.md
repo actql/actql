@@ -164,6 +164,27 @@ or transport-frame size. `duckdb_broad_retention_matches` requires the exact liv
 attempt association; a digest or cancelled attempt cannot stand in for it.
 Evidence issuance and observation capture still follow this retention boundary.
 
+The portable broad issuer is `prepare_duckdb_query_issuer`, followed by
+`prepare_issued_duckdb_broad_attempt` with the selected owned candidate.
+`issue_duckdb_broad_records` and `capture_duckdb_broad_query` require retained
+execution and a live trusted transport verifier; the ordinary consumer connection
+is `bind_captured_duckdb_broad_input`. IDs, JSON and matching content are not
+alternative constructors. These are internal Host APIs, not untrusted plugin
+registration or a public authorization interface.
+
+`runBroadQuery(grant, prepare, limits, signal)` in `broad-query.mjs` coordinates
+actual source settlement with that bridge. The trusted synchronous `prepare`
+factory receives an exact transport verifier and returns `{attempt, port,
+complete, bindInput, abort, close}`. Install the verifier on the MoonBit issuer;
+`port.finishReceipt` must return the same opaque attempt. `complete` runs the
+MoonBit settlement/residual/retention/issuance/capture operations synchronously,
+and `bindInput` uses the captured-input API. It performs no new source access.
+The returned handle exposes the opaque observation, `bindInput` and idempotent
+`close`; a failed consumer does not close it. The factory and these callbacks
+must not come from Program data. The current Node coordinator test uses a
+lifecycle double for the semantic bridge; full same-process MoonBit issuer
+connection still needs its own real-provider conformance test.
+
 Tests create their own files under ignored `_build/duckdb-fixtures`, exercise
 exact scalar transport, existing-file read-only access, isolated Compute,
 cumulative transfer bounds, native memory exhaustion, cancellation and cross-process file locks. They

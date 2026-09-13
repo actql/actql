@@ -113,6 +113,34 @@ The resulting computation retains both full scan and output for subsequent
 issuer verification; this lifecycle does not itself issue observation evidence
 or authenticate a serializable claim that transport cleanup succeeded.
 
+`DuckDBQueryIssuer` is registered by the trusted Host with the selected
+requirement and a synchronous, read-only transport-ownership verifier. The Host
+must bind that verifier to the exact authorized grant, attempt, port, read view
+and settled source execution; neither user code nor wire data may supply it.
+`prepare_issued_duckdb_broad_attempt` binds the issuer to the selected typed
+candidate before access. It cannot attach authority after an unissued execution.
+The issuer requires successful guarded residual execution, exact retained
+scan/output handles and live transport verification before atomically issuing
+the source-validation, filter and select records. Mock authority is not reused.
+
+Broad capture uses the unchanged single-receipt observation schema and shared
+canonical serializer. Scope/record and capture serialization share an artifact
+budget. Binding a captured output verifies the exact issuer, attempt, issued set,
+observation and transport association before ordinary producer admission checks
+the receiver, target and Parameter owner. Failed consumers cannot cancel or
+replace the successful acquisition. Cancelling pending execution is distinct
+from explicit issuer/provenance revocation after capture.
+
+The Node `runBroadQuery` coordinator supplies the transport verifier and only
+invokes the synchronous semantic completion bridge after the actual source
+transaction and cleanup have settled. The bridge performs MoonBit settlement,
+residual, retention, issuance and capture, not JavaScript copies of these rules.
+An accepted receipt belonging to another attempt is rejected. Explicit close
+releases provenance; failed consumer binding does not. Transport sequencing and
+semantic issuance are separate trust boundaries: a real-provider capture must
+connect both to the same owned execution, not substitute an independent double
+for either authority.
+
 After guarded broad computation, retention hashes the exact admitted scan and
 completed output with the same bounded row-wire accounting used by mock. The
 measurement byte/node budget spans both artifacts; an exactly exhausted scan

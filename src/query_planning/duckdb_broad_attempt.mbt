@@ -16,6 +16,8 @@ priv enum DuckDBBroadState {
   Ready(@execution.CapturedRows)
   Completed(DuckDBBroadCompletion)
   Retained(DuckDBBroadRetention)
+  EvidenceIssued(DuckDBBroadRecords)
+  Captured(DuckDBBroadObservation)
   Failed
 }
 
@@ -30,6 +32,7 @@ priv struct DuckDBBroadCompletion {
 /// guarded computation is retained, not that observation evidence was issued.
 struct DuckDBBroadAttempt {
   preparation : DuckDBQueryPreparation
+  authority : DuckDBBroadAuthority?
   mut state : DuckDBBroadState
 }
 
@@ -37,11 +40,16 @@ struct DuckDBBroadAttempt {
 pub fn prepare_duckdb_broad_attempt(
   preparation : DuckDBQueryPreparation,
 ) -> DuckDBBroadAttempt {
-  { preparation, state: Metadata, }
+  { preparation, authority: None, state: Metadata, }
 }
 
 ///|
 pub fn abort_duckdb_broad_attempt(attempt : DuckDBBroadAttempt) -> Unit {
+  // Acquisition cancellation cannot retroactively discard successful capture.
+  // Issuer/provenance revocation is separate from cancelling pending execution.
+  if attempt.state is Captured(_) {
+    return
+  }
   if attempt.state is Receiving(receiver) {
     @duckdb.abort_broad_receiving(receiver)
   }
@@ -178,6 +186,8 @@ pub fn duckdb_broad_attempt_output(
   let completed = match attempt.state {
     Completed(value) => value
     Retained(value) => value.completion
+    EvidenceIssued(value) => value.retention.completion
+    Captured(value) => value.records.retention.completion
     _ => return None
   }
   @execution.completed_output(
