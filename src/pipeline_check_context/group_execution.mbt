@@ -14,6 +14,7 @@ pub enum GroupExecutionRule {
   ValidateResultContract(@relation.CheckedAggregate)
   EnforceArrayItems(GroupArrayLimit)
   EnforceStringBytes(GroupStringLimit)
+  CaptureNumericObservation(NumericSlot)
   EnforceStatisticalLaw(@relation.CheckedAggregate, StatisticalLaw)
 }
 

@@ -41,6 +41,7 @@ test "group execution binds result contracts without discharging numeric observa
           EnforceStringBytes(_) =>
             fail("string limits require explicit linking")
           EnforceStatisticalLaw(_, _) => fail("unexpected statistical fold")
+          CaptureNumericObservation(_) => fail("unexpected numeric observation")
           ValidateResultContract(call) => {
             assert_eq(pending.kind, @relation.AggregateEnvelope)
             assert_true(

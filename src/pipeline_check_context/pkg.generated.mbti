@@ -342,6 +342,8 @@ pub fn link_program_incoming(ProgramOperationProfileLinks, ProgramIncomingRequir
 
 pub fn link_program_join_requirements(ProgramOperationResolutionIndex, Int, Int) -> Result[ProgramOperationResolutionIndex, JoinRequirementIssue]
 
+pub fn link_program_numeric_slots(ProgramOperationResolutionIndex, ProgramNumericSlots, Int, Int) -> Result[ProgramOperationResolutionIndex, NumericSlotsIssue]
+
 pub fn link_program_operation_orders(ProgramOperationRequirements, Int, Int) -> Result[ProgramOperationOrders, OperationOrderIssue]
 
 pub fn link_program_operation_profiles(ProgramOperationCalendar, Int, Int) -> Result[ProgramOperationProfileLinks, OperationProfileLinksIssue]
@@ -1196,6 +1198,7 @@ pub enum GroupExecutionRule {
   ValidateResultContract(@relation_typing.CheckedAggregate)
   EnforceArrayItems(GroupArrayLimit)
   EnforceStringBytes(GroupStringLimit)
+  CaptureNumericObservation(NumericSlot)
   EnforceStatisticalLaw(@relation_typing.CheckedAggregate, StatisticalLaw)
 }
 
@@ -1475,6 +1478,7 @@ pub enum LocalProgramContextIssue {
 }
 
 pub struct NumericSlot {
+  requirement_index : Int
   site : OperationRequirementSite
   step : @pipeline_typing.CheckedStep
   input : @pipeline_typing.Target

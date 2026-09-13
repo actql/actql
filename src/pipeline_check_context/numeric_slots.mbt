@@ -8,6 +8,7 @@ pub(all) enum NumericSlotsIssue {
 
 ///|
 pub struct NumericSlot {
+  requirement_index : Int
   site : OperationRequirementSite
   step : @pipeline.CheckedStep
   input : @pipeline.Target
@@ -76,7 +77,15 @@ pub fn prepare_program_numeric_slots(
       return Err(BudgetExceeded)
     }
     work += 1
-    entries.push({ site, step, input, group, call, profile, })
+    entries.push({
+      requirement_index: i,
+      site,
+      step,
+      input,
+      group,
+      call,
+      profile,
+    })
   }
   if work > max_work {
     return Err(BudgetExceeded)

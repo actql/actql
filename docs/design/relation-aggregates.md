@@ -144,6 +144,17 @@ evidence of completed runtime enforcement.
 
 ## Numeric reduction contracts
 
+`link_program_numeric_slots` attaches each prepared slot to a
+`CaptureNumericObservation` execution obligation. The slot retains its original
+requirement index, input, checked aggregate and admitted profile. Only the exact
+same requirement inventory can be linked; foreign inventories and already
+resolved occurrences are rejected. Slot preparation, index copying and linking
+consume cumulative work, and failure leaves the original index unchanged.
+Capture must satisfy the durable observation barrier before operation output;
+failure rejects that output. This obligation is not a completed observation,
+algorithm selection or persistent Unit slot identity. Those boundaries cannot
+be replaced by the presence of the runtime obligation.
+
 The named numeric reduction profile supplies explicit left-fold and adjacent-pair
 binary64 contracts. This fills the previously unspecified referent of
 `numeric_contract_cid`; it does not change the observation envelope or make either

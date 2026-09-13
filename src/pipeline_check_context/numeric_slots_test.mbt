@@ -41,6 +41,66 @@ test "numeric slots retain exact demand and add contracts only to owning stages"
     is Err(BudgetExceeded),
   )
   assert_true(numeric_slot_at(slots, -1) is None)
+  let linked = link_program_numeric_slots(index, slots, 10000000, 6).unwrap()
+  assert_eq(
+    operation_resolution_unresolved_count(linked),
+    operation_resolution_unresolved_count(index) - 6,
+  )
+  for i in 0..<numeric_slot_count(slots) {
+    let slot = numeric_slot_at(slots, i).unwrap()
+    assert_true(
+      operation_resolution_at(index, slot.requirement_index) is Some(Unresolved),
+    )
+    guard operation_resolution_at(linked, slot.requirement_index)
+      is Some(Execution(GroupExecution(check))) &&
+      check.rule is CaptureNumericObservation(retained) else {
+      fail("missing numeric capture obligation")
+    }
+    assert_true(physical_equal(retained, slot))
+    assert_true(physical_equal(check.site, slot.site))
+    assert_eq(check.input, slot.input)
+    assert_eq(
+      operation_execution_phase(GroupExecution(check)),
+      BeforeOperationOutput,
+    )
+    assert_eq(
+      operation_execution_failure(GroupExecution(check)),
+      RejectOperationOutput,
+    )
+  }
+  let linked_work = operation_resolution_work(linked)
+  assert_true(link_program_numeric_slots(index, slots, linked_work, 6) is Ok(_))
+  assert_true(
+    link_program_numeric_slots(index, slots, linked_work - 1, 6)
+    is Err(BudgetExceeded),
+  )
+  assert_true(
+    link_program_numeric_slots(index, slots, linked_work, 5)
+    is Err(BudgetExceeded),
+  )
+  assert_true(
+    link_program_numeric_slots(linked, slots, 10000000, 6)
+    is Err(ForeignOccurrence(_)),
+  )
+  let other_profiles = resolution_profiles(
+    operation_order_fixture(
+      "[{\"derive\":{\"x\":\"concat($p, to_string($n))\"}}]",
+    ),
+  )
+  let other_index = index_program_operation_resolutions(
+    other_profiles, 10000000, 100,
+  ).unwrap()
+  let foreign_slots = prepare_program_numeric_slots(
+    operation_resolution_requirements(other_index),
+    profile,
+    10000000,
+    100,
+  ).unwrap()
+  // Even an empty foreign inventory cannot discharge this owner's obligations.
+  assert_true(
+    link_program_numeric_slots(index, foreign_slots, 10000000, 6)
+    is Err(ForeignOccurrence(_)),
+  )
   let identity = expression_closure_identity(
     operation_requirements_expressions(requirements),
   )
