@@ -164,6 +164,12 @@ limits apply separately to each. These explicit wire quantities supplement sourc
 admission and driver container limits, not replace them with a claim about heap
 capacity or RSS. No estimate is used to pass retention admission.
 
+An initially invalid measurement configuration is distinct from exhaustion after
+successful scan hashing. If the scan consumes the last node allowance, the output
+hash fails with an encoding resource limit, not `InvalidLimits`. Even an empty
+output array needs a node. Broad receipt-byte rejection still precedes output
+measurement when its receipt is already known to exceed the bound.
+
 Both finite mock realizations retain the same full scan plus selected output.
 Their actual receipt quantities differ, but this model does not demonstrate a
 ranking change caused by different physical retention strategies. Synthetic

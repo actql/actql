@@ -139,6 +139,82 @@ test "mock retention byte and traversal frontiers fail the owning attempt" {
 }
 
 ///|
+test "exhausted retention is not invalid configuration and cannot issue evidence" {
+  let (issuer, sequence) = query_issuer_fixture()
+  for route in [@planning.NativeQuery, @planning.BroadWithResidual] {
+    for
+      (nodes, bytes, success) in [
+        (7, 47, false),
+        (11, 47, false),
+        (12, 47, true),
+        (12, 28, false),
+        (12, 46, false),
+      ] {
+      let attempt = query_issuer_attempt(issuer, sequence, route)
+      @planning.execute_mock_query(
+        attempt,
+        mock_strategy_limits(),
+        guard_measure=Some(query_guard_physical()),
+      ).unwrap()
+      |> ignore
+      let result = @planning.retain_mock_query(attempt, {
+        ..query_retention_limits(),
+        measurement: {
+          ..query_retention_limits().measurement,
+          max_nodes: nodes,
+          max_bytes: bytes,
+        },
+      })
+      if success {
+        assert_true(result is Ok(_))
+        let records = @planning.issue_mock_query_records(
+          attempt,
+          query_material_limits(),
+        ).unwrap()
+        assert_true(
+          @planning.capture_mock_query(
+            issuer,
+            attempt,
+            records,
+            query_capture_limits(),
+          )
+          is Ok(_),
+        )
+      } else {
+        assert_true(
+          result is Err(OutputIdentity(Encoding(@encode.OutputLimit))),
+        )
+        assert_true(
+          @planning.mock_query_computation(attempt)
+          is Err(Retention(OutputIdentity(Encoding(@encode.OutputLimit)))),
+        )
+        assert_true(
+          @planning.issue_mock_query_records(attempt, query_material_limits())
+          is Err(NotRetained),
+        )
+      }
+    }
+    let invalid = query_retention_attempt(route)
+    assert_true(
+      @planning.retain_mock_query(invalid, {
+        ..query_retention_limits(),
+        measurement: { ..query_retention_limits().measurement, max_nodes: 0, },
+      })
+      is Err(ScanIdentity(InvalidLimits)),
+    )
+  }
+  let broad = query_retention_attempt(@planning.BroadWithResidual)
+  assert_true(
+    @planning.retain_mock_query(broad, {
+      ..query_retention_limits(),
+      received_wire_bytes: 27,
+      measurement: { ..query_retention_limits().measurement, max_nodes: 7, },
+    })
+    is Err(ReceiptBytes),
+  )
+}
+
+///|
 test "unbound or cancelled mock computation cannot establish retention" {
   let owner = strategy_test_owner()
   let attempt = @planning.prepare_mock_query_attempt(

@@ -59,6 +59,14 @@ fn retain_mock_computation(
     scan_usage.0 > limits.received_wire_bytes {
     return Err(ReceiptBytes)
   }
+  // A valid measurement allowance may be exactly exhausted by the scan.
+  // Every output array (even empty) needs a node; this is resource exhaustion,
+  // not a malformed caller-supplied RowWireLimits configuration.
+  if scan_usage.1 == limits.measurement.max_nodes {
+    return Err(
+      OutputIdentity(@execution.RowWireIssue::Encoding(@encode.OutputLimit)),
+    )
+  }
   let output = match
     @execution.identify_completed_rows(computation.output, {
       ..limits.measurement,
