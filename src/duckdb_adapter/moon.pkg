@@ -6,5 +6,10 @@ import {
   "actql/actql/value_contract" @contract,
   "actql/actql/value_admission" @admitted,
   "actql/actql/encode_core" @encode,
+  "actql/actql/lowering_relation" @lower,
+  "actql/actql/pipeline_typing" @pipeline,
+  "actql/actql/relation_typing" @relation,
+  "actql/actql/relation_schema" @schema,
+  "actql/actql/decode_scalar" @scalar,
   "moonbitlang/core/bigint",
 }

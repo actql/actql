@@ -82,6 +82,23 @@ Local filter/select on each production call. The alternative completion seam
 must bind the exact checked owner, fixed input, output and completed checks; it
 must not accept arbitrary rows plus a claimed CID as proof of execution.
 
+The native compiler consumes one owned two-step lowered filter/select sequence.
+It retains that exact owner, quotes table/column identifiers, and binds literals
+and already resolved Parameters rather than embedding their values in SQL. A
+numeric input comparison explicitly uses the DOUBLE domain after full-scan
+admission; transport support for DECIMAL or timestamps does not grant native
+comparison support. Unsupported expressions require a separately offered Local
+residual, not a mid-execution fallback.
+
+The current process-evidence profile represents a single logical received row
+sequence. A full scan exported to MoonBit for validation and a separately exported
+native query result are two actual receipts. They cannot be combined, hidden as
+internal engine work, or represented only by the selected output. Such a path
+requires an additional admitted multiple-access contract before issuing a
+completed observation. A single broad receipt reused for validation and residual
+continues to fit the existing profile. See the
+[Host adapter and access rules](../spec/execution.md#query-acquisition).
+
 ## Lifetime, limits and publication
 
 Cancellation request, the caller ceasing to wait, confirmed query termination

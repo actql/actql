@@ -4,6 +4,7 @@ package "actql/actql/duckdb_adapter"
 import {
   "actql/actql/decode_core",
   "actql/actql/encode_core",
+  "actql/actql/lowering_relation",
   "actql/actql/value_admission",
   "actql/actql/value_contract",
   "moonbitlang/core/debug",
@@ -12,9 +13,17 @@ import {
 // Values
 pub fn admit_physical_value(ValueMapping, @decode_core.Cursor, @value_admission.Limits) -> Result[@value_admission.CheckedValue, ValueIssue]
 
+pub fn compile_native_filter_select(@lowering_relation.BoundPrepared, String, String, NativeQueryLimits) -> Result[NativeQuery, NativeQueryIssue]
+
 pub fn decode_physical_type(@decode_core.Cursor) -> Result[PhysicalType, ValueIssue]
 
 pub fn emit_physical_parameter(PhysicalParameter, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
+
+pub fn native_query_owner(NativeQuery) -> @lowering_relation.BoundPrepared
+
+pub fn native_query_parameter(NativeQuery) -> PhysicalParameter
+
+pub fn native_query_sql(NativeQuery) -> String
 
 pub fn prepare_physical_parameter(@value_admission.CheckedValue) -> Result[PhysicalParameter, ValueIssue]
 
@@ -23,6 +32,25 @@ pub fn prepare_value_mapping(PhysicalType, @value_contract.Contract) -> Result[V
 // Errors
 
 // Types and methods
+type NativeQuery
+
+pub(all) enum NativeQueryIssue {
+  InvalidLimits
+  Limit
+  UnsupportedShape
+  UnsupportedPredicate
+  UnsupportedField
+  InvalidIdentifier
+  Lowering(@lowering_relation.KernelIssue)
+  Parameter(ValueIssue)
+}
+
+pub(all) struct NativeQueryLimits {
+  max_entries : Int
+  max_sql_bytes : Int
+  expressions : @lowering_relation.ExpressionLimits
+}
+
 type PhysicalParameter
 
 pub(all) enum PhysicalType {

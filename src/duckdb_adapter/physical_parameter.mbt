@@ -4,7 +4,7 @@
 struct PhysicalParameter {
   id : String
   decimal : (Int, Int)?
-  value : @admitted.Value
+  value : @admitted.Value?
 }
 
 ///|
@@ -21,7 +21,7 @@ pub fn prepare_physical_parameter(
       ("DECIMAL", Some((precision, scale)))
     _ => return Err(UnsupportedType)
   }
-  Ok({ id, decimal, value: checked.value, })
+  Ok({ id, decimal, value: Some(checked.value), })
 }
 
 ///|
@@ -108,17 +108,25 @@ pub fn emit_physical_parameter(
   @encode.end_object(output)
   @encode.key(output, "value")
   match parameter.value {
-    @admitted.Null => @encode.null_value(output)
-    @admitted.Boolean(value) => @encode.bool_value(output, value)
-    @admitted.Text(value) => @encode.string_value(output, value)
-    @admitted.Number(value) =>
-      @encode.string_value(output, double_bits_text(value))
-    @admitted.Decimal(value) => @encode.string_value(output, value.coefficient)
-    @admitted.Date(value) =>
-      @encode.string_value(output, admitted_date_days(value).to_string())
-    @admitted.Timestamp(value) =>
-      @encode.string_value(output, admitted_timestamp_micros(value).to_string())
-    _ => raise @encode.InvalidStructure
+    None => @encode.null_value(output)
+    Some(value) =>
+      match value {
+        @admitted.Null => @encode.null_value(output)
+        @admitted.Boolean(value) => @encode.bool_value(output, value)
+        @admitted.Text(value) => @encode.string_value(output, value)
+        @admitted.Number(value) =>
+          @encode.string_value(output, double_bits_text(value))
+        @admitted.Decimal(value) =>
+          @encode.string_value(output, value.coefficient)
+        @admitted.Date(value) =>
+          @encode.string_value(output, admitted_date_days(value).to_string())
+        @admitted.Timestamp(value) =>
+          @encode.string_value(
+            output,
+            admitted_timestamp_micros(value).to_string(),
+          )
+        _ => raise @encode.InvalidStructure
+      }
   }
   @encode.end_object(output)
 }
