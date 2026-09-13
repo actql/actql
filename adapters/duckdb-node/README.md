@@ -164,6 +164,13 @@ completion remain required. This fixture-backed driver is conformance code, not
 the final standard Compute Host entry. Acquisition budget exemptions must not be
 reused to waive a fixed consumer's selected contract.
 
+The scalar import transport fixture also starts with real engine-completed
+values and the product import adapter, then checks exact real DuckDB round-trips
+for text, boolean, number (including lossless large integers), DECIMAL(38,2),
+date and millisecond-exact timestamp, with NULLs and duplicate values. Its
+literal projection only observes stored parameters: this transport diagnostic
+does not issue a semantic Compute completion or discharge consumer capacity.
+
 `test/typed-host.test.mjs` exercises the standard native and broad acquisition
 entries with an unused nullable column in each supported scalar family: text,
 boolean, lossless BIGINT-to-number, finite DOUBLE, DECIMAL(38,2), date and

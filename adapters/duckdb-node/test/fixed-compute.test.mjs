@@ -12,6 +12,46 @@ const limits = Object.freeze({
 });
 const root = fileURLToPath(new URL('../../..', import.meta.url));
 
+test('completed scalar imports round-trip exactly through isolated DuckDB transport', async () => {
+  const { stdout } = await promisify(execFile)('moon', [
+    'test', '--target', 'js', 'src/query_integration/duckdb_scalar_import_fixture_wbtest.mbt',
+  ], { cwd: root, maxBuffer: 2 * 1024 * 1024 });
+  assert.match(stdout, /Total tests: 1, passed: 1, failed: 0/);
+  const fixtures = stdout.split('\n').filter(line => line.startsWith('ACTQL_SCALAR_IMPORT '))
+    .map(line => JSON.parse(line.slice('ACTQL_SCALAR_IMPORT '.length)));
+  // Fixed physical expectations, not reconstructed from emitted parameters.
+  const expected = new Map([
+    ['text', ['VARCHAR', '日本語']], ['boolean', ['BOOLEAN', false]],
+    ['integer', ['DOUBLE', '4340000000000000']], ['number', ['DOUBLE', 'bff8000000000000']],
+    ['decimal', ['DECIMAL', '99999999999999999999999999999999999999']],
+    ['date', ['DATE', '11016']], ['timestamp', ['TIMESTAMP_TZ', '-1000']],
+  ]);
+  assert.deepEqual(fixtures.map(value => value.name), [...expected.keys()]);
+  for (const fixture of fixtures) {
+    const port = {
+      rowCount: () => 3, columnCount: () => 1,
+      createSql: () => fixture.create, insertSql: () => fixture.insert,
+      parameter: (row, column) => { assert.equal(column, 0); return fixture.rows[row]; },
+      // Transport observation only; no semantic Compute completion is issued.
+      querySql: () => 'SELECT "x" FROM "fixed"', queryParameters: () => [],
+    };
+    const chunks = [];
+    const consume = chunk => chunks.push(chunk);
+    const result = await runFixedCompute(port, limits, { maxRows: 3, maxCells: 3 }, consume);
+    try {
+      const [type, value] = expected.get(fixture.name);
+      assert.equal(matchesFixedCompute(result, port, consume), true);
+      assert.equal(result.value.fields[0].type.id, type);
+      if (type === 'DECIMAL') assert.deepEqual(result.value.fields[0].type,
+        { id: 'DECIMAL', precision: 38, scale: 2 });
+      assert.deepEqual(chunks.flatMap(chunk => chunk.columns[0]), [value, null, value], fixture.name);
+      assert.equal(result.value.importedCells, 3);
+      assert.equal(result.usage.statements, 5);
+    } finally { releaseFixedCompute(result); }
+    assert.equal(matchesFixedCompute(result, port, consume), false);
+  }
+});
+
 test('MoonBit completed capture compiles and imports into isolated real DuckDB Compute', async () => {
   const { stdout } = await promisify(execFile)('moon', [
     'test', '--target', 'js', 'src/query_integration/duckdb_transport_fixture_wbtest.mbt',
