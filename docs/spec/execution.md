@@ -809,9 +809,44 @@ position in the aggregate map and not an escaped path. The Unit Definition
 already binds the operation's semantics, effective used Parameters and local
 contracts. The profile CID identifies the explicitly admitted profile, not a
 member selected for a future attempt. This fixes the previously unspecified
-ordinary-group slot preimage; window_group and pivot require their own
-context-specific slot definitions. Analytic calls use the separate definition
+ordinary-group slot preimage; pivot requires its own context-specific slot
+definition. Window_group and analytic calls use the separate definitions
 below, not the ordinary-group domain.
+
+<!-- machine-import: ../../spec/contracts/actql-window-numeric-slot.json# sha256:868fc8f92638572086e4063a815ba235ebe8bc1f207c935c5a99cc82ddabe8ee -->
+<!-- machine-import: ../../spec/contracts/actql-window-numeric-slot.json#/schemas/window_slot sha256:25ba88c7f5c7ec1ea184e4449fa42f94ee2022af7d07a45f59b052080090a18f -->
+
+<!-- requirement-block: numeric-observation.window-slot-preimage -->
+For a `window_group` binary64 sum/avg, the static slot CID MUST hash the entire
+canonical JSON object `{version: "actql-window-numeric-slot/0.1",
+unit_definition_cid, source_ordinal, aggregate_name, reduction_profile_cid}`.
+The ordinal and exact canonical authored name identify the call in its owning
+Unit, not a producer visit, map position or escaped path. This fixes the
+previously unspecified window-group slot preimage in a separate domain; ordinary
+group and analytic preimages are unchanged. Window configuration, grouping and
+aggregate semantics, effective used Parameters and local contracts are already
+bound by the Unit Definition, without adding a future window key to the slot.
+
+<!-- requirement-block: numeric-observation.window-slot-owner -->
+Window-group slot admission MUST verify the same checked Program, owning Stage, pipeline, step,
+binary64 sum/avg call and admitted reduction profile. The window slot contract
+and schema, profile and its declared dependencies belong to that Unit's local
+contract closure. Imports retain the producer's slot, never a consumer rebasing.
+The static preimage excludes future input artifacts, group/boundary values,
+contributors, counts, adopted values, selected algorithm members, attempts,
+Invocation, placement and cost. The Unit does not include its derived slot CID;
+shape and self-hash alone do not establish ownership or completed execution.
+
+<!-- requirement-block: numeric-observation.window-slot-observation -->
+Execution MUST bind each observation to this slot, exact input artifact, full
+group key including the window-boundary prefix, contributor demand, count, type
+and attempt. Equal results or contributor sequences do not alone identify
+distinct window groups. Group membership does not prescribe a floating-point
+reduction order. The selected reduction member and contributor sequence remain
+bound to the attempt, and the existing durable numeric capture barrier before
+consumers remains mandatory. A static slot is neither future observation
+identity nor completed capture evidence and does not authorize process-local
+retention in place of durable capture.
 
 <!-- machine-import: ../../spec/contracts/actql-analytic-numeric-slot.json# sha256:6d88bdc63c0a7eb77ee1dc976003fcec1ace74ca46ce61af5a956d2e89b30a43 -->
 <!-- machine-import: ../../spec/contracts/actql-analytic-numeric-slot.json#/schemas/analytic_slot sha256:89b1d3c4450466f1ebf758c876ca8209787490cdf852b7e16c1b4ec41a862ae6 -->

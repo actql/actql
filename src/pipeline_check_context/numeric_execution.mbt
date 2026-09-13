@@ -30,9 +30,12 @@ pub fn link_program_numeric_slots(
     }
     work += 1
     let i = slot.requirement_index
-    guard states.get(i) is Some(Unresolved) &&
-      slot.step.operation is @pipeline.Unary(operation) else {
+    guard states.get(i) is Some(Unresolved) else {
       return Err(ForeignOccurrence(i))
+    }
+    let operation = match slot.step.operation {
+      @pipeline.Unary(op) | @pipeline.WindowGroup(op) => op
+      _ => return Err(ForeignOccurrence(i))
     }
     states[i] = Execution(
       GroupExecution({

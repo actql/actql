@@ -1272,6 +1272,27 @@ test "contract spec/contracts/actql-numeric-slot.json#/schemas/group_slot" {
 }
 
 ///|
+test "contract spec/contracts/actql-window-numeric-slot.json#" {
+  let input = @json.parse([
+    "{\"version\":\"actql-window-numeric-slot-contract/0.1\",\"schemas\":{\"window_slot\":{\"$schema\":\"https://json-schema.org/draft/2020-12/schema\",\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"version\",\"unit_definition_cid\",\"source_ordinal\",\"aggregate_name\",\"reduction_profile_cid\"],\"properties\":{\"version\":{\"const\":\"actql-window-numeric-slot/0.1\"},\"unit_definition_cid\":{\"type\":\"string\",\"pattern\":\"^sha256:[0-9a-f]{64}$\"},\"source_ordinal\":{\"type\":\"integer\",\"minimum\":0,\"maximum\":9007199254740991},\"aggregate_name\":{\"type\":\"string\",\"minLength\":1},\"reduction_profile_cid\":{\"type\":\"string\",\"pattern\":\"^sha256:[0-9a-f]{64}$\"}}}},\"semantics\":{\"identity\":\"sha256_entire_canonical_json_body_no_self_cid\",\"scope\":\"window_group_binary64_sum_or_avg_call_template_at_owning_unit_authored_source_ordinal\",\"name\":\"exact_canonical_authored_aggregate_name_not_map_position_or_escaped_path\",\"ownership\":\"same_checked_program_stage_pipeline_step_call_effective_parameters_and_admitted_profile\",\"imports\":\"retain_producer_unit_slot_not_consu",
+    "mer_rebasing\",\"group\":\"runtime_observation_binds_exact_input_full_group_key_including_window_boundary_prefix_contributor_demand_count_type_and_attempt\",\"reuse\":\"equal_aggregate_values_or_contributor_sequences_do_not_identify_distinct_window_groups\",\"excludes\":\"future_input_artifact_group_key_boundary_values_contributors_count_value_algorithm_member_attempt_invocation_result_placement_cost\",\"acyclic\":\"unit_definition_binds_contract_and_selected_profile_not_derived_slot_cid_or_future_observation\",\"authority\":\"shape_and_digest_not_owner_admission_execution_or_durable_capture\",\"compatibility\":\"ordinary_group_and_analytic_slot_contracts_unchanged_no_backend_execution_or_capture_support_claim\"}}",
+  ].join(""))
+  let value = @canonical_json.from_json(input, 41, 5, 1722)
+  assert_eq(@canonical_json.cid_value(value, 1722, 41, 5), "sha256:868fc8f92638572086e4063a815ba235ebe8bc1f207c935c5a99cc82ddabe8ee")
+  assert_eq(@canonical_json.measure_value(value, 1722, 41, 5), 1722)
+}
+
+///|
+test "contract spec/contracts/actql-window-numeric-slot.json#/schemas/window_slot" {
+  let input = @json.parse([
+    "{\"$schema\":\"https://json-schema.org/draft/2020-12/schema\",\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"version\",\"unit_definition_cid\",\"source_ordinal\",\"aggregate_name\",\"reduction_profile_cid\"],\"properties\":{\"version\":{\"const\":\"actql-window-numeric-slot/0.1\"},\"unit_definition_cid\":{\"type\":\"string\",\"pattern\":\"^sha256:[0-9a-f]{64}$\"},\"source_ordinal\":{\"type\":\"integer\",\"minimum\":0,\"maximum\":9007199254740991},\"aggregate_name\":{\"type\":\"string\",\"minLength\":1},\"reduction_profile_cid\":{\"type\":\"string\",\"pattern\":\"^sha256:[0-9a-f]{64}$\"}}}",
+  ].join(""))
+  let value = @canonical_json.from_json(input, 26, 3, 547)
+  assert_eq(@canonical_json.cid_value(value, 547, 26, 3), "sha256:25ba88c7f5c7ec1ea184e4449fa42f94ee2022af7d07a45f59b052080090a18f")
+  assert_eq(@canonical_json.measure_value(value, 547, 26, 3), 547)
+}
+
+///|
 test "contract spec/contracts/actql-numeric-reduction.json#" {
   let input = @json.parse([
     "{\"version\":\"actql-numeric-reduction-profile/0.1\",\"contracts\":{\"left_fold\":{\"version\":\"actql-numeric-reduction/0.1\",\"operations\":[\"sum\",\"avg\"],\"input\":\"admitted_finite_binary64_contributors_in_bound_sequence_order\",\"demand\":\"aggregate_filter_before_argument_then_exclude_null_then_distinct_if_authored\",\"distinct\":\"numeric_equality_retain_first_occurrence_in_contributor_sequence\",\"count\":\"post_filter_nonnull_post_distinct_safe_integer_count\",\"empty\":\"null_for_sum_and_avg\",\"rounding\":\"binary64_nearest_ties_even_after_each_addition_and_final_division\",\"average\":\"rounded_sum_divided_by_exact_binary64_count_once\",\"nonfinite\":\"reject_any_nonfinite_intermediate_or_final_value\",\"zero\":\"preserve_internal_ieee_zero_sign_normalize_final_negative_zero_to_positive_zero\",\"error_law\":\"exact_prescribed_binary64_operation_sequence_no_epsilon_or_reassociation\",\"reduction\":\"start_positive_zero_add_each_contributor_left_to_right\"},\"adjacent_pairs\":{\"version\":\"actql-numeric-reduction/0.1\",\"operations\":[\"sum\",\"avg\"],\"input\":\"admitte",

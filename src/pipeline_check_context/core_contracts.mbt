@@ -308,7 +308,14 @@ pub fn collect_core_contracts(
         core_contract_edge(b)
         core_contract_body(b, observation)
         core_contract_dependency(b, root, observation)
-        let slot_rules = NumericReductionBody(numeric_slot_contract_cid())
+        let window = slot.step.operation is @pipeline.WindowGroup(_)
+        let slot_rules = NumericReductionBody(
+          if window {
+            window_numeric_slot_contract_cid()
+          } else {
+            numeric_slot_contract_cid()
+          },
+        )
         core_contract_root(
           b,
           NumericAggregateSlotRules(
@@ -319,7 +326,13 @@ pub fn collect_core_contracts(
           ),
           slot_rules,
         )
-        let slot_schema = NumericReductionBody(numeric_slot_schema_cid())
+        let slot_schema = NumericReductionBody(
+          if window {
+            window_numeric_slot_schema_cid()
+          } else {
+            numeric_slot_schema_cid()
+          },
+        )
         core_contract_edge(b)
         core_contract_body(b, slot_schema)
         core_contract_dependency(b, slot_rules, slot_schema)

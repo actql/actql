@@ -182,11 +182,13 @@ insufficient-count result and failure on non-finite intermediates before output.
 It does not permit reassociation or substitute a numeric observation. False
 filters do not erase this contract. Binary64 sum/avg still require their distinct
 contract-admitted observation boundary. The explicit optional `numeric_profile`
-argument admits ordinary-group floating sum/avg through that boundary; omission
+argument admits ordinary/window-group floating sum/avg through that boundary; omission
 leaves their requirements unresolved. Construction retains the exact owned
 profile slots in contract selection and runtime capture obligations, then builds
 their persistent slot CIDs from the completed owning Units. No algorithm member,
 future input artifact or observation is selected during this static construction.
+Window groups select a distinct slot contract and identity domain; their demand
+includes the complete grouping keys with the owned window-boundary prefix.
 `unit_group_numeric_slot_count/at` exposes the Unit-bound slots without copying;
 their demands are the same objects held by the operation closure. Hashing uses
 the shared bounded emitter and commits resource usage only after all slots

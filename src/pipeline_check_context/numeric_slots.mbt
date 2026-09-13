@@ -25,7 +25,7 @@ struct ProgramNumericSlots {
 }
 
 ///|
-/// Prepare static ordinary-group slots. No algorithm, future observation or
+/// Prepare static ordinary/window-group slots. No algorithm, future observation or
 /// persistent slot identity is selected, and original requirements stay open.
 pub fn prepare_program_numeric_slots(
   requirements : ProgramOperationRequirements,
@@ -53,9 +53,14 @@ pub fn prepare_program_numeric_slots(
       @relation.analytic(operation) is Some(_) {
       continue
     }
-    guard @pipeline.step_at(site.pipeline, site.step) is Some(step) &&
-      step.operation is @pipeline.Unary(operation) &&
-      @relation.operation(operation) == @relation.Group &&
+    guard @pipeline.step_at(site.pipeline, site.step) is Some(step) else {
+      return Err(UnsupportedOccurrence(i))
+    }
+    let operation = match step.operation {
+      @pipeline.Unary(op) | @pipeline.WindowGroup(op) => op
+      _ => return Err(UnsupportedOccurrence(i))
+    }
+    guard @relation.operation(operation) == @relation.Group &&
       @relation.group(operation) is Some(group) else {
       return Err(UnsupportedOccurrence(i))
     }

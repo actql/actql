@@ -52,7 +52,14 @@ fn emit_numeric_slot_body(
   @encode.key(w, "unit_definition_cid")
   @encode.string_value(w, operation.unit_definition_cid)
   @encode.key(w, "version")
-  @encode.string_value(w, "actql-group-numeric-slot/0.1")
+  @encode.string_value(
+    w,
+    if slot.step.operation is @pipeline.WindowGroup(_) {
+      "actql-window-numeric-slot/0.1"
+    } else {
+      "actql-group-numeric-slot/0.1"
+    },
+  )
   @encode.end_object(w)
 }
 

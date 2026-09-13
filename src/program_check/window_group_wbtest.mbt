@@ -84,7 +84,7 @@ test "formal window grouping retains boundary roles and its distinct execution o
 }
 
 ///|
-test "window numeric scopes cannot masquerade as ordinary groups" {
+test "window numeric scopes without an admitted profile stay unresolved" {
   for aggregate in ["{\"fn\":\"sum\",\"field\":\"id\"}"] {
     let checked : Array[CheckedProgram] = []
     try

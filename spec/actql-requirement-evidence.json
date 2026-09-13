@@ -7978,6 +7978,39 @@
       }
     },
     {
+      "requirement_id": "actql.execution/numeric-observation.window-slot-preimage",
+      "statement_sha256": "13797f31061d14b6fab55f5636250f3eaaa1be86d59c900a6fa4d069d2aea120",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "numeric-observation",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.execution/numeric-observation.window-slot-owner",
+      "statement_sha256": "ea9a2ab1398038b4e26b3f5f587f861577dde615586cb855986fc9f9da8ab4f6",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "numeric-observation",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.execution/numeric-observation.window-slot-observation",
+      "statement_sha256": "330213979b0a9647933811eb1fba15119272ed082add715b02e3edc61d4b03a2",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "numeric-observation",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.execution/numeric-observation.analytic-slot-preimage",
       "statement_sha256": "e34a0307b91563ee8dbd7c71e68b8477f12eddad77b4958c93f2b407067d85fc",
       "status": "pending",

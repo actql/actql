@@ -41,13 +41,18 @@ pub fn prepare_program_analytic_numeric_slots(
       pending.kind is @relation.NumericAggregateObservation else {
       continue
     }
-    if @pipeline.step_at(site.pipeline, site.step) is Some(step) &&
-      step.operation is @pipeline.Unary(operation) &&
-      @relation.operation(operation) == @relation.Group {
+    guard @pipeline.step_at(site.pipeline, site.step) is Some(step) else {
+      return Err(UnsupportedOccurrence(i))
+    }
+    let grouped = match step.operation {
+      @pipeline.Unary(operation) | @pipeline.WindowGroup(operation) =>
+        @relation.operation(operation) == @relation.Group
+      _ => false
+    }
+    if grouped {
       continue
     }
-    guard @pipeline.step_at(site.pipeline, site.step) is Some(step) &&
-      step.operation is @pipeline.Unary(operation) &&
+    guard step.operation is @pipeline.Unary(operation) &&
       @relation.analytic(operation) is Some(analytic) else {
       return Err(UnsupportedOccurrence(i))
     }

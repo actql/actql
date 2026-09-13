@@ -94,9 +94,14 @@ measuring each result's UTF-8 bytes. The retained minimum combines an optional
 Host string ceiling and literal or bound-Parameter guard; absence of both rejects
 construction. Equality with a Host ceiling keeps the authored guard but marks it
 currently non-binding. `unit_group_string_limit_count/at` exposes these owned
-limits without substituting an ordinary-group subject. Binary64 observation slots
-still require window-specific integration and cannot borrow ordinary group slot
-identities.
+limits without substituting an ordinary-group subject. Binary64 sum/avg slots use
+the separate `actql-window-numeric-slot/0.1` domain with the same Unit, authored
+ordinal, aggregate name and admitted profile coordinates. Their Unit selects the
+window slot contract, not the ordinary group contract. The shared
+`unit_group_numeric_slot_count/at` readers retain the actual checked operation;
+imports reference the producer slot. These are static call templates, not
+observations: execution must bind the full window group and actual contributors
+and durably capture the result before consumers.
 
 The operation-resolution boundary retains a `WindowExecutionCheck` for time
 admission and a separate one for membership assignment. Both identify the exact
