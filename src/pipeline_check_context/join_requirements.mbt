@@ -97,6 +97,10 @@ pub fn link_program_join_requirements(
       @pipeline.JoinRequirement(ValidateCardinality(_))
       | @pipeline.JoinRequirement(RejectNullKeys) => 3
       @pipeline.JoinRequirement(StableIdentity(_)) => 4
+      @pipeline.CrossJoinRequirement(StableIdentity(_)) => 4
+      @pipeline.CrossJoinRequirement(ResolveProductBound)
+      | @pipeline.CrossJoinRequirement(PreserveLeftMajorProductOrder)
+      | @pipeline.CrossJoinRequirement(ValidateExactlyOneRightRow) => 5
       @pipeline.JoinRequirement(ResolveOutputLimit)
       | @pipeline.CrossJoinRequirement(ResolveOutputLimit)
       | @pipeline.IntervalJoinRequirement(ResolveOutputLimit) => 1
@@ -180,37 +184,51 @@ pub fn link_program_join_requirements(
         JoinInputValidation({ site, step, left, right, operation, rule, }),
       )
     } else if kind == 4 {
-      guard site.requirement is @pipeline.JoinRequirement(StableIdentity(side)) &&
-        @pipeline.step_at(site.pipeline, site.step) is Some(step) &&
-        step.operation is @pipeline.Join(right~, ..) &&
+      let side = match site.requirement {
+        @pipeline.JoinRequirement(StableIdentity(side))
+        | @pipeline.CrossJoinRequirement(StableIdentity(side)) => side
+        _ => return Err(ForeignOccurrence(i))
+      }
+      guard @pipeline.step_at(site.pipeline, site.step) is Some(step) &&
         step.input is Some(left) else {
         return Err(ForeignOccurrence(i))
       }
+      let right = match step.operation {
+        @pipeline.Join(right~, ..) | @pipeline.CrossJoin(right~, ..) => right
+        _ => return Err(ForeignOccurrence(i))
+      }
       let input = if side == @schema.Left { left } else { right }
-      guard @pipeline.candidate_keys(site.pipeline, input) is Some(keys) else {
-        return Err(MissingEvidence(i))
-      }
-      let remaining = max_work - index.work - count * 2 - selection_work
-      let selected = match
-        @evidence.select_key(step.source, keys, CanonicalOrder, {
-          max_work: remaining,
-          max_name_bytes: remaining,
-        }) {
-        Ok(v) => v
-        Err(e) => {
-          if e.kind == @evidence.LimitExceeded {
-            return Err(BudgetExceeded)
+      let mut key = None
+      if @pipeline.candidate_keys(site.pipeline, input) is Some(keys) {
+        let remaining = max_work - index.work - count * 2 - selection_work
+        let selected = match
+          @evidence.select_key(step.source, keys, CanonicalOrder, {
+            max_work: remaining,
+            max_name_bytes: remaining,
+          }) {
+          Ok(v) => v
+          Err(e) => {
+            if e.kind == @evidence.LimitExceeded {
+              return Err(BudgetExceeded)
+            }
+            return Err(KeyEvidence(i, e.kind))
           }
-          return Err(KeyEvidence(i, e.kind))
         }
+        if selected.work > remaining ||
+          selected.name_bytes > remaining - selected.work {
+          return Err(BudgetExceeded)
+        }
+        selection_work += selected.work + selected.name_bytes
+        key = selected.key
       }
-      if selected.work > remaining ||
-        selected.name_bytes > remaining - selected.work {
-        return Err(BudgetExceeded)
+      if site.requirement is @pipeline.CrossJoinRequirement(_) {
+        states[i] = Execution(
+          CrossJoinIdentity({ site, step, side, input, key, }),
+        )
+      } else {
+        guard key is Some(key) else { return Err(MissingEvidence(i)) }
+        states[i] = Execution(JoinIdentity({ site, step, side, input, key, }))
       }
-      selection_work += selected.work + selected.name_bytes
-      guard selected.key is Some(key) else { return Err(MissingEvidence(i)) }
-      states[i] = Execution(JoinIdentity({ site, step, side, input, key, }))
     } else {
       let capacity = stage.context.capacity
       guard @capacity.application_closure_at(capacity, site.producer_visit)
@@ -232,7 +250,15 @@ pub fn link_program_join_requirements(
         @policy.cid(stages.policy) {
         return Err(ForeignOccurrence(i))
       }
-      states[i] = Execution(JoinOutputLimit({ site, capacity, limit, }))
+      if kind == 5 {
+        let check = match cross_join_execution_check(site, limit) {
+          Ok(v) => v
+          Err(_) => return Err(ForeignOccurrence(i))
+        }
+        states[i] = Execution(CrossJoinRows(check))
+      } else {
+        states[i] = Execution(JoinOutputLimit({ site, capacity, limit, }))
+      }
     }
     links += 1
     unresolved -= 1

@@ -51,6 +51,10 @@ fn check_resolution_index(
         abort("join input validation requires explicit linking")
       Execution(JoinIdentity(_)) =>
         abort("join identity requires explicit linking")
+      Execution(CrossJoinRows(_)) =>
+        abort("cross join requires explicit linking")
+      Execution(CrossJoinIdentity(_)) =>
+        abort("cross join identity requires explicit linking")
       Resolved(v) => {
         resolved += 1
         let (position, owner, kind) = match v {

@@ -53,6 +53,7 @@ fn check_supported_source(
               | "except"
               | "intersect"
               | "join"
+              | "cross_join"
               | "values" => ()
               _ => raise UnitBuildFailure::UnsupportedStaticPath(step)
             }

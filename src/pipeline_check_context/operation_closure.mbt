@@ -61,6 +61,8 @@ pub fn close_program_operations(
           JoinRowOrder(v) => v.site
           JoinInputValidation(v) => v.site
           JoinIdentity(v) => v.site
+          CrossJoinRows(v) => v.site
+          CrossJoinIdentity(v) => v.site
           AppendRows(v) => v.site
           SetRows(v) => v.site
         }

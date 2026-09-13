@@ -38,7 +38,7 @@ separate protocol results, not successful CheckedPrograms with weaker guarantees
 
 The entry has an explicit implementation-domain check, separate from the
 language grammar. Its Local and Result-import domain accepts `values`, `derive`,
-`filter`, `select`, `rename`, `drop`, `sort`, `take`, `distinct`, `dedupe_rows`, `append`, `join`, `except` and `intersect`, including empty operation
+`filter`, `select`, `rename`, `drop`, `sort`, `take`, `distinct`, `dedupe_rows`, `append`, `join`, `cross_join`, `except` and `intersect`, including empty operation
 sequences. Sort/take use the existing owned order-resolution closure and preserve
 their distinct strategies and preconditions; accepting them does not synthesize
 an order from physical enumeration. Result publication can target their explicit
@@ -529,6 +529,27 @@ This follows the physical-operator resource boundary in smooth-cloud
 limits are checked against the selected operator and passed to the engine.
 That implementation is evidence for the separation, not execution conformance
 for ActQL's typed equality or set multiplicity rules.
+
+Cross join retains the compiler's checked product-count propagation and its
+exact left/right count evidence alongside the selected join-family output limit.
+Unknown operand or output bounds stay unknown, not zero and not the Host ceiling.
+Before product enumeration, the execution check uses admitted operand counts and
+checked arithmetic, respects all applicable proven bounds and the resolved output
+limit, and fails rather than wrapping, truncating or publishing a prefix. This
+runtime enforcement is not a manufactured static numeric capacity proof.
+The separate ordering check retains left-major/right-minor logical order and both
+order dependencies. An explicit `right_rows: one` remains its own pre-input-use
+assertion, including when the left side is empty; it never selects one right row
+or silently drops extra rows.
+
+Cross-join operand identities are conditional selections. Their producer and
+validation requirements remain attached when present; absence produces no
+output identity proof. Unlike full join, the cross-join specification does not
+require both operands to have identities merely to form the product. Consumers
+requiring identity or total order still need their corresponding evidence.
+Authored-guard limit assembly remains a separate requirement of the join-family
+capacity entrance; an unsupported limit combination is not bypassed by these
+product checks.
 
 Source acquisition has distinct Host-combination and response-admission
 dispositions. The former applies before provider access: the Host checks the

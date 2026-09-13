@@ -982,6 +982,35 @@ pub(all) enum CoreContractSite {
   StagePublicationRules(Int, Int)
 } derive(Eq, @debug.Debug)
 
+pub struct CrossJoinIdentityCheck {
+  site : OperationRequirementSite
+  step : @pipeline_typing.CheckedStep
+  side : @relation_schema.Side
+  input : @pipeline_typing.Target
+  key : @relation_evidence.KeyedRelation?
+}
+
+pub struct CrossJoinRowsCheck {
+  site : OperationRequirementSite
+  step : @pipeline_typing.CheckedStep
+  left : @pipeline_typing.Target
+  right : @pipeline_typing.Target
+  operation : @relation_join_shape.CheckedCrossJoin
+  rule : CrossJoinRowsRule
+  output_limit : @capacity_program_step.JoinLimit
+  left_count : @pipeline_typing.RowCount?
+  right_count : @pipeline_typing.RowCount?
+  output_count : @pipeline_typing.RowCount?
+  left_order : @pipeline_typing.LogicalOrder?
+  right_order : @pipeline_typing.LogicalOrder?
+}
+
+pub(all) enum CrossJoinRowsRule {
+  CheckProductArithmetic
+  PreserveLeftMajorOrder
+  RequireExactlyOneRightRow
+} derive(Eq, @debug.Debug)
+
 pub struct DedupeTopTieCheck {
   site : OperationRequirementSite
   step : @pipeline_typing.CheckedStep
@@ -1386,6 +1415,8 @@ pub(all) enum OperationExecutionCheck {
   JoinIdentity(JoinIdentityCheck)
   AppendRows(AppendRowsCheck)
   SetRows(SetRowsCheck)
+  CrossJoinRows(CrossJoinRowsCheck)
+  CrossJoinIdentity(CrossJoinIdentityCheck)
 }
 
 pub(all) enum OperationFillIssue {

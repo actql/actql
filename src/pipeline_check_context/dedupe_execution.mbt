@@ -19,6 +19,8 @@ pub(all) enum OperationExecutionCheck {
   JoinIdentity(JoinIdentityCheck)
   AppendRows(AppendRowsCheck)
   SetRows(SetRowsCheck)
+  CrossJoinRows(CrossJoinRowsCheck)
+  CrossJoinIdentity(CrossJoinIdentityCheck)
 }
 
 ///|
@@ -43,6 +45,13 @@ pub fn operation_execution_phase(
     JoinRowOrder(_) => BeforeOperationOutput
     JoinInputValidation(_) => BeforeOperationInputUse
     JoinIdentity(_) => BeforeOperationInputUse
+    CrossJoinIdentity(_) => BeforeOperationInputUse
+    CrossJoinRows(v) =>
+      match v.rule {
+        CheckProductArithmetic | RequireExactlyOneRightRow =>
+          BeforeOperationInputUse
+        PreserveLeftMajorOrder => BeforeOperationOutput
+      }
     AppendRows(v) =>
       match v.rule {
         AdmitBothInputs => BeforeOperationInputUse
@@ -72,6 +81,8 @@ pub fn operation_execution_failure(
     JoinRowOrder(_) => RejectOperationOutput
     JoinInputValidation(_) => RejectOperationOutput
     JoinIdentity(_) => RejectOperationOutput
+    CrossJoinIdentity(_) => RejectOperationOutput
+    CrossJoinRows(_) => RejectOperationOutput
     AppendRows(_) => RejectOperationOutput
     SetRows(_) => RejectOperationOutput
   }
