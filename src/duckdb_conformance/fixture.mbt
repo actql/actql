@@ -2,6 +2,46 @@
 // It exports no completion constructor, issuer, arbitrary owner or storage access.
 
 ///|
+#export_name("receiptIdentities")
+pub fn receipt_identities(value : @duckdb.NativeReceiving) -> String {
+  let receipts = match
+    @duckdb.identify_native_receipts(
+      value,
+      {
+        max_columns: 10,
+        max_order_work: 1000,
+        max_bytes: 100000,
+        max_nodes: 1000,
+        max_depth: 10,
+      },
+      100,
+      100000,
+    ) {
+    Ok(receipts) => receipts
+    Err(_) => return "null"
+  }
+  try {
+    let writer = @encode.writer(1000, 100, 4)
+    @encode.begin_array(writer)
+    for role in [@duckdb.ValidationScan, @duckdb.NativeResult] {
+      let (cid, bytes, nodes, rows) = @duckdb.native_receipt_digest(
+        receipts, role,
+      )
+      @encode.begin_array(writer)
+      @encode.string_value(writer, cid)
+      for number in [bytes, nodes, rows] {
+        @encode.number_value(writer, number.to_double())
+      }
+      @encode.end_array(writer)
+    }
+    @encode.end_array(writer)
+    @encode.finish(writer)
+  } catch {
+    _ => abort("fixture receipt identities")
+  }
+}
+
+///|
 fn cursor(text : String) -> @decode.Cursor {
   @decode.admit(
     @source.parse_json(text, {

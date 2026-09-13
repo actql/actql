@@ -49,11 +49,19 @@ pub fn fixed_import_insert_sql(FixedImport) -> String
 
 pub fn fixed_import_parameter(FixedImport, Int, Int) -> Result[PhysicalParameter, ValueIssue]
 
+pub fn identify_native_receipts(NativeReceiving, @execution_relation.RowWireLimits, Int, Int) -> Result[NativeReceiptIdentities, NativeReceiptIdentityIssue]
+
 pub fn native_query_owner(NativeQuery) -> @lowering_relation.BoundPrepared
 
 pub fn native_query_parameter(NativeQuery) -> PhysicalParameter
 
 pub fn native_query_sql(NativeQuery) -> String
+
+pub fn native_receipt_digest(NativeReceiptIdentities, NativeReceiptRole) -> (String, Int, Int, Int)
+
+pub fn native_receipt_field(NativeReceiptIdentities, NativeReceiptRole, Int) -> String?
+
+pub fn native_receipts_match(NativeReceiptIdentities, NativeReceiving) -> Bool
 
 pub fn native_receiving_has_both(NativeReceiving) -> Bool
 
@@ -121,6 +129,16 @@ pub(all) struct NativeQueryLimits {
   max_entries : Int
   max_sql_bytes : Int
   expressions : @lowering_relation.ExpressionLimits
+}
+
+type NativeReceiptIdentities
+
+pub(all) enum NativeReceiptIdentityIssue {
+  InvalidState
+  InvalidLimits
+  ReceiptRows
+  ReceiptBytes
+  Wire(NativeReceiptRole, @execution_relation.RowWireIssue)
 }
 
 type NativeReceiptPort

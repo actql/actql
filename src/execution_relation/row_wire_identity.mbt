@@ -84,34 +84,10 @@ fn[T : IndexedRows] hash_row_wire(
   if width != names.length() {
     return Err(InvalidLayout)
   }
-  if width > limits.max_columns || width > limits.max_order_work {
-    return Err(OrderLimit)
-  }
-  let control = { remaining: limits.max_order_work - width, max_frames: 0, }
-  let order : Array[Int] = []
-  for i in 0..<width {
-    let mut position = order.length()
-    while position > 0 {
-      let previous = names[order[position - 1]]
-      if !spend_control(control, 1) ||
-        !spend_control_text(control, names[i]) ||
-        !spend_control_text(control, previous) {
-        return Err(OrderLimit)
-      }
-      let comparison = @canonical.compare_utf16(previous, names[i])
-      if comparison == 0 {
-        return Err(InvalidLayout)
-      }
-      if comparison < 0 {
-        break
-      }
-      position -= 1
-    }
-    order.push(i)
-    for j = order.length() - 1; j > position; j = j - 1 {
-      order[j] = order[j - 1]
-    }
-    order[position] = i
+  let order = match
+    prepare_row_wire_order(names, limits.max_columns, limits.max_order_work) {
+    Ok(order) => order
+    Err(issue) => return Err(issue)
   }
   try {
     let writer = @encode.hashing_writer(
@@ -125,8 +101,8 @@ fn[T : IndexedRows] hash_row_wire(
         return Err(InvalidLayout)
       }
       @encode.begin_object(writer)
-      for column in order {
-        @encode.key(writer, names[column])
+      for (name, column) in order.columns {
+        @encode.key(writer, name)
         emit_runtime_value(table.read_cell(row, column), writer)
       }
       @encode.end_object(writer)

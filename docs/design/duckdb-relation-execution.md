@@ -189,6 +189,17 @@ transfers once each, using checked sums. Retention copies, transport frames and
 engine work have separate accounting scopes. In particular, Node transport-frame
 bytes are not a substitute for canonical typed-wire receipt bytes.
 
+The adapter can identify the two retained, fully admitted receipts without row
+materialization. It uses the engine's bounded immutable canonical column order
+and shared typed-value wire emitter. Writer byte/node/order limits are cumulative
+across the two hashes; received row/byte ceilings are independently enforced.
+An empty receipt still hashes `[]` and consumes two bytes and one writer node.
+The opaque pair retains its exact receiving owner. Aborting that owner invalidates
+the matching check even though diagnostic digest strings remain readable.
+Neither the pair nor its JSON projection is an execution record or capture
+permit: task, attempt, read-view, native semantic and completion checks still
+belong to the issuer/verifier integration.
+
 Both receipts and the three execution records become issuable only after value
 validation, native semantics and guards, budgets and immutable retention succeed.
 The capture verifier must resolve the exact live handles, including task,

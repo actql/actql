@@ -49,6 +49,11 @@ across both receipts. Expression demand/root and logical evaluation budgets,
 completion and capture still require their product integration. The original lifecycle-double test remains
 useful for injecting receiver failures independently of semantic validation.
 
+The receiving fixture also hashes the retained validation/native row sequences
+in MoonBit and compares them with fixed independent canonical preimages. Receipt
+bytes count typed row JSON, not transport frames. These owned digests are not
+process-evidence records and do not grant capture authority.
+
 Tests create their own files under ignored `_build/duckdb-fixtures`, exercise
 exact scalar transport, existing-file read-only access, isolated Compute,
 cumulative transfer bounds, native memory exhaustion, cancellation and cross-process file locks. They

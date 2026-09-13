@@ -5,6 +5,7 @@ import { execFile } from 'node:child_process';
 import { mkdir, mkdtemp, rm } from 'node:fs/promises';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { join } from 'node:path';
+import { createHash } from 'node:crypto';
 import { DuckDBInstance } from '@duckdb/node-api';
 import { authorizeLocalDatabase } from '../session.mjs';
 import { runNativeAcquisition } from '../native-acquisition.mjs';
@@ -80,11 +81,24 @@ test('real Node callbacks use MoonBit admission before native filtering, includi
         await run;
         assert.equal(moon.ready(received.state), true, name);
         assert(received.events.includes('native'));
+        // Fixed canonical row preimages, not reconstructed from returned values.
+        const preimages = name === 'empty' ? ['[]', '[]'] : [
+          '[{"amount":30,"id":3},{"amount":null,"id":1},{"amount":20,"id":2}]',
+          '[{"id":3},{"id":2}]',
+        ];
+        const digests = JSON.parse(moon.receiptIdentities(received.state));
+        for (let role = 0; role < 2; role++) {
+          assert.equal(digests[role][0], `sha256:${createHash('sha256').update(preimages[role]).digest('hex')}`);
+          assert.equal(digests[role][1], Buffer.byteLength(preimages[role]));
+          assert.equal(digests[role][2], name === 'empty' ? 1 : [10, 5][role]);
+          assert.equal(digests[role][3], name === 'empty' ? 0 : [3, 2][role]);
+        }
       } else {
         await assert.rejects(run, /MoonBit rejected/, name);
         assert.equal(moon.ready(received.state), false, name);
         assert(!received.events.includes('native'), name);
         assert.equal(received.events.at(-1), 'abort');
+        assert.equal(moon.receiptIdentities(received.state), 'null');
       }
     }
     const validGrant = await authorizeLocalDatabase(join(directory, 'valid.duckdb'));

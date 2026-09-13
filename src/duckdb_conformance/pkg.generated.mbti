@@ -24,6 +24,8 @@ pub fn parameter(@duckdb_adapter.NativeReceiving, Int, Int) -> String
 
 pub fn ready(@duckdb_adapter.NativeReceiving) -> Bool
 
+pub fn receipt_identities(@duckdb_adapter.NativeReceiving) -> String
+
 pub fn sql(@duckdb_adapter.NativeReceiving, Int) -> String
 
 // Errors
