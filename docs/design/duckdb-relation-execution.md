@@ -90,14 +90,34 @@ admission; transport support for DECIMAL or timestamps does not grant native
 comparison support. Unsupported expressions require a separately offered Local
 residual, not a mid-execution fallback.
 
-The current process-evidence profile represents a single logical received row
+The single-receipt process-evidence profile represents a single logical received row
 sequence. A full scan exported to MoonBit for validation and a separately exported
 native query result are two actual receipts. They cannot be combined, hidden as
-internal engine work, or represented only by the selected output. Such a path
-requires an additional admitted multiple-access contract before issuing a
-completed observation. A single broad receipt reused for validation and residual
-continues to fit the existing profile. See the
-[Host adapter and access rules](../spec/execution.md#query-acquisition).
+internal engine work, or represented only by the selected output. This path uses
+the separate [two-receipt profile](../spec/execution.md#query-two-receipt), not an
+extension of the single-receipt observation shape. A single broad receipt reused
+for validation and residual continues to fit the original profile.
+
+The validation receipt contains all known scan fields and rows; MoonBit admission
+must finish before the native query runs. The native receipt contains the complete
+checked filter/select output. Both belong to the exact same authorized attempt
+and owned consistent read view. A process-local read-view identifier distinguishes
+execution evidence but neither replaces the live transaction handle nor creates
+a source snapshot identity.
+
+Each receipt hashes its own ordered typed-wire rows and records its field set,
+row count and canonical byte count. Aggregate receipt budgets charge the two
+transfers once each, using checked sums. Retention copies, transport frames and
+engine work have separate accounting scopes. In particular, Node transport-frame
+bytes are not a substitute for canonical typed-wire receipt bytes.
+
+Both receipts and the three execution records become issuable only after value
+validation, native semantics and guards, budgets and immutable retention succeed.
+The capture verifier must resolve the exact live handles, including task,
+attempt, read view and retained output; hash-correct bodies alone do not grant
+capture authority. Cancellation or failure is terminal. These are adapter
+integration obligations: availability of the shared profile does not establish
+real-backend execution conformance.
 
 ## Lifetime, limits and publication
 
