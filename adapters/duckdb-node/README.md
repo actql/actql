@@ -84,6 +84,13 @@ remain unknown. The proposed choice retains its provider binding for Host
 dispatch. This comparison does not perform I/O, issue capture evidence, or
 retry a failed native query as a broad scan.
 
+The private `DuckDBBroadAttempt` API orders metadata, chunk admission, receipt
+sealing, transport settlement and guarded residual execution. A Host coordinator
+must acknowledge settlement only after `runBroadAcquisition` has returned
+successfully, not from its `finishReceipt` callback. On transport or cleanup
+failure it aborts the attempt. The lifecycle is one-shot and does not issue
+capture evidence; it must not be exposed as an untrusted cleanup-attestation API.
+
 Tests create their own files under ignored `_build/duckdb-fixtures`, exercise
 exact scalar transport, existing-file read-only access, isolated Compute,
 cumulative transfer bounds, native memory exhaustion, cancellation and cross-process file locks. They

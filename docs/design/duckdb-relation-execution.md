@@ -64,6 +64,17 @@ Native DuckDB is not included as an eligible mixed candidate merely because
 its preliminary compiler/root checks passed. General capability registration
 and fixed-input Compute selection are separate integration requirements.
 
+The Host-private `DuckDBBroadAttempt` sequences metadata admission, receipt
+admission/retention, transport settlement and guarded Local residual execution.
+Sealing the receipt does not enable the residual: the trusted Node coordinator
+must first observe completion of the same transaction's commands and successful
+resource cleanup, then acknowledge settlement. Invalid transitions, cancellation,
+admission failure and residual failure terminate the attempt and release its
+pending references. An attempt is never retried with a different realization.
+The resulting computation retains both full scan and output for subsequent
+issuer verification; this lifecycle does not itself issue observation evidence
+or authenticate a serializable claim that transport cleanup succeeded.
+
 ## Source and fixed-input isolation
 
 The Host supplies an explicitly authorized trusted local database binding.

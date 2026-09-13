@@ -16,6 +16,10 @@ import {
 }
 
 // Values
+pub fn abort_duckdb_broad_attempt(DuckDBBroadAttempt) -> Unit
+
+pub fn accept_duckdb_broad_chunk(DuckDBBroadAttempt, Int, Array[@decode_core.Cursor]) -> Result[Unit, DuckDBBroadAttemptIssue]
+
 pub fn acquisition_candidate_binding(AcquisitionCandidate) -> AcquisitionBinding
 
 pub fn acquisition_candidate_duration(AcquisitionCandidate) -> @physical_cost.DurationEstimate
@@ -26,7 +30,11 @@ pub fn acquisition_choice_candidate(AcquisitionChoice) -> AcquisitionCandidate
 
 pub fn acquisition_choice_reason(AcquisitionChoice) -> @physical_cost.CostChoice
 
+pub fn admit_duckdb_broad_metadata(DuckDBBroadAttempt, Int, Array[(String, @duckdb_adapter.PhysicalType)], Array[@decode_core.Cursor]) -> Result[Unit, DuckDBBroadAttemptIssue]
+
 pub fn admit_query_evidence_contracts(@canonical_json.CanonicalValue, @canonical_json.CanonicalValue, QueryEvidenceLimits) -> Result[QueryEvidenceContracts, QueryEvidenceContractIssue]
+
+pub fn begin_duckdb_broad_receipt(DuckDBBroadAttempt, Array[(String, @duckdb_adapter.PhysicalType)], @duckdb_adapter.PhysicalResultLimits, Int, @execution_relation.ValueLimits) -> Result[Unit, DuckDBBroadAttemptIssue]
 
 pub fn bind_captured_query_input(MockQueryIssuer, MockQueryAttempt, MockQueryObservation, @lowering_relation.BoundPrepared, Int, @lowering_relation.BoundPrepared) -> Result[@execution_relation.BoundProducerInput, MockEvidenceIssue]
 
@@ -40,6 +48,8 @@ pub fn choose_query_strategy(@execution_query.QuerySequence, Array[QueryOffer], 
 
 pub fn close_mock_query_issuer(MockQueryIssuer) -> Unit
 
+pub fn duckdb_broad_attempt_output(DuckDBBroadAttempt) -> @execution_relation.CompletedOutput?
+
 pub fn duckdb_broad_candidate(DuckDBQueryPreparation, Array[@physical_cost.SerialEstimateLine], QueryQuantities, Int) -> Result[AcquisitionCandidate, QueryPlanningIssue]
 
 pub fn duckdb_broad_work_at(Int) -> DuckDBBroadWork?
@@ -50,9 +60,13 @@ pub fn duckdb_query_native_preparation(DuckDBQueryPreparation) -> Result[(@duckd
 
 pub fn duckdb_query_requirement(DuckDBQueryPreparation) -> QueryRequirement
 
+pub fn execute_duckdb_broad_attempt(DuckDBBroadAttempt, @execution_relation.SequenceExecutionLimits, @execution_query.QueryGuardMeasureLimits) -> Result[Unit, DuckDBBroadAttemptIssue]
+
 pub fn execute_duckdb_broad_residual(DuckDBQueryPreparation, @execution_relation.CapturedRows, @execution_relation.SequenceExecutionLimits, @execution_query.QueryGuardMeasureLimits) -> Result[(@execution_relation.CompletedSequence, (Int, Int, Int)), @execution_query.QueryGuardIssue]
 
 pub fn execute_mock_query(MockQueryAttempt, MockQueryLimits, guard_measure? : @execution_query.QueryGuardMeasureLimits?) -> Result[MockQueryComputation, MockQueryIssue]
+
+pub fn finish_duckdb_broad_receipt(DuckDBBroadAttempt) -> Result[Unit, DuckDBBroadAttemptIssue]
 
 pub fn issue_mock_query_records(MockQueryAttempt, QueryMaterialLimits) -> Result[MockQueryRecords, MockEvidenceIssue]
 
@@ -87,6 +101,8 @@ pub fn mock_retention_row_cids(MockQueryRetention) -> (String, String)
 pub fn mock_retention_usage(MockQueryRetention) -> (Int, Int, Int)
 
 pub fn offer_mock_query(@execution_query.QuerySequence, QueryRealization, Array[@physical_cost.SerialEstimateLine], QueryQuantities, Int) -> Result[QueryOffer, QueryPlanningIssue]
+
+pub fn prepare_duckdb_broad_attempt(DuckDBQueryPreparation) -> DuckDBBroadAttempt
 
 pub fn prepare_duckdb_query(QueryRequirement, String, String, Int, @duckdb_adapter.NativeQueryLimits) -> Result[DuckDBQueryPreparation, @duckdb_adapter.NativeQueryIssue]
 
@@ -156,6 +172,8 @@ pub fn query_work_count(QueryRealization) -> Int
 
 pub fn retain_mock_query(MockQueryAttempt, MockRetentionLimits) -> Result[MockQueryRetention, MockRetentionIssue]
 
+pub fn settle_duckdb_broad_transport(DuckDBBroadAttempt) -> Result[Unit, DuckDBBroadAttemptIssue]
+
 pub fn verify_mock_query_records(MockQueryIssuer, MockQueryAttempt, MockQueryRecords) -> Result[Unit, MockEvidenceIssue]
 
 // Errors
@@ -174,6 +192,15 @@ pub enum AcquisitionSelection {
   Proposed(AcquisitionChoice)
   Deferred
   NoCandidates
+}
+
+type DuckDBBroadAttempt
+
+pub(all) enum DuckDBBroadAttemptIssue {
+  InvalidState
+  Metadata(@duckdb_adapter.SourceTableIssue)
+  Receiving(@duckdb_adapter.BroadReceivingIssue)
+  Residual(@execution_query.QueryGuardIssue)
 }
 
 pub(all) enum DuckDBBroadWork {
