@@ -9,8 +9,16 @@ test "response policy emission binds selected contracts and respects sink limits
   let (_, _, _, _, units) = remote_construction_fixture(budget)
   let value = units[0].source_execution[0].subject.response_policy
   let authority = @environment.source_view_data_policy(value.authoritative)
-  let policy_cid = @environment.member_cid(
-    @environment.contract_member(@environment.data_policy_envelope(authority)),
+  let policy_cid = "sha256:e29dbae5d01c451177772ccd55550b9ec4be9b47eb12e56afffea74cfdd879bf"
+  assert_eq(
+    @environment.contract_identity(@environment.data_policy_envelope(authority)).2,
+    policy_cid,
+  )
+  assert_true(
+    @environment.member_cid(
+      @environment.contract_member(@environment.data_policy_envelope(authority)),
+    ) !=
+    policy_cid,
   )
   let source_cid = @sourceviews.selected_cid(value.source)
   let expected = "{\"classification\":\"unknown\",\"minimum_classification\":null,\"source_data_policy_cid\":\"" +

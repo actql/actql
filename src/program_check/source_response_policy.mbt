@@ -36,10 +36,7 @@ pub fn emit_source_response_policy(
     None => @encode.null_value(writer)
   }
   @encode.key(writer, "source_data_policy_cid")
-  @encode.string_value(
-    writer,
-    @environment.member_cid(@environment.contract_member(envelope)),
-  )
+  @encode.string_value(writer, @environment.contract_identity(envelope).2)
   @encode.key(writer, "source_ref")
   @encode.string_value(writer, @environment.data_policy_source(policy))
   @encode.key(writer, "source_view_contract_cid")
