@@ -18,7 +18,7 @@ test "session checks retain the selected gap and its exact bound occurrence" {
     let mut identities = 0
     let mut resources = 0
     for i in 0..<operation_resolution_count(index) {
-      if operation_resolution_at(index, i) is Some(Unresolved) &&
+      if operation_resolution_at(index, i) is Some(Execution(EventEnvelope(_))) &&
         operation_requirements_at(requirements, i).unwrap().requirement
         is @pipeline.EventRequirement(ResolveEventResources) {
         resources += 1

@@ -299,6 +299,17 @@ pub fn index_program_operation_resolutions(
       }
       other => other
     }
+    let candidate = match candidate {
+      Ok(None) => {
+        let site = requirements.entries[i]
+        let stages = requirements.expressions.identity.sources.operations.preparation.profiles.context.selected.context.wired.stages
+        let policy = @capacity.application_closure_policy(
+          stages.contexts[site.stage].context.capacity,
+        )
+        event_output_envelope_check(site, policy)
+      }
+      other => other
+    }
     match candidate {
       Err(BudgetExceeded) => return Err(BudgetExceeded)
       Err(_) => return Err(ForeignOccurrence(i))

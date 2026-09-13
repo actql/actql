@@ -9639,6 +9639,17 @@
       }
     },
     {
+      "requirement_id": "actql.protocol.contracts/capacity-host-policy.event-output-scope",
+      "statement_sha256": "45f9f02b845306ce42dcd65a28f1810678de086f63c5ef392cb347cf15c97c82",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "capacity-host-policy",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.protocol.contracts/capacity-host-policy.environment-component",
       "statement_sha256": "767eb14472f992004639ecdcd822ab2d0c99f8682f808c0a49bba0bfada307ab",
       "status": "pending",

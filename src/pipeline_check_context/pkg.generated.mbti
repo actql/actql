@@ -1303,6 +1303,15 @@ pub(all) enum EventExecutionRule {
   SelectEventRepresentative
 } derive(Eq, @debug.Debug)
 
+pub struct EventOutputEnvelope {
+  site : OperationRequirementSite
+  step : @pipeline_typing.CheckedStep
+  input : @pipeline_typing.Target
+  operation : @event_typing.CheckedEvent
+  policy : @capacity_policy.Policy
+  ceiling : @capacity_policy.Ceiling
+}
+
 pub(all) enum ExecutionCheckFailure {
   RejectOperationOutput
 } derive(Eq, @debug.Debug)
@@ -1816,6 +1825,7 @@ pub(all) enum OperationDisposition {
 }
 
 pub(all) enum OperationExecutionCheck {
+  EventEnvelope(EventOutputEnvelope)
   SessionExecution(SessionExecutionCheck)
   EventExecution(EventExecutionCheck)
   AsOfExecution(AsOfExecutionCheck)

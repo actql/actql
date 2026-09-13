@@ -533,6 +533,24 @@ not observed usage, input completeness, execution permission or a physical memor
 limit. Nested-value, final publication rows/bytes and Host physical-resource
 checks remain independently applicable; this selection does not discharge them.
 
+<!-- requirement-block: capacity-host-policy.event-output-scope -->
+Output resource resolution for `to_events`, `watermark_events`, `dedupe_events`
+and `session` MUST bind the selected capacity policy's
+`max_temporal_output_rows` ceiling for Events output, or
+`max_relation_output_rows` for Relation output, to the exact operation and its
+input. Count all emitted row/event occurrences across all partitions, including
+repetitions; a session label is not a distinct-record counter. The limit is
+inclusive and excess fails the operation before any output is consumed, without
+truncation. Empty output does not waive input admission, duplicate-ID validation,
+option binding or required arithmetic checks. This ceiling is an output
+enforcement obligation, not input completeness, observed usage or proof of
+bounded input processing. Applicable Program bounds remain independently
+required; this binding does not replace them or supply a missing proof. Input
+validation, ordering work, retained copies, physical memory, nested-value
+constraints and final publication rows/bytes retain their separately selected
+admission and enforcement requirements. A backend unable to enforce those
+requirements cannot claim executable support from this output ceiling alone.
+
 <!-- requirement-block: capacity-host-policy.environment-component -->
 The capacity policy component, when supplied, MUST be the complete body at
 `/host_policy_profile/capacity` in the Check Environment. Its selected CID is

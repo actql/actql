@@ -11,6 +11,7 @@ pub struct DedupeTopTieCheck {
 
 ///|
 pub(all) enum OperationExecutionCheck {
+  EventEnvelope(EventOutputEnvelope)
   SessionExecution(SessionExecutionCheck)
   EventExecution(EventExecutionCheck)
   AsOfExecution(AsOfExecutionCheck)
@@ -56,6 +57,7 @@ pub fn operation_execution_phase(
   v : OperationExecutionCheck,
 ) -> ExecutionCheckPhase {
   match v {
+    EventEnvelope(_) => BeforeOperationOutput
     SessionExecution(_) => BeforeOperationOutput
     EventExecution(v) =>
       match v.rule {
@@ -138,6 +140,7 @@ pub fn operation_execution_failure(
     IntervalExecution(_) => RejectOperationOutput
     IntervalSearch(_) => RejectOperationOutput
     SessionExecution(_) => RejectOperationOutput
+    EventEnvelope(_) => RejectOperationOutput
     EventExecution(_) => RejectOperationOutput
     AsOfSearch(_) => RejectOperationOutput
     WatermarkExecution(_) => RejectOperationOutput

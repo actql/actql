@@ -101,3 +101,20 @@ a shared session label to a unique record key. Value/clock admission and duplica
 identity validation remain prerequisites before input use; failure of either
 session check rejects output. Resource and profile resolution remain independent,
 and these bindings cannot waive either requirement.
+
+## Output resource scope
+
+The event output-envelope check binds the selected capacity policy to the exact
+operation and input. The mapping is explicit in the capacity-policy normative
+owner: Events output uses `max_temporal_output_rows`, Relation output uses
+`max_relation_output_rows`. In particular, session follows its output Carrier,
+not a backend's choice of representation. This specifies the previously implicit
+mapping using existing policy fields and laws; it adds no policy default or wire
+field and does not turn an output ceiling into an input-work or memory budget.
+
+The quantity is total emitted occurrences, not distinct identities, partitions
+or session labels. Failure rejects output atomically; admission and option
+validation still apply when output is empty. Resource resolution in this checker
+selects that logical output envelope only. Physical ordering, validation work and
+retention remain backend admission responsibilities, with independent required
+limits. Neither this check nor static Program success certifies their execution.
