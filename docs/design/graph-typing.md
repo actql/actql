@@ -522,3 +522,13 @@ Its output phase is the final exposure gate, not permission to postpone input
 accounting: the lowerer enforces the input count incrementally before each row's
 use and the entity counts during construction. The ordinary admission and
 payload rules remain required, and physical budgets retain their own scopes.
+
+The formal Program connection also retains construction requirements when a
+Relation Result is imported into another Stage: the requirement's pipeline and
+ordered operands still belong to the original producer, not a reconstructed
+consumer-local copy. The `graph_branches_wbtest.mbt` matrix exercises empty and
+nonempty input, shared and distinct explicit operands, and both Graph row bridges
+through Result import. It checks retained role types (including nullable `rel`)
+as well as the producer ownership of endpoint closure and resource enforcement.
+This does not claim that the runtime has executed endpoint closure or measured
+the constructed entities.
