@@ -104,6 +104,31 @@ admits a group only when its complete requirement inventory and publication
 boundaries close; collection limits and observations cannot be skipped merely
 because another group with only exact scalar calls succeeds.
 
+## String output ceiling selection
+
+`select_group_string_limit` selects the exact optional Host
+`max_aggregate_string_bytes` ceiling and the ordinary `string_agg` call's
+`max_bytes` guard. A Parameter guard uses the existing scalar resolution for
+that exact stage, producer visit, pipeline, step and aggregate occurrence;
+an equal name or value elsewhere cannot supply it. The opaque selection retains
+the original resolution owner, call, both ceilings and Parameter resolution,
+including a guard that does not lower the minimum. Its readers do not copy
+arrays or rebuild ownership.
+
+Either applicable ceiling can supply a finite maximum; absence of the optional
+Host field does not invalidate a guarded call. Absence of both reports
+`MissingFiniteBound`, not a language prohibition on string aggregation. The
+selector does not reinterpret input row-count proofs, nested JSON bytes or
+whole-artifact bytes as raw aggregate-output bytes. Derived input extent proofs
+are a separate law application, not an implicit numeric conversion here.
+Work includes the prior resolution index and all inspected scalar entries;
+candidate capacity counts both Host and guard even when their values coincide.
+
+This API only selects the Host/author ceiling scope. It leaves the original
+envelope unresolved and neither emits a persistent Unit limit nor installs
+runtime enforcement. Those connections are required before the formal Program
+constructor can admit the aggregate; a selected number alone cannot close it.
+
 ## Reference compatibility
 
 Persistent ordinary-group limits use the Unit/step/aggregate-name/scoped

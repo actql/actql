@@ -253,6 +253,22 @@ pub fn group_array_limit_requirement(GroupArrayLimit) -> Int
 
 pub fn group_array_limit_work(GroupArrayLimit) -> Int
 
+pub fn group_string_limit_call(GroupStringLimit) -> @relation_typing.CheckedAggregate
+
+pub fn group_string_limit_guard(GroupStringLimit) -> Int64?
+
+pub fn group_string_limit_guard_resolution(GroupStringLimit) -> OperationScalarResolution?
+
+pub fn group_string_limit_host(GroupStringLimit) -> @capacity_policy.Ceiling?
+
+pub fn group_string_limit_maximum(GroupStringLimit) -> Int64
+
+pub fn group_string_limit_owner(GroupStringLimit) -> ProgramOperationResolutionIndex
+
+pub fn group_string_limit_requirement(GroupStringLimit) -> Int
+
+pub fn group_string_limit_work(GroupStringLimit) -> Int
+
 pub fn identify_program_sources(ProgramSourceChecks, ProgramIdentityLimits) -> Result[ProgramSourceIdentity, ProgramIdentityIssue]
 
 pub fn identify_result_import_type(ProgramIncomingLinks, Int, Int, Int, Int) -> Result[ResultImportType?, ResultImportTypeIssue]
@@ -702,6 +718,8 @@ pub fn result_import_type_usage(ResultImportType) -> (Int, Int)
 pub fn result_wiring(WiredStages) -> @stage_results.ResultWiring
 
 pub fn select_group_array_limit(ProgramOperationResolutionIndex, Int, Int, Int) -> Result[GroupArrayLimit, GroupArrayLimitIssue]
+
+pub fn select_group_string_limit(ProgramOperationResolutionIndex, Int, Int, Int) -> Result[GroupStringLimit, GroupStringLimitIssue]
 
 pub fn select_publication_row_limit(ProgramPublicationClosure, Int, Int, Int) -> Result[PublicationRowLimit, PublicationRowLimitIssue]
 
@@ -1159,6 +1177,16 @@ pub enum GroupExecutionRule {
   ValidateResultContract(@relation_typing.CheckedAggregate)
   EnforceArrayItems(GroupArrayLimit)
   EnforceStatisticalLaw(@relation_typing.CheckedAggregate, StatisticalLaw)
+}
+
+type GroupStringLimit
+
+pub enum GroupStringLimitIssue {
+  InvalidLimits
+  InvalidRequirement
+  UnresolvedGuard
+  MissingFiniteBound
+  BudgetExceeded
 }
 
 pub enum IncomingClosureIssue {
