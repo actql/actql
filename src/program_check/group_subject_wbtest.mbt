@@ -1,4 +1,33 @@
 ///|
+test "equal aggregate identities do not authorize mixing separately checked owners" {
+  let programs : Array[CheckedProgram] = []
+  for _ in 0..<2 {
+    let _ = local_construction_fixture(
+      { work: 10000000, bytes: 1000000, nodes: 100000, depth: 100, },
+      second_stage=true,
+      through_check=true,
+      checked_results=programs,
+      second_steps="[{\"group\":{\"by\":[\"id\"],\"aggregates\":{\"value\":{\"fn\":\"array_agg\",\"field\":\"value\",\"order_by\":[{\"id\":\"asc\"}],\"max_items\":2}}},\"as\":\"selected\"}]",
+      second_result_from="selected",
+      extra_step_budget=2,
+    )
+  }
+  let first = programs[0].units[1]
+  let second = programs[1].units[1]
+  assert_eq(first.definition_cid, second.definition_cid)
+  assert_false(physical_equal(first.pipeline, second.pipeline))
+  let left = unit_group_aggregate_source_at(programs[0], 1, 0, 0).unwrap()
+  let right = unit_group_aggregate_source_at(programs[1], 1, 0, 0).unwrap()
+  assert_eq(
+    group_aggregate_subject(left, 10000),
+    group_aggregate_subject(right, 10000),
+  )
+  assert_false(physical_equal(left.call, right.call))
+  assert_true(unit_group_aggregate_source(first, second.pipeline, 0, 0) is None)
+  assert_true(unit_group_aggregate_source(second, first.pipeline, 0, 0) is None)
+}
+
+///|
 test "formal array group scopes bind Unit, call and measurement without copied owners" {
   let checked : Array[CheckedProgram] = []
   let _ = local_construction_fixture(
