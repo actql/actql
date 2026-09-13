@@ -508,5 +508,17 @@ through the same owned requirement closure as other operations. Routing is not
 a claim that construction resources have been resolved: an unbound construction
 resource requirement rejects the complete Program at its exact operation site,
 including for empty `values` input. No partial `CheckedProgram` is returned.
-External Graph-input preflight ceilings do not automatically define the resource
-contract of constructing a new Graph from Relation operands.
+External Graph-input preflight ceilings do not define the resource contract of
+constructing a new Graph from Relation operands. The construction-specific policy
+selection in the normative Graph-construction section fills that previously
+unspecified mapping without repurposing an input/preflight scope. Input row
+occurrences and output distinct node/edge counts have separate ceilings; optional
+policy fields preserve existing policy bodies and their identities when unused.
+The extended policy contract has a new CID. No new observed-count witness law is
+introduced merely by binding an enforcement ceiling.
+
+`EnforceConstructionEnvelope` retains the exact policy and three typed ceilings.
+Its output phase is the final exposure gate, not permission to postpone input
+accounting: the lowerer enforces the input count incrementally before each row's
+use and the entity counts during construction. The ordinary admission and
+payload rules remain required, and physical budgets retain their own scopes.

@@ -7,6 +7,7 @@ pub(all) enum GraphConstructionRule {
   JournalLabels
   CollapseEqualPayloads
   RejectPayloadConflicts
+  EnforceConstructionEnvelope
 } derive(Eq, Debug)
 
 ///|
@@ -19,11 +20,21 @@ pub struct GraphConstructionCheck {
   edges : @pipeline.Target
   operation : @graph.CheckedConstruction
   rule : GraphConstructionRule
+  envelope : GraphConstructionEnvelope?
+}
+
+///|
+pub struct GraphConstructionEnvelope {
+  policy : @policy.Policy
+  input_rows : @policy.Ceiling
+  output_nodes : @policy.Ceiling
+  output_edges : @policy.Ceiling
 }
 
 ///|
 fn graph_construction_execution_check(
   site : OperationRequirementSite,
+  policy : @policy.Policy,
 ) -> Result[OperationExecutionCheck?, OperationResolutionIndexIssue] {
   guard site.requirement is @pipeline.ConstructionRequirement(pending) else {
     return Ok(None)
@@ -36,7 +47,8 @@ fn graph_construction_execution_check(
     JournalLabelCompletion => JournalLabels
     CollapseEqualIdentityPayloads => CollapseEqualPayloads
     RejectConflictingIdentityPayloads => RejectPayloadConflicts
-    ResolveGraphConstructionResources | ResolveSgaProfile => return Ok(None)
+    ResolveGraphConstructionResources => EnforceConstructionEnvelope
+    ResolveSgaProfile => return Ok(None)
   }
   guard @pipeline.step_at(site.pipeline, site.step) is Some(step) &&
     step.operation
@@ -70,9 +82,35 @@ fn graph_construction_execution_check(
       }
     }
   }
+  let envelope = if rule == EnforceConstructionEnvelope {
+    guard @policy.ceiling(policy, "max_graph_construction_input_rows")
+      is Some(input_rows) &&
+      @policy.ceiling(policy, "max_graph_construction_nodes")
+      is Some(output_nodes) &&
+      @policy.ceiling(policy, "max_graph_construction_edges")
+      is Some(output_edges) else {
+      return Ok(None)
+    }
+    Some(GraphConstructionEnvelope::{
+      policy,
+      input_rows,
+      output_nodes,
+      output_edges,
+    })
+  } else {
+    None
+  }
   Ok(
     Some(
-      GraphConstructionExecution({ site, step, nodes, edges, operation, rule, }),
+      GraphConstructionExecution({
+        site,
+        step,
+        nodes,
+        edges,
+        operation,
+        rule,
+        envelope,
+      }),
     ),
   )
 }

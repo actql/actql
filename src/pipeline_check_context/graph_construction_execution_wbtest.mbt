@@ -77,7 +77,11 @@ test "graph construction binds each semantic rule to ordered input occurrences" 
         obligations: group,
         requirement: @pipeline.operation_obligations_at(group, index).unwrap(),
       }
-      match (graph_construction_execution_check(site).unwrap(), rule) {
+      match
+        (
+          graph_construction_execution_check(site, sequence_limit_policy(false)).unwrap(),
+          rule,
+        ) {
         (Some(GraphConstructionExecution(check)), Some(expected_rule)) => {
           assert_eq(check.rule, expected_rule)
           assert_true(physical_equal(check.site, site))
@@ -113,11 +117,17 @@ test "graph construction binds each semantic rule to ordered input occurrences" 
             },
           )
           assert_true(
-            graph_construction_execution_check({ ..site, index: 99, })
+            graph_construction_execution_check(
+              { ..site, index: 99, },
+              sequence_limit_policy(false),
+            )
             is Err(ForeignOccurrence(0)),
           )
           assert_true(
-            graph_construction_execution_check({ ..site, step: 99, })
+            graph_construction_execution_check(
+              { ..site, step: 99, },
+              sequence_limit_policy(false),
+            )
             is Err(ForeignOccurrence(99)),
           )
           assert_true(

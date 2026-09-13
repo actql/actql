@@ -5,7 +5,7 @@ import { machineCid } from './actql-spec-family.mjs';
 
 const contract = JSON.parse(readFileSync(new URL('../spec/contracts/actql-capacity-host-policy.json', import.meta.url), 'utf8'));
 const source = readFileSync(new URL('../src/capacity_policy/policy.mbt', import.meta.url), 'utf8');
-const optional = ['max_aggregate_string_bytes','max_analytic_frame_memberships','max_analytic_input_wire_bytes','max_analytic_output_wire_bytes','max_analytic_partition_wire_bytes'];
+const optional = ['max_aggregate_string_bytes','max_analytic_frame_memberships','max_analytic_input_wire_bytes','max_analytic_output_wire_bytes','max_analytic_partition_wire_bytes','max_graph_construction_edges','max_graph_construction_input_rows','max_graph_construction_nodes'];
 
 test('capacity policy schema and admitted field set are identical and closed', () => {
   assert.equal(contract.version, 'actql-capacity-host-policy-contract/0.1');

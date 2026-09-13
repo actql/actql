@@ -40,6 +40,7 @@ fn local_construction_fixture(
   text_time? : Bool = false,
   tea? : Bool = false,
   sga? : Bool = false,
+  graph_construction_limit? : Int? = None,
   calendar? : Bool = false,
   calendar_material? : Bool = true,
   text_policy? : Bool = false,
@@ -170,9 +171,18 @@ fn local_construction_fixture(
       names.insert(1, name)
     }
   }
+  if graph_construction_limit is Some(_) {
+    for
+      name in [
+        "max_graph_construction_input_rows", "max_graph_construction_nodes", "max_graph_construction_edges",
+      ] {
+      names.insert(1, name)
+    }
+  }
   if string_limit is Some(_) {
     names.insert(1, "max_aggregate_string_bytes")
   }
+  names.sort_by((a, b) => @canonical.compare_utf16(a, b))
   let profile = "{\"capacity\":{" +
     names
     .map(n => {
@@ -180,6 +190,8 @@ fn local_construction_fixture(
         string_limit.unwrap()
       } else if n.contains("max_analytic_") {
         analytic_limit.unwrap()
+      } else if n.contains("max_graph_construction_") {
+        graph_construction_limit.unwrap()
       } else if n == "max_nested_value_bytes" {
         nested_bytes.unwrap_or(host_limit)
       } else if n == "max_nested_value_depth" {

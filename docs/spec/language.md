@@ -5270,6 +5270,35 @@ The compiler derives the node relation as the distinct union of both endpoint
 columns and retains no undeclared node metadata. No undirected authoring form
 exists in ActQL 0.1.
 
+<!-- requirement-block: graph-construction.capacity-selection -->
+Graph construction MUST select all three construction ceilings from the admitted
+Host capacity policy: `max_graph_construction_input_rows`,
+`max_graph_construction_nodes`, and `max_graph_construction_edges`.
+They are positive safe integers, optional for policies not used for construction;
+absence does not select a default or waive a construction check. Input rows are
+the sum of row occurrences in the explicit nodes and edges operands before
+endpoint closure or duplicate collapse, or the edge operand alone for concise
+construction. Reusing one Relation in both explicit roles counts twice in this
+logical scope, independently of physical read reuse. The output scopes count
+distinct nodes and edges of the successfully constructed Graph after the fixed
+endpoint and equal-payload rules, not intermediate join rows or conflicting
+declarations. Input-Graph preflight ceilings and Graph-query row ceilings are
+different scopes and cannot replace these selections.
+
+<!-- requirement-block: graph-construction.capacity-enforcement -->
+Construction MUST enforce each selected ceiling inclusively and reject excess
+without exposing a partial Graph. Empty operands have zero usage; equal duplicate
+declarations still count as input occurrences. An unknown static count or a
+conservative bound above a ceiling is not an observed violation. Input accounting
+is incremental before the corresponding row is used, and output accounting is
+enforced while constructing distinct entities, before output exposure. These
+logical quantities neither bound physical memory nor waive value admission,
+payload-conflict failure, backend work, bytes, retained-copy or cancellation
+contracts. A backend unable to enforce these scopes is not a valid realization.
+The ceilings are selected execution constraints, not observed count proofs or
+additions to Unit Definition semantics; the selected policy remains an Invocation
+dependency under the ordinary policy identity rules.
+
 <a id="graph-rows"></a>
 
 #### `node_rows` and `edge_rows`

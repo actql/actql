@@ -1,0 +1,10 @@
+{
+  "cases": [
+    {"name":"empty explicit","nodes":[],"edges":[],"counts":[0,0,0]},
+    {"name":"empty concise","nodes":null,"edges":[],"counts":[0,0,0]},
+    {"name":"closure and equal duplicates","nodes":[1,2],"edges":[[1,2],[1,2],[2,3]],"counts":[5,2,1]},
+    {"name":"concise endpoint union","nodes":null,"edges":[[1,2],[1,2],[2,3]],"counts":[3,3,2]},
+    {"name":"duplicate node declarations","nodes":[1,1],"edges":[[1,1]],"counts":[3,1,1]},
+    {"name":"same two rows in both roles","nodes":[1,2],"edges":[[1,2],[2,1]],"counts":[4,2,2]}
+  ]
+}

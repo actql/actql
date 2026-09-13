@@ -43,7 +43,8 @@ let fields : Array[String] = [
 ///|
 let optional_fields : Array[String] = [
   "max_aggregate_string_bytes", "max_analytic_frame_memberships", "max_analytic_input_wire_bytes",
-  "max_analytic_output_wire_bytes", "max_analytic_partition_wire_bytes",
+  "max_analytic_output_wire_bytes", "max_analytic_partition_wire_bytes", "max_graph_construction_edges",
+  "max_graph_construction_input_rows", "max_graph_construction_nodes",
 ]
 
 ///|
@@ -158,18 +159,27 @@ fn canonical_hash(
     limits.max_depth,
   )
   @encode.begin_object(w)
+  let mut optional = 0
   for name in fields {
+    while optional < optional_fields.length() &&
+          @canonical.compare_utf16(optional_fields[optional], name) < 0 {
+      let field = optional_fields[optional]
+      if p.values.get(field) is Some(value) {
+        @encode.key(w, field)
+        @encode.number_value(w, value.to_double())
+      }
+      optional += 1
+    }
     @encode.key(w, name)
     @encode.number_value(w, p.values.get(name).unwrap().to_double())
-    // All optional fields sort between the array and artifact ceilings.
-    if name == "max_aggregate_array_items" {
-      for field in optional_fields {
-        if p.values.get(field) is Some(value) {
-          @encode.key(w, field)
-          @encode.number_value(w, value.to_double())
-        }
-      }
+  }
+  while optional < optional_fields.length() {
+    let field = optional_fields[optional]
+    if p.values.get(field) is Some(value) {
+      @encode.key(w, field)
+      @encode.number_value(w, value.to_double())
     }
+    optional += 1
   }
   @encode.key(w, "version")
   @encode.string_value(w, "actql-capacity-host-policy/0.1")

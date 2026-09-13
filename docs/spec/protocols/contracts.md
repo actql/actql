@@ -642,7 +642,7 @@ be recast into one of the current bound-witness units.
 <!-- requirement-block: capacity-host-policy.machine-contract -->
 <!-- normative-code: law -->
 ```text
-../../../spec/contracts/actql-capacity-host-policy.json# sha256:5ac2ae95561103ad947ffdc5077c783963869247d3a45f697698b2af5ede6129
+../../../spec/contracts/actql-capacity-host-policy.json# sha256:5de69acac624586723a7efad500d0caf13c21ad2ed6e2252df0aaacf32dfc164
 ```
 
 <a id="catalog-and-lock"></a>
@@ -1392,7 +1392,7 @@ These exact schema/law references are owned here. Their identities do not includ
 <!-- requirement-block: machine-contracts.exact-artifacts -->
 <!-- normative-code: law -->
 ```text
-../../../spec/contracts/actql-check-environment.json# sha256:b5de23234efa33561441701a7079c5fdf68e041fee7435fd503fb212a4133602
+../../../spec/contracts/actql-check-environment.json# sha256:d6ec4aed854d53b3e85cfb6aa6fc9d11989a46cd8a4fd13800483d6687a76e8e
 ../../../spec/contracts/actql-local-relation-snapshot.json# sha256:60e8136aea733421e75fa3dcef4934c87ce98959b36f8a56da93ccfbf03d81b2
 ../../../spec/contracts/actql-local-source-reference.json# sha256:9be664306a6a91a8e5bfca53d579e6dac77baf4567eb241ceeedc3216ffe47d9
 ../../../spec/contracts/actql-protocol-schemas.json#/schemas/model_task sha256:19408a610dbc52552bff3a7f97f25a120a66688e7db4f41383c91c9298f02dd2

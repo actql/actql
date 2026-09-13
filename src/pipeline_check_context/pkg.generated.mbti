@@ -1423,6 +1423,14 @@ pub struct GraphConstructionCheck {
   edges : @pipeline_typing.Target
   operation : @graph_typing.CheckedConstruction
   rule : GraphConstructionRule
+  envelope : GraphConstructionEnvelope?
+}
+
+pub struct GraphConstructionEnvelope {
+  policy : @capacity_policy.Policy
+  input_rows : @capacity_policy.Ceiling
+  output_nodes : @capacity_policy.Ceiling
+  output_edges : @capacity_policy.Ceiling
 }
 
 pub(all) enum GraphConstructionRule {
@@ -1433,6 +1441,7 @@ pub(all) enum GraphConstructionRule {
   JournalLabels
   CollapseEqualPayloads
   RejectPayloadConflicts
+  EnforceConstructionEnvelope
 } derive(Eq, @debug.Debug)
 
 pub struct GraphProjectionCheck {

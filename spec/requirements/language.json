@@ -4524,6 +4524,28 @@
       }
     },
     {
+      "requirement_id": "actql.language/graph-construction.capacity-selection",
+      "statement_sha256": "51451022093011f756b765cea567b607e30e26b25feaf4c5d9f9cad821ef8115",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "graph-construction",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/graph-construction.capacity-enforcement",
+      "statement_sha256": "894dea92543532737faac5d5a72f0c809096aeddbccbd871241994d3b76b4907",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "graph-construction",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.language/graph-rows.fields-and-aliases",
       "statement_sha256": "f14d6ec71bfd1135299a2ff58d2006b9867f552b881f47a7d5c52d086afb72b7",
       "status": "pending",

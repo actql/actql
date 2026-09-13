@@ -73,6 +73,7 @@ pub fn operation_execution_phase(
         | JournalEndpoints
         | JournalLabels
         | CollapseEqualPayloads
+        | EnforceConstructionEnvelope
         | RejectPayloadConflicts => BeforeOperationOutput
       }
     GraphProjectionOutput(_) => BeforeOperationOutput

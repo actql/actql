@@ -331,6 +331,7 @@ test('whole values wire selection is audited against the closed Host policy fiel
     'max_aggregate_array_items','max_aggregate_string_bytes','max_analytic_frame_memberships',
     'max_analytic_input_wire_bytes','max_analytic_output_wire_bytes','max_analytic_partition_wire_bytes',
     'max_artifact_bytes','max_artifact_rows','max_effect_items',
+    'max_graph_construction_edges','max_graph_construction_input_rows','max_graph_construction_nodes',
     'max_graph_input_edges','max_graph_input_nodes','max_graph_output_rows','max_graph_paths',
     'max_infer_items','max_model_input_tokens_per_item','max_model_request_bytes_per_item',
     'max_model_total_duration_ms','max_nested_value_bytes','max_nested_value_depth',
