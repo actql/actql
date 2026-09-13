@@ -94,3 +94,24 @@ Resource accounting still distinguishes both transfers from engine scanning and
 retention. This clarifies the existing scope without changing record preimages
 or introducing database-specific fields; the strengthened interpretation has its
 own updated process-evidence contract pin.
+
+## Two-receipt Host-local specialization
+
+The [two-receipt profile](../spec/execution.md#query-two-receipt) explicitly
+represents one exported validation scan and one independently exported native
+result. It is a new execution-profile contract, not a widening of the old receipt
+scope or a change to canonical acquisition derivation. Both receipt bodies bind
+their role, complete typed-wire row content and counts to the same task and
+consistent read view. Three execution records reference both receipts; a distinct
+observation version references those records and the selected profile contract.
+This acyclic structure keeps role-specific access separate from the retained
+output even when their row contents coincide.
+
+Issuance follows full Host value admission and query/limit/retention success.
+The verifier requires live Host provenance and exact private read-view ownership;
+wire identifiers do not authenticate a session. Engine-specific consistency
+mechanisms and type conversion implementations stay inside the adapter. Physical
+receipt totals count both transfers once, while retention and engine work remain
+separate. Existing single-broad receipts remain unchanged. Supporting this
+profile requires its selected verifier and adapter implementation; the original
+single-receipt verifier cannot silently accept the new observation.

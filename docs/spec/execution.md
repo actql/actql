@@ -503,6 +503,109 @@ representative diagnostic across different physical traversals or a logical tota
 order. Physical budget exhaustion can stop validation earlier under the existing
 failure rules. Validation ordering never supplies missing source-order evidence.
 
+<a id="query-two-receipt"></a>
+
+#### Host-local two-receipt query evidence
+
+<!-- machine-import: ../../spec/contracts/actql-query-two-receipt.json# sha256:7d9eec132b742aca27b78a801c6bea187a251b7423967950e285755c50e853d8 -->
+<!-- machine-import: ../../spec/contracts/actql-query-two-receipt.json#/schemas/receipt sha256:d3994a9a48aab18e3d0c75e2ef2d549c6c6227536313c3d66c53b543f2868b6a -->
+<!-- machine-import: ../../spec/contracts/actql-query-two-receipt.json#/schemas/record sha256:cd3c30fbe01c375642b42f7dac2391a5ea008d117a2489c8c646d78745f86334 -->
+<!-- machine-import: ../../spec/contracts/actql-query-two-receipt.json#/schemas/completed_observation sha256:566fc1955ac77a2c074ddba0b8be22b75f18acdd6af8ca86e5f68443ab366af1 -->
+The separate [two-receipt contract](../../spec/contracts/actql-query-two-receipt.json)
+specializes the same canonical acquisition requirement for a Host-local adapter
+that exports the validation scan and independently exports the native query
+result. It does not modify the single-receipt schemas or reinterpret their
+`actual_access`. The selected verifier pins this entire contract and both pinned
+dependencies. Record shape alone is not verification, authorization or backend
+support. Database-specific execution APIs remain adapter responsibilities.
+
+<!-- requirement-block: query-two-receipt.execution -->
+This profile MUST use exactly two logical row receipts: `validation_scan` contains
+every row and every known field of the selected scan, and `native_result` contains
+the complete native filter/select result. The Host applies the pinned value
+admission contracts to the validation receipt before executing the native query,
+including fields and rows that query would discard; SQL typing or casts cannot
+replace that admission. Both reads use the same owned consistent source view,
+requirement and Host task/attempt. Source-specific snapshot conditions still apply
+without synthesizing a token from a path, mtime or private read-view identifier.
+The adapter verifies the native semantics, demanded failures and relative row
+order against the checked query; this profile keeps `source_order_cid: null` and
+does not create total-order evidence. Additional independent row receipts are
+outside this two-receipt profile, even if their results equal one of these two.
+
+<!-- requirement-block: query-two-receipt.receipts -->
+Each receipt MUST conform to `/schemas/receipt`, with every property present and
+no unknown properties. The entire object is its canonical JSON UTF-8 SHA-256
+preimage, with no self-CID. `received_rows_cid` hashes its complete ordered typed
+wire row array, preserving multiplicity and canonicalizing object key order;
+`received_rows` is that array's length and `received_bytes` its canonical UTF-8
+byte length. `received_fields` is the unique UTF-16-sorted field set: exactly the
+known validation fields for `validation_scan`, and exactly the checked output
+field names after aliases for `native_result`. Every row conforms to the
+appropriate input/output contract, including nullability, exact field membership
+and canonical decimal wire strings. The role participates in receipt identity;
+equal row contents do not make the two roles interchangeable. `scan_scope_cid`
+has the existing selected-scan preimage, not the projected extent's identity.
+
+<!-- requirement-block: query-two-receipt.ownership -->
+The authorized issuer MUST allocate the attempt and a nonempty process-local
+`read_view` identifier outside candidate input and retain the exact private task,
+session/transaction or equivalent consistency handle associated with it. The
+identifier is never reassigned to a different view during that issuer's lifetime;
+matching strings cannot substitute for live handle ownership. Both receipts and
+all three execution records carry the same issuer, attempt, read_view, requirement
+CID, selected scan scope and applicable snapshot. The requirement binds Program
+Definition owner, source, request, Parameters and contracts as before. Private
+evidence of another attempt, transaction or session cannot be combined with this
+task, even if its rows, public identifiers or hashes match. Read-view identity is
+an execution discriminator, not a new source snapshot or static request identity.
+
+<!-- requirement-block: query-two-receipt.records -->
+The `source_validation`, `filter` and `select` records MUST conform to
+`/schemas/record` and each reference both receipts through the closed `accesses`
+object `{validation_scan_cid, native_result_cid}`. Each record retains the same
+completed `output` and exact bindings; its CID hashes its entire canonical object
+without a self-CID. The completed observation uses the distinct version
+`actql-query-two-receipt-observation/0.1`, the same receipt references, the
+`execution` identifiers, and `evidence_contract_cid` equal to the independently
+selected root contract pin. Its coverage contains the three exact record CIDs.
+Its owner/source/request/Parameter/snapshot/output/retention meanings are unchanged.
+Its entire body is the observation CID preimage. Receipt bodies do not reference
+records or the observation, and records do not reference the observation.
+`native_result.received_rows_cid` and count equal the output rows CID and count;
+this equality does not collapse receipt, output, record or capture identities.
+
+<!-- requirement-block: query-two-receipt.accounting -->
+Physical receipt accounting MUST charge each of the two actual transfers once,
+including all rows and canonical typed-wire bytes of the validation scan even
+when discarded. Aggregate receipt limits apply to the sum using overflow-checked
+accounting; per-transfer limits, when selected, apply independently. Reusing a
+received batch for validation or copying retained output does not create another
+receipt, but retention/copy allocations consume their own memory budgets. Engine
+scans, engine work, transport allocation and retained storage keep their separate
+scopes; neither final output size nor a concatenated or deduplicated row sequence
+substitutes for the two receipt records. Logical output guards apply to the
+completed selected result and the existing value guards to admitted records and
+demanded expressions. Separate roles are not double charging one transfer: this
+profile describes two genuinely distinct transfers.
+
+<!-- requirement-block: query-two-receipt.completion -->
+The issuer MUST issue both receipts and all three evidence records for capture
+only after successful complete validation, native query verification, physical
+and logical limits, and immutable output retention. Missing either receipt,
+validation/evaluation failure, cancellation, retention failure or lost read
+consistency makes the attempt terminal without successful capture or consumer
+admission. Provisional accounting is not issued completion evidence. The capture
+verifier resolves every referenced receipt and record to an authorized live
+immutable handle, verifies task/read-view ownership, all exact bindings, shape,
+content CIDs and counts, and the retained output. Hash-correct JSON, booleans,
+candidate promises or deserialized records cannot restore provenance. This is
+process retention only, not durable Run, replay or checkpoint completion.
+Validation fixtures may fix traversal to choose their first failure without
+prescribing representative diagnostics across physical plans. Existing single
+broad-receipt execution remains supported by its original contract; its verifier
+does not admit this new observation version.
+
 <a id="stage-execution"></a>
 
 ### Program and stage execution

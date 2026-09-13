@@ -322,6 +322,72 @@
       }
     },
     {
+      "requirement_id": "actql.execution/query-two-receipt.execution",
+      "statement_sha256": "d03ac65a4254fbf40cc28d07d999df0834ba794a360c4d6c30851af94d2c494f",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "query-two-receipt",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.execution/query-two-receipt.receipts",
+      "statement_sha256": "7c6f2d5506bd800b2687cd3dd477a720b9cc2e5ab3c8e87af8b8fac0fb82d777",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "query-two-receipt",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.execution/query-two-receipt.ownership",
+      "statement_sha256": "f5146b63e863c2a452841da6beec3d80a6ab92c61b3468ec83a6dd425fc7d956",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "query-two-receipt",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.execution/query-two-receipt.records",
+      "statement_sha256": "3ef9b45d1a9b0660aaf5e97ad98abf8c17191a60fcd82d1c85d36a380905218e",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "query-two-receipt",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.execution/query-two-receipt.accounting",
+      "statement_sha256": "9c5788bb236acf407f7a331df6705533ce03d7313fd0f66225373d428deed2e0",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "query-two-receipt",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.execution/query-two-receipt.completion",
+      "statement_sha256": "1b497b8177092a40bded34055eb49308f8b68875ff1022d0e916ce945999f49d",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "query-two-receipt",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.execution/stage-execution.product-2e6789533bf2",
       "statement_sha256": "a074cb52e088a49ad482c296874f15cb8298967e160a49ec7345cc16f00a51de",
       "status": "pending",

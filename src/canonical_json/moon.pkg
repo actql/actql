@@ -19,5 +19,6 @@ formatter(
     "text_extent_preimages.generated_test.mbt",
     "ordered_derive_preimages.generated_test.mbt",
     "query_acquisition.generated_test.mbt",
+    "query_two_receipt.generated_test.mbt",
   ],
 )
