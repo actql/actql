@@ -25,48 +25,61 @@ pub fn check_target_rows(
   bound : StepBound,
   max_work : Int,
 ) -> Result[TargetRows, TargetRowsIssue] {
+  check_target_rows_usage(pipeline, target, bound, max_work).0
+}
+
+///|
+/// Report traversal cost on rejection as well as success so candidate search
+/// cannot reset its shared budget after an unrelated proof. This does not
+/// change which target/proof associations are admissible.
+pub fn check_target_rows_usage(
+  pipeline : @pipeline.CheckedPipeline,
+  target : @pipeline.Target,
+  bound : StepBound,
+  max_work : Int,
+) -> (Result[TargetRows, TargetRowsIssue], Int) {
   if max_work < 0 {
-    return Err(InvalidLimits)
+    return (Err(InvalidLimits), 0)
   }
   if @wire.unit(@wire.program_proof_witness(bound.proof)) != @arithmetic.Rows {
-    return Err(WrongUnit)
+    return (Err(WrongUnit), 0)
   }
   let mut owner = pipeline
   let mut current = target
   let mut work = 0
   while true {
     if work >= max_work {
-      return Err(WorkLimit)
+      return (Err(WorkLimit), work)
     }
     work += 1
     match current {
       @pipeline.Step(i) => {
         let step = match @pipeline.step_at(owner, i) {
           Some(v) => v
-          None => return Err(InvalidTarget)
+          None => return (Err(InvalidTarget), work)
         }
         if physical_equal(owner, bound.pipeline) && i == bound.index {
           break
         }
         current = match forwarded_input(step, @arithmetic.Rows) {
           Some(v) => v
-          None => return Err(UnrelatedBound)
+          None => return (Err(UnrelatedBound), work)
         }
       }
       @pipeline.Input(i) => {
         if @pipeline.input_at(owner, i) is None {
-          return Err(InvalidTarget)
+          return (Err(InvalidTarget), work)
         }
         let producer = match @pipeline.input_producer(owner, i) {
           Some(v) => v
-          None => return Err(MissingProducer)
+          None => return (Err(MissingProducer), work)
         }
         owner = @pipeline.producer_pipeline(producer)
         current = @pipeline.producer_target(producer)
       }
     }
   }
-  Ok({ pipeline, target, bound, work, })
+  (Ok({ pipeline, target, bound, work, }), work)
 }
 
 ///|

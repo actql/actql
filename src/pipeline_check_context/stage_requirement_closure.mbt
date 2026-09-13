@@ -90,7 +90,7 @@ pub fn close_stage_requirements(
     Err(e) => return Err(Publications(e))
   }
   work += publications.work - owner.work
-  remaining -= publications.entries.length()
+  remaining -= publications.entries.length() + publications.rows.length()
   let source_modes = match
     close_program_source_modes(
       owner,

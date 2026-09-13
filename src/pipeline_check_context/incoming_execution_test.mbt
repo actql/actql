@@ -16,7 +16,7 @@ test "prepared Local Program retains every activation prerequisite without obser
   assert_true(physical_equal(publication_closure_owner(publications), linked))
   assert_eq(publication_closure_count(publications), 2)
   let publication_work = publication_closure_work(publications)
-  assert_eq(publication_work, incoming_links_work(linked) + 7)
+  assert_true(publication_work > incoming_links_work(linked) + 7)
   assert_true(close_program_publications(linked, publication_work, 2) is Ok(_))
   assert_true(
     close_program_publications(linked, publication_work - 1, 2)

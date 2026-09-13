@@ -4,6 +4,8 @@ pub enum PublicationClosureIssue {
   BudgetExceeded
   ForeignOrders(Int, Int)
   MissingStage(Int)
+  RowTarget(Int, Int, @step_bounds.TargetRowsIssue)
+  RowMembership(Int, Int, @capacity.TargetMembershipIssue)
 }
 
 ///|
@@ -19,7 +21,16 @@ pub struct PublicationResolution {
 struct ProgramPublicationClosure {
   owner : ProgramIncomingLinks
   entries : Array[PublicationResolution]
+  rows : Array[PublicationRowCandidate]
   work : Int
+}
+
+///|
+/// Applicable Program row evidence for one exact Result. This is a candidate,
+/// not a selected minimum or evidence of successful publication enforcement.
+pub struct PublicationRowCandidate {
+  publication : PublicationResolution
+  membership : @capacity.TargetMembership
 }
 
 ///|
@@ -82,7 +93,96 @@ pub fn close_program_publications(
       }
     }
   }
-  Ok({ owner, entries, work, })
+  let rows = []
+  for publication in entries {
+    if work == max_work {
+      return Err(BudgetExceeded)
+    }
+    work += 1
+    let closure = publication.context.capacity
+    let pipeline = @results.pipeline(publication.context.results)
+    let target = @results.target(@results.port_result(publication.port))
+    let visits = @pipeline.contextual_closure_count(
+      @capacity.application_closure_orders(closure),
+    )
+    for visit in 0..<visits {
+      if work == max_work {
+        return Err(BudgetExceeded)
+      }
+      work += 1
+      let coverage = @capacity.application_closure_at(closure, visit).unwrap()
+      let source = @capacity.application_coverage_sources(coverage)
+      // A proof may belong to a predecessor, but the consuming occurrence
+      // must be this Result's pipeline. Its membership records the producer.
+      if !physical_equal(
+          pipeline,
+          @capacity.checked_pipeline(@capacity.source_coverage_graph(source)),
+        ) {
+        continue
+      }
+      let applications = @capacity.source_coverage_program(source)
+      let mut claim = 0
+      while true {
+        if work == max_work {
+          return Err(BudgetExceeded)
+        }
+        work += 1
+        guard @step_bounds.application_at(applications, claim) is Some(bound) else {
+          break
+        }
+        let (result, used) = @step_bounds.check_target_rows_usage(
+          pipeline,
+          target,
+          bound,
+          max_work - work,
+        )
+        work += used
+        match result {
+          Ok(target_rows) => {
+            if rows.length() >= max_requirements - entries.length() {
+              return Err(BudgetExceeded)
+            }
+            let membership = match
+              @capacity.bind_target_membership(
+                closure, target_rows, visit, claim,
+              ) {
+              Ok(v) => v
+              Err(e) =>
+                return Err(
+                  RowMembership(publication.stage, publication.result_index, e),
+                )
+            }
+            rows.push({ publication, membership, })
+          }
+          Err(
+            @step_bounds.WrongUnit
+            | @step_bounds.UnrelatedBound
+            | @step_bounds.MissingProducer
+          ) => ()
+          Err(@step_bounds.WorkLimit) => return Err(BudgetExceeded)
+          Err(e) =>
+            return Err(
+              RowTarget(publication.stage, publication.result_index, e),
+            )
+        }
+        claim += 1
+      }
+    }
+  }
+  Ok({ owner, entries, rows, work, })
+}
+
+///|
+pub fn publication_row_candidate_count(v : ProgramPublicationClosure) -> Int {
+  v.rows.length()
+}
+
+///|
+pub fn publication_row_candidate_at(
+  v : ProgramPublicationClosure,
+  index : Int,
+) -> PublicationRowCandidate? {
+  v.rows.get(index)
 }
 
 ///|

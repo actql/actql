@@ -490,12 +490,24 @@ Stage, Result and obligation visits share the prior Program work ceiling. This
 closes static order selection only: conditional input/key checks, output limits,
 materialization and successful publication still require their own enforcement.
 
+The same closure retains applicable Program row-bound candidates for each
+Result's actual input target. Candidates come from that context's admitted
+capacity applications, and retain exact consuming-visit, proof and producer
+membership. Row-preserving paths and imports use the existing target-row
+application rule; unrelated proofs and other measurement units are not
+substituted. Rejected searches consume traversal work too. Candidate retention
+shares the closure's work and collection ceilings, and indexed readers do not
+copy proof arrays. These are Program upper-bound candidates, not a selected
+publication limit: applicable Host and other ceiling candidates, canonical
+minimum construction and atomic enforcement remain separate requirements.
+
 `close_stage_requirements` runs operation, Local-input, incoming-activation,
 publication-order and source-mode closure internally from a single incoming-link owner. It does
 not accept independently closed branches. Shared preparation is counted once;
 each branch receives only the remaining work and disposition allowance. The
 disposition limit covers operation entries, Local execution checks, activation
-checks, publication entries and source-mode checks together; Local input occurrences have their own
+checks, publication entries, retained publication row candidates and source-mode
+checks together; Local input occurrences have their own
 additional bound. Failure in any later branch returns no combined closure.
 This staged closure is a component of CheckedProgram, not its substitute:
 SourceView/Host obligations, complete semantic identities and remaining runtime

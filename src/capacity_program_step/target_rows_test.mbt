@@ -24,6 +24,19 @@ test "row target binding preserves exact producer, target and work across stages
     )
     assert_eq(@capacity_program_step.target_rows_value(v), 7L)
     assert_eq(@capacity_program_step.target_rows_work(v), work)
+    let (measured, measured_work) = @capacity_program_step.check_target_rows_usage(
+      p, target, bound, work,
+    )
+    assert_true(measured is Ok(_))
+    assert_eq(measured_work, work)
+    let (short, short_work) = @capacity_program_step.check_target_rows_usage(
+      p,
+      target,
+      bound,
+      work - 1,
+    )
+    assert_true(short is Err(@capacity_program_step.WorkLimit))
+    assert_eq(short_work, work - 1)
     assert_eq(
       @capacity_program_step.check_target_rows(p, target, bound, work - 1).unwrap_err(),
       @capacity_program_step.WorkLimit,
@@ -31,6 +44,14 @@ test "row target binding preserves exact producer, target and work across stages
   }
   let foreign = pipeline("[{\"take\":7}]")
   let foreign_bound = @capacity_program_step.check(foreign, 0, seed).unwrap()
+  let (unrelated, rejected_work) = @capacity_program_step.check_target_rows_usage(
+    root,
+    @pipeline.Step(2),
+    foreign_bound,
+    100,
+  )
+  assert_true(unrelated is Err(_))
+  assert_true(rejected_work >= 3)
   assert_true(
     @capacity_program_step.check_target_rows(
       root,

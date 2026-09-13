@@ -597,6 +597,10 @@ pub fn publication_closure_owner(ProgramPublicationClosure) -> ProgramIncomingLi
 
 pub fn publication_closure_work(ProgramPublicationClosure) -> Int
 
+pub fn publication_row_candidate_at(ProgramPublicationClosure, Int) -> PublicationRowCandidate?
+
+pub fn publication_row_candidate_count(ProgramPublicationClosure) -> Int
+
 pub fn reconciled_local_at(ReconciledContexts, Int) -> @stage_local_inputs.ReconciledAttachment?
 
 pub fn reconciled_snapshots(ReconciledContexts) -> @stage_local_inputs.ProgramEnvironmentInputs
@@ -1754,6 +1758,8 @@ pub enum PublicationClosureIssue {
   BudgetExceeded
   ForeignOrders(Int, Int)
   MissingStage(Int)
+  RowTarget(Int, Int, @capacity_program_step.TargetRowsIssue)
+  RowMembership(Int, Int, @capacity_graph_preflight.TargetMembershipIssue)
 }
 
 pub struct PublicationResolution {
@@ -1762,6 +1768,11 @@ pub struct PublicationResolution {
   port : @relation_results.ResultPort
   context : PipelineContext
   obligation : @relation_results.Obligation
+}
+
+pub struct PublicationRowCandidate {
+  publication : PublicationResolution
+  membership : @capacity_graph_preflight.TargetMembership
 }
 
 pub(all) struct PureOperationProfiles {

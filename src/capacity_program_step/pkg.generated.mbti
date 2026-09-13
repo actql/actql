@@ -46,6 +46,8 @@ pub fn check_join_with_uniqueness(@pipeline_typing.CheckedPipeline, Int, @capaci
 
 pub fn check_target_rows(@pipeline_typing.CheckedPipeline, @pipeline_typing.Target, StepBound, Int) -> Result[TargetRows, TargetRowsIssue]
 
+pub fn check_target_rows_usage(@pipeline_typing.CheckedPipeline, @pipeline_typing.Target, StepBound, Int) -> (Result[TargetRows, TargetRowsIssue], Int)
+
 pub fn check_traversal_applications(@pipeline_typing.CheckedPipeline, @capacity_host_witness.HostSources, Applications, @capacity_policy.Policy, Array[TraversalLimits], max_work~ : Int) -> Result[TraversalApplications, TraversalCollectionIssue]
 
 pub fn check_traversal_complete(@pipeline_typing.CheckedPipeline, @capacity_host_witness.HostSources, Applications, @capacity_policy.Policy, Array[TraversalLimits], max_work~ : Int) -> Result[TraversalApplications, TraversalCollectionIssue]
