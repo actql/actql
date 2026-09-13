@@ -20,6 +20,8 @@ pub(all) struct PreparationLimits {
 pub(all) enum PreparationIssue {
   InvalidLimits
   WorkLimit
+  ForeignGuardOwner
+  ForeignGuardBindings
   Graph(Issue)
   Program(@program.PreparationIssue)
   Sequence(Int, @sequence.Issue)
@@ -46,6 +48,7 @@ pub fn prepare_application_coverage(
   requests : Array[ConsumerRequest],
   limits : PreparationLimits,
   bindings? : @program.CountBindings? = None,
+  guards? : @pipeline.BoundAuthorGuards? = None,
 ) -> Result[ApplicationCoverage, PreparationIssue] {
   if limits.max_work < 0 ||
     limits.max_name_bytes < 0 ||
@@ -55,6 +58,22 @@ pub fn prepare_application_coverage(
   }
   if requests.length() > limits.max_work {
     return Err(WorkLimit)
+  }
+  if guards is Some(bound) {
+    if !physical_equal(
+        @pipeline.author_guards_pipeline(
+          @pipeline.bound_guard_occurrences(bound),
+        ),
+        pipeline,
+      ) {
+      return Err(ForeignGuardOwner)
+    }
+    if bindings is Some(counts) {
+      guard @pipeline.bound_guard_bindings(bound) is Some(values) &&
+        physical_equal(values, @program.parameter_values(counts)) else {
+        return Err(ForeignGuardBindings)
+      }
+    }
   }
   let mut remaining = limits.max_work - requests.length()
   let graph = match
@@ -89,16 +108,30 @@ pub fn prepare_application_coverage(
   for index, request in requests {
     match request {
       Sequence(step~, matches~, output~) => {
-        let v = match
-          @sequence.check_host_limits(
-            pipeline,
-            step,
-            sources,
-            policy,
-            matches,
-            output,
-            max_work=remaining,
-          ) {
+        let selected = match guards {
+          Some(bound) =>
+            @sequence.check_bound_limits(
+              pipeline,
+              step,
+              sources,
+              policy,
+              matches,
+              output,
+              bound,
+              max_work=remaining,
+            )
+          None =>
+            @sequence.check_host_limits(
+              pipeline,
+              step,
+              sources,
+              policy,
+              matches,
+              output,
+              max_work=remaining,
+            )
+        }
+        let v = match selected {
           Ok(v) => v
           Err(e) => return Err(Sequence(index, e))
         }

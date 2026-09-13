@@ -90,6 +90,13 @@ the same pipeline and same bound-values owner are valid, while re-binding equal
 values does not establish ownership. Selection work includes every inspected
 guard occurrence, including other steps, before both candidate scopes.
 
+Combined capacity preparation accepts these already collected and bound guards
+through `prepare_application_coverage(..., guards=Some(...))`. It checks the
+pipeline owner before preparing coverage and, when count bindings are also
+provided, requires the same immutable Parameter values. Sequence selection and
+all other preparation work share the existing cumulative work cap. Guard
+collection and binding are prior charged preparation, not repeated here.
+
 This selection does not construct an authored wire witness or assert its Unit
 identity. Until that conversion is connected, persistent sequence serialization
 and the wire-candidate output-proof resolver reject guarded selections rather

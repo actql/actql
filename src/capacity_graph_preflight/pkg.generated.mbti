@@ -69,7 +69,7 @@ pub fn consumer_coverage_work(ConsumerCoverage) -> Int
 
 pub fn input_limit(@capacity_graph_input.GraphInputs, Int, @capacity_graph_input.Measure) -> @capacity_witness.LimitClaim?
 
-pub fn prepare_application_coverage(@pipeline_typing.CheckedPipeline, @capacity_host_witness.HostSources, @capacity_policy.Policy, Array[ConsumerRequest], PreparationLimits, bindings? : @capacity_program_step.CountBindings?) -> Result[ApplicationCoverage, PreparationIssue]
+pub fn prepare_application_coverage(@pipeline_typing.CheckedPipeline, @capacity_host_witness.HostSources, @capacity_policy.Policy, Array[ConsumerRequest], PreparationLimits, bindings? : @capacity_program_step.CountBindings?, guards? : @pipeline_typing.BoundAuthorGuards?) -> Result[ApplicationCoverage, PreparationIssue]
 
 pub fn selected_policy(@capacity_graph_input.GraphInputs) -> @capacity_policy.Policy
 
@@ -154,6 +154,8 @@ pub(all) enum ConsumerRequest {
 pub(all) enum PreparationIssue {
   InvalidLimits
   WorkLimit
+  ForeignGuardOwner
+  ForeignGuardBindings
   Graph(@capacity_graph_input.Issue)
   Program(@capacity_program_step.PreparationIssue)
   Sequence(Int, @capacity_sequence_limit.Issue)

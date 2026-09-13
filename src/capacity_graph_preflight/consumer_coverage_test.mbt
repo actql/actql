@@ -3,8 +3,12 @@ fn consumer_pipeline(
   unknown_graph : Bool,
   joins? : Bool = false,
   tail? : String = "",
+  sequence_guards? : String = "",
+  parameters? : @parameter.Declarations? = None,
 ) -> @pipeline.CheckedPipeline {
-  let text = "[{\"sequence\":{\"by\":[],\"id\":\"id\",\"time\":\"id\",\"pattern\":[{\"as\":\"a\",\"where\":\"true\"},{\"as\":\"b\",\"where\":\"true\"}],\"within\":1,\"overlap\":\"allow\",\"contiguity\":\"adjacent\"},\"from\":\"rows\"}" +
+  let text = "[{\"sequence\":{\"by\":[],\"id\":\"id\",\"time\":\"id\",\"pattern\":[{\"as\":\"a\",\"where\":\"true\"},{\"as\":\"b\",\"where\":\"true\"}],\"within\":1,\"overlap\":\"allow\",\"contiguity\":\"adjacent\"" +
+    sequence_guards +
+    "},\"from\":\"rows\"}" +
     (if joins {
       ",{\"join\":{\"with\":\"rows\",\"kind\":\"inner\",\"on\":\"id\"},\"from\":\"rows\"}"
     } else {
@@ -48,7 +52,7 @@ fn consumer_pipeline(
   @pipeline.check_carriers(
     root,
     [("g", graph), ("rows", @carrier.relation(@carrier.typed_rows(row)))],
-    None,
+    parameters,
     None,
     {
       max_steps: 2,
