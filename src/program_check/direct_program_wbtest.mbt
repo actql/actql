@@ -4,11 +4,17 @@ fn checked_direct_program_fixture(
   unused_source? : Bool = false,
   filter? : String = "",
   take? : String = "",
+  imported? : Bool = false,
 ) -> CheckedProgram raise {
   let text =
     #|{"version":"actql/0.1","id":"direct","stages":[{"id":"s","inputs":{"remote":{"connector":"crm/main","resource":"r","request":{"id":1,"tenant":null}}},"steps":[{"distinct":["id"],"as":"selected"}],"results":{"out":{"from":"selected","fields":["id"]}}}],"results":{"out":{"from":{"stage":"s","result":"out"}}}}
   let program = @syntax.parse(
-    if extra_derive {
+    if imported {
+      text.replace(
+        old="}],\"results\":{\"out\":{\"from\":{\"stage\":\"s\",\"result\":\"out\"}}}}",
+        new="},{\"id\":\"consumer\",\"inputs\":{\"imported\":{\"result\":{\"stage\":\"s\",\"result\":\"out\"}}},\"steps\":[],\"results\":{\"out\":{\"from\":\"imported\",\"fields\":[\"id\"]}}}],\"results\":{\"out\":{\"from\":{\"stage\":\"consumer\",\"result\":\"out\"}}}}",
+      )
+    } else if extra_derive {
       text.replace(
         old="\"steps\":[",
         new="\"steps\":[{\"derive\":{\"x\":\"id\"}},",
@@ -87,7 +93,17 @@ fn checked_direct_program_fixture(
     program,
     environment,
     None,
-    [[@context.CapacityMaterial::{ sources, consumers: [], }]],
+    if imported {
+      [
+        [@context.CapacityMaterial::{ sources, consumers: [], }],
+        [
+          @context.CapacityMaterial::{ sources, consumers: [], },
+          @context.CapacityMaterial::{ sources, consumers: [], },
+        ],
+      ]
+    } else {
+      [[@context.CapacityMaterial::{ sources, consumers: [], }]]
+    },
     { text_time: false, veca: false, },
     { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
     source_limits_fixture(2),
@@ -96,6 +112,87 @@ fn checked_direct_program_fixture(
     max_nodes=1000000,
     max_depth=100,
   )
+}
+
+///|
+test "SourceView Result import retains the producer publication policy owner" {
+  let program = checked_direct_program_fixture(imported=true)
+  assert_eq(unit_count(program), 2)
+  let producer = unit_publication_at(program, 0, 0).unwrap()
+  let consumer = publication_source_policy(
+    unit_publication_at(program, 1, 0).unwrap(),
+  ).unwrap()
+  let original = publication_source_policy(producer).unwrap()
+  assert_true(physical_equal(consumer.imported_publication.unwrap(), producer))
+  assert_true(physical_equal(consumer.prerequisite, original.prerequisite))
+  assert_eq(consumer.cid, original.cid)
+  assert_eq(consumer.target, @pipeline.Input(0))
+  assert_eq(source_execution_subject(consumer.prerequisite).stage, 0)
+}
+
+///|
+test "imported publication policy rejects foreign producers and bounds traversal" {
+  let program = checked_direct_program_fixture(imported=true)
+  let unit = program.units[1]
+  let result = @context.publication_row_limit_result(unit.publication_rows[0])
+  let foreign = checked_direct_program_fixture(imported=true)
+  for producers in [[], [foreign.units[0]]] {
+    try
+      prepare_publication_source_policy(
+        unit,
+        result,
+        { work: 100000, bytes: 100000, nodes: 100000, depth: 100, },
+        producers=Some(producers),
+      )
+    catch {
+      ForeignOwner => ()
+      e => raise e
+    } noraise {
+      _ => fail("unowned producer accepted")
+    }
+  }
+  let measured = IdentityBudget::{
+    work: 100000,
+    bytes: 100000,
+    nodes: 100000,
+    depth: 100,
+  }
+  let expected = prepare_publication_source_policy(
+    unit,
+    result,
+    measured,
+    producers=Some([program.units[0]]),
+  ).unwrap()
+  let used = 100000 - measured.work
+  let exact = IdentityBudget::{
+    work: used,
+    bytes: 100000,
+    nodes: 100000,
+    depth: 100,
+  }
+  assert_eq(
+    prepare_publication_source_policy(
+      unit,
+      result,
+      exact,
+      producers=Some([program.units[0]]),
+    ).unwrap().cid,
+    expected.cid,
+  )
+  assert_eq(exact.work, 0)
+  try
+    prepare_publication_source_policy(
+      unit,
+      result,
+      { work: used - 1, bytes: 100000, nodes: 100000, depth: 100, },
+      producers=Some([program.units[0]]),
+    )
+  catch {
+    BudgetExceeded | Encoding(_) => ()
+    e => raise e
+  } noraise {
+    _ => fail("partial imported policy escaped budget")
+  }
 }
 
 ///|

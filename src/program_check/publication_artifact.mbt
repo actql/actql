@@ -50,7 +50,13 @@ fn prepare_unit_publications(
     let publications : Array[PublicationExecution] = []
     for i in 0..<unit.publication_rows.length() {
       publications.push(
-        prepare_publication_execution(unit, i, remaining, units=Some(units)),
+        prepare_publication_execution(
+          unit,
+          i,
+          remaining,
+          units=Some(units),
+          producers=Some(completed),
+        ),
       )
     }
     completed.push({ ..unit, publications, })

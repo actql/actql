@@ -28,6 +28,7 @@ fn prepare_publication_execution(
   index : Int,
   budget : IdentityBudget,
   units? : Array[BuiltUnit]? = None,
+  producers? : Array[BuiltUnit]? = None,
 ) -> PublicationExecution raise UnitBuildFailure {
   guard unit.publication_rows.get(index) is Some(selection) else {
     raise ForeignOwner
@@ -65,7 +66,10 @@ fn prepare_publication_execution(
   )
   let bytes = prepare_publication_bytes(unit, index, remaining)
   let source_policy = prepare_publication_source_policy(
-    unit, publication, remaining,
+    unit,
+    publication,
+    remaining,
+    producers~,
   )
   budget.work = remaining.work
   budget.bytes = remaining.bytes

@@ -282,6 +282,7 @@ pub struct PublicationSourcePolicy {
   prerequisite : SourceExecution
   target : @pipeline_typing.Target
   unknown_provenance : Bool
+  imported_publication : PublicationExecution?
   // private fields
 }
 

@@ -6,6 +6,7 @@ pub struct PublicationSourcePolicy {
   prerequisite : SourceExecution
   target : @pipeline.Target
   unknown_provenance : Bool
+  imported_publication : PublicationExecution?
   priv predicates : Array[PublicationPolicyPredicate]
   priv slices : Array[PublicationPolicySlice]
 }
@@ -79,6 +80,7 @@ fn prepare_publication_source_policy(
   unit : BuiltUnit,
   publication : @context.PublicationResolution,
   budget : IdentityBudget,
+  producers? : Array[BuiltUnit]? = None,
 ) -> PublicationSourcePolicy? raise UnitBuildFailure {
   if unit.source_execution.is_empty() {
     return None
@@ -164,13 +166,68 @@ fn prepare_publication_source_policy(
               prerequisite: check,
               target: original,
               unknown_provenance,
+              imported_publication: None,
               predicates,
               slices,
             })
           }
         }
-        // Local/imported provenance in a SourceView-containing Program still
-        // needs explicit composition; do not substitute another source's policy.
+        for interface in unit.interfaces {
+          identity_charge(budget, 1)
+          if interface.input_name != name {
+            continue
+          }
+          guard @context.result_import_type_site(interface.row).requirement
+            is @context.Result(_, producer, port) else {
+            raise ForeignOwner
+          }
+          guard producers is Some(completed) else { return None }
+          for prior in completed {
+            identity_charge(budget, 1)
+            if !physical_equal(prior.source, producer) {
+              continue
+            }
+            guard physical_equal(
+                @context.core_contract_identity(prior.contract_inventory),
+                @context.core_contract_identity(unit.contract_inventory),
+              ) &&
+              prior.definition_cid == interface.producer_unit_definition_cid else {
+              raise ForeignOwner
+            }
+            for output in prior.publications {
+              identity_charge(budget, 1)
+              let result = @context.publication_row_limit_result(
+                output.selection,
+              )
+              if !physical_equal(
+                  @publication.port_result(result.port),
+                  @publication.port_result(@results.input_port(port)),
+                ) {
+                continue
+              }
+              guard output.source_policy is Some(parent) else { return None }
+              let unknown_provenance = unknown || parent.unknown_provenance
+              let writer = identity_writer(budget)
+              emit_source_policy(parent.policy, unknown_provenance, writer) catch {
+                e => raise Encoding(e)
+              }
+              let cid = identity_finish(budget, writer)
+              return Some({
+                policy: parent.policy,
+                cid,
+                prerequisite: parent.prerequisite,
+                target: original,
+                unknown_provenance,
+                imported_publication: Some(output),
+                predicates,
+                slices,
+              })
+            }
+            return None
+          }
+          raise ForeignOwner
+        }
+        // Local provenance is not repaired by assigning another input's policy.
         return None
       }
     }

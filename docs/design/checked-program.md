@@ -118,8 +118,20 @@ values. This transfer does not resolve or strengthen order, infer a capacity
 bound, or grant publication permission: the existing operation/order/capacity
 closures must still succeed. Both control positions consume preparation work.
 
-Other transfer paths, including computed values, mixed sources and imported
-provenance, still require their own composition rules. A SourceView-containing
+Result imports retain the producer's completed publication through
+`imported_publication`. Resolution follows the admitted import interface and
+requires the exact producer Stage, Program owner, Unit identity and Result port;
+equal CIDs alone cannot substitute another checked producer. Publication
+construction proceeds in Stage order and only completed earlier publications
+can supply this provenance. The consumer retains its own target and local
+predicate/selection contributions while the imported publication retains the
+producer's contributions and execution prerequisites. This forms a shared
+immutable dependency graph, not a copied or flattened lineage. All searches and
+policy emission consume the same preparation budget; a later failure exposes no
+partial CheckedProgram.
+
+Other transfer paths, including computed values and mixed-source composition,
+still require their own composition rules. A SourceView-containing
 Program with an unclosed publication policy fails `UnclosedPublicationPolicy`;
 the missing result is not replaced with an empty policy or a whole-input union.
 These are bounded implementation conditions, not restrictions on those authored
