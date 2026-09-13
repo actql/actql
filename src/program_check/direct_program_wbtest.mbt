@@ -6,9 +6,14 @@ fn checked_direct_program_fixture(
   take? : String = "",
   imported? : Bool = false,
   append? : String = "",
+  input_name? : String = "remote",
 ) -> CheckedProgram raise {
-  let text =
+  let original_text =
     #|{"version":"actql/0.1","id":"direct","stages":[{"id":"s","inputs":{"remote":{"connector":"crm/main","resource":"r","request":{"id":1,"tenant":null}}},"steps":[{"distinct":["id"],"as":"selected"}],"results":{"out":{"from":"selected","fields":["id"]}}}],"results":{"out":{"from":{"stage":"s","result":"out"}}}}
+  let text = original_text.replace(
+    old="\"remote\"",
+    new="\"" + input_name + "\"",
+  )
   let program = @syntax.parse(
     if append != "" {
       text
@@ -125,6 +130,54 @@ fn checked_direct_program_fixture(
     max_nodes=1000000,
     max_depth=100,
   )
+}
+
+///|
+test "publication policy charges long selected input names before comparison" {
+  let short_program = checked_direct_program_fixture()
+  let long_name = "x".repeat(4096)
+  let long_program = checked_direct_program_fixture(input_name=long_name)
+  let usage : Array[Int] = []
+  let cids : Array[String] = []
+  for program in [short_program, long_program] {
+    let unit = program.units[0]
+    let result = @context.publication_row_limit_result(unit.publication_rows[0])
+    let measured = IdentityBudget::{
+      work: 100000,
+      bytes: 100000,
+      nodes: 100000,
+      depth: 100,
+    }
+    let policy = prepare_publication_source_policy(unit, result, measured).unwrap()
+    let used = 100000 - measured.work
+    usage.push(used)
+    cids.push(policy.cid)
+    let exact = IdentityBudget::{
+      work: used,
+      bytes: 100000,
+      nodes: 100000,
+      depth: 100,
+    }
+    let _ = prepare_publication_source_policy(unit, result, exact)
+    assert_eq(exact.work, 0)
+  }
+  assert_eq(usage[1] - usage[0], long_name.length() - "remote".length())
+  assert_eq(cids[0], cids[1])
+  let unit = long_program.units[0]
+  let result = @context.publication_row_limit_result(unit.publication_rows[0])
+  try
+    prepare_publication_source_policy(unit, result, {
+      work: usage[0],
+      bytes: 100000,
+      nodes: 100000,
+      depth: 100,
+    })
+  catch {
+    BudgetExceeded => ()
+    e => raise e
+  } noraise {
+    _ => fail("long name comparison escaped preparation budget")
+  }
 }
 
 ///|

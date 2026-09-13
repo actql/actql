@@ -219,8 +219,13 @@ fn prepare_publication_source_policy(
           identity_charge(budget, 1)
           let subject = check.subject
           if subject.stage == publication.stage &&
-            @sourceviews.declaration(subject.source).input_name == name &&
-            check.kind is CarrierResponse {
+            check.kind is CarrierResponse &&
+            identity_compare(
+              @sourceviews.declaration(subject.source).input_name,
+              name,
+              budget,
+            ) ==
+            0 {
             guard subject.direct_policy is Some(_) else { return None }
             retain_policy_source(check, source_ids, sources, budget)
             found = true
@@ -232,7 +237,7 @@ fn prepare_publication_source_policy(
         }
         for interface in unit.interfaces {
           identity_charge(budget, 1)
-          if interface.input_name != name {
+          if identity_compare(interface.input_name, name, budget) != 0 {
             continue
           }
           guard @context.result_import_type_site(interface.row).requirement
