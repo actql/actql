@@ -16,6 +16,29 @@ pub struct PublicationSourcePolicy {
   priv generators : Array[PublicationPolicyGenerator]
   priv locals : Array[@context.LocalInputExecutionCheck]
   priv copies : Array[PublicationPolicyCopies]
+  priv derivations : Array[PublicationPolicyDerivation]
+}
+
+///|
+pub struct PublicationPolicyDerivation {
+  step : Int
+  operation : @relation.CheckedOperation
+  unknown_provenance : Bool
+}
+
+///|
+pub fn publication_policy_derivation_count(
+  value : PublicationSourcePolicy,
+) -> Int {
+  value.derivations.length()
+}
+
+///|
+pub fn publication_policy_derivation_at(
+  value : PublicationSourcePolicy,
+  index : Int,
+) -> PublicationPolicyDerivation? {
+  value.derivations.get(index)
 }
 
 ///|
@@ -206,6 +229,7 @@ fn prepare_publication_source_policy(
   let generators : Array[PublicationPolicyGenerator] = []
   let locals : Array[@context.LocalInputExecutionCheck] = []
   let copies : Array[PublicationPolicyCopies] = []
+  let derivations : Array[PublicationPolicyDerivation] = []
   let mut unknown = false
   while pending.pop() is Some(target) {
     identity_charge(budget, 1)
@@ -227,15 +251,36 @@ fn prepare_publication_source_policy(
             match @relation.operation(operation) {
               Select | Rename | Drop | Sort | Distinct | DedupeRows => ()
               Derive => {
+                let mut all_copies = true
+                let mut missing = false
                 for binding in 0..<@relation.binding_count(operation) {
                   identity_charge(budget, 1)
-                  guard @relation.binding_copy_at(operation, binding)
-                    is Some(copy) &&
-                    copy.input is Some(_) else {
-                    return None
+                  if @relation.binding_copy_at(operation, binding).unwrap().input
+                    is None {
+                    all_copies = false
+                  }
+                  let expression = @relation.binding_expression_at(
+                    operation, binding,
+                  ).unwrap()
+                  for node in 0..<@typing.node_count(expression) {
+                    identity_charge(budget, 1)
+                    if @typing.child_count(expression, node) == Some(0) {
+                      match @typing.node_form(expression, node).unwrap() {
+                        Expression("field" | "join_field", _) => ()
+                        _ => missing = true
+                      }
+                    }
                   }
                 }
-                copies.push({ step: index, operation, })
+                if all_copies {
+                  copies.push({ step: index, operation, })
+                }
+                unknown = unknown || missing
+                derivations.push({
+                  step: index,
+                  operation,
+                  unknown_provenance: missing,
+                })
               }
               Take => {
                 identity_charge(budget, 2)
@@ -427,6 +472,7 @@ fn prepare_publication_source_policy(
     generators,
     locals,
     copies,
+    derivations,
   }
   |> Some
 }

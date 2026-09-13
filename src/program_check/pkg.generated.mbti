@@ -88,6 +88,10 @@ pub fn publication_policy_copy_at(PublicationSourcePolicy, Int) -> PublicationPo
 
 pub fn publication_policy_copy_count(PublicationSourcePolicy) -> Int
 
+pub fn publication_policy_derivation_at(PublicationSourcePolicy, Int) -> PublicationPolicyDerivation?
+
+pub fn publication_policy_derivation_count(PublicationSourcePolicy) -> Int
+
 pub fn publication_policy_edge_at(PublicationSourcePolicy, Int) -> PublicationPolicyEdge?
 
 pub fn publication_policy_edge_count(PublicationSourcePolicy) -> Int
@@ -300,6 +304,12 @@ pub enum PublicationPhase {
 pub struct PublicationPolicyCopies {
   step : Int
   operation : @relation_typing.CheckedOperation
+}
+
+pub struct PublicationPolicyDerivation {
+  step : Int
+  operation : @relation_typing.CheckedOperation
+  unknown_provenance : Bool
 }
 
 pub struct PublicationPolicyEdge {

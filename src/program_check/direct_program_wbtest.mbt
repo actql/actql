@@ -1,6 +1,5 @@
 ///|
 fn checked_direct_program_fixture(
-  extra_derive? : Bool = false,
   unused_source? : Bool = false,
   filter? : String = "",
   take? : String = "",
@@ -96,15 +95,18 @@ fn checked_direct_program_fixture(
         new="},{\"id\":\"consumer\",\"inputs\":{\"imported\":{\"result\":{\"stage\":\"s\",\"result\":\"out\"}}},\"steps\":[],\"results\":{\"out\":{\"from\":\"imported\",\"fields\":[\"id\"]}}}],\"results\":{\"out\":{\"from\":{\"stage\":\"consumer\",\"result\":\"out\"}}}}",
       )
     } else if derive_body != "" {
-      text.replace(
+      let derived = text.replace(
         old="\"steps\":[",
         new="\"steps\":[{\"derive\":" + derive_body + "},",
       )
-    } else if extra_derive {
-      text.replace(
-        old="\"steps\":[",
-        new="\"steps\":[{\"derive\":{\"x\":\"id + 1\"}},",
-      )
+      if derive_body.contains("$threshold") {
+        derived.replace(
+          old="\"stages\":",
+          new="\"params\":{\"threshold\":{\"type\":\"number\",\"default\":0}},\"stages\":",
+        )
+      } else {
+        derived
+      }
     } else if take != "" {
       let sliced = text.replace(
         old="\"as\":\"selected\"}",
@@ -735,6 +737,9 @@ test "filter and exact-copy derive policy transfer charge their complete travers
       checked_direct_program_fixture(
         derive_body="[{\"x\":\"id\"},{\"y\":\"x\"}]",
       ),
+      checked_direct_program_fixture(
+        derive_body="[{\"x\":\"id + 1\"},{\"y\":\"x + $threshold\"}]",
+      ),
     ] {
     let unit = program.units[0]
     let publication = @context.publication_row_limit_result(
@@ -905,12 +910,37 @@ test "direct SourceView closes through the public check entry" {
 }
 
 ///|
-test "unsupported publication policy composition remains a static rejection" {
-  try checked_direct_program_fixture(extra_derive=true) catch {
-    Units(UnclosedPublicationPolicy(0, 0)) => ()
-    error => raise error
-  } noraise {
-    _ => fail("unresolved policy transfer admitted")
+test "computed derives retain Relation policy and owned value versions" {
+  for
+    body in [
+      "{\"x\":\"id + id\"}", "{\"x\":\"id + 1\"}", "{\"x\":\"id + $threshold\"}",
+      "[{\"x\":\"id + 1\"},{\"y\":\"x + id\"}]", "[{\"id\":\"0\"}]", "{\"x\":\"1 / 0\"}",
+    ] {
+    let program = checked_direct_program_fixture(derive_body=body)
+    let policy = publication_source_policy(
+      unit_publication_at(program, 0, 0).unwrap(),
+    ).unwrap()
+    assert_eq(publication_policy_derivation_count(policy), 1)
+    assert_eq(publication_policy_copy_count(policy), 0)
+    assert_eq(publication_policy_source_count(policy), 1)
+    let derived = publication_policy_derivation_at(policy, 0).unwrap()
+    assert_eq(derived.step, 0)
+    assert_eq(derived.unknown_provenance, body != "{\"x\":\"id + id\"}")
+    guard @pipeline.step_at(program.units[0].pipeline, 0).unwrap().operation
+      is @pipeline.Unary(original) else {
+      fail("missing derive")
+    }
+    assert_true(physical_equal(derived.operation, original))
+    if @relation.binding_count(derived.operation) == 2 {
+      let refs = @relation.references(
+        @relation.binding_at(derived.operation, 1).unwrap(),
+      )
+      assert_eq(refs[0].target, @relation.PriorSlot(0))
+    }
+    assert_true(publication_policy_derivation_at(policy, -1) is None)
+    assert_true(publication_policy_derivation_at(policy, 1) is None)
+    // Dropping x/y, or replacing id, does not remove observed source policy.
+    assert_eq(source_execution_count(program), 5)
   }
 }
 

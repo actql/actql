@@ -183,7 +183,22 @@ exact value is still a copy; arithmetic, literal and other computed expressions
 are not accepted by this transfer rule merely because they share an input type.
 The empty map retains its operation occurrence without inventing a contribution.
 
-Other transfer paths, including computed values and mixed-source operations
+Computed derives retain each checked operation through indexed
+`publication_policy_derivation_count/at` readers. Its bindings retain exact input
+versus prior-slot reference targets, including computed shadows. Every typed
+expression node consumes preparation work. Non-field leaves, including literal
+and Parameter values without policy attestation, retain unknown provenance;
+field-only computations inherit their contributing Relation policy. All bindings
+carry their value-version edges in the owned operation; the derivation's
+`unknown_provenance` flag describes its own unattested leaves, not inherited
+unknown classifications, which remain in the combined publication policy. Bindings
+remain represented even when later projection hides their output. This follows
+derive's retained observation and Relation-policy rule, and does not evaluate
+expressions, waive their execution/failure obligations or classify a hidden old
+value as a published Effect target. Per-field Effect policy selection is a
+separate consumer of the retained value versions, not this Relation policy set.
+
+Other transfer paths, including mixed-source operations
 other than append, except, intersect, join and cross join,
 still require their own composition rules. A SourceView-containing
 Program with an unclosed publication policy fails `UnclosedPublicationPolicy`;
