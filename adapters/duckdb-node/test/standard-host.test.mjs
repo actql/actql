@@ -2,13 +2,14 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
-import { mkdir, mkdtemp, readFile, rm } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rename, rm } from 'node:fs/promises';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { join } from 'node:path';
 import { createHash } from 'node:crypto';
 import { DuckDBInstance } from '@duckdb/node-api';
 import { authorizeLocalDatabase } from '../session.mjs';
 import { runNativeHostQuery, runBroadHostQuery } from '../host.mjs';
+import { exerciseOwnedFixedTransport } from './owned-fixed-transport.mjs';
 
 const root = fileURLToPath(new URL('../../..', import.meta.url));
 const limits = { maxRows: 100, maxCells: 1000, maxTransportBytes: 100000,
@@ -75,6 +76,18 @@ test('standard native and broad Node Hosts own verification through real capture
           : captured.bindInput(fixture.issuedBroadConsumer(prepared), 0);
         const consume = native ? fixture.issuedNativeConsumeOutput : fixture.issuedBroadConsumeInput;
         const output = materialize();
+        let assertFixedUnavailable;
+        if (native) {
+          // Only our uniquely created fixture file is moved, then restored.
+          // Compute must work even when the authorized source path is absent.
+          const heldPath = `${path}.held`;
+          await rename(path, heldPath);
+          try {
+            assertFixedUnavailable = await exerciseOwnedFixedTransport(
+              fixture, prepared, output, contracts, limits, kind === 'empty' ? [] : [3, 3],
+            );
+          } finally { await rename(heldPath, path); }
+        }
         if (expected.length) assert.equal(consume(prepared, output, 0), 'null');
         assert.equal(consume(prepared, output, 100), hash(expected));
         const foreign = create(100);
@@ -84,6 +97,7 @@ test('standard native and broad Node Hosts own verification through real capture
         close(foreign);
         assert.equal(consume(prepared, materialize(), 100), hash(expected));
         captured.close();
+        assertFixedUnavailable?.();
         assert.throws(materialize, { code: 'IssuerClosed' });
         if (native) assert.equal(consume(prepared, output, 100), 'null');
         const cancelled = new AbortController();

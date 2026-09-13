@@ -146,9 +146,23 @@ retention and cleanup. DuckDB slots 0–7 are session/table setup, import transf
 import conversion, native computation, result transfer, result conversion,
 retention and cleanup. Missing slots remain unknown; none of these estimates
 is a hard limit or evidence that selected consumer contracts were enforced.
-The real fixed-Compute fixture uses this comparison before SQL execution, with
-independent expected rows. It still serializes a tiny test input: native result
-admission into product completion is not demonstrated by transport success alone.
+The real fixed-Compute command fixture uses this comparison before SQL execution,
+with independent expected rows. It serializes a tiny test input for command-level
+diagnostics. The standard-Host conformance case additionally passes the actual
+opaque native capture output into `ProducerRead` and the same candidate model,
+then imports individual parameters into a separate DB without serializing the
+whole input. Its Local result and DuckDB admitted receipt are each compared to
+fixed expectations, not used as each other's oracle. Source-path removal during
+this test verifies that import/residual work does not need a fresh source read.
+
+The owned-input test exercises empty results, duplicates, receiver capacity
+exhaustion, cancellation, repeat execution under fresh limits and upstream
+revocation. It uses the shared physical decoder and `FixedComputeReceiving` for
+actual returned chunks. The sealed receipt is still provisional, not a
+`CompletedOutput`: selected consumer-capacity enforcement and trusted Compute
+completion remain required. This fixture-backed driver is conformance code, not
+the final standard Compute Host entry. Acquisition budget exemptions must not be
+reused to waive a fixed consumer's selected contract.
 
 The private `DuckDBBroadAttempt` API orders metadata, chunk admission, receipt
 sealing, transport settlement and guarded residual execution. A Host coordinator

@@ -124,6 +124,28 @@ pub fn issued_native_verify(IssuedNativeFixture) -> Bool
 
 pub fn metadata(@duckdb_adapter.NativeReceiving, Int, String, String) -> Bool
 
+pub fn owned_fixed_abort(OwnedFixedFixture) -> Unit
+
+pub fn owned_fixed_accept(OwnedFixedFixture, Int, String) -> Bool
+
+pub fn owned_fixed_begin(OwnedFixedFixture, String, Int) -> Bool
+
+pub fn owned_fixed_column_count(OwnedFixedFixture) -> Int
+
+pub fn owned_fixed_create(IssuedNativeFixture, @execution_relation.CompletedOutput, String, String, String) -> OwnedFixedFixture
+
+pub fn owned_fixed_finish(OwnedFixedFixture) -> Bool
+
+pub fn owned_fixed_local_cid(OwnedFixedFixture) -> String
+
+pub fn owned_fixed_parameter(OwnedFixedFixture, Int, Int, Bool) -> String
+
+pub fn owned_fixed_row_count(OwnedFixedFixture) -> Int
+
+pub fn owned_fixed_rows(OwnedFixedFixture) -> String
+
+pub fn owned_fixed_sql(OwnedFixedFixture, Int) -> String
+
 pub fn parameter(@duckdb_adapter.NativeReceiving, Int, Int) -> String
 
 pub fn ready(@duckdb_adapter.NativeReceiving) -> Bool
@@ -140,6 +162,8 @@ type BroadFixture
 type IssuedBroadFixture
 
 type IssuedNativeFixture
+
+type OwnedFixedFixture
 
 // Type aliases
 

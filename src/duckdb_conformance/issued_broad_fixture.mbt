@@ -78,9 +78,10 @@ fn issued_fixture_checked(
 ///|
 fn issued_fixture_consumer(
   owner : @lower.BoundPrepared,
+  steps? : String = "[{\"select\":[\"id\"]}]",
 ) -> @lower.BoundPrepared {
   let pipeline = @pipeline.check_with_evidence(
-    cursor("[{\"select\":[\"id\"]}]"),
+    cursor(steps),
     [
       (
         "prior",
