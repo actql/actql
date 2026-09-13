@@ -1,5 +1,51 @@
 # Relation key declarations and evidence
 
+## Literal domains and append identity
+
+Checked direct string, binary64 and boolean literals establish finite typed
+domains. Text is already NFC/LF and numbers are already finite, non-negative-zero
+values at expression admission. Domain equality compares tagged semantic values,
+not source spelling or untyped host equality. Object/array literal payloads are
+opaque and do not establish scalar discriminator facts. General expressions,
+casts, Parameter references and defaults are not evaluated to produce domains.
+
+Each domain retains its checked literal binding or append-union parents.
+An opaque domain collection binds fields to an exact schema handle and current
+value version. Derive uses snapshot InputField and sequential PriorSlot copies;
+computed replacements clear only affected facts. Projection retains all exact
+aliases. Unary row-preserving/subsetting operations retain unchanged fields;
+unpivot retains only its keep mapping. Group/pivot and currently unsupported
+cross-Carrier transfers do not claim scalar domains. Literal generation and
+transfer use the existing checked-expression and copy readers, without copying
+expression trees or traversing literal business objects as syntax.
+
+Append aligns exact typed field names, requires known domains on both sides,
+and retains their finite union. A disjoint discriminator plus complete local
+keys proves an output key. A previous append key may already contain the
+discriminator: matching removes that covered component from each parent tuple
+but retains the whole original witness as a dependency. This supports successive
+append branches without falsely asserting that the residual tuple alone is
+unique on an already appended input. Missing keys, overlapping domains and
+unknown domains establish no global identity.
+
+Local-key matching considers all independent witnesses and shared component
+aliases. It enumerates bounded component correspondences, not Cartesian products
+of alias choices; every matching component retains all its shared aliases.
+Exploration and state copies debit work before allocation. Domain comparisons,
+unions, names, scalar storage and input reuse debit the shared work/text budgets.
+String storage is counted in UTF-8 bytes, binary64 in eight bytes and boolean in
+one; source tree nodes/depth were admitted at the expression boundary. No
+recursive object domain or unbounded proof walk is added.
+
+`literal_domains` retains the collection through ProducedInput and validated
+Result projection. `AppendResult` exposes its checked producer, both original
+keys, discriminator and domain parents through indexed/side-specific readers.
+Input uniqueness, append execution and branch dependencies remain conditional
+requirements. Domain agreement does not authenticate a runtime observation or
+erase either input's policy/completeness obligations.
+
+## Expansion and ordinary transfer
+
 Unpivot prepares one exact `keep` projection, then extends each surviving parent
 key with the generated name column. The checked source references and their
 canonical output labels must both be distinct. Repeated columns remain valid
@@ -455,9 +501,10 @@ separate work.
 
 ## Transfer coverage guard
 
-Unary key transfer, ranking annotation transfer, window-role transfer and input
-order preservation explicitly classify every `relation_typing.Operation`.
-There is no catch-all arm at these four operation dispatches: adding a variant
+Unary key transfer, literal-domain transfer, ranking annotation transfer,
+window-role transfer and input order preservation explicitly classify every
+`relation_typing.Operation`.
+There is no catch-all arm at these five operation dispatches: adding a variant
 requires reviewing each evidence boundary under the compiler's denied warnings.
 `scripts/evidence-transfer-coverage.test.mjs`, run by `check:docs`, additionally
 guards against reintroducing a fallback and tests missing-classification probes.

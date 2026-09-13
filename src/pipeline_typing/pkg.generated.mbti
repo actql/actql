@@ -200,6 +200,8 @@ pub fn join_evidence(CheckedPipeline, Int) -> JoinEvidence?
 
 pub fn lag_order_completion(CheckedPipeline, Int) -> SortCompletion?
 
+pub fn literal_domains(CheckedPipeline, Target) -> @relation_evidence.LiteralDomains?
+
 pub fn logical_order(CheckedPipeline, Target) -> LogicalOrder?
 
 pub fn lookup(CheckedPipeline, String) -> Target?

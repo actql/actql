@@ -67,11 +67,67 @@ fn sync_keys(
   inputs : Array[@evidence.KeySet?],
   steps : Array[CheckedStep],
   keys : Array[@evidence.KeySet?],
+  literal_inputs : Array[@evidence.LiteralDomains?],
+  literal_steps : Array[@evidence.LiteralDomains?],
 ) -> Unit raise Stop {
   while keys.length() < steps.length() {
     let step = steps[keys.length()]
     let previous = step.input.bind(t => key_at(t, inputs, keys))
+    let previous_literals = step.input.bind(t => {
+      literal_at(t, literal_inputs, literal_steps)
+    })
+    let domains = match step.operation {
+      Unary(op) =>
+        Some(
+          literal_result(
+            b,
+            step.source,
+            @evidence.transfer_literal_domains(previous_literals, op, {
+              max_work: b.work,
+              max_name_bytes: b.text,
+            }),
+          ),
+        )
+      Append(right~, checked~) =>
+        Some(
+          literal_result(
+            b,
+            step.source,
+            @evidence.append_literal_domains(
+              previous_literals,
+              literal_at(right, literal_inputs, literal_steps),
+              checked,
+              { max_work: b.work, max_name_bytes: b.text, },
+            ),
+          ),
+        )
+      _ => None
+    }
     let next = match (previous, step.operation) {
+      (previous, Append(right~, checked~)) => {
+        let transfer = match
+          @evidence.append_keys(
+            previous,
+            key_at(right, inputs, keys),
+            previous_literals,
+            literal_at(right, literal_inputs, literal_steps),
+            checked,
+            { max_work: b.work, max_name_bytes: b.text, },
+          ) {
+          Ok(v) => v
+          Err(e) =>
+            raise Stop({
+              kind: KeyEvidence(e.kind),
+              source: step.source,
+              path: e.path.copy(),
+              span: e.span,
+              range: None,
+            })
+        }
+        b.work -= transfer.work
+        b.text -= transfer.name_bytes
+        Some(transfer.keys)
+      }
       (_, Ranking(checked)) => {
         let transfer = match
           @evidence.merged_ranking_keys(checked, {
@@ -463,6 +519,7 @@ fn sync_keys(
       _ => None
     }
     keys.push(next)
+    literal_steps.push(domains)
   }
 }
 

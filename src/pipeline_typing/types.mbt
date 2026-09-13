@@ -217,6 +217,8 @@ struct CheckedPipeline {
   ranked_steps : Array[@vector.RankingInput]
   keyed_inputs : Array[@evidence.KeySet?]
   keyed_steps : Array[@evidence.KeySet?]
+  literal_inputs : Array[@evidence.LiteralDomains?]
+  literal_steps : Array[@evidence.LiteralDomains?]
   delta_inputs : Array[DeltaEvidence]
   delta_steps : Array[DeltaEvidence]
   source : @decode.Cursor

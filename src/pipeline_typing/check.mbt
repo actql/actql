@@ -135,6 +135,21 @@ fn check_impl(
   let steps : Array[CheckedStep] = []
   let ranked_steps : Array[@vector.RankingInput] = []
   let keyed_steps : Array[@evidence.KeySet?] = []
+  spend(b, source, produced_inputs.length())
+  let literal_inputs = produced_inputs.map(input => input.bind(v => v.literals))
+  for domains in literal_inputs {
+    if domains is Some(domains) {
+      let _ = literal_result(
+        b,
+        source,
+        @evidence.admit_literal_domains(source, domains, {
+          max_work: b.work,
+          max_name_bytes: b.text,
+        }),
+      )
+    }
+  }
+  let literal_steps : Array[@evidence.LiteralDomains?] = []
   let delta_inputs = imported_delta(b, source, produced_inputs)
   let delta_steps : Array[DeltaEvidence] = []
   spend(b, source, delta_contracts.length())
@@ -165,7 +180,9 @@ fn check_impl(
   }
   for body in bodies {
     sync_delta(b, body, delta_inputs, steps, delta_steps)
-    sync_keys(b, keyed_inputs, steps, keyed_steps)
+    sync_keys(
+      b, keyed_inputs, steps, keyed_steps, literal_inputs, literal_steps,
+    )
     sync_rankings(b, inputs, ranked_inputs, steps, ranked_steps)
     spend(b, body, 1)
     if b.nodes == 0 {
@@ -2163,7 +2180,7 @@ fn check_impl(
     current = Some(target)
   }
   sync_delta(b, source, delta_inputs, steps, delta_steps)
-  sync_keys(b, keyed_inputs, steps, keyed_steps)
+  sync_keys(b, keyed_inputs, steps, keyed_steps, literal_inputs, literal_steps)
   sync_rankings(b, inputs, ranked_inputs, steps, ranked_steps)
   let join_evidence = derive_join_evidence(b, steps, keyed_inputs, keyed_steps)
   spend(b, source, produced_inputs.length())
@@ -2190,6 +2207,8 @@ fn check_impl(
     ranked_steps,
     keyed_inputs,
     keyed_steps,
+    literal_inputs,
+    literal_steps,
     delta_inputs,
     delta_steps,
     source,

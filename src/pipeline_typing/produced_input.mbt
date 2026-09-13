@@ -7,6 +7,7 @@ struct ProducedInput {
   rows : RowCount?
   graph : GraphCount?
   keys : @evidence.KeySet?
+  literals : @evidence.LiteralDomains?
   ranking : @vector.RankingInput?
   order : LogicalOrder?
   window : WindowEvidence?
@@ -29,6 +30,11 @@ pub fn produced_input(
     rows: row_count(pipeline, target),
     graph: graph_count(pipeline, target),
     keys: key_at(target, pipeline.keyed_inputs, pipeline.keyed_steps),
+    literals: literal_at(
+      target,
+      pipeline.literal_inputs,
+      pipeline.literal_steps,
+    ),
     ranking: ranking_evidence(pipeline, target),
     order: logical_order(pipeline, target),
     window: window_evidence_at(pipeline, target),

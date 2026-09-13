@@ -59,6 +59,14 @@ pub fn project_produced_input(
     }
     b.work -= keys.work
     b.text -= keys.name_bytes
+    let literals = literal_result(
+      b,
+      source,
+      @evidence.transfer_literal_domains(original.literals, projection, {
+        max_work: b.work,
+        max_name_bytes: b.text,
+      }),
+    )
     let ranked = vector_result(
       source,
       @vector.transfer_ranking_unary(
@@ -91,6 +99,7 @@ pub fn project_produced_input(
           @carrier.typed_rows(@relation.output_schema(projection)),
         ),
         keys: Some(keys.keys),
+        literals: Some(literals),
         ranking: Some(ranked.input),
         window,
         delta,

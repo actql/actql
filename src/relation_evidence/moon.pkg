@@ -1,6 +1,8 @@
 supported_targets = "+js+wasm+native"
 
 import {
+  "actql/actql/expression_typing" @typing,
+  "actql/actql/relation_append" @append,
   "actql/actql/text_rank_profile",
   "actql/actql/vector_checking" @checking,
   "actql/actql/graph_typing" @graph,

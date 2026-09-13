@@ -9,6 +9,7 @@ import {
   "actql/actql/event_typing",
   "actql/actql/graph_typing",
   "actql/actql/parameter_binding",
+  "actql/actql/relation_append",
   "actql/actql/relation_join_shape",
   "actql/actql/relation_key_obligation",
   "actql/actql/relation_nest",
@@ -26,6 +27,8 @@ import {
 }
 
 // Values
+pub fn admit_literal_domains(@decode_core.Cursor, LiteralDomains, TransferLimits) -> Result[LiteralTransfer, Issue]
+
 pub fn advance_calendar_keys(KeySet?, @calendar_typing.CheckedCalendar, TransferLimits) -> Result[KeySetTransfer, Issue]
 
 pub fn advance_event_keys(KeySet?, @event_typing.CheckedEvent, TransferLimits) -> Result[KeySetTransfer, Issue]
@@ -33,6 +36,10 @@ pub fn advance_event_keys(KeySet?, @event_typing.CheckedEvent, TransferLimits) -
 pub fn advance_keys(KeySet?, @relation_typing.CheckedOperation, TransferLimits) -> Result[KeySetTransfer, Issue]
 
 pub fn advance_set_keys(KeySet?, @relation_set.CheckedSet, TransferLimits) -> Result[KeySetTransfer, Issue]
+
+pub fn append_keys(KeySet?, KeySet?, LiteralDomains?, LiteralDomains?, @relation_append.CheckedAppend, TransferLimits) -> Result[KeySetTransfer, Issue]
+
+pub fn append_literal_domains(LiteralDomains?, LiteralDomains?, @relation_append.CheckedAppend, TransferLimits) -> Result[LiteralTransfer, Issue]
 
 pub fn asof_completed_tie_break(CheckedAsOf) -> Array[@relation_schema.FieldName]
 
@@ -128,6 +135,14 @@ pub fn key_alias_at(KeyedRelation, Int, Int) -> KeyField?
 
 pub fn key_alias_count(KeyedRelation, Int) -> Int
 
+pub fn key_append_discriminator(KeyedRelation) -> @relation_schema.FieldName?
+
+pub fn key_append_domain(KeyedRelation, @relation_schema.Side) -> LiteralDomain?
+
+pub fn key_append_input(KeyedRelation, @relation_schema.Side) -> KeyedRelation?
+
+pub fn key_append_producer(KeyedRelation) -> @relation_append.CheckedAppend?
+
 pub fn key_asof_parent(KeyedRelation) -> KeyedRelation?
 
 pub fn key_asof_producer(KeyedRelation) -> CheckedAsOf?
@@ -213,6 +228,14 @@ pub fn key_witness_at(KeySet, Int) -> KeyedRelation?
 pub fn key_witness_count(KeySet) -> Int
 
 pub fn keyed_records(KeyedRelation) -> @carrier_contract.Knowledge
+
+pub fn literal_domain(LiteralDomains, @relation_schema.FieldName) -> LiteralDomain?
+
+pub fn literal_origin(LiteralDomain) -> LiteralOrigin
+
+pub fn literal_value_at(LiteralDomain, Int) -> LiteralValue?
+
+pub fn literal_value_count(LiteralDomain) -> Int
 
 pub fn merged_ranking_input_at(CheckedRanking, Int) -> RankingShape?
 
@@ -410,6 +433,8 @@ pub fn transfer_join_keys(KeySet?, KeySet?, @relation_join_shape.CheckedJoin, Tr
 
 pub fn transfer_keys(KeySet, @relation_typing.CheckedOperation, TransferLimits) -> Result[KeySetTransfer, Issue]
 
+pub fn transfer_literal_domains(LiteralDomains?, @relation_typing.CheckedOperation, TransferLimits) -> Result[LiteralTransfer, Issue]
+
 pub fn transfer_nest_keys(KeySet, @relation_nest.CheckedNest, TransferLimits) -> Result[KeySetTransfer, Issue]
 
 pub fn transfer_ranking_calendar(RankingInput, @calendar_typing.CheckedCalendar, @vector_checking.Limits) -> Result[RankingTransfer, @vector_checking.Issue]
@@ -497,6 +522,7 @@ pub(all) enum KeyOrigin {
   UnpivotResult
   EventIdentityResult
   EventDedupeResult
+  AppendResult
   JoinResult
   CrossJoinResult
   IntervalJoinResult
@@ -540,6 +566,27 @@ pub(all) struct Limits {
   max_fields : Int
   max_name_bytes : Int
 }
+
+type LiteralDomain
+
+type LiteralDomains
+
+pub enum LiteralOrigin {
+  Binding(@relation_typing.CheckedOperation, Int)
+  Union(@relation_append.CheckedAppend, LiteralDomain, LiteralDomain)
+}
+
+pub struct LiteralTransfer {
+  domains : LiteralDomains
+  work : Int
+  text_bytes : Int
+}
+
+pub(all) enum LiteralValue {
+  Text(String)
+  Number(Double)
+  Boolean(Bool)
+} derive(Eq, @debug.Debug)
 
 type NearestInput
 
