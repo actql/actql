@@ -252,6 +252,15 @@ fn derive_logical_orders(
           _ => []
         }
       }
+      // Existence/absence selects each left occurrence at most once. Endpoint,
+      // coverage and search checks still belong to the complete binary producer;
+      // only its right-hand order is unnecessary for enumeration.
+      IntervalJoin(checked~, ..) if @join.interval_kind(checked) is Semi ||
+        @join.interval_kind(checked) is Anti =>
+        match (step.input, previous) {
+          (Some(left), Some(_)) => [left]
+          _ => []
+        }
       Append(right~, ..) | CrossJoin(right~, ..) | IntervalJoin(right~, ..) => {
         let right_order = match right {
           Input(j) => input_orders[j]
