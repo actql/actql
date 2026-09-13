@@ -1,5 +1,6 @@
 ///|
 struct CheckedProgram {
+  input_completeness : Array[Array[InputCompletenessRequirement]]
   identity : @context.ProgramSourceIdentity
   requirements : @context.StageRequirementClosure
   gates : @context.ProgramIncomingGates
@@ -135,6 +136,9 @@ pub fn check(
       }
     }
   }
+  let input_completeness = prepare_input_completeness(units, budget) catch {
+    error => raise Units(error)
+  }
   let group_limits = prepare_program_group_limits(units, requirements, budget) catch {
     error => raise Units(error)
   }
@@ -164,6 +168,7 @@ pub fn check(
     error => raise Units(error)
   }
   {
+    input_completeness,
     identity,
     requirements,
     gates,

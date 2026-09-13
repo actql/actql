@@ -50,6 +50,19 @@ used to claim observed completeness, authorize publication, or discharge
 `RetainIdentityAndCompleteness` on its own. Unknown and partial observations
 remain unknown and partial even when their row count is below a selected cap.
 
+Formal check constructs one input-binding table, including unused inputs,
+before returning CheckedProgram. Each input binds exactly one existing Local
+admission subject, selected SourceView CarrierResponse check, or Result import
+interface and producer. Missing or conflicting bindings fail construction.
+Source selection uses the authored input name, not a Catalog contract name or
+the position in a separate request list. Import bindings verify the producer's
+checked pipeline and Unit CID together. Construction charges the shared work
+budget; `unit_input_completeness` then reads the retained table in constant time.
+The selected checks keep their original execution phase, prerequisites and
+failure behavior. This closes static input ownership, not observation coverage
+admission: a selected snapshot declaration or response contract is not evidence
+that acquisition completed successfully.
+
 This boundary preserves the existing semantic rules. In particular, atomic
 bound failure remains failure, not successful truncation, and source coverage
 is never inferred from physical enumeration order.

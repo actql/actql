@@ -293,6 +293,8 @@ pub fn unit_import_cid_at(CheckedProgram, Int, Int) -> String?
 
 pub fn unit_import_cid_count(CheckedProgram, Int) -> Int?
 
+pub fn unit_input_completeness(CheckedProgram, Int, Int) -> InputCompletenessRequirement?
+
 pub fn unit_pipeline(CheckedProgram, Int) -> @pipeline_typing.CheckedPipeline?
 
 pub fn unit_publication_at(CheckedProgram, Int, Int) -> PublicationExecution?
@@ -439,6 +441,17 @@ type GroupLimit
 type GroupNumericSlot
 
 type GroupStringLimit
+
+pub enum InputCompletenessBinding {
+  Local(@pipeline_check_context.LocalInputRequirement)
+  Source(SourceExecution)
+  Imported(BuiltResultInterface, @pipeline_typing.ProducedInput)
+}
+
+pub struct InputCompletenessRequirement {
+  unit : UnitCompletenessRequirement
+  binding : InputCompletenessBinding
+}
 
 pub struct KeyedExecution {
   owner : @pipeline_check_context.SourceProducerContext
