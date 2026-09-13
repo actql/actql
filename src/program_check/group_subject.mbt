@@ -49,6 +49,14 @@ pub fn group_aggregate_subject(
   max_work : Int,
 ) -> String raise UnitBuildFailure {
   let budget = IdentityBudget::{ work: max_work, bytes: 0, nodes: 0, depth: 0, }
+  group_aggregate_subject_with_budget(source, budget)
+}
+
+///|
+fn group_aggregate_subject_with_budget(
+  source : GroupAggregateSource,
+  budget : IdentityBudget,
+) -> String raise UnitBuildFailure {
   let name = @relation.aggregate_name(source.call)
   // Charge both escaping passes at their worst-case lengths before allocating.
   for _ in 0..<4 {

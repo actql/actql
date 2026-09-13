@@ -27,6 +27,7 @@ fn local_construction_fixture(
   nested_depth? : Int? = None,
   text_time? : Bool = false,
   text_policy? : Bool = false,
+  generated_proofs? : Array[@wire.ProgramProofClaim] = [],
 ) -> (
   @context.ProgramSourceIdentity,
   @context.StageRequirementClosure,
@@ -183,6 +184,28 @@ fn local_construction_fixture(
     max_nodes: 0,
     max_depth: 0,
   }).unwrap()
+  let generated_mixed = @wire.check_mixed_claims(
+    generated_proofs.map(proof => @wire.program_proof_witness(proof)),
+    [],
+    {
+      max_entities: 100,
+      max_references: 100,
+      max_bytes: 100000,
+      max_nodes: 10000,
+      max_depth: 100,
+    },
+  ).unwrap()
+  let generated_claims = @wire.check_mixed_program_claims(
+    generated_mixed,
+    generated_proofs,
+    { max_witnesses: 100, max_references: 100, },
+  ).unwrap()
+  let generated_sources = @host.bind_claim_sources(generated_claims, [], {
+    max_entries: 100,
+    max_bytes: 100000,
+    max_nodes: 10000,
+    max_depth: 100,
+  }).unwrap()
   let join_sources = if second_join_capacity {
     Some(
       local_join_capacity_fixture(environment, host_limit, second_join_step) catch {
@@ -205,7 +228,14 @@ fn local_construction_fixture(
           consumers: [@capacity.Join(step=second_join_step, output=0)],
         }
       } else {
-        @context.CapacityMaterial::{ sources, consumers: [], }
+        @context.CapacityMaterial::{
+          sources: if stage == 1 && visit == 0 && !generated_proofs.is_empty() {
+            generated_sources
+          } else {
+            sources
+          },
+          consumers: [],
+        }
       }
     })
   })

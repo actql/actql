@@ -69,6 +69,15 @@ actual call, and `group_aggregate_subject` renders the normative escaped-name
 reference under an explicit work bound. Callers cannot supply substitute names,
 scope strings or Unit CIDs. This location is not itself a wire proof: persistent
 witness/limit reconstruction and backend enforcement remain separate requirements.
+`unit_group_input_proof` converts one selected array-input candidate from the
+completed Program under shared preparation limits. The result retains the exact
+aggregate occurrence and target membership, the reidentified row-proof graph,
+and a separately admitted `array_items` proof/witness under the aggregate law.
+The input witness remains measured in rows; its dependencies and required checks
+are not erased by the new law application. Indexed scope selection cannot accept
+an independently supplied Unit CID or substitute an equal-valued candidate.
+This reader does not select a new limit, complete runtime checks, or emit the
+aggregate's full resolved-limit envelope with Host and author-guard candidates.
 Join consumes the existing cardinality selection, ordered-occurrence execution
 check and exact selected-policy capacity application. All five join kinds
 can close when their requirements are supplied. Authored cardinality and

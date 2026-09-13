@@ -62,6 +62,14 @@ pub fn graph_proof_witness(ReidentifiedGraphInput) -> @capacity_witness.WireWitn
 
 pub fn group_aggregate_subject(GroupAggregateSource, Int) -> String raise UnitBuildFailure
 
+pub fn group_input_proof_claim(GroupInputProof) -> @capacity_witness.ProgramProofClaim
+
+pub fn group_input_proof_input(GroupInputProof) -> ReidentifiedStep
+
+pub fn group_input_proof_membership(GroupInputProof) -> @capacity_graph_preflight.TargetMembership
+
+pub fn group_input_proof_source(GroupInputProof) -> GroupAggregateSource
+
 pub fn incoming_gates(CheckedProgram) -> @pipeline_check_context.ProgramIncomingGates
 
 pub fn proof_application(ReidentifiedStep) -> @capacity_program_step.StepBound
@@ -180,6 +188,8 @@ pub fn unit_gate_cid_count(CheckedProgram, Int) -> Int?
 
 pub fn unit_group_aggregate_source_at(CheckedProgram, Int, Int, Int) -> GroupAggregateSource?
 
+pub fn unit_group_input_proof(CheckedProgram, Int, Int, Int, Int, max_work~ : Int, max_bytes~ : Int, max_nodes~ : Int, max_depth~ : Int) -> GroupInputProof raise UnitBuildFailure
+
 pub fn unit_import_cid_at(CheckedProgram, Int, Int) -> String?
 
 pub fn unit_import_cid_count(CheckedProgram, Int) -> Int?
@@ -295,6 +305,8 @@ pub struct GroupAggregateSource {
   call : @relation_typing.CheckedAggregate
   scope : String
 }
+
+type GroupInputProof
 
 pub struct KeyedExecution {
   owner : @pipeline_check_context.SourceProducerContext
