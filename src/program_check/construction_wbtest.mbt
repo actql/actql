@@ -11,6 +11,7 @@ fn local_construction_fixture(
   through_check? : Bool = false,
   checked_results? : Array[CheckedProgram] = [],
   host_limit? : Int = 1000,
+  string_limit? : Int? = None,
   producer_expression? : String = "id + 1",
   second_steps? : String = "[]",
   second_result_from? : String = "rows",
@@ -124,10 +125,15 @@ fn local_construction_fixture(
     "max_model_total_duration_ms", "max_nested_value_bytes", "max_nested_value_depth",
     "max_relation_output_rows", "max_temporal_matches_per_key", "max_temporal_output_rows",
   ]
+  if string_limit is Some(_) {
+    names.insert(1, "max_aggregate_string_bytes")
+  }
   let profile = "{\"capacity\":{" +
     names
     .map(n => {
-      let value = if n == "max_nested_value_bytes" {
+      let value = if n == "max_aggregate_string_bytes" {
+        string_limit.unwrap()
+      } else if n == "max_nested_value_bytes" {
         nested_bytes.unwrap_or(host_limit)
       } else if n == "max_nested_value_depth" {
         nested_depth.unwrap_or(host_limit)

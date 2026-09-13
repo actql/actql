@@ -134,10 +134,13 @@ selected candidates consume cumulative budgets. Linking an already resolved
 occurrence is rejected. This execution obligation does not itself construct a
 persistent Unit limit or certify backend enforcement.
 
-The selector alone only selects the Host/author ceiling scope. It leaves the original
-envelope unresolved and neither emits a persistent Unit limit nor installs
-runtime enforcement. Those connections are required before the formal Program
-constructor can admit the aggregate; a selected number alone cannot close it.
+The selector alone leaves the original envelope unresolved. The formal Program
+constructor links the execution obligation and constructs a persistent Unit
+limit for every local ordinary string aggregate before returning success. Its
+byte scope and effective guard are derived from that same owned call; imported
+visits do not create consumer-owned copies of a producer's limit. A selected
+number alone cannot close an aggregate, and an execution obligation is not
+evidence of completed runtime enforcement.
 
 ## Reference compatibility
 

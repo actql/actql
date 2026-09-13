@@ -80,6 +80,12 @@ pub fn group_limit_selection(GroupLimit) -> @pipeline_check_context.GroupArrayLi
 
 pub fn group_limit_source(GroupLimit) -> GroupAggregateSource
 
+pub fn group_string_limit_claim(GroupStringLimit) -> @capacity_witness.LimitClaim
+
+pub fn group_string_limit_selection(GroupStringLimit) -> @pipeline_check_context.GroupStringLimit
+
+pub fn group_string_limit_source(GroupStringLimit) -> GroupAggregateSource
+
 pub fn incoming_gates(CheckedProgram) -> @pipeline_check_context.ProgramIncomingGates
 
 pub fn proof_application(ReidentifiedStep) -> @capacity_program_step.StepBound
@@ -208,6 +214,10 @@ pub fn unit_group_limit_at(CheckedProgram, Int, Int) -> GroupLimit?
 
 pub fn unit_group_limit_count(CheckedProgram, Int) -> Int?
 
+pub fn unit_group_string_limit_at(CheckedProgram, Int, Int) -> GroupStringLimit?
+
+pub fn unit_group_string_limit_count(CheckedProgram, Int) -> Int?
+
 pub fn unit_import_cid_at(CheckedProgram, Int, Int) -> String?
 
 pub fn unit_import_cid_count(CheckedProgram, Int) -> Int?
@@ -230,6 +240,7 @@ pub suberror ConstructionFailure {
   Values(@pipeline_check_context.ValuesPublicationIssue)
   Joins(@pipeline_check_context.JoinRequirementIssue)
   GroupLimits(@pipeline_check_context.GroupArrayLimitIssue)
+  GroupStringLimits(@pipeline_check_context.GroupStringLimitIssue)
   Incoming(@pipeline_check_context.IncomingIssue)
   Links(@pipeline_check_context.IncomingLinksIssue)
   Requirements(@pipeline_check_context.StageRequirementIssue)
@@ -327,6 +338,8 @@ pub struct GroupAggregateSource {
 type GroupInputProof
 
 type GroupLimit
+
+type GroupStringLimit
 
 pub struct KeyedExecution {
   owner : @pipeline_check_context.SourceProducerContext

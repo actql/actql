@@ -102,6 +102,31 @@ fn assemble_group_array_limit(
     let witness = emit_group_guard_witness(source, value, budget)
     candidates.push((@wire.cid(witness), witness))
   }
+  let claim = assemble_group_limit_claim(
+    source,
+    candidates,
+    inputs,
+    guard_value,
+    Some(non_author),
+    @context.group_array_limit_maximum(selected),
+    "array_items",
+    budget,
+  )
+  { source, selected, claim, proofs, }
+}
+
+///|
+fn assemble_group_limit_claim(
+  source : GroupAggregateSource,
+  candidates : Array[(String, @wire.WireWitness)],
+  inputs : Array[ReidentifiedStep],
+  guard_value : Int64?,
+  non_author : Int64?,
+  maximum : Int64,
+  unit : String,
+  budget : IdentityBudget,
+) -> @wire.LimitClaim raise UnitBuildFailure {
+  let max_depth = budget.depth
   identity_sort(candidates, budget)
   let input_limits : Array[(Bytes, String)] = []
   let witnesses = publication_proof_claims(inputs, budget, limits=input_limits)
@@ -135,11 +160,10 @@ fn assemble_group_array_limit(
   identity_charge(budget, bytes)
   identity_charge(budget, nodes)
   let subject = group_aggregate_subject_with_budget(source, budget)
-  let maximum = @context.group_array_limit_maximum(selected)
   let binding = match guard_value {
     None => "absent"
     Some(value) =>
-      if value < non_author {
+      if non_author is None || value < non_author.unwrap() {
         "binding"
       } else {
         "currently_non_binding"
@@ -177,7 +201,7 @@ fn assemble_group_array_limit(
       @encode.key(w, "subject_ref")
       @encode.string_value(w, subject)
       @encode.key(w, "unit")
-      @encode.string_value(w, "array_items")
+      @encode.string_value(w, unit)
       @encode.key(w, "version")
       @encode.string_value(w, "actql-resolved-limit/0.1")
       @encode.end_object(w)
@@ -200,5 +224,5 @@ fn assemble_group_array_limit(
     Ok(v) => v
     Err(e) => raise PublicationWire(e)
   }
-  { source, selected, claim, proofs, }
+  claim
 }

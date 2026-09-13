@@ -6,6 +6,7 @@ struct CheckedProgram {
   contracts : @context.CoreContractInventory
   units : Array[BuiltUnit]
   group_limits : Array[Array[GroupLimit]]
+  group_string_limits : Array[Array[GroupStringLimit]]
 }
 
 ///|
@@ -124,7 +125,20 @@ pub fn check(
   let group_limits = prepare_program_group_limits(units, requirements, budget) catch {
     error => raise Units(error)
   }
-  { identity, requirements, gates, contracts, units, group_limits, }
+  let group_string_limits = prepare_program_group_string_limits(
+    units, requirements, budget,
+  ) catch {
+    error => raise Units(error)
+  }
+  {
+    identity,
+    requirements,
+    gates,
+    contracts,
+    units,
+    group_limits,
+    group_string_limits,
+  }
 }
 
 ///|

@@ -93,6 +93,17 @@ stages and calls. A later failure exposes no partially completed Program.
 `unit_group_limit_count` and `unit_group_limit_at` read the retained results
 without copying or hashing again. Imported producer visits do not create a
 consumer-owned duplicate; the producer Unit retains its own aggregate scope.
+Ordinary string aggregates likewise retain `GroupStringLimit` results, read by
+`unit_group_string_limit_count` and `unit_group_string_limit_at`. Their byte
+subjects identify the owning Unit, source ordinal and escaped aggregate name.
+The formal constructor admits the selected optional Host ceiling and effective
+author guard into a canonical resolved limit before returning the Program.
+An author-only guard is binding; a guard equal to the Host ceiling is retained
+as currently non-binding. These are raw string payload bytes, not input rows or
+serialized JSON bytes. Both limit families share canonical envelope construction
+and arithmetic admission, but keep distinct typed selections and proof scopes.
+String execution obligations retain the original selection; they do not claim
+that runtime enforcement or backend execution has already occurred.
 Ordinary statistical groups retain a typed deterministic-law execution check
 for percentile interpolation, population/sample variance and population/sample
 standard deviation. It binds the exact aggregate and its demand to the input,
@@ -110,8 +121,8 @@ one locates the authored restriction, the other identifies its measured scope.
 `unit_group_guard_witness` reads the effective array guard from the same completed
 operation closure, omits a genuinely absent guard and creates the canonical
 author-guard witness. Parameter syntax is not reparsed or defaulted by this reader.
-It currently covers ordinary array aggregates; the shared string-aggregate path
-convention does not imply completed string limit or execution support.
+This individual witness reader covers ordinary array aggregates. String guards
+are retained in the string limit's admitted candidate collection.
 Join consumes the existing cardinality selection, ordered-occurrence execution
 check and exact selected-policy capacity application. All five join kinds
 can close when their requirements are supplied. Authored cardinality and
