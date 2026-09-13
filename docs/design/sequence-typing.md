@@ -38,6 +38,21 @@ and key arrays cannot mutate the checked result. Pipeline input occurrence and
 Result output types are connected, but no match rows or automaton are evaluated.
 Checking a predicate does not discharge its profile or Host-envelope obligations.
 
+The Program operation index binds event-value admission, global event-identity
+validation and preparation of ascending `(time,id)` matcher input to the exact
+`SequenceSemantics` occurrence and its primary input edge. The readonly binding
+retains the original checked sequence, including identity/clock contracts,
+timestamp conversion requirements and partition selectors. No predicate, key or
+pattern array is copied when building these checks.
+
+These three duties precede use of the input by the matcher. Sorting its input
+does not attest that the source had a logical total order, and selecting an
+identity field does not attest uniqueness. Empty input and known duplicate-ID
+fixtures retain the same duties; they are not already executed observations.
+Bounded matching, within binding, predicate checks and both atomic match-limit
+scopes remain separate. Input-duty binding alone cannot close those requirements
+or enable the formal sequence Program entry.
+
 ## Nonoverlapping match identity
 
 `relation_evidence.sequence_keys` establishes one conditional singleton key per

@@ -31,6 +31,10 @@ fn check_resolution_index(
     let state = operation_resolution_at(index, i).unwrap()
     let site = operation_requirements_at(requirements, i).unwrap()
     match state {
+      Execution(SequenceExecution(check)) => {
+        execution += 1
+        assert_true(physical_equal(check.site, site))
+      }
       Execution(CalendarExecution(check)) => {
         execution += 1
         assert_true(physical_equal(check.site, site))

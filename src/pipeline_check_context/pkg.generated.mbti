@@ -1843,6 +1843,7 @@ pub(all) enum OperationDisposition {
 }
 
 pub(all) enum OperationExecutionCheck {
+  SequenceExecution(SequenceExecutionCheck)
   CalendarExecution(CalendarExecutionCheck)
   SeriesExecution(SeriesExecutionCheck)
   EventEnvelope(EventOutputEnvelope)
@@ -2449,6 +2450,20 @@ pub(all) struct SelectedPolicyUsage {
   text_bytes : Int
   local_input_nodes : Int
   policy_nodes : Int
+} derive(Eq, @debug.Debug)
+
+pub struct SequenceExecutionCheck {
+  site : OperationRequirementSite
+  step : @pipeline_typing.CheckedStep
+  input : @pipeline_typing.Target
+  operation : @relation_typing.CheckedSequence
+  rule : SequenceExecutionRule
+}
+
+pub(all) enum SequenceExecutionRule {
+  AdmitSequenceValues
+  ValidateSequenceIdentities
+  OrderSequenceEvents
 } derive(Eq, @debug.Debug)
 
 pub struct SeriesExecutionCheck {
