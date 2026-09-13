@@ -69,31 +69,7 @@ fn transfer_window(
     | Analytic
     | JsonPick
     | WatermarkRows => Some(roles)
-    Derive => {
-      spend(
-        b,
-        source,
-        @relation.binding_count(op) +
-        roles.starts.length() +
-        roles.ends.length(),
-      )
-      let overwritten : Map[String, Bool] = Map([])
-      for i in 0..<@relation.binding_count(op) {
-        if @relation.binding_at(op, i).unwrap().name is Some(name) {
-          overwritten[name] = true
-        }
-      }
-      let preserved = fn(f) {
-        match f {
-          @schema.Unqualified(name) => !overwritten.contains(name)
-          _ => true
-        }
-      }
-      retained_window(
-        roles.starts.filter(preserved),
-        roles.ends.filter(preserved),
-      )
-    }
+    Derive => derive_window_roles(b, source, op, roles)
     Select | Rename | Drop | Distinct => {
       if @relation.row_operation(op) is Some(DistinctRows) {
         return Some(roles)

@@ -42,7 +42,14 @@ retains the single primary input occurrence, and debits the shared budgets.
 Validated filters and row-order/subset operations preserve roles. Explicit
 select/rename/drop and keyed-distinct projections retain every output alias of
 each boundary. Whole-row distinct retains the existing roles unchanged.
-Dropping or overwriting an alias invalidates only that alias; evidence is lost
+Derive transfers exact whole-field copies through its checked input-field or
+prior-slot reference, without copying expression trees or evaluating general
+expressions. Existing role aliases remain first, and new exact aliases are
+retained in binding order. Slot roles are evaluated against the original input
+or the precise preceding slot, so self-copy retains a role while a computed
+shadow invalidates it. Name indexing and alias/slot visits share the pipeline
+text and work budgets; alias combinations are not expanded.
+Dropping or computing a replacement for an alias invalidates only that alias; evidence is lost
 only when either boundary has no surviving alias. `window_aliases` returns
 detached arrays; `window_fields` selects the first surviving pair for consumers
 requiring one pair. An ordinary input

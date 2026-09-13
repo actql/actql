@@ -3832,8 +3832,13 @@ named fields are insufficient. The evidence identifies the two boundary
 fields and their interval law separately from ordinary field-type knowledge.
 Value-preserving filters and whole-row distinct retain it. A name-changing
 projection transfers each role to every alias in its explicit, value-preserving
-field mapping; keyed distinct follows its projection. Removing or overwriting
-an alias removes only that alias's evidence. The window evidence becomes invalid
+field mapping; keyed distinct follows its projection. Removing an alias or
+replacing its value through computation removes only that alias's evidence. An exact
+whole-field derive copy transfers the copied value's role to its output alias,
+including self-copies and prior-slot copy chains. Snapshot and ordered derive
+use their checked reference scopes; neither equal field types nor evaluation of
+a general expression establishes a role. The final value version of each output
+name determines its surviving role. The window evidence becomes invalid
 when either boundary has no surviving alias. Window grouping retains only
 aliases that remain actual grouping keys, not same-named aggregate outputs.
 Required evidence must resolve
