@@ -12,7 +12,9 @@ test "verifier pins full acquisition and process evidence bodies, not digest cla
     query_evidence_test_limits(),
   ).unwrap()
   let (bytes, nodes) = query_evidence_contract_usage(contracts)
-  assert_eq((bytes, nodes), (9715, 428))
+  // Independent sorted-key JSON UTF-8 measurement and recursive node count of
+  // the shared bodies, not values obtained from the product verifier.
+  assert_eq((bytes, nodes), (10369, 433))
   // Exact aggregate bounds, not a fresh allowance for each dependency body.
   assert_true(
     admit_query_evidence_contracts(query, evidence, {
@@ -54,7 +56,7 @@ test "verifier pins full acquisition and process evidence bodies, not digest cla
   )
   let claim = @identity.from_json(
     @json.parse(
-      "{\"version\":\"actql-query-process-evidence-contract/0.1\",\"cid\":\"sha256:f407203d3799dc51c2bc8cee460111ee6ebe44fb55c1c515d8d94190813b62a4\"}",
+      "{\"version\":\"actql-query-process-evidence-contract/0.1\",\"cid\":\"sha256:5cbd39d6847336c5961e222b083ca1395ab68be466ac69cadfbf7021cf617b89\"}",
     ),
     100,
     10,

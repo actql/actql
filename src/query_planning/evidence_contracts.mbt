@@ -25,7 +25,7 @@ pub(all) enum QueryEvidenceContractIssue {
 }
 
 ///|
-let query_evidence_contract_cid : String = "sha256:f407203d3799dc51c2bc8cee460111ee6ebe44fb55c1c515d8d94190813b62a4"
+let query_evidence_contract_cid : String = "sha256:5cbd39d6847336c5961e222b083ca1395ab68be466ac69cadfbf7021cf617b89"
 
 ///|
 /// The complete pinned evidence body includes its exact acquisition dependency
