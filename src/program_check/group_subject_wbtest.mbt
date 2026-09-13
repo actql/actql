@@ -41,6 +41,80 @@ test "formal array group scopes bind Unit, call and measurement without copied o
   )
   let program = checked[0]
   let unit = program.units[1]
+  assert_eq(unit_group_limit_count(program, 0), Some(0))
+  assert_eq(unit_group_limit_count(program, 1), Some(2))
+  assert_eq(unit_group_limit_count(program, -1), None)
+  assert_true(unit_group_limit_at(program, 1, 2) is None)
+  assert_true(unit_group_limit_at(program, 1, -1) is None)
+  assert_true(
+    physical_equal(
+      unit_group_limit_at(program, 1, 0).unwrap(),
+      unit_group_limit_at(program, 1, 0).unwrap(),
+    ),
+  )
+  let budget = IdentityBudget::{
+    work: 10000000,
+    bytes: 1000000,
+    nodes: 100000,
+    depth: 100,
+  }
+  let before = IdentityBudget::{ ..budget, }
+  let built = prepare_program_group_limits(
+    program.units,
+    requirements(program),
+    budget,
+  )
+  let used = (
+    before.work - budget.work,
+    before.bytes - budget.bytes,
+    before.nodes - budget.nodes,
+  )
+  let exact = IdentityBudget::{
+    work: used.0,
+    bytes: used.1,
+    nodes: used.2,
+    depth: 100,
+  }
+  let repeated = prepare_program_group_limits(
+    program.units,
+    requirements(program),
+    exact,
+  )
+  assert_eq((exact.work, exact.bytes, exact.nodes), (0, 0, 0))
+  for
+    short in [
+      IdentityBudget::{ ..before, work: used.0 - 1, },
+      IdentityBudget::{ ..before, bytes: used.1 - 1, },
+      IdentityBudget::{ ..before, nodes: used.2 - 1, },
+    ] {
+    let prior = (short.work, short.bytes, short.nodes)
+    try
+      prepare_program_group_limits(program.units, requirements(program), short)
+    catch {
+      BudgetExceeded | Encoding(_) | PublicationHost(_) => ()
+      error => raise error
+    } noraise {
+      _ => fail("partial aggregate closure escaped its shared budget")
+    }
+    assert_eq((short.work, short.bytes, short.nodes), prior)
+  }
+  for index in 0..<2 {
+    let retained = unit_group_limit_at(program, 1, index).unwrap()
+    assert_eq(
+      @wire.limit_cid(group_limit_claim(retained)),
+      @wire.limit_cid(group_limit_claim(built[1][index])),
+    )
+    assert_eq(
+      @wire.limit_cid(group_limit_claim(retained)),
+      @wire.limit_cid(group_limit_claim(repeated[1][index])),
+    )
+    assert_true(
+      physical_equal(
+        group_limit_source(retained).operation.pipeline,
+        unit.pipeline,
+      ),
+    )
+  }
   let sources = [
     unit_group_aggregate_source_at(program, 1, 0, 0).unwrap(),
     unit_group_aggregate_source_at(program, 1, 0, 1).unwrap(),

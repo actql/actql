@@ -87,6 +87,12 @@ currently non-binding without dropping its provenance. The limit specifies
 fail-only engine-atomic enforcement, not truncation or completed enforcement.
 The returned opaque result retains its original selection and indexed proof
 graphs so a consumer does not reconstruct candidate ownership from wire values.
+The formal `check` entry constructs every local ordinary-array limit before it
+returns `CheckedProgram`, sharing its work, output-byte and node budget across
+stages and calls. A later failure exposes no partially completed Program.
+`unit_group_limit_count` and `unit_group_limit_at` read the retained results
+without copying or hashing again. Imported producer visits do not create a
+consumer-owned duplicate; the producer Unit retains its own aggregate scope.
 An extracted aggregate guard uses the owning Unit Definition as its witness
 dependency, keeping unrelated stages and whole-Program observations outside the
 local limit identity. Its source path is a canonical locator in the authored

@@ -204,6 +204,10 @@ pub fn unit_group_guard_witness(CheckedProgram, Int, Int, Int, max_work~ : Int, 
 
 pub fn unit_group_input_proof(CheckedProgram, Int, Int, Int, Int, max_work~ : Int, max_bytes~ : Int, max_nodes~ : Int, max_depth~ : Int) -> GroupInputProof raise UnitBuildFailure
 
+pub fn unit_group_limit_at(CheckedProgram, Int, Int) -> GroupLimit?
+
+pub fn unit_group_limit_count(CheckedProgram, Int) -> Int?
+
 pub fn unit_import_cid_at(CheckedProgram, Int, Int) -> String?
 
 pub fn unit_import_cid_count(CheckedProgram, Int) -> Int?

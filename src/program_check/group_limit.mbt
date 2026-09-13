@@ -55,6 +55,17 @@ pub fn unit_group_array_limit(
   let (source, selected) = owned_group_array_limit(
     program, stage, step, aggregate, budget,
   )
+  assemble_group_array_limit(program.units, source, selected, budget)
+}
+
+///|
+fn assemble_group_array_limit(
+  units : Array[BuiltUnit],
+  source : GroupAggregateSource,
+  selected : @context.GroupArrayLimit,
+  budget : IdentityBudget,
+) -> GroupLimit raise UnitBuildFailure {
+  let max_depth = budget.depth
   let host = publication_host(@context.group_array_limit_host(selected), budget)
   let host_bytes = publication_metadata(
     w => @host.emit(host, w) catch { e => raise Encoding(e) },
@@ -79,13 +90,7 @@ pub fn unit_group_array_limit(
   identity_charge(budget, count)
   let mut non_author = @wire.value(host_witness)
   for candidate in 0..<count {
-    let proof = group_input_proof(
-      program.units,
-      source,
-      selected,
-      candidate,
-      budget,
-    )
+    let proof = group_input_proof(units, source, selected, candidate, budget)
     let witness = @wire.program_proof_witness(proof.proof)
     non_author = Int64::min(non_author, @wire.value(witness))
     candidates.push((@wire.cid(witness), witness))
