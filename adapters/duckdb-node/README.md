@@ -164,6 +164,16 @@ completion remain required. This fixture-backed driver is conformance code, not
 the final standard Compute Host entry. Acquisition budget exemptions must not be
 reused to waive a fixed consumer's selected contract.
 
+`test/typed-host.test.mjs` exercises the standard native and broad acquisition
+entries with an unused nullable column in each supported scalar family: text,
+boolean, lossless BIGINT-to-number, finite DOUBLE, DECIMAL(38,2), date and
+millisecond-exact TIMESTAMPTZ. Independent typed scan preimages determine the
+expected access hashes; both strategies produce the same retained id projection
+and checked consumer output. Lossy integers, noncanonical text, nonfinite numbers,
+infinite dates and submillisecond timestamps in discarded rows still fail before
+capture. This verifies full-scan admission of those fields, not native predicates
+over strings/decimals/temporal values or unrestricted projections of every type.
+
 The private `DuckDBBroadAttempt` API orders metadata, chunk admission, receipt
 sealing, transport settlement and guarded residual execution. A Host coordinator
 must acknowledge settlement only after `runBroadAcquisition` has returned
