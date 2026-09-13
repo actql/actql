@@ -85,6 +85,23 @@ Typed work enums may remain provider-local. Start obligation coverage with the
 existing source-validation/filter/select occurrences; completion coverage and
 auxiliary physical work are not substitutes for these logical duties.
 
+The Host-private `DuckDBComputeAttempt` binds an owned selected candidate to
+its exact fixed input, common capacity, receiving buffers and completion port.
+Input measurement precedes backend execution. Receipt sealing precedes trusted
+transport settlement verification, demand/output checks and final completion.
+The engine's trusted output port is prepared before execution and uses a fixed
+internal verifier; callers cannot pass replacement output rows or proof JSON.
+The low-level transport verifier installation remains trusted Host bootstrap,
+not an ordinary Connector capability or a Program callback.
+
+Only a live settled attempt with matching receipt, demand and capacity handles
+may yield `CompletedOutput`. This completion publishes only the final target and
+can be bound through the ordinary producer/consumer path. Duplicate completion
+and abort after success do not revoke the successful result; explicit close
+invalidates its live provenance and blocks new consumer execution. A downstream
+result that already completed remains independent. The attempt stores a success
+flag rather than its own completed output, avoiding a completion/attempt cycle.
+
 Fixed-input Compute uses the same module registrations but a distinct owned
 `FixedComputeRequest` and candidate type. The request retains one `ProducerRead`
 for its exactly bound consumer, together with the exact pinned

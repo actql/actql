@@ -181,6 +181,14 @@ completion remain required. This fixture-backed driver is conformance code, not
 the final standard Compute Host entry. Acquisition budget exemptions must not be
 reused to waive a fixed consumer's selected contract.
 
+The product MoonBit `DuckDBComputeAttempt` now coordinates selected candidate,
+input measurement, result receipt, trusted settlement verification, demand and
+output guards, and the actual engine `CompletedOutput`. Portable integration
+tests bind that output to an ordinary checked consumer and cover failure and
+revocation. The low-level verifier argument is trusted Host wiring. The standard
+Node Compute entry still needs to install its settled-transport verifier and
+use this coordinator; the fixture path above does not establish that integration.
+
 The scalar import transport fixture also starts with real engine-completed
 values and the product import adapter, then checks exact real DuckDB round-trips
 for text, boolean, number (including lossless large integers), DECIMAL(38,2),

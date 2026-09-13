@@ -1,0 +1,278 @@
+///|
+pub(all) struct DuckDBComputeLimits {
+  values : @execution.FixedInputGuardMeasureLimits
+  demand : @execution.FixedInputGuardMeasureLimits
+  physical : @duckdb.PhysicalResultLimits
+  retention : @execution.ValueLimits
+  metadata_work : Int
+  completion_entries : Int
+  completion_name_bytes : Int
+}
+
+///|
+pub(all) enum DuckDBComputeIssue {
+  NotSelected
+  ForeignPreparation
+  InvalidState
+  UnverifiedTransport
+  Guard(@execution.FixedInputGuardIssue)
+  Receiving(@duckdb.FixedComputeReceivingIssue)
+  Demand(@duckdb.NativeDemandIssue)
+  Completion(@execution.TrustedOutputIssue)
+}
+
+///|
+/// Host-private attempt. The verifier is trusted runtime wiring, never a
+/// callback provided by a Program or ordinary capability registration.
+struct DuckDBComputeAttempt {
+  request : FixedComputeRequest
+  compute : @duckdb.FixedCompute
+  port : @execution.TrustedOutputPort[DuckDBComputeAttempt]
+  limits : DuckDBComputeLimits
+  measurement : @execution.FixedProducerMeasurement
+  transport_matches : (DuckDBComputeAttempt) -> Bool
+  mut receiving : @duckdb.FixedComputeReceiving?
+  mut receipt : @duckdb.FixedComputeReceipt?
+  mut measured : @execution.FixedProducerMeasuredOutput?
+  mut demand : @duckdb.FixedComputeDemand?
+  mut completed : Bool
+  mut live : Bool
+}
+
+///|
+pub fn start_duckdb_compute_attempt(
+  choice : FixedComputeChoice,
+  prepared : PreparedCompute[@duckdb.FixedCompute],
+  generated : @execution.GeneratedSequence,
+  limits : DuckDBComputeLimits,
+  transport_matches : (DuckDBComputeAttempt) -> Bool,
+) -> Result[DuckDBComputeAttempt, DuckDBComputeIssue] {
+  guard fixed_compute_choice_payload(choice, prepared) is Some(compute) else {
+    return Err(NotSelected)
+  }
+  let request = prepared.candidate.request
+  if !physical_equal(
+      @execution.generated_sequence_owner(generated),
+      @execution.producer_read_receiver(request.input),
+    ) ||
+    request.capacity.common_fragment is Some(_) {
+    return Err(ForeignPreparation)
+  }
+  let measurement = match
+    @execution.prepare_fixed_producer_measurement(
+      request.input,
+      @pipeline.Step(1),
+      max_rows=request.capacity.max_rows,
+      max_value_bytes=request.capacity.max_value_bytes,
+      limits.values,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Guard(issue))
+  }
+  let port = match
+    @execution.prepare_trusted_output_port(
+      generated,
+      @pipeline.Step(1),
+      limits.completion_entries,
+      limits.completion_name_bytes,
+      verified_compute_rows,
+    ) {
+    Ok(port) => port
+    Err(issue) => return Err(Completion(issue))
+  }
+  Ok({
+    request,
+    compute,
+    port,
+    limits,
+    measurement,
+    transport_matches,
+    receiving: None,
+    receipt: None,
+    measured: None,
+    demand: None,
+    completed: false,
+    live: true,
+  })
+}
+
+///|
+pub fn duckdb_compute_attempt_plan(
+  value : DuckDBComputeAttempt,
+) -> @duckdb.FixedCompute {
+  value.compute
+}
+
+///|
+pub fn begin_duckdb_compute_result(
+  value : DuckDBComputeAttempt,
+  fields : Array[(String, @duckdb.PhysicalType)],
+) -> Result[Unit, DuckDBComputeIssue] {
+  if !value.live || value.receiving is Some(_) {
+    return Err(InvalidState)
+  }
+  match
+    @duckdb.prepare_fixed_compute_receiving(
+      value.compute,
+      fields,
+      value.limits.physical,
+      value.limits.retention,
+      value.limits.metadata_work,
+    ) {
+    Ok(receiving) => {
+      value.receiving = Some(receiving)
+      Ok(())
+    }
+    Err(issue) => {
+      abort_duckdb_compute_attempt(value)
+      Err(Receiving(issue))
+    }
+  }
+}
+
+///|
+pub fn receive_duckdb_compute_chunk(
+  value : DuckDBComputeAttempt,
+  rows : Int,
+  columns : Array[@decode.Cursor],
+) -> Result[Unit, DuckDBComputeIssue] {
+  guard value.live &&
+    value.receipt is None &&
+    value.receiving is Some(receiving) else {
+    return Err(InvalidState)
+  }
+  match @duckdb.receive_fixed_compute_chunk(receiving, rows, columns) {
+    Ok(_) => Ok(())
+    Err(issue) => {
+      abort_duckdb_compute_attempt(value)
+      Err(Receiving(issue))
+    }
+  }
+}
+
+///|
+pub fn finish_duckdb_compute_result(
+  value : DuckDBComputeAttempt,
+) -> Result[Unit, DuckDBComputeIssue] {
+  guard value.live &&
+    value.receipt is None &&
+    value.receiving is Some(receiving) else {
+    return Err(InvalidState)
+  }
+  match @duckdb.finish_fixed_compute_receiving(receiving) {
+    Ok(receipt) => {
+      value.receipt = Some(receipt)
+      Ok(())
+    }
+    Err(issue) => {
+      abort_duckdb_compute_attempt(value)
+      Err(Receiving(issue))
+    }
+  }
+}
+
+///|
+fn verified_compute_rows(
+  value : DuckDBComputeAttempt,
+) -> @execution.AdmittedOutputRows? {
+  guard value.live &&
+    (value.transport_matches)(value) &&
+    value.receiving is Some(receiving) &&
+    value.receipt is Some(receipt) &&
+    value.measured is Some(measured) &&
+    value.demand is Some(demand) &&
+    @duckdb.fixed_compute_receipt_matches(receipt, receiving) &&
+    @duckdb.fixed_compute_demand_matches(
+      demand,
+      value.compute,
+      receipt,
+      value.request.capacity.max_value_bytes,
+    ) &&
+    @duckdb.fixed_compute_receipt_rows(receipt) is Some(rows) &&
+    @execution.fixed_producer_measurement_matches(
+      measured,
+      value.request.input,
+      rows,
+      value.request.capacity.max_rows,
+      value.request.capacity.max_value_bytes,
+    ) else {
+    return None
+  }
+  Some(rows)
+}
+
+///|
+/// Settlement is necessary, not sufficient. This installs the fixed verifier;
+/// raw rows/CIDs and successful SQL cannot bypass capacity and ownership checks.
+pub fn complete_duckdb_compute_attempt(
+  value : DuckDBComputeAttempt,
+) -> Result[@execution.CompletedOutput, DuckDBComputeIssue] {
+  if !value.live || value.completed {
+    return Err(InvalidState)
+  }
+  let result = complete_duckdb_compute_impl(value)
+  if result is Err(_) {
+    abort_duckdb_compute_attempt(value)
+  }
+  result
+}
+
+///|
+fn complete_duckdb_compute_impl(
+  value : DuckDBComputeAttempt,
+) -> Result[@execution.CompletedOutput, DuckDBComputeIssue] {
+  guard value.receipt is Some(receipt) else { return Err(InvalidState) }
+  if !(value.transport_matches)(value) {
+    return Err(UnverifiedTransport)
+  }
+  let capacity = value.request.capacity
+  value.demand = Some(
+    match
+      @duckdb.measure_fixed_compute_demand(
+        value.compute,
+        receipt,
+        capacity.max_value_bytes,
+        value.limits.demand,
+      ) {
+      Ok(demand) => demand
+      Err(issue) => return Err(Demand(issue))
+    },
+  )
+  guard @duckdb.fixed_compute_receipt_rows(receipt) is Some(rows) else {
+    return Err(InvalidState)
+  }
+  value.measured = Some(
+    match
+      @execution.finish_fixed_producer_measurement(value.measurement, rows) {
+      Ok(measured) => measured
+      Err(issue) => return Err(Guard(issue))
+    },
+  )
+  match @execution.complete_trusted_output(value.port, value) {
+    Ok(output) => {
+      value.completed = true
+      Ok(output)
+    }
+    Err(issue) => Err(Completion(issue))
+  }
+}
+
+///|
+pub fn abort_duckdb_compute_attempt(value : DuckDBComputeAttempt) -> Unit {
+  if value.completed {
+    return
+  }
+  close_duckdb_compute_attempt(value)
+}
+
+///|
+pub fn close_duckdb_compute_attempt(value : DuckDBComputeAttempt) -> Unit {
+  value.live = false
+  if value.receiving is Some(receiving) {
+    @duckdb.abort_fixed_compute_receiving(receiving)
+  }
+  value.receipt = None
+  value.measured = None
+  value.demand = None
+  value.completed = false
+}
