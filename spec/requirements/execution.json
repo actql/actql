@@ -476,6 +476,39 @@
       }
     },
     {
+      "requirement_id": "actql.execution/numeric-observation.group-slot-preimage",
+      "statement_sha256": "6d19562b730e5e1151747df64a1fa42aaeebcdb6e32e3ba47d34c99710f101ac",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "numeric-observation",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.execution/numeric-observation.group-slot-owner",
+      "statement_sha256": "c77bc8d8ea5fd323cc2491ecce7c5e934f92220cc1748df07d93080da1059d68",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "numeric-observation",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.execution/numeric-observation.group-slot-acyclic",
+      "statement_sha256": "19bb32b20afb884c8a51a03eed87e7d27bc0bcd8d4b4ed4cf583909bebf57408",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "numeric-observation",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.execution/run-admission.denial-must-occur-before-execution-or-effect-application-and-must",
       "statement_sha256": "32064c5f45800c99d54690d15b39a89e41340a1650d876be64a437f62af0da3e",
       "status": "pending",

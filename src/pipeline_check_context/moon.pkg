@@ -73,5 +73,6 @@ formatter(
     "sourceview_fixture.generated_test.mbt",
     "text_profile.generated_test.mbt",
     "numeric_profile.generated_test.mbt",
+    "numeric_slot_pins.generated.mbt",
   ],
 )

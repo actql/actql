@@ -41,6 +41,7 @@ fn core_contract_site_stage(
     | OperationRankingCountRules(stage, _, _)
     | OperationSeriesCountRules(stage, _, _)
     | NumericAggregateProfile(stage, _, _, _)
+    | NumericAggregateSlotRules(stage, _, _, _)
     | CatalogReference(stage, _, _)
     | StageSourceGrammar(stage)
     | StageLocalInputRules(stage, _)

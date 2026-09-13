@@ -1048,6 +1048,7 @@ pub(all) enum CoreContractSite {
   OperationRankingCountRules(Int, Int, Int)
   OperationSeriesCountRules(Int, Int, Int)
   NumericAggregateProfile(Int, Int, Int, Int)
+  NumericAggregateSlotRules(Int, Int, Int, Int)
   StageLocalInputRules(Int, Int)
   StageLocalInputType(Int, Int)
   StageCanonicalIdentityRules(Int)

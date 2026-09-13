@@ -72,6 +72,7 @@ pub(all) enum CoreContractSite {
   OperationRankingCountRules(Int, Int, Int)
   OperationSeriesCountRules(Int, Int, Int)
   NumericAggregateProfile(Int, Int, Int, Int)
+  NumericAggregateSlotRules(Int, Int, Int, Int)
   StageLocalInputRules(Int, Int)
   StageLocalInputType(Int, Int)
   StageCanonicalIdentityRules(Int)
@@ -294,6 +295,21 @@ pub fn collect_core_contracts(
         core_contract_edge(b)
         core_contract_body(b, observation)
         core_contract_dependency(b, root, observation)
+        let slot_rules = NumericReductionBody(numeric_slot_contract_cid())
+        core_contract_root(
+          b,
+          NumericAggregateSlotRules(
+            site.stage,
+            site.producer_visit,
+            site.step,
+            site.index,
+          ),
+          slot_rules,
+        )
+        let slot_schema = NumericReductionBody(numeric_slot_schema_cid())
+        core_contract_edge(b)
+        core_contract_body(b, slot_schema)
+        core_contract_dependency(b, slot_rules, slot_schema)
       }
     }
     for index in 0..<incoming.entries.length() {

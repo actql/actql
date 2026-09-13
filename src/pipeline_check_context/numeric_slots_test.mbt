@@ -61,7 +61,7 @@ test "numeric slots retain exact demand and add contracts only to owning stages"
   )
   assert_eq(
     core_contract_body_count(contracts),
-    core_contract_body_count(base) + 4,
+    core_contract_body_count(base) + 6,
   )
   let mut roots = 0
   for i in 0..<core_contract_root_count(contracts) {

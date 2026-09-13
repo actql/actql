@@ -20,5 +20,6 @@ formatter(
     "ordered_derive_preimages.generated_test.mbt",
     "query_acquisition.generated_test.mbt",
     "query_two_receipt.generated_test.mbt",
+    "numeric_slot.generated_test.mbt",
   ],
 )

@@ -193,6 +193,16 @@ Contract collection therefore does not require choosing a future execution
 algorithm or hashing future response bytes. Absence of an inventory supplies no
 numeric contract by default and does not close a floating observation obligation.
 
+The ordinary-group persistent slot preimage contains the owning Unit Definition,
+authored source ordinal, exact aggregate name and admitted profile CID. Its
+version distinguishes this scope from frame- or pivot-specific slots. Unit
+interpretation dependencies include the slot contract/schema, while the derived
+slot CID itself is excluded from the Unit preimage. Group keys, contributor
+artifacts and adopted values arrive later at the observation boundary. This
+avoids both a future-observation identity cycle and accidental reuse of internal
+visit/obligation indices as durable identities. The schema verifies shape;
+binding to the owned aggregate remains a semantic check.
+
 ## Reference compatibility
 
 Persistent ordinary-group limits use the Unit/step/aggregate-name/scoped

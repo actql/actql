@@ -1,0 +1,68 @@
+[
+  {
+    "body": {
+      "version": "actql-group-numeric-slot/0.1",
+      "unit_definition_cid": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+      "source_ordinal": 0,
+      "aggregate_name": "sum",
+      "reduction_profile_cid": "sha256:d771391b2e4f3e52a3cf48810571a09c6c272df64fbb77c245dfabcf456be5df"
+    },
+    "canonical": "{\"aggregate_name\":\"sum\",\"reduction_profile_cid\":\"sha256:d771391b2e4f3e52a3cf48810571a09c6c272df64fbb77c245dfabcf456be5df\",\"source_ordinal\":0,\"unit_definition_cid\":\"sha256:0000000000000000000000000000000000000000000000000000000000000000\",\"version\":\"actql-group-numeric-slot/0.1\"}",
+    "cid": "sha256:60bf2e5fb0c0d2a35d09faa54b72d6f5a6211e0ac66b20df7fd248abbc8fc55f"
+  },
+  {
+    "body": {
+      "version": "actql-group-numeric-slot/0.1",
+      "unit_definition_cid": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+      "source_ordinal": 0,
+      "aggregate_name": "sum",
+      "reduction_profile_cid": "sha256:d771391b2e4f3e52a3cf48810571a09c6c272df64fbb77c245dfabcf456be5df"
+    },
+    "canonical": "{\"aggregate_name\":\"sum\",\"reduction_profile_cid\":\"sha256:d771391b2e4f3e52a3cf48810571a09c6c272df64fbb77c245dfabcf456be5df\",\"source_ordinal\":0,\"unit_definition_cid\":\"sha256:1111111111111111111111111111111111111111111111111111111111111111\",\"version\":\"actql-group-numeric-slot/0.1\"}",
+    "cid": "sha256:f27b09b53d26d24a6d9af7b784480830c5d35d2d2be3ba72dca39a1f24c08b44"
+  },
+  {
+    "body": {
+      "version": "actql-group-numeric-slot/0.1",
+      "unit_definition_cid": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+      "source_ordinal": 1,
+      "aggregate_name": "sum",
+      "reduction_profile_cid": "sha256:d771391b2e4f3e52a3cf48810571a09c6c272df64fbb77c245dfabcf456be5df"
+    },
+    "canonical": "{\"aggregate_name\":\"sum\",\"reduction_profile_cid\":\"sha256:d771391b2e4f3e52a3cf48810571a09c6c272df64fbb77c245dfabcf456be5df\",\"source_ordinal\":1,\"unit_definition_cid\":\"sha256:0000000000000000000000000000000000000000000000000000000000000000\",\"version\":\"actql-group-numeric-slot/0.1\"}",
+    "cid": "sha256:cfb74437d4561dc33fed04f7c97cf966005da0e28ce0d3f1ccc0a7b0070ced44"
+  },
+  {
+    "body": {
+      "version": "actql-group-numeric-slot/0.1",
+      "unit_definition_cid": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+      "source_ordinal": 0,
+      "aggregate_name": "avg",
+      "reduction_profile_cid": "sha256:d771391b2e4f3e52a3cf48810571a09c6c272df64fbb77c245dfabcf456be5df"
+    },
+    "canonical": "{\"aggregate_name\":\"avg\",\"reduction_profile_cid\":\"sha256:d771391b2e4f3e52a3cf48810571a09c6c272df64fbb77c245dfabcf456be5df\",\"source_ordinal\":0,\"unit_definition_cid\":\"sha256:0000000000000000000000000000000000000000000000000000000000000000\",\"version\":\"actql-group-numeric-slot/0.1\"}",
+    "cid": "sha256:9280c042f3d637a2af45eff987d9ff43f1b48307552e3003d44d113ef7eb0893"
+  },
+  {
+    "body": {
+      "version": "actql-group-numeric-slot/0.1",
+      "unit_definition_cid": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+      "source_ordinal": 0,
+      "aggregate_name": "é~/\n😀",
+      "reduction_profile_cid": "sha256:d771391b2e4f3e52a3cf48810571a09c6c272df64fbb77c245dfabcf456be5df"
+    },
+    "canonical": "{\"aggregate_name\":\"é~/\\n😀\",\"reduction_profile_cid\":\"sha256:d771391b2e4f3e52a3cf48810571a09c6c272df64fbb77c245dfabcf456be5df\",\"source_ordinal\":0,\"unit_definition_cid\":\"sha256:0000000000000000000000000000000000000000000000000000000000000000\",\"version\":\"actql-group-numeric-slot/0.1\"}",
+    "cid": "sha256:33f20efaf7bbbbd4a302c2103978ffe4b167f24c3ce5ac64f8b79ca488609675"
+  },
+  {
+    "body": {
+      "version": "actql-group-numeric-slot/0.1",
+      "unit_definition_cid": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+      "source_ordinal": 0,
+      "aggregate_name": "sum",
+      "reduction_profile_cid": "sha256:2222222222222222222222222222222222222222222222222222222222222222"
+    },
+    "canonical": "{\"aggregate_name\":\"sum\",\"reduction_profile_cid\":\"sha256:2222222222222222222222222222222222222222222222222222222222222222\",\"source_ordinal\":0,\"unit_definition_cid\":\"sha256:0000000000000000000000000000000000000000000000000000000000000000\",\"version\":\"actql-group-numeric-slot/0.1\"}",
+    "cid": "sha256:a920784cb815c95c7ea8cfac24ddb8a6b8c9062389bec6f7199bb6ed912c330d"
+  }
+]

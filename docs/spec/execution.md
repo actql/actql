@@ -712,6 +712,41 @@ membership and self-consistent CIDs alone are not completion evidence. This
 profile does not define a replacement aggregate-slot preimage or weaken the
 existing slot ownership requirements.
 
+<!-- machine-import: ../../spec/contracts/actql-numeric-slot.json# sha256:3bbd17b81b40403cea2b43db3324a9c2b2185bc8c86a994d58f009e317b1a73d -->
+<!-- machine-import: ../../spec/contracts/actql-numeric-slot.json#/schemas/group_slot sha256:56381c50a36da58d99c04b753bd258cb1931a2be7320b42984bae09662b927a9 -->
+
+<!-- requirement-block: numeric-observation.group-slot-preimage -->
+For an ordinary `group` binary64 sum/avg, the aggregate slot CID MUST hash the
+entire canonical JSON body defined by the [group slot schema](../../spec/contracts/actql-numeric-slot.json):
+`{version: "actql-group-numeric-slot/0.1", unit_definition_cid,
+source_ordinal, aggregate_name, reduction_profile_cid}`. The ordinal is the
+owning Unit's authored step ordinal, not a producer-visit, obligation or lowered
+node index. The name is the exact canonical authored aggregate name, not a
+position in the aggregate map and not an escaped path. The Unit Definition
+already binds the operation's semantics, effective used Parameters and local
+contracts. The profile CID identifies the explicitly admitted profile, not a
+member selected for a future attempt. This fixes the previously unspecified
+ordinary-group slot preimage; window_group, pivot and analytic require their
+own context-specific slot definitions.
+
+<!-- requirement-block: numeric-observation.group-slot-owner -->
+Slot admission MUST verify the same checked Program, owning Stage, local
+pipeline, source step, sum/avg call and selected profile. The slot contract and
+schema, reduction profile and its declared dependencies belong to that Unit's
+local contract closure. Importing a result references its producer's slot; it
+does not rebase it to the consumer Unit. Wire shape, valid digest syntax or an
+equal self-hash cannot establish this ownership. An aggregate name that is not
+canonical or does not identify the selected call is rejected without repair.
+
+<!-- requirement-block: numeric-observation.group-slot-acyclic -->
+The preimage MUST exclude future input/contributor artifacts, group/frame key,
+count, adopted value, selected algorithm member, attempt, placement, costs,
+Stage Invocation and Result identities. These bind to the captured observation
+or execution attempt instead. The Unit Definition does not include the derived
+slot CID or future observation, avoiding a circular identity definition.
+Constructing a slot is not evidence of successful reduction, durable capture,
+authorization or a backend's ability to enforce the selected contract.
+
 <a id="run-admission"></a>
 
 ### Run admission and identity
