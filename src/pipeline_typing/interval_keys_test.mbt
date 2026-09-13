@@ -83,6 +83,17 @@ test "interval joins transfer keys from equality coverage, not time predicates" 
             for i in 0..<@evidence.key_witness_count(keys) {
               let witness = @evidence.key_witness_at(keys, i).unwrap()
               assert_eq(@evidence.key_origin(witness), IntervalJoinResult)
+              for component in 0..<@evidence.key_field_count(witness) {
+                let field = @evidence.key_field_at(witness, component).unwrap()
+                assert_true(
+                  field.name == Unqualified("b") ||
+                  field.name == Unqualified("c"),
+                )
+                assert_eq(
+                  field.contract.unwrap().nullable,
+                  kind == "left" && field.name == Unqualified("c"),
+                )
+              }
               let op = @evidence.key_interval_join_producer(witness).unwrap()
               assert_true(
                 @join.interval_pending_validations(op).contains(
