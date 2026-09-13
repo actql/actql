@@ -184,6 +184,7 @@ fn ext_run_batch(
   logical : LogicalBudget,
   physical : LayoutAllocation,
   trace : ExtBatchTrace,
+  output_values? : ValueBudget = row_output(),
 ) -> Result[LayoutStorage, RowIssue] {
   if !physical_equal(@lower.kernel_owner(plan.kernel), input.owner) {
     return Err(OwnerMismatch)
@@ -221,7 +222,7 @@ fn ext_run_batch(
     Err(e) => return Err(e)
   }
   let result = ext_run_batch_impl(
-    plan, input, width, physical, trace, scope, builder,
+    plan, input, width, physical, trace, scope, builder, output_values,
   )
   cleanup_expression_roots(scope)
   match result {
@@ -243,6 +244,7 @@ fn ext_run_batch_impl(
   trace : ExtBatchTrace,
   scope : ExpressionRoots,
   builder : LayoutColumnBuilder,
+  output_values : ValueBudget,
 ) -> Result[Unit, RowIssue] {
   let b = scope.budget
   let count = input.storage.count
@@ -266,7 +268,6 @@ fn ext_run_batch_impl(
       Err(e) => return Err(LogicalRows(e))
     }
   }
-  let output_values = row_output()
   let mut start = 0
   while start < count {
     let n = Int::min(width, count - start)
