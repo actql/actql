@@ -3,10 +3,10 @@
 Execution success and physical layout have separate responsibilities. The
 opaque completed sequence retains the exact prepared owner, selected contracts,
 Parameter binding and upstream completion anchors. Its private store retains
-either ordinary row tables or mixed row/numeric-column tables. Neither storage
+ordinary row tables, numeric-column tables or admitted-value tables. Neither storage
 construction nor equal values establish successful execution.
 
-Both representations enter the same ordered driver and final success
+These representations enter the same ordered driver and final success
 constructor. A failure clears invocation-local retained outputs; no completed
 handle is returned. Completion and producer admission contain no expression
 frame, continuation or scheduling API. Changing synchronous expression
@@ -36,6 +36,15 @@ sink. A temporary projected row may exist, but no complete output row matrix
 is retained. Index operations use the existing comparison and selection kernels;
 their physical adapter composes indices against shared buffers. This does not
 introduce ordering inference or change tie handling.
+
+Admitted-value tables use a separate projection sink, not the numeric sink.
+The same checked evaluator establishes column selection, aliases, logical
+charging and failure order. The sink retains the selected immutable admitted
+values by reference, reserving the destination reference arrays before their
+construction. It does not re-admit values or convert text, decimal or temporal
+payloads to numbers. Empty inputs retain their checked output names. These
+tables already contain row reference arrays; preserving them is not a claim of
+columnar execution or allocation-free projection.
 
 Non-projection expression bodies use the existing bounded row output builder.
 This is the explicit conversion boundary for consumers without a typed output

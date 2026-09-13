@@ -23,13 +23,28 @@ pub fn owned_fixed_create(
   values_json : String,
   fragment_json : String,
 ) -> OwnedFixedFixture {
+  owned_fixed_from_output(
+    @duckdb.native_query_owner(@duckdb.native_scan_query(producer.scan)),
+    output,
+    registry_json,
+    values_json,
+    fragment_json,
+  )
+}
+
+///|
+fn owned_fixed_from_output(
+  owner : @lower.BoundPrepared,
+  output : @execution.CompletedOutput,
+  registry_json : String,
+  values_json : String,
+  fragment_json : String,
+  projection? : String = "id",
+) -> OwnedFixedFixture {
   try {
-    let owner = @duckdb.native_query_owner(
-      @duckdb.native_scan_query(producer.scan),
-    )
     let receiver = issued_fixture_consumer(
       owner,
-      steps="[{\"filter\":\"id > 2\"},{\"select\":[\"id\"]}]",
+      steps="[{\"filter\":\"id > 2\"},{\"select\":[\"" + projection + "\"]}]",
     )
     let bound = @execution.bind_completed_input(receiver, 0, owner, output).unwrap()
     let read = @execution.prepare_producer_read(receiver, bound, 100, 10000).unwrap()
@@ -140,7 +155,10 @@ pub fn owned_fixed_create(
         },
       ),
       consumer: fixture_generated(
-        issued_fixture_consumer(receiver),
+        issued_fixture_consumer(
+          receiver,
+          steps="[{\"select\":[\"" + projection + "\"]}]",
+        ),
         registry_json,
         values_json,
         fragment_json,

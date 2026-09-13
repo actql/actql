@@ -213,6 +213,14 @@ use of that output; independent consumers that already completed remain valid.
 The setup may be reused for a fresh attempt and budget, not a restarted old
 transport. This is source-checkout local Compute, not durable Run execution.
 
+The standard fixed-Host conformance test additionally retains typed projected
+outputs through product completion and an ordinary checked consumer. Text,
+boolean, exact numeric values, DECIMAL, date and timestamp payloads include NULL
+and duplicate rows. Local and DuckDB results are independently checked against
+literal expected row identities, including foreign-owner and released-output
+rejection. This does not broaden native predicates beyond their limited
+numeric/boolean profile.
+
 The scalar import transport fixture also starts with real engine-completed
 values and the product import adapter, then checks exact real DuckDB round-trips
 for text, boolean, number (including lossless large integers), DECIMAL(38,2),

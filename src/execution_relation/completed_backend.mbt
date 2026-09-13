@@ -31,6 +31,36 @@ fn evaluate_completed_body(
       ordered_budget=logical,
     ).map(table => RowTable(table))
   }
+  if input is AdmittedTable(table) {
+    let rows : Array[Array[@admitted.Value]] = []
+    let names = match
+      evaluate_row_body_into(
+        body,
+        input,
+        max_rows,
+        control,
+        output,
+        workspace,
+        fn(_row, source, _names, selected) {
+          guard selected is Some(indices) else { return Err(InvalidRows) }
+          // Preserve admitted immutable values in their existing representation.
+          // The shared evaluator already performed semantic checks and charging;
+          // this sink charges only the additional reference-array construction.
+          if !reserve_slots(workspace, 1) ||
+            !reserve_slots(workspace, indices.length()) ||
+            !spend_control(control, indices.length()) {
+            return Err(RowLimit)
+          }
+          rows.push(indices.map(i => table.rows[source][i]))
+          Ok(())
+        },
+        ordered_budget=logical,
+      ) {
+      Ok(names) => names
+      Err(issue) => return Err(issue)
+    }
+    return Ok(AdmittedTable({ owner: table.owner, id, names, rows, }))
+  }
   let count = IndexedRows::row_count(input)
   let columns : Array[CompletedNumberColumn] = []
   let names = match

@@ -158,6 +158,8 @@ pub fn receipt_identities(@duckdb_adapter.NativeReceiving) -> String
 
 pub fn sql(@duckdb_adapter.NativeReceiving, Int) -> String
 
+pub fn typed_fixed_create(String, String, String, String) -> OwnedFixedFixture
+
 // Errors
 
 // Types and methods
