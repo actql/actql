@@ -19,7 +19,7 @@ pub fn cancel_mock_query(MockQueryAttempt) -> Bool
 
 pub fn choose_query_strategy(@execution_relation.QuerySequence, Array[QueryOffer], Array[Int]?, Int) -> Result[QuerySelection, QueryPlanningIssue]
 
-pub fn execute_mock_query(MockQueryAttempt, MockQueryLimits) -> Result[MockQueryComputation, MockQueryIssue]
+pub fn execute_mock_query(MockQueryAttempt, MockQueryLimits, guard_measure? : @execution_relation.QueryGuardMeasureLimits?) -> Result[MockQueryComputation, MockQueryIssue]
 
 pub fn mock_query_computation(MockQueryAttempt) -> Result[MockQueryComputation, MockQueryIssue]
 
@@ -40,6 +40,8 @@ pub fn prepare_mock_query_attempt(QueryStrategy, Array[@decode_core.Cursor], Int
 pub fn prepare_query_material(@execution_relation.QuerySequence, QueryMaterialLimits) -> Result[QueryMaterial, QueryMaterialIssue]
 
 pub fn prepare_query_requirement(QueryMaterial, @pipeline_check_context.ProgramSourceIdentity, QueryLogicalGuards, QueryMaterialLimits) -> Result[QueryRequirement, QueryRequirementIssue]
+
+pub fn prepare_requirement_mock_query_attempt(QueryRequirement, QueryStrategy, Array[@decode_core.Cursor], Int) -> Result[MockQueryAttempt, MockQueryIssue]
 
 pub fn query_evidence_contract_usage(QueryEvidenceContracts) -> (Int, Int)
 
@@ -110,6 +112,9 @@ pub(all) enum MockQueryIssue {
   AlreadyStarted
   NotComputed
   Cancelled
+  ForeignRequirement
+  GuardLimitsRequired
+  Guard(@execution_relation.QueryGuardIssue)
 }
 
 pub(all) struct MockQueryLimits {

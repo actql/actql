@@ -5,6 +5,7 @@ type LogicalLimits = @lower.FragmentRowLimits
 ///|
 priv struct LogicalBudget {
   limits : LogicalLimits
+  root_result_bytes : Int64?
   host_bytes : Int
   host_nodes : Int
   host_depth : Int
@@ -39,16 +40,21 @@ fn logical_budget(
   host_bytes : Int,
   host_nodes : Int,
   host_depth : Int,
+  root_result_bytes? : Int64? = None,
 ) -> Result[LogicalBudget, LogicalBudgetIssue] {
   match validate_logical_limits(limits) {
     Err(e) => return Err(e)
     Ok(_) => ()
   }
-  if host_bytes < 0 || host_nodes < 0 || host_depth < 0 {
+  if host_bytes < 0 ||
+    host_nodes < 0 ||
+    host_depth < 0 ||
+    (root_result_bytes is Some(n) && n < 0L) {
     return Err(InvalidLogicalLimits)
   }
   Ok({
     limits,
+    root_result_bytes,
     host_bytes,
     host_nodes,
     host_depth,

@@ -68,6 +68,8 @@ pub fn execute_local_compute_attempt(LocalComputeAttempt, SequenceExecutionLimit
 
 pub fn execute_query_receipt(QuerySequence, QueryReceipt, SequenceExecutionLimits) -> Result[CompletedSequence, QuerySequenceIssue]
 
+pub fn execute_query_receipt_guarded(QuerySequence, QueryReceipt, SequenceExecutionLimits, max_output_rows~ : Int, max_value_bytes~ : Int, QueryGuardMeasureLimits) -> Result[(CompletedSequence, (Int, Int, Int)), QueryGuardIssue]
+
 pub fn identify_completed_rows(CompletedOutput, RowWireLimits) -> Result[RowWireIdentity, RowWireIssue]
 
 pub fn identify_query_receipt_rows(QueryReceipt, RowWireLimits) -> Result[RowWireIdentity, RowWireIssue]
@@ -278,6 +280,30 @@ pub(all) enum ProducerBindingIssue {
   ProducerOwnerMismatch
   ProducerBindingMismatch
   ProducerTargetMismatch
+}
+
+pub(all) enum QueryGuardIssue {
+  InvalidLimits
+  ForeignReceipt
+  MeasurementWork
+  Measurement(QueryGuardPhase, Int, Int, @encode_core.EncodeFailure)
+  ValueBytes(QueryGuardPhase, Int, Int)
+  InvalidLayout
+  Execution(QuerySequenceIssue)
+  OutputRows
+  MissingOutput
+}
+
+pub(all) struct QueryGuardMeasureLimits {
+  max_work : Int
+  max_bytes : Int
+  max_nodes : Int
+  max_depth : Int
+}
+
+pub(all) enum QueryGuardPhase {
+  Scan
+  Output
 }
 
 type QueryReceipt

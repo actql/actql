@@ -19,6 +19,24 @@ returned rows. Physical receipt limits can abort a broad attempt before a value
 failure; the same receipt limits apply after source computation in the native
 route. The source computation budget and receipt budget are separate.
 
+Requirement-bound mock attempts retain their exact `QueryRequirement` before
+execution. They cannot silently use the unguarded diagnostic path: a physical
+measurement allowance is required. All known scan values are measured before
+predicate evaluation, demanded predicate results obey the requirement's root
+byte ceiling, and the complete selected output obeys its row/value guards.
+The successful root's already measured size is reused before predicate
+consumption; no branch is reevaluated and no logical work is charged twice.
+
+The acquisition's per-value/root guard does not replace the row-kernel's
+separately selected limit on complete retained rows, work or live roots. A
+root-only ceiling is carried through the private runtime context; existing
+checked artifacts and their identities are unchanged. Thus a small scalar
+ceiling does not accidentally reject its enclosing row merely for field names
+and object delimiters. Measurement work/bytes/nodes are physical bounds shared
+across scan and output, not logical work credits. A physical measurement failure
+and a measured value exceeding its logical ceiling have distinct typed errors.
+Row-limit rejection happens after demanded computation, never as an early take.
+
 ## Tasks and accounting scopes
 
 Static `QueryMaterial` retains the exact query preparation, the canonical resolved

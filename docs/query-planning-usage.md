@@ -84,3 +84,18 @@ stage/input site. This Local profile supports nonnegative machine-Int guard
 values. They are requirements to enforce, not completed runtime checks.
 Program source identity, requirement construction and final Program/Plan execution
 permission remain distinct; no capture or consumer input is released by this API.
+
+For requirement-bound computation, use `prepare_requirement_mock_query_attempt`
+with a strategy owned by the requirement's exact query preparation. Pass
+`guard_measure=Some(QueryGuardMeasureLimits)` to `execute_mock_query`.
+Omitting it returns `GuardLimitsRequired` without starting the attempt. Guard
+failure after execution starts fails that attempt and provides no successful
+computation/capture. The older unbound mock constructor remains a diagnostic
+computation path; it is not proof that a canonical requirement was enforced.
+
+The lower-level `execute_query_receipt_guarded` accepts retained scan material,
+the existing computation limits, explicit output-row/per-value guards and
+physical measurement limits. It returns a completed computation plus physical
+measurement usage `(work, bytes, nodes)`. These counters span input and output;
+they do not reset per row. This operation adds no source access, authority or
+capture evidence and preserves the same reusable preparation and immutable input.

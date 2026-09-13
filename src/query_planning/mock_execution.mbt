@@ -3,6 +3,7 @@
 /// No external provider is read, and offer/selection never performs this work.
 struct MockQueryAttempt {
   mut state : MockQueryState
+  requirement : QueryRequirement?
 }
 
 ///|
@@ -40,6 +41,9 @@ pub(all) enum MockQueryIssue {
   AlreadyStarted
   NotComputed
   Cancelled
+  ForeignRequirement
+  GuardLimitsRequired
+  Guard(@execution.QueryGuardIssue)
 }
 
 ///|
@@ -63,7 +67,31 @@ pub fn prepare_mock_query_attempt(
   if source.length() > max_entries {
     return Err(PreparationLimit)
   }
-  Ok({ state: Pending(strategy, source.copy()), })
+  Ok({ state: Pending(strategy, source.copy()), requirement: None, })
+}
+
+///|
+/// Bind the canonical requirement before starting an attempt. This does not
+/// authorize an issuer; execution still produces only unpublished computation.
+pub fn prepare_requirement_mock_query_attempt(
+  requirement : QueryRequirement,
+  strategy : QueryStrategy,
+  source : Array[@decode.Cursor],
+  max_entries : Int,
+) -> Result[MockQueryAttempt, MockQueryIssue] {
+  if !physical_equal(requirement.material.owner, strategy.offer.owner) {
+    return Err(ForeignRequirement)
+  }
+  if max_entries < 0 {
+    return Err(InvalidLimits)
+  }
+  if source.length() > max_entries {
+    return Err(PreparationLimit)
+  }
+  Ok({
+    state: Pending(strategy, source.copy()),
+    requirement: Some(requirement),
+  })
 }
 
 ///|
@@ -88,6 +116,7 @@ fn compute_mock_query(
   strategy : QueryStrategy,
   source : Array[@decode.Cursor],
   limits : MockQueryLimits,
+  guards : (QueryLogicalGuards, @execution.QueryGuardMeasureLimits)?,
 ) -> Result[MockQueryComputation, MockQueryIssue] {
   if limits.source_rows < 0 ||
     limits.received_rows < 0 ||
@@ -125,14 +154,30 @@ fn compute_mock_query(
     Ok(value) => value
     Err(issue) => return Err(Local(issue))
   }
-  let completed = match
-    @execution.execute_query_receipt(
-      strategy.offer.owner,
-      scan,
-      limits.computation,
-    ) {
-    Ok(value) => value
-    Err(issue) => return Err(Local(issue))
+  let completed = match guards {
+    Some((ceilings, physical)) =>
+      match
+        @execution.execute_query_receipt_guarded(
+          strategy.offer.owner,
+          scan,
+          limits.computation,
+          max_output_rows=ceilings.max_rows,
+          max_value_bytes=ceilings.max_value_bytes,
+          physical,
+        ) {
+        Ok((value, _)) => value
+        Err(issue) => return Err(Guard(issue))
+      }
+    None =>
+      match
+        @execution.execute_query_receipt(
+          strategy.offer.owner,
+          scan,
+          limits.computation,
+        ) {
+        Ok(value) => value
+        Err(issue) => return Err(Local(issue))
+      }
   }
   guard @execution.completed_output(
       completed,
@@ -169,11 +214,18 @@ fn compute_mock_query(
 pub fn execute_mock_query(
   attempt : MockQueryAttempt,
   limits : MockQueryLimits,
+  guard_measure? : @execution.QueryGuardMeasureLimits? = None,
 ) -> Result[MockQueryComputation, MockQueryIssue] {
   match attempt.state {
     Pending(strategy, source) => {
+      let guards = match (attempt.requirement, guard_measure) {
+        (Some(requirement), Some(physical)) =>
+          Some((requirement.guards, physical))
+        (Some(_), None) => return Err(GuardLimitsRequired)
+        (None, _) => None
+      }
       attempt.state = Computing
-      match compute_mock_query(strategy, source, limits) {
+      match compute_mock_query(strategy, source, limits, guards) {
         Ok(value) => {
           attempt.state = AwaitingCapture(value)
           Ok(value)
