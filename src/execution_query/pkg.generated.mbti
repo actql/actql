@@ -12,6 +12,8 @@ import {
 // Values
 pub fn admit_query_receipt(QuerySequence, Array[@decode_core.Cursor], Int, @execution_relation.ValueLimits) -> Result[QueryReceipt, QuerySequenceIssue]
 
+pub fn bind_query_receipt(QuerySequence, @execution_relation.CapturedRows) -> Result[QueryReceipt, QuerySequenceIssue]
+
 pub fn evaluate_query_receipt(QuerySequence, Array[@decode_core.Cursor], Int, @execution_relation.ValueLimits, @execution_relation.SequenceExecutionLimits) -> Result[@execution_relation.CompletedSequence, QuerySequenceIssue]
 
 pub fn execute_query_receipt(QuerySequence, QueryReceipt, @execution_relation.SequenceExecutionLimits) -> Result[@execution_relation.CompletedSequence, QuerySequenceIssue]

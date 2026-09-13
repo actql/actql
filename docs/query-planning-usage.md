@@ -134,6 +134,19 @@ It delegates measurement, demanded-root ceilings and execution to the engine's
 package APIs. `query_sequence_owner` supplies the exact lowering owner when
 constructing a checked downstream consumer, without inspecting private fields.
 
+For an adapter that already admitted scalar cells under the exact prepared input
+field contracts, `execution_relation.prepare_admitted_input` and
+`append_admitted_input` build bounded supplied input without repeating admission.
+Pass cells in schema order. Equal but separately constructed contracts are
+rejected. `finish_admitted_input` seals once; append failure or cancellation
+prevents sealing. This row-layout import allocates owned row containers and
+shares immutable values, charging row/key/value occurrences with `ValueLimits`.
+It is not a zero-copy column import or source permission.
+`execution_query.bind_query_receipt` binds the resulting `CapturedRows` to its
+exact preparation and input port without further copying. Local residual still
+applies its normal logical and physical budgets; prior admission grants no
+execution-budget credit or acquisition evidence.
+
 After requirement-bound computation, `retain_mock_query(attempt, limits)` checks
 actual receipt and full-scan-plus-output wire quantities under
 `MockRetentionLimits`. Its measurement bytes/nodes span both hashes; column-order

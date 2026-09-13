@@ -136,6 +136,23 @@ pub fn admit_query_receipt(
     Ok(value) => value
     Err(issue) => return Err(ReceiptAdmission(issue))
   }
+  bind_query_receipt(prepared, captured)
+}
+
+///|
+/// Bind immutable supplied material without copying or repeating value admission.
+/// This preserves exact preparation/input ownership and grants no source authority.
+pub fn bind_query_receipt(
+  prepared : QuerySequence,
+  captured : @execution.CapturedRows,
+) -> Result[QueryReceipt, QuerySequenceIssue] {
+  if !physical_equal(
+      query_sequence_owner(prepared),
+      @execution.captured_owner(captured),
+    ) ||
+    @execution.captured_origin(captured) != @execution.SuppliedInput(0) {
+    return Err(ForeignReceipt)
+  }
   Ok({ owner: prepared, rows: captured, })
 }
 

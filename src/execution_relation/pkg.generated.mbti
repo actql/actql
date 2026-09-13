@@ -19,11 +19,15 @@ pub fn admit_ordered_contract(RegisteredRelationContracts, @canonical_json.Canon
 
 pub fn admit_relation_registry(@canonical_json.CanonicalValue, @canonical_json.CanonicalValue, RegistryLimits) -> Result[RegisteredRelationContracts, RegistryIssue]
 
+pub fn append_admitted_input(AdmittedInput, Array[@value_admission.CheckedValue]) -> Result[Unit, CaptureIssue]
+
 pub fn binary(@lowering_relation.BinaryOperator, Value, Value) -> Result[Value, ScalarIssue]
 
 pub fn bind_completed_input(@lowering_relation.BoundPrepared, Int, @lowering_relation.BoundPrepared, CompletedOutput) -> Result[BoundProducerInput, ProducerBindingIssue]
 
 pub fn boolean_pair(@lowering_relation.ManyOperator, Value, Value) -> Result[Value, ScalarIssue]
+
+pub fn cancel_admitted_input(AdmittedInput) -> Bool
 
 pub fn cancel_local_compute_attempt(LocalComputeAttempt) -> Bool
 
@@ -63,6 +67,8 @@ pub fn execute_generated_sequence(GeneratedSequence, Array[CapturedRows], Sequen
 
 pub fn execute_local_compute_attempt(LocalComputeAttempt, SequenceExecutionLimits) -> Result[CompletedSequence, LocalComputeIssue]
 
+pub fn finish_admitted_input(AdmittedInput) -> Result[CapturedRows, CaptureIssue]
+
 pub fn generated_retained_at(GeneratedSequence, Int) -> String?
 
 pub fn generated_retained_count(GeneratedSequence) -> Int
@@ -78,6 +84,8 @@ pub fn local_compute_result(LocalComputeAttempt) -> Result[CompletedSequence, Lo
 pub fn ordered_params_kernel(OrderedParams) -> @lowering_relation.PreparedKernel
 
 pub fn ordered_params_registry(OrderedParams) -> RegisteredRelationContracts
+
+pub fn prepare_admitted_input(@lowering_relation.BoundPrepared, Int, Int, ValueLimits) -> Result[AdmittedInput, CaptureIssue]
 
 pub fn prepare_generated_sequence(RegisteredRelationContracts, @lowering_relation.PreparedSequence, Array[FragmentRuntimeContext], Array[String], Int, Int) -> Result[GeneratedSequence, SequenceRunIssue]
 
@@ -120,6 +128,8 @@ pub fn unary(@lowering_relation.UnaryOperator, Value) -> Result[Value, ScalarIss
 // Errors
 
 // Types and methods
+type AdmittedInput
+
 pub struct BackendCapabilityIssue {
   kind : BackendCapabilityIssueKind
   root : @lowering_relation.ExpressionRoot
@@ -142,6 +152,8 @@ pub(all) enum CaptureIssue {
   NotRelationInput
   ScopedInputNotImplemented
   InputValue(Int, @value_admission.Issue)
+  ClosedCapture
+  ForeignCheckedValue(Int, Int)
 } derive(Eq, @debug.Debug)
 
 pub(all) enum CaptureOrigin {

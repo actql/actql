@@ -23,6 +23,8 @@ pub(all) enum CaptureIssue {
   NotRelationInput
   ScopedInputNotImplemented
   InputValue(Int, @admitted.Issue)
+  ClosedCapture
+  ForeignCheckedValue(Int, Int)
 } derive(Eq, Debug)
 
 ///|

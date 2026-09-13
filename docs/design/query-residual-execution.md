@@ -24,6 +24,18 @@ earlier row. It retains the existing input, expression, output and workspace
 budgets, immutable completion and producer ownership checks. Receipt row limits
 are physical admission limits, not the canonical acquisition output-row guard.
 
+An already admitted typed source may instead use the engine's one-shot
+`AdmittedInput` builder. Each cell must carry the exact input field contract;
+the builder does not substitute type equality or repeat admission. It allocates
+bounded row containers, shares immutable payloads, and measures every retained
+row/key/value occurrence with the existing capture ledger. Failure clears pending
+rows and closes the builder; cancellation after sealing cannot clear captured
+storage. No partial `CapturedRows` can escape. This is a row-layout conversion,
+not a promise of zero-copy column transfer.
+`bind_query_receipt` checks the exact bound preparation and supplied input origin
+before retaining that material. It neither copies rows nor grants source,
+snapshot, attempt or execution authority. These remain upper-layer obligations.
+
 Its successful `CompletedSequence` proves local residual computation only. It
 does not prove that a source was exhausted, authority was granted, a snapshot
 was matched or acquisition guards were enforced. Native receipt of filtered rows
