@@ -1,0 +1,14 @@
+{
+  "version": "actql-aggregate-string-ceiling-vectors/0.1",
+  "policy_base": "All 17 required ceilings are one; the optional string ceiling is seven.",
+  "value": 7,
+  "policy_cid": "sha256:8f40fb3e2049be98cec1579dd6ea84dadc4e8dd028eb7888f8a74b94528da9a6",
+  "witness_cid": "sha256:ecdd32911e26988ed868779b5808cfd1d522b6cb774fd0ba7446c3568bda4727",
+  "payloads": [
+    {"value": null, "bytes": 0, "within_ceiling": true},
+    {"value": "", "bytes": 0, "within_ceiling": true},
+    {"value": "\"\\\n", "bytes": 3, "within_ceiling": true},
+    {"value": "é,😀", "bytes": 7, "within_ceiling": true},
+    {"value": "é,😀!", "bytes": 8, "within_ceiling": false}
+  ]
+}

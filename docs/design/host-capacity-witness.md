@@ -85,20 +85,25 @@ each artifact. Prior policy and proof-body admission budgets remain independent.
 This validates the Host-source branch throughout the collection, not caller
 authority to select a policy, candidate applicability to a particular consumer,
 non-Host source truth or execution enforcement. No policy ceiling becomes an
-observed row count. Tests bind all fourteen supported fields, retain mixed
+observed row count. Tests bind the fourteen original fields, retain mixed
 preflight ownership, reject an unused self-consistent wrong-unit witness and
 exercise missing/duplicate policies, equal-valued distinct policies and exact
 aggregate budget boundaries.
 
 ## Fixed evidence
 
-The portable corpus fixes all 14 supported field mappings, wire bytes and CIDs
+The portable corpus fixes the 14 original field mappings, wire bytes and CIDs
 using an independently computed synthetic policy. Node rechecks every preimage
 and the source table; MoonBit compares full emitted text and identity on all
 targets. Tests also cover unsupported quantities, exact preimage/artifact
 budgets, retained policy provenance, equal-valued different fields, and a
 change to an unrelated policy field changing the witness's policy identity.
 These checks are not runtime enforcement conformance.
+
+The optional `max_aggregate_string_bytes` extension has its own fixed policy
+and witness identities in `aggregate-string-ceiling.json`. Its per-output raw
+UTF-8 scope differs from nested-value JSON bytes and whole-artifact bytes,
+despite sharing the `bytes` unit. Omitting it preserves the original fixtures.
 
 Admission regressions cover all supported source fields, structural and numeric
 wire mutations, expected-CID/source-policy mismatch, dependency omission and

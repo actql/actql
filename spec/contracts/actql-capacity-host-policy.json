@@ -5,6 +5,10 @@
       "unit": "array_items",
       "law_id": "actql.host.aggregate-array-items"
     },
+    "max_aggregate_string_bytes": {
+      "unit": "bytes",
+      "law_id": "actql.host.aggregate-string-bytes"
+    },
     "max_artifact_bytes": {
       "unit": "bytes",
       "law_id": "actql.host.artifact-bytes"
@@ -83,6 +87,11 @@
     ],
     "properties": {
       "max_aggregate_array_items": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 9007199254740991
+      },
+      "max_aggregate_string_bytes": {
         "type": "integer",
         "minimum": 1,
         "maximum": 9007199254740991

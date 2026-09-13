@@ -1,9 +1,10 @@
 # Host capacity policy admission
 
 `capacity_policy.admit` validates canonical policy bytes against a CID selected
-by the trusted Check Environment. It admits the closed 17-field policy contract
+by the trusted Check Environment. It admits the closed policy contract
 owned by [protocol contracts](../spec/protocols/contracts.md#capacity-host-policy).
-Each ceiling is a positive safe integer; all fields are required. The returned
+Each ceiling is a positive safe integer; the original 17 limits are required
+and `max_aggregate_string_bytes` is optional. The returned
 Policy is opaque and immutable. Field lookup returns an opaque Ceiling retaining
 the exact Policy, field name and value, not a detached caller-asserted number.
 Unknown field names yield no ceiling.
@@ -25,6 +26,14 @@ owned contract in this repository; this change explicitly adopts it rather
 than treating reference code as an implicit normative owner. No reference
 deployment default is imported: a policy whose every ceiling is one is only a
 synthetic test fixture, not a recommended production setting.
+
+The optional string-aggregate ceiling is an explicit extension to that shape.
+It measures an individual output's raw UTF-8 payload, unlike the nested-value
+ceiling's JSON encoding scope. Reusing the latter would change the measured
+quantity. Absence neither supplies a default nor invalidates existing policy
+bodies: their canonical bytes and CIDs stay unchanged. Supplying the extension
+changes the policy CID and requires the corresponding contract and law pins.
+The field is not evidence of a data bound or completed aggregate enforcement.
 
 Integrity relative to a selected CID is not authentication of the Host making
 that selection. A self-CID does not grant authority. Host policy deployment,

@@ -19,6 +19,56 @@ fn limits() -> @capacity_host_witness.Limits {
 }
 
 ///|
+test "optional string ceiling retains its distinct byte scope and fixed identity" {
+  let prefix = "\"max_aggregate_array_items\":1,"
+  let p = policy(
+    fixture().replace(
+      old=prefix,
+      new=prefix + "\"max_aggregate_string_bytes\":7,",
+    ),
+  )
+  let source = @policy.ceiling(p, "max_aggregate_string_bytes").unwrap()
+  let w = @capacity_host_witness.create(source, limits()).unwrap()
+  assert_eq(
+    @capacity_host_witness.cid(w),
+    "sha256:ecdd32911e26988ed868779b5808cfd1d522b6cb774fd0ba7446c3568bda4727",
+  )
+  assert_eq(@capacity_host_witness.unit(w), @derivation.Bytes)
+  assert_eq(
+    @capacity_host_witness.law_id(w),
+    "actql.host.aggregate-string-bytes",
+  )
+  assert_true(physical_equal(@capacity_host_witness.ceiling(w), source))
+  let output = @encode.writer(4096, 100, 4)
+  @capacity_host_witness.emit(w, output)
+  let bytes = @utf8.encode(@encode.finish(output))
+  let admitted = @capacity_host_witness.admit(
+    bytes,
+    @capacity_host_witness.cid(w),
+    p,
+    limits(),
+  ).unwrap()
+  assert_eq(@capacity_host_witness.cid(admitted), @capacity_host_witness.cid(w))
+  assert_true(
+    @capacity_host_witness.admit(
+      bytes,
+      @capacity_host_witness.cid(w),
+      policy(fixture()),
+      limits(),
+    )
+    is Err(_),
+  )
+  let nested = @capacity_host_witness.create(
+    @policy.ceiling(p, "max_nested_value_bytes").unwrap(),
+    limits(),
+  ).unwrap()
+  assert_eq(@capacity_host_witness.unit(nested), @capacity_host_witness.unit(w))
+  assert_true(
+    @capacity_host_witness.law_id(nested) != @capacity_host_witness.law_id(w),
+  )
+}
+
+///|
 test "fixed host witness max_aggregate_array_items" {
   let p = policy(fixture())
   let source = @policy.ceiling(p, "max_aggregate_array_items").unwrap()

@@ -96,6 +96,7 @@ pub fn admit(
       Err(_) => raise Stop(BudgetExceeded)
     }
     let names = fields.copy()
+    names.push("max_aggregate_string_bytes")
     names.push("version")
     let object = decoded(@decode.closed_object(cursor, names))
     if decoded(@decode.text(decoded(@decode.required(object, "version")))) !=
@@ -113,6 +114,16 @@ pub fn admit(
         raise Stop(InvalidCeiling(field))
       }
       values[field] = value
+    }
+    if @decode.lookup(object, "max_aggregate_string_bytes") is Some(source) {
+      let value = match @decode.safe_integer(source) {
+        Ok(n) => n
+        Err(_) => raise Stop(InvalidCeiling("max_aggregate_string_bytes"))
+      }
+      if value <= 0L {
+        raise Stop(InvalidCeiling("max_aggregate_string_bytes"))
+      }
+      values["max_aggregate_string_bytes"] = value
     }
     let policy : Policy = { cid, values, }
     let canonical = canonical_hash(policy, limits) catch {
@@ -141,6 +152,12 @@ fn canonical_hash(
   for name in fields {
     @encode.key(w, name)
     @encode.number_value(w, p.values.get(name).unwrap().to_double())
+    // The optional string ceiling sorts immediately after the array ceiling.
+    if name == "max_aggregate_array_items" &&
+      p.values.get("max_aggregate_string_bytes") is Some(value) {
+      @encode.key(w, "max_aggregate_string_bytes")
+      @encode.number_value(w, value.to_double())
+    }
   }
   @encode.key(w, "version")
   @encode.string_value(w, "actql-capacity-host-policy/0.1")

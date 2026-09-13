@@ -70,6 +70,7 @@ pub fn admit(law : String) -> RegisteredLaw? {
     "actql.guard.string-aggregate" => Some(RegisteredLaw(law))
     "actql.guard.traverse-output" => Some(RegisteredLaw(law))
     "actql.host.aggregate-array-items" => Some(RegisteredLaw(law))
+    "actql.host.aggregate-string-bytes" => Some(RegisteredLaw(law))
     "actql.host.artifact-bytes" => Some(RegisteredLaw(law))
     "actql.host.artifact-rows" => Some(RegisteredLaw(law))
     "actql.host.effect-items" => Some(RegisteredLaw(law))

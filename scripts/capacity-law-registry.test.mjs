@@ -328,12 +328,14 @@ test('whole values wire selection is audited against the closed Host policy fiel
   // New fields require an explicit applicability decision, not silent omission.
   const {policy} = loadRegistry();
   assert.deepEqual(Object.keys(policy.schema.properties).sort(), [
-    'max_aggregate_array_items','max_artifact_bytes','max_artifact_rows','max_effect_items',
+    'max_aggregate_array_items','max_aggregate_string_bytes','max_artifact_bytes','max_artifact_rows','max_effect_items',
     'max_graph_input_edges','max_graph_input_nodes','max_graph_output_rows','max_graph_paths',
     'max_infer_items','max_model_input_tokens_per_item','max_model_request_bytes_per_item',
     'max_model_total_duration_ms','max_nested_value_bytes','max_nested_value_depth',
     'max_relation_output_rows','max_temporal_matches_per_key','max_temporal_output_rows','version',
   ]);
+  // Per-string aggregate output is not the whole REL.values rows wire scope.
+  assert.equal(policy.host_witness_laws.max_aggregate_string_bytes.unit, 'bytes');
   assert.deepEqual(Object.keys(valuesSchema().properties).sort(), ['rows','schema']);
   assert.equal(valuesSchema().additionalProperties, false);
 });
@@ -360,7 +362,7 @@ test('independent values count vectors count row occurrences, not cell contents'
 
 test('registry fixes its identity, rejects missing Host entries and malformed names', () => {
   const { body, policy } = loadRegistry();
-  assert.equal(validateRegistry(body, policy), 'sha256:547eb382fa6e17294b3a01cc1fc8069ede225b4da17a933e0ec2c25fc9f41fe0');
+  assert.equal(validateRegistry(body, policy), 'sha256:d85879b465d4dc1391511df6c48d2a5c130ed5bbaf2853bd6274a24a4bb113e6');
   assert.ok(body.law_ids.includes('actql.bound.text-rank'));
   for (const name of ['values', 'time-series', 'calendar-series']) {
     assert.ok(body.law_ids.includes(`actql.bound.${name}`));

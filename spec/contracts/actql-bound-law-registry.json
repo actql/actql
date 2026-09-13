@@ -64,6 +64,7 @@
     "actql.guard.string-aggregate",
     "actql.guard.traverse-output",
     "actql.host.aggregate-array-items",
+    "actql.host.aggregate-string-bytes",
     "actql.host.artifact-bytes",
     "actql.host.artifact-rows",
     "actql.host.effect-items",

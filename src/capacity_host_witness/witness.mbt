@@ -27,6 +27,8 @@ fn mapping(field : String) -> (@derivation.BoundUnit, String)? {
   match field {
     "max_aggregate_array_items" =>
       Some((ArrayItems, "actql.host.aggregate-array-items"))
+    "max_aggregate_string_bytes" =>
+      Some((Bytes, "actql.host.aggregate-string-bytes"))
     "max_artifact_bytes" => Some((Bytes, "actql.host.artifact-bytes"))
     "max_artifact_rows" => Some((Rows, "actql.host.artifact-rows"))
     "max_effect_items" => Some((EffectItems, "actql.host.effect-items"))

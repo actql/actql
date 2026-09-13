@@ -450,7 +450,7 @@ or resource enforcement.
 <!-- requirement-block: capacity-law-registry.machine-contract -->
 <!-- normative-code: law -->
 ```text
-../../../spec/contracts/actql-bound-law-registry.json# sha256:547eb382fa6e17294b3a01cc1fc8069ede225b4da17a933e0ec2c25fc9f41fe0
+../../../spec/contracts/actql-bound-law-registry.json# sha256:d85879b465d4dc1391511df6c48d2a5c130ed5bbaf2853bd6274a24a4bb113e6
 ```
 
 <a id="capacity-host-policy"></a>
@@ -460,11 +460,25 @@ or resource enforcement.
 <!-- requirement-block: capacity-host-policy.canonical-source -->
 A Host capacity policy used as bound-witness source evidence MUST be an exact
 canonical `actql-capacity-host-policy/0.1` body conforming to the pinned
-capacity-policy contract. Its 17 named limits are required positive safe
-integers; unknown fields, missing limits, noncanonical bytes and implicit
+capacity-policy contract. Its 17 required limits are positive safe
+integers; unknown fields, missing required limits, noncanonical bytes and implicit
 defaults are rejected. The Check Environment selects the expected policy CID
 independently of the supplied body. Validation checks that CID against the
 complete canonical body, without removing a field or repairing the encoding.
+
+<!-- requirement-block: capacity-host-policy.aggregate-string-bytes -->
+The optional `max_aggregate_string_bytes` ceiling MUST, when supplied, be a
+positive safe integer. Its law `actql.host.aggregate-string-bytes` bounds each
+individual non-null `string_agg` output in raw UTF-8 bytes after contributor
+selection and delimiter insertion, excluding JSON quotes and escapes. It is
+not a total across groups, an input scan budget, or the nested-value JSON byte
+ceiling. Explicit null is invalid; absence supplies no ceiling and no default,
+and does not itself prohibit string aggregation when another applicable finite
+bound is available. Supplied values participate in the complete policy CID and
+are validated even when unused. Limit selection retains applicable Host,
+author-guard and proven bounds; actual excess fails rather than truncates the
+aggregate. A null aggregate output has no string payload to charge under this
+scope; its enclosing wire encoding remains subject to the separate wire budget.
 
 <!-- requirement-block: capacity-host-policy.environment-component -->
 The capacity policy component, when supplied, MUST be the complete body at
@@ -547,7 +561,7 @@ be recast into one of the current bound-witness units.
 <!-- requirement-block: capacity-host-policy.machine-contract -->
 <!-- normative-code: law -->
 ```text
-../../../spec/contracts/actql-capacity-host-policy.json# sha256:4150c63cf455b675d428479fcbf486d17b5421901eb35f65285cf96769c250bd
+../../../spec/contracts/actql-capacity-host-policy.json# sha256:a992c2ca75745ccc1334235185368429603612e38c3ab2efeee915afa3686b0c
 ```
 
 <a id="catalog-and-lock"></a>
@@ -1297,7 +1311,7 @@ These exact schema/law references are owned here. Their identities do not includ
 <!-- requirement-block: machine-contracts.exact-artifacts -->
 <!-- normative-code: law -->
 ```text
-../../../spec/contracts/actql-check-environment.json# sha256:8d080aae1651270777521cb49534bb0b758ce3c5aecc16cc9159c74b77249204
+../../../spec/contracts/actql-check-environment.json# sha256:981daa579c0955701903fdd0f4adeef6b2f74df033c239ee6fee642d104d407f
 ../../../spec/contracts/actql-local-relation-snapshot.json# sha256:60e8136aea733421e75fa3dcef4934c87ce98959b36f8a56da93ccfbf03d81b2
 ../../../spec/contracts/actql-local-source-reference.json# sha256:9be664306a6a91a8e5bfca53d579e6dac77baf4567eb241ceeedc3216ffe47d9
 ../../../spec/contracts/actql-protocol-schemas.json#/schemas/model_task sha256:19408a610dbc52552bff3a7f97f25a120a66688e7db4f41383c91c9298f02dd2

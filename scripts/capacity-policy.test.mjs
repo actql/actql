@@ -11,12 +11,12 @@ test('capacity policy schema and admitted field set are identical and closed', (
   const { schema } = contract;
   assert.equal(schema.type, 'object');
   assert.equal(schema.additionalProperties, false);
-  assert.deepEqual([...schema.required].sort(), Object.keys(schema.properties).sort());
+  assert.deepEqual([...schema.required, 'max_aggregate_string_bytes'].sort(), Object.keys(schema.properties).sort());
   const fields = schema.required.filter(k => k !== 'version');
   assert.equal(fields.length, 17);
   assert.equal(new Set(fields).size, fields.length);
   assert.deepEqual(schema.properties.version, { const: 'actql-capacity-host-policy/0.1' });
-  for (const field of fields) assert.deepEqual(schema.properties[field], {
+  for (const field of [...fields, 'max_aggregate_string_bytes']) assert.deepEqual(schema.properties[field], {
     type: 'integer', minimum: 1, maximum: Number.MAX_SAFE_INTEGER,
   });
   const body = source.match(/let fields : Array\[String\] = \[([\s\S]*?)\]/)?.[1];
@@ -37,7 +37,7 @@ test('host witness field units and laws match the closed product mapping', () =>
   const product = readFileSync(new URL('../src/capacity_host_witness/witness.mbt', import.meta.url), 'utf8');
   const pairs = [...product.matchAll(/"(max_[a-z_]+)"\s*=>\s*Some\(\((\w+), "([^"]+)"\)\)/g)]
     .map(([,field,unit,law_id]) => [field, { unit: unitNames[unit], law_id }]);
-  assert.equal(pairs.length, 14);
+  assert.equal(pairs.length, 15);
   assert.equal(new Set(pairs.map(([field]) => field)).size, pairs.length);
   assert.deepEqual(Object.fromEntries(pairs), contract.host_witness_laws);
   const unsupported = contract.schema.required.filter(k => k !== 'version' && !Object.hasOwn(contract.host_witness_laws, k));
@@ -47,7 +47,7 @@ test('host witness field units and laws match the closed product mapping', () =>
 test('fixed host witness wire bytes and identities match an independent canonical oracle', () => {
   const corpus = JSON.parse(readFileSync(new URL('../portability/corpus/host-capacity-witnesses.json', import.meta.url), 'utf8'));
   assert.equal(corpus.version, 'actql-host-capacity-witness-vectors/0.1');
-  assert.deepEqual(corpus.cases.map(c => c.field).sort(), Object.keys(contract.host_witness_laws).sort());
+  assert.deepEqual(corpus.cases.map(c => c.field).sort(), Object.keys(contract.host_witness_laws).filter(k => contract.schema.required.includes(k)).sort());
   const policy_cid = machineCid(corpus.policy);
   assert.equal(new Set(corpus.cases.map(c => c.cid)).size, corpus.cases.length);
   for (const c of corpus.cases) {
@@ -65,5 +65,22 @@ test('fixed host witness wire bytes and identities match an independent canonica
     assert.equal(witness_cid, c.cid);
     assert.equal(c.expected_issue, 'IdentityMismatch');
     assert.notEqual(core.unit, contract.host_witness_laws[core.source.field].unit);
+  }
+});
+
+test('optional string ceiling and witness have independent fixed identities', () => {
+  const corpus = JSON.parse(readFileSync(new URL('../portability/corpus/aggregate-string-ceiling.json', import.meta.url), 'utf8'));
+  const policy = Object.fromEntries(contract.schema.required.map(field => [field,
+    field === 'version' ? 'actql-capacity-host-policy/0.1' : 1]));
+  policy.max_aggregate_string_bytes = corpus.value;
+  assert.equal(machineCid(policy), corpus.policy_cid);
+  const body = {dependencies:[corpus.policy_cid], derivation:{op:'source'},
+    law_id:'actql.host.aggregate-string-bytes', role:'host_ceiling',
+    source:{field:'max_aggregate_string_bytes', kind:'host_policy', policy_cid:corpus.policy_cid},
+    unit:'bytes', value:corpus.value, version:'actql-bound-witness/0.1'};
+  assert.equal(machineCid(body), corpus.witness_cid);
+  for (const c of corpus.payloads) {
+    assert.equal(c.value === null ? 0 : Buffer.byteLength(c.value, 'utf8'), c.bytes);
+    assert.equal(c.bytes <= corpus.value, c.within_ceiling);
   }
 });

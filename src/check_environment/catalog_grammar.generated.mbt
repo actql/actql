@@ -3,7 +3,7 @@
 ///|
 pub fn catalog_grammar_cid(body : CatalogGrammar) -> String {
   match body {
-    EnvironmentBody => "sha256:8d080aae1651270777521cb49534bb0b758ce3c5aecc16cc9159c74b77249204"
+    EnvironmentBody => "sha256:981daa579c0955701903fdd0f4adeef6b2f74df033c239ee6fee642d104d407f"
     ValueGrammarBody =>
       "sha256:02859499357530af0ae58e4f2958d1c8fa48f957b86b0a2976dad43bed99b551"
     GraphLawBody =>
@@ -13,7 +13,7 @@ pub fn catalog_grammar_cid(body : CatalogGrammar) -> String {
     TextPolicyGrammarBody =>
       "sha256:0297fb74f0ff4e55b4ededfe5f0968a6d1f3f1231f84d7d4122f2cb7dfee077a"
     CapacityGrammarBody =>
-      "sha256:4150c63cf455b675d428479fcbf486d17b5421901eb35f65285cf96769c250bd"
+      "sha256:a992c2ca75745ccc1334235185368429603612e38c3ab2efeee915afa3686b0c"
     ExpressionGrammar(body) => expression_contract_body_cid(body)
   }
 }
