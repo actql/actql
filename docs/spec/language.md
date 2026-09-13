@@ -7906,6 +7906,29 @@ retain their producer Unit reference rather than acquiring the consumer's
 namespace. This conversion preserves law, quantity, value and all prerequisite
 checks; it does not establish runtime truth or backend support.
 
+<!-- requirement-block: resolved-limits.unit-graph-input-subject resolved-limits.unit-graph-input-enforced-proof -->
+A persistent Graph input preflight limit MUST use
+`unit:<unit_definition_cid>#/inputs/<input_name_token>/<measure>` as its
+`subject_ref`, where the token is the actual canonical Unit input name escaped
+as one JSON Pointer token and `measure` is `nodes` or `edges`. Validation binds
+the reference to that Unit's checked Graph input, selected policy and matching
+quantity, not merely to a matching input name in another Unit. The limit retains
+`unit_preflight` enforcement and failure on breach; unchanged Host candidates
+retain their identities. This is an input-boundary scope, not an authored
+operation output or an observed input identity.
+
+The corresponding enforced upper-bound witness MUST use
+`unit:<unit_definition_cid>#/inputs/<input_name_token>` as its Program
+`semantic_ref`, the matching `actql.bound.graph-input-nodes` or
+`actql.bound.graph-input-edges` law, and the limit's quantity and effective
+maximum. Its `source.proof_cid`, `derivation.resolved_limit_cid` and sole
+dependency are the rebuilt resolved-limit CID; its derivation is
+`enforced_ceiling`. There is no separate derived-input proof object for this
+witness. Conversion rehashes the limit, this witness and dependent operation
+proofs while retaining the exact checked input/preflight ownership. It does
+not assert that preflight has run, authorize input acquisition or insert
+capacity policy into Unit Definition identity.
+
 <!-- requirement-block: local-approval.product-54ee89eaf54b local-approval.product-6e21b62c13b1 -->
 <a id="canonical-identities"></a>
 

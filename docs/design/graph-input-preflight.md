@@ -271,3 +271,20 @@ not complete source authority or all capacity consumers. Contextual resolution
 and the prerequisite local checks retain their own budgets; this aggregate is
 not a replacement for the final all-obligation budget. Enclosing identity and
 consistent parameter bindings within a Program/Invocation remain separate.
+
+## Persistent Unit ownership
+
+Persistent Graph preflight subjects use the Unit-scoped input references in
+[resolved limits](../spec/language.md#resolved-limits). Input names are escaped
+as JSON Pointer tokens; node and edge limits remain separate. Enforced evidence
+references the resolved limit itself, not a fabricated derived-input proof.
+The original checked Graph input, selected policy and preflight dependency
+remain necessary even after canonical identities have been rebuilt.
+
+This defines a persistence boundary beyond the input-local references in
+`sketch@87dc7144138edfcba108cdc59dc485ac976ba976` (`src/actql-compiler.ts`):
+that implementation uses `graph-input:<name>:<measure>` for limits and the bare
+input name for witness sources. Such names are insufficient across Units.
+The Unit namespace prevents that ambiguity without including observed data or
+capacity policy in Unit Definition. Existing internal Graph admission retains
+its local references; converting them does not claim that preflight has run.

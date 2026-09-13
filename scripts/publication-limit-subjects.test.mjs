@@ -16,6 +16,38 @@ function canonical(value) {
 }
 const cid = (value) => `sha256:${createHash('sha256').update(JSON.stringify(canonical(value))).digest('hex')}`;
 
+test('Graph input preflight has Unit-scoped limit and enforced witness identities', () => {
+  const corpus = read('../portability/corpus/unit-graph-input-proofs.json');
+  for (const vector of corpus.cases) {
+    const { input_name: name, measure } = vector;
+    const host = {
+      dependencies: [vectors.expected_policy_cid], derivation: { op: 'source' },
+      law_id: `actql.host.graph-input-${measure}`, role: 'host_ceiling',
+      source: { field: `max_graph_input_${measure}`, kind: 'host_policy', policy_cid: vectors.expected_policy_cid },
+      unit: measure, value: 1000, version: 'actql-bound-witness/0.1',
+    };
+    host.witness_cid = cid(host);
+    const ref = `unit:${vectors.unit_definition_cid}#/inputs/${name.replaceAll('~', '~0').replaceAll('/', '~1')}`;
+    const limit = {
+      author_guard_binding: 'absent', breach: 'fail', candidates: [host], effective_max: 1000,
+      enforcement: 'unit_preflight', subject_ref: `${ref}/${measure}`,
+      unit: measure, version: 'actql-resolved-limit/0.1',
+    };
+    assert.equal(cid(limit), vector.limit_cid);
+    const witness = {
+      dependencies: [cid(limit)], derivation: { op: 'enforced_ceiling', resolved_limit_cid: cid(limit) },
+      law_id: `actql.bound.graph-input-${measure}`, role: 'proven_upper_bound',
+      source: { kind: 'program', proof_cid: cid(limit), semantic_ref: ref },
+      unit: measure, value: 1000, version: 'actql-bound-witness/0.1',
+    };
+    assert.equal(cid(witness), vector.witness_cid);
+    assert.notEqual(cid({ ...limit, subject_ref: `graph-input:${name}:${measure}` }), cid(limit));
+    assert.notEqual(cid({ ...limit, enforcement: 'static' }), cid(limit));
+    assert.notEqual(cid({ ...witness, source: { ...witness.source, semantic_ref: name } }), cid(witness));
+    assert.notEqual(cid({ ...limit, subject_ref: limit.subject_ref.replace('unit:sha256:0', 'unit:sha256:1') }), cid(limit));
+  }
+});
+
 test('operation output proofs retain their Unit namespace and source ordinal', () => {
   const corpus = read('../portability/corpus/unit-operation-proofs.json');
   const identities = new Set();

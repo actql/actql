@@ -1,0 +1,8 @@
+{
+  "cases": [
+    {"input_name":"g","measure":"nodes","limit_cid":"sha256:2d58f1dea7e6164f5b9b6e81dc5a83cb31e0c4381f2ab6028dc00411d208821d","witness_cid":"sha256:cf5b42833459da49cc5d3068d3aa1446066b490d71b0c323ed1e4562411b85dd"},
+    {"input_name":"g","measure":"edges","limit_cid":"sha256:7eca3cc1679ff8ca7f273fba2dfe9c56269ec6b7886b39149fa201b64ec474d2","witness_cid":"sha256:56551001534522ef2e6ad6f25e82f52fa58f711b05ec4f3166922e2e5eed6c6c"},
+    {"input_name":"a~/b","measure":"nodes","limit_cid":"sha256:ca1086f3801987dda016a061380c5935499a1c5e65ba5518842695d314685060","witness_cid":"sha256:3e57cb08847382d0eed9ba7cb9af67c612c4529e91886a9487a512bda984dd46"},
+    {"input_name":"a~/b","measure":"edges","limit_cid":"sha256:6269855429c58a8fd01197c7d3ca356cd42f6f8cdedf677dc8ed163ba371faba","witness_cid":"sha256:35b817cc3bc5051d105f22e86271c2558f6d4daea8dcf853f983746570f299ac"}
+  ]
+}
