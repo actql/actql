@@ -13,6 +13,7 @@ fn try_typed_completion(
   generated : GeneratedSequence,
   width : Int,
   limits : SequenceRunLimits,
+  mutate_original? : Bool = false,
 ) -> Result[CompletedSequence, SequenceRunIssue] {
   let control = { remaining: 1000000, max_frames: 100, }
   let invocation = match
@@ -142,6 +143,22 @@ fn try_typed_completion(
         )
       }
       let copied = seal()
+      if mutate_original && copied is Ok(_) {
+        // Adversarial whitebox mutation of the original input and transient
+        // builder buffers after sealing. Neither is a public completion API.
+        if table.rows.length() > 0 && table.names.length() > 0 {
+          table.rows[0][0] = Number(999)
+        }
+        if result.body is OwnedColumnArrays(buffers) {
+          for buffer in buffers {
+            if buffer.value is Some(Numeric(values, valid)) &&
+              values.length() > 0 {
+              values[0] = 999
+              valid[0] = 0
+            }
+          }
+        }
+      }
       release_layout_columns(result)
       copied
     },

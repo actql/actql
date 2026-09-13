@@ -79,3 +79,43 @@ test "typed producer projection sort enforce cumulative value and retained ceili
     assert_true(completed_cell(source, 0, 0) is Some(Number(2)))
   }
 }
+
+///|
+test "sealed product output does not alias mutable original input or builder buffers" {
+  let owner = row_owner(",{\"derive\":[{\"a\":\"a + 1\"}]}")
+  let sequence = prepared_sequence(owner)
+  let generated = prepare_generated_sequence(
+    registered_relation_contracts(),
+    sequence,
+    [ordered_sequence_fragment_context(sequence, 1000L)],
+    ["derive_1"],
+    100000,
+    10000,
+  ).unwrap()
+  let source = completed_output(
+    try_typed_completion(generated, 7, run_limits(), mutate_original=true).unwrap(),
+    Step(1),
+  ).unwrap()
+  assert_true(completed_cell(source, 0, 0) is Some(Number(2)))
+  assert_true(completed_cell(source, 1, 0) is Some(Number(1)))
+  let receiver = typed_receiver(owner, "[{\"select\":[\"a\"]}]")
+  let binding = bind_completed_input(receiver, 0, owner, source).unwrap()
+  let consumer = prepare_generated_sequence(
+    registered_relation_contracts(),
+    prepared_sequence(receiver),
+    [],
+    ["select_0"],
+    100000,
+    10000,
+  ).unwrap()
+  let completion = execute_generated_sequence(
+    consumer,
+    [],
+    { rows: run_limits(), max_work: 100000, max_frames: 100, },
+    produced=[binding],
+  ).unwrap()
+  let output = completed_output(completion, Step(0)).unwrap()
+  assert_true(output.table is NumberTable(_))
+  assert_true(completed_cell(output, 0, 0) is Some(Number(2)))
+  assert_true(completed_cell(output, 1, 0) is Some(Number(1)))
+}
