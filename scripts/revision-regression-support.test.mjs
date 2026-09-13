@@ -1,9 +1,16 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { regressionMetric, revisionCells, supplementalRevisionCells, revisionPairs, revisionGate, revisionMustStop } from './revision-regression-support.mjs';
+import { regressionMetric, revisionCells, supplementalRevisionCells, diagnosticRevisionCells, revisionPairs, revisionGate, revisionMustStop } from './revision-regression-support.mjs';
 
 const manifest = JSON.parse(readFileSync(new URL('../benchmarks/local-relation/columnar-experiment.json', import.meta.url)));
+test('bounded diagnosis fixes four workloads, two modes and native/JS at seven pairs', () => {
+  const cells = diagnosticRevisionCells(manifest);
+  assert.equal(cells.length, 16);
+  assert.equal(cells.flatMap(c => revisionPairs(c)).length, 224);
+  assert.deepEqual([...new Set(cells.map(c => c.target))], ['native', 'js']);
+  assert.ok(cells.every(c => c.family === 'supplemental' || c.case_index === 0));
+});
 test('inconclusive twenty-one-pair evidence stops further cell collection', () => {
   assert.equal(revisionMustStop([{decision: 'extend'}]), false);
   assert.equal(revisionMustStop([{decision: 'regression'}]), false);

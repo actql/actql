@@ -45,6 +45,13 @@ export function supplementalRevisionCells() {
       }))));
 }
 
+// Fixed diagnostic subset, not a replacement for the full admission gate.
+export function diagnosticRevisionCells(manifest) {
+  return [...revisionCells(manifest), ...supplementalRevisionCells()].filter(c =>
+    c.target !== 'wasm' && (c.family === 'supplemental' ||
+      (c.family === 'additional' && c.case_index === 0)));
+}
+
 export function revisionPairs(cell, from = 0, until = regressionPolicy.initialPairs) {
   if (!Number.isInteger(from) || !Number.isInteger(until) || from < 0 ||
       until <= from || until > regressionPolicy.maximumPairs) {

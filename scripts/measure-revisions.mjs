@@ -8,14 +8,15 @@ import { fileURLToPath } from 'node:url';
 import { platform, release, arch, cpus } from 'node:os';
 import { performance } from 'node:perf_hooks';
 import { checkedSample, checkedPreparedSample, peakRssBytes } from './layout-measurement-support.mjs';
-import { regressionPolicy, revisionCells, supplementalRevisionCells, revisionPairs, regressionMetric, revisionGate, revisionMustStop } from './revision-regression-support.mjs';
+import { regressionPolicy, revisionCells, supplementalRevisionCells, diagnosticRevisionCells, revisionPairs, regressionMetric, revisionGate, revisionMustStop } from './revision-regression-support.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const [before, after, mode] = process.argv.slice(2);
-if (!before || !after || !['--smoke', '--matrix'].includes(mode) || process.argv.length !== 5) {
-  throw new Error('Usage: measure-revisions.mjs BASELINE_WORKTREE CANDIDATE_WORKTREE --smoke|--matrix');
+if (!before || !after || !['--smoke', '--matrix', '--diagnostic'].includes(mode) || process.argv.length !== 5) {
+  throw new Error('Usage: measure-revisions.mjs BASELINE_WORKTREE CANDIDATE_WORKTREE --smoke|--matrix|--diagnostic');
 }
 const smoke = mode === '--smoke';
+const diagnostic = mode === '--diagnostic';
 const paths = { baseline: realpathSync(before), candidate: realpathSync(after) };
 if (paths.baseline === paths.candidate) throw new Error('Distinct revision worktrees required');
 const moonHome = process.env.MOON_HOME;
@@ -63,7 +64,7 @@ for (const f of fixtures) {
 const out = resolve(root, '_build/revision-measurements', `${Date.now()}-${process.pid}`);
 mkdirSync(out, { recursive: true });
 const report = {
-  status: 'running', scope: smoke ? 'cross-revision smoke only' : 'mandatory and supplemental A-only historical matrix',
+  status: 'running', scope: diagnostic ? 'bounded representative diagnostic; not full-matrix gate' : smoke ? 'cross-revision smoke only' : 'mandatory and supplemental A-only historical matrix',
   whole_task_complete: false, started_at: new Date().toISOString(), sources, fixtureHashes,
   policy: regressionPolicy, manifest_sha256: hash(manifestBytes), compiler,
   runner_hashes: Object.fromEntries(['measure-revisions.mjs', 'revision-regression-support.mjs', 'layout-measurement-support.mjs', 'layout-statistics.mjs']
@@ -87,7 +88,7 @@ const assertSourcesUnchanged = () => {
 };
 save();
 try {
-  for (const target of ['native', 'js', 'wasm']) {
+  for (const target of diagnostic ? ['native', 'js'] : ['native', 'js', 'wasm']) {
     for (const [revision, path] of Object.entries(paths)) {
       const built = run(`${moonHome}/bin/moon`, ['test', '--target', target, `src/execution_relation/${testFile}`, '--release', '--build-only', '--deny-warn'], { cwd: path });
       writeFileSync(resolve(out, `${revision}-${target}-build.log`), built.stdout + built.stderr);
@@ -128,20 +129,20 @@ try {
         : cell.mode === 'prepared' ? s.measurement.operation_us : s.measurement.end_to_end_us);
     return regressionMetric(data('baseline'), data('candidate'), metric);
   });
-  const cells = [...revisionCells(manifest), ...supplementalRevisionCells()].filter(c => !smoke ||
+  const cells = diagnostic ? diagnosticRevisionCells(manifest) : [...revisionCells(manifest), ...supplementalRevisionCells()].filter(c => !smoke ||
     c.family === 'supplemental' || (c.family === 'legacy' && c.case_index === (c.target === 'native' ? 0 : 1)));
   for (const cell of cells) {
     measure(cell, 0, smoke ? 1 : regressionPolicy.initialPairs);
     if (smoke) continue;
     let metrics = summarize(cell);
     const screening = metrics;
-    if (metrics.some(m => m.decision === 'extend')) {
+    if (!diagnostic && metrics.some(m => m.decision === 'extend')) {
       measure(cell, regressionPolicy.initialPairs, regressionPolicy.maximumPairs);
       metrics = summarize(cell);
     }
     report.decisions.push({ id: cell.id, screening, metrics });
     save();
-    if (revisionMustStop(metrics)) {
+    if (!diagnostic && revisionMustStop(metrics)) {
       report.status = 'stopped';
       report.matrix_gate = 'not_evaluated';
       report.stop_reason = `Twenty-one pairs remain inconclusive: ${cell.id}`;
@@ -152,7 +153,7 @@ try {
   assertSourcesUnchanged();
   if (report.status !== 'stopped') {
     report.status = 'complete';
-    report.matrix_gate = smoke ? 'not_evaluated' : revisionGate(report.decisions);
+    report.matrix_gate = smoke || diagnostic ? 'not_evaluated' : revisionGate(report.decisions);
   }
   report.finished_at = new Date().toISOString();
   save();
