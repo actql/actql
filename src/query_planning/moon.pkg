@@ -15,6 +15,10 @@ import {
   "actql/actql/parameter_binding" @parameter,
   "actql/actql/value_admission" @admitted,
   "actql/actql/canonical_value" @canonical,
+  "actql/actql/pipeline_check_context" @context,
+  "actql/actql/program_references" @program_refs,
+  "actql/actql/check_environment" @environment,
+  "actql/actql/value_contract" @contract,
 }
 
 import {

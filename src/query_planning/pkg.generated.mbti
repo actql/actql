@@ -7,6 +7,7 @@ import {
   "actql/actql/encode_core",
   "actql/actql/execution_relation",
   "actql/actql/physical_cost",
+  "actql/actql/pipeline_check_context",
   "actql/actql/sourceview_resolution",
   "moonbitlang/core/debug",
 }
@@ -38,6 +39,8 @@ pub fn prepare_mock_query_attempt(QueryStrategy, Array[@decode_core.Cursor], Int
 
 pub fn prepare_query_material(@execution_relation.QuerySequence, QueryMaterialLimits) -> Result[QueryMaterial, QueryMaterialIssue]
 
+pub fn prepare_query_requirement(QueryMaterial, @pipeline_check_context.ProgramSourceIdentity, QueryLogicalGuards, QueryMaterialLimits) -> Result[QueryRequirement, QueryRequirementIssue]
+
 pub fn query_evidence_contract_usage(QueryEvidenceContracts) -> (Int, Int)
 
 pub fn query_material_cids(QueryMaterial) -> (String, String, String)
@@ -53,6 +56,24 @@ pub fn query_offer_duration(QueryOffer) -> @physical_cost.DurationEstimate
 pub fn query_offer_quantities(QueryOffer) -> QueryQuantities
 
 pub fn query_offer_realization(QueryOffer) -> QueryRealization
+
+pub fn query_requirement_cid(QueryRequirement) -> String
+
+pub fn query_requirement_contracts(QueryRequirement) -> (String, String)
+
+pub fn query_requirement_document(QueryRequirement) -> @encode_core.EncodedDocument
+
+pub fn query_requirement_guards(QueryRequirement) -> QueryLogicalGuards
+
+pub fn query_requirement_material(QueryRequirement) -> QueryMaterial
+
+pub fn query_requirement_program(QueryRequirement) -> @pipeline_check_context.ProgramSourceIdentity
+
+pub fn query_requirement_site(QueryRequirement) -> (String, String)
+
+pub fn query_requirement_source(QueryRequirement) -> (String, String)
+
+pub fn query_requirement_usage(QueryRequirement) -> (Int, Int, Int)
 
 pub fn query_strategy_choice(QueryStrategy) -> @physical_cost.CostChoice
 
@@ -115,6 +136,11 @@ pub(all) struct QueryEvidenceLimits {
   max_depth : Int
 }
 
+pub(all) struct QueryLogicalGuards {
+  max_rows : Int
+  max_value_bytes : Int
+}
+
 type QueryMaterial
 
 pub(all) enum QueryMaterialIssue {
@@ -157,6 +183,17 @@ pub(all) enum QueryRealization {
   NativeQuery
   BroadWithResidual
 } derive(Eq, @debug.Debug)
+
+type QueryRequirement
+
+pub(all) enum QueryRequirementIssue {
+  InvalidLimits
+  ForeignProgram
+  InvalidQuery
+  FieldLimit
+  WorkLimit
+  Encoding(@encode_core.EncodeFailure)
+}
 
 pub enum QuerySelection {
   Proposed(QueryStrategy)

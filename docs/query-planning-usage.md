@@ -72,3 +72,15 @@ aggregate allowance. The owner remains available through `query_material_owner`.
 These are static requirement components, not a complete requirement, Program
 identity, capture record or observation. Preparing them performs no source I/O
 and does not evaluate the predicate.
+
+`prepare_query_requirement(material, program_identity, guards, limits)` binds
+those components to the main-owned `ProgramSourceIdentity`. The identity must
+retain the exact stage request owner used by the query, not merely the same
+Definition CID. `query_requirement_document` and `query_requirement_cid` expose
+the canonical shared requirement; `query_requirement_usage` reports this call's
+work/bytes/nodes separately from material preparation. Read-only helpers expose
+its material, Program owner, guards, source, field-map contract CIDs and authored
+stage/input site. This Local profile supports nonnegative machine-Int guard
+values. They are requirements to enforce, not completed runtime checks.
+Program source identity, requirement construction and final Program/Plan execution
+permission remain distinct; no capture or consumer input is released by this API.

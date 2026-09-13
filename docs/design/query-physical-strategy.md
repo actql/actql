@@ -28,10 +28,26 @@ values; nested business `$param` and `literal` members remain data. Repeated use
 select a value once, including defaults but excluding unused declarations and
 binding-origin metadata. Bounded preparation covers name selection, canonical
 field order, serialization and hashing before retained artifacts are returned.
-This material is not a complete canonical acquisition requirement: the owned
-Program Definition, source and schema contracts, projection, and selected logical
-guards must also be connected. It is neither an observation nor permission to
-issue process evidence.
+This material alone is not a complete canonical acquisition requirement. The
+separate `prepare_query_requirement` boundary binds it to a main-owned
+`ProgramSourceIdentity`: its retained stage `PipelineRequests` must be the exact
+query owner, not a separately constructed equal CID. The owner uses
+`program_identity_definition_cid`, including the authored root ID; it does not use
+Program semantics or Parameter values as a substitute.
+
+The requirement includes the selected SourceView contract and source reference,
+complete checked input/output field-map identities, actual stage-relative
+filter/select occurrences, authored projection, all known scan fields and explicit
+logical guards. The initial profile emits null source order evidence while
+preserving input relative order. Guard selection is retained for execution to
+enforce; constructing the requirement does not discharge those checks.
+Requirement serialization and hashing share bounded bytes/nodes within that
+preparation call; the already-owned `QueryMaterial` has its separately reported
+preparation usage. Field traversal and projection copying are preflighted.
+
+This public main source-identity assembly is not the final `CheckedProgram`
+source-execution closure. It does not authorize a source, construct a canonical
+Plan, issue process evidence or claim a successful observation.
 
 The physical proposal has `RealizeQuery` followed by `CaptureObservation`.
 The edge requires complete query output; it does not permit task-to-task
