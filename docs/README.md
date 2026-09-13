@@ -7,6 +7,7 @@
 - [Physical cost helper](physical-cost-usage.md): source-checkout serial latency estimates and explicit unknown-cost selection; no Connector dispatch or Plan admission.
 - [Local Compute attempts](local-compute-usage.md): synchronous execution using completed producer inputs; no source acquisition or durable capture.
 - [Query adapter boundary](design/query-residual-execution.md): acquisition-specific preparation above the fixed-input row engine; opaque handles and cumulative guard measurement.
+- [DuckDB execution boundary](design/duckdb-relation-execution.md): internal adapter responsibilities, exact type transport and source/Compute isolation; [transport tests](../adapters/duckdb-node/README.md) do not yet establish full acquisition/capture conformance.
 - [Extension policy](design/extension-policy.md): extension boundaries.
 - [Implementation guide](design/implementation-port.md): component responsibilities and implementation order.
 - [Reference Host](design/reference-host.md): durable execution and secure defaults.
