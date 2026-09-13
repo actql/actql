@@ -180,7 +180,7 @@ pub fn operand_work(StepBound) -> Int
 
 pub fn parameter_values(CountBindings) -> @parameter_binding.BoundValues
 
-pub fn prepare_derived_applications(@pipeline_typing.CheckedPipeline, @capacity_witness.ProgramClaims, PreparationLimits, bindings? : CountBindings?, graph_inputs? : @capacity_graph_input.GraphInputs?) -> Result[Applications, PreparationIssue]
+pub fn prepare_derived_applications(@pipeline_typing.CheckedPipeline, @capacity_witness.ProgramClaims, PreparationLimits, bindings? : CountBindings?, graph_inputs? : @capacity_graph_input.GraphInputs?, sequences? : @capacity_sequence_limit.Applications?) -> Result[Applications, PreparationIssue]
 
 pub fn remaining_source_count(Applications) -> Int
 
@@ -414,6 +414,9 @@ pub(all) enum PreparationIssue {
   WorkLimit
   ForeignBindings
   ForeignGraphInputs
+  ForeignSequenceApplications
+  MissingSequenceApplication(Int)
+  InvalidSequenceProof(Int)
   UnknownSubject(Int)
   UnsupportedProof(Int)
   MissingDependency(Int, Int)

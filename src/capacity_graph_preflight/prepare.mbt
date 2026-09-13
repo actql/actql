@@ -56,7 +56,7 @@ pub fn prepare_application_coverage(
     limits.max_operand_work < 0 {
     return Err(InvalidLimits)
   }
-  if requests.length() > limits.max_work {
+  if requests.length() > limits.max_work / 2 {
     return Err(WorkLimit)
   }
   if guards is Some(bound) {
@@ -75,7 +75,7 @@ pub fn prepare_application_coverage(
       }
     }
   }
-  let mut remaining = limits.max_work - requests.length()
+  let mut remaining = limits.max_work - requests.length() * 2
   let graph = match
     check(pipeline, sources, policy, {
       max_work: remaining,
@@ -85,22 +85,6 @@ pub fn prepare_application_coverage(
     Err(e) => return Err(Graph(e))
   }
   remaining -= usage(graph).0
-  let program = match
-    @program.prepare_derived_applications(
-      pipeline,
-      @host.source_claims(sources),
-      {
-        max_work: remaining,
-        max_input_work: limits.max_input_work,
-        max_operand_work: limits.max_operand_work,
-      },
-      bindings~,
-      graph_inputs=Some(graph),
-    ) {
-    Ok(v) => v
-    Err(e) => return Err(Program(e))
-  }
-  remaining -= @program.application_work(program)
   let sequences : Array[@sequence.SequenceLimits] = []
   let joins : Array[@program.JoinLimit] = []
   let components : Array[@program.ComponentsLimits] = []
@@ -138,6 +122,41 @@ pub fn prepare_application_coverage(
         remaining -= @sequence.usage(v)
         sequences.push(v)
       }
+      _ => ()
+    }
+  }
+  let sequence = match
+    @sequence.check_applications(
+      pipeline,
+      sources,
+      policy,
+      sequences,
+      max_work=remaining,
+    ) {
+    Ok(v) => v
+    Err(e) => return Err(SequenceCollection(e))
+  }
+  remaining -= @sequence.application_work(sequence)
+  let program = match
+    @program.prepare_derived_applications(
+      pipeline,
+      @host.source_claims(sources),
+      {
+        max_work: remaining,
+        max_input_work: limits.max_input_work,
+        max_operand_work: limits.max_operand_work,
+      },
+      bindings~,
+      graph_inputs=Some(graph),
+      sequences=Some(sequence),
+    ) {
+    Ok(v) => v
+    Err(e) => return Err(Program(e))
+  }
+  remaining -= @program.application_work(program)
+  for index, request in requests {
+    match request {
+      Sequence(..) => ()
       Join(step~, output~) => {
         let v = match
           @program.check_join_limit(
@@ -193,18 +212,6 @@ pub fn prepare_application_coverage(
       }
     }
   }
-  let sequence = match
-    @sequence.check_applications(
-      pipeline,
-      sources,
-      policy,
-      sequences,
-      max_work=remaining,
-    ) {
-    Ok(v) => v
-    Err(e) => return Err(SequenceCollection(e))
-  }
-  remaining -= @sequence.application_work(sequence)
   let joined = match
     @program.check_join_applications(
       pipeline,

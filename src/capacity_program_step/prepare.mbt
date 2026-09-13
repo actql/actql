@@ -11,6 +11,9 @@ pub(all) enum PreparationIssue {
   WorkLimit
   ForeignBindings
   ForeignGraphInputs
+  ForeignSequenceApplications
+  MissingSequenceApplication(Int)
+  InvalidSequenceProof(Int)
   UnknownSubject(Int)
   UnsupportedProof(Int)
   MissingDependency(Int, Int)
@@ -40,6 +43,7 @@ pub fn prepare_derived_applications(
   limits : PreparationLimits,
   bindings? : CountBindings? = None,
   graph_inputs? : @graph_input.GraphInputs? = None,
+  sequences? : @sequence.Applications? = None,
 ) -> Result[Applications, PreparationIssue] {
   if limits.max_work < 0 ||
     limits.max_input_work < 0 ||
@@ -60,6 +64,16 @@ pub fn prepare_derived_applications(
     return Err(ForeignGraphInputs)
   }
   let arithmetic = @wire.program_claim_arithmetic(claims)
+  if sequences is Some(v) &&
+    (
+      !physical_equal(@sequence.application_pipeline(v), pipeline) ||
+      !physical_equal(
+        @host.source_claims(@sequence.application_sources(v)),
+        claims,
+      )
+    ) {
+    return Err(ForeignSequenceApplications)
+  }
   let count = @wire.claim_count(arithmetic)
   let steps = @pipeline.step_count(pipeline)
   if count > limits.max_work || steps > limits.max_work - count {
@@ -119,6 +133,43 @@ pub fn prepare_derived_applications(
           let proof = @wire.program_claim_proof_at(claims, index).unwrap()
           if @wire.program_proof_form(proof) != @wire.DerivedInputs {
             return Err(UnsupportedProof(index))
+          }
+          if @law.name(@wire.law(@wire.program_proof_witness(proof))) ==
+            "actql.bound.sequence-output" {
+            guard @wire.source(@wire.program_proof_witness(proof))
+              is @wire.Program(reference, _) &&
+              subjects.get(reference) is Some(step) else {
+              return Err(UnknownSubject(index))
+            }
+            guard sequences is Some(sequence) &&
+              @sequence.application_at(sequence, step) is Some(selected) else {
+              return Err(MissingSequenceApplication(index))
+            }
+            let table : Applications = {
+              claims,
+              entries: applications,
+              remaining: 0,
+              work: 0,
+            }
+            let bound = match
+              resolved_output(
+                pipeline,
+                step,
+                proof,
+                SequenceEnforcement(selected),
+                table,
+                limits.max_operand_work - operand_work,
+              ) {
+              Ok(v) => v
+              Err(OutputWorkLimit) =>
+                return Err(Application(index, OperandWorkLimit))
+              Err(InvalidOutput) => return Err(InvalidSequenceProof(index))
+            }
+            operand_work += bound.operand_work
+            applications[index] = Some(bound)
+            states[index] = 2
+            ready.push(bound)
+            continue
           }
           let n = @wire.program_proof_input_count(proof)
           if n > limits.max_work - work {

@@ -23,6 +23,7 @@ fn local_construction_fixture(
   second_join_capacity? : Bool = false,
   second_join_step? : Int = 0,
   second_sequence_capacity? : Bool = false,
+  sequence_output_proof? : Bool = false,
   second_sequence_step? : Int = 0,
   sequence_capacity_stage? : Int = 1,
   root_extra? : String = "",
@@ -307,7 +308,10 @@ fn local_construction_fixture(
   let sequence_sources = if second_sequence_capacity {
     Some(
       local_sequence_capacity_fixture(
-        environment, host_limit, second_sequence_step,
+        environment,
+        host_limit,
+        second_sequence_step,
+        output_proof=sequence_output_proof,
       ) catch {
         _ => abort("invalid sequence test material")
       },

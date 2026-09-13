@@ -179,6 +179,113 @@ test "sequence proof conversion retains Host operands through downstream take" {
       ],
       max_work=10000,
     ).unwrap()
+    let caps : @capacity.PreparationLimits = {
+      max_work: 10000,
+      max_name_bytes: 1000,
+      max_input_work: 10000,
+      max_operand_work: 10000,
+    }
+    let coverage = @capacity.prepare_application_coverage(
+      pipeline,
+      sources,
+      policy,
+      [Sequence(step=0, matches=0, output=1)],
+      caps,
+    ).unwrap()
+    let prepared = @capacity.source_coverage_program(
+      @capacity.application_coverage_sources(coverage),
+    )
+    let take_index = @wire.claim_index(
+      @wire.program_claim_arithmetic(claims),
+      @wire.cid(@wire.program_proof_witness(take_proof)),
+    ).unwrap()
+    assert_true(@step_bounds.application_at(prepared, take_index) is Some(_))
+    let seq_index = @wire.claim_index(
+      @wire.program_claim_arithmetic(claims),
+      seq_cid,
+    ).unwrap()
+    let operands = @step_bounds.operand_work(
+        @step_bounds.application_at(prepared, seq_index).unwrap(),
+      ) +
+      @step_bounds.operand_work(
+        @step_bounds.application_at(prepared, take_index).unwrap(),
+      )
+    assert_true(
+      @capacity.prepare_application_coverage(
+        pipeline,
+        sources,
+        policy,
+        [Sequence(step=0, matches=0, output=1)],
+        { ..caps, max_operand_work: operands, },
+      )
+      is Ok(_),
+    )
+    assert_true(
+      @capacity.prepare_application_coverage(
+        pipeline,
+        sources,
+        policy,
+        [Sequence(step=0, matches=0, output=1)],
+        { ..caps, max_operand_work: operands - 1, },
+      )
+      is Err(Program(Application(_, OperandWorkLimit))),
+    )
+    let sequence_apps = @capacity.consumer_coverage_sequence(
+      @capacity.application_coverage_consumers(coverage),
+    )
+    let proof_caps : @step_bounds.PreparationLimits = {
+      max_work: 10000,
+      max_input_work: 10000,
+      max_operand_work: 10000,
+    }
+    assert_true(
+      @step_bounds.prepare_derived_applications(pipeline, claims, proof_caps)
+      is Err(MissingSequenceApplication(_)),
+    )
+    let copy = @wire.check_mixed_program_claims(
+      mixed,
+      [seq_proof, take_proof],
+      { max_witnesses: 20, max_references: 100, },
+    ).unwrap()
+    assert_true(
+      @step_bounds.prepare_derived_applications(
+        pipeline,
+        copy,
+        proof_caps,
+        sequences=Some(sequence_apps),
+      )
+      is Err(ForeignSequenceApplications),
+    )
+    assert_true(
+      @step_bounds.prepare_derived_applications(
+        units[0].pipeline,
+        claims,
+        proof_caps,
+        sequences=Some(sequence_apps),
+      )
+      is Err(ForeignSequenceApplications),
+    )
+    let exact_work = @capacity.application_coverage_work(coverage)
+    assert_true(
+      @capacity.prepare_application_coverage(
+        pipeline,
+        sources,
+        policy,
+        [Sequence(step=0, matches=0, output=1)],
+        { ..caps, max_work: exact_work, },
+      )
+      is Ok(_),
+    )
+    assert_true(
+      @capacity.prepare_application_coverage(
+        pipeline,
+        sources,
+        policy,
+        [Sequence(step=0, matches=0, output=1)],
+        { ..caps, max_work: exact_work - 1, },
+      )
+      is Err(_),
+    )
     let last = @step_bounds.resolved_application_at(applications, 1).unwrap()
     let converted = reidentify_step_graph(units, last, budget)
     let sequence = proof_input_at(converted, 0).unwrap()

@@ -4,6 +4,7 @@ fn local_sequence_capacity_fixture(
   environment : @environment.WireEnvironment,
   maximum : Int,
   step : Int,
+  output_proof? : Bool = false,
 ) -> @host.HostSources raise @encode.EncodeFailure {
   let policy = @environment.capacity_policy(
     @environment.read_capacity(environment, {
@@ -52,6 +53,18 @@ fn local_sequence_capacity_fixture(
     )
     limits.push((@utf8.encode(text), cid))
   }
+  let proofs : Array[@wire.ProgramProofClaim] = []
+  if output_proof {
+    let proof = sequence_fixture_proof(
+      "actql.bound.sequence-output",
+      step,
+      maximum,
+      [@wire.cid(witnesses[1])],
+      "{\"op\":\"source\"}",
+    )
+    proofs.push(proof)
+    witnesses.push(@wire.program_proof_witness(proof))
+  }
   let mixed = @wire.check_mixed_claims(witnesses, limits, {
     max_entities: 10,
     max_references: 20,
@@ -59,7 +72,7 @@ fn local_sequence_capacity_fixture(
     max_nodes: 1000,
     max_depth: 30,
   }).unwrap()
-  let claims = @wire.check_mixed_program_claims(mixed, [], {
+  let claims = @wire.check_mixed_program_claims(mixed, proofs, {
     max_witnesses: 10,
     max_references: 20,
   }).unwrap()

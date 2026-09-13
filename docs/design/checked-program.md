@@ -258,8 +258,11 @@ Graph and supported external input occurrences cover the original proof's entire
 input multiset before emitting a new proof. Indexed external-input readers retain
 the original witnesses, and dependency collection includes each witness once
 without erasing repeated proof operands. Per-key ceilings do not become output
-row operands. This conversion does not itself add a proof to the formal compiler's
-capacity preparation or establish runtime enforcement.
+row operands. The formal capacity preparation accepts admitted Host-only
+Sequence output proofs through the same source-owned preparation entry and
+retains applicable candidates through projection to Result publication. Missing
+Sequence coverage, foreign claim owners and mismatched proof operands fail the
+whole construction. Conversion and preparation do not establish runtime enforcement.
 This entry does not run a matcher or establish backend
 support, and does not enable unrelated temporal paths.
 
@@ -696,6 +699,13 @@ checked Graph input. Missing external dependencies do not become zero counts.
 derived proof preparation, consumer application checks and their final coverage
 join from one pipeline, Host-source collection and selected policy. Consumer
 requests contain unchecked step/limit coordinates, not successful applications.
+Sequence selections are checked before derived proof preparation. Its optional
+`sequences` collection must have the same pipeline and admitted claim owner;
+only the exact Sequence output-proof law uses those selected Host candidates.
+Ordinary dependent proofs continue through the dependency-ordered constructor.
+Both request passes are charged, and the Sequence operand pass shares the
+ordinary proofs' cumulative operand budget. Authored Sequence output candidates
+remain unsupported in this proof path rather than being replaced by Host bounds.
 Sequence, join, components and traversal ledgers all check operation coverage;
 omitting both a request and its limit cannot silently remove the obligation.
 The final join rejects unused or multiply consumed limits. Graph checks, proof
