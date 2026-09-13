@@ -52,6 +52,17 @@ test "aggregate numeric parameters remain symbolic and carry bound obligations" 
   )
   assert_true(pending.any(p => p.kind is BoundInteger(name="n", minimum=1L)))
   assert_true(pending.any(p => p.kind is BoundFraction("n")))
+  for i in 0..<pending.length() {
+    let owner = @relation_typing.aggregate_for_validation(g, i)
+    match pending[i].kind {
+      GroupPartitioning => assert_true(owner is None)
+      BoundInteger(..) =>
+        assert_eq(@relation_typing.aggregate_name(owner.unwrap()), "a")
+      BoundFraction(_) =>
+        assert_eq(@relation_typing.aggregate_name(owner.unwrap()), "p")
+      _ => assert_true(owner is Some(_))
+    }
+  }
   for
     option in [
       "{\"$param\":\"s\"}", "{\"$param\":\"unknown\"}", "\"n\"", "{\"add\":[1,2]}",
@@ -72,6 +83,52 @@ test "aggregate numeric parameters remain symbolic and carry bound obligations" 
       is Err(_),
     )
   }
+}
+
+///|
+test "aggregate validation owners retain exact checked calls in canonical name order" {
+  let operation = checked(
+    Group,
+    "{\"by\":[\"id\"],\"aggregates\":{\"z\":{\"fn\":\"sum\",\"field\":\"amount\"},\"a\":{\"fn\":\"count\"}}}",
+  )
+  let group = @relation_typing.group(operation).unwrap()
+  let count = @relation_typing.pending_validation_count(operation)
+  let mut aggregate_owned = 0
+  for i in 0..<count {
+    let pending = @relation_typing.pending_validation_at(operation, i).unwrap()
+    match pending.kind {
+      GroupPartitioning =>
+        assert_true(@relation_typing.aggregate_for_validation(group, i) is None)
+      _ => {
+        let owner = @relation_typing.aggregate_for_validation(group, i).unwrap()
+        let ordinal = if @relation_typing.aggregate_name(owner) == "a" {
+          0
+        } else {
+          1
+        }
+        assert_true(
+          physical_equal(
+            owner,
+            @relation_typing.aggregate_at(group, ordinal).unwrap(),
+          ),
+        )
+        assert_true(
+          physical_equal(
+            pending.source,
+            @relation_typing.aggregate_source(owner),
+          ),
+        )
+        aggregate_owned += 1
+      }
+    }
+  }
+  assert_eq(aggregate_owned, count - 1)
+  assert_true(@relation_typing.aggregate_for_validation(group, -1) is None)
+  assert_true(@relation_typing.aggregate_for_validation(group, count) is None)
+  let empty = @relation_typing.group(
+    checked(Group, "{\"by\":[],\"aggregates\":{}}"),
+  ).unwrap()
+  assert_true(@relation_typing.aggregate_for_validation(empty, 0) is None)
 }
 
 ///|

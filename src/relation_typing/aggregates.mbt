@@ -52,6 +52,20 @@ struct CheckedAggregate {
 struct CheckedGroup {
   keys : Array[KeyField]
   aggregates : Array[CheckedAggregate]
+  validation_aggregates : Map[Int, Int]
+}
+
+///|
+/// Owned aggregate for an operation-local pending-validation index.
+/// Group-wide requirements and out-of-range indices have no aggregate owner.
+pub fn aggregate_for_validation(
+  value : CheckedGroup,
+  index : Int,
+) -> CheckedAggregate? {
+  match value.validation_aggregates.get(index) {
+    Some(i) => value.aggregates.get(i)
+    None => None
+  }
 }
 
 ///|
@@ -528,6 +542,7 @@ fn check_group(
   spend(b, s, count=names.length())
   names.sort_by(@canonical.compare_utf16)
   let aggregates : Array[CheckedAggregate] = []
+  let validation_aggregates : Map[Int, Int] = Map([])
   for name in names {
     let call = @decode.lookup(aggs, name).unwrap()
     field_name(b, call, name)
@@ -535,13 +550,18 @@ fn check_group(
       fail(call, DuplicateOutput(name))
     }
     seen[name] = true
+    let validation_start = pending.length()
     let checked = check_aggregate(
       b, name, call, visible, parameters, parameter_types, bindings, pending,
     )
+    spend(b, call, count=pending.length() - validation_start)
+    for index in validation_start..<pending.length() {
+      validation_aggregates[index] = aggregates.length()
+    }
     fields.push((@schema.Unqualified(name), checked.result))
     aggregates.push(checked)
   }
-  ({ keys, aggregates, }, fields)
+  ({ keys, aggregates, validation_aggregates, }, fields)
 }
 
 ///|

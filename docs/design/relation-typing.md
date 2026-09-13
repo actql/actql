@@ -54,6 +54,14 @@ field references. Reference coordinates retain the syntax layer's source-slot
 path/span and optional expression-text range; they do not claim a fabricated
 byte mapping through source escapes or YAML folding.
 
+`aggregate_for_validation` reads the exact aggregate owning an operation-local
+pending-validation index. The index is built while checking each call, retaining
+canonical aggregate order without searching names or comparing source paths at
+use time. Group-wide requirements and invalid indices return no aggregate. Each
+index entry consumes checking work; the mapping and checked aggregates remain
+private and immutable. This identifies the obligation's subject, not discharge
+of its order, capacity, numeric observation or execution requirements.
+
 The visible field index is built once. Each RHS receives only its referenced
 field contracts, partitioned into ordinary, left and right expression scopes,
 avoiding a copy of the entire growing schema at every slot.

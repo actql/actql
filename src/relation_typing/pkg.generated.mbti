@@ -33,6 +33,8 @@ pub fn aggregate_distinct(CheckedAggregate) -> Bool?
 
 pub fn aggregate_filter(CheckedAggregate) -> Int?
 
+pub fn aggregate_for_validation(CheckedGroup, Int) -> CheckedAggregate?
+
 pub fn aggregate_fraction(CheckedAggregate) -> FractionValue?
 
 pub fn aggregate_function(CheckedAggregate) -> AggregateFunction
