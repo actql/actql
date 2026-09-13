@@ -38,7 +38,7 @@ separate protocol results, not successful CheckedPrograms with weaker guarantees
 
 The entry has an explicit implementation-domain check, separate from the
 language grammar. Its Local and Result-import domain accepts `values`, `derive`,
-`filter`, `assert_rows`, `select`, `rename`, `drop`, `sort`, `take`, `distinct`, `dedupe_rows`, `append`, `join`, `cross_join`, `except` and `intersect`, including empty operation
+`filter`, `assert_rows`, `group`, `select`, `rename`, `drop`, `sort`, `take`, `distinct`, `dedupe_rows`, `append`, `join`, `cross_join`, `except` and `intersect`, including empty operation
 sequences. Sort/take use the existing owned order-resolution closure and preserve
 their distinct strategies and preconditions; accepting them does not synthesize
 an order from physical enumeration. Result publication can target their explicit
@@ -47,6 +47,13 @@ Representative selection retains its exact input and operation-bound top-tie
 execution check. Repeated grouping keys and the empty global key list keep their
 existing meanings; neither constitutes proof that the selected representative
 is unique in actual data.
+Ordinary group operations must close partition, per-call demand, result-contract,
+order and any resource/observation requirements before this entry succeeds.
+Exact count/min/max and decimal sum can use their typed output checks; this
+does not discharge floating sum/avg capture, statistical laws, or unconnected
+collection limits. A later Stage with any such unresolved requirement rejects
+the whole construction. Group-derived publication policy for acquired sources
+is a separate required boundary, not inferred from successful Local grouping.
 Join consumes the existing cardinality selection, ordered-occurrence execution
 check and exact selected-policy capacity application. All five join kinds
 can close when their requirements are supplied. Authored cardinality and

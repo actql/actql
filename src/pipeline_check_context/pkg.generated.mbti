@@ -1156,6 +1156,7 @@ pub struct GroupExecutionCheck {
 pub enum GroupExecutionRule {
   PartitionGroups
   EvaluateAggregate(@relation_typing.CheckedAggregate)
+  ValidateResultContract(@relation_typing.CheckedAggregate)
   EnforceArrayItems(GroupArrayLimit)
 }
 

@@ -2,6 +2,7 @@
 pub enum GroupExecutionRule {
   PartitionGroups
   EvaluateAggregate(@relation.CheckedAggregate)
+  ValidateResultContract(@relation.CheckedAggregate)
   EnforceArrayItems(GroupArrayLimit)
 }
 
@@ -23,7 +24,8 @@ fn group_execution_check(
     return Ok(None)
   }
   guard pending.kind is @relation.GroupPartitioning ||
-    pending.kind is @relation.AggregateDemand else {
+    pending.kind is @relation.AggregateDemand ||
+    pending.kind is @relation.AggregateEnvelope else {
     return Ok(None)
   }
   guard @pipeline.step_at(site.pipeline, site.step) is Some(step) else {
@@ -57,7 +59,30 @@ fn group_execution_check(
     guard @relation.aggregate_for_validation(group, site.index) is Some(call) else {
       return Err(ForeignOccurrence(site.step))
     }
-    EvaluateAggregate(call)
+    if pending.kind is @relation.AggregateEnvelope {
+      // Collection-producing aggregates need separately selected resource
+      // limits. Other calls retain their exact output contract, including
+      // decimal precision and inherited bounds on selected values.
+      match @relation.aggregate_function(call) {
+        ArrayAgg | StringAgg => return Ok(None)
+        Count
+        | CountIf
+        | Sum
+        | Avg
+        | Min
+        | Max
+        | First
+        | Last
+        | PercentileDisc
+        | PercentileCont
+        | VarPop
+        | VarSamp
+        | StddevPop
+        | StddevSamp => ValidateResultContract(call)
+      }
+    } else {
+      EvaluateAggregate(call)
+    }
   }
   Ok(Some(GroupExecution({ site, step, input, operation, group, rule, })))
 }

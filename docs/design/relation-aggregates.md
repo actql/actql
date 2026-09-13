@@ -52,7 +52,16 @@ binding indices and canonical name order; no sibling's demand or order is
 substituted. A false filter does not cause static deletion of its argument.
 Failure rejects the operation output rather than publishing partial groups.
 
-These records do not resolve aggregate envelopes, per-call order, bound guards,
+`ValidateResultContract` requires the exact call's output contract before
+publishing any group: finite non-negative-zero binary64 values, decimal
+precision/scale, nullability and any inherited value constraints remain
+enforced. It does not coerce, truncate or repair a result. First/last retain the
+selected value's contract, including structured or reference types; the check
+does not claim new reference evidence. Its call enumeration is exhaustive.
+Array and string aggregation require independently selected item/byte limits
+and are not resolved by this generic result-contract rule.
+
+These records do not resolve per-call order, bound guards,
 numeric observation capture or statistical-law obligations. Those requirements
 still need their own exact bindings before full closure. Window groups, pivot
 and analytic operations have different surrounding requirements and do not
@@ -89,8 +98,10 @@ publishing a partial Relation or truncating the array. Selection is not evidence
 that this check has run. Work, links and candidate storage are cumulative across
 calls; failure does not expose a partially linked index. Other aggregate
 envelopes and numeric observations remain unresolved. This process-owned binding
-does not replace persistent resolved-limit emission or open the formal Program
-entry to otherwise unsupported groups.
+does not replace persistent resolved-limit emission. The formal Program entry
+admits a group only when its complete requirement inventory and publication
+boundaries close; collection limits and observations cannot be skipped merely
+because another group with only exact scalar calls succeeds.
 
 ## Reference compatibility
 

@@ -1,5 +1,5 @@
 ///|
-test "group execution retains partition and per-call demand without discharging bounds or observations" {
+test "group execution binds result contracts without discharging numeric observations" {
   let profiles = resolution_profiles(
     operation_order_fixture(
       "[{\"derive\":{\"x\":\"concat($p, to_string($n))\"}},{\"group\":{\"by\":[\"id\",\"id\"],\"aggregates\":{\"z\":{\"fn\":\"sum\",\"field\":\"id\"},\"a\":{\"fn\":\"count\",\"expr\":\"id / 0\",\"filter\":\"FALSE\"}}}}]",
@@ -38,6 +38,16 @@ test "group execution retains partition and per-call demand without discharging 
         )
         match check.rule {
           EnforceArrayItems(_) => fail("array limits require explicit linking")
+          ValidateResultContract(call) => {
+            assert_eq(pending.kind, @relation.AggregateEnvelope)
+            assert_true(
+              physical_equal(
+                call,
+                @relation.aggregate_for_validation(check.group, site.index).unwrap(),
+              ),
+            )
+            bounds += 1
+          }
           PartitionGroups => {
             assert_eq(pending.kind, @relation.GroupPartitioning)
             assert_eq(@relation.group_keys(check.group).length(), 2)
@@ -66,7 +76,8 @@ test "group execution retains partition and per-call demand without discharging 
       }
       Unresolved =>
         match pending.kind {
-          @relation.AggregateEnvelope => bounds += 1
+          @relation.AggregateEnvelope =>
+            fail("scalar result contract was not bound")
           @relation.NumericAggregateObservation => observations += 1
           _ => ()
         }

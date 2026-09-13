@@ -43,6 +43,7 @@ fn check_supported_source(
               | "derive"
               | "filter"
               | "assert_rows"
+              | "group"
               | "select"
               | "rename"
               | "drop"
