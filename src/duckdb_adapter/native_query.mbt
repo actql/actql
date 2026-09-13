@@ -24,6 +24,8 @@ struct NativeQuery {
   owner : @lower.BoundPrepared
   sql : String
   parameter : PhysicalParameter
+  database_schema : String
+  table : String
 }
 
 ///|
@@ -223,7 +225,13 @@ pub fn compile_native_filter_select(
     }
     sql_text(output, symbol)
     sql_text(output, "?")
-    Ok({ owner, sql: output.builder.to_string(), parameter, })
+    Ok({
+      owner,
+      sql: output.builder.to_string(),
+      parameter,
+      database_schema,
+      table,
+    })
   } catch {
     TextLimit => Err(Limit)
     BadIdentifier => Err(InvalidIdentifier)

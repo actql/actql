@@ -41,6 +41,15 @@ Only declared real tables are in scope; views, user SQL, extension loading and
 external URLs are not source interfaces. Source connections are read-only;
 read-only access is not a sandbox for malicious database files.
 
+The native scan preparation retains the exact compiled query and its quoted
+schema/table address. Its validation SELECT enumerates every known input column,
+including columns absent from the final projection, without inserting a filter
+or `SELECT *`. Validation and output receivers obtain their schemas from that
+same owned checked pipeline (input port and final select respectively), rather
+than independently supplied schema claims. Preparing these commands does not
+prove that the physical address is a declared real table: Host permission,
+catalog/schema checks and read-view ownership remain execution obligations.
+
 Metadata verification, full known-scan validation and the result query use the
 same connection and read transaction. A path or modification time is not a
 snapshot identity. Capture retains immutable completed data; a downstream retry

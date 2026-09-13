@@ -45,6 +45,10 @@ pub fn native_query_parameter(NativeQuery) -> PhysicalParameter
 
 pub fn native_query_sql(NativeQuery) -> String
 
+pub fn native_scan_query(NativeScan) -> NativeQuery
+
+pub fn native_scan_sql(NativeScan) -> String
+
 pub fn physical_batch_cell(PhysicalBatch, Int, Int) -> @value_admission.CheckedValue?
 
 pub fn physical_batch_owner(PhysicalBatch) -> PhysicalResult
@@ -59,11 +63,17 @@ pub fn prepare_fixed_compute(@execution_relation.ProducerRead, String, NativeQue
 
 pub fn prepare_fixed_import(@execution_relation.ProducerRead, String, Int, Int) -> Result[FixedImport, NativeQueryIssue]
 
+pub fn prepare_native_scan(NativeQuery, Int, Int) -> Result[NativeScan, NativeQueryIssue]
+
 pub fn prepare_physical_parameter(@value_admission.CheckedValue) -> Result[PhysicalParameter, ValueIssue]
 
 pub fn prepare_physical_result(@relation_schema.Schema, Array[(String, PhysicalType)], PhysicalResultLimits, Int) -> Result[PhysicalResult, PhysicalResultIssue]
 
 pub fn prepare_producer_parameter(@execution_relation.ProducerRead, Int, Int) -> Result[PhysicalParameter, ValueIssue]
+
+pub fn prepare_scan_output_receiver(NativeScan, Array[(String, PhysicalType)], PhysicalResultLimits, Int) -> Result[PhysicalResult, PhysicalResultIssue]
+
+pub fn prepare_scan_validation_receiver(NativeScan, Array[(String, PhysicalType)], PhysicalResultLimits, Int) -> Result[PhysicalResult, PhysicalResultIssue]
 
 pub fn prepare_value_mapping(PhysicalType, @value_contract.Contract) -> Result[ValueMapping, ValueIssue]
 
@@ -92,6 +102,8 @@ pub(all) struct NativeQueryLimits {
   max_sql_bytes : Int
   expressions : @lowering_relation.ExpressionLimits
 }
+
+type NativeScan
 
 type PhysicalBatch
 
