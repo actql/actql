@@ -132,9 +132,15 @@ fn select_string_limit(
     pending.kind is @relation.AggregateEnvelope else {
     return Err(InvalidRequirement)
   }
-  guard @pipeline.step_at(site.pipeline, site.step) is Some(step) &&
-    step.operation is @pipeline.Unary(operation) &&
-    (if analytic {
+  guard @pipeline.step_at(site.pipeline, site.step) is Some(step) else {
+    return Err(InvalidRequirement)
+  }
+  let operation = match step.operation {
+    @pipeline.Unary(op) => op
+    @pipeline.WindowGroup(op) if !analytic => op
+    _ => return Err(InvalidRequirement)
+  }
+  guard (if analytic {
       @relation.analytic(operation) is Some(_)
     } else {
       @relation.operation(operation) == @relation.Group

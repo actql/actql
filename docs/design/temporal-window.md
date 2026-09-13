@@ -89,9 +89,14 @@ machinery with the normative `window_group/aggregates/<name>/items` subject and
 including its boundary prefix, not all windows' retained contents. The
 `unit_group_limit_count/at` readers retain the actual operation source, so ordinary
 and window calls remain distinguishable without copying their evidence.
-String-result resource scopes and binary64 observation slots still need
-window-specific persistent integration; they cannot borrow an ordinary group's
-resource subject or numeric slot identity.
+String-result limits likewise use `window_group/aggregates/<name>/bytes`,
+measuring each result's UTF-8 bytes. The retained minimum combines an optional
+Host string ceiling and literal or bound-Parameter guard; absence of both rejects
+construction. Equality with a Host ceiling keeps the authored guard but marks it
+currently non-binding. `unit_group_string_limit_count/at` exposes these owned
+limits without substituting an ordinary-group subject. Binary64 observation slots
+still require window-specific integration and cannot borrow ordinary group slot
+identities.
 
 The operation-resolution boundary retains a `WindowExecutionCheck` for time
 admission and a separate one for membership assignment. Both identify the exact

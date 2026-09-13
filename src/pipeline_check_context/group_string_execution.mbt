@@ -24,9 +24,14 @@ pub fn link_program_group_string_limits(
       pending.kind is @relation.AggregateEnvelope else {
       continue
     }
-    guard @pipeline.step_at(site.pipeline, site.step) is Some(step) &&
-      step.operation is @pipeline.Unary(operation) &&
-      @relation.operation(operation) == @relation.Group &&
+    guard @pipeline.step_at(site.pipeline, site.step) is Some(step) else {
+      continue
+    }
+    let operation = match step.operation {
+      @pipeline.Unary(op) | @pipeline.WindowGroup(op) => op
+      _ => continue
+    }
+    guard @relation.operation(operation) == @relation.Group &&
       @relation.group(operation) is Some(group) &&
       @relation.aggregate_for_validation(group, site.index) is Some(call) &&
       @relation.aggregate_function(call) is @relation.StringAgg else {
