@@ -48,6 +48,7 @@ test "analytic calls retain filter demand and per-frame unresolved resource and 
           RejectOperationOutput,
         )
         let call = match check.rule {
+          EnforceArrayItems(_, _) => fail("array bounds need explicit linking")
           EnforceStringBytes(_, _) =>
             fail("string bounds need explicit linking")
           PartitionAuthoredPeers => {

@@ -10,6 +10,7 @@ pub enum GroupArrayLimitIssue {
 
 ///|
 struct GroupArrayLimit {
+  input_law : String
   owner : ProgramOperationResolutionIndex
   requirement : Int
   call : @relation.CheckedAggregate
@@ -63,8 +64,8 @@ pub fn group_array_limit_guard_resolution(
 }
 
 ///|
-pub fn group_array_limit_input_law(_value : GroupArrayLimit) -> String {
-  "actql.bound.array-aggregate-input"
+pub fn group_array_limit_input_law(value : GroupArrayLimit) -> String {
+  value.input_law
 }
 
 ///|
@@ -92,6 +93,27 @@ pub fn select_group_array_limit(
   max_work : Int,
   max_candidates : Int,
 ) -> Result[GroupArrayLimit, GroupArrayLimitIssue] {
+  select_array_limit(owner, requirement, max_work, max_candidates, false)
+}
+
+///|
+pub fn select_analytic_array_limit(
+  owner : ProgramOperationResolutionIndex,
+  requirement : Int,
+  max_work : Int,
+  max_candidates : Int,
+) -> Result[GroupArrayLimit, GroupArrayLimitIssue] {
+  select_array_limit(owner, requirement, max_work, max_candidates, true)
+}
+
+///|
+fn select_array_limit(
+  owner : ProgramOperationResolutionIndex,
+  requirement : Int,
+  max_work : Int,
+  max_candidates : Int,
+  analytic : Bool,
+) -> Result[GroupArrayLimit, GroupArrayLimitIssue] {
   if max_work < 0 || max_candidates < 1 {
     return Err(InvalidLimits)
   }
@@ -111,12 +133,15 @@ pub fn select_group_array_limit(
   }
   guard @pipeline.step_at(site.pipeline, site.step) is Some(step) &&
     step.operation is @pipeline.Unary(operation) &&
-    @relation.operation(operation) == @relation.Group &&
+    (if analytic {
+      @relation.analytic(operation) is Some(_)
+    } else {
+      @relation.operation(operation) == @relation.Group
+    }) &&
     step.input is Some(input) else {
     return Err(InvalidRequirement)
   }
-  guard @relation.group(operation) is Some(group) &&
-    @relation.aggregate_for_validation(group, site.index) is Some(call) &&
+  guard aggregate_limit_call(operation, site.index, analytic) is Some(call) &&
     @relation.aggregate_function(call) is @relation.ArrayAgg else {
     return Err(InvalidRequirement)
   }
@@ -138,7 +163,7 @@ pub fn select_group_array_limit(
           resolution.site.producer_visit == site.producer_visit &&
           physical_equal(resolution.site.pipeline, site.pipeline) &&
           resolution.site.step == site.step &&
-          @relation.aggregate_for_validation(group, resolution.site.index)
+          aggregate_limit_call(operation, resolution.site.index, analytic)
           is Some(aggregate) &&
           physical_equal(aggregate, call) {
           if resolution.site.requirement is @pipeline.RelationRequirement(p) &&
@@ -229,6 +254,11 @@ pub fn select_group_array_limit(
     }
   }
   Ok({
+    input_law: if analytic {
+      "actql.bound.analytic-array-input"
+    } else {
+      "actql.bound.array-aggregate-input"
+    },
     owner,
     requirement,
     call,

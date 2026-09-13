@@ -107,3 +107,14 @@ each frame is a subset of a partition of input occurrences. Overlapping frames
 can have a larger total membership count, so that law does not bound total work
 or retained arrays. The subject reader exposes ownership without treating law
 registration, a subject string or its hash as proof application or execution.
+
+Array selection uses the required Host item ceiling, any exact authored guard,
+and every applicable input-row bound from the owning capacity closure. Sparse
+claim slots are scanned to their explicit length; retained memberships keep
+their original indices and producer dependencies. Selection validates that each
+row bound reaches this analytic input before using its value. Each frame is a
+subset of that input, but the bound does not constrain the sum across frames.
+The selection record shares the historical `GroupArrayLimit` reader surface and
+retains an explicit analytic input-law identifier. Ordinary group selectors
+reject analytic occurrences. No observation, position witness or persistent
+proof conversion is implied by selection; those remain distinct boundaries.

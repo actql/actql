@@ -138,7 +138,7 @@ test "formal analytic rejects missing envelope and unbound frame aggregate oblig
     (function, limit) in [
       ("{\"fn\":\"min\",\"field\":\"value\"}", None),
       ("{\"fn\":\"sum\",\"field\":\"value\"}", Some(1000)),
-      ("{\"fn\":\"array_agg\",\"field\":\"value\"}", Some(1000)),
+      ("{\"fn\":\"array_agg\",\"field\":\"value\"}", None),
     ] {
     let checked : Array[CheckedProgram] = []
     try {

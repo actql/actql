@@ -73,9 +73,19 @@ fn prepare_owned_closure(
     Ok(v) => v
     Err(e) => raise Joins(e)
   }
-  let array_resolutions = match
+  let group_array_resolutions = match
     @context.link_program_group_array_limits(
       join_resolutions,
+      ceiling,
+      ceiling - prefix,
+      ceiling - prefix,
+    ) {
+    Ok(v) => v
+    Err(e) => raise GroupLimits(e)
+  }
+  let array_resolutions = match
+    @context.link_program_analytic_array_limits(
+      group_array_resolutions,
       ceiling,
       ceiling - prefix,
       ceiling - prefix,
