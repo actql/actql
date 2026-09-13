@@ -1,0 +1,16 @@
+// Real Node conformance fixture, not a production Host or public Connector SPI.
+supported_targets = "js"
+
+pkgtype(kind: "foreign_library")
+
+import {
+  "actql/actql/duckdb_adapter" @duckdb,
+  "actql/actql/lowering_relation" @lower,
+  "actql/actql/pipeline_typing" @pipeline,
+  "actql/actql/relation_schema" @schema,
+  "actql/actql/value_contract" @contract,
+  "actql/actql/source_value" @source,
+  "actql/actql/decode_core" @decode,
+  "actql/actql/encode_core" @encode,
+  "moonbitlang/core/json",
+}

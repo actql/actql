@@ -37,6 +37,16 @@ measurements, empty receipts and cleanup, not full MoonBit admission or evidence
 issuance. Integrating those callbacks and the two-receipt capture verifier remains
 required for end-to-end acquisition conformance.
 
+The additional MoonBit receiving conformance test builds `duckdb_conformance`, a
+JS-only fixed test fixture using public checked entrances. It calls the portable
+`NativeReceiving` and physical value-admission implementation in the same process
+as Neo. It rejects discarded invalid scan values, nullability violations,
+lossy integers and views before native filtering, and covers empty results.
+The fixture exports no completion constructor or evidence issuer; it is not a
+general Host entry point. Native logical guards, completion and capture still
+require their product integration. The original lifecycle-double test remains
+useful for injecting receiver failures independently of semantic validation.
+
 Tests create their own files under ignored `_build/duckdb-fixtures`, exercise
 exact scalar transport, existing-file read-only access, isolated Compute,
 cumulative transfer bounds, native memory exhaustion, cancellation and cross-process file locks. They

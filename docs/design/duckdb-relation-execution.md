@@ -141,6 +141,16 @@ Its scalar/transport budgets do not replace row-container, logical guard, retain
 storage or native work accounting. The Host must bind the receiver to the exact
 statement/attempt and its fixed metadata rather than reuse it for another query.
 
+Native receiving owns the two physical receivers and their admitted batches.
+It requires exactly one `BASE TABLE` catalog result before validation, seals the
+validation receiver before opening the native receiver, and subtracts validation
+usage from the cumulative row/cell/value-node/text ceilings for native reception.
+Receipt ports retain their exact parent; foreign ports and invalid transitions
+cannot be used to continue reception. Abort cancels both receivers and drops
+retained batches. Empty chunks do not accumulate retained batch roots. The
+`has_both` readiness query describes this provisional state only: it is not an
+evidence record, authority, native semantic proof or engine completion constructor.
+
 The single-receipt process-evidence profile represents a single logical received row
 sequence. A full scan exported to MoonBit for validation and a separately exported
 native query result are two actual receipts. They cannot be combined, hidden as

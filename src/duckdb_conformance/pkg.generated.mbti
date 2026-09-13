@@ -1,0 +1,33 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/duckdb_conformance"
+
+import {
+  "actql/actql/duckdb_adapter",
+}
+
+// Values
+pub fn accept(@duckdb_adapter.NativeReceiving, @duckdb_adapter.NativeReceiptPort, Int, String) -> Bool
+
+pub fn begin(@duckdb_adapter.NativeReceiving, Int, String) -> @duckdb_adapter.NativeReceiptPort
+
+pub fn cancel(@duckdb_adapter.NativeReceiving) -> Unit
+
+pub fn create() -> @duckdb_adapter.NativeReceiving
+
+pub fn finish(@duckdb_adapter.NativeReceiving, @duckdb_adapter.NativeReceiptPort) -> Bool
+
+pub fn metadata(@duckdb_adapter.NativeReceiving, Int, String, String) -> Bool
+
+pub fn parameter(@duckdb_adapter.NativeReceiving, Int, Int) -> String
+
+pub fn ready(@duckdb_adapter.NativeReceiving) -> Bool
+
+pub fn sql(@duckdb_adapter.NativeReceiving, Int) -> String
+
+// Errors
+
+// Types and methods
+
+// Type aliases
+
+// Traits

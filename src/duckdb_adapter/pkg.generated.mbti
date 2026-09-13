@@ -13,9 +13,17 @@ import {
 }
 
 // Values
+pub fn abort_native_receiving(NativeReceiving) -> Unit
+
+pub fn accept_native_receipt_chunk(NativeReceiving, NativeReceiptPort, Int, Array[@decode_core.Cursor]) -> Result[Unit, NativeReceivingIssue]
+
+pub fn admit_native_table_metadata(NativeReceiving, Int, Array[(String, PhysicalType)], Array[@decode_core.Cursor]) -> Result[Unit, NativeReceivingIssue]
+
 pub fn admit_physical_chunk(PhysicalResult, Int, Array[@decode_core.Cursor]) -> Result[PhysicalBatch, PhysicalResultIssue]
 
 pub fn admit_physical_value(ValueMapping, @decode_core.Cursor, @value_admission.Limits) -> Result[@value_admission.CheckedValue, ValueIssue]
+
+pub fn begin_native_receipt(NativeReceiving, NativeReceiptRole, Array[(String, PhysicalType)]) -> Result[NativeReceiptPort, NativeReceivingIssue]
 
 pub fn cancel_physical_result(PhysicalResult) -> Unit
 
@@ -24,6 +32,8 @@ pub fn compile_native_filter_select(@lowering_relation.BoundPrepared, String, St
 pub fn decode_physical_type(@decode_core.Cursor) -> Result[PhysicalType, ValueIssue]
 
 pub fn emit_physical_parameter(PhysicalParameter, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
+
+pub fn finish_native_receipt(NativeReceiving, NativeReceiptPort) -> Result[Unit, NativeReceivingIssue]
 
 pub fn fixed_compute_import(FixedCompute) -> FixedImport
 
@@ -44,6 +54,10 @@ pub fn native_query_owner(NativeQuery) -> @lowering_relation.BoundPrepared
 pub fn native_query_parameter(NativeQuery) -> PhysicalParameter
 
 pub fn native_query_sql(NativeQuery) -> String
+
+pub fn native_receiving_has_both(NativeReceiving) -> Bool
+
+pub fn native_receiving_scan(NativeReceiving) -> NativeScan
 
 pub fn native_scan_metadata_parameter(NativeScan, Int) -> PhysicalParameter?
 
@@ -66,6 +80,8 @@ pub fn physical_result_usage(PhysicalResult) -> (Int, Int, Int, Int)
 pub fn prepare_fixed_compute(@execution_relation.ProducerRead, String, NativeQueryLimits) -> Result[FixedCompute, NativeQueryIssue]
 
 pub fn prepare_fixed_import(@execution_relation.ProducerRead, String, Int, Int) -> Result[FixedImport, NativeQueryIssue]
+
+pub fn prepare_native_receiving(NativeScan, PhysicalResultLimits, Int) -> Result[NativeReceiving, NativeReceivingIssue]
 
 pub fn prepare_native_scan(NativeQuery, Int, Int) -> Result[NativeScan, NativeQueryIssue]
 
@@ -105,6 +121,24 @@ pub(all) struct NativeQueryLimits {
   max_entries : Int
   max_sql_bytes : Int
   expressions : @lowering_relation.ExpressionLimits
+}
+
+type NativeReceiptPort
+
+pub(all) enum NativeReceiptRole {
+  ValidationScan
+  NativeResult
+} derive(Eq)
+
+type NativeReceiving
+
+pub(all) enum NativeReceivingIssue {
+  InvalidLimits
+  InvalidState
+  ForeignReceipt
+  NotBaseTable
+  InvalidMetadata
+  Values(PhysicalResultIssue)
 }
 
 type NativeScan
