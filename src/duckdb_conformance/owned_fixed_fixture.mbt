@@ -40,11 +40,16 @@ fn owned_fixed_from_output(
   values_json : String,
   fragment_json : String,
   projection? : String = "id",
+  predicate? : String = "id > 2",
 ) -> OwnedFixedFixture {
   try {
     let receiver = issued_fixture_consumer(
       owner,
-      steps="[{\"filter\":\"id > 2\"},{\"select\":[\"" + projection + "\"]}]",
+      steps="[{\"filter\":\"" +
+        predicate +
+        "\"},{\"select\":[\"" +
+        projection +
+        "\"]}]",
     )
     let bound = @execution.bind_completed_input(receiver, 0, owner, output).unwrap()
     let read = @execution.prepare_producer_read(receiver, bound, 100, 10000).unwrap()

@@ -24,23 +24,26 @@ test('standard fixed Host retains typed projected values through completion and 
   const cases = [
     [{ type: 'string', nullable: true }, '日本語'],
     [{ type: 'boolean', nullable: true }, false],
+    [{ type: 'boolean', nullable: true }, false, 'amount = false',
+      [{ amount: false }, { amount: false }, { amount: false }]],
+    [{ type: 'boolean', nullable: true }, false, 'amount = true', []],
     [{ type: 'number', nullable: true }, 9007199254740992],
     [{ type: 'number', nullable: true }, -1.5],
     [{ type: 'decimal', precision: 38, scale: 2, nullable: true }, '999999999999999999999999999999999999.99'],
     [{ type: 'date', nullable: true }, '2000-02-29'],
     [{ type: 'timestamp', nullable: true }, '1969-12-31T23:59:59.999Z'],
   ];
-  for (const [contract, value] of cases) {
+  for (const [contract, value, predicate = 'id > 2', expectedRows] of cases) {
     // Fixed oracle: numeric predicate drops the second row, projection drops id.
     // Neither the SQL result nor the Local result supplies the expected values.
-    const expected = hash([{ amount: value }, { amount: null }, { amount: value }]);
+    const expected = hash(expectedRows ?? [{ amount: value }, { amount: null }, { amount: value }]);
     const pipeline = JSON.stringify([
       { values: { schema: { id: { type: 'number', nullable: false }, amount: contract },
         rows: [{ id: 3, amount: value }, { id: 1, amount: value },
           { id: 4, amount: null }, { id: 3, amount: value }] }, as: 'seed' },
       { select: ['id', 'amount'] },
     ]);
-    const fixture = moon.typedFixedCreate(pipeline, ...contracts);
+    const fixture = moon.typedFixedCreate(pipeline, predicate, ...contracts);
     assert.equal(moon.ownedFixedLocalCid(fixture), expected, contract.type);
     const setup = moon.ownedFixedConfiguration(fixture);
     const result = await runFixedHostCompute(setup, limits, { maxRows: 4, maxCells: 8 });
@@ -49,7 +52,7 @@ test('standard fixed Host retains typed projected values through completion and 
       assert.equal(result.importedRows, 4);
       assert.equal(result.importedCells, 8);
       assert.equal(moon.ownedFixedConsumeOutput(fixture, output), expected, contract.type);
-      const foreign = moon.typedFixedCreate(pipeline, ...contracts);
+      const foreign = moon.typedFixedCreate(pipeline, predicate, ...contracts);
       assert.equal(moon.ownedFixedConsumeOutput(foreign, output), 'null');
     } finally { result.close(); }
     assert.equal(moon.ownedFixedConsumeOutput(fixture, output), 'null');

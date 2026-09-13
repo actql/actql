@@ -4,6 +4,7 @@
 #export_name("typedFixedCreate")
 pub fn typed_fixed_create(
   source : String,
+  predicate : String,
   registry_json : String,
   values_json : String,
   fragment_json : String,
@@ -40,6 +41,7 @@ pub fn typed_fixed_create(
       values_json,
       fragment_json,
       projection="amount",
+      predicate~,
     )
   } catch {
     _ => abort("typed fixed conformance setup")
