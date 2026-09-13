@@ -2,14 +2,14 @@
 
 This is the construction contract for the main-side boundary described in
 [Pure operation checking](pure-operation-checking.md#main-and-lowering-ownership).
-It specifies the orchestration target, not an already available API or a new
-wire artifact. Language and the pinned machine contracts remain authoritative.
+It specifies the orchestration boundary, not a new wire artifact.
+Language and the pinned machine contracts remain authoritative.
 Existing `pipeline_check_context` results are implementation components of this
 boundary; adding another component is not itself end-to-end completion.
 
 ## Entry and success
 
-The intended entry is `program_check.check`. It takes source and admission
+The entry is `program_check.check`. It takes source and admission
 material, not a caller-assembled list of checker successes. Its conceptual
 arguments are:
 
@@ -35,6 +35,18 @@ bindings, inconsistent evidence, unsupported static handling or an unresolved
 mandatory static requirement produce an error with no partial CheckedProgram.
 Public planning variants such as `needs_bindings` and `pending_predecessor` are
 separate protocol results, not successful CheckedPrograms with weaker guarantees.
+
+The entry has an explicit implementation-domain check, separate from the
+language grammar. Its Local and Result-import domain accepts `values`, `derive`,
+`filter`, `select`, `rename` and `drop`, including empty operation sequences.
+Other operation paths, opaque Binding declarations and nonempty Effects are
+reported as unsupported rather than made executable through missing evidence.
+Selected SourceViews additionally require acquisition closure: shared Catalog
+registration or mode support alone cannot pass the final source-execution audit.
+These implementation limits do not redefine the full construction contract or
+the language's accepted operations. Extending the entry requires connecting the
+corresponding semantic dependencies and execution obligations, not just adding
+an operation spelling to its domain check.
 
 Future Result values do not have to exist at Check. Their declared typed ports
 and producer/gate correspondence do. A value-dependent condition remains an
@@ -427,6 +439,51 @@ replaced with empty maps. Gate identities specify readiness requirements, not
 observations that their producers have succeeded.
 
 ## Exhaustive obligation coverage
+
+Source acquisition has distinct Host-combination and response-admission
+dispositions. The former applies before provider access: the Host checks the
+selected acquisition kind, authority, observation and Carrier combination and
+prevents access if it cannot admit it. The latter applies before source output
+use: actual values must satisfy the selected Carrier contract, or that output
+is rejected. Both retain one exact Program-owned request and selected SourceView;
+response admission depends on the same request's pre-access check, not an
+equal-shaped check for another input. These are the execution boundaries in
+[Connector SourceViews](../spec/language.md#sourceviews), not additional language
+acceptance restrictions or evidence that the checks have already run.
+
+Neither disposition subsumes mode support, request resource enforcement,
+concrete Ref authority, keyed completeness/correlation/identity validation or
+checkpoint obligations. Each applicable requirement needs its own connected
+handling before a SourceView Program can pass the final construction boundary.
+In particular, retaining these two dispositions is not a complete acquisition
+closure and must not be used to remove an unresolved-source rejection alone.
+
+For each keyed join occurrence, request-value admission retains the original
+join and its correlation-role mapping: it validates all authored left-key
+components under the selected null-request policy and admits the representative
+tuple values to the request contract before dispatch. Its resource check retains
+the exact producer membership, resolved lookup counts and selected lookup policy;
+decoded-body bounds do not stand in for wire-byte, attempt or deadline limits.
+Response validation depends on both Carrier admission and that acquisition's
+resource check. It checks requested-key membership, per-key completeness,
+response cardinality, response identity uniqueness and external success, with
+atomic failure under [External SourceView joins](../spec/language.md#external-joins).
+Repeated join occurrences keep separate bindings even when they share one
+SourceView. These bindings prescribe enforcement; they do not perform I/O,
+choose a physical strategy or establish that a transport plan fits its envelope.
+
+Response classification retains the exact selected SourceView data-policy
+Envelope and the input's authored minimum separately. Known classifications
+use `public < internal < confidential < restricted`; the effective classification
+is their maximum. An authoritative `unknown` stays unknown for every authored
+minimum, and an absent minimum preserves the authoritative classification.
+This follows the strengthening rule in External SourceView joins and the
+unknown-policy rule in [Check Environment](../spec/protocols/contracts.md#check-environment).
+Sketch `87dc7144138edfcba108cdc59dc485ac976ba976:src/actql-compiler.ts`
+uses the same maximum and unknown propagation. Its missing-policy `internal`
+fallback is not needed here: SourceView policy admission requires the exact
+referenced Envelope. Classification selection does not invent an effective
+policy CID, combine request-input provenance, or authorize egress.
 
 Coverage starts from the source, expression, operation, input, publication and
 incoming-dependency inventories, not from the list of successful resolutions.

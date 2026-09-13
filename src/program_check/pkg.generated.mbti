@@ -1,0 +1,294 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/program_check"
+
+import {
+  "actql/actql/capacity_graph_input",
+  "actql/actql/capacity_graph_preflight",
+  "actql/actql/capacity_host_witness",
+  "actql/actql/capacity_program_step",
+  "actql/actql/capacity_witness",
+  "actql/actql/check_environment",
+  "actql/actql/decode_core",
+  "actql/actql/encode_core",
+  "actql/actql/pipeline_check_context",
+  "actql/actql/pipeline_typing",
+  "actql/actql/sourceview_resolution",
+  "actql/actql/stage_parameters",
+  "actql/actql/stage_results",
+  "actql/actql/stage_syntax",
+}
+
+// Values
+pub fn check(@stage_syntax.Program, @check_environment.WireEnvironment, @decode_core.Cursor?, Array[Array[@pipeline_check_context.CapacityMaterial]], @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, SourceLimits, max_work~ : Int, max_bytes~ : Int, max_nodes~ : Int, max_depth~ : Int) -> CheckedProgram raise LocalConstructionFailure
+
+pub fn contract_inventory(CheckedProgram) -> @pipeline_check_context.CoreContractInventory
+
+pub fn expression_bound_at(CheckedProgram, Int) -> @pipeline_check_context.TextBoundResolution?
+
+pub fn expression_bound_count(CheckedProgram) -> Int
+
+pub fn expression_closure(CheckedProgram) -> @pipeline_check_context.ProgramExpressionClosure?
+
+pub fn expression_execution_at(CheckedProgram, Int) -> ExpressionExecution?
+
+pub fn expression_execution_bound(ExpressionExecution) -> @pipeline_check_context.TextBoundResolution
+
+pub fn expression_execution_owner(ExpressionExecution) -> @pipeline_check_context.ProgramExpressionClosure
+
+pub fn expression_execution_requirement_index(ExpressionExecution) -> Int
+
+pub fn graph_proof_application(ReidentifiedGraphInput) -> @capacity_graph_input.InputBound
+
+pub fn graph_proof_limit(ReidentifiedGraphInput) -> @capacity_witness.LimitClaim
+
+pub fn graph_proof_witness(ReidentifiedGraphInput) -> @capacity_witness.WireWitness
+
+pub fn incoming_gates(CheckedProgram) -> @pipeline_check_context.ProgramIncomingGates
+
+pub fn proof_application(ReidentifiedStep) -> @capacity_program_step.StepBound
+
+pub fn proof_claim(ReidentifiedStep) -> @capacity_witness.ProgramProofClaim
+
+pub fn proof_graph_input_at(ReidentifiedStep, Int) -> ReidentifiedGraphInput?
+
+pub fn proof_graph_input_count(ReidentifiedStep) -> Int
+
+pub fn proof_input_at(ReidentifiedStep, Int) -> ReidentifiedStep?
+
+pub fn proof_input_count(ReidentifiedStep) -> Int
+
+pub fn proof_source(ReidentifiedStep) -> UnitOperationSource
+
+pub fn publication_bytes(PublicationExecution) -> @capacity_witness.LimitClaim
+
+pub fn publication_failure(PublicationExecution) -> PublicationFailure
+
+pub fn publication_phase(PublicationExecution) -> PublicationPhase
+
+pub fn publication_proof_at(PublicationExecution, Int) -> ReidentifiedStep?
+
+pub fn publication_proof_count(PublicationExecution) -> Int
+
+pub fn publication_rows(PublicationExecution) -> @capacity_witness.LimitClaim
+
+pub fn publication_selection(PublicationExecution) -> @pipeline_check_context.PublicationRowLimit
+
+pub fn requirements(CheckedProgram) -> @pipeline_check_context.StageRequirementClosure
+
+pub fn source_execution_at(CheckedProgram, Int) -> SourceExecution?
+
+pub fn source_execution_count(CheckedProgram) -> Int
+
+pub fn source_execution_failure(SourceExecution) -> SourceExecutionFailure
+
+pub fn source_execution_kind(SourceExecution) -> SourceExecutionKind
+
+pub fn source_execution_phase(SourceExecution) -> SourceExecutionPhase
+
+pub fn source_execution_prerequisite_at(SourceExecution, Int) -> SourceExecution?
+
+pub fn source_execution_prerequisite_count(SourceExecution) -> Int
+
+pub fn source_execution_subject(SourceExecution) -> SourceExecutionSubject
+
+pub fn source_identity(CheckedProgram) -> @pipeline_check_context.ProgramSourceIdentity
+
+pub fn unit_contract_at(CheckedProgram, Int, Int) -> (String, @pipeline_check_context.CoreContractBody)?
+
+pub fn unit_contract_count(CheckedProgram, Int) -> Int?
+
+pub fn unit_contracts_cid(CheckedProgram, Int) -> String?
+
+pub fn unit_count(CheckedProgram) -> Int
+
+pub fn unit_definition_cid(CheckedProgram, Int) -> String?
+
+pub fn unit_gate_cid_at(CheckedProgram, Int, Int) -> String?
+
+pub fn unit_gate_cid_count(CheckedProgram, Int) -> Int?
+
+pub fn unit_import_cid_at(CheckedProgram, Int, Int) -> String?
+
+pub fn unit_import_cid_count(CheckedProgram, Int) -> Int?
+
+pub fn unit_pipeline(CheckedProgram, Int) -> @pipeline_typing.CheckedPipeline?
+
+pub fn unit_publication_at(CheckedProgram, Int, Int) -> PublicationExecution?
+
+pub fn unit_publication_count(CheckedProgram, Int) -> Int?
+
+pub fn unit_result_import_at(CheckedProgram, Int, Int) -> BuiltResultInterface?
+
+pub fn unit_result_import_count(CheckedProgram, Int) -> Int?
+
+// Errors
+pub suberror ConstructionFailure {
+  InvalidLimits
+  BudgetExceeded
+  Operations(@pipeline_check_context.ProgramOperationResolutionIssue)
+  Values(@pipeline_check_context.ValuesPublicationIssue)
+  Joins(@pipeline_check_context.JoinRequirementIssue)
+  Incoming(@pipeline_check_context.IncomingIssue)
+  Links(@pipeline_check_context.IncomingLinksIssue)
+  Requirements(@pipeline_check_context.StageRequirementIssue)
+  UnresolvedOperation(@pipeline_check_context.OperationRequirementSite)
+  IncompleteInventory(Int)
+  Gates(@pipeline_check_context.ProgramIncomingGatesIssue)
+  Contracts(@pipeline_check_context.CoreContractIssue)
+}
+
+pub suberror EnvironmentFailure {
+  BudgetExceeded
+  Registry(@check_environment.ContractIssue)
+  Catalog(@check_environment.CatalogIssue)
+  References(@check_environment.ReferenceIssue)
+  Policies(@check_environment.DataPolicyIssue)
+  Values(@check_environment.ValueContractIssue)
+  Shapes(@check_environment.SourceViewShapeIssue)
+  Modes(@check_environment.SourceReadModeIssue)
+  Carriers(@check_environment.CarrierSchemaIssue)
+  Requests(@check_environment.SourceRequestIssue)
+}
+
+pub suberror LocalConstructionFailure {
+  InvalidLimits
+  Environment(EnvironmentFailure)
+  Source(SourceFailure)
+  Closure(ConstructionFailure)
+  Units(UnitBuildFailure)
+}
+
+pub suberror SourceFailure {
+  DeclarationWorkLimit
+  UnsupportedBindings(@decode_core.Cursor)
+  UnsupportedEffects(@decode_core.Cursor)
+  Requests(@pipeline_check_context.PrepareSourcesIssue)
+  Checks(@pipeline_check_context.PrepareChecksIssue)
+  Identity(@pipeline_check_context.SourcePreparationIssue)
+  Declarations(@stage_parameters.Issue)
+  Registration(@pipeline_check_context.SourceRegistrationIssue)
+  SourceView(@pipeline_check_context.SourceViewContextIssue)
+}
+
+pub suberror UnitBuildFailure {
+  ForeignOwner
+  UnresolvedProducer
+  UnsupportedReceipt
+  BudgetExceeded
+  Encoding(@encode_core.EncodeFailure)
+  ImportType(@pipeline_check_context.ResultImportTypeIssue)
+  PublicationRows(@pipeline_check_context.PublicationRowLimitIssue)
+  PublicationWire(@capacity_witness.Issue)
+  PublicationArithmetic(@capacity_witness.ClosureIssue)
+  PublicationHost(@capacity_host_witness.Issue)
+  Expressions(@pipeline_check_context.ExpressionClosureIssue)
+  UnconvertedProofInput
+  AmbiguousProofInput
+  ProofConversion(Error)
+  PublicationMixed(@capacity_witness.MixedIssue)
+  UnsupportedStaticPath(@decode_core.Cursor)
+  UnclosedSourceExecution(Int, Int)
+}
+
+// Types and methods
+pub struct BuiltResultInterface {
+  input_name : String
+  producer_program_id : String
+  producer_node_id : String
+  producer_unit_definition_cid : String
+  result_name : String
+  row : @pipeline_check_context.ResultImportType
+  cid : String
+}
+
+type CheckedProgram
+
+type ExpressionExecution
+
+pub struct KeyedExecution {
+  owner : @pipeline_check_context.SourceProducerContext
+  stage : Int
+  index : Int
+  join : @sourceview_resolution.KeyedJoin
+  bounds : @sourceview_resolution.LookupBounds
+  counts : @sourceview_resolution.LookupCounts
+  producer : @capacity_graph_preflight.TargetMembership
+}
+
+type PublicationExecution
+
+pub enum PublicationFailure {
+  PreventResultPublication
+}
+
+pub enum PublicationPhase {
+  BeforeResultPublication
+}
+
+type ReidentifiedGraphInput
+
+type ReidentifiedStep
+
+type SourceExecution
+
+pub enum SourceExecutionFailure {
+  PreventProviderAccess
+  RejectSourceOutput
+  FailAcquisitionAtomically
+}
+
+pub enum SourceExecutionKind {
+  HostCombination
+  CarrierResponse
+  KeyedRequest(KeyedExecution)
+  KeyedResources(KeyedExecution)
+  KeyedResponse(KeyedExecution)
+}
+
+pub enum SourceExecutionPhase {
+  BeforeProviderAccess
+  BeforeSourceOutputUse
+  BeforeAndDuringAcquisition
+}
+
+pub struct SourceExecutionSubject {
+  owner : @pipeline_check_context.ProgramSourceIdentity
+  stage : Int
+  input : Int
+  request : @sourceview_resolution.AcquisitionRequest
+  source : @sourceview_resolution.ResolvedInput
+  response_policy : SourceResponsePolicy
+}
+
+pub(all) struct SourceLimits {
+  topology : @stage_results.LocalProgramLimits
+  context : @pipeline_check_context.LocalContextLimits
+  requests : @sourceview_resolution.RequestLimits
+  checks : @pipeline_check_context.PreparationBudget
+  identity : @pipeline_check_context.SourcePreparationLimits
+  max_parameters : Int
+  max_bindings : Int
+  max_slots : Int
+  max_policy_depth : Int
+  max_requirements : Int
+  max_regex_depth : Int
+}
+
+pub struct SourceResponsePolicy {
+  source : @sourceview_resolution.ResolvedInput
+  authoritative : @check_environment.SourceViewPolicy
+  minimum : String?
+  classification : @check_environment.DataClassification
+}
+
+pub struct UnitOperationSource {
+  unit_definition_cid : String
+  stage : @pipeline_check_context.StageSourceIdentity
+  pipeline : @pipeline_typing.CheckedPipeline
+  source_ordinal : Int
+  source : @decode_core.Cursor
+}
+
+// Type aliases
+
+// Traits

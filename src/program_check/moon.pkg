@@ -1,0 +1,33 @@
+supported_targets = "+js+wasm+native"
+
+import {
+  "actql/actql/encode_core" @encode,
+  "actql/actql/pipeline_check_context" @context,
+  "actql/actql/stage_results" @results,
+  "actql/actql/relation_results" @publication,
+  "actql/actql/canonical_value" @canonical,
+  "actql/actql/program_references" @references,
+  "actql/actql/stage_syntax" @syntax,
+  "actql/actql/check_environment" @environment,
+  "actql/actql/decode_core" @decode,
+  "actql/actql/sourceview_resolution" @sourceviews,
+  "actql/actql/stage_parameters" @stages,
+  "actql/actql/capacity_program_step" @step_bounds,
+  "actql/actql/capacity_graph_preflight" @capacity,
+  "actql/actql/capacity_graph_input" @graph_input,
+  "actql/actql/capacity_witness" @wire,
+  "actql/actql/capacity_host_witness" @host,
+  "actql/actql/capacity_policy" @policy,
+  "actql/actql/capacity_law" @law,
+  "actql/actql/pipeline_typing" @pipeline,
+  "moonbitlang/core/encoding/utf8",
+}
+
+import {
+  "actql/actql/carrier_contract" @carrier,
+  "actql/actql/relation_schema" @schema,
+  "actql/actql/value_contract" @contract,
+  "actql/actql/source_value" @source,
+  "moonbitlang/core/debug",
+  "actql/actql/sha256" @sha,
+} for "wbtest"

@@ -1,0 +1,144 @@
+///|
+pub suberror LocalConstructionFailure {
+  InvalidLimits
+  Environment(EnvironmentFailure)
+  Source(SourceFailure)
+  Closure(ConstructionFailure)
+  Units(UnitBuildFailure)
+}
+
+///|
+// Internal construction result only. Complete semantic-role selection and
+// execution-binding coverage must precede the future CheckedProgram seal.
+fn construct_local(
+  program : @syntax.Program,
+  supplied : @decode.Cursor?,
+  environment : SourceEnvironment,
+  material : Array[Array[@context.CapacityMaterial]],
+  expression_profiles : @context.ExpressionProfiles,
+  operation_profiles : @context.PureOperationProfiles,
+  limits : SourceLimits,
+  budget : IdentityBudget,
+) -> (
+  @context.ProgramSourceIdentity,
+  @context.StageRequirementClosure,
+  @context.ProgramIncomingGates,
+  @context.CoreContractInventory,
+  Array[BuiltUnit],
+) raise LocalConstructionFailure {
+  if budget.work < 0 || budget.bytes < 0 || budget.nodes < 0 || budget.depth < 0 {
+    raise InvalidLimits
+  }
+  let declaration_work = audit_declarations(program, budget.work) catch {
+    e => raise Source(e)
+  }
+  let work_limit = budget.work - declaration_work
+  let admission = IdentityBudget::{
+    work: work_limit,
+    bytes: budget.bytes,
+    nodes: budget.nodes,
+    depth: budget.depth,
+  }
+  let wire = environment.wire
+  let catalog = prepare_environment(wire, admission) catch {
+    e => raise Environment(e)
+  }
+  let locations = match environment.locations {
+    None => {
+      let count = @syntax.stage_count(program)
+      if count > admission.work {
+        raise Environment(EnvironmentFailure::BudgetExceeded)
+      }
+      admission.work -= count
+      Array::makei(count, _ => [])
+    }
+    Some(locations) => locations
+  }
+  let work_limit = admission.work
+  // Cap every preparatory pass before it allocates, not after a large source
+  // preparation has already consumed more than the enclosing work allowance.
+  let limits : SourceLimits = {
+    ..limits,
+    topology: {
+      ..limits.topology,
+      max_work: Int::min(limits.topology.max_work, work_limit),
+    },
+    context: {
+      ..limits.context,
+      stages: {
+        ..limits.context.stages,
+        max_work: Int::min(limits.context.stages.max_work, work_limit),
+      },
+    },
+    requests: {
+      ..limits.requests,
+      max_work: Int::min(limits.requests.max_work, work_limit),
+    },
+    checks: { ..limits.checks, work: Int::min(limits.checks.work, work_limit), },
+    identity: {
+      ..limits.identity,
+      body: {
+        ..limits.identity.body,
+        max_work: Int::min(limits.identity.body.max_work, work_limit),
+      },
+      uses: {
+        ..limits.identity.uses,
+        max_work: Int::min(limits.identity.uses.max_work, work_limit),
+      },
+      references: {
+        ..limits.identity.references,
+        max_work: Int::min(limits.identity.references.max_work, work_limit),
+      },
+      identity: {
+        ..limits.identity.identity,
+        max_work: Int::min(limits.identity.identity.max_work, work_limit),
+        max_hash_bytes: Int::min(
+          limits.identity.identity.max_hash_bytes,
+          admission.bytes,
+        ),
+        max_hash_nodes: Int::min(
+          limits.identity.identity.max_hash_nodes,
+          admission.nodes,
+        ),
+        max_depth: Int::min(limits.identity.identity.max_depth, budget.depth),
+      },
+    },
+  }
+  let identity = prepare_catalog_source(
+    program, supplied, catalog, material, locations, expression_profiles, operation_profiles,
+    limits,
+  ) catch {
+    e => raise Source(e)
+  }
+  let (_, bytes, nodes) = @context.program_identity_usage(identity)
+  let remaining = IdentityBudget::{
+    work: work_limit,
+    bytes: admission.bytes - bytes,
+    nodes: admission.nodes - nodes,
+    depth: budget.depth,
+  }
+  // Closure accounts for the source work prefix once; hashes are incremental
+  // here and must instead receive only the remaining bytes/nodes.
+  let (requirements, gates, contracts) = prepare_owned_closure(
+    identity, remaining,
+  ) catch {
+    e => raise Closure(e)
+  }
+  let units = build_units(contracts, requirements, gates, remaining) catch {
+    e => raise Units(e)
+  }
+  let units = prepare_unit_publications(units, remaining) catch {
+    e => raise Units(e)
+  }
+  // No partial result or externally visible budget mutation on late failure.
+  budget.work = remaining.work
+  budget.bytes = remaining.bytes
+  budget.nodes = remaining.nodes
+  (identity, requirements, gates, contracts, units)
+}
+
+///|
+priv struct SourceEnvironment {
+  wire : @environment.WireEnvironment
+  locations : Array[Array[(Int, Int)]]?
+}
