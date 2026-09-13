@@ -148,7 +148,8 @@ test "check rejects unsupported or malformed later steps without a partial resul
   for
     (steps, source_error) in [
       ("[{\"asof_join\":{}}]", true),
-      ("[{\"sequence\":{}}]", false),
+      ("[{\"sequence\":{}}]", true),
+      ("[{\"normalize_graph\":{}}]", false),
       ("[null]", false),
     ] {
     let budget = IdentityBudget::{

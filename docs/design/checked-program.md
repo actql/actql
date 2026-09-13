@@ -230,8 +230,20 @@ input proof graphs are retained through Event conversion and Result imports.
 The explicit `events` projection preserves membership roles and conditional
 keys. Dropping a sliding start component loses the composite key and window
 role, not the retained occurrence order or the original producer's checks.
-Sequence operations still require their own formal closure; admitting these
-operations does not enable unrelated temporal paths.
+Sequence operations with Host-only match limits enter through the same formal
+constructor, including Relation and Events inputs and Result imports. Their
+closure retains value/identity admission, ascending event ordering, original
+`within` binding, authored matching semantics and both atomic limit claims from
+the same producer's coverage. Neither empty input nor static success discharges
+those execution duties. Missing limit coverage and invalid bound `within` values
+prevent the entire result, including when an earlier Stage was valid.
+
+Authored sequence limits remain an explicit unsupported static path until their
+source occurrence, binding and effective minimum are connected; a Host-only
+claim cannot replace them. Process-local limit subjects are not persistent Unit
+references and must not be emitted as executable Plan facts without the required
+Unit-bound conversion. This entry does not run a matcher or establish backend
+support, and does not enable unrelated temporal paths.
 
 The input-free `time_series` generator enters through the same formal constructor.
 Its selected range and step bindings determine the exact conditional count, while

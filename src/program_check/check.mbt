@@ -86,6 +86,7 @@ fn check_supported_source(
               | "watermark_events"
               | "dedupe_events"
               | "session"
+              | "sequence"
               | "events"
               | "values" => ()
               _ => raise UnitBuildFailure::UnsupportedStaticPath(step)
