@@ -4,6 +4,97 @@ fn query_guard_physical() -> @query.QueryGuardMeasureLimits {
 }
 
 ///|
+test "acquisition guards include demanded intermediate roots without evaluating lazy branches" {
+  // The admitted record is 8 bytes, predicate false is 5, and the demanded
+  // numeric literal is exactly 9. A final-predicate-only guard misses this.
+  for filter in ["id > 123456789", "id > (12345678 * 10)"] {
+    let (query, bound) = query_sequence_fixture(filter~)
+    let sequence = @query.prepare_query_sequence(
+      query,
+      query_generated(bound),
+      10000,
+    ).unwrap()
+    let receipt = @query.admit_query_receipt(
+      sequence,
+      [input_cursor("{\"id\":1}")],
+      1,
+      run_limits().input_values,
+    ).unwrap()
+    assert_true(
+      @query.execute_query_receipt_guarded(
+        sequence,
+        receipt,
+        compute_test_limits(),
+        max_output_rows=0,
+        max_value_bytes=8,
+        query_guard_physical(),
+      )
+      is Err(Execution(Execution(Rows(_, _)))),
+    )
+    // Equality succeeds on a new budget after failure; input/preparation survive.
+    let (completed, _) = @query.execute_query_receipt_guarded(
+      sequence,
+      receipt,
+      compute_test_limits(),
+      max_output_rows=0,
+      max_value_bytes=9,
+      query_guard_physical(),
+    ).unwrap()
+    assert_eq(
+      @execution.completed_row_count(
+        @execution.completed_output(completed, @pipeline.Step(1)).unwrap(),
+      ),
+      0,
+    )
+    let empty = @query.admit_query_receipt(
+      sequence,
+      [],
+      0,
+      run_limits().input_values,
+    ).unwrap()
+    assert_true(
+      @query.execute_query_receipt_guarded(
+        sequence,
+        empty,
+        compute_test_limits(),
+        max_output_rows=0,
+        max_value_bytes=0,
+        query_guard_physical(),
+      )
+      is Ok(_),
+    )
+  }
+  let (query, bound) = query_sequence_fixture(
+    filter="if(id > 0, true, id > 123456789)",
+  )
+  let sequence = @query.prepare_query_sequence(
+    query,
+    query_generated(bound),
+    10000,
+  ).unwrap()
+  let receipt = @query.admit_query_receipt(
+    sequence,
+    [input_cursor("{\"id\":1}")],
+    1,
+    run_limits().input_values,
+  ).unwrap()
+  let (completed, _) = @query.execute_query_receipt_guarded(
+    sequence,
+    receipt,
+    compute_test_limits(),
+    max_output_rows=1,
+    max_value_bytes=8,
+    query_guard_physical(),
+  ).unwrap()
+  assert_eq(
+    @execution.completed_row_count(
+      @execution.completed_output(completed, @pipeline.Step(1)).unwrap(),
+    ),
+    1,
+  )
+}
+
+///|
 test "query record guard includes field names and preserves lazy branch demand" {
   let (query, bound) = query_sequence_fixture(
     filter="if(id > 0, true, 1 / (id - id) > 0)",

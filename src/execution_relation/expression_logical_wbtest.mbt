@@ -14,6 +14,62 @@ fn evaluate_entries(
 }
 
 ///|
+test "demanded root ceiling preserves failure position cleanup and existing logical charges" {
+  let limits = test_logical_budget(1000L, 100L).limits
+  let expr = lowered("\"1 > 123456789\"")
+  guard @lower.expression_body(expr) is @lower.Binary(_, _, right) else {
+    fail("comparison")
+  }
+  let constrained = logical_budget(
+    limits,
+    1000,
+    1000,
+    100,
+    root_result_bytes=Some(8L),
+    all_expression_roots=true,
+  ).unwrap()
+  let result = evaluate_expression_with_workspace(
+    expr,
+    Map([]),
+    [],
+    { remaining: 10000, max_frames: 100, },
+    { limit: 10000, live: 0, peak: 0, },
+    logical_work=Some(constrained),
+  )
+  guard result is Err(issue) else {
+    fail("demanded literal must exceed ceiling")
+  }
+  assert_true(issue.kind is LogicalValue(ValueMeasure(WireMeasureFailure)))
+  assert_true(physical_equal(issue.expression, right))
+  assert_true(constrained.failed)
+  assert_eq(constrained.live, 0L)
+  let default_mode = logical_budget(
+    limits,
+    1000,
+    1000,
+    100,
+    root_result_bytes=Some(8L),
+  ).unwrap()
+  assert_true(
+    evaluate_entries("\"1 > 123456789\"", default_mode) is Ok(Boolean(false)),
+  )
+  let exact = logical_budget(
+    limits,
+    1000,
+    1000,
+    100,
+    root_result_bytes=Some(9L),
+    all_expression_roots=true,
+  ).unwrap()
+  assert_true(
+    evaluate_entries("\"1 > 123456789\"", exact) is Ok(Boolean(false)),
+  )
+  assert_eq(exact.work, default_mode.work)
+  assert_eq(exact.peak, default_mode.peak)
+  assert_eq(exact.live, 0L)
+}
+
+///|
 test "actual evaluator charges entry operand and production work along demanded branches" {
   for
     (source, count) in [

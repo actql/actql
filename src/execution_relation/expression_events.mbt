@@ -37,7 +37,7 @@ fn expression_event_result(
   root : ExpressionRootLease?,
   expr : @lower.Expression,
 ) -> Result[ExpressionRootLease?, EvalIssue] {
-  if scope is Some(s) && root is None {
+  let result = if scope is Some(s) && root is None {
     match track_expression_root(s, value, true) {
       Err(issue) => Err({ kind: LogicalValue(issue), expression: expr, })
       Ok(root) => Ok(Some(root))
@@ -48,6 +48,20 @@ fn expression_event_result(
       Ok(_) => Ok(root)
     }
   }
+  // Acquisition guards include intermediate demanded roots. Reuse the lease's
+  // exact measurement: no second evaluation, measurement or logical charge.
+  // Failure cleanup remains owned by the enclosing expression frame.
+  if result is Ok(Some(lease)) &&
+    lease.scope.budget.all_expression_roots &&
+    lease.scope.budget.root_result_bytes is Some(ceiling) &&
+    lease.root.bytes > ceiling {
+    lease.scope.budget.failed = true
+    return Err({
+      kind: LogicalValue(ValueMeasure(WireMeasureFailure)),
+      expression: expr,
+    })
+  }
+  result
 }
 
 ///|

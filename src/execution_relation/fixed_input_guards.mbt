@@ -133,7 +133,8 @@ fn[T : IndexedRows] measure_input_records(
 /// The target must be retained; an unavailable output returns MissingOutput
 /// after successful sequence execution, without exposing a completed result.
 /// record_values selects complete record measurement in place of per-cell
-/// measurement; expression-root ceilings and selected fragment limits are unchanged.
+/// measurement and applies the ceiling to every demanded expression root.
+/// Selected fragment limits and the default consumer root-only mode are unchanged.
 pub fn execute_fixed_input_guarded(
   original : GeneratedSequence,
   input : CapturedRows,
@@ -191,6 +192,7 @@ pub fn execute_fixed_input_guarded(
   budget.work -= original.contexts.length()
   let contexts = original.contexts.map(context => {
     ..context,
+    all_expression_roots: context.all_expression_roots || record_values,
     root_result_bytes: Some(
       match context.root_result_bytes {
         Some(prior) => Int64::min(prior, max_value_bytes.to_int64())

@@ -114,8 +114,9 @@ fn evaluate_expression_retained(
   let result = evaluate_expression_impl(
     root, input, slots, budget, workspace, scope,
   )
-  // A consumer/acquisition root ceiling is separate from retained-row and
-  // intermediate-value limits. Reuse the already measured successful root;
+  // The final-root ceiling is separate from retained-row limits. Acquisition
+  // mode also checks intermediate roots in the shared result event. Reuse the
+  // already measured successful root;
   // never reevaluate it, double-charge it, or inspect an undemanded branch.
   if result is Ok(value) &&
     value.root is Some(retained) &&

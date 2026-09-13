@@ -140,8 +140,11 @@ It uses the same typed-wire emitter without constructing another row object or
 re-admitting values. Record-level size/encoding diagnostics use column `-1`;
 source value-admission errors still identify their field. The measurement ledger
 counts complete records (including container nodes), while receipt array framing
-and retention hashing have separate ledgers. The engine's default per-cell mode
-and the demanded expression-root ceiling remain unchanged for other consumers.
+and retention hashing have separate ledgers. Query execution also applies the
+ceiling to every demanded intermediate expression result, using its existing
+measurement without double charging. Non-selected lazy branches are not measured.
+The engine's default per-cell and final-root-only modes remain unchanged for
+other consumers.
 
 For an adapter that already admitted scalar cells under the exact prepared input
 field contracts, `execution_relation.prepare_admitted_input` and

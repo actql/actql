@@ -7,6 +7,7 @@ struct FragmentRuntimeContext {
   limits : LogicalLimits
   physical : RegistryLimits
   root_result_bytes : Int64?
+  all_expression_roots : Bool
 }
 
 ///|
@@ -58,7 +59,14 @@ fn prepare_fragment_runtime_context(
     Err(issue) => return Err(Capability(issue))
     Ok(_) => ()
   }
-  Ok({ fragment, kernel, limits, physical, root_result_bytes: None, })
+  Ok({
+    fragment,
+    kernel,
+    limits,
+    physical,
+    root_result_bytes: None,
+    all_expression_roots: false,
+  })
 }
 
 ///|
@@ -76,6 +84,7 @@ fn fragment_runtime_for_kernel(
       context.physical.max_body_nodes,
       context.physical.max_body_depth,
       root_result_bytes=context.root_result_bytes,
+      all_expression_roots=context.all_expression_roots,
     ) {
     Ok(budget) => Ok(budget)
     Err(issue) => Err(Logical(issue))

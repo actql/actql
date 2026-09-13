@@ -352,8 +352,15 @@ the whole input-record ceiling. Local residual and downstream consumer fragments
 their own unmodified limits. A Local-only fragment exhaustion need not prevent
 native success; neither path can waive an explicitly selected common contract.
 
+The Local acquisition guard checks every demanded expression result, including
+intermediate operands, at the shared expression-result event. It reuses the
+existing root lease's exact typed-wire measurement without re-evaluation or a
+second charge. Undemanded branches and empty input create no such results.
+The final-root-only consumer guard remains separate, and neither mode changes
+the selected fragment's work, live-root, input-row or value limits.
+
 For the restricted compiled comparison, a static root-byte witness can establish
-the demanded-root guard without evaluating input rows: Boolean/NULL results need
+the final predicate's byte bound without evaluating input rows: Boolean/NULL results need
 at most five canonical bytes, or four when the exact bound RHS is NULL. A smaller
 ceiling makes this native realization ineligible; it does not make the checked
 query invalid, and Local residual remains a separate candidate. The witness
@@ -361,6 +368,9 @@ binds the exact compiled query and selected ceiling. It discharges neither scan
 admission nor work/live-root limits, provenance, retention or completion, and it
 is not an execution record. Generic receiving readiness alone does not imply
 that this native eligibility check has been applied by a planner.
+This final-result bound is not complete evidence for demanded operand values.
+Native issuance must additionally enforce their exact byte measures, including
+the owned literal or Parameter RHS, under the same acquisition ceiling.
 
 Cancellation request, the caller ceasing to wait, confirmed query termination
 and resource cleanup are distinct states. Cancelled or failed attempts cannot
