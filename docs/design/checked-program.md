@@ -233,6 +233,17 @@ role, not the retained occurrence order or the original producer's checks.
 Sequence operations still require their own formal closure; admitting these
 operations does not enable unrelated temporal paths.
 
+The input-free `time_series` generator enters through the same formal constructor.
+Its selected range and step bindings determine the exact conditional count, while
+generation and output-envelope enforcement remain owned execution requirements.
+Admitted time-series capacity proofs are checked against those arguments before
+publication selects its row limit. Persistent proof graphs refer to the generator's
+Unit and authored ordinal, including when that ordinal also exists in another
+Stage; internal `checked-step` subjects are not published. Exact projections may
+hide or alias `time` without changing the producer of the count. Empty intervals
+do not waive Parameter validation, and a wrong count rejects the whole Program.
+This boundary neither materializes the grid nor attests successful generation.
+
 Interval join closes endpoint admission, clock admission and occurrence order
 separately from output capacity and search work. Its bounded-search path requires
 owned operand row bounds and the single-visit-per-pair realization condition;

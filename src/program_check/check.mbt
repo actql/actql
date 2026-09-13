@@ -70,6 +70,7 @@ fn check_supported_source(
               | "analytic"
               | "row_window"
               | "window_events"
+              | "time_series"
               | "window_group"
               | "watermark_rows"
               | "append"
