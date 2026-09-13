@@ -20,6 +20,16 @@ direct local dependency alongside the separate output-row law, so selecting it
 changes the as-of local contract closure identity. Contract selection alone is
 not an applied limit or backend conformance evidence.
 
+`capacity_program_step.check_asof_search_product` binds a single-visit product
+to the exact checked pipeline, step and ordered operand occurrences. Each
+supplied `TargetRows` must belong to that operand, including an otherwise unused
+bound when the opposite side is zero. The result retains both original proofs;
+repeated use of one producer does not merge the left and right roles. Its fixed
+work charge includes the operation and both operand checks. Arithmetic is shared
+with interval search, while the opaque products and operation admission remain
+distinct. Application-closure membership, producer obligations and actual
+single-visit conformance still require their own validation boundaries.
+
 ## Decisions and evidence
 
 The existing contract fixes left/inner, three directions, positive tolerance,

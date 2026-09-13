@@ -59,12 +59,15 @@ fn join_pipeline(
   kind : String,
   assertion? : String? = None,
   tail? : String = "",
+  direction? : String = "nearest",
 ) -> @pipeline.CheckedPipeline {
   let body = match family {
     "asof_join" =>
       "{\"with\":\"r\",\"kind\":\"" +
       kind +
-      "\",\"by\":[],\"left_id\":\"id\",\"left_time\":\"id\",\"right_time\":\"id\",\"direction\":\"nearest\",\"tolerance\":1,\"select\":{\"id\":\"left.id\"}}"
+      "\",\"by\":[],\"left_id\":\"id\",\"left_time\":\"id\",\"right_time\":\"id\",\"direction\":\"" +
+      direction +
+      "\",\"tolerance\":1,\"select\":{\"id\":\"left.id\"}}"
     "cross_join" => "{\"with\":\"r\"}"
     "interval_join" =>
       "{\"with\":\"r\",\"kind\":\"" +

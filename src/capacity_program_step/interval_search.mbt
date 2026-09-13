@@ -61,18 +61,10 @@ pub fn check_interval_search_product(
     (!physical_equal(bound.pipeline, pipeline) || bound.target != right) {
     return Err(ForeignOperand(1))
   }
-  let l = left_bound.map(target_rows_value)
-  let r = right_bound.map(target_rows_value)
-  let upper = if l == Some(0L) || r == Some(0L) {
-    0L
-  } else {
-    guard l is Some(l) && r is Some(r) else { return Err(MissingOperandBound) }
-    // TargetRows already enforces nonnegative safe-integer row witnesses.
-    match
-      @numeric.multiply(@numeric.read(l).unwrap(), @numeric.read(r).unwrap()) {
-      Ok(n) => @numeric.value(n)
-      Err(_) => return Err(Overflow)
-    }
+  let upper = match search_product_upper(left_bound, right_bound) {
+    Ok(n) => n
+    Err(MissingOperandBound) => return Err(MissingOperandBound)
+    Err(Overflow) => return Err(Overflow)
   }
   Ok({ pipeline, step, left, right, left_bound, right_bound, upper, })
 }
