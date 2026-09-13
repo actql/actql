@@ -240,9 +240,12 @@ prevent the entire result, including when an earlier Stage was valid.
 
 Authored sequence limits remain an explicit unsupported static path until their
 source occurrence, binding and effective minimum are connected; a Host-only
-claim cannot replace them. Process-local limit subjects are not persistent Unit
-references and must not be emitted as executable Plan facts without the required
-Unit-bound conversion. This entry does not run a matcher or establish backend
+claim cannot replace them. The constructor converts both Host-only limit claims
+to their actual Unit/step/sequence scope and retains the original owned selection.
+Indexed sequence-limit readers expose these rebuilt claims, not the process-local
+subjects. Candidate occurrences, quantities and maxima remain unchanged, while
+the new subjects give each limit a new CID; Host witness identities are unchanged.
+This entry does not run a matcher or establish backend
 support, and does not enable unrelated temporal paths.
 
 The input-free `time_series` generator enters through the same formal constructor.

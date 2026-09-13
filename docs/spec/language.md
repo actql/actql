@@ -8072,6 +8072,21 @@ retain their producer Unit reference rather than acquiring the consumer's
 namespace. This conversion preserves law, quantity, value and all prerequisite
 checks; it does not establish runtime truth or backend support.
 
+<!-- requirement-block: resolved-limits.unit-sequence-subject resolved-limits.unit-sequence-correspondence -->
+A sequence's persistent resolved limits MUST use
+`unit:<unit_definition_cid>#/steps/<ordinal>/sequence/matches-per-key` for
+quantity `matches_per_key`, and the same prefix ending in `/sequence/output`
+for quantity `rows`. Both address the actual authored sequence in its producer
+Unit and retain engine-atomic enforcement. The per-key limit is not a total-row
+bound or a search-work budget. Conversion MUST preserve the admitted candidate
+occurrences and their order, minima, applicable bindings and selected policy;
+unchanged Host witnesses retain their CIDs. Recompute each resolved-limit CID
+from its complete canonical body without its self CID after changing the subject.
+Equal step ordinals or maxima in different Units do not make the subjects
+interchangeable. Imported prerequisites retain their original producer Unit.
+These references assert neither completed matching nor permission to publish
+partial results after either limit is exceeded.
+
 <!-- requirement-block: resolved-limits.unit-group-aggregate-subject resolved-limits.unit-group-aggregate-correspondence resolved-limits.unit-group-aggregate-scope-isolation -->
 An ordinary `group` aggregate's persistent resolved limit MUST use
 `unit:<unit_definition_cid>#/steps/<ordinal>/group/aggregates/<name_token>/<scope>`

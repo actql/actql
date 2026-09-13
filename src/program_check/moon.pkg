@@ -3,6 +3,8 @@ supported_targets = "+js+wasm+native"
 formatter(ignore: [ "numeric_profile.generated_wbtest.mbt" ])
 
 import {
+  "actql/actql/capacity_sequence_limit" @sequence,
+  "actql/actql/capacity_derivation" @derivation,
   "actql/actql/numeric_reduction" @numeric,
   "actql/actql/encode_core" @encode,
   "actql/actql/pipeline_check_context" @context,

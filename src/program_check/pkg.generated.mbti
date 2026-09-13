@@ -6,6 +6,7 @@ import {
   "actql/actql/capacity_graph_preflight",
   "actql/actql/capacity_host_witness",
   "actql/actql/capacity_program_step",
+  "actql/actql/capacity_sequence_limit",
   "actql/actql/capacity_witness",
   "actql/actql/check_environment",
   "actql/actql/decode_core",
@@ -233,6 +234,12 @@ pub fn publication_source_policy(PublicationExecution) -> PublicationSourcePolic
 
 pub fn requirements(CheckedProgram) -> @pipeline_check_context.StageRequirementClosure
 
+pub fn sequence_limit_claim(SequenceLimit, @capacity_sequence_limit.Scope) -> @capacity_witness.LimitClaim
+
+pub fn sequence_limit_selection(SequenceLimit) -> @pipeline_check_context.SequenceLimitsCheck
+
+pub fn sequence_limit_source(SequenceLimit) -> UnitOperationSource
+
 pub fn source_egress_axis_at(SourceExecution, Int) -> SourceEgressAxis?
 
 pub fn source_egress_axis_count(SourceExecution) -> Int
@@ -336,6 +343,10 @@ pub fn unit_publication_count(CheckedProgram, Int) -> Int?
 pub fn unit_result_import_at(CheckedProgram, Int, Int) -> BuiltResultInterface?
 
 pub fn unit_result_import_count(CheckedProgram, Int) -> Int?
+
+pub fn unit_sequence_limit_at(CheckedProgram, Int, Int) -> SequenceLimit?
+
+pub fn unit_sequence_limit_count(CheckedProgram, Int) -> Int?
 
 pub fn unit_window_input_proof(CheckedProgram, Int, Int, Int, max_work~ : Int, max_bytes~ : Int, max_nodes~ : Int, max_depth~ : Int) -> WindowInputProof raise UnitBuildFailure
 
@@ -585,6 +596,8 @@ pub struct PublicationSourcePolicy {
 type ReidentifiedGraphInput
 
 type ReidentifiedStep
+
+type SequenceLimit
 
 pub(all) enum SourceEgressAxis {
   Sensitivity

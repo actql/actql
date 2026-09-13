@@ -1,5 +1,6 @@
 ///|
 struct CheckedProgram {
+  sequence_limits : Array[Array[SequenceLimit]]
   interval_search_limits : Array[Array[IntervalSearchLimit]]
   asof_search_limits : Array[Array[AsOfSearchLimit]]
   window_limits : Array[Array[WindowLimit]]
@@ -165,6 +166,11 @@ pub fn check(
   let window_limits = prepare_program_window_limits(units, requirements, budget) catch {
     error => raise Units(error)
   }
+  let sequence_limits = prepare_program_sequence_limits(
+    units, requirements, budget,
+  ) catch {
+    error => raise Units(error)
+  }
   let interval_search_limits = prepare_program_interval_search_limits(
     units, requirements, budget,
   ) catch {
@@ -201,6 +207,7 @@ pub fn check(
     error => raise Units(error)
   }
   {
+    sequence_limits,
     interval_search_limits,
     asof_search_limits,
     window_limits,

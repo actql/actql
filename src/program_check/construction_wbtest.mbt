@@ -24,6 +24,7 @@ fn local_construction_fixture(
   second_join_step? : Int = 0,
   second_sequence_capacity? : Bool = false,
   second_sequence_step? : Int = 0,
+  sequence_capacity_stage? : Int = 1,
   root_extra? : String = "",
   last_effects? : String? = None,
   registry_entries? : String = "[]",
@@ -319,7 +320,11 @@ fn local_construction_fixture(
     // plus its own pipeline. Do not pre-check the Program to construct inputs
     // to the entry being tested, which would hide its rejection behavior.
     Array::makei(if stage == 1 { 3 } else { 1 }, visit => {
-      if stage == 1 && visit == 0 && sequence_sources is Some(sequence_sources) {
+      if (
+          (stage == sequence_capacity_stage && visit == 0) ||
+          (stage == 1 && visit > 0 && sequence_capacity_stage == 0)
+        ) &&
+        sequence_sources is Some(sequence_sources) {
         @context.CapacityMaterial::{
           sources: sequence_sources,
           consumers: [

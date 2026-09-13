@@ -117,6 +117,40 @@ test "formal sequence closes temporal input matching and atomic limits through a
           assert_eq(checked.length(), 1)
           let program = checked[0]
           assert_eq(unit_count(program), 2)
+          assert_eq(unit_sequence_limit_count(program, 0), Some(0))
+          assert_eq(unit_sequence_limit_count(program, 1), Some(1))
+          assert_true(unit_sequence_limit_at(program, 1, -1) is None)
+          assert_true(unit_sequence_limit_at(program, 1, 1) is None)
+          let bound = unit_sequence_limit_at(program, 1, 0).unwrap()
+          let ordinal = if events { 1 } else { 0 }
+          for
+            (scope, suffix) in [
+              (@sequence.MatchesPerKey, "matches-per-key"),
+              (OutputRows, "output"),
+            ] {
+            let claim = sequence_limit_claim(bound, scope)
+            assert_eq(
+              @wire.limit_subject(claim),
+              "unit:" +
+              unit_definition_cid(program, 1).unwrap() +
+              "#/steps/" +
+              ordinal.to_string() +
+              "/sequence/" +
+              suffix,
+            )
+            assert_true(
+              @wire.limit_cid(claim) !=
+              @wire.limit_cid(
+                @sequence.limit(sequence_limit_selection(bound).limits, scope),
+              ),
+            )
+            assert_true(
+              physical_equal(
+                sequence_limit_source(bound).pipeline,
+                unit_pipeline(program, 1).unwrap(),
+              ),
+            )
+          }
           let pipeline = unit_pipeline(program, 1).unwrap()
           let closure = @context.stage_requirement_operations(
             requirements(program),
@@ -166,6 +200,57 @@ test "formal sequence closes temporal input matching and atomic limits through a
       }
     }
   }
+}
+
+///|
+test "formal sequence limit imports retain the producer Unit instead of the consumer namespace" {
+  let steps = sequence_test_steps(false, "disallow", "adjacent", "").replace(
+    old="{\"$param\":\"n\"}",
+    new="1",
+  )
+  let checked : Array[CheckedProgram] = []
+  let _ = local_construction_fixture(
+    { work: 10000000, bytes: 1000000, nodes: 100000, depth: 100, },
+    through_check=true,
+    checked_results=checked,
+    second_stage=true,
+    tea=true,
+    second_sequence_capacity=true,
+    sequence_capacity_stage=0,
+    second_sequence_step=1,
+    producer_suffix="," +
+      steps.unsafe_substring(start=1, end=steps.length() - 1),
+    producer_result_from="selected",
+    extra_step_budget=2,
+  )
+  let program = checked[0]
+  assert_eq(unit_sequence_limit_count(program, 0), Some(1))
+  assert_eq(unit_sequence_limit_count(program, 1), Some(0))
+  let limit = unit_sequence_limit_at(program, 0, 0).unwrap()
+  assert_true(
+    physical_equal(
+      sequence_limit_source(limit).pipeline,
+      unit_pipeline(program, 0).unwrap(),
+    ),
+  )
+  assert_eq(
+    @wire.limit_subject(sequence_limit_claim(limit, @sequence.OutputRows)),
+    "unit:" +
+    unit_definition_cid(program, 0).unwrap() +
+    "#/steps/1/sequence/output",
+  )
+  let closure = @context.stage_requirement_operations(requirements(program))
+  let mut visits = 0
+  for i in 0..<@context.operation_closure_count(closure) {
+    if @context.operation_closure_at(closure, i)
+      is Some(ExecutionCheck(SequenceLimits(v))) {
+      visits += 1
+      assert_true(
+        physical_equal(v.site.pipeline, unit_pipeline(program, 0).unwrap()),
+      )
+    }
+  }
+  assert_eq(visits, 3)
 }
 
 ///|
