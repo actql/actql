@@ -8,6 +8,7 @@ struct CheckedProgram {
   group_limits : Array[Array[GroupLimit]]
   analytic_limits : Array[Array[AnalyticLimit]]
   group_string_limits : Array[Array[GroupStringLimit]]
+  analytic_string_limits : Array[Array[AnalyticStringLimit]]
   numeric_slots : NumericSlotIdentities
 }
 
@@ -146,6 +147,11 @@ pub fn check(
   ) catch {
     error => raise Units(error)
   }
+  let analytic_string_limits = prepare_program_analytic_string_limits(
+    units, requirements, budget,
+  ) catch {
+    error => raise Units(error)
+  }
   let numeric_slots = prepare_program_numeric_slot_identities(
     units, requirements, budget,
   ) catch {
@@ -160,6 +166,7 @@ pub fn check(
     group_limits,
     analytic_limits,
     group_string_limits,
+    analytic_string_limits,
     numeric_slots,
   }
 }

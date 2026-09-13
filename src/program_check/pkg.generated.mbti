@@ -43,6 +43,12 @@ pub fn analytic_limit_selection(AnalyticLimit) -> @pipeline_check_context.GroupA
 
 pub fn analytic_limit_source(AnalyticLimit) -> AnalyticAggregateSource
 
+pub fn analytic_string_limit_claim(AnalyticStringLimit) -> @capacity_witness.LimitClaim
+
+pub fn analytic_string_limit_selection(AnalyticStringLimit) -> @pipeline_check_context.GroupStringLimit
+
+pub fn analytic_string_limit_source(AnalyticStringLimit) -> AnalyticAggregateSource
+
 pub fn check(@stage_syntax.Program, @check_environment.WireEnvironment, @decode_core.Cursor?, Array[Array[@pipeline_check_context.CapacityMaterial]], @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, SourceLimits, max_work~ : Int, max_bytes~ : Int, max_nodes~ : Int, max_depth~ : Int, numeric_profile? : @numeric_reduction.Profile?) -> CheckedProgram raise LocalConstructionFailure
 
 pub fn contract_inventory(CheckedProgram) -> @pipeline_check_context.CoreContractInventory
@@ -229,6 +235,10 @@ pub fn unit_analytic_limit_at(CheckedProgram, Int, Int) -> AnalyticLimit?
 
 pub fn unit_analytic_limit_count(CheckedProgram, Int) -> Int?
 
+pub fn unit_analytic_string_limit_at(CheckedProgram, Int, Int) -> AnalyticStringLimit?
+
+pub fn unit_analytic_string_limit_count(CheckedProgram, Int) -> Int?
+
 pub fn unit_contract_at(CheckedProgram, Int, Int) -> (String, @pipeline_check_context.CoreContractBody)?
 
 pub fn unit_contract_count(CheckedProgram, Int) -> Int?
@@ -360,6 +370,8 @@ pub struct AnalyticAggregateSource {
 type AnalyticInputProof
 
 type AnalyticLimit
+
+type AnalyticStringLimit
 
 pub struct BuiltResultInterface {
   input_name : String

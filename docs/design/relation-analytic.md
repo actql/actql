@@ -137,3 +137,12 @@ producer's restriction rather than creating a consumer-owned copy. Read-only
 count/index access exposes the assembled limits without repeating selection or
 proof conversion. This is static preparation, not evidence that frame evaluation
 or runtime enforcement has occurred.
+
+The same construction boundary retains producer-owned string limits at the
+analytic call's bytes subject. These combine only the selected raw UTF-8 Host
+ceiling and authored `max_bytes` guard; input-row proofs are not byte proofs.
+If both are absent, no raw-string limit is synthesized: the result contract
+and mandatory analytic output-wire envelope still apply. Count/index readers
+expose the retained string limits without rebuilding them. Imported uses do not
+acquire separate consumer-owned limits, and shared construction budgets cover
+the whole inventory with no partial result on failure.
