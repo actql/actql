@@ -569,6 +569,17 @@ handling before a SourceView Program can pass the final construction boundary.
 In particular, retaining these two dispositions is not a complete acquisition
 closure and must not be used to remove an unresolved-source rejection alone.
 
+`ReadAuthorization` separately requires current permission for the concrete
+selected SourceView and request before provider access. Its subject exposes the
+contract's typed `ReadMetadata`, `ReadContent` or `ReadBinary` authority, selected
+from the admitted member rather than inferred from a view name or chosen by
+current permissions. Host-combination support is its prerequisite, not a grant.
+Resource enforcement depends on this authorization requirement, so response use
+and keyed dispatch cannot bypass it. Failure prevents provider calls. Concrete
+Ref provenance, provider/account boundaries and combined request egress policy
+still require their own validation; read permission does not establish them.
+This is a retained runtime obligation, not a compile-time authorization result.
+
 Every selected request also carries `AcquisitionResources`, including direct and
 unused SourceViews. It depends on that same request's Host-combination check and
 applies before and throughout acquisition. Carrier-response admission depends on

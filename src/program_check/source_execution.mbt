@@ -3,6 +3,7 @@
 // combination does not establish validity of the returned Carrier values.
 pub enum SourceExecutionKind {
   HostCombination
+  ReadAuthorization
   AcquisitionResources
   CarrierResponse
   KeyedRequest(KeyedExecution)
@@ -43,6 +44,7 @@ pub struct SourceExecutionSubject {
   request : @sourceviews.AcquisitionRequest
   source : @sourceviews.ResolvedInput
   response_policy : SourceResponsePolicy
+  authority : SourceReadAuthority
 }
 
 ///|
@@ -93,7 +95,7 @@ fn prepare_source_execution(
       (SourceExecution, SourceExecution, SourceExecution),
     ] = Map([])
     for input in 0..<count {
-      identity_charge(remaining, 4)
+      identity_charge(remaining, 5)
       let request = @sourceviews.pipeline_request_at(selected, input).unwrap()
       let source = match request {
         @sourceviews.Direct(mode, _) => @sourceviews.mode_input(mode)
@@ -106,6 +108,7 @@ fn prepare_source_execution(
         request,
         source,
         response_policy: prepare_source_response_policy(source),
+        authority: prepare_source_authority(source),
       }
       let host = SourceExecution::{
         subject,
@@ -115,12 +118,20 @@ fn prepare_source_execution(
         prerequisites: [],
       }
       result.push(host)
+      let authorization = SourceExecution::{
+        subject,
+        kind: ReadAuthorization,
+        phase: BeforeProviderAccess,
+        failure: PreventProviderAccess,
+        prerequisites: [host],
+      }
+      result.push(authorization)
       let resources = SourceExecution::{
         subject,
         kind: AcquisitionResources,
         phase: BeforeAndDuringAcquisition,
         failure: FailAcquisitionAtomically,
-        prerequisites: [host],
+        prerequisites: [host, authorization],
       }
       result.push(resources)
       let response = SourceExecution::{

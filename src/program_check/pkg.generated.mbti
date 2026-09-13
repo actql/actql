@@ -16,6 +16,7 @@ import {
   "actql/actql/stage_parameters",
   "actql/actql/stage_results",
   "actql/actql/stage_syntax",
+  "moonbitlang/core/debug",
 }
 
 // Values
@@ -239,6 +240,7 @@ pub enum SourceExecutionFailure {
 
 pub enum SourceExecutionKind {
   HostCombination
+  ReadAuthorization
   AcquisitionResources
   CarrierResponse
   KeyedRequest(KeyedExecution)
@@ -259,6 +261,7 @@ pub struct SourceExecutionSubject {
   request : @sourceview_resolution.AcquisitionRequest
   source : @sourceview_resolution.ResolvedInput
   response_policy : SourceResponsePolicy
+  authority : SourceReadAuthority
 }
 
 pub(all) struct SourceLimits {
@@ -274,6 +277,12 @@ pub(all) struct SourceLimits {
   max_requirements : Int
   max_regex_depth : Int
 }
+
+pub(all) enum SourceReadAuthority {
+  ReadMetadata
+  ReadContent
+  ReadBinary
+} derive(Eq, @debug.Debug)
 
 pub struct SourceResponsePolicy {
   source : @sourceview_resolution.ResolvedInput

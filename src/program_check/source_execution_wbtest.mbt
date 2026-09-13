@@ -7,23 +7,32 @@ test "source Host and response bindings retain one exact request and ordered pre
     depth: 100,
   }
   let (identity, _, _, _, units) = remote_construction_fixture(budget)
-  assert_eq(units[0].source_execution.length(), 6)
+  assert_eq(units[0].source_execution.length(), 7)
   assert_true(
     physical_equal(units[0].source_execution[0].subject.owner, identity),
   )
-  let exact = IdentityBudget::{ work: 10, bytes: 0, nodes: 0, depth: 0, }
+  let exact = IdentityBudget::{ work: 11, bytes: 0, nodes: 0, depth: 0, }
   let checks = prepare_source_execution(identity, exact)
   assert_eq(exact.work, 0)
-  assert_eq(checks.length(), 6)
+  assert_eq(checks.length(), 7)
   let host = checks[0]
-  let resources = checks[1]
-  let response = checks[2]
+  let authorization = checks[1]
+  let resources = checks[2]
+  let response = checks[3]
+  assert_true(authorization.kind is ReadAuthorization)
+  assert_true(authorization.phase is BeforeProviderAccess)
+  assert_true(authorization.failure is PreventProviderAccess)
+  assert_true(physical_equal(authorization.subject, host.subject))
+  assert_true(physical_equal(authorization.prerequisites[0], host))
+  assert_eq(authorization.prerequisites.length(), 1)
+  assert_eq(host.subject.authority, ReadMetadata)
   assert_true(resources.kind is AcquisitionResources)
   assert_true(resources.phase is BeforeAndDuringAcquisition)
   assert_true(resources.failure is FailAcquisitionAtomically)
   assert_true(physical_equal(resources.subject, host.subject))
   assert_true(physical_equal(resources.prerequisites[0], host))
-  assert_eq(resources.prerequisites.length(), 1)
+  assert_eq(resources.prerequisites.length(), 2)
+  assert_true(physical_equal(resources.prerequisites[1], authorization))
   assert_eq(response.prerequisites.length(), 2)
   assert_true(physical_equal(response.prerequisites[1], resources))
   assert_true(host.kind is HostCombination)
@@ -44,9 +53,12 @@ test "source Host and response bindings retain one exact request and ordered pre
   assert_true(
     physical_equal(host.subject.source, @sourceviews.keyed_mode_input(mode)),
   )
-  guard checks[3].kind is KeyedRequest(request_binding) &&
-    checks[4].kind is KeyedResources(resource_binding) &&
-    checks[5].kind is KeyedResponse(response_binding) else {
+  let keyed_request = checks[4]
+  let keyed_resources = checks[5]
+  let keyed_response = checks[6]
+  guard keyed_request.kind is KeyedRequest(request_binding) &&
+    keyed_resources.kind is KeyedResources(resource_binding) &&
+    keyed_response.kind is KeyedResponse(response_binding) else {
     fail("keyed acquisition obligations were omitted")
   }
   assert_true(physical_equal(request_binding, resource_binding))
@@ -72,18 +84,18 @@ test "source Host and response bindings retain one exact request and ordered pre
       ).unwrap(),
     ),
   )
-  assert_true(checks[3].phase is BeforeProviderAccess)
-  assert_true(checks[4].phase is BeforeAndDuringAcquisition)
-  assert_true(checks[5].phase is BeforeSourceOutputUse)
-  assert_true(checks[4].failure is FailAcquisitionAtomically)
-  assert_true(checks[5].failure is FailAcquisitionAtomically)
-  assert_true(physical_equal(checks[3].prerequisites[0], host))
-  assert_eq(checks[3].prerequisites.length(), 2)
-  assert_true(physical_equal(checks[3].prerequisites[1], resources))
-  assert_true(physical_equal(checks[4].prerequisites[0], checks[3]))
-  assert_eq(checks[5].prerequisites.length(), 2)
-  assert_true(physical_equal(checks[5].prerequisites[0], checks[4]))
-  assert_true(physical_equal(checks[5].prerequisites[1], response))
+  assert_true(keyed_request.phase is BeforeProviderAccess)
+  assert_true(keyed_resources.phase is BeforeAndDuringAcquisition)
+  assert_true(keyed_response.phase is BeforeSourceOutputUse)
+  assert_true(keyed_resources.failure is FailAcquisitionAtomically)
+  assert_true(keyed_response.failure is FailAcquisitionAtomically)
+  assert_true(physical_equal(keyed_request.prerequisites[0], host))
+  assert_eq(keyed_request.prerequisites.length(), 2)
+  assert_true(physical_equal(keyed_request.prerequisites[1], resources))
+  assert_true(physical_equal(keyed_resources.prerequisites[0], keyed_request))
+  assert_eq(keyed_response.prerequisites.length(), 2)
+  assert_true(physical_equal(keyed_response.prerequisites[0], keyed_resources))
+  assert_true(physical_equal(keyed_response.prerequisites[1], response))
   let policy = host.subject.response_policy
   assert_true(physical_equal(policy.source, host.subject.source))
   assert_true(policy.minimum is None)
@@ -94,14 +106,14 @@ test "source Host and response bindings retain one exact request and ordered pre
     )
     is @environment.Unknown,
   )
-  let short = IdentityBudget::{ work: 9, bytes: 0, nodes: 0, depth: 0, }
+  let short = IdentityBudget::{ work: 10, bytes: 0, nodes: 0, depth: 0, }
   try prepare_source_execution(identity, short) catch {
     UnitBuildFailure::BudgetExceeded => ()
     error => raise error
   } noraise {
     _ => fail("partial source checks escaped")
   }
-  assert_eq(short.work, 9)
+  assert_eq(short.work, 10)
 }
 
 ///|
