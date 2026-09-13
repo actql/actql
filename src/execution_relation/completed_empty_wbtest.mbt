@@ -1,10 +1,11 @@
 ///|
 test "typed completion preserves nullable values all-null stable ties and empty input" {
   for
-    (rows, count, last_null) in [
-      ("[{\"a\":null,\"b\":7},{\"a\":null,\"b\":8}]", 2, true),
-      ("[{\"a\":null,\"b\":7},{\"a\":0,\"b\":8}]", 2, false),
-      ("[]", 0, true),
+    (rows, count, last_null, last_b) in [
+      ("[{\"a\":null,\"b\":7},{\"a\":null,\"b\":8}]", 2, true, 8),
+      ("[{\"a\":null,\"b\":7},{\"a\":0,\"b\":8}]", 2, false, 8),
+      ("[{\"a\":null,\"b\":7},{\"a\":null,\"b\":7}]", 2, true, 7),
+      ("[]", 0, true, 0),
     ] {
     let owner = bound_pipeline(
       "[{\"values\":{\"schema\":{\"a\":{\"type\":\"number\",\"nullable\":true},\"b\":{\"type\":\"number\",\"nullable\":false}},\"rows\":" +
@@ -46,7 +47,10 @@ test "typed completion preserves nullable values all-null stable ties and empty 
     assert_eq(completed_column_name(output, 0), Some("b"))
     if count > 0 {
       assert_true(completed_cell(output, 0, 0) is Some(Number(7)))
-      assert_true(completed_cell(output, 1, 0) is Some(Number(8)))
+      assert_true(
+        completed_cell(output, 1, 0) is Some(Number(n)) &&
+        n == last_b.to_double(),
+      )
       assert_true(completed_cell(output, 0, 1) is Some(Null))
       if last_null {
         assert_true(completed_cell(output, 1, 1) is Some(Null))
