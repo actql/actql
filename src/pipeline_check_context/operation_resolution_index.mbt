@@ -227,74 +227,9 @@ pub fn index_program_operation_resolutions(
         let policy = @capacity.application_closure_policy(
           stage.context.capacity,
         )
-        match append_execution_check(site, policy) {
-          Ok(None) =>
-            match set_execution_check(site, policy) {
-              Ok(None) =>
-                match assertion_execution_check(site) {
-                  Ok(None) =>
-                    match group_execution_check(site) {
-                      Ok(None) =>
-                        match top_k_execution_check(site, policy) {
-                          Ok(None) =>
-                            match lag_execution_check(site, policy) {
-                              Ok(None) =>
-                                match json_pick_execution_check(site, policy) {
-                                  Ok(None) =>
-                                    match
-                                      expansion_execution_check(site, policy) {
-                                      Ok(None) =>
-                                        match
-                                          analytic_envelope_check(site, policy) {
-                                          Ok(None) =>
-                                            match
-                                              analytic_execution_check(site) {
-                                              Ok(None) =>
-                                                match window_candidate {
-                                                  Ok(None) =>
-                                                    match watermark_candidate {
-                                                      Ok(None) =>
-                                                        match
-                                                          interval_execution_check(
-                                                            site,
-                                                          ) {
-                                                          Ok(None) =>
-                                                            match
-                                                              asof_execution_check(
-                                                                site,
-                                                              ) {
-                                                              Ok(None) =>
-                                                                event_execution_check(
-                                                                  site,
-                                                                )
-                                                              other => other
-                                                            }
-                                                          other => other
-                                                        }
-                                                      other => other
-                                                    }
-                                                  other => other
-                                                }
-                                              other => other
-                                            }
-                                          other => other
-                                        }
-                                      other => other
-                                    }
-                                  other => other
-                                }
-                              other => other
-                            }
-                          other => other
-                        }
-                      other => other
-                    }
-                  other => other
-                }
-              other => other
-            }
-          other => other
-        }
+        direct_execution_candidate(
+          site, policy, window_candidate, watermark_candidate,
+        )
       }
       other => other
     }
