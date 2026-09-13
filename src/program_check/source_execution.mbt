@@ -47,6 +47,7 @@ pub struct SourceExecutionSubject {
   source : @sourceviews.ResolvedInput
   response_policy : SourceResponsePolicy
   response_policy_cid : String
+  direct_policy : DirectSourcePolicy?
   authority : SourceReadAuthority
 }
 
@@ -118,6 +119,15 @@ fn prepare_source_execution(
         source,
         response_policy,
         response_policy_cid,
+        direct_policy: match request {
+          @sourceviews.Direct(_, direct) =>
+            Some(
+              prepare_direct_source_policy(
+                direct, response_policy, response_policy_cid,
+              ),
+            )
+          @sourceviews.Keyed(_, _) => None
+        },
         authority: prepare_source_authority(source),
       }
       let host = SourceExecution::{

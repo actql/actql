@@ -682,6 +682,21 @@ This is a new explicit identity decision: Sketch's alias-origin array is not par
 of this policy identity. Aliases and input dependencies remain in the subject's
 own identity. An empty set is unknown rather than an implicit public grant.
 
+For direct acquisitions, `DirectSourcePolicy` retains the exact parameterized
+request and selected response policy. Construction verifies their shared input
+owner. Static request admission currently supplies values and their literal,
+Parameter or Host-binding origins, but no authoritative policy attestations for
+those values. Each such occurrence therefore contributes unknown provenance;
+the original request remains available through indexed readers, including a
+Parameter's supplied/defaulted origin. Response policy references are retained
+even when the combined classification is unknown. The bounded emitter uses the
+shared effective-policy preimage and does not materialize another value tree.
+
+Keyed acquisitions do not receive this direct-policy result: their correlation
+producer's contributing policies must also be selected. Retaining a direct-policy
+object does not establish runtime egress admission, Ref authority or completion
+of the remaining SourceView construction conditions.
+
 Coverage starts from the source, expression, operation, input, publication and
 incoming-dependency inventories, not from the list of successful resolutions.
 Each owned occurrence has exactly one disposition:

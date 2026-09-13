@@ -24,6 +24,8 @@ pub fn check(@stage_syntax.Program, @check_environment.WireEnvironment, @decode_
 
 pub fn contract_inventory(CheckedProgram) -> @pipeline_check_context.CoreContractInventory
 
+pub fn emit_direct_source_policy(DirectSourcePolicy, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
+
 pub fn emit_source_response_policy(SourceResponsePolicy, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
 
 pub fn expression_bound_at(CheckedProgram, Int) -> @pipeline_check_context.TextBoundResolution?
@@ -214,6 +216,14 @@ pub struct BuiltResultInterface {
 
 type CheckedProgram
 
+pub struct DirectSourcePolicy {
+  request : @sourceview_resolution.ParameterizedRequest
+  response : SourceResponsePolicy
+  response_cid : String
+  classification : @check_environment.DataClassification
+  unknown_provenance : Bool
+}
+
 type ExpressionExecution
 
 pub struct KeyedExecution {
@@ -285,6 +295,7 @@ pub struct SourceExecutionSubject {
   source : @sourceview_resolution.ResolvedInput
   response_policy : SourceResponsePolicy
   response_policy_cid : String
+  direct_policy : DirectSourcePolicy?
   authority : SourceReadAuthority
 }
 

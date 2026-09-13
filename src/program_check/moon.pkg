@@ -24,6 +24,9 @@ import {
 }
 
 import {
+  "actql/actql/binding_declarations" @bindings,
+  "actql/actql/source_request_slots" @slots,
+  "actql/actql/parameter_binding" @parameters,
   "actql/actql/carrier_contract" @carrier,
   "actql/actql/relation_join" @join,
   "actql/actql/relation_evidence" @evidence,

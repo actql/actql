@@ -30,6 +30,7 @@ test "source Host and response bindings retain one exact request and ordered pre
   assert_eq(exact.nodes, 0)
   assert_eq(checks.length(), 9)
   let host = checks[0]
+  assert_true(host.subject.direct_policy is None)
   assert_eq(
     host.subject.response_policy_cid,
     "sha256:" + @sha.hex(policy_bytes),
