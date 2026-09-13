@@ -370,6 +370,26 @@ using it; reusing serialization does not reuse a mock issuer's authority.
 
 ## Lifetime, limits and publication
 
+Native acquisition uses the same owned capability registrations and candidate
+comparison as broad acquisition. Its typed payload retains the exact requirement,
+compiled scan and root-bound witness; another preparation with equal contents
+cannot recover a selected choice. The common planner does not branch on a
+DuckDB enum. Provider-local work slots distinguish session/catalog, validation
+scan/transfer/admission, SQL filter/select, native transfer/admission, demand
+measurement, capture, retention and cleanup. Omitting either transfer or retention
+leaves an unknown estimate rather than a free operation.
+
+A selected `DuckDBNativeAttempt` supplies the requirement's common guards to its
+receiver, instead of accepting caller replacements. Receipt ports belong to that
+exact receiver. After both receipts and trusted Host settlement, exact demanded
+values and both retained receipt identities are measured without Local predicate
+replay. Physical measurement, canonical receipt and common acquisition limits
+remain distinct. Failure aborts the attempt and invalidates its measurement;
+measurements cannot be attached to a different attempt or retried after failure.
+Settlement acknowledgement and these diagnostic measurements are not record
+issuance, source authorization, live read-view attestation or product completion.
+Those additional boundaries are required before capture can publish native output.
+
 The [acquisition resource-scope contract](../../spec/contracts/actql-query-resource-scopes.json)
 separates common acquisition guards from selected fragment bounds. This native
 scan/filter/select implementation does not select the Local residual fragment

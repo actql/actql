@@ -18,7 +18,11 @@ import {
 // Values
 pub fn abort_duckdb_broad_attempt(DuckDBBroadAttempt) -> Unit
 
+pub fn abort_duckdb_native_attempt(DuckDBNativeAttempt) -> Unit
+
 pub fn accept_duckdb_broad_chunk(DuckDBBroadAttempt, Int, Array[@decode_core.Cursor]) -> Result[Unit, DuckDBBroadAttemptIssue]
+
+pub fn accept_duckdb_native_chunk(DuckDBNativeAttempt, @duckdb_adapter.NativeReceiptPort, Int, Array[@decode_core.Cursor]) -> Result[Unit, DuckDBNativeAttemptIssue]
 
 pub fn acquisition_candidate_duration(AcquisitionCandidate) -> @physical_cost.DurationEstimate
 
@@ -34,9 +38,13 @@ pub fn acquisition_choice_reason(AcquisitionChoice) -> @physical_cost.CostChoice
 
 pub fn admit_duckdb_broad_metadata(DuckDBBroadAttempt, Int, Array[(String, @duckdb_adapter.PhysicalType)], Array[@decode_core.Cursor]) -> Result[Unit, DuckDBBroadAttemptIssue]
 
+pub fn admit_duckdb_native_metadata(DuckDBNativeAttempt, Int, Array[(String, @duckdb_adapter.PhysicalType)], Array[@decode_core.Cursor]) -> Result[Unit, DuckDBNativeAttemptIssue]
+
 pub fn admit_query_evidence_contracts(@canonical_json.CanonicalValue, @canonical_json.CanonicalValue, QueryEvidenceLimits) -> Result[QueryEvidenceContracts, QueryEvidenceContractIssue]
 
 pub fn begin_duckdb_broad_receipt(DuckDBBroadAttempt, Array[(String, @duckdb_adapter.PhysicalType)], @duckdb_adapter.PhysicalResultLimits, Int, @execution_relation.ValueLimits) -> Result[Unit, DuckDBBroadAttemptIssue]
+
+pub fn begin_duckdb_native_receipt(DuckDBNativeAttempt, @duckdb_adapter.NativeReceiptRole, Array[(String, @duckdb_adapter.PhysicalType)]) -> Result[@duckdb_adapter.NativeReceiptPort, DuckDBNativeAttemptIssue]
 
 pub fn bind_captured_duckdb_broad_input(DuckDBQueryIssuer, DuckDBBroadAttempt, DuckDBBroadObservation, @lowering_relation.BoundPrepared, Int, @lowering_relation.BoundPrepared) -> Result[@execution_relation.BoundProducerInput, DuckDBEvidenceIssue]
 
@@ -90,6 +98,20 @@ pub fn duckdb_broad_work_at(Int) -> DuckDBBroadWork?
 
 pub fn duckdb_fixed_compute_candidate(CapabilityRegistration, FixedComputeRequest, String, @duckdb_adapter.NativeQueryLimits, Array[@physical_cost.SerialEstimateLine], QueryQuantities, Int) -> Result[PreparedCompute[@duckdb_adapter.FixedCompute], FixedComputeIssue]
 
+pub fn duckdb_native_attempt_preparation(DuckDBNativeAttempt) -> DuckDBNativePreparation
+
+pub fn duckdb_native_candidate(CapabilityRegistration, DuckDBQueryPreparation, Array[@physical_cost.SerialEstimateLine], QueryQuantities, Int) -> Result[PreparedAcquisition[DuckDBNativePreparation], DuckDBNativeCandidateIssue]
+
+pub fn duckdb_native_measured_demand(DuckDBNativeMeasurement) -> @duckdb_adapter.NativeDemandUsage
+
+pub fn duckdb_native_measured_receipt(DuckDBNativeMeasurement, @duckdb_adapter.NativeReceiptRole) -> (String, Int, Int, Int)
+
+pub fn duckdb_native_measurement_matches(DuckDBNativeMeasurement, DuckDBNativeAttempt) -> Bool
+
+pub fn duckdb_native_preparation_scan(DuckDBNativePreparation) -> @duckdb_adapter.NativeScan
+
+pub fn duckdb_native_work_at(Int) -> DuckDBNativeWork?
+
 pub fn duckdb_query_broad_scan(DuckDBQueryPreparation) -> @duckdb_adapter.BroadScan
 
 pub fn duckdb_query_native_preparation(DuckDBQueryPreparation) -> Result[(@duckdb_adapter.NativeScan, @duckdb_adapter.NativeRootGuard), DuckDBNativeIssue]
@@ -106,6 +128,8 @@ pub fn execute_mock_query(MockQueryAttempt, MockQueryLimits, guard_measure? : @e
 
 pub fn finish_duckdb_broad_receipt(DuckDBBroadAttempt) -> Result[Unit, DuckDBBroadAttemptIssue]
 
+pub fn finish_duckdb_native_receipt(DuckDBNativeAttempt, @duckdb_adapter.NativeReceiptPort) -> Result[Unit, DuckDBNativeAttemptIssue]
+
 pub fn fixed_compute_candidate_duration(FixedComputeCandidate) -> @physical_cost.DurationEstimate
 
 pub fn fixed_compute_candidate_quantities(FixedComputeCandidate) -> QueryQuantities
@@ -121,6 +145,8 @@ pub fn issue_duckdb_broad_records(DuckDBBroadAttempt, QueryMaterialLimits) -> Re
 pub fn issue_mock_query_records(MockQueryAttempt, QueryMaterialLimits) -> Result[MockQueryRecords, MockEvidenceIssue]
 
 pub fn local_fixed_compute_candidate(CapabilityRegistration, FixedComputeRequest, @execution_relation.GeneratedSequence, Array[@physical_cost.SerialEstimateLine], QueryQuantities, Int) -> Result[PreparedCompute[@execution_relation.GeneratedSequence], FixedComputeIssue]
+
+pub fn measure_duckdb_native_attempt(DuckDBNativeAttempt, @execution_relation.FixedInputGuardMeasureLimits, @execution_relation.RowWireLimits, Int, Int) -> Result[DuckDBNativeMeasurement, DuckDBNativeAttemptIssue]
 
 pub fn mock_acquisition_candidate(CapabilityRegistration, QueryRequirement, QueryOffer) -> Result[PreparedAcquisition[QueryOffer], QueryPlanningIssue]
 
@@ -159,6 +185,8 @@ pub fn offer_mock_query(@execution_query.QuerySequence, QueryRealization, Array[
 pub fn prepare_capability_registry(Array[CapabilityDescription], Int, Int) -> Result[CapabilityRegistry, CapabilityRegistrationIssue]
 
 pub fn prepare_duckdb_broad_attempt(DuckDBQueryPreparation) -> DuckDBBroadAttempt
+
+pub fn prepare_duckdb_native_attempt(AcquisitionChoice, PreparedAcquisition[DuckDBNativePreparation], @duckdb_adapter.PhysicalResultLimits, Int, @execution_relation.FixedInputGuardMeasureLimits) -> Result[DuckDBNativeAttempt, DuckDBNativeAttemptIssue]
 
 pub fn prepare_duckdb_query(QueryRequirement, String, String, Int, @duckdb_adapter.NativeQueryLimits) -> Result[DuckDBQueryPreparation, @duckdb_adapter.NativeQueryIssue]
 
@@ -242,6 +270,8 @@ pub fn retain_mock_query(MockQueryAttempt, MockRetentionLimits) -> Result[MockQu
 
 pub fn settle_duckdb_broad_transport(DuckDBBroadAttempt) -> Result[Unit, DuckDBBroadAttemptIssue]
 
+pub fn settle_duckdb_native_transport(DuckDBNativeAttempt) -> Result[Unit, DuckDBNativeAttemptIssue]
+
 pub fn verify_duckdb_broad_records(DuckDBQueryIssuer, DuckDBBroadAttempt, DuckDBBroadRecords) -> Result[Unit, DuckDBEvidenceIssue]
 
 pub fn verify_mock_query_records(MockQueryIssuer, MockQueryAttempt, MockQueryRecords) -> Result[Unit, MockEvidenceIssue]
@@ -324,10 +354,43 @@ pub(all) enum DuckDBEvidenceIssue {
   Consumer(@execution_relation.ProducerBindingIssue)
 }
 
+type DuckDBNativeAttempt
+
+pub(all) enum DuckDBNativeAttemptIssue {
+  ForeignChoice
+  InvalidState
+  Receiving(@duckdb_adapter.NativeReceivingIssue)
+  Demand(@duckdb_adapter.NativeDemandIssue)
+  Receipts(@duckdb_adapter.NativeReceiptIdentityIssue)
+}
+
+pub(all) enum DuckDBNativeCandidateIssue {
+  Unsupported(DuckDBNativeIssue)
+  Planning(QueryPlanningIssue)
+}
+
 pub(all) enum DuckDBNativeIssue {
   Compilation(@duckdb_adapter.NativeQueryIssue)
   RootGuard(@duckdb_adapter.NativeRootGuardIssue)
 }
+
+type DuckDBNativeMeasurement
+
+type DuckDBNativePreparation
+
+pub(all) enum DuckDBNativeWork {
+  SessionAndCatalog
+  ValidationScan
+  ValidationTransfer
+  ValidationAdmission
+  SqlFilterSelect
+  NativeTransfer
+  NativeAdmission
+  DemandMeasurement
+  ObservationCapture
+  Retention
+  Cleanup
+} derive(Eq, @debug.Debug)
 
 type DuckDBQueryIssuer
 

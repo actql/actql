@@ -205,6 +205,16 @@ it does not add ActQL aggregate execution support.
 
 ## Private protocol
 
+On the MoonBit side, `duckdb_native_candidate` uses the common acquisition
+comparison with eleven disjoint work slots (`duckdb_native_work_at`), including
+both actual row transfers. `prepare_duckdb_native_attempt` accepts only the exact
+selected typed candidate and binds its common acquisition guards. Its metadata,
+receipt and measurement operations preserve the receiver's full-scan checks and
+one-shot failure semantics. `measure_duckdb_native_attempt` requires settled
+transport and produces owned diagnostic measurements, not execution records or a
+captured observation. Native issuer/capture and product completion integration
+remain required; this API must not be used as an alternative success constructor.
+
 `authorizeLocalDatabase` is called by explicit trusted Host setup, not by a
 Program resource decoder. The opaque grant authorizes a path to a trusted local
 file. It is not a snapshot identity or a malicious-file sandbox.
