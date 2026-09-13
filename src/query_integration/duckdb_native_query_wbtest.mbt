@@ -66,6 +66,15 @@ test "fixed boolean input compiles equality without numeric coercion" {
     native_parameter_wire(query),
     "{\"type\":{\"id\":\"BOOLEAN\"},\"value\":false}",
   )
+  assert_true(
+    @duckdb.prepare_native_root_guard(query, 4) is Err(UnsupportedCeiling),
+  )
+  assert_eq(
+    @duckdb.native_root_guard_bound(
+      @duckdb.prepare_native_root_guard(query, 5).unwrap(),
+    ),
+    5,
+  )
 }
 
 ///|

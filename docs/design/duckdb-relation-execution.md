@@ -210,6 +210,16 @@ real-backend execution conformance.
 
 ## Lifetime, limits and publication
 
+For the restricted compiled comparison, a static root-byte witness can establish
+the demanded-root guard without evaluating input rows: Boolean/NULL results need
+at most five canonical bytes, or four when the exact bound RHS is NULL. A smaller
+ceiling makes this native realization ineligible; it does not make the checked
+query invalid, and Local residual remains a separate candidate. The witness
+binds the exact compiled query and selected ceiling. It discharges neither scan
+admission nor work/live-root limits, provenance, retention or completion, and it
+is not an execution record. Generic receiving readiness alone does not imply
+that this native eligibility check has been applied by a planner.
+
 Cancellation request, the caller ceasing to wait, confirmed query termination
 and resource cleanup are distinct states. Cancelled or failed attempts cannot
 issue success evidence or capture. A connection whose stop is unconfirmed is not
