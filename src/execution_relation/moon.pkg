@@ -28,6 +28,8 @@ import {
   "actql/actql/source_request_slots" @request_slots,
   "actql/actql/binding_declarations" @bindings,
   "actql/actql/stage_results",
+  "actql/actql/query_planning" @planning,
+  "actql/actql/physical_cost" @cost,
   "moonbitlang/core/encoding/utf8",
   "actql/actql/carrier_contract" @carrier,
   "moonbitlang/core/bench",

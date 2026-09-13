@@ -1,0 +1,133 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/query_planning"
+
+import {
+  "actql/actql/decode_core",
+  "actql/actql/execution_relation",
+  "actql/actql/physical_cost",
+  "actql/actql/sourceview_resolution",
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn cancel_mock_query(MockQueryAttempt) -> Bool
+
+pub fn choose_query_strategy(@execution_relation.QuerySequence, Array[QueryOffer], Array[Int]?, Int) -> Result[QuerySelection, QueryPlanningIssue]
+
+pub fn execute_mock_query(MockQueryAttempt, MockQueryLimits) -> Result[MockQueryComputation, MockQueryIssue]
+
+pub fn mock_query_computation(MockQueryAttempt) -> Result[MockQueryComputation, MockQueryIssue]
+
+pub fn mock_query_output_rows(MockQueryComputation) -> Int
+
+pub fn mock_query_received_columns(MockQueryComputation) -> Int
+
+pub fn mock_query_received_rows(MockQueryComputation) -> Int
+
+pub fn mock_query_source_rows(MockQueryComputation) -> Int
+
+pub fn mock_query_strategy(MockQueryComputation) -> QueryStrategy
+
+pub fn offer_mock_query(@execution_relation.QuerySequence, QueryRealization, Array[@physical_cost.SerialEstimateLine], QueryQuantities, Int) -> Result[QueryOffer, QueryPlanningIssue]
+
+pub fn prepare_mock_query_attempt(QueryStrategy, Array[@decode_core.Cursor], Int) -> Result[MockQueryAttempt, MockQueryIssue]
+
+pub fn query_offer_duration(QueryOffer) -> @physical_cost.DurationEstimate
+
+pub fn query_offer_quantities(QueryOffer) -> QueryQuantities
+
+pub fn query_offer_realization(QueryOffer) -> QueryRealization
+
+pub fn query_strategy_choice(QueryStrategy) -> @physical_cost.CostChoice
+
+pub fn query_strategy_offer(QueryStrategy) -> QueryOffer
+
+pub fn query_strategy_owner(QueryStrategy) -> @execution_relation.QuerySequence
+
+pub fn query_strategy_pending_at(QueryStrategy, Int) -> @sourceview_resolution.QueryAcquisitionRequirement?
+
+pub fn query_strategy_pending_count(QueryStrategy) -> Int
+
+pub fn query_strategy_task_at(QueryStrategy, Int) -> QueryTask?
+
+pub fn query_strategy_task_count(QueryStrategy) -> Int
+
+pub fn query_work_at(QueryRealization, Int) -> QueryWork?
+
+pub fn query_work_count(QueryRealization) -> Int
+
+// Errors
+
+// Types and methods
+type MockQueryAttempt
+
+type MockQueryComputation
+
+pub(all) enum MockQueryIssue {
+  InvalidLimits
+  PreparationLimit
+  ReceiptRowsLimit
+  ReceiptCellsLimit
+  Local(@execution_relation.QuerySequenceIssue)
+  MissingCaptureOutput
+  AlreadyStarted
+  NotComputed
+  Cancelled
+}
+
+pub(all) struct MockQueryLimits {
+  source_rows : Int
+  received_rows : Int
+  received_cells : Int
+  source_admission : @execution_relation.ValueLimits
+  computation : @execution_relation.SequenceExecutionLimits
+}
+
+type QueryOffer
+
+pub(all) enum QueryPlanningIssue {
+  InvalidLimits
+  PlanningLimit
+  NegativeQuantity
+  ForeignQuery(Int)
+  Cost(@physical_cost.CostIssue)
+}
+
+pub(all) struct QueryQuantities {
+  transfer_bytes : Int64?
+  retained_bytes : Int64?
+  money_units : Int64?
+}
+
+pub(all) enum QueryRealization {
+  NativeQuery
+  BroadWithResidual
+} derive(Eq, @debug.Debug)
+
+pub enum QuerySelection {
+  Proposed(QueryStrategy)
+  Deferred
+  NoCandidates
+}
+
+type QueryStrategy
+
+pub(all) enum QueryTask {
+  RealizeQuery
+  CaptureObservation
+} derive(Eq, @debug.Debug)
+
+pub(all) enum QueryWork {
+  SourceQuery
+  SourceScan
+  CompletedReceiptTransfer
+  ReceiptConversion
+  LocalResidual
+  ObservationCapture
+  OutputRetention
+  Cleanup
+} derive(Eq, @debug.Debug)
+
+// Type aliases
+
+// Traits

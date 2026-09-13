@@ -459,6 +459,8 @@ design also reaches browser, edge, and managed runtimes.
 - [Local Compute attempts](docs/local-compute-usage.md) — source-checkout
   synchronous execution using completed producer inputs, plus a shared-query
   residual adapter (not acquisition completion)
+- [Query strategy experiment](docs/query-planning-usage.md) — pure two-candidate
+  comparison and local mock computation; observation capture remains separate
 
 ## Status
 

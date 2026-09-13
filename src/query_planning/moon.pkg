@@ -1,0 +1,10 @@
+supported_targets = "+js+wasm+native"
+
+import {
+  "actql/actql/execution_relation" @execution,
+  "actql/actql/sourceview_resolution" @acquisition,
+  "actql/actql/physical_cost" @cost,
+  "actql/actql/decode_core" @decode,
+  "actql/actql/relation_schema" @schema,
+  "actql/actql/pipeline_typing" @pipeline,
+}
