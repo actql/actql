@@ -25,6 +25,8 @@ pub fn bind_completed_input(@lowering_relation.BoundPrepared, Int, @lowering_rel
 
 pub fn boolean_pair(@lowering_relation.ManyOperator, Value, Value) -> Result[Value, ScalarIssue]
 
+pub fn cancel_local_compute_attempt(LocalComputeAttempt) -> Bool
+
 pub fn capture(@value_admission.Value) -> Value
 
 pub fn capture_input(@lowering_relation.BoundPrepared, Int, Array[@decode_core.Cursor], max_rows~ : Int, ValueLimits) -> Result[CapturedRows, CaptureIssue]
@@ -57,11 +59,17 @@ pub fn emit_ordered_params(OrderedParams, @encode_core.Writer) -> Unit raise @en
 
 pub fn execute_generated_sequence(GeneratedSequence, Array[CapturedRows], SequenceExecutionLimits, produced? : Array[BoundProducerInput]) -> Result[CompletedSequence, SequenceRunIssue]
 
+pub fn execute_local_compute_attempt(LocalComputeAttempt, SequenceExecutionLimits) -> Result[CompletedSequence, LocalComputeIssue]
+
+pub fn local_compute_result(LocalComputeAttempt) -> Result[CompletedSequence, LocalComputeIssue]
+
 pub fn ordered_params_kernel(OrderedParams) -> @lowering_relation.PreparedKernel
 
 pub fn ordered_params_registry(OrderedParams) -> RegisteredRelationContracts
 
 pub fn prepare_generated_sequence(RegisteredRelationContracts, @lowering_relation.PreparedSequence, Array[FragmentRuntimeContext], Array[String], Int, Int) -> Result[GeneratedSequence, SequenceRunIssue]
+
+pub fn prepare_local_compute_attempt(GeneratedSequence, Array[BoundProducerInput], Int) -> Result[LocalComputeAttempt, LocalComputeIssue]
 
 pub fn prepare_ordered_params(RegisteredOrderedContract, @lowering_relation.OrderedReferences) -> OrderedParams
 
@@ -177,6 +185,21 @@ pub(all) enum InputKeyIssue {
   DuplicateKey(Int, Int)
   InvalidLimits
   Limit
+}
+
+type LocalComputeAttempt
+
+pub(all) enum LocalComputeIssue {
+  InvalidInputLimit
+  InputLimit
+  RequiresCompletedProducer(Int)
+  ForeignInput(Int)
+  DuplicateInput(Int)
+  MissingInput(Int)
+  NotComplete
+  AlreadyStarted
+  Cancelled
+  Execution(SequenceRunIssue)
 }
 
 pub(all) enum LogicalBudgetIssue {
