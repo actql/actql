@@ -14,6 +14,17 @@ test "Program source identities use the retained Program and bound values" {
   let (operations, references, bindings) = program_sources_fixture()
   let sources = bind_program_sources(operations, references, bindings, 10000000).unwrap()
   let v = identify_program_sources(sources, identity_limits()).unwrap()
+  let preparation = operation_profiles_preparation(operations)
+  let capacity = source_producer_capacity(preparation_sources(preparation))
+  let rows = source_policy_rows(source_capacity_context(capacity))
+  let owned_requests = source_rows_requests(rows)
+  for stage in 0..<program_identity_stage_count(v) {
+    assert_true(program_identity_stage_requests(v, stage) is None)
+    assert_true(source_request_stage(owned_requests, stage) is None)
+  }
+  for invalid in [-2147483648, -1, program_identity_stage_count(v), 2147483647] {
+    assert_true(program_identity_stage_requests(v, invalid) is None)
+  }
   // Fixed preimages: {version:"actql-parameter-values/0.1",values:{n:1,p:"é😀"}}
   // and the same envelope with p:"abc". Expected SHA-256 comes from the
   // independent Node canonical encoder, not this assembly's product output.

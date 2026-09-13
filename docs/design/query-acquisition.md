@@ -16,6 +16,10 @@ requirements. Unbound Host request bindings are outside this initial entry.
 The selected mode must be snapshot without a checkpoint contract, whether
 selected explicitly or by default. A checkpoint on an unselected mode does not
 prevent derivation. This check does not require a provider snapshot token.
+`pipeline_check_context.program_identity_stage_requests` returns the Stage's
+already-owned requests; it does not reconstruct them from equal contents.
+It returns `None` for invalid Stage indices or when no SourceView requests were
+prepared, including Local-only preparation.
 
 The API accepts no backend, price or placement. Physical candidates implement
 the same unit. A native candidate has to preserve admission and demanded failures,

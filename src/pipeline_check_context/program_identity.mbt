@@ -232,6 +232,19 @@ pub fn program_identity_usage(v : ProgramSourceIdentity) -> (Int, Int, Int) {
 }
 
 ///|
+/// Return the already checked requests owned by this Program and Stage.
+/// Equal request contents from another preparation do not substitute for ownership.
+pub fn program_identity_stage_requests(
+  v : ProgramSourceIdentity,
+  stage_index : Int,
+) -> @sourceviews.PipelineRequests? {
+  source_request_stage(
+    v.sources.operations.preparation.sources.capacity.context.rows.requests,
+    stage_index,
+  )
+}
+
+///|
 pub fn program_identity_stage_count(v : ProgramSourceIdentity) -> Int {
   v.stages.length()
 }

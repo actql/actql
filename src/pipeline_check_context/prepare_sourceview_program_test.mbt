@@ -68,6 +68,35 @@ test "selected SourceView registrations construct Stage pipelines and Result imp
   )
   let identity = prepared_selected_identity(selected)
   assert_eq(program_identity_stage_count(identity), 2)
+  let preparation = operation_profiles_preparation(
+    program_sources_operations(program_identity_sources(identity)),
+  )
+  let capacity = source_producer_capacity(preparation_sources(preparation))
+  let requests = source_rows_requests(
+    source_policy_rows(source_capacity_context(capacity)),
+  )
+  let foreign = prepared_selected_identity(selected)
+  for stage in 0..<2 {
+    let original = source_request_stage(requests, stage).unwrap()
+    assert_true(
+      physical_equal(
+        original,
+        program_identity_stage_requests(identity, stage).unwrap(),
+      ),
+    )
+    assert_true(
+      physical_equal(
+        original,
+        program_identity_stage_requests(identity, stage).unwrap(),
+      ),
+    )
+    assert_false(
+      physical_equal(
+        original,
+        program_identity_stage_requests(foreign, stage).unwrap(),
+      ),
+    )
+  }
   let context_usage = selected_policy_usage(selected)
   let assembled = prepare_sourceview_context(
     views,

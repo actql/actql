@@ -565,6 +565,8 @@ pub fn program_identity_stage_at(ProgramSourceIdentity, Int) -> StageSourceIdent
 
 pub fn program_identity_stage_count(ProgramSourceIdentity) -> Int
 
+pub fn program_identity_stage_requests(ProgramSourceIdentity, Int) -> @sourceview_resolution.PipelineRequests?
+
 pub fn program_identity_usage(ProgramSourceIdentity) -> (Int, Int, Int)
 
 pub fn program_incoming_at(ProgramIncomingRequirements, Int) -> IncomingSite?
