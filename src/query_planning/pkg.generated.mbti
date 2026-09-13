@@ -2,6 +2,7 @@
 package "actql/actql/query_planning"
 
 import {
+  "actql/actql/canonical_json",
   "actql/actql/decode_core",
   "actql/actql/execution_relation",
   "actql/actql/physical_cost",
@@ -10,6 +11,8 @@ import {
 }
 
 // Values
+pub fn admit_query_evidence_contracts(@canonical_json.CanonicalValue, @canonical_json.CanonicalValue, QueryEvidenceLimits) -> Result[QueryEvidenceContracts, QueryEvidenceContractIssue]
+
 pub fn cancel_mock_query(MockQueryAttempt) -> Bool
 
 pub fn choose_query_strategy(@execution_relation.QuerySequence, Array[QueryOffer], Array[Int]?, Int) -> Result[QuerySelection, QueryPlanningIssue]
@@ -31,6 +34,8 @@ pub fn mock_query_strategy(MockQueryComputation) -> QueryStrategy
 pub fn offer_mock_query(@execution_relation.QuerySequence, QueryRealization, Array[@physical_cost.SerialEstimateLine], QueryQuantities, Int) -> Result[QueryOffer, QueryPlanningIssue]
 
 pub fn prepare_mock_query_attempt(QueryStrategy, Array[@decode_core.Cursor], Int) -> Result[MockQueryAttempt, MockQueryIssue]
+
+pub fn query_evidence_contract_usage(QueryEvidenceContracts) -> (Int, Int)
 
 pub fn query_offer_duration(QueryOffer) -> @physical_cost.DurationEstimate
 
@@ -81,6 +86,22 @@ pub(all) struct MockQueryLimits {
   received_cells : Int
   source_admission : @execution_relation.ValueLimits
   computation : @execution_relation.SequenceExecutionLimits
+}
+
+pub(all) enum QueryEvidenceContractIssue {
+  InvalidLimits
+  AcquisitionBodyLimit
+  UnsupportedAcquisition
+  EvidenceBodyLimit
+  UnsupportedEvidence
+}
+
+type QueryEvidenceContracts
+
+pub(all) struct QueryEvidenceLimits {
+  max_bytes : Int
+  max_nodes : Int
+  max_depth : Int
 }
 
 type QueryOffer

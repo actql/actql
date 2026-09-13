@@ -53,4 +53,13 @@ relative order is not total-order evidence; this profile requires null source
 order CID. Existing performance regressions remain accepted development debt,
 not a passed performance gate. No performance improvement is claimed here.
 
+`admit_query_evidence_contracts` accepts the admitted immutable canonical bodies
+of the Acquisition and process-evidence contracts, and checks their actual hashes
+under one aggregate `QueryEvidenceLimits` budget. It rejects schema-only or
+digest-only substitutes. `query_evidence_contract_usage` reports hashed bytes
+and nodes. This is verifier-contract selection, not permission to issue records
+or execute the proposed strategy. The isolated record codec tests do not provide
+a product issuance API. `check:docs` also verifies that the filesystem-free test
+copies match the current complete shared contract bodies.
+
 See [design](design/query-physical-strategy.md) for ownership, scope and limitations.

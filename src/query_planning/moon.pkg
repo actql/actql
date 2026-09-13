@@ -7,4 +7,10 @@ import {
   "actql/actql/decode_core" @decode,
   "actql/actql/relation_schema" @schema,
   "actql/actql/pipeline_typing" @pipeline,
+  "actql/actql/canonical_json" @identity,
+  "actql/actql/encode_core" @encode,
 }
+
+import {
+  "moonbitlang/core/json",
+} for "wbtest"

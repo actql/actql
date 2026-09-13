@@ -97,6 +97,16 @@ computation success and row/column counters do not replace those checks. Seriali
 JSON and matching hashes are not a source of authority. Until that boundary is
 connected, the mock execution API exposes only an unpublished computation.
 
+Verifier interpretation starts with `admit_query_evidence_contracts`: both the
+complete Acquisition contract and the complete process-evidence contract must
+hash to the supported pins. The latter includes the record schema and exact
+Acquisition dependency. A record schema alone, a version string or a claimed CID
+cannot select this verifier. The returned opaque selection retains immutable
+bodies; its aggregate byte/node budget spans both hashes without resetting.
+This selects interpretation only, not an issuer, task, source authorization or
+successful observation. Record serialization likewise does not confer issuance
+authority or restore process-local evidence from JSON.
+
 Real provider attestation, external transfer, durable capture, shared scans,
 aggregate absorption, carried-input joins and general streaming need their own
 increments. Relation-specific query support does not define all Connector ports;
