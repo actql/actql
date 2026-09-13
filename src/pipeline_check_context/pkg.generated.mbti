@@ -22,6 +22,7 @@ import {
   "actql/actql/program_references",
   "actql/actql/regex_pattern",
   "actql/actql/regex_replacement",
+  "actql/actql/relation_append",
   "actql/actql/relation_evidence",
   "actql/actql/relation_results",
   "actql/actql/relation_typing",
@@ -852,6 +853,22 @@ pub fn wired_usage(WiredStages) -> (Int, Int)
 // Types and methods
 type AdmittedOperationQuery
 
+pub struct AppendRowsCheck {
+  site : OperationRequirementSite
+  step : @pipeline_typing.CheckedStep
+  left : @pipeline_typing.Target
+  right : @pipeline_typing.Target
+  operation : @relation_append.CheckedAppend
+  rule : AppendRowsRule
+  left_order : @pipeline_typing.LogicalOrder?
+  right_order : @pipeline_typing.LogicalOrder?
+}
+
+pub(all) enum AppendRowsRule {
+  AdmitBothInputs
+  PreserveLeftThenRight
+} derive(Eq, @debug.Debug)
+
 type BoundParameters
 
 pub(all) struct CapacityMaterial {
@@ -977,6 +994,7 @@ pub(all) enum ExecutionCheckFailure {
 } derive(Eq, @debug.Debug)
 
 pub(all) enum ExecutionCheckPhase {
+  BeforeOperationInputUse
   BeforeOperationOutput
 } derive(Eq, @debug.Debug)
 
@@ -1331,6 +1349,7 @@ pub(all) enum OperationExecutionCheck {
   ValuesPublication(ValuesPublicationCheck)
   JoinOutputLimit(JoinOutputCheck)
   JoinRowOrder(JoinRowOrderCheck)
+  AppendRows(AppendRowsCheck)
 }
 
 pub(all) enum OperationFillIssue {

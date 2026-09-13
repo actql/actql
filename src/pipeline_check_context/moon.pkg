@@ -22,6 +22,7 @@ import {
   "actql/actql/calendar_typing" @calendar,
   "actql/actql/calendar_options",
   "actql/actql/relation_typing" @relation,
+  "actql/actql/relation_append" @append,
   "actql/actql/value_contract" @contract,
   "actql/actql/stage_parameters" @stages,
   "actql/actql/encode_core" @encode,

@@ -448,6 +448,15 @@ observations that their producers have succeeded.
 
 ## Exhaustive obligation coverage
 
+Append input admission and concatenation order are separate execution bindings.
+Both retain the exact checked operation and left/right operand occurrences,
+including when both operands refer to the same producer. Input admission runs
+before using the rows; ordered concatenation is checked before exposing output.
+The latter retains any input logical-order witnesses without converting physical
+enumeration into a total-order proof. Neither binding resolves an output envelope
+or identity/completeness requirement: those require their own disposition before
+the operation inventory can close.
+
 Source acquisition has distinct Host-combination and response-admission
 dispositions. The former applies before provider access: the Host checks the
 selected acquisition kind, authority, observation and Carrier combination and

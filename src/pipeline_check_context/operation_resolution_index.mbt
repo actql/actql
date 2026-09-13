@@ -162,7 +162,11 @@ pub fn index_program_operation_resolutions(
     }
   }
   for i in 0..<count {
-    match dedupe_execution_check(requirements.entries[i]) {
+    let candidate = match dedupe_execution_check(requirements.entries[i]) {
+      Ok(None) => append_execution_check(requirements.entries[i])
+      other => other
+    }
+    match candidate {
       Err(_) => return Err(ForeignOccurrence(i))
       Ok(None) => ()
       Ok(Some(check)) => {

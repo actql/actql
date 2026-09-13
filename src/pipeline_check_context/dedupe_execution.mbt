@@ -15,10 +15,12 @@ pub(all) enum OperationExecutionCheck {
   ValuesPublication(ValuesPublicationCheck)
   JoinOutputLimit(JoinOutputCheck)
   JoinRowOrder(JoinRowOrderCheck)
+  AppendRows(AppendRowsCheck)
 }
 
 ///|
 pub(all) enum ExecutionCheckPhase {
+  BeforeOperationInputUse
   BeforeOperationOutput
 } derive(Eq, Debug)
 
@@ -36,6 +38,11 @@ pub fn operation_execution_phase(
     ValuesPublication(_) => BeforeOperationOutput
     JoinOutputLimit(_) => BeforeOperationOutput
     JoinRowOrder(_) => BeforeOperationOutput
+    AppendRows(v) =>
+      match v.rule {
+        AdmitBothInputs => BeforeOperationInputUse
+        PreserveLeftThenRight => BeforeOperationOutput
+      }
   }
 }
 
@@ -48,6 +55,7 @@ pub fn operation_execution_failure(
     ValuesPublication(_) => RejectOperationOutput
     JoinOutputLimit(_) => RejectOperationOutput
     JoinRowOrder(_) => RejectOperationOutput
+    AppendRows(_) => RejectOperationOutput
   }
 }
 
