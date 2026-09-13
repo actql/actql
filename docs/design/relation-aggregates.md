@@ -142,6 +142,25 @@ visits do not create consumer-owned copies of a producer's limit. A selected
 number alone cannot close an aggregate, and an execution obligation is not
 evidence of completed runtime enforcement.
 
+## Numeric reduction contracts
+
+The named numeric reduction profile supplies explicit left-fold and adjacent-pair
+binary64 contracts. This fills the previously unspecified referent of
+`numeric_contract_cid`; it does not change the observation envelope or make either
+algorithm implicit. The two laws deliberately expose cancellation differences
+instead of promising a universal error tolerance. Their operation sequences are
+fully specified, including odd tails, overflow, empty contributors, final division
+and signed-zero normalization. A static slot admits a profile; an execution
+attempt selects a member and captures the resulting observation under the
+existing durable barrier. An admitted algorithm is neither a completed
+observation nor evidence that a backend supports that algorithm.
+
+Contributor order is bound as part of the observation's input evidence. It is
+not promoted to a logical total-order witness for unrelated consumers. The
+profile has no effect on exact decimal/count lanes or the separate statistical
+laws. Slot ownership, policy and contributor validation remain separate checks;
+checking a member CID alone cannot discharge them.
+
 ## Reference compatibility
 
 Persistent ordinary-group limits use the Unit/step/aggregate-name/scoped

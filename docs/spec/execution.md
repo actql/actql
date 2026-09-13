@@ -659,6 +659,59 @@ numeric law, adopted value, policy and accounting. Slot preimages contain no
 future Stage Invocation identity. Host-selected placement cannot weaken
 authorization, structural aggregate semantics, demand or finite bounds.
 
+<!-- machine-import: ../../spec/contracts/actql-numeric-reduction.json# sha256:d771391b2e4f3e52a3cf48810571a09c6c272df64fbb77c245dfabcf456be5df -->
+<!-- machine-import: ../../spec/contracts/actql-numeric-reduction.json#/contracts/left_fold sha256:4077bb93149235757642468a512543d949f48d5a81f04f49827193f3e9420f55 -->
+<!-- machine-import: ../../spec/contracts/actql-numeric-reduction.json#/contracts/adjacent_pairs sha256:48158d55d2a97e7c1d3ea95c8b7e085469eedc6186f24b57427aa8e610dceeba -->
+
+<!-- requirement-block: numeric-observation.reduction-profile -->
+The [numeric reduction profile](../../spec/contracts/actql-numeric-reduction.json)
+defines two explicitly selectable binary64 reduction contracts, not a default
+algorithm and not an exhaustive restriction on future admitted contracts.
+Each member CID hashes its entire canonical JSON body; the profile CID hashes
+the entire profile, including its member bodies, pins and selection rules.
+The existing numeric observation's `numeric_contract_cid` MUST identify the
+selected member, not the profile or an unregistered algorithm label. Selecting
+the profile does not establish Host permission or backend implementation support.
+
+<!-- requirement-block: numeric-observation.contributor-sequence numeric-observation.contributor-domain -->
+For these contracts, contributor evidence MUST bind the exact ordered sequence
+derived from the bound logical input artifact for the group or frame. Apply the
+aggregate filter before evaluating the argument, exclude NULL, then apply an
+authored distinct operation by numeric equality, retaining first occurrences.
+The count is the resulting nonnegative safe-integer length, not the pre-filter
+row count. Input values MUST already satisfy their finite binary64 contract.
+This aggregate demand rule does not waive mandatory source-wide validation.
+Recording a contributor sequence does not establish a logical total-order
+witness for another consumer. Neither a reordered sequence nor a wrong group,
+count, demand or artifact can be accepted as numerical tolerance.
+
+<!-- requirement-block: numeric-observation.reduction-arithmetic -->
+Implementations MUST use the following exact arithmetic for the selected member.
+The `left_fold` member starts at positive zero and adds contributors from left
+to right. The `adjacent_pairs` member sums adjacent pairs from left to right,
+carries an odd final element unchanged, and repeats on that resulting sequence
+until one value remains; a singleton is unchanged. Each addition rounds to
+binary64 nearest, ties to even. For `avg`, divide that rounded sum once by the
+exact binary64 representation of the contributor count, using the same rounding.
+An empty sequence returns NULL for both operations. Any nonfinite intermediate
+or final value fails, even if a later operation could return to a finite range.
+Internal signed zeros retain IEEE semantics; normalize a final negative zero to
+positive zero at the public operation boundary. The error law is exactly this
+operation sequence: no epsilon, reassociation, widened accumulator or implicit
+algorithm substitution is admitted by these members.
+
+<!-- requirement-block: numeric-observation.reduction-selection -->
+Static slot preparation pins the admitted profile and aggregate semantics,
+without future response bytes or physical parallelism. Before a reduction
+attempt, the executor MUST select one admitted member and bind it, the contributor sequence and
+group/frame to that attempt's policy and accounting evidence. Failure cannot
+silently select another member or emit a partial observation. Local and remote
+execution both require the existing durable numeric capture barrier before any
+consumer; replay reads the adopted value and performs no new reduction. Profile
+membership and self-consistent CIDs alone are not completion evidence. This
+profile does not define a replacement aggregate-slot preimage or weaken the
+existing slot ownership requirements.
+
 <a id="run-admission"></a>
 
 ### Run admission and identity

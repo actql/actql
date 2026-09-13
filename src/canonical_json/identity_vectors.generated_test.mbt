@@ -1251,6 +1251,38 @@ test "contract spec/contracts/actql-stage-contracts.json#/schemas/program_semant
 }
 
 ///|
+test "contract spec/contracts/actql-numeric-reduction.json#" {
+  let input = @json.parse([
+    "{\"version\":\"actql-numeric-reduction-profile/0.1\",\"contracts\":{\"left_fold\":{\"version\":\"actql-numeric-reduction/0.1\",\"operations\":[\"sum\",\"avg\"],\"input\":\"admitted_finite_binary64_contributors_in_bound_sequence_order\",\"demand\":\"aggregate_filter_before_argument_then_exclude_null_then_distinct_if_authored\",\"distinct\":\"numeric_equality_retain_first_occurrence_in_contributor_sequence\",\"count\":\"post_filter_nonnull_post_distinct_safe_integer_count\",\"empty\":\"null_for_sum_and_avg\",\"rounding\":\"binary64_nearest_ties_even_after_each_addition_and_final_division\",\"average\":\"rounded_sum_divided_by_exact_binary64_count_once\",\"nonfinite\":\"reject_any_nonfinite_intermediate_or_final_value\",\"zero\":\"preserve_internal_ieee_zero_sign_normalize_final_negative_zero_to_positive_zero\",\"error_law\":\"exact_prescribed_binary64_operation_sequence_no_epsilon_or_reassociation\",\"reduction\":\"start_positive_zero_add_each_contributor_left_to_right\"},\"adjacent_pairs\":{\"version\":\"actql-numeric-reduction/0.1\",\"operations\":[\"sum\",\"avg\"],\"input\":\"admitte",
+    "d_finite_binary64_contributors_in_bound_sequence_order\",\"demand\":\"aggregate_filter_before_argument_then_exclude_null_then_distinct_if_authored\",\"distinct\":\"numeric_equality_retain_first_occurrence_in_contributor_sequence\",\"count\":\"post_filter_nonnull_post_distinct_safe_integer_count\",\"empty\":\"null_for_sum_and_avg\",\"rounding\":\"binary64_nearest_ties_even_after_each_addition_and_final_division\",\"average\":\"rounded_sum_divided_by_exact_binary64_count_once\",\"nonfinite\":\"reject_any_nonfinite_intermediate_or_final_value\",\"zero\":\"preserve_internal_ieee_zero_sign_normalize_final_negative_zero_to_positive_zero\",\"error_law\":\"exact_prescribed_binary64_operation_sequence_no_epsilon_or_reassociation\",\"reduction\":\"pair_adjacent_contributors_left_to_right_round_each_sum_carry_odd_tail_repeat_until_one_singleton_unchanged\"}},\"contract_cids\":{\"left_fold\":\"sha256:4077bb93149235757642468a512543d949f48d5a81f04f49827193f3e9420f55\",\"adjacent_pairs\":\"sha256:48158d55d2a97e7c1d3ea95c8b7e085469eedc6186f24b57427aa8e610dceeba\"},\"observati",
+    "on_schema\":{\"path\":\"spec/contracts/actql-stage-contracts.json\",\"pointer\":\"/schemas/numeric_observation\",\"cid\":\"sha256:a6339065c171308f9c4fa637ce2110b75b5cbaa0a4d6d0e708ca52cef0d69688\"},\"selection\":{\"static\":\"slot_admits_pinned_profile_not_future_result_or_physical_parallelism\",\"attempt\":\"select_one_member_before_reduction_bind_contract_and_contributor_sequence_to_attempt_policy_and_accounting\",\"failure\":\"no_silent_algorithm_fallback_or_partial_observation\",\"capture\":\"durably_capture_admitted_result_before_consumers_replay_exact_observation_without_reduction\",\"ownership\":\"same_slot_input_artifact_contributors_group_or_window_count_demand_type_and_attempt\",\"authorization\":\"profile_membership_is_not_host_permission_or_backend_support\"}}",
+  ].join(""))
+  let value = @canonical_json.from_json(input, 49, 4, 2791)
+  assert_eq(@canonical_json.cid_value(value, 2791, 49, 4), "sha256:d771391b2e4f3e52a3cf48810571a09c6c272df64fbb77c245dfabcf456be5df")
+  assert_eq(@canonical_json.measure_value(value, 2791, 49, 4), 2791)
+}
+
+///|
+test "contract spec/contracts/actql-numeric-reduction.json#/contracts/left_fold" {
+  let input = @json.parse([
+    "{\"version\":\"actql-numeric-reduction/0.1\",\"operations\":[\"sum\",\"avg\"],\"input\":\"admitted_finite_binary64_contributors_in_bound_sequence_order\",\"demand\":\"aggregate_filter_before_argument_then_exclude_null_then_distinct_if_authored\",\"distinct\":\"numeric_equality_retain_first_occurrence_in_contributor_sequence\",\"count\":\"post_filter_nonnull_post_distinct_safe_integer_count\",\"empty\":\"null_for_sum_and_avg\",\"rounding\":\"binary64_nearest_ties_even_after_each_addition_and_final_division\",\"average\":\"rounded_sum_divided_by_exact_binary64_count_once\",\"nonfinite\":\"reject_any_nonfinite_intermediate_or_final_value\",\"zero\":\"preserve_internal_ieee_zero_sign_normalize_final_negative_zero_to_positive_zero\",\"error_law\":\"exact_prescribed_binary64_operation_sequence_no_epsilon_or_reassociation\",\"reduction\":\"start_positive_zero_add_each_contributor_left_to_right\"}",
+  ].join(""))
+  let value = @canonical_json.from_json(input, 16, 2, 848)
+  assert_eq(@canonical_json.cid_value(value, 848, 16, 2), "sha256:4077bb93149235757642468a512543d949f48d5a81f04f49827193f3e9420f55")
+  assert_eq(@canonical_json.measure_value(value, 848, 16, 2), 848)
+}
+
+///|
+test "contract spec/contracts/actql-numeric-reduction.json#/contracts/adjacent_pairs" {
+  let input = @json.parse([
+    "{\"version\":\"actql-numeric-reduction/0.1\",\"operations\":[\"sum\",\"avg\"],\"input\":\"admitted_finite_binary64_contributors_in_bound_sequence_order\",\"demand\":\"aggregate_filter_before_argument_then_exclude_null_then_distinct_if_authored\",\"distinct\":\"numeric_equality_retain_first_occurrence_in_contributor_sequence\",\"count\":\"post_filter_nonnull_post_distinct_safe_integer_count\",\"empty\":\"null_for_sum_and_avg\",\"rounding\":\"binary64_nearest_ties_even_after_each_addition_and_final_division\",\"average\":\"rounded_sum_divided_by_exact_binary64_count_once\",\"nonfinite\":\"reject_any_nonfinite_intermediate_or_final_value\",\"zero\":\"preserve_internal_ieee_zero_sign_normalize_final_negative_zero_to_positive_zero\",\"error_law\":\"exact_prescribed_binary64_operation_sequence_no_epsilon_or_reassociation\",\"reduction\":\"pair_adjacent_contributors_left_to_right_round_each_sum_carry_odd_tail_repeat_until_one_singleton_unchanged\"}",
+  ].join(""))
+  let value = @canonical_json.from_json(input, 16, 2, 901)
+  assert_eq(@canonical_json.cid_value(value, 901, 16, 2), "sha256:48158d55d2a97e7c1d3ea95c8b7e085469eedc6186f24b57427aa8e610dceeba")
+  assert_eq(@canonical_json.measure_value(value, 901, 16, 2), 901)
+}
+
+///|
 test "contract spec/contracts/actql-query-two-receipt.json#" {
   let input = @json.parse([
     "{\"version\":\"actql-query-two-receipt-contract/0.1\",\"dependencies\":{\"query_acquisition\":{\"path\":\"spec/contracts/actql-query-acquisition.json\",\"pointer\":\"\",\"cid\":\"sha256:4bb69dfaade0a15952fe23a8202a9475ff450c9f0fab93f9dd5cef1b82045ab1\"},\"process_evidence\":{\"path\":\"spec/contracts/actql-query-process-evidence.json\",\"pointer\":\"\",\"cid\":\"sha256:5cbd39d6847336c5961e222b083ca1395ab68be466ac69cadfbf7021cf617b89\"}},\"schemas\":{\"receipt\":{\"$schema\":\"https://json-schema.org/draft/2020-12/schema\",\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"version\",\"issuer\",\"attempt\",\"read_view\",\"requirement_cid\",\"snapshot\",\"scan_scope_cid\",\"role\",\"received_rows_cid\",\"received_rows\",\"received_fields\",\"received_bytes\"],\"properties\":{\"version\":{\"const\":\"actql-query-receipt/0.1\"},\"issuer\":{\"type\":\"string\",\"minLength\":1},\"attempt\":{\"type\":\"string\",\"minLength\":1},\"read_view\":{\"type\":\"string\",\"minLength\":1},\"requirement_cid\":{\"type\":\"string\",\"pattern\":\"^sha256:[0-9a-f]{64}$\"},\"snapshot\":{\"anyOf\":[{\"type\":\"object\",\"additionalPropertie",

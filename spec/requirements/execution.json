@@ -421,6 +421,61 @@
       }
     },
     {
+      "requirement_id": "actql.execution/numeric-observation.reduction-profile",
+      "statement_sha256": "e372acd24e8b480e5d716dfc22e9cae1990a481972a207fdcd662cf6e45cd35e",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "numeric-observation",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.execution/numeric-observation.contributor-sequence",
+      "statement_sha256": "42b3481d22154de0ae49ee2f7d8a5b820465023b088da2136ef0cbabfd819232",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "numeric-observation",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.execution/numeric-observation.contributor-domain",
+      "statement_sha256": "73f1d11b9c3994cb44f1ffacbe6aa3e982d16dd21a9015c8f532936fc0b1630e",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "numeric-observation",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.execution/numeric-observation.reduction-arithmetic",
+      "statement_sha256": "6f60e64b3a89e46f204c884fea74589b5ec81dbe46466350fe0a3d7acea48caf",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "numeric-observation",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.execution/numeric-observation.reduction-selection",
+      "statement_sha256": "872634a7c2c66f58a11c18e1b7ab56af410fd17e8e2c1786eafa2a7e50450833",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "numeric-observation",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.execution/run-admission.denial-must-occur-before-execution-or-effect-application-and-must",
       "statement_sha256": "32064c5f45800c99d54690d15b39a89e41340a1650d876be64a437f62af0da3e",
       "status": "pending",

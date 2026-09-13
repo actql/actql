@@ -1,0 +1,14 @@
+{
+  "version": "actql-numeric-reduction-corpus/0.1",
+  "cases": [
+    {"name":"empty","contributors":[],"left_fold":{"sum":null,"avg":null},"adjacent_pairs":{"sum":null,"avg":null}},
+    {"name":"ordinary","contributors":[2,4,6],"left_fold":{"sum":12,"avg":4},"adjacent_pairs":{"sum":12,"avg":4}},
+    {"name":"cancellation","contributors":[10000000000000000,1,-10000000000000000,1],"left_fold":{"sum":1,"avg":0.25},"adjacent_pairs":{"sum":0,"avg":0}},
+    {"name":"same_multiset_different_sequence","contributors":[10000000000000000,-10000000000000000,1,1],"left_fold":{"sum":2,"avg":0.5},"adjacent_pairs":{"sum":2,"avg":0.5}},
+    {"name":"odd_tail","contributors":[10000000000000000,-10000000000000000,3],"left_fold":{"sum":3,"avg":1},"adjacent_pairs":{"sum":3,"avg":1}},
+    {"name":"singleton","contributors":[-7],"left_fold":{"sum":-7,"avg":-7},"adjacent_pairs":{"sum":-7,"avg":-7}},
+    {"name":"underflow_zero","contributors":[-5e-324,0],"left_fold":{"sum":-5e-324,"avg":0},"adjacent_pairs":{"sum":-5e-324,"avg":0}},
+    {"name":"intermediate_overflow","contributors":[1.7976931348623157e308,1.7976931348623157e308,-1.7976931348623157e308],"left_fold":{"failure":"nonfinite"},"adjacent_pairs":{"failure":"nonfinite"}},
+    {"name":"repetition","contributors":[2,2,2],"left_fold":{"sum":6,"avg":2},"adjacent_pairs":{"sum":6,"avg":2}}
+  ]
+}
