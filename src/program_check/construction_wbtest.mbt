@@ -15,6 +15,7 @@ fn local_construction_fixture(
   second_steps? : String = "[]",
   second_result_from? : String = "rows",
   extra_step_budget? : Int = 0,
+  second_join_capacity? : Bool = false,
   root_extra? : String = "",
   last_effects? : String? = None,
   registry_entries? : String = "[]",
@@ -181,15 +182,30 @@ fn local_construction_fixture(
     max_nodes: 0,
     max_depth: 0,
   }).unwrap()
+  let join_sources = if second_join_capacity {
+    Some(
+      local_join_capacity_fixture(environment, host_limit) catch {
+        _ => abort("invalid join test material")
+      },
+    )
+  } else {
+    None
+  }
   // No capacity claims are needed by this scalar derive. This is fixture
   // material, not an empty-evidence fallback for arbitrary Programs.
   let materials = Array::makei(stage_count, stage => {
     // Known fixture topology: first has one visit; second imports first twice
     // plus its own pipeline. Do not pre-check the Program to construct inputs
     // to the entry being tested, which would hide its rejection behavior.
-    Array::makei(if stage == 1 { 3 } else { 1 }, _ => @context.CapacityMaterial::{
-      sources,
-      consumers: [],
+    Array::makei(if stage == 1 { 3 } else { 1 }, visit => {
+      if stage == 1 && visit == 0 && join_sources is Some(join_sources) {
+        @context.CapacityMaterial::{
+          sources: join_sources,
+          consumers: [@capacity.Join(step=0, output=0)],
+        }
+      } else {
+        @context.CapacityMaterial::{ sources, consumers: [], }
+      }
     })
   })
   if through_check {

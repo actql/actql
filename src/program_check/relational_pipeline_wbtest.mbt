@@ -1,8 +1,12 @@
 ///|
-test "formal check closes distinct representative selection and append" {
+test "formal check closes distinct representative selection append and join" {
   for
     operation in [
       "\"append\":{\"with\":\"again\"}", "\"distinct\":true", "\"distinct\":[\"id\",\"value\"]",
+      "\"join\":{\"with\":\"again\",\"kind\":\"inner\",\"on\":\"id\",\"select\":{\"id\":\"left.id\",\"value\":\"left.value\"}}",
+      "\"join\":{\"with\":\"again\",\"kind\":\"left\",\"on\":\"id\",\"select\":{\"id\":\"left.id\",\"value\":\"left.value\"}}",
+      "\"join\":{\"with\":\"again\",\"kind\":\"semi\",\"on\":\"id\",\"select\":{\"id\":\"left.id\",\"value\":\"left.value\"}}",
+      "\"join\":{\"with\":\"again\",\"kind\":\"anti\",\"on\":\"id\",\"select\":{\"id\":\"left.id\",\"value\":\"left.value\"}}",
       "\"dedupe_rows\":{\"by\":[\"id\",\"id\"],\"order_by\":[{\"value\":\"desc\"}]}",
       "\"dedupe_rows\":{\"by\":[],\"order_by\":[{\"value\":\"desc\"}]}",
     ] {
@@ -15,6 +19,7 @@ test "formal check closes distinct representative selection and append" {
       second_steps="[{" + operation + ",\"as\":\"selected\"}]",
       second_result_from="selected",
       extra_step_budget=2,
+      second_join_capacity=operation.has_prefix("\"join\""),
     )
     let program = checked[0]
     let pipeline = unit_pipeline(program, 1).unwrap()
@@ -28,7 +33,21 @@ test "formal check closes distinct representative selection and append" {
     let closure = @context.stage_requirement_operations(requirements(program))
     let mut tie_checks = 0
     let mut append_checks = 0
+    let mut join_limits = 0
     for i in 0..<@context.operation_closure_count(closure) {
+      if @context.operation_closure_at(closure, i)
+        is Some(ExecutionCheck(JoinOutputLimit(check))) {
+        assert_eq(check.site.stage, 1)
+        assert_true(physical_equal(check.site.pipeline, pipeline))
+        assert_true(
+          physical_equal(
+            @step_bounds.join_limit_pipeline(check.limit),
+            pipeline,
+          ),
+        )
+        assert_eq(@step_bounds.join_limit_step(check.limit), 0)
+        join_limits += 1
+      }
       if @context.operation_closure_at(closure, i)
         is Some(ExecutionCheck(AppendRows(check))) {
         assert_eq(check.site.stage, 1)
@@ -53,6 +72,7 @@ test "formal check closes distinct representative selection and append" {
         0
       },
     )
+    assert_eq(join_limits, if operation.has_prefix("\"join\"") { 1 } else { 0 })
     assert_eq(
       append_checks,
       if operation.has_prefix("\"append\"") {

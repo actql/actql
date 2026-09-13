@@ -38,7 +38,7 @@ separate protocol results, not successful CheckedPrograms with weaker guarantees
 
 The entry has an explicit implementation-domain check, separate from the
 language grammar. Its Local and Result-import domain accepts `values`, `derive`,
-`filter`, `select`, `rename`, `drop`, `sort`, `take`, `distinct`, `dedupe_rows` and `append`, including empty operation
+`filter`, `select`, `rename`, `drop`, `sort`, `take`, `distinct`, `dedupe_rows`, `append` and `join`, including empty operation
 sequences. Sort/take use the existing owned order-resolution closure and preserve
 their distinct strategies and preconditions; accepting them does not synthesize
 an order from physical enumeration. Result publication can target their explicit
@@ -47,6 +47,13 @@ Representative selection retains its exact input and operation-bound top-tie
 execution check. Repeated grouping keys and the empty global key list keep their
 existing meanings; neither constitutes proof that the selected representative
 is unique in actual data.
+Join consumes the existing cardinality selection, ordered-occurrence execution
+check and exact selected-policy capacity application. Inner, left, semi and anti
+joins can close when these requirements are supplied. Full-join stable identity,
+authored cardinality assertions and null-key rejection still require their own
+resolutions; the entry does not convert these unresolved obligations to generic
+runtime checks. Missing capacity likewise prevents construction. Result outputs
+remain subject to the existing flat-name publication and order requirements.
 Other operation paths, opaque Binding declarations and nonempty Effects are
 reported as unsupported rather than made executable through missing evidence.
 Selected SourceViews additionally require acquisition closure: shared Catalog
