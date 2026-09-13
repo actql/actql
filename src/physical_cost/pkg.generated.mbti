@@ -1,0 +1,46 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/physical_cost"
+
+import {
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn assess_serial(Int, Array[SerialEstimateLine], Int) -> Result[DurationEstimate, CostIssue]
+
+pub fn choose_serial(Array[DurationEstimate], Array[Int]?, Int) -> Result[CostChoice, CostIssue]
+
+// Errors
+
+// Types and methods
+pub enum CostChoice {
+  NoCandidates
+  EstimatedFastest(Int, Int64)
+  HostPreferred(Int)
+  Deferred
+} derive(Eq, @debug.Debug)
+
+pub enum CostIssue {
+  InvalidLimit
+  PlanningLimit
+  EmptyCoverage(Int)
+  InvalidSlot(Int, Int)
+  DuplicateSlot(Int)
+  NegativeDuration(Int)
+  DurationOverflow
+  InvalidPreference
+} derive(Eq, @debug.Debug)
+
+pub(all) enum DurationEstimate {
+  Complete(Int64)
+  Unknown
+} derive(Eq, @debug.Debug)
+
+pub(all) struct SerialEstimateLine {
+  work_slots : Array[Int]
+  milliseconds : Int64?
+}
+
+// Type aliases
+
+// Traits

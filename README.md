@@ -454,6 +454,8 @@ design also reaches browser, edge, and managed runtimes.
 - [Agent authoring guide](docs/authoring.md) — canonical source patterns
 - [CLI reference](docs/cli.md) — commands, durable Runs, and Checkpoints
 - [Development](docs/development.md) — setup, document checks, and versioning
+- [Physical cost helper](docs/physical-cost-usage.md) — source-checkout MoonBit
+  estimate composition and selection; not a Connector execution or Plan API
 
 ## Status
 

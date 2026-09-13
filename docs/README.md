@@ -4,6 +4,7 @@
 - [Authoring guide](authoring.md): source syntax and common patterns.
 - [CLI guide](cli.md): commands and usage.
 - [Development](development.md): setup, verification, metadata updates and versioning.
+- [Physical cost helper](physical-cost-usage.md): source-checkout serial latency estimates and explicit unknown-cost selection; no Connector dispatch or Plan admission.
 - [Extension policy](design/extension-policy.md): extension boundaries.
 - [Implementation guide](design/implementation-port.md): component responsibilities and implementation order.
 - [Reference Host](design/reference-host.md): durable execution and secure defaults.
