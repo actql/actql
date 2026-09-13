@@ -284,6 +284,7 @@ pub struct SourceExecutionSubject {
   request : @sourceview_resolution.AcquisitionRequest
   source : @sourceview_resolution.ResolvedInput
   response_policy : SourceResponsePolicy
+  response_policy_cid : String
   authority : SourceReadAuthority
 }
 

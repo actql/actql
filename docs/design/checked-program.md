@@ -653,6 +653,11 @@ The response-only identity now has a bounded emitter,
 source reference, selected view and authoritative policy CIDs, authored minimum
 and resulting classification. It is not an identity of request provenance or
 permission. The surrounding acquisition already binds the named input.
+Source execution construction hashes this preimage once per selected request
+under the shared work/byte/node budget and retains `response_policy_cid` beside
+the exact policy object. All checks on that request share the same subject;
+lowering does not reconstruct or reselect the policy. A failed construction
+returns neither a partial inventory nor partially consumed caller budget.
 The stage-local contract inventory selects `SourceResponsePolicyRules` for each
 selected SourceView occurrence, including unused inputs that are still admitted.
 Shared bodies are deduplicated without dropping their source sites. Local-only

@@ -46,6 +46,7 @@ pub struct SourceExecutionSubject {
   request : @sourceviews.AcquisitionRequest
   source : @sourceviews.ResolvedInput
   response_policy : SourceResponsePolicy
+  response_policy_cid : String
   authority : SourceReadAuthority
 }
 
@@ -103,13 +104,20 @@ fn prepare_source_execution(
         @sourceviews.Direct(mode, _) => @sourceviews.mode_input(mode)
         @sourceviews.Keyed(mode, _) => @sourceviews.keyed_mode_input(mode)
       }
+      let response_policy = prepare_source_response_policy(source)
+      let policy_writer = identity_writer(remaining)
+      emit_source_response_policy(response_policy, policy_writer) catch {
+        e => raise Encoding(e)
+      }
+      let response_policy_cid = identity_finish(remaining, policy_writer)
       let subject = SourceExecutionSubject::{
         owner: identity,
         stage,
         input,
         request,
         source,
-        response_policy: prepare_source_response_policy(source),
+        response_policy,
+        response_policy_cid,
         authority: prepare_source_authority(source),
       }
       let host = SourceExecution::{
@@ -222,5 +230,7 @@ fn prepare_source_execution(
     }
   }
   budget.work = remaining.work
+  budget.bytes = remaining.bytes
+  budget.nodes = remaining.nodes
   result
 }

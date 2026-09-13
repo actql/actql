@@ -11,11 +11,29 @@ test "source Host and response bindings retain one exact request and ordered pre
   assert_true(
     physical_equal(units[0].source_execution[0].subject.owner, identity),
   )
-  let exact = IdentityBudget::{ work: 13, bytes: 0, nodes: 0, depth: 0, }
+  let policy_writer = @encode.writer(10000, 7, 1)
+  emit_source_response_policy(
+    units[0].source_execution[0].subject.response_policy,
+    policy_writer,
+  )
+  let policy_bytes = @utf8.encode(@encode.finish(policy_writer))
+  let exact_work = 13 + policy_bytes.length() + 7
+  let exact = IdentityBudget::{
+    work: exact_work,
+    bytes: policy_bytes.length(),
+    nodes: 7,
+    depth: 1,
+  }
   let checks = prepare_source_execution(identity, exact)
   assert_eq(exact.work, 0)
+  assert_eq(exact.bytes, 0)
+  assert_eq(exact.nodes, 0)
   assert_eq(checks.length(), 9)
   let host = checks[0]
+  assert_eq(
+    host.subject.response_policy_cid,
+    "sha256:" + @sha.hex(policy_bytes),
+  )
   let authorization = checks[1]
   let egress = checks[2]
   let resources = checks[3]
@@ -154,14 +172,38 @@ test "source Host and response bindings retain one exact request and ordered pre
     )
     is @environment.Unknown,
   )
-  let short = IdentityBudget::{ work: 12, bytes: 0, nodes: 0, depth: 0, }
+  let short = IdentityBudget::{
+    work: exact_work - 1,
+    bytes: policy_bytes.length(),
+    nodes: 7,
+    depth: 1,
+  }
   try prepare_source_execution(identity, short) catch {
     UnitBuildFailure::BudgetExceeded => ()
     error => raise error
   } noraise {
     _ => fail("partial source checks escaped")
   }
-  assert_eq(short.work, 12)
+  assert_eq(short.work, exact_work - 1)
+  assert_eq(short.bytes, policy_bytes.length())
+  assert_eq(short.nodes, 7)
+  for
+    (bytes, nodes, depth) in [
+      (policy_bytes.length() - 1, 7, 1),
+      (policy_bytes.length(), 6, 1),
+      (policy_bytes.length(), 7, 0),
+    ] {
+    let limited = IdentityBudget::{ work: exact_work, bytes, nodes, depth, }
+    try prepare_source_execution(identity, limited) catch {
+      UnitBuildFailure::Encoding(_) => ()
+      error => raise error
+    } noraise {
+      _ => fail("source policy serialization escaped budget")
+    }
+    assert_eq(limited.work, exact_work)
+    assert_eq(limited.bytes, bytes)
+    assert_eq(limited.nodes, nodes)
+  }
 }
 
 ///|
