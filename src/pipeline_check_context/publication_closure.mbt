@@ -22,6 +22,7 @@ struct ProgramPublicationClosure {
   owner : ProgramIncomingLinks
   entries : Array[PublicationResolution]
   rows : Array[PublicationRowCandidate]
+  row_ranges : Array[(Int, Int)]
   work : Int
 }
 
@@ -94,11 +95,13 @@ pub fn close_program_publications(
     }
   }
   let rows = []
+  let row_ranges = []
   for publication in entries {
     if work == max_work {
       return Err(BudgetExceeded)
     }
     work += 1
+    let first_row = rows.length()
     let closure = publication.context.capacity
     let pipeline = @results.pipeline(publication.context.results)
     let target = @results.target(@results.port_result(publication.port))
@@ -168,8 +171,9 @@ pub fn close_program_publications(
         claim += 1
       }
     }
+    row_ranges.push((first_row, rows.length() - first_row))
   }
-  Ok({ owner, entries, rows, work, })
+  Ok({ owner, entries, rows, row_ranges, work, })
 }
 
 ///|

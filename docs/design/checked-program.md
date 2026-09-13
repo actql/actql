@@ -501,6 +501,17 @@ copy proof arrays. These are Program upper-bound candidates, not a selected
 publication limit: applicable Host and other ceiling candidates, canonical
 minimum construction and atomic enforcement remain separate requirements.
 
+`select_publication_row_limit` selects the numeric minimum of a Result's retained
+Program row candidates and its exact capacity context's `max_artifact_rows`
+ceiling. It accepts neither a substitute policy nor caller-supplied bounds. A
+Host-only selection remains an enforcement restriction, not a proven row count.
+Candidate ranges are indexed per Result, so selecting its limit does not rescan
+other Results' candidates or copy their arrays. Selection work and candidate
+limits include the Host candidate. This typed numeric decision still requires
+canonical resolved-limit emission against the final protected semantic subject;
+it is not itself that wire artifact or permission to publish. The selected Host
+value is execution-policy information, not part of Unit Definition identity.
+
 `close_stage_requirements` runs operation, Local-input, incoming-activation,
 publication-order and source-mode closure internally from a single incoming-link owner. It does
 not accept independently closed branches. Shared preparation is counted once;

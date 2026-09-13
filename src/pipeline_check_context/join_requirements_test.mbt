@@ -1,9 +1,10 @@
 ///|
 fn join_resolution_fixture(
   changes? : Bool = false,
+  artifact_rows? : Int = 1,
 ) -> ProgramOperationResolutionIndex raise {
   let sources = prepare_program_source_acquisitions(
-    prepared_keyed_source_context(changes~),
+    prepared_keyed_source_context(changes~, artifact_rows~),
     [[(0, 0)]],
     {
       max_work: 10000000,

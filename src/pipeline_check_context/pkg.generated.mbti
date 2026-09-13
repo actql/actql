@@ -601,6 +601,20 @@ pub fn publication_row_candidate_at(ProgramPublicationClosure, Int) -> Publicati
 
 pub fn publication_row_candidate_count(ProgramPublicationClosure) -> Int
 
+pub fn publication_row_limit_host(PublicationRowLimit) -> @capacity_policy.Ceiling
+
+pub fn publication_row_limit_maximum(PublicationRowLimit) -> Int64
+
+pub fn publication_row_limit_owner(PublicationRowLimit) -> ProgramPublicationClosure
+
+pub fn publication_row_limit_program_at(PublicationRowLimit, Int) -> PublicationRowCandidate?
+
+pub fn publication_row_limit_program_count(PublicationRowLimit) -> Int
+
+pub fn publication_row_limit_result(PublicationRowLimit) -> PublicationResolution
+
+pub fn publication_row_limit_work(PublicationRowLimit) -> Int
+
 pub fn reconciled_local_at(ReconciledContexts, Int) -> @stage_local_inputs.ReconciledAttachment?
 
 pub fn reconciled_snapshots(ReconciledContexts) -> @stage_local_inputs.ProgramEnvironmentInputs
@@ -656,6 +670,8 @@ pub fn result_import_type_site(ResultImportType) -> IncomingSite
 pub fn result_import_type_usage(ResultImportType) -> (Int, Int)
 
 pub fn result_wiring(WiredStages) -> @stage_results.ResultWiring
+
+pub fn select_publication_row_limit(ProgramPublicationClosure, Int, Int, Int) -> Result[PublicationRowLimit, PublicationRowLimitIssue]
 
 pub fn selected_capacity(SelectedPolicyContext) -> @check_environment.Capacity
 
@@ -1774,6 +1790,15 @@ pub struct PublicationRowCandidate {
   publication : PublicationResolution
   membership : @capacity_graph_preflight.TargetMembership
 }
+
+type PublicationRowLimit
+
+pub(all) enum PublicationRowLimitIssue {
+  InvalidLimits
+  InvalidResult
+  BudgetExceeded
+  MissingHostCeiling
+} derive(Eq, @debug.Debug)
 
 pub(all) struct PureOperationProfiles {
   rela : Bool
