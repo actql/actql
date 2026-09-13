@@ -103,6 +103,7 @@ fn derive_logical_orders(
   input_keys : Array[@evidence.KeySet?],
   step_keys : Array[@evidence.KeySet?],
   input_orders : Array[LogicalOrder?],
+  joins : Array[JoinEvidence?],
 ) -> (
   Array[LogicalOrder?],
   Array[SortCompletion?],
@@ -234,6 +235,7 @@ fn derive_logical_orders(
       Join(right~, checked~) => {
         let left_only = match @join.kind(checked) {
           Semi | Anti => true
+          Inner | Left => join_uniqueness(joins[i].unwrap()).1
           _ => false
         }
         let right_order = match right {
@@ -257,6 +259,11 @@ fn derive_logical_orders(
       // only its right-hand order is unnecessary for enumeration.
       IntervalJoin(checked~, ..) if @join.interval_kind(checked) is Semi ||
         @join.interval_kind(checked) is Anti =>
+        match (step.input, previous) {
+          (Some(left), Some(_)) => [left]
+          _ => []
+        }
+      CrossJoin(checked~, ..) if @join.cross_requires_one_right_row(checked) =>
         match (step.input, previous) {
           (Some(left), Some(_)) => [left]
           _ => []

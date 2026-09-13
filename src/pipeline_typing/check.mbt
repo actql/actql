@@ -2174,7 +2174,7 @@ fn check_impl(
   spend(b, source, produced_inputs.length())
   let input_orders = imported_orders(produced_inputs)
   let (logical_orders, lag_orders, analytic_orders) = derive_logical_orders(
-    b, steps, keyed_inputs, keyed_steps, input_orders,
+    b, steps, keyed_inputs, keyed_steps, input_orders, join_evidence,
   )
   {
     input_orders,

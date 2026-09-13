@@ -159,11 +159,13 @@ One ordered operand cannot establish order for the unordered operand; neither
 concatenation nor take's output cardinality supplies that missing proof. The
 append summary does not establish global key uniqueness or completeness.
 
-Cross join similarly requires both input sequences and records both operand
-occurrences, using left-major, right-minor product order. Its own checked
+Cross join normally requires both input sequences and records both operand
+occurrences, using left-major, right-minor product order. With `right_rows: one`,
+the exact-singleton validation makes left order alone sufficient; the assertion
+still rejects zero or multiple right rows. Its own checked
 projection may hide either identity without losing occurrence order. The
 singleton-right assertion and product resource checks remain required; neither
-typed fields nor a right-side bound substitutes for missing input order.
+typed fields nor an unrelated right-side bound substitutes for missing input order.
 
 Unnest and unpivot establish expansion order conditional on their selected
 input's order, with that input retained as an origin dependency. Unnest uses
@@ -175,9 +177,14 @@ evidence without losing this sequence. None of these operations fabricates order
 from an unordered source. These are the existing Language expansion laws, not
 new acceptance rules or execution conformance claims.
 
-Equijoins follow the kind-specific Language row-order contract. Inner, left and
-full joins require both operand sequences and retain ordered left/right
-dependencies. Semi and anti joins require only the left sequence, since right
+Equijoins follow the kind-specific Language row-order contract. Inner and left
+joins require only left order when the exact owned `JoinEvidence` proves right
+equality-key uniqueness through complete key coverage or an authored assertion.
+They otherwise require both sequences; full joins still require both because
+unmatched right rows are appended. The same evidence is used for cardinality
+and order selection, not a second inference implementation. Read it through
+`join_evidence` at the originating step in the owning pipeline.
+Semi and anti joins require only the left sequence, since right
 enumeration does not choose among or multiply matching left occurrences. The
 producer still retains the right input and all match, null-key, identity and
 resource obligations. In particular, full-join stable-identity requirements are
@@ -191,8 +198,9 @@ but right-side admission, equality and completeness obligations are not waived.
 An ordered right input cannot repair an unordered left input. Source branches
 use their resolved targets rather than the last syntactically preceding step.
 
-Interval join requires both operand orders for its left-major/right-minor rule,
-retaining both dependencies just like the ordinary product enumeration. As-of
+Interval inner/left joins require both operand orders for their
+left-major/right-minor rule. Interval semi/anti need only left order while
+retaining both execution inputs and endpoint/coverage/search obligations. As-of
 join instead establishes ascending left `(time, identity)` order independently
 of input enumeration, using the checked producer's exact semantic identity and
 clock contracts. It retains all time, uniqueness, tie-selection and resource
