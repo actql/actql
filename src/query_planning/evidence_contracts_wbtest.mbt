@@ -12,7 +12,7 @@ test "verifier pins full acquisition and process evidence bodies, not digest cla
     query_evidence_test_limits(),
   ).unwrap()
   let (bytes, nodes) = query_evidence_contract_usage(contracts)
-  assert_eq((bytes, nodes), (9600, 427))
+  assert_eq((bytes, nodes), (9715, 428))
   // Exact aggregate bounds, not a fresh allowance for each dependency body.
   assert_true(
     admit_query_evidence_contracts(query, evidence, {
@@ -54,7 +54,7 @@ test "verifier pins full acquisition and process evidence bodies, not digest cla
   )
   let claim = @identity.from_json(
     @json.parse(
-      "{\"version\":\"actql-query-process-evidence-contract/0.1\",\"cid\":\"sha256:fad105d74ec20ac8f223f1252d5cc7726585dab15b51b1d934c920c8c3a692cd\"}",
+      "{\"version\":\"actql-query-process-evidence-contract/0.1\",\"cid\":\"sha256:f407203d3799dc51c2bc8cee460111ee6ebe44fb55c1c515d8d94190813b62a4\"}",
     ),
     100,
     10,
@@ -79,7 +79,7 @@ test "verifier rejects altered acquisition dependency and schema-only evidence" 
   let (query, evidence) = query_evidence_test_bodies()
   let original = @identity.stringify_value(evidence, 100000, 10000, 100)
   let changed = original.replace_all(
-    old="sha256:5d16ec481363ad551b5dd4068d6f781575f49706826bebe2c43e21e168a80303",
+    old="sha256:4bb69dfaade0a15952fe23a8202a9475ff450c9f0fab93f9dd5cef1b82045ab1",
     new="sha256:0000000000000000000000000000000000000000000000000000000000000000",
   )
   let changed = @identity.from_json(@json.parse(changed), 10000, 100, 100000)
