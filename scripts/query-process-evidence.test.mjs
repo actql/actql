@@ -39,7 +39,7 @@ const scope=r=>cid({version:'actql-query-scan-scope/0.1',source_ref:r.source_ref
 const freeze=v=>{if(v && typeof v==='object'){Object.values(v).forEach(freeze);Object.freeze(v);}return v;};
 function mockHost(issuer) {
   let next=0;
-  const live=new WeakSet();
+  const live=new WeakMap();
   function execute(strategy, r=requirement, rows=corpus.rows, snapshot=null) {
     const attempt=String(++next);
     assert.equal(r.source_order_cid,null,'UnsupportedOrderEvidence');
@@ -64,14 +64,23 @@ function mockHost(issuer) {
     const records=roles.map(role=>({version:'actql-query-process-evidence/0.1',issuer,attempt,
       requirement_cid:cid(r),role,snapshot,scan_scope_cid:scope(r),actual_access:access,output}));
     const handle=freeze(structuredClone({records,rows:outputRows}));
-    live.add(handle); return handle;
+    // Expected execution identity belongs to the Host task, independently of
+    // the submitted record. Never derive the expected attempt from the payload.
+    live.set(handle,freeze({issuer,attempt,requirement_cid:cid(r),
+      snapshot:structuredClone(snapshot)}));
+    return handle;
   }
-  function admit(handle, r=requirement, attempt=handle?.records?.[0]?.attempt, snapshot=null) {
-    assert.ok(live.has(handle),'UnissuedEvidence');
+  function admit(handle, r=requirement, attempt, snapshot=null) {
+    const task=live.get(handle);
+    assert.ok(task,'UnissuedEvidence');
+    assert.equal(task.requirement_cid,cid(r),'ForeignRequirement');
+    assert.equal(task.attempt,attempt??task.attempt,'ForeignAttempt');
+    assert.deepEqual(task.snapshot,snapshot,'ForeignSnapshot');
     for(const [i,record] of handle.records.entries()) {
       assert.equal(record.role,roles[i]);
-      assert.equal(record.requirement_cid,cid(r),'ForeignRequirement');
-      assert.equal(record.attempt,attempt,'ForeignAttempt');
+      assert.equal(record.issuer,task.issuer,'ForeignIssuer');
+      assert.equal(record.requirement_cid,task.requirement_cid,'ForeignRequirement');
+      assert.equal(record.attempt,task.attempt,'ForeignAttempt');
       assert.deepEqual(record.snapshot,snapshot,'ForeignSnapshot');
       assert.equal(record.scan_scope_cid,scope(r));
       assert.equal(record.output.rows_cid,cid(handle.rows));
@@ -98,6 +107,10 @@ test('issued native and broad records retain identical output and distinct acces
   assert.throws(()=>host.admit(omitted),/UnissuedEvidence/);
   assert.throws(()=>mockHost('other-process').admit(native),/UnissuedEvidence/);
   assert.throws(()=>host.admit(native,requirement,broad.records[0].attempt),/ForeignAttempt/);
+  // Identical rows and strategy do not make two executions interchangeable.
+  const retry=host.execute('native');
+  assert.deepEqual(retry.rows,native.rows);
+  assert.throws(()=>host.admit(retry,requirement,native.records[0].attempt),/ForeignAttempt/);
 });
 test('exact owner parameter request source and snapshot bindings are mandatory',()=>{
   const host=mockHost('fixture-process'), handle=host.execute('broad');
