@@ -4,6 +4,7 @@
 struct MockQueryAttempt {
   mut state : MockQueryState
   requirement : QueryRequirement?
+  authority : MockAttemptAuthority?
 }
 
 ///|
@@ -12,6 +13,7 @@ priv enum MockQueryState {
   Computing
   AwaitingCapture(MockQueryComputation)
   Retained(MockQueryRetention)
+  EvidenceIssued(MockQueryRecords)
   Failed(MockQueryIssue)
   Cancelled
 }
@@ -46,6 +48,7 @@ pub(all) enum MockQueryIssue {
   GuardLimitsRequired
   Guard(@execution.QueryGuardIssue)
   Retention(MockRetentionIssue)
+  Evidence(MockEvidenceIssue)
 }
 
 ///|
@@ -69,7 +72,11 @@ pub fn prepare_mock_query_attempt(
   if source.length() > max_entries {
     return Err(PreparationLimit)
   }
-  Ok({ state: Pending(strategy, source.copy()), requirement: None, })
+  Ok({
+    state: Pending(strategy, source.copy()),
+    requirement: None,
+    authority: None,
+  })
 }
 
 ///|
@@ -93,6 +100,7 @@ pub fn prepare_requirement_mock_query_attempt(
   Ok({
     state: Pending(strategy, source.copy()),
     requirement: Some(requirement),
+    authority: None,
   })
 }
 
@@ -220,6 +228,11 @@ pub fn execute_mock_query(
 ) -> Result[MockQueryComputation, MockQueryIssue] {
   match attempt.state {
     Pending(strategy, source) => {
+      if attempt.authority is Some(authority) && !authority.issuer.live {
+        let issue = Evidence(MockEvidenceIssue::IssuerClosed)
+        attempt.state = Failed(issue)
+        return Err(issue)
+      }
       let guards = match (attempt.requirement, guard_measure) {
         (Some(requirement), Some(physical)) =>
           Some((requirement.guards, physical))
@@ -250,6 +263,7 @@ pub fn mock_query_computation(
   match attempt.state {
     AwaitingCapture(value) => Ok(value)
     Retained(value) => Ok(value.computation)
+    EvidenceIssued(value) => Ok(value.retention.computation)
     Failed(issue) => Err(issue)
     Cancelled => Err(Cancelled)
     Pending(_, _) | Computing => Err(NotComputed)
@@ -261,7 +275,7 @@ pub fn mock_query_computation(
 /// this attempt's owned references. Other owners' source/preparation stay valid.
 pub fn cancel_mock_query(attempt : MockQueryAttempt) -> Bool {
   match attempt.state {
-    Pending(_, _) | AwaitingCapture(_) | Retained(_) => {
+    Pending(_, _) | AwaitingCapture(_) | Retained(_) | EvidenceIssued(_) => {
       attempt.state = Cancelled
       true
     }

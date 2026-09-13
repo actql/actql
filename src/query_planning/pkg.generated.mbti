@@ -19,7 +19,11 @@ pub fn cancel_mock_query(MockQueryAttempt) -> Bool
 
 pub fn choose_query_strategy(@execution_relation.QuerySequence, Array[QueryOffer], Array[Int]?, Int) -> Result[QuerySelection, QueryPlanningIssue]
 
+pub fn close_mock_query_issuer(MockQueryIssuer) -> Unit
+
 pub fn execute_mock_query(MockQueryAttempt, MockQueryLimits, guard_measure? : @execution_relation.QueryGuardMeasureLimits?) -> Result[MockQueryComputation, MockQueryIssue]
+
+pub fn issue_mock_query_records(MockQueryAttempt, QueryMaterialLimits) -> Result[MockQueryRecords, MockEvidenceIssue]
 
 pub fn mock_query_computation(MockQueryAttempt) -> Result[MockQueryComputation, MockQueryIssue]
 
@@ -28,6 +32,10 @@ pub fn mock_query_output_rows(MockQueryComputation) -> Int
 pub fn mock_query_received_columns(MockQueryComputation) -> Int
 
 pub fn mock_query_received_rows(MockQueryComputation) -> Int
+
+pub fn mock_query_record_at(MockQueryRecords, Int) -> (@encode_core.EncodedDocument, String)?
+
+pub fn mock_query_record_usage(MockQueryRecords) -> (Int, Int)
 
 pub fn mock_query_source_rows(MockQueryComputation) -> Int
 
@@ -39,7 +47,11 @@ pub fn mock_retention_usage(MockQueryRetention) -> (Int, Int, Int)
 
 pub fn offer_mock_query(@execution_relation.QuerySequence, QueryRealization, Array[@physical_cost.SerialEstimateLine], QueryQuantities, Int) -> Result[QueryOffer, QueryPlanningIssue]
 
+pub fn prepare_issued_mock_query_attempt(MockQueryIssuer, QueryStrategy, Array[@decode_core.Cursor], Int) -> Result[MockQueryAttempt, MockEvidenceIssue]
+
 pub fn prepare_mock_query_attempt(QueryStrategy, Array[@decode_core.Cursor], Int) -> Result[MockQueryAttempt, MockQueryIssue]
+
+pub fn prepare_mock_query_issuer(QueryEvidenceContracts, QueryRequirement, String, Int) -> Result[MockQueryIssuer, MockEvidenceIssue]
 
 pub fn prepare_query_material(@execution_relation.QuerySequence, QueryMaterialLimits) -> Result[QueryMaterial, QueryMaterialIssue]
 
@@ -101,9 +113,26 @@ pub fn query_work_count(QueryRealization) -> Int
 
 pub fn retain_mock_query(MockQueryAttempt, MockRetentionLimits) -> Result[MockQueryRetention, MockRetentionIssue]
 
+pub fn verify_mock_query_records(MockQueryIssuer, MockQueryAttempt, MockQueryRecords) -> Result[Unit, MockEvidenceIssue]
+
 // Errors
 
 // Types and methods
+pub(all) enum MockEvidenceIssue {
+  InvalidLimits
+  IdentifierLimit
+  IssuerClosed
+  IdentifierExhausted
+  Attempt(MockQueryIssue)
+  UnauthorizedAttempt
+  NotRetained
+  InvalidRetainedLayout
+  FieldLimit
+  WorkLimit
+  Encoding(@encode_core.EncodeFailure)
+  ForeignRecords
+}
+
 type MockQueryAttempt
 
 type MockQueryComputation
@@ -122,7 +151,10 @@ pub(all) enum MockQueryIssue {
   GuardLimitsRequired
   Guard(@execution_relation.QueryGuardIssue)
   Retention(MockRetentionIssue)
+  Evidence(MockEvidenceIssue)
 }
+
+type MockQueryIssuer
 
 pub(all) struct MockQueryLimits {
   source_rows : Int
@@ -131,6 +163,8 @@ pub(all) struct MockQueryLimits {
   source_admission : @execution_relation.ValueLimits
   computation : @execution_relation.SequenceExecutionLimits
 }
+
+type MockQueryRecords
 
 type MockQueryRetention
 

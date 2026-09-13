@@ -1,8 +1,9 @@
 # Query strategy experiment
 
 The source-checkout `query_planning` package compares and computes the two initial
-mock query realizations. It does not dispatch a real Connector, issue acquisition
-evidence, publish a captured result or construct a runnable Program/Plan.
+mock query realizations. It can issue process-local mock execution records, but
+does not dispatch a real Connector, publish a captured result or construct a
+runnable Program/Plan.
 
 1. Obtain `execution_relation.QuerySequence` from the shared query derivation and
    matching checked/lowered preparation. See [local usage](local-compute-usage.md).
@@ -47,7 +48,7 @@ priority. Offer estimation separately budgets its work inventory, line count and
 slot references before traversing them. Missing retention or other work makes
 the estimate unknown. Duplicate transfer coverage is rejected.
 
-The pending capture stage must implement the shared process-evidence profile
+The pending observation capture stage must consume verified process evidence
 before this experiment can return a completed acquisition to a consumer. Input
 relative order is not total-order evidence; this profile requires null source
 order CID. Existing performance regressions remain accepted development debt,
@@ -58,8 +59,7 @@ of the Acquisition and process-evidence contracts, and checks their actual hashe
 under one aggregate `QueryEvidenceLimits` budget. It rejects schema-only or
 digest-only substitutes. `query_evidence_contract_usage` reports hashed bytes
 and nodes. This is verifier-contract selection, not permission to issue records
-or execute the proposed strategy. The isolated record codec tests do not provide
-a product issuance API. `check:docs` also verifies that the filesystem-free test
+or execute the proposed strategy. `check:docs` also verifies that the filesystem-free test
 copies match the current complete shared contract bodies.
 
 See [design](design/query-physical-strategy.md) for ownership, scope and limitations.
@@ -113,3 +113,19 @@ the attempt; cancelled, unbound or already-retained attempts cannot reenter it.
 No output handle is exposed, and retaining this opaque value does not authorize
 capture after the attempt is cancelled. Live issuer verification and final
 consumer admission remain separate requirements.
+
+For live mock records, the trusted Host first calls `prepare_mock_query_issuer`
+with the admitted contracts, exact requirement and a fresh process nonce (bounded
+in UTF-16 code units). The Host must not reuse that nonce across process lifetimes.
+Use `prepare_issued_mock_query_attempt` instead of adding authority after execution.
+Issuer/attempt suffixes are allocated internally, never by an offer. This is
+trusted mock setup, not real provider authorization.
+
+Run guarded computation and retention as above, then `issue_mock_query_records`.
+`mock_query_record_at` exposes diagnostic document/CID pairs for indices
+0/1/2 (source validation/filter/select); `mock_query_record_usage` reports aggregate
+serialized/hashed bytes and nodes including scope hashes. All three are issued
+atomically. Use `verify_mock_query_records` with the expected Host issuer and
+attempt, not values taken from record JSON. Foreign attempts, cancellation and
+`close_mock_query_issuer` invalidate this pre-capture verification. There is no
+record deserialization authority or completed consumer input API at this stage.

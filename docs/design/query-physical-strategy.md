@@ -151,12 +151,29 @@ references; it does not invalidate other owners' preparations or completed data.
 An independently retained intermediate cannot itself authorize capture after the
 owning attempt has been cancelled.
 
-The [process-evidence contract](query-acquisition.md) owns the final issuance and
-capture checks: authorize the issuer, allocate attempt identity, enforce all
-logical/physical guards, retain output and resolve live role records. Local
-computation success and row/column counters do not replace those checks. Serialized
-JSON and matching hashes are not a source of authority. Until that boundary is
-connected, the mock execution API exposes only an unpublished computation.
+The [process-evidence contract](query-acquisition.md) owns issuance and capture
+checks. Explicit trusted mock Host setup uses `prepare_mock_query_issuer` with
+admitted contract bodies, one exact requirement and a fresh Host process nonce.
+The Host is responsible for nonce freshness across process lifetimes; nonce text
+alone is not an authority token. Module-owned issuer suffixes distinguish grants
+within a process. Attempts have monotonically allocated suffixes before execution,
+including failed preparations; exhaustion rejects rather than wrapping/reusing.
+Offers and candidates cannot attach this authority after computation. This mock
+setup is not external source authorization or a generic Host policy grant.
+
+`issue_mock_query_records` issues all three immutable role records together only
+from that attempt's successful retention state. Scope identities come from its
+actual selected scan and route-specific receipt; native issuance retains even
+nonreceived scan material. The finite mock has no provider snapshot attestation,
+so snapshot and provider scope are null. Serialization/hash budgets are cumulative
+across scope identities and three records, and failure publishes no record set.
+
+`verify_mock_query_records` requires the Host's expected issuer and task, a live
+issuer, the exact issued-set handle installed on that task, and its retained
+scan/output ownership. Equal wire or CID does not substitute for live provenance.
+Closing the issuer or cancelling before capture prevents verification. Successful
+record issuance still does not construct a completed observation or expose a
+consumer output; observation capture is the next distinct admission boundary.
 
 Verifier interpretation starts with `admit_query_evidence_contracts`: both the
 complete Acquisition contract and the complete process-evidence contract must
@@ -165,8 +182,9 @@ Acquisition dependency. A record schema alone, a version string or a claimed CID
 cannot select this verifier. The returned opaque selection retains immutable
 bodies; its aggregate byte/node budget spans both hashes without resetting.
 This selects interpretation only, not an issuer, task, source authorization or
-successful observation. Record serialization likewise does not confer issuance
-authority or restore process-local evidence from JSON.
+successful observation. The product record codec is also tested against the
+independent shared vectors. Serialization does not confer issuance authority or
+restore process-local evidence from JSON.
 
 Real provider attestation, external transfer, durable capture, shared scans,
 aggregate absorption, carried-input joins and general streaming need their own
