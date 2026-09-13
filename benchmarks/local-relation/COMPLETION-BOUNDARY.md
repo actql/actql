@@ -150,3 +150,58 @@ The first real comparison did not pass the gate. See
 regressions, the 21-pair uncertainty stop, incomplete coverage and the runner's
 automatic-stop correction. Product completion/producer implementation remains
 unstarted; the task is not complete.
+
+## Accepted continuation baseline
+
+The user accepted `f025ce4` for continued development, with the recorded
+performance regressions retained. This is not a passed performance gate.
+Historical baselines, diagnostic results and unmeasured coverage remain in
+`REVISION-REGRESSION.md` and `FRAME-COST-RESULTS.md`. No further frame/event
+tuning or rollback is part of this increment. The subsequent user-approved
+exception is one bounded post-boundary diagnostic comparison, specified below;
+it does not reopen the full matrix or optimization loop.
+
+The concrete completion-boundary edits are `completion.mbt`, the existing
+completion/input-admission sections of `sequence_driver.mbt`, and new private
+`completed_storage.mbt` / `completed_rows.mbt` adapters. The default row path
+stays intact. Completion may hold either its row store or a mixed physical
+store; both are created only by the same successful driver wrapper. The
+alternative data form retains typed numeric/validity buffers, explicit row
+count and selection, not an executable IR. Checked projection and row-index
+algorithms remain the existing implementations. Producer input accounting
+reads through the private reader before projection regardless of representation.
+
+Whitebox assertions/benchmark helpers and their existing values-vector
+generator may be updated to explicitly request the row-only test view instead
+of assuming every completed output is a row Table. New connection tests use
+the real completion/binding/admission path. No typing/lowering, wire, registry,
+pins, evaluation laws or new operation kernels are authorized.
+
+## Independence from expression scheduling
+
+Completion storage, success construction, producer binding and admission must
+not depend on `ExpressionFrame` or its stop/resume/drain API. They consume
+successful execution data and its existing checked ownership, not a suspended
+evaluator. A limited test kernel may use the frame API internally, but neither
+its frame nor a continuation may become part of a completed output or producer
+input. Audit this dependency in the final diff. Removing resumability from a
+future synchronous evaluator must not require changing these boundaries.
+
+## One post-boundary diagnostic
+
+After the boundary change, run the existing revision harness once against
+`bafdc88`, using the same frozen diagnostic subset from `FRAME-COST.md`: four
+1,000-row workloads, native/JS, E2E/prepared, seven alternating pairs per cell.
+Keep the profiling overlay, toolchain and measurement conditions comparable;
+record revision, runner, binary and raw-sample identities. Preserve the prior
+`f025ce4` evidence rather than replacing its baseline or results.
+
+Report absolute and proportional residuals against `bafdc88` alongside the
+recorded one-pass residuals. Comparing separately measured reports is not a
+paired estimate of the boundary change itself: record environmental differences
+and uncertainty, and do not assert absence of regression when the evidence is
+inconclusive. This diagnostic neither passes the historical performance gate
+nor demands improvement. Do not extend uncertain cells, repeat the comparison,
+or tune the evaluator. Report any apparent increase and stop for the user's
+decision after completing the authorized correctness checks. Wasm performance
+and the full performance matrix remain outside this diagnostic.
