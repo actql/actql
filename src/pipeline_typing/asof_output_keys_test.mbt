@@ -65,7 +65,13 @@ test "as-of retains every left identity alias but never infers a right-only key"
             @evidence.key_field_at(key, 0).unwrap().name,
             Unqualified("b"),
           )
-          assert_true(@evidence.key_asof_parent(key) is None)
+          assert_eq(@evidence.key_asof_parent(key) is Some(_), events)
+          if events {
+            assert_eq(
+              @evidence.key_origin(@evidence.key_asof_parent(key).unwrap()),
+              EventIdentityResult,
+            )
+          }
           let op = @evidence.key_asof_producer(key).unwrap()
           assert_true(
             @join.asof_pending_validations(op).contains(StableIdentity(Left)),

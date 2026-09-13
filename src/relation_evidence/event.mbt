@@ -37,22 +37,112 @@ fn preserve_record_keys(
 }
 
 ///|
-/// Checked event operations preserve or select occurrences without changing
-/// existing fields. Roles alone do not supply a missing uniqueness witness.
+/// Preserves input witnesses and generates conditional operation keys.
 pub fn transfer_event_keys(
   previous : KeySet,
   operation : @event.CheckedEvent,
   limits : TransferLimits,
 ) -> Result[KeySetTransfer, Issue] {
-  Ok(
-    preserve_record_keys(
-      previous,
-      @event.input(operation),
-      @event.output(operation),
-      @event.source(operation),
-      limits,
-    ),
-  ) catch {
+  advance_event_keys(Some(previous), operation, limits)
+}
+
+///|
+pub fn key_event_producer(key : KeyedRelation) -> @event.CheckedEvent? {
+  match key.producer {
+    Some(EventProducer(operation)) => Some(operation)
+    _ => None
+  }
+}
+
+///|
+pub fn advance_event_keys(
+  previous : KeySet?,
+  operation : @event.CheckedEvent,
+  limits : TransferLimits,
+) -> Result[KeySetTransfer, Issue] {
+  try {
+    let source = @event.source(operation)
+    if limits.max_work < 0 || limits.max_name_bytes < 0 {
+      fail(source, InvalidLimits)
+    }
+    let b : TransferBudget = {
+      work: limits.max_work,
+      text: limits.max_name_bytes,
+    }
+    guard event_or_relation_records(@event.output(operation)) is Some(records) else {
+      fail(source, InputContractMismatch)
+    }
+    let witnesses : Array[KeyedRelation] = match previous {
+      Some(previous) => {
+        let transferred = preserve_record_keys(
+          previous,
+          @event.input(operation),
+          @event.output(operation),
+          source,
+          limits,
+        )
+        b.work -= transferred.work
+        b.text -= transferred.name_bytes
+        transferred.keys.witnesses
+      }
+      None => {
+        spend(b, source, 1)
+        []
+      }
+    }
+    let fields : Array[KeyField] = []
+    let before = b.text
+    let origin = match @event.options(operation) {
+      ToEvents => {
+        guard @event.output(operation) is @carrier.EventValue(event) else {
+          fail(source, InputContractMismatch)
+        }
+        spend(b, source, 1)
+        charge(b, source, event.identity.name)
+        fields.push(
+          plain_key_field(event.identity.name, event.identity.contract),
+        )
+        Some(EventIdentityResult)
+      }
+      Dedupe(spec) => {
+        spend(b, source, @event.dedupe_key_count(spec))
+        let seen : Map[String, Bool] = Map([])
+        for i in 0..<@event.dedupe_key_count(spec) {
+          let name = @event.dedupe_key_at(spec, i).unwrap()
+          charge(b, source, name)
+          let key = field_key(name)
+          if !seen.contains(key) {
+            seen[key] = true
+            guard @carrier.lookup(records, name) is Present(field) else {
+              fail(source, InputContractMismatch)
+            }
+            fields.push(plain_key_field(name, field.contract))
+          }
+        }
+        Some(EventDedupeResult)
+      }
+      // A session labels several records; neither it nor a watermark readmits
+      // record identity after a window has expanded membership occurrences.
+      Session(_) | Watermark(_, _) => None
+    }
+    if origin is Some(origin) && !fields.is_empty() {
+      spend(b, source, fields.length() + 1)
+      witnesses.push({
+        origin,
+        producer: Some(EventProducer(operation)),
+        records,
+        declared_records: records,
+        declared_fields: fields,
+        source,
+        fields,
+        aliases: fields.map(field => [field]),
+        usage: { fields: fields.length(), name_bytes: before - b.text, },
+      })
+    }
+    let work = limits.max_work - b.work
+    let name_bytes = limits.max_name_bytes - b.text
+    Ok({ keys: { records, witnesses, work, name_bytes, }, work, name_bytes, })
+  } catch {
     Stop(e) => Err(e)
   }
 }

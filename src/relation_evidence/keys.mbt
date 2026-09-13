@@ -65,6 +65,8 @@ pub(all) enum KeyOrigin {
   WindowMembershipResult
   UnnestResult
   UnpivotResult
+  EventIdentityResult
+  EventDedupeResult
   JoinResult
   CrossJoinResult
   IntervalJoinResult
@@ -94,6 +96,7 @@ priv enum KeyProducer {
   WindowProducer(@window.CheckedWindow, KeyedRelation)
   UnnestProducer(@relation.CheckedOperation, KeyedRelation)
   UnpivotProducer(@relation.CheckedOperation, KeyedRelation)
+  EventProducer(@event.CheckedEvent)
   JoinProducer(@join.CheckedJoin, Array[(@row.Side, KeyedRelation)])
   CrossJoinProducer(@join.CheckedCrossJoin, Array[(@row.Side, KeyedRelation)])
   IntervalJoinProducer(

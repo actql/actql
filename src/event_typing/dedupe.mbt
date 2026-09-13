@@ -18,6 +18,16 @@ pub fn dedupe_keys(spec : DedupeSpec) -> Array[@row.FieldName] {
 }
 
 ///|
+pub fn dedupe_key_count(spec : DedupeSpec) -> Int {
+  spec.keys.length()
+}
+
+///|
+pub fn dedupe_key_at(spec : DedupeSpec, index : Int) -> @row.FieldName? {
+  spec.keys.get(index)
+}
+
+///|
 pub fn dedupe_order(spec : DedupeSpec) -> Array[OrderTerm] {
   spec.order.copy()
 }

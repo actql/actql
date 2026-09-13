@@ -1,5 +1,5 @@
 ///|
-test "Relation and Events windows retain only admitted input occurrence order" {
+test "window order is inherited while fixed Event identity can complete a later take" {
   let timestamp = @contract.primitive(TimestampType, nullable=false)
   let rows = @schema.from_fields(
     [(Unqualified("time"), timestamp)],
@@ -48,7 +48,13 @@ test "Relation and Events windows retain only admitted input occurrence order" {
           @pipeline.window_evidence(@pipeline.step_at(p, i).unwrap()) is Some(_),
         )
         assert_eq(@pipeline.logical_order(p, Step(i)) is Some(_), ordered)
-        assert_eq(@pipeline.take_order(p, last) is Some(_), ordered)
+        // The bridge now supplies conditional ID uniqueness, not input order.
+        // A fixed window retains that key; the sliding composite loses its
+        // start component at select and cannot complete this take.
+        assert_eq(
+          @pipeline.take_order(p, last) is Some(_),
+          ordered || (event && kind == "fixed"),
+        )
         assert_true(
           @pipeline.window_evidence(@pipeline.step_at(p, last).unwrap()) is None,
         )

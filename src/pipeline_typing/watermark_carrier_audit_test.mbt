@@ -109,8 +109,10 @@ test "watermarks preserve roles and keys without inventing order across Carrier 
               )
             }
             assert_eq(
-              @pipeline_typing.candidate_key(p, Step(end)) is Some(_),
-              keyed,
+              @evidence.key_witness_count(
+                @pipeline_typing.candidate_keys(p, Step(end)).unwrap(),
+              ),
+              (if keyed { 1 } else { 0 }) + (if event { 1 } else { 0 }),
             )
             assert_true(@pipeline_typing.logical_order(p, Step(end)) is None)
             assert_true(@pipeline_typing.row_count(p, Step(end)) is None)

@@ -54,7 +54,16 @@ test "Event membership keys retain alternate aliases and original validation deb
         None,
         limits(),
       ).unwrap()
-      let result = @pipeline_typing.candidate_key(p, Step(4))
+      let keys = @pipeline_typing.candidate_keys(p, Step(4)).unwrap()
+      assert_eq(
+        @evidence.key_witness_count(keys),
+        if keep_boundary {
+          2
+        } else {
+          0
+        },
+      )
+      let result = @evidence.key_witness_at(keys, 0)
       assert_eq(result is Some(_), keep_boundary)
       assert_eq(
         @pipeline_typing.logical_order(p, Step(5)) is Some(_),

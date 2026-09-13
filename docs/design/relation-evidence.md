@@ -50,11 +50,26 @@ physical ordering or the number of rows in a test fixture.
 In particular, an Event identity role is not an unconditional key on the
 projected rows: sliding membership can repeat that role value. A pending
 identity-validation obligation is not itself a tuple-uniqueness witness.
-Typed external Events and `to_events` without an input key therefore do not
-gain a projected row key. A retained membership key keeps the original
+Typed external Events roles alone therefore do not gain a projected row key.
+`to_events` explicitly admits identities and generates a conditional ID witness,
+retaining the checked bridge and its duplicate-ID validation requirement.
+Sliding windows extend this witness with the membership boundary; the events
+projection, watermark and session do not regenerate an unextended ID key.
+A retained membership key keeps the original
 declaration source and contract even when intermediate bridge transfers copy
 its wrapper. Multiple aliases of its start component are equivalent choices;
 deleting one must not lose a surviving alias, and deleting all loses the key.
+
+`dedupe_events` generates a conditional witness for its nonempty business tuple,
+with repeated names coalesced only in that derived tuple. Authored options remain
+unchanged. Nullable component contracts remain nullable and are ineligible for
+non-null key selection; an empty partition generates no field key. Its checked
+producer retains top-tie failure and original event-ID admission, so business
+deduplication is not a repair for duplicate IDs. `key_event_producer` exposes the
+exact checked event operation. Existing independent input witnesses are retained
+as well, even when a new bridge witness names the same fields. Session labels
+are never record keys. Indexed dedupe reads and shared transfer budgets avoid
+copying the authored key list before budget admission.
 
 Row-preserving analytic and typed json_pick keep existing key components and
 aliases. Both checkers require fresh output fields and retain the original row

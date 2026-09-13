@@ -258,9 +258,9 @@ fn sync_keys(
         b.text -= transfer.name_bytes
         Some(transfer.keys)
       }
-      (Some(previous), Event(op)) => {
+      (previous, Event(op)) => {
         let t = match
-          @evidence.transfer_event_keys(previous, op, {
+          @evidence.advance_event_keys(previous, op, {
             max_work: b.work,
             max_name_bytes: b.text,
           }) {

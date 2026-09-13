@@ -28,6 +28,8 @@ import {
 // Values
 pub fn advance_calendar_keys(KeySet?, @calendar_typing.CheckedCalendar, TransferLimits) -> Result[KeySetTransfer, Issue]
 
+pub fn advance_event_keys(KeySet?, @event_typing.CheckedEvent, TransferLimits) -> Result[KeySetTransfer, Issue]
+
 pub fn advance_keys(KeySet?, @relation_typing.CheckedOperation, TransferLimits) -> Result[KeySetTransfer, Issue]
 
 pub fn advance_set_keys(KeySet?, @relation_set.CheckedSet, TransferLimits) -> Result[KeySetTransfer, Issue]
@@ -139,6 +141,8 @@ pub fn key_cross_join_dependency_count(KeyedRelation) -> Int
 pub fn key_cross_join_dependency_side(KeyedRelation, Int) -> @relation_schema.Side?
 
 pub fn key_cross_join_producer(KeyedRelation) -> @relation_join_shape.CheckedCrossJoin?
+
+pub fn key_event_producer(KeyedRelation) -> @event_typing.CheckedEvent?
 
 pub fn key_field_at(KeyedRelation, Int) -> KeyField?
 
@@ -487,6 +491,8 @@ pub(all) enum KeyOrigin {
   WindowMembershipResult
   UnnestResult
   UnpivotResult
+  EventIdentityResult
+  EventDedupeResult
   JoinResult
   CrossJoinResult
   IntervalJoinResult

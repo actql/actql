@@ -22,6 +22,10 @@ pub fn check_session(@decode_core.Cursor, @carrier_contract.Carrier, @parameter_
 
 pub fn check_watermark(@decode_core.Cursor, @carrier_contract.Carrier, Limits) -> Result[CheckedEvent, Issue]
 
+pub fn dedupe_key_at(DedupeSpec, Int) -> @relation_schema.FieldName?
+
+pub fn dedupe_key_count(DedupeSpec) -> Int
+
 pub fn dedupe_keys(DedupeSpec) -> Array[@relation_schema.FieldName]
 
 pub fn dedupe_order(DedupeSpec) -> Array[OrderTerm]

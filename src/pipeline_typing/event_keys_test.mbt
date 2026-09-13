@@ -1,5 +1,5 @@
 ///|
-test "event bridges preserve retained membership keys without inventing intrinsic uniqueness" {
+test "event bridges retain both input and conditional event membership keys" {
   let rows = @carrier.relation(@carrier.typed_rows(schema()))
   let key = @evidence.declare_primary_key(cursor("[\"id\"]"), rows, {
     max_fields: 1,
@@ -36,14 +36,25 @@ test "event bridges preserve retained membership keys without inventing intrinsi
         )
         assert_true(@pipeline_typing.candidate_keys(p, Step(i)) is None)
       }
-      assert_eq(@pipeline_typing.candidate_key(p, Step(3)) is Some(_), keyed)
-      assert_eq(@pipeline_typing.logical_order(p, Step(4)) is Some(_), keyed)
+      let results = @pipeline_typing.candidate_keys(p, Step(3)).unwrap()
+      assert_eq(@evidence.key_witness_count(results), if keyed { 2 } else { 1 })
+      assert_true(@pipeline_typing.logical_order(p, Step(4)) is Some(_))
       assert_eq(
-        @pipeline_typing.candidate_key(p, Step(5)) is Some(_),
-        keyed && kind == "fixed",
+        @evidence.key_witness_count(
+          @pipeline_typing.candidate_keys(p, Step(5)).unwrap(),
+        ),
+        if kind == "fixed" {
+          if keyed {
+            2
+          } else {
+            1
+          }
+        } else {
+          0
+        },
       )
       if keyed {
-        let result = @pipeline_typing.candidate_key(p, Step(3)).unwrap()
+        let result = @evidence.key_witness_at(results, 0).unwrap()
         assert_eq(
           @evidence.key_field_count(result),
           if kind == "fixed" {
