@@ -4,6 +4,7 @@
 fn local_join_capacity_fixture(
   environment : @environment.WireEnvironment,
   maximum : Int,
+  step : Int,
 ) -> @host.HostSources raise @encode.EncodeFailure {
   let policy = @environment.capacity_policy(
     @environment.read_capacity(environment, {
@@ -28,7 +29,9 @@ fn local_join_capacity_fixture(
     host_text +
     "],\"effective_max\":" +
     maximum.to_string() +
-    ",\"enforcement\":\"engine_atomic\",\"subject_ref\":\"join:checked-step:0:output\",\"unit\":\"rows\",\"version\":\"actql-resolved-limit/0.1\"}"
+    ",\"enforcement\":\"engine_atomic\",\"subject_ref\":\"join:checked-step:" +
+    step.to_string() +
+    ":output\",\"unit\":\"rows\",\"version\":\"actql-resolved-limit/0.1\"}"
   let cid = "sha256:" + @sha.hex(@utf8.encode(body))
   let text = body.replace(
     old="\"subject_ref\":",
@@ -54,7 +57,7 @@ fn local_join_capacity_fixture(
 }
 
 ///|
-test "formal join rejects missing capacity and unresolved full-join identity atomically" {
+test "formal join rejects missing capacity and missing full-join identity atomically" {
   for full in [false, true] {
     let checked : Array[CheckedProgram] = []
     let kind = if full { "full" } else { "inner" }
@@ -64,12 +67,21 @@ test "formal join rejects missing capacity and unresolved full-join identity ato
         second_stage=true,
         through_check=true,
         checked_results=checked,
-        second_steps="[{\"join\":{\"with\":\"again\",\"kind\":\"" +
+        second_steps="[" +
+          (if full {
+            "{\"drop\":[\"id\"]},{\"derive\":{\"id\":\"value + 1\"}},"
+          } else {
+            ""
+          }) +
+          "{\"join\":{\"with\":\"again\",\"kind\":\"" +
           kind +
           "\",\"on\":\"id\",\"select\":{\"id\":\"left.id\",\"value\":\"left.value\"}},\"as\":\"selected\"}]",
-        second_result_from="selected",
+        // Keep publication independently ordered so this probes the unused
+        // full join's identity requirement, not a later order failure.
+        second_result_from=if full { "rows" } else { "selected" },
         extra_step_budget=2,
         second_join_capacity=full,
+        second_join_step=if full { 2 } else { 0 },
       )
     catch {
       LocalConstructionFailure::Source(
@@ -86,13 +98,8 @@ test "formal join rejects missing capacity and unresolved full-join identity ato
         assert_eq(visit, 0)
         assert_eq(step, 0)
       }
-      LocalConstructionFailure::Closure(UnresolvedOperation(site)) => {
+      LocalConstructionFailure::Closure(Joins(MissingEvidence(_))) =>
         assert_true(full)
-        assert_eq(site.stage, 1)
-        assert_true(
-          site.requirement is @pipeline.JoinRequirement(StableIdentity(_)),
-        )
-      }
       error => raise error
     } noraise {
       _ => fail("incomplete join escaped the formal entry")

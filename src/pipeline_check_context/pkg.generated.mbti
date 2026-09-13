@@ -26,6 +26,7 @@ import {
   "actql/actql/relation_evidence",
   "actql/actql/relation_join_shape",
   "actql/actql/relation_results",
+  "actql/actql/relation_schema",
   "actql/actql/relation_typing",
   "actql/actql/relation_values",
   "actql/actql/source_request_slots",
@@ -1180,6 +1181,14 @@ pub struct JoinCardinalitySelection {
   evidence : @pipeline_typing.JoinEvidence
 }
 
+pub struct JoinIdentityCheck {
+  site : OperationRequirementSite
+  step : @pipeline_typing.CheckedStep
+  side : @relation_schema.Side
+  input : @pipeline_typing.Target
+  key : @relation_evidence.KeyedRelation
+}
+
 pub struct JoinInputValidationCheck {
   site : OperationRequirementSite
   step : @pipeline_typing.CheckedStep
@@ -1206,6 +1215,7 @@ pub(all) enum JoinRequirementIssue {
   ForeignOccurrence(Int)
   MissingEvidence(Int)
   MissingCapacity(Int)
+  KeyEvidence(Int, @relation_evidence.IssueKind)
 } derive(Eq, @debug.Debug)
 
 pub struct JoinRowOrderCheck {
@@ -1368,6 +1378,7 @@ pub(all) enum OperationExecutionCheck {
   JoinOutputLimit(JoinOutputCheck)
   JoinRowOrder(JoinRowOrderCheck)
   JoinInputValidation(JoinInputValidationCheck)
+  JoinIdentity(JoinIdentityCheck)
   AppendRows(AppendRowsCheck)
 }
 

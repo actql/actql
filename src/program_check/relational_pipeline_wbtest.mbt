@@ -5,6 +5,7 @@ test "formal check closes distinct representative selection append and join" {
       "\"append\":{\"with\":\"again\"}", "\"distinct\":true", "\"distinct\":[\"id\",\"value\"]",
       "\"join\":{\"with\":\"again\",\"kind\":\"inner\",\"on\":\"id\",\"select\":{\"id\":\"left.id\",\"value\":\"left.value\"}}",
       "\"join\":{\"with\":\"again\",\"kind\":\"left\",\"on\":\"id\",\"select\":{\"id\":\"left.id\",\"value\":\"left.value\"}}",
+      "\"join\":{\"with\":\"again\",\"kind\":\"full\",\"on\":\"value\",\"select\":{\"id\":\"left.id\",\"value\":\"left.value\"}}",
       "\"join\":{\"with\":\"again\",\"kind\":\"semi\",\"on\":\"id\",\"select\":{\"id\":\"left.id\",\"value\":\"left.value\"}}",
       "\"join\":{\"with\":\"again\",\"kind\":\"anti\",\"on\":\"id\",\"select\":{\"id\":\"left.id\",\"value\":\"left.value\"}}",
       "\"dedupe_rows\":{\"by\":[\"id\",\"id\"],\"order_by\":[{\"value\":\"desc\"}]}",
@@ -34,7 +35,33 @@ test "formal check closes distinct representative selection append and join" {
     let mut tie_checks = 0
     let mut append_checks = 0
     let mut join_limits = 0
+    let mut join_identities = 0
     for i in 0..<@context.operation_closure_count(closure) {
+      if @context.operation_closure_at(closure, i)
+        is Some(ExecutionCheck(JoinIdentity(check))) {
+        assert_eq(check.site.stage, 1)
+        assert_true(physical_equal(check.site.pipeline, pipeline))
+        assert_eq(
+          check.input,
+          @pipeline.Input(if check.side is Left { 0 } else { 1 }),
+        )
+        assert_eq(@evidence.key_field_count(check.key), 1)
+        // Match tuple is value; row identity remains the independent id key.
+        assert_true(
+          @evidence.key_field_at(check.key, 0).unwrap().name
+          is Unqualified("id"),
+        )
+        assert_true(@evidence.key_pending_count(check.key) > 0)
+        assert_eq(
+          @context.operation_execution_phase(JoinIdentity(check)),
+          BeforeOperationInputUse,
+        )
+        assert_eq(
+          @context.operation_execution_failure(JoinIdentity(check)),
+          RejectOperationOutput,
+        )
+        join_identities += 1
+      }
       if @context.operation_closure_at(closure, i)
         is Some(ExecutionCheck(JoinOutputLimit(check))) {
         assert_eq(check.site.stage, 1)
@@ -73,6 +100,14 @@ test "formal check closes distinct representative selection append and join" {
       },
     )
     assert_eq(join_limits, if operation.has_prefix("\"join\"") { 1 } else { 0 })
+    assert_eq(
+      join_identities,
+      if operation.contains("\"full\"") {
+        2
+      } else {
+        0
+      },
+    )
     assert_eq(
       append_checks,
       if operation.has_prefix("\"append\"") {

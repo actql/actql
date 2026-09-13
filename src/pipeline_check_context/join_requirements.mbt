@@ -46,12 +46,24 @@ pub struct JoinInputValidationCheck {
 }
 
 ///|
+/// A selected row identity, independent of the tuple used to match join rows.
+/// The retained conditional key includes its producer and admission obligations.
+pub struct JoinIdentityCheck {
+  site : OperationRequirementSite
+  step : @pipeline.CheckedStep
+  side : @schema.Side
+  input : @pipeline.Target
+  key : @evidence.KeyedRelation
+}
+
+///|
 pub(all) enum JoinRequirementIssue {
   InvalidLimits
   BudgetExceeded
   ForeignOccurrence(Int)
   MissingEvidence(Int)
   MissingCapacity(Int)
+  KeyEvidence(Int, @evidence.IssueKind)
 } derive(Eq, Debug)
 
 ///|
@@ -76,6 +88,7 @@ pub fn link_program_join_requirements(
   let states = index.states.copy()
   let mut unresolved = index.unresolved
   let mut links = 0
+  let mut selection_work = 0
   for i in 0..<count {
     let site = index.requirements.entries[i]
     let kind = match site.requirement {
@@ -83,6 +96,7 @@ pub fn link_program_join_requirements(
       @pipeline.JoinRequirement(PreserveRowOrder) => 2
       @pipeline.JoinRequirement(ValidateCardinality(_))
       | @pipeline.JoinRequirement(RejectNullKeys) => 3
+      @pipeline.JoinRequirement(StableIdentity(_)) => 4
       @pipeline.JoinRequirement(ResolveOutputLimit)
       | @pipeline.CrossJoinRequirement(ResolveOutputLimit)
       | @pipeline.IntervalJoinRequirement(ResolveOutputLimit) => 1
@@ -165,6 +179,38 @@ pub fn link_program_join_requirements(
       states[i] = Execution(
         JoinInputValidation({ site, step, left, right, operation, rule, }),
       )
+    } else if kind == 4 {
+      guard site.requirement is @pipeline.JoinRequirement(StableIdentity(side)) &&
+        @pipeline.step_at(site.pipeline, site.step) is Some(step) &&
+        step.operation is @pipeline.Join(right~, ..) &&
+        step.input is Some(left) else {
+        return Err(ForeignOccurrence(i))
+      }
+      let input = if side == @schema.Left { left } else { right }
+      guard @pipeline.candidate_keys(site.pipeline, input) is Some(keys) else {
+        return Err(MissingEvidence(i))
+      }
+      let remaining = max_work - index.work - count * 2 - selection_work
+      let selected = match
+        @evidence.select_key(step.source, keys, CanonicalOrder, {
+          max_work: remaining,
+          max_name_bytes: remaining,
+        }) {
+        Ok(v) => v
+        Err(e) => {
+          if e.kind == @evidence.LimitExceeded {
+            return Err(BudgetExceeded)
+          }
+          return Err(KeyEvidence(i, e.kind))
+        }
+      }
+      if selected.work > remaining ||
+        selected.name_bytes > remaining - selected.work {
+        return Err(BudgetExceeded)
+      }
+      selection_work += selected.work + selected.name_bytes
+      guard selected.key is Some(key) else { return Err(MissingEvidence(i)) }
+      states[i] = Execution(JoinIdentity({ site, step, side, input, key, }))
     } else {
       let capacity = stage.context.capacity
       guard @capacity.application_closure_at(capacity, site.producer_visit)
@@ -191,5 +237,10 @@ pub fn link_program_join_requirements(
     links += 1
     unresolved -= 1
   }
-  Ok({ ..index, states, unresolved, work: index.work + count * 2, })
+  Ok({
+    ..index,
+    states,
+    unresolved,
+    work: index.work + count * 2 + selection_work,
+  })
 }

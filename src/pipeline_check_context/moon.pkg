@@ -24,6 +24,7 @@ import {
   "actql/actql/relation_typing" @relation,
   "actql/actql/relation_append" @append,
   "actql/actql/relation_join" @join,
+  "actql/actql/relation_evidence" @evidence,
   "actql/actql/value_contract" @contract,
   "actql/actql/stage_parameters" @stages,
   "actql/actql/encode_core" @encode,

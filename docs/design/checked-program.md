@@ -48,16 +48,26 @@ execution check. Repeated grouping keys and the empty global key list keep their
 existing meanings; neither constitutes proof that the selected representative
 is unique in actual data.
 Join consumes the existing cardinality selection, ordered-occurrence execution
-check and exact selected-policy capacity application. Inner, left, semi and anti
-joins can close when these requirements are supplied. Authored cardinality and
+check and exact selected-policy capacity application. All five join kinds
+can close when their requirements are supplied. Authored cardinality and
 null-key assertions retain separate checks over the exact left/right operands
 and authored key tuples, before input use. Cardinality validates both sides,
 right only or left only for one-to-one, many-to-one or one-to-many respectively;
 null-key failure applies to either input. Static key evidence does not remove an
 authored assertion, and repeated pairs do not create additional rows. Violation
-rejects the whole join output. Full-join stable identity still requires its own
-resolution, not a generic runtime check. Missing capacity likewise prevents
-construction. Result outputs
+rejects the whole join output. Full join additionally selects an eligible row
+identity independently for each actual operand, using the deterministic candidate
+key selector rather than the join-key uniqueness result. Multiple candidates are
+not treated as missing evidence. Canonical-key eligibility includes reference
+identities without granting authored ordering permission. Selection adds no sort
+and synthesizes no key from physical enumeration. Work and name traversal consume
+the shared resolution budget.
+
+Each identity binding retains the selected key's producer and pending admission,
+normalized tuple uniqueness and reference validation obligations, to be enforced
+before input use. It is not proof that actual rows already passed those checks.
+Absence of eligible identity on either operand rejects construction, including
+unused full joins. Missing capacity likewise prevents construction. Result outputs
 remain subject to the existing flat-name publication and order requirements.
 Other operation paths, opaque Binding declarations and nonempty Effects are
 reported as unsupported rather than made executable through missing evidence.

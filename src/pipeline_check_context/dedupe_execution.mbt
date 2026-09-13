@@ -16,6 +16,7 @@ pub(all) enum OperationExecutionCheck {
   JoinOutputLimit(JoinOutputCheck)
   JoinRowOrder(JoinRowOrderCheck)
   JoinInputValidation(JoinInputValidationCheck)
+  JoinIdentity(JoinIdentityCheck)
   AppendRows(AppendRowsCheck)
 }
 
@@ -40,6 +41,7 @@ pub fn operation_execution_phase(
     JoinOutputLimit(_) => BeforeOperationOutput
     JoinRowOrder(_) => BeforeOperationOutput
     JoinInputValidation(_) => BeforeOperationInputUse
+    JoinIdentity(_) => BeforeOperationInputUse
     AppendRows(v) =>
       match v.rule {
         AdmitBothInputs => BeforeOperationInputUse
@@ -60,6 +62,7 @@ pub fn operation_execution_failure(
     JoinOutputLimit(_) => RejectOperationOutput
     JoinRowOrder(_) => RejectOperationOutput
     JoinInputValidation(_) => RejectOperationOutput
+    JoinIdentity(_) => RejectOperationOutput
     AppendRows(_) => RejectOperationOutput
   }
 }

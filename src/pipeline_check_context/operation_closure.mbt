@@ -60,6 +60,7 @@ pub fn close_program_operations(
           JoinOutputLimit(v) => v.site
           JoinRowOrder(v) => v.site
           JoinInputValidation(v) => v.site
+          JoinIdentity(v) => v.site
           AppendRows(v) => v.site
         }
         if !physical_equal(site, expected) {

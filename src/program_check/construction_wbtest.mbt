@@ -16,6 +16,7 @@ fn local_construction_fixture(
   second_result_from? : String = "rows",
   extra_step_budget? : Int = 0,
   second_join_capacity? : Bool = false,
+  second_join_step? : Int = 0,
   root_extra? : String = "",
   last_effects? : String? = None,
   registry_entries? : String = "[]",
@@ -184,7 +185,7 @@ fn local_construction_fixture(
   }).unwrap()
   let join_sources = if second_join_capacity {
     Some(
-      local_join_capacity_fixture(environment, host_limit) catch {
+      local_join_capacity_fixture(environment, host_limit, second_join_step) catch {
         _ => abort("invalid join test material")
       },
     )
@@ -201,7 +202,7 @@ fn local_construction_fixture(
       if stage == 1 && visit == 0 && join_sources is Some(join_sources) {
         @context.CapacityMaterial::{
           sources: join_sources,
-          consumers: [@capacity.Join(step=0, output=0)],
+          consumers: [@capacity.Join(step=second_join_step, output=0)],
         }
       } else {
         @context.CapacityMaterial::{ sources, consumers: [], }
