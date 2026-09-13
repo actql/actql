@@ -56,6 +56,23 @@ Aggregate absorption, shared scans, brought-in captured inputs, changes feeds,
 prefix demand, take and checkpoints are separate contracts. The entry is not a
 replacement for `program_check.check` or a runnable-plan constructor.
 
+## Resource selection
+
+Acquisition guards are common to all realizations. Fragment limits belong to
+the exact selected fragment, including logical work and logical live roots;
+logical does not mean universally selected. The initial filter/select shape
+contains no ordered derive and cannot synthesize its `row_kernel_limits`.
+This clarifies the existing fragment ownership and measurement contracts.
+
+The explicit realization choice is that a Local-only fragment ceiling is not
+promoted into a canonical acquisition guard. Native can succeed when that Local
+ceiling alone fails. This fixes a previously unspecified cross-realization
+boundary without discounting any limit of an actually selected fragment.
+It keeps backend choices out of acquisition identity and consumer budgets.
+Native common-guard enforcement requires exact measurements and trusted demand
+and full-admission evidence, not Local reevaluation or approximate SQL metrics.
+The existing receipt and observation representations remain unchanged.
+
 ## Process evidence trust boundary
 
 The initial [process-evidence profile](../spec/execution.md#query-process-evidence)

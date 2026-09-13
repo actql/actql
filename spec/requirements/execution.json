@@ -223,6 +223,61 @@
       }
     },
     {
+      "requirement_id": "actql.execution/query-resource-scopes.selection",
+      "statement_sha256": "1e0bd5349b9e642d5f3fbe50e73e2f09e548affd5dea17de30dce2b6b903cd0d",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "query-resource-scopes",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.execution/query-resource-scopes.native",
+      "statement_sha256": "fe3e6584ef011f2c2ecf5e331cd661cafcc81ec02eab20c2ddeb4b86f62b1425",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "query-resource-scopes",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.execution/query-resource-scopes.evidence",
+      "statement_sha256": "3a45140bd3778ca21addf0e6055bb5d1c470b9cf73462a94b6391440abcee757",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "query-resource-scopes",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.execution/query-resource-scopes.failure",
+      "statement_sha256": "cb0fe15b7f4baf1c245e58cfdaf046fe8d10f183e5a35fb0d1ed50f82d67aca8",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "query-resource-scopes",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.execution/query-resource-scopes.consumer",
+      "statement_sha256": "0fb2d97b85ef9c23e774452928854e50cdfe6f5cffd961462e77b4345c68f438",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "query-resource-scopes",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.execution/query-process-evidence.order",
       "statement_sha256": "24aa4ff67bf591559bfdbcbb7e14282527b9589664909c9fb448b9537aa75fc1",
       "status": "pending",

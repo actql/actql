@@ -362,6 +362,89 @@ or numeric-observation capture requirements.
 Losing the process loses this retention guarantee. Runtime evidence verification
 and backend execution support are separate from static derivation and registration.
 
+<a id="query-resource-scopes"></a>
+
+### Acquisition and realization resource scopes
+
+The distinction between logical measurement and physical measurement is not a
+distinction between universal and implementation-selected limits. A logical
+limit can belong to a selected fragment rather than to the acquisition itself.
+
+<!-- requirement-block: query-resource-scopes.selection -->
+Every candidate MUST enforce the same canonical acquisition guards and selected
+source, expression-profile and consumer contracts. Selecting a Local fragment
+adds that fragment's enforcement bounds to the Local realization; it does not
+add them to the backend-independent acquisition requirement. A native candidate
+that implements that same fragment contract remains subject to all its limits.
+Neither placement nor a different evaluator permits waiving an explicitly
+selected common contract. The initial scan/filter/select profile has no ordered
+derive step: `request.row_kernel_limits` is absent, not an invented set of
+filter/select limits or a zero-valued exemption.
+
+<!-- machine-import: ../../spec/contracts/actql-query-resource-scopes.json# sha256:02442e1e38627268539cad1953144f3f136791344d1d4279768cdb45eb6bf471 -->
+The [pinned resource-scope contract](../../spec/contracts/actql-query-resource-scopes.json)
+distinguishes measurement, subject and binding at `/limits`. Acquisition `max_rows`
+counts complete select-output occurrences, not scanned or received rows.
+Acquisition `max_value_bytes` measures canonical typed-wire UTF-8 for each
+admitted record and demanded expression root, not a sum or heap allocation.
+The selected fragment's `request.max_rows` bounds logical rows at its input and
+operation boundaries; its `max_value_bytes` bounds input, evaluated-root and
+published values. Equal numbers do not make these scopes interchangeable.
+Ordered step `max_input_rows`, `max_value_bytes`, `max_live_value_bytes` and
+`max_work` retain the exact [ordered resource measures](language.md#derive).
+In particular live roots and work are logical fragment-specific measures, not
+DuckDB memory or instruction counts. The exact step limit body is bound through
+the fragment request and evidence `limits_cid`; it is not a query-output guard.
+
+<!-- requirement-block: query-resource-scopes.native -->
+A native candidate MUST enforce the exact complete output count and per-value
+typed-wire byte guards, with full source admission and checked expression demand,
+without replacing these measurements by SQL storage sizes, estimates, receipt
+sizes or counts after filtering when the subject is an input record. Exact
+streaming counters and typed-wire measurement, or admitted provider evidence
+for the same checks, suffice; executing the Local fragment again is not required.
+Demanded intermediate roots still need evidence even when SQL does not return
+them. Algebraically derived measurements are admissible only when exact for the
+checked types, values and demand, not merely an estimated upper limit claimed
+as an observation. A candidate without enforceable measurements and admissible
+evidence is unsupported. This profile does not introduce native ordered-derive
+support or a substitute work/live-root accounting rule.
+
+<!-- requirement-block: query-resource-scopes.evidence -->
+The authorized process issuer MUST bind successful guard enforcement to the exact
+requirement, guard values, owner, Parameter bindings, task, attempt, consistent
+read-view, applicable snapshot, checked demand and retained output. Source
+validation covers input records, filter evidence covers demanded filter roots,
+and select evidence covers projection and final row count. Existing opaque
+execution records retain this ownership; SQL success, a bool or a self-hash
+cannot establish it. Issuance follows all applicable checks and successful
+retention. The existing single- and two-receipt wire forms are unchanged;
+the additional enforcement facts remain owned by their trusted live issuer.
+
+<!-- requirement-block: query-resource-scopes.failure -->
+Implementations MUST accept equality and reject excess at each selected scope,
+including checked accounting overflow, without successful capture after failure.
+Empty output has zero rows but does not waive input admission or input budgets;
+all-filtered input still requires complete source validation. Empty input incurs
+no row evaluation, but framing, receipt and retention still use their own measures.
+Input admission precedes predicate evaluation. Exhaustion of a physical or
+selected realization budget can terminate the attempt before a later value
+error; it does not require continued evaluation to find that error. With those
+budgets sufficient, changing realization cannot hide an invalid unused source
+field or demanded expression failure. Existing expression failure ordering
+continues within its specified evaluation scope, not across physical candidates.
+
+<!-- requirement-block: query-resource-scopes.consumer -->
+Downstream consumer limits MUST remain bound to their own input and execution,
+not be enlarged, reset or charged for the acquisition's residual evaluation.
+A Local-only fragment limit can fail on valid input while a native realization
+of the same acquisition succeeds under all its selected contracts. Such success
+does not imply that the Local fragment would succeed, or that the downstream
+consumer succeeds. A later consumer failure preserves the completed upstream
+observation and does not authorize rereading. Actual engine work, each receipt
+and retention copies retain their separate Host physical budgets and accounting;
+two transfers are not hidden or conflated with logical output rows.
+
 <a id="query-process-evidence"></a>
 
 #### Process-retained query evidence

@@ -1,0 +1,24 @@
+{
+  "scan": [{"amount":10,"id":0},{"amount":20,"id":2}],
+  "output": [{"id":2}],
+  "record_bytes": [20,20],
+  "cases": [
+    {"name":"exact common guards","mode":"native","rows":1,"bytes":20,"expected":"Captured"},
+    {"name":"output row excess","mode":"native","rows":0,"bytes":20,"expected":"OutputRows"},
+    {"name":"record byte excess","mode":"native","rows":1,"bytes":19,"expected":"ValueBytes"},
+    {"name":"local input equality","mode":"local","rows":1,"bytes":20,"local_rows":2,"expected":"Captured"},
+    {"name":"local input excess","mode":"local","rows":1,"bytes":20,"local_rows":1,"expected":"LocalRows"},
+    {"name":"native does not select local ceiling","mode":"native","rows":1,"bytes":20,"local_rows":1,"expected":"Captured"},
+    {"name":"native explicitly selects same fragment","mode":"native","same_fragment":true,"rows":1,"bytes":20,"local_rows":1,"expected":"LocalRows"},
+    {"name":"empty scan","mode":"native","scan":[],"rows":0,"bytes":0,"expected":"Captured"},
+    {"name":"all rows excluded","mode":"native","threshold":3,"rows":0,"bytes":20,"expected":"Captured"},
+    {"name":"all excluded still consumes local input","mode":"local","threshold":3,"rows":0,"bytes":20,"local_rows":1,"expected":"LocalRows"},
+    {"name":"invalid excluded source field","mode":"native","scan":[{"amount":"bad","id":0},{"amount":20,"id":2}],"rows":1,"bytes":100,"expected":"SourceAdmission"},
+    {"name":"physical stop before invalid source","mode":"native","scan":[{"amount":"bad","id":0}],"physical_stop":true,"rows":1,"bytes":100,"expected":"PhysicalBudget"},
+    {"name":"consumer equality local","mode":"local","rows":1,"bytes":20,"local_rows":2,"consumer_rows":1,"expected":"Consumed"},
+    {"name":"consumer equality native","mode":"native","rows":1,"bytes":20,"consumer_rows":1,"expected":"Consumed"},
+    {"name":"consumer excess local","mode":"local","rows":1,"bytes":20,"local_rows":2,"consumer_rows":0,"expected":"ConsumerRows"},
+    {"name":"consumer excess native","mode":"native","rows":1,"bytes":20,"consumer_rows":0,"expected":"ConsumerRows"},
+    {"name":"missing demanded root accounting","mode":"native","missing_root_evidence":true,"rows":1,"bytes":20,"expected":"Unsupported"}
+  ]
+}
