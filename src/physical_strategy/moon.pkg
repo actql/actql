@@ -1,0 +1,11 @@
+supported_targets = "+js+wasm+native"
+
+import {
+  "actql/actql/program_check" @checked,
+  "actql/actql/pipeline_check_context" @context,
+  "actql/actql/pipeline_typing" @pipeline,
+  "actql/actql/stage_results" @results,
+  "actql/actql/lowering_relation" @lower,
+  "actql/actql/parameter_references" @parameters,
+  "actql/actql/parameter_binding" @binding,
+}
