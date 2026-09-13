@@ -64,15 +64,7 @@ fn capacity_profile(changed : Bool) -> String {
 ///|
 
 ///|
-fn remote_construction_fixture(
-  budget : IdentityBudget,
-) -> (
-  @context.ProgramSourceIdentity,
-  @context.StageRequirementClosure,
-  @context.ProgramIncomingGates,
-  @context.CoreContractInventory,
-  Array[BuiltUnit],
-) raise {
+fn remote_environment_fixture() -> @environment.WireEnvironment raise {
   let original = keyed_sourceview_environment()
   let writer = @encode.writer(1000000, 100000, 100)
   @environment.emit(original, writer)
@@ -104,6 +96,20 @@ fn remote_construction_fixture(
       max_members: 1000,
     },
   ).unwrap()
+  environment
+}
+
+///|
+fn remote_construction_fixture(
+  budget : IdentityBudget,
+) -> (
+  @context.ProgramSourceIdentity,
+  @context.StageRequirementClosure,
+  @context.ProgramIncomingGates,
+  @context.CoreContractInventory,
+  Array[BuiltUnit],
+) raise {
+  let environment = remote_environment_fixture()
   let text =
     #|{"version":"actql/0.1","id":"keyed","stages":[{"id":"s","inputs":{"remote":{"connector":"crm/main","resource":"r","request":{"tenant":null}}},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":false}},"rows":[{"id":1}]},"as":"seed"},{"join":{"left":"seed","with":"remote","on":"id","kind":"left","select":{"id":"left.id"}}}],"results":{"out":{"from":"seed","fields":["id"]}}}],"results":{"out":{"from":{"stage":"s","result":"out"}}}}
   let program = @syntax.parse(
