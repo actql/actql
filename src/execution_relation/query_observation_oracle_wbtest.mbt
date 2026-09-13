@@ -11,6 +11,7 @@ fn query_observation_oracle(
   ids : (String, String),
   received : String,
   received_count : Int,
+  received_fields : String,
   output : String,
   output_count : Int,
 ) -> (String, Array[String]) raise {
@@ -38,7 +39,9 @@ fn query_observation_oracle(
   let access_cid = query_material_expected(
     "{\"version\":\"actql-query-access-scope/0.1\",\"requirement_cid\":" +
     query_oracle_quote(requirement_cid) +
-    ",\"received_fields\":[\"id\"],\"received_rows_cid\":" +
+    ",\"received_fields\":" +
+    received_fields +
+    ",\"received_rows_cid\":" +
     query_oracle_quote(query_material_expected(received)) +
     "}",
   )
@@ -46,7 +49,9 @@ fn query_observation_oracle(
   // is independently the canonical UTF-8 wire byte length, including brackets.
   let access = "{\"scope_cid\":" +
     query_oracle_quote(access_cid) +
-    ",\"provider_scope_cid\":null,\"received_fields\":[\"id\"],\"received_rows\":" +
+    ",\"provider_scope_cid\":null,\"received_fields\":" +
+    received_fields +
+    ",\"received_rows\":" +
     received_count.to_string() +
     ",\"received_bytes\":" +
     received.length().to_string() +
@@ -184,6 +189,7 @@ fn query_observation_oracle_cases(nullable : Bool) -> Unit raise {
         } else {
           before
         },
+        "[\"id\"]",
         selected,
         after,
       )

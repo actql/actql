@@ -176,3 +176,11 @@ CheckedProgram entry, capture and a checked consumer with empty, filtered-out,
 duplicate and nullable input. It checks complete observation content and the
 three record identities, not just final rows. This is mock conformance evidence,
 not external-provider attestation or proof of a general vectorized executor.
+
+The multi-column fixture keeps `amount` outside `filter(id > $minimum)` and
+`select(["id"])`. Native receipt evidence lists only `id`; broad receipt evidence
+lists `amount,id` and hashes the full received rows. Changing only `amount` leaves
+the final output and native access scope unchanged, but changes broad access
+scope. The full-known-scan profile still validates unused values: permitted NULL
+succeeds, while type/nullability violations and per-value guard overflow fail
+before issuance and capture, including rows the filter would discard.
