@@ -348,6 +348,10 @@ pub fn read_text_rank_options(@decode_core.Cursor, @vector_checking.Limits) -> R
 
 pub fn select_covered_key(@decode_core.Cursor, KeySet, Array[@relation_schema.FieldName], TransferLimits) -> Result[KeySelection, Issue]
 
+pub fn select_interval_join_key(@relation_join_shape.CheckedIntervalJoin, @relation_schema.Side, KeySet?, TransferLimits) -> Result[KeySelection, Issue]
+
+pub fn select_join_key(@relation_join_shape.CheckedJoin, @relation_schema.Side, KeySet?, TransferLimits) -> Result[KeySelection, Issue]
+
 pub fn select_key(@decode_core.Cursor, KeySet, KeyUse, TransferLimits) -> Result[KeySelection, Issue]
 
 pub fn select_sole_string_key(@decode_core.Cursor, KeySet, TransferLimits) -> Result[KeySelection, Issue]

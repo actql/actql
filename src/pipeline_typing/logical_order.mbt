@@ -258,7 +258,8 @@ fn derive_logical_orders(
       // coverage and search checks still belong to the complete binary producer;
       // only its right-hand order is unnecessary for enumeration.
       IntervalJoin(checked~, ..) if @join.interval_kind(checked) is Semi ||
-        @join.interval_kind(checked) is Anti =>
+        @join.interval_kind(checked) is Anti ||
+        joins[i].unwrap().right is Some(_) =>
         match (step.input, previous) {
           (Some(left), Some(_)) => [left]
           _ => []

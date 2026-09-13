@@ -18,34 +18,28 @@ fn join_uniqueness(v : JoinEvidence) -> (Bool, Bool) {
 ///|
 fn covered_join_side(
   b : Budget,
-  op : @join.CheckedJoin,
+  op : CheckedOperation,
   side : @schema.Side,
   keys : @evidence.KeySet?,
 ) -> @evidence.KeyedRelation? raise Stop {
-  guard keys is Some(keys) else { return None }
-  let source = @join.source(op)
-  // Operand binding is pointer-based: structurally similar foreign rows are
-  // not allowed to donate a primary-key assertion.
-  guard @carrier.complete_schema(@evidence.key_set_records(keys))
-    is Some(schema) &&
-    physical_equal(schema, @join.input_schema(op, side)) else {
-    fail(source, KeyEvidence(InputContractMismatch))
+  let limits : @evidence.TransferLimits = {
+    max_work: b.work,
+    max_name_bytes: b.text,
   }
-  let n = @join.key_count(op)
-  spend(b, source, n)
-  let fields = Array::makei(n, i => {
-    let pair = @join.key_at(op, i).unwrap()
-    if side == Left {
-      pair.left
-    } else {
-      pair.right
-    }
-  })
-  let selected = match
-    @evidence.select_covered_key(source, keys, fields, {
-      max_work: b.work,
-      max_name_bytes: b.text,
-    }) {
+  let (source, result) = match op {
+    Join(checked~, ..) =>
+      (
+        @join.source(checked),
+        @evidence.select_join_key(checked, side, keys, limits),
+      )
+    IntervalJoin(checked~, ..) =>
+      (
+        @join.interval_source(checked),
+        @evidence.select_interval_join_key(checked, side, keys, limits),
+      )
+    _ => return None
+  }
+  let selected = match result {
     Ok(v) => v
     Err(e) =>
       raise Stop({
@@ -72,20 +66,23 @@ fn derive_join_evidence(
   for step in steps {
     spend(b, step.source, 1)
     let value = match step.operation {
-      Join(right~, checked~) => {
+      Join(right~, ..) | IntervalJoin(right~, ..) => {
         let left = covered_join_side(
           b,
-          checked,
+          step.operation,
           Left,
           step.input.bind(t => key_at(t, inputs, keys)),
         )
         let right = covered_join_side(
           b,
-          checked,
+          step.operation,
           Right,
           key_at(right, inputs, keys),
         )
-        let assertion = @join.assertion(checked)
+        let assertion = match step.operation {
+          Join(checked~, ..) => @join.assertion(checked)
+          _ => None
+        }
         let initial : JoinEvidence = {
           left,
           right,
@@ -116,5 +113,21 @@ fn derive_join_evidence(
 ///|
 /// Returns operand-bound witnesses, not an assertion that runtime data passed.
 pub fn join_evidence(value : CheckedPipeline, index : Int) -> JoinEvidence? {
+  guard value.steps.get(index) is Some({ operation: Join(_), .. }) else {
+    return None
+  }
+  value.join_evidence.get(index).bind(v => v)
+}
+
+///|
+/// Equality-correlation coverage for the exact temporal operands. Assertion is
+/// always absent; endpoint and right-scope validation remain producer duties.
+pub fn interval_join_evidence(
+  value : CheckedPipeline,
+  index : Int,
+) -> JoinEvidence? {
+  guard value.steps.get(index) is Some({ operation: IntervalJoin(_), .. }) else {
+    return None
+  }
   value.join_evidence.get(index).bind(v => v)
 }

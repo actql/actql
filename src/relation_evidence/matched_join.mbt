@@ -5,6 +5,61 @@ priv enum MatchedJoin {
 }
 
 ///|
+fn select_matched_key(
+  op : MatchedJoin,
+  side : @row.Side,
+  keys : KeySet?,
+  limits : TransferLimits,
+) -> Result[KeySelection, Issue] {
+  try {
+    let source = matched_source(op)
+    if limits.max_work < 0 || limits.max_name_bytes < 0 {
+      fail(source, InvalidLimits)
+    }
+    if keys is Some(keys) {
+      guard @carrier.complete_schema(keys.records) is Some(schema) &&
+        physical_equal(schema, matched_input_schema(op, side)) else {
+        fail(source, InputContractMismatch)
+      }
+    }
+    let b : TransferBudget = {
+      work: limits.max_work,
+      text: limits.max_name_bytes,
+    }
+    let key = join_covered(op, side, keys, b)
+    Ok({
+      key,
+      work: limits.max_work - b.work,
+      name_bytes: limits.max_name_bytes - b.text,
+    })
+  } catch {
+    Stop(e) => Err(e)
+  }
+}
+
+///|
+/// Uses the same operand-bound coverage rule as output-key transfer.
+pub fn select_join_key(
+  op : @join.CheckedJoin,
+  side : @row.Side,
+  keys : KeySet?,
+  limits : TransferLimits,
+) -> Result[KeySelection, Issue] {
+  select_matched_key(Equality(op), side, keys, limits)
+}
+
+///|
+/// Temporal predicates do not add uniqueness; only equality coverage is used.
+pub fn select_interval_join_key(
+  op : @join.CheckedIntervalJoin,
+  side : @row.Side,
+  keys : KeySet?,
+  limits : TransferLimits,
+) -> Result[KeySelection, Issue] {
+  select_matched_key(Temporal(op), side, keys, limits)
+}
+
+///|
 fn matched_source(op : MatchedJoin) -> @decode.Cursor {
   match op {
     Equality(v) => @join.source(v)

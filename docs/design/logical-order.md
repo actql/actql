@@ -198,8 +198,14 @@ but right-side admission, equality and completeness obligations are not waived.
 An ordered right input cannot repair an unordered left input. Source branches
 use their resolved targets rather than the last syntactically preceding step.
 
-Interval inner/left joins require both operand orders for their
-left-major/right-minor rule. Interval semi/anti need only left order while
+Interval inner/left joins require both operand orders unless the right equality
+correlation tuple covers a complete candidate key. With that conditional
+at-most-one match proof, only left order is required. `interval_join_evidence`
+returns the exact owning step's covered operand witnesses; its assertion is
+always absent. Coverage uses the same selection rule as output-key transfer,
+not uniqueness inferred from interval endpoints or current sample values.
+Hiding the key in output projection does not remove this input dependency.
+Interval semi/anti need only left order regardless of right uniqueness, while
 retaining both execution inputs and endpoint/coverage/search obligations. As-of
 join instead establishes ascending left `(time, identity)` order independently
 of input enumeration, using the checked producer's exact semantic identity and

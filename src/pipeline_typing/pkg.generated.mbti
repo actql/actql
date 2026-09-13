@@ -194,6 +194,8 @@ pub fn input_publication(PublishedInput) -> ResultPublication
 
 pub fn inputs(CheckedPipeline) -> Array[(String, @carrier_contract.Carrier)]
 
+pub fn interval_join_evidence(CheckedPipeline, Int) -> JoinEvidence?
+
 pub fn join_evidence(CheckedPipeline, Int) -> JoinEvidence?
 
 pub fn lag_order_completion(CheckedPipeline, Int) -> SortCompletion?
