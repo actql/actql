@@ -57,6 +57,7 @@ fn check_supported_source(
               | "top_k"
               | "top_k_by"
               | "lag"
+              | "json_pick"
               | "append"
               | "except"
               | "intersect"

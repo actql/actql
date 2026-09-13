@@ -39,7 +39,7 @@ separate protocol results, not successful CheckedPrograms with weaker guarantees
 The entry has an explicit implementation-domain check, separate from the
 language grammar. Its Local and Result-import domain accepts `values`, `derive`,
 `filter`, `assert_rows`, `group`, `select`, `rename`, `drop`, `sort`, `take`,
-`distinct`, `dedupe_rows`, `top_k`, `top_k_by`, `lag`, `append`, `join`, `cross_join`,
+`distinct`, `dedupe_rows`, `top_k`, `top_k_by`, `lag`, `json_pick`, `append`, `join`, `cross_join`,
 `except` and `intersect`, including empty operation
 sequences. Sort/take use the existing owned order-resolution closure and preserve
 their distinct strategies and preconditions; accepting them does not synthesize
@@ -80,6 +80,19 @@ without copying arrays. Offset Parameters and candidate-key completion remain
 separate owned static resolutions; arrival order, valueCID tie-breaks and a
 typed order list cannot replace them. Canonical binding inserts an omitted
 offset of one; this does not rewrite the source-stage identity projection.
+`JsonPickExecution` binds the exact input, checked path, output contract and
+selected resource policy. Every path segment is one literal object key, including
+numeric-looking strings; no JSONPath execution, array indexing, JSON string
+parsing or reference inspection is permitted. A null parent returns null, while
+an absent declared field or an incorrectly typed parent violates input admission
+and cannot be repaired into null. The selected leaf retains its type and composed
+nullability; an opaque json leaf is data, not a new traversal permission. Output
+preserves each input occurrence, order and original fields and adds the fresh
+field under the admitted contract and applicable resource limits. Failure rejects
+the operation output atomically. Indexed path readers do not copy the path array.
+The formal entry accepts the closed-object paths supported by the existing type
+checker; traversal through opaque json still requires a separately supported
+shape-evidence boundary and is not admitted by this runtime check alone.
 Ordinary group operations must close partition, per-call demand, result-contract,
 order and any resource/observation requirements before this entry succeeds.
 Exact count/min/max and decimal sum can use their typed output checks; this

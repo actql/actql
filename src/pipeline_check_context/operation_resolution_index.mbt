@@ -195,7 +195,12 @@ pub fn index_program_operation_resolutions(
                     match group_execution_check(site) {
                       Ok(None) =>
                         match top_k_execution_check(site, policy) {
-                          Ok(None) => lag_execution_check(site, policy)
+                          Ok(None) =>
+                            match lag_execution_check(site, policy) {
+                              Ok(None) =>
+                                json_pick_execution_check(site, policy)
+                              other => other
+                            }
                           other => other
                         }
                       other => other

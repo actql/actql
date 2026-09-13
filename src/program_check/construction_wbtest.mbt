@@ -26,6 +26,7 @@ fn local_construction_fixture(
   registry_entries? : String = "[]",
   catalog_entries? : String = "[]",
   generated_rows? : String? = None,
+  local_schema? : String? = None,
   generated_schema? : String = "{\"id\":{\"type\":\"number\",\"nullable\":false}}",
   nested_bytes? : Int? = None,
   nested_depth? : Int? = None,
@@ -71,6 +72,14 @@ fn local_construction_fixture(
       } else {
         "\"id\":\"local\","
       },
+    )
+    .replace(
+      old="\"schema\":{\"id\":{\"type\":\"number\",\"nullable\":false}},\"primary_key\":[\"id\"]",
+      new="\"schema\":" +
+        local_schema.unwrap_or(
+          "{\"id\":{\"type\":\"number\",\"nullable\":false}}",
+        ) +
+        ",\"primary_key\":[\"id\"]",
     )
     .replace(
       old="id + 1",

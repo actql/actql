@@ -37,6 +37,32 @@ pub fn reshape(value : CheckedOperation) -> Reshape? {
 }
 
 ///|
+pub fn json_pick_source(
+  value : CheckedOperation,
+) -> (@schema.FieldName, String)? {
+  match value.reshape {
+    Some(JsonPick(column~, output~, ..)) => Some((column, output))
+    _ => None
+  }
+}
+
+///|
+pub fn json_pick_path_count(value : CheckedOperation) -> Int {
+  match value.reshape {
+    Some(JsonPick(path~, ..)) => path.length()
+    _ => 0
+  }
+}
+
+///|
+pub fn json_pick_path_at(value : CheckedOperation, index : Int) -> String? {
+  match value.reshape {
+    Some(JsonPick(path~, ..)) => path.get(index)
+    _ => None
+  }
+}
+
+///|
 fn add_reshape_field(
   b : Budget,
   source : @decode.Cursor,

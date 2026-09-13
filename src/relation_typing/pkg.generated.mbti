@@ -103,6 +103,12 @@ pub fn group_keys(CheckedGroup) -> Array[KeyField]
 
 pub fn input_schema(CheckedOperation) -> @relation_schema.Schema
 
+pub fn json_pick_path_at(CheckedOperation, Int) -> String?
+
+pub fn json_pick_path_count(CheckedOperation) -> Int
+
+pub fn json_pick_source(CheckedOperation) -> (@relation_schema.FieldName, String)?
+
 pub fn lag_navigation(CheckedOperation) -> (KeyField, String, CountValue)?
 
 pub fn lag_partition_at(CheckedOperation, Int) -> KeyField?

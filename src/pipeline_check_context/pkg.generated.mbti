@@ -1379,6 +1379,14 @@ pub struct JoinRowOrderCheck {
   output_order : @pipeline_typing.LogicalOrder?
 }
 
+pub struct JsonPickExecutionCheck {
+  site : OperationRequirementSite
+  step : @pipeline_typing.CheckedStep
+  input : @pipeline_typing.Target
+  operation : @relation_typing.CheckedOperation
+  policy : @capacity_policy.Policy
+}
+
 pub struct LagExecutionCheck {
   site : OperationRequirementSite
   step : @pipeline_typing.CheckedStep
@@ -1552,6 +1560,7 @@ pub(all) enum OperationDisposition {
 }
 
 pub(all) enum OperationExecutionCheck {
+  JsonPickExecution(JsonPickExecutionCheck)
   LagExecution(LagExecutionCheck)
   TopKExecution(TopKExecutionCheck)
   GroupExecution(GroupExecutionCheck)
