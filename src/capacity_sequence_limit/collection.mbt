@@ -10,6 +10,7 @@ pub(all) enum CollectionIssue {
   DuplicateConsumption(Int)
   MissingApplication(Int)
   UnconsumedLimits(Int)
+  ForeignGuardBindings(Int)
 } derive(Eq, Debug)
 
 ///|
@@ -22,6 +23,7 @@ struct Applications {
   consumed : Array[Bool]
   remaining : Int
   work : Int
+  guards : @pipeline.BoundAuthorGuards?
 }
 
 ///|
@@ -53,6 +55,7 @@ pub fn check_applications(
   let work = n * 2 + limits + a * 3
   let entries : Array[SequenceLimits?] = Array::make(n, None)
   let consumed = Array::make(limits, false)
+  let mut guards = None
   for i, app in applications {
     if !physical_equal(app.pipeline, pipeline) {
       return Err(ForeignPipeline(i))
@@ -62,6 +65,12 @@ pub fn check_applications(
     }
     if @policy.cid(app.policy) != @policy.cid(policy) {
       return Err(ForeignPolicy(i))
+    }
+    if app.guards is Some(bound) {
+      if guards is Some(previous) && !same_guard_bindings(previous, bound) {
+        return Err(ForeignGuardBindings(i))
+      }
+      guards = Some(bound)
     }
     if entries[app.step] is Some(_) {
       return Err(DuplicateApplication(i))
@@ -89,6 +98,7 @@ pub fn check_applications(
     consumed,
     remaining: limits - a * 2,
     work,
+    guards,
   })
 }
 

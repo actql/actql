@@ -360,6 +360,15 @@ fn resolved_output(
   program : Applications,
   max_work : Int,
 ) -> Result[StepBound, OutputIssue] {
+  // This proof form lists wire candidates. An owned authored restriction is
+  // not yet its persistent Unit-bound witness and cannot silently be omitted.
+  if enforcement is SequenceEnforcement(v) &&
+    (
+      @sequence.guard_value(v, @sequence.MatchesPerKey) is Some(_) ||
+      @sequence.guard_value(v, @sequence.OutputRows) is Some(_)
+    ) {
+    return Err(InvalidOutput)
+  }
   let (limit, law) = match enforcement {
     SequenceEnforcement(v) =>
       (@sequence.limit(v, @sequence.OutputRows), "actql.bound.sequence-output")

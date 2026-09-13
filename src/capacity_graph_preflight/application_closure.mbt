@@ -6,6 +6,7 @@ pub(all) enum ApplicationClosureIssue {
   ForeignPipeline(Int)
   ForeignPolicy(Int)
   ForeignGuardClosure
+  SequenceGuardBindings(Int)
   GuardBindings(Int, @program.GuardBindingIssue)
   ProofWorkLimit
   InvalidProofOwner(Int, Int)
@@ -75,6 +76,12 @@ pub fn check_application_closure(
     if @policy.cid(selected_policy) !=
       @policy.cid(@input.selected_policy(app.sources.graph)) {
       return Err(ForeignPolicy(i))
+    }
+    if !@sequence.application_guard_bindings_match(
+        app.consumers.sequence,
+        @pipeline.bound_guard_closure_at(bound_guards, i).unwrap(),
+      ) {
+      return Err(SequenceGuardBindings(i))
     }
     let bound = match
       @program.check_guard_bindings(

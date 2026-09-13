@@ -10,6 +10,7 @@ import {
 }
 
 import {
+  "actql/actql/parameter_binding" @parameter,
   "actql/actql/source_value" @source,
   "actql/actql/decode_core" @decode,
   "actql/actql/value_contract" @contract,

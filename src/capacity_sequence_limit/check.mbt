@@ -17,6 +17,8 @@ pub(all) enum Issue {
   WrongEnforcement(Scope)
   UnsupportedCandidate(Scope, Int)
   CandidateScopeMismatch(Scope, Int)
+  ForeignGuardOwner
+  MissingGuard(Scope)
 } derive(Eq, Debug)
 
 ///|
@@ -31,6 +33,9 @@ struct SequenceLimits {
   match_index : Int
   output_index : Int
   work : Int
+  guards : @pipeline.BoundAuthorGuards?
+  match_guard : Int?
+  output_guard : Int?
 }
 
 ///|
@@ -45,6 +50,54 @@ pub fn check_host_limits(
   output_index : Int,
   max_work~ : Int,
 ) -> Result[SequenceLimits, Issue] {
+  check_limits(
+    pipeline,
+    step,
+    sources,
+    policy,
+    match_index,
+    output_index,
+    None,
+    max_work,
+  )
+}
+
+///|
+/// Host candidate claims and authored restrictions are retained separately;
+/// persistent authored witnesses require the enclosing Unit identity.
+pub fn check_bound_limits(
+  pipeline : @pipeline.CheckedPipeline,
+  step : Int,
+  sources : @host.HostSources,
+  policy : @policy.Policy,
+  match_index : Int,
+  output_index : Int,
+  guards : @pipeline.BoundAuthorGuards,
+  max_work~ : Int,
+) -> Result[SequenceLimits, Issue] {
+  check_limits(
+    pipeline,
+    step,
+    sources,
+    policy,
+    match_index,
+    output_index,
+    Some(guards),
+    max_work,
+  )
+}
+
+///|
+fn check_limits(
+  pipeline : @pipeline.CheckedPipeline,
+  step : Int,
+  sources : @host.HostSources,
+  policy : @policy.Policy,
+  match_index : Int,
+  output_index : Int,
+  guards : @pipeline.BoundAuthorGuards?,
+  max_work : Int,
+) -> Result[SequenceLimits, Issue] {
   if max_work < 0 {
     return Err(InvalidLimits)
   }
@@ -54,10 +107,10 @@ pub fn check_host_limits(
   guard checked.operation is @pipeline.Sequence(operation) else {
     return Err(WrongOperation)
   }
-  if @relation.sequence_per_key_guard(operation) is Some(_) {
+  if guards is None && @relation.sequence_per_key_guard(operation) is Some(_) {
     return Err(UnresolvedAuthorSource(MatchesPerKey))
   }
-  if @relation.sequence_output_guard(operation) is Some(_) {
+  if guards is None && @relation.sequence_output_guard(operation) is Some(_) {
     return Err(UnresolvedAuthorSource(OutputRows))
   }
   guard @wire.program_claim_mixed(@host.source_claims(sources)) is Some(mixed) else {
@@ -70,6 +123,38 @@ pub fn check_host_limits(
     return Err(MissingLimit(OutputRows))
   }
   let mut work = 0
+  let mut match_guard = None
+  let mut output_guard = None
+  if guards is Some(bound) {
+    let occurrences = @pipeline.bound_guard_occurrences(bound)
+    if !physical_equal(@pipeline.author_guards_pipeline(occurrences), pipeline) {
+      return Err(ForeignGuardOwner)
+    }
+    let count = @pipeline.author_guard_count(occurrences)
+    if count > max_work {
+      return Err(WorkLimit)
+    }
+    work += count
+    for index in 0..<count {
+      let occurrence = @pipeline.author_guard_at(occurrences, index).unwrap()
+      if @pipeline.author_guard_step(occurrence) != step {
+        continue
+      }
+      match @pipeline.author_guard_scope(occurrence) {
+        SequenceMatchesPerKey => match_guard = Some(index)
+        SequenceOutputRows => output_guard = Some(index)
+        _ => ()
+      }
+    }
+    if (@relation.sequence_per_key_guard(operation) is Some(_)) !=
+      (match_guard is Some(_)) {
+      return Err(MissingGuard(MatchesPerKey))
+    }
+    if (@relation.sequence_output_guard(operation) is Some(_)) !=
+      (output_guard is Some(_)) {
+      return Err(MissingGuard(OutputRows))
+    }
+  }
   for (scope, limit) in [(MatchesPerKey, matches), (OutputRows, output)] {
     let minimum = @wire.limit_minimum(limit)
     let n = @arithmetic.minimum_candidate_count(minimum)
@@ -119,6 +204,9 @@ pub fn check_host_limits(
     match_index,
     output_index,
     work,
+    guards,
+    match_guard,
+    output_guard,
   })
 }
 
@@ -143,11 +231,50 @@ pub fn selected_policy(v : SequenceLimits) -> @policy.Policy {
 }
 
 ///|
+/// Original Host input claim, not the final minimum including authored guards.
+/// Retained for compatibility; host_limit explicitly names this boundary.
 pub fn limit(v : SequenceLimits, scope : Scope) -> @wire.LimitClaim {
   if scope == MatchesPerKey {
     v.matches
   } else {
     v.output
+  }
+}
+
+///|
+/// Original admitted Host-only input claim; use effective_maximum for enforcement.
+pub fn host_limit(v : SequenceLimits, scope : Scope) -> @wire.LimitClaim {
+  limit(v, scope)
+}
+
+///|
+pub fn bound_guards(v : SequenceLimits) -> @pipeline.BoundAuthorGuards? {
+  v.guards
+}
+
+///|
+pub fn guard_index(v : SequenceLimits, scope : Scope) -> Int? {
+  if scope == MatchesPerKey {
+    v.match_guard
+  } else {
+    v.output_guard
+  }
+}
+
+///|
+pub fn guard_value(v : SequenceLimits, scope : Scope) -> Int64? {
+  guard v.guards is Some(guards) && guard_index(v, scope) is Some(index) else {
+    return None
+  }
+  @pipeline.bound_guard_value_at(guards, index)
+}
+
+///|
+pub fn effective_maximum(v : SequenceLimits, scope : Scope) -> Int64 {
+  let maximum = @arithmetic.minimum_value(@wire.limit_minimum(limit(v, scope)))
+  match guard_value(v, scope) {
+    Some(value) => if value < maximum { value } else { maximum }
+    None => maximum
   }
 }
 

@@ -103,6 +103,7 @@ pub(all) enum ApplicationClosureIssue {
   ForeignPipeline(Int)
   ForeignPolicy(Int)
   ForeignGuardClosure
+  SequenceGuardBindings(Int)
   GuardBindings(Int, @capacity_program_step.GuardBindingIssue)
   ProofWorkLimit
   InvalidProofOwner(Int, Int)

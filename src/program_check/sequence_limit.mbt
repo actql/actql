@@ -129,6 +129,12 @@ fn prepare_program_sequence_limits(
       continue
     }
     let site = selected.site
+    if @sequence.guard_value(selected.limits, MatchesPerKey) is Some(_) ||
+      @sequence.guard_value(selected.limits, OutputRows) is Some(_) {
+      // Guard selection is not its persistent source witness. Never serialize
+      // a selected authored restriction as an absent guard.
+      raise UnconvertedProofInput
+    }
     guard units.get(site.stage) is Some(unit) else { raise ForeignOwner }
     if !physical_equal(unit.pipeline, site.pipeline) {
       continue

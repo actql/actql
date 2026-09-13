@@ -20,7 +20,10 @@ fn pipeline(
 }
 
 ///|
-fn pipeline_text(text : String) -> @pipeline.CheckedPipeline {
+fn pipeline_text(
+  text : String,
+  parameters? : @parameter.Declarations? = None,
+) -> @pipeline.CheckedPipeline {
   let source = @source.parse_json(text, {
     max_input_bytes: 4096,
     max_nodes: 100,
@@ -40,7 +43,7 @@ fn pipeline_text(text : String) -> @pipeline.CheckedPipeline {
       max_name_bytes=2,
     ).unwrap(),
   ).unwrap()
-  @pipeline.check(cursor, [("rows", schema)], None, None, {
+  @pipeline.check(cursor, [("rows", schema)], parameters, None, {
     max_steps: 2,
     max_work: 10000,
     max_nodes: 1000,

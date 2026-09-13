@@ -12,6 +12,8 @@ import {
 // Values
 pub fn application_at(Applications, Int) -> SequenceLimits?
 
+pub fn application_guard_bindings_match(Applications, @pipeline_typing.BoundAuthorGuards) -> Bool
+
 pub fn application_pipeline(Applications) -> @pipeline_typing.CheckedPipeline
 
 pub fn application_policy(Applications) -> @capacity_policy.Policy
@@ -20,7 +22,11 @@ pub fn application_sources(Applications) -> @capacity_host_witness.HostSources
 
 pub fn application_work(Applications) -> Int
 
+pub fn bound_guards(SequenceLimits) -> @pipeline_typing.BoundAuthorGuards?
+
 pub fn check_applications(@pipeline_typing.CheckedPipeline, @capacity_host_witness.HostSources, @capacity_policy.Policy, Array[SequenceLimits], max_work~ : Int) -> Result[Applications, CollectionIssue]
+
+pub fn check_bound_limits(@pipeline_typing.CheckedPipeline, Int, @capacity_host_witness.HostSources, @capacity_policy.Policy, Int, Int, @pipeline_typing.BoundAuthorGuards, max_work~ : Int) -> Result[SequenceLimits, Issue]
 
 pub fn check_complete(@pipeline_typing.CheckedPipeline, @capacity_host_witness.HostSources, @capacity_policy.Policy, Array[SequenceLimits], max_work~ : Int) -> Result[Applications, CollectionIssue]
 
@@ -33,6 +39,14 @@ pub fn checked_sources(SequenceLimits) -> @capacity_host_witness.HostSources
 pub fn checked_step(SequenceLimits) -> Int
 
 pub fn consumes_limit(Applications, Int) -> Bool
+
+pub fn effective_maximum(SequenceLimits, Scope) -> Int64
+
+pub fn guard_index(SequenceLimits, Scope) -> Int?
+
+pub fn guard_value(SequenceLimits, Scope) -> Int64?
+
+pub fn host_limit(SequenceLimits, Scope) -> @capacity_witness.LimitClaim
 
 pub fn limit(SequenceLimits, Scope) -> @capacity_witness.LimitClaim
 
@@ -60,6 +74,7 @@ pub(all) enum CollectionIssue {
   DuplicateConsumption(Int)
   MissingApplication(Int)
   UnconsumedLimits(Int)
+  ForeignGuardBindings(Int)
 } derive(Eq, @debug.Debug)
 
 pub(all) enum Issue {
@@ -74,6 +89,8 @@ pub(all) enum Issue {
   WrongEnforcement(Scope)
   UnsupportedCandidate(Scope, Int)
   CandidateScopeMismatch(Scope, Int)
+  ForeignGuardOwner
+  MissingGuard(Scope)
 } derive(Eq, @debug.Debug)
 
 pub(all) enum Scope {

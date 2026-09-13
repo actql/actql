@@ -75,6 +75,28 @@ it does not make other consumer families or upstream checks optional.
 
 ## Explicit remaining boundaries
 
+`check_bound_limits` additionally accepts the same pipeline's owned
+`BoundAuthorGuards`. It retains the exact occurrence index and effective binding
+for each authored scope and computes `effective_maximum` independently as the
+minimum of its Host candidates and authored restriction. Equal or looser guards
+remain present; omission does not synthesize a guard. `host_limit` (and the
+compatibility reader `limit`) returns the original Host-only input claim, not
+the final guard-inclusive minimum. Enforcement consumers use `effective_maximum`.
+
+The collection requires one consistent immutable Parameter binding among its
+guarded selections. The application closure checks that binding against the
+same producer visit's bound guards; independently collected occurrences from
+the same pipeline and same bound-values owner are valid, while re-binding equal
+values does not establish ownership. Selection work includes every inspected
+guard occurrence, including other steps, before both candidate scopes.
+
+This selection does not construct an authored wire witness or assert its Unit
+identity. Until that conversion is connected, persistent sequence serialization
+and the wire-candidate output-proof resolver reject guarded selections rather
+than omit their restrictions. The formal preparation entry still uses the
+Host-only path. The bound-selection entry is not a substitute for those remaining
+source and final-minimum checks.
+
 The [atomic Program application resolver](program-step-bounds.md#atomic-output-bound-construction)
 can bind `actql.bound.sequence-output` to this result's output-row minimum and
 use that conditional upper bound in later steps. It retains both enforcement
