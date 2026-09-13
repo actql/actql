@@ -212,6 +212,50 @@
       }
     },
     {
+      "requirement_id": "actql.execution/query-process-evidence.order",
+      "statement_sha256": "24aa4ff67bf591559bfdbcbb7e14282527b9589664909c9fb448b9537aa75fc1",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "query-process-evidence",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.execution/query-process-evidence.issuer",
+      "statement_sha256": "22513ab480b481fbcc9790305c1f38d72ec5c4055bd45db2d0161ac072c28490",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "query-process-evidence",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.execution/query-process-evidence.admission",
+      "statement_sha256": "1a42e19bb5ef614099cb009227c32149c417c77672cb0ba2fead569855fb09d3",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "query-process-evidence",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.execution/query-process-evidence.native",
+      "statement_sha256": "94122b5227bf31be688b77233160c42c161acc8f24295825d376bb7eddae261c",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "query-process-evidence",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.execution/stage-execution.product-2e6789533bf2",
       "statement_sha256": "a074cb52e088a49ad482c296874f15cb8298967e160a49ec7345cc16f00a51de",
       "status": "pending",

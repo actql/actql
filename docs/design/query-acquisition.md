@@ -43,3 +43,25 @@ outside the selected request.
 Aggregate absorption, shared scans, brought-in captured inputs, changes feeds,
 prefix demand, take and checkpoints are separate contracts. The entry is not a
 replacement for `program_check.check` or a runnable-plan constructor.
+
+## Process evidence trust boundary
+
+The initial [process-evidence profile](../spec/execution.md#query-process-evidence)
+uses a Host-authorized private issuer and live immutable completion handles. Shared
+record preimages bind all three validation roles to one requirement, execution
+attempt, source scope, access and retained output. Their hashes name records;
+they do not authenticate them. Capture admission is responsible for checking live
+provenance and exact task ownership. Rehydration from JSON is outside this profile.
+
+This is an explicit specialization of the previously abstract execution-evidence
+references, not an assertion that the earlier label-hash fixtures established
+authenticity. The original acquisition contract and its pins remain unchanged;
+the process-evidence contract pins that dependency separately. Host-private code
+implements issuance and admission, while the shared schema fixes the identity
+representation and the normative rules fix the trust boundary.
+
+Source order is independently unresolved by those earlier fixture labels. This
+profile uses null, preserving input-relative order without manufacturing a total
+order witness. Non-null order requirements need a different supported evidence
+profile. Native execution still needs full selected-scan validation provenance;
+receiving fewer rows or fields is not a reason to omit their required checks.

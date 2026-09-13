@@ -347,6 +347,80 @@ or numeric-observation capture requirements.
 Losing the process loses this retention guarantee. Runtime evidence verification
 and backend execution support are separate from static derivation and registration.
 
+<a id="query-process-evidence"></a>
+
+#### Process-retained query evidence
+
+<!-- machine-import: ../../spec/contracts/actql-query-process-evidence.json# sha256:fad105d74ec20ac8f223f1252d5cc7726585dab15b51b1d934c920c8c3a692cd -->
+<!-- machine-import: ../../spec/contracts/actql-query-process-evidence.json#/schemas/record sha256:758c9c4f1942890e73462776f3230400e7076c146af8eb3f7e39602715c7427e -->
+The initial process-evidence profile specializes the acquisition contract without
+changing its requirement or observation shapes. Its closed record schema is
+[`actql-query-process-evidence.json`](../../spec/contracts/actql-query-process-evidence.json)
+at `/schemas/record`. This is a Host-private execution trust boundary, not a
+portable proof system, backend registration or durable Run capability.
+
+<!-- requirement-block: query-process-evidence.order -->
+This initial profile MUST require `source_order_cid: null`; preserve the relative
+order of admitted rows through filter and select; and never infer total order or
+justify an order-dependent consumer from physical enumeration alone.
+This does not erase independently selected source guarantees. A non-null source
+order requirement needs its own admitted source-order evidence contract and is
+unsupported by this profile. The earlier `fixture_order` hash is test input only,
+not such a contract. Snapshot tokens neither establish nor replace order evidence.
+
+<!-- requirement-block: query-process-evidence.issuer -->
+The selected Host MUST authorize the execution-record issuer outside candidate
+proposals; allocate a process-unique issuer identifier and a never-reused attempt
+identifier within it; and allow issuance only after successful full selected-scan
+admission, demanded filter evaluation, select, applicable logical and physical
+limits, and immutable output retention have completed.
+An attempt is allocated before execution, not supplied by a candidate or caller.
+The Host's selected verifier pins this process-evidence contract and its acquisition
+dependency; a matching version string alone does not select or authorize a verifier.
+The issuer is trusted execution code with access to the completed task and its
+actual source scope. It can be Host-private; no shared MoonBit issuer constructor
+or generic evidence reader is required. All three role records are issued at this
+completion point, including the earlier source-validation phase. Failure or
+cancellation before completion issues none and admits no consumer. A later consumer
+failure does not revoke an already completed retained observation.
+
+The exact record preimage is the entire `/schemas/record` object, without a
+self-CID: `{version:"actql-query-process-evidence/0.1", issuer, attempt,
+requirement_cid, role, snapshot, scan_scope_cid, actual_access, output}`.
+`role` is `source_validation`, `filter` or `select`. `snapshot`, `actual_access`
+and `output` have exactly the acquisition observation meanings and shapes.
+`scan_scope_cid` equals its coverage scope. Each of the three coverage evidence
+CIDs hashes the corresponding record with SHA-256 over canonical JSON UTF-8.
+No record includes the observation CID or another role's CID, avoiding a cycle.
+The requirement CID binds owner, source, resolved request, Parameters, operations
+and contracts; issuer/attempt distinguish executions even with identical output.
+
+<!-- requirement-block: query-process-evidence.admission -->
+The Host capture verifier MUST resolve all three evidence CIDs to live immutable
+opaque records issued by an authorized issuer; match their roles, exact requirement,
+same issuer and attempt, applicable snapshot, scan scope, actual access and output
+to the expected execution and observation; verify the retained rows and their
+output CID, count and contract; and reject missing, foreign, unissued, substituted
+or deserialized records even when their self-hashes match.
+The expected attempt comes from the Host's owned task, not from the submitted
+observation. A CID-indexed lookup alone does not confer authority: live provenance
+and task ownership are additional checks. Losing the issuer's process or retained
+records ends this profile; serialized JSON cannot restore that authority. JSON
+Schema validates only the closed shape, not these semantic or provenance checks.
+
+<!-- requirement-block: query-process-evidence.native -->
+For native pushdown, the issuer MUST possess verified execution provenance covering
+all mandatory fields and rows of the selected source scan before filtering,
+including those not received by the Host; otherwise completion is rejected or a
+broad acquisition is executed instead. Successful admission of projected received
+rows alone is insufficient.
+A mock source owning the complete finite scan can perform these checks itself
+and keep private completion handles. An external provider needs an independently
+admitted source attestation path; this profile does not invent one. Neither a
+coverage boolean nor a native candidate's promise supplies the missing provenance.
+Snapshot applicability still follows the source contract, and null remains valid
+when no snapshot evidence applies. No universal snapshot facility is introduced.
+
 <a id="stage-execution"></a>
 
 ### Program and stage execution
