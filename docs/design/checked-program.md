@@ -105,6 +105,12 @@ the separate edge occurrences. Unused acquisitions keep their mandatory checks
 but do not enter this publication's effective policy set. The iterative worklist,
 source selection and policy union all consume the shared preparation budget.
 
+Except and intersect also retain both input policies for either duplicate mode:
+right-side row membership participates in selecting output even though output
+values come from the left. Their complete-row comparison and physical-resource
+execution checks remain attached to the same checked operation. Policy transfer
+neither removes these checks nor turns the right operand into an unused input.
+
 Filter transfer additionally retains each exact checked predicate and its step
 coordinate. All value leaves participate in provenance, including branches that
 evaluation may skip: field references inherit the selected input's provenance,
@@ -144,7 +150,7 @@ policy emission consume the same preparation budget; a later failure exposes no
 partial CheckedProgram.
 
 Other transfer paths, including computed values and mixed-source operations
-other than append,
+other than append, except and intersect,
 still require their own composition rules. A SourceView-containing
 Program with an unclosed publication policy fails `UnclosedPublicationPolicy`;
 the missing result is not replaced with an empty policy or a whole-input union.

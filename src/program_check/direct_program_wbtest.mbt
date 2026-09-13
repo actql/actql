@@ -7,6 +7,8 @@ fn checked_direct_program_fixture(
   imported? : Bool = false,
   append? : String = "",
   input_name? : String = "remote",
+  set_operation? : String = "",
+  duplicates? : String = "distinct",
 ) -> CheckedProgram raise {
   let original_text =
     #|{"version":"actql/0.1","id":"direct","stages":[{"id":"s","inputs":{"remote":{"connector":"crm/main","resource":"r","request":{"id":1,"tenant":null}}},"steps":[{"distinct":["id"],"as":"selected"}],"results":{"out":{"from":"selected","fields":["id"]}}}],"results":{"out":{"from":{"stage":"s","result":"out"}}}}
@@ -23,9 +25,17 @@ fn checked_direct_program_fixture(
       )
       .replace(
         old="\"steps\":[",
-        new="\"steps\":[{\"from\":\"remote\",\"append\":{\"with\":\"" +
+        new="\"steps\":[{\"from\":\"remote\",\"" +
+          (if set_operation == "" { "append" } else { set_operation }) +
+          "\":{\"with\":\"" +
           append +
-          "\"}},",
+          "\"" +
+          (if set_operation == "" {
+            ""
+          } else {
+            ",\"duplicates\":\"" + duplicates + "\""
+          }) +
+          "}},",
       )
     } else if imported {
       text.replace(
@@ -130,6 +140,57 @@ fn checked_direct_program_fixture(
     max_nodes=1000000,
     max_depth=100,
   )
+}
+
+///|
+test "source set publication retains both comparison inputs and resource checks" {
+  for operation in ["except", "intersect"] {
+    for duplicates in ["all", "distinct"] {
+      for right in ["right", "remote"] {
+        let program = checked_direct_program_fixture(
+          append=right,
+          set_operation=operation,
+          duplicates~,
+        )
+        let policy = publication_source_policy(
+          unit_publication_at(program, 0, 0).unwrap(),
+        ).unwrap()
+        assert_eq(
+          publication_policy_source_count(policy),
+          if right == "right" {
+            2
+          } else {
+            1
+          },
+        )
+        assert_eq(publication_policy_edge_count(policy), 3)
+        for i in 0..<publication_policy_source_count(policy) {
+          let source = publication_policy_source_at(policy, i).unwrap()
+          let name = @sourceviews.declaration(
+              source_execution_subject(source).source,
+            ).input_name
+          assert_true(name == "remote" || (right == "right" && name == "right"))
+        }
+        let closure = @context.stage_requirement_operations(
+          requirements(program),
+        )
+        let mut resources = 0
+        for i in 0..<@context.operation_closure_count(closure) {
+          if @context.operation_closure_at(closure, i)
+            is Some(ExecutionCheck(SetRows(check))) &&
+            check.rule is RequireComparisonResources {
+            assert_eq(check.site.stage, 0)
+            assert_eq(check.site.step, 0)
+            assert_true(
+              physical_equal(check.site.pipeline, program.units[0].pipeline),
+            )
+            resources += 1
+          }
+        }
+        assert_eq(resources, 1)
+      }
+    }
+  }
 }
 
 ///|
