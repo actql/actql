@@ -49,6 +49,20 @@ pub fn unit_group_input_proof(
     nodes: max_nodes,
     depth: max_depth,
   }
+  let (source, limit) = owned_group_array_limit(
+    program, stage, step, aggregate, budget,
+  )
+  group_input_proof(program.units, source, limit, candidate, budget)
+}
+
+///|
+fn owned_group_array_limit(
+  program : CheckedProgram,
+  stage : Int,
+  step : Int,
+  aggregate : Int,
+  budget : IdentityBudget,
+) -> (GroupAggregateSource, @context.GroupArrayLimit) raise UnitBuildFailure {
   guard unit_group_aggregate_source_at(program, stage, step, aggregate)
     is Some(source) else {
     raise ForeignOwner
@@ -65,7 +79,7 @@ pub fn unit_group_input_proof(
       physical_equal(@context.group_array_limit_call(limit), source.call) else {
       continue
     }
-    return group_input_proof(program.units, source, limit, candidate, budget)
+    return (source, limit)
   }
   raise ForeignOwner
 }

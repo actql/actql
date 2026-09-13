@@ -70,6 +70,16 @@ pub fn group_input_proof_membership(GroupInputProof) -> @capacity_graph_prefligh
 
 pub fn group_input_proof_source(GroupInputProof) -> GroupAggregateSource
 
+pub fn group_limit_claim(GroupLimit) -> @capacity_witness.LimitClaim
+
+pub fn group_limit_proof_at(GroupLimit, Int) -> GroupInputProof?
+
+pub fn group_limit_proof_count(GroupLimit) -> Int
+
+pub fn group_limit_selection(GroupLimit) -> @pipeline_check_context.GroupArrayLimit
+
+pub fn group_limit_source(GroupLimit) -> GroupAggregateSource
+
 pub fn incoming_gates(CheckedProgram) -> @pipeline_check_context.ProgramIncomingGates
 
 pub fn proof_application(ReidentifiedStep) -> @capacity_program_step.StepBound
@@ -187,6 +197,10 @@ pub fn unit_gate_cid_at(CheckedProgram, Int, Int) -> String?
 pub fn unit_gate_cid_count(CheckedProgram, Int) -> Int?
 
 pub fn unit_group_aggregate_source_at(CheckedProgram, Int, Int, Int) -> GroupAggregateSource?
+
+pub fn unit_group_array_limit(CheckedProgram, Int, Int, Int, max_work~ : Int, max_bytes~ : Int, max_nodes~ : Int, max_depth~ : Int) -> GroupLimit raise UnitBuildFailure
+
+pub fn unit_group_guard_witness(CheckedProgram, Int, Int, Int, max_work~ : Int, max_bytes~ : Int, max_nodes~ : Int, max_depth~ : Int) -> @capacity_witness.WireWitness? raise UnitBuildFailure
 
 pub fn unit_group_input_proof(CheckedProgram, Int, Int, Int, Int, max_work~ : Int, max_bytes~ : Int, max_nodes~ : Int, max_depth~ : Int) -> GroupInputProof raise UnitBuildFailure
 
@@ -307,6 +321,8 @@ pub struct GroupAggregateSource {
 }
 
 type GroupInputProof
+
+type GroupLimit
 
 pub struct KeyedExecution {
   owner : @pipeline_check_context.SourceProducerContext

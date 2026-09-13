@@ -13,6 +13,27 @@ test "array item proofs preserve row bounds and reject foreign aggregate ownersh
   )
   let program = programs[0]
   let source = unit_group_aggregate_source_at(program, 1, 2, 0).unwrap()
+  let resolved = unit_group_array_limit(
+    program,
+    1,
+    2,
+    0,
+    max_work=100000000,
+    max_bytes=10000000,
+    max_nodes=1000000,
+    max_depth=100,
+  )
+  assert_true(group_limit_proof_count(resolved) > 0)
+  let out = @encode.writer(100000, 10000, 100)
+  @wire.emit_limit(group_limit_claim(resolved), out)
+  let text = @encode.finish(out)
+  assert_true(text.contains("\"effective_max\":1,"))
+  assert_true(
+    text.contains("\"author_guard_binding\":\"currently_non_binding\""),
+  )
+  assert_true(text.contains("\"role\":\"author_guard\""))
+  assert_true(text.contains("\"role\":\"host_ceiling\""))
+  assert_true(text.contains("\"role\":\"proven_upper_bound\""))
   let closure = @context.stage_requirement_operations(requirements(program))
   let mut converted_count = 0
   for i in 0..<@context.operation_closure_count(closure) {

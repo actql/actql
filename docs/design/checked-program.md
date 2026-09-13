@@ -78,6 +78,26 @@ are not erased by the new law application. Indexed scope selection cannot accept
 an independently supplied Unit CID or substitute an equal-valued candidate.
 This reader does not select a new limit, complete runtime checks, or emit the
 aggregate's full resolved-limit envelope with Host and author-guard candidates.
+`unit_group_array_limit` performs that assembly for one owned ordinary-array
+occurrence. It retains the selected Host witness and every authored guard,
+converts the selected Program candidates and their dependency graphs, and admits
+the resulting arithmetic closure and canonical resolved-limit envelope. The
+effective maximum is checked against all candidates; ties leave an author guard
+currently non-binding without dropping its provenance. The limit specifies
+fail-only engine-atomic enforcement, not truncation or completed enforcement.
+The returned opaque result retains its original selection and indexed proof
+graphs so a consumer does not reconstruct candidate ownership from wire values.
+An extracted aggregate guard uses the owning Unit Definition as its witness
+dependency, keeping unrelated stages and whole-Program observations outside the
+local limit identity. Its source path is a canonical locator in the authored
+Unit body, with the aggregate name encoded as a JSON string in bracket notation.
+The source locator is distinct from the protected `items`/`bytes` subject:
+one locates the authored restriction, the other identifies its measured scope.
+`unit_group_guard_witness` reads the effective array guard from the same completed
+operation closure, omits a genuinely absent guard and creates the canonical
+author-guard witness. Parameter syntax is not reparsed or defaulted by this reader.
+It currently covers ordinary array aggregates; the shared string-aggregate path
+convention does not imply completed string limit or execution support.
 Join consumes the existing cardinality selection, ordered-occurrence execution
 check and exact selected-policy capacity application. All five join kinds
 can close when their requirements are supplied. Authored cardinality and
