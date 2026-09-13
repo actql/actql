@@ -183,6 +183,13 @@ The returned handle exposes the opaque observation, `bindInput` and idempotent
 `close`; a failed consumer does not close it. The factory and these callbacks
 must not come from Program data.
 
+This is a low-level trusted assembly API, not yet the standard product Host
+entry. That entry must install the verifier through its own trusted bridge and
+must not accept a verifier/factory override from Program data or ordinary
+Connector registration. Product examples and CLI code must not import the fixed
+`duckdb_conformance` exports or test catalogs. The conformance package exercises
+the implementation; it is not the application's runtime configuration.
+
 `test/issued-broad-query.test.mjs` connects real DuckDB to the actual MoonBit
 issuer in one process through the fixed `duckdb_conformance` fixture. It starts
 at public `program_check.check`, selects the registered broad candidate, and

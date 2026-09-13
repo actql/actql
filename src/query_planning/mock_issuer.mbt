@@ -6,17 +6,12 @@ struct MockQueryIssuer {
   _contracts : QueryEvidenceContracts
   requirement : QueryRequirement
   name : String
-  mut next_attempt : Int
+  attempts : IssuerCounter
   mut live : Bool
 }
 
 ///|
-priv struct MockIssuerSerial {
-  mut next : Int
-}
-
-///|
-let mock_issuer_serial : MockIssuerSerial = { next: 0, }
+let mock_issuer_serial : IssuerCounter = { next: 0, }
 
 ///|
 priv struct MockAttemptAuthority {
@@ -56,16 +51,14 @@ pub fn prepare_mock_query_issuer(
   if process_nonce.is_empty() || process_nonce.length() > max_nonce_chars {
     return Err(IdentifierLimit)
   }
-  if mock_issuer_serial.next == 2147483647 {
+  guard reserve_issuer_number(mock_issuer_serial) is Some(serial) else {
     return Err(IdentifierExhausted)
   }
-  let serial = mock_issuer_serial.next
-  mock_issuer_serial.next += 1
   Ok({
     _contracts: contracts,
     requirement,
     name: process_nonce + "/mock-issuer/" + serial.to_string(),
-    next_attempt: 0,
+    attempts: { next: 0, },
     live: true,
   })
 }
@@ -82,11 +75,9 @@ pub fn prepare_issued_mock_query_attempt(
   if !issuer.live {
     return Err(IssuerClosed)
   }
-  if issuer.next_attempt == 2147483647 {
+  guard reserve_issuer_number(issuer.attempts) is Some(number) else {
     return Err(IdentifierExhausted)
   }
-  let number = issuer.next_attempt.to_string()
-  issuer.next_attempt += 1
   let prepared = match
     prepare_requirement_mock_query_attempt(
       issuer.requirement,
@@ -97,7 +88,7 @@ pub fn prepare_issued_mock_query_attempt(
     Ok(value) => value
     Err(issue) => return Err(Attempt(issue))
   }
-  Ok({ ..prepared, authority: Some({ issuer, number, }), })
+  Ok({ ..prepared, authority: Some({ issuer, number: number.to_string(), }), })
 }
 
 ///|

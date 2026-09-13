@@ -7,17 +7,12 @@ struct DuckDBQueryIssuer {
   requirement : QueryRequirement
   name : String
   mut transport_matches : (DuckDBBroadAttempt) -> Bool
-  mut next_attempt : Int
+  attempts : IssuerCounter
   mut live : Bool
 }
 
 ///|
-priv struct DuckDBIssuerSerial {
-  mut next : Int
-}
-
-///|
-let duckdb_issuer_serial : DuckDBIssuerSerial = { next: 0, }
+let duckdb_issuer_serial : IssuerCounter = { next: 0, }
 
 ///|
 priv struct DuckDBBroadAuthority {
@@ -59,17 +54,15 @@ pub fn prepare_duckdb_query_issuer(
   if process_nonce.is_empty() || process_nonce.length() > max_nonce_chars {
     return Err(IdentifierLimit)
   }
-  if duckdb_issuer_serial.next == 2147483647 {
+  guard reserve_issuer_number(duckdb_issuer_serial) is Some(serial) else {
     return Err(IdentifierExhausted)
   }
-  let serial = duckdb_issuer_serial.next
-  duckdb_issuer_serial.next += 1
   Ok({
     _contracts: contracts,
     requirement,
     name: process_nonce + "/duckdb-issuer/" + serial.to_string(),
     transport_matches,
-    next_attempt: 0,
+    attempts: { next: 0, },
     live: true,
   })
 }
@@ -91,13 +84,11 @@ pub fn prepare_issued_duckdb_broad_attempt(
   if !physical_equal(issuer.requirement, preparation.requirement) {
     return Err(UnauthorizedAttempt)
   }
-  if issuer.next_attempt == 2147483647 {
+  guard reserve_issuer_number(issuer.attempts) is Some(number) else {
     return Err(IdentifierExhausted)
   }
-  let number = issuer.next_attempt.to_string()
-  issuer.next_attempt += 1
   let attempt = prepare_duckdb_broad_attempt(preparation)
-  Ok({ ..attempt, authority: Some({ issuer, number, }), })
+  Ok({ ..attempt, authority: Some({ issuer, number: number.to_string(), }), })
 }
 
 ///|

@@ -141,6 +141,20 @@ semantic issuance are separate trust boundaries: a real-provider capture must
 connect both to the same owned execution, not substitute an independent double
 for either authority.
 
+The low-level bridge factory and verifier registration are trusted Host assembly
+operations, not Program inputs or ordinary Connector capability fields. A
+standard product entry must assemble this bridge internally with the trusted
+MoonBit implementation; it must not expose a per-call verifier override. Fixed
+`duckdb_conformance` exports and their catalogs are test inputs, not dependencies
+of that product entry or its execution examples. A boolean returned by the exact
+live-provenance verifier is distinct from accepting a caller's success boolean.
+
+Only serial reservation is shared between mock and DuckDB issuers. Backend
+issuer namespaces, per-issuer attempt counters, live authority and retained
+receipt types stay distinct. Reservation checks exhaustion before incrementing
+and never reuses a consumed number. Shared serialization and allocation do not
+authorize cross-backend substitution of attempts, retained data or records.
+
 After guarded broad computation, retention hashes the exact admitted scan and
 completed output with the same bounded row-wire accounting used by mock. The
 measurement byte/node budget spans both artifacts; an exactly exhausted scan
@@ -389,6 +403,11 @@ measurements cannot be attached to a different attempt or retried after failure.
 Settlement acknowledgement and these diagnostic measurements are not record
 issuance, source authorization, live read-view attestation or product completion.
 Those additional boundaries are required before capture can publish native output.
+The Host-local two-receipt contract already provides the required authority
+profile for this all-rows-received implementation. External-provider attestation
+or a new validation-summary contract is not a prerequisite. Avoiding full-scan
+transfer is a separate internal-validation improvement, not a completion gate
+for the two-receipt path.
 
 The [acquisition resource-scope contract](../../spec/contracts/actql-query-resource-scopes.json)
 separates common acquisition guards from selected fragment bounds. This native
