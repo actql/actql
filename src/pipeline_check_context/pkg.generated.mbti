@@ -334,6 +334,8 @@ pub fn like_pattern_source(LikePatternResolution) -> String
 
 pub fn like_pattern_usage(LikePatternChecks) -> LikePatternUsage
 
+pub fn link_program_analytic_string_limits(ProgramOperationResolutionIndex, Int, Int, Int) -> Result[ProgramOperationResolutionIndex, GroupStringLimitIssue]
+
 pub fn link_program_group_array_limits(ProgramOperationResolutionIndex, Int, Int, Int) -> Result[ProgramOperationResolutionIndex, GroupArrayLimitIssue]
 
 pub fn link_program_group_string_limits(ProgramOperationResolutionIndex, Int, Int, Int) -> Result[ProgramOperationResolutionIndex, GroupStringLimitIssue]
@@ -734,6 +736,8 @@ pub fn result_import_type_usage(ResultImportType) -> (Int, Int)
 
 pub fn result_wiring(WiredStages) -> @stage_results.ResultWiring
 
+pub fn select_analytic_string_limit(ProgramOperationResolutionIndex, Int, Int, Int) -> Result[GroupStringLimit, GroupStringLimitIssue]
+
 pub fn select_group_array_limit(ProgramOperationResolutionIndex, Int, Int, Int) -> Result[GroupArrayLimit, GroupArrayLimitIssue]
 
 pub fn select_group_string_limit(ProgramOperationResolutionIndex, Int, Int, Int) -> Result[GroupStringLimit, GroupStringLimitIssue]
@@ -952,6 +956,7 @@ pub enum AnalyticExecutionRule {
   EvaluateAggregate(@relation_typing.AnalyticCall)
   ValidateResultContract(@relation_typing.AnalyticCall)
   EnforceStatisticalLaw(@relation_typing.AnalyticCall, StatisticalLaw)
+  EnforceStringBytes(@relation_typing.AnalyticCall, GroupStringLimit)
 }
 
 pub struct AppendRowsCheck {

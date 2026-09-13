@@ -74,6 +74,47 @@ pub fn select_group_string_limit(
   max_work : Int,
   max_candidates : Int,
 ) -> Result[GroupStringLimit, GroupStringLimitIssue] {
+  select_string_limit(owner, requirement, max_work, max_candidates, false)
+}
+
+///|
+/// Select per-frame string output bytes, not input rows or serialized JSON size.
+pub fn select_analytic_string_limit(
+  owner : ProgramOperationResolutionIndex,
+  requirement : Int,
+  max_work : Int,
+  max_candidates : Int,
+) -> Result[GroupStringLimit, GroupStringLimitIssue] {
+  select_string_limit(owner, requirement, max_work, max_candidates, true)
+}
+
+///|
+fn aggregate_limit_call(
+  operation : @relation.CheckedOperation,
+  index : Int,
+  analytic : Bool,
+) -> @relation.CheckedAggregate? {
+  if analytic {
+    guard @relation.analytic(operation) is Some(body) &&
+      @relation.analytic_call_for_validation(body, index) is Some(call) &&
+      call.function is @relation.Aggregate(aggregate) else {
+      return None
+    }
+    Some(aggregate)
+  } else {
+    guard @relation.group(operation) is Some(group) else { return None }
+    @relation.aggregate_for_validation(group, index)
+  }
+}
+
+///|
+fn select_string_limit(
+  owner : ProgramOperationResolutionIndex,
+  requirement : Int,
+  max_work : Int,
+  max_candidates : Int,
+  analytic : Bool,
+) -> Result[GroupStringLimit, GroupStringLimitIssue] {
   if max_work < 0 || max_candidates < 1 {
     return Err(InvalidLimits)
   }
@@ -93,12 +134,15 @@ pub fn select_group_string_limit(
   }
   guard @pipeline.step_at(site.pipeline, site.step) is Some(step) &&
     step.operation is @pipeline.Unary(operation) &&
-    @relation.operation(operation) == @relation.Group &&
+    (if analytic {
+      @relation.analytic(operation) is Some(_)
+    } else {
+      @relation.operation(operation) == @relation.Group
+    }) &&
     step.input is Some(_) else {
     return Err(InvalidRequirement)
   }
-  guard @relation.group(operation) is Some(group) &&
-    @relation.aggregate_for_validation(group, site.index) is Some(call) &&
+  guard aggregate_limit_call(operation, site.index, analytic) is Some(call) &&
     @relation.aggregate_function(call) is @relation.StringAgg else {
     return Err(InvalidRequirement)
   }
@@ -118,7 +162,7 @@ pub fn select_group_string_limit(
           resolution.site.producer_visit == site.producer_visit &&
           physical_equal(resolution.site.pipeline, site.pipeline) &&
           resolution.site.step == site.step &&
-          @relation.aggregate_for_validation(group, resolution.site.index)
+          aggregate_limit_call(operation, resolution.site.index, analytic)
           is Some(aggregate) &&
           physical_equal(aggregate, call) {
           if resolution.site.requirement is @pipeline.RelationRequirement(p) &&

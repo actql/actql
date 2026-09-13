@@ -83,9 +83,19 @@ fn prepare_owned_closure(
     Ok(v) => v
     Err(e) => raise GroupLimits(e)
   }
-  let string_resolutions = match
+  let group_string_resolutions = match
     @context.link_program_group_string_limits(
       array_resolutions,
+      ceiling,
+      ceiling - prefix,
+      ceiling - prefix,
+    ) {
+    Ok(v) => v
+    Err(e) => raise GroupStringLimits(e)
+  }
+  let string_resolutions = match
+    @context.link_program_analytic_string_limits(
+      group_string_resolutions,
       ceiling,
       ceiling - prefix,
       ceiling - prefix,

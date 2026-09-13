@@ -48,6 +48,8 @@ test "analytic calls retain filter demand and per-frame unresolved resource and 
           RejectOperationOutput,
         )
         let call = match check.rule {
+          EnforceStringBytes(_, _) =>
+            fail("string bounds need explicit linking")
           PartitionAuthoredPeers => {
             assert_eq(pending.kind, @relation.AnalyticPeerOrder)
             assert_eq(@relation.analytic_partition_count(check.analytic), 2)

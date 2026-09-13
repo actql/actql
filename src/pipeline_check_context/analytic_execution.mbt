@@ -5,6 +5,7 @@ pub enum AnalyticExecutionRule {
   EvaluateAggregate(@relation.AnalyticCall)
   ValidateResultContract(@relation.AnalyticCall)
   EnforceStatisticalLaw(@relation.AnalyticCall, StatisticalLaw)
+  EnforceStringBytes(@relation.AnalyticCall, GroupStringLimit)
 }
 
 ///|

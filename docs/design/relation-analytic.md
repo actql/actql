@@ -81,3 +81,20 @@ or numeric-frame observation bindings keep construction incomplete; an earlier
 successful Stage is not returned as a partial CheckedProgram. Result imports
 carry the original analytic producer's checks and contracts, not newly inferred
 consumer-local equivalents. This boundary does not claim an executing backend.
+
+Analytic string aggregation selects the minimum of its own positive `max_bytes`
+(including an exactly owned Parameter resolution) and any selected
+`max_aggregate_string_bytes`. Both payload-specific ceilings are optional. With
+neither selected, the call retains its result-contract check and the separately
+mandatory analytic output-wire envelope; no raw-payload ceiling is invented.
+The ceiling applies to each non-null frame result's raw UTF-8 payload, including
+delimiters after filter, NULL exclusion and ordered distinct. It is not an input
+row bound, sum across frames, JSON escaping size or whole analytic output-wire
+budget. Exceeding it rejects output, never truncates strings. Other analytic
+wire/membership and physical limits remain independent.
+
+The string-bound selection record retains the historical `GroupStringLimit`
+API name but contains the exact call and resolution-index owner, not a group
+partition or input-size proof. Ordinary group and analytic selectors validate
+their own operation kind; shared Host/author selection does not transfer evidence
+between those kinds. Repeated producer visits and inventory scans remain charged.
