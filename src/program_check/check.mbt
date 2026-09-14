@@ -104,6 +104,7 @@ fn check_supported_source(
               | "subgraph"
               | "traverse"
               | "reach"
+              | "shortest_path"
               | "node_rows"
               | "edge_rows"
               | "values" => ()

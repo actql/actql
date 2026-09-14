@@ -2,6 +2,7 @@
 fn local_traversal_capacity_fixture(
   environment : @environment.WireEnvironment,
   operation_name? : String = "traverse",
+  proofs? : Array[@wire.ProgramProofClaim] = [],
 ) -> @host.HostSources raise @encode.EncodeFailure {
   let policy = @environment.capacity_policy(
     @environment.read_capacity(environment, {
@@ -10,7 +11,7 @@ fn local_traversal_capacity_fixture(
       max_depth: 30,
     }).unwrap(),
   )
-  let wires : Array[@wire.WireWitness] = []
+  let wires = proofs.map(p => @wire.program_proof_witness(p))
   let limits : Array[(Bytes, String)] = []
   for
     (field, unit, suffix) in [
@@ -33,10 +34,24 @@ fn local_traversal_capacity_fixture(
         max_depth: 30,
       }).unwrap(),
     )
+    let candidates = [wires[wires.length() - 1]]
+    let mut maximum = @policy.ceiling_value(ceiling)
+    if unit == "rows" && !proofs.is_empty() {
+      let candidate = @wire.program_proof_witness(proofs[proofs.length() - 1])
+      candidates.push(candidate)
+      maximum = maximum.min(@wire.value(candidate))
+    }
+    candidates.sort_by((a, b) => @wire.cid(a).compare(@wire.cid(b)))
+    let texts : Array[String] = []
+    for candidate in candidates {
+      let writer = @encode.writer(20000, 1000, 30)
+      @wire.emit(candidate, writer)
+      texts.push(@encode.finish(writer))
+    }
     let body = "{\"author_guard_binding\":\"absent\",\"breach\":\"fail\",\"candidates\":[" +
-      text +
+      texts.join(",") +
       "],\"effective_max\":" +
-      @policy.ceiling_value(ceiling).to_string() +
+      maximum.to_string() +
       ",\"enforcement\":\"engine_atomic\",\"subject_ref\":\"" +
       operation_name +
       ":checked-step:3" +
@@ -64,7 +79,7 @@ fn local_traversal_capacity_fixture(
     max_nodes: 1000,
     max_depth: 30,
   }).unwrap()
-  let claims = @wire.check_mixed_program_claims(mixed, [], {
+  let claims = @wire.check_mixed_program_claims(mixed, proofs, {
     max_witnesses: 20,
     max_references: 100,
   }).unwrap()

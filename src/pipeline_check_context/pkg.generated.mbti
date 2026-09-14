@@ -2090,6 +2090,8 @@ pub(all) enum OperationExecutionCheck {
   ComponentsLimits(ComponentsLimitsCheck)
   TraversalLimits(TraversalLimitsCheck)
   ReachLimits(TraversalLimitsCheck)
+  ShortestLimits(TraversalLimitsCheck)
+  ShortestOutputGuard(TraversalLimitsCheck)
   TraversalOutputGuard(TraversalLimitsCheck)
   TraversalExecution(TraversalCheck)
   ReachExecution(ReachCheck)

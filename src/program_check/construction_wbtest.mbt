@@ -44,6 +44,7 @@ fn local_construction_fixture(
   components_capacity_rows? : Int? = None,
   traversal_capacity? : Bool = false,
   traversal_kind? : String = "traverse",
+  traversal_proofs? : Array[@wire.ProgramProofClaim] = [],
   graph_output_limit? : Int? = None,
   graph_input_limit? : Int? = None,
   calendar? : Bool = false,
@@ -351,6 +352,7 @@ fn local_construction_fixture(
       local_traversal_capacity_fixture(
         environment,
         operation_name=traversal_kind,
+        proofs=traversal_proofs,
       ) catch {
         _ => abort("invalid traversal test material")
       },

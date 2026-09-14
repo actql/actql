@@ -8214,6 +8214,40 @@ bodies without self CIDs; both limits remain outside Unit Definition identity.
 Expansion journaling, Graph admission, start membership and actual traversal
 remain separate requirements, not guarantees supplied by these limits.
 
+<!-- requirement-block: resolved-limits.unit-shortest-subject resolved-limits.unit-shortest-candidates -->
+A shortest_path operation's persistent resolved limits MUST use
+`unit:<unit_definition_cid>#/steps/<ordinal>/shortest_path/paths` for quantity
+`paths`, and the same prefix ending in `/shortest_path/output` for quantity
+`rows`. Both identify the authored operation in its producer Unit, even when
+consumed through imports. Search-path and output-row ceilings are independent;
+neither `max_hops` nor a bound on the selected output count substitutes for the
+search-path ceiling. Enforce search capacity during exploration and reject the
+operation atomically on either breach. Empty selection, zero-hop paths and
+unreachable endpoints do not waive selected capacity contracts.
+
+Conversion MUST preserve every applicable admitted candidate occurrence, its
+law, quantity, value, prerequisite and selected policy. The shortest-path output
+bound law contributes only to the row scope. Rebuild Program proofs and their
+dependencies using their producer Unit references; preserve unchanged Host
+witness CIDs. Sort converted candidates by their new witness CIDs without
+deduplication and rebuild each limit CID from its complete canonical body
+without a self CID. Limits remain outside Unit Definition identity. Neither
+limit proves completed Graph admission, weight validation or path selection.
+
+<!-- requirement-block: resolved-limits.unit-shortest-authored-candidate -->
+When shortest_path construction starts from admitted non-author candidates and
+a separately bound `max_output_rows`, add the owning Unit's guard witness only
+to the output-row limit. Its law is `actql.guard.shortest-output`, quantity
+`rows`, source path `$.steps[<ordinal>].shortest_path.max_output_rows`, and
+`program_definition_cid` is that Unit Definition. The exact operation, selected
+policy and effective Parameter binding MUST agree with the retained application.
+Take the minimum of all candidates. A guard strictly below the non-author minimum
+is `binding`; an equal or larger guard is `currently_non_binding` and remains
+present. Omission remains `absent`. The path limit is unchanged. The original
+non-author output claim is not the final claim when a guard exists. Canonical
+candidate ordering and CID reconstruction follow the preceding rule; no guard
+is silently waived or invented.
+
 <!-- requirement-block: resolved-limits.unit-sequence-subject resolved-limits.unit-sequence-correspondence -->
 A sequence's persistent resolved limits MUST use
 `unit:<unit_definition_cid>#/steps/<ordinal>/sequence/matches-per-key` for

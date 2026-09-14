@@ -24,6 +24,24 @@ fn traversal_limits_check(
   let check : TraversalLimitsCheck = { site, step, limits, }
   match (site.requirement, step.operation) {
     (
+      @pipeline.ShortestRequirement(requirement),
+      @pipeline.Shortest(checked=operation, ..),
+    ) => {
+      if @graph.shortest_pending_at(operation, site.index) != Some(requirement) {
+        return Err(ForeignOccurrence(site.step))
+      }
+      match requirement {
+        ResolveShortestResources => Ok(ShortestLimits(check))
+        EnforceShortestOutputGuard =>
+          if @step_bounds.traversal_limit_guard_value(limits) is Some(_) {
+            Ok(ShortestOutputGuard(check))
+          } else {
+            Err(ForeignOccurrence(site.step))
+          }
+        _ => Err(ForeignOccurrence(site.step))
+      }
+    }
+    (
       @pipeline.ReachRequirement(ResolveReachResources),
       @pipeline.Reach(operation),
     ) =>
@@ -65,7 +83,11 @@ fn traversal_limits_candidate(
       ResolveTraversalResources
       | EnforceTraversalOutputGuard
     )
-    | @pipeline.ReachRequirement(ResolveReachResources)) else {
+    | @pipeline.ReachRequirement(ResolveReachResources)
+    | @pipeline.ShortestRequirement(
+      ResolveShortestResources
+      | EnforceShortestOutputGuard
+    )) else {
     return Ok(None)
   }
   let stages = requirements.expressions.identity.sources.operations.preparation.profiles.context.selected.context.wired.stages

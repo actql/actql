@@ -359,8 +359,20 @@ to the exact operation. The `actql.bound.shortest-path` law can contribute to
 the row limit, not the search-path limit. A bound `ShortestOutputRows` author
 guard tightens only output rows; its original occurrence and Parameter owner
 are retained. Missing applications and unbound guards are rejected rather than
-interpreted as unlimited execution. These process-local associations are not
-persistent Unit subjects or a completed Program compilation boundary.
+interpreted as unlimited execution. `ShortestLimits` and `ShortestOutputGuard`
+bind these retained selections to their exact requirement occurrences; they
+remain atomic execution obligations, not completed enforcement.
+
+Formal construction converts both limits to the producer Unit's
+`/steps/<ordinal>/shortest_path/paths` and `/shortest_path/output` subjects.
+Its separately bound output guard becomes an `actql.guard.shortest-output`
+witness at `$.steps[<ordinal>].shortest_path.max_output_rows`. Conversion uses
+the shared dependency rebuilding and candidate preservation path, with no
+consumer-owned copy for imports and no selected-row bound used as search
+capacity. The traversal-limit readers expose these two scopes and the retained
+Shortest operation, so lowering does not repeat selection or resource inference.
+Static construction still does not implement weighted search or certify a
+backend's ability to enforce the selected limits.
 
 ## Bounded reach checking
 
@@ -395,8 +407,8 @@ supplied. Local candidate subjects use `reach:checked-step:<ordinal>` (with
 reach candidate checker admits the applicable selected Host ceilings; it does not
 invent a Program row-bound law or reinterpret Graph node quantities as rows.
 
-The retained `unit_traversal_limit_count/at` readers cover both authored traverse
-and reach operations. Their selected step identifies the operation kind. Reach
+The retained `unit_traversal_limit_count/at` readers cover authored traverse,
+reach and shortest_path operations. Their selected step identifies the kind. Reach
 claims use the normative `/reach/paths` and `/reach/output` Unit scopes; this
 fixes the previously unspecified persistent naming without creating an authored
 traverse step. Imported consumers retain the producer Unit identity. Conversion

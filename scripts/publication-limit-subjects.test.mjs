@@ -5,6 +5,7 @@ import test from 'node:test';
 import {componentLimitModel} from './components-limit-model.mjs';
 import {traversalLimitModel} from './traversal-limit-model.mjs';
 import {reachLimitModel} from './reach-limit-model.mjs';
+import {shortestLimitModel} from './shortest-limit-model.mjs';
 
 const read = (path) => JSON.parse(readFileSync(new URL(path, import.meta.url), 'utf8'));
 const vectors = read('../portability/corpus/publication-limit-subjects.json');
@@ -18,6 +19,27 @@ function canonical(value) {
   return value;
 }
 const cid = (value) => `sha256:${createHash('sha256').update(JSON.stringify(canonical(value))).digest('hex')}`;
+
+test('shortest limits preserve Unit scopes, guards and candidate occurrences', () => {
+  const policy=Object.fromEntries(policyContract.schema.required.filter(k=>k!=='version').map(k=>[k,1000]));
+  Object.assign(policy,{version:'actql-capacity-host-policy/0.1',max_graph_construction_input_rows:1000,max_graph_construction_nodes:1000,max_graph_construction_edges:1000});
+  for (const {unit,guard,...expected} of read('../portability/corpus/shortest-limit-subjects.json').cases) {
+    const actual=shortestLimitModel(policy,unit,guard);
+    assert.deepEqual(actual,expected);
+    assert.equal(actual.limit_cids[0],shortestLimitModel(policy,unit).limit_cids[0]);
+    assert.equal(actual.limits[1].effective_max,Math.min(1000,guard ?? 1000));
+    const foreign=shortestLimitModel(policy,'sha256:'+'2'.repeat(64),guard);
+    assert.deepEqual(actual.host_cids,foreign.host_cids);
+    assert.notDeepEqual(actual.limit_cids,foreign.limit_cids);
+    const traversal=traversalLimitModel(policy,unit,false,guard);
+    assert.deepEqual(actual.host_cids,traversal.host_cids);
+    assert.notDeepEqual(actual.limit_cids,traversal.limit_cids);
+    const repeated=shortestLimitModel(policy,unit,guard,true);
+    assert.deepEqual(repeated.limits.map(l=>l.effective_max),actual.limits.map(l=>l.effective_max));
+    assert.notDeepEqual(repeated.limit_cids,actual.limit_cids);
+    assert.deepEqual(actual.limits.map(l=>l.unit),['paths','rows']);
+  }
+});
 
 test('reach capacity retains its authored operation namespace rather than a synthetic traverse', () => {
   for (const {unit,cap,...expected} of read('../portability/corpus/reach-limit-subjects.json').cases) {
