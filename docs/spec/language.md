@@ -6324,6 +6324,25 @@ group ordering continues to use the semantic group tuple. A declared input key
 retains its input-admission obligations; its use does not certify that rows have
 already passed non-nullness, domain and uniqueness checks.
 
+<!-- requirement-block: pool-vectors.resource-binding -->
+An executable pooling realization MUST bind finite enforceable input/grouping,
+member-ordering and fold-work contracts, value/temporary-byte contracts and
+retained-pool-state contracts before input use. Each selected meter specifies
+quantity, unit, aggregation, ceiling and failure behavior. Member identity
+completion, key validation and quantization remain required; a group-count
+bound does not substitute for work or storage limits. Backend choices cannot
+change the required member order, rounding points or global uniqueness rule.
+
+<!-- requirement-block: pool-vectors.resource-scope -->
+Each selected meter MUST cover the entire owned pooling operation without
+resetting cumulative budgets per group or component. Cumulative work and byte
+traffic count actual uses, including selected member-key encoding; peak storage
+counts concurrently live inputs, group state, output and temporaries without
+imaginary copies of shared immutable values. Empty input retains admission and
+completion requirements and creates no fabricated group or member_count. Failure,
+cancellation or incomplete validation prevents partial pooled output publication.
+The explicit `vectors` bridge does not remove these producer obligations.
+
 <a id="merge-rankings"></a>
 
 #### `merge_rankings`

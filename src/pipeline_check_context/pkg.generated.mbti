@@ -643,6 +643,10 @@ pub fn pattern_usage(PatternChecks) -> PatternUsage
 
 pub fn policy_context(SelectedPolicyContext) -> ReconciledContexts
 
+pub fn pool_resource_at(PoolCheck, Int) -> PoolResource?
+
+pub fn pool_resource_count(PoolCheck) -> Int
+
 pub fn preparation_expressions(ProgramPreparation) -> TextBoundsChecks
 
 pub fn preparation_profiles(ProgramPreparation) -> ExpressionProfileChecks
@@ -2187,6 +2191,7 @@ pub(all) enum OperationExecutionCheck {
   GraphMeanExecution(GraphMeanCheck)
   VectorExecution(VectorCheck)
   NearestExecution(NearestCheck)
+  PoolExecution(PoolCheck)
   GraphResources(GraphResourcesCheck)
   ComponentsLimits(ComponentsLimitsCheck)
   TraversalLimits(TraversalLimitsCheck)
@@ -2482,6 +2487,23 @@ pub(all) struct PatternUsage {
 } derive(Eq, @debug.Debug)
 
 type PipelineContext
+
+pub struct PoolCheck {
+  site : OperationRequirementSite
+  step : @pipeline_typing.CheckedStep
+  input : @pipeline_typing.Target
+  operation : @vector_typing.CheckedPool
+  rule : @vector_typing.PoolObligation
+  policy : @capacity_policy.Policy
+}
+
+pub(all) enum PoolResource {
+  InputAndGroupingWork
+  FoldWork
+  MemberOrderingWork
+  ValueAndTemporaryBytes
+  RetainedPoolState
+} derive(Eq, @debug.Debug)
 
 pub(all) struct PreparationBudget {
   work : Int

@@ -138,6 +138,10 @@ pub fn pending_validations(CheckedVector) -> Array[Obligation]
 
 pub fn pool_encodes_member_key(CheckedPool) -> Bool
 
+pub fn pool_group_at(PoolOptions, Int) -> @relation_schema.FieldName?
+
+pub fn pool_group_count(PoolOptions) -> Int
+
 pub fn pool_group_fields(PoolOptions) -> Array[@relation_schema.FieldName]
 
 pub fn pool_key_declaration(CheckedPool) -> @relation_evidence.KeyedRelation?

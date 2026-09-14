@@ -21,6 +21,7 @@ pub(all) enum OperationExecutionCheck {
   GraphMeanExecution(GraphMeanCheck)
   VectorExecution(VectorCheck)
   NearestExecution(NearestCheck)
+  PoolExecution(PoolCheck)
   GraphResources(GraphResourcesCheck)
   ComponentsLimits(ComponentsLimitsCheck)
   TraversalLimits(TraversalLimitsCheck)
@@ -191,6 +192,23 @@ pub fn operation_execution_phase(
         | AssignContiguousOneBasedRanks
         | PreserveSimilarityAuthorityBoundary => BeforeOperationOutput
       }
+    PoolExecution(v) =>
+      match v.rule {
+        ValidateDeclaredPoolKey(_)
+        | JournalPoolMemberIdentity
+        | EncodePoolMemberKeyByScalarLengths
+        | AdmitPoolVectorComponents
+        | ValidatePoolMemberIdentityGlobally
+        | MatchPoolDimensions
+        | ResolvePoolResources
+        | ResolvePoolProfile => BeforeOperationInputUse
+        OrderPoolMembersByEncodedIdentity
+        | OrderPoolMembersByIdentity
+        | QuantizeBeforeAndAfterPoolFold
+        | EvaluateDeterministicPoolFold
+        | OrderPoolGroupsByIdentity
+        | ValidatePositiveSafeMemberCounts => BeforeOperationOutput
+      }
     ComponentsLimits(_)
     | TraversalLimits(_)
     | ReachLimits(_)
@@ -344,6 +362,7 @@ pub fn operation_execution_failure(
     | GraphMeanExecution(_)
     | VectorExecution(_)
     | NearestExecution(_)
+    | PoolExecution(_)
     | GraphResources(_)
     | ComponentsLimits(_)
     | TraversalLimits(_)

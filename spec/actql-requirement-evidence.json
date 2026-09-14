@@ -5294,6 +5294,28 @@
       }
     },
     {
+      "requirement_id": "actql.language/pool-vectors.resource-binding",
+      "statement_sha256": "d03ecce23b566379d881a8f7206091ef2268c0f70f6b69244db6ed2ee2b9f312",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "pool-vectors",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/pool-vectors.resource-scope",
+      "statement_sha256": "1777e7e7afc9438c29bbdcc29ed4cb44271f7f30fcbfde8c2c9f965725be24c9",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "pool-vectors",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.language/merge-rankings.source-options",
       "statement_sha256": "1e791c22a7946fee5dd80f07d5da637493519cff263f5c8af238f9bbaf851468",
       "status": "pending",

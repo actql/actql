@@ -227,6 +227,17 @@ transfer boundary, including all surviving aliases of each component. The
 single-declaration path is not the completed multiple-witness evidence model;
 join cardinality propagation and operation-created keys remain separate work.
 
+The pooling execution binding retains the exact checked operation, unary input,
+selected policy and original key declaration. Indexed group-field readers share
+the checked source order without copying a map. Member encoding and its ordering
+remain distinct from native Vectors identity order and output grouping identity.
+Declaration checks and identity-completion journaling precede member use;
+deterministic fold, output quantization, group order and positive safe counts
+remain explicit checks. Resource bindings require whole-operation input/grouping,
+member-ordering and fold work, value/temporary bytes and retained state. These
+requirements neither certify backend meters nor attest execution. Empty inputs
+do not waive producer admission or synthesize an aggregate group.
+
 ## Ranking fusion options
 
 `read_ranking_options` separates max/weighted_sum from reciprocal-rank fusion.

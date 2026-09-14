@@ -114,6 +114,7 @@ fn check_supported_source(
               | "score_vectors"
               | "vectors"
               | "nearest"
+              | "pool_vectors"
               | "node_rows"
               | "edge_rows"
               | "values" => ()

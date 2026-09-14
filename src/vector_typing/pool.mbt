@@ -119,6 +119,16 @@ pub fn pool_group_fields(c : PoolOptions) -> Array[@row.FieldName] {
 }
 
 ///|
+pub fn pool_group_count(c : PoolOptions) -> Int {
+  c.by.length()
+}
+
+///|
+pub fn pool_group_at(c : PoolOptions, index : Int) -> @row.FieldName? {
+  c.by.get(index)
+}
+
+///|
 pub fn pool_method(c : PoolOptions) -> PoolMethod {
   c.reduction
 }
