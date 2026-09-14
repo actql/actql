@@ -41,7 +41,7 @@ test "reidentified minimum operands are canonical after CID replacement" {
   }
   // The original canonical order is reversed by replacement. Two distinct
   // original witnesses can also converge to the same persistent witness.
-  let mapping : Map[String, String] = Map([(a, c), (b, a), (c, a)])
+  let mapping : Map[String, Array[String]] = Map([(a, [c]), (b, [a]), (c, [a])])
   let writer = @encode.writer(10000, 1000, 20)
   emit_reidentified_derivation(Minimum([a, b, c]), mapping, writer, budget)
   assert_eq(

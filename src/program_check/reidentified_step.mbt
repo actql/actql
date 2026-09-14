@@ -10,11 +10,12 @@ struct ReidentifiedStep {
 
 ///|
 fn reidentified_reference(
-  mapping : Map[String, String],
+  mapping : Map[String, Array[String]],
   reference : String,
 ) -> String raise UnitBuildFailure {
   match mapping.get(reference) {
-    Some(value) => value
+    Some([value]) => value
+    Some(_) => raise AmbiguousProofInput
     None => raise UnconvertedProofInput
   }
 }
@@ -22,9 +23,10 @@ fn reidentified_reference(
 ///|
 fn emit_reidentified_derivation(
   value : @wire.Derivation,
-  mapping : Map[String, String],
+  mapping : Map[String, Array[String]],
   writer : @encode.Writer,
   budget : IdentityBudget,
+  operands? : Array[(String, String)] = [],
 ) -> Unit raise UnitBuildFailure {
   // Resolve every reference through the conversion map: missing dependencies
   // cannot survive as old CIDs. Failure cannot expose the unfinished writer.
@@ -45,9 +47,16 @@ fn emit_reidentified_derivation(
         // Minimum's operands are a canonical set, unlike the proof's input
         // occurrences. Reidentification can change both ordering and equality.
         identity_charge(budget, inputs.length())
-        let converted = inputs.map(input => {
-          (reidentified_reference(mapping, input), ())
-        })
+        let converted : Array[(String, Unit)] = []
+        for input in inputs {
+          guard mapping.get(input) is Some(values) else {
+            raise UnconvertedProofInput
+          }
+          identity_charge(budget, values.length())
+          for value in values {
+            converted.push((value, ()))
+          }
+        }
         identity_sort(converted, budget)
         @encode.key(writer, "inputs")
         @encode.begin_array(writer)
@@ -63,12 +72,20 @@ fn emit_reidentified_derivation(
         @encode.string_value(writer, "min")
       }
       Add(left, right) => {
+        // StepBound inputs retain data-edge order; proof.inputs is sorted.
+        // Equal local CIDs from distinct owners must still select distinct
+        // persistent operands, rather than an arbitrary CID-map entry.
+        guard operands is [(old_left, new_left), (old_right, new_right)] &&
+          old_left == left &&
+          old_right == right else {
+          raise UnconvertedProofInput
+        }
         @encode.key(writer, "left")
-        @encode.string_value(writer, reidentified_reference(mapping, left))
+        @encode.string_value(writer, new_left)
         @encode.key(writer, "op")
         @encode.string_value(writer, "add")
         @encode.key(writer, "right")
-        @encode.string_value(writer, reidentified_reference(mapping, right))
+        @encode.string_value(writer, new_right)
       }
       Multiply(input, factor) => {
         @encode.key(writer, "factor")
@@ -120,7 +137,8 @@ fn reidentify_step(
   let remaining = IdentityBudget::{ ..budget, }
   identity_charge(remaining, inputs.length())
   identity_charge(remaining, graph_inputs.length())
-  let mapping : Map[String, String] = Map([])
+  let mapping : Map[String, Array[String]] = Map([])
+  let operands : Array[(String, String)] = []
   let identities : Array[String] = []
   let original_inputs : Array[String] = []
   let external_inputs : Array[@wire.WireWitness] = []
@@ -156,10 +174,11 @@ fn reidentify_step(
     }
     identity_charge(remaining, old.length())
     identity_charge(remaining, new.length())
-    if mapping.get(old) is Some(previous) && previous != new {
-      raise AmbiguousProofInput
+    match mapping.get(old) {
+      Some(values) => values.push(new)
+      None => mapping[old] = [new]
     }
-    mapping[old] = new
+    operands.push((old, new))
     identities.push(new)
     original_inputs.push(old)
   }
@@ -184,10 +203,11 @@ fn reidentify_step(
       }
       let cid = @wire.cid(witness)
       identity_charge(remaining, cid.length())
-      if mapping.get(cid) is Some(previous) && previous != cid {
-        raise AmbiguousProofInput
+      match mapping.get(cid) {
+        Some(values) => values.push(cid)
+        None => mapping[cid] = [cid]
       }
-      mapping[cid] = cid
+      operands.push((cid, cid))
       original_inputs.push(cid)
       identities.push(cid)
       external_inputs.push(witness)
@@ -244,7 +264,13 @@ fn reidentify_step(
       }
       @encode.end_array(w)
       @encode.key(w, "derivation")
-      emit_reidentified_derivation(@wire.derivation(old), mapping, w, remaining)
+      emit_reidentified_derivation(
+        @wire.derivation(old),
+        mapping,
+        w,
+        remaining,
+        operands~,
+      )
       @encode.key(w, "law_id")
       @encode.string_value(w, @law.name(@wire.law(old)))
       @encode.key(w, "role")
