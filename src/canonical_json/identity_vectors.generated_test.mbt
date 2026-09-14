@@ -1299,6 +1299,27 @@ test "contract spec/contracts/actql-stage-contracts.json#/schemas/program_semant
 }
 
 ///|
+test "contract spec/contracts/actql-analytic-numeric-slot.json#" {
+  let input = @json.parse([
+    "{\"version\":\"actql-analytic-numeric-slot-contract/0.1\",\"schemas\":{\"analytic_slot\":{\"$schema\":\"https://json-schema.org/draft/2020-12/schema\",\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"version\",\"unit_definition_cid\",\"source_ordinal\",\"output_name\",\"reduction_profile_cid\"],\"properties\":{\"version\":{\"const\":\"actql-analytic-numeric-slot/0.1\"},\"unit_definition_cid\":{\"type\":\"string\",\"pattern\":\"^sha256:[0-9a-f]{64}$\"},\"source_ordinal\":{\"type\":\"integer\",\"minimum\":0,\"maximum\":9007199254740991},\"output_name\":{\"type\":\"string\",\"minLength\":1},\"reduction_profile_cid\":{\"type\":\"string\",\"pattern\":\"^sha256:[0-9a-f]{64}$\"}}}},\"semantics\":{\"identity\":\"sha256_entire_canonical_json_body_no_self_cid\",\"scope\":\"analytic_binary64_sum_or_avg_call_template_at_owning_unit_authored_source_ordinal\",\"name\":\"exact_canonical_authored_output_name_not_call_index_or_escaped_path\",\"ownership\":\"same_checked_program_stage_pipeline_step_call_effective_parameters_and_admitted_profile\",\"imports\":\"retain_producer_unit_slot_not_consumer_rebas",
+    "ing\",\"frame\":\"runtime_observation_binds_exact_partition_output_occurrence_completed_position_and_contributor_demand_not_static_slot_identity\",\"reuse\":\"equal_frame_values_or_equal_contributor_sequences_do_not_by_themselves_identify_output_occurrences\",\"excludes\":\"future_input_artifact_partition_key_output_position_members_contributors_count_value_algorithm_member_attempt_invocation_result_placement_cost\",\"acyclic\":\"unit_definition_binds_contract_and_selected_profile_not_derived_slot_cid_or_future_observation\",\"authority\":\"shape_and_digest_not_owner_admission_execution_or_durable_capture\",\"compatibility\":\"ordinary_group_slot_contract_unchanged_no_native_ordered_reduction_or_capture_support_claim\"}}",
+  ].join(""))
+  let value = @canonical_json.from_json(input, 41, 5, 1729)
+  assert_eq(@canonical_json.cid_value(value, 1729, 41, 5), "sha256:6d88bdc63c0a7eb77ee1dc976003fcec1ace74ca46ce61af5a956d2e89b30a43")
+  assert_eq(@canonical_json.measure_value(value, 1729, 41, 5), 1729)
+}
+
+///|
+test "contract spec/contracts/actql-analytic-numeric-slot.json#/schemas/analytic_slot" {
+  let input = @json.parse([
+    "{\"$schema\":\"https://json-schema.org/draft/2020-12/schema\",\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"version\",\"unit_definition_cid\",\"source_ordinal\",\"output_name\",\"reduction_profile_cid\"],\"properties\":{\"version\":{\"const\":\"actql-analytic-numeric-slot/0.1\"},\"unit_definition_cid\":{\"type\":\"string\",\"pattern\":\"^sha256:[0-9a-f]{64}$\"},\"source_ordinal\":{\"type\":\"integer\",\"minimum\":0,\"maximum\":9007199254740991},\"output_name\":{\"type\":\"string\",\"minLength\":1},\"reduction_profile_cid\":{\"type\":\"string\",\"pattern\":\"^sha256:[0-9a-f]{64}$\"}}}",
+  ].join(""))
+  let value = @canonical_json.from_json(input, 26, 3, 543)
+  assert_eq(@canonical_json.cid_value(value, 543, 26, 3), "sha256:89b1d3c4450466f1ebf758c876ca8209787490cdf852b7e16c1b4ec41a862ae6")
+  assert_eq(@canonical_json.measure_value(value, 543, 26, 3), 543)
+}
+
+///|
 test "contract spec/contracts/actql-pivot-numeric-slot.json#" {
   let input = @json.parse([
     "{\"version\":\"actql-pivot-numeric-slot-contract/0.1\",\"schemas\":{\"pivot_slot\":{\"$schema\":\"https://json-schema.org/draft/2020-12/schema\",\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"version\",\"unit_definition_cid\",\"source_ordinal\",\"output_name\",\"reduction_profile_cid\"],\"properties\":{\"version\":{\"const\":\"actql-pivot-numeric-slot/0.1\"},\"unit_definition_cid\":{\"type\":\"string\",\"pattern\":\"^sha256:[0-9a-f]{64}$\"},\"source_ordinal\":{\"type\":\"integer\",\"minimum\":0,\"maximum\":9007199254740991},\"output_name\":{\"type\":\"string\",\"minLength\":1},\"reduction_profile_cid\":{\"type\":\"string\",\"pattern\":\"^sha256:[0-9a-f]{64}$\"}}}},\"semantics\":{\"identity\":\"sha256_entire_canonical_json_body_no_self_cid\",\"scope\":\"pivot_binary64_sum_or_avg_generated_column_template_at_owning_unit_authored_source_ordinal\",\"name\":\"exact_canonical_declared_pivot_value_and_generated_output_name_not_position_or_escaped_path\",\"ownership\":\"same_checked_program_stage_pipeline_step_pivot_effective_parameters_and_admitted_profile\",\"profile\":\"selected_admitted_p",

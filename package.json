@@ -72,7 +72,7 @@
     "check:examples": "node scripts/check-document-examples.mjs",
     "test:docs": "node --test scripts/document-validation.test.mjs scripts/evidence-transfer-coverage.test.mjs scripts/source-state-schema.test.mjs",
     "generate:requirements": "node scripts/check-actql-spec-family.mjs --write",
-    "check:metadata": "node scripts/update-document-metadata.mjs",
+    "check:metadata": "node --test scripts/spec-family-imports.test.mjs && node scripts/update-document-metadata.mjs",
     "update:metadata": "node scripts/update-document-metadata.mjs --write && npm run generate:requirements",
     "check:relation-join": "node scripts/check-relation-join.mjs && node --test scripts/relation-join.test.mjs scripts/join-boundaries.test.mjs && node scripts/cross-join-schema.mjs && node --test scripts/cross-join-schema.test.mjs",
     "generate:relation-join": "node scripts/check-relation-join.mjs --write"

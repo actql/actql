@@ -244,6 +244,18 @@
       "evidence": "spec/requirements/execution.json",
       "machine_contracts": [
         {
+          "path": "spec/contracts/actql-analytic-numeric-slot.json",
+          "pointer": "",
+          "cid": "sha256:6d88bdc63c0a7eb77ee1dc976003fcec1ace74ca46ce61af5a956d2e89b30a43",
+          "version": "actql-analytic-numeric-slot-contract/0.1"
+        },
+        {
+          "path": "spec/contracts/actql-analytic-numeric-slot.json",
+          "pointer": "/schemas/analytic_slot",
+          "cid": "sha256:89b1d3c4450466f1ebf758c876ca8209787490cdf852b7e16c1b4ec41a862ae6",
+          "version": "actql-analytic-numeric-slot-contract/0.1"
+        },
+        {
           "path": "spec/contracts/actql-pivot-numeric-slot.json",
           "pointer": "",
           "cid": "sha256:54c19c5dc586979bfd5cfa7afed23011e8394dd4a8623c32ba6ca0f83fb01858",

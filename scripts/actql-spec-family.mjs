@@ -11,6 +11,28 @@ const canonical = value => value && typeof value === 'object'
 export const machineCid = value => 'sha256:'+createHash('sha256').update(canonical(value)).digest('hex');
 export const documentCid = source => 'sha256:'+createHash('sha256').update(source).digest('hex');
 
+/** Check both directions: validating registered bodies alone misses new markers. */
+export function validateMachineImports(documents) {
+  for (const d of documents) {
+    const explicit = [...d.source.matchAll(/<!-- machine-import: ([^\n]+) -->/gu)].map(m => m[1]);
+    const markers = explicit.map(marker => {
+      const parsed = /^(\S+)#(\S*) (sha256:[0-9a-f]{64})$/u.exec(marker);
+      if (!parsed) throw new Error(`invalid machine import ${d.path}: ${marker}`);
+      return `${resolve(dirname(d.path), parsed[1])}#${parsed[2]} ${parsed[3]}`;
+    });
+    if (new Set(markers).size !== markers.length) throw new Error(`duplicate machine import ${d.path}`);
+    const registered = (d.machine_contracts ?? []).map(ref => `${resolve(ref.path)}#${ref.pointer} ${ref.cid}`);
+    // Legacy pin blocks also cite contracts owned by other normative documents.
+    // Preserve those citations; only machine-import markers declare local
+    // ownership. Registered owners must still contain their exact pinned text.
+    if (new Set(registered).size !== registered.length ||
+        markers.some(marker => !registered.includes(marker)) ||
+        (d.machine_contracts ?? []).some(ref => !d.source.includes(`${relative(dirname(d.path), ref.path)}#${ref.pointer} ${ref.cid}`))) {
+      throw new Error(`unregistered or missing machine import ${d.path}`);
+    }
+  }
+}
+
 /** Explicit imports, never inferred from prose or a nearby hyperlink. */
 export function validateNormativeImports(documents) {
   const imports = [];
@@ -43,6 +65,7 @@ export function loadSpecFamily(manifestPath = 'spec/spec-family.json') {
   };
   documents.forEach(d => visit(d.document_id));
   const documentImports = validateNormativeImports(documents);
+  validateMachineImports(documents);
   const forbidden=[['language','execution'],['language','contracts'],['language','artifacts'],['language','run'],['language','conformance'],['discovery','collection'],['discovery','run'],['collection','run-graph'],['artifacts','run']];
   for(const [from,to] of forbidden)if(documents.find(d=>d.document_id===from)?.normative_dependencies.includes(to))throw new Error(`forbidden normative dependency ${from} -> ${to}`);
   const entries = [], requirements = [], seen = new Set();
