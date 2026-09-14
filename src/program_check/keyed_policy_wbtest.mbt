@@ -89,11 +89,13 @@ test "keyed publication rejects foreign gates and budgets the correlation traver
 
 ///|
 test "formal checking of two keyed joins retains their own response occurrences" {
+  let programs : Array[CheckedProgram] = []
   let (_, _, _, inventory, units) = remote_construction_fixture(
     { work: 100000000, bytes: 10000000, nodes: 1000000, depth: 100, },
     publish_join=true,
     second_join=true,
     through_check=true,
+    checked_results=programs,
   )
   let unit = units[0]
   assert_eq(unit.source_execution.length(), 13)
@@ -102,6 +104,13 @@ test "formal checking of two keyed joins retains their own response occurrences"
     fail("missing keyed requests")
   }
   assert_true(physical_equal(first.producer, second.producer))
+  assert_eq(keyed_input_proof_count(programs[0]), 2)
+  assert_true(
+    physical_equal(
+      keyed_input_proof_bound(keyed_input_proof_at(programs[0], 0).unwrap()),
+      keyed_input_proof_bound(keyed_input_proof_at(programs[0], 1).unwrap()),
+    ),
+  )
   audit_source_execution(inventory, unit.source_execution, {
     work: 1000,
     bytes: 0,

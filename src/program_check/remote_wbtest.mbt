@@ -159,6 +159,7 @@ fn remote_construction_fixture(
   second_join? : Bool = false,
   through_check? : Bool = false,
   checked_results? : Array[CheckedProgram] = [],
+  imported_left? : Bool = false,
 ) -> (
   @context.ProgramSourceIdentity,
   @context.StageRequirementClosure,
@@ -193,7 +194,13 @@ fn remote_construction_fixture(
     text
   }
   let program = @syntax.parse(
-    text,
+    if imported_left {
+      (
+        #|{"version":"actql/0.1","id":"keyed-import","stages":[{"id":"producer","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":false}},"rows":[{"id":1}]},"as":"seed"}],"results":{"out":{"from":"seed","fields":["id"]}}},{"id":"consumer","inputs":{"seed":{"result":{"stage":"producer","result":"out"}},"remote":{"connector":"crm/main","resource":"r","request":{"tenant":null}}},"steps":[{"join":{"left":"seed","with":"remote","on":"id","kind":"left","select":{"id":"right.id"}},"as":"joined"}],"results":{"out":{"from":"joined","fields":["id"]}}}],"results":{"out":{"from":{"stage":"consumer","result":"out"}}}}
+      )
+    } else {
+      text
+    },
     {
       source: { max_input_bytes: 10000, max_nodes: 1000, max_depth: 100, },
       tree: {
@@ -225,7 +232,7 @@ fn remote_construction_fixture(
     max_views=100,
     max_order_keys=100,
   ).unwrap()
-  let base = source_limits_fixture(1)
+  let base = source_limits_fixture(if imported_left { 2 } else { 1 })
   let caps : SourceLimits = {
     ..base,
     topology: {
@@ -235,7 +242,7 @@ fn remote_construction_fixture(
       } else {
         2
       },
-      max_results: if second_join {
+      max_results: if second_join || imported_left {
         2
       } else {
         1
@@ -327,6 +334,82 @@ fn remote_construction_fixture(
         [@capacity.Join(step=1, output=0)]
       },
     }
+  }
+  let materials = if imported_left {
+    let imported_sources = []
+    for producer in [true, false] {
+      let body = limit_body.replace(old="checked-step:1", new="checked-step:0")
+      let cid = "sha256:" + @sha.hex(@utf8.encode(body))
+      let text = body.replace(
+        old="\"subject_ref\":",
+        new="\"resolved_limit_cid\":\"" + cid + "\",\"subject_ref\":",
+      )
+      let arithmetic = @wire.check_mixed_claims(
+        if producer {
+          [@wire.program_proof_witness(proof)]
+        } else {
+          [host_wire]
+        },
+        if producer {
+          []
+        } else {
+          [(@utf8.encode(text), cid)]
+        },
+        {
+          max_entities: 100,
+          max_references: 100,
+          max_bytes: 100000,
+          max_nodes: 10000,
+          max_depth: 100,
+        },
+      ).unwrap()
+      let claims = @wire.check_mixed_program_claims(
+        arithmetic,
+        if producer {
+          [proof]
+        } else {
+          []
+        },
+        { max_witnesses: 10, max_references: 100, },
+      ).unwrap()
+      imported_sources.push(
+        @host.bind_claim_sources(claims, [policy], {
+          max_entries: 100,
+          max_bytes: 100000,
+          max_nodes: 10000,
+          max_depth: 100,
+        }).unwrap(),
+      )
+    }
+    let materials = []
+    for stage in 0..<2 {
+      let ports = @results.stage_port_publications(
+        @results.wiring_stage_at(@results.local_source_wiring(prepared), stage).unwrap(),
+      )
+      let orders = @publication.checked_producer_orders(
+        @publication.ports_orders(ports),
+      )
+      materials.push(
+        Array::makei(@pipeline.contextual_closure_count(orders), visit => {
+          let pipeline = @pipeline.contextual_orders_pipeline(
+            @pipeline.contextual_closure_at(orders, visit).unwrap(),
+          )
+          let producer = @pipeline.step_at(pipeline, 0).unwrap().operation
+            is @pipeline.Values(_)
+          @context.CapacityMaterial::{
+            sources: imported_sources[if producer { 0 } else { 1 }],
+            consumers: if producer {
+              []
+            } else {
+              [@capacity.Join(step=0, output=0)]
+            },
+          }
+        }),
+      )
+    }
+    materials
+  } else {
+    materials
   }
   if through_check {
     let value = check(

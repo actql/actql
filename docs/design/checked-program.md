@@ -1000,6 +1000,19 @@ and CID comparisons consume the request budget. Row validation remains charged
 as its own pass. The selected immutable memberships flow through policy and
 lookup-capacity construction without reconstructing successful target checks.
 
+The formal result also retains `KeyedInputProof` entries. Each entry binds the
+exact keyed request execution record and the consumer join's `UnitOperationSource`
+to a `ReidentifiedStep` for its selected input bound. An imported input proof
+keeps the producer Unit's subject; a coincidentally equal step ordinal in the
+consumer Unit does not retarget it. The existing dependency-first proof converter
+rebuilds the proof and witness identities under the aggregate work, hash-byte
+and node budgets. Repeated acquisitions selecting the exact same owned claim
+reuse the converted proof within that Stage closure, while their execution
+records remain distinct. Indexed readers expose the retained result without
+requiring the lowerer to search claim tables or reinterpret internal step names.
+This establishes persistent input-bound correspondence, not provider completion,
+runtime permission or execution of the remaining lookup resource obligations.
+
 Candidate selection, target traversal and row checks share the request work
 ceiling. Traversal is charged once through the existing row-bound checker;
 construction adds its own selection visits and reserves prior traversals before

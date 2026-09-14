@@ -1,5 +1,6 @@
 ///|
 struct CheckedProgram {
+  keyed_input_proofs : Array[KeyedInputProof]
   nest_limits : Array[Array[NestLimits]]
   traversal_limits : Array[Array[TraversalLimit]]
   components_limits : Array[Array[ComponentsLimit]]
@@ -260,7 +261,15 @@ pub fn check(
   ) catch {
     error => raise Units(error)
   }
+  let keyed_input_proofs = prepare_keyed_input_proofs(
+    units,
+    units[0].source_execution,
+    budget,
+  ) catch {
+    error => raise Units(error)
+  }
   {
+    keyed_input_proofs,
     nest_limits,
     traversal_limits,
     components_limits,
