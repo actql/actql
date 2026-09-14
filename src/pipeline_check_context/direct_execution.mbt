@@ -132,5 +132,9 @@ fn direct_execution_candidate(
     Ok(None) => ()
     other => return other
   }
-  vector_execution_check(site, policy)
+  match vector_execution_check(site, policy) {
+    Ok(None) => ()
+    other => return other
+  }
+  nearest_execution_check(site, policy)
 }

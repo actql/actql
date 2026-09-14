@@ -62,6 +62,17 @@ binding and dimension-match obligations before scoring. Known mismatches still
 fail statically. No arithmetic, search algorithm or provider
 dispatch is implemented.
 
+Nearest execution bindings retain the exact corpus/query occurrences, checked
+pair and selected policy. Even when both edges target the same producer, their
+roles remain distinct. Component admission, both global identity checks, missing
+role/dimension validation and retained key prerequisites precede use. Completion
+journal checks record the already selected side and field; they do not perform
+another inference. Exact scoring, semantic identity restoration, query/candidate
+ordering, contiguous rank and the similarity-authority boundary remain separate
+checks before output publication. Empty-side results do not provide evidence
+that those prerequisite checks ran. Resource and profile selection are separate;
+these bindings neither implement KNN nor attest its completion.
+
 `NearestSource.KeySource` supplies a retained candidate-key collection bound to
 its own Relation contract. The pipeline uses that boundary for both sides.
 An omitted ID is completed only when exactly one distinct non-null string

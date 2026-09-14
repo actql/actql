@@ -20,6 +20,7 @@ pub(all) enum OperationExecutionCheck {
   GraphStructuralExecution(GraphStructuralCheck)
   GraphMeanExecution(GraphMeanCheck)
   VectorExecution(VectorCheck)
+  NearestExecution(NearestCheck)
   GraphResources(GraphResourcesCheck)
   ComponentsLimits(ComponentsLimitsCheck)
   TraversalLimits(TraversalLimitsCheck)
@@ -171,6 +172,24 @@ pub fn operation_execution_phase(
         | RequireVectorResources => BeforeOperationInputUse
         NormalizeVectorArithmetic | ComputeVectorScores | OrderVectorScores =>
           BeforeOperationOutput
+      }
+    NearestExecution(v) =>
+      match v.rule {
+        ValidateNearestRoleBindings(_)
+        | MatchNearestDimensions
+        | AdmitQuantizedVectorComponents
+        | ValidateBothUniqueIdentities
+        | ValidateNearestKey(_, _)
+        | JournalVectorFieldCompletion(_, _)
+        | JournalIdentityFieldCompletion(_, _)
+        | ResolveNearestResources
+        | ResolveNearestProfile => BeforeOperationInputUse
+        EvaluateExactNearestScores
+        | RestoreSemanticIdentityValues
+        | OrderQueriesByIdentity
+        | OrderCandidatesByDescendingScoreThenIdentity
+        | AssignContiguousOneBasedRanks
+        | PreserveSimilarityAuthorityBoundary => BeforeOperationOutput
       }
     ComponentsLimits(_)
     | TraversalLimits(_)
@@ -324,6 +343,7 @@ pub fn operation_execution_failure(
     | GraphStructuralExecution(_)
     | GraphMeanExecution(_)
     | VectorExecution(_)
+    | NearestExecution(_)
     | GraphResources(_)
     | ComponentsLimits(_)
     | TraversalLimits(_)

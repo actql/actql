@@ -2090,6 +2090,16 @@ pub enum LocalProgramContextIssue {
   Context(LocalContextIssue)
 }
 
+pub struct NearestCheck {
+  site : OperationRequirementSite
+  step : @pipeline_typing.CheckedStep
+  candidates : @pipeline_typing.Target
+  queries : @pipeline_typing.Target
+  operation : @relation_evidence.CheckedNearest
+  rule : @relation_evidence.NearestObligation
+  policy : @capacity_policy.Policy
+}
+
 pub struct NumericSlot {
   requirement_index : Int
   site : OperationRequirementSite
@@ -2163,6 +2173,7 @@ pub(all) enum OperationExecutionCheck {
   GraphStructuralExecution(GraphStructuralCheck)
   GraphMeanExecution(GraphMeanCheck)
   VectorExecution(VectorCheck)
+  NearestExecution(NearestCheck)
   GraphResources(GraphResourcesCheck)
   ComponentsLimits(ComponentsLimitsCheck)
   TraversalLimits(TraversalLimitsCheck)
