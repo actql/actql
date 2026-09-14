@@ -182,7 +182,7 @@ fn subgraph_execution_check(
   guard site.requirement is @pipeline.SubgraphRequirement(pending) else {
     return Ok(None)
   }
-  let rule = match pending {
+  let rule : SubgraphRule = match pending {
     AdmitSubgraphInput => AdmitInputGraph
     InduceSelectedEndpoints => InduceBothEndpoints
     FilterInducedEdges => FilterInducedEdges

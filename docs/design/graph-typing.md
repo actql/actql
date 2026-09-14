@@ -274,6 +274,20 @@ Minimum node depth, simple paths, exact path deduplication, canonical order,
 binding checks and execution resources remain separate obligations. No evaluator
 or lowering is included.
 
+`TraversalCheck` binds graph admission, authored-hop enforcement, hop predicate
+evaluation, node minimum-depth selection or simple-path enumeration and exact
+path deduplication, and canonical output ordering to the same checked operation.
+It retains the primary Graph and optional selector Relation with their input
+roles. Indexed hop/predicate readers consume the retained operation; they do not
+reparse source, reorder a pattern or widen a homogeneous maximum.
+
+Graph admission precedes input use. The other checks gate atomic output without
+implying that their algorithms run only at publication time. Start membership
+has its own selector binding and does not demand hop predicates. A false selector
+or predicate does not remove static requirements. The semantic binding does not
+resolve a capacity, supply a profile or waive a guard: those occurrences must be
+closed separately before a complete operation can be returned.
+
 ## Shortest-path checking
 
 `check_shortest` composes typed single identities or shared selectors with the

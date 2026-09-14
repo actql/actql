@@ -108,5 +108,9 @@ fn direct_execution_candidate(
     Ok(None) => ()
     other => return other
   }
-  subgraph_execution_check(site, policy)
+  match subgraph_execution_check(site, policy) {
+    Ok(None) => ()
+    other => return other
+  }
+  traversal_execution_check(site)
 }

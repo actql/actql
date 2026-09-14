@@ -2089,6 +2089,7 @@ pub(all) enum OperationExecutionCheck {
   GraphResources(GraphResourcesCheck)
   ComponentsLimits(ComponentsLimitsCheck)
   TraversalLimits(TraversalLimitsCheck)
+  TraversalExecution(TraversalCheck)
   GraphExecution(GraphExecutionCheck)
   GraphConstructionExecution(GraphConstructionCheck)
   GraphProjection(GraphProjectionCheck)
@@ -3096,11 +3097,30 @@ pub enum TopKExecutionRule {
   PartitionByCanonicalKeys
 }
 
+pub struct TraversalCheck {
+  site : OperationRequirementSite
+  step : @pipeline_typing.CheckedStep
+  input : @pipeline_typing.Target
+  selector_relation : @pipeline_typing.Target?
+  operation : @graph_typing.CheckedTraverse
+  rule : TraversalRule
+}
+
 pub struct TraversalLimitsCheck {
   site : OperationRequirementSite
   step : @pipeline_typing.CheckedStep
   limits : @capacity_program_step.TraversalLimits
 }
+
+pub(all) enum TraversalRule {
+  AdmitInputGraph
+  RespectAuthoredHops
+  EvaluateHopConditions
+  EmitMinimumDepth
+  EnumerateSimplePaths
+  DeduplicatePathIdentities
+  OrderTraversalRows
+} derive(Eq, @debug.Debug)
 
 pub(all) enum ValuesMeasurementIssue {
   InvalidRequirement
