@@ -100,5 +100,13 @@ fn direct_execution_candidate(
     Ok(None) => ()
     other => return other
   }
-  graph_match_execution_check(site, policy)
+  match graph_match_execution_check(site, policy) {
+    Ok(None) => ()
+    other => return other
+  }
+  match graph_selector_execution_check(site, policy) {
+    Ok(None) => ()
+    other => return other
+  }
+  subgraph_execution_check(site, policy)
 }

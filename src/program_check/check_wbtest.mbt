@@ -150,7 +150,8 @@ test "check rejects unsupported or malformed later steps without a partial resul
       ("[{\"asof_join\":{}}]", true),
       ("[{\"sequence\":{}}]", true),
       ("[{\"normalize_graph\":{}}]", true),
-      ("[{\"subgraph\":{}}]", false),
+      ("[{\"subgraph\":{}}]", true),
+      ("[{\"traverse\":{}}]", false),
       ("[null]", false),
     ] {
     let budget = IdentityBudget::{

@@ -5,6 +5,24 @@ import {machineCid} from './actql-spec-family.mjs';
 
 const corpus=JSON.parse(readFileSync('portability/corpus/graph-construction-capacity.json','utf8'));
 const fields=['max_graph_construction_input_rows','max_graph_construction_nodes','max_graph_construction_edges'];
+test('subgraph induction preserves selected records before optional edge filtering',()=>{
+  const {cases}=JSON.parse(readFileSync('portability/corpus/graph-subgraph-selection.json','utf8'));
+  for(const c of cases) {
+    const ids=new Set(c.mode==='predicate' ? c.nodes.filter(n=>n.active===true).map(n=>n.id) : c.selected);
+    if([...ids].some(id=>!c.nodes.some(n=>n.id===id))) {
+      assert.equal(c.error,'MissingIdentity',c.name);
+      continue;
+    }
+    assert.equal(c.error,undefined,c.name);
+    const nodes=c.nodes.filter(n=>ids.has(n.id));
+    const edges=c.edges.filter(e=>ids.has(e.source)&&ids.has(e.target))
+      .filter(e=>!c.edge_filter||e.active===true);
+    assert.deepEqual(nodes,c.expected_nodes,c.name);
+    assert.deepEqual(edges,c.expected_edges,c.name);
+    assert(nodes.length<=c.nodes.length && edges.length<=c.edges.length,c.name);
+    assert(nodes.every(n=>c.nodes.includes(n)) && edges.every(e=>c.edges.includes(e)),c.name);
+  }
+});
 test('match selectors preserve multiplicity, absence, and inclusive output capacity',()=>{
   const {cases}=JSON.parse(readFileSync('portability/corpus/graph-match-resources.json','utf8'));
   for(const c of cases) {

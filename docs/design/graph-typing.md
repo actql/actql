@@ -202,6 +202,23 @@ budgets. Child predicate obligations are accessible through their typed expressi
 Graph materialization and selector evaluation require resolved resources.
 This implements static checking, not traversal, induction or publication proofs.
 
+The formal Program closure binds `SubgraphCheck` to its primary Graph and
+optional selector Relation, and `GraphSelectorCheck` to the retained selector
+and its scoped input occurrence. Repeated source/target selections keep distinct
+roles even when they name the same producer. Type compatibility does not discharge
+membership, issued-reference revalidation or predicate evaluation.
+
+Selector work and bytes are distinct from subgraph materialization work and
+bytes. Byte scopes include retained selection/deduplication state and temporary
+values respectively; edge-predicate work belongs to materialization. These are
+required finite, enforceable realization limits, not measured costs or a backend
+admission. Lowering must bind them before execution or reject the realization.
+Existing producer prerequisites remain applicable; an internal Graph is not
+reclassified as a newly acquired input subject to external-input ceilings.
+Before-output checks require complete induction followed by optional edge
+filtering, preservation of endpoint nodes, properties, policy and scope, and
+atomic rejection on failure. They do not permit publication of a partial Graph.
+
 ## Path result contracts
 
 `check_path_contract` is the shared output builder for node traversal, path

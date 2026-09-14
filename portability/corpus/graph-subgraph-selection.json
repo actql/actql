@@ -1,0 +1,11 @@
+{
+  "description": "Independent finite numeric-ID model for admitted canonical Graphs, not product execution conformance. Selection precedes edge filtering; records carry unchanged properties.",
+  "cases": [
+    {"name":"repeated-ids-induce-both-endpoints","mode":"ids","selected":[10,2,10],"nodes":[{"id":2,"active":true},{"id":10,"active":null},{"id":20,"active":false}],"edges":[{"source":2,"target":10,"active":false},{"source":10,"target":2,"active":true},{"source":10,"target":20,"active":true}],"edge_filter":false,"expected_nodes":[{"id":2,"active":true},{"id":10,"active":null}],"expected_edges":[{"source":2,"target":10,"active":false},{"source":10,"target":2,"active":true}]},
+    {"name":"edge-removal-retains-isolated-endpoints","mode":"relation","selected":[10,2,10],"nodes":[{"id":2,"active":true},{"id":10,"active":null}],"edges":[{"source":2,"target":10,"active":null},{"source":10,"target":2,"active":false}],"edge_filter":true,"expected_nodes":[{"id":2,"active":true},{"id":10,"active":null}],"expected_edges":[]},
+    {"name":"predicate-selects-only-true","mode":"predicate","nodes":[{"id":2,"active":true},{"id":10,"active":null},{"id":20,"active":false}],"edges":[{"source":2,"target":2,"active":true},{"source":2,"target":10,"active":true}],"edge_filter":true,"expected_nodes":[{"id":2,"active":true}],"expected_edges":[{"source":2,"target":2,"active":true}]},
+    {"name":"empty-relation-selects-nothing","mode":"relation","selected":[],"nodes":[{"id":2,"active":true}],"edges":[{"source":2,"target":2,"active":true}],"edge_filter":false,"expected_nodes":[],"expected_edges":[]},
+    {"name":"empty-graph-predicate","mode":"predicate","nodes":[],"edges":[],"edge_filter":true,"expected_nodes":[],"expected_edges":[]},
+    {"name":"missing-explicit-id-is-not-silently-dropped","mode":"ids","selected":[2,10],"nodes":[{"id":2,"active":true}],"edges":[],"edge_filter":false,"error":"MissingIdentity"}
+  ]
+}

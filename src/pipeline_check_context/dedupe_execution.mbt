@@ -11,6 +11,8 @@ pub struct DedupeTopTieCheck {
 
 ///|
 pub(all) enum OperationExecutionCheck {
+  GraphSelectorExecution(GraphSelectorCheck)
+  SubgraphExecution(SubgraphCheck)
   GraphMatchExecution(GraphMatchCheck)
   GraphApplyExecution(GraphApplyCheck)
   GraphDiffExecution(GraphDiffCheck)
@@ -72,6 +74,22 @@ pub fn operation_execution_phase(
   v : OperationExecutionCheck,
 ) -> ExecutionCheckPhase {
   match v {
+    GraphSelectorExecution(v) =>
+      match v.rule {
+        AdmitIdentities | RevalidateReferences | RequireSelectorResources =>
+          BeforeOperationInputUse
+        DeduplicateIdentities | RequireMembership | EvaluateNodePredicate =>
+          BeforeOperationOutput
+      }
+    SubgraphExecution(v) =>
+      match v.rule {
+        AdmitInputGraph | RequireMaterializationResources =>
+          BeforeOperationInputUse
+        InduceBothEndpoints
+        | FilterInducedEdges
+        | PreserveIdentitiesAndProperties
+        | PreservePolicyAndScope => BeforeOperationOutput
+      }
     GraphMatchExecution(v) =>
       match v.rule {
         AdmitGraph | EnforceMatchResources => BeforeOperationInputUse
@@ -221,7 +239,9 @@ pub fn operation_execution_failure(
   v : OperationExecutionCheck,
 ) -> ExecutionCheckFailure {
   match v {
-    GraphMatchExecution(_)
+    GraphSelectorExecution(_)
+    | SubgraphExecution(_)
+    | GraphMatchExecution(_)
     | GraphApplyExecution(_)
     | GraphDiffExecution(_)
     | GraphEqualityExecution(_)

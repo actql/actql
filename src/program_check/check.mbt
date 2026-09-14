@@ -100,6 +100,7 @@ fn check_supported_source(
               | "apply_graph_delta"
               | "match_nodes"
               | "match_edges"
+              | "subgraph"
               | "node_rows"
               | "edge_rows"
               | "values" => ()

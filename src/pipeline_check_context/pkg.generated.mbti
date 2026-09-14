@@ -287,6 +287,10 @@ pub fn graph_match_resource_at(GraphMatchCheck, Int) -> GraphComparisonResource?
 
 pub fn graph_match_resource_count(GraphMatchCheck) -> Int
 
+pub fn graph_selector_resource_at(GraphSelectorCheck, Int) -> GraphSelectionResource?
+
+pub fn graph_selector_resource_count(GraphSelectorCheck) -> Int
+
 pub fn group_array_limit_call(GroupArrayLimit) -> @relation_typing.CheckedAggregate
 
 pub fn group_array_limit_candidate_at(GroupArrayLimit, Int) -> @capacity_graph_preflight.TargetMembership?
@@ -946,6 +950,10 @@ pub fn stage_requirement_usage(StageRequirementClosure) -> (Int, Int)
 pub fn stage_results(StageContexts) -> @stage_results.Checked
 
 pub fn stage_usage(StageContexts) -> (Int, Int)
+
+pub fn subgraph_resource_at(SubgraphCheck, Int) -> GraphSelectionResource?
+
+pub fn subgraph_resource_count(SubgraphCheck) -> Int
 
 pub fn text_bound_at(TextBoundsChecks, Int) -> TextBoundResolution?
 
@@ -1613,6 +1621,32 @@ pub struct GraphResourcesCheck {
   scope : GraphResourceScope
 }
 
+pub(all) enum GraphSelectionResource {
+  SelectorWork
+  SelectorBytes
+  MaterializationWork
+  MaterializationBytes
+} derive(Eq, @debug.Debug)
+
+pub struct GraphSelectorCheck {
+  site : OperationRequirementSite
+  step : @pipeline_typing.CheckedStep
+  graph : @pipeline_typing.Target
+  relation : @pipeline_typing.Target?
+  selector : @graph_typing.CheckedSelector
+  rule : GraphSelectorRule
+  policy : @capacity_policy.Policy
+}
+
+pub(all) enum GraphSelectorRule {
+  AdmitIdentities
+  RevalidateReferences
+  DeduplicateIdentities
+  RequireMembership
+  EvaluateNodePredicate
+  RequireSelectorResources
+} derive(Eq, @debug.Debug)
+
 type GroupArrayLimit
 
 pub enum GroupArrayLimitIssue {
@@ -2044,6 +2078,8 @@ pub(all) enum OperationDisposition {
 }
 
 pub(all) enum OperationExecutionCheck {
+  GraphSelectorExecution(GraphSelectorCheck)
+  SubgraphExecution(SubgraphCheck)
   GraphMatchExecution(GraphMatchCheck)
   GraphApplyExecution(GraphApplyCheck)
   GraphDiffExecution(GraphDiffCheck)
@@ -2945,6 +2981,25 @@ pub enum StatisticalLaw {
   PopulationStandardDeviation
   SampleStandardDeviation
 }
+
+pub struct SubgraphCheck {
+  site : OperationRequirementSite
+  step : @pipeline_typing.CheckedStep
+  input : @pipeline_typing.Target
+  selector_relation : @pipeline_typing.Target?
+  operation : @graph_typing.CheckedSubgraph
+  rule : SubgraphRule
+  policy : @capacity_policy.Policy
+}
+
+pub(all) enum SubgraphRule {
+  AdmitInputGraph
+  InduceBothEndpoints
+  FilterInducedEdges
+  PreserveIdentitiesAndProperties
+  PreservePolicyAndScope
+  RequireMaterializationResources
+} derive(Eq, @debug.Debug)
 
 type TextBoundResolution
 
