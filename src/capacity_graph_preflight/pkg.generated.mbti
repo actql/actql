@@ -69,7 +69,7 @@ pub fn consumer_coverage_work(ConsumerCoverage) -> Int
 
 pub fn input_limit(@capacity_graph_input.GraphInputs, Int, @capacity_graph_input.Measure) -> @capacity_witness.LimitClaim?
 
-pub fn prepare_application_coverage(@pipeline_typing.CheckedPipeline, @capacity_host_witness.HostSources, @capacity_policy.Policy, Array[ConsumerRequest], PreparationLimits, bindings? : @capacity_program_step.CountBindings?, guards? : @pipeline_typing.BoundAuthorGuards?) -> Result[ApplicationCoverage, PreparationIssue]
+pub fn prepare_application_coverage(@pipeline_typing.CheckedPipeline, @capacity_host_witness.HostSources, @capacity_policy.Policy, Array[ConsumerRequest], PreparationLimits, bindings? : @capacity_program_step.CountBindings?, guards? : @pipeline_typing.BoundAuthorGuards?, producers? : Array[@capacity_program_step.Applications]) -> Result[ApplicationCoverage, PreparationIssue]
 
 pub fn selected_policy(@capacity_graph_input.GraphInputs) -> @capacity_policy.Policy
 
@@ -119,6 +119,7 @@ pub(all) enum ApplicationClosureIssue {
   UnnecessaryInputOwner(Int, Int, Int)
   MissingInputOwner(Int, Int, Int)
   ForeignInputOwner(Int, Int, Int)
+  ForeignProducerCollection(Int, Int)
 } derive(Eq, @debug.Debug)
 
 type ApplicationCoverage

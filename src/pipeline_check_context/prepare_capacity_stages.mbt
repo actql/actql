@@ -79,6 +79,7 @@ pub fn prepare_local_stage_contexts(
   let mut input_work = 0
   let mut operand_work = 0
   let applications : Array[Array[@capacity.ApplicationCoverage]] = []
+  let inferred_owners : Array[Array[(Int, Int, Int)]] = []
   for stage in 0..<count {
     let port = @stage_results.wiring_stage_at(
       @stage_results.local_source_wiring(prepared),
@@ -91,20 +92,53 @@ pub fn prepare_local_stage_contexts(
     if materials[stage].length() != visits {
       return Err(VisitCount(stage))
     }
-    if visits > limits.max_work - base_work - extra_work - coverage_work {
+    if visits > (limits.max_work - base_work - extra_work - coverage_work) / 3 {
       return Err(BudgetExceeded)
     }
-    extra_work += visits
-    let entries : Array[@capacity.ApplicationCoverage] = []
-    for visit in 0..<visits {
+    extra_work += visits * 3
+    let entries : Array[@capacity.ApplicationCoverage?] = Array::make(
+      visits,
+      None,
+    )
+    let ends = Array::make(visits, visits)
+    let registrations : Array[(Int, Int, Int)] = []
+    // Contextual closure retains a preorder tree, including repeated imports.
+    // Reverse traversal prepares every child occurrence before its consumer.
+    for visit = visits - 1; visit >= 0; visit = visit - 1 {
       let pipeline = @pipeline.contextual_orders_pipeline(
         @pipeline.contextual_closure_at(orders, visit).unwrap(),
       )
+      let inputs = @pipeline.input_count(pipeline)
+      if inputs > limits.max_work - base_work - extra_work - coverage_work {
+        return Err(BudgetExceeded)
+      }
+      extra_work += inputs
+      let mut end = visit + 1
+      for input in 0..<inputs {
+        if @pipeline.input_producer(pipeline, input) is Some(_) {
+          end = ends[end]
+        }
+      }
+      ends[visit] = end
       let material = materials[stage][visit]
       let claims = @wire.program_claim_arithmetic(
         @host.source_claims(material.sources),
       )
       let claim_count = @wire.claim_count(claims)
+      let producers : Array[@step_bounds.Applications] = []
+      let dependency_end = if claim_count == 0 { visit + 1 } else { end }
+      if dependency_end - visit - 1 >
+        limits.max_work - base_work - extra_work - coverage_work {
+        return Err(BudgetExceeded)
+      }
+      extra_work += dependency_end - visit - 1
+      for producer in (visit + 1)..<dependency_end {
+        producers.push(
+          @capacity.source_coverage_program(
+            @capacity.application_coverage_sources(entries[producer].unwrap()),
+          ),
+        )
+      }
       if claim_count > limits.max_work - base_work - extra_work - coverage_work {
         return Err(BudgetExceeded)
       }
@@ -211,6 +245,7 @@ pub fn prepare_local_stage_contexts(
           },
           bindings~,
           guards~,
+          producers~,
         ) {
         Ok(v) => v
         Err(e) => return Err(Capacity(stage, visit, e))
@@ -222,15 +257,43 @@ pub fn prepare_local_stage_contexts(
       names += name_bytes
       extra_text += name_bytes
       let program = @capacity.source_coverage_program(sources)
+      input_work += @step_bounds.application_input_work(program)
+      operand_work += @step_bounds.application_operand_work(program)
       for index in 0..<claim_count {
         if @step_bounds.application_at(program, index) is Some(bound) {
-          input_work += @step_bounds.input_work(bound)
-          operand_work += @step_bounds.operand_work(bound)
+          if !physical_equal(@step_bounds.checked_pipeline(bound), pipeline) {
+            let cid = @wire.cid(
+              @wire.program_proof_witness(@step_bounds.checked_proof(bound)),
+            )
+            for producer in (visit + 1)..<end {
+              if extra_work == limits.max_work - base_work - coverage_work {
+                return Err(BudgetExceeded)
+              }
+              extra_work += 1
+              let table = producers[producer - visit - 1]
+              let arithmetic = @wire.program_claim_arithmetic(
+                @step_bounds.application_claims(table),
+              )
+              if @wire.claim_index(arithmetic, cid) is Some(claim) &&
+                @step_bounds.application_at(table, claim) is Some(candidate) &&
+                physical_equal(candidate, bound) &&
+                physical_equal(
+                  @step_bounds.checked_pipeline(bound),
+                  @pipeline.contextual_orders_pipeline(
+                    @pipeline.contextual_closure_at(orders, producer).unwrap(),
+                  ),
+                ) {
+                registrations.push((visit, index, producer))
+                break
+              }
+            }
+          }
         }
       }
-      entries.push(coverage)
+      entries[visit] = Some(coverage)
     }
-    applications.push(entries)
+    applications.push(entries.map(v => v.unwrap()))
+    inferred_owners.push(registrations)
   }
   match
     check_prepared_local_stages(
@@ -239,7 +302,7 @@ pub fn prepare_local_stage_contexts(
       selected_policy,
       max_work=limits.max_work - extra_work,
       max_text_bytes=limits.max_text_bytes - extra_text,
-      proof_owners~,
+      proof_owners=Some(proof_owners.unwrap_or(inferred_owners)),
       input_owners~,
     ) {
     Ok(v) => Ok({ ..v, work: v.work + extra_work, text: v.text + extra_text, })

@@ -117,3 +117,133 @@ fn collision_append_claim(input : String) -> @wire.ProgramProofClaim {
   ).unwrap()
   @wire.bind_program_proof(@utf8.encode(proof), witness, caps).unwrap()
 }
+
+///|
+fn collision_claim_sources(
+  proofs : Array[@wire.ProgramProofClaim],
+) -> @host.HostSources {
+  let mixed = @wire.check_mixed_claims(
+    proofs.map(p => @wire.program_proof_witness(p)),
+    [],
+    {
+      max_entities: 100,
+      max_references: 100,
+      max_bytes: 100000,
+      max_nodes: 10000,
+      max_depth: 100,
+    },
+  ).unwrap()
+  let claims = @wire.check_mixed_program_claims(mixed, proofs, {
+    max_witnesses: 100,
+    max_references: 100,
+  }).unwrap()
+  @host.bind_claim_sources(claims, [], {
+    max_entries: 100,
+    max_bytes: 100000,
+    max_nodes: 10000,
+    max_depth: 100,
+  }).unwrap()
+}
+
+///|
+test "formal check composes equal-CID bounds from distinct producer Units" {
+  for
+    (producer_rows, own_rows, repeated) in [
+      (1, 1, false),
+      (1, 1, true),
+      (2, 1, false),
+      (1, 2, false),
+    ] {
+    let seed = sequence_fixture_proof(
+      "actql.bound.values",
+      0,
+      producer_rows,
+      [],
+      "{\"op\":\"source\"}",
+    )
+    let own = sequence_fixture_proof(
+      "actql.bound.values",
+      0,
+      own_rows,
+      [],
+      "{\"op\":\"source\"}",
+    )
+    let left = @wire.cid(@wire.program_proof_witness(own))
+    let right = @wire.cid(@wire.program_proof_witness(seed))
+    let append = sequence_fixture_proof(
+      "actql.bound.append",
+      1,
+      producer_rows + own_rows,
+      [left, right],
+      "{\"left\":\"\{left}\",\"op\":\"add\",\"right\":\"\{right}\"}",
+    )
+    let claims = [own, append]
+    if left != right {
+      claims.push(seed)
+    }
+    let programs : Array[CheckedProgram] = []
+    ignore(
+      local_construction_fixture(
+        { work: 100000000, bytes: 10000000, nodes: 1000000, depth: 100, },
+        second_stage=true,
+        through_check=true,
+        checked_results=programs,
+        generated_rows=Some(
+          if producer_rows == 1 {
+            "[{\"id\":1}]"
+          } else {
+            "[{\"id\":1},{\"id\":3}]"
+          },
+        ),
+        second_steps="[{\"values\":{\"schema\":{\"id\":{\"type\":\"number\",\"nullable\":false},\"value\":{\"type\":\"number\",\"nullable\":false}},\"rows\":" +
+          (if own_rows == 1 {
+            "[{\"id\":2,\"value\":3}]"
+          } else {
+            "[{\"id\":2,\"value\":3},{\"id\":4,\"value\":5}]"
+          }) +
+          "},\"as\":\"local\"},{\"append\":{\"with\":\"" +
+          (if repeated { "local" } else { "rows" }) +
+          "\"}},{\"distinct\":[\"id\",\"value\"],\"as\":\"selected\"}]",
+        second_result_from="selected",
+        extra_step_budget=10,
+        generated_proofs=claims,
+        generated_producer_sources=Some(collision_claim_sources([seed])),
+      ),
+    )
+    assert_eq(programs.length(), 1)
+    // Read the persisted output through consumer readers, not the private
+    // intermediate capacity table. Distinct forwards the append's row bound.
+    let program = programs[0]
+    let publication = unit_publication_at(program, 1, 0).unwrap()
+    let mut found = false
+    for i in 0..<publication_proof_count(publication) {
+      let proof = publication_proof_at(publication, i).unwrap()
+      if @wire.value(@wire.program_proof_witness(proof_claim(proof))) !=
+        (producer_rows + own_rows).to_int64() {
+        continue
+      }
+      assert_eq(proof_input_count(proof), 2)
+      let a = proof_input_at(proof, 0).unwrap()
+      let b = proof_input_at(proof, 1).unwrap()
+      assert_eq(
+        proof_source(a).unit_definition_cid,
+        unit_definition_cid(program, 1).unwrap(),
+      )
+      assert_eq(
+        proof_source(b).unit_definition_cid,
+        unit_definition_cid(program, if repeated { 1 } else { 0 }).unwrap(),
+      )
+      assert_eq(physical_equal(a, b), repeated)
+      let a_cid = @wire.cid(@wire.program_proof_witness(proof_claim(a)))
+      let b_cid = @wire.cid(@wire.program_proof_witness(proof_claim(b)))
+      assert_true(
+        @wire.derivation(@wire.program_proof_witness(proof_claim(proof)))
+        is Add(l, r) &&
+        l == a_cid &&
+        r == b_cid,
+      )
+      found = true
+    }
+    assert_true(found)
+  }
+}

@@ -546,6 +546,7 @@ fn check_application(
   max_operand_work : Int,
   bindings : CountBindings?,
   refine_join : Bool,
+  usage? : Array[Int]? = None,
 ) -> Result[StepBound, Issue] {
   if max_input_work < 0 {
     return Err(InvalidInputWorkLimit)
@@ -580,21 +581,8 @@ fn check_application(
     Ok(v) => v
     Err(e) => return Err(e)
   }
-  let valid_count = match rule {
-    One | Constant(_) => n == 0
-    Preserve => n == 1
-    Clamp(_) => n <= 1
-    Sum => n == 2
-    Join(_) => n == 2
-    Multiply(_) => n == 1
-    GraphMeasure(_, _, _, _) => n == 1
-    GraphCombine(_, expected) => n == expected
-    GraphQuery(query) => n == query.inputs.length()
-    QueryTopK(_) => n == 1 || n == 2
-    Ranking(expected, maximum) =>
-      n == expected || (n == 0 && maximum is Some(_))
-  }
-  if !valid_count || @wire.program_proof_input_count(proof) != n {
+  if !rule_input_count_valid(rule, n) ||
+    @wire.program_proof_input_count(proof) != n {
     return Err(InputCountMismatch)
   }
   let operand_work = if rule is Ranking(_, _) || rule is GraphCombine(_, _) {
@@ -608,60 +596,29 @@ fn check_application(
     0
   }
   let ids : Array[String] = []
+  if usage is Some(v) {
+    v[1] = operand_work
+  }
   let inputs : Array[BoundInput] = []
   let mut input_work = 0
   for i in 0..<n {
     let input = get_input(i)
-    let (input_owner, input_target) = source_target(input)
-    let expected_unit = match rule {
-      GraphMeasure(_, unit, _, _) => unit
-      GraphCombine(unit, _) => unit
-      GraphQuery(query) => query.inputs[i].0
-      _ => @arithmetic.Rows
+    let (matched, used) = check_input_target_usage(
+      pipeline,
+      step,
+      rule,
+      n,
+      i,
+      input,
+      max_input_work - input_work,
+    )
+    input_work += used
+    if usage is Some(v) {
+      v[0] = input_work
     }
-    if @wire.unit(source_witness(input)) != expected_unit {
-      return Err(InputUnitMismatch(i))
-    }
-    let mut owner = pipeline
-    // Per-query top-k uses the query side for its one-operand bound.
-    let edge = match rule {
-      GraphMeasure(_, _, edge, _) => edge
-      GraphQuery(query) => query.inputs[i].1
-      QueryTopK(_) if n == 1 => 1
-      _ => i
-    }
-    let mut target = @pipeline.input_occurrence_at(step, edge).unwrap().target
-    while !(physical_equal(owner, input_owner) && target == input_target) {
-      let next = match target {
-        @pipeline.Input(input_index) => {
-          if input_work >= max_input_work {
-            return Err(InputWorkLimit)
-          }
-          input_work = input_work + 1
-          guard @pipeline.input_producer(owner, input_index) is Some(producer) else {
-            return Err(MissingInputProducer(i))
-          }
-          owner = @pipeline.producer_pipeline(producer)
-          target = @pipeline.producer_target(producer)
-          continue
-        }
-        @pipeline.Step(index) => {
-          let step = @pipeline.step_at(owner, index).unwrap()
-          let forwarded = forwarded_input(step, expected_unit)
-          guard forwarded is Some(next) else {
-            if !physical_equal(input_owner, owner) {
-              return Err(InputOwnerMismatch(i))
-            }
-            return Err(InputTargetMismatch(i))
-          }
-          next
-        }
-      }
-      if input_work >= max_input_work {
-        return Err(InputWorkLimit)
-      }
-      input_work = input_work + 1
-      target = next
+    match matched {
+      Ok(_) => ()
+      Err(e) => return Err(e)
     }
     ids.push(@wire.cid(source_witness(input)))
     inputs.push(input)

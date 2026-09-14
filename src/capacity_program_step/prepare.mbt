@@ -31,12 +31,14 @@ priv enum PreparationFrame {
 ///|
 /// Construct ordinary derived applications from admitted claims, in dependency
 /// order, without caller-supplied StepBounds. Optional Graph inputs must retain
-/// this exact pipeline and claim owner. Other external and enforced-proof
-/// applications require their separate entrances; they are never fabricated.
+/// this exact pipeline and claim owner. Producer collections retain already
+/// checked external operation applications, selected by actual input edges.
+/// Other external and enforced-proof applications require separate entrances.
 /// The work cap covers orchestration and collection. Input-link traversal and
 /// operand passes have separate cumulative caps, as on individual applications.
-/// Internal subject refs are resolved only within this exact pipeline owner;
-/// the enclosing Program identity and cross-producer closure remain required.
+/// A subject spelling alone never binds a producer. Inherited applications
+/// retain their original owner; the enclosing closure must admit that exact
+/// collection and its Parameter/policy correspondence.
 pub fn prepare_derived_applications(
   pipeline : @pipeline.CheckedPipeline,
   claims : @wire.ProgramClaims,
@@ -44,6 +46,7 @@ pub fn prepare_derived_applications(
   bindings? : CountBindings? = None,
   graph_inputs? : @graph_input.GraphInputs? = None,
   sequences? : @sequence.Applications? = None,
+  producers? : Array[Applications] = [],
 ) -> Result[Applications, PreparationIssue] {
   if limits.max_work < 0 ||
     limits.max_input_work < 0 ||
@@ -80,6 +83,27 @@ pub fn prepare_derived_applications(
     return Err(WorkLimit)
   }
   let mut work = count + steps
+  let inherited : Map[String, Array[BoundInput]] = Map([])
+  for producer in producers {
+    if work == limits.max_work {
+      return Err(WorkLimit)
+    }
+    work += 1
+    let n = @wire.claim_count(@wire.program_claim_arithmetic(producer.claims))
+    if n > limits.max_work - work {
+      return Err(WorkLimit)
+    }
+    work += n
+    for claim in 0..<n {
+      if application_at(producer, claim) is Some(bound) {
+        let cid = @wire.cid(@wire.program_proof_witness(bound.proof))
+        match inherited.get(cid) {
+          Some(values) => values.push(StepInput(bound))
+          None => inherited[cid] = [StepInput(bound)]
+        }
+      }
+    }
+  }
   let external : Map[String, BoundInput] = Map([])
   if graph_inputs is Some(graph) {
     let n = @pipeline.input_count(pipeline)
@@ -134,6 +158,18 @@ pub fn prepare_derived_applications(
           if @wire.program_proof_form(proof) != @wire.DerivedInputs {
             return Err(UnsupportedProof(index))
           }
+          if @wire.source(@wire.program_proof_witness(proof))
+            is @wire.Program(reference, _) &&
+            !subjects.contains(reference) {
+            let cid = @wire.cid(@wire.program_proof_witness(proof))
+            guard inherited.get(cid) is Some([StepInput(bound), ..]) else {
+              return Err(UnknownSubject(index))
+            }
+            applications[index] = Some(bound)
+            states[index] = 2
+            ready.push(bound)
+            continue
+          }
           if @law.name(@wire.law(@wire.program_proof_witness(proof))) ==
             "actql.bound.sequence-output" {
             guard @wire.source(@wire.program_proof_witness(proof))
@@ -150,6 +186,9 @@ pub fn prepare_derived_applications(
               entries: applications,
               remaining: 0,
               work: 0,
+              producers: [],
+              input_usage: 0,
+              operand_usage: 0,
             }
             let bound = match
               resolved_output(
@@ -202,33 +241,81 @@ pub fn prepare_derived_applications(
             return Err(WorkLimit)
           }
           work += n
-          let inputs : Array[BoundInput] = []
+          let candidates : Array[Array[BoundInput]] = []
           for input in 0..<n {
             let cid = @wire.program_proof_input_at(proof, input).unwrap()
+            let choices : Array[BoundInput] = []
             if @wire.claim_index(arithmetic, cid) is Some(child) &&
               applications[child] is Some(value) {
-              inputs.push(StepInput(value))
+              choices.push(StepInput(value))
             } else if external.get(cid) is Some(value) {
-              inputs.push(value)
+              choices.push(value)
             } else {
               return Err(MissingDependency(index, input))
             }
+            if inherited.get(cid) is Some(values) {
+              if values.length() > limits.max_work - work {
+                return Err(WorkLimit)
+              }
+              work += values.length()
+              for value in values {
+                choices.push(value)
+              }
+            }
+            candidates.push(choices)
           }
-          let value = match
-            check_with_sources(
-              pipeline,
-              step,
-              proof,
-              inputs,
-              max_input_work=limits.max_input_work - input_work,
-              max_operand_work=limits.max_operand_work - operand_work,
-              bindings~,
-            ) {
+          let selected = select_prepared_inputs(
+            pipeline,
+            step,
+            proof,
+            candidates,
+            bindings,
+            limits.max_work - work,
+            limits.max_input_work - input_work,
+          )
+          let checked_usage = [0, 0]
+          let checked = match selected {
+            Ok(selected) => {
+              work += selected.work
+              input_work += selected.input_work
+              check_application(
+                pipeline,
+                step,
+                proof,
+                selected.inputs.length(),
+                i => selected.inputs[i],
+                limits.max_input_work - input_work,
+                limits.max_operand_work - operand_work,
+                bindings,
+                false,
+                usage=Some(checked_usage),
+              )
+            }
+            Err((e, used_work, used_input)) => {
+              work += used_work
+              input_work += used_input
+              Err(e)
+            }
+          }
+          input_work += checked_usage[0]
+          operand_work += checked_usage[1]
+          let value = match checked {
             Ok(v) => v
-            Err(e) => return Err(Application(index, e))
+            Err(InputWorkLimit) =>
+              return Err(Application(index, InputWorkLimit))
+            Err(OperandWorkLimit) =>
+              return Err(Application(index, OperandWorkLimit))
+            Err(e) => {
+              // A body may belong to an already checked producer rather than
+              // this visit. Retain that exact application; the closure must
+              // still register its pipeline and Parameter owner.
+              let cid = @wire.cid(@wire.program_proof_witness(proof))
+              match inherited.get(cid) {
+                Some([StepInput(bound), ..]) => bound
+                _ => return Err(Application(index, e))
+              }
+            }
           }
-          input_work += value.input_work
-          operand_work += value.operand_work
           applications[index] = Some(value)
           states[index] = 2
           ready.push(value)
@@ -236,8 +323,20 @@ pub fn prepare_derived_applications(
       }
     }
   }
-  match check_applications(claims, ready, max_work=limits.max_work - work) {
-    Ok(v) => Ok({ ..v, work: v.work + work, })
+  match
+    check_applications(
+      claims,
+      ready,
+      max_work=limits.max_work - work,
+      producers~,
+    ) {
+    Ok(v) =>
+      Ok({
+        ..v,
+        work: v.work + work,
+        input_usage: input_work,
+        operand_usage: operand_work,
+      })
     Err(e) => Err(Collection(e))
   }
 }

@@ -22,6 +22,7 @@ pub(all) enum ApplicationClosureIssue {
   UnnecessaryInputOwner(Int, Int, Int)
   MissingInputOwner(Int, Int, Int)
   ForeignInputOwner(Int, Int, Int)
+  ForeignProducerCollection(Int, Int)
 } derive(Eq, Debug)
 
 ///|
@@ -69,6 +70,31 @@ pub fn check_application_closure(
       return Err(WorkLimit(i))
     }
     work += app.work
+    // External applications must come from an exact collection in this same
+    // closure. A separately admitted table with equal CIDs is not a substitute.
+    let producer_count = @program.application_producer_count(
+      app.sources.program,
+    )
+    for dependency in 0..<producer_count {
+      let producer = @program.application_producer_at(
+        app.sources.program,
+        dependency,
+      ).unwrap()
+      let mut found = false
+      for candidate in applications {
+        if work == max_work {
+          return Err(ProofWorkLimit)
+        }
+        work += 1
+        if physical_equal(producer, candidate.sources.program) {
+          found = true
+          break
+        }
+      }
+      if !found {
+        return Err(ForeignProducerCollection(i, dependency))
+      }
+    }
     let expected = @pipeline.contextual_orders_pipeline(
       @pipeline.contextual_closure_at(orders, i).unwrap(),
     )

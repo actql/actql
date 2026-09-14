@@ -49,6 +49,7 @@ pub fn prepare_application_coverage(
   limits : PreparationLimits,
   bindings? : @program.CountBindings? = None,
   guards? : @pipeline.BoundAuthorGuards? = None,
+  producers? : Array[@program.Applications] = [],
 ) -> Result[ApplicationCoverage, PreparationIssue] {
   if limits.max_work < 0 ||
     limits.max_name_bytes < 0 ||
@@ -149,6 +150,7 @@ pub fn prepare_application_coverage(
       bindings~,
       graph_inputs=Some(graph),
       sequences=Some(sequence),
+      producers~,
     ) {
     Ok(v) => v
     Err(e) => return Err(Program(e))

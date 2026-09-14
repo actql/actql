@@ -18,6 +18,14 @@ pub fn application_at(Applications, Int) -> StepBound?
 
 pub fn application_claims(Applications) -> @capacity_witness.ProgramClaims
 
+pub fn application_input_work(Applications) -> Int
+
+pub fn application_operand_work(Applications) -> Int
+
+pub fn application_producer_at(Applications, Int) -> Applications?
+
+pub fn application_producer_count(Applications) -> Int
+
 pub fn application_work(Applications) -> Int
 
 pub fn asof_search_bound_at(AsOfSearchProduct, Int) -> TargetRows?
@@ -38,7 +46,7 @@ pub fn binding_usage(CountBindings) -> (Int, Int)
 
 pub fn check(@pipeline_typing.CheckedPipeline, Int, @capacity_witness.ProgramProofClaim) -> Result[StepBound, Issue]
 
-pub fn check_applications(@capacity_witness.ProgramClaims, Array[StepBound], max_work~ : Int) -> Result[Applications, ApplicationIssue]
+pub fn check_applications(@capacity_witness.ProgramClaims, Array[StepBound], max_work~ : Int, producers? : Array[Applications]) -> Result[Applications, ApplicationIssue]
 
 pub fn check_asof_search_product(@pipeline_typing.CheckedPipeline, Int, TargetRows?, TargetRows?, Int) -> Result[AsOfSearchProduct, AsOfSearchIssue]
 
@@ -190,7 +198,7 @@ pub fn operand_work(StepBound) -> Int
 
 pub fn parameter_values(CountBindings) -> @parameter_binding.BoundValues
 
-pub fn prepare_derived_applications(@pipeline_typing.CheckedPipeline, @capacity_witness.ProgramClaims, PreparationLimits, bindings? : CountBindings?, graph_inputs? : @capacity_graph_input.GraphInputs?, sequences? : @capacity_sequence_limit.Applications?) -> Result[Applications, PreparationIssue]
+pub fn prepare_derived_applications(@pipeline_typing.CheckedPipeline, @capacity_witness.ProgramClaims, PreparationLimits, bindings? : CountBindings?, graph_inputs? : @capacity_graph_input.GraphInputs?, sequences? : @capacity_sequence_limit.Applications?, producers? : Array[Applications]) -> Result[Applications, PreparationIssue]
 
 pub fn remaining_source_count(Applications) -> Int
 

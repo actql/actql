@@ -55,6 +55,7 @@ fn local_construction_fixture(
   text_policy? : Bool = false,
   generated_proofs? : Array[@wire.ProgramProofClaim] = [],
   generated_proof_stage? : Int = 1,
+  generated_producer_sources? : @host.HostSources? = None,
 ) -> (
   @context.ProgramSourceIdentity,
   @context.StageRequirementClosure,
@@ -422,7 +423,10 @@ fn local_construction_fixture(
         }
       } else {
         @context.CapacityMaterial::{
-          sources: if (
+          sources: if generated_producer_sources is Some(producer_sources) &&
+            (stage == 0 || visit > 0) {
+            producer_sources
+          } else if (
               (stage == generated_proof_stage && visit == 0) ||
               (stage == 1 && visit > 0 && generated_proof_stage == 0)
             ) &&

@@ -77,6 +77,9 @@ pub fn resolve_applications(
     claims,
     entries: Array::make(n, None),
     remaining: 0,
+    producers: [],
+    input_usage: 0,
+    operand_usage: 0,
     work: 0,
   }
   let resolved : Array[StepBound] = []

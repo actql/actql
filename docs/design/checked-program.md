@@ -908,14 +908,23 @@ or complete Program integration requirements.
 
 `capacity_program_step.prepare_derived_applications` constructs ordinary
 derived applications from admitted claims rather than requiring a caller to
-assemble their successful `StepBound` dependencies. It resolves internal subject
-references against one exact pipeline and walks proof inputs nonrecursively in
-dependency order. Repeated input occurrences reuse the same checked dependency,
-without deduplicating operands. Unknown subjects, unavailable external inputs,
+assemble their successful `StepBound` dependencies. It resolves local subject
+references against the exact pipeline and walks proof inputs nonrecursively in
+dependency order. Previously checked producer collections supply external
+applications without rebinding their subject spelling to the consumer. Each
+canonical proof-input occurrence is matched to an actual ordered data edge;
+an equal CID is only a candidate lookup, never an owner assertion. Repeated
+uses retain their input occurrences, and distinct producer applications with
+equal local CIDs remain distinct through Unit reidentification.
+Unknown subjects, unavailable external inputs,
 unsupported proof forms or invalid applications fail the entire preparation.
 The existing law/application checker still decides units, input correspondence,
 arithmetic and bound values. Orchestration/collection work, input-link traversal
 and operand passes have separate cumulative limits; none resets for each proof.
+Rejected candidate traversals are included in preparation usage. Retained
+external subtrees are not charged as if they had been reconstructed locally.
+The application closure checks that every retained producer collection is the
+exact collection of a contextual visit, including its policy and value binding.
 This is not a Program identity check, a Host admission or a replacement for
 cross-producer application closure. Nonordinary sources retain their separate
 coverage requirements, even when no ordinary proof is present.
@@ -1037,7 +1046,9 @@ the Stage integration boundary internally. Material counts must match every
 Stage and producer visit, including unused visits; absent material is not an
 empty-proof default. The entrance accepts neither substitute pipelines nor
 independent successful capacity applications. Cross-producer owner coordinates
-still undergo the existing final owner checks.
+are derived from dependency-first preparation of the occurrence-preserving
+contextual tree and still undergo the existing final owner checks. Result
+arrays retain the original visit coordinates, not preparation order.
 
 Work and text budgets are shared across all Stages. Capacity coverage work is
 counted once through its retained context; material visits, binding preparation

@@ -1,4 +1,89 @@
 ///|
+test "producer preparation rejects same-CID foreign owners and charges all candidate traversals" {
+  let source = "[{\"values\":{\"schema\":{\"id\":{\"type\":\"number\",\"nullable\":false}},\"rows\":[{\"id\":1},{\"id\":2}]},\"as\":\"seed\"}]"
+  let producer = pipeline(source)
+  let foreign = pipeline(source)
+  let body = "[{\"values\":{\"schema\":{\"id\":{\"type\":\"number\",\"nullable\":false}},\"rows\":[{\"id\":3}]},\"as\":\"seed\"},{\"append\":{\"with\":\"prior\"}}]"
+  let consumer = consume(producer, Step(0), body)
+  let seed = proof("actql.bound.values", 2, "{\"op\":\"source\"}")
+  let own = proof("actql.bound.values", 1, "{\"op\":\"source\"}")
+  let left = @wire.cid(@wire.program_proof_witness(own))
+  let right = @wire.cid(@wire.program_proof_witness(seed))
+  let sum = proof(
+    "actql.bound.append",
+    3,
+    "{\"left\":\"\{left}\",\"op\":\"add\",\"right\":\"\{right}\"}",
+    reference="checked-step:1",
+    inputs=[left, right],
+  )
+  let claims = program_claims([seed, own, sum])
+  let caps : @capacity_program_step.PreparationLimits = {
+    max_work: 10000,
+    max_input_work: 10000,
+    max_operand_work: 10000,
+  }
+  let producer_claims = program_claims([seed])
+  let checked = @capacity_program_step.prepare_derived_applications(
+    producer, producer_claims, caps,
+  ).unwrap()
+  let other = @capacity_program_step.prepare_derived_applications(
+    foreign, producer_claims, caps,
+  ).unwrap()
+  let prepared = @capacity_program_step.prepare_derived_applications(
+    consumer,
+    claims,
+    caps,
+    producers=[checked],
+  ).unwrap()
+  let exact : @capacity_program_step.PreparationLimits = {
+    max_work: @capacity_program_step.application_work(prepared),
+    max_input_work: @capacity_program_step.application_input_work(prepared),
+    max_operand_work: @capacity_program_step.application_operand_work(prepared),
+  }
+  assert_true(exact.max_input_work > 0)
+  assert_true(
+    @capacity_program_step.prepare_derived_applications(
+      consumer,
+      claims,
+      exact,
+      producers=[checked],
+    )
+    is Ok(_),
+  )
+  assert_true(
+    @capacity_program_step.prepare_derived_applications(
+      consumer,
+      claims,
+      { ..exact, max_work: exact.max_work - 1, },
+      producers=[checked],
+    )
+    is Err(_),
+  )
+  assert_true(
+    @capacity_program_step.prepare_derived_applications(
+      consumer,
+      claims,
+      { ..exact, max_input_work: exact.max_input_work - 1, },
+      producers=[checked],
+    )
+    is Err(_),
+  )
+  assert_true(
+    @capacity_program_step.prepare_derived_applications(
+      consumer,
+      claims,
+      caps,
+      producers=[other],
+    )
+    is Err(_),
+  )
+  assert_true(
+    @capacity_program_step.prepare_derived_applications(consumer, claims, caps)
+    is Err(_),
+  )
+}
+
+///|
 test "derived preparation orders claims and preserves repeated dependencies" {
   let p = pipeline(
     (
@@ -57,11 +142,14 @@ test "derived preparation orders claims and preserves repeated dependencies" {
     )
     let exact : @capacity_program_step.PreparationLimits = {
       max_work: @capacity_program_step.application_work(prepared),
-      max_input_work: @capacity_program_step.input_work(first) +
-      @capacity_program_step.input_work(last),
+      // The one forwarded left edge is tested for both equal-CID occurrences,
+      // then checked once more for the selected application. The right edge is
+      // direct. Preparation must report all three traversals, not just the last.
+      max_input_work: 3,
       max_operand_work: @capacity_program_step.operand_work(first) +
       @capacity_program_step.operand_work(last),
     }
+    assert_eq(@capacity_program_step.application_input_work(prepared), 3)
     assert_true(
       @capacity_program_step.prepare_derived_applications(p, claims, exact)
       is Ok(_),

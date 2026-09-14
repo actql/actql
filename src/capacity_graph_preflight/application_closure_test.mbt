@@ -31,6 +31,7 @@ fn empty_guard_closure(
 fn empty_capacity(
   p : @pipeline.CheckedPipeline,
   other_policy? : Bool = false,
+  producers? : Array[@program.Applications] = [],
 ) -> @capacity_graph_preflight.ApplicationCoverage {
   let mixed = @wire.check_mixed_claims([], [], {
     max_entities: 0,
@@ -51,7 +52,12 @@ fn empty_capacity(
   }).unwrap()
   let selected = policy(other_policy)
   let graph = @capacity_graph_preflight.check(p, source, selected, caps()).unwrap()
-  let program = @program.check_applications(claims, [], max_work=0).unwrap()
+  let program = @program.check_applications(
+    claims,
+    [],
+    max_work=producers.length(),
+    producers~,
+  ).unwrap()
   let sequence = @sequence.check_applications(
     p,
     source,
@@ -65,6 +71,51 @@ fn empty_capacity(
     sequence,
     max_work=10000,
   ).unwrap()
+}
+
+///|
+test "capacity closure rejects a substitute producer collection with the same pipeline and claims" {
+  let base = fixture_pipeline(false)
+  let root = forwarding_pipeline([
+    (
+      "a",
+      @pipeline.ProducedInput(@pipeline.produced_input(base, Input(0)).unwrap()),
+    ),
+  ])
+  let orders = @pipeline.resolve_contextual_closure(
+    root,
+    max_steps=0,
+    max_work=100,
+    max_text_bytes=100,
+  ).unwrap()
+  let producer = empty_capacity(base)
+  let original = @capacity_graph_preflight.source_coverage_program(
+    @capacity_graph_preflight.application_coverage_sources(producer),
+  )
+  let consumer = empty_capacity(root, producers=[original])
+  let guards = empty_guard_closure(orders)
+  assert_true(
+    @capacity_graph_preflight.check_application_closure(
+      orders,
+      [consumer, producer],
+      selected_policy=policy(false),
+      bound_guards=guards,
+      max_work=10000,
+    )
+    is Ok(_),
+  )
+  // Re-admitting equal empty claims for the same pipeline is still a new owner.
+  let replacement = empty_capacity(base)
+  assert_true(
+    @capacity_graph_preflight.check_application_closure(
+      orders,
+      [consumer, replacement],
+      selected_policy=policy(false),
+      bound_guards=guards,
+      max_work=10000,
+    )
+    is Err(ForeignProducerCollection(0, 0)),
+  )
 }
 
 ///|
