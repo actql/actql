@@ -21,6 +21,7 @@ fn checked_direct_program_fixture(
   analytic_body? : String = "",
   lag_body? : String = "",
   unpivot_body? : String = "",
+  json_pick_path? : String = "",
   numeric_profile? : @numeric.Profile? = None,
 ) -> CheckedProgram raise {
   let original_text =
@@ -100,6 +101,13 @@ fn checked_direct_program_fixture(
       text.replace(
         old="}],\"results\":{\"out\":{\"from\":{\"stage\":\"s\",\"result\":\"out\"}}}}",
         new="},{\"id\":\"consumer\",\"inputs\":{\"imported\":{\"result\":{\"stage\":\"s\",\"result\":\"out\"}}},\"steps\":[],\"results\":{\"out\":{\"from\":\"imported\",\"fields\":[\"id\"]}}}],\"results\":{\"out\":{\"from\":{\"stage\":\"consumer\",\"result\":\"out\"}}}}",
+      )
+    } else if json_pick_path != "" {
+      text.replace(
+        old="\"steps\":[",
+        new="\"steps\":[{\"derive\":{\"payload\":{\"object\":{\"first\":{\"object\":{\"leaf\":\"id\"}}}}}},{\"json_pick\":{\"column\":\"payload\",\"path\":" +
+          json_pick_path +
+          ",\"output\":\"picked\"}},",
       )
     } else if unpivot_body != "" {
       text.replace(
@@ -273,7 +281,8 @@ fn checked_direct_program_fixture(
         mix_local ||
         pivot_body != "" ||
         analytic_body != "" ||
-        lag_body != "" {
+        lag_body != "" ||
+        json_pick_path != "" {
         4
       } else {
         2

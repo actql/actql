@@ -22,6 +22,28 @@ pub struct PublicationSourcePolicy {
   priv analytics : Array[PublicationPolicyAnalytic]
   priv lags : Array[PublicationPolicyLag]
   priv unpivots : Array[PublicationPolicyUnpivot]
+  priv json_picks : Array[PublicationPolicyJsonPick]
+}
+
+///|
+pub struct PublicationPolicyJsonPick {
+  step : Int
+  operation : @relation.CheckedOperation
+}
+
+///|
+pub fn publication_policy_json_pick_count(
+  value : PublicationSourcePolicy,
+) -> Int {
+  value.json_picks.length()
+}
+
+///|
+pub fn publication_policy_json_pick_at(
+  value : PublicationSourcePolicy,
+  index : Int,
+) -> PublicationPolicyJsonPick? {
+  value.json_picks.get(index)
 }
 
 ///|
@@ -367,6 +389,7 @@ fn prepare_publication_source_policy(
   let analytics : Array[PublicationPolicyAnalytic] = []
   let lags : Array[PublicationPolicyLag] = []
   let unpivots : Array[PublicationPolicyUnpivot] = []
+  let json_picks : Array[PublicationPolicyJsonPick] = []
   let mut unknown = false
   while pending.pop() is Some(target) {
     identity_charge(budget, 1)
@@ -387,6 +410,15 @@ fn prepare_publication_source_policy(
           @pipeline.Unary(operation) => {
             match @relation.operation(operation) {
               Select | Rename | Drop | Sort | Distinct | DedupeRows => ()
+              JsonPick => {
+                identity_charge(budget, 1)
+                guard @relation.json_pick_source(operation) is Some(_) &&
+                  @relation.json_pick_path_count(operation) > 0 else {
+                  raise ForeignOwner
+                }
+                // Paths denote structural object keys, not emitted values.
+                json_picks.push({ step: index, operation, })
+              }
               Unpivot => {
                 identity_charge(budget, 1)
                 guard @relation.unpivot_outputs(operation) is Some(_) &&
@@ -726,6 +758,7 @@ fn prepare_publication_source_policy(
     analytics,
     lags,
     unpivots,
+    json_picks,
   }
   |> Some
 }

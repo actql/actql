@@ -263,6 +263,10 @@ pub fn publication_policy_import_at(PublicationSourcePolicy, Int) -> Publication
 
 pub fn publication_policy_import_count(PublicationSourcePolicy) -> Int
 
+pub fn publication_policy_json_pick_at(PublicationSourcePolicy, Int) -> PublicationPolicyJsonPick?
+
+pub fn publication_policy_json_pick_count(PublicationSourcePolicy) -> Int
+
 pub fn publication_policy_lag_at(PublicationSourcePolicy, Int) -> PublicationPolicyLag?
 
 pub fn publication_policy_lag_count(PublicationSourcePolicy) -> Int
@@ -706,6 +710,11 @@ pub struct PublicationPolicyGroup {
 pub struct PublicationPolicyImport {
   input : Int
   publication : PublicationExecution
+}
+
+pub struct PublicationPolicyJsonPick {
+  step : Int
+  operation : @relation_typing.CheckedOperation
 }
 
 pub struct PublicationPolicyLag {

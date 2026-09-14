@@ -505,6 +505,13 @@ provenance without an admitted attestation. Hiding either generated column does
 not declassify the relation. Effective-policy CID sets stay deduplicated without
 deduplicating column occurrences or reducing the expansion bound.
 
+Json-pick transfer retains the checked operation and its indexed structural path.
+Path segments denote object keys; unlike unpivot labels they are not emitted
+values. The selected leaf inherits input provenance, including an upstream
+unknown contribution. The shape-validation execution check remains attached to
+the same operation even if the picked output is hidden by the final projection.
+This transfer neither supplies missing shape evidence nor inspects opaque values.
+
 Result imports retain the producer's completed publication through
 `publication_policy_import_count/at`, including the consumer input coordinate.
 `imported_publication` is a convenience only for exactly one import.
