@@ -192,6 +192,32 @@ pub fn mean_weight_at(c : CheckedMeanOptions, index : Int) -> Double? {
 }
 
 ///|
+pub fn mean_sample_count(c : CheckedMeanOptions) -> Int {
+  c.weights.length()
+}
+
+///|
+pub fn mean_property_count(c : CheckedMeanOptions, entity : EntityKind) -> Int {
+  match entity {
+    Nodes => c.nodes.length()
+    Edges => c.edges.length()
+  }
+}
+
+///|
+/// Read an owned policy without copying the complete property map.
+pub fn mean_property_at(
+  c : CheckedMeanOptions,
+  entity : EntityKind,
+  index : Int,
+) -> MeanProperty? {
+  match entity {
+    Nodes => c.nodes.get(index)
+    Edges => c.edges.get(index)
+  }
+}
+
+///|
 pub fn mean_support(c : CheckedMeanOptions, entity : EntityKind) -> Double {
   match entity {
     Nodes => c.node_support

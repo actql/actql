@@ -185,6 +185,12 @@ pub fn mean_pending_count(CheckedMean) -> Int
 
 pub fn mean_properties(CheckedMeanOptions, EntityKind) -> Array[MeanProperty]
 
+pub fn mean_property_at(CheckedMeanOptions, EntityKind, Int) -> MeanProperty?
+
+pub fn mean_property_count(CheckedMeanOptions, EntityKind) -> Int
+
+pub fn mean_sample_count(CheckedMeanOptions) -> Int
+
 pub fn mean_support(CheckedMeanOptions, EntityKind) -> Double
 
 pub fn mean_usage(CheckedMean) -> Usage

@@ -494,6 +494,16 @@ The machine schema enforces the closed option grammar; equal list lengths,
 finite binary64 admission and contract-dependent coverage require the checker.
 None of these checks is evidence of a numerical evaluator.
 
+The execution binding retains the exact checked generator, requirement occurrence
+and selected policy. Indexed sample readers expose the owned `Sample(index)` and
+its weight together, without copying or re-resolving the sample list. Repeated
+targets and zero weights remain distinct positions. Property readers likewise
+return retained strategies rather than rebuilding maps. Input admission precedes
+sample use; support, endpoint closure, label agreement, property policies, final
+rounding, finite results, identity order and observation/policy dependencies are
+separate checks before output publication. Resource and profile requirements are
+not discharged by these semantic bindings.
+
 ## Structural graph composition
 
 Binary structural operations retain both input occurrences, including repeated

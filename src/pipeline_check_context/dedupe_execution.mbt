@@ -18,6 +18,7 @@ pub(all) enum OperationExecutionCheck {
   GraphDiffExecution(GraphDiffCheck)
   GraphEqualityExecution(GraphEqualityCheck)
   GraphStructuralExecution(GraphStructuralCheck)
+  GraphMeanExecution(GraphMeanCheck)
   GraphResources(GraphResourcesCheck)
   ComponentsLimits(ComponentsLimitsCheck)
   TraversalLimits(TraversalLimitsCheck)
@@ -149,6 +150,18 @@ pub fn operation_execution_phase(
         | ValidateSetResults
         | ValidateNumericResults
         | PreserveOperandPolicies => BeforeOperationOutput
+      }
+    GraphMeanExecution(v) =>
+      match v.rule {
+        AdmitMeanSamples => BeforeOperationInputUse
+        CompareMeanSupport
+        | CloseMeanEndpoints
+        | CheckMeanLabels
+        | ApplyMeanProperties
+        | RoundMeanOnce
+        | ValidateMeanFiniteResults
+        | OrderMeanIdentities
+        | PreserveMeanDependencies => BeforeOperationOutput
       }
     ComponentsLimits(_)
     | TraversalLimits(_)
@@ -300,6 +313,7 @@ pub fn operation_execution_failure(
     | GraphDiffExecution(_)
     | GraphEqualityExecution(_)
     | GraphStructuralExecution(_)
+    | GraphMeanExecution(_)
     | GraphResources(_)
     | ComponentsLimits(_)
     | TraversalLimits(_)
