@@ -45,6 +45,7 @@ fn capacity_profile(
   changed : Bool,
   analytic? : Bool = false,
   nest? : Bool = false,
+  graph? : Bool = false,
 ) -> String {
   let names = [
     "max_aggregate_array_items", "max_artifact_bytes", "max_artifact_rows", "max_effect_items",
@@ -61,8 +62,16 @@ fn capacity_profile(
       ] {
       names.push(name)
     }
-    names.sort_by((a, b) => @canonical.compare_utf16(a, b))
   }
+  if graph {
+    for
+      name in [
+        "max_graph_construction_input_rows", "max_graph_construction_nodes", "max_graph_construction_edges",
+      ] {
+      names.push(name)
+    }
+  }
+  names.sort_by((a, b) => @canonical.compare_utf16(a, b))
   "{\"capacity\":{" +
   names
   .map(name => {
@@ -88,11 +97,12 @@ fn remote_environment_fixture(
   analytic? : Bool = false,
   nest? : Bool = false,
   text_rank? : Bool = false,
+  graph? : Bool = false,
 ) -> @environment.WireEnvironment raise {
   let original = keyed_sourceview_environment()
   let writer = @encode.writer(1000000, 100000, 100)
   @environment.emit(original, writer)
-  let profile = capacity_profile(false, analytic~, nest~)
+  let profile = capacity_profile(false, analytic~, nest~, graph~)
   let body = @encode.finish(writer)
     .replace(
       old="\"evidence_bundle_cid\":\"" + @environment.cid(original) + "\",",

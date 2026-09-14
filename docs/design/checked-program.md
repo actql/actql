@@ -616,6 +616,15 @@ and numeric profile through its existing owned resolution. Corpus statistics,
 tokenizer limits, scoring resources and downstream RRF requirements are not
 recomputed or waived by publication-policy transfer.
 
+Graph construction retains the exact node and edge input occurrences; shared
+Relation operands keep both roles without duplicating their policy references.
+Both declared branches contribute even when endpoint closure removes edges or
+the Result exposes only nodes. Concise endpoint-derived nodes retain their edge
+input provenance. Identity and label field references, branch property selection
+and canonical absent labels are structural interpretation, not new authored
+values. Construction admission, endpoint closure, payload agreement and the
+selected three-part construction envelope remain separate owned execution checks.
+
 Result imports retain the producer's completed publication through
 `publication_policy_import_count/at`, including the consumer input coordinate.
 `imported_publication` is a convenience only for exactly one import.

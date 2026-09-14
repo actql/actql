@@ -769,6 +769,19 @@ fn prepare_publication_source_policy(
             unknown = unknown || missing
             2
           }
+          @pipeline.GraphConstruction(nodes~, ..) => {
+            identity_charge(budget, 1)
+            carrier_steps.push({
+              step: index,
+              operation: step.operation,
+              unknown_provenance: false,
+            })
+            if nodes is Some(_) {
+              2
+            } else {
+              1
+            }
+          }
           @pipeline.Vector(operation) => {
             identity_charge(budget, 1)
             let missing = match @vector.operation(operation) {

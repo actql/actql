@@ -37,6 +37,9 @@ fn checked_direct_program_fixture(
   vector_step_limit? : Int = 8,
   lexical_steps? : String = "",
   lexical_material? : Bool = true,
+  graph_steps? : String = "",
+  graph_right? : Bool = false,
+  graph_resources? : Bool = true,
   numeric_profile? : @numeric.Profile? = None,
 ) -> CheckedProgram raise {
   let original_text =
@@ -46,7 +49,20 @@ fn checked_direct_program_fixture(
     new="\"" + input_name + "\"",
   )
   let program = @syntax.parse(
-    if lexical_steps != "" {
+    if graph_steps != "" {
+      let graph_text = text.replace(
+        old="\"steps\":[",
+        new="\"steps\":[" + graph_steps + ",",
+      )
+      if graph_right {
+        graph_text.replace(
+          old="\"inputs\":{\"remote\":",
+          new="\"inputs\":{\"right\":{\"connector\":\"crm/main\",\"resource\":\"r\",\"request\":{\"id\":2,\"tenant\":null},\"minimum_classification\":\"confidential\"},\"remote\":",
+        )
+      } else {
+        graph_text
+      }
+    } else if lexical_steps != "" {
       text.replace(
         old="\"steps\":[",
         new="\"steps\":[{\"derive\":{\"doc_id\":\"to_string(id)\",\"text\":\"to_string(extra)\"},\"as\":\"docs\"}," +
@@ -355,8 +371,12 @@ fn checked_direct_program_fixture(
   ).unwrap()
   let environment = remote_environment_fixture(
     analytic=analytic_body != "",
-    nest=nest_guard is Some(_) || vector_steps != "" || lexical_steps != "",
+    nest=nest_guard is Some(_) ||
+      vector_steps != "" ||
+      lexical_steps != "" ||
+      graph_steps != "",
     text_rank=lexical_steps != "",
+    graph=graph_steps != "" && graph_resources,
   )
   let lexical = if lexical_steps != "" && lexical_material {
     Some(
@@ -462,7 +482,7 @@ fn checked_direct_program_fixture(
     { text_time: false, veca: vector_steps != "" || lexical_steps != "", },
     {
       rela: true,
-      sga: false,
+      sga: graph_steps != "",
       tea: temporal_step != "" ||
       event_kind != "" ||
       window_steps != "" ||
@@ -476,7 +496,8 @@ fn checked_direct_program_fixture(
       } else if temporal_step != "" ||
         window_steps != "" ||
         sequence_body != "" ||
-        lexical_steps != "" {
+        lexical_steps != "" ||
+        graph_steps != "" {
         6
       } else if join_kind != "" ||
         mix_generated ||
