@@ -64,9 +64,11 @@ zero without erasing descendant holdings or consumed transfer. No raw output
 export is exposed by this accounted entry. Borrowed captures and the standalone
 broad Host entry do not automatically gain this whole-run accounting.
 
-A complete physical strategy Host also needs integrated explanation and application
-preparation; these owned entry points alone do not establish that integration. Checked topology validation alone is not
-validation of all runtime Stage obligations or a Program success issuer.
+The standard dispatch supplies integrated explanation. A separate bounded
+application example connects public checking and user-supplied documents to
+acquisition and dispatch; it is not a general Program frontend. Checked topology
+validation alone is not validation of all runtime Stage obligations or a Program
+success issuer.
 
 ## Transfer and execution ownership
 
@@ -89,8 +91,9 @@ It stops on the first failure and preserves that failure, including any live
 cleanup handle, alongside internal completed task records. Its result is labeled
 Host-task completion/failure, never Program success or partial publication.
 Closing the result closes its task ports but not the caller-owned capture.
-The driver consumes an already selected revision; automatic re-estimation remains
-separate from task dispatch. `explain_captured_strategy` produces bounded
+The driver consumes the current selected revision. An explicitly installed
+estimate policy refreshes unstarted choices before the next dispatch preparation;
+manual selection remains available without that policy. `explain_captured_strategy` produces bounded
 Host-private JSON rather than canonical identity or execution evidence. It keeps
 the chosen revision's remaining estimate and ledger-at-selection separate from
 current cumulative usage, and preserves disjoint work-slot bundles using copied
