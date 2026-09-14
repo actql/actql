@@ -60,6 +60,26 @@ fn assemble_traversal_limit(
     raise ForeignOwner
   }
   let applications = @step_bounds.traversal_limit_program(selected.limits)
+  let guard_witness = match
+    @step_bounds.traversal_limit_guard_value(selected.limits) {
+    None => None
+    Some(value) => {
+      let path = "$.steps[" +
+        source.source_ordinal.to_string() +
+        "].traverse.max_output_rows"
+      identity_charge(budget, path.length())
+      Some(
+        emit_unit_guard_witness(
+          source.unit_definition_cid,
+          path,
+          "actql.guard.traverse-output",
+          "rows",
+          value,
+          budget,
+        ),
+      )
+    }
+  }
   let (limits, proofs) = assemble_operation_capacity_limits(
     units,
     applications,
@@ -83,6 +103,7 @@ fn assemble_traversal_limit(
       ),
     ],
     budget,
+    output_guard=guard_witness,
   )
   { source, selected, paths: limits[0], output: limits[1], proofs, }
 }

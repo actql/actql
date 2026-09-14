@@ -7274,6 +7274,17 @@
       }
     },
     {
+      "requirement_id": "actql.language/resolved-limits.unit-traversal-authored-candidate",
+      "statement_sha256": "2bcd6a4bbdcf033364fd2311af22cd5e33743451b92a319e37cebd937c412196",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "resolved-limits",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.language/resolved-limits.unit-sequence-subject",
       "statement_sha256": "4030845ca776145517f0f8f42c8ff0a57aeca0736c421cbabd4ecd9baabccedc",
       "status": "pending",

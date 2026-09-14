@@ -275,6 +275,14 @@ Application collections and the enclosing producer closure require the same
 effective Parameter binding owner, not merely equal bound numbers. This association
 does not itself mint a Unit guard witness or discharge runtime guard enforcement.
 
+Formal construction creates the Unit-scoped output guard witness from that
+retained occurrence and binding, then computes the output minimum including it.
+The search-path claim is unchanged. `TraversalOutputGuard` binds the corresponding
+runtime obligation to the same selected capacity application; imports retain the
+producer application and its Unit claim. A separate candidate-only claim must not
+be used in place of the final output limit. Empty selections still retain this
+obligation, including the validation of an authored Parameter guard.
+
 `CheckedProgram` retains one `TraversalLimit` per local traversal operation, with
 count/index readers for the producer Unit. Imported visits consume that producer's
 retained limit rather than minting a consumer copy. Persistent claims use the

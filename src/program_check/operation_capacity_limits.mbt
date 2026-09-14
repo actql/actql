@@ -7,6 +7,7 @@ fn assemble_operation_capacity_limits(
   subject : String,
   scopes : Array[(@wire.LimitClaim, String, String)],
   budget : IdentityBudget,
+  output_guard? : @wire.WireWitness? = None,
 ) -> (Array[@wire.LimitClaim], Array[ReidentifiedStep]) raise UnitBuildFailure {
   let arithmetic = @wire.program_claim_arithmetic(
     @step_bounds.application_claims(applications),
@@ -51,14 +52,20 @@ fn assemble_operation_capacity_limits(
       candidates.push((@wire.cid(witness), witness))
     }
     let maximum = @derivation.minimum_value(minimum)
+    let guard_witness = if suffix == "output" { output_guard } else { None }
+    if guard_witness is Some(witness) {
+      identity_charge(budget, 1)
+      candidates.push((@wire.cid(witness), witness))
+    }
+    let guard_value = guard_witness.map(w => @wire.value(w))
     limits.push(
       assemble_aggregate_limit_claim(
         subject + suffix,
         candidates,
         proofs,
-        None,
+        guard_value,
         Some(maximum),
-        maximum,
+        guard_value.map(v => Int64::min(v, maximum)).unwrap_or(maximum),
         unit,
         budget,
         preserve_candidate_occurrences=true,

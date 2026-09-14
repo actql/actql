@@ -8180,6 +8180,21 @@ their complete canonical bodies without self CIDs. Conversion does not add or
 waive an authored guard. Both limits remain outside Unit Definition identity;
 equal ordinals or maxima do not make different Units or scopes interchangeable.
 
+<!-- requirement-block: resolved-limits.unit-traversal-authored-candidate -->
+When traversal construction starts from admitted non-author candidates and a
+separately bound `max_output_rows`, it MUST add the owning Unit's guard witness
+only to the output-row limit. Its law is `actql.guard.traverse-output`, quantity
+is `rows`, and source path is `$.steps[<ordinal>].traverse.max_output_rows`.
+The witness's `program_definition_cid` identifies that Unit Definition. The
+operation, selected policy and effective Parameter binding must agree with the
+retained capacity application. The final maximum is the minimum of all candidates;
+a guard below the non-author minimum is `binding`, otherwise it is
+`currently_non_binding` and remains present. Omission stays `absent`.
+The original non-author claim is not the final output claim when a guard exists.
+The path-exploration limit is unchanged. Canonical candidate sorting and CID
+recomputation follow the traversal conversion rule above; this does not certify
+that runtime enforcement or traversal has occurred.
+
 <!-- requirement-block: resolved-limits.unit-sequence-subject resolved-limits.unit-sequence-correspondence -->
 A sequence's persistent resolved limits MUST use
 `unit:<unit_definition_cid>#/steps/<ordinal>/sequence/matches-per-key` for

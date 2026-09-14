@@ -2089,6 +2089,7 @@ pub(all) enum OperationExecutionCheck {
   GraphResources(GraphResourcesCheck)
   ComponentsLimits(ComponentsLimitsCheck)
   TraversalLimits(TraversalLimitsCheck)
+  TraversalOutputGuard(TraversalLimitsCheck)
   TraversalExecution(TraversalCheck)
   GraphExecution(GraphExecutionCheck)
   GraphConstructionExecution(GraphConstructionCheck)

@@ -18,6 +18,20 @@ function canonical(value) {
 }
 const cid = (value) => `sha256:${createHash('sha256').update(JSON.stringify(canonical(value))).digest('hex')}`;
 
+test('traversal authored guards preserve non-binding candidates and independent search scopes', () => {
+  const policy=Object.fromEntries(policyContract.schema.required.filter(k=>k!=='version').map(k=>[k,1000]));
+  Object.assign(policy,{version:'actql-capacity-host-policy/0.1',max_graph_construction_input_rows:1000,max_graph_construction_nodes:1000,max_graph_construction_edges:1000});
+  for (const {unit,guard,...expected} of read('../portability/corpus/traversal-guard-subjects.json').cases) {
+    const actual=traversalLimitModel(policy,unit,false,guard);
+    assert.deepEqual(actual,expected);
+    assert.equal(actual.limit_cids[0],traversalLimitModel(policy,unit).limit_cids[0]);
+    assert.equal(actual.limits[1].effective_max,Math.min(1000,guard));
+    const foreign=traversalLimitModel(policy,'sha256:'+'1'.repeat(64),false,guard);
+    assert.deepEqual(actual.host_cids,foreign.host_cids);
+    assert.notEqual(actual.limit_cids[1],foreign.limit_cids[1]);
+  }
+});
+
 test('traversal limits retain independent scopes and producer Unit namespaces', () => {
   for (const v of read('../portability/corpus/traversal-limit-subjects.json').cases) {
     const policy = Object.fromEntries(policyContract.schema.required.filter(k=>k!=='version').map(k=>[k,1000]));

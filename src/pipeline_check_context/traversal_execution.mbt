@@ -13,20 +13,29 @@ fn traversal_limits_check(
   limits : @step_bounds.TraversalLimits,
   policy : @policy.Policy,
 ) -> Result[OperationExecutionCheck, OperationResolutionIndexIssue] {
-  guard site.requirement
-    is @pipeline.TraverseRequirement(ResolveTraversalResources) &&
+  guard site.requirement is @pipeline.TraverseRequirement(requirement) &&
+    (
+      requirement == @graph.ResolveTraversalResources ||
+      requirement == @graph.EnforceTraversalOutputGuard
+    ) &&
     site.group == 0 &&
     @pipeline.operation_obligations_scope(site.obligations) == @pipeline.Body &&
     @pipeline.step_at(site.pipeline, site.step) is Some(step) &&
     step.operation is @pipeline.Traverse(checked=operation, ..) &&
-    @graph.traverse_pending_at(operation, site.index) ==
-    Some(@graph.ResolveTraversalResources) &&
+    @graph.traverse_pending_at(operation, site.index) == Some(requirement) &&
     physical_equal(@step_bounds.traversal_limit_pipeline(limits), site.pipeline) &&
     @step_bounds.traversal_limit_step(limits) == site.step &&
     physical_equal(@step_bounds.traversal_limit_policy(limits), policy) else {
     return Err(ForeignOccurrence(site.step))
   }
-  Ok(TraversalLimits({ site, step, limits, }))
+  if requirement == @graph.EnforceTraversalOutputGuard {
+    guard @step_bounds.traversal_limit_guard_value(limits) is Some(_) else {
+      return Err(ForeignOccurrence(site.step))
+    }
+    Ok(TraversalOutputGuard({ site, step, limits, }))
+  } else {
+    Ok(TraversalLimits({ site, step, limits, }))
+  }
 }
 
 ///|
@@ -35,7 +44,10 @@ fn traversal_limits_candidate(
   site : OperationRequirementSite,
 ) -> Result[OperationExecutionCheck?, OperationResolutionIndexIssue] {
   guard site.requirement
-    is @pipeline.TraverseRequirement(ResolveTraversalResources) else {
+    is @pipeline.TraverseRequirement(
+      ResolveTraversalResources
+      | EnforceTraversalOutputGuard
+    ) else {
     return Ok(None)
   }
   let stages = requirements.expressions.identity.sources.operations.preparation.profiles.context.selected.context.wired.stages

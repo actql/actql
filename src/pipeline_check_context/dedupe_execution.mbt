@@ -20,6 +20,7 @@ pub(all) enum OperationExecutionCheck {
   GraphResources(GraphResourcesCheck)
   ComponentsLimits(ComponentsLimitsCheck)
   TraversalLimits(TraversalLimitsCheck)
+  TraversalOutputGuard(TraversalLimitsCheck)
   TraversalExecution(TraversalCheck)
   GraphExecution(GraphExecutionCheck)
   GraphConstructionExecution(GraphConstructionCheck)
@@ -129,8 +130,10 @@ pub fn operation_execution_phase(
         AdmitOperands | RequireComparisonResources => BeforeOperationInputUse
         CompareCanonicalGraphs => BeforeOperationOutput
       }
-    ComponentsLimits(_) | TraversalLimits(_) | GraphResources(_) =>
-      BeforeOperationOutput
+    ComponentsLimits(_)
+    | TraversalLimits(_)
+    | TraversalOutputGuard(_)
+    | GraphResources(_) => BeforeOperationOutput
     TraversalExecution(v) =>
       match v.rule {
         AdmitInputGraph => BeforeOperationInputUse
@@ -261,6 +264,7 @@ pub fn operation_execution_failure(
     | GraphResources(_)
     | ComponentsLimits(_)
     | TraversalLimits(_)
+    | TraversalOutputGuard(_)
     | TraversalExecution(_)
     | GraphProjection(_)
     | GraphExecution(_)
