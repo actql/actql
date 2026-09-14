@@ -497,6 +497,14 @@ control value. Dropping the generated column does not remove the input policy or
 the navigation contribution. The retained occurrence is the one used by the lag
 execution check, with order and bound-parameter validation remaining separate.
 
+Unpivot retains its exact checked operation through indexed readers. Its column
+sequence, including repeated occurrences, is read without copying; the same
+operation owns expansion and output-envelope checks. Input provenance remains
+present, while authored labels emitted as name-column values have unknown
+provenance without an admitted attestation. Hiding either generated column does
+not declassify the relation. Effective-policy CID sets stay deduplicated without
+deduplicating column occurrences or reducing the expansion bound.
+
 Result imports retain the producer's completed publication through
 `publication_policy_import_count/at`, including the consumer input coordinate.
 `imported_publication` is a convenience only for exactly one import.

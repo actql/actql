@@ -287,6 +287,10 @@ pub fn publication_policy_source_at(PublicationSourcePolicy, Int) -> SourceExecu
 
 pub fn publication_policy_source_count(PublicationSourcePolicy) -> Int
 
+pub fn publication_policy_unpivot_at(PublicationSourcePolicy, Int) -> PublicationPolicyUnpivot?
+
+pub fn publication_policy_unpivot_count(PublicationSourcePolicy) -> Int
+
 pub fn publication_proof_at(PublicationExecution, Int) -> ReidentifiedStep?
 
 pub fn publication_proof_count(PublicationExecution) -> Int
@@ -730,6 +734,11 @@ pub struct PublicationPolicySlice {
   operation : @relation_typing.CheckedOperation
   count : @relation_typing.CountValue
   offset : @relation_typing.CountValue
+}
+
+pub struct PublicationPolicyUnpivot {
+  step : Int
+  operation : @relation_typing.CheckedOperation
 }
 
 pub struct PublicationSourcePolicy {

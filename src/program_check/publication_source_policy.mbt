@@ -21,6 +21,26 @@ pub struct PublicationSourcePolicy {
   priv pivots : Array[PublicationPolicyPivot]
   priv analytics : Array[PublicationPolicyAnalytic]
   priv lags : Array[PublicationPolicyLag]
+  priv unpivots : Array[PublicationPolicyUnpivot]
+}
+
+///|
+pub struct PublicationPolicyUnpivot {
+  step : Int
+  operation : @relation.CheckedOperation
+}
+
+///|
+pub fn publication_policy_unpivot_count(value : PublicationSourcePolicy) -> Int {
+  value.unpivots.length()
+}
+
+///|
+pub fn publication_policy_unpivot_at(
+  value : PublicationSourcePolicy,
+  index : Int,
+) -> PublicationPolicyUnpivot? {
+  value.unpivots.get(index)
 }
 
 ///|
@@ -346,6 +366,7 @@ fn prepare_publication_source_policy(
   let pivots : Array[PublicationPolicyPivot] = []
   let analytics : Array[PublicationPolicyAnalytic] = []
   let lags : Array[PublicationPolicyLag] = []
+  let unpivots : Array[PublicationPolicyUnpivot] = []
   let mut unknown = false
   while pending.pop() is Some(target) {
     identity_charge(budget, 1)
@@ -366,6 +387,17 @@ fn prepare_publication_source_policy(
           @pipeline.Unary(operation) => {
             match @relation.operation(operation) {
               Select | Rename | Drop | Sort | Distinct | DedupeRows => ()
+              Unpivot => {
+                identity_charge(budget, 1)
+                guard @relation.unpivot_outputs(operation) is Some(_) &&
+                  @relation.unpivot_columns_count(operation) > 0 else {
+                  raise ForeignOwner
+                }
+                unpivots.push({ step: index, operation, })
+                // The authored field-reference labels become output values.
+                // Their spelling alone supplies no classification attestation.
+                unknown = true
+              }
               Lag => {
                 identity_charge(budget, 1)
                 guard @relation.lag_navigation(operation)
@@ -693,6 +725,7 @@ fn prepare_publication_source_policy(
     pivots,
     analytics,
     lags,
+    unpivots,
   }
   |> Some
 }

@@ -20,6 +20,7 @@ fn checked_direct_program_fixture(
   pivot_body? : String = "",
   analytic_body? : String = "",
   lag_body? : String = "",
+  unpivot_body? : String = "",
   numeric_profile? : @numeric.Profile? = None,
 ) -> CheckedProgram raise {
   let original_text =
@@ -99,6 +100,11 @@ fn checked_direct_program_fixture(
       text.replace(
         old="}],\"results\":{\"out\":{\"from\":{\"stage\":\"s\",\"result\":\"out\"}}}}",
         new="},{\"id\":\"consumer\",\"inputs\":{\"imported\":{\"result\":{\"stage\":\"s\",\"result\":\"out\"}}},\"steps\":[],\"results\":{\"out\":{\"from\":\"imported\",\"fields\":[\"id\"]}}}],\"results\":{\"out\":{\"from\":{\"stage\":\"consumer\",\"result\":\"out\"}}}}",
+      )
+    } else if unpivot_body != "" {
+      text.replace(
+        old="\"steps\":[",
+        new="\"steps\":[{\"unpivot\":" + unpivot_body + "},",
       )
     } else if lag_body != "" {
       let navigation = text.replace(

@@ -7151,6 +7151,17 @@ Schema admission checks shape; reference authority, exact contribution selection
 array ordering, response-to-source correspondence and classification calculation
 require semantic verification before the policy can be used.
 
+<!-- requirement-block: external-joins.unpivot-policy-provenance -->
+Static publication policy analysis for `unpivot` MUST retain input policy and
+the exact authored column-reference sequence, including repetitions. The canonical
+reference labels emitted into `name_column` are value contributions, not merely
+structural output names. Without admitted value provenance their classification
+remains unknown; authorship does not confer a public classification. Empty input
+or a later projection hiding the label column does not remove these static
+contributions. Repeated columns retain their occurrence identity and expansion
+obligations without duplicating effective-policy CID set members. This fixes the
+label contribution boundary, not a new effective-policy preimage or egress grant.
+
 <!-- requirement-block: external-joins.pivot-policy-provenance -->
 Static publication policy analysis for `pivot` MUST retain its input policy
 provenance, the exact authored bucket-value sequence and any authored fill with

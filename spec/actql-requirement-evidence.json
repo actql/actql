@@ -6218,6 +6218,17 @@
       }
     },
     {
+      "requirement_id": "actql.language/external-joins.unpivot-policy-provenance",
+      "statement_sha256": "19112a95d09e4ed4d05b2937ee9ee1aeec92f6c5d6647d89d7c6c419a842124b",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "external-joins",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.language/external-joins.pivot-policy-provenance",
       "statement_sha256": "212b85597e401def140c4c44029d993422353d9bf51fe20af36ee48e3ddcbad4",
       "status": "pending",
