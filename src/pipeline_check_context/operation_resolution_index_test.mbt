@@ -206,6 +206,10 @@ fn check_resolution_index(
         execution += 1
         assert_true(physical_equal(check.site, site))
       }
+      Execution(RankingExecution(check)) => {
+        execution += 1
+        assert_true(physical_equal(check.site, site))
+      }
       Execution(ComponentsLimits(check)) => {
         execution += 1
         assert_true(physical_equal(check.site, site))

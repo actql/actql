@@ -319,6 +319,16 @@ receive an absent-side zero. No input score declaration is reused as the output
 score envelope; deriving and propagating that envelope remains shared evidence
 work.
 
+Execution bindings retain the exact checked fusion, selected policy and ordered
+input occurrences, together with each input's captured score or producer evidence.
+Complete-input admission, per-input uniqueness, contiguous RRF ranks, score
+authentication/ranges and business tie agreement precede input use. Rank-window
+application, finite score arithmetic, output ordering and fresh ranks are output
+checks; applying the window never excuses validation of excluded input rows.
+These bindings are future execution obligations, not successful observations.
+Static output-score-envelope derivation, profile selection and resource selection
+are separate requirements and are not discharged by a semantic execution binding.
+
 Pipeline fusion keeps the current ranking first and each authored with occurrence
 after it, with separate `Sample(index)` edges even for repeated targets. Options
 are admitted once; reference resolution and typed fusion debit the remaining

@@ -140,5 +140,9 @@ fn direct_execution_candidate(
     Ok(None) => ()
     other => return other
   }
-  pool_execution_check(site, policy)
+  match pool_execution_check(site, policy) {
+    Ok(None) => ()
+    other => return other
+  }
+  ranking_execution_check(site, policy)
 }

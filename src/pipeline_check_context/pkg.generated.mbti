@@ -785,6 +785,10 @@ pub fn publication_row_limit_result(PublicationRowLimit) -> PublicationResolutio
 
 pub fn publication_row_limit_work(PublicationRowLimit) -> Int
 
+pub fn ranking_execution_input_at(RankingCheck, Int) -> (@pipeline_typing.InputOccurrence, @relation_evidence.RankingShape)?
+
+pub fn ranking_execution_input_count(RankingCheck) -> Int
+
 pub fn reconciled_local_at(ReconciledContexts, Int) -> @stage_local_inputs.ReconciledAttachment?
 
 pub fn reconciled_snapshots(ReconciledContexts) -> @stage_local_inputs.ProgramEnvironmentInputs
@@ -2192,6 +2196,7 @@ pub(all) enum OperationExecutionCheck {
   VectorExecution(VectorCheck)
   NearestExecution(NearestCheck)
   PoolExecution(PoolCheck)
+  RankingExecution(RankingCheck)
   GraphResources(GraphResourcesCheck)
   ComponentsLimits(ComponentsLimitsCheck)
   TraversalLimits(TraversalLimitsCheck)
@@ -2739,6 +2744,27 @@ pub(all) struct PureOperationProfiles {
   tea : Bool
   calendar : Bool
   text_rank : Bool
+} derive(Eq, @debug.Debug)
+
+pub struct RankingCheck {
+  site : OperationRequirementSite
+  step : @pipeline_typing.CheckedStep
+  operation : @relation_evidence.CheckedRanking
+  rule : RankingRule
+  policy : @capacity_policy.Policy
+}
+
+pub(all) enum RankingRule {
+  AdmitCompleteRankings
+  ValidateRankingUniqueness
+  ValidateContiguousInputRanks
+  AuthenticateRankingScores
+  AdmitRankingScoreRanges
+  ValidateRankingTieAgreement
+  ApplyRankingWindow
+  EvaluateRankingScores
+  OrderFusedRankings
+  AssignFusedRanks
 } derive(Eq, @debug.Debug)
 
 pub struct ReachCheck {
