@@ -190,13 +190,19 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
           assert.equal(fixture.strategyFixtureUsage(f, 1), 0n);
           assert.equal(fixture.strategyFixtureUsage(f, 2), 0n);
           held.push([task, completed]);
+          assert.equal(completed.physicalCapacity.retentionBytes, 2771200n);
+          assert.equal(fixture.strategyFixtureUsage(f, 4), BigInt(held.length) * 2771200n);
+          assert.equal(fixture.strategyFixtureUsage(f, 5), 0n);
           // Each task really imports into a fresh DB, including DuckDB A -> C.
           assert.equal(completed.importedRows, task === 3 ? 2 : 3);
         } else assert.equal(fixture.strategyFixtureLocal(f, task), true);
         assert.equal(fixture.strategyFixtureCid(f, task), hash(task === 2
           ? [{ id: 3 }, { id: 2 }, { id: 3 }] : [{ id: 3 }, { id: 3 }]));
       }
+      const beforeParentClose = fixture.strategyFixtureUsage(f, 4);
       held.find(([task]) => task === 1)?.[1].close();
+      // C's completed input anchors still retain A, even after A's port closes.
+      assert.equal(fixture.strategyFixtureUsage(f, 4), beforeParentClose);
       assert.equal(fixture.strategyFixtureCid(f, 3), hash([{ id: 3 }, { id: 3 }]));
       assert.equal(fixture.strategyFixtureCanBind(f, 3), true);
       const last = held.find(([task]) => task === 3)?.[1];
@@ -204,6 +210,11 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
         last.close();
         assert.equal(fixture.strategyFixtureCanBind(f, 3), false);
       }
+      fixture.strategyFixtureCloseOutput(f, 3); // includes a Local C
+      fixture.strategyFixtureCloseOutput(f, 2);
+      fixture.strategyFixtureCloseOutput(f, 1);
+      assert.equal(fixture.strategyFixtureUsage(f, 4), 0n);
+      assert.equal(fixture.strategyFixtureNext(f), -1); // release is not an unexecuted task
       assert.equal(fixture.strategyFixtureUsage(f, 0), transferred); // close never refunds transfer
     } finally {
       capture.close();
@@ -229,6 +240,8 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
     assert.equal(fixture.strategyFixtureUsage(cancelledFixture, 0), BigInt(first.usage.transportBytes));
     assert.equal(fixture.strategyFixtureUsage(cancelledFixture, 1), 0n);
     assert.equal(fixture.strategyFixtureUsage(cancelledFixture, 2), 0n);
+    assert.equal(fixture.strategyFixtureUsage(cancelledFixture, 5), 0n);
+    assert.equal(fixture.strategyFixtureUsage(cancelledFixture, 4), 2771200n);
   } finally { captured.close(); first?.close(); }
   for (const initialTransferCost of [1n, 20n]) {
     await replaceRows('INSERT INTO records VALUES (3,30),(1,NULL),(2,20),(3,30)');

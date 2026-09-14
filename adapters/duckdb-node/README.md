@@ -463,8 +463,10 @@ SQL byte. These are explicit Host allowances for serialization and container
 capacity, not measured V8 heap/RSS or an OS sandbox. All contributing quantities
 are checked transport ceilings, not unchecked estimates. A returned Compute's
 `physicalCapacity` separates DB and scratch reservations from transferred usage.
-Receiver-retained MoonBit results need their separate retention accounting; this
-Node scratch envelope does not claim to cover their lifetime.
+Receiver-retained MoonBit results use a separate pre-reserved envelope derived by
+the product MoonBit configuration from its actual retained-node/text, output-row
+and completion-metadata limits. `physicalCapacity.retentionBytes` reports that
+capacity; it is not included again in Node scratch or reported as actual heap use.
 Sent/received frame bytes are charged
 before acceptance and never refunded by result close or failure. Actual session
 cleanup releases unused transfer and configured DB-memory reservations.
@@ -489,7 +491,16 @@ tasks; changing prices alone does not permit repeated search. Completed placemen
 and consumed transfer remain recorded. The selected Node task's transfer and
 DB-memory ceilings cannot exceed the selected envelope.
 
-This is not yet a complete Host physical-budget runner: retained buffers, MoonBit receiver scratch, Local execution
+Native cleanup settles execution capacity while retaining the result reservation.
+Successful completion converts it to a holding; failure disposes provisional data.
+Closing a Compute result revokes its port, but its holding is not released while
+a DAG descendant still anchors it. `physical_strategy.close_captured_task_output`
+releases a Local result port as well, allowing ancestor holdings to be collected.
+The checked task stays completed even after its output port is released. The Host
+must keep a port open for uses exported outside this run; arbitrary foreign handle
+lifetimes are not tracked automatically.
+
+This is not yet a complete Host physical-budget runner: MoonBit receiver scratch, Local execution
 and acquisition integration still need accounting. Internal task outputs do not authorize partial
 publication of a failed Program.
 

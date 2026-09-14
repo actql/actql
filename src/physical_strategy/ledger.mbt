@@ -34,7 +34,7 @@ struct Reservation {
   serial : Int
   mut transfer : Int64
   mut retention : Int64
-  execution : Int64
+  mut execution : Int64
   mut open : Bool
   mut cleanup_pending : Bool
 }
@@ -256,6 +256,30 @@ pub fn mark_cleanup_pending(
 ///|
 pub fn reservation_pending(reservation : Reservation) -> Bool {
   reservation.open && reservation.cleanup_pending
+}
+
+///|
+/// Native resources have settled, but provisional/result buffers may remain.
+/// Keep retention reserved until completion or explicit failed-buffer disposal.
+pub fn settle_execution_reservation(
+  ledger : Ledger,
+  reservation : Reservation,
+) -> Result[Unit, LedgerIssue] {
+  match reservation_check(ledger, reservation) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  ledger.usage = {
+    ..ledger.usage,
+    reserved_transfer_bytes: ledger.usage.reserved_transfer_bytes -
+    reservation.transfer,
+    reserved_execution_bytes: ledger.usage.reserved_execution_bytes -
+    reservation.execution,
+  }
+  reservation.transfer = 0L
+  reservation.execution = 0L
+  reservation.cleanup_pending = false
+  Ok(())
 }
 
 ///|

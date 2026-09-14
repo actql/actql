@@ -27,10 +27,13 @@ async function runHostCompute(setup, limits, importLimits, signal, strategy) {
   // Freeze the same values used by both reservation and actual transport. A
   // caller mutating its limits during an await cannot enlarge the execution.
   limits = Object.freeze({ ...limits });
-  const capacity = strategy ? computePhysicalCapacity(limits) : undefined;
+  const capacity = strategy ? Object.freeze({
+    ...computePhysicalCapacity(limits),
+    retentionBytes: checked(moon.computeStrategyRetentionCapacity(setup)),
+  }) : undefined;
   let result, port, consume, attempt;
   const verify = current => current === attempt && matchesFixedCompute(result, port, consume);
-  const run = checked(strategy
+  let run = checked(strategy
     ? moon.computeStrategyHostOpen(setup, verify, capacity.transferBytes, capacity.executionBytes)
     : moon.computeHostOpen(setup, verify));
   attempt = moon.computeHostAttempt(run);
@@ -65,7 +68,7 @@ async function runHostCompute(setup, limits, importLimits, signal, strategy) {
     if (signal?.aborted) throw new DuckDBTransportError('Cancelled');
     begin(result.value.fields); // empty input still has checked output metadata
     checked(moon.computeHostFinish(run));
-    const output = checked(moon.computeHostComplete(run));
+    let output = checked(moon.computeHostComplete(run));
     let closed = false;
     return Object.freeze({
       usage: result.usage,
@@ -81,6 +84,14 @@ async function runHostCompute(setup, limits, importLimits, signal, strategy) {
         closed = true;
         moon.computeHostClose(run);
         releaseFixedCompute(result);
+        // This successful session is already settled. Do not keep otherwise
+        // unused completion/input buffers alive through a retained closed handle.
+        output = undefined;
+        run = undefined;
+        result = undefined;
+        attempt = undefined;
+        port = undefined;
+        consume = undefined;
       },
     });
   } catch (error) {

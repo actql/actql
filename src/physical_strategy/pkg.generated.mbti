@@ -14,9 +14,13 @@ import {
 }
 
 // Values
+pub fn captured_cleanup_confirmed(CapturedDAG, @query_planning.DuckDBComputeAttempt) -> Unit
+
 pub fn captured_dag_failure(CapturedDAG) -> (Int, RunIssue)?
 
 pub fn captured_dag_ledger(CapturedDAG) -> Ledger
+
+pub fn captured_task_completed(CapturedDAG, Int) -> Bool
 
 pub fn captured_task_input(CapturedDAG, Int, Int, Int) -> Result[@execution_relation.ProducerRead, RunIssue]
 
@@ -25,6 +29,8 @@ pub fn captured_task_output(CapturedDAG, Int, @pipeline_typing.Target) -> @execu
 pub fn charge_planning(Ledger, Int) -> Result[Unit, LedgerIssue]
 
 pub fn charge_transfer(Ledger, Reservation, Int64) -> Result[Unit, LedgerIssue]
+
+pub fn close_captured_task_output(CapturedDAG, Int) -> Unit
 
 pub fn complete_captured_duckdb_task(CapturedDAG, @query_planning.DuckDBComputeAttempt) -> Result[Unit, RunIssue]
 
@@ -72,7 +78,11 @@ pub fn reserve_attempt(Ledger, Int64, Int64, Int64) -> Result[Reservation, Ledge
 
 pub fn retain_allocation(Ledger, Reservation, Int64) -> Result[Holding, LedgerIssue]
 
+pub fn retain_captured_task_allocation(CapturedDAG, Int, Holding) -> Result[Unit, LedgerIssue]
+
 pub fn revise_strategy(CapturedDAG, Array[TaskOffer], @query_planning.CapabilityRegistry, Array[Int]?) -> Result[StrategyDecision, SearchIssue]
+
+pub fn settle_execution_reservation(Ledger, Reservation) -> Result[Unit, LedgerIssue]
 
 pub fn settle_reservation(Ledger, Reservation) -> Result[Unit, LedgerIssue]
 

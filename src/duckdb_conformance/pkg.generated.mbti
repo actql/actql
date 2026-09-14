@@ -164,6 +164,8 @@ pub fn strategy_fixture_can_bind(StrategyFixture, Int) -> Bool
 
 pub fn strategy_fixture_cid(StrategyFixture, Int) -> String
 
+pub fn strategy_fixture_close_output(StrategyFixture, Int) -> Unit
+
 pub fn strategy_fixture_compute(StrategyFixture, Int) -> @duckdb_host.StrategyComputeHostConfiguration
 
 pub fn strategy_fixture_create(String, String, String, String, String, String, String, String, String) -> StrategyFixture

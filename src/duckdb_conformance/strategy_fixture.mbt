@@ -80,7 +80,7 @@ pub fn strategy_fixture_create(
       attempts: 10,
       holdings: 10,
       transfer_bytes: 300000L,
-      retained_bytes: 1000000L,
+      retained_bytes: 16000000L,
       execution_bytes: 268435456L,
     }).unwrap()
     {
@@ -332,6 +332,16 @@ pub fn strategy_fixture_usage(f : StrategyFixture, field : Int) -> Int64 {
     0 => usage.transferred_bytes
     1 => usage.reserved_transfer_bytes
     2 => usage.reserved_execution_bytes
+    4 => usage.held_bytes
+    5 => usage.reserved_retention_bytes
     _ => usage.attempts.to_int64()
+  }
+}
+
+///|
+#export_name("strategyFixtureCloseOutput")
+pub fn strategy_fixture_close_output(f : StrategyFixture, task : Int) -> Unit {
+  if f.run is Some(run) {
+    @strategy.close_captured_task_output(run, task)
   }
 }

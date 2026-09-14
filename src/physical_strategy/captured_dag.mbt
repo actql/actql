@@ -7,6 +7,9 @@ struct CapturedDAG {
   source : @planning.CapturedInputSource
   ledger : Ledger
   completed : Array[TaskCompletion?]
+  done : Array[Bool]
+  lifetimes : Array[TaskLifetime]
+  resources : Array[TaskRetention?]
   inputs : Array[@execution.ProducerRead?]
   mut running : (Int, @planning.DuckDBComputeAttempt)?
   mut stopped : Bool
@@ -94,6 +97,9 @@ pub fn open_captured_dag(
     source,
     ledger,
     completed: Array::make(count, None),
+    done: Array::make(count, false),
+    lifetimes: Array::makei(count, _ => { live: true, }),
+    resources: Array::make(count, None),
     inputs: Array::make(count, None),
     stopped: false,
     failure: None,
@@ -111,7 +117,13 @@ pub fn open_captured_dag(
 
 ///|
 fn task_done(run : CapturedDAG, index : Int) -> Bool {
-  index == 0 || run.completed[index] is Some(_)
+  index == 0 || run.done[index]
+}
+
+///|
+/// Checked task completion survives release of its retained output port.
+pub fn captured_task_completed(run : CapturedDAG, task : Int) -> Bool {
+  task >= 0 && task < run.done.length() && task_done(run, task)
 }
 
 ///|
@@ -255,6 +267,7 @@ pub fn execute_captured_local_task(
     ) {
     Ok(completed) => {
       run.completed[task] = Some(Local(completed))
+      record_task_retention(run, task)
       run.inputs[task] = None
       run.generation += 1
       Ok(())
@@ -273,7 +286,10 @@ pub fn captured_task_output(
   task : Int,
   target : @pipeline.Target,
 ) -> @execution.CompletedOutput? {
-  match run.completed.get(task).bind(value => value) {
+  if task < 0 || task >= run.lifetimes.length() || !run.lifetimes[task].live {
+    return None
+  }
+  let output = match run.completed.get(task).bind(value => value) {
     Some(Local(completed)) => @execution.completed_output(completed, target)
     Some(DuckDB(output)) =>
       if target == @pipeline.Step(1) {
@@ -283,6 +299,10 @@ pub fn captured_task_output(
       }
     None => None
   }
+  let lifetime = run.lifetimes[task]
+  output.map(output => {
+    @execution.restrict_completed_output(output, fn() { lifetime.live })
+  })
 }
 
 ///|

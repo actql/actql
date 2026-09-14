@@ -149,6 +149,8 @@ pub fn producer_read_row_count(ProducerRead) -> Int
 
 pub fn producer_read_schema(ProducerRead) -> @relation_schema.Schema
 
+pub fn restrict_completed_output(CompletedOutput, () -> Bool) -> CompletedOutput
+
 pub fn row_wire_cid(RowWireIdentity) -> String
 
 pub fn row_wire_matches_captured(RowWireIdentity, CapturedRows) -> Bool

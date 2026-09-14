@@ -20,7 +20,7 @@ pub fn strategy_fixture_replan(
   }
   let offers = []
   for task in 1..<4 {
-    if @strategy.captured_task_output(run, task, Step(1)) is Some(_) {
+    if @strategy.captured_task_completed(run, task) {
       continue
     }
     for index in 0..<2 {
@@ -48,7 +48,11 @@ pub fn strategy_fixture_replan(
           } else {
             0L
           },
-          retained_bytes: 10000L,
+          retained_bytes: if native {
+            4000000L
+          } else {
+            10000L
+          },
           execution_bytes: if native {
             268435456L
           } else {

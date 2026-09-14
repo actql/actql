@@ -22,6 +22,21 @@ struct CompletedOutput {
 }
 
 ///|
+/// Restrict an existing completion without copying/re-admitting its storage or
+/// weakening its original liveness. This cannot manufacture successful output.
+pub fn restrict_completed_output(
+  output : CompletedOutput,
+  live : () -> Bool,
+) -> CompletedOutput {
+  let original = output.completion
+  let completion = {
+    ..original,
+    live: Some(fn() { completion_is_live(original) && live() }),
+  }
+  { ..output, completion, }
+}
+
+///|
 pub fn completed_output(
   completion : CompletedSequence,
   target : @pipeline.Target,

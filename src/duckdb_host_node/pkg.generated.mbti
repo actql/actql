@@ -66,6 +66,8 @@ pub fn compute_host_sql(ComputeNodeRun, Int) -> String raise NodeHostFailure
 
 pub fn compute_strategy_host_open(@duckdb_host.StrategyComputeHostConfiguration, (@query_planning.DuckDBComputeAttempt) -> Bool, Int64, Int64) -> ComputeNodeRun raise NodeHostFailure
 
+pub fn compute_strategy_retention_capacity(@duckdb_host.StrategyComputeHostConfiguration) -> Int64 raise NodeHostFailure
+
 pub fn native_host_abort(NativeNodeRun) -> Unit
 
 pub fn native_host_accept(NativeNodeRun, Int, String) -> Unit raise NodeHostFailure

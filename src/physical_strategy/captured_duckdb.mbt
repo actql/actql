@@ -63,6 +63,7 @@ pub fn complete_captured_duckdb_task(
   match @planning.complete_duckdb_compute_attempt(attempt) {
     Ok(output) => {
       run.completed[task] = Some(DuckDB(output))
+      record_task_retention(run, task)
       run.inputs[task] = None
       run.running = None
       run.generation += 1

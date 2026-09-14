@@ -42,7 +42,7 @@ the run ledger, before send/accept. Only confirmed native cleanup releases unuse
 transfer and DB-memory reservations; failure never refunds consumed transfer.
 Task configuration cannot substitute a fresh ledger for a running graph.
 
-Retained-buffer and MoonBit receiver-scratch accounting, Local
+MoonBit receiver-scratch accounting and Local
 physical enforcement described below must
 be connected before this is presented as
 the complete physical strategy Host. Checked topology validation alone is not
@@ -64,6 +64,27 @@ extend retention. Buffer retention is distinct from table-handle lifetime; shari
 requires the exact owned allocation, not equality of its contents or CID.
 Upstream revocation prevents new consumers but does not invalidate a consumer
 which already established its independent completion. No public lease is added.
+
+The standard Node Compute path reserves its result-retention envelope before
+starting. It derives this capacity from the exact configured admission limits:
+256 bytes per permitted retained value node, physical output row and completion
+metadata entry, plus eight per retained text/name UTF-8 byte. These are declared
+container allowances, not observed heap size. Native settlement releases transfer
+and execution reservations separately; it does not release provisional or completed
+result capacity. Successful completion transfers that reservation to an exact
+holding token without a second charge. Failure disposes provisional material and
+settles the remaining reservation only after native cleanup confirmation.
+
+Task result ports carry additional revocable liveness without copying or
+re-admitting storage. Closing a port removes its output from the run but does not
+erase its checked completion record or restart it. Retention dependencies follow
+the checked fixed-input edges, including Local descendants which anchor upstream
+completion storage. A closed parent's holding remains while a completed child or
+in-flight native task needs it. Descendant release or confirmed failed-task cleanup
+allows a bounded reverse traversal to release unused ancestor holdings. Borrowed
+acquisition storage remains the caller's responsibility. A trusted Host exporting
+an output outside the run must keep its port open for that use; this mechanism
+does not discover arbitrary foreign references or promise immediate GC/RSS release.
 
 ## Physical accounting
 
