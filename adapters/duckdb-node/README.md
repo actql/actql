@@ -496,6 +496,21 @@ ceilings can make this envelope substantially larger than a Compute-only budget.
 This native path is distinct from standalone borrowed capture and does not claim
 automatic accounting for the broad Host entry.
 
+To drive a selected finite DAG without fixture-specific per-task calls, construct
+an owned `duckdb_host.StrategyHostDispatch` with `configure_strategy_dispatch` and
+call `runCapturedStrategy(setup, transportLimits, importLimits, signal)` from
+`strategy-host.mjs`. The generated sequences must belong to the exact checked
+tasks. The driver reads the current strategy; it does not choose a fallback or
+invent an input before its producer completes. Its returned `status` is
+`host-tasks-completed` or `host-tasks-failed`, not Program/Run success. `completed`
+records which tasks this invocation executed, `failure` preserves the original
+error/cleanup handle, `usage()` reads the same cumulative ledger, and `output(task)`
+is an internal Host handle for a still-retained completed result. Call `close()`
+to close task output ports; close the owned capture separately. A failure never
+authorizes continuing an unstarted branch or publishing partial Program success.
+This entry consumes a selected strategy and does not yet perform automatic
+statistical re-estimation or produce a complete cost explanation.
+
 For bounded conditional comparison, configure `physical_strategy.configure_strategy_search`
 before starting tasks, prepare owned estimates with `prepare_task_offer`, and call
 `revise_strategy`. Read its selected registrations, remaining cost and candidate

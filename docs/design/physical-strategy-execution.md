@@ -64,11 +64,33 @@ zero without erasing descendant holdings or consumed transfer. No raw output
 export is exposed by this accounted entry. Borrowed captures and the standalone
 broad Host entry do not automatically gain this whole-run accounting.
 
-A complete physical strategy Host also needs whole-graph dispatch and explanation;
-these owned entry points alone do not establish that integration. Checked topology validation alone is not
+A complete physical strategy Host also needs integrated explanation and application
+preparation; these owned entry points alone do not establish that integration. Checked topology validation alone is not
 validation of all runtime Stage obligations or a Program success issuer.
 
 ## Transfer and execution ownership
+
+`duckdb_host.configure_strategy_dispatch` binds a bounded array of generated
+sequences to their exact checked task owners, the owned registry, selected
+consumer capacities and transport/execution limits. It copies the configuration
+array rather than borrowing mutable caller slots. The next-dispatch operation
+consults the current whole-strategy revision and checked data/control readiness,
+then binds the actual completed input and validates only the selected realization.
+Candidate estimates at this binding stage are unknown, not zero; selecting the
+sole already-selected realization is not a second cost comparison or fallback.
+Each preparation consumes a planning ledger unit and is bounded by its compiler
+and candidate limits. A prepared task is single-use; a replaced unstarted
+revision invalidates it without creating a DB or starting a Local calculation.
+
+The standard Node `runCapturedStrategy` driver executes that finite serial
+sequence through existing Local and trusted DuckDB Host operations. No fixture,
+source connection, replacement runtime or verifier callback enters the driver.
+It stops on the first failure and preserves that failure, including any live
+cleanup handle, alongside internal completed task records. Its result is labeled
+Host-task completion/failure, never Program success or partial publication.
+Closing the result closes its task ports but not the caller-owned capture.
+The driver consumes an already selected revision; automatic re-estimation and
+whole-strategy explanation are separate from task dispatch.
 
 Local fixed inputs and DuckDB's per-Compute temporary database use completed
 input handoff. Import, SQL, result receipt and cleanup belong to one frozen

@@ -10,6 +10,7 @@ import { DuckDBInstance } from '@duckdb/node-api';
 import { authorizeLocalDatabase } from '../session.mjs';
 import { runNativeHostQuery, runStrategyNativeHostQuery, runBroadHostQuery, runFixedHostCompute, runStrategyHostCompute } from '../host.mjs';
 import { exerciseOwnedFixedTransport } from './owned-fixed-transport.mjs';
+import { runCapturedStrategy } from '../strategy-host.mjs';
 
 const root = fileURLToPath(new URL('../../..', import.meta.url));
 const limits = { maxRows: 100, maxCells: 1000, maxTransportBytes: 100000,
@@ -156,7 +157,59 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
   // Inspect the product bridge's reservation phases without issuing execution
   // evidence: no native task is run, and its deliberately absent result fails.
   const phaseFixture = fixture.strategyFixtureCreate(...args, program);
+  for (const transferCost of [1n, 20n]) {
+    const f = fixture.strategyFixtureAccounted(fixture.strategyFixtureCreate(...args, program));
+    const capture = await runStrategyNativeHostQuery(grant, fixture.strategyFixtureAcquisition(f),
+      fixture.strategyFixtureLedger(f), suppliedLimits);
+    let execution;
+    try {
+      assert.equal(fixture.strategyFixtureAttach(f, capture.openDAG(fixture.strategyFixtureGraph(f))), true);
+      assert.equal(fixture.strategyFixtureReplan(f, transferCost), true);
+      execution = await runCapturedStrategy(fixture.strategyFixtureDispatch(f), suppliedLimits,
+        { maxRows: 100, maxCells: 1000 });
+      assert.equal(execution.status, 'host-tasks-completed', String(execution.failure));
+      // The 300000-byte ledger already contains acquisition traffic. Three
+      // 100000-byte native transfer reservations cannot fit; equal-cost mixed
+      // strategies follow the fixture's fixed enumeration priority.
+      assert.deepEqual(execution.completed.map(item => [item.task, item.realization]),
+        [1, 2, 3].map(task => [task, transferCost === 1n && task !== 1 ? 'duckdb' : 'local']));
+      assert.equal(fixture.strategyFixtureCid(f, 3), hash([{ id: 3 }, { id: 3 }]));
+      const spent = BigInt(capture.usage.transportBytes) + execution.completed.reduce(
+        (sum, item) => sum + BigInt(item.transport?.transportBytes ?? 0), 0n);
+      assert.equal(execution.usage().transferredBytes, spent);
+      assert.notEqual(execution.output(3), undefined);
+      capture.close();
+      assert.equal(fixture.strategyFixtureCid(f, 3), hash([{ id: 3 }, { id: 3 }]));
+      execution.close();
+      assert.equal(execution.usage().heldBytes, 0n);
+      assert.equal(execution.usage().transferredBytes, spent);
+      assert.throws(() => execution.output(3), { code: 'ReleasedStrategy' });
+    } finally { execution?.close(); capture.close(); }
+  }
   const smallFixture = fixture.strategyFixtureCreate(...args, program);
+  for (const selected of [false, true]) {
+    const f = fixture.strategyFixtureAccounted(fixture.strategyFixtureCreate(...args, program));
+    const capture = await runStrategyNativeHostQuery(grant, fixture.strategyFixtureAcquisition(f),
+      fixture.strategyFixtureLedger(f), suppliedLimits);
+    let execution;
+    try {
+      fixture.strategyFixtureAttach(f, capture.openDAG(fixture.strategyFixtureGraph(f)));
+      if (selected) assert.equal(fixture.strategyFixtureReplan(f, 1n), true);
+      execution = await runCapturedStrategy(fixture.strategyFixtureDispatch(f), suppliedLimits,
+        { maxRows: 0, maxCells: 0 });
+      assert.equal(execution.status, 'host-tasks-failed');
+      assert(execution.failure);
+      assert.deepEqual(execution.completed.map(item => item.task), selected ? [1] : []);
+      assert.equal(fixture.strategyFixtureCid(f, 2), 'null');
+      assert.equal(fixture.strategyFixtureCid(f, 3), 'null');
+      assert.equal(execution.usage().reservedTransferBytes, 0n);
+      assert.equal(execution.usage().reservedExecutionBytes, 0n);
+      capture.close();
+      if (selected) assert.equal(fixture.strategyFixtureCid(f, 1), hash([{ id: 3 }, { id: 3 }]));
+      execution.close();
+      assert.equal(execution.usage().heldBytes, 0n);
+    } finally { execution?.close(); capture.close(); }
+  }
   await assert.rejects(runStrategyNativeHostQuery(grant,
     fixture.strategyFixtureAcquisition(smallFixture),
     fixture.strategyFixtureLedger(smallFixture), suppliedLimits));

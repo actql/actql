@@ -190,6 +190,84 @@ fn strategy_fixture_request(
 }
 
 ///|
+#export_name("strategyFixtureDispatch")
+pub fn strategy_fixture_dispatch(
+  f : StrategyFixture,
+) -> @dbhost.StrategyHostDispatch {
+  let generated = []
+  for task in 1..<@strategy.graph_task_count(f.graph) {
+    generated.push(
+      fixture_generated(
+        @strategy.graph_task_owner(f.graph, task).unwrap(),
+        f.registry_json,
+        f.values_json,
+        f.fragment_json,
+        true,
+      ) catch {
+        _ => abort("dispatch fixture generation")
+      },
+    )
+  }
+  @dbhost.configure_strategy_dispatch(
+    f.run.unwrap(),
+    f.registry,
+    @planning.capability_registration_at(f.registry, 0).unwrap(),
+    @planning.capability_registration_at(f.registry, 1).unwrap(),
+    generated,
+    {
+      input_entries: 100,
+      input_name_bytes: 10000,
+      candidate_work: 100,
+      capacity: {
+        contract_cid: "sha256:7d59718b965451d8a19ccf7095b92777ba0cdd8c3bb71f437ab387801fe7271f",
+        max_rows: 100,
+        max_value_bytes: 1000,
+        common_fragment: None,
+      },
+      local_execution: issued_execution_limits(100),
+      guards: issued_native_measure_limits(),
+      native_query: {
+        max_entries: 100,
+        max_sql_bytes: 10000,
+        expressions: {
+          max_nodes: 1000,
+          max_work: 10000,
+          max_depth: 100,
+          max_literal_nodes: 1000,
+          max_literal_text_bytes: 10000,
+        },
+      },
+      native: {
+        values: issued_native_measure_limits(),
+        demand: issued_native_measure_limits(),
+        physical: {
+          max_rows: 100,
+          max_cells: 1000,
+          max_nodes: 1000,
+          max_text_bytes: 10000,
+        },
+        retention: {
+          max_nodes: 10000,
+          max_text_bytes: 10000,
+          max_depth: 100,
+          max_work: 100000,
+        },
+        metadata_work: 10000,
+        completion_entries: 100,
+        completion_name_bytes: 10000,
+      },
+      transport: {
+        max_bytes: 100000,
+        max_nodes: 10000,
+        max_columns: 10,
+        max_rows: 100,
+        max_text_bytes: 100000,
+      },
+    },
+  ).unwrap()
+}
+
+///|
 #export_name("strategyFixtureCompute")
 pub fn strategy_fixture_compute(
   f : StrategyFixture,

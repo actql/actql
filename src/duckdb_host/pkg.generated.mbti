@@ -49,6 +49,8 @@ pub fn configure_native_host(@query_planning.QueryTwoReceiptContract, @query_pla
 
 pub fn configure_strategy_compute_host(@physical_strategy.CapturedDAG, Int, ComputeHostConfiguration) -> StrategyComputeHostConfiguration
 
+pub fn configure_strategy_dispatch(@physical_strategy.CapturedDAG, @query_planning.CapabilityRegistry, @query_planning.CapabilityRegistration, @query_planning.CapabilityRegistration, Array[@execution_relation.GeneratedSequence], TaskDispatchLimits) -> Result[StrategyHostDispatch, DispatchIssue]
+
 pub fn configured_broad_host_limits(BroadHostConfiguration) -> BroadHostLimits
 
 pub fn configured_compute_transport(ComputeHostConfiguration) -> @duckdb_adapter.TransportColumnLimits
@@ -67,6 +69,14 @@ pub fn configured_strategy_retention_capacity(StrategyComputeHostConfiguration) 
 
 pub fn configured_strategy_scratch_capacity(StrategyComputeHostConfiguration) -> Int64?
 
+pub fn dispatch_is_native(TaskDispatch) -> Bool
+
+pub fn dispatch_run(StrategyHostDispatch) -> @physical_strategy.CapturedDAG
+
+pub fn dispatch_task(TaskDispatch) -> Int
+
+pub fn execute_local_dispatch(TaskDispatch) -> Result[Unit, DispatchIssue]
+
 pub fn finish_broad_host_receipt(BroadHostRun) -> Result[Unit, BroadHostIssue]
 
 pub fn finish_native_host_receipt(NativeHostRun) -> Result[Unit, NativeHostIssue]
@@ -79,6 +89,8 @@ pub fn native_host_output(NativeHostRun, @query_planning.DuckDBNativeObservation
 
 pub fn native_host_scan(NativeHostRun) -> @duckdb_adapter.NativeScan
 
+pub fn prepare_next_dispatch(StrategyHostDispatch) -> Result[TaskDispatch?, DispatchIssue]
+
 pub fn start_configured_broad_host(BroadHostConfiguration, String, (@query_planning.DuckDBBroadAttempt) -> Bool) -> Result[BroadHostRun, BroadHostIssue]
 
 pub fn start_configured_compute_host(ComputeHostConfiguration, (@query_planning.DuckDBComputeAttempt) -> Bool) -> Result[@query_planning.DuckDBComputeAttempt, @query_planning.DuckDBComputeIssue]
@@ -88,6 +100,10 @@ pub fn start_configured_native_host(NativeHostConfiguration, String, (@query_pla
 pub fn start_configured_strategy_compute_host(StrategyComputeHostConfiguration, (@query_planning.DuckDBComputeAttempt) -> Bool) -> Result[@query_planning.DuckDBComputeAttempt, @physical_strategy.RunIssue]
 
 pub fn start_native_host(@query_planning.QueryTwoReceiptContract, @query_planning.QueryRequirement, @query_planning.AcquisitionChoice, @query_planning.PreparedAcquisition[@query_planning.DuckDBNativePreparation], String, Int, @duckdb_adapter.PhysicalResultLimits, Int, @execution_relation.FixedInputGuardMeasureLimits, (@query_planning.DuckDBNativeAttempt) -> Bool) -> Result[NativeHostRun, NativeHostIssue]
+
+pub fn stop_strategy_dispatch(StrategyHostDispatch) -> Unit
+
+pub fn take_native_dispatch(TaskDispatch) -> Result[StrategyComputeHostConfiguration, DispatchIssue]
 
 pub fn verify_native_host(NativeHostRun, @query_planning.DuckDBNativeObservation) -> Bool
 
@@ -113,6 +129,16 @@ pub(all) struct BroadHostLimits {
 type BroadHostRun
 
 type ComputeHostConfiguration
+
+pub(all) enum DispatchIssue {
+  InvalidConfiguration
+  NoStrategy
+  ForeignSelection
+  PendingTask
+  StaleTask
+  Run(@physical_strategy.RunIssue)
+  Candidate(@query_planning.FixedComputeIssue)
+}
 
 pub struct NativeCapacity {
   retained_bytes : Int64
@@ -144,6 +170,22 @@ pub(all) struct NativeHostLimits {
 type NativeHostRun
 
 type StrategyComputeHostConfiguration
+
+type StrategyHostDispatch
+
+type TaskDispatch
+
+pub(all) struct TaskDispatchLimits {
+  input_entries : Int
+  input_name_bytes : Int
+  candidate_work : Int
+  capacity : @query_planning.FixedComputeCapacity
+  local_execution : @execution_relation.SequenceExecutionLimits
+  guards : @execution_relation.FixedInputGuardMeasureLimits
+  native_query : @duckdb_adapter.NativeQueryLimits
+  native : @query_planning.DuckDBComputeLimits
+  transport : @duckdb_adapter.TransportColumnLimits
+}
 
 // Type aliases
 

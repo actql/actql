@@ -6,6 +6,7 @@ import { runBroadQuery } from './broad-query.mjs';
 import { runFixedCompute, matchesFixedCompute, releaseFixedCompute } from './fixed-compute.mjs';
 import { DuckDBTransportError } from './session.mjs';
 import { computePhysicalCapacity } from './physical-capacity.mjs';
+import { checked } from './runtime-result.mjs';
 
 const runtimeUrl = new URL('../../_build/js/release/build/duckdb_host_node/duckdb_host_node.js', import.meta.url);
 let runtime;
@@ -104,17 +105,6 @@ async function runHostCompute(setup, limits, importLimits, signal, strategy) {
     if (result !== undefined) releaseFixedCompute(result);
     throw error;
   }
-}
-
-// The pinned MoonBit JS compiler exports typed `raise` as Result, not a JS
-// throw. Keep its generated ABI here, outside semantic/provenance verification.
-// These values come only from the fixed product runtime, never from a provider.
-function checked(result) {
-  if (result?.$tag === 1) return result._0;
-  if (result?.$tag === 0) {
-    throw new DuckDBTransportError('MoonBitHostFailure', { cause: result._0 });
-  }
-  throw new DuckDBTransportError('InvalidHostRuntimeResult');
 }
 
 function fieldsFrame(fields) {

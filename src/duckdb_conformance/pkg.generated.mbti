@@ -175,6 +175,8 @@ pub fn strategy_fixture_compute(StrategyFixture, Int) -> @duckdb_host.StrategyCo
 
 pub fn strategy_fixture_create(String, String, String, String, String, String, String, String, String) -> StrategyFixture
 
+pub fn strategy_fixture_dispatch(StrategyFixture) -> @duckdb_host.StrategyHostDispatch
+
 pub fn strategy_fixture_estimate(StrategyFixture) -> Int64
 
 pub fn strategy_fixture_graph(StrategyFixture) -> @physical_strategy.CheckedDAG

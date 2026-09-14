@@ -123,6 +123,16 @@ pub fn open_captured_dag(
 }
 
 ///|
+pub fn captured_dag_graph(run : CapturedDAG) -> CheckedDAG {
+  run.graph
+}
+
+///|
+pub fn captured_dag_strategy(run : CapturedDAG) -> StrategyRevision? {
+  run.strategy
+}
+
+///|
 fn task_done(run : CapturedDAG, index : Int) -> Bool {
   index == 0 || run.done[index]
 }

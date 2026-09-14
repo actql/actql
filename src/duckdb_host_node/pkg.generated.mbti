@@ -108,12 +108,35 @@ pub fn native_host_sql(NativeNodeRun, Int) -> String raise NodeHostFailure
 
 pub fn native_strategy_host_open(@duckdb_host.NativeHostConfiguration, @physical_strategy.Ledger, String, (@query_planning.DuckDBNativeAttempt) -> Bool, Int64, Int64) -> NativeNodeRun raise NodeHostFailure
 
+pub fn strategy_host_close_outputs(@duckdb_host.StrategyHostDispatch) -> Unit
+
+pub fn strategy_host_count(@duckdb_host.StrategyHostDispatch) -> Int
+
+pub fn strategy_host_execute_local(@duckdb_host.TaskDispatch) -> Unit raise NodeHostFailure
+
+pub fn strategy_host_finished(@duckdb_host.StrategyHostDispatch) -> Bool
+
+pub fn strategy_host_native(@duckdb_host.TaskDispatch) -> Bool
+
+pub fn strategy_host_next(@duckdb_host.StrategyHostDispatch) -> @duckdb_host.TaskDispatch? raise NodeHostFailure
+
+pub fn strategy_host_output(@duckdb_host.StrategyHostDispatch, Int) -> @execution_relation.CompletedOutput?
+
+pub fn strategy_host_stop(@duckdb_host.StrategyHostDispatch) -> Unit
+
+pub fn strategy_host_take_native(@duckdb_host.TaskDispatch) -> @duckdb_host.StrategyComputeHostConfiguration raise NodeHostFailure
+
+pub fn strategy_host_task(@duckdb_host.TaskDispatch) -> Int
+
+pub fn strategy_host_usage(@duckdb_host.StrategyHostDispatch) -> Array[Int64]
+
 // Errors
 pub(all) suberror NodeHostFailure {
   Host(@duckdb_host.NativeHostIssue)
   Broad(@duckdb_host.BroadHostIssue)
   Compute(@query_planning.DuckDBComputeIssue)
   Strategy(@physical_strategy.RunIssue)
+  Dispatch(@duckdb_host.DispatchIssue)
   Physical(@physical_strategy.LedgerIssue)
   CapturedSource(@query_planning.CapturedSourceIssue)
   ComputeParameter(@duckdb_adapter.ValueIssue)

@@ -18,7 +18,11 @@ pub fn captured_cleanup_confirmed(CapturedDAG, @query_planning.DuckDBComputeAtte
 
 pub fn captured_dag_failure(CapturedDAG) -> (Int, RunIssue)?
 
+pub fn captured_dag_graph(CapturedDAG) -> CheckedDAG
+
 pub fn captured_dag_ledger(CapturedDAG) -> Ledger
+
+pub fn captured_dag_strategy(CapturedDAG) -> StrategyRevision?
 
 pub fn captured_task_completed(CapturedDAG, Int) -> Bool
 
