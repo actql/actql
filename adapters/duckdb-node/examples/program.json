@@ -1,0 +1,35 @@
+{
+  "version": "actql/0.1",
+  "id": "physical-example",
+  "params": { "minimum": { "type": "number", "nullable": false } },
+  "stages": [
+    {
+      "id": "acquire",
+      "inputs": { "remote": { "connector": "crm/main", "resource": "r" } },
+      "steps": [ { "filter": "id > $minimum", "as": "filtered" }, { "select": ["id"], "as": "captured" } ],
+      "results": { "r": { "from": "captured", "fields": ["id"] } }
+    },
+    {
+      "id": "compute_a",
+      "inputs": { "x": { "result": { "stage": "acquire", "result": "r" } } },
+      "steps": [ { "filter": "id > 2" }, { "select": ["id"], "as": "out" } ],
+      "results": { "r": { "from": "out", "fields": ["id"] } }
+    },
+    {
+      "id": "compute_b",
+      "inputs": { "x": { "result": { "stage": "acquire", "result": "r" } } },
+      "steps": [ { "filter": "id > 0" }, { "select": ["id"], "as": "out" } ],
+      "results": { "r": { "from": "out", "fields": ["id"] } }
+    },
+    {
+      "id": "compute_c",
+      "inputs": { "x": { "result": { "stage": "compute_a", "result": "r" } } },
+      "steps": [ { "filter": "id < 9" }, { "select": ["id"], "as": "out" } ],
+      "results": { "r": { "from": "out", "fields": ["id"] } }
+    }
+  ],
+  "results": {
+    "b": { "from": { "stage": "compute_b", "result": "r" } },
+    "c": { "from": { "stage": "compute_c", "result": "r" } }
+  }
+}

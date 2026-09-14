@@ -496,6 +496,10 @@ ceilings can make this envelope substantially larger than a Compute-only budget.
 This native path is distinct from standalone borrowed capture and does not claim
 automatic accounting for the broad Host entry.
 
+For a runnable application using user-supplied files, see the
+[checked serial strategy example](examples/README.md). It includes preparation,
+the standard Host driver and explanation output without conformance dependencies.
+
 To drive a selected finite DAG without fixture-specific per-task calls, construct
 an owned `duckdb_host.StrategyHostDispatch` with `configure_strategy_dispatch` and
 call `runCapturedStrategy(setup, transportLimits, importLimits, signal)` from

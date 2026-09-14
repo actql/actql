@@ -9,6 +9,7 @@
 - [Query adapter boundary](design/query-residual-execution.md): acquisition-specific preparation above the fixed-input row engine; opaque handles and cumulative guard measurement.
 - [DuckDB execution boundary](design/duckdb-relation-execution.md): internal adapter responsibilities, exact type transport and source/Compute isolation; [Node Host usage and conformance](../adapters/duckdb-node/README.md) covers bounded acquisition/capture and completed-input Compute, not durable Program/Run execution.
 - [Serial physical strategy boundary](design/physical-strategy-execution.md): checked data/control dependencies, completed-input transfers, physical reservations and unstarted-work revision rules; distinct from canonical Plan and Program publication.
+- [Serial strategy application example](../adapters/duckdb-node/examples/README.md): user-supplied Program/Environment and trusted local DB through capture, shared-input Compute, re-estimation and diagnostic explanation; no test-fixture dependency or formal Program publication.
 - [Extension policy](design/extension-policy.md): extension boundaries.
 - [Implementation guide](design/implementation-port.md): component responsibilities and implementation order.
 - [Reference Host](design/reference-host.md): durable execution and secure defaults.

@@ -1,0 +1,29 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/physical_strategy_example"
+
+import {
+  "actql/actql/duckdb_host",
+  "actql/actql/physical_strategy",
+}
+
+// Values
+pub fn application_acquisition(Application) -> @duckdb_host.NativeHostConfiguration
+
+pub fn application_dispatch(Application, @physical_strategy.CapturedDAG, Int64) -> @duckdb_host.StrategyHostDispatch raise
+
+pub fn application_graph(Application) -> @physical_strategy.CheckedDAG
+
+pub fn application_ledger() -> @physical_strategy.Ledger
+
+pub fn application_output_cid(@physical_strategy.CapturedDAG, Int) -> String?
+
+pub fn prepare_application(String, String, String, String, String, String, String, String, String, String, String, String) -> Application raise
+
+// Errors
+
+// Types and methods
+type Application
+
+// Type aliases
+
+// Traits

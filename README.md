@@ -467,6 +467,10 @@ design also reaches browser, edge, and managed runtimes.
   acquisition with native SQL or Local residual, process-local capture, and
   isolated fixed-input Compute; limited filter/select profile, not durable
   Program/Run execution or remote replay
+- [Checked serial strategy example](adapters/duckdb-node/examples/README.md) —
+  user-supplied documents and a trusted local DB through shared capture,
+  Local/DuckDB placement, unstarted-task revision and bounded explanation;
+  internal task completion, not Program success publication
 
 ## Status
 

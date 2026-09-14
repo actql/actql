@@ -1,0 +1,28 @@
+// Runnable application example, not a test fixture or formal Program runner.
+supported_targets = "js"
+
+pkgtype(kind: "foreign_library")
+
+import {
+  "actql/actql/canonical_json" @identity,
+  "actql/actql/execution_relation" @execution,
+  "actql/actql/duckdb_adapter" @duckdb,
+  "actql/actql/duckdb_host" @dbhost,
+  "actql/actql/lowering_relation" @lower,
+  "actql/actql/pipeline_typing" @pipeline,
+  "actql/actql/source_value" @source,
+  "actql/actql/decode_core" @decode,
+  "moonbitlang/core/json",
+  "actql/actql/check_environment" @environment,
+  "actql/actql/stage_syntax" @syntax,
+  "actql/actql/program_check",
+  "actql/actql/pipeline_check_context" @context,
+  "actql/actql/capacity_witness" @wire,
+  "actql/actql/capacity_host_witness" @host,
+  "actql/actql/sourceview_resolution" @acquisition,
+  "actql/actql/execution_query" @query,
+  "actql/actql/query_planning" @planning,
+  "moonbitlang/core/encoding/utf8",
+  "actql/actql/physical_strategy" @strategy,
+  "actql/actql/parameter_references" @parameters,
+}

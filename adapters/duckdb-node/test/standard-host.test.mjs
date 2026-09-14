@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
-import { mkdir, mkdtemp, readFile, rename, rm } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rename, rm, writeFile } from 'node:fs/promises';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { join } from 'node:path';
 import { createHash } from 'node:crypto';
@@ -11,6 +11,7 @@ import { authorizeLocalDatabase } from '../session.mjs';
 import { runNativeHostQuery, runStrategyNativeHostQuery, runBroadHostQuery, runFixedHostCompute, runStrategyHostCompute } from '../host.mjs';
 import { exerciseOwnedFixedTransport } from './owned-fixed-transport.mjs';
 import { runCapturedStrategy } from '../strategy-host.mjs';
+import { runExample } from '../examples/physical-strategy.mjs';
 
 const root = fileURLToPath(new URL('../../..', import.meta.url));
 const limits = { maxRows: 100, maxCells: 1000, maxTransportBytes: 100000,
@@ -22,6 +23,7 @@ test('standard native and broad Node Hosts own verification through real capture
   const exec = promisify(execFile);
   await exec('moon', ['build', '--target', 'js', '--release', 'src/duckdb_host_node'], { cwd: root });
   await exec('moon', ['build', '--target', 'js', '--release', 'src/duckdb_conformance'], { cwd: root });
+  await exec('moon', ['build', '--target', 'js', '--release', 'src/physical_strategy_example'], { cwd: root });
   const fixture = await import(pathToFileURL(join(root, '_build/js/release/build/duckdb_conformance/duckdb_conformance.js')));
   const publicApi = await readFile(join(root, 'src/query_planning/pkg.generated.mbti'), 'utf8');
   assert.doesNotMatch(publicApi, /pub fn duckdb_broad_attempt_output\(/);
@@ -154,6 +156,43 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
     try { await connection.run('DELETE FROM records'); await connection.run(sql); }
     finally { connection.closeSync(); db.closeSync(); }
   }
+  // The runnable application reads user-supplied documents, not conformance
+  // exports or test catalogs. Tests supply their own documents at its boundary.
+  const exampleDirectory = await mkdtemp(join(root, '_build/duckdb-fixtures/example-input-'));
+  try {
+    const environment = join(exampleDirectory, 'environment.json');
+    const programFile = join(exampleDirectory, 'program.json');
+    const parameters = join(exampleDirectory, 'parameters.json');
+    const exampleProgram = await readFile(join(root, 'adapters/duckdb-node/examples/program.json'), 'utf8');
+    await Promise.all([writeFile(environment, args[0]), writeFile(programFile, exampleProgram),
+      writeFile(parameters, '{"minimum":1}')]);
+    for (const [estimate, expected] of [['1', ['duckdb', 'duckdb', 'duckdb']],
+      ['20', ['local', 'local', 'local']], ['5', ['duckdb', 'duckdb', 'local']]]) {
+      const result = await runExample({ database: path, environment, environmentCid: args[1],
+        program: programFile, parameters, nativeMilliseconds: estimate });
+      try {
+        assert.equal(result.report.status, 'host-tasks-completed');
+        assert.equal(result.report.program_success, false);
+        assert.deepEqual(result.report.completed.map(item => item.realization), expected);
+        assert.equal(result.report.internal_output_cids[2].cid, hash([{ id: 3 }, { id: 3 }]));
+        assert(BigInt(result.report.explanation.ledger.transferred_bytes) > 0n);
+      } finally { result.close(); }
+      assert.equal(result.execution.usage().heldBytes, 0n);
+    }
+    const cli = await promisify(execFile)(process.execPath, [
+      'adapters/duckdb-node/examples/physical-strategy.mjs', '--database', path,
+      '--environment', environment, '--environment-cid', args[1], '--program', programFile,
+      '--parameters', parameters, '--native-ms', '5',
+    ], { cwd: root, maxBuffer: 1000000 });
+    assert.equal(JSON.parse(cli.stdout).status, 'host-tasks-completed');
+    await assert.rejects(runExample({ database: path, environment,
+      environmentCid: 'sha256:' + '0'.repeat(64), program: programFile,
+      parameters, nativeMilliseconds: '5' }));
+    const applicationSource = await readFile(join(root, 'src/physical_strategy_example/moon.pkg'), 'utf8');
+    assert.doesNotMatch(applicationSource, /conformance|query_integration/);
+    const script = await readFile(join(root, 'adapters/duckdb-node/examples/physical-strategy.mjs'), 'utf8');
+    assert.doesNotMatch(script, /duckdb_conformance|query_integration/);
+  } finally { await rm(exampleDirectory, { recursive: true, force: true }); }
   // Inspect the product bridge's reservation phases without issuing execution
   // evidence: no native task is run, and its deliberately absent result fails.
   const phaseFixture = fixture.strategyFixtureCreate(...args, program);
