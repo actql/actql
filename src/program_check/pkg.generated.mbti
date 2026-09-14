@@ -85,7 +85,7 @@ pub fn contract_inventory(CheckedProgram) -> @pipeline_check_context.CoreContrac
 
 pub fn effective_policy_classification(EffectivePolicy) -> @check_environment.DataClassification
 
-pub fn effective_policy_occurrence_at(EffectivePolicy, Int) -> DirectSourcePolicy?
+pub fn effective_policy_occurrence_at(EffectivePolicy, Int) -> SourcePolicyOccurrence?
 
 pub fn effective_policy_occurrence_count(EffectivePolicy) -> Int
 
@@ -887,6 +887,11 @@ pub(all) struct SourceLimits {
   max_policy_depth : Int
   max_requirements : Int
   max_regex_depth : Int
+}
+
+pub enum SourcePolicyOccurrence {
+  DirectPolicy(DirectSourcePolicy)
+  KeyedResponsePolicy(SourceExecution)
 }
 
 pub(all) enum SourceReadAuthority {

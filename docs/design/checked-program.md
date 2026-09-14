@@ -397,8 +397,10 @@ context, exact join, lookup bounds and producer membership. The five base gates
 per input precede the four gates per keyed join within each Stage; dependency
 edges must reference those exact records, not equivalent reconstructions. All
 gate and dependency visits consume the shared work budget. This acquisition
-audit does not replace keyed publication provenance composition, which remains
-a separate unsupported closure path. Unbound Host request values remain
+audit does not replace keyed publication provenance composition. The latter
+retains each join's response gate and traverses its correlation producer as
+described below. Automatic selection of keyed producer-bound coordinates at
+the formal entry remains separate from both closures. Unbound Host request values remain
 unsupported; changes/checkpoint obligations require their separate static mode
 closure. Successful checking neither performs acquisition nor claims that a
 backend can implement the required enforcement.
@@ -410,8 +412,9 @@ introducing new values or mixing inputs. It selects the exact direct source by
 stage and input name, not every Program input. The publication retains the
 effective policy object and CID, original target and the Carrier-response check
 as its execution prerequisite. Lowering reads that binding rather than walking
-the graph again to select policies. The singular acquisition `policy` and
-`prerequisite` fields are present only when exactly one acquisition contributes;
+the graph again to select policies. The singular acquisition `policy` is present
+only for a single direct acquisition; `prerequisite` is present when exactly one
+acquisition contributes;
 multi-source consumers use `publication_policy_source_count/at` instead.
 
 Append follows both checked input occurrences. The policy traversal visits each
@@ -1384,10 +1387,21 @@ Parameter's supplied/defaulted origin. Response policy references are retained
 even when the combined classification is unknown. The bounded emitter uses the
 shared effective-policy preimage and does not materialize another value tree.
 
-Keyed acquisitions do not receive this direct-policy result: their correlation
-producer's contributing policies must also be selected. Retaining a direct-policy
-object does not establish runtime egress admission, Ref authority or completion
-of the remaining SourceView construction conditions.
+Keyed acquisitions do not receive a direct-policy result. `SourcePolicyOccurrence`
+distinguishes a retained direct policy from an owned keyed response execution
+gate. For a keyed join, publication traversal selects that exact join's gate and
+retains the left correlation edge even if projection removes all left columns.
+The gate retains the original request, bounds and producer membership. The right
+input declaration is not independently reinterpreted as a direct acquisition.
+Two joins using one input retain distinct occurrences; equal policy CIDs only
+deduplicate the canonical reference sets. Unrelated joins are not contributors.
+The stage's keyed gates are indexed once by checked join step for each traversal,
+with index construction and all visited edges charged to the shared budget.
+Static request values without policy attestations preserve unknown provenance.
+The effective policy combines these response references with the correlation
+producer's contributors using the existing canonical preimage. Retaining this
+composition does not establish runtime egress admission, Ref authority or
+completion of the remaining SourceView construction conditions.
 
 Each selected SourceView occurrence contributes `EffectiveDataPolicyRules` to
 its owning stage's contract inventory, including admitted but unused inputs.

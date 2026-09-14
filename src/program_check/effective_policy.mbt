@@ -1,17 +1,23 @@
 ///|
+pub enum SourcePolicyOccurrence {
+  DirectPolicy(DirectSourcePolicy)
+  KeyedResponsePolicy(SourceExecution)
+}
+
+///|
 struct EffectivePolicy {
   classification : @environment.DataClassification
   unknown_provenance : Bool
   sources : Array[String]
   responses : Array[String]
-  occurrences : Array[DirectSourcePolicy]
+  occurrences : Array[SourcePolicyOccurrence]
 }
 
 ///|
 // Callers select contributors using owned checked edges. This constructor does
 // not infer selection from equal CIDs or from the surrounding Catalog.
 fn prepare_effective_policy(
-  occurrences : Array[DirectSourcePolicy],
+  occurrences : Array[SourcePolicyOccurrence],
   unknown : Bool,
   budget : IdentityBudget,
 ) -> EffectivePolicy raise UnitBuildFailure {
@@ -23,22 +29,47 @@ fn prepare_effective_policy(
   let mut unknown_provenance = unknown
   for policy in owned {
     identity_charge(budget, 2)
+    let (response, response_cid, contribution, missing) = match policy {
+      DirectPolicy(policy) =>
+        (
+          policy.response,
+          policy.response_cid,
+          policy.classification,
+          policy.unknown_provenance,
+        )
+      KeyedResponsePolicy(check) => {
+        guard check.kind is KeyedResponse(binding) &&
+          check.subject.request is @sourceviews.Keyed(_, request) &&
+          physical_equal(request, @sourceviews.keyed_join_request(binding.join)) else {
+          raise ForeignOwner
+        }
+        // Correlation provenance is retained separately through the checked
+        // left edge. Static request values do not carry policy attestations.
+        let missing = @sourceviews.parameterized_keyed_request_field_count(
+            request,
+          ) >
+          0
+        (
+          check.subject.response_policy,
+          check.subject.response_policy_cid,
+          check.subject.response_policy.classification,
+          missing,
+        )
+      }
+    }
     sources.push(
       (
         @environment.contract_identity(
           @environment.data_policy_envelope(
-            @environment.source_view_data_policy(policy.response.authoritative),
+            @environment.source_view_data_policy(response.authoritative),
           ),
         ).2,
         (),
       ),
     )
-    responses.push((policy.response_cid, ()))
-    classification = combine_classification(
-      classification,
-      policy.classification,
-    )
-    unknown_provenance = unknown_provenance || policy.unknown_provenance
+    responses.push((response_cid, ()))
+    classification = combine_classification(classification, contribution)
+    unknown_provenance = unknown_provenance || missing
   }
   let sources = policy_unique_cids(sources, budget)
   let responses = policy_unique_cids(responses, budget)
@@ -88,7 +119,7 @@ pub fn effective_policy_occurrence_count(value : EffectivePolicy) -> Int {
 pub fn effective_policy_occurrence_at(
   value : EffectivePolicy,
   index : Int,
-) -> DirectSourcePolicy? {
+) -> SourcePolicyOccurrence? {
   value.occurrences.get(index)
 }
 

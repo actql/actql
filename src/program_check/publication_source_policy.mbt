@@ -527,6 +527,20 @@ fn prepare_publication_source_policy(
   let nests : Array[PublicationPolicyNest] = []
   let temporal_joins : Array[PublicationPolicyTemporalJoin] = []
   let carrier_steps : Array[PublicationPolicyCarrierStep] = []
+  // A single named keyed input can have several correlation producers. Index
+  // the owned gates by join occurrence, never by response CID or input name.
+  let keyed_responses : Map[Int, SourceExecution] = Map([])
+  for check in unit.source_execution {
+    identity_charge(budget, 1)
+    if check.subject.stage == publication.stage &&
+      check.kind is KeyedResponse(binding) {
+      let step = @sourceviews.keyed_join_step(binding.join)
+      if keyed_responses.contains(step) {
+        raise ForeignOwner
+      }
+      keyed_responses[step] = check
+    }
+  }
   let mut unknown = false
   while pending.pop() is Some(target) {
     identity_charge(budget, 1)
@@ -537,6 +551,7 @@ fn prepare_publication_source_policy(
         }
         visited_steps[index] = true
         let step = @pipeline.step_at(unit.pipeline, index).unwrap()
+        let mut keyed_right = false
         let expected = match step.operation {
           @pipeline.Values(_) | @pipeline.TimeSeries(_) => {
             identity_charge(budget, 1)
@@ -1103,10 +1118,33 @@ fn prepare_publication_source_policy(
             unknown = true
             2
           }
-          @pipeline.Append(..)
-          | @pipeline.Set(..)
-          | @pipeline.Join(..)
-          | @pipeline.CrossJoin(..) => 2
+          @pipeline.Join(right~, checked~) => {
+            if keyed_responses.get(index) is Some(response) {
+              guard response.kind is KeyedResponse(binding) &&
+                physical_equal(
+                  @sourceviews.keyed_join_operation(binding.join),
+                  checked,
+                ) &&
+                step.input == Some(@sourceviews.keyed_join_left(binding.join)) &&
+                right is @pipeline.Input(input) else {
+                raise ForeignOwner
+              }
+              let (name, _) = @pipeline.input_at(unit.pipeline, input).unwrap()
+              if identity_compare(
+                  name,
+                  @sourceviews.declaration(response.subject.source).input_name,
+                  budget,
+                ) !=
+                0 {
+                raise ForeignOwner
+              }
+              retain_policy_source(response, source_ids, sources, budget)
+              keyed_right = true
+            }
+            2
+          }
+          @pipeline.Append(..) | @pipeline.Set(..) | @pipeline.CrossJoin(..) =>
+            2
         }
         guard @pipeline.input_occurrence_count(step) == expected else {
           raise ForeignOwner
@@ -1115,7 +1153,12 @@ fn prepare_publication_source_policy(
           identity_charge(budget, 1)
           let occurrence = @pipeline.input_occurrence_at(step, index_in).unwrap()
           edges.push({ step: index, occurrence, })
-          pending.push(occurrence.target)
+          // The right keyed response belongs to this join, not to every use of
+          // its input declaration. The left edge remains a policy contributor
+          // even when no left column survives the output projection.
+          if !keyed_right || index_in != 1 {
+            pending.push(occurrence.target)
+          }
         }
       }
       @pipeline.Input(index) => {
@@ -1217,10 +1260,15 @@ fn prepare_publication_source_policy(
       }
     }
   }
-  let occurrences : Array[DirectSourcePolicy] = []
+  let occurrences : Array[SourcePolicyOccurrence] = []
   for source in sources {
     identity_charge(budget, 1)
-    occurrences.push(source.subject.direct_policy.unwrap())
+    occurrences.push(
+      match source.kind {
+        KeyedResponse(_) => KeyedResponsePolicy(source)
+        _ => DirectPolicy(source.subject.direct_policy.unwrap())
+      },
+    )
   }
   let effective = prepare_effective_policy(occurrences, unknown, budget)
   let writer = identity_writer(budget)
@@ -1230,7 +1278,7 @@ fn prepare_publication_source_policy(
   let cid = identity_finish(budget, writer)
   {
     policy: if sources.length() == 1 {
-      Some(occurrences[0])
+      sources[0].subject.direct_policy
     } else {
       None
     },
@@ -1283,7 +1331,11 @@ fn retain_policy_source(
   identity_charge(budget, 1)
   let key = check.subject.stage.to_string() +
     ":" +
-    check.subject.input.to_string()
+    check.subject.input.to_string() +
+    (match check.kind {
+      KeyedResponse(binding) => ":join:" + binding.index.to_string()
+      _ => ""
+    })
   identity_charge(budget, key.length())
   if !seen.contains(key) {
     seen[key] = true

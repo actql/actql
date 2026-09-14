@@ -19,7 +19,9 @@ test "effective policy deduplicates references without dropping contributing occ
     "\",\"" +
     high +
     "\"],\"unknown_provenance\":true,\"version\":\"actql-effective-data-policy/0.1\"}"
-  for inputs in [[first, second, first], [second, first, first]] {
+  let a = SourcePolicyOccurrence::DirectPolicy(first)
+  let b = SourcePolicyOccurrence::DirectPolicy(second)
+  for inputs in [[a, b, a], [b, a, a]] {
     let budget = IdentityBudget::{
       work: 100000,
       bytes: 100000,
@@ -35,7 +37,7 @@ test "effective policy deduplicates references without dropping contributing occ
       ),
     )
     let retained = inputs[0]
-    inputs[0] = first
+    inputs[0] = a
     assert_true(
       physical_equal(
         effective_policy_occurrence_at(value, 0).unwrap(),

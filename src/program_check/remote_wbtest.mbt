@@ -155,6 +155,8 @@ fn remote_environment_fixture(
 ///|
 fn remote_construction_fixture(
   budget : IdentityBudget,
+  publish_join? : Bool = false,
+  second_join? : Bool = false,
 ) -> (
   @context.ProgramSourceIdentity,
   @context.StageRequirementClosure,
@@ -165,6 +167,29 @@ fn remote_construction_fixture(
   let environment = remote_environment_fixture()
   let text =
     #|{"version":"actql/0.1","id":"keyed","stages":[{"id":"s","inputs":{"remote":{"connector":"crm/main","resource":"r","request":{"tenant":null}}},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":false}},"rows":[{"id":1}]},"as":"seed"},{"join":{"left":"seed","with":"remote","on":"id","kind":"left","select":{"id":"left.id"}}}],"results":{"out":{"from":"seed","fields":["id"]}}}],"results":{"out":{"from":{"stage":"s","result":"out"}}}}
+  let text = if publish_join {
+    text
+    .replace(
+      old="\"select\":{\"id\":\"left.id\"}}}",
+      new="\"select\":{\"id\":\"left.id\"}},\"as\":\"joined\"}",
+    )
+    .replace(old="\"from\":\"seed\"", new="\"from\":\"joined\"")
+  } else {
+    text
+  }
+  let text = if second_join {
+    text
+    .replace(
+      old="\"as\":\"joined\"}",
+      new="\"as\":\"joined\"},{\"join\":{\"left\":\"seed\",\"with\":\"remote\",\"on\":\"id\",\"kind\":\"left\",\"select\":{\"id\":\"right.id\"}},\"as\":\"joined_second\"}",
+    )
+    .replace(
+      old="\"results\":{\"out\":{\"from\":\"joined\"",
+      new="\"results\":{\"other\":{\"from\":\"joined_second\",\"fields\":[\"id\"]},\"out\":{\"from\":\"joined\"",
+    )
+  } else {
+    text
+  }
   let program = @syntax.parse(
     text,
     {
@@ -201,7 +226,19 @@ fn remote_construction_fixture(
   let base = source_limits_fixture(1)
   let caps : SourceLimits = {
     ..base,
-    topology: { ..base.topology, max_steps: 2, },
+    topology: {
+      ..base.topology,
+      max_steps: if second_join {
+        3
+      } else {
+        2
+      },
+      max_results: if second_join {
+        2
+      } else {
+        1
+      },
+    },
   }
   let limits = caps.topology
   let (wiring, _) = @context.prepare_sourceview_program(views, locals, limits).unwrap()
@@ -236,9 +273,19 @@ fn remote_construction_fixture(
     old="\"subject_ref\":",
     new="\"resolved_limit_cid\":\"" + limit_cid + "\",\"subject_ref\":",
   )
+  let limit_inputs = [(@utf8.encode(limit_text), limit_cid)]
+  if second_join {
+    let body = limit_body.replace(old="checked-step:1", new="checked-step:2")
+    let cid = "sha256:" + @sha.hex(@utf8.encode(body))
+    let text = body.replace(
+      old="\"subject_ref\":",
+      new="\"resolved_limit_cid\":\"" + cid + "\",\"subject_ref\":",
+    )
+    limit_inputs.push((@utf8.encode(text), cid))
+  }
   let arithmetic = @wire.check_mixed_claims(
     [@wire.program_proof_witness(proof), host_wire],
-    [(@utf8.encode(limit_text), limit_cid)],
+    limit_inputs,
     {
       max_entities: 100,
       max_references: 100,
@@ -272,13 +319,20 @@ fn remote_construction_fixture(
   for i in 0..<materials[0].length() {
     materials[0][i] = {
       sources,
-      consumers: [@capacity.Join(step=1, output=0)],
+      consumers: if second_join {
+        [@capacity.Join(step=1, output=0), @capacity.Join(step=2, output=1)]
+      } else {
+        [@capacity.Join(step=1, output=0)]
+      },
     }
   }
   construct_local(
     program,
     None,
-    { wire: environment, locations: Some([[(0, 0)]]), },
+    {
+      wire: environment,
+      locations: Some([if second_join { [(0, 0), (0, 0)] } else { [(0, 0)] }]),
+    },
     materials,
     { text_time: false, veca: false, },
     { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
