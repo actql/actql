@@ -57,6 +57,8 @@ pub fn configured_native_host_limits(NativeHostConfiguration) -> NativeHostLimit
 
 pub fn configured_strategy_compute_graph(StrategyComputeHostConfiguration) -> (@physical_strategy.CapturedDAG, Int)
 
+pub fn configured_strategy_compute_ledger(StrategyComputeHostConfiguration) -> @physical_strategy.Ledger
+
 pub fn configured_strategy_compute_transport(StrategyComputeHostConfiguration) -> @duckdb_adapter.TransportColumnLimits
 
 pub fn finish_broad_host_receipt(BroadHostRun) -> Result[Unit, BroadHostIssue]

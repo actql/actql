@@ -7,19 +7,19 @@ const completed = new WeakMap();
 
 // The trusted bridge creates a fresh port/receiver for each attempt. Its
 // immutable completed input may be reused through another port and fresh budget.
-export async function runFixedCompute(port, limits, importLimits, consume, signal) {
+export async function runFixedCompute(port, limits, importLimits, consume, signal, accounting) {
   if (attempted.has(port)) throw new DuckDBTransportError('AttemptAlreadyStarted');
   attempted.add(port);
   let ownedSession;
   const result = await executeFixedCompute(port, limits, importLimits, consume, signal,
-    session => { ownedSession = session; });
+    session => { ownedSession = session; }, accounting);
   // Register only after all native commands, transaction settlement and cleanup.
   // This anchors the actual closed session; it grants no source-read capability.
   completed.set(result, { port, consume, session: ownedSession });
   return result;
 }
 
-async function executeFixedCompute(port, limits, importLimits, consume, signal, retainSession) {
+async function executeFixedCompute(port, limits, importLimits, consume, signal, retainSession, accounting) {
   const rows = port.rowCount();
   const columns = port.columnCount();
   for (const value of [rows, columns, importLimits.maxRows, importLimits.maxCells]) {
@@ -45,7 +45,7 @@ async function executeFixedCompute(port, limits, importLimits, consume, signal, 
     }
     const fields = await session.command(port.querySql(), port.queryParameters(), consume);
     return Object.freeze({ fields, importedRows: rows, importedCells: rows * columns });
-  }, signal);
+  }, signal, accounting);
 }
 
 // Transport provenance only. The MoonBit completion issuer must independently

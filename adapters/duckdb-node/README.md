@@ -446,15 +446,24 @@ Upstream closure before Compute completion still prevents successful publication
 For the internal checked-DAG increment, a native capture also exposes `source()`.
 This returns an opaque `CapturedInputSource` with the exact acquisition and live
 observation ownership; it is not a portable CID-based replay handle. Bind it to
-the same checked graph using `physical_strategy.open_captured_dag`.
+the same checked graph using `physical_strategy.open_captured_dag`, supplying one
+Host physical ledger that remains owned by that run across task choices.
 Prepare a selected task's `ComputeHostConfiguration`, wrap it with
 `duckdb_host.configure_strategy_compute_host`, and execute through
 `runStrategyHostCompute` in `host.mjs`. The standard Host retains verifier wiring;
 task completion is recorded by the DAG's exact attempt, not a caller-supplied
 output. Every DuckDB task uses its own temporary database and imports its fixed
 input, including consecutive DuckDB tasks. No resident sharing is implied.
-This execution increment is not yet the whole-strategy cost selector or integrated
-Host physical-budget runner. Internal task outputs do not authorize partial
+DuckDB task startup reserves `maxTransportBytes` and configured `memoryBytes`
+against that ledger before DB creation. Sent/received frame bytes are charged
+before acceptance and never refunded by result close or failure. Actual session
+cleanup releases unused transfer and configured DB-memory reservations.
+An error with `cleanupPending` retains `cleanupHandle.status()` and asynchronous
+`cleanupHandle.retry()` for the same owned resources. `primaryFailure` and
+`cleanupErrors` remain separate. Retry is resource cleanup, not a query retry.
+This execution increment is not yet the whole-strategy cost selector or complete
+Host physical-budget runner: retained buffers, adapter scratch, Local execution
+and acquisition integration still need accounting. Internal task outputs do not authorize partial
 publication of a failed Program.
 
 The broad Host invokes `complete_duckdb_broad_capture` only after actual source

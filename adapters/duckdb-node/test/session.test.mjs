@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { join } from 'node:path';
 import { fork } from 'node:child_process';
 import { DuckDBInstance } from '@duckdb/node-api';
-import { authorizeLocalDatabase, withSourceDatabase, withComputeDatabase } from '../session.mjs';
+import { authorizeLocalDatabase, withSourceDatabase, withComputeDatabase, DuckDBTransportError } from '../session.mjs';
 
 const limits = Object.freeze({
   maxRows: 10000, maxCells: 100000, maxTransportBytes: 2000000,
@@ -191,6 +191,68 @@ test('wire byte accounting is exact for declared transport frames', async () => 
   assert.equal(result.usage.transportBytes, expectedBytes);
   await assert.rejects(withComputeDatabase({ ...limits, maxTransportBytes: expectedBytes - 1 },
     session => rows(session, 'SELECT 42::INTEGER AS n')), hasCode('TransportBytes'));
+});
+
+test('trusted physical accounting charges before acceptance and acknowledges real cleanup', async () => {
+  let charged = 0;
+  let started = 0;
+  const settled = [];
+  const accounting = Object.freeze({
+    started() { started++; },
+    chargeTransfer(bytes) { charged += bytes; },
+    settled(confirmed) { settled.push(confirmed); },
+  });
+  const result = await withComputeDatabase(limits, session => rows(session, 'SELECT 42'), undefined, accounting);
+  assert.equal(charged, result.usage.transportBytes);
+  assert.equal(started, 1);
+  assert.deepEqual(settled, [true]);
+  const spent = charged;
+  let accepted = false;
+  await assert.rejects(withComputeDatabase(limits,
+    session => session.command('SELECT 42', [], () => { accepted = true; }), undefined, {
+      started: accounting.started,
+      chargeTransfer(bytes) {
+        if (charged - spent + bytes > 20) throw new Error('HostTransferLimit');
+        accounting.chargeTransfer(bytes);
+      },
+      settled: accounting.settled,
+    }), /HostTransferLimit/);
+  assert.equal(accepted, false);
+  assert(charged > spent); // the already sent parameter frame is not refunded
+  assert.deepEqual(settled, [true, true]);
+});
+
+test('cleanup failure retains primary failure and same owned resources until retry settles', async t => {
+  const close = DuckDBInstance.prototype.closeSync;
+  const primary = new DuckDBTransportError('PrimaryExecutionFailure');
+  const cleanup = new Error('injected instance close failure');
+  let failOnce = true;
+  t.mock.method(DuckDBInstance.prototype, 'closeSync', function () {
+    if (failOnce) { failOnce = false; throw cleanup; }
+    return close.call(this);
+  });
+  const settled = [];
+  let failure;
+  try {
+    await withComputeDatabase(limits, async session => {
+      await rows(session, 'SELECT 42');
+      throw primary;
+    }, undefined, { started() {}, chargeTransfer() {}, settled(value) { settled.push(value); } });
+  } catch (error) { failure = error; }
+  assert.equal(failure.code, 'PrimaryExecutionFailure');
+  assert.equal(failure.primaryFailure, primary);
+  assert.deepEqual(failure.cleanupErrors, [cleanup]);
+  assert.equal(failure.cleanupHandle.status().pending, true);
+  assert.deepEqual(settled, [false]);
+  try {
+    const status = await failure.cleanupHandle.retry();
+    assert.equal(status.pending, false);
+    assert.deepEqual(status.errors, [cleanup]);
+    assert.deepEqual(settled, [false, true]);
+    assert.equal(failure.primaryFailure, primary);
+  } finally {
+    if (failure.cleanupHandle.status().pending) await failure.cleanupHandle.retry();
+  }
 });
 
 test('abort waits for an active native command to settle before returning failure', async () => {

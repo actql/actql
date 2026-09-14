@@ -4,6 +4,7 @@
 struct CapturedDAG {
   graph : CheckedDAG
   source : @planning.CapturedInputSource
+  ledger : Ledger
   completed : Array[TaskCompletion?]
   inputs : Array[@execution.ProducerRead?]
   mut running : (Int, @planning.DuckDBComputeAttempt)?
@@ -38,6 +39,7 @@ priv enum TaskCompletion {
 pub fn open_captured_dag(
   graph : CheckedDAG,
   source : @planning.CapturedInputSource,
+  ledger : Ledger,
 ) -> Result[CapturedDAG, RunIssue] {
   let count = graph.owners.length()
   if count == 0 {
@@ -80,6 +82,7 @@ pub fn open_captured_dag(
   Ok({
     graph,
     source,
+    ledger,
     completed: Array::make(count, None),
     inputs: Array::make(count, None),
     stopped: false,
@@ -282,4 +285,10 @@ fn fail_captured_task(run : CapturedDAG, task : Int, issue : RunIssue) -> Unit {
 /// First primary failure is retained even when later cleanup requests stop again.
 pub fn captured_dag_failure(run : CapturedDAG) -> (Int, RunIssue)? {
   run.failure
+}
+
+///|
+/// One persistent Host ledger for the run, never replaced by a task choice.
+pub fn captured_dag_ledger(run : CapturedDAG) -> Ledger {
+  run.ledger
 }

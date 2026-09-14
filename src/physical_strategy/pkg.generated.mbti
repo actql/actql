@@ -15,6 +15,8 @@ import {
 // Values
 pub fn captured_dag_failure(CapturedDAG) -> (Int, RunIssue)?
 
+pub fn captured_dag_ledger(CapturedDAG) -> Ledger
+
 pub fn captured_task_input(CapturedDAG, Int, Int, Int) -> Result[@execution_relation.ProducerRead, RunIssue]
 
 pub fn captured_task_output(CapturedDAG, Int, @pipeline_typing.Target) -> @execution_relation.CompletedOutput?
@@ -51,7 +53,7 @@ pub fn mark_cleanup_pending(Ledger, Reservation) -> Result[Unit, LedgerIssue]
 
 pub fn next_captured_task(CapturedDAG) -> Int?
 
-pub fn open_captured_dag(CheckedDAG, @query_planning.CapturedInputSource) -> Result[CapturedDAG, RunIssue]
+pub fn open_captured_dag(CheckedDAG, @query_planning.CapturedInputSource, Ledger) -> Result[CapturedDAG, RunIssue]
 
 pub fn prepare_checked_dag(@program_check.CheckedProgram, Array[@lowering_relation.BoundPrepared], Int, Int) -> Result[CheckedDAG, GraphIssue]
 

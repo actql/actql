@@ -106,7 +106,15 @@ fn captured_graph_fixture() -> (
     query_capture_limits(),
   ).unwrap()
   let source = @planning.mock_captured_source(issuer, attempt, observation).unwrap()
-  (@strategy.open_captured_dag(graph, source).unwrap(), issuer)
+  let ledger = @strategy.create_ledger({
+    planning_work: 10000,
+    attempts: 10,
+    holdings: 10,
+    transfer_bytes: 300000L,
+    retained_bytes: 1000000L,
+    execution_bytes: 134217728L,
+  }).unwrap()
+  (@strategy.open_captured_dag(graph, source, ledger).unwrap(), issuer)
 }
 
 ///|

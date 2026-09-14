@@ -158,6 +158,7 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
     const f = fixture.strategyFixtureCreate(...args, program);
     const capture = await runNativeHostQuery(grant, fixture.strategyFixtureAcquisition(f), suppliedLimits);
     const held = [];
+    let transferred = 0n;
     try {
       assert.equal(fixture.strategyFixtureOpen(f, capture.source()), true);
       // A and B must consume one immutable observation, not read this mutation.
@@ -166,7 +167,22 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
         if (task === 3) capture.close();
         if (layout[task - 1]) {
           const setup = fixture.strategyFixtureCompute(f, task);
+          if (task === 2) {
+            // An unstarted oversized reservation cannot erase already spent A
+            // transfer or create a DB. Retrying this unstarted configuration is
+            // explicit test orchestration, not automatic failed-attempt fallback.
+            const attempts = fixture.strategyFixtureUsage(f, 3);
+            await assert.rejects(runStrategyHostCompute(setup,
+              { ...suppliedLimits, maxTransportBytes: 300001 }, { maxRows: 100, maxCells: 1000 }),
+            { code: 'MoonBitHostFailure' });
+            assert.equal(fixture.strategyFixtureUsage(f, 0), transferred);
+            assert.equal(fixture.strategyFixtureUsage(f, 3), attempts);
+          }
           const completed = await runStrategyHostCompute(setup, suppliedLimits, { maxRows: 100, maxCells: 1000 });
+          transferred += BigInt(completed.usage.transportBytes);
+          assert.equal(fixture.strategyFixtureUsage(f, 0), transferred);
+          assert.equal(fixture.strategyFixtureUsage(f, 1), 0n);
+          assert.equal(fixture.strategyFixtureUsage(f, 2), 0n);
           held.push([task, completed]);
           // Each task really imports into a fresh DB, including DuckDB A -> C.
           assert.equal(completed.importedRows, task === 3 ? 2 : 3);
@@ -182,6 +198,7 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
         last.close();
         assert.equal(fixture.strategyFixtureCanBind(f, 3), false);
       }
+      assert.equal(fixture.strategyFixtureUsage(f, 0), transferred); // close never refunds transfer
     } finally {
       capture.close();
       for (const [, result] of held) result.close();
@@ -203,5 +220,8 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
     assert.equal(fixture.strategyFixtureCid(cancelledFixture, 1), hash([{ id: 3 }, { id: 3 }]));
     assert.equal(fixture.strategyFixtureCid(cancelledFixture, 2), 'null');
     assert.equal(fixture.strategyFixtureCid(cancelledFixture, 3), 'null');
+    assert.equal(fixture.strategyFixtureUsage(cancelledFixture, 0), BigInt(first.usage.transportBytes));
+    assert.equal(fixture.strategyFixtureUsage(cancelledFixture, 1), 0n);
+    assert.equal(fixture.strategyFixtureUsage(cancelledFixture, 2), 0n);
   } finally { captured.close(); first?.close(); }
 }

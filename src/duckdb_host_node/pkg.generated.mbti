@@ -58,9 +58,13 @@ pub fn compute_host_open(@duckdb_host.ComputeHostConfiguration, (@query_planning
 
 pub fn compute_host_parameter(ComputeNodeRun, Int, Int, Bool) -> String raise NodeHostFailure
 
+pub fn compute_host_physical_charge(ComputeNodeRun, Int64) -> Unit raise NodeHostFailure
+
+pub fn compute_host_physical_settle(ComputeNodeRun, Bool) -> Unit raise NodeHostFailure
+
 pub fn compute_host_sql(ComputeNodeRun, Int) -> String raise NodeHostFailure
 
-pub fn compute_strategy_host_open(@duckdb_host.StrategyComputeHostConfiguration, (@query_planning.DuckDBComputeAttempt) -> Bool) -> ComputeNodeRun raise NodeHostFailure
+pub fn compute_strategy_host_open(@duckdb_host.StrategyComputeHostConfiguration, (@query_planning.DuckDBComputeAttempt) -> Bool, Int64, Int64) -> ComputeNodeRun raise NodeHostFailure
 
 pub fn native_host_abort(NativeNodeRun) -> Unit
 
@@ -96,6 +100,7 @@ pub(all) suberror NodeHostFailure {
   Broad(@duckdb_host.BroadHostIssue)
   Compute(@query_planning.DuckDBComputeIssue)
   Strategy(@physical_strategy.RunIssue)
+  Physical(@physical_strategy.LedgerIssue)
   CapturedSource(@query_planning.CapturedSourceIssue)
   ComputeParameter(@duckdb_adapter.ValueIssue)
   Transport(@duckdb_adapter.TransportColumnIssue)

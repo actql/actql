@@ -31,8 +31,9 @@ function validateLimits(limits) {
   return Object.freeze({ ...limits });
 }
 
-async function usingSession(path, readonly, suppliedLimits, body, signal) {
+async function usingSession(path, readonly, suppliedLimits, body, signal, accounting) {
   const limits = validateLimits(suppliedLimits);
+  accounting?.started();
   let cancelled = signal?.aborted ?? false;
   let active = true;
   let busy = false;
@@ -55,6 +56,7 @@ async function usingSession(path, readonly, suppliedLimits, body, signal) {
   signal?.addEventListener('abort', onAbort, { once: true });
   const chargeBytes = (n) => {
     if (n > limits.maxTransportBytes - usage.transportBytes) throw new DuckDBTransportError('TransportBytes');
+    accounting?.chargeTransfer(n);
     usage.transportBytes += n;
   };
   const runCommand = async (sql, parameters, consume) => {
@@ -151,6 +153,35 @@ async function usingSession(path, readonly, suppliedLimits, body, signal) {
   };
   let result;
   let failure;
+  const cleanupErrors = [];
+  let cleaning = false;
+  const cleanupStatus = () => Object.freeze({
+    pending: connection !== undefined || instance !== undefined,
+    errors: Object.freeze([...cleanupErrors]),
+  });
+  const cleanOwnedResources = async () => {
+    if (cleaning) throw new DuckDBTransportError('CleanupInProgress');
+    cleaning = true;
+    try {
+      try {
+        if (transaction && connection) await connection.run('ROLLBACK');
+        transaction = false;
+      } catch (error) { cleanupErrors.push(error); }
+      try {
+        connection?.closeSync();
+        connection = undefined;
+        transaction = false; // closing the owned connection ends its transaction
+      } catch (error) { cleanupErrors.push(error); }
+      // Retain the instance while its connection still needs cleanup.
+      if (!connection) {
+        try { instance?.closeSync(); instance = undefined; }
+        catch (error) { cleanupErrors.push(error); }
+      }
+      const status = cleanupStatus();
+      accounting?.settled(!status.pending);
+      return status;
+    } finally { cleaning = false; }
+  };
   try {
     assertLive();
     instance = await DuckDBInstance.create(path, {
@@ -186,16 +217,17 @@ async function usingSession(path, readonly, suppliedLimits, body, signal) {
     await Promise.allSettled([...inFlight]);
     // Source is read-only and Compute ephemeral. Roll back owned temporary
     // resources in both cases. No pool or source handle survives this attempt.
-    try {
-      if (transaction) await connection.run('ROLLBACK');
-    } catch (error) {
-      failure = new DuckDBTransportError('CleanupFailed', { cause: new AggregateError([failure, error].filter(Boolean)) });
-    } finally {
-      try { connection?.closeSync(); }
-      catch (error) { failure = new DuckDBTransportError('CleanupFailed', { cause: error }); }
-      try { instance?.closeSync(); }
-      catch (error) { failure = new DuckDBTransportError('CleanupFailed', { cause: error }); }
-    }
+    await cleanOwnedResources();
+  }
+  if (cleanupErrors.length) {
+    const combined = new DuckDBTransportError(failure?.code ?? 'CleanupFailed', { cause: failure ?? cleanupErrors[0] });
+    combined.primaryFailure = failure;
+    combined.cleanupErrors = Object.freeze([...cleanupErrors]);
+    combined.cleanupPending = cleanupStatus().pending;
+    if (combined.cleanupPending) combined.cleanupHandle = Object.freeze({
+      status: cleanupStatus, retry: cleanOwnedResources,
+    });
+    throw combined;
   }
   if (signal?.aborted && !failure) failure = new DuckDBTransportError('Cancelled');
   if (failure) throw failure;
@@ -208,6 +240,6 @@ export async function withSourceDatabase(grant, limits, body, signal) {
   return usingSession(path, true, limits, body, signal);
 }
 
-export async function withComputeDatabase(limits, body, signal) {
-  return usingSession(':memory:', false, limits, body, signal);
+export async function withComputeDatabase(limits, body, signal, accounting) {
+  return usingSession(':memory:', false, limits, body, signal, accounting);
 }

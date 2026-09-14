@@ -23,12 +23,22 @@ export async function runStrategyHostCompute(setup, limits, importLimits, signal
 
 async function runHostCompute(setup, limits, importLimits, signal, strategy) {
   const moon = await loadRuntime();
+  if (strategy && (!Number.isSafeInteger(limits.maxTransportBytes) || limits.maxTransportBytes < 0 ||
+    !Number.isSafeInteger(limits.memoryBytes) || limits.memoryBytes < 1)) {
+    throw new DuckDBTransportError('InvalidLimits');
+  }
   let result, port, consume, attempt;
   const verify = current => current === attempt && matchesFixedCompute(result, port, consume);
   const run = checked(strategy
-    ? moon.computeStrategyHostOpen(setup, verify)
+    ? moon.computeStrategyHostOpen(setup, verify, BigInt(limits.maxTransportBytes), BigInt(limits.memoryBytes))
     : moon.computeHostOpen(setup, verify));
   attempt = moon.computeHostAttempt(run);
+  let sessionStarted = false;
+  const accounting = strategy ? Object.freeze({
+    started() { sessionStarted = true; },
+    chargeTransfer(bytes) { checked(moon.computeHostPhysicalCharge(run, BigInt(bytes))); },
+    settled(confirmed) { checked(moon.computeHostPhysicalSettle(run, confirmed)); },
+  }) : undefined;
   let began = false;
   const begin = fields => {
     if (!began) {
@@ -50,7 +60,7 @@ async function runHostCompute(setup, limits, importLimits, signal, strategy) {
     checked(moon.computeHostAccept(run, rows(chunk.rowCount), JSON.stringify(chunk.columns)));
   };
   try {
-    result = await runFixedCompute(port, limits, importLimits, consume, signal);
+    result = await runFixedCompute(port, limits, importLimits, consume, signal, accounting);
     if (signal?.aborted) throw new DuckDBTransportError('Cancelled');
     begin(result.value.fields); // empty input still has checked output metadata
     checked(moon.computeHostFinish(run));
@@ -72,6 +82,7 @@ async function runHostCompute(setup, limits, importLimits, signal, strategy) {
       },
     });
   } catch (error) {
+    if (strategy && !sessionStarted) checked(moon.computeHostPhysicalSettle(run, true));
     moon.computeHostAbort(run);
     moon.computeHostClose(run);
     if (result !== undefined) releaseFixedCompute(result);

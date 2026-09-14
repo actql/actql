@@ -30,8 +30,16 @@ retains the exact attempt and blocks further task starts until verified completi
 The standard Node Host supplies its transport verifier and records success through
 that same owned attempt; unrelated completed outputs are not accepted. Revocation
 of in-flight material is separate from native DB-stop acknowledgement.
-Whole-strategy comparison, physical-ledger enforcement and asynchronous cleanup
-described below must be connected before this is presented as
+The run owns one immutable ledger reference. Standard Node DuckDB task starts
+reserve their transfer ceiling and configured DB memory before creating resources.
+The transport charges the same physical frames to the local session ceiling and
+the run ledger, before send/accept. Only confirmed native cleanup releases unused
+transfer and DB-memory reservations; failure never refunds consumed transfer.
+Task configuration cannot substitute a fresh ledger for a running graph.
+
+Whole-strategy comparison, retained-buffer and adapter-scratch accounting, Local
+physical enforcement and deadline-based asynchronous cleanup described below must
+be connected before this is presented as
 the complete physical strategy Host. Checked topology validation alone is not
 validation of all runtime Stage obligations or a Program success issuer.
 
@@ -78,6 +86,14 @@ Cancellation stops new starts but is not confirmation of stopped DB work or
 reclaimed buffers. Pending cleanup retains reservations and its original failure.
 The same live execution handle can continue cleanup/status inspection. No crash
 recovery, durable reservation service, automatic retry or migration is implied.
+
+The Node session keeps the primary execution failure separately from cleanup
+errors. If an owned connection/instance cannot be closed, the error retains a
+live `cleanupHandle` with status and serialized cleanup retry. That handle owns
+the same remaining resources and settlement callback; it cannot run Compute or
+turn failure into success. Cleanup acknowledgement follows actual resource
+closure, not merely a cancellation request. A rollback error followed by confirmed
+connection/instance closure is still a cleanup error, but not pending capacity.
 
 ## Comparison and revision
 

@@ -58,6 +58,13 @@ pub fn configure_strategy_compute_host(
 }
 
 ///|
+pub fn configured_strategy_compute_ledger(
+  setup : StrategyComputeHostConfiguration,
+) -> @strategy.Ledger {
+  @strategy.captured_dag_ledger(setup.graph)
+}
+
+///|
 pub fn start_configured_strategy_compute_host(
   setup : StrategyComputeHostConfiguration,
   verify : (@planning.DuckDBComputeAttempt) -> Bool,

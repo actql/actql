@@ -3,6 +3,7 @@
 struct StrategyFixture {
   native : IssuedNativeFixture
   graph : @strategy.CheckedDAG
+  ledger : @strategy.Ledger
   registry_json : String
   values_json : String
   fragment_json : String
@@ -71,7 +72,23 @@ pub fn strategy_fixture_create(
     })
     let graph = @strategy.prepare_checked_dag(program, owners, 4, 10000).unwrap()
     @dbhost.close_native_host(native.host) // unused fixture issuer, not real Host
-    { native, graph, registry_json, values_json, fragment_json, run: None, }
+    let ledger = @strategy.create_ledger({
+      planning_work: 10000,
+      attempts: 10,
+      holdings: 10,
+      transfer_bytes: 300000L,
+      retained_bytes: 1000000L,
+      execution_bytes: 134217728L,
+    }).unwrap()
+    {
+      native,
+      graph,
+      ledger,
+      registry_json,
+      values_json,
+      fragment_json,
+      run: None,
+    }
   } catch {
     _ => abort("strategy conformance setup")
   }
@@ -94,7 +111,7 @@ pub fn strategy_fixture_open(
   if f.run is Some(_) {
     return false
   }
-  match @strategy.open_captured_dag(f.graph, source) {
+  match @strategy.open_captured_dag(f.graph, source, f.ledger) {
     Ok(run) => {
       f.run = Some(run)
       true
@@ -300,4 +317,16 @@ pub fn strategy_fixture_can_bind(f : StrategyFixture, task : Int) -> Bool {
     output,
   )
   is Ok(_)
+}
+
+///|
+#export_name("strategyFixtureUsage")
+pub fn strategy_fixture_usage(f : StrategyFixture, field : Int) -> Int64 {
+  let usage = @strategy.ledger_usage(f.ledger)
+  match field {
+    0 => usage.transferred_bytes
+    1 => usage.reserved_transfer_bytes
+    2 => usage.reserved_execution_bytes
+    _ => usage.attempts.to_int64()
+  }
 }
