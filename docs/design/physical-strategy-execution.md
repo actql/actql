@@ -89,8 +89,26 @@ It stops on the first failure and preserves that failure, including any live
 cleanup handle, alongside internal completed task records. Its result is labeled
 Host-task completion/failure, never Program success or partial publication.
 Closing the result closes its task ports but not the caller-owned capture.
-The driver consumes an already selected revision; automatic re-estimation and
-whole-strategy explanation are separate from task dispatch.
+The driver consumes an already selected revision; automatic re-estimation remains
+separate from task dispatch. `explain_captured_strategy` produces bounded
+Host-private JSON rather than canonical identity or execution evidence. It keeps
+the chosen revision's remaining estimate and ledger-at-selection separate from
+current cumulative usage, and preserves disjoint work-slot bundles using copied
+arrays. Caller mutation cannot rewrite the explanation after selection. Complete
+estimates record `estimated_fastest`; explicit priority with unknown costs records
+`host_preferred`. Unknown duration is null and Int64 quantities are decimal strings.
+Resource rejection reasons accompany the enumerated alternatives. The report marks
+an incomplete search explicitly, including its assessment revision, rather than
+presenting a bounded prefix as a completed comparison. Elapsed acquisition time
+is not inferred from these remaining-task estimates; already spent acquisition
+transfer remains visible in the ledger. Output byte/node limits apply without
+changing the run's selection, logical budget or accumulated physical consumption.
+Available root statistics reuse the observation's already measured output row
+count and canonical row-wire bytes. They do not scan the source again, evaluate
+expressions, or identify physical transport frames with canonical value bytes.
+Statistics require the original capture to remain available; a closed root
+reports no available statistics. A retained estimate may use a recorded statistic
+as information, never as renewed input authority or a hard-capacity guarantee.
 
 Local fixed inputs and DuckDB's per-Compute temporary database use completed
 input handoff. Import, SQL, result receipt and cleanup belong to one frozen

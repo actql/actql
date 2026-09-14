@@ -3,6 +3,7 @@ package "actql/actql/physical_strategy"
 
 import {
   "actql/actql/duckdb_adapter",
+  "actql/actql/encode_core",
   "actql/actql/execution_relation",
   "actql/actql/lowering_relation",
   "actql/actql/physical_cost",
@@ -24,6 +25,8 @@ pub fn captured_dag_ledger(CapturedDAG) -> Ledger
 
 pub fn captured_dag_strategy(CapturedDAG) -> StrategyRevision?
 
+pub fn captured_root_statistics(CapturedDAG) -> @query_planning.CapturedSourceStatistics?
+
 pub fn captured_task_completed(CapturedDAG, Int) -> Bool
 
 pub fn captured_task_input(CapturedDAG, Int, Int, Int) -> Result[@execution_relation.ProducerRead, RunIssue]
@@ -43,6 +46,8 @@ pub fn configure_strategy_search(CapturedDAG, SearchLimits) -> Result[Unit, Sear
 pub fn create_ledger(LedgerLimits) -> Result[Ledger, LedgerIssue]
 
 pub fn execute_captured_local_task(CapturedDAG, Int, @query_planning.FixedComputeChoice, @query_planning.PreparedCompute[@execution_relation.GeneratedSequence], @execution_relation.SequenceExecutionLimits, @execution_relation.FixedInputGuardMeasureLimits) -> Result[Unit, RunIssue]
+
+pub fn explain_captured_strategy(CapturedDAG, Int, Int) -> Result[String, @encode_core.EncodeFailure]
 
 pub fn graph_control_at(CheckedDAG, Int) -> ControlEdge?
 

@@ -80,6 +80,8 @@ pub fn captured_source_matches(CapturedInputSource, @pipeline_check_context.Prog
 
 pub fn captured_source_row_count(CapturedInputSource) -> Int?
 
+pub fn captured_source_statistics(CapturedInputSource) -> CapturedSourceStatistics?
+
 pub fn choose_acquisition_candidate(CapabilityRegistry, QueryRequirement, Array[AcquisitionCandidate], Array[Int]?, Int) -> Result[AcquisitionSelection, QueryPlanningIssue]
 
 pub fn choose_fixed_compute_candidate(CapabilityRegistry, FixedComputeRequest, Array[FixedComputeCandidate], Array[Int]?, Int) -> Result[FixedComputeSelection, FixedComputeIssue]
@@ -392,6 +394,11 @@ pub(all) enum CapturedSourceIssue {
   Unavailable
   Binding(@execution_relation.ProducerBindingIssue)
   NativeCompletion(@execution_relation.TrustedOutputIssue)
+}
+
+pub struct CapturedSourceStatistics {
+  rows : Int
+  canonical_wire_bytes : Int
 }
 
 type DuckDBBroadAttempt

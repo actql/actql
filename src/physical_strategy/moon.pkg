@@ -13,4 +13,5 @@ import {
   "actql/actql/relation_typing" @relation,
   "actql/actql/duckdb_adapter" @duckdb,
   "actql/actql/physical_cost" @cost,
+  "actql/actql/encode_core" @encode,
 }

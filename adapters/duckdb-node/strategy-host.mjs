@@ -53,6 +53,14 @@ export async function runCapturedStrategy(setup, transportLimits, importLimits, 
     failure,
     completed: Object.freeze(completed),
     usage,
+    explain(maxBytes = 65536, maxNodes = 10000) {
+      for (const limit of [maxBytes, maxNodes]) {
+        if (!Number.isSafeInteger(limit) || limit < 0 || limit > 2147483647) {
+          throw new DuckDBTransportError('InvalidExplanationLimit');
+        }
+      }
+      return JSON.parse(checked(moon.strategyHostExplain(setup, maxBytes, maxNodes)));
+    },
     output(task) {
       if (closed) throw new DuckDBTransportError('ReleasedStrategy');
       if (!Number.isSafeInteger(task) || task < 1 || task >= moon.strategyHostCount(setup)) {

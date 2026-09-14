@@ -21,6 +21,7 @@ struct CapturedDAG {
   mut searched_resources : SearchResources?
   mut strategy : StrategyRevision?
   mut search_report : Array[StrategyAssessment]
+  mut search_report_complete : Bool
   revision_history : Array[StrategyRevision]
 }
 
@@ -118,8 +119,16 @@ pub fn open_captured_dag(
     searched_resources: None,
     strategy: None,
     search_report: [],
+    search_report_complete: false,
     revision_history: [],
   })
+}
+
+///|
+pub fn captured_root_statistics(
+  run : CapturedDAG,
+) -> @planning.CapturedSourceStatistics? {
+  run.source.bind(source => @planning.captured_source_statistics(source))
 }
 
 ///|

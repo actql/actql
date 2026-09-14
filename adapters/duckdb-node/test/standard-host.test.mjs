@@ -177,8 +177,25 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
       const spent = BigInt(capture.usage.transportBytes) + execution.completed.reduce(
         (sum, item) => sum + BigInt(item.transport?.transportBytes ?? 0), 0n);
       assert.equal(execution.usage().transferredBytes, spent);
+      const explanation = execution.explain();
+      assert.equal(explanation.program_success, false);
+      assert.equal(explanation.assessment_complete, true);
+      assert.equal(explanation.selection.reason, 'estimated_fastest');
+      assert.equal(explanation.selection.remaining_at_selection.estimated_milliseconds,
+        transferCost === 1n ? '14' : '30');
+      assert.equal(explanation.selection.ledger_at_selection.transferred_bytes,
+        String(capture.usage.transportBytes));
+      assert.equal(explanation.ledger.transferred_bytes, String(spent));
+      assert.deepEqual(explanation.available_root_statistics, { rows: '3', canonical_wire_bytes: '28' });
+      assert(explanation.assessed_strategies.some(item => item.rejection === 'transfer_limit'));
+      assert(explanation.selection.tasks.every(item => item.completed));
+      assert.deepEqual(explanation.selection.tasks[0].work_estimates,
+        [{ slots: [0, 1, 2, 3, 4], milliseconds: '10' }]);
+      assert.throws(() => execution.explain(1, 10000));
+      assert.throws(() => execution.explain(-1, 10000), { code: 'InvalidExplanationLimit' });
       assert.notEqual(execution.output(3), undefined);
       capture.close();
+      assert.equal(execution.explain().available_root_statistics, null);
       assert.equal(fixture.strategyFixtureCid(f, 3), hash([{ id: 3 }, { id: 3 }]));
       execution.close();
       assert.equal(execution.usage().heldBytes, 0n);

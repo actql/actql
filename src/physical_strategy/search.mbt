@@ -35,6 +35,8 @@ struct TaskOffer {
   registration : @planning.CapabilityRegistration
   duration : @cost.DurationEstimate
   capacity : PhysicalEnvelope
+  work_slots : Int
+  lines : Array[@cost.SerialEstimateLine]
 }
 
 ///|
@@ -60,6 +62,7 @@ struct StrategyRevision {
   choices : Array[TaskOffer?]
   assessment : StrategyAssessment
   before : LedgerUsage
+  estimated_fastest : Bool
 }
 
 ///|
@@ -155,7 +158,18 @@ pub fn prepare_task_offer(
   match @cost.assess_serial(work_slots, lines, max_work) {
     Err(issue) => Err(Cost(issue))
     Ok(duration) =>
-      Ok({ owner: run.offer_owner, task, registration, duration, capacity, })
+      Ok({
+        owner: run.offer_owner,
+        task,
+        registration,
+        duration,
+        capacity,
+        work_slots,
+        lines: lines.map(line => {
+          work_slots: line.work_slots.copy(),
+          milliseconds: line.milliseconds,
+        }),
+      })
   }
 }
 
@@ -231,6 +245,7 @@ pub fn revise_strategy(
   run.searched_resources = Some(resources)
   run.revisions += 1
   run.search_report = []
+  run.search_report_complete = false
   let groups : Array[Array[TaskOffer]] = Array::makei(count, _ => [])
   for i, offer in offers {
     if !physical_equal(offer.owner, run.offer_owner) ||
@@ -348,6 +363,7 @@ pub fn revise_strategy(
         choices,
         assessment,
         before: usage,
+        estimated_fastest: false,
       })
       durations.push(assessment.duration)
     }
@@ -371,14 +387,24 @@ pub fn revise_strategy(
   match @cost.choose_serial(durations, host_priority, durations.length() * 2) {
     Err(issue) => Err(Cost(issue))
     Ok(NoCandidates) => {
+      run.search_report_complete = true
       run.strategy = None
       Ok(NoFeasible)
     }
     Ok(Deferred) => {
+      run.search_report_complete = true
       run.strategy = None
       Ok(Deferred)
     }
-    Ok(EstimatedFastest(index, _)) | Ok(HostPreferred(index)) => {
+    Ok(EstimatedFastest(index, _)) => {
+      run.search_report_complete = true
+      let selected = { ..feasible[index], estimated_fastest: true, }
+      run.strategy = Some(selected)
+      run.revision_history.push(selected)
+      Ok(Selected(selected))
+    }
+    Ok(HostPreferred(index)) => {
+      run.search_report_complete = true
       let selected = feasible[index]
       run.strategy = Some(selected)
       run.revision_history.push(selected)

@@ -88,6 +88,24 @@ pub fn strategy_host_output(
 }
 
 ///|
+#export_name("strategyHostExplain")
+pub fn strategy_host_explain(
+  host : @host.StrategyHostDispatch,
+  max_bytes : Int,
+  max_nodes : Int,
+) -> String raise NodeHostFailure {
+  match
+    @strategy.explain_captured_strategy(
+      @host.dispatch_run(host),
+      max_bytes,
+      max_nodes,
+    ) {
+    Ok(value) => value
+    Err(issue) => raise Encoding(issue)
+  }
+}
+
+///|
 #export_name("strategyHostUsage")
 pub fn strategy_host_usage(host : @host.StrategyHostDispatch) -> Array[Int64] {
   let usage = @strategy.ledger_usage(

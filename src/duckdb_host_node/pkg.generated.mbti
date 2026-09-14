@@ -114,6 +114,8 @@ pub fn strategy_host_count(@duckdb_host.StrategyHostDispatch) -> Int
 
 pub fn strategy_host_execute_local(@duckdb_host.TaskDispatch) -> Unit raise NodeHostFailure
 
+pub fn strategy_host_explain(@duckdb_host.StrategyHostDispatch, Int, Int) -> String raise NodeHostFailure
+
 pub fn strategy_host_finished(@duckdb_host.StrategyHostDispatch) -> Bool
 
 pub fn strategy_host_native(@duckdb_host.TaskDispatch) -> Bool

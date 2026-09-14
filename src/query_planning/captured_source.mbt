@@ -5,6 +5,28 @@ struct CapturedInputSource {
   requirement : QueryRequirement
   output : @execution.CompletedOutput
   live : () -> Bool
+  wire_bytes : Int
+}
+
+///|
+/// Already measured canonical row-wire size, not transport frames, allocator
+/// bytes, an admission exemption or a physical capacity bound.
+pub struct CapturedSourceStatistics {
+  rows : Int
+  canonical_wire_bytes : Int
+}
+
+///|
+pub fn captured_source_statistics(
+  source : CapturedInputSource,
+) -> CapturedSourceStatistics? {
+  if !(source.live)() {
+    return None
+  }
+  Some({
+    rows: @execution.completed_row_count(source.output),
+    canonical_wire_bytes: source.wire_bytes,
+  })
 }
 
 ///|
@@ -44,6 +66,7 @@ pub fn restrict_captured_source(
     requirement: source.requirement,
     output: source.output,
     live: fn() { available() && (source.live)() },
+    wire_bytes: source.wire_bytes,
   }
 }
 
@@ -92,6 +115,7 @@ pub fn mock_captured_source(
     requirement: observation.records.retention._requirement,
     output: observation.records.retention.computation.output,
     live,
+    wire_bytes: @execution.row_wire_usage(observation.records.retention.output).0,
   })
 }
 
@@ -113,6 +137,9 @@ pub fn broad_captured_source(
     requirement: observation.records.retention.preparation.requirement,
     output: observation.records.retention.output,
     live,
+    wire_bytes: @execution.row_wire_usage(
+      observation.records.retention.measured.output,
+    ).0,
   })
 }
 
@@ -129,6 +156,10 @@ pub fn native_captured_source(
         requirement: material.attempt.preparation.requirement,
         output,
         live: fn() { duckdb_native_output_rows(material) is Ok(_) },
+        wire_bytes: @duckdb.native_receipt_digest(
+          material.observation.records.measurement.receipts,
+          @duckdb.NativeResult,
+        ).1,
       })
   }
 }

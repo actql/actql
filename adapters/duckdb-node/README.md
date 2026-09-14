@@ -509,7 +509,35 @@ is an internal Host handle for a still-retained completed result. Call `close()`
 to close task output ports; close the owned capture separately. A failure never
 authorizes continuing an unstarted branch or publishing partial Program success.
 This entry consumes a selected strategy and does not yet perform automatic
-statistical re-estimation or produce a complete cost explanation.
+statistical re-estimation. `explain(maxBytes = 65536, maxNodes = 10000)` returns a
+bounded diagnostic object containing selection reason, selected task work bundles,
+alternative capacity rejections, current ledger and ledger-at-selection. Duration
+and byte quantities use decimal strings; unknown durations are null. The
+`remaining_at_selection` estimate is not an elapsed-time measurement or a freshly
+recomputed estimate after execution. `assessment_complete: false` identifies an
+unfinished search, not a successful full comparison. These diagnostics are not
+canonical Plan data, evidence or Program success permission.
+
+Work-slot numbers refer to the corresponding adapter's disjoint serial inventory:
+
+| Slot | Local filter/select | DuckDB fixed filter/select |
+| --- | --- | --- |
+| 0 | Preparation | Session/table setup |
+| 1 | Receiving admission | Input transfer |
+| 2 | Computation | Input conversion |
+| 3 | Retained output | Native computation |
+| 4 | Cleanup | Result transfer |
+| 5 | — | Result conversion |
+| 6 | — | Retention |
+| 7 | — | Cleanup |
+
+A bundle can cover several slots once. It is not counted again as separate
+breakdown lines. Already consumed acquisition traffic is shown in the ledger;
+remaining-task estimates do not manufacture an estimate for acquisition time.
+`available_root_statistics` reports the live capture's already measured final
+row count and canonical row-wire bytes, or null after root revocation. This is
+not the validation-scan size or the Node transport-frame size and is not a guard
+exemption. Reading it performs no additional source access or expression replay.
 
 For bounded conditional comparison, configure `physical_strategy.configure_strategy_search`
 before starting tasks, prepare owned estimates with `prepare_task_offer`, and call
