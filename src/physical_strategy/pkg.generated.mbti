@@ -47,7 +47,7 @@ pub fn create_ledger(LedgerLimits) -> Result[Ledger, LedgerIssue]
 
 pub fn execute_captured_local_task(CapturedDAG, Int, @query_planning.FixedComputeChoice, @query_planning.PreparedCompute[@execution_relation.GeneratedSequence], @execution_relation.SequenceExecutionLimits, @execution_relation.FixedInputGuardMeasureLimits) -> Result[Unit, RunIssue]
 
-pub fn explain_captured_strategy(CapturedDAG, Int, Int) -> Result[String, @encode_core.EncodeFailure]
+pub fn explain_captured_strategy(CapturedDAG, Int, Int, excluded? : Array[(Int, String, String)]) -> Result[String, @encode_core.EncodeFailure]
 
 pub fn graph_control_at(CheckedDAG, Int) -> ControlEdge?
 

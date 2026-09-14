@@ -5,10 +5,24 @@ pub fn explain_captured_strategy(
   run : CapturedDAG,
   max_bytes : Int,
   max_nodes : Int,
+  excluded? : Array[(Int, String, String)] = [],
 ) -> Result[String, @encode.EncodeFailure] {
   try {
     let w = @encode.writer(max_bytes, max_nodes, 12)
     @encode.begin_object(w)
+    @encode.key(w, "excluded_realizations")
+    @encode.begin_array(w)
+    for (task, capability, reason) in excluded {
+      @encode.begin_object(w)
+      @encode.key(w, "task")
+      @encode.number_value(w, task.to_double())
+      @encode.key(w, "capability")
+      @encode.string_value(w, capability)
+      @encode.key(w, "reason")
+      @encode.string_value(w, reason)
+      @encode.end_object(w)
+    }
+    @encode.end_array(w)
     @encode.key(w, "kind")
     @encode.string_value(w, "host-private-strategy-explanation/0.1")
     @encode.key(w, "program_success")

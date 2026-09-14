@@ -23,6 +23,20 @@ pub fn prepare_fixed_import(
     return Err(InvalidLimits)
   }
   let schema = @execution.producer_read_schema(input)
+  match compile_fixed_import_schema(schema, table, max_columns, max_sql_bytes) {
+    Err(issue) => Err(issue)
+    Ok((create_sql, insert_sql, columns)) =>
+      Ok({ input, create_sql, insert_sql, columns, })
+  }
+}
+
+///|
+fn compile_fixed_import_schema(
+  schema : @schema.Schema,
+  table : String,
+  max_columns : Int,
+  max_sql_bytes : Int,
+) -> Result[(String, String, Int), NativeQueryIssue] {
   let count = @schema.field_count(schema)
   if count > max_columns {
     return Err(Limit)
@@ -73,12 +87,7 @@ pub fn prepare_fixed_import(
       sql_text(insert, "?")
     }
     sql_text(insert, ")")
-    Ok({
-      input,
-      create_sql: create.builder.to_string(),
-      insert_sql: insert.builder.to_string(),
-      columns: count,
-    })
+    Ok((create.builder.to_string(), insert.builder.to_string(), count))
   } catch {
     TextLimit => Err(Limit)
     BadIdentifier => Err(InvalidIdentifier)

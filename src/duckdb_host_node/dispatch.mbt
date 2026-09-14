@@ -99,6 +99,7 @@ pub fn strategy_host_explain(
       @host.dispatch_run(host),
       max_bytes,
       max_nodes,
+      excluded=@host.dispatch_excluded_realizations(host),
     ) {
     Ok(value) => value
     Err(issue) => raise Encoding(issue)

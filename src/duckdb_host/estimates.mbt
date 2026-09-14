@@ -276,6 +276,9 @@ fn rebuild_dispatch_estimates(
           profile.native_capacity,
         ),
       ] {
+      if slots == 8 && host.native_rejections[task - 1] is Some(_) {
+        continue
+      }
       let lines = match
         dispatch_estimate_lines(rates, input_rows, input_bytes) {
         Ok(lines) => lines

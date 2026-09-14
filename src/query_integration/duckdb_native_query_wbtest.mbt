@@ -177,6 +177,14 @@ test "unsupported expressions remain eligible only for separately offered local 
     ] {
     let (_, owner) = query_sequence_fixture(filter~)
     assert_true(
+      @duckdb.check_fixed_compute_static(
+        owner,
+        "owned_input",
+        native_compile_limits(),
+      )
+      is Err(UnsupportedPredicate),
+    )
+    assert_true(
       @duckdb.compile_native_filter_select(
         owner,
         "main",

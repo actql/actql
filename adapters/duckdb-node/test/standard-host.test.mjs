@@ -179,6 +179,23 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
       } finally { result.close(); }
       assert.equal(result.execution.usage().heldBytes, 0n);
     }
+    // Statically unsupported native expressions must never win on price.
+    const arithmeticProgram = JSON.parse(exampleProgram);
+    arithmeticProgram.stages[1].steps[0].filter = 'id + 0 > 2';
+    await writeFile(programFile, JSON.stringify(arithmeticProgram));
+    for (const estimate of ['1', '20']) {
+      const result = await runExample({ database: path, environment, environmentCid: args[1],
+        program: programFile, parameters, nativeMilliseconds: estimate });
+      try {
+        assert.equal(result.report.status, 'host-tasks-completed');
+        assert.equal(result.report.completed[0].realization, 'local');
+        assert.equal(result.report.internal_output_cids[2].cid, hash([{ id: 3 }, { id: 3 }]));
+        assert(result.report.explanation.excluded_realizations.some(item =>
+          item.task === 1 && item.reason === 'unsupported_predicate'));
+      } finally { result.close(); }
+      assert.equal(result.execution.usage().heldBytes, 0n);
+    }
+    await writeFile(programFile, exampleProgram);
     const cli = await promisify(execFile)(process.execPath, [
       'adapters/duckdb-node/examples/physical-strategy.mjs', '--database', path,
       '--environment', environment, '--environment-cid', args[1], '--program', programFile,

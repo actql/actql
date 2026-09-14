@@ -20,6 +20,7 @@ struct StrategyHostDispatch {
   local_registration : @planning.CapabilityRegistration
   native_registration : @planning.CapabilityRegistration
   generated : Array[@execution.GeneratedSequence]
+  native_rejections : Array[String?]
   limits : TaskDispatchLimits
   mut pending : TaskDispatch?
   mut estimates : DispatchEstimates?
@@ -75,6 +76,7 @@ pub fn configure_strategy_dispatch(
     physical_equal(local_registration, native_registration) {
     return Err(InvalidConfiguration)
   }
+  let native_rejections : Array[String?] = []
   for index, item in generated {
     if !physical_equal(
         @execution.generated_sequence_owner(item),
@@ -82,6 +84,34 @@ pub fn configure_strategy_dispatch(
       ) {
       return Err(InvalidConfiguration)
     }
+    // Bounded compilation against exact checked ownership, before any costs.
+    match
+      @strategy.charge_planning(
+        @strategy.captured_dag_ledger(run),
+        limits.candidate_work,
+      ) {
+      Err(issue) => return Err(Run(Physical(issue)))
+      Ok(_) => ()
+    }
+    native_rejections.push(
+      if limits.capacity.common_fragment is Some(_) {
+        Some("unsupported_common_fragment")
+      } else {
+        match
+          @duckdb.check_fixed_compute_static(
+            @execution.generated_sequence_owner(item),
+            "owned_input",
+            limits.native_query,
+          ) {
+          Ok(_) => None
+          Err(UnsupportedPredicate) => Some("unsupported_predicate")
+          Err(UnsupportedShape) => Some("unsupported_shape")
+          Err(UnsupportedField) => Some("unsupported_field")
+          Err(Parameter(_)) => Some("unsupported_parameter_type")
+          Err(_) => Some("native_compilation_limits_or_contract")
+        }
+      },
+    )
   }
   Ok({
     run,
@@ -89,6 +119,7 @@ pub fn configure_strategy_dispatch(
     local_registration,
     native_registration,
     generated: generated.copy(),
+    native_rejections,
     limits,
     pending: None,
     estimates: None,
@@ -174,6 +205,9 @@ pub fn prepare_next_dispatch(
     }
     DispatchWork::Local(choice, candidate)
   } else if physical_equal(registration, host.native_registration) {
+    if host.native_rejections[task - 1] is Some(_) {
+      return Err(ForeignSelection)
+    }
     let candidate = match
       @planning.duckdb_fixed_compute_candidate(
         registration,
@@ -218,6 +252,25 @@ pub fn prepare_next_dispatch(
   let dispatch = { owner: host, task, revision, work, consumed: false, }
   host.pending = Some(dispatch)
   Ok(Some(dispatch))
+}
+
+///|
+pub fn dispatch_excluded_realizations(
+  host : StrategyHostDispatch,
+) -> Array[(Int, String, String)] {
+  let excluded = []
+  for index, reason in host.native_rejections {
+    if reason is Some(reason) {
+      excluded.push(
+        (
+          index + 1,
+          @planning.capability_description(host.native_registration).name,
+          reason,
+        ),
+      )
+    }
+  }
+  excluded
 }
 
 ///|

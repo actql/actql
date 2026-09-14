@@ -233,6 +233,13 @@ The bounded search enumerates combinations of Host-owned conditional task offers
 Each offer belongs to one execution and an exact capability registration; equal
 registration names or equal input content do not substitute for ownership. These
 future-input estimates are not completed inputs or proof of provider applicability.
+The standard Host checks static DuckDB eligibility against each exact checked
+owner using the adapter's native-expression and import-schema compiler before
+generating estimates. Unsupported expressions, import types/shapes and selected
+common-fragment contracts exclude that realization independently of price;
+`excluded_realizations` records the task, capability and reason. This needs no
+future ProducerRead or content CID. It does not replace live input ownership,
+resource admission or actual candidate validation at dispatch.
 Before starting, the selected registration must still produce an eligible candidate
 bound to the task's exact completed `ProducerRead` through existing admission.
 

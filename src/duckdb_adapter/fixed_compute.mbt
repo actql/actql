@@ -7,6 +7,30 @@ struct FixedCompute {
 }
 
 ///|
+/// Static eligibility only: compile the same import schema and native expression
+/// without inventing a future ProducerRead. Runtime binding remains mandatory.
+pub fn check_fixed_compute_static(
+  owner : @lower.BoundPrepared,
+  table : String,
+  limits : NativeQueryLimits,
+) -> Result[Unit, NativeQueryIssue] {
+  let query = match compile_native_filter_select(owner, "main", table, limits) {
+    Ok(query) => query
+    Err(issue) => return Err(issue)
+  }
+  let pipeline = @lower.pipeline(@lower.bound_preparation(query.owner))
+  guard @pipeline.schema_at(pipeline, Input(0)) is Some(schema) else {
+    return Err(UnsupportedShape)
+  }
+  compile_fixed_import_schema(
+    schema,
+    table,
+    limits.max_entries,
+    limits.max_sql_bytes,
+  ).map(_ => ())
+}
+
+///|
 pub fn prepare_fixed_compute(
   input : @execution.ProducerRead,
   table : String,
