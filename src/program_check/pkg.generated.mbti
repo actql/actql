@@ -303,6 +303,10 @@ pub fn publication_policy_unpivot_at(PublicationSourcePolicy, Int) -> Publicatio
 
 pub fn publication_policy_unpivot_count(PublicationSourcePolicy) -> Int
 
+pub fn publication_policy_watermark_at(PublicationSourcePolicy, Int) -> PublicationPolicyWatermark?
+
+pub fn publication_policy_watermark_count(PublicationSourcePolicy) -> Int
+
 pub fn publication_proof_at(PublicationExecution, Int) -> ReidentifiedStep?
 
 pub fn publication_proof_count(PublicationExecution) -> Int
@@ -767,6 +771,12 @@ pub struct PublicationPolicyUnnest {
 pub struct PublicationPolicyUnpivot {
   step : Int
   operation : @relation_typing.CheckedOperation
+}
+
+pub struct PublicationPolicyWatermark {
+  step : Int
+  operation : @relation_typing.CheckedOperation
+  threshold : @relation_typing.WatermarkSource
 }
 
 pub struct PublicationSourcePolicy {

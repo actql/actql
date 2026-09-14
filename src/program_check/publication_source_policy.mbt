@@ -25,6 +25,29 @@ pub struct PublicationSourcePolicy {
   priv json_picks : Array[PublicationPolicyJsonPick]
   priv unnests : Array[PublicationPolicyUnnest]
   priv top_ks : Array[PublicationPolicyTopK]
+  priv watermarks : Array[PublicationPolicyWatermark]
+}
+
+///|
+pub struct PublicationPolicyWatermark {
+  step : Int
+  operation : @relation.CheckedOperation
+  threshold : @relation.WatermarkSource
+}
+
+///|
+pub fn publication_policy_watermark_count(
+  value : PublicationSourcePolicy,
+) -> Int {
+  value.watermarks.length()
+}
+
+///|
+pub fn publication_policy_watermark_at(
+  value : PublicationSourcePolicy,
+  index : Int,
+) -> PublicationPolicyWatermark? {
+  value.watermarks.get(index)
 }
 
 ///|
@@ -433,6 +456,7 @@ fn prepare_publication_source_policy(
   let json_picks : Array[PublicationPolicyJsonPick] = []
   let unnests : Array[PublicationPolicyUnnest] = []
   let top_ks : Array[PublicationPolicyTopK] = []
+  let watermarks : Array[PublicationPolicyWatermark] = []
   let mut unknown = false
   while pending.pop() is Some(target) {
     identity_charge(budget, 1)
@@ -453,6 +477,15 @@ fn prepare_publication_source_policy(
           @pipeline.Unary(operation) => {
             match @relation.operation(operation) {
               Select | Rename | Drop | Sort | Distinct | DedupeRows => ()
+              WatermarkRows => {
+                identity_charge(budget, 1)
+                guard @relation.row_operation(operation)
+                  is Some(Watermark(threshold~, ..)) else {
+                  raise ForeignOwner
+                }
+                watermarks.push({ step: index, operation, threshold, })
+                unknown = true
+              }
               TopK | TopKBy => {
                 identity_charge(budget, 1)
                 guard @relation.top_k_count(operation) is Some(count) else {
@@ -656,7 +689,6 @@ fn prepare_publication_source_policy(
                     unknown_provenance: missing,
                   })
                 }
-              _ => return None
             }
             1
           }
@@ -823,6 +855,7 @@ fn prepare_publication_source_policy(
     json_picks,
     unnests,
     top_ks,
+    watermarks,
   }
   |> Some
 }

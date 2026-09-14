@@ -25,6 +25,7 @@ fn checked_direct_program_fixture(
   unnest_body? : String = "",
   array_expression? : String = "[id]",
   top_k_step? : String = "",
+  watermark_body? : String = "",
   numeric_profile? : @numeric.Profile? = None,
 ) -> CheckedProgram raise {
   let original_text =
@@ -105,6 +106,21 @@ fn checked_direct_program_fixture(
         old="}],\"results\":{\"out\":{\"from\":{\"stage\":\"s\",\"result\":\"out\"}}}}",
         new="},{\"id\":\"consumer\",\"inputs\":{\"imported\":{\"result\":{\"stage\":\"s\",\"result\":\"out\"}}},\"steps\":[],\"results\":{\"out\":{\"from\":\"imported\",\"fields\":[\"id\"]}}}],\"results\":{\"out\":{\"from\":{\"stage\":\"consumer\",\"result\":\"out\"}}}}",
       )
+    } else if watermark_body != "" {
+      let watermarked = text.replace(
+        old="\"steps\":[",
+        new="\"steps\":[{\"distinct\":[\"id\"]},{\"sort\":[{\"id\":\"asc\"}]},{\"watermark_rows\":" +
+          watermark_body +
+          "},",
+      )
+      if watermark_body.contains("$param") {
+        watermarked.replace(
+          old="\"stages\":",
+          new="\"params\":{\"threshold\":{\"type\":\"number\",\"default\":1}},\"stages\":",
+        )
+      } else {
+        watermarked
+      }
     } else if top_k_step != "" {
       let ranked = text.replace(
         old="\"steps\":[",
@@ -309,7 +325,8 @@ fn checked_direct_program_fixture(
         lag_body != "" ||
         json_pick_path != "" ||
         unnest_body != "" ||
-        top_k_step != "" {
+        top_k_step != "" ||
+        watermark_body != "" {
         4
       } else {
         2

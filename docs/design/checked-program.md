@@ -527,6 +527,13 @@ preserve repeated partition keys without copying their arrays. This shared polic
 transfer does not merge the operations' order strategies, partition requirements,
 tie behavior or execution checks, and does not extend sort's acceptance rules.
 
+Watermark transfer retains the selected fixed or prefix threshold from the exact
+checked operation. Threshold/skew values without attestation retain unknown
+provenance together with the input policy. Drop and mark keep their own execution
+semantics; policy transfer cannot replace the prefix path's required logical order
+or its arithmetic validation. Relation unary policy dispatch is exhaustive: a new
+operation requires an explicit transfer decision rather than a default fallback.
+
 Result imports retain the producer's completed publication through
 `publication_policy_import_count/at`, including the consumer input coordinate.
 `imported_publication` is a convenience only for exactly one import.
