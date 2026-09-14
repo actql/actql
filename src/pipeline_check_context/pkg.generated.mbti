@@ -2088,6 +2088,7 @@ pub(all) enum OperationExecutionCheck {
   GraphEqualityExecution(GraphEqualityCheck)
   GraphResources(GraphResourcesCheck)
   ComponentsLimits(ComponentsLimitsCheck)
+  TraversalLimits(TraversalLimitsCheck)
   GraphExecution(GraphExecutionCheck)
   GraphConstructionExecution(GraphConstructionCheck)
   GraphProjection(GraphProjectionCheck)
@@ -3093,6 +3094,12 @@ pub struct TopKExecutionCheck {
 pub enum TopKExecutionRule {
   SelectOrderedPrefix
   PartitionByCanonicalKeys
+}
+
+pub struct TraversalLimitsCheck {
+  site : OperationRequirementSite
+  step : @pipeline_typing.CheckedStep
+  limits : @capacity_program_step.TraversalLimits
 }
 
 pub(all) enum ValuesMeasurementIssue {

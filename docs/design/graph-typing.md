@@ -251,6 +251,21 @@ tokens across the selector and every edge/node predicate. A named start Relation
 is retained as a separate pipeline input. Guards preserve literal/Parameter
 forms; they do not establish actual output cardinality.
 
+`TraversalLimitsCheck` reads the retained capacity application of the exact
+producer visit. Its `SearchPaths` and `OutputRows` claims keep distinct units,
+subjects, candidate dependencies and enforcement scopes. The operation and
+selected policy owners are preserved rather than reconstructed from matching
+CIDs. The enclosing resolution-index walk pays for the constant-time lookup;
+this binding does not repeat candidate selection or proof traversal.
+
+The output gate requires both selected limits to be enforced and rejects the
+whole operation on failure. Search-path enforcement must occur while exploring,
+not after exposing rows. Input admission, selector membership, predicate demand,
+path semantics and other resource requirements remain independent. Missing
+capacity applications remain unresolved; neither node emission nor an empty
+selection exempts traversal from its selected search limit. Authored-guard
+support remains the capacity resolver's responsibility, not a lowerer inference.
+
 The mode and empty-filter rules are now explicit in Language and the machine
 schema. Unlike the pinned reference decoder, no max_paths source option or
 default output ceiling is admitted. A present edge-type filter requires semantic
