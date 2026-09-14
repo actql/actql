@@ -1,8 +1,9 @@
 ///|
-test "keyed join publication retains response and correlation provenance" {
+test "formal keyed join publication retains response and correlation provenance" {
   let (_, _, _, _, units) = remote_construction_fixture(
     { work: 100000000, bytes: 10000000, nodes: 1000000, depth: 100, },
     publish_join=true,
+    through_check=true,
   )
   let policy = publication_source_policy(units[0].publications[0]).unwrap()
   assert_true(policy.unknown_provenance)
@@ -87,14 +88,20 @@ test "keyed publication rejects foreign gates and budgets the correlation traver
 }
 
 ///|
-test "two keyed joins of one input retain only their own response occurrences" {
+test "formal checking of two keyed joins retains their own response occurrences" {
   let (_, _, _, inventory, units) = remote_construction_fixture(
     { work: 100000000, bytes: 10000000, nodes: 1000000, depth: 100, },
     publish_join=true,
     second_join=true,
+    through_check=true,
   )
   let unit = units[0]
   assert_eq(unit.source_execution.length(), 13)
+  guard unit.source_execution[5].kind is KeyedRequest(first) &&
+    unit.source_execution[9].kind is KeyedRequest(second) else {
+    fail("missing keyed requests")
+  }
+  assert_true(physical_equal(first.producer, second.producer))
   audit_source_execution(inventory, unit.source_execution, {
     work: 1000,
     bytes: 0,

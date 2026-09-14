@@ -136,7 +136,7 @@ fn check_supported_source(
 }
 
 ///|
-/// Check the supported Local/direct-SourceView/Result-import domain from source and
+/// Check the supported Local/SourceView/Result-import domain from source and
 /// admission material. Runtime checks are retained; success does not authorize
 /// execution. Other static paths currently fail explicitly.
 pub fn check(

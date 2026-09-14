@@ -26,7 +26,7 @@ pub fn prepare_program_sources(
   prepare_program_sources_internal(
     selected,
     Some(bounds),
-    locations,
+    Some(locations),
     limits,
     max_bindings~,
     max_slots~,
@@ -47,7 +47,26 @@ pub fn prepare_program_source_acquisitions(
   prepare_program_sources_internal(
     selected,
     None,
-    locations,
+    Some(locations),
+    limits,
+    max_bindings~,
+    max_slots~,
+  )
+}
+
+///|
+/// Select applicable positive row bounds from the owned capacity closures.
+/// No proof coordinates or independently reconstructed TargetRows are required.
+pub fn prepare_program_source_acquisitions_auto(
+  selected : SelectedPolicyContext,
+  limits : @sourceviews.RequestLimits,
+  max_bindings~ : Int,
+  max_slots~ : Int,
+) -> Result[SourceProducerContext, PrepareSourcesIssue] {
+  prepare_program_sources_internal(
+    selected,
+    None,
+    None,
     limits,
     max_bindings~,
     max_slots~,
@@ -58,7 +77,7 @@ pub fn prepare_program_source_acquisitions(
 fn prepare_program_sources_internal(
   selected : SelectedPolicyContext,
   bounds : Array[Array[@step_bounds.TargetRows]]?,
-  locations : Array[Array[(Int, Int)]],
+  locations : Array[Array[(Int, Int)]]?,
   limits : @sourceviews.RequestLimits,
   max_bindings~ : Int,
   max_slots~ : Int,
@@ -104,9 +123,20 @@ fn prepare_program_sources_internal(
     Ok(v) => v
     Err(e) => return Err(Requests(e))
   }
-  let row_result = match bounds {
-    Some(values) => check_source_row_bounds(requests, values, request_work)
-    None => prepare_source_row_bounds(requests, locations, request_work)
+  let automatic = match locations {
+    None =>
+      match select_source_acquisition_rows(requests, request_work) {
+        Ok(value) => Some(value)
+        Err(error) => return Err(error)
+      }
+    Some(_) => None
+  }
+  let row_result = match (automatic, bounds) {
+    (Some((rows, _)), _) => Ok(rows)
+    (None, Some(values)) =>
+      check_source_row_bounds(requests, values, request_work)
+    (None, None) =>
+      prepare_source_row_bounds(requests, locations.unwrap(), request_work)
   }
   let rows = match row_result {
     Ok(v) => v
@@ -120,7 +150,12 @@ fn prepare_program_sources_internal(
     Ok(v) => v
     Err(e) => return Err(Capacity(e))
   }
-  match bind_source_producers(capacity, locations, limits.max_work) {
+  if automatic is Some((_, memberships)) {
+    // Selection validated these memberships against the same immutable closure
+    // and the exact TargetRows retained by capacity. Do not reconstruct them.
+    return Ok({ capacity, memberships, work: capacity.work, })
+  }
+  match bind_source_producers(capacity, locations.unwrap(), limits.max_work) {
     Ok(v) => Ok(v)
     Err(e) => Err(Producers(e))
   }

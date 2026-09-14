@@ -3,6 +3,7 @@ fn prepared_keyed_source_context(
   changes? : Bool = false,
   artifact_rows? : Int = 1,
   host_first? : Bool = false,
+  omit_proof? : Bool = false,
   array_group? : Bool = false,
   nest_items? : Bool = false,
   aggregate_items? : Int = 1,
@@ -198,7 +199,9 @@ fn prepared_keyed_source_context(
     resolved_limits.push((@utf8.encode(second_text), second_cid))
   }
   let arithmetic = @wire.check_mixed_claims(
-    if host_first {
+    if omit_proof {
+      [host_wire]
+    } else if host_first {
       [host_wire, @wire.program_proof_witness(proof)]
     } else {
       [@wire.program_proof_witness(proof), host_wire]
@@ -212,10 +215,15 @@ fn prepared_keyed_source_context(
       max_depth: 100,
     },
   ).unwrap()
-  let claims = @wire.check_mixed_program_claims(arithmetic, [proof], {
-    max_witnesses: 10,
-    max_references: 100,
-  }).unwrap()
+  let claims = @wire.check_mixed_program_claims(
+    arithmetic,
+    if omit_proof {
+      []
+    } else {
+      [proof]
+    },
+    { max_witnesses: 10, max_references: 100, },
+  ).unwrap()
   let sources = @host.bind_claim_sources(claims, [policy], {
     max_entries: 100,
     max_bytes: 100000,

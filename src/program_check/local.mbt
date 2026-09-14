@@ -46,17 +46,7 @@ fn construct_local(
   let catalog = prepare_environment(wire, admission) catch {
     e => raise Environment(e)
   }
-  let locations = match environment.locations {
-    None => {
-      let count = @syntax.stage_count(program)
-      if count > admission.work {
-        raise Environment(EnvironmentFailure::BudgetExceeded)
-      }
-      admission.work -= count
-      Array::makei(count, _ => [])
-    }
-    Some(locations) => locations
-  }
+  let locations = environment.locations
   let work_limit = admission.work
   // Cap every preparatory pass before it allocates, not after a large source
   // preparation has already consumed more than the enclosing work allowance.

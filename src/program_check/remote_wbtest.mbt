@@ -157,6 +157,8 @@ fn remote_construction_fixture(
   budget : IdentityBudget,
   publish_join? : Bool = false,
   second_join? : Bool = false,
+  through_check? : Bool = false,
+  checked_results? : Array[CheckedProgram] = [],
 ) -> (
   @context.ProgramSourceIdentity,
   @context.StageRequirementClosure,
@@ -325,6 +327,29 @@ fn remote_construction_fixture(
         [@capacity.Join(step=1, output=0)]
       },
     }
+  }
+  if through_check {
+    let value = check(
+      program,
+      environment,
+      None,
+      materials,
+      { text_time: false, veca: false, },
+      { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
+      caps,
+      max_work=budget.work,
+      max_bytes=budget.bytes,
+      max_nodes=budget.nodes,
+      max_depth=budget.depth,
+    )
+    checked_results.push(value)
+    return (
+      value.identity,
+      value.requirements,
+      value.gates,
+      value.contracts,
+      value.units,
+    )
   }
   construct_local(
     program,

@@ -399,8 +399,8 @@ edges must reference those exact records, not equivalent reconstructions. All
 gate and dependency visits consume the shared work budget. This acquisition
 audit does not replace keyed publication provenance composition. The latter
 retains each join's response gate and traverses its correlation producer as
-described below. Automatic selection of keyed producer-bound coordinates at
-the formal entry remains separate from both closures. Unbound Host request values remain
+described below. The formal entry selects keyed producer bounds from its owned
+capacity closures rather than requesting caller-supplied coordinates. Unbound Host request values remain
 unsupported; changes/checkpoint obligations require their separate static mode
 closure. Successful checking neither performs acquisition nor claims that a
 backend can implement the required enforcement.
@@ -981,6 +981,25 @@ is accepted from the caller. Missing claims, unrelated targets and invalid
 producer membership fail before source preparation can succeed. Repeated
 acquisitions remain distinct even when they select the same claim.
 
+`prepare_program_source_acquisitions_auto` is the formal entry's selection path.
+For every keyed join's actual left target, it searches all visits and sparse
+claim slots of the same owned capacity closure. It retains a positive applicable
+row bound with the smallest value; equal values are ordered by the admitted
+witness CID. Equal witnesses may retain the first owned occurrence, without
+substituting CID equality for membership. This is a deterministic implementation
+choice among valid producer proofs, not an additional language constraint or a
+new proof rule. A Host ceiling alone is not a producer bound. Absence of a
+positive applicable proof fails explicitly.
+
+The selected membership keeps its consumer visit, claim-table visit, original
+claim index and producer visit. Cross-visit evidence is checked by the shared
+target-candidate collector. Repeated joins with the same left target reuse the
+selection within that Stage and closure; they still retain distinct acquisition
+occurrences. All visited slots, unsuccessful target checks, candidate retention
+and CID comparisons consume the request budget. Row validation remains charged
+as its own pass. The selected immutable memberships flow through policy and
+lookup-capacity construction without reconstructing successful target checks.
+
 Candidate selection, target traversal and row checks share the request work
 ceiling. Traversal is charged once through the existing row-bound checker;
 construction adds its own selection visits and reserves prior traversals before
@@ -1409,7 +1428,7 @@ The contract's dependency on `SourceResponsePolicyRules` is an explicit closure
 edge. Repeated occurrences share contract bodies without dropping their sites;
 Local-only stages and unrelated Catalog entries do not inherit these roots.
 This selects interpretation contracts, not a concrete policy value or an egress
-permission, and does not claim keyed provenance composition is complete.
+permission; value provenance is closed separately by the policy traversal.
 
 Coverage starts from the source, expression, operation, input, publication and
 incoming-dependency inventories, not from the list of successful resolutions.

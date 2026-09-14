@@ -720,6 +720,8 @@ pub fn prepare_program_references(OperationProfileChecks, @stage_source.Limits, 
 
 pub fn prepare_program_source_acquisitions(SelectedPolicyContext, Array[Array[(Int, Int)]], @sourceview_resolution.RequestLimits, max_bindings~ : Int, max_slots~ : Int) -> Result[SourceProducerContext, PrepareSourcesIssue]
 
+pub fn prepare_program_source_acquisitions_auto(SelectedPolicyContext, @sourceview_resolution.RequestLimits, max_bindings~ : Int, max_slots~ : Int) -> Result[SourceProducerContext, PrepareSourcesIssue]
+
 pub fn prepare_program_source_identity(OperationProfileChecks, SourcePreparationLimits) -> Result[ProgramSourceIdentity, SourcePreparationIssue]
 
 pub fn prepare_program_sources(SelectedPolicyContext, Array[Array[@capacity_program_step.TargetRows]], Array[Array[(Int, Int)]], @sourceview_resolution.RequestLimits, max_bindings~ : Int, max_slots~ : Int) -> Result[SourceProducerContext, PrepareSourcesIssue]
@@ -3277,6 +3279,7 @@ pub enum SourceRowsIssue {
   Stage(Int, @sourceview_resolution.KeyedRowsIssue)
   InvalidVisit(Int, Int)
   InvalidClaim(Int, Int)
+  MissingPositiveBound(Int, Int)
   Target(Int, Int, @capacity_program_step.TargetRowsIssue)
 }
 

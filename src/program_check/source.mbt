@@ -75,7 +75,7 @@ fn prepare_catalog_source(
   supplied : @decode.Cursor?,
   catalog : @environment.SourceRequestContracts,
   material : Array[Array[@context.CapacityMaterial]],
-  locations : Array[Array[(Int, Int)]],
+  locations : Array[Array[(Int, Int)]]?,
   expression_profiles : @context.ExpressionProfiles,
   operation_profiles : @context.PureOperationProfiles,
   limits : SourceLimits,
@@ -132,19 +132,29 @@ fn prepare_catalog_source(
 ///|
 fn prepare_selected_source(
   selected : @context.SelectedPolicyContext,
-  locations : Array[Array[(Int, Int)]],
+  locations : Array[Array[(Int, Int)]]?,
   expression_profiles : @context.ExpressionProfiles,
   operation_profiles : @context.PureOperationProfiles,
   limits : SourceLimits,
 ) -> @context.ProgramSourceIdentity raise SourceFailure {
-  let producer = match
-    @context.prepare_program_source_acquisitions(
-      selected,
-      locations,
-      limits.requests,
-      max_bindings=limits.max_bindings,
-      max_slots=limits.max_slots,
-    ) {
+  let prepared = match locations {
+    Some(locations) =>
+      @context.prepare_program_source_acquisitions(
+        selected,
+        locations,
+        limits.requests,
+        max_bindings=limits.max_bindings,
+        max_slots=limits.max_slots,
+      )
+    None =>
+      @context.prepare_program_source_acquisitions_auto(
+        selected,
+        limits.requests,
+        max_bindings=limits.max_bindings,
+        max_slots=limits.max_slots,
+      )
+  }
+  let producer = match prepared {
     Ok(v) => v
     Err(e) => raise Requests(e)
   }
