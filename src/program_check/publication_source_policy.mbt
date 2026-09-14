@@ -849,6 +849,18 @@ fn prepare_publication_source_policy(
             unknown = unknown || missing
             2
           }
+          @pipeline.Ranking(operation) => {
+            identity_charge(budget, 1)
+            carrier_steps.push({
+              step: index,
+              operation: step.operation,
+              unknown_provenance: true,
+            })
+            // k and fusion controls have no implicit policy attestation.
+            // Retain every weighted occurrence, including zero-weight inputs.
+            unknown = true
+            @vector.merged_ranking_input_count(operation)
+          }
           @pipeline.Nearest(..) => {
             identity_charge(budget, 1)
             carrier_steps.push({

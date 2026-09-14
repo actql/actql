@@ -598,6 +598,16 @@ an implicit policy attestation. Input admission, dimensional compatibility,
 exact scoring, rank assignment and selected resources remain owned requirements,
 not consequences of the output count or policy transfer.
 
+Ranking fusion retains the checked input sequence, not a set of producer names.
+Every weighted occurrence contributes its input policy, including repeated and
+zero-weight occurrences whose admission and completeness still matter. The
+effective-policy reference set deduplicates identities without erasing these
+edges. The owned ranking and its existing input shapes are available through the
+Carrier-step reader; no ranking, score contract or producer proof is rebuilt.
+Authored fusion controls retain unknown value provenance. Score authentication,
+rank continuity, completeness, tie agreement and fusion resources remain
+separate operation-specific checks.
+
 Result imports retain the producer's completed publication through
 `publication_policy_import_count/at`, including the consumer input coordinate.
 `imported_publication` is a convenience only for exactly one import.
