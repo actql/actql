@@ -251,7 +251,7 @@ pub fn application_ledger() -> @strategy.Ledger {
     planning_work: 100000,
     attempts: 10,
     holdings: 10,
-    transfer_bytes: 400000L,
+    transfer_bytes: 500000L,
     retained_bytes: 200000000L,
     execution_bytes: 268435456L,
   }).unwrap()
@@ -263,6 +263,7 @@ pub fn application_dispatch(
   app : Application,
   run : @strategy.CapturedDAG,
   native_fixed_ms : Int64,
+  resident : Bool,
 ) -> @dbhost.StrategyHostDispatch raise {
   if !physical_equal(@strategy.captured_dag_graph(run), app.graph) {
     fail("foreign graph")
@@ -300,10 +301,52 @@ pub fn application_dispatch(
     output_rows_per_mille: Some(1000),
   })
   @dbhost.configure_dispatch_estimates(dispatch, profiles, {
-    max_offers: 6,
-    max_strategies: 8,
-    max_work: 1000,
-    max_revisions: 3,
+    max_offers: if resident {
+      9
+    } else {
+      6
+    },
+    max_strategies: if resident {
+      27
+    } else {
+      8
+    },
+    max_work: if resident {
+      10000
+    } else {
+      1000
+    },
+    max_revisions: if resident {
+      4
+    } else {
+      3
+    },
   }).unwrap()
+  if resident {
+    let profile = @strategy.prepare_resident_profile(
+      run,
+      134217728L,
+      Some(1L),
+      Some(1L),
+      Array::make(4, @strategy.ResidentImportEstimate::{
+        milliseconds: Some(1L),
+        transfer_bytes: 100000L,
+        scratch_bytes: 2000000L,
+        table_bytes: 4000000L,
+      }),
+    ).unwrap()
+    @dbhost.configure_resident_dispatch(
+      dispatch,
+      profile,
+      Array::make(3, [
+        {
+          work_slots: [0, 1, 2, 3, 4, 5, 6, 7],
+          fixed_ms: Some(1L),
+          per_row_ms: Some(0L),
+          per_wire_byte_ms: Some(0L),
+        },
+      ]),
+    ).unwrap()
+  }
   dispatch
 }

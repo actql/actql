@@ -64,6 +64,14 @@ pub fn compute_host_physical_settle(ComputeNodeRun, Bool) -> Unit raise NodeHost
 
 pub fn compute_host_sql(ComputeNodeRun, Int) -> String raise NodeHostFailure
 
+pub fn compute_resident_cleanup_sql(ComputeNodeRun) -> Array[String] raise NodeHostFailure
+
+pub fn compute_resident_commit(ComputeNodeRun) -> Unit raise NodeHostFailure
+
+pub fn compute_resident_sql(ComputeNodeRun, Int) -> String raise NodeHostFailure
+
+pub fn compute_resident_strategy_host_open(@duckdb_host.StrategyComputeHostConfiguration, (@query_planning.DuckDBComputeAttempt) -> Bool, Int64, Int64, @physical_strategy.ResidentRead) -> ComputeNodeRun raise NodeHostFailure
+
 pub fn compute_strategy_host_open(@duckdb_host.StrategyComputeHostConfiguration, (@query_planning.DuckDBComputeAttempt) -> Bool, Int64, Int64) -> ComputeNodeRun raise NodeHostFailure
 
 pub fn compute_strategy_retention_capacity(@duckdb_host.StrategyComputeHostConfiguration) -> Int64 raise NodeHostFailure
@@ -108,6 +116,40 @@ pub fn native_host_sql(NativeNodeRun, Int) -> String raise NodeHostFailure
 
 pub fn native_strategy_host_open(@duckdb_host.NativeHostConfiguration, @physical_strategy.Ledger, String, (@query_planning.DuckDBNativeAttempt) -> Bool, Int64, Int64) -> NativeNodeRun raise NodeHostFailure
 
+pub fn resident_begin(@physical_strategy.CapturedDAG, Int, Int64) -> @physical_strategy.ResidentEnvironment raise NodeHostFailure
+
+pub fn resident_borrow(@physical_strategy.CapturedDAG, @physical_strategy.ResidentTable, Int, Int, Int, Int) -> @physical_strategy.ResidentRead raise NodeHostFailure
+
+pub fn resident_borrow_setup(@duckdb_host.StrategyComputeHostConfiguration, @physical_strategy.ResidentEnvironment, @physical_strategy.ResidentTable, Int, Int, Int) -> @physical_strategy.ResidentRead raise NodeHostFailure
+
+pub fn resident_close(@physical_strategy.CapturedDAG, @physical_strategy.ResidentEnvironment, Bool) -> Unit raise NodeHostFailure
+
+pub fn resident_confirm(@physical_strategy.CapturedDAG, @physical_strategy.ResidentEnvironment, Int64) -> Unit raise NodeHostFailure
+
+pub fn resident_has_table(@physical_strategy.CapturedDAG, @physical_strategy.ResidentEnvironment, Int) -> Bool
+
+pub fn resident_import_count(@physical_strategy.ResidentTable, Bool) -> Int
+
+pub fn resident_import_parameter(@physical_strategy.ResidentTable, Int, Int, Int, Int) -> String raise NodeHostFailure
+
+pub fn resident_import_sql(@physical_strategy.ResidentTable, Bool) -> String
+
+pub fn resident_read_sql(@physical_strategy.ResidentRead) -> String
+
+pub fn resident_return(@physical_strategy.ResidentRead) -> Unit raise NodeHostFailure
+
+pub fn resident_table_at(@physical_strategy.CapturedDAG, @physical_strategy.ResidentEnvironment, Int) -> @physical_strategy.ResidentTable raise NodeHostFailure
+
+pub fn resident_table_prepare(@physical_strategy.CapturedDAG, @physical_strategy.ResidentEnvironment, Int, Int64, Int, Int, Int) -> @physical_strategy.ResidentTable raise NodeHostFailure
+
+pub fn resident_transfer_begin(@physical_strategy.CapturedDAG, @physical_strategy.ResidentTable, Int64, Int64) -> @physical_strategy.ResidentTransfer raise NodeHostFailure
+
+pub fn resident_transfer_charge(@physical_strategy.CapturedDAG, @physical_strategy.ResidentTransfer, Int64) -> Unit raise NodeHostFailure
+
+pub fn resident_transfer_complete(@physical_strategy.CapturedDAG, @physical_strategy.ResidentTransfer) -> Unit raise NodeHostFailure
+
+pub fn resident_transfer_settle(@physical_strategy.CapturedDAG, @physical_strategy.ResidentTransfer, Bool) -> Unit raise NodeHostFailure
+
 pub fn strategy_host_close_outputs(@duckdb_host.StrategyHostDispatch) -> Unit
 
 pub fn strategy_host_count(@duckdb_host.StrategyHostDispatch) -> Int
@@ -123,6 +165,12 @@ pub fn strategy_host_native(@duckdb_host.TaskDispatch) -> Bool
 pub fn strategy_host_next(@duckdb_host.StrategyHostDispatch) -> @duckdb_host.TaskDispatch? raise NodeHostFailure
 
 pub fn strategy_host_output(@duckdb_host.StrategyHostDispatch, Int) -> @execution_relation.CompletedOutput?
+
+pub fn strategy_host_resident(@duckdb_host.TaskDispatch) -> Bool
+
+pub fn strategy_host_resident_input(@duckdb_host.StrategyHostDispatch, Int) -> Array[Int64] raise NodeHostFailure
+
+pub fn strategy_host_run(@duckdb_host.StrategyHostDispatch) -> @physical_strategy.CapturedDAG
 
 pub fn strategy_host_stop(@duckdb_host.StrategyHostDispatch) -> Unit
 

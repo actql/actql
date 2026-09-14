@@ -67,4 +67,53 @@ test "producer read applies checked aliases without materializing projection row
     }
   }
   assert_true(physical_equal(view.bound.output.completion, upstream))
+  let storage = prepare_producer_storage(
+    completed_output(upstream, Step(0)).unwrap(),
+    100,
+    100,
+  ).unwrap()
+  let mapping = producer_storage_projection(storage, view, 100).unwrap()
+  for column in 0..<2 {
+    let name = @schema.field_at(producer_read_schema(view), column).unwrap().name
+    if name == @schema.Unqualified("a") {
+      assert_true(
+        producer_storage_cell(storage, 0, mapping[column]) is Some(Number(1)),
+      )
+    } else {
+      assert_true(
+        producer_storage_cell(storage, 0, mapping[column]) is Some(Number(0)),
+      )
+    }
+  }
+  assert_true(producer_storage_projection(storage, view, 0) is Err(Limit))
+  let again = evaluate_sequence_components(
+    registered_relation_contracts(),
+    prepared_sequence(owner),
+    [],
+    ["values_0"],
+    run_limits(),
+    { remaining: 10000, max_frames: 100, },
+  ).unwrap()
+  let other = prepare_producer_storage(
+    completed_output(again, Step(0)).unwrap(),
+    100,
+    100,
+  ).unwrap()
+  assert_true(
+    producer_storage_projection(other, view, 100) is Err(InvalidProjection),
+  )
+  let mut live = true
+  let restricted = prepare_producer_storage(
+    restrict_completed_output(completed_output(upstream, Step(0)).unwrap(), fn() {
+      live
+    }),
+    100,
+    100,
+  ).unwrap()
+  assert_true(producer_storage_projection(restricted, view, 100) is Ok(_))
+  live = false
+  assert_true(
+    producer_storage_projection(restricted, view, 100)
+    is Err(ProducerUnavailable),
+  )
 }

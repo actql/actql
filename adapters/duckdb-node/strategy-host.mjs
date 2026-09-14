@@ -1,6 +1,7 @@
 // Trusted finite serial transport driver. Readiness, exact input binding and
 // selected capability validation stay in MoonBit; this is not a Program runner.
-import { runStrategyHostCompute } from './host.mjs';
+import { runStrategyHostCompute, openResidentStrategyEnvironment,
+  importResidentStrategyInput, runResidentStrategyHostCompute } from './host.mjs';
 import { DuckDBTransportError } from './session.mjs';
 import { checked } from './runtime-result.mjs';
 
@@ -20,6 +21,11 @@ export async function runCapturedStrategy(setup, transportLimits, importLimits, 
   const nativeResults = [];
   let failure;
   let closed = false;
+  let residentEnvironment;
+  const pendingCleanup = new Set();
+  const rememberCleanup = error => {
+    if (error?.cleanupHandle?.status().pending) pendingCleanup.add(error.cleanupHandle);
+  };
   const usage = () => Object.freeze(Object.fromEntries(
     moon.strategyHostUsage(setup).map((value, index) => [usageKeys[index], value]),
   ));
@@ -27,14 +33,34 @@ export async function runCapturedStrategy(setup, transportLimits, importLimits, 
     const count = moon.strategyHostCount(setup);
     for (let step = 1; step < count; step++) {
       signal?.throwIfAborted();
+      if (residentEnvironment && !residentEnvironment.status().live) {
+        // No new task has started. Close invalidates stale dispatch and keeps
+        // incurred cost; pending cleanup is not silently treated as capacity.
+        await residentEnvironment.close();
+        residentEnvironment = undefined;
+      }
       const task = checked(moon.strategyHostNext(setup));
       if (task === undefined || task === null) break;
       const index = moon.strategyHostTask(task);
       if (moon.strategyHostNative(task)) {
+        const resident = moon.strategyHostResident(task);
+        let residentInput;
+        let mapping;
+        if (resident) {
+          const [producer, bytes, entries, names] = checked(moon.strategyHostResidentInput(setup, index));
+          mapping = { maxEntries: Number(entries), maxNameBytes: Number(names) };
+          residentEnvironment ??= await openResidentStrategyEnvironment(moon.strategyHostRun(setup), index, limits);
+          if (!residentEnvironment.hasTable(Number(producer))) {
+            await importResidentStrategyInput(residentEnvironment, Number(producer), bytes, limits, mapping, signal);
+          }
+          residentInput = residentEnvironment.table(Number(producer));
+        }
         const selected = checked(moon.strategyHostTakeNative(task));
-        const result = await runStrategyHostCompute(selected, limits, imports, signal);
+        const result = resident
+          ? await runResidentStrategyHostCompute(selected, residentEnvironment, residentInput, limits, mapping, signal)
+          : await runStrategyHostCompute(selected, limits, imports, signal);
         nativeResults.push(result);
-        completed.push(Object.freeze({ task: index, realization: 'duckdb', transport: result.usage }));
+        completed.push(Object.freeze({ task: index, realization: resident ? 'duckdb-resident' : 'duckdb', transport: result.usage }));
       } else {
         checked(moon.strategyHostExecuteLocal(task));
         completed.push(Object.freeze({ task: index, realization: 'local' }));
@@ -43,8 +69,13 @@ export async function runCapturedStrategy(setup, transportLimits, importLimits, 
     if (!moon.strategyHostFinished(setup)) throw new DuckDBTransportError('StrategyNotComplete');
   } catch (error) {
     failure = error;
+    rememberCleanup(error);
     moon.strategyHostStop(setup);
   } finally {
+    if (residentEnvironment) {
+      try { await residentEnvironment.close(); }
+      catch (error) { failure ??= error; rememberCleanup(error); }
+    }
     active.delete(setup);
   }
   return Object.freeze({
@@ -53,6 +84,17 @@ export async function runCapturedStrategy(setup, transportLimits, importLimits, 
     failure,
     completed: Object.freeze(completed),
     usage,
+    cleanupPending() {
+      return [...pendingCleanup].some(handle => handle.status().pending);
+    },
+    async cleanup() {
+      // Resource recovery only. Never dispatch or retry a failed Compute.
+      for (const handle of pendingCleanup) {
+        if (handle.status().pending) await handle.retry();
+        if (!handle.status().pending) pendingCleanup.delete(handle);
+      }
+      return pendingCleanup.size === 0;
+    },
     explain(maxBytes = 65536, maxNodes = 10000) {
       for (const limit of [maxBytes, maxNodes]) {
         if (!Number.isSafeInteger(limit) || limit < 0 || limit > 2147483647) {

@@ -59,3 +59,31 @@ export function matchesFixedCompute(result, port, consume) {
 export function releaseFixedCompute(result) {
   completed.delete(result);
 }
+
+// Trusted resident bridge only. Every SQL fragment and the checked receiver
+// mapping come from the MoonBit adapter, not application callbacks. The
+// environment is borrowed: task settlement does not close the shared DB.
+// validate finishes Host guards/receiving before committing the resident result.
+export async function runResidentFixedCompute(
+  environment, port, resident, limits, consume, validate, signal, accounting,
+) {
+  if (attempted.has(port)) throw new DuckDBTransportError('AttemptAlreadyStarted');
+  attempted.add(port);
+  if (!environment.status().live) throw new DuckDBTransportError('SessionClosed');
+  const result = await environment.run(limits, async session => {
+    const discard = () => {};
+    await session.command(resident.viewSql(), [], discard);
+    await session.command(resident.createResultSql(), port.queryParameters(), discard);
+    const fields = await session.command(resident.readResultSql(), [], consume);
+    // Includes empty-result metadata. Throwing here rolls back this task only.
+    await validate(fields);
+    for (const sql of resident.cleanupSqls?.() ?? []) {
+      await session.command(sql, [], discard);
+    }
+    return Object.freeze({ fields, importedRows: 0, importedCells: 0 });
+  }, signal, accounting);
+  // Preserve completed Host-output provenance independently of future DB loss.
+  // Reusing the DB table still requires its separate live table-generation proof.
+  completed.set(result, { port, consume, session: environment });
+  return result;
+}

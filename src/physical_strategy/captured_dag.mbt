@@ -13,6 +13,7 @@ struct CapturedDAG {
   inputs : Array[@execution.ProducerRead?]
   mut running : (Int, @planning.DuckDBComputeAttempt)?
   native_resources : Array[NativeTaskResources?]
+  mut resident_environment : ResidentEnvironment?
   mut stopped : Bool
   mut failure : (Int, RunIssue)?
   mut generation : Int
@@ -39,6 +40,7 @@ pub(all) enum RunIssue {
   Read(@execution.ProducerReadIssue)
   Compute(@planning.FixedComputeIssue)
   DuckDB(@planning.DuckDBComputeIssue)
+  NativePreparation(@duckdb.NativeQueryIssue)
   Physical(LedgerIssue)
 }
 
@@ -114,6 +116,7 @@ pub fn open_captured_dag(
     failure: None,
     running: None,
     native_resources: Array::make(count, None),
+    resident_environment: None,
     generation: 0,
     search: None,
     revisions: 0,
@@ -156,7 +159,7 @@ pub fn captured_task_completed(run : CapturedDAG, task : Int) -> Bool {
 
 ///|
 pub fn next_captured_task(run : CapturedDAG) -> Int? {
-  if run.stopped || run.running is Some(_) {
+  if run.stopped || run.running is Some(_) || resident_provision_pending(run) {
     return None
   }
   for index in 1..<run.graph.owners.length() {
@@ -408,4 +411,11 @@ pub fn captured_dag_failure(run : CapturedDAG) -> (Int, RunIssue)? {
 /// One persistent Host ledger for the run, never replaced by a task choice.
 pub fn captured_dag_ledger(run : CapturedDAG) -> Ledger {
   run.ledger
+}
+
+///|
+/// Host-private execution progress, including changes to retained physical
+/// copies. This is not a semantic identity or permission to reset search.
+pub fn captured_dag_generation(run : CapturedDAG) -> Int {
+  run.generation
 }

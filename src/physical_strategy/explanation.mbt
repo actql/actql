@@ -65,10 +65,18 @@ pub fn explain_captured_strategy(
       },
     )
     @encode.key(w, "selection")
-    match run.strategy {
+    // Keep the last selected plan explainable after site cleanup revokes its
+    // dispatch permission. History is diagnostic, never renewed authority.
+    let displayed = match run.strategy {
+      Some(revision) => Some(revision)
+      None => run.revision_history.get(run.revision_history.length() - 1)
+    }
+    match displayed {
       None => @encode.null_value(w)
       Some(revision) => {
         @encode.begin_object(w)
+        @encode.key(w, "dispatch_authorized")
+        @encode.bool_value(w, run.strategy is Some(_) && !run.stopped)
         @encode.key(w, "revision")
         @encode.number_value(w, revision.number.to_double())
         @encode.key(w, "reason")
@@ -100,6 +108,52 @@ pub fn explain_captured_strategy(
           )
           @encode.key(w, "estimated_milliseconds")
           emit_strategy_duration(w, offer.duration)
+          @encode.key(w, "resident_profile")
+          match offer.resident {
+            None => @encode.null_value(w)
+            Some(profile) => {
+              @encode.begin_object(w)
+              emit_strategy_quantity(
+                w,
+                "database_bytes",
+                profile.database_bytes,
+              )
+              @encode.key(w, "preparation_milliseconds")
+              match profile.preparation_ms {
+                Some(value) => @encode.string_value(w, value.to_string())
+                None => @encode.null_value(w)
+              }
+              @encode.key(w, "cleanup_milliseconds")
+              match profile.cleanup_ms {
+                Some(value) => @encode.string_value(w, value.to_string())
+                None => @encode.null_value(w)
+              }
+              @encode.key(w, "import_envelopes_by_producer")
+              @encode.begin_array(w)
+              for estimate in profile.imports {
+                @encode.begin_object(w)
+                @encode.key(w, "milliseconds")
+                match estimate.milliseconds {
+                  Some(value) => @encode.string_value(w, value.to_string())
+                  None => @encode.null_value(w)
+                }
+                emit_strategy_quantity(
+                  w,
+                  "transfer_bytes",
+                  estimate.transfer_bytes,
+                )
+                emit_strategy_quantity(
+                  w,
+                  "scratch_bytes",
+                  estimate.scratch_bytes,
+                )
+                emit_strategy_quantity(w, "table_bytes", estimate.table_bytes)
+                @encode.end_object(w)
+              }
+              @encode.end_array(w)
+              @encode.end_object(w)
+            }
+          }
           @encode.key(w, "required_work_slots")
           @encode.number_value(w, offer.work_slots.to_double())
           @encode.key(w, "work_estimates")

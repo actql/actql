@@ -3,14 +3,129 @@
 import { randomUUID } from 'node:crypto';
 import { runNativeQuery } from './native-query.mjs';
 import { runBroadQuery } from './broad-query.mjs';
-import { runFixedCompute, matchesFixedCompute, releaseFixedCompute } from './fixed-compute.mjs';
-import { DuckDBTransportError } from './session.mjs';
+import { runFixedCompute, runResidentFixedCompute, matchesFixedCompute, releaseFixedCompute } from './fixed-compute.mjs';
+import { DuckDBTransportError, provisionComputeDatabase } from './session.mjs';
 import { computePhysicalCapacity } from './physical-capacity.mjs';
 import { checked } from './runtime-result.mjs';
 
 const runtimeUrl = new URL('../../_build/js/release/build/duckdb_host_node/duckdb_host_node.js', import.meta.url);
 let runtime;
 const loadRuntime = () => runtime ??= import(runtimeUrl.href);
+const residentEnvironments = new WeakMap();
+
+// Supply a run-owned local environment only after MoonBit has reserved the
+// selected capacity. No existing file or source connection can be attached.
+export async function openResidentStrategyEnvironment(graph, task, limits) {
+  const moon = await loadRuntime();
+  limits = Object.freeze({ ...limits });
+  const capacity = computePhysicalCapacity(limits);
+  const env = checked(moon.residentBegin(graph, task, capacity.databaseBytes));
+  let database;
+  let released = false;
+  const cleanupStatus = () => Object.freeze({ pending: !released });
+  const cleanup = async () => {
+    if (!released) {
+      checked(moon.residentClose(graph, env, false));
+      if (database) await database.close();
+    }
+    return cleanupStatus();
+  };
+  const cleanupHandle = Object.freeze({ status: cleanupStatus, retry: cleanup });
+  try {
+    database = await provisionComputeDatabase(limits, Object.freeze({
+      started() {},
+      settled(confirmed) {
+        if (released) return;
+        checked(moon.residentClose(graph, env, confirmed));
+        if (confirmed) released = true;
+      },
+    }));
+    checked(moon.residentConfirm(graph, env, BigInt(database.memoryBytes)));
+  } catch (error) {
+    try { await cleanup(); }
+    catch (cleanupError) { error.cleanupErrors = Object.freeze([cleanupError]); }
+    if (!released) {
+      error.cleanupPending = true;
+      error.cleanupHandle = cleanupHandle;
+    }
+    throw error;
+  }
+  const handle = Object.freeze({
+    status: () => Object.freeze({ ...database.status(), pending: !released }),
+    table(producer) { return checked(moon.residentTableAt(graph, env, producer)); },
+    hasTable(producer) { return moon.residentHasTable(graph, env, producer); },
+    async close() {
+      if (released) return;
+      try {
+        await cleanup();
+        if (!released) throw new DuckDBTransportError('CleanupInProgress');
+      } catch (error) {
+        error.cleanupPending = !released;
+        if (!released) error.cleanupHandle = cleanupHandle;
+        throw error;
+      }
+      residentEnvironments.delete(handle);
+    },
+  });
+  residentEnvironments.set(handle, { graph, env, database, limits });
+  return handle;
+}
+
+export async function importResidentStrategyInput(environment, producer, tableBytes, limits, mappingLimits, signal) {
+  const owned = residentEnvironments.get(environment);
+  if (!owned || !owned.database.status().live) throw new DuckDBTransportError('SessionClosed');
+  const moon = await loadRuntime();
+  limits = Object.freeze({ ...limits });
+  const capacity = computePhysicalCapacity(limits);
+  const table = checked(moon.residentTablePrepare(owned.graph, owned.env, producer,
+    BigInt(tableBytes), mappingLimits.maxEntries, mappingLimits.maxNameBytes, limits.maxSqlBytes));
+  const count = rows(moon.residentImportCount(table, false));
+  const columns = rows(moon.residentImportCount(table, true));
+  if (count > limits.maxRows || columns > limits.maxColumns || columns > limits.maxParameters ||
+      columns === 0 || count > Math.floor(limits.maxCells / columns)) {
+    throw new DuckDBTransportError('InvalidImportLimits');
+  }
+  const transfer = checked(moon.residentTransferBegin(owned.graph, table,
+    capacity.transferBytes, capacity.scratchBytes));
+  let started = false;
+  try {
+    const result = await owned.database.run(limits, async session => {
+      const discard = () => {};
+      await session.command(moon.residentImportSql(table, false), [], discard);
+      const sql = moon.residentImportSql(table, true);
+      for (let row = 0; row < count; row++) {
+        const parameters = [];
+        for (let column = 0; column < columns; column++) {
+          parameters.push(JSON.parse(checked(moon.residentImportParameter(table, row, column,
+            limits.maxTransportBytes, mappingLimits.maxEntries))));
+        }
+        await session.command(sql, parameters, discard);
+      }
+    }, signal, Object.freeze({
+      started() { started = true; },
+      chargeTransfer(bytes) { checked(moon.residentTransferCharge(owned.graph, transfer, BigInt(bytes))); },
+      settled(confirmed) { checked(moon.residentTransferSettle(owned.graph, transfer, confirmed)); },
+    }));
+    checked(moon.residentTransferComplete(owned.graph, transfer));
+    return Object.freeze({ table, importedRows: count, importedCells: count * columns, usage: result.usage });
+  } catch (error) {
+    if (!started) checked(moon.residentTransferSettle(owned.graph, transfer, true));
+    throw error;
+  }
+}
+
+export async function runResidentStrategyHostCompute(setup, environment, table, limits, mappingLimits, signal) {
+  const owned = residentEnvironments.get(environment);
+  if (!owned || !owned.database.status().live) throw new DuckDBTransportError('SessionClosed');
+  limits = Object.freeze({ ...limits });
+  if (limits.memoryBytes !== owned.database.memoryBytes || limits.threads !== owned.database.threads) {
+    throw new DuckDBTransportError('ResidentProfileMismatch');
+  }
+  const moon = await loadRuntime();
+  const read = checked(moon.residentBorrowSetup(setup, owned.env, table,
+    mappingLimits.maxEntries, mappingLimits.maxNameBytes, limits.maxSqlBytes));
+  return runHostCompute(setup, limits, undefined, signal, true, { ...owned, read });
+}
 
 // No source grant or connection enters Compute. The fixed product runtime
 // supplies the selected SQL and exact owned input; verifier wiring stays here.
@@ -23,21 +138,30 @@ export async function runStrategyHostCompute(setup, limits, importLimits, signal
   return runHostCompute(setup, limits, importLimits, signal, true);
 }
 
-async function runHostCompute(setup, limits, importLimits, signal, strategy) {
+async function runHostCompute(setup, limits, importLimits, signal, strategy, resident) {
   const moon = await loadRuntime();
   // Freeze the same values used by both reservation and actual transport. A
   // caller mutating its limits during an await cannot enlarge the execution.
   limits = Object.freeze({ ...limits });
-  const capacity = strategy ? Object.freeze({
-    ...computePhysicalCapacity(limits),
-    retentionBytes: checked(moon.computeStrategyRetentionCapacity(setup)),
-    receiverScratchBytes: checked(moon.computeStrategyScratchCapacity(setup)),
-  }) : undefined;
+  let capacity;
   let result, port, consume, attempt;
   const verify = current => current === attempt && matchesFixedCompute(result, port, consume);
-  let run = checked(strategy
+  let run;
+  try {
+    capacity = strategy ? Object.freeze({
+      ...computePhysicalCapacity(limits),
+      retentionBytes: checked(moon.computeStrategyRetentionCapacity(setup)),
+      receiverScratchBytes: checked(moon.computeStrategyScratchCapacity(setup)),
+    }) : undefined;
+    run = checked(resident
+    ? moon.computeResidentStrategyHostOpen(setup, verify, capacity.transferBytes, capacity.scratchBytes, resident.read)
+    : strategy
     ? moon.computeStrategyHostOpen(setup, verify, capacity.transferBytes, capacity.executionBytes)
     : moon.computeHostOpen(setup, verify));
+  } catch (error) {
+    if (resident) checked(moon.residentReturn(resident.read));
+    throw error;
+  }
   attempt = moon.computeHostAttempt(run);
   let sessionStarted = false;
   const accounting = strategy ? Object.freeze({
@@ -66,10 +190,23 @@ async function runHostCompute(setup, limits, importLimits, signal, strategy) {
     checked(moon.computeHostAccept(run, rows(chunk.rowCount), JSON.stringify(chunk.columns)));
   };
   try {
-    result = await runFixedCompute(port, limits, importLimits, consume, signal, accounting);
+    if (resident) {
+      result = await runResidentFixedCompute(resident.database, port, Object.freeze({
+        viewSql: () => moon.residentReadSql(resident.read),
+        createResultSql: () => checked(moon.computeResidentSql(run, 0)),
+        readResultSql: () => checked(moon.computeResidentSql(run, 1)),
+        cleanupSqls: () => checked(moon.computeResidentCleanupSql(run)),
+      }), limits, consume, fields => {
+        begin(fields);
+        checked(moon.computeHostFinish(run));
+      }, signal, accounting);
+      checked(moon.computeResidentCommit(run));
+    } else {
+      result = await runFixedCompute(port, limits, importLimits, consume, signal, accounting);
+    }
     if (signal?.aborted) throw new DuckDBTransportError('Cancelled');
     begin(result.value.fields); // empty input still has checked output metadata
-    checked(moon.computeHostFinish(run));
+    if (!resident) checked(moon.computeHostFinish(run));
     let output = checked(moon.computeHostComplete(run));
     let closed = false;
     return Object.freeze({

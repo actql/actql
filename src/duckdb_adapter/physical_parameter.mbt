@@ -59,12 +59,20 @@ pub fn prepare_producer_parameter(
     is Some(field) else {
     return Err(OutOfRange)
   }
-  let (id, decimal) = match parameter_type(field.contract) {
-    Ok(value) => value
-    Err(issue) => return Err(issue)
-  }
   guard @execution.producer_read_cell(input, row, column) is Some(cell) else {
     return Err(OutOfRange)
+  }
+  parameter_from_cell(field.contract, cell)
+}
+
+///|
+fn parameter_from_cell(
+  contract : @contract.Contract,
+  cell : @execution.Value,
+) -> Result[PhysicalParameter, ValueIssue] {
+  let (id, decimal) = match parameter_type(contract) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
   }
   let value = match cell {
     @execution.Null => Null

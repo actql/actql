@@ -36,6 +36,7 @@ fn compile_fixed_import_schema(
   table : String,
   max_columns : Int,
   max_sql_bytes : Int,
+  temporary? : Bool = true,
 ) -> Result[(String, String, Int), NativeQueryIssue] {
   let count = @schema.field_count(schema)
   if count > max_columns {
@@ -48,7 +49,14 @@ fn compile_fixed_import_schema(
   }
   let create = { builder: StringBuilder(), remaining: max_sql_bytes, }
   try {
-    sql_text(create, "CREATE TEMP TABLE ")
+    sql_text(
+      create,
+      if temporary {
+        "CREATE TEMP TABLE "
+      } else {
+        "CREATE TABLE "
+      },
+    )
     sql_identifier(create, table)
     sql_text(create, " (")
     for i in 0..<count {

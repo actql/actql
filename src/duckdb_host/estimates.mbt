@@ -22,7 +22,7 @@ priv struct DispatchEstimates {
   profiles : Array[DispatchEstimateProfile]
   limits : @strategy.SearchLimits
   estimate_work : Int
-  mut seen : (Int, @strategy.LedgerUsage)?
+  mut seen : (Int, Int, @strategy.LedgerUsage)?
   mut failure : DispatchIssue?
 }
 
@@ -185,7 +185,11 @@ pub fn refresh_dispatch_estimates(
     return Ok(())
   }
   let usage = @strategy.ledger_usage(@strategy.captured_dag_ledger(host.run))
-  let key = (next, { ..usage, planning_work: 0, })
+  let key = (
+    next,
+    @strategy.captured_dag_generation(host.run),
+    { ..usage, planning_work: 0, },
+  )
   if policy.seen == Some(key) {
     return Ok(())
   }
@@ -295,6 +299,35 @@ fn rebuild_dispatch_estimates(
           policy.limits.max_work,
         ) {
         Ok(offer) => offers.push(offer)
+        Err(issue) => return Err(Search(issue))
+      }
+    }
+    if host.resident is Some(resident) &&
+      host.native_rejections[task - 1] is None {
+      let lines = match
+        dispatch_estimate_lines(
+          resident.rates[task - 1],
+          input_rows,
+          input_bytes,
+        ) {
+        Ok(value) => value
+        Err(issue) => return Err(issue)
+      }
+      let base = match
+        @strategy.prepare_task_offer(
+          run,
+          task,
+          host.native_registration,
+          8,
+          lines,
+          profile.native_capacity,
+          policy.limits.max_work,
+        ) {
+        Ok(value) => value
+        Err(issue) => return Err(Search(issue))
+      }
+      match @strategy.resident_task_offer(run, base, resident.profile) {
+        Ok(value) => offers.push(value)
         Err(issue) => return Err(Search(issue))
       }
     }

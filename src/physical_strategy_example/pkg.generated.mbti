@@ -9,7 +9,7 @@ import {
 // Values
 pub fn application_acquisition(Application) -> @duckdb_host.NativeHostConfiguration
 
-pub fn application_dispatch(Application, @physical_strategy.CapturedDAG, Int64) -> @duckdb_host.StrategyHostDispatch raise
+pub fn application_dispatch(Application, @physical_strategy.CapturedDAG, Int64, Bool) -> @duckdb_host.StrategyHostDispatch raise
 
 pub fn application_graph(Application) -> @physical_strategy.CheckedDAG
 

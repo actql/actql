@@ -37,6 +37,7 @@ struct TaskOffer {
   capacity : PhysicalEnvelope
   work_slots : Int
   lines : Array[@cost.SerialEstimateLine]
+  resident : ResidentProfile?
 }
 
 ///|
@@ -170,6 +171,7 @@ pub fn prepare_task_offer(
           work_slots: line.work_slots.copy(),
           milliseconds: line.milliseconds,
         }),
+        resident: None,
       })
   }
 }
@@ -209,7 +211,7 @@ pub fn revise_strategy(
   if run.stopped {
     return Err(Stopped)
   }
-  if run.running is Some(_) {
+  if run.running is Some(_) || resident_provision_pending(run) {
     return Err(Busy)
   }
   let latest = ledger_usage(run.ledger)
@@ -349,13 +351,42 @@ pub fn revise_strategy(
       }
       transfer += cap.transfer_bytes
       retained += cap.retained_bytes
-      if cap.execution_bytes > execution {
-        execution = cap.execution_bytes
+      let task_execution = match offer.resident {
+        None => cap.execution_bytes
+        Some(profile) => cap.execution_bytes - profile.database_bytes
+      }
+      if task_execution > execution {
+        execution = task_execution
+      }
+    }
+    let shared = match compose_resident_choices(run, choices, work) {
+      Ok(value) => value
+      Err(issue) => return Err(issue)
+    }
+    if shared.transfer > 9223372036854775807L - transfer ||
+      shared.database > 9223372036854775807L - execution {
+      return Err(Overflow)
+    }
+    transfer += shared.transfer
+    execution += shared.database
+    if shared.execution > execution {
+      execution = shared.execution
+    }
+    match shared.duration {
+      Unknown => unknown = true
+      Complete(value) => {
+        if value > 9223372036854775807L - duration {
+          return Err(Overflow)
+        }
+        duration += value
       }
     }
     let available = run.ledger.limits
-    let rejection = if tasks.length() > available.attempts - usage.attempts {
+    let rejection = if tasks.length() + shared.attempts >
+      available.attempts - usage.attempts {
       Some(AttemptLimit)
+    } else if shared.rejected {
+      Some(RetentionLimit)
     } else if tasks.length() > available.holdings - usage.holdings {
       Some(HoldingLimit)
     } else if transfer >

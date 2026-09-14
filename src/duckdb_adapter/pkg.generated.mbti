@@ -155,6 +155,10 @@ pub fn prepare_physical_result(@relation_schema.Schema, Array[(String, PhysicalT
 
 pub fn prepare_producer_parameter(@execution_relation.ProducerRead, Int, Int) -> Result[PhysicalParameter, ValueIssue]
 
+pub fn prepare_resident_import(@execution_relation.ProducerStorage, String, Int, Int) -> Result[ResidentImport, NativeQueryIssue]
+
+pub fn prepare_resident_query(NativeQuery, String, Int) -> Result[ResidentQuery, NativeQueryIssue]
+
 pub fn prepare_scan_output_receiver(NativeScan, Array[(String, PhysicalType)], PhysicalResultLimits, Int) -> Result[PhysicalResult, PhysicalResultIssue]
 
 pub fn prepare_scan_validation_receiver(NativeScan, Array[(String, PhysicalType)], PhysicalResultLimits, Int) -> Result[PhysicalResult, PhysicalResultIssue]
@@ -162,6 +166,32 @@ pub fn prepare_scan_validation_receiver(NativeScan, Array[(String, PhysicalType)
 pub fn prepare_value_mapping(PhysicalType, @value_contract.Contract) -> Result[ValueMapping, ValueIssue]
 
 pub fn receive_fixed_compute_chunk(FixedComputeReceiving, Int, Array[@decode_core.Cursor]) -> Result[Unit, FixedComputeReceivingIssue]
+
+pub fn resident_import_available(ResidentImport) -> Bool
+
+pub fn resident_import_column_count(ResidentImport) -> Int
+
+pub fn resident_import_create_sql(ResidentImport) -> String
+
+pub fn resident_import_drop_sql(ResidentImport, Int) -> Result[String, NativeQueryIssue]
+
+pub fn resident_import_insert_sql(ResidentImport) -> String
+
+pub fn resident_import_parameter(ResidentImport, Int, Int) -> Result[PhysicalParameter, ValueIssue]
+
+pub fn resident_import_receiver_sql(ResidentImport, @execution_relation.ProducerRead, String, Int, Int) -> Result[String, NativeQueryIssue]
+
+pub fn resident_import_row_count(ResidentImport) -> Int
+
+pub fn resident_query_create_sql(ResidentQuery) -> String
+
+pub fn resident_query_drop_sql(ResidentQuery) -> String
+
+pub fn resident_query_owner(ResidentQuery) -> @lowering_relation.BoundPrepared
+
+pub fn resident_query_parameter(ResidentQuery) -> PhysicalParameter
+
+pub fn resident_query_read_sql(ResidentQuery) -> String
 
 pub fn retain_native_output_rows(NativeReceiving, Int, @execution_relation.ValueLimits) -> Result[NativeOutputRows, NativeOutputRetentionIssue]
 
@@ -335,6 +365,10 @@ pub(all) enum PhysicalType {
   TimestampTZ
   NaiveTimestamp
 } derive(Eq, @debug.Debug)
+
+type ResidentImport
+
+type ResidentQuery
 
 pub(all) enum SourceTableIssue {
   InvalidMetadata

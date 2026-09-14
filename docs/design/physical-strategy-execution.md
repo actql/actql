@@ -117,8 +117,11 @@ Local fixed inputs and DuckDB's per-Compute temporary database use completed
 input handoff. Import, SQL, result receipt and cleanup belong to one frozen
 Compute attempt. Transfers have explicit source/destination ports, representation,
 accounting and enforcement, but are not independently reusable DB capabilities.
-A DuckDB A-to-C edge exports A and imports it into C's new database. No resident
-table reuse, cross-task streaming, or unimplemented sharing discount is assumed.
+In the fresh-DB realization, a DuckDB A-to-C edge exports A and imports it into
+C's new database. The separate [run-owned resident realization](duckdb-resident-execution.md)
+retains exact DB tables for reuse, while preserving Host validation and output
+holding. Its shared preparation/import costs and DB reservation are composed
+explicitly; neither realization assumes cross-task streaming or CID-based sharing.
 
 External captures are borrowed. An execution must not close its caller's capture.
 Internal acquisition/Compute resources are execution-owned and released after

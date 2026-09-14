@@ -176,6 +176,12 @@ pub fn strategy_fixture_open(
 }
 
 ///|
+#export_name("strategyFixtureRun")
+pub fn strategy_fixture_run(f : StrategyFixture) -> @strategy.CapturedDAG {
+  f.run.unwrap()
+}
+
+///|
 fn strategy_fixture_request(
   f : StrategyFixture,
   task : Int,

@@ -82,6 +82,8 @@ pub fn captured_source_row_count(CapturedInputSource) -> Int?
 
 pub fn captured_source_statistics(CapturedInputSource) -> CapturedSourceStatistics?
 
+pub fn captured_source_storage(CapturedInputSource, Int, Int) -> Result[@execution_relation.ProducerStorage, CapturedSourceIssue]
+
 pub fn choose_acquisition_candidate(CapabilityRegistry, QueryRequirement, Array[AcquisitionCandidate], Array[Int]?, Int) -> Result[AcquisitionSelection, QueryPlanningIssue]
 
 pub fn choose_fixed_compute_candidate(CapabilityRegistry, FixedComputeRequest, Array[FixedComputeCandidate], Array[Int]?, Int) -> Result[FixedComputeSelection, FixedComputeIssue]
@@ -394,6 +396,7 @@ pub(all) enum CapturedSourceIssue {
   Unavailable
   Binding(@execution_relation.ProducerBindingIssue)
   NativeCompletion(@execution_relation.TrustedOutputIssue)
+  Storage(@execution_relation.ProducerReadIssue)
 }
 
 pub struct CapturedSourceStatistics {

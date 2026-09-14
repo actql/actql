@@ -135,6 +135,8 @@ pub fn prepare_ordered_params(RegisteredOrderedContract, @lowering_relation.Orde
 
 pub fn prepare_producer_read(@lowering_relation.BoundPrepared, BoundProducerInput, Int, Int) -> Result[ProducerRead, ProducerReadIssue]
 
+pub fn prepare_producer_storage(CompletedOutput, Int, Int) -> Result[ProducerStorage, ProducerReadIssue]
+
 pub fn prepare_row_wire_order(Array[String], Int, Int) -> Result[RowWireOrder, RowWireIssue]
 
 pub fn prepare_runtime_fragment(@lowering_relation.FragmentRequest, FragmentContract, @lowering_relation.DemandLimits, RegistryLimits, @lowering_relation.FragmentRowLimits, ordered? : RegisteredOrderedContract?) -> Result[FragmentRuntimeContext, RuntimeFragmentIssue]
@@ -150,6 +152,16 @@ pub fn producer_read_receiver(ProducerRead) -> @lowering_relation.BoundPrepared
 pub fn producer_read_row_count(ProducerRead) -> Int
 
 pub fn producer_read_schema(ProducerRead) -> @relation_schema.Schema
+
+pub fn producer_storage_available(ProducerStorage) -> Bool
+
+pub fn producer_storage_cell(ProducerStorage, Int, Int) -> Value?
+
+pub fn producer_storage_projection(ProducerStorage, ProducerRead, Int) -> Result[Array[Int], ProducerReadIssue]
+
+pub fn producer_storage_row_count(ProducerStorage) -> Int
+
+pub fn producer_storage_schema(ProducerStorage) -> @relation_schema.Schema
 
 pub fn restrict_completed_output(CompletedOutput, () -> Bool) -> CompletedOutput
 
@@ -398,6 +410,8 @@ pub(all) enum ProducerReadIssue {
   InvalidProjection
   ProducerUnavailable
 }
+
+type ProducerStorage
 
 type RegisteredOrderedContract
 

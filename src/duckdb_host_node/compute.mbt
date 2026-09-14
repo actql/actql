@@ -54,9 +54,42 @@ pub fn compute_strategy_host_open(
   transfer_bytes : Int64,
   execution_bytes : Int64,
 ) -> ComputeNodeRun raise NodeHostFailure {
+  open_strategy_compute_host(setup, verify, transfer_bytes, execution_bytes)
+}
+
+///|
+#export_name("computeResidentStrategyHostOpen")
+pub fn compute_resident_strategy_host_open(
+  setup : @host.StrategyComputeHostConfiguration,
+  verify : (@planning.DuckDBComputeAttempt) -> Bool,
+  transfer_bytes : Int64,
+  execution_bytes : Int64,
+  resident : @strategy.ResidentRead,
+) -> ComputeNodeRun raise NodeHostFailure {
+  open_strategy_compute_host(
+    setup,
+    verify,
+    transfer_bytes,
+    execution_bytes,
+    resident~,
+  )
+}
+
+///|
+fn open_strategy_compute_host(
+  setup : @host.StrategyComputeHostConfiguration,
+  verify : (@planning.DuckDBComputeAttempt) -> Bool,
+  transfer_bytes : Int64,
+  execution_bytes : Int64,
+  resident? : @strategy.ResidentRead,
+) -> ComputeNodeRun raise NodeHostFailure {
   match
     @host.start_configured_strategy_compute_host(
-      setup, verify, transfer_bytes, execution_bytes,
+      setup,
+      verify,
+      transfer_bytes,
+      execution_bytes,
+      resident?,
     ) {
     Ok(attempt) =>
       {
@@ -65,6 +98,48 @@ pub fn compute_strategy_host_open(
         strategy: Some(@host.configured_strategy_compute_graph(setup)),
         closed: false,
       }
+    Err(issue) => raise Strategy(issue)
+  }
+}
+
+///|
+#export_name("computeResidentSql")
+pub fn compute_resident_sql(
+  run : ComputeNodeRun,
+  kind : Int,
+) -> String raise NodeHostFailure {
+  guard run.strategy is Some((graph, _)) &&
+    @strategy.captured_resident_query(graph, run.attempt) is Some(query) else {
+    raise InvalidCommand
+  }
+  match kind {
+    0 => @duckdb.resident_query_create_sql(query)
+    1 => @duckdb.resident_query_read_sql(query)
+    2 => @duckdb.resident_query_drop_sql(query)
+    _ => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("computeResidentCommit")
+pub fn compute_resident_commit(
+  run : ComputeNodeRun,
+) -> Unit raise NodeHostFailure {
+  guard run.strategy is Some((graph, _)) else { raise InvalidCommand }
+  match @strategy.confirm_captured_resident_output(graph, run.attempt) {
+    Ok(_) => ()
+    Err(issue) => raise Strategy(issue)
+  }
+}
+
+///|
+#export_name("computeResidentCleanupSql")
+pub fn compute_resident_cleanup_sql(
+  run : ComputeNodeRun,
+) -> Array[String] raise NodeHostFailure {
+  guard run.strategy is Some((graph, _)) else { raise InvalidCommand }
+  match @strategy.captured_resident_cleanup_sql(graph, run.attempt) {
+    Ok(value) => value
     Err(issue) => raise Strategy(issue)
   }
 }

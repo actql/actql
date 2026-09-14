@@ -24,6 +24,7 @@ struct StrategyHostDispatch {
   limits : TaskDispatchLimits
   mut pending : TaskDispatch?
   mut estimates : DispatchEstimates?
+  mut resident : ResidentDispatch?
 }
 
 ///|
@@ -123,6 +124,7 @@ pub fn configure_strategy_dispatch(
     limits,
     pending: None,
     estimates: None,
+    resident: None,
   })
 }
 
@@ -328,6 +330,12 @@ pub fn dispatch_task(dispatch : TaskDispatch) -> Int {
 ///|
 pub fn dispatch_is_native(dispatch : TaskDispatch) -> Bool {
   dispatch.work is Native(_)
+}
+
+///|
+pub fn dispatch_is_resident(dispatch : TaskDispatch) -> Bool {
+  @strategy.strategy_resident_profile(dispatch.revision, dispatch.task)
+  is Some(_)
 }
 
 ///|

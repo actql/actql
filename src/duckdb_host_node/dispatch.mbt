@@ -22,6 +22,33 @@ pub fn strategy_host_native(task : @host.TaskDispatch) -> Bool {
 }
 
 ///|
+#export_name("strategyHostResident")
+pub fn strategy_host_resident(task : @host.TaskDispatch) -> Bool {
+  @host.dispatch_is_resident(task)
+}
+
+///|
+#export_name("strategyHostRun")
+pub fn strategy_host_run(
+  host : @host.StrategyHostDispatch,
+) -> @strategy.CapturedDAG {
+  @host.dispatch_run(host)
+}
+
+///|
+#export_name("strategyHostResidentInput")
+pub fn strategy_host_resident_input(
+  host : @host.StrategyHostDispatch,
+  task : Int,
+) -> Array[Int64] raise NodeHostFailure {
+  guard @host.dispatch_resident_input(host, task)
+    is Some((producer, bytes, entries, names)) else {
+    raise InvalidCommand
+  }
+  [producer.to_int64(), bytes, entries.to_int64(), names.to_int64()]
+}
+
+///|
 #export_name("strategyHostTakeNative")
 pub fn strategy_host_take_native(
   task : @host.TaskDispatch,

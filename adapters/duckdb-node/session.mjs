@@ -83,7 +83,7 @@ async function cancellationBoundary(start, limits, signal, accounting) {
   throw failure;
 }
 
-async function usingSession(path, readonly, suppliedLimits, body, signal, accounting) {
+async function usingSession(path, readonly, suppliedLimits, body, signal, accounting, shared) {
   const limits = validateLimits(suppliedLimits);
   accounting?.started();
   let cancelled = signal?.aborted ?? false;
@@ -140,7 +140,8 @@ async function usingSession(path, readonly, suppliedLimits, body, signal, accoun
       pending = false;
       assertLive();
       const allowed = readonly ? [StatementType.SELECT]
-        : [StatementType.SELECT, StatementType.CREATE, StatementType.INSERT];
+        : [StatementType.SELECT, StatementType.CREATE, StatementType.INSERT,
+          ...(shared ? [StatementType.DROP] : [])];
       if (!allowed.includes(prepared.statementType)) throw new DuckDBTransportError('StatementKind');
       if (prepared.parameterCount !== bound.length) throw new DuckDBTransportError('ParameterCount');
       for (let i = 0; i < bound.length; i++) bindPhysicalValue(prepared, i + 1, bound[i]);
@@ -225,10 +226,13 @@ async function usingSession(path, readonly, suppliedLimits, body, signal, accoun
         transaction = false; // closing the owned connection ends its transaction
       } catch (error) { cleanupErrors.push(error); }
       // Retain the instance while its connection still needs cleanup.
-      if (!connection) {
+      if (!connection && !shared) {
         try { instance?.closeSync(); instance = undefined; }
         catch (error) { cleanupErrors.push(error); }
       }
+      // This task borrows the DB. Its transaction/connection has settled, but
+      // the environment owner continues reserving the shared instance capacity.
+      if (!connection && shared) instance = undefined;
       const status = cleanupStatus();
       accounting?.settled(!status.pending);
       return status;
@@ -236,13 +240,7 @@ async function usingSession(path, readonly, suppliedLimits, body, signal, accoun
   };
   try {
     assertLive();
-    instance = await DuckDBInstance.create(path, {
-      access_mode: readonly ? 'READ_ONLY' : 'READ_WRITE',
-      threads: String(limits.threads), memory_limit: `${limits.memoryBytes}B`,
-      max_temp_directory_size: '0B', preserve_insertion_order: 'true',
-      enable_external_access: 'false', autoinstall_known_extensions: 'false',
-      autoload_known_extensions: 'false', allow_unsigned_extensions: 'false',
-    });
+    instance = shared?.instance ?? await createInstance(path, readonly, limits);
     assertLive();
     connection = await instance.connect();
     assertLive();
@@ -258,6 +256,13 @@ async function usingSession(path, readonly, suppliedLimits, body, signal, accoun
     assertLive();
     if (inFlight.size !== 0) throw new DuckDBTransportError('UnawaitedCommand');
     if (commandFailure) throw commandFailure;
+    if (shared) {
+      // The trusted body must finish provisional-output validation before
+      // returning. Only successful transactions may publish resident tables.
+      await connection.run('COMMIT');
+      transaction = false;
+      assertLive();
+    }
   } catch (error) {
     failure = cancelled ? new DuckDBTransportError('Cancelled', { cause: error }) : error;
   } finally {
@@ -284,6 +289,94 @@ async function usingSession(path, readonly, suppliedLimits, body, signal, accoun
   if (signal?.aborted && !failure) failure = new DuckDBTransportError('Cancelled');
   if (failure) throw failure;
   return Object.freeze({ value: result, usage: Object.freeze({ ...usage }) });
+}
+
+function createInstance(path, readonly, limits) {
+  return DuckDBInstance.create(path, {
+    access_mode: readonly ? 'READ_ONLY' : 'READ_WRITE',
+    threads: String(limits.threads), memory_limit: `${limits.memoryBytes}B`,
+    max_temp_directory_size: '0B', preserve_insertion_order: 'true',
+    enable_external_access: 'false', autoinstall_known_extensions: 'false',
+    autoload_known_extensions: 'false', allow_unsigned_extensions: 'false',
+  });
+}
+
+// Trusted resource-provider operation, not candidate enumeration. The caller
+// must reserve the DB capacity before calling. Each task has its own connection,
+// transaction, cancellation scope, transfer budget and scratch accounting.
+// No source grant or arbitrary existing instance can be attached here.
+export async function provisionComputeDatabase(suppliedLimits, accounting) {
+  const limits = validateLimits(suppliedLimits);
+  accounting.started();
+  let instance;
+  try {
+    instance = await createInstance(':memory:', false, limits);
+  } catch (error) {
+    accounting.settled(true);
+    throw error;
+  }
+  let closing = false;
+  let busy = false;
+  let pendingCleanup;
+  const status = () => Object.freeze({
+    live: instance !== undefined && !closing,
+    pending: instance !== undefined,
+    busy,
+  });
+  const close = async () => {
+    closing = true;
+    if (busy) {
+      accounting.settled(false);
+      throw new DuckDBTransportError('CleanupInProgress');
+    }
+    try {
+      if (pendingCleanup) {
+        const state = await pendingCleanup.retry();
+        if (state.pending) {
+          accounting.settled(false);
+          return status();
+        }
+        pendingCleanup = undefined;
+      }
+      instance?.closeSync();
+      instance = undefined;
+      accounting.settled(true);
+      return status();
+    } catch (error) {
+      accounting.settled(false);
+      throw error;
+    }
+  };
+  return Object.freeze({
+    status,
+    close,
+    memoryBytes: limits.memoryBytes,
+    threads: limits.threads,
+    async run(taskLimits, body, signal, taskAccounting) {
+      taskLimits = validateLimits(taskLimits);
+      if (!instance || closing || pendingCleanup) throw new DuckDBTransportError('SessionClosed');
+      if (busy) throw new DuckDBTransportError('ConcurrentCommand');
+      if (taskLimits.memoryBytes !== limits.memoryBytes || taskLimits.threads !== limits.threads) {
+        throw new DuckDBTransportError('EnvironmentMismatch');
+      }
+      busy = true;
+      // busy tracks actual native settlement, not the cancellation deadline.
+      return cancellationBoundary(async fixedLimits => {
+        try {
+          return await usingSession(':memory:', false, fixedLimits, body, signal,
+            taskAccounting, { instance });
+        } catch (error) {
+          if (error.cleanupPending) {
+            pendingCleanup = error.cleanupHandle;
+            closing = true;
+          }
+          throw error;
+        } finally {
+          busy = false;
+        }
+      }, taskLimits, signal, taskAccounting);
+    },
+  });
 }
 
 export async function withSourceDatabase(grant, limits, body, signal, accounting) {

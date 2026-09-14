@@ -23,7 +23,7 @@ async function boundedText(path) {
 // Application settings select the source file; Program/Catalog text cannot grant
 // filesystem access. Preparation and semantic decisions stay in MoonBit.
 export async function runExample({ database, environment, environmentCid, program,
-  parameters, schema = 'main', table = 'records', nativeMilliseconds = '5', signal }) {
+  parameters, schema = 'main', table = 'records', nativeMilliseconds = '5', resident = false, signal }) {
   if (!/^\d{1,18}$/.test(nativeMilliseconds)) throw new Error('Invalid native estimate');
   const app = await import(runtimeUrl);
   const [programText, environmentText, parameterText, adoptedText, query, evidence, receipts] =
@@ -47,7 +47,7 @@ export async function runExample({ database, environment, environmentCid, progra
   let execution;
   try {
     const graph = capture.openDAG(app.applicationGraph(prepared));
-    const setup = checked(app.applicationDispatch(prepared, graph, BigInt(nativeMilliseconds)));
+    const setup = checked(app.applicationDispatch(prepared, graph, BigInt(nativeMilliseconds), resident));
     execution = await runCapturedStrategy(setup, limits, { maxRows: 100, maxCells: 1000 }, signal);
     const explanation = execution.explain();
     const report = Object.freeze({ status: execution.status, program_success: false,
@@ -55,7 +55,7 @@ export async function runExample({ database, environment, environmentCid, progra
       completed: execution.completed,
       internal_output_cids: [1, 2, 3].map(task => ({ task, cid: app.applicationOutputCid(graph, task) ?? null })),
       failure: execution.failure?.code ?? (execution.failure ? 'HostFailure' : null),
-      cleanup_pending: execution.failure?.cleanupHandle?.status().pending ?? false,
+      cleanup_pending: execution.cleanupPending(),
       explanation });
     // The caller owns both handles, including any pending failure cleanup handle.
     return Object.freeze({ report, execution, capture, close() { execution.close(); capture.close(); } });
@@ -74,6 +74,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1]
       'environment-cid': { type: 'string' }, program: { type: 'string' },
       parameters: { type: 'string' }, schema: { type: 'string', default: 'main' },
       table: { type: 'string', default: 'records' }, 'native-ms': { type: 'string', default: '5' },
+      resident: { type: 'boolean', default: false },
     } });
     for (const key of ['database', 'environment', 'environment-cid', 'program', 'parameters']) {
       if (!values[key]) throw new Error(`Required --${key}`);
@@ -82,9 +83,8 @@ if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1]
     console.log(JSON.stringify(result.report, (_, value) => typeof value === 'bigint' ? value.toString() : value, 2));
     if (result.execution.failure) {
       // Cleanup only: this cannot retry a query or turn failure into success.
-      const cleanup = result.execution.failure.cleanupHandle;
-      if (cleanup?.status().pending) await cleanup.retry();
-      if (cleanup?.status().pending) console.error('Cleanup remains pending; no release or durable recovery is claimed.');
+      if (result.execution.cleanupPending()) await result.execution.cleanup();
+      if (result.execution.cleanupPending()) console.error('Cleanup remains pending; no release or durable recovery is claimed.');
       process.exitCode = 1;
     }
   } catch (error) {

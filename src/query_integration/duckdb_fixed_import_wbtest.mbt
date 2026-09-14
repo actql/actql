@@ -99,6 +99,14 @@ fn duckdb_fixed_values(
   source : String,
   steps? : String = "[{\"select\":[\"x\"]}]",
 ) -> @execution.ProducerRead raise {
+  duckdb_fixed_values_storage(source, steps~).0
+}
+
+///|
+fn duckdb_fixed_values_storage(
+  source : String,
+  steps? : String = "[{\"select\":[\"x\"]}]",
+) -> (@execution.ProducerRead, @execution.ProducerStorage) raise {
   let pipeline = @pipeline.check(input_cursor(source), [], None, None, {
     max_steps: 10,
     max_work: 100000,
@@ -126,7 +134,63 @@ fn duckdb_fixed_values(
   let receiver = typed_receiver(owner, steps, target=Step(0))
   let output = @execution.completed_output(complete, Step(0)).unwrap()
   let bound = @execution.bind_completed_input(receiver, 0, owner, output).unwrap()
-  @execution.prepare_producer_read(receiver, bound, 100, 1000).unwrap()
+  (
+    @execution.prepare_producer_read(receiver, bound, 100, 1000).unwrap(),
+    @execution.prepare_producer_storage(output, 100, 1000).unwrap(),
+  )
+}
+
+///|
+test "resident SQL uses exact producer storage and checked receiver projection" {
+  let source = "[{\"values\":{\"schema\":{\"x\":{\"type\":\"number\",\"nullable\":false}},\"rows\":[{\"x\":3},{\"x\":3}]},\"as\":\"seed\"}]"
+  let steps = "[{\"filter\":\"x > 1\"},{\"select\":[\"x\"]}]"
+  let (input, storage) = duckdb_fixed_values_storage(source, steps~)
+  let imported = @duckdb.prepare_resident_import(
+    storage, "resident_x", 10, 1000,
+  ).unwrap()
+  assert_eq(
+    @duckdb.resident_import_create_sql(imported),
+    "CREATE TABLE \"resident_x\" (\"x\" DOUBLE NOT NULL)",
+  )
+  assert_eq(
+    @duckdb.resident_import_receiver_sql(
+      imported, input, "owned_input", 10, 1000,
+    ).unwrap(),
+    "CREATE TEMP VIEW \"owned_input\" AS SELECT \"x\" AS \"x\" FROM main.\"resident_x\"",
+  )
+  let foreign = duckdb_fixed_values(source, steps~)
+  assert_true(
+    @duckdb.resident_import_receiver_sql(
+      imported, foreign, "owned_input", 10, 1000,
+    )
+    is Err(UnsupportedShape),
+  )
+  let query = @duckdb.compile_native_filter_select(
+    @execution.producer_read_receiver(input),
+    "main",
+    "owned_input",
+    native_compile_limits(),
+  ).unwrap()
+  let retained = @duckdb.prepare_resident_query(query, "resident_a", 1000).unwrap()
+  assert_eq(
+    @duckdb.resident_query_create_sql(retained),
+    "CREATE TABLE \"resident_a\" AS SELECT \"x\" AS \"x\" FROM \"main\".\"owned_input\" WHERE CAST(\"x\" AS DOUBLE) > ?",
+  )
+  assert_eq(
+    @duckdb.resident_query_read_sql(retained),
+    "SELECT * FROM main.\"resident_a\"",
+  )
+  assert_eq(
+    @duckdb.resident_query_drop_sql(retained),
+    "DROP TABLE main.\"resident_a\"",
+  )
+  assert_true(
+    @duckdb.prepare_resident_query(query, "owned_input", 1000)
+    is Err(InvalidIdentifier),
+  )
+  assert_true(
+    @duckdb.prepare_resident_query(query, "resident_a", 1) is Err(Limit),
+  )
 }
 
 ///|

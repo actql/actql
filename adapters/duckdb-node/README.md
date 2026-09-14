@@ -452,8 +452,9 @@ Prepare a selected task's `ComputeHostConfiguration`, wrap it with
 `duckdb_host.configure_strategy_compute_host`, and execute through
 `runStrategyHostCompute` in `host.mjs`. The standard Host retains verifier wiring;
 task completion is recorded by the DAG's exact attempt, not a caller-supplied
-output. Every DuckDB task uses its own temporary database and imports its fixed
-input, including consecutive DuckDB tasks. No resident sharing is implied.
+output. This fresh-DB entry uses a separate temporary database for every task and
+imports each fixed input. Resident sharing is a separate selected realization,
+not an implicit optimization of this entry.
 The common DAG start (not only the Node wrapper) reserves `maxTransportBytes` and an execution envelope
 against that ledger before DB creation. `computePhysicalCapacity(limits)` from
 `physical-capacity.mjs` supplies the same envelope to planning and dispatch:
@@ -481,6 +482,62 @@ or allow success publication. `status()` reports current pending responsibility,
 while `retry()` awaits the same original operation and retries only failed cleanup.
 The error's `cleanupPending` is the return-time snapshot; use the handle for updates.
 This is an in-process handle, not durable recovery or a hard native-kill timeout.
+
+### Run-owned resident execution
+
+Before the first search, `duckdb_host.configure_resident_dispatch` can attach a
+run-owned `physical_strategy.ResidentProfile` and resident task rates to the
+standard dispatch setup. The profile specifies DB capacity, preparation/cleanup
+estimates and per-producer import transfer, scratch and table allowances. Task
+rates cover calculation, output receipt, Host retention and task cleanup; do not
+include the shared preparation/import lines again. Unknown estimates remain
+unknown. Only the exact run-owned profile and its selected input dependency may
+authorize provision or import.
+
+The fixture-independent `examples/physical-strategy.mjs` accepts `--resident`
+(or `runExample({ ..., resident: true })`) to include this realization. Its
+illustrative model uses one millisecond each for environment preparation,
+cleanup, each input import and each resident task; these are supplied estimates,
+not timings. The example ledger permits 500,000 transferred frame bytes, covering
+acquisition as well as an initial import and three result envelopes. Actual
+transport remains charged and bounded independently of the model.
+
+`runCapturedStrategy` then selects Local, fresh DuckDB or resident DuckDB through
+the same finite comparison. It provisions one source-isolated in-memory DB only
+after reservation, imports a shared input once, and reuses retained result tables
+within that DAG. Each task uses its own transaction. Host receiving, guards,
+demand and independent completed results remain required; this does not eliminate
+result transfer or acquisition's full-scan transfer.
+
+The shared DB allowance stays reserved until confirmed destruction. Host output
+copies and task scratch remain separate. Last-use table removal happens in a
+task transaction after its reads and is credited only after commit and native
+settlement. Output capacity is reserved before that removal. Table allowances
+are Host admission policy, not measurements of DuckDB allocator bytes or a claim
+that its configured memory limit bounds total process RSS.
+
+The standard low-level resident operations in `host.mjs` are
+`openResidentStrategyEnvironment`, `importResidentStrategyInput` and
+`runResidentStrategyHostCompute`. They retain trusted verifier wiring and cannot
+attach arbitrary DB connections. Environment `status()` reports live/pending
+state; `close()` invalidates DB reuse without revoking independent Host results.
+After copy loss, only unstarted work can be selected again from live fixed Host
+inputs, under the existing search and cumulative resource limits. Failed or
+started tasks are not automatically retried.
+
+The strategy result's `cleanupPending()` and asynchronous `cleanup()` retain
+unconfirmed resource recovery after failure. `close()` releases output handles;
+it does not assert native cleanup or retry computation. Cleanup failure never
+changes a failed strategy result into success. These are process-local resource
+handles, not a general provisioning SPI, cross-DAG cache or durable recovery.
+
+Explanation retains the last selected placement after environment cleanup.
+`selection.dispatch_authorized` distinguishes that diagnostic history from a
+currently authorized dispatch. Resident task entries include their shared
+profile's preparation/cleanup estimates and import envelopes; repeated profile
+descriptions are not additional charges. The whole-strategy assessment contains
+the composed cost, while the ledger reports actual accumulated usage.
+
 For native acquisition charged to the same graph ledger, use
 `runStrategyNativeHostQuery(grant, ownedConfiguration, ledger, transportLimits, signal)`.
 It reserves before source opening, charges metadata and both receipts, and returns

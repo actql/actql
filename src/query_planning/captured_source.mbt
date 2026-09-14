@@ -34,6 +34,25 @@ pub(all) enum CapturedSourceIssue {
   Unavailable
   Binding(@execution.ProducerBindingIssue)
   NativeCompletion(@execution.TrustedOutputIssue)
+  Storage(@execution.ProducerReadIssue)
+}
+
+///|
+/// Read-only physical export of the completed capture, never a raw output that
+/// bypasses observation liveness through ordinary producer binding.
+pub fn captured_source_storage(
+  source : CapturedInputSource,
+  max_entries : Int,
+  max_name_bytes : Int,
+) -> Result[@execution.ProducerStorage, CapturedSourceIssue] {
+  if !(source.live)() {
+    return Err(Unavailable)
+  }
+  @execution.prepare_producer_storage(
+    @execution.restrict_completed_output(source.output, source.live),
+    max_entries,
+    max_name_bytes,
+  ).map_err(issue => Storage(issue))
 }
 
 ///|
