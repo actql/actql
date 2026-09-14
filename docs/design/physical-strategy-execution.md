@@ -269,6 +269,11 @@ validation, Transfer, computation, capture, retention and cleanup. Bundled work 
 not added again as edge costs. Time, transfer and retention are separate units;
 unknown estimates remain unknown. Explicit Host ordering resolves unknowns or
 ties; without an unknown-selection policy the choice is deferred.
+The priority array is a full permutation of original enumeration positions,
+including infeasible strategies. Charged preflight validates that permutation;
+selection removes rejected positions and maps the remaining order to feasible
+indices. Reports always retain the original positions, including when all
+strategies are infeasible.
 
 At capture/task completion, new measured input statistics may update unstarted
 choices. The first resource creation or input transfer freezes its candidate and

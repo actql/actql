@@ -228,6 +228,7 @@ pub(all) enum SearchIssue {
   ForeignOffer(Int)
   CapabilityUnavailable(Int)
   InvalidCapacity
+  InvalidPreference
   Overflow
   Cost(@physical_cost.CostIssue)
   Ledger(LedgerIssue)

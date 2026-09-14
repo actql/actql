@@ -80,6 +80,7 @@ pub(all) enum SearchIssue {
   ForeignOffer(Int)
   CapabilityUnavailable(Int)
   InvalidCapacity
+  InvalidPreference
   Overflow
   Cost(@cost.CostIssue)
   Ledger(LedgerIssue)
@@ -267,6 +268,32 @@ pub fn revise_strategy(
     combinations *= groups[task].length()
     tasks.push(task)
   }
+  // Host priority addresses original enumeration positions, before resource
+  // rejection. Validate the whole permutation in charged, correctable preflight.
+  let positions : Array[Int] = match host_priority {
+    None => []
+    Some(order) => {
+      match search_charge(work, order.length()) {
+        Err(e) => return Err(e)
+        Ok(_) => ()
+      }
+      if order.length() != combinations {
+        return Err(InvalidPreference)
+      }
+      match search_charge(work, combinations) {
+        Err(e) => return Err(e)
+        Ok(_) => ()
+      }
+      let seen = Array::make(combinations, -1)
+      for position in order {
+        if position < 0 || position >= combinations || seen[position] != -1 {
+          return Err(InvalidPreference)
+        }
+        seen[position] = 0
+      }
+      seen
+    }
+  }
   // Only a valid request consumes a search attempt. Invalid requests can be
   // corrected without inventing execution progress; validation work is spent.
   // Once accepted, revoke dispatch before enumeration (including failure).
@@ -361,6 +388,9 @@ pub fn revise_strategy(
     }
     run.search_report.push(assessment)
     if rejection is None {
+      if host_priority is Some(_) {
+        positions[position] = feasible.length()
+      }
       feasible.push({
         number: run.revisions,
         generation: run.generation,
@@ -370,6 +400,8 @@ pub fn revise_strategy(
         estimated_fastest: false,
       })
       durations.push(assessment.duration)
+    } else if host_priority is Some(_) {
+      positions[position] = -1
     }
     let mut digit = indices.length() - 1
     while digit >= 0 {
@@ -388,7 +420,27 @@ pub fn revise_strategy(
     Err(e) => return Err(e)
     Ok(_) => ()
   }
-  match @cost.choose_serial(durations, host_priority, durations.length() * 2) {
+  let feasible_priority = match host_priority {
+    None => None
+    Some(order) => {
+      match search_charge(work, order.length()) {
+        Err(e) => return Err(e)
+        Ok(_) => ()
+      }
+      Some(
+        order.filter_map(position => {
+          let index = positions[position]
+          if index < 0 {
+            None
+          } else {
+            Some(index)
+          }
+        }),
+      )
+    }
+  }
+  match
+    @cost.choose_serial(durations, feasible_priority, durations.length() * 2) {
     Err(issue) => Err(Cost(issue))
     Ok(NoCandidates) => {
       run.search_report_complete = true
