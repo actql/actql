@@ -829,7 +829,7 @@ fn prepare_publication_source_policy(
             unknown = true
             1
           }
-          @pipeline.Projection(_) => {
+          @pipeline.Pool(_) | @pipeline.Projection(_) => {
             identity_charge(budget, 1)
             carrier_steps.push({
               step: index,

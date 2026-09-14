@@ -580,6 +580,15 @@ the score or embedding out of a Result does not discard input participation in
 selection. Component admission, identity uniqueness, arithmetic, score ordering
 and selected vector resource checks remain distinct from policy transfer.
 
+Pooling retains every input-policy contributor, including member identity and
+group membership even when their input columns are absent from the pooled result.
+Grouping references, reduction method and output-role names introduce no authored
+value contribution. The Carrier-step reader retains the exact checked pool and
+its selected Relation member key or Vectors identity. Member-key encoding,
+global uniqueness, member ordering, quantization, fold arithmetic, counts and
+resource obligations remain attached to that same operation; policy transfer
+does not establish any of them.
+
 Result imports retain the producer's completed publication through
 `publication_policy_import_count/at`, including the consumer input coordinate.
 `imported_publication` is a convenience only for exactly one import.
