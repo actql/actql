@@ -19,6 +19,7 @@ struct CheckedProgram {
   analytic_string_limits : Array[Array[AnalyticStringLimit]]
   numeric_slots : NumericSlotIdentities
   analytic_numeric_slots : AnalyticNumericSlotIdentities
+  pivot_numeric_slots : PivotNumericSlotIdentities
 }
 
 ///|
@@ -72,6 +73,7 @@ fn check_supported_source(
               | "unnest"
               | "unpivot"
               | "nest"
+              | "pivot"
               | "analytic"
               | "row_window"
               | "window_events"
@@ -253,6 +255,11 @@ pub fn check(
   ) catch {
     error => raise Units(error)
   }
+  let pivot_numeric_slots = prepare_program_pivot_numeric_slot_identities(
+    units, requirements, budget,
+  ) catch {
+    error => raise Units(error)
+  }
   {
     nest_limits,
     traversal_limits,
@@ -273,6 +280,7 @@ pub fn check(
     analytic_string_limits,
     numeric_slots,
     analytic_numeric_slots,
+    pivot_numeric_slots,
   }
 }
 

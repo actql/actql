@@ -1364,8 +1364,20 @@ the pivot slot contract/schema plus the admitted profile's member and observatio
 dependencies once per local pivot occurrence, including an empty generated axis.
 Imported visits do not add those dependencies to the consumer's local roots.
 Selection shares the Program preparation budget and rejects foreign inventories
-even when their source identity is equal. Persistent pivot slot construction
-remains necessary before the formal Program constructor admits this family.
+even when their source identity is equal.
+
+The formal constructor creates each persistent `PivotNumericSlot` once in its
+producer Unit using the shared pivot slot preimage. Requirement-indexed
+`PivotNumericSlots` readers retain that producer's bundle across imports rather
+than rebasing it to a consumer Unit. An empty bundle still exposes its operation
+and numeric demand; it differs from a non-numeric requirement. Per-Unit and
+per-bundle indexed reads are constant-time and return retained immutable values.
+Name traversal, slot allocation and canonical hashing consume the shared
+construction budget, with no partially constructed Program returned on failure.
+Decimal and other exact aggregates do not acquire binary64 observation slots;
+first still needs the separately resolved stable input order. The returned
+runtime checks require bucket evaluation, result admission and any numeric
+capture before consumers; construction does not perform those checks.
 
 ### Nested child arrays
 

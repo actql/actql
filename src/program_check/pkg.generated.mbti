@@ -101,6 +101,8 @@ pub fn emit_group_numeric_slot(GroupNumericSlot, @encode_core.Writer) -> Unit ra
 
 pub fn emit_interval_search_limit(IntervalSearchLimit, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
 
+pub fn emit_pivot_numeric_slot(PivotNumericSlot, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
+
 pub fn emit_publication_source_policy(PublicationSourcePolicy, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
 
 pub fn emit_source_response_policy(SourceResponsePolicy, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
@@ -188,6 +190,24 @@ pub fn nest_limits_source(NestLimits) -> NestResourceSource
 pub fn nest_resource_subject(NestResourceSource, NestResourceScope, Int) -> String raise UnitBuildFailure
 
 pub fn numeric_slot_for_requirement(CheckedProgram, Int) -> GroupNumericSlot?
+
+pub fn pivot_numeric_slot_at(PivotNumericSlots, Int) -> PivotNumericSlot?
+
+pub fn pivot_numeric_slot_cid(PivotNumericSlot) -> String
+
+pub fn pivot_numeric_slot_count(PivotNumericSlots) -> Int
+
+pub fn pivot_numeric_slot_demand(PivotNumericSlot) -> @pipeline_check_context.PivotNumericDemand
+
+pub fn pivot_numeric_slot_name(PivotNumericSlot) -> String
+
+pub fn pivot_numeric_slot_operation(PivotNumericSlot) -> UnitOperationSource
+
+pub fn pivot_numeric_slots_demand(PivotNumericSlots) -> @pipeline_check_context.PivotNumericDemand
+
+pub fn pivot_numeric_slots_for_requirement(CheckedProgram, Int) -> PivotNumericSlots?
+
+pub fn pivot_numeric_slots_operation(PivotNumericSlots) -> UnitOperationSource
 
 pub fn proof_application(ReidentifiedStep) -> @capacity_program_step.StepBound
 
@@ -390,6 +410,10 @@ pub fn unit_nest_limit_count(CheckedProgram, Int) -> Int?
 pub fn unit_nest_resource_source_at(CheckedProgram, Int, Int) -> NestResourceSource?
 
 pub fn unit_pipeline(CheckedProgram, Int) -> @pipeline_typing.CheckedPipeline?
+
+pub fn unit_pivot_numeric_slot_at(CheckedProgram, Int, Int) -> PivotNumericSlot?
+
+pub fn unit_pivot_numeric_slot_count(CheckedProgram, Int) -> Int?
 
 pub fn unit_publication_at(CheckedProgram, Int, Int) -> PublicationExecution?
 
@@ -613,6 +637,10 @@ pub struct NestResourceSource {
   nest : @relation_nest.CheckedNest
   // private fields
 }
+
+type PivotNumericSlot
+
+type PivotNumericSlots
 
 type PublicationExecution
 

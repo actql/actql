@@ -224,12 +224,41 @@ fn prepare_owned_closure(
         Err(e) => raise NumericSlots(e)
       }
   }
-  let resolutions = match analytic_numeric_slots {
+  let analytic_resolutions = match analytic_numeric_slots {
     None => group_resolutions
     Some(slots) =>
       match
         @context.link_program_analytic_numeric_slots(
           group_resolutions,
+          slots,
+          ceiling,
+          ceiling - prefix,
+        ) {
+        Ok(v) => v
+        Err(e) => raise NumericSlots(e)
+      }
+  }
+  let pivot_numeric_slots = match numeric_profile {
+    None => None
+    Some(profile) =>
+      match
+        @context.prepare_program_pivot_numeric_slots(
+          @context.operation_resolution_requirements(analytic_resolutions),
+          profile,
+          ceiling,
+          ceiling - prefix,
+          ceiling - prefix,
+        ) {
+        Ok(v) => Some(v)
+        Err(e) => raise NumericSlots(e)
+      }
+  }
+  let resolutions = match pivot_numeric_slots {
+    None => analytic_resolutions
+    Some(slots) =>
+      match
+        @context.link_program_pivot_numeric_slots(
+          analytic_resolutions,
           slots,
           ceiling,
           ceiling - prefix,
@@ -336,6 +365,7 @@ fn prepare_owned_closure(
       profile_checks=Some(profiles),
       numeric_slots~,
       analytic_numeric_slots~,
+      pivot_numeric_slots~,
       hash_limits=Some({
         max_bytes: budget.bytes - values_bytes - gate_bytes,
         max_nodes: budget.nodes - values_nodes - gate_nodes,
