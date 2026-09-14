@@ -124,5 +124,5 @@ fn direct_execution_candidate(
     Ok(None) => ()
     other => return other
   }
-  graph_structural_execution_check(site)
+  graph_structural_execution_check(site, policy)
 }

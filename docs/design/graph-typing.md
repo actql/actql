@@ -539,8 +539,16 @@ dependencies. Output-phase gates forbid partial publication; they are not
 permission to execute a later fold before its predecessor. An explicit strategy
 still applies to equal values, and an untouched one-sided record is not a
 successful application of a numeric or set strategy. Profile selection and
-structural resource resolution remain separate requirements. These bindings do
-not implement composition or certify a completed resource contract.
+structural resource resolution remain distinct from those semantic checks.
+`RequireStructuralResources` retains the selected policy and three indexed
+categories: composition work, value/temporary bytes and retained state. All fold
+checks refer to the same owned pipeline step and therefore the same operation
+scope. The selected realization supplies finite contracts and exact meters before
+input use; it cannot reset cumulative budgets per fold or ignore overlapping
+accumulator/result state in peak accounting. Input and construction ceilings are
+not substitute internal-composition ceilings. Formal construction retains these
+requirements through Result imports, without claiming resource admission or
+composition execution has occurred.
 
 `check_union` additionally accepts the normative nonempty reference list. It
 retains each binary fold, starting with the current Graph and consuming each

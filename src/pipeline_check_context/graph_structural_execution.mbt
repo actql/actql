@@ -10,6 +10,14 @@ pub(all) enum GraphStructuralRule {
   ValidateSetResults
   ValidateNumericResults
   PreserveOperandPolicies
+  RequireStructuralResources
+} derive(Eq, Debug)
+
+///|
+pub(all) enum GraphStructuralResource {
+  CompositionWork
+  ValueAndTemporaryBytes
+  RetainedCompositionState
 } derive(Eq, Debug)
 
 ///|
@@ -28,11 +36,41 @@ pub struct GraphStructuralCheck {
   right : @pipeline.Target
   operation : @graph.CheckedStructural
   rule : GraphStructuralRule
+  policy : @policy.Policy
+}
+
+///|
+/// All folds of one owned step consume the same operation-wide resource scope.
+/// These categories require a selected realization contract, not a new ceiling
+/// inferred from an external Graph-input policy field or a candidate row bound.
+pub fn graph_structural_resource_count(check : GraphStructuralCheck) -> Int {
+  if check.rule == RequireStructuralResources {
+    3
+  } else {
+    0
+  }
+}
+
+///|
+pub fn graph_structural_resource_at(
+  check : GraphStructuralCheck,
+  index : Int,
+) -> GraphStructuralResource? {
+  if check.rule != RequireStructuralResources {
+    return None
+  }
+  match index {
+    0 => Some(CompositionWork)
+    1 => Some(ValueAndTemporaryBytes)
+    2 => Some(RetainedCompositionState)
+    _ => None
+  }
 }
 
 ///|
 fn graph_structural_execution_check(
   site : OperationRequirementSite,
+  policy : @policy.Policy,
 ) -> Result[OperationExecutionCheck?, OperationResolutionIndexIssue] {
   guard site.requirement is @pipeline.StructuralRequirement(pending) else {
     return Ok(None)
@@ -48,7 +86,8 @@ fn graph_structural_execution_check(
     ValidateCanonicalSetOperations => ValidateSetResults
     ValidateFiniteNumericResults => ValidateNumericResults
     PreservePolicyDependencies => PreserveOperandPolicies
-    ResolveStructuralResources | ResolveSgaProfile => return Ok(None)
+    ResolveStructuralResources => RequireStructuralResources
+    ResolveSgaProfile => return Ok(None)
   }
   guard @pipeline.step_at(site.pipeline, site.step) is Some(step) &&
     step.input is Some(input) else {
@@ -98,7 +137,15 @@ fn graph_structural_execution_check(
   }
   Ok(
     Some(
-      GraphStructuralExecution({ site, step, left, right, operation, rule, }),
+      GraphStructuralExecution({
+        site,
+        step,
+        left,
+        right,
+        operation,
+        rule,
+        policy,
+      }),
     ),
   )
 }

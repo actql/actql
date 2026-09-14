@@ -291,6 +291,10 @@ pub fn graph_selector_resource_at(GraphSelectorCheck, Int) -> GraphSelectionReso
 
 pub fn graph_selector_resource_count(GraphSelectorCheck) -> Int
 
+pub fn graph_structural_resource_at(GraphStructuralCheck, Int) -> GraphStructuralResource?
+
+pub fn graph_structural_resource_count(GraphStructuralCheck) -> Int
+
 pub fn group_array_limit_call(GroupArrayLimit) -> @relation_typing.CheckedAggregate
 
 pub fn group_array_limit_candidate_at(GroupArrayLimit, Int) -> @capacity_graph_preflight.TargetMembership?
@@ -1656,7 +1660,14 @@ pub struct GraphStructuralCheck {
   right : @pipeline_typing.Target
   operation : @graph_typing.CheckedStructural
   rule : GraphStructuralRule
+  policy : @capacity_policy.Policy
 }
+
+pub(all) enum GraphStructuralResource {
+  CompositionWork
+  ValueAndTemporaryBytes
+  RetainedCompositionState
+} derive(Eq, @debug.Debug)
 
 pub(all) enum GraphStructuralRule {
   AdmitStructuralInputs
@@ -1669,6 +1680,7 @@ pub(all) enum GraphStructuralRule {
   ValidateSetResults
   ValidateNumericResults
   PreserveOperandPolicies
+  RequireStructuralResources
 } derive(Eq, @debug.Debug)
 
 type GroupArrayLimit

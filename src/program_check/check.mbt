@@ -105,6 +105,9 @@ fn check_supported_source(
               | "traverse"
               | "reach"
               | "shortest_path"
+              | "graft_graph"
+              | "union_graphs"
+              | "subtract_graphs"
               | "node_rows"
               | "edge_rows"
               | "values" => ()

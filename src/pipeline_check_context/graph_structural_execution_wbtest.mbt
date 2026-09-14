@@ -1,5 +1,7 @@
 ///|
-test "structural execution retains binary roles and ordered union accumulators without closing resources" {
+test "structural execution retains binary roles ordered accumulators and resource requirements" {
+  let policy = sequence_limit_policy(false)
+  let bind = site => graph_structural_execution_check(site, policy)
   let number = @contract.primitive(NumberType, nullable=false)
   let array = @contract.array_contract(
     number,
@@ -68,6 +70,7 @@ test "structural execution retains binary roles and ordered union accumulators w
         CompareIdentityRecords,
         RequirePropertyEquality,
         PreserveOperandPolicies,
+        RequireStructuralResources,
       ]
       if name == "subtract_graphs" {
         expected.push(SubtractMatchingRecords)
@@ -98,12 +101,9 @@ test "structural execution retains binary roles and ordered union accumulators w
             obligations: group,
             requirement: @pipeline.operation_obligations_at(group, index).unwrap(),
           }
-          let result = graph_structural_execution_check(site)
+          let result = bind(site)
           if site.requirement
-            is @pipeline.StructuralRequirement(
-              ResolveStructuralResources
-              | ResolveSgaProfile
-            ) {
+            is @pipeline.StructuralRequirement(ResolveSgaProfile) {
             assert_true(result is Ok(None))
             unresolved += 1
             continue
@@ -113,6 +113,27 @@ test "structural execution retains binary roles and ordered union accumulators w
           }
           actual.push(check.rule)
           assert_true(physical_equal(check.site, site))
+          assert_true(physical_equal(check.policy, policy))
+          if check.rule == RequireStructuralResources {
+            assert_eq(graph_structural_resource_count(check), 3)
+            assert_eq(
+              graph_structural_resource_at(check, 0),
+              Some(CompositionWork),
+            )
+            assert_eq(
+              graph_structural_resource_at(check, 1),
+              Some(ValueAndTemporaryBytes),
+            )
+            assert_eq(
+              graph_structural_resource_at(check, 2),
+              Some(RetainedCompositionState),
+            )
+            assert_true(graph_structural_resource_at(check, -1) is None)
+            assert_true(graph_structural_resource_at(check, 3) is None)
+          } else {
+            assert_eq(graph_structural_resource_count(check), 0)
+            assert_true(graph_structural_resource_at(check, 0) is None)
+          }
           assert_true(physical_equal(check.step, step))
           assert_eq(
             check.left,
@@ -139,7 +160,8 @@ test "structural execution retains binary roles and ordered union accumulators w
           }
           assert_eq(
             operation_execution_phase(GraphStructuralExecution(check)),
-            if check.rule == AdmitStructuralInputs {
+            if check.rule == AdmitStructuralInputs ||
+              check.rule == RequireStructuralResources {
               BeforeOperationInputUse
             } else {
               BeforeOperationOutput
@@ -190,21 +212,14 @@ test "structural execution retains binary roles and ordered union accumulators w
               )
             }
           }
+          assert_true(bind({ ..site, step: 99, }) is Err(ForeignOccurrence(99)))
           assert_true(
-            graph_structural_execution_check({ ..site, step: 99, })
-            is Err(ForeignOccurrence(99)),
+            bind({ ..site, group: fold + 1, }) is Err(ForeignOccurrence(0)),
           )
-          assert_true(
-            graph_structural_execution_check({ ..site, group: fold + 1, })
-            is Err(ForeignOccurrence(0)),
-          )
-          assert_true(
-            graph_structural_execution_check({ ..site, index: 99, })
-            is Err(ForeignOccurrence(0)),
-          )
+          assert_true(bind({ ..site, index: 99, }) is Err(ForeignOccurrence(0)))
         }
         assert_eq(actual, expected)
-        assert_eq(unresolved, 2)
+        assert_eq(unresolved, 1)
       }
     }
   }

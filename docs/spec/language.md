@@ -5748,6 +5748,33 @@ Reassociation or permutation is legal only if every admitted field law and
 its failure behavior proves the transformation. In particular, pairwise
 number_mean is not a global mean; use [mean_graphs](#graph-mean).
 
+<!-- requirement-block: structural-graphs.composition-resource-binding structural-graphs.composition-realization-contracts structural-graphs.composition-resource-applicability -->
+For graft, structural union and subtraction, static construction MUST retain the
+actual operation, operand dependencies and selected capacity policy together with
+requirements for composition work, value/temporary bytes and retained state.
+The executable realization MUST bind finite enforceable resource contracts before
+composition uses its inputs. Those contracts specify each meter's quantity, unit,
+aggregation scope, limit and breach/cancellation behavior. A static requirement
+is not completed resource admission, and a realization unable to provide the
+required contracts is unsupported, not exempt. Physical realization limits may
+differ; selected logical constraints and producer obligations remain unchanged.
+External Graph-input preflight limits and graph-construction limits retain their
+own applicability; they MUST NOT be silently reapplied as internal composition
+ceilings. An input/output count proof is not a work, byte or live-state limit.
+
+<!-- requirement-block: structural-graphs.composition-fold-resource-scope -->
+For a union list, all folds belong to one operation-wide resource scope, not
+fresh budgets for each fold. Cumulative meters include every fold's actual
+work and applicable traffic; peak meters include all simultaneously retained
+input, accumulator, result and temporary state. Repeated operand references
+retain their ordered semantic uses. Legitimate immutable sharing does not imply
+a fictitious copy charge, but cannot hide actual work, allocation or traffic.
+The selected contract determines the meters; the compiler MUST NOT replace
+their cumulative usage with the maximum usage of one fold. Failure exposes
+neither an intermediate accumulator nor a partial Graph. Empty operands,
+self-composition, unchanged output and one-sided records do not waive admission,
+policy dependencies or selected resource contracts.
+
 <!-- requirement-block: structural-graphs.a-breach-must-fail-the-whole-operation-without-publishing-a -->
 Traversal path exploration receives a resolved Host ceiling in the machine
 Plan; `max_paths` is not authoring vocabulary. `traverse.max_output_rows` and

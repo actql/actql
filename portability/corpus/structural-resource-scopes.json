@@ -1,0 +1,13 @@
+{
+  "description": "Independent selected-realization meter examples, not predicted Graph execution costs. Each peak sample already includes all concurrently retained state.",
+  "meters": {"work": "cumulative", "value_bytes": "cumulative", "temporary_bytes": "peak", "retained_states": "peak"},
+  "cases": [
+    {"name": "empty-operands-still-complete-the-selected-contract", "limits": [1,0,0,0], "folds": [[1,0,0,0]], "complete": true, "usage": [1,0,0,0], "accept": true},
+    {"name": "repeated-operand-uses-exact-whole-operation-boundary", "limits": [4,8,3,5], "folds": [[2,4,3,5],[2,4,3,5]], "complete": true, "usage": [4,8,3,5], "accept": true},
+    {"name": "individually-fitting-folds-exceed-total-work", "limits": [3,8,3,5], "folds": [[2,4,3,5],[2,4,3,5]], "complete": true, "usage": [4,8,3,5], "accept": false},
+    {"name": "traffic-is-not-the-largest-fold", "limits": [4,7,3,5], "folds": [[2,4,3,5],[2,4,3,5]], "complete": true, "usage": [4,8,3,5], "accept": false},
+    {"name": "overlapping-accumulator-and-result-state", "limits": [4,8,3,4], "folds": [[2,4,3,3],[2,4,3,5]], "complete": true, "usage": [4,8,3,5], "accept": false},
+    {"name": "temporary-peak-breach", "limits": [4,8,2,5], "folds": [[2,4,3,5],[2,4,3,5]], "complete": true, "usage": [4,8,3,5], "accept": false},
+    {"name": "cancelled-fold-cannot-publish-an-accumulator", "limits": [4,8,3,5], "folds": [[2,4,3,5]], "complete": false, "usage": [2,4,3,5], "accept": false}
+  ]
+}

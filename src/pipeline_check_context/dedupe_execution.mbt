@@ -138,7 +138,8 @@ pub fn operation_execution_phase(
       }
     GraphStructuralExecution(v) =>
       match v.rule {
-        AdmitStructuralInputs => BeforeOperationInputUse
+        AdmitStructuralInputs | RequireStructuralResources =>
+          BeforeOperationInputUse
         CompareIdentityRecords
         | RequirePropertyEquality
         | ApplyPropertyStrategies

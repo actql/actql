@@ -4810,6 +4810,50 @@
       }
     },
     {
+      "requirement_id": "actql.language/structural-graphs.composition-resource-binding",
+      "statement_sha256": "9f66fd68d2be7c90801177137bed50480664a06da49e0e53919c48ae03973892",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "structural-graphs",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/structural-graphs.composition-realization-contracts",
+      "statement_sha256": "f7c9e1813be1a78e162e73d85d2b7bcab133b5ee88f16e91443333eb17982911",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "structural-graphs",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/structural-graphs.composition-resource-applicability",
+      "statement_sha256": "6a3159c6ff6a5802b29c458460ae069e12ee28f8192491ca8af6a4f19eca7e43",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "structural-graphs",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/structural-graphs.composition-fold-resource-scope",
+      "statement_sha256": "6818ebdb6f879e9789e7966030db7cce24c2a60cb5b1bc8dd1c48655ce10529f",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "structural-graphs",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.language/structural-graphs.a-breach-must-fail-the-whole-operation-without-publishing-a",
       "statement_sha256": "c82b09547c0ff88a9649ee912756afd4928d470b473ead9c95a1e72dad6d01da",
       "status": "pending",
