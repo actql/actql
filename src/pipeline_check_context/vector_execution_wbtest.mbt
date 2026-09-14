@@ -43,6 +43,7 @@ test "vector execution bindings preserve roles metrics and obligations without e
       let expected : Array[VectorRule] = [
         AdmitVectorComponents,
         RequireVectorIdentityUniqueness,
+        RequireVectorResources,
       ]
       if n == 1 || n == 3 {
         expected.push(NormalizeVectorArithmetic)
@@ -70,11 +71,7 @@ test "vector execution bindings preserve roles metrics and obligations without e
           Ok(None),
         )
         if site.requirement
-          is @pipeline.VectorRequirement(
-            ResolveVecaProfile
-            | ResolveVectorResources
-            | MatchDimensions
-          ) {
+          is @pipeline.VectorRequirement(ResolveVecaProfile | MatchDimensions) {
           assert_true(result is Ok(None))
           continue
         }
@@ -116,7 +113,8 @@ test "vector execution bindings preserve roles metrics and obligations without e
         assert_eq(
           operation_execution_phase(VectorExecution(check)),
           if check.rule == AdmitVectorComponents ||
-            check.rule == RequireVectorIdentityUniqueness {
+            check.rule == RequireVectorIdentityUniqueness ||
+            check.rule == RequireVectorResources {
             BeforeOperationInputUse
           } else {
             BeforeOperationOutput

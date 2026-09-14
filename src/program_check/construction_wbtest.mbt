@@ -40,6 +40,7 @@ fn local_construction_fixture(
   text_time? : Bool = false,
   tea? : Bool = false,
   sga? : Bool = false,
+  veca? : Bool = false,
   graph_construction_limit? : Int? = None,
   components_capacity_rows? : Int? = None,
   traversal_capacity? : Bool = false,
@@ -415,7 +416,7 @@ fn local_construction_fixture(
       environment,
       supplied,
       materials,
-      { text_time, veca: false, },
+      { text_time, veca, },
       { rela: true, sga, tea, calendar, text_rank: false, },
       source_limits_fixture(
         stage_count +
@@ -450,7 +451,7 @@ fn local_construction_fixture(
       { wire: environment, locations: None, }
     },
     materials,
-    { text_time, veca: false, },
+    { text_time, veca, },
     { rela: true, sga, tea, calendar, text_rank: false, },
     source_limits_fixture(
       stage_count + (if generated_rows is Some(_) { 1 } else { 0 }),

@@ -109,6 +109,10 @@ fn check_supported_source(
               | "union_graphs"
               | "subtract_graphs"
               | "mean_graphs"
+              | "to_vectors"
+              | "normalize_vectors"
+              | "score_vectors"
+              | "vectors"
               | "node_rows"
               | "edge_rows"
               | "values" => ()

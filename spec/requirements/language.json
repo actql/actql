@@ -5184,6 +5184,28 @@
       }
     },
     {
+      "requirement_id": "actql.language/vector-bridges.resource-binding",
+      "statement_sha256": "ee0ba93de53241a52babe3fc9dada7f60c5e94442462111d28142a91a50970d2",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "vector-bridges",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/vector-bridges.resource-scope",
+      "statement_sha256": "85dac5d58b5d1b47e8b793787b5f77d9d7f7693a1891f3c2da201f347a06d92d",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "vector-bridges",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.language/pool-vectors.actql-source-does-not-expose-a-separate-relation-pooling-carrier-id",
       "statement_sha256": "514a7018bb7b3d03824fd86eea69f1bd0174b5a1b8708dac65d702cb3e6b2a60",
       "status": "pending",

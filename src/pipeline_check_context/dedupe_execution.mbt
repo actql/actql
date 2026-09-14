@@ -166,8 +166,9 @@ pub fn operation_execution_phase(
       }
     VectorExecution(v) =>
       match v.rule {
-        AdmitVectorComponents | RequireVectorIdentityUniqueness =>
-          BeforeOperationInputUse
+        AdmitVectorComponents
+        | RequireVectorIdentityUniqueness
+        | RequireVectorResources => BeforeOperationInputUse
         NormalizeVectorArithmetic | ComputeVectorScores | OrderVectorScores =>
           BeforeOperationOutput
       }

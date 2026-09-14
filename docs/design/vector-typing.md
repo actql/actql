@@ -471,7 +471,13 @@ ordered by its value and the semantic identity law, never by arrival order or a
 stringified identity. Normalization does not refresh a retained score. Query
 binding and dimension checks use the owned operation-query resolution rather
 than another lookup or a copied source array. These semantic bindings do not
-discharge profile or resource selection and do not attest execution.
+discharge profile selection and do not attest execution. The resource binding
+retains the same operation and policy, with component work, value/temporary
+bytes and retained state as separate requirements. Scoring also requires an
+ordering-work contract. Executable realization requires finite enforceable
+meters; these readers do not themselves admit a backend's meter contract.
+Cumulative and peak quantities retain their distinct aggregation rules, and
+the explicit Relation projection does not waive producer obligations.
 
 Source traversal and output construction consume shared work, node and text
 budgets; pipeline consumers debit the reported usage. Diagnostic paths and spans

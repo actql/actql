@@ -6204,6 +6204,25 @@ distances under the numeric law. Identity uniqueness is validated independently;
 arrival order, stringification or a synthesized row CID cannot break ties.
 Binding, profile, finite-arithmetic and resource validation precede publication.
 
+<!-- requirement-block: vector-bridges.resource-binding -->
+Executable vector preparation, normalization and scoring MUST bind finite
+enforceable component-work, value/temporary-byte and retained-state contracts
+before input use; scoring additionally binds score-ordering work. Each selected
+meter specifies its quantity, unit, aggregation, ceiling and failure behavior.
+Dimensions and row-count bounds do not substitute for these contracts. A backend
+resource choice does not waive applicable logical limits, input obligations,
+query admission or the pinned numerical and identity-order rules.
+
+<!-- requirement-block: vector-bridges.resource-scope -->
+Each selected meter MUST cover the whole owned operation rather than resetting
+per vector or component. Cumulative work and byte traffic include actual uses;
+peak storage includes simultaneously live inputs, query, output and temporary
+state, without charging imaginary copies when immutable storage is shared.
+Empty input does not waive query validation or completion of the selected
+contracts. Failure, cancellation or incomplete validation prevents partial
+output publication. The explicit `vectors` projection preserves the producer's
+obligations; changing Carrier does not erase resource or arithmetic checks.
+
 <a id="pool-vectors"></a>
 
 #### `pool_vectors`

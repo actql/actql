@@ -1021,6 +1021,10 @@ pub fn values_recursive_field_at(ValuesRecursiveAdmission, Int) -> Int?
 
 pub fn values_wire_bound_contract(ValuesWireBound) -> String
 
+pub fn vector_resource_at(VectorCheck, Int) -> VectorResource?
+
+pub fn vector_resource_count(VectorCheck) -> Int
+
 pub fn window_membership_bound_candidate_at(WindowMembershipBounds, Int) -> WindowMembershipCandidate?
 
 pub fn window_membership_bound_candidate_count(WindowMembershipBounds) -> Int
@@ -3366,12 +3370,20 @@ pub struct VectorCheck {
   policy : @capacity_policy.Policy
 }
 
+pub(all) enum VectorResource {
+  ComponentWork
+  ValueAndTemporaryBytes
+  RetainedVectorState
+  ScoreOrderingWork
+} derive(Eq, @debug.Debug)
+
 pub(all) enum VectorRule {
   AdmitVectorComponents
   RequireVectorIdentityUniqueness
   NormalizeVectorArithmetic
   ComputeVectorScores
   OrderVectorScores
+  RequireVectorResources
 } derive(Eq, @debug.Debug)
 
 pub struct WatermarkExecutionCheck {

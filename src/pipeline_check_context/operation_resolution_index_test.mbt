@@ -602,13 +602,14 @@ test "dedupe execution checks retain their exact occurrences without claiming ex
 }
 
 ///|
-test "unhandled resource requirements remain unresolved rather than deferred by default" {
+test "vector resource bindings retain the selected policy and exact operation" {
   let index = index_program_operation_resolutions(
     profiles_from_ranges(query_fixture("{\"$param\":\"n\"}", "[1,2]")),
     10000000,
     100,
   ).unwrap()
-  assert_true(operation_resolution_unresolved_count(index) > 0)
+  // Values resource preparation is separate from these vector bindings.
+  assert_eq(operation_resolution_unresolved_count(index), 3)
   check_operation_closure(index)
   let mut resources = 0
   for i in 0..<operation_resolution_count(index) {
@@ -618,7 +619,29 @@ test "unhandled resource requirements remain unresolved rather than deferred by 
     ).unwrap()
     if site.requirement is @pipeline.VectorRequirement(ResolveVectorResources) {
       resources += 1
-      assert_true(operation_resolution_at(index, i) is Some(Unresolved))
+      guard operation_resolution_at(index, i)
+        is Some(Execution(VectorExecution(check))) else {
+        fail("missing vector resource binding")
+      }
+      assert_true(physical_equal(check.site, site))
+      assert_eq(check.rule, RequireVectorResources)
+      assert_eq(
+        vector_resource_count(check),
+        if site.step == 2 {
+          3
+        } else {
+          4
+        },
+      )
+      assert_eq(
+        vector_resource_at(check, 3),
+        if site.step == 2 {
+          None
+        } else {
+          Some(ScoreOrderingWork)
+        },
+      )
+      assert_true(vector_resource_at(check, 4) is None)
     }
   }
   assert_true(resources > 0)

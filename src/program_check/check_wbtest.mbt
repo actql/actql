@@ -158,6 +158,10 @@ test "check rejects unsupported or malformed later steps without a partial resul
       ("[{\"union_graphs\":{}}]", true),
       ("[{\"subtract_graphs\":{}}]", true),
       ("[{\"mean_graphs\":{}}]", true),
+      ("[{\"to_vectors\":{}}]", true),
+      ("[{\"normalize_vectors\":{}}]", true),
+      ("[{\"score_vectors\":{}}]", true),
+      ("[{\"vectors\":{}}]", true),
       ("[null]", false),
     ] {
     let budget = IdentityBudget::{

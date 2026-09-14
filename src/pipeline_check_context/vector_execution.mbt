@@ -5,6 +5,15 @@ pub(all) enum VectorRule {
   NormalizeVectorArithmetic
   ComputeVectorScores
   OrderVectorScores
+  RequireVectorResources
+} derive(Eq, Debug)
+
+///|
+pub(all) enum VectorResource {
+  ComponentWork
+  ValueAndTemporaryBytes
+  RetainedVectorState
+  ScoreOrderingWork
 } derive(Eq, Debug)
 
 ///|
@@ -15,6 +24,33 @@ pub struct VectorCheck {
   operation : @vector.CheckedVector
   rule : VectorRule
   policy : @policy.Policy
+}
+
+///|
+pub fn vector_resource_count(check : VectorCheck) -> Int {
+  if check.rule != RequireVectorResources {
+    return 0
+  }
+  if @vector.operation(check.operation) == @vector.ScoreVectors {
+    4
+  } else {
+    3
+  }
+}
+
+///|
+pub fn vector_resource_at(check : VectorCheck, index : Int) -> VectorResource? {
+  if check.rule != RequireVectorResources {
+    return None
+  }
+  match index {
+    0 => Some(ComponentWork)
+    1 => Some(ValueAndTemporaryBytes)
+    2 => Some(RetainedVectorState)
+    3 if @vector.operation(check.operation) == @vector.ScoreVectors =>
+      Some(ScoreOrderingWork)
+    _ => None
+  }
 }
 
 ///|
@@ -31,10 +67,8 @@ fn vector_execution_check(
     NormalizeArithmetic => NormalizeVectorArithmetic
     ScoreArithmetic => ComputeVectorScores
     ScoreOrder => OrderVectorScores
-    BindQuery(_)
-    | MatchDimensions
-    | ResolveVecaProfile
-    | ResolveVectorResources => return Ok(None)
+    ResolveVectorResources => RequireVectorResources
+    BindQuery(_) | MatchDimensions | ResolveVecaProfile => return Ok(None)
   }
   guard @pipeline.step_at(site.pipeline, site.step) is Some(step) &&
     step.operation is @pipeline.Vector(operation) &&
