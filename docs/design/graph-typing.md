@@ -266,6 +266,15 @@ capacity applications remain unresolved; neither node emission nor an empty
 selection exempts traversal from its selected search limit. Authored-guard
 support remains the capacity resolver's responsibility, not a lowerer inference.
 
+The capacity resolver accepts bound output guards from the same immutable pipeline
+and retains their original occurrence indices. It reads only the target step's
+guard range. Admitted candidate claims remain separate from the authored
+restriction: the effective output maximum is their minimum, while the search-path
+maximum is unaffected. A looser authored restriction is still retained.
+Application collections and the enclosing producer closure require the same
+effective Parameter binding owner, not merely equal bound numbers. This association
+does not itself mint a Unit guard witness or discharge runtime guard enforcement.
+
 `CheckedProgram` retains one `TraversalLimit` per local traversal operation, with
 count/index readers for the producer Unit. Imported visits consume that producer's
 retained limit rather than minting a consumer copy. Persistent claims use the

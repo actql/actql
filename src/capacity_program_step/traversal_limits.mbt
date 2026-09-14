@@ -10,6 +10,9 @@ pub(all) enum TraversalLimitIssue {
   InvalidStep
   WrongOperation
   UnresolvedAuthorSource
+  ForeignGuardOwner
+  MissingGuard
+  WorkLimit
   ForeignClaims
   MissingMixedClosure
   MissingLimit(TraversalScope)
@@ -32,6 +35,8 @@ struct TraversalLimits {
   paths_index : Int
   rows_index : Int
   work : Int
+  guards : @pipeline.BoundAuthorGuards?
+  output_guard : Int?
 }
 
 ///|
@@ -43,6 +48,7 @@ pub fn check_traversal_limits(
   policy : @policy.Policy,
   paths_index : Int,
   rows_index : Int,
+  guards? : @pipeline.BoundAuthorGuards? = None,
   max_work~ : Int,
 ) -> Result[TraversalLimits, TraversalLimitIssue] {
   if max_work < 0 {
@@ -54,7 +60,7 @@ pub fn check_traversal_limits(
   guard checked.operation is @pipeline.Traverse(checked=op, ..) else {
     return Err(WrongOperation)
   }
-  if @graph.traverse_output_guard(op) is Some(_) {
+  if guards is None && @graph.traverse_output_guard(op) is Some(_) {
     return Err(UnresolvedAuthorSource)
   }
   if !physical_equal(@host.source_claims(sources), program.claims) {
@@ -71,6 +77,29 @@ pub fn check_traversal_limits(
   }
   let subject = "traverse:checked-step:" + step.to_string()
   let mut work = 0
+  let mut output_guard = None
+  if guards is Some(bound) {
+    let occurrences = @pipeline.bound_guard_occurrences(bound)
+    if !physical_equal(@pipeline.author_guards_pipeline(occurrences), pipeline) {
+      return Err(ForeignGuardOwner)
+    }
+    let (first, end) = @pipeline.author_guard_step_range(occurrences, step).unwrap()
+    if end - first > max_work {
+      return Err(WorkLimit)
+    }
+    work += end - first
+    for index in first..<end {
+      let occurrence = @pipeline.author_guard_at(occurrences, index).unwrap()
+      if @pipeline.author_guard_scope(occurrence) ==
+        @pipeline.TraverseOutputRows {
+        output_guard = Some(index)
+      }
+    }
+    if (@graph.traverse_output_guard(op) is Some(_)) !=
+      (output_guard is Some(_)) {
+      return Err(MissingGuard)
+    }
+  }
   for
     (scope, limit, suffix, unit, host_field, required, law) in [
       (
@@ -130,6 +159,8 @@ pub fn check_traversal_limits(
     paths_index,
     rows_index,
     work,
+    guards,
+    output_guard,
   })
 }
 
@@ -161,6 +192,8 @@ pub fn traversal_limit_policy(v : TraversalLimits) -> @policy.Policy {
 }
 
 ///|
+/// Original admitted candidates; authored guards are retained separately.
+/// Use traversal_limit_effective_maximum for the combined restriction.
 pub fn traversal_limit_claim(
   v : TraversalLimits,
   scope : TraversalScope,
@@ -185,4 +218,41 @@ pub fn traversal_limit_index(
 ///|
 pub fn traversal_limit_work(v : TraversalLimits) -> Int {
   v.work
+}
+
+///|
+/// Bound authored restriction, separate from the admitted candidate claims.
+/// Minting its persistent witness requires the enclosing Unit identity.
+pub fn traversal_limit_guards(
+  v : TraversalLimits,
+) -> @pipeline.BoundAuthorGuards? {
+  v.guards
+}
+
+///|
+pub fn traversal_limit_guard_index(v : TraversalLimits) -> Int? {
+  v.output_guard
+}
+
+///|
+pub fn traversal_limit_guard_value(v : TraversalLimits) -> Int64? {
+  guard v.guards is Some(guards) && v.output_guard is Some(index) else {
+    return None
+  }
+  @pipeline.bound_guard_value_at(guards, index)
+}
+
+///|
+/// SearchPaths is independent of the authored output-row restriction.
+pub fn traversal_limit_effective_maximum(
+  v : TraversalLimits,
+  scope : TraversalScope,
+) -> Int64 {
+  let maximum = @arithmetic.minimum_value(
+    @wire.limit_minimum(traversal_limit_claim(v, scope)),
+  )
+  match (scope, traversal_limit_guard_value(v)) {
+    (OutputRows, Some(value)) => if value < maximum { value } else { maximum }
+    _ => maximum
+  }
 }

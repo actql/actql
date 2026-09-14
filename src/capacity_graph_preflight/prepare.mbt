@@ -202,6 +202,7 @@ pub fn prepare_application_coverage(
             policy,
             paths,
             output,
+            guards~,
             max_work=remaining,
           ) {
           Ok(v) => v

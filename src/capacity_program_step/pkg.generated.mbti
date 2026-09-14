@@ -68,7 +68,7 @@ pub fn check_traversal_applications(@pipeline_typing.CheckedPipeline, @capacity_
 
 pub fn check_traversal_complete(@pipeline_typing.CheckedPipeline, @capacity_host_witness.HostSources, Applications, @capacity_policy.Policy, Array[TraversalLimits], max_work~ : Int) -> Result[TraversalApplications, TraversalCollectionIssue]
 
-pub fn check_traversal_limits(@pipeline_typing.CheckedPipeline, Int, @capacity_host_witness.HostSources, Applications, @capacity_policy.Policy, Int, Int, max_work~ : Int) -> Result[TraversalLimits, TraversalLimitIssue]
+pub fn check_traversal_limits(@pipeline_typing.CheckedPipeline, Int, @capacity_host_witness.HostSources, Applications, @capacity_policy.Policy, Int, Int, guards? : @pipeline_typing.BoundAuthorGuards?, max_work~ : Int) -> Result[TraversalLimits, TraversalLimitIssue]
 
 pub fn check_with_inputs(@pipeline_typing.CheckedPipeline, Int, @capacity_witness.ProgramProofClaim, Array[StepBound], max_input_work? : Int, max_operand_work? : Int, bindings? : CountBindings?) -> Result[StepBound, Issue]
 
@@ -208,6 +208,8 @@ pub fn target_rows_work(TargetRows) -> Int
 
 pub fn traversal_application_at(TraversalApplications, Int) -> TraversalLimits?
 
+pub fn traversal_application_guard_bindings_match(TraversalApplications, @pipeline_typing.BoundAuthorGuards) -> Bool
+
 pub fn traversal_application_pipeline(TraversalApplications) -> @pipeline_typing.CheckedPipeline
 
 pub fn traversal_application_policy(TraversalApplications) -> @capacity_policy.Policy
@@ -221,6 +223,14 @@ pub fn traversal_application_work(TraversalApplications) -> Int
 pub fn traversal_consumes_limit(TraversalApplications, Int) -> Bool
 
 pub fn traversal_limit_claim(TraversalLimits, TraversalScope) -> @capacity_witness.LimitClaim
+
+pub fn traversal_limit_effective_maximum(TraversalLimits, TraversalScope) -> Int64
+
+pub fn traversal_limit_guard_index(TraversalLimits) -> Int?
+
+pub fn traversal_limit_guard_value(TraversalLimits) -> Int64?
+
+pub fn traversal_limit_guards(TraversalLimits) -> @pipeline_typing.BoundAuthorGuards?
 
 pub fn traversal_limit_index(TraversalLimits, TraversalScope) -> Int
 
@@ -486,6 +496,7 @@ pub(all) enum TraversalCollectionIssue {
   ForeignSources(Int)
   ForeignProgram(Int)
   ForeignPolicy(Int)
+  ForeignGuardBindings(Int)
   DuplicateApplication(Int)
   DuplicateConsumption(Int)
   MissingApplication(Int)
@@ -497,6 +508,9 @@ pub(all) enum TraversalLimitIssue {
   InvalidStep
   WrongOperation
   UnresolvedAuthorSource
+  ForeignGuardOwner
+  MissingGuard
+  WorkLimit
   ForeignClaims
   MissingMixedClosure
   MissingLimit(TraversalScope)

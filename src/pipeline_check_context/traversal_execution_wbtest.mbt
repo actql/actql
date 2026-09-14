@@ -1,15 +1,20 @@
 ///|
 fn traversal_checked_fixture(
   emission : String,
+  guard_text? : String = "",
+  parameters? : @parameter.Declarations? = None,
+  bindings? : @parameter.BoundValues? = None,
 ) -> (@pipeline.CheckedPipeline, @step_bounds.TraversalLimits) raise {
   let pipeline = @pipeline.check_carriers(
     asof_test_cursor(
       "[{\"values\":{\"schema\":{\"id\":{\"type\":\"number\",\"nullable\":false},\"dst\":{\"type\":\"number\",\"nullable\":false}},\"rows\":[{\"id\":1,\"dst\":2}]},\"as\":\"seed\"},{\"graph\":{\"nodes\":{\"from\":\"seed\",\"id\":\"id\",\"fields\":[]},\"edges\":{\"from\":\"seed\",\"source\":\"id\",\"target\":\"dst\",\"fields\":[]}},\"as\":\"g\"},{\"traverse\":{\"start\":{\"ids\":[1]},\"direction\":\"out\",\"min_hops\":0,\"max_hops\":3,\"emit\":\"" +
       emission +
-      "\"}}]",
+      "\"" +
+      guard_text +
+      "}}]",
     ),
     [],
-    None,
+    parameters,
     None,
     {
       max_steps: 3,
@@ -93,6 +98,22 @@ fn traversal_checked_fixture(
     policy,
     0,
     1,
+    guards=if guard_text == "" {
+      None
+    } else {
+      Some(
+        @pipeline.bind_author_guards(
+          @pipeline.collect_author_guards(
+            pipeline,
+            max_work=100,
+            max_text_bytes=1000,
+          ).unwrap(),
+          bindings,
+          max_work=100,
+          max_text_bytes=1000,
+        ).unwrap(),
+      )
+    },
     max_work=1000,
   ).unwrap()
   (pipeline, limits)

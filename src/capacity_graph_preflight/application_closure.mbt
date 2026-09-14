@@ -7,6 +7,7 @@ pub(all) enum ApplicationClosureIssue {
   ForeignPolicy(Int)
   ForeignGuardClosure
   SequenceGuardBindings(Int)
+  TraversalGuardBindings(Int)
   GuardBindings(Int, @program.GuardBindingIssue)
   ProofWorkLimit
   InvalidProofOwner(Int, Int)
@@ -82,6 +83,13 @@ pub fn check_application_closure(
         @pipeline.bound_guard_closure_at(bound_guards, i).unwrap(),
       ) {
       return Err(SequenceGuardBindings(i))
+    }
+    if app.consumers.traversals is Some(traversals) &&
+      !@program.traversal_application_guard_bindings_match(
+        traversals,
+        @pipeline.bound_guard_closure_at(bound_guards, i).unwrap(),
+      ) {
+      return Err(TraversalGuardBindings(i))
     }
     let bound = match
       @program.check_guard_bindings(

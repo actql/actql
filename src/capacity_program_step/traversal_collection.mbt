@@ -8,6 +8,7 @@ pub(all) enum TraversalCollectionIssue {
   ForeignSources(Int)
   ForeignProgram(Int)
   ForeignPolicy(Int)
+  ForeignGuardBindings(Int)
   DuplicateApplication(Int)
   DuplicateConsumption(Int)
   MissingApplication(Int)
@@ -24,6 +25,7 @@ struct TraversalApplications {
   consumed : Array[Bool]
   remaining : Int
   work : Int
+  guards : @pipeline.BoundAuthorGuards?
 }
 
 ///|
@@ -57,6 +59,7 @@ pub fn check_traversal_applications(
   let work = n * 2 + limits + a * 3
   let entries : Array[TraversalLimits?] = Array::make(n, None)
   let consumed = Array::make(limits, false)
+  let mut guards = None
   for i, app in applications {
     if !physical_equal(app.pipeline, pipeline) {
       return Err(ForeignPipeline(i))
@@ -72,6 +75,13 @@ pub fn check_traversal_applications(
     }
     if entries[app.step] is Some(_) {
       return Err(DuplicateApplication(i))
+    }
+    if app.guards is Some(bound) {
+      if guards is Some(previous) &&
+        !traversal_same_guard_bindings(previous, bound) {
+        return Err(ForeignGuardBindings(i))
+      }
+      guards = Some(bound)
     }
     for index in [app.paths_index, app.rows_index] {
       if consumed[index] {
@@ -99,6 +109,7 @@ pub fn check_traversal_applications(
     consumed,
     remaining: limits - a * 2,
     work,
+    guards,
   })
 }
 
@@ -177,4 +188,41 @@ pub fn traversal_unconsumed_limit_count(v : TraversalApplications) -> Int {
 ///|
 pub fn traversal_application_work(v : TraversalApplications) -> Int {
   v.work
+}
+
+///|
+fn traversal_same_guard_bindings(
+  a : @pipeline.BoundAuthorGuards,
+  b : @pipeline.BoundAuthorGuards,
+) -> Bool {
+  if !physical_equal(
+      @pipeline.author_guards_pipeline(@pipeline.bound_guard_occurrences(a)),
+      @pipeline.author_guards_pipeline(@pipeline.bound_guard_occurrences(b)),
+    ) {
+    return false
+  }
+  match (@pipeline.bound_guard_bindings(a), @pipeline.bound_guard_bindings(b)) {
+    (None, None) => true
+    (Some(a), Some(b)) => physical_equal(a, b)
+    _ => false
+  }
+}
+
+///|
+pub fn traversal_application_guard_bindings_match(
+  v : TraversalApplications,
+  expected : @pipeline.BoundAuthorGuards,
+) -> Bool {
+  if !physical_equal(
+      v.pipeline,
+      @pipeline.author_guards_pipeline(
+        @pipeline.bound_guard_occurrences(expected),
+      ),
+    ) {
+    return false
+  }
+  match v.guards {
+    None => true
+    Some(bound) => traversal_same_guard_bindings(bound, expected)
+  }
 }

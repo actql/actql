@@ -104,6 +104,7 @@ pub(all) enum ApplicationClosureIssue {
   ForeignPolicy(Int)
   ForeignGuardClosure
   SequenceGuardBindings(Int)
+  TraversalGuardBindings(Int)
   GuardBindings(Int, @capacity_program_step.GuardBindingIssue)
   ProofWorkLimit
   InvalidProofOwner(Int, Int)
