@@ -203,6 +203,12 @@ pub fn selector_id_count(c : CheckedSelector) -> Int {
 }
 
 ///|
+/// O(1), retaining the admitted value; invalid indices return None.
+pub fn selector_id_at(c : CheckedSelector, index : Int) -> @value.CheckedValue? {
+  c.ids.get(index)
+}
+
+///|
 pub fn selector_predicate(c : CheckedSelector) -> CheckedPredicate? {
   c.predicate
 }

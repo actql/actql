@@ -85,8 +85,39 @@ test "operation obligations retain selected shortest endpoint sides" {
     ).unwrap()
     let op = @pipeline_typing.step_at(p, 0).unwrap().operation
     assert_obligation_groups(op, scopes)
+    assert_true(
+      @pipeline_typing.operation_obligations_selector(
+        @pipeline_typing.operation_obligation_group_at(op, 0).unwrap(),
+      )
+      is None,
+    )
     for i in 1..<scopes.length() {
       let g = @pipeline_typing.operation_obligation_group_at(op, i).unwrap()
+      let selector = @pipeline_typing.operation_obligations_selector(g).unwrap()
+      let expected = match op {
+        Subgraph(checked=c, ..) => @graph.subgraph_nodes(c)
+        Traverse(checked=c, ..) => @graph.traverse_start(c)
+        Shortest(checked=c, ..) => {
+          let side : @schema.Side = if scopes[i] == SourceSelector {
+            Left
+          } else {
+            Right
+          }
+          guard @graph.shortest_endpoint(c, side) is Selected(s) else {
+            abort("selected endpoint")
+          }
+          s
+        }
+        _ => abort("selector operation")
+      }
+      assert_true(physical_equal(selector, expected))
+      let repeated = @pipeline_typing.operation_obligation_group_at(op, i).unwrap()
+      assert_true(
+        physical_equal(
+          selector,
+          @pipeline_typing.operation_obligations_selector(repeated).unwrap(),
+        ),
+      )
       assert_true(@pipeline_typing.operation_obligations_count(g) > 0)
       assert_true(
         @pipeline_typing.operation_obligations_at(g, 0)

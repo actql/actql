@@ -239,6 +239,8 @@ pub fn scope_usage(CheckedScope) -> Usage
 
 pub fn selector_form(CheckedSelector) -> SelectorForm
 
+pub fn selector_id_at(CheckedSelector, Int) -> @value_admission.CheckedValue?
+
 pub fn selector_id_count(CheckedSelector) -> Int
 
 pub fn selector_identity(CheckedSelector) -> @value_contract.Contract

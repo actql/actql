@@ -177,6 +177,13 @@ is independently resolved by the pipeline and retained after the primary Graph
 input; neither it nor its current row count is confused with the output Graph.
 Unknown names and future/self references fail at that source slot.
 
+Selector obligation groups expose their retained checked selector through
+`operation_obligations_selector`; the group scope still distinguishes node,
+start, source and target roles. This reader neither rebuilds the selector nor
+resolves its input edge. Literal occurrences are available through
+`selector_id_count` / `selector_id_at`, so consumers can budget each visit
+before retaining a value without copying the complete ID array.
+
 Relation selectors retain the actual field provenance and compatible semantic
 identity contract, including Ref types, without string conversion. Unrelated
 open or untyped columns do not block selection. Compatibility does not prove

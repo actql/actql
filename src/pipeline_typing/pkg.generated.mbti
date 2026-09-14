@@ -246,6 +246,8 @@ pub fn operation_obligations_count(OperationObligations) -> Int
 
 pub fn operation_obligations_scope(OperationObligations) -> OperationObligationScope
 
+pub fn operation_obligations_selector(OperationObligations) -> @graph_typing.CheckedSelector?
+
 pub fn operation_order_demand(OperationObligation) -> OperationOrderDemand?
 
 pub fn operation_profile_adopted_law_at(OperationProfile, Int) -> AdoptedOperationLaw?

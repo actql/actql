@@ -102,6 +102,17 @@ pub fn operation_obligations_scope(
 }
 
 ///|
+/// Returns the retained selector owner, without reconstructing its checked state.
+pub fn operation_obligations_selector(
+  v : OperationObligations,
+) -> @graph.CheckedSelector? {
+  match v.owner {
+    SelectorOwner(selector) => Some(selector)
+    _ => None
+  }
+}
+
+///|
 /// O(1) reads; callers can charge before visiting or retaining each entry.
 pub fn operation_obligations_count(v : OperationObligations) -> Int {
   match v.owner {

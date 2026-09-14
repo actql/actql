@@ -108,8 +108,23 @@ test "graph selectors keep literal occurrences and admit predicate empty selecti
   ).unwrap()
   assert_eq(@graph_typing.selector_ids(ids).length(), 3)
   let copy = @graph_typing.selector_ids(ids)
+  assert_eq(@graph_typing.selector_id_count(ids), 3)
+  for i in 0..<3 {
+    assert_true(
+      physical_equal(@graph_typing.selector_id_at(ids, i).unwrap(), copy[i]),
+    )
+  }
   copy.clear()
   assert_eq(@graph_typing.selector_ids(ids).length(), 3)
+  for (i, expected) in [(0, 10.0), (1, 2.0), (2, 10.0)] {
+    assert_true(
+      @graph_typing.selector_id_at(ids, i).unwrap().value is Number(actual) &&
+      actual == expected,
+    )
+  }
+  for i in [-1, 3, 2147483647] {
+    assert_true(@graph_typing.selector_id_at(ids, i) is None)
+  }
   let p = @graph_typing.check_selector(
     cursor("{\"where\":{\"literal\":false}}"),
     g,
@@ -118,6 +133,8 @@ test "graph selectors keep literal occurrences and admit predicate empty selecti
     predicate_limits(),
   ).unwrap()
   assert_true(@graph_typing.selector_predicate(p) is Some(_))
+  assert_eq(@graph_typing.selector_id_count(p), 0)
+  assert_true(@graph_typing.selector_id_at(p, 0) is None)
   for
     body in [
       "{}", "{\"ids\":[]}", "{\"ids\":[null]}", "{\"ids\":[2],\"where\":{\"literal\":true}}",
