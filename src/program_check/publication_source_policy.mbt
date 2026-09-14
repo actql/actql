@@ -861,15 +861,15 @@ fn prepare_publication_source_policy(
             unknown = true
             @vector.merged_ranking_input_count(operation)
           }
-          @pipeline.Nearest(..) => {
+          @pipeline.TextRank(..) | @pipeline.Nearest(..) => {
             identity_charge(budget, 1)
             carrier_steps.push({
               step: index,
               operation: step.operation,
               unknown_provenance: true,
             })
-            // The authored per-query k is a value, not a policy attestation.
-            // Both candidate and query edges remain contributing occurrences.
+            // k and authored scoring controls are not policy attestations.
+            // Both corpus/candidate and query edges remain contributors.
             unknown = true
             2
           }

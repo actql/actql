@@ -608,6 +608,14 @@ Authored fusion controls retain unknown value provenance. Score authentication,
 rank continuity, completeness, tie agreement and fusion resources remain
 separate operation-specific checks.
 
+Lexical ranking uses the same two-input provenance boundary as nearest: the
+whole admitted corpus and the query input contribute even when individual
+documents emit no matches. Authored k and BM25 controls are not value-policy
+attestations. The retained TextRank operation consumes the selected tokenizer
+and numeric profile through its existing owned resolution. Corpus statistics,
+tokenizer limits, scoring resources and downstream RRF requirements are not
+recomputed or waived by publication-policy transfer.
+
 Result imports retain the producer's completed publication through
 `publication_policy_import_count/at`, including the consumer input coordinate.
 `imported_publication` is a convenience only for exactly one import.

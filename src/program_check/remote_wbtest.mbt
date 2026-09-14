@@ -87,6 +87,7 @@ fn capacity_profile(
 fn remote_environment_fixture(
   analytic? : Bool = false,
   nest? : Bool = false,
+  text_rank? : Bool = false,
 ) -> @environment.WireEnvironment raise {
   let original = keyed_sourceview_environment()
   let writer = @encode.writer(1000000, 100000, 100)
@@ -103,6 +104,16 @@ fn remote_environment_fixture(
         profile[1:profile.length() - 1].to_owned() +
         ",",
     )
+  let body = if text_rank {
+    body.replace(
+      old="},\"mapping_contracts\":",
+      new=",\"text_rank\":{\"profile_bytes_cid\":\"" +
+        text_profile_fixture_cid() +
+        "\",\"version\":\"actql-text-rank-selection/0.1\"}},\"mapping_contracts\":",
+    )
+  } else {
+    body
+  }
   let cid = "sha256:" + @sha.hex(@utf8.encode(body))
   let environment = @environment.read(
     @utf8.encode(

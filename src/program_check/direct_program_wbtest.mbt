@@ -35,6 +35,8 @@ fn checked_direct_program_fixture(
   vector_steps? : String = "",
   vector_projection? : Bool = true,
   vector_step_limit? : Int = 8,
+  lexical_steps? : String = "",
+  lexical_material? : Bool = true,
   numeric_profile? : @numeric.Profile? = None,
 ) -> CheckedProgram raise {
   let original_text =
@@ -44,7 +46,14 @@ fn checked_direct_program_fixture(
     new="\"" + input_name + "\"",
   )
   let program = @syntax.parse(
-    if vector_steps != "" {
+    if lexical_steps != "" {
+      text.replace(
+        old="\"steps\":[",
+        new="\"steps\":[{\"derive\":{\"doc_id\":\"to_string(id)\",\"text\":\"to_string(extra)\"},\"as\":\"docs\"}," +
+          lexical_steps +
+          ",{\"select\":[{\"id\":\"query_id\"}]},",
+      )
+    } else if vector_steps != "" {
       let vector_text = text.replace(
         old="\"steps\":[",
         new="\"steps\":[{\"values\":{\"schema\":{\"id\":{\"type\":\"number\",\"nullable\":false},\"embedding\":{\"type\":\"vector\",\"dimensions\":2,\"nullable\":false}},\"rows\":[{\"id\":1,\"embedding\":[1,2]}]},\"as\":\"embeddings\"},{\"from\":\"remote\",\"join\":{\"with\":\"embeddings\",\"kind\":\"inner\",\"on\":\"id\",\"select\":{\"id\":\"left.id\",\"embedding\":\"right.embedding\"}}}," +
@@ -346,8 +355,26 @@ fn checked_direct_program_fixture(
   ).unwrap()
   let environment = remote_environment_fixture(
     analytic=analytic_body != "",
-    nest=nest_guard is Some(_) || vector_steps != "",
+    nest=nest_guard is Some(_) || vector_steps != "" || lexical_steps != "",
+    text_rank=lexical_steps != "",
   )
+  let lexical = if lexical_steps != "" && lexical_material {
+    Some(
+      @environment.admit_text_rank_profile(
+        @environment.read_text_rank_selection(environment, 1000).unwrap(),
+        @utf8.encode(text_profile_fixture()),
+        text_profile_blobs(),
+        {
+          max_profile_bytes: 10000,
+          max_dependency_bytes: 1000,
+          max_nodes: 1000,
+          max_depth: 20,
+        },
+      ).unwrap(),
+    )
+  } else {
+    None
+  }
   // No Program arithmetic assertion is needed: publication retains the Host
   // bound and distinct establishes its own key. Actual acquisition is not run.
   let mixed = @wire.check_mixed_claims([], [], {
@@ -432,7 +459,7 @@ fn checked_direct_program_fixture(
         ],
       ]
     },
-    { text_time: false, veca: vector_steps != "", },
+    { text_time: false, veca: vector_steps != "" || lexical_steps != "", },
     {
       rela: true,
       sga: false,
@@ -441,12 +468,15 @@ fn checked_direct_program_fixture(
       window_steps != "" ||
       sequence_body != "",
       calendar: false,
-      text_rank: false,
+      text_rank: lexical_steps != "",
     },
     source_limits_fixture(
       if vector_steps != "" {
         vector_step_limit
-      } else if temporal_step != "" || window_steps != "" || sequence_body != "" {
+      } else if temporal_step != "" ||
+        window_steps != "" ||
+        sequence_body != "" ||
+        lexical_steps != "" {
         6
       } else if join_kind != "" ||
         mix_generated ||
@@ -472,6 +502,7 @@ fn checked_direct_program_fixture(
     max_nodes=1000000,
     max_depth=100,
     numeric_profile~,
+    text_rank=lexical,
   )
 }
 
