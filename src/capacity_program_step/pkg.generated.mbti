@@ -46,7 +46,7 @@ pub fn check_components_applications(@pipeline_typing.CheckedPipeline, @capacity
 
 pub fn check_components_complete(@pipeline_typing.CheckedPipeline, @capacity_host_witness.HostSources, Applications, @capacity_policy.Policy, Array[ComponentsLimits], max_work~ : Int) -> Result[ComponentsApplications, ComponentsCollectionIssue]
 
-pub fn check_components_limits(@pipeline_typing.CheckedPipeline, Int, @capacity_host_witness.HostSources, Applications, @capacity_policy.Policy, Int, Int, max_work~ : Int) -> Result[ComponentsLimits, ComponentsLimitIssue]
+pub fn check_components_limits(@pipeline_typing.CheckedPipeline, Int, @capacity_host_witness.HostSources, Applications, @capacity_policy.Policy, Int, Int, guards? : @pipeline_typing.BoundAuthorGuards?, max_work~ : Int) -> Result[ComponentsLimits, ComponentsLimitIssue]
 
 pub fn check_guard_bindings(Applications, @pipeline_typing.BoundAuthorGuards, max_work~ : Int) -> Result[GuardApplications, GuardBindingIssue]
 
@@ -88,6 +88,8 @@ pub fn checked_step(StepBound) -> Int
 
 pub fn components_application_at(ComponentsApplications, Int) -> ComponentsLimits?
 
+pub fn components_application_guard_bindings_match(ComponentsApplications, @pipeline_typing.BoundAuthorGuards) -> Bool
+
 pub fn components_application_pipeline(ComponentsApplications) -> @pipeline_typing.CheckedPipeline
 
 pub fn components_application_policy(ComponentsApplications) -> @capacity_policy.Policy
@@ -101,6 +103,14 @@ pub fn components_application_work(ComponentsApplications) -> Int
 pub fn components_consumes_limit(ComponentsApplications, Int) -> Bool
 
 pub fn components_limit_claim(ComponentsLimits, ComponentsScope) -> @capacity_witness.LimitClaim
+
+pub fn components_limit_effective_maximum(ComponentsLimits, ComponentsScope) -> Int64
+
+pub fn components_limit_guard_index(ComponentsLimits) -> Int?
+
+pub fn components_limit_guard_value(ComponentsLimits) -> Int64?
+
+pub fn components_limit_guards(ComponentsLimits) -> @pipeline_typing.BoundAuthorGuards?
 
 pub fn components_limit_index(ComponentsLimits, ComponentsScope) -> Int
 
@@ -299,6 +309,7 @@ pub(all) enum ComponentsCollectionIssue {
   ForeignSources(Int)
   ForeignProgram(Int)
   ForeignPolicy(Int)
+  ForeignGuardBindings(Int)
   DuplicateApplication(Int)
   DuplicateConsumption(Int)
   MissingApplication(Int)
@@ -310,6 +321,9 @@ pub(all) enum ComponentsLimitIssue {
   InvalidStep
   WrongOperation
   UnresolvedAuthorSource
+  ForeignGuardOwner
+  MissingGuard
+  WorkLimit
   ForeignClaims
   MissingMixedClosure
   MissingLimit(ComponentsScope)

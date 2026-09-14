@@ -1,4 +1,66 @@
 ///|
+test "component guard admission preserves owner and exact work boundaries" {
+  let (p, apps) = component_fixture(authored=true)
+  let sources = component_sources(apps, 0)
+  let program = @capacity_program_step.check_applications(
+    @host.source_claims(sources),
+    apps,
+    max_work=100,
+  ).unwrap()
+  let guards = bound_context(p, None)
+  let check = fn(bound, work) {
+    @capacity_program_step.check_components_limits(
+      p,
+      2,
+      sources,
+      program,
+      join_policy(),
+      0,
+      1,
+      guards=Some(bound),
+      max_work=work,
+    )
+  }
+  let selected = check(guards, 1000).unwrap()
+  assert_eq(
+    @capacity_program_step.components_limit_guard_value(selected),
+    Some(1L),
+  )
+  assert_true(
+    physical_equal(
+      @capacity_program_step.components_limit_guards(selected).unwrap(),
+      guards,
+    ),
+  )
+  let work = @capacity_program_step.components_limit_work(selected)
+  assert_true(check(guards, work) is Ok(_))
+  assert_true(check(guards, work - 1) is Err(_))
+  let (foreign, _) = component_fixture(authored=true)
+  assert_true(
+    check(bound_context(foreign, None), 1000) is Err(ForeignGuardOwner),
+  )
+  let collection = @capacity_program_step.check_components_applications(
+    p,
+    sources,
+    program,
+    join_policy(),
+    [selected],
+    max_work=1000,
+  ).unwrap()
+  assert_true(
+    @capacity_program_step.components_application_guard_bindings_match(
+      collection, guards,
+    ),
+  )
+  assert_false(
+    @capacity_program_step.components_application_guard_bindings_match(
+      collection,
+      bound_context(foreign, None),
+    ),
+  )
+}
+
+///|
 fn component_fixture(
   authored? : Bool = false,
 ) -> (@pipeline.CheckedPipeline, Array[@capacity_program_step.StepBound]) {

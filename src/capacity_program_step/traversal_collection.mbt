@@ -78,7 +78,7 @@ pub fn check_traversal_applications(
     }
     if app.guards is Some(bound) {
       if guards is Some(previous) &&
-        !traversal_same_guard_bindings(previous, bound) {
+        !same_capacity_guard_bindings(previous, bound) {
         return Err(ForeignGuardBindings(i))
       }
       guards = Some(bound)
@@ -192,7 +192,7 @@ pub fn traversal_application_work(v : TraversalApplications) -> Int {
 }
 
 ///|
-fn traversal_same_guard_bindings(
+fn same_capacity_guard_bindings(
   a : @pipeline.BoundAuthorGuards,
   b : @pipeline.BoundAuthorGuards,
 ) -> Bool {
@@ -224,6 +224,6 @@ pub fn traversal_application_guard_bindings_match(
   }
   match v.guards {
     None => true
-    Some(bound) => traversal_same_guard_bindings(bound, expected)
+    Some(bound) => same_capacity_guard_bindings(bound, expected)
   }
 }

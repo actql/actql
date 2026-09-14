@@ -73,6 +73,7 @@ pub fn close_program_operations(
           TextRankExecution(v) => v.site
           GraphResources(v) => v.site
           ComponentsLimits(v) => v.site
+          ComponentsOutputGuard(v) => v.site
           TraversalLimits(v) => v.site
           ReachLimits(v) => v.site
           ShortestLimits(v) => v.site

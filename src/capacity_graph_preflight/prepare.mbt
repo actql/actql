@@ -184,6 +184,7 @@ pub fn prepare_application_coverage(
             policy,
             nodes,
             output,
+            guards~,
             max_work=remaining,
           ) {
           Ok(v) => v

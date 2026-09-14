@@ -2318,6 +2318,7 @@ pub(all) enum OperationExecutionCheck {
   TextRankExecution(TextRankCheck)
   GraphResources(GraphResourcesCheck)
   ComponentsLimits(ComponentsLimitsCheck)
+  ComponentsOutputGuard(ComponentsLimitsCheck)
   TraversalLimits(TraversalLimitsCheck)
   ReachLimits(TraversalLimitsCheck)
   ShortestLimits(TraversalLimitsCheck)

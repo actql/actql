@@ -10,6 +10,9 @@ pub(all) enum ComponentsLimitIssue {
   InvalidStep
   WrongOperation
   UnresolvedAuthorSource
+  ForeignGuardOwner
+  MissingGuard
+  WorkLimit
   ForeignClaims
   MissingMixedClosure
   MissingLimit(ComponentsScope)
@@ -32,6 +35,8 @@ struct ComponentsLimits {
   nodes_index : Int
   rows_index : Int
   work : Int
+  guards : @pipeline.BoundAuthorGuards?
+  output_guard : Int?
 }
 
 ///|
@@ -43,6 +48,7 @@ pub fn check_components_limits(
   policy : @policy.Policy,
   nodes_index : Int,
   rows_index : Int,
+  guards? : @pipeline.BoundAuthorGuards? = None,
   max_work~ : Int,
 ) -> Result[ComponentsLimits, ComponentsLimitIssue] {
   if max_work < 0 {
@@ -57,7 +63,7 @@ pub fn check_components_limits(
   guard @graph.options(op) is @graph.ComponentOptions(_, max_output_rows~) else {
     return Err(WrongOperation)
   }
-  if max_output_rows is Some(_) {
+  if guards is None && max_output_rows is Some(_) {
     return Err(UnresolvedAuthorSource)
   }
   if !physical_equal(@host.source_claims(sources), program.claims) {
@@ -74,6 +80,29 @@ pub fn check_components_limits(
   }
   let subject = "components:checked-step:" + step.to_string()
   let mut work = 0
+  let mut output_guard = None
+  if guards is Some(bound) {
+    let occurrences = @pipeline.bound_guard_occurrences(bound)
+    if !physical_equal(@pipeline.author_guards_pipeline(occurrences), pipeline) {
+      return Err(ForeignGuardOwner)
+    }
+    let (first, end) = @pipeline.author_guard_step_range(occurrences, step).unwrap()
+    if end - first > max_work {
+      return Err(WorkLimit)
+    }
+    work += end - first
+    for index in first..<end {
+      if @pipeline.author_guard_scope(
+          @pipeline.author_guard_at(occurrences, index).unwrap(),
+        ) ==
+        @pipeline.ComponentOutputRows {
+        output_guard = Some(index)
+      }
+    }
+    if (max_output_rows is Some(_)) != (output_guard is Some(_)) {
+      return Err(MissingGuard)
+    }
+  }
   for
     (scope, limit, suffix, unit, host_field, required, law) in [
       (
@@ -132,6 +161,8 @@ pub fn check_components_limits(
     nodes_index,
     rows_index,
     work,
+    guards,
+    output_guard,
   })
 }
 
@@ -163,6 +194,8 @@ pub fn components_limit_policy(v : ComponentsLimits) -> @policy.Policy {
 }
 
 ///|
+/// Original admitted candidates; use components_limit_effective_maximum to
+/// include the separately owned authored output restriction.
 pub fn components_limit_claim(
   v : ComponentsLimits,
   scope : ComponentsScope,
@@ -170,6 +203,41 @@ pub fn components_limit_claim(
   match scope {
     InputNodes => v.nodes
     OutputRows => v.rows
+  }
+}
+
+///|
+pub fn components_limit_guards(
+  v : ComponentsLimits,
+) -> @pipeline.BoundAuthorGuards? {
+  v.guards
+}
+
+///|
+pub fn components_limit_guard_index(v : ComponentsLimits) -> Int? {
+  v.output_guard
+}
+
+///|
+pub fn components_limit_guard_value(v : ComponentsLimits) -> Int64? {
+  guard v.guards is Some(guards) && v.output_guard is Some(index) else {
+    return None
+  }
+  @pipeline.bound_guard_value_at(guards, index)
+}
+
+///|
+/// Original claims remain unchanged; the bound author guard restricts output only.
+pub fn components_limit_effective_maximum(
+  v : ComponentsLimits,
+  scope : ComponentsScope,
+) -> Int64 {
+  let maximum = @arithmetic.minimum_value(
+    @wire.limit_minimum(components_limit_claim(v, scope)),
+  )
+  match (scope, components_limit_guard_value(v)) {
+    (OutputRows, Some(value)) => maximum.min(value)
+    _ => maximum
   }
 }
 

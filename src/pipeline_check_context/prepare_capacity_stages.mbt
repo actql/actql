@@ -155,6 +155,13 @@ pub fn prepare_local_stage_contexts(
           @graph.shortest_output_guard(operation) is Some(_) {
           needs_guards = true
         }
+        if request is @capacity.Components(step~, ..) &&
+          @pipeline.step_at(pipeline, step) is Some(checked) &&
+          checked.operation is @pipeline.Graph(operation) &&
+          @graph.options(operation)
+          is @graph.ComponentOptions(_, max_output_rows=Some(_)) {
+          needs_guards = true
+        }
       }
       let guards = if needs_guards {
         let occurrences = match

@@ -13,13 +13,12 @@ fn components_limits_check(
   limits : @step_bounds.ComponentsLimits,
   policy : @policy.Policy,
 ) -> Result[OperationExecutionCheck, OperationResolutionIndexIssue] {
-  guard site.requirement is @pipeline.GraphRequirement(ResolveGraphResources) &&
+  guard site.requirement is @pipeline.GraphRequirement(requirement) &&
     @pipeline.operation_obligations_scope(site.obligations) == @pipeline.Body &&
     @pipeline.step_at(site.pipeline, site.step) is Some(step) &&
     step.operation is @pipeline.Graph(operation) &&
     @graph.operation(operation) == @graph.Components &&
-    @graph.pending_validation_at(operation, site.index) ==
-    Some(@graph.ResolveGraphResources) &&
+    @graph.pending_validation_at(operation, site.index) == Some(requirement) &&
     physical_equal(
       @step_bounds.components_limit_pipeline(limits),
       site.pipeline,
@@ -29,7 +28,13 @@ fn components_limits_check(
     @policy.cid(policy) else {
     return Err(ForeignOccurrence(site.step))
   }
-  Ok(ComponentsLimits({ site, step, limits, }))
+  let check : ComponentsLimitsCheck = { site, step, limits, }
+  match requirement {
+    ResolveGraphResources => Ok(ComponentsLimits(check))
+    EnforceOutputGuard if @step_bounds.components_limit_guard_value(limits)
+      is Some(_) => Ok(ComponentsOutputGuard(check))
+    _ => Err(ForeignOccurrence(site.step))
+  }
 }
 
 ///|
@@ -37,7 +42,8 @@ fn components_limits_candidate(
   requirements : ProgramOperationRequirements,
   site : OperationRequirementSite,
 ) -> Result[OperationExecutionCheck?, OperationResolutionIndexIssue] {
-  guard site.requirement is @pipeline.GraphRequirement(ResolveGraphResources) else {
+  guard site.requirement
+    is @pipeline.GraphRequirement(ResolveGraphResources | EnforceOutputGuard) else {
     return Ok(None)
   }
   guard @pipeline.step_at(site.pipeline, site.step) is Some(step) &&

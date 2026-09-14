@@ -630,6 +630,12 @@ through their exact owned operation. Authored component output guards and bounds
 report thresholds add unproven value provenance without replacing known input
 references. The component capacity selection and its node/output proof operands
 remain independently required; preserving policy never supplies a missing bound.
+An authored components output guard is bound to the same pipeline and effective
+Parameter values as its capacity selection. It restricts output rows only, never
+the input-node proof. The original candidate claims remain readable separately
+from the combined effective maximum. Formal Unit construction emits the guard
+witness and recomputes the persistent minimum; imported enforcement retains the
+producer's binding and fails atomically before operation output publication.
 Normalization and structural reports do not establish execution, completeness or
 authority to publish a Graph observation.
 

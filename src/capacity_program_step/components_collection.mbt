@@ -8,6 +8,7 @@ pub(all) enum ComponentsCollectionIssue {
   ForeignSources(Int)
   ForeignProgram(Int)
   ForeignPolicy(Int)
+  ForeignGuardBindings(Int)
   DuplicateApplication(Int)
   DuplicateConsumption(Int)
   MissingApplication(Int)
@@ -24,6 +25,7 @@ struct ComponentsApplications {
   consumed : Array[Bool]
   remaining : Int
   work : Int
+  guards : @pipeline.BoundAuthorGuards?
 }
 
 ///|
@@ -57,6 +59,7 @@ pub fn check_components_applications(
   let work = n * 2 + limits + a * 3
   let entries : Array[ComponentsLimits?] = Array::make(n, None)
   let consumed = Array::make(limits, false)
+  let mut guards = None
   for i, app in applications {
     if !physical_equal(app.pipeline, pipeline) {
       return Err(ForeignPipeline(i))
@@ -72,6 +75,13 @@ pub fn check_components_applications(
     }
     if entries[app.step] is Some(_) {
       return Err(DuplicateApplication(i))
+    }
+    if app.guards is Some(bound) {
+      if guards is Some(previous) &&
+        !same_capacity_guard_bindings(previous, bound) {
+        return Err(ForeignGuardBindings(i))
+      }
+      guards = Some(bound)
     }
     for index in [app.nodes_index, app.rows_index] {
       if consumed[index] {
@@ -99,7 +109,27 @@ pub fn check_components_applications(
     consumed,
     remaining: limits - a * 2,
     work,
+    guards,
   })
+}
+
+///|
+pub fn components_application_guard_bindings_match(
+  v : ComponentsApplications,
+  expected : @pipeline.BoundAuthorGuards,
+) -> Bool {
+  if !physical_equal(
+      v.pipeline,
+      @pipeline.author_guards_pipeline(
+        @pipeline.bound_guard_occurrences(expected),
+      ),
+    ) {
+    return false
+  }
+  match v.guards {
+    None => true
+    Some(bound) => same_capacity_guard_bindings(bound, expected)
+  }
 }
 
 ///|

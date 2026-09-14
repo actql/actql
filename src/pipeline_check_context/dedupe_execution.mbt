@@ -29,6 +29,7 @@ pub(all) enum OperationExecutionCheck {
   TextRankExecution(TextRankCheck)
   GraphResources(GraphResourcesCheck)
   ComponentsLimits(ComponentsLimitsCheck)
+  ComponentsOutputGuard(ComponentsLimitsCheck)
   TraversalLimits(TraversalLimitsCheck)
   ReachLimits(TraversalLimitsCheck)
   ShortestLimits(TraversalLimitsCheck)
@@ -249,6 +250,7 @@ pub fn operation_execution_phase(
         | ValidatePositiveSafeMemberCounts => BeforeOperationOutput
       }
     ComponentsLimits(_)
+    | ComponentsOutputGuard(_)
     | TraversalLimits(_)
     | ReachLimits(_)
     | ShortestLimits(_)
@@ -410,6 +412,7 @@ pub fn operation_execution_failure(
     | TextRankExecution(_)
     | GraphResources(_)
     | ComponentsLimits(_)
+    | ComponentsOutputGuard(_)
     | TraversalLimits(_)
     | ReachLimits(_)
     | ShortestLimits(_)

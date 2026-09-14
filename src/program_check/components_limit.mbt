@@ -60,6 +60,21 @@ fn assemble_components_limit(
     raise ForeignOwner
   }
   let applications = @step_bounds.components_limit_program(selected.limits)
+  let guard_witness = @step_bounds.components_limit_guard_value(selected.limits).map(value => {
+      let path = "$.steps[" +
+        source.source_ordinal.to_string() +
+        "].components.max_output_rows"
+      identity_charge(budget, path.length())
+      emit_unit_guard_witness(
+        source.unit_definition_cid,
+        path,
+        "actql.guard.components-output",
+        "rows",
+        value,
+        budget,
+      )
+    },
+  )
   let (limits, proofs) = assemble_operation_capacity_limits(
     units,
     applications,
@@ -83,6 +98,7 @@ fn assemble_components_limit(
       ),
     ],
     budget,
+    output_guard=guard_witness,
   )
   { source, selected, nodes: limits[0], output: limits[1], proofs, }
 }

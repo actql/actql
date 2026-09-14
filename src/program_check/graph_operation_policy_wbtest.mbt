@@ -61,28 +61,6 @@ test "SourceView components retain policy and explicit producer capacity materia
         "\"" +
         (if guarded { ",\"max_output_rows\":2" } else { "" }) +
         "}},{\"select\":[{\"id\":\"node_id\"}]}"
-      if guarded {
-        // The current capacity constructor has no author-source binding path.
-        // Publication policy must not bypass that unresolved requirement.
-        let rejected = try {
-          let _ = checked_direct_program_fixture(
-            graph_steps=steps,
-            graph_components=true,
-          )
-          false
-        } catch {
-          Source(
-            SourceView(
-              Context(
-                Stages(Capacity(_, _, Components(_, UnresolvedAuthorSource)))
-              )
-            )
-          ) => true
-          error => raise error
-        }
-        assert_true(rejected)
-        continue
-      }
       let program = checked_direct_program_fixture(
         graph_steps=steps,
         graph_components=true,
