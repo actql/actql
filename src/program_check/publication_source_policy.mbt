@@ -769,6 +769,20 @@ fn prepare_publication_source_policy(
             unknown = unknown || missing
             2
           }
+          @pipeline.Vector(operation) => {
+            identity_charge(budget, 1)
+            let missing = match @vector.operation(operation) {
+              ToVectors | NormalizeVectors => false
+              ScoreVectors => true
+            }
+            carrier_steps.push({
+              step: index,
+              operation: step.operation,
+              unknown_provenance: missing,
+            })
+            unknown = unknown || missing
+            1
+          }
           @pipeline.Event(operation) => {
             identity_charge(budget, 1)
             let missing = match @event.options(operation) {

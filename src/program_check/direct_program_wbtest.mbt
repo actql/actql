@@ -32,6 +32,7 @@ fn checked_direct_program_fixture(
   window_steps? : String = "",
   sequence_body? : String = "",
   sequence_events? : Bool = false,
+  vector_steps? : String = "",
   numeric_profile? : @numeric.Profile? = None,
 ) -> CheckedProgram raise {
   let original_text =
@@ -41,7 +42,22 @@ fn checked_direct_program_fixture(
     new="\"" + input_name + "\"",
   )
   let program = @syntax.parse(
-    if sequence_body != "" {
+    if vector_steps != "" {
+      let vector_text = text.replace(
+        old="\"steps\":[",
+        new="\"steps\":[{\"values\":{\"schema\":{\"id\":{\"type\":\"number\",\"nullable\":false},\"embedding\":{\"type\":\"vector\",\"dimensions\":2,\"nullable\":false}},\"rows\":[{\"id\":1,\"embedding\":[1,2]}]},\"as\":\"embeddings\"},{\"from\":\"remote\",\"join\":{\"with\":\"embeddings\",\"kind\":\"inner\",\"on\":\"id\",\"select\":{\"id\":\"left.id\",\"embedding\":\"right.embedding\"}}}," +
+          vector_steps +
+          ",{\"vectors\":true},",
+      )
+      if vector_steps.contains("$param") {
+        vector_text.replace(
+          old="\"stages\":",
+          new="\"params\":{\"q\":{\"type\":\"array\",\"items\":{\"type\":\"number\"},\"default\":[1,2]}},\"stages\":",
+        )
+      } else {
+        vector_text
+      }
+    } else if sequence_body != "" {
       text.replace(
         old="\"steps\":[",
         new="\"steps\":[" +
@@ -328,7 +344,7 @@ fn checked_direct_program_fixture(
   ).unwrap()
   let environment = remote_environment_fixture(
     analytic=analytic_body != "",
-    nest=nest_guard is Some(_),
+    nest=nest_guard is Some(_) || vector_steps != "",
   )
   // No Program arithmetic assertion is needed: publication retains the Host
   // bound and distinct establishes its own key. Actual acquisition is not run.
@@ -349,7 +365,9 @@ fn checked_direct_program_fixture(
     max_nodes: 0,
     max_depth: 0,
   }).unwrap()
-  let sources = if sequence_body != "" {
+  let sources = if vector_steps != "" {
+    local_join_capacity_fixture(environment, 1000, 1)
+  } else if sequence_body != "" {
     local_sequence_capacity_fixture(
       environment,
       1,
@@ -388,7 +406,9 @@ fn checked_direct_program_fixture(
         [
           @context.CapacityMaterial::{
             sources,
-            consumers: if sequence_body != "" {
+            consumers: if vector_steps != "" {
+              [@capacity.Join(step=1, output=0)]
+            } else if sequence_body != "" {
               [
                 @capacity.Sequence(
                   step=if sequence_events { 1 } else { 0 },
@@ -410,7 +430,7 @@ fn checked_direct_program_fixture(
         ],
       ]
     },
-    { text_time: false, veca: false, },
+    { text_time: false, veca: vector_steps != "", },
     {
       rela: true,
       sga: false,
@@ -422,7 +442,9 @@ fn checked_direct_program_fixture(
       text_rank: false,
     },
     source_limits_fixture(
-      if temporal_step != "" || window_steps != "" || sequence_body != "" {
+      if vector_steps != "" {
+        8
+      } else if temporal_step != "" || window_steps != "" || sequence_body != "" {
         6
       } else if join_kind != "" ||
         mix_generated ||

@@ -573,6 +573,13 @@ share the preparation budget. Required within values and any authored guards
 are not policy attestations. Match selection, input identity validation and both
 atomic match limits remain separate execution obligations on that operation.
 
+Vector conversion and normalization preserve input policy through owned
+Carrier-step records. Scoring also retains its query value or Parameter source;
+without admitted value provenance that contribution remains unknown. Projecting
+the score or embedding out of a Result does not discard input participation in
+selection. Component admission, identity uniqueness, arithmetic, score ordering
+and selected vector resource checks remain distinct from policy transfer.
+
 Result imports retain the producer's completed publication through
 `publication_policy_import_count/at`, including the consumer input coordinate.
 `imported_publication` is a convenience only for exactly one import.
