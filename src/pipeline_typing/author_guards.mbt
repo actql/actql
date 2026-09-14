@@ -27,6 +27,7 @@ struct AuthorGuard {
 struct AuthorGuards {
   pipeline : CheckedPipeline
   entries : Array[AuthorGuard]
+  step_ranges : Array[(Int, Int)]
   work : Int
   text : Int
 }
@@ -69,6 +70,14 @@ pub fn author_guard_count(v : AuthorGuards) -> Int {
 ///|
 pub fn author_guard_at(v : AuthorGuards, index : Int) -> AuthorGuard? {
   v.entries.get(index)
+}
+
+///|
+/// Half-open range of original occurrence indices for one local step, in O(1).
+/// An existing step without guards has an empty range; an invalid step is None.
+/// No occurrences are copied or rebound to a different pipeline.
+pub fn author_guard_step_range(v : AuthorGuards, step : Int) -> (Int, Int)? {
+  v.step_ranges.get(step)
 }
 
 ///|
@@ -124,7 +133,10 @@ pub fn collect_author_guards(
     }
     spend(b, p.source, p.steps.length())
     let entries : Array[AuthorGuard] = []
+    // The existing per-step reservation also bounds this retained index.
+    let step_ranges : Array[(Int, Int)] = []
     for index, step in p.steps {
+      let first = entries.length()
       let add = fn(
         scope : GuardScope,
         value : @relation.CountValue?,
@@ -273,10 +285,12 @@ pub fn collect_author_guards(
         }
         _ => ()
       }
+      step_ranges.push((first, entries.length()))
     }
     Ok({
       pipeline: p,
       entries,
+      step_ranges,
       work: max_work - b.work,
       text: max_text_bytes - b.text,
     })

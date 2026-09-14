@@ -130,16 +130,14 @@ fn check_limits(
     if !physical_equal(@pipeline.author_guards_pipeline(occurrences), pipeline) {
       return Err(ForeignGuardOwner)
     }
-    let count = @pipeline.author_guard_count(occurrences)
+    let (first, end) = @pipeline.author_guard_step_range(occurrences, step).unwrap()
+    let count = end - first
     if count > max_work {
       return Err(WorkLimit)
     }
     work += count
-    for index in 0..<count {
+    for index in first..<end {
       let occurrence = @pipeline.author_guard_at(occurrences, index).unwrap()
-      if @pipeline.author_guard_step(occurrence) != step {
-        continue
-      }
       match @pipeline.author_guard_scope(occurrence) {
         SequenceMatchesPerKey => match_guard = Some(index)
         SequenceOutputRows => output_guard = Some(index)

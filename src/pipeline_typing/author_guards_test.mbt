@@ -1,4 +1,54 @@
 ///|
+test "step ranges partition retained occurrences including empty steps" {
+  for n in [0, 1, 2, 17, 128] {
+    let steps : Array[String] = []
+    for i in 0..<n {
+      steps.push(
+        if i % 3 == 1 {
+          "{\"join\":{\"with\":\"r\",\"kind\":\"semi\",\"on\":\"id\",\"max_output_rows\":7},\"from\":\"l\"}"
+        } else {
+          "{\"filter\":\"TRUE\",\"from\":\"l\"}"
+        },
+      )
+    }
+    let p = @pipeline_typing.check(
+      cursor("[" + steps.join(",") + "]"),
+      [("l", schema()), ("r", schema())],
+      None,
+      None,
+      limits(),
+    ).unwrap()
+    let guards = @pipeline_typing.collect_author_guards(
+      p,
+      max_work=1000,
+      max_text_bytes=10000,
+    ).unwrap()
+    let mut expected = 0
+    for i in 0..<n {
+      let first = expected
+      if i % 3 == 1 {
+        expected += 1
+      }
+      assert_eq(
+        @pipeline_typing.author_guard_step_range(guards, i),
+        Some((first, expected)),
+      )
+      for index in first..<expected {
+        let occurrence = @pipeline_typing.author_guard_at(guards, index).unwrap()
+        assert_eq(@pipeline_typing.author_guard_step(occurrence), i)
+        assert_true(
+          physical_equal(@pipeline_typing.author_guard_pipeline(occurrence), p),
+        )
+      }
+    }
+    assert_eq(@pipeline_typing.author_guard_count(guards), expected)
+    assert_eq(@pipeline_typing.author_guard_step_range(guards, n), None)
+    // One reserved unit for every step and every retained occurrence.
+    assert_eq(@pipeline_typing.author_guards_usage(guards).0, n + expected)
+  }
+}
+
+///|
 test "author guards retain repeated owners exact source slots and shared budgets" {
   let parameters = @parameter.read_declarations(
     Some(cursor("{\"cap\":{\"type\":\"number\"}}")),
@@ -23,6 +73,11 @@ test "author guards retain repeated owners exact source slots and shared budgets
     max_text_bytes=1000,
   ).unwrap()
   assert_eq(@pipeline_typing.author_guard_count(guards), 2)
+  assert_eq(@pipeline_typing.author_guard_step_range(guards, 0), Some((0, 1)))
+  assert_eq(@pipeline_typing.author_guard_step_range(guards, 1), Some((1, 2)))
+  assert_eq(@pipeline_typing.author_guard_step_range(guards, 2), Some((2, 2)))
+  assert_eq(@pipeline_typing.author_guard_step_range(guards, -1), None)
+  assert_eq(@pipeline_typing.author_guard_step_range(guards, 3), None)
   assert_true(
     physical_equal(@pipeline_typing.author_guards_pipeline(guards), p),
   )
@@ -111,6 +166,7 @@ test "aggregate and sequence guards retain distinct protected quantities" {
     max_text_bytes=1000,
   ).unwrap()
   assert_eq(@pipeline_typing.author_guard_count(guards), 2)
+  assert_eq(@pipeline_typing.author_guard_step_range(guards, 0), Some((0, 2)))
   assert_eq(
     @pipeline_typing.author_guard_scope(
       @pipeline_typing.author_guard_at(guards, 0).unwrap(),

@@ -1,4 +1,58 @@
 ///|
+test "sequence guard lookup keeps original indices without scanning other steps" {
+  let step =
+    #|{"sequence":{"by":[],"id":"id","time":"id","pattern":[{"as":"a","where":"TRUE"},{"as":"b","where":"TRUE"}],"within":1,"overlap":"allow","contiguity":"adjacent","max_matches_per_key":1,"max_output_rows":2},"from":"rows"}
+  let p = pipeline_text("[" + step + "," + step + "]")
+  let guards = @pipeline.collect_author_guards(
+    p,
+    max_work=100,
+    max_text_bytes=1000,
+  ).unwrap()
+  let bound = @pipeline.bind_author_guards(
+    guards,
+    None,
+    max_work=100,
+    max_text_bytes=1000,
+  ).unwrap()
+  for i in 0..<2 {
+    let sources = fixtures(0, i)
+    let selected = policy(false)
+    let checked = @capacity_sequence_limit.check_bound_limits(
+      p,
+      i,
+      sources,
+      selected,
+      0,
+      1,
+      bound,
+      max_work=6,
+    ).unwrap()
+    assert_eq(
+      @capacity_sequence_limit.guard_index(checked, MatchesPerKey),
+      Some(i * 2),
+    )
+    assert_eq(
+      @capacity_sequence_limit.guard_index(checked, OutputRows),
+      Some(i * 2 + 1),
+    )
+    assert_eq(@capacity_sequence_limit.usage(checked), 6)
+    assert_true(
+      @capacity_sequence_limit.check_bound_limits(
+        p,
+        i,
+        sources,
+        selected,
+        0,
+        1,
+        bound,
+        max_work=5,
+      )
+      is Err(WorkLimit),
+    )
+  }
+}
+
+///|
 test "bound sequence limits retain tighter equal and looser authored occurrences" {
   for (matches, output) in [(1, 2), (3, 7), (10, 20)] {
     let p = pipeline(

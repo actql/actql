@@ -70,6 +70,8 @@ pub fn author_guard_source(AuthorGuard) -> @decode_core.Cursor
 
 pub fn author_guard_step(AuthorGuard) -> Int
 
+pub fn author_guard_step_range(AuthorGuards, Int) -> (Int, Int)?
+
 pub fn author_guard_unit(AuthorGuard) -> @capacity_derivation.BoundUnit
 
 pub fn author_guard_value(AuthorGuard) -> @relation_typing.CountValue
