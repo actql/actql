@@ -353,6 +353,13 @@ fn prepare_owned_closure(
     contract_prefix = Int::max(contract_prefix, shared) +
       (@context.analytic_numeric_slots_work(slots) - shared)
   }
+  if pivot_numeric_slots is Some(slots) {
+    let shared = @context.operation_requirements_work(
+      @context.pivot_numeric_slots_requirements(slots),
+    )
+    contract_prefix = Int::max(contract_prefix, shared) +
+      (@context.pivot_numeric_slots_work(slots) - shared)
+  }
   let contracts = match
     @context.collect_core_contracts(
       identity,
