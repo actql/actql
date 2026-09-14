@@ -48,6 +48,8 @@ pub fn check_text_rank_inputs(@relation_evidence.TextRankOptions, @carrier_contr
 
 pub fn declare_ranking_score(@decode_core.Cursor, @carrier_contract.Carrier, @relation_schema.FieldName, @vector_checking.Limits) -> Result[@relation_evidence.RankingInput, @vector_checking.Issue]
 
+pub fn declare_ranking_scores(@decode_core.Cursor, @carrier_contract.Carrier, @vector_checking.Limits) -> Result[@relation_evidence.RankingTransfer, @vector_checking.Issue]
+
 pub fn declared_score_contract(@relation_evidence.DeclaredScore) -> @relation_evidence.ScoreContract
 
 pub fn declared_score_field(@relation_evidence.DeclaredScore) -> @relation_schema.FieldName

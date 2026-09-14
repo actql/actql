@@ -311,6 +311,18 @@ the assertion to captured input evidence before execution, not use this boundary
 to relabel newly computed scores. Producer handles and their obligations remain
 reachable through indexed input accessors.
 
+`declare_ranking_scores` admits a field-scoped map against one immutable input.
+Its complete-map preflight and individual declaration admissions share a budget;
+the returned usage includes both passes, map retention and declaration selection.
+There is no successful prefix when a later field fails. Each current alias maps
+to its own original declaration, so an ordered derive can save one score, shadow
+it with another and retain both origins correctly. The field-specific reader is
+constant-time. The legacy unqualified reader returns a declaration only when all
+retained aliases refer to the same original assertion; multiple distinct score
+declarations are not collapsed to an arbitrary representative. Row-preserving
+transfers reuse the stored summary, while rewritten alias maps recompute it under
+the transfer budget. This is semantic assertion transport, not runtime evidence.
+
 Whole-input uniqueness, contiguous input ranks, score arithmetic, business
 tie-value agreement and output resource envelopes are explicit obligations.
 Fusion emits fresh ranks; business payload is not copied. In particular a

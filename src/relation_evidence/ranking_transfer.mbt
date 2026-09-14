@@ -49,18 +49,18 @@ pub fn transfer_ranking_unary(
       | WatermarkRows => ()
       Derive => {
         @checking.spend(b, source, @relation.binding_count(op))
-        let slots : Array[(@carrier.Vectors?, Bool)] = []
-        let assigned : Map[String, (@carrier.Vectors?, Bool)] = Map([])
+        let slots : Array[(@carrier.Vectors?, DeclaredScore?)] = []
+        let assigned : Map[String, (@carrier.Vectors?, DeclaredScore?)] = Map([])
         for i in 0..<@relation.binding_count(op) {
           let binding = @relation.binding_copy_at(op, i).unwrap()
           let annotation = match binding.input {
             Some(InputField(field)) => {
               @checking.charge(b, source, @row.reference_name(field))
               let name = ranking_field_key(field)
-              (previous.tuples.get(name), previous.score_aliases.contains(name))
+              (previous.tuples.get(name), previous.score_aliases.get(name))
             }
             Some(PriorSlot(slot)) => slots[slot]
-            None => (None, false)
+            None => (None, None)
           }
           slots.push(annotation)
           if binding.output is Some(name) {
@@ -79,13 +79,13 @@ pub fn transfer_ranking_unary(
           let (tuple, score) = assigned
             .get(name)
             .unwrap_or(
-              (previous.tuples.get(name), previous.score_aliases.contains(name)),
+              (previous.tuples.get(name), previous.score_aliases.get(name)),
             )
           if tuple is Some(n) {
             tuples[name] = n
           }
-          if score {
-            scores[name] = true
+          if score is Some(declaration) {
+            scores[name] = declaration
           }
         }
       }
@@ -105,8 +105,8 @@ pub fn transfer_ranking_unary(
             if previous.tuples.get(old) is Some(n) {
               tuples[name] = n
             }
-            if previous.score_aliases.contains(old) {
-              scores[name] = true
+            if previous.score_aliases.get(old) is Some(declaration) {
+              scores[name] = declaration
             }
           }
         }
@@ -117,12 +117,19 @@ pub fn transfer_ranking_unary(
     }
     let output = @relation.output_schema(op)
     @checking.spend(b, source, @row.field_count(output))
+    let declaration = if physical_equal(scores, previous.score_aliases) {
+      previous.score_declaration
+    } else {
+      @checking.spend(b, source, scores.length())
+      sole_score(scores)
+    }
     Ok({
       input: {
         ..previous,
         carrier: @carrier.relation(@carrier.typed_rows(output)),
         tuples,
         score_aliases: scores,
+        score_declaration: declaration,
       },
       usage: {
         work: limits.max_work - b.work,

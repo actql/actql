@@ -15,7 +15,7 @@ struct RankingInput {
   fusion : CheckedRanking?
   lexical : CheckedTextRank?
   score_declaration : DeclaredScore?
-  score_aliases : Map[String, Bool]
+  score_aliases : Map[String, DeclaredScore]
   tuples : Map[String, @carrier.Vectors]
 }
 

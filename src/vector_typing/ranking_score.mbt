@@ -4,6 +4,7 @@ pub type DeclaredScore = @evidence.DeclaredScore
 ///|
 pub using @evidence {
   declare_ranking_score,
+  declare_ranking_scores,
   ranking_score_declaration,
   ranking_score_at,
   declared_score_source,

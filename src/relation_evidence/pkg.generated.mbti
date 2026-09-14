@@ -113,6 +113,8 @@ pub fn declare_primary_key(@decode_core.Cursor, @carrier_contract.Carrier, Limit
 
 pub fn declare_ranking_score(@decode_core.Cursor, @carrier_contract.Carrier, @relation_schema.FieldName, @vector_checking.Limits) -> Result[RankingInput, @vector_checking.Issue]
 
+pub fn declare_ranking_scores(@decode_core.Cursor, @carrier_contract.Carrier, @vector_checking.Limits) -> Result[RankingTransfer, @vector_checking.Issue]
+
 pub fn declared_key_field_at(KeyedRelation, Int) -> KeyField?
 
 pub fn declared_records(KeyedRelation) -> @carrier_contract.Knowledge
