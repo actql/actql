@@ -272,6 +272,53 @@ test('abort waits for an active native command to settle before returning failur
   assert.deepEqual((await withComputeDatabase(limits, session => rows(session, 'SELECT 42'))).value, [['42']]);
 });
 
+test('cancellation deadline returns the same pending cleanup responsibility without releasing capacity', async () => {
+  const abort = new AbortController();
+  let ready;
+  let release;
+  const entered = new Promise(resolve => { ready = resolve; });
+  const held = new Promise(resolve => { release = resolve; });
+  const settlements = [];
+  let bodyCalls = 0;
+  const operation = withComputeDatabase({ ...limits, cancelWaitMs: 0 }, async session => {
+    bodyCalls++;
+    await session.command('CREATE TABLE pending_input AS SELECT 1 AS id', [], discard);
+    ready();
+    await held;
+    return 'not successful after cancellation';
+  }, abort.signal, {
+    started() {}, chargeTransfer() {}, settled(value) { settlements.push(value); },
+  });
+  await entered;
+  abort.abort();
+  let failure;
+  try { await operation; assert.fail('cancelled session must reject'); }
+  catch (error) { failure = error; }
+  try {
+    assert.equal(failure.code, 'Cancelled');
+    assert.equal(failure.cleanupPending, true);
+    assert.equal(failure.cleanupHandle.status().pending, true);
+    assert.deepEqual(settlements, [false]);
+  } finally { release(); }
+  assert.equal((await failure.cleanupHandle.retry()).pending, false);
+  assert.deepEqual(settlements, [false, true]);
+  assert.equal(bodyCalls, 1);
+  assert.equal((await failure.cleanupHandle.retry()).pending, false);
+  assert.deepEqual(settlements, [false, true]);
+});
+
+test('invalid cancellation deadlines fail before native resource creation', async () => {
+  for (const cancelWaitMs of [-1, 0.5, 2147483648]) {
+    let started = false;
+    await assert.rejects(withComputeDatabase({ ...limits, cancelWaitMs }, () => {
+      assert.fail('invalid limits must not enter body');
+    }, new AbortController().signal, {
+      started() { started = true; }, chargeTransfer() {}, settled() {},
+    }), hasCode('InvalidLimits'));
+    assert.equal(started, false);
+  }
+});
+
 test('native memory exhaustion cannot publish or retain temporary Compute state', async () => {
   let succeeded = false;
   await assert.rejects(withComputeDatabase({ ...limits, memoryBytes: 1024 * 1024 }, async session => {

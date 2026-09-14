@@ -38,7 +38,7 @@ transfer and DB-memory reservations; failure never refunds consumed transfer.
 Task configuration cannot substitute a fresh ledger for a running graph.
 
 Retained-buffer and adapter-scratch accounting, Local
-physical enforcement and deadline-based asynchronous cleanup described below must
+physical enforcement described below must
 be connected before this is presented as
 the complete physical strategy Host. Checked topology validation alone is not
 validation of all runtime Stage obligations or a Program success issuer.
@@ -94,6 +94,13 @@ the same remaining resources and settlement callback; it cannot run Compute or
 turn failure into success. Cleanup acknowledgement follows actual resource
 closure, not merely a cancellation request. A rollback error followed by confirmed
 connection/instance closure is still a cleanup error, but not pending capacity.
+
+A bounded cancellation-wait policy may return failure while the original session
+still owns resources. Its live cleanup handle continues observing that exact
+operation; no second execution is created. Pending capacity remains reserved until
+the original session confirms cleanup. Status inspection is nonblocking; cleanup
+retry may await native settlement and never turns the cancelled task into success.
+The wait deadline is not a native process-kill deadline or a durable recovery claim.
 
 ## Comparison and revision
 

@@ -23,12 +23,64 @@ export async function authorizeLocalDatabase(path) {
 }
 
 function validateLimits(limits) {
+  if (limits.cancelWaitMs !== undefined &&
+      (!Number.isSafeInteger(limits.cancelWaitMs) || limits.cancelWaitMs < 0 || limits.cancelWaitMs > 2147483647)) {
+    throw new DuckDBTransportError('InvalidLimits');
+  }
   for (const name of ['maxRows', 'maxCells', 'maxTransportBytes', 'maxSqlBytes', 'maxParameters', 'maxColumns', 'memoryBytes', 'threads']) {
     if (!Number.isSafeInteger(limits[name]) || limits[name] < (['memoryBytes', 'threads'].includes(name) ? 1 : 0)) {
       throw new DuckDBTransportError('InvalidLimits');
     }
   }
   return Object.freeze({ ...limits });
+}
+
+// A caller's cancellation deadline is not native settlement. Keep observing the
+// original operation and retain its cleanup responsibility after returning early.
+async function cancellationBoundary(start, limits, signal, accounting) {
+  limits = validateLimits(limits);
+  if (limits.cancelWaitMs === undefined || !signal) return start(limits);
+  let settled = false;
+  let terminalError;
+  let timer;
+  let resolveDeadline;
+  const deadline = new Promise(resolve => { resolveDeadline = resolve; });
+  const onAbort = () => {
+    if (timer !== undefined || settled) return;
+    timer = setTimeout(() => resolveDeadline({ expired: true }), limits.cancelWaitMs);
+  };
+  signal.addEventListener('abort', onAbort, { once: true });
+  const operation = Promise.resolve().then(() => start(limits)).then(
+    value => { settled = true; return { value }; },
+    error => { settled = true; terminalError = error; return { error }; },
+  );
+  if (signal.aborted) onAbort();
+  let outcome = await Promise.race([operation, deadline]);
+  signal.removeEventListener('abort', onAbort);
+  clearTimeout(timer);
+  if (outcome.expired && settled) outcome = await operation;
+  if (!outcome.expired) {
+    if (outcome.error) throw outcome.error;
+    return outcome.value;
+  }
+  const status = () => Object.freeze({
+    pending: !settled || (terminalError?.cleanupHandle?.status().pending ?? false),
+    errors: terminalError?.cleanupHandle?.status().errors ?? terminalError?.cleanupErrors ?? Object.freeze([]),
+  });
+  const failure = new DuckDBTransportError('Cancelled');
+  failure.primaryFailure = new DuckDBTransportError('Cancelled');
+  failure.cleanupErrors = Object.freeze([]);
+  failure.cleanupPending = true;
+  failure.cleanupHandle = Object.freeze({
+    status,
+    async retry() {
+      await operation;
+      if (terminalError?.cleanupHandle?.status().pending) await terminalError.cleanupHandle.retry();
+      return status();
+    },
+  });
+  accounting?.settled(false);
+  throw failure;
 }
 
 async function usingSession(path, readonly, suppliedLimits, body, signal, accounting) {
@@ -237,9 +289,9 @@ async function usingSession(path, readonly, suppliedLimits, body, signal, accoun
 export async function withSourceDatabase(grant, limits, body, signal) {
   const path = files.get(grant);
   if (!path) throw new DuckDBTransportError('UnauthorizedSource');
-  return usingSession(path, true, limits, body, signal);
+  return cancellationBoundary(fixedLimits => usingSession(path, true, fixedLimits, body, signal), limits, signal);
 }
 
 export async function withComputeDatabase(limits, body, signal, accounting) {
-  return usingSession(':memory:', false, limits, body, signal, accounting);
+  return cancellationBoundary(fixedLimits => usingSession(':memory:', false, fixedLimits, body, signal, accounting), limits, signal, accounting);
 }

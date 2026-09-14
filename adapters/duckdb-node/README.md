@@ -461,6 +461,14 @@ cleanup releases unused transfer and configured DB-memory reservations.
 An error with `cleanupPending` retains `cleanupHandle.status()` and asynchronous
 `cleanupHandle.retry()` for the same owned resources. `primaryFailure` and
 `cleanupErrors` remain separate. Retry is resource cleanup, not a query retry.
+The optional Host transport limit `cancelWaitMs` bounds the caller's wait after
+cancellation (an integer from zero through 2147483647 milliseconds). Without it,
+the call waits for settlement as before. Expiry returns `Cancelled` with a live
+`cleanupHandle`; it does not acknowledge native stop, release ledger reservations,
+or allow success publication. `status()` reports current pending responsibility,
+while `retry()` awaits the same original operation and retries only failed cleanup.
+The error's `cleanupPending` is the return-time snapshot; use the handle for updates.
+This is an in-process handle, not durable recovery or a hard native-kill timeout.
 For bounded conditional comparison, configure `physical_strategy.configure_strategy_search`
 before starting tasks, prepare owned estimates with `prepare_task_offer`, and call
 `revise_strategy`. Read its selected registrations, remaining cost and candidate
