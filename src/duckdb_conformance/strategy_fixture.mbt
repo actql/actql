@@ -116,6 +116,48 @@ pub fn strategy_fixture_acquisition(
 }
 
 ///|
+#export_name("strategyFixtureAccounted")
+pub fn strategy_fixture_accounted(f : StrategyFixture) -> StrategyFixture {
+  // This fixture includes conservative retained capacities for all three
+  // evidence records, the observation, scan and native output, not just Compute.
+  let ledger = @strategy.create_ledger({
+    planning_work: 10000,
+    attempts: 10,
+    holdings: 10,
+    transfer_bytes: 300000L,
+    retained_bytes: 200000000L,
+    execution_bytes: 268435456L,
+  }).unwrap()
+  { ..f, ledger, run: None, }
+}
+
+///|
+#export_name("strategyFixtureLedger")
+pub fn strategy_fixture_ledger(f : StrategyFixture) -> @strategy.Ledger {
+  f.ledger
+}
+
+///|
+#export_name("strategyFixtureGraph")
+pub fn strategy_fixture_graph(f : StrategyFixture) -> @strategy.CheckedDAG {
+  f.graph
+}
+
+///|
+#export_name("strategyFixtureAttach")
+pub fn strategy_fixture_attach(
+  f : StrategyFixture,
+  run : @strategy.CapturedDAG,
+) -> Bool {
+  if f.run is Some(_) ||
+    !physical_equal(f.ledger, @strategy.captured_dag_ledger(run)) {
+    return false
+  }
+  f.run = Some(run)
+  true
+}
+
+///|
 #export_name("strategyFixtureOpen")
 pub fn strategy_fixture_open(
   f : StrategyFixture,

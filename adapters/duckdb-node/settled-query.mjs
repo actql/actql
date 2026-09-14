@@ -16,6 +16,7 @@ export async function runSettledQuery(grant, prepare, limits, signal, acquire, a
     finally {
       if (settled !== undefined) releaseSourceAcquisition(settled);
       settled = undefined;
+      bridge = undefined;
     }
   };
   try {
@@ -33,6 +34,7 @@ export async function runSettledQuery(grant, prepare, limits, signal, acquire, a
     }
     return Object.freeze({
       observation,
+      usage: settled.usage,
       bindInput(...args) {
         if (closed) throw new DuckDBTransportError('IssuerClosed');
         // Consumer failures do not release a successful acquisition or reread.

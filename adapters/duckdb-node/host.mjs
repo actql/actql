@@ -136,10 +136,35 @@ function rows(value) {
 // setup is an opaque NativeHostConfiguration from trusted MoonBit application
 // preparation, not serialized Program JSON and not a source-file authorization.
 export async function runNativeHostQuery(grant, setup, limits, signal) {
+  return runHostNativeQuery(grant, setup, limits, signal);
+}
+
+// The same owned ledger will receive the capture root and every later task.
+// No caller-supplied verifier or accounting callback enters this standard API.
+export async function runStrategyNativeHostQuery(grant, setup, ledger, limits, signal) {
+  return runHostNativeQuery(grant, setup, limits, signal, ledger);
+}
+
+async function runHostNativeQuery(grant, setup, limits, signal, ledger) {
   const moon = await loadRuntime();
+  limits = Object.freeze({ ...limits });
+  const capacity = ledger === undefined ? undefined : Object.freeze({
+    ...computePhysicalCapacity(limits),
+    retentionBytes: checked(moon.nativeHostCapacity(setup, true)),
+    receiverScratchBytes: checked(moon.nativeHostCapacity(setup, false)),
+  });
   let capturedRun;
+  let sessionStarted = false;
+  const accounting = capacity === undefined ? undefined : Object.freeze({
+    started() { sessionStarted = true; },
+    chargeTransfer(bytes) { checked(moon.nativeHostPhysicalCharge(capturedRun, BigInt(bytes))); },
+    settled(confirmed) { checked(moon.nativeHostPhysicalSettle(capturedRun, confirmed)); },
+  });
   const captured = await runNativeQuery(grant, verify => {
-    const run = checked(moon.nativeHostOpen(setup, randomUUID(), verify));
+    const run = checked(capacity === undefined
+      ? moon.nativeHostOpen(setup, randomUUID(), verify)
+      : moon.nativeStrategyHostOpen(setup, ledger, randomUUID(), verify,
+        capacity.transferBytes, capacity.executionBytes));
     capturedRun = run;
     const attempt = moon.nativeHostAttempt(run);
     let view;
@@ -180,13 +205,36 @@ export async function runNativeHostQuery(grant, setup, limits, signal) {
       abort() { moon.nativeHostAbort(run); },
       close() { moon.nativeHostClose(run); },
     });
-  }, limits, signal);
+  }, limits, signal, accounting).catch(error => {
+    if (capacity !== undefined && capturedRun !== undefined && !sessionStarted) {
+      checked(moon.nativeHostPhysicalSettle(capturedRun, true));
+    }
+    throw error;
+  });
+  let closed = false;
+  const liveRun = () => {
+    if (closed) throw new DuckDBTransportError('IssuerClosed');
+    return capturedRun;
+  };
   return Object.freeze({
     observation: captured.observation,
+    usage: captured.usage,
+    physicalCapacity: capacity === undefined ? undefined : Object.freeze({
+      ...capacity, executionBytes: capacity.executionBytes + capacity.receiverScratchBytes,
+    }),
     document: () => moon.nativeHostDocument(captured.observation),
-    output: () => captured.bindInput(),
-    source: () => checked(moon.nativeHostCapturedSource(capturedRun, captured.observation)),
-    close: () => captured.close(),
+    ...(capacity === undefined ? {
+      output: () => captured.bindInput(),
+      source: () => checked(moon.nativeHostCapturedSource(liveRun(), captured.observation)),
+    } : {
+      openDAG: graph => checked(moon.nativeHostOpenDAG(liveRun(), graph, captured.observation)),
+    }),
+    close() {
+      if (closed) return;
+      closed = true;
+      try { captured.close(); }
+      finally { capturedRun = undefined; }
+    },
   });
 }
 

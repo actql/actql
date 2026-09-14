@@ -78,6 +78,8 @@ pub fn native_host_attempt(NativeNodeRun) -> @query_planning.DuckDBNativeAttempt
 
 pub fn native_host_begin(NativeNodeRun, Bool, String) -> Unit raise NodeHostFailure
 
+pub fn native_host_capacity(@duckdb_host.NativeHostConfiguration, Bool) -> Int64 raise NodeHostFailure
+
 pub fn native_host_captured_source(NativeNodeRun, @query_planning.DuckDBNativeObservation) -> @query_planning.CapturedInputSource raise NodeHostFailure
 
 pub fn native_host_close(NativeNodeRun) -> Unit
@@ -92,11 +94,19 @@ pub fn native_host_metadata(NativeNodeRun, Int, String, String) -> Unit raise No
 
 pub fn native_host_open(@duckdb_host.NativeHostConfiguration, String, (@query_planning.DuckDBNativeAttempt) -> Bool) -> NativeNodeRun raise NodeHostFailure
 
+pub fn native_host_open_dag(NativeNodeRun, @physical_strategy.CheckedDAG, @query_planning.DuckDBNativeObservation) -> @physical_strategy.CapturedDAG raise NodeHostFailure
+
 pub fn native_host_output(NativeNodeRun, @query_planning.DuckDBNativeObservation) -> @execution_relation.CompletedOutput raise NodeHostFailure
 
 pub fn native_host_parameter(NativeNodeRun, Int) -> String raise NodeHostFailure
 
+pub fn native_host_physical_charge(NativeNodeRun, Int64) -> Unit raise NodeHostFailure
+
+pub fn native_host_physical_settle(NativeNodeRun, Bool) -> Unit raise NodeHostFailure
+
 pub fn native_host_sql(NativeNodeRun, Int) -> String raise NodeHostFailure
+
+pub fn native_strategy_host_open(@duckdb_host.NativeHostConfiguration, @physical_strategy.Ledger, String, (@query_planning.DuckDBNativeAttempt) -> Bool, Int64, Int64) -> NativeNodeRun raise NodeHostFailure
 
 // Errors
 pub(all) suberror NodeHostFailure {

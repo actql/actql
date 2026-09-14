@@ -8,7 +8,7 @@ import { join } from 'node:path';
 import { createHash } from 'node:crypto';
 import { DuckDBInstance } from '@duckdb/node-api';
 import { authorizeLocalDatabase } from '../session.mjs';
-import { runNativeHostQuery, runBroadHostQuery, runFixedHostCompute, runStrategyHostCompute } from '../host.mjs';
+import { runNativeHostQuery, runStrategyNativeHostQuery, runBroadHostQuery, runFixedHostCompute, runStrategyHostCompute } from '../host.mjs';
 import { exerciseOwnedFixedTransport } from './owned-fixed-transport.mjs';
 
 const root = fileURLToPath(new URL('../../..', import.meta.url));
@@ -156,6 +156,64 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
   // Inspect the product bridge's reservation phases without issuing execution
   // evidence: no native task is run, and its deliberately absent result fails.
   const phaseFixture = fixture.strategyFixtureCreate(...args, program);
+  const smallFixture = fixture.strategyFixtureCreate(...args, program);
+  await assert.rejects(runStrategyNativeHostQuery(grant,
+    fixture.strategyFixtureAcquisition(smallFixture),
+    fixture.strategyFixtureLedger(smallFixture), suppliedLimits));
+  for (const field of [0, 1, 2, 3, 4, 5]) {
+    assert.equal(fixture.strategyFixtureUsage(smallFixture, field), 0n);
+  }
+  for (const mode of ['unauthorized', 'cancelled', 'transfer']) {
+    const failed = fixture.strategyFixtureAccounted(fixture.strategyFixtureCreate(...args, program));
+    const abort = new AbortController();
+    if (mode === 'cancelled') abort.abort();
+    await assert.rejects(runStrategyNativeHostQuery(mode === 'unauthorized' ? {} : grant,
+      fixture.strategyFixtureAcquisition(failed), fixture.strategyFixtureLedger(failed),
+      mode === 'transfer' ? { ...suppliedLimits, maxTransportBytes: 0 } : suppliedLimits, abort.signal));
+    for (const field of [0, 1, 2, 4, 5]) {
+      assert.equal(fixture.strategyFixtureUsage(failed, field), 0n);
+    }
+    // The chosen attempt was frozen before even a source-open failure, and
+    // releasing unused capacity never refunds that bounded attempt record.
+    assert.equal(fixture.strategyFixtureUsage(failed, 3), 1n);
+  }
+  const accountedFixture = fixture.strategyFixtureAccounted(fixture.strategyFixtureCreate(...args, program));
+  const accounted = await runStrategyNativeHostQuery(grant,
+    fixture.strategyFixtureAcquisition(accountedFixture),
+    fixture.strategyFixtureLedger(accountedFixture), suppliedLimits);
+  const accountedComputes = [];
+  try {
+    assert.equal(accounted.output, undefined);
+    assert.equal(accounted.source, undefined);
+    const graph = fixture.strategyFixtureGraph(accountedFixture);
+    const dag = accounted.openDAG(graph);
+    assert.equal(fixture.strategyFixtureAttach(accountedFixture, dag), true);
+    assert.throws(() => accounted.openDAG(graph));
+    const rootBytes = accounted.physicalCapacity.retentionBytes;
+    assert.equal(rootBytes, 139926400n);
+    assert.equal(accounted.physicalCapacity.receiverScratchBytes, 14475520n);
+    assert.equal(fixture.strategyFixtureUsage(accountedFixture, 0), BigInt(accounted.usage.transportBytes));
+    assert.equal(fixture.strategyFixtureUsage(accountedFixture, 4), rootBytes);
+    assert.equal(fixture.strategyFixtureUsage(accountedFixture, 2), 0n);
+    for (const task of [1, 2, 3]) {
+      accountedComputes.push(await runStrategyHostCompute(
+        fixture.strategyFixtureCompute(accountedFixture, task), suppliedLimits,
+        { maxRows: 100, maxCells: 1000 }));
+    }
+    const spent = BigInt(accounted.usage.transportBytes)
+      + accountedComputes.reduce((sum, result) => sum + BigInt(result.usage.transportBytes), 0n);
+    assert.equal(fixture.strategyFixtureUsage(accountedFixture, 0), spent);
+    accounted.close();
+    assert.throws(() => accounted.openDAG(graph), { code: 'IssuerClosed' });
+    assert.equal(fixture.strategyFixtureUsage(accountedFixture, 4), rootBytes + 3n * 2771200n);
+    assert.equal(fixture.strategyFixtureCid(accountedFixture, 3), hash([{ id: 3 }, { id: 3 }]));
+    for (const result of accountedComputes) result.close();
+    assert.equal(fixture.strategyFixtureUsage(accountedFixture, 4), 0n);
+    assert.equal(fixture.strategyFixtureUsage(accountedFixture, 0), spent);
+  } finally {
+    for (const result of accountedComputes) result.close();
+    accounted.close();
+  }
   const phaseCapture = await runNativeHostQuery(grant, fixture.strategyFixtureAcquisition(phaseFixture), suppliedLimits);
   const bridge = await import(pathToFileURL(join(root, '_build/js/release/build/duckdb_host_node/duckdb_host_node.js')));
   let phaseRun;

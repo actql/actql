@@ -51,9 +51,21 @@ cancellation deadline retains the original live cleanup responsibility until tha
 session actually settles. These hooks belong to trusted Host wiring, not ordinary
 Connector registration or Program-supplied callbacks.
 
-Acquisition-wide accounting must
-be connected before this is presented as
-the complete physical strategy Host. Checked topology validation alone is not
+The standard `runStrategyNativeHostQuery` entry reserves the same ledger before
+opening the source. `configured_native_capacity` includes both retained batches,
+the output, three evidence records and the observation, with 256 bytes per
+permitted structural entry and eight per permitted text/wire byte. Its separate
+scratch allowance includes transport decoding, value/demand measurement and
+receipt encoding. These are declared capacity envelopes, not actual heap sizes.
+Post-DB scratch remains reserved through capture and retained-root construction.
+Only successful completion may transfer the exact holding into `openDAG` once;
+that run uses the original ledger. Closing the acquisition then closes root port
+zero without erasing descendant holdings or consumed transfer. No raw output
+export is exposed by this accounted entry. Borrowed captures and the standalone
+broad Host entry do not automatically gain this whole-run accounting.
+
+A complete physical strategy Host also needs whole-graph dispatch and explanation;
+these owned entry points alone do not establish that integration. Checked topology validation alone is not
 validation of all runtime Stage obligations or a Program success issuer.
 
 ## Transfer and execution ownership

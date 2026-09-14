@@ -481,6 +481,21 @@ or allow success publication. `status()` reports current pending responsibility,
 while `retry()` awaits the same original operation and retries only failed cleanup.
 The error's `cleanupPending` is the return-time snapshot; use the handle for updates.
 This is an in-process handle, not durable recovery or a hard native-kill timeout.
+For native acquisition charged to the same graph ledger, use
+`runStrategyNativeHostQuery(grant, ownedConfiguration, ledger, transportLimits, signal)`.
+It reserves before source opening, charges metadata and both receipts, and returns
+`usage`, declared `physicalCapacity`, `document()`, `openDAG(checkedGraph)` and
+`close()`. `openDAG` transfers the retained capture into a matching graph once;
+it does not accept serialized graph authority. The accounted entry deliberately
+does not expose standalone `output()` or `source()` exports. Keep the capture open
+until every intended root consumer has started/completed as required by the serial
+runner. Closing it rejects new root reads; completed descendants retain their
+independent results and necessary physical holdings. Unused reservation release
+never refunds spent transfer or the attempt record. Evidence/scan retention
+ceilings can make this envelope substantially larger than a Compute-only budget.
+This native path is distinct from standalone borrowed capture and does not claim
+automatic accounting for the broad Host entry.
+
 For bounded conditional comparison, configure `physical_strategy.configure_strategy_search`
 before starting tasks, prepare owned estimates with `prepare_task_offer`, and call
 `revise_strategy`. Read its selected registrations, remaining cost and candidate

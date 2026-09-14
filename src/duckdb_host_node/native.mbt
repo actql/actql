@@ -3,6 +3,7 @@
 struct NativeNodeRun {
   host : @host.NativeHostRun
   limits : @host.NativeHostLimits
+  physical : NativePhysical?
 }
 
 ///|
@@ -30,7 +31,12 @@ pub fn native_host_open(
   verify : (@planning.DuckDBNativeAttempt) -> Bool,
 ) -> NativeNodeRun raise NodeHostFailure {
   match @host.start_configured_native_host(setup, nonce, verify) {
-    Ok(host) => { host, limits: @host.configured_native_host_limits(setup), }
+    Ok(host) =>
+      {
+        host,
+        limits: @host.configured_native_host_limits(setup),
+        physical: None,
+      }
     Err(issue) => raise Host(issue)
   }
 }
@@ -239,8 +245,31 @@ pub fn native_host_finish(run : NativeNodeRun) -> Unit raise NodeHostFailure {
 pub fn native_host_complete(
   run : NativeNodeRun,
 ) -> @planning.DuckDBNativeObservation raise NodeHostFailure {
+  if run.physical is Some(p) {
+    if p.closed || !p.settled || p.holding is Some(_) {
+      raise Physical(InvalidCharge)
+    }
+    p.holding = Some(
+      match @strategy.retain_allocation(p.ledger, p.reservation, p.retention) {
+        Ok(value) => value
+        Err(issue) => raise Physical(issue)
+      },
+    )
+  }
   match @host.complete_native_host(run.host, run.limits.completion) {
-    Ok(value) => value
+    Ok(value) => {
+      if run.physical is Some(p) {
+        // Construct the retained root while post-DB checking capacity is still
+        // reserved. DAG adoption subsequently transfers this exact handle.
+        p.source = Some(native_host_captured_source(run, value))
+        p.observation = Some(value)
+        match @strategy.settle_reservation(p.ledger, p.reservation) {
+          Ok(_) => p.completed = true
+          Err(issue) => raise Physical(issue)
+        }
+      }
+      value
+    }
     Err(issue) => raise Host(issue)
   }
 }
@@ -251,6 +280,11 @@ pub fn native_host_output(
   run : NativeNodeRun,
   observation : @planning.DuckDBNativeObservation,
 ) -> @execution.CompletedOutput raise NodeHostFailure {
+  // Accounted acquisitions hand off through their one owned DAG root, not an
+  // untracked parallel export which could outlive that allocation's port.
+  if run.physical is Some(_) {
+    raise Physical(InvalidCharge)
+  }
   let limits = run.limits
   let retained = match
     @host.native_host_output(
@@ -289,6 +323,9 @@ pub fn native_host_captured_source(
   run : NativeNodeRun,
   observation : @planning.DuckDBNativeObservation,
 ) -> @planning.CapturedInputSource raise NodeHostFailure {
+  if run.physical is Some(p) && (p.completed || p.closed) {
+    raise Physical(InvalidCharge)
+  }
   let limits = run.limits
   let retained = match
     @host.native_host_output(
@@ -321,4 +358,5 @@ pub fn native_host_abort(run : NativeNodeRun) -> Unit {
 #export_name("nativeHostClose")
 pub fn native_host_close(run : NativeNodeRun) -> Unit {
   @host.close_native_host(run.host)
+  close_native_physical(run)
 }

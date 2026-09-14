@@ -6,6 +6,7 @@ import {
   "actql/actql/duckdb_host",
   "actql/actql/execution_relation",
   "actql/actql/lowering_relation",
+  "actql/actql/physical_strategy",
   "actql/actql/query_planning",
 }
 
@@ -158,7 +159,11 @@ pub fn receipt_identities(@duckdb_adapter.NativeReceiving) -> String
 
 pub fn sql(@duckdb_adapter.NativeReceiving, Int) -> String
 
+pub fn strategy_fixture_accounted(StrategyFixture) -> StrategyFixture
+
 pub fn strategy_fixture_acquisition(StrategyFixture) -> @duckdb_host.NativeHostConfiguration
+
+pub fn strategy_fixture_attach(StrategyFixture, @physical_strategy.CapturedDAG) -> Bool
 
 pub fn strategy_fixture_can_bind(StrategyFixture, Int) -> Bool
 
@@ -171,6 +176,10 @@ pub fn strategy_fixture_compute(StrategyFixture, Int) -> @duckdb_host.StrategyCo
 pub fn strategy_fixture_create(String, String, String, String, String, String, String, String, String) -> StrategyFixture
 
 pub fn strategy_fixture_estimate(StrategyFixture) -> Int64
+
+pub fn strategy_fixture_graph(StrategyFixture) -> @physical_strategy.CheckedDAG
+
+pub fn strategy_fixture_ledger(StrategyFixture) -> @physical_strategy.Ledger
 
 pub fn strategy_fixture_local(StrategyFixture, Int) -> Bool
 

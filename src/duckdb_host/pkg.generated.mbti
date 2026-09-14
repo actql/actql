@@ -53,6 +53,8 @@ pub fn configured_broad_host_limits(BroadHostConfiguration) -> BroadHostLimits
 
 pub fn configured_compute_transport(ComputeHostConfiguration) -> @duckdb_adapter.TransportColumnLimits
 
+pub fn configured_native_capacity(NativeHostConfiguration) -> NativeCapacity?
+
 pub fn configured_native_host_limits(NativeHostConfiguration) -> NativeHostLimits
 
 pub fn configured_strategy_compute_graph(StrategyComputeHostConfiguration) -> (@physical_strategy.CapturedDAG, Int)
@@ -111,6 +113,11 @@ pub(all) struct BroadHostLimits {
 type BroadHostRun
 
 type ComputeHostConfiguration
+
+pub struct NativeCapacity {
+  retained_bytes : Int64
+  execution_bytes : Int64
+}
 
 type NativeHostConfiguration
 
