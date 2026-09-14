@@ -5443,6 +5443,16 @@ static type evidence; unrelated unknown property types do not invalidate a
 match. Visible identity and label names come from declared semantic roles, not
 implicit carrier aliases. Matching does not create a missing edge identity.
 
+<!-- requirement-block: graph-property-match.output-capacity -->
+Both match operations MUST inclusively enforce the admitted Host policy's
+`max_relation_output_rows` on their projected output before publication, with
+atomic failure on excess. Repeated selectors do not increase output multiplicity.
+Empty selection uses zero rows. This Relation-output scope does not reapply
+external Graph-input ceilings to internal producers or replace their admission
+and capacity prerequisites. Predicate and ordering work, temporary bytes and
+retained state remain subject to independently selected implementation limits;
+a small result does not establish a bound on that work or storage.
+
 <a id="traverse"></a>
 
 #### `traverse`

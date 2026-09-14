@@ -10,6 +10,19 @@ closed-contract checkers. Structural `graft_graph`, `union_graphs` and
 The normative owner is [Graph operations](../spec/language.md#graph-operations).
 This is not the complete SGA operation family or an evaluator.
 
+`GraphMatchCheck` binds the retained typed match operation to its Primary input,
+selected policy and Relation output ceiling. Selector membership, nullable
+predicate evaluation and canonical ordering remain separate execution rules.
+The indexed ID/type readers preserve repeats and distinguish absent type filters
+from an empty filter without copying arrays. Physical comparison work includes
+predicate and ordering work; retained-state and input/temporary byte limits must
+also be enforceable before input use. The resource phase prepares enforcement;
+it does not check the output ceiling only at entry or permit partial publication.
+The explicit Relation-output association fills the generic resource obligation's
+previously unspecified scope, consistently with other Graph-to-Relation bridges.
+The fixed reference compiler adds no separate match count option; that absence
+does not waive selected capacity or supply runtime order evidence.
+
 ## Property-match implementation boundary
 
 The `check_match` boundary shares typed semantic scopes and the

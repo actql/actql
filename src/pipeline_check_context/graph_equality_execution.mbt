@@ -42,6 +42,11 @@ pub fn graph_comparison_resource_at(
   if check.rule != RequireComparisonResources {
     return None
   }
+  graph_comparison_resource(index)
+}
+
+///|
+fn graph_comparison_resource(index : Int) -> GraphComparisonResource? {
   match index {
     0 => Some(ComparisonWork)
     1 => Some(RetainedComparisonState)

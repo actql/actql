@@ -139,6 +139,10 @@ pub fn match_diagnostic(MatchIssue, @decode_core.Cursor) -> MatchDiagnostic
 
 pub fn match_entity(CheckedMatch) -> EntityKind
 
+pub fn match_id_at(CheckedMatch, Int) -> @value_admission.CheckedValue?
+
+pub fn match_id_count(CheckedMatch) -> Int
+
 pub fn match_ids(CheckedMatch) -> Array[@value_admission.CheckedValue]
 
 pub fn match_input(CheckedMatch) -> @carrier_contract.Carrier
@@ -154,6 +158,10 @@ pub fn match_pending_count(CheckedMatch) -> Int
 pub fn match_predicate(CheckedMatch) -> CheckedPredicate?
 
 pub fn match_source(CheckedMatch) -> @decode_core.Cursor
+
+pub fn match_type_at(CheckedMatch, Int) -> String?
+
+pub fn match_type_count(CheckedMatch) -> Int?
 
 pub fn match_types(CheckedMatch) -> Array[String]?
 

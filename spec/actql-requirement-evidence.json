@@ -4689,6 +4689,17 @@
       }
     },
     {
+      "requirement_id": "actql.language/graph-property-match.output-capacity",
+      "statement_sha256": "b76dc60b458a7af0e18b8117f9e4f9b939225cf5dfecb19226a1605f1759aabb",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "graph-property-match",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.language/traverse.closed-modes-and-filters",
       "statement_sha256": "2403da1cdc9295cc6cac890749aaf54fa9f06852163f661d3afb0dab5a1072ed",
       "status": "pending",

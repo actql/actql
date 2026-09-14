@@ -283,6 +283,10 @@ pub fn graph_delta_resource_at(GraphDiffCheck, Int) -> GraphDeltaResource?
 
 pub fn graph_delta_resource_count(GraphDiffCheck) -> Int
 
+pub fn graph_match_resource_at(GraphMatchCheck, Int) -> GraphComparisonResource?
+
+pub fn graph_match_resource_count(GraphMatchCheck) -> Int
+
 pub fn group_array_limit_call(GroupArrayLimit) -> @relation_typing.CheckedAggregate
 
 pub fn group_array_limit_candidate_at(GroupArrayLimit, Int) -> @capacity_graph_preflight.TargetMembership?
@@ -1553,6 +1557,25 @@ pub(all) enum GraphExecutionRule {
   OrderBoundsReport
 } derive(Eq, @debug.Debug)
 
+pub struct GraphMatchCheck {
+  site : OperationRequirementSite
+  step : @pipeline_typing.CheckedStep
+  input : @pipeline_typing.Target
+  operation : @graph_typing.CheckedMatch
+  rule : GraphMatchRule
+  policy : @capacity_policy.Policy
+  output_rows : @capacity_policy.Ceiling
+}
+
+pub(all) enum GraphMatchRule {
+  AdmitGraph
+  SelectExistingIdentities
+  FilterEdgeTypes
+  EvaluatePredicate
+  OrderMatches
+  EnforceMatchResources
+} derive(Eq, @debug.Debug)
+
 pub struct GraphProjectionCheck {
   site : OperationRequirementSite
   step : @pipeline_typing.CheckedStep
@@ -2021,6 +2044,7 @@ pub(all) enum OperationDisposition {
 }
 
 pub(all) enum OperationExecutionCheck {
+  GraphMatchExecution(GraphMatchCheck)
   GraphApplyExecution(GraphApplyCheck)
   GraphDiffExecution(GraphDiffCheck)
   GraphEqualityExecution(GraphEqualityCheck)

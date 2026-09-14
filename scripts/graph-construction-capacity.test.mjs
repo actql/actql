@@ -5,6 +5,22 @@ import {machineCid} from './actql-spec-family.mjs';
 
 const corpus=JSON.parse(readFileSync('portability/corpus/graph-construction-capacity.json','utf8'));
 const fields=['max_graph_construction_input_rows','max_graph_construction_nodes','max_graph_construction_edges'];
+test('match selectors preserve multiplicity, absence, and inclusive output capacity',()=>{
+  const {cases}=JSON.parse(readFileSync('portability/corpus/graph-match-resources.json','utf8'));
+  for(const c of cases) {
+    if(c.kind==='nodes' && c.ids?.some(id=>!c.rows.some(row=>row[0]===id))) {
+      assert.equal(c.error,'MissingIdentity');
+      continue;
+    }
+    assert.equal(c.error,undefined);
+    const selected=c.kind==='nodes'
+      ? c.rows.filter(([id,active])=>c.ids ? c.ids.includes(id) : active===true).map(([id])=>id).sort((a,b)=>a-b)
+      : c.rows.filter(([, ,type])=>c.types===null || c.types.includes(type))
+        .toSorted((a,b)=>a[0]-b[0] || a[1]-b[1] || (a[2]<b[2]?-1:a[2]>b[2]?1:0));
+    assert.deepEqual(selected,c.selected);
+    assert.equal(selected.length<=c.cap,c.accepted);
+  }
+});
 test('structural Graph output ceilings remain separate from diagnostic thresholds',()=>{
   const vectors=JSON.parse(readFileSync('portability/corpus/graph-structural-resources.json','utf8'));
   for(const v of vectors.cases) {

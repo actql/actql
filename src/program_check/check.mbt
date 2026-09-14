@@ -98,6 +98,8 @@ fn check_supported_source(
               | "graphs_equal"
               | "graph_diff"
               | "apply_graph_delta"
+              | "match_nodes"
+              | "match_edges"
               | "node_rows"
               | "edge_rows"
               | "values" => ()

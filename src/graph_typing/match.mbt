@@ -250,6 +250,29 @@ pub fn match_ids(c : CheckedMatch) -> Array[@value.CheckedValue] {
 }
 
 ///|
+pub fn match_id_count(c : CheckedMatch) -> Int {
+  c.ids.length()
+}
+
+///|
+pub fn match_id_at(c : CheckedMatch, index : Int) -> @value.CheckedValue? {
+  c.ids.get(index)
+}
+
+///|
+pub fn match_type_count(c : CheckedMatch) -> Int? {
+  c.types.map(xs => xs.length())
+}
+
+///|
+pub fn match_type_at(c : CheckedMatch, index : Int) -> String? {
+  match c.types {
+    Some(xs) => xs.get(index)
+    None => None
+  }
+}
+
+///|
 pub fn match_types(c : CheckedMatch) -> Array[String]? {
   c.types.map(xs => xs.copy())
 }

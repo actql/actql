@@ -1,0 +1,13 @@
+{
+  "description": "Admitted finite numeric-ID graphs. Fixed selection/multiplicity and output-capacity expectations, not evaluator conformance.",
+  "cases": [
+    {"kind":"nodes","rows":[[10,true],[2,true]],"ids":[2,10,2],"cap":2,"selected":[2,10],"accepted":true},
+    {"kind":"nodes","rows":[[10,true],[2,true]],"ids":[2,10,2],"cap":1,"selected":[2,10],"accepted":false},
+    {"kind":"nodes","rows":[[2,true]],"ids":[2,3],"cap":10,"error":"MissingIdentity"},
+    {"kind":"nodes","rows":[[10,null],[2,true],[3,false]],"cap":1,"selected":[2],"accepted":true},
+    {"kind":"nodes","rows":[],"cap":1,"selected":[],"accepted":true},
+    {"kind":"edges","rows":[[10,2,"x"],[2,10,"y"]],"types":null,"cap":2,"selected":[[2,10,"y"],[10,2,"x"]],"accepted":true},
+    {"kind":"edges","rows":[[10,2,"x"],[2,10,"y"]],"types":[],"cap":1,"selected":[],"accepted":true},
+    {"kind":"edges","rows":[[10,2,"x"],[2,10,"y"]],"types":["x","x"],"cap":1,"selected":[[10,2,"x"]],"accepted":true}
+  ]
+}
