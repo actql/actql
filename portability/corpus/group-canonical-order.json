@@ -1,0 +1,39 @@
+{
+  "cases": [
+    {
+      "id": "single-key-null-first-and-null-group-equality",
+      "by": ["k"],
+      "rows": [{"k":2},{"k":null},{"k":-1},{"k":null},{"k":0}],
+      "expected_keys": [[null],[-1],[0],[2]],
+      "expected_counts": [2,1,1,1]
+    },
+    {
+      "id": "compound-null-placement-at-each-component",
+      "by": ["a","b"],
+      "rows": [{"a":1,"b":null},{"a":null,"b":2},{"a":0,"b":9},{"a":null,"b":null},{"a":0,"b":null},{"a":null,"b":-1},{"a":0,"b":-2},{"a":null,"b":null}],
+      "expected_keys": [[null,null],[null,-1],[null,2],[0,null],[0,-2],[0,9],[1,null]],
+      "expected_counts": [2,1,1,1,1,1,1]
+    },
+    {
+      "id": "authored-key-order-not-object-name-order",
+      "by": ["b","a"],
+      "rows": [{"a":null,"b":2},{"a":1,"b":null},{"a":null,"b":null},{"a":0,"b":2}],
+      "expected_keys": [[null,null],[null,1],[2,null],[2,0]],
+      "expected_counts": [1,1,1,1]
+    },
+    {
+      "id": "empty-keyed-input",
+      "by": ["k"],
+      "rows": [],
+      "expected_keys": [],
+      "expected_counts": []
+    },
+    {
+      "id": "empty-global-input",
+      "by": [],
+      "rows": [],
+      "expected_keys": [[]],
+      "expected_counts": [0]
+    }
+  ]
+}

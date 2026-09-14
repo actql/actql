@@ -98,3 +98,32 @@ empty order terms and empty dedupe keys, and the limit adapter does not forward
 offset. Lowering must implement the admitted behavior without removing the
 authored semantic operation or claiming unsupported execution conformance.
 The type-checking increment does not implement those adapters or proof propagation.
+
+## Canonical group null placement
+
+The normative owner is [group](../spec/language.md#group). Its final output uses
+lexicographic ascending key tuples in authored `by` order, NULLS FIRST at each
+component. This fills a previously unspecified null-placement boundary; it is
+not a claim that all earlier implementations agreed. The prior ascending AoA
+wording and the adopted `REL.groupBy` law (null keys are first-class keys) did
+not independently specify placement. The non-null canonical order and grouping
+equality are unchanged. Authored sort's default NULLS LAST does not apply.
+
+At AoA revision `dbab4fe8c1d624d81ed967f90e2abe742163f84f`,
+`packages/rela/src/exec-js.ts` uses `canonicalGroupTypeRank(null) = 0` and a
+lexicographic comparator for aggregation groups. Its empty-aggregate path instead
+preserves first occurrence, so ActQL still requires its final canonical sort.
+At Sketch revision `87dc7144138edfcba108cdc59dc485ac976ba976`,
+`src/actql-compiler.ts` adds `REL.orderByStable` with explicit `nulls: 'last'`
+after grouping. That final order differs from the decision here, even though
+`src/actql-expression-fragment-v2.ts` delegates grouping to AoA.
+
+NULLS FIRST preserves the selected AoA aggregation convention and the current
+lowering convention without importing authored-sort defaults. Compatibility with
+the cited Sketch final output requires changing its generated sort terms; this
+is an observable ordering difference, not an identity-neutral implementation
+optimization. No source spelling or identity preimage is rewritten. The adopted
+primitive law body is unchanged: ActQL specifies the final group order rather
+than changing every use of primitive `REL.groupBy`. Independent numeric/null
+vectors are in `portability/corpus/group-canonical-order.json`; they specify the
+ordering boundary, not backend execution certification.

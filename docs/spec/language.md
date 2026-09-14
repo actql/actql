@@ -3311,7 +3311,15 @@ each after its own filter, without imposing one aggregate's order or demand
 on another. Group
 results are canonically ordered by the group keys in ascending AoA order,
 including reference identity order ([Opaque reference values](#opaque-references)).
+The key tuple is compared lexicographically in authored `by` order, with
+NULLS FIRST independently at every component: two null components compare
+equal and comparison continues at the next component; a null component precedes
+every non-null value of its declared type. Non-null components retain their
+type-specific canonical order. This is group output enumeration, not the
+default null placement of authored `sort` or the input order of an aggregate.
 `group` lowers to `REL.groupBy` followed by that canonical group order.
+The final order also applies when `aggregates` is empty; primitive deduplication
+enumeration is not a substitute for it.
 
 <!-- requirement-block: group.its-order-must-retain-a-candidate-key-so-equal-authored group.a-breach-must-fail-the-aggregate-operation-without-publishing-a numeric-aggregates.product-88840cf32f93 numeric-aggregates.product-1f5f9b0e54d1 -->
 Null group keys of the same declared type form one group. `by: []` is the
