@@ -178,7 +178,7 @@ pub fn close_stage_requirements(ProgramIncomingLinks, StageRequirementLimits) ->
 
 pub fn collect_asof_search_bounds(ProgramOperationResolutionIndex, Int, Int, Int) -> Result[AsOfSearchBounds, AsOfSearchLimitIssue]
 
-pub fn collect_core_contracts(ProgramSourceIdentity, CoreContractLimits, profile_checks? : ProgramOperationCalendar?, hash_limits? : @local_relation_snapshot.Limits?, numeric_slots? : ProgramNumericSlots?, analytic_numeric_slots? : ProgramAnalyticNumericSlots?) -> Result[CoreContractInventory, CoreContractIssue]
+pub fn collect_core_contracts(ProgramSourceIdentity, CoreContractLimits, profile_checks? : ProgramOperationCalendar?, hash_limits? : @local_relation_snapshot.Limits?, numeric_slots? : ProgramNumericSlots?, analytic_numeric_slots? : ProgramAnalyticNumericSlots?, pivot_numeric_slots? : ProgramPivotNumericSlots?) -> Result[CoreContractInventory, CoreContractIssue]
 
 pub fn collect_interval_search_bounds(ProgramOperationResolutionIndex, Int, Int, Int) -> Result[IntervalSearchBounds, IntervalSearchLimitIssue]
 
@@ -207,6 +207,8 @@ pub fn core_contract_identity(CoreContractInventory) -> ProgramSourceIdentity
 pub fn core_contract_incoming(CoreContractInventory) -> ProgramIncomingRequirements
 
 pub fn core_contract_numeric_slots(CoreContractInventory) -> ProgramNumericSlots?
+
+pub fn core_contract_pivot_numeric_slots(CoreContractInventory) -> ProgramPivotNumericSlots?
 
 pub fn core_contract_profile_checks(CoreContractInventory) -> ProgramOperationCalendar?
 

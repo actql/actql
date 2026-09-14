@@ -102,6 +102,7 @@ struct CoreContractInventory {
   profile_checks : ProgramOperationCalendar?
   numeric_slots : ProgramNumericSlots?
   analytic_numeric_slots : ProgramAnalyticNumericSlots?
+  pivot_numeric_slots : ProgramPivotNumericSlots?
   incoming : ProgramIncomingRequirements
   stages : Array[Array[CoreContractBody]]
   work : Int
@@ -237,6 +238,7 @@ pub fn collect_core_contracts(
   hash_limits? : @snapshot.Limits? = None,
   numeric_slots? : ProgramNumericSlots? = None,
   analytic_numeric_slots? : ProgramAnalyticNumericSlots? = None,
+  pivot_numeric_slots? : ProgramPivotNumericSlots? = None,
 ) -> Result[CoreContractInventory, CoreContractIssue] {
   let hash_limits = hash_limits.unwrap_or({
     max_bytes: limits.max_work,
@@ -274,6 +276,17 @@ pub fn collect_core_contracts(
     prefix = base + extra
   }
   if analytic_numeric_slots is Some(slots) {
+    if !physical_equal(slots.requirements.expressions.identity, identity) {
+      return Err(ForeignNumericSlots)
+    }
+    let base = Int::max(prefix, slots.requirements.work)
+    let extra = slots.work - slots.requirements.work
+    if base > limits.max_work || extra > limits.max_work - base {
+      return Err(BudgetExceeded)
+    }
+    prefix = base + extra
+  }
+  if pivot_numeric_slots is Some(slots) {
     if !physical_equal(slots.requirements.expressions.identity, identity) {
       return Err(ForeignNumericSlots)
     }
@@ -377,6 +390,29 @@ pub fn collect_core_contracts(
           slot.profile,
           analytic_numeric_slot_contract_cid(),
           analytic_numeric_slot_schema_cid(),
+        )
+      }
+    }
+    if pivot_numeric_slots is Some(slots) {
+      for demand in slots.entries {
+        core_contract_charge(b)
+        let site = demand.site
+        if program_identity_producer_is_local(
+            identity,
+            site.stage,
+            site.producer_visit,
+          ) !=
+          Some(true) {
+          continue
+        }
+        // Empty generated axes still interpret the selected numeric profile.
+        // Register once per owned operation, not once per generated column.
+        core_numeric_contracts(
+          b,
+          site,
+          demand.profile,
+          pivot_numeric_slot_contract_cid(),
+          pivot_numeric_slot_schema_cid(),
         )
       }
     }
@@ -702,6 +738,7 @@ pub fn collect_core_contracts(
       profile_checks,
       numeric_slots,
       analytic_numeric_slots,
+      pivot_numeric_slots,
       incoming,
       stages,
       roots: b.roots,
@@ -728,6 +765,13 @@ pub fn core_contract_analytic_numeric_slots(
   v : CoreContractInventory,
 ) -> ProgramAnalyticNumericSlots? {
   v.analytic_numeric_slots
+}
+
+///|
+pub fn core_contract_pivot_numeric_slots(
+  v : CoreContractInventory,
+) -> ProgramPivotNumericSlots? {
+  v.pivot_numeric_slots
 }
 
 ///|

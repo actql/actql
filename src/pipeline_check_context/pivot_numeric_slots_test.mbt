@@ -15,6 +15,81 @@ test "pivot numeric templates retain exact owners and budget empty generated axe
         requirements, profile, 10000000, 3, 9,
       ).unwrap()
       let expected = if function == "sum" || function == "avg" { 3 } else { 0 }
+      let identity = expression_closure_identity(
+        operation_requirements_expressions(requirements),
+      )
+      let limits : CoreContractLimits = {
+        max_work: 10000000,
+        max_roots: 1000,
+        max_bodies: 100,
+        max_edges: 1000,
+      }
+      let base = collect_core_contracts(identity, limits).unwrap()
+      let inventory = collect_core_contracts(
+        identity,
+        limits,
+        pivot_numeric_slots=Some(slots),
+      ).unwrap()
+      assert_true(
+        physical_equal(
+          core_contract_pivot_numeric_slots(inventory).unwrap(),
+          slots,
+        ),
+      )
+      assert_eq(
+        core_contract_body_count(inventory),
+        core_contract_body_count(base) + (if expected == 0 { 0 } else { 6 }),
+      )
+      let mut profile_roots = 0
+      let mut slot_roots = 0
+      for i in 0..<core_contract_root_count(inventory) {
+        let root = core_contract_root_at(inventory, i).unwrap()
+        match root.site {
+          NumericAggregateProfile(stage, visit, step, _) => {
+            profile_roots += 1
+            assert_eq(
+              program_identity_producer_is_local(identity, stage, visit),
+              Some(true),
+            )
+            assert_eq(step, 1)
+            assert_eq(core_contract_cid(root.body), @numeric.cid(profile))
+          }
+          NumericAggregateSlotRules(stage, visit, step, _) => {
+            slot_roots += 1
+            assert_eq(
+              program_identity_producer_is_local(identity, stage, visit),
+              Some(true),
+            )
+            assert_eq(step, 1)
+            assert_eq(
+              core_contract_cid(root.body),
+              "sha256:54c19c5dc586979bfd5cfa7afed23011e8394dd4a8623c32ba6ca0f83fb01858",
+            )
+          }
+          _ => ()
+        }
+      }
+      // The imported visit adds no direct dependency; width zero still selects
+      // the profile and slot interpretation for both local occurrences.
+      assert_eq(profile_roots, if expected == 0 { 0 } else { 2 })
+      assert_eq(slot_roots, profile_roots)
+      let (inventory_work, _) = core_contract_usage(inventory)
+      assert_true(
+        collect_core_contracts(
+          identity,
+          { ..limits, max_work: inventory_work, },
+          pivot_numeric_slots=Some(slots),
+        )
+        is Ok(_),
+      )
+      assert_true(
+        collect_core_contracts(
+          identity,
+          { ..limits, max_work: inventory_work - 1, },
+          pivot_numeric_slots=Some(slots),
+        )
+        is Err(BudgetExceeded),
+      )
       let width = if columns == "[]" { 0 } else { 3 }
       assert_eq(pivot_numeric_demand_count(slots), expected)
       assert_eq(pivot_numeric_total_slot_count(slots), expected * width)
@@ -132,6 +207,25 @@ test "pivot numeric templates retain exact owners and budget empty generated axe
       }
       let other = resolution_profiles(operation_order_fixture(text))
       let foreign = index_program_operation_resolutions(other, 10000000, 100).unwrap()
+      let foreign_identity = expression_closure_identity(
+        operation_requirements_expressions(
+          operation_resolution_requirements(foreign),
+        ),
+      )
+      // Matching source semantics (including an empty demand inventory) cannot
+      // substitute for the exact checked owner.
+      assert_eq(
+        program_identity_definition_cid(identity),
+        program_identity_definition_cid(foreign_identity),
+      )
+      assert_true(
+        collect_core_contracts(
+          foreign_identity,
+          limits,
+          pivot_numeric_slots=Some(slots),
+        )
+        is Err(ForeignNumericSlots),
+      )
       assert_true(
         link_program_pivot_numeric_slots(foreign, slots, 10000000, expected)
         is Err(ForeignOccurrence(-1)),

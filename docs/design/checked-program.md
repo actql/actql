@@ -1359,8 +1359,13 @@ The capture rule requires the selected profile's contributor admission,
 null-elision and numeric observation before any downstream consumer. Pivot fill
 is subsequent result shaping, not another contribution to the reduction. Static
 templates select neither an implementation algorithm nor a future observation
-identity. Persistent pivot slot identities and their selected contract inventory
-remain necessary before the formal Program constructor admits this family.
+identity. Core contract selection retains the owned demand inventory and selects
+the pivot slot contract/schema plus the admitted profile's member and observation
+dependencies once per local pivot occurrence, including an empty generated axis.
+Imported visits do not add those dependencies to the consumer's local roots.
+Selection shares the Program preparation budget and rejects foreign inventories
+even when their source identity is equal. Persistent pivot slot construction
+remains necessary before the formal Program constructor admits this family.
 
 ### Nested child arrays
 

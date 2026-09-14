@@ -38,4 +38,8 @@ export const schemaCid = cid(contract.schemas.pivot_slot);
 const path = 'spec/contracts/actql-pivot-numeric-slot.json';
 if (process.argv.includes('--write')) writeFileSync(path, JSON.stringify(contract, null, 2) + '\n');
 assert.deepEqual(JSON.parse(readFileSync(path, 'utf8')), contract);
+const pins = `// Generated pivot numeric slot pins.\n\n///|\nfn pivot_numeric_slot_contract_cid() -> String {\n  ${JSON.stringify(contractCid)}\n}\n\n///|\nfn pivot_numeric_slot_schema_cid() -> String {\n  ${JSON.stringify(schemaCid)}\n}\n`;
+const pinsPath = 'src/pipeline_check_context/pivot_numeric_slot_pins.generated.mbt';
+if (process.argv.includes('--write')) writeFileSync(pinsPath, pins);
+assert.equal(readFileSync(pinsPath, 'utf8'), pins);
 if (process.argv.includes('--print-pins')) console.log(JSON.stringify({root: contractCid, pivot_slot: schemaCid}));
