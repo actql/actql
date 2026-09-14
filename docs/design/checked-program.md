@@ -633,6 +633,13 @@ remain independently required; preserving policy never supplies a missing bound.
 Normalization and structural reports do not establish execution, completeness or
 authority to publish a Graph observation.
 
+Graph property matches retain the input policy even when an empty type selector
+selects no edges. Explicit identity and type values contribute unproven value
+provenance; predicate expressions use the same leaf analysis and shared traversal
+budget as relational predicates. The retained checked match owns the selectors
+and projection without copying them. Membership, predicate evaluation, canonical
+match ordering and resource enforcement remain separate execution obligations.
+
 Result imports retain the producer's completed publication through
 `publication_policy_import_count/at`, including the consumer input coordinate.
 `imported_publication` is a convenience only for exactly one import.

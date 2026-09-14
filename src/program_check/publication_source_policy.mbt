@@ -769,6 +769,26 @@ fn prepare_publication_source_policy(
             unknown = unknown || missing
             2
           }
+          @pipeline.GraphMatch(operation) => {
+            identity_charge(budget, 1)
+            let mut missing = @graph.match_id_count(operation) > 0 ||
+              @graph.match_type_count(operation).unwrap_or(0) > 0
+            if @graph.match_predicate(operation) is Some(predicate) {
+              if publication_expression_unknown(
+                  @graph.predicate_expression(predicate),
+                  budget,
+                ) {
+                missing = true
+              }
+            }
+            carrier_steps.push({
+              step: index,
+              operation: step.operation,
+              unknown_provenance: missing,
+            })
+            unknown = unknown || missing
+            1
+          }
           @pipeline.Graph(operation) => {
             identity_charge(budget, 1)
             let missing = match @graph.options(operation) {
