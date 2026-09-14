@@ -22,6 +22,20 @@ and identities. Consumers pinned to the older closed envelope cannot admit the
 new member; updating the interpretation contract does not establish backend
 support or permission to execute.
 
+Environment reconciliation constructs each typed input registration once and
+retains it by declaration index. A score-bearing input combines its declared
+candidate key with the ranking assertion through the existing Relation evidence
+boundary; score admission neither drops the key nor proves its uniqueness.
+Repeated readers return the stored handles. Attachment checks exact registered
+owners and rejects independently rebuilt same-content evidence.
+
+Static contract collection selects a separate `StageLocalInputScores` root for
+each Local input with nonempty declarations. Its score projection uses the
+existing snapshot shape without materialization claims, keeping the entire
+selected input's score map and row schema. This is distinct from the unchanged
+row-type-only projection. Import consumers refer to their producer, rather than
+copying the producer's Local assertion into their own direct contract set.
+
 The normative owner is [local Relation schema snapshots](../spec/protocols/contracts.md#local-relation-snapshot).
 `spec/contracts/actql-local-relation-snapshot.json` pins the envelope schema,
 checked-type/selector dependencies and semantic requirements. Extract `schema`

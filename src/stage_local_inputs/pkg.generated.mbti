@@ -10,6 +10,7 @@ import {
   "actql/actql/sourceview_input",
   "actql/actql/stage_parameters",
   "actql/actql/stage_source_refs",
+  "actql/actql/vector_checking",
   "moonbitlang/core/debug",
 }
 
@@ -41,6 +42,8 @@ pub fn environment_assertions(EnvironmentInputs) -> CheckedSnapshots
 pub fn environment_input_at(EnvironmentInputs, Int) -> (String, @pipeline_typing.InputContract)?
 
 pub fn environment_program(ProgramEnvironmentInputs) -> @stage_parameters.Source
+
+pub fn environment_score_snapshot_at(EnvironmentInputs, Int) -> @local_relation_snapshot.Snapshot?
 
 pub fn environment_snapshot_at(EnvironmentInputs, Int) -> @local_relation_snapshot.EnvironmentSnapshot?
 
@@ -112,6 +115,8 @@ pub enum EnvironmentIssue {
   BudgetExceeded
   ForeignEnvironment(Int)
   Snapshots(SnapshotIssue)
+  Scores(String, @vector_checking.Issue)
+  InputEvidence(String, @pipeline_typing.Issue)
 }
 
 pub enum Issue {

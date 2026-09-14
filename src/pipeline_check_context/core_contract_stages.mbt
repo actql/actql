@@ -48,6 +48,7 @@ fn core_contract_site_stage(
     | StageSourceGrammar(stage)
     | StageLocalInputRules(stage, _)
     | StageLocalInputType(stage, _)
+    | StageLocalInputScores(stage, _)
     | StageCanonicalIdentityRules(stage)
     | StagePublicationRules(stage, _)
     | StageSourceResponsePolicyRules(stage, _)

@@ -8,13 +8,19 @@ fn snapshot_in_stage(
   stage : String,
   name : String,
   fields : String,
+  scores? : String? = None,
 ) -> @snapshot.Snapshot {
   // Linkage tests use the already independently tested snapshot reader, not an
   // independent hash oracle. Body bytes here are explicitly canonical.
   let bytes = @utf8.encode(
     "{\"output_carrier\":\"relation\",\"schema\":{\"additional_properties\":false,\"fields\":" +
     fields +
-    ",\"nullable\":false,\"type\":\"object\"},\"source_ref\":\"source:local/" +
+    ",\"nullable\":false,\"type\":\"object\"}" +
+    (match scores {
+      None => ""
+      Some(value) => ",\"score_contracts\":" + value
+    }) +
+    ",\"source_ref\":\"source:local/" +
     stage +
     "/" +
     name +

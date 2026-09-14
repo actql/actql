@@ -1266,6 +1266,7 @@ pub(all) enum CoreContractBody {
   LocalSnapshotRules
   LocalSourceReferenceRules
   LocalInputType(String)
+  LocalInputScores(String)
   CanonicalIdentityRules
   SourceResponsePolicyRules
   EffectiveDataPolicyRules
@@ -1325,6 +1326,7 @@ pub(all) enum CoreContractSite {
   NumericAggregateSlotRules(Int, Int, Int, Int)
   StageLocalInputRules(Int, Int)
   StageLocalInputType(Int, Int)
+  StageLocalInputScores(Int, Int)
   StageCanonicalIdentityRules(Int)
   StagePublicationRules(Int, Int)
   StageSourceResponsePolicyRules(Int, Int)

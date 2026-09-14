@@ -4,6 +4,8 @@ pub enum EnvironmentIssue {
   BudgetExceeded
   ForeignEnvironment(Int)
   Snapshots(SnapshotIssue)
+  Scores(String, @vector_checks.Issue)
+  InputEvidence(String, @pipeline.Issue)
 }
 
 ///|
@@ -12,6 +14,8 @@ struct EnvironmentInputs {
   checked : CheckedSnapshots
   members : Array[@snapshot.EnvironmentSnapshot]
   usage : Usage
+  registrations : Array[(String, @pipeline.InputContract)]
+  score_snapshots : Array[@snapshot.Snapshot?]
 }
 
 ///|
@@ -51,12 +55,86 @@ pub fn reconcile_environment(
     Err(e) => return Err(Snapshots(e))
   }
   let cost = snapshot_usage(checked)
+  let mut work = limits.max_work - cost.work - members.length()
+  let mut nodes = limits.max_nodes - cost.nodes
+  let mut text = limits.max_text_bytes - cost.text_bytes
+  if prepared.entries.length() > work ||
+    snapshot_count(checked) > work - prepared.entries.length() {
+    return Err(BudgetExceeded)
+  }
+  work -= prepared.entries.length() + snapshot_count(checked)
+  let registrations = []
+  let positions : Map[String, Int] = Map([])
+  let score_snapshots = Array::make(prepared.entries.length(), None)
+  for i in 0..<prepared.entries.length() {
+    let entry = reconciled_input_at(checked, i).unwrap()
+    positions[entry.0] = i
+    registrations.push(entry)
+  }
+  for i in 0..<snapshot_count(checked) {
+    let binding = snapshot_binding_at(checked, i).unwrap()
+    let snapshot = bound_snapshot(binding)
+    if @snapshot.score_count(snapshot) == 0 {
+      continue
+    }
+    let name = @source_ref.input_name(@snapshot.source_reference(snapshot))
+    let position = positions[name]
+    let source = @snapshot.score_source(snapshot).unwrap()
+    let assertion = match
+      @evidence.declare_ranking_scores(
+        source,
+        @local_input.schema_carrier(bound_schema(binding)),
+        {
+          max_work: work,
+          max_nodes: nodes,
+          max_text_bytes: text,
+          max_depth: limits.max_depth,
+        },
+      ) {
+      Ok(value) => value
+      Err({ kind: BudgetExceeded, .. }) => return Err(BudgetExceeded)
+      Err(issue) => return Err(Scores(name, issue))
+    }
+    work -= assertion.usage.work
+    nodes -= assertion.usage.nodes
+    text -= assertion.usage.text_bytes
+    let input = match @local_input.schema_primary_key(bound_schema(binding)) {
+      None => @pipeline.RankingInput(assertion.input)
+      Some(key) =>
+        match
+          @pipeline.combine_relation_evidence(
+            source,
+            @evidence.singleton_key(key),
+            assertion.input,
+          ) {
+          Ok(combined) => @pipeline.RelationEvidenceInput(combined)
+          Err(issue) => return Err(InputEvidence(name, issue))
+        }
+    }
+    registrations[position] = (name, input)
+    score_snapshots[position] = Some(snapshot)
+  }
   Ok({
     environment,
     checked,
     members: members.copy(),
-    usage: { ..cost, work: cost.work + members.length(), },
+    registrations,
+    score_snapshots,
+    usage: {
+      work: limits.max_work - work,
+      nodes: limits.max_nodes - nodes,
+      text_bytes: limits.max_text_bytes - text,
+    },
   })
+}
+
+///|
+/// Declaration index, not snapshot order. Retains source membership and meaning.
+pub fn environment_score_snapshot_at(
+  value : EnvironmentInputs,
+  index : Int,
+) -> @snapshot.Snapshot? {
+  value.score_snapshots.get(index).bind(value => value)
 }
 
 ///|

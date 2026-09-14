@@ -107,6 +107,12 @@ pub fn score_count(value : Snapshot) -> Int {
 }
 
 ///|
+/// Owned admitted map for bounded downstream assertion construction.
+pub fn score_source(value : Snapshot) -> @decode.Cursor? {
+  value.score_source
+}
+
+///|
 pub fn score_at(value : Snapshot, index : Int) -> (String, ScoreDeclaration)? {
   match value.scores {
     Some(scores) => scores.get(index)

@@ -16,6 +16,8 @@ pub fn cid(Snapshot) -> String
 
 pub fn emit(Snapshot, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
 
+pub fn emit_score_projection(Snapshot, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
+
 pub fn emit_type_projection(Snapshot, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
 
 pub fn environment_member(EnvironmentSnapshot) -> @check_environment.Member
@@ -33,6 +35,8 @@ pub fn schema(Snapshot) -> @relation_schema.Schema
 pub fn score_at(Snapshot, Int) -> (String, ScoreDeclaration)?
 
 pub fn score_count(Snapshot) -> Int
+
+pub fn score_source(Snapshot) -> @decode_core.Cursor?
 
 pub fn source_reference(Snapshot) -> @local_source_ref.Reference
 

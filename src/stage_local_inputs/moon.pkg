@@ -14,11 +14,12 @@ import {
   "actql/actql/local_source_ref" @source_ref,
   "actql/actql/check_environment" @environment,
   "actql/actql/sourceview_input" @sourceviews,
+  "actql/actql/relation_evidence" @evidence,
+  "actql/actql/vector_checking" @vector_checks,
 }
 
 import {
   "actql/actql/carrier_contract" @carrier,
-  "actql/actql/relation_evidence" @evidence,
   "actql/actql/sha256" @sha,
   "actql/actql/encode_core" @encode,
   "moonbitlang/core/encoding/utf8",

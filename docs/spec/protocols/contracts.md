@@ -301,6 +301,19 @@ empty map or explicit `higher_is_better: true`; these spellings do not add runti
 evidence. Source membership, runtime authority and score interpretation remain
 distinct obligations even when they refer to the same snapshot.
 
+<!-- requirement-block: check-environment.local-relation-score-projection -->
+For each selected Local input with a nonempty score assertion map, static
+contract selection MUST include the canonical score projection consisting of
+exactly `version`, `source_ref`, `output_carrier`, `schema`, and `score_contracts`
+from its admitted snapshot. Its CID is SHA-256 of that canonical JSON UTF-8 body,
+without a self-CID. All declarations in that selected input's map are retained,
+including fields not read by a particular operation; they describe the selected
+input contract, not an unrelated Catalog entry. Empty or omitted maps add no
+score-projection root. Materialization, completeness and integration claims are
+excluded. This root is separate from the existing row-type-only root. Imported
+Results retain their producer correspondence rather than selecting a consumer
+Local input root for the producer's snapshot.
+
 <a id="capacity-law-registry"></a>
 
 ### Capacity witness law registry
@@ -1421,7 +1434,7 @@ These exact schema/law references are owned here. Their identities do not includ
 <!-- normative-code: law -->
 ```text
 ../../../spec/contracts/actql-check-environment.json# sha256:d6ec4aed854d53b3e85cfb6aa6fc9d11989a46cd8a4fd13800483d6687a76e8e
-../../../spec/contracts/actql-local-relation-snapshot.json# sha256:7515a81ef4e9b15c81008ac85479e3e620fc142285258dc571e27239ae5fac33
+../../../spec/contracts/actql-local-relation-snapshot.json# sha256:b59aff026e4853a370475e7b25c7fa6ddf0890aacbd57af0a3ec4b7aa14b65b5
 ../../../spec/contracts/actql-local-source-reference.json# sha256:9be664306a6a91a8e5bfca53d579e6dac77baf4567eb241ceeedc3216ffe47d9
 ../../../spec/contracts/actql-protocol-schemas.json#/schemas/model_task sha256:19408a610dbc52552bff3a7f97f25a120a66688e7db4f41383c91c9298f02dd2
 ../../../spec/contracts/actql-consumer-capacity.json# sha256:7d59718b965451d8a19ccf7095b92777ba0cdd8c3bb71f437ab387801fe7271f

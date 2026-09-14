@@ -35,6 +35,7 @@ struct Snapshot {
   contract : @contract.Contract
   materialization : Materialization?
   scores : Array[(String, ScoreDeclaration)]?
+  score_source : @decode.Cursor?
   cid : String
   bytes : Int
   nodes : Int
@@ -218,6 +219,7 @@ pub fn read(
       contract,
       materialization,
       scores: read_scores(object, schema),
+      score_source: @decode.lookup(object, "score_contracts"),
       cid: expected_cid,
       bytes: bytes.length(),
       nodes: 0,

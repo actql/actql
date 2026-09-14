@@ -12,7 +12,14 @@ pub fn environment_input_at(
   value : EnvironmentInputs,
   index : Int,
 ) -> (String, @pipeline.InputContract)? {
-  let checked = environment_assertions(value)
+  value.registrations.get(index)
+}
+
+///|
+fn reconciled_input_at(
+  checked : CheckedSnapshots,
+  index : Int,
+) -> (String, @pipeline.InputContract)? {
   let prepared = snapshot_inputs(checked)
   let entry = match prepared.entries.get(index) {
     Some(v) => v
@@ -81,6 +88,10 @@ pub fn attach_reconciled(
     let same = match (expected, actual) {
       (@pipeline.KeyedInput(a), @pipeline.KeyedInput(b)) => physical_equal(a, b)
       (@pipeline.CarrierInput(a), @pipeline.CarrierInput(b)) =>
+        physical_equal(a, b)
+      (@pipeline.RankingInput(a), @pipeline.RankingInput(b)) =>
+        physical_equal(a, b)
+      (@pipeline.RelationEvidenceInput(a), @pipeline.RelationEvidenceInput(b)) =>
         physical_equal(a, b)
       _ => false
     }

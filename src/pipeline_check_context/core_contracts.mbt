@@ -48,6 +48,7 @@ pub(all) enum CoreContractBody {
   LocalSnapshotRules
   LocalSourceReferenceRules
   LocalInputType(String)
+  LocalInputScores(String)
   CanonicalIdentityRules
   SourceResponsePolicyRules
   EffectiveDataPolicyRules
@@ -79,6 +80,7 @@ pub(all) enum CoreContractSite {
   NumericAggregateSlotRules(Int, Int, Int, Int)
   StageLocalInputRules(Int, Int)
   StageLocalInputType(Int, Int)
+  StageLocalInputScores(Int, Int)
   StageCanonicalIdentityRules(Int)
   StagePublicationRules(Int, Int)
   StageSourceResponsePolicyRules(Int, Int)
@@ -522,6 +524,13 @@ pub fn collect_core_contracts(
           name,
           @schema.as_object(schema).unwrap(),
         )
+        if @local_inputs.environment_score_snapshot_at(
+            @local_inputs.reconciled_inputs(context.locals[stage]),
+            input,
+          )
+          is Some(snapshot) {
+          core_contract_local_scores(b, stage, input, snapshot)
+        }
       }
       for
         rules in [
@@ -670,7 +679,7 @@ pub fn collect_core_contracts(
           core_contract_body(b, target)
           core_contract_dependency(b, ValuesExecutionRules, target)
         }
-        LocalInputType(_) => {
+        LocalInputType(_) | LocalInputScores(_) => {
           core_contract_edge(b)
           core_contract_body(b, LocalSnapshotRules)
           core_contract_dependency(b, b.bodies[index], LocalSnapshotRules)
@@ -818,10 +827,10 @@ pub fn core_contract_cid(v : CoreContractBody) -> String {
     SeriesCountRules =>
       "sha256:c85b84631add903652807808fc4faa9015e59cf9bfd0fb11bf170c85139dcf05"
     LocalSnapshotRules =>
-      "sha256:7515a81ef4e9b15c81008ac85479e3e620fc142285258dc571e27239ae5fac33"
+      "sha256:b59aff026e4853a370475e7b25c7fa6ddf0890aacbd57af0a3ec4b7aa14b65b5"
     LocalSourceReferenceRules =>
       "sha256:9be664306a6a91a8e5bfca53d579e6dac77baf4567eb241ceeedc3216ffe47d9"
-    LocalInputType(cid) => cid
+    LocalInputType(cid) | LocalInputScores(cid) => cid
     CanonicalIdentityRules =>
       "sha256:5a79d6cb9b012d0c3871c72e496eec7183948ac81d8ebff91b4f7ee6a59ae19d"
     EffectiveDataPolicyRules =>

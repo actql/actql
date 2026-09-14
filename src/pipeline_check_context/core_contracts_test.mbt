@@ -133,6 +133,8 @@ test "core contract collection preserves owned occurrences and shares dependency
         assert_eq((stage, input), (0, 0))
         assert_true(root.body is LocalInputType(_))
       }
+      StageLocalInputScores(_, _) =>
+        fail("this fixture has no score assertions")
       OperationRankingCountRules(_, _, _) =>
         assert_eq(root.body, RankingCountRules)
       OperationSeriesCountRules(_, _, _) =>

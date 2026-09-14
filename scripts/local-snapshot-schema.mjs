@@ -43,6 +43,7 @@ const body = {
     admission:'exact_program_source_resolution_recursive_assertion_agreement_and_environment_membership',
     authority:'content_integrity_does_not_establish_host_authorization_or_runtime_validation',
     scores:'optional_field_scoped_static_score_assertions_require_nonnullable_number_fields_and_ordered_finite_ranges; authenticate_against_exact_captured_input_before_use; never_normalize_or_relabel_computed_scores',
+    score_projection:'canonical_snapshot_version_source_ref_output_carrier_schema_and_complete_nonempty_score_contracts_map; exclude_materialization_completeness_integration; separate_from_row_type_projection',
   },
 };
 const path='spec/contracts/actql-local-relation-snapshot.json';
