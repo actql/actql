@@ -34,6 +34,7 @@ struct Snapshot {
   schema : @schema.Schema
   contract : @contract.Contract
   materialization : Materialization?
+  scores : Array[(String, ScoreDeclaration)]?
   cid : String
   bytes : Int
   nodes : Int
@@ -94,6 +95,7 @@ pub fn emit(
   @encode.string_value(writer, "relation")
   @encode.key(writer, "schema")
   @contract.emit_checked(v.contract, writer)
+  emit_scores(v, writer)
   @encode.key(writer, "source_ref")
   @encode.string_value(writer, @reference.stringify(v.reference))
   @encode.key(writer, "version")
@@ -146,7 +148,7 @@ pub fn read(
     let object = match
       @decode.closed_object(cursor, [
         "version", "source_ref", "output_carrier", "schema", "input_cid", "completeness",
-        "integration_binding_cid",
+        "integration_binding_cid", "score_contracts",
       ]) {
       Ok(v) => v
       Err(_) => raise Stop(InvalidSnapshot)
@@ -215,6 +217,7 @@ pub fn read(
       schema,
       contract,
       materialization,
+      scores: read_scores(object, schema),
       cid: expected_cid,
       bytes: bytes.length(),
       nodes: 0,

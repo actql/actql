@@ -9695,7 +9695,7 @@
     },
     {
       "requirement_id": "actql.protocol.contracts/check-environment.local-relation-snapshot-shape",
-      "statement_sha256": "9b5cbd0e810f21fb9621afc49ac2dfe60e25b9ed4b80b788e2d22cc0e4d7ddd3",
+      "statement_sha256": "758f9455ca3379dbf6fd574c15adc9e22a28d4fe9a706c76129607b4a8184bfa",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
@@ -9729,6 +9729,39 @@
     {
       "requirement_id": "actql.protocol.contracts/check-environment.local-relation-snapshot-correspondence",
       "statement_sha256": "96921a46423e45070d166574399c0a008156c20890f47d91b843d60d1089d17b",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "local-relation-snapshot",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/check-environment.local-relation-score-assertions",
+      "statement_sha256": "c2bef3b99b209828c278e2ffb302b62272414bd6b75293fd143f42d22a4e80a1",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "local-relation-snapshot",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/check-environment.local-relation-score-authentication",
+      "statement_sha256": "7015a155dfd9933793e26b781ee4e07c8839079a39e48fcdf5b593624c7e1b5f",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "local-relation-snapshot",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/check-environment.local-relation-score-identity",
+      "statement_sha256": "ddca1f8989bbda427cb154e973de850c63925b7b2d429c7903f9d2cea12a366c",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
@@ -10938,7 +10971,7 @@
     },
     {
       "requirement_id": "actql.protocol.contracts/machine-contracts.exact-artifacts",
-      "statement_sha256": "a6f89fd125fd9ae4a48bbd86f415e27398b7d19b49a2af0b25c9743ba8c2010c",
+      "statement_sha256": "b9ec67c69ec4146e1871d7195e0de0222dac669e0a42df4f53d28d75876abbd0",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",

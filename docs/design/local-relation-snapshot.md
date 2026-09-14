@@ -1,5 +1,27 @@
 # Local Relation schema snapshot integrity
 
+## Input score assertions
+
+The optional `score_contracts` map supplies field-scoped input semantics for
+score fusion without changing row value contracts. This is an extension of the
+closed snapshot envelope, not a reinterpretation of authoring metadata. The map
+uses the same closed ScoreContract schema as max/weighted-sum options. Its
+cross-field existence/type checks and ordered finite endpoints are semantic
+admission checks; JSON Schema alone does not establish them.
+
+Admission retains indexed immutable declarations and their source cursors.
+Those declarations remain assertions requiring authentication against captured
+input evidence. The distinction prevents an authored range from relabeling raw
+BM25 or cosine scores as a common normalization. Empty data does not remove
+the requirement. Row-type projection stays independent: a consumer that uses
+score semantics needs the selected declaration and source correspondence in
+its static identity as well as the row type, not the full observed snapshot.
+
+Snapshots without this optional member preserve their existing canonical bytes
+and identities. Consumers pinned to the older closed envelope cannot admit the
+new member; updating the interpretation contract does not establish backend
+support or permission to execute.
+
 The normative owner is [local Relation schema snapshots](../spec/protocols/contracts.md#local-relation-snapshot).
 `spec/contracts/actql-local-relation-snapshot.json` pins the envelope schema,
 checked-type/selector dependencies and semantic requirements. Extract `schema`

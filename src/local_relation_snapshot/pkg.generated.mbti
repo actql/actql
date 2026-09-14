@@ -3,6 +3,7 @@ package "actql/actql/local_relation_snapshot"
 
 import {
   "actql/actql/check_environment",
+  "actql/actql/decode_core",
   "actql/actql/encode_core",
   "actql/actql/local_source_ref",
   "actql/actql/relation_schema",
@@ -28,6 +29,10 @@ pub fn read(Bytes, String, Limits) -> Result[Snapshot, Issue]
 pub fn read_member(@check_environment.Member, Limits) -> Result[EnvironmentSnapshot, MembershipIssue]
 
 pub fn schema(Snapshot) -> @relation_schema.Schema
+
+pub fn score_at(Snapshot, Int) -> (String, ScoreDeclaration)?
+
+pub fn score_count(Snapshot) -> Int
 
 pub fn source_reference(Snapshot) -> @local_source_ref.Reference
 
@@ -68,6 +73,15 @@ pub enum MembershipIssue {
   WrongSection
   InvalidSnapshot(Issue)
   BudgetExceeded
+}
+
+pub struct ScoreDeclaration {
+  source : @decode_core.Cursor
+  domain : String
+  normalization : String
+  minimum : Double
+  maximum : Double
+  explicit_higher_is_better : Bool
 }
 
 type Snapshot

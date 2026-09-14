@@ -6,14 +6,19 @@ import {fileURLToPath} from 'node:url';
 import {parameterPrograms} from './parameter-schema.mjs';
 import {machineCid} from './actql-spec-family.mjs';
 
+export function scoreContractSchema() {
+  const field = {type:'string',minLength:1};
+  return {type:'object',additionalProperties:false,required:['domain','range','normalization'],properties:{
+    domain:field,normalization:field,higher_is_better:{const:true},
+    range:{type:'array',minItems:2,maxItems:2,items:{type:'number'}},
+  }};
+}
+
 export function vectorSchemas() {
   const field = {type:'string',minLength:1};
   const positive = {type:'integer',minimum:1,maximum:9007199254740991};
   const common = {by:{type:'array',items:field},candidate:field,k:positive};
-  const scoreContract = {type:'object',additionalProperties:false,required:['domain','range','normalization'],properties:{
-    domain:field,normalization:field,higher_is_better:{const:true},
-    range:{type:'array',minItems:2,maxItems:2,items:{type:'number'}},
-  }};
+  const scoreContract = scoreContractSchema();
   const scored = policy => ({type:'object',additionalProperties:false,required:['with','by','candidate','score','score_policy','score_contract','k'],properties:{
     ...common,with:field,score:field,score_contract:scoreContract,score_policy:policy,tie_break:{type:'array',items:field},
   }});

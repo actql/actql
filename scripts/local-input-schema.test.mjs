@@ -4,6 +4,15 @@ import test from 'node:test';
 import {parameterPrograms} from './parameter-schema.mjs';
 import {checkLocalInputSchemas} from './local-input-schema.mjs';
 import {machineCid} from './actql-spec-family.mjs';
+import {scoreContractSchema, vectorSchemas} from './vector-schema.mjs';
+
+test('Local input score assertions and fusion use the same closed contract', () => {
+  const snapshot = JSON.parse(readFileSync('spec/contracts/actql-local-relation-snapshot.json','utf8'));
+  assert.deepEqual(snapshot.schema.properties.score_contracts.additionalProperties, scoreContractSchema());
+  for (const policy of vectorSchemas().merge_rankings.oneOf.slice(0,2)) {
+    assert.deepEqual(policy.properties.score_contract, scoreContractSchema());
+  }
+});
 
 test('Local interpretation roots match pinned snapshot dependencies', () => {
   const snapshot = JSON.parse(readFileSync('spec/contracts/actql-local-relation-snapshot.json','utf8'));

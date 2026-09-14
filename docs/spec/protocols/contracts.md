@@ -247,7 +247,7 @@ checking does not implicitly acquire, materialize or authorize data.
 A local Relation schema snapshot MUST contain exactly the required members
 `version: "actql-local-input-schema/0.1"`, `source_ref`,
 `output_carrier: "relation"`, and `schema`, plus only the optional members
-`input_cid`, `completeness`, and `integration_binding_cid`. `schema` is a complete
+`input_cid`, `completeness`, `integration_binding_cid`, and `score_contracts`. `schema` is a complete
 checked non-nullable object contract, including explicit `additional_properties:
 false`; empty `fields` is allowed. It is not an author-form declaration or a
 bare field map. Other local Carriers require their corresponding snapshot
@@ -272,6 +272,34 @@ explicit input assertions and membership in the selected Check Environment.
 Canonical-byte admission rejects noncanonical bytes rather than repairing them.
 An independently recomputed content CID establishes integrity, not Host authority,
 runtime row validity, uniqueness, completeness or permission to execute.
+
+<!-- requirement-block: check-environment.local-relation-score-assertions -->
+An optional `score_contracts` map MUST associate existing non-nullable number
+fields of the snapshot schema with closed `ScoreContract` declarations from
+the merge_rankings grammar: nonempty `domain` and `normalization`, exactly two
+finite range endpoints in ascending order, and optional `higher_is_better: true`.
+An empty map carries no score assertion. The map is input-side static semantic
+material, not row data, a normalization operation, or an authentication proof.
+Absent materialization does not prevent declaring a future input's score contract.
+
+<!-- requirement-block: check-environment.local-relation-score-authentication -->
+A consumer using such a declaration MUST bind it to the exact source input and
+captured materialization, authenticate its domain and normalization assertion,
+and validate all input scores against the range before score fusion. An authored
+fusion option alone cannot supply this input assertion; neither matching field
+names nor a successful range check establishes a normalization identity. A
+computed replacement of a score does not inherit the assertion. Exact value
+copies may transfer it while retaining its original input and field ownership.
+
+<!-- requirement-block: check-environment.local-relation-score-identity -->
+Static identity selection for a consumer using a score assertion MUST include
+the selected declaration and its source/field correspondence, separately from
+materialization and completeness observations. The row-type-only projection
+does not include score assertions and is insufficient to identify their use.
+The full snapshot CID includes the map exactly as supplied, including an explicit
+empty map or explicit `higher_is_better: true`; these spellings do not add runtime
+evidence. Source membership, runtime authority and score interpretation remain
+distinct obligations even when they refer to the same snapshot.
 
 <a id="capacity-law-registry"></a>
 
@@ -1393,7 +1421,7 @@ These exact schema/law references are owned here. Their identities do not includ
 <!-- normative-code: law -->
 ```text
 ../../../spec/contracts/actql-check-environment.json# sha256:d6ec4aed854d53b3e85cfb6aa6fc9d11989a46cd8a4fd13800483d6687a76e8e
-../../../spec/contracts/actql-local-relation-snapshot.json# sha256:60e8136aea733421e75fa3dcef4934c87ce98959b36f8a56da93ccfbf03d81b2
+../../../spec/contracts/actql-local-relation-snapshot.json# sha256:7515a81ef4e9b15c81008ac85479e3e620fc142285258dc571e27239ae5fac33
 ../../../spec/contracts/actql-local-source-reference.json# sha256:9be664306a6a91a8e5bfca53d579e6dac77baf4567eb241ceeedc3216ffe47d9
 ../../../spec/contracts/actql-protocol-schemas.json#/schemas/model_task sha256:19408a610dbc52552bff3a7f97f25a120a66688e7db4f41383c91c9298f02dd2
 ../../../spec/contracts/actql-consumer-capacity.json# sha256:7d59718b965451d8a19ccf7095b92777ba0cdd8c3bb71f437ab387801fe7271f

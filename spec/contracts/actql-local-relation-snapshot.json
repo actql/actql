@@ -68,6 +68,42 @@
       "integration_binding_cid": {
         "type": "string",
         "pattern": "^sha256:[0-9a-f]{64}$"
+      },
+      "score_contracts": {
+        "type": "object",
+        "propertyNames": {
+          "pattern": "^(?!__cid$)(?!__actql_)(?![\\s\\S]*\\.)(?=[\\s\\S]*\\S)[\\s\\S]+$"
+        },
+        "additionalProperties": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "domain",
+            "range",
+            "normalization"
+          ],
+          "properties": {
+            "domain": {
+              "type": "string",
+              "minLength": 1
+            },
+            "normalization": {
+              "type": "string",
+              "minLength": 1
+            },
+            "higher_is_better": {
+              "const": true
+            },
+            "range": {
+              "type": "array",
+              "minItems": 2,
+              "maxItems": 2,
+              "items": {
+                "type": "number"
+              }
+            }
+          }
+        }
       }
     },
     "allOf": [
@@ -1045,6 +1081,7 @@
     "materialization": "input_cid_and_completeness_are_paired_claims_not_verified_rows",
     "integration": "optional_integration_binding_cid_requires_materialization_claim",
     "admission": "exact_program_source_resolution_recursive_assertion_agreement_and_environment_membership",
-    "authority": "content_integrity_does_not_establish_host_authorization_or_runtime_validation"
+    "authority": "content_integrity_does_not_establish_host_authorization_or_runtime_validation",
+    "scores": "optional_field_scoped_static_score_assertions_require_nonnullable_number_fields_and_ordered_finite_ranges; authenticate_against_exact_captured_input_before_use; never_normalize_or_relabel_computed_scores"
   }
 }
