@@ -438,6 +438,8 @@ pub fn link_program_join_requirements(ProgramOperationResolutionIndex, Int, Int)
 
 pub fn link_program_nest_item_limits(ProgramOperationResolutionIndex, Int, Int, Int) -> Result[ProgramOperationResolutionIndex, GroupArrayLimitIssue]
 
+pub fn link_program_nest_value_envelopes(ProgramOperationResolutionIndex, Int, Int, Int) -> Result[ProgramOperationResolutionIndex, NestValueIssue]
+
 pub fn link_program_numeric_slots(ProgramOperationResolutionIndex, ProgramNumericSlots, Int, Int) -> Result[ProgramOperationResolutionIndex, NumericSlotsIssue]
 
 pub fn link_program_operation_orders(ProgramOperationRequirements, Int, Int) -> Result[ProgramOperationOrders, OperationOrderIssue]
@@ -481,6 +483,14 @@ pub fn nest_attachment_field_count(NestValueEnvelope) -> Int
 pub fn nest_item_candidate_at(NestItemLimit, Int) -> @capacity_graph_preflight.TargetMembership?
 
 pub fn nest_item_candidate_count(NestItemLimit) -> Int
+
+pub fn nest_parent_candidate_at(NestValueEnvelope, Int) -> @capacity_graph_preflight.TargetMembership?
+
+pub fn nest_parent_candidate_count(NestValueEnvelope) -> Int
+
+pub fn nest_value_rule_at(NestValueEnvelope, Int) -> NestValueRule?
+
+pub fn nest_value_rule_count(NestValueEnvelope) -> Int
 
 pub fn numeric_slot_at(ProgramNumericSlots, Int) -> NumericSlot?
 
@@ -2181,6 +2191,8 @@ pub struct NestValueEnvelope {
   depth_ceiling : @capacity_policy.Ceiling
   payload_type : @value_contract.Contract
   type_depth : Int
+  successful_parent_ceiling : Int64
+  expanded_elements_ceiling : Int64
   work : Int
   // private fields
 }
@@ -2192,6 +2204,17 @@ pub(all) enum NestValueIssue {
   MissingCeiling
   DepthExceeded
 } derive(Eq, @debug.Debug)
+
+pub(all) enum NestValueRule {
+  MeasureGroupedChildArrays
+  MeasureAttachedRecursiveFields
+  CheckLogicalExpansionArithmetic
+} derive(Eq, @debug.Debug)
+
+pub struct NestValuesCheck {
+  site : OperationRequirementSite
+  envelope : NestValueEnvelope
+}
 
 pub struct NumericSlot {
   requirement_index : Int
@@ -2257,6 +2280,7 @@ pub(all) enum OperationDisposition {
 }
 
 pub(all) enum OperationExecutionCheck {
+  NestValues(NestValuesCheck)
   NestItems(NestItemLimit)
   NestExecution(NestExecutionCheck)
   GraphSelectorExecution(GraphSelectorCheck)

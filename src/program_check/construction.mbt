@@ -9,6 +9,7 @@ pub suberror ConstructionFailure {
   AsOfSearch(@context.AsOfSearchLimitIssue)
   WindowLimits(@context.WindowMembershipBoundIssue)
   GroupLimits(@context.GroupArrayLimitIssue)
+  NestValues(@context.NestValueIssue)
   GroupStringLimits(@context.GroupStringLimitIssue)
   NumericSlots(@context.NumericSlotsIssue)
   Incoming(@context.IncomingIssue)
@@ -121,9 +122,29 @@ fn prepare_owned_closure(
     Ok(v) => v
     Err(e) => raise WindowLimits(e)
   }
+  let nest_items = match
+    @context.link_program_nest_item_limits(
+      window_resolutions,
+      ceiling,
+      ceiling - prefix,
+      ceiling - prefix,
+    ) {
+    Ok(v) => v
+    Err(e) => raise GroupLimits(e)
+  }
+  let nest_values = match
+    @context.link_program_nest_value_envelopes(
+      nest_items,
+      ceiling,
+      ceiling - prefix,
+      budget.depth,
+    ) {
+    Ok(v) => v
+    Err(e) => raise NestValues(e)
+  }
   let group_array_resolutions = match
     @context.link_program_group_array_limits(
-      window_resolutions,
+      nest_values,
       ceiling,
       ceiling - prefix,
       ceiling - prefix,

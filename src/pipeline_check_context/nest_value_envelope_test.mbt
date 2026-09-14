@@ -66,6 +66,13 @@ test "nest value scopes validate empty declared payloads and retain sibling arra
           assert_true(physical_equal(envelope.items, items))
           assert_eq(envelope.type_depth, expected)
           assert_eq(@policy.ceiling_value(envelope.byte_ceiling), 1L)
+          // This is conditional on output-byte enforcement, not a claim that
+          // the upstream source has already been observed empty.
+          assert_eq(envelope.successful_parent_ceiling, 0L)
+          assert_eq(envelope.expanded_elements_ceiling, 0L)
+          assert_eq(nest_parent_candidate_count(envelope), 0)
+          assert_true(nest_parent_candidate_at(envelope, -1) is None)
+          assert_true(nest_parent_candidate_at(envelope, 0) is None)
           let names = []
           for j in 0..<nest_attachment_field_count(envelope) {
             names.push(
@@ -95,6 +102,79 @@ test "nest value scopes validate empty declared payloads and retain sibling arra
         found += 1
       }
       assert_eq(found, 3)
+      assert_true(
+        link_program_nest_value_envelopes(owner, 10000000, 3, 100)
+        is Err(ForeignOwner),
+      )
+      let items = link_program_nest_item_limits(owner, 10000000, 3, 100).unwrap()
+      if depth < expected {
+        assert_true(
+          link_program_nest_value_envelopes(items, 10000000, 3, 100)
+          is Err(DepthExceeded),
+        )
+      } else {
+        let linked = link_program_nest_value_envelopes(items, 10000000, 3, 100).unwrap()
+        let mut links = 0
+        for i in 0..<operation_resolution_count(linked) {
+          guard operation_resolution_at(linked, i)
+            is Some(Execution(NestValues(check))) else {
+            continue
+          }
+          links += 1
+          let site = operation_requirements_at(
+            operation_resolution_requirements(linked),
+            i,
+          ).unwrap()
+          assert_true(physical_equal(check.site, site))
+          assert_eq(
+            check.envelope.items.site.producer_visit,
+            site.producer_visit,
+          )
+          assert_true(
+            physical_equal(check.envelope.items.site.pipeline, site.pipeline),
+          )
+          assert_eq(nest_value_rule_count(check.envelope), 3)
+          assert_eq(
+            nest_value_rule_at(check.envelope, 0),
+            Some(MeasureGroupedChildArrays),
+          )
+          assert_eq(
+            nest_value_rule_at(check.envelope, 1),
+            Some(MeasureAttachedRecursiveFields),
+          )
+          assert_eq(
+            nest_value_rule_at(check.envelope, 2),
+            Some(CheckLogicalExpansionArithmetic),
+          )
+          assert_true(nest_value_rule_at(check.envelope, 3) is None)
+          assert_true(nest_value_rule_at(check.envelope, -1) is None)
+          assert_eq(
+            operation_execution_phase(NestValues(check)),
+            BeforeOperationOutput,
+          )
+          assert_eq(
+            operation_execution_failure(NestValues(check)),
+            RejectOperationOutput,
+          )
+        }
+        assert_eq(links, 3)
+        let work = operation_resolution_work(linked)
+        assert_true(
+          link_program_nest_value_envelopes(items, work, 3, 100) is Ok(_),
+        )
+        assert_true(
+          link_program_nest_value_envelopes(items, work - 1, 3, 100)
+          is Err(BudgetExceeded),
+        )
+        assert_true(
+          link_program_nest_value_envelopes(items, work, 2, 100)
+          is Err(BudgetExceeded),
+        )
+        assert_true(
+          link_program_nest_value_envelopes(linked, 10000000, 3, 100)
+          is Err(ForeignOwner),
+        )
+      }
     }
   }
 }

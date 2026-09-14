@@ -1370,8 +1370,34 @@ array and object, even with no input rows. It counts array/object type container
 the `values`-specific vector-depth rule is not applied to `nest`. The iterative
 walk and field inventory share a preparation work budget, separate from the
 selected Host depth ceiling. This preparation neither measures actual bytes nor
-replaces the separate overflow-safe total-expansion check. Only a complete
-envelope binding can discharge `ResolveNestedEnvelope`.
+claims successful enforcement. It also retains conditional parent and expanded
+element ceilings: each preserved parent emits at least `[]`, and each child
+element is a non-null object with at least two encoded bytes. The attachment byte
+ceiling therefore bounds both counts separately. Applicable parent row proofs
+can tighten the parent bound; the element bound is the exact minimum of the byte
+bound and parent bound times selected per-array limit. A division comparison
+avoids constructing an irrelevant overrange product, rather than saturating it.
+This path does not apply child-total tightening or synthesize correlation-key
+uniqueness. Count bounds depending on output enforcement cannot protect an
+upstream read without their prerequisite. Only a complete envelope binding can
+discharge `ResolveNestedEnvelope`.
+
+The value-envelope linker consumes the retained item selection from the same
+requirement group and binds three future checks: grouped child-array bytes,
+attachment bytes including siblings, and checked logical-expansion arithmetic.
+Runtime accounting counts every parent occurrence, including repeated payload
+copies; shared storage cannot discount it. Counters, products and sibling sums
+must not wrap. This does not assert an observed parent count or manufacture a
+static total bound when none has been derived. A child-total proof cannot replace
+the repeated-parent quantity without the required correlation-key uniqueness.
+All three checks reject the operation output before consumers on failure.
+
+The private Program construction invokes item selection before value-envelope
+linking and charges their aggregate work. Missing item selection, a foreign
+occurrence, excessive declared depth or a late budget failure returns no partial
+closure. These process-owned bindings are distinct from Unit-addressed persistent
+limit artifacts; the formal source domain must not be expanded before those
+artifacts and their read-only consumers are connected.
 
 ## Identity boundaries
 

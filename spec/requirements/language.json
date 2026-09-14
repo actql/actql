@@ -3677,6 +3677,28 @@
       }
     },
     {
+      "requirement_id": "actql.language/nest.conditional-byte-count-bounds",
+      "statement_sha256": "b5a88c690ec00666b352b7fd79b400859c5a59fe1446c702ef91ae9ccbc8ce44",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "nest",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/nest.exact-expansion-minimum",
+      "statement_sha256": "5809b521a78dfab4c8a38911d4faf149a672ecabae1de23afd2fae08ca04fceb",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "nest",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.language/values.admission",
       "statement_sha256": "9d25de3da40034ebdb0bab6e6abf25cf5626c9f4a62d1379300c72adff5ca77d",
       "status": "pending",

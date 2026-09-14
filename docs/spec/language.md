@@ -4211,6 +4211,25 @@ compose recursive byte/depth bounds, checked for overflow. Resolved ceilings and
 enforcement boundaries follow [Author guards, resolved limits, and Plan facts](#resolved-limits); violations fail publication atomically.
 Statistics and shared physical storage do not reduce logical expansion bounds.
 
+<!-- requirement-block: nest.conditional-byte-count-bounds -->
+Count bounds derived from the attachment byte ceiling MUST remain conditional
+on successful enforcement at that output, not evidence authorizing an upstream
+read. For ceiling B, each preserved parent contributes at least `[]` (two bytes),
+and every emitted child element is a non-null object contributing at least `{}`
+(two bytes). Thus floor(B/2) separately bounds successful parent occurrences and
+total child elements. These are alternative bounds from the same byte scope,
+not independent byte charges to add together.
+
+<!-- requirement-block: nest.exact-expansion-minimum -->
+When combining these byte-derived bounds with P×M, the expansion calculation
+MUST compute the mathematical minimum exactly without wrapping or rounding an
+intermediate product. A product larger than an already applicable finite bound
+need not be materialized and is not a reason by itself to reject the operation;
+no saturated product is emitted as a multiplication proof. This is a nest
+expansion-bound calculation, not a change to other registered arithmetic laws.
+Using a total child-row bound as a total-element bound still requires the parent
+correlation-key uniqueness specified above; unrelated parent keys do not suffice.
+
 The Host capacity contract supplies `max_nested_value_bytes` and
 `max_nested_value_depth`. Depth counts array/object containers in the child
 payload and is checked from its recursive type before execution. Byte usage

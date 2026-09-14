@@ -415,6 +415,7 @@ pub suberror ConstructionFailure {
   AsOfSearch(@pipeline_check_context.AsOfSearchLimitIssue)
   WindowLimits(@pipeline_check_context.WindowMembershipBoundIssue)
   GroupLimits(@pipeline_check_context.GroupArrayLimitIssue)
+  NestValues(@pipeline_check_context.NestValueIssue)
   GroupStringLimits(@pipeline_check_context.GroupStringLimitIssue)
   NumericSlots(@pipeline_check_context.NumericSlotsIssue)
   Incoming(@pipeline_check_context.IncomingIssue)
