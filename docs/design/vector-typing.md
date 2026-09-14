@@ -248,6 +248,14 @@ weight, avoiding an unnecessary overflowing binary64 sum. Rank window and output
 k are independent. Reading options establishes no input score-contract evidence
 and does not validate any ranking rows.
 
+Indexed option readers expose retained input names, partition fields, weights
+and business tie-break fields in constant time. Input-name positions enumerate
+authored `with` only, whereas weight positions include the current ranking first.
+Counts preserve repeated occurrences; the optional tie-break count distinguishes
+omission from an explicit empty list. Existing array readers return separate
+copies. Consumers can reserve work before traversal without copying these lists
+or reconstructing the admitted options.
+
 The normative owner is [merge_rankings](../spec/language.md#merge-rankings).
 The source-options paragraph closes previously unspecified boundaries: empty by
 is global grouping, repeated by fields occur once in output, and empty business

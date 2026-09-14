@@ -283,6 +283,18 @@ pub fn ranking_inputs(o : RankingOptions) -> Array[String] {
 }
 
 ///|
+/// Authored with occurrences only; the current input is not included.
+pub fn ranking_input_count(o : RankingOptions) -> Int {
+  o.others.length()
+}
+
+///|
+/// Constant-time access preserving repeated authored occurrences.
+pub fn ranking_input_at(o : RankingOptions, index : Int) -> String? {
+  o.others.get(index)
+}
+
+///|
 pub fn ranking_by(o : RankingOptions) -> Array[@row.FieldName] {
   o.by.copy()
 }
@@ -291,6 +303,11 @@ pub fn ranking_by(o : RankingOptions) -> Array[@row.FieldName] {
 /// Constant-time partition arity without copying field references.
 pub fn ranking_by_count(o : RankingOptions) -> Int {
   o.by.length()
+}
+
+///|
+pub fn ranking_by_at(o : RankingOptions, index : Int) -> @row.FieldName? {
+  o.by.get(index)
 }
 
 ///|
@@ -319,6 +336,17 @@ pub fn ranking_weights(o : RankingOptions) -> Array[Double] {
 }
 
 ///|
+/// Weight positions include the current input for weighted_sum and RRF.
+pub fn ranking_weight_count(o : RankingOptions) -> Int {
+  o.weights.length()
+}
+
+///|
+pub fn ranking_weight_at(o : RankingOptions, index : Int) -> Double? {
+  o.weights.get(index)
+}
+
+///|
 pub fn ranking_rank_constant(o : RankingOptions) -> Double? {
   o.rank_constant
 }
@@ -336,6 +364,20 @@ pub fn ranking_score_contract(o : RankingOptions) -> ScoreContract? {
 ///|
 pub fn ranking_tie_break(o : RankingOptions) -> Array[@row.FieldName]? {
   o.tie_break.map(v => v.copy())
+}
+
+///|
+/// Distinguishes omission from an explicitly empty list without copying it.
+pub fn ranking_tie_break_count(o : RankingOptions) -> Int? {
+  o.tie_break.map(v => v.length())
+}
+
+///|
+pub fn ranking_tie_break_at(o : RankingOptions, index : Int) -> @row.FieldName? {
+  match o.tie_break {
+    Some(fields) => fields.get(index)
+    None => None
+  }
 }
 
 ///|

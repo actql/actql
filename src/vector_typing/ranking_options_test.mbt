@@ -14,6 +14,25 @@ test "ranking policies retain source order repeated occurrences and independent 
   let copy = @vector_typing.ranking_weights(o)
   copy[0] = 99
   assert_eq(@vector_typing.ranking_weights(o), [1, 0, 2])
+  assert_eq(@vector_typing.ranking_input_count(o), 2)
+  assert_eq(@vector_typing.ranking_by_count(o), 2)
+  assert_eq(@vector_typing.ranking_weight_count(o), 3)
+  for i in 0..<2 {
+    assert_eq(@vector_typing.ranking_input_at(o, i), Some("r"))
+    assert_eq(@vector_typing.ranking_by_at(o, i), Some(Unqualified("q")))
+  }
+  for i in 0..<3 {
+    assert_eq(@vector_typing.ranking_weight_at(o, i), Some([1.0, 0.0, 2.0][i]))
+  }
+  assert_eq(@vector_typing.ranking_tie_break_count(o), None)
+  for i in [-1, 2, 2147483647] {
+    assert_eq(@vector_typing.ranking_input_at(o, i), None)
+    assert_eq(@vector_typing.ranking_by_at(o, i), None)
+  }
+  for i in [-1, 3, 2147483647] {
+    assert_eq(@vector_typing.ranking_weight_at(o, i), None)
+  }
+  assert_eq(@vector_typing.ranking_tie_break_at(o, 0), None)
   let u = @vector_typing.ranking_options_usage(o)
   let exact = {
     ..limits(),
@@ -48,9 +67,57 @@ test "score fusion accepts the fixed higher-is-better law without importing scor
     ).unwrap()
     assert_eq(@vector_typing.ranking_by(o), [])
     assert_eq(@vector_typing.ranking_tie_break(o), Some([]))
+    assert_eq(@vector_typing.ranking_tie_break_count(o), Some(0))
+    assert_eq(@vector_typing.ranking_tie_break_at(o, 0), None)
+    assert_eq(@vector_typing.ranking_by_at(o, 0), None)
+    assert_eq(@vector_typing.ranking_input_count(o), 1)
+    assert_eq(@vector_typing.ranking_input_at(o, 0), Some("r"))
+    let weights = @vector_typing.ranking_weights(o)
+    assert_eq(@vector_typing.ranking_weight_count(o), weights.length())
+    for i in 0..<weights.length() {
+      assert_eq(@vector_typing.ranking_weight_at(o, i), Some(weights[i]))
+    }
+    assert_eq(@vector_typing.ranking_weight_at(o, weights.length()), None)
     assert_eq(@vector_typing.ranking_score(o), Some(Unqualified("relevance")))
     assert_eq(@vector_typing.ranking_score_contract(o).unwrap().minimum, 1)
     assert_eq(@vector_typing.ranking_score_contract(o).unwrap().maximum, 2)
+  }
+}
+
+///|
+test "ranking indexed readers preserve optional lists and owned source values" {
+  for tie in ["", ",\"tie_break\":[]", ",\"tie_break\":[\"z\",\"a\",\"z\"]"] {
+    let o = @vector_typing.read_ranking_options(
+      cursor(
+        "{\"with\":\"right\",\"by\":[\"q\"],\"candidate\":\"id\",\"score\":\"s\",\"k\":2,\"score_policy\":\"max\",\"score_contract\":{\"domain\":\"d\",\"range\":[0,1],\"normalization\":\"n\"}" +
+        tie +
+        "}",
+      ),
+      limits(),
+    ).unwrap()
+    let names = @vector_typing.ranking_inputs(o)
+    names[0] = "changed"
+    let by = @vector_typing.ranking_by(o)
+    by[0] = Unqualified("changed")
+    assert_eq(@vector_typing.ranking_input_at(o, 0), Some("right"))
+    assert_eq(@vector_typing.ranking_by_at(o, 0), Some(Unqualified("q")))
+    match @vector_typing.ranking_tie_break(o) {
+      None => assert_eq(@vector_typing.ranking_tie_break_count(o), None)
+      Some(copy) => {
+        assert_eq(
+          @vector_typing.ranking_tie_break_count(o),
+          Some(copy.length()),
+        )
+        for i in 0..<copy.length() {
+          let expected = copy[i]
+          copy[i] = Unqualified("changed")
+          assert_eq(@vector_typing.ranking_tie_break_at(o, i), Some(expected))
+        }
+        assert_eq(@vector_typing.ranking_tie_break_at(o, copy.length()), None)
+      }
+    }
+    assert_eq(@vector_typing.ranking_tie_break_at(o, -1), None)
+    assert_eq(@vector_typing.ranking_tie_break_at(o, 2147483647), None)
   }
 }
 

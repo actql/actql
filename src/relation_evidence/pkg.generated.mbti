@@ -307,6 +307,8 @@ pub fn nearest_usage(CheckedNearest) -> @vector_checking.Usage
 
 pub fn ranking_by(RankingOptions) -> Array[@relation_schema.FieldName]
 
+pub fn ranking_by_at(RankingOptions, Int) -> @relation_schema.FieldName?
+
 pub fn ranking_by_count(RankingOptions) -> Int
 
 pub fn ranking_candidate(RankingOptions) -> @relation_schema.FieldName
@@ -317,7 +319,11 @@ pub fn ranking_from_nearest(CheckedNearest) -> RankingInput
 
 pub fn ranking_from_text(CheckedTextRank) -> RankingInput
 
+pub fn ranking_input_at(RankingOptions, Int) -> String?
+
 pub fn ranking_input_carrier(RankingInput) -> @carrier_contract.Carrier
+
+pub fn ranking_input_count(RankingOptions) -> Int
 
 pub fn ranking_input_fusion(RankingInput) -> CheckedRanking?
 
@@ -360,6 +366,14 @@ pub fn ranking_shape_usage(RankingShape) -> @vector_checking.Usage
 pub fn ranking_source(RankingOptions) -> @decode_core.Cursor
 
 pub fn ranking_tie_break(RankingOptions) -> Array[@relation_schema.FieldName]?
+
+pub fn ranking_tie_break_at(RankingOptions, Int) -> @relation_schema.FieldName?
+
+pub fn ranking_tie_break_count(RankingOptions) -> Int?
+
+pub fn ranking_weight_at(RankingOptions, Int) -> Double?
+
+pub fn ranking_weight_count(RankingOptions) -> Int
 
 pub fn ranking_weights(RankingOptions) -> Array[Double]
 

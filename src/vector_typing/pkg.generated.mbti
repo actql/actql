@@ -184,6 +184,8 @@ pub fn query_values(Query) -> Array[Double]?
 
 pub fn ranking_by(@relation_evidence.RankingOptions) -> Array[@relation_schema.FieldName]
 
+pub fn ranking_by_at(@relation_evidence.RankingOptions, Int) -> @relation_schema.FieldName?
+
 pub fn ranking_by_count(@relation_evidence.RankingOptions) -> Int
 
 pub fn ranking_candidate(@relation_evidence.RankingOptions) -> @relation_schema.FieldName
@@ -194,7 +196,11 @@ pub fn ranking_from_nearest(@relation_evidence.CheckedNearest) -> @relation_evid
 
 pub fn ranking_from_text(@relation_evidence.CheckedTextRank) -> @relation_evidence.RankingInput
 
+pub fn ranking_input_at(@relation_evidence.RankingOptions, Int) -> String?
+
 pub fn ranking_input_carrier(@relation_evidence.RankingInput) -> @carrier_contract.Carrier
+
+pub fn ranking_input_count(@relation_evidence.RankingOptions) -> Int
 
 pub fn ranking_input_fusion(@relation_evidence.RankingInput) -> @relation_evidence.CheckedRanking?
 
@@ -237,6 +243,14 @@ pub fn ranking_shape_usage(@relation_evidence.RankingShape) -> @vector_checking.
 pub fn ranking_source(@relation_evidence.RankingOptions) -> @decode_core.Cursor
 
 pub fn ranking_tie_break(@relation_evidence.RankingOptions) -> Array[@relation_schema.FieldName]?
+
+pub fn ranking_tie_break_at(@relation_evidence.RankingOptions, Int) -> @relation_schema.FieldName?
+
+pub fn ranking_tie_break_count(@relation_evidence.RankingOptions) -> Int?
+
+pub fn ranking_weight_at(@relation_evidence.RankingOptions, Int) -> Double?
+
+pub fn ranking_weight_count(@relation_evidence.RankingOptions) -> Int
 
 pub fn ranking_weights(@relation_evidence.RankingOptions) -> Array[Double]
 
