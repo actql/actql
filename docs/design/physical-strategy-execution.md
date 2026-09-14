@@ -42,7 +42,7 @@ the run ledger, before send/accept. Only confirmed native cleanup releases unuse
 transfer and DB-memory reservations; failure never refunds consumed transfer.
 Task configuration cannot substitute a fresh ledger for a running graph.
 
-MoonBit native receiver-scratch and acquisition-wide accounting must
+Acquisition-wide accounting must
 be connected before this is presented as
 the complete physical strategy Host. Checked topology validation alone is not
 validation of all runtime Stage obligations or a Program success issuer.
@@ -73,6 +73,16 @@ and execution reservations separately; it does not release provisional or comple
 result capacity. Successful completion transfers that reservation to an exact
 holding token without a second charge. Failure disposes provisional material and
 settles the remaining reservation only after native cleanup confirmation.
+
+The same immutable Compute configuration supplies a separate MoonBit working
+capacity: 256 bytes per permitted transport/physical batch node, cell, row or
+column and measurement/depth/completion entry, plus eight per permitted transport,
+physical text, measurement and completion-name byte. This bounds the selected
+decoding and checking representations; it is not measured allocator usage. It is
+added to DB/Node execution capacity before dispatch and remains reserved after
+native settlement because demand/output checks still run afterward. Final success
+or failed-buffer disposal settles that remainder. Partial settlement may only
+reduce a reservation, never increase it or erase pending post-DB responsibility.
 
 Task result ports carry additional revocable liveness without copying or
 re-admitting storage. Closing a port removes its output from the run but does not

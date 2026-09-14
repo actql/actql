@@ -1,4 +1,58 @@
 ///|
+test "native settlement preserves post-DB scratch and cannot enlarge or erase pending capacity" {
+  let ledger = @strategy.create_ledger({
+    planning_work: 10,
+    attempts: 3,
+    holdings: 2,
+    transfer_bytes: 100L,
+    retained_bytes: 100L,
+    execution_bytes: 100L,
+  }).unwrap()
+  let reservation = @strategy.reserve_attempt(ledger, 100L, 40L, 100L).unwrap()
+  @strategy.charge_transfer(ledger, reservation, 9L).unwrap()
+  @strategy.mark_cleanup_pending(ledger, reservation).unwrap()
+  let before = @strategy.ledger_usage(ledger)
+  for invalid in [-1L, 101L] {
+    assert_true(
+      @strategy.settle_execution_reservation(
+        ledger,
+        reservation,
+        remaining_execution=invalid,
+      )
+      is Err(InvalidCharge),
+    )
+    assert_eq(@strategy.ledger_usage(ledger), before)
+  }
+  @strategy.settle_execution_reservation(
+    ledger,
+    reservation,
+    remaining_execution=30L,
+  ).unwrap()
+  let pending = @strategy.ledger_usage(ledger)
+  assert_eq(pending.reserved_execution_bytes, 30L)
+  assert_eq(pending.reserved_retention_bytes, 40L)
+  assert_eq(pending.transferred_bytes, 9L)
+  assert_eq(pending.reserved_transfer_bytes, 0L)
+  assert_false(@strategy.reservation_pending(reservation))
+  assert_true(
+    @strategy.reserve_attempt(ledger, 0L, 0L, 71L) is Err(ExecutionLimit),
+  )
+  assert_true(
+    @strategy.settle_execution_reservation(
+      ledger,
+      reservation,
+      remaining_execution=31L,
+    )
+    is Err(InvalidCharge),
+  )
+  assert_eq(@strategy.ledger_usage(ledger), pending)
+  @strategy.settle_reservation(ledger, reservation).unwrap()
+  assert_eq(@strategy.ledger_usage(ledger).reserved_execution_bytes, 0L)
+  assert_eq(@strategy.ledger_usage(ledger).reserved_retention_bytes, 0L)
+  assert_eq(@strategy.ledger_usage(ledger).transferred_bytes, 9L)
+}
+
+///|
 test "native settlement keeps retention reserved until success or buffer disposal" {
   let ledger = @strategy.create_ledger({
     planning_work: 10,

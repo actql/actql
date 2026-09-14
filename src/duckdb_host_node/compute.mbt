@@ -6,6 +6,7 @@ struct ComputeNodeRun {
   physical : (@strategy.Ledger, @strategy.Reservation)?
   mut physical_settled : Bool
   retention_bytes : Int64
+  scratch_bytes : Int64
   mut closed : Bool
 }
 
@@ -15,6 +16,17 @@ pub fn compute_strategy_retention_capacity(
   setup : @host.StrategyComputeHostConfiguration,
 ) -> Int64 raise NodeHostFailure {
   guard @host.configured_strategy_retention_capacity(setup) is Some(bytes) else {
+    raise Physical(InvalidLimits)
+  }
+  bytes
+}
+
+///|
+#export_name("computeStrategyScratchCapacity")
+pub fn compute_strategy_scratch_capacity(
+  setup : @host.StrategyComputeHostConfiguration,
+) -> Int64 raise NodeHostFailure {
+  guard @host.configured_strategy_scratch_capacity(setup) is Some(bytes) else {
     raise Physical(InvalidLimits)
   }
   bytes
@@ -35,6 +47,7 @@ pub fn compute_host_open(
         physical: None,
         physical_settled: false,
         retention_bytes: 0L,
+        scratch_bytes: 0L,
         closed: false,
       }
     Err(issue) => raise Compute(issue)
@@ -55,6 +68,14 @@ pub fn compute_strategy_host_open(
     is Some(retention_bytes) else {
     raise Physical(InvalidLimits)
   }
+  guard @host.configured_strategy_scratch_capacity(setup) is Some(scratch_bytes) else {
+    raise Physical(InvalidLimits)
+  }
+  if execution_bytes < 0L ||
+    execution_bytes > 9223372036854775807L - scratch_bytes {
+    raise Physical(InvalidLimits)
+  }
+  let execution_bytes = execution_bytes + scratch_bytes
   if @strategy.strategy_task_envelope(graph, task) is Some(capacity) &&
     (
       transfer_bytes > capacity.transfer_bytes ||
@@ -79,6 +100,7 @@ pub fn compute_strategy_host_open(
         physical: Some((ledger, reservation)),
         physical_settled: false,
         retention_bytes,
+        scratch_bytes,
         closed: false,
       }
     Err(issue) => {
@@ -116,7 +138,11 @@ pub fn compute_host_physical_settle(
       if run.closed {
         @strategy.settle_reservation(ledger, reservation)
       } else {
-        @strategy.settle_execution_reservation(ledger, reservation)
+        @strategy.settle_execution_reservation(
+          ledger,
+          reservation,
+          remaining_execution=run.scratch_bytes,
+        )
       }
     } else {
       @strategy.mark_cleanup_pending(ledger, reservation)

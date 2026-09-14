@@ -507,8 +507,14 @@ successful output through the same DAG lifetime handling. Future-task estimates
 must cover these capacities; underestimated offers cannot enlarge their envelope
 at dispatch. No logical budget is reduced to make a reservation fit.
 
-This is not yet a complete Host physical-budget runner: MoonBit native receiver
-scratch and acquisition integration still need accounting. Internal task outputs do not authorize partial
+The product configuration also derives `physicalCapacity.receiverScratchBytes`
+for MoonBit transport decoding, admitted batches and final demand/output checks.
+`executionBytes` is the total DB, Node scratch and receiver scratch reservation.
+Native cleanup releases only the DB/Node portion; receiver scratch remains until
+success or failed-buffer disposal. A partial settlement cannot enlarge capacity.
+
+This is not yet a complete Host physical-budget runner: acquisition integration
+still needs accounting. Internal task outputs do not authorize partial
 publication of a failed Program.
 
 The broad Host invokes `complete_duckdb_broad_capture` only after actual source

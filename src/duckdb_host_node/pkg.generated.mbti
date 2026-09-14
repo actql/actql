@@ -68,6 +68,8 @@ pub fn compute_strategy_host_open(@duckdb_host.StrategyComputeHostConfiguration,
 
 pub fn compute_strategy_retention_capacity(@duckdb_host.StrategyComputeHostConfiguration) -> Int64 raise NodeHostFailure
 
+pub fn compute_strategy_scratch_capacity(@duckdb_host.StrategyComputeHostConfiguration) -> Int64 raise NodeHostFailure
+
 pub fn native_host_abort(NativeNodeRun) -> Unit
 
 pub fn native_host_accept(NativeNodeRun, Int, String) -> Unit raise NodeHostFailure

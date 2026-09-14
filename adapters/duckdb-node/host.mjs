@@ -30,6 +30,7 @@ async function runHostCompute(setup, limits, importLimits, signal, strategy) {
   const capacity = strategy ? Object.freeze({
     ...computePhysicalCapacity(limits),
     retentionBytes: checked(moon.computeStrategyRetentionCapacity(setup)),
+    receiverScratchBytes: checked(moon.computeStrategyScratchCapacity(setup)),
   }) : undefined;
   let result, port, consume, attempt;
   const verify = current => current === attempt && matchesFixedCompute(result, port, consume);
@@ -72,7 +73,9 @@ async function runHostCompute(setup, limits, importLimits, signal, strategy) {
     let closed = false;
     return Object.freeze({
       usage: result.usage,
-      physicalCapacity: capacity,
+      physicalCapacity: capacity === undefined ? undefined : Object.freeze({
+        ...capacity, executionBytes: capacity.executionBytes + capacity.receiverScratchBytes,
+      }),
       importedRows: result.value.importedRows,
       importedCells: result.value.importedCells,
       output() {

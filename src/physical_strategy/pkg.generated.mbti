@@ -82,7 +82,7 @@ pub fn retain_captured_task_allocation(CapturedDAG, Int, Holding) -> Result[Unit
 
 pub fn revise_strategy(CapturedDAG, Array[TaskOffer], @query_planning.CapabilityRegistry, Array[Int]?) -> Result[StrategyDecision, SearchIssue]
 
-pub fn settle_execution_reservation(Ledger, Reservation) -> Result[Unit, LedgerIssue]
+pub fn settle_execution_reservation(Ledger, Reservation, remaining_execution? : Int64) -> Result[Unit, LedgerIssue]
 
 pub fn settle_reservation(Ledger, Reservation) -> Result[Unit, LedgerIssue]
 

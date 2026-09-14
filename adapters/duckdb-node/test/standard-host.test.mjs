@@ -153,6 +153,32 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
     try { await connection.run('DELETE FROM records'); await connection.run(sql); }
     finally { connection.closeSync(); db.closeSync(); }
   }
+  // Inspect the product bridge's reservation phases without issuing execution
+  // evidence: no native task is run, and its deliberately absent result fails.
+  const phaseFixture = fixture.strategyFixtureCreate(...args, program);
+  const phaseCapture = await runNativeHostQuery(grant, fixture.strategyFixtureAcquisition(phaseFixture), suppliedLimits);
+  const bridge = await import(pathToFileURL(join(root, '_build/js/release/build/duckdb_host_node/duckdb_host_node.js')));
+  let phaseRun;
+  const accepted = result => { assert.equal(result.$tag, 1); return result._0; };
+  try {
+    assert.equal(fixture.strategyFixtureOpen(phaseFixture, phaseCapture.source()), true);
+    const setup = fixture.strategyFixtureCompute(phaseFixture, 1);
+    assert.equal(accepted(bridge.computeStrategyScratchCapacity(setup)), 11708160n);
+    phaseRun = accepted(bridge.computeStrategyHostOpen(setup, () => false, 100000n, 134217728n));
+    assert.equal(fixture.strategyFixtureUsage(phaseFixture, 2), 145925888n);
+    accepted(bridge.computeHostPhysicalSettle(phaseRun, true));
+    assert.equal(fixture.strategyFixtureUsage(phaseFixture, 2), 11708160n);
+    assert.equal(fixture.strategyFixtureUsage(phaseFixture, 5), 2771200n);
+    assert.equal(bridge.computeHostComplete(phaseRun).$tag, 0);
+    bridge.computeHostAbort(phaseRun);
+    bridge.computeHostClose(phaseRun);
+    assert.equal(fixture.strategyFixtureUsage(phaseFixture, 2), 0n);
+    assert.equal(fixture.strategyFixtureUsage(phaseFixture, 5), 0n);
+    assert.equal(fixture.strategyFixtureUsage(phaseFixture, 4), 0n);
+  } finally {
+    if (phaseRun) { bridge.computeHostAbort(phaseRun); bridge.computeHostClose(phaseRun); }
+    phaseCapture.close();
+  }
   for (const layout of [[true, true, true], [true, false, true], [false, true, false]]) {
     await replaceRows('INSERT INTO records VALUES (3,30),(1,NULL),(2,20),(3,30)');
     const f = fixture.strategyFixtureCreate(...args, program);
@@ -193,6 +219,9 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
           held.push([task, completed]);
           retained += 2771200n;
           assert.equal(completed.physicalCapacity.retentionBytes, 2771200n);
+          assert.equal(completed.physicalCapacity.receiverScratchBytes, 11708160n);
+          assert.equal(completed.physicalCapacity.executionBytes,
+            completed.physicalCapacity.databaseBytes + completed.physicalCapacity.scratchBytes + 11708160n);
           assert.equal(fixture.strategyFixtureUsage(f, 4), retained);
           assert.equal(fixture.strategyFixtureUsage(f, 5), 0n);
           // Each task really imports into a fresh DB, including DuckDB A -> C.

@@ -63,6 +63,8 @@ pub fn configured_strategy_compute_transport(StrategyComputeHostConfiguration) -
 
 pub fn configured_strategy_retention_capacity(StrategyComputeHostConfiguration) -> Int64?
 
+pub fn configured_strategy_scratch_capacity(StrategyComputeHostConfiguration) -> Int64?
+
 pub fn finish_broad_host_receipt(BroadHostRun) -> Result[Unit, BroadHostIssue]
 
 pub fn finish_native_host_receipt(NativeHostRun) -> Result[Unit, NativeHostIssue]

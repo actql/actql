@@ -264,20 +264,25 @@ pub fn reservation_pending(reservation : Reservation) -> Bool {
 pub fn settle_execution_reservation(
   ledger : Ledger,
   reservation : Reservation,
+  remaining_execution? : Int64 = 0L,
 ) -> Result[Unit, LedgerIssue] {
   match reservation_check(ledger, reservation) {
     Err(issue) => return Err(issue)
     Ok(_) => ()
+  }
+  if remaining_execution < 0L || remaining_execution > reservation.execution {
+    return Err(InvalidCharge)
   }
   ledger.usage = {
     ..ledger.usage,
     reserved_transfer_bytes: ledger.usage.reserved_transfer_bytes -
     reservation.transfer,
     reserved_execution_bytes: ledger.usage.reserved_execution_bytes -
-    reservation.execution,
+    reservation.execution +
+    remaining_execution,
   }
   reservation.transfer = 0L
-  reservation.execution = 0L
+  reservation.execution = remaining_execution
   reservation.cleanup_pending = false
   Ok(())
 }
