@@ -22,6 +22,7 @@ struct StrategyHostDispatch {
   generated : Array[@execution.GeneratedSequence]
   limits : TaskDispatchLimits
   mut pending : TaskDispatch?
+  mut estimates : DispatchEstimates?
 }
 
 ///|
@@ -51,6 +52,8 @@ pub(all) enum DispatchIssue {
   StaleTask
   Run(@strategy.RunIssue)
   Candidate(@planning.FixedComputeIssue)
+  Search(@strategy.SearchIssue)
+  EstimateOverflow
 }
 
 ///|
@@ -88,6 +91,7 @@ pub fn configure_strategy_dispatch(
     generated: generated.copy(),
     limits,
     pending: None,
+    estimates: None,
   })
 }
 
@@ -107,6 +111,10 @@ pub fn prepare_next_dispatch(
   host.pending = None
   guard @strategy.next_captured_task(host.run) is Some(task) else {
     return Ok(None)
+  }
+  match refresh_dispatch_estimates(host) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
   }
   guard @strategy.captured_dag_strategy(host.run) is Some(revision) else {
     return Err(NoStrategy)

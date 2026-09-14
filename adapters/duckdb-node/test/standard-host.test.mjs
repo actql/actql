@@ -203,6 +203,34 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
       assert.throws(() => execution.output(3), { code: 'ReleasedStrategy' });
     } finally { execution?.close(); capture.close(); }
   }
+  // Product dispatch automatically refreshes unstarted choices after actual
+  // completion. A's observed two rows replace its three-row forecast for C.
+  {
+    const f = fixture.strategyFixtureAccounted(fixture.strategyFixtureCreate(...args, program));
+    const capture = await runStrategyNativeHostQuery(grant, fixture.strategyFixtureAcquisition(f),
+      fixture.strategyFixtureLedger(f), suppliedLimits);
+    let execution;
+    try {
+      assert.equal(fixture.strategyFixtureAttach(f, capture.openDAG(fixture.strategyFixtureGraph(f))), true);
+      const setup = fixture.strategyFixtureAdaptiveDispatch(f);
+      assert.equal(fixture.strategyFixtureHistoryPlacement(f, 0), 'LDD');
+      execution = await runCapturedStrategy(setup, suppliedLimits, { maxRows: 100, maxCells: 1000 });
+      assert.equal(execution.status, 'host-tasks-completed', String(execution.failure));
+      assert.deepEqual(execution.completed.map(item => item.realization), ['local', 'duckdb', 'local']);
+      assert.equal(fixture.strategyFixtureHistoryPlacement(f, 1), 'LDL');
+      assert.equal(fixture.strategyFixtureHistoryPlacement(f, 2), 'LDL');
+      assert.equal(fixture.strategyFixtureCid(f, 3), hash([{ id: 3 }, { id: 3 }]));
+      const spent = BigInt(capture.usage.transportBytes) + execution.completed.reduce(
+        (sum, item) => sum + BigInt(item.transport?.transportBytes ?? 0), 0n);
+      assert.equal(execution.usage().transferredBytes, spent);
+      assert.equal(execution.explain().selection.remaining_at_selection.estimated_milliseconds, '4');
+      capture.close();
+      assert.equal(fixture.strategyFixtureCid(f, 3), hash([{ id: 3 }, { id: 3 }]));
+      execution.close();
+      assert.equal(execution.usage().heldBytes, 0n);
+      assert.equal(execution.usage().transferredBytes, spent);
+    } finally { execution?.close(); capture.close(); }
+  }
   const smallFixture = fixture.strategyFixtureCreate(...args, program);
   for (const selected of [false, true]) {
     const f = fixture.strategyFixtureAccounted(fixture.strategyFixtureCreate(...args, program));

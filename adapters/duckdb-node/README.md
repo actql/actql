@@ -508,8 +508,29 @@ error/cleanup handle, `usage()` reads the same cumulative ledger, and `output(ta
 is an internal Host handle for a still-retained completed result. Call `close()`
 to close task output ports; close the owned capture separately. A failure never
 authorizes continuing an unstarted branch or publishing partial Program success.
-This entry consumes a selected strategy and does not yet perform automatic
-statistical re-estimation. `explain(maxBytes = 65536, maxNodes = 10000)` returns a
+For automatic bounded re-estimation, call MoonBit
+`configure_dispatch_estimates(setup, profiles, searchLimits)` before any search.
+Supply one `DispatchEstimateProfile` per Compute in checked task order. Its
+Local/native rate lines cover the work inventory below, with optional fixed,
+per-input-row and per-canonical-wire-byte millisecond coefficients. For example,
+a Local bundle `{ work_slots: [0,1,2,3,4], fixed_ms: Some(1L),
+per_row_ms: Some(2L), per_wire_byte_ms: Some(0L) }` estimates `1 + 2 * rows`;
+it is a supplied model, not a measured performance claim. Native capacities are
+explicit enforceable envelopes; Local capacities derive from execution limits.
+Neither is inferred from estimated selectivity.
+
+The installed policy copies all rate arrays. `output_rows_per_mille: Some(1000)`
+forecasts no filtering until an actual completed row count replaces it; `None`
+keeps that forecast unknown. Root row/wire counts reuse capture measurements.
+Non-root wire size is unknown, and a nonzero wire coefficient therefore makes
+that estimate unknown. A missing coefficient is also unknown, not zero. This
+automatic policy defers rather than inventing an unknown-candidate priority.
+Manual selection with explicit Host ordering remains available without installing
+this policy. Dispatch refreshes only changed, unstarted state, with bounded
+planning work and revision count. On refresh failure it does not use a stale
+selection or repeat the same failed search on subsequent calls.
+
+`explain(maxBytes = 65536, maxNodes = 10000)` returns a
 bounded diagnostic object containing selection reason, selected task work bundles,
 alternative capacity rejections, current ledger and ledger-at-selection. Duration
 and byte quantities use decimal strings; unknown durations are null. The

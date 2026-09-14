@@ -163,6 +163,8 @@ pub fn strategy_fixture_accounted(StrategyFixture) -> StrategyFixture
 
 pub fn strategy_fixture_acquisition(StrategyFixture) -> @duckdb_host.NativeHostConfiguration
 
+pub fn strategy_fixture_adaptive_dispatch(StrategyFixture) -> @duckdb_host.StrategyHostDispatch
+
 pub fn strategy_fixture_attach(StrategyFixture, @physical_strategy.CapturedDAG) -> Bool
 
 pub fn strategy_fixture_can_bind(StrategyFixture, Int) -> Bool
@@ -180,6 +182,8 @@ pub fn strategy_fixture_dispatch(StrategyFixture) -> @duckdb_host.StrategyHostDi
 pub fn strategy_fixture_estimate(StrategyFixture) -> Int64
 
 pub fn strategy_fixture_graph(StrategyFixture) -> @physical_strategy.CheckedDAG
+
+pub fn strategy_fixture_history_placement(StrategyFixture, Int) -> String
 
 pub fn strategy_fixture_ledger(StrategyFixture) -> @physical_strategy.Ledger
 

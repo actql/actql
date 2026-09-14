@@ -45,6 +45,8 @@ pub fn configure_broad_host(@query_planning.QueryEvidenceContracts, @query_plann
 
 pub fn configure_compute_host(@query_planning.FixedComputeChoice, @query_planning.PreparedCompute[@duckdb_adapter.FixedCompute], @execution_relation.GeneratedSequence, @query_planning.DuckDBComputeLimits, @duckdb_adapter.TransportColumnLimits) -> ComputeHostConfiguration
 
+pub fn configure_dispatch_estimates(StrategyHostDispatch, Array[DispatchEstimateProfile], @physical_strategy.SearchLimits) -> Result[Unit, DispatchIssue]
+
 pub fn configure_native_host(@query_planning.QueryTwoReceiptContract, @query_planning.QueryRequirement, @query_planning.AcquisitionChoice, @query_planning.PreparedAcquisition[@query_planning.DuckDBNativePreparation], NativeHostLimits) -> NativeHostConfiguration
 
 pub fn configure_strategy_compute_host(@physical_strategy.CapturedDAG, Int, ComputeHostConfiguration) -> StrategyComputeHostConfiguration
@@ -91,6 +93,8 @@ pub fn native_host_scan(NativeHostRun) -> @duckdb_adapter.NativeScan
 
 pub fn prepare_next_dispatch(StrategyHostDispatch) -> Result[TaskDispatch?, DispatchIssue]
 
+pub fn refresh_dispatch_estimates(StrategyHostDispatch) -> Result[Unit, DispatchIssue]
+
 pub fn start_configured_broad_host(BroadHostConfiguration, String, (@query_planning.DuckDBBroadAttempt) -> Bool) -> Result[BroadHostRun, BroadHostIssue]
 
 pub fn start_configured_compute_host(ComputeHostConfiguration, (@query_planning.DuckDBComputeAttempt) -> Bool) -> Result[@query_planning.DuckDBComputeAttempt, @query_planning.DuckDBComputeIssue]
@@ -130,6 +134,13 @@ type BroadHostRun
 
 type ComputeHostConfiguration
 
+pub(all) struct DispatchEstimateProfile {
+  local_rates : Array[DispatchRate]
+  native_rates : Array[DispatchRate]
+  native_capacity : @physical_strategy.PhysicalEnvelope
+  output_rows_per_mille : Int?
+}
+
 pub(all) enum DispatchIssue {
   InvalidConfiguration
   NoStrategy
@@ -138,6 +149,15 @@ pub(all) enum DispatchIssue {
   StaleTask
   Run(@physical_strategy.RunIssue)
   Candidate(@query_planning.FixedComputeIssue)
+  Search(@physical_strategy.SearchIssue)
+  EstimateOverflow
+}
+
+pub(all) struct DispatchRate {
+  work_slots : Array[Int]
+  fixed_ms : Int64?
+  per_row_ms : Int64?
+  per_wire_byte_ms : Int64?
 }
 
 pub struct NativeCapacity {

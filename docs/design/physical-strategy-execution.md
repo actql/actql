@@ -267,6 +267,27 @@ remain on the same ledger across revisions. Compare remaining additional cost
 against the same state, not one plan's original total against another's remainder.
 Bound revisions and search work; unchanged state does not trigger repeated search.
 
+The standard dispatch can install a bounded declarative estimate profile before
+its first search. Rates cover the five Local or eight DuckDB work slots, using
+explicit fixed, per-input-row and per-canonical-wire-byte time coefficients.
+These are Host-supplied estimates, not calibrated performance guarantees. Capture
+row count and canonical wire size come from existing retained measurements;
+completed task row counts replace forecasts without re-admission or a new scan.
+For uncompleted filter/select outputs, an explicit per-mille row estimate may be
+used. Non-root output wire sizes remain unknown, not inferred from row ratios.
+Missing coefficients or required quantities keep the total unknown. This policy
+defers on unknown totals; explicit preference remains available through the
+separate manual search API.
+
+Estimate profiles and their nested work-slot arrays are copied at installation.
+Local reservation envelopes are derived from selected execution limits; native
+envelopes are explicit Host capacities and still checked against actual start
+requirements. Neither is reduced by the forecast. Dispatch refreshes before
+preparing the next ready task, preserving completed placements and the same
+resource ledger. An unchanged state does not repeat search, and a failed refresh
+cannot fall through to an older selection on a later call. Future offers remain
+conditional: exact candidate applicability is checked when its input is ready.
+
 Node executes trusted adapter operations. Checked graph validation, identity,
 meaning, candidate compatibility and logical enforcement remain in MoonBit.
 Execution reports distinguish task records, original failure, cleanup failures,
