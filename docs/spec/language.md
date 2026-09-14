@@ -8159,6 +8159,27 @@ conversion does not add, remove or waive an authored guard. The two limits remai
 outside Unit Definition identity. Equal ordinals or maxima do not make different
 Units or measurement scopes interchangeable.
 
+<!-- requirement-block: resolved-limits.unit-traversal-subject resolved-limits.unit-traversal-candidates -->
+A traverse operation's persistent resolved limits MUST use
+`unit:<unit_definition_cid>#/steps/<ordinal>/traverse/paths` for quantity
+`paths`, and the same prefix ending in `/traverse/output` for quantity `rows`.
+These identify the authored operation in its producer Unit, not a consumer's
+import occurrence. Path-exploration capacity and emitted-row capacity are
+independent engine-atomic requirements. Exploration must enforce its selected
+path limit during traversal; the atomic output gate does not defer it until
+after producing rows. Neither limit proves completed admission, membership or
+traversal. Node emission and an empty selection do not waive selected limits.
+
+Conversion MUST preserve every admitted candidate occurrence, law, quantity,
+value, prerequisite, effective minimum, author-guard status and selected policy.
+Program candidates and their dependency graphs use the Unit operation proof
+references above; imported dependencies keep their producer Unit. Unchanged Host
+witnesses keep their CIDs. Sort converted candidate occurrences by their new
+witness CIDs without deduplication and rebuild both resolved-limit CIDs from
+their complete canonical bodies without self CIDs. Conversion does not add or
+waive an authored guard. Both limits remain outside Unit Definition identity;
+equal ordinals or maxima do not make different Units or scopes interchangeable.
+
 <!-- requirement-block: resolved-limits.unit-sequence-subject resolved-limits.unit-sequence-correspondence -->
 A sequence's persistent resolved limits MUST use
 `unit:<unit_definition_cid>#/steps/<ordinal>/sequence/matches-per-key` for

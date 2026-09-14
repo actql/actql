@@ -1,5 +1,6 @@
 ///|
 struct CheckedProgram {
+  traversal_limits : Array[Array[TraversalLimit]]
   components_limits : Array[Array[ComponentsLimit]]
   sequence_limits : Array[Array[SequenceLimit]]
   interval_search_limits : Array[Array[IntervalSearchLimit]]
@@ -101,6 +102,7 @@ fn check_supported_source(
               | "match_nodes"
               | "match_edges"
               | "subgraph"
+              | "traverse"
               | "node_rows"
               | "edge_rows"
               | "values" => ()
@@ -190,6 +192,11 @@ pub fn check(
   ) catch {
     error => raise Units(error)
   }
+  let traversal_limits = prepare_program_traversal_limits(
+    units, requirements, budget,
+  ) catch {
+    error => raise Units(error)
+  }
   let interval_search_limits = prepare_program_interval_search_limits(
     units, requirements, budget,
   ) catch {
@@ -226,6 +233,7 @@ pub fn check(
     error => raise Units(error)
   }
   {
+    traversal_limits,
     components_limits,
     sequence_limits,
     interval_search_limits,

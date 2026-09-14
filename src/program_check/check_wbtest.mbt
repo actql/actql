@@ -151,7 +151,8 @@ test "check rejects unsupported or malformed later steps without a partial resul
       ("[{\"sequence\":{}}]", true),
       ("[{\"normalize_graph\":{}}]", true),
       ("[{\"subgraph\":{}}]", true),
-      ("[{\"traverse\":{}}]", false),
+      ("[{\"traverse\":{}}]", true),
+      ("[{\"reach\":{}}]", false),
       ("[null]", false),
     ] {
     let budget = IdentityBudget::{

@@ -280,6 +280,16 @@ pub fn source_execution_subject(SourceExecution) -> SourceExecutionSubject
 
 pub fn source_identity(CheckedProgram) -> @pipeline_check_context.ProgramSourceIdentity
 
+pub fn traversal_limit_claim(TraversalLimit, @capacity_program_step.TraversalScope) -> @capacity_witness.LimitClaim
+
+pub fn traversal_limit_proof_at(TraversalLimit, Int) -> ReidentifiedStep?
+
+pub fn traversal_limit_proof_count(TraversalLimit) -> Int
+
+pub fn traversal_limit_selection(TraversalLimit) -> @pipeline_check_context.TraversalLimitsCheck
+
+pub fn traversal_limit_source(TraversalLimit) -> UnitOperationSource
+
 pub fn unit_analytic_aggregate_source_at(CheckedProgram, Int, Int, Int) -> AnalyticAggregateSource?
 
 pub fn unit_analytic_array_limit(CheckedProgram, Int, Int, Int, max_work~ : Int, max_bytes~ : Int, max_nodes~ : Int, max_depth~ : Int) -> AnalyticLimit raise UnitBuildFailure
@@ -365,6 +375,10 @@ pub fn unit_result_import_count(CheckedProgram, Int) -> Int?
 pub fn unit_sequence_limit_at(CheckedProgram, Int, Int) -> SequenceLimit?
 
 pub fn unit_sequence_limit_count(CheckedProgram, Int) -> Int?
+
+pub fn unit_traversal_limit_at(CheckedProgram, Int, Int) -> TraversalLimit?
+
+pub fn unit_traversal_limit_count(CheckedProgram, Int) -> Int?
 
 pub fn unit_window_input_proof(CheckedProgram, Int, Int, Int, max_work~ : Int, max_bytes~ : Int, max_nodes~ : Int, max_depth~ : Int) -> WindowInputProof raise UnitBuildFailure
 
@@ -694,6 +708,8 @@ pub struct SourceResponsePolicy {
   minimum : String?
   classification : @check_environment.DataClassification
 }
+
+type TraversalLimit
 
 pub struct UnitCompletenessRequirement {
   unit_definition_cid : String

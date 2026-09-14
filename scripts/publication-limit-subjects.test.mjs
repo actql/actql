@@ -3,6 +3,7 @@ import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import {componentLimitModel} from './components-limit-model.mjs';
+import {traversalLimitModel} from './traversal-limit-model.mjs';
 
 const read = (path) => JSON.parse(readFileSync(new URL(path, import.meta.url), 'utf8'));
 const vectors = read('../portability/corpus/publication-limit-subjects.json');
@@ -16,6 +17,25 @@ function canonical(value) {
   return value;
 }
 const cid = (value) => `sha256:${createHash('sha256').update(JSON.stringify(canonical(value))).digest('hex')}`;
+
+test('traversal limits retain independent scopes and producer Unit namespaces', () => {
+  for (const v of read('../portability/corpus/traversal-limit-subjects.json').cases) {
+    const policy = Object.fromEntries(policyContract.schema.required.filter(k=>k!=='version').map(k=>[k,1000]));
+    Object.assign(policy,{version:'actql-capacity-host-policy/0.1',max_graph_construction_input_rows:1000,
+      max_graph_construction_nodes:1000,max_graph_construction_edges:1000,max_graph_output_rows:v.cap});
+    const {limits,...actual}=traversalLimitModel(policy,v.unit);
+    const {unit,cap,...expected}=v;
+    assert.deepEqual(actual,expected);
+    assert.notEqual(actual.limit_cids[0],actual.limit_cids[1]);
+    const foreign=traversalLimitModel(policy,'sha256:'+'2'.repeat(64));
+    assert.deepEqual(foreign.host_cids,actual.host_cids);
+    assert.notDeepEqual(foreign.limit_cids,actual.limit_cids);
+    const repeated=traversalLimitModel(policy,unit,true);
+    assert.deepEqual(repeated.limits.map(l=>l.effective_max),limits.map(l=>l.effective_max));
+    assert.notDeepEqual(repeated.limit_cids,actual.limit_cids);
+    assert.notEqual(cid({...limits[0],subject_ref:'traverse:checked-step:3:paths'}),actual.limit_cids[0]);
+  }
+});
 
 test('components limits rebuild Unit candidates while retaining Host identity and repetitions', () => {
   const corpus = read('../portability/corpus/components-limit-subjects.json');

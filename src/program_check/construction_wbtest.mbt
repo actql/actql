@@ -42,6 +42,7 @@ fn local_construction_fixture(
   sga? : Bool = false,
   graph_construction_limit? : Int? = None,
   components_capacity_rows? : Int? = None,
+  traversal_capacity? : Bool = false,
   graph_output_limit? : Int? = None,
   graph_input_limit? : Int? = None,
   calendar? : Bool = false,
@@ -344,12 +345,27 @@ fn local_construction_fixture(
       _ => abort("invalid components test material")
     }
   })
+  let traversal_sources = if traversal_capacity {
+    Some(
+      local_traversal_capacity_fixture(environment) catch {
+        _ => abort("invalid traversal test material")
+      },
+    )
+  } else {
+    None
+  }
   let materials = Array::makei(stage_count, stage => {
     // Known fixture topology: first has one visit; second imports first twice
     // plus its own pipeline. Do not pre-check the Program to construct inputs
     // to the entry being tested, which would hide its rejection behavior.
     Array::makei(if stage == 1 { 3 } else { 1 }, visit => {
       if (stage == 0 || (stage == 1 && visit > 0)) &&
+        traversal_sources is Some(sources) {
+        @context.CapacityMaterial::{
+          sources,
+          consumers: [@capacity.Traversal(step=3, paths=0, output=1)],
+        }
+      } else if (stage == 0 || (stage == 1 && visit > 0)) &&
         components_sources is Some(sources) {
         @context.CapacityMaterial::{
           sources,

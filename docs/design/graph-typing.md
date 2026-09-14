@@ -266,6 +266,21 @@ capacity applications remain unresolved; neither node emission nor an empty
 selection exempts traversal from its selected search limit. Authored-guard
 support remains the capacity resolver's responsibility, not a lowerer inference.
 
+`CheckedProgram` retains one `TraversalLimit` per local traversal operation, with
+count/index readers for the producer Unit. Imported visits consume that producer's
+retained limit rather than minting a consumer copy. Persistent claims use the
+normative `/traverse/paths` and `/traverse/output` Unit-operation subscopes. These
+names fix the previously unspecified persistent representation, following the
+existing components scope distinction without changing authored traversal syntax.
+The generic resolved-limit wire schema is unchanged.
+
+Conversion shares the operation-capacity candidate conversion mechanics with
+components, while each operation supplies its own validated scope mapping.
+Program proof graphs are rebuilt, unchanged Host witness identities survive,
+and repeated candidate occurrences remain distinct. The selected maximum is
+preserved, not inferred again. The formal constructor runs this conversion under
+its shared budget; a later failure cannot return a partially built CheckedProgram.
+
 The mode and empty-filter rules are now explicit in Language and the machine
 schema. Unlike the pinned reference decoder, no max_paths source option or
 default output ceiling is admitted. A present edge-type filter requires semantic
