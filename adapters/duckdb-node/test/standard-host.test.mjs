@@ -541,6 +541,26 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
   }
   await replaceRows('INSERT INTO records VALUES (3,30),(1,NULL),(2,20),(3,30)');
   const cancelledFixture = fixture.strategyFixtureCreate(...args, program);
+  {
+    const f = fixture.strategyFixtureCreate(...args, program);
+    const capture = await runNativeHostQuery(grant, fixture.strategyFixtureAcquisition(f), suppliedLimits);
+    let environment;
+    try {
+      assert.equal(fixture.strategyFixtureOpen(f, capture.source()), true);
+      const dispatch = fixture.strategyFixtureResidentDispatch(f);
+      checked(hostRuntime.strategyHostNext(dispatch));
+      environment = await openResidentStrategyEnvironment(fixture.strategyFixtureRun(f), 1, suppliedLimits);
+      await assert.rejects(importResidentStrategyInput(environment, 0, 4000000n,
+        { ...suppliedLimits, maxTransportBytes: 20 }, { maxEntries: 1000, maxNameBytes: 10000 }));
+      assert.equal(fixture.strategyFixtureNext(f), -1, 'failed import stops the common DAG even without its driver');
+      assert.equal(environment.hasTable(0), false);
+      assert.equal(fixture.strategyFixtureCid(f, 1), 'null');
+      assert.equal(fixture.strategyFixtureUsage(f, 2), BigInt(suppliedLimits.memoryBytes));
+      await environment.close();
+      assert.equal(fixture.strategyFixtureUsage(f, 2), 0n);
+      assert.equal(fixture.strategyFixtureNext(f), -1, 'cleanup does not authorize fallback');
+    } finally { if (environment) await environment.close(); capture.close(); }
+  }
   for (const failure of ['received-row-limit', 'cancelled']) {
     const f = fixture.strategyFixtureCreate(...args, program);
     const capture = await runNativeHostQuery(grant, fixture.strategyFixtureAcquisition(f), suppliedLimits);

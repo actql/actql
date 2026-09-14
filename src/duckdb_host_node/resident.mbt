@@ -189,6 +189,18 @@ pub fn resident_transfer_complete(
 }
 
 ///|
+#export_name("residentTransferAbort")
+pub fn resident_transfer_abort(
+  run : @strategy.CapturedDAG,
+  transfer : @strategy.ResidentTransfer,
+) -> Unit raise NodeHostFailure {
+  match @strategy.abort_resident_transfer(run, transfer) {
+    Ok(_) => ()
+    Err(issue) => raise Strategy(issue)
+  }
+}
+
+///|
 #export_name("residentImportSql")
 pub fn resident_import_sql(
   table : @strategy.ResidentTable,

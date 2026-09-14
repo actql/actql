@@ -15,6 +15,8 @@ import {
 }
 
 // Values
+pub fn abort_resident_transfer(CapturedDAG, ResidentTransfer) -> Result[Unit, RunIssue]
+
 pub fn begin_resident_environment(CapturedDAG, Int, Int64) -> Result[ResidentEnvironment, RunIssue]
 
 pub fn begin_resident_transfer(CapturedDAG, ResidentTable, Int64, Int64) -> Result[ResidentTransfer, RunIssue]

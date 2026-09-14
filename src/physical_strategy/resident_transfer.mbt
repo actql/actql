@@ -140,3 +140,18 @@ pub fn complete_resident_transfer(
     }
   }
 }
+
+///|
+/// Failure revokes new computation, but does not acknowledge native cleanup or
+/// refund the transfer reservation. Completed imports cannot be retroactively
+/// turned into failed attempts by this operation.
+pub fn abort_resident_transfer(
+  run : CapturedDAG,
+  transfer : ResidentTransfer,
+) -> Result[Unit, RunIssue] {
+  if !owns_resident_table(run, transfer.table) || transfer.completed {
+    return Err(ForeignCandidate)
+  }
+  stop_captured_dag(run)
+  Ok(())
+}

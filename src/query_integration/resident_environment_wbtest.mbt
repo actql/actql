@@ -125,6 +125,9 @@ test "resident provision freezes dispatch and search until binding or close" {
   @strategy.settle_resident_transfer(run, transfer, true).unwrap()
   @strategy.complete_resident_transfer(run, transfer).unwrap()
   assert_true(
+    @strategy.abort_resident_transfer(run, transfer) is Err(ForeignCandidate),
+  )
+  assert_true(
     @strategy.begin_resident_transfer(run, table, 20L, 100L)
     is Err(ForeignCandidate),
   )
@@ -184,4 +187,68 @@ test "resident provision freezes dispatch and search until binding or close" {
     @strategy.revise_strategy(run, offers, registry, None) is Err(Stopped),
   )
   assert_eq(@strategy.ledger_usage(ledger).transferred_bytes, 12L)
+}
+
+///|
+test "aborted resident import cannot publish after cleanup or reopen dispatch" {
+  let (run, _) = captured_graph_fixture()
+  let registry = search_registry()
+  @strategy.configure_strategy_search(run, {
+    max_offers: 3,
+    max_strategies: 1,
+    max_work: 1000,
+    max_revisions: 2,
+  }).unwrap()
+  let profile = @strategy.prepare_resident_profile(
+    run,
+    1000L,
+    Some(0L),
+    Some(0L),
+    Array::make(4, @strategy.ResidentImportEstimate::{
+      milliseconds: Some(0L),
+      transfer_bytes: 20L,
+      scratch_bytes: 100L,
+      table_bytes: 80L,
+    }),
+  ).unwrap()
+  let offers = []
+  for task in 1..<4 {
+    let offer = @strategy.prepare_task_offer(
+      run,
+      task,
+      @planning.capability_registration_at(registry, 1).unwrap(),
+      1,
+      [{ work_slots: [0], milliseconds: Some(1L), }],
+      { transfer_bytes: 100L, retained_bytes: 100L, execution_bytes: 2000L, },
+      100,
+    ).unwrap()
+    offers.push(@strategy.resident_task_offer(run, offer, profile).unwrap())
+  }
+  assert_true(
+    @strategy.revise_strategy(run, offers, registry, None).unwrap()
+    is Selected(_),
+  )
+  let env = @strategy.begin_resident_environment(run, 1, 1000L).unwrap()
+  @strategy.confirm_resident_environment(run, env, 1000L).unwrap()
+  let table = @strategy.prepare_resident_table(
+    run, env, 0, 80L, 1000, 10000, 10000,
+  ).unwrap()
+  let transfer = @strategy.begin_resident_transfer(run, table, 20L, 100L).unwrap()
+  @strategy.charge_resident_transfer(run, transfer, 12L).unwrap()
+  @strategy.abort_resident_transfer(run, transfer).unwrap()
+  let ledger = @strategy.captured_dag_ledger(run)
+  assert_eq(@strategy.ledger_usage(ledger).reserved_execution_bytes, 1100L)
+  assert_true(
+    @strategy.revise_strategy(run, offers, registry, None) is Err(Stopped),
+  )
+  @strategy.settle_resident_transfer(run, transfer, true).unwrap()
+  assert_true(
+    @strategy.complete_resident_transfer(run, transfer) is Err(Stopped),
+  )
+  assert_eq(@strategy.ledger_usage(ledger).reserved_execution_bytes, 1000L)
+  @strategy.close_resident_environment(run, env).unwrap()
+  @strategy.settle_resident_environment(run, env).unwrap()
+  assert_eq(@strategy.ledger_usage(ledger).reserved_execution_bytes, 0L)
+  assert_eq(@strategy.ledger_usage(ledger).transferred_bytes, 12L)
+  assert_eq(@strategy.next_captured_task(run), None)
 }

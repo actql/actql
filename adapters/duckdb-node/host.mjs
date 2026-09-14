@@ -109,6 +109,7 @@ export async function importResidentStrategyInput(environment, producer, tableBy
     checked(moon.residentTransferComplete(owned.graph, transfer));
     return Object.freeze({ table, importedRows: count, importedCells: count * columns, usage: result.usage });
   } catch (error) {
+    checked(moon.residentTransferAbort(owned.graph, transfer));
     if (!started) checked(moon.residentTransferSettle(owned.graph, transfer, true));
     throw error;
   }
