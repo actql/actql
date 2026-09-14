@@ -250,6 +250,27 @@ pub fn emit_publication_source_policy(
 }
 
 ///|
+// Field leaves inherit the retained input provenance. Other leaves lack an
+// admitted value-policy attestation. Scan every node even after finding one so
+// preparation work does not depend on the position of the first unknown leaf.
+fn publication_expression_unknown(
+  expression : @typing.TypedExpression,
+  budget : IdentityBudget,
+) -> Bool raise UnitBuildFailure {
+  let mut missing = false
+  for node in 0..<@typing.node_count(expression) {
+    identity_charge(budget, 1)
+    if @typing.child_count(expression, node) == Some(0) {
+      match @typing.node_form(expression, node).unwrap() {
+        Expression("field" | "join_field", _) => ()
+        _ => missing = true
+      }
+    }
+  }
+  missing
+}
+
+///|
 // Visit checked vertices once; retain all input edges without expanding paths.
 fn prepare_publication_source_policy(
   unit : BuiltUnit,
@@ -324,14 +345,8 @@ fn prepare_publication_source_policy(
                   let expression = @relation.binding_expression_at(
                     operation, binding,
                   ).unwrap()
-                  for node in 0..<@typing.node_count(expression) {
-                    identity_charge(budget, 1)
-                    if @typing.child_count(expression, node) == Some(0) {
-                      match @typing.node_form(expression, node).unwrap() {
-                        Expression("field" | "join_field", _) => ()
-                        _ => missing = true
-                      }
-                    }
+                  if publication_expression_unknown(expression, budget) {
+                    missing = true
                   }
                 }
                 for call in 0..<@relation.aggregate_count(group) {
@@ -365,14 +380,8 @@ fn prepare_publication_source_policy(
                   let expression = @relation.binding_expression_at(
                     operation, binding,
                   ).unwrap()
-                  for node in 0..<@typing.node_count(expression) {
-                    identity_charge(budget, 1)
-                    if @typing.child_count(expression, node) == Some(0) {
-                      match @typing.node_form(expression, node).unwrap() {
-                        Expression("field" | "join_field", _) => ()
-                        _ => missing = true
-                      }
-                    }
+                  if publication_expression_unknown(expression, budget) {
+                    missing = true
                   }
                 }
                 if all_copies {
@@ -400,16 +409,9 @@ fn prepare_publication_source_policy(
                   let expression = @relation.binding_expression_at(
                     operation, binding,
                   ).unwrap()
-                  let mut missing = false
-                  for node in 0..<@typing.node_count(expression) {
-                    identity_charge(budget, 1)
-                    if @typing.child_count(expression, node) == Some(0) {
-                      match @typing.node_form(expression, node).unwrap() {
-                        Expression("field" | "join_field", _) => ()
-                        _ => missing = true
-                      }
-                    }
-                  }
+                  let missing = publication_expression_unknown(
+                    expression, budget,
+                  )
                   unknown = unknown || missing
                   predicates.push({
                     step: index,
