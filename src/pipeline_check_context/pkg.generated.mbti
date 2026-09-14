@@ -2158,6 +2158,7 @@ pub(all) enum OperationExecutionCheck {
   GraphEqualityExecution(GraphEqualityCheck)
   GraphStructuralExecution(GraphStructuralCheck)
   GraphMeanExecution(GraphMeanCheck)
+  VectorExecution(VectorCheck)
   GraphResources(GraphResourcesCheck)
   ComponentsLimits(ComponentsLimitsCheck)
   TraversalLimits(TraversalLimitsCheck)
@@ -3355,6 +3356,23 @@ pub(all) enum ValuesWireResolutionIssue {
   Proof(@capacity_witness.Issue)
   Limit(ValuesWireLimitIssue)
 } derive(@debug.Debug)
+
+pub struct VectorCheck {
+  site : OperationRequirementSite
+  step : @pipeline_typing.CheckedStep
+  input : @pipeline_typing.Target
+  operation : @vector_typing.CheckedVector
+  rule : VectorRule
+  policy : @capacity_policy.Policy
+}
+
+pub(all) enum VectorRule {
+  AdmitVectorComponents
+  RequireVectorIdentityUniqueness
+  NormalizeVectorArithmetic
+  ComputeVectorScores
+  OrderVectorScores
+} derive(Eq, @debug.Debug)
 
 pub struct WatermarkExecutionCheck {
   site : OperationRequirementSite

@@ -63,6 +63,7 @@ pub fn close_program_operations(
           GraphEqualityExecution(v) => v.site
           GraphStructuralExecution(v) => v.site
           GraphMeanExecution(v) => v.site
+          VectorExecution(v) => v.site
           GraphResources(v) => v.site
           ComponentsLimits(v) => v.site
           TraversalLimits(v) => v.site

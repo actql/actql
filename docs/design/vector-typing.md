@@ -463,6 +463,16 @@ validation, component arithmetic, uniqueness, profile/resource resolution and
 score ordering are separate pending obligations, not execution permission.
 The checker does not quantize, normalize, score or sort actual vectors.
 
+Execution bindings retain the exact unary input, checked vector operation,
+requirement occurrence and selected policy. Component admission and identity
+uniqueness are prerequisites to input use; normalization, score arithmetic and
+score ordering are separate obligations before output publication. A score is
+ordered by its value and the semantic identity law, never by arrival order or a
+stringified identity. Normalization does not refresh a retained score. Query
+binding and dimension checks use the owned operation-query resolution rather
+than another lookup or a copied source array. These semantic bindings do not
+discharge profile or resource selection and do not attest execution.
+
 Source traversal and output construction consume shared work, node and text
 budgets; pipeline consumers debit the reported usage. Diagnostic paths and spans
 survive pipeline wrapping. No recursive traversal of payload contracts is needed

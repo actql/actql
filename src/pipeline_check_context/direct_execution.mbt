@@ -128,5 +128,9 @@ fn direct_execution_candidate(
     Ok(None) => ()
     other => return other
   }
-  graph_mean_execution_check(site, policy)
+  match graph_mean_execution_check(site, policy) {
+    Ok(None) => ()
+    other => return other
+  }
+  vector_execution_check(site, policy)
 }

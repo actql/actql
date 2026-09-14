@@ -19,6 +19,7 @@ pub(all) enum OperationExecutionCheck {
   GraphEqualityExecution(GraphEqualityCheck)
   GraphStructuralExecution(GraphStructuralCheck)
   GraphMeanExecution(GraphMeanCheck)
+  VectorExecution(VectorCheck)
   GraphResources(GraphResourcesCheck)
   ComponentsLimits(ComponentsLimitsCheck)
   TraversalLimits(TraversalLimitsCheck)
@@ -162,6 +163,13 @@ pub fn operation_execution_phase(
         | ValidateMeanFiniteResults
         | OrderMeanIdentities
         | PreserveMeanDependencies => BeforeOperationOutput
+      }
+    VectorExecution(v) =>
+      match v.rule {
+        AdmitVectorComponents | RequireVectorIdentityUniqueness =>
+          BeforeOperationInputUse
+        NormalizeVectorArithmetic | ComputeVectorScores | OrderVectorScores =>
+          BeforeOperationOutput
       }
     ComponentsLimits(_)
     | TraversalLimits(_)
@@ -314,6 +322,7 @@ pub fn operation_execution_failure(
     | GraphEqualityExecution(_)
     | GraphStructuralExecution(_)
     | GraphMeanExecution(_)
+    | VectorExecution(_)
     | GraphResources(_)
     | ComponentsLimits(_)
     | TraversalLimits(_)
