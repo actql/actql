@@ -51,6 +51,10 @@ placement choices without changing Program meaning or its capture boundary.
 For source ids `[3,1,2,3]` and minimum 1, the supplied model at 5 selects native
 A/B and, after A completes, Local C. These numbers illustrate the mechanism,
 not recommended production cost coefficients.
+Static unsupported native expressions are excluded before comparison. For example,
+changing A's filter to `id + 0 > 2` keeps A on Local even with `--native-ms 1`;
+the report's `excluded_realizations` records `unsupported_predicate`. This is
+candidate eligibility, not retry after a failed DuckDB execution.
 
 The JSON report contains internal task status, realization choices, bounded
 diagnostic output CIDs, selection/rejection explanations, remaining estimated

@@ -67,6 +67,10 @@ pub fn close_captured_task_output(run : CapturedDAG, task : Int) -> Unit {
   if !task_done(run, task) {
     return
   }
+  if run.native_resources[task] is Some(native) && !native.disposed {
+    close_captured_duckdb_task(run, native.attempt)
+    return
+  }
   run.lifetimes[task].live = false
   if task == 0 {
     run.source = None

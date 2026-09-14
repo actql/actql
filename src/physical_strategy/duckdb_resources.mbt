@@ -46,7 +46,7 @@ pub fn settle_captured_duckdb_native(
   attempt : @planning.DuckDBComputeAttempt,
   confirmed : Bool,
 ) -> Result[Unit, LedgerIssue] {
-  guard native_task_resource(run, attempt) is Some((_, resource)) else {
+  guard native_task_resource(run, attempt) is Some((task, resource)) else {
     return Err(ForeignOwner)
   }
   if resource.native_settled {
@@ -70,6 +70,7 @@ pub fn settle_captured_duckdb_native(
       resource.native_settled = true
       if resource.disposed {
         captured_cleanup_confirmed(run, attempt)
+        run.native_resources[task] = None
       }
       Ok(())
     }
@@ -88,9 +89,12 @@ pub fn close_captured_duckdb_task(
   if resource.disposed {
     return
   }
+  if run.running is Some((_, active)) && physical_equal(active, attempt) {
+    stop_captured_dag(run)
+  }
+  resource.disposed = true
   @planning.close_duckdb_compute_attempt(attempt)
   close_captured_task_output(run, task)
-  resource.disposed = true
   if resource.native_settled {
     if resource.failed_holding is Some(holding) {
       release_allocation(run.ledger, holding) |> ignore
@@ -99,5 +103,8 @@ pub fn close_captured_duckdb_task(
       settle_reservation(run.ledger, resource.reservation) |> ignore
     }
     captured_cleanup_confirmed(run, attempt)
+    // Do not retain a closed attempt's input graph after releasing its ledger
+    // responsibility. The caller may still own its diagnostic handle.
+    run.native_resources[task] = None
   }
 }

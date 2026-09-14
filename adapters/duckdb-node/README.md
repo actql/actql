@@ -454,7 +454,7 @@ Prepare a selected task's `ComputeHostConfiguration`, wrap it with
 task completion is recorded by the DAG's exact attempt, not a caller-supplied
 output. Every DuckDB task uses its own temporary database and imports its fixed
 input, including consecutive DuckDB tasks. No resident sharing is implied.
-DuckDB task startup reserves `maxTransportBytes` and an execution envelope
+The common DAG start (not only the Node wrapper) reserves `maxTransportBytes` and an execution envelope
 against that ledger before DB creation. `computePhysicalCapacity(limits)` from
 `physical-capacity.mjs` supplies the same envelope to planning and dispatch:
 configured `memoryBytes`, plus eight bytes per permitted UTF-8 transport byte,
@@ -573,9 +573,23 @@ or physical resource-state change permits bounded reconsideration of unstarted
 tasks; changing prices alone does not permit repeated search. Completed placements
 and consumed transfer remain recorded. The selected Node task's transfer and
 DB-memory ceilings cannot exceed the selected envelope.
+`max_revisions` counts accepted searches, including failure and deferral.
+Charged preflight rejects malformed offers, missing tasks, excessive combinations
+and invalid priority permutations without consuming a revision; corrected requests
+need no fake resource progress. An accepted search revokes previous dispatch
+permission before enumeration. Its failure cannot resume the old selection or
+repeat unchanged-state exploration. Host priority addresses original enumeration
+positions, including rejected strategies, and is remapped after resource filtering.
+Standard dispatch also checks static native expression/import eligibility before
+cost comparison. `excluded_realizations` explains exclusions; unsupported native
+expressions may still use a separately eligible Local realization regardless of
+the supplied native price. Runtime owner/liveness/capacity checks still apply.
 
 Native cleanup settles execution capacity while retaining the result reservation.
-Successful completion converts it to a holding; failure disposes provisional data.
+Successful completion atomically attaches its exact holding before publishing
+task success. The reservation is private to that run/task/attempt; low-level callers
+cannot supply a borrowed or undersized reservation. Failure alone does not settle
+native resources: stop acknowledgement and explicit buffer disposal are separate.
 Closing a Compute result revokes its port, but its holding is not released while
 a DAG descendant still anchors it. `physical_strategy.close_captured_task_output`
 releases a Local result port as well, allowing ancestor holdings to be collected.
