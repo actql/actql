@@ -1649,6 +1649,28 @@ pub(all) enum GraphSelectorRule {
   RequireSelectorResources
 } derive(Eq, @debug.Debug)
 
+pub struct GraphStructuralCheck {
+  site : OperationRequirementSite
+  step : @pipeline_typing.CheckedStep
+  left : StructuralOperand
+  right : @pipeline_typing.Target
+  operation : @graph_typing.CheckedStructural
+  rule : GraphStructuralRule
+}
+
+pub(all) enum GraphStructuralRule {
+  AdmitStructuralInputs
+  CompareIdentityRecords
+  RequirePropertyEquality
+  ApplyPropertyStrategies
+  RetainOneSidedRecords
+  SubtractMatchingRecords
+  CloseResultEndpoints
+  ValidateSetResults
+  ValidateNumericResults
+  PreserveOperandPolicies
+} derive(Eq, @debug.Debug)
+
 type GroupArrayLimit
 
 pub enum GroupArrayLimitIssue {
@@ -2086,6 +2108,7 @@ pub(all) enum OperationExecutionCheck {
   GraphApplyExecution(GraphApplyCheck)
   GraphDiffExecution(GraphDiffCheck)
   GraphEqualityExecution(GraphEqualityCheck)
+  GraphStructuralExecution(GraphStructuralCheck)
   GraphResources(GraphResourcesCheck)
   ComponentsLimits(ComponentsLimitsCheck)
   TraversalLimits(TraversalLimitsCheck)
@@ -3041,6 +3064,11 @@ pub enum StatisticalLaw {
   PopulationStandardDeviation
   SampleStandardDeviation
 }
+
+pub(all) enum StructuralOperand {
+  StructuralInput(@pipeline_typing.Target)
+  UnionAccumulator(Int)
+} derive(Eq, @debug.Debug)
 
 pub struct SubgraphCheck {
   site : OperationRequirementSite

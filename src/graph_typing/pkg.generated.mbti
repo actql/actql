@@ -303,6 +303,10 @@ pub fn structural_source(CheckedStructural) -> @decode_core.Cursor
 
 pub fn structural_strategies(CheckedStructural, @relation_schema.Side) -> Array[PropertyStrategy]
 
+pub fn structural_strategy_at(CheckedStructural, @relation_schema.Side, Int) -> PropertyStrategy?
+
+pub fn structural_strategy_count(CheckedStructural, @relation_schema.Side) -> Int
+
 pub fn structural_usage(CheckedStructural) -> Usage
 
 pub fn structural_with_name(CheckedStructural) -> String

@@ -17,6 +17,7 @@ pub(all) enum OperationExecutionCheck {
   GraphApplyExecution(GraphApplyCheck)
   GraphDiffExecution(GraphDiffCheck)
   GraphEqualityExecution(GraphEqualityCheck)
+  GraphStructuralExecution(GraphStructuralCheck)
   GraphResources(GraphResourcesCheck)
   ComponentsLimits(ComponentsLimitsCheck)
   TraversalLimits(TraversalLimitsCheck)
@@ -134,6 +135,19 @@ pub fn operation_execution_phase(
       match v.rule {
         AdmitOperands | RequireComparisonResources => BeforeOperationInputUse
         CompareCanonicalGraphs => BeforeOperationOutput
+      }
+    GraphStructuralExecution(v) =>
+      match v.rule {
+        AdmitStructuralInputs => BeforeOperationInputUse
+        CompareIdentityRecords
+        | RequirePropertyEquality
+        | ApplyPropertyStrategies
+        | RetainOneSidedRecords
+        | SubtractMatchingRecords
+        | CloseResultEndpoints
+        | ValidateSetResults
+        | ValidateNumericResults
+        | PreserveOperandPolicies => BeforeOperationOutput
       }
     ComponentsLimits(_)
     | TraversalLimits(_)
@@ -284,6 +298,7 @@ pub fn operation_execution_failure(
     | GraphApplyExecution(_)
     | GraphDiffExecution(_)
     | GraphEqualityExecution(_)
+    | GraphStructuralExecution(_)
     | GraphResources(_)
     | ComponentsLimits(_)
     | TraversalLimits(_)

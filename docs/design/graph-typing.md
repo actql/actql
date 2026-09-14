@@ -525,6 +525,23 @@ strategy execution even on equal values, finite numeric results, canonical set
 ordering, subtraction endpoint closure, policy, profile and resources remain
 explicit obligations. This checker does not execute graph composition.
 
+`GraphStructuralCheck` retains the exact checked binary operation or union fold.
+Its left operand is either an owned input target or the immediately preceding
+accumulator in that same pipeline step; the right operand retains its input
+occurrence, including repeated targets. A list union is never flattened into an
+unordered set of graphs or re-associated. Indexed strategy readers expose the
+stored node/edge maps without copying or rechecking them.
+
+The execution bindings separate common-contract admission, complete-payload
+comparison, property equality, explicit strategy application, one-sided records,
+subtraction and endpoint closure, finite numeric/set validation and policy
+dependencies. Output-phase gates forbid partial publication; they are not
+permission to execute a later fold before its predecessor. An explicit strategy
+still applies to equal values, and an untouched one-sided record is not a
+successful application of a numeric or set strategy. Profile selection and
+structural resource resolution remain separate requirements. These bindings do
+not implement composition or certify a completed resource contract.
+
 `check_union` additionally accepts the normative nonempty reference list. It
 retains each binary fold, starting with the current Graph and consuming each
 listed occurrence in order, without reassociation or deduplication. The source

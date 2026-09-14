@@ -340,6 +340,32 @@ pub fn structural_strategies(
 }
 
 ///|
+pub fn structural_strategy_count(
+  c : CheckedStructural,
+  side : @row.Side,
+) -> Int {
+  if side == Left {
+    c.nodes.length()
+  } else {
+    c.edges.length()
+  }
+}
+
+///|
+/// O(1) retained strategy lookup; no array copy or semantic reconstruction.
+pub fn structural_strategy_at(
+  c : CheckedStructural,
+  side : @row.Side,
+  index : Int,
+) -> PropertyStrategy? {
+  if side == Left {
+    c.nodes.get(index)
+  } else {
+    c.edges.get(index)
+  }
+}
+
+///|
 pub fn structural_pending(c : CheckedStructural) -> Array[StructuralObligation] {
   let out = []
   structural_pending_each(c, item => out.push(item))
