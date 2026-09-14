@@ -275,6 +275,10 @@ pub fn publication_policy_local_check_at(PublicationSourcePolicy, Int) -> @pipel
 
 pub fn publication_policy_local_check_count(PublicationSourcePolicy) -> Int
 
+pub fn publication_policy_nest_at(PublicationSourcePolicy, Int) -> PublicationPolicyNest?
+
+pub fn publication_policy_nest_count(PublicationSourcePolicy) -> Int
+
 pub fn publication_policy_pivot_at(PublicationSourcePolicy, Int) -> PublicationPolicyPivot?
 
 pub fn publication_policy_pivot_count(PublicationSourcePolicy) -> Int
@@ -735,6 +739,12 @@ pub struct PublicationPolicyLag {
   field : @relation_typing.KeyField
   output : String
   offset : @relation_typing.CountValue
+}
+
+pub struct PublicationPolicyNest {
+  step : Int
+  operation : @relation_nest.CheckedNest
+  unknown_provenance : Bool
 }
 
 pub struct PublicationPolicyPivot {

@@ -534,6 +534,13 @@ semantics; policy transfer cannot replace the prefix path's required logical ord
 or its arithmetic validation. Relation unary policy dispatch is exhaustive: a new
 operation requires an explicit transfer decision rather than a default fallback.
 
+Nest policy transfer follows both checked input edges and retains the exact
+checked nest. Child policy remains a contribution even when publication hides the
+attached array; unrelated acquisitions do not become contributors. An authored
+item guard without value-policy attestation retains unknown provenance. The
+retained nest is shared with attachment admission, dependency propagation and
+nested-limit construction; policy transfer does not replace any of those checks.
+
 Result imports retain the producer's completed publication through
 `publication_policy_import_count/at`, including the consumer input coordinate.
 `imported_publication` is a convenience only for exactly one import.

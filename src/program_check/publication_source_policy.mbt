@@ -26,6 +26,27 @@ pub struct PublicationSourcePolicy {
   priv unnests : Array[PublicationPolicyUnnest]
   priv top_ks : Array[PublicationPolicyTopK]
   priv watermarks : Array[PublicationPolicyWatermark]
+  priv nests : Array[PublicationPolicyNest]
+}
+
+///|
+pub struct PublicationPolicyNest {
+  step : Int
+  operation : @nest.CheckedNest
+  unknown_provenance : Bool
+}
+
+///|
+pub fn publication_policy_nest_count(value : PublicationSourcePolicy) -> Int {
+  value.nests.length()
+}
+
+///|
+pub fn publication_policy_nest_at(
+  value : PublicationSourcePolicy,
+  index : Int,
+) -> PublicationPolicyNest? {
+  value.nests.get(index)
 }
 
 ///|
@@ -457,6 +478,7 @@ fn prepare_publication_source_policy(
   let unnests : Array[PublicationPolicyUnnest] = []
   let top_ks : Array[PublicationPolicyTopK] = []
   let watermarks : Array[PublicationPolicyWatermark] = []
+  let nests : Array[PublicationPolicyNest] = []
   let mut unknown = false
   while pending.pop() is Some(target) {
     identity_charge(budget, 1)
@@ -692,6 +714,13 @@ fn prepare_publication_source_policy(
             }
             1
           }
+          @pipeline.Nest(checked=operation, ..) => {
+            identity_charge(budget, 1)
+            let missing = @nest.item_guard(operation) is Some(_)
+            nests.push({ step: index, operation, unknown_provenance: missing, })
+            unknown = unknown || missing
+            2
+          }
           @pipeline.Append(..)
           | @pipeline.Set(..)
           | @pipeline.Join(..)
@@ -856,6 +885,7 @@ fn prepare_publication_source_policy(
     unnests,
     top_ks,
     watermarks,
+    nests,
   }
   |> Some
 }

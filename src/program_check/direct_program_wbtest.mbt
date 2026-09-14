@@ -26,6 +26,7 @@ fn checked_direct_program_fixture(
   array_expression? : String = "[id]",
   top_k_step? : String = "",
   watermark_body? : String = "",
+  nest_guard? : String? = None,
   numeric_profile? : @numeric.Profile? = None,
 ) -> CheckedProgram raise {
   let original_text =
@@ -35,7 +36,19 @@ fn checked_direct_program_fixture(
     new="\"" + input_name + "\"",
   )
   let program = @syntax.parse(
-    if local_input {
+    if nest_guard is Some(guard_text) {
+      text
+      .replace(
+        old="\"inputs\":{\"remote\":",
+        new="\"inputs\":{\"right\":{\"connector\":\"crm/main\",\"resource\":\"r\",\"request\":{\"id\":2,\"tenant\":null},\"minimum_classification\":\"confidential\"},\"unused\":{\"connector\":\"crm/main\",\"resource\":\"r\",\"request\":{\"id\":3,\"tenant\":null},\"minimum_classification\":\"restricted\"},\"remote\":",
+      )
+      .replace(
+        old="\"steps\":[",
+        new="\"steps\":[{\"from\":\"right\",\"distinct\":[\"id\"]},{\"sort\":[{\"id\":\"asc\"}],\"as\":\"children\"},{\"from\":\"remote\",\"nest\":{\"with\":\"children\",\"on\":[{\"left\":\"id\",\"right\":\"id\"}],\"into\":\"items\",\"fields\":[\"id\"]" +
+          guard_text +
+          "}},",
+      )
+    } else if local_input {
       let local_text = text.replace(
         old="\"inputs\":{\"remote\":",
         new="\"inputs\":{\"local\":{\"carrier\":\"relation\",\"schema\":{\"id\":{\"type\":\"number\",\"nullable\":false}},\"primary_key\":[\"id\"]},\"remote\":",
@@ -263,7 +276,10 @@ fn checked_direct_program_fixture(
     },
     format=Json,
   ).unwrap()
-  let environment = remote_environment_fixture(analytic=analytic_body != "")
+  let environment = remote_environment_fixture(
+    analytic=analytic_body != "",
+    nest=nest_guard is Some(_),
+  )
   // No Program arithmetic assertion is needed: publication retains the Host
   // bound and distinct establishes its own key. Actual acquisition is not run.
   let mixed = @wire.check_mixed_claims([], [], {
@@ -326,7 +342,8 @@ fn checked_direct_program_fixture(
         json_pick_path != "" ||
         unnest_body != "" ||
         top_k_step != "" ||
-        watermark_body != "" {
+        watermark_body != "" ||
+        nest_guard is Some(_) {
         4
       } else {
         2
