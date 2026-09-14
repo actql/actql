@@ -174,6 +174,58 @@ fn core_contract_root(
 }
 
 ///|
+// Callers retain family-specific slot contracts and occurrence ownership.
+// This only registers the common profile/member/schema dependency shape.
+fn core_numeric_contracts(
+  b : CoreContractBuilder,
+  site : OperationRequirementSite,
+  profile : @numeric.Profile,
+  contract_cid : String,
+  schema_cid : String,
+) -> Unit raise CoreContractStop {
+  let root = NumericReductionBody(@numeric.cid(profile))
+  core_contract_root(
+    b,
+    NumericAggregateProfile(
+      site.stage,
+      site.producer_visit,
+      site.step,
+      site.index,
+    ),
+    root,
+  )
+  for i in 0..<@numeric.member_count(profile) {
+    let reduction = NumericReductionBody(
+      @numeric.member_cid_at(profile, i).unwrap(),
+    )
+    core_contract_edge(b)
+    core_contract_body(b, reduction)
+    core_contract_dependency(b, root, reduction)
+  }
+  let observation = NumericReductionBody(
+    @numeric.observation_schema_cid(profile),
+  )
+  core_contract_edge(b)
+  core_contract_body(b, observation)
+  core_contract_dependency(b, root, observation)
+  let slot_rules = NumericReductionBody(contract_cid)
+  core_contract_root(
+    b,
+    NumericAggregateSlotRules(
+      site.stage,
+      site.producer_visit,
+      site.step,
+      site.index,
+    ),
+    slot_rules,
+  )
+  let slot_schema = NumericReductionBody(schema_cid)
+  core_contract_edge(b)
+  core_contract_body(b, slot_schema)
+  core_contract_dependency(b, slot_rules, slot_schema)
+}
+
+///|
 /// Collect expression body references and adopted operation laws from every
 /// owned Stage/producer/step and selected Catalog reference. This is not the
 /// complete Unit closure or interface identity. Unsupported selected Catalog
@@ -289,59 +341,22 @@ pub fn collect_core_contracts(
           Some(true) {
           continue
         }
-        let root = NumericReductionBody(@numeric.cid(slot.profile))
-        core_contract_root(
-          b,
-          NumericAggregateProfile(
-            site.stage,
-            site.producer_visit,
-            site.step,
-            site.index,
-          ),
-          root,
-        )
-        for i in 0..<@numeric.member_count(slot.profile) {
-          let reduction = NumericReductionBody(
-            @numeric.member_cid_at(slot.profile, i).unwrap(),
-          )
-          core_contract_edge(b)
-          core_contract_body(b, reduction)
-          core_contract_dependency(b, root, reduction)
-        }
-        let observation = NumericReductionBody(
-          @numeric.observation_schema_cid(slot.profile),
-        )
-        core_contract_edge(b)
-        core_contract_body(b, observation)
-        core_contract_dependency(b, root, observation)
         let window = slot.step.operation is @pipeline.WindowGroup(_)
-        let slot_rules = NumericReductionBody(
+        core_numeric_contracts(
+          b,
+          site,
+          slot.profile,
           if window {
             window_numeric_slot_contract_cid()
           } else {
             numeric_slot_contract_cid()
           },
-        )
-        core_contract_root(
-          b,
-          NumericAggregateSlotRules(
-            site.stage,
-            site.producer_visit,
-            site.step,
-            site.index,
-          ),
-          slot_rules,
-        )
-        let slot_schema = NumericReductionBody(
           if window {
             window_numeric_slot_schema_cid()
           } else {
             numeric_slot_schema_cid()
           },
         )
-        core_contract_edge(b)
-        core_contract_body(b, slot_schema)
-        core_contract_dependency(b, slot_rules, slot_schema)
       }
     }
     if analytic_numeric_slots is Some(slots) {
@@ -356,50 +371,13 @@ pub fn collect_core_contracts(
           Some(true) {
           continue
         }
-        let root = NumericReductionBody(@numeric.cid(slot.profile))
-        core_contract_root(
+        core_numeric_contracts(
           b,
-          NumericAggregateProfile(
-            site.stage,
-            site.producer_visit,
-            site.step,
-            site.index,
-          ),
-          root,
-        )
-        for i in 0..<@numeric.member_count(slot.profile) {
-          let reduction = NumericReductionBody(
-            @numeric.member_cid_at(slot.profile, i).unwrap(),
-          )
-          core_contract_edge(b)
-          core_contract_body(b, reduction)
-          core_contract_dependency(b, root, reduction)
-        }
-        let observation = NumericReductionBody(
-          @numeric.observation_schema_cid(slot.profile),
-        )
-        core_contract_edge(b)
-        core_contract_body(b, observation)
-        core_contract_dependency(b, root, observation)
-        let slot_rules = NumericReductionBody(
+          site,
+          slot.profile,
           analytic_numeric_slot_contract_cid(),
-        )
-        core_contract_root(
-          b,
-          NumericAggregateSlotRules(
-            site.stage,
-            site.producer_visit,
-            site.step,
-            site.index,
-          ),
-          slot_rules,
-        )
-        let slot_schema = NumericReductionBody(
           analytic_numeric_slot_schema_cid(),
         )
-        core_contract_edge(b)
-        core_contract_body(b, slot_schema)
-        core_contract_dependency(b, slot_rules, slot_schema)
       }
     }
     for index in 0..<incoming.entries.length() {
