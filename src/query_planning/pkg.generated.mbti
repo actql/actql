@@ -182,6 +182,8 @@ pub fn fixed_compute_candidate_duration(FixedComputeCandidate) -> @physical_cost
 
 pub fn fixed_compute_candidate_quantities(FixedComputeCandidate) -> QueryQuantities
 
+pub fn fixed_compute_candidate_registration(FixedComputeCandidate) -> CapabilityRegistration
+
 pub fn fixed_compute_candidate_request(FixedComputeCandidate) -> FixedComputeRequest
 
 pub fn[T] fixed_compute_choice_payload(FixedComputeChoice, PreparedCompute[T]) -> T?

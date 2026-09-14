@@ -19,6 +19,13 @@ pub fn start_captured_duckdb_task(
   let request = @planning.fixed_compute_candidate_request(
     @planning.prepared_compute_candidate(prepared),
   )
+  if !strategy_candidate_matches(
+      run,
+      task,
+      @planning.prepared_compute_candidate(prepared),
+    ) {
+    return Err(ForeignCandidate)
+  }
   guard run.inputs[task] is Some(read) &&
     physical_equal(read, @planning.fixed_compute_request_input(request)) else {
     return Err(ForeignCandidate)
@@ -58,6 +65,7 @@ pub fn complete_captured_duckdb_task(
       run.completed[task] = Some(DuckDB(output))
       run.inputs[task] = None
       run.running = None
+      run.generation += 1
       Ok(())
     }
     Err(issue) => {

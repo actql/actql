@@ -35,6 +35,14 @@ pub fn compute_strategy_host_open(
   execution_bytes : Int64,
 ) -> ComputeNodeRun raise NodeHostFailure {
   let ledger = @host.configured_strategy_compute_ledger(setup)
+  let (graph, task) = @host.configured_strategy_compute_graph(setup)
+  if @strategy.strategy_task_envelope(graph, task) is Some(capacity) &&
+    (
+      transfer_bytes > capacity.transfer_bytes ||
+      execution_bytes > capacity.execution_bytes
+    ) {
+    raise Physical(InvalidCharge)
+  }
   let reservation = match
     @strategy.reserve_attempt(ledger, transfer_bytes, 0L, execution_bytes) {
     Ok(reservation) => reservation

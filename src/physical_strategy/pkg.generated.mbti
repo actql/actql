@@ -5,6 +5,7 @@ import {
   "actql/actql/duckdb_adapter",
   "actql/actql/execution_relation",
   "actql/actql/lowering_relation",
+  "actql/actql/physical_cost",
   "actql/actql/pipeline_check_context",
   "actql/actql/pipeline_typing",
   "actql/actql/program_check",
@@ -26,6 +27,8 @@ pub fn charge_planning(Ledger, Int) -> Result[Unit, LedgerIssue]
 pub fn charge_transfer(Ledger, Reservation, Int64) -> Result[Unit, LedgerIssue]
 
 pub fn complete_captured_duckdb_task(CapturedDAG, @query_planning.DuckDBComputeAttempt) -> Result[Unit, RunIssue]
+
+pub fn configure_strategy_search(CapturedDAG, SearchLimits) -> Result[Unit, SearchIssue]
 
 pub fn create_ledger(LedgerLimits) -> Result[Ledger, LedgerIssue]
 
@@ -57,6 +60,8 @@ pub fn open_captured_dag(CheckedDAG, @query_planning.CapturedInputSource, Ledger
 
 pub fn prepare_checked_dag(@program_check.CheckedProgram, Array[@lowering_relation.BoundPrepared], Int, Int) -> Result[CheckedDAG, GraphIssue]
 
+pub fn prepare_task_offer(CapturedDAG, Int, @query_planning.CapabilityRegistration, Int, Array[@physical_cost.SerialEstimateLine], PhysicalEnvelope, Int) -> Result[TaskOffer, SearchIssue]
+
 pub fn release_allocation(Ledger, Holding) -> Result[Unit, LedgerIssue]
 
 pub fn reservation_pending(Reservation) -> Bool
@@ -67,11 +72,33 @@ pub fn reserve_attempt(Ledger, Int64, Int64, Int64) -> Result[Reservation, Ledge
 
 pub fn retain_allocation(Ledger, Reservation, Int64) -> Result[Holding, LedgerIssue]
 
+pub fn revise_strategy(CapturedDAG, Array[TaskOffer], @query_planning.CapabilityRegistry, Array[Int]?) -> Result[StrategyDecision, SearchIssue]
+
 pub fn settle_reservation(Ledger, Reservation) -> Result[Unit, LedgerIssue]
 
 pub fn start_captured_duckdb_task(CapturedDAG, Int, @query_planning.FixedComputeChoice, @query_planning.PreparedCompute[@duckdb_adapter.FixedCompute], @execution_relation.GeneratedSequence, @query_planning.DuckDBComputeLimits, (@query_planning.DuckDBComputeAttempt) -> Bool) -> Result[@query_planning.DuckDBComputeAttempt, RunIssue]
 
 pub fn stop_captured_dag(CapturedDAG) -> Unit
+
+pub fn strategy_assessment(StrategyRevision) -> StrategyAssessment
+
+pub fn strategy_generation(StrategyRevision) -> Int
+
+pub fn strategy_history_at(CapturedDAG, Int) -> StrategyRevision?
+
+pub fn strategy_history_count(CapturedDAG) -> Int
+
+pub fn strategy_registration(StrategyRevision, Int) -> @query_planning.CapabilityRegistration?
+
+pub fn strategy_report_at(CapturedDAG, Int) -> StrategyAssessment?
+
+pub fn strategy_report_count(CapturedDAG) -> Int
+
+pub fn strategy_revision_number(StrategyRevision) -> Int
+
+pub fn strategy_task_envelope(CapturedDAG, Int) -> PhysicalEnvelope?
+
+pub fn strategy_usage_before(StrategyRevision) -> LedgerUsage
 
 // Errors
 
@@ -145,6 +172,12 @@ pub(all) struct LedgerUsage {
   peak_retention_bytes : Int64
 } derive(Eq, @debug.Debug)
 
+pub(all) struct PhysicalEnvelope {
+  transfer_bytes : Int64
+  retained_bytes : Int64
+  execution_bytes : Int64
+} derive(Eq, @debug.Debug)
+
 type Reservation
 
 pub(all) enum RunIssue {
@@ -160,6 +193,51 @@ pub(all) enum RunIssue {
   Compute(@query_planning.FixedComputeIssue)
   DuckDB(@query_planning.DuckDBComputeIssue)
 }
+
+pub(all) enum SearchIssue {
+  InvalidLimits
+  AlreadyConfigured
+  NotConfigured
+  UnchangedState
+  Busy
+  Stopped
+  RevisionLimit
+  OfferLimit
+  StrategyLimit
+  MissingTask(Int)
+  ForeignOffer(Int)
+  CapabilityUnavailable(Int)
+  InvalidCapacity
+  Overflow
+  Cost(@physical_cost.CostIssue)
+  Ledger(LedgerIssue)
+}
+
+pub(all) struct SearchLimits {
+  max_offers : Int
+  max_strategies : Int
+  max_work : Int
+  max_revisions : Int
+}
+
+pub struct StrategyAssessment {
+  position : Int
+  duration : @physical_cost.DurationEstimate
+  rejection : LedgerIssue?
+  transfer_bytes : Int64
+  retained_bytes : Int64
+  execution_bytes : Int64
+}
+
+pub enum StrategyDecision {
+  Selected(StrategyRevision)
+  Deferred
+  NoFeasible
+}
+
+type StrategyRevision
+
+type TaskOffer
 
 // Type aliases
 

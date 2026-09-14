@@ -141,6 +141,13 @@ pub fn fixed_compute_candidate_request(
 }
 
 ///|
+pub fn fixed_compute_candidate_registration(
+  candidate : FixedComputeCandidate,
+) -> CapabilityRegistration {
+  candidate.registration
+}
+
+///|
 pub fn fixed_compute_candidate_quantities(
   candidate : FixedComputeCandidate,
 ) -> QueryQuantities {

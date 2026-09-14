@@ -37,7 +37,7 @@ the run ledger, before send/accept. Only confirmed native cleanup releases unuse
 transfer and DB-memory reservations; failure never refunds consumed transfer.
 Task configuration cannot substitute a fresh ledger for a running graph.
 
-Whole-strategy comparison, retained-buffer and adapter-scratch accounting, Local
+Retained-buffer and adapter-scratch accounting, Local
 physical enforcement and deadline-based asynchronous cleanup described below must
 be connected before this is presented as
 the complete physical strategy Host. Checked topology validation alone is not
@@ -96,6 +96,31 @@ closure, not merely a cancellation request. A rollback error followed by confirm
 connection/instance closure is still a cleanup error, but not pending capacity.
 
 ## Comparison and revision
+
+The bounded search enumerates combinations of Host-owned conditional task offers.
+Each offer belongs to one execution and an exact capability registration; equal
+registration names or equal input content do not substitute for ownership. These
+future-input estimates are not completed inputs or proof of provider applicability.
+Before starting, the selected registration must still produce an eligible candidate
+bound to the task's exact completed `ProducerRead` through existing admission.
+
+Search bounds offer count, combination count, traversal work and revision count.
+Offer construction and enumeration charge the execution's planning ledger before
+work. Reports retain infeasible combinations and their resource rejection, not
+only the winner. Transfer envelopes add per actual task; retention is conservatively
+summed without assuming future release or sharing; serial execution memory takes
+the maximum envelope. Existing consumption, holdings and pending reservations
+reduce available capacity. The Node start also checks its requested transfer and
+DB-memory ceilings against the selected envelope before reserving resources.
+
+Re-evaluation requires a completion generation or physical resource-state change.
+Merely spending planning work or submitting different prices does not create new
+state. Completed task choices remain in revision history, while comparison totals
+cover only unstarted tasks. Unknown estimates defer selection unless an explicit
+Host order selects among the feasible combinations; infeasible choices cannot win
+through that policy. Deferred or infeasible decisions do not authorize dispatch
+using an old selection. Full adapter applicability and retention enforcement must
+not be inferred from this conditional comparison API alone.
 
 Compare eligible strategies by serial estimated time, including preparation,
 validation, Transfer, computation, capture, retention and cleanup. Bundled work is

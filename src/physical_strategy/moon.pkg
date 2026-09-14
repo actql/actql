@@ -12,4 +12,5 @@ import {
   "actql/actql/execution_relation" @execution,
   "actql/actql/relation_typing" @relation,
   "actql/actql/duckdb_adapter" @duckdb,
+  "actql/actql/physical_cost" @cost,
 }

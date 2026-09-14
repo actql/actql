@@ -461,8 +461,17 @@ cleanup releases unused transfer and configured DB-memory reservations.
 An error with `cleanupPending` retains `cleanupHandle.status()` and asynchronous
 `cleanupHandle.retry()` for the same owned resources. `primaryFailure` and
 `cleanupErrors` remain separate. Retry is resource cleanup, not a query retry.
-This execution increment is not yet the whole-strategy cost selector or complete
-Host physical-budget runner: retained buffers, adapter scratch, Local execution
+For bounded conditional comparison, configure `physical_strategy.configure_strategy_search`
+before starting tasks, prepare owned estimates with `prepare_task_offer`, and call
+`revise_strategy`. Read its selected registrations, remaining cost and candidate
+rejection reports before preparing actual input-bound Compute candidates. Future
+task estimates do not bypass runtime applicability or input admission. A completion
+or physical resource-state change permits bounded reconsideration of unstarted
+tasks; changing prices alone does not permit repeated search. Completed placements
+and consumed transfer remain recorded. The selected Node task's transfer and
+DB-memory ceilings cannot exceed the selected envelope.
+
+This is not yet a complete Host physical-budget runner: retained buffers, adapter scratch, Local execution
 and acquisition integration still need accounting. Internal task outputs do not authorize partial
 publication of a failed Program.
 

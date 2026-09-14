@@ -122,6 +122,7 @@ fn captured_graph_local(
   run : @strategy.CapturedDAG,
   task : Int,
   limits? : @execution.SequenceExecutionLimits = compute_test_limits(),
+  supplied_registry? : @planning.CapabilityRegistry? = None,
 ) -> Result[Unit, @strategy.RunIssue] raise {
   let input = @strategy.captured_task_input(run, task, 100, 10000).unwrap()
   let request = @planning.prepare_fixed_compute_request(input, {
@@ -130,11 +131,15 @@ fn captured_graph_local(
     max_value_bytes: 10000,
     common_fragment: None,
   }).unwrap()
-  let registry = @planning.prepare_capability_registry(
-    [{ name: "local", acquisition: false, fixed_compute: true, }],
-    1,
-    100,
-  ).unwrap()
+  let registry = match supplied_registry {
+    Some(registry) => registry
+    None =>
+      @planning.prepare_capability_registry(
+        [{ name: "local", acquisition: false, fixed_compute: true, }],
+        1,
+        100,
+      ).unwrap()
+  }
   let prepared = @planning.local_fixed_compute_candidate(
     @planning.capability_registration_at(registry, 0).unwrap(),
     request,

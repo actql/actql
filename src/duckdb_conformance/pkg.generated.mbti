@@ -168,11 +168,17 @@ pub fn strategy_fixture_compute(StrategyFixture, Int) -> @duckdb_host.StrategyCo
 
 pub fn strategy_fixture_create(String, String, String, String, String, String, String, String, String) -> StrategyFixture
 
+pub fn strategy_fixture_estimate(StrategyFixture) -> Int64
+
 pub fn strategy_fixture_local(StrategyFixture, Int) -> Bool
 
 pub fn strategy_fixture_next(StrategyFixture) -> Int
 
 pub fn strategy_fixture_open(StrategyFixture, @query_planning.CapturedInputSource) -> Bool
+
+pub fn strategy_fixture_placement(StrategyFixture, Int) -> String
+
+pub fn strategy_fixture_replan(StrategyFixture, Int64) -> Bool
 
 pub fn strategy_fixture_usage(StrategyFixture, Int) -> Int64
 

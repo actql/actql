@@ -4,6 +4,9 @@ struct StrategyFixture {
   native : IssuedNativeFixture
   graph : @strategy.CheckedDAG
   ledger : @strategy.Ledger
+  registry : @planning.CapabilityRegistry
+  mut search_configured : Bool
+  mut selected : @strategy.StrategyRevision?
   registry_json : String
   values_json : String
   fragment_json : String
@@ -84,6 +87,16 @@ pub fn strategy_fixture_create(
       native,
       graph,
       ledger,
+      registry: @planning.prepare_capability_registry(
+        [
+          { name: "local", acquisition: false, fixed_compute: true, },
+          { name: "duckdb", acquisition: false, fixed_compute: true, },
+        ],
+        2,
+        100,
+      ).unwrap(),
+      search_configured: false,
+      selected: None,
       registry_json,
       values_json,
       fragment_json,
@@ -142,13 +155,9 @@ pub fn strategy_fixture_compute(
 ) -> @dbhost.StrategyComputeHostConfiguration {
   try {
     let request = strategy_fixture_request(f, task)
-    let registry = @planning.prepare_capability_registry(
-      [{ name: "duckdb", acquisition: false, fixed_compute: true, }],
-      1,
-      100,
-    ).unwrap()
+    let registry = f.registry
     let candidate = @planning.duckdb_fixed_compute_candidate(
-      @planning.capability_registration_at(registry, 0).unwrap(),
+      @planning.capability_registration_at(registry, 1).unwrap(),
       request,
       "owned_input",
       {
@@ -230,11 +239,7 @@ pub fn strategy_fixture_compute(
 pub fn strategy_fixture_local(f : StrategyFixture, task : Int) -> Bool {
   try {
     let request = strategy_fixture_request(f, task)
-    let registry = @planning.prepare_capability_registry(
-      [{ name: "local", acquisition: false, fixed_compute: true, }],
-      1,
-      100,
-    ).unwrap()
+    let registry = f.registry
     let generated = fixture_generated(
       @execution.producer_read_receiver(
         @planning.fixed_compute_request_input(request),

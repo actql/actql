@@ -224,4 +224,33 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
     assert.equal(fixture.strategyFixtureUsage(cancelledFixture, 1), 0n);
     assert.equal(fixture.strategyFixtureUsage(cancelledFixture, 2), 0n);
   } finally { captured.close(); first?.close(); }
+  for (const initialTransferCost of [1n, 20n]) {
+    await replaceRows('INSERT INTO records VALUES (3,30),(1,NULL),(2,20),(3,30)');
+    const f = fixture.strategyFixtureCreate(...args, program);
+    const capture = await runNativeHostQuery(grant, fixture.strategyFixtureAcquisition(f), suppliedLimits);
+    const outputs = [];
+    try {
+      assert.equal(fixture.strategyFixtureOpen(f, capture.source()), true);
+      assert.equal(fixture.strategyFixtureReplan(f, initialTransferCost), true);
+      const firstPlacement = initialTransferCost === 1n ? 'duckdb' : 'local';
+      assert.equal(fixture.strategyFixtureEstimate(f), initialTransferCost === 1n ? 6n : 30n);
+      for (let task = 1; task <= 3; task++) {
+        if (task === 2) {
+          const spent = fixture.strategyFixtureUsage(f, 0);
+          assert.equal(fixture.strategyFixtureReplan(f, initialTransferCost === 1n ? 20n : 1n), true);
+          assert.equal(fixture.strategyFixturePlacement(f, 1), firstPlacement);
+          assert.equal(fixture.strategyFixtureUsage(f, 0), spent);
+          assert.equal(fixture.strategyFixtureEstimate(f), initialTransferCost === 1n ? 20n : 4n);
+        }
+        if (task === 3) capture.close();
+        const placement = fixture.strategyFixturePlacement(f, task);
+        assert.equal(placement, task === 1 ? firstPlacement : firstPlacement === 'local' ? 'duckdb' : 'local');
+        if (placement === 'duckdb') outputs.push(await runStrategyHostCompute(
+          fixture.strategyFixtureCompute(f, task), suppliedLimits, { maxRows: 100, maxCells: 1000 }));
+        else assert.equal(fixture.strategyFixtureLocal(f, task), true);
+      }
+      assert.equal(fixture.strategyFixtureCid(f, 2), hash([{ id: 3 }, { id: 2 }, { id: 3 }]));
+      assert.equal(fixture.strategyFixtureCid(f, 3), hash([{ id: 3 }, { id: 3 }]));
+    } finally { capture.close(); for (const output of outputs) output.close(); }
+  }
 }

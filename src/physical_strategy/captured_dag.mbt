@@ -3,6 +3,7 @@
 /// The supplied acquisition has already completed; this object only borrows it.
 struct CapturedDAG {
   graph : CheckedDAG
+  offer_owner : StrategyOfferOwner
   source : @planning.CapturedInputSource
   ledger : Ledger
   completed : Array[TaskCompletion?]
@@ -10,6 +11,14 @@ struct CapturedDAG {
   mut running : (Int, @planning.DuckDBComputeAttempt)?
   mut stopped : Bool
   mut failure : (Int, RunIssue)?
+  mut generation : Int
+  mut search : SearchLimits?
+  mut revisions : Int
+  mut searched_generation : Int?
+  mut searched_resources : SearchResources?
+  mut strategy : StrategyRevision?
+  mut search_report : Array[StrategyAssessment]
+  revision_history : Array[StrategyRevision]
 }
 
 ///|
@@ -81,6 +90,7 @@ pub fn open_captured_dag(
   }
   Ok({
     graph,
+    offer_owner: { graph, },
     source,
     ledger,
     completed: Array::make(count, None),
@@ -88,6 +98,14 @@ pub fn open_captured_dag(
     stopped: false,
     failure: None,
     running: None,
+    generation: 0,
+    search: None,
+    revisions: 0,
+    searched_generation: None,
+    searched_resources: None,
+    strategy: None,
+    search_report: [],
+    revision_history: [],
   })
 }
 
@@ -217,6 +235,13 @@ pub fn execute_captured_local_task(
   let request = @planning.fixed_compute_candidate_request(
     @planning.prepared_compute_candidate(prepared),
   )
+  if !strategy_candidate_matches(
+      run,
+      task,
+      @planning.prepared_compute_candidate(prepared),
+    ) {
+    return Err(ForeignCandidate)
+  }
   guard run.inputs[task] is Some(read) &&
     physical_equal(read, @planning.fixed_compute_request_input(request)) else {
     return Err(ForeignCandidate)
@@ -231,6 +256,7 @@ pub fn execute_captured_local_task(
     Ok(completed) => {
       run.completed[task] = Some(Local(completed))
       run.inputs[task] = None
+      run.generation += 1
       Ok(())
     }
     Err(issue) => {
