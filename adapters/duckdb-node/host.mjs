@@ -5,6 +5,7 @@ import { runNativeQuery } from './native-query.mjs';
 import { runBroadQuery } from './broad-query.mjs';
 import { runFixedCompute, matchesFixedCompute, releaseFixedCompute } from './fixed-compute.mjs';
 import { DuckDBTransportError } from './session.mjs';
+import { computePhysicalCapacity } from './physical-capacity.mjs';
 
 const runtimeUrl = new URL('../../_build/js/release/build/duckdb_host_node/duckdb_host_node.js', import.meta.url);
 let runtime;
@@ -23,14 +24,14 @@ export async function runStrategyHostCompute(setup, limits, importLimits, signal
 
 async function runHostCompute(setup, limits, importLimits, signal, strategy) {
   const moon = await loadRuntime();
-  if (strategy && (!Number.isSafeInteger(limits.maxTransportBytes) || limits.maxTransportBytes < 0 ||
-    !Number.isSafeInteger(limits.memoryBytes) || limits.memoryBytes < 1)) {
-    throw new DuckDBTransportError('InvalidLimits');
-  }
+  // Freeze the same values used by both reservation and actual transport. A
+  // caller mutating its limits during an await cannot enlarge the execution.
+  limits = Object.freeze({ ...limits });
+  const capacity = strategy ? computePhysicalCapacity(limits) : undefined;
   let result, port, consume, attempt;
   const verify = current => current === attempt && matchesFixedCompute(result, port, consume);
   const run = checked(strategy
-    ? moon.computeStrategyHostOpen(setup, verify, BigInt(limits.maxTransportBytes), BigInt(limits.memoryBytes))
+    ? moon.computeStrategyHostOpen(setup, verify, capacity.transferBytes, capacity.executionBytes)
     : moon.computeHostOpen(setup, verify));
   attempt = moon.computeHostAttempt(run);
   let sessionStarted = false;
@@ -68,6 +69,7 @@ async function runHostCompute(setup, limits, importLimits, signal, strategy) {
     let closed = false;
     return Object.freeze({
       usage: result.usage,
+      physicalCapacity: capacity,
       importedRows: result.value.importedRows,
       importedCells: result.value.importedCells,
       output() {

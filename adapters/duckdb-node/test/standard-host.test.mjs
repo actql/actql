@@ -177,6 +177,12 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
             { code: 'MoonBitHostFailure' });
             assert.equal(fixture.strategyFixtureUsage(f, 0), transferred);
             assert.equal(fixture.strategyFixtureUsage(f, 3), attempts);
+            // DB memory alone fits, but the bounded transport containers do not.
+            await assert.rejects(runStrategyHostCompute(setup,
+              { ...suppliedLimits, maxCells: 2000000 }, { maxRows: 100, maxCells: 1000 }),
+            { code: 'MoonBitHostFailure' });
+            assert.equal(fixture.strategyFixtureUsage(f, 3), attempts);
+            assert.equal(fixture.strategyFixtureUsage(f, 2), 0n);
           }
           const completed = await runStrategyHostCompute(setup, suppliedLimits, { maxRows: 100, maxCells: 1000 });
           transferred += BigInt(completed.usage.transportBytes);

@@ -454,8 +454,18 @@ Prepare a selected task's `ComputeHostConfiguration`, wrap it with
 task completion is recorded by the DAG's exact attempt, not a caller-supplied
 output. Every DuckDB task uses its own temporary database and imports its fixed
 input, including consecutive DuckDB tasks. No resident sharing is implied.
-DuckDB task startup reserves `maxTransportBytes` and configured `memoryBytes`
-against that ledger before DB creation. Sent/received frame bytes are charged
+DuckDB task startup reserves `maxTransportBytes` and an execution envelope
+against that ledger before DB creation. `computePhysicalCapacity(limits)` from
+`physical-capacity.mjs` supplies the same envelope to planning and dispatch:
+configured `memoryBytes`, plus eight bytes per permitted UTF-8 transport byte,
+256 bytes per permitted cell/column/parameter entry, and four bytes per permitted
+SQL byte. These are explicit Host allowances for serialization and container
+capacity, not measured V8 heap/RSS or an OS sandbox. All contributing quantities
+are checked transport ceilings, not unchecked estimates. A returned Compute's
+`physicalCapacity` separates DB and scratch reservations from transferred usage.
+Receiver-retained MoonBit results need their separate retention accounting; this
+Node scratch envelope does not claim to cover their lifetime.
+Sent/received frame bytes are charged
 before acceptance and never refunded by result close or failure. Actual session
 cleanup releases unused transfer and configured DB-memory reservations.
 An error with `cleanupPending` retains `cleanupHandle.status()` and asynchronous
@@ -479,7 +489,7 @@ tasks; changing prices alone does not permit repeated search. Completed placemen
 and consumed transfer remain recorded. The selected Node task's transfer and
 DB-memory ceilings cannot exceed the selected envelope.
 
-This is not yet a complete Host physical-budget runner: retained buffers, adapter scratch, Local execution
+This is not yet a complete Host physical-budget runner: retained buffers, MoonBit receiver scratch, Local execution
 and acquisition integration still need accounting. Internal task outputs do not authorize partial
 publication of a failed Program.
 

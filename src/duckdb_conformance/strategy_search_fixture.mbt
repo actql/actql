@@ -50,7 +50,7 @@ pub fn strategy_fixture_replan(
           },
           retained_bytes: 10000L,
           execution_bytes: if native {
-            134217728L
+            268435456L
           } else {
             10000L
           },

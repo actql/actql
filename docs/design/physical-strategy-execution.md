@@ -31,13 +31,18 @@ The standard Node Host supplies its transport verifier and records success throu
 that same owned attempt; unrelated completed outputs are not accepted. Revocation
 of in-flight material is separate from native DB-stop acknowledgement.
 The run owns one immutable ledger reference. Standard Node DuckDB task starts
-reserve their transfer ceiling and configured DB memory before creating resources.
+reserve their transfer ceiling, configured DB memory and bounded Node transport
+representation allowance before creating resources. The allowance uses the same
+immutable limits as the executing transport: eight bytes per permitted serialized
+UTF-8 transport byte, 256 per cell/column/parameter entry and four per SQL byte.
+This declared capacity profile is separate from measured RSS and does not imply
+an OS-enforced heap limit or cover independently retained MoonBit outputs.
 The transport charges the same physical frames to the local session ceiling and
 the run ledger, before send/accept. Only confirmed native cleanup releases unused
 transfer and DB-memory reservations; failure never refunds consumed transfer.
 Task configuration cannot substitute a fresh ledger for a running graph.
 
-Retained-buffer and adapter-scratch accounting, Local
+Retained-buffer and MoonBit receiver-scratch accounting, Local
 physical enforcement described below must
 be connected before this is presented as
 the complete physical strategy Host. Checked topology validation alone is not
