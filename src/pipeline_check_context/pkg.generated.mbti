@@ -2267,6 +2267,7 @@ pub(all) enum OperationRequirementsIssue {
 } derive(Eq, @debug.Debug)
 
 pub(all) enum OperationResolution {
+  ReachExpansion(ReachExpansion)
   AsOfCompletion(AsOfKeyCompletion)
   WindowPublication(WindowPublicationResources)
   Order(OperationOrderLink)
@@ -2606,6 +2607,19 @@ pub(all) struct PureOperationProfiles {
   calendar : Bool
   text_rank : Bool
 } derive(Eq, @debug.Debug)
+
+pub struct ReachExpansion {
+  requirement_index : Int
+  site : OperationRequirementSite
+  step : @pipeline_typing.CheckedStep
+  input : @pipeline_typing.Target
+  operation : @graph_typing.CheckedReach
+  start : @value_admission.CheckedValue
+  direction : @graph_typing.Direction
+  minimum_hops : Double
+  maximum_hops : Double
+  emission : @graph_typing.PathOutput
+}
 
 type ReconciledContexts
 

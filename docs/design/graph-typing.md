@@ -221,6 +221,16 @@ atomic rejection on failure. They do not permit publication of a partial Graph.
 
 ## Path result contracts
 
+`JournalReachExpansion` is a static `ReachExpansion` resolution, not a runtime
+permission. It retains the owned source occurrence and the exact checked start
+value, authored direction and maximum depth, together with minimum depth zero
+and node emission. The checked reach output retains any semantic node-ID alias;
+the expansion does not rebuild another source tree or convert IDs to strings.
+Lowering consumes this selected homogeneous, unfiltered traversal recipe and
+records the required expansion. Admission, membership, traversal ordering and
+resource enforcement remain separate requirements; the recipe is not evidence
+that any of them has run or that a backend supports the operation.
+
 `check_path_contract` is the shared output builder for node traversal, path
 traversal and shortest paths. The pinned SGA identity law defines edge identity
 as the source/target/label tuple, so path output uses closed `{src,dst,rel}`
