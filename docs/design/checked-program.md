@@ -640,6 +640,13 @@ budget as relational predicates. The retained checked match owns the selectors
 and projection without copying them. Membership, predicate evaluation, canonical
 match ordering and resource enforcement remain separate execution obligations.
 
+Subgraph selection retains both the Graph input and any selector Relation as
+distinct input occurrences, including when they share a producer. Explicit node
+identities and both node/edge predicates participate in value provenance; an
+empty selected subgraph does not discard their policies. The checked operation
+retains selector ownership while graph induction, membership, materialization
+resources and observation-scope preservation remain execution requirements.
+
 Result imports retain the producer's completed publication through
 `publication_policy_import_count/at`, including the consumer input coordinate.
 `imported_publication` is a convenience only for exactly one import.

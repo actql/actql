@@ -769,6 +769,37 @@ fn prepare_publication_source_policy(
             unknown = unknown || missing
             2
           }
+          @pipeline.Subgraph(selector~, checked=operation) => {
+            identity_charge(budget, 1)
+            let nodes = @graph.subgraph_nodes(operation)
+            let mut missing = @graph.selector_id_count(nodes) > 0
+            for
+              predicate in [
+                @graph.selector_predicate(nodes),
+                @graph.subgraph_edges(operation),
+              ] {
+              identity_charge(budget, 1)
+              if predicate is Some(predicate) {
+                if publication_expression_unknown(
+                    @graph.predicate_expression(predicate),
+                    budget,
+                  ) {
+                  missing = true
+                }
+              }
+            }
+            carrier_steps.push({
+              step: index,
+              operation: step.operation,
+              unknown_provenance: missing,
+            })
+            unknown = unknown || missing
+            if selector is Some(_) {
+              2
+            } else {
+              1
+            }
+          }
           @pipeline.GraphMatch(operation) => {
             identity_charge(budget, 1)
             let mut missing = @graph.match_id_count(operation) > 0 ||
