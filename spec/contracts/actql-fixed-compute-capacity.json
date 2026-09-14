@@ -1,0 +1,53 @@
+{
+  "version": "actql-fixed-compute-capacity/0.1",
+  "dependencies": {
+    "consumer": {
+      "path": "spec/contracts/actql-consumer-capacity.json",
+      "pointer": "",
+      "cid": "sha256:7d59718b965451d8a19ccf7095b92777ba0cdd8c3bb71f437ab387801fe7271f"
+    },
+    "fragment": {
+      "path": "spec/contracts/actql-expressions.json",
+      "pointer": "/schemas/fragment",
+      "cid": "sha256:4d42600c1b3d42d660f2eb14a84342988c17646110f8995f80bf4dc4344ce3d4"
+    }
+  },
+  "scope": "one_owned_completed_ProducerRead_filter_then_select_no_fresh_source_read",
+  "limits": {
+    "rows": {
+      "measure": "input_occurrences_and_output_occurrences_separately",
+      "subject": "all_candidates",
+      "binding": "selected_consumer.max_rows"
+    },
+    "value": {
+      "measure": "canonical_wire_UTF8_per_top_level_input_value_demanded_context_value_evaluated_root_and_output_value",
+      "subject": "all_candidates",
+      "binding": "selected_consumer.max_value_bytes"
+    },
+    "common_fragment": {
+      "measure": "exact_selected_fragment_measures_including_operation_boundaries",
+      "subject": "all_candidates_if_selected",
+      "binding": "exact_consumer_owned_fragment_and_limits"
+    },
+    "local_fragment": {
+      "measure": "selected_Local_fragment_measures",
+      "subject": "Local_realization_only_unless_also_selected_common",
+      "binding": "Local_candidate_fragment_and_limits"
+    },
+    "physical": {
+      "measure": "engine_work_transfers_and_retention_at_distinct_Host_scopes",
+      "subject": "executing_candidate",
+      "binding": "selected_Host_task"
+    }
+  },
+  "semantics": {
+    "selection": "bind_exact_consumer_capacity_contract_CID_explicit_rows_value_bounds_before_candidate_comparison_no_acquisition_exemption",
+    "ownership": "same_immutable_completed_input_receiver_Parameter_binding_checked_demand_and_selected_capacity_no_equal_content_handle_substitution",
+    "admission": "validate_all_known_input_fields_before_predicate_even_empty_output_or_unused_columns_no_undemanded_expression_evaluation",
+    "native": "require_exact_measurement_and_authorized_execution_evidence_for_all_selected_common_scopes_before_admission_as_candidate_no_Local_replay_requirement_no_estimates_or_SQL_success_substitute",
+    "fragment": "explicit_common_fragment_is_not_optional_native_must_cover_its_exact_counters_or_be_ineligible_no_synthetic_row_kernel_limits_for_filter_select",
+    "failure": "common_guard_violation_cannot_be_waived_by_candidate_change_Local_only_or_physical_exhaustion_may_differ_no_partial_consumer_output_fixed_input_remains_owned",
+    "output": "same_checked_filter_select_semantics_input_relative_order_and_multiplicity_output_contract_and_guards_before_handoff_not_new_observation_or_total_order_evidence",
+    "compatibility": "consumer_capacity_law_and_existing_acquisition_receipt_observation_wire_unchanged_FixedComputeRequest_is_Host_local_not_a_new_shared_wire_envelope"
+  }
+}

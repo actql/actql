@@ -8341,6 +8341,94 @@
       }
     },
     {
+      "requirement_id": "actql.execution/fixed-compute-capacity.selection",
+      "statement_sha256": "ebe0de309b7f39b41cbf421b97bdb2b870ccdecd4087aa4f33450748cf74d210",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "fixed-compute-capacity",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.execution/fixed-compute-capacity.no-acquisition-exemption",
+      "statement_sha256": "61552bb9075adee0fcdee28eab12a7ba3f66f61b5df5b765626b36f631524c58",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "fixed-compute-capacity",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.execution/fixed-compute-capacity.rows",
+      "statement_sha256": "3dbb583b47fa3baf629b907d009fb59da235681177801e1aaa37f63b144c3942",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "fixed-compute-capacity",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.execution/fixed-compute-capacity.values",
+      "statement_sha256": "4ed9dff59fb9812956e7269a74adeb18bfd9497e8f0ceff3234d0dbf6c7caee0",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "fixed-compute-capacity",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.execution/fixed-compute-capacity.local-fragment",
+      "statement_sha256": "7fd7aca0392c3038acbc905b85ca8c4d9994d1529f39037f7831e22be65b6c74",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "fixed-compute-capacity",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.execution/fixed-compute-capacity.common-fragment",
+      "statement_sha256": "2a711d8c449ab6388bc338df4291616fb4c01d0ecd0f1b62b58da74a9e42b649",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "fixed-compute-capacity",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.execution/fixed-compute-capacity.native",
+      "statement_sha256": "afe1b7c35d0d0c23d619f408cc5f1560e9f7597f6d3217dd41f59fbd2043231b",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "fixed-compute-capacity",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.execution/fixed-compute-capacity.failure",
+      "statement_sha256": "042f7ee980fb6f2578c6b3ddda0cd619aaed111f5b96a120931c9ecce59b92c5",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "fixed-compute-capacity",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.execution/query-process-evidence.order",
       "statement_sha256": "24aa4ff67bf591559bfdbcbb7e14282527b9589664909c9fb448b9537aa75fc1",
       "status": "pending",

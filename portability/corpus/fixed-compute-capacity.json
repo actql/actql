@@ -1,0 +1,29 @@
+{
+  "version": "actql-fixed-compute-capacity-vectors/0.1",
+  "scan": [{"amount":10,"id":0},{"amount":20,"id":2}],
+  "output": [{"id":2}],
+  "cases": [
+    {"name":"common input rows equality","rows":2,"value_bytes":5,"expected":"Completed"},
+    {"name":"common input rows excess despite narrow output","rows":1,"value_bytes":5,"expected":"InputRows"},
+    {"name":"empty input at zero guards","scan":[],"rows":0,"value_bytes":0,"expected":"Completed","output":[]},
+    {"name":"all filtered still admits input","threshold":10,"rows":2,"value_bytes":5,"expected":"Completed","output":[]},
+    {"name":"all filtered cannot bypass input row guard","threshold":10,"rows":1,"value_bytes":5,"expected":"InputRows"},
+    {"name":"root byte equality","rows":2,"value_bytes":5,"expected":"Completed"},
+    {"name":"root byte excess despite small selected values","rows":2,"value_bytes":4,"expected":"RootValue"},
+    {"name":"input value equality independent of row width","scan":[{"amount":123456,"id":2}],"rows":1,"value_bytes":6,"expected":"Completed","output":[{"id":2}]},
+    {"name":"unused input value excess","scan":[{"amount":123456,"id":2}],"rows":1,"value_bytes":5,"expected":"InputValue"},
+    {"name":"invalid excluded row is admitted before filtering","scan":[{"amount":"invalid","id":0},{"amount":20,"id":2}],"rows":2,"value_bytes":20,"expected":"InputAdmission"},
+    {"name":"Local only fragment row exhaustion","rows":2,"value_bytes":5,"local_rows":1,"expected_local":"LocalRows","expected_native":"Completed"},
+    {"name":"common fragment row exhaustion","rows":2,"value_bytes":5,"common_fragment_rows":1,"exact_fragment_meter":true,"expected":"CommonFragmentRows"},
+    {"name":"common fragment row equality","rows":2,"value_bytes":5,"common_fragment_rows":2,"exact_fragment_meter":true,"expected":"Completed"},
+    {"name":"native cannot meter selected common fragment","rows":2,"value_bytes":5,"common_fragment_rows":2,"exact_fragment_meter":false,"expected_local":"Completed","expected_native":"Ineligible"},
+    {"name":"consumer failure preserves completed fixed input","rows":1,"value_bytes":5,"expected":"InputRows"},
+    {"name":"physical exhaustion is realization scoped","rows":2,"value_bytes":5,"native_physical_stop":true,"expected_local":"Completed","expected_native":"PhysicalBudget"}
+  ],
+  "invalid_native_outputs": [
+    {"name":"output row excess","rows":[{"id":2},{"id":2},{"id":2}],"expected":"OutputRows"},
+    {"name":"output value excess","rows":[{"id":123456}],"expected":"OutputValue"},
+    {"name":"output missing field","rows":[{}],"expected":"OutputAdmission"},
+    {"name":"output value differs within guards","rows":[{"id":0}],"expected":"OutputMismatch"}
+  ]
+}

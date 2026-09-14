@@ -445,6 +445,78 @@ observation and does not authorize rereading. Actual engine work, each receipt
 and retention copies retain their separate Host physical budgets and accounting;
 two transfers are not hidden or conflated with logical output rows.
 
+<a id="fixed-compute-capacity"></a>
+
+### Fixed-input filter/select Compute capacity
+
+<!-- machine-import: ../../spec/contracts/actql-fixed-compute-capacity.json# sha256:18acad6522ba361fe72b0de47e6ec7bf808423afe3e222739235d5101d72d88c -->
+The [fixed-input capacity profile](../../spec/contracts/actql-fixed-compute-capacity.json)
+applies to filter followed by select over one completed, retained ProducerRead.
+It clarifies the application of the existing consumer capacity law, and fixes
+the common-versus-realization selection boundary for this initial profile. It
+does not change the consumer capacity law, its CID, or acquisition/receipt wire.
+`FixedComputeRequest` names a Host-local owned request, not a new wire envelope.
+
+<!-- requirement-block: fixed-compute-capacity.selection fixed-compute-capacity.no-acquisition-exemption -->
+Before comparing candidates, the Host MUST bind explicit `max_rows` and
+`max_value_bytes` with the exact `actql-consumer-capacity/0.1` contract CID to
+the fixed input, its receiver/consumer owner, effective Parameters and checked
+expression demand. Every candidate implements this same selection. Acquisition's
+Local-fragment distinction MUST NOT exempt Compute from these consumer limits.
+A fresh read, an equal-content input handle from another owner, a substituted
+consumer or changed limits cannot replace this request. Successful acquisition
+or capture does not establish successful consumer admission or computation.
+
+<!-- requirement-block: fixed-compute-capacity.rows fixed-compute-capacity.values -->
+The common `max_rows` MUST separately cap input occurrences before computation
+and output occurrences before handoff. The common `max_value_bytes` MUST retain
+the existing per-top-level-input-value, demanded-context-value, evaluated-root
+and output-value canonical wire UTF-8 scopes, not whole-row, batch, transfer,
+database storage or heap sizes. All known input fields obey their contracts,
+including fields removed by select and rows removed by filter; input admission
+precedes predicate evaluation. Undemanded expressions are not evaluated for
+measurement. Demand, result contracts, relative input order and multiplicity
+remain those of the checked filter/select. Physical enumeration does not become
+new total-order evidence. Empty input and all-filtered output do not waive any
+applicable input checks; empty input has no demanded row roots. Equality passes
+and excess or accounting overflow fails the whole consumer without partial output.
+
+<!-- requirement-block: fixed-compute-capacity.local-fragment fixed-compute-capacity.common-fragment -->
+A fragment selected only to implement the Local candidate MUST retain its own
+limits without imposing them on another realization. If the Host instead selects
+that fragment contract as common to the request, every candidate MUST enforce
+its exact limits and retain its exact consumer/Parameter ownership. Equivalent
+reconstruction is not owner equality. Fragment input/operation-boundary rows,
+value bytes and any applicable work/live-value measures keep their own subjects;
+common consumer output rows cannot substitute for those counters. This initial
+filter/select shape has no ordered derive and does not synthesize
+`row_kernel_limits`. It adds no native implementation of ordered-kernel measures.
+
+<!-- requirement-block: fixed-compute-capacity.native -->
+Native eligibility MUST establish an admissible exact measurement/enforcement
+path for every selected common scope before candidate selection. Known retained
+row counts, streaming canonical-wire value meters, and exact measurements for
+the checked demanded roots and operation boundaries may satisfy that path;
+Local full recomputation is not required. Unreturned SQL roots still require
+their exact checks. Estimates, SQL success, equal final results, physical memory
+measurements or a capability boolean alone are insufficient. A candidate lacking
+an exact path for a selected fragment measure is ineligible, not budget-exempt.
+Completion evidence binds actual successful enforcement and output retention to
+the same fixed input, consumer, Parameters, demand, selected limits, task and
+attempt. It does not mint a new acquisition observation or infer source evidence.
+
+<!-- requirement-block: fixed-compute-capacity.failure -->
+A common guard violation MUST NOT be bypassed by changing candidates. A valid
+input may exhaust a Local-only fragment budget while native succeeds under all
+its selected contracts. Physical budgets remain candidate-specific, with engine
+work, transfers and retained copies separately accounted. Such exhaustion may
+stop before a later semantic error; cross-candidate diagnostic equality is not
+required. With these budgets sufficient, invalid known input values and demanded
+expression failures cannot be hidden. Consumer failure leaves the previously
+completed input intact and does not authorize reacquisition. Correct filter/select
+cannot expand the row count; output-guard rejection tests of an expanding native
+result test faulty output, not an additional admitted operation.
+
 <a id="query-process-evidence"></a>
 
 #### Process-retained query evidence
