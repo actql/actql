@@ -467,6 +467,10 @@ pub fn local_inputs_at(InputContexts, Int) -> @stage_local_inputs.Attached?
 
 pub fn measure_operation_values_rows(ProgramOperationCells, Int, Int, Int, Int) -> Result[(Int, Int, Int), ValuesMeasurementIssue]
 
+pub fn nearest_resource_at(NearestCheck, Int) -> NearestResource?
+
+pub fn nearest_resource_count(NearestCheck) -> Int
+
 pub fn numeric_slot_at(ProgramNumericSlots, Int) -> NumericSlot?
 
 pub fn numeric_slot_count(ProgramNumericSlots) -> Int
@@ -2098,7 +2102,16 @@ pub struct NearestCheck {
   operation : @relation_evidence.CheckedNearest
   rule : @relation_evidence.NearestObligation
   policy : @capacity_policy.Policy
+  host_output_rows : @capacity_policy.Ceiling?
 }
+
+pub(all) enum NearestResource {
+  InputAdmissionWork
+  PairScoringWork
+  RankingWork
+  ValueAndTemporaryBytes
+  RetainedSearchState
+} derive(Eq, @debug.Debug)
 
 pub struct NumericSlot {
   requirement_index : Int

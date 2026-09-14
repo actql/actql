@@ -6101,6 +6101,28 @@ their usual higher-is-better orientation. The canonical `l2` score is
 **negative Euclidean distance**, so zero is best and all three metrics share
 descending ranking order.
 
+<!-- requirement-block: nearest.resource-binding -->
+An executable nearest realization MUST bind finite enforceable input-admission,
+pair-scoring and ranking-work contracts, value/temporary-byte contracts and
+retained-search-state contracts before input use. Each selected meter specifies
+quantity, unit, aggregation, ceiling and failure behavior. The selected Host
+Relation-output ceiling and any other applicable logical limits remain enforced;
+k bounds selection per query, not input validation, scoring work or storage.
+A count proof is not a substitute for these work and byte contracts. Different
+exact realizations may have different physical meters without weakening the
+pinned numerical law or admitting approximate search.
+
+<!-- requirement-block: nearest.resource-scope -->
+Each selected meter MUST cover the entire owned operation, retaining candidate
+and query roles separately even when they refer to one producer. Cumulative
+work and byte traffic count actual uses without resetting per query or candidate;
+peak storage includes concurrently live inputs, ranking state, result and
+temporaries. Shared immutable storage is not an imaginary copy. An empty side
+does not waive the other side's admission, identity uniqueness or completion
+requirements. Failure, cancellation or incomplete validation prevents partial
+ranking publication. A zero output-count bound proves neither zero input work
+nor completed input validation.
+
 <a id="vector-arithmetic"></a>
 
 #### Deterministic vector arithmetic

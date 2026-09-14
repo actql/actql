@@ -113,6 +113,7 @@ fn check_supported_source(
               | "normalize_vectors"
               | "score_vectors"
               | "vectors"
+              | "nearest"
               | "node_rows"
               | "edge_rows"
               | "values" => ()

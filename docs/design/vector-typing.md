@@ -70,8 +70,14 @@ journal checks record the already selected side and field; they do not perform
 another inference. Exact scoring, semantic identity restoration, query/candidate
 ordering, contiguous rank and the similarity-authority boundary remain separate
 checks before output publication. Empty-side results do not provide evidence
-that those prerequisite checks ran. Resource and profile selection are separate;
-these bindings neither implement KNN nor attest its completion.
+that those prerequisite checks ran. Resource bindings retain admission, scoring,
+ranking, byte and search-state requirements under the exact operation and policy,
+plus that policy's Relation-output ceiling. This ceiling is not a replacement
+for applicable Program bounds or a resolved claim that selects all candidates.
+The realization must supply enforceable whole-operation meters; cumulative work
+and traffic differ from peak live storage. A zero output bound and k alone do not
+discharge these requirements. Profile selection remains separate; these bindings
+neither implement KNN nor attest its completion.
 
 `NearestSource.KeySource` supplies a retained candidate-key collection bound to
 its own Relation contract. The pipeline uses that boundary for both sides.

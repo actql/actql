@@ -77,10 +77,7 @@ test "nearest execution retains both owned roles across mixed and unknown Carrie
             Ok(None),
           )
           if site.requirement
-            is @pipeline.NearestRequirement(
-              ResolveNearestResources
-              | ResolveNearestProfile
-            ) {
+            is @pipeline.NearestRequirement(ResolveNearestProfile) {
             assert_true(result is Ok(None))
             continue
           }
@@ -113,6 +110,22 @@ test "nearest execution retains both owned roles across mixed and unknown Carrie
             }
             MatchNearestDimensions => {
               dimensions += 1
+              true
+            }
+            ResolveNearestResources => {
+              assert_eq(nearest_resource_count(check), 5)
+              assert_eq(
+                @policy.ceiling_value(check.host_output_rows.unwrap()),
+                7L,
+              )
+              assert_true(
+                physical_equal(
+                  @policy.ceiling_policy(check.host_output_rows.unwrap()),
+                  policy,
+                ),
+              )
+              assert_true(nearest_resource_at(check, -1) is None)
+              assert_true(nearest_resource_at(check, 5) is None)
               true
             }
             JournalVectorFieldCompletion(side, name) => {
@@ -174,7 +187,7 @@ test "nearest execution retains both owned roles across mixed and unknown Carrie
           completions,
           (if a == 0 { 1 } else { 0 }) + (if b == 0 { 1 } else { 0 }),
         )
-        assert_eq(admitted, 8 + roles + dimensions + completions)
+        assert_eq(admitted, 9 + roles + dimensions + completions)
       }
     }
   }
