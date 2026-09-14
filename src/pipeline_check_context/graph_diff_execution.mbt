@@ -49,6 +49,11 @@ pub fn graph_delta_resource_at(
   if check.rule != RequireDeltaResources {
     return None
   }
+  graph_delta_resource(index)
+}
+
+///|
+fn graph_delta_resource(index : Int) -> GraphDeltaResource? {
   match index {
     0 => Some(GraphNodes)
     1 => Some(GraphEdges)

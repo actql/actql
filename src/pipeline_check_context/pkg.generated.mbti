@@ -271,6 +271,10 @@ pub fn expression_validation_text_time(ExpressionValidationContext) -> @check_en
 
 pub fn expression_validation_usage(ExpressionValidationContext) -> SelectedPolicyUsage
 
+pub fn graph_apply_resource_at(GraphApplyCheck, Int) -> GraphDeltaResource?
+
+pub fn graph_apply_resource_count(GraphApplyCheck) -> Int
+
 pub fn graph_comparison_resource_at(GraphEqualityCheck, Int) -> GraphComparisonResource?
 
 pub fn graph_comparison_resource_count(GraphEqualityCheck) -> Int
@@ -1430,6 +1434,32 @@ pub(all) struct ExpressionValidationLimits {
 
 type ExpressionValidationSite
 
+pub struct GraphApplyCheck {
+  site : OperationRequirementSite
+  step : @pipeline_typing.CheckedStep
+  base : @pipeline_typing.Target
+  delta : @pipeline_typing.Target
+  operation : @graph_typing.CheckedApply
+  rule : GraphApplyRule
+  policy : @capacity_policy.Policy
+}
+
+pub(all) enum GraphApplyRule {
+  RequireSingleDeltaRow
+  AdmitDeltaShapeAndVersion
+  MatchGraphContract
+  AdmitBaseGraph
+  MatchBaseIdentity
+  ValidateUniqueOrderedActions
+  MatchBeforeRecords
+  CheckActionExistence
+  ApplyChangesAtomically
+  AdmitResultGraph
+  MatchTargetIdentity
+  PreservePolicyDependencies
+  RequireApplicationResources
+} derive(Eq, @debug.Debug)
+
 pub(all) enum GraphComparisonResource {
   ComparisonWork
   RetainedComparisonState
@@ -1991,6 +2021,7 @@ pub(all) enum OperationDisposition {
 }
 
 pub(all) enum OperationExecutionCheck {
+  GraphApplyExecution(GraphApplyCheck)
   GraphDiffExecution(GraphDiffCheck)
   GraphEqualityExecution(GraphEqualityCheck)
   GraphResources(GraphResourcesCheck)

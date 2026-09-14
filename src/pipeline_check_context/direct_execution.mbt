@@ -92,5 +92,9 @@ fn direct_execution_candidate(
     Ok(None) => ()
     other => return other
   }
-  graph_diff_execution_check(site, policy)
+  match graph_diff_execution_check(site, policy) {
+    Ok(None) => ()
+    other => return other
+  }
+  graph_apply_execution_check(site, policy)
 }

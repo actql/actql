@@ -442,6 +442,18 @@ before-record equality, existence rules, atomic node/edge changes, endpoints,
 complete result admission, policy dependencies, SGA profile and resources.
 No row count or successful application is inferred from a static type.
 
+`GraphApplyCheck` binds those checks to the exact base Graph and Delta Relation
+occurrences. The stored operation supplies the independently resolved contract
+and selected field. Pre-application checks gate input use; atomic changes,
+result admission and target-identity matching gate output. `BeforeOperationOutput`
+does not permit publishing a prefix or mutating an exposed input in place.
+Policy dependencies remain mandatory even when no action changes a value.
+The indexed resource reader shares Delta's graph/action/byte/work/state
+categories, applying them to the base, supplied actions and candidate result.
+The selected realization must provide finite enforceable limits before use;
+no one-row or self-application shortcut waives them. Static closure does not
+claim that the Delta was applied, nor authorize persistence or provider access.
+
 Diff and Apply share the complete-record type builder. Compatibility traversal,
 contract emission and new record wrappers share work/node/text budgets with
 source admission. Contract hashing does not materialize serialized text.

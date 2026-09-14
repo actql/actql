@@ -97,6 +97,7 @@ fn check_supported_source(
               | "graph_bounds"
               | "graphs_equal"
               | "graph_diff"
+              | "apply_graph_delta"
               | "node_rows"
               | "edge_rows"
               | "values" => ()

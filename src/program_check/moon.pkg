@@ -32,6 +32,7 @@ import {
 
 import {
   "actql/actql/binding_declarations" @bindings,
+  "actql/actql/graph_typing" @graph,
   "actql/actql/local_relation_snapshot" @snapshot,
   "actql/actql/source_request_slots" @slots,
   "actql/actql/parameter_binding" @parameters,
