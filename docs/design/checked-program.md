@@ -490,6 +490,13 @@ reconstructing them. This relation-level transfer does not remove provenance whe
 a filter is false or a later projection hides the generated column, and does not
 discharge analytic resource, order, or numeric capture requirements.
 
+Standalone lag likewise retains the checked operation, selected field, output
+name and effective offset through indexed readers. The offset keeps unknown
+provenance even when defaulted; navigation does not grant classification to its
+control value. Dropping the generated column does not remove the input policy or
+the navigation contribution. The retained occurrence is the one used by the lag
+execution check, with order and bound-parameter validation remaining separate.
+
 Result imports retain the producer's completed publication through
 `publication_policy_import_count/at`, including the consumer input coordinate.
 `imported_publication` is a convenience only for exactly one import.

@@ -19,6 +19,7 @@ fn checked_direct_program_fixture(
   group_body? : String = "",
   pivot_body? : String = "",
   analytic_body? : String = "",
+  lag_body? : String = "",
   numeric_profile? : @numeric.Profile? = None,
 ) -> CheckedProgram raise {
   let original_text =
@@ -99,6 +100,19 @@ fn checked_direct_program_fixture(
         old="}],\"results\":{\"out\":{\"from\":{\"stage\":\"s\",\"result\":\"out\"}}}}",
         new="},{\"id\":\"consumer\",\"inputs\":{\"imported\":{\"result\":{\"stage\":\"s\",\"result\":\"out\"}}},\"steps\":[],\"results\":{\"out\":{\"from\":\"imported\",\"fields\":[\"id\"]}}}],\"results\":{\"out\":{\"from\":{\"stage\":\"consumer\",\"result\":\"out\"}}}}",
       )
+    } else if lag_body != "" {
+      let navigation = text.replace(
+        old="\"steps\":[",
+        new="\"steps\":[{\"distinct\":[\"id\"]},{\"lag\":" + lag_body + "},",
+      )
+      if lag_body.contains("$param") {
+        navigation.replace(
+          old="\"stages\":",
+          new="\"params\":{\"distance\":{\"type\":\"number\",\"default\":1}},\"stages\":",
+        )
+      } else {
+        navigation
+      }
     } else if analytic_body != "" {
       text.replace(
         old="\"steps\":[",
@@ -252,7 +266,8 @@ fn checked_direct_program_fixture(
         mix_generated ||
         mix_local ||
         pivot_body != "" ||
-        analytic_body != "" {
+        analytic_body != "" ||
+        lag_body != "" {
         4
       } else {
         2

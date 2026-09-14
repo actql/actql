@@ -263,6 +263,10 @@ pub fn publication_policy_import_at(PublicationSourcePolicy, Int) -> Publication
 
 pub fn publication_policy_import_count(PublicationSourcePolicy) -> Int
 
+pub fn publication_policy_lag_at(PublicationSourcePolicy, Int) -> PublicationPolicyLag?
+
+pub fn publication_policy_lag_count(PublicationSourcePolicy) -> Int
+
 pub fn publication_policy_local_check_at(PublicationSourcePolicy, Int) -> @pipeline_check_context.LocalInputExecutionCheck?
 
 pub fn publication_policy_local_check_count(PublicationSourcePolicy) -> Int
@@ -698,6 +702,14 @@ pub struct PublicationPolicyGroup {
 pub struct PublicationPolicyImport {
   input : Int
   publication : PublicationExecution
+}
+
+pub struct PublicationPolicyLag {
+  step : Int
+  operation : @relation_typing.CheckedOperation
+  field : @relation_typing.KeyField
+  output : String
+  offset : @relation_typing.CountValue
 }
 
 pub struct PublicationPolicyPivot {

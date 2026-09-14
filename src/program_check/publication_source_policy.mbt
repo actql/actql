@@ -20,6 +20,29 @@ pub struct PublicationSourcePolicy {
   priv groups : Array[PublicationPolicyGroup]
   priv pivots : Array[PublicationPolicyPivot]
   priv analytics : Array[PublicationPolicyAnalytic]
+  priv lags : Array[PublicationPolicyLag]
+}
+
+///|
+pub struct PublicationPolicyLag {
+  step : Int
+  operation : @relation.CheckedOperation
+  field : @relation.KeyField
+  output : String
+  offset : @relation.CountValue
+}
+
+///|
+pub fn publication_policy_lag_count(value : PublicationSourcePolicy) -> Int {
+  value.lags.length()
+}
+
+///|
+pub fn publication_policy_lag_at(
+  value : PublicationSourcePolicy,
+  index : Int,
+) -> PublicationPolicyLag? {
+  value.lags.get(index)
 }
 
 ///|
@@ -322,6 +345,7 @@ fn prepare_publication_source_policy(
   let groups : Array[PublicationPolicyGroup] = []
   let pivots : Array[PublicationPolicyPivot] = []
   let analytics : Array[PublicationPolicyAnalytic] = []
+  let lags : Array[PublicationPolicyLag] = []
   let mut unknown = false
   while pending.pop() is Some(target) {
     identity_charge(budget, 1)
@@ -342,6 +366,17 @@ fn prepare_publication_source_policy(
           @pipeline.Unary(operation) => {
             match @relation.operation(operation) {
               Select | Rename | Drop | Sort | Distinct | DedupeRows => ()
+              Lag => {
+                identity_charge(budget, 1)
+                guard @relation.lag_navigation(operation)
+                  is Some((field, output, offset)) else {
+                  raise ForeignOwner
+                }
+                lags.push({ step: index, operation, field, output, offset, })
+                // An explicit or defaulted navigation distance is a value, not
+                // an admitted classification. Preserve all input provenance too.
+                unknown = true
+              }
               Analytic => {
                 guard @relation.analytic(operation) is Some(analytic) else {
                   raise ForeignOwner
@@ -657,6 +692,7 @@ fn prepare_publication_source_policy(
     groups,
     pivots,
     analytics,
+    lags,
   }
   |> Some
 }
