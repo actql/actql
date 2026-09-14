@@ -98,7 +98,7 @@ This implements a component of the original shared-capacity scope. The
 [common wire reader](capacity-witness-wire.md) checks canonical claims; connecting
 their validated source/law applications to this arithmetic closure, enforcement binding, resolved-limit
 generation and whole-pipeline discharge remain open in the
-[completion audit](pure-operation-audit.md).
+[historical audit](../reviews/pure-operation-audit.md).
 
 ## Tests
 

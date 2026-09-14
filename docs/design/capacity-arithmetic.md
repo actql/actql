@@ -44,7 +44,7 @@ limits even though each arithmetic operation is constant-time.
 
 Full witness closure, external fact admission, resolved-limit serialization and
 whole-pipeline discharge remain open in the
-[completion audit](pure-operation-audit.md). Passing the arithmetic tests does
+[historical audit](../reviews/pure-operation-audit.md). Passing the arithmetic tests does
 not establish those boundaries.
 
 ## Regression evidence

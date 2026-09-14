@@ -119,8 +119,9 @@ consistent static result for the authored Program and stages: inputs, Parameter
 bindings, selected contracts and policy, types, order strategies, capacity
 applications and their producer dependencies. The result must be opaque and
 constructible only through validation; a public aggregate of checker results or
-`validated: true` does not satisfy this boundary. `CheckedProgram` is a
-descriptive name here, not an already implemented API.
+`validated: true` does not satisfy this boundary. The public
+`program_check.check` constructor returns the opaque `CheckedProgram`; consumers
+use its read-only interfaces rather than assembling or sealing component results.
 
 The [Checked Program construction contract](checked-program.md) fixes the entry,
 success conditions, exhaustive obligation coverage and lowering reads. Integration
@@ -191,5 +192,6 @@ result need not guess or re-decide ActQL semantics, and that it can locate every
 retained runtime obligation and dependency without reconstructing checker
 ownership or inventing identities. Static readiness is neither execution nor
 authorization to execute.
-The [open completion audit](pure-operation-audit.md) records inspected boundaries,
-confirmed gaps and still-unverified coverage without treating dispatch as completion.
+The [historical audit](../reviews/pure-operation-audit.md) preserves earlier
+findings. Its implementation-status notes are not a current support matrix or
+completion certificate; completion requires the current-state checks above.

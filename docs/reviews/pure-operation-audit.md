@@ -1,6 +1,17 @@
-# Pure operation completion audit
+# Historical pure operation audit
 
-This is an open audit of [the agreed scope](pure-operation-checking.md), not a
+This preserves incremental audit notes from earlier implementation stages.
+Statements about missing or unfinished work describe the reviewed state when
+recorded, not the current implementation. Consult the
+[Checked Program construction contract](../design/checked-program.md) for the
+integration boundary and verify current code and tests before making a completion
+claim. Relocation does not resolve any finding or turn this record into a current
+conformance certificate.
+
+The original acceptance-evidence inventory recorded `8bc0373` as its navigation
+baseline; that historical baseline is not the current implementation revision.
+
+This is an open audit of [the agreed scope](../design/pure-operation-checking.md), not a
 completion certificate. The inspected implementation baseline is `7734e65`.
 The local regression baseline is 1,710 tests per target (JS, Wasm, native), plus
 format, API, documentation and metadata checks. Linux CI and runtime execution
@@ -15,7 +26,7 @@ condition or overloaded Carrier alternative has sufficient tests. In particular,
 a passing package suite is not a substitute for the remaining schema/vector/
 consumer audit.
 
-The [acceptance evidence inventory](pure-operation-test-inventory.md) now maps
+The [acceptance evidence inventory](../design/pure-operation-test-inventory.md) now maps
 all 48 spellings to operation/pipeline tests and schema owners. Its integrity
 gate checks exact scope coverage, real evidence paths and presence in both
 embedded Program schemas. This closes the missing navigation/index mapping,
@@ -491,14 +502,14 @@ admission, resource enforcement or complete source authority.
    cycle for nearest and ranking key producers, with unchanged facade entry points.
 2. Define validated external evidence and resolved-capacity boundaries using
    the existing normative witness domains, governing laws and dependency checks.
-   The [source applicability audit](capacity-source-audit.md) distinguishes
+   The [source applicability audit](../design/capacity-source-audit.md) distinguishes
    registered names from actual source authority, records the extension-local
    fragment law boundary, and identifies checked-operation author-guard binding
    as the next in-scope source connection. It does not add a generic trusted
    Contract/Program/Language witness constructor or expand into acquisition.
    Its Program application review also distinguishes semantic references from
    authored names and capacity operands from data inputs. The
-   [checked step bound application](program-step-bounds.md) now binds local
+   [checked step bound application](../design/program-step-bounds.md) now binds local
    input-independent global-group and literal take/top-k proofs to their actual
    operation, using owner-relative step references and checking law/unit/value
    and derivation. Input-dependent append, literal clamps and known unpivot/
@@ -566,7 +577,7 @@ admission, resource enforcement or complete source authority.
    input applications, general imported semantic subjects and enclosing Program
    identity remain open; arithmetic closure or matching an
    `as` name cannot substitute for those boundaries.
-   [Checked author-guard occurrences](author-guard-occurrences.md) now retain
+   [Checked author-guard occurrences](../design/author-guard-occurrences.md) now retain
    actual local step/aggregate owners, exact guard slots and unresolved
    Parameter references under cumulative enumeration budgets. Numeric binding
    now checks positive safe-integer values against BoundValues from the exact
@@ -591,7 +602,7 @@ admission, resource enforcement or complete source authority.
    pipeline ownership is not Invocation identity: consistency of bindings within
    a Program/Invocation, source identity binding and consumer enforcement remain
    required.
-   [Producer-bound input evidence](produced-input-evidence.md) now retains the
+   [Producer-bound input evidence](../design/produced-input-evidence.md) now retains the
    original pipeline/target and conditional record/node/edge facts through
    input forwarding. Repeated operands and existing key/ranking owners remain
    intact. Imported order now uses a local input origin with an explicit
@@ -601,7 +612,7 @@ admission, resource enforcement or complete source authority.
    unused inputs and branches, with shared step/work/text limits and original
    owner diagnostics. This is not external snapshot verification or complete
    non-order validation of the producer dependency graph.
-   [Source-bound stage Result wiring](stage-results.md) now binds actual
+   [Source-bound stage Result wiring](../design/stage-results.md) now binds actual
    Program/stage Result definitions to their published projections and order
    origins, checks exact imported-input attachment and assembles every stage
    plus root exports. Foreign source maps, substituted producer publications,
@@ -619,31 +630,31 @@ admission, resource enforcement or complete source authority.
    bindings and application obligations are covered by producer-input tests.
    These expected contracts do not prove actual Delta admission; complete
    non-order producer validation remains unfinished.
-   Shared [capacity arithmetic](capacity-arithmetic.md) is implemented and used
+   Shared [capacity arithmetic](../design/capacity-arithmetic.md) is implemented and used
    by count propagation; arithmetic validation does not close this requirement.
-   [Derivation consistency](capacity-derivation.md) checks bounded numerical
+   [Derivation consistency](../design/capacity-derivation.md) checks bounded numerical
    dependency graphs, including cycles and units. Candidate minimum selection
    is preceded, for CID-addressed descriptions, by complete bounded reference
    linking; missing dependencies cannot skip arithmetic checks. Reference
    spelling and closure are not content/source authentication. Candidate selection
    now retains all numeric candidates and computes strict author-guard binding;
    supplied roles and applicability are not authenticated by that arithmetic.
-   [Common wire admission](capacity-witness-wire.md) checks closed shapes,
+   [Common wire admission](../design/capacity-witness-wire.md) checks closed shapes,
    role/source pairs, declared references, canonical bytes and preimage identity;
    its wire collection is linked to complete numeric operand checks, including
    unused inconsistent claims. It remains a claim until source/application and
    complete source closure validation; enforced-limit inputs fail explicitly
    until that boundary is implemented. Non-Host
-   source/law verification remains open. The [closed law-name registry](capacity-law-registry.md)
+   source/law verification remains open. The [closed law-name registry](../design/capacity-law-registry.md)
    now has a normative owner, pinned body and exact-membership API; individual
    law applications and non-Host sources remain unvalidated by that membership.
-   The separate [operation transfer registry](bound-transfer-registry.md) now
+   The separate [operation transfer registry](../design/bound-transfer-registry.md) now
    covers all 72 public spellings and is pinned by the language owner. Coverage
    classification does not replace individual witness-law/source validation.
-   [Host capacity policy admission](capacity-policy.md) now binds canonical
+   [Host capacity policy admission](../design/capacity-policy.md) now binds canonical
    policy bodies and opaque field ceilings to an expected CID. Host authority,
    complete witness laws and consumer enforcement are separate unfinished work.
-   [Host source witnesses](host-capacity-witness.md) now fix the supported
+   [Host source witnesses](../design/host-capacity-witness.md) now fix the supported
    field/unit/law combinations and canonical identity while retaining the
    admitted policy. Program/Contract/author/language sources and complete
    consumer resolution remain unfinished.
@@ -679,14 +690,14 @@ admission, resource enforcement or complete source authority.
    Program/mixed owner. Exact field/unit/law/value/source identity is checked;
    non-Host entries remain explicitly unvalidated. Policy selection authority
    and consumer applicability are not supplied by this catalog lookup.
-   [Graph input preflight binding](graph-input-preflight.md) now associates
+   [Graph input preflight binding](../design/graph-input-preflight.md) now associates
    Host-backed node/edge limits with the actual immutable pipeline inputs and
    selected policy, including opaque and unused Graph inputs. It now reports
    unconsumed limits, and its collection-complete entry rejects valid limits
    that have no Graph input consumer. This is complete consumption only for
    that dedicated collection, not whole-pipeline readiness. Other consumer
    families, non-Host candidate applicability and actual enforcement remain open.
-   [Sequence capacity consumers](sequence-capacity.md) now bind the Host-only
+   [Sequence capacity consumers](../design/sequence-capacity.md) now bind the Host-only
    per-key and total-output limits to an actual step, preserving distinct units,
    policy fields, candidate occurrences and enforcement obligations. Authored
    guards explicitly prevent using this incomplete source branch; they are not
@@ -765,7 +776,7 @@ admission, resource enforcement or complete source authority.
    expand into acquisition, an evaluator or Host dispatch.
 3. Connect contextual resolutions into a complete static checking/discharge
    boundary on main, as required by the
-   [main/lowering ownership contract](pure-operation-checking.md#main-and-lowering-ownership).
+   [main/lowering ownership contract](../design/pure-operation-checking.md#main-and-lowering-ownership).
    Lowering must consume this boundary rather than substitute its own integration.
    Completion requires an opaque validated Program result tying Program/stages,
    input roles, bound Parameters, contracts/policy, type/order/capacity decisions
@@ -775,7 +786,7 @@ admission, resource enforcement or complete source authority.
    semantic projections, independently of internal ownership handles.
    This boundary remains unimplemented; documenting the division is not evidence
    that a formal Program compiler entry is ready.
-   An [integrated pipeline context](pipeline-check-context.md) now runs order
+   An [integrated pipeline context](../design/pipeline-check-context.md) now runs order
    resolution, per-visit guard binding and supported capacity closure in one
    constructor with cumulative budgets and a shared internally created closure.
    It rejects foreign or missing late producer entries without exposing partial
@@ -820,7 +831,7 @@ admission, resource enforcement or complete source authority.
    unused inputs, without requiring source map enumeration order. It rejects
    omitted or invented names under the shared collection work cap; Carrier and
    input evidence semantics still need the corresponding admission boundary.
-   [Local Relation input declarations](local-relation-input.md) now read explicit
+   [Local Relation input declarations](../design/local-relation-input.md) now read explicit
    source schema, open expected-column assertions, conditional primary keys and
    duplicate-policy terms without inventing complete types or runtime proof.
    Source-slot attachment now reads all local Relation declarations of an actual
@@ -852,14 +863,14 @@ admission, resource enforcement or complete source authority.
    explicitly and rejecting unknown/duplicate selectors. Its opaque result is
    still type-assertion evidence, not external snapshot admission or a stronger
    input registration accepted by the Program assembly.
-   [Staged local source references](local-source-reference.md) now have a pinned
+   [Staged local source references](../design/local-source-reference.md) now have a pinned
    canonical selector grammar and bounded codec with independent fixed vectors.
    Source resolution now indexes one actual staged Program and resolves batches
    to immutable source slots, preserving original diagnostics and rejecting
    unknown/nonlocal/duplicate selectors with shared work/text budgets. Snapshot
    body/environment admission remains necessary; a resolved source location is
    not an authenticated input owner or a stronger pipeline registration.
-   [Local Relation snapshots](local-relation-snapshot.md) now have a pinned
+   [Local Relation snapshots](../design/local-relation-snapshot.md) now have a pinned
    envelope and canonical-byte integrity reader retaining checked schema and
    optional materialization claims. Stage-local snapshot reconciliation now binds
    these bodies to their own resolved selectors and exact source/type-assertion
@@ -868,7 +879,7 @@ admission, resource enforcement or complete source authority.
    which checks every supplied snapshot is covered. Full environment admission, provenance validation
    and augmented pipeline registration still need integration; integrity and
    schema agreement are not authority.
-   The [Check Environment envelope](check-environment.md) now has a pinned
+   The [Check Environment envelope](../design/check-environment.md) now has a pinned
    closed wire shape, root-only identity exclusion and independent preimage
    fixtures. The product integrity reader now retains canonical ordered members
    and exact environment ownership; local snapshot member reading preserves that
@@ -877,13 +888,13 @@ admission, resource enforcement or complete source authority.
    A two-stage actual Result import tests final publication ownership, foreign
    reissued orders and exact/short cumulative budgets. Ordinary/receipt inputs,
    static discharge and complete semantic Program identity remain incomplete.
-   [Source-bound stage local bodies](stage-source.md) now combine the exact
+   [Source-bound stage local bodies](../design/stage-source.md) now combine the exact
    collected pipeline source, Inputs, Results and Effect selector decoding.
    Only admitted annotation positions are excluded; opaque business data and
    unbound references remain. This closes source emission, not full declaration
    admission, used Parameter/Binding reference closure or stage/Program identity.
    The opaque projection does not replace the final CheckedProgram constructor.
-   [Combined order checking](combined-order-checking.md) now resolves
+   [Combined order checking](../design/combined-order-checking.md) now resolves
    all steps and named Results with one shared budget and one pipeline owner.
    Capacity and other mandatory obligations still require the final combined
    boundary. It must not let callers omit a difficult step or local aggregate,

@@ -3,8 +3,9 @@
 This maps the 48-operation scope to existing operation tests, pipeline consumer
 tests and machine-schema owners. It is an evidence index, not a conformance
 certificate: file existence and a schema property do not prove semantic
-coverage. The inventory was checked against `8bc0373`; individual evidence
-transfer findings remain in [the open audit](pure-operation-audit.md).
+coverage. Earlier evidence-transfer findings are retained in
+[the historical audit](../reviews/pure-operation-audit.md), separately from this
+navigation index and the current Program construction contract.
 
 Paths below are repository-relative. A row can group operations sharing a test
 suite; grouping does not waive operation-specific or overloaded-Carrier cases.
