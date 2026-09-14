@@ -8506,6 +8506,26 @@ item scope denotes total expanded child elements. The `nest` definition fixes
 the fields and canonical value-byte measure at each byte site; no row wrapper,
 artifact bytes, or physical sharing substitution is implied.
 
+<!-- requirement-block: resolved-limits.unit-nest-input-proof -->
+For the generated child-array aggregation, an `actql.bound.array-aggregate-input`
+proof MUST use the `nest/child-arrays/items` subject and an applicable persistent
+upper bound on the actual child input's rows. Its value equals that row bound;
+the matching semijoin and each correlation group can only remove child
+occurrences. Repeated correlation pairs do not replicate them. This is a
+per-array bound, not a bound on total copies after parent attachment, and requires
+no uniqueness assertion about parent correlation keys. It preserves the input's
+dependencies and required checks under the same canonical proof/witness rules
+as other array aggregations; a row witness is not relabeled as array items.
+
+<!-- requirement-block: resolved-limits.unit-nest-empty-proof -->
+The fixed empty-constant item limit MUST retain an input-free Program proof with
+law `actql.bound.nest-empty-array`, its `nest/empty-array/items` semantic reference,
+unit `array_items`, value 1 and an empty `inputs` array. The source witness
+depends on that proof CID under the ordinary bound-witness preimage. This fact
+bounds the typed aggregation of the known false-filtered child input; it does
+not imply that upstream acquisition, admission or failure propagation may be
+omitted, and is neither a Host ceiling nor a guard on matched child arrays.
+
 <!-- requirement-block: resolved-limits.unit-nest-resource-correspondence -->
 Each limit MUST retain its exact checked nest occurrence, producer Unit,
 effective bindings, selected policy and prerequisite ownership. Imported uses

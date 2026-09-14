@@ -1,5 +1,6 @@
 ///|
 struct CheckedProgram {
+  nest_limits : Array[Array[NestLimits]]
   traversal_limits : Array[Array[TraversalLimit]]
   components_limits : Array[Array[ComponentsLimit]]
   sequence_limits : Array[Array[SequenceLimit]]
@@ -70,6 +71,7 @@ fn check_supported_source(
               | "json_pick"
               | "unnest"
               | "unpivot"
+              | "nest"
               | "analytic"
               | "row_window"
               | "window_events"
@@ -192,6 +194,9 @@ pub fn check(
   let input_completeness = prepare_input_completeness(units, budget) catch {
     error => raise Units(error)
   }
+  let nest_limits = prepare_program_nest_limits(units, requirements, budget) catch {
+    error => raise Units(error)
+  }
   let group_limits = prepare_program_group_limits(units, requirements, budget) catch {
     error => raise Units(error)
   }
@@ -249,6 +254,7 @@ pub fn check(
     error => raise Units(error)
   }
   {
+    nest_limits,
     traversal_limits,
     components_limits,
     sequence_limits,

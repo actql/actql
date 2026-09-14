@@ -55,12 +55,40 @@ fn single_input_claim(
     }
   }
   let unit = if factor is Some(_) { "rows" } else { "array_items" }
+  emit_source_bound_claim(
+    Some(input_cid),
+    subject,
+    law,
+    unit,
+    value,
+    factor,
+    remaining,
+  )
+}
+
+///|
+// Callers establish the applicable law, exact owned subject and input mapping.
+// None is reserved for a checked input-free fact, not an omitted dependency.
+fn emit_source_bound_claim(
+  input_cid : String?,
+  subject : String,
+  law : String,
+  unit : String,
+  value : Int64,
+  factor : Int64?,
+  remaining : IdentityBudget,
+) -> @wire.ProgramProofClaim raise UnitBuildFailure {
+  if factor is Some(_) && input_cid is None {
+    raise ForeignOwner
+  }
   let emit_proof = fn(w : @encode.Writer) -> Unit raise UnitBuildFailure {
     try {
       @encode.begin_object(w)
       @encode.key(w, "inputs")
       @encode.begin_array(w)
-      @encode.string_value(w, input_cid)
+      if input_cid is Some(cid) {
+        @encode.string_value(w, cid)
+      }
       @encode.end_array(w)
       @encode.key(w, "law_id")
       @encode.string_value(w, law)
@@ -81,7 +109,10 @@ fn single_input_claim(
   emit_proof(hash)
   let proof_cid = identity_finish(remaining, hash)
   let proof_bytes = publication_metadata(emit_proof, remaining)
-  let dependencies = [(input_cid, ()), (proof_cid, ())]
+  let dependencies = [(proof_cid, ())]
+  if input_cid is Some(cid) {
+    dependencies.push((cid, ()))
+  }
   identity_sort(dependencies, remaining)
   let emit = fn(
     w : @encode.Writer,
@@ -101,7 +132,7 @@ fn single_input_claim(
         @encode.key(w, "factor")
         @encode.number_value(w, n.to_double())
         @encode.key(w, "input")
-        @encode.string_value(w, input_cid)
+        @encode.string_value(w, input_cid.unwrap())
       }
       @encode.key(w, "op")
       @encode.string_value(

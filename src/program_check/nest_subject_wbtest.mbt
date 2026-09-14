@@ -9,9 +9,12 @@ test "nest resource subjects and guard preimages retain their authored Unit owne
       (",\"max_items\":{\"$param\":\"n\"}", Some(1L)),
       (",\"max_items\":3", Some(3L)),
     ] {
+    let checked : Array[CheckedProgram] = []
     let (_, requirements, _, _, units) = local_construction_fixture(
       { work: 100000000, bytes: 10000000, nodes: 1000000, depth: 100, },
       second_stage=true,
+      through_check=true,
+      checked_results=checked,
       parameters=true,
       nested_depth=Some(2),
       producer_expression="id",
@@ -23,6 +26,18 @@ test "nest resource subjects and guard preimages retain their authored Unit owne
     )
     let unit = units[0]
     let source = unit_nest_resource_source(unit, unit.pipeline, 1).unwrap()
+    let public_source = unit_nest_resource_source_at(checked[0], 0, 1).unwrap()
+    assert_true(physical_equal(public_source.nest, source.nest))
+    let public_guard = unit_nest_guard_witness(
+      checked[0],
+      0,
+      1,
+      max_work=1000000,
+      max_bytes=100000,
+      max_nodes=10000,
+      max_depth=100,
+    )
+    assert_eq(public_guard.map(w => @wire.value(w)), expected)
     assert_true(unit_nest_resource_source(unit, units[1].pipeline, 1) is None)
     for invalid in [-1, 0, 2, 2147483647] {
       assert_true(

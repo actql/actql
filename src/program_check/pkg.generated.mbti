@@ -169,6 +169,22 @@ pub fn interval_search_limit_selection(IntervalSearchLimit) -> @pipeline_check_c
 
 pub fn interval_search_limit_source(IntervalSearchLimit) -> UnitOperationSource
 
+pub fn nest_limits_claim(NestLimits, NestResourceScope) -> @capacity_witness.LimitClaim
+
+pub fn nest_limits_empty_proof(NestLimits) -> @capacity_witness.ProgramProofClaim
+
+pub fn nest_limits_envelope(NestLimits) -> @pipeline_check_context.NestValueEnvelope
+
+pub fn nest_limits_input_at(NestLimits, Int) -> NestInputProof?
+
+pub fn nest_limits_input_count(NestLimits) -> Int
+
+pub fn nest_limits_parent_at(NestLimits, Int) -> NestParentInput?
+
+pub fn nest_limits_parent_count(NestLimits) -> Int
+
+pub fn nest_limits_source(NestLimits) -> NestResourceSource
+
 pub fn nest_resource_subject(NestResourceSource, NestResourceScope, Int) -> String raise UnitBuildFailure
 
 pub fn numeric_slot_for_requirement(CheckedProgram, Int) -> GroupNumericSlot?
@@ -366,6 +382,10 @@ pub fn unit_interval_search_limit_at(CheckedProgram, Int, Int) -> IntervalSearch
 pub fn unit_interval_search_limit_count(CheckedProgram, Int) -> Int?
 
 pub fn unit_nest_guard_witness(CheckedProgram, Int, Int, max_work~ : Int, max_bytes~ : Int, max_nodes~ : Int, max_depth~ : Int) -> @capacity_witness.WireWitness? raise UnitBuildFailure
+
+pub fn unit_nest_limit_at(CheckedProgram, Int, Int) -> NestLimits?
+
+pub fn unit_nest_limit_count(CheckedProgram, Int) -> Int?
 
 pub fn unit_nest_resource_source_at(CheckedProgram, Int, Int) -> NestResourceSource?
 
@@ -566,6 +586,19 @@ pub struct KeyedExecution {
   bounds : @sourceview_resolution.LookupBounds
   counts : @sourceview_resolution.LookupCounts
   producer : @capacity_graph_preflight.TargetMembership
+}
+
+pub struct NestInputProof {
+  membership : @capacity_graph_preflight.TargetMembership
+  input : ReidentifiedStep
+  proof : @capacity_witness.ProgramProofClaim
+}
+
+type NestLimits
+
+pub struct NestParentInput {
+  membership : @capacity_graph_preflight.TargetMembership
+  input : ReidentifiedStep
 }
 
 pub(all) enum NestResourceScope {

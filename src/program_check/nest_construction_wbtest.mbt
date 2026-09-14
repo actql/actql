@@ -7,9 +7,12 @@ test "owned nest construction links guards depth and both output scopes across i
       nodes: 1000000,
       depth: 100,
     }
+    let checked : Array[CheckedProgram] = []
     try {
       let (_, requirements, _, _, units) = local_construction_fixture(
         budget,
+        through_check=true,
+        checked_results=checked,
         second_stage=true,
         nested_depth=Some(depth),
         producer_expression="id",
@@ -19,6 +22,9 @@ test "owned nest construction links guards depth and both output scopes across i
       )
       assert_eq(depth, 2)
       assert_eq(units.length(), 2)
+      assert_eq(checked.length(), 1)
+      assert_eq(unit_nest_limit_count(checked[0], 0), Some(1))
+      assert_eq(unit_nest_limit_count(checked[0], 1), Some(0))
       let operations = @context.stage_requirement_operations(requirements)
       let mut items = 0
       let mut values = 0
@@ -60,7 +66,10 @@ test "owned nest construction links guards depth and both output scopes across i
     } catch {
       LocalConstructionFailure::Closure(
         ConstructionFailure::NestValues(@context.DepthExceeded)
-      ) => assert_eq(depth, 1)
+      ) => {
+        assert_eq(depth, 1)
+        assert_eq(checked.length(), 0)
+      }
       error => fail("unexpected nest construction failure: \{error}")
     }
   }

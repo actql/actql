@@ -7703,6 +7703,28 @@
       }
     },
     {
+      "requirement_id": "actql.language/resolved-limits.unit-nest-input-proof",
+      "statement_sha256": "fbe08876ba8f8151df6adbb68cc637a722f32cfcc83a78a6f1d75c95a797efad",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "resolved-limits",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/resolved-limits.unit-nest-empty-proof",
+      "statement_sha256": "865d32042be1fb9b5746a6eeb0ea8adb9052222f942426827b4c22334a3ef0dc",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "resolved-limits",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.language/resolved-limits.unit-nest-resource-correspondence",
       "statement_sha256": "f157e7aac1fe6fb38f287af83abe1809ec9ff02084837181873fe465194a1569",
       "status": "pending",

@@ -39,7 +39,7 @@ separate protocol results, not successful CheckedPrograms with weaker guarantees
 The entry has an explicit implementation-domain check, separate from the
 language grammar. Its Local and Result-import domain accepts `values`, `derive`,
 `filter`, `assert_rows`, `group`, `select`, `rename`, `drop`, `sort`, `take`,
-`distinct`, `dedupe_rows`, `top_k`, `top_k_by`, `lag`, `json_pick`, `unnest`, `unpivot`, `analytic`, `row_window`, `window_group`, `watermark_rows`,
+`distinct`, `dedupe_rows`, `top_k`, `top_k_by`, `lag`, `json_pick`, `unnest`, `unpivot`, `nest`, `analytic`, `row_window`, `window_group`, `watermark_rows`,
 `append`, `join`, `cross_join`, `interval_join`,
 `except` and `intersect`, including empty operation
 sequences. Sort/take use the existing owned order-resolution closure and preserve
@@ -1400,12 +1400,28 @@ static total bound when none has been derived. A child-total proof cannot replac
 the repeated-parent quantity without the required correlation-key uniqueness.
 All three checks reject the operation output before consumers on failure.
 
-The private Program construction invokes item selection before value-envelope
+Program construction invokes item selection before value-envelope
 linking and charges their aggregate work. Missing item selection, a foreign
 occurrence, excessive declared depth or a late budget failure returns no partial
-closure. These process-owned bindings are distinct from Unit-addressed persistent
-limit artifacts; the formal source domain must not be expanded before those
-artifacts and their read-only consumers are connected.
+closure. The formal entry then constructs and retains `NestLimits` once per
+authored nest in its producer Unit. Imported visits do not create a second
+consumer-owned limit set. The four typed claim readers expose child items,
+empty-constant items, grouped bytes and attachment bytes without rebuilding
+identities or traversing evidence graphs.
+
+Child-row candidates are converted into distinct per-array proofs using the
+array-aggregation input law; their reidentified input graphs retain producer
+Units, original memberships and prerequisites. Parent-row prerequisites used
+by the expansion envelope also retain their converted producer-Unit proof graphs
+and exact memberships through indexed readers; they do not become observed
+parent counts or independent claims that the attachment-byte check succeeded.
+The empty constant uses its separate registered input-free fact with bound 1.
+Neither quantity replaces the
+total expansion calculation. The two byte claims share an unchanged Host
+witness but retain different subjects and enforcement sites. Authored guards,
+including non-binding ones, remain attached only to the matched-array limit.
+Encoding, hashing, witness admission and claim construction consume the shared
+metadata/work budgets. A failure in a later claim returns no partial result.
 
 ## Identity boundaries
 
