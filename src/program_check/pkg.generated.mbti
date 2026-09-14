@@ -233,6 +233,10 @@ pub fn publication_failure(PublicationExecution) -> PublicationFailure
 
 pub fn publication_phase(PublicationExecution) -> PublicationPhase
 
+pub fn publication_policy_analytic_at(PublicationSourcePolicy, Int) -> PublicationPolicyAnalytic?
+
+pub fn publication_policy_analytic_count(PublicationSourcePolicy) -> Int
+
 pub fn publication_policy_classification(PublicationSourcePolicy) -> @check_environment.DataClassification
 
 pub fn publication_policy_copy_at(PublicationSourcePolicy, Int) -> PublicationPolicyCopies?
@@ -654,6 +658,13 @@ pub enum PublicationFailure {
 
 pub enum PublicationPhase {
   BeforeResultPublication
+}
+
+pub struct PublicationPolicyAnalytic {
+  step : Int
+  operation : @relation_typing.CheckedOperation
+  analytic : @relation_typing.CheckedAnalytic
+  unknown_provenance : Bool
 }
 
 pub struct PublicationPolicyCopies {

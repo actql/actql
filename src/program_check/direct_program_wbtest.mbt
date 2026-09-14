@@ -18,6 +18,7 @@ fn checked_direct_program_fixture(
   assertion_body? : String = "",
   group_body? : String = "",
   pivot_body? : String = "",
+  analytic_body? : String = "",
   numeric_profile? : @numeric.Profile? = None,
 ) -> CheckedProgram raise {
   let original_text =
@@ -97,6 +98,13 @@ fn checked_direct_program_fixture(
       text.replace(
         old="}],\"results\":{\"out\":{\"from\":{\"stage\":\"s\",\"result\":\"out\"}}}}",
         new="},{\"id\":\"consumer\",\"inputs\":{\"imported\":{\"result\":{\"stage\":\"s\",\"result\":\"out\"}}},\"steps\":[],\"results\":{\"out\":{\"from\":\"imported\",\"fields\":[\"id\"]}}}],\"results\":{\"out\":{\"from\":{\"stage\":\"consumer\",\"result\":\"out\"}}}}",
+      )
+    } else if analytic_body != "" {
+      text.replace(
+        old="\"steps\":[",
+        new="\"steps\":[{\"distinct\":[\"id\"]},{\"analytic\":" +
+          analytic_body +
+          "},",
       )
     } else if pivot_body != "" {
       let pivoted = text.replace(
@@ -186,7 +194,7 @@ fn checked_direct_program_fixture(
     },
     format=Json,
   ).unwrap()
-  let environment = remote_environment_fixture()
+  let environment = remote_environment_fixture(analytic=analytic_body != "")
   // No Program arithmetic assertion is needed: publication retains the Host
   // bound and distinct establishes its own key. Actual acquisition is not run.
   let mixed = @wire.check_mixed_claims([], [], {
@@ -240,7 +248,11 @@ fn checked_direct_program_fixture(
     { text_time: false, veca: false, },
     { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
     source_limits_fixture(
-      if join_kind != "" || mix_generated || mix_local || pivot_body != "" {
+      if join_kind != "" ||
+        mix_generated ||
+        mix_local ||
+        pivot_body != "" ||
+        analytic_body != "" {
         4
       } else {
         2

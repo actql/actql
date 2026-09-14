@@ -19,6 +19,30 @@ pub struct PublicationSourcePolicy {
   priv derivations : Array[PublicationPolicyDerivation]
   priv groups : Array[PublicationPolicyGroup]
   priv pivots : Array[PublicationPolicyPivot]
+  priv analytics : Array[PublicationPolicyAnalytic]
+}
+
+///|
+pub struct PublicationPolicyAnalytic {
+  step : Int
+  operation : @relation.CheckedOperation
+  analytic : @relation.CheckedAnalytic
+  unknown_provenance : Bool
+}
+
+///|
+pub fn publication_policy_analytic_count(
+  value : PublicationSourcePolicy,
+) -> Int {
+  value.analytics.length()
+}
+
+///|
+pub fn publication_policy_analytic_at(
+  value : PublicationSourcePolicy,
+  index : Int,
+) -> PublicationPolicyAnalytic? {
+  value.analytics.get(index)
 }
 
 ///|
@@ -297,6 +321,7 @@ fn prepare_publication_source_policy(
   let derivations : Array[PublicationPolicyDerivation] = []
   let groups : Array[PublicationPolicyGroup] = []
   let pivots : Array[PublicationPolicyPivot] = []
+  let analytics : Array[PublicationPolicyAnalytic] = []
   let mut unknown = false
   while pending.pop() is Some(target) {
     identity_charge(budget, 1)
@@ -317,6 +342,57 @@ fn prepare_publication_source_policy(
           @pipeline.Unary(operation) => {
             match @relation.operation(operation) {
               Select | Rename | Drop | Sort | Distinct | DedupeRows => ()
+              Analytic => {
+                guard @relation.analytic(operation) is Some(analytic) else {
+                  raise ForeignOwner
+                }
+                let mut missing = false
+                for binding in 0..<@relation.binding_count(operation) {
+                  identity_charge(budget, 1)
+                  if publication_expression_unknown(
+                      @relation.binding_expression_at(operation, binding).unwrap(),
+                      budget,
+                    ) {
+                    missing = true
+                  }
+                }
+                if @relation.analytic_frame(analytic) is Some(frame) {
+                  for boundary in [frame.start, frame.end] {
+                    identity_charge(budget, 1)
+                    match boundary {
+                      Preceding(_) | Following(_) => missing = true
+                      UnboundedPreceding | CurrentRow | UnboundedFollowing => ()
+                    }
+                  }
+                }
+                for call in 0..<@relation.analytic_call_count(analytic) {
+                  identity_charge(budget, 1)
+                  match
+                    @relation.analytic_call_at(analytic, call).unwrap().function {
+                    Lag(..) | Lead(..) => missing = true
+                    Aggregate(aggregate) =>
+                      if @relation.aggregate_delimiter(aggregate) is Some(_) ||
+                        @relation.aggregate_fraction(aggregate) is Some(_) ||
+                        @relation.aggregate_item_limit(aggregate) is Some(_) ||
+                        @relation.aggregate_byte_limit(aggregate) is Some(_) {
+                        missing = true
+                      }
+                    RowNumber
+                    | Rank
+                    | DenseRank
+                    | FirstValue(_)
+                    | LastValue(_) => ()
+                  }
+                }
+                identity_charge(budget, 1)
+                analytics.push({
+                  step: index,
+                  operation,
+                  analytic,
+                  unknown_provenance: missing,
+                })
+                unknown = unknown || missing
+              }
               Pivot => {
                 guard @relation.pivot(operation) is Some(pivot) else {
                   raise ForeignOwner
@@ -580,6 +656,7 @@ fn prepare_publication_source_policy(
     derivations,
     groups,
     pivots,
+    analytics,
   }
   |> Some
 }

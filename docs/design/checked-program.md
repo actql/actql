@@ -480,6 +480,16 @@ The ordered values, canonical generated columns and fill are read from the owned
 pivot without copying or rescanning them during policy preparation. This policy
 transfer does not discharge reduction, stable-order or numeric capture checks.
 
+Analytic transfer retains the exact checked analytic occurrence and its input
+policy. Field-only expressions inherit input provenance; other expression leaves,
+finite frame bounds, navigation offsets (including their default), and aggregate
+value options without admitted policy provenance remain unknown. Structural
+frame markers and field references do not invent additional contributing values.
+The indexed analytic reader exposes the retained calls and controls without
+reconstructing them. This relation-level transfer does not remove provenance when
+a filter is false or a later projection hides the generated column, and does not
+discharge analytic resource, order, or numeric capture requirements.
+
 Result imports retain the producer's completed publication through
 `publication_policy_import_count/at`, including the consumer input coordinate.
 `imported_publication` is a convenience only for exactly one import.

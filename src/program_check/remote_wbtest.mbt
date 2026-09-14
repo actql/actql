@@ -41,7 +41,7 @@ fn keyed_sourceview_claim() -> @wire.ProgramProofClaim {
 }
 
 ///|
-fn capacity_profile(changed : Bool) -> String {
+fn capacity_profile(changed : Bool, analytic? : Bool = false) -> String {
   let names = [
     "max_aggregate_array_items", "max_artifact_bytes", "max_artifact_rows", "max_effect_items",
     "max_graph_input_edges", "max_graph_input_nodes", "max_graph_output_rows", "max_graph_paths",
@@ -49,6 +49,16 @@ fn capacity_profile(changed : Bool) -> String {
     "max_model_total_duration_ms", "max_nested_value_bytes", "max_nested_value_depth",
     "max_relation_output_rows", "max_temporal_matches_per_key", "max_temporal_output_rows",
   ]
+  if analytic {
+    for
+      name in [
+        "max_analytic_partition_wire_bytes", "max_analytic_output_wire_bytes", "max_analytic_input_wire_bytes",
+        "max_analytic_frame_memberships",
+      ] {
+      names.push(name)
+    }
+    names.sort_by((a, b) => @canonical.compare_utf16(a, b))
+  }
   "{\"capacity\":{" +
   names
   .map(name => {
@@ -64,11 +74,13 @@ fn capacity_profile(changed : Bool) -> String {
 ///|
 
 ///|
-fn remote_environment_fixture() -> @environment.WireEnvironment raise {
+fn remote_environment_fixture(
+  analytic? : Bool = false,
+) -> @environment.WireEnvironment raise {
   let original = keyed_sourceview_environment()
   let writer = @encode.writer(1000000, 100000, 100)
   @environment.emit(original, writer)
-  let profile = capacity_profile(false)
+  let profile = capacity_profile(false, analytic~)
   let body = @encode.finish(writer)
     .replace(
       old="\"evidence_bundle_cid\":\"" + @environment.cid(original) + "\",",
