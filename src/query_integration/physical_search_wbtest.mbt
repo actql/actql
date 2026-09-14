@@ -26,7 +26,11 @@ fn search_offers(
         @planning.capability_registration_at(registry, 0).unwrap(),
         5,
         [{ work_slots: [0, 1, 2, 3, 4], milliseconds: Some(10L), }],
-        { transfer_bytes: 0L, retained_bytes: 100L, execution_bytes: 1000L, },
+        {
+          transfer_bytes: 0L,
+          retained_bytes: 8000000L,
+          execution_bytes: 64000000L,
+        },
         100,
       ).unwrap(),
     )
@@ -199,8 +203,8 @@ test "pending physical reservations reject assignments and real release permits 
     max_revisions: 2,
   }).unwrap()
   let ledger = @strategy.captured_dag_ledger(run)
-  let reserved = @strategy.reserve_attempt(ledger, 0L, 999901L, 0L).unwrap()
-  let holding = @strategy.retain_allocation(ledger, reserved, 999901L).unwrap()
+  let reserved = @strategy.reserve_attempt(ledger, 0L, 31999901L, 0L).unwrap()
+  let holding = @strategy.retain_allocation(ledger, reserved, 31999901L).unwrap()
   @strategy.settle_reservation(ledger, reserved).unwrap()
   let offers = search_offers(run, registry, [1, 2, 3], Some(1L))
   assert_true(

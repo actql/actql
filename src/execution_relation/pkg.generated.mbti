@@ -107,6 +107,8 @@ pub fn generated_retained_at(GeneratedSequence, Int) -> String?
 
 pub fn generated_retained_count(GeneratedSequence) -> Int
 
+pub fn generated_sequence_capacity(GeneratedSequence, SequenceExecutionLimits, FixedInputGuardMeasureLimits) -> ExecutionCapacity?
+
 pub fn generated_sequence_owner(GeneratedSequence) -> @lowering_relation.BoundPrepared
 
 pub fn identify_captured_rows(CapturedRows, RowWireLimits) -> Result[RowWireIdentity, RowWireIssue]
@@ -230,6 +232,11 @@ pub(all) enum EvalIssueKind {
   LogicalEntry(LogicalBudgetIssue)
   LogicalValue(LogicalBudgetIssue)
 } derive(Eq, @debug.Debug)
+
+pub struct ExecutionCapacity {
+  retained_bytes : Int64
+  execution_bytes : Int64
+}
 
 pub(all) enum FixedInputGuardIssue {
   InvalidLimits

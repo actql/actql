@@ -500,8 +500,15 @@ The checked task stays completed even after its output port is released. The Hos
 must keep a port open for uses exported outside this run; arbitrary foreign handle
 lifetimes are not tracked automatically.
 
-This is not yet a complete Host physical-budget runner: MoonBit receiver scratch, Local execution
-and acquisition integration still need accounting. Internal task outputs do not authorize partial
+Local task execution now derives its working/retention envelope through
+`execution_relation.generated_sequence_capacity` from the selected immutable
+execution and measurement limits. It reserves before calculation and retains
+successful output through the same DAG lifetime handling. Future-task estimates
+must cover these capacities; underestimated offers cannot enlarge their envelope
+at dispatch. No logical budget is reduced to make a reservation fit.
+
+This is not yet a complete Host physical-budget runner: MoonBit native receiver
+scratch and acquisition integration still need accounting. Internal task outputs do not authorize partial
 publication of a failed Program.
 
 The broad Host invokes `complete_duckdb_broad_capture` only after actual source

@@ -37,6 +37,7 @@ pub(all) enum RunIssue {
   Read(@execution.ProducerReadIssue)
   Compute(@planning.FixedComputeIssue)
   DuckDB(@planning.DuckDBComputeIssue)
+  Physical(LedgerIssue)
 }
 
 ///|
@@ -258,6 +259,41 @@ pub fn execute_captured_local_task(
     physical_equal(read, @planning.fixed_compute_request_input(request)) else {
     return Err(ForeignCandidate)
   }
+  guard @planning.fixed_compute_choice_payload(choice, prepared)
+    is Some(generated) else {
+    return Err(Compute(NotSelected))
+  }
+  guard @execution.generated_sequence_capacity(generated, limits, measurement)
+    is Some(capacity) else {
+    return Err(Physical(InvalidLimits))
+  }
+  if strategy_task_envelope(run, task) is Some(selected) &&
+    (
+      capacity.retained_bytes > selected.retained_bytes ||
+      capacity.execution_bytes > selected.execution_bytes
+    ) {
+    return Err(Physical(InvalidCharge))
+  }
+  let reservation = match
+    reserve_attempt(
+      run.ledger,
+      0L,
+      capacity.retained_bytes,
+      capacity.execution_bytes,
+    ) {
+    Ok(reservation) => reservation
+    Err(issue) => return Err(Physical(issue))
+  }
+  // Reserve the holding record before calculation too: a successful computation
+  // must not discover afterward that its result cannot be retained.
+  let holding = match
+    retain_allocation(run.ledger, reservation, capacity.retained_bytes) {
+    Ok(holding) => holding
+    Err(issue) => {
+      settle_reservation(run.ledger, reservation) |> ignore
+      return Err(Physical(issue))
+    }
+  }
   match
     @planning.execute_local_fixed_compute(
       choice,
@@ -268,11 +304,15 @@ pub fn execute_captured_local_task(
     Ok(completed) => {
       run.completed[task] = Some(Local(completed))
       record_task_retention(run, task)
+      run.resources[task].unwrap().holding = Some(holding)
+      settle_reservation(run.ledger, reservation) |> ignore
       run.inputs[task] = None
       run.generation += 1
       Ok(())
     }
     Err(issue) => {
+      release_allocation(run.ledger, holding) |> ignore
+      settle_reservation(run.ledger, reservation) |> ignore
       fail_captured_task(run, task, Compute(issue))
       Err(Compute(issue))
     }

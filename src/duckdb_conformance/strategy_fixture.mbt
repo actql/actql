@@ -80,7 +80,7 @@ pub fn strategy_fixture_create(
       attempts: 10,
       holdings: 10,
       transfer_bytes: 300000L,
-      retained_bytes: 16000000L,
+      retained_bytes: 32000000L,
       execution_bytes: 268435456L,
     }).unwrap()
     {

@@ -159,6 +159,7 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
     const capture = await runNativeHostQuery(grant, fixture.strategyFixtureAcquisition(f), suppliedLimits);
     const held = [];
     let transferred = 0n;
+    let retained = 0n;
     try {
       assert.equal(fixture.strategyFixtureOpen(f, capture.source()), true);
       // A and B must consume one immutable observation, not read this mutation.
@@ -190,12 +191,17 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
           assert.equal(fixture.strategyFixtureUsage(f, 1), 0n);
           assert.equal(fixture.strategyFixtureUsage(f, 2), 0n);
           held.push([task, completed]);
+          retained += 2771200n;
           assert.equal(completed.physicalCapacity.retentionBytes, 2771200n);
-          assert.equal(fixture.strategyFixtureUsage(f, 4), BigInt(held.length) * 2771200n);
+          assert.equal(fixture.strategyFixtureUsage(f, 4), retained);
           assert.equal(fixture.strategyFixtureUsage(f, 5), 0n);
           // Each task really imports into a fresh DB, including DuckDB A -> C.
           assert.equal(completed.importedRows, task === 3 ? 2 : 3);
-        } else assert.equal(fixture.strategyFixtureLocal(f, task), true);
+        } else {
+          assert.equal(fixture.strategyFixtureLocal(f, task), true);
+          retained += 7760000n;
+          assert.equal(fixture.strategyFixtureUsage(f, 4), retained);
+        }
         assert.equal(fixture.strategyFixtureCid(f, task), hash(task === 2
           ? [{ id: 3 }, { id: 2 }, { id: 3 }] : [{ id: 3 }, { id: 3 }]));
       }

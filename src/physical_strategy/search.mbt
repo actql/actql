@@ -8,6 +8,8 @@ pub(all) struct SearchLimits {
 
 ///|
 priv struct SearchResources {
+  attempts : Int
+  holdings : Int
   transferred : Int64
   transfer : Int64
   held : Int64
@@ -197,6 +199,8 @@ pub fn revise_strategy(
   }
   let latest = ledger_usage(run.ledger)
   let resources = {
+    attempts: latest.attempts,
+    holdings: latest.holdings,
     transferred: latest.transferred_bytes,
     transfer: latest.reserved_transfer_bytes,
     held: latest.held_bytes,
@@ -304,7 +308,11 @@ pub fn revise_strategy(
       }
     }
     let available = run.ledger.limits
-    let rejection = if transfer >
+    let rejection = if tasks.length() > available.attempts - usage.attempts {
+      Some(AttemptLimit)
+    } else if tasks.length() > available.holdings - usage.holdings {
+      Some(HoldingLimit)
+    } else if transfer >
       available.transfer_bytes -
       usage.transferred_bytes -
       usage.reserved_transfer_bytes {

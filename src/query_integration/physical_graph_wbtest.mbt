@@ -111,7 +111,7 @@ fn captured_graph_fixture() -> (
     attempts: 10,
     holdings: 10,
     transfer_bytes: 300000L,
-    retained_bytes: 1000000L,
+    retained_bytes: 32000000L,
     execution_bytes: 134217728L,
   }).unwrap()
   (@strategy.open_captured_dag(graph, source, ledger).unwrap(), issuer)

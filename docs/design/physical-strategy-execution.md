@@ -42,8 +42,7 @@ the run ledger, before send/accept. Only confirmed native cleanup releases unuse
 transfer and DB-memory reservations; failure never refunds consumed transfer.
 Task configuration cannot substitute a fresh ledger for a running graph.
 
-MoonBit receiver-scratch accounting and Local
-physical enforcement described below must
+MoonBit native receiver-scratch and acquisition-wide accounting must
 be connected before this is presented as
 the complete physical strategy Host. Checked topology validation alone is not
 validation of all runtime Stage obligations or a Program success issuer.
@@ -85,6 +84,26 @@ allows a bounded reverse traversal to release unused ancestor holdings. Borrowed
 acquisition storage remains the caller's responsibility. A trusted Host exporting
 an output outside the run must keep its port open for that use; this mechanism
 does not discover arbitrary foreign references or promise immediate GC/RSS release.
+
+Local Compute reserves before entering the existing guarded executor too.
+`generated_sequence_capacity` derives declared capacities from that exact
+generated sequence and its selected limits. Retention allows 256 bytes per
+retained/metadata entry and output value node, plus eight per output text byte.
+Working capacity allows 256 per operation/metadata/frame/input/output/measurement
+node or measurement-depth entry, and eight per input/output/measurement text byte.
+The peak serial fragment adds 264 per selected logical live-value byte, 256 per
+physical traversal node/depth entry and eight per physical traversal byte. These
+are conservative container-capacity allowances, not an assertion that every
+potential byte was allocated or that shared payloads were copied. Allocation
+tokens and checked ancestry still determine actual sharing responsibility.
+Arithmetic overflow or an invalid quantity rejects the capacity description.
+
+Neither deriving capacity nor choosing a different backend changes the selected
+logical limits. The reservation must fit both the selected strategy envelope and
+the run ledger. A holding record is reserved before Local execution; synchronous
+failure releases that attempt's capacity without revoking prior task completions
+or refunding cumulative attempts. Success keeps its holding through the same
+descendant-aware lifetime mechanism as DuckDB.
 
 ## Physical accounting
 
@@ -138,6 +157,9 @@ Before starting, the selected registration must still produce an eligible candid
 bound to the task's exact completed `ProducerRead` through existing admission.
 
 Search bounds offer count, combination count, traversal work and revision count.
+Each remaining Compute needs one attempt and one holding record in this profile;
+already consumed records are included in feasibility and revision-state checks,
+even if their byte reservations have since been released.
 Offer construction and enumeration charge the execution's planning ledger before
 work. Reports retain infeasible combinations and their resource rejection, not
 only the winner. Transfer envelopes add per actual task; retention is conservatively

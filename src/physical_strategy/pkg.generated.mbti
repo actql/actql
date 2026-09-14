@@ -202,6 +202,7 @@ pub(all) enum RunIssue {
   Read(@execution_relation.ProducerReadIssue)
   Compute(@query_planning.FixedComputeIssue)
   DuckDB(@query_planning.DuckDBComputeIssue)
+  Physical(LedgerIssue)
 }
 
 pub(all) enum SearchIssue {
