@@ -391,10 +391,17 @@ Their phases, atomic failure behavior and prerequisite edges are checked against
 the source inventory, including unused inputs. The direct policy must refer to
 the same bound request and selected response policy. Unknown classification is
 retained for current runtime egress admission, never interpreted as permission.
-Keyed provenance composition and unbound Host request values remain unsupported
-by this final audit; changes/checkpoint obligations still require their separate
-static mode closure. Successful checking neither performs acquisition nor claims
-that a backend can implement the required enforcement.
+For keyed requests, the audit additionally checks every selected join's request,
+correlation egress, resource and response gates against the retained producer
+context, exact join, lookup bounds and producer membership. The five base gates
+per input precede the four gates per keyed join within each Stage; dependency
+edges must reference those exact records, not equivalent reconstructions. All
+gate and dependency visits consume the shared work budget. This acquisition
+audit does not replace keyed publication provenance composition, which remains
+a separate unsupported closure path. Unbound Host request values remain
+unsupported; changes/checkpoint obligations require their separate static mode
+closure. Successful checking neither performs acquisition nor claims that a
+backend can implement the required enforcement.
 
 SourceView-backed publication also closes its policy provenance. The current
 transfer follows the Result's checked target backwards through select, rename,

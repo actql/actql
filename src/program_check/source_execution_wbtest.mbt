@@ -239,16 +239,115 @@ test "source execution audit rejects keyed acquisition and bounds Local inventor
   let (_, _, _, remote, remote_units) = remote_construction_fixture(
     remote_budget,
   )
+  audit_source_execution(
+    remote,
+    remote_units[0].source_execution,
+    remote_budget,
+  )
+}
+
+///|
+test "keyed source audit binds every gate to the selected producer and prerequisites" {
+  let (_, _, _, inventory, units) = remote_construction_fixture({
+    work: 100000000,
+    bytes: 10000000,
+    nodes: 1000000,
+    depth: 100,
+  })
+  let checks = units[0].source_execution
+  // One stage, one input, one static request field, five base gates and
+  // seven base dependencies; one join, four keyed gates and seven dependencies.
+  let exact = IdentityBudget::{ work: 27, bytes: 0, nodes: 0, depth: 0, }
+  audit_source_execution(inventory, checks, exact)
+  assert_eq(exact.work, 0)
   try
-    audit_source_execution(
-      remote,
-      remote_units[0].source_execution,
-      remote_budget,
-    )
+    audit_source_execution(inventory, checks, {
+      work: 26,
+      bytes: 0,
+      nodes: 0,
+      depth: 0,
+    })
   catch {
-    UnitBuildFailure::UnclosedSourceExecution(0, 0) => ()
+    BudgetExceeded => ()
     error => raise error
   } noraise {
-    _ => fail("mode support substituted for complete source execution closure")
+    _ => fail("keyed dependency traversal escaped its budget")
+  }
+  let (_, _, _, _, other_units) = remote_construction_fixture({
+    work: 100000000,
+    bytes: 10000000,
+    nodes: 1000000,
+    depth: 100,
+  })
+  guard checks[5].kind is KeyedRequest(binding) &&
+    other_units[0].source_execution[5].kind is KeyedRequest(other) else {
+    fail("missing keyed bindings")
+  }
+  for
+    invalid_binding in [
+      { ..binding, owner: other.owner, },
+      { ..binding, producer: other.producer, },
+      { ..binding, bounds: other.bounds, },
+      { ..binding, counts: other.counts, },
+      { ..binding, join: other.join, },
+      { ..binding, stage: 1, },
+      { ..binding, index: 1, },
+    ] {
+    let invalid = checks.copy()
+    invalid[5] = { ..checks[5], kind: KeyedRequest(invalid_binding), }
+    try
+      audit_source_execution(inventory, invalid, {
+        work: 1000,
+        bytes: 0,
+        nodes: 0,
+        depth: 0,
+      })
+    catch {
+      ForeignOwner => ()
+      error => raise error
+    } noraise {
+      _ => fail("foreign lookup ownership admitted")
+    }
+  }
+  for part in 5..<9 {
+    let missing : Array[SourceExecution] = []
+    for index, check in checks {
+      if index != part {
+        missing.push(check)
+      }
+    }
+    let foreign = checks.copy()
+    foreign[part] = other_units[0].source_execution[part]
+    let disconnected = checks.copy()
+    disconnected[part] = { ..checks[part], prerequisites: [], }
+    let wrong_phase = checks.copy()
+    wrong_phase[part] = {
+      ..checks[part],
+      phase: if part == 8 {
+        BeforeProviderAccess
+      } else {
+        BeforeSourceOutputUse
+      },
+    }
+    let wrong_dependency = checks.copy()
+    let dependencies = checks[part].prerequisites.copy()
+    dependencies[0] = checks[2]
+    wrong_dependency[part] = { ..checks[part], prerequisites: dependencies, }
+    for
+      invalid in [missing, foreign, disconnected, wrong_phase, wrong_dependency] {
+      try
+        audit_source_execution(inventory, invalid, {
+          work: 1000,
+          bytes: 0,
+          nodes: 0,
+          depth: 0,
+        })
+      catch {
+        ForeignOwner | UnclosedSourceExecution(_, _) => ()
+        error => raise error
+      } noraise {
+        _ => fail("unbound keyed execution admitted")
+      }
+    }
   }
 }

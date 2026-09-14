@@ -296,10 +296,33 @@ fn audit_source_execution(
     @context.core_contract_sources(inventory),
   )
   let stages = @context.source_contract_stage_count(requirements)
+  let identity = @context.core_contract_identity(inventory)
+  let producer = @context.preparation_sources(
+    @context.operation_profiles_preparation(
+      @context.program_sources_operations(
+        @context.program_identity_sources(identity),
+      ),
+    ),
+  )
+  let requests = @context.source_rows_requests(
+    @context.source_policy_rows(
+      @context.source_capacity_context(
+        @context.source_producer_capacity(producer),
+      ),
+    ),
+  )
   identity_charge(budget, stages)
   let mut offset = 0
   for stage in 0..<stages {
+    let stage_offset = offset
+    guard @context.program_identity_stage_requests(identity, stage)
+      is Some(selected) else {
+      raise ForeignOwner
+    }
     let count = @context.source_contract_input_count(requirements, stage).unwrap()
+    if @sourceviews.pipeline_requests_count(selected) != count {
+      raise ForeignOwner
+    }
     for input in 0..<count {
       identity_charge(budget, 1)
       guard checks.get(offset) is Some(first) else {
@@ -318,22 +341,54 @@ fn audit_source_execution(
         ) else {
         raise ForeignOwner
       }
-      guard subject.request is @sourceviews.Direct(mode, request) &&
-        subject.direct_policy is Some(policy) else {
-        raise UnclosedSourceExecution(stage, input)
-      }
-      guard physical_equal(@sourceviews.mode_input(mode), subject.source) &&
-        physical_equal(policy.request, request) &&
-        physical_equal(policy.response, subject.response_policy) &&
-        policy.response_cid == subject.response_policy_cid else {
-        raise ForeignOwner
-      }
-      for field in 0..<@sourceviews.parameterized_request_field_count(request) {
-        identity_charge(budget, 1)
-        if @sourceviews.parameterized_request_field_at(request, field).unwrap().value
-          is @sourceviews.UnboundHostBinding(_) {
-          raise UnclosedSourceExecution(stage, input)
+      let expected_request = @sourceviews.pipeline_request_at(selected, input).unwrap()
+      match (subject.request, expected_request) {
+        (
+          @sourceviews.Direct(mode, request),
+          @sourceviews.Direct(expected_mode, expected),
+        ) => {
+          guard subject.direct_policy is Some(policy) else {
+            raise UnclosedSourceExecution(stage, input)
+          }
+          guard physical_equal(mode, expected_mode) &&
+            physical_equal(request, expected) &&
+            physical_equal(@sourceviews.mode_input(mode), subject.source) &&
+            physical_equal(policy.request, request) &&
+            physical_equal(policy.response, subject.response_policy) &&
+            policy.response_cid == subject.response_policy_cid else {
+            raise ForeignOwner
+          }
+          for
+            field in 0..<@sourceviews.parameterized_request_field_count(request) {
+            identity_charge(budget, 1)
+            if @sourceviews.parameterized_request_field_at(request, field).unwrap().value
+              is @sourceviews.UnboundHostBinding(_) {
+              raise UnclosedSourceExecution(stage, input)
+            }
+          }
         }
+        (
+          @sourceviews.Keyed(mode, request),
+          @sourceviews.Keyed(expected_mode, expected),
+        ) => {
+          guard physical_equal(mode, expected_mode) &&
+            physical_equal(request, expected) &&
+            physical_equal(@sourceviews.keyed_mode_input(mode), subject.source) &&
+            subject.direct_policy is None else {
+            raise ForeignOwner
+          }
+          for
+            field in 0..<@sourceviews.parameterized_keyed_request_field_count(
+              request,
+            ) {
+            identity_charge(budget, 1)
+            if @sourceviews.parameterized_keyed_request_field_at(request, field).unwrap().value
+              is @sourceviews.UnboundHostBinding(_) {
+              raise UnclosedSourceExecution(stage, input)
+            }
+          }
+        }
+        _ => raise ForeignOwner
       }
       for index in 0..<5 {
         identity_charge(budget, 1)
@@ -379,6 +434,88 @@ fn audit_source_execution(
         }
       }
       offset += 5
+    }
+    guard @context.source_request_joins(requests, stage) is Some(joins) &&
+      @context.source_capacity_stage(
+        @context.source_producer_capacity(producer),
+        stage,
+      )
+      is Some(bounds) else {
+      raise ForeignOwner
+    }
+    let join_count = @sourceviews.keyed_join_count(joins)
+    if @sourceviews.lookup_bounds_count(bounds) != join_count {
+      raise ForeignOwner
+    }
+    for index in 0..<join_count {
+      identity_charge(budget, 1)
+      let join = @sourceviews.keyed_join_at(joins, index).unwrap()
+      let input = @sourceviews.keyed_join_input(join)
+      guard input >= 0 && input < count else { raise ForeignOwner }
+      let base = stage_offset + input * 5
+      let subject = checks[base].subject
+      guard checks.get(offset) is Some(first) &&
+        first.kind is KeyedRequest(binding) else {
+        raise UnclosedSourceExecution(stage, input)
+      }
+      guard physical_equal(binding.owner, producer) &&
+        binding.stage == stage &&
+        binding.index == index &&
+        physical_equal(binding.join, join) &&
+        physical_equal(binding.bounds, bounds) &&
+        physical_equal(
+          binding.counts,
+          @sourceviews.lookup_bounds_at(bounds, index).unwrap(),
+        ) &&
+        @context.source_producer_at(producer, stage, index) is Some(membership) &&
+        physical_equal(binding.producer, membership) &&
+        subject.request is @sourceviews.Keyed(_, request) &&
+        physical_equal(request, @sourceviews.keyed_join_request(join)) else {
+        raise ForeignOwner
+      }
+      for part in 0..<4 {
+        identity_charge(budget, 1)
+        guard checks.get(offset + part) is Some(check) else {
+          raise UnclosedSourceExecution(stage, input)
+        }
+        let actual = match (part, check.kind, check.phase, check.failure) {
+          (0, KeyedRequest(value), BeforeProviderAccess, PreventProviderAccess)
+          | (1, KeyedEgress(value), BeforeProviderAccess, PreventProviderAccess)
+          | (
+            2,
+            KeyedResources(value),
+            BeforeAndDuringAcquisition,
+            FailAcquisitionAtomically,
+          )
+          | (
+            3,
+            KeyedResponse(value),
+            BeforeSourceOutputUse,
+            FailAcquisitionAtomically,
+          ) => value
+          _ => raise UnclosedSourceExecution(stage, input)
+        }
+        guard physical_equal(actual, binding) &&
+          physical_equal(check.subject, subject) else {
+          raise ForeignOwner
+        }
+        let expected = match part {
+          0 => [base, base + 3]
+          1 => [offset]
+          2 => [offset, offset + 1]
+          _ => [offset + 2, base + 4]
+        }
+        if check.prerequisites.length() != expected.length() {
+          raise UnclosedSourceExecution(stage, input)
+        }
+        for dependency, prior in expected {
+          identity_charge(budget, 1)
+          guard physical_equal(check.prerequisites[dependency], checks[prior]) else {
+            raise ForeignOwner
+          }
+        }
+      }
+      offset += 4
     }
   }
   if offset != checks.length() {
