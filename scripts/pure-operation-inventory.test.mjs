@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {test} from 'node:test';
 import {parameterPrograms} from './parameter-schema.mjs';
+import {operationInventory} from './bound-transfer-laws.mjs';
 
 const read = path => readFileSync(new URL('../' + path, import.meta.url), 'utf8');
 const scope = read('docs/design/pure-operation-checking.md');
@@ -32,5 +33,40 @@ test('evidence paths exist and both embedded Program schemas contain each operat
         assert.ok(Object.hasOwn(program.properties.steps.items.properties, name), name);
       }
     }
+  }
+});
+
+function assertSourceGate(source) {
+  const publicOperations = operationInventory(read('docs/spec/language.md'));
+  const excluded = ['infer', 'search_candidates', 'serialize'];
+  const exclusionParagraph = scope.split('\n\n').find(paragraph => paragraph.startsWith('No evaluator,'));
+  assert.ok(exclusionParagraph, 'Missing explicit scope exclusions');
+  for (const name of excluded) {
+    assert.ok(publicOperations.includes(name), name);
+    assert.ok(exclusionParagraph.includes('`' + name + '`'),
+      `${name} must remain an explicit scope exclusion`);
+  }
+  const gate = source.match(/fn check_supported_source\([\s\S]*?match key \{([\s\S]*?)=> \(\)\s*_ => raise UnitBuildFailure::UnsupportedStaticPath\(step\)/);
+  assert.ok(gate, 'Expected an explicit closed source gate with rejection fallback');
+  const members = [...gate[1].matchAll(/"([a-z_]+)"/g)].map(match => match[1]);
+  assert.equal(new Set(members).size, members.length, 'Duplicate source gate member');
+  const metadata = ['from', 'as', 'meta'];
+  assert.deepEqual(members.toSorted(), [
+    ...metadata, ...publicOperations.filter(name => !excluded.includes(name)),
+  ].toSorted());
+  // This checks dispatch completeness only. It cannot replace the formal-entry
+  // tests for Carrier alternatives, ownership, evidence and runtime obligations.
+}
+
+test('formal Program source gate covers the agreed operation domain without implicit omissions', () => {
+  assertSourceGate(read('src/program_check/check.mbt'));
+});
+
+test('source gate audit detects omissions, unsupported additions and duplicate registrations', () => {
+  const source = read('src/program_check/check.mbt');
+  for (const replacement of ['', '| "infer"', '| "sequence" | "sequence"']) {
+    const changed = source.replace('| "sequence"', replacement);
+    assert.notEqual(changed, source);
+    assert.throws(() => assertSourceGate(changed));
   }
 });
