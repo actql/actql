@@ -13,6 +13,7 @@ pub(all) enum OperationResolution {
   ProfileResolution(OperationProfileResolution)
   JoinCardinality(JoinCardinalitySelection)
   AssertionConsumption(AssertionConsumptionLink)
+  RankingEnvelope(RankingScoreEnvelope)
 }
 
 ///|
@@ -62,6 +63,7 @@ fn resolution_occurrence(
     ProfileResolution(r) => (r.requirement_index, r.site)
     JoinCardinality(r) => (r.requirement_index, r.site)
     AssertionConsumption(r) => (r.requirement_index, r.site)
+    RankingEnvelope(r) => (r.requirement_index, r.site)
   }
 }
 
@@ -186,6 +188,17 @@ pub fn index_program_operation_resolutions(
     calendar_selections[key] = selection
   }
   for i in 0..<count {
+    match ranking_score_envelope(requirements.entries[i], i, max_work - work) {
+      Err(error) => return Err(error)
+      Ok((envelope, used)) => {
+        work += used
+        if envelope is Some(value) {
+          if attach(RankingEnvelope(value)) is Some(error) {
+            return Err(error)
+          }
+        }
+      }
+    }
     match reach_expansion(requirements.entries[i], i) {
       Ok(Some(expansion)) =>
         if attach(ReachExpansion(expansion)) is Some(error) {

@@ -316,8 +316,19 @@ tie-value agreement and output resource envelopes are explicit obligations.
 Fusion emits fresh ranks; business payload is not copied. In particular a
 weighted result can lie outside the original range because one-sided candidates
 receive an absent-side zero. No input score declaration is reused as the output
-score envelope; deriving and propagating that envelope remains shared evidence
-work.
+score envelope. Static resolution retains a separate `RankingScoreEnvelope`
+owned by the exact fusion occurrence. Max keeps the declared finite range;
+weighted sum bounds the left-only, right-only and both-present cases using
+separately rounded products and addition. RRF has lower bound zero and folds
+the rank-one contribution upper bounds in input order. Weight traversal consumes
+the shared preparation budget before iteration.
+
+The envelope covers successful finite outputs, not all intermediate arithmetic.
+An overflowing bound is conservatively clipped to the largest finite binary64
+magnitude; actual score evaluation still rejects non-finite intermediates and
+never saturates a score. Zero endpoints are canonical positive zero. The bound
+does not authenticate input score declarations, prove that any candidate exists,
+or transfer an input normalization identity to the generated scores.
 
 Execution bindings retain the exact checked fusion, selected policy and ordered
 input occurrences, together with each input's captured score or producer evidence.

@@ -87,6 +87,46 @@ test "ranking execution binds ordered occurrences and keeps static envelope work
           | DeriveOutputScoreEnvelope
         ) {
         assert_true(result is Ok(None))
+        if site.requirement
+          is @pipeline.RankingRequirement(DeriveOutputScoreEnvelope) {
+          let cost = if rrf { 4 } else { 1 }
+          let (envelope, work) = ranking_score_envelope(site, index, cost).unwrap()
+          let envelope = envelope.unwrap()
+          assert_eq(work, cost)
+          assert_true(physical_equal(envelope.site, site))
+          assert_true(physical_equal(envelope.operation, operation))
+          assert_true(physical_equal(envelope.step, step))
+          assert_eq(resolution_occurrence(RankingEnvelope(envelope)).0, index)
+          assert_eq(
+            envelope.minimum,
+            if rrf {
+              0.0
+            } else if fusion == "max" {
+              1.0
+            } else {
+              0.5
+            },
+          )
+          assert_eq(
+            envelope.maximum,
+            if rrf {
+              0.04918032786885246
+            } else {
+              2.0
+            },
+          )
+          assert_true(
+            ranking_score_envelope(site, index, cost - 1) is Err(BudgetExceeded),
+          )
+          assert_true(
+            ranking_score_envelope({ ..site, step: 99, }, index, cost)
+            is Err(ForeignOccurrence(99)),
+          )
+          assert_true(
+            ranking_score_envelope({ ..site, group: 1, }, index, cost)
+            is Err(ForeignOccurrence(0)),
+          )
+        }
         unresolved += 1
         continue
       }

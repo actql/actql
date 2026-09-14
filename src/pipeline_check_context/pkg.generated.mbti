@@ -2401,6 +2401,7 @@ pub(all) enum OperationResolution {
   ProfileResolution(OperationProfileResolution)
   JoinCardinality(JoinCardinalitySelection)
   AssertionConsumption(AssertionConsumptionLink)
+  RankingEnvelope(RankingScoreEnvelope)
 }
 
 pub(all) enum OperationResolutionIndexIssue {
@@ -2766,6 +2767,15 @@ pub(all) enum RankingRule {
   OrderFusedRankings
   AssignFusedRanks
 } derive(Eq, @debug.Debug)
+
+pub struct RankingScoreEnvelope {
+  requirement_index : Int
+  site : OperationRequirementSite
+  step : @pipeline_typing.CheckedStep
+  operation : @relation_evidence.CheckedRanking
+  minimum : Double
+  maximum : Double
+}
 
 pub struct ReachCheck {
   site : OperationRequirementSite
