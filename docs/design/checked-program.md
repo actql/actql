@@ -1237,6 +1237,14 @@ capacity applications, and retain exact consuming-visit, proof and producer
 membership. Row-preserving paths and imports use the existing target-row
 application rule; unrelated proofs and other measurement units are not
 substituted. Rejected searches consume traversal work too. Candidate retention
+searches every claim table in the owned closure, not just tables whose pipeline
+is the consumer's. Result publication and group/window-group/analytic array
+limits share this target-row collector. Consumer visit, claim-table visit and
+the original sparse claim index remain distinct; repeated imports are retained
+as occurrences rather than renumbered or accepted by matching CIDs. The Result
+consumer is located by exact checked-pipeline identity, while operation sites
+provide their already-owned consumer visit. Visits, empty slots, rejected target
+searches and retained candidates all consume the shared work budget. Retention
 shares the closure's work and collection ceilings, and indexed readers do not
 copy proof arrays. These are Program upper-bound candidates, not a selected
 publication limit: applicable Host and other ceiling candidates, canonical

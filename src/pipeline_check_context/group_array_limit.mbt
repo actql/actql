@@ -205,59 +205,27 @@ fn select_array_limit(
     count += 1
     maximum = Int64::min(maximum, value)
   }
-  let candidates = []
-  for
-    visit in 0..<@pipeline.contextual_closure_count(
-      @capacity.application_closure_orders(closure),
+  let (candidates, used) = match
+    collect_target_row_candidates(
+      closure,
+      site.pipeline,
+      input,
+      Some(site.producer_visit),
+      max_work - work,
+      max_candidates - count,
     ) {
-    guard spend() else { return Err(BudgetExceeded) }
-    let coverage = @capacity.application_closure_at(closure, visit).unwrap()
-    let source = @capacity.application_coverage_sources(coverage)
-    if !physical_equal(
-        site.pipeline,
-        @capacity.checked_pipeline(@capacity.source_coverage_graph(source)),
-      ) {
-      continue
-    }
-    let applications = @capacity.source_coverage_program(source)
-    let claims = @wire.program_claim_arithmetic(
-      @step_bounds.application_claims(applications),
+    Ok(found) => found
+    Err(CandidateBudget) => return Err(BudgetExceeded)
+    Err(_) => return Err(ForeignEvidence)
+  }
+  work += used
+  for candidate in candidates {
+    maximum = Int64::min(
+      maximum,
+      @step_bounds.target_rows_value(
+        @capacity.target_membership_rows(candidate),
+      ),
     )
-    for claim in 0..<@wire.claim_count(claims) {
-      guard spend() else { return Err(BudgetExceeded) }
-      guard @step_bounds.application_at(applications, claim) is Some(bound) else {
-        continue
-      }
-      let (result, used) = @step_bounds.check_target_rows_usage(
-        site.pipeline,
-        input,
-        bound,
-        max_work - work,
-      )
-      work += used
-      match result {
-        Ok(rows) => {
-          if count == max_candidates {
-            return Err(BudgetExceeded)
-          }
-          count += 1
-          let membership = match
-            @capacity.bind_target_membership(closure, rows, visit, claim) {
-            Ok(value) => value
-            Err(_) => return Err(ForeignEvidence)
-          }
-          maximum = Int64::min(maximum, @step_bounds.target_rows_value(rows))
-          candidates.push(membership)
-        }
-        Err(
-          @step_bounds.WrongUnit
-          | @step_bounds.UnrelatedBound
-          | @step_bounds.MissingProducer
-        ) => ()
-        Err(@step_bounds.WorkLimit) => return Err(BudgetExceeded)
-        Err(_) => return Err(ForeignEvidence)
-      }
-    }
   }
   Ok({
     input_law: if analytic {

@@ -105,76 +105,27 @@ pub fn close_program_publications(
     let closure = publication.context.capacity
     let pipeline = @results.pipeline(publication.context.results)
     let target = @results.target(@results.port_result(publication.port))
-    let visits = @pipeline.contextual_closure_count(
-      @capacity.application_closure_orders(closure),
-    )
-    for visit in 0..<visits {
-      if work == max_work {
-        return Err(BudgetExceeded)
-      }
-      work += 1
-      let coverage = @capacity.application_closure_at(closure, visit).unwrap()
-      let source = @capacity.application_coverage_sources(coverage)
-      // A proof may belong to a predecessor, but the consuming occurrence
-      // must be this Result's pipeline. Its membership records the producer.
-      if !physical_equal(
-          pipeline,
-          @capacity.checked_pipeline(@capacity.source_coverage_graph(source)),
-        ) {
-        continue
-      }
-      let applications = @capacity.source_coverage_program(source)
-      // Applications retain arithmetic claim indices; non-Program sources
-      // occupy valid empty slots, not a sentinel terminating the collection.
-      let slot_count = @wire.claim_count(
-        @wire.program_claim_arithmetic(
-          @step_bounds.application_claims(applications),
-        ),
-      )
-      for claim in 0..<slot_count {
-        if work == max_work {
-          return Err(BudgetExceeded)
-        }
-        work += 1
-        guard @step_bounds.application_at(applications, claim) is Some(bound) else {
-          continue
-        }
-        let (result, used) = @step_bounds.check_target_rows_usage(
-          pipeline,
-          target,
-          bound,
-          max_work - work,
+    let (candidates, used) = match
+      collect_target_row_candidates(
+        closure,
+        pipeline,
+        target,
+        None,
+        max_work - work,
+        max_requirements - entries.length() - rows.length(),
+      ) {
+      Ok(found) => found
+      Err(CandidateBudget) => return Err(BudgetExceeded)
+      Err(CandidateTarget(e)) =>
+        return Err(RowTarget(publication.stage, publication.result_index, e))
+      Err(CandidateMembership(e)) =>
+        return Err(
+          RowMembership(publication.stage, publication.result_index, e),
         )
-        work += used
-        match result {
-          Ok(target_rows) => {
-            if rows.length() >= max_requirements - entries.length() {
-              return Err(BudgetExceeded)
-            }
-            let membership = match
-              @capacity.bind_target_membership(
-                closure, target_rows, visit, claim,
-              ) {
-              Ok(v) => v
-              Err(e) =>
-                return Err(
-                  RowMembership(publication.stage, publication.result_index, e),
-                )
-            }
-            rows.push({ publication, membership, })
-          }
-          Err(
-            @step_bounds.WrongUnit
-            | @step_bounds.UnrelatedBound
-            | @step_bounds.MissingProducer
-          ) => ()
-          Err(@step_bounds.WorkLimit) => return Err(BudgetExceeded)
-          Err(e) =>
-            return Err(
-              RowTarget(publication.stage, publication.result_index, e),
-            )
-        }
-      }
+    }
+    work += used
+    for membership in candidates {
+      rows.push({ publication, membership, })
     }
     row_ranges.push((first_row, rows.length() - first_row))
   }
