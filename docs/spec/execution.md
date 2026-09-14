@@ -809,8 +809,7 @@ position in the aggregate map and not an escaped path. The Unit Definition
 already binds the operation's semantics, effective used Parameters and local
 contracts. The profile CID identifies the explicitly admitted profile, not a
 member selected for a future attempt. This fixes the previously unspecified
-ordinary-group slot preimage; pivot requires its own context-specific slot
-definition. Window_group and analytic calls use the separate definitions
+ordinary-group slot preimage. Pivot, window_group and analytic calls use the separate definitions
 below, not the ordinary-group domain.
 
 <!-- machine-import: ../../spec/contracts/actql-window-numeric-slot.json# sha256:868fc8f92638572086e4063a815ba235ebe8bc1f207c935c5a99cc82ddabe8ee -->
@@ -885,6 +884,54 @@ The existing reduction-profile admission, attempt binding and durable capture
 barrier before consumers remain mandatory. A static slot supplies neither a
 future observation identity nor evidence of completed capture; this contract
 does not substitute process-local retention for that barrier.
+
+<!-- machine-import: ../../spec/contracts/actql-pivot-numeric-slot.json# sha256:54c19c5dc586979bfd5cfa7afed23011e8394dd4a8623c32ba6ca0f83fb01858 -->
+<!-- machine-import: ../../spec/contracts/actql-pivot-numeric-slot.json#/schemas/pivot_slot sha256:53d96b4ac1e98bf6b829fad4abe700fd12eeee534c1d02e18c19718f80109879 -->
+
+<!-- requirement-block: numeric-observation.pivot-slot-preimage -->
+For pivot binary64 sum/avg, each generated column's static slot CID MUST hash
+the entire canonical JSON object `{version: "actql-pivot-numeric-slot/0.1",
+unit_definition_cid, source_ordinal, output_name, reduction_profile_cid}`.
+The name is the exact canonical declared pivot value and generated output name,
+not its position in authored values or canonical columns, nor an escaped path.
+The ordinal identifies the authored pivot in its producer Unit. The Unit already
+binds index fields, column/value selectors, aggregate, fill and effective used
+Parameters. This fixes a previously unspecified pivot preimage in a separate
+domain, without changing group, window-group or analytic slot identities.
+
+<!-- requirement-block: numeric-observation.pivot-slot-owner -->
+Admission MUST verify the same checked Program, owning Stage, pipeline, pivot
+occurrence, declared generated column, effective binding and admitted profile.
+The slot contract and schema, profile and its declared dependencies belong to
+that Unit's local contract closure. A non-selected string is not another valid
+column merely because it satisfies the wire shape. Shape and self-hash alone
+do not establish this correspondence or process-local ownership.
+
+<!-- requirement-block: numeric-observation.pivot-slot-imports -->
+Imported uses MUST retain the producer slot, not rebase it to the consumer Unit.
+The static body excludes future input artifacts, actual index-group keys,
+contributors, counts, adopted values, filled results, algorithm members, attempts,
+Invocation, placement and costs. The Unit does not include its derived slot CID
+or future observations. These exclusions do not remove the authored fill or
+values sequence from the Unit's ordinary semantic projection.
+
+<!-- requirement-block: numeric-observation.pivot-slot-bucket -->
+Execution MUST bind each observation to the static column slot, exact input
+artifact, index group, that column's bucket, non-null contributors, count, type,
+selected reduction member and attempt. Null or undeclared column values do not
+contribute to a generated bucket but still establish index groups. Equal results
+or contributor sequences do not identify different index groups or slots.
+The declared index/column sequences do not prescribe floating-point summation
+order. Sum/avg on an empty non-null bucket yields null before applying fill;
+the fill value is not a reduction contributor or replacement observation.
+
+<!-- requirement-block: numeric-observation.pivot-empty-slots -->
+Empty declared values MUST produce zero numeric column slots without omitting
+operation, type, admitted-profile, fill or budget checks. This differs from an
+existing generated column with an empty bucket, whose static slot still exists.
+The existing attempt-bound durable numeric capture barrier applies before
+consumers; static templates provide no completed observations and do not permit
+process-local retention to substitute for that barrier.
 
 <!-- requirement-block: numeric-observation.group-slot-owner -->
 Slot admission MUST verify the same checked Program, owning Stage, local

@@ -1299,6 +1299,27 @@ test "contract spec/contracts/actql-stage-contracts.json#/schemas/program_semant
 }
 
 ///|
+test "contract spec/contracts/actql-pivot-numeric-slot.json#" {
+  let input = @json.parse([
+    "{\"version\":\"actql-pivot-numeric-slot-contract/0.1\",\"schemas\":{\"pivot_slot\":{\"$schema\":\"https://json-schema.org/draft/2020-12/schema\",\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"version\",\"unit_definition_cid\",\"source_ordinal\",\"output_name\",\"reduction_profile_cid\"],\"properties\":{\"version\":{\"const\":\"actql-pivot-numeric-slot/0.1\"},\"unit_definition_cid\":{\"type\":\"string\",\"pattern\":\"^sha256:[0-9a-f]{64}$\"},\"source_ordinal\":{\"type\":\"integer\",\"minimum\":0,\"maximum\":9007199254740991},\"output_name\":{\"type\":\"string\",\"minLength\":1},\"reduction_profile_cid\":{\"type\":\"string\",\"pattern\":\"^sha256:[0-9a-f]{64}$\"}}}},\"semantics\":{\"identity\":\"sha256_entire_canonical_json_body_no_self_cid\",\"scope\":\"pivot_binary64_sum_or_avg_generated_column_template_at_owning_unit_authored_source_ordinal\",\"name\":\"exact_canonical_declared_pivot_value_and_generated_output_name_not_position_or_escaped_path\",\"ownership\":\"same_checked_program_stage_pipeline_step_pivot_effective_parameters_and_admitted_profile\",\"profile\":\"selected_admitted_p",
+    "rofile_and_declared_dependencies_in_owning_unit_local_contract_closure\",\"imports\":\"retain_producer_unit_slot_not_consumer_rebasing\",\"demand\":\"index_group_then_exact_column_value_bucket_then_nonnull_input_values_before_fill\",\"observation\":\"bind_exact_input_artifact_index_group_slot_contributors_count_type_selected_member_and_attempt\",\"empty_columns\":\"zero_slots_without_waiving_operation_type_profile_fill_or_budget_checks\",\"empty_bucket\":\"retain_slot_empty_nonnull_reduction_is_null_then_apply_fill_without_treating_fill_as_a_contributor\",\"excludes\":\"future_input_artifact_index_key_contributors_count_value_fill_result_algorithm_member_attempt_invocation_result_placement_cost\",\"acyclic\":\"unit_definition_binds_contract_and_selected_profile_not_derived_slot_cid_or_future_observation\",\"authority\":\"shape_and_digest_not_owner_admission_execution_or_durable_capture\",\"compatibility\":\"group_window_and_analytic_slot_contracts_unchanged_no_backend_or_capture_support_claim\"}}",
+  ].join(""))
+  let value = @canonical_json.from_json(input, 44, 5, 1998)
+  assert_eq(@canonical_json.cid_value(value, 1998, 44, 5), "sha256:54c19c5dc586979bfd5cfa7afed23011e8394dd4a8623c32ba6ca0f83fb01858")
+  assert_eq(@canonical_json.measure_value(value, 1998, 44, 5), 1998)
+}
+
+///|
+test "contract spec/contracts/actql-pivot-numeric-slot.json#/schemas/pivot_slot" {
+  let input = @json.parse([
+    "{\"$schema\":\"https://json-schema.org/draft/2020-12/schema\",\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"version\",\"unit_definition_cid\",\"source_ordinal\",\"output_name\",\"reduction_profile_cid\"],\"properties\":{\"version\":{\"const\":\"actql-pivot-numeric-slot/0.1\"},\"unit_definition_cid\":{\"type\":\"string\",\"pattern\":\"^sha256:[0-9a-f]{64}$\"},\"source_ordinal\":{\"type\":\"integer\",\"minimum\":0,\"maximum\":9007199254740991},\"output_name\":{\"type\":\"string\",\"minLength\":1},\"reduction_profile_cid\":{\"type\":\"string\",\"pattern\":\"^sha256:[0-9a-f]{64}$\"}}}",
+  ].join(""))
+  let value = @canonical_json.from_json(input, 26, 3, 540)
+  assert_eq(@canonical_json.cid_value(value, 540, 26, 3), "sha256:53d96b4ac1e98bf6b829fad4abe700fd12eeee534c1d02e18c19718f80109879")
+  assert_eq(@canonical_json.measure_value(value, 540, 26, 3), 540)
+}
+
+///|
 test "contract spec/contracts/actql-numeric-slot.json#" {
   let input = @json.parse([
     "{\"version\":\"actql-numeric-slot-contract/0.1\",\"schemas\":{\"group_slot\":{\"$schema\":\"https://json-schema.org/draft/2020-12/schema\",\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"version\",\"unit_definition_cid\",\"source_ordinal\",\"aggregate_name\",\"reduction_profile_cid\"],\"properties\":{\"version\":{\"const\":\"actql-group-numeric-slot/0.1\"},\"unit_definition_cid\":{\"type\":\"string\",\"pattern\":\"^sha256:[0-9a-f]{64}$\"},\"source_ordinal\":{\"type\":\"integer\",\"minimum\":0,\"maximum\":9007199254740991},\"aggregate_name\":{\"type\":\"string\",\"minLength\":1},\"reduction_profile_cid\":{\"type\":\"string\",\"pattern\":\"^sha256:[0-9a-f]{64}$\"}}}},\"semantics\":{\"identity\":\"sha256_entire_canonical_json_body_no_self_cid\",\"scope\":\"ordinary_group_binary64_sum_or_avg_call_at_owning_unit_authored_source_ordinal\",\"name\":\"exact_canonical_authored_aggregate_name_not_array_position_or_escaped_path\",\"profile\":\"exact_selected_admitted_profile_in_owning_unit_local_contract_closure\",\"ownership\":\"same_checked_program_stage_local_pipeline_step_call_and_effective_p",

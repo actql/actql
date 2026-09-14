@@ -8660,6 +8660,61 @@
       }
     },
     {
+      "requirement_id": "actql.execution/numeric-observation.pivot-slot-preimage",
+      "statement_sha256": "03b80912f492c531b85b902ac67ecc2cc3247bad55dba040cb6bcaafcef67b7c",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "numeric-observation",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.execution/numeric-observation.pivot-slot-owner",
+      "statement_sha256": "5226077060764dc4f1b7d82e29ed24c90faf75cb8ce32792d93862ef2e645be2",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "numeric-observation",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.execution/numeric-observation.pivot-slot-imports",
+      "statement_sha256": "4aacdcaaf21dd408a1e2cc1c9ba9b5e51dfd220a7d2335d83c7dd7319c1a0224",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "numeric-observation",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.execution/numeric-observation.pivot-slot-bucket",
+      "statement_sha256": "3db8edad64cd7ad7eb01691b73939de5ef29b91295b7e18e8b15e3239a624737",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "numeric-observation",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.execution/numeric-observation.pivot-empty-slots",
+      "statement_sha256": "ed2afde167af72d08b1a2a0e01abb6741a7f8cc2e53bc15619433d27b3175c8b",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "numeric-observation",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.execution/numeric-observation.group-slot-owner",
       "statement_sha256": "c77bc8d8ea5fd323cc2491ecce7c5e934f92220cc1748df07d93080da1059d68",
       "status": "pending",
