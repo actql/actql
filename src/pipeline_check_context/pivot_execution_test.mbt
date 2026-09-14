@@ -72,6 +72,8 @@ test "pivot execution retains empty axes null bucket fill and numeric boundaries
               PartitionPivot => partition += 1
               EvaluatePivot => evaluation += 1
               ValidatePivotResult => validation += 1
+              CaptureNumericObservations(_) =>
+                fail("numeric observation was resolved without a profile")
             }
           }
           Resolved(Fill(_)) => fills += 1

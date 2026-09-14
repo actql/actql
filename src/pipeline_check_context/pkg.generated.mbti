@@ -446,6 +446,8 @@ pub fn link_program_operation_orders(ProgramOperationRequirements, Int, Int) -> 
 
 pub fn link_program_operation_profiles(ProgramOperationCalendar, Int, Int) -> Result[ProgramOperationProfileLinks, OperationProfileLinksIssue]
 
+pub fn link_program_pivot_numeric_slots(ProgramOperationResolutionIndex, ProgramPivotNumericSlots, Int, Int) -> Result[ProgramOperationResolutionIndex, NumericSlotsIssue]
+
 pub fn link_program_window_membership_limits(ProgramOperationResolutionIndex, Int, Int, Int) -> Result[ProgramOperationResolutionIndex, WindowMembershipBoundIssue]
 
 pub fn link_resolved_program_incoming(ProgramOperationResolutionIndex, ProgramIncomingRequirements, IncomingLimits) -> Result[ProgramIncomingLinks, IncomingLinksIssue]
@@ -662,6 +664,20 @@ pub fn pattern_site(PatternResolution) -> ExpressionValidationSite
 
 pub fn pattern_usage(PatternChecks) -> PatternUsage
 
+pub fn pivot_numeric_demand_at(ProgramPivotNumericSlots, Int) -> PivotNumericDemand?
+
+pub fn pivot_numeric_demand_count(ProgramPivotNumericSlots) -> Int
+
+pub fn pivot_numeric_slot_count(PivotNumericDemand) -> Int
+
+pub fn pivot_numeric_slot_name_at(PivotNumericDemand, Int) -> String?
+
+pub fn pivot_numeric_slots_requirements(ProgramPivotNumericSlots) -> ProgramOperationRequirements
+
+pub fn pivot_numeric_slots_work(ProgramPivotNumericSlots) -> Int
+
+pub fn pivot_numeric_total_slot_count(ProgramPivotNumericSlots) -> Int
+
 pub fn policy_context(SelectedPolicyContext) -> ReconciledContexts
 
 pub fn pool_resource_at(PoolCheck, Int) -> PoolResource?
@@ -695,6 +711,8 @@ pub fn prepare_program_checks(SourceProducerContext, ExpressionProfiles, PureOpe
 pub fn prepare_program_incoming_gates(ProgramIncomingLinks, IncomingGateLimits) -> Result[ProgramIncomingGates, ProgramIncomingGatesIssue]
 
 pub fn prepare_program_numeric_slots(ProgramOperationRequirements, @numeric_reduction.Profile, Int, Int) -> Result[ProgramNumericSlots, NumericSlotsIssue]
+
+pub fn prepare_program_pivot_numeric_slots(ProgramOperationRequirements, @numeric_reduction.Profile, Int, Int, Int) -> Result[ProgramPivotNumericSlots, NumericSlotsIssue]
 
 pub fn prepare_program_references(OperationProfileChecks, @stage_source.Limits, @pipeline_parameters.Limits, @program_references.Limits, max_work~ : Int) -> Result[ProgramReferences, PreparedReferencesIssue]
 
@@ -2607,6 +2625,16 @@ pub enum PivotExecutionRule {
   PartitionPivot
   EvaluatePivot
   ValidatePivotResult
+  CaptureNumericObservations(PivotNumericDemand)
+}
+
+pub struct PivotNumericDemand {
+  requirement_index : Int
+  site : OperationRequirementSite
+  step : @pipeline_typing.CheckedStep
+  input : @pipeline_typing.Target
+  pivot : @relation_typing.CheckedPivot
+  profile : @numeric_reduction.Profile
 }
 
 pub struct PoolCheck {
@@ -2792,6 +2820,8 @@ pub enum ProgramOperationResolutionIssue {
 }
 
 type ProgramOperationScalars
+
+type ProgramPivotNumericSlots
 
 type ProgramPreparation
 

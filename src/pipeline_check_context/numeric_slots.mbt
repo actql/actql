@@ -50,7 +50,10 @@ pub fn prepare_program_numeric_slots(
     }
     if @pipeline.step_at(site.pipeline, site.step) is Some(step) &&
       step.operation is @pipeline.Unary(operation) &&
-      @relation.analytic(operation) is Some(_) {
+      (
+        @relation.analytic(operation) is Some(_) ||
+        @relation.pivot(operation) is Some(_)
+      ) {
       continue
     }
     guard @pipeline.step_at(site.pipeline, site.step) is Some(step) else {

@@ -1344,6 +1344,24 @@ are checked. First's input-order proof, bound fills and binary64 sum/avg numeric
 observations remain separate owned resolutions. Binding these three execution
 rules cannot close an unresolved numeric capture or establish stable order.
 
+`PivotNumericDemand` binds the numeric profile, exact pivot and primary input to
+one numeric requirement. Its indexed column templates follow canonical generated
+column order without copying the retained names. The authored values sequence
+remains separate. Empty generated columns have no numeric observation slots,
+but still retain the checked operation demand, profile and fill validation.
+Preparation independently bounds demands, total generated columns and shared
+work including full column-name lengths. Linking requires the identical owned
+requirement table and an unresolved occurrence, and cannot publish a partial
+index after failure. Group and analytic preparation leave pivot requirements to
+this family rather than manufacturing ordinary aggregate calls.
+
+The capture rule requires the selected profile's contributor admission,
+null-elision and numeric observation before any downstream consumer. Pivot fill
+is subsequent result shaping, not another contribution to the reduction. Static
+templates select neither an implementation algorithm nor a future observation
+identity. Persistent pivot slot identities and their selected contract inventory
+remain necessary before the formal Program constructor admits this family.
+
 ### Nested child arrays
 
 `NestExecutionCheck` retains the exact parent and child targets, checked payload

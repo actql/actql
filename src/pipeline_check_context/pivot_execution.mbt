@@ -3,6 +3,7 @@ pub enum PivotExecutionRule {
   PartitionPivot
   EvaluatePivot
   ValidatePivotResult
+  CaptureNumericObservations(PivotNumericDemand)
 }
 
 ///|

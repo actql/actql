@@ -52,6 +52,10 @@ pub fn prepare_program_analytic_numeric_slots(
     if grouped {
       continue
     }
+    if step.operation is @pipeline.Unary(operation) &&
+      @relation.pivot(operation) is Some(_) {
+      continue
+    }
     guard step.operation is @pipeline.Unary(operation) &&
       @relation.analytic(operation) is Some(analytic) else {
       return Err(UnsupportedOccurrence(i))
