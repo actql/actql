@@ -8487,6 +8487,34 @@ required checks. Conversion MUST rebuild dependent identities; a `rows` witness
 MUST NOT be relabeled as an `array_items` witness. This proof does not establish
 observed counts or discharge the aggregate's order and value-admission obligations.
 
+<!-- requirement-block: resolved-limits.unit-nest-resource-subjects resolved-limits.unit-nest-resource-measures -->
+Persistent `nest` resource limits MUST address the original authored operation
+with prefix `unit:<unit_definition_cid>#/steps/<ordinal>/nest/` and these suffixes:
+
+| Suffix | Quantity and protected measurement |
+| --- | --- |
+| `child-arrays/items` | `array_items`, each matched correlation group's child array |
+| `empty-array/items` | `array_items`, the typed empty-constant aggregation, fixed upper bound 1 |
+| `child-arrays/bytes` | `bytes`, the sum of emitted child-array value encodings after grouping |
+| `attachment/bytes` | `bytes`, all retained top-level object/array values after parent attachment, including repeated parent copies |
+
+These names identify the existing canonical expansion's measurement sites, not
+generated AoA node IDs, additional authored aggregate calls, or future observed
+values. The two byte sites remain distinct even when their selected ceiling is
+equal. The empty constant's item ceiling is not a row-count witness, and neither
+item scope denotes total expanded child elements. The `nest` definition fixes
+the fields and canonical value-byte measure at each byte site; no row wrapper,
+artifact bytes, or physical sharing substitution is implied.
+
+<!-- requirement-block: resolved-limits.unit-nest-resource-correspondence -->
+Each limit MUST retain its exact checked nest occurrence, producer Unit,
+effective bindings, selected policy and prerequisite ownership. Imported uses
+retain the producer Unit's subject. Ordinary group, window-group and analytic
+subjects cannot substitute for these generated nest scopes. Conversion rebuilds
+dependent identities under the existing canonical preimages and preserves
+unchanged Host witnesses. Static selection does not discharge output admission,
+order, input-failure propagation or atomic resource enforcement.
+
 <!-- requirement-block: resolved-limits.unit-analytic-aggregate-subject -->
 An analytic aggregate's persistent resolved limit MUST use
 `unit:<unit_definition_cid>#/steps/<ordinal>/analytic/functions/<name_token>/<scope>`

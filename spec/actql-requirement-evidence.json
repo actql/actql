@@ -7681,6 +7681,39 @@
       }
     },
     {
+      "requirement_id": "actql.language/resolved-limits.unit-nest-resource-subjects",
+      "statement_sha256": "5a44e18520a677805ce42ae4ade03b12bc2627208ff5f74fcf01683eedb27371",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "resolved-limits",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/resolved-limits.unit-nest-resource-measures",
+      "statement_sha256": "b2ab932b16ee4e9c3a2e12cd595712ee4b0ab04e9f0a07173101027c4faee8dc",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "resolved-limits",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/resolved-limits.unit-nest-resource-correspondence",
+      "statement_sha256": "f157e7aac1fe6fb38f287af83abe1809ec9ff02084837181873fe465194a1569",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "resolved-limits",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.language/resolved-limits.unit-analytic-aggregate-subject",
       "statement_sha256": "0a17f2b88be71191fab93af75c9276a61128e36c126037f680868445e6c18c74",
       "status": "pending",
@@ -9883,6 +9916,17 @@
     {
       "requirement_id": "actql.protocol.contracts/capacity-law-registry.unit-sequence-guard-path",
       "statement_sha256": "86a7856e8fb6e0cd6a82e23f5676ef404c5bfa103489e3122ce1e327f0241e09",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "capacity-law-registry",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/capacity-law-registry.unit-nest-guard-path",
+      "statement_sha256": "fd26f88c77a94ae00a27bbdbac453f88d6d67cfca4e774a8f1e34e2ded82c952",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",

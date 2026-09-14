@@ -15,6 +15,7 @@ import {
   "actql/actql/numeric_reduction",
   "actql/actql/pipeline_check_context",
   "actql/actql/pipeline_typing",
+  "actql/actql/relation_nest",
   "actql/actql/relation_typing",
   "actql/actql/sourceview_resolution",
   "actql/actql/stage_parameters",
@@ -167,6 +168,8 @@ pub fn interval_search_limit_proof_count(IntervalSearchLimit, Int) -> Int
 pub fn interval_search_limit_selection(IntervalSearchLimit) -> @pipeline_check_context.IntervalSearchCheck
 
 pub fn interval_search_limit_source(IntervalSearchLimit) -> UnitOperationSource
+
+pub fn nest_resource_subject(NestResourceSource, NestResourceScope, Int) -> String raise UnitBuildFailure
 
 pub fn numeric_slot_for_requirement(CheckedProgram, Int) -> GroupNumericSlot?
 
@@ -361,6 +364,10 @@ pub fn unit_input_completeness(CheckedProgram, Int, Int) -> InputCompletenessReq
 pub fn unit_interval_search_limit_at(CheckedProgram, Int, Int) -> IntervalSearchLimit?
 
 pub fn unit_interval_search_limit_count(CheckedProgram, Int) -> Int?
+
+pub fn unit_nest_guard_witness(CheckedProgram, Int, Int, max_work~ : Int, max_bytes~ : Int, max_nodes~ : Int, max_depth~ : Int) -> @capacity_witness.WireWitness? raise UnitBuildFailure
+
+pub fn unit_nest_resource_source_at(CheckedProgram, Int, Int) -> NestResourceSource?
 
 pub fn unit_pipeline(CheckedProgram, Int) -> @pipeline_typing.CheckedPipeline?
 
@@ -559,6 +566,19 @@ pub struct KeyedExecution {
   bounds : @sourceview_resolution.LookupBounds
   counts : @sourceview_resolution.LookupCounts
   producer : @capacity_graph_preflight.TargetMembership
+}
+
+pub(all) enum NestResourceScope {
+  ChildItems
+  EmptyItems
+  GroupedBytes
+  AttachedBytes
+} derive(Eq)
+
+pub struct NestResourceSource {
+  operation : UnitOperationSource
+  nest : @relation_nest.CheckedNest
+  // private fields
 }
 
 type PublicationExecution

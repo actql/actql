@@ -1358,6 +1358,14 @@ atomic enforcement obligations, not observed counts or permission to truncate.
 The bound of the generated typed empty constant remains a separate fixed fact;
 it is not replaced by the selected bound for matched child arrays.
 
+`NestResourceSource` retains the authored Unit operation and checked nest owner.
+Its four typed resource scopes use the normative `nest` subject namespace,
+independent of generated AoA IDs or ordinary aggregate call names. The authored
+guard uses the Unit-relative `nest.max_items` locator and the selected effective
+value; a separately checked equal-CID operation cannot supply that value.
+`unit_nest_guard_witness` is an explicitly budgeted reconstruction API, not a
+retained-limit reader or evidence that the complete nest limit set is prepared.
+
 `prepare_nest_value_envelope` uses that same selection's policy owner to prepare
 two byte scopes: emitted child-array values after aggregation, and all retained
 top-level array/object fields after parent attachment. The latter includes

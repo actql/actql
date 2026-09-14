@@ -372,6 +372,17 @@ Definition owner convention. The respective laws are
 effective positive integer bound, retains its authored occurrence even for a
 Parameter value, and is an enforcement restriction, not an observed count.
 
+<!-- requirement-block: capacity-law-registry.unit-nest-guard-path -->
+For a nest item guard, the source path MUST be exactly
+`$.steps[n].nest.max_items`, with the authored ordinal and Unit Definition owner
+convention above, law `actql.guard.nested-array-items` and quantity `array_items`.
+It restricts the `nest/child-arrays/items` subject, never the typed empty
+constant or a total expansion count. Its bound value and authored occurrence
+remain present when another applicable candidate is stricter. An omitted guard
+does not create a witness, and the empty constant's fixed bound is not an
+authored guard. This locator clarifies the existing registered nest guard; it
+does not change its accepted values or enforcement semantics.
+
 The join-output law applies separately to `join`, `cross_join` and
 `interval_join` output guards; the owning occurrence determines the operation
 and protected output. The nested-array-items law restricts each matched
