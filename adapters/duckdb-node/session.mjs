@@ -286,10 +286,10 @@ async function usingSession(path, readonly, suppliedLimits, body, signal, accoun
   return Object.freeze({ value: result, usage: Object.freeze({ ...usage }) });
 }
 
-export async function withSourceDatabase(grant, limits, body, signal) {
+export async function withSourceDatabase(grant, limits, body, signal, accounting) {
   const path = files.get(grant);
   if (!path) throw new DuckDBTransportError('UnauthorizedSource');
-  return cancellationBoundary(fixedLimits => usingSession(path, true, fixedLimits, body, signal), limits, signal);
+  return cancellationBoundary(fixedLimits => usingSession(path, true, fixedLimits, body, signal, accounting), limits, signal, accounting);
 }
 
 export async function withComputeDatabase(limits, body, signal, accounting) {

@@ -42,6 +42,15 @@ the run ledger, before send/accept. Only confirmed native cleanup releases unuse
 transfer and DB-memory reservations; failure never refunds consumed transfer.
 Task configuration cannot substitute a fresh ledger for a running graph.
 
+The trusted acquisition transport also forwards physical accounting through both
+broad and two-receipt native coordinators. Metadata and each actual row receipt
+are charged before receiver acceptance. Native session cleanup acknowledgement
+precedes synchronous semantic retention and capture; it is not acknowledgement
+that captured buffers or later MoonBit working capacity can be released. A caller
+cancellation deadline retains the original live cleanup responsibility until that
+session actually settles. These hooks belong to trusted Host wiring, not ordinary
+Connector registration or Program-supplied callbacks.
+
 Acquisition-wide accounting must
 be connected before this is presented as
 the complete physical strategy Host. Checked topology validation alone is not

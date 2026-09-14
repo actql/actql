@@ -3,8 +3,8 @@
 import { runNativeAcquisition } from './native-acquisition.mjs';
 import { runSettledQuery } from './settled-query.mjs';
 
-export function runNativeQuery(grant, prepare, limits, signal) {
+export function runNativeQuery(grant, prepare, limits, signal, accounting) {
   return runSettledQuery(grant, prepare, limits, signal, runNativeAcquisition,
     (value, attempt) => value.validation.accepted === attempt
-      && value.native.accepted === attempt);
+      && value.native.accepted === attempt, accounting);
 }

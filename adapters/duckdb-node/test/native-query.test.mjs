@@ -82,7 +82,17 @@ test('native coordinator requires both exact settled receipts and revokes failed
     } finally { connection.closeSync(); database.closeSync(); }
     const grant = await authorizeLocalDatabase(path);
     const events = [];
-    const captured = await runNativeQuery(grant, factory(events, 'success'), limits);
+    let transferred = 0;
+    const captured = await runNativeQuery(grant, factory(events, 'success'), limits, undefined, {
+      started() { assert.deepEqual(events, []); },
+      chargeTransfer(bytes) { transferred += bytes; assert(!events.includes('complete')); },
+      settled(confirmed) {
+        assert.equal(confirmed, true);
+        assert(events.includes('native_result-finished'));
+        assert(!events.includes('complete'));
+      },
+    });
+    assert(transferred > 0);
     assert.deepEqual(events, ['validation_scan-begin', 'validation_scan-finished',
       'native_result-begin', 'native_result-finished', 'complete']);
     assert.throws(() => captured.bindInput(true), /consumer rejected/);

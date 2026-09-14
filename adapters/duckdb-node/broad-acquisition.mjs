@@ -2,7 +2,7 @@
 // The trusted MoonBit port owns catalog, value and retention validation.
 import { withSourceAcquisition } from './source-acquisition.mjs';
 
-export async function runBroadAcquisition(grant, port, limits, signal) {
+export async function runBroadAcquisition(grant, port, limits, signal, accounting) {
   return await withSourceAcquisition(grant, port, limits, signal, async (session, readView) => {
     const metadata = await session.command(port.metadataSql(), port.metadataParameters(),
       chunk => port.acceptMetadata(chunk, readView));
@@ -21,5 +21,5 @@ export async function runBroadAcquisition(grant, port, limits, signal) {
       Object.keys(before).map(key => [key, after[key] - before[key]]),
     ));
     return Object.freeze({ readView, accepted, transport });
-  });
+  }, accounting);
 }

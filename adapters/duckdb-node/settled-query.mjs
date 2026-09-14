@@ -2,7 +2,7 @@
 import { matchesSourceAcquisition, releaseSourceAcquisition } from './source-acquisition.mjs';
 import { DuckDBTransportError } from './session.mjs';
 
-export async function runSettledQuery(grant, prepare, limits, signal, acquire, accepts) {
+export async function runSettledQuery(grant, prepare, limits, signal, acquire, accepts, accounting) {
   let bridge;
   let settled;
   let closed = false;
@@ -22,7 +22,7 @@ export async function runSettledQuery(grant, prepare, limits, signal, acquire, a
     // A synchronous trusted factory installs verify on the MoonBit issuer.
     bridge = prepare(verify);
     signal?.throwIfAborted();
-    settled = await acquire(grant, bridge.port, limits, signal);
+    settled = await acquire(grant, bridge.port, limits, signal, accounting);
     signal?.throwIfAborted();
     if (!verify(bridge.attempt)) throw new DuckDBTransportError('ForeignAcceptedAttempt');
     // These are synchronous MoonBit state transitions: settlement, guarded

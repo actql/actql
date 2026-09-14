@@ -2,7 +2,7 @@
 import { runBroadAcquisition } from "./broad-acquisition.mjs";
 import { runSettledQuery } from "./settled-query.mjs";
 
-export function runBroadQuery(grant, prepare, limits, signal) {
+export function runBroadQuery(grant, prepare, limits, signal, accounting) {
   return runSettledQuery(grant, prepare, limits, signal, runBroadAcquisition,
-    (value, attempt) => value.accepted === attempt);
+    (value, attempt) => value.accepted === attempt, accounting);
 }

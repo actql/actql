@@ -4,7 +4,7 @@
 import { DuckDBTransportError } from './session.mjs';
 import { withSourceAcquisition } from './source-acquisition.mjs';
 
-export async function runNativeAcquisition(grant, port, limits, signal) {
+export async function runNativeAcquisition(grant, port, limits, signal, accounting) {
   return await withSourceAcquisition(grant, port, limits, signal, async (session, readView) => {
     // The trusted adapter supplies catalog-only SQL, not a source-row query.
     // Metadata transport remains in the session ledger, outside both receipts.
@@ -36,5 +36,5 @@ export async function runNativeAcquisition(grant, port, limits, signal) {
     if (signal?.aborted) throw new DuckDBTransportError('Cancelled');
     const native = await receive('native_result', port.nativeSql(), port.nativeParameters());
     return Object.freeze({ readView, validation, native });
-  });
+  }, accounting);
 }

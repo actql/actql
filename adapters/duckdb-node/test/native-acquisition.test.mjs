@@ -8,6 +8,7 @@ import { join } from 'node:path';
 import { DuckDBInstance } from '@duckdb/node-api';
 import { authorizeLocalDatabase } from '../session.mjs';
 import { runNativeAcquisition } from '../native-acquisition.mjs';
+import { runBroadAcquisition } from '../broad-acquisition.mjs';
 import { matchesSourceAcquisition, releaseSourceAcquisition } from '../source-acquisition.mjs';
 
 const root = fileURLToPath(new URL('../../..', import.meta.url));
@@ -75,7 +76,19 @@ test('generated native acquisition awaits validation on the same read view and c
     } finally { connection.closeSync(); instance.closeSync(); }
     const grant = await authorizeLocalDatabase(path);
     const good = receiver(commands);
-    const result = await runNativeAcquisition(grant, good.port, limits);
+    const accountingEvents = [];
+    let charged = 0;
+    const accounting = {
+      started() { accountingEvents.push('started'); },
+      chargeTransfer(bytes) { charged += bytes; accountingEvents.push('charge'); },
+      settled(confirmed) { accountingEvents.push(confirmed); },
+    };
+    const result = await runNativeAcquisition(grant, good.port, limits, undefined, accounting);
+    assert.equal(charged, result.usage.transportBytes);
+    assert.equal(accountingEvents[0], 'started');
+    assert.equal(accountingEvents.at(-1), true);
+    assert(charged > result.value.validation.transport.transportBytes
+      + result.value.native.transport.transportBytes); // Metadata is also charged.
     assert.equal(matchesSourceAcquisition(result, grant, good.port, result.value.readView), true);
     assert.equal(matchesSourceAcquisition({ ...result }, grant, good.port, result.value.readView), false);
     assert.equal(matchesSourceAcquisition(result, await authorizeLocalDatabase(path), good.port, result.value.readView), false);
@@ -95,6 +108,68 @@ test('generated native acquisition awaits validation on the same read view and c
     // Metadata is counted separately in the session, not hidden in a row receipt.
     assert.equal(result.usage.rows, 6);
     assert.equal(result.usage.statements, 3);
+    // Broad uses the identical physical accounting boundary, with only one row
+    // receipt. This receiver is a transport double, not semantic evidence.
+    const broad = receiver(commands);
+    const broadPort = {
+      ...broad.port,
+      scanSql: () => commands.validation,
+      beginReceipt: (fields, view) => broad.port.beginReceipt('validation_scan', fields, view),
+      acceptChunk: (chunk, view) => broad.port.acceptChunk('validation_scan', chunk, view),
+      finishReceipt: view => broad.port.finishReceipt('validation_scan', view),
+    };
+    const beforeBroad = charged;
+    const broadResult = await runBroadAcquisition(grant, broadPort, limits, undefined, accounting);
+    assert.equal(charged - beforeBroad, broadResult.usage.transportBytes);
+    assert.equal(broadResult.usage.statements, 2);
+    assert.equal(accountingEvents.at(-1), true);
+    // Rejection by the shared physical ledger occurs before a chunk reaches
+    // the receiver. No receipt provenance is published after that failure.
+    const denied = receiver(commands);
+    const settlements = [];
+    await assert.rejects(runNativeAcquisition(grant, denied.port, limits, undefined, {
+      started() {},
+      chargeTransfer() { throw new Error('physical ledger exhausted'); },
+      settled(confirmed) { settlements.push(confirmed); },
+    }), /physical ledger exhausted/);
+    assert.deepEqual(denied.events, ['abort']);
+    assert.deepEqual(settlements, [true]);
+    // A caller deadline does not release the original read session's reserved
+    // capacity while its receiver callback is still in flight.
+    const pending = receiver(commands);
+    const pendingAbort = new AbortController();
+    let enter;
+    let release;
+    const entered = new Promise(resolve => { enter = resolve; });
+    const held = new Promise(resolve => { release = resolve; });
+    const pendingSettlements = [];
+    const pendingPort = {
+      ...pending.port,
+      async acceptMetadata(chunk, view) {
+        pending.port.acceptMetadata(chunk, view);
+        enter();
+        await held;
+      },
+    };
+    const operation = runNativeAcquisition(grant, pendingPort,
+      { ...limits, cancelWaitMs: 0 }, pendingAbort.signal, {
+        started() {}, chargeTransfer() {},
+        settled(confirmed) { pendingSettlements.push(confirmed); },
+      });
+    await entered;
+    pendingAbort.abort();
+    let pendingFailure;
+    try {
+      await assert.rejects(operation, error => {
+        pendingFailure = error;
+        return error.code === 'Cancelled' && error.cleanupPending === true;
+      });
+      assert.deepEqual(pendingSettlements, [false]);
+      assert.equal(pendingFailure.cleanupHandle.status().pending, true);
+      assert(!pending.events.includes('native-command'));
+    } finally { release(); }
+    assert.equal((await pendingFailure.cleanupHandle.retry()).pending, false);
+    assert.deepEqual(pendingSettlements, [false, true]);
     await assert.rejects(runNativeAcquisition(grant, good.port, limits), { code: 'AttemptAlreadyStarted' });
     const bad = receiver(commands, 'validation_scan');
     await assert.rejects(runNativeAcquisition(grant, bad.port, limits), /receiver rejection/);

@@ -7,7 +7,7 @@ const completed = new WeakMap();
 
 // Only trusted acquisition adapters call this with their fixed receipt plan.
 // Neither Program data nor a provider's serialized claim chooses the body.
-export async function withSourceAcquisition(grant, port, limits, signal, body) {
+export async function withSourceAcquisition(grant, port, limits, signal, body, accounting) {
   if (attempted.has(port)) throw new DuckDBTransportError('AttemptAlreadyStarted');
   attempted.add(port);
   const readView = Object.freeze({});
@@ -16,7 +16,7 @@ export async function withSourceAcquisition(grant, port, limits, signal, body) {
     const result = await withSourceDatabase(grant, limits, async session => {
       ownedSession = session;
       return await body(session, readView);
-    }, signal);
+    }, signal, accounting);
     // withSourceDatabase returns only after all commands, transaction settlement
     // and connection cleanup succeed. The retained session is already closed;
     // it records the actual lifetime, not a connection available to Compute.

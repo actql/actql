@@ -77,7 +77,17 @@ test('real broad transport gates synchronous capture and keeps failed consumers 
     finally { connection.closeSync(); db.closeSync(); }
     const grant = await authorizeLocalDatabase(path);
     const events = [];
-    const captured = await runBroadQuery(grant, bridgeFactory(events), limits);
+    let transferred = 0;
+    const captured = await runBroadQuery(grant, bridgeFactory(events), limits, undefined, {
+      started() { assert.deepEqual(events, []); },
+      chargeTransfer(bytes) { transferred += bytes; assert(!events.includes('complete')); },
+      settled(confirmed) {
+        assert.equal(confirmed, true);
+        assert(events.includes('receipt'));
+        assert(!events.includes('complete'));
+      },
+    });
+    assert(transferred > 0);
     assert.deepEqual(events, ['begin', 'chunk', 'receipt', 'complete']);
     assert.throws(() => captured.bindInput(true), /consumer rejected/);
     assert.equal(captured.bindInput(false), captured.observation);
