@@ -108,6 +108,16 @@ not connection-local TEMP tables. Only adapter-generated operations access
 these tables. Failed task transactions must not roll back previously committed
 tables. Task cleanup acknowledges task resources, not environment destruction.
 
+Resident task preparation binds an opaque ordered input set to the exact
+run, task, environment and compiled Compute. Each input port is checked against
+its own completed producer and receiver mapping; a self join may borrow one
+physical table twice without importing a second copy. Receiver views use the
+compiled port-specific names. A failure while preparing a later port returns
+all earlier borrowers. Callers may cancel only an unclaimed set; task admission
+claims the whole set once, and confirmed native settlement returns all its
+borrowers. Individual read handles are not exposed by that task-level API.
+Neither a close request nor an unconfirmed cleanup releases those borrowers.
+
 A resident realization succeeds only after Host validation, exact retained
 table correspondence, native transaction completion, and both required holding
 obligations have succeeded. Failure to establish the DB result is not silently
@@ -126,6 +136,14 @@ The supported single-table filter/select path preserves relative row order and
 duplicates; it does not create a logical total-order witness. Generation and
 checked column mappings must survive residency. No string SQL rewriting or
 same-name schema guess substitutes for adapter compilation of those mappings.
+
+Fixed equikey inner joins and group/count also use this boundary. Join input
+ports receive separate checked views, including when both reference the same
+table. The adapter's explicit join order and group order are unchanged by reuse.
+Host value admission, join preflight, output limits, demand/measurement and
+independent Host output holding remain required; keeping a DB copy does not
+waive them. The shared driver imports each missing producer table once, while
+charging task work and each result receipt separately.
 
 Acceptance includes real import-count and transport reduction, equivalence to
 Local and fresh DB execution, changed projections, multiple chunks and duplicate

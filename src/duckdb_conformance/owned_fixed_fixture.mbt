@@ -41,19 +41,36 @@ fn owned_fixed_from_output(
   fragment_json : String,
   projection? : String = "id",
   predicate? : String = "id > 2",
+  count? : Bool = false,
+  keyed_count? : Bool = false,
+  inner_join? : Bool = false,
 ) -> OwnedFixedFixture {
   try {
-    let receiver = issued_fixture_consumer(
-      owner,
-      steps="[{\"filter\":\"" +
-        predicate +
-        "\"},{\"select\":[\"" +
-        projection +
-        "\"]}]",
-    )
-    let bound = @execution.bind_completed_input(receiver, 0, owner, output).unwrap()
-    let read = @execution.prepare_producer_read(receiver, bound, 100, 10000).unwrap()
-    let request = @planning.prepare_fixed_compute_request(read, {
+    let receiver = if inner_join {
+      issued_fixture_join_consumer(owner, field=projection)
+    } else {
+      issued_fixture_consumer(
+        owner,
+        steps=if keyed_count {
+          "[{\"group\":{\"by\":[\"amount\"],\"aggregates\":{\"n\":{\"fn\":\"count\"},\"p\":{\"fn\":\"count\",\"field\":\"amount\"}}}}]"
+        } else if count {
+          "[{\"group\":{\"by\":[],\"aggregates\":{\"id\":{\"fn\":\"count\"}}}}]"
+        } else {
+          "[{\"filter\":\"" +
+          predicate +
+          "\"},{\"select\":[\"" +
+          projection +
+          "\"]}]"
+        },
+      )
+    }
+    let inputs = Array::makei(if inner_join { 2 } else { 1 }, index => {
+      let bound = @execution.bind_completed_input(
+        receiver, index, owner, output,
+      ).unwrap()
+      @execution.prepare_producer_read(receiver, bound, 100, 10000).unwrap()
+    })
+    let request = @planning.prepare_fixed_compute_request(inputs, {
       contract_cid: "sha256:7d59718b965451d8a19ccf7095b92777ba0cdd8c3bb71f437ab387801fe7271f",
       max_rows: 100,
       max_value_bytes: 10000,
@@ -76,31 +93,60 @@ fn owned_fixed_from_output(
       @planning.capability_registration_at(registry, 0).unwrap(),
       request,
       fixture_generated(
-        receiver, registry_json, values_json, fragment_json, true,
+        receiver,
+        registry_json,
+        values_json,
+        fragment_json,
+        !count && !inner_join,
       ),
       [{ work_slots: [0, 1, 2, 3, 4], milliseconds: Some(20L), }],
       quantities,
       100,
     ).unwrap()
-    let native = @planning.duckdb_fixed_compute_candidate(
-      @planning.capability_registration_at(registry, 1).unwrap(),
-      request,
-      "owned_input",
-      {
-        max_entries: 100,
-        max_sql_bytes: 10000,
-        expressions: {
-          max_nodes: 1000,
-          max_work: 10000,
-          max_depth: 100,
-          max_literal_nodes: 1000,
-          max_literal_text_bytes: 10000,
-        },
+    let compilation : @duckdb.NativeQueryLimits = {
+      max_entries: 100,
+      max_sql_bytes: 10000,
+      expressions: {
+        max_nodes: 1000,
+        max_work: 10000,
+        max_depth: 100,
+        max_literal_nodes: 1000,
+        max_literal_text_bytes: 10000,
       },
-      [{ work_slots: [0, 1, 2, 3, 4, 5, 6, 7], milliseconds: Some(10L), }],
-      quantities,
-      100,
-    ).unwrap()
+    }
+    let native = if inner_join {
+      let query = @duckdb.compile_fixed_inner_join(
+        receiver,
+        "main",
+        ["owned_left", "owned_right"],
+        compilation,
+      ).unwrap()
+      let imported = @duckdb.prepare_fixed_join_inputs(
+        query,
+        inputs,
+        { max_rows: 100, max_work: 100000, max_entries: 10000, },
+        100,
+        10000,
+      ).unwrap()
+      @planning.duckdb_bound_compute_candidate(
+        @planning.capability_registration_at(registry, 1).unwrap(),
+        request,
+        @duckdb.prepare_fixed_join_compute(imported, 100).unwrap(),
+        [{ work_slots: [0, 1, 2, 3, 4, 5, 6, 7], milliseconds: Some(10L), }],
+        quantities,
+        100,
+      ).unwrap()
+    } else {
+      @planning.duckdb_fixed_compute_candidate(
+        @planning.capability_registration_at(registry, 1).unwrap(),
+        request,
+        "owned_input",
+        compilation,
+        [{ work_slots: [0, 1, 2, 3, 4, 5, 6, 7], milliseconds: Some(10L), }],
+        quantities,
+        100,
+      ).unwrap()
+    }
     guard @planning.choose_fixed_compute_candidate(
         registry,
         request,
@@ -162,7 +208,16 @@ fn owned_fixed_from_output(
       consumer: fixture_generated(
         issued_fixture_consumer(
           receiver,
-          steps="[{\"select\":[\"" + projection + "\"]}]",
+          steps=if keyed_count {
+            "[{\"select\":[\"amount\",\"n\",\"p\"]}]"
+          } else {
+            "[{\"select\":[\"" + projection + "\"]}]"
+          },
+          target=@duckdb.fixed_query_target(
+            @duckdb.fixed_compute_query(
+              @planning.fixed_compute_choice_payload(choice, native).unwrap(),
+            ),
+          ),
         ),
         registry_json,
         values_json,
@@ -170,8 +225,12 @@ fn owned_fixed_from_output(
         false,
       ),
       measurement: @execution.prepare_fixed_producer_measurement(
-        read,
-        @pipeline.Step(1),
+        inputs,
+        if count || keyed_count || inner_join {
+          @pipeline.Step(0)
+        } else {
+          @pipeline.Step(1)
+        },
         max_rows=100,
         max_value_bytes=10000,
         issued_native_measure_limits(),
@@ -187,6 +246,25 @@ fn owned_fixed_from_output(
 }
 
 ///|
+#export_name("ownedCountCreate")
+pub fn owned_count_create(
+  producer : IssuedNativeFixture,
+  output : @execution.CompletedOutput,
+  registry_json : String,
+  values_json : String,
+  fragment_json : String,
+) -> OwnedFixedFixture {
+  owned_fixed_from_output(
+    @duckdb.native_query_owner(@duckdb.native_scan_query(producer.scan)),
+    output,
+    registry_json,
+    values_json,
+    fragment_json,
+    count=true,
+  )
+}
+
+///|
 #export_name("ownedFixedConfiguration")
 pub fn owned_fixed_configuration(
   value : OwnedFixedFixture,
@@ -195,12 +273,80 @@ pub fn owned_fixed_configuration(
 }
 
 ///|
+#export_name("ownedJoinCreate")
+pub fn owned_join_create(
+  producer : IssuedNativeFixture,
+  output : @execution.CompletedOutput,
+  registry_json : String,
+  values_json : String,
+  fragment_json : String,
+) -> OwnedFixedFixture {
+  owned_fixed_from_output(
+    @duckdb.native_query_owner(@duckdb.native_scan_query(producer.scan)),
+    output,
+    registry_json,
+    values_json,
+    fragment_json,
+    inner_join=true,
+  )
+}
+
+///|
+fn issued_fixture_join_consumer(
+  owner : @lower.BoundPrepared,
+  field? : String = "id",
+) -> @lower.BoundPrepared {
+  let source = @pipeline.produced_input(
+    @lower.pipeline(@lower.bound_preparation(owner)),
+    Step(1),
+  ).unwrap()
+  let pipeline = @pipeline.check_with_evidence(
+    cursor(
+      "[{\"from\":\"l\",\"join\":{\"with\":\"r\",\"kind\":\"inner\",\"on\":[{\"left\":\"" +
+      field +
+      "\",\"right\":\"" +
+      field +
+      "\"}],\"select\":{\"" +
+      field +
+      "\":\"left." +
+      field +
+      "\"}}}]",
+    ),
+    [
+      ("l", @pipeline.ProducedInput(source)),
+      ("r", @pipeline.ProducedInput(source)),
+    ],
+    None,
+    None,
+    {
+      max_steps: 10,
+      max_work: 10000,
+      max_text_bytes: 10000,
+      max_nodes: 1000,
+      max_tokens: 1000,
+      max_depth: 100,
+    },
+  ).unwrap()
+  @lower.bind_parameters(
+    @lower.prepare(pipeline, {
+      max_nodes: 100,
+      max_references: 100,
+      max_work: 10000,
+      max_identifier_bytes: 1000,
+    }).unwrap(),
+    None,
+    max_parameters=0,
+    max_name_bytes=0,
+  ).unwrap()
+}
+
+///|
 #export_name("ownedFixedConsumeOutput")
 pub fn owned_fixed_consume_output(
   value : OwnedFixedFixture,
   output : @execution.CompletedOutput,
 ) -> String {
-  let owner = @duckdb.native_query_owner(
+  let owner = @duckdb.fixed_query_owner(
     @duckdb.fixed_compute_query(value.compute),
   )
   guard @execution.bind_completed_input(
@@ -242,24 +388,28 @@ pub fn owned_fixed_consume_output(
 #export_name("ownedFixedRowCount")
 pub fn owned_fixed_row_count(value : OwnedFixedFixture) -> Int {
   @execution.producer_read_row_count(
-    @duckdb.fixed_import_input(@duckdb.fixed_compute_import(value.compute)),
+    @duckdb.fixed_import_input(
+      @duckdb.fixed_compute_import(value.compute, 0).unwrap(),
+    ),
   )
 }
 
 ///|
 #export_name("ownedFixedColumnCount")
 pub fn owned_fixed_column_count(value : OwnedFixedFixture) -> Int {
-  @duckdb.fixed_import_column_count(@duckdb.fixed_compute_import(value.compute))
+  @duckdb.fixed_import_column_count(
+    @duckdb.fixed_compute_import(value.compute, 0).unwrap(),
+  )
 }
 
 ///|
 #export_name("ownedFixedSql")
 pub fn owned_fixed_sql(value : OwnedFixedFixture, kind : Int) -> String {
-  let imported = @duckdb.fixed_compute_import(value.compute)
+  let imported = @duckdb.fixed_compute_import(value.compute, 0).unwrap()
   match kind {
     0 => @duckdb.fixed_import_create_sql(imported)
     1 => @duckdb.fixed_import_insert_sql(imported)
-    2 => @duckdb.native_query_sql(@duckdb.fixed_compute_query(value.compute))
+    2 => @duckdb.fixed_query_sql(@duckdb.fixed_compute_query(value.compute))
     _ => abort("fixed command selector")
   }
 }
@@ -273,11 +423,11 @@ pub fn owned_fixed_parameter(
   predicate : Bool,
 ) -> String {
   let parameter = if predicate {
-    @duckdb.native_query_parameter(@duckdb.fixed_compute_query(value.compute))
+    @duckdb.fixed_query_parameter(@duckdb.fixed_compute_query(value.compute), 0).unwrap()
   } else {
     match
       @duckdb.fixed_import_parameter(
-        @duckdb.fixed_compute_import(value.compute),
+        @duckdb.fixed_compute_import(value.compute, 0).unwrap(),
         row,
         column,
       ) {
@@ -384,7 +534,11 @@ pub fn owned_fixed_rows(value : OwnedFixedFixture) -> String {
   guard value.measured is Some(measured) &&
     @execution.fixed_producer_measurement_matches(
       measured,
-      @duckdb.fixed_import_input(@duckdb.fixed_compute_import(value.compute)),
+      [
+        @duckdb.fixed_import_input(
+          @duckdb.fixed_compute_import(value.compute, 0).unwrap(),
+        ),
+      ],
       rows,
       100,
       10000,
@@ -420,7 +574,10 @@ pub fn owned_fixed_local_cid(value : OwnedFixedFixture) -> String {
     is Ok(completed) else {
     return "null"
   }
-  let output = @execution.completed_output(completed, Step(1)).unwrap()
+  let output = @execution.completed_output(
+    completed,
+    @duckdb.fixed_query_target(@duckdb.fixed_compute_query(value.compute)),
+  ).unwrap()
   guard @execution.identify_completed_rows(output, {
       max_columns: 10,
       max_order_work: 10000,

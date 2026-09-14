@@ -39,7 +39,7 @@ export async function runExample({ database, environment, environmentCid, progra
       parameterText, JSON.stringify(adopted.registry), JSON.stringify(adopted.values),
       JSON.stringify(adopted.fragment), query, evidence, receipts, schema, table));
   } catch (cause) {
-    throw new Error('Example preparation rejected: check the four-stage profile, Environment CID, Parameters and selected contracts', { cause });
+    throw new Error('Example preparation rejected: check the filter or join/count profile, Environment CID, Parameters and selected contracts', { cause });
   }
   const grant = await authorizeLocalDatabase(database);
   const capture = await runStrategyNativeHostQuery(grant, app.applicationAcquisition(prepared),
@@ -53,7 +53,7 @@ export async function runExample({ database, environment, environmentCid, progra
     const report = Object.freeze({ status: execution.status, program_success: false,
       estimate_model: 'supplied example estimates, not measured speed',
       completed: execution.completed,
-      internal_output_cids: [1, 2, 3].map(task => ({ task, cid: app.applicationOutputCid(graph, task) ?? null })),
+      internal_output_cids: execution.completed.map(({ task }) => ({ task, cid: app.applicationOutputCid(graph, task) ?? null })),
       failure: execution.failure?.code ?? (execution.failure ? 'HostFailure' : null),
       cleanup_pending: execution.cleanupPending(),
       explanation });

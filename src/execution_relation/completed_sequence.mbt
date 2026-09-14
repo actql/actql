@@ -65,6 +65,7 @@ fn evaluate_physical_sequence(
   produced : Array[BoundProducerInput],
   fragments : Array[FragmentRuntimeContext]?,
   ordered : OrderedExecution,
+  join_ceiling? : (Int, Int64)? = None,
 ) -> Result[CompletedSequence, SequenceRunIssue] {
   let invocation = match
     prepare_physical_sequence(
@@ -95,5 +96,17 @@ fn evaluate_physical_sequence(
       )
     },
     store => PhysicalStore(store),
+    evaluate_join=Some((kernel, left, right) => {
+      evaluate_join_rows(
+        kernel,
+        left,
+        right,
+        limits.max_rows,
+        control,
+        invocation.output_budget,
+        { limit: limits.operation_entries, live: 0, peak: 0, },
+        selected_ceiling=join_ceiling,
+      ).map(table => RowTable(table))
+    }),
   )
 }

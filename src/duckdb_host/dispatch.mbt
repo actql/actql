@@ -9,6 +9,7 @@ pub(all) struct TaskDispatchLimits {
   local_execution : @execution.SequenceExecutionLimits
   guards : @execution.FixedInputGuardMeasureLimits
   native_query : @duckdb.NativeQueryLimits
+  join_validation : @execution.FixedJoinValidationLimits
   native : @planning.DuckDBComputeLimits
   transport : @duckdb.TransportColumnLimits
 }
@@ -56,6 +57,7 @@ pub(all) enum DispatchIssue {
   Candidate(@planning.FixedComputeIssue)
   Search(@strategy.SearchIssue)
   EstimateOverflow
+  JoinPreparation(@duckdb.FixedJoinInputIssue)
 }
 
 ///|
@@ -72,6 +74,9 @@ pub fn configure_strategy_dispatch(
     limits.input_entries < 0 ||
     limits.input_name_bytes < 0 ||
     limits.candidate_work < 1 ||
+    limits.join_validation.max_rows < 0 ||
+    limits.join_validation.max_work < 0 ||
+    limits.join_validation.max_entries < 0 ||
     !@planning.capability_registration_matches(local_registration, registry) ||
     !@planning.capability_registration_matches(native_registration, registry) ||
     physical_equal(local_registration, native_registration) {
@@ -101,7 +106,7 @@ pub fn configure_strategy_dispatch(
         match
           @duckdb.check_fixed_compute_static(
             @execution.generated_sequence_owner(item),
-            "owned_input",
+            dispatch_input_tables(@execution.generated_sequence_owner(item)),
             limits.native_query,
           ) {
           Ok(_) => None
@@ -159,22 +164,31 @@ pub fn prepare_next_dispatch(
     Err(issue) => return Err(Run(Physical(issue)))
     Ok(_) => ()
   }
-  let input = match
-    @strategy.captured_task_input(
-      host.run,
-      task,
-      host.limits.input_entries,
-      host.limits.input_name_bytes,
-    ) {
-    Ok(value) => value
-    Err(issue) => return Err(Run(issue))
+  let generated = host.generated[task - 1]
+  let owner = @execution.generated_sequence_owner(generated)
+  let inputs = []
+  let count = @pipeline.input_count(
+    @lower.pipeline(@lower.bound_preparation(owner)),
+  )
+  for port in 0..<count {
+    let input = match
+      @strategy.captured_task_input(
+        host.run,
+        task,
+        host.limits.input_entries,
+        host.limits.input_name_bytes,
+        input_index=port,
+      ) {
+      Ok(value) => value
+      Err(issue) => return Err(Run(issue))
+    }
+    inputs.push(input)
   }
   let request = match
-    @planning.prepare_fixed_compute_request(input, host.limits.capacity) {
+    @planning.prepare_fixed_compute_request(inputs, host.limits.capacity) {
     Ok(value) => value
     Err(issue) => return Err(Candidate(issue))
   }
-  let generated = host.generated[task - 1]
   let quantities : @planning.QueryQuantities = {
     transfer_bytes: None,
     retained_bytes: None,
@@ -210,7 +224,59 @@ pub fn prepare_next_dispatch(
     if host.native_rejections[task - 1] is Some(_) {
       return Err(ForeignSelection)
     }
-    let candidate = match
+    let prepared = if @strategy.captured_task_join_output_limit(host.run, task)
+      is Some(required) {
+      let query = match
+        @duckdb.compile_fixed_inner_join(
+          owner,
+          "main",
+          dispatch_input_tables(owner),
+          host.limits.native_query,
+        ) {
+        Ok(value) => value
+        Err(issue) => return Err(Candidate(Compilation(issue)))
+      }
+      match
+        @strategy.charge_planning(
+          @strategy.captured_dag_ledger(host.run),
+          host.limits.join_validation.max_work,
+        ) {
+        Ok(_) => ()
+        Err(issue) => return Err(Run(Physical(issue)))
+      }
+      let imported = match
+        @duckdb.prepare_fixed_join_inputs(
+          query,
+          inputs,
+          host.limits.join_validation,
+          host.limits.native_query.max_entries,
+          host.limits.native_query.max_sql_bytes,
+        ) {
+        Ok(value) => value
+        Err(issue) => {
+          @strategy.stop_captured_dag(host.run)
+          return Err(JoinPreparation(issue))
+        }
+      }
+      let ceiling = if required < host.limits.capacity.max_rows.to_int64() {
+        required.to_int()
+      } else {
+        host.limits.capacity.max_rows
+      }
+      let compute = match
+        @duckdb.prepare_fixed_join_compute(imported, ceiling) {
+        Ok(value) => value
+        Err(issue) => return Err(Candidate(Compilation(issue)))
+      }
+      @planning.duckdb_bound_compute_candidate(
+        registration,
+        request,
+        compute,
+        [],
+        quantities,
+        host.limits.candidate_work,
+      )
+    } else {
       @planning.duckdb_fixed_compute_candidate(
         registration,
         request,
@@ -219,7 +285,9 @@ pub fn prepare_next_dispatch(
         [],
         quantities,
         host.limits.candidate_work,
-      ) {
+      )
+    }
+    let candidate = match prepared {
       Ok(value) => value
       Err(issue) => return Err(Candidate(issue))
     }
@@ -254,6 +322,20 @@ pub fn prepare_next_dispatch(
   let dispatch = { owner: host, task, revision, work, consumed: false, }
   host.pending = Some(dispatch)
   Ok(Some(dispatch))
+}
+
+///|
+fn dispatch_input_tables(owner : @lower.BoundPrepared) -> Array[String] {
+  let count = @pipeline.input_count(
+    @lower.pipeline(@lower.bound_preparation(owner)),
+  )
+  Array::makei(count, index => {
+    if count == 1 {
+      "owned_input"
+    } else {
+      "owned_input_" + index.to_string()
+    }
+  })
 }
 
 ///|

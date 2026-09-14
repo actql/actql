@@ -100,12 +100,13 @@ fn fixed_compute_attempt_fixture(
   limits : @planning.DuckDBComputeLimits,
   ceiling? : Int = 5,
   supplied_input? : @execution.ProducerRead? = None,
+  generated? : @execution.GeneratedSequence? = None,
 ) -> (@planning.DuckDBComputeAttempt, @execution.ProducerRead) raise {
   let input = match supplied_input {
     Some(input) => input
     None => duckdb_captured_input(filter="id > 2")
   }
-  let request = @planning.prepare_fixed_compute_request(input, {
+  let request = @planning.prepare_fixed_compute_request([input], {
     contract_cid: "sha256:7d59718b965451d8a19ccf7095b92777ba0cdd8c3bb71f437ab387801fe7271f",
     max_rows: 2,
     max_value_bytes: ceiling,
@@ -138,7 +139,10 @@ fn fixed_compute_attempt_fixture(
   let attempt = @planning.start_duckdb_compute_attempt(
     choice,
     prepared,
-    query_generated(@execution.producer_read_receiver(input)),
+    match generated {
+      Some(generated) => generated
+      None => query_generated(@execution.producer_read_receiver(input))
+    },
     limits,
     current => {
       match transport.settled {

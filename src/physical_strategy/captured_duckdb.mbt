@@ -12,7 +12,7 @@ pub fn start_captured_duckdb_task(
   transfer_bytes : Int64,
   native_execution_bytes : Int64,
   verify : (@planning.DuckDBComputeAttempt) -> Bool,
-  resident? : ResidentRead,
+  resident? : ResidentInputs,
 ) -> Result[@planning.DuckDBComputeAttempt, RunIssue] {
   if run.stopped {
     return Err(Stopped)
@@ -26,7 +26,7 @@ pub fn start_captured_duckdb_task(
   match (selected_profile, resident) {
     (None, None) => ()
     (Some(selected), Some(read)) => {
-      guard read.table.environment.profile is Some(actual) &&
+      guard read.environment.profile is Some(actual) &&
         physical_equal(selected, actual) else {
         return Err(ForeignCandidate)
       }
@@ -43,9 +43,16 @@ pub fn start_captured_duckdb_task(
     ) {
     return Err(ForeignCandidate)
   }
-  guard run.inputs[task] is Some(read) &&
-    physical_equal(read, @planning.fixed_compute_request_input(request)) else {
+  guard captured_request_inputs_match(run, task, request) else {
     return Err(ForeignCandidate)
+  }
+  if captured_task_join_output_limit(run, task) is Some(required) {
+    guard @planning.fixed_compute_choice_payload(choice, prepared)
+      is Some(compute) &&
+      @duckdb.fixed_compute_join_output_ceiling(compute) is Some(actual) &&
+      actual.to_int64() <= required else {
+      return Err(ForeignCandidate)
+    }
   }
   guard duckdb_task_retention_capacity(limits) is Some(retention) &&
     duckdb_task_scratch_capacity(limits, transport) is Some(scratch) &&
@@ -58,14 +65,12 @@ pub fn start_captured_duckdb_task(
   let database = match resident {
     None => 0L
     Some(read) => {
-      if !resident_read_matches(
-          run,
-          read,
-          @planning.fixed_compute_request_input(request),
-        ) {
+      guard @planning.fixed_compute_choice_payload(choice, prepared)
+        is Some(compute) &&
+        resident_inputs_match(run, read, task, compute) else {
         return Err(ForeignCandidate)
       }
-      read.table.environment.capacity.capacity
+      read.environment.capacity.capacity
     }
   }
   if execution > 9223372036854775807L - database {
@@ -97,7 +102,7 @@ pub fn start_captured_duckdb_task(
       match
         prepare_resident_output(
           run,
-          read,
+          read.environment,
           @duckdb.fixed_compute_query(compute),
           retention,
           limits,
@@ -116,6 +121,9 @@ pub fn start_captured_duckdb_task(
       choice, prepared, generated, limits, verify,
     ) {
     Ok(attempt) => {
+      if resident is Some(inputs) {
+        inputs.claimed = true
+      }
       run.native_resources[task] = Some({
         attempt,
         reservation,
@@ -192,7 +200,7 @@ pub fn complete_captured_duckdb_task(
       record_task_retention(run, task)
       run.resources[task].unwrap().holding = Some(holding)
       settle_reservation(run.ledger, resource.reservation) |> ignore
-      run.inputs[task] = None
+      clear_captured_inputs(run, task)
       run.running = None
       run.generation += 1
       Ok(())

@@ -214,14 +214,14 @@ test "native captured output converts without replay and preserves success acros
   )
   assert_true(
     @duckdb.fixed_import_parameter(
-      @duckdb.fixed_compute_import(compute_plan),
+      @duckdb.fixed_compute_import(compute_plan, 0).unwrap(),
       0,
       0,
     )
     is Err(InputUnavailable),
   )
   assert_true(
-    @planning.prepare_fixed_compute_request(compute_input, {
+    @planning.prepare_fixed_compute_request([compute_input], {
       contract_cid: "sha256:7d59718b965451d8a19ccf7095b92777ba0cdd8c3bb71f437ab387801fe7271f",
       max_rows: 100,
       max_value_bytes: 10000,

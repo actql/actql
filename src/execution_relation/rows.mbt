@@ -21,6 +21,8 @@ pub(all) enum RowIssue {
   Comparison(ScalarIssue)
   DedupeTopTie(Int, Int)
   DedupeIdentityCollision
+  JoinNullKey(Bool, Int, Int)
+  JoinDuplicateKey(Bool, Int, Int)
 }
 
 ///|
@@ -367,6 +369,12 @@ fn[T : RelationRows] evaluate_row_body_impl(
       return Err(RowLimit)
     }
   }
+  if body is PreparedBody(kernel) &&
+    @lower.kernel_count_group(kernel) is Some(group) {
+    return evaluate_count_group_into(
+      group, input, max_rows, control, output, workspace, accept_row,
+    )
+  }
   let view_entries = match body {
     PreparedBody(kernel) => @lower.kernel_view_entries(kernel)
     CheckedProjection(checked) => {
@@ -393,6 +401,7 @@ fn[T : RelationRows] evaluate_row_body_impl(
         @lower.DistinctRows => return Err(InvalidRows)
         @lower.DedupeRows => return Err(InvalidRows)
         @lower.StableSort(_) => return Err(InvalidRows)
+        @lower.CountGroups(_) => return Err(InvalidRows)
         @lower.OrderedBindings(bindings) =>
           if scope is Some(_) {
             OrderedBindings(bindings)

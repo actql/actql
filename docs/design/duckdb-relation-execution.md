@@ -9,6 +9,10 @@ the [query boundary](query-residual-execution.md) and
 second canonical Program or Plan. Backend registration, estimates and placement
 do not modify the checked acquisition or its identity.
 
+The additional fixed-input group/count profile is described under
+[exact-count realization](#fixed-input-exact-count-realization). Its execution
+support is distinct from general DAG placement and resident-reuse support.
+
 MoonBit owns requirement matching, SQL compilation, type compatibility,
 preservation conditions, logical accounting, completion and evidence validation.
 DuckDB-specific translation belongs in an adapter, not in the common planner.
@@ -337,6 +341,22 @@ physical values, and retains immutable admitted cells under a separate row/value
 allowance. Filter/select cannot produce more occurrences than its fixed input;
 that bound is checked before chunk admission. It is necessary but is not semantic
 attestation. No source address or acquisition receipt is accepted here.
+
+`FixedCompute` retains an ordered import inventory rather than one implicit
+input. A join realization binds the exact input handles, deferred preflight and
+the checked join's authored output guard. The selected output ceiling may only
+be tightened by that guard. Unlike filter/select, join output can exceed either
+input's row count; cumulative physical chunk admission enforces its output ceiling
+before retaining results. Common consumer input limits apply independently to
+every input, while value measurement has one ledger across all ports and output.
+Even two ports sharing a backing store have separate logical occurrences.
+
+The fresh Node transport validates all input dimensions before creating its
+isolated database, then imports each port into its bound table. Import row limits
+are per input; imported cells and transfer accounting accumulate across ports.
+The returned import totals describe actual copies, not unique content CIDs.
+The standard completion path handles both unary and preflight-bound binary
+realizations without a second issuer or a separate join completion type.
 
 Sealing returns an opaque `FixedComputeReceipt` and releases the receiver's
 provisional builder reference. Its rows remain provisional material, not engine
@@ -693,6 +713,52 @@ or failure. This algebraic measurement is not provider execution attestation:
 issuance must also establish that the owned SQL ran on the owned read view,
 that retained receipts correspond to it, and that all other guards succeeded.
 
+## Fixed-input exact-count realization
+
+Fixed Compute SQL has its own owned `FixedQuery` representation. Its
+filter/select alternative wraps the existing compiled comparison; its
+group/count alternative retains the exact checked grouping/count descriptor.
+Acquisition still uses `NativeQuery` and does not absorb grouping. The output
+target and SQL parameter count come from the selected realization, not a
+hard-coded second step or a fabricated comparison parameter.
+
+The exact-count profile accepts row count and direct-field non-NULL count.
+It retains repeated grouping occurrences and explicit `distinct: false`;
+aggregate expressions, aggregate filters and `distinct: true` are outside this
+realization. Direct-field counts have no expression root. Their fixed-input
+demand record therefore differs from comparison-demand measurements; ordinary
+input/output value guards, transport validation and retention remain mandatory.
+
+Local execution shares stable index ordering and scalar comparison across
+storage layouts, then constructs retained output through the ordinary sink.
+Native execution performs `GROUP BY` and `COUNT` in DuckDB. Both preserve the
+canonical group order rather than first encounter. For text keys the SQL
+sorts lists of UTF16 code units, including surrogate pairs, instead of relying
+on DuckDB's default binary VARCHAR order. These helper lists are physical
+scratch, not new logical fields. Their cost and retention are not free.
+DuckDB documents its [binary collation](https://duckdb.org/docs/current/sql/expressions/collations)
+and [positional LIST comparison](https://duckdb.org/docs/current/sql/data_types/list);
+the adapter is responsible for the ActQL-specific code-unit transformation.
+
+The current fixed-import row count is Int-bounded, so each exact count is
+representable in binary64. `CAST(COUNT(...) AS DOUBLE)` relies on that admitted
+input bound; it is not a general count-overflow rule or a language-wide limit.
+Keyed output cannot exceed the input row count. Global count must emit exactly
+one row even for empty input, and its output still has an independent common
+row/value ceiling. A missing global result cannot be sealed as a successful
+receipt. Zero-column SQL output still needs a dedicated transport adaptation;
+that shape is explicitly ineligible for this DuckDB realization, not invalid
+ActQL.
+
+Completion seals this Compute's own retained output only after common guards,
+exact ownership and trusted transport succeed. Later upstream revocation does
+not invalidate that independently completed result. Closing the result's own
+attempt still prevents a new downstream computation. This extension does not
+grant group/count a general DAG placement or resident-reuse guarantee merely
+because its SQL can be compiled.
+
+## Failure and resource lifetime
+
 Cancellation request, the caller ceasing to wait, confirmed query termination
 and resource cleanup are distinct states. Cancelled or failed attempts cannot
 issue success evidence or capture. A connection whose stop is unconfirmed is not
@@ -721,3 +787,50 @@ their shared contracts. The current process-evidence schema is not replaced by
 a backend's self-reported success flag. The accepted row layout and known
 evaluation-performance regression remain unchanged; this increment does not
 reopen the completed performance investigation.
+
+## Fixed inner-join SQL boundary
+
+The inner-join compiler binds the checked owner, ordered input ports, composite
+equality pairs and projection. Its output is SQL preparation, not a native
+completion or evidence that null/cardinality obligations have been discharged.
+The preflight-bound realization uses the shared fixed-Compute candidate,
+receiving, demand and completion path. The unary convenience compiler does not
+infer a two-input realization from a single table name. Host-private preparation
+must supply the exact ordered table inventory and an output ceiling. Automatic
+two-input DAG dispatch and resident join reuse require their own input-location
+and resource bindings; the SQL compiler alone does not establish those paths.
+
+Each immutable input is projected into collision-free internal column names and
+given `row_number() OVER ()` before joining. Explicit ordering by the left and
+right ordinals preserves left-major/right-minor pair order, including duplicates;
+it does not create a logical source-order proof. The adapter requires the
+single-table, insertion-order-preserving input path described by
+[DuckDB's order-preservation contract](https://duckdb.org/docs/current/sql/dialect/order_preservation).
+The ordinal buffers and final ordering remain real physical work to account for.
+
+Text keys use UTF-8 byte equality rather than session collation. Decimal keys
+compare exact fixed-scale textual forms after removing only fractional trailing
+zeroes. This avoids coercing two precision-38 operands into a common decimal type
+that cannot represent both scales. Original projected values keep their types.
+Numeric, boolean, date and timestamp keys use their admitted physical scalar
+types. NULL keys do not match; a selected fail-null policy and cardinality
+assertions still require independent pre-execution validation of both full inputs.
+Output limits must fail before publication, never truncate SQL output with LIMIT.
+
+Fixed join import preparation checks ownership and prepares imports, but does
+not evaluate null/cardinality obligations. At attempt admission, common input
+row/value measurement succeeds first; the same null/cardinality checks as Local
+then run over immutable producer-column views. An oversized input value therefore
+cannot be hidden by an earlier cardinality error from candidate preparation.
+The preflight record belongs to
+the exact receiving owner, prepared join profile and input handles; new work
+requires their continued liveness. The checks do not construct joined rows or
+repeat expressions. Physical preflight work and peak scratch have independent
+limits, while import metadata limits span both ports. The attempt retains the
+exact validation record and checks its correspondence before sealing success.
+After sealing, the existing independent completion boundary no longer depends
+on upstream liveness.
+SQL preparation owns its table-name snapshot so caller mutations cannot redirect
+an import away from the compiled query. These records are not output evidence:
+common value/root guards, actual transport, output admission, output limits and
+retention still belong to the completed Compute path.

@@ -14,13 +14,12 @@ priv struct ResidentPendingOutput {
 ///|
 fn prepare_resident_output(
   run : CapturedDAG,
-  read : ResidentRead,
-  query : @duckdb.NativeQuery,
+  env : ResidentEnvironment,
+  query : @duckdb.FixedQuery,
   bytes : Int64,
   limits : @planning.DuckDBComputeLimits,
   max_sql_bytes : Int,
 ) -> Result[ResidentPendingOutput, RunIssue] {
-  let env = read.table.environment
   if env.next_table >= run.ledger.limits.holdings {
     return Err(Physical(HoldingLimit))
   }

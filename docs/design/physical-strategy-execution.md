@@ -8,12 +8,34 @@ owned producer/target/receiver ports. Control edges come from checked incoming
 success gates, not from reachability in the data graph. Both must be satisfied.
 Splitting work does not create independent semantic success boundaries.
 
-The initial execution profile is finite, serial, single-input Relation
-filter/select. Its acceptance graph shares one completed acquisition X between
+The execution profile is finite and serial. Each Compute is either
+filter/select, an explicit equikey inner join, or one group with row count/direct-field non-NULL count; aggregate
+expressions, aggregate filters and distinct counts remain unsupported. Its
+acceptance graph shares one completed acquisition X between
 A and B, with C reading A. All Stage activation barriers remain mandatory even
 when B has no data dependency on A. A task failure prevents further starts;
 successful independently completed computations are not retroactively revoked.
 Internal success records are not partial successful Program publication.
+
+Each Compute exposes its exact final checked port: step 1 for filter/select,
+step 0 for a single group or inner join. Local and fresh-import DuckDB dispatch
+bind every ordered input port, including two references to the same producer.
+Native static eligibility compiles all input schemas before cost comparison;
+runtime preparation binds live inputs and the bounded null/cardinality preflight
+configuration. The actual checks run once at Compute admission, after common
+input guards and before native work. Their explicit work/scratch allowance is
+charged to planning during dispatch preparation; an input guard failure does
+not refund that allowance. The common native start also requires an output ceiling
+no weaker than the checked join claim, before reserving its exact attempt.
+A checked edge to an intermediate step is not silently
+redirected to the final output. `captured_task_target` supplies this port to Host
+diagnostics, completed statistics and resident imports without manufacturing a
+completed output. Both local and DuckDB completions obey the same port selection;
+acquisition continues to use its separate captured-source binding. Group results
+can remain resident for subsequent filter/select or supported join/count tasks,
+while independently retained Host results supply admission and completion evidence.
+Two-input resident joins bind the exact ordered input set and share only actual
+producer tables. This does not provide general aggregation or numeric reductions.
 
 `CapturedInputSource` encapsulates an already captured mock, broad or native
 observation. It exposes binding and live metadata, not a raw pre-capture output.
@@ -307,12 +329,21 @@ Bound revisions and search work; unchanged state does not trigger repeated searc
 
 The standard dispatch can install a bounded declarative estimate profile before
 its first search. Rates cover the five Local or eight DuckDB work slots, using
-explicit fixed, per-input-row and per-canonical-wire-byte time coefficients.
+explicit fixed, per-input-row, per-canonical-wire-byte and per-potential-pair
+time coefficients. Input quantities sum all port occurrences rather than keeping
+one parent; identical content is not a fresh-import transfer discount. A join's
+potential-pair basis is the product of its left/right input row estimates,
+including a self join. This is an estimate basis for comparison/intermediate
+work, not an output-count claim or a required physical Cartesian materialization.
+Auxiliary key encoding, ordering, output transfer and cleanup still belong in
+the appropriate disjoint work slots, with explicit fixed or quantity-based rates.
 These are Host-supplied estimates, not calibrated performance guarantees. Capture
 row count and canonical wire size come from existing retained measurements;
 completed task row counts replace forecasts without re-admission or a new scan.
-For uncompleted filter/select outputs, an explicit per-mille row estimate may be
-used. Non-root output wire sizes remain unknown, not inferred from row ratios.
+For uncompleted outputs, an explicit per-mille row estimate may be used. Its basis
+is the input row count for unary operations and potential pairs for join; actual
+completed cardinality replaces it. Non-root output wire sizes remain unknown,
+not inferred from row ratios.
 Missing coefficients or required quantities keep the total unknown. This policy
 defers on unknown totals; explicit preference remains available through the
 separate manual search API.
@@ -330,3 +361,18 @@ Node executes trusted adapter operations. Checked graph validation, identity,
 meaning, candidate compatibility and logical enforcement remain in MoonBit.
 Execution reports distinguish task records, original failure, cleanup failures,
 pending responsibility, strategy revisions and Program/publication status.
+
+## Binary Local Compute ports
+
+The captured execution state retains pending producer reads by checked input
+port, not merely by consumer task. The Local path accepts a single inner-join
+step with up to two completed input ports, including two ports bound to the same
+producer. Data and control dependencies both precede dispatch; all request reads
+must be the exact cached bindings. Closing either upstream port revokes pending
+execution without invalidating independently completed descendants.
+
+Result-retention accounting tracks every distinct parent task. Repeated logical
+ports do not create a second parent holding token, and equal content from two
+different parents does not merge tokens. The native adapter and placement
+estimates must explicitly support both inputs before offering a binary native
+candidate.

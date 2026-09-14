@@ -179,7 +179,7 @@ test "unsupported expressions remain eligible only for separately offered local 
     assert_true(
       @duckdb.check_fixed_compute_static(
         owner,
-        "owned_input",
+        ["owned_input"],
         native_compile_limits(),
       )
       is Err(UnsupportedPredicate),

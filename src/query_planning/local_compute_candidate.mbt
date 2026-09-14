@@ -15,7 +15,7 @@ pub fn local_fixed_compute_candidate(
   }
   if !physical_equal(
       @execution.generated_sequence_owner(sequence),
-      @execution.producer_read_receiver(request.input),
+      request.owner,
     ) {
     return Err(ForeignPreparation)
   }
@@ -30,23 +30,31 @@ pub fn execute_local_fixed_compute(
   prepared : PreparedCompute[@execution.GeneratedSequence],
   limits : @execution.SequenceExecutionLimits,
   measurement~ : @execution.FixedInputGuardMeasureLimits,
+  join_output_ceiling? : (Int, Int64)? = None,
 ) -> Result[@execution.CompletedSequence, FixedComputeIssue] {
   guard fixed_compute_choice_payload(choice, prepared) is Some(sequence) else {
     return Err(NotSelected)
   }
   let request = prepared.candidate.request
-  let pipeline = @lower.pipeline(
-    @lower.bound_preparation(@execution.producer_read_receiver(request.input)),
-  )
+  let sequence = match join_output_ceiling {
+    None => sequence
+    Some((step, ceiling)) =>
+      match
+        @execution.constrain_generated_join_output(sequence, step, ceiling) {
+        Ok(sequence) => sequence
+        Err(issue) => return Err(Execution(issue))
+      }
+  }
+  let pipeline = @lower.pipeline(@lower.bound_preparation(request.owner))
   let count = @pipeline.step_count(pipeline)
   let target : @pipeline.Target = if count == 0 {
     Input(0)
   } else {
     Step(count - 1)
   }
-  @execution.execute_fixed_producer_guarded(
+  @execution.execute_fixed_producers_guarded(
     sequence,
-    request.input,
+    request.inputs,
     target,
     limits,
     max_rows=request.capacity.max_rows,

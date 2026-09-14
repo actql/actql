@@ -3,6 +3,9 @@ fn query_checked_program_fixture(
   nullable? : Bool = false,
   catalog? : @environment.SourceRequestContracts? = None,
   dag? : Bool = false,
+  dag_count? : Bool = false,
+  dag_join? : Bool = false,
+  self_join? : Bool = false,
 ) -> @program_check.CheckedProgram raise {
   let text =
     #|{"version":"actql/0.1","id":"p","params":{"minimum":{"type":"number","nullable":false}},"stages":[{"id":"a","inputs":{"remote":{"connector":"crm/main","resource":"r"}},"steps":[{"filter":"id > $minimum","as":"filtered"},{"select":["id"],"as":"captured"}],"results":{"r":{"from":"captured","fields":["id"]}}}],"results":{"out":{"from":{"stage":"a","result":"r"}}}}
@@ -10,6 +13,28 @@ fn query_checked_program_fixture(
     text.replace(
       old="}],\"results\":{\"out\":{\"from\":{\"stage\":\"a\",\"result\":\"r\"}}}}",
       new="},{\"id\":\"compute_a\",\"inputs\":{\"x\":{\"result\":{\"stage\":\"a\",\"result\":\"r\"}}},\"steps\":[{\"filter\":\"id > 2\"},{\"select\":[\"id\"],\"as\":\"out\"}],\"results\":{\"r\":{\"from\":\"out\",\"fields\":[\"id\"]}}},{\"id\":\"compute_b\",\"inputs\":{\"x\":{\"result\":{\"stage\":\"a\",\"result\":\"r\"}}},\"steps\":[{\"filter\":\"id > 0\"},{\"select\":[\"id\"],\"as\":\"out\"}],\"results\":{\"r\":{\"from\":\"out\",\"fields\":[\"id\"]}}},{\"id\":\"compute_c\",\"inputs\":{\"x\":{\"result\":{\"stage\":\"compute_a\",\"result\":\"r\"}}},\"steps\":[{\"filter\":\"id < 9\"},{\"select\":[\"id\"],\"as\":\"out\"}],\"results\":{\"r\":{\"from\":\"out\",\"fields\":[\"id\"]}}}],\"results\":{\"b\":{\"from\":{\"stage\":\"compute_b\",\"result\":\"r\"}},\"c\":{\"from\":{\"stage\":\"compute_c\",\"result\":\"r\"}}}}",
+    )
+  } else {
+    text
+  }
+  let text = if dag_count {
+    text.replace(
+      old="{\"filter\":\"id > 2\"},{\"select\":[\"id\"],\"as\":\"out\"}",
+      new="{\"group\":{\"by\":[],\"aggregates\":{\"id\":{\"fn\":\"count\"}}},\"as\":\"out\"}",
+    )
+  } else {
+    text
+  }
+  let text = if dag_join {
+    let joined = text.replace(
+      old="\"inputs\":{\"x\":{\"result\":{\"stage\":\"compute_a\",\"result\":\"r\"}}},\"steps\":[{\"filter\":\"id < 9\"},{\"select\":[\"id\"],\"as\":\"out\"}]",
+      new="\"inputs\":{\"l\":{\"result\":{\"stage\":\"compute_a\",\"result\":\"r\"}},\"r\":{\"result\":{\"stage\":\"" +
+        (if self_join { "compute_a" } else { "compute_b" }) +
+        "\",\"result\":\"r\"}}},\"steps\":[{\"join\":{\"with\":\"r\",\"kind\":\"inner\",\"on\":[{\"left\":\"id\",\"right\":\"id\"}],\"select\":{\"id\":\"left.id\"}},\"from\":\"l\",\"as\":\"out\"}]",
+    )
+    joined.replace(
+      old="}],\"results\":{\"b\":{\"from\":{\"stage\":\"compute_b\",\"result\":\"r\"}},\"c\":{\"from\":{\"stage\":\"compute_c\",\"result\":\"r\"}}}}",
+      new="},{\"id\":\"count_d\",\"inputs\":{\"x\":{\"result\":{\"stage\":\"compute_c\",\"result\":\"r\"}}},\"steps\":[{\"group\":{\"by\":[],\"aggregates\":{\"n\":{\"fn\":\"count\"}}},\"as\":\"out\"}],\"results\":{\"r\":{\"from\":\"out\",\"fields\":[\"n\"]}}}],\"results\":{\"out\":{\"from\":{\"stage\":\"count_d\",\"result\":\"r\"}}}}",
     )
   } else {
     text
@@ -69,13 +94,29 @@ fn query_checked_program_fixture(
     max_nodes: 0,
     max_depth: 0,
   }).unwrap()
+  let join_sources = if dag_join {
+    Some(join_graph_capacity_material(environment))
+  } else {
+    None
+  }
   @program_check.check(
     program,
     environment,
     Some(input_cursor("{\"minimum\":1}")),
     if dag {
-      [1, 2, 2, 3].map(visits => {
-        Array::makei(visits, _ => { sources, consumers: [], })
+      let visits = if dag_join { [1, 2, 2, 5, 6] } else { [1, 2, 2, 3] }
+      Array::makei(visits.length(), stage => {
+        Array::makei(visits[stage], visit => {
+          if ((stage == 3 && visit == 0) || (stage == 4 && visit == 1)) &&
+            join_sources is Some(join_sources) {
+            {
+              sources: join_sources,
+              consumers: [@capacity.Join(step=0, output=0)],
+            }
+          } else {
+            { sources, consumers: [], }
+          }
+        })
       })
     } else {
       [[{ sources, consumers: [], }]]

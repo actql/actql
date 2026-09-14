@@ -114,14 +114,15 @@ pub fn prepare_kernel_roots(
     None => return Err(InvalidStep)
   }
   match step {
-    ValuesStep(_) => return Err(NotExpressionKernel)
+    ValuesStep(_) | JoinStep(_) => return Err(NotExpressionKernel)
     RowStep(kernel) =>
       match kernel.body {
         Select(_)
         | Limit(_, _, _)
         | DistinctRows
         | DedupeRows
-        | StableSort(_) => return Err(NotExpressionKernel)
+        | StableSort(_)
+        | CountGroups(_) => return Err(NotExpressionKernel)
         Filter(_) | SnapshotMap(_) | OrderedBindings(_) => ()
       }
   }
@@ -149,14 +150,15 @@ fn prepare_root_range(
     }
     work -= 1
     let bindings = match sequence.steps[step_index] {
-      ValuesStep(_) => continue
+      ValuesStep(_) | JoinStep(_) => continue
       RowStep(kernel) =>
         match kernel.body {
           Select(_)
           | Limit(_, _, _)
           | DistinctRows
           | DedupeRows
-          | StableSort(_) => continue
+          | StableSort(_)
+          | CountGroups(_) => continue
           Filter(expr) => {
             if sorted.length() == limits.max_roots || bytes < 5 || work < 6 {
               return Err(RootLimit)

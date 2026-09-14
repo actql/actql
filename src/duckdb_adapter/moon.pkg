@@ -10,6 +10,7 @@ import {
   "actql/actql/execution_relation" @execution,
   "actql/actql/pipeline_typing" @pipeline,
   "actql/actql/relation_typing" @relation,
+  "actql/actql/relation_join_shape" @join,
   "actql/actql/relation_schema" @schema,
   "actql/actql/decode_scalar" @scalar,
   "moonbitlang/core/bigint",

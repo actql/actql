@@ -36,16 +36,18 @@ pub fn strategy_host_run(
 }
 
 ///|
-#export_name("strategyHostResidentInput")
-pub fn strategy_host_resident_input(
+#export_name("strategyHostResidentInputs")
+pub fn strategy_host_resident_inputs(
   host : @host.StrategyHostDispatch,
   task : Int,
-) -> Array[Int64] raise NodeHostFailure {
-  guard @host.dispatch_resident_input(host, task)
-    is Some((producer, bytes, entries, names)) else {
+) -> Array[Array[Int64]] raise NodeHostFailure {
+  guard @host.dispatch_resident_inputs(host, task) is Some(inputs) else {
     raise InvalidCommand
   }
-  [producer.to_int64(), bytes, entries.to_int64(), names.to_int64()]
+  inputs.map(input => {
+    let (producer, bytes, entries, names) = input
+    [producer.to_int64(), bytes, entries.to_int64(), names.to_int64()]
+  })
 }
 
 ///|
@@ -111,7 +113,10 @@ pub fn strategy_host_output(
   host : @host.StrategyHostDispatch,
   task : Int,
 ) -> @execution.CompletedOutput? {
-  @strategy.captured_task_output(@host.dispatch_run(host), task, Step(1))
+  let run = @host.dispatch_run(host)
+  @strategy.captured_task_target(run, task).bind(target => {
+    @strategy.captured_task_output(run, task, target)
+  })
 }
 
 ///|

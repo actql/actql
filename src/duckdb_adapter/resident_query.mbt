@@ -2,7 +2,7 @@
 /// Native result materialization uses the very same checked query and bound
 /// parameter as fresh execution. It is not completion or resident provenance.
 struct ResidentQuery {
-  query : NativeQuery
+  query : FixedQuery
   create_sql : String
   read_sql : String
   drop_sql : String
@@ -10,22 +10,29 @@ struct ResidentQuery {
 
 ///|
 pub fn prepare_resident_query(
-  query : NativeQuery,
+  query : FixedQuery,
   output_table : String,
   max_sql_bytes : Int,
 ) -> Result[ResidentQuery, NativeQueryIssue] {
   if max_sql_bytes < 0 {
     return Err(InvalidLimits)
   }
-  if output_table == query.table {
-    return Err(InvalidIdentifier)
+  let input_tables = match query {
+    FilterSelect(query) => [query.table]
+    CountGroup(query) => [query.table]
+    InnerJoin(query) => query.tables
+  }
+  for input_table in input_tables {
+    if output_table == input_table {
+      return Err(InvalidIdentifier)
+    }
   }
   let create = { builder: StringBuilder(), remaining: max_sql_bytes, }
   try {
     sql_text(create, "CREATE TABLE ")
     sql_identifier(create, output_table)
     sql_text(create, " AS ")
-    sql_text(create, query.sql)
+    sql_text(create, fixed_query_sql(query))
     let read = { builder: StringBuilder(), remaining: create.remaining, }
     sql_text(read, "SELECT * FROM main.")
     sql_identifier(read, output_table)
@@ -60,11 +67,14 @@ pub fn resident_query_drop_sql(value : ResidentQuery) -> String {
 }
 
 ///|
-pub fn resident_query_parameter(value : ResidentQuery) -> PhysicalParameter {
-  value.query.parameter
+pub fn resident_query_parameter(
+  value : ResidentQuery,
+  index : Int,
+) -> PhysicalParameter? {
+  fixed_query_parameter(value.query, index)
 }
 
 ///|
 pub fn resident_query_owner(value : ResidentQuery) -> @lower.BoundPrepared {
-  value.query.owner
+  fixed_query_owner(value.query)
 }

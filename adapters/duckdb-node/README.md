@@ -136,11 +136,16 @@ Registry names are diagnostic, not source authority or semantic identity. An
 equal declaration in another registry is rejected. Closing a registry blocks new proposals/recovery without
 releasing completed upstream observations.
 
-For a completed input, `prepare_fixed_compute_request(ProducerRead, capacity)`
-binds the exact receiving owner and an explicit `FixedComputeCapacity`: the
+For completed inputs, `prepare_fixed_compute_request([ProducerRead, ...], capacity)`
+binds the exact receiving owner and every checked input port, in port order,
+with an explicit `FixedComputeCapacity`: the
 pinned consumer-capacity CID, common `max_rows`/`max_value_bytes`, and an optional
 exact common fragment preparation. No implicit unlimited default is supplied.
-An input row overflow fails even if the planned filter would remove every row.
+Each input's row ceiling is checked independently, even if the planned operation
+would discard every row. The request snapshots the handle array, not the rows.
+Local, fresh-import DuckDB and resident DuckDB support the checked binary
+inner-join profile. Both input ports retain independent guards and exact
+producer ownership, including when they share the same backing table.
 Native candidates reject a selected common fragment until exact fragment
 accounting is supported; they do not reinterpret it as Local-only.
 This preparation is not itself a proof that all value/root guards have run.
@@ -207,6 +212,19 @@ try {
   result.close();
 }
 ```
+
+For a preflight-bound inner-join configuration, the same entry imports both
+ordered input ports into one isolated Compute database. `importLimits.maxRows`
+applies to each input independently; `maxCells`, `importedRows` and
+`importedCells` are cumulative across imports. Equal contents on two ports do
+not imply a shared import. The standard Host conformance includes captured
+self-join input, empty input, duplicate ordering, and downstream consumption
+after closing the upstream capture. Common DAG dispatch also binds both ports
+for fresh-import join; its portable tests cover reservation, settlement and a
+separate downstream group/count. The resident variant binds both checked input
+ports to retained tables and is also exercised through the standard Host.
+Common input guards run before join null/cardinality checks, and all succeed
+before the native attempt may execute SQL.
 
 No source grant/connection, SQL callback, alternate runtime or verifier can be
 passed to this entry. It imports only the owned completed input into a separate
@@ -527,6 +545,16 @@ After copy loss, only unstarted work can be selected again from live fixed Host
 inputs, under the existing search and cumulative resource limits. Failed or
 started tasks are not automatically retried.
 
+`runResidentStrategyHostCompute(setup, environment, tables, limits, mappingLimits,
+signal)` takes an array of resident table handles in checked input-port order.
+A two-input join requires both handles; passing the same table twice is valid
+only when both checked ports refer to that producer. The standard strategy driver
+obtains this mapping from the selected strategy, imports each missing producer
+once, and supports resident join followed by group/count without reimporting
+the intermediate result. Results still return to the Host for validation and
+independent holding. Preparing a later input unsuccessfully releases earlier
+unstarted borrows; after admission, native settlement owns their release.
+
 Transport settings are validated and frozen before environment reservation.
 Invalid settings do not spend an attempt. Import preflight or reservation
 rejection cancels only the most recent unstarted table preparation, reclaiming
@@ -587,9 +615,9 @@ For automatic bounded re-estimation, call MoonBit
 `configure_dispatch_estimates(setup, profiles, searchLimits)` before any search.
 Supply one `DispatchEstimateProfile` per Compute in checked task order. Its
 Local/native rate lines cover the work inventory below, with optional fixed,
-per-input-row and per-canonical-wire-byte millisecond coefficients. For example,
+per-input-row, per-canonical-wire-byte and per-potential-pair millisecond coefficients. For example,
 a Local bundle `{ work_slots: [0,1,2,3,4], fixed_ms: Some(1L),
-per_row_ms: Some(2L), per_wire_byte_ms: Some(0L) }` estimates `1 + 2 * rows`;
+per_row_ms: Some(2L), per_wire_byte_ms: Some(0L), per_pair_ms: Some(0L) }` estimates `1 + 2 * rows`;
 it is a supplied model, not a measured performance claim. Native capacities are
 explicit enforceable envelopes; Local capacities derive from execution limits.
 Neither is inferred from estimated selectivity.
@@ -597,6 +625,10 @@ Neither is inferred from estimated selectivity.
 The installed policy copies all rate arrays. `output_rows_per_mille: Some(1000)`
 forecasts no filtering until an actual completed row count replaces it; `None`
 keeps that forecast unknown. Root row/wire counts reuse capture measurements.
+For join, input-row and input-wire rates sum both ports, while `per_pair_ms`
+uses the product of left/right row estimates (zero for non-join operations).
+The join output fraction is relative to that potential-pair count, not either
+input alone. These quantities do not authorize output growth or relax its guard.
 Non-root wire size is unknown, and a nonzero wire coefficient therefore makes
 that estimate unknown. A missing coefficient is also unknown, not zero. This
 automatic policy defers rather than inventing an unknown-candidate priority.

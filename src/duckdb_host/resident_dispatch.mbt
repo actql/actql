@@ -5,29 +5,48 @@ priv struct ResidentDispatch {
 }
 
 ///|
-pub fn dispatch_resident_input(
+pub fn dispatch_resident_inputs(
   host : StrategyHostDispatch,
   task : Int,
-) -> (Int, Int64, Int, Int)? {
+) -> Array[(Int, Int64, Int, Int)]? {
   guard @strategy.captured_dag_strategy(host.run) is Some(revision) &&
     @strategy.strategy_resident_profile(revision, task) is Some(profile) else {
     return None
   }
   let graph = @strategy.captured_dag_graph(host.run)
-  for i in 0..<@strategy.graph_data_count(graph) {
-    let edge = @strategy.graph_data_at(graph, i).unwrap()
-    if edge.consumer == task {
-      return @strategy.resident_profile_import(profile, edge.producer).map(value => {
-        (
-          edge.producer,
-          value.table_bytes,
-          host.limits.input_entries,
-          host.limits.input_name_bytes,
+  guard host.generated.get(task - 1) is Some(generated) else { return None }
+  let count = @pipeline.input_count(
+    @lower.pipeline(
+      @lower.bound_preparation(@execution.generated_sequence_owner(generated)),
+    ),
+  )
+  let inputs = []
+  for port in 0..<count {
+    let mut found = false
+    for i in 0..<@strategy.graph_data_count(graph) {
+      let edge = @strategy.graph_data_at(graph, i).unwrap()
+      if edge.consumer == task && edge.input == port {
+        guard @strategy.resident_profile_import(profile, edge.producer)
+          is Some(value) else {
+          return None
+        }
+        inputs.push(
+          (
+            edge.producer,
+            value.table_bytes,
+            host.limits.input_entries,
+            host.limits.input_name_bytes,
+          ),
         )
-      })
+        found = true
+        break
+      }
+    }
+    if !found {
+      return None
     }
   }
-  None
+  Some(inputs)
 }
 
 ///|
@@ -55,7 +74,13 @@ pub fn configure_resident_dispatch(
       Ok(_) => ()
     }
     for rate in row {
-      for value in [rate.fixed_ms, rate.per_row_ms, rate.per_wire_byte_ms] {
+      for
+        value in [
+          rate.fixed_ms,
+          rate.per_row_ms,
+          rate.per_wire_byte_ms,
+          rate.per_pair_ms,
+        ] {
         if value is Some(value) && value < 0L {
           return Err(InvalidConfiguration)
         }

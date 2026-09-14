@@ -5,7 +5,14 @@ struct FixedComputeDemand {
   compute : FixedCompute
   receipt : FixedComputeReceipt
   ceiling : Int
-  usage : NativeDemandUsage
+  usage : FixedComputeDemandUsage
+}
+
+///|
+pub enum FixedComputeDemandUsage {
+  Comparison(NativeDemandUsage)
+  DirectCount(input_rows~ : Int, output_rows~ : Int)
+  DirectJoin(left_rows~ : Int, right_rows~ : Int, output_rows~ : Int)
 }
 
 ///|
@@ -42,7 +49,35 @@ fn measure_fixed_compute_demand_impl(
     physical.max_depth < 0 {
     return Err(InvalidLimits)
   }
-  let input = compute.imported.input
+  let input = compute.imports[0].input
+  let query = match compute.query {
+    FilterSelect(query) => query
+    CountGroup(_) =>
+      return Ok({
+        compute,
+        receipt,
+        ceiling: max_value_bytes,
+        usage: DirectCount(
+          input_rows=@execution.producer_read_row_count(input),
+          output_rows=@execution.admitted_output_row_count(receipt.rows),
+        ),
+      })
+    InnerJoin(query) =>
+      return Ok({
+        compute,
+        receipt,
+        ceiling: max_value_bytes,
+        usage: DirectJoin(
+          left_rows=@execution.producer_read_row_count(
+            compute.imports[query.left_input].input,
+          ),
+          right_rows=@execution.producer_read_row_count(
+            compute.imports[query.right_input].input,
+          ),
+          output_rows=@execution.admitted_output_row_count(receipt.rows),
+        ),
+      })
+  }
   let schema = @execution.producer_read_schema(input)
   let budget : NativeValueBudget = {
     guards: {
@@ -59,19 +94,19 @@ fn measure_fixed_compute_demand_impl(
     let name = @schema.reference_name(
       @schema.field_at(schema, index).unwrap().name,
     )
-    for size in [name.length(), compute.query.predicate_field.length()] {
+    for size in [name.length(), query.predicate_field.length()] {
       if size > budget.work {
         return Err(Predicate(MeasurementWork))
       }
       budget.work -= size
     }
-    if name == compute.query.predicate_field {
+    if name == query.predicate_field {
       selected = Some(index)
       break
     }
   }
   guard selected is Some(column) else { return Err(InvalidLayout) }
-  let rhs = match compute.query.parameter.value {
+  let rhs = match query.parameter.value {
     Admitted(value) => Admitted(value)
     Null => Null
     _ => return Err(InvalidLayout)
@@ -104,7 +139,7 @@ fn measure_fixed_compute_demand_impl(
     compute,
     receipt,
     ceiling: max_value_bytes,
-    usage,
+    usage: Comparison(usage),
   })
 }
 
@@ -124,6 +159,6 @@ pub fn fixed_compute_demand_matches(
 ///|
 pub fn fixed_compute_demand_usage(
   value : FixedComputeDemand,
-) -> NativeDemandUsage {
+) -> FixedComputeDemandUsage {
   value.usage
 }

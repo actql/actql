@@ -22,13 +22,15 @@ fn resident_dispatch_fixture(
   remaining_local : Int64,
 ) -> @dbhost.StrategyHostDispatch {
   let host = strategy_fixture_dispatch(f)
-  let profiles = Array::makei(3, i => @dbhost.DispatchEstimateProfile::{
+  let count = @strategy.graph_task_count(f.graph) - 1
+  let profiles = Array::makei(count, i => @dbhost.DispatchEstimateProfile::{
     local_rates: [
       {
         work_slots: [0, 1, 2, 3, 4],
         fixed_ms: Some(if i == 0 { first_local } else { remaining_local }),
         per_row_ms: Some(0L),
         per_wire_byte_ms: Some(0L),
+        per_pair_ms: Some(0L),
       },
     ],
     native_rates: [
@@ -37,6 +39,7 @@ fn resident_dispatch_fixture(
         fixed_ms: Some(100L),
         per_row_ms: Some(0L),
         per_wire_byte_ms: Some(0L),
+        per_pair_ms: Some(0L),
       },
     ],
     native_capacity: {
@@ -47,17 +50,21 @@ fn resident_dispatch_fixture(
     output_rows_per_mille: Some(1000),
   })
   @dbhost.configure_dispatch_estimates(host, profiles, {
-    max_offers: 9,
-    max_strategies: 27,
+    max_offers: count * 3,
+    max_strategies: if count == 3 {
+      27
+    } else {
+      81
+    },
     max_work: 10000,
-    max_revisions: 4,
+    max_revisions: count + 1,
   }).unwrap()
   let profile = @strategy.prepare_resident_profile(
     f.run.unwrap(),
     134217728L,
     Some(1L),
     Some(cleanup),
-    Array::make(4, @strategy.ResidentImportEstimate::{
+    Array::make(count + 1, @strategy.ResidentImportEstimate::{
       milliseconds: Some(1L),
       transfer_bytes: 100000L,
       scratch_bytes: 2000000L,
@@ -67,12 +74,13 @@ fn resident_dispatch_fixture(
   @dbhost.configure_resident_dispatch(
     host,
     profile,
-    Array::make(3, [
+    Array::make(count, [
       {
         work_slots: [0, 1, 2, 3, 4, 5, 6, 7],
         fixed_ms: Some(1L),
         per_row_ms: Some(0L),
         per_wire_byte_ms: Some(0L),
+        per_pair_ms: Some(0L),
       },
     ]),
   ).unwrap()

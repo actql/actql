@@ -4,6 +4,7 @@ fn dispatch_test_limits() -> @dbhost.TaskDispatchLimits {
     input_entries: 100,
     input_name_bytes: 10000,
     candidate_work: 100,
+    join_validation: { max_rows: 100, max_work: 1000, max_entries: 1000, },
     capacity: {
       contract_cid: "sha256:7d59718b965451d8a19ccf7095b92777ba0cdd8c3bb71f437ab387801fe7271f",
       max_rows: 100,
@@ -34,8 +35,14 @@ fn dispatch_test_generated(
   run : @strategy.CapturedDAG,
 ) -> Array[@execution.GeneratedSequence] raise {
   let graph = @strategy.captured_dag_graph(run)
-  Array::makei(3, index => {
-    query_generated(@strategy.graph_task_owner(graph, index + 1).unwrap())
+  Array::makei(@strategy.graph_task_count(graph) - 1, index => {
+    let owner = @strategy.graph_task_owner(graph, index + 1).unwrap()
+    if @pipeline.step_count(@lower.pipeline(@lower.bound_preparation(owner))) ==
+      1 {
+      compute_test_sequence(owner)
+    } else {
+      query_generated(owner)
+    }
   })
 }
 

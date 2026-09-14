@@ -6,6 +6,7 @@ import {
   "actql/actql/execution_relation" @execution,
   "actql/actql/execution_query" @query,
   "actql/actql/lowering_relation" @lower,
+  "actql/actql/pipeline_typing" @pipeline,
   "actql/actql/decode_core" @decode,
   "actql/actql/physical_strategy" @strategy,
   "actql/actql/physical_cost" @cost,

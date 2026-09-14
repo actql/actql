@@ -26,12 +26,51 @@ pub fn strategy_fixture_create(
   two_receipt_json : String,
   program_json : String,
 ) -> StrategyFixture {
+  strategy_fixture_create_impl(
+    environment_json, environment_cid, registry_json, values_json, fragment_json,
+    query_json, evidence_json, two_receipt_json, program_json, false,
+  )
+}
+
+///|
+#export_name("strategyFixtureJoinCreate")
+pub fn strategy_fixture_join_create(
+  environment_json : String,
+  environment_cid : String,
+  registry_json : String,
+  values_json : String,
+  fragment_json : String,
+  query_json : String,
+  evidence_json : String,
+  two_receipt_json : String,
+  program_json : String,
+) -> StrategyFixture {
+  strategy_fixture_create_impl(
+    environment_json, environment_cid, registry_json, values_json, fragment_json,
+    query_json, evidence_json, two_receipt_json, program_json, true,
+  )
+}
+
+///|
+fn strategy_fixture_create_impl(
+  environment_json : String,
+  environment_cid : String,
+  registry_json : String,
+  values_json : String,
+  fragment_json : String,
+  query_json : String,
+  evidence_json : String,
+  two_receipt_json : String,
+  program_json : String,
+  join : Bool,
+) -> StrategyFixture {
   try {
     let program = issued_fixture_checked(
       environment_json,
       environment_cid,
       source_override=Some(program_json),
-      visits=[1, 2, 2, 3],
+      visits=if join { [1, 2, 2, 5, 6] } else { [1, 2, 2, 3] },
+      join~,
     )
     let native = issued_native_create_impl(
       environment_json,
@@ -73,13 +112,29 @@ pub fn strategy_fixture_create(
         ).unwrap()
       }
     })
-    let graph = @strategy.prepare_checked_dag(program, owners, 4, 10000).unwrap()
+    let graph = @strategy.prepare_checked_dag(program, owners, 5, 10000).unwrap()
     @dbhost.close_native_host(native.host) // unused fixture issuer, not real Host
     let ledger = @strategy.create_ledger({
-      planning_work: 10000,
-      attempts: 10,
-      holdings: 10,
-      transfer_bytes: 300000L,
+      planning_work: if join {
+        100000
+      } else {
+        10000
+      },
+      attempts: if join {
+        20
+      } else {
+        10
+      },
+      holdings: if join {
+        20
+      } else {
+        10
+      },
+      transfer_bytes: if join {
+        1000000L
+      } else {
+        300000L
+      },
       retained_bytes: 32000000L,
       execution_bytes: 268435456L,
     }).unwrap()
@@ -187,7 +242,7 @@ fn strategy_fixture_request(
   task : Int,
 ) -> @planning.FixedComputeRequest {
   let input = @strategy.captured_task_input(f.run.unwrap(), task, 100, 10000).unwrap()
-  @planning.prepare_fixed_compute_request(input, {
+  @planning.prepare_fixed_compute_request([input], {
     contract_cid: "sha256:7d59718b965451d8a19ccf7095b92777ba0cdd8c3bb71f437ab387801fe7271f",
     max_rows: 100,
     max_value_bytes: 1000,
@@ -224,6 +279,7 @@ pub fn strategy_fixture_dispatch(
       input_entries: 100,
       input_name_bytes: 10000,
       candidate_work: 100,
+      join_validation: { max_rows: 100, max_work: 10000, max_entries: 1000, },
       capacity: {
         contract_cid: "sha256:7d59718b965451d8a19ccf7095b92777ba0cdd8c3bb71f437ab387801fe7271f",
         max_rows: 100,
@@ -313,7 +369,7 @@ pub fn strategy_fixture_compute(
     }
     let generated = fixture_generated(
       @execution.producer_read_receiver(
-        @planning.fixed_compute_request_input(request),
+        @planning.fixed_compute_request_input(request, 0).unwrap(),
       ),
       f.registry_json,
       f.values_json,
@@ -368,7 +424,7 @@ pub fn strategy_fixture_local(f : StrategyFixture, task : Int) -> Bool {
     let registry = f.registry
     let generated = fixture_generated(
       @execution.producer_read_receiver(
-        @planning.fixed_compute_request_input(request),
+        @planning.fixed_compute_request_input(request, 0).unwrap(),
       ),
       f.registry_json,
       f.values_json,
@@ -411,7 +467,8 @@ pub fn strategy_fixture_local(f : StrategyFixture, task : Int) -> Bool {
 #export_name("strategyFixtureCid")
 pub fn strategy_fixture_cid(f : StrategyFixture, task : Int) -> String {
   guard f.run is Some(run) &&
-    @strategy.captured_task_output(run, task, Step(1)) is Some(output) else {
+    @strategy.captured_task_target(run, task) is Some(target) &&
+    @strategy.captured_task_output(run, task, target) is Some(output) else {
     return "null"
   }
   match
@@ -437,12 +494,13 @@ pub fn strategy_fixture_next(f : StrategyFixture) -> Int {
 #export_name("strategyFixtureCanBind")
 pub fn strategy_fixture_can_bind(f : StrategyFixture, task : Int) -> Bool {
   guard f.run is Some(run) &&
-    @strategy.captured_task_output(run, task, Step(1)) is Some(output) &&
+    @strategy.captured_task_target(run, task) is Some(target) &&
+    @strategy.captured_task_output(run, task, target) is Some(output) &&
     @strategy.graph_task_owner(f.graph, task) is Some(owner) else {
     return false
   }
   @execution.bind_completed_input(
-    issued_fixture_consumer(owner),
+    issued_fixture_consumer(owner, target~),
     0,
     owner,
     output,

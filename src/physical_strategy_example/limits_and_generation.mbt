@@ -125,7 +125,12 @@ fn generate(
       max_literal_text_bytes: 10000,
     },
   }).unwrap()
-  let contexts = if filter {
+  let direct_count = @lower.sequence_step(sequence, 0)
+    is Some(@lower.RowStep(kernel)) &&
+    @lower.kernel_count_group(kernel) is Some(_)
+  let direct_join = @lower.sequence_step(sequence, 0)
+    is Some(@lower.JoinStep(_))
+  let contexts = if filter && !direct_count && !direct_join {
     let pipeline = @lower.prepare_fragment_pipeline(sequence, 0, {
       max_roots: 100,
       max_pointer_bytes: 10000,

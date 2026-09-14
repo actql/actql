@@ -21,7 +21,9 @@ pub fn begin_resident_environment(CapturedDAG, Int, Int64) -> Result[ResidentEnv
 
 pub fn begin_resident_transfer(CapturedDAG, ResidentTable, Int64, Int64) -> Result[ResidentTransfer, RunIssue]
 
-pub fn borrow_resident_table(CapturedDAG, ResidentTable, Int, Int, Int, Int) -> Result[ResidentRead, RunIssue]
+pub fn borrow_resident_table(CapturedDAG, ResidentTable, Int, Int, Int, Int, input_index? : Int, view_name? : String) -> Result[ResidentRead, RunIssue]
+
+pub fn cancel_resident_inputs(ResidentInputs) -> Result[Unit, LedgerIssue]
 
 pub fn cancel_resident_table_preparation(CapturedDAG, ResidentTable) -> Result[Unit, LedgerIssue]
 
@@ -43,9 +45,13 @@ pub fn captured_root_statistics(CapturedDAG) -> @query_planning.CapturedSourceSt
 
 pub fn captured_task_completed(CapturedDAG, Int) -> Bool
 
-pub fn captured_task_input(CapturedDAG, Int, Int, Int) -> Result[@execution_relation.ProducerRead, RunIssue]
+pub fn captured_task_input(CapturedDAG, Int, Int, Int, input_index? : Int) -> Result[@execution_relation.ProducerRead, RunIssue]
+
+pub fn captured_task_join_output_limit(CapturedDAG, Int) -> Int64?
 
 pub fn captured_task_output(CapturedDAG, Int, @pipeline_typing.Target) -> @execution_relation.CompletedOutput?
+
+pub fn captured_task_target(CapturedDAG, Int) -> @pipeline_typing.Target?
 
 pub fn charge_captured_duckdb_transfer(CapturedDAG, @query_planning.DuckDBComputeAttempt, Int64) -> Result[Unit, LedgerIssue]
 
@@ -109,6 +115,8 @@ pub fn open_captured_dag(CheckedDAG, @query_planning.CapturedInputSource, Ledger
 
 pub fn prepare_checked_dag(@program_check.CheckedProgram, Array[@lowering_relation.BoundPrepared], Int, Int) -> Result[CheckedDAG, GraphIssue]
 
+pub fn prepare_resident_inputs(CapturedDAG, ResidentEnvironment, Int, Array[ResidentTable], @duckdb_adapter.FixedCompute, Int, Int, Int) -> Result[ResidentInputs, RunIssue]
+
 pub fn prepare_resident_profile(CapturedDAG, Int64, Int64?, Int64?, Array[ResidentImportEstimate]) -> Result[ResidentProfile, SearchIssue]
 
 pub fn prepare_resident_table(CapturedDAG, ResidentEnvironment, Int, Int64, Int, Int, Int) -> Result[ResidentTable, RunIssue]
@@ -126,6 +134,8 @@ pub fn reservation_serial(Reservation) -> Int
 pub fn reserve_attempt(Ledger, Int64, Int64, Int64) -> Result[Reservation, LedgerIssue]
 
 pub fn resident_environment_available(CapturedDAG, ResidentEnvironment) -> Bool
+
+pub fn resident_inputs_view_sql(ResidentInputs) -> Array[String]
 
 pub fn resident_profile_import(ResidentProfile, Int) -> ResidentImportEstimate?
 
@@ -161,7 +171,7 @@ pub fn settle_resident_environment(CapturedDAG, ResidentEnvironment) -> Result[U
 
 pub fn settle_resident_transfer(CapturedDAG, ResidentTransfer, Bool) -> Result[Unit, LedgerIssue]
 
-pub fn start_captured_duckdb_task(CapturedDAG, Int, @query_planning.FixedComputeChoice, @query_planning.PreparedCompute[@duckdb_adapter.FixedCompute], @execution_relation.GeneratedSequence, @query_planning.DuckDBComputeLimits, @duckdb_adapter.TransportColumnLimits, Int64, Int64, (@query_planning.DuckDBComputeAttempt) -> Bool, resident? : ResidentRead) -> Result[@query_planning.DuckDBComputeAttempt, RunIssue]
+pub fn start_captured_duckdb_task(CapturedDAG, Int, @query_planning.FixedComputeChoice, @query_planning.PreparedCompute[@duckdb_adapter.FixedCompute], @execution_relation.GeneratedSequence, @query_planning.DuckDBComputeLimits, @duckdb_adapter.TransportColumnLimits, Int64, Int64, (@query_planning.DuckDBComputeAttempt) -> Bool, resident? : ResidentInputs) -> Result[@query_planning.DuckDBComputeAttempt, RunIssue]
 
 pub fn stop_captured_dag(CapturedDAG) -> Unit
 
@@ -275,6 +285,8 @@ pub(all) struct ResidentImportEstimate {
   scratch_bytes : Int64
   table_bytes : Int64
 }
+
+type ResidentInputs
 
 type ResidentProfile
 

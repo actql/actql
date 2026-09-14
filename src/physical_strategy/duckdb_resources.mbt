@@ -7,7 +7,7 @@ priv struct NativeTaskResources {
   mut native_settled : Bool
   mut disposed : Bool
   mut failed_holding : Holding?
-  resident : ResidentRead?
+  resident : ResidentInputs?
   resident_output : ResidentPendingOutput?
 }
 
@@ -73,7 +73,7 @@ pub fn settle_captured_duckdb_native(
       if resource.resident is Some(read) {
         // The task connection/transaction really stopped. Shared DB capacity
         // remains reserved independently through its environment lifetime.
-        return_resident_read(read) |> ignore
+        return_resident_inputs(read) |> ignore
       }
       if resource.disposed {
         captured_cleanup_confirmed(run, attempt)

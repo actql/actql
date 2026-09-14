@@ -40,6 +40,30 @@ pub fn execute_fixed_producer_guarded(
   max_value_bytes~ : Int,
   physical : FixedInputGuardMeasureLimits,
 ) -> Result[CompletedSequence, FixedInputGuardIssue] {
+  execute_fixed_producers_guarded(
+    original,
+    [input],
+    target,
+    execution,
+    max_rows~,
+    max_value_bytes~,
+    physical,
+  )
+}
+
+///|
+/// Enforce the common row ceiling independently for every fixed input and for
+/// the output. Value measurement uses one cumulative ledger across all ports,
+/// including repeated references to shared data; sharing is not a logical credit.
+pub fn execute_fixed_producers_guarded(
+  original : GeneratedSequence,
+  inputs : Array[ProducerRead],
+  target : @pipeline.Target,
+  execution : SequenceExecutionLimits,
+  max_rows~ : Int,
+  max_value_bytes~ : Int,
+  physical : FixedInputGuardMeasureLimits,
+) -> Result[CompletedSequence, FixedInputGuardIssue] {
   if max_rows < 0 ||
     max_value_bytes < 0 ||
     physical.max_work < 0 ||
@@ -48,15 +72,26 @@ pub fn execute_fixed_producer_guarded(
     physical.max_depth < 0 {
     return Err(InvalidLimits)
   }
-  if !producer_read_available(input) ||
-    !physical_equal(
-      generated_sequence_owner(original),
-      producer_read_receiver(input),
-    ) {
+  let owner = generated_sequence_owner(original)
+  let count = @pipeline.input_count(
+    @lower.pipeline(@lower.bound_preparation(owner)),
+  )
+  if inputs.length() != count {
     return Err(ForeignInput)
   }
-  if producer_read_row_count(input) > max_rows {
-    return Err(InputRows)
+  if count > physical.max_work {
+    return Err(MeasurementWork)
+  }
+  for index in 0..<count {
+    let input = inputs[index]
+    if !producer_read_available(input) ||
+      !physical_equal(owner, producer_read_receiver(input)) ||
+      producer_read_input_index(input) != index {
+      return Err(ForeignInput)
+    }
+    if producer_read_row_count(input) > max_rows {
+      return Err(InputRows)
+    }
   }
   let budget : FixedInputGuardBudget = {
     work: physical.max_work,
@@ -64,15 +99,17 @@ pub fn execute_fixed_producer_guarded(
     nodes: physical.max_nodes,
     depth: physical.max_depth,
   }
-  match
-    measure_input_values(
-      ProducerGuardRows::{ input, },
-      max_value_bytes,
-      InputValues,
-      budget,
-    ) {
-    Err(issue) => return Err(issue)
-    Ok(_) => ()
+  for input in inputs {
+    match
+      measure_input_values(
+        ProducerGuardRows::{ input, },
+        max_value_bytes,
+        InputValues,
+        budget,
+      ) {
+      Err(issue) => return Err(issue)
+      Ok(_) => ()
+    }
   }
   let generated = match
     constrain_guard_roots(original, max_value_bytes, false, budget) {
@@ -80,7 +117,7 @@ pub fn execute_fixed_producer_guarded(
     Err(issue) => return Err(issue)
   }
   let completed = match
-    execute_fixed_producer_input(generated, input, execution) {
+    execute_fixed_producer_inputs(generated, inputs, execution) {
     Ok(value) => value
     Err(issue) => return Err(Execution(issue))
   }

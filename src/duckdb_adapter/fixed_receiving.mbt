@@ -32,16 +32,23 @@ pub fn prepare_fixed_compute_receiving(
   retention : @execution.ValueLimits,
   max_metadata_work : Int,
 ) -> Result[FixedComputeReceiving, FixedComputeReceivingIssue] {
-  let input = compute.imported.input
-  if !@execution.producer_read_available(input) {
+  if !fixed_compute_inputs_available(compute) {
     return Err(InputUnavailable)
   }
   guard @pipeline.schema_at(
-      @lower.pipeline(@lower.bound_preparation(compute.query.owner)),
-      @pipeline.Step(1),
+      @lower.pipeline(
+        @lower.bound_preparation(fixed_query_owner(compute.query)),
+      ),
+      fixed_query_target(compute.query),
     )
     is Some(schema) else {
     return Err(InvalidShape)
+  }
+  let physical = if compute.output_ceiling is Some(ceiling) &&
+    ceiling < physical.max_rows {
+    { ..physical, max_rows: ceiling, }
+  } else {
+    physical
   }
   let received = match
     prepare_physical_result(schema, fields, physical, max_metadata_work) {
@@ -50,8 +57,8 @@ pub fn prepare_fixed_compute_receiving(
   }
   let retained = match
     @execution.prepare_admitted_output(
-      compute.query.owner,
-      @pipeline.Step(1),
+      fixed_query_owner(compute.query),
+      fixed_query_target(compute.query),
       physical.max_rows,
       retention,
     ) {
@@ -93,15 +100,28 @@ pub fn receive_fixed_compute_chunk(
     return Err(InvalidState)
   }
   guard value.retained is Some(retained) else { return Err(InvalidState) }
-  if !@execution.producer_read_available(value.compute.imported.input) {
+  if !fixed_compute_inputs_available(value.compute) {
     abort_fixed_compute_receiving(value)
     return Err(InputUnavailable)
   }
-  // The selected filter/select cannot invent input occurrences. This check is
-  // necessary, not a substitute for exact SQL/transport/semantic verification.
-  if rows >
-    @execution.producer_read_row_count(value.compute.imported.input) -
-    value.physical.rows {
+  // Shape-specific necessary bound, never a substitute for guards/provenance.
+  let input_rows = @execution.producer_read_row_count(
+    value.compute.imports[0].input,
+  )
+  let maximum = match value.compute.query {
+    FilterSelect(_) => input_rows
+    CountGroup(query) =>
+      if @lower.count_group_key_count(query.group) == 0 {
+        1
+      } else {
+        input_rows
+      }
+    // Output growth is not bounded by either input. Physical chunk admission
+    // below enforces the selected/authored ceiling, before retaining results.
+    InnerJoin(_) => value.physical.limits.max_rows
+  }
+  if !(value.compute.query is InnerJoin(_)) &&
+    rows > maximum - value.physical.rows {
     abort_fixed_compute_receiving(value)
     return Err(InvalidShape)
   }
@@ -138,9 +158,15 @@ pub fn finish_fixed_compute_receiving(
     return Err(InvalidState)
   }
   guard value.retained is Some(retained) else { return Err(InvalidState) }
-  if !@execution.producer_read_available(value.compute.imported.input) {
+  if !fixed_compute_inputs_available(value.compute) {
     abort_fixed_compute_receiving(value)
     return Err(InputUnavailable)
+  }
+  if value.compute.query is CountGroup(query) &&
+    @lower.count_group_key_count(query.group) == 0 &&
+    value.physical.rows != 1 {
+    abort_fixed_compute_receiving(value)
+    return Err(InvalidShape)
   }
   let rows = match @execution.finish_admitted_output(retained) {
     Ok(rows) => rows
@@ -163,7 +189,7 @@ pub fn fixed_compute_receipt_matches(
 ) -> Bool {
   physical_equal(receipt.owner, receiving) &&
   receiving.finished &&
-  @execution.producer_read_available(receiving.compute.imported.input)
+  fixed_compute_inputs_available(receiving.compute)
 }
 
 ///|

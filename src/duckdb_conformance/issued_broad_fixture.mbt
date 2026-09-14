@@ -18,6 +18,7 @@ fn issued_fixture_checked(
   environment_cid : String,
   source_override? : String? = None,
   visits? : Array[Int] = [1],
+  join? : Bool = false,
 ) -> @program_check.CheckedProgram raise {
   let source =
     #|{"version":"actql/0.1","id":"p","params":{"minimum":{"type":"number","nullable":false}},"stages":[{"id":"a","inputs":{"remote":{"connector":"crm/main","resource":"r"}},"steps":[{"filter":"id > $minimum","as":"filtered"},{"select":["id"],"as":"captured"}],"results":{"r":{"from":"captured","fields":["id"]}}}],"results":{"out":{"from":{"stage":"a","result":"r"}}}}
@@ -62,11 +63,28 @@ fn issued_fixture_checked(
     max_nodes: 0,
     max_depth: 0,
   }).unwrap()
+  let join_sources = if join {
+    Some(join_fixture_capacity(environment))
+  } else {
+    None
+  }
   @program_check.check(
     program,
     environment,
     Some(cursor("{\"minimum\":1}")),
-    visits.map(count => Array::makei(count, _ => { sources, consumers: [], })),
+    Array::makei(visits.length(), stage => {
+      Array::makei(visits[stage], visit => {
+        if ((stage == 3 && visit == 0) || (stage == 4 && visit == 1)) &&
+          join_sources is Some(join_sources) {
+          {
+            sources: join_sources,
+            consumers: [@capacity.Join(step=0, output=0)],
+          }
+        } else {
+          { sources, consumers: [], }
+        }
+      })
+    }),
     { text_time: false, veca: false, },
     { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
     fixture_query_limits(10),
@@ -81,6 +99,7 @@ fn issued_fixture_checked(
 fn issued_fixture_consumer(
   owner : @lower.BoundPrepared,
   steps? : String = "[{\"select\":[\"id\"]}]",
+  target? : @pipeline.Target = Step(1),
 ) -> @lower.BoundPrepared {
   let pipeline = @pipeline.check_with_evidence(
     cursor(steps),
@@ -90,7 +109,7 @@ fn issued_fixture_consumer(
         @pipeline.ProducedInput(
           @pipeline.produced_input(
             @lower.pipeline(@lower.bound_preparation(owner)),
-            Step(1),
+            target,
           ).unwrap(),
         ),
       ),

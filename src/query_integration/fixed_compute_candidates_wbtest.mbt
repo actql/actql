@@ -12,38 +12,50 @@ test "registered fixed Compute candidates keep the same capture and Local execut
   let local_registration = @planning.capability_registration_at(registry, 0).unwrap()
   let duckdb_registration = @planning.capability_registration_at(registry, 1).unwrap()
   let input = duckdb_captured_input(filter="id > 2")
-  let request = @planning.prepare_fixed_compute_request(input, {
+  let request = @planning.prepare_fixed_compute_request([input], {
     contract_cid: "sha256:7d59718b965451d8a19ccf7095b92777ba0cdd8c3bb71f437ab387801fe7271f",
     max_rows: 100,
     max_value_bytes: 10000,
     common_fragment: None,
   }).unwrap()
   assert_true(
-    physical_equal(@planning.fixed_compute_request_input(request), input),
+    physical_equal(
+      @planning.fixed_compute_request_input(request, 0).unwrap(),
+      input,
+    ),
   )
   let generated = query_generated(@execution.producer_read_receiver(input))
   let capacity = @planning.fixed_compute_request_capacity(request)
   assert_eq(capacity.max_rows, 100)
   assert_eq(capacity.max_value_bytes, 10000)
   assert_true(
-    @planning.prepare_fixed_compute_request(input, {
+    @planning.prepare_fixed_compute_request([input], {
       ..capacity,
       contract_cid: "sha256:wrong",
     })
     is Err(CapacityContract),
   )
   assert_true(
-    @planning.prepare_fixed_compute_request(input, { ..capacity, max_rows: -1, })
+    @planning.prepare_fixed_compute_request([input], {
+      ..capacity,
+      max_rows: -1,
+    })
     is Err(InvalidLimits),
   )
   // Two retained input rows cannot escape a common limit of one by selecting
   // a native filter that publishes just one row.
   assert_true(
-    @planning.prepare_fixed_compute_request(input, { ..capacity, max_rows: 1, })
+    @planning.prepare_fixed_compute_request([input], {
+      ..capacity,
+      max_rows: 1,
+    })
     is Err(CommonInputRows),
   )
   assert_true(
-    @planning.prepare_fixed_compute_request(input, { ..capacity, max_rows: 2, })
+    @planning.prepare_fixed_compute_request([input], {
+      ..capacity,
+      max_rows: 2,
+    })
     is Ok(_),
   )
   let quantities : @planning.QueryQuantities = {
@@ -54,7 +66,7 @@ test "registered fixed Compute candidates keep the same capture and Local execut
   let local_estimate : Array[@cost.SerialEstimateLine] = [
     { work_slots: [0, 1, 2, 3, 4], milliseconds: Some(5L), },
   ]
-  let common = @planning.prepare_fixed_compute_request(input, {
+  let common = @planning.prepare_fixed_compute_request([input], {
     ..capacity,
     common_fragment: Some(generated),
   }).unwrap()
@@ -101,7 +113,7 @@ test "registered fixed Compute candidates keep the same capture and Local execut
   ).unwrap()
   let local_candidate = @planning.prepared_compute_candidate(local_binding)
   for ceiling in [0, 4, 5] {
-    let guarded_request = @planning.prepare_fixed_compute_request(input, {
+    let guarded_request = @planning.prepare_fixed_compute_request([input], {
       ..capacity,
       max_value_bytes: ceiling,
     }).unwrap()
@@ -240,12 +252,14 @@ test "registered fixed Compute candidates keep the same capture and Local execut
   let compiled = @planning.fixed_compute_choice_payload(native_choice, fast).unwrap()
   assert_true(
     physical_equal(
-      @duckdb.fixed_import_input(@duckdb.fixed_compute_import(compiled)),
+      @duckdb.fixed_import_input(
+        @duckdb.fixed_compute_import(compiled, 0).unwrap(),
+      ),
       input,
     ),
   )
   assert_eq(
-    @duckdb.native_query_sql(@duckdb.fixed_compute_query(compiled)),
+    @duckdb.fixed_query_sql(@duckdb.fixed_compute_query(compiled)),
     "SELECT \"id\" AS \"id\" FROM \"main\".\"owned_input\" WHERE CAST(\"id\" AS DOUBLE) > ?",
   )
   assert_true(
@@ -287,7 +301,7 @@ test "registered fixed Compute candidates keep the same capture and Local execut
     )
     is Ok(Deferred),
   )
-  let other_request = @planning.prepare_fixed_compute_request(input, {
+  let other_request = @planning.prepare_fixed_compute_request([input], {
     contract_cid: "sha256:7d59718b965451d8a19ccf7095b92777ba0cdd8c3bb71f437ab387801fe7271f",
     max_rows: 100,
     max_value_bytes: 10000,

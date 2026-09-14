@@ -1,0 +1,193 @@
+{
+  "version": "actql/0.1",
+  "id": "physical-join-count-example",
+  "params": {
+    "minimum": {
+      "type": "number",
+      "nullable": false
+    }
+  },
+  "stages": [
+    {
+      "id": "acquire",
+      "inputs": {
+        "remote": {
+          "connector": "crm/main",
+          "resource": "r"
+        }
+      },
+      "steps": [
+        {
+          "filter": "id > $minimum",
+          "as": "filtered"
+        },
+        {
+          "select": [
+            "id"
+          ],
+          "as": "captured"
+        }
+      ],
+      "results": {
+        "r": {
+          "from": "captured",
+          "fields": [
+            "id"
+          ]
+        }
+      }
+    },
+    {
+      "id": "compute_a",
+      "inputs": {
+        "x": {
+          "result": {
+            "stage": "acquire",
+            "result": "r"
+          }
+        }
+      },
+      "steps": [
+        {
+          "filter": "id > 2"
+        },
+        {
+          "select": [
+            "id"
+          ],
+          "as": "out"
+        }
+      ],
+      "results": {
+        "r": {
+          "from": "out",
+          "fields": [
+            "id"
+          ]
+        }
+      }
+    },
+    {
+      "id": "compute_b",
+      "inputs": {
+        "x": {
+          "result": {
+            "stage": "acquire",
+            "result": "r"
+          }
+        }
+      },
+      "steps": [
+        {
+          "filter": "id > 0"
+        },
+        {
+          "select": [
+            "id"
+          ],
+          "as": "out"
+        }
+      ],
+      "results": {
+        "r": {
+          "from": "out",
+          "fields": [
+            "id"
+          ]
+        }
+      }
+    },
+    {
+      "id": "joined",
+      "inputs": {
+        "l": {
+          "result": {
+            "stage": "compute_a",
+            "result": "r"
+          }
+        },
+        "r": {
+          "result": {
+            "stage": "compute_b",
+            "result": "r"
+          }
+        }
+      },
+      "steps": [
+        {
+          "from": "l",
+          "join": {
+            "with": "r",
+            "kind": "inner",
+            "on": [
+              {
+                "left": "id",
+                "right": "id"
+              }
+            ],
+            "select": {
+              "id": "left.id"
+            }
+          },
+          "as": "out"
+        }
+      ],
+      "results": {
+        "r": {
+          "from": "out",
+          "fields": [
+            "id"
+          ]
+        }
+      }
+    },
+    {
+      "id": "counted",
+      "inputs": {
+        "x": {
+          "result": {
+            "stage": "joined",
+            "result": "r"
+          }
+        }
+      },
+      "steps": [
+        {
+          "group": {
+            "by": [
+              "id"
+            ],
+            "aggregates": {
+              "n": {
+                "fn": "count"
+              },
+              "present": {
+                "fn": "count",
+                "field": "id"
+              }
+            }
+          },
+          "as": "out"
+        }
+      ],
+      "results": {
+        "r": {
+          "from": "out",
+          "fields": [
+            "id",
+            "n",
+            "present"
+          ]
+        }
+      }
+    }
+  ],
+  "results": {
+    "out": {
+      "from": {
+        "stage": "counted",
+        "result": "r"
+      }
+    }
+  }
+}

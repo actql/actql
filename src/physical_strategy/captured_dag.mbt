@@ -10,7 +10,8 @@ struct CapturedDAG {
   done : Array[Bool]
   lifetimes : Array[TaskLifetime]
   resources : Array[TaskRetention?]
-  inputs : Array[@execution.ProducerRead?]
+  join_limits : Array[@witness.LimitClaim?]
+  inputs : Array[Array[@execution.ProducerRead?]]
   mut running : (Int, @planning.DuckDBComputeAttempt)?
   native_resources : Array[NativeTaskResources?]
   mut resident_environment : ResidentEnvironment?
@@ -52,7 +53,8 @@ priv enum TaskCompletion {
 
 ///|
 /// Initial profile: one captured acquisition at unit zero and exactly one
-/// checked data input for every remaining task. No fresh reads are synthesized.
+/// checked data input per unary task, or up to two for inner join. No fresh
+/// reads are synthesized. Bindings are indexed by checked receiving port.
 pub fn open_captured_dag(
   graph : CheckedDAG,
   source : @planning.CapturedInputSource,
@@ -69,20 +71,54 @@ pub fn open_captured_dag(
     ) {
     return Err(ForeignCapture)
   }
-  let seen = Array::make(count, false)
+  let seen = Array::make(count, 0)
+  let join_limits : Array[@witness.LimitClaim?] = Array::make(count, None)
   for edge in graph.data {
-    if edge.consumer == 0 || seen[edge.consumer] || edge.input != 0 {
+    if edge.consumer == 0 || edge.input < 0 || edge.input > 1 {
       return Err(UnsupportedGraph)
     }
-    seen[edge.consumer] = true
+    let bit = if edge.input == 0 { 1 } else { 2 }
+    if (seen[edge.consumer] & bit) != 0 {
+      return Err(UnsupportedGraph)
+    }
+    seen[edge.consumer] = seen[edge.consumer] | bit
   }
   for index in 1..<count {
     let pipeline = @lower.pipeline(
       @lower.bound_preparation(graph.owners[index]),
     )
-    if !seen[index] ||
-      @pipeline.input_count(pipeline) != 1 ||
-      @pipeline.step_count(pipeline) != 2 {
+    let input_count = @pipeline.input_count(pipeline)
+    if input_count < 1 ||
+      input_count > 2 ||
+      seen[index] != (if input_count == 1 { 1 } else { 3 }) {
+      return Err(UnsupportedGraph)
+    }
+    let steps = @pipeline.step_count(pipeline)
+    if steps == 1 {
+      let step = @pipeline.step_at(pipeline, 0).unwrap()
+      if step.operation is @pipeline.Join(right~, checked~) {
+        guard @join.kind(checked) == @join.Inner &&
+          step.input is Some(@pipeline.Input(_)) &&
+          right is @pipeline.Input(_) else {
+          return Err(UnsupportedGraph)
+        }
+        guard checked_task_join_limit(graph, index) is Some(limit) else {
+          return Err(UnsupportedGraph)
+        }
+        join_limits[index] = Some(limit)
+        continue
+      }
+      guard step.operation is @pipeline.Unary(group) &&
+        input_count == 1 &&
+        @relation.operation(group) == @relation.Group &&
+        step.input == Some(@pipeline.Input(0)) else {
+        return Err(UnsupportedGraph)
+      }
+      // Exact aggregate support is checked by the selected realization's
+      // compiler. The graph owns ports and dependencies, not a second compiler.
+      continue
+    }
+    if steps != 2 || input_count != 1 {
       return Err(UnsupportedGraph)
     }
     let first = @pipeline.step_at(pipeline, 0).unwrap()
@@ -96,10 +132,22 @@ pub fn open_captured_dag(
       return Err(UnsupportedGraph)
     }
   }
+  // This bounded execution profile exposes one final output per Compute.
+  // Do not reinterpret an authored reference to an intermediate step as it.
+  for edge in graph.data {
+    if edge.producer != 0 {
+      let pipeline = @lower.pipeline(
+        @lower.bound_preparation(graph.owners[edge.producer]),
+      )
+      if edge.target != @pipeline.Step(@pipeline.step_count(pipeline) - 1) {
+        return Err(UnsupportedGraph)
+      }
+    }
+  }
   let lifetimes = Array::makei(count, _ => TaskLifetime::{ live: true, })
   let root_lifetime = lifetimes[0]
   let resources : Array[TaskRetention?] = Array::make(count, None)
-  resources[0] = Some({ holding: None, parent: None, })
+  resources[0] = Some({ holding: None, parents: [], })
   Ok({
     graph,
     offer_owner: { graph, },
@@ -111,7 +159,19 @@ pub fn open_captured_dag(
     done: Array::make(count, false),
     lifetimes,
     resources,
-    inputs: Array::make(count, None),
+    join_limits,
+    inputs: Array::makei(count, task => {
+      Array::make(
+        if task == 0 {
+          0
+        } else {
+          @pipeline.input_count(
+            @lower.pipeline(@lower.bound_preparation(graph.owners[task])),
+          )
+        },
+        None,
+      )
+    }),
     stopped: false,
     failure: None,
     running: None,
@@ -139,6 +199,19 @@ pub fn captured_root_statistics(
 ///|
 pub fn captured_dag_graph(run : CapturedDAG) -> CheckedDAG {
   run.graph
+}
+
+///|
+/// Exact final port of an admitted Compute task, including before execution.
+/// Acquisition is accessed through its captured source, not this port accessor.
+pub fn captured_task_target(run : CapturedDAG, task : Int) -> @pipeline.Target? {
+  if task <= 0 || task >= run.graph.owners.length() {
+    return None
+  }
+  let pipeline = @lower.pipeline(
+    @lower.bound_preparation(run.graph.owners[task]),
+  )
+  Some(@pipeline.Step(@pipeline.step_count(pipeline) - 1))
 }
 
 ///|
@@ -192,6 +265,7 @@ pub fn captured_task_input(
   task : Int,
   max_entries : Int,
   max_name_bytes : Int,
+  input_index? : Int = 0,
 ) -> Result[@execution.ProducerRead, RunIssue] {
   if run.stopped {
     return Err(Stopped)
@@ -199,7 +273,10 @@ pub fn captured_task_input(
   if next_captured_task(run) != Some(task) {
     return Err(NotReady)
   }
-  if run.inputs[task] is Some(read) {
+  if input_index < 0 || input_index >= run.inputs[task].length() {
+    return Err(NotReady)
+  }
+  if run.inputs[task][input_index] is Some(read) {
     if !@execution.producer_read_available(read) {
       let issue = RunIssue::Read(@execution.ProducerUnavailable)
       fail_captured_task(run, task, issue)
@@ -209,7 +286,7 @@ pub fn captured_task_input(
   }
   let mut selected : DataEdge? = None
   for edge in run.graph.data {
-    if edge.consumer == task {
+    if edge.consumer == task && edge.input == input_index {
       selected = Some(edge)
       break
     }
@@ -252,7 +329,7 @@ pub fn captured_task_input(
       receiver, bound, max_entries, max_name_bytes,
     ) {
     Ok(read) => {
-      run.inputs[task] = Some(read)
+      run.inputs[task][input_index] = Some(read)
       Ok(read)
     }
     Err(issue) => {
@@ -289,8 +366,7 @@ pub fn execute_captured_local_task(
     ) {
     return Err(ForeignCandidate)
   }
-  guard run.inputs[task] is Some(read) &&
-    physical_equal(read, @planning.fixed_compute_request_input(request)) else {
+  if !captured_request_inputs_match(run, task, request) {
     return Err(ForeignCandidate)
   }
   guard @planning.fixed_compute_choice_payload(choice, prepared)
@@ -334,13 +410,16 @@ pub fn execute_captured_local_task(
       prepared,
       limits,
       measurement~,
+      join_output_ceiling=run.join_limits[task].map(limit => {
+        (0, @derivation.minimum_value(@witness.limit_minimum(limit)))
+      }),
     ) {
     Ok(completed) => {
       run.completed[task] = Some(Local(completed))
       record_task_retention(run, task)
       run.resources[task].unwrap().holding = Some(holding)
       settle_reservation(run.ledger, reservation) |> ignore
-      run.inputs[task] = None
+      clear_captured_inputs(run, task)
       run.generation += 1
       Ok(())
     }
@@ -360,17 +439,13 @@ pub fn captured_task_output(
   task : Int,
   target : @pipeline.Target,
 ) -> @execution.CompletedOutput? {
-  if task < 0 || task >= run.lifetimes.length() || !run.lifetimes[task].live {
+  if captured_task_target(run, task) != Some(target) ||
+    !run.lifetimes[task].live {
     return None
   }
   let output = match run.completed.get(task).bind(value => value) {
     Some(Local(completed)) => @execution.completed_output(completed, target)
-    Some(DuckDB(output)) =>
-      if target == @pipeline.Step(1) {
-        Some(output)
-      } else {
-        None
-      }
+    Some(DuckDB(output)) => Some(output)
     None => None
   }
   let lifetime = run.lifetimes[task]
@@ -389,7 +464,7 @@ pub fn stop_captured_dag(run : CapturedDAG) -> Unit {
     @planning.abort_duckdb_compute_attempt(attempt)
   }
   for index in 0..<run.inputs.length() {
-    run.inputs[index] = None
+    clear_captured_inputs(run, index)
   }
 }
 
@@ -418,4 +493,71 @@ pub fn captured_dag_ledger(run : CapturedDAG) -> Ledger {
 /// copies. This is not a semantic identity or permission to reset search.
 pub fn captured_dag_generation(run : CapturedDAG) -> Int {
   run.generation
+}
+
+///|
+fn clear_captured_inputs(run : CapturedDAG, task : Int) -> Unit {
+  for port in 0..<run.inputs[task].length() {
+    run.inputs[task][port] = None
+  }
+}
+
+///|
+fn captured_request_inputs_match(
+  run : CapturedDAG,
+  task : Int,
+  request : @planning.FixedComputeRequest,
+) -> Bool {
+  let ports = run.inputs[task]
+  if @planning.fixed_compute_request_input_count(request) != ports.length() {
+    return false
+  }
+  for port in 0..<ports.length() {
+    guard ports[port] is Some(actual) &&
+      @planning.fixed_compute_request_input(request, port) is Some(expected) &&
+      physical_equal(actual, expected) else {
+      return false
+    }
+  }
+  true
+}
+
+///|
+/// Read the already-owned application, never reconstruct a limit from a CID or
+/// substitute the Host's execution settings for the selected checked contract.
+/// The selected checked limit, not an estimate inferred from input row counts.
+pub fn captured_task_join_output_limit(run : CapturedDAG, task : Int) -> Int64? {
+  run.join_limits
+  .get(task)
+  .bind(value => value)
+  .map(limit => @derivation.minimum_value(@witness.limit_minimum(limit)))
+}
+
+///|
+fn checked_task_join_limit(
+  graph : CheckedDAG,
+  task : Int,
+) -> @witness.LimitClaim? {
+  let stages = @context.program_reference_stages(
+    @context.program_sources_references(
+      @context.program_identity_sources(@checked.source_identity(graph.program)),
+    ),
+  )
+  guard @context.stage_context_at(stages, task) is Some(bound) else {
+    return None
+  }
+  let closure = @context.checked_capacity(@context.parameter_context(bound))
+  guard @capacity.application_closure_at(closure, 0) is Some(coverage) &&
+    @capacity.consumer_coverage_joins(
+      @capacity.application_coverage_consumers(coverage),
+    )
+    is Some(joins) &&
+    @step_bounds.join_application_at(joins, 0) is Some(limit) &&
+    physical_equal(
+      @step_bounds.join_limit_pipeline(limit),
+      @lower.pipeline(@lower.bound_preparation(graph.owners[task])),
+    ) else {
+    return None
+  }
+  Some(@step_bounds.join_limit_claim(limit))
 }

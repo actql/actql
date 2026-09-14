@@ -19,6 +19,7 @@ pub enum KernelBody {
   DistinctRows
   DedupeRows
   StableSort(@pipeline.SortOrder?)
+  CountGroups(PreparedCountGroup)
 }
 
 ///|
@@ -31,6 +32,7 @@ pub(all) enum KernelIssue {
   InvalidTakeCount
   PendingTakeOrder
   PendingSortOrder
+  CountGroupFailure(CountGroupIssue)
 }
 
 ///|
@@ -54,6 +56,15 @@ pub fn kernel_checked(kernel : PreparedKernel) -> @relation.CheckedOperation {
 }
 
 ///|
+/// Allocation-free dispatch inspection; unrelated kernels do not copy bindings.
+pub fn kernel_count_group(kernel : PreparedKernel) -> PreparedCountGroup? {
+  match kernel.body {
+    CountGroups(group) => Some(group)
+    _ => None
+  }
+}
+
+///|
 /// Allocation-free batch selection view; the order remains owned by preparation.
 pub fn kernel_take(kernel : PreparedKernel) -> (Int64, Int64)? {
   match kernel.body {
@@ -64,7 +75,8 @@ pub fn kernel_take(kernel : PreparedKernel) -> (Int64, Int64)? {
     | Select(_)
     | DistinctRows
     | DedupeRows
-    | StableSort(_) => None
+    | StableSort(_)
+    | CountGroups(_) => None
   }
 }
 
@@ -82,7 +94,8 @@ pub fn ordered_binding_at(
     | Limit(_, _, _)
     | DistinctRows
     | DedupeRows
-    | StableSort(_) => None
+    | StableSort(_)
+    | CountGroups(_) => None
   }
 }
 
@@ -97,6 +110,7 @@ pub fn kernel_body(kernel : PreparedKernel) -> KernelBody {
     DistinctRows => DistinctRows
     DedupeRows => DedupeRows
     StableSort(order) => StableSort(order)
+    CountGroups(group) => CountGroups(group)
   }
 }
 
@@ -106,7 +120,12 @@ pub fn kernel_view_entries(kernel : PreparedKernel) -> Int {
   match kernel.body {
     SnapshotMap(bindings) | OrderedBindings(bindings) => bindings.length()
     Select(fields) => fields.length()
-    Filter(_) | Limit(_, _, _) | DistinctRows | DedupeRows | StableSort(_) => 0
+    Filter(_)
+    | Limit(_, _, _)
+    | DistinctRows
+    | DedupeRows
+    | StableSort(_)
+    | CountGroups(_) => 0
   }
 }
 
@@ -154,8 +173,9 @@ fn prepare_kernel_measured(
     | Limit(op)
     | Distinct(op)
     | Dedupe(op)
-    | Sort(op) => op
-    Values(_) => return Err(MissingKernelNode)
+    | Sort(op)
+    | CountGroup(op) => op
+    Values(_) | InnerJoin(_) => return Err(MissingKernelNode)
   }
   if node.inputs.length() != 1 {
     return Err(InvalidKernelWiring)
@@ -394,9 +414,29 @@ fn prepare_kernel_measured(
       }
       Limit(count, offset, order)
     }
-    Projection | Reshape | Aggregation => return Err(MissingKernelNode)
+    Aggregation => {
+      let group = match
+        prepare_count_group(
+          checked,
+          Int::min(max_bindings, remaining.max_work),
+          names_remaining,
+        ) {
+        Ok(group) => group
+        Err(e) => return Err(CountGroupFailure(e))
+      }
+      names_remaining -= group.name_bytes
+      remaining = {
+        ..remaining,
+        max_work: remaining.max_work -
+        group.keys.length() -
+        group.counts.length(),
+      }
+      CountGroups(group)
+    }
+    Projection | Reshape => return Err(MissingKernelNode)
   }
   let binding_count = match body {
+    CountGroups(group) => group.keys.length() + group.counts.length()
     SnapshotMap(bindings) | OrderedBindings(bindings) => bindings.length()
     Filter(_) => 1
     Select(fields) => fields.length()

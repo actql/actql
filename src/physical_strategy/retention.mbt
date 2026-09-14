@@ -6,23 +6,27 @@ priv struct TaskLifetime {
 ///|
 priv struct TaskRetention {
   mut holding : Holding?
-  parent : Int?
+  parents : Array[Int]
 }
 
 ///|
-fn task_parent(run : CapturedDAG, task : Int) -> Int? {
+fn task_parents(run : CapturedDAG, task : Int) -> Array[Int] {
+  let parents = []
   for edge in run.graph.data {
-    if edge.consumer == task {
-      return Some(edge.producer)
+    if edge.consumer == task && !parents.contains(edge.producer) {
+      parents.push(edge.producer)
     }
   }
-  None
+  parents
 }
 
 ///|
 fn record_task_retention(run : CapturedDAG, task : Int) -> Unit {
   run.done[task] = true
-  run.resources[task] = Some({ holding: None, parent: task_parent(run, task), })
+  run.resources[task] = Some({
+    holding: None,
+    parents: task_parents(run, task),
+  })
 }
 
 ///|
@@ -82,7 +86,7 @@ pub fn close_captured_task_output(run : CapturedDAG, task : Int) -> Unit {
     if edge.producer == task &&
       !run.done[edge.consumer] &&
       !(run.running is Some((active, _)) && active == edge.consumer) {
-      run.inputs[edge.consumer] = None
+      clear_captured_inputs(run, edge.consumer)
     }
   }
   collect_captured_retention(run)
@@ -98,12 +102,14 @@ fn collect_captured_retention(run : CapturedDAG) -> Unit {
     }
     let mut needed = false
     for child in run.resources {
-      if child is Some(child) && child.parent == Some(task) {
+      if child is Some(child) && child.parents.contains(task) {
         needed = true
       }
     }
     if run.running is Some((active, _)) &&
-      task_parent(run, active) == Some(task) {
+      run.graph.data.any(edge => {
+        edge.consumer == active && edge.producer == task
+      }) {
       needed = true
     }
     if !needed {

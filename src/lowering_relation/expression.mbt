@@ -380,8 +380,14 @@ fn lower_expression_measured(
     }
     let op = match step.payload {
       Derive(op) | Where(op) => op
-      Values(_) | Select(_) | Limit(_) | Distinct(_) | Dedupe(_) | Sort(_) =>
-        expression_fail(step.source, MissingCheckedBinding)
+      Values(_)
+      | Select(_)
+      | Limit(_)
+      | Distinct(_)
+      | Dedupe(_)
+      | Sort(_)
+      | CountGroup(_)
+      | InnerJoin(_) => expression_fail(step.source, MissingCheckedBinding)
     }
     guard @relation.binding_at(op, binding_index) is Some(binding) else {
       expression_fail(step.source, MissingCheckedBinding)

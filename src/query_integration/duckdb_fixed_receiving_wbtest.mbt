@@ -38,7 +38,7 @@ test "fixed Compute receiving seals exact owned output without granting executio
     max_depth: 10,
   }
   let measuring = @execution.prepare_fixed_producer_measurement(
-    input,
+    [input],
     @pipeline.Step(1),
     max_rows=2,
     max_value_bytes=1,
@@ -47,15 +47,15 @@ test "fixed Compute receiving seals exact owned output without granting executio
   let measured = @execution.finish_fixed_producer_measurement(measuring, rows).unwrap()
   assert_eq(@execution.fixed_producer_measurement_usage(measured), (8, 4, 4))
   assert_true(
-    @execution.fixed_producer_measurement_matches(measured, input, rows, 2, 1),
+    @execution.fixed_producer_measurement_matches(measured, [input], rows, 2, 1),
   )
   assert_false(
-    @execution.fixed_producer_measurement_matches(measured, input, rows, 2, 2),
+    @execution.fixed_producer_measurement_matches(measured, [input], rows, 2, 2),
   )
   assert_false(
     @execution.fixed_producer_measurement_matches(
       measured,
-      duckdb_captured_input(),
+      [duckdb_captured_input()],
       rows,
       2,
       1,
@@ -72,7 +72,7 @@ test "fixed Compute receiving seals exact owned output without granting executio
       { ..measure_limits, max_nodes: 3, },
     ] {
     let short = @execution.prepare_fixed_producer_measurement(
-      input,
+      [input],
       @pipeline.Step(1),
       max_rows=2,
       max_value_bytes=1,
@@ -87,7 +87,7 @@ test "fixed Compute receiving seals exact owned output without granting executio
     )
   }
   let foreign_measurement = @execution.prepare_fixed_producer_measurement(
-    duckdb_captured_input(),
+    [duckdb_captured_input()],
     @pipeline.Step(1),
     max_rows=2,
     max_value_bytes=1,

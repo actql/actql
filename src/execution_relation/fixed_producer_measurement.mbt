@@ -3,7 +3,7 @@
 /// remains owned across backend execution; output measurement uses the same
 /// physical ledger and cannot be paired with another consumer or target.
 struct FixedProducerMeasurement {
-  input : ProducerRead
+  inputs : Array[ProducerRead]
   target : @pipeline.Target
   max_rows : Int
   max_value_bytes : Int
@@ -45,7 +45,7 @@ impl IndexedRows for AdmittedGuardRows with fn read_cell(self, row, column) {
 
 ///|
 pub fn prepare_fixed_producer_measurement(
-  input : ProducerRead,
+  inputs : Array[ProducerRead],
   target : @pipeline.Target,
   max_rows~ : Int,
   max_value_bytes~ : Int,
@@ -59,19 +59,32 @@ pub fn prepare_fixed_producer_measurement(
     physical.max_depth < 0 {
     return Err(InvalidLimits)
   }
-  if !producer_read_available(input) {
+  if inputs.is_empty() {
     return Err(ForeignInput)
   }
-  let pipeline = @lower.pipeline(
-    @lower.bound_preparation(producer_read_receiver(input)),
-  )
+  let owner = producer_read_receiver(inputs[0])
+  let pipeline = @lower.pipeline(@lower.bound_preparation(owner))
+  if inputs.length() != @pipeline.input_count(pipeline) {
+    return Err(ForeignInput)
+  }
+  if inputs.length() > physical.max_work {
+    return Err(MeasurementWork)
+  }
+  for index in 0..<inputs.length() {
+    let input = inputs[index]
+    if !producer_read_available(input) ||
+      !physical_equal(producer_read_receiver(input), owner) ||
+      producer_read_input_index(input) != index {
+      return Err(ForeignInput)
+    }
+    if producer_read_row_count(input) > max_rows {
+      return Err(InputRows)
+    }
+  }
   guard target is Step(index) &&
     index == @pipeline.step_count(pipeline) - 1 &&
     @pipeline.schema_at(pipeline, target) is Some(_) else {
     return Err(MissingOutput)
-  }
-  if producer_read_row_count(input) > max_rows {
-    return Err(InputRows)
   }
   let budget : FixedInputGuardBudget = {
     work: physical.max_work,
@@ -79,25 +92,27 @@ pub fn prepare_fixed_producer_measurement(
     nodes: physical.max_nodes,
     depth: physical.max_depth,
   }
-  match
-    measure_input_values(
-      ProducerGuardRows::{ input, },
-      max_value_bytes,
-      InputValues,
-      budget,
-    ) {
-    Err(issue) => Err(issue)
-    Ok(_) =>
-      Ok({
-        input,
-        target,
-        max_rows,
+  for input in inputs {
+    match
+      measure_input_values(
+        ProducerGuardRows::{ input, },
         max_value_bytes,
+        InputValues,
         budget,
-        initial: physical,
-        open: true,
-      })
+      ) {
+      Err(issue) => return Err(issue)
+      Ok(_) => ()
+    }
   }
+  Ok({
+    inputs: inputs.copy(),
+    target,
+    max_rows,
+    max_value_bytes,
+    budget,
+    initial: physical,
+    open: true,
+  })
 }
 
 ///|
@@ -109,11 +124,14 @@ pub fn finish_fixed_producer_measurement(
     return Err(ForeignInput)
   }
   measurement.open = false
-  let owner = producer_read_receiver(measurement.input)
+  let owner = producer_read_receiver(measurement.inputs[0])
   let pipeline = @lower.pipeline(@lower.bound_preparation(owner))
-  if !producer_read_available(measurement.input) ||
-    !physical_equal(rows.owner, owner) ||
-    rows.target != measurement.target {
+  for input in measurement.inputs {
+    if !producer_read_available(input) {
+      return Err(ForeignInput)
+    }
+  }
+  if !physical_equal(rows.owner, owner) || rows.target != measurement.target {
     return Err(ForeignInput)
   }
   guard @pipeline.schema_at(pipeline, measurement.target) is Some(schema) &&
@@ -138,16 +156,23 @@ pub fn finish_fixed_producer_measurement(
 ///|
 pub fn fixed_producer_measurement_matches(
   value : FixedProducerMeasuredOutput,
-  input : ProducerRead,
+  inputs : Array[ProducerRead],
   rows : AdmittedOutputRows,
   max_rows : Int,
   max_value_bytes : Int,
 ) -> Bool {
-  physical_equal(value.measurement.input, input) &&
+  if inputs.length() != value.measurement.inputs.length() {
+    return false
+  }
+  for index in 0..<inputs.length() {
+    if !physical_equal(value.measurement.inputs[index], inputs[index]) ||
+      !producer_read_available(inputs[index]) {
+      return false
+    }
+  }
   physical_equal(value.rows, rows) &&
   value.measurement.max_rows == max_rows &&
-  value.measurement.max_value_bytes == max_value_bytes &&
-  producer_read_available(input)
+  value.measurement.max_value_bytes == max_value_bytes
 }
 
 ///|

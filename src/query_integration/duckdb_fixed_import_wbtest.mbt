@@ -165,7 +165,7 @@ test "resident SQL uses exact producer storage and checked receiver projection" 
     )
     is Err(UnsupportedShape),
   )
-  let query = @duckdb.compile_native_filter_select(
+  let query = @duckdb.compile_fixed_query(
     @execution.producer_read_receiver(input),
     "main",
     "owned_input",

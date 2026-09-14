@@ -8,6 +8,7 @@ import {
   "actql/actql/expression_typing",
   "actql/actql/parameter_binding",
   "actql/actql/pipeline_typing",
+  "actql/actql/relation_join_shape",
   "actql/actql/relation_schema",
   "actql/actql/relation_typing",
   "actql/actql/relation_values",
@@ -20,6 +21,16 @@ import {
 pub fn bind_parameters(Prepared, @parameter_binding.BoundValues?, max_parameters~ : Int, max_name_bytes~ : Int) -> Result[BoundPrepared, BindingIssue]
 
 pub fn bound_preparation(BoundPrepared) -> Prepared
+
+pub fn count_group_aggregate_at(PreparedCountGroup, Int) -> PreparedCount?
+
+pub fn count_group_aggregate_count(PreparedCountGroup) -> Int
+
+pub fn count_group_checked(PreparedCountGroup) -> @relation_typing.CheckedOperation
+
+pub fn count_group_key_at(PreparedCountGroup, Int) -> @relation_schema.FieldName?
+
+pub fn count_group_key_count(PreparedCountGroup) -> Int
 
 pub fn demand_root_at(DemandIndex, Int) -> @expression_typing.DemandPaths?
 
@@ -42,6 +53,8 @@ pub fn emit_fragment_request(FragmentRequest, @encode_core.Writer) -> Unit raise
 pub fn emit_fragment_row_limits_body(FragmentRowLimits, String?, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
 
 pub fn emit_fragment_source_pipeline(FragmentPipeline, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
+
+pub fn emit_join_kernel(PreparedJoinKernel, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
 
 pub fn emit_kernel_node(PreparedKernel, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
 
@@ -83,13 +96,35 @@ pub fn fragment_request_row_limits(FragmentRequest) -> FragmentRowLimits?
 
 pub fn fragment_row_limits_valid(FragmentRowLimits) -> Bool
 
+pub fn inner_join_checked(PreparedInnerJoin) -> @relation_join_shape.CheckedJoin
+
+pub fn inner_join_field_at(PreparedInnerJoin, Int) -> InnerJoinField?
+
+pub fn inner_join_field_count(PreparedInnerJoin) -> Int
+
+pub fn inner_join_key_at(PreparedInnerJoin, Int) -> (@relation_schema.FieldName, @relation_schema.FieldName)?
+
+pub fn inner_join_key_count(PreparedInnerJoin) -> Int
+
 pub fn input_id(Prepared, Int) -> String?
 
 pub fn input_ids(PreparedNode) -> Array[String]
 
+pub fn join_kernel_input(PreparedJoinKernel, Bool) -> String
+
+pub fn join_kernel_output_limit(PreparedJoinKernel) -> Int64?
+
+pub fn join_kernel_owner(PreparedJoinKernel) -> BoundPrepared
+
+pub fn join_kernel_profile(PreparedJoinKernel) -> PreparedInnerJoin
+
+pub fn join_kernel_step(PreparedJoinKernel) -> Int
+
 pub fn kernel_body(PreparedKernel) -> KernelBody
 
 pub fn kernel_checked(PreparedKernel) -> @relation_typing.CheckedOperation
+
+pub fn kernel_count_group(PreparedKernel) -> PreparedCountGroup?
 
 pub fn kernel_input(PreparedKernel) -> String
 
@@ -135,11 +170,17 @@ pub fn pipeline(Prepared) -> @pipeline_typing.CheckedPipeline
 
 pub fn prepare(@pipeline_typing.CheckedPipeline, Limits) -> Result[Prepared, Issue]
 
+pub fn prepare_count_group(@relation_typing.CheckedOperation, Int, Int) -> Result[PreparedCountGroup, CountGroupIssue]
+
 pub fn prepare_demand(RootIndex, DemandLimits) -> Result[DemandIndex, DemandIssue]
 
 pub fn prepare_fragment_pipeline(PreparedSequence, Int, RootLimits) -> Result[FragmentPipeline, RootIssue]
 
 pub fn prepare_fragment_request(FragmentPipeline, Int64, Int64, row_limits? : FragmentRowLimits?) -> Result[FragmentRequest, FragmentRequestIssue]
+
+pub fn prepare_inner_join(@relation_join_shape.CheckedJoin, Int, Int) -> Result[PreparedInnerJoin, InnerJoinIssue]
+
+pub fn prepare_join_kernel(BoundPrepared, Int, Int, Int) -> Result[PreparedJoinKernel, InnerJoinIssue]
 
 pub fn prepare_kernel(BoundPrepared, Int, max_bindings~ : Int, max_name_bytes~ : Int, ExpressionLimits) -> Result[PreparedKernel, KernelIssue]
 
@@ -206,6 +247,13 @@ pub(all) enum BindingIssueKind {
 } derive(Eq, @debug.Debug)
 
 type BoundPrepared
+
+pub(all) enum CountGroupIssue {
+  NotGroup
+  UnsupportedAggregate(Int)
+  InvalidLimits
+  PreparationLimit
+} derive(Eq, @debug.Debug)
 
 pub(all) enum DemandAddressIssue {
   InvalidAddressLimits
@@ -302,6 +350,19 @@ pub(all) struct FragmentRowLimits {
   max_work : Int64
 }
 
+pub struct InnerJoinField {
+  output : @relation_schema.FieldName
+  input : @relation_schema.FieldName
+}
+
+pub(all) enum InnerJoinIssue {
+  InvalidLimits
+  UnsupportedKind
+  PreparationLimit
+  InvalidCheckedShape
+  InvalidGuard
+} derive(Eq, @debug.Debug)
+
 pub struct Issue {
   kind : IssueKind
   source : @decode_core.Cursor
@@ -324,6 +385,7 @@ pub enum KernelBody {
   DistinctRows
   DedupeRows
   StableSort(@pipeline_typing.SortOrder?)
+  CountGroups(PreparedCountGroup)
 }
 
 pub(all) enum KernelIssue {
@@ -335,6 +397,7 @@ pub(all) enum KernelIssue {
   InvalidTakeCount
   PendingTakeOrder
   PendingSortOrder
+  CountGroupFailure(CountGroupIssue)
 }
 
 pub(all) struct Limits {
@@ -379,9 +442,23 @@ pub enum Payload {
   Distinct(@relation_typing.CheckedOperation)
   Dedupe(@relation_typing.CheckedOperation)
   Sort(@relation_typing.CheckedOperation)
+  CountGroup(@relation_typing.CheckedOperation)
+  InnerJoin(@relation_join_shape.CheckedJoin)
 }
 
 type Prepared
+
+pub struct PreparedCount {
+  name : String
+  field : @relation_schema.FieldName?
+  distinct : Bool?
+}
+
+type PreparedCountGroup
+
+type PreparedInnerJoin
+
+type PreparedJoinKernel
 
 type PreparedKernel
 
@@ -392,6 +469,7 @@ type PreparedSequence
 pub enum PreparedStep {
   ValuesStep(PreparedValues)
   RowStep(PreparedKernel)
+  JoinStep(PreparedJoinKernel)
 }
 
 type PreparedValues
@@ -432,6 +510,7 @@ pub(all) enum SequenceIssue {
   SequenceLimit
   ValuesFailure(Int, ValuesIssue)
   KernelFailure(Int, KernelIssue)
+  JoinFailure(Int, InnerJoinIssue)
 }
 
 pub(all) struct SequenceLimits {

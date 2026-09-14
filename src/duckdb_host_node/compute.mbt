@@ -64,7 +64,7 @@ pub fn compute_resident_strategy_host_open(
   verify : (@planning.DuckDBComputeAttempt) -> Bool,
   transfer_bytes : Int64,
   execution_bytes : Int64,
-  resident : @strategy.ResidentRead,
+  resident : @strategy.ResidentInputs,
 ) -> ComputeNodeRun raise NodeHostFailure {
   open_strategy_compute_host(
     setup,
@@ -81,7 +81,7 @@ fn open_strategy_compute_host(
   verify : (@planning.DuckDBComputeAttempt) -> Bool,
   transfer_bytes : Int64,
   execution_bytes : Int64,
-  resident? : @strategy.ResidentRead,
+  resident? : @strategy.ResidentInputs,
 ) -> ComputeNodeRun raise NodeHostFailure {
   match
     @host.start_configured_strategy_compute_host(
@@ -183,10 +183,18 @@ pub fn compute_host_attempt(
 
 ///|
 #export_name("computeHostCount")
-pub fn compute_host_count(run : ComputeNodeRun, columns : Bool) -> Int {
-  let imported = @duckdb.fixed_compute_import(
-    @planning.duckdb_compute_attempt_plan(run.attempt),
-  )
+pub fn compute_host_count(
+  run : ComputeNodeRun,
+  port : Int,
+  columns : Bool,
+) -> Int raise NodeHostFailure {
+  guard @duckdb.fixed_compute_import(
+      @planning.duckdb_compute_attempt_plan(run.attempt),
+      port,
+    )
+    is Some(imported) else {
+    raise InvalidCommand
+  }
   if columns {
     @duckdb.fixed_import_column_count(imported)
   } else {
@@ -195,16 +203,28 @@ pub fn compute_host_count(run : ComputeNodeRun, columns : Bool) -> Int {
 }
 
 ///|
+#export_name("computeHostImportCount")
+pub fn compute_host_import_count(run : ComputeNodeRun) -> Int {
+  @duckdb.fixed_compute_import_count(
+    @planning.duckdb_compute_attempt_plan(run.attempt),
+  )
+}
+
+///|
 #export_name("computeHostSql")
 pub fn compute_host_sql(
   run : ComputeNodeRun,
   kind : Int,
+  port : Int,
 ) -> String raise NodeHostFailure {
   let compute = @planning.duckdb_compute_attempt_plan(run.attempt)
+  guard @duckdb.fixed_compute_import(compute, port) is Some(imported) else {
+    raise InvalidCommand
+  }
   match kind {
-    0 => @duckdb.fixed_import_create_sql(@duckdb.fixed_compute_import(compute))
-    1 => @duckdb.fixed_import_insert_sql(@duckdb.fixed_compute_import(compute))
-    2 => @duckdb.native_query_sql(@duckdb.fixed_compute_query(compute))
+    0 => @duckdb.fixed_import_create_sql(imported)
+    1 => @duckdb.fixed_import_insert_sql(imported)
+    2 => @duckdb.fixed_query_sql(@duckdb.fixed_compute_query(compute))
     _ => raise InvalidCommand
   }
 }
@@ -216,17 +236,23 @@ pub fn compute_host_parameter(
   row : Int,
   column : Int,
   predicate : Bool,
+  port : Int,
 ) -> String raise NodeHostFailure {
   let compute = @planning.duckdb_compute_attempt_plan(run.attempt)
   let parameter = if predicate {
-    @duckdb.native_query_parameter(@duckdb.fixed_compute_query(compute))
-  } else {
-    match
-      @duckdb.fixed_import_parameter(
-        @duckdb.fixed_compute_import(compute),
-        row,
+    guard @duckdb.fixed_query_parameter(
+        @duckdb.fixed_compute_query(compute),
         column,
-      ) {
+      )
+      is Some(parameter) else {
+      raise InvalidCommand
+    }
+    parameter
+  } else {
+    guard @duckdb.fixed_compute_import(compute, port) is Some(imported) else {
+      raise InvalidCommand
+    }
+    match @duckdb.fixed_import_parameter(imported, row, column) {
       Ok(value) => value
       Err(issue) => raise ComputeParameter(issue)
     }
@@ -297,7 +323,12 @@ pub fn compute_host_complete(
       Err(issue) => raise Strategy(issue)
       Ok(_) => ()
     }
-    guard @strategy.captured_task_output(graph, task, Step(1)) is Some(output) else {
+    let target = @duckdb.fixed_query_target(
+      @duckdb.fixed_compute_query(
+        @planning.duckdb_compute_attempt_plan(run.attempt),
+      ),
+    )
+    guard @strategy.captured_task_output(graph, task, target) is Some(output) else {
       raise InvalidCommand
     }
     return output
@@ -306,6 +337,16 @@ pub fn compute_host_complete(
     Ok(value) => value
     Err(issue) => raise Compute(issue)
   }
+}
+
+///|
+#export_name("computeHostQueryParameterCount")
+pub fn compute_host_query_parameter_count(run : ComputeNodeRun) -> Int {
+  @duckdb.fixed_query_parameter_count(
+    @duckdb.fixed_compute_query(
+      @planning.duckdb_compute_attempt_plan(run.attempt),
+    ),
+  )
 }
 
 ///|

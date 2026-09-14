@@ -26,10 +26,12 @@ node adapters/duckdb-node/examples/physical-strategy.mjs \
 
 Supply a valid Check Environment matching your Program. The supplied Program
 references `crm/main` resource `r`; change that reference to your declared
-SourceView if necessary. This example requires one checkpoint-free snapshot
-acquisition followed by the three filter/select Compute stages shown in the
-Program. Their imported visits are explicitly bounded as `[1,2,2,3]`; it is not
-a general arbitrary-Program setup frontend. The source must declare `id` as a
+SourceView if necessary. This example supports one checkpoint-free snapshot
+acquisition followed by three filter/select Compute stages (`program.json`),
+or four Compute stages: two branches, inner join, then group/count
+(`join-count.json`). Their imported visits are explicitly bounded as `[1,2,2,3]`
+and `[1,2,2,5,6]`; this application is not a general arbitrary-Program setup
+frontend. The source must declare `id` as a
 non-null number; all other known columns are also validated. The selected real
 table and declared schema must match. The example does not create a source DB,
 generate a Catalog, grant access based on Program text, or repair an invalid file.
@@ -72,6 +74,22 @@ an `AbortSignal`. Completed-input sharing is process-local; task streaming,
 automatic failed-query retry and remote replay are not provided.
 
 ## Resident candidates
+
+To run the join/count variant, use the same command with
+`--program adapters/duckdb-node/examples/join-count.json`. For source ids
+`[3,1,2,3]` and minimum 1, A contains two occurrences of 3, B contains
+`[3,2,3]`, their inner join contains four occurrences of 3, and the separate
+group/count consumer produces `[{"id":3,"n":4,"present":4}]`.
+Join capacity material uses the selected Environment's `max_relation_output_rows`
+Host ceiling and is validated by the public checker; the example's 100-row
+consumer/output guard remains independently enforced. A small final aggregate
+does not waive the join intermediate limit.
+
+The same document runs with Local, fresh DuckDB or resident candidates. Under
+the supplied estimates, `--native-ms 20 --resident` can mix Local branches with
+resident join/count because cumulative transfer reservations also participate
+in feasibility. It does not increase the 500000-byte ledger to force a preferred
+placement. Count's retained DB result and Host result have separate ownership.
 
 `--resident` defaults to false. It adds resident candidates to the comparison;
 it does not force every task onto resident DuckDB. For example:

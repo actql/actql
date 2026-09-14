@@ -12,7 +12,7 @@ test "registered DuckDB transport command fixture from completed capture" {
     2,
     11,
   ).unwrap()
-  let request = @planning.prepare_fixed_compute_request(input, {
+  let request = @planning.prepare_fixed_compute_request([input], {
     contract_cid: "sha256:7d59718b965451d8a19ccf7095b92777ba0cdd8c3bb71f437ab387801fe7271f",
     max_rows: 100,
     max_value_bytes: 10000,
@@ -57,11 +57,11 @@ test "registered DuckDB transport command fixture from completed capture" {
     @planning.fixed_compute_choice_reason(choice) is EstimatedFastest(1, 10L),
   )
   let compute = @planning.fixed_compute_choice_payload(choice, native_binding).unwrap()
-  let imported = @duckdb.fixed_compute_import(compute)
+  let imported = @duckdb.fixed_compute_import(compute, 0).unwrap()
   let query = @duckdb.fixed_compute_query(compute)
   assert_true(
     physical_equal(
-      @duckdb.native_query_owner(query),
+      @duckdb.fixed_query_owner(query),
       @execution.producer_read_receiver(input),
     ),
   )
@@ -72,10 +72,13 @@ test "registered DuckDB transport command fixture from completed capture" {
   @encode.key(writer, "insert")
   @encode.string_value(writer, @duckdb.fixed_import_insert_sql(imported))
   @encode.key(writer, "query")
-  @encode.string_value(writer, @duckdb.native_query_sql(query))
+  @encode.string_value(writer, @duckdb.fixed_query_sql(query))
   @encode.key(writer, "parameters")
   @encode.begin_array(writer)
-  @duckdb.emit_physical_parameter(@duckdb.native_query_parameter(query), writer)
+  @duckdb.emit_physical_parameter(
+    @duckdb.fixed_query_parameter(query, 0).unwrap(),
+    writer,
+  )
   @encode.end_array(writer)
   @encode.key(writer, "rows")
   @encode.begin_array(writer)

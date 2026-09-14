@@ -6,6 +6,7 @@ struct GeneratedSequence {
   sequence : @lower.PreparedSequence
   contexts : Array[FragmentRuntimeContext]
   retained_ids : Array[String]
+  join_ceiling : (Int, Int64)?
 }
 
 ///|
@@ -59,7 +60,8 @@ pub fn prepare_generated_sequence(
       control,
       workspace,
     ) {
-    Ok(_) => Ok({ contracts, sequence, contexts, retained_ids, })
+    Ok(_) =>
+      Ok({ contracts, sequence, contexts, retained_ids, join_ceiling: None, })
     Err(issue) => Err(issue)
   }
 }
@@ -82,7 +84,35 @@ pub fn execute_generated_sequence(
     { remaining: limits.max_work, max_frames: limits.max_frames, },
     produced~,
     fragments=Some(generated.contexts),
+    join_ceiling=generated.join_ceiling,
   )
+}
+
+///|
+/// Narrow one join's output only. Input admission, other operations and checked
+/// identities are unchanged. Repeated application cannot weaken the ceiling.
+pub fn constrain_generated_join_output(
+  generated : GeneratedSequence,
+  step : Int,
+  ceiling : Int64,
+) -> Result[GeneratedSequence, SequenceRunIssue] {
+  if ceiling < 0L {
+    return Err(InvalidLimits)
+  }
+  guard @lower.sequence_step(generated.sequence, step)
+    is Some(@lower.JoinStep(_)) else {
+    return Err(InputSet)
+  }
+  let ceiling = match generated.join_ceiling {
+    None => ceiling
+    Some((prior_step, prior)) => {
+      if prior_step != step {
+        return Err(InputSet)
+      }
+      Int64::min(prior, ceiling)
+    }
+  }
+  Ok({ ..generated, join_ceiling: Some((step, ceiling)), })
 }
 
 ///|

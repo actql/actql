@@ -88,6 +88,7 @@ fn dispatch_limits() -> @dbhost.TaskDispatchLimits {
     input_entries: 100,
     input_name_bytes: 10000,
     candidate_work: 100,
+    join_validation: { max_rows: 100, max_work: 10000, max_entries: 1000, },
     capacity: {
       contract_cid: "sha256:7d59718b965451d8a19ccf7095b92777ba0cdd8c3bb71f437ab387801fe7271f",
       max_rows: 100,

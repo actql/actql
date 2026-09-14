@@ -44,20 +44,21 @@ export async function runCapturedStrategy(setup, transportLimits, importLimits, 
       const index = moon.strategyHostTask(task);
       if (moon.strategyHostNative(task)) {
         const resident = moon.strategyHostResident(task);
-        let residentInput;
+        const residentInputs = [];
         let mapping;
         if (resident) {
-          const [producer, bytes, entries, names] = checked(moon.strategyHostResidentInput(setup, index));
-          mapping = { maxEntries: Number(entries), maxNameBytes: Number(names) };
           residentEnvironment ??= await openResidentStrategyEnvironment(moon.strategyHostRun(setup), index, limits);
-          if (!residentEnvironment.hasTable(Number(producer))) {
-            await importResidentStrategyInput(residentEnvironment, Number(producer), bytes, limits, mapping, signal);
+          for (const [producer, bytes, entries, names] of checked(moon.strategyHostResidentInputs(setup, index))) {
+            mapping = { maxEntries: Number(entries), maxNameBytes: Number(names) };
+            if (!residentEnvironment.hasTable(Number(producer))) {
+              await importResidentStrategyInput(residentEnvironment, Number(producer), bytes, limits, mapping, signal);
+            }
+            residentInputs.push(residentEnvironment.table(Number(producer)));
           }
-          residentInput = residentEnvironment.table(Number(producer));
         }
         const selected = checked(moon.strategyHostTakeNative(task));
         const result = resident
-          ? await runResidentStrategyHostCompute(selected, residentEnvironment, residentInput, limits, mapping, signal)
+          ? await runResidentStrategyHostCompute(selected, residentEnvironment, residentInputs, limits, mapping, signal)
           : await runStrategyHostCompute(selected, limits, imports, signal);
         nativeResults.push(result);
         completed.push(Object.freeze({ task: index, realization: resident ? 'duckdb-resident' : 'duckdb', transport: result.usage }));

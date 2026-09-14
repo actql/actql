@@ -59,4 +59,51 @@ test('standard fixed Host retains typed projected values through completion and 
     // Releasing native completion does not consume the shared fixed producer.
     assert.equal(moon.ownedFixedLocalCid(fixture), expected, contract.type);
   }
+  // Group ordering and both count forms use literal independent expectations,
+  // not a Native-vs-Local equality oracle. Every mapped ActQL scalar participates
+  // as a grouping key and as the direct nullable count field.
+  const groups = [
+    [{ type: 'string', nullable: true }, '\ue000', '\u{10000}'],
+    [{ type: 'boolean', nullable: true }, true, false],
+    [{ type: 'number', nullable: true }, 9007199254740992, -1.5],
+    [{ type: 'decimal', precision: 38, scale: 2, nullable: true },
+      '999999999999999999999999999999999999.99', '-1.00'],
+    [{ type: 'date', nullable: true }, '9999-12-31', '0000-01-01'],
+    [{ type: 'timestamp', nullable: true }, '9999-12-31T23:59:59.999Z', '0000-01-01T00:00:00.000Z'],
+  ];
+  for (const [contract, high, low] of groups) {
+    const expected = hash([{ amount: null, n: 1, p: 0 },
+      { amount: low, n: 1, p: 1 }, { amount: high, n: 2, p: 2 }]);
+    const pipeline = JSON.stringify([
+      { values: { schema: { amount: contract }, rows: [high, null, low, high].map(amount => ({ amount })) }, as: 'seed' },
+      { select: ['amount'] },
+    ]);
+    const fixture = moon.typedCountCreate(pipeline, ...contracts);
+    assert.equal(moon.ownedFixedLocalCid(fixture), expected, `${contract.type} Local count`);
+    const result = await runFixedHostCompute(moon.ownedFixedConfiguration(fixture), limits,
+      { maxRows: 4, maxCells: 4 });
+    try {
+      assert.equal(result.importedRows, 4);
+      assert.equal(moon.ownedFixedConsumeOutput(fixture, result.output()), expected, `${contract.type} DuckDB count`);
+      const foreign = moon.typedCountCreate(pipeline, ...contracts);
+      assert.equal(moon.ownedFixedConsumeOutput(foreign, result.output()), 'null');
+    } finally { result.close(); }
+    assert.equal(moon.ownedFixedLocalCid(fixture), expected);
+    // The same scalar is an actual SQL join key, not only transported payload.
+    // Left occurrence order differs from group order; NULL does not match NULL.
+    const joinedExpected = hash([high, high, low, high, high].map(amount => ({ amount })));
+    const joined = moon.typedJoinCreate(pipeline, ...contracts);
+    assert.equal(moon.ownedFixedLocalCid(joined), joinedExpected, `${contract.type} Local join`);
+    const joinedResult = await runFixedHostCompute(moon.ownedFixedConfiguration(joined), limits,
+      { maxRows: 4, maxCells: 8 });
+    try {
+      assert.equal(joinedResult.importedRows, 8);
+      assert.equal(joinedResult.importedCells, 8);
+      assert.equal(moon.ownedFixedConsumeOutput(joined, joinedResult.output()), joinedExpected,
+        `${contract.type} DuckDB join completion and consumer`);
+      const foreignJoin = moon.typedJoinCreate(pipeline, ...contracts);
+      assert.equal(moon.ownedFixedConsumeOutput(foreignJoin, joinedResult.output()), 'null');
+    } finally { joinedResult.close(); }
+    assert.equal(moon.ownedFixedLocalCid(joined), joinedExpected);
+  }
 });

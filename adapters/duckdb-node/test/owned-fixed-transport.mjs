@@ -45,11 +45,12 @@ export async function exerciseOwnedFixedTransport(moon, producer, output, contra
     let begun = false;
     let parameterReads = 0;
     const port = Object.freeze({
+      importCount: () => 1,
       rowCount: () => moon.ownedFixedRowCount(fixed),
       columnCount: () => moon.ownedFixedColumnCount(fixed),
       createSql: () => moon.ownedFixedSql(fixed, 0),
       insertSql: () => moon.ownedFixedSql(fixed, 1),
-      parameter(row, column) {
+      parameter(_input, row, column) {
         parameterReads++;
         return JSON.parse(moon.ownedFixedParameter(fixed, row, column, false));
       },

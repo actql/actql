@@ -11,7 +11,13 @@ import {
   "actql/actql/query_planning" @planning,
   "actql/actql/execution_relation" @execution,
   "actql/actql/relation_typing" @relation,
+  "actql/actql/relation_join_shape" @join,
+  "actql/actql/capacity_graph_preflight" @capacity,
+  "actql/actql/capacity_program_step" @step_bounds,
+  "actql/actql/capacity_witness" @witness,
+  "actql/actql/capacity_derivation" @derivation,
   "actql/actql/duckdb_adapter" @duckdb,
   "actql/actql/physical_cost" @cost,
   "actql/actql/encode_core" @encode,
+  "actql/actql/decode_scalar" @scalar,
 }

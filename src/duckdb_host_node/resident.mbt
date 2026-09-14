@@ -44,50 +44,36 @@ pub fn resident_close(
 }
 
 ///|
-#export_name("residentBorrow")
-pub fn resident_borrow(
-  run : @strategy.CapturedDAG,
-  table : @strategy.ResidentTable,
-  task : Int,
+#export_name("residentBorrowSetup")
+pub fn resident_borrow_setup(
+  setup : @host.StrategyComputeHostConfiguration,
+  env : @strategy.ResidentEnvironment,
+  tables : Array[@strategy.ResidentTable],
   entries : Int,
   names : Int,
   sql : Int,
-) -> @strategy.ResidentRead raise NodeHostFailure {
-  match @strategy.borrow_resident_table(run, table, task, entries, names, sql) {
+) -> @strategy.ResidentInputs raise NodeHostFailure {
+  match
+    @host.borrow_configured_resident_inputs(
+      setup, env, tables, entries, names, sql,
+    ) {
     Ok(value) => value
     Err(issue) => raise Strategy(issue)
   }
 }
 
 ///|
-#export_name("residentBorrowSetup")
-pub fn resident_borrow_setup(
-  setup : @host.StrategyComputeHostConfiguration,
-  env : @strategy.ResidentEnvironment,
-  table : @strategy.ResidentTable,
-  entries : Int,
-  names : Int,
-  sql : Int,
-) -> @strategy.ResidentRead raise NodeHostFailure {
-  let (run, task) = @host.configured_strategy_compute_graph(setup)
-  if !@strategy.resident_environment_available(run, env) {
-    raise InvalidCommand
-  }
-  resident_borrow(run, table, task, entries, names, sql)
+#export_name("residentInputsSql")
+pub fn resident_inputs_sql(inputs : @strategy.ResidentInputs) -> Array[String] {
+  @strategy.resident_inputs_view_sql(inputs)
 }
 
 ///|
-#export_name("residentReadSql")
-pub fn resident_read_sql(read : @strategy.ResidentRead) -> String {
-  @strategy.resident_read_view_sql(read)
-}
-
-///|
-#export_name("residentReturn")
-pub fn resident_return(
-  read : @strategy.ResidentRead,
+#export_name("residentCancelInputs")
+pub fn resident_cancel_inputs(
+  inputs : @strategy.ResidentInputs,
 ) -> Unit raise NodeHostFailure {
-  match @strategy.return_resident_read(read) {
+  match @strategy.cancel_resident_inputs(inputs) {
     Ok(_) => ()
     Err(issue) => raise Physical(issue)
   }

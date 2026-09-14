@@ -7,6 +7,7 @@ fn adaptive_profiles() -> Array[@dbhost.DispatchEstimateProfile] {
         fixed_ms: Some(if index == 2 { 0L } else { 1L }),
         per_row_ms: Some(if index == 2 { 2L } else { 0L }),
         per_wire_byte_ms: Some(0L),
+        per_pair_ms: Some(0L),
       },
     ],
     native_rates: [
@@ -15,6 +16,7 @@ fn adaptive_profiles() -> Array[@dbhost.DispatchEstimateProfile] {
         fixed_ms: Some(if index == 2 { 3L } else { 100L }),
         per_row_ms: Some(0L),
         per_wire_byte_ms: Some(0L),
+        per_pair_ms: Some(0L),
       },
     ],
     native_capacity: {

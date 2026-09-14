@@ -13,6 +13,7 @@ struct PreparedNode {
   id : String
   projection_id : String?
   order_id : String?
+  aggregation_id : String?
   payload : Payload
   inputs : Array[String]
   source : @decode.Cursor
@@ -30,6 +31,8 @@ pub enum Payload {
   Distinct(@relation.CheckedOperation)
   Dedupe(@relation.CheckedOperation)
   Sort(@relation.CheckedOperation)
+  CountGroup(@relation.CheckedOperation)
+  InnerJoin(@join.CheckedJoin)
 }
 
 ///|
@@ -130,6 +133,8 @@ pub fn operation(value : PreparedNode) -> String {
     Distinct(_) => "REL.distinct"
     Dedupe(_) => "REL.dedupeRows"
     Sort(_) => "REL.orderByStable"
+    CountGroup(_) => "REL.groupBy"
+    InnerJoin(_) => "REL.join"
   }
 }
 
@@ -146,11 +151,11 @@ fn classify(op : @pipeline.CheckedOperation) -> Payload? {
         Distinct => Some(Distinct(v))
         DedupeRows => Some(Dedupe(v))
         Sort => Some(Sort(v))
+        Group => Some(CountGroup(v))
         JsonPick
         | Unnest
         | AssertRows
         | Unpivot
-        | Group
         | Pivot
         | Analytic
         | TopK
@@ -158,8 +163,13 @@ fn classify(op : @pipeline.CheckedOperation) -> Payload? {
         | Lag
         | WatermarkRows => None
       }
-    Join(..)
-    | Append(..)
+    Join(checked~, ..) =>
+      if @join.kind(checked) == @join.Inner {
+        Some(InnerJoin(checked))
+      } else {
+        None
+      }
+    Append(..)
     | Nest(..)
     | Set(..)
     | CrossJoin(..)
@@ -253,9 +263,31 @@ pub fn prepare(
       Distinct(_) => ("distinct", 1)
       Dedupe(_) => ("dedupe", 1)
       Sort(_) => ("sort", 1)
+      CountGroup(_) => ("group", 1)
+      InnerJoin(_) => ("join", 2)
     }
     let id = preferred + "_" + i.to_string()
     let projection_id = match payload {
+      InnerJoin(_) => {
+        if expansions >= limits.max_nodes - count - inputs ||
+          references >= limits.max_references ||
+          work >= limits.max_work {
+          return Err({ kind: BudgetExceeded, source: step.source, })
+        }
+        let prefix = "join_raw_" + i.to_string()
+        if used.contains(prefix) || prefix == id {
+          return Err({ kind: IdentifierCollision, source: step.source, })
+        }
+        if prefix.length() > limits.max_identifier_bytes - bytes {
+          return Err({ kind: BudgetExceeded, source: step.source, })
+        }
+        bytes += prefix.length()
+        expansions += 1
+        references += 1
+        work += 1
+        used[prefix] = true
+        Some(prefix)
+      }
       Distinct(op) => {
         let width = @schema.field_count(@relation.output_schema(op))
         if width > limits.max_work - work {
@@ -291,7 +323,8 @@ pub fn prepare(
       | Select(_)
       | Limit(_)
       | Dedupe(_)
-      | Sort(_) => None
+      | Sort(_)
+      | CountGroup(_) => None
     }
     let order_id = if payload is Limit(_) &&
       take_completion(checked, i) is Some(_) {
@@ -318,6 +351,28 @@ pub fn prepare(
     }
     if used.contains(id) {
       return Err({ kind: IdentifierCollision, source: step.source, })
+    }
+    let aggregation_id = if payload is CountGroup(_) {
+      if expansions >= limits.max_nodes - count - inputs ||
+        references >= limits.max_references ||
+        work >= limits.max_work {
+        return Err({ kind: BudgetExceeded, source: step.source, })
+      }
+      let prefix = "aggregate_" + i.to_string()
+      if used.contains(prefix) || prefix == id {
+        return Err({ kind: IdentifierCollision, source: step.source, })
+      }
+      if prefix.length() > limits.max_identifier_bytes - bytes {
+        return Err({ kind: BudgetExceeded, source: step.source, })
+      }
+      bytes += prefix.length()
+      expansions += 1
+      references += 1
+      work += 1
+      used[prefix] = true
+      Some(prefix)
+    } else {
+      None
     }
     if id.length() > limits.max_identifier_bytes - bytes {
       return Err({ kind: BudgetExceeded, source: step.source, })
@@ -354,6 +409,7 @@ pub fn prepare(
       id,
       projection_id,
       order_id,
+      aggregation_id,
       payload,
       inputs: refs,
       source: step.source,

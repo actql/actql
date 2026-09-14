@@ -65,6 +65,7 @@ fn evaluate_sequence_components(
   control : ControlBudget,
   produced? : Array[BoundProducerInput] = [],
   fragments? : Array[FragmentRuntimeContext]? = None,
+  join_ceiling? : (Int, Int64)? = None,
   ordered? : OrderedExecution = {
     contexts: [],
     max_bytes: 0,
@@ -82,8 +83,16 @@ fn evaluate_sequence_components(
       }
     }) {
     return evaluate_physical_sequence(
-      contracts, sequence, supplied, retained_ids, limits, control, produced, fragments,
+      contracts,
+      sequence,
+      supplied,
+      retained_ids,
+      limits,
+      control,
+      produced,
+      fragments,
       ordered,
+      join_ceiling~,
     )
   }
   let invocation = match
@@ -101,7 +110,7 @@ fn evaluate_sequence_components(
     Ok(invocation) => invocation
     Err(issue) => return Err(issue)
   }
-  run_sequence_invocation(invocation)
+  run_sequence_invocation(invocation, join_ceiling~)
 }
 
 ///|
@@ -388,6 +397,7 @@ fn[T : RelationRows] prepare_sequence_with_importers(
 ///|
 fn run_sequence_invocation(
   invocation : SequenceInvocation[Table],
+  join_ceiling? : (Int, Int64)? = None,
 ) -> Result[CompletedSequence, SequenceRunIssue] {
   run_completed_sequence_backend(
     invocation,
@@ -410,6 +420,18 @@ fn run_sequence_invocation(
       )
     },
     store => RowStore(store),
+    evaluate_join=Some((kernel, left, right) => {
+      evaluate_join_rows(
+        kernel,
+        left,
+        right,
+        invocation.limits.max_rows,
+        invocation.control,
+        invocation.output_budget,
+        { limit: invocation.limits.operation_entries, live: 0, peak: 0, },
+        selected_ceiling=join_ceiling,
+      )
+    }),
   )
 }
 
@@ -421,8 +443,14 @@ fn[T : RelationRows] run_completed_sequence_backend(
   import_values : (CapturedRows) -> Result[T, RowIssue],
   evaluate : (@lower.PreparedKernel, T, LogicalBudget?) -> Result[T, RowIssue],
   wrap : (TableStore[T]) -> CompletedStore,
+  evaluate_join? : ((@lower.PreparedJoinKernel, T, T) -> Result[T, RowIssue])? = None,
 ) -> Result[CompletedSequence, SequenceRunIssue] {
-  let result = run_sequence_with_backend(invocation, import_values, evaluate)
+  let result = run_sequence_with_backend(
+    invocation,
+    import_values,
+    evaluate,
+    evaluate_join~,
+  )
   if result is Err(issue) {
     return Err(issue)
   }
@@ -442,6 +470,7 @@ fn[T : RelationRows] run_sequence_with_backend(
   invocation : SequenceInvocation[T],
   import_values : (CapturedRows) -> Result[T, RowIssue],
   evaluate : (@lower.PreparedKernel, T, LogicalBudget?) -> Result[T, RowIssue],
+  evaluate_join? : ((@lower.PreparedJoinKernel, T, T) -> Result[T, RowIssue])? = None,
 ) -> Result[Unit, SequenceRunIssue] {
   let {
     sequence,
@@ -491,6 +520,11 @@ fn[T : RelationRows] run_sequence_with_backend(
         Err(e) => return Err(Rows(i, e))
       }
     },
+    evaluate_join=evaluate_join.map(evaluate => {
+      fn(i, kernel, left, right) {
+        evaluate(kernel, left, right).map_err(issue => Rows(i, issue))
+      }
+    }),
   )
   if result is Err(issue) {
     clear_table_store(store)
@@ -513,6 +547,10 @@ fn[T : RelationRows] run_sequence_steps(
   control : ControlBudget,
   import_values : (Int) -> Result[T, SequenceRunIssue],
   evaluate : (Int, @lower.PreparedKernel, T) -> Result[T, SequenceRunIssue],
+  evaluate_join? : ((Int, @lower.PreparedJoinKernel, T, T) -> Result[
+    T,
+    SequenceRunIssue,
+  ])? = None,
 ) -> Result[Unit, SequenceRunIssue] {
   if !physical_equal(@lower.sequence_owner(sequence), store.wiring.owner) {
     return Err(InputOwnership)
@@ -524,6 +562,16 @@ fn[T : RelationRows] run_sequence_steps(
   for i = 0; i < @lower.sequence_count(sequence); i = i + 1 {
     let result = match @lower.sequence_step(sequence, i).unwrap() {
       @lower.ValuesStep(_) => import_values(i)
+      @lower.JoinStep(kernel) => {
+        let route = store.wiring.routes[i]
+        guard route.length() == 2 &&
+          evaluate_join is Some(evaluate) &&
+          store.tables[route[0]] is Some(left) &&
+          store.tables[route[1]] is Some(right) else {
+          return Err(InputSet)
+        }
+        evaluate(i, kernel, left.table, right.table)
+      }
       @lower.RowStep(kernel) => {
         let route = store.wiring.routes[i]
         if route.length() != 1 {

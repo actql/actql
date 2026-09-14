@@ -10,6 +10,7 @@ struct PreparedSequence {
 pub enum PreparedStep {
   ValuesStep(PreparedValues)
   RowStep(PreparedKernel)
+  JoinStep(PreparedJoinKernel)
 }
 
 ///|
@@ -28,6 +29,7 @@ pub(all) enum SequenceIssue {
   SequenceLimit
   ValuesFailure(Int, ValuesIssue)
   KernelFailure(Int, KernelIssue)
+  JoinFailure(Int, InnerJoinIssue)
 }
 
 ///|
@@ -74,6 +76,19 @@ pub fn prepare_sequence(
   let mut expressions = limits.expressions
   for i = 0; i < owner.prepared.nodes.length(); i = i + 1 {
     let step = match owner.prepared.nodes[i].payload {
+      InnerJoin(_) => {
+        let kernel = match prepare_join_kernel(owner, i, bindings, names) {
+          Ok(v) => v
+          Err(e) => return Err(JoinFailure(i, e))
+        }
+        bindings -= kernel.profile.keys.length() +
+          kernel.profile.projection.length()
+        names -= kernel.profile.name_bytes
+        if @join.output_guard(kernel.profile.checked) is Some(Parameter(name)) {
+          names -= @utf8.encode(name).length()
+        }
+        JoinStep(kernel)
+      }
       Values(values) => {
         let prepared = match
           prepare_values_node(owner, i, max_rows=rows, max_cells=cells) {
@@ -92,7 +107,8 @@ pub fn prepare_sequence(
       | Limit(_)
       | Distinct(_)
       | Dedupe(_)
-      | Sort(_) => {
+      | Sort(_)
+      | CountGroup(_) => {
         let (kernel, remaining, used_names, used_bindings) = match
           prepare_kernel_measured(
             owner,
@@ -126,6 +142,7 @@ pub fn emit_sequence_steps(
   for step in value.steps {
     match step {
       ValuesStep(v) => emit_values_node(v, out)
+      JoinStep(v) => emit_join_kernel(v, out)
       RowStep(v) => {
         emit_kernel_prefix(v, out)
         emit_kernel_node(v, out)

@@ -111,6 +111,12 @@ pub fn producer_read_receiver(value : ProducerRead) -> @lower.BoundPrepared {
 }
 
 ///|
+/// Exact receiving port retained by successful producer binding.
+pub fn producer_read_input_index(value : ProducerRead) -> Int {
+  value.bound.input_index
+}
+
+///|
 /// Recheck external completion provenance before a new import/execution starts.
 /// Immutable cell access alone is not permission to start another computation.
 pub fn producer_read_available(value : ProducerRead) -> Bool {
@@ -145,8 +151,37 @@ pub fn execute_fixed_producer_input(
   input : ProducerRead,
   limits : SequenceExecutionLimits,
 ) -> Result[CompletedSequence, SequenceRunIssue] {
-  if !physical_equal(generated_sequence_owner(sequence), input.bound.receiver) {
-    return Err(InputOwnership)
+  execute_fixed_producer_inputs(sequence, [input], limits)
+}
+
+///|
+/// Inputs are in checked receiving-port order. Shared backing data may occur at
+/// distinct ports; a binding for one port cannot stand in for another port.
+pub fn execute_fixed_producer_inputs(
+  sequence : GeneratedSequence,
+  inputs : Array[ProducerRead],
+  limits : SequenceExecutionLimits,
+) -> Result[CompletedSequence, SequenceRunIssue] {
+  let owner = generated_sequence_owner(sequence)
+  let count = @pipeline.input_count(
+    @lower.pipeline(@lower.bound_preparation(owner)),
+  )
+  if inputs.length() != count {
+    return Err(InputSet)
   }
-  execute_generated_sequence(sequence, [], limits, produced=[input.bound])
+  for index in 0..<count {
+    let input = inputs[index]
+    if !physical_equal(owner, input.bound.receiver) {
+      return Err(InputOwnership)
+    }
+    if input.bound.input_index != index {
+      return Err(InputSet)
+    }
+  }
+  execute_generated_sequence(
+    sequence,
+    [],
+    limits,
+    produced=inputs.map(input => input.bound),
+  )
 }

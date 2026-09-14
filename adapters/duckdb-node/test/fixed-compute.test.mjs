@@ -12,6 +12,39 @@ const limits = Object.freeze({
 });
 const root = fileURLToPath(new URL('../../..', import.meta.url));
 
+test('two fixed imports validate both row ceilings and one cumulative cell budget before SQL', async () => {
+  let sqlReads = 0;
+  const values = [['3ff0000000000000'], ['3ff0000000000000', '4000000000000000']];
+  const port = {
+    importCount: () => 2,
+    rowCount: input => values[input].length,
+    columnCount: () => 1,
+    createSql: input => { sqlReads++; return `CREATE TEMP TABLE i${input}(x DOUBLE)`; },
+    insertSql: input => `INSERT INTO i${input} VALUES (?)`,
+    parameter: (input, row, column) => {
+      assert.equal(column, 0);
+      return { type: { id: 'DOUBLE' }, value: values[input][row] };
+    },
+    querySql: () => 'SELECT i0.x FROM i0 INNER JOIN i1 ON i0.x=i1.x',
+    queryParameters: () => [],
+  };
+  await assert.rejects(runFixedCompute({ ...port }, limits, { maxRows: 1, maxCells: 3 }, () => {}),
+    { code: 'ImportRows' }); // Only the second input exceeds the row ceiling.
+  await assert.rejects(runFixedCompute({ ...port }, limits, { maxRows: 2, maxCells: 2 }, () => {}),
+    { code: 'ImportCells' });
+  assert.equal(sqlReads, 0);
+  const chunks = [];
+  const consume = chunk => chunks.push(chunk);
+  const result = await runFixedCompute(port, limits, { maxRows: 2, maxCells: 3 }, consume);
+  try {
+    assert.equal(result.value.importedRows, 3);
+    assert.equal(result.value.importedCells, 3);
+    assert.equal(result.usage.statements, 6); // Two creates, three inserts, one query.
+    assert.deepEqual(chunks.flatMap(chunk => chunk.columns[0]), ['3ff0000000000000']);
+    assert.equal(matchesFixedCompute(result, port, consume), true);
+  } finally { releaseFixedCompute(result); }
+});
+
 test('completed scalar imports round-trip exactly through isolated DuckDB transport', async () => {
   const { stdout } = await promisify(execFile)('moon', [
     'test', '--target', 'js', 'src/query_integration/duckdb_scalar_import_fixture_wbtest.mbt',
@@ -29,9 +62,10 @@ test('completed scalar imports round-trip exactly through isolated DuckDB transp
   assert.deepEqual(fixtures.map(value => value.name), [...expected.keys()]);
   for (const fixture of fixtures) {
     const port = {
+      importCount: () => 1,
       rowCount: () => 3, columnCount: () => 1,
       createSql: () => fixture.create, insertSql: () => fixture.insert,
-      parameter: (row, column) => { assert.equal(column, 0); return fixture.rows[row]; },
+      parameter: (_input, row, column) => { assert.equal(column, 0); return fixture.rows[row]; },
       // Transport observation only; no semantic Compute completion is issued.
       querySql: () => 'SELECT "x" FROM "fixed"', queryParameters: () => [],
     };
@@ -61,11 +95,12 @@ test('MoonBit completed capture compiles and imports into isolated real DuckDB C
   assert.equal(lines.length, 1);
   const fixture = JSON.parse(lines[0].slice('ACTQL_DUCKDB_FIXTURE '.length));
   const port = {
+    importCount: () => 1,
     rowCount: () => fixture.rows.length,
     columnCount: () => fixture.rows[0].length,
     createSql: () => fixture.create,
     insertSql: () => fixture.insert,
-    parameter: (row, column) => fixture.rows[row][column],
+    parameter: (_input, row, column) => fixture.rows[row][column],
     querySql: () => fixture.query,
     queryParameters: () => fixture.parameters,
   };

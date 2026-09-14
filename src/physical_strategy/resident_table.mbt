@@ -63,7 +63,8 @@ pub fn prepare_resident_table(
       Err(issue) => return Err(Capture(issue))
     }
   } else {
-    guard captured_task_output(run, producer, Step(1)) is Some(output) else {
+    guard captured_task_target(run, producer) is Some(target) &&
+      captured_task_output(run, producer, target) is Some(output) else {
       return Err(MissingOutput)
     }
     match
@@ -196,6 +197,8 @@ pub fn borrow_resident_table(
   max_entries : Int,
   max_name_bytes : Int,
   max_sql_bytes : Int,
+  input_index? : Int = 0,
+  view_name? : String = "owned_input",
 ) -> Result[ResidentRead, RunIssue] {
   if run.stopped {
     return Err(Stopped)
@@ -206,7 +209,7 @@ pub fn borrow_resident_table(
     return Err(ForeignCandidate)
   }
   let input = match
-    captured_task_input(run, task, max_entries, max_name_bytes) {
+    captured_task_input(run, task, max_entries, max_name_bytes, input_index~) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
@@ -214,7 +217,7 @@ pub fn borrow_resident_table(
     @duckdb.resident_import_receiver_sql(
       table.imported,
       input,
-      "owned_input",
+      view_name,
       max_entries,
       max_sql_bytes,
     ) {

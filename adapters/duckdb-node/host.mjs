@@ -132,7 +132,7 @@ export async function importResidentStrategyInput(environment, producer, tableBy
   }
 }
 
-export async function runResidentStrategyHostCompute(setup, environment, table, limits, mappingLimits, signal) {
+export async function runResidentStrategyHostCompute(setup, environment, tables, limits, mappingLimits, signal) {
   const owned = residentEnvironments.get(environment);
   if (!owned || !owned.database.status().live) throw new DuckDBTransportError('SessionClosed');
   limits = Object.freeze({ ...limits });
@@ -140,9 +140,9 @@ export async function runResidentStrategyHostCompute(setup, environment, table, 
     throw new DuckDBTransportError('ResidentProfileMismatch');
   }
   const moon = await loadRuntime();
-  const read = checked(moon.residentBorrowSetup(setup, owned.env, table,
+  const inputs = checked(moon.residentBorrowSetup(setup, owned.env, tables,
     mappingLimits.maxEntries, mappingLimits.maxNameBytes, limits.maxSqlBytes));
-  return runHostCompute(setup, limits, undefined, signal, true, { ...owned, read });
+  return runHostCompute(setup, limits, undefined, signal, true, { ...owned, inputs });
 }
 
 // No source grant or connection enters Compute. The fixed product runtime
@@ -172,12 +172,12 @@ async function runHostCompute(setup, limits, importLimits, signal, strategy, res
       receiverScratchBytes: checked(moon.computeStrategyScratchCapacity(setup)),
     }) : undefined;
     run = checked(resident
-    ? moon.computeResidentStrategyHostOpen(setup, verify, capacity.transferBytes, capacity.scratchBytes, resident.read)
+    ? moon.computeResidentStrategyHostOpen(setup, verify, capacity.transferBytes, capacity.scratchBytes, resident.inputs)
     : strategy
     ? moon.computeStrategyHostOpen(setup, verify, capacity.transferBytes, capacity.executionBytes)
     : moon.computeHostOpen(setup, verify));
   } catch (error) {
-    if (resident) checked(moon.residentReturn(resident.read));
+    if (resident) checked(moon.residentCancelInputs(resident.inputs));
     throw error;
   }
   attempt = moon.computeHostAttempt(run);
@@ -195,13 +195,15 @@ async function runHostCompute(setup, limits, importLimits, signal, strategy, res
     }
   };
   port = Object.freeze({
-    rowCount: () => rows(moon.computeHostCount(run, false)),
-    columnCount: () => rows(moon.computeHostCount(run, true)),
-    createSql: () => checked(moon.computeHostSql(run, 0)),
-    insertSql: () => checked(moon.computeHostSql(run, 1)),
-    parameter: (row, column) => JSON.parse(checked(moon.computeHostParameter(run, row, column, false))),
-    querySql: () => checked(moon.computeHostSql(run, 2)),
-    queryParameters: () => [JSON.parse(checked(moon.computeHostParameter(run, 0, 0, true)))],
+    importCount: () => rows(moon.computeHostImportCount(run)),
+    rowCount: port => rows(checked(moon.computeHostCount(run, port, false))),
+    columnCount: port => rows(checked(moon.computeHostCount(run, port, true))),
+    createSql: port => checked(moon.computeHostSql(run, 0, port)),
+    insertSql: port => checked(moon.computeHostSql(run, 1, port)),
+    parameter: (port, row, column) => JSON.parse(checked(moon.computeHostParameter(run, row, column, false, port))),
+    querySql: () => checked(moon.computeHostSql(run, 2, 0)),
+    queryParameters: () => Array.from({ length: moon.computeHostQueryParameterCount(run) },
+      (_, index) => JSON.parse(checked(moon.computeHostParameter(run, 0, index, true, 0)))),
   });
   consume = chunk => {
     begin(chunk.fields);
@@ -210,7 +212,7 @@ async function runHostCompute(setup, limits, importLimits, signal, strategy, res
   try {
     if (resident) {
       result = await runResidentFixedCompute(resident.database, port, Object.freeze({
-        viewSql: () => moon.residentReadSql(resident.read),
+        viewSqls: () => moon.residentInputsSql(resident.inputs),
         createResultSql: () => checked(moon.computeResidentSql(run, 0)),
         readResultSql: () => checked(moon.computeResidentSql(run, 1)),
         cleanupSqls: () => checked(moon.computeResidentCleanupSql(run)),

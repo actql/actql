@@ -29,7 +29,10 @@ test "fixed native demand shares comparison laws without Local predicate replay"
       assert_true(@duckdb.fixed_compute_receipt_rows(receipt) is None)
     } else {
       let measured = measured.unwrap()
-      let usage = @duckdb.fixed_compute_demand_usage(measured)
+      guard @duckdb.fixed_compute_demand_usage(measured)
+        is @duckdb.Comparison(usage) else {
+        fail("expected comparison demand")
+      }
       assert_eq(usage.rows, 2)
       assert_eq(usage.field_bytes, 2L)
       assert_eq(usage.rhs_bytes, Some(1))
@@ -110,7 +113,10 @@ test "fixed native comparison demand preserves empty and nullable inputs" {
       ceiling,
       { max_work: 100, max_bytes: 100, max_nodes: 100, max_depth: 10, },
     ).unwrap()
-    let usage = @duckdb.fixed_compute_demand_usage(measured)
+    guard @duckdb.fixed_compute_demand_usage(measured)
+      is @duckdb.Comparison(usage) else {
+      fail("expected comparison demand")
+    }
     assert_eq(usage.rows, input_count)
     assert_eq(
       (usage.true_rows, usage.false_rows, usage.null_rows),

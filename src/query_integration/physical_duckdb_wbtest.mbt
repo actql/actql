@@ -16,7 +16,7 @@ fn captured_graph_duckdb_try_start(
   execution_bytes? : Int64 = 1000000L,
 ) -> Result[@planning.DuckDBComputeAttempt, @strategy.RunIssue] raise {
   let input = @strategy.captured_task_input(run, task, 100, 10000).unwrap()
-  let request = @planning.prepare_fixed_compute_request(input, {
+  let request = @planning.prepare_fixed_compute_request([input], {
     contract_cid: "sha256:7d59718b965451d8a19ccf7095b92777ba0cdd8c3bb71f437ab387801fe7271f",
     max_rows: 10,
     max_value_bytes: 100,

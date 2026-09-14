@@ -8,10 +8,10 @@ pub fn strategy_fixture_replan(
   guard f.run is Some(run) else { return false }
   if !f.search_configured {
     guard @strategy.configure_strategy_search(run, {
-        max_offers: 6,
-        max_strategies: 8,
+        max_offers: 2 * (@strategy.graph_task_count(f.graph) - 1),
+        max_strategies: 16,
         max_work: 1000,
-        max_revisions: 4,
+        max_revisions: 5,
       })
       is Ok(_) else {
       return false
@@ -19,7 +19,7 @@ pub fn strategy_fixture_replan(
     f.search_configured = true
   }
   let offers = []
-  for task in 1..<4 {
+  for task in 1..<@strategy.graph_task_count(f.graph) {
     if @strategy.captured_task_completed(run, task) {
       continue
     }

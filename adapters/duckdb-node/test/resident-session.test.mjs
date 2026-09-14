@@ -14,7 +14,7 @@ test('resident Compute materializes once and validates before publishing its tab
   const db = await provisionComputeDatabase(limits, { started() {}, settled() {} });
   const port = Object.freeze({ queryParameters: () => [] });
   const resident = Object.freeze({
-    viewSql: () => 'CREATE TEMP VIEW owned_input AS SELECT id FROM x',
+    viewSqls: () => ['CREATE TEMP VIEW owned_input AS SELECT id FROM x'],
     createResultSql: () => 'CREATE TABLE a AS SELECT id FROM owned_input WHERE id > 2',
     readResultSql: () => 'SELECT id FROM a',
   });

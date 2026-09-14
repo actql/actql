@@ -69,15 +69,21 @@ test "physical DAG reads checked data and control edges separately" {
 }
 
 ///|
-fn captured_graph_fixture() -> (
-  @strategy.CapturedDAG,
-  @planning.MockQueryIssuer,
-) raise {
-  let program = query_checked_program_fixture(dag=true)
+fn captured_graph_fixture(
+  count? : Bool = false,
+  join? : Bool = false,
+  self_join? : Bool = false,
+) -> (@strategy.CapturedDAG, @planning.MockQueryIssuer) raise {
+  let program = query_checked_program_fixture(
+    dag=true,
+    dag_count=count,
+    dag_join=join,
+    self_join~,
+  )
   let sequence = query_checked_sequence(program)
   let owners = physical_graph_owners(program)
   owners[0] = @query.query_sequence_owner(sequence)
-  let graph = @strategy.prepare_checked_dag(program, owners, 4, 1000).unwrap()
+  let graph = @strategy.prepare_checked_dag(program, owners, 5, 1000).unwrap()
   let requirement = @planning.prepare_query_requirement(
     @planning.prepare_query_material(sequence, query_material_limits()).unwrap(),
     @program_check.source_identity(program),
@@ -124,8 +130,17 @@ fn captured_graph_local(
   limits? : @execution.SequenceExecutionLimits = compute_test_limits(),
   supplied_registry? : @planning.CapabilityRegistry? = None,
 ) -> Result[Unit, @strategy.RunIssue] raise {
-  let input = @strategy.captured_task_input(run, task, 100, 10000).unwrap()
-  let request = @planning.prepare_fixed_compute_request(input, {
+  let owner = @strategy.graph_task_owner(
+    @strategy.captured_dag_graph(run),
+    task,
+  ).unwrap()
+  let input_count = @pipeline.input_count(
+    @lower.pipeline(@lower.bound_preparation(owner)),
+  )
+  let inputs = Array::makei(input_count, port => {
+    @strategy.captured_task_input(run, task, 100, 10000, input_index=port).unwrap()
+  })
+  let request = @planning.prepare_fixed_compute_request(inputs, {
     contract_cid: "sha256:7d59718b965451d8a19ccf7095b92777ba0cdd8c3bb71f437ab387801fe7271f",
     max_rows: 100,
     max_value_bytes: 10000,
@@ -140,10 +155,18 @@ fn captured_graph_local(
         100,
       ).unwrap()
   }
+  let generated = if @pipeline.step_count(
+      @lower.pipeline(@lower.bound_preparation(owner)),
+    ) ==
+    1 {
+    compute_test_sequence(owner)
+  } else {
+    query_generated(owner)
+  }
   let prepared = @planning.local_fixed_compute_candidate(
     @planning.capability_registration_at(registry, 0).unwrap(),
     request,
-    query_generated(@execution.producer_read_receiver(input)),
+    generated,
     [{ work_slots: [0, 1, 2, 3, 4], milliseconds: Some(5L), }],
     { transfer_bytes: Some(0L), retained_bytes: None, money_units: None, },
     100,
@@ -190,6 +213,31 @@ test "captured checked DAG runs shared X A B C in checked control order" {
       )
     }
   }
+}
+
+///|
+test "captured count DAG binds its exact single step port and survives source close" {
+  let (run, issuer) = captured_graph_fixture(count=true)
+  assert_eq(@strategy.captured_task_target(run, 0), None)
+  assert_eq(@strategy.captured_task_target(run, -1), None)
+  assert_eq(@strategy.captured_task_target(run, 4), None)
+  assert_eq(@strategy.captured_task_target(run, 1), Some(Step(0)))
+  assert_eq(@strategy.captured_task_target(run, 3), Some(Step(1)))
+  let edge = @strategy.graph_data_at(@strategy.captured_dag_graph(run), 2).unwrap()
+  assert_eq((edge.producer, edge.consumer, edge.target), (1, 3, Step(0)))
+  captured_graph_local(run, 1).unwrap()
+  assert_true(@strategy.captured_task_output(run, 1, Step(1)) is None)
+  let counted = @strategy.captured_task_output(run, 1, Step(0)).unwrap()
+  assert_eq(@execution.completed_row_count(counted), 1)
+  assert_true(@execution.completed_cell(counted, 0, 0) is Some(Number(2)))
+  captured_graph_local(run, 2).unwrap()
+  @planning.close_mock_query_issuer(issuer)
+  captured_graph_local(run, 3).unwrap()
+  let downstream = @strategy.captured_task_output(run, 3, Step(1)).unwrap()
+  assert_true(@execution.completed_cell(downstream, 0, 0) is Some(Number(2)))
+  @strategy.close_captured_task_output(run, 1)
+  assert_true(@strategy.captured_task_output(run, 1, Step(0)) is None)
+  assert_true(@execution.completed_cell(downstream, 0, 0) is Some(Number(2)))
 }
 
 ///|

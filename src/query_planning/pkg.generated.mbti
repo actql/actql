@@ -108,6 +108,8 @@ pub fn complete_duckdb_native_capture(DuckDBNativeIssuer, DuckDBNativeAttempt, D
 
 pub fn complete_duckdb_native_output(DuckDBNativeOutput, Int, Int) -> Result[@execution_relation.CompletedOutput, @execution_relation.TrustedOutputIssue]
 
+pub fn duckdb_bound_compute_candidate(CapabilityRegistration, FixedComputeRequest, @duckdb_adapter.FixedCompute, Array[@physical_cost.SerialEstimateLine], QueryQuantities, Int) -> Result[PreparedCompute[@duckdb_adapter.FixedCompute], FixedComputeIssue]
+
 pub fn duckdb_broad_attempt_identity(DuckDBBroadAttempt) -> (String, String)?
 
 pub fn duckdb_broad_attempt_row_count(DuckDBBroadAttempt) -> Int?
@@ -172,7 +174,7 @@ pub fn execute_duckdb_broad_attempt(DuckDBBroadAttempt, @execution_relation.Sequ
 
 pub fn execute_duckdb_broad_residual(DuckDBQueryPreparation, @execution_relation.CapturedRows, @execution_relation.SequenceExecutionLimits, @execution_query.QueryGuardMeasureLimits) -> Result[(@execution_relation.CompletedSequence, (Int, Int, Int)), @execution_query.QueryGuardIssue]
 
-pub fn execute_local_fixed_compute(FixedComputeChoice, PreparedCompute[@execution_relation.GeneratedSequence], @execution_relation.SequenceExecutionLimits, measurement~ : @execution_relation.FixedInputGuardMeasureLimits) -> Result[@execution_relation.CompletedSequence, FixedComputeIssue]
+pub fn execute_local_fixed_compute(FixedComputeChoice, PreparedCompute[@execution_relation.GeneratedSequence], @execution_relation.SequenceExecutionLimits, measurement~ : @execution_relation.FixedInputGuardMeasureLimits, join_output_ceiling? : (Int, Int64)?) -> Result[@execution_relation.CompletedSequence, FixedComputeIssue]
 
 pub fn execute_mock_query(MockQueryAttempt, MockQueryLimits, guard_measure? : @execution_query.QueryGuardMeasureLimits?) -> Result[MockQueryComputation, MockQueryIssue]
 
@@ -196,7 +198,11 @@ pub fn fixed_compute_choice_reason(FixedComputeChoice) -> @physical_cost.CostCho
 
 pub fn fixed_compute_request_capacity(FixedComputeRequest) -> FixedComputeCapacity
 
-pub fn fixed_compute_request_input(FixedComputeRequest) -> @execution_relation.ProducerRead
+pub fn fixed_compute_request_input(FixedComputeRequest, Int) -> @execution_relation.ProducerRead?
+
+pub fn fixed_compute_request_input_count(FixedComputeRequest) -> Int
+
+pub fn fixed_compute_request_owner(FixedComputeRequest) -> @lowering_relation.BoundPrepared
 
 pub fn issue_duckdb_broad_records(DuckDBBroadAttempt, QueryMaterialLimits) -> Result[DuckDBBroadRecords, DuckDBEvidenceIssue]
 
@@ -260,7 +266,7 @@ pub fn prepare_duckdb_query(QueryRequirement, String, String, Int, @duckdb_adapt
 
 pub fn prepare_duckdb_query_issuer(QueryEvidenceContracts, QueryRequirement, String, Int, (DuckDBBroadAttempt) -> Bool) -> Result[DuckDBQueryIssuer, DuckDBEvidenceIssue]
 
-pub fn prepare_fixed_compute_request(@execution_relation.ProducerRead, FixedComputeCapacity) -> Result[FixedComputeRequest, FixedComputeIssue]
+pub fn prepare_fixed_compute_request(Array[@execution_relation.ProducerRead], FixedComputeCapacity) -> Result[FixedComputeRequest, FixedComputeIssue]
 
 pub fn prepare_issued_duckdb_broad_attempt(DuckDBQueryIssuer, AcquisitionChoice, PreparedAcquisition[DuckDBQueryPreparation]) -> Result[DuckDBBroadAttempt, DuckDBEvidenceIssue]
 
@@ -447,6 +453,7 @@ pub(all) enum DuckDBComputeIssue {
   InvalidState
   UnverifiedTransport
   Guard(@execution_relation.FixedInputGuardIssue)
+  JoinValidation(@execution_relation.RowIssue)
   Receiving(@duckdb_adapter.FixedComputeReceivingIssue)
   Demand(@duckdb_adapter.NativeDemandIssue)
   Completion(@execution_relation.TrustedOutputIssue)

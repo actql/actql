@@ -115,13 +115,36 @@ test('standard native and broad Node Hosts own verification through real capture
           const result = await runFixedHostCompute(setup, limits, { maxRows: 100, maxCells: 1000 });
           const fixedOutput = result.output();
           const expectedFixed = hash(kind === 'empty' ? [] : [{ id: 3 }, { id: 3 }]);
+          const countFixture = fixture.ownedCountCreate(prepared, output, ...contracts);
+          const countResult = await runFixedHostCompute(fixture.ownedFixedConfiguration(countFixture),
+            limits, { maxRows: 100, maxCells: 1000 });
+          const countOutput = countResult.output();
+          const expectedCount = hash([{ id: expected.length }]);
+          const joinFixture = fixture.ownedJoinCreate(prepared, output, ...contracts);
+          const joinSetup = fixture.ownedFixedConfiguration(joinFixture);
+          const joinResult = await runFixedHostCompute(joinSetup, limits, { maxRows: 100, maxCells: 1000 });
+          const joinOutput = joinResult.output();
+          // Fixed source [3,2,3] joined with itself: left-major/right-minor.
+          const expectedJoin = hash(kind === 'empty' ? [] : [{ id: 3 }, { id: 3 }, { id: 2 }, { id: 3 }, { id: 3 }]);
+          assert.equal(joinResult.importedRows, kind === 'empty' ? 0 : 6);
+          assert.equal(joinResult.importedCells, kind === 'empty' ? 0 : 6);
+          assert.equal(joinResult.usage.statements, kind === 'empty' ? 3 : 9);
           try {
             assert.equal(fixture.ownedFixedConsumeOutput(fixed, fixedOutput), expectedFixed);
+            assert.equal(fixture.ownedFixedConsumeOutput(countFixture, countOutput), expectedCount);
+            assert.equal(fixture.ownedFixedLocalCid(countFixture), expectedCount);
+            assert.equal(fixture.ownedFixedConsumeOutput(joinFixture, joinOutput), expectedJoin);
+            assert.equal(fixture.ownedFixedLocalCid(joinFixture), expectedJoin);
             captured.close();
             assert.equal(fixture.ownedFixedConsumeOutput(fixed, fixedOutput), expectedFixed);
+            assert.equal(fixture.ownedFixedConsumeOutput(countFixture, countOutput), expectedCount);
+            assert.equal(fixture.ownedFixedConsumeOutput(joinFixture, joinOutput), expectedJoin);
+            await assert.rejects(runFixedHostCompute(joinSetup, limits, { maxRows: 100, maxCells: 1000 }));
             await assert.rejects(runFixedHostCompute(setup, limits, { maxRows: 100, maxCells: 1000 }));
-          } finally { result.close(); }
+          } finally { result.close(); countResult.close(); joinResult.close(); }
           assert.equal(fixture.ownedFixedConsumeOutput(fixed, fixedOutput), 'null');
+          assert.equal(fixture.ownedFixedConsumeOutput(countFixture, countOutput), 'null');
+          assert.equal(fixture.ownedFixedConsumeOutput(joinFixture, joinOutput), 'null');
         }
         captured.close();
         assertFixedUnavailable?.();
@@ -193,6 +216,26 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
       assert.equal(residentExample.report.explanation.selection.dispatch_authorized, false);
       assert.equal(residentExample.report.explanation.selection.tasks[0].resident_profile.database_bytes, '134217728');
     } finally { residentExample.close(); }
+    // A one-step count has a different final port from filter/select. It must
+    // pass the actual DAG, both physical realizations and resident reuse; C
+    // consumes A's count result rather than an invented Step(1) output.
+    const countProgram = JSON.parse(exampleProgram);
+    countProgram.stages[1].steps = [{ group: { by: [], aggregates: { id: { fn: 'count' } } }, as: 'out' }];
+    await writeFile(programFile, JSON.stringify(countProgram));
+    for (const [estimate, resident, expected] of [
+      ['20', false, 'local'], ['1', false, 'duckdb'], ['20', true, 'duckdb-resident'],
+    ]) {
+      const result = await runExample({ database: path, environment, environmentCid: args[1],
+        program: programFile, parameters, nativeMilliseconds: estimate, resident });
+      try {
+        assert.equal(result.report.status, 'host-tasks-completed');
+        assert.equal(result.report.completed[0].realization, expected);
+        assert.equal(result.report.internal_output_cids[0].cid, hash([{ id: 3 }]));
+        assert.equal(result.report.internal_output_cids[2].cid, hash([{ id: 3 }]));
+        assert.equal(result.report.cleanup_pending, false);
+      } finally { result.close(); }
+      assert.equal(result.execution.usage().heldBytes, 0n);
+    }
     // Statically unsupported native expressions must never win on price.
     const arithmeticProgram = JSON.parse(exampleProgram);
     arithmeticProgram.stages[1].steps[0].filter = 'id + 0 > 2';
@@ -239,7 +282,72 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
     assert.doesNotMatch(applicationSource, /conformance|query_integration/);
     const script = await readFile(join(root, 'adapters/duckdb-node/examples/physical-strategy.mjs'), 'utf8');
     assert.doesNotMatch(script, /duckdb_conformance|query_integration/);
+    await writeFile(programFile, await readFile(join(root,
+      'adapters/duckdb-node/examples/join-count.json'), 'utf8'));
+    for (const [estimate, resident, expected] of [
+      ['20', false, ['local', 'local', 'local', 'local']],
+      ['1', false, ['duckdb', 'duckdb', 'duckdb', 'duckdb']],
+      ['20', true, ['local', 'local', 'duckdb-resident', 'duckdb-resident']],
+    ]) {
+      const result = await runExample({ database: path, environment,
+        environmentCid: args[1], program: programFile, parameters,
+        nativeMilliseconds: estimate, resident });
+      try {
+        assert.equal(result.report.status, 'host-tasks-completed', String(result.execution.failure));
+        assert.deepEqual(result.report.completed.map(item => item.realization), expected);
+        assert.equal(result.report.internal_output_cids.length, 4);
+        assert.equal(result.report.internal_output_cids[3].cid, hash([{ id: 3, n: 4, present: 4 }]));
+      } finally { result.close(); }
+      assert.equal(result.execution.usage().heldBytes, 0n);
+    }
   } finally { await rm(exampleDirectory, { recursive: true, force: true }); }
+  // Real binary fan-in: a single captured observation feeds two independent
+  // branches, an equijoin, then a count consumer. Only physical placement varies.
+  for (const selfJoin of [false, true]) {
+    const joined = JSON.parse(program);
+    joined.stages[3] = { id: 'compute_c', inputs: {
+      l: { result: { stage: 'compute_a', result: 'r' } },
+      r: { result: { stage: selfJoin ? 'compute_a' : 'compute_b', result: 'r' } },
+    }, steps: [{ join: { with: 'r', kind: 'inner',
+      on: [{ left: 'id', right: 'id' }], select: { id: 'left.id' } }, from: 'l', as: 'out' }],
+    results: { r: { from: 'out', fields: ['id'] } } };
+    joined.stages.push({ id: 'count_d', inputs: { x: { result: { stage: 'compute_c', result: 'r' } } },
+      steps: [{ group: { by: [], aggregates: { n: { fn: 'count' } } }, as: 'out' }],
+      results: { r: { from: 'out', fields: ['n'] } } });
+    joined.results = { out: { from: { stage: 'count_d', result: 'r' } } };
+    let freshTransfer;
+    for (const placement of ['local', 'duckdb', 'resident']) {
+      await replaceRows('INSERT INTO records VALUES (3,30),(1,NULL),(2,20),(3,30)');
+      const f = fixture.strategyFixtureJoinCreate(...args, JSON.stringify(joined));
+      const capture = await runNativeHostQuery(grant, fixture.strategyFixtureAcquisition(f), suppliedLimits);
+      let execution;
+      try {
+        assert.equal(fixture.strategyFixtureOpen(f, capture.source()), true);
+        await replaceRows('INSERT INTO records VALUES (99,99)');
+        const dispatch = placement === 'resident'
+          ? fixture.strategyFixtureResidentDispatch(f) : fixture.strategyFixtureDispatch(f);
+        if (placement !== 'resident') assert.equal(fixture.strategyFixtureReplan(f, placement === 'local' ? 20n : 1n), true);
+        execution = await runCapturedStrategy(dispatch, suppliedLimits, { maxRows: 100, maxCells: 1000 });
+        assert.equal(execution.status, 'host-tasks-completed', String(execution.failure));
+        assert.deepEqual(execution.completed.map(value => value.realization),
+          Array(4).fill(placement === 'resident' ? 'duckdb-resident' : placement));
+        assert.equal(fixture.strategyFixtureCid(f, 3), hash([{ id: 3 }, { id: 3 }, { id: 3 }, { id: 3 }]));
+        assert.equal(fixture.strategyFixtureCid(f, 4), hash([{ n: 4 }]));
+        if (placement === 'duckdb') freshTransfer = execution.usage().transferredBytes;
+        if (placement === 'resident') assert(execution.usage().transferredBytes < freshTransfer,
+          'actual shared import and intermediate reuse reduce bytes, not merely estimated cost');
+        capture.close();
+        fixture.strategyFixtureCloseOutput(f, 1);
+        fixture.strategyFixtureCloseOutput(f, 2);
+        fixture.strategyFixtureCloseOutput(f, 3);
+        assert.equal(fixture.strategyFixtureCid(f, 4), hash([{ n: 4 }]));
+      } finally { execution?.close(); capture.close(); }
+      assert.equal(execution.usage().heldBytes, 0n);
+      assert.equal(execution.usage().reservedExecutionBytes, 0n);
+      assert.equal(execution.cleanupPending(), false);
+    }
+  }
+  await replaceRows('INSERT INTO records VALUES (3,30),(1,NULL),(2,20),(3,30)');
   // Inspect the product bridge's reservation phases without issuing execution
   // evidence: no native task is run, and its deliberately absent result fails.
   const phaseFixture = fixture.strategyFixtureCreate(...args, program);
@@ -556,11 +664,11 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
         const selected = task === 1 ? firstTask : checked(hostRuntime.strategyHostNext(dispatch));
         const compute = checked(hostRuntime.strategyHostTakeNative(selected));
         if (task === 1) {
-          await assert.rejects(runResidentStrategyHostCompute(compute, environment, table,
+          await assert.rejects(runResidentStrategyHostCompute(compute, environment, [table],
             { ...suppliedLimits, threads: 2 }, mapping), { code: 'ResidentProfileMismatch' });
         }
         const output = await runResidentStrategyHostCompute(compute,
-          environment, table, suppliedLimits, mapping);
+          environment, [table], suppliedLimits, mapping);
         outputs.push(output);
         assert.equal(output.importedRows, 0);
         assert.equal(environment.hasTable(0), task === 1,
@@ -620,13 +728,13 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
       const mapping = { maxEntries: 1000, maxNameBytes: 10000 };
       await importResidentStrategyInput(environment, 0, 4000000n, suppliedLimits, mapping);
       a = await runResidentStrategyHostCompute(checked(hostRuntime.strategyHostTakeNative(selectedA)),
-        environment, environment.table(0), suppliedLimits, mapping);
+        environment, [environment.table(0)], suppliedLimits, mapping);
       const before = fixture.strategyFixtureUsage(f, 0);
       const selectedB = checked(hostRuntime.strategyHostNext(dispatch));
       const abort = new AbortController();
       if (failure === 'cancelled') abort.abort();
       await assert.rejects(runResidentStrategyHostCompute(checked(hostRuntime.strategyHostTakeNative(selectedB)),
-        environment, environment.table(0),
+        environment, [environment.table(0)],
         { ...suppliedLimits, maxRows: failure === 'received-row-limit' ? 2 : 100 }, mapping, abort.signal));
       assert.equal(fixture.strategyFixtureNext(f), -1, 'failed B cannot authorize unstarted C');
       assert.equal(fixture.strategyFixtureCid(f, 2), 'null');
@@ -670,7 +778,7 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
           continue;
         }
         assert.equal(hostRuntime.strategyHostResident(task), true, `resident task ${index}`);
-        const [producer, bytes, entries, names] = checked(hostRuntime.strategyHostResidentInput(dispatch, index));
+        const [[producer, bytes, entries, names]] = checked(hostRuntime.strategyHostResidentInputs(dispatch, index));
         const mapping = { maxEntries: Number(entries), maxNameBytes: Number(names) };
         environment ??= await openResidentStrategyEnvironment(graph, index, suppliedLimits);
         if (!environment.hasTable(Number(producer))) {
@@ -679,7 +787,7 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
           assert.equal(imported.importedRows, index === 3 ? 2 : 3);
         }
         const result = await runResidentStrategyHostCompute(
-          checked(hostRuntime.strategyHostTakeNative(task)), environment, environment.table(Number(producer)),
+          checked(hostRuntime.strategyHostTakeNative(task)), environment, [environment.table(Number(producer))],
           suppliedLimits, mapping);
         outputs.push(result);
         if (index === 1) {

@@ -6,6 +6,7 @@ pub(all) struct DispatchRate {
   fixed_ms : Int64?
   per_row_ms : Int64?
   per_wire_byte_ms : Int64?
+  per_pair_ms : Int64?
 }
 
 ///|
@@ -87,7 +88,12 @@ pub fn configure_dispatch_estimates(
         }
         work -= rate.work_slots.length()
         for
-          coefficient in [rate.fixed_ms, rate.per_row_ms, rate.per_wire_byte_ms] {
+          coefficient in [
+            rate.fixed_ms,
+            rate.per_row_ms,
+            rate.per_wire_byte_ms,
+            rate.per_pair_ms,
+          ] {
           if coefficient is Some(value) && value < 0L {
             return Err(InvalidConfiguration)
           }
@@ -134,14 +140,21 @@ fn dispatch_rate_value(
   rate : DispatchRate,
   rows : Int64?,
   bytes : Int64?,
+  pairs : Int64?,
 ) -> Result[Int64?, DispatchIssue] {
   guard rate.fixed_ms is Some(base) &&
     rate.per_row_ms is Some(per_row) &&
-    rate.per_wire_byte_ms is Some(per_byte) else {
+    rate.per_wire_byte_ms is Some(per_byte) &&
+    rate.per_pair_ms is Some(per_pair) else {
     return Ok(None)
   }
   let mut total = base
-  for (coefficient, quantity) in [(per_row, rows), (per_byte, bytes)] {
+  for
+    (coefficient, quantity) in [
+      (per_row, rows),
+      (per_byte, bytes),
+      (per_pair, pairs),
+    ] {
     if coefficient == 0L {
       continue
     }
@@ -159,10 +172,11 @@ fn dispatch_estimate_lines(
   rates : Array[DispatchRate],
   rows : Int64?,
   bytes : Int64?,
+  pairs : Int64?,
 ) -> Result[Array[@cost.SerialEstimateLine], DispatchIssue] {
   let lines : Array[@cost.SerialEstimateLine] = []
   for rate in rates {
-    match dispatch_rate_value(rate, rows, bytes) {
+    match dispatch_rate_value(rate, rows, bytes, pairs) {
       Err(issue) => return Err(issue)
       Ok(milliseconds) =>
         lines.push({ work_slots: rate.work_slots, milliseconds, })
@@ -226,32 +240,57 @@ fn rebuild_dispatch_estimates(
     Err(issue) => return Err(Run(Physical(issue)))
     Ok(_) => ()
   }
-  let parents = Array::make(count, 0)
+  let parents : Array[Array[Int]] = Array::makei(count, _ => [])
   for i in 0..<edges {
     let edge = @strategy.graph_data_at(graph, i).unwrap()
-    parents[edge.consumer] = edge.producer
+    parents[edge.consumer].push(edge.producer)
   }
   let rows : Array[Int64?] = Array::make(count, None)
   rows[0] = Some(policy.root.rows.to_int64())
   let offers = []
   for task in 1..<count {
     let profile = policy.profiles[task - 1]
-    let input_rows = rows[parents[task]]
+    let input_rows = match
+      sum_dispatch_quantities(parents[task].map(parent => rows[parent])) {
+      Ok(value) => value
+      Err(issue) => return Err(issue)
+    }
     // Only the root's retained wire count is observed. Future output sizes are
     // deliberately unknown; no fresh scan or invented compression ratio.
-    let input_bytes = if parents[task] == 0 {
-      Some(policy.root.canonical_wire_bytes.to_int64())
-    } else {
-      None
+    let input_bytes = match
+      sum_dispatch_quantities(
+        parents[task].map(parent => {
+          if parent == 0 {
+            Some(policy.root.canonical_wire_bytes.to_int64())
+          } else {
+            None
+          }
+        }),
+      ) {
+      Ok(value) => value
+      Err(issue) => return Err(issue)
     }
-    rows[task] = match (input_rows, profile.output_rows_per_mille) {
+    let join = @strategy.captured_task_join_output_limit(run, task) is Some(_)
+    let pairs = if join {
+      let left = rows[parents[task][0]]
+      let right = rows[parents[task][parents[task].length() - 1]]
+      match dispatch_pair_quantity(left, right) {
+        Ok(value) => value
+        Err(issue) => return Err(issue)
+      }
+    } else {
+      Some(0L)
+    }
+    rows[task] = match
+      (if join { pairs } else { input_rows }, profile.output_rows_per_mille) {
       (Some(value), Some(fraction)) => {
         let f = fraction.to_int64()
         Some(value / 1000L * f + (value % 1000L * f + 999L) / 1000L)
       }
       _ => None
     }
-    if @strategy.captured_task_output(run, task, Step(1)) is Some(output) {
+    if @strategy.captured_task_target(run, task) is Some(target) &&
+      @strategy.captured_task_output(run, task, target) is Some(output) {
       rows[task] = Some(@execution.completed_row_count(output).to_int64())
     }
     if @strategy.captured_task_completed(run, task) {
@@ -284,7 +323,7 @@ fn rebuild_dispatch_estimates(
         continue
       }
       let lines = match
-        dispatch_estimate_lines(rates, input_rows, input_bytes) {
+        dispatch_estimate_lines(rates, input_rows, input_bytes, pairs) {
         Ok(lines) => lines
         Err(issue) => return Err(issue)
       }
@@ -309,6 +348,7 @@ fn rebuild_dispatch_estimates(
           resident.rates[task - 1],
           input_rows,
           input_bytes,
+          pairs,
         ) {
         Ok(value) => value
         Err(issue) => return Err(issue)
@@ -336,5 +376,43 @@ fn rebuild_dispatch_estimates(
     Ok(Selected(_)) => Ok(())
     Ok(_) => Err(NoStrategy)
     Err(issue) => Err(Search(issue))
+  }
+}
+
+///|
+fn sum_dispatch_quantities(
+  values : Array[Int64?],
+) -> Result[Int64?, DispatchIssue] {
+  let mut total = 0L
+  let mut unknown = false
+  for value in values {
+    match value {
+      None => unknown = true
+      Some(value) => {
+        if value > 9223372036854775807L - total {
+          return Err(EstimateOverflow)
+        }
+        total += value
+      }
+    }
+  }
+  Ok(if unknown { None } else { Some(total) })
+}
+
+///|
+/// Potential pairs are an estimate basis, never an output-cardinality proof.
+fn dispatch_pair_quantity(
+  left : Int64?,
+  right : Int64?,
+) -> Result[Int64?, DispatchIssue] {
+  match (left, right) {
+    (Some(0L), _) | (_, Some(0L)) => Ok(Some(0L))
+    (Some(left), Some(right)) => {
+      if left > 9223372036854775807L / right {
+        return Err(EstimateOverflow)
+      }
+      Ok(Some(left * right))
+    }
+    _ => Ok(None)
   }
 }

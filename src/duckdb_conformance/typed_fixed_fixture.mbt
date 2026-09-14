@@ -9,6 +9,34 @@ pub fn typed_fixed_create(
   values_json : String,
   fragment_json : String,
 ) -> OwnedFixedFixture {
+  typed_fixed_fixture(
+    source, predicate, registry_json, values_json, fragment_json, false,
+  )
+}
+
+///|
+#export_name("typedCountCreate")
+pub fn typed_count_create(
+  source : String,
+  registry_json : String,
+  values_json : String,
+  fragment_json : String,
+) -> OwnedFixedFixture {
+  typed_fixed_fixture(
+    source, "", registry_json, values_json, fragment_json, true,
+  )
+}
+
+///|
+fn typed_fixed_fixture(
+  source : String,
+  predicate : String,
+  registry_json : String,
+  values_json : String,
+  fragment_json : String,
+  keyed_count : Bool,
+  inner_join? : Bool = false,
+) -> OwnedFixedFixture {
   try {
     let checked = @pipeline.check(cursor(source), [], None, None, {
       max_steps: 10,
@@ -42,8 +70,29 @@ pub fn typed_fixed_create(
       fragment_json,
       projection="amount",
       predicate~,
+      keyed_count~,
+      inner_join~,
     )
   } catch {
     _ => abort("typed fixed conformance setup")
   }
+}
+
+///|
+#export_name("typedJoinCreate")
+pub fn typed_join_create(
+  source : String,
+  registry_json : String,
+  values_json : String,
+  fragment_json : String,
+) -> OwnedFixedFixture {
+  typed_fixed_fixture(
+    source,
+    "",
+    registry_json,
+    values_json,
+    fragment_json,
+    false,
+    inner_join=true,
+  )
 }

@@ -19,7 +19,7 @@ pub fn prepare_fragment_pipeline(
   }
   match sequence.steps[step] {
     RowStep(kernel) => Ok({ kernel, roots, })
-    ValuesStep(_) => Err(NotExpressionKernel)
+    ValuesStep(_) | JoinStep(_) => Err(NotExpressionKernel)
   }
 }
 
@@ -95,7 +95,8 @@ fn emit_fragment_pipeline(
         | Limit(_, _, _)
         | DistinctRows
         | DedupeRows
-        | StableSort(_) => raise @encode.InvalidStructure
+        | StableSort(_)
+        | CountGroups(_) => raise @encode.InvalidStructure
       },
     )
     @encode.key(out, "params")
@@ -127,8 +128,12 @@ fn emit_fragment_pipeline(
         @encode.key(out, "expr")
         emit_expression_source(expression, out)
       }
-      Select(_) | Limit(_, _, _) | DistinctRows | DedupeRows | StableSort(_) =>
-        raise @encode.InvalidStructure
+      Select(_)
+      | Limit(_, _, _)
+      | DistinctRows
+      | DedupeRows
+      | StableSort(_)
+      | CountGroups(_) => raise @encode.InvalidStructure
     }
     @encode.end_object(out)
     @encode.end_object(out)

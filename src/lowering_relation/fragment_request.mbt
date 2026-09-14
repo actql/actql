@@ -87,8 +87,12 @@ pub fn emit_fragment_request(
         }
       }
     Filter(_) => ()
-    Select(_) | Limit(_, _, _) | DistinctRows | DedupeRows | StableSort(_) =>
-      raise @encode.InvalidStructure
+    Select(_)
+    | Limit(_, _, _)
+    | DistinctRows
+    | DedupeRows
+    | StableSort(_)
+    | CountGroups(_) => raise @encode.InvalidStructure
   }
   if has_null {
     @encode.key(out, "null_contexts")
@@ -108,7 +112,8 @@ pub fn emit_fragment_request(
       | Limit(_, _, _)
       | DistinctRows
       | DedupeRows
-      | StableSort(_) => raise @encode.InvalidStructure
+      | StableSort(_)
+      | CountGroups(_) => raise @encode.InvalidStructure
     }
     @encode.end_object(out)
     @encode.end_object(out)

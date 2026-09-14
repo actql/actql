@@ -16,6 +16,7 @@ pub(all) enum DuckDBComputeIssue {
   InvalidState
   UnverifiedTransport
   Guard(@execution.FixedInputGuardIssue)
+  JoinValidation(@execution.RowIssue)
   Receiving(@duckdb.FixedComputeReceivingIssue)
   Demand(@duckdb.NativeDemandIssue)
   Completion(@execution.TrustedOutputIssue)
@@ -30,6 +31,7 @@ struct DuckDBComputeAttempt {
   port : @execution.TrustedOutputPort[DuckDBComputeAttempt]
   limits : DuckDBComputeLimits
   measurement : @execution.FixedProducerMeasurement
+  join_validation : @execution.FixedJoinValidation?
   transport_matches : (DuckDBComputeAttempt) -> Bool
   mut receiving : @duckdb.FixedComputeReceiving?
   mut receipt : @duckdb.FixedComputeReceipt?
@@ -54,17 +56,20 @@ pub fn start_duckdb_compute_attempt(
     return Err(NotSelected)
   }
   let request = prepared.candidate.request
+  if !@duckdb.fixed_compute_inputs_match(compute, request.inputs) {
+    return Err(ForeignPreparation)
+  }
   if !physical_equal(
       @execution.generated_sequence_owner(generated),
-      @execution.producer_read_receiver(request.input),
+      request.owner,
     ) ||
     request.capacity.common_fragment is Some(_) {
     return Err(ForeignPreparation)
   }
   let measurement = match
     @execution.prepare_fixed_producer_measurement(
-      request.input,
-      @pipeline.Step(1),
+      request.inputs,
+      @duckdb.fixed_query_target(@duckdb.fixed_compute_query(compute)),
       max_rows=request.capacity.max_rows,
       max_value_bytes=request.capacity.max_value_bytes,
       limits.values,
@@ -72,10 +77,14 @@ pub fn start_duckdb_compute_attempt(
     Ok(value) => value
     Err(issue) => return Err(Guard(issue))
   }
+  let join_validation = match @duckdb.validate_fixed_compute_join(compute) {
+    Ok(value) => value
+    Err(issue) => return Err(JoinValidation(issue))
+  }
   let port = match
     @execution.prepare_trusted_output_port(
       generated,
-      @pipeline.Step(1),
+      @duckdb.fixed_query_target(@duckdb.fixed_compute_query(compute)),
       limits.completion_entries,
       limits.completion_name_bytes,
       verified_compute_rows,
@@ -89,6 +98,7 @@ pub fn start_duckdb_compute_attempt(
     port,
     limits,
     measurement,
+    join_validation,
     transport_matches,
     receiving: None,
     receipt: None,
@@ -119,7 +129,11 @@ pub fn begin_duckdb_compute_result(
     @duckdb.prepare_fixed_compute_receiving(
       value.compute,
       fields,
-      value.limits.physical,
+      if value.request.capacity.max_rows < value.limits.physical.max_rows {
+        { ..value.limits.physical, max_rows: value.request.capacity.max_rows, }
+      } else {
+        value.limits.physical
+      },
       value.limits.retention,
       value.limits.metadata_work,
     ) {
@@ -141,6 +155,10 @@ pub fn receive_duckdb_compute_chunk(
   columns : Array[@decode.Cursor],
 ) -> Result[Unit, DuckDBComputeIssue] {
   guard value.live &&
+    @duckdb.fixed_compute_join_validation_matches(
+      value.compute,
+      value.join_validation,
+    ) &&
     value.receipt is None &&
     value.receiving is Some(receiving) else {
     return Err(InvalidState)
@@ -205,7 +223,7 @@ fn verified_compute_rows(
     @duckdb.fixed_compute_receipt_rows(receipt) is Some(rows) &&
     @execution.fixed_producer_measurement_matches(
       measured,
-      value.request.input,
+      value.request.inputs,
       rows,
       value.request.capacity.max_rows,
       value.request.capacity.max_value_bytes,

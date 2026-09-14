@@ -63,7 +63,7 @@ fn prepare_ordered_budgets(
       return Err(InputLimit)
     }
     match @lower.sequence_step(sequence, i).unwrap() {
-      @lower.ValuesStep(_) => ()
+      @lower.ValuesStep(_) | @lower.JoinStep(_) => ()
       @lower.RowStep(kernel) => {
         let entries = @lower.kernel_view_entries(kernel)
         if !spend_control(control, entries) || !reserve_slots(metadata, entries) {
@@ -81,7 +81,8 @@ fn prepare_ordered_budgets(
           | @lower.Limit(_, _, _)
           | @lower.DistinctRows
           | @lower.DedupeRows
-          | @lower.StableSort(_) => ()
+          | @lower.StableSort(_)
+          | @lower.CountGroups(_) => ()
         }
         release_slots(metadata, entries)
       }

@@ -20,31 +20,52 @@ export async function runFixedCompute(port, limits, importLimits, consume, signa
 }
 
 async function executeFixedCompute(port, limits, importLimits, consume, signal, retainSession, accounting) {
-  const rows = port.rowCount();
-  const columns = port.columnCount();
-  for (const value of [rows, columns, importLimits.maxRows, importLimits.maxCells]) {
+  const count = port.importCount();
+  for (const value of [count, importLimits.maxRows, importLimits.maxCells]) {
     if (!Number.isSafeInteger(value) || value < 0) throw new DuckDBTransportError('InvalidImportLimits');
   }
-  if (rows > importLimits.maxRows) throw new DuckDBTransportError('ImportRows');
-  if (columns === 0 || columns > limits.maxParameters || columns > limits.maxColumns) {
-    throw new DuckDBTransportError('ImportColumns');
+  // Validate every port before creating a DB. Row limits are per input;
+  // imported cells accumulate even when two ports have identical contents.
+  if (count < 1 || count > 2) throw new DuckDBTransportError('ImportCount');
+  const imports = [];
+  let importedRows = 0;
+  let importedCells = 0;
+  for (let input = 0; input < count; input++) {
+    const rows = port.rowCount(input);
+    const columns = port.columnCount(input);
+    if (!Number.isSafeInteger(rows) || rows < 0 || !Number.isSafeInteger(columns) || columns < 0) {
+      throw new DuckDBTransportError('InvalidImportLimits');
+    }
+    if (rows > importLimits.maxRows) throw new DuckDBTransportError('ImportRows');
+    if (columns === 0 || columns > limits.maxParameters || columns > limits.maxColumns) {
+      throw new DuckDBTransportError('ImportColumns');
+    }
+    if (rows > Math.floor((importLimits.maxCells - importedCells) / columns)) {
+      throw new DuckDBTransportError('ImportCells');
+    }
+    if (rows > Number.MAX_SAFE_INTEGER - importedRows) throw new DuckDBTransportError('ImportRows');
+    importedRows += rows;
+    importedCells += rows * columns;
+    imports.push({ rows, columns });
   }
-  if (rows > Math.floor(importLimits.maxCells / columns)) throw new DuckDBTransportError('ImportCells');
   return withComputeDatabase(limits, async session => {
     retainSession(session);
     const discard = () => {};
-    await session.command(port.createSql(), [], discard);
-    const insert = port.insertSql();
-    for (let row = 0; row < rows; row++) {
-      if (signal?.aborted) throw new DuckDBTransportError('Cancelled');
-      // Only the current parameter row is materialized. The MoonBit side retains
-      // the immutable completed input; Node never receives a source connection.
-      const parameters = [];
-      for (let column = 0; column < columns; column++) parameters.push(port.parameter(row, column));
-      await session.command(insert, parameters, discard);
+    for (let input = 0; input < imports.length; input++) {
+      const { rows, columns } = imports[input];
+      await session.command(port.createSql(input), [], discard);
+      const insert = port.insertSql(input);
+      for (let row = 0; row < rows; row++) {
+        if (signal?.aborted) throw new DuckDBTransportError('Cancelled');
+        // Only the current parameter row is materialized. No source connection
+        // crosses this fixed-input boundary.
+        const parameters = [];
+        for (let column = 0; column < columns; column++) parameters.push(port.parameter(input, row, column));
+        await session.command(insert, parameters, discard);
+      }
     }
     const fields = await session.command(port.querySql(), port.queryParameters(), consume);
-    return Object.freeze({ fields, importedRows: rows, importedCells: rows * columns });
+    return Object.freeze({ fields, importedRows, importedCells });
   }, signal, accounting);
 }
 
@@ -74,7 +95,7 @@ export async function runResidentFixedCompute(
   if (!environment.status().live) throw new DuckDBTransportError('SessionClosed');
   const result = await environment.run(limits, async session => {
     const discard = () => {};
-    await session.command(resident.viewSql(), [], discard);
+    for (const sql of resident.viewSqls()) await session.command(sql, [], discard);
     await session.command(resident.createResultSql(), port.queryParameters(), discard);
     const fields = await session.command(resident.readResultSql(), [], consume);
     // Includes empty-result metadata. Throwing here rolls back this task only.

@@ -56,10 +56,16 @@ pub fn prepare_application(
         max_string_bytes: 1000000,
         max_total_string_bytes: 1000000,
       },
-      max_stages: 4,
+      max_stages: 5,
     },
     format=Json,
   ).unwrap()
+  let stages = @syntax.stage_count(program)
+  if stages != 4 && stages != 5 {
+    fail(
+      "example requires the four-stage filter profile or five-stage join/count profile",
+    )
+  }
   let environment = @environment.read(
     @utf8.encode(environment_json),
     environment_cid,
@@ -87,12 +93,28 @@ pub fn prepare_application(
     max_nodes: 0,
     max_depth: 0,
   }).unwrap()
+  let join_sources = if stages == 5 {
+    Some(join_capacity_material(environment))
+  } else {
+    None
+  }
+  let visits = if stages == 5 { [1, 2, 2, 5, 6] } else { [1, 2, 2, 3] }
   let checked = @program_check.check(
     program,
     environment,
     Some(cursor(parameter_json)),
-    [1, 2, 2, 3].map(count => {
-      Array::makei(count, _ => { sources, consumers: [], })
+    Array::makei(visits.length(), stage => {
+      Array::makei(visits[stage], visit => {
+        if ((stage == 3 && visit == 0) || (stage == 4 && visit == 1)) &&
+          join_sources is Some(join_sources) {
+          {
+            sources: join_sources,
+            consumers: [@capacity.Join(step=0, output=0)],
+          }
+        } else {
+          { sources, consumers: [], }
+        }
+      })
     }),
     { text_time: false, veca: false, },
     { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
@@ -102,13 +124,13 @@ pub fn prepare_application(
     max_nodes=1000000,
     max_depth=100,
   )
-  if @program_check.unit_count(checked) != 4 {
-    fail("example requires acquisition and three Compute units")
+  if @program_check.unit_count(checked) != stages {
+    fail("example requires one unit per stage")
   }
   let identity = @program_check.source_identity(checked)
   let requests = @context.program_identity_stage_requests(identity, 0).unwrap()
   let acquisition = @acquisition.derive_query_acquisition(requests, 0, 1000000).unwrap()
-  let owners = Array::makei(4, index => {
+  let owners = Array::makei(stages, index => {
     let pipeline = if index == 0 {
       @acquisition.query_acquisition_pipeline(acquisition)
     } else {
@@ -135,7 +157,7 @@ pub fn prepare_application(
   let generated = owners.map(owner => {
     generate(owner, registry_json, values_json, fragment_json, true)
   })
-  let graph = @strategy.prepare_checked_dag(checked, owners, 4, 10000).unwrap()
+  let graph = @strategy.prepare_checked_dag(checked, owners, 5, 10000).unwrap()
   let sequence = @query.prepare_query_sequence(acquisition, generated[0], 10000).unwrap()
   let material : @planning.QueryMaterialLimits = {
     max_work: 1000000,
@@ -228,7 +250,8 @@ pub fn application_output_cid(
   run : @strategy.CapturedDAG,
   task : Int,
 ) -> String? {
-  guard @strategy.captured_task_output(run, task, Step(1)) is Some(output) else {
+  guard @strategy.captured_task_target(run, task) is Some(target) &&
+    @strategy.captured_task_output(run, task, target) is Some(output) else {
     return None
   }
   match
@@ -276,13 +299,15 @@ pub fn application_dispatch(
     app.generated,
     dispatch_limits(),
   ).unwrap()
-  let profiles : Array[@dbhost.DispatchEstimateProfile] = Array::makei(3, _ => {
+  let count = app.generated.length()
+  let profiles : Array[@dbhost.DispatchEstimateProfile] = Array::makei(count, _ => {
     local_rates: [
       {
         work_slots: [0, 1, 2, 3, 4],
         fixed_ms: Some(1L),
         per_row_ms: Some(2L),
         per_wire_byte_ms: Some(0L),
+        per_pair_ms: Some(0L),
       },
     ],
     native_rates: [
@@ -291,6 +316,7 @@ pub fn application_dispatch(
         fixed_ms: Some(native_fixed_ms),
         per_row_ms: Some(0L),
         per_wire_byte_ms: Some(0L),
+        per_pair_ms: Some(0L),
       },
     ],
     native_capacity: {
@@ -302,14 +328,20 @@ pub fn application_dispatch(
   })
   @dbhost.configure_dispatch_estimates(dispatch, profiles, {
     max_offers: if resident {
-      9
+      count * 3
     } else {
-      6
+      count * 2
     },
     max_strategies: if resident {
-      27
-    } else {
+      if count == 3 {
+        27
+      } else {
+        81
+      }
+    } else if count == 3 {
       8
+    } else {
+      16
     },
     max_work: if resident {
       10000
@@ -317,9 +349,9 @@ pub fn application_dispatch(
       1000
     },
     max_revisions: if resident {
-      4
+      count + 1
     } else {
-      3
+      count
     },
   }).unwrap()
   if resident {
@@ -328,7 +360,7 @@ pub fn application_dispatch(
       134217728L,
       Some(1L),
       Some(1L),
-      Array::make(4, @strategy.ResidentImportEstimate::{
+      Array::make(count + 1, @strategy.ResidentImportEstimate::{
         milliseconds: Some(1L),
         transfer_bytes: 100000L,
         scratch_bytes: 2000000L,
@@ -338,12 +370,13 @@ pub fn application_dispatch(
     @dbhost.configure_resident_dispatch(
       dispatch,
       profile,
-      Array::make(3, [
+      Array::make(count, [
         {
           work_slots: [0, 1, 2, 3, 4, 5, 6, 7],
           fixed_ms: Some(1L),
           per_row_ms: Some(0L),
           per_wire_byte_ms: Some(0L),
+          per_pair_ms: Some(0L),
         },
       ]),
     ).unwrap()

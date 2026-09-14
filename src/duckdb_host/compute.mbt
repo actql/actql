@@ -70,7 +70,7 @@ pub fn start_configured_strategy_compute_host(
   verify : (@planning.DuckDBComputeAttempt) -> Bool,
   transfer_bytes : Int64,
   execution_bytes : Int64,
-  resident? : @strategy.ResidentRead,
+  resident? : @strategy.ResidentInputs,
 ) -> Result[@planning.DuckDBComputeAttempt, @strategy.RunIssue] {
   let c = setup.compute
   @strategy.start_captured_duckdb_task(
@@ -100,4 +100,30 @@ pub fn configured_strategy_compute_transport(
   setup : StrategyComputeHostConfiguration,
 ) -> @duckdb.TransportColumnLimits {
   setup.compute.transport
+}
+
+///|
+pub fn borrow_configured_resident_inputs(
+  setup : StrategyComputeHostConfiguration,
+  env : @strategy.ResidentEnvironment,
+  tables : Array[@strategy.ResidentTable],
+  max_entries : Int,
+  max_name_bytes : Int,
+  max_sql_bytes : Int,
+) -> Result[@strategy.ResidentInputs, @strategy.RunIssue] {
+  let c = setup.compute
+  guard @planning.fixed_compute_choice_payload(c.choice, c.prepared)
+    is Some(compute) else {
+    return Err(ForeignCandidate)
+  }
+  @strategy.prepare_resident_inputs(
+    setup.graph,
+    env,
+    setup.task,
+    tables,
+    compute,
+    max_entries,
+    max_name_bytes,
+    max_sql_bytes,
+  )
 }

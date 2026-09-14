@@ -5,6 +5,39 @@ pub fn emit_kernel_node(
   kernel : PreparedKernel,
   out : @encode.Writer,
 ) -> Unit raise @encode.EncodeFailure {
+  if kernel.body is CountGroups(group) {
+    let node = kernel.owner.prepared.nodes[kernel.step_index]
+    guard node.aggregation_id is Some(input) else {
+      raise @encode.InvalidStructure
+    }
+    @encode.begin_object(out)
+    @encode.key(out, "id")
+    @encode.string_value(out, node.id)
+    @encode.key(out, "in")
+    @encode.begin_array(out)
+    @encode.string_value(out, input)
+    @encode.end_array(out)
+    @encode.key(out, "op")
+    @encode.string_value(out, "REL.orderByStable")
+    @encode.key(out, "params")
+    @encode.begin_object(out)
+    @encode.key(out, "by")
+    @encode.begin_array(out)
+    for field in group.keys {
+      @encode.begin_object(out)
+      @encode.key(out, "dir")
+      @encode.string_value(out, "asc")
+      @encode.key(out, "field")
+      @encode.string_value(out, @schema.reference_name(field))
+      @encode.key(out, "nulls")
+      @encode.string_value(out, "first")
+      @encode.end_object(out)
+    }
+    @encode.end_array(out)
+    @encode.end_object(out)
+    @encode.end_object(out)
+    return
+  }
   // Ordered params require their complete occurrence table and evidence path.
   // Preparation alone must not emit an executable-looking alternative.
   if kernel.body is OrderedBindings(_) {
@@ -32,12 +65,14 @@ pub fn emit_kernel_node(
       DistinctRows => "REL.distinct"
       DedupeRows => "REL.dedupeRows"
       StableSort(_) => "REL.orderByStable"
+      CountGroups(_) => "REL.groupBy"
       OrderedBindings(_) => raise @encode.InvalidStructure
     },
   )
   @encode.key(out, "params")
   @encode.begin_object(out)
   match kernel.body {
+    CountGroups(_) => raise @encode.InvalidStructure
     DistinctRows => ()
     StableSort(_) => {
       @encode.key(out, "by")
@@ -147,6 +182,24 @@ fn emit_kernel_prefix(
   out : @encode.Writer,
 ) -> Unit raise @encode.EncodeFailure {
   let node = kernel.owner.prepared.nodes[kernel.step_index]
+  if kernel.body is CountGroups(group) {
+    guard node.aggregation_id is Some(id) else {
+      raise @encode.InvalidStructure
+    }
+    @encode.begin_object(out)
+    @encode.key(out, "id")
+    @encode.string_value(out, id)
+    @encode.key(out, "in")
+    @encode.begin_array(out)
+    @encode.string_value(out, kernel.input_id)
+    @encode.end_array(out)
+    @encode.key(out, "op")
+    @encode.string_value(out, "REL.groupBy")
+    @encode.key(out, "params")
+    emit_count_group_params(group, out)
+    @encode.end_object(out)
+    return
+  }
   if node.order_id is Some(id) {
     @encode.begin_object(out)
     @encode.key(out, "id")

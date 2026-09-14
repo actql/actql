@@ -19,6 +19,7 @@ pub fn strategy_fixture_adaptive_dispatch(
         ),
         per_row_ms: Some(if index == 2 { 2L } else { 0L }),
         per_wire_byte_ms: Some(0L),
+        per_pair_ms: Some(0L),
       },
     ],
     native_rates: [
@@ -35,6 +36,7 @@ pub fn strategy_fixture_adaptive_dispatch(
         ),
         per_row_ms: Some(0L),
         per_wire_byte_ms: Some(0L),
+        per_pair_ms: Some(0L),
       },
     ],
     native_capacity: {

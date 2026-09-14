@@ -39,6 +39,27 @@ fn attach_fragment_budgets(
     }
     match @lower.sequence_step(sequence, i).unwrap() {
       @lower.ValuesStep(_) => ()
+      @lower.JoinStep(kernel) => {
+        let profile = @lower.join_kernel_profile(kernel)
+        let checked = @lower.inner_join_checked(profile)
+        for key in 0..<@lower.inner_join_key_count(profile) {
+          let (left, right) = @lower.inner_join_key_at(profile, key).unwrap()
+          if !spend_control(control, 1) ||
+            !spend_control_text(control, @schema.reference_name(left)) ||
+            !spend_control_text(control, @schema.reference_name(right)) {
+            return Err(InputLimit)
+          }
+          guard @schema.lookup(@join.input_schema(checked, Left), left)
+            is Some(lc) &&
+            @schema.lookup(@join.input_schema(checked, Right), right)
+            is Some(rc) else {
+            return Err(FragmentContext(i, KernelMismatch))
+          }
+          if !supported_comparison(lc, rc) {
+            return Err(UnsupportedRowComparison(i, left))
+          }
+        }
+      }
       @lower.RowStep(kernel) => {
         let entries = @lower.kernel_view_entries(kernel)
         if !spend_control(control, entries) || !reserve_slots(metadata, entries) {
@@ -54,6 +75,24 @@ fn attach_fragment_budgets(
               return Err(MissingFragmentContext(i))
             }
           @lower.Select(_) => ()
+          @lower.CountGroups(group) => {
+            let schema = @relation.input_schema(
+              @lower.count_group_checked(group),
+            )
+            for j in 0..<@lower.count_group_key_count(group) {
+              let name = @lower.count_group_key_at(group, j).unwrap()
+              if !spend_control(control, 1) ||
+                !spend_control_text(control, @schema.reference_name(name)) {
+                return Err(InputLimit)
+              }
+              guard @schema.lookup(schema, name) is Some(contract) else {
+                return Err(FragmentContext(i, KernelMismatch))
+              }
+              if !supported_comparison(contract, contract) {
+                return Err(UnsupportedRowComparison(i, name))
+              }
+            }
+          }
           @lower.DedupeRows | @lower.StableSort(_) | @lower.Limit(_, _, _) => {
             let checked = @lower.kernel_checked(kernel)
             let schema = @relation.input_schema(checked)

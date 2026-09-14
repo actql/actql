@@ -125,6 +125,8 @@ pub fn issued_native_verify(IssuedNativeFixture) -> Bool
 
 pub fn metadata(@duckdb_adapter.NativeReceiving, Int, String, String) -> Bool
 
+pub fn owned_count_create(IssuedNativeFixture, @execution_relation.CompletedOutput, String, String, String) -> OwnedFixedFixture
+
 pub fn owned_fixed_abort(OwnedFixedFixture) -> Unit
 
 pub fn owned_fixed_accept(OwnedFixedFixture, Int, String) -> Bool
@@ -150,6 +152,8 @@ pub fn owned_fixed_row_count(OwnedFixedFixture) -> Int
 pub fn owned_fixed_rows(OwnedFixedFixture) -> String
 
 pub fn owned_fixed_sql(OwnedFixedFixture, Int) -> String
+
+pub fn owned_join_create(IssuedNativeFixture, @execution_relation.CompletedOutput, String, String, String) -> OwnedFixedFixture
 
 pub fn parameter(@duckdb_adapter.NativeReceiving, Int, Int) -> String
 
@@ -185,6 +189,8 @@ pub fn strategy_fixture_graph(StrategyFixture) -> @physical_strategy.CheckedDAG
 
 pub fn strategy_fixture_history_placement(StrategyFixture, Int) -> String
 
+pub fn strategy_fixture_join_create(String, String, String, String, String, String, String, String, String) -> StrategyFixture
+
 pub fn strategy_fixture_ledger(StrategyFixture) -> @physical_strategy.Ledger
 
 pub fn strategy_fixture_local(StrategyFixture, Int) -> Bool
@@ -205,7 +211,11 @@ pub fn strategy_fixture_run(StrategyFixture) -> @physical_strategy.CapturedDAG
 
 pub fn strategy_fixture_usage(StrategyFixture, Int) -> Int64
 
+pub fn typed_count_create(String, String, String, String) -> OwnedFixedFixture
+
 pub fn typed_fixed_create(String, String, String, String, String) -> OwnedFixedFixture
+
+pub fn typed_join_create(String, String, String, String) -> OwnedFixedFixture
 
 // Errors
 

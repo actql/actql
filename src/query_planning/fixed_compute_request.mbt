@@ -1,8 +1,9 @@
 ///|
-/// One immutable completed input and its exactly bound consumer. This is an
+/// Immutable completed inputs and their exactly bound consumer. This is an
 /// internal realization request, not an alternative canonical Program or Plan.
 struct FixedComputeRequest {
-  input : @execution.ProducerRead
+  owner : @lower.BoundPrepared
+  inputs : Array[@execution.ProducerRead]
   capacity : FixedComputeCapacity
 }
 
@@ -40,7 +41,7 @@ pub(all) enum FixedComputeIssue {
 
 ///|
 pub fn prepare_fixed_compute_request(
-  input : @execution.ProducerRead,
+  inputs : Array[@execution.ProducerRead],
   capacity : FixedComputeCapacity,
 ) -> Result[FixedComputeRequest, FixedComputeIssue] {
   if capacity.contract_cid !=
@@ -50,24 +51,36 @@ pub fn prepare_fixed_compute_request(
   if capacity.max_rows < 0 || capacity.max_value_bytes < 0 {
     return Err(InvalidLimits)
   }
-  if !@execution.producer_read_available(input) {
-    return Err(InputUnavailable)
-  }
-  let owner = @execution.producer_read_receiver(input)
+  guard inputs.get(0) is Some(first) else { return Err(UnsupportedInputShape) }
+  let owner = @execution.producer_read_receiver(first)
   if capacity.common_fragment is Some(sequence) &&
     !physical_equal(@execution.generated_sequence_owner(sequence), owner) {
     return Err(ForeignPreparation)
   }
   if @pipeline.input_count(@lower.pipeline(@lower.bound_preparation(owner))) !=
-    1 {
+    inputs.length() {
     return Err(UnsupportedInputShape)
   }
   // ProducerRead can only be made from a successfully bound CompletedOutput.
   // There is no source selector, connection, CID lookup or raw-row constructor.
-  if @execution.producer_read_row_count(input) > capacity.max_rows {
-    return Err(CommonInputRows)
+  for index in 0..<inputs.length() {
+    let input = inputs[index]
+    if !physical_equal(@execution.producer_read_receiver(input), owner) {
+      return Err(ForeignPreparation)
+    }
+    if @execution.producer_read_input_index(input) != index {
+      return Err(UnsupportedInputShape)
+    }
+    if !@execution.producer_read_available(input) {
+      return Err(InputUnavailable)
+    }
+    if @execution.producer_read_row_count(input) > capacity.max_rows {
+      return Err(CommonInputRows)
+    }
   }
-  Ok({ input, capacity, })
+  // Copy only the bounded handle array. Caller mutations cannot replace ports;
+  // immutable backing storage remains shared, without new admission or copying.
+  Ok({ owner, inputs: inputs.copy(), capacity, })
 }
 
 ///|
@@ -80,6 +93,19 @@ pub fn fixed_compute_request_capacity(
 ///|
 pub fn fixed_compute_request_input(
   request : FixedComputeRequest,
-) -> @execution.ProducerRead {
-  request.input
+  index : Int,
+) -> @execution.ProducerRead? {
+  request.inputs.get(index)
+}
+
+///|
+pub fn fixed_compute_request_input_count(request : FixedComputeRequest) -> Int {
+  request.inputs.length()
+}
+
+///|
+pub fn fixed_compute_request_owner(
+  request : FixedComputeRequest,
+) -> @lower.BoundPrepared {
+  request.owner
 }

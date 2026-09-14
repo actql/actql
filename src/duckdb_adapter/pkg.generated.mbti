@@ -6,6 +6,7 @@ import {
   "actql/actql/encode_core",
   "actql/actql/execution_relation",
   "actql/actql/lowering_relation",
+  "actql/actql/pipeline_typing",
   "actql/actql/relation_schema",
   "actql/actql/value_admission",
   "actql/actql/value_contract",
@@ -41,7 +42,13 @@ pub fn broad_scan_sql(BroadScan) -> String
 
 pub fn cancel_physical_result(PhysicalResult) -> Unit
 
-pub fn check_fixed_compute_static(@lowering_relation.BoundPrepared, String, NativeQueryLimits) -> Result[Unit, NativeQueryIssue]
+pub fn check_fixed_compute_static(@lowering_relation.BoundPrepared, Array[String], NativeQueryLimits) -> Result[Unit, NativeQueryIssue]
+
+pub fn compile_fixed_count_group(@lowering_relation.BoundPrepared, String, String, NativeQueryLimits) -> Result[NativeCountGroup, NativeQueryIssue]
+
+pub fn compile_fixed_inner_join(@lowering_relation.BoundPrepared, String, Array[String], NativeQueryLimits) -> Result[NativeInnerJoin, NativeQueryIssue]
+
+pub fn compile_fixed_query(@lowering_relation.BoundPrepared, String, String, NativeQueryLimits) -> Result[FixedQuery, NativeQueryIssue]
 
 pub fn compile_native_filter_select(@lowering_relation.BoundPrepared, String, String, NativeQueryLimits) -> Result[NativeQuery, NativeQueryIssue]
 
@@ -59,15 +66,31 @@ pub fn finish_native_receipt(NativeReceiving, NativeReceiptPort) -> Result[Unit,
 
 pub fn fixed_compute_demand_matches(FixedComputeDemand, FixedCompute, FixedComputeReceipt, Int) -> Bool
 
-pub fn fixed_compute_demand_usage(FixedComputeDemand) -> NativeDemandUsage
+pub fn fixed_compute_demand_usage(FixedComputeDemand) -> FixedComputeDemandUsage
 
-pub fn fixed_compute_import(FixedCompute) -> FixedImport
+pub fn fixed_compute_import(FixedCompute, Int) -> FixedImport?
 
-pub fn fixed_compute_query(FixedCompute) -> NativeQuery
+pub fn fixed_compute_import_count(FixedCompute) -> Int
+
+pub fn fixed_compute_inputs_available(FixedCompute) -> Bool
+
+pub fn fixed_compute_inputs_match(FixedCompute, Array[@execution_relation.ProducerRead]) -> Bool
+
+pub fn fixed_compute_join_output_ceiling(FixedCompute) -> Int?
+
+pub fn fixed_compute_join_validation_matches(FixedCompute, @execution_relation.FixedJoinValidation?) -> Bool
+
+pub fn fixed_compute_query(FixedCompute) -> FixedQuery
 
 pub fn fixed_compute_receipt_matches(FixedComputeReceipt, FixedComputeReceiving) -> Bool
 
 pub fn fixed_compute_receipt_rows(FixedComputeReceipt) -> @execution_relation.AdmittedOutputRows?
+
+pub fn fixed_count_group_owner(NativeCountGroup) -> @lowering_relation.BoundPrepared
+
+pub fn fixed_count_group_profile(NativeCountGroup) -> @lowering_relation.PreparedCountGroup
+
+pub fn fixed_count_group_sql(NativeCountGroup) -> String
 
 pub fn fixed_import_column_count(FixedImport) -> Int
 
@@ -79,6 +102,26 @@ pub fn fixed_import_insert_sql(FixedImport) -> String
 
 pub fn fixed_import_parameter(FixedImport, Int, Int) -> Result[PhysicalParameter, ValueIssue]
 
+pub fn fixed_join_import_at(FixedJoinInputs, Int) -> FixedImport?
+
+pub fn fixed_join_import_count(FixedJoinInputs) -> Int
+
+pub fn fixed_join_inputs_available(FixedJoinInputs) -> Bool
+
+pub fn fixed_join_inputs_query(FixedJoinInputs) -> NativeInnerJoin
+
+pub fn fixed_query_input_table(FixedQuery, Int) -> String?
+
+pub fn fixed_query_owner(FixedQuery) -> @lowering_relation.BoundPrepared
+
+pub fn fixed_query_parameter(FixedQuery, Int) -> PhysicalParameter?
+
+pub fn fixed_query_parameter_count(FixedQuery) -> Int
+
+pub fn fixed_query_sql(FixedQuery) -> String
+
+pub fn fixed_query_target(FixedQuery) -> @pipeline_typing.Target
+
 pub fn identify_native_receipts(NativeReceiving, @execution_relation.RowWireLimits, Int, Int) -> Result[NativeReceiptIdentities, NativeReceiptIdentityIssue]
 
 pub fn measure_fixed_compute_demand(FixedCompute, FixedComputeReceipt, Int, @execution_relation.FixedInputGuardMeasureLimits) -> Result[FixedComputeDemand, NativeDemandIssue]
@@ -88,6 +131,14 @@ pub fn measure_native_demand(NativeReceiving, @execution_relation.FixedInputGuar
 pub fn native_demand_matches(NativeDemandMeasurement, NativeReceiving) -> Bool
 
 pub fn native_demand_usage(NativeDemandMeasurement) -> NativeDemandUsage
+
+pub fn native_inner_join_input(NativeInnerJoin, Bool) -> Int
+
+pub fn native_inner_join_owner(NativeInnerJoin) -> @lowering_relation.BoundPrepared
+
+pub fn native_inner_join_profile(NativeInnerJoin) -> @lowering_relation.PreparedInnerJoin
+
+pub fn native_inner_join_sql(NativeInnerJoin) -> String
 
 pub fn native_output_rows(NativeOutputRows) -> @execution_relation.AdmittedOutputRows?
 
@@ -143,6 +194,10 @@ pub fn prepare_fixed_compute_receiving(FixedCompute, Array[(String, PhysicalType
 
 pub fn prepare_fixed_import(@execution_relation.ProducerRead, String, Int, Int) -> Result[FixedImport, NativeQueryIssue]
 
+pub fn prepare_fixed_join_compute(FixedJoinInputs, Int) -> Result[FixedCompute, NativeQueryIssue]
+
+pub fn prepare_fixed_join_inputs(NativeInnerJoin, Array[@execution_relation.ProducerRead], @execution_relation.FixedJoinValidationLimits, Int, Int) -> Result[FixedJoinInputs, FixedJoinInputIssue]
+
 pub fn prepare_native_receiving(NativeScan, PhysicalResultLimits, Int, NativeValueGuards, @execution_relation.FixedInputGuardMeasureLimits) -> Result[NativeReceiving, NativeReceivingIssue]
 
 pub fn prepare_native_root_guard(NativeQuery, Int) -> Result[NativeRootGuard, NativeRootGuardIssue]
@@ -157,7 +212,7 @@ pub fn prepare_producer_parameter(@execution_relation.ProducerRead, Int, Int) ->
 
 pub fn prepare_resident_import(@execution_relation.ProducerStorage, String, Int, Int) -> Result[ResidentImport, NativeQueryIssue]
 
-pub fn prepare_resident_query(NativeQuery, String, Int) -> Result[ResidentQuery, NativeQueryIssue]
+pub fn prepare_resident_query(FixedQuery, String, Int) -> Result[ResidentQuery, NativeQueryIssue]
 
 pub fn prepare_scan_output_receiver(NativeScan, Array[(String, PhysicalType)], PhysicalResultLimits, Int) -> Result[PhysicalResult, PhysicalResultIssue]
 
@@ -189,11 +244,15 @@ pub fn resident_query_drop_sql(ResidentQuery) -> String
 
 pub fn resident_query_owner(ResidentQuery) -> @lowering_relation.BoundPrepared
 
-pub fn resident_query_parameter(ResidentQuery) -> PhysicalParameter
+pub fn resident_query_parameter(ResidentQuery, Int) -> PhysicalParameter?
 
 pub fn resident_query_read_sql(ResidentQuery) -> String
 
 pub fn retain_native_output_rows(NativeReceiving, Int, @execution_relation.ValueLimits) -> Result[NativeOutputRows, NativeOutputRetentionIssue]
+
+pub fn validate_fixed_compute_join(FixedCompute) -> Result[@execution_relation.FixedJoinValidation?, @execution_relation.RowIssue]
+
+pub fn validate_fixed_join_preflight(FixedJoinInputs) -> Result[@execution_relation.FixedJoinValidation, @execution_relation.RowIssue]
 
 // Errors
 
@@ -214,6 +273,12 @@ type FixedCompute
 
 type FixedComputeDemand
 
+pub enum FixedComputeDemandUsage {
+  Comparison(NativeDemandUsage)
+  DirectCount(input_rows~ : Int, output_rows~ : Int)
+  DirectJoin(left_rows~ : Int, right_rows~ : Int, output_rows~ : Int)
+}
+
 type FixedComputeReceipt
 
 type FixedComputeReceiving
@@ -227,6 +292,21 @@ pub(all) enum FixedComputeReceivingIssue {
 }
 
 type FixedImport
+
+pub(all) enum FixedJoinInputIssue {
+  Validation(@execution_relation.RowIssue)
+  Import(NativeQueryIssue)
+}
+
+type FixedJoinInputs
+
+pub enum FixedQuery {
+  FilterSelect(NativeQuery)
+  CountGroup(NativeCountGroup)
+  InnerJoin(NativeInnerJoin)
+}
+
+type NativeCountGroup
 
 pub(all) enum NativeDemandIssue {
   InvalidState
@@ -251,6 +331,8 @@ pub(all) struct NativeDemandUsage {
   physical_bytes : Int
   physical_nodes : Int
 }
+
+type NativeInnerJoin
 
 pub(all) enum NativeOutputRetentionIssue {
   InvalidState
