@@ -95,6 +95,7 @@ fn check_supported_source(
               | "degree"
               | "components"
               | "graph_bounds"
+              | "graphs_equal"
               | "node_rows"
               | "edge_rows"
               | "values" => ()

@@ -270,6 +270,18 @@ self-comparison; no constant folding or equality proof is created. Result rows
 can feed ordinary boolean expressions. Data admission, comparison, SGA profile
 and work/byte resource validation remain explicit obligations.
 
+`GraphEqualityCheck` binds admission, canonical comparison and resource
+requirements to the retained operation and its exact Left/Right occurrences.
+Self-comparison retains both roles and still requires admission; it is not
+folded to true. The indexed resource reader requires finite comparison work,
+retained comparison state and input/temporary byte limits from the selected
+physical implementation before input use. The one-row result bound is not a
+bound on those quantities. A backend without enforceable limits is not runnable;
+static closure records the obligation, not backend admission or execution.
+Failures prevent operation output, including an apparent `false` comparison
+result after failed operand admission. Producer prerequisites and the selected
+policy remain attached independently of comparison outcome.
+
 The pinned Sketch compiler has structural binary graph dispatch but no
 `graphs_equal` checker; this operation follows the newer normative Graph equality
 section. The shared comparison boundary is also needed by later diff/apply work;

@@ -84,5 +84,9 @@ fn direct_execution_candidate(
     Ok(None) => ()
     other => return other
   }
-  graph_resources_check(site, policy)
+  match graph_resources_check(site, policy) {
+    Ok(None) => ()
+    other => return other
+  }
+  graph_equality_execution_check(site, policy)
 }

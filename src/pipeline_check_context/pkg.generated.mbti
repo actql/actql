@@ -271,6 +271,10 @@ pub fn expression_validation_text_time(ExpressionValidationContext) -> @check_en
 
 pub fn expression_validation_usage(ExpressionValidationContext) -> SelectedPolicyUsage
 
+pub fn graph_comparison_resource_at(GraphEqualityCheck, Int) -> GraphComparisonResource?
+
+pub fn graph_comparison_resource_count(GraphEqualityCheck) -> Int
+
 pub fn group_array_limit_call(GroupArrayLimit) -> @relation_typing.CheckedAggregate
 
 pub fn group_array_limit_candidate_at(GroupArrayLimit, Int) -> @capacity_graph_preflight.TargetMembership?
@@ -1422,6 +1426,12 @@ pub(all) struct ExpressionValidationLimits {
 
 type ExpressionValidationSite
 
+pub(all) enum GraphComparisonResource {
+  ComparisonWork
+  RetainedComparisonState
+  InputAndTemporaryBytes
+} derive(Eq, @debug.Debug)
+
 pub struct GraphConstructionCheck {
   site : OperationRequirementSite
   step : @pipeline_typing.CheckedStep
@@ -1448,6 +1458,22 @@ pub(all) enum GraphConstructionRule {
   CollapseEqualPayloads
   RejectPayloadConflicts
   EnforceConstructionEnvelope
+} derive(Eq, @debug.Debug)
+
+pub struct GraphEqualityCheck {
+  site : OperationRequirementSite
+  step : @pipeline_typing.CheckedStep
+  left : @pipeline_typing.Target
+  right : @pipeline_typing.Target
+  operation : @graph_typing.CheckedEquality
+  rule : GraphEqualityRule
+  policy : @capacity_policy.Policy
+}
+
+pub(all) enum GraphEqualityRule {
+  AdmitOperands
+  CompareCanonicalGraphs
+  RequireComparisonResources
 } derive(Eq, @debug.Debug)
 
 pub struct GraphExecutionCheck {
@@ -1932,6 +1958,7 @@ pub(all) enum OperationDisposition {
 }
 
 pub(all) enum OperationExecutionCheck {
+  GraphEqualityExecution(GraphEqualityCheck)
   GraphResources(GraphResourcesCheck)
   ComponentsLimits(ComponentsLimitsCheck)
   GraphExecution(GraphExecutionCheck)
