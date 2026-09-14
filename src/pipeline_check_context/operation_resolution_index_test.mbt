@@ -210,6 +210,10 @@ fn check_resolution_index(
         execution += 1
         assert_true(physical_equal(check.site, site))
       }
+      Execution(TextRankExecution(check)) => {
+        execution += 1
+        assert_true(physical_equal(check.site, site))
+      }
       Execution(ComponentsLimits(check)) => {
         execution += 1
         assert_true(physical_equal(check.site, site))
@@ -400,7 +404,8 @@ fn check_resolution_index(
     1 +
     count * 2 +
     resolved +
-    execution_work,
+    execution_work +
+    operation_lexical_count(lexical),
   )
   assert_true(
     index_program_operation_resolutions(profiles, work, count) is Ok(_),

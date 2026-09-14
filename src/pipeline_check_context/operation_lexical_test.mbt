@@ -1,5 +1,10 @@
 ///|
-fn lexical_cells(profile : String, ranking : Bool) -> ProgramOperationCells {
+fn lexical_cells(
+  profile : String,
+  ranking : Bool,
+  tokenizer? : String = "unicode_words",
+  same_input? : Bool = false,
+) -> ProgramOperationCells {
   let steps = "[{\"values\":{\"schema\":{\"id\":{\"type\":\"string\",\"nullable\":false},\"text\":{\"type\":\"string\",\"nullable\":false}},\"rows\":[{\"id\":\"a\",\"text\":\"x\"}]},\"as\":\"seed\"},{\"derive\":{\"p_copy\":\"$p\",\"n_copy\":\"$n\"}}" +
     (if ranking {
       ",{\"text_rank\":{\"queries\":\"seed\",\"candidate_id\":\"id\",\"candidate_text\":\"text\",\"query_id\":\"id\",\"query_text\":\"text\",\"tokenizer\":\"unicode_words\",\"scoring\":{\"bm25\":{\"k1\":1.2,\"b\":0.75}},\"k\":1}}"
@@ -8,7 +13,16 @@ fn lexical_cells(profile : String, ranking : Bool) -> ProgramOperationCells {
     }) +
     "]"
   let requirements = operation_order_fixture(
-    steps,
+    (if same_input {
+      steps
+      .replace(
+        old="\"n_copy\":\"$n\"}}",
+        new="\"n_copy\":\"$n\"},\"as\":\"prepared\"}",
+      )
+      .replace(old="\"queries\":\"seed\"", new="\"queries\":\"prepared\"")
+    } else {
+      steps
+    }).replace(old="unicode_words", new=tokenizer),
     text_rank=true,
     host_profile=profile,
   )

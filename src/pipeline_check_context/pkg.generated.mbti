@@ -2201,6 +2201,7 @@ pub(all) enum OperationExecutionCheck {
   NearestExecution(NearestCheck)
   PoolExecution(PoolCheck)
   RankingExecution(RankingCheck)
+  TextRankExecution(TextRankCheck)
   GraphResources(GraphResourcesCheck)
   ComponentsLimits(ComponentsLimitsCheck)
   TraversalLimits(TraversalLimitsCheck)
@@ -3270,6 +3271,17 @@ pub struct TextDemandTest {
   expression : @expression_typing.TypedExpression
   node_index : Int
   kind : @expression_typing.DemandTestKind
+}
+
+pub struct TextRankCheck {
+  site : OperationRequirementSite
+  step : @pipeline_typing.CheckedStep
+  corpus : @pipeline_typing.Target
+  queries : @pipeline_typing.Target
+  operation : @relation_evidence.CheckedTextRank
+  selection : OperationLexicalResolution
+  rule : @relation_evidence.TextRankObligation
+  policy : @capacity_policy.Policy
 }
 
 type TimestampPatternChecks

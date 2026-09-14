@@ -498,6 +498,16 @@ data and independent vector oracles are checked separately by `check:vector`.
 The supported law hashes and synthetic fixture are generated and freshness-checked
 alongside the selected artifact, without deriving expected CIDs from product code.
 
+Program execution bindings retain the selected lexical artifact and exact
+corpus/query edges for every producer occurrence. Complete-input admission,
+string-ID uniqueness and pinned normalization/tokenization precede input use;
+corpus statistics, pinned arithmetic, canonical term folding, zero-score handling,
+output order and fresh ranks remain explicit output checks. Profile selections
+are indexed once under the shared preparation budget rather than searched for
+each obligation. Equal profile CIDs do not substitute for selected Environment
+ownership. Tokenizer/text ceilings and statistics/scoring/output resource contracts
+are separate requirements, not discharged by these semantic bindings.
+
 Both text-rank checker entry points accept an optional admitted profile, and all
 pipeline checker entry points forward the selected `text_rank_profile`. The
 checked operation retains that immutable profile; ranking evidence retains the

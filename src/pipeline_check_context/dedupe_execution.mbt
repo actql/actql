@@ -23,6 +23,7 @@ pub(all) enum OperationExecutionCheck {
   NearestExecution(NearestCheck)
   PoolExecution(PoolCheck)
   RankingExecution(RankingCheck)
+  TextRankExecution(TextRankCheck)
   GraphResources(GraphResourcesCheck)
   ComponentsLimits(ComponentsLimitsCheck)
   TraversalLimits(TraversalLimitsCheck)
@@ -192,6 +193,22 @@ pub fn operation_execution_phase(
         | OrderCandidatesByDescendingScoreThenIdentity
         | AssignContiguousOneBasedRanks
         | PreserveSimilarityAuthorityBoundary => BeforeOperationOutput
+      }
+    TextRankExecution(v) =>
+      match v.rule {
+        ValidateCompleteTextInputs
+        | ValidateGlobalStringIdentities(_)
+        | NormalizeAndTokenizeWithPinnedUnicode
+        | ResolveTokenizerAndNormalizedTextCeilings
+        | ResolveTextRankProfile
+        | ResolveStatisticsScoringAndOutputResources => BeforeOperationInputUse
+        ComputeStatisticsFromAdmittedCorpusOnly
+        | EvaluatePinnedBm25AndCorrectlyRoundedLogarithm
+        | FoldTermsInCanonicalOrder
+        | RejectNonFiniteTextScores
+        | ExcludeZeroScoresAndHandleEmptyInputs
+        | OrderTextScoresAndSemanticIdentities
+        | AssignContiguousTextRanks => BeforeOperationOutput
       }
     RankingExecution(v) =>
       match v.rule {
@@ -379,6 +396,7 @@ pub fn operation_execution_failure(
     | NearestExecution(_)
     | PoolExecution(_)
     | RankingExecution(_)
+    | TextRankExecution(_)
     | GraphResources(_)
     | ComponentsLimits(_)
     | TraversalLimits(_)

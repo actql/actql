@@ -187,6 +187,21 @@ pub fn index_program_operation_resolutions(
     }
     calendar_selections[key] = selection
   }
+  // Reuse retained lexical selections without rescanning them per obligation.
+  let lexical_selections : Map[(Int, Int, Int), OperationLexicalResolution] = Map([],
+  )
+  let lexical = profiles.calendar.lexical
+  if lexical.entries.length() > max_work - work {
+    return Err(BudgetExceeded)
+  }
+  work += lexical.entries.length()
+  for selection in lexical.entries {
+    let key = (selection.stage, selection.producer_visit, selection.step)
+    if lexical_selections.contains(key) {
+      return Err(ForeignOccurrence(0))
+    }
+    lexical_selections[key] = selection
+  }
   for i in 0..<count {
     match ranking_score_envelope(requirements.entries[i], i, max_work - work) {
       Err(error) => return Err(error)
@@ -252,9 +267,20 @@ pub fn index_program_operation_resolutions(
         let policy = @capacity.application_closure_policy(
           stage.context.capacity,
         )
-        direct_execution_candidate(
+        let direct = direct_execution_candidate(
           site, policy, window_candidate, watermark_candidate,
         )
+        match direct {
+          Ok(None) =>
+            text_rank_execution_check(
+              site,
+              lexical_selections.get(
+                (site.stage, site.producer_visit, site.step),
+              ),
+              policy,
+            )
+          other => other
+        }
       }
       other => other
     }
