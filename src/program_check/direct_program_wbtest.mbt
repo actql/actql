@@ -40,6 +40,7 @@ fn checked_direct_program_fixture(
   graph_steps? : String = "",
   graph_right? : Bool = false,
   graph_resources? : Bool = true,
+  graph_components? : Bool = false,
   numeric_profile? : @numeric.Profile? = None,
 ) -> CheckedProgram raise {
   let original_text =
@@ -414,7 +415,9 @@ fn checked_direct_program_fixture(
     max_nodes: 0,
     max_depth: 0,
   }).unwrap()
-  let sources = if vector_steps != "" {
+  let sources = if graph_components {
+    local_components_capacity_fixture(environment, 1)
+  } else if vector_steps != "" {
     local_join_capacity_fixture(environment, 1000, 1)
   } else if sequence_body != "" {
     local_sequence_capacity_fixture(
@@ -455,7 +458,9 @@ fn checked_direct_program_fixture(
         [
           @context.CapacityMaterial::{
             sources,
-            consumers: if vector_steps != "" {
+            consumers: if graph_components {
+              [@capacity.Components(step=3, nodes=0, output=1)]
+            } else if vector_steps != "" {
               [@capacity.Join(step=1, output=0)]
             } else if sequence_body != "" {
               [

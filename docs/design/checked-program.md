@@ -625,6 +625,14 @@ and canonical absent labels are structural interpretation, not new authored
 values. Construction admission, endpoint closure, payload agreement and the
 selected three-part construction envelope remain separate owned execution checks.
 
+Graph normalization, degree and components preserve input-policy participation
+through their exact owned operation. Authored component output guards and bounds
+report thresholds add unproven value provenance without replacing known input
+references. The component capacity selection and its node/output proof operands
+remain independently required; preserving policy never supplies a missing bound.
+Normalization and structural reports do not establish execution, completeness or
+authority to publish a Graph observation.
+
 Result imports retain the producer's completed publication through
 `publication_policy_import_count/at`, including the consumer input coordinate.
 `imported_publication` is a convenience only for exactly one import.
