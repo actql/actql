@@ -103,6 +103,7 @@ fn check_supported_source(
               | "match_edges"
               | "subgraph"
               | "traverse"
+              | "reach"
               | "node_rows"
               | "edge_rows"
               | "values" => ()

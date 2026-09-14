@@ -13,28 +13,45 @@ fn traversal_limits_check(
   limits : @step_bounds.TraversalLimits,
   policy : @policy.Policy,
 ) -> Result[OperationExecutionCheck, OperationResolutionIndexIssue] {
-  guard site.requirement is @pipeline.TraverseRequirement(requirement) &&
-    (
-      requirement == @graph.ResolveTraversalResources ||
-      requirement == @graph.EnforceTraversalOutputGuard
-    ) &&
-    site.group == 0 &&
+  guard site.group == 0 &&
     @pipeline.operation_obligations_scope(site.obligations) == @pipeline.Body &&
     @pipeline.step_at(site.pipeline, site.step) is Some(step) &&
-    step.operation is @pipeline.Traverse(checked=operation, ..) &&
-    @graph.traverse_pending_at(operation, site.index) == Some(requirement) &&
     physical_equal(@step_bounds.traversal_limit_pipeline(limits), site.pipeline) &&
     @step_bounds.traversal_limit_step(limits) == site.step &&
     physical_equal(@step_bounds.traversal_limit_policy(limits), policy) else {
     return Err(ForeignOccurrence(site.step))
   }
-  if requirement == @graph.EnforceTraversalOutputGuard {
-    guard @step_bounds.traversal_limit_guard_value(limits) is Some(_) else {
-      return Err(ForeignOccurrence(site.step))
+  let check : TraversalLimitsCheck = { site, step, limits, }
+  match (site.requirement, step.operation) {
+    (
+      @pipeline.ReachRequirement(ResolveReachResources),
+      @pipeline.Reach(operation),
+    ) =>
+      if @graph.reach_pending_at(operation, site.index) ==
+        Some(ResolveReachResources) {
+        Ok(ReachLimits(check))
+      } else {
+        Err(ForeignOccurrence(site.step))
+      }
+    (
+      @pipeline.TraverseRequirement(requirement),
+      @pipeline.Traverse(checked=operation, ..),
+    ) => {
+      if @graph.traverse_pending_at(operation, site.index) != Some(requirement) {
+        return Err(ForeignOccurrence(site.step))
+      }
+      match requirement {
+        ResolveTraversalResources => Ok(TraversalLimits(check))
+        EnforceTraversalOutputGuard =>
+          if @step_bounds.traversal_limit_guard_value(limits) is Some(_) {
+            Ok(TraversalOutputGuard(check))
+          } else {
+            Err(ForeignOccurrence(site.step))
+          }
+        _ => Err(ForeignOccurrence(site.step))
+      }
     }
-    Ok(TraversalOutputGuard({ site, step, limits, }))
-  } else {
-    Ok(TraversalLimits({ site, step, limits, }))
+    _ => Err(ForeignOccurrence(site.step))
   }
 }
 
@@ -44,10 +61,11 @@ fn traversal_limits_candidate(
   site : OperationRequirementSite,
 ) -> Result[OperationExecutionCheck?, OperationResolutionIndexIssue] {
   guard site.requirement
-    is @pipeline.TraverseRequirement(
+    is (@pipeline.TraverseRequirement(
       ResolveTraversalResources
       | EnforceTraversalOutputGuard
-    ) else {
+    )
+    | @pipeline.ReachRequirement(ResolveReachResources)) else {
     return Ok(None)
   }
   let stages = requirements.expressions.identity.sources.operations.preparation.profiles.context.selected.context.wired.stages

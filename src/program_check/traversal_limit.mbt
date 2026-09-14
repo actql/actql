@@ -60,6 +60,11 @@ fn assemble_traversal_limit(
     raise ForeignOwner
   }
   let applications = @step_bounds.traversal_limit_program(selected.limits)
+  let operation_name = match selected.step.operation {
+    @pipeline.Traverse(..) => "traverse"
+    @pipeline.Reach(_) => "reach"
+    _ => raise ForeignOwner
+  }
   let guard_witness = match
     @step_bounds.traversal_limit_guard_value(selected.limits) {
     None => None
@@ -83,7 +88,7 @@ fn assemble_traversal_limit(
   let (limits, proofs) = assemble_operation_capacity_limits(
     units,
     applications,
-    unit_operation_subject(source, budget) + "/traverse/",
+    unit_operation_subject(source, budget) + "/" + operation_name + "/",
     [
       (
         @step_bounds.traversal_limit_claim(
@@ -136,7 +141,7 @@ fn prepare_program_traversal_limits(
   for index in 0..<@context.operation_closure_count(closure) {
     identity_charge(remaining, 1)
     guard @context.operation_closure_at(closure, index)
-      is Some(ExecutionCheck(TraversalLimits(selected))) else {
+      is Some(ExecutionCheck(TraversalLimits(selected) | ReachLimits(selected))) else {
       continue
     }
     let site = selected.site

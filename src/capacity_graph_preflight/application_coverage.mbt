@@ -71,7 +71,7 @@ pub fn check_application_coverage(
           if components is None && @graph.operation(op) == @graph.Components {
             return Err(MissingComponentsApplications(i))
           }
-        @pipeline.Traverse(..) =>
+        @pipeline.Traverse(..) | @pipeline.Reach(_) =>
           if traversals is None {
             return Err(MissingTraversalApplications(i))
           }

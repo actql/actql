@@ -7285,6 +7285,28 @@
       }
     },
     {
+      "requirement_id": "actql.language/resolved-limits.unit-reach-subject",
+      "statement_sha256": "c1bbfa2907592aedf9c1f92d49cc34df5875e573244b2279ecb3b445ec5ce91b",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "resolved-limits",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/resolved-limits.unit-reach-candidates",
+      "statement_sha256": "a0ecadf3d442f9ba93f4a71054810c003fd8847c7d84eb70fce55649c4df56d0",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "resolved-limits",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.language/resolved-limits.unit-sequence-subject",
       "statement_sha256": "4030845ca776145517f0f8f42c8ff0a57aeca0736c421cbabd4ecd9baabccedc",
       "status": "pending",

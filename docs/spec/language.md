@@ -8195,6 +8195,25 @@ The path-exploration limit is unchanged. Canonical candidate sorting and CID
 recomputation follow the traversal conversion rule above; this does not certify
 that runtime enforcement or traversal has occurred.
 
+<!-- requirement-block: resolved-limits.unit-reach-subject resolved-limits.unit-reach-candidates -->
+A reach operation's persistent resolved limits MUST use
+`unit:<unit_definition_cid>#/steps/<ordinal>/reach/paths` for quantity `paths`
+and the same prefix ending in `/reach/output` for quantity `rows`. Its bounded
+node-emitting traversal expansion requires both the selected path-exploration
+ceiling and output-row ceiling. The authored maximum depth does not replace either
+ceiling. Limits identify the original reach operation in the producer Unit, not
+an invented authored traverse step or an importing consumer. Enforce the path
+ceiling during exploration and reject the entire operation on either breach.
+
+Conversion MUST preserve the admitted applicable candidates, quantities, minima,
+selected policy and producer dependencies, following the traversal conversion
+rules for rebuilding Program proofs, retaining unchanged Host witnesses and
+sorting repeated candidate occurrences without deduplication. No output guard is
+synthesized for the closed reach body. Rebuild the limit CIDs from their canonical
+bodies without self CIDs; both limits remain outside Unit Definition identity.
+Expansion journaling, Graph admission, start membership and actual traversal
+remain separate requirements, not guarantees supplied by these limits.
+
 <!-- requirement-block: resolved-limits.unit-sequence-subject resolved-limits.unit-sequence-correspondence -->
 A sequence's persistent resolved limits MUST use
 `unit:<unit_definition_cid>#/steps/<ordinal>/sequence/matches-per-key` for

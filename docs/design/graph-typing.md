@@ -365,6 +365,22 @@ contract. Any failed check rejects the whole operation output. These bindings do
 not resolve exploration/output capacity or manufacture evidence of traversal,
 uniqueness or ordering at compile time.
 
+The traversal capacity ledger also covers reach's node-emitting expansion.
+`ReachLimits` binds the exact reach step to distinct path and output ceilings;
+missing ledger entries are not accepted merely because no limit artifact was
+supplied. Local candidate subjects use `reach:checked-step:<ordinal>` (with
+`:paths` for exploration), never a substitute traverse occurrence. The current
+reach candidate checker admits the applicable selected Host ceilings; it does not
+invent a Program row-bound law or reinterpret Graph node quantities as rows.
+
+The retained `unit_traversal_limit_count/at` readers cover both authored traverse
+and reach operations. Their selected step identifies the operation kind. Reach
+claims use the normative `/reach/paths` and `/reach/output` Unit scopes; this
+fixes the previously unspecified persistent naming without creating an authored
+traverse step. Imported consumers retain the producer Unit identity. Conversion
+preserves Host CIDs and scope minima, never synthesizes a guard, and neither
+proves membership nor executes the expansion. Backend support remains separate.
+
 ## Typed graph equality
 
 `graphs_equal: {with: name}` resolves both Graph inputs and returns the complete

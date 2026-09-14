@@ -24,6 +24,8 @@ pub(all) enum TraversalLimitIssue {
 ///|
 /// Both local limits retain their source and application owners. This does not
 /// discharge runtime enforcement or the enclosing pipeline's remaining limits.
+/// Covers authored traverse and reach's bounded traversal expansion; operation
+/// subjects remain distinct and reach does not acquire an authored output guard.
 struct TraversalLimits {
   pipeline : @pipeline.CheckedPipeline
   step : Int
@@ -57,10 +59,17 @@ pub fn check_traversal_limits(
   guard @pipeline.step_at(pipeline, step) is Some(checked) else {
     return Err(InvalidStep)
   }
-  guard checked.operation is @pipeline.Traverse(checked=op, ..) else {
-    return Err(WrongOperation)
+  let (operation_name, authored_guard, output_law) = match checked.operation {
+    @pipeline.Traverse(checked=op, ..) =>
+      (
+        "traverse",
+        @graph.traverse_output_guard(op),
+        Some("actql.bound.traverse-nodes"),
+      )
+    @pipeline.Reach(_) => ("reach", None, None)
+    _ => return Err(WrongOperation)
   }
-  if guards is None && @graph.traverse_output_guard(op) is Some(_) {
+  if guards is None && authored_guard is Some(_) {
     return Err(UnresolvedAuthorSource)
   }
   if !physical_equal(@host.source_claims(sources), program.claims) {
@@ -75,7 +84,7 @@ pub fn check_traversal_limits(
   guard @wire.mixed_limit_at(mixed, rows_index) is Some(rows) else {
     return Err(MissingLimit(OutputRows))
   }
-  let subject = "traverse:checked-step:" + step.to_string()
+  let subject = operation_name + ":checked-step:" + step.to_string()
   let mut work = 0
   let mut output_guard = None
   if guards is Some(bound) {
@@ -95,8 +104,7 @@ pub fn check_traversal_limits(
         output_guard = Some(index)
       }
     }
-    if (@graph.traverse_output_guard(op) is Some(_)) !=
-      (output_guard is Some(_)) {
+    if (authored_guard is Some(_)) != (output_guard is Some(_)) {
       return Err(MissingGuard)
     }
   }
@@ -118,7 +126,7 @@ pub fn check_traversal_limits(
         @arithmetic.Rows,
         Some("max_graph_output_rows"),
         false,
-        Some("actql.bound.traverse-nodes"),
+        output_law,
       ),
     ] {
     if @wire.limit_subject(limit) != subject + suffix {

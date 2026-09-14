@@ -64,6 +64,7 @@ pub fn close_program_operations(
           GraphResources(v) => v.site
           ComponentsLimits(v) => v.site
           TraversalLimits(v) => v.site
+          ReachLimits(v) => v.site
           TraversalOutputGuard(v) => v.site
           TraversalExecution(v) => v.site
           ReachExecution(v) => v.site

@@ -43,6 +43,7 @@ fn local_construction_fixture(
   graph_construction_limit? : Int? = None,
   components_capacity_rows? : Int? = None,
   traversal_capacity? : Bool = false,
+  traversal_kind? : String = "traverse",
   graph_output_limit? : Int? = None,
   graph_input_limit? : Int? = None,
   calendar? : Bool = false,
@@ -347,7 +348,10 @@ fn local_construction_fixture(
   })
   let traversal_sources = if traversal_capacity {
     Some(
-      local_traversal_capacity_fixture(environment) catch {
+      local_traversal_capacity_fixture(
+        environment,
+        operation_name=traversal_kind,
+      ) catch {
         _ => abort("invalid traversal test material")
       },
     )

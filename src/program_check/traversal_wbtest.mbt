@@ -1,6 +1,7 @@
 ///|
 fn local_traversal_capacity_fixture(
   environment : @environment.WireEnvironment,
+  operation_name? : String = "traverse",
 ) -> @host.HostSources raise @encode.EncodeFailure {
   let policy = @environment.capacity_policy(
     @environment.read_capacity(environment, {
@@ -36,7 +37,9 @@ fn local_traversal_capacity_fixture(
       text +
       "],\"effective_max\":" +
       @policy.ceiling_value(ceiling).to_string() +
-      ",\"enforcement\":\"engine_atomic\",\"subject_ref\":\"traverse:checked-step:3" +
+      ",\"enforcement\":\"engine_atomic\",\"subject_ref\":\"" +
+      operation_name +
+      ":checked-step:3" +
       suffix +
       "\",\"unit\":\"" +
       unit +

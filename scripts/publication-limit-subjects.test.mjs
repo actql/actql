@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import {componentLimitModel} from './components-limit-model.mjs';
 import {traversalLimitModel} from './traversal-limit-model.mjs';
+import {reachLimitModel} from './reach-limit-model.mjs';
 
 const read = (path) => JSON.parse(readFileSync(new URL(path, import.meta.url), 'utf8'));
 const vectors = read('../portability/corpus/publication-limit-subjects.json');
@@ -17,6 +18,21 @@ function canonical(value) {
   return value;
 }
 const cid = (value) => `sha256:${createHash('sha256').update(JSON.stringify(canonical(value))).digest('hex')}`;
+
+test('reach capacity retains its authored operation namespace rather than a synthetic traverse', () => {
+  for (const {unit,cap,...expected} of read('../portability/corpus/reach-limit-subjects.json').cases) {
+    const policy=Object.fromEntries(policyContract.schema.required.filter(k=>k!=='version').map(k=>[k,1000]));
+    Object.assign(policy,{version:'actql-capacity-host-policy/0.1',max_graph_construction_input_rows:1000,max_graph_construction_nodes:1000,max_graph_construction_edges:1000,max_graph_output_rows:cap});
+    const {limits,...actual}=reachLimitModel(policy,unit);
+    assert.deepEqual(actual,expected);
+    const expanded=traversalLimitModel(policy,unit);
+    assert.deepEqual(actual.host_cids,expanded.host_cids);
+    assert.notDeepEqual(actual.limit_cids,expanded.limit_cids);
+    const repeated=reachLimitModel(policy,unit,true);
+    assert.deepEqual(repeated.limits.map(l=>l.effective_max),limits.map(l=>l.effective_max));
+    assert.notDeepEqual(repeated.limit_cids,actual.limit_cids);
+  }
+});
 
 test('traversal authored guards preserve non-binding candidates and independent search scopes', () => {
   const policy=Object.fromEntries(policyContract.schema.required.filter(k=>k!=='version').map(k=>[k,1000]));

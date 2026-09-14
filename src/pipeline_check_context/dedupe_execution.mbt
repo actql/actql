@@ -20,6 +20,7 @@ pub(all) enum OperationExecutionCheck {
   GraphResources(GraphResourcesCheck)
   ComponentsLimits(ComponentsLimitsCheck)
   TraversalLimits(TraversalLimitsCheck)
+  ReachLimits(TraversalLimitsCheck)
   TraversalOutputGuard(TraversalLimitsCheck)
   TraversalExecution(TraversalCheck)
   ReachExecution(ReachCheck)
@@ -133,6 +134,7 @@ pub fn operation_execution_phase(
       }
     ComponentsLimits(_)
     | TraversalLimits(_)
+    | ReachLimits(_)
     | TraversalOutputGuard(_)
     | GraphResources(_) => BeforeOperationOutput
     ReachExecution(v) =>
@@ -270,6 +272,7 @@ pub fn operation_execution_failure(
     | GraphResources(_)
     | ComponentsLimits(_)
     | TraversalLimits(_)
+    | ReachLimits(_)
     | TraversalOutputGuard(_)
     | TraversalExecution(_)
     | ReachExecution(_)
