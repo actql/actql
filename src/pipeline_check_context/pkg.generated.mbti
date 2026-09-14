@@ -436,6 +436,8 @@ pub fn link_program_interval_search_limits(ProgramOperationResolutionIndex, Int,
 
 pub fn link_program_join_requirements(ProgramOperationResolutionIndex, Int, Int) -> Result[ProgramOperationResolutionIndex, JoinRequirementIssue]
 
+pub fn link_program_nest_item_limits(ProgramOperationResolutionIndex, Int, Int, Int) -> Result[ProgramOperationResolutionIndex, GroupArrayLimitIssue]
+
 pub fn link_program_numeric_slots(ProgramOperationResolutionIndex, ProgramNumericSlots, Int, Int) -> Result[ProgramOperationResolutionIndex, NumericSlotsIssue]
 
 pub fn link_program_operation_orders(ProgramOperationRequirements, Int, Int) -> Result[ProgramOperationOrders, OperationOrderIssue]
@@ -471,6 +473,10 @@ pub fn measure_operation_values_rows(ProgramOperationCells, Int, Int, Int, Int) 
 pub fn nearest_resource_at(NearestCheck, Int) -> NearestResource?
 
 pub fn nearest_resource_count(NearestCheck) -> Int
+
+pub fn nest_item_candidate_at(NestItemLimit, Int) -> @capacity_graph_preflight.TargetMembership?
+
+pub fn nest_item_candidate_count(NestItemLimit) -> Int
 
 pub fn numeric_slot_at(ProgramNumericSlots, Int) -> NumericSlot?
 
@@ -857,6 +863,8 @@ pub fn select_analytic_string_limit(ProgramOperationResolutionIndex, Int, Int, I
 pub fn select_group_array_limit(ProgramOperationResolutionIndex, Int, Int, Int) -> Result[GroupArrayLimit, GroupArrayLimitIssue]
 
 pub fn select_group_string_limit(ProgramOperationResolutionIndex, Int, Int, Int) -> Result[GroupStringLimit, GroupStringLimitIssue]
+
+pub fn select_nest_item_limit(ProgramOperationResolutionIndex, Int, Int, Int) -> Result[NestItemLimit, GroupArrayLimitIssue]
 
 pub fn select_publication_row_limit(ProgramPublicationClosure, Int, Int, Int) -> Result[PublicationRowLimit, PublicationRowLimitIssue]
 
@@ -2146,6 +2154,21 @@ pub(all) enum NestExecutionRule {
   PreserveNestedDependencies
 } derive(Eq, @debug.Debug)
 
+pub struct NestItemLimit {
+  owner : ProgramOperationResolutionIndex
+  requirement : Int
+  site : OperationRequirementSite
+  operation : @relation_nest.CheckedNest
+  parent : @pipeline_typing.Target
+  child : @pipeline_typing.Target
+  host : @capacity_policy.Ceiling
+  guard_value : Int64?
+  guard_resolution : OperationScalarResolution?
+  maximum : Int64
+  work : Int
+  // private fields
+}
+
 pub struct NumericSlot {
   requirement_index : Int
   site : OperationRequirementSite
@@ -2210,6 +2233,7 @@ pub(all) enum OperationDisposition {
 }
 
 pub(all) enum OperationExecutionCheck {
+  NestItems(NestItemLimit)
   NestExecution(NestExecutionCheck)
   GraphSelectorExecution(GraphSelectorCheck)
   SubgraphExecution(SubgraphCheck)

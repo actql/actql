@@ -11,6 +11,7 @@ pub struct DedupeTopTieCheck {
 
 ///|
 pub(all) enum OperationExecutionCheck {
+  NestItems(NestItemLimit)
   NestExecution(NestExecutionCheck)
   GraphSelectorExecution(GraphSelectorCheck)
   SubgraphExecution(SubgraphCheck)
@@ -90,6 +91,7 @@ pub fn operation_execution_phase(
   v : OperationExecutionCheck,
 ) -> ExecutionCheckPhase {
   match v {
+    NestItems(_) => BeforeOperationOutput
     NestExecution(_) => BeforeOperationOutput
     GraphSelectorExecution(v) =>
       match v.rule {
@@ -386,6 +388,7 @@ pub fn operation_execution_failure(
   v : OperationExecutionCheck,
 ) -> ExecutionCheckFailure {
   match v {
+    NestItems(_) => RejectOperationOutput
     NestExecution(_) => RejectOperationOutput
     GraphSelectorExecution(_)
     | SubgraphExecution(_)

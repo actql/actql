@@ -4,6 +4,7 @@ fn prepared_keyed_source_context(
   artifact_rows? : Int = 1,
   host_first? : Bool = false,
   array_group? : Bool = false,
+  nest_items? : Bool = false,
   aggregate_items? : Int = 1,
   window_body? : String? = None,
   window_events? : Bool = false,
@@ -105,6 +106,11 @@ fn prepared_keyed_source_context(
           }) +
           window_body +
           "}}],\"results\":{\"out\":{\"from\":\"seed\"",
+      )
+    } else if nest_items {
+      text.replace(
+        old="}],\"results\":{\"out\":{\"from\":\"seed\"",
+        new="},{\"from\":\"seed\",\"nest\":{\"with\":\"seed\",\"on\":[{\"left\":\"id\",\"right\":\"id\"}],\"into\":\"items\",\"fields\":[\"id\"],\"max_items\":3}}],\"results\":{\"out\":{\"from\":\"seed\"",
       )
     } else if array_group {
       text.replace(

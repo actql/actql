@@ -1342,6 +1342,22 @@ order evidence, choose a Host-only replacement for a tighter bound or defer a
 statically excessive depth to runtime. The formal constructor must close those
 requirements independently before accepting a Program containing `nest`.
 
+`NestItemLimit` selects the minimum of the selected Host array-item ceiling,
+the optional bound author guard and all applicable child row-bound candidates.
+It retains non-binding guards and original cross-visit candidate memberships;
+equal numeric values do not collapse different evidence owners. Every child
+array is a subset of the supplied child rows, even when correlation pairs repeat.
+Thus a child-total bound can constrain each array without proving uniqueness of
+the parent's correlation key. This does not license using that same bound for
+the total payload repeated across parents: that separate expansion calculation
+still needs the specified parent correlation uniqueness evidence.
+
+Candidate search, skipped claim slots, bound-Parameter lookup and result
+construction consume one shared preparation budget. The item linker produces
+atomic enforcement obligations, not observed counts or permission to truncate.
+The bound of the generated typed empty constant remains a separate fixed fact;
+it is not replaced by the selected bound for matched child arrays.
+
 ## Identity boundaries
 
 [Local contract closure](local-contract-closure.md) separates the selected
