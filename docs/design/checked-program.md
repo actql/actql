@@ -565,6 +565,14 @@ the checked aggregate provenance traversal, while retaining its distinct
 WindowGroup operation and boundary roles. Window membership, expansion limits
 and aggregate execution checks remain attached to the original owned operations.
 
+Sequence publication retains the whole input policy even though only captured
+identities, times and grouping fields appear in its output. Pattern predicates
+can affect match selection without their fields being published. The owned
+Sequence operation is exposed through the Carrier-step reader; predicate walks
+share the preparation budget. Required within values and any authored guards
+are not policy attestations. Match selection, input identity validation and both
+atomic match limits remain separate execution obligations on that operation.
+
 Result imports retain the producer's completed publication through
 `publication_policy_import_count/at`, including the consumer input coordinate.
 `imported_publication` is a convenience only for exactly one import.

@@ -30,6 +30,8 @@ fn checked_direct_program_fixture(
   temporal_step? : String = "",
   event_kind? : String = "",
   window_steps? : String = "",
+  sequence_body? : String = "",
+  sequence_events? : Bool = false,
   numeric_profile? : @numeric.Profile? = None,
 ) -> CheckedProgram raise {
   let original_text =
@@ -39,7 +41,20 @@ fn checked_direct_program_fixture(
     new="\"" + input_name + "\"",
   )
   let program = @syntax.parse(
-    if window_steps != "" {
+    if sequence_body != "" {
+      text.replace(
+        old="\"steps\":[",
+        new="\"steps\":[" +
+          (if sequence_events {
+            "{\"to_events\":{\"id\":\"id\",\"time\":\"extra\"}},"
+          } else {
+            ""
+          }) +
+          "{\"sequence\":" +
+          sequence_body +
+          "},{\"select\":[{\"id\":\"a_id\"}]},",
+      )
+    } else if window_steps != "" {
       text.replace(old="\"steps\":[", new="\"steps\":[" + window_steps + ",")
     } else if event_kind != "" {
       let middle = match event_kind {
@@ -334,7 +349,17 @@ fn checked_direct_program_fixture(
     max_nodes: 0,
     max_depth: 0,
   }).unwrap()
-  let sources = if (join_kind != "" || temporal_step != "") && join_capacity {
+  let sources = if sequence_body != "" {
+    local_sequence_capacity_fixture(
+      environment,
+      1,
+      if sequence_events {
+        1
+      } else {
+        0
+      },
+    )
+  } else if (join_kind != "" || temporal_step != "") && join_capacity {
     if temporal_step != "" {
       local_join_capacity_fixture(environment, 1, 4, proofs=[
         temporal_policy_top_k_claim(1),
@@ -363,8 +388,15 @@ fn checked_direct_program_fixture(
         [
           @context.CapacityMaterial::{
             sources,
-            consumers: if (join_kind != "" || temporal_step != "") &&
-              join_capacity {
+            consumers: if sequence_body != "" {
+              [
+                @capacity.Sequence(
+                  step=if sequence_events { 1 } else { 0 },
+                  matches=0,
+                  output=1,
+                ),
+              ]
+            } else if (join_kind != "" || temporal_step != "") && join_capacity {
               [
                 @capacity.Join(
                   step=if temporal_step != "" { 4 } else { 2 },
@@ -382,12 +414,15 @@ fn checked_direct_program_fixture(
     {
       rela: true,
       sga: false,
-      tea: temporal_step != "" || event_kind != "" || window_steps != "",
+      tea: temporal_step != "" ||
+      event_kind != "" ||
+      window_steps != "" ||
+      sequence_body != "",
       calendar: false,
       text_rank: false,
     },
     source_limits_fixture(
-      if temporal_step != "" || window_steps != "" {
+      if temporal_step != "" || window_steps != "" || sequence_body != "" {
         6
       } else if join_kind != "" ||
         mix_generated ||

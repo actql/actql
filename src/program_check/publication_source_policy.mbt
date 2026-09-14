@@ -783,6 +783,28 @@ fn prepare_publication_source_policy(
             unknown = unknown || missing
             1
           }
+          @pipeline.Sequence(operation) => {
+            for pattern in 0..<@relation.sequence_pattern_count(operation) {
+              identity_charge(budget, 1)
+              ignore(
+                publication_expression_unknown(
+                  @relation.sequence_pattern_at(operation, pattern).unwrap().predicate,
+                  budget,
+                ),
+              )
+            }
+            identity_charge(budget, 1)
+            // The required within value already lacks a policy attestation.
+            // Still account for every predicate, including nonmatching events'
+            // selection contributions, instead of stopping at that first fact.
+            carrier_steps.push({
+              step: index,
+              operation: step.operation,
+              unknown_provenance: true,
+            })
+            unknown = true
+            1
+          }
           @pipeline.Window(_) => {
             identity_charge(budget, 1)
             carrier_steps.push({
