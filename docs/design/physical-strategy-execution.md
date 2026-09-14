@@ -128,14 +128,24 @@ requires the exact owned allocation, not equality of its contents or CID.
 Upstream revocation prevents new consumers but does not invalidate a consumer
 which already established its independent completion. No public lease is added.
 
-The standard Node Compute path reserves its result-retention envelope before
-starting. It derives this capacity from the exact configured admission limits:
+The common DAG Compute start, used by the standard Node path, creates a private
+reservation before admission or native work. It binds the exact run/task/current
+selection, candidate, attempt and concrete limits; no externally created, closed,
+foreign-ledger or reused reservation is accepted. The Host supplies the enforced
+native execution and serialized-transfer ceilings, not an estimate. Both must be
+positive for this protocol. Calculated MoonBit scratch and retention are added by
+the common boundary, and the initial reservation must fit the selected envelope
+and ledger. Later transfer consumption is not confused with initial admission.
+It derives retention capacity from the exact configured admission limits:
 256 bytes per permitted retained value node, physical output row and completion
 metadata entry, plus eight per retained text/name UTF-8 byte. These are declared
 container allowances, not observed heap size. Native settlement releases transfer
 and execution reservations separately; it does not release provisional or completed
 result capacity. Successful completion transfers that reservation to an exact
-holding token without a second charge. Failure disposes provisional material and
+holding token in the same operation that records task success, without a second
+charge or an externally visible unheld success. Node forwards charges and cleanup
+acknowledgements to this common owner rather than managing a second reservation.
+Failure disposes provisional material and
 settles the remaining reservation only after native cleanup confirmation.
 
 The same immutable Compute configuration supplies a separate MoonBit working
@@ -259,8 +269,8 @@ work. Reports retain infeasible combinations and their resource rejection, not
 only the winner. Transfer envelopes add per actual task; retention is conservatively
 summed without assuming future release or sharing; serial execution memory takes
 the maximum envelope. Existing consumption, holdings and pending reservations
-reduce available capacity. The Node start also checks its requested transfer and
-DB-memory ceilings against the selected envelope before reserving resources.
+reduce available capacity. The common start also checks its concrete transfer,
+retention and execution capacities against the selected envelope before reserving.
 
 Re-evaluation requires a completion generation or physical resource-state change.
 Merely spending planning work or submitting different prices does not create new

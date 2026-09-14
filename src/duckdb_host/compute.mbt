@@ -68,6 +68,8 @@ pub fn configured_strategy_compute_ledger(
 pub fn start_configured_strategy_compute_host(
   setup : StrategyComputeHostConfiguration,
   verify : (@planning.DuckDBComputeAttempt) -> Bool,
+  transfer_bytes : Int64,
+  execution_bytes : Int64,
 ) -> Result[@planning.DuckDBComputeAttempt, @strategy.RunIssue] {
   let c = setup.compute
   @strategy.start_captured_duckdb_task(
@@ -77,6 +79,9 @@ pub fn start_configured_strategy_compute_host(
     c.prepared,
     c.generated,
     c.limits,
+    c.transport,
+    transfer_bytes,
+    execution_bytes,
     verify,
   )
 }

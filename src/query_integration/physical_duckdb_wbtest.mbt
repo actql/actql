@@ -4,6 +4,17 @@ fn captured_graph_duckdb_start(
   task : Int,
   transport : FixedComputeTestTransport,
 ) -> @planning.DuckDBComputeAttempt raise {
+  captured_graph_duckdb_try_start(run, task, transport).unwrap()
+}
+
+///|
+fn captured_graph_duckdb_try_start(
+  run : @strategy.CapturedDAG,
+  task : Int,
+  transport : FixedComputeTestTransport,
+  transfer_bytes? : Int64 = 100000L,
+  execution_bytes? : Int64 = 1000000L,
+) -> Result[@planning.DuckDBComputeAttempt, @strategy.RunIssue] raise {
   let input = @strategy.captured_task_input(run, task, 100, 10000).unwrap()
   let request = @planning.prepare_fixed_compute_request(input, {
     contract_cid: "sha256:7d59718b965451d8a19ccf7095b92777ba0cdd8c3bb71f437ab387801fe7271f",
@@ -42,10 +53,13 @@ fn captured_graph_duckdb_start(
     prepared,
     query_generated(@execution.producer_read_receiver(input)),
     fixed_compute_attempt_limits(),
+    dispatch_test_limits().transport,
+    transfer_bytes,
+    execution_bytes,
     current => {
       transport.settled is Some(expected) && physical_equal(current, expected)
     },
-  ).unwrap()
+  )
 }
 
 ///|
@@ -85,6 +99,7 @@ test "checked capture DAG supports every Local DuckDB assignment with independen
             )
             captured_graph_duckdb_receive(attempt, task)
             transport.settled = Some(attempt)
+            @strategy.settle_captured_duckdb_native(run, attempt, true).unwrap()
             @strategy.complete_captured_duckdb_task(run, attempt).unwrap()
             assert_true(
               @strategy.complete_captured_duckdb_task(run, attempt)
@@ -148,6 +163,7 @@ test "DAG rejects foreign incomplete revoked and cancelled DuckDB completions" {
     if mode == 1 {
       transport.settled = None
     }
+    @strategy.settle_captured_duckdb_native(run, attempt, true).unwrap()
     assert_true(@strategy.complete_captured_duckdb_task(run, attempt) is Err(_))
     assert_true(@strategy.captured_task_output(run, 1, Step(1)) is None)
     assert_true(@strategy.next_captured_task(run) is None)

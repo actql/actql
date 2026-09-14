@@ -113,7 +113,7 @@ fn collect_captured_retention(run : CapturedDAG) -> Unit {
 
 ///|
 /// Invoke only after the original Host confirms stopped/cleaned native work.
-pub fn captured_cleanup_confirmed(
+fn captured_cleanup_confirmed(
   run : CapturedDAG,
   attempt : @planning.DuckDBComputeAttempt,
 ) -> Unit {

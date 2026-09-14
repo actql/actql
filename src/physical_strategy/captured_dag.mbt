@@ -12,6 +12,7 @@ struct CapturedDAG {
   resources : Array[TaskRetention?]
   inputs : Array[@execution.ProducerRead?]
   mut running : (Int, @planning.DuckDBComputeAttempt)?
+  native_resources : Array[NativeTaskResources?]
   mut stopped : Bool
   mut failure : (Int, RunIssue)?
   mut generation : Int
@@ -112,6 +113,7 @@ pub fn open_captured_dag(
     stopped: false,
     failure: None,
     running: None,
+    native_resources: Array::make(count, None),
     generation: 0,
     search: None,
     revisions: 0,

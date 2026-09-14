@@ -3,10 +3,6 @@ struct ComputeNodeRun {
   attempt : @planning.DuckDBComputeAttempt
   transport : @duckdb.TransportColumnLimits
   strategy : (@strategy.CapturedDAG, Int)?
-  physical : (@strategy.Ledger, @strategy.Reservation)?
-  mut physical_settled : Bool
-  retention_bytes : Int64
-  scratch_bytes : Int64
   mut closed : Bool
 }
 
@@ -44,10 +40,6 @@ pub fn compute_host_open(
         attempt,
         transport: @host.configured_compute_transport(setup),
         strategy: None,
-        physical: None,
-        physical_settled: false,
-        retention_bytes: 0L,
-        scratch_bytes: 0L,
         closed: false,
       }
     Err(issue) => raise Compute(issue)
@@ -62,51 +54,18 @@ pub fn compute_strategy_host_open(
   transfer_bytes : Int64,
   execution_bytes : Int64,
 ) -> ComputeNodeRun raise NodeHostFailure {
-  let ledger = @host.configured_strategy_compute_ledger(setup)
-  let (graph, task) = @host.configured_strategy_compute_graph(setup)
-  guard @host.configured_strategy_retention_capacity(setup)
-    is Some(retention_bytes) else {
-    raise Physical(InvalidLimits)
-  }
-  guard @host.configured_strategy_scratch_capacity(setup) is Some(scratch_bytes) else {
-    raise Physical(InvalidLimits)
-  }
-  if execution_bytes < 0L ||
-    execution_bytes > 9223372036854775807L - scratch_bytes {
-    raise Physical(InvalidLimits)
-  }
-  let execution_bytes = execution_bytes + scratch_bytes
-  if @strategy.strategy_task_envelope(graph, task) is Some(capacity) &&
-    (
-      transfer_bytes > capacity.transfer_bytes ||
-      execution_bytes > capacity.execution_bytes ||
-      retention_bytes > capacity.retained_bytes
+  match
+    @host.start_configured_strategy_compute_host(
+      setup, verify, transfer_bytes, execution_bytes,
     ) {
-    raise Physical(InvalidCharge)
-  }
-  let reservation = match
-    @strategy.reserve_attempt(
-      ledger, transfer_bytes, retention_bytes, execution_bytes,
-    ) {
-    Ok(reservation) => reservation
-    Err(issue) => raise Physical(issue)
-  }
-  match @host.start_configured_strategy_compute_host(setup, verify) {
     Ok(attempt) =>
       {
         attempt,
         transport: @host.configured_strategy_compute_transport(setup),
         strategy: Some(@host.configured_strategy_compute_graph(setup)),
-        physical: Some((ledger, reservation)),
-        physical_settled: false,
-        retention_bytes,
-        scratch_bytes,
         closed: false,
       }
-    Err(issue) => {
-      @strategy.settle_reservation(ledger, reservation) |> ignore
-      raise Strategy(issue)
-    }
+    Err(issue) => raise Strategy(issue)
   }
 }
 
@@ -116,8 +75,8 @@ pub fn compute_host_physical_charge(
   run : ComputeNodeRun,
   bytes : Int64,
 ) -> Unit raise NodeHostFailure {
-  if run.physical is Some((ledger, reservation)) {
-    match @strategy.charge_transfer(ledger, reservation, bytes) {
+  if run.strategy is Some((graph, _)) {
+    match @strategy.charge_captured_duckdb_transfer(graph, run.attempt, bytes) {
       Ok(_) => ()
       Err(issue) => raise Physical(issue)
     }
@@ -130,29 +89,11 @@ pub fn compute_host_physical_settle(
   run : ComputeNodeRun,
   confirmed : Bool,
 ) -> Unit raise NodeHostFailure {
-  if run.physical_settled {
-    return
-  }
-  if run.physical is Some((ledger, reservation)) {
-    let result = if confirmed {
-      if run.closed {
-        @strategy.settle_reservation(ledger, reservation)
-      } else {
-        @strategy.settle_execution_reservation(
-          ledger,
-          reservation,
-          remaining_execution=run.scratch_bytes,
-        )
-      }
-    } else {
-      @strategy.mark_cleanup_pending(ledger, reservation)
-    }
-    match result {
-      Ok(_) => if confirmed { run.physical_settled = true }
+  if run.strategy is Some((graph, _)) {
+    match
+      @strategy.settle_captured_duckdb_native(graph, run.attempt, confirmed) {
+      Ok(_) => ()
       Err(issue) => raise Physical(issue)
-    }
-    if confirmed && run.strategy is Some((graph, _)) {
-      @strategy.captured_cleanup_confirmed(graph, run.attempt)
     }
   }
 }
@@ -277,33 +218,10 @@ pub fn compute_host_complete(
   run : ComputeNodeRun,
 ) -> @execution.CompletedOutput raise NodeHostFailure {
   if run.strategy is Some((graph, task)) {
-    if !run.physical_settled {
-      raise InvalidCommand
-    }
-    guard run.physical is Some((ledger, reservation)) else {
-      raise InvalidCommand
-    }
-    let holding = match
-      @strategy.retain_allocation(ledger, reservation, run.retention_bytes) {
-      Ok(holding) => holding
-      Err(issue) => raise Physical(issue)
-    }
     match @strategy.complete_captured_duckdb_task(graph, run.attempt) {
-      Err(issue) => {
-        @strategy.release_allocation(ledger, holding) |> ignore
-        raise Strategy(issue)
-      }
+      Err(issue) => raise Strategy(issue)
       Ok(_) => ()
     }
-    match @strategy.retain_captured_task_allocation(graph, task, holding) {
-      Err(issue) => {
-        @strategy.release_allocation(ledger, holding) |> ignore
-        @strategy.close_captured_task_output(graph, task)
-        raise Physical(issue)
-      }
-      Ok(_) => ()
-    }
-    @strategy.settle_reservation(ledger, reservation) |> ignore
     guard @strategy.captured_task_output(graph, task, Step(1)) is Some(output) else {
       raise InvalidCommand
     }
@@ -332,13 +250,7 @@ pub fn compute_host_close(run : ComputeNodeRun) -> Unit {
   }
   run.closed = true
   @planning.close_duckdb_compute_attempt(run.attempt)
-  if run.strategy is Some((graph, task)) {
-    @strategy.close_captured_task_output(graph, task)
-    if run.physical_settled {
-      if run.physical is Some((ledger, reservation)) {
-        @strategy.settle_reservation(ledger, reservation) |> ignore
-      }
-      @strategy.captured_cleanup_confirmed(graph, run.attempt)
-    }
+  if run.strategy is Some((graph, _)) {
+    @strategy.close_captured_duckdb_task(graph, run.attempt)
   }
 }

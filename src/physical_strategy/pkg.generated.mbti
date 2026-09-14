@@ -15,8 +15,6 @@ import {
 }
 
 // Values
-pub fn captured_cleanup_confirmed(CapturedDAG, @query_planning.DuckDBComputeAttempt) -> Unit
-
 pub fn captured_dag_failure(CapturedDAG) -> (Int, RunIssue)?
 
 pub fn captured_dag_graph(CapturedDAG) -> CheckedDAG
@@ -33,9 +31,13 @@ pub fn captured_task_input(CapturedDAG, Int, Int, Int) -> Result[@execution_rela
 
 pub fn captured_task_output(CapturedDAG, Int, @pipeline_typing.Target) -> @execution_relation.CompletedOutput?
 
+pub fn charge_captured_duckdb_transfer(CapturedDAG, @query_planning.DuckDBComputeAttempt, Int64) -> Result[Unit, LedgerIssue]
+
 pub fn charge_planning(Ledger, Int) -> Result[Unit, LedgerIssue]
 
 pub fn charge_transfer(Ledger, Reservation, Int64) -> Result[Unit, LedgerIssue]
+
+pub fn close_captured_duckdb_task(CapturedDAG, @query_planning.DuckDBComputeAttempt) -> Unit
 
 pub fn close_captured_task_output(CapturedDAG, Int) -> Unit
 
@@ -44,6 +46,10 @@ pub fn complete_captured_duckdb_task(CapturedDAG, @query_planning.DuckDBComputeA
 pub fn configure_strategy_search(CapturedDAG, SearchLimits) -> Result[Unit, SearchIssue]
 
 pub fn create_ledger(LedgerLimits) -> Result[Ledger, LedgerIssue]
+
+pub fn duckdb_task_retention_capacity(@query_planning.DuckDBComputeLimits) -> Int64?
+
+pub fn duckdb_task_scratch_capacity(@query_planning.DuckDBComputeLimits, @duckdb_adapter.TransportColumnLimits) -> Int64?
 
 pub fn execute_captured_local_task(CapturedDAG, Int, @query_planning.FixedComputeChoice, @query_planning.PreparedCompute[@execution_relation.GeneratedSequence], @execution_relation.SequenceExecutionLimits, @execution_relation.FixedInputGuardMeasureLimits) -> Result[Unit, RunIssue]
 
@@ -91,11 +97,13 @@ pub fn retain_captured_task_allocation(CapturedDAG, Int, Holding) -> Result[Unit
 
 pub fn revise_strategy(CapturedDAG, Array[TaskOffer], @query_planning.CapabilityRegistry, Array[Int]?) -> Result[StrategyDecision, SearchIssue]
 
+pub fn settle_captured_duckdb_native(CapturedDAG, @query_planning.DuckDBComputeAttempt, Bool) -> Result[Unit, LedgerIssue]
+
 pub fn settle_execution_reservation(Ledger, Reservation, remaining_execution? : Int64) -> Result[Unit, LedgerIssue]
 
 pub fn settle_reservation(Ledger, Reservation) -> Result[Unit, LedgerIssue]
 
-pub fn start_captured_duckdb_task(CapturedDAG, Int, @query_planning.FixedComputeChoice, @query_planning.PreparedCompute[@duckdb_adapter.FixedCompute], @execution_relation.GeneratedSequence, @query_planning.DuckDBComputeLimits, (@query_planning.DuckDBComputeAttempt) -> Bool) -> Result[@query_planning.DuckDBComputeAttempt, RunIssue]
+pub fn start_captured_duckdb_task(CapturedDAG, Int, @query_planning.FixedComputeChoice, @query_planning.PreparedCompute[@duckdb_adapter.FixedCompute], @execution_relation.GeneratedSequence, @query_planning.DuckDBComputeLimits, @duckdb_adapter.TransportColumnLimits, Int64, Int64, (@query_planning.DuckDBComputeAttempt) -> Bool) -> Result[@query_planning.DuckDBComputeAttempt, RunIssue]
 
 pub fn stop_captured_dag(CapturedDAG) -> Unit
 
