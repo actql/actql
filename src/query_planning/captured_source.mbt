@@ -34,6 +34,20 @@ pub fn captured_source_available(source : CapturedInputSource) -> Bool {
 }
 
 ///|
+/// Restrict an already owned capture without replacing its original liveness
+/// checks or copying its retained data. This cannot construct a new observation.
+pub fn restrict_captured_source(
+  source : CapturedInputSource,
+  available : () -> Bool,
+) -> CapturedInputSource {
+  {
+    requirement: source.requirement,
+    output: source.output,
+    live: fn() { available() && (source.live)() },
+  }
+}
+
+///|
 pub fn captured_source_row_count(source : CapturedInputSource) -> Int? {
   if (source.live)() {
     Some(@execution.completed_row_count(source.output))

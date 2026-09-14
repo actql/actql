@@ -99,8 +99,14 @@ erase its checked completion record or restart it. Retention dependencies follow
 the checked fixed-input edges, including Local descendants which anchor upstream
 completion storage. A closed parent's holding remains while a completed child or
 in-flight native task needs it. Descendant release or confirmed failed-task cleanup
-allows a bounded reverse traversal to release unused ancestor holdings. Borrowed
-acquisition storage remains the caller's responsibility. A trusted Host exporting
+allows a bounded reverse traversal to release unused ancestor holdings. Task zero
+is the exact validated captured root and can receive its Host-owned allocation
+token through the same retention operation. Its additional liveness condition
+restricts the original observation rather than replacing issuer verification.
+Closing root port zero drops the runner's source handle and revokes prepared reads;
+completed descendants and pending native cleanup keep its allocation charged.
+The runner does not close a borrowed issuer. Acquisition storage not attached to
+the ledger remains the caller's responsibility. A trusted Host exporting
 an output outside the run must keep its port open for that use; this mechanism
 does not discover arbitrary foreign references or promise immediate GC/RSS release.
 

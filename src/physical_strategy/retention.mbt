@@ -12,7 +12,7 @@ priv struct TaskRetention {
 ///|
 fn task_parent(run : CapturedDAG, task : Int) -> Int? {
   for edge in run.graph.data {
-    if edge.consumer == task && edge.producer != 0 {
+    if edge.consumer == task {
       return Some(edge.producer)
     }
   }
@@ -27,7 +27,9 @@ fn record_task_retention(run : CapturedDAG, task : Int) -> Unit {
 
 ///|
 /// Trusted Host accounting: associate its exact allocation token only after this
-/// task has established success. Sharing is by owned token, never equal CIDs.
+/// task has established success. Task zero is the validated captured root.
+/// Sharing is by owned token, never equal CIDs. The Host must keep this port
+/// open while exporting the allocation to users outside this run.
 pub fn retain_captured_task_allocation(
   run : CapturedDAG,
   task : Int,
@@ -59,13 +61,16 @@ pub fn retain_captured_task_allocation(
 /// Exporting a result outside this run requires the Host to keep its port open
 /// for that external use. This is not a GC/foreign-handle discovery mechanism.
 pub fn close_captured_task_output(run : CapturedDAG, task : Int) -> Unit {
-  if task <= 0 || task >= run.completed.length() {
+  if task < 0 || task >= run.completed.length() {
     return
   }
-  if !run.done[task] {
+  if !task_done(run, task) {
     return
   }
   run.lifetimes[task].live = false
+  if task == 0 {
+    run.source = None
+  }
   run.completed[task] = None
   // A cached binding is not a started consumer. Drop our revoked aliases;
   // an in-flight native attempt keeps its input until cleanup is confirmed.
@@ -83,7 +88,7 @@ pub fn close_captured_task_output(run : CapturedDAG, task : Int) -> Unit {
 fn collect_captured_retention(run : CapturedDAG) -> Unit {
   // Backward edges ensure one descending pass releases newly unreferenced
   // ancestors. This traversal is bounded by the checked graph's task limit.
-  for task = run.resources.length() - 1; task > 0; task = task - 1 {
+  for task = run.resources.length() - 1; task >= 0; task = task - 1 {
     guard !run.lifetimes[task].live && run.resources[task] is Some(resource) else {
       continue
     }

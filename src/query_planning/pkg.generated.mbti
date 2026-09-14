@@ -334,6 +334,8 @@ pub fn query_work_count(QueryRealization) -> Int
 
 pub fn receive_duckdb_compute_chunk(DuckDBComputeAttempt, Int, Array[@decode_core.Cursor]) -> Result[Unit, DuckDBComputeIssue]
 
+pub fn restrict_captured_source(CapturedInputSource, () -> Bool) -> CapturedInputSource
+
 pub fn retain_duckdb_broad_attempt(DuckDBBroadAttempt, QueryRetentionLimits) -> Result[DuckDBBroadRetention, DuckDBBroadAttemptIssue]
 
 pub fn retain_mock_query(MockQueryAttempt, MockRetentionLimits) -> Result[MockQueryRetention, MockRetentionIssue]

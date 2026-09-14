@@ -1,4 +1,67 @@
 ///|
+test "shared capture allocation stays charged through both branches and completed descendants" {
+  let (run, _) = captured_graph_fixture()
+  let ledger = @strategy.captured_dag_ledger(run)
+  let reservation = @strategy.reserve_attempt(ledger, 100L, 100L, 0L).unwrap()
+  @strategy.charge_transfer(ledger, reservation, 37L).unwrap()
+  let holding = @strategy.retain_allocation(ledger, reservation, 100L).unwrap()
+  @strategy.retain_captured_task_allocation(run, 0, holding).unwrap()
+  @strategy.settle_reservation(ledger, reservation).unwrap()
+  assert_true(
+    @strategy.retain_captured_task_allocation(run, 0, holding)
+    is Err(InvalidCharge),
+  )
+  captured_graph_local(run, 1).unwrap()
+  captured_graph_local(run, 2).unwrap()
+  captured_graph_local(run, 3).unwrap()
+  @strategy.close_captured_task_output(run, 0)
+  assert_true(@strategy.captured_task_completed(run, 0))
+  assert_eq(@strategy.ledger_usage(ledger).held_bytes, 23280100L)
+  @strategy.close_captured_task_output(run, 1)
+  @strategy.close_captured_task_output(run, 2)
+  assert_eq(@strategy.ledger_usage(ledger).held_bytes, 15520100L)
+  assert_eq(
+    @execution.completed_row_count(
+      @strategy.captured_task_output(run, 3, Step(1)).unwrap(),
+    ),
+    1,
+  )
+  @strategy.close_captured_task_output(run, 3)
+  assert_eq(@strategy.ledger_usage(ledger).held_bytes, 0L)
+  assert_eq(@strategy.ledger_usage(ledger).transferred_bytes, 37L)
+}
+
+///|
+test "closing the captured root revokes prepared reads without closing independent results" {
+  let (run, _) = captured_graph_fixture()
+  captured_graph_local(run, 1).unwrap()
+  let read = @strategy.captured_task_input(run, 2, 100, 10000).unwrap()
+  assert_true(@execution.producer_read_available(read))
+  @strategy.close_captured_task_output(run, 0)
+  assert_false(@execution.producer_read_available(read))
+  assert_true(@strategy.captured_task_input(run, 2, 100, 10000) is Err(_))
+  assert_true(@strategy.captured_task_output(run, 1, Step(1)) is Some(_))
+}
+
+///|
+test "closed capture stays held until an in-flight native consumer confirms cleanup" {
+  let (run, _) = captured_graph_fixture()
+  let ledger = @strategy.captured_dag_ledger(run)
+  let reservation = @strategy.reserve_attempt(ledger, 0L, 100L, 0L).unwrap()
+  let holding = @strategy.retain_allocation(ledger, reservation, 100L).unwrap()
+  @strategy.retain_captured_task_allocation(run, 0, holding).unwrap()
+  @strategy.settle_reservation(ledger, reservation).unwrap()
+  let transport : FixedComputeTestTransport = { settled: None, }
+  let attempt = captured_graph_duckdb_start(run, 1, transport)
+  @strategy.close_captured_task_output(run, 0)
+  @strategy.stop_captured_dag(run)
+  assert_eq(@strategy.ledger_usage(ledger).held_bytes, 100L)
+  @strategy.captured_cleanup_confirmed(run, attempt)
+  assert_eq(@strategy.ledger_usage(ledger).held_bytes, 0L)
+  assert_true(@strategy.captured_task_output(run, 1, Step(1)) is None)
+}
+
+///|
 test "native settlement preserves post-DB scratch and cannot enlarge or erase pending capacity" {
   let ledger = @strategy.create_ledger({
     planning_work: 10,

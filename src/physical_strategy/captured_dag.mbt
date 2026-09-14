@@ -4,7 +4,7 @@
 struct CapturedDAG {
   graph : CheckedDAG
   offer_owner : StrategyOfferOwner
-  source : @planning.CapturedInputSource
+  mut source : @planning.CapturedInputSource?
   ledger : Ledger
   completed : Array[TaskCompletion?]
   done : Array[Bool]
@@ -92,15 +92,21 @@ pub fn open_captured_dag(
       return Err(UnsupportedGraph)
     }
   }
+  let lifetimes = Array::makei(count, _ => TaskLifetime::{ live: true, })
+  let root_lifetime = lifetimes[0]
+  let resources : Array[TaskRetention?] = Array::make(count, None)
+  resources[0] = Some({ holding: None, parent: None, })
   Ok({
     graph,
     offer_owner: { graph, },
-    source,
+    source: Some(
+      @planning.restrict_captured_source(source, fn() { root_lifetime.live }),
+    ),
     ledger,
     completed: Array::make(count, None),
     done: Array::make(count, false),
-    lifetimes: Array::makei(count, _ => { live: true, }),
-    resources: Array::make(count, None),
+    lifetimes,
+    resources,
     inputs: Array::make(count, None),
     stopped: false,
     failure: None,
@@ -187,7 +193,11 @@ pub fn captured_task_input(
   let edge = selected.unwrap()
   let receiver = run.graph.owners[task]
   let bound = if edge.producer == 0 {
-    match @planning.bind_captured_source(run.source, receiver, edge.input) {
+    guard run.source is Some(source) else {
+      fail_captured_task(run, task, Capture(Unavailable))
+      return Err(Capture(Unavailable))
+    }
+    match @planning.bind_captured_source(source, receiver, edge.input) {
       Ok(bound) => bound
       Err(issue) => {
         fail_captured_task(run, task, Capture(issue))
