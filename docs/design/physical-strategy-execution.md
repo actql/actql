@@ -237,6 +237,13 @@ Before starting, the selected registration must still produce an eligible candid
 bound to the task's exact completed `ProducerRead` through existing admission.
 
 Search bounds offer count, combination count, traversal work and revision count.
+`max_revisions` bounds accepted search attempts, including unsuccessful or
+deferred searches, not only successful selections. Missing tasks, invalid offers
+and statically excessive combination counts are rejected by charged preflight;
+they can be corrected without fabricated resource progress. An accepted search
+immediately revokes the previous dispatch permission. Failure cannot restore it
+or repeat the accepted search in an unchanged execution/resource state. Selection
+history and spent planning work remain intact.
 Each remaining Compute needs one attempt and one holding record in this profile;
 already consumed records are included in feasibility and revision-state checks,
 even if their byte reservations have since been released.

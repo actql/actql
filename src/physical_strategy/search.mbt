@@ -225,9 +225,6 @@ pub fn revise_strategy(
     run.searched_resources == Some(resources) {
     return Err(UnchangedState)
   }
-  if run.revisions >= limits.max_revisions {
-    return Err(RevisionLimit)
-  }
   if offers.length() > limits.max_offers {
     return Err(OfferLimit)
   }
@@ -241,11 +238,6 @@ pub fn revise_strategy(
     Err(e) => return Err(e)
     Ok(_) => ()
   }
-  run.searched_generation = Some(run.generation)
-  run.searched_resources = Some(resources)
-  run.revisions += 1
-  run.search_report = []
-  run.search_report_complete = false
   let groups : Array[Array[TaskOffer]] = Array::makei(count, _ => [])
   for i, offer in offers {
     if !physical_equal(offer.owner, run.offer_owner) ||
@@ -275,6 +267,18 @@ pub fn revise_strategy(
     combinations *= groups[task].length()
     tasks.push(task)
   }
+  // Only a valid request consumes a search attempt. Invalid requests can be
+  // corrected without inventing execution progress; validation work is spent.
+  // Once accepted, revoke dispatch before enumeration (including failure).
+  run.searched_generation = Some(run.generation)
+  run.searched_resources = Some(resources)
+  run.strategy = None
+  if run.revisions >= limits.max_revisions {
+    return Err(RevisionLimit)
+  }
+  run.revisions += 1
+  run.search_report = []
+  run.search_report_complete = false
   let indices = Array::make(tasks.length(), 0)
   let feasible : Array[StrategyRevision] = []
   let durations = []

@@ -168,11 +168,16 @@ test "search limits and duplicate work cannot be bypassed by another revision" {
   )
   let work = @strategy.ledger_usage(@strategy.captured_dag_ledger(run)).planning_work
   assert_true(
-    @strategy.revise_strategy(run, offers, registry, None)
-    is Err(UnchangedState),
+    @strategy.revise_strategy(
+      run,
+      [offers[0], offers[2], offers[4]],
+      registry,
+      None,
+    )
+    is Ok(Selected(_)),
   )
-  assert_eq(
-    @strategy.ledger_usage(@strategy.captured_dag_ledger(run)).planning_work,
+  assert_true(
+    @strategy.ledger_usage(@strategy.captured_dag_ledger(run)).planning_work >
     work,
   )
   assert_true(
