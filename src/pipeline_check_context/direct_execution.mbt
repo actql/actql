@@ -112,5 +112,9 @@ fn direct_execution_candidate(
     Ok(None) => ()
     other => return other
   }
-  traversal_execution_check(site)
+  match traversal_execution_check(site) {
+    Ok(None) => ()
+    other => return other
+  }
+  reach_execution_check(site)
 }

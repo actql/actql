@@ -355,6 +355,16 @@ are not silently added. The pipeline exposes this Relation to ordinary typed
 consumers. Actual membership, minimum-depth traversal, canonical order,
 expansion journaling and Host/profile checks remain explicit obligations.
 
+`ReachExpansion` retains the static expansion recipe. `ReachExecution` separately
+binds Graph admission, start membership, bounded minimum-depth emission and
+canonical ordering to the exact checked reach operation and its primary input.
+Admission and membership precede traversal input use; absent starts fail rather
+than producing an empty relation. The output checks include the start at depth
+zero and retain the declared semantic node alias through the operation's output
+contract. Any failed check rejects the whole operation output. These bindings do
+not resolve exploration/output capacity or manufacture evidence of traversal,
+uniqueness or ordering at compile time.
+
 ## Typed graph equality
 
 `graphs_equal: {with: name}` resolves both Graph inputs and returns the complete

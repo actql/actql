@@ -2091,6 +2091,7 @@ pub(all) enum OperationExecutionCheck {
   TraversalLimits(TraversalLimitsCheck)
   TraversalOutputGuard(TraversalLimitsCheck)
   TraversalExecution(TraversalCheck)
+  ReachExecution(ReachCheck)
   GraphExecution(GraphExecutionCheck)
   GraphConstructionExecution(GraphConstructionCheck)
   GraphProjection(GraphProjectionCheck)
@@ -2613,6 +2614,14 @@ pub(all) struct PureOperationProfiles {
   text_rank : Bool
 } derive(Eq, @debug.Debug)
 
+pub struct ReachCheck {
+  site : OperationRequirementSite
+  step : @pipeline_typing.CheckedStep
+  input : @pipeline_typing.Target
+  operation : @graph_typing.CheckedReach
+  rule : ReachRule
+}
+
 pub struct ReachExpansion {
   requirement_index : Int
   site : OperationRequirementSite
@@ -2625,6 +2634,13 @@ pub struct ReachExpansion {
   maximum_hops : Double
   emission : @graph_typing.PathOutput
 }
+
+pub(all) enum ReachRule {
+  AdmitInputGraph
+  RequireStartMembership
+  EmitBoundedMinimumDepth
+  OrderReachRows
+} derive(Eq, @debug.Debug)
 
 type ReconciledContexts
 

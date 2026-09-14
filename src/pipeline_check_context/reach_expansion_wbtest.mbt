@@ -1,5 +1,5 @@
 ///|
-test "reach expansion is an owned static recipe without fabricated traversal evidence" {
+test "reach expansion and runtime checks retain one operation without fabricated execution evidence" {
   let fields = @carrier.rows(
     [],
     field_set=Closed,
@@ -62,6 +62,7 @@ test "reach expansion is an owned static recipe without fabricated traversal evi
       ).unwrap()
       let mut expansions = 0
       let mut remaining = 0
+      let mut runtime = 0
       for index in 0..<@pipeline.operation_obligations_count(obligations) {
         let site : OperationRequirementSite = {
           stage: 0,
@@ -72,6 +73,67 @@ test "reach expansion is an owned static recipe without fabricated traversal evi
           pipeline,
           obligations,
           requirement: @pipeline.operation_obligations_at(obligations, index).unwrap(),
+        }
+        match reach_execution_check(site).unwrap() {
+          None =>
+            assert_true(
+              site.requirement
+              is @pipeline.ReachRequirement(
+                JournalReachExpansion
+                | ResolveReachResources
+                | ResolveReachProfile
+              ),
+            )
+          Some(ReachExecution(check)) => {
+            runtime += 1
+            assert_true(physical_equal(check.site, site))
+            assert_true(physical_equal(check.step, step))
+            assert_true(physical_equal(check.operation, operation))
+            assert_eq(check.input, @pipeline.Input(0))
+            assert_eq(@graph.reach_direction(check.operation), expected)
+            assert_eq(@graph.reach_max_depth(check.operation), expected_depth)
+            assert_true(
+              @graph.reach_start(check.operation).value is Number(10.0),
+            )
+            let phase = match site.requirement {
+              @pipeline.ReachRequirement(AdmitReachGraph) => {
+                assert_eq(check.rule, ReachRule::AdmitInputGraph)
+                BeforeOperationInputUse
+              }
+              @pipeline.ReachRequirement(RequireReachStartMembership) => {
+                assert_eq(check.rule, RequireStartMembership)
+                BeforeOperationInputUse
+              }
+              @pipeline.ReachRequirement(BoundedMinimumDepthTraversal) => {
+                assert_eq(check.rule, EmitBoundedMinimumDepth)
+                BeforeOperationOutput
+              }
+              @pipeline.ReachRequirement(CanonicalReachOrder) => {
+                assert_eq(check.rule, OrderReachRows)
+                BeforeOperationOutput
+              }
+              _ => {
+                fail("unexpected semantic obligation")
+                BeforeOperationOutput
+              }
+            }
+            assert_eq(operation_execution_phase(ReachExecution(check)), phase)
+            assert_eq(
+              operation_execution_failure(ReachExecution(check)),
+              RejectOperationOutput,
+            )
+            for
+              invalid in [
+                { ..site, step: 99, },
+                { ..site, group: 1, },
+                { ..site, index: -1, },
+              ] {
+              assert_true(
+                reach_execution_check(invalid) is Err(ForeignOccurrence(_)),
+              )
+            }
+          }
+          _ => fail("wrong execution variant")
         }
         match reach_expansion(site, index).unwrap() {
           None => remaining += 1
@@ -123,6 +185,7 @@ test "reach expansion is an owned static recipe without fabricated traversal evi
         }
       }
       assert_eq(expansions, 1)
+      assert_eq(runtime, 4)
       // Admission, membership, traversal semantics, order, resources and profile
       // do not become resolved merely because a macro recipe has been selected.
       assert_eq(remaining, 6)

@@ -29,7 +29,7 @@ fn traversal_execution_check(
     return Ok(None)
   }
   let rule : TraversalRule = match pending {
-    AdmitTraversalGraph => AdmitInputGraph
+    AdmitTraversalGraph => TraversalRule::AdmitInputGraph
     RespectTraversalHopBounds => RespectAuthoredHops
     EvaluateTraversalHopPredicates => EvaluateHopConditions
     EmitMinimumNodeDepth => EmitMinimumDepth
