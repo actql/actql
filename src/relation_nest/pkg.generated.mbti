@@ -20,6 +20,10 @@ pub fn into(CheckedNest) -> String
 
 pub fn item_guard(CheckedNest) -> Guard?
 
+pub fn key_at(CheckedNest, Int) -> KeyPair?
+
+pub fn key_count(CheckedNest) -> Int
+
 pub fn keys(CheckedNest) -> Array[KeyPair]
 
 pub fn order(CheckedNest) -> Array[OrderTerm]?

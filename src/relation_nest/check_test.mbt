@@ -94,6 +94,21 @@ test "nest wide repeated correlations and output aliases are budgeted and detach
   )
   let v = @relation_nest.check(body, schema(), schema(), None, limits()).unwrap()
   assert_eq(@relation_nest.keys(v).length(), 10000)
+  assert_eq(@relation_nest.key_count(v), 10000)
+  for i in 0..<10000 {
+    let pair = @relation_nest.key_at(v, i).unwrap()
+    assert_eq(pair.left, @schema.Unqualified("id"))
+    assert_eq(pair.right, @schema.Unqualified("id"))
+    assert_true(physical_equal(pair, @relation_nest.key_at(v, i).unwrap()))
+  }
+  for i in [-1, 10000, 2147483647] {
+    assert_true(@relation_nest.key_at(v, i) is None)
+  }
+  let detached_keys = @relation_nest.keys(v)
+  let last = @relation_nest.key_at(v, 9999).unwrap()
+  detached_keys.clear()
+  assert_eq(@relation_nest.key_count(v), 10000)
+  assert_true(physical_equal(last, @relation_nest.key_at(v, 9999).unwrap()))
   let projection = @relation_nest.projection(v)
   projection[0] = projection[1]
   assert_eq(@relation_nest.projection(v)[0].output, "z")

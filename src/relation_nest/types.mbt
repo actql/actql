@@ -129,6 +129,18 @@ pub fn keys(v : CheckedNest) -> Array[KeyPair] {
 }
 
 ///|
+/// O(1), retaining repeated authored correlation pairs.
+pub fn key_count(v : CheckedNest) -> Int {
+  v.keys.length()
+}
+
+///|
+/// O(1); invalid indices return None. Does not copy the correlation array.
+pub fn key_at(v : CheckedNest, index : Int) -> KeyPair? {
+  v.keys.get(index)
+}
+
+///|
 pub fn projection(v : CheckedNest) -> Array[Projection] {
   v.projection.copy()
 }
