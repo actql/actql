@@ -29,6 +29,7 @@ fn checked_direct_program_fixture(
   nest_guard? : String? = None,
   temporal_step? : String = "",
   event_kind? : String = "",
+  window_steps? : String = "",
   numeric_profile? : @numeric.Profile? = None,
 ) -> CheckedProgram raise {
   let original_text =
@@ -38,7 +39,9 @@ fn checked_direct_program_fixture(
     new="\"" + input_name + "\"",
   )
   let program = @syntax.parse(
-    if event_kind != "" {
+    if window_steps != "" {
+      text.replace(old="\"steps\":[", new="\"steps\":[" + window_steps + ",")
+    } else if event_kind != "" {
       let middle = match event_kind {
         "bridge" => ""
         "mark" | "drop" =>
@@ -379,12 +382,12 @@ fn checked_direct_program_fixture(
     {
       rela: true,
       sga: false,
-      tea: temporal_step != "" || event_kind != "",
+      tea: temporal_step != "" || event_kind != "" || window_steps != "",
       calendar: false,
       text_rank: false,
     },
     source_limits_fixture(
-      if temporal_step != "" {
+      if temporal_step != "" || window_steps != "" {
         6
       } else if join_kind != "" ||
         mix_generated ||
@@ -398,7 +401,8 @@ fn checked_direct_program_fixture(
         watermark_body != "" ||
         nest_guard is Some(_) ||
         temporal_step != "" ||
-        event_kind != "" {
+        event_kind != "" ||
+        window_steps != "" {
         4
       } else {
         2

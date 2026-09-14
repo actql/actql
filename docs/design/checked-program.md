@@ -558,6 +558,13 @@ Event admission, ID uniqueness, clock conversion, resource envelopes and session
 checks remain separate obligations on those same owned operations. Projection
 does not create missing field evidence or authorize backend execution.
 
+Relation and Events windows retain input policy through that same indexed
+Carrier-step reader. Their size, step and offset values are not policy
+attestations; missing value provenance remains unknown. Window grouping reuses
+the checked aggregate provenance traversal, while retaining its distinct
+WindowGroup operation and boundary roles. Window membership, expansion limits
+and aggregate execution checks remain attached to the original owned operations.
+
 Result imports retain the producer's completed publication through
 `publication_policy_import_count/at`, including the consumer input coordinate.
 `imported_publication` is a convenience only for exactly one import.

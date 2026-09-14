@@ -544,7 +544,7 @@ fn prepare_publication_source_policy(
             unknown = true
             0
           }
-          @pipeline.Unary(operation) => {
+          @pipeline.Unary(operation) | @pipeline.WindowGroup(operation) => {
             match @relation.operation(operation) {
               Select | Rename | Drop | Sort | Distinct | DedupeRows => ()
               WatermarkRows => {
@@ -781,6 +781,16 @@ fn prepare_publication_source_policy(
               unknown_provenance: missing,
             })
             unknown = unknown || missing
+            1
+          }
+          @pipeline.Window(_) => {
+            identity_charge(budget, 1)
+            carrier_steps.push({
+              step: index,
+              operation: step.operation,
+              unknown_provenance: true,
+            })
+            unknown = true
             1
           }
           @pipeline.Projection(_) => {
